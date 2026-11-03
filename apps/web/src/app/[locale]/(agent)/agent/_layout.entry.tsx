@@ -4,6 +4,7 @@ import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
 import { toClientShellUser } from '@/components/shell/client-shell-user';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { AGENT_NAMESPACES, pickMessages } from '@/i18n/messages';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { requireEffectivePortalAccessOrNotFound } from '@/server/auth/effective-portal-access';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { getMessages, setRequestLocale } from 'next-intl/server';
@@ -23,10 +24,12 @@ export default async function AgentLayout({
   const sessionNonNull = requireSessionOrRedirect(session, locale);
   await requireEffectivePortalAccessOrNotFound(sessionNonNull, ['agent']);
 
+  const authorized =
+    sessionNonNull.user.id && sessionNonNull.user.tenantId ? await authorizeSessionTenant() : null;
   const agentTier = sessionNonNull.user.id
     ? await getAgentTier({
         agentId: sessionNonNull.user.id,
-        tenantId: sessionNonNull.user.tenantId,
+        authority: authorized?.authority ?? null,
       })
     : 'standard';
   const shellUser = toClientShellUser(sessionNonNull.user);

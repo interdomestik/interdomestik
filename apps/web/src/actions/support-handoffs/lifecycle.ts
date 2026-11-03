@@ -19,8 +19,9 @@ function getExpectedVersion(formData: FormData) {
 }
 
 export async function acceptSupportHandoff(formData: FormData) {
-  const { session, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders } = await getActionContext();
   await acceptSupportHandoffCore({
+    authority,
     handoffId: getString(formData, 'handoffId'),
     expectedVersion: getExpectedVersion(formData),
     requestHeaders,
@@ -29,8 +30,9 @@ export async function acceptSupportHandoff(formData: FormData) {
 }
 
 export async function reassignSupportHandoff(formData: FormData) {
-  const { session, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders } = await getActionContext();
   await reassignSupportHandoffCore({
+    authority,
     handoffId: getString(formData, 'handoffId'),
     expectedVersion: getExpectedVersion(formData),
     nextStaffId: getString(formData, 'nextStaffId'),
@@ -41,8 +43,9 @@ export async function reassignSupportHandoff(formData: FormData) {
 }
 
 export async function closeSupportHandoff(formData: FormData) {
-  const { session, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders } = await getActionContext();
   await closeSupportHandoffCore({
+    authority,
     handoffId: getString(formData, 'handoffId'),
     expectedVersion: getExpectedVersion(formData),
     reason: getString(formData, 'reason'),

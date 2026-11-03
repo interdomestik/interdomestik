@@ -62,7 +62,10 @@ vi.mock('drizzle-orm', () => ({ isNull: vi.fn((column: unknown) => ({ isNull: co
 vi.mock('./access', () => ({ requireTenantAdminSession: vi.fn(async session => session) }));
 
 import { inArray } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { getUsersCore } from './get-users';
+
+const AUTHORITY = mintTestTenantAuthority('tenant_ks', { userId: 'admin-1', role: 'tenant_admin' });
 
 describe('admin user list RLS context', () => {
   beforeEach(() => {
@@ -77,13 +80,12 @@ describe('admin user list RLS context', () => {
   it('reads users and message counts in the same tenant-scoped transaction', async () => {
     const users = await getUsersCore({
       session: { user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' } },
+      authority: AUTHORITY,
       filters: { role: 'admin,staff' },
     });
 
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_ks', accessTenantId: 'tenant_ks', role: 'tenant_admin' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledOnce();
+    expect(mocks.withTenantContext.mock.calls[0][0]).toBe(AUTHORITY);
     expect(mocks.findMany).toHaveBeenCalledOnce();
     expect(mocks.select).toHaveBeenCalledOnce();
     expect(users).toEqual([
@@ -101,6 +103,7 @@ describe('admin user list RLS context', () => {
     expect(
       await getUsersCore({
         session: { user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' } },
+        authority: AUTHORITY,
       })
     ).toEqual([]);
     expect(mocks.select).not.toHaveBeenCalled();
@@ -108,6 +111,7 @@ describe('admin user list RLS context', () => {
   it('keeps lookup row shape without querying unread messages', async () => {
     const users = await getUsersCore({
       session: { user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' } },
+      authority: AUTHORITY,
       includeUnreadCounts: false,
     });
     expect(mocks.select).not.toHaveBeenCalled();
@@ -123,6 +127,7 @@ describe('admin user list RLS context', () => {
     mocks.orderBy.mockResolvedValue([{ userId: 'member-1', claimId: 'latest-claim', count: 5 }]);
     const users = await getUsersCore({
       session: { user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' } },
+      authority: AUTHORITY,
     });
     expect(inArray).toHaveBeenCalledWith('claims.userId', ['member-1', 'member-2']);
     expect(mocks.select).toHaveBeenCalledWith(
@@ -168,6 +173,7 @@ describe('admin user list RLS context', () => {
     mocks.orderBy.mockResolvedValue([]);
     const users = await getUsersCore({
       session: { user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' } },
+      authority: AUTHORITY,
     });
     expect(listQueryArgs()).not.toHaveProperty('with');
     expect(users).toEqual([
@@ -185,6 +191,7 @@ describe('admin user list RLS context', () => {
   it('keeps the list query tenant-scoped and ordered by newest first', async () => {
     await getUsersCore({
       session: { user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' } },
+      authority: AUTHORITY,
       filters: { role: 'admin,staff' },
     });
     const args = listQueryArgs();
@@ -195,5 +202,17 @@ describe('admin user list RLS context', () => {
       { desc: column => ({ desc: column }) }
     );
     expect(order).toEqual([{ desc: 'user.createdAt' }]);
+  });
+  it('fails closed when the admin scope names a tenant other than the session authority', async () => {
+    await expect(
+      getUsersCore({
+        session: { user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' } },
+        authority: mintTestTenantAuthority('tenant_mk', {
+          userId: 'admin-1',
+          role: 'tenant_admin',
+        }),
+      })
+    ).rejects.toThrow('Unauthorized');
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 });

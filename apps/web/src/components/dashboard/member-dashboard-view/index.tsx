@@ -1,4 +1,5 @@
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { parseSecureSaveCopy } from '@/app/[locale]/components/home/free-start-intake-shell/types';
 // prettier-ignore
 import { Bell, Car, ChevronRight, FileText, Handshake, MapPinned, Plane, ShieldAlert, UserRound } from 'lucide-react';
@@ -10,13 +11,14 @@ import { getCachedClaimDocumentCount } from './data';
 import { DocumentVaultSummary } from './document-vault-summary';
 import { getDraftManagerHref, getRoleRedirect } from './helpers';
 // prettier-ignore
-import { resolveClaimActionKind, resolveMemberHomeHero, type MemberHomeHeroModel } from './hero-resolver';
+import { resolveMemberHomeHero, type MemberHomeHeroModel } from './hero-resolver';
 import { MainServiceCard } from './main-service-card';
 import { MobileBottomNav } from './mobile-bottom-nav';
-import { NextStepCard, type NextStepModel } from './next-step-card';
+import { NextStepCard } from './next-step-card';
 import { PrimaryActionPanel } from './primary-action-panel';
 import { TrustStrip } from './trust-strip';
-import type { DashboardClaim, DashboardTranslator, MemberDashboardViewProps } from './types';
+import type { DashboardTranslator, MemberDashboardViewProps } from './types';
+import { getNextStep } from './next-step';
 
 export type { MemberDashboardViewProps } from './types';
 
@@ -187,14 +189,14 @@ t={t}
 }
 
 // prettier-ignore
-export async function getDashboardSupplementalData({ memberId, tenantId }: { memberId: string; tenantId: string | null }) {
-  if (!tenantId) {
+export async function getDashboardSupplementalData({ memberId, authority }: { memberId: string; authority: TenantAuthority | null }) {
+  if (!authority) {
     return [null, 0, false] as const;
   }
 
   const [subscriptionResult, documentsCountResult] = await Promise.allSettled([
-    getActiveSubscription(memberId, tenantId),
-    getCachedClaimDocumentCount(memberId, tenantId),
+    getActiveSubscription(memberId, authority),
+    getCachedClaimDocumentCount(memberId, authority),
   ]);
 
   if (subscriptionResult.status === 'rejected') {
@@ -352,76 +354,4 @@ className="flex min-h-14 w-full items-center justify-between rounded-[1.1rem] bg
 </div>
 </section>
 );
-}
-
-// prettier-ignore
-function getNextStep(params: { activeClaim: DashboardClaim | null; hasClaims: boolean; isActive: boolean; locale: string; t: DashboardTranslator }): NextStepModel {
-  const { activeClaim, hasClaims, isActive, locale, t } = params;
-
-  if (!isActive) {
-    return makeNextStep(
-      t,
-      'activate',
-      `/${locale}/member/membership`,
-      'next-step-activate-membership'
-    );
-  }
-
-  if (!hasClaims) {
-    return makeNextStep(
-      t,
-      'firstCase',
-      `/${locale}/member/claims/new`,
-      'next-step-open-first-case'
-    );
-  }
-
-  if (!activeClaim) {
-    return makeNextStep(t, 'history', `/${locale}/member/claims`);
-  }
-
-  const actionKind = resolveClaimActionKind(activeClaim);
-
-  if (actionKind === 'missing_documents') {
-    const uploadAction = activeClaim.nextMemberAction;
-    return makeNextStep(
-      t,
-      'missingDocs',
-      uploadAction?.href ?? `/${locale}/member/claims/${activeClaim.id}`,
-      'next-step-missingDocs',
-      uploadAction?.label
-    );
-  }
-
-  if (actionKind === 'authorization_needed') {
-    return makeNextStep(t, 'authorization', `/${locale}/member/claims/${activeClaim.id}`);
-  }
-
-  if (actionKind === 'member_action' && activeClaim.nextMemberAction) {
-    return makeNextStep(
-      t,
-      'memberAction',
-      activeClaim.nextMemberAction.href,
-      'next-step-memberAction',
-      activeClaim.nextMemberAction.label
-    );
-  }
-
-  return makeNextStep(t, 'review', `/${locale}/member/claims/${activeClaim.id}`);
-}
-
-function makeNextStep(
-  t: DashboardTranslator,
-  key: string,
-  href: string,
-  testId = `next-step-${key}`,
-  label?: string
-) {
-  return {
-    body: t(`nextStep.${key}.body`),
-    href,
-    label: label ?? t(`nextStep.${key}.cta`),
-    testId,
-    title: t(`nextStep.${key}.title`),
-  };
 }

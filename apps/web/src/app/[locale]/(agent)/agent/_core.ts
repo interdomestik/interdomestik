@@ -11,7 +11,7 @@ import type * as DatabaseModule from '@interdomestik/database';
 import { claimLifecycleStatusNotIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, eq, sql } from 'drizzle-orm';
 
-type DatabaseClient = typeof DatabaseModule.db;
+type DatabaseClient = typeof DatabaseModule.db | DatabaseModule.TenantTransaction;
 
 export interface AgentDashboardServices {
   db: DatabaseClient;

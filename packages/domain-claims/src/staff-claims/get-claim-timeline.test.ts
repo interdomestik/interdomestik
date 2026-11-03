@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
   claimStageHistory: mocks.claimStageHistory,
   eq: mocks.eq,
   and: mocks.and,
@@ -37,9 +38,13 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
 
+import { withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { getClaimTimeline } from './get-claim-timeline';
 
 describe('getClaimTimeline', () => {
+  const authority = mintTestTenantAuthority('tenant-ks');
+
   beforeEach(() => {
     mocks.db.select.mockReset();
     mocks.db.select.mockReturnValue(mocks.selectChain);
@@ -51,9 +56,10 @@ describe('getClaimTimeline', () => {
   it('returns empty array when claim is outside tenant scope', async () => {
     mocks.selectChain.orderBy.mockResolvedValue([]);
 
-    const result = await getClaimTimeline({ tenantId: 'tenant-ks', claimId: 'claim-1' });
+    const result = await getClaimTimeline({ authority, claimId: 'claim-1' });
 
     expect(result).toEqual([]);
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.withTenant).toHaveBeenCalledWith(
       'tenant-ks',
       mocks.claimStageHistory.tenantId,
@@ -64,7 +70,7 @@ describe('getClaimTimeline', () => {
   it('enforces deterministic ordering with createdAt desc and id desc tie-breaker', async () => {
     mocks.selectChain.orderBy.mockResolvedValue([]);
 
-    await getClaimTimeline({ tenantId: 'tenant-ks', claimId: 'claim-1' });
+    await getClaimTimeline({ authority, claimId: 'claim-1' });
 
     expect(mocks.selectChain.orderBy).toHaveBeenCalledWith(
       { column: mocks.claimStageHistory.createdAt, op: 'desc' },

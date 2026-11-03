@@ -1,4 +1,5 @@
 import { claimMessages, db } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { getMessagesForClaimCore } from '@interdomestik/domain-communications/messages/get';
 import { markMessagesAsReadCore } from '@interdomestik/domain-communications/messages/mark-read';
 import { sendMessageDbCore } from '@interdomestik/domain-communications/messages/send';
@@ -20,15 +21,22 @@ test.describe('Member case communication', () => {
       const session = {
         user: { id: fixture.memberId, role: 'member', tenantId: fixture.tenantId },
       };
-      const read = await getMessagesForClaimCore({ session, claimId: fixture.claimId });
+      const authority = mintTestTenantAuthority(fixture.tenantId, {
+        userId: fixture.memberId,
+        role: 'member',
+      });
+      const read = await getMessagesForClaimCore({ session, authority, claimId: fixture.claimId });
       expect(read.success).toBe(true);
       expect(read.messages?.map(message => message.id)).toEqual([fixture.messageIds[0]]);
       for (const claimId of fixture.deniedIds) {
-        expect((await getMessagesForClaimCore({ session, claimId })).success).toBe(false);
+        expect((await getMessagesForClaimCore({ session, authority, claimId })).success).toBe(
+          false
+        );
         expect(
           (
             await sendMessageDbCore({
               session,
+              authority,
               claimId,
               content: 'Denied write',
               requestHeaders: new Headers(),
@@ -40,6 +48,7 @@ test.describe('Member case communication', () => {
         (
           await sendMessageDbCore({
             session,
+            authority,
             claimId: fixture.claimId,
             content: 'Denied internal',
             isInternal: true,
@@ -48,10 +57,17 @@ test.describe('Member case communication', () => {
         ).success
       ).toBe(false);
       expect(
-        (await getMessagesForClaimCore({ session: null, claimId: fixture.claimId })).success
+        (
+          await getMessagesForClaimCore({
+            session: null,
+            authority: null,
+            claimId: fixture.claimId,
+          })
+        ).success
       ).toBe(false);
       expect(
-        (await markMessagesAsReadCore({ session, messageIds: fixture.messageIds })).success
+        (await markMessagesAsReadCore({ session, authority, messageIds: fixture.messageIds }))
+          .success
       ).toBe(true);
       const rows = await db
         .select()

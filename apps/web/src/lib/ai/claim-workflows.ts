@@ -3,6 +3,9 @@ import { downloadClaimAiFileWithRetry } from '@/lib/ai/claim-storage-download';
 import { ExtractionPipelineError, critiqueExtraction } from '@/lib/ai/extraction-pipeline';
 import { inngest } from '@/lib/inngest/client';
 import { throwTransientRetryFailure, withTransientRetry } from '@/lib/reliability/transient-retry';
+import { authorizeInngestEventTenant } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 import {
   extractClaimAiCandidate,
@@ -17,6 +20,7 @@ import { claimClaimAiRun, type ClaimAiWorkflow } from './claim-pipeline-run';
 
 type QueuedClaimAiRun = {
   runId: string;
+  tenantId: string;
   workflow: ClaimAiWorkflow;
   claimId: string;
   documentId: string;
@@ -67,10 +71,12 @@ export async function emitClaimAiRunRequestedService(queuedRun: QueuedClaimAiRun
 }
 
 export async function markClaimAiRunDispatchFailedService(args: {
+  authority: TenantAuthority;
   runId: string;
   message: string;
 }) {
   await markAiRunDispatchFailedWithTenantContext({
+    authority: args.authority,
     entityType: 'claim',
     errorCode: 'claim_ai_dispatch_failed',
     message: args.message,
@@ -78,8 +84,14 @@ export async function markClaimAiRunDispatchFailedService(args: {
   });
 }
 
+/**
+ * Runs one queued claim AI run for the tenant its Inngest event names. The tenant authority is
+ * derived here from the invocation's ingress capability, never accepted from the event payload.
+ */
 export async function processClaimDocumentWorkflowRunService(args: {
   runId: string;
+  ingress: IngressCapability<'inngest'>;
+  tenantId: string;
   retryFailed?: boolean;
   deps?: ProcessClaimDocumentWorkflowDeps;
 }): Promise<{
@@ -93,7 +105,11 @@ export async function processClaimDocumentWorkflowRunService(args: {
   const analyzePdf = args.deps?.analyzePdf ?? analyzeClaimDocumentAsText;
   const deps = { downloadFile, analyzePdf };
 
-  const claimed = await claimClaimAiRun(args.runId, { retryFailed: args.retryFailed === true });
+  const authority = await authorizeInngestEventTenant(args.ingress, args.tenantId);
+  const claimed = await claimClaimAiRun(args.runId, {
+    authority,
+    retryFailed: args.retryFailed === true,
+  });
   if (claimed.status === 'skipped') {
     return {
       status: 'skipped',

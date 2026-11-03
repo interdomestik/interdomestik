@@ -1,15 +1,15 @@
+import { and, eq, subscriptions, type DomainEventTx } from '@interdomestik/database';
+
 import {
-  and,
-  eq,
-  subscriptions,
-  withTenantContext,
-  type DomainEventTx,
-} from '@interdomestik/database';
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 
 import {
   lockSubscriptionEventOrder,
   type PaddleSubscriptionEventOrder,
 } from './subscription-event-order';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 /** Dunning state read under the row lock of the ordered past-due write. */
 export type LockedDunningState = {
@@ -36,61 +36,64 @@ export async function persistOrderedPastDueSubscription<
   order: PaddleSubscriptionEventOrder;
   providerSubscriptionId: string;
   subscriptionId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   buildState: (locked: LockedDunningState) => TState;
   persistEffects: (tx: DomainEventTx, state: TState) => Promise<void>;
 }): Promise<OrderedPastDueResult<TState>> {
+  const { tenantId } = readTenantAuthority(args.authority);
   // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context constrains the locked dunning update.
-  return withTenantContext(
-    { tenantId: args.tenantId, role: 'system' },
-    async (tx): Promise<OrderedPastDueResult<TState>> => {
-      const decision = await lockSubscriptionEventOrder(tx as DomainEventTx, {
-        order: args.order,
-        providerSubscriptionId: args.providerSubscriptionId,
-        requireExactAggregate: true,
-        subscriptionId: args.subscriptionId,
-        tenantId: args.tenantId,
-      });
-      if (decision.kind !== 'apply') return { kind: decision.kind };
+  return withTenantAuthority(args.authority, async (tx): Promise<OrderedPastDueResult<TState>> => {
+    const decision = await lockSubscriptionEventOrder(tx as DomainEventTx, {
+      order: args.order,
+      providerSubscriptionId: args.providerSubscriptionId,
+      requireExactAggregate: true,
+      subscriptionId: args.subscriptionId,
+      tenantId,
+    });
+    if (decision.kind !== 'apply') return { kind: decision.kind };
 
-      const rowScope = and(
-        eq(subscriptions.id, args.subscriptionId),
-        eq(subscriptions.tenantId, args.tenantId)
-      );
-      // db-access-guard: tenant-scoped -- reason: row already locked by this tenant-scoped transaction.
-      const [locked] = await tx
-        .select({
-          id: subscriptions.id,
-          tenantId: subscriptions.tenantId,
-          userId: subscriptions.userId,
-          dunningAttemptCount: subscriptions.dunningAttemptCount,
-          pastDueAt: subscriptions.pastDueAt,
-          gracePeriodEndsAt: subscriptions.gracePeriodEndsAt,
-        })
-        .from(subscriptions)
-        .where(rowScope);
-      if (!locked) {
-        throw new Error(`Paddle subscription ${args.providerSubscriptionId} lost its locked row`);
-      }
-
-      const state = args.buildState(locked);
-      // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context constrains dunning update.
-      const updatedRows = await tx
-        .update(subscriptions)
-        .set({
-          ...state.values,
-          providerEventOccurredAt: args.order.occurredAt,
-          providerEventId: args.order.providerEventId,
-        })
-        .where(rowScope)
-        .returning({ id: subscriptions.id });
-      if (updatedRows.length !== 1) {
-        throw new Error(
-          `Paddle subscription ${args.providerSubscriptionId} dunning update matched no tenant-scoped row`
-        );
-      }
-      await args.persistEffects(tx, state);
-      return { kind: 'apply', state };
+    const rowScope = and(
+      eq(subscriptions.id, args.subscriptionId),
+      eq(subscriptions.tenantId, tenantId)
+    );
+    // db-access-guard: tenant-scoped -- reason: row already locked by this tenant-scoped transaction.
+    const [locked] = await tx
+      .select({
+        id: subscriptions.id,
+        tenantId: subscriptions.tenantId,
+        userId: subscriptions.userId,
+        dunningAttemptCount: subscriptions.dunningAttemptCount,
+        pastDueAt: subscriptions.pastDueAt,
+        gracePeriodEndsAt: subscriptions.gracePeriodEndsAt,
+      })
+      .from(subscriptions)
+      .where(rowScope);
+    if (!locked) {
+      throw new Error(`Paddle subscription ${args.providerSubscriptionId} lost its locked row`);
     }
-  );
+    if (locked.tenantId !== tenantId) {
+      throw new Error(
+        `Paddle subscription ${args.providerSubscriptionId} tenant conflict: locked=${locked.tenantId} authority=${tenantId}`
+      );
+    }
+
+    const state = args.buildState(locked);
+    // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context constrains dunning update.
+    const updatedRows = await tx
+      .update(subscriptions)
+      .set({
+        ...state.values,
+        providerEventOccurredAt: args.order.occurredAt,
+        providerEventId: args.order.providerEventId,
+      })
+      .where(rowScope)
+      .returning({ id: subscriptions.id });
+    if (updatedRows.length !== 1) {
+      throw new Error(
+        `Paddle subscription ${args.providerSubscriptionId} dunning update matched no tenant-scoped row`
+      );
+    }
+    await args.persistEffects(tx, state);
+    return { kind: 'apply', state };
+  });
 }

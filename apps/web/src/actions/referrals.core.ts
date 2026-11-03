@@ -10,6 +10,6 @@ export type { ActionResult, ReferralLinkResult } from './referrals/types';
  * If the agent doesn't have a referral code, one is generated.
  */
 export async function getAgentReferralLink(): Promise<ActionResult<ReferralLinkResult>> {
-  const { session } = await getActionContext();
-  return getAgentReferralLinkCore({ session });
+  const { session, authority } = await getActionContext();
+  return getAgentReferralLinkCore({ session, authority });
 }

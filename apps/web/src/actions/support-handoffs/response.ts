@@ -15,8 +15,9 @@ function getExpectedVersion(formData: FormData) {
 }
 
 export async function updateSupportHandoffPublicResponse(formData: FormData) {
-  const { session, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders } = await getActionContext();
   await updateSupportHandoffPublicResponseCore({
+    authority,
     handoffId: getString(formData, 'handoffId'),
     expectedVersion: getExpectedVersion(formData),
     requestHeaders,

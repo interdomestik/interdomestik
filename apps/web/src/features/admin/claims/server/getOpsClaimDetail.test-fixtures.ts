@@ -1,3 +1,8 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi } from 'vitest';
 const hoisted = vi.hoisted(() => {
   const claimsFindFirst = vi.fn();
@@ -38,6 +43,7 @@ const hoisted = vi.hoisted(() => {
   return {
     claimsFindFirst,
     dbSelect,
+    delegateClaimHomeTenantRead: vi.fn(),
     eq,
     and,
     matchesAccessTenant: vi.fn((_table: unknown, tenantId: string) => `access:${tenantId}`),
@@ -80,6 +86,7 @@ vi.mock('../mappers/mapClaimToOperationalRow', () => ({
 
 vi.mock('@interdomestik/database', () => ({
   withTenantContext: hoisted.withTenantContext,
+  delegateClaimHomeTenantRead: hoisted.delegateClaimHomeTenantRead,
   and: hoisted.and,
   eq: hoisted.eq,
   claims: {
@@ -205,6 +212,24 @@ export function mockSelectChains() {
   return { docsWhere, noteWhere };
 }
 
+/** The session authority the admin claim page hands to getOpsClaimDetail. */
+export function opsAuthority(
+  user: { id?: string; role?: string; tenantId?: string } = {}
+): TenantAuthority {
+  return mintTestTenantAuthority(user.tenantId ?? 'tenant_ks', {
+    userId: user.id ?? 'admin-1',
+    role: user.role ?? 'admin',
+  });
+}
+
+/** Tenant and principal role of every authority the reads ran under, in order. */
+export function readContexts(): Array<{ tenantId: string; role: string | null | undefined }> {
+  return hoisted.withTenantContext.mock.calls.map(call => {
+    const descriptor = readTenantAuthority(call[0] as TenantAuthority);
+    return { tenantId: descriptor.tenantId, role: descriptor.principal?.role };
+  });
+}
+
 export function resetOpsClaimDetailMocks(): void {
   vi.clearAllMocks();
   hoisted.getSession.mockResolvedValue({
@@ -215,6 +240,16 @@ export function resetOpsClaimDetailMocks(): void {
     },
   });
   hoisted.claimsFindFirst.mockResolvedValue(createClaim());
+  // Delegates to the claim's home tenant with the caller's principal, as the kernel producer does.
+  hoisted.delegateClaimHomeTenantRead.mockImplementation((authority: TenantAuthority) => {
+    const { principal } = readTenantAuthority(authority);
+    return Promise.resolve(
+      mintTestTenantAuthority('tenant_home', {
+        userId: principal?.userId,
+        role: principal?.role,
+      })
+    );
+  });
   hoisted.withTenantContext.mockImplementation(
     async (_ctx: unknown, action: (tx: unknown) => unknown) =>
       await action({

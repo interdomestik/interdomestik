@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -9,7 +10,16 @@ const mocks = vi.hoisted(() => ({
   where: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
+  tenantTx: { query: undefined as unknown, update: undefined as unknown },
+  withTenantContext: vi.fn(),
 }));
+
+mocks.tenantTx.query = { subscriptions: { findFirst: mocks.findSubscriptionFirst } };
+mocks.tenantTx.update = mocks.update;
+mocks.withTenantContext.mockImplementation(
+  async (_context: unknown, callback: (tx: typeof mocks.tenantTx) => unknown) =>
+    callback(mocks.tenantTx)
+);
 
 vi.mock('./subscription/context', () => ({
   getActionContext: mocks.getActionContext,
@@ -30,6 +40,7 @@ vi.mock('@interdomestik/database', () => ({
     update: mocks.update,
   },
   eq: mocks.eq,
+  withTenantContext: mocks.withTenantContext,
   subscriptions: {
     id: 'subscriptions.id',
     userId: 'subscriptions.user_id',
@@ -38,6 +49,8 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 import { activateSponsoredMembership } from './subscription.core';
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('subscription.core activateSponsoredMembership', () => {
   beforeEach(() => {
@@ -50,7 +63,7 @@ describe('subscription.core activateSponsoredMembership', () => {
   });
 
   it('returns Unauthorized when session is missing', async () => {
-    mocks.getActionContext.mockResolvedValue({ session: null });
+    mocks.getActionContext.mockResolvedValue({ session: null, authority: null });
 
     await expect(activateSponsoredMembership('sub-1')).resolves.toEqual({
       error: 'Unauthorized',
@@ -65,6 +78,7 @@ describe('subscription.core activateSponsoredMembership', () => {
           tenantId: 'tenant-1',
         },
       },
+      authority,
     });
     mocks.findSubscriptionFirst.mockResolvedValue({
       id: 'sub-1',
@@ -90,6 +104,7 @@ describe('subscription.core activateSponsoredMembership', () => {
         currentPeriodEnd: expect.any(Date),
       })
     );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.revalidatePath).toHaveBeenCalled();
   });
 });

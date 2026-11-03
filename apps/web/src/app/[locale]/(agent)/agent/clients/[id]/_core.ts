@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database/db';
+import type { db } from '@interdomestik/database/db';
 import {
   agentClients,
   memberActivities,
@@ -6,10 +6,15 @@ import {
   userNotificationPreferences,
   user as userTable,
 } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { getAgentMemberDetail } from '@interdomestik/domain-agent';
 import { and, desc, eq } from 'drizzle-orm';
 
 import { getAgentClientClaimSummary, type AgentClientClaimCounts } from './_claim-summary';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 export type { AgentClientClaimCounts } from './_claim-summary';
 
 const membershipStatusStyles: Record<string, string> = {
@@ -37,40 +42,42 @@ export type AgentClientProfileOk = {
 };
 
 export type AgentClientProfileResult =
-  | { kind: 'not_found' }
-  | { kind: 'forbidden' }
-  | AgentClientProfileOk;
+  { kind: 'not_found' } | { kind: 'forbidden' } | AgentClientProfileOk;
 
 export async function getAgentClientProfileCore(args: {
   memberId: string;
-  viewer: { id: string; role?: string | null; tenantId?: string | null };
+  viewer: { id: string; role?: string | null };
+  /** The viewer session's tenant authority; null when the viewer carries no tenant. */
+  authority: TenantAuthority | null;
 }): Promise<AgentClientProfileResult> {
-  const { memberId, viewer } = args;
-  const tenantId = viewer.tenantId ?? null;
+  const { memberId, viewer, authority } = args;
 
-  if (!tenantId) {
+  if (!authority) {
     return { kind: 'forbidden' };
   }
 
-  const member = await fetchMember(memberId, tenantId);
+  const { tenantId } = readTenantAuthority(authority);
+  const member = await fetchMember(memberId, authority);
 
   if (!member) {
     return { kind: 'not_found' };
   }
 
   if (viewer.role === 'agent') {
-    const assignments = await db
-      .select()
-      .from(agentClients)
-      .where(
-        and(
-          eq(agentClients.tenantId, tenantId),
-          eq(agentClients.agentId, viewer.id),
-          eq(agentClients.memberId, member.id),
-          eq(agentClients.status, 'active')
+    const assignments = await withTenantAuthority(authority, tx =>
+      tx
+        .select()
+        .from(agentClients)
+        .where(
+          and(
+            eq(agentClients.tenantId, tenantId),
+            eq(agentClients.agentId, viewer.id),
+            eq(agentClients.memberId, member.id),
+            eq(agentClients.status, 'active')
+          )
         )
-      )
-      .limit(1);
+        .limit(1)
+    );
 
     if (assignments.length === 0) {
       // Auth widening (Phase C pilot):
@@ -80,7 +87,7 @@ export async function getAgentClientProfileCore(args: {
       try {
         assignment = await getAgentMemberDetail({
           agentId: viewer.id,
-          tenantId,
+          authority,
           memberId: member.id,
         });
       } catch {
@@ -96,30 +103,39 @@ export async function getAgentClientProfileCore(args: {
   }
 
   const [subscription, preferences, claimSummary, activities] = await Promise.all([
-    db.query.subscriptions.findFirst({
-      where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, tenantId)),
-      orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
-    }),
-    db.query.userNotificationPreferences.findFirst({
-      where: and(
-        eq(userNotificationPreferences.userId, member.id),
-        eq(userNotificationPreferences.tenantId, tenantId)
-      ),
-    }),
-    getAgentClientClaimSummary(member.id, tenantId),
-    db.query.memberActivities.findMany({
-      where: and(eq(memberActivities.memberId, member.id), eq(memberActivities.tenantId, tenantId)),
-      orderBy: [desc(memberActivities.occurredAt)],
-      with: {
-        agent: {
-          columns: {
-            id: true,
-            name: true,
-            email: true,
+    withTenantAuthority(authority, tx =>
+      tx.query.subscriptions.findFirst({
+        where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, tenantId)),
+        orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
+      })
+    ),
+    withTenantAuthority(authority, tx =>
+      tx.query.userNotificationPreferences.findFirst({
+        where: and(
+          eq(userNotificationPreferences.userId, member.id),
+          eq(userNotificationPreferences.tenantId, tenantId)
+        ),
+      })
+    ),
+    getAgentClientClaimSummary(member.id, authority),
+    withTenantAuthority(authority, tx =>
+      tx.query.memberActivities.findMany({
+        where: and(
+          eq(memberActivities.memberId, member.id),
+          eq(memberActivities.tenantId, tenantId)
+        ),
+        orderBy: [desc(memberActivities.occurredAt)],
+        with: {
+          agent: {
+            columns: {
+              id: true,
+              name: true,
+              email: true,
+            },
           },
         },
-      },
-    }),
+      })
+    ),
   ]);
 
   const rawStatus = (subscription as { status?: string | null } | null | undefined)?.status;
@@ -140,20 +156,23 @@ export async function getAgentClientProfileCore(args: {
   };
 }
 
-async function fetchMember(memberId: string, tenantId: string) {
-  return db.query.user.findFirst({
-    where: and(eq(userTable.id, memberId), eq(userTable.tenantId, tenantId)),
-    with: {
-      agent: {
-        columns: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
+async function fetchMember(memberId: string, authority: TenantAuthority) {
+  const { tenantId } = readTenantAuthority(authority);
+  return withTenantAuthority(authority, tx =>
+    tx.query.user.findFirst({
+      where: and(eq(userTable.id, memberId), eq(userTable.tenantId, tenantId)),
+      with: {
+        agent: {
+          columns: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
         },
       },
-    },
-  });
+    })
+  );
 }
 
 export type MemberRecord = NonNullable<Awaited<ReturnType<typeof fetchMember>>>;

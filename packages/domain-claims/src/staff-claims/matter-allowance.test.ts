@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TenantTransaction } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 
 function createSelectChain() {
   return {
@@ -9,6 +10,7 @@ function createSelectChain() {
   };
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
 const NOW = new Date('2026-03-14T12:00:00.000Z');
 
 const mocks = vi.hoisted(() => {
@@ -18,6 +20,7 @@ const mocks = vi.hoisted(() => {
 
   return {
     db: { select: vi.fn() },
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
     subscriptions: columns,
     serviceUsage: columns,
     subscriptionQuery,
@@ -84,10 +87,11 @@ describe('allowance visibility', () => {
     ]);
     mocks.usageQuery.limit.mockResolvedValue([{ count: test.count }]);
     const result = await getMatterAllowanceVisibilityForUser({
-      tenantId: 'tenant-1',
+      authority,
       userId: 'member-1',
       now: NOW,
     });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(result).toEqual({
       allowanceTotal: test.allowanceTotal,
       consumedCount: test.count,
@@ -107,7 +111,7 @@ describe('allowance visibility', () => {
     mocks.subscriptionQuery.limit.mockResolvedValue([]);
 
     const result = await getMatterAllowanceVisibilityForUser({
-      tenantId: 'tenant-1',
+      authority,
       userId: 'member-3',
       now: NOW,
     });

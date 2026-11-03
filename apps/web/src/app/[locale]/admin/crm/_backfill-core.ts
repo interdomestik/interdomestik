@@ -1,15 +1,14 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { z } from 'zod';
 
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 
 import {
-  CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_DAYS,
   CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_WORK_ITEMS_PER_DATE,
   CrmForecastSnapshotBackfillCoreError,
   assertNoCrmForecastSnapshotBackfillPiiKeys,
   runCrmForecastSnapshotBackfillCore,
-  type CrmForecastSnapshotBackfillDateResult,
-  type CrmForecastSnapshotBackfillResult,
 } from '../../../api/cron/crm/forecast-snapshots/backfill/_core';
 export { CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_WORK_ITEMS_PER_DATE as ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_MAX_WORK_ITEMS_PER_DATE } from '../../../api/cron/crm/forecast-snapshots/backfill/_core';
 import {
@@ -22,16 +21,12 @@ import {
   ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_RATE_LIMIT_WINDOW_SECONDS,
   ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_WRITE_RATE_LIMIT,
   type AdminCrmForecastBackfillOperatorActionResult,
-  type AdminCrmForecastBackfillOperatorDateRow,
   type AdminCrmForecastBackfillOperatorErrorCode,
   type AdminCrmForecastBackfillOperatorMode,
   type AdminCrmForecastBackfillOperatorRequest,
-  type AdminCrmForecastBackfillOperatorResult,
-  type AdminCrmForecastBackfillOperatorResultStatus,
 } from './_backfill-types';
-
-export const ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_MAX_DATE_ROWS =
-  CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_DAYS;
+import { projectBackfillResult, logOperatorResult } from './_backfill-result';
+export { ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_MAX_DATE_ROWS } from './_backfill-result';
 
 export const ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_ALLOWED_SESSION_ROLES = [
   'admin',
@@ -103,13 +98,18 @@ export interface RunAdminCrmForecastBackfillOperatorCoreDeps {
 
 export async function runAdminCrmForecastBackfillOperatorCore(
   args: {
+    /** The session tenant authority the backfill runs under; the form's tenantId never selects one. */
+    authority: TenantAuthority | null;
     input: unknown;
     session: AdminCrmForecastBackfillOperatorSession | null;
   },
   deps: RunAdminCrmForecastBackfillOperatorCoreDeps = {}
 ): Promise<AdminCrmForecastBackfillOperatorActionResult> {
   const actor = resolveAdminActor(args.session);
-  if (!actor) return errorResult('unauthorized');
+  if (!actor || !args.authority) return errorResult('unauthorized');
+  if (readTenantAuthority(args.authority).tenantId !== actor.tenantId) {
+    return errorResult('unauthorized');
+  }
 
   const parsed = actionInputSchema.safeParse(args.input);
   if (!parsed.success) return errorResult(validationErrorCode(parsed.error));
@@ -142,6 +142,7 @@ export async function runAdminCrmForecastBackfillOperatorCore(
   try {
     return await runAndProjectBackfill({
       actorId: actor.actorId,
+      authority: args.authority,
       confirmationStore,
       consumedTokenId: confirmation.tokenId,
       logger: deps.logger ?? console,
@@ -254,6 +255,7 @@ function consumeWriteConfirmation(args: {
 
 async function runAndProjectBackfill(args: {
   actorId: string;
+  authority: TenantAuthority;
   confirmationStore: AdminCrmForecastBackfillConfirmationStore;
   consumedTokenId: string | null;
   logger: Pick<Console, 'error' | 'info' | 'warn'>;
@@ -264,11 +266,11 @@ async function runAndProjectBackfill(args: {
   tuple: AdminCrmForecastBackfillConfirmationTuple;
 }): Promise<AdminCrmForecastBackfillOperatorActionResult> {
   const coreResult = await args.runBackfillCore({
+    authority: args.authority,
     dryRun: args.mode === 'dry_run',
     fromDate: args.request.fromDate,
     maxWorkItemsPerDate: args.request.maxWorkItemsPerDate,
     now: args.now,
-    tenantId: args.request.tenantId,
     toDate: args.request.toDate,
   });
   const projected = projectBackfillResult({
@@ -291,96 +293,6 @@ async function runAndProjectBackfill(args: {
   return { result: projected, success: true };
 }
 
-function projectBackfillResult(args: {
-  confirmationStore: AdminCrmForecastBackfillConfirmationStore;
-  coreResult: CrmForecastSnapshotBackfillResult;
-  generatedAt: string;
-  mode: AdminCrmForecastBackfillOperatorMode;
-  tuple: AdminCrmForecastBackfillConfirmationTuple;
-}): AdminCrmForecastBackfillOperatorResult {
-  const status = aggregateStatus(args.coreResult);
-  const confirmationToken =
-    args.mode === 'dry_run' && status !== 'failed'
-      ? args.confirmationStore.create(args.tuple, args.coreResult.completedAt)
-      : null;
-  const dateRows = args.coreResult.dateResults
-    .map(projectDateRow)
-    .sort((left, right) => left.snapshotDate.localeCompare(right.snapshotDate))
-    .slice(0, ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_MAX_DATE_ROWS);
-
-  return {
-    confirmationToken,
-    dateRows,
-    datesCompleted: args.coreResult.dateResults.filter(
-      row => row.status === 'completed' || row.status === 'dry_run'
-    ).length,
-    datesConsidered: args.coreResult.datesConsidered,
-    datesDeferred: args.coreResult.datesDeferred,
-    datesFailed: args.coreResult.datesFailed,
-    datesPartial: args.coreResult.dateResults.filter(row => row.status === 'partial').length,
-    fromDate: args.coreResult.fromDate,
-    generatedAt: args.generatedAt,
-    mode: args.mode,
-    snapshotVersionConflicts: args.coreResult.versionConflicts,
-    snapshotsInserted: args.mode === 'dry_run' ? 0 : args.coreResult.snapshotsInserted,
-    sourceRunId: args.coreResult.sourceRunId ?? null,
-    status,
-    tenantId: args.coreResult.tenantId,
-    toDate: args.coreResult.toDate,
-    workItemsConsidered: args.coreResult.workItemsConsidered,
-    workItemsDeferred: args.coreResult.workItemsDeferred,
-    workItemsFailed: args.coreResult.failedWorkItems,
-    workItemsSucceeded: args.coreResult.workItemsSucceeded,
-  };
-}
-
-function aggregateStatus(
-  result: CrmForecastSnapshotBackfillResult
-): AdminCrmForecastBackfillOperatorResultStatus {
-  if (result.datesConsidered > 0 && result.datesFailed === result.datesConsidered) {
-    return 'failed';
-  }
-  if (
-    result.datesDeferred > 0 ||
-    result.datesFailed > 0 ||
-    result.failedWorkItems > 0 ||
-    result.workItemsDeferred > 0
-  ) {
-    return 'partial';
-  }
-  return 'completed';
-}
-
-function projectDateRow(
-  row: CrmForecastSnapshotBackfillDateResult
-): AdminCrmForecastBackfillOperatorDateRow {
-  return {
-    failedWorkItems: row.failedWorkItems,
-    snapshotDate: row.snapshotDate,
-    snapshotsInserted: row.snapshotsInserted,
-    status: projectDateStatus(row.status),
-    versionConflicts: row.versionConflicts,
-    workItemsConsidered: row.workItemsConsidered,
-    workItemsDeferred: row.workItemsDeferred,
-    workItemsSucceeded: row.workItemsSucceeded,
-  };
-}
-
-function projectDateStatus(
-  status: CrmForecastSnapshotBackfillDateResult['status']
-): AdminCrmForecastBackfillOperatorDateRow['status'] {
-  if (status === 'dry_run') return 'completed';
-  if (
-    status === 'completed' ||
-    status === 'deferred' ||
-    status === 'failed' ||
-    status === 'partial'
-  ) {
-    return status;
-  }
-  return 'partial';
-}
-
 function validationErrorCode(error: z.ZodError): AdminCrmForecastBackfillOperatorErrorCode {
   if (error.issues.some(issue => issue.path.join('.') === 'request.tenantId')) {
     return 'invalid_tenant';
@@ -400,32 +312,6 @@ function errorResult(
   errorCode: AdminCrmForecastBackfillOperatorErrorCode
 ): AdminCrmForecastBackfillOperatorActionResult {
   return { errorCode, result: null, success: false };
-}
-
-function logOperatorResult(
-  result: AdminCrmForecastBackfillOperatorResult,
-  args: {
-    actorId: string;
-    logger: Pick<Console, 'info' | 'warn'>;
-    tokenId: string | null;
-  }
-): void {
-  const payload = {
-    actorId: args.actorId,
-    confirmationTokenId: args.tokenId,
-    fromDate: result.fromDate,
-    mode: result.mode,
-    outcome: result.status,
-    snapshotsInserted: result.snapshotsInserted,
-    tenantId: result.tenantId,
-    toDate: result.toDate,
-    versionConflicts: result.snapshotVersionConflicts,
-  };
-  if (result.status === 'partial' || result.status === 'failed') {
-    args.logger.warn('[Admin CRM Forecast Backfill Operator] run completed with warnings', payload);
-  } else {
-    args.logger.info('[Admin CRM Forecast Backfill Operator] run completed', payload);
-  }
 }
 
 function collectKeys(value: unknown, keys: Set<string>): void {

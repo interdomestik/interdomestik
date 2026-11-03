@@ -2,6 +2,7 @@ import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import { logAuditEvent } from '@/lib/audit';
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { NextResponse } from 'next/server';
 
 import {
@@ -32,6 +33,11 @@ export async function POST(request: Request) {
       return tenant.response;
     }
 
+    const authorized = await authorizeSessionTenant(request.headers);
+    if (!authorized) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     let body: PushSubscriptionBody;
     try {
       body = await request.json();
@@ -41,7 +47,7 @@ export async function POST(request: Request) {
 
     const result = await upsertPushSubscriptionCore({
       userId: session.user.id,
-      tenantId: tenant.tenantId,
+      authority: authorized.authority,
       body,
     });
     if (result.status !== 200) {
@@ -49,6 +55,7 @@ export async function POST(request: Request) {
     }
 
     await logAuditEvent({
+      authority: authorized.authority,
       actorId: session.user.id,
       actorRole: (session.user as { role?: string | null })?.role ?? null,
       action: result.audit?.action ?? 'push_subscription.upsert',
@@ -87,6 +94,11 @@ export async function DELETE(request: Request) {
       return tenant.response;
     }
 
+    const authorized = await authorizeSessionTenant(request.headers);
+    if (!authorized) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     let body: { endpoint?: string };
     try {
       body = await request.json();
@@ -98,7 +110,7 @@ export async function DELETE(request: Request) {
 
     const result = await deletePushSubscriptionCore({
       userId: session.user.id,
-      tenantId: tenant.tenantId,
+      authority: authorized.authority,
       endpoint: endpoint ?? '',
     });
     if (result.status !== 200) {
@@ -106,6 +118,7 @@ export async function DELETE(request: Request) {
     }
 
     await logAuditEvent({
+      authority: authorized.authority,
       actorId: session.user.id,
       actorRole: (session.user as { role?: string | null })?.role ?? null,
       action: result.audit?.action ?? 'push_subscription.delete',

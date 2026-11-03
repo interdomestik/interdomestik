@@ -1,4 +1,8 @@
-import { and, db, desc, eq, sql, supportHandoffs } from '@interdomestik/database';
+import { and, desc, eq, sql, supportHandoffs } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { inArray, isNotNull, type SQL } from 'drizzle-orm';
@@ -12,6 +16,7 @@ import type {
   UpdateSupportHandoffPublicResponseResult,
 } from './types';
 import { ACTIVE_HANDOFF_STATUSES, MAX_PUBLIC_RESPONSE_LENGTH } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type StaffUser = SupportHandoffSession['user'] & { branchId?: string | null };
 
@@ -51,15 +56,18 @@ function buildBranchScope(branchId: string | null | undefined) {
 
 export async function updateSupportHandoffPublicResponseCore(
   params: UpdateSupportHandoffPublicResponseInput & {
+    authority: TenantAuthority | null;
     requestHeaders?: Headers;
     session: SupportHandoffSession | null;
   },
   deps: SupportHandoffDeps = {}
 ): Promise<SupportHandoffActionResult<UpdateSupportHandoffPublicResponseResult>> {
   const staffSession = requireStaffSession(params.session);
-  if (!staffSession) {
+  const authority = params.authority;
+  if (!staffSession || !authority) {
     return { success: false, error: 'Unauthorized' };
   }
+  const { tenantId } = readTenantAuthority(authority);
 
   const publicResponse = normalizePublicResponse(params.response);
   if (!publicResponse) {
@@ -68,34 +76,36 @@ export async function updateSupportHandoffPublicResponseCore(
 
   const now = new Date();
   const expectedVersion = params.expectedVersion ?? 0;
-  const updated = await db
-    .update(supportHandoffs)
-    .set({
-      publicResponse,
-      publicResponseAt: now,
-      publicResponseById: staffSession.user.id,
-      publicResponseVersion: sql`${supportHandoffs.publicResponseVersion} + 1`,
-      updatedAt: now,
-    })
-    .where(
-      withTenant(
-        staffSession.tenantId,
-        supportHandoffs.tenantId,
-        and(
-          eq(supportHandoffs.id, params.handoffId),
-          eq(supportHandoffs.status, 'accepted'),
-          eq(supportHandoffs.staffId, staffSession.user.id),
-          eq(supportHandoffs.publicResponseVersion, expectedVersion),
-          buildBranchScope(staffSession.user.branchId ?? null)
+  const updated = await withTenantAuthority(authority, tx =>
+    tx
+      .update(supportHandoffs)
+      .set({
+        publicResponse,
+        publicResponseAt: now,
+        publicResponseById: staffSession.user.id,
+        publicResponseVersion: sql`${supportHandoffs.publicResponseVersion} + 1`,
+        updatedAt: now,
+      })
+      .where(
+        withTenant(
+          tenantId,
+          supportHandoffs.tenantId,
+          and(
+            eq(supportHandoffs.id, params.handoffId),
+            eq(supportHandoffs.status, 'accepted'),
+            eq(supportHandoffs.staffId, staffSession.user.id),
+            eq(supportHandoffs.publicResponseVersion, expectedVersion),
+            buildBranchScope(staffSession.user.branchId ?? null)
+          )
         )
       )
-    )
-    .returning({
-      handoffId: supportHandoffs.id,
-      memberId: supportHandoffs.memberId,
-      publicResponseVersion: supportHandoffs.publicResponseVersion,
-      tenantId: supportHandoffs.tenantId,
-    });
+      .returning({
+        handoffId: supportHandoffs.id,
+        memberId: supportHandoffs.memberId,
+        publicResponseVersion: supportHandoffs.publicResponseVersion,
+        tenantId: supportHandoffs.tenantId,
+      })
+  );
 
   const row = updated[0];
   if (!row) {
@@ -106,7 +116,7 @@ export async function updateSupportHandoffPublicResponseCore(
     await deps.logAuditEvent({
       actorId: staffSession.user.id,
       actorRole: staffSession.user.role,
-      tenantId: staffSession.tenantId,
+      authority,
       action: 'support_handoff.public_response_updated',
       entityType: 'support_handoff',
       entityId: params.handoffId,
@@ -130,11 +140,12 @@ export async function updateSupportHandoffPublicResponseCore(
 }
 
 async function getLatestPublicResponseForScope(args: {
+  authority: TenantAuthority;
   claimId?: string | null;
   handoffId?: string | null;
   memberId: string;
-  tenantId: string;
 }): Promise<MemberSupportHandoffPublicResponse | null> {
+  const { tenantId } = readTenantAuthority(args.authority);
   const conditions: SQL<unknown>[] = [
     eq(supportHandoffs.memberId, args.memberId),
     inArray(supportHandoffs.status, ACTIVE_HANDOFF_STATUSES),
@@ -149,23 +160,25 @@ async function getLatestPublicResponseForScope(args: {
     conditions.push(eq(supportHandoffs.claimId, args.claimId));
   }
 
-  const rows = await db
-    .select({
-      handoffId: supportHandoffs.id,
-      publicResponse: supportHandoffs.publicResponse,
-      publicResponseAt: supportHandoffs.publicResponseAt,
-      publicResponseAcknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
-      publicResponseAcknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
-      publicResponseAcknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
-      publicResponseVersion: supportHandoffs.publicResponseVersion,
-      memberReply: supportHandoffs.memberReply,
-      memberReplyAt: supportHandoffs.memberReplyAt,
-      memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
-    })
-    .from(supportHandoffs)
-    .where(withTenant(args.tenantId, supportHandoffs.tenantId, and(...conditions)))
-    .orderBy(desc(supportHandoffs.publicResponseAt), desc(supportHandoffs.id))
-    .limit(1);
+  const rows = await withTenantAuthority(args.authority, tx =>
+    tx
+      .select({
+        handoffId: supportHandoffs.id,
+        publicResponse: supportHandoffs.publicResponse,
+        publicResponseAt: supportHandoffs.publicResponseAt,
+        publicResponseAcknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
+        publicResponseAcknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
+        publicResponseAcknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
+        publicResponseVersion: supportHandoffs.publicResponseVersion,
+        memberReply: supportHandoffs.memberReply,
+        memberReplyAt: supportHandoffs.memberReplyAt,
+        memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
+      })
+      .from(supportHandoffs)
+      .where(withTenant(tenantId, supportHandoffs.tenantId, and(...conditions)))
+      .orderBy(desc(supportHandoffs.publicResponseAt), desc(supportHandoffs.id))
+      .limit(1)
+  );
 
   const row = rows[0];
   if (!row?.publicResponse) {
@@ -193,16 +206,16 @@ async function getLatestPublicResponseForScope(args: {
 }
 
 export async function getMemberLatestPublicResponse(args: {
+  authority: TenantAuthority;
   claimId?: string | null;
   handoffId?: string | null;
   memberId: string;
-  tenantId: string;
 }): Promise<MemberSupportHandoffPublicResponse | null> {
   if (args.handoffId) {
     return getLatestPublicResponseForScope({
+      authority: args.authority,
       handoffId: args.handoffId,
       memberId: args.memberId,
-      tenantId: args.tenantId,
     });
   }
 
@@ -214,7 +227,7 @@ export async function getMemberLatestPublicResponse(args: {
   }
 
   return getLatestPublicResponseForScope({
+    authority: args.authority,
     memberId: args.memberId,
-    tenantId: args.tenantId,
   });
 }

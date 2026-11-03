@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it } from 'vitest';
 
 import { getAgentLeaderboardCore } from './get';
@@ -8,6 +9,7 @@ describe('getAgentLeaderboardCore', () => {
       session: {
         user: { id: 'user-1', role: 'user' },
       } as unknown as NonNullable<import('./context').Session>,
+      authority: mintTestTenantAuthority('tenant-1'),
       period: 'month',
     });
 

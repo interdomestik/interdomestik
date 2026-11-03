@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import postgres from 'postgres';
 import { expect, it, vi } from 'vitest';
 
@@ -21,8 +22,9 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
     const userId = `s6_user_${suffix}`;
     const subscriptionId = `s6_sub_${suffix}`;
     const tenantId = 'tenant_ks';
+    const authority = mintTestTenantAuthority(tenantId);
     const scope = {
-      tenantId,
+      authority,
       subscriptionId,
       providerSubscriptionId: subscriptionId,
       order: {
@@ -65,7 +67,7 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
         newDunningCount: (row.dunningAttemptCount ?? 0) + 1,
         gracePeriodEnd: new Date('2026-10-11T10:00:00Z'),
       });
-      await withTenantContext({ tenantId, role: 'system' }, async tx => {
+      await withTenantContext(authority, async tx => {
         const [posture] = await tx.execute(
           sql`select current_user as role, rolbypassrls, rolsuper from pg_roles where rolname = current_user`
         );
@@ -118,7 +120,12 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
         tenantId,
       };
       const admit = (input = receipt) => insertWebhookEvent(input);
-      const first = await admit();
+      const admitLease = async () => {
+        const admission = await admit();
+        if (!admission.inserted) throw new Error('expected the receipt to be admitted');
+        return admission;
+      };
+      const first = await admitLease();
       expect(first.inserted).toBe(true);
       await expect(handleOrderedPastDue(args)).rejects.toMatchObject({
         name: 'RetryablePaddleWebhookError',
@@ -129,21 +136,24 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
       await expect(admit()).rejects.toMatchObject({
         name: 'RetryablePaddleWebhookError',
       });
-      await admin`update webhook_events set received_at = now() - interval '6 minutes' where id = ${first.webhookEventRowId!}`;
+      await admin`update webhook_events set received_at = now() - interval '6 minutes' where id = ${first.webhookEventRowId}`;
       expect(await admit({ ...receipt, payloadHash: 'different' })).toMatchObject({
         inserted: false,
       });
-      expect(await admit()).toEqual(first);
+      // Reclaiming the abandoned receipt admits the same row under a new lease.
+      const reclaimed = await admitLease();
+      expect(reclaimed.webhookEventRowId).toBe(first.webhookEventRowId);
       deps.sendPreparedPastDueEmail.mockRejectedValueOnce(new Error('retryable sender outage'));
       const failure = await handleOrderedPastDue(args).catch(error => error);
       expect(isRetryablePaddleWebhookError(failure)).toBe(true);
       await markWebhookFailed({
         ...receipt,
-        webhookEventRowId: first.webhookEventRowId!,
+        receiptLease: reclaimed.receiptLease,
         error: failure,
         retryable: true,
       });
-      expect(await admit()).toEqual(first);
+      // A retryable failure is reclaimable again, still on the same receipt row.
+      expect((await admitLease()).webhookEventRowId).toBe(first.webhookEventRowId);
       const audit = await admin`select id from audit_log where entity_id = ${subscriptionId}`;
       const pending =
         await admin`select status from engagement_email_sends where subscription_id = ${subscriptionId}`;
@@ -191,10 +201,11 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
       expect(
         await admin`select status from engagement_email_sends where subscription_id = ${subscriptionId}`
       ).toMatchObject([{ status: 'sent' }]);
+      const otherAuthority = mintTestTenantAuthority('tenant_mk');
       await expect(
-        deliverPastDueEffects({ ...scope, tenantId: 'tenant_mk' }, deps)
+        deliverPastDueEffects({ ...scope, authority: otherAuthority }, deps)
       ).rejects.toThrow('no tenant-scoped row');
-      await withTenantContext({ tenantId: 'tenant_mk', role: 'system' }, async tx => {
+      await withTenantContext(otherAuthority, async tx => {
         expect(
           await tx.execute(
             sql`select id from engagement_email_sends where subscription_id = ${subscriptionId}`

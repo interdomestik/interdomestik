@@ -2,19 +2,20 @@ import {
   and,
   branches,
   claims,
-  db,
   desc,
   eq,
-  ilike,
   membershipPlans,
-  or,
   subscriptions,
   supportHandoffs,
   user,
 } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasSupportHandoffCurrentCycleMemberReply } from '@interdomestik/domain-crm/support-handoffs';
-import { aliasedTable, gt, isNotNull, isNull, type SQL } from 'drizzle-orm';
+import { aliasedTable, type SQL } from 'drizzle-orm';
 import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
 import type {
   SupportHandoffContactPreference,
@@ -26,8 +27,15 @@ import type {
   SupportHandoffTrustRisk,
   SupportHandoffUrgency,
 } from './types';
+import {
+  buildOwnOrUnassignedStaffScope,
+  buildStaffSupportHandoffQueueScope,
+  type SupportHandoffClaimLinkFilter,
+} from './queue-scope';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export type SupportHandoffClaimLinkFilter = 'all' | 'linked' | 'unlinked';
+export { buildStaffSupportHandoffQueueScope } from './queue-scope';
+export type { SupportHandoffClaimLinkFilter } from './queue-scope';
 
 function normalizeDate(value: Date | string | null | undefined) {
   if (!value) return new Date(0).toISOString();
@@ -50,126 +58,8 @@ function normalizeContactPreference(
   return 'staff_reply';
 }
 
-function normalizeSearch(value: string | null | undefined) {
-  const normalized = value?.trim().replace(/\s+/g, ' ').slice(0, 80);
-  return normalized && normalized.length >= 2 ? normalized : undefined;
-}
-
-function buildSearchCondition(term: string) {
-  const pattern = `%${term}%`;
-  return or(
-    ilike(supportHandoffs.subject, pattern),
-    ilike(supportHandoffs.message, pattern),
-    ilike(user.name, pattern),
-    ilike(user.email, pattern),
-    ilike(user.memberNumber, pattern),
-    ilike(claims.claimNumber, pattern),
-    ilike(claims.title, pattern)
-  );
-}
-
-function buildOwnOrUnassignedStaffScope(staffId: string): SQL<unknown> {
-  const scope = or(eq(supportHandoffs.staffId, staffId), isNull(supportHandoffs.staffId));
-  if (!scope) {
-    throw new Error('Expected own-or-unassigned support handoff scope');
-  }
-  return scope;
-}
-
-function buildNeedsFollowUpCondition(): SQL<unknown> {
-  return and(
-    eq(supportHandoffs.status, 'accepted'),
-    gt(supportHandoffs.publicResponseVersion, 0),
-    isNotNull(supportHandoffs.memberReplyAt),
-    eq(supportHandoffs.memberReplyResponseVersion, supportHandoffs.publicResponseVersion)
-  ) as SQL<unknown>;
-}
-
-function buildAssignmentCondition(args: {
-  assignment: SupportHandoffQueueAssignmentFilter;
-  branchId?: string | null;
-  staffId: string;
-  viewerRole?: string | null;
-}): SQL<unknown> | undefined {
-  if (args.assignment === 'mine') {
-    return eq(supportHandoffs.staffId, args.staffId);
-  }
-
-  if (args.assignment === 'unassigned') {
-    return isNull(supportHandoffs.staffId);
-  }
-
-  const shouldUseOwnOrUnassignedFallback =
-    args.viewerRole !== 'branch_manager' ||
-    (args.viewerRole === 'branch_manager' && args.branchId == null);
-
-  return shouldUseOwnOrUnassignedFallback
-    ? buildOwnOrUnassignedStaffScope(args.staffId)
-    : undefined;
-}
-
-function buildClaimLinkCondition(
-  claimLink: SupportHandoffClaimLinkFilter | undefined
-): SQL<unknown> | undefined {
-  if (claimLink === 'linked') {
-    return isNotNull(supportHandoffs.claimId);
-  }
-
-  return claimLink === 'unlinked' ? isNull(supportHandoffs.claimId) : undefined;
-}
-
-export function buildStaffSupportHandoffQueueScope(args: {
-  assignment: SupportHandoffQueueAssignmentFilter;
-  attention?: SupportHandoffQueueAttentionFilter;
-  branchId?: string | null;
-  claimLink?: SupportHandoffClaimLinkFilter;
-  search?: string;
-  staffId: string;
-  status?: SupportHandoffStatus | 'all';
-  tenantId: string;
-  urgency?: SupportHandoffUrgency | 'all';
-  viewerRole?: string | null;
-}) {
-  const conditions: SQL<unknown>[] = [];
-
-  if (args.attention !== 'needs_follow_up' && args.status && args.status !== 'all') {
-    conditions.push(eq(supportHandoffs.status, args.status));
-  }
-
-  if (args.urgency && args.urgency !== 'all') {
-    conditions.push(eq(supportHandoffs.urgency, args.urgency));
-  }
-
-  if (args.branchId != null) {
-    conditions.push(eq(supportHandoffs.branchId, args.branchId));
-  }
-
-  const assignmentCondition = buildAssignmentCondition(args);
-  if (assignmentCondition) conditions.push(assignmentCondition);
-
-  const claimLinkCondition = buildClaimLinkCondition(args.claimLink);
-  if (claimLinkCondition) conditions.push(claimLinkCondition);
-
-  if (args.attention === 'needs_follow_up') {
-    conditions.push(buildNeedsFollowUpCondition());
-  }
-
-  const search = normalizeSearch(args.search);
-  if (search) {
-    const searchCondition = buildSearchCondition(search);
-    if (searchCondition) {
-      conditions.push(searchCondition);
-    }
-  }
-
-  return withTenant(
-    args.tenantId,
-    supportHandoffs.tenantId,
-    conditions.length > 0 ? and(...conditions) : undefined
-  );
-}
-
 export async function getStaffSupportHandoffQueue(params: {
+  authority: TenantAuthority;
   assignment?: SupportHandoffQueueAssignmentFilter;
   attention?: SupportHandoffQueueAttentionFilter;
   branchId?: string | null;
@@ -178,90 +68,86 @@ export async function getStaffSupportHandoffQueue(params: {
   search?: string;
   staffId: string;
   status?: SupportHandoffStatus | 'all';
-  tenantId: string;
   urgency?: SupportHandoffUrgency | 'all';
   viewerRole?: string | null;
 }): Promise<SupportHandoffQueueItem[]> {
+  const { tenantId } = readTenantAuthority(params.authority);
   const staffUser = aliasedTable(user, 'support_handoff_staff');
   const agentUser = aliasedTable(user, 'support_handoff_agent');
-  const rows = await db
-    .select({
-      id: supportHandoffs.id,
-      subject: supportHandoffs.subject,
-      message: supportHandoffs.message,
-      status: supportHandoffs.status,
-      urgency: supportHandoffs.urgency,
-      trustRisk: supportHandoffs.trustRisk,
-      lifecycleVersion: supportHandoffs.lifecycleVersion,
-      memberReplyAt: supportHandoffs.memberReplyAt,
-      memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
-      publicResponseAt: supportHandoffs.publicResponseAt,
-      publicResponseVersion: supportHandoffs.publicResponseVersion,
-      createdAt: supportHandoffs.createdAt,
-      updatedAt: supportHandoffs.updatedAt,
-      staffId: supportHandoffs.staffId,
-      staffName: staffUser.name,
-      memberId: user.id,
-      memberName: user.name,
-      memberEmail: user.email,
-      memberNumber: user.memberNumber,
-      claimId: claims.id,
-      claimNumber: claims.claimNumber,
-      claimTitle: claims.title,
-      claimStatus: claimLifecycleStatusSql(),
-      branchName: branches.name,
-      planName: membershipPlans.name,
-      membershipStatus: subscriptions.status,
-      agentName: agentUser.name,
-    })
-    .from(supportHandoffs)
-    .leftJoin(user, and(eq(supportHandoffs.memberId, user.id), eq(user.tenantId, params.tenantId)))
-    .leftJoin(
-      staffUser,
-      and(eq(supportHandoffs.staffId, staffUser.id), eq(staffUser.tenantId, params.tenantId))
-    )
-    .leftJoin(
-      claims,
-      and(eq(supportHandoffs.claimId, claims.id), eq(claims.tenantId, params.tenantId))
-    )
-    .leftJoin(
-      branches,
-      and(eq(supportHandoffs.branchId, branches.id), eq(branches.tenantId, params.tenantId))
-    )
-    .leftJoin(
-      subscriptions,
-      and(
-        eq(supportHandoffs.memberId, subscriptions.userId),
-        eq(subscriptions.tenantId, params.tenantId)
-      )
-    )
-    .leftJoin(
-      membershipPlans,
-      and(
-        eq(subscriptions.planKey, membershipPlans.id),
-        eq(membershipPlans.tenantId, params.tenantId)
-      )
-    )
-    .leftJoin(
-      agentUser,
-      and(eq(subscriptions.agentId, agentUser.id), eq(agentUser.tenantId, params.tenantId))
-    )
-    .where(
-      buildStaffSupportHandoffQueueScope({
-        assignment: params.assignment ?? 'all',
-        attention: params.attention ?? 'all',
-        branchId: params.branchId,
-        claimLink: params.claimLink ?? 'all',
-        search: params.search,
-        staffId: params.staffId,
-        status: params.status ?? 'open',
-        tenantId: params.tenantId,
-        urgency: params.urgency ?? 'all',
-        viewerRole: params.viewerRole,
+  const rows = await withTenantAuthority(params.authority, tx =>
+    tx
+      .select({
+        id: supportHandoffs.id,
+        subject: supportHandoffs.subject,
+        message: supportHandoffs.message,
+        status: supportHandoffs.status,
+        urgency: supportHandoffs.urgency,
+        trustRisk: supportHandoffs.trustRisk,
+        lifecycleVersion: supportHandoffs.lifecycleVersion,
+        memberReplyAt: supportHandoffs.memberReplyAt,
+        memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
+        publicResponseAt: supportHandoffs.publicResponseAt,
+        publicResponseVersion: supportHandoffs.publicResponseVersion,
+        createdAt: supportHandoffs.createdAt,
+        updatedAt: supportHandoffs.updatedAt,
+        staffId: supportHandoffs.staffId,
+        staffName: staffUser.name,
+        memberId: user.id,
+        memberName: user.name,
+        memberEmail: user.email,
+        memberNumber: user.memberNumber,
+        claimId: claims.id,
+        claimNumber: claims.claimNumber,
+        claimTitle: claims.title,
+        claimStatus: claimLifecycleStatusSql(),
+        branchName: branches.name,
+        planName: membershipPlans.name,
+        membershipStatus: subscriptions.status,
+        agentName: agentUser.name,
       })
-    )
-    .orderBy(desc(supportHandoffs.createdAt), desc(supportHandoffs.id))
-    .limit(params.limit);
+      .from(supportHandoffs)
+      .leftJoin(user, and(eq(supportHandoffs.memberId, user.id), eq(user.tenantId, tenantId)))
+      .leftJoin(
+        staffUser,
+        and(eq(supportHandoffs.staffId, staffUser.id), eq(staffUser.tenantId, tenantId))
+      )
+      .leftJoin(claims, and(eq(supportHandoffs.claimId, claims.id), eq(claims.tenantId, tenantId)))
+      .leftJoin(
+        branches,
+        and(eq(supportHandoffs.branchId, branches.id), eq(branches.tenantId, tenantId))
+      )
+      .leftJoin(
+        subscriptions,
+        and(
+          eq(supportHandoffs.memberId, subscriptions.userId),
+          eq(subscriptions.tenantId, tenantId)
+        )
+      )
+      .leftJoin(
+        membershipPlans,
+        and(eq(subscriptions.planKey, membershipPlans.id), eq(membershipPlans.tenantId, tenantId))
+      )
+      .leftJoin(
+        agentUser,
+        and(eq(subscriptions.agentId, agentUser.id), eq(agentUser.tenantId, tenantId))
+      )
+      .where(
+        buildStaffSupportHandoffQueueScope({
+          assignment: params.assignment ?? 'all',
+          attention: params.attention ?? 'all',
+          branchId: params.branchId,
+          claimLink: params.claimLink ?? 'all',
+          search: params.search,
+          staffId: params.staffId,
+          status: params.status ?? 'open',
+          tenantId,
+          urgency: params.urgency ?? 'all',
+          viewerRole: params.viewerRole,
+        })
+      )
+      .orderBy(desc(supportHandoffs.createdAt), desc(supportHandoffs.id))
+      .limit(params.limit)
+  );
 
   return rows.map(row => ({
     id: row.id,
@@ -307,12 +193,13 @@ export async function getStaffSupportHandoffQueue(params: {
 }
 
 export async function getStaffSupportHandoffDetail(params: {
+  authority: TenantAuthority;
   branchId?: string | null;
   handoffId: string;
   staffId: string;
-  tenantId: string;
   viewerRole?: string | null;
 }): Promise<SupportHandoffStaffDetail | null> {
+  const { tenantId } = readTenantAuthority(params.authority);
   const acceptedByUser = aliasedTable(user, 'support_handoff_accepted_by');
   const reassignedByUser = aliasedTable(user, 'support_handoff_reassigned_by');
   const closedByUser = aliasedTable(user, 'support_handoff_closed_by');
@@ -330,53 +217,52 @@ export async function getStaffSupportHandoffDetail(params: {
     conditions.push(buildOwnOrUnassignedStaffScope(params.staffId));
   }
 
-  const rows = await db
-    .select({
-      contactPreference: supportHandoffs.contactPreference,
-      source: supportHandoffs.source,
-      acceptedAt: supportHandoffs.acceptedAt,
-      acceptedByName: acceptedByUser.name,
-      reassignedAt: supportHandoffs.reassignedAt,
-      reassignedByName: reassignedByUser.name,
-      reassignReason: supportHandoffs.reassignReason,
-      closedAt: supportHandoffs.closedAt,
-      closedByName: closedByUser.name,
-      closeReason: supportHandoffs.closeReason,
-      memberId: supportHandoffs.memberId,
-      publicResponse: supportHandoffs.publicResponse,
-      publicResponseAt: supportHandoffs.publicResponseAt,
-      publicResponseAcknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
-      publicResponseAcknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
-      publicResponseAcknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
-      publicResponseVersion: supportHandoffs.publicResponseVersion,
-      memberReply: supportHandoffs.memberReply,
-      memberReplyAt: supportHandoffs.memberReplyAt,
-      memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
-    })
-    .from(supportHandoffs)
-    .leftJoin(
-      acceptedByUser,
-      and(
-        eq(supportHandoffs.acceptedById, acceptedByUser.id),
-        eq(acceptedByUser.tenantId, params.tenantId)
+  const rows = await withTenantAuthority(params.authority, tx =>
+    tx
+      .select({
+        contactPreference: supportHandoffs.contactPreference,
+        source: supportHandoffs.source,
+        acceptedAt: supportHandoffs.acceptedAt,
+        acceptedByName: acceptedByUser.name,
+        reassignedAt: supportHandoffs.reassignedAt,
+        reassignedByName: reassignedByUser.name,
+        reassignReason: supportHandoffs.reassignReason,
+        closedAt: supportHandoffs.closedAt,
+        closedByName: closedByUser.name,
+        closeReason: supportHandoffs.closeReason,
+        memberId: supportHandoffs.memberId,
+        publicResponse: supportHandoffs.publicResponse,
+        publicResponseAt: supportHandoffs.publicResponseAt,
+        publicResponseAcknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
+        publicResponseAcknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
+        publicResponseAcknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
+        publicResponseVersion: supportHandoffs.publicResponseVersion,
+        memberReply: supportHandoffs.memberReply,
+        memberReplyAt: supportHandoffs.memberReplyAt,
+        memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
+      })
+      .from(supportHandoffs)
+      .leftJoin(
+        acceptedByUser,
+        and(
+          eq(supportHandoffs.acceptedById, acceptedByUser.id),
+          eq(acceptedByUser.tenantId, tenantId)
+        )
       )
-    )
-    .leftJoin(
-      reassignedByUser,
-      and(
-        eq(supportHandoffs.reassignedById, reassignedByUser.id),
-        eq(reassignedByUser.tenantId, params.tenantId)
+      .leftJoin(
+        reassignedByUser,
+        and(
+          eq(supportHandoffs.reassignedById, reassignedByUser.id),
+          eq(reassignedByUser.tenantId, tenantId)
+        )
       )
-    )
-    .leftJoin(
-      closedByUser,
-      and(
-        eq(supportHandoffs.closedById, closedByUser.id),
-        eq(closedByUser.tenantId, params.tenantId)
+      .leftJoin(
+        closedByUser,
+        and(eq(supportHandoffs.closedById, closedByUser.id), eq(closedByUser.tenantId, tenantId))
       )
-    )
-    .where(withTenant(params.tenantId, supportHandoffs.tenantId, and(...conditions)))
-    .limit(1);
+      .where(withTenant(tenantId, supportHandoffs.tenantId, and(...conditions)))
+      .limit(1)
+  );
 
   const row = rows[0];
   if (!row) {

@@ -1,3 +1,4 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Core-specific adapter integration: real submit core, real idempotency helper and real
@@ -118,8 +119,9 @@ function seedExistingRow(row: StoredRow): void {
 }
 
 function expectOwnTenantStorageOnly(statements: number): void {
-  expect(tenantContexts).toEqual(
-    Array.from({ length: statements }, () => ({ tenantId: 'tenant_ks' }))
+  // Every storage statement runs under the public-site authority of the shared KS partition.
+  expect(tenantContexts.map(context => readTenantAuthority(context as never).tenantId)).toEqual(
+    Array.from({ length: statements }, () => 'tenant_ks')
   );
   for (const entry of Object.values(dbEntry)) expect(entry).not.toHaveBeenCalled();
 }

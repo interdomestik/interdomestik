@@ -62,6 +62,78 @@ export {
 } from './claim-lifecycle';
 export { withTenantContext, withTenantDb, type TenantTransaction } from './tenant';
 
+// Fixed, purpose-specific privileged lookups and commands for the cases that precede any tenant
+// context. Each module confines dbAdmin and returns ids or minimal columns only; see its header.
+export { authorizePublicSiteTenant } from './public-site-tenant';
+export { delegateClaimHomeTenantRead } from './claim-home-tenant';
+export {
+  resolveClaimTrackingTokenTenant,
+  resolveNpsSurveyTokenTenant,
+  resolveSharePackTenant,
+  type ClaimTrackingTokenTenant,
+  type NpsSurveyTokenTenant,
+  type SharePackTenant,
+} from './public-token-tenant';
+export {
+  authorizeInngestEventTenant,
+  MAX_SCHEDULED_TENANTS,
+  listScheduledTenantWork,
+  listTenantIdsForScheduledWork,
+  type ScheduledTenantWork,
+} from './scheduled-tenant-work';
+export {
+  admitVerifiedPaddleReceipt,
+  appendPaddleInvalidSignatureEvidence,
+  completePaddleReceiptLease,
+  type PaddleReceiptAdmission,
+  type PaddleReceiptCompletion,
+  type PaddleReceiptEvidence,
+  type PaddleReceiptLease,
+} from './paddle-webhook-receipts';
+export {
+  readVerifiedPaddleTransactionEvidence,
+  resolvePaddleCustomerEmailOwner,
+  resolvePaddleSubscriptionOwner,
+  resolvePaddleUserOwner,
+  type PaddleSubscriptionOwner,
+  type PaddleTransactionEvidence,
+  type PaddleUserOwner,
+} from './paddle-provider-resolution';
+export {
+  appendAnonymousTenantAuditEvent,
+  type AnonymousTenantAuditEvent,
+} from './anonymous-tenant-audit';
+export {
+  appendTenantMemberCredential,
+  hasTenantMemberCredential,
+  type TenantMemberCredential,
+} from './tenant-member-credential';
+export { issueTenantMemberNumber, type TenantMemberNumberRequest } from './tenant-member-number';
+export {
+  appendCaseGrantDocumentAudit,
+  type CaseGrantDocumentAuditEvent,
+  type CaseGrantDocumentSource,
+} from './case-grant-document-audit';
+export {
+  authorizePaddleBillingTenant,
+  authorizePaddleTenant,
+  type ResolvedPaddleOwner,
+} from './paddle-tenant-authority';
+export {
+  MAX_PLATFORM_TENANTS,
+  delegateSuperAdminBranchOwner,
+  delegateSuperAdminTenant,
+  listPublicStatisticsWork,
+  listSuperAdminAggregateWork,
+  listSuperAdminTenantOptions,
+  listTenantIdsForPlatformAggregate,
+  readActiveTenantId,
+  resolveBranchOwner,
+  type BranchOwner,
+  type DelegatedBranchOwner,
+  type DelegatedTenantWork,
+} from './platform-directory';
+
 // Export Drizzle instance and schema
 export { db, dbAdmin, dbRls } from './db';
 export * from './schema';

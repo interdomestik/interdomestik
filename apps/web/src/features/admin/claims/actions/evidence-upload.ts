@@ -10,6 +10,8 @@ import {
   validateConfirmedClaimUpload,
 } from '@/features/claims/upload/server/shared-upload';
 import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import { ensureTenantId, isStaffOrHigher } from '@interdomestik/shared-auth';
@@ -24,6 +26,7 @@ type UploadContext =
   | {
       success: true;
       session: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
+      authority: TenantAuthority;
       tenantId: string;
       resolvedBucket: string;
     }
@@ -68,6 +71,10 @@ async function resolveAdminUploadContext(): Promise<UploadContext> {
   }
 
   try {
+    const authorized = await authorizeSessionTenant(requestHeaders);
+    if (!authorized) {
+      return { success: false, error: 'Unauthorized', status: 401 };
+    }
     const tenantId = ensureTenantId(session);
     const requestHost = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
     const hostTenantId = resolveTenantFromHost(requestHost);
@@ -79,6 +86,7 @@ async function resolveAdminUploadContext(): Promise<UploadContext> {
     return {
       success: true,
       session,
+      authority: authorized.authority,
       tenantId,
       resolvedBucket: resolveEvidenceBucketName(),
     };
@@ -112,12 +120,12 @@ export async function generateAdminUploadUrl(
     return uploadContext;
   }
 
-  const { tenantId, resolvedBucket } = uploadContext;
+  const { authority, tenantId, resolvedBucket } = uploadContext;
   const claim = await findAccessibleAdminUploadClaim({
     branchId: uploadContext.session.user.branchId ?? null,
     claimId,
     role: uploadContext.session.user.role ?? null,
-    tenantId,
+    authority,
     userId: uploadContext.session.user.id,
   });
 
@@ -155,7 +163,7 @@ export async function confirmAdminUpload(
     return uploadContext;
   }
 
-  const { session, tenantId, resolvedBucket } = uploadContext;
+  const { session, authority, tenantId, resolvedBucket } = uploadContext;
   // The verified session role is the trusted metadata transaction role; never form input.
   const actorRole = session.user.role;
   if (!isAdminUploadRole(actorRole)) {
@@ -165,7 +173,7 @@ export async function confirmAdminUpload(
     branchId: session.user.branchId ?? null,
     claimId,
     role: session.user.role ?? null,
-    tenantId,
+    authority,
     userId: session.user.id,
   });
 
@@ -204,6 +212,7 @@ export async function confirmAdminUpload(
       originalName,
       resolvedBucket,
       storagePath,
+      authority,
       tenantId,
       userId: session.user.id,
       actorRole,

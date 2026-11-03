@@ -68,6 +68,7 @@ describe('admin-users action wrappers', () => {
 
     expect(mocks.updateUserAgentCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin', tenantId: 't1' } },
+      authority: expect.anything(),
       userId: 'user-1',
       agentId: 'agent-1',
     });
@@ -80,6 +81,7 @@ describe('admin-users action wrappers', () => {
     const result = await actions.getUserChoices(filters);
     expect(mocks.getUsersCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin', tenantId: 't1' } },
+      authority: expect.anything(),
       filters,
       includeUnreadCounts: false,
     });
@@ -94,9 +96,14 @@ describe('admin-users action wrappers', () => {
 
     expect(mocks.getUsersCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin', tenantId: 't1' } },
+      authority: expect.anything(),
       filters,
       includeUnreadCounts: true,
     });
+    const { readTenantAuthority } = await import('@interdomestik/database/tenant-authority');
+    const descriptor = readTenantAuthority(mocks.getUsersCore.mock.calls[0][0].authority);
+    expect(descriptor.tenantId).toBe('t1');
+    expect(descriptor.principal?.userId).toBe('admin-1');
     expect(result).toEqual({ success: true, data: [{ id: 'u1' }] });
   });
 
@@ -119,6 +126,7 @@ describe('admin-users action wrappers', () => {
 
     expect(mocks.resolveTenantClassificationCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin', tenantId: 't1' } },
+      authority: expect.anything(),
       userId: 'user-1',
       currentTenantId: 'tenant_ks',
       nextTenantId: null,
@@ -133,6 +141,7 @@ describe('admin-users action wrappers', () => {
 
     expect(mocks.getUsersCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin', tenantId: 't1' } },
+      authority: expect.anything(),
       filters: { role: 'agent' },
       includeUnreadCounts: false,
     });
@@ -146,6 +155,7 @@ describe('admin-users action wrappers', () => {
 
     expect(mocks.getUsersCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin', tenantId: 't1' } },
+      authority: expect.anything(),
       filters: { role: 'staff,tenant_admin,branch_manager' },
     });
     expect(result).toEqual({ success: true, data: [{ id: 's1' }] });

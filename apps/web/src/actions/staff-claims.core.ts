@@ -37,8 +37,8 @@ export type {
  * Assign a claim to a staff member on the staff surface.
  */
 export async function assignClaim(claimId: string, staffId?: string | null): Promise<ActionResult> {
-  const { session, requestHeaders } = await getActionContext();
-  return assignClaimCore({ claimId, session, requestHeaders, staffId });
+  const { session, authority, requestHeaders } = await getActionContext();
+  return assignClaimCore({ authority, claimId, session, requestHeaders, staffId });
 }
 
 /**
@@ -53,9 +53,10 @@ export async function updateClaimStatus(
   declineReasonCode?: RecoveryDeclineReasonCode,
   decisionExplanation?: string
 ): Promise<ActionResult> {
-  const { session, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders } = await getActionContext();
   return updateClaimStatusCore({
     allowanceOverrideReason,
+    authority,
     claimId,
     declineReasonCode,
     decisionExplanation,
@@ -70,9 +71,10 @@ export async function updateClaimStatus(
 export async function saveRecoveryDecision(
   input: SaveRecoveryDecisionInput & { idempotencyKey?: string }
 ): Promise<ActionResult<RecoveryDecisionSnapshot>> {
-  const { session, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders } = await getActionContext();
   return saveRecoveryDecisionCore({
     ...input,
+    authority,
     requestHeaders,
     session,
   });
@@ -81,9 +83,10 @@ export async function saveRecoveryDecision(
 export async function saveClaimEscalationAgreement(
   input: SaveClaimEscalationAgreementInput & { idempotencyKey?: string }
 ): Promise<ActionResult<ClaimEscalationAgreementSnapshot>> {
-  const { session, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders } = await getActionContext();
   return saveClaimEscalationAgreementCore({
     ...input,
+    authority,
     requestHeaders,
     session,
   });
@@ -92,9 +95,10 @@ export async function saveClaimEscalationAgreement(
 export async function saveSuccessFeeCollection(
   input: SaveSuccessFeeCollectionInput
 ): Promise<ActionResult<SuccessFeeCollectionSnapshot>> {
-  const { session, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders } = await getActionContext();
   return saveSuccessFeeCollectionCore({
     ...input,
+    authority,
     requestHeaders,
     session,
   });

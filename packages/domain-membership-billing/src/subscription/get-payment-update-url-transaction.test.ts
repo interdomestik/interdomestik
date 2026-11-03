@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  authority,
   getPaymentUpdateUrlCore,
   hoisted,
   TRUSTED_LINK,
@@ -24,6 +25,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -42,6 +44,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -60,6 +63,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -80,6 +84,7 @@ describe('getPaymentUpdateUrlCore', () => {
       });
 
       const result = await getPaymentUpdateUrlCore({
+        authority,
         session,
         subscriptionId: VALID_SUB.id,
       });
@@ -99,6 +104,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -114,6 +120,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -129,6 +136,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -144,6 +152,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -159,6 +168,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -176,6 +186,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });

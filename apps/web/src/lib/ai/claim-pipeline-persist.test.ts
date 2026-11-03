@@ -61,6 +61,9 @@ vi.mock('drizzle-orm', () => ({
 vi.mock('nanoid', () => ({ nanoid: mocks.nanoid }));
 
 import { persistClaimAiExtraction } from './claim-pipeline-persist';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('persistClaimAiExtraction', () => {
   beforeEach(() => {
@@ -74,6 +77,7 @@ describe('persistClaimAiExtraction', () => {
     await persistClaimAiExtraction({
       run: {
         runId: 'run-1',
+        authority,
         tenantId: 'tenant-1',
         workflow: 'legal_doc_extract',
         documentId: 'doc-1',
@@ -102,6 +106,7 @@ describe('persistClaimAiExtraction', () => {
       },
     });
 
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authority);
     expect(mocks.txInsertValues).toHaveBeenCalledWith(
       expect.objectContaining({
         confidence: '0.74',

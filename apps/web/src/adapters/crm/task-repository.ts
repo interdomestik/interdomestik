@@ -13,8 +13,6 @@ import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 
-import { withTenantContext } from '@interdomestik/database';
-import { db } from '@interdomestik/database/db';
 import {
   crmDeals,
   crmLeads,
@@ -22,26 +20,23 @@ import {
   crmTasks,
   supportHandoffs,
 } from '@interdomestik/database/schema';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
+import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
 import { saveCrmTaskInRepository, type CrmTaskSaveDeps } from './task-repository-save';
 
-type CrmTaskDb = typeof db;
+type CrmTaskDb = CrmTenantExecutor;
 type CrmTaskRow = typeof crmTasks.$inferSelect;
 type CrmTaskHistoryRow = typeof crmTaskHistory.$inferSelect;
-type CrmTaskTenantRunner = <T>(
-  actor: CrmActorContext,
-  action: (database: CrmTaskDb) => Promise<T>
-) => Promise<T>;
+type CrmTaskTenantRunner = <T>(action: (database: CrmTaskDb) => Promise<T>) => Promise<T>;
 
 const IDEMPOTENCY_UNIQUE_CONSTRAINT = 'crm_tasks_tenant_idempotency_uq';
 
-function createTenantRunner(database: CrmTaskDb): CrmTaskTenantRunner {
-  return async (actor, action) => {
-    if (database !== db) return action(database);
-    return withTenantContext({ tenantId: actor.tenantId, role: actor.role }, tx =>
-      action(tx as unknown as CrmTaskDb)
-    );
-  };
+function createTenantRunner(
+  authority: TenantAuthority,
+  executor: CrmTaskDb | undefined
+): CrmTaskTenantRunner {
+  return action => runInCrmTenantContext(executor, authority, action);
 }
 
 function databaseErrorRecord(error: unknown): Record<string, unknown> | null {
@@ -408,12 +403,13 @@ const taskSaveDeps: CrmTaskSaveDeps = {
 };
 
 export function createCrmTaskRepository(
-  database: CrmTaskDb = db,
-  runInTenantContext: CrmTaskTenantRunner = createTenantRunner(database)
+  authority: TenantAuthority,
+  executor?: CrmTaskDb
 ): CrmTaskRepository {
+  const runInTenantContext = createTenantRunner(authority, executor);
   return {
     async appendTaskHistory(params) {
-      return runInTenantContext(params.actor, async scopedDatabase => {
+      return runInTenantContext(async scopedDatabase => {
         const existingRow = await scopedDatabase.query.crmTasks.findFirst({
           where: taskVisibilityPredicate(params.actor, params.taskId),
         });
@@ -462,7 +458,7 @@ export function createCrmTaskRepository(
     },
 
     async findTaskById(params) {
-      return runInTenantContext(params.actor, async scopedDatabase => {
+      return runInTenantContext(async scopedDatabase => {
         // db-access-guard: tenant-scoped -- reason: CRM task lookup constrains by actor tenant and branch-visible task id before hydration.
         const row = await scopedDatabase.query.crmTasks.findFirst({
           where: taskVisibilityPredicate(params.actor, params.taskId),
@@ -472,7 +468,7 @@ export function createCrmTaskRepository(
     },
 
     async findTaskByIdempotencyKey(params) {
-      return runInTenantContext(params.actor, async scopedDatabase => {
+      return runInTenantContext(async scopedDatabase => {
         // db-access-guard: tenant-scoped -- reason: CRM task idempotency lookup constrains by actor tenant, branch visibility, and opaque idempotency key.
         const row = await scopedDatabase.query.crmTasks.findFirst({
           where: and(
@@ -485,17 +481,13 @@ export function createCrmTaskRepository(
     },
 
     async saveTask(params) {
-      return runInTenantContext(params.actor, async scopedDatabase => {
+      return runInTenantContext(async scopedDatabase => {
         return saveCrmTaskInRepository(scopedDatabase, params, taskSaveDeps);
       });
     },
 
     validateSubjectReference(params) {
-      return runInTenantContext(params.actor, scopedDatabase =>
-        validateSubjectReference(scopedDatabase, params)
-      );
+      return runInTenantContext(scopedDatabase => validateSubjectReference(scopedDatabase, params));
     },
   };
 }
-
-export const crmTaskRepository = createCrmTaskRepository();

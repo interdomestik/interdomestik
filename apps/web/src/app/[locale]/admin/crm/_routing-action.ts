@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { getSessionSafe } from '@/components/shell/session';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { LOCALES } from '@/i18n/locales';
 
 import {
@@ -62,12 +63,24 @@ async function runAction(
   formData: FormData,
   toInput: (formData: FormData) => unknown
 ): Promise<AdminCrmRoutingActionState> {
-  const session = await getSessionSafe(`AdminCrmRoutingRuleAction:${kind}`);
+  const session = await getSessionSafe('AdminCrmRoutingRuleAction');
   if (!resolveAdminCrmRoutingActor(session)) return { reason: 'forbidden', status: 'error' };
+  const authority = await resolveSessionAuthority();
+  if (!authority) return { reason: 'forbidden', status: 'error' };
   const input = toInput(formData);
-  const result = await runAdminCrmRoutingRuleAction({ input, kind, session });
+  const result = await runAdminCrmRoutingRuleAction({ authority, input, kind, session });
   if (result.status === 'ok') revalidateAdminCrmForAllLocales();
   return result;
+}
+
+async function resolveSessionAuthority() {
+  try {
+    return (await authorizeSessionTenant())?.authority ?? null;
+  } catch (error) {
+    // A session without a tenant grants no authority, as it granted no actor before.
+    if ((error as { name?: unknown } | null)?.name !== 'MissingTenantError') throw error;
+    return null;
+  }
 }
 
 function updateFormDataToRuleInput(formData: FormData) {

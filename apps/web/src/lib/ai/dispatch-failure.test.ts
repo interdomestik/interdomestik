@@ -25,10 +25,7 @@ const mocks = vi.hoisted(() => {
     txUpdateSet,
     txUpdateWhere,
     withTenantContext: vi.fn(
-      async (
-        _context: { tenantId: string; role?: string },
-        callback: (tx: { update: typeof txUpdate }) => Promise<unknown>
-      ) =>
+      async (_context: unknown, callback: (tx: { update: typeof txUpdate }) => Promise<unknown>) =>
         callback({
           update: txUpdate,
         })
@@ -60,12 +57,15 @@ vi.mock('drizzle-orm', () => ({
   eq: vi.fn((left: unknown, right: unknown) => ({ __op: 'eq', left, right })),
 }));
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
 import { markAiRunDispatchFailedWithTenantContext } from './dispatch-failure';
+
+const authority = mintTestTenantAuthority('tenant_mk');
 
 describe('markAiRunDispatchFailedWithTenantContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.selectWhere.mockResolvedValue([{ tenantId: 'tenant-1' }]);
   });
 
   it.each([
@@ -79,17 +79,16 @@ describe('markAiRunDispatchFailedWithTenantContext', () => {
       entityType: 'claim',
       workflow: undefined,
     },
-  ])('updates queued $entityType AI runs inside tenant context', async args => {
+  ])('updates queued $entityType AI runs inside the given tenant context', async args => {
     await markAiRunDispatchFailedWithTenantContext({
       ...args,
+      authority,
       runId: 'run-1',
       message: 'Inngest dispatch failed.',
     });
 
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1', role: 'system' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authority);
     expect(mocks.txUpdate).toHaveBeenCalledWith(expect.objectContaining({ __name: 'ai_runs' }));
     expect(mocks.txUpdateSet).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -100,10 +99,9 @@ describe('markAiRunDispatchFailedWithTenantContext', () => {
     );
   });
 
-  it('does not write when the queued AI run is gone', async () => {
-    mocks.selectWhere.mockResolvedValue([]);
-
+  it('binds the update predicate to the tenant, run, entity type and queued status', async () => {
     await markAiRunDispatchFailedWithTenantContext({
+      authority,
       entityType: 'policy',
       errorCode: 'policy_extract_dispatch_failed',
       message: 'Inngest dispatch failed.',
@@ -111,7 +109,32 @@ describe('markAiRunDispatchFailedWithTenantContext', () => {
       workflow: 'policy_extract',
     });
 
-    expect(mocks.withTenantContext).not.toHaveBeenCalled();
-    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expect(mocks.txUpdateWhere).toHaveBeenCalledTimes(1);
+    const predicate = mocks.txUpdateWhere.mock.calls[0]?.[0] as { __op: string; args: unknown[] };
+    expect(predicate.__op).toBe('and');
+    expect(predicate.args).toEqual(
+      expect.arrayContaining([
+        { __op: 'eq', left: { __name: 'ai_runs.tenant_id' }, right: 'tenant_mk' },
+        { __op: 'eq', left: { __name: 'ai_runs.id' }, right: 'run-1' },
+        { __op: 'eq', left: { __name: 'ai_runs.entity_type' }, right: 'policy' },
+        { __op: 'eq', left: { __name: 'ai_runs.workflow' }, right: 'policy_extract' },
+        { __op: 'eq', left: { __name: 'ai_runs.status' }, right: 'queued' },
+      ])
+    );
+  });
+
+  it('performs no read before the update and never uses the ambient database', async () => {
+    await markAiRunDispatchFailedWithTenantContext({
+      authority,
+      entityType: 'claim',
+      errorCode: 'claim_ai_dispatch_failed',
+      message: 'Inngest dispatch failed.',
+      runId: 'run-1',
+    });
+
+    expect(mocks.db.select).not.toHaveBeenCalled();
+    expect(mocks.selectWhere).not.toHaveBeenCalled();
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(mocks.txUpdate).toHaveBeenCalledTimes(1);
   });
 });

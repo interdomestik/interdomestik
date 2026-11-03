@@ -1,100 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import type { CrmActorContext } from '@interdomestik/domain-crm/context';
-import type {
-  CrmFunnelConversionRow,
-  CrmStageVelocityRow,
-  CrmWeightedPipelineRow,
-} from '@interdomestik/domain-crm/reporting';
-import type { CrmReportingRepository } from '@interdomestik/domain-crm/reporting/repository';
-
+import { TEST_AUTHORITY, actor, createRepository, weightedRow } from './_core.test-support';
 import {
-  STAFF_CRM_FORBIDDEN_PII_KEYS,
-  STAFF_CRM_FUNNEL_MAX_STAGES,
   STAFF_CRM_PIPELINE_MAX_ROWS,
-  STAFF_CRM_STAGE_VELOCITY_MIN_SAMPLE_COUNT,
   StaffCrmReportingAccessDeniedError,
   createStaffCrmReportingWindow,
   getStaffCrmReportingCore,
 } from './_core';
-
-const actor: CrmActorContext = {
-  actorId: 'staff-1',
-  role: 'staff',
-  scope: { branchId: null, staffId: 'staff-1' },
-  tenantId: 'tenant-1',
-};
-
-function weightedRow(overrides: Partial<CrmWeightedPipelineRow> = {}): CrmWeightedPipelineRow {
-  return {
-    agentId: 'agent-1',
-    branchId: 'branch-1',
-    currencyCode: 'EUR',
-    currentStageId: 'stage-open',
-    dealId: overrides.dealId ?? 'deal-1',
-    forecastCategory: 'commit',
-    isLostStage: false,
-    isWonStage: false,
-    pipelineId: 'pipeline-1',
-    source: 'website',
-    stageProbability: 80,
-    tenantId: 'tenant-1',
-    valueAmountMinor: 10000,
-    ...overrides,
-  };
-}
-
-function funnelRow(overrides: Partial<CrmFunnelConversionRow> = {}): CrmFunnelConversionRow {
-  return {
-    branchId: 'branch-1',
-    dealId: overrides.dealId ?? 'deal-1',
-    enteredAt: '2026-05-01T00:00:00.000Z',
-    exitedAt: '2026-05-02T00:00:00.000Z',
-    kind: 'stage_changed',
-    lossReasonId: null,
-    pipelineId: 'pipeline-1',
-    stageId: 'stage-qualified',
-    stageIsLost: false,
-    stageIsWon: false,
-    tenantId: 'tenant-1',
-    ...overrides,
-  };
-}
-
-function velocityRow(overrides: Partial<CrmStageVelocityRow> = {}): CrmStageVelocityRow {
-  return {
-    branchId: 'branch-1',
-    dealId: overrides.dealId ?? 'deal-1',
-    enteredAt: '2026-05-01T00:00:00.000Z',
-    exitedAt: '2026-05-04T00:00:00.000Z',
-    kind: 'stage_changed',
-    pipelineId: 'pipeline-1',
-    stageId: 'stage-qualified',
-    tenantId: 'tenant-1',
-    ...overrides,
-  };
-}
-
-function createRepository() {
-  const repository = {
-    listAgentLeaderboardRows: vi.fn(),
-    listFunnelConversionRows: vi.fn(),
-    listSourceBreakdownRows: vi.fn(),
-    listStageVelocityRows: vi.fn(),
-    listWeightedPipelineRows: vi.fn(),
-    listWinRateRows: vi.fn(),
-  } satisfies CrmReportingRepository;
-
-  repository.listWeightedPipelineRows.mockResolvedValue([weightedRow()]);
-  repository.listFunnelConversionRows.mockResolvedValue([funnelRow()]);
-  repository.listStageVelocityRows.mockResolvedValue([
-    velocityRow({ dealId: 'velocity-1', exitedAt: '2026-05-03T00:00:00.000Z' }),
-    velocityRow({ dealId: 'velocity-2', exitedAt: '2026-05-04T00:00:00.000Z' }),
-    velocityRow({ dealId: 'velocity-3', exitedAt: '2026-05-05T00:00:00.000Z' }),
-  ]);
-
-  return repository;
-}
 
 describe('staff CRM reporting core', () => {
   beforeEach(() => {
@@ -106,7 +17,7 @@ describe('staff CRM reporting core', () => {
     const now = '2026-05-14T12:00:00.000Z';
 
     const dashboard = await getStaffCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       {
         labels: { noBranch: 'No branch label' },
         now: () => now,
@@ -157,7 +68,10 @@ describe('staff CRM reporting core', () => {
       const repository = createRepository();
 
       await expect(
-        getStaffCrmReportingCore({ actor: deniedActor }, { reportingRepository: repository })
+        getStaffCrmReportingCore(
+          { authority: TEST_AUTHORITY, actor: deniedActor },
+          { reportingRepository: repository }
+        )
       ).rejects.toMatchObject({
         name: 'StaffCrmReportingAccessDeniedError',
       } satisfies Partial<StaffCrmReportingAccessDeniedError>);
@@ -196,7 +110,7 @@ describe('staff CRM reporting core', () => {
     ]);
 
     const dashboard = await getStaffCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       {
         labels: { noBranch: 'No branch' },
         now: () => '2026-05-14T12:00:00.000Z',
@@ -239,7 +153,7 @@ describe('staff CRM reporting core', () => {
     ]);
 
     const dashboard = await getStaffCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       { now: () => '2026-05-14T12:00:00.000Z', reportingRepository: repository }
     );
 
@@ -249,133 +163,5 @@ describe('staff CRM reporting core', () => {
       pipelineId: 'zz-top-pipeline',
       weightedPipelineAmountMinor: 64000,
     });
-  });
-
-  it('deduplicates funnel movement by stage, recomputes rates, sorts by entries, and caps rows', async () => {
-    const repository = createRepository();
-    repository.listFunnelConversionRows.mockResolvedValue([
-      funnelRow({ dealId: 'a-1', pipelineId: 'pipeline-a', stageId: 'stage-a', stageIsWon: true }),
-      funnelRow({ dealId: 'a-2', pipelineId: 'pipeline-a', stageId: 'stage-a', stageIsLost: true }),
-      funnelRow({ dealId: 'a-3', pipelineId: 'pipeline-a', stageId: 'stage-a' }),
-      ...Array.from({ length: STAFF_CRM_FUNNEL_MAX_STAGES + 1 }, (_, index) =>
-        funnelRow({
-          dealId: `b-${index}`,
-          pipelineId: `pipeline-${String(index).padStart(2, '0')}`,
-          stageId: `stage-${String(index).padStart(2, '0')}`,
-        })
-      ),
-    ]);
-
-    const dashboard = await getStaffCrmReportingCore(
-      { actor },
-      { now: () => '2026-05-14T12:00:00.000Z', reportingRepository: repository }
-    );
-
-    expect(dashboard.funnelMovement.rows).toHaveLength(STAFF_CRM_FUNNEL_MAX_STAGES);
-    expect(dashboard.funnelMovement.rows[0]).toMatchObject({
-      conversionRateBps: 3333,
-      dropOffRateBps: 3333,
-      enteredCount: 3,
-      lostCount: 1,
-      pipelineId: 'pipeline-a',
-      stageId: 'stage-a',
-      wonCount: 1,
-    });
-  });
-
-  it('filters low-sample stage velocity rows and sorts slowest stages first', async () => {
-    const repository = createRepository();
-    repository.listStageVelocityRows.mockResolvedValue([
-      velocityRow({ dealId: 'slow-1', exitedAt: '2026-05-11T00:00:00.000Z', stageId: 'slow' }),
-      velocityRow({ dealId: 'slow-2', exitedAt: '2026-05-12T00:00:00.000Z', stageId: 'slow' }),
-      velocityRow({ dealId: 'slow-3', exitedAt: '2026-05-13T00:00:00.000Z', stageId: 'slow' }),
-      velocityRow({ dealId: 'fast-1', exitedAt: '2026-05-02T00:00:00.000Z', stageId: 'fast' }),
-      velocityRow({ dealId: 'fast-2', exitedAt: '2026-05-03T00:00:00.000Z', stageId: 'fast' }),
-      velocityRow({ dealId: 'fast-3', exitedAt: '2026-05-04T00:00:00.000Z', stageId: 'fast' }),
-      velocityRow({ dealId: 'low-1', stageId: 'low-sample' }),
-      velocityRow({ dealId: 'low-2', stageId: 'low-sample' }),
-      velocityRow({ dealId: 'open-1', exitedAt: null, stageId: 'open-stage' }),
-    ]);
-
-    const dashboard = await getStaffCrmReportingCore(
-      { actor },
-      { now: () => '2026-05-14T12:00:00.000Z', reportingRepository: repository }
-    );
-
-    expect(dashboard.stageVelocity.summary.excludedOpenIntervalCount).toBe(1);
-    expect(dashboard.stageVelocity.summary.rows.map(row => row.stageId)).toEqual(['slow', 'fast']);
-    expect(
-      dashboard.stageVelocity.summary.rows.every(
-        row => row.sampleCount >= STAFF_CRM_STAGE_VELOCITY_MIN_SAMPLE_COUNT
-      )
-    ).toBe(true);
-  });
-
-  it('returns empty widgets when CRM05 repositories return no aggregate rows', async () => {
-    const repository = createRepository();
-    repository.listWeightedPipelineRows.mockResolvedValue([]);
-    repository.listFunnelConversionRows.mockResolvedValue([]);
-    repository.listStageVelocityRows.mockResolvedValue([]);
-
-    const dashboard = await getStaffCrmReportingCore(
-      { actor },
-      { now: () => '2026-05-14T12:00:00.000Z', reportingRepository: repository }
-    );
-
-    expect(dashboard.pipelineWorkload.state).toBe('empty');
-    expect(dashboard.funnelMovement.state).toBe('empty');
-    expect(dashboard.stageVelocity.state).toBe('empty');
-  });
-
-  it('maps reporting denials and repository failures to staff-safe widget errors', async () => {
-    const repository = createRepository();
-    const logger = { error: vi.fn() };
-    repository.listFunnelConversionRows.mockRejectedValueOnce(
-      new Error('CRM reporting read denied: branch_scope')
-    );
-    repository.listStageVelocityRows.mockRejectedValueOnce(
-      new Error('database details with sensitive context')
-    );
-
-    const dashboard = await getStaffCrmReportingCore(
-      { actor },
-      {
-        logger,
-        now: () => '2026-05-14T12:00:00.000Z',
-        reportingRepository: repository,
-      }
-    );
-
-    expect(dashboard.funnelMovement).toEqual({
-      excludedRowCount: 0,
-      messageKey: 'error.branch',
-      rows: [],
-      state: 'error',
-    });
-    expect(dashboard.stageVelocity).toEqual({
-      excludedRowCount: 0,
-      messageKey: 'error.generic',
-      state: 'error',
-      summary: { excludedOpenIntervalCount: 0, rows: [] },
-    });
-    expect(logger.error).toHaveBeenCalledOnce();
-  });
-
-  it('keeps output row shapes aggregate-only and PII-free', async () => {
-    const repository = createRepository();
-    const dashboard = await getStaffCrmReportingCore(
-      { actor },
-      { now: () => '2026-05-14T12:00:00.000Z', reportingRepository: repository }
-    );
-
-    const rowKeys = [
-      ...Object.keys(dashboard.pipelineWorkload.rows[0] ?? {}),
-      ...Object.keys(dashboard.funnelMovement.rows[0] ?? {}),
-      ...Object.keys(dashboard.stageVelocity.summary.rows[0] ?? {}),
-    ];
-
-    for (const forbiddenKey of STAFF_CRM_FORBIDDEN_PII_KEYS) {
-      expect(rowKeys).not.toContain(forbiddenKey);
-    }
   });
 });

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import { cancelSubscriptionCore } from './cancel';
@@ -16,6 +17,7 @@ describe('actions/subscription cancelSubscriptionCore', () => {
     const result = await cancelSubscriptionCore({
       idempotencyKey: 'cancel-unauthorized',
       session: null,
+      authority: null,
       subscriptionId: 'sub_123',
     });
 
@@ -30,8 +32,10 @@ describe('actions/subscription cancelSubscriptionCore', () => {
       error: undefined,
     });
 
+    const authority = mintTestTenantAuthority('tenant-1');
     const result = await cancelSubscriptionCore({
       idempotencyKey: 'cancel-1',
+      authority,
       session: {
         user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' },
         session: { id: 'session-1' },
@@ -46,7 +50,7 @@ describe('actions/subscription cancelSubscriptionCore', () => {
         scope: {
           kind: 'tenant',
           actorUserId: 'member-1',
-          tenantId: 'tenant-1',
+          authority,
         },
         idempotencyKey: 'cancel-1',
       })

@@ -1,6 +1,11 @@
-import { db, eq } from '@interdomestik/database';
+import { eq } from '@interdomestik/database';
 import { aiRuns, documentExtractions } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type AiRunWorkflowState = 'queued' | 'processing' | 'completed' | 'needs_review' | 'failed';
 
@@ -43,32 +48,35 @@ function deriveWorkflowState(status: string, reviewStatus: string): AiRunWorkflo
 }
 
 export async function getAiRun(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   runId: string;
 }): Promise<AiRunReadModel | null> {
-  const [row] = await db
-    .select({
-      id: aiRuns.id,
-      workflow: aiRuns.workflow,
-      status: aiRuns.status,
-      documentId: aiRuns.documentId,
-      entityType: aiRuns.entityType,
-      entityId: aiRuns.entityId,
-      requestedBy: aiRuns.requestedBy,
-      runReviewStatus: aiRuns.reviewStatus,
-      extractionReviewStatus: documentExtractions.reviewStatus,
-      errorCode: aiRuns.errorCode,
-      errorMessage: aiRuns.errorMessage,
-      warnings: documentExtractions.warnings,
-      extraction: documentExtractions.extractedJson,
-      createdAt: aiRuns.createdAt,
-      startedAt: aiRuns.startedAt,
-      completedAt: aiRuns.completedAt,
-    })
-    .from(aiRuns)
-    .leftJoin(documentExtractions, eq(documentExtractions.sourceRunId, aiRuns.id))
-    .where(withTenant(params.tenantId, aiRuns.tenantId, eq(aiRuns.id, params.runId)))
-    .limit(1);
+  const { tenantId } = readTenantAuthority(params.authority);
+  const [row] = await withTenantAuthority(params.authority, tx =>
+    tx
+      .select({
+        id: aiRuns.id,
+        workflow: aiRuns.workflow,
+        status: aiRuns.status,
+        documentId: aiRuns.documentId,
+        entityType: aiRuns.entityType,
+        entityId: aiRuns.entityId,
+        requestedBy: aiRuns.requestedBy,
+        runReviewStatus: aiRuns.reviewStatus,
+        extractionReviewStatus: documentExtractions.reviewStatus,
+        errorCode: aiRuns.errorCode,
+        errorMessage: aiRuns.errorMessage,
+        warnings: documentExtractions.warnings,
+        extraction: documentExtractions.extractedJson,
+        createdAt: aiRuns.createdAt,
+        startedAt: aiRuns.startedAt,
+        completedAt: aiRuns.completedAt,
+      })
+      .from(aiRuns)
+      .leftJoin(documentExtractions, eq(documentExtractions.sourceRunId, aiRuns.id))
+      .where(withTenant(tenantId, aiRuns.tenantId, eq(aiRuns.id, params.runId)))
+      .limit(1)
+  );
 
   if (!row) {
     return null;

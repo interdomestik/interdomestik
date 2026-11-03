@@ -3,27 +3,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTrackingDrizzleMock, trackingSchemaMock } from './tracking-test-mocks';
 
 const hoisted = vi.hoisted(() => ({
-  tokenFindFirst: vi.fn(),
+  resolveClaimTrackingTokenTenant: vi.fn(),
+  tokenLimit: vi.fn(),
+  tokenWhere: vi.fn(),
+  txSelect: vi.fn(),
   claimFindFirst: vi.fn(),
   createHash: vi.fn(),
   hashUpdate: vi.fn(),
   hashDigest: vi.fn(),
+  withTenantContext: vi.fn(),
   withServerActionInstrumentation: vi.fn(
     async (_name: string, _options: unknown, callback: () => Promise<unknown>) => callback()
   ),
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      claimTrackingTokens: {
-        findFirst: hoisted.tokenFindFirst,
-      },
-      claims: {
-        findFirst: hoisted.claimFindFirst,
-      },
-    },
-  },
+  withTenantContext: hoisted.withTenantContext,
+  resolveClaimTrackingTokenTenant: hoisted.resolveClaimTrackingTokenTenant,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -31,11 +27,7 @@ vi.mock('@interdomestik/database/schema', () => ({
     id: trackingSchemaMock.claims.id,
     tenantId: trackingSchemaMock.claims.tenantId,
   },
-  claimTrackingTokens: {
-    tokenHash: trackingSchemaMock.claimTrackingTokens.tokenHash,
-    expiresAt: trackingSchemaMock.claimTrackingTokens.expiresAt,
-    revokedAt: trackingSchemaMock.claimTrackingTokens.revokedAt,
-  },
+  claimTrackingTokens: trackingSchemaMock.claimTrackingTokens,
 }));
 
 vi.mock('drizzle-orm', () => createTrackingDrizzleMock());
@@ -51,10 +43,33 @@ vi.mock('crypto', () => ({
 }));
 
 import { getPublicClaimStatus } from './getPublicClaimStatus';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
+// Stands in for the authority the public-token producer mints after resolving the token.
+const tokenAuthority = mintTestTenantAuthority('tenant-ks');
+
+const validTokenRow = [{ id: 'token-1' }];
 
 describe('getPublicClaimStatus', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.resolveClaimTrackingTokenTenant.mockResolvedValue({
+      tenantId: 'tenant-ks',
+      claimId: 'claim-1',
+      authority: tokenAuthority,
+    });
+    hoisted.tokenLimit.mockResolvedValue(validTokenRow);
+    hoisted.tokenWhere.mockReturnValue({ limit: hoisted.tokenLimit });
+    hoisted.txSelect.mockReturnValue({
+      from: vi.fn(() => ({ where: hoisted.tokenWhere })),
+    });
+    hoisted.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) =>
+        callback({
+          select: hoisted.txSelect,
+          query: { claims: { findFirst: hoisted.claimFindFirst } },
+        })
+    );
     hoisted.hashDigest.mockReturnValue('hashed-token');
     hoisted.hashUpdate.mockReturnValue({ digest: hoisted.hashDigest });
     hoisted.createHash.mockReturnValue({
@@ -63,47 +78,59 @@ describe('getPublicClaimStatus', () => {
     });
   });
 
-  it('returns null when no active token record exists and scopes lookup to unrevoked tokens', async () => {
-    hoisted.tokenFindFirst.mockResolvedValueOnce(null);
+  it('returns null without entering a tenant context when the resolver finds no active token', async () => {
+    hoisted.resolveClaimTrackingTokenTenant.mockResolvedValueOnce(null);
 
     const result = await getPublicClaimStatus('public-token');
 
     expect(result).toBeNull();
-    expect(hoisted.tokenFindFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          op: 'and',
-          args: [
-            {
-              op: 'eq',
-              left: 'claimTrackingTokens.tokenHash',
-              right: 'hashed-token',
-            },
-            {
-              op: 'gt',
-              left: 'claimTrackingTokens.expiresAt',
-              right: expect.any(Date),
-            },
-            {
-              op: 'isNull',
-              value: 'claimTrackingTokens.revokedAt',
-            },
-          ],
-        },
-      })
+    expect(hoisted.resolveClaimTrackingTokenTenant).toHaveBeenCalledWith(
+      'public-token',
+      expect.any(Date)
     );
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.txSelect).not.toHaveBeenCalled();
+    expect(hoisted.claimFindFirst).not.toHaveBeenCalled();
+  });
+
+  it('returns null without reading the claim when the token is no longer valid in the resolved tenant', async () => {
+    hoisted.tokenLimit.mockResolvedValueOnce([]);
+
+    const result = await getPublicClaimStatus('public-token');
+
+    expect(result).toBeNull();
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(hoisted.txSelect).toHaveBeenCalledTimes(1);
+    expect(hoisted.claimFindFirst).not.toHaveBeenCalled();
+  });
+
+  it('revalidates the token inside the resolved tenant with unrevoked, unexpired and tenant-bound predicates', async () => {
+    hoisted.claimFindFirst.mockResolvedValueOnce(null);
+
+    await getPublicClaimStatus('public-token');
+
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(tokenAuthority, expect.any(Function));
+    expect(hoisted.tokenWhere).toHaveBeenCalledWith({
+      op: 'and',
+      args: [
+        { op: 'eq', left: 'claimTrackingTokens.tenantId', right: 'tenant-ks' },
+        { op: 'eq', left: 'claimTrackingTokens.claimId', right: 'claim-1' },
+        { op: 'eq', left: 'claimTrackingTokens.tokenHash', right: 'hashed-token' },
+        { op: 'gt', left: 'claimTrackingTokens.expiresAt', right: expect.any(Date) },
+        { op: 'isNull', value: 'claimTrackingTokens.revokedAt' },
+      ],
+    });
+    expect(hoisted.tokenLimit).toHaveBeenCalledWith(1);
   });
 
   it('returns null when the claim lookup does not match the token tenant', async () => {
-    hoisted.tokenFindFirst.mockResolvedValueOnce({
-      claimId: 'claim-1',
-      tenantId: 'tenant-ks',
-    });
     hoisted.claimFindFirst.mockResolvedValueOnce(null);
 
     const result = await getPublicClaimStatus('public-token');
 
     expect(result).toBeNull();
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(tokenAuthority, expect.any(Function));
     expect(hoisted.claimFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -117,23 +144,7 @@ describe('getPublicClaimStatus', () => {
     );
   });
 
-  it('returns null without querying claims when the token tenant is missing', async () => {
-    hoisted.tokenFindFirst.mockResolvedValueOnce({
-      claimId: 'claim-legacy',
-      tenantId: null,
-    });
-
-    const result = await getPublicClaimStatus('public-token');
-
-    expect(result).toBeNull();
-    expect(hoisted.claimFindFirst).not.toHaveBeenCalled();
-  });
-
   it('returns lifecycle-derived public status when compat status differs', async () => {
-    hoisted.tokenFindFirst.mockResolvedValueOnce({
-      claimId: 'claim-1',
-      tenantId: 'tenant-ks',
-    });
     hoisted.claimFindFirst.mockResolvedValueOnce({
       caseLifecycleState: 'resolved',
       id: 'claim-1',

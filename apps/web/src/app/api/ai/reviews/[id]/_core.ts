@@ -1,11 +1,15 @@
-import { db } from '@/lib/db.server';
-import { and, eq } from '@interdomestik/database';
+import { and, eq, type TenantTransaction } from '@interdomestik/database';
 import { aiRuns, documentExtractions, policies } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import {
   claimIntakeExtractSchema,
   legalDocExtractSchema,
   policyExtractSchema,
 } from '@interdomestik/domain-ai';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type ReviewAction = 'approve' | 'reject' | 'correct';
 
@@ -18,9 +22,7 @@ type CorrectedReviewPayloadResult =
   | { kind: 'ok'; correctedExtraction?: Record<string, unknown>; correctedWarnings?: string[] }
   | { kind: 'unprocessable'; message: string };
 
-type ReviewTx = {
-  update: typeof db.update;
-};
+type ReviewTx = Pick<TenantTransaction, 'update'>;
 
 function getReviewStatus(action: ReviewAction): 'approved' | 'rejected' | 'corrected' {
   if (action === 'approve') return 'approved';
@@ -130,26 +132,31 @@ async function syncReviewedPolicyExtraction(args: {
 
 export async function submitAiReview(args: {
   runId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   reviewerId: string;
   reviewerRole: string | null | undefined;
   action: ReviewAction;
   correctedExtraction?: Record<string, unknown>;
 }): Promise<SubmitAiReviewResult> {
-  const [existingRun] = await db
-    .select({
-      id: aiRuns.id,
-      workflow: aiRuns.workflow,
-      entityType: aiRuns.entityType,
-      entityId: aiRuns.entityId,
-      extractionReviewStatus: documentExtractions.reviewStatus,
-      extractionJson: documentExtractions.extractedJson,
-      extractionWarnings: documentExtractions.warnings,
-    })
-    .from(aiRuns)
-    .leftJoin(documentExtractions, eq(documentExtractions.sourceRunId, aiRuns.id))
-    .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.tenantId, args.tenantId)))
-    .limit(1);
+  const { tenantId } = readTenantAuthority(args.authority);
+  const [existingRun] = await withTenantAuthority(
+    args.authority,
+    async tx =>
+      await tx
+        .select({
+          id: aiRuns.id,
+          workflow: aiRuns.workflow,
+          entityType: aiRuns.entityType,
+          entityId: aiRuns.entityId,
+          extractionReviewStatus: documentExtractions.reviewStatus,
+          extractionJson: documentExtractions.extractedJson,
+          extractionWarnings: documentExtractions.warnings,
+        })
+        .from(aiRuns)
+        .leftJoin(documentExtractions, eq(documentExtractions.sourceRunId, aiRuns.id))
+        .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.tenantId, tenantId)))
+        .limit(1)
+  );
 
   if (!existingRun) {
     return { kind: 'notFound' };
@@ -165,7 +172,7 @@ export async function submitAiReview(args: {
     return correctedPayload;
   }
 
-  await db.transaction(async tx => {
+  await withTenantAuthority(args.authority, async tx => {
     await tx
       .update(aiRuns)
       .set({
@@ -173,7 +180,7 @@ export async function submitAiReview(args: {
         reviewedBy: args.reviewerId,
         outputJson: correctedPayload.correctedExtraction ?? undefined,
       })
-      .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.tenantId, args.tenantId)));
+      .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.tenantId, tenantId)));
 
     await tx
       .update(documentExtractions)
@@ -189,7 +196,7 @@ export async function submitAiReview(args: {
         and(
           eq(documentExtractions.sourceRunId, args.runId),
           eq(documentExtractions.reviewStatus, existingRun.extractionReviewStatus ?? 'pending'),
-          eq(documentExtractions.tenantId, args.tenantId)
+          eq(documentExtractions.tenantId, tenantId)
         )
       );
 
@@ -198,7 +205,7 @@ export async function submitAiReview(args: {
       correctedExtraction: correctedPayload.correctedExtraction,
       entityType: existingRun.entityType,
       entityId: existingRun.entityId,
-      tenantId: args.tenantId,
+      tenantId,
     });
   });
 

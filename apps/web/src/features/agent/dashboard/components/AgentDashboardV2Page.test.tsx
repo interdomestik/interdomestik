@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -15,6 +16,7 @@ const hoisted = vi.hoisted(() => ({
   }),
   setRequestLocaleMock: vi.fn(),
   statsCoreMock: vi.fn(),
+  withTenantContextMock: vi.fn(),
 }));
 
 vi.mock('next/headers', () => ({
@@ -38,18 +40,21 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
+const sessionAuthority = mintTestTenantAuthority('tenant-1');
+
+vi.mock('@/actions/commissions/context', () => ({
+  getActionContext: async () => ({
+    session: await hoisted.getSessionMock(),
+    authority: sessionAuthority,
+  }),
+}));
+
 vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: hoisted.ensureTenantIdMock,
 }));
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
-    query: {
-      branches: {
-        findFirst: hoisted.branchFindFirstMock,
-      },
-    },
-  },
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: hoisted.withTenantContextMock,
 }));
 
 vi.mock('@/app/[locale]/(agent)/agent/_core', () => ({
@@ -113,6 +118,12 @@ import { AgentDashboardV2Page } from './AgentDashboardV2Page';
 describe('AgentDashboardV2Page tenant boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.withTenantContextMock.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) =>
+        callback({
+          query: { branches: { findFirst: hoisted.branchFindFirstMock } },
+        })
+    );
     hoisted.ensureTenantIdMock.mockReturnValue('tenant-1');
     hoisted.getSessionMock.mockResolvedValue({
       user: {
@@ -185,6 +196,18 @@ describe('AgentDashboardV2Page tenant boundary', () => {
   it('passes tenant identity into the v2 stats core on the authorized path', async () => {
     await AgentDashboardV2Page({ locale: 'en', tier: 'pro' });
 
+    expect(hoisted.withTenantContextMock).toHaveBeenCalledWith(
+      sessionAuthority,
+      expect.any(Function)
+    );
+    expect(hoisted.getAgentReferralLinkCoreMock).toHaveBeenCalledWith({
+      session: expect.anything(),
+      authority: sessionAuthority,
+    });
+    expect(hoisted.getMyCommissionSummaryMock).toHaveBeenCalledWith({
+      session: expect.anything(),
+      authority: expect.anything(),
+    });
     expect(hoisted.statsCoreMock).toHaveBeenCalledWith(
       { agentId: 'agent-1', tenantId: 'tenant-1' },
       expect.objectContaining({ db: expect.any(Object) })

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -10,9 +11,12 @@ vi.mock('next/headers', () => ({
   headers: vi.fn(async () => new Headers()),
 }));
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 vi.mock('./user-settings/context', () => ({
   getActionContext: vi.fn(async () => ({
     session: { user: { id: 'user-1', role: 'user' } },
+    authority,
   })),
 }));
 
@@ -60,6 +64,7 @@ describe('user-settings action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(getNotificationPreferencesCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user' } },
+      authority,
     });
     expect(result).toEqual({
       success: true,
@@ -92,6 +97,7 @@ describe('user-settings action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(updateNotificationPreferencesCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user' } },
+      authority,
       requestHeaders: expect.any(Headers),
       preferences: prefs,
     });
@@ -107,6 +113,7 @@ describe('user-settings action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(updateResidenceCountryCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user' } },
+      authority,
       requestHeaders: expect.any(Headers),
       residenceCountry: 'AT',
     });

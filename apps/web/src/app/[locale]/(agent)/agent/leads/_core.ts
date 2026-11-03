@@ -1,6 +1,6 @@
 import type * as DatabaseModule from '@interdomestik/database';
 
-type DatabaseClient = typeof DatabaseModule.db;
+type DatabaseClient = typeof DatabaseModule.db | DatabaseModule.TenantTransaction;
 type MemberLeadRow = Awaited<
   ReturnType<DatabaseClient['query']['memberLeads']['findMany']>
 >[number];

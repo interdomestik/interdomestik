@@ -1,40 +1,42 @@
-import {
-  CRM_REPORTING_MAX_WINDOW_DAYS,
-  type CrmReportingBaseInput,
-} from '@interdomestik/domain-crm/reporting';
+import { CRM_REPORTING_MAX_WINDOW_DAYS } from '@interdomestik/domain-crm/reporting';
 import type {
   CrmForecastSnapshotRepository,
   CrmReportingRepository,
 } from '@interdomestik/domain-crm/reporting/repository';
+import { listScheduledTenantWork, type ScheduledTenantWork } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
 
 import {
   CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN,
-  crmForecastSnapshotWorkItemRepository,
+  createCrmForecastSnapshotWorkItemRepository,
   type CrmForecastSnapshotWorkItem,
   type CrmForecastSnapshotWorkItemRepository,
 } from '@/adapters/crm/forecast-snapshot-work-items';
 import {
-  crmForecastSnapshotRepository,
-  crmReportingRepository,
+  createCrmForecastSnapshotRepository,
+  createCrmReportingRepository,
 } from '@/adapters/crm/reporting-repository';
 
 import {
   assertNoCrmForecastSnapshotPiiKeys,
-  buildCrmForecastSnapshotsForWorkItem,
   isCrmForecastSnapshotSoftTimeoutError,
-  throwIfCrmForecastSnapshotAborted,
   withCrmForecastSnapshotTimeout,
   type CrmForecastSnapshotTenantWeightedRows,
 } from './_shared';
-
-export const CRM_FORECAST_SNAPSHOT_IDEMPOTENCY_PREFIX = 'crm-forecast-snapshot';
-export const CRM_FORECAST_SNAPSHOT_NO_BRANCH_SENTINEL = '_no_branch';
+import {
+  CRM_FORECAST_SNAPSHOT_IDEMPOTENCY_PREFIX,
+  CRM_FORECAST_SNAPSHOT_NO_BRANCH_SENTINEL,
+  SOFT_TIMEOUT_MESSAGE,
+  processWorkItem,
+} from './_work-item';
+export {
+  CRM_FORECAST_SNAPSHOT_IDEMPOTENCY_PREFIX,
+  CRM_FORECAST_SNAPSHOT_NO_BRANCH_SENTINEL,
+  buildSnapshotIdempotencyKey,
+} from './_work-item';
 export const CRM_FORECAST_SNAPSHOT_TARGET_DURATION_MS = 60_000;
 export const CRM_FORECAST_SNAPSHOT_WORK_ITEM_SOFT_TIMEOUT_MS = 5_000;
-
-const SYSTEM_ACTOR_ID = 'system:crm-forecast-snapshot-scheduler';
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const SOFT_TIMEOUT_MESSAGE = 'CRM forecast snapshot timed out';
 
 export type CrmForecastSnapshotSchedulerResult = {
   completedAt: string;
@@ -52,6 +54,8 @@ export type CrmForecastSnapshotSchedulerResult = {
 export type CrmForecastSnapshotSchedulerLogger = Pick<Console, 'error' | 'info' | 'warn'>;
 
 export type RunCrmForecastSnapshotSchedulerCoreArgs = {
+  /** The cron admission the route obtained; the only way a run reaches the per-tenant authorities. */
+  ingress: IngressCapability<'cron'>;
   logger?: CrmForecastSnapshotSchedulerLogger;
   maxWorkItemsPerRun?: number;
   now: Date;
@@ -79,9 +83,11 @@ export async function runCrmForecastSnapshotSchedulerCore(
     args.workItemSoftTimeoutMs ?? CRM_FORECAST_SNAPSHOT_WORK_ITEM_SOFT_TIMEOUT_MS;
   const snapshotDateEndExclusive = endExclusiveForSnapshotDate(snapshotDate);
   const snapshotDateStartInclusive = startInclusiveForSnapshotDate(snapshotDateEndExclusive);
-  const workItemRepository = args.workItemRepository ?? crmForecastSnapshotWorkItemRepository;
-  const reportingRepository = args.reportingRepository ?? crmReportingRepository;
-  const snapshotRepository = args.snapshotRepository ?? crmForecastSnapshotRepository;
+  const scheduledTenants = await listScheduledTenantWork(args.ingress);
+  const workItemRepository =
+    args.workItemRepository ??
+    createCrmForecastSnapshotWorkItemRepository(scheduledTenants.map(tenant => tenant.authority));
+  const repositories = createTenantRepositories(scheduledTenants, args);
   const logger = args.logger ?? console;
 
   const listed = await workItemRepository.listWorkItems({
@@ -101,15 +107,15 @@ export async function runCrmForecastSnapshotSchedulerCore(
     }
 
     try {
+      const tenantRepositories = repositories(workItem.tenantId);
       const inserted = await withTimeout(
         signal =>
           processWorkItem({
-            reportingRepository,
+            repositories: tenantRepositories,
             signal,
             snapshotDate,
             snapshotDateEndExclusive,
             snapshotDateStartInclusive,
-            snapshotRepository,
             sourceRunId,
             tenantRows,
             workItem,
@@ -240,68 +246,40 @@ function startInclusiveForSnapshotDate(snapshotDateEndExclusive: Date): Date {
   return new Date(snapshotDateEndExclusive.getTime() - CRM_REPORTING_MAX_WINDOW_DAYS * MS_PER_DAY);
 }
 
-async function processWorkItem(args: {
+export type CrmForecastSnapshotTenantRepositories = {
   reportingRepository: CrmReportingRepository;
-  signal: AbortSignal;
-  snapshotDate: string;
-  snapshotDateEndExclusive: Date;
-  snapshotDateStartInclusive: Date;
   snapshotRepository: CrmForecastSnapshotRepository;
-  sourceRunId: string;
-  tenantRows: CrmForecastSnapshotTenantWeightedRows;
-  workItem: CrmForecastSnapshotWorkItem;
-}): Promise<number | 'version_conflict'> {
-  const snapshots = await buildCrmForecastSnapshotsForWorkItem({
-    abortMessage: SOFT_TIMEOUT_MESSAGE,
-    createdAt: new Date().toISOString(),
-    idempotencyKey: buildSnapshotIdempotencyKey(args.workItem, {
-      snapshotDate: args.snapshotDate,
-      sourceRunId: args.sourceRunId,
-    }),
-    reportingInputFor,
-    reportingRepository: args.reportingRepository,
-    signal: args.signal,
-    snapshotDate: args.snapshotDate,
-    snapshotDateEndExclusive: args.snapshotDateEndExclusive,
-    snapshotDateStartInclusive: args.snapshotDateStartInclusive,
-    sourceRunId: args.sourceRunId,
-    tenantRows: args.tenantRows,
-    workItem: args.workItem,
-  });
+};
 
-  if (snapshots.length === 0) return 0;
-  throwIfCrmForecastSnapshotAborted(args.signal, SOFT_TIMEOUT_MESSAGE);
-  const inserted = await args.snapshotRepository.insertPipelineSnapshots({ snapshots });
-  throwIfCrmForecastSnapshotAborted(args.signal, SOFT_TIMEOUT_MESSAGE);
-  if (!inserted.success) return inserted.reason;
-  return inserted.snapshots.length;
-}
-
-function reportingInputFor(tenantId: string, from: Date, to: Date): CrmReportingBaseInput {
-  return {
-    actor: {
-      actorId: SYSTEM_ACTOR_ID,
-      role: 'admin',
-      scope: { permissions: ['crm:forecast-snapshot:scheduler'] },
-      tenantId,
-    },
-    window: { from: from.toISOString(), to: to.toISOString() },
+/**
+ * Per-tenant repositories for a scheduled run. A work item can only be processed for a tenant the
+ * cron admission enumerated: its repositories are built from that tenant's scheduled-work
+ * authority, and a tenant outside the enumeration fails closed instead of reaching a client.
+ */
+function createTenantRepositories(
+  scheduledTenants: readonly ScheduledTenantWork[],
+  overrides: Pick<
+    RunCrmForecastSnapshotSchedulerCoreArgs,
+    'reportingRepository' | 'snapshotRepository'
+  >
+): (tenantId: string) => CrmForecastSnapshotTenantRepositories {
+  const authorities = new Map(scheduledTenants.map(tenant => [tenant.tenantId, tenant.authority]));
+  const cache = new Map<string, CrmForecastSnapshotTenantRepositories>();
+  return tenantId => {
+    const cached = cache.get(tenantId);
+    if (cached) return cached;
+    const authority = authorities.get(tenantId);
+    if (!authority) {
+      throw new Error('CRM forecast snapshot work item tenant was not admitted for this run');
+    }
+    const created = {
+      reportingRepository: overrides.reportingRepository ?? createCrmReportingRepository(authority),
+      snapshotRepository:
+        overrides.snapshotRepository ?? createCrmForecastSnapshotRepository(authority),
+    };
+    cache.set(tenantId, created);
+    return created;
   };
-}
-
-export function buildSnapshotIdempotencyKey(
-  workItem: CrmForecastSnapshotWorkItem,
-  params: { snapshotDate: string; sourceRunId: string }
-): string {
-  return [
-    CRM_FORECAST_SNAPSHOT_IDEMPOTENCY_PREFIX,
-    workItem.tenantId,
-    workItem.pipelineId,
-    workItem.branchId ?? CRM_FORECAST_SNAPSHOT_NO_BRANCH_SENTINEL,
-    workItem.currencyCode,
-    params.snapshotDate,
-    params.sourceRunId,
-  ].join(':');
 }
 
 function withTimeout<T>(

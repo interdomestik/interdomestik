@@ -1,26 +1,28 @@
 import {
   authorizeCrmLeadFollowUpAction,
   completeCrmLeadFollowUp,
-  type CrmLeadFollowUpActivityLike,
   type CrmLeadFollowUpResult,
 } from '@interdomestik/domain-crm/leads/follow-up';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
-import type { CrmTask } from '@interdomestik/domain-crm/tasks';
+
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { ensureTenantId, type SessionWithTenant } from '@interdomestik/shared-auth';
 import { createHash } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 
 import { LOCALES } from '@/i18n/locales';
 import {
-  crmLeadFollowUpRepository,
+  createCrmLeadFollowUpRepository,
   listCrmLeadFollowUpActivitiesForLead,
   listCrmLeadFollowUpTasksForLead,
 } from '@/adapters/crm/lead-follow-up-repository';
+import { completeCrmTaskCore, createCrmTaskCore } from './crm-tasks.core';
 import {
-  completeCrmTaskCore,
-  createCrmTaskCore,
-  type CrmTaskBoundaryResult,
-} from './crm-tasks.core';
+  parseTimestamp,
+  mapTaskResult,
+  hasSameScheduledAt,
+  completeShadowedLegacyFollowUps,
+} from './agent-crm-follow-up-tasks';
 
 type AgentCrmFollowUpSession = NonNullable<SessionWithTenant>;
 type AgentCrmFollowUpActionFailure = Extract<AgentCrmFollowUpActionResult, { success: false }>;
@@ -32,8 +34,6 @@ export type AgentCrmFollowUpActionResult =
   | { success: false; error: 'rate_limited'; retryAfter?: number }
   | { success: false; error: 'invalid_input'; reason: string }
   | { success: false; error: 'forbidden'; reason: string };
-
-const FOLLOW_UP_TASK_LABEL = 'Follow up';
 const FOLLOW_UP_TASK_ID_PREFIX = 'lead-follow-up';
 
 function revalidateAgentLeadFollowUpPaths(leadId: string) {
@@ -63,10 +63,11 @@ export function createAgentCrmActorContext(
 }
 
 function requireAgentActor(
-  session: AgentCrmFollowUpSession | null
-): AgentCrmFollowUpActionFailure | CrmActorContext {
+  session: AgentCrmFollowUpSession | null,
+  authority: TenantAuthority | null
+): AgentCrmFollowUpActionFailure | { actor: CrmActorContext; authority: TenantAuthority } {
   const actor = createAgentCrmActorContext(session);
-  if (!actor) {
+  if (!actor || !authority) {
     return { success: false, error: 'unauthorized' };
   }
 
@@ -74,13 +75,7 @@ function requireAgentActor(
     return { success: false, error: 'missing_branch_scope' };
   }
 
-  return actor;
-}
-
-function parseTimestamp(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const timestamp = Date.parse(value);
-  return Number.isNaN(timestamp) ? null : new Date(timestamp).toISOString();
+  return { actor, authority };
 }
 
 function hashStructuralId(material: string): string {
@@ -97,92 +92,20 @@ function taskFollowUpKey(params: {
   );
 }
 
-function taskToFollowUpActivity(task: CrmTask): CrmLeadFollowUpActivityLike {
-  const agentId =
-    task.assignedTo.kind === 'actor' && task.assignedTo.role === 'agent'
-      ? task.assignedTo.actorId
-      : task.createdBy.actorId;
-  return {
-    agentId,
-    branchId: task.branchId,
-    completedAt: task.completedAt,
-    createdAt: task.createdAt,
-    description: null,
-    expectedLifecycleVersion: task.lifecycleVersion,
-    followUpSource: 'crm_task',
-    id: task.taskId,
-    leadId: task.subjectReference.id,
-    occurredAt: task.createdAt,
-    scheduledAt: task.dueAt,
-    subject: FOLLOW_UP_TASK_LABEL,
-    tenantId: task.tenantId,
-    type: 'follow_up',
-  };
-}
-
-function mapTaskResult(result: CrmTaskBoundaryResult): AgentCrmFollowUpActionResult {
-  if (result.outcome === 'success' || result.outcome === 'idempotent_replay') {
-    return { success: true, activity: taskToFollowUpActivity(result.task) };
-  }
-  if (result.outcome === 'not_found') return { success: false, error: 'not_found' };
-  if (result.outcome === 'unauthorized') return { success: false, error: 'unauthorized' };
-  if (result.outcome === 'rate_limited') {
-    return { success: false, error: 'rate_limited', retryAfter: result.retryAfter };
-  }
-  if (result.outcome === 'invalid_input') {
-    return { success: false, error: 'invalid_input', reason: result.reason };
-  }
-  if (result.outcome === 'forbidden') {
-    return { success: false, error: 'forbidden', reason: result.reason };
-  }
-  return { success: false, error: result.outcome, reason: result.reason };
-}
-
-function hasSameScheduledAt(activity: CrmLeadFollowUpActivityLike, scheduledAt: string): boolean {
-  return parseTimestamp(activity.scheduledAt) === scheduledAt && activity.completedAt == null;
-}
-
-async function completeShadowedLegacyFollowUps(params: {
-  actor: CrmActorContext;
-  leadId: string;
-  scheduledAt: string | null;
-}) {
-  const scheduledAt = params.scheduledAt;
-  if (!scheduledAt) return;
-
-  const legacyActivities = await listCrmLeadFollowUpActivitiesForLead({
-    actor: params.actor,
-    leadId: params.leadId,
-  });
-  const shadowedActivities = legacyActivities.filter(activity =>
-    hasSameScheduledAt(activity, scheduledAt)
-  );
-
-  for (const activity of shadowedActivities) {
-    await completeCrmLeadFollowUp(
-      {
-        activityId: activity.id,
-        actor: params.actor,
-        leadId: params.leadId,
-      },
-      crmLeadFollowUpRepository,
-      { now: () => new Date().toISOString() }
-    );
-  }
-}
-
 export async function scheduleAgentLeadFollowUpCore(params: {
   description?: string | null;
   leadId: string;
   requestHeaders?: Headers;
   scheduledAt?: string | null;
   session: AgentCrmFollowUpSession | null;
+  authority: TenantAuthority | null;
   subject: string;
 }): Promise<AgentCrmFollowUpActionResult> {
-  const actor = requireAgentActor(params.session);
-  if ('success' in actor) {
-    return actor;
+  const agent = requireAgentActor(params.session, params.authority);
+  if ('success' in agent) {
+    return agent;
   }
+  const { actor, authority } = agent;
 
   const now = new Date().toISOString();
   const scheduledAt = parseTimestamp(params.scheduledAt?.trim() || now);
@@ -190,7 +113,10 @@ export async function scheduleAgentLeadFollowUpCore(params: {
     return { success: false, error: 'invalid_input', reason: 'invalid_scheduled_at' };
   }
 
-  const lead = await crmLeadFollowUpRepository.findById({ actor, leadId: params.leadId });
+  const lead = await createCrmLeadFollowUpRepository(authority).findById({
+    actor,
+    leadId: params.leadId,
+  });
   if (!lead) {
     return { success: false, error: 'not_found' };
   }
@@ -202,6 +128,7 @@ export async function scheduleAgentLeadFollowUpCore(params: {
 
   const legacyActivities = await listCrmLeadFollowUpActivitiesForLead({
     actor,
+    authority,
     leadId: params.leadId,
   });
   const existingLegacy = legacyActivities.find(activity =>
@@ -230,6 +157,7 @@ export async function scheduleAgentLeadFollowUpCore(params: {
         subjectReference: { id: params.leadId, kind: 'lead' },
         taskId: `${FOLLOW_UP_TASK_ID_PREFIX}:${taskKey}`,
       },
+      authority,
       requestHeaders: params.requestHeaders,
       session: params.session as AgentCrmFollowUpSession,
     })
@@ -248,12 +176,14 @@ export async function completeAgentLeadFollowUpCore(params: {
   leadId: string;
   requestHeaders?: Headers;
   session: AgentCrmFollowUpSession | null;
+  authority: TenantAuthority | null;
   source?: string | null;
 }): Promise<AgentCrmFollowUpActionResult> {
-  const actor = requireAgentActor(params.session);
-  if ('success' in actor) {
-    return actor;
+  const agent = requireAgentActor(params.session, params.authority);
+  if ('success' in agent) {
+    return agent;
   }
+  const { actor, authority } = agent;
 
   if (params.source === 'crm_task') {
     const expectedLifecycleVersion = Number(params.expectedLifecycleVersion);
@@ -263,6 +193,7 @@ export async function completeAgentLeadFollowUpCore(params: {
 
     const taskBackedFollowUps = await listCrmLeadFollowUpTasksForLead({
       actor,
+      authority,
       leadId: params.leadId,
     });
     const taskBackedFollowUp = taskBackedFollowUps.find(
@@ -282,6 +213,7 @@ export async function completeAgentLeadFollowUpCore(params: {
           reasonCode: 'resolved',
           taskId: params.activityId,
         },
+        authority,
         requestHeaders: params.requestHeaders,
         session: params.session as AgentCrmFollowUpSession,
       })
@@ -289,6 +221,7 @@ export async function completeAgentLeadFollowUpCore(params: {
     if (result.success) {
       await completeShadowedLegacyFollowUps({
         actor,
+        authority,
         leadId: params.leadId,
         scheduledAt: taskBackedFollowUp.scheduledAt ?? null,
       });
@@ -303,7 +236,7 @@ export async function completeAgentLeadFollowUpCore(params: {
       actor,
       leadId: params.leadId,
     },
-    crmLeadFollowUpRepository,
+    createCrmLeadFollowUpRepository(authority),
     { now: () => new Date().toISOString() }
   );
 

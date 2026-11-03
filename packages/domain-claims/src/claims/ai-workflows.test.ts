@@ -137,7 +137,13 @@ describe('queueClaimDocumentAiWorkflows', () => {
     const queuedRuns = await queueWith([acceptedConsent]);
 
     expect(queuedRuns).toEqual([
-      { runId: 'run-1', workflow: 'claim_intake_extract', claimId: 'claim-1', documentId: 'doc-1' },
+      {
+        runId: 'run-1',
+        tenantId: 'tenant-1',
+        workflow: 'claim_intake_extract',
+        claimId: 'claim-1',
+        documentId: 'doc-1',
+      },
     ]);
     expect(hoisted.txInsert).toHaveBeenNthCalledWith(1, { __name: 'documents' });
     expect(hoisted.txInsert).toHaveBeenNthCalledWith(2, { __name: 'ai_runs' });

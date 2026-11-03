@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Stands in for the capability the route's cron admission returns.
+const INGRESS = Object.freeze({});
+
 const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
   authorizeCronRequest: vi.fn(),
@@ -24,7 +27,7 @@ describe('GET /api/cron/nps', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.enforceRateLimit.mockResolvedValue(null);
-    hoisted.authorizeCronRequest.mockReturnValue(true);
+    hoisted.authorizeCronRequest.mockReturnValue(INGRESS);
     hoisted.runNpsCronCore.mockResolvedValue({ sent: 1, skipped: 2, errors: 0 });
   });
 
@@ -39,7 +42,7 @@ describe('GET /api/cron/nps', () => {
   });
 
   it('returns 401 when unauthorized', async () => {
-    hoisted.authorizeCronRequest.mockReturnValue(false);
+    hoisted.authorizeCronRequest.mockReturnValue(null);
 
     const req = new Request('http://localhost:3000/api/cron/nps');
     const res = await GET(req);
@@ -59,6 +62,7 @@ describe('GET /api/cron/nps', () => {
 
     expect(hoisted.runNpsCronCore).toHaveBeenCalledTimes(1);
     expect(hoisted.runNpsCronCore).toHaveBeenCalledWith({
+      ingress: INGRESS,
       now: expect.any(Date),
       headers: req.headers,
     });

@@ -1,6 +1,10 @@
-import { claimMessages, user, withTenantContext } from '@interdomestik/database';
+import { claimMessages, user } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { AuditLogger, Session } from '../types';
@@ -12,7 +16,7 @@ export type SendMessageDbCoreResult =
   | {
       success: true;
       message: MessageWithSender;
-      claim: { id: string; title: string; userId: string };
+      claim: { id: string; title: string; userId: string; tenantId: string };
       isInternal: boolean;
       isStaff: boolean;
       claimOwnerEmail: string | null;
@@ -25,6 +29,7 @@ export type SendMessageDbCoreResult =
  */
 export async function sendMessageDbCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   requestHeaders: Headers;
   claimId: string;
   content: string;
@@ -33,18 +38,18 @@ export async function sendMessageDbCore(params: {
     logAuditEvent?: AuditLogger;
   };
 }): Promise<SendMessageDbCoreResult> {
-  const { session, requestHeaders, claimId, content } = params;
+  const { session, authority, requestHeaders, claimId, content } = params;
   const isInternal = params.isInternal ?? false;
 
   try {
-    if (!session?.user) {
+    if (!session?.user || !authority) {
       return { success: false, error: 'Unauthorized' };
     }
 
     const actor = session.user;
     const userId = actor.id;
     const userRole = actor.role || 'user';
-    const tenantId = ensureTenantId(session);
+    const { tenantId } = readTenantAuthority(authority);
     const trimmed = content.trim();
     const isScopedStaff = userRole === 'staff';
     const isBranchManager = userRole === 'branch_manager';
@@ -60,117 +65,114 @@ export async function sendMessageDbCore(params: {
       return { success: false, error: 'Message too long (max 5000 characters)' };
     }
 
-    const result = await withTenantContext<SendMessageDbCoreResult>(
-      { tenantId, role: userRole },
-      async tx => {
-        const claim = await tx.query.claims.findFirst({
-          where: (claimsTable, { eq }) =>
-            withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-        });
+    const result = await withTenantAuthority<SendMessageDbCoreResult>(authority, async tx => {
+      const claim = await tx.query.claims.findFirst({
+        where: (claimsTable, { eq }) =>
+          withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+      });
 
-        if (!claim) {
-          return { success: false, error: 'Claim not found' };
-        }
-
-        if (isBranchManager) {
-          return { success: false, error: 'Access denied' };
-        }
-
-        if (isPrivilegedStaff) {
-          // Full-tenant roles can message any in-tenant claim.
-        } else if (
-          isScopedStaff &&
-          !hasScopedStaffClaimAccess({
-            branchId: actor.branchId ?? null,
-            claim,
-            userId,
-          })
-        ) {
-          return { success: false, error: 'Access denied' };
-        } else if (!isStaff && !isAgent && claim.userId !== userId) {
-          return { success: false, error: 'Access denied' };
-        }
-
-        if (isAgent) {
-          const canAccess = await hasAgentClaimAccess({
-            agentId: userId,
-            memberId: claim.userId,
-            tenantId,
-            tx,
-          });
-
-          if (!canAccess) {
-            return {
-              success: false,
-              error: 'Access denied: You can only message your assigned clients',
-            };
-          }
-        }
-
-        if (isInternal && !isStaff) {
-          return { success: false, error: 'Only staff can send internal messages' };
-        }
-
-        const messageId = nanoid();
-
-        // db-access-guard: tenant-scoped -- reason: tenantId from validated session before claim message insert
-        await tx.insert(claimMessages).values({
-          id: messageId,
-          tenantId,
-          claimId,
-          senderId: userId,
-          content: trimmed,
-          isInternal,
-        });
-
-        const selected = (await tx
-          .select({
-            id: claimMessages.id,
-            claimId: claimMessages.claimId,
-            senderId: claimMessages.senderId,
-            content: claimMessages.content,
-            isInternal: claimMessages.isInternal,
-            readAt: claimMessages.readAt,
-            createdAt: claimMessages.createdAt,
-            sender: {
-              id: user.id,
-              name: user.name,
-              image: user.image,
-              role: user.role,
-            },
-          })
-          .from(claimMessages)
-          .leftJoin(user, eq(claimMessages.senderId, user.id))
-          .where(withTenant(tenantId, claimMessages.tenantId, eq(claimMessages.id, messageId)))
-          .limit(1)) as unknown as SelectedMessageRow[];
-
-        const createdMessage = normalizeSelectedMessages(selected)[0];
-        if (!createdMessage) {
-          throw new Error('Created message projection unavailable');
-        }
-
-        let claimOwnerEmail: string | null = null;
-        if (!isInternal && isStaff) {
-          const claimOwner = await tx.query.user.findFirst({
-            where: (users, { eq }) =>
-              withTenant(tenantId, users.tenantId, eq(users.id, claim.userId)),
-          });
-          claimOwnerEmail = claimOwner?.email ?? null;
-        }
-
-        return {
-          success: true,
-          message: createdMessage,
-          claim: { id: claimId, title: claim.title, userId: claim.userId },
-          isInternal,
-          isStaff,
-          claimOwnerEmail,
-        };
+      if (!claim) {
+        return { success: false, error: 'Claim not found' };
       }
-    );
+
+      if (isBranchManager) {
+        return { success: false, error: 'Access denied' };
+      }
+
+      if (isPrivilegedStaff) {
+        // Full-tenant roles can message any in-tenant claim.
+      } else if (
+        isScopedStaff &&
+        !hasScopedStaffClaimAccess({
+          branchId: actor.branchId ?? null,
+          claim,
+          userId,
+        })
+      ) {
+        return { success: false, error: 'Access denied' };
+      } else if (!isStaff && !isAgent && claim.userId !== userId) {
+        return { success: false, error: 'Access denied' };
+      }
+
+      if (isAgent) {
+        const canAccess = await hasAgentClaimAccess({
+          agentId: userId,
+          memberId: claim.userId,
+          tenantId,
+          tx,
+        });
+
+        if (!canAccess) {
+          return {
+            success: false,
+            error: 'Access denied: You can only message your assigned clients',
+          };
+        }
+      }
+
+      if (isInternal && !isStaff) {
+        return { success: false, error: 'Only staff can send internal messages' };
+      }
+
+      const messageId = nanoid();
+
+      // db-access-guard: tenant-scoped -- reason: tenantId from validated session before claim message insert
+      await tx.insert(claimMessages).values({
+        id: messageId,
+        tenantId,
+        claimId,
+        senderId: userId,
+        content: trimmed,
+        isInternal,
+      });
+
+      const selected = (await tx
+        .select({
+          id: claimMessages.id,
+          claimId: claimMessages.claimId,
+          senderId: claimMessages.senderId,
+          content: claimMessages.content,
+          isInternal: claimMessages.isInternal,
+          readAt: claimMessages.readAt,
+          createdAt: claimMessages.createdAt,
+          sender: {
+            id: user.id,
+            name: user.name,
+            image: user.image,
+            role: user.role,
+          },
+        })
+        .from(claimMessages)
+        .leftJoin(user, eq(claimMessages.senderId, user.id))
+        .where(withTenant(tenantId, claimMessages.tenantId, eq(claimMessages.id, messageId)))
+        .limit(1)) as unknown as SelectedMessageRow[];
+
+      const createdMessage = normalizeSelectedMessages(selected)[0];
+      if (!createdMessage) {
+        throw new Error('Created message projection unavailable');
+      }
+
+      let claimOwnerEmail: string | null = null;
+      if (!isInternal && isStaff) {
+        const claimOwner = await tx.query.user.findFirst({
+          where: (users, { eq }) =>
+            withTenant(tenantId, users.tenantId, eq(users.id, claim.userId)),
+        });
+        claimOwnerEmail = claimOwner?.email ?? null;
+      }
+
+      return {
+        success: true,
+        message: createdMessage,
+        claim: { id: claimId, title: claim.title, userId: claim.userId, tenantId },
+        isInternal,
+        isStaff,
+        claimOwnerEmail,
+      };
+    });
     if (result.success && params.deps?.logAuditEvent) {
       await params.deps.logAuditEvent({
-        tenantId,
+        authority,
         actorId: userId,
         actorRole: actor.role,
         action: 'claim.message_sent',

@@ -1,99 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-
-import type { CrmActorContext } from '@interdomestik/domain-crm/context';
-
-import type {
-  AdminCrmRoutingRuleAdminRepository,
-  AdminCrmRoutingRuleRow,
-} from '@/adapters/crm/routing-repository';
-
 import {
-  getAdminCrmRoutingErrorMessageKey,
-  getAdminCrmRoutingRulesCore,
-  runAdminCrmRoutingRuleAction,
-} from './_routing-core';
+  TEST_AUTHORITY,
+  adminActor,
+  adminSession,
+  baseInput,
+  repository,
+  rule,
+} from './_routing-core.test-support';
+import { getAdminCrmRoutingRulesCore, runAdminCrmRoutingRuleAction } from './_routing-core';
 import type { AdminCrmRoutingActionErrorReason } from './_routing-types';
-
-const adminActor: CrmActorContext = {
-  actorId: 'admin-1',
-  role: 'admin',
-  scope: { branchId: null },
-  tenantId: 'tenant-1',
-};
-
-const adminSession = {
-  user: {
-    branchId: null,
-    id: 'admin-1',
-    role: 'admin',
-    tenantId: 'tenant-1',
-  },
-};
-
-const baseInput = {
-  agentIds: ['agent-1', 'agent-2'],
-  branchId: null,
-  effectiveFrom: null,
-  effectiveTo: null,
-  fallbackAgentId: null,
-  fallbackRuleId: null,
-  leadType: null,
-  maxNewLeadsPerAgentPerDay: null,
-  maxOpenLeadsPerAgent: null,
-  priority: 0,
-  source: 'website',
-  strategy: 'round_robin' as const,
-  utmCampaign: null,
-  utmMedium: null,
-  utmSource: null,
-};
-
-function rule(overrides: Partial<AdminCrmRoutingRuleRow> = {}): AdminCrmRoutingRuleRow {
-  return {
-    agentIds: ['agent-1', 'agent-2'],
-    archivedAt: null,
-    branchId: null,
-    createdAt: '2026-05-16T08:00:00.000Z',
-    effectiveFrom: null,
-    effectiveTo: null,
-    enabled: true,
-    fallbackAgentId: null,
-    fallbackRuleId: null,
-    id: 'rule-1',
-    leadType: null,
-    maxNewLeadsPerAgentPerDay: null,
-    maxOpenLeadsPerAgent: null,
-    priority: 0,
-    source: 'website',
-    strategy: 'round_robin' as const,
-    tenantId: 'tenant-1',
-    updatedAt: '2026-05-16T08:00:00.000Z',
-    utmCampaign: null,
-    utmMedium: null,
-    utmSource: null,
-    ...overrides,
-  };
-}
-
-function repository(
-  overrides: Partial<AdminCrmRoutingRuleAdminRepository> = {}
-): AdminCrmRoutingRuleAdminRepository {
-  return {
-    archiveRoutingRule: vi.fn(async () => rule()),
-    createRoutingRule: vi.fn(async () => rule()),
-    getRoutingRule: vi.fn(async () => rule()),
-    listAgentScopes: vi.fn(async () => [
-      { branchId: null, id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
-      { branchId: null, id: 'agent-2', role: 'agent', tenantId: 'tenant-1' },
-    ]),
-    listBranches: vi.fn(async () => [{ id: 'branch-1', label: 'North', tenantId: 'tenant-1' }]),
-    listRoutingRulesForAdmin: vi.fn(async () => [rule()]),
-    reorderRoutingRules: vi.fn(async () => [rule()]),
-    setRoutingRuleEnabled: vi.fn(async () => rule()),
-    updateRoutingRule: vi.fn(async () => rule()),
-    ...overrides,
-  };
-}
 
 describe('getAdminCrmRoutingRulesCore', () => {
   it('projects routing rules into aggregate PII-free admin summaries', async () => {
@@ -104,7 +19,10 @@ describe('getAdminCrmRoutingRulesCore', () => {
     });
 
     await expect(
-      getAdminCrmRoutingRulesCore({ actor: adminActor }, { repository: repo })
+      getAdminCrmRoutingRulesCore(
+        { actor: adminActor, authority: TEST_AUTHORITY },
+        { repository: repo }
+      )
     ).resolves.toEqual({
       counts: { active: 1, archived: 0 },
       rules: [
@@ -130,7 +48,10 @@ describe('getAdminCrmRoutingRulesCore', () => {
     });
 
     await expect(
-      getAdminCrmRoutingRulesCore({ actor: adminActor }, { repository: repo })
+      getAdminCrmRoutingRulesCore(
+        { actor: adminActor, authority: TEST_AUTHORITY },
+        { repository: repo }
+      )
     ).resolves.toEqual(expect.objectContaining({ counts: { active: 1, archived: 1 } }));
   });
 
@@ -145,6 +66,7 @@ describe('getAdminCrmRoutingRulesCore', () => {
             scope: { branchId: 'branch-1' },
             tenantId: 'tenant-1',
           },
+          authority: TEST_AUTHORITY,
         },
         { repository: repo }
       )
@@ -154,11 +76,23 @@ describe('getAdminCrmRoutingRulesCore', () => {
 });
 
 describe('runAdminCrmRoutingRuleAction', () => {
+  it('refuses to act without a tenant authority, before parsing or repository access', async () => {
+    const repo = repository();
+    await expect(
+      runAdminCrmRoutingRuleAction(
+        { authority: null, input: baseInput, kind: 'create', session: adminSession },
+        { repository: repo }
+      )
+    ).resolves.toEqual({ reason: 'forbidden', status: 'error' });
+    expect(repo.createRoutingRule).not.toHaveBeenCalled();
+  });
+
   it('authorizes before parsing or repository access', async () => {
     const repo = repository();
     await expect(
       runAdminCrmRoutingRuleAction(
         {
+          authority: TEST_AUTHORITY,
           input: { unknown: Symbol('unparseable') },
           kind: 'create',
           session: { user: { id: 'manager-1', role: 'branch_manager', tenantId: 'tenant-1' } },
@@ -173,7 +107,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
     const repo = repository();
     await expect(
       runAdminCrmRoutingRuleAction(
-        { input: baseInput, kind: 'create', session: adminSession },
+        { authority: TEST_AUTHORITY, input: baseInput, kind: 'create', session: adminSession },
         { repository: repo }
       )
     ).resolves.toEqual({ ruleId: 'rule-1', status: 'ok' });
@@ -196,7 +130,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
       const repo = repository();
       await expect(
         runAdminCrmRoutingRuleAction(
-          { input, kind: 'create', session: adminSession },
+          { authority: TEST_AUTHORITY, input, kind: 'create', session: adminSession },
           { repository: repo }
         )
       ).resolves.toEqual(expect.objectContaining({ reason, status: 'error' }));
@@ -213,7 +147,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
 
     await expect(
       runAdminCrmRoutingRuleAction(
-        { input: baseInput, kind: 'create', session: adminSession },
+        { authority: TEST_AUTHORITY, input: baseInput, kind: 'create', session: adminSession },
         { repository: repo }
       )
     ).resolves.toEqual({ field: 'agentIds', reason: 'cross_tenant_agent', status: 'error' });
@@ -230,6 +164,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
     await expect(
       runAdminCrmRoutingRuleAction(
         {
+          authority: TEST_AUTHORITY,
           input: { ...baseInput, fallbackRuleId: 'fallback-1' },
           kind: 'create',
           session: adminSession,
@@ -247,6 +182,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
     await expect(
       runAdminCrmRoutingRuleAction(
         {
+          authority: TEST_AUTHORITY,
           input: { ...baseInput, fallbackRuleId: 'fallback-1' },
           kind: 'create',
           session: adminSession,
@@ -254,176 +190,5 @@ describe('runAdminCrmRoutingRuleAction', () => {
         { repository: repo }
       )
     ).resolves.toEqual({ field: 'fallbackRuleId', reason: 'disabled_fallback', status: 'error' });
-  });
-
-  it('reports unknown branch scopes with a branch-specific reason', async () => {
-    const repo = repository({ listBranches: vi.fn(async () => []) });
-
-    await expect(
-      runAdminCrmRoutingRuleAction(
-        {
-          input: {
-            ...baseInput,
-            agentIds: [],
-            branchId: 'missing-branch',
-            strategy: 'manual_only',
-          },
-          kind: 'create',
-          session: adminSession,
-        },
-        { repository: repo }
-      )
-    ).resolves.toEqual({ field: 'branchId', reason: 'invalid_branch', status: 'error' });
-  });
-
-  it('maps cursor_conflict for optimistic update checks', async () => {
-    const repo = repository({
-      updateRoutingRule: vi.fn(async () => 'cursor_conflict' as const),
-    });
-    await expect(
-      runAdminCrmRoutingRuleAction(
-        {
-          input: {
-            ...baseInput,
-            expectedUpdatedAt: '2026-05-16T08:00:00.000Z',
-            ruleId: 'rule-1',
-          },
-          kind: 'update',
-          session: adminSession,
-        },
-        { repository: repo }
-      )
-    ).resolves.toEqual({ reason: 'cursor_conflict', status: 'error' });
-  });
-
-  it('preserves existing agent pools when update omits opaque agent IDs', async () => {
-    const repo = repository();
-    const inputWithoutAgentIds: Record<string, unknown> = {
-      ...baseInput,
-      expectedUpdatedAt: '2026-05-16T08:00:00.000Z',
-      ruleId: 'rule-1',
-      source: 'partner',
-    };
-    delete inputWithoutAgentIds.agentIds;
-
-    await expect(
-      runAdminCrmRoutingRuleAction(
-        {
-          input: inputWithoutAgentIds,
-          kind: 'update',
-          session: adminSession,
-        },
-        { repository: repo }
-      )
-    ).resolves.toEqual({ ruleId: 'rule-1', status: 'ok' });
-    expect(repo.updateRoutingRule).toHaveBeenCalledWith(
-      expect.objectContaining({
-        input: expect.objectContaining({
-          agentIds: ['agent-1', 'agent-2'],
-          source: 'partner',
-        }),
-      })
-    );
-  });
-
-  it('rejects forged updates against archived rules', async () => {
-    const repo = repository({
-      getRoutingRule: vi.fn(async () => rule({ archivedAt: '2026-05-16T09:00:00.000Z' })),
-    });
-
-    await expect(
-      runAdminCrmRoutingRuleAction(
-        {
-          input: {
-            ...baseInput,
-            expectedUpdatedAt: '2026-05-16T08:00:00.000Z',
-            ruleId: 'rule-1',
-          },
-          kind: 'update',
-          session: adminSession,
-        },
-        { repository: repo }
-      )
-    ).resolves.toEqual({ reason: 'not_found', status: 'error' });
-    expect(repo.updateRoutingRule).not.toHaveBeenCalled();
-  });
-
-  it('does not re-enable archived rules through forged actions', async () => {
-    const repo = repository({
-      getRoutingRule: vi.fn(async () => rule({ archivedAt: '2026-05-16T09:00:00.000Z' })),
-    });
-
-    await expect(
-      runAdminCrmRoutingRuleAction(
-        {
-          input: { enabled: true, ruleId: 'rule-1' },
-          kind: 'set_enabled',
-          session: adminSession,
-        },
-        { repository: repo }
-      )
-    ).resolves.toEqual({ reason: 'not_found', status: 'error' });
-    expect(repo.setRoutingRuleEnabled).not.toHaveBeenCalled();
-  });
-
-  it('treats repeated archive submissions as idempotent no-ops', async () => {
-    const repo = repository({
-      getRoutingRule: vi.fn(async () => rule({ archivedAt: '2026-05-16T09:00:00.000Z' })),
-    });
-
-    await expect(
-      runAdminCrmRoutingRuleAction(
-        {
-          input: { ruleId: 'rule-1' },
-          kind: 'archive',
-          session: adminSession,
-        },
-        { repository: repo }
-      )
-    ).resolves.toEqual({ ruleId: 'rule-1', status: 'ok' });
-    expect(repo.archiveRoutingRule).not.toHaveBeenCalled();
-  });
-
-  it('reports duplicate rule IDs with rule-specific copy on reorder', async () => {
-    const repo = repository();
-
-    await expect(
-      runAdminCrmRoutingRuleAction(
-        {
-          input: { branchId: null, ruleIds: ['rule-1', 'rule-1'] },
-          kind: 'reorder',
-          session: adminSession,
-        },
-        { repository: repo }
-      )
-    ).resolves.toEqual({ field: 'ruleIds', reason: 'duplicate_rule_id', status: 'error' });
-    expect(repo.reorderRoutingRules).not.toHaveBeenCalled();
-  });
-
-  it('keeps display copy mapping for every typed reason', () => {
-    const reasons: AdminCrmRoutingActionErrorReason[] = [
-      'invalid_strategy',
-      'invalid_priority_or_cap',
-      'invalid_window',
-      'empty_agent_pool',
-      'duplicate_agent_id',
-      'duplicate_rule_id',
-      'cross_tenant_agent',
-      'branch_incompatible_agent',
-      'invalid_branch',
-      'self_referential_fallback',
-      'branch_incompatible_rule',
-      'archived_fallback',
-      'disabled_fallback',
-      'field_too_long',
-      'unknown_field',
-      'forbidden',
-      'not_found',
-      'cursor_conflict',
-      'repository_failure',
-    ];
-    expect(reasons.map(getAdminCrmRoutingErrorMessageKey)).toEqual(
-      reasons.map(() => expect.stringMatching(/^routing\.error\./))
-    );
   });
 });

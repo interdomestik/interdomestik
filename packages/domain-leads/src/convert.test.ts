@@ -1,155 +1,12 @@
+import { createTransactionHarness, mocks, tableRefs } from './convert.test-support';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createQueuedFrom } from '../../../scripts/tests/queued-select-mock';
-
-const tableRefs = vi.hoisted(() => ({
-  memberLeads: { table: 'memberLeads', id: 'memberLeads.id', tenantId: 'memberLeads.tenantId' },
-  membershipCards: { table: 'membershipCards' },
-  subscriptions: { table: 'subscriptions' },
-  user: { table: 'user' },
-  agentClients: { table: 'agentClients' },
-}));
-
-const mocks = vi.hoisted(() => ({
-  eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
-  and: vi.fn((...clauses) => ({ clauses, op: 'and' })),
-  asc: vi.fn(value => ({ op: 'asc', value })),
-  selectResults: [] as unknown[][],
-  db: {
-    query: {
-      memberLeads: {
-        findFirst: vi.fn(),
-      },
-      membershipPlans: {
-        findFirst: vi.fn(),
-      },
-    },
-    select: vi.fn(),
-    transaction: vi.fn(),
-  },
-  membershipPlans: {
-    id: 'membership_plans.id',
-    tenantId: 'membership_plans.tenant_id',
-    tier: 'membership_plans.tier',
-    paddlePriceId: 'membership_plans.paddle_price_id',
-    interval: 'membership_plans.interval',
-    isActive: 'membership_plans.is_active',
-  },
-  generateMemberNumber: vi.fn(),
-  nanoid: vi.fn(),
-}));
-
-vi.mock('@interdomestik/database', () => ({
-  agentClients: tableRefs.agentClients,
-  and: mocks.and,
-  asc: mocks.asc,
-  db: mocks.db,
-  eq: mocks.eq,
-  membershipPlans: mocks.membershipPlans,
-}));
-
-vi.mock('@interdomestik/database/member-number', () => ({
-  generateMemberNumber: mocks.generateMemberNumber,
-}));
-
-vi.mock('@interdomestik/database/schema', () => tableRefs);
-
-vi.mock('nanoid', () => ({
-  nanoid: mocks.nanoid,
-  customAlphabet: vi.fn(() => () => 'REFCODE01'),
-}));
-
-import { convertLeadToMember, hasTenantLeadForConversion } from './convert';
-
-type InsertRecord = {
-  table: unknown;
-  values: Record<string, unknown>;
-};
-type ConflictRecord = {
-  payload: Record<string, unknown>;
-  table: unknown;
-  values: Record<string, unknown>;
-};
-
-function createTransactionHarness() {
-  const insertRecords: InsertRecord[] = [];
-  const conflictRecords: ConflictRecord[] = [];
-  const updateCalls: Array<{ table: unknown; values?: Record<string, unknown>; where?: unknown }> =
-    [];
-
-  const tx = {
-    insert: vi.fn((table: unknown) => ({
-      values: vi.fn((values: Record<string, unknown>) => {
-        insertRecords.push({ table, values });
-        return {
-          onConflictDoUpdate: vi.fn(async (payload: Record<string, unknown>) => {
-            conflictRecords.push({ table, values, payload });
-          }),
-        };
-      }),
-    })),
-    update: vi.fn((table: unknown) => ({
-      set: vi.fn((values: Record<string, unknown>) => {
-        updateCalls.push({ table, values });
-        return {
-          where: vi.fn(async (where: unknown) => {
-            const lastCall = updateCalls[updateCalls.length - 1];
-            if (lastCall) {
-              lastCall.where = where;
-            }
-          }),
-        };
-      }),
-    })),
-  };
-
-  return { conflictRecords, insertRecords, tx, updateCalls };
-}
-
-describe('hasTenantLeadForConversion', () => {
-  beforeEach(() => {
-    mocks.db.query.memberLeads.findFirst.mockReset();
-    mocks.db.transaction.mockReset();
-    mocks.eq.mockClear();
-    mocks.and.mockClear();
-  });
-
-  it('returns true when the lead belongs to the tenant', async () => {
-    mocks.db.query.memberLeads.findFirst.mockResolvedValue({ id: 'lead-1' });
-
-    const result = await hasTenantLeadForConversion({ tenantId: 'tenant-1' }, { leadId: 'lead-1' });
-
-    expect(result).toBe(true);
-    expect(mocks.db.query.memberLeads.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        columns: { id: true },
-      })
-    );
-    const query = mocks.db.query.memberLeads.findFirst.mock.calls[0]?.[0] as {
-      where: (
-        lead: typeof tableRefs.memberLeads,
-        ops: { eq: typeof mocks.eq; and: typeof mocks.and }
-      ) => unknown;
-    };
-    query.where(tableRefs.memberLeads, { eq: mocks.eq, and: mocks.and });
-    expect(mocks.eq).toHaveBeenCalledWith(tableRefs.memberLeads.id, 'lead-1');
-    expect(mocks.eq).toHaveBeenCalledWith(tableRefs.memberLeads.tenantId, 'tenant-1');
-    expect(mocks.db.transaction).not.toHaveBeenCalled();
-  });
-
-  it('returns false without writes when the lead is missing or belongs to another tenant', async () => {
-    mocks.db.query.memberLeads.findFirst.mockResolvedValue(null);
-
-    const result = await hasTenantLeadForConversion(
-      { tenantId: 'tenant-1' },
-      { leadId: 'lead-other' }
-    );
-
-    expect(result).toBe(false);
-    expect(mocks.db.transaction).not.toHaveBeenCalled();
-  });
-});
+import { convertLeadToMember } from './convert';
 
 describe('convertLeadToMember', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   afterEach(() => {
     vi.useRealTimers();
   });
@@ -157,9 +14,10 @@ describe('convertLeadToMember', () => {
   beforeEach(() => {
     mocks.db.query.memberLeads.findFirst.mockReset();
     mocks.db.query.membershipPlans.findFirst.mockReset();
-    mocks.db.transaction.mockReset();
+    mocks.withTenantContext.mockReset();
+    mocks.withTenantContext.mockImplementation(async (_context, callback) => callback(mocks.db));
     mocks.db.select.mockReset();
-    mocks.generateMemberNumber.mockReset();
+    mocks.issueTenantMemberNumber.mockReset();
     mocks.nanoid.mockReset();
     mocks.eq.mockClear();
     mocks.and.mockClear();
@@ -184,14 +42,12 @@ describe('convertLeadToMember', () => {
     });
     mocks.selectResults.push([], [], [{ id: 'tenant-standard-plan', tier: 'standard' }]);
 
-    mocks.db.transaction.mockImplementation(async () => {
-      throw new Error('transaction should not run');
-    });
-
-    const result = await convertLeadToMember({ tenantId: 'tenant-1' }, { leadId: 'lead-1' });
+    const result = await convertLeadToMember(authority, { leadId: 'lead-1' });
 
     expect(result).toBeNull();
-    expect(mocks.db.transaction).not.toHaveBeenCalled();
+    // Only the tenant-scoped lead lookup ran; no conversion transaction was opened.
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
   });
 
   it('defaults lead conversion to the standard annual plan without creating read-scope binding', async () => {
@@ -212,7 +68,7 @@ describe('convertLeadToMember', () => {
       convertedUserId: null,
     });
     mocks.selectResults.push([], [], [{ id: 'tenant-standard-plan', tier: 'standard' }]);
-    mocks.generateMemberNumber.mockResolvedValue({ memberNumber: 'M-1001' });
+    mocks.issueTenantMemberNumber.mockResolvedValue({ memberNumber: 'M-1001' });
     mocks.nanoid
       .mockReturnValueOnce('user-seed')
       .mockReturnValueOnce('subscription-seed')
@@ -221,15 +77,25 @@ describe('convertLeadToMember', () => {
       .mockReturnValueOnce('card-qr');
 
     const { conflictRecords, insertRecords, tx, updateCalls } = createTransactionHarness();
-    mocks.db.transaction.mockImplementation(async callback => callback(tx));
+    mocks.withTenantContext.mockImplementation(async (_context, callback) =>
+      callback({ ...tx, select: mocks.db.select, query: mocks.db.query })
+    );
 
-    const result = await convertLeadToMember({ tenantId: 'tenant-1' }, { leadId: 'lead-1' });
+    const result = await convertLeadToMember(authority, { leadId: 'lead-1' });
 
     expect(result).toEqual({
       userId: 'usr_user-seed',
       memberNumber: 'M-1001',
       subscriptionId: 'sub_subscription-seed',
     });
+    // The global number is issued for the committed member, after the tenant transaction.
+    expect(mocks.issueTenantMemberNumber).toHaveBeenCalledWith(authority, {
+      userId: 'usr_user-seed',
+      joinedAt: expect.any(Date),
+    });
+    expect(mocks.withTenantContext.mock.invocationCallOrder.at(-1)).toBeLessThan(
+      mocks.issueTenantMemberNumber.mock.invocationCallOrder[0]
+    );
 
     const subscriptionInsert = insertRecords.find(
       record => record.table === tableRefs.subscriptions
@@ -297,7 +163,7 @@ describe('convertLeadToMember', () => {
       convertedUserId: null,
     });
     mocks.selectResults.push([], [], [{ id: 'tenant-family-plan', tier: 'family' }]);
-    mocks.generateMemberNumber.mockResolvedValue({ memberNumber: 'M-1002' });
+    mocks.issueTenantMemberNumber.mockResolvedValue({ memberNumber: 'M-1002' });
     mocks.nanoid
       .mockReturnValueOnce('user-seed')
       .mockReturnValueOnce('subscription-seed')
@@ -306,9 +172,11 @@ describe('convertLeadToMember', () => {
       .mockReturnValueOnce('card-qr');
 
     const { insertRecords, tx } = createTransactionHarness();
-    mocks.db.transaction.mockImplementation(async callback => callback(tx));
+    mocks.withTenantContext.mockImplementation(async (_context, callback) =>
+      callback({ ...tx, select: mocks.db.select, query: mocks.db.query })
+    );
 
-    await convertLeadToMember({ tenantId: 'tenant-1' }, { leadId: 'lead-1', planId: 'family' });
+    await convertLeadToMember(authority, { leadId: 'lead-1', planId: 'family' });
 
     const agentClientInsert = insertRecords.find(record => record.table === tableRefs.agentClients);
     expect(agentClientInsert).toBeUndefined();
@@ -324,5 +192,63 @@ describe('convertLeadToMember', () => {
       currentPeriodEnd: expectedPeriodEnd,
       updatedAt: now,
     });
+  });
+  it('keeps a committed conversion when member-number issuance fails', async () => {
+    mocks.db.query.memberLeads.findFirst.mockResolvedValue({
+      id: 'lead-1',
+      tenantId: 'tenant-1',
+      branchId: 'branch-1',
+      agentId: 'agent-1',
+      firstName: 'Arben',
+      lastName: 'Krasniqi',
+      email: 'arben@example.com',
+      status: 'new',
+      convertedUserId: null,
+    });
+    mocks.selectResults.push([], [], [{ id: 'tenant-standard-plan', tier: 'standard' }]);
+    mocks.issueTenantMemberNumber.mockRejectedValue(new Error('counter unavailable'));
+    mocks.nanoid
+      .mockReturnValueOnce('user-seed')
+      .mockReturnValueOnce('subscription-seed')
+      .mockReturnValueOnce('card-seed')
+      .mockReturnValueOnce('card-num')
+      .mockReturnValueOnce('card-qr');
+    const { tx } = createTransactionHarness();
+    mocks.withTenantContext.mockImplementation(async (_context, callback) =>
+      callback({ ...tx, select: mocks.db.select, query: mocks.db.query })
+    );
+
+    await expect(convertLeadToMember(authority, { leadId: 'lead-1' })).resolves.toEqual({
+      userId: 'usr_user-seed',
+      memberNumber: null,
+      subscriptionId: 'sub_subscription-seed',
+    });
+  });
+
+  it('fails closed without any write when the lead row belongs to another tenant than the authority', async () => {
+    mocks.db.query.memberLeads.findFirst.mockResolvedValue({
+      id: 'lead-1',
+      tenantId: 'tenant-other',
+      branchId: 'branch-1',
+      agentId: 'agent-1',
+      firstName: 'Arben',
+      lastName: 'Krasniqi',
+      email: 'arben@example.com',
+      status: 'new',
+      convertedUserId: null,
+    });
+    const { insertRecords, tx, updateCalls } = createTransactionHarness();
+    mocks.withTenantContext.mockImplementation(async (_context, callback) =>
+      callback({ ...tx, select: mocks.db.select, query: mocks.db.query })
+    );
+
+    await expect(convertLeadToMember(authority, { leadId: 'lead-1' })).rejects.toThrow(
+      'Lead not found'
+    );
+
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(insertRecords).toHaveLength(0);
+    expect(updateCalls).toHaveLength(0);
+    expect(mocks.issueTenantMemberNumber).not.toHaveBeenCalled();
   });
 });

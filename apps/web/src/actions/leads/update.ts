@@ -24,7 +24,7 @@ export async function updateLeadStatusAction(input: unknown) {
   return runAuthenticatedAction(async ctx => {
     const data = updateLeadStatusSchema.parse(input);
     const { leadId, status, notes } = data;
-    const { tenantId, userRole } = ctx;
+    const { authority, userRole } = ctx;
     const { actorAgentId, branchId } = ctx.scope;
 
     if (userRole !== ROLE_AGENT || !actorAgentId || !branchId) {
@@ -35,9 +35,9 @@ export async function updateLeadStatusAction(input: unknown) {
       notes,
       scope: {
         agentId: actorAgentId,
+        authority,
         branchId,
         leadId,
-        tenantId,
       },
       status,
     });

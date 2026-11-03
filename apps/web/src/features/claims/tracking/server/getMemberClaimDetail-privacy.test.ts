@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -92,6 +93,8 @@ vi.mock('./getMemberVaultConsentDisplay', () => ({
 
 import { getMemberClaimDetail } from './getMemberClaimDetail';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('member claim detail privacy', () => {
   it('scopes timeline reads to the authorized claim and tenant', async () => {
     const createdAt = new Date('2026-03-10T00:00:00.000Z');
@@ -123,6 +126,7 @@ describe('member claim detail privacy', () => {
 
     await getMemberClaimDetail(
       { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
+      authority,
       'claim-scoped'
     );
 
@@ -135,6 +139,7 @@ describe('member claim detail privacy', () => {
         piiStatus: 'available',
         updatedAt,
       },
+      authority,
       expect.objectContaining({ query: { claims: { findFirst: mocks.claim } } })
     );
   });
@@ -186,6 +191,7 @@ describe('member claim detail privacy', () => {
 
     const result = await getMemberClaimDetail(
       { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
+      authority,
       'claim-sensitive'
     );
 
@@ -255,6 +261,7 @@ describe('member claim detail privacy', () => {
 
       const result = await getMemberClaimDetail(
         { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
+        authority,
         'claim-ordinary'
       );
 

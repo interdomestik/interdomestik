@@ -64,23 +64,25 @@ export async function lookupSavedDraftClaim(input: unknown): Promise<SavedDraftC
   const parsed = lookupSchema.safeParse(input);
   if (!parsed.success) return noClaim();
   try {
-    const result = await runAuthenticatedAction(async ({ session, tenantId, requestHeaders }) => {
-      const actorId = session.user.id;
-      const fresh = await resolveFreeStartDraftSession(requestHeaders);
-      if (
-        !fresh.ok ||
-        session.user.tenantId !== tenantId ||
-        fresh.context.ownerUserId !== actorId ||
-        fresh.context.tenantId !== tenantId ||
-        fresh.context.accessTenantId !== tenantId
-      )
-        return noClaim();
-      const claimId = savedDraftClaimId(tenantId, actorId, parsed.data.id);
-      const claim = await readSavedDraftClaim(claimId, tenantId, actorId);
-      return claim.kind === 'found'
-        ? { claim: { id: claim.claimId, number: claim.claimNumber } }
-        : noClaim();
-    });
+    const result = await runAuthenticatedAction(
+      async ({ session, authority, tenantId, requestHeaders }) => {
+        const actorId = session.user.id;
+        const fresh = await resolveFreeStartDraftSession(requestHeaders);
+        if (
+          !fresh.ok ||
+          session.user.tenantId !== tenantId ||
+          fresh.context.ownerUserId !== actorId ||
+          fresh.context.tenantId !== tenantId ||
+          fresh.context.accessTenantId !== tenantId
+        )
+          return noClaim();
+        const claimId = savedDraftClaimId(tenantId, actorId, parsed.data.id);
+        const claim = await readSavedDraftClaim(claimId, authority, actorId);
+        return claim.kind === 'found'
+          ? { claim: { id: claim.claimId, number: claim.claimNumber } }
+          : noClaim();
+      }
+    );
     return result.success && result.data ? result.data : noClaim();
   } catch (error) {
     const redirect = error as { digest?: unknown; message?: unknown };
@@ -93,7 +95,7 @@ export async function lookupSavedDraftClaim(input: unknown): Promise<SavedDraftC
 export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDraftClaimResult> {
   const parsed = inputSchema.safeParse(input);
   if (!parsed.success) return unavailable();
-  return runAuthenticatedAction(async ({ session, tenantId, requestHeaders }) => {
+  return runAuthenticatedAction(async ({ session, authority, tenantId, requestHeaders }) => {
     const actorId = session.user.id;
     const fresh = await resolveFreeStartDraftSession(requestHeaders);
     if (
@@ -107,7 +109,7 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
     const resumed = await resumeFreeStartDraft(fresh.context, parsed.data.id);
     if (!resumed.ok) return unavailable();
     const claimId = savedDraftClaimId(tenantId, actorId, resumed.draft.id);
-    const existing = await readSavedDraftClaim(claimId, tenantId, actorId);
+    const existing = await readSavedDraftClaim(claimId, authority, actorId);
     // prettier-ignore
     if (existing.kind === 'found') return { success: true as const, claimId: existing.claimId, claimNumber: existing.claimNumber };
     // prettier-ignore
@@ -125,6 +127,7 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
     if (limit.limited) return unavailable();
     try {
       const result = await submitClaimCore({
+        authority,
         data,
         handoffContext: claimStart?.handoffContext,
         idempotencyKey: `ida-ui03a2-b1:${resumed.draft.id}`,
@@ -137,7 +140,7 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
     } catch {
       // Ambiguous writer outcomes use the same bounded exact recovery below.
     }
-    const recovered = await readSavedDraftClaim(claimId, tenantId, actorId);
+    const recovered = await readSavedDraftClaim(claimId, authority, actorId);
     return recovered.kind === 'found'
       ? { success: true as const, claimId: recovered.claimId, claimNumber: recovered.claimNumber }
       : unavailable();

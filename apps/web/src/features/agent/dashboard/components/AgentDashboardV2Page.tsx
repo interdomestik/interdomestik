@@ -1,14 +1,12 @@
+import { getActionContext } from '@/actions/commissions/context';
 import { getAgentLeaderboardCore } from '@/actions/leaderboard/get';
-import { getAgentDashboardV2StatsCore } from '@/app/[locale]/(agent)/agent/_core';
 import { AgentVerifiedID } from '@/components/agent/agent-verified-id';
 import { LeaderboardCard } from '@/components/agent/leaderboard-card';
 import { PipelineChart } from '@/components/agent/pipeline-chart';
 import { ReferralLinkCard } from '@/components/agent/referral-link-card';
 import { MatteAnchorCard } from '@/components/dashboard/matte-anchor-card';
 import { Link } from '@/i18n/routing';
-import { auth } from '@/lib/auth';
 import { localizeSeededBranchName } from '@/lib/localize-seeded-branch-name';
-import { db } from '@interdomestik/database/db';
 import { getMyCommissionSummaryCore } from '@interdomestik/domain-membership-billing/commissions/summary';
 import { getAgentReferralLinkCore } from '@interdomestik/domain-referrals/referrals/get-agent-link';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -22,8 +20,9 @@ import {
 } from '@interdomestik/ui';
 import { ArrowRight, UserPlus } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+
+import { readAgentDashboardBranch, readAgentDashboardV2Stats } from './agent-dashboard-v2-reads';
 
 export async function AgentDashboardV2Page({
   locale,
@@ -36,29 +35,24 @@ export async function AgentDashboardV2Page({
 
   const t = await getTranslations('agent');
   const tToolkit = await getTranslations('agent-toolkit');
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const { session, authority } = await getActionContext();
 
-  if (!session?.user) {
+  if (!session?.user || !authority) {
     redirect('/auth/login');
   }
 
   const agentId = session.user.id;
-  const tenantId = ensureTenantId(session);
+  // Fails closed for a session without a tenant; the reads take their tenant from the authority.
+  ensureTenantId(session);
 
   const [stats, branch, referralLinkResult, leaderboardResult, summaryResult] = await Promise.all([
-    getAgentDashboardV2StatsCore({ agentId, tenantId }, { db }),
+    readAgentDashboardV2Stats({ agentId, authority }),
     session.user.branchId
-      ? db.query.branches.findFirst({
-          where: (fields, { and, eq }) =>
-            and(eq(fields.id, session.user.branchId), eq(fields.tenantId, tenantId)),
-          columns: { name: true },
-        })
+      ? readAgentDashboardBranch({ branchId: session.user.branchId, authority })
       : null,
-    getAgentReferralLinkCore({ session }),
-    getAgentLeaderboardCore({ session, period: 'month' }),
-    getMyCommissionSummaryCore({ session }),
+    getAgentReferralLinkCore({ session, authority }),
+    getAgentLeaderboardCore({ session, authority, period: 'month' }),
+    getMyCommissionSummaryCore({ session, authority }),
   ]);
 
   const summary = summaryResult.success ? summaryResult.data : null;

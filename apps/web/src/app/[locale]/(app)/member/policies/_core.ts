@@ -1,7 +1,12 @@
 import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
-import { db } from '@interdomestik/database';
+
 import { documentExtractions, documents, policies } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { desc } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type PolicyRow = typeof policies.$inferSelect;
 
@@ -32,15 +37,18 @@ function resolvePolicyAnalysis(
 }
 
 export async function getPoliciesWithDocumentLinksCore(args: {
-  tenantId: string;
+  authority: TenantAuthority;
   userId: string;
 }): Promise<PolicyWithDocumentLink[]> {
-  const { tenantId, userId } = args;
-  const userPolicies = await db.query.policies.findMany({
-    where: (policiesTable, { and, eq }) =>
-      and(eq(policiesTable.userId, userId), eq(policiesTable.tenantId, tenantId)),
-    orderBy: [desc(policies.createdAt)],
-  });
+  const { authority, userId } = args;
+  const { tenantId } = readTenantAuthority(authority);
+  const userPolicies = await withTenantAuthority(authority, tx =>
+    tx.query.policies.findMany({
+      where: (policiesTable, { and, eq }) =>
+        and(eq(policiesTable.userId, userId), eq(policiesTable.tenantId, tenantId)),
+      orderBy: [desc(policies.createdAt)],
+    })
+  );
 
   if (userPolicies.length === 0) {
     return [];
@@ -48,15 +56,17 @@ export async function getPoliciesWithDocumentLinksCore(args: {
 
   const policyIds = userPolicies.map(policy => policy.id);
 
-  const extractions = await db.query.documentExtractions.findMany({
-    where: (extractionsTable, { and, eq, inArray: whereInArray }) =>
-      and(
-        eq(extractionsTable.tenantId, tenantId),
-        eq(extractionsTable.entityType, 'policy'),
-        whereInArray(extractionsTable.entityId, policyIds)
-      ),
-    orderBy: [desc(documentExtractions.createdAt)],
-  });
+  const extractions = await withTenantAuthority(authority, tx =>
+    tx.query.documentExtractions.findMany({
+      where: (extractionsTable, { and, eq, inArray: whereInArray }) =>
+        and(
+          eq(extractionsTable.tenantId, tenantId),
+          eq(extractionsTable.entityType, 'policy'),
+          whereInArray(extractionsTable.entityId, policyIds)
+        ),
+      orderBy: [desc(documentExtractions.createdAt)],
+    })
+  );
 
   const latestExtractionByPolicyId = new Map<string, PolicyAnalysis>();
   for (const extraction of extractions) {
@@ -70,20 +80,22 @@ export async function getPoliciesWithDocumentLinksCore(args: {
     }
   }
 
-  const policyDocuments = (await db.query.documents.findMany({
-    columns: {
-      id: true,
-      entityId: true,
-    },
-    where: (documentsTable, { and, eq, inArray: whereInArray, isNull }) =>
-      and(
-        eq(documentsTable.tenantId, tenantId),
-        eq(documentsTable.entityType, 'policy'),
-        whereInArray(documentsTable.entityId, policyIds),
-        isNull(documentsTable.deletedAt)
-      ),
-    orderBy: [desc(documents.uploadedAt)],
-  })) as PolicyDocumentLink[];
+  const policyDocuments = (await withTenantAuthority(authority, tx =>
+    tx.query.documents.findMany({
+      columns: {
+        id: true,
+        entityId: true,
+      },
+      where: (documentsTable, { and, eq, inArray: whereInArray, isNull }) =>
+        and(
+          eq(documentsTable.tenantId, tenantId),
+          eq(documentsTable.entityType, 'policy'),
+          whereInArray(documentsTable.entityId, policyIds),
+          isNull(documentsTable.deletedAt)
+        ),
+      orderBy: [desc(documents.uploadedAt)],
+    })
+  )) as PolicyDocumentLink[];
 
   const latestDocumentByPolicyId = new Map<string, PolicyDocumentLink>();
   for (const document of policyDocuments) {

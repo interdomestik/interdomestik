@@ -1,5 +1,10 @@
-import { db } from '@interdomestik/database';
-import { findSubscriptionByProviderReference } from '../../subscription';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { readPaddleCanonicalUser } from './utils/canonical-user';
+import { findPaddleSubscriptionByReference } from '../../subscription';
 import { transactionEventDataSchema } from '../schemas';
 import type { PaddleWebhookAuditDeps } from '../types';
 
@@ -10,7 +15,7 @@ function normalizeAgentId(agentId: string | null | undefined): string | null {
 }
 
 export async function handleTransactionCompleted(
-  params: { data: unknown },
+  params: { data: unknown; delivery: IngressCapability<'paddle-delivery'> },
   deps: PaddleWebhookAuditDeps = {}
 ) {
   const parseResult = transactionEventDataSchema.safeParse(params.data);
@@ -27,6 +32,7 @@ export async function handleTransactionCompleted(
   const customerId = tx.customerId || tx.customer_id;
   const customerEmail = tx.customerEmail || tx.customer_email;
   const context = await resolveTransactionTenantContext({
+    delivery: params.delivery,
     subscriptionId,
     userId,
     tenantIdFromCustomData,
@@ -45,7 +51,7 @@ export async function handleTransactionCompleted(
       action: 'payment.processed',
       entityType: 'transaction',
       entityId: tx.id,
-      tenantId: context.tenantId,
+      authority: context.authority,
       metadata: {
         subscriptionId,
         status: tx.status,
@@ -66,21 +72,28 @@ export async function handleTransactionCompleted(
 }
 
 async function resolveTransactionTenantContext(args: {
+  delivery: IngressCapability<'paddle-delivery'>;
   subscriptionId?: string | null;
   userId?: string | null;
   tenantIdFromCustomData?: string | null;
   agentIdFromCustomData?: string | null;
   transactionId: string;
-}): Promise<{ tenantId: string; agentId: string | null } | null> {
+}): Promise<{ tenantId: string; agentId: string | null; authority: TenantAuthority } | null> {
   const customDataTenantId = normalizeText(args.tenantIdFromCustomData);
   const userId = normalizeText(args.userId);
   const subscriptionId = normalizeText(args.subscriptionId);
   let canonicalTenantId: string | null = null;
   let canonicalAgentId: string | null | undefined;
+  let canonicalAuthority: TenantAuthority | null = null;
 
   if (subscriptionId) {
-    const subscription = await findSubscriptionByProviderReference(subscriptionId);
+    const subscriptionLookup = await findPaddleSubscriptionByReference(
+      subscriptionId,
+      args.delivery
+    );
+    const subscription = subscriptionLookup?.subscription;
     if (subscription) {
+      canonicalAuthority = subscriptionLookup!.authority;
       canonicalTenantId = normalizeText(subscription.tenantId);
       canonicalAgentId = normalizeAgentId(subscription.agentId);
 
@@ -95,11 +108,8 @@ async function resolveTransactionTenantContext(args: {
   }
 
   if (userId) {
-    // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps transaction tenant context before tenant-scoped audit writes
-    const user = await db.query.user.findFirst({
-      where: (t, { eq }) => eq(t.id, userId),
-      columns: { tenantId: true, agentId: true },
-    });
+    const userLookup = await readPaddleCanonicalUser(args.delivery, userId);
+    const user = userLookup?.user;
 
     if (!user) {
       console.warn(`[Webhook] Transaction ${args.transactionId} user ${userId} was not found`);
@@ -115,6 +125,9 @@ async function resolveTransactionTenantContext(args: {
     }
 
     canonicalTenantId = userTenantId ?? canonicalTenantId;
+    // The user's tenant wins over the subscription's only when they agree (checked above), so
+    // either authority names the same tenant.
+    canonicalAuthority = userLookup!.authority;
     canonicalAgentId = normalizeAgentId(user.agentId);
   }
 
@@ -125,12 +138,20 @@ async function resolveTransactionTenantContext(args: {
     return null;
   }
 
-  if (!canonicalTenantId) {
+  if (!canonicalTenantId || !canonicalAuthority) {
+    return null;
+  }
+  // The audit row lands in the authority's tenant, so it must be the tenant the checks above settled.
+  if (readTenantAuthority(canonicalAuthority).tenantId !== canonicalTenantId) {
+    console.warn(
+      `[Webhook] Transaction ${args.transactionId} tenant conflict: canonical tenant=${canonicalTenantId} does not match the webhook authority tenant`
+    );
     return null;
   }
 
   return {
     tenantId: canonicalTenantId,
+    authority: canonicalAuthority,
     agentId:
       canonicalAgentId !== undefined
         ? canonicalAgentId

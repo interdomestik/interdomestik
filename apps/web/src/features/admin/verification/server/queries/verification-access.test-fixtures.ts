@@ -1,4 +1,5 @@
 import type { TenantTransaction } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -33,5 +34,10 @@ export function createRecordingTx(results: Array<unknown[] | Error>) {
 }
 
 export function ctx(userRole: string, branchId: string | null = null) {
-  return { tenantId: 'tenant-ks', userRole, scope: { branchId } };
+  return {
+    authority: mintTestTenantAuthority('tenant-ks', { userId: 'verifier-1', role: userRole }),
+    tenantId: 'tenant-ks',
+    userRole,
+    scope: { branchId },
+  };
 }

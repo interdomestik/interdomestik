@@ -61,13 +61,11 @@ describe('getVerificationRequestDetails access', () => {
       ],
     ]);
 
-    const result = await getVerificationRequestDetails(ctx('branch_manager', 'branch-1'), 'a-1');
+    const context = ctx('branch_manager', 'branch-1');
+    const result = await getVerificationRequestDetails(context, 'a-1');
 
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toStrictEqual({
-      tenantId: 'tenant-ks',
-      role: 'branch_manager',
-    });
+    expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toBe(context.authority);
     expect(executed).toHaveLength(3);
     expect(executed[0]?.params).toContain('branch-1');
     expect(executed[1]?.sql).toMatch(/"deleted_at" is null/);
@@ -98,5 +96,14 @@ describe('getVerificationRequestDetails access', () => {
     createRecordingTx([[PARENT], [], failure]);
 
     await expect(getVerificationRequestDetails(ctx('admin'), 'attempt-1')).rejects.toBe(failure);
+  });
+
+  it('fails closed before any transaction when the authority grants a different tenant', async () => {
+    const context = { ...ctx('admin'), tenantId: 'tenant-mk' };
+
+    await expect(getVerificationRequestDetails(context, 'attempt-1')).rejects.toThrow(
+      'Verification read authority does not match the requested tenant'
+    );
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 });

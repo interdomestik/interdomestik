@@ -1,12 +1,15 @@
-import { db } from '@interdomestik/database';
 import { agentCommissions } from '@interdomestik/database/schema';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 
 import type { ActionResult, CommissionSession, CommissionStatus } from '../types';
 import { formatControlViolation } from '../../enterprise-controls';
 import { ensureAdminOrStaff } from './access';
 import { preflightCommissionPayability } from './payability';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 /**
  * Valid status transitions:
@@ -25,34 +28,37 @@ const VALID_TRANSITIONS: Record<CommissionStatus, CommissionStatus[]> = {
 /** Update commission status (admin/staff only, with transition rules) */
 export async function updateCommissionStatusCore(params: {
   session: CommissionSession | null;
+  authority: TenantAuthority | null;
   commissionId: string;
   newStatus: CommissionStatus;
 }): Promise<ActionResult> {
-  const { session, commissionId, newStatus } = params;
+  const { session, authority, commissionId, newStatus } = params;
   const authError = ensureAdminOrStaff(session);
   if (authError) return authError;
 
-  if (!session) return { success: false, error: 'Unauthorized' };
+  if (!session || !authority) return { success: false, error: 'Unauthorized' };
   const sessionUser = session.user;
 
   try {
-    const tenantId = ensureTenantId(session);
+    const { tenantId } = readTenantAuthority(authority);
 
     // Fetch current commission with tenant scoping
-    const [commission] = await db
-      .select({
-        id: agentCommissions.id,
-        status: agentCommissions.status,
-        agentId: agentCommissions.agentId,
-      })
-      .from(agentCommissions)
-      .where(
-        and(
-          eq(agentCommissions.id, commissionId),
-          eq(agentCommissions.tenantId, tenantId) // SECURITY: Tenant scoping
+    const [commission] = await withTenantAuthority(authority, tx =>
+      tx
+        .select({
+          id: agentCommissions.id,
+          status: agentCommissions.status,
+          agentId: agentCommissions.agentId,
+        })
+        .from(agentCommissions)
+        .where(
+          and(
+            eq(agentCommissions.id, commissionId),
+            eq(agentCommissions.tenantId, tenantId) // SECURITY: Tenant scoping
+          )
         )
-      )
-      .limit(1);
+        .limit(1)
+    );
 
     if (!commission) {
       return { success: false, error: 'Commission not found' };
@@ -60,7 +66,7 @@ export async function updateCommissionStatusCore(params: {
 
     if (newStatus === 'approved' || newStatus === 'paid') {
       const preflight = await preflightCommissionPayability({
-        tenantId,
+        authority,
         ids: [commissionId],
       });
       if (!preflight.ok) {
@@ -95,10 +101,12 @@ export async function updateCommissionStatusCore(params: {
       updateData.paidAt = new Date();
     }
 
-    await db
-      .update(agentCommissions)
-      .set(updateData)
-      .where(and(eq(agentCommissions.id, commissionId), eq(agentCommissions.tenantId, tenantId)));
+    await withTenantAuthority(authority, tx =>
+      tx
+        .update(agentCommissions)
+        .set(updateData)
+        .where(and(eq(agentCommissions.id, commissionId), eq(agentCommissions.tenantId, tenantId)))
+    );
 
     console.log(`[Commission] Updated ${commissionId} from ${currentStatus} to ${newStatus}`);
     return { success: true };

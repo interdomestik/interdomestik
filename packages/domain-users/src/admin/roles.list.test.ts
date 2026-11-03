@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -52,6 +53,7 @@ import { listUserRolesCore } from './roles';
 
 describe('listUserRolesCore', () => {
   const session = { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_ks' } };
+  const authority = mintTestTenantAuthority('tenant_ks', { userId: 'admin-1', role: 'admin' });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -77,7 +79,7 @@ describe('listUserRolesCore', () => {
 
     const result = await listUserRolesCore({
       session,
-      tenantId: 'tenant_ks',
+      authority,
       userId: 'pack_ks_staff_extra',
     });
 
@@ -110,7 +112,7 @@ describe('listUserRolesCore', () => {
 
     const result = await listUserRolesCore({
       session,
-      tenantId: 'tenant_ks',
+      authority,
       userId: 'pilot-user',
     });
 
@@ -141,10 +143,22 @@ describe('listUserRolesCore', () => {
 
     const result = await listUserRolesCore({
       session,
-      tenantId: 'tenant_ks',
+      authority,
       userId: 'member-1',
     });
 
     expect(result).toEqual([]);
+  });
+
+  it("reads under the supplied authority and refuses one that is not the session user's", async () => {
+    await listUserRolesCore({ session, authority });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
+
+    mocks.withTenantContext.mockClear();
+    await expect(
+      listUserRolesCore({ session, authority: mintTestTenantAuthority('tenant_ks') })
+    ).rejects.toThrow('Unauthorized');
+    await expect(listUserRolesCore({ session, authority: null })).rejects.toThrow('Unauthorized');
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 });

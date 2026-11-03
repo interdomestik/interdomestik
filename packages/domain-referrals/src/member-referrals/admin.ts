@@ -1,5 +1,8 @@
-import { db } from '@interdomestik/database';
 import { memberReferralRewards } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 
 import type {
@@ -8,6 +11,7 @@ import type {
   MemberReferralRewardType,
   MemberReferralQualifyingEventType,
 } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface MemberReferralAdminRewardRow {
   id: string;
@@ -74,18 +78,21 @@ function buildStatusPatch(params: {
 }
 
 export async function listMemberReferralRewardsCore(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   limit?: number;
   offset?: number;
 }): Promise<ActionResult<MemberReferralAdminRewardRow[]>> {
   try {
+    const { tenantId } = readTenantAuthority(params.authority);
     const limit = Math.min(params.limit ?? MAX_RESULTS, MAX_RESULTS);
     const offset = params.offset ?? 0;
-    const rows = await db.query.memberReferralRewards.findMany({
-      where: and(eq(memberReferralRewards.tenantId, params.tenantId)),
-      limit,
-      offset,
-    });
+    const rows = await withTenantAuthority(params.authority, tx =>
+      tx.query.memberReferralRewards.findMany({
+        where: and(eq(memberReferralRewards.tenantId, tenantId)),
+        limit,
+        offset,
+      })
+    );
 
     return {
       success: true,
@@ -98,17 +105,20 @@ export async function listMemberReferralRewardsCore(params: {
 }
 
 export async function updateMemberReferralRewardStatusCore(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   rewardId: string;
   newStatus: MemberReferralRewardStatus;
 }): Promise<ActionResult<MemberReferralAdminRewardRow>> {
   try {
-    const current = await db.query.memberReferralRewards.findFirst({
-      where: and(
-        eq(memberReferralRewards.tenantId, params.tenantId),
-        eq(memberReferralRewards.id, params.rewardId)
-      ),
-    });
+    const { tenantId } = readTenantAuthority(params.authority);
+    const current = await withTenantAuthority(params.authority, tx =>
+      tx.query.memberReferralRewards.findFirst({
+        where: and(
+          eq(memberReferralRewards.tenantId, tenantId),
+          eq(memberReferralRewards.id, params.rewardId)
+        ),
+      })
+    );
 
     if (!current) {
       return { success: false, error: 'Referral reward not found' };
@@ -130,16 +140,18 @@ export async function updateMemberReferralRewardStatusCore(params: {
       newStatus: params.newStatus,
     });
 
-    const [updated] = await db
-      .update(memberReferralRewards)
-      .set(patch)
-      .where(
-        and(
-          eq(memberReferralRewards.tenantId, params.tenantId),
-          eq(memberReferralRewards.id, params.rewardId)
+    const [updated] = await withTenantAuthority(params.authority, tx =>
+      tx
+        .update(memberReferralRewards)
+        .set(patch)
+        .where(
+          and(
+            eq(memberReferralRewards.tenantId, tenantId),
+            eq(memberReferralRewards.id, params.rewardId)
+          )
         )
-      )
-      .returning();
+        .returning()
+    );
 
     if (!updated) {
       return { success: false, error: 'Failed to update referral reward status' };

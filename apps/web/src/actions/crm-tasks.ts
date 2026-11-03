@@ -2,7 +2,7 @@
 
 import { headers } from 'next/headers';
 
-import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 
 import {
   assignCrmTaskCore,
@@ -27,75 +27,85 @@ import {
 
 async function getActionSession() {
   const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
-  return { requestHeaders, session };
+  let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>> = null;
+  try {
+    authorized = await authorizeSessionTenant(requestHeaders);
+  } catch (error) {
+    // A session without a tenant is unauthorized, as it was before the authority producer.
+    if ((error as { name?: unknown } | null)?.name !== 'MissingTenantError') throw error;
+  }
+  return {
+    authority: authorized?.authority ?? null,
+    requestHeaders,
+    session: authorized?.session ?? null,
+  };
 }
 
 export async function readCrmTaskAction(taskId: string) {
-  const { requestHeaders, session } = await getActionSession();
-  return readCrmTaskCore({ requestHeaders, session, taskId });
+  const { authority, requestHeaders, session } = await getActionSession();
+  return readCrmTaskCore({ authority, requestHeaders, session, taskId });
 }
 
 export async function createCrmTaskAction(input: CreateCrmTaskCoreInput) {
-  const { requestHeaders, session } = await getActionSession();
-  return createCrmTaskCore({ input, requestHeaders, session });
+  const { authority, requestHeaders, session } = await getActionSession();
+  return createCrmTaskCore({ input, authority, requestHeaders, session });
 }
 
 export async function assignCrmTaskAction(input: AssignCrmTaskCoreInput) {
-  const { requestHeaders, session } = await getActionSession();
-  return assignCrmTaskCore({ input, requestHeaders, session });
+  const { authority, requestHeaders, session } = await getActionSession();
+  return assignCrmTaskCore({ input, authority, requestHeaders, session });
 }
 
 export async function updateCrmTaskDueAtAction(input: UpdateCrmTaskDueAtCoreInput) {
-  const { requestHeaders, session } = await getActionSession();
-  return updateCrmTaskDueAtCore({ input, requestHeaders, session });
+  const { authority, requestHeaders, session } = await getActionSession();
+  return updateCrmTaskDueAtCore({ input, authority, requestHeaders, session });
 }
 
 export async function updateCrmTaskPriorityAction(input: UpdateCrmTaskPriorityCoreInput) {
-  const { requestHeaders, session } = await getActionSession();
-  return updateCrmTaskPriorityCore({ input, requestHeaders, session });
+  const { authority, requestHeaders, session } = await getActionSession();
+  return updateCrmTaskPriorityCore({ input, authority, requestHeaders, session });
 }
 
 export async function updateCrmTaskPriorityActionWithGuard(
   input: UpdateCrmTaskPriorityCoreInput,
   guard: CrmTaskExistingMutationGuard
 ) {
-  const { requestHeaders, session } = await getActionSession();
-  return updateCrmTaskPriorityCore({ guard, input, requestHeaders, session });
+  const { authority, requestHeaders, session } = await getActionSession();
+  return updateCrmTaskPriorityCore({ guard, input, authority, requestHeaders, session });
 }
 
 export async function startCrmTaskAction(input: StartCrmTaskCoreInput) {
-  const { requestHeaders, session } = await getActionSession();
-  return startCrmTaskCore({ input, requestHeaders, session });
+  const { authority, requestHeaders, session } = await getActionSession();
+  return startCrmTaskCore({ input, authority, requestHeaders, session });
 }
 
 export async function completeCrmTaskAction(input: CompleteCrmTaskCoreInput) {
-  const { requestHeaders, session } = await getActionSession();
-  return completeCrmTaskCore({ input, requestHeaders, session });
+  const { authority, requestHeaders, session } = await getActionSession();
+  return completeCrmTaskCore({ input, authority, requestHeaders, session });
 }
 
 export async function cancelCrmTaskAction(input: CancelCrmTaskCoreInput) {
-  const { requestHeaders, session } = await getActionSession();
-  return cancelCrmTaskCore({ input, requestHeaders, session });
+  const { authority, requestHeaders, session } = await getActionSession();
+  return cancelCrmTaskCore({ input, authority, requestHeaders, session });
 }
 
 export async function cancelCrmTaskActionWithGuard(
   input: CancelCrmTaskCoreInput,
   guard: CrmTaskExistingMutationGuard
 ) {
-  const { requestHeaders, session } = await getActionSession();
-  return cancelCrmTaskCore({ guard, input, requestHeaders, session });
+  const { authority, requestHeaders, session } = await getActionSession();
+  return cancelCrmTaskCore({ guard, input, authority, requestHeaders, session });
 }
 
 export async function reopenCrmTaskAction(input: ReopenCrmTaskCoreInput) {
-  const { requestHeaders, session } = await getActionSession();
-  return reopenCrmTaskCore({ input, requestHeaders, session });
+  const { authority, requestHeaders, session } = await getActionSession();
+  return reopenCrmTaskCore({ input, authority, requestHeaders, session });
 }
 
 export async function reopenCrmTaskActionWithGuard(
   input: ReopenCrmTaskCoreInput,
   guard: CrmTaskExistingMutationGuard
 ) {
-  const { requestHeaders, session } = await getActionSession();
-  return reopenCrmTaskCore({ guard, input, requestHeaders, session });
+  const { authority, requestHeaders, session } = await getActionSession();
+  return reopenCrmTaskCore({ guard, input, authority, requestHeaders, session });
 }

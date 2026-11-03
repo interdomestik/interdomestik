@@ -1,12 +1,25 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const hoisted = vi.hoisted(() => ({
-  domainUpdateStatus: vi.fn(),
-  revalidatePath: vi.fn(),
-  enforceRateLimitForAction: vi.fn(),
-  claimFindFirst: vi.fn(),
-  withTenant: vi.fn((tenantId, tenantColumn, condition) => ({ tenantId, tenantColumn, condition })),
-}));
+const hoisted = vi.hoisted(() => {
+  const claimFindFirst = vi.fn();
+  const db = { query: { claims: { findFirst: claimFindFirst } } };
+  return {
+    domainUpdateStatus: vi.fn(),
+    revalidatePath: vi.fn(),
+    enforceRateLimitForAction: vi.fn(),
+    claimFindFirst,
+    db,
+    withTenant: vi.fn((tenantId, tenantColumn, condition) => ({
+      tenantId,
+      tenantColumn,
+      condition,
+    })),
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+  };
+});
 
 vi.mock('@interdomestik/domain-claims/admin-claims/update-status', () => ({
   updateClaimStatusCore: hoisted.domainUpdateStatus,
@@ -21,13 +34,8 @@ vi.mock('@/lib/rate-limit', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      claims: {
-        findFirst: hoisted.claimFindFirst,
-      },
-    },
-  },
+  db: hoisted.db,
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
@@ -40,7 +48,12 @@ const session = {
   user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_mk' },
   session: { id: 'session-1' },
 } as unknown as NonNullable<import('./context').Session>;
-const state = (caseLifecycleState: string, recoveryLifecycleState: string) => ({ id: 'claim-1', caseLifecycleState, recoveryLifecycleState });
+const authority = mintTestTenantAuthority('tenant_mk');
+const state = (caseLifecycleState: string, recoveryLifecycleState: string) => ({
+  id: 'claim-1',
+  caseLifecycleState,
+  recoveryLifecycleState,
+});
 
 describe('updateClaimStatusCore', () => {
   beforeEach(() => {
@@ -60,6 +73,7 @@ describe('updateClaimStatusCore', () => {
       updateClaimStatusCore({
         formData,
         session,
+        authority,
         requestHeaders: new Headers(),
       })
     ).rejects.toThrow('Invalid status');
@@ -69,7 +83,9 @@ describe('updateClaimStatusCore', () => {
   });
 
   it('revalidates deterministic paths only on successful mutation', async () => {
-    hoisted.claimFindFirst.mockResolvedValueOnce(state('submitted', 'not_started')).mockResolvedValueOnce(state('resolved', 'resolved'));
+    hoisted.claimFindFirst
+      .mockResolvedValueOnce(state('submitted', 'not_started'))
+      .mockResolvedValueOnce(state('resolved', 'resolved'));
     const formData = new FormData();
     formData.set('claimId', 'claim-1');
     formData.set('status', 'resolved');
@@ -78,14 +94,16 @@ describe('updateClaimStatusCore', () => {
     await updateClaimStatusCore({
       formData,
       session,
+      authority,
       requestHeaders,
     });
     expect(hoisted.revalidatePath).toHaveBeenNthCalledWith(1, '/en/admin/claims');
     expect(hoisted.revalidatePath).toHaveBeenNthCalledWith(2, '/en/admin/claims/claim-1');
     expect(hoisted.revalidatePath).toHaveBeenNthCalledWith(3, '/en/member/claims/claim-1');
     expect(hoisted.revalidatePath).toHaveBeenCalledTimes(3);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.domainUpdateStatus).toHaveBeenCalledWith(
-      expect.objectContaining({ hostId: 'tenant_mk', requestHeaders }),
+      expect.objectContaining({ hostId: 'tenant_mk', authority, requestHeaders }),
       expect.any(Object)
     );
   });
@@ -101,6 +119,7 @@ describe('updateClaimStatusCore', () => {
       updateClaimStatusCore({
         formData,
         session,
+        authority,
         requestHeaders: new Headers(),
       })
     ).rejects.toThrow('Claim not found');
@@ -119,6 +138,7 @@ describe('updateClaimStatusCore', () => {
     await updateClaimStatusCore({
       formData,
       session,
+      authority,
       requestHeaders: new Headers(),
     });
 
@@ -139,6 +159,7 @@ describe('updateClaimStatusCore', () => {
     await updateClaimStatusCore({
       formData,
       session,
+      authority,
       requestHeaders: new Headers(),
     });
 
@@ -159,6 +180,7 @@ describe('updateClaimStatusCore', () => {
     await updateClaimStatusCore({
       formData,
       session,
+      authority,
       requestHeaders: new Headers(),
     });
 

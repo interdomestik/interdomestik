@@ -14,12 +14,8 @@ export async function GET(req: NextRequest) {
   });
   if (limited) return limited;
 
-  if (
-    !authorizeCronRequest({
-      authorizationHeader: req.headers.get('authorization'),
-      cronSecret: process.env.CRON_SECRET,
-    })
-  ) {
+  const ingress = authorizeCronRequest({ authorizationHeader: req.headers.get('authorization') });
+  if (!ingress) {
     console.error('[Dunning Cron] Unauthorized request');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -33,7 +29,7 @@ export async function GET(req: NextRequest) {
   };
 
   try {
-    const result = await runDunningCronCore({ now, headers: req.headers });
+    const result = await runDunningCronCore({ ingress, now, headers: req.headers });
     stats = result.stats;
 
     return NextResponse.json({

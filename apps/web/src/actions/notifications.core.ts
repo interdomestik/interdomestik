@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 
-import { getActionContext } from './notifications/context';
+import { getActionContext, getAuthorizedActionContext } from './notifications/context';
 import { getNotificationsCore } from './notifications/get';
 import { markAllAsReadCore, markAsReadCore } from './notifications/mark-read';
 
@@ -16,8 +16,8 @@ function isUnauthorizedError(error: unknown): boolean {
  * Get the current user's notifications
  */
 export async function getNotifications(limit = 20) {
-  const { session } = await getActionContext();
-  return getNotificationsCore({ session, limit });
+  const { session, authority } = await getAuthorizedActionContext();
+  return getNotificationsCore({ session, authority, limit });
 }
 
 /**

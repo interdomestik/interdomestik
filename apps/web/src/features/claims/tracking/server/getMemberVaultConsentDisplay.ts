@@ -1,13 +1,17 @@
-import type { TenantTransaction } from '@interdomestik/database';
+import { type TenantTransaction } from '@interdomestik/database';
 import { buildVaultConsentDisplay, type VaultConsentDisplay } from '@interdomestik/domain-claims';
-import { db } from '@interdomestik/database';
+import type { db } from '@interdomestik/database/db';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { readTenantLocaleMetadata } from '@interdomestik/database/tenant-directory';
 import { claimDocumentAiExtractionConsents, claimDocuments } from '@interdomestik/database/schema';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import 'server-only';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface GetMemberVaultConsentDisplayParams {
-  tenantId: string;
   memberId: string;
   claimId: string;
   claimCategory: string;
@@ -16,9 +20,11 @@ export interface GetMemberVaultConsentDisplayParams {
 
 export async function getMemberVaultConsentDisplay(
   params: GetMemberVaultConsentDisplayParams,
-  database: TenantTransaction | typeof db = db
+  authority: TenantAuthority,
+  database?: TenantTransaction | typeof db
 ): Promise<VaultConsentDisplay> {
-  const tenant = await readTenantLocaleMetadata(params.tenantId);
+  const { tenantId } = readTenantAuthority(authority);
+  const tenant = await readTenantLocaleMetadata(tenantId);
   const gated = buildVaultConsentDisplay({
     tenantCode: tenant?.code ?? null,
     tenantCountryCode: tenant?.countryCode ?? null,
@@ -29,6 +35,24 @@ export async function getMemberVaultConsentDisplay(
   });
   if (gated.kind !== 'ready') return gated;
 
+  if (!database) {
+    // The ambient client carries no tenant context, so run the reads inside one.
+    return withTenantAuthority(authority, tx =>
+      readVaultConsentDisplay(params, tenantId, tx, tenant, gated)
+    );
+  }
+  return readVaultConsentDisplay(params, tenantId, database, tenant, gated);
+}
+
+type TenantLocaleMetadata = Awaited<ReturnType<typeof readTenantLocaleMetadata>>;
+
+async function readVaultConsentDisplay(
+  params: GetMemberVaultConsentDisplayParams,
+  tenantId: string,
+  database: TenantTransaction | typeof db,
+  tenant: TenantLocaleMetadata,
+  gated: VaultConsentDisplay
+): Promise<VaultConsentDisplay> {
   // db-access-guard: tenant-scoped -- reason: exact MK tenant gate passed and the claim was already resolved through the member-scoped claim-detail query
   const documents = await database
     .select({
@@ -39,7 +63,7 @@ export async function getMemberVaultConsentDisplay(
     .from(claimDocuments)
     .where(
       and(
-        eq(claimDocuments.tenantId, params.tenantId),
+        eq(claimDocuments.tenantId, tenantId),
         eq(claimDocuments.claimId, params.claimId),
         eq(claimDocuments.category, 'evidence')
       )
@@ -61,7 +85,7 @@ export async function getMemberVaultConsentDisplay(
     .from(claimDocumentAiExtractionConsents)
     .where(
       and(
-        eq(claimDocumentAiExtractionConsents.tenantId, params.tenantId),
+        eq(claimDocumentAiExtractionConsents.tenantId, tenantId),
         eq(claimDocumentAiExtractionConsents.subjectId, params.memberId),
         eq(claimDocumentAiExtractionConsents.claimId, params.claimId),
         inArray(

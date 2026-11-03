@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => {
   );
 
   return {
+    authorizeInngestEventTenant: vi.fn(),
     claimClaimAiRun: vi.fn(),
     createFunction,
     critiqueExtraction: vi.fn(),
@@ -21,6 +22,9 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+vi.mock('@interdomestik/database', () => ({
+  authorizeInngestEventTenant: mocks.authorizeInngestEventTenant,
+}));
 vi.mock('@/lib/inngest/client', () => ({
   inngest: { createFunction: mocks.createFunction, send: vi.fn() },
 }));
@@ -56,6 +60,8 @@ vi.mock('@/lib/ai/extraction-pipeline', async importOriginal => {
   return { ...actual, critiqueExtraction: mocks.critiqueExtraction };
 });
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import { ExtractionPipelineError } from '@/lib/ai/extraction-pipeline';
 import { NonRetriableError } from 'inngest';
 
@@ -64,6 +70,9 @@ import {
   claimIntakeExtractionRequested,
   legalDocumentExtractionRequested,
 } from '@/lib/inngest/functions';
+
+const authority = mintTestTenantAuthority('tenant-1');
+const ingress = Object.freeze({}) as unknown as IngressCapability<'inngest'>;
 
 const run = {
   runId: 'run-1',
@@ -86,7 +95,7 @@ const run = {
 };
 
 type ClaimHandler = (args: {
-  event: { data: { runId: string } };
+  event: { data: { runId: string; tenantId?: string } };
   step: { run: (name: string, callback: () => unknown) => unknown };
   attempt: number;
 }) => Promise<unknown>;
@@ -99,6 +108,7 @@ const claimHandlers = [
 describe('processClaimDocumentWorkflowRunService persist failure', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.authorizeInngestEventTenant.mockResolvedValue(authority);
     mocks.claimClaimAiRun.mockResolvedValue({ status: 'claimed', run });
     mocks.markClaimAiRunFailed.mockResolvedValue({ errorCode: 'claim_ai_processing_failed' });
     mocks.loadClaimAiInput.mockResolvedValue({ metrics: { hasText: true } });
@@ -123,13 +133,20 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
       new ExtractionPipelineError('claim_ai_document_deleted', 'Document was deleted.')
     );
 
-    await expect(processClaimDocumentWorkflowRunService({ runId: 'run-1' })).resolves.toEqual({
+    await expect(
+      processClaimDocumentWorkflowRunService({ runId: 'run-1', ingress, tenantId: 'tenant-1' })
+    ).resolves.toEqual({
       status: 'failed',
       runId: 'run-1',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
     });
-    expect(mocks.claimClaimAiRun).toHaveBeenCalledWith('run-1', { retryFailed: false });
+    expect(mocks.authorizeInngestEventTenant).toHaveBeenCalledWith(ingress, 'tenant-1');
+    expect(mocks.claimClaimAiRun).toHaveBeenCalledWith('run-1', {
+      authority,
+      retryFailed: false,
+    });
+    expect(mocks.claimClaimAiRun.mock.calls[0]?.[1].authority).toBe(authority);
     expect(mocks.markClaimAiRunFailed).toHaveBeenCalledWith({
       run,
       error: expect.objectContaining({ errorCode: 'claim_ai_document_deleted' }),
@@ -141,10 +158,19 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
     mocks.persistClaimAiExtraction.mockRejectedValue(failure);
 
     await expect(
-      processClaimDocumentWorkflowRunService({ runId: 'run-1', retryFailed: true })
+      processClaimDocumentWorkflowRunService({
+        runId: 'run-1',
+        ingress,
+        tenantId: 'tenant-1',
+        retryFailed: true,
+      })
     ).rejects.toThrow('Storage temporarily unavailable.');
 
-    expect(mocks.claimClaimAiRun).toHaveBeenCalledWith('run-1', { retryFailed: true });
+    expect(mocks.claimClaimAiRun).toHaveBeenCalledWith('run-1', {
+      authority,
+      retryFailed: true,
+    });
+    expect(mocks.claimClaimAiRun.mock.calls[0]?.[1].authority).toBe(authority);
     expect(mocks.markClaimAiRunFailed).toHaveBeenCalledWith({ run, error: failure });
   });
 
@@ -155,7 +181,9 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
     mocks.persistClaimAiExtraction.mockRejectedValue(failure);
     mocks.markClaimAiRunFailed.mockResolvedValue({ errorCode: failure.errorCode });
 
-    await expect(processClaimDocumentWorkflowRunService({ runId: 'run-1' })).resolves.toEqual({
+    await expect(
+      processClaimDocumentWorkflowRunService({ runId: 'run-1', ingress, tenantId: 'tenant-1' })
+    ).resolves.toEqual({
       status: 'failed',
       runId: 'run-1',
       claimId: 'claim-1',
@@ -169,7 +197,7 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
 
     for (const { handler } of claimHandlers) {
       const thrown = await handler({
-        event: { data: { runId: 'run-1' } },
+        event: { data: { runId: 'run-1', tenantId: 'tenant-1' } },
         step,
         attempt: 0,
       }).catch(error => error);
@@ -199,9 +227,39 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
 
     for (const { handler } of claimHandlers) {
       await expect(
-        handler({ event: { data: { runId: 'run-1' } }, step, attempt: 0 })
+        handler({ event: { data: { runId: 'run-1', tenantId: 'tenant-1' } }, step, attempt: 0 })
       ).rejects.toBeInstanceOf(NonRetriableError);
     }
+  });
+
+  it('fails closed without claiming or writing when the event tenant is not authorized', async () => {
+    mocks.authorizeInngestEventTenant.mockRejectedValue(
+      new Error('Inngest tenant authority requires an existing tenant')
+    );
+
+    await expect(
+      processClaimDocumentWorkflowRunService({ runId: 'run-1', ingress, tenantId: 'tenant-ghost' })
+    ).rejects.toThrow('Inngest tenant authority requires an existing tenant');
+
+    expect(mocks.authorizeInngestEventTenant).toHaveBeenCalledWith(ingress, 'tenant-ghost');
+    expect(mocks.claimClaimAiRun).not.toHaveBeenCalled();
+    expect(mocks.loadClaimAiInput).not.toHaveBeenCalled();
+    expect(mocks.persistClaimAiExtraction).not.toHaveBeenCalled();
+    expect(mocks.markClaimAiRunFailed).not.toHaveBeenCalled();
+  });
+
+  it('marks a tenant authorization rejection non-retriable in both actual handlers', async () => {
+    mocks.authorizeInngestEventTenant.mockRejectedValue(new Error('no such tenant'));
+    const step = { run: vi.fn(async (_name: string, callback: () => unknown) => callback()) };
+
+    for (const { handler } of claimHandlers) {
+      await expect(
+        handler({ event: { data: { runId: 'run-1', tenantId: 'tenant-1' } }, step, attempt: 0 })
+      ).rejects.toBeInstanceOf(NonRetriableError);
+    }
+
+    expect(mocks.claimClaimAiRun).not.toHaveBeenCalled();
+    expect(mocks.persistClaimAiExtraction).not.toHaveBeenCalled();
   });
 
   it('binds both claim workflow handlers to exactly one trusted retry attempt', async () => {
@@ -222,10 +280,12 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
     ] as const) {
       for (const attempt of [0, 1, 2]) {
         mocks.claimClaimAiRun.mockClear();
-        await handler({ event: { data: { runId } }, step, attempt });
+        await handler({ event: { data: { runId, tenantId: 'tenant-1' } }, step, attempt });
         expect(mocks.claimClaimAiRun).toHaveBeenCalledWith(runId, {
+          authority,
           retryFailed: attempt === 1,
         });
+        expect(mocks.claimClaimAiRun.mock.calls[0]?.[1].authority).toBe(authority);
       }
     }
   });

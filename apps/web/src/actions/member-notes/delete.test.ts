@@ -1,10 +1,11 @@
 import { db } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { deleteMemberNoteCore } from './delete.core';
 
 // Mock dependencies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
@@ -15,8 +16,13 @@ vi.mock('@interdomestik/database', () => ({
     delete: vi.fn(() => ({
       where: vi.fn(),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   memberNotes: {
@@ -42,6 +48,8 @@ vi.mock('./access', () => ({
 vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
 }));
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('deleteMemberNoteCore', () => {
   beforeEach(() => {
@@ -71,6 +79,7 @@ describe('deleteMemberNoteCore', () => {
 
     const result = await deleteMemberNoteCore({
       session: mockStaffSession as never,
+      authority,
       noteId: 'note-1',
     });
 
@@ -83,6 +92,7 @@ describe('deleteMemberNoteCore', () => {
 
     const result = await deleteMemberNoteCore({
       session: mockStaffSession as never,
+      authority,
       noteId: 'note-1',
     });
 
@@ -95,6 +105,7 @@ describe('deleteMemberNoteCore', () => {
 
     const result = await deleteMemberNoteCore({
       session: mockAdminSession as never,
+      authority,
       noteId: 'note-1',
     });
 

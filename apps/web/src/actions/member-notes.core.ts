@@ -19,30 +19,30 @@ import { updateMemberNoteCore } from './member-notes/update';
 
 /** Get all notes for a member */
 export async function getMemberNotes(memberId: string): Promise<ActionResult<MemberNote[]>> {
-  const { session } = await getActionContext();
-  return getMemberNotesCore({ session, memberId });
+  const { session, authority } = await getActionContext();
+  return getMemberNotesCore({ session, authority, memberId });
 }
 
 /** Create a new note for a member */
 export async function createMemberNote(data: CreateNoteInput): Promise<ActionResult<MemberNote>> {
-  const { session } = await getActionContext();
-  return createMemberNoteCore({ session, data });
+  const { session, authority } = await getActionContext();
+  return createMemberNoteCore({ session, authority, data });
 }
 
 /** Update an existing note */
 export async function updateMemberNote(data: UpdateNoteInput): Promise<ActionResult<MemberNote>> {
-  const { session } = await getActionContext();
-  return updateMemberNoteCore({ session, data });
+  const { session, authority } = await getActionContext();
+  return updateMemberNoteCore({ session, authority, data });
 }
 
 /** Delete a note */
 export async function deleteMemberNote(noteId: string): Promise<ActionResult> {
-  const { session } = await getActionContext();
-  return deleteMemberNoteCore({ session, noteId });
+  const { session, authority } = await getActionContext();
+  return deleteMemberNoteCore({ session, authority, noteId });
 }
 
 /** Toggle pin status of a note */
 export async function toggleNotePin(noteId: string): Promise<ActionResult<{ isPinned: boolean }>> {
-  const { session } = await getActionContext();
-  return toggleNotePinCore({ session, noteId });
+  const { session, authority } = await getActionContext();
+  return toggleNotePinCore({ session, authority, noteId });
 }

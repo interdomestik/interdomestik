@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -31,6 +32,8 @@ vi.mock('./commissions/create', () => ({
 let actions: typeof import('./commissions');
 
 describe('commissions action wrappers', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeAll(async () => {
     actions = await import('./commissions');
   });
@@ -41,18 +44,18 @@ describe('commissions action wrappers', () => {
 
   it('getMyCommissions delegates to core with session from context', async () => {
     const session = { user: { id: 'a1', role: 'agent' } };
-    mocks.getActionContext.mockResolvedValue({ session });
+    mocks.getActionContext.mockResolvedValue({ session, authority });
     mocks.getMyCommissionsCore.mockResolvedValue({ success: true, data: [] });
 
     const result = await actions.getMyCommissions();
 
-    expect(mocks.getMyCommissionsCore).toHaveBeenCalledWith({ session });
+    expect(mocks.getMyCommissionsCore).toHaveBeenCalledWith({ session, authority });
     expect(result).toEqual({ success: true, data: [] });
   });
 
   it('getMyCommissionSummary delegates to core with session from context', async () => {
     const session = { user: { id: 'a1', role: 'agent' } };
-    mocks.getActionContext.mockResolvedValue({ session });
+    mocks.getActionContext.mockResolvedValue({ session, authority });
     mocks.getMyCommissionSummaryCore.mockResolvedValue({
       success: true,
       data: {
@@ -67,12 +70,12 @@ describe('commissions action wrappers', () => {
 
     const result = await actions.getMyCommissionSummary();
 
-    expect(mocks.getMyCommissionSummaryCore).toHaveBeenCalledWith({ session });
+    expect(mocks.getMyCommissionSummaryCore).toHaveBeenCalledWith({ session, authority });
     expect(result.success).toBe(true);
     expect(result.data?.paidCount).toBe(0);
   });
 
-  it('createCommission delegates to core with session-derived tenantId', async () => {
+  it('createCommission delegates to core with the session authority', async () => {
     const payload = {
       agentId: 'agent-1',
       memberId: 'member-1',
@@ -84,14 +87,14 @@ describe('commissions action wrappers', () => {
     };
     const session = { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' } };
 
-    mocks.getActionContext.mockResolvedValue({ session });
+    mocks.getActionContext.mockResolvedValue({ session, authority });
     mocks.ensureTenantId.mockReturnValue('tenant-1');
     mocks.createCommissionCore.mockResolvedValue({ success: true, data: { id: 'c1' } });
 
     const result = await actions.createCommission(payload);
 
     expect(mocks.ensureTenantId).toHaveBeenCalledWith(session);
-    expect(mocks.createCommissionCore).toHaveBeenCalledWith({ ...payload, tenantId: 'tenant-1' });
+    expect(mocks.createCommissionCore).toHaveBeenCalledWith({ ...payload, authority });
     expect(result).toEqual({ success: true, data: { id: 'c1' } });
   });
 
@@ -102,6 +105,23 @@ describe('commissions action wrappers', () => {
     mocks.ensureTenantId.mockImplementation(() => {
       throw new Error('Missing tenant');
     });
+
+    const result = await actions.createCommission({
+      agentId: 'agent-1',
+      type: 'new_membership',
+      amount: 12.34,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Missing tenantId' });
+    expect(mocks.createCommissionCore).not.toHaveBeenCalled();
+  });
+
+  it('createCommission fails before core execution when the session has no tenant authority', async () => {
+    mocks.getActionContext.mockResolvedValue({
+      session: { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' } },
+      authority: null,
+    });
+    mocks.ensureTenantId.mockReturnValue('tenant-1');
 
     const result = await actions.createCommission({
       agentId: 'agent-1',

@@ -2,10 +2,11 @@ import {
   getAgentCrmLeadDetail,
   type AgentCrmLeadDetailAuthorizationDenialReason,
 } from '@interdomestik/domain-crm/lead-details';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 
 import {
-  crmLeadDetailRepository,
+  createCrmLeadDetailRepository,
   type AgentCrmLeadDetailDealRow,
   type AgentCrmLeadDetailLeadRow,
 } from '@/adapters/crm/lead-detail-repository';
@@ -27,11 +28,12 @@ export class AgentLeadDetailsAccessDeniedError extends Error {
 
 export async function getAgentLeadDetailsCore(args: {
   actor: CrmActorContext;
+  authority: TenantAuthority;
   leadId: string;
 }): Promise<AgentLeadDetailsResult> {
   const result = await getAgentCrmLeadDetail(
     { actor: args.actor, leadId: args.leadId },
-    crmLeadDetailRepository
+    createCrmLeadDetailRepository(args.authority)
   );
 
   if (result.success) {

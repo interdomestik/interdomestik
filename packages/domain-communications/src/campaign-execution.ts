@@ -1,11 +1,25 @@
-import { db, inArray, withTenantContext } from '@interdomestik/database';
+import { inArray, listScheduledTenantWork } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import { emailCampaignLogs } from '@interdomestik/database/schema';
-import { and, eq, or } from 'drizzle-orm';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { stringifyError } from './campaign-retry';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { forEachInOrder } from './in-order';
+
+export {
+  DEFAULT_RETRY_ATTEMPTS,
+  DEFAULT_RETRY_BASE_DELAY_MS,
+  sleep,
+  stringifyError,
+  withRetries,
+} from './campaign-retry';
 
 export const USER_BATCH_SIZE = 500;
-export const DEFAULT_RETRY_ATTEMPTS = 3;
-export const DEFAULT_RETRY_BASE_DELAY_MS = 250;
 export const DEFAULT_MAX_BATCHES = 100_000;
 
 export type UserMini = {
@@ -24,77 +38,35 @@ type CampaignExecutionItem = {
   name?: string | null;
 };
 
+function tenantMismatchMessage(userId: string, itemTenantId: string, authorityTenantId: string) {
+  return `Tenant mismatch for userId=${userId}: item tenant ${itemTenantId} is outside run tenant ${authorityTenantId}`;
+}
+
 function dedupeKeyForUser(user: Pick<UserMini, 'id' | 'tenantId'>): string | null {
   return user.tenantId ? `${user.tenantId}:${user.id}` : null;
 }
 
-function groupUserIdsByTenant(users: Pick<UserMini, 'id' | 'tenantId'>[]) {
-  const groups = new Map<string, string[]>();
-  for (const user of users) {
-    if (!user.tenantId) continue;
-    const existing = groups.get(user.tenantId) ?? [];
-    existing.push(user.id);
-    groups.set(user.tenantId, existing);
-  }
-  return groups;
-}
-
-export function sleep(ms: number) {
-  return new Promise<void>(resolve => setTimeout(resolve, ms));
-}
-
-export function stringifyError(err: unknown) {
-  if (err instanceof Error) return `${err.name}: ${err.message}`;
-  try {
-    return JSON.stringify(err);
-  } catch {
-    return String(err);
-  }
-}
-
-export async function withRetries<T>(
-  fn: () => Promise<T>,
-  opts?: { attempts?: number; baseDelayMs?: number }
-): Promise<T> {
-  const attempts = opts?.attempts ?? DEFAULT_RETRY_ATTEMPTS;
-  const baseDelayMs = opts?.baseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS;
-
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastError = err;
-      if (attempt === attempts) break;
-      await sleep(baseDelayMs * 2 ** (attempt - 1));
-    }
-  }
-
-  throw lastError;
-}
-
 export async function getAlreadySentUserIdSet(args: {
+  authority: TenantAuthority;
   campaignId: string;
   users: Pick<UserMini, 'id' | 'tenantId'>[];
 }): Promise<Set<string>> {
-  if (args.users.length === 0) return new Set();
+  const { tenantId } = readTenantAuthority(args.authority);
+  // Users of any other tenant are excluded from the query; they are never written under this authority.
+  const userIds = args.users.filter(user => user.tenantId === tenantId).map(user => user.id);
+  if (userIds.length === 0) return new Set();
+
+  const rows = await withTenantAuthority(args.authority, tx =>
+    tx.query.emailCampaignLogs.findMany({
+      where: and(
+        eq(emailCampaignLogs.campaignId, args.campaignId),
+        eq(emailCampaignLogs.tenantId, tenantId),
+        inArray(emailCampaignLogs.userId, userIds)
+      ),
+    })
+  );
 
   const sent = new Set<string>();
-  const tenantGroups = Array.from(groupUserIdsByTenant(args.users));
-
-  if (tenantGroups.length === 0) return sent;
-
-  const rows = await db.query.emailCampaignLogs.findMany({
-    where: and(
-      eq(emailCampaignLogs.campaignId, args.campaignId),
-      or(
-        ...tenantGroups.map(([tenantId, userIds]) =>
-          and(eq(emailCampaignLogs.tenantId, tenantId), inArray(emailCampaignLogs.userId, userIds))
-        )
-      )
-    ),
-  });
-
   for (const row of rows) {
     sent.add(`${row.tenantId}:${row.userId}`);
   }
@@ -103,24 +75,29 @@ export async function getAlreadySentUserIdSet(args: {
 }
 
 export async function getUsersBatch(args: {
+  authority: TenantAuthority;
   afterId: string | null;
   limit?: number;
 }): Promise<UserMini[]> {
   const limit = args.limit ?? USER_BATCH_SIZE;
+  const { afterId } = args;
+  const { tenantId } = readTenantAuthority(args.authority);
 
-  // Cursor pagination by primary key keeps memory stable and avoids huge offsets.
-  // db-access-guard: system-exempt -- reason: campaign job enumerates tenants before per-row checks
-  const users = await db.query.user.findMany({
-    where: args.afterId ? (user, { gt }) => gt(user.id, args.afterId as string) : undefined,
-    orderBy: (user, { asc }) => [asc(user.id)],
-    limit,
-    columns: {
-      id: true,
-      email: true,
-      name: true,
-      tenantId: true,
-    },
-  });
+  // Cursor pagination by primary key keeps memory stable and avoids huge offsets; one tenant per cursor.
+  const users = await withTenantAuthority(args.authority, tx =>
+    tx.query.user.findMany({
+      where: (user, { and, eq, gt }) =>
+        and(eq(user.tenantId, tenantId), afterId ? gt(user.id, afterId) : undefined),
+      orderBy: (user, { asc }) => [asc(user.id)],
+      limit,
+      columns: {
+        id: true,
+        email: true,
+        name: true,
+        tenantId: true,
+      },
+    })
+  );
 
   return users.map(u => ({ id: u.id, email: u.email, name: u.name, tenantId: u.tenantId }));
 }
@@ -157,8 +134,9 @@ export async function processCampaignUser(
   u: UserMini,
   args: {
     campaignId: string;
-    sendToUser: (u: UserMini) => Promise<void>;
+    sendToUser: (u: UserMini, authority: TenantAuthority) => Promise<void>;
   },
+  authority: TenantAuthority,
   alreadySentSet: Set<string>,
   stats: { attempted: number; sent: number; skipped: number },
   logs: string[],
@@ -171,7 +149,12 @@ export async function processCampaignUser(
     errors.push(`Missing tenantId for userId=${u.id} email=${u.email ?? 'n/a'}`);
     return;
   }
-  const tenantId = u.tenantId;
+  const { tenantId } = readTenantAuthority(authority);
+  if (u.tenantId !== tenantId) {
+    stats.skipped += 1;
+    errors.push(tenantMismatchMessage(u.id, u.tenantId, tenantId));
+    return;
+  }
 
   if (!u.email) {
     stats.skipped += 1;
@@ -185,7 +168,7 @@ export async function processCampaignUser(
   }
 
   try {
-    await args.sendToUser(u);
+    await args.sendToUser(u, authority);
 
     const insertLog = {
       id: `ecl_${nanoid()}`,
@@ -194,7 +177,7 @@ export async function processCampaignUser(
       campaignId: args.campaignId,
       sentAt: new Date(),
     };
-    await withTenantContext({ tenantId, role: 'system' }, async tx => {
+    await withTenantAuthority(authority, async tx => {
       await tx.insert(emailCampaignLogs).values(insertLog);
     });
 
@@ -208,8 +191,9 @@ export async function processCampaignUser(
 }
 
 export async function processBatchedUserCampaign(args: {
+  ingress: IngressCapability<'cron' | 'inngest'>;
   campaignId: string;
-  sendToUser: (u: UserMini) => Promise<void>;
+  sendToUser: (u: UserMini, authority: TenantAuthority) => Promise<void>;
 }): Promise<{
   logs: string[];
   errors: string[];
@@ -219,18 +203,21 @@ export async function processBatchedUserCampaign(args: {
   const errors: string[] = [];
   const stats = { attempted: 0, sent: 0, skipped: 0 };
 
-  await forEachBatchedUsers({
-    fetchBatch: afterId => getUsersBatch({ afterId, limit: USER_BATCH_SIZE }),
-    onBatch: async batch => {
-      const alreadySentSet = await getAlreadySentUserIdSet({
-        campaignId: args.campaignId,
-        users: batch,
-      });
+  await forEachInOrder(await listScheduledTenantWork(args.ingress), async ({ authority }) => {
+    await forEachBatchedUsers({
+      fetchBatch: afterId => getUsersBatch({ authority, afterId, limit: USER_BATCH_SIZE }),
+      onBatch: async batch => {
+        const alreadySentSet = await getAlreadySentUserIdSet({
+          authority,
+          campaignId: args.campaignId,
+          users: batch,
+        });
 
-      for (const u of batch) {
-        await processCampaignUser(u, args, alreadySentSet, stats, logs, errors);
-      }
-    },
+        await forEachInOrder(batch, async u => {
+          await processCampaignUser(u, args, authority, alreadySentSet, stats, logs, errors);
+        });
+      },
+    });
   });
 
   return {
@@ -268,16 +255,18 @@ export function shouldSkipUser(
 
 export async function executeCampaign<T extends CampaignExecutionItem>(
   campaignId: string,
+  authority: TenantAuthority,
   fetchBatch: (afterId: string | null) => Promise<T[]>,
   processItem: (item: T) => Promise<void>,
   context: { logs: string[]; errors: string[]; stats: any }
 ) {
-  let afterId: string | null = null;
-  while (true) {
+  const { tenantId: authorityTenantId } = readTenantAuthority(authority);
+  // Keyset pages in order: each page is fetched only after the previous one is fully processed.
+  const processFrom = async (afterId: string | null): Promise<void> => {
     const batch = await fetchBatch(afterId);
-    if (batch.length === 0) break;
-
+    if (batch.length === 0) return;
     const alreadySentSet = await getAlreadySentUserIdSet({
+      authority,
       campaignId,
       users: batch.map(item => ({
         id: item.userId,
@@ -285,7 +274,7 @@ export async function executeCampaign<T extends CampaignExecutionItem>(
       })),
     });
 
-    for (const item of batch) {
+    await forEachInOrder(batch, async item => {
       const userMini: UserMini = {
         id: item.userId,
         email: item.user?.email ?? item.email ?? null,
@@ -293,12 +282,15 @@ export async function executeCampaign<T extends CampaignExecutionItem>(
         tenantId: item.tenantId ?? item.user?.tenantId ?? null,
       };
 
-      if (shouldSkipUser(userMini, alreadySentSet, context.stats, context.errors)) {
-        continue;
+      if (userMini.tenantId && userMini.tenantId !== authorityTenantId) {
+        context.stats.skipped += 1;
+        context.errors.push(
+          tenantMismatchMessage(userMini.id, userMini.tenantId, authorityTenantId)
+        );
+        return;
       }
-      const tenantId = userMini.tenantId;
-      if (!tenantId) {
-        continue;
+      if (shouldSkipUser(userMini, alreadySentSet, context.stats, context.errors)) {
+        return;
       }
 
       context.stats.attempted += 1;
@@ -306,10 +298,10 @@ export async function executeCampaign<T extends CampaignExecutionItem>(
       try {
         await processItem(item);
 
-        await withTenantContext({ tenantId, role: 'system' }, async tx => {
+        await withTenantAuthority(authority, async tx => {
           await tx.insert(emailCampaignLogs).values({
             id: `ecl_${nanoid()}`,
-            tenantId,
+            tenantId: authorityTenantId,
             userId: userMini.id,
             campaignId,
             sentAt: new Date(),
@@ -323,36 +315,44 @@ export async function executeCampaign<T extends CampaignExecutionItem>(
           `Failed ${campaignId} for userId=${userMini.id} email=${userMini.email}: ${stringifyError(err)}`
         );
       }
-    }
-    afterId = batch.at(-1)!.id;
-  }
+    });
+    await processFrom(batch.at(-1)!.id);
+  };
+  await processFrom(null);
 }
 
 export async function processStandardUserCampaign(
+  ingress: IngressCapability<'cron' | 'inngest'>,
   campaignId: string,
   windowStart: Date,
   windowEnd: Date,
   context: { logs: string[]; errors: string[]; stats: any },
   sendFn: (u: UserMini) => Promise<void>
 ) {
-  await executeCampaign(
-    campaignId,
-    async afterId => {
-      // db-access-guard: system-exempt -- reason: campaign lifecycle job enumerates tenants before per-row checks
-      const users = await db.query.user.findMany({
-        where: (user, { between, and, gt }) =>
-          and(
-            between(user.createdAt, windowStart, windowEnd),
-            afterId ? gt(user.id, afterId) : undefined
-          ),
-        orderBy: (user, { asc }) => [asc(user.id)],
-        limit: USER_BATCH_SIZE,
-      });
-      return users.map(u => ({ ...u, userId: u.id }));
-    },
-    async u => {
-      await sendFn(u);
-    },
-    context
-  );
+  await forEachInOrder(await listScheduledTenantWork(ingress), async ({ authority }) => {
+    const { tenantId } = readTenantAuthority(authority);
+    await executeCampaign(
+      campaignId,
+      authority,
+      async afterId => {
+        const users = await withTenantAuthority(authority, tx =>
+          tx.query.user.findMany({
+            where: (user, { between, and, eq, gt }) =>
+              and(
+                eq(user.tenantId, tenantId),
+                between(user.createdAt, windowStart, windowEnd),
+                afterId ? gt(user.id, afterId) : undefined
+              ),
+            orderBy: (user, { asc }) => [asc(user.id)],
+            limit: USER_BATCH_SIZE,
+          })
+        );
+        return users.map(u => ({ ...u, userId: u.id }));
+      },
+      async u => {
+        await sendFn(u);
+      },
+      context
+    );
+  });
 }

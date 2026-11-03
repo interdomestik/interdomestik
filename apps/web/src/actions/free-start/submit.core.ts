@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
+import { authorizePublicSiteTenant } from '@interdomestik/database';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { ActionError, ActionSuccess } from '@/lib/safe-action';
 import { resolveTenantIdFromSources } from '@/lib/tenant/tenant-hosts';
@@ -48,11 +49,16 @@ export async function submitFreeStartIntakeCore(params: {
   data: SubmitFreeStartIntakeInput;
 }): Promise<SubmitFreeStartIntakeResult> {
   try {
+    // Anonymous public intake: the reservation partition's active tenant, never a payload value. An
+    // inactive partition yields no authority, which the idempotency scope refuses before any effect.
+    const authority = await authorizePublicSiteTenant(
+      resolveReservationTenantId(params.requestHeaders)
+    );
     return await runCommercialActionWithIdempotency({
       action: 'free-start.submit',
       scope: {
         kind: 'tenant',
-        tenantId: resolveReservationTenantId(params.requestHeaders),
+        authority,
         actorUserId: null,
       },
       idempotencyKey: params.idempotencyKey,

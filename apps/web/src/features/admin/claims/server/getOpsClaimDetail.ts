@@ -2,9 +2,14 @@ import { auth } from '@/lib/auth';
 import { createTenantSignedDownloadUrl } from '@/lib/storage/service-role';
 import { isExactIdaFrontDoorHost } from '@/lib/tenant/tenant-front-door';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import { and, claimDocuments, claims, eq, withTenantContext } from '@interdomestik/database';
+import { and, claimDocuments, claims, eq } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { ClaimStatus } from '@interdomestik/database/constants';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
 import { matchesAccessTenant as mat } from '@/lib/db/access-tenant-predicate';
@@ -43,7 +48,31 @@ function isNeutralDeploymentHost(host: string): boolean {
   return configuredNeutralHosts().has(normalizeRequestHost(host));
 }
 
-export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetailResult> {
+/**
+ * The tenant this request reads: a tenant host must match the session's access tenant, and a host
+ * without a tenant must be a neutral deployment or the exact front door. Null fails closed.
+ */
+function resolveRequestTenant(
+  requestHeaders: Headers,
+  sessionAccessTenantId: string
+): string | null {
+  const requestHost = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
+  const hostTenantId = resolveTenantFromHost(requestHost);
+  if (hostTenantId && hostTenantId !== sessionAccessTenantId) return null;
+  if (
+    !hostTenantId &&
+    !isNeutralDeploymentHost(requestHost) &&
+    !isExactIdaFrontDoorHost(requestHost)
+  ) {
+    return null;
+  }
+  return hostTenantId ?? sessionAccessTenantId;
+}
+
+export async function getOpsClaimDetail(
+  claimId: string,
+  authority: TenantAuthority
+): Promise<OpsClaimDetailResult> {
   // 0. Resolve tenant context from trusted host + session and fail closed.
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
@@ -57,79 +86,69 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
   const visibility = await resolveClaimsVisibility(session);
   if (!visibility || !canViewAdminClaims(visibility)) return { kind: 'not_found' };
   if (visibility.role === 'branch_manager' && !visibility.branchId) return { kind: 'not_found' };
-  const requestHost = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
-  const hostTenantId = resolveTenantFromHost(requestHost);
-  if (hostTenantId && hostTenantId !== sessionAccessTenantId) return { kind: 'not_found' };
-  if (
-    !hostTenantId &&
-    !isNeutralDeploymentHost(requestHost) &&
-    !isExactIdaFrontDoorHost(requestHost)
-  ) {
+  const tenantId = resolveRequestTenant(requestHeaders, sessionAccessTenantId);
+  if (tenantId === null) return { kind: 'not_found' };
+  // The read runs under the caller's authority, which must be this session user's for this tenant.
+  const granted = readTenantAuthority(authority);
+  if (granted.tenantId !== tenantId || granted.principal?.userId !== session.user?.id) {
     return { kind: 'not_found' };
   }
-  const tenantId = hostTenantId ?? sessionAccessTenantId;
 
-  const { claim, rawDocs } = await withTenantContext(
-    {
-      tenantId,
-      role: session.user?.role ?? undefined,
-    },
-    async tx => {
-      const claim = await tx.query.claims.findFirst({
-        where: and(
-          eq(claims.id, claimId),
-          mat(claims, tenantId),
-          visibility.role === 'branch_manager' && visibility.branchId
-            ? eq(claims.branchId, visibility.branchId)
-            : undefined
-        ),
-      });
+  const { claim, rawDocs } = await withTenantAuthority(authority, async tx => {
+    const claim = await tx.query.claims.findFirst({
+      where: and(
+        eq(claims.id, claimId),
+        mat(claims, tenantId),
+        visibility.role === 'branch_manager' && visibility.branchId
+          ? eq(claims.branchId, visibility.branchId)
+          : undefined
+      ),
+    });
 
-      if (!claim) {
-        return {
-          claim: null,
-          userData: null,
-          agentData: null as { name: string } | null,
-          rawDocs: [] as Array<{
-            id: string;
-            tenantId: string;
-            name: string | null;
-            fileSize: number | null;
-            fileType: string | null;
-            createdAt: Date | null;
-            filePath: string | null;
-            bucket: string | null;
-          }>,
-        };
-      }
-
-      const rawDocs = await tx
-        .select({
-          id: claimDocuments.id,
-          tenantId: claimDocuments.tenantId,
-          name: claimDocuments.name,
-          fileSize: claimDocuments.fileSize,
-          fileType: claimDocuments.fileType,
-          createdAt: claimDocuments.createdAt,
-          filePath: claimDocuments.filePath,
-          bucket: claimDocuments.bucket,
-        })
-        .from(claimDocuments)
-        .where(and(eq(claimDocuments.claimId, claimId), mat(claimDocuments, tenantId)));
-
+    if (!claim) {
       return {
-        claim,
-        rawDocs,
+        claim: null,
+        userData: null,
+        agentData: null as { name: string } | null,
+        rawDocs: [] as Array<{
+          id: string;
+          tenantId: string;
+          name: string | null;
+          fileSize: number | null;
+          fileType: string | null;
+          createdAt: Date | null;
+          filePath: string | null;
+          bucket: string | null;
+        }>,
       };
     }
-  );
+
+    const rawDocs = await tx
+      .select({
+        id: claimDocuments.id,
+        tenantId: claimDocuments.tenantId,
+        name: claimDocuments.name,
+        fileSize: claimDocuments.fileSize,
+        fileType: claimDocuments.fileType,
+        createdAt: claimDocuments.createdAt,
+        filePath: claimDocuments.filePath,
+        bucket: claimDocuments.bucket,
+      })
+      .from(claimDocuments)
+      .where(and(eq(claimDocuments.claimId, claimId), mat(claimDocuments, tenantId)));
+
+    return {
+      claim,
+      rawDocs,
+    };
+  });
 
   if (!claim) return { kind: 'not_found' };
   const { agentData, branchData, diasporaOrigin, staffData, userData } =
     await readOpsClaimHomeTenantDetails({
+      authority,
       claim,
       claimId,
-      role: session.user?.role ?? undefined,
     });
 
   const docs = await Promise.all(

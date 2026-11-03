@@ -1,5 +1,20 @@
-import { db } from '@interdomestik/database';
-import { findSubscriptionByProviderReference } from '../../../subscription';
+import {
+  authorizePaddleTenant,
+  db,
+  resolvePaddleUserOwner,
+  type TenantTransaction,
+} from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { readPaddleCanonicalUser, type PaddleCanonicalUser } from './canonical-user';
+import {
+  findPaddleSubscriptionByReference,
+  type PaddleSubscriptionLookup,
+} from '../../../subscription';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export class PaddleSubscriptionContextConflictError extends Error {
   constructor(message: string) {
@@ -11,7 +26,7 @@ export class PaddleSubscriptionContextConflictError extends Error {
 export async function resolveBranchId(args: {
   customData: { agentId?: string } | undefined;
   tenantId: string;
-  db: typeof db;
+  db: typeof db | TenantTransaction;
 }): Promise<string | undefined> {
   const { customData, tenantId, db: database } = args;
 
@@ -47,21 +62,37 @@ export async function resolveBranchId(args: {
   return undefined;
 }
 
-export async function resolveSubscriptionContext(sub: any) {
-  const customData = (sub.customData || sub.custom_data) as
-    | {
-        userId?: string;
-        agentId?: string;
-        tenantId?: string;
-        acquisitionSource?: string;
-        utmSource?: string;
-        utmMedium?: string;
-        utmCampaign?: string;
-        utmContent?: string;
-      }
-    | undefined;
+type SubscriptionContextCustomData = {
+  userId?: string;
+  agentId?: string;
+  tenantId?: string;
+  acquisitionSource?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+};
 
-  const existingSub = await findSubscriptionByProviderReference(sub.id);
+export type ResolvedSubscriptionContext = {
+  userId: string;
+  tenantId: string;
+  branchId: string | undefined;
+  customData: SubscriptionContextCustomData | undefined;
+  userRecord: PaddleCanonicalUser;
+  existingSub: PaddleSubscriptionLookup['subscription'] | undefined;
+  /** The `paddle-webhook` authority every later effect on this tenant runs under. */
+  authority: TenantAuthority;
+};
+
+export async function resolveSubscriptionContext(
+  delivery: IngressCapability<'paddle-delivery'>,
+  sub: any
+): Promise<ResolvedSubscriptionContext | null> {
+  const customData = (sub.customData || sub.custom_data) as
+    SubscriptionContextCustomData | undefined;
+
+  const existingLookup = await findPaddleSubscriptionByReference(sub.id, delivery);
+  const existingSub = existingLookup?.subscription;
   const customDataUserId = normalizeText(customData?.userId);
   const customDataTenantId = normalizeText(customData?.tenantId);
   const existingUserId = normalizeText(existingSub?.userId);
@@ -79,18 +110,15 @@ export async function resolveSubscriptionContext(sub: any) {
     );
   }
 
-  // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps tenant context before tenant-scoped subscription writes
-  const userRecord = await db.query.user.findFirst({
-    where: (users, { eq }) => eq(users.id, userId),
-    columns: { tenantId: true, email: true, name: true, memberNumber: true, agentId: true },
-  });
+  const userLookup = await readPaddleCanonicalUser(delivery, userId);
 
-  if (!userRecord) {
+  if (!userLookup) {
     console.warn(
       `[Webhook] Cannot resolve subscription ${sub.id}; canonical user ${userId} was not found`
     );
     return null;
   }
+  const userRecord = userLookup.user;
 
   if (existingTenantId && userRecord.tenantId !== existingTenantId) {
     throw new PaddleSubscriptionContextConflictError(
@@ -113,13 +141,55 @@ export async function resolveSubscriptionContext(sub: any) {
     return null;
   }
 
-  const branchId = await resolveBranchId({
-    customData,
-    tenantId,
-    db: db,
-  });
+  // The subscription's own authority when it exists, otherwise the user's. Both were minted from
+  // resolver owners; a record whose tenant differs from the authority never gets a second one.
+  const authority = existingLookup?.authority ?? userLookup.authority;
+  assertAuthorityTenant(authority, tenantId, sub.id);
 
-  return { userId, tenantId, branchId, customData, userRecord, existingSub };
+  const branchId = await withTenantAuthority(authority, tx =>
+    resolveBranchId({
+      customData,
+      tenantId,
+      db: tx,
+    })
+  );
+
+  return { userId, tenantId, branchId, customData, userRecord, existingSub, authority };
+}
+
+export function assertAuthorityTenant(
+  authority: TenantAuthority,
+  tenantId: string,
+  subscriptionId: string
+): void {
+  const authorityTenantId = readTenantAuthority(authority).tenantId;
+  if (authorityTenantId !== tenantId) {
+    throw new PaddleSubscriptionContextConflictError(
+      `Cannot resolve subscription ${subscriptionId}; resolved tenant=${tenantId} conflicts with webhook authority tenant=${authorityTenantId}`
+    );
+  }
+}
+
+/**
+ * Authority for a user that checkout reconciliation just created or reloaded. The reconciled tenant
+ * comes from verified checkout evidence, which has no resolver owner of its own; the persisted user
+ * row does. The authority is minted from the resolver owner of that exact user and only when its
+ * tenant equals the reconciled tenant.
+ */
+export async function authorizeReconciledCheckoutUser(
+  delivery: IngressCapability<'paddle-delivery'>,
+  reconciled: { userId: string; tenantId: string },
+  subscriptionId: string
+): Promise<TenantAuthority> {
+  const owner = await resolvePaddleUserOwner(reconciled.userId);
+  if (owner?.userId !== reconciled.userId) {
+    throw new PaddleSubscriptionContextConflictError(
+      `Cannot resolve subscription ${subscriptionId}; reconciled user ${reconciled.userId} has no unique owner`
+    );
+  }
+  const authority = authorizePaddleTenant(delivery, owner);
+  assertAuthorityTenant(authority, reconciled.tenantId, subscriptionId);
+  return authority;
 }
 
 function normalizeText(value: string | null | undefined): string | null {

@@ -9,7 +9,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
-import { getAgentSession } from './agent/context';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { getAgentAuthority, getAgentSession } from './agent/context';
 import { createLeadCore } from './agent/create-lead';
 import { importMembersCore } from './agent/import-members.core';
 import { logActivityCore } from './agent/log-activity';
@@ -70,8 +71,14 @@ export async function createLead(prevState: unknown, formData: FormData) {
     return { error: 'Missing tenantId', fields: undefined };
   }
 
+  // The lead mutation runs under the session authority, which must grant the actor's tenant.
+  const authority = await getAgentAuthority();
+  if (!authority || readTenantAuthority(authority).tenantId !== tenantId) {
+    return { error: 'Missing tenantId', fields: undefined };
+  }
+
   const actor = createAgentActorContext(session, tenantId);
-  const result = await createLeadCore(actor, formData);
+  const result = await createLeadCore(actor, authority, formData);
   if (!result.ok) {
     return {
       error: result.error,
@@ -98,8 +105,14 @@ export async function updateLeadStatus(leadId: string, stage: string) {
     return { error: 'Missing tenantId' };
   }
 
+  // The lead mutation runs under the session authority, which must grant the actor's tenant.
+  const authority = await getAgentAuthority();
+  if (!authority || readTenantAuthority(authority).tenantId !== tenantId) {
+    return { error: 'Missing tenantId' };
+  }
+
   const actor = createAgentActorContext(session, tenantId);
-  const result = await updateLeadStatusCore(actor, leadId, stage);
+  const result = await updateLeadStatusCore(actor, authority, leadId, stage);
   if ('error' in result) {
     return result;
   }
@@ -123,8 +136,14 @@ export async function logActivity(leadId: string, type: string, summary: string)
     return { error: 'Missing tenantId' };
   }
 
+  // The lead mutation runs under the session authority, which must grant the actor's tenant.
+  const authority = await getAgentAuthority();
+  if (!authority || readTenantAuthority(authority).tenantId !== tenantId) {
+    return { error: 'Missing tenantId' };
+  }
+
   const actor = createAgentActorContext(session, tenantId);
-  const result = await logActivityCore(actor, leadId, type, summary);
+  const result = await logActivityCore(actor, authority, leadId, type, summary);
   if ('error' in result) {
     return result;
   }
@@ -140,16 +159,20 @@ export async function registerMember(prevState: unknown, formData: FormData) {
     return { error: 'Unauthorized', fields: undefined };
   }
 
-  let tenantId: string;
   try {
-    tenantId = ensureTenantId(session);
+    ensureTenantId(session);
   } catch {
+    return { error: 'Missing tenantId', fields: undefined };
+  }
+
+  const authority = await getAgentAuthority();
+  if (!authority) {
     return { error: 'Missing tenantId', fields: undefined };
   }
 
   const result = await registerMemberCore(
     { id: session.user.id, name: session.user.name },
-    tenantId,
+    authority,
     session.user.branchId ?? null,
     formData
   );
@@ -171,9 +194,8 @@ export async function importMembers(prevState: unknown, formData: FormData) {
     return { error: 'Unauthorized', summary: undefined, results: undefined };
   }
 
-  let tenantId: string;
   try {
-    tenantId = ensureTenantId(session);
+    ensureTenantId(session);
   } catch {
     return { error: 'Missing tenantId', summary: undefined, results: undefined };
   }
@@ -198,9 +220,14 @@ export async function importMembers(prevState: unknown, formData: FormData) {
     return { error: 'Validation failed', summary: undefined, results: undefined };
   }
 
+  const authority = await getAgentAuthority();
+  if (!authority) {
+    return { error: 'Missing tenantId', summary: undefined, results: undefined };
+  }
+
   const result = await importMembersCore({
     agent: { id: session.user.id, name: session.user.name },
-    tenantId,
+    authority,
     branchId: session.user.branchId ?? null,
     rows: validated.data.rows,
   });

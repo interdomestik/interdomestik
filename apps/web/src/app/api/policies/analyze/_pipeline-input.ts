@@ -1,6 +1,9 @@
 import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
-import { db } from '@/lib/db.server';
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aiRuns, documents } from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 
@@ -15,6 +18,8 @@ export type PolicyExtractionDeps = {
 
 export type ClaimedPolicyRun = {
   runId: string;
+  /** In-memory only: the tenant authority this run was claimed under. Never serialized or persisted. */
+  authority: TenantAuthority;
   tenantId: string;
   documentId: string;
   policyId: string;
@@ -23,52 +28,60 @@ export type ClaimedPolicyRun = {
 };
 
 export async function claimPolicyExtractionRun(
-  runId: string
+  runId: string,
+  authority: TenantAuthority
 ): Promise<{ status: 'claimed'; run: ClaimedPolicyRun } | { status: 'skipped'; policyId: string }> {
-  // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
-  const [queuedRun] = await db
-    .select({
-      runId: aiRuns.id,
-      tenantId: aiRuns.tenantId,
-      documentId: aiRuns.documentId,
-      policyId: aiRuns.entityId,
-      storagePath: documents.storagePath,
-      requestJson: aiRuns.requestJson,
-      status: aiRuns.status,
-    })
-    .from(aiRuns)
-    .innerJoin(
-      documents,
-      and(
-        eq(documents.id, aiRuns.documentId),
-        eq(documents.tenantId, aiRuns.tenantId),
-        isNull(documents.deletedAt)
-      )
-    )
-    .where(
-      and(
-        eq(aiRuns.id, runId),
-        eq(aiRuns.workflow, POLICY_EXTRACT_WORKFLOW),
-        eq(aiRuns.entityType, 'policy')
-      )
-    );
-
-  if (!queuedRun?.documentId || !queuedRun.policyId) {
-    // db-access-guard: system-exempt -- reason: fallback resolves an already-failed deleted policy AI run by opaque runId after the active-document join intentionally returns no row
-    const [deletedRun] = await db
+  const { tenantId } = readTenantAuthority(authority);
+  const [queuedRun] = await withTenantAuthority(authority, tx =>
+    tx
       .select({
-        errorCode: aiRuns.errorCode,
+        runId: aiRuns.id,
+        tenantId: aiRuns.tenantId,
+        documentId: aiRuns.documentId,
         policyId: aiRuns.entityId,
+        storagePath: documents.storagePath,
+        requestJson: aiRuns.requestJson,
         status: aiRuns.status,
       })
       .from(aiRuns)
+      .innerJoin(
+        documents,
+        and(
+          eq(documents.id, aiRuns.documentId),
+          eq(documents.tenantId, aiRuns.tenantId),
+          isNull(documents.deletedAt)
+        )
+      )
       .where(
         and(
           eq(aiRuns.id, runId),
+          eq(aiRuns.tenantId, tenantId),
           eq(aiRuns.workflow, POLICY_EXTRACT_WORKFLOW),
           eq(aiRuns.entityType, 'policy')
         )
-      );
+      )
+  );
+
+  if (!queuedRun?.documentId || !queuedRun.policyId) {
+    // Fallback resolves an already-failed deleted policy AI run inside the producer tenant after the
+    // active-document join intentionally returns no row.
+    const [deletedRun] = await withTenantAuthority(authority, tx =>
+      tx
+        .select({
+          errorCode: aiRuns.errorCode,
+          policyId: aiRuns.entityId,
+          status: aiRuns.status,
+        })
+        .from(aiRuns)
+        .where(
+          and(
+            eq(aiRuns.id, runId),
+            eq(aiRuns.tenantId, tenantId),
+            eq(aiRuns.workflow, POLICY_EXTRACT_WORKFLOW),
+            eq(aiRuns.entityType, 'policy')
+          )
+        )
+    );
     if (
       deletedRun?.policyId &&
       deletedRun.status === 'failed' &&
@@ -83,13 +96,15 @@ export async function claimPolicyExtractionRun(
     return { status: 'skipped', policyId: queuedRun.policyId };
   }
 
-  const [claimedRun] = await withTenantContext(
-    { tenantId: queuedRun.tenantId, role: 'system' },
+  const [claimedRun] = await withTenantAuthority(
+    authority,
     async tx =>
-      tx
+      await tx
         .update(aiRuns)
         .set({ status: 'processing', startedAt: new Date(), errorCode: null, errorMessage: null })
-        .where(and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued')))
+        .where(
+          and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.status, 'queued'))
+        )
         .returning({ id: aiRuns.id })
   );
 
@@ -99,6 +114,7 @@ export async function claimPolicyExtractionRun(
     status: 'claimed',
     run: {
       runId,
+      authority,
       tenantId: queuedRun.tenantId,
       documentId: queuedRun.documentId,
       policyId: queuedRun.policyId,

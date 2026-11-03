@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAgentLeaderboardCore } from './get.core';
 
@@ -27,15 +28,19 @@ vi.mock('@interdomestik/database', () => {
   const where = vi.fn().mockReturnValue({ groupBy });
   const from = vi.fn().mockReturnValue({ where });
 
-  return {
-    db: {
-      select: vi.fn().mockReturnValue({
-        from,
-      }),
-      query: {
-        user: mockQueryUser,
-      },
+  const db = {
+    select: vi.fn().mockReturnValue({
+      from,
+    }),
+    query: {
+      user: mockQueryUser,
     },
+  };
+
+  return {
+    db,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db),
     agentCommissions: {
       agentId: 'ac_agentId',
       earnedAt: 'ac_earnedAt',
@@ -57,6 +62,8 @@ vi.mock('@interdomestik/database', () => {
 vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: vi.fn().mockReturnValue('tenant-1'),
 }));
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('getAgentLeaderboardCore', () => {
   const mockSession = {
@@ -100,7 +107,11 @@ describe('getAgentLeaderboardCore', () => {
       .orderBy()
       .limit.mockReturnValue(Promise.resolve(mockDbResult));
 
-    const result = await getAgentLeaderboardCore({ session: mockSession as never, period: 'week' });
+    const result = await getAgentLeaderboardCore({
+      session: mockSession as never,
+      authority,
+      period: 'week',
+    });
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -118,7 +129,11 @@ describe('getAgentLeaderboardCore', () => {
       .orderBy()
       .limit.mockReturnValue(Promise.reject(new Error('DB Fail')));
 
-    const result = await getAgentLeaderboardCore({ session: mockSession as never, period: 'week' });
+    const result = await getAgentLeaderboardCore({
+      session: mockSession as never,
+      authority,
+      period: 'week',
+    });
     expect(result).toEqual({ success: false, error: 'Failed to fetch leaderboard' });
   });
 });

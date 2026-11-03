@@ -1,11 +1,13 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createCommissionCore, createCommissionWithDispositionCore } from './create';
 
 // Mock dependencies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
@@ -16,8 +18,14 @@ vi.mock('@interdomestik/database', () => ({
     insert: vi.fn(() => ({
       values: vi.fn(),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(
+      async (_context: unknown, action: (tx: typeof db) => Promise<unknown>) => action(db)
+    ),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   agentCommissions: {
@@ -38,6 +46,8 @@ vi.mock('nanoid', () => ({
 }));
 
 describe('createCommissionCore', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -47,7 +57,7 @@ describe('createCommissionCore', () => {
     type: 'new_membership' as const,
     amount: 100.5,
     subscriptionId: 'sub-1',
-    tenantId: 'tenant-1',
+    authority,
   };
 
   it('fails if amount is zero or negative', async () => {
@@ -59,14 +69,15 @@ describe('createCommissionCore', () => {
     expect(result.error).toBe('Amount must be positive');
   });
 
-  it('fails closed before DB reads or writes when tenantId is missing', async () => {
+  it('fails closed before DB reads or writes when the tenant authority is not recognized', async () => {
     const result = await createCommissionCore({
       ...validData,
-      tenantId: '',
+      authority: { tenantId: 'tenant-1' } as unknown as TenantAuthority,
     });
 
     expect(result.success).toBe(false);
-    expect(result.error).toBe('Missing tenantId for commission');
+    expect(result.error).toBe('Failed to create commission');
+    expect(withTenantContext).not.toHaveBeenCalled();
     expect(db.select).not.toHaveBeenCalled();
     expect(db.insert).not.toHaveBeenCalled();
   });
@@ -90,6 +101,7 @@ describe('createCommissionCore', () => {
       expect(result.data?.id).toBe('new-comm-id');
       expect(result.data?.created).toBe(true);
     }
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(db.insert).toHaveBeenCalled();
   });
 
@@ -113,6 +125,7 @@ describe('createCommissionCore', () => {
       expect(result.data?.id).toBe('existing-id');
       expect(result.data?.created).toBe(false);
     }
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(eq).toHaveBeenCalledWith('tenantId', 'tenant-1');
     expect(and).toHaveBeenCalledWith(
       { field: 'tenantId', value: 'tenant-1' },

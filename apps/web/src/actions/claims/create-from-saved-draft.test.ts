@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 // prettier-ignore
-const h = vi.hoisted(() => { const limit = vi.fn(); const where = vi.fn(() => ({ limit })); const from = vi.fn(() => ({ where })); return { from, limit, rateLimit: vi.fn(), resolveSession: vi.fn(), resumeDraft: vi.fn(), runAuthenticated: vi.fn(), select: vi.fn(() => ({ from })), submit: vi.fn() }; });
+const h = vi.hoisted(() => { const limit = vi.fn(); const where = vi.fn(() => ({ limit })); const from = vi.fn(() => ({ where })); return { contexts: [] as unknown[], from, limit, rateLimit: vi.fn(), resolveSession: vi.fn(), resumeDraft: vi.fn(), runAuthenticated: vi.fn(), select: vi.fn(() => ({ from })), submit: vi.fn() }; });
 vi.mock('@/lib/safe-action', () => ({ runAuthenticatedAction: h.runAuthenticated }));
 vi.mock('@/actions/free-start-drafts/session.core', () => ({
   resolveFreeStartDraftSession: h.resolveSession,
@@ -16,8 +17,10 @@ vi.mock('@interdomestik/database', () => ({
   db: { select: h.select },
   // The recovery read owns its tenant context; the select alias stays shared.
   withTenantContext: vi.fn(
-    async (_context: unknown, action: (tx: { select: typeof h.select }) => Promise<unknown>) =>
-      action({ select: h.select })
+    async (context: unknown, action: (tx: { select: typeof h.select }) => Promise<unknown>) => {
+      h.contexts.push(context);
+      return action({ select: h.select });
+    }
   ),
 }));
 vi.mock('@interdomestik/database/claim-number', () => ({
@@ -28,6 +31,7 @@ vi.mock('drizzle-orm', () => ({
   eq: (left: unknown, right: unknown) => [left, right],
 }));
 import { createClaimFromSavedDraft } from './create-from-saved-draft';
+const authority = mintTestTenantAuthority('tenant_ks');
 const session = {
   user: { id: 'member-1', role: 'member', tenantId: 'tenant_ks', email: 'm@example.com' },
 };
@@ -52,8 +56,9 @@ const success = { success: true, claimId, claimNumber: 'CLM-KS-2026-000001' };
 describe('createClaimFromSavedDraft', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    h.contexts.length = 0;
     h.runAuthenticated.mockImplementation(async callback =>
-      callback({ session, tenantId: 'tenant_ks', requestHeaders: new Headers() })
+      callback({ session, authority, tenantId: 'tenant_ks', requestHeaders: new Headers() })
     );
     h.resolveSession.mockResolvedValue({ ok: true, context });
     h.resumeDraft.mockResolvedValue({ ok: true, draft });
@@ -74,6 +79,9 @@ describe('createClaimFromSavedDraft', () => {
     expect(h.rateLimit).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'action:submit-claim', limit: 5, windowSeconds: 600 })
     );
+    expect(h.contexts.length).toBeGreaterThan(0);
+    for (const used of h.contexts) expect(used).toBe(authority);
+    expect(h.submit.mock.calls[0]![0].authority).toBe(authority);
     expect(h.submit).toHaveBeenCalledWith(
       expect.objectContaining({
         idempotencyKey: `ida-ui03a2-b1:${draft.id}`,

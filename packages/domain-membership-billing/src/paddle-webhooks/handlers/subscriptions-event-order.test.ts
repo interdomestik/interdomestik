@@ -1,10 +1,17 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createCommissionWithDispositionCore } from '../../commissions/create';
 import { PaddleEventOrderingError } from '../errors';
 import { handleSubscriptionChanged } from './subscriptions';
 import { upsertSubscription } from './subscription-upsert';
-import { createActiveSubscriptionUpdatedEvent, resetPaddleHandlerMocks } from './test-support';
+import {
+  TEST_PADDLE_DELIVERY,
+  createActiveSubscriptionUpdatedEvent,
+  mockSubscriptionOwner,
+  mockUserOwner,
+  resetPaddleHandlerMocks,
+} from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -96,13 +103,15 @@ function deliveryDeps() {
 function entityCreated() {
   return {
     ...entityEvent('subscription.created', { providerEventOccurredAt: OCCURRED_AT }),
-    tenantId: 'tenant_ks',
+    authority: mintTestTenantAuthority('tenant_ks'),
     webhookPayloadHash: 'payload_hash',
   };
 }
 
 beforeEach(() => {
   resetPaddleHandlerMocks(hoisted);
+  mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_paddle_456', tenantId: 'tenant_ks' });
+  mockUserOwner(hoisted, 'tenant_ks');
   hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
     id: 'sub_paddle_456',
     status: 'canceled',
@@ -147,9 +156,16 @@ describe('handleSubscriptionChanged provider event order', () => {
           providerEventId: 'evt_stale',
           processingScopeKey: 'entity:ks',
         },
-        tenantId: 'tenant_ks',
+        // The subscription owner's authority (the first one minted) reaches the write boundary.
+        authority: hoisted.resolution.authorizePaddleTenant.mock.results[0]!.value,
       })
     );
+    const owner = await hoisted.resolution.resolvePaddleSubscriptionOwner.mock.results[0]!.value;
+    expect(hoisted.resolution.authorizePaddleTenant.mock.calls[0]).toEqual([
+      TEST_PADDLE_DELIVERY,
+      owner,
+    ]);
+    expect(hoisted.resolution.authorizePaddleTenant.mock.calls[0]![1]).toBe(owner);
   });
 
   it.each(['subscription.updated', 'subscription.created'])(

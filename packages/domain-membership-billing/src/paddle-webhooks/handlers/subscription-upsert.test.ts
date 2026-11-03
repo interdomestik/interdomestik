@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => {
@@ -10,8 +11,8 @@ const hoisted = vi.hoisted(() => {
     appendEvent: vi.fn(),
     db: {
       query: { subscriptions: { findFirst: vi.fn() } },
-      transaction: vi.fn(async callback => callback(tx)),
     },
+    withTenantContext: vi.fn(async (_context, callback) => callback(tx)),
     eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
     returning,
     set,
@@ -27,13 +28,16 @@ vi.mock('@interdomestik/database', () => ({
   db: hoisted.db,
   eq: hoisted.eq,
   subscriptions: hoisted.subscriptions,
+  withTenantContext: hoisted.withTenantContext,
 }));
 
-vi.mock('../../subscription', () => ({ findSubscriptionByProviderReference: vi.fn() }));
+vi.mock('../../subscription', () => ({ findPaddleSubscriptionInTenant: vi.fn() }));
 
 import { upsertSubscription } from './subscription-upsert';
 
 describe('upsertSubscription tenant-scoped update guard', () => {
+  const authority = mintTestTenantAuthority('tenant_abc');
+
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.returning.mockResolvedValue([]);
@@ -50,11 +54,12 @@ describe('upsertSubscription tenant-scoped update guard', () => {
           customerId: 'ctm_1',
           currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
         },
-        tenantId: 'tenant_abc',
+        authority,
         userId: 'user_123',
       })
     ).rejects.toThrow('update matched no tenant-scoped row');
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.set).toHaveBeenCalled();
     expect(hoisted.appendEvent).not.toHaveBeenCalled();
   });
@@ -84,7 +89,7 @@ describe('upsertSubscription tenant-scoped update guard', () => {
           customerId: 'ctm_1',
           currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
         },
-        tenantId: 'tenant_abc',
+        authority,
         userId: 'user_123',
       })
     ).resolves.toEqual({ subscriptionId: 'sub_existing', effectsApplied: false });
@@ -95,5 +100,25 @@ describe('upsertSubscription tenant-scoped update guard', () => {
         id: 'paddle:tenant_abc:evt_provider_1:subscription-changed',
       })
     );
+  });
+  it('fails closed without writes when the existing subscription belongs to another tenant', async () => {
+    await expect(
+      upsertSubscription({
+        existingSub: { id: 'sub_existing', tenantId: 'tenant_other', userId: 'user_123' },
+        mappedStatus: 'active',
+        planState: { planId: 'standard', planKey: 'mk-standard-plan' },
+        sub: {
+          id: 'sub_paddle_456',
+          customerId: 'ctm_1',
+          currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
+        },
+        authority,
+        userId: 'user_123',
+      })
+    ).rejects.toThrow('tenant conflict: existing=tenant_other resolved=tenant_abc');
+
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.set).not.toHaveBeenCalled();
+    expect(hoisted.appendEvent).not.toHaveBeenCalled();
   });
 });

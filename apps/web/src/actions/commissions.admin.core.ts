@@ -30,14 +30,14 @@ const bulkApproveSchema = z.array(z.string().min(1)).min(1).max(100);
 
 /** Get all commissions (admin only) */
 export async function getAllCommissions(): Promise<ActionResult<Commission[]>> {
-  const { session } = await getActionContext();
-  return getAllCommissionsCore({ session });
+  const { session, authority } = await getActionContext();
+  return getAllCommissionsCore({ session, authority });
 }
 
 /** Get global commission summary (admin only) */
 export async function getGlobalCommissionSummary(): Promise<ActionResult<CommissionSummary>> {
-  const { session } = await getActionContext();
-  return getGlobalCommissionSummaryCore({ session });
+  const { session, authority } = await getActionContext();
+  return getGlobalCommissionSummaryCore({ session, authority });
 }
 
 /** Update commission status (admin only) */
@@ -45,7 +45,7 @@ export async function updateCommissionStatus(
   commissionId: string,
   newStatus: CommissionStatus
 ): Promise<ActionResult> {
-  const { requestHeaders, session } = await getActionContext();
+  const { requestHeaders, session, authority } = await getActionContext();
 
   const validation = updateCommissionSchema.safeParse({ commissionId, newStatus });
   if (!validation.success) {
@@ -67,15 +67,16 @@ export async function updateCommissionStatus(
 
   const result = await updateCommissionStatusCore({
     session,
+    authority,
     commissionId: validation.data.commissionId,
     newStatus: validation.data.newStatus,
   });
 
-  if (result.success) {
+  if (result.success && authority) {
     await logAuditEvent({
+      authority,
       actorId: session?.user?.id ?? null,
       actorRole: session?.user?.role ?? null,
-      tenantId: session?.user?.tenantId ?? null,
       action: 'commission.status_updated',
       entityType: 'commission',
       entityId: commissionId,
@@ -90,7 +91,7 @@ export async function updateCommissionStatus(
 export async function bulkApproveCommissions(
   ids: string[]
 ): Promise<ActionResult<{ count: number }>> {
-  const { requestHeaders, session } = await getActionContext();
+  const { requestHeaders, session, authority } = await getActionContext();
 
   const validation = bulkApproveSchema.safeParse(ids);
   if (!validation.success) {
@@ -110,13 +111,13 @@ export async function bulkApproveCommissions(
     }
   }
 
-  const result = await bulkApproveCommissionsCore({ session, ids: validation.data });
+  const result = await bulkApproveCommissionsCore({ session, authority, ids: validation.data });
 
-  if (result.success) {
+  if (result.success && authority) {
     await logAuditEvent({
+      authority,
       actorId: session?.user?.id ?? null,
       actorRole: session?.user?.role ?? null,
-      tenantId: session?.user?.tenantId ?? null,
       action: 'commission.bulk_approved',
       entityType: 'commission',
       metadata: { count: validation.data.length },

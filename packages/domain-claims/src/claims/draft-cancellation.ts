@@ -1,10 +1,14 @@
-import { db } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import { transitionClaimStatus } from './transition';
 import type { ClaimsDeps, ClaimsSession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 function transitionFailureMessage(error: string): string {
   if (error === 'claim_not_found') {
@@ -18,11 +22,14 @@ function transitionFailureMessage(error: string): string {
   return 'Invalid status transition';
 }
 
-async function loadTenantClaim(tenantId: string, claimId: string) {
-  return db.query.claims.findFirst({
-    where: (claimsTable, { eq }) =>
-      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-  });
+async function loadTenantClaim(authority: TenantAuthority, claimId: string) {
+  const { tenantId } = readTenantAuthority(authority);
+  return withTenantAuthority(authority, tx =>
+    tx.query.claims.findFirst({
+      where: (claimsTable, { eq }) =>
+        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+    })
+  );
 }
 
 function cancellationAccessError(
@@ -47,21 +54,22 @@ function cancellationAccessError(
 
 export async function cancelClaimCore(
   params: {
+    authority: TenantAuthority | null;
     session: ClaimsSession | null;
     requestHeaders: Headers;
     claimId: string;
   },
   deps: ClaimsDeps = {}
 ) {
-  const { session, requestHeaders, claimId } = params;
+  const { authority, session, requestHeaders, claimId } = params;
 
-  if (!session) {
+  if (!session || !authority) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  const tenantId = ensureTenantId(session);
+  ensureTenantId(session);
   const accessError = cancellationAccessError(
-    await loadTenantClaim(tenantId, claimId),
+    await loadTenantClaim(authority, claimId),
     session.user.id
   );
   if (accessError) {
@@ -72,7 +80,7 @@ export async function cancelClaimCore(
     const transitionResult = await transitionClaimStatus({
       actor: { id: session.user.id, role: session.user.role ?? null },
       claimId,
-      tenantId,
+      authority,
       toStatus: 'rejected',
     });
 
@@ -83,7 +91,7 @@ export async function cancelClaimCore(
     await deps.logAuditEvent?.({
       actorId: session.user.id,
       actorRole: session.user.role,
-      tenantId,
+      authority,
       action: 'claim.cancelled',
       entityType: 'claim',
       entityId: claimId,

@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { cancelSubscription } from './subscription.core';
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       subscriptions: {
         findFirst: vi.fn(),
@@ -15,24 +15,29 @@ vi.mock('@interdomestik/database', () => ({
     },
     select: vi.fn(),
     update: vi.fn(),
-  },
-  and: vi.fn(),
-  desc: vi.fn(),
-  eq: vi.fn(),
-  subscriptions: {
-    id: { name: 'id' },
-    userId: { name: 'userId' },
-    tenantId: { name: 'tenantId' },
-    updatedAt: { name: 'updatedAt' },
-  },
-  claims: { id: { name: 'id' }, userId: { name: 'userId' }, tenantId: { name: 'tenantId' } },
-  claimEscalationAgreements: {
-    claimId: { name: 'claimId' },
-    acceptedAt: { name: 'acceptedAt' },
-    tenantId: { name: 'tenantId' },
-  },
-  auditLog: {},
-}));
+  };
+  return {
+    db,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db),
+    and: vi.fn(),
+    desc: vi.fn(),
+    eq: vi.fn(),
+    subscriptions: {
+      id: { name: 'id' },
+      userId: { name: 'userId' },
+      tenantId: { name: 'tenantId' },
+      updatedAt: { name: 'updatedAt' },
+    },
+    claims: { id: { name: 'id' }, userId: { name: 'userId' }, tenantId: { name: 'tenantId' } },
+    claimEscalationAgreements: {
+      claimId: { name: 'claimId' },
+      acceptedAt: { name: 'acceptedAt' },
+      tenantId: { name: 'tenantId' },
+    },
+    auditLog: {},
+  };
+});
 
 vi.mock('@/lib/auth', () => ({
   auth: {
@@ -49,6 +54,18 @@ vi.mock('@interdomestik/domain-membership-billing/paddle-server', () => ({
 vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: vi.fn(),
 }));
+
+vi.mock('@/lib/tenant-authority.server', async () => {
+  const { auth: mockedAuth } = await import('@/lib/auth');
+  const { mintTestTenantAuthority } =
+    await import('@interdomestik/database/testing/tenant-authority');
+  return {
+    authorizeSessionTenant: async (requestHeaders?: Headers) => {
+      const session = await mockedAuth.api.getSession({ headers: requestHeaders ?? new Headers() });
+      return session ? { session, authority: mintTestTenantAuthority('tenant_mk') } : null;
+    },
+  };
+});
 
 vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),

@@ -10,6 +10,7 @@ import {
 import { getMessagesForClaimCore } from '@interdomestik/domain-communications/messages/get';
 import { sendMessageDbCore } from '@interdomestik/domain-communications/messages/send';
 import type { Page } from '@playwright/test';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { expect, test } from '../fixtures/auth.fixture';
 
 import { createSignedUploadCore } from '@/app/api/uploads/_core';
@@ -212,6 +213,7 @@ test('C2-02: cross-tenant IDs denied for claim/doc/upload/message', async ({ bro
 
     const uploadResult = await createSignedUploadCore({
       session: mkSession,
+      authority: mintTestTenantAuthority(mkSession.user.tenantId),
       input: {
         fileName: 'c2-02-proof.pdf',
         fileType: 'application/pdf',
@@ -229,6 +231,7 @@ test('C2-02: cross-tenant IDs denied for claim/doc/upload/message', async ({ bro
 
     const messageReadResult = await getMessagesForClaimCore({
       session: mkSession as { user: SessionUser },
+      authority: mintTestTenantAuthority(mkSession.user.tenantId),
       claimId: ksClaim.id,
     });
     expect(messageReadResult.success).toBe(false);
@@ -236,6 +239,7 @@ test('C2-02: cross-tenant IDs denied for claim/doc/upload/message', async ({ bro
 
     const messageSendResult = await sendMessageDbCore({
       session: mkSession as { user: SessionUser },
+      authority: mintTestTenantAuthority(mkSession.user.tenantId),
       requestHeaders: new Headers({ 'x-forwarded-host': ACTOR_HOST }),
       claimId: ksClaim.id,
       content: `C2-02 denial probe ${Date.now()}`,

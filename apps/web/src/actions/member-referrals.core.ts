@@ -46,11 +46,11 @@ const listRewardsFiltersSchema = z
   .strict();
 
 export async function getMemberReferralCardData(): Promise<ActionResult<MemberReferralCardData>> {
-  const { session } = await getActionContext();
+  const { session, authority } = await getActionContext();
   const [linkResult, statsResult, settingsResult] = await Promise.all([
-    getMemberReferralLinkCore({ session }),
-    getMemberReferralStatsCore({ session }),
-    getMemberReferralProgramPreviewCore({ session }),
+    getMemberReferralLinkCore({ session, authority }),
+    getMemberReferralStatsCore({ session, authority }),
+    getMemberReferralProgramPreviewCore({ session, authority }),
   ]);
 
   if (!linkResult.success) {
@@ -80,55 +80,56 @@ export async function getMemberReferralCardData(): Promise<ActionResult<MemberRe
  * Get or create a referral link for the current member.
  */
 export async function getMemberReferralLink(): Promise<ActionResult<MemberReferralLink>> {
-  const { session } = await getActionContext();
-  return getMemberReferralLinkCore({ session });
+  const { session, authority } = await getActionContext();
+  return getMemberReferralLinkCore({ session, authority });
 }
 
 /**
  * Get referral statistics for the current member.
  */
 export async function getMemberReferralStats(): Promise<ActionResult<MemberReferralStats>> {
-  const { session } = await getActionContext();
-  return getMemberReferralStatsCore({ session });
+  const { session, authority } = await getActionContext();
+  return getMemberReferralStatsCore({ session, authority });
 }
 
 export async function getMemberReferralProgramSettings(): Promise<
   ActionResult<MemberReferralProgramSettings>
 > {
-  const { session } = await getActionContext();
-  return getMemberReferralProgramSettingsCore({ session });
+  const { session, authority } = await getActionContext();
+  return getMemberReferralProgramSettingsCore({ session, authority });
 }
 
 export async function getMemberReferralProgramPreview(): Promise<
   ActionResult<MemberReferralProgramSettings>
 > {
-  const { session } = await getActionContext();
-  return getMemberReferralProgramPreviewCore({ session });
+  const { session, authority } = await getActionContext();
+  return getMemberReferralProgramPreviewCore({ session, authority });
 }
 
 export async function updateMemberReferralProgramSettings(
   data: unknown
 ): Promise<ActionResult<MemberReferralProgramSettings>> {
-  const { requestHeaders, session } = await getActionContext();
-  return updateMemberReferralProgramSettingsCore({ session, requestHeaders, data });
+  const { requestHeaders, session, authority } = await getActionContext();
+  return updateMemberReferralProgramSettingsCore({ session, authority, requestHeaders, data });
 }
 
 export async function listMemberReferralRewards(filters?: { limit?: number; offset?: number }) {
-  const { session } = await getActionContext();
+  const { session, authority } = await getActionContext();
   const parsed = listRewardsFiltersSchema.safeParse(filters ?? {});
   if (!parsed.success) {
     return { success: false as const, error: 'Validation failed' };
   }
-  return listMemberReferralRewardsAdminCore({ session, filters: parsed.data });
+  return listMemberReferralRewardsAdminCore({ session, authority, filters: parsed.data });
 }
 
 export async function updateMemberReferralRewardStatus(
   rewardId: string,
   newStatus: MemberReferralRewardStatus
 ) {
-  const { requestHeaders, session } = await getActionContext();
+  const { requestHeaders, session, authority } = await getActionContext();
   return updateMemberReferralRewardStatusAdminCore({
     session,
+    authority,
     requestHeaders,
     rewardId,
     newStatus,

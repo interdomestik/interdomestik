@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -6,6 +7,7 @@ const mocks = vi.hoisted(() => {
   const update = vi.fn(() => ({ set: updateSet }));
 
   return {
+    withTenantContext: vi.fn(),
     userFindFirst: vi.fn(async () => ({ referralCode: null, name: 'Jane Doe' })),
     update,
     updateSet,
@@ -13,16 +15,23 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       user: {
         findFirst: mocks.userFindFirst,
       },
     },
     update: mocks.update,
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: async (context: unknown, cb: (tx: unknown) => unknown) => {
+      mocks.withTenantContext(context);
+      return cb(db);
+    },
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   user: { id: 'user.id' },
@@ -31,6 +40,7 @@ vi.mock('@interdomestik/database/schema', () => ({
 import { getMemberReferralLinkCore } from './link';
 
 describe('getMemberReferralLinkCore', () => {
+  const authority = mintTestTenantAuthority('tenant_mk');
   const originalEnv = process.env.NEXT_PUBLIC_APP_URL;
 
   beforeEach(() => {
@@ -50,6 +60,7 @@ describe('getMemberReferralLinkCore', () => {
       session: {
         user: { id: 'user-1', role: 'user', name: 'Jane Doe', tenantId: 'tenant_mk' },
       } as unknown as NonNullable<import('./context').Session>,
+      authority,
     });
 
     expect(result.success).toBe(true);
@@ -59,6 +70,7 @@ describe('getMemberReferralLinkCore', () => {
       expect(result.data.whatsappShareUrl).toContain(encodeURIComponent(result.data.link));
     }
 
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority);
     expect(mocks.update).toHaveBeenCalledTimes(1);
     expect(mocks.updateSet).toHaveBeenCalledWith(
       expect.objectContaining({

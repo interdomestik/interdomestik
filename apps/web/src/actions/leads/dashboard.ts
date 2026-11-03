@@ -1,10 +1,12 @@
 'use server';
 
 import { runAuthenticatedAction } from '@/lib/safe-action';
-import { db } from '@interdomestik/database';
+
 import { memberLeads } from '@interdomestik/database/schema';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { and, desc, eq, ilike, or } from 'drizzle-orm';
 import { z } from 'zod';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const listLeadsSchema = z.object({
   status: z
@@ -26,7 +28,8 @@ const listLeadsSchema = z.object({
 export async function listLeadsAction(input: unknown) {
   return runAuthenticatedAction(async ctx => {
     const data = listLeadsSchema.parse(input);
-    const { session, userRole, scope, tenantId } = ctx;
+    const { session, userRole, scope, authority } = ctx;
+    const { tenantId } = readTenantAuthority(authority);
     const { user } = session;
     const { status, search } = data;
 
@@ -65,14 +68,18 @@ export async function listLeadsAction(input: unknown) {
 
     // Fetch leads
     // db-access-guard: tenant-scoped -- reason: tenant predicate built in local conditions array before this DB call
-    const leads = await db.query.memberLeads.findMany({
-      where: and(...conditions),
-      orderBy: [desc(memberLeads.createdAt)],
-      with: {
-        leadPaymentAttempts: true,
-      },
-      limit: 100, // Safety limit
-    });
+    const leads = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx.query.memberLeads.findMany({
+          where: and(...conditions),
+          orderBy: [desc(memberLeads.createdAt)],
+          with: {
+            leadPaymentAttempts: true,
+          },
+          limit: 100, // Safety limit
+        })
+    );
 
     return leads;
   });

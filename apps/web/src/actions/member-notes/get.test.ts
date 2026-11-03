@@ -1,10 +1,11 @@
 import { db } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMemberNotesCore } from './get.core';
 
 // Mock dependencies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         leftJoin: vi.fn(() => ({
@@ -14,8 +15,13 @@ vi.mock('@interdomestik/database', () => ({
         })),
       })),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   memberNotes: {
@@ -53,6 +59,8 @@ vi.mock('./map', () => ({
   mapNoteRow: vi.fn(row => row),
 }));
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('getMemberNotesCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -76,6 +84,7 @@ describe('getMemberNotesCore', () => {
 
     const result = await getMemberNotesCore({
       session: mockAdminSession as never,
+      authority,
       memberId: 'some-member',
     });
 

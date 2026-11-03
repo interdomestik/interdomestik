@@ -2,18 +2,25 @@ import {
   emitClaimAiRunRequestedService,
   markClaimAiRunDispatchFailedService,
 } from '@/lib/ai/claim-workflows';
-import { db } from '@interdomestik/database';
+
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { queueClaimDocumentAiWorkflows } from '@interdomestik/domain-claims/claims/ai-workflows';
 
 import {
   persistClaimDocumentMetadata,
   type PersistClaimDocumentParams,
 } from './claim-document-write';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 export { InformationRequestUploadConflictError, type UploadCategory } from './claim-document-write';
 
-async function queueAiWorkflows(params: PersistClaimDocumentParams) {
+/** The document write params plus the session tenant authority the AI queue runs under. */
+export type PersistClaimDocumentWithAuthorityParams = PersistClaimDocumentParams & {
+  authority: TenantAuthority;
+};
+
+async function queueAiWorkflows(params: PersistClaimDocumentWithAuthorityParams) {
   // db-access-guard: tenant-scoped -- reason: queue resolver filters exact tenant/user/claim/document scope
-  return db.transaction(async tx =>
+  return withTenantAuthority(params.authority, async tx =>
     queueClaimDocumentAiWorkflows({
       tx,
       claimId: params.claimId,
@@ -35,7 +42,7 @@ async function queueAiWorkflows(params: PersistClaimDocumentParams) {
 }
 
 export async function persistClaimDocumentAndQueueWorkflows(
-  params: PersistClaimDocumentParams
+  params: PersistClaimDocumentWithAuthorityParams
 ): Promise<void> {
   const created = await persistClaimDocumentMetadata(params);
 
@@ -48,6 +55,7 @@ export async function persistClaimDocumentAndQueueWorkflows(
         await emitClaimAiRunRequestedService(queuedRun);
       } catch (error) {
         await markClaimAiRunDispatchFailedService({
+          authority: params.authority,
           runId: queuedRun.runId,
           message: error instanceof Error ? error.message : 'Failed to dispatch claim AI run.',
         });

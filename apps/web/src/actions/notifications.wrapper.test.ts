@@ -1,9 +1,11 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import { getNotifications, markAllAsRead, markAsRead } from './notifications';
 
 vi.mock('./notifications/context', () => ({
   getActionContext: vi.fn(),
+  getAuthorizedActionContext: vi.fn(),
 }));
 
 vi.mock('./notifications/get', () => ({
@@ -21,13 +23,19 @@ vi.mock('next/cache', () => ({
 
 describe('actions/notifications wrapper', () => {
   it('delegates to core modules and revalidates dashboard', async () => {
-    const { getActionContext } = await import('./notifications/context');
+    const { getActionContext, getAuthorizedActionContext } =
+      await import('./notifications/context');
     const { getNotificationsCore } = await import('./notifications/get');
     const { markAsReadCore, markAllAsReadCore } = await import('./notifications/mark-read');
     const { revalidatePath } = await import('next/cache');
+    const authority = mintTestTenantAuthority('tenant-1');
 
     (getActionContext as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       session: { user: { id: 'u1' } },
+    });
+    (getAuthorizedActionContext as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      session: { user: { id: 'u1' } },
+      authority,
     });
 
     (getNotificationsCore as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 'n1' }]);
@@ -40,6 +48,7 @@ describe('actions/notifications wrapper', () => {
 
     expect(getNotificationsCore).toHaveBeenCalledWith({
       session: { user: { id: 'u1' } },
+      authority,
       limit: 10,
     });
     expect(markAsReadCore).toHaveBeenCalledWith({
@@ -51,12 +60,18 @@ describe('actions/notifications wrapper', () => {
   });
 
   it('reports fetch and mutation failures', async () => {
-    const { getActionContext } = await import('./notifications/context');
+    const { getActionContext, getAuthorizedActionContext } =
+      await import('./notifications/context');
     const { getNotificationsCore } = await import('./notifications/get');
     const { markAsReadCore, markAllAsReadCore } = await import('./notifications/mark-read');
 
     (getActionContext as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       session: null,
+      requestHeaders: new Headers(),
+    });
+    (getAuthorizedActionContext as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      session: null,
+      authority: null,
       requestHeaders: new Headers(),
     });
 

@@ -1,5 +1,9 @@
-import { and, claimEscalationAgreements, claims, db, eq, sql } from '@interdomestik/database';
+import { and, claimEscalationAgreements, claims, eq, sql } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import type { SQLWrapper } from 'drizzle-orm';
 
 import {
@@ -10,6 +14,7 @@ import {
 import type { ClaimLifecycleReadProjection } from '../claims/lifecycle-read-model';
 import type { CaseLifecycleState, RecoveryLifecycleState } from '../claims/lifecycle-state';
 import type { ClaimTransitionActor } from '../claims/transition-guard';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const paymentGatedStatuses = new Set<ClaimStatus>(['negotiation', 'court']);
 
@@ -66,8 +71,12 @@ export async function transitionAdminClaimStatusInTransaction(
 }
 
 export async function transitionAdminClaimStatus(
-  params: TransitionAdminClaimStatusParams
+  params: Omit<TransitionAdminClaimStatusParams, 'tenantId'> & { authority: TenantAuthority }
 ): Promise<TransitionClaimStatusResult> {
+  const { authority, ...transitionParams } = params;
+  const { tenantId } = readTenantAuthority(authority);
   // db-access-guard: tenant-scoped -- reason: transition helper applies tenant-scoped CAS.
-  return db.transaction(tx => transitionAdminClaimStatusInTransaction(tx, params));
+  return withTenantAuthority(authority, tx =>
+    transitionAdminClaimStatusInTransaction(tx, { ...transitionParams, tenantId })
+  );
 }

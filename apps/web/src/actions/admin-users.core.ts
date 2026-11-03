@@ -17,7 +17,7 @@ const getUsersFiltersSchema = z
   .strict();
 
 export async function updateUserAgent(userId: string, agentId: string | null): ActionResult<void> {
-  return runAuthenticatedAction<void>(async ({ session }) => {
+  return runAuthenticatedAction<void>(async ({ session, authority }) => {
     await requireEffectivePortalAccessOrUnauthorized(session, [
       'admin',
       'tenant_admin',
@@ -25,6 +25,7 @@ export async function updateUserAgent(userId: string, agentId: string | null): A
     ]);
     const result = await updateUserAgentCore({
       session,
+      authority,
       userId,
       agentId,
     });
@@ -40,7 +41,7 @@ export async function resolveTenantClassification(params: {
   currentTenantId: string;
   nextTenantId?: string | null;
 }): ActionResult<void> {
-  return runAuthenticatedAction<void>(async ({ session }) => {
+  return runAuthenticatedAction<void>(async ({ session, authority }) => {
     await requireEffectivePortalAccessOrUnauthorized(
       session,
       ['admin', 'tenant_admin', 'super_admin'],
@@ -49,6 +50,7 @@ export async function resolveTenantClassification(params: {
 
     const result = await resolveTenantClassificationCore({
       session,
+      authority,
       userId: params.userId,
       currentTenantId: params.currentTenantId,
       nextTenantId: params.nextTenantId ?? null,
@@ -76,48 +78,61 @@ async function getFilteredUsers(
   filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>,
   includeUnreadCounts: boolean
 ): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
-  return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(async ({ session }) => {
-    await requireEffectivePortalAccessOrUnauthorized(session, [
-      'admin',
-      'tenant_admin',
-      'super_admin',
-    ]);
-    const validation = getUsersFiltersSchema.safeParse(filters);
-    if (!validation.success) {
-      throw new Error('Invalid filters');
+  return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(
+    async ({ session, authority }) => {
+      await requireEffectivePortalAccessOrUnauthorized(session, [
+        'admin',
+        'tenant_admin',
+        'super_admin',
+      ]);
+      const validation = getUsersFiltersSchema.safeParse(filters);
+      if (!validation.success) {
+        throw new Error('Invalid filters');
+      }
+      const data = await getUsersCore({
+        session,
+        authority,
+        filters: validation.data,
+        includeUnreadCounts,
+      });
+      return data;
     }
-    const data = await getUsersCore({ session, filters: validation.data, includeUnreadCounts });
-    return data;
-  });
+  );
 }
 
 export async function getAgents(): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
-  return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(async ({ session }) => {
-    await requireEffectivePortalAccessOrUnauthorized(session, [
-      'admin',
-      'tenant_admin',
-      'super_admin',
-    ]);
-    const data = await getUsersCore({
-      session,
-      filters: { role: 'agent' },
-      includeUnreadCounts: false,
-    });
-    return data;
-  });
+  return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(
+    async ({ session, authority }) => {
+      await requireEffectivePortalAccessOrUnauthorized(session, [
+        'admin',
+        'tenant_admin',
+        'super_admin',
+      ]);
+      const data = await getUsersCore({
+        session,
+        authority,
+        filters: { role: 'agent' },
+        includeUnreadCounts: false,
+      });
+      return data;
+    }
+  );
 }
 
 export async function getStaff(): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
-  return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(async ({ session }) => {
-    await requireEffectivePortalAccessOrUnauthorized(session, [
-      'admin',
-      'tenant_admin',
-      'super_admin',
-    ]);
-    const data = await getUsersCore({
-      session,
-      filters: { role: 'staff,tenant_admin,branch_manager' },
-    });
-    return data;
-  });
+  return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(
+    async ({ session, authority }) => {
+      await requireEffectivePortalAccessOrUnauthorized(session, [
+        'admin',
+        'tenant_admin',
+        'super_admin',
+      ]);
+      const data = await getUsersCore({
+        session,
+        authority,
+        filters: { role: 'staff,tenant_admin,branch_manager' },
+      });
+      return data;
+    }
+  );
 }

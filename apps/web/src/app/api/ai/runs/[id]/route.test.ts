@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from './route';
 
@@ -5,6 +6,7 @@ const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
   getAiRun: vi.fn(),
   getSession: vi.fn(),
+  authorizeSessionTenant: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -13,6 +15,10 @@ vi.mock('@/lib/auth', () => ({
       getSession: hoisted.getSession,
     },
   },
+}));
+
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: hoisted.authorizeSessionTenant,
 }));
 
 vi.mock('@/lib/rate-limit', () => ({
@@ -31,6 +37,11 @@ describe('GET /api/ai/runs/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.enforceRateLimit.mockResolvedValue(null);
+    hoisted.authorizeSessionTenant.mockImplementation(async () => {
+      const session = await hoisted.getSession();
+      if (!session?.user) return null;
+      return { session, authority: mintTestTenantAuthority(session.user.tenantId) };
+    });
   });
 
   it('returns 401 when unauthenticated', async () => {
@@ -112,6 +123,10 @@ describe('GET /api/ai/runs/[id]', () => {
     const response = await GET(runRequest(), { params: Promise.resolve({ id: 'run-1' }) });
 
     expect(response.status).toBe(200);
+    expect(hoisted.getAiRun).toHaveBeenCalledWith({
+      authority: expect.anything(),
+      runId: 'run-1',
+    });
     await expect(response.json()).resolves.toEqual({
       id: 'run-1',
       workflow: 'policy_extract',

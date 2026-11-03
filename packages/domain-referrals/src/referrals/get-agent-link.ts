@@ -1,9 +1,13 @@
-import { db } from '@interdomestik/database';
 import { user } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import type { ActionResult, ReferralLinkResult, ReferralSession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 function buildReferralLink(code: string): string {
   const baseUrl =
@@ -16,8 +20,9 @@ function buildReferralLink(code: string): string {
 
 export async function getAgentReferralLinkCore(params: {
   session: ReferralSession | null;
+  authority: TenantAuthority | null;
 }): Promise<ActionResult<ReferralLinkResult>> {
-  const { session } = params;
+  const { session, authority } = params;
 
   if (!session?.user) {
     return { success: false, error: 'Unauthorized', data: undefined, fieldErrors: undefined };
@@ -27,9 +32,8 @@ export async function getAgentReferralLinkCore(params: {
     return { success: false, error: 'Access denied', data: undefined, fieldErrors: undefined };
   }
 
-  // SECURITY: Tenant scoping
-  const tenantId = session.user.tenantId;
-  if (!tenantId) {
+  // SECURITY: Tenant scoping comes from the request's tenant authority
+  if (!authority) {
     return {
       success: false,
       error: 'Missing tenant context',
@@ -38,12 +42,16 @@ export async function getAgentReferralLinkCore(params: {
     };
   }
 
+  const { tenantId } = readTenantAuthority(authority);
+
   try {
     // SECURITY: Query scoped to tenant + user
-    const existingUser = await db.query.user.findFirst({
-      where: and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)),
-      columns: { referralCode: true },
-    });
+    const existingUser = await withTenantAuthority(authority, tx =>
+      tx.query.user.findFirst({
+        where: and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)),
+        columns: { referralCode: true },
+      })
+    );
 
     let code = existingUser?.referralCode;
 
@@ -59,10 +67,12 @@ export async function getAgentReferralLinkCore(params: {
       code = `${namePart}-${randomPart}`;
 
       // SECURITY: Update scoped to tenant + user
-      await db
-        .update(user)
-        .set({ referralCode: code })
-        .where(and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)));
+      await withTenantAuthority(authority, tx =>
+        tx
+          .update(user)
+          .set({ referralCode: code })
+          .where(and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)))
+      );
     }
 
     return {

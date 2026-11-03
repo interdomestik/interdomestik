@@ -11,6 +11,7 @@ import {
   user,
 } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { updateClaimStatusCore } from '@interdomestik/domain-claims/staff-claims/update-status';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '../fixtures/auth.fixture';
@@ -112,6 +113,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       const probeNote = `S3 unauthorized ${seeded.dbRole} ${randomUUID()}`;
       unauthorizedNotes.push(probeNote);
       const result = await updateClaimStatusCore({
+        authority: mintTestTenantAuthority(actor.tenantId),
         claimId: submitted.claimId,
         newStatus: 'verification',
         note: probeNote,
@@ -170,6 +172,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       return newerNote;
     });
     const privateResult = await updateClaimStatusCore({
+      authority: mintTestTenantAuthority(staffActor.tenantId),
       claimId: submitted.claimId,
       newStatus: 'verification',
       note: privateNote,

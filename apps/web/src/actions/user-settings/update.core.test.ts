@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { updateResidenceCountryCore } from './update.core';
@@ -25,6 +26,8 @@ vi.mock('@interdomestik/domain-users', () => ({
 }));
 
 describe('updateResidenceCountryCore action', () => {
+  const authority = mintTestTenantAuthority('tenant_access');
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.enforceRateLimit.mockResolvedValue(false);
@@ -39,6 +42,7 @@ describe('updateResidenceCountryCore action', () => {
     await updateResidenceCountryCore({
       residenceCountry: 'AT',
       requestHeaders: new Headers(),
+      authority,
       session: {
         user: {
           accessTenantId: 'tenant_access',
@@ -51,6 +55,7 @@ describe('updateResidenceCountryCore action', () => {
 
     expect(mocks.updateResidenceCountryDomain).toHaveBeenCalledWith(
       expect.objectContaining({
+        authority,
         session: expect.objectContaining({
           user: expect.objectContaining({
             accessTenantId: 'tenant_access',

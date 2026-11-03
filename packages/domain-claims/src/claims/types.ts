@@ -1,3 +1,5 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import type { QueuedClaimAiRun } from './ai-workflows';
 import type { EvidenceFile } from '../validators/claims';
 
@@ -21,7 +23,8 @@ export type ClaimsSession = {
 export type ClaimsAuditEvent = {
   actorId?: string | null;
   actorRole?: string | null;
-  tenantId?: string | null;
+  /** The authority of the tenant that owns the audited entity; the logger writes the row under it. */
+  authority: TenantAuthority;
   action: string;
   entityType: string;
   entityId?: string | null;
@@ -31,8 +34,8 @@ export type ClaimsAuditEvent = {
 
 export type ClaimsDeps = {
   projectClaimStatusAuditProjection?: (args: {
+    authority: TenantAuthority;
     limit?: number;
-    tenantId: string;
   }) => Promise<unknown> | unknown;
   validateSubmittedClaimFile?: (args: {
     actorId: string;
@@ -43,7 +46,8 @@ export type ClaimsDeps = {
   notifyClaimSubmitted?: (
     userId: string,
     email: string,
-    claim: { id: string; title: string; category: string }
+    claim: { id: string; title: string; category: string },
+    options: { authority: TenantAuthority }
   ) => unknown;
   notifyStatusChanged?: (
     userId: string,
@@ -51,23 +55,24 @@ export type ClaimsDeps = {
     claim: { id: string; title: string },
     oldStatus: string,
     newStatus: string,
-    options?: { tenantId?: string | null }
+    options: { authority: TenantAuthority }
   ) => unknown;
   notifyClaimAssigned?: (
     agentId: string,
     email: string,
     claim: { id: string; title: string },
-    agentName: string
+    agentName: string,
+    options: { authority: TenantAuthority }
   ) => unknown;
   notifyRecoveryDecision?: (
     userId: string,
     email: string,
     claim: { id: string; title: string },
     decisionType: 'accepted' | 'declined',
-    options?: { tenantId?: string | null }
+    options: { authority: TenantAuthority }
   ) => unknown;
   dispatchClaimAiRun?: (queuedRun: QueuedClaimAiRun) => Promise<void> | void;
-  markClaimAiRunDispatchFailed?: (args: { runId: string; message: string }) => Promise<void> | void;
+  markClaimAiRunDispatchFailed?: (args: { runId: string; message: string }) => Promise<void>;
   revalidatePath?: (path: string) => Promise<void> | void;
 };
 

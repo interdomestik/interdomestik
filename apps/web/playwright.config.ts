@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { configureE2eDatabaseEnv } from './playwright-database-env';
 import { resolvePlaywrightNetwork } from './playwright-network';
 const { BASE_URL, BIND_HOST, PORT } = resolvePlaywrightNetwork();
 const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
@@ -202,22 +203,7 @@ process.env.IDA_HOST = IDA_HOST;
 
 fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
 
-const e2eDatabaseUrl = process.env.E2E_DATABASE_URL?.trim();
-if (e2eDatabaseUrl) {
-  process.env.DATABASE_URL = e2eDatabaseUrl;
-}
-
-if (!process.env.DATABASE_URL) {
-  console.log('⚠️ DATABASE_URL not found, using default local fallback.');
-  process.env.DATABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
-}
-
-const e2eDatabaseUrlRls = process.env.E2E_DATABASE_URL_RLS?.trim();
-if (e2eDatabaseUrlRls) {
-  process.env.DATABASE_URL_RLS = e2eDatabaseUrlRls;
-} else if (!process.env.DATABASE_URL_RLS) {
-  process.env.DATABASE_URL_RLS = process.env.DATABASE_URL;
-}
+const restrictedServerEnv = configureE2eDatabaseEnv();
 
 const useExternalWebServer = process.env.PW_EXTERNAL_SERVER === '1';
 
@@ -479,6 +465,7 @@ export default defineConfig({
           ...(process.env.PADDLE_WEBHOOK_SECRET_KEY
             ? { PADDLE_WEBHOOK_SECRET_KEY: process.env.PADDLE_WEBHOOK_SECRET_KEY }
             : {}),
+          ...restrictedServerEnv,
         },
       },
 });

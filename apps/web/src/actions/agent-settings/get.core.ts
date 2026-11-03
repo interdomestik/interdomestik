@@ -1,34 +1,44 @@
-import { db } from '@interdomestik/database';
 import { agentSettings } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
 import type { ActionResult, AgentCommissionSettings, CommissionRates } from '../commissions.types';
 import { canReadAgentSettings } from './access';
 import type { Session } from './context';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 /** Get agent's commission settings */
 export async function getAgentSettingsCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   agentId: string;
 }): Promise<ActionResult<AgentCommissionSettings | null>> {
-  const { session, agentId } = params;
+  const { session, authority, agentId } = params;
 
   if (!session?.user) return { success: false, error: 'Unauthorized' };
   if (!canReadAgentSettings({ session, agentId })) {
     return { success: false, error: 'Access denied' };
   }
-  let tenantId: string;
   try {
-    tenantId = ensureTenantId(session);
+    ensureTenantId(session);
   } catch {
     return { success: false, error: 'Missing tenantId' };
   }
+  if (!authority) return { success: false, error: 'Unauthorized' };
+  const { tenantId } = readTenantAuthority(authority);
 
   try {
-    const settings = await db.query.agentSettings?.findFirst({
-      where: and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)),
-    });
+    const settings = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx.query.agentSettings?.findFirst({
+          where: and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)),
+        })
+    );
 
     if (!settings) {
       return { success: true, data: null };

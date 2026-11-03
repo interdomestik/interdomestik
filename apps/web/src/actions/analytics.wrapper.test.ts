@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import { getAdminAnalytics } from './analytics';
@@ -12,11 +13,13 @@ vi.mock('./analytics/get-admin', () => ({
 
 describe('actions/analytics wrapper', () => {
   it('delegates to core with session from context', async () => {
+    const authority = mintTestTenantAuthority('tenant-1');
     const { getActionContext } = await import('./analytics/context');
     const { getAdminAnalyticsCore } = await import('./analytics/get-admin');
 
     (getActionContext as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       session: { user: { id: 'u1', role: 'admin' } },
+      authority,
     });
 
     (getAdminAnalyticsCore as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -37,6 +40,7 @@ describe('actions/analytics wrapper', () => {
     expect(getAdminAnalyticsCore).toHaveBeenCalledTimes(1);
     expect(getAdminAnalyticsCore).toHaveBeenCalledWith({
       session: { user: { id: 'u1', role: 'admin' } },
+      authority,
     });
     expect(result.success).toBe(true);
   });

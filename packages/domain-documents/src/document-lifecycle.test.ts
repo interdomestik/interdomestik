@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -12,7 +13,9 @@ const mocks = vi.hoisted(() => {
 
   return {
     and: vi.fn((...conditions: unknown[]) => ({ conditions, op: 'and' })),
-    db: { transaction: vi.fn(async (callback: (txArg: typeof tx) => unknown) => callback(tx)) },
+    withTenantContext: vi.fn(async (_context: unknown, callback: (txArg: typeof tx) => unknown) =>
+      callback(tx)
+    ),
     deleteFrom,
     deleteWhere,
     eq: vi.fn((left: unknown, right: unknown) => ({ left, right, op: 'eq' })),
@@ -27,7 +30,7 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database/db', () => ({ db: mocks.db }));
+vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantContext }));
 vi.mock('@interdomestik/database/schema', () => ({
   aiRuns: {
     completedAt: 'ai_runs.completed_at',
@@ -76,13 +79,16 @@ describe('softDeleteDocument', () => {
   it('soft-deletes the document and clears AI-derived data for the tenant document', async () => {
     mocks.updateReturning.mockResolvedValue([{ entityType: 'policy', entityId: 'policy-1' }]);
 
+    const authority = mintTestTenantAuthority('tenant-1');
+
     await softDeleteDocument({
-      tenantId: 'tenant-1',
+      authority,
       documentId: 'doc-1',
       deletedBy: 'admin-1',
     });
 
-    expect(mocks.db.transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.update).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
@@ -132,7 +138,7 @@ describe('softDeleteDocument', () => {
       policyNumber: null,
     });
     expect(mocks.logAuditEvent).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
+      authority,
       documentId: 'doc-1',
       accessType: 'delete',
       accessedBy: 'admin-1',

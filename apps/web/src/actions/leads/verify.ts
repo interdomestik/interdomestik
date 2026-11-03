@@ -7,7 +7,7 @@ export async function verifyCashAction(input: unknown) {
   return runAuthenticatedAction(async ctx => {
     const data = verifyCashSchema.parse(input);
     const allowedRoles = ['admin', 'super_admin', 'branch_manager', 'tenant_admin'];
-    const { userRole, session, tenantId } = ctx;
+    const { userRole, session, authority } = ctx;
 
     if (!allowedRoles.includes(userRole)) {
       throw new Error('Unauthorized: Insufficient permissions to verify cash.');
@@ -15,7 +15,7 @@ export async function verifyCashAction(input: unknown) {
 
     return await verifyCashPayment(
       {
-        tenantId,
+        authority,
         userId: session.user.id,
       },
       data

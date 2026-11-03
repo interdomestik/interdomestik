@@ -1,11 +1,14 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 import { REQUEST_DATA_DELETION_ACTION, requestDataDeletionCore } from './_core';
 
 describe('requestDataDeletionCore', () => {
+  const ksAuthority = mintTestTenantAuthority('tenant_ks');
+
   it('returns 400 when tenantId is missing', async () => {
     const result = await requestDataDeletionCore({
       userId: 'user_1',
-      tenantId: null,
+      authority: null,
     });
 
     expect(result).toEqual({
@@ -24,7 +27,7 @@ describe('requestDataDeletionCore', () => {
 
     const result = await requestDataDeletionCore({
       userId: 'user_1',
-      tenantId: 'tenant_ks',
+      authority: ksAuthority,
       actorRole: 'member',
       reason: '  Please delete my personal data  ',
       ipAddress: '203.0.113.10',
@@ -37,10 +40,12 @@ describe('requestDataDeletionCore', () => {
     });
 
     expect(findLatestRequest).toHaveBeenCalledWith({
+      authority: ksAuthority,
       tenantId: 'tenant_ks',
       userId: 'user_1',
     });
     expect(insertRequest).toHaveBeenCalledWith({
+      authority: ksAuthority,
       tenantId: 'tenant_ks',
       userId: 'user_1',
       actorRole: 'member',
@@ -66,7 +71,7 @@ describe('requestDataDeletionCore', () => {
 
     const result = await requestDataDeletionCore({
       userId: 'user_2',
-      tenantId: 'tenant_mk',
+      authority: mintTestTenantAuthority('tenant_mk'),
       now,
       deps: {
         findLatestRequest: vi.fn().mockResolvedValue({
@@ -95,7 +100,7 @@ describe('requestDataDeletionCore', () => {
 
     const result = await requestDataDeletionCore({
       userId: 'user_3',
-      tenantId: 'tenant_al',
+      authority: mintTestTenantAuthority('tenant_al'),
       now,
       deps: {
         findLatestRequest: vi.fn().mockResolvedValue({
@@ -122,7 +127,7 @@ describe('requestDataDeletionCore', () => {
 
     await requestDataDeletionCore({
       userId: 'user_4',
-      tenantId: 'tenant_ks',
+      authority: ksAuthority,
       deps: {
         findLatestRequest: vi.fn().mockResolvedValue(null),
         insertRequest,

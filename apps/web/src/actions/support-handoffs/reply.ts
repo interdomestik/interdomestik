@@ -73,8 +73,9 @@ export async function submitSupportHandoffMemberReply(
     };
   }
 
-  const { session, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders } = await getActionContext();
   const result = await submitSupportHandoffMemberReplyCore({
+    authority,
     expectedPublicResponseVersion: parsed.data.expectedPublicResponseVersion,
     handoffId: parsed.data.handoffId,
     replyText: parsed.data.replyText,

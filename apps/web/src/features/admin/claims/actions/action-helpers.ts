@@ -2,7 +2,7 @@
 
 import { auth } from '@/lib/auth';
 import { isAdmin } from '@/lib/roles';
-import { and, auditLog, claims, db, eq, type TenantTransaction } from '@interdomestik/database';
+import { and, auditLog, claims, eq, type TenantTransaction } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { isClaimStatusTransitionInGraph } from '@interdomestik/domain-claims/claims/transition-guard';
@@ -21,8 +21,8 @@ export type OpsActionResponse = OpsActionResult;
 
 export type MutationIntent = 'assign' | 'status_change' | 'poke' | 'sla_ack';
 
-// Optional executors let one action run its reads/writes inside a tenant transaction.
-// Callers that omit them keep the existing direct `db` behavior.
+// Executors are always a tenant transaction: the ambient `db` client carries no tenant context,
+// so every read/write here must run inside `withTenantContext`.
 export type ClaimReadExecutor = Pick<TenantTransaction, 'query'>;
 export type AuditWriteExecutor = Pick<TenantTransaction, 'insert'>;
 export type ClaimLockExecutor = Pick<TenantTransaction, 'select'>;
@@ -72,7 +72,7 @@ export async function getOpsMutationContext(): Promise<OpsMutationContext | null
 export async function getClaimForMutation(
   claimId: string,
   tenantId: string,
-  executor: ClaimReadExecutor = db
+  executor: ClaimReadExecutor
 ) {
   const claim = await executor.query.claims.findFirst({
     where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
@@ -142,8 +142,8 @@ export async function logAudit(
   actorId: string,
   action: string,
   entityId: string,
-  metadata: Record<string, unknown> = {},
-  executor: AuditWriteExecutor = db
+  metadata: Record<string, unknown>,
+  executor: AuditWriteExecutor
 ) {
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await executor.insert(auditLog).values({

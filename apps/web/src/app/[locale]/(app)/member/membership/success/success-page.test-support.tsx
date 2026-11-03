@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render } from '@testing-library/react';
 import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { vi } from 'vitest';
@@ -35,6 +36,7 @@ export const activeSubscription: NonNullable<MockSubscription> = {
 const hoisted = vi.hoisted(() => ({
   getSessionSafeMock: vi.fn(),
   getActiveSubscriptionMock: vi.fn(),
+  authorizeSessionUserTenantMock: vi.fn(),
   isBillingTestActivationEnabledMock: vi.fn(),
   mockActivationTriggerMock: vi.fn(),
   funnelActivationTrackerMock: vi.fn(),
@@ -49,12 +51,15 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: hoisted.routerReplaceMock, refresh: hoisted.routerRefreshMock }),
 }));
 vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn(async (options?: { namespace?: string } | string) =>
-    getNamespacedTranslation(options)
+  getTranslations: vi.fn((options?: { namespace?: string } | string) =>
+    Promise.resolve(getNamespacedTranslation(options))
   ),
 }));
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: hoisted.getSessionSafeMock,
+}));
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionUserTenant: hoisted.authorizeSessionUserTenantMock,
 }));
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   getActiveSubscription: hoisted.getActiveSubscriptionMock,
@@ -125,6 +130,9 @@ export function resetSuccessHarness(): void {
     user: { id: 'member-1', name: 'Test Member', tenantId: 'tenant-ks' },
   });
   hoisted.getActiveSubscriptionMock.mockResolvedValue(null);
+  hoisted.authorizeSessionUserTenantMock.mockImplementation((userId: string) =>
+    Promise.resolve(mintTestTenantAuthority('tenant-ks', { userId }))
+  );
   hoisted.isBillingTestActivationEnabledMock.mockReturnValue(false);
 }
 

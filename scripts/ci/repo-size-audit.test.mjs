@@ -237,7 +237,7 @@ test('repo size audit does not over-count a trailing newline as an extra source 
     '--no-disk',
     '--include-untracked',
     '--min-lines=5',
-    '--top=5000',
+    '--top=100000',
   ]);
   assert.equal(belowThresholdResult.status, 0, belowThresholdResult.stderr);
   const belowThresholdReport = JSON.parse(belowThresholdResult.stdout);
@@ -251,7 +251,7 @@ test('repo size audit does not over-count a trailing newline as an extra source 
     '--no-disk',
     '--include-untracked',
     '--min-lines=4',
-    '--top=5000',
+    '--top=100000',
   ]);
   assert.equal(atThresholdResult.status, 0, atThresholdResult.stderr);
   const atThresholdReport = JSON.parse(atThresholdResult.stdout);

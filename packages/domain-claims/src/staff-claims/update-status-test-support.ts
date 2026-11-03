@@ -1,3 +1,5 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { expect } from 'vitest';
 import type { ClaimsSession } from '../claims/types';
 import { withClaimLifecycle } from '../claims/lifecycle-test-support';
@@ -74,12 +76,15 @@ export function mockRecoverySelects(options?: {
   );
   mocks.serviceUsageExistsSelectChain.limit.mockResolvedValue(options?.existingClaimUsage ?? []);
 }
+export const staffAuthority: TenantAuthority = mintTestTenantAuthority('tenant-1');
+
 export async function runNegotiationUpdate(
   overrides: Partial<Parameters<typeof updateClaimStatusCore>[0]> = {},
   deps?: Parameters<typeof updateClaimStatusCore>[1]
 ) {
   return updateClaimStatusCore(
     {
+      authority: staffAuthority,
       claimId: 'claim-1',
       newStatus: 'negotiation',
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),

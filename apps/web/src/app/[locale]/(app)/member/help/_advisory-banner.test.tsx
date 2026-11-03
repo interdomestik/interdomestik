@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -40,6 +41,8 @@ vi.mock('next-intl/server', () => ({
 
 import { AdvisoryBanner } from './_advisory-banner';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('AdvisoryBanner', () => {
   it('renders the same-claim advisory with localized timestamp metadata', async () => {
     mocks.getMemberActiveHandoffAdvisory.mockResolvedValueOnce({
@@ -60,14 +63,14 @@ describe('AdvisoryBanner', () => {
       await AdvisoryBanner({
         memberId: 'member-1',
         selectedClaim: { id: 'claim-1' },
-        tenantId: 'tenant-1',
+        authority,
       })
     );
 
     expect(mocks.getMemberActiveHandoffAdvisory).toHaveBeenCalledWith({
       claimId: 'claim-1',
       memberId: 'member-1',
-      tenantId: 'tenant-1',
+      authority,
     });
     expect(mocks.dateTime).toHaveBeenCalledWith(new Date('2026-05-04T08:30:00.000Z'), {
       dateStyle: 'medium',
@@ -92,14 +95,14 @@ describe('AdvisoryBanner', () => {
       await AdvisoryBanner({
         memberId: 'member-1',
         selectedClaim: null,
-        tenantId: 'tenant-1',
+        authority,
       })
     );
 
     expect(mocks.getMemberActiveHandoffAdvisory).toHaveBeenCalledWith({
       claimId: null,
       memberId: 'member-1',
-      tenantId: 'tenant-1',
+      authority,
     });
     expect(screen.getByTestId('member-support-handoff-advisory-generic')).toHaveTextContent(
       'You have 3 active support requests.'
@@ -116,7 +119,7 @@ describe('AdvisoryBanner', () => {
     const ui = await AdvisoryBanner({
       memberId: 'member-1',
       selectedClaim: null,
-      tenantId: 'tenant-1',
+      authority,
     });
 
     expect(ui).toBeNull();
@@ -129,7 +132,7 @@ describe('AdvisoryBanner', () => {
     const ui = await AdvisoryBanner({
       memberId: 'member-1',
       selectedClaim: null,
-      tenantId: 'tenant-1',
+      authority,
     });
 
     expect(ui).toBeNull();

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -51,6 +52,7 @@ const closedAcknowledgement = {
 
 function acknowledgeWithHeaders(requestHeaders?: Headers) {
   return acknowledgeSupportHandoffPublicResponseCore({
+    authority,
     expectedPublicResponseVersion: 2,
     handoffId: 'handoff-1',
     requestHeaders,
@@ -63,6 +65,8 @@ function expectLocalizedRevalidation(locale: string) {
   expect(mocks.revalidatePath).toHaveBeenCalledWith(`/${locale}/member/help`);
   expect(mocks.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/support-handoffs`);
 }
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('acknowledgeSupportHandoffPublicResponseCore', () => {
   beforeEach(() => {
@@ -118,6 +122,7 @@ describe('acknowledgeSupportHandoffPublicResponseCore', () => {
     });
 
     const result = await acknowledgeSupportHandoffPublicResponseCore({
+      authority,
       expectedPublicResponseVersion: 1,
       handoffId: 'handoff-1',
       session: null,

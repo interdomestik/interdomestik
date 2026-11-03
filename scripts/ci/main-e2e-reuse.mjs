@@ -6,7 +6,7 @@ import { decideMainE2eReuse, normalizeReuseDecision } from './main-e2e-reuse-cor
 import { collectGitHubEvidence, readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const LANE_SHA256 = 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64';
-const CONFIG_SHA256 = '370530c9ba0e55cae0e2e152d723eb0c71d3dfede4d41fe4b582102309c238d0';
+const CONFIG_SHA256 = '9425f524926a89440bc434a20c70cda598d49f0acf5766886756e01a077031d6';
 const E2E_TREE_SHAS = new Set([
   // S5 member private-document retrieval through the existing authorized signer.
   'a4cdbc8485137385a93cec7a670556608b0fbcf9',

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -11,7 +12,9 @@ const mocks = vi.hoisted(() => {
   return {
     and: vi.fn((...conditions: unknown[]) => ({ conditions, op: 'and' })),
     captureAudit: vi.fn(),
-    db: { insert, select },
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback({ insert, select })
+    ),
     eq: vi.fn((left: unknown, right: unknown) => ({ left, right, op: 'eq' })),
     insert,
     insertValues,
@@ -24,8 +27,8 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: mocks.db,
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -63,10 +66,11 @@ describe('document upload helpers', () => {
 
   it('records upload metadata and emits audit hooks', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    const authority = mintTestTenantAuthority('tenant-1');
 
     await expect(
       recordUpload({
-        tenantId: 'tenant-1',
+        authority,
         entityType: 'claim',
         entityId: 'claim-1',
         fileName: 'invoice.pdf',
@@ -101,7 +105,7 @@ describe('document upload helpers', () => {
       uploadedAt: expect.any(Date),
     });
     expect(mocks.logAuditEvent).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
+      authority,
       documentId: 'doc-123',
       accessType: 'upload',
       accessedBy: 'user-1',
@@ -120,15 +124,17 @@ describe('document upload helpers', () => {
   it('returns tenant-scoped documents for an entity', async () => {
     const docs = [{ id: 'doc-1' }, { id: 'doc-2' }];
     mocks.selectWhere.mockResolvedValueOnce(docs);
+    const authority = mintTestTenantAuthority('tenant-1');
 
     await expect(
       getDocumentsForEntity({
-        tenantId: 'tenant-1',
+        authority,
         entityType: 'claim',
         entityId: 'claim-1',
       })
     ).resolves.toEqual(docs);
 
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.select).toHaveBeenCalled();
     expect(mocks.selectFrom).toHaveBeenCalledWith({
       deletedAt: 'documents.deletedAt',

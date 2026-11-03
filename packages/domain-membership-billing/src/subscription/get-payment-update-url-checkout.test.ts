@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  authority,
   getPaymentUpdateUrlCore,
   hoisted,
   TRUSTED_LINK,
@@ -24,6 +25,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -39,6 +41,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -54,6 +57,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -68,6 +72,7 @@ describe('getPaymentUpdateUrlCore', () => {
     const errorSpy = vi.spyOn(console, 'error');
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -87,6 +92,7 @@ describe('getPaymentUpdateUrlCore', () => {
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(VALID_SUB);
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -113,6 +119,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -142,7 +149,11 @@ describe('getPaymentUpdateUrlCore', () => {
         details: { totals: evidence.total === null ? null : { total: evidence.total } },
       });
 
-      const result = await getPaymentUpdateUrlCore({ session, subscriptionId: VALID_SUB.id });
+      const result = await getPaymentUpdateUrlCore({
+        authority,
+        session,
+        subscriptionId: VALID_SUB.id,
+      });
 
       expect(result).toEqual({
         error: 'Payment update transaction is not in a usable state',

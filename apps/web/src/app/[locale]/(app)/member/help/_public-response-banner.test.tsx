@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -83,6 +84,8 @@ vi.mock('next/navigation', () => ({
 
 import { PublicResponseBanner } from './_public-response-banner';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('PublicResponseBanner', () => {
   it('renders the latest public response with a localized timestamp', async () => {
     mocks.getMemberLatestPublicResponse.mockResolvedValueOnce({
@@ -104,7 +107,7 @@ describe('PublicResponseBanner', () => {
         locale: 'en',
         memberId: 'member-1',
         selectedClaim: { id: 'claim-1' },
-        tenantId: 'tenant-1',
+        authority,
       })
     );
 
@@ -112,7 +115,7 @@ describe('PublicResponseBanner', () => {
       claimId: 'claim-1',
       handoffId: 'handoff-1',
       memberId: 'member-1',
-      tenantId: 'tenant-1',
+      authority,
     });
     expect(mocks.dateTime).toHaveBeenCalledWith(new Date('2026-05-04T11:00:00.000Z'), {
       dateStyle: 'medium',
@@ -159,7 +162,7 @@ describe('PublicResponseBanner', () => {
         locale: 'sq',
         memberId: 'member-1',
         selectedClaim: null,
-        tenantId: 'tenant-1',
+        authority,
       })
     );
 
@@ -194,7 +197,7 @@ describe('PublicResponseBanner', () => {
         locale: 'en',
         memberId: 'member-1',
         selectedClaim: null,
-        tenantId: 'tenant-1',
+        authority,
       })
     );
 
@@ -222,7 +225,7 @@ describe('PublicResponseBanner', () => {
         locale: 'en',
         memberId: 'member-1',
         selectedClaim: null,
-        tenantId: 'tenant-1',
+        authority,
       })
     );
 
@@ -237,7 +240,7 @@ describe('PublicResponseBanner', () => {
       locale: 'en',
       memberId: 'member-1',
       selectedClaim: null,
-      tenantId: 'tenant-1',
+      authority,
     });
 
     expect(ui).toBeNull();
@@ -251,7 +254,7 @@ describe('PublicResponseBanner', () => {
       locale: 'en',
       memberId: 'member-1',
       selectedClaim: null,
-      tenantId: 'tenant-1',
+      authority,
     });
 
     expect(ui).toBeNull();

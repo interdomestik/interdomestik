@@ -1,20 +1,17 @@
-import { withTenantContext, type TenantTransaction } from '@interdomestik/database';
+import type { TenantTransaction } from '@interdomestik/database';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-/** Relational-query surface of the transaction supplied by withTenantContext. */
+/** Relational-query surface of the transaction supplied by the tenant authority. */
 export type NumberResolverLookupTx = Pick<TenantTransaction, 'query'>;
 
-export interface NumberResolverTenantContext {
-  tenantId: string;
-  role: string | null;
-}
-
 /**
- * Runs a number-resolver lookup inside the existing tenant transaction boundary.
- * Context is passed through unchanged; the lookup sees only the transaction's query surface.
+ * Runs a number-resolver lookup inside the request session's tenant transaction. The lookup sees
+ * only the transaction's query surface.
  */
 export function runNumberResolverInTenantContext(
-  context: NumberResolverTenantContext,
+  authority: TenantAuthority,
   lookup: (tx: NumberResolverLookupTx) => Promise<string | null>
 ): Promise<string | null> {
-  return withTenantContext({ tenantId: context.tenantId, role: context.role }, lookup);
+  return withTenantAuthority(authority, lookup);
 }

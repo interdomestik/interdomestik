@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { adminSession, getUpdateStatusMocks } from './update-status.test-support';
+import { adminAuthority, adminSession, getUpdateStatusMocks } from './update-status.test-support';
 
 import { updateClaimStatusCore } from './update-status';
 
@@ -28,6 +28,7 @@ describe('admin updateClaimStatusCore payment authorization', () => {
 
   it('routes payment-gated admin transitions through the central transition command', async () => {
     await updateClaimStatusCore({
+      authority: adminAuthority,
       claimId: 'claim-1',
       newStatus: 'negotiation',
       session: adminSession,
@@ -38,8 +39,8 @@ describe('admin updateClaimStatusCore payment authorization', () => {
     expect(mocks.agreementLimit).not.toHaveBeenCalled();
     expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
       actor: { id: 'admin-1', role: 'tenant_admin' },
+      authority: adminAuthority,
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
       toStatus: 'negotiation',
     });
   });

@@ -1,4 +1,5 @@
 import type { subscriptions } from '@interdomestik/database';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { PaddleEventOrderingError, RetryablePaddleWebhookError } from '../errors';
 import type { PastDueEmailDeps } from '../types';
 import type { PastDueUserRecord } from './dunning-context';
@@ -10,7 +11,7 @@ export async function handleOrderedPastDue(args: {
   order: PaddleSubscriptionEventOrder;
   providerSubscriptionId: string;
   subscriptionId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   user: PastDueUserRecord;
   planName: string;
   deps: PastDueEmailDeps;

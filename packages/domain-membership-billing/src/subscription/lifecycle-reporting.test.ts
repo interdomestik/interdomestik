@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -24,14 +25,18 @@ const hoisted = vi.hoisted(() => ({
   sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: hoisted.select,
-  },
-  eq: hoisted.eq,
-  sql: hoisted.sql,
-  subscriptions: hoisted.subscriptions,
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+    eq: hoisted.eq,
+    sql: hoisted.sql,
+    subscriptions: hoisted.subscriptions,
+  };
+});
 
 import {
   deriveMembershipStatus,
@@ -132,7 +137,7 @@ describe('membership lifecycle reporting', () => {
     });
 
     const counts = await getTenantMembershipLifecycleCounts({
-      tenantId: 'tenant_ks',
+      authority: mintTestTenantAuthority('tenant_ks'),
       now: new Date('2026-04-21T00:00:00.000Z'),
     });
 

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -38,9 +39,11 @@ vi.mock('drizzle-orm', () => ({ isNull: (column: unknown) => ({ column, isNull: 
 import { grantUserRoleCore, revokeUserRoleCore } from './roles';
 
 const session = (role: string, id = 'admin-1') => ({ user: { id, role, tenantId: 'tenant_ks' } });
+const authorityFor = (actor: string) =>
+  mintTestTenantAuthority('tenant_ks', { userId: 'admin-1', role: actor });
 const params = (actor: string, role: string, userId = 'user-1') => ({
   session: session(actor),
-  tenantId: 'tenant_ks',
+  authority: authorityFor(actor),
   userId,
   role,
 });
@@ -156,8 +159,14 @@ describe('role mutation authorization boundary', () => {
     }
   );
 
-  it('preserves foreign-tenant denial before touching the target', async () => {
-    const foreign = { ...params('tenant_admin', 'staff'), tenantId: 'tenant_mk' };
+  it("denies an authority that is not the session user's before touching the target", async () => {
+    const foreign = {
+      ...params('tenant_admin', 'staff'),
+      authority: mintTestTenantAuthority('tenant_mk', {
+        userId: 'other-admin',
+        role: 'tenant_admin',
+      }),
+    };
     await expect(grantUserRoleCore(foreign)).rejects.toThrow('Unauthorized');
     await expect(revokeUserRoleCore(foreign)).rejects.toThrow('Unauthorized');
     expect(mocks.context).not.toHaveBeenCalled();

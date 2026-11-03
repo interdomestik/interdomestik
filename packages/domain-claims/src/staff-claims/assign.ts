@@ -1,4 +1,8 @@
-import { and, claims, db, eq, user as userTable } from '@interdomestik/database';
+import { and, claims, eq, user as userTable } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { isNull } from 'drizzle-orm';
@@ -7,6 +11,7 @@ import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import { assignClaimSchema } from '../validators/claims';
 import { buildScopedStaffClaimWhere, buildStaffClaimReadScope } from './scope';
 import type { ActionResult } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type StaffUser = ClaimsSession['user'] & { branchId?: string | null };
 type StaffClaimRecord = { id: string; staffId: string | null; branchId: string | null };
@@ -20,17 +25,21 @@ function buildAssignmentGuard(previousStaffId: string | null) {
 }
 
 async function getScopedClaim(args: {
+  authority: TenantAuthority;
   branchId: string | null;
   claimId: string;
-  tenantId: string;
   userId: string;
 }): Promise<StaffClaimRecord | undefined> {
+  const { authority, ...scope } = args;
+  const { tenantId } = readTenantAuthority(authority);
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const [existingClaim] = await db
-    .select({ id: claims.id, staffId: claims.staffId, branchId: claims.branchId })
-    .from(claims)
-    .where(buildScopedStaffClaimWhere(args))
-    .limit(1);
+  const [existingClaim] = await withTenantAuthority(authority, tx =>
+    tx
+      .select({ id: claims.id, staffId: claims.staffId, branchId: claims.branchId })
+      .from(claims)
+      .where(buildScopedStaffClaimWhere({ ...scope, tenantId }))
+      .limit(1)
+  );
 
   return existingClaim;
 }
@@ -50,22 +59,27 @@ function buildAssigneeScope(args: { branchId: string | null; staffId: string; te
 }
 
 async function findScopedAssignee(args: {
+  authority: TenantAuthority;
   branchId: string | null;
   staffId: string;
-  tenantId: string;
 }) {
+  const { authority, ...scope } = args;
+  const { tenantId } = readTenantAuthority(authority);
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  return db.query.user.findFirst({
-    where: buildAssigneeScope(args),
-    columns: {
-      id: true,
-    },
-  });
+  return withTenantAuthority(authority, tx =>
+    tx.query.user.findFirst({
+      where: buildAssigneeScope({ ...scope, tenantId }),
+      columns: {
+        id: true,
+      },
+    })
+  );
 }
 
 /** Assign a claim to an in-scope staff member, defaulting to self-assignment */
 export async function assignClaimCore(
   params: {
+    authority: TenantAuthority | null;
     claimId: string;
     staffId?: string | null;
     session: ClaimsSession | null;
@@ -73,13 +87,14 @@ export async function assignClaimCore(
   },
   deps: ClaimsDeps = {}
 ): Promise<ActionResult> {
-  const { claimId, session, requestHeaders } = params;
+  const { authority, claimId, session, requestHeaders } = params;
 
-  if (session?.user?.role !== 'staff') {
+  if (!authority || session?.user?.role !== 'staff') {
     return { success: false, error: 'Unauthorized' };
   }
 
-  const tenantId = ensureTenantId(session);
+  ensureTenantId(session);
+  const { tenantId } = readTenantAuthority(authority);
   const user = session.user as StaffUser;
   const branchId = user.branchId ?? null;
   const nextStaffId = resolveNextStaffId({
@@ -93,9 +108,9 @@ export async function assignClaimCore(
 
   try {
     const existingClaim = await getScopedClaim({
+      authority,
       branchId,
       claimId,
-      tenantId,
       userId: user.id,
     });
 
@@ -109,9 +124,9 @@ export async function assignClaimCore(
 
     if (nextStaffId !== null && nextStaffId !== user.id) {
       const assignee = await findScopedAssignee({
+        authority,
         branchId,
         staffId: nextStaffId,
-        tenantId,
       });
 
       if (assignee == null) {
@@ -127,16 +142,18 @@ export async function assignClaimCore(
       buildStaffClaimReadScope({ branchId, claimId, userId: user.id })
     );
     // db-access-guard: tenant-scoped -- reason: tenant predicate built by scopedWhere and consumed by this DB call
-    const updatedClaims = await db
-      .update(claims)
-      .set({
-        staffId: nextStaffId,
-        assignedAt: nextStaffId ? now : null,
-        assignedById: nextStaffId ? user.id : null,
-        updatedAt: now,
-      })
-      .where(and(scopedWhere, buildAssignmentGuard(previousStaffId ?? null)))
-      .returning({ id: claims.id });
+    const updatedClaims = await withTenantAuthority(authority, tx =>
+      tx
+        .update(claims)
+        .set({
+          staffId: nextStaffId,
+          assignedAt: nextStaffId ? now : null,
+          assignedById: nextStaffId ? user.id : null,
+          updatedAt: now,
+        })
+        .where(and(scopedWhere, buildAssignmentGuard(previousStaffId ?? null)))
+        .returning({ id: claims.id })
+    );
 
     if (updatedClaims.length === 0) {
       return { success: false, error: 'Claim not found or access denied' };
@@ -146,7 +163,7 @@ export async function assignClaimCore(
       await deps.logAuditEvent({
         actorId: user.id,
         actorRole: user.role,
-        tenantId,
+        authority,
         action: nextStaffId ? 'claim.assigned' : 'claim.unassigned',
         entityType: 'claim',
         entityId: claimId,

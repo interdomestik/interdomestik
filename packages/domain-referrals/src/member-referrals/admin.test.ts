@@ -1,10 +1,11 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { listMemberReferralRewardsCore, updateMemberReferralRewardStatusCore } from './admin';
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       memberReferralRewards: {
         findMany: vi.fn(),
@@ -18,8 +19,12 @@ vi.mock('@interdomestik/database', () => ({
         })),
       })),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   memberReferralRewards: {
@@ -43,6 +48,8 @@ vi.mock('drizzle-orm', async importOriginal => {
     and: vi.fn((...args) => args),
   };
 });
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('member referral admin', () => {
   beforeEach(() => {
@@ -70,7 +77,7 @@ describe('member referral admin', () => {
     ]);
 
     const result = await listMemberReferralRewardsCore({
-      tenantId: 'tenant-1',
+      authority,
     });
 
     expect(result.success).toBe(true);
@@ -79,6 +86,7 @@ describe('member referral admin', () => {
       expect(result.data[0].id).toBe('reward-1');
       expect(result.data[0].tenantId).toBe('tenant-1');
     }
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(db.query.memberReferralRewards.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: [['tenantId', 'tenant-1']],
@@ -115,7 +123,7 @@ describe('member referral admin', () => {
     });
 
     const result = await updateMemberReferralRewardStatusCore({
-      tenantId: 'tenant-1',
+      authority,
       rewardId: 'reward-1',
       newStatus: 'approved',
     });
@@ -144,7 +152,7 @@ describe('member referral admin', () => {
     });
 
     const result = await updateMemberReferralRewardStatusCore({
-      tenantId: 'tenant-1',
+      authority,
       rewardId: 'reward-1',
       newStatus: 'approved',
     });

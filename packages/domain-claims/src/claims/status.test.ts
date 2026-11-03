@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -8,18 +9,25 @@ const mocks = vi.hoisted(() => ({
   withTenant: vi.fn(() => ({ scoped: true })),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      claims: { findFirst: mocks.findFirst },
-      user: { findFirst: mocks.userFindFirst },
+vi.mock('@interdomestik/database', () => {
+  const moduleMock = {
+    db: {
+      query: {
+        claims: { findFirst: mocks.findFirst },
+        user: { findFirst: mocks.userFindFirst },
+      },
     },
-  },
-  relayClaimStatusAuditProjectionEvents: vi.fn(),
-  claims: { id: 'claims.id', tenantId: 'claims.tenant_id' },
-  user: { id: 'user.id', tenantId: 'user.tenant_id' },
-  eq: vi.fn((left, right) => ({ left, right })),
-}));
+    relayClaimStatusAuditProjectionEvents: vi.fn(),
+    claims: { id: 'claims.id', tenantId: 'claims.tenant_id' },
+    user: { id: 'user.id', tenantId: 'user.tenant_id' },
+    eq: vi.fn((left, right) => ({ left, right })),
+  };
+  return {
+    ...moduleMock,
+    withTenantContext: async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback(moduleMock.db),
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({ withTenant: mocks.withTenant }));
 vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: vi.fn(() => 'tenant-1') }));
@@ -30,6 +38,7 @@ vi.mock('./transition', () => ({ transitionClaimStatus: mocks.transitionClaimSta
 
 import { updateClaimStatusCore } from './status';
 
+const authority = mintTestTenantAuthority('tenant-1');
 const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 const staffSession = { user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' } } as never;
 const persistedNegotiation = {
@@ -56,7 +65,13 @@ function mockClaim(status: string) {
 }
 
 function runStatusUpdate(deps = {}, newStatus = 'submitted') {
-  const params = { session: staffSession, requestHeaders, claimId: 'claim-1', newStatus };
+  const params = {
+    authority,
+    session: staffSession,
+    requestHeaders,
+    claimId: 'claim-1',
+    newStatus,
+  };
   return updateClaimStatusCore(params, deps);
 }
 
@@ -69,7 +84,7 @@ function sideEffectDeps() {
   };
 }
 
-const projectionCall = { limit: 10, tenantId: 'tenant-1' };
+const projectionCall = { authority, limit: 10 };
 
 describe('updateClaimStatusCore', () => {
   beforeEach(() => {
@@ -96,6 +111,7 @@ describe('updateClaimStatusCore', () => {
     });
     expect(
       await updateClaimStatusCore({
+        authority,
         session: { user: { id: 'user-1', role: 'member', tenantId: 'tenant-1' } } as never,
         requestHeaders,
         claimId: 'claim-1',
@@ -115,6 +131,7 @@ describe('updateClaimStatusCore', () => {
     expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.transitionClaimStatus.mock.calls[0]?.[0]).toMatchObject({
       actor: { id: 'staff-1' },
+      authority,
       toStatus: 'negotiation',
     });
     expect(deps.logAuditEvent).not.toHaveBeenCalled();
@@ -124,7 +141,8 @@ describe('updateClaimStatusCore', () => {
       'member@example.com',
       { id: 'claim-1', title: 'Test Claim' },
       'draft',
-      'negotiation'
+      'negotiation',
+      { authority }
     );
     expect(deps.revalidatePath).toHaveBeenCalledWith('/admin/claims');
   });

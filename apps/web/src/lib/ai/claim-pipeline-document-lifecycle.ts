@@ -1,5 +1,8 @@
-import { db } from '@/lib/db.server';
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aiRuns, documents } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 
@@ -28,23 +31,29 @@ export function throwDeletedClaimDocumentError(): never {
 export async function failDeletedDocumentClaimAiRun(
   runId: string,
   isWorkflow: (workflow: unknown) => workflow is ClaimAiWorkflow,
-  options: { retryFailed?: boolean } = {}
+  options: { authority: TenantAuthority; retryFailed?: boolean }
 ): Promise<SkippedRun | null> {
-  const [run] = await db
-    .select({
-      tenantId: aiRuns.tenantId,
-      workflow: aiRuns.workflow,
-      claimId: aiRuns.entityId,
-      status: aiRuns.status,
-      errorCode: aiRuns.errorCode,
-      deletedAt: documents.deletedAt,
-    })
-    .from(aiRuns)
-    .innerJoin(
-      documents,
-      and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
-    )
-    .where(and(eq(aiRuns.id, runId), eq(aiRuns.entityType, 'claim')));
+  const { authority } = options;
+  const { tenantId } = readTenantAuthority(authority);
+  const [run] = await withTenantAuthority(authority, tx =>
+    tx
+      .select({
+        tenantId: aiRuns.tenantId,
+        workflow: aiRuns.workflow,
+        claimId: aiRuns.entityId,
+        status: aiRuns.status,
+        errorCode: aiRuns.errorCode,
+        deletedAt: documents.deletedAt,
+      })
+      .from(aiRuns)
+      .innerJoin(
+        documents,
+        and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
+      )
+      .where(
+        and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.entityType, 'claim'))
+      )
+  );
 
   if (!run?.deletedAt || !run.claimId || !isWorkflow(run.workflow)) {
     return null;
@@ -67,15 +76,16 @@ export async function failDeletedDocumentClaimAiRun(
   const failurePredicate = retryingFailedRun
     ? and(
         eq(aiRuns.id, runId),
+        eq(aiRuns.tenantId, tenantId),
         eq(aiRuns.status, 'failed'),
         eq(aiRuns.errorCode, 'claim_ai_processing_failed')
       )
-    : and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued'));
+    : and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.status, 'queued'));
 
-  const [failedRun] = await withTenantContext(
-    { tenantId: run.tenantId, role: 'system' },
+  const [failedRun] = await withTenantAuthority(
+    authority,
     async tx =>
-      tx
+      await tx
         .update(aiRuns)
         .set(buildDeletedClaimRunFailure(new Date()))
         .where(failurePredicate)

@@ -1,5 +1,7 @@
 import { assignClaimCore as assignClaimCoreDomain } from '@interdomestik/domain-claims/agent-claims/assign';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { logAuditEvent } from '@/lib/audit';
 import { notifyClaimAssigned } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
@@ -18,6 +20,7 @@ export async function assignClaimCore(params: {
   claimId: string;
   staffId: string | null;
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   requestHeaders: Headers;
 }) {
   const result = await assignClaimCoreDomain(params, {

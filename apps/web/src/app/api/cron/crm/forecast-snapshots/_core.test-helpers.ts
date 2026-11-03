@@ -1,3 +1,6 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import type { CrmWeightedPipelineRow } from '@interdomestik/domain-crm/reporting';
 import type { CrmForecastSnapshotRow } from '@interdomestik/domain-crm/reporting/types';
 import { vi } from 'vitest';
@@ -5,6 +8,19 @@ import { vi } from 'vitest';
 import type { CrmForecastSnapshotWorkItem } from '@/adapters/crm/forecast-snapshot-work-items';
 
 import type { CrmForecastSnapshotBackfillResult } from './backfill/_core';
+
+// Stands in for the capability the route's cron admission returns; the producer is mocked.
+export const crmForecastSnapshotTestIngress = Object.freeze({}) as IngressCapability<'cron'>;
+
+const testAuthorities = new Map<string, TenantAuthority>();
+export function crmForecastSnapshotTestAuthority(tenantId: string): TenantAuthority {
+  let authority = testAuthorities.get(tenantId);
+  if (!authority) {
+    authority = mintTestTenantAuthority(tenantId);
+    testAuthorities.set(tenantId, authority);
+  }
+  return authority;
+}
 
 export const crmForecastSnapshotTestWorkItem: CrmForecastSnapshotWorkItem = {
   branchId: 'branch-1',

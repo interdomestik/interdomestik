@@ -13,12 +13,17 @@ vi.mock('@/features/agent/leads/server/lead-actions', () => ({
   updateScopedAgentLeadStatus: hoisted.updateScopedAgentLeadStatus,
 }));
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
 import { updateLeadStatusAction } from './update';
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 function updateActionContext(options: { branchId?: string | null } = {}) {
   const branchId = options.branchId === undefined ? 'branch-1' : options.branchId;
 
   return {
+    authority,
     tenantId: 'tenant-1',
     userRole: 'agent',
     scope: {
@@ -45,7 +50,7 @@ beforeEach(() => {
 });
 
 describe('updateLeadStatusAction', () => {
-  it('passes tenant, agent, and branch scope into the lead status update', async () => {
+  it('passes the tenant authority, agent, and branch scope into the lead status update', async () => {
     await expect(
       updateLeadStatusAction({
         leadId: 'lead-1',
@@ -58,12 +63,14 @@ describe('updateLeadStatusAction', () => {
       notes: 'left voicemail',
       scope: {
         agentId: 'agent-1',
+        authority,
         branchId: 'branch-1',
         leadId: 'lead-1',
-        tenantId: 'tenant-1',
       },
       status: 'contacted',
     });
+    // Opaque tokens deep-compare as {}; assert the exact session token is forwarded.
+    expect(hoisted.updateScopedAgentLeadStatus.mock.calls[0][0].scope.authority).toBe(authority);
   });
 
   it('rejects callers without agent branch scope before lead mutation', async () => {

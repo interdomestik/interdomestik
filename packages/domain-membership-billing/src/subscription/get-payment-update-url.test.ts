@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  authority,
   getPaymentUpdateUrlCore,
   hoisted,
   TRUSTED_LINK,
@@ -14,6 +15,7 @@ describe('getPaymentUpdateUrlCore', () => {
 
   it('returns Unauthorized and makes no provider call when there is no session', async () => {
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session: null,
       subscriptionId: VALID_SUB.id,
     });
@@ -26,6 +28,7 @@ describe('getPaymentUpdateUrlCore', () => {
     'denies a non-member session role (%s) and makes no provider call',
     async role => {
       const result = await getPaymentUpdateUrlCore({
+        authority,
         session: { user: { id: 'user_123', role: role as never } },
         subscriptionId: VALID_SUB.id,
       });
@@ -41,6 +44,7 @@ describe('getPaymentUpdateUrlCore', () => {
       hoisted.db.query.subscriptions.findFirst.mockResolvedValue(VALID_SUB);
 
       const result = await getPaymentUpdateUrlCore({
+        authority,
         session: { user: { id: 'user_123', role } },
         subscriptionId: VALID_SUB.id,
       });
@@ -57,6 +61,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -69,6 +74,7 @@ describe('getPaymentUpdateUrlCore', () => {
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: 'cross_tenant_sub',
     });
@@ -84,6 +90,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -99,6 +106,7 @@ describe('getPaymentUpdateUrlCore', () => {
     });
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -116,6 +124,7 @@ describe('getPaymentUpdateUrlCore', () => {
       hoisted.db.query.subscriptions.findFirst.mockResolvedValue({ ...VALID_SUB, status });
 
       const result = await getPaymentUpdateUrlCore({
+        authority,
         session,
         subscriptionId: VALID_SUB.id,
       });
@@ -137,6 +146,7 @@ describe('getPaymentUpdateUrlCore', () => {
       });
 
       const result = await getPaymentUpdateUrlCore({
+        authority,
         session,
         subscriptionId: VALID_SUB.id,
       });
@@ -158,6 +168,7 @@ describe('getPaymentUpdateUrlCore', () => {
       });
 
       const result = await getPaymentUpdateUrlCore({
+        authority,
         session,
         subscriptionId: VALID_SUB.id,
       });
@@ -175,6 +186,7 @@ describe('getPaymentUpdateUrlCore', () => {
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(VALID_SUB);
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });
@@ -188,6 +200,7 @@ describe('getPaymentUpdateUrlCore', () => {
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(VALID_SUB);
 
     const result = await getPaymentUpdateUrlCore({
+      authority,
       session,
       subscriptionId: VALID_SUB.id,
     });

@@ -1,3 +1,4 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 export type SubscriptionSession = {
   user: {
     id: string;
@@ -15,7 +16,7 @@ export type AuditEvent = {
   action: string;
   entityType: string;
   entityId?: string | null;
-  tenantId?: string | null;
+  authority: TenantAuthority;
   metadata?: Record<string, unknown>;
   headers?: Headers;
 };

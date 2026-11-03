@@ -1,4 +1,5 @@
 import type { TenantTransaction } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runNumberResolverInTenantContext } from './tenant-context';
@@ -9,6 +10,10 @@ vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantC
 
 // Narrow stand-in: the adapter only forwards the transaction, it never reads it.
 const tx = { query: { marker: 'tenant-tx' } } as unknown as TenantTransaction;
+const authority = mintTestTenantAuthority('tenant-access', {
+  userId: 'admin-1',
+  role: 'tenant_admin',
+});
 
 describe('runNumberResolverInTenantContext', () => {
   beforeEach(() => {
@@ -18,39 +23,21 @@ describe('runNumberResolverInTenantContext', () => {
     );
   });
 
-  it('delegates once with the exact context and hands the actual transaction to the lookup', async () => {
+  it('delegates once with the exact authority and hands the actual transaction to the lookup', async () => {
     const lookup = vi.fn().mockResolvedValue('id-1');
 
-    const result = await runNumberResolverInTenantContext(
-      { tenantId: 'tenant-access', role: 'tenant_admin' },
-      lookup
-    );
+    const result = await runNumberResolverInTenantContext(authority, lookup);
 
     expect(result).toBe('id-1');
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext.mock.calls[0][0]).toEqual({
-      tenantId: 'tenant-access',
-      role: 'tenant_admin',
-    });
+    expect(mocks.withTenantContext.mock.calls[0][0]).toBe(authority);
     expect(lookup).toHaveBeenCalledTimes(1);
     expect(lookup.mock.calls[0][0]).toBe(tx);
   });
 
-  it('preserves a null role without substituting one', async () => {
-    await runNumberResolverInTenantContext(
-      { tenantId: 'tenant-access', role: null },
-      vi.fn().mockResolvedValue('id-1')
-    );
-
-    expect(mocks.withTenantContext.mock.calls[0][0]).toEqual({
-      tenantId: 'tenant-access',
-      role: null,
-    });
-  });
-
   it('returns null when the lookup finds nothing', async () => {
     const result = await runNumberResolverInTenantContext(
-      { tenantId: 'tenant-access', role: 'tenant_admin' },
+      authority,
       vi.fn().mockResolvedValue(null)
     );
 
@@ -61,10 +48,7 @@ describe('runNumberResolverInTenantContext', () => {
     const failure = new Error('connection terminated');
 
     await expect(
-      runNumberResolverInTenantContext(
-        { tenantId: 'tenant-access', role: 'tenant_admin' },
-        vi.fn().mockRejectedValue(failure)
-      )
+      runNumberResolverInTenantContext(authority, vi.fn().mockRejectedValue(failure))
     ).rejects.toBe(failure);
   });
 
@@ -73,9 +57,7 @@ describe('runNumberResolverInTenantContext', () => {
     mocks.withTenantContext.mockRejectedValueOnce(failure);
     const lookup = vi.fn();
 
-    await expect(
-      runNumberResolverInTenantContext({ tenantId: 'tenant-access', role: 'tenant_admin' }, lookup)
-    ).rejects.toBe(failure);
+    await expect(runNumberResolverInTenantContext(authority, lookup)).rejects.toBe(failure);
 
     expect(lookup).not.toHaveBeenCalled();
   });

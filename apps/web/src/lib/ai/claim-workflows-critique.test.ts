@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => {
   const select = vi.fn(() => ({ from }));
 
   return {
+    authorizeInngestEventTenant: vi.fn(),
     db: { select },
     extractClaimIntake: vi.fn(),
     mintClaimDocumentAiCallContext: vi.fn(),
@@ -23,13 +24,16 @@ const mocks = vi.hoisted(() => {
     txInsert,
     txUpdateSet,
     withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
-      callback({ insert: txInsert, update: vi.fn(() => ({ set: txUpdateSet })) })
+      callback({ insert: txInsert, select, update: vi.fn(() => ({ set: txUpdateSet })) })
     ),
   };
 });
 
 vi.mock('@/lib/db.server', () => ({ db: mocks.db }));
-vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantContext }));
+vi.mock('@interdomestik/database', () => ({
+  authorizeInngestEventTenant: mocks.authorizeInngestEventTenant,
+  withTenantContext: mocks.withTenantContext,
+}));
 vi.mock('@interdomestik/database/schema', () => ({
   aiRuns: { __name: 'ai_runs', id: { __name: 'ai_runs.id' }, status: {}, entityType: {} },
   claims: { __name: 'claim', id: {}, tenantId: {} },
@@ -48,12 +52,18 @@ vi.mock('@interdomestik/domain-claims', () => ({
   mintClaimDocumentAiCallContext: mocks.mintClaimDocumentAiCallContext,
   resolveClaimDocumentAiExtractionConsent: mocks.resolveClaimDocumentAiExtractionConsent,
 }));
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import { processClaimDocumentWorkflowRunService } from './claim-workflows';
 import { claimIntakeAiCallContext } from '@/test/ai-call-context';
+
+const authority = mintTestTenantAuthority('tenant-1');
+const ingress = Object.freeze({}) as unknown as IngressCapability<'inngest'>;
 
 describe('processClaimDocumentWorkflowRunService critique gate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.authorizeInngestEventTenant.mockResolvedValue(authority);
     mocks.selectWhere.mockResolvedValue([
       {
         runId: 'run-1',
@@ -95,6 +105,8 @@ describe('processClaimDocumentWorkflowRunService critique gate', () => {
   it('marks the run failed and skips extraction persistence for failed critique', async () => {
     const result = await processClaimDocumentWorkflowRunService({
       runId: 'run-1',
+      ingress,
+      tenantId: 'tenant-1',
       deps: {
         downloadFile: vi.fn().mockResolvedValue(Buffer.alloc(0)),
         analyzePdf: vi.fn().mockResolvedValue(''),
@@ -124,6 +136,8 @@ describe('processClaimDocumentWorkflowRunService critique gate', () => {
 
     const result = await processClaimDocumentWorkflowRunService({
       runId: 'run-1',
+      ingress,
+      tenantId: 'tenant-1',
       deps: {
         downloadFile: vi.fn().mockResolvedValue(Buffer.from('claim text')),
         analyzePdf: vi.fn().mockResolvedValue('Claim text with enough usable content.'),

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import type { ClaimsSession } from '../claims/types';
 
 const mocks = vi.hoisted(() => {
@@ -11,6 +12,7 @@ const mocks = vi.hoisted(() => {
   return {
     query,
     select: vi.fn(),
+    contexts: [] as unknown[],
     eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
     and: vi.fn((...conditions) => ({ op: 'and', conditions })),
     inArray: vi.fn((left, values) => ({ op: 'inArray', left, values })),
@@ -36,9 +38,12 @@ vi.mock('@interdomestik/database', () => ({
   eq: mocks.eq,
   inArray: mocks.inArray,
   withTenantContext: (
-    _context: unknown,
+    context: unknown,
     action: (tx: { select: typeof mocks.select }) => unknown
-  ) => action({ select: mocks.select }),
+  ) => {
+    mocks.contexts.push(context);
+    return action({ select: mocks.select });
+  },
 }));
 
 import {
@@ -47,6 +52,7 @@ import {
 } from './assigned-claim-attention';
 
 const now = new Date('2026-09-29T12:00:00.000Z');
+const authority = mintTestTenantAuthority('tenant-1');
 const staffSession = {
   user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' },
 } as ClaimsSession;
@@ -111,6 +117,7 @@ describe('deriveAssignedClaimAttention', () => {
 
 describe('getAssignedStaffClaimAttention', () => {
   beforeEach(() => {
+    mocks.contexts.length = 0;
     mocks.select.mockReset().mockReturnValue(mocks.query);
     mocks.query.from.mockReturnValue(mocks.query);
     mocks.query.innerJoin.mockReturnValue(mocks.query);
@@ -122,16 +129,26 @@ describe('getAssignedStaffClaimAttention', () => {
     await expect(
       getAssignedStaffClaimAttention(
         { user: { ...staffSession.user, role: 'branch_manager' } } as ClaimsSession,
+        authority,
         ['claim-1']
       )
     ).rejects.toThrow('Staff access required');
     expect(mocks.select).not.toHaveBeenCalled();
   });
 
+  it('denies a missing authority and never queries', async () => {
+    await expect(getAssignedStaffClaimAttention(staffSession, null, ['claim-1'])).rejects.toThrow(
+      'Staff access required'
+    );
+    expect(mocks.select).not.toHaveBeenCalled();
+  });
+
   it('scopes the read by tenant, open request, selected claims and assigned staff', async () => {
-    const result = await getAssignedStaffClaimAttention(staffSession, ['claim-1'], now);
+    const result = await getAssignedStaffClaimAttention(staffSession, authority, ['claim-1'], now);
 
     expect(result['claim-1']).toEqual({ nextActor: 'untracked', overdueFollowUpDueAt: null });
+    expect(mocks.contexts).toHaveLength(1);
+    expect(mocks.contexts[0]).toBe(authority);
     expect(mocks.query.where).toHaveBeenCalledWith(
       expect.objectContaining({
         op: 'and',
@@ -147,8 +164,8 @@ describe('getAssignedStaffClaimAttention', () => {
 
   it('propagates a failed read instead of showing an empty staff queue', async () => {
     mocks.query.where.mockRejectedValueOnce(new Error('database unavailable'));
-    await expect(getAssignedStaffClaimAttention(staffSession, ['claim-1'])).rejects.toThrow(
-      'database unavailable'
-    );
+    await expect(
+      getAssignedStaffClaimAttention(staffSession, authority, ['claim-1'])
+    ).rejects.toThrow('database unavailable');
   });
 });

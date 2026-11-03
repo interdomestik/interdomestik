@@ -1,67 +1,80 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveAdminTenantContext } from './tenant-context';
+import { resolveAdminTenantAuthority } from './tenant-context';
 
 const mocks = vi.hoisted(() => ({
-  findFirst: vi.fn(),
+  delegateSuperAdminTenant: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
-    query: {
-      tenants: {
-        findFirst: (...args: unknown[]) => mocks.findFirst(...args),
-      },
-    },
-  },
+vi.mock('@interdomestik/database', () => ({
+  delegateSuperAdminTenant: (...args: unknown[]) => mocks.delegateSuperAdminTenant(...args),
 }));
 
-describe('resolveAdminTenantContext', () => {
+describe('resolveAdminTenantAuthority', () => {
   beforeEach(() => {
-    mocks.findFirst.mockReset();
+    mocks.delegateSuperAdminTenant.mockReset();
   });
 
-  it('returns session tenant for non-super-admin users', async () => {
-    const tenantId = await resolveAdminTenantContext({
-      session: { user: { role: 'tenant_admin', tenantId: 'tenant_ks' } },
-      searchParams: { tenantId: 'tenant_mk' },
-    });
+  it('keeps the session authority for non-super-admin users and ignores a requested tenant', async () => {
+    const authority = mintTestTenantAuthority('tenant_ks');
 
-    expect(tenantId).toBe('tenant_ks');
-    expect(mocks.findFirst).not.toHaveBeenCalled();
+    await expect(
+      resolveAdminTenantAuthority({
+        authority,
+        role: 'tenant_admin',
+        searchParams: { tenantId: 'tenant_mk' },
+      })
+    ).resolves.toBe(authority);
+    expect(mocks.delegateSuperAdminTenant).not.toHaveBeenCalled();
   });
 
-  it('falls back to tenantId when accessTenantId is blank', async () => {
-    const tenantId = await resolveAdminTenantContext({
-      session: {
-        user: { accessTenantId: ' ', role: 'tenant_admin', tenantId: 'tenant_ks' },
-      },
-      searchParams: { tenantId: 'tenant_mk' },
-    });
-
-    expect(tenantId).toBe('tenant_ks');
-    expect(mocks.findFirst).not.toHaveBeenCalled();
+  it('reads nothing without a session authority, even for a super_admin', async () => {
+    await expect(
+      resolveAdminTenantAuthority({
+        authority: null,
+        role: 'super_admin',
+        searchParams: { tenantId: 'tenant_mk' },
+      })
+    ).resolves.toBeNull();
+    expect(mocks.delegateSuperAdminTenant).not.toHaveBeenCalled();
   });
 
-  it('allows super_admin tenant switch only for active tenants', async () => {
-    mocks.findFirst.mockResolvedValue({ id: 'tenant_mk' });
+  it('delegates a super_admin tenant switch to an active tenant', async () => {
+    const authority = mintTestTenantAuthority('tenant_ks');
+    const delegated = mintTestTenantAuthority('tenant_mk');
+    mocks.delegateSuperAdminTenant.mockResolvedValue(delegated);
 
-    const tenantId = await resolveAdminTenantContext({
-      session: { user: { role: 'super_admin', tenantId: 'tenant_ks' } },
-      searchParams: { tenantId: 'tenant_mk' },
-    });
-
-    expect(tenantId).toBe('tenant_mk');
-    expect(mocks.findFirst).toHaveBeenCalledTimes(1);
+    await expect(
+      resolveAdminTenantAuthority({
+        authority,
+        role: 'super_admin',
+        searchParams: { tenantId: ' tenant_mk ' },
+      })
+    ).resolves.toBe(delegated);
+    expect(mocks.delegateSuperAdminTenant).toHaveBeenCalledTimes(1);
+    expect(mocks.delegateSuperAdminTenant.mock.calls[0]?.[0]).toBe(authority);
+    expect(mocks.delegateSuperAdminTenant.mock.calls[0]?.[1]).toBe('tenant_mk');
   });
 
-  it('falls back to session tenant when requested tenant is invalid', async () => {
-    mocks.findFirst.mockResolvedValue(undefined);
+  it('falls back to the session authority when the requested tenant is unknown or inactive', async () => {
+    const authority = mintTestTenantAuthority('tenant_ks');
+    mocks.delegateSuperAdminTenant.mockResolvedValue(null);
 
-    const tenantId = await resolveAdminTenantContext({
-      session: { user: { role: 'super_admin', tenantId: 'tenant_ks' } },
-      searchParams: { tenantId: 'invalid' },
-    });
+    await expect(
+      resolveAdminTenantAuthority({
+        authority,
+        role: 'super_admin',
+        searchParams: { tenantId: 'invalid' },
+      })
+    ).resolves.toBe(authority);
+  });
 
-    expect(tenantId).toBe('tenant_ks');
+  it('uses the session authority without a delegation when a super_admin requests no tenant', async () => {
+    const authority = mintTestTenantAuthority('tenant_ks');
+
+    await expect(
+      resolveAdminTenantAuthority({ authority, role: 'super_admin', searchParams: {} })
+    ).resolves.toBe(authority);
+    expect(mocks.delegateSuperAdminTenant).not.toHaveBeenCalled();
   });
 });

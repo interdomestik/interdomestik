@@ -1,19 +1,27 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  TEST_PADDLE_DELIVERY,
+  authorizeTestPaddleOwner,
+} from './paddle-webhooks/paddle-authority.test-support';
+
 const hoisted = vi.hoisted(() => ({
+  authorizePaddleTenant: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   or: vi.fn((...args: unknown[]) => ({ op: 'or', args })),
   findSubscriptionFirst: vi.fn(),
-  withTenantContext: vi.fn(
-    async (_context: { tenantId: string; role?: string }, action: (tx: unknown) => unknown) =>
-      action({
-        query: {
-          subscriptions: {
-            findFirst: hoisted.findSubscriptionFirst,
-          },
+  resolvePaddleSubscriptionOwner: vi.fn(),
+  withTenantContext: vi.fn(async (_context: unknown, action: (tx: unknown) => unknown) =>
+    action({
+      query: {
+        subscriptions: {
+          findFirst: hoisted.findSubscriptionFirst,
         },
-      })
+      },
+    })
   ),
   subscriptions: {
     userId: 'subscriptions.user_id',
@@ -36,18 +44,23 @@ vi.mock('@interdomestik/database', () => ({
   or: hoisted.or,
   subscriptions: hoisted.subscriptions,
   withTenantContext: hoisted.withTenantContext,
+  resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
+  authorizePaddleTenant: hoisted.authorizePaddleTenant,
 }));
 
 import {
-  findSubscriptionByProviderReference,
+  findPaddleSubscriptionByReference,
   getActiveSubscription,
   hasActiveMembership,
   resolveProviderSubscriptionHandle,
 } from './subscription';
 
 describe('subscription claim eligibility', () => {
+  const authority = mintTestTenantAuthority('tenant_ks');
+
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.authorizePaddleTenant.mockImplementation(authorizeTestPaddleOwner);
     hoisted.findSubscriptionFirst.mockResolvedValue(null);
   });
 
@@ -62,8 +75,14 @@ describe('subscription claim eligibility', () => {
 
     hoisted.findSubscriptionFirst.mockResolvedValue(subscription);
 
-    await expect(hasActiveMembership('member-1', 'tenant_ks')).resolves.toBe(true);
-    await expect(getActiveSubscription('member-1', 'tenant_ks')).resolves.toEqual(subscription);
+    await expect(hasActiveMembership('member-1', authority)).resolves.toBe(true);
+    await expect(getActiveSubscription('member-1', authority)).resolves.toEqual(subscription);
+    // Both lookups run under the caller's authority and are scoped to its tenant.
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(2);
+    for (const [context] of hoisted.withTenantContext.mock.calls) {
+      expect(context).toBe(authority);
+    }
+    expect(hoisted.eq).toHaveBeenCalledWith(hoisted.subscriptions.tenantId, 'tenant_ks');
   });
 
   it('treats past_due subscriptions inside grace as active membership', async () => {
@@ -77,8 +96,8 @@ describe('subscription claim eligibility', () => {
 
     hoisted.findSubscriptionFirst.mockResolvedValue(subscription);
 
-    await expect(hasActiveMembership('member-1', 'tenant_ks')).resolves.toBe(true);
-    await expect(getActiveSubscription('member-1', 'tenant_ks')).resolves.toEqual(subscription);
+    await expect(hasActiveMembership('member-1', authority)).resolves.toBe(true);
+    await expect(getActiveSubscription('member-1', authority)).resolves.toEqual(subscription);
   });
 
   it('treats scheduled cancellation as active membership until the provider closes the term', async () => {
@@ -93,8 +112,8 @@ describe('subscription claim eligibility', () => {
 
     hoisted.findSubscriptionFirst.mockResolvedValue(subscription);
 
-    await expect(hasActiveMembership('member-1', 'tenant_ks')).resolves.toBe(true);
-    await expect(getActiveSubscription('member-1', 'tenant_ks')).resolves.toEqual(subscription);
+    await expect(hasActiveMembership('member-1', authority)).resolves.toBe(true);
+    await expect(getActiveSubscription('member-1', authority)).resolves.toEqual(subscription);
   });
 
   it('rejects past_due subscriptions after grace expires', async () => {
@@ -106,66 +125,81 @@ describe('subscription claim eligibility', () => {
       gracePeriodEndsAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
     });
 
-    await expect(hasActiveMembership('member-1', 'tenant_ks')).resolves.toBe(false);
-    await expect(getActiveSubscription('member-1', 'tenant_ks')).resolves.toBeNull();
+    await expect(hasActiveMembership('member-1', authority)).resolves.toBe(false);
+    await expect(getActiveSubscription('member-1', authority)).resolves.toBeNull();
   });
 
-  it('throws when tenantId is missing', async () => {
-    await expect(hasActiveMembership('member-1', null)).rejects.toThrow(
-      'tenantId is required for membership lookup'
+  it('fails closed without a lookup when the authority is not a recognized token', async () => {
+    const forged = { tenantId: 'tenant_ks' } as never;
+
+    await expect(hasActiveMembership('member-1', forged)).rejects.toThrow(
+      'Unrecognized tenant authority'
     );
-    await expect(getActiveSubscription('member-1', '')).rejects.toThrow(
-      'tenantId is required for membership lookup'
+    await expect(getActiveSubscription('member-1', forged)).rejects.toThrow(
+      'Unrecognized tenant authority'
     );
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.findSubscriptionFirst).not.toHaveBeenCalled();
   });
 
-  it('looks up subscriptions by either internal id or provider subscription id', async () => {
+  it('resolves a provider reference to its owning tenant, then reads the resolved subscription', async () => {
+    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValueOnce({
+      subscriptionId: 'sub_internal_1',
+      tenantId: 'tenant_ks',
+    });
     hoisted.findSubscriptionFirst.mockImplementationOnce(
       async (args: {
         where?: (
           subs: Record<string, string>,
           operators: {
+            and: (...clauses: unknown[]) => unknown;
             eq: (left: unknown, right: unknown) => unknown;
-            or: (...clauses: unknown[]) => unknown;
           }
         ) => unknown;
       }) => {
-        const whereNode = args.where?.(
-          {
-            id: 'subscriptions.id',
-            providerSubscriptionId: 'subscriptions.provider_subscription_id',
-          },
-          {
-            eq: (left, right) => ({ op: 'eq', left, right }),
-            or: (...clauses) => ({ op: 'or', clauses }),
-          }
-        ) as
-          | {
-              op?: string;
-              clauses?: Array<{ op?: string; left?: unknown; right?: unknown }>;
-            }
-          | undefined;
-
-        expect(whereNode).toEqual({
-          op: 'or',
-          clauses: [
-            { op: 'eq', left: 'subscriptions.id', right: 'sub_provider_123' },
-            {
-              op: 'eq',
-              left: 'subscriptions.provider_subscription_id',
-              right: 'sub_provider_123',
-            },
+        expect(
+          args.where?.({ id: 'subscriptions.id', tenantId: 'subscriptions.tenant_id' }, hoisted)
+        ).toEqual({
+          op: 'and',
+          args: [
+            { op: 'eq', left: 'subscriptions.tenant_id', right: 'tenant_ks' },
+            { op: 'eq', left: 'subscriptions.id', right: 'sub_internal_1' },
           ],
         });
 
-        return { id: 'sub_internal_1', providerSubscriptionId: 'sub_provider_123' };
+        return {
+          id: 'sub_internal_1',
+          tenantId: 'tenant_ks',
+          providerSubscriptionId: 'sub_provider_123',
+        };
       }
     );
 
-    await expect(findSubscriptionByProviderReference('sub_provider_123')).resolves.toEqual({
+    const lookup = await findPaddleSubscriptionByReference(
+      'sub_provider_123',
+      TEST_PADDLE_DELIVERY
+    );
+    expect(lookup?.subscription).toEqual({
       id: 'sub_internal_1',
+      tenantId: 'tenant_ks',
       providerSubscriptionId: 'sub_provider_123',
     });
+    expect(hoisted.resolvePaddleSubscriptionOwner).toHaveBeenCalledWith('sub_provider_123');
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(lookup?.authority, expect.any(Function));
+    expect(readTenantAuthority(lookup!.authority).tenantId).toBe('tenant_ks');
+  });
+
+  it('returns null without any tenant context when the provider reference has no unique owner', async () => {
+    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValueOnce(null);
+
+    await expect(
+      findPaddleSubscriptionByReference('sub_unknown', TEST_PADDLE_DELIVERY)
+    ).resolves.toBeNull();
+
+    expect(hoisted.resolvePaddleSubscriptionOwner).toHaveBeenCalledWith('sub_unknown');
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.findSubscriptionFirst).not.toHaveBeenCalled();
   });
 
   it('prefers provider subscription id when calling the billing provider', () => {

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ClaimsSession } from '../claims/types';
@@ -21,22 +22,22 @@ const mocks = vi.hoisted(() => {
   const txUpdateWhere = vi.fn();
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
-  const transaction = vi.fn(async cb =>
+  const query = {
+    claims: { findFirst: vi.fn() },
+    user: { findFirst: vi.fn() },
+  };
+  const withTenantContext = vi.fn(async (_context: unknown, cb: (tx: unknown) => unknown) =>
     cb({
       insert: txInsert,
+      query,
       select: txSelect,
       update: txUpdate,
     })
   );
 
   return {
-    db: {
-      query: {
-        claims: { findFirst: vi.fn() },
-        user: { findFirst: vi.fn() },
-      },
-      transaction,
-    },
+    db: { query },
+    withTenantContext,
     appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
     claims: {
       id: 'claims.id',
@@ -73,8 +74,8 @@ vi.mock('@interdomestik/database', () => ({
   appendEvent: mocks.appendEvent,
   claimEscalationAgreements: mocks.claimEscalationAgreements,
   claims: mocks.claims,
-  db: mocks.db,
   eq: mocks.eq,
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
@@ -106,6 +107,8 @@ function createSession(options: {
   } as unknown as ClaimsSession;
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('saveRecoveryDecisionCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -125,6 +128,7 @@ describe('saveRecoveryDecisionCore', () => {
 
   it('rejects unauthorized callers', async () => {
     const result = await saveRecoveryDecisionCore({
+      authority,
       claimId: 'claim-1',
       decisionType: 'accepted',
       session: createSession({ userId: 'member-1', role: 'member' }),
@@ -145,6 +149,7 @@ describe('saveRecoveryDecisionCore', () => {
     mocks.agreementSelectChain.limit.mockResolvedValue([]);
 
     const result = await saveRecoveryDecisionCore({
+      authority,
       claimId: 'claim-1',
       decisionType: 'accepted',
       explanation: 'Clear insurer path and viable monetary recovery.',
@@ -180,6 +185,7 @@ describe('saveRecoveryDecisionCore', () => {
 
     const result = await saveRecoveryDecisionCore(
       {
+        authority,
         claimId: 'claim-1',
         decisionType: 'accepted',
         session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
@@ -194,9 +200,13 @@ describe('saveRecoveryDecisionCore', () => {
         'member@example.com',
         { id: 'claim-1', title: 'Vehicle claim', userId: 'member-1' },
         'accepted',
-        { tenantId: 'tenant-1' }
+        { authority }
       )
     );
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(3);
+    for (const call of mocks.withTenantContext.mock.calls) {
+      expect(call[0]).toBe(authority);
+    }
   });
 
   it('does not report failure when post-commit notification lookup fails', async () => {
@@ -211,6 +221,7 @@ describe('saveRecoveryDecisionCore', () => {
 
     const result = await saveRecoveryDecisionCore(
       {
+        authority,
         claimId: 'claim-1',
         decisionType: 'accepted',
         session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
@@ -229,6 +240,7 @@ describe('saveRecoveryDecisionCore', () => {
     mocks.claimSelectChain.limit.mockResolvedValue([]);
 
     const result = await saveRecoveryDecisionCore({
+      authority,
       claimId: 'claim-1',
       decisionType: 'accepted',
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),

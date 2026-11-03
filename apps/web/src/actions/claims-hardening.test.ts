@@ -1,4 +1,5 @@
 // Mock domain components to verify calls
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 import { updateClaimStatusCore as adminUpdate } from './admin-claims/update-status.core';
 import { updateClaimStatusCore as agentUpdate } from './agent-claims/update-status.core';
@@ -40,6 +41,7 @@ describe('Claims Action Hardening Verification', () => {
     user: { id: 'user-1', role: 'tenant_admin', tenantId: 't1' },
     excludes: () => false,
   };
+  const authority = mintTestTenantAuthority('t1');
   const getFormData = (status: string) => {
     const fd = new FormData();
     fd.append('claimId', 'c1');
@@ -56,6 +58,7 @@ describe('Claims Action Hardening Verification', () => {
           formData: getFormData('submitted'),
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           session: baseSession as any,
+          authority,
           requestHeaders: new Headers(),
         })
       ).rejects.toThrow('Too many requests');
@@ -68,6 +71,7 @@ describe('Claims Action Hardening Verification', () => {
           formData: getFormData('invalid-status'),
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           session: baseSession as any,
+          authority,
           requestHeaders: new Headers(),
         })
       ).rejects.toThrow('Invalid status');
@@ -83,6 +87,7 @@ describe('Claims Action Hardening Verification', () => {
           newStatus: 'submitted',
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           session: baseSession as any,
+          authority,
           requestHeaders: new Headers(),
         })
       ).rejects.toThrow('Too many requests');
@@ -97,6 +102,7 @@ describe('Claims Action Hardening Verification', () => {
         newStatus: 'submitted',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         session: baseSession as any,
+        authority,
         requestHeaders: new Headers({ host: 'ks.localhost:3000' }),
       });
 
@@ -115,6 +121,7 @@ describe('Claims Action Hardening Verification', () => {
         newStatus: 'submitted',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         session: baseSession as any,
+        authority,
       });
       expect(result).toEqual({ success: false, error: 'Too many requests. Please wait a moment.' });
     });

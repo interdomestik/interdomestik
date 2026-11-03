@@ -1,3 +1,7 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -35,6 +39,12 @@ vi.mock('drizzle-orm', async importOriginal => {
 });
 
 import { GET } from './route';
+
+/** The audit row was written under the session authority of this tenant. */
+const auditTenant = (tenantId: string) =>
+  expect.toSatisfy(
+    (authority: TenantAuthority) => readTenantAuthority(authority).tenantId === tenantId
+  );
 
 describe('GET /api/documents/[id]/download access tenant audit', () => {
   beforeEach(() => {
@@ -80,10 +90,13 @@ describe('GET /api/documents/[id]/download access tenant audit', () => {
 
     expect(response.status).toBe(200);
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'document.download', tenantId: 'tenant_access' })
+      expect.objectContaining({
+        action: 'document.download',
+        authority: auditTenant('tenant_access'),
+      })
     );
     expect(hoisted.logAuditEvent).not.toHaveBeenCalledWith(
-      expect.objectContaining({ tenantId: 'tenant_legal_compat' })
+      expect.objectContaining({ authority: auditTenant('tenant_legal_compat') })
     );
   });
 });

@@ -1,3 +1,4 @@
+import { isTenantAuthority, readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -5,11 +6,25 @@ const mocks = vi.hoisted(() => {
   const set = vi.fn(() => ({ where }));
   const update = vi.fn(() => ({ set }));
 
+  const db = {
+    query: {
+      memberLeads: {
+        findFirst: vi.fn(),
+      },
+    },
+    update,
+  };
+  const withTenantContext = vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+    callback(db)
+  );
+
   return {
+    db,
+    withTenantContext,
     authGetSession: vi.fn(),
     headers: vi.fn(),
     ensureTenantId: vi.fn(),
-    findLead: vi.fn(),
+    findLead: db.query.memberLeads.findFirst,
     update,
     set,
     where,
@@ -48,14 +63,8 @@ vi.mock('next/cache', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      memberLeads: {
-        findFirst: mocks.findLead,
-      },
-    },
-    update: mocks.update,
-  },
+  db: mocks.db,
+  withTenantContext: mocks.withTenantContext,
   memberLeads: {
     id: 'member_leads.id',
     tenantId: 'member_leads.tenant_id',
@@ -74,6 +83,7 @@ function resetActionMocks() {
   mocks.ensureTenantId.mockReset();
   mocks.findLead.mockReset();
   mocks.update.mockClear();
+  mocks.withTenantContext.mockClear();
   mocks.set.mockClear();
   mocks.where.mockClear();
   mocks.startPayment.mockReset();
@@ -150,6 +160,14 @@ describe('convertLeadToClient', () => {
     await expect(convertLeadToClient('lead-2')).resolves.toEqual({ success: true });
 
     const scopedWhere = scopedWhereForLead('lead-2');
+    const authorityContexts = mocks.withTenantContext.mock.calls
+      .map(([context]) => context)
+      .filter(isTenantAuthority);
+    expect(authorityContexts).toHaveLength(2);
+    expect(authorityContexts.map(context => readTenantAuthority(context).tenantId)).toEqual([
+      'tenant-1',
+      'tenant-1',
+    ]);
     expect(mocks.findLead).toHaveBeenCalledWith({ where: scopedWhere });
     expect(mocks.where).toHaveBeenCalledWith(scopedWhere);
     expect(mocks.startPayment).not.toHaveBeenCalled();
@@ -233,8 +251,10 @@ describe('updateLeadStatus', () => {
       success: true,
     });
 
+    const paymentContext = mocks.startPayment.mock.calls[0][0];
+    expect(readTenantAuthority(paymentContext.authority).tenantId).toBe('tenant-1');
     expect(mocks.startPayment).toHaveBeenCalledWith(
-      { agentId: 'agent-1', branchId: 'branch-1', tenantId: 'tenant-1' },
+      { agentId: 'agent-1', authority: paymentContext.authority, branchId: 'branch-1' },
       {
         leadId: 'lead-3',
         method: 'cash',

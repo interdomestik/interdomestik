@@ -1,3 +1,8 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -46,6 +51,8 @@ import {
   findOwnedMemberInformationRequest,
   findOwnedMemberUploadClaim,
 } from './access';
+
+const authority = mintTestTenantAuthority('tenant-1', { userId: 'member-1', role: 'member' });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -107,7 +114,7 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
     await expect(
       findOwnedMemberUploadClaim({
         claimId: 'claim-1',
-        tenantId: 'tenant-1',
+        authority,
         userId: 'member-1',
       })
     ).resolves.toEqual({ id: 'claim-1' });
@@ -123,10 +130,7 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
       }),
       columns: { id: true },
     });
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1', role: 'member' },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.globalFindClaimFirst).not.toHaveBeenCalled();
   });
 
@@ -139,7 +143,7 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
 
     await findOwnedMemberUploadClaim({
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
+      authority,
       userId: 'member-1',
     });
 
@@ -153,21 +157,20 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
   });
 
   it.each(['admin', 'staff'])(
-    'preserves the canonical owning actor role %s in its lookup',
+    'carries the session actor role %s through its tenant authority into the lookup',
     async role => {
+      const actorAuthority = mintTestTenantAuthority('tenant-1', { userId: 'actor-1', role });
       hoisted.findClaimFirst.mockResolvedValueOnce({ id: 'claim-1' });
       await expect(
         findOwnedMemberUploadClaim({
           claimId: 'claim-1',
-          tenantId: 'tenant-1',
+          authority: actorAuthority,
           userId: 'actor-1',
-          role,
         })
       ).resolves.toEqual({ id: 'claim-1' });
-      expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-        { tenantId: 'tenant-1', role },
-        expect.any(Function)
-      );
+      expect(hoisted.withTenantContext).toHaveBeenCalledWith(actorAuthority, expect.any(Function));
+      const [context] = hoisted.withTenantContext.mock.calls[0] as [TenantAuthority];
+      expect(readTenantAuthority(context).principal?.role).toBe(role);
       expect(hoisted.globalFindClaimFirst).not.toHaveBeenCalled();
     }
   );
@@ -178,7 +181,7 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
     await expect(
       findOwnedMemberUploadClaim({
         claimId: 'claim-1',
-        tenantId: 'tenant-1',
+        authority,
         userId: 'member-2',
       })
     ).resolves.toBeNull();
@@ -191,7 +194,7 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
     await expect(
       findOwnedMemberUploadClaim({
         claimId: 'claim-1',
-        tenantId: 'tenant-1',
+        authority,
         userId: 'member-1',
       })
     ).rejects.toThrow('tenant context unavailable');
@@ -206,15 +209,12 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
       findOwnedMemberInformationRequest({
         claimId: 'claim-1',
         informationRequestId: 'request-1',
-        tenantId: 'tenant-1',
+        authority,
         userId: 'member-1',
       })
     ).resolves.toEqual({ id: 'request-1' });
 
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1', role: 'member' },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.requestSelect).toHaveBeenCalledWith({
       id: 'claim_information_requests.id',
     });

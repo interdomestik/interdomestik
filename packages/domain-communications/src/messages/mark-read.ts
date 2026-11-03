@@ -1,5 +1,9 @@
-import { claimMessages, withTenantContext } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { claimMessages } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { and, eq, inArray, isNull, ne } from 'drizzle-orm';
 
 import type { Session } from '../types';
@@ -15,12 +19,13 @@ import {
  */
 export async function markMessagesAsReadCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   messageIds: string[];
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const { session, messageIds } = params;
+    const { session, authority, messageIds } = params;
 
-    if (!session?.user) {
+    if (!session?.user || !authority) {
       return { success: false, error: 'Unauthorized' };
     }
 
@@ -29,12 +34,12 @@ export async function markMessagesAsReadCore(params: {
     }
 
     const actor = session.user;
-    const tenantId = ensureTenantId(session);
+    const { tenantId } = readTenantAuthority(authority);
     const userRole = actor.role || 'user';
     const isPrivilegedStaff = isFullTenantClaimsRole(userRole);
     const isStaff = isPrivilegedStaff || isScopedClaimsReadRole(userRole);
 
-    return await withTenantContext({ tenantId, role: userRole }, async tx => {
+    return await withTenantAuthority(authority, async tx => {
       // A read receipt must be created by a recipient for a message visible to their role.
       const baseCondition = and(
         eq(claimMessages.tenantId, tenantId),

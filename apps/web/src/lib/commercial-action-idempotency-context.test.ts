@@ -12,14 +12,14 @@ import {
   returning,
   selectLimit,
   tenantContexts,
+  tenantScope,
   txEntry,
 } from './commercial-action-idempotency-test-support';
 import { runCommercialActionWithIdempotency } from './commercial-action-idempotency';
 
 function expectTenantContextStorage(statements: number) {
-  expect(tenantContexts).toEqual(
-    Array.from({ length: statements }, () => ({ tenantId: 'tenant-1' }))
-  );
+  expect(tenantContexts).toHaveLength(statements);
+  for (const context of tenantContexts) expect(context).toBe(tenantScope().authority);
   expect(dbEntry.insert).not.toHaveBeenCalled();
   expect(dbEntry.select).not.toHaveBeenCalled();
   expect(dbEntry.update).not.toHaveBeenCalled();

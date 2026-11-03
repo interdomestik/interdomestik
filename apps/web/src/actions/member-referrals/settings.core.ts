@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import {
   getMemberReferralProgramSettingsCore as getMemberReferralProgramSettingsDomain,
   upsertMemberReferralProgramSettingsCore as upsertMemberReferralProgramSettingsDomain,
@@ -27,35 +28,42 @@ const settingsSchema = z
   })
   .strict();
 
-export async function getMemberReferralProgramSettingsCore(params: { session: Session | null }) {
-  await requireTenantAdminSession(params.session as UserSession | null);
+export async function getMemberReferralProgramSettingsCore(params: {
+  session: Session | null;
+  authority: TenantAuthority | null;
+}) {
+  await requireTenantAdminSession(params.session as UserSession | null, params.authority);
 
   const tenantId = params.session?.user?.tenantId;
-  if (!tenantId) {
+  if (!tenantId || !params.authority) {
     return { success: false as const, error: 'Missing tenant context' };
   }
 
-  return getMemberReferralProgramSettingsDomain({ tenantId });
+  return getMemberReferralProgramSettingsDomain({ authority: params.authority });
 }
 
-export async function getMemberReferralProgramPreviewCore(params: { session: Session | null }) {
+export async function getMemberReferralProgramPreviewCore(params: {
+  session: Session | null;
+  authority: TenantAuthority | null;
+}) {
   const tenantId = params.session?.user?.tenantId;
-  if (!tenantId) {
+  if (!tenantId || !params.authority) {
     return { success: false as const, error: 'Missing tenant context' };
   }
 
-  return getMemberReferralProgramSettingsDomain({ tenantId });
+  return getMemberReferralProgramSettingsDomain({ authority: params.authority });
 }
 
 export async function updateMemberReferralProgramSettingsCore(params: {
   session: Session | null;
+  authority: TenantAuthority | null;
   requestHeaders?: Headers;
   data: unknown;
 }) {
-  await requireTenantAdminSession(params.session as UserSession | null);
+  await requireTenantAdminSession(params.session as UserSession | null, params.authority);
 
   const tenantId = params.session?.user?.tenantId;
-  if (!tenantId) {
+  if (!tenantId || !params.authority) {
     return { success: false as const, error: 'Missing tenant context' };
   }
 
@@ -76,7 +84,7 @@ export async function updateMemberReferralProgramSettingsCore(params: {
   }
 
   const result = await upsertMemberReferralProgramSettingsDomain({
-    tenantId,
+    authority: params.authority,
     settings: parsed.data,
   });
 
@@ -85,7 +93,7 @@ export async function updateMemberReferralProgramSettingsCore(params: {
     await logAuditEvent({
       actorId: params.session?.user?.id ?? null,
       actorRole: params.session?.user?.role ?? null,
-      tenantId,
+      authority: params.authority,
       action: 'referral.settings_updated',
       entityType: 'referral_settings',
       metadata: {

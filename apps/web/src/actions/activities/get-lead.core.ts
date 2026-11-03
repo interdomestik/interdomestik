@@ -1,8 +1,8 @@
-import { getSessionFromHeaders } from './context';
+import { getAuthorizedActivityRequest } from './context';
 import { getLeadActivitiesCore as getLeadActivitiesDomain } from '@interdomestik/domain-activities/get-lead';
 
 export async function getLeadActivitiesCore(leadId: string) {
-  const session = await getSessionFromHeaders();
+  const { session, authority } = await getAuthorizedActivityRequest();
 
-  return getLeadActivitiesDomain({ session, leadId });
+  return getLeadActivitiesDomain({ session, authority, leadId });
 }

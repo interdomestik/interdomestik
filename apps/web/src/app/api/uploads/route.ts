@@ -1,5 +1,5 @@
-import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { signedUrlResponseInit } from '@/lib/storage/signed-url-exposure';
 import { NextResponse } from 'next/server';
@@ -16,11 +16,12 @@ export async function POST(req: Request) {
   });
   if (limited) return limited;
 
-  const session = await auth.api.getSession({ headers: req.headers });
+  const authorized = await authorizeSessionTenant(req.headers);
 
-  if (!session) {
+  if (!authorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const { session, authority } = authorized;
 
   const json = await req.json().catch(() => null);
   const parsed = uploadRequestSchema.safeParse(json);
@@ -45,6 +46,7 @@ export async function POST(req: Request) {
 
   const result = await createSignedUploadCore({
     session,
+    authority,
     input: parsed.data,
     bucket,
   });

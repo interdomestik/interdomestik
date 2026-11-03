@@ -105,9 +105,10 @@ test('only safe evidence lanes defer to configured Playwright reporters', () => 
 });
 
 test('root package script serializes CI contracts without dropping files', () => {
+  // The shard runner's `all` lane: every active contract file in one serialized runner.
   assert.equal(
     packageJson.scripts['test:ci:contracts'],
-    'node --test --test-concurrency=1 scripts/ci/*.test.mjs scripts/check-modularity-guard.test.mjs'
+    'node scripts/ci/contract-test-shards.mjs all'
   );
   for (const mode of ['core', 'guard-trust', 'parallel']) {
     assert.equal(

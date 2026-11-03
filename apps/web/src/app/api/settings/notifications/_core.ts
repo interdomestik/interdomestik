@@ -1,7 +1,11 @@
-import { db } from '@interdomestik/database';
 import { userNotificationPreferences } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type NotificationPreferences = {
   emailClaimUpdates: boolean;
@@ -23,24 +27,25 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
 
 export async function getNotificationPreferencesCore(args: {
   userId: string;
-  tenantId?: string | null;
+  authority: TenantAuthority;
 }): Promise<NotificationPreferences> {
-  const { userId, tenantId } = args;
-  if (!tenantId) {
-    throw new Error('Missing tenantId for notification preferences');
-  }
-  const resolvedTenantId = tenantId;
+  const { userId, authority } = args;
+  const { tenantId: resolvedTenantId } = readTenantAuthority(authority);
 
-  const [preferences] = await db
-    .select()
-    .from(userNotificationPreferences)
-    .where(
-      and(
-        eq(userNotificationPreferences.userId, userId),
-        eq(userNotificationPreferences.tenantId, resolvedTenantId)
-      )
-    )
-    .limit(1);
+  const [preferences] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select()
+        .from(userNotificationPreferences)
+        .where(
+          and(
+            eq(userNotificationPreferences.userId, userId),
+            eq(userNotificationPreferences.tenantId, resolvedTenantId)
+          )
+        )
+        .limit(1)
+  );
 
   if (!preferences) return DEFAULT_NOTIFICATION_PREFERENCES;
 
@@ -56,50 +61,59 @@ export async function getNotificationPreferencesCore(args: {
 
 export async function upsertNotificationPreferencesCore(args: {
   userId: string;
-  tenantId?: string | null;
+  authority: TenantAuthority;
   preferences: NotificationPreferences;
 }): Promise<void> {
-  const { userId, tenantId, preferences } = args;
-  if (!tenantId) {
-    throw new Error('Missing tenantId for notification preferences');
-  }
-  const resolvedTenantId = tenantId;
+  const { userId, authority, preferences } = args;
+  const { tenantId: resolvedTenantId } = readTenantAuthority(authority);
 
-  const [existing] = await db
-    .select()
-    .from(userNotificationPreferences)
-    .where(
-      and(
-        eq(userNotificationPreferences.userId, userId),
-        eq(userNotificationPreferences.tenantId, resolvedTenantId)
-      )
-    )
-    .limit(1);
+  const [existing] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select()
+        .from(userNotificationPreferences)
+        .where(
+          and(
+            eq(userNotificationPreferences.userId, userId),
+            eq(userNotificationPreferences.tenantId, resolvedTenantId)
+          )
+        )
+        .limit(1)
+  );
 
   if (existing) {
-    await db
-      .update(userNotificationPreferences)
-      .set({
-        ...preferences,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(userNotificationPreferences.userId, userId),
-          eq(userNotificationPreferences.tenantId, resolvedTenantId)
-        )
-      );
+    await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .update(userNotificationPreferences)
+          .set({
+            ...preferences,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(userNotificationPreferences.userId, userId),
+              eq(userNotificationPreferences.tenantId, resolvedTenantId)
+            )
+          )
+    );
 
     return;
   }
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated route context before preference insert
-  await db.insert(userNotificationPreferences).values({
-    id: nanoid(),
-    tenantId: resolvedTenantId,
-    userId,
-    ...preferences,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+  await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.insert(userNotificationPreferences).values({
+        id: nanoid(),
+        tenantId: resolvedTenantId,
+        userId,
+        ...preferences,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+  );
 }

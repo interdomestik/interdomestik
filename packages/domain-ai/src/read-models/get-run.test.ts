@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => {
@@ -27,6 +28,7 @@ const hoisted = vi.hoisted(() => {
 vi.mock('@interdomestik/database', () => ({
   and: hoisted.and,
   db: hoisted.db,
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(hoisted.db)),
   eq: hoisted.eq,
 }));
 
@@ -100,7 +102,7 @@ describe('getAiRun', () => {
     ]);
 
     const result = await getAiRun({
-      tenantId: 'tenant-1',
+      authority: mintTestTenantAuthority('tenant-1'),
       runId: 'run-1',
     });
 

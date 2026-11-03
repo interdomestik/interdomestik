@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   userFindFirst: vi.fn(),
@@ -6,9 +7,10 @@ const hoisted = vi.hoisted(() => ({
   memberActivitiesFindMany: vi.fn(),
   dbSelect: vi.fn(),
   getAgentMemberDetail: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
+const dbMock = vi.hoisted(() => {
+  const db = {
     query: {
       user: { findFirst: hoisted.userFindFirst },
       subscriptions: { findFirst: hoisted.subscriptionsFindFirst },
@@ -16,7 +18,17 @@ vi.mock('@interdomestik/database/db', () => ({
       memberActivities: { findMany: hoisted.memberActivitiesFindMany },
     },
     select: hoisted.dbSelect,
-  },
+  };
+  hoisted.withTenantContext.mockImplementation(
+    async (_context: unknown, callback: (tx: typeof db) => unknown) => callback(db)
+  );
+  return db;
+});
+vi.mock('@interdomestik/database/db', () => ({ db: dbMock }));
+vi.mock('@interdomestik/database', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database')>()),
+  db: dbMock,
+  withTenantContext: hoisted.withTenantContext,
 }));
 vi.mock('@interdomestik/database/schema', () => ({
   user: { id: 'user.id', tenantId: 'user.tenantId' },
@@ -71,10 +83,13 @@ function createSelectChain(result: unknown) {
 }
 
 describe('getAgentClientProfileCore', () => {
+  const authority = mintTestTenantAuthority('tenant_ks');
+
   it('returns forbidden when viewer tenant context is missing', async () => {
     const res = await getAgentClientProfileCore({
       memberId: 'm1',
-      viewer: { id: 'agent-1', role: 'agent', tenantId: null },
+      viewer: { id: 'agent-1', role: 'agent' },
+      authority: null,
     });
 
     expect(res).toEqual({ kind: 'forbidden' });
@@ -86,10 +101,12 @@ describe('getAgentClientProfileCore', () => {
 
     const res = await getAgentClientProfileCore({
       memberId: 'm1',
-      viewer: { id: 'v1', role: 'agent', tenantId: 'tenant_ks' },
+      viewer: { id: 'v1', role: 'agent' },
+      authority,
     });
 
     expect(res).toEqual({ kind: 'not_found' });
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
   });
 
   it('returns forbidden when agent tries to access a member they do not own', async () => {
@@ -98,7 +115,8 @@ describe('getAgentClientProfileCore', () => {
 
     const res = await getAgentClientProfileCore({
       memberId: 'm1',
-      viewer: { id: 'agent-1', role: 'agent', tenantId: 'tenant_ks' },
+      viewer: { id: 'agent-1', role: 'agent' },
+      authority,
     });
 
     expect(res).toEqual({ kind: 'forbidden' });
@@ -122,7 +140,8 @@ describe('getAgentClientProfileCore', () => {
 
     const res = await getAgentClientProfileCore({
       memberId: 'm1',
-      viewer: { id: 'agent-1', role: 'agent', tenantId: 'tenant_ks' },
+      viewer: { id: 'agent-1', role: 'agent' },
+      authority,
     });
 
     expect(res.kind).toBe('ok');
@@ -135,7 +154,8 @@ describe('getAgentClientProfileCore', () => {
 
     const res = await getAgentClientProfileCore({
       memberId: 'm1',
-      viewer: { id: 'agent-1', role: 'agent', tenantId: 'tenant_ks' },
+      viewer: { id: 'agent-1', role: 'agent' },
+      authority,
     });
 
     expect(res).toEqual({ kind: 'forbidden' });
@@ -148,7 +168,8 @@ describe('getAgentClientProfileCore', () => {
 
     const res = await getAgentClientProfileCore({
       memberId: 'm1',
-      viewer: { id: 'agent-1', role: 'agent', tenantId: 'tenant_ks' },
+      viewer: { id: 'agent-1', role: 'agent' },
+      authority,
     });
 
     expect(res).toEqual({ kind: 'forbidden' });
@@ -173,7 +194,8 @@ describe('getAgentClientProfileCore', () => {
 
     const res = await getAgentClientProfileCore({
       memberId: 'm1',
-      viewer: { id: 'agent-1', role: 'agent', tenantId: 'tenant_ks' },
+      viewer: { id: 'agent-1', role: 'agent' },
+      authority,
     });
 
     if (res.kind !== 'ok') {
@@ -199,7 +221,8 @@ describe('getAgentClientProfileCore', () => {
 
     const res = await getAgentClientProfileCore({
       memberId: 'm1',
-      viewer: { id: 'agent-1', role: 'agent', tenantId: 'tenant_ks' },
+      viewer: { id: 'agent-1', role: 'agent' },
+      authority,
     });
 
     if (res.kind !== 'ok') {

@@ -1,10 +1,12 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { ImportMemberRowInput } from './schemas';
 import { importMemberRowSchema } from './schemas';
 import { registerMemberCore } from './register-member.core';
+import { forEachInOrder } from '@/lib/in-order';
 
 type ImportMembersCoreParams = {
   agent: { id: string; name?: string | null };
-  tenantId: string;
+  authority: TenantAuthority;
   branchId: string | null;
   rows: ImportMemberRowInput[];
 };
@@ -19,7 +21,7 @@ type ImportMemberResult = {
 
 export async function importMembersCore({
   agent,
-  tenantId,
+  authority,
   branchId,
   rows,
 }: ImportMembersCoreParams) {
@@ -37,7 +39,7 @@ export async function importMembersCore({
 
   const results: ImportMemberResult[] = [];
 
-  for (const [index, row] of rows.entries()) {
+  await forEachInOrder(rows.entries(), async ([index, row]) => {
     const validated = importMemberRowSchema.safeParse(row);
 
     if (!validated.success) {
@@ -48,7 +50,7 @@ export async function importMembersCore({
         ok: false,
         error: 'Validation failed',
       });
-      continue;
+      return;
     }
 
     const formData = new FormData();
@@ -58,7 +60,7 @@ export async function importMembersCore({
     formData.set('password', validated.data.password);
     formData.set('planId', validated.data.planId);
 
-    const result = await registerMemberCore(agent, tenantId, branchId, formData, {
+    const result = await registerMemberCore(agent, authority, branchId, formData, {
       membershipMode: 'sponsored',
     });
 
@@ -69,7 +71,7 @@ export async function importMembersCore({
         fullName: validated.data.fullName,
         ok: true,
       });
-      continue;
+      return;
     }
 
     results.push({
@@ -79,7 +81,7 @@ export async function importMembersCore({
       ok: false,
       error: result.error,
     });
-  }
+  });
 
   return {
     summary: {

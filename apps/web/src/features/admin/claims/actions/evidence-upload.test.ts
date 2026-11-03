@@ -83,6 +83,9 @@ describe('admin claim evidence upload actions', () => {
         (await generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 128)).success
       ).toBe(true);
       expect(hoisted.findAccessibleAdminUploadClaim).toHaveBeenCalledOnce();
+      expect(hoisted.findAccessibleAdminUploadClaim).toHaveBeenCalledWith(
+        expect.objectContaining({ authority: expect.any(Object), role })
+      );
     }
   );
 
@@ -193,6 +196,9 @@ describe('admin claim evidence upload actions', () => {
     expect(hoisted.revalidatePath).toHaveBeenCalledWith('/mk/admin/claims/claim-1');
     expect(hoisted.persistClaimDocumentAndQueueWorkflows).toHaveBeenCalledWith(
       expect.not.objectContaining({ aiExtractionConsent: expect.anything() })
+    );
+    expect(hoisted.persistClaimDocumentAndQueueWorkflows).toHaveBeenCalledWith(
+      expect.objectContaining({ authority: expect.any(Object), tenantId: 'tenant-1' })
     );
   });
   it('returns a safe conflict without revalidation when persisted metadata differs', async () => {

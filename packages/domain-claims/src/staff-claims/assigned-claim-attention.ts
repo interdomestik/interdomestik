@@ -5,8 +5,12 @@ import {
   claims,
   eq,
   inArray,
-  withTenantContext,
 } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import type { ClaimsSession } from '../claims/types';
 
 export type AssignedClaimAttention = {
@@ -79,47 +83,50 @@ export function deriveAssignedClaimAttention(
 /** Only the assigned staff owner receives request progress for these claim IDs. */
 export async function getAssignedStaffClaimAttention(
   session: ClaimsSession | null,
+  authority: TenantAuthority | null,
   claimIds: readonly string[],
   now = new Date()
 ): Promise<Record<string, AssignedClaimAttention>> {
   const actor = session?.user;
-  if (actor?.role !== 'staff' || !actor.tenantId) throw new Error('Staff access required');
+  if (actor?.role !== 'staff' || !authority) throw new Error('Staff access required');
   if (claimIds.length === 0) return {};
-  const tenantId = actor.tenantId;
+  const { tenantId } = readTenantAuthority(authority);
   const staffId = actor.id;
 
-  const rows = await withTenantContext({ tenantId, role: 'staff' }, async tx =>
-    tx
-      .select({
-        claimId: claimInformationRequests.claimId,
-        requestId: claimInformationRequests.id,
-        dueAt: claimInformationRequests.dueAt,
-        submittedAt: claimInformationRequestEvidence.submittedAt,
-      })
-      .from(claimInformationRequests)
-      .innerJoin(
-        claims,
-        and(
-          eq(claims.id, claimInformationRequests.claimId),
-          eq(claims.tenantId, claimInformationRequests.tenantId)
+  const rows = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select({
+          claimId: claimInformationRequests.claimId,
+          requestId: claimInformationRequests.id,
+          dueAt: claimInformationRequests.dueAt,
+          submittedAt: claimInformationRequestEvidence.submittedAt,
+        })
+        .from(claimInformationRequests)
+        .innerJoin(
+          claims,
+          and(
+            eq(claims.id, claimInformationRequests.claimId),
+            eq(claims.tenantId, claimInformationRequests.tenantId)
+          )
         )
-      )
-      .leftJoin(
-        claimInformationRequestEvidence,
-        and(
-          eq(claimInformationRequestEvidence.tenantId, claimInformationRequests.tenantId),
-          eq(claimInformationRequestEvidence.claimId, claimInformationRequests.claimId),
-          eq(claimInformationRequestEvidence.requestId, claimInformationRequests.id)
+        .leftJoin(
+          claimInformationRequestEvidence,
+          and(
+            eq(claimInformationRequestEvidence.tenantId, claimInformationRequests.tenantId),
+            eq(claimInformationRequestEvidence.claimId, claimInformationRequests.claimId),
+            eq(claimInformationRequestEvidence.requestId, claimInformationRequests.id)
+          )
         )
-      )
-      .where(
-        and(
-          eq(claimInformationRequests.tenantId, tenantId),
-          inArray(claimInformationRequests.claimId, [...claimIds]),
-          eq(claimInformationRequests.status, 'open'),
-          eq(claims.staffId, staffId)
+        .where(
+          and(
+            eq(claimInformationRequests.tenantId, tenantId),
+            inArray(claimInformationRequests.claimId, [...claimIds]),
+            eq(claimInformationRequests.status, 'open'),
+            eq(claims.staffId, staffId)
+          )
         )
-      )
   );
 
   return deriveAssignedClaimAttention(claimIds, rows, now);

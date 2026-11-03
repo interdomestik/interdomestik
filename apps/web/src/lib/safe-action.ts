@@ -1,11 +1,13 @@
-import { auth } from '@/lib/auth';
+import type { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import {
   isStaffOrAdmin,
   ROLE_AGENT,
   ROLE_BRANCH_MANAGER,
   ROLE_TENANT_ADMIN,
 } from '@/lib/roles.core';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import * as Sentry from '@sentry/nextjs';
 import { headers as nextHeaders } from 'next/headers';
 
@@ -27,6 +29,8 @@ type SessionData = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
 
 export type ProtectedActionContext = {
   session: SessionData;
+  /** Tenant capability for withTenantContext, minted from this request's session. */
+  authority: TenantAuthority;
   tenantId: string;
   requestHeaders: Headers;
   userRole: string;
@@ -89,20 +93,22 @@ export async function runAuthenticatedAction<T>(
 ): ActionResult<T> {
   try {
     const requestHeaders = await nextHeaders();
-    const session = await auth.api.getSession({ headers: requestHeaders });
-
-    if (!session) {
-      return { success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' };
-    }
 
     // This throws if tenant is missing, enforcing safety
-    let tenantId: string;
+    let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
     try {
-      tenantId = ensureTenantId(session);
+      authorized = await authorizeSessionTenant(requestHeaders);
     } catch (error) {
+      if ((error as { name?: unknown } | null)?.name !== 'MissingTenantError') throw error;
       console.error('[SafeAction] Missing Tenant Context:', error);
       return { success: false, error: 'Missing tenant context', code: 'MISSING_TENANT' };
     }
+
+    if (!authorized) {
+      return { success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' };
+    }
+    const { session, authority } = authorized;
+    const tenantId = readTenantAuthority(authority).tenantId;
 
     // Set Sentry Context
     Sentry.setUser({
@@ -130,6 +136,7 @@ export async function runAuthenticatedAction<T>(
 
     const data = await handler({
       session,
+      authority,
       tenantId,
       requestHeaders,
       userRole: session.user.role,

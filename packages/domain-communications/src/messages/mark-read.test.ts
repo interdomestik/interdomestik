@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Predicate =
@@ -47,7 +48,8 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
-vi.mock('@interdomestik/shared-auth', () => ({
+vi.mock('@interdomestik/shared-auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/shared-auth')>()),
   ensureTenantId: vi.fn((session: { user: { tenantId: string } }) => session.user.tenantId),
 }));
 
@@ -66,7 +68,17 @@ vi.mock('drizzle-orm', () => ({
   })),
 }));
 
-import { markMessagesAsReadCore } from './mark-read';
+import { markMessagesAsReadCore as markMessagesAsReadCoreRaw } from './mark-read';
+
+const authorityOf = (session: { user: { tenantId: string } }) =>
+  mintTestTenantAuthority(session.user.tenantId);
+
+// Calls the core with the authority the request session would have produced.
+const markMessagesAsReadCore = (params: { session: never | null; messageIds: string[] }) =>
+  markMessagesAsReadCoreRaw({
+    ...params,
+    authority: params.session ? authorityOf(params.session) : null,
+  });
 
 function getUpdatePredicate(): Predicate {
   return mocks.updateWhere.mock.calls[0]?.[0] as Predicate;
@@ -233,5 +245,38 @@ describe('markMessagesAsReadCore', () => {
       })
     ).toBe(true);
     expect(mocks.select).not.toHaveBeenCalled();
+  });
+});
+
+describe('markMessagesAsReadCore authority', () => {
+  it('writes under the authority it was given', async () => {
+    mocks.context.mockClear();
+    mocks.context.mockImplementation((_context, action) =>
+      action({ update: mocks.update, select: mocks.select })
+    );
+    const authority = mintTestTenantAuthority('tenant-9');
+
+    await markMessagesAsReadCoreRaw({
+      session: { user: { id: 'staff-1', role: 'tenant_admin', tenantId: 'tenant-1' } } as never,
+      authority,
+      messageIds: ['msg-1'],
+    });
+
+    expect(mocks.context.mock.calls.at(-1)![0]).toBe(authority);
+  });
+
+  it('refuses a missing authority without opening a tenant transaction', async () => {
+    mocks.context.mockClear();
+    mocks.update.mockClear();
+
+    await expect(
+      markMessagesAsReadCoreRaw({
+        session: { user: { id: 'member-1', role: 'user', tenantId: 'tenant-1' } } as never,
+        authority: null,
+        messageIds: ['msg-1'],
+      })
+    ).resolves.toEqual({ success: false, error: 'Unauthorized' });
+    expect(mocks.context).not.toHaveBeenCalled();
+    expect(mocks.update).not.toHaveBeenCalled();
   });
 });

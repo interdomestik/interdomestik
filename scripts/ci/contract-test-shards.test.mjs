@@ -7,20 +7,29 @@ import yaml from 'js-yaml';
 
 import {
   GUARD_TRUST_SHARDS,
+  RETIRED_LEGACY_FILES,
+  RETIRED_LEGACY_TESTS,
   contractTestPlan,
   listContractTestFiles,
+  main,
   runParallel,
 } from './contract-test-shards.mjs';
 
 const root = path.resolve(import.meta.dirname, '../..');
 const scripts = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).scripts;
-const FULL_GLOB = 'scripts/ci/*.test.mjs scripts/check-modularity-guard.test.mjs';
 const GUARD_TRUST_FILES = [
   'scripts/ci/db-access-required-authority.test.mjs',
   'scripts/ci/db-access-required-candidate.test.mjs',
   'scripts/ci/db-access-required-merge.test.mjs',
   'scripts/ci/db-access-guard.test.mjs',
   'scripts/ci/db-access-git.test.mjs',
+  'scripts/ci/tenant-guard-s2-workflow.isolation.test.mjs',
+  'scripts/ci/tenant-guard-s2-workflow.test.mjs',
+];
+const RETIRED_FILES = [
+  'scripts/ci/db-access-protected-bootstrap.test.mjs',
+  'scripts/ci/db-access-protected-route.test.mjs',
+  'scripts/ci/db-access-resolver-transition-ci.test.mjs',
 ];
 
 // Independent of the helper: what the shell expands for the full serialized script.
@@ -45,15 +54,33 @@ function fixtureRoot(t, files) {
 
 const passing = "import test from 'node:test';\ntest('ok', () => {});\n";
 const failing = "import test from 'node:test';\ntest('broken', () => { throw new Error('x'); });\n";
+// A legacy file keeping its active tests next to a retired one that would fail if it ran.
+const withRetired = (file, body) =>
+  Object.hasOwn(RETIRED_LEGACY_TESTS, file)
+    ? [
+        "import test from 'node:test';",
+        "test('still active', () => {});",
+        ...RETIRED_LEGACY_TESTS[file].map(
+          name =>
+            `test(\n  ${JSON.stringify(name)},\n  () => { throw new Error('retired ran'); }\n);`
+        ),
+        '',
+      ].join('\n')
+    : body;
 const minimalSuite = (overrides = {}) =>
   Object.fromEntries(
-    [...GUARD_TRUST_FILES, 'scripts/ci/core-a.test.mjs', 'scripts/check-modularity-guard.test.mjs']
-      .map(file => [file, passing])
+    [
+      ...GUARD_TRUST_FILES,
+      ...RETIRED_FILES,
+      'scripts/ci/core-a.test.mjs',
+      'scripts/check-modularity-guard.test.mjs',
+    ]
+      .map(file => [file, RETIRED_FILES.includes(file) ? failing : withRetired(file, passing)])
       .concat(Object.entries(overrides))
   );
 
-test('full serialized contract script keeps the complete glob for local and Z620 parity', () => {
-  assert.equal(scripts['test:ci:contracts'], `node --test --test-concurrency=1 ${FULL_GLOB}`);
+test('full serialized contract script runs every active file for local and Z620 parity', () => {
+  assert.equal(scripts['test:ci:contracts'], 'node scripts/ci/contract-test-shards.mjs all');
   assert.equal(scripts['test:ci:contracts:core'], 'node scripts/ci/contract-test-shards.mjs core');
   assert.equal(
     scripts['test:ci:contracts:guard-trust'],
@@ -69,22 +96,47 @@ test('guard-trust shards are pinned by exact name and are the only exclusions fr
   assert.deepEqual(JSON.parse(JSON.stringify(GUARD_TRUST_SHARDS)), {
     authority: [GUARD_TRUST_FILES[0]],
     candidate: [GUARD_TRUST_FILES[1]],
-    'merge-guard-git': GUARD_TRUST_FILES.slice(2),
+    'merge-guard-git': GUARD_TRUST_FILES.slice(2, 5),
+    's2-workflow': GUARD_TRUST_FILES.slice(5),
   });
   const { all, shards } = contractTestPlan(root);
   assert.deepEqual(
     all.filter(file => !shards.core.includes(file)),
-    [...GUARD_TRUST_FILES].sort()
+    [...GUARD_TRUST_FILES, ...RETIRED_FILES].sort()
   );
 });
 
-test('core plus guard-trust shards equal the full glob with no overlap and no drop', () => {
+test('legacy retirement is pinned by exact file and exact test name', () => {
+  assert.deepEqual([...RETIRED_LEGACY_FILES], RETIRED_FILES);
+  assert.deepEqual(JSON.parse(JSON.stringify(RETIRED_LEGACY_TESTS)), {
+    'scripts/ci/db-access-guard.test.mjs': [
+      'actual production CLI authenticates root epoch and preserves 604 original entries',
+      'existing guard remains selected by mandatory lanes and baseline bytes stay historical',
+    ],
+    'scripts/ci/db-access-git.test.mjs': [
+      'candidate-local hostile PATH never executes during real fixtures, trust or production CLI',
+    ],
+  });
+  const { retired, skipArgs } = contractTestPlan(root);
+  assert.deepEqual(retired, RETIRED_FILES);
+  assert.deepEqual(
+    skipArgs,
+    Object.values(RETIRED_LEGACY_TESTS)
+      .flat()
+      .map(name => `--test-skip-pattern=^${name}$`)
+  );
+});
+
+test('core plus guard-trust shards equal the full glob minus retired files, with no overlap', () => {
   const expected = shellGlobFiles(root);
   assert.ok(expected.length > GUARD_TRUST_FILES.length);
   assert.deepEqual(listContractTestFiles(root), expected);
   const assigned = Object.values(contractTestPlan(root).shards).flat();
   assert.equal(new Set(assigned).size, assigned.length, 'a file is assigned to two shards');
-  assert.deepEqual([...assigned].sort(), expected);
+  assert.deepEqual(
+    [...assigned].sort(),
+    expected.filter(file => !RETIRED_FILES.includes(file))
+  );
   assert.ok(assigned.includes('scripts/ci/contract-test-shards.test.mjs'));
 });
 
@@ -105,11 +157,40 @@ test('a renamed or deleted guard-trust file fails closed instead of silently shr
   assert.throws(() => contractTestPlan(dir), /guard-trust contract files missing/u);
 });
 
+test('a missing, renamed or ambiguous retirement fails closed instead of widening', t => {
+  const withoutFile = minimalSuite();
+  delete withoutFile[RETIRED_FILES[0]];
+  assert.throws(
+    () => contractTestPlan(fixtureRoot(t, withoutFile)),
+    /retired legacy files missing/u
+  );
+  const renamed = minimalSuite({ 'scripts/ci/db-access-guard.test.mjs': passing });
+  assert.throws(
+    () => contractTestPlan(fixtureRoot(t, renamed)),
+    /retired legacy test is not declared exactly once in scripts\/ci\/db-access-guard/u
+  );
+  const [name] = RETIRED_LEGACY_TESTS['scripts/ci/db-access-git.test.mjs'];
+  const elsewhere = minimalSuite({
+    'scripts/ci/core-a.test.mjs': `import test from 'node:test';\ntest(${JSON.stringify(name)}, () => {});\n`,
+  });
+  assert.throws(
+    () => contractTestPlan(fixtureRoot(t, elsewhere)),
+    /retired legacy test is not declared exactly once/u
+  );
+});
+
+test('the serialized lane runs every active file and none of the retired assertions', async t => {
+  const dir = fixtureRoot(t, minimalSuite());
+  assert.equal(await main(['all'], dir, { capture: true }), 0);
+  const broken = fixtureRoot(t, minimalSuite({ 'scripts/ci/core-a.test.mjs': failing }));
+  assert.equal(await main(['all'], broken, { capture: true }), 1);
+});
+
 test('parallel run passes only when every shard passes, without fail-fast', async t => {
   const output = [];
   const write = text => output.push(text);
   assert.equal(await runParallel({ root: fixtureRoot(t, minimalSuite()), write }), 0);
-  for (const shard of ['core', 'authority', 'candidate', 'merge-guard-git']) {
+  for (const shard of ['core', 'authority', 'candidate', 'merge-guard-git', 's2-workflow']) {
     assert.match(output.join(''), new RegExp(`contract shard ${shard}: pass`, 'u'));
   }
   output.length = 0;

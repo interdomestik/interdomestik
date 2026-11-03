@@ -1,15 +1,22 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemberNoteCore } from './create.core';
 
 // Mock dependencies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     insert: vi.fn(() => ({
       values: vi.fn(),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(
+      async (_context: unknown, action: (tx: typeof db) => Promise<unknown>) => action(db)
+    ),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   memberNotes: {},
@@ -32,6 +39,8 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
 }));
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('createMemberNoteCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -48,6 +57,7 @@ describe('createMemberNoteCore', () => {
   it('denies access for member role', async () => {
     const result = await createMemberNoteCore({
       session: mockMemberSession as never,
+      authority,
       data: {
         memberId: 'target-member',
         content: 'Should fail',
@@ -61,6 +71,7 @@ describe('createMemberNoteCore', () => {
   it('sanitizes content and creates note for admin', async () => {
     const result = await createMemberNoteCore({
       session: mockAdminSession as never,
+      authority,
       data: {
         memberId: 'target-member',
         content: '<script>alert()</script>Valid Content',
@@ -73,6 +84,7 @@ describe('createMemberNoteCore', () => {
       expect(result.data?.content).toBe('alert()Valid Content'); // sanitized (tags stripped)
       expect(result.data?.type).toBe('general');
     }
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(db.insert).toHaveBeenCalled();
   });
 });

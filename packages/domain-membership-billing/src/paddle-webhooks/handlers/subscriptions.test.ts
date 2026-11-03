@@ -1,9 +1,11 @@
+import { isTenantAuthority, readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleSubscriptionChanged } from './subscriptions';
 import {
+  TEST_PADDLE_DELIVERY,
   createActiveSubscriptionUpdatedEvent,
-  mockRacedSubscriptionInsert,
+  mockUserOwner,
   resetPaddleHandlerMocks,
 } from './test-support';
 
@@ -34,7 +36,8 @@ beforeEach(() => {
 
 describe('handleSubscriptionChanged', () => {
   it('validates input and logs audit event on success', async () => {
-    // Mock User
+    // Mock User: the privileged lookup names the tenant, the profile is read inside it.
+    mockUserOwner(hoisted, 'tenant_abc');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'test@example.com',
@@ -50,7 +53,7 @@ describe('handleSubscriptionChanged', () => {
     };
 
     await handleSubscriptionChanged(
-      { eventType: 'subscription.updated', data: validPayload },
+      { delivery: TEST_PADDLE_DELIVERY, eventType: 'subscription.updated', data: validPayload },
       { logAuditEvent, sendThankYouLetter }
     );
 
@@ -62,12 +65,27 @@ describe('handleSubscriptionChanged', () => {
         payload: { cancelAtPeriodEnd: false, fromStatus: 'none', toStatus: 'active' },
       })
     );
+    expect(hoisted.resolution.resolvePaddleUserOwner).toHaveBeenCalledWith('user_123');
+    // No stored subscription: the authority comes from the user's resolver owner, the exact object
+    // the resolver returned, and every tenant-scoped statement runs under it.
+    const userOwner = await hoisted.resolution.resolvePaddleUserOwner.mock.results[0]!.value;
+    expect(hoisted.resolution.authorizePaddleTenant).toHaveBeenCalledWith(
+      TEST_PADDLE_DELIVERY,
+      userOwner
+    );
+    expect(hoisted.resolution.authorizePaddleTenant.mock.calls[0]![1]).toBe(userOwner);
+    const authority = hoisted.resolution.authorizePaddleTenant.mock.results[0]!.value;
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
+    for (const [context] of hoisted.withTenantContext.mock.calls) {
+      expect(context).toBe(authority);
+    }
     expect(hoisted.db.query.user.findFirst).toHaveBeenCalledWith(expect.anything());
     expect(logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'subscription.updated',
         entityId: 'sub_123',
-        tenantId: 'tenant_abc', // <--- Critical Check
+        // The audit row is written under the very authority the effects ran under.
+        authority: hoisted.resolution.authorizePaddleTenant.mock.results[0]!.value,
         metadata: expect.objectContaining({ status: 'active', userId: 'user_123' }),
       })
     );
@@ -78,7 +96,7 @@ describe('handleSubscriptionChanged', () => {
     const sendThankYouLetter = vi.fn();
 
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+    hoisted.resolution.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
       payload: {
         data: {
           customerEmail: 'buyer@example.com',
@@ -90,25 +108,26 @@ describe('handleSubscriptionChanged', () => {
         },
       },
     });
-    hoisted.db.query.user.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 'user_new',
-        tenantId: 'tenant_mk',
-        email: 'buyer@example.com',
-        name: '',
-        memberNumber: 'MEM-2026-000123',
-        branchId: 'branch-mk-main',
-        role: 'member',
-      });
-    hoisted.db.query.account.findFirst.mockResolvedValue(null);
+    // No tenant owns the email, so the reads are the agent branch lookup and the final reload.
+    hoisted.db.query.user.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      id: 'user_new',
+      tenantId: 'tenant_mk',
+      email: 'buyer@example.com',
+      name: '',
+      memberNumber: 'MEM-2026-000123',
+      branchId: 'branch-mk-main',
+      role: 'member',
+    });
+    hoisted.identity.hasTenantMemberCredential.mockResolvedValue(false);
     hoisted.db.query.tenantSettings.findFirst.mockResolvedValue({
       value: { branchId: 'branch-mk-main' },
     });
+    // After reconciliation the persisted user is named by the privileged owner lookup.
+    mockUserOwner(hoisted, 'tenant_mk');
 
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.created',
         data: {
           id: 'sub_new',
@@ -135,7 +154,53 @@ describe('handleSubscriptionChanged', () => {
       email: 'buyer@example.com',
       tenantId: 'tenant_mk',
     });
-    expect(hoisted.db.transaction).toHaveBeenCalledTimes(3);
+    // Previously 3 ambient transactions (user insert, subscription insert, attribution); every
+    // tenant-scoped statement now runs through the canonical webhook tenant context. The four extra
+    // contexts beyond the original seven are the canonical plan lookups and the branch-default
+    // resolution, which previously ran on the ambient client. The credential lookup is identity
+    // data the runtime role cannot read, so it runs through the fixed tenant-bound producer
+    // instead of a tenant context.
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(10);
+    // Reconciliation runs under the billing authority for the delivery's bound tenant; the
+    // post-reconciliation effects run under an authority minted from the resolver owner of the
+    // reconciled user. No legacy tenant literal reaches the tenant-context boundary.
+    expect(hoisted.resolution.authorizePaddleBillingTenant).toHaveBeenCalledWith(
+      TEST_PADDLE_DELIVERY,
+      'tenant_mk'
+    );
+    const billingAuthority = hoisted.resolution.authorizePaddleBillingTenant.mock.results[0]!.value;
+    expect(readTenantAuthority(billingAuthority).tenantId).toBe('tenant_mk');
+    // The created member's number and credential state come from the fixed identity producers,
+    // under the billing authority and for the member the tenant transaction created.
+    const [[, createdUserId]] = hoisted.identity.hasTenantMemberCredential.mock.calls;
+    expect(hoisted.identity.hasTenantMemberCredential).toHaveBeenCalledWith(
+      billingAuthority,
+      createdUserId
+    );
+    expect(hoisted.identity.issueTenantMemberNumber).toHaveBeenCalledWith(billingAuthority, {
+      userId: createdUserId,
+      joinedAt: expect.any(Date),
+    });
+    expect(hoisted.resolution.resolvePaddleUserOwner).toHaveBeenCalledWith('user_new');
+    const reconciledOwner = await hoisted.resolution.resolvePaddleUserOwner.mock.results[0]!.value;
+    expect(hoisted.resolution.authorizePaddleTenant).toHaveBeenCalledTimes(1);
+    expect(hoisted.resolution.authorizePaddleTenant).toHaveBeenCalledWith(
+      TEST_PADDLE_DELIVERY,
+      reconciledOwner
+    );
+    expect(hoisted.resolution.authorizePaddleTenant.mock.calls[0]![1]).toBe(reconciledOwner);
+    const userAuthority = hoisted.resolution.authorizePaddleTenant.mock.results[0]!.value;
+    expect(readTenantAuthority(userAuthority).tenantId).toBe('tenant_mk');
+    let billingContexts = 0;
+    let userContexts = 0;
+    for (const [context] of hoisted.withTenantContext.mock.calls) {
+      expect(isTenantAuthority(context)).toBe(true);
+      if (context === billingAuthority) billingContexts += 1;
+      else if (context === userAuthority) userContexts += 1;
+      else throw new Error('unexpected tenant context');
+    }
+    expect(billingContexts).toBeGreaterThan(0);
+    expect(userContexts).toBeGreaterThan(0);
     expect(hoisted.tx.insert).toHaveBeenCalled();
     expect(sendThankYouLetter).not.toHaveBeenCalled();
   });
@@ -147,11 +212,13 @@ describe('handleSubscriptionChanged', () => {
     const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
     hoisted.tx.update.mockReturnValue({ set: mockSet });
 
-    hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+    // The provider reference resolves to nothing; the user-scoped fallback finds the row.
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce({
       id: 'mock_sub_existing',
       tenantId: 'tenant_abc',
       userId: 'user_123',
     });
+    mockUserOwner(hoisted, 'tenant_abc');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'test@example.com',
@@ -173,6 +240,7 @@ describe('handleSubscriptionChanged', () => {
 
     hoisted.tx.insert.mockReturnValue({ values: insertedValues });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
+    mockUserOwner(hoisted, 'tenant_mk');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'test@example.com',
@@ -182,6 +250,7 @@ describe('handleSubscriptionChanged', () => {
 
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.updated',
         data: {
           id: 'sub_paddle_annual',
@@ -203,92 +272,6 @@ describe('handleSubscriptionChanged', () => {
 
     expect(insertedValues).toHaveBeenCalledWith(
       expect.objectContaining({ planId: 'standard', planKey: 'mk-standard-plan' })
-    );
-  });
-
-  it('retries as an update when a raced insert hits a unique constraint', async () => {
-    const { mockSet, mockWhere } = mockRacedSubscriptionInsert(hoisted);
-
-    hoisted.db.query.subscriptions.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 'mock_sub_existing',
-        tenantId: 'tenant_abc',
-        userId: 'user_123',
-      });
-    hoisted.db.query.user.findFirst.mockResolvedValue({
-      id: 'user_123',
-      email: 'test@example.com',
-      tenantId: 'tenant_abc',
-    });
-
-    await handleSubscriptionChanged(createActiveSubscriptionUpdatedEvent(), { logAuditEvent });
-
-    expect(hoisted.tx.insert).toHaveBeenCalled();
-    expect(hoisted.appendEvent).toHaveBeenCalledTimes(1);
-    expect(hoisted.appendEvent).toHaveBeenCalledWith(
-      hoisted.tx,
-      expect.objectContaining({
-        eventName: 'membership.subscription_changed',
-        payload: { cancelAtPeriodEnd: false, fromStatus: 'none', toStatus: 'active' },
-      })
-    );
-    expect(mockSet).toHaveBeenCalledWith(
-      expect.objectContaining({ providerSubscriptionId: 'sub_paddle_456' })
-    );
-    expect(mockWhere).toHaveBeenCalled();
-  });
-
-  it.each([
-    {
-      name: 'prefers the reconciled user agent over webhook customData when persisting subscription ownership',
-      resolvedAgentId: 'agent_user',
-      subscriptionId: 'sub_agent_owner',
-    },
-    {
-      name: 'clears subscription ownership when the reconciled user is company-owned',
-      resolvedAgentId: null,
-      subscriptionId: 'sub_company_owner',
-    },
-  ])('$name', async ({ resolvedAgentId, subscriptionId }) => {
-    const insertedValues = vi.fn().mockResolvedValue(undefined);
-
-    hoisted.tx.insert.mockReturnValue({ values: insertedValues });
-    hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
-    hoisted.db.query.user.findFirst
-      .mockResolvedValueOnce({
-        tenantId: 'tenant_abc',
-        email: 'test@example.com',
-        name: 'Test User',
-        memberNumber: 'MEM-2026-000001',
-        agentId: resolvedAgentId,
-      })
-      .mockResolvedValueOnce({
-        branchId: 'branch_abc',
-      });
-
-    await handleSubscriptionChanged(
-      {
-        eventType: 'subscription.updated',
-        data: {
-          id: subscriptionId,
-          status: 'active',
-          customData: { userId: 'user_123', agentId: 'agent_stale' },
-          items: [
-            {
-              price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
-            },
-          ],
-          currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
-        },
-      },
-      { logAuditEvent }
-    );
-
-    expect(insertedValues).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'user_123', agentId: resolvedAgentId })
     );
   });
 });

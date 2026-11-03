@@ -6,13 +6,19 @@ const mocks = vi.hoisted(() => {
   const selectFrom = vi.fn(() => ({ innerJoin: selectInnerJoin }));
   const select = vi.fn(() => ({ from: selectFrom }));
 
+  const db = { select };
+
   return {
-    db: { select },
+    db,
     selectWhere,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
   };
 });
 
 vi.mock('@/lib/db.server', () => ({ db: mocks.db }));
+vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantContext }));
 vi.mock('@interdomestik/database/schema', () => ({
   aiRuns: {
     documentId: 'ai_runs.document_id',
@@ -32,10 +38,15 @@ vi.mock('drizzle-orm', () => ({
   isNull: vi.fn((field: unknown) => ({ field, op: 'isNull' })),
 }));
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
 import { loadPolicyInput } from './_pipeline-file';
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 const run = {
   runId: 'run-1',
+  authority,
   tenantId: 'tenant-1',
   documentId: 'doc-1',
   policyId: 'policy-1',

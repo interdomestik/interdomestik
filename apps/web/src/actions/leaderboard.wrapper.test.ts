@@ -1,10 +1,14 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import { getAgentLeaderboard } from './leaderboard';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 vi.mock('./leaderboard/context', () => ({
   getActionContext: vi.fn(async () => ({
     session: { user: { id: 'agent-1', role: 'agent' } },
+    authority,
   })),
 }));
 
@@ -25,6 +29,7 @@ describe('leaderboard action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(getAgentLeaderboardCore).toHaveBeenCalledWith({
       session: { user: { id: 'agent-1', role: 'agent' } },
+      authority,
       period: 'week',
     });
     expect(result).toEqual({

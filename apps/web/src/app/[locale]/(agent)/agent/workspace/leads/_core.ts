@@ -2,7 +2,7 @@ import { memberLeads } from '@interdomestik/database/schema';
 import type * as DatabaseModule from '@interdomestik/database';
 import { eq } from 'drizzle-orm';
 
-type DatabaseClient = typeof DatabaseModule.db;
+type DatabaseClient = typeof DatabaseModule.db | DatabaseModule.TenantTransaction;
 
 export interface AgentLeadDTO {
   id: string;

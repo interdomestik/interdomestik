@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { projectLockedSubscriptionOrder } from './provider-event-order.test-support';
@@ -111,6 +112,10 @@ const hoisted = vi.hoisted(() => {
       return { id: params.id };
     }),
     db: { transaction: vi.fn(transaction) },
+    withTenantContext: vi.fn(
+      (_context: { tenantId: string }, callback: (tx: unknown) => Promise<unknown>) =>
+        transaction(callback)
+    ),
   };
 });
 
@@ -123,13 +128,15 @@ vi.mock('@interdomestik/database', () => ({
   inArray: hoisted.inArray,
   sql: hoisted.sql,
   subscriptions: hoisted.subscriptions,
+  withTenantContext: hoisted.withTenantContext,
   webhookEvents: hoisted.webhookEvents,
 }));
-vi.mock('../../subscription', () => ({ findSubscriptionByProviderReference: vi.fn() }));
+vi.mock('../../subscription', () => ({ findPaddleSubscriptionInTenant: vi.fn() }));
 
 import { PaddleEventOrderingError } from '../errors';
 import { upsertSubscription } from './subscription-upsert';
 
+const tenantKsAuthority = mintTestTenantAuthority('tenant_ks');
 const T1 = '2026-09-26T10:00:00.100Z';
 const T2 = '2026-09-26T10:00:00.200Z';
 
@@ -141,7 +148,7 @@ function lifecycleEvent(status: 'active' | 'canceled', occurredAt: string, event
     planState: { planId: 'standard', planKey: null },
     providerEventId: eventId,
     sub: { id: 'sub_1', customerId: 'ctm_1', status },
-    tenantId: 'tenant_ks',
+    authority: tenantKsAuthority,
     userId: 'user_1',
   });
 }

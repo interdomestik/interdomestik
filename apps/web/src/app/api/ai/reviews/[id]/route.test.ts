@@ -107,7 +107,7 @@ describe('POST /api/ai/reviews/[id]', () => {
 
     expect(hoisted.submitAiReview).toHaveBeenCalledWith({
       runId: 'run-1',
-      tenantId: 'tenant-1',
+      authority: expect.any(Object),
       reviewerId: 'staff-1',
       reviewerRole: 'staff',
       action: 'correct',

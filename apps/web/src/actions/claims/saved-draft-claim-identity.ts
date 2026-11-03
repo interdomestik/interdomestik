@@ -1,7 +1,12 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
-import { claims, withTenantContext } from '@interdomestik/database';
+import { claims } from '@interdomestik/database';
 import { isValidClaimNumber } from '@interdomestik/database/claim-number';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { and, eq } from 'drizzle-orm';
 
 export type ExactSavedDraftClaim =
@@ -16,12 +21,13 @@ export function savedDraftClaimId(tenantId: string, actorId: string, draftId: st
 
 export async function readSavedDraftClaim(
   claimId: string,
-  tenantId: string,
+  authority: TenantAuthority,
   actorId: string
 ): Promise<ExactSavedDraftClaim> {
+  const { tenantId } = readTenantAuthority(authority);
   // The recovery read owns its tenant RLS context and keeps the exact-id, tenant
   // and owner predicates; the transaction closes before the caller continues.
-  const [row] = await withTenantContext({ tenantId }, async tx => {
+  const [row] = await withTenantAuthority(authority, async tx => {
     return await tx
       .select({ id: claims.id, claimNumber: claims.claimNumber })
       .from(claims)

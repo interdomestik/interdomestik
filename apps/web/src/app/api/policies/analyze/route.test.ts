@@ -132,5 +132,30 @@ describe('POST /api/policies/analyze', () => {
     expect(hoisted.analyzePolicyImages).not.toHaveBeenCalled();
     expect(hoisted.analyzePolicyText).not.toHaveBeenCalled();
     expect(hoisted.inngestSend).toHaveBeenCalledOnce();
+
+    // The queue write runs under the authority minted from the authenticated session, not a
+    // caller-built { tenantId, role } context.
+    const { readTenantAuthority } = await import('@interdomestik/database/tenant-authority');
+    const queueAuthority = hoisted.withTenantContext.mock.calls[0]?.[0];
+    expect(readTenantAuthority(queueAuthority).tenantId).toBe('tenant_mk');
+    expect(hoisted.inngestSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ tenantId: 'tenant_mk', userId: 'user-1' }),
+      })
+    );
+  });
+
+  it('returns 401 without queueing when the request has no session', async () => {
+    hoisted.getSession.mockResolvedValue(null);
+
+    const { POST } = await import('./route');
+    const res = await POST({
+      headers: new Headers(),
+      formData: async () => new FormData(),
+    } as unknown as NextRequest);
+
+    expect(res!.status).toBe(401);
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.inngestSend).not.toHaveBeenCalled();
   });
 });

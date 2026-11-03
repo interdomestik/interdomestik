@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -10,20 +11,13 @@ const mocks = vi.hoisted(() => ({
   ne: vi.fn((left: unknown, right: unknown) => ({ op: 'ne', left, right })),
   returning: vi.fn(),
   set: vi.fn(),
-  transaction: vi.fn(),
   update: vi.fn(),
   where: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      memberLeads: {
-        findFirst: mocks.findLead,
-      },
-    },
-    transaction: mocks.transaction,
-  },
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -52,6 +46,7 @@ import { startPayment } from './payment';
 function installTransactionHarness(updatedRows: Array<{ id: string }> = [{ id: 'lead-1' }]) {
   const tx = {
     insert: mocks.insert,
+    query: { memberLeads: { findFirst: mocks.findLead } },
     update: mocks.update,
   };
   mocks.update.mockReturnValue({ set: mocks.set });
@@ -60,8 +55,8 @@ function installTransactionHarness(updatedRows: Array<{ id: string }> = [{ id: '
   mocks.returning.mockResolvedValue(updatedRows);
   mocks.insert.mockReturnValue({ values: mocks.insertValues });
   mocks.insertValues.mockResolvedValue(undefined);
-  mocks.transaction.mockImplementation(async (callback: (txArg: typeof tx) => Promise<unknown>) =>
-    callback(tx)
+  mocks.withTenantContext.mockImplementation(
+    async (_context: unknown, callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx)
   );
 }
 
@@ -76,13 +71,15 @@ beforeEach(() => {
 });
 
 describe('startPayment', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   it('carries optional agent and branch scope through payment validation and status update', async () => {
     await expect(
       startPayment(
         {
           agentId: 'agent-1',
           branchId: 'branch-1',
-          tenantId: 'tenant-1',
+          authority,
         },
         {
           amountCents: 15000,
@@ -106,6 +103,10 @@ describe('startPayment', () => {
         { op: 'eq', left: 'member_leads.branch_id', right: 'branch-1' },
       ],
     };
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(2);
+    for (const call of mocks.withTenantContext.mock.calls) {
+      expect(call[0]).toBe(authority);
+    }
     expect(mocks.findLead).toHaveBeenCalledWith({ where: scopedWhere });
     expect(mocks.where).toHaveBeenCalledWith({
       op: 'and',
@@ -127,7 +128,7 @@ describe('startPayment', () => {
         {
           agentId: 'agent-1',
           branchId: 'branch-1',
-          tenantId: 'tenant-1',
+          authority,
         },
         {
           amountCents: 15000,

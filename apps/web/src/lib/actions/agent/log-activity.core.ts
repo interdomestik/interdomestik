@@ -3,8 +3,9 @@ import {
   type CrmLeadMutationResult,
 } from '@interdomestik/domain-crm/leads/mutations';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { nanoid } from 'nanoid';
-import { crmLeadMutationRepository } from '@/adapters/crm/lead-mutation-repository';
+import { createCrmLeadMutationRepository } from '@/adapters/crm/lead-mutation-repository';
 
 function mapActivityError(result: Extract<CrmLeadMutationResult, { success: false }>) {
   if (result.error === 'not_found') {
@@ -21,6 +22,7 @@ function mapActivityError(result: Extract<CrmLeadMutationResult, { success: fals
 
 export async function logActivityCore(
   actor: CrmActorContext,
+  authority: TenantAuthority,
   leadId: string,
   type: string,
   summary: string
@@ -28,7 +30,7 @@ export async function logActivityCore(
   const occurredAt = new Date().toISOString();
   const result = await recordCrmLeadActivity(
     { activityId: nanoid(), actor, leadId, occurredAt, summary, type },
-    crmLeadMutationRepository
+    createCrmLeadMutationRepository(authority)
   );
   return result.success ? { success: true as const } : mapActivityError(result);
 }

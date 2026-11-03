@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  adminAuthority,
   adminSession,
   getUpdateStatusMocks,
   mockClaim,
@@ -17,6 +18,7 @@ function runStatusUpdate(
 ) {
   return updateClaimStatusCore(
     {
+      authority: adminAuthority,
       claimId: 'claim-1',
       newStatus,
       session: adminSession,
@@ -87,14 +89,14 @@ describe('admin updateClaimStatusCore', () => {
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
     expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
       actor: { id: 'admin-1', role: 'tenant_admin' },
+      authority: adminAuthority,
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
       toStatus: 'resolved',
     });
     expect(logAuditEvent).not.toHaveBeenCalled();
     expect(projectClaimStatusAuditProjection).toHaveBeenCalledWith({
+      authority: adminAuthority,
       limit: 10,
-      tenantId: 'tenant-1',
     });
   });
 

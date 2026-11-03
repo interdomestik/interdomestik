@@ -1,54 +1,24 @@
-import { getActionContext } from '@/actions/admin-users/context';
-import {
-  getBranchCashPendingByAgent,
-  getBranchCashPendingCount,
-} from '@/features/admin/branches/server/branch-cash-metrics';
-import { HealthProfile, computeHealthScore } from '@/features/admin/health/health-model';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { getBranchCashPendingCount } from '@/features/admin/branches/server/branch-cash-metrics';
+import { computeHealthScore } from '@/features/admin/health/health-model';
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
-import { db } from '@interdomestik/database/db';
+import { delegateSuperAdminBranchOwner } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { readTenantCurrency } from '@interdomestik/database/tenant-directory';
 import { branches, claims, user } from '@interdomestik/database/schema';
 import * as lifecycleSql from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { ROLES, scopeFilter } from '@interdomestik/shared-auth';
 import * as Sentry from '@sentry/nextjs';
 import { and, count, eq, inArray, or } from 'drizzle-orm';
 
-export interface BranchDashboardV2Data {
-  branch: {
-    id: string;
-    name: string;
-    code: string;
-    isActive: boolean;
-    currency: string;
-  };
-  health: HealthProfile;
-  kpis: {
-    openClaims: number;
-    cashPending: number;
-    slaBreaches: number;
-    totalMembers: number;
-    totalAgents: number;
-  };
-  pipeline: {
-    status: string;
-    count: number;
-  }[];
-  agentHealth: {
-    id: string;
-    name: string;
-    health: HealthProfile;
-    metrics: {
-      openClaims: number;
-      cashPending: number;
-      slaBreaches: number;
-    };
-  }[];
-  staffLoad: {
-    id: string;
-    name: string;
-    workload: number; // in-progress claims
-    severity: 'healthy' | 'attention' | 'urgent'; // derived from workload only
-  }[];
-}
+import { getAgentMetrics, getStaffLoad } from './branch-dashboard-v2-metrics';
+import type { BranchDashboardV2Data } from './branch-dashboard-v2-types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+
+export type { BranchDashboardV2Data } from './branch-dashboard-v2-types';
 
 export async function getBranchDashboardV2Data(
   branchId: string
@@ -58,8 +28,9 @@ export async function getBranchDashboardV2Data(
     { recordResponse: true },
     async () => {
       try {
-        const { session } = await getActionContext();
-        if (!session?.user) throw new Error('Unauthorized');
+        const authorized = await authorizeSessionTenant();
+        if (!authorized) throw new Error('Unauthorized');
+        const { session, authority: sessionAuthority } = authorized;
 
         // RBAC Checks
         const userRole = session.user.role;
@@ -79,32 +50,42 @@ export async function getBranchDashboardV2Data(
 
         // Tenant Scoping
         const scope = scopeFilter(session);
-        let tenantId = scope.tenantId;
+        let authority: TenantAuthority = sessionAuthority;
 
-        // Fetch Branch Metadata first to confirm existence and get tenantId if cross-tenant
-        // Support lookup by either ID (UUID) or code (e.g., branch_mk_b)
-        // db-access-guard: system-exempt -- reason: branch id or code lookup resolves tenant before scoped dashboard reads
-        const branchResult = await db.query.branches.findFirst({
-          where: or(eq(branches.id, branchId), eq(branches.code, branchId)),
-          with: {
-            tenant: true,
-          },
-        });
+        // Super_admin (cross-tenant) first resolves the branch's owning tenant from its id or
+        // code; every scope then reads the branch inside one tenant context. Support lookup by
+        // either ID (UUID) or code (e.g., branch_mk_b).
+        let resolvedOwnerBranchId: string | null = null;
+        if (scope.isCrossTenantScope) {
+          const owner = await delegateSuperAdminBranchOwner(sessionAuthority, branchId);
+          if (!owner) {
+            return null; // Unknown or ambiguous across tenants: allow the 404 handler to take over
+          }
+          authority = owner.authority;
+          resolvedOwnerBranchId = owner.branchId;
+        } else if (readTenantAuthority(sessionAuthority).tenantId !== scope.tenantId) {
+          // The session authority and the role scope must name the same tenant; fail closed.
+          throw new Error('Forbidden: Tenant Scope');
+        }
+        const { tenantId } = readTenantAuthority(authority);
+        const branchResult = await withTenantAuthority(authority, tx =>
+          tx.query.branches.findFirst({
+            where: and(
+              eq(branches.tenantId, tenantId),
+              // A resolved owner binds the exact row; tenant scopes match id or code in-tenant.
+              resolvedOwnerBranchId
+                ? eq(branches.id, resolvedOwnerBranchId)
+                : or(eq(branches.id, branchId), eq(branches.code, branchId))
+            ),
+          })
+        );
 
         if (!branchResult) {
           return null; // Return null if not found, allowing 404 handler to take over
         }
-
-        // If user is super_admin (cross-tenant), ensure we use the branch's tenantId
-        if (scope.isCrossTenantScope) {
-          tenantId = branchResult.tenantId;
-        } else {
-          // Verify branch belongs to user's tenant
-          if (branchResult.tenantId !== tenantId) {
-            throw new Error('Forbidden: Tenant Mismatch');
-          }
-        }
         const resolvedBranchId = branchResult.id;
+        // The tenant directory is not readable under RLS; currency comes from its fixed projection.
+        const tenantCurrency = (await readTenantCurrency(tenantId)) ?? 'EUR';
 
         // Parallel Data Fetching
         const [
@@ -117,61 +98,71 @@ export async function getBranchDashboardV2Data(
           agentsData,
           staffData,
         ] = await Promise.all([
-          db
-            .select({ count: count() })
-            .from(claims)
-            .where(
-              and(
-                eq(claims.branchId, resolvedBranchId),
-                eq(claims.tenantId, tenantId),
-                getOpenClaimsFilter()
+          withTenantAuthority(authority, tx =>
+            tx
+              .select({ count: count() })
+              .from(claims)
+              .where(
+                and(
+                  eq(claims.branchId, resolvedBranchId),
+                  eq(claims.tenantId, tenantId),
+                  getOpenClaimsFilter()
+                )
               )
-            ),
+          ),
 
-          getBranchCashPendingCount({ tenantId, branchId: resolvedBranchId }),
+          getBranchCashPendingCount({ authority, branchId: resolvedBranchId }),
 
-          db
-            .select({ count: count() })
-            .from(claims)
-            .where(
-              and(
-                eq(claims.branchId, resolvedBranchId),
-                eq(claims.tenantId, tenantId),
-                getSlaBreachesFilter()
+          withTenantAuthority(authority, tx =>
+            tx
+              .select({ count: count() })
+              .from(claims)
+              .where(
+                and(
+                  eq(claims.branchId, resolvedBranchId),
+                  eq(claims.tenantId, tenantId),
+                  getSlaBreachesFilter()
+                )
               )
-            ),
+          ),
 
-          db
-            .select({ count: count() })
-            .from(user)
-            .where(
-              and(
-                eq(user.branchId, resolvedBranchId),
-                eq(user.tenantId, tenantId),
-                eq(user.role, 'agent')
+          withTenantAuthority(authority, tx =>
+            tx
+              .select({ count: count() })
+              .from(user)
+              .where(
+                and(
+                  eq(user.branchId, resolvedBranchId),
+                  eq(user.tenantId, tenantId),
+                  eq(user.role, 'agent')
+                )
               )
-            ),
+          ),
 
-          db
-            .select({ count: count() })
-            .from(user)
-            .where(
-              and(
-                eq(user.branchId, resolvedBranchId),
-                eq(user.tenantId, tenantId),
-                inArray(user.role, ['user', 'member'])
+          withTenantAuthority(authority, tx =>
+            tx
+              .select({ count: count() })
+              .from(user)
+              .where(
+                and(
+                  eq(user.branchId, resolvedBranchId),
+                  eq(user.tenantId, tenantId),
+                  inArray(user.role, ['user', 'member'])
+                )
               )
-            ),
+          ),
 
-          db
-            .select({ status: lifecycleSql.claimLifecycleStatusSql(), count: count() })
-            .from(claims)
-            .where(and(eq(claims.branchId, resolvedBranchId), eq(claims.tenantId, tenantId)))
-            .groupBy(lifecycleSql.claimLifecycleStatusSql()),
+          withTenantAuthority(authority, tx =>
+            tx
+              .select({ status: lifecycleSql.claimLifecycleStatusSql(), count: count() })
+              .from(claims)
+              .where(and(eq(claims.branchId, resolvedBranchId), eq(claims.tenantId, tenantId)))
+              .groupBy(lifecycleSql.claimLifecycleStatusSql())
+          ),
 
-          getAgentMetrics(resolvedBranchId, tenantId),
+          getAgentMetrics(resolvedBranchId, authority),
 
-          getStaffLoad(resolvedBranchId, tenantId),
+          getStaffLoad(resolvedBranchId, authority),
         ]);
 
         // Compute Branch Health
@@ -192,7 +183,7 @@ export async function getBranchDashboardV2Data(
             name: branchResult.name,
             code: branchResult.code ?? '',
             isActive: branchResult.isActive,
-            currency: branchResult.tenant.currency,
+            currency: tenantCurrency,
           },
           health: {
             ...branchHealth,
@@ -226,121 +217,5 @@ export async function getBranchDashboardV2Data(
         return null;
       }
     }
-  );
-}
-
-// Helper: Agent Metrics derivation
-async function getAgentMetrics(branchId: string, tenantId: string) {
-  // 1. Get agents in branch
-  const [agents, cashPendingByAgent] = await Promise.all([
-    db.query.user.findMany({
-      where: and(eq(user.branchId, branchId), eq(user.tenantId, tenantId), eq(user.role, 'agent')),
-      columns: { id: true, name: true },
-    }),
-    getBranchCashPendingByAgent({ tenantId, branchId }),
-  ]);
-
-  if (agents.length === 0) return [];
-
-  // 2. For each agent, compute metrics
-  // This could be optimized with a complex single query grouping by agent_id,
-  // but distinct counts for different tables (claims, payments) are tricky in one go without window functions.
-  // Given the agent count per branch is reasonable (<50), Promise.all is acceptable.
-
-  return Promise.all(
-    agents.map(async agent => {
-      const [openClaims, slaBreaches] = await Promise.all([
-        // Open Claims linked to agent (via claim.agentId)
-        db
-          .select({ count: count() })
-          .from(claims)
-          .where(
-            and(
-              eq(claims.agentId, agent.id),
-              eq(claims.branchId, branchId),
-              eq(claims.tenantId, tenantId),
-              getOpenClaimsFilter()
-            )
-          ),
-
-        // SLA Breaches linked to agent
-        db
-          .select({ count: count() })
-          .from(claims)
-          .where(
-            and(
-              eq(claims.agentId, agent.id),
-              eq(claims.branchId, branchId),
-              eq(claims.tenantId, tenantId),
-              getSlaBreachesFilter()
-            )
-          ),
-      ]);
-
-      return {
-        id: agent.id,
-        name: agent.name,
-        openClaims: openClaims[0]?.count ?? 0,
-        cashPending: cashPendingByAgent.get(agent.id) ?? 0,
-        slaBreaches: slaBreaches[0]?.count ?? 0,
-      };
-    })
-  );
-}
-
-// Helper: Staff Load derivation
-// "inProgressClaims = claims in statuses ['verification','evaluation','negotiation','court','in_review'] assigned/handled by staff"
-async function getStaffLoad(branchId: string, tenantId: string) {
-  // 1. Get staff in tenant (staff are usually tenant-level, sometimes branch-scoped)
-  const staffMembers = await db.query.user.findMany({
-    where: and(
-      eq(user.tenantId, tenantId),
-      eq(user.role, 'staff')
-      // Optional: filter by branch if they have one set
-      // or just show all staff who have worked on branch claims?
-      // Prompt: "if staff has branchId, filter to branchId"
-    ),
-    columns: { id: true, name: true, branchId: true },
-  });
-
-  const relevantStaff = staffMembers.filter(s => !s.branchId || s.branchId === branchId);
-
-  if (relevantStaff.length === 0) return [];
-
-  const IN_PROGRESS_STATUSES = [
-    'submitted',
-    'verification',
-    'evaluation',
-    'negotiation',
-    'court',
-  ] as const;
-
-  return Promise.all(
-    relevantStaff.map(async staff => {
-      const workload = await db
-        .select({ count: count() })
-        .from(claims)
-        .where(
-          and(
-            eq(claims.staffId, staff.id),
-            eq(claims.branchId, branchId), // Workload IN THIS BRANCH
-            eq(claims.tenantId, tenantId),
-            lifecycleSql.claimLifecycleStatusIn(IN_PROGRESS_STATUSES)
-          )
-        );
-
-      const countValue = workload[0]?.count ?? 0;
-
-      let severity: 'healthy' | 'attention' | 'urgent' = 'healthy';
-      if (countValue > 10) severity = 'urgent';
-      else if (countValue > 5) severity = 'attention';
-
-      return {
-        id: staff.id,
-        name: staff.name,
-        workload: countValue,
-        severity,
-      };
-    })
   );
 }

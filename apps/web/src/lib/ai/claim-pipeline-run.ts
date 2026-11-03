@@ -1,5 +1,8 @@
-import { db } from '@/lib/db.server';
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aiRuns, claims, documents } from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 
@@ -9,6 +12,8 @@ export type ClaimAiWorkflow = 'claim_intake_extract' | 'legal_doc_extract';
 
 export type ClaimedClaimAiRun = {
   runId: string;
+  /** In-memory only: the tenant authority this run was claimed under. Never serialized or persisted. */
+  authority: TenantAuthority;
   tenantId: string;
   workflow: ClaimAiWorkflow;
   documentId: string;
@@ -33,44 +38,50 @@ function isClaimAiWorkflow(workflow: unknown): workflow is ClaimAiWorkflow {
 
 export async function claimClaimAiRun(
   runId: string,
-  options: { retryFailed?: boolean } = {}
+  options: { authority: TenantAuthority; retryFailed?: boolean }
 ): Promise<
   | { status: 'claimed'; run: ClaimedClaimAiRun }
   | { status: 'skipped'; claimId: string; workflow: ClaimAiWorkflow }
 > {
-  const [queuedRun] = await db
-    .select({
-      runId: aiRuns.id,
-      tenantId: aiRuns.tenantId,
-      workflow: aiRuns.workflow,
-      documentId: aiRuns.documentId,
-      claimId: aiRuns.entityId,
-      requestedBy: aiRuns.requestedBy,
-      subjectId: claims.userId,
-      storagePath: documents.storagePath,
-      fileName: documents.fileName,
-      mimeType: documents.mimeType,
-      uploadedAt: documents.uploadedAt,
-      status: aiRuns.status,
-      errorCode: aiRuns.errorCode,
-      requestJson: aiRuns.requestJson,
-      claimTitle: claims.title,
-      claimDescription: claims.description,
-      claimCategory: claims.category,
-      claimAmount: claims.claimAmount,
-      claimCurrency: claims.currency,
-    })
-    .from(aiRuns)
-    .innerJoin(
-      documents,
-      and(
-        eq(documents.id, aiRuns.documentId),
-        eq(documents.tenantId, aiRuns.tenantId),
-        isNull(documents.deletedAt)
+  const { authority } = options;
+  const { tenantId } = readTenantAuthority(authority);
+  const [queuedRun] = await withTenantAuthority(authority, tx =>
+    tx
+      .select({
+        runId: aiRuns.id,
+        tenantId: aiRuns.tenantId,
+        workflow: aiRuns.workflow,
+        documentId: aiRuns.documentId,
+        claimId: aiRuns.entityId,
+        requestedBy: aiRuns.requestedBy,
+        subjectId: claims.userId,
+        storagePath: documents.storagePath,
+        fileName: documents.fileName,
+        mimeType: documents.mimeType,
+        uploadedAt: documents.uploadedAt,
+        status: aiRuns.status,
+        errorCode: aiRuns.errorCode,
+        requestJson: aiRuns.requestJson,
+        claimTitle: claims.title,
+        claimDescription: claims.description,
+        claimCategory: claims.category,
+        claimAmount: claims.claimAmount,
+        claimCurrency: claims.currency,
+      })
+      .from(aiRuns)
+      .innerJoin(
+        documents,
+        and(
+          eq(documents.id, aiRuns.documentId),
+          eq(documents.tenantId, aiRuns.tenantId),
+          isNull(documents.deletedAt)
+        )
       )
-    )
-    .innerJoin(claims, and(eq(claims.id, aiRuns.entityId), eq(claims.tenantId, aiRuns.tenantId)))
-    .where(and(eq(aiRuns.id, runId), eq(aiRuns.entityType, 'claim')));
+      .innerJoin(claims, and(eq(claims.id, aiRuns.entityId), eq(claims.tenantId, aiRuns.tenantId)))
+      .where(
+        and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.entityType, 'claim'))
+      )
+  );
 
   if (!queuedRun) {
     const deletedRun = await failDeletedDocumentClaimAiRun(runId, isClaimAiWorkflow, options);
@@ -103,15 +114,16 @@ export async function claimClaimAiRun(
   const claimPredicate = retryingFailedRun
     ? and(
         eq(aiRuns.id, runId),
+        eq(aiRuns.tenantId, tenantId),
         eq(aiRuns.status, 'failed'),
         eq(aiRuns.errorCode, 'claim_ai_processing_failed')
       )
-    : and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued'));
+    : and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.status, 'queued'));
 
-  const [claimedRun] = await withTenantContext(
-    { tenantId: queuedRun.tenantId, role: 'system' },
+  const [claimedRun] = await withTenantAuthority(
+    authority,
     async tx =>
-      tx
+      await tx
         .update(aiRuns)
         .set({
           status: 'processing',
@@ -132,6 +144,7 @@ export async function claimClaimAiRun(
     status: 'claimed',
     run: {
       runId,
+      authority,
       tenantId: queuedRun.tenantId,
       workflow: queuedRun.workflow,
       documentId: queuedRun.documentId,

@@ -1,5 +1,10 @@
-import { and, auditLog, db, desc, eq } from '@interdomestik/database';
+import { and, auditLog, desc, eq } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { nanoid } from 'nanoid';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export const REQUEST_DATA_DELETION_ACTION = 'privacy.data_deletion_requested';
 
@@ -13,6 +18,7 @@ type LatestDeletionRequest = {
 };
 
 type DataDeletionRequestInsert = {
+  authority: TenantAuthority;
   tenantId: string;
   userId: string;
   actorRole: string | null;
@@ -24,6 +30,7 @@ type DataDeletionRequestInsert = {
 
 type RequestDataDeletionDeps = {
   findLatestRequest: (args: {
+    authority: TenantAuthority;
     tenantId: string;
     userId: string;
   }) => Promise<LatestDeletionRequest | null>;
@@ -32,7 +39,8 @@ type RequestDataDeletionDeps = {
 
 type RequestDataDeletionInput = {
   userId: string;
-  tenantId?: string | null;
+  /** The requesting session's tenant authority; null when the session carries no tenant. */
+  authority?: TenantAuthority | null;
   actorRole?: string | null;
   reason?: string | null;
   ipAddress?: string | null;
@@ -66,12 +74,6 @@ function normalizeReason(reason: string | null | undefined): string | null {
   return trimmed.slice(0, REQUEST_DATA_DELETION_REASON_MAX_LENGTH);
 }
 
-function normalizeTenantId(tenantId: string | null | undefined): string | null {
-  if (typeof tenantId !== 'string') return null;
-  const value = tenantId.trim();
-  return value ? value : null;
-}
-
 function normalizeUserId(userId: string): string {
   return String(userId || '').trim();
 }
@@ -84,22 +86,27 @@ function computeRetryAfterDays(now: Date, createdAt: Date): number {
 }
 
 async function findLatestRequestDefault(args: {
+  authority: TenantAuthority;
   tenantId: string;
   userId: string;
 }): Promise<LatestDeletionRequest | null> {
-  const latest = await db.query.auditLog.findFirst({
-    columns: {
-      id: true,
-      createdAt: true,
-    },
-    where: and(
-      eq(auditLog.tenantId, args.tenantId),
-      eq(auditLog.actorId, args.userId),
-      eq(auditLog.action, REQUEST_DATA_DELETION_ACTION),
-      eq(auditLog.entityType, 'user')
-    ),
-    orderBy: [desc(auditLog.createdAt)],
-  });
+  const latest = await withTenantAuthority(
+    args.authority,
+    async tx =>
+      await tx.query.auditLog.findFirst({
+        columns: {
+          id: true,
+          createdAt: true,
+        },
+        where: and(
+          eq(auditLog.tenantId, args.tenantId),
+          eq(auditLog.actorId, args.userId),
+          eq(auditLog.action, REQUEST_DATA_DELETION_ACTION),
+          eq(auditLog.entityType, 'user')
+        ),
+        orderBy: [desc(auditLog.createdAt)],
+      })
+  );
 
   if (!latest) return null;
   return {
@@ -112,23 +119,27 @@ async function insertRequestDefault(args: DataDeletionRequestInsert): Promise<st
   const requestId = nanoid();
 
   // db-access-guard: system-exempt -- reason: privacy deletion endpoint writes system audit trail
-  await db.insert(auditLog).values({
-    id: requestId,
-    tenantId: args.tenantId,
-    actorId: args.userId,
-    actorRole: args.actorRole,
-    action: REQUEST_DATA_DELETION_ACTION,
-    entityType: 'user',
-    entityId: args.userId,
-    metadata: {
-      reason: args.reason,
-      source: 'self-service-api',
-      ipAddress: args.ipAddress,
-      userAgent: args.userAgent,
-      requestedAt: args.requestedAt.toISOString(),
-      status: 'pending',
-    },
-  });
+  await withTenantAuthority(
+    args.authority,
+    async tx =>
+      await tx.insert(auditLog).values({
+        id: requestId,
+        tenantId: args.tenantId,
+        actorId: args.userId,
+        actorRole: args.actorRole,
+        action: REQUEST_DATA_DELETION_ACTION,
+        entityType: 'user',
+        entityId: args.userId,
+        metadata: {
+          reason: args.reason,
+          source: 'self-service-api',
+          ipAddress: args.ipAddress,
+          userAgent: args.userAgent,
+          requestedAt: args.requestedAt.toISOString(),
+          status: 'pending',
+        },
+      })
+  );
 
   return requestId;
 }
@@ -137,7 +148,7 @@ export async function requestDataDeletionCore(
   input: RequestDataDeletionInput
 ): Promise<RequestDataDeletionResult> {
   const userId = normalizeUserId(input.userId);
-  const tenantId = normalizeTenantId(input.tenantId);
+  const authority = input.authority ?? null;
 
   if (!userId) {
     return {
@@ -149,7 +160,7 @@ export async function requestDataDeletionCore(
     };
   }
 
-  if (!tenantId) {
+  if (!authority) {
     return {
       status: 400,
       body: {
@@ -158,6 +169,7 @@ export async function requestDataDeletionCore(
       },
     };
   }
+  const { tenantId } = readTenantAuthority(authority);
 
   const actorRole = input.actorRole?.trim() || null;
   const reason = normalizeReason(input.reason);
@@ -170,7 +182,7 @@ export async function requestDataDeletionCore(
     insertRequest: insertRequestDefault,
   };
 
-  const latestRequest = await deps.findLatestRequest({ tenantId, userId });
+  const latestRequest = await deps.findLatestRequest({ authority, tenantId, userId });
   if (latestRequest?.createdAt) {
     const elapsedMs = now.getTime() - latestRequest.createdAt.getTime();
     const cooldownMs = REQUEST_DATA_DELETION_COOLDOWN_DAYS * MILLISECONDS_PER_DAY;
@@ -188,6 +200,7 @@ export async function requestDataDeletionCore(
   }
 
   const requestId = await deps.insertRequest({
+    authority,
     tenantId,
     userId,
     actorRole,

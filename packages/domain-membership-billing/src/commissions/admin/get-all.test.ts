@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAllCommissionsCore } from './get-all';
 
@@ -13,11 +14,15 @@ const mockQueryBuilder = {
 };
 
 // Mock dependencies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: vi.fn(() => mockQueryBuilder),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   agentCommissions: {
@@ -45,6 +50,8 @@ vi.mock('drizzle-orm', () => ({
 }));
 
 describe('getAllCommissionsCore', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -60,6 +67,7 @@ describe('getAllCommissionsCore', () => {
   it('denies access for non-admin/staff', async () => {
     const result = await getAllCommissionsCore({
       session: mockAgentSession as any,
+      authority,
     });
     expect(result.success).toBe(false);
     expect(result.error).toBe('Admin or staff access required');
@@ -97,6 +105,7 @@ describe('getAllCommissionsCore', () => {
 
     const result = await getAllCommissionsCore({
       session: mockAdminSession as any,
+      authority,
     });
 
     expect(result.success).toBe(true);
@@ -112,6 +121,7 @@ describe('getAllCommissionsCore', () => {
       session: {
         user: { id: 'tenant-admin-1', role: 'tenant_admin', tenantId: 'tenant-1' },
       } as any,
+      authority,
     });
 
     expect(result.success).toBe(true);

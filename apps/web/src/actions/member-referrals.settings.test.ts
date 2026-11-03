@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@interdomestik/domain-users/admin/access', () => ({
@@ -22,6 +23,7 @@ describe('member-referrals settings core', () => {
     await expect(
       getMemberReferralProgramSettingsCore({
         session: { user: { id: 'u1', role: 'user' } } as unknown as NonNullable<Session>,
+        authority: null,
       })
     ).rejects.toThrow('Unauthorized');
   });
@@ -30,6 +32,7 @@ describe('member-referrals settings core', () => {
     await expect(
       updateMemberReferralProgramSettingsCore({
         session: { user: { id: 'u1', role: 'user' } } as unknown as NonNullable<Session>,
+        authority: null,
         requestHeaders: new Headers(),
         data: { enabled: true },
       })
@@ -44,6 +47,7 @@ describe('member-referrals settings core', () => {
       session: {
         user: { id: 'u1', role: 'admin', tenantId: 'tenant-1' },
       } as unknown as NonNullable<Session>,
+      authority: mintTestTenantAuthority('tenant-1'),
       requestHeaders: new Headers(),
       data: { qualifyingEventType: 'renewal' },
     });

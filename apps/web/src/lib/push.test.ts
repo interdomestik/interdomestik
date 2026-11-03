@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('web-push', () => {
@@ -14,20 +15,21 @@ vi.mock('web-push', () => {
 const hoistedMocks = vi.hoisted(() => ({
   dbSelect: vi.fn(),
   dbDelete: vi.fn(),
-  dbUserFindFirst: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: hoistedMocks.dbSelect,
     delete: hoistedMocks.dbDelete,
-    query: {
-      user: {
-        findFirst: hoistedMocks.dbUserFindFirst,
-      },
-    },
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: hoistedMocks.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) => callback(db)
+    ),
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: vi.fn(() => ({ scoped: true })),
@@ -61,6 +63,8 @@ vi.mock('@/lib/audit', () => ({
 import webPush from 'web-push';
 import { sendPushToUser } from './push';
 
+const authority = mintTestTenantAuthority('tenant_mk');
+
 type WhereResult<T> = Pick<Promise<T>, 'then' | 'catch' | 'finally'> & {
   limit: () => Promise<T>;
 };
@@ -83,7 +87,6 @@ const webPushMock = webPush as unknown as {
 describe('sendPushToUser', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    hoistedMocks.dbUserFindFirst.mockResolvedValue({ tenantId: 'tenant_mk' });
     vi.stubEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY', 'public');
     vi.stubEnv('VAPID_PRIVATE_KEY', 'private');
     vi.stubEnv('VAPID_SUBJECT', 'mailto:test@example.com');
@@ -97,11 +100,16 @@ describe('sendPushToUser', () => {
       }),
     }));
 
-    const result = await sendPushToUser('user-1', 'claim_updates', {
-      title: 't',
-      body: 'b',
-      url: '/x',
-    });
+    const result = await sendPushToUser(
+      'user-1',
+      'claim_updates',
+      {
+        title: 't',
+        body: 'b',
+        url: '/x',
+      },
+      { authority }
+    );
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -123,11 +131,16 @@ describe('sendPushToUser', () => {
       }),
     }));
 
-    const result = await sendPushToUser('user-1', 'messages', {
-      title: 't',
-      body: 'b',
-      url: '/x',
-    });
+    const result = await sendPushToUser(
+      'user-1',
+      'messages',
+      {
+        title: 't',
+        body: 'b',
+        url: '/x',
+      },
+      { authority }
+    );
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -153,15 +166,21 @@ describe('sendPushToUser', () => {
       }),
     }));
 
-    const result = await sendPushToUser('user-1', 'claim_updates', {
-      title: 't',
-      body: 'b',
-      url: '/x',
-    });
+    const result = await sendPushToUser(
+      'user-1',
+      'claim_updates',
+      {
+        title: 't',
+        body: 'b',
+        url: '/x',
+      },
+      { authority }
+    );
 
     expect(webPushMock.setVapidDetails).toHaveBeenCalled();
     expect(webPushMock.sendNotification).toHaveBeenCalledTimes(2);
     expect(result).toEqual(expect.objectContaining({ success: true, okCount: 2, failCount: 0 }));
+    expect(hoistedMocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
   });
 
   it('deletes invalid subscriptions on 410', async () => {
@@ -179,11 +198,16 @@ describe('sendPushToUser', () => {
 
     hoistedMocks.dbDelete.mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
 
-    const result = await sendPushToUser('user-1', 'claim_updates', {
-      title: 't',
-      body: 'b',
-      url: '/x',
-    });
+    const result = await sendPushToUser(
+      'user-1',
+      'claim_updates',
+      {
+        title: 't',
+        body: 'b',
+        url: '/x',
+      },
+      { authority }
+    );
 
     expect(result).toEqual(expect.objectContaining({ success: false, okCount: 0, failCount: 1 }));
     expect(hoistedMocks.dbDelete).toHaveBeenCalled();

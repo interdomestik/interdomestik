@@ -3,6 +3,7 @@ import {
   type ClaimsListResponse,
   type ClaimsScope,
 } from '@interdomestik/domain-claims';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { SessionWithTenant } from '@interdomestik/shared-auth';
 
 const MAX_PER_PAGE = 50;
@@ -32,11 +33,12 @@ function parseScope(scopeParam: string | null = 'member'): ClaimsScope {
 }
 
 export async function listClaimsCore(args: {
+  authority: TenantAuthority;
   session: { user: { id: string; role?: string | null; tenantId?: string | null } };
   url: URL;
 }): Promise<{ status: 200 | 403; body: ClaimsListResponse }> {
   try {
-    const { session, url } = args;
+    const { authority, session, url } = args;
 
     const scope = parseScope(url.searchParams.get('scope'));
     const status = url.searchParams.get('status') || undefined;
@@ -45,6 +47,7 @@ export async function listClaimsCore(args: {
     const perPage = clampPerPage(Number(url.searchParams.get('perPage') || 10), 10);
 
     const result = await listClaims({
+      authority,
       session: session as unknown as SessionWithTenant,
       scope,
       status,

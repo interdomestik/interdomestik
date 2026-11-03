@@ -1,9 +1,11 @@
 import { render } from '@testing-library/react';
 import { vi } from 'vitest';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { buildCommercialHandlingScopeSnapshot } from '@interdomestik/domain-claims/staff-claims/commercial-handling-scope';
 
 const hoisted = vi.hoisted(() => ({
   locale: 'en',
+  current: { session: null as unknown, authority: null as TenantAuthority | null },
   getInformationRequestsMock: vi.fn(() => Promise.resolve([])),
   getSessionMock: vi.fn(() =>
     Promise.resolve({
@@ -206,8 +208,28 @@ vi.mock('next/navigation', () => ({
   },
 }));
 
+vi.mock('@/lib/tenant-authority.server', async () => {
+  const { mintTestTenantAuthority } =
+    await import('@interdomestik/database/testing/tenant-authority');
+  const { ensureTenantId } = await import('@interdomestik/shared-auth');
+  return {
+    // Mirrors the real producer for the session this render's getSessionSafe returned.
+    authorizeSessionTenant: vi.fn(() => {
+      const session = hoisted.current.session as { user?: unknown } | null;
+      if (!session?.user) return Promise.resolve(null);
+      const authority = mintTestTenantAuthority(ensureTenantId(session as never));
+      hoisted.current.authority = authority;
+      return Promise.resolve({ session, authority });
+    }),
+  };
+});
+
 vi.mock('@/components/shell/session', () => ({
-  getSessionSafe: hoisted.getSessionMock,
+  getSessionSafe: async () => {
+    const session = await hoisted.getSessionMock();
+    hoisted.current.session = session;
+    return session;
+  },
   requireSessionOrRedirect: (session: unknown) => session,
 }));
 

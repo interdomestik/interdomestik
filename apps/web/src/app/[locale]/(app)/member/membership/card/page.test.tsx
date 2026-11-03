@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
@@ -33,22 +34,35 @@ vi.mock('next-intl/server', () => ({
   setRequestLocale: vi.fn(),
 }));
 
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: vi.fn(async () => ({
+    session: { user: { id: 'member-1', tenantId: 'tenant-ks' } },
+    authority: mintTestTenantAuthority('tenant-ks'),
+  })),
+}));
+
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: hoisted.getSessionSafeMock,
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  and: vi.fn(),
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       subscriptions: {
         findFirst: hoisted.findFirstMock,
       },
     },
-  },
-  eq: vi.fn(),
-  subscriptions: {},
-}));
+  };
+  return {
+    and: vi.fn(),
+    db,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+    eq: vi.fn(),
+    subscriptions: {},
+  };
+});
 
 vi.mock('next/link', () => ({
   default: ({ children, href = '#' }: { children: ReactNode; href?: string }) => (

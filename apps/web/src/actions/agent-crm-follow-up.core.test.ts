@@ -1,175 +1,28 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const mocks = vi.hoisted(() => ({
-  completeFollowUpActivity: vi.fn(),
-  completeCrmTaskCore: vi.fn(),
-  createCrmTaskCore: vi.fn(),
-  createFollowUpActivity: vi.fn(),
-  findById: vi.fn(),
-  listCrmLeadFollowUpActivitiesForLead: vi.fn(),
-  listCrmLeadFollowUpTasksForLead: vi.fn(),
-  revalidatePath: vi.fn(),
-}));
-
-vi.mock('@/adapters/crm/lead-follow-up-repository', () => ({
-  crmLeadFollowUpRepository: {
-    completeFollowUpActivity: mocks.completeFollowUpActivity,
-    createFollowUpActivity: mocks.createFollowUpActivity,
-    findById: mocks.findById,
-  },
-  listCrmLeadFollowUpActivitiesForLead: mocks.listCrmLeadFollowUpActivitiesForLead,
-  listCrmLeadFollowUpTasksForLead: mocks.listCrmLeadFollowUpTasksForLead,
-}));
-
-vi.mock('./crm-tasks.core', () => ({
-  completeCrmTaskCore: mocks.completeCrmTaskCore,
-  createCrmTaskCore: mocks.createCrmTaskCore,
-}));
-
-vi.mock('nanoid', () => ({
-  nanoid: () => 'follow-up-1',
-}));
-
-vi.mock('next/cache', () => ({
-  revalidatePath: mocks.revalidatePath,
-}));
-
+import { installAgentCrmFollowUpHooks } from './agent-crm-follow-up.core.hooks.test-support';
+import { describe, expect, it, vi } from 'vitest';
+import { activity, authority, lead, mocks, session } from './agent-crm-follow-up.core.test-support';
 import {
   completeAgentLeadFollowUpCore,
   scheduleAgentLeadFollowUpCore,
 } from './agent-crm-follow-up.core';
 
-function session(overrides: Record<string, unknown> = {}) {
-  return {
-    user: {
-      branchId: 'branch-1',
-      id: 'agent-1',
-      role: 'agent',
-      tenantId: 'tenant-1',
-      ...overrides,
-    },
-  };
-}
-
-function lead(overrides: Record<string, unknown> = {}) {
-  return {
-    agentId: 'agent-1',
-    branchId: 'branch-1',
-    createdAt: '2026-05-10T08:00:00.000Z',
-    id: 'lead-1',
-    stage: 'new',
-    tenantId: 'tenant-1',
-    type: 'individual',
-    ...overrides,
-  };
-}
-
-function activity(overrides: Record<string, unknown> = {}) {
-  return {
-    agentId: 'agent-1',
-    completedAt: null,
-    createdAt: '2026-05-10T08:00:00.000Z',
-    description: null,
-    id: 'follow-up-1',
-    leadId: 'lead-1',
-    occurredAt: '2026-05-10T08:00:00.000Z',
-    scheduledAt: '2026-05-10T09:00:00.000Z',
-    subject: 'Follow up',
-    tenantId: 'tenant-1',
-    type: 'follow_up',
-    ...overrides,
-  };
-}
-
 describe('agent CRM follow-up actions', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.findById.mockResolvedValue(lead());
-    mocks.createFollowUpActivity.mockImplementation(async ({ activity: created }) =>
-      activity({ ...created, agentId: 'agent-1' })
-    );
-    mocks.listCrmLeadFollowUpActivitiesForLead.mockResolvedValue([]);
-    mocks.listCrmLeadFollowUpTasksForLead.mockResolvedValue([
-      activity({
-        expectedLifecycleVersion: 1,
-        followUpSource: 'crm_task',
-        id: 'lead-follow-up-task-1',
-        scheduledAt: '2026-05-10T09:00:00.000Z',
-      }),
-    ]);
-    mocks.createCrmTaskCore.mockResolvedValue({
-      outcome: 'success',
-      task: {
-        assignedTo: {
-          actorId: 'agent-1',
-          branchId: 'branch-1',
-          kind: 'actor',
-          role: 'agent',
-          tenantId: 'tenant-1',
-        },
-        branchId: 'branch-1',
-        completedAt: null,
-        createReasonCode: 'follow_up',
-        createdAt: '2026-05-10T08:00:00.000Z',
-        createdBy: {
-          actorId: 'agent-1',
-          branchId: 'branch-1',
-          role: 'agent',
-          tenantId: 'tenant-1',
-        },
-        dueAt: '2026-05-10T09:00:00.000Z',
-        lifecycleVersion: 1,
-        status: 'pending',
-        subjectReference: { id: 'lead-1', kind: 'lead' },
-        taskId: 'lead-follow-up-task-1',
-        tenantId: 'tenant-1',
-      },
-      transition: null,
-    });
-    mocks.completeCrmTaskCore.mockResolvedValue({
-      outcome: 'success',
-      task: {
-        assignedTo: {
-          actorId: 'agent-1',
-          branchId: 'branch-1',
-          kind: 'actor',
-          role: 'agent',
-          tenantId: 'tenant-1',
-        },
-        branchId: 'branch-1',
-        completedAt: '2026-05-10T09:30:00.000Z',
-        createReasonCode: 'follow_up',
-        createdAt: '2026-05-10T08:00:00.000Z',
-        createdBy: {
-          actorId: 'agent-1',
-          branchId: 'branch-1',
-          role: 'agent',
-          tenantId: 'tenant-1',
-        },
-        dueAt: '2026-05-10T09:00:00.000Z',
-        lifecycleVersion: 2,
-        status: 'completed',
-        subjectReference: { id: 'lead-1', kind: 'lead' },
-        taskId: 'lead-follow-up-task-1',
-        tenantId: 'tenant-1',
-      },
-      transition: null,
-    });
-    mocks.completeFollowUpActivity.mockResolvedValue(
-      activity({ completedAt: '2026-05-10T09:30:00.000Z' })
-    );
-  });
+  installAgentCrmFollowUpHooks();
 
   it('schedules a follow-up for an agent with tenant and branch scope', async () => {
     const result = await scheduleAgentLeadFollowUpCore({
       leadId: 'lead-1',
       scheduledAt: '2026-05-10T09:00:00.000Z',
       session: session(),
+      authority,
       subject: 'Follow up',
     });
 
     expect(result.success).toBe(true);
+    expect(mocks.createCrmLeadFollowUpRepository).toHaveBeenCalledWith(authority);
+    expect(mocks.createCrmTaskCore.mock.calls[0]?.[0].authority).toBe(authority);
     expect(mocks.createCrmTaskCore).toHaveBeenCalledWith({
+      authority,
       input: expect.objectContaining({
         assignedTo: {
           actorId: 'agent-1',
@@ -194,11 +47,28 @@ describe('agent CRM follow-up actions', () => {
         scope: { agentId: 'agent-1', branchId: 'branch-1' },
         tenantId: 'tenant-1',
       }),
+      authority,
       leadId: 'lead-1',
     });
     expect(mocks.createFollowUpActivity).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/en/agent/crm');
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/en/agent/leads/lead-1');
+  });
+
+  it('rejects a missing tenant authority before any repository access', async () => {
+    await expect(
+      scheduleAgentLeadFollowUpCore({
+        leadId: 'lead-1',
+        scheduledAt: '2026-05-10T09:00:00.000Z',
+        session: session(),
+        authority: null,
+        subject: 'Follow up',
+      })
+    ).resolves.toEqual({ success: false, error: 'unauthorized' });
+
+    expect(mocks.createCrmLeadFollowUpRepository).not.toHaveBeenCalled();
+    expect(mocks.findById).not.toHaveBeenCalled();
+    expect(mocks.createCrmTaskCore).not.toHaveBeenCalled();
   });
 
   it('rejects missing branch scope before repository writes', async () => {
@@ -207,6 +77,7 @@ describe('agent CRM follow-up actions', () => {
         leadId: 'lead-1',
         scheduledAt: '2026-05-10T09:00:00.000Z',
         session: session({ branchId: null }),
+        authority,
         subject: 'Follow up',
       })
     ).resolves.toEqual({ success: false, error: 'missing_branch_scope' });
@@ -230,6 +101,7 @@ describe('agent CRM follow-up actions', () => {
         activityId: 'follow-up-1',
         leadId: 'lead-1',
         session: session(),
+        authority,
       });
 
       expect(result.success).toBe(false);
@@ -247,6 +119,7 @@ describe('agent CRM follow-up actions', () => {
       leadId: 'lead-1',
       scheduledAt: '2026-05-10T09:00:00.000Z',
       session: session(),
+      authority,
       subject: 'Sensitive free text must not enter task material',
     });
 
@@ -260,6 +133,7 @@ describe('agent CRM follow-up actions', () => {
       activityId: 'follow-up-1',
       leadId: 'lead-1',
       session: session(),
+      authority,
     });
 
     expect(result.success).toBe(true);
@@ -271,90 +145,5 @@ describe('agent CRM follow-up actions', () => {
     });
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/en/agent/crm');
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/en/agent/leads/lead-1');
-  });
-
-  it('completes task-backed follow-ups through the CRM task boundary', async () => {
-    const result = await completeAgentLeadFollowUpCore({
-      activityId: 'lead-follow-up-task-1',
-      expectedLifecycleVersion: 1,
-      leadId: 'lead-1',
-      session: session(),
-      source: 'crm_task',
-    });
-
-    expect(result.success).toBe(true);
-    expect(mocks.listCrmLeadFollowUpTasksForLead).toHaveBeenCalledWith({
-      actor: expect.objectContaining({
-        actorId: 'agent-1',
-        scope: { agentId: 'agent-1', branchId: 'branch-1' },
-        tenantId: 'tenant-1',
-      }),
-      leadId: 'lead-1',
-    });
-    expect(mocks.completeCrmTaskCore).toHaveBeenCalledWith({
-      input: {
-        expectedLifecycleVersion: 1,
-        reasonCode: 'resolved',
-        taskId: 'lead-follow-up-task-1',
-      },
-      requestHeaders: undefined,
-      session: expect.objectContaining({ user: expect.objectContaining({ id: 'agent-1' }) }),
-    });
-    expect(mocks.completeFollowUpActivity).not.toHaveBeenCalled();
-    expect(mocks.revalidatePath).toHaveBeenCalledWith('/en/agent/leads/lead-1');
-  });
-
-  it('rejects task-backed completion when the task is not a visible follow-up for the submitted lead', async () => {
-    mocks.listCrmLeadFollowUpTasksForLead.mockResolvedValueOnce([]);
-
-    const result = await completeAgentLeadFollowUpCore({
-      activityId: 'other-task-1',
-      expectedLifecycleVersion: 1,
-      leadId: 'lead-1',
-      session: session(),
-      source: 'crm_task',
-    });
-
-    expect(result).toEqual({ success: false, error: 'not_found' });
-    expect(mocks.completeCrmTaskCore).not.toHaveBeenCalled();
-    expect(mocks.completeFollowUpActivity).not.toHaveBeenCalled();
-    expect(mocks.revalidatePath).not.toHaveBeenCalled();
-  });
-
-  it('rejects task-backed completion when the submitted lifecycle version is stale', async () => {
-    const result = await completeAgentLeadFollowUpCore({
-      activityId: 'lead-follow-up-task-1',
-      expectedLifecycleVersion: 2,
-      leadId: 'lead-1',
-      session: session(),
-      source: 'crm_task',
-    });
-
-    expect(result).toEqual({ success: false, error: 'conflict', reason: 'lifecycle_conflict' });
-    expect(mocks.completeCrmTaskCore).not.toHaveBeenCalled();
-    expect(mocks.completeFollowUpActivity).not.toHaveBeenCalled();
-    expect(mocks.revalidatePath).not.toHaveBeenCalled();
-  });
-
-  it('completes a same-time legacy duplicate after task-backed completion', async () => {
-    mocks.listCrmLeadFollowUpActivitiesForLead.mockResolvedValueOnce([
-      activity({ id: 'legacy-shadow-1', scheduledAt: '2026-05-10T09:00:00.000Z' }),
-    ]);
-
-    const result = await completeAgentLeadFollowUpCore({
-      activityId: 'lead-follow-up-task-1',
-      expectedLifecycleVersion: 1,
-      leadId: 'lead-1',
-      session: session(),
-      source: 'crm_task',
-    });
-
-    expect(result.success).toBe(true);
-    expect(mocks.completeFollowUpActivity).toHaveBeenCalledWith({
-      activityId: 'legacy-shadow-1',
-      actor: expect.objectContaining({ actorId: 'agent-1', tenantId: 'tenant-1' }),
-      completedAt: expect.any(String),
-      leadId: 'lead-1',
-    });
   });
 });

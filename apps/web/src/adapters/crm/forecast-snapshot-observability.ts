@@ -1,7 +1,9 @@
 import { and, asc, desc, eq } from 'drizzle-orm';
 
-import { db } from '@interdomestik/database/db';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { crmPipelineSnapshots } from '@interdomestik/database/schema';
+
+import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
 
 export type CrmForecastSnapshotObservedRow = {
   branchId: string | null;
@@ -21,43 +23,47 @@ export interface CrmForecastSnapshotObservabilityRepository {
   }): Promise<CrmForecastSnapshotObservedRow[]>;
 }
 
-type CrmForecastSnapshotObservabilityDb = Pick<typeof db, 'select'>;
-
 function toIso(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value;
 }
 
 export function createCrmForecastSnapshotObservabilityRepository(
-  database: CrmForecastSnapshotObservabilityDb = db
+  authority: TenantAuthority,
+  executor?: CrmTenantExecutor
 ): CrmForecastSnapshotObservabilityRepository {
   return {
     async listObservedSnapshots(params) {
-      const rows = await database
-        .select({
-          branchId: crmPipelineSnapshots.branchId,
-          createdAt: crmPipelineSnapshots.createdAt,
-          currencyCode: crmPipelineSnapshots.currencyCode,
-          pipelineId: crmPipelineSnapshots.pipelineId,
-          snapshotDate: crmPipelineSnapshots.snapshotDate,
-          snapshotVersion: crmPipelineSnapshots.snapshotVersion,
-          sourceRunId: crmPipelineSnapshots.sourceRunId,
-          tenantId: crmPipelineSnapshots.tenantId,
-        })
-        .from(crmPipelineSnapshots)
-        .where(
-          and(
-            eq(crmPipelineSnapshots.tenantId, params.tenantId),
-            eq(crmPipelineSnapshots.snapshotDate, params.snapshotDate)
-          )
-        )
-        .orderBy(
-          asc(crmPipelineSnapshots.pipelineId),
-          asc(crmPipelineSnapshots.branchId),
-          asc(crmPipelineSnapshots.currencyCode),
-          desc(crmPipelineSnapshots.snapshotVersion),
-          asc(crmPipelineSnapshots.sourceRunId),
-          asc(crmPipelineSnapshots.createdAt)
-        );
+      const rows = await runInCrmTenantContext(
+        executor,
+        authority,
+        async scoped =>
+          await scoped
+            .select({
+              branchId: crmPipelineSnapshots.branchId,
+              createdAt: crmPipelineSnapshots.createdAt,
+              currencyCode: crmPipelineSnapshots.currencyCode,
+              pipelineId: crmPipelineSnapshots.pipelineId,
+              snapshotDate: crmPipelineSnapshots.snapshotDate,
+              snapshotVersion: crmPipelineSnapshots.snapshotVersion,
+              sourceRunId: crmPipelineSnapshots.sourceRunId,
+              tenantId: crmPipelineSnapshots.tenantId,
+            })
+            .from(crmPipelineSnapshots)
+            .where(
+              and(
+                eq(crmPipelineSnapshots.tenantId, params.tenantId),
+                eq(crmPipelineSnapshots.snapshotDate, params.snapshotDate)
+              )
+            )
+            .orderBy(
+              asc(crmPipelineSnapshots.pipelineId),
+              asc(crmPipelineSnapshots.branchId),
+              asc(crmPipelineSnapshots.currencyCode),
+              desc(crmPipelineSnapshots.snapshotVersion),
+              asc(crmPipelineSnapshots.sourceRunId),
+              asc(crmPipelineSnapshots.createdAt)
+            )
+      );
 
       return rows.map(row => ({
         branchId: row.branchId ?? null,
@@ -72,6 +78,3 @@ export function createCrmForecastSnapshotObservabilityRepository(
     },
   };
 }
-
-export const crmForecastSnapshotObservabilityRepository =
-  createCrmForecastSnapshotObservabilityRepository();

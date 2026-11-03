@@ -1,10 +1,9 @@
+import { claimDocuments, claimInformationRequestEvidence, claims } from '@interdomestik/database';
 import {
-  claimDocuments,
-  claimInformationRequestEvidence,
-  claims,
-  withTenantContext,
-} from '@interdomestik/database';
-import { ensureAccessTenantId } from '@interdomestik/shared-auth';
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 
 export type AssignedStaffClaimDocument = {
@@ -19,8 +18,6 @@ export type AssignedStaffDocumentSession = {
   user: {
     id: string;
     role?: string | null;
-    tenantId?: string | null;
-    accessTenantId?: string | null;
   };
 };
 
@@ -38,18 +35,14 @@ export function buildAssignedStaffDocumentUrl(documentId: string): string {
 export async function getAssignedStaffClaimDocuments(args: {
   claimId: string;
   session: AssignedStaffDocumentSession;
+  authority: TenantAuthority | null;
 }): Promise<AssignedStaffClaimDocument[]> {
-  const { claimId, session } = args;
+  const { claimId, session, authority } = args;
   const staffId = session.user.id;
-  if (session.user.role !== 'staff' || !staffId || !claimId) return [];
-  let tenantId: string;
-  try {
-    tenantId = ensureAccessTenantId(session);
-  } catch {
-    return [];
-  }
+  if (session.user.role !== 'staff' || !staffId || !claimId || !authority) return [];
+  const { tenantId } = readTenantAuthority(authority);
 
-  return withTenantContext({ tenantId, role: 'staff' }, async tx => {
+  return withTenantAuthority(authority, async tx => {
     // db-access-guard: tenant-scoped -- reason: exact claim, tenant, and assigned-staff predicates gate the document read below.
     const [assignment] = await tx
       .select({ id: claims.id })

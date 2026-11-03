@@ -1,12 +1,22 @@
-import { db, webhookEvents } from '@interdomestik/database';
-import { eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
+import {
+  admitVerifiedPaddleReceipt,
+  appendPaddleInvalidSignatureEvidence,
+  completePaddleReceiptLease,
+  type PaddleReceiptLease,
+} from '@interdomestik/database';
+
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 import { RetryablePaddleWebhookError } from './errors';
-import { findNonTerminalRecoverableLease, reclaimRetryableWebhookEvent } from './receipt-lease';
 import type { PaddleWebhookAuditDeps } from './types';
 
-export { isRetryablePaddleWebhookError } from './errors';
+export type { PaddleReceiptLease } from '@interdomestik/database';
+
+export {
+  PaddleSubscriptionReferenceAmbiguousError,
+  isPaddleSubscriptionReferenceAmbiguousError,
+  isRetryablePaddleWebhookError,
+} from './errors';
 
 export async function persistInvalidSignatureAttempt(
   params: {
@@ -18,42 +28,43 @@ export async function persistInvalidSignatureAttempt(
     eventTimestamp: Date | null;
     payloadHash: string;
     parsedPayload: Record<string, unknown>;
-    tenantId?: string | null;
   },
-  deps: PaddleWebhookAuditDeps = {}
+  // Accepted for call-site compatibility. The delivery failed verification before any tenant was
+  // known, so there is no tenant to record an audit row in; the receipt evidence is the record.
+  _deps: PaddleWebhookAuditDeps = {}
 ) {
-  // db-access-guard: system-exempt -- reason: Paddle invalid-signature audit must persist before safe tenant resolution and allows tenantId null
-  await db
-    .insert(webhookEvents)
-    .values({
-      id: nanoid(),
-      tenantId: params.tenantId ?? null,
-      provider: 'paddle',
-      processingScopeKey: params.processingScopeKey,
-      dedupeKey: params.dedupeKey,
-      eventType: params.eventType ?? null,
-      eventId: params.eventId ?? null,
-      signatureValid: false,
-      eventTimestamp: params.eventTimestamp,
-      payloadHash: params.payloadHash,
-      payload: params.parsedPayload,
-    })
-    .onConflictDoNothing();
+  await appendPaddleInvalidSignatureEvidence({
+    processingScopeKey: params.processingScopeKey,
+    dedupeKey: params.dedupeKey,
+    eventType: params.eventType ?? null,
+    eventId: params.eventId ?? null,
+    eventTimestamp: params.eventTimestamp,
+    payloadHash: params.payloadHash,
+    payload: params.parsedPayload,
+  });
+}
 
-  if (deps.logAuditEvent) {
-    await deps.logAuditEvent({
-      actorRole: 'system',
-      action: 'webhook.invalid_signature',
-      entityType: 'webhook_event',
-      metadata: {
-        provider: 'paddle',
-        eventType: params.eventType,
-        eventId: params.eventId,
-        payloadHash: params.payloadHash,
-      },
-      headers: params.headers,
-    });
-  }
+type ReceiptAuditEntry = Pick<
+  Parameters<NonNullable<PaddleWebhookAuditDeps['logAuditEvent']>>[0],
+  'action' | 'entityId' | 'metadata'
+>;
+
+/** Records a system receipt audit row under the receipt tenant, when an audit sink and tenant exist. */
+async function auditReceipt(
+  deps: PaddleWebhookAuditDeps,
+  params: { headers: Headers; authority?: TenantAuthority | null },
+  entry: ReceiptAuditEntry
+): Promise<void> {
+  if (!deps.logAuditEvent || !params.authority) return;
+  await deps.logAuditEvent({
+    actorRole: 'system',
+    action: entry.action,
+    entityType: 'webhook_event',
+    ...(entry.entityId === undefined ? {} : { entityId: entry.entityId }),
+    authority: params.authority,
+    metadata: entry.metadata,
+    headers: params.headers,
+  });
 }
 
 export async function insertWebhookEvent(
@@ -70,201 +81,162 @@ export async function insertWebhookEvent(
     payloadHash: string;
     parsedPayload: Record<string, unknown>;
     tenantId?: string | null;
+    /** Authority of the tenant the receipt belongs to, when one was resolved. */
+    authority?: TenantAuthority | null;
   },
   deps: PaddleWebhookAuditDeps = {}
 ) {
-  // db-access-guard: system-exempt -- reason: Paddle webhook receipt audit preserves duplicate detection before handler-level tenant writes
-  const inserted = await db
-    .insert(webhookEvents)
-    .values({
-      id: nanoid(),
-      tenantId: params.tenantId ?? null,
-      provider: 'paddle',
-      processingScopeKey: params.processingScopeKey,
-      dedupeKey: params.dedupeKey,
-      eventType: params.eventType ?? null,
-      eventId: params.eventId ?? null,
-      providerTransactionId: params.providerTransactionId ?? null,
-      signatureValid: params.signatureValid || params.signatureBypassed,
-      eventTimestamp: params.eventTimestamp,
-      payloadHash: params.payloadHash,
-      payload: params.parsedPayload,
-    })
-    .onConflictDoNothing()
-    .returning({ id: webhookEvents.id });
+  if (!params.signatureValid && !params.signatureBypassed) {
+    throw new Error('Unverified Paddle webhook cannot be admitted as a receipt');
+  }
 
-  if (inserted.length === 0) {
-    const reclaimed = await reclaimRetryableWebhookEvent(params);
-    if (reclaimed) {
-      if (deps.logAuditEvent) {
-        await deps.logAuditEvent({
-          actorRole: 'system',
-          action: 'webhook.retry_received',
-          entityType: 'webhook_event',
-          entityId: reclaimed.id,
-          tenantId: params.tenantId ?? undefined,
-          metadata: {
-            provider: 'paddle',
-            dedupeKey: params.dedupeKey,
-            processingScopeKey: params.processingScopeKey,
-            eventType: params.eventType,
-            eventId: params.eventId,
-          },
-          headers: params.headers,
-        });
-      }
+  const admission = await admitVerifiedPaddleReceipt({
+    processingScopeKey: params.processingScopeKey,
+    dedupeKey: params.dedupeKey,
+    eventType: params.eventType ?? null,
+    eventId: params.eventId ?? null,
+    providerTransactionId: params.providerTransactionId ?? null,
+    tenantId: params.tenantId ?? null,
+    eventTimestamp: params.eventTimestamp,
+    payloadHash: params.payloadHash,
+    payload: params.parsedPayload,
+  });
 
-      return { inserted: true as const, webhookEventRowId: reclaimed.id };
-    }
+  if (admission.outcome === 'admitted' && admission.reclaimed) {
+    const receiptLease = admission.lease;
+    await auditReceipt(deps, params, {
+      action: 'webhook.retry_received',
+      entityId: receiptLease.id,
+      metadata: {
+        provider: 'paddle',
+        dedupeKey: params.dedupeKey,
+        processingScopeKey: params.processingScopeKey,
+        eventType: params.eventType,
+        eventId: params.eventId,
+      },
+    });
 
-    const nonTerminalLease = await findNonTerminalRecoverableLease(params);
-    if (nonTerminalLease) {
-      if (deps.logAuditEvent) {
-        await deps.logAuditEvent({
-          actorRole: 'system',
-          action: 'webhook.retry_deferred',
-          entityType: 'webhook_event',
-          entityId: nonTerminalLease.id,
-          tenantId: params.tenantId ?? undefined,
-          metadata: {
-            provider: 'paddle',
-            dedupeKey: params.dedupeKey,
-            processingScopeKey: params.processingScopeKey,
-            eventType: params.eventType,
-            eventId: params.eventId,
-          },
-          headers: params.headers,
-        });
-      }
-      throw new RetryablePaddleWebhookError(
-        `Paddle webhook ${params.eventId ?? params.dedupeKey} is still processing`
-      );
-    }
+    return { inserted: true as const, webhookEventRowId: receiptLease.id, receiptLease };
+  }
 
-    if (deps.logAuditEvent) {
-      await deps.logAuditEvent({
-        actorRole: 'system',
-        action: 'webhook.duplicate',
-        entityType: 'webhook_event',
-        tenantId: params.tenantId ?? undefined,
-        metadata: {
-          provider: 'paddle',
-          dedupeKey: params.dedupeKey,
-          processingScopeKey: params.processingScopeKey,
-          eventType: params.eventType,
-          eventId: params.eventId,
-          providerTransactionId: params.providerTransactionId ?? null,
-          signatureBypassed: params.signatureBypassed,
-        },
-        headers: params.headers,
-      });
-    }
+  if (admission.outcome === 'in_progress') {
+    await auditReceipt(deps, params, {
+      action: 'webhook.retry_deferred',
+      entityId: admission.receiptId,
+      metadata: {
+        provider: 'paddle',
+        dedupeKey: params.dedupeKey,
+        processingScopeKey: params.processingScopeKey,
+        eventType: params.eventType,
+        eventId: params.eventId,
+      },
+    });
+    throw new RetryablePaddleWebhookError(
+      `Paddle webhook ${params.eventId ?? params.dedupeKey} is still processing`
+    );
+  }
+
+  if (admission.outcome === 'duplicate') {
+    await auditReceipt(deps, params, {
+      action: 'webhook.duplicate',
+      metadata: {
+        provider: 'paddle',
+        dedupeKey: params.dedupeKey,
+        processingScopeKey: params.processingScopeKey,
+        eventType: params.eventType,
+        eventId: params.eventId,
+        providerTransactionId: params.providerTransactionId ?? null,
+        signatureBypassed: params.signatureBypassed,
+      },
+    });
 
     return { inserted: false as const, webhookEventRowId: null };
   }
 
-  const webhookEventRowId = inserted[0]!.id;
+  const receiptLease = admission.lease;
+  const webhookEventRowId = receiptLease.id;
 
-  if (deps.logAuditEvent) {
-    await deps.logAuditEvent({
-      actorRole: 'system',
-      action: 'webhook.received',
-      entityType: 'webhook_event',
-      entityId: webhookEventRowId,
-      tenantId: params.tenantId ?? undefined,
-      metadata: {
-        provider: 'paddle',
-        eventType: params.eventType,
-        eventId: params.eventId,
-        processingScopeKey: params.processingScopeKey,
-        providerTransactionId: params.providerTransactionId ?? null,
-        signatureValid: params.signatureValid,
-        signatureBypassed: params.signatureBypassed,
-      },
-      headers: params.headers,
-    });
-  }
+  await auditReceipt(deps, params, {
+    action: 'webhook.received',
+    entityId: webhookEventRowId,
+    metadata: {
+      provider: 'paddle',
+      eventType: params.eventType,
+      eventId: params.eventId,
+      processingScopeKey: params.processingScopeKey,
+      providerTransactionId: params.providerTransactionId ?? null,
+      signatureValid: params.signatureValid,
+      signatureBypassed: params.signatureBypassed,
+    },
+  });
 
-  return { inserted: true as const, webhookEventRowId };
+  return { inserted: true as const, webhookEventRowId, receiptLease };
 }
 
 export async function markWebhookProcessed(
   params: {
     headers: Headers;
-    webhookEventRowId: string;
+    receiptLease: PaddleReceiptLease;
     eventType: string | undefined;
     eventId: string | undefined;
     tenantId?: string | null;
+    authority?: TenantAuthority | null;
   },
   deps: PaddleWebhookAuditDeps = {}
-) {
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  await db
-    .update(webhookEvents)
-    .set({
-      processedAt: new Date(),
-      processingResult: 'ok',
-      error: null,
-    })
-    .where(eq(webhookEvents.id, params.webhookEventRowId));
-
-  if (deps.logAuditEvent) {
-    await deps.logAuditEvent({
-      actorRole: 'system',
-      action: 'webhook.processed',
-      entityType: 'webhook_event',
-      entityId: params.webhookEventRowId,
-      tenantId: params.tenantId || undefined,
-      metadata: {
-        provider: 'paddle',
-        eventType: params.eventType,
-        eventId: params.eventId,
-        result: 'ok',
-      },
-      headers: params.headers,
-    });
+): Promise<boolean> {
+  const completed = await completePaddleReceiptLease(params.receiptLease, { result: 'ok' });
+  if (!completed) {
+    console.warn('[Paddle] Receipt lease was superseded before completion', params.receiptLease.id);
+    return false;
   }
+
+  await auditReceipt(deps, params, {
+    action: 'webhook.processed',
+    entityId: params.receiptLease.id,
+    metadata: {
+      provider: 'paddle',
+      eventType: params.eventType,
+      eventId: params.eventId,
+      result: 'ok',
+    },
+  });
+  return true;
 }
 
 export async function markWebhookFailed(
   params: {
     headers: Headers;
-    webhookEventRowId: string;
+    receiptLease: PaddleReceiptLease;
     eventType: string | undefined;
     eventId: string | undefined;
     error: unknown;
     retryable?: boolean;
     tenantId?: string | null;
+    authority?: TenantAuthority | null;
   },
   deps: PaddleWebhookAuditDeps = {}
-) {
+): Promise<boolean> {
   const message = params.error instanceof Error ? params.error.message : String(params.error);
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  await db
-    .update(webhookEvents)
-    .set({
-      processedAt: new Date(),
-      processingResult: params.retryable ? 'retryable_error' : 'error',
-      error: message.slice(0, 2000),
-    })
-    .where(eq(webhookEvents.id, params.webhookEventRowId));
-
-  if (deps.logAuditEvent) {
-    await deps.logAuditEvent({
-      actorRole: 'system',
-      action: 'webhook.failed',
-      entityType: 'webhook_event',
-      entityId: params.webhookEventRowId,
-      tenantId: params.tenantId || undefined,
-      metadata: {
-        provider: 'paddle',
-        eventType: params.eventType,
-        eventId: params.eventId,
-        result: 'error',
-        error: message,
-      },
-      headers: params.headers,
-    });
+  const completed = await completePaddleReceiptLease(params.receiptLease, {
+    result: params.retryable ? 'retryable_error' : 'error',
+    error: message,
+  });
+  if (!completed) {
+    console.warn('[Paddle] Receipt lease was superseded before failure', params.receiptLease.id);
+    return false;
   }
+
+  await auditReceipt(deps, params, {
+    action: 'webhook.failed',
+    entityId: params.receiptLease.id,
+    metadata: {
+      provider: 'paddle',
+      eventType: params.eventType,
+      eventId: params.eventId,
+      result: 'error',
+      error: message,
+    },
+  });
+  return true;
 }

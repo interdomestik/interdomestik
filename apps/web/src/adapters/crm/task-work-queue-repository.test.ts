@@ -1,8 +1,18 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   dbSelect: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
+
+vi.mock('@interdomestik/database', async () => {
+  const { db } = await import('@interdomestik/database/db');
+  hoisted.withTenantContext.mockImplementation(
+    async (_context: unknown, callback: (tx: unknown) => unknown) => callback(db)
+  );
+  return { withTenantContext: hoisted.withTenantContext };
+});
 
 vi.mock('@interdomestik/database/db', () => ({
   db: {
@@ -95,7 +105,9 @@ describe('createAgentCrmTaskWorkQueueRepository', () => {
       ])
     );
 
-    const queue = await createAgentCrmTaskWorkQueueRepository().readAgentTaskWorkQueue({
+    const queue = await createAgentCrmTaskWorkQueueRepository(
+      mintTestTenantAuthority('tenant-1')
+    ).readAgentTaskWorkQueue({
       actor,
       now: '2026-05-22T08:00:00.000Z',
     });
@@ -120,11 +132,14 @@ describe('createAgentCrmTaskWorkQueueRepository', () => {
     const chain = createQueueChain([]);
     hoisted.dbSelect.mockReturnValueOnce(chain);
 
-    await createAgentCrmTaskWorkQueueRepository().readAgentTaskWorkQueue({
+    const authority = mintTestTenantAuthority('tenant-1');
+    await createAgentCrmTaskWorkQueueRepository(authority).readAgentTaskWorkQueue({
       actor,
       now: '2026-05-22T08:00:00.000Z',
     });
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(hoisted.withTenantContext.mock.calls[0][0]).toBe(authority);
     expect(chain.innerJoin).toHaveBeenCalledWith(expect.objectContaining({ id: 'crmLeads.id' }), {
       and: [
         { eq: ['crmLeads.id', 'crmTasks.subjectId'] },
@@ -154,7 +169,9 @@ describe('createAgentCrmTaskWorkQueueRepository', () => {
 
   it('fails closed without querying for unsupported actor scope', async () => {
     await expect(
-      createAgentCrmTaskWorkQueueRepository().readAgentTaskWorkQueue({
+      createAgentCrmTaskWorkQueueRepository(
+        mintTestTenantAuthority('tenant-1')
+      ).readAgentTaskWorkQueue({
         actor: { ...actor, role: 'staff' },
         now: '2026-05-22T08:00:00.000Z',
       })
@@ -184,7 +201,9 @@ describe('createAgentCrmTaskWorkQueueRepository', () => {
       ])
     );
 
-    const queue = await createAgentCrmTaskWorkQueueRepository().readAgentCompletedTaskQueue({
+    const queue = await createAgentCrmTaskWorkQueueRepository(
+      mintTestTenantAuthority('tenant-1')
+    ).readAgentCompletedTaskQueue({
       actor,
       now: '2026-05-22T08:00:00.000Z',
     });
@@ -208,7 +227,9 @@ describe('createAgentCrmTaskWorkQueueRepository', () => {
     const chain = createQueueChain([]);
     hoisted.dbSelect.mockReturnValueOnce(chain);
 
-    await createAgentCrmTaskWorkQueueRepository().readAgentCompletedTaskQueue({
+    await createAgentCrmTaskWorkQueueRepository(
+      mintTestTenantAuthority('tenant-1')
+    ).readAgentCompletedTaskQueue({
       actor,
       now: '2026-05-22T08:00:00.000Z',
     });

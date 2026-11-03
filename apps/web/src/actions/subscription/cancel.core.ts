@@ -1,3 +1,4 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { cancelSubscriptionCore as cancelSubscriptionCoreDomain } from '@interdomestik/domain-membership-billing/subscription/cancel';
 import type {
   CancelSubscriptionResult,
@@ -11,12 +12,13 @@ export async function cancelSubscriptionCore(
   params: {
     idempotencyKey?: string;
     session: SubscriptionSession | null;
+    authority: TenantAuthority | null;
     subscriptionId: string;
     now?: Date;
   },
   deps: SubscriptionDeps = {}
 ): Promise<CancelSubscriptionResult> {
-  if (!params.session?.user?.tenantId) {
+  if (!params.session?.user || !params.authority) {
     return { error: 'Unauthorized', success: undefined };
   }
 
@@ -25,7 +27,7 @@ export async function cancelSubscriptionCore(
     scope: {
       kind: 'tenant',
       actorUserId: params.session?.user?.id ?? null,
-      tenantId: params.session?.user?.tenantId ?? null,
+      authority: params.authority,
     },
     idempotencyKey: params.idempotencyKey,
     requestFingerprint: {
@@ -36,6 +38,7 @@ export async function cancelSubscriptionCore(
       cancelSubscriptionCoreDomain(
         {
           session: params.session,
+          authority: params.authority,
           subscriptionId: params.subscriptionId,
           now: params.now,
         },

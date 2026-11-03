@@ -24,6 +24,8 @@ export type ClaimAiClaimSnapshot = {
 
 export type QueuedClaimAiRun = {
   runId: string;
+  /** Tenant the run was queued under; the worker binds every run lookup to it. */
+  tenantId: string;
   workflow: ClaimAiWorkflow;
   claimId: string;
   documentId: string;

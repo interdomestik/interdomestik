@@ -1,5 +1,10 @@
-import { and, db, eq, user } from '@interdomestik/database';
+import { and, eq, user } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type StaffSupportSession = {
   user?: {
@@ -15,7 +20,8 @@ export type StaffSupportSessionWithBranch<T extends StaffSupportSession> = T & {
 };
 
 export async function resolveStaffSupportSessionBranch<T extends StaffSupportSession>(
-  session: T | null | undefined
+  session: T | null | undefined,
+  authority: TenantAuthority | null
 ): Promise<StaffSupportSessionWithBranch<T> | null> {
   if (!session?.user) {
     return null;
@@ -37,10 +43,23 @@ export async function resolveStaffSupportSessionBranch<T extends StaffSupportSes
     return currentSession as StaffSupportSessionWithBranch<T>;
   }
 
-  const staffUser = await db.query.user.findFirst({
-    where: withTenant(tenantId, user.tenantId, and(eq(user.id, userId), eq(user.role, role))),
-    columns: { branchId: true },
-  });
+  if (!authority) {
+    return null;
+  }
+
+  const { tenantId: authorityTenantId } = readTenantAuthority(authority);
+  const staffUser = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.user.findFirst({
+        where: withTenant(
+          authorityTenantId,
+          user.tenantId,
+          and(eq(user.id, userId), eq(user.role, role))
+        ),
+        columns: { branchId: true },
+      })
+  );
 
   if (!staffUser?.branchId) {
     return null;

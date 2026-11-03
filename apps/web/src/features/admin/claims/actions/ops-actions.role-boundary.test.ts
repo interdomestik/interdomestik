@@ -5,13 +5,14 @@ import {
   FORBIDDEN_USERS,
   SAFE_FAILURE,
   expectNoResourceAccess,
+  expectOpsTenantContext,
   mocks,
   signIn,
   tenant,
   useTenantTx,
 } from './ops-actions-test-setup.spec';
 
-describe.each(ENTRYPOINTS)('%s exercised-role admission', (_name, invoke) => {
+describe.each(ENTRYPOINTS)('%s exercised-role admission', (name, invoke) => {
   it('denies a missing session before any resource access', async () => {
     mocks.getSession.mockResolvedValue(null);
 
@@ -32,10 +33,11 @@ describe.each(ENTRYPOINTS)('%s exercised-role admission', (_name, invoke) => {
 
     await expect(invoke()).resolves.toEqual({ success: true });
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-mk', role },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(expect.anything(), expect.any(Function));
+    expectOpsTenantContext(name, mocks.withTenantContext.mock.calls[0][0], {
+      tenantId: 'tenant-mk',
+      role,
+    });
     expect(mocks.directDb).not.toHaveBeenCalled();
     expect(mocks.revalidatePath.mock.calls).toEqual([
       ['/en/admin/claims/claim-1', 'page'],
@@ -48,10 +50,10 @@ describe.each(ENTRYPOINTS)('%s exercised-role admission', (_name, invoke) => {
 
     await invoke();
 
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-ks', role: 'tenant_admin' },
-      expect.any(Function)
-    );
+    expectOpsTenantContext(name, mocks.withTenantContext.mock.calls[0][0], {
+      tenantId: 'tenant-ks',
+      role: 'tenant_admin',
+    });
   });
 
   it('denies a claim the home-anchored writer predicate cannot see, without effects', async () => {

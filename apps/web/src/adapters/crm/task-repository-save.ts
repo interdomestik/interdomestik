@@ -7,11 +7,12 @@ import type {
   CrmTaskSubjectVisibility,
 } from '@interdomestik/domain-crm/tasks';
 import { CrmTaskRepositoryFailure } from '@interdomestik/domain-crm/tasks';
-import type { db } from '@interdomestik/database/db';
 import { crmTaskHistory, crmTasks } from '@interdomestik/database/schema';
 import { and, eq, type SQL } from 'drizzle-orm';
 
-type CrmTaskDb = typeof db;
+import type { CrmTenantExecutor } from './tenant-runner';
+
+type CrmTaskDb = CrmTenantExecutor;
 type CrmTaskRow = typeof crmTasks.$inferSelect;
 type CrmTaskInsert = typeof crmTasks.$inferInsert;
 type CrmTaskHistoryInsert = typeof crmTaskHistory.$inferInsert;
@@ -92,7 +93,11 @@ async function createSavedTask(
     return hydrateSavedTask(database, params.actor, row, deps);
   } catch (error) {
     if (!deps.isIdempotencyUniqueViolation(error)) throw error;
-    const replayedAfterRace = await deps.replayIdempotentCreate(database, params.actor, params.task);
+    const replayedAfterRace = await deps.replayIdempotentCreate(
+      database,
+      params.actor,
+      params.task
+    );
     if (!replayedAfterRace) throw new CrmTaskRepositoryFailure('idempotency_conflict');
     return replayedAfterRace;
   }
@@ -139,5 +144,9 @@ export async function saveCrmTaskInRepository(
   await assertWritableTaskSubject(database, params, deps);
   return params.expectedLifecycleVersion == null
     ? createSavedTask(database, params, deps)
-    : updateSavedTask(database, { ...params, expectedLifecycleVersion: params.expectedLifecycleVersion }, deps);
+    : updateSavedTask(
+        database,
+        { ...params, expectedLifecycleVersion: params.expectedLifecycleVersion },
+        deps
+      );
 }

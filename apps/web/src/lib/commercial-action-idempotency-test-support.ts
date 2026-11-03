@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi } from 'vitest';
 
 import type { runCommercialActionWithIdempotency } from './commercial-action-idempotency';
@@ -51,6 +52,10 @@ export const withTenantContextMock = vi.fn(
 export const databaseModuleMock = () => ({
   db: dbEntry,
   withTenantContext: withTenantContextMock,
+  // The public-site producer admits any requested tenant here; its active-tenant probe is kernel-tested.
+  authorizePublicSiteTenant: vi.fn((tenantId: string) =>
+    Promise.resolve(mintTestTenantAuthority(tenantId))
+  ),
   commercialActionIdempotency: {
     id: 'id_col',
     action: 'action_col',
@@ -93,11 +98,28 @@ export function resetCommercialActionMocks(): void {
   txEntry.delete.mockReturnValue({ where: deleteWhere });
 }
 
-export function tenantScope(actorUserId = 'user-1', tenantId = 'tenant-1') {
-  return { kind: 'tenant' as const, actorUserId, tenantId };
+// One token per tenant so a test can assert the storage layer received this exact authority.
+const authorities = new Map<string, ReturnType<typeof mintTestTenantAuthority>>();
+
+export function testAuthority(tenantId: string) {
+  const existing = authorities.get(tenantId);
+  if (existing) return existing;
+  const minted = mintTestTenantAuthority(tenantId);
+  authorities.set(tenantId, minted);
+  return minted;
 }
 
-export function publicFreeStartScope() {
+/** A null tenant models a caller that holds no authority; production must reject it. */
+export function tenantScope(actorUserId = 'user-1', tenantId: string | null = 'tenant-1') {
+  return {
+    kind: 'tenant' as const,
+    actorUserId,
+    authority: tenantId === null ? null : testAuthority(tenantId),
+  };
+}
+
+/** The removed null-tenant public scope shape; production must reject it. */
+export function legacyPublicScope() {
   return {
     kind: 'public' as const,
     reason: 'public-free-start-intake-no-tenant-mutation' as const,
@@ -122,7 +144,7 @@ export function freeStartParams(
 ): CommercialActionParams {
   return {
     action: 'free-start.submit',
-    scope: publicFreeStartScope(),
+    scope: { kind: 'tenant', authority: testAuthority('tenant_ks'), actorUserId: null },
     idempotencyKey: 'free-start-1',
     requestFingerprint: { category: 'property' },
     execute: vi.fn().mockResolvedValue({ success: true }),

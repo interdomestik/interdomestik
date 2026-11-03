@@ -1,6 +1,8 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  authorizeSessionTenant: vi.fn(),
   getSessionSafe: vi.fn(),
   headers: vi.fn(async () => new Headers([['x-forwarded-for', '127.0.0.1']])),
   revalidatePath: vi.fn(),
@@ -9,6 +11,10 @@ const hoisted = vi.hoisted(() => ({
 
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: hoisted.getSessionSafe,
+}));
+
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: hoisted.authorizeSessionTenant,
 }));
 
 vi.mock('next/headers', () => ({
@@ -26,6 +32,8 @@ vi.mock('./_backfill-core', () => ({
 import { LOCALES } from '@/i18n/locales';
 
 import { triggerCrmForecastSnapshotBackfill } from './_backfill-action';
+
+const TEST_AUTHORITY = mintTestTenantAuthority('tenant-1');
 
 const input = {
   mode: 'dry_run' as const,
@@ -46,6 +54,7 @@ describe('triggerCrmForecastSnapshotBackfill', () => {
         tenantId: 'tenant-1',
       },
     });
+    hoisted.authorizeSessionTenant.mockResolvedValue({ authority: TEST_AUTHORITY });
   });
 
   it('passes the session and request headers into the server core', async () => {
@@ -56,6 +65,7 @@ describe('triggerCrmForecastSnapshotBackfill', () => {
     expect(hoisted.getSessionSafe).toHaveBeenCalledWith('AdminCrmForecastBackfillOperatorAction');
     expect(hoisted.runCore).toHaveBeenCalledWith(
       {
+        authority: TEST_AUTHORITY,
         input,
         session: {
           user: {
@@ -67,6 +77,18 @@ describe('triggerCrmForecastSnapshotBackfill', () => {
       },
       { headers: expect.any(Headers) }
     );
+    expect(hoisted.runCore.mock.calls[0][0].authority).toBe(TEST_AUTHORITY);
+  });
+
+  it('passes no authority when the session has no tenant, leaving the core to refuse', async () => {
+    hoisted.authorizeSessionTenant.mockRejectedValue(
+      Object.assign(new Error('missing tenant'), { name: 'MissingTenantError' })
+    );
+    hoisted.runCore.mockResolvedValue({ result: null, success: false, errorCode: 'unauthorized' });
+
+    await triggerCrmForecastSnapshotBackfill(input);
+
+    expect(hoisted.runCore.mock.calls[0][0].authority).toBeNull();
   });
 
   it('revalidates admin CRM locale paths only after completed write mode', async () => {

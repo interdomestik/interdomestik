@@ -1,5 +1,10 @@
-import { claimInformationRequests, claims, db, withTenantContext } from '@interdomestik/database';
+import { claimInformationRequests, claims } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type ClaimScopeRecord = {
   branchId?: string | null;
@@ -48,16 +53,19 @@ export async function findAccessibleAdminUploadClaim(args: {
   branchId?: string | null;
   claimId: string;
   role: string | null | undefined;
-  tenantId: string;
+  authority: TenantAuthority;
   userId: string;
 }): Promise<ClaimScopeRecord | null> {
-  const claim = await db.query.claims.findFirst({
-    where: and(eq(claims.id, args.claimId), eq(claims.tenantId, args.tenantId)),
-    columns: {
-      branchId: true,
-      staffId: true,
-    },
-  });
+  const { tenantId } = readTenantAuthority(args.authority);
+  const claim = await withTenantAuthority(args.authority, tx =>
+    tx.query.claims.findFirst({
+      where: and(eq(claims.id, args.claimId), eq(claims.tenantId, tenantId)),
+      columns: {
+        branchId: true,
+        staffId: true,
+      },
+    })
+  );
 
   if (
     !claim ||
@@ -75,18 +83,18 @@ export async function findAccessibleAdminUploadClaim(args: {
 }
 
 export async function findOwnedMemberUploadClaim(args: {
-  role?: string;
   claimId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   userId: string;
 }): Promise<MemberClaimOwnershipRecord | null> {
+  const { tenantId } = readTenantAuthority(args.authority);
   // Member upload ownership is read under the member tenant context so RLS evaluates the same
   // exact id, home-tenant, and owner predicates that the member claim detail already satisfies.
-  return withTenantContext({ tenantId: args.tenantId, role: args.role ?? 'member' }, async tx => {
+  return withTenantAuthority(args.authority, async tx => {
     const claim = await tx.query.claims.findFirst({
       where: and(
         eq(claims.id, args.claimId),
-        eq(claims.tenantId, args.tenantId),
+        eq(claims.tenantId, tenantId),
         eq(claims.userId, args.userId)
       ),
       columns: {
@@ -101,10 +109,11 @@ export async function findOwnedMemberUploadClaim(args: {
 export async function findOwnedMemberInformationRequest(args: {
   claimId: string;
   informationRequestId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   userId: string;
 }): Promise<{ id: string } | null> {
-  return withTenantContext({ tenantId: args.tenantId, role: 'member' }, async tx => {
+  const { tenantId } = readTenantAuthority(args.authority);
+  return withTenantAuthority(args.authority, async tx => {
     const request = await tx
       .select({ id: claimInformationRequests.id })
       .from(claimInformationRequests)
@@ -119,7 +128,7 @@ export async function findOwnedMemberInformationRequest(args: {
         and(
           eq(claimInformationRequests.id, args.informationRequestId),
           eq(claimInformationRequests.claimId, args.claimId),
-          eq(claimInformationRequests.tenantId, args.tenantId),
+          eq(claimInformationRequests.tenantId, tenantId),
           eq(claimInformationRequests.status, 'open'),
           eq(claims.userId, args.userId)
         )

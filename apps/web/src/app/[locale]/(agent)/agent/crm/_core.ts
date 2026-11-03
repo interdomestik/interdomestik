@@ -1,4 +1,5 @@
 import { getAgentCrmDashboard, type AgentCrmDashboard } from '@interdomestik/domain-crm/dashboards';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import type {
   CrmTaskCompletedQueueItem,
@@ -14,10 +15,10 @@ import {
 } from '@interdomestik/domain-crm/reporting';
 import type { CrmReportingRepository } from '@interdomestik/domain-crm/reporting/repository';
 
-import { crmDashboardRepository } from '@/adapters/crm/dashboard-repository';
-import { crmReportingRepository } from '@/adapters/crm/reporting-repository';
+import { createCrmDashboardRepository } from '@/adapters/crm/dashboard-repository';
+import { createCrmReportingRepository } from '@/adapters/crm/reporting-repository';
 import {
-  agentCrmTaskWorkQueueRepository,
+  createAgentCrmTaskWorkQueueRepository,
   type AgentCrmTaskWorkQueueRepository,
 } from '@/adapters/crm/task-work-queue-repository';
 
@@ -98,10 +99,15 @@ export type AgentCrmReportingDashboard = {
 
 export async function getAgentCrmStatsCore(args: {
   actor: CrmActorContext;
+  authority: TenantAuthority;
 }): Promise<AgentCrmStats> {
-  const result = await getAgentCrmDashboard({ actor: args.actor }, crmDashboardRepository, {
-    now: () => new Date().toISOString(),
-  });
+  const result = await getAgentCrmDashboard(
+    { actor: args.actor },
+    createCrmDashboardRepository(args.authority),
+    {
+      now: () => new Date().toISOString(),
+    }
+  );
 
   if (!result.success) {
     throw new AgentCrmStatsAccessDeniedError(result.reason);
@@ -112,10 +118,11 @@ export async function getAgentCrmStatsCore(args: {
 
 export async function getAgentCrmTaskQueueCore(args: {
   actor: CrmActorContext;
+  authority: TenantAuthority;
   now?: () => string;
   repository?: AgentCrmTaskWorkQueueRepository;
 }): Promise<AgentCrmTaskQueueItem[]> {
-  const repository = args.repository ?? agentCrmTaskWorkQueueRepository;
+  const repository = args.repository ?? createAgentCrmTaskWorkQueueRepository(args.authority);
   const rows = await repository.readAgentTaskWorkQueue({
     actor: args.actor,
     now: (args.now ?? (() => new Date().toISOString()))(),
@@ -129,10 +136,11 @@ export async function getAgentCrmTaskQueueCore(args: {
 
 export async function getAgentCrmCompletedTaskQueueCore(args: {
   actor: CrmActorContext;
+  authority: TenantAuthority;
   now?: () => string;
   repository?: AgentCrmTaskWorkQueueRepository;
 }): Promise<AgentCrmCompletedTaskQueueItem[]> {
-  const repository = args.repository ?? agentCrmTaskWorkQueueRepository;
+  const repository = args.repository ?? createAgentCrmTaskWorkQueueRepository(args.authority);
   const rows = await repository.readAgentCompletedTaskQueue({
     actor: args.actor,
     now: (args.now ?? (() => new Date().toISOString()))(),
@@ -213,10 +221,11 @@ function countWeightedExclusions(report: ReturnType<typeof deriveCrmWeightedPipe
 
 export async function getAgentCrmReportingCore(args: {
   actor: CrmActorContext;
+  authority: TenantAuthority;
   now?: () => string;
   repository?: CrmReportingRepository;
 }): Promise<AgentCrmReportingDashboard> {
-  const repository = args.repository ?? crmReportingRepository;
+  const repository = args.repository ?? createCrmReportingRepository(args.authority);
   const window = createAgentCrmReportingWindow((args.now ?? (() => new Date().toISOString()))());
   const denied = authorizeCrmReportingRead({
     actor: args.actor,

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({ findFirst: vi.fn() }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: { query: { webhookEvents: { findFirst: hoisted.findFirst } } },
+  readVerifiedPaddleTransactionEvidence: hoisted.findFirst,
 }));
 
 import { RetryablePaddleWebhookError } from '../../errors';
@@ -65,34 +65,12 @@ describe('resolveCheckoutTransactionEvidence', () => {
       resolveCheckoutTransactionEvidence(subscription(), 'entity:mk')
     ).rejects.toBeInstanceOf(RetryablePaddleWebhookError);
 
-    const query = hoisted.findFirst.mock.calls[0]?.[0] as {
-      where: (
-        events: Record<string, string>,
-        operators: {
-          and: (...conditions: unknown[]) => unknown;
-          eq: (left: unknown, right: unknown) => unknown;
-        }
-      ) => unknown;
-    };
-    const and = vi.fn((...conditions: unknown[]) => conditions);
-    const eq = vi.fn((left: unknown, right: unknown) => ({ left, right }));
-    query.where(
-      {
-        providerTransactionId: 'provider_transaction_id',
-        provider: 'provider',
-        signatureValid: 'signature_valid',
-        eventType: 'event_type',
-        processingScopeKey: 'processing_scope_key',
-      },
-      { and, eq }
-    );
-
-    expect(eq).toHaveBeenCalledWith('provider_transaction_id', 'txn_1');
-    expect(eq).toHaveBeenCalledWith('provider', 'paddle');
-    expect(eq).toHaveBeenCalledWith('signature_valid', true);
-    expect(eq).toHaveBeenCalledWith('event_type', 'transaction.completed');
-    expect(eq).toHaveBeenCalledWith('processing_scope_key', 'entity:mk');
-    expect(query).toMatchObject({ columns: { payload: true, processingResult: true } });
+    // The privileged command binds provider, signature, event type and scope for the entity route.
+    expect(hoisted.findFirst).toHaveBeenCalledWith({
+      transactionId: 'txn_1',
+      processingScopeKey: 'entity:mk',
+      entityRoute: true,
+    });
   });
 
   it.each([
@@ -123,6 +101,11 @@ describe('resolveCheckoutTransactionEvidence', () => {
     hoisted.findFirst.mockResolvedValue(null);
 
     await expect(resolveCheckoutTransactionEvidence(subscription(), 'global')).resolves.toBeNull();
+    expect(hoisted.findFirst).toHaveBeenCalledWith({
+      transactionId: 'txn_1',
+      processingScopeKey: 'global',
+      entityRoute: false,
+    });
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('transaction'));
     warnSpy.mockRestore();
   });

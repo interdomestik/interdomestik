@@ -1,8 +1,9 @@
-import { claims, eq, ilike, inArray, user } from '@interdomestik/database';
+import { claims, eq, ilike, inArray, user, type TenantTransaction } from '@interdomestik/database';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { isNull, or, type SQL } from 'drizzle-orm';
 import { ACTIONABLE_CLAIM_STATUSES } from '../claims/constants';
 import {
-  buildDiasporaOriginClaimIdsSubquery,
+  buildDiasporaOriginClaimIdsSubqueryIn,
   type DiasporaOriginFilter,
 } from '../claims/diaspora-origin-filter';
 import { claimLifecycleStatusIn } from '../claims/lifecycle-read-sql';
@@ -32,13 +33,14 @@ function buildSearchCondition(term: string) {
 }
 
 export function buildStaffClaimsListConditions(params: {
+  authority: TenantAuthority;
+  tx: TenantTransaction;
   assignment: StaffClaimsAssignmentFilter;
   branchId?: string | null;
   diasporaOrigin: DiasporaOriginFilter;
   search?: string;
   staffId: string;
   status?: string;
-  tenantId: string;
   viewerRole?: string | null;
 }): SQL<unknown>[] {
   const conditions: SQL<unknown>[] = [claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES)];
@@ -71,7 +73,9 @@ export function buildStaffClaimsListConditions(params: {
   }
 
   if (params.diasporaOrigin === 'diaspora') {
-    conditions.push(inArray(claims.id, buildDiasporaOriginClaimIdsSubquery(params.tenantId)));
+    conditions.push(
+      inArray(claims.id, buildDiasporaOriginClaimIdsSubqueryIn(params.tx, params.authority))
+    );
   }
 
   return conditions;

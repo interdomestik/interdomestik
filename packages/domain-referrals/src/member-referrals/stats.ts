@@ -1,10 +1,14 @@
-import { db } from '@interdomestik/database';
 import { memberReferralRewards, referrals } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, count, eq } from 'drizzle-orm';
 
 import { isMissingRelationError } from './errors';
 import { getMemberReferralProgramSettingsCore } from './settings';
 import type { ActionResult, MemberReferralSession, MemberReferralStats } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 function sumRewards(
   rows: Array<{
@@ -38,23 +42,25 @@ function sumRewards(
 
 export async function getMemberReferralStatsCore(params: {
   session: MemberReferralSession | null;
+  authority: TenantAuthority | null;
 }): Promise<ActionResult<MemberReferralStats>> {
-  const { session } = params;
+  const { session, authority } = params;
 
   if (!session?.user) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  const tenantId = session.user.tenantId;
-  if (!tenantId) {
+  if (!authority) {
     return { success: false, error: 'Missing tenant context' };
   }
+  // Fail closed on an unrecognized or expired authority before any read starts.
+  readTenantAuthority(authority);
 
   try {
     const [settingsResult, referralCountRows, rewardRows] = await Promise.all([
-      getMemberReferralProgramSettingsCore({ tenantId }),
-      safeReferralCountQuery(session.user.id, tenantId),
-      safeRewardRowsQuery(session.user.id, tenantId),
+      getMemberReferralProgramSettingsCore({ authority }),
+      safeReferralCountQuery(session.user.id, authority),
+      safeRewardRowsQuery(session.user.id, authority),
     ]);
 
     if (!settingsResult.success) {
@@ -91,12 +97,15 @@ export async function getMemberReferralStatsCore(params: {
   }
 }
 
-async function safeReferralCountQuery(userId: string, tenantId: string) {
+async function safeReferralCountQuery(userId: string, authority: TenantAuthority) {
+  const { tenantId } = readTenantAuthority(authority);
   try {
-    return await db
-      .select({ count: count() })
-      .from(referrals)
-      .where(and(eq(referrals.referrerId, userId), eq(referrals.tenantId, tenantId)));
+    return await withTenantAuthority(authority, tx =>
+      tx
+        .select({ count: count() })
+        .from(referrals)
+        .where(and(eq(referrals.referrerId, userId), eq(referrals.tenantId, tenantId)))
+    );
   } catch (error) {
     if (isMissingRelationError(error)) {
       return [{ count: 0 }];
@@ -106,18 +115,21 @@ async function safeReferralCountQuery(userId: string, tenantId: string) {
   }
 }
 
-async function safeRewardRowsQuery(userId: string, tenantId: string) {
+async function safeRewardRowsQuery(userId: string, authority: TenantAuthority) {
+  const { tenantId } = readTenantAuthority(authority);
   try {
-    return await db.query.memberReferralRewards.findMany({
-      where: and(
-        eq(memberReferralRewards.referrerMemberId, userId),
-        eq(memberReferralRewards.tenantId, tenantId)
-      ),
-      columns: {
-        status: true,
-        rewardCents: true,
-      },
-    });
+    return await withTenantAuthority(authority, tx =>
+      tx.query.memberReferralRewards.findMany({
+        where: and(
+          eq(memberReferralRewards.referrerMemberId, userId),
+          eq(memberReferralRewards.tenantId, tenantId)
+        ),
+        columns: {
+          status: true,
+          rewardCents: true,
+        },
+      })
+    );
   } catch (error) {
     if (isMissingRelationError(error)) {
       return [];

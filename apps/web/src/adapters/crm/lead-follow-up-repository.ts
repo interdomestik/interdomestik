@@ -8,9 +8,15 @@ import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import type { CrmLead, CrmLeadActivity } from '@interdomestik/domain-crm/leads/types';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 
-import { db } from '@interdomestik/database/db';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { crmActivities, crmLeads, crmTasks } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { toIso } from './lead-follow-up-activities';
+export { listCrmLeadFollowUpActivitiesForLead } from './lead-follow-up-activities';
 
 type CrmLeadRow = typeof crmLeads.$inferSelect;
 type CrmActivityRow = typeof crmActivities.$inferSelect;
@@ -38,11 +44,6 @@ type CrmTaskFollowUpRow = {
   taskId: string;
   tenantId: string;
 };
-
-function toIso(value: Date | string | null | undefined): string | null {
-  if (!value) return null;
-  return value instanceof Date ? value.toISOString() : value;
-}
 
 function mapLead(row: CrmLeadRow): CrmLead {
   return {
@@ -76,33 +77,49 @@ function mapActivityCompat(row: CrmActivityCompatRow): CrmLeadActivity {
   };
 }
 
-export const crmLeadFollowUpRepository: CrmLeadFollowUpRepository = {
-  async findById(params: { actor: CrmActorContext; leadId: string }) {
-    // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context before follow-up authorization
-    const lead = await db.query.crmLeads.findFirst({
-      where: withTenant(params.actor.tenantId, crmLeads.tenantId, eq(crmLeads.id, params.leadId)),
-    });
-    if (!lead) return null;
-    return mapLead(lead);
-  },
+export function createCrmLeadFollowUpRepository(
+  authority: TenantAuthority
+): CrmLeadFollowUpRepository {
+  return {
+    async findById(params: { actor: CrmActorContext; leadId: string }) {
+      // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context before follow-up authorization
+      const lead = await withTenantAuthority(
+        authority,
+        async tx =>
+          await tx.query.crmLeads.findFirst({
+            where: withTenant(
+              params.actor.tenantId,
+              crmLeads.tenantId,
+              eq(crmLeads.id, params.leadId)
+            ),
+          })
+      );
+      if (!lead) return null;
+      return mapLead(lead);
+    },
 
-  async createFollowUpActivity(params: {
-    activity: CreateCrmLeadFollowUpActivity;
-    actor: CrmActorContext;
-  }) {
-    const branchId = params.actor.scope.branchId;
-    if (!branchId) {
-      throw new Error('CRM follow-up activity creation requires actor branch scope');
-    }
+    async createFollowUpActivity(params: {
+      activity: CreateCrmLeadFollowUpActivity;
+      actor: CrmActorContext;
+    }) {
+      const branchId = params.actor.scope.branchId;
+      if (!branchId) {
+        throw new Error('CRM follow-up activity creation requires actor branch scope');
+      }
 
-    // db-access-guard: tenant-scoped -- reason: tenantId from authorized agent context is included in follow-up insert values
-    const rows = await db.execute(sql`
+      // The row tenant is the authority's; an activity or actor naming another tenant writes nothing.
+      const { tenantId } = readTenantAuthority(authority);
+      if (params.activity.tenantId !== tenantId || params.actor.tenantId !== tenantId) {
+        throw new Error('CRM follow-up activity tenant does not match the tenant authority');
+      }
+      const rows = await withTenantAuthority(authority, tx =>
+        tx.execute(sql`
       insert into "crm_activities"
         ("id", "tenant_id", "lead_id", "agent_id", "branch_id", "type", "summary", "scheduled_at", "completed_at", "created_at")
       values
         (
           ${params.activity.id},
-          ${params.activity.tenantId},
+          ${tenantId},
           ${params.activity.leadId},
           ${params.actor.actorId},
           ${branchId},
@@ -123,25 +140,30 @@ export const crmLeadFollowUpRepository: CrmLeadFollowUpRepository = {
         "scheduled_at" as "scheduledAt",
         "completed_at" as "completedAt",
         "created_at" as "createdAt"
-    `);
-    const [created] = rows as unknown as CrmActivityCompatRow[];
+    `)
+      );
+      const [created] = rows as unknown as CrmActivityCompatRow[];
 
-    return mapActivityCompat(created);
-  },
+      return mapActivityCompat(created);
+    },
 
-  async completeFollowUpActivity(params: {
-    activityId: string;
-    actor: CrmActorContext;
-    completedAt: string;
-    leadId: string;
-  }) {
-    // db-access-guard: tenant-scoped -- reason: tenantId from authorized agent context constrains follow-up completion update
-    const rows = await db.execute(sql`
+    async completeFollowUpActivity(params: {
+      activityId: string;
+      actor: CrmActorContext;
+      completedAt: string;
+      leadId: string;
+    }) {
+      const { tenantId } = readTenantAuthority(authority);
+      if (params.actor.tenantId !== tenantId) {
+        throw new Error('CRM follow-up actor tenant does not match the tenant authority');
+      }
+      const rows = await withTenantAuthority(authority, tx =>
+        tx.execute(sql`
       update "crm_activities"
       set "completed_at" = ${params.completedAt}
       where "id" = ${params.activityId}
         and "lead_id" = ${params.leadId}
-        and "tenant_id" = ${params.actor.tenantId}
+        and "tenant_id" = ${tenantId}
         and "agent_id" = ${params.actor.actorId}
         and "type" = ${CRM_LEAD_FOLLOW_UP_ACTIVITY_TYPE}
         and "completed_at" is null
@@ -156,74 +178,18 @@ export const crmLeadFollowUpRepository: CrmLeadFollowUpRepository = {
         "scheduled_at" as "scheduledAt",
         "completed_at" as "completedAt",
         "created_at" as "createdAt"
-    `);
-    const [updated] = rows as unknown as CrmActivityCompatRow[];
+    `)
+      );
+      const [updated] = rows as unknown as CrmActivityCompatRow[];
 
-    return updated ? mapActivityCompat(updated) : null;
-  },
-};
-
-export async function listCrmLeadFollowUpActivitiesForLead(params: {
-  actor: CrmActorContext;
-  leadId: string;
-  limit?: number;
-}): Promise<CrmLeadActivity[]> {
-  const branchId = params.actor.scope.branchId;
-  if (!branchId) return [];
-
-  // db-access-guard: tenant-scoped -- reason: tenant, branch, assigned actor, and lead visibility constrain legacy follow-up reads
-  const rows = await db
-    .select({
-      agentId: crmActivities.agentId,
-      branchId: crmActivities.branchId,
-      completedAt: crmActivities.completedAt,
-      createdAt: crmActivities.createdAt,
-      id: crmActivities.id,
-      leadId: crmActivities.leadId,
-      scheduledAt: crmActivities.scheduledAt,
-      subject: crmActivities.summary,
-      tenantId: crmActivities.tenantId,
-      type: crmActivities.type,
-    })
-    .from(crmActivities)
-    .innerJoin(
-      crmLeads,
-      and(
-        eq(crmLeads.id, crmActivities.leadId),
-        eq(crmLeads.tenantId, params.actor.tenantId),
-        eq(crmLeads.agentId, params.actor.actorId),
-        eq(crmLeads.branchId, branchId)
-      )
-    )
-    .where(
-      and(
-        eq(crmActivities.tenantId, params.actor.tenantId),
-        eq(crmActivities.agentId, params.actor.actorId),
-        eq(crmActivities.branchId, branchId),
-        eq(crmActivities.leadId, params.leadId),
-        eq(crmActivities.type, CRM_LEAD_FOLLOW_UP_ACTIVITY_TYPE)
-      )
-    )
-    .limit(params.limit ?? 25);
-
-  return rows.map(row => ({
-    agentId: row.agentId,
-    branchId: row.branchId ?? null,
-    completedAt: toIso(row.completedAt),
-    createdAt: toIso(row.createdAt) ?? new Date(0).toISOString(),
-    description: null,
-    id: row.id,
-    leadId: row.leadId,
-    occurredAt: toIso(row.createdAt) ?? new Date(0).toISOString(),
-    scheduledAt: toIso(row.scheduledAt),
-    subject: row.subject,
-    tenantId: row.tenantId,
-    type: row.type,
-  }));
+      return updated ? mapActivityCompat(updated) : null;
+    },
+  };
 }
 
 export async function listCrmLeadFollowUpTasksForLead(params: {
   actor: CrmActorContext;
+  authority: TenantAuthority;
   leadId: string;
   limit?: number;
 }): Promise<CrmLeadFollowUpActivityLike[]> {
@@ -231,41 +197,45 @@ export async function listCrmLeadFollowUpTasksForLead(params: {
   if (!branchId) return [];
 
   // db-access-guard: tenant-scoped -- reason: tenant, branch, assigned actor, and lead visibility constrain task-backed follow-up reads
-  const rows = await db
-    .select({
-      agentId: crmTasks.assignedActorId,
-      branchId: crmTasks.branchId,
-      createdAt: crmTasks.createdAt,
-      expectedLifecycleVersion: crmTasks.lifecycleVersion,
-      leadId: crmTasks.subjectId,
-      scheduledAt: crmTasks.dueAt,
-      taskId: crmTasks.id,
-      tenantId: crmTasks.tenantId,
-    })
-    .from(crmTasks)
-    .innerJoin(
-      crmLeads,
-      and(
-        eq(crmLeads.id, crmTasks.subjectId),
-        eq(crmLeads.tenantId, params.actor.tenantId),
-        eq(crmLeads.agentId, params.actor.actorId),
-        eq(crmLeads.branchId, branchId)
-      )
-    )
-    .where(
-      and(
-        eq(crmTasks.tenantId, params.actor.tenantId),
-        eq(crmTasks.branchId, branchId),
-        eq(crmTasks.subjectKind, 'lead'),
-        eq(crmTasks.subjectId, params.leadId),
-        eq(crmTasks.createReasonCode, CRM_LEAD_FOLLOW_UP_ACTIVITY_TYPE),
-        eq(crmTasks.assignedKind, 'actor'),
-        eq(crmTasks.assignedActorId, params.actor.actorId),
-        inArray(crmTasks.status, ['pending', 'in_progress'])
-      )
-    )
-    .orderBy(asc(crmTasks.dueAt), asc(crmTasks.id))
-    .limit(params.limit ?? 25);
+  const rows = await withTenantAuthority(
+    params.authority,
+    async tx =>
+      await tx
+        .select({
+          agentId: crmTasks.assignedActorId,
+          branchId: crmTasks.branchId,
+          createdAt: crmTasks.createdAt,
+          expectedLifecycleVersion: crmTasks.lifecycleVersion,
+          leadId: crmTasks.subjectId,
+          scheduledAt: crmTasks.dueAt,
+          taskId: crmTasks.id,
+          tenantId: crmTasks.tenantId,
+        })
+        .from(crmTasks)
+        .innerJoin(
+          crmLeads,
+          and(
+            eq(crmLeads.id, crmTasks.subjectId),
+            eq(crmLeads.tenantId, params.actor.tenantId),
+            eq(crmLeads.agentId, params.actor.actorId),
+            eq(crmLeads.branchId, branchId)
+          )
+        )
+        .where(
+          and(
+            eq(crmTasks.tenantId, params.actor.tenantId),
+            eq(crmTasks.branchId, branchId),
+            eq(crmTasks.subjectKind, 'lead'),
+            eq(crmTasks.subjectId, params.leadId),
+            eq(crmTasks.createReasonCode, CRM_LEAD_FOLLOW_UP_ACTIVITY_TYPE),
+            eq(crmTasks.assignedKind, 'actor'),
+            eq(crmTasks.assignedActorId, params.actor.actorId),
+            inArray(crmTasks.status, ['pending', 'in_progress'])
+          )
+        )
+        .orderBy(asc(crmTasks.dueAt), asc(crmTasks.id))
+        .limit(params.limit ?? 25)
+  );
 
   return (rows as CrmTaskFollowUpRow[]).map(row => ({
     agentId: row.agentId ?? params.actor.actorId,

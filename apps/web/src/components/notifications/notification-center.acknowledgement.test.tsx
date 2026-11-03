@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotificationCenter } from './notification-center';
 import { NotificationItem, normalizeNotificationActionHref } from './notification-item';
-import { deferred } from './notification-test-ui';
+import { deferred } from './notification-ui.test-support';
 
 vi.mock('@/i18n/routing', () => ({ Link: 'a', useRouter: () => ({ push: mocks.routerPush }) }));
 
@@ -18,12 +18,12 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/actions/notifications', () => mocks);
 
 vi.mock('next-intl', async () => {
-  const { createNotificationTranslationsMock } = await import('./notification-test-ui');
+  const { createNotificationTranslationsMock } = await import('./notification-ui.test-support');
   return createNotificationTranslationsMock();
 });
 
 vi.mock('@interdomestik/ui', async () => {
-  const { createNotificationUiMock } = await import('./notification-test-ui');
+  const { createNotificationUiMock } = await import('./notification-ui.test-support');
   return {
     ...createNotificationUiMock({ withOpenControl: true }),
     DropdownMenuItem: ({

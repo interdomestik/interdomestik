@@ -1,10 +1,9 @@
+import { claimEscalationAgreements, claims, eq, user } from '@interdomestik/database';
 import {
-  claimEscalationAgreements,
-  claims,
-  eq,
-  user,
-  withTenantContext,
-} from '@interdomestik/database';
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import {
   buildAcceptedRecoveryPrerequisitesSnapshot,
@@ -69,12 +68,13 @@ function normalizeDate(value: Date | string | null | undefined) {
 export async function getStaffClaimDetail(params: {
   branchId?: string | null;
   staffId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   claimId: string;
 }): Promise<StaffClaimDetail | null> {
-  const { branchId = null, tenantId, claimId } = params;
+  const { branchId = null, authority, claimId } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
-  return withTenantContext({ tenantId }, async tx => {
+  return withTenantAuthority(authority, async tx => {
     const rows = await tx
       .select({
         claimId: claims.id,

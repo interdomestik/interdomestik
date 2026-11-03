@@ -8,13 +8,18 @@ import type {
 } from '@interdomestik/domain-crm/reporting/repository';
 
 import {
-  crmForecastSnapshotWorkItemRepository,
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+
+import {
+  createCrmForecastSnapshotWorkItemRepository,
   type CrmForecastSnapshotWorkItem,
   type CrmForecastSnapshotWorkItemRepository,
 } from '@/adapters/crm/forecast-snapshot-work-items';
 import {
-  crmForecastSnapshotRepository,
-  crmReportingRepository,
+  createCrmForecastSnapshotRepository,
+  createCrmReportingRepository,
 } from '@/adapters/crm/reporting-repository';
 
 import {
@@ -47,11 +52,7 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const SOFT_TIMEOUT_MESSAGE = 'CRM forecast snapshot backfill timed out';
 
 export type CrmForecastSnapshotBackfillDateStatus =
-  | 'completed'
-  | 'dry_run'
-  | 'partial'
-  | 'failed'
-  | 'deferred';
+  'completed' | 'dry_run' | 'partial' | 'failed' | 'deferred';
 
 export interface CrmForecastSnapshotBackfillDateResult {
   failedWorkItems: number;
@@ -88,10 +89,7 @@ export interface CrmForecastSnapshotBackfillResult {
 export type CrmForecastSnapshotBackfillLogger = Pick<Console, 'error' | 'info' | 'warn'>;
 
 export type CrmForecastSnapshotBackfillCoreErrorCode =
-  | 'date_out_of_bounds'
-  | 'invalid_range'
-  | 'invalid_tenant'
-  | 'range_too_large';
+  'date_out_of_bounds' | 'invalid_range' | 'invalid_tenant' | 'range_too_large';
 
 export class CrmForecastSnapshotBackfillCoreError extends Error {
   constructor(
@@ -104,6 +102,11 @@ export class CrmForecastSnapshotBackfillCoreError extends Error {
 }
 
 export type RunCrmForecastSnapshotBackfillCoreArgs = {
+  /**
+   * The one tenant this run acts for: the admin session's authority or, for the cron route, the
+   * scheduled-work authority of the tenant the request named. The core derives the tenant from it.
+   */
+  authority: TenantAuthority;
   dryRun?: boolean;
   fromDate: string;
   logger?: CrmForecastSnapshotBackfillLogger;
@@ -114,7 +117,6 @@ export type RunCrmForecastSnapshotBackfillCoreArgs = {
   snapshotRepository?: CrmForecastSnapshotRepository;
   sourceRunId?: string;
   targetDurationMs?: number;
-  tenantId: string;
   toDate: string;
   workItemRepository?: CrmForecastSnapshotWorkItemRepository;
   workItemSoftTimeoutMs?: number;
@@ -126,13 +128,8 @@ export async function runCrmForecastSnapshotBackfillCore(
   const startedAt = args.now.toISOString();
   const dryRun = args.dryRun === true;
   const dates = validateBackfillDateRange(args.fromDate, args.toDate, args.now);
-  const tenantId = args.tenantId.trim();
-  if (!tenantId) {
-    throw new CrmForecastSnapshotBackfillCoreError(
-      'invalid_tenant',
-      'CRM forecast snapshot backfill tenantId is required'
-    );
-  }
+  const { authority } = args;
+  const { tenantId } = readTenantAuthority(authority);
 
   const sourceRunId =
     args.sourceRunId ??
@@ -145,9 +142,11 @@ export async function runCrmForecastSnapshotBackfillCore(
     args.workItemSoftTimeoutMs ?? CRM_FORECAST_SNAPSHOT_BACKFILL_WORK_ITEM_SOFT_TIMEOUT_MS;
   const workItemLimit =
     args.maxWorkItemsPerDate ?? CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_WORK_ITEMS_PER_DATE;
-  const workItemRepository = args.workItemRepository ?? crmForecastSnapshotWorkItemRepository;
-  const reportingRepository = args.reportingRepository ?? crmReportingRepository;
-  const snapshotRepository = args.snapshotRepository ?? crmForecastSnapshotRepository;
+  const workItemRepository =
+    args.workItemRepository ?? createCrmForecastSnapshotWorkItemRepository([authority]);
+  const reportingRepository = args.reportingRepository ?? createCrmReportingRepository(authority);
+  const snapshotRepository =
+    args.snapshotRepository ?? createCrmForecastSnapshotRepository(authority);
   const logger = args.logger ?? console;
   const result = createResult({
     dryRun,

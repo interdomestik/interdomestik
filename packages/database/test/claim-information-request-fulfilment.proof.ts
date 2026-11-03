@@ -2,6 +2,25 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import type postgres from 'postgres';
 import type { PublicInformationRequest } from '@interdomestik/domain-claims';
+import type { TenantAuthority } from '../src/tenant-authority';
+import { mintTestTenantAuthority } from '../src/testing/tenant-authority';
+
+type ProofActor = { user: { id: string; role: string; tenantId: string } };
+
+/** Calls a domain command the way a request does: with the authority the actor's session grants. */
+export function withSessionAuthority<A extends unknown[], R>(
+  command: (session: ProofActor, authority: TenantAuthority, ...rest: A) => R
+): (session: ProofActor, ...rest: A) => R {
+  return (session, ...rest) =>
+    command(
+      session,
+      mintTestTenantAuthority(session.user.tenantId, {
+        userId: session.user.id,
+        role: session.user.role,
+      }),
+      ...rest
+    );
+}
 
 export function assertOpenRequestProjection(
   visible: PublicInformationRequest[],
@@ -65,12 +84,14 @@ export async function assertFulfilmentAndEvidenceBoundary({
   requestId,
   staff,
 }: ProofContext): Promise<void> {
-  const { getInformationRequests } =
-    await import('../../domain-claims/src/claims/information-requests');
-  const { acknowledgeInformationRequestEvidence } =
-    await import('../../domain-claims/src/claims/information-request-evidence');
-  const { fulfilInformationRequest } =
-    await import('../../domain-claims/src/claims/fulfil-information-request');
+  const requests = await import('../../domain-claims/src/claims/information-requests');
+  const evidence = await import('../../domain-claims/src/claims/information-request-evidence');
+  const fulfilment = await import('../../domain-claims/src/claims/fulfil-information-request');
+  const getInformationRequests = withSessionAuthority(requests.getInformationRequests);
+  const acknowledgeInformationRequestEvidence = withSessionAuthority(
+    evidence.acknowledgeInformationRequestEvidence
+  );
+  const fulfilInformationRequest = withSessionAuthority(fulfilment.fulfilInformationRequest);
   const { persistClaimDocumentMetadata } =
     await import('../../../apps/web/src/features/claims/upload/server/claim-document-write');
   for (const denied of [
@@ -151,6 +172,7 @@ export async function assertFulfilmentAndEvidenceBoundary({
       storagePath: `pii/tenants/tenant_ks/claims/${claimId}/late-estimate.pdf`,
       tenantId: 'tenant_ks',
       userId: member,
+      authority: mintTestTenantAuthority('tenant_ks', { userId: member, role: 'member' }),
     }),
     /Information request changed/
   );

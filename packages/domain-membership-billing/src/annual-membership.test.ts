@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  withTenantContext: vi.fn(),
   and: vi.fn((...conditions) => ({ op: 'and', conditions })),
   asc: vi.fn(column => ({ op: 'asc', column })),
   db: {
@@ -21,10 +22,12 @@ vi.mock('@interdomestik/database', () => ({
   and: hoisted.and,
   asc: hoisted.asc,
   db: hoisted.db,
+  withTenantContext: hoisted.withTenantContext,
   eq: hoisted.eq,
   membershipPlans: hoisted.membershipPlans,
 }));
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import {
   createActiveAnnualMembershipFulfillment,
   createActiveAnnualMembershipState,
@@ -33,6 +36,10 @@ import {
 } from './annual-membership';
 
 beforeEach(() => {
+  hoisted.withTenantContext.mockReset();
+  hoisted.withTenantContext.mockImplementation(async (_ctx: unknown, cb: (tx: any) => unknown) =>
+    cb(hoisted.db)
+  );
   hoisted.and.mockClear();
   hoisted.asc.mockClear();
   hoisted.db.select.mockReset();
@@ -70,11 +77,13 @@ describe('createCanonicalMembershipPlanState', () => {
   });
 });
 
-describe('resolveCanonicalMembershipPlanState', () => {
+describe('resolveCanonicalMembershipPlanState canonical plan chain', () => {
+  const authority = mintTestTenantAuthority('tenant-mk');
+
   it('falls back to an explicit unknown plan id when the incoming value is blank', async () => {
     await expect(
       resolveCanonicalMembershipPlanState({
-        tenantId: 'tenant-mk',
+        authority,
         planId: '   ',
       })
     ).resolves.toEqual({
@@ -105,7 +114,7 @@ describe('resolveCanonicalMembershipPlanState', () => {
 
     await expect(
       resolveCanonicalMembershipPlanState({
-        tenantId: 'tenant-mk',
+        authority,
         planId: 'standard',
       })
     ).resolves.toEqual({
@@ -134,7 +143,7 @@ describe('resolveCanonicalMembershipPlanState', () => {
 
     await expect(
       resolveCanonicalMembershipPlanState({
-        tenantId: 'tenant-mk',
+        authority,
         planId: 'pri_standard_year',
       })
     ).resolves.toEqual({
@@ -163,7 +172,7 @@ describe('resolveCanonicalMembershipPlanState', () => {
 
     await expect(
       resolveCanonicalMembershipPlanState({
-        tenantId: 'tenant-mk',
+        authority,
         planId: 'tenant-family-plan',
       })
     ).resolves.toEqual({
@@ -173,6 +182,69 @@ describe('resolveCanonicalMembershipPlanState', () => {
 
     expect(hoisted.db.select).toHaveBeenCalledTimes(1);
     expect(selectChain.orderBy).not.toHaveBeenCalled();
+  });
+});
+
+describe('resolveCanonicalMembershipPlanState authority binding', () => {
+  const authority = mintTestTenantAuthority('tenant-mk');
+
+  function selectChainWithRows(...rows: unknown[][]) {
+    const selectChain = { from: vi.fn(), where: vi.fn(), orderBy: vi.fn(), limit: vi.fn() };
+    selectChain.from.mockReturnValue(selectChain);
+    selectChain.where.mockReturnValue(selectChain);
+    selectChain.orderBy.mockReturnValue(selectChain);
+    for (const result of rows) selectChain.limit.mockResolvedValueOnce(result);
+    hoisted.db.select.mockReturnValue(selectChain);
+    return selectChain;
+  }
+
+  it('falls back to an explicit unknown plan id without opening a tenant context', async () => {
+    await expect(
+      resolveCanonicalMembershipPlanState({ authority, planId: '   ' })
+    ).resolves.toEqual({ planId: 'unknown', planKey: null });
+
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.db.select).not.toHaveBeenCalled();
+  });
+
+  it('runs every lookup under the authority and scopes it to the authority tenant', async () => {
+    selectChainWithRows([], [], [{ id: 'tenant-standard-plan', tier: 'standard' }]);
+
+    await expect(
+      resolveCanonicalMembershipPlanState({ authority, planId: 'standard' })
+    ).resolves.toEqual({ planId: 'standard', planKey: 'tenant-standard-plan' });
+
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(3);
+    for (const [context] of hoisted.withTenantContext.mock.calls) {
+      expect(context).toBe(authority);
+    }
+    const tenantPredicates = hoisted.eq.mock.calls.filter(
+      ([left]) => left === hoisted.membershipPlans.tenantId
+    );
+    expect(tenantPredicates).toHaveLength(3);
+    for (const [, tenantId] of tenantPredicates) expect(tenantId).toBe('tenant-mk');
+  });
+
+  it('does not attempt a tier lookup for non-tier provider ids', async () => {
+    const selectChain = selectChainWithRows([], []);
+
+    await expect(
+      resolveCanonicalMembershipPlanState({ authority, planId: 'pri_standard_year' })
+    ).resolves.toEqual({ planId: 'pri_standard_year', planKey: null });
+
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(2);
+    expect(selectChain.orderBy).not.toHaveBeenCalled();
+  });
+
+  it('fails closed on an unrecognized authority before any lookup', async () => {
+    await expect(
+      resolveCanonicalMembershipPlanState({
+        authority: { tenantId: 'tenant-mk' } as never,
+        planId: 'standard',
+      })
+    ).rejects.toThrow('Unrecognized tenant authority');
+
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 });
 

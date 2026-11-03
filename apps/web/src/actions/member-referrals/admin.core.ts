@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import {
   listMemberReferralRewardsCore as listMemberReferralRewardsDomain,
   updateMemberReferralRewardStatusCore as updateMemberReferralRewardStatusDomain,
@@ -29,12 +30,13 @@ const updateStatusSchema = z
 
 export async function listMemberReferralRewardsAdminCore(params: {
   session: Session | null;
+  authority: TenantAuthority | null;
   filters?: unknown;
 }) {
-  await requireTenantAdminSession(params.session as UserSession | null);
+  await requireTenantAdminSession(params.session as UserSession | null, params.authority);
 
   const tenantId = params.session?.user?.tenantId;
-  if (!tenantId) {
+  if (!tenantId || !params.authority) {
     return { success: false as const, error: 'Missing tenant context' };
   }
 
@@ -44,7 +46,7 @@ export async function listMemberReferralRewardsAdminCore(params: {
   }
 
   return listMemberReferralRewardsDomain({
-    tenantId,
+    authority: params.authority,
     limit: parsed.data.limit,
     offset: parsed.data.offset,
   });
@@ -52,14 +54,15 @@ export async function listMemberReferralRewardsAdminCore(params: {
 
 export async function updateMemberReferralRewardStatusAdminCore(params: {
   session: Session | null;
+  authority: TenantAuthority | null;
   requestHeaders?: Headers;
   rewardId: string;
   newStatus: 'pending' | 'approved' | 'credited' | 'paid' | 'void';
 }) {
-  await requireTenantAdminSession(params.session as UserSession | null);
+  await requireTenantAdminSession(params.session as UserSession | null, params.authority);
 
   const tenantId = params.session?.user?.tenantId;
-  if (!tenantId) {
+  if (!tenantId || !params.authority) {
     return { success: false as const, error: 'Missing tenant context' };
   }
 
@@ -83,7 +86,7 @@ export async function updateMemberReferralRewardStatusAdminCore(params: {
   }
 
   const result = await updateMemberReferralRewardStatusDomain({
-    tenantId,
+    authority: params.authority,
     rewardId: parsed.data.rewardId,
     newStatus: parsed.data.newStatus,
   });
@@ -94,7 +97,7 @@ export async function updateMemberReferralRewardStatusAdminCore(params: {
     await logAuditEvent({
       actorId: params.session?.user?.id ?? null,
       actorRole: params.session?.user?.role ?? null,
-      tenantId,
+      authority: params.authority,
       action: 'referral.reward_status_updated',
       entityType: 'referral_reward',
       entityId: parsed.data.rewardId,

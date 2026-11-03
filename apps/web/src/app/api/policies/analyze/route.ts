@@ -1,7 +1,6 @@
 import { ApiErrorCode } from '@/core-contracts';
-import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzePolicyCore } from './_core';
 import {
@@ -14,9 +13,9 @@ import {
 export async function POST(req: NextRequest) {
   try {
     const headersList = req.headers;
-    const session = await auth.api.getSession({ headers: headersList });
+    const authorized = await authorizeSessionTenant(headersList);
 
-    if (!session?.user) {
+    if (!authorized) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -38,8 +37,8 @@ export async function POST(req: NextRequest) {
       file,
       buffer,
       session: {
-        userId: session.user.id,
-        tenantId: ensureTenantId(session),
+        userId: authorized.session.user.id,
+        authority: authorized.authority,
       },
       deps: {
         uploadFile: uploadPolicyFileService,

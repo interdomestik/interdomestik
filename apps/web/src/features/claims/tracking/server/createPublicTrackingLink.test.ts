@@ -1,7 +1,9 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   claimFindFirst: vi.fn(),
+  withTenantContext: vi.fn(),
   update: vi.fn(),
   updateSet: vi.fn(),
   updateWhere: vi.fn(),
@@ -18,14 +20,20 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      claims: {
-        findFirst: hoisted.claimFindFirst,
+  withTenantContext: (
+    context: unknown,
+    action: (tx: Record<string, unknown>) => Promise<unknown>
+  ) => {
+    hoisted.withTenantContext(context);
+    return action({
+      query: {
+        claims: {
+          findFirst: hoisted.claimFindFirst,
+        },
       },
-    },
-    update: hoisted.update,
-    insert: hoisted.insert,
+      update: hoisted.update,
+      insert: hoisted.insert,
+    });
   },
 }));
 
@@ -65,6 +73,7 @@ vi.mock('crypto', () => ({
 import { createPublicTrackingLink } from './createPublicTrackingLink';
 
 describe('createPublicTrackingLink', () => {
+  const authority = mintTestTenantAuthority('tenant-ks');
   const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
   const originalBetterAuthUrl = process.env.BETTER_AUTH_URL;
@@ -119,12 +128,19 @@ describe('createPublicTrackingLink', () => {
     });
 
     const result = await createPublicTrackingLink('claim-1', {
-      tenantId: 'tenant-ks',
+      authority,
       actorUserId: 'staff-1',
       role: 'staff',
       branchId: null,
     });
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(3);
+    for (const call of hoisted.withTenantContext.mock.calls) {
+      expect(call[0]).toBe(authority);
+    }
+    expect(hoisted.buildClaimVisibilityWhere).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: 'tenant-ks', userId: 'staff-1', role: 'staff' })
+    );
     expect(hoisted.claimFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -178,7 +194,7 @@ describe('createPublicTrackingLink', () => {
 
     await expect(
       createPublicTrackingLink('claim-1', {
-        tenantId: 'tenant-ks',
+        authority,
         actorUserId: 'staff-1',
         role: 'staff',
         branchId: null,
@@ -202,7 +218,7 @@ describe('createPublicTrackingLink', () => {
     });
 
     const result = await createPublicTrackingLink('claim-1', {
-      tenantId: 'tenant-ks',
+      authority,
       actorUserId: 'staff-1',
       role: 'staff',
       branchId: null,

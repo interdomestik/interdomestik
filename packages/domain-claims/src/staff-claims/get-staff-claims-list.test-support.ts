@@ -19,6 +19,7 @@ export function createStaffClaimsListMocks() {
     where: fn(),
   };
   return {
+    contexts: [] as unknown[],
     claimChain,
     historyChain,
     diasporaClaimsChain,
@@ -67,6 +68,7 @@ export function createStaffClaimsListMocks() {
   };
 }
 export function resetStaffClaimsListMocks(mocks: ReturnType<typeof createStaffClaimsListMocks>) {
+  mocks.contexts.length = 0;
   mocks.and.mockClear();
   mocks.db.select.mockReset();
   mocks.db.selectDistinctOn.mockReset();
@@ -96,8 +98,10 @@ export function createStaffClaimsListModuleMocks(
   return {
     database: {
       db: mocks.db,
-      withTenantContext: (_context: unknown, action: (db: typeof mocks.db) => unknown) =>
-        action(mocks.db),
+      withTenantContext: (context: unknown, action: (db: typeof mocks.db) => unknown) => {
+        mocks.contexts.push(context);
+        return action(mocks.db);
+      },
       claims: mocks.claims,
       claimStageHistory: mocks.claimStageHistory,
       user: mocks.user,

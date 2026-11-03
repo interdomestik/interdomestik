@@ -1,9 +1,9 @@
+import { agentClients, tenantSettings, type TenantTransaction } from '@interdomestik/database';
 import {
-  agentClients,
-  tenantSettings,
-  withTenantContext,
-  type TenantTransaction,
-} from '@interdomestik/database';
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
 import { and, eq } from 'drizzle-orm';
@@ -95,13 +95,14 @@ async function readClaimAssignmentSources(
 
 export async function loadClaimAssignmentContext(
   userId: string,
-  tenantId: string
+  authority: TenantAuthority
 ): Promise<ClaimAssignmentContext> {
+  const { tenantId } = readTenantAuthority(authority);
   // The membership lookup carries its own tenant context, so it must settle
   // before the assignment transaction opens: one connection, no nested tx.
-  const subscription = await getActiveSubscription(userId, tenantId);
+  const subscription = await getActiveSubscription(userId, authority);
   const subscriptionBranchId = subscription?.branchId ?? null;
-  const sources = await withTenantContext({ tenantId }, async tx =>
+  const sources = await withTenantAuthority(authority, async tx =>
     readClaimAssignmentSources(tx, {
       userId,
       tenantId,

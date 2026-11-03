@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { vi } from 'vitest';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { PublicInformationRequest } from '@interdomestik/domain-claims';
 
 import { IntlHarness, message } from './page-workspace-request-fixture';
@@ -19,6 +20,7 @@ export type WorkspaceRegionId = (typeof WORKSPACE_REGIONS)[number];
 
 const hoisted = vi.hoisted(() => ({
   locale: 'en',
+  current: { session: null as unknown, authority: null as TenantAuthority | null },
   getInformationRequestsMock: vi.fn(
     (_session: unknown, _claimId: string): Promise<PublicInformationRequest[] | null> =>
       Promise.resolve([])
@@ -67,13 +69,14 @@ const hoisted = vi.hoisted(() => ({
   getPublicStatusHistoryCoreMock: vi.fn(
     (_input: {
       claimId: string;
-      tenantId: string;
+      authority: TenantAuthority;
     }): Promise<
       Array<{ id: string; note: string | null; toStatus: string | null; createdAt: Date | null }>
     > => Promise.resolve([])
   ),
-  getStaffAssignmentOptionsMock: vi.fn((_input: { branchId: string | null; tenantId: string }) =>
-    Promise.resolve<Array<{ id: string; label: string }>>([])
+  getStaffAssignmentOptionsMock: vi.fn(
+    (_input: { branchId: string | null; authority: TenantAuthority }) =>
+      Promise.resolve<Array<{ id: string; label: string }>>([])
   ),
   getMessagesForClaimCoreMock: vi.fn((_input: { session: unknown; claimId: string }) =>
     Promise.resolve({ success: true, messages: [] })
@@ -121,8 +124,28 @@ vi.mock('next/navigation', () => ({
   },
 }));
 
+vi.mock('@/lib/tenant-authority.server', async () => {
+  const { mintTestTenantAuthority } =
+    await import('@interdomestik/database/testing/tenant-authority');
+  const { ensureTenantId } = await import('@interdomestik/shared-auth');
+  return {
+    // Mirrors the real producer for the session this render's getSessionSafe returned.
+    authorizeSessionTenant: vi.fn(() => {
+      const session = hoisted.current.session as { user?: unknown } | null;
+      if (!session?.user) return Promise.resolve(null);
+      const authority = mintTestTenantAuthority(ensureTenantId(session as never));
+      hoisted.current.authority = authority;
+      return Promise.resolve({ session, authority });
+    }),
+  };
+});
+
 vi.mock('@/components/shell/session', () => ({
-  getSessionSafe: hoisted.getSessionMock,
+  getSessionSafe: async (context: string) => {
+    const session = await hoisted.getSessionMock(context);
+    hoisted.current.session = session;
+    return session;
+  },
   requireSessionOrRedirect: (session: unknown) => session,
 }));
 

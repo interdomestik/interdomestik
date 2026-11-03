@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   ensureClaimsAccess: vi.fn(),
@@ -13,6 +14,7 @@ const hoisted = vi.hoisted(() => ({
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   inArray: vi.fn((left: unknown, right: unknown) => ({ op: 'inArray', left, right })),
   desc: vi.fn((value: unknown) => ({ op: 'desc', value })),
+  withTenantContext: vi.fn(),
 }));
 vi.mock('../../../../server/domains/claims/guards', () => ({
   ensureClaimsAccess: hoisted.ensureClaimsAccess,
@@ -24,8 +26,8 @@ vi.mock('@sentry/nextjs', () => ({
 vi.mock('../utils', () => ({
   buildClaimVisibilityWhere: hoisted.buildClaimVisibilityWhere,
 }));
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       user: {
         findMany: hoisted.findManyUsers,
@@ -39,13 +41,20 @@ vi.mock('@interdomestik/database', () => ({
         where: hoisted.selectWhere,
       })),
     })),
-  },
-  claims: {
-    caseLifecycleState: 'claims.caseLifecycleState',
-    recoveryLifecycleState: 'claims.recoveryLifecycleState',
-    status: 'claims.status',
-  },
-}));
+  };
+  hoisted.withTenantContext.mockImplementation(
+    async (_context: unknown, callback: (tx: typeof db) => unknown) => callback(db)
+  );
+  return {
+    db,
+    withTenantContext: hoisted.withTenantContext,
+    claims: {
+      caseLifecycleState: 'claims.caseLifecycleState',
+      recoveryLifecycleState: 'claims.recoveryLifecycleState',
+      status: 'claims.status',
+    },
+  };
+});
 vi.mock('@interdomestik/database/schema', () => ({
   claims: {
     userId: 'claims.userId',
@@ -80,6 +89,7 @@ vi.mock('drizzle-orm', () => ({
 }));
 import { getAgentMemberClaims } from './getAgentMemberClaims';
 describe('getAgentMemberClaims', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.ensureClaimsAccess.mockReturnValue({
@@ -112,9 +122,12 @@ describe('getAgentMemberClaims', () => {
   });
 
   it('includes members linked through active agent_clients when user.agentId is empty', async () => {
-    const result = await getAgentMemberClaims({
-      user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
-    });
+    const result = await getAgentMemberClaims(
+      {
+        user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
+      },
+      authority
+    );
 
     expect(result).toHaveLength(1);
     expect(result[0]?.memberId).toBe('member-2');
@@ -124,6 +137,8 @@ describe('getAgentMemberClaims', () => {
       statusLabelKey: 'claims-tracking.status.evaluation',
     });
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(3);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.buildClaimVisibilityWhere).toHaveBeenCalledWith({
       tenantId: 'tenant-1',
       userId: 'agent-1',
@@ -154,11 +169,42 @@ describe('getAgentMemberClaims', () => {
       },
     ]);
 
-    const result = await getAgentMemberClaims({
-      user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
-    });
+    const result = await getAgentMemberClaims(
+      {
+        user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
+      },
+      authority
+    );
 
     expect(result).toEqual([]);
     expect(hoisted.findManyUsers).not.toHaveBeenCalled();
+  });
+
+  it('fails closed without reading when the authority is for a different tenant than the session', async () => {
+    await expect(
+      getAgentMemberClaims(
+        {
+          user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
+        },
+        mintTestTenantAuthority('tenant-2')
+      )
+    ).rejects.toThrow();
+
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.findManyUsers).not.toHaveBeenCalled();
+    expect(hoisted.findManyClaims).not.toHaveBeenCalled();
+  });
+
+  it('fails closed without reading when no tenant authority is supplied', async () => {
+    await expect(
+      getAgentMemberClaims(
+        {
+          user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
+        },
+        null
+      )
+    ).rejects.toThrow();
+
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 });

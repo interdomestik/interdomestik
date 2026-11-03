@@ -1,5 +1,7 @@
 import { saveClaimEscalationAgreementCore as saveClaimEscalationAgreementCoreDomain } from '@interdomestik/domain-claims/staff-claims/save-escalation-agreement';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { logAuditEvent } from '@/lib/audit';
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
 import { revalidatePath } from 'next/cache';
@@ -22,11 +24,12 @@ function revalidatePathForAllLocales(path: string) {
 export async function saveClaimEscalationAgreementCore(
   params: SaveClaimEscalationAgreementInput & {
     idempotencyKey?: string;
+    authority: TenantAuthority | null;
     requestHeaders?: Headers;
     session: NonNullable<Session> | null;
   }
 ): Promise<ActionResult<ClaimEscalationAgreementSnapshot>> {
-  if (params.session?.user?.role !== 'staff' || !params.session.user.tenantId) {
+  if (params.session?.user?.role !== 'staff' || !params.authority) {
     return { success: false, error: 'Unauthorized' };
   }
 
@@ -35,7 +38,7 @@ export async function saveClaimEscalationAgreementCore(
     scope: {
       kind: 'tenant',
       actorUserId: params.session?.user?.id ?? null,
-      tenantId: params.session?.user?.tenantId ?? null,
+      authority: params.authority,
     },
     idempotencyKey: params.idempotencyKey,
     requestFingerprint: {

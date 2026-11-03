@@ -1,5 +1,8 @@
-import { db } from '@interdomestik/database';
 import { memberReferralRewards, referrals } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -11,6 +14,7 @@ import type {
   MemberReferralRewardResult,
   MemberReferralRewardType,
 } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 function resolveRewardCents(args: {
   rewardType: MemberReferralRewardType;
@@ -52,19 +56,22 @@ function toResult(
 }
 
 async function findExistingReward(args: {
-  tenantId: string;
+  authority: TenantAuthority;
   subscriptionId: string;
   qualifyingEventType: string;
   qualifyingEventId: string;
 }): Promise<MemberReferralRewardRecord | null> {
-  const row = await db.query.memberReferralRewards.findFirst({
-    where: and(
-      eq(memberReferralRewards.tenantId, args.tenantId),
-      eq(memberReferralRewards.subscriptionId, args.subscriptionId),
-      eq(memberReferralRewards.qualifyingEventType, args.qualifyingEventType),
-      eq(memberReferralRewards.qualifyingEventId, args.qualifyingEventId)
-    ),
-  });
+  const { tenantId } = readTenantAuthority(args.authority);
+  const row = await withTenantAuthority(args.authority, tx =>
+    tx.query.memberReferralRewards.findFirst({
+      where: and(
+        eq(memberReferralRewards.tenantId, tenantId),
+        eq(memberReferralRewards.subscriptionId, args.subscriptionId),
+        eq(memberReferralRewards.qualifyingEventType, args.qualifyingEventType),
+        eq(memberReferralRewards.qualifyingEventId, args.qualifyingEventId)
+      ),
+    })
+  );
 
   return (row as MemberReferralRewardRecord | null) ?? null;
 }
@@ -72,9 +79,10 @@ async function findExistingReward(args: {
 export async function createMemberReferralRewardCore(
   params: MemberReferralRewardInput
 ): Promise<ActionResult<MemberReferralRewardResult>> {
-  const { tenantId, referralId, subscriptionId, qualifyingEventId, qualifyingEventType } = params;
+  const { authority, referralId, subscriptionId, qualifyingEventId, qualifyingEventType } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
-  const settingsResult = await getMemberReferralProgramSettingsCore({ tenantId });
+  const settingsResult = await getMemberReferralProgramSettingsCore({ authority });
   if (!settingsResult.success) {
     return { success: false, error: settingsResult.error };
   }
@@ -113,9 +121,11 @@ export async function createMemberReferralRewardCore(
     };
   }
 
-  const referralRow = await db.query.referrals.findFirst({
-    where: and(eq(referrals.id, referralId), eq(referrals.tenantId, tenantId)),
-  });
+  const referralRow = await withTenantAuthority(authority, tx =>
+    tx.query.referrals.findFirst({
+      where: and(eq(referrals.id, referralId), eq(referrals.tenantId, tenantId)),
+    })
+  );
   if (!referralRow) {
     return {
       success: true,
@@ -128,7 +138,7 @@ export async function createMemberReferralRewardCore(
   }
 
   const existing = await findExistingReward({
-    tenantId,
+    authority,
     subscriptionId,
     qualifyingEventType,
     qualifyingEventId,
@@ -160,54 +170,56 @@ export async function createMemberReferralRewardCore(
 
   const rewardId = nanoid();
   // db-access-guard: tenant-scoped -- reason: tenantId from resolved referral row before reward insert
-  const rows = await db
-    .insert(memberReferralRewards)
-    .values({
-      id: rewardId,
-      tenantId,
-      referralId,
-      subscriptionId,
-      referrerMemberId: referralRow.referrerId,
-      referredMemberId: referralRow.referredId,
-      qualifyingEventId,
-      qualifyingEventType,
-      rewardType: settings.rewardType,
-      status: 'pending',
-      rewardCents,
-      rewardPercentBps: settings.rewardType === 'percent' ? settings.percentRewardBps : null,
-      currencyCode: params.currencyCode ?? settings.currencyCode,
-      metadata: params.metadata
-        ? {
-            ...params.metadata,
-            source: 'member_referral_program',
-            settingSnapshot: settings,
-          }
-        : {
-            source: 'member_referral_program',
-            settingSnapshot: settings,
-          },
-      updatedAt: new Date(),
-    })
-    .onConflictDoNothing({
-      target: [
-        memberReferralRewards.tenantId,
-        memberReferralRewards.subscriptionId,
-        memberReferralRewards.qualifyingEventType,
-        memberReferralRewards.qualifyingEventId,
-      ],
-    })
-    .returning({
-      id: memberReferralRewards.id,
-      rewardCents: memberReferralRewards.rewardCents,
-      status: memberReferralRewards.status,
-      rewardType: memberReferralRewards.rewardType,
-      currencyCode: memberReferralRewards.currencyCode,
-    });
+  const rows = await withTenantAuthority(authority, tx =>
+    tx
+      .insert(memberReferralRewards)
+      .values({
+        id: rewardId,
+        tenantId,
+        referralId,
+        subscriptionId,
+        referrerMemberId: referralRow.referrerId,
+        referredMemberId: referralRow.referredId,
+        qualifyingEventId,
+        qualifyingEventType,
+        rewardType: settings.rewardType,
+        status: 'pending',
+        rewardCents,
+        rewardPercentBps: settings.rewardType === 'percent' ? settings.percentRewardBps : null,
+        currencyCode: params.currencyCode ?? settings.currencyCode,
+        metadata: params.metadata
+          ? {
+              ...params.metadata,
+              source: 'member_referral_program',
+              settingSnapshot: settings,
+            }
+          : {
+              source: 'member_referral_program',
+              settingSnapshot: settings,
+            },
+        updatedAt: new Date(),
+      })
+      .onConflictDoNothing({
+        target: [
+          memberReferralRewards.tenantId,
+          memberReferralRewards.subscriptionId,
+          memberReferralRewards.qualifyingEventType,
+          memberReferralRewards.qualifyingEventId,
+        ],
+      })
+      .returning({
+        id: memberReferralRewards.id,
+        rewardCents: memberReferralRewards.rewardCents,
+        status: memberReferralRewards.status,
+        rewardType: memberReferralRewards.rewardType,
+        currencyCode: memberReferralRewards.currencyCode,
+      })
+  );
 
   const row = rows[0];
   if (!row) {
     const replay = await findExistingReward({
-      tenantId,
+      authority,
       subscriptionId,
       qualifyingEventType,
       qualifyingEventId,

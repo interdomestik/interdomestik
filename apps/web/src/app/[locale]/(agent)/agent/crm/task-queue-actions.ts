@@ -9,7 +9,7 @@ import {
   updateCrmTaskDueAtAction,
   updateCrmTaskPriorityActionWithGuard,
 } from '@/actions/crm-tasks';
-import { agentCrmTaskWorkQueueRepository } from '@/adapters/crm/task-work-queue-repository';
+import { createAgentCrmTaskWorkQueueRepository } from '@/adapters/crm/task-work-queue-repository';
 
 import {
   isAgentCrmTaskQueueCancellationReasonCode,
@@ -28,31 +28,13 @@ type TaskQueueLifecycleAction = 'start' | 'complete';
 
 type TaskQueueLifecycleError = 'unavailable' | 'conflict' | 'rate_limited' | 'transient';
 type TaskQueueDueDateError =
-  | 'unavailable'
-  | 'invalid_date'
-  | 'conflict'
-  | 'rate_limited'
-  | 'transient';
+  'unavailable' | 'invalid_date' | 'conflict' | 'rate_limited' | 'transient';
 type TaskQueueCancellationError =
-  | 'unavailable'
-  | 'invalid_reason'
-  | 'conflict'
-  | 'rate_limited'
-  | 'transient';
+  'unavailable' | 'invalid_reason' | 'conflict' | 'rate_limited' | 'transient';
 type TaskQueueReopenError =
-  | 'unavailable'
-  | 'invalid_reason'
-  | 'conflict'
-  | 'terminal'
-  | 'rate_limited'
-  | 'transient';
+  'unavailable' | 'invalid_reason' | 'conflict' | 'terminal' | 'rate_limited' | 'transient';
 type TaskQueuePriorityError =
-  | 'unavailable'
-  | 'invalid_priority'
-  | 'conflict'
-  | 'terminal'
-  | 'rate_limited'
-  | 'transient';
+  'unavailable' | 'invalid_priority' | 'conflict' | 'terminal' | 'rate_limited' | 'transient';
 type ReasonedTaskQueueInput<TReasonCode extends string> = {
   readonly expectedLifecycleVersion: number;
   readonly reasonCode: TReasonCode;
@@ -363,9 +345,13 @@ function mapPriorityOutcomeToError(outcome: string, reason?: string): TaskQueueP
   return 'unavailable';
 }
 
-const requireVisibleAgentTaskQueueRow: CrmTaskExistingMutationGuard = async ({ actor, input }) => {
+const requireVisibleAgentTaskQueueRow: CrmTaskExistingMutationGuard = async ({
+  actor,
+  authority,
+  input,
+}) => {
   try {
-    const queue = await agentCrmTaskWorkQueueRepository.readAgentTaskWorkQueue({
+    const queue = await createAgentCrmTaskWorkQueueRepository(authority).readAgentTaskWorkQueue({
       actor,
       now: new Date().toISOString(),
     });
@@ -387,10 +373,13 @@ const requireVisibleAgentTaskQueueRow: CrmTaskExistingMutationGuard = async ({ a
 
 const requireVisibleAgentCompletedTaskQueueRow: CrmTaskExistingMutationGuard = async ({
   actor,
+  authority,
   input,
 }) => {
   try {
-    const queue = await agentCrmTaskWorkQueueRepository.readAgentCompletedTaskQueue({
+    const queue = await createAgentCrmTaskWorkQueueRepository(
+      authority
+    ).readAgentCompletedTaskQueue({
       actor,
       now: new Date().toISOString(),
     });

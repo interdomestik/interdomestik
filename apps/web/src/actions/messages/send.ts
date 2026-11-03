@@ -1,4 +1,5 @@
 import { notifyNewMessage } from '@/lib/notifications';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { revalidatePath } from 'next/cache';
 import type { Session } from './context';
 import { sendMessageDbCore } from './send.core';
@@ -11,6 +12,7 @@ import type { MessageWithSender } from './types';
  */
 export async function sendMessageCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   requestHeaders: Headers;
   claimId: string;
   content: string;
@@ -25,13 +27,14 @@ export async function sendMessageCore(params: {
   revalidatePath(`/staff/claims/${params.claimId}`);
   revalidatePath('/agent/workspace/claims');
 
-  if (result.claimOwnerEmail && !result.isInternal && result.isStaff) {
+  if (params.authority && result.claimOwnerEmail && !result.isInternal && result.isStaff) {
     notifyNewMessage(
       result.claim.userId,
       result.claimOwnerEmail,
       { id: result.claim.id, title: result.claim.title },
       params.session?.user?.name || 'Agent',
-      params.content
+      params.content,
+      { authority: params.authority }
     ).catch((err: Error) => console.error('Failed to send message notification:', err));
   }
 

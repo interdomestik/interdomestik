@@ -8,8 +8,12 @@ import {
   claims,
   eq,
   type TenantTransaction,
-  withTenantContext,
 } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { randomUUID } from 'node:crypto';
 import { ClaimDocumentUploadConflictError } from './claim-document-upload-conflict';
 export { ClaimDocumentUploadConflictError } from './claim-document-upload-conflict';
@@ -32,6 +36,8 @@ export type PersistClaimDocumentParams = {
    */
   actorRole?: string;
   aiExtractionConsent?: AiExtractionConsentCapture;
+  /** The session tenant authority the metadata and consent writes run under; `tenantId` must be its tenant. */
+  authority: TenantAuthority;
   /** Trusted member-surface owner expectation; never accepted from the confirmation payload. */
   expectedClaimOwnerId?: string;
   category: UploadCategory;
@@ -62,14 +68,20 @@ export class ClaimDocumentActorRoleError extends Error {
   }
 }
 
-function resolveMetadataTransactionRole(params: PersistClaimDocumentParams): string {
+export class ClaimDocumentTenantAuthorityError extends Error {
+  constructor() {
+    super('The claim document write does not belong to the tenant of the supplied authority.');
+    this.name = 'ClaimDocumentTenantAuthorityError';
+  }
+}
+
+function assertMetadataActorRole(params: PersistClaimDocumentParams): void {
   if (params.informationRequestId) {
     // Request-linked evidence is a member-only write whose audit row records actorRole 'member'.
     if (params.actorRole && params.actorRole !== 'member') throw new ClaimDocumentActorRoleError();
-    return 'member';
+    return;
   }
   if (!params.actorRole) throw new ClaimDocumentActorRoleError();
-  return params.actorRole;
 }
 
 function documentValues(params: PersistClaimDocumentParams) {
@@ -268,10 +280,12 @@ export async function persistClaimDocumentMetadata(
     return true;
   };
 
-  // Resolve the trusted role before any transaction opens so a missing or mismatched role fails
-  // without partial writes. Ordinary and request-linked writes share one tenant-bound transaction
-  // with the optional consent row, so either both persist or neither does.
-  const role = resolveMetadataTransactionRole(params);
-  // db-access-guard: tenant-scoped -- reason: metadata and consent writes run under the validated tenant context and trusted actor role.
-  return withTenantContext({ tenantId: params.tenantId, role }, persist);
+  // Check the trusted role and tenant before any transaction opens so a missing or mismatched value
+  // fails without partial writes. Ordinary and request-linked writes share one tenant-bound
+  // transaction with the optional consent row, so either both persist or neither does.
+  assertMetadataActorRole(params);
+  if (readTenantAuthority(params.authority).tenantId !== params.tenantId) {
+    throw new ClaimDocumentTenantAuthorityError();
+  }
+  return withTenantAuthority(params.authority, persist);
 }

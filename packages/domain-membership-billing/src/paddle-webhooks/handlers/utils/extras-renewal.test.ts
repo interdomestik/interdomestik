@@ -1,7 +1,10 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
 import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
 import { handleRenewalSubscriptionExtras } from './extras';
+
+const authority = mintTestTenantAuthority('tenant_1');
 
 vi.mock('@interdomestik/database', () => ({
   db: { query: {} },
@@ -41,7 +44,7 @@ describe('handleRenewalSubscriptionExtras', () => {
     await handleRenewalSubscriptionExtras({
       sub: subscription,
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: { agentId: 'agent_current' },
       priceId: 'price_renewal',
       userRecord: null,
@@ -61,7 +64,7 @@ describe('handleRenewalSubscriptionExtras', () => {
         agentClientAgentIds: ['agent_current'],
         originalSellerAgentId: 'agent_original',
         subscriptionId: 'sub_renewal',
-        tenantId: 'tenant_1',
+        authority,
       })
     );
   });
@@ -70,7 +73,7 @@ describe('handleRenewalSubscriptionExtras', () => {
     await handleRenewalSubscriptionExtras({
       sub: subscription,
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: undefined,
       priceId: 'price_renewal',
       userRecord: null,
@@ -109,7 +112,7 @@ describe('handleRenewalSubscriptionExtras', () => {
     await handleRenewalSubscriptionExtras({
       sub: subscription,
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: { agentId: 'agent_current' },
       priceId: 'price_renewal',
       userRecord: null,
@@ -142,7 +145,7 @@ describe('handleRenewalSubscriptionExtras', () => {
     await handleRenewalSubscriptionExtras({
       sub: subscription,
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: undefined,
       priceId: 'price_renewal',
       userRecord: null,

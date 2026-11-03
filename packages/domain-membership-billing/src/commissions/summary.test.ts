@@ -1,4 +1,5 @@
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getGlobalCommissionSummaryCore } from './admin/summary';
@@ -12,11 +13,15 @@ const hoisted = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: vi.fn(() => hoisted.queryChain),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   agentCommissions: {
@@ -25,10 +30,6 @@ vi.mock('@interdomestik/database/schema', () => ({
     status: 'agentCommissions.status',
     tenantId: 'agentCommissions.tenantId',
   },
-}));
-
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: vi.fn(() => 'tenant-1'),
 }));
 
 vi.mock('drizzle-orm', () => ({
@@ -46,13 +47,15 @@ describe('getMyCommissionSummaryCore', () => {
   });
 
   it('scopes agent commission summaries to the session tenant and agent', async () => {
+    const authority = mintTestTenantAuthority('tenant-1');
     await getMyCommissionSummaryCore({
+      authority,
       session: {
         user: { id: 'agent-1', role: 'agent', email: 'agent@example.com', tenantId: 'tenant-1' },
       } as any,
     });
 
-    expect(ensureTenantId).toHaveBeenCalled();
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.queryChain.where).toHaveBeenCalledWith({
       op: 'and',
       clauses: [
@@ -72,13 +75,15 @@ describe('getGlobalCommissionSummaryCore', () => {
   });
 
   it('scopes admin commission summaries to the session tenant', async () => {
+    const authority = mintTestTenantAuthority('tenant-1');
     await getGlobalCommissionSummaryCore({
+      authority,
       session: {
         user: { id: 'admin-1', role: 'admin', email: 'admin@example.com', tenantId: 'tenant-1' },
       },
     });
 
-    expect(ensureTenantId).toHaveBeenCalled();
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.queryChain.where).toHaveBeenCalledWith({
       op: 'eq',
       left: 'agentCommissions.tenantId',

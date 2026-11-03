@@ -1,7 +1,11 @@
-import { db } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { createCommissionCore } from './create';
 import { calculateCommission } from './types';
 import { resolveCommissionOwnership } from './ownership';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type RenewalNoCommissionReason = 'company_owned' | 'unresolved';
 
@@ -22,7 +26,7 @@ export type RenewalCommissionResult =
   | { success: false; error: string };
 
 export async function createRenewalCommissionCore(data: {
-  tenantId: string;
+  authority: TenantAuthority;
   memberId?: string;
   subscriptionId?: string;
   priceId?: string;
@@ -56,10 +60,13 @@ export async function createRenewalCommissionCore(data: {
     }
 
     const resolvedAgentId = ownership.agentId;
-    const agentSettings = await db.query.agentSettings?.findFirst({
-      where: (settings, { and, eq }) =>
-        and(eq(settings.agentId, resolvedAgentId), eq(settings.tenantId, data.tenantId)),
-    });
+    const { tenantId } = readTenantAuthority(data.authority);
+    const agentSettings = await withTenantAuthority(data.authority, tx =>
+      tx.query.agentSettings?.findFirst({
+        where: (settings, { and, eq }) =>
+          and(eq(settings.agentId, resolvedAgentId), eq(settings.tenantId, tenantId)),
+      })
+    );
     const customRates = agentSettings?.commissionRates as Record<string, number> | undefined;
     const amount = calculateCommission('renewal', data.transactionTotal, customRates);
     const ownershipResolvedFrom = [
@@ -76,7 +83,7 @@ export async function createRenewalCommissionCore(data: {
       type: 'renewal',
       amount,
       currency: data.currency,
-      tenantId: data.tenantId,
+      authority: data.authority,
       metadata: data.metadata
         ? {
             ...data.metadata,

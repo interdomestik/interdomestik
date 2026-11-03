@@ -7,8 +7,8 @@ const mocks = vi.hoisted(() => ({
   dbSelectLimit: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     insert: () => ({ values: mocks.dbInsertValues }),
     select: () => ({
       from: () => ({
@@ -22,8 +22,15 @@ vi.mock('@interdomestik/database', () => ({
         findFirst: vi.fn().mockResolvedValue({ tenantId: 'tenant_mk' }),
       },
     },
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: (
+      _context: { tenantId: string },
+      action: (tx: typeof db) => Promise<unknown>
+    ) => action(db),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   agentCommissions: {
@@ -44,9 +51,12 @@ vi.mock('nanoid', () => ({
   nanoid: () => 'commission-1',
 }));
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { createCommissionCore } from './create';
 
 describe('createCommissionCore', () => {
+  const authority = mintTestTenantAuthority('tenant_mk');
+
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock: no existing commission (idempotency check returns empty)
@@ -63,7 +73,7 @@ describe('createCommissionCore', () => {
       type: 'new_membership',
       amount: 12.3,
       currency: 'EUR',
-      tenantId: 'tenant_mk',
+      authority,
       metadata: { source: 'test' },
     });
 
@@ -96,7 +106,7 @@ describe('createCommissionCore', () => {
       type: 'new_membership',
       amount: 12.3,
       currency: 'EUR',
-      tenantId: 'tenant_mk',
+      authority,
     });
 
     expect(result).toEqual({ success: true, data: { id: 'existing-commission' } });

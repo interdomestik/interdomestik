@@ -1,3 +1,5 @@
+import { withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import type { Mock } from 'vitest';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -7,38 +9,44 @@ const hoisted = vi.hoisted(() => ({
   dbSelect: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       claims: { findFirst: hoisted.claimsFindFirst },
       claimStageHistory: { findMany: hoisted.historyFindMany },
     },
     select: hoisted.dbSelect,
-  },
-  eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
-  claims: { id: 'claims.id', tenantId: 'claims.tenantId' },
-  claimDocuments: {
-    id: 'claimDocuments.id',
-    claimId: 'claimDocuments.claimId',
-    tenantId: 'claimDocuments.tenantId',
-    name: 'claimDocuments.name',
-    fileSize: 'claimDocuments.fileSize',
-    fileType: 'claimDocuments.fileType',
-    createdAt: 'claimDocuments.createdAt',
-  },
-  claimStageHistory: {
-    id: 'claimStageHistory.id',
-    claimId: 'claimStageHistory.claimId',
-    tenantId: 'claimStageHistory.tenantId',
-    fromStatus: 'claimStageHistory.fromStatus',
-    toStatus: 'claimStageHistory.toStatus',
-    note: 'claimStageHistory.note',
-    isPublic: 'claimStageHistory.isPublic',
-    createdAt: 'claimStageHistory.createdAt',
-    changedById: 'claimStageHistory.changedById',
-  },
-  user: { id: 'user.id', name: 'user.name', email: 'user.email' },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+    eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
+    claims: { id: 'claims.id', tenantId: 'claims.tenantId' },
+    claimDocuments: {
+      id: 'claimDocuments.id',
+      claimId: 'claimDocuments.claimId',
+      tenantId: 'claimDocuments.tenantId',
+      name: 'claimDocuments.name',
+      fileSize: 'claimDocuments.fileSize',
+      fileType: 'claimDocuments.fileType',
+      createdAt: 'claimDocuments.createdAt',
+    },
+    claimStageHistory: {
+      id: 'claimStageHistory.id',
+      claimId: 'claimStageHistory.claimId',
+      tenantId: 'claimStageHistory.tenantId',
+      fromStatus: 'claimStageHistory.fromStatus',
+      toStatus: 'claimStageHistory.toStatus',
+      note: 'claimStageHistory.note',
+      isPublic: 'claimStageHistory.isPublic',
+      createdAt: 'claimStageHistory.createdAt',
+      changedById: 'claimStageHistory.changedById',
+    },
+    user: { id: 'user.id', name: 'user.name', email: 'user.email' },
+  };
+});
 
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ and: args })),
@@ -67,6 +75,8 @@ function createSelectChain(result: unknown, resolveAt: 'where' | 'orderBy') {
   return chain;
 }
 
+const authority = mintTestTenantAuthority('tenant_mk');
+
 describe('getStaffClaimDetailsCore', () => {
   it('returns not_found when claim does not exist', async () => {
     hoisted.claimsFindFirst.mockResolvedValue(null);
@@ -74,7 +84,7 @@ describe('getStaffClaimDetailsCore', () => {
     const result = await getStaffClaimDetailsCore({
       claimId: 'c1',
       staffId: 'staff-1',
-      tenantId: 'tenant_mk',
+      authority,
     });
 
     expect(result).toEqual({ kind: 'not_found' });
@@ -118,9 +128,10 @@ describe('getStaffClaimDetailsCore', () => {
     const result = await getStaffClaimDetailsCore({
       claimId: 'c1',
       staffId: 'staff-1',
-      tenantId: 'tenant_mk',
+      authority,
     });
 
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(result.kind).toBe('ok');
     if (result.kind !== 'ok') return;
 
@@ -146,9 +157,7 @@ it('reads every public status entry for the authorized tenant and claim, newest 
     { id: 'original', note: 'Uncertain save' },
   ];
   hoisted.historyFindMany.mockResolvedValueOnce(entries);
-  expect(await getPublicStatusHistoryCore({ claimId: 'c1', tenantId: 'tenant_mk' })).toEqual(
-    entries
-  );
+  expect(await getPublicStatusHistoryCore({ claimId: 'c1', authority })).toEqual(entries);
   expect(hoisted.historyFindMany).toHaveBeenCalledWith({
     where: {
       and: [

@@ -1,10 +1,9 @@
 import { TenantAdminDashboardV2 } from '@/features/admin/dashboard-v2/components/TenantAdminDashboardV2';
 import { getTenantAdminDashboardV2Data } from '@/features/admin/dashboard-v2/server/getTenantAdminDashboardV2Data';
-import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database';
-import { tenants } from '@interdomestik/database/schema';
-import { ensureTenantId } from '@interdomestik/shared-auth';
-import { eq } from 'drizzle-orm';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { readTenantDisplayName } from '@interdomestik/database/tenant-directory';
 import { Loader2 } from 'lucide-react';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -15,31 +14,22 @@ export async function AdminDashboardV2Page({ locale }: { locale: string }) {
   setRequestLocale(locale);
 
   const requestHeaders = await headers();
-  const session = await (async () => {
+  // A failed session lookup or a session without a tenant both send the visitor to login.
+  const authorized = await (async () => {
     try {
-      return await auth.api.getSession({
-        headers: requestHeaders,
-      });
+      return await authorizeSessionTenant(requestHeaders);
     } catch {
       return null;
     }
   })();
 
-  if (!session) {
+  if (!authorized) {
     nextRedirect(`/${locale}/login`);
     return null;
   }
 
-  const tenantId = (() => {
-    try {
-      return ensureTenantId(session);
-    } catch {
-      nextRedirect(`/${locale}/login`);
-      return null;
-    }
-  })();
-
-  if (!tenantId) return null;
+  const { session, authority } = authorized;
+  const { tenantId } = readTenantAuthority(authority);
 
   // Branch Manager Redirect (Rule: "Branch auto-redirect for branch managers")
   if (session?.user?.role === 'branch_manager' && session?.user?.branchId) {
@@ -54,12 +44,11 @@ export async function AdminDashboardV2Page({ locale }: { locale: string }) {
   }
 
   // Fetch V2 Data
-  const dashboardData = await getTenantAdminDashboardV2Data(tenantId);
+  const dashboardData = await getTenantAdminDashboardV2Data(authority);
 
-  // Get Tenant Name for display
-  // db-access-guard: system-exempt -- reason: tenant metadata lookup by authenticated admin-selected tenant id
-  const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
-  const tenantName = tenant?.name || 'Unknown Tenant';
+  // The tenant directory is deny-all to the runtime RLS role; its display name is a fixed
+  // projection read for the authorized tenant only.
+  const tenantName = (await readTenantDisplayName(tenantId)) || 'Unknown Tenant';
 
   return (
     <Suspense

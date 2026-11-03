@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   select: vi.fn(),
+  withTenantContext: vi.fn(),
   locale: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   desc: vi.fn((column: unknown) => ({ op: 'desc', column })),
@@ -9,10 +10,15 @@ const hoisted = vi.hoisted(() => ({
   inArray: vi.fn((left: unknown, right: unknown) => ({ op: 'inArray', left, right })),
 }));
 
-import { baseParams } from './getMemberVaultConsentDisplay.test-support';
+import {
+  baseAuthority,
+  baseParams,
+  baseTenantId,
+} from './getMemberVaultConsentDisplay.test-support';
 
 vi.mock('@interdomestik/database', () => ({
   db: { select: hoisted.select },
+  withTenantContext: hoisted.withTenantContext,
 }));
 vi.mock('@interdomestik/database/tenant-directory', () => ({
   readTenantLocaleMetadata: hoisted.locale,
@@ -32,7 +38,13 @@ vi.mock('drizzle-orm', () => ({
 import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
 
 describe('getMemberVaultConsentDisplay gates', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) =>
+        callback({ select: hoisted.select })
+    );
+  });
 
   it.each([
     [[], { kind: 'hidden' }],
@@ -41,31 +53,34 @@ describe('getMemberVaultConsentDisplay gates', () => {
   ])('fails closed before document reads for tenant row %j', async (tenantRows, expected) => {
     hoisted.locale.mockResolvedValueOnce(tenantRows[0] ?? null);
 
-    await expect(getMemberVaultConsentDisplay(baseParams)).resolves.toEqual(expected);
-    expect(hoisted.locale).toHaveBeenCalledWith(baseParams.tenantId);
+    await expect(getMemberVaultConsentDisplay(baseParams, baseAuthority)).resolves.toEqual(
+      expected
+    );
+    expect(hoisted.locale).toHaveBeenCalledWith(baseTenantId);
     expect(hoisted.select).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('stops an ineligible claim before document reads', async () => {
     hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
 
     await expect(
-      getMemberVaultConsentDisplay({ ...baseParams, claimCategory: 'injury' })
+      getMemberVaultConsentDisplay({ ...baseParams, claimCategory: 'injury' }, baseAuthority)
     ).resolves.toEqual({ kind: 'hidden' });
-    expect(hoisted.locale).toHaveBeenCalledWith(baseParams.tenantId);
+    expect(hoisted.locale).toHaveBeenCalledWith(baseTenantId);
     expect(hoisted.select).not.toHaveBeenCalled();
   });
 
   it('returns an item-free erased state before document reads', async () => {
     hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
 
-    const result = await getMemberVaultConsentDisplay({
-      ...baseParams,
-      piiStatus: 'erased_or_unavailable',
-    });
+    const result = await getMemberVaultConsentDisplay(
+      { ...baseParams, piiStatus: 'erased_or_unavailable' },
+      baseAuthority
+    );
     expect(result).toEqual({ kind: 'subject_erased' });
     expect('items' in result).toBe(false);
-    expect(hoisted.locale).toHaveBeenCalledWith(baseParams.tenantId);
+    expect(hoisted.locale).toHaveBeenCalledWith(baseTenantId);
     expect(hoisted.select).not.toHaveBeenCalled();
   });
 });

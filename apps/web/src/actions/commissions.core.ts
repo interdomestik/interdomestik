@@ -18,14 +18,14 @@ export type { Commission, CommissionSummary } from './commissions.types';
 
 /** Get commissions for the current agent */
 export async function getMyCommissions(): Promise<ActionResult<Commission[]>> {
-  const { session } = await getActionContext();
-  return getMyCommissionsCore({ session });
+  const { session, authority } = await getActionContext();
+  return getMyCommissionsCore({ session, authority });
 }
 
 /** Get commission summary for current agent */
 export async function getMyCommissionSummary(): Promise<ActionResult<CommissionSummary>> {
-  const { session } = await getActionContext();
-  return getMyCommissionSummaryCore({ session });
+  const { session, authority } = await getActionContext();
+  return getMyCommissionSummaryCore({ session, authority });
 }
 
 /** Create a commission record (called from webhook or admin) */
@@ -38,17 +38,19 @@ export async function createCommission(data: {
   currency?: string;
   metadata?: Record<string, unknown>;
 }): Promise<ActionResult<{ id: string }>> {
-  const { session } = await getActionContext();
+  const { session, authority } = await getActionContext();
   if (!session?.user) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  let tenantId: string;
   try {
-    tenantId = ensureTenantId(session);
+    ensureTenantId(session);
   } catch {
     return { success: false, error: 'Missing tenantId' };
   }
+  if (!authority) {
+    return { success: false, error: 'Missing tenantId' };
+  }
 
-  return createCommissionCore({ ...data, tenantId });
+  return createCommissionCore({ ...data, authority });
 }

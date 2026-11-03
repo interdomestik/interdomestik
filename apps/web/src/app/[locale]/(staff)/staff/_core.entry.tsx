@@ -5,6 +5,7 @@ import { toClientShellUser } from '@/components/shell/client-shell-user';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { StaffSidebar } from '@/components/staff/staff-sidebar';
 import { BASE_NAMESPACES, STAFF_NAMESPACES, pickMessages } from '@/i18n/messages';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { requireEffectivePortalAccessOrNotFound } from '@/server/auth/effective-portal-access';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { getMessages, setRequestLocale } from 'next-intl/server';
@@ -33,7 +34,9 @@ export default async function StaffLayout({
     ...pickMessages(allMessages, STAFF_NAMESPACES),
   };
   const shellUser = toClientShellUser(sessionNonNull.user);
-  const adminAccess = await requireTenantAdminSession(sessionNonNull)
+  // A tenant RBAC admin grant is read under the staff user's own session authority.
+  const authorized = await authorizeSessionTenant().catch(() => null);
+  const adminAccess = await requireTenantAdminSession(sessionNonNull, authorized?.authority)
     .then(() => true)
     .catch(() => false);
 

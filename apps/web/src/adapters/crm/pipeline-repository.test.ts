@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -87,7 +88,10 @@ describe('crmPipelineRepository', () => {
       },
       transaction: vi.fn(),
     };
-    const repository = createCrmPipelineRepository(fakeDb as never);
+    const repository = createCrmPipelineRepository(
+      mintTestTenantAuthority('tenant-1'),
+      fakeDb as never
+    );
 
     await expect(
       repository.findPipelineById({ pipelineId: 'pipeline-1', tenantId: 'tenant-1' })
@@ -129,7 +133,10 @@ describe('crmPipelineRepository', () => {
       query: { crmPipelines: { findFirst: vi.fn() } },
       transaction: vi.fn(async (callback: (transaction: typeof tx) => unknown) => callback(tx)),
     };
-    const repository = createCrmPipelineRepository(fakeDb as never);
+    const repository = createCrmPipelineRepository(
+      mintTestTenantAuthority('tenant-1'),
+      fakeDb as never
+    );
 
     await expect(repository.createPipeline({ pipeline: pipeline() })).resolves.toEqual(pipeline());
 

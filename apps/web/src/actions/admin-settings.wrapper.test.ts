@@ -41,6 +41,7 @@ describe('actions/admin-settings wrapper', () => {
     expect(adminUpdateSettingsCore).toHaveBeenCalledWith({
       requestHeaders: expect.any(Headers),
       session: { user: { id: 'u1', role: 'admin' } },
+      authority: null,
       data,
     });
 

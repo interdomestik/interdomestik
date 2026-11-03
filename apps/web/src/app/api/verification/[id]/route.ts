@@ -1,6 +1,8 @@
 import { getVerificationRequestDetails } from '@/features/admin/verification/server/verification.core';
 import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { ProtectedActionContext } from '@/lib/safe-action';
 import { NextResponse } from 'next/server';
 import { getVerificationApiCore } from './_core';
@@ -17,9 +19,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (!tenant.success) {
     return tenant.response;
   }
+  const authorized = await authorizeSessionTenant(request.headers);
+  // The authority must describe the same user and tenant the boundary just validated.
+  if (
+    !authorized ||
+    authorized.session.user.id !== session.user.id ||
+    readTenantAuthority(authorized.authority).tenantId !== tenant.tenantId
+  ) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   const protectedContext: ProtectedActionContext = {
     session,
+    authority: authorized.authority,
     tenantId: tenant.tenantId,
     requestHeaders: request.headers,
     userRole: session.user.role,

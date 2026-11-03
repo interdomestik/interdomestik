@@ -1,8 +1,8 @@
 import { runNumberResolverInTenantContext } from '@/features/admin/number-resolvers/tenant-context';
 import { parseMemberNumber } from '@/features/admin/members/utils/memberNumber';
-import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { ADMIN_ALLOWED_ROLES } from '@/lib/rbac-portals';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { getMemberNumberResolverCore } from './_core';
@@ -17,13 +17,14 @@ interface ResolverPageProps {
 export default async function MemberNumberResolverPage({ params }: ResolverPageProps) {
   const { locale, memberNumber } = await params;
 
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) {
+  // The session's tenant authority (its effective access tenant); a session without tenant scope
+  // throws here, before any lookup.
+  const authorized = await authorizeSessionTenant(await headers());
+  if (!authorized) {
     redirect(`/${locale}/login`);
   }
-
-  // Effective access tenant; a session without scope throws here, before any lookup.
-  const tenantId = ensureTenantId(session);
+  const { session, authority } = authorized;
+  const { tenantId } = readTenantAuthority(authority);
   const role = session.user.role ?? null;
   const branchId = session.user.branchId ?? null;
 
@@ -34,7 +35,7 @@ export default async function MemberNumberResolverPage({ params }: ResolverPageP
     branchId,
     allowedRoles: ADMIN_ALLOWED_ROLES,
     parseMemberNumber,
-    inTenantContext: lookup => runNumberResolverInTenantContext({ tenantId, role }, lookup),
+    inTenantContext: lookup => runNumberResolverInTenantContext(authority, lookup),
   });
 
   if (!result.ok) {

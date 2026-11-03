@@ -30,3 +30,23 @@ export async function readTenantLegalMetadata(
   });
   return row ?? null;
 }
+
+export async function readTenantCurrency(tenantId: string): Promise<string | null> {
+  if (!tenantId.trim()) return null;
+  // db-access-guard: system-exempt -- reason: exact authorized tenant display currency only; no member data or access-scope change
+  const row = await dbAdmin.query.tenants.findFirst({
+    where: eq(tenants.id, tenantId),
+    columns: { currency: true },
+  });
+  return row?.currency ?? null;
+}
+
+export async function readTenantDisplayName(tenantId: string): Promise<string | null> {
+  if (!tenantId.trim()) return null;
+  // db-access-guard: system-exempt -- reason: exact authorized tenant display name only; no member data or access-scope change
+  const row = await dbAdmin.query.tenants.findFirst({
+    where: eq(tenants.id, tenantId),
+    columns: { name: true },
+  });
+  return row?.name ?? null;
+}

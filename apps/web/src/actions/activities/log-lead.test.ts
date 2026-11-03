@@ -1,31 +1,37 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   findLead: vi.fn(),
   dbInsertValues: vi.fn(),
   revalidatePath: vi.fn(),
-  getSessionFromHeaders: vi.fn(),
+  getAuthorizedActivityRequest: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       crmLeads: {
         findFirst: mocks.findLead,
       },
     },
     insert: () => ({ values: mocks.dbInsertValues }),
-  },
-  crmActivities: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
-  crmLeads: { id: { name: 'id' } },
-}));
+  };
+  return {
+    db,
+    withTenantContext: async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback(db),
+    crmActivities: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
+    crmLeads: { id: { name: 'id' } },
+  };
+});
 
 vi.mock('next/cache', () => ({
   revalidatePath: (...args: unknown[]) => mocks.revalidatePath(...args),
 }));
 
 vi.mock('./context', () => ({
-  getSessionFromHeaders: () => mocks.getSessionFromHeaders(),
+  getAuthorizedActivityRequest: () => mocks.getAuthorizedActivityRequest(),
 }));
 
 import { logLeadActivityCore } from './log-lead';
@@ -41,8 +47,9 @@ describe('logLeadActivityCore', () => {
   });
 
   it('maps type "other" to "note" and subject to summary', async () => {
-    mocks.getSessionFromHeaders.mockResolvedValue({
-      user: { id: 'agent-1', role: 'agent', tenantId: 'tenant_mk' },
+    mocks.getAuthorizedActivityRequest.mockResolvedValue({
+      session: { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant_mk' } },
+      authority: mintTestTenantAuthority('tenant_mk'),
     });
     mocks.dbInsertValues.mockResolvedValue(undefined);
 

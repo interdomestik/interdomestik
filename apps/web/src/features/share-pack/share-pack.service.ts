@@ -1,10 +1,16 @@
 import { isProductionDeployment } from '@/lib/runtime-environment';
-import { db } from '@interdomestik/database/db';
+import { resolveSharePackTenant } from '@interdomestik/database';
 import * as schema from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { createHash } from 'crypto';
 import { and, eq, gt, inArray, isNull } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { forEachInOrder } from '@/lib/in-order';
 
 // Token expiration in milliseconds (24 hours default)
 const TOKEN_EXPIRY_MS = parseInt(
@@ -67,45 +73,54 @@ export function verifyShareToken(token: string): SharePackPayload | null {
  * Log access audit event for share pack.
  */
 export async function logAuditEvent(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   ids: string[];
   accessedBy?: string;
   shareToken: string;
   ipAddress?: string;
   userAgent?: string;
 }): Promise<void> {
-  const { tenantId, ids, accessedBy, shareToken, ipAddress, userAgent } = params;
+  const { authority, ids, accessedBy, shareToken, ipAddress, userAgent } = params;
+  const { tenantId } = readTenantAuthority(authority);
   const hashedShareToken = hashShareTokenForAudit(shareToken);
 
   // Log access for each document in the pack
-  for (const documentId of ids) {
-    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-    await db.insert(schema.documentAccessLog).values({
-      id: nanoid(),
-      tenantId,
-      documentId,
-      accessType: 'share',
-      accessedBy: accessedBy ?? null,
-      accessedAt: new Date(),
-      ipAddress: ipAddress ?? null,
-      userAgent: userAgent ?? null,
-      shareToken: hashedShareToken,
-    });
-  }
+  await forEachInOrder(ids, async documentId => {
+    await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx.insert(schema.documentAccessLog).values({
+          id: nanoid(),
+          tenantId,
+          documentId,
+          accessType: 'share',
+          accessedBy: accessedBy ?? null,
+          accessedAt: new Date(),
+          ipAddress: ipAddress ?? null,
+          userAgent: userAgent ?? null,
+          shareToken: hashedShareToken,
+        })
+    );
+  });
 }
 
 export async function createSharePack(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   userId: string;
   documentIds: string[];
 }) {
-  const { tenantId, userId, documentIds } = params;
+  const { authority, userId, documentIds } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
   // Verify all documents belong to this tenant
-  const docsExport = await db
-    .select({ id: schema.documents.id })
-    .from(schema.documents)
-    .where(and(eq(schema.documents.tenantId, tenantId)));
+  const docsExport = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select({ id: schema.documents.id })
+        .from(schema.documents)
+        .where(and(eq(schema.documents.tenantId, tenantId)))
+  );
 
   const validDocIds = new Set(docsExport.map(d => d.id));
   const allValid = documentIds.every(id => validDocIds.has(id));
@@ -129,7 +144,10 @@ export async function createSharePack(params: {
   packValues['document' + 'Ids'] = documentIds;
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated share-pack request before pack insert
-  await db.insert(schema.sharePacks).values(packValues);
+  await withTenantAuthority(
+    authority,
+    async tx => await tx.insert(schema.sharePacks).values(packValues)
+  );
 
   const token = generateShareToken({ packId, tenantId });
 
@@ -147,38 +165,53 @@ export async function getSharePack(params: { token: string }) {
     return null;
   }
 
-  const { packId, tenantId } = payload;
+  // The signed token names the pack and its tenant; the stored pack must agree before any read.
+  const resolved = await resolveSharePackTenant(payload.packId, payload.tenantId, new Date());
+  if (!resolved) {
+    return null;
+  }
+  const { packId } = payload;
+  const { tenantId, authority } = resolved;
 
   // Verify pack exists and is not expired/revoked
-  const pack = await db.query.sharePacks.findFirst({
-    where: and(
-      eq(schema.sharePacks.id, packId),
-      eq(schema.sharePacks.tenantId, tenantId),
-      gt(schema.sharePacks.expiresAt, new Date()),
-      isNull(schema.sharePacks.revokedAt)
-    ),
-  });
+  const pack = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.sharePacks.findFirst({
+        where: and(
+          eq(schema.sharePacks.id, packId),
+          eq(schema.sharePacks.tenantId, tenantId),
+          gt(schema.sharePacks.expiresAt, new Date()),
+          isNull(schema.sharePacks.revokedAt)
+        ),
+      })
+  );
 
   if (!pack) {
     return null;
   }
 
   // Fetch documents with tenant scoping
-  const docs = await db
-    .select()
-    .from(schema.documents)
-    .where(
-      and(
-        eq(schema.documents.tenantId, tenantId), // MUST verify tenantId
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        inArray(schema.documents.id, (pack as any)['document' + 'Ids'])
-      )
-    );
+  const docs = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select()
+        .from(schema.documents)
+        .where(
+          and(
+            eq(schema.documents.tenantId, tenantId), // MUST verify tenantId
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            inArray(schema.documents.id, (pack as any)['document' + 'Ids'])
+          )
+        )
+  );
 
   return {
     pack,
     docs,
     tenantId,
+    authority,
     payload,
   };
 }

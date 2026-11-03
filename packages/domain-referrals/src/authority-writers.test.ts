@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -9,9 +10,13 @@ const mocks = vi.hoisted(() => ({
   and: vi.fn((...values: unknown[]) => values),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: { query: { user: { findFirst: mocks.findFirst } }, update: mocks.update },
-}));
+vi.mock('@interdomestik/database', () => {
+  const db = { query: { user: { findFirst: mocks.findFirst } }, update: mocks.update };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 vi.mock('@interdomestik/database/schema', () => ({
   user: { id: 'user.id', tenantId: 'user.tenantId' },
 }));
@@ -42,6 +47,7 @@ describe('authorized referral-code writers', () => {
       const code = `${name.toUpperCase()}-ABC123`;
       const result = await writer({
         session: { user: { id, name, role, tenantId } },
+        authority: mintTestTenantAuthority(tenantId),
         referralCode: 'ATTACKER',
       } as never);
       expect(result).toMatchObject({ success: true, data: { code } });

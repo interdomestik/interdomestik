@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -5,21 +6,28 @@ const mocks = vi.hoisted(() => ({
   findFirst: vi.fn(),
   transitionClaimStatus: vi.fn(),
   withTenant: vi.fn(() => ({ scoped: true })),
+  withTenantContext: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  claimDocuments: {},
-  claims: {
-    id: 'claims.id',
-    tenantId: 'claims.tenant_id',
-  },
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     insert: vi.fn(),
     query: { claims: { findFirst: mocks.findFirst } },
     update: mocks.dbUpdate,
-  },
-  eq: vi.fn((left, right) => ({ left, right })),
-}));
+  };
+  return {
+    claimDocuments: {},
+    claims: {
+      id: 'claims.id',
+      tenantId: 'claims.tenant_id',
+    },
+    db,
+    eq: vi.fn((left, right) => ({ left, right })),
+    withTenantContext: mocks.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) => callback(db)
+    ),
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
@@ -35,6 +43,7 @@ vi.mock('./transition', () => ({
 
 import { cancelClaimCore } from './draft';
 
+const authority = mintTestTenantAuthority('tenant-1');
 const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 const memberSession = { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } } as never;
 
@@ -59,7 +68,10 @@ function mockClaim(status = 'draft') {
 }
 
 function runCancel(deps = {}) {
-  return cancelClaimCore({ claimId: 'claim-1', requestHeaders, session: memberSession }, deps);
+  return cancelClaimCore(
+    { authority, claimId: 'claim-1', requestHeaders, session: memberSession },
+    deps
+  );
 }
 
 function sideEffectDeps() {
@@ -87,11 +99,12 @@ describe('cancelClaimCore', () => {
     const result = await runCancel(deps);
 
     expect(result).toEqual({ success: true });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
     expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
       actor: { id: 'member-1', role: 'member' },
+      authority,
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
       toStatus: 'rejected',
     });
     expect(deps.logAuditEvent).toHaveBeenCalledWith(
@@ -101,7 +114,7 @@ describe('cancelClaimCore', () => {
         entityId: 'claim-1',
         headers: requestHeaders,
         metadata: { oldStatus: 'draft', newStatus: 'rejected' },
-        tenantId: 'tenant-1',
+        authority,
       })
     );
     expect(deps.revalidatePath).toHaveBeenCalledWith('/member/claims');
@@ -121,8 +134,8 @@ describe('cancelClaimCore', () => {
     expect(result).toEqual({ success: false, error: 'Invalid status transition' });
     expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
       actor: { id: 'member-1', role: 'member' },
+      authority,
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
       toStatus: 'rejected',
     });
     expect(mocks.dbUpdate).not.toHaveBeenCalled();

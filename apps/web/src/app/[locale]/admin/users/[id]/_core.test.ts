@@ -45,10 +45,10 @@ describe('admin user profile core', () => {
     expect(getAdminUserMembershipStatus(undefined)).toBe('none');
   });
 
-  it('returns not_found when tenant context is missing', async () => {
+  it('returns not_found when there is no tenant authority', async () => {
     const result = await getAdminUserProfileCore({
       userId: 'any-user',
-      tenantId: null,
+      authority: null,
       actor: { role: 'tenant_admin', branchId: null },
       recentClaimsLimit: 5,
     });

@@ -1,23 +1,22 @@
+import { and, commercialActionIdempotency, eq, isNull } from '@interdomestik/database';
 import {
-  and,
-  commercialActionIdempotency,
-  db,
-  eq,
-  isNull,
-  withTenantContext,
-} from '@interdomestik/database';
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type StoredActionResult = Record<string, unknown>;
 
-export type ResolvedCommercialActionIdempotencyScope =
-  | {
-      kind: 'tenant';
-      tenantId: string;
-      actorUserId: string | null;
-    }
-  | {
-      kind: 'public';
-    };
+/**
+ * Reservations are tenant-scoped only. The former null-tenant public variant had no production
+ * caller (Free Start reserves in its host-derived technical tenant partition) and cannot run
+ * under the restricted runtime role, so it was removed rather than given a privileged path.
+ */
+export type ResolvedCommercialActionIdempotencyScope = {
+  kind: 'tenant';
+  authority: TenantAuthority;
+  actorUserId: string | null;
+};
 
 export type ExistingReservation = {
   id: string;
@@ -28,23 +27,16 @@ export type ExistingReservation = {
 
 /**
  * Every tenant-scoped reservation statement runs inside its own short
- * withTenantContext transaction so the RLS tenant/access-tenant settings exist
+ * withTenantAuthority transaction so the RLS tenant/access-tenant settings exist
  * for the statement. Each transaction closes before the caller runs the
  * commercial action, because the serverless runtime allows one connection.
  */
 function buildScopePredicates(scope: ResolvedCommercialActionIdempotencyScope) {
-  if (scope.kind === 'tenant') {
-    return [
-      eq(commercialActionIdempotency.tenantId, scope.tenantId),
-      scope.actorUserId
-        ? eq(commercialActionIdempotency.actorUserId, scope.actorUserId)
-        : isNull(commercialActionIdempotency.actorUserId),
-    ];
-  }
-
   return [
-    isNull(commercialActionIdempotency.tenantId),
-    isNull(commercialActionIdempotency.actorUserId),
+    eq(commercialActionIdempotency.tenantId, readTenantAuthority(scope.authority).tenantId),
+    scope.actorUserId
+      ? eq(commercialActionIdempotency.actorUserId, scope.actorUserId)
+      : isNull(commercialActionIdempotency.actorUserId),
   ];
 }
 
@@ -55,10 +47,11 @@ export async function reserveCommercialAction(params: {
   scope: ResolvedCommercialActionIdempotencyScope;
 }): Promise<{ id: string } | null> {
   const { scope } = params;
+  const { tenantId } = readTenantAuthority(scope.authority);
   const values = {
     id: crypto.randomUUID(),
-    tenantId: scope.kind === 'tenant' ? scope.tenantId : null,
-    actorUserId: scope.kind === 'tenant' ? scope.actorUserId : null,
+    tenantId,
+    actorUserId: scope.actorUserId,
     action: params.action,
     idempotencyKey: params.idempotencyKey,
     requestFingerprintHash: params.requestFingerprintHash,
@@ -66,18 +59,8 @@ export async function reserveCommercialAction(params: {
     status: 'pending',
   };
 
-  if (scope.kind === 'public') {
-    // db-access-guard: tenant-scoped -- reason: allowlisted public intake reserves a null-tenant row and must not install tenant RLS context
-    const [inserted] = await db
-      .insert(commercialActionIdempotency)
-      .values(values)
-      .onConflictDoNothing()
-      .returning({ id: commercialActionIdempotency.id });
-    return inserted ?? null;
-  }
-
-  const [inserted] = await withTenantContext(
-    { tenantId: scope.tenantId },
+  const [inserted] = await withTenantAuthority(
+    scope.authority,
     async tx =>
       await tx
         .insert(commercialActionIdempotency)
@@ -105,18 +88,8 @@ export async function findExistingReservation(
     ...buildScopePredicates(scope)
   );
 
-  if (scope.kind === 'public') {
-    // db-access-guard: tenant-scoped -- reason: allowlisted public intake lookup is pinned to null tenant and null actor before any cached response release
-    const [existing] = await db
-      .select(columns)
-      .from(commercialActionIdempotency)
-      .where(where)
-      .limit(1);
-    return existing ?? null;
-  }
-
-  const [existing] = await withTenantContext(
-    { tenantId: scope.tenantId },
+  const [existing] = await withTenantAuthority(
+    scope.authority,
     async tx => await tx.select(columns).from(commercialActionIdempotency).where(where).limit(1)
   );
   return existing ?? null;
@@ -135,14 +108,8 @@ export async function completeCommercialActionReservation(params: {
   };
   const where = eq(commercialActionIdempotency.id, params.reservationId);
 
-  if (scope.kind === 'public') {
-    // db-access-guard: tenant-scoped -- reason: allowlisted public intake completes the null-tenant reservation it created
-    await db.update(commercialActionIdempotency).set(values).where(where);
-    return;
-  }
-
-  await withTenantContext(
-    { tenantId: scope.tenantId },
+  await withTenantAuthority(
+    scope.authority,
     async tx => await tx.update(commercialActionIdempotency).set(values).where(where)
   );
 }
@@ -154,14 +121,8 @@ export async function releaseCommercialActionReservation(params: {
   const { scope } = params;
   const where = eq(commercialActionIdempotency.id, params.reservationId);
 
-  if (scope.kind === 'public') {
-    // db-access-guard: tenant-scoped -- reason: allowlisted public intake releases the null-tenant reservation it created
-    await db.delete(commercialActionIdempotency).where(where);
-    return;
-  }
-
-  await withTenantContext(
-    { tenantId: scope.tenantId },
+  await withTenantAuthority(
+    scope.authority,
     async tx => await tx.delete(commercialActionIdempotency).where(where)
   );
 }

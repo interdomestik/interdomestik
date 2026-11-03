@@ -1,6 +1,8 @@
-import { claims, db } from '@interdomestik/database';
+import { claims, listPublicStatisticsWork } from '@interdomestik/database';
 import { claimLifecycleStatusIs } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
-import { count, sql } from 'drizzle-orm';
+import { count, eq, sql } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { forEachInOrder } from '@/lib/in-order';
 
 export type PublicStats = {
   totalClaims: number;
@@ -24,13 +26,33 @@ function isTransientStatsError(error: unknown): boolean {
   );
 }
 
-export async function getPublicStatsCore(): Promise<PublicStats> {
-  const maxAttempts = 3;
+const MAX_STATS_ATTEMPTS = 3;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      // db-access-guard: system-exempt -- reason: public aggregate stats intentionally read cross-tenant counts only
-      const [statsRow] = await db
+export async function getPublicStatsCore(): Promise<PublicStats> {
+  return readPublicStatsWithRetry(1);
+}
+
+async function readPublicStatsWithRetry(attempt: number): Promise<PublicStats> {
+  try {
+    return await readPublicStats();
+  } catch (error) {
+    if (!isTransientStatsError(error) || attempt >= MAX_STATS_ATTEMPTS) {
+      throw error;
+    }
+    await sleep(attempt * 200);
+    return readPublicStatsWithRetry(attempt + 1);
+  }
+}
+
+async function readPublicStats(): Promise<PublicStats> {
+  let totalClaims = 0;
+  let resolvedClaims = 0;
+  let totalRecovered = 0;
+  // Fixed public aggregate: no actor input, no per-tenant figure or tenant list leaves this
+  // function. Each tenant's counts are read under its own RLS context and summed.
+  await forEachInOrder(await listPublicStatisticsWork(), async ({ tenantId, authority }) => {
+    const [statsRow] = await withTenantAuthority(authority, tx =>
+      tx
         .select({
           totalClaims: count(),
           resolvedClaims: sql<number>`
@@ -40,27 +62,20 @@ export async function getPublicStatsCore(): Promise<PublicStats> {
             COALESCE(SUM(CASE WHEN ${claimLifecycleStatusIs('resolved')} THEN ${claims.claimAmount} ELSE 0 END), 0)
           `,
         })
-        .from(claims);
+        .from(claims)
+        .where(eq(claims.tenantId, tenantId))
+    );
+    totalClaims += Number(statsRow?.totalClaims ?? 0);
+    resolvedClaims += Number(statsRow?.resolvedClaims ?? 0);
+    totalRecovered += Number(statsRow?.totalRecovered ?? 0);
+  });
 
-      const totalClaims = Number(statsRow?.totalClaims ?? 0);
-      const resolvedClaims = Number(statsRow?.resolvedClaims ?? 0);
-      const totalRecovered = Number(statsRow?.totalRecovered ?? 0);
-
-      return {
-        totalClaims,
-        resolvedClaims,
-        totalRecovered,
-        successRate:
-          resolvedClaims && totalClaims ? Math.round((resolvedClaims / totalClaims) * 100) : 0,
-        avgResponseTime: 24,
-      };
-    } catch (error) {
-      if (!isTransientStatsError(error) || attempt >= maxAttempts) {
-        throw error;
-      }
-      await sleep(attempt * 200);
-    }
-  }
-
-  throw new Error('unreachable stats retry state');
+  return {
+    totalClaims,
+    resolvedClaims,
+    totalRecovered,
+    successRate:
+      resolvedClaims && totalClaims ? Math.round((resolvedClaims / totalClaims) * 100) : 0,
+    avgResponseTime: 24,
+  };
 }

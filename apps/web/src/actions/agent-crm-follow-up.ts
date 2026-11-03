@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { headers } from 'next/headers';
 
 import {
@@ -15,28 +15,30 @@ function getString(formData: FormData, key: string) {
 
 export async function scheduleAgentLeadFollowUp(formData: FormData) {
   const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
+  const authorized = await authorizeSessionTenant(requestHeaders);
 
   await scheduleAgentLeadFollowUpCore({
     description: getString(formData, 'description') || null,
     leadId: getString(formData, 'leadId'),
     requestHeaders,
     scheduledAt: getString(formData, 'scheduledAt'),
-    session,
+    session: authorized?.session ?? null,
+    authority: authorized?.authority ?? null,
     subject: getString(formData, 'subject') || 'Follow up',
   });
 }
 
 export async function completeAgentLeadFollowUp(formData: FormData) {
   const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
+  const authorized = await authorizeSessionTenant(requestHeaders);
 
   await completeAgentLeadFollowUpCore({
     activityId: getString(formData, 'activityId'),
     expectedLifecycleVersion: getString(formData, 'expectedLifecycleVersion') || null,
     leadId: getString(formData, 'leadId'),
     requestHeaders,
-    session,
+    session: authorized?.session ?? null,
+    authority: authorized?.authority ?? null,
     source: getString(formData, 'source') || null,
   });
 }

@@ -1,7 +1,11 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 export function buildPaddleEventDispatchParams(args: {
   eventType: string | undefined;
   data: unknown;
-  tenantId: string | null;
+  delivery: IngressCapability<'paddle-delivery'>;
+  authority: TenantAuthority | null;
   processingScopeKey: string;
   providerEventId: string | null;
   providerEventOccurredAt: string | null;
@@ -10,7 +14,8 @@ export function buildPaddleEventDispatchParams(args: {
   return {
     eventType: args.eventType,
     data: args.data,
-    tenantId: args.tenantId,
+    delivery: args.delivery,
+    authority: args.authority,
     processingScopeKey: args.processingScopeKey,
     providerEventId: args.providerEventId ?? undefined,
     providerEventOccurredAt: args.providerEventOccurredAt,

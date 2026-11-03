@@ -1,3 +1,7 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -7,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   txInsertValues: vi.fn(),
   dbQueryUser: vi.fn(),
   dbQueryClaims: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -26,65 +31,98 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
-  claims: {
-    id: { name: 'id' },
-    tenantId: { name: 'tenantId' },
-    status: { name: 'status' },
-    staffId: { name: 'staffId' },
-    userId: { name: 'userId' },
-    title: { name: 'title' },
-    lifecycleVersion: { name: 'lifecycleVersion' },
-  },
-  claimStageHistory: {},
-  user: { id: { name: 'id' }, tenantId: { name: 'tenantId' }, email: { name: 'email' } },
-  db: {
-    select: () => ({
-      from: () => ({
-        leftJoin: () => ({
-          where: () => mocks.dbSelect(),
-        }),
-      }),
-    }),
-    update: () => ({
-      set: () => ({ where: mocks.dbUpdate }),
-    }),
-    transaction: async <T>(callback: (tx: unknown) => T) =>
-      callback({
-        select: () => ({
-          from: () => ({
-            where: () => ({
-              limit: () =>
-                // prettier-ignore
-                Promise.resolve([{ id: 'claim-1', lifecycleVersion: 1, caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started', status: 'submitted' }]),
-            }),
+vi.mock('@interdomestik/database', () => {
+  const moduleMock = {
+    appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
+    claims: {
+      id: { name: 'id' },
+      tenantId: { name: 'tenantId' },
+      status: { name: 'status' },
+      staffId: { name: 'staffId' },
+      userId: { name: 'userId' },
+      title: { name: 'title' },
+      lifecycleVersion: { name: 'lifecycleVersion' },
+    },
+    claimStageHistory: {},
+    user: { id: { name: 'id' }, tenantId: { name: 'tenantId' }, email: { name: 'email' } },
+    db: {
+      select: () => ({
+        from: () => ({
+          leftJoin: () => ({
+            where: () => mocks.dbSelect(),
           }),
         }),
-        update: () => ({
-          set: () => ({
-            where: () => ({
-              returning: mocks.txUpdateReturning,
+      }),
+      update: () => ({
+        set: () => ({ where: mocks.dbUpdate }),
+      }),
+      transaction: async <T>(callback: (tx: unknown) => T) =>
+        callback({
+          select: () => ({
+            from: () => ({
+              where: () => ({
+                limit: () =>
+                  // prettier-ignore
+                  Promise.resolve([{ id: 'claim-1', lifecycleVersion: 1, caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started', status: 'submitted' }]),
+              }),
             }),
           }),
+          update: () => ({
+            set: () => ({
+              where: () => ({
+                returning: mocks.txUpdateReturning,
+              }),
+            }),
+          }),
+          insert: () => ({
+            values: mocks.txInsertValues,
+          }),
         }),
-        insert: () => ({
-          values: mocks.txInsertValues,
-        }),
-      }),
-    query: {
-      user: {
-        findFirst: () => mocks.dbQueryUser(),
-      },
-      claims: {
-        findFirst: () => mocks.dbQueryClaims(),
+      query: {
+        user: {
+          findFirst: () => mocks.dbQueryUser(),
+        },
+        claims: {
+          findFirst: () => mocks.dbQueryClaims(),
+        },
       },
     },
-  },
-  and: vi.fn(),
-  eq: vi.fn(),
-  sql: vi.fn(),
-}));
+    and: vi.fn(),
+    eq: vi.fn(),
+    sql: vi.fn(),
+    // Tenant-context callbacks get the transaction tx (claim transition reads/writes) extended with
+    // the ambient db shape the converted code also uses: query.*, select().from().leftJoin() and
+    // update().set().where() (awaited directly or chained into returning()).
+    withTenantContext: async <T>(context: unknown, callback: (tx: unknown) => T) => {
+      mocks.withTenantContext(context);
+      return moduleMock.db.transaction((transactionTx: unknown) =>
+        callback({
+          ...(transactionTx as object),
+          query: moduleMock.db.query,
+          select: () => ({
+            from: () => ({
+              leftJoin: () => ({ where: () => mocks.dbSelect() }),
+              where: () => ({
+                limit: () =>
+                  // prettier-ignore
+                  Promise.resolve([{ id: 'claim-1', lifecycleVersion: 1, caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started', status: 'submitted' }]),
+              }),
+            }),
+          }),
+          update: () => ({
+            set: () => ({
+              where: (...args: unknown[]) =>
+                Object.assign(Promise.resolve(mocks.dbUpdate(...args)), {
+                  returning: mocks.txUpdateReturning,
+                }),
+            }),
+          }),
+        })
+      );
+    },
+  };
+  return moduleMock;
+});
 
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
@@ -95,6 +133,16 @@ vi.mock('next/headers', () => ({
 }));
 import { notifyClaimAssigned } from '@/lib/notifications';
 import { assignClaim, updateClaimStatus } from './agent-claims';
+
+function expectTenantContext(
+  withTenantContext: { mock: { calls: unknown[][] } },
+  tenantId: string
+) {
+  expect(withTenantContext.mock.calls.length).toBeGreaterThan(0);
+  for (const [context] of withTenantContext.mock.calls) {
+    expect(readTenantAuthority(context as TenantAuthority).tenantId).toBe(tenantId);
+  }
+}
 
 describe('Staff Claims Actions', () => {
   beforeEach(() => {
@@ -133,6 +181,7 @@ describe('Staff Claims Actions', () => {
 
       await updateClaimStatus('claim-1', 'verification');
 
+      expectTenantContext(mocks.withTenantContext, 'tenant_mk');
       expect(mocks.txUpdateReturning).toHaveBeenCalled();
     });
 
@@ -154,6 +203,7 @@ describe('Staff Claims Actions', () => {
 
       await updateClaimStatus('claim-1', 'verification');
 
+      expectTenantContext(mocks.withTenantContext, 'tenant_mk');
       expect(mocks.txUpdateReturning).toHaveBeenCalled();
     });
   });
@@ -219,12 +269,17 @@ describe('Staff Claims Actions', () => {
 
       await assignClaim('claim-1', 'staff-2');
 
+      expectTenantContext(mocks.withTenantContext, 'tenant_mk');
       expect(mocks.dbUpdate).toHaveBeenCalled();
       expect(notifyClaimAssigned).toHaveBeenCalledWith(
         'staff-2',
         'staff@test.com',
         { id: 'claim-1', title: 'Test Claim' },
-        'Staff Smith'
+        'Staff Smith',
+        { authority: mocks.withTenantContext.mock.calls[0]![0] }
+      );
+      expect(vi.mocked(notifyClaimAssigned).mock.calls[0]![4].authority).toBe(
+        mocks.withTenantContext.mock.calls[0]![0]
       );
     });
   });

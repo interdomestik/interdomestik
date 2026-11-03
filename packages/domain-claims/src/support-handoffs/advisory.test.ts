@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -5,11 +6,13 @@ const mocks = vi.hoisted(() => ({
   claims: {
     claimNumber: 'claims.claim_number',
     id: 'claims.id',
-    caseLifecycleState: 'claims.case_lifecycle_state', recoveryLifecycleState: 'claims.recovery_lifecycle_state',
+    caseLifecycleState: 'claims.case_lifecycle_state',
+    recoveryLifecycleState: 'claims.recovery_lifecycle_state',
     tenantId: 'claims.tenant_id',
     title: 'claims.title',
   },
-  count: vi.fn(() => 'count()'), sql: vi.fn((strings, ...values) => ({ op: 'sql', strings, values })),
+  count: vi.fn(() => 'count()'),
+  sql: vi.fn((strings, ...values) => ({ op: 'sql', strings, values })),
   db: {
     select: vi.fn(),
   },
@@ -32,6 +35,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@interdomestik/database', () => ({
   claims: mocks.claims,
   db: mocks.db,
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
   desc: mocks.desc,
   eq: mocks.eq,
   supportHandoffs: mocks.supportHandoffs,
@@ -44,9 +48,11 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
 vi.mock('drizzle-orm', () => ({
   and: mocks.and,
   count: mocks.count,
-  inArray: mocks.inArray, sql: mocks.sql,
+  inArray: mocks.inArray,
+  sql: mocks.sql,
 }));
 
+import { withTenantContext } from '@interdomestik/database';
 import { getMemberActiveHandoffAdvisory } from './advisory';
 import { ACTIVE_HANDOFF_STATUSES } from './types';
 
@@ -95,6 +101,9 @@ function expectForbiddenFieldsAbsent(value: unknown) {
   }
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+const tenantTwoAuthority = mintTestTenantAuthority('tenant-2');
+
 describe('getMemberActiveHandoffAdvisory', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -104,10 +113,11 @@ describe('getMemberActiveHandoffAdvisory', () => {
     const countQuery = queueCountRows([{ activeCount: 0 }]);
 
     await expect(
-      getMemberActiveHandoffAdvisory({ memberId: 'member-1', tenantId: 'tenant-1' })
+      getMemberActiveHandoffAdvisory({ memberId: 'member-1', authority })
     ).resolves.toEqual({ activeCount: 0, claimMatch: null, linkedClaim: null });
 
     expect(mocks.db.select).toHaveBeenCalledTimes(1);
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(countQuery.where).toHaveBeenCalledWith(expect.objectContaining({ scoped: true }));
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.member_id', 'member-1');
     expect(mocks.inArray).toHaveBeenCalledWith('support_handoffs.status', ACTIVE_HANDOFF_STATUSES);
@@ -136,7 +146,7 @@ describe('getMemberActiveHandoffAdvisory', () => {
       getMemberActiveHandoffAdvisory({
         claimId: 'claim-1',
         memberId: 'member-1',
-        tenantId: 'tenant-1',
+        authority,
       })
     ).resolves.toEqual({
       activeCount: 2,
@@ -164,7 +174,7 @@ describe('getMemberActiveHandoffAdvisory', () => {
       getMemberActiveHandoffAdvisory({
         claimId: 'claim-2',
         memberId: 'member-1',
-        tenantId: 'tenant-1',
+        authority,
       })
     ).resolves.toEqual({ activeCount: 3, claimMatch: null, linkedClaim: null });
 
@@ -176,7 +186,7 @@ describe('getMemberActiveHandoffAdvisory', () => {
     queueCountRows([{ activeCount: 0 }]);
 
     await expect(
-      getMemberActiveHandoffAdvisory({ memberId: 'member-closed', tenantId: 'tenant-1' })
+      getMemberActiveHandoffAdvisory({ memberId: 'member-closed', authority })
     ).resolves.toEqual({ activeCount: 0, claimMatch: null, linkedClaim: null });
 
     expect(mocks.inArray).toHaveBeenCalledWith('support_handoffs.status', ACTIVE_HANDOFF_STATUSES);
@@ -186,7 +196,7 @@ describe('getMemberActiveHandoffAdvisory', () => {
     queueCountRows([{ activeCount: 0 }]);
 
     await expect(
-      getMemberActiveHandoffAdvisory({ memberId: 'member-1', tenantId: 'tenant-2' })
+      getMemberActiveHandoffAdvisory({ memberId: 'member-1', authority: tenantTwoAuthority })
     ).resolves.toEqual({ activeCount: 0, claimMatch: null, linkedClaim: null });
 
     expect(mocks.withTenant).toHaveBeenCalledWith(
@@ -213,7 +223,7 @@ describe('getMemberActiveHandoffAdvisory', () => {
     const result = await getMemberActiveHandoffAdvisory({
       claimId: 'claim-1',
       memberId: 'member-1',
-      tenantId: 'tenant-1',
+      authority,
     });
 
     expectForbiddenFieldsAbsent(result);

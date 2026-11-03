@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleSubscriptionChanged } from './subscriptions';
-import { resetPaddleHandlerMocks } from './test-support';
+import { TEST_PADDLE_DELIVERY, mockUserOwner, resetPaddleHandlerMocks } from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -41,6 +41,7 @@ describe('returning subscription confirmation', () => {
 
   beforeEach(() => {
     resetPaddleHandlerMocks(hoisted);
+    mockUserOwner(hoisted, 'tenant_mk');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'member@example.test',
@@ -51,17 +52,17 @@ describe('returning subscription confirmation', () => {
   });
 
   it('binds a replacement provider subscription to the existing one-per-user internal row', async () => {
-    hoisted.db.query.subscriptions.findFirst
-      .mockResolvedValueOnce(undefined)
-      .mockResolvedValueOnce({
-        id: 'subscription_internal_existing',
-        status: 'active',
-        tenantId: 'tenant_mk',
-        userId: 'user_123',
-      });
+    // The replacement provider id has no owner (no tenant read); the one-per-user fallback finds the row.
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce({
+      id: 'subscription_internal_existing',
+      status: 'active',
+      tenantId: 'tenant_mk',
+      userId: 'user_123',
+    });
 
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.created',
         providerEventId: 'evt_returning_1',
         webhookPayloadHash: 'payload_hash_returning_1',

@@ -53,9 +53,13 @@ vi.mock('drizzle-orm', () => ({
 vi.mock('nanoid', () => ({ nanoid: vi.fn(() => 'extraction-1') }));
 
 import { persistClaimAiExtraction } from './claim-pipeline-persist';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 const run = {
   runId: 'run-1',
+  authority,
   tenantId: 'tenant-1',
   workflow: 'claim_intake_extract' as const,
   documentId: 'doc-1',

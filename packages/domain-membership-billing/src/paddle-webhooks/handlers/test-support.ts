@@ -1,165 +1,50 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import { expect, vi } from 'vitest';
 import { createQueuedFrom as createQueuedFromMock } from '../../../../../scripts/tests/queued-select-mock';
+import {
+  TEST_PADDLE_DELIVERY,
+  authorizeAnyTestPaddleBillingTenant,
+  authorizeTestPaddleOwner,
+} from '../paddle-authority.test-support';
+import type { MockFunction, createHoistedPaddleHandlerMocks } from './test-support-mocks';
+
+export { TEST_PADDLE_DELIVERY, authorizeTestPaddleOwner };
 
 export { createQueuedFromMock as createQueuedFrom };
-type MockFunction = ReturnType<typeof vi.fn>;
-interface PaddleHandlerMocks {
-  db: {
-    query: {
-      user: { findFirst: MockFunction };
-      account: { findFirst: MockFunction };
-      agentClients: { findFirst: MockFunction };
-      membershipPlans: { findFirst: MockFunction };
-      subscriptions: { findFirst: MockFunction };
-      tenantSettings: { findFirst: MockFunction };
-      webhookEvents: { findFirst: MockFunction };
-    };
-    transaction: MockFunction;
-    select: MockFunction;
-    insert: MockFunction;
-    update: MockFunction;
-  };
-  selectResults: unknown[][];
-  and: MockFunction;
-  appendEvent: MockFunction;
-  asc: MockFunction;
-  subscriptions: { id: string };
-  webhookEvents: { payload: string };
-  user: { id: string };
-  membershipPlans: {
-    id: string;
-    tenantId: string;
-    tier: string;
-    paddlePriceId: string;
-    interval: string;
-    isActive: string;
-  };
-  tx: { insert: MockFunction; select: MockFunction; update: MockFunction };
-  insertedUserValues: MockFunction;
-  updatedUserValues: MockFunction;
-}
-interface ProviderSubscriptionLookupArgs {
-  where?: (
-    subs: Record<string, string>,
-    operators: {
-      eq: (left: unknown, right: unknown) => unknown;
-      or: (...clauses: unknown[]) => unknown;
-    }
-  ) => unknown;
-}
-
-interface PaddleDatabaseMockModule {
-  agentClients: {
-    tenantId: string;
-    memberId: string;
-    agentId: string;
-  };
-  and: MockFunction;
-  appendEvent: MockFunction;
-  asc: MockFunction;
-  db: PaddleHandlerMocks['db'];
-  eq: MockFunction;
-  inArray: MockFunction;
-  membershipPlans: PaddleHandlerMocks['membershipPlans'];
-  sql: MockFunction;
-  subscriptions: PaddleHandlerMocks['subscriptions'];
-  user: PaddleHandlerMocks['user'];
-  webhookEvents: PaddleHandlerMocks['webhookEvents'];
-}
-
-interface CommissionMockModule {
-  createCommissionCore: MockFunction;
-  createCommissionWithDispositionCore: MockFunction;
-}
-
-interface MemberNumberMockModule {
-  generateMemberNumber: MockFunction;
-}
+export {
+  createCommissionMockModule,
+  createHoistedPaddleHandlerMocks,
+  createMemberNumberMockModule,
+  createPaddleDatabaseMockModule,
+} from './test-support-mocks';
 
 type RacedSubscriptionInsertMocks = { mockSet: MockFunction; mockWhere: MockFunction };
 
-export function createHoistedPaddleHandlerMocks(): PaddleHandlerMocks {
-  return {
-    db: {
-      query: {
-        user: { findFirst: vi.fn() },
-        account: { findFirst: vi.fn() },
-        agentClients: { findFirst: vi.fn() },
-        membershipPlans: { findFirst: vi.fn() },
-        subscriptions: { findFirst: vi.fn() },
-        tenantSettings: { findFirst: vi.fn() },
-        webhookEvents: { findFirst: vi.fn() },
-      },
-      transaction: vi.fn(),
-      select: vi.fn(),
-      insert: vi.fn(() => ({ values: vi.fn(() => ({ onConflictDoUpdate: vi.fn() })) })),
-      update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) })),
-    },
-    selectResults: [] as unknown[][],
-    and: vi.fn((...conditions: unknown[]) => ({ op: 'and', conditions })),
-    appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
-    asc: vi.fn((value: unknown) => ({ op: 'asc', value })),
-    subscriptions: { id: 'id_col' },
-    webhookEvents: { payload: 'webhook_events.payload' },
-    user: { id: 'user.id' },
-    membershipPlans: {
-      id: 'membership_plans.id',
-      tenantId: 'membership_plans.tenant_id',
-      tier: 'membership_plans.tier',
-      paddlePriceId: 'membership_plans.paddle_price_id',
-      interval: 'membership_plans.interval',
-      isActive: 'membership_plans.is_active',
-    },
-    tx: {
-      insert: vi.fn(),
-      select: vi.fn(),
-      update: vi.fn(),
-    },
-    insertedUserValues: vi.fn(),
-    updatedUserValues: vi.fn(),
-  };
+/** The privileged resolver names this exact user's owning tenant. */
+export function mockUserOwner(
+  hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>,
+  tenantId: string
+) {
+  hoisted.resolution.resolvePaddleUserOwner.mockImplementation((userId: string) =>
+    Promise.resolve({
+      userId,
+      tenantId,
+    })
+  );
 }
 
-export function createPaddleDatabaseMockModule(
-  hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>
-): PaddleDatabaseMockModule {
-  return {
-    agentClients: {
-      tenantId: 'agent_clients.tenant_id',
-      memberId: 'agent_clients.member_id',
-      agentId: 'agent_clients.agent_id',
-    },
-    and: hoisted.and,
-    appendEvent: hoisted.appendEvent,
-    asc: hoisted.asc,
-    db: hoisted.db,
-    eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-    inArray: vi.fn((left: unknown, right: unknown) => ({ op: 'inArray', left, right })),
-    membershipPlans: hoisted.membershipPlans,
-    sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
-    subscriptions: hoisted.subscriptions,
-    user: hoisted.user,
-    webhookEvents: hoisted.webhookEvents,
-  };
+/** The privileged resolver names this exact subscription's owning tenant. */
+export function mockSubscriptionOwner(
+  hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>,
+  owner: { subscriptionId: string; tenantId: string }
+) {
+  hoisted.resolution.resolvePaddleSubscriptionOwner.mockResolvedValue(owner);
 }
 
-export function createCommissionMockModule(): CommissionMockModule {
-  return {
-    createCommissionCore: vi.fn(),
-    createCommissionWithDispositionCore: vi.fn(),
-  };
-}
+/** Verified-delivery stand-in carried by every webhook event fixture. */
+export type PaddleEventDelivery = IngressCapability<'paddle-delivery'>;
 
-export function createMemberNumberMockModule(): MemberNumberMockModule {
-  return {
-    generateMemberNumber: vi.fn().mockResolvedValue({
-      memberNumber: 'MEM-2026-000123',
-      isNew: true,
-    }),
-  };
-}
-
-export function createPastDueSubscriptionEvent() {
+function pastDueSubscriptionEventBody() {
   return {
     data: {
       id: 'sub_paddle_456',
@@ -179,7 +64,13 @@ export function createPastDueSubscriptionEvent() {
   };
 }
 
-export function createActiveSubscriptionUpdatedEvent() {
+export function createPastDueSubscriptionEvent(): ReturnType<
+  typeof pastDueSubscriptionEventBody
+> & { delivery: PaddleEventDelivery } {
+  return { delivery: TEST_PADDLE_DELIVERY, ...pastDueSubscriptionEventBody() };
+}
+
+function activeSubscriptionUpdatedEventBody() {
   return {
     eventType: 'subscription.updated',
     data: {
@@ -196,33 +87,20 @@ export function createActiveSubscriptionUpdatedEvent() {
   };
 }
 
+export function createActiveSubscriptionUpdatedEvent(): ReturnType<
+  typeof activeSubscriptionUpdatedEventBody
+> & { delivery: PaddleEventDelivery } {
+  return { delivery: TEST_PADDLE_DELIVERY, ...activeSubscriptionUpdatedEventBody() };
+}
+
+/** An unscoped provider reference is resolved by the privileged owner lookup, not an ambient read. */
 export function expectProviderSubscriptionReferenceLookup(
-  args: ProviderSubscriptionLookupArgs,
+  hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>,
   providerSubscriptionId: string
 ) {
-  const whereNode = args.where?.(
-    {
-      id: 'subscriptions.id',
-      providerSubscriptionId: 'subscriptions.provider_subscription_id',
-    },
-    {
-      eq: (left, right) => ({ op: 'eq', left, right }),
-      or: (...clauses) => ({ op: 'or', clauses }),
-    }
-  ) as
-    { op?: string; clauses?: Array<{ op?: string; left?: unknown; right?: unknown }> } | undefined;
-
-  expect(whereNode).toEqual({
-    op: 'or',
-    clauses: [
-      { op: 'eq', left: 'subscriptions.id', right: providerSubscriptionId },
-      {
-        op: 'eq',
-        left: 'subscriptions.provider_subscription_id',
-        right: providerSubscriptionId,
-      },
-    ],
-  });
+  expect(hoisted.resolution.resolvePaddleSubscriptionOwner).toHaveBeenCalledWith(
+    providerSubscriptionId
+  );
 }
 
 export function mockRacedSubscriptionInsert(
@@ -252,16 +130,33 @@ export function resetPaddleHandlerMocks(
   vi.clearAllMocks();
   hoisted.selectResults.length = 0;
   hoisted.db.query.user.findFirst.mockReset();
-  hoisted.db.query.account.findFirst.mockReset();
+  hoisted.identity.hasTenantMemberCredential.mockReset().mockResolvedValue(false);
+  hoisted.identity.issueTenantMemberNumber
+    .mockReset()
+    .mockResolvedValue({ memberNumber: 'MEM-2026-000123', isNew: true });
   hoisted.db.query.subscriptions.findFirst.mockReset();
   hoisted.db.query.tenantSettings.findFirst.mockReset();
   hoisted.db.query.webhookEvents.findFirst.mockReset();
+  for (const resolver of Object.values(hoisted.resolution)) resolver.mockReset();
+  hoisted.resolution.authorizePaddleTenant.mockImplementation(authorizeTestPaddleOwner);
+  hoisted.resolution.authorizePaddleBillingTenant.mockImplementation(
+    authorizeAnyTestPaddleBillingTenant
+  );
+  // Unknown references resolve to nothing until a test names an owner.
+  hoisted.resolution.resolvePaddleSubscriptionOwner.mockResolvedValue(null);
+  hoisted.resolution.resolvePaddleUserOwner.mockResolvedValue(null);
+  hoisted.resolution.resolvePaddleCustomerEmailOwner.mockResolvedValue(null);
+  hoisted.resolution.readVerifiedPaddleTransactionEvidence.mockResolvedValue(null);
   hoisted.db.query.agentClients.findFirst.mockReset();
   hoisted.db.query.membershipPlans.findFirst.mockReset();
   hoisted.db.select.mockImplementation(() => ({
     from: createQueuedFromMock(vi.fn, hoisted.selectResults),
   }));
   hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.tx));
+  // Default tenant context: writes/selects land on the transaction mock, reads on db.query.
+  hoisted.withTenantContext.mockImplementation(
+    async (_context, callback) => await callback(hoisted.tx)
+  );
   hoisted.db.insert.mockImplementation(() => ({
     values: vi.fn().mockResolvedValue(undefined),
   }));
@@ -275,10 +170,18 @@ export function resetPaddleHandlerMocks(
   hoisted.tx.insert.mockImplementation(() => ({
     values: hoisted.insertedUserValues,
   }));
+  // Plan lookups (annual membership) now run in a tenant context and still consume the queued
+  // `selectResults`; every other select keeps the provider-order check shape.
+  const queuedPlanFrom = createQueuedFromMock(vi.fn, hoisted.selectResults) as (
+    table: unknown
+  ) => unknown;
   hoisted.tx.select.mockImplementation(() => ({
-    from: () => ({
-      where: () => Promise.resolve([{ hasInvalid: null, hasNewer: null, hasEqual: null }]),
-    }),
+    from: (table: unknown) =>
+      table === hoisted.membershipPlans
+        ? queuedPlanFrom(table)
+        : {
+            where: () => Promise.resolve([{ hasInvalid: null, hasNewer: null, hasEqual: null }]),
+          },
   }));
   hoisted.insertedUserValues.mockReturnValue({
     onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
@@ -289,4 +192,13 @@ export function resetPaddleHandlerMocks(
   hoisted.updatedUserValues.mockReturnValue({
     where: () => ({ returning: async () => [{ id: 'sub' }] }),
   });
+}
+
+/** Route tenant-context callbacks to the ambient db mock for handlers that never used a transaction. */
+export function routeTenantContextToDbMock(
+  hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>
+) {
+  hoisted.withTenantContext.mockImplementation(
+    async (_context, callback) => await callback(hoisted.db)
+  );
 }

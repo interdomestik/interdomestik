@@ -9,6 +9,7 @@ import {
   user,
 } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { updateClaimStatusCore as updateAdminClaimStatusCore } from '@interdomestik/domain-claims/admin-claims/update-status';
 import { sendMessageDbCore } from '@interdomestik/domain-communications/messages/send';
 import { expect, test } from '../fixtures/auth.fixture';
@@ -125,6 +126,7 @@ test('C2-03: cross-tenant write attempts are denied without mutation', async ({}
 
   await expect(
     updateAdminClaimStatusCore({
+      authority: mintTestTenantAuthority(mkAdmin.tenantId),
       claimId: target.claimId,
       newStatus: attemptedStatus,
       session: actorSession as AdminSession,
@@ -140,11 +142,14 @@ test('C2-03: cross-tenant write attempts are denied without mutation', async ({}
     caseLifecycleState: target.caseLifecycleState,
     recoveryLifecycleState: target.recoveryLifecycleState,
   });
-  expect(persistedClaim ? claimStatusFromLifecycleFields(persistedClaim) : null).toBe(originalStatus ?? null);
+  expect(persistedClaim ? claimStatusFromLifecycleFields(persistedClaim) : null).toBe(
+    originalStatus ?? null
+  );
 
   const messageProbe = `C2-03 cross-tenant message probe ${Date.now()}`;
   const messageResult = await sendMessageDbCore({
     session: actorSession,
+    authority: mintTestTenantAuthority(actorSession.user.tenantId),
     requestHeaders: new Headers({ 'x-forwarded-host': actorHost }),
     claimId: target.claimId,
     content: messageProbe,
@@ -169,6 +174,7 @@ test('C2-03: cross-tenant write attempts are denied without mutation', async ({}
   const uploadProbeName = `c2-03-cross-tenant-upload-${Date.now()}.pdf`;
   const uploadResult = await createSignedUploadCore({
     session: actorSession as AdminSession,
+    authority: mintTestTenantAuthority(actorSession.user.tenantId),
     input: {
       fileName: uploadProbeName,
       fileType: 'application/pdf',

@@ -1,3 +1,7 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -80,8 +84,17 @@ export async function runNavigation(render: () => Promise<unknown>): Promise<str
   throw new Error('resolver returned without navigating');
 }
 
+/** The lookup ran under the request session's authority for this tenant, user and role. */
 export function expectTenantContext(tenantId: string, role: string): void {
-  expect(mocks.withTenantContext.mock.calls[0][0]).toEqual({ tenantId, role });
+  const descriptor = readTenantAuthority(
+    mocks.withTenantContext.mock.calls[0][0] as TenantAuthority
+  );
+  expect(descriptor).toMatchObject({
+    tenantId,
+    accessTenantId: tenantId,
+    purpose: 'session',
+    principal: { userId: 'admin-1', role },
+  });
 }
 
 /** Registers the failure cases that are identical for every number resolver page. */

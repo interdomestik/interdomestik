@@ -5,9 +5,13 @@ const mocks = vi.hoisted(() => ({
   extractLegalDocument: vi.fn(),
   mintClaimDocumentAiCallContext: vi.fn(),
   resolveClaimDocumentAiExtractionConsent: vi.fn(),
+  withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
+    callback({})
+  ),
 }));
 
 vi.mock('@/lib/db.server', () => ({ db: {} }));
+vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantContext }));
 vi.mock('@interdomestik/domain-ai/claims/intake-extract', () => ({
   extractClaimIntake: mocks.extractClaimIntake,
 }));
@@ -20,6 +24,9 @@ vi.mock('@interdomestik/domain-claims', () => ({
 }));
 
 import { extractClaimAiCandidate } from './claim-pipeline-input';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
+const authority = mintTestTenantAuthority('tenant-1');
 import { claimIntakeAiCallContext } from '@/test/ai-call-context';
 
 describe('extractClaimAiCandidate', () => {
@@ -46,6 +53,7 @@ describe('extractClaimAiCandidate', () => {
   it('normalizes malformed claim snapshots before extraction', async () => {
     await extractClaimAiCandidate({
       runId: 'run-1',
+      authority,
       tenantId: 'tenant-1',
       workflow: 'claim_intake_extract',
       documentId: 'doc-1',
@@ -82,6 +90,7 @@ describe('extractClaimAiCandidate', () => {
     await expect(
       extractClaimAiCandidate({
         runId: 'run-1',
+        authority,
         tenantId: 'tenant-1',
         workflow: 'claim_intake_extract',
         documentId: 'doc-1',
@@ -105,6 +114,7 @@ describe('extractClaimAiCandidate', () => {
       })
     ).rejects.toThrow(/consent_missing/);
 
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authority);
     expect(mocks.mintClaimDocumentAiCallContext).not.toHaveBeenCalled();
     expect(mocks.extractClaimIntake).not.toHaveBeenCalled();
   });

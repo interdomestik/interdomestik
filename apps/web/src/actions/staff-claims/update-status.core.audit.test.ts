@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -30,6 +31,8 @@ vi.mock('next/cache', () => ({
 
 import { updateClaimStatusCore } from './update-status.core';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('staff update-status.core audit wiring', () => {
   const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
 
@@ -43,6 +46,7 @@ describe('staff update-status.core audit wiring', () => {
     const requestHeaders = new Headers({ host: 'ks.localhost:3000', 'user-agent': 'Vitest' });
 
     const result = await updateClaimStatusCore({
+      authority,
       claimId: 'claim-1',
       newStatus: 'rejected' as never,
       note: 'Declined after review',
@@ -66,6 +70,7 @@ describe('staff update-status.core audit wiring', () => {
 
   it('revalidates member and staff tracker paths after a successful status update', async () => {
     await updateClaimStatusCore({
+      authority,
       claimId: 'claim-1',
       newStatus: 'evaluation' as never,
       session: {

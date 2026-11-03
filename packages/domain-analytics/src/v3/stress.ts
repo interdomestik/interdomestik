@@ -1,6 +1,10 @@
-import { db } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { claims, user } from '@interdomestik/database/schema';
 import { and, count, eq, sql } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface BranchStressResult {
   stressScore: number; // 0-100
@@ -9,26 +13,31 @@ export interface BranchStressResult {
 }
 
 export async function getBranchStressIndex(
-  tenantId: string,
+  authority: TenantAuthority,
   branchId: string
 ): Promise<BranchStressResult> {
-  const [activeAgents] = await db
-    .select({ count: count() })
-    .from(user)
-    .where(and(eq(user.tenantId, tenantId), eq(user.branchId, branchId), eq(user.role, 'agent')));
+  const { tenantId } = readTenantAuthority(authority);
+  const [activeAgents] = await withTenantAuthority(authority, tx =>
+    tx
+      .select({ count: count() })
+      .from(user)
+      .where(and(eq(user.tenantId, tenantId), eq(user.branchId, branchId), eq(user.role, 'agent')))
+  );
 
   // Count open claims (submitted, in_review) older than 7 days
-  const [agingClaims] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(
-      and(
-        eq(claims.tenantId, tenantId),
-        eq(claims.branchId, branchId),
-        sql`status IN ('submitted', 'in_review')`,
-        sql`created_at < NOW() - INTERVAL '7 days'`
+  const [agingClaims] = await withTenantAuthority(authority, tx =>
+    tx
+      .select({ count: count() })
+      .from(claims)
+      .where(
+        and(
+          eq(claims.tenantId, tenantId),
+          eq(claims.branchId, branchId),
+          sql`status IN ('submitted', 'in_review')`,
+          sql`created_at < NOW() - INTERVAL '7 days'`
+        )
       )
-    );
+  );
 
   const agentCount = activeAgents.count || 1; // avoid div/0
   const agingCount = agingClaims.count;

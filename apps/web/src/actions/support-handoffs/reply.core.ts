@@ -1,5 +1,7 @@
 import { submitSupportHandoffMemberReplyCore as submitDomainMemberReply } from '@interdomestik/domain-claims/support-handoffs/reply';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { logAuditEvent } from '@/lib/audit';
 import { revalidatePath } from 'next/cache';
 
@@ -19,6 +21,7 @@ function shouldRevalidateReplyResult(result: Awaited<ReturnType<typeof submitDom
 }
 
 export async function submitSupportHandoffMemberReplyCore(params: {
+  authority: TenantAuthority | null;
   expectedPublicResponseVersion: number;
   handoffId: string;
   replyText: string;

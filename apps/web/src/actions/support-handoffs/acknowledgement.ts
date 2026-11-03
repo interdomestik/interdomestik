@@ -71,8 +71,9 @@ export async function acknowledgeSupportHandoffPublicResponse(
   _previousState: PublicResponseAcknowledgementActionState,
   formData: FormData
 ): Promise<PublicResponseAcknowledgementActionState> {
-  const { session, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders } = await getActionContext();
   const result = await acknowledgeSupportHandoffPublicResponseCore({
+    authority,
     expectedPublicResponseVersion: getExpectedPublicResponseVersion(formData),
     handoffId: getString(formData, 'handoffId'),
     requestHeaders,

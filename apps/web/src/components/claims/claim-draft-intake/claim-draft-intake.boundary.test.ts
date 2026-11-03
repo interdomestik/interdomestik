@@ -112,7 +112,7 @@ describe('Claim Draft Intake import and scope boundary', () => {
       'utf8'
     );
     expect(identity).toContain("import 'server-only'");
-    expect(identity).toContain('withTenantContext({ tenantId }');
+    expect(identity).toContain('withTenantAuthority(authority');
     expect(identity).toContain('eq(claims.tenantId, tenantId)');
     expect(identity).toContain('eq(claims.userId, actorId)');
     expect(identity).not.toMatch(

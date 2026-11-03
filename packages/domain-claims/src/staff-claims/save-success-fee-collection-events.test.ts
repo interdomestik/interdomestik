@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { saveSuccessFeeCollectionCore } from './save-success-fee-collection';
@@ -35,6 +36,9 @@ vi.mock('@interdomestik/database', () => ({
   claimEscalationAgreements: mocks.claimEscalationAgreements,
   claims: mocks.claims,
   db: mocks.db,
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) =>
+    mocks.db.transaction(cb)
+  ),
   eq: mocks.eq,
   subscriptions: mocks.subscriptions,
 }));
@@ -78,10 +82,13 @@ function collect(overrides: Partial<Parameters<typeof saveSuccessFeeCollectionCo
     claimId: 'claim-1',
     deductionAllowed: true,
     recoveredAmount: 100,
+    authority,
     session: session(),
     ...overrides,
   });
 }
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('saveSuccessFeeCollectionCore success-fee events', () => {
   beforeEach(() => {

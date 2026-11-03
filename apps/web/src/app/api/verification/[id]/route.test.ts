@@ -1,9 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { GET } from './route';
 
 const hoisted = vi.hoisted(() => ({
   getSession: vi.fn(),
   getVerificationRequestDetails: vi.fn(),
+  authorizeSessionTenant: vi.fn(),
+}));
+
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: hoisted.authorizeSessionTenant,
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -48,9 +55,20 @@ async function expectJson(response: Response, status: number, body: Record<strin
   await expect(response.json()).resolves.toEqual(body);
 }
 
+let issuedAuthority: TenantAuthority | null = null;
+
 describe('GET /api/verification/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    issuedAuthority = null;
+    // Mirrors the real producer: the authority is minted for the request session's tenant.
+    hoisted.authorizeSessionTenant.mockImplementation(async () => {
+      const current = await hoisted.getSession();
+      const tenantId = current?.user?.tenantId;
+      if (!current?.user || !tenantId) return null;
+      issuedAuthority = mintTestTenantAuthority(tenantId);
+      return { session: current, authority: issuedAuthority };
+    });
   });
 
   it('returns 401 when unauthenticated', async () => {
@@ -124,6 +142,7 @@ describe('GET /api/verification/[id]', () => {
     const response = await GET(verificationRequest(), routeParams());
 
     await expectJson(response, 200, { id: 'payment-attempt-1', status: 'pending' });
+    expect(hoisted.getVerificationRequestDetails.mock.calls[0][0].authority).toBe(issuedAuthority);
     expect(hoisted.getVerificationRequestDetails).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant-1',
@@ -135,5 +154,31 @@ describe('GET /api/verification/[id]', () => {
       }),
       'payment-attempt-1'
     );
+  });
+
+  it('returns 401 when the session authority names a different tenant than the boundary', async () => {
+    hoisted.getSession.mockResolvedValue(session({}));
+    hoisted.authorizeSessionTenant.mockResolvedValueOnce({
+      session: session({}),
+      authority: mintTestTenantAuthority('tenant-other'),
+    });
+
+    const response = await GET(verificationRequest(), routeParams());
+
+    await expectJson(response, 401, { error: 'Unauthorized' });
+    expect(hoisted.getVerificationRequestDetails).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when the session authority belongs to a different user', async () => {
+    hoisted.getSession.mockResolvedValue(session({}));
+    hoisted.authorizeSessionTenant.mockResolvedValueOnce({
+      session: session({ id: 'staff-2' }),
+      authority: mintTestTenantAuthority('tenant-1'),
+    });
+
+    const response = await GET(verificationRequest(), routeParams());
+
+    await expectJson(response, 401, { error: 'Unauthorized' });
+    expect(hoisted.getVerificationRequestDetails).not.toHaveBeenCalled();
   });
 });

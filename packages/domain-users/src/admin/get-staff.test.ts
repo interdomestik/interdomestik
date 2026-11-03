@@ -5,21 +5,26 @@ const mocks = vi.hoisted(() => ({
   withTenant: vi.fn(() => ({ scoped: true })),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       user: { findMany: mocks.findMany },
     },
-  },
-  user: { tenantId: 'user.tenant_id', role: 'user.role' },
-  inArray: vi.fn((column, values) => ({ column, values })),
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+    user: { tenantId: 'user.tenant_id', role: 'user.role' },
+    inArray: vi.fn((column, values) => ({ column, values })),
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
 
-vi.mock('@interdomestik/shared-auth', () => ({
+vi.mock('@interdomestik/shared-auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/shared-auth')>()),
   scopeFilter: vi.fn(() => ({
     tenantId: 'tenant-1',
     isFullTenantScope: true,
@@ -30,15 +35,23 @@ vi.mock('./access', () => ({
   requireTenantAdminSession: vi.fn(async (session: unknown) => session),
 }));
 
+import { withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { getStaffCore } from './get-staff';
 
 describe('getStaffCore', () => {
   it('uses withTenant to scope staff list', async () => {
     mocks.findMany.mockResolvedValue([]);
 
-    const result = await getStaffCore({ session: { user: { id: 'admin-1' } } as never });
+    const authority = mintTestTenantAuthority('tenant-1');
+
+    const result = await getStaffCore({
+      session: { user: { id: 'admin-1' } } as never,
+      authority,
+    });
 
     expect(result).toEqual([]);
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.withTenant).toHaveBeenCalledWith('tenant-1', 'user.tenant_id', expect.any(Object));
   });
 });

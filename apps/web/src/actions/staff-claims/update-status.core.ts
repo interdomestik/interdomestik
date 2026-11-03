@@ -1,5 +1,7 @@
 import { updateClaimStatusCore as updateClaimStatusCoreDomain } from '@interdomestik/domain-claims/staff-claims/update-status';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { logAuditEvent } from '@/lib/audit';
 import { notifyStatusChanged } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
@@ -21,6 +23,7 @@ function revalidatePathForAllLocales(path: string) {
 
 export async function updateClaimStatusCore(params: {
   allowanceOverrideReason?: string;
+  authority: TenantAuthority | null;
   claimId: string;
   declineReasonCode?: RecoveryDeclineReasonCode;
   decisionExplanation?: string;

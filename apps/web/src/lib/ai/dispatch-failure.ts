@@ -1,9 +1,14 @@
-import { db } from '@/lib/db.server';
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aiRuns } from '@interdomestik/database/schema';
 import { and, eq, type SQL } from 'drizzle-orm';
 
 type MarkAiRunDispatchFailedArgs = {
+  /** The authority of the tenant-scoped producer that queued the run. */
+  authority: TenantAuthority;
   entityType: string;
   errorCode: string;
   message: string;
@@ -22,17 +27,8 @@ export async function markAiRunDispatchFailedWithTenantContext(args: MarkAiRunDi
     predicates.splice(1, 0, eq(aiRuns.workflow, args.workflow));
   }
 
-  // db-access-guard: tenant-scoped -- reason: runId is a queued AI run emitted by the caller workflow
-  const [queuedRun] = await db
-    .select({ tenantId: aiRuns.tenantId })
-    .from(aiRuns)
-    .where(and(...predicates));
-
-  if (!queuedRun?.tenantId) {
-    return;
-  }
-
-  await withTenantContext({ tenantId: queuedRun.tenantId, role: 'system' }, async tx => {
+  const { tenantId } = readTenantAuthority(args.authority);
+  await withTenantAuthority(args.authority, async tx => {
     await tx
       .update(aiRuns)
       .set({
@@ -41,6 +37,6 @@ export async function markAiRunDispatchFailedWithTenantContext(args: MarkAiRunDi
         errorCode: args.errorCode,
         errorMessage: args.message,
       })
-      .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.status, 'queued')));
+      .where(and(eq(aiRuns.tenantId, tenantId), ...predicates));
   });
 }

@@ -1,4 +1,8 @@
-import { claims, db, eq, user } from '@interdomestik/database';
+import { claims, eq, user } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
@@ -6,6 +10,7 @@ import type { ActionResult, ClaimsDeps, ClaimsSession } from '../claims/types';
 import { activateClaimStatusAuditProjection } from '../claims/audit-projection';
 import { transitionClaimStatus } from '../claims/transition';
 import { claimStatusSchema } from '../validators/claims';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 function isStaff(role: string | null | undefined) {
   return role === 'staff';
@@ -29,6 +34,7 @@ function transitionFailureMessage(error: string): string {
 
 export async function updateClaimStatusCore(
   params: {
+    authority: TenantAuthority | null;
     claimId: string;
     hostId?: string | null;
     newStatus: string;
@@ -37,9 +43,9 @@ export async function updateClaimStatusCore(
   },
   deps: ClaimsDeps = {}
 ): Promise<ActionResult> {
-  const { claimId, newStatus, session } = params;
+  const { authority, claimId, newStatus, session } = params;
 
-  if (!session || !isStaffOrAdmin(session.user.role)) {
+  if (!session || !authority || !isStaffOrAdmin(session.user.role)) {
     return { success: false, error: 'Unauthorized', data: undefined };
   }
 
@@ -50,20 +56,23 @@ export async function updateClaimStatusCore(
   }
   const status = parsed.data.status;
 
-  const tenantId = ensureTenantId(session);
+  ensureTenantId(session);
+  const { tenantId } = readTenantAuthority(authority);
 
   // Fetch claim with user info before update
-  const [claimWithUser] = await db
-    .select({
-      id: claims.id,
-      title: claims.title,
-      staffId: claims.staffId,
-      userId: claims.userId,
-      userEmail: user.email,
-    })
-    .from(claims)
-    .leftJoin(user, eq(claims.userId, user.id))
-    .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
+  const [claimWithUser] = await withTenantAuthority(authority, tx =>
+    tx
+      .select({
+        id: claims.id,
+        title: claims.title,
+        staffId: claims.staffId,
+        userId: claims.userId,
+        userEmail: user.email,
+      })
+      .from(claims)
+      .leftJoin(user, eq(claims.userId, user.id))
+      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)))
+  );
 
   if (!claimWithUser) {
     return { success: false, error: 'Claim not found', data: undefined };
@@ -77,7 +86,7 @@ export async function updateClaimStatusCore(
     actor: { id: session.user.id, role: session.user.role ?? null },
     claimId,
     hostId: params.hostId,
-    tenantId,
+    authority,
     toStatus: status,
   });
 
@@ -92,7 +101,7 @@ export async function updateClaimStatusCore(
   const oldStatus = transitionResult.fromStatus;
   const persistedStatus = transitionResult.status;
 
-  await activateClaimStatusAuditProjection({ deps, tenantId });
+  await activateClaimStatusAuditProjection({ authority, deps });
 
   // Send notification to claim owner (fire-and-forget)
   if (
@@ -107,7 +116,8 @@ export async function updateClaimStatusCore(
         claimWithUser.userEmail,
         { id: claimWithUser.id, title: claimWithUser.title },
         oldStatus,
-        persistedStatus
+        persistedStatus,
+        { authority }
       )
     ).catch((err: Error) => console.error('Failed to send status notification:', err));
   }

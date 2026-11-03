@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn() }));
@@ -26,10 +27,13 @@ vi.mock('./commissions-admin/bulk-approve', () => ({
   bulkApproveCommissionsCore: (...args: unknown[]) => mocks.bulkApproveCommissionsCore(...args),
 }));
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 vi.mock('./commissions-admin/context', () => ({
   getActionContext: vi.fn(async () => ({
     requestHeaders: new Headers(),
     session: { user: { id: 'admin-1', role: 'admin' } },
+    authority,
   })),
 }));
 
@@ -51,6 +55,7 @@ describe('commissions.admin action wrappers', () => {
 
     expect(mocks.getAllCommissionsCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin' } },
+      authority,
     });
     expect(result).toEqual({ success: true, data: [] });
   });
@@ -72,6 +77,7 @@ describe('commissions.admin action wrappers', () => {
 
     expect(mocks.getGlobalCommissionSummaryCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin' } },
+      authority,
     });
     expect(result.success).toBe(true);
     expect(result.data?.totalPaid).toBe(3);
@@ -84,6 +90,7 @@ describe('commissions.admin action wrappers', () => {
 
     expect(mocks.updateCommissionStatusCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin' } },
+      authority,
       commissionId: 'c1',
       newStatus: 'paid',
     });
@@ -97,6 +104,7 @@ describe('commissions.admin action wrappers', () => {
 
     expect(mocks.bulkApproveCommissionsCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin' } },
+      authority,
       ids: ['c1', 'c2'],
     });
     expect(result).toEqual({ success: true, data: { count: 2 } });

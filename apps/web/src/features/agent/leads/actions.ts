@@ -1,9 +1,9 @@
 'use server';
 
-import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { updateScopedAgentLeadStatus, type AgentLeadScope } from './server/lead-actions';
 import { memberLeads } from '@interdomestik/database';
-import { ROLES, ensureTenantId } from '@interdomestik/shared-auth';
+import { ROLES } from '@interdomestik/shared-auth';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
@@ -29,15 +29,13 @@ function assertLeadStatus(status: string): LeadStatus {
 }
 
 async function resolveAgentLeadScope(leadId: string): Promise<AgentLeadScope> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authorized = await authorizeSessionTenant(await headers());
 
-  if (!session) {
+  if (!authorized) {
     throw new Error('Unauthorized');
   }
 
-  const tenantId = ensureTenantId(session);
+  const { session, authority } = authorized;
   if (session.user.role !== ROLES.agent || !session.user.branchId) {
     throw new Error('Lead not found or access denied');
   }
@@ -46,7 +44,7 @@ async function resolveAgentLeadScope(leadId: string): Promise<AgentLeadScope> {
     agentId: session.user.id,
     branchId: session.user.branchId,
     leadId,
-    tenantId,
+    authority,
   };
 }
 

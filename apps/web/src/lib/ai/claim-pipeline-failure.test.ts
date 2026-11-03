@@ -34,9 +34,13 @@ vi.mock('drizzle-orm', () => ({
 
 import type { ClaimedClaimAiRun } from './claim-pipeline-run';
 import { markClaimAiRunFailed } from './claim-pipeline-failure';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 const run = {
   runId: 'run-1',
+  authority,
   tenantId: 'tenant-1',
   workflow: 'claim_intake_extract',
   documentId: 'doc-1',
@@ -66,10 +70,7 @@ describe('markClaimAiRunFailed persistence receipt', () => {
     await expect(markClaimAiRunFailed({ run, error: new Error('temporary') })).resolves.toEqual({
       errorCode: 'claim_ai_processing_failed',
     });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1', role: 'system' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authority);
     expect(mocks.where).toHaveBeenCalledWith(
       expect.objectContaining({
         op: 'and',

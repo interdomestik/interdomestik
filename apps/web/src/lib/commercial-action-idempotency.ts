@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import {
   completeCommercialActionReservation,
   findExistingReservation,
@@ -10,22 +12,11 @@ import {
 } from './commercial-action-idempotency-storage';
 import type { ActionError } from './safe-action';
 
-export type PublicCommercialActionIdempotencyReason = 'public-free-start-intake-no-tenant-mutation';
-
-const PUBLIC_IDEMPOTENCY_ALLOWLIST: Record<string, PublicCommercialActionIdempotencyReason> = {
-  'free-start.submit': 'public-free-start-intake-no-tenant-mutation',
+export type CommercialActionIdempotencyScope = {
+  kind: 'tenant';
+  authority: TenantAuthority | null;
+  actorUserId?: string | null;
 };
-
-export type CommercialActionIdempotencyScope =
-  | {
-      kind: 'tenant';
-      tenantId?: string | null;
-      actorUserId?: string | null;
-    }
-  | {
-      kind: 'public';
-      reason: PublicCommercialActionIdempotencyReason;
-    };
 
 function isExplicitFailureResult(result: StoredActionResult): result is StoredActionResult & {
   success: false;
@@ -93,34 +84,18 @@ function buildScopeConflictError(): ActionError {
   };
 }
 
-function buildPublicIdempotencyNotAllowedError(): ActionError {
-  return {
-    success: false,
-    error: 'Public idempotency is not allowed for this commercial action.',
-    code: 'PUBLIC_IDEMPOTENCY_NOT_ALLOWED',
-  };
-}
-
 function resolveIdempotencyScope(
-  action: string,
   scope: CommercialActionIdempotencyScope
 ): ResolvedCommercialActionIdempotencyScope | ActionError {
-  if (scope.kind === 'public') {
-    if (PUBLIC_IDEMPOTENCY_ALLOWLIST[action] !== scope.reason) {
-      return buildPublicIdempotencyNotAllowedError();
-    }
-
-    return { kind: 'public' };
-  }
-
-  const tenantId = scope.tenantId?.trim();
-  if (!tenantId) {
+  // Fail closed on anything that is not an explicit tenant scope, including a legacy public scope.
+  const authority = scope.kind === 'tenant' ? scope.authority : null;
+  if (!authority) {
     return buildMissingTenantScopeError();
   }
 
   return {
     kind: 'tenant',
-    tenantId,
+    authority,
     actorUserId: scope.actorUserId ?? null,
   };
 }
@@ -139,7 +114,7 @@ export async function runCommercialActionWithIdempotency<
     return params.execute();
   }
 
-  const scope = resolveIdempotencyScope(params.action, params.scope);
+  const scope = resolveIdempotencyScope(params.scope);
   if (isActionError(scope)) {
     return scope;
   }

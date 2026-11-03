@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { logAuditEvent } from '@/lib/audit';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,6 +17,7 @@ vi.mock('@/lib/audit', () => ({
 }));
 
 describe('adminUpdateSettingsCore', () => {
+  const authority = mintTestTenantAuthority('t1', { userId: 'admin1', role: 'admin' });
   const mockSession = {
     session: {
       id: 'sess1',
@@ -72,10 +74,29 @@ describe('adminUpdateSettingsCore', () => {
     const result = await adminUpdateSettingsCore({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       session: mockSession as any,
+      authority,
       data: validData,
     });
 
     expect(result.success).toBe(true);
-    expect(logAuditEvent).toHaveBeenCalled();
+    expect(logAuditEvent).toHaveBeenCalledTimes(1);
+    const event = vi.mocked(logAuditEvent).mock.calls[0]?.[0];
+    expect(event?.authority).toBe(authority);
+    expect(event).toMatchObject({ action: 'settings.updated', actorId: 'admin1' });
+    expect(event).not.toHaveProperty('tenantId');
+  });
+
+  it('writes no audit row when the caller holds no tenant authority', async () => {
+    vi.mocked(enforceRateLimitForAction).mockResolvedValue({ limited: false });
+
+    const result = await adminUpdateSettingsCore({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      session: mockSession as any,
+      authority: null,
+      data: validData,
+    });
+
+    expect(result.success).toBe(true);
+    expect(logAuditEvent).not.toHaveBeenCalled();
   });
 });

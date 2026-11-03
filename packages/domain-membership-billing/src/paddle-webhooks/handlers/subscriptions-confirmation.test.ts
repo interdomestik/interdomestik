@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleSubscriptionChanged } from './subscriptions';
-import { resetPaddleHandlerMocks } from './test-support';
+import {
+  TEST_PADDLE_DELIVERY,
+  mockSubscriptionOwner,
+  mockUserOwner,
+  resetPaddleHandlerMocks,
+} from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -44,6 +49,7 @@ describe('subscription confirmation dispatch', () => {
     resetPaddleHandlerMocks(hoisted);
     sendThankYouLetter.mockResolvedValue({ success: true, id: 'email_123' });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
+    mockUserOwner(hoisted, 'tenant_mk');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'member@example.test',
@@ -56,6 +62,7 @@ describe('subscription confirmation dispatch', () => {
   it('preserves exact active values from a raw Paddle payload', async () => {
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.created',
         providerEventId: 'evt_provider_1',
         webhookPayloadHash: 'payload_hash_1',
@@ -104,6 +111,7 @@ describe('subscription confirmation dispatch', () => {
   it('does not confirm an out-of-order active subscription.updated event with no existing row', async () => {
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.updated',
         data: {
           id: 'sub_provider_updated_first',
@@ -136,6 +144,8 @@ describe('subscription confirmation dispatch', () => {
   });
 
   it('does not dispatch when checkout tenant conflicts with canonical ownership', async () => {
+    mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_existing', tenantId: 'tenant_real' });
+    mockUserOwner(hoisted, 'tenant_real');
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       id: 'sub_existing',
       tenantId: 'tenant_real',
@@ -150,6 +160,7 @@ describe('subscription confirmation dispatch', () => {
     await expect(
       handleSubscriptionChanged(
         {
+          delivery: TEST_PADDLE_DELIVERY,
           eventType: 'subscription.created',
           data: {
             id: 'sub_existing',
@@ -168,133 +179,9 @@ describe('subscription confirmation dispatch', () => {
       )
     ).rejects.toThrow('customData tenant=tenant_bad conflicts with canonical tenant=tenant_real');
 
-    expect(hoisted.db.query.webhookEvents.findFirst).not.toHaveBeenCalled();
+    expect(hoisted.resolution.readVerifiedPaddleTransactionEvidence).not.toHaveBeenCalled();
     expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(logAuditEvent).not.toHaveBeenCalled();
     expect(sendThankYouLetter).not.toHaveBeenCalled();
-  });
-
-  it('fails closed before dispatch when provider tenant conflicts with an existing subscription', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
-      id: 'sub_existing',
-      tenantId: 'tenant_real',
-      userId: 'user_123',
-    });
-    hoisted.db.query.user.findFirst.mockResolvedValue({
-      id: 'user_123',
-      email: 'member@example.test',
-      tenantId: 'tenant_real',
-    });
-
-    await expect(
-      handleSubscriptionChanged(
-        {
-          eventType: 'subscription.updated',
-          data: {
-            id: 'sub_existing',
-            status: 'active',
-            customData: { userId: 'user_123', tenantId: 'tenant_bad' },
-            items: [
-              {
-                price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
-              },
-            ],
-            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
-          },
-        },
-        { logAuditEvent, sendThankYouLetter }
-      )
-    ).rejects.toThrow('customData tenant=tenant_bad conflicts with canonical tenant=tenant_real');
-
-    expect(hoisted.tx.insert).not.toHaveBeenCalled();
-    expect(hoisted.tx.update).not.toHaveBeenCalled();
-    expect(logAuditEvent).not.toHaveBeenCalled();
-    expect(sendThankYouLetter).not.toHaveBeenCalled();
-    expect(warn).not.toHaveBeenCalled();
-    warn.mockRestore();
-  });
-
-  it('ignores an invalid provider payload before any write or dispatch', async () => {
-    await handleSubscriptionChanged(
-      {
-        eventType: 'subscription.updated',
-        data: { id: 'sub_123', customData: { userId: 'user_123' } },
-      },
-      { logAuditEvent, sendThankYouLetter }
-    );
-
-    expect(hoisted.tx.insert).not.toHaveBeenCalled();
-    expect(logAuditEvent).not.toHaveBeenCalled();
-    expect(sendThankYouLetter).not.toHaveBeenCalled();
-  });
-
-  it('fails before dispatch when a valid event has no canonical tenant context', async () => {
-    hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
-    hoisted.db.query.user.findFirst.mockResolvedValue(undefined);
-
-    await expect(
-      handleSubscriptionChanged(
-        {
-          eventType: 'subscription.created',
-          data: {
-            id: 'sub_missing_tenant',
-            status: 'active',
-            customData: { userId: 'user_without_tenant' },
-            items: [
-              {
-                price: { id: 'pri_123', unitPrice: { amount: '2000', currencyCode: 'EUR' } },
-              },
-            ],
-            currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
-          },
-        },
-        { logAuditEvent, sendThankYouLetter }
-      )
-    ).rejects.toThrow('Unable to resolve subscription context');
-
-    expect(hoisted.tx.insert).not.toHaveBeenCalled();
-    expect(logAuditEvent).not.toHaveBeenCalled();
-    expect(sendThankYouLetter).not.toHaveBeenCalled();
-  });
-
-  it('uses the existing subscription user when provider custom data omits userId', async () => {
-    const returning = vi.fn().mockResolvedValue([{ id: 'mock_sub_existing' }]);
-    const where = vi.fn().mockReturnValue({ returning });
-    const set = vi.fn().mockReturnValue({ where });
-    hoisted.tx.update.mockReturnValue({ set });
-    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
-      id: 'sub_existing',
-      tenantId: 'tenant_abc',
-      userId: 'user_canonical',
-    });
-    hoisted.db.query.user.findFirst.mockResolvedValue({
-      id: 'user_canonical',
-      email: 'member@example.test',
-      tenantId: 'tenant_abc',
-    });
-
-    await handleSubscriptionChanged(
-      {
-        eventType: 'subscription.updated',
-        data: {
-          id: 'sub_existing',
-          status: 'active',
-          customData: { tenantId: 'tenant_abc' },
-          items: [
-            {
-              price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
-            },
-          ],
-          currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
-        },
-      },
-      { logAuditEvent, sendThankYouLetter }
-    );
-
-    expect(set).toHaveBeenCalledWith(
-      expect.objectContaining({ tenantId: 'tenant_abc', userId: 'user_canonical' })
-    );
-    expect(where).toHaveBeenCalled();
   });
 });

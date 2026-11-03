@@ -1,4 +1,4 @@
-import { ensureAccessTenantId } from '@interdomestik/shared-auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { getInformationRequests, getStaffClaimDetail } from '@interdomestik/domain-claims';
 import { ClaimInformationRequestForm } from '@/features/staff/claims/components/ClaimInformationRequestForm';
 import { ClaimInformationRequests } from '@/features/member/claims/components/ClaimInformationRequests';
@@ -56,18 +56,20 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     return notFound();
   }
 
-  let tenantId: string;
+  let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
   try {
-    tenantId = ensureAccessTenantId(session);
+    authorized = await authorizeSessionTenant();
   } catch {
     return notFound();
   }
+  if (!authorized) return notFound();
+  const { authority } = authorized;
 
   const detail = await getStaffClaimDetail({
     branchId: session.user.branchId ?? null,
     claimId: id,
     staffId: session.user.id,
-    tenantId,
+    authority,
   });
 
   if (!detail) return notFound();
@@ -75,17 +77,18 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
   const [statusHistory, assignmentOptions, initialMessagesResult] = await Promise.all([
     getPublicStatusHistoryCore({
       claimId: id,
-      tenantId,
+      authority,
     }),
     session.user.role === 'staff'
       ? getStaffAssignmentOptions({
           branchId: session.user.branchId ?? null,
-          tenantId,
+          authority,
         })
       : Promise.resolve([]),
     session.user.role === 'staff'
       ? getMessagesForClaimCore({
           session,
+          authority,
           claimId: id,
         })
       : Promise.resolve({ success: true as const, messages: [] }),
@@ -95,7 +98,9 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
   const initialMessages = readInitialMessages(initialMessagesResult);
   const claimStatus = toClaimStatus(detail.claim.status);
   const slaPhase = deriveClaimSlaPhase(claimStatus);
-  const informationRequests = await getInformationRequests(session, id).catch(() => null);
+  const informationRequests = await getInformationRequests(session, authority, id).catch(
+    () => null
+  );
 
   const isStaff = session.user.role === 'staff';
   const isAssignedStaff = isStaff && detail.claim.staffId === session.user.id;
@@ -109,7 +114,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
   // Ordinary case evidence for the currently assigned staff only. The reader re-checks the staff
   // role and exact assignment inside the tenant transaction; failure stays distinct from empty.
   const assignedDocuments = isAssignedStaff
-    ? await getAssignedStaffClaimDocuments({ claimId: id, session }).catch(() => null)
+    ? await getAssignedStaffClaimDocuments({ claimId: id, session, authority }).catch(() => null)
     : null;
   // Phase derivation stays operative; only this route's generic verification copy is neutral so it
   // never implies an outstanding member duty. The request card remains the source of real duties.

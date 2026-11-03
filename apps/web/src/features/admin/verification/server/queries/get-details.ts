@@ -1,6 +1,7 @@
-import { withTenantContext } from '@interdomestik/database';
 import { auditLog, branches, documents, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aliasedTable, and, desc, eq, isNull } from 'drizzle-orm';
 import {
   CashVerificationDetailsDTO,
@@ -15,7 +16,12 @@ export async function getVerificationRequestDetails(
   ctx: VerificationReadContext,
   attemptId: string
 ): Promise<CashVerificationDetailsDTO | null> {
-  const { tenantId, userRole } = ctx;
+  const { authority } = ctx;
+  const { tenantId } = readTenantAuthority(authority);
+  // The caller's tenant must be the one its authority grants; anything else fails closed.
+  if (ctx.tenantId !== tenantId) {
+    throw new Error('Verification read authority does not match the requested tenant');
+  }
 
   // RBAC: resource admission before any transaction (throws FORBIDDEN for other roles)
   const readScope = resolveVerificationReadScope(ctx);
@@ -32,7 +38,7 @@ export async function getVerificationRequestDetails(
     conditions.push(eq(memberLeads.branchId, readScope.branchId));
   }
 
-  const records = await withTenantContext({ tenantId, role: userRole }, async tx => {
+  const records = await withTenantAuthority(authority, async tx => {
     const [row] = (await tx
       .select({
         id: leadPaymentAttempts.id,

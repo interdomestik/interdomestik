@@ -2,12 +2,14 @@
 
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
 import { runAuthenticatedAction, type ActionResult } from '@/lib/safe-action';
-import { db } from '@interdomestik/database/db';
+
 import { branches, claims } from '@interdomestik/database/schema';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { ROLES } from '@interdomestik/shared-auth';
 import * as Sentry from '@sentry/nextjs';
 import { and, count, eq } from 'drizzle-orm';
 import { getBranchCashPendingByBranch } from './branch-cash-metrics';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface BranchWithKpis {
   id: string;
@@ -22,8 +24,8 @@ export interface BranchWithKpis {
 }
 
 export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
-  return runAuthenticatedAction<BranchWithKpis[]>(async ({ session }) => {
-    return Sentry.withServerActionInstrumentation(
+  return runAuthenticatedAction<BranchWithKpis[]>(async ({ session, authority }) => {
+    return await Sentry.withServerActionInstrumentation(
       'getBranchesWithKpis',
       { recordResponse: true },
       async () => {
@@ -38,7 +40,7 @@ export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
           throw new Error('Unauthorized');
         }
 
-        const { tenantId } = session.user;
+        const { tenantId } = readTenantAuthority(authority);
         if (!tenantId) {
           throw new Error('Tenant context required');
         }
@@ -49,43 +51,49 @@ export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
         // 2. Mock Return for Debugging (REMOVED)
 
         // 2. Fetch all branches for this tenant (base list)
-        const tenantBranches = await db
-          .select({
-            id: branches.id,
-            name: branches.name,
-            code: branches.code,
-            isActive: branches.isActive,
-          })
-          .from(branches)
-          .where(eq(branches.tenantId, tenantId))
-          .orderBy(branches.name);
+        const tenantBranches = await withTenantAuthority(authority, tx =>
+          tx
+            .select({
+              id: branches.id,
+              name: branches.name,
+              code: branches.code,
+              isActive: branches.isActive,
+            })
+            .from(branches)
+            .where(eq(branches.tenantId, tenantId))
+            .orderBy(branches.name)
+        );
 
         if (tenantBranches.length === 0) {
           return [];
         }
 
         // 3. Aggregate Open Claims by Branch
-        const openClaimsRaw = await db
-          .select({
-            branchId: claims.branchId,
-            count: count(),
-          })
-          .from(claims)
-          .where(and(eq(claims.tenantId, tenantId), getOpenClaimsFilter()))
-          .groupBy(claims.branchId);
+        const openClaimsRaw = await withTenantAuthority(authority, tx =>
+          tx
+            .select({
+              branchId: claims.branchId,
+              count: count(),
+            })
+            .from(claims)
+            .where(and(eq(claims.tenantId, tenantId), getOpenClaimsFilter()))
+            .groupBy(claims.branchId)
+        );
 
         // 4. Aggregate SLA Breaches by Branch
-        const slaBreachesRaw = await db
-          .select({
-            branchId: claims.branchId,
-            count: count(),
-          })
-          .from(claims)
-          .where(and(eq(claims.tenantId, tenantId), getSlaBreachesFilter()))
-          .groupBy(claims.branchId);
+        const slaBreachesRaw = await withTenantAuthority(authority, tx =>
+          tx
+            .select({
+              branchId: claims.branchId,
+              count: count(),
+            })
+            .from(claims)
+            .where(and(eq(claims.tenantId, tenantId), getSlaBreachesFilter()))
+            .groupBy(claims.branchId)
+        );
 
         // 5. Aggregate unresolved cash verification load by branch
-        const cashPendingMap = await getBranchCashPendingByBranch(tenantId);
+        const cashPendingMap = await getBranchCashPendingByBranch(authority);
 
         // 6. Merge Metrics
         const openClaimsMap = new Map(openClaimsRaw.map(r => [r.branchId, r.count]));

@@ -1,0 +1,69 @@
+// The tenant guard rules (A5 S″ with the A5-r1 corrections) run as ordered stages over one shared
+// context: the install stages declare the analyses, then the scan, propagation and report stages
+// execute them in the original evaluation order.
+
+import { CONTRACTS, LEGACY_PINS, STATE_CONTRACTS } from './manifest.mjs';
+import { installCustody } from './rules-custody.mjs';
+import { installDependencies } from './rules-dependencies.mjs';
+import { installReceivers } from './rules-receivers.mjs';
+import { installSinks } from './rules-sinks.mjs';
+import { installState } from './rules-state.mjs';
+import { installStateUse } from './rules-state-use.mjs';
+import { installTargets } from './rules-targets.mjs';
+import { installTrust } from './rules-trust.mjs';
+import { propagate } from './rules-propagate.mjs';
+import { report } from './rules-report.mjs';
+import { scanFiles } from './rules-scan.mjs';
+import { unitName, unitOf } from './syntax.mjs';
+
+export { sha256 } from './rules-digest.mjs';
+
+/**
+ * Evaluates the tenant guard over the current sources against the trusted tree.
+ * Returns { violations, accepted, telemetry }.
+ */
+export function evaluate({
+  sources,
+  trusted,
+  graph,
+  contracts = CONTRACTS,
+  legacyPins = LEGACY_PINS,
+  stateContracts = STATE_CONTRACTS,
+}) {
+  const violations = [];
+  const accepted = [];
+  const telemetry = { legacyAccepted: 0, legacySinks: 0, files: 0, contractsUsed: 0 };
+  const violate = (file, node, sourceFile, rule, detail) => {
+    const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
+    violations.push({
+      rule,
+      file,
+      line: line + 1,
+      unit: unitName(unitOf(node) ?? node, sourceFile),
+      detail,
+    });
+  };
+  const ctx = {
+    accepted,
+    contracts,
+    graph,
+    legacyPins,
+    sources,
+    stateContracts,
+    telemetry,
+    trusted,
+    violate,
+    violations,
+  };
+  installTrust(ctx);
+  installDependencies(ctx);
+  installState(ctx);
+  installStateUse(ctx);
+  installTargets(ctx);
+  installReceivers(ctx);
+  installSinks(ctx);
+  installCustody(ctx);
+  scanFiles(ctx);
+  propagate(ctx);
+  return report(ctx);
+}

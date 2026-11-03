@@ -1,8 +1,12 @@
-import { db } from '@interdomestik/database/db';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { claims } from '@interdomestik/database/schema';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, desc, eq } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const RECENT_CLAIMS_LIMIT = 6;
 
@@ -13,24 +17,29 @@ export type AgentClientClaimCounts = {
   rejected: number;
 };
 
-export async function getAgentClientClaimSummary(memberId: string, tenantId: string) {
+export async function getAgentClientClaimSummary(memberId: string, authority: TenantAuthority) {
+  const { tenantId } = readTenantAuthority(authority);
   const lifecycleStatus = claimLifecycleStatusSql();
   const [claimCounts, recentClaimsRaw] = await Promise.all([
-    db
-      .select({ status: lifecycleStatus, total: count() })
-      .from(claims)
-      .where(and(eq(claims.userId, memberId), eq(claims.tenantId, tenantId)))
-      .groupBy(lifecycleStatus),
-    db
-      .select({
-        id: claims.id,
-        caseLifecycleState: claims.caseLifecycleState,
-        recoveryLifecycleState: claims.recoveryLifecycleState,
-      })
-      .from(claims)
-      .where(and(eq(claims.userId, memberId), eq(claims.tenantId, tenantId)))
-      .orderBy(desc(claims.createdAt))
-      .limit(RECENT_CLAIMS_LIMIT),
+    withTenantAuthority(authority, tx =>
+      tx
+        .select({ status: lifecycleStatus, total: count() })
+        .from(claims)
+        .where(and(eq(claims.userId, memberId), eq(claims.tenantId, tenantId)))
+        .groupBy(lifecycleStatus)
+    ),
+    withTenantAuthority(authority, tx =>
+      tx
+        .select({
+          id: claims.id,
+          caseLifecycleState: claims.caseLifecycleState,
+          recoveryLifecycleState: claims.recoveryLifecycleState,
+        })
+        .from(claims)
+        .where(and(eq(claims.userId, memberId), eq(claims.tenantId, tenantId)))
+        .orderBy(desc(claims.createdAt))
+        .limit(RECENT_CLAIMS_LIMIT)
+    ),
   ]);
 
   const counts: AgentClientClaimCounts = { total: 0, open: 0, resolved: 0, rejected: 0 };

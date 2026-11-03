@@ -1,7 +1,11 @@
-import { claimDocuments, claims, withTenantContext } from '@interdomestik/database';
+import { claimDocuments, claims } from '@interdomestik/database';
 import { generateClaimNumber } from '@interdomestik/database/claim-number';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { readTenantLocaleMetadata } from '@interdomestik/database/tenant-directory';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
 import type { QueuedClaimAiRun } from './ai-workflow-types';
@@ -11,7 +15,12 @@ import {
   resolveSubmittedClaimIncidentCountry,
 } from './incident-country';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
-import { loadClaimAssignmentContext, type ClaimAssignmentContext } from './submit-assignment';
+import { loadClaimAssignmentContext } from './submit-assignment';
+import {
+  dispatchQueuedClaimAiRuns,
+  logClaimSubmittedAudit,
+  notifyClaimSubmitted,
+} from './submit-side-effects';
 import { recordSubmittedClaimLifecycle } from './submitted-claim-lifecycle';
 import type { ClaimStartHandoffContext, ClaimsDeps, ClaimsSession } from './types';
 
@@ -32,8 +41,8 @@ export class ClaimValidationError extends Error {
   }
 }
 async function persistSubmittedClaim(args: {
+  authority: TenantAuthority;
   claimId: string;
-  tenantId: string;
   userId: string;
   createdAt: Date;
   changedByRole: string;
@@ -47,14 +56,15 @@ async function persistSubmittedClaim(args: {
   const { title, description, category, companyName, claimAmount, currency, files } = args.data;
   const publicNote = buildClaimStartPublicNote(args.handoffContext);
   const incidentCountry = resolveSubmittedClaimIncidentCountry(args.data);
+  const { tenantId } = readTenantAuthority(args.authority);
   let claimNumber = '';
 
   // One tenant-context transaction keeps the claim number, lifecycle, events and
   // documents atomic under installed tenant RLS settings.
-  await withTenantContext({ tenantId: args.tenantId }, async tx => {
+  await withTenantAuthority(args.authority, async tx => {
     await tx.insert(claims).values({
       id: args.claimId,
-      tenantId: args.tenantId,
+      tenantId,
       userId: args.userId,
       branchId: args.branchId,
       agentId: args.agentId,
@@ -74,7 +84,7 @@ async function persistSubmittedClaim(args: {
     claimNumber = await generateClaimNumber(
       tx,
       {
-        tenantId: args.tenantId,
+        tenantId,
         claimId: args.claimId,
         createdAt: args.createdAt,
       },
@@ -88,7 +98,7 @@ async function persistSubmittedClaim(args: {
       data: args.data,
       hostId: args.hostId,
       publicNote,
-      tenantId: args.tenantId,
+      tenantId,
       userId: args.userId,
     });
 
@@ -100,7 +110,7 @@ async function persistSubmittedClaim(args: {
       claimId: args.claimId,
       uploadedBy: args.userId,
       files,
-      tenantId: args.tenantId,
+      tenantId,
     });
 
     await tx.insert(claimDocuments).values(documentRows);
@@ -112,88 +122,9 @@ async function persistSubmittedClaim(args: {
   };
 }
 
-async function logClaimSubmittedAudit(args: {
-  deps: ClaimsDeps;
-  session: ClaimsSession;
-  tenantId: string;
-  requestHeaders: Headers;
-  claimId: string;
-  data: CreateClaimValues;
-  assignment: Pick<
-    ClaimAssignmentContext,
-    'agentAttributionSource' | 'agentId' | 'branchId' | 'branchResolutionSource'
-  >;
-}) {
-  if (!args.deps.logAuditEvent) {
-    return;
-  }
-
-  await args.deps.logAuditEvent({
-    actorId: args.session.user.id,
-    actorRole: args.session.user.role,
-    tenantId: args.tenantId,
-    action: 'claim.submitted',
-    entityType: 'claim',
-    entityId: args.claimId,
-    metadata: {
-      status: 'submitted',
-      category: args.data.category,
-      companyName: args.data.companyName,
-      claimAmount: args.data.claimAmount || null,
-      documents: args.data.files?.length || 0,
-      agentId: args.assignment.agentId,
-      agentAttributionSource: args.assignment.agentAttributionSource,
-      branchId: args.assignment.branchId,
-      branchResolutionSource: args.assignment.branchResolutionSource,
-    },
-    headers: args.requestHeaders,
-  });
-}
-
-async function dispatchQueuedClaimAiRuns(
-  queuedRuns: QueuedClaimAiRun[],
-  deps: ClaimsDeps
-): Promise<void> {
-  if (!deps.dispatchClaimAiRun) {
-    return;
-  }
-
-  for (const queuedRun of queuedRuns) {
-    try {
-      await deps.dispatchClaimAiRun(queuedRun);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to dispatch claim AI run.';
-      if (deps.markClaimAiRunDispatchFailed) {
-        await deps.markClaimAiRunDispatchFailed({
-          runId: queuedRun.runId,
-          message,
-        });
-      }
-    }
-  }
-}
-
-function notifyClaimSubmitted(args: {
-  deps: ClaimsDeps;
-  session: ClaimsSession;
-  claimId: string;
-  data: CreateClaimValues;
-}) {
-  if (!args.deps.notifyClaimSubmitted) {
-    return;
-  }
-
-  Promise.resolve(
-    args.deps.notifyClaimSubmitted(args.session.user.id, args.session.user.email || '', {
-      id: args.claimId,
-      title: args.data.title,
-      category: args.data.category,
-    })
-  ).catch((err: Error) => console.error('Failed to send claim submitted notification:', err));
-}
-
 export async function submitClaimCore(
   params: {
+    authority: TenantAuthority | null;
     session: ClaimsSession | null;
     requestHeaders: Headers;
     hostId?: string | null;
@@ -203,14 +134,14 @@ export async function submitClaimCore(
   },
   deps: ClaimsDeps = {}
 ) {
-  const { session, requestHeaders, data, handoffContext } = params;
+  const { authority, session, requestHeaders, data, handoffContext } = params;
 
-  if (!session) {
+  if (!session || !authority) {
     throw new ClaimValidationError('Unauthorized', 'UNAUTHORIZED');
   }
 
-  const tenantId = ensureTenantId(session);
-  const assignment = await loadClaimAssignmentContext(session.user.id, tenantId);
+  const { tenantId } = readTenantAuthority(authority);
+  const assignment = await loadClaimAssignmentContext(session.user.id, authority);
   if (!assignment.subscription) {
     throw new ClaimValidationError('Membership required to file a claim.', 'MEMBERSHIP_REQUIRED');
   }
@@ -236,8 +167,8 @@ export async function submitClaimCore(
     }
 
     const persistedClaim = await persistSubmittedClaim({
+      authority,
       claimId,
-      tenantId,
       tenantMetadata: { tenantId, code: tenantCode },
       userId: session.user.id,
       createdAt,
@@ -254,7 +185,7 @@ export async function submitClaimCore(
     await logClaimSubmittedAudit({
       deps,
       session,
-      tenantId,
+      authority,
       requestHeaders,
       claimId,
       data: result.data,
@@ -267,7 +198,7 @@ export async function submitClaimCore(
 
   await dispatchQueuedClaimAiRuns(queuedRuns, deps);
 
-  notifyClaimSubmitted({ deps, session, claimId, data: result.data });
+  notifyClaimSubmitted({ deps, session, authority, claimId, data: result.data });
 
   if (deps.revalidatePath) {
     await deps.revalidatePath('/member/claims');

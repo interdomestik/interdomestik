@@ -1,6 +1,12 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Stand-in for the verified-delivery capability `verifyPaddleWebhook` mints; the producer is mocked.
+const TEST_PADDLE_DELIVERY = Object.freeze({}) as IngressCapability<'paddle-delivery'>;
+
 const mocks = vi.hoisted(() => ({
+  authorizePaddleTenant: vi.fn((_delivery: unknown, owner: { tenantId: string }) => owner),
   appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   insertValues: vi.fn((_vals?: unknown) => ({ onConflictDoUpdate: vi.fn(async () => undefined) })),
   selectResults: [] as unknown[][],
@@ -15,6 +21,10 @@ const mocks = vi.hoisted(() => ({
     Promise.resolve(null)
   ),
   findReferral: vi.fn<() => Promise<Record<string, unknown> | null>>(() => Promise.resolve(null)),
+  resolvePaddleUserOwner: vi.fn<
+    (userId: string) => Promise<{ userId: string; tenantId: string } | null>
+  >(() => Promise.resolve(null)),
+  resolvePaddleSubscriptionOwner: vi.fn(() => Promise.resolve(null)),
   createMemberReferralReward: vi.fn(() =>
     Promise.resolve({
       success: true,
@@ -60,6 +70,11 @@ vi.mock('@interdomestik/database', async () => {
     membershipPlans: helper.CANONICAL_MEMBERSHIP_PLAN_COLUMNS,
     subscriptions: { id: 'id' },
     db: dbMock,
+    withTenantContext: async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback(dbMock),
+    authorizePaddleTenant: mocks.authorizePaddleTenant,
+    resolvePaddleUserOwner: mocks.resolvePaddleUserOwner,
+    resolvePaddleSubscriptionOwner: mocks.resolvePaddleSubscriptionOwner,
   };
 });
 
@@ -80,6 +95,11 @@ describe('handleSubscriptionChanged tenant guardrail', () => {
     mocks.findMembershipPlan.mockClear();
     mocks.findReferral.mockClear();
     mocks.createMemberReferralReward.mockClear();
+    mocks.authorizePaddleTenant.mockReset();
+    mocks.authorizePaddleTenant.mockImplementation(
+      (_delivery: unknown, owner: { tenantId: string }) =>
+        mintTestTenantAuthority(owner.tenantId) as never
+    );
   });
 
   it('does not write when tenant cannot be resolved (no defaults)', async () => {
@@ -87,6 +107,7 @@ describe('handleSubscriptionChanged tenant guardrail', () => {
 
     await expect(
       handleSubscriptionChanged({
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.created',
         data: {
           id: 'sub-1',
@@ -104,6 +125,7 @@ describe('handleSubscriptionChanged tenant guardrail', () => {
   });
 
   it('applies tenant default branch when agentId is missing', async () => {
+    mocks.resolvePaddleUserOwner.mockResolvedValueOnce({ userId: 'user-2', tenantId: 'tenant_mk' });
     mocks.findUser.mockResolvedValueOnce({
       tenantId: 'tenant_mk',
       email: 'u@example.com',
@@ -113,6 +135,7 @@ describe('handleSubscriptionChanged tenant guardrail', () => {
     mocks.findTenantSetting.mockResolvedValueOnce({ value: { branchId: 'branch-mk-bitola-main' } });
 
     await handleSubscriptionChanged({
+      delivery: TEST_PADDLE_DELIVERY,
       eventType: 'subscription.created',
       data: {
         id: 'sub-2',
@@ -122,6 +145,10 @@ describe('handleSubscriptionChanged tenant guardrail', () => {
       },
     });
 
+    // The user's resolver owner, untouched, is the only thing that can mint the tenant authority.
+    const owner = await mocks.resolvePaddleUserOwner.mock.results[0]!.value;
+    expect(mocks.authorizePaddleTenant).toHaveBeenCalledWith(TEST_PADDLE_DELIVERY, owner);
+    expect(mocks.authorizePaddleTenant.mock.calls[0]![1]).toBe(owner);
     expect(mocks.insertValues).toHaveBeenCalledTimes(1);
     const inserted = mocks.insertValues.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
     expect(inserted?.tenantId).toBe('tenant_mk');

@@ -1,12 +1,16 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createCommissionWithDispositionCore } from '../../../commissions/create';
 import { handleNewSubscriptionExtras } from './extras';
 
+const authority = mintTestTenantAuthority('tenant_1');
+
 const databaseMocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
   findAgentSettings: vi.fn(),
   transaction: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -22,13 +26,21 @@ vi.mock('@interdomestik/database', () => ({
     transaction: databaseMocks.transaction,
   },
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
+  withTenantContext: (context: unknown, callback: unknown) => {
+    databaseMocks.withTenantContext(context);
+    return databaseMocks.transaction(callback);
+  },
 }));
 vi.mock('../../../commissions/create', () => ({ createCommissionWithDispositionCore: vi.fn() }));
 vi.mock('../../../commissions/create-renewal', () => ({ createRenewalCommissionCore: vi.fn() }));
 
 describe('new subscription extras idempotency', () => {
   const logAuditEvent = vi.fn();
-  const tx = { update: vi.fn() };
+  // The tenant-context transaction also serves tenant-scoped reads through `tx.query`.
+  const tx = {
+    update: vi.fn(),
+    query: { agentSettings: { findFirst: databaseMocks.findAgentSettings } },
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -53,7 +65,7 @@ describe('new subscription extras idempotency', () => {
       providerEventId: 'evt_provider_1',
       sub: { id: 'sub_1', items: [{ price: { unitPrice: { amount: '2000' } } }] },
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: { agentId: 'agent_1' },
       priceId: 'price_1',
       userRecord: { email: 'member@example.test', memberNumber: 'M-1', name: 'Member' },

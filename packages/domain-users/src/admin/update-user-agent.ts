@@ -1,24 +1,30 @@
-import { db, eq, subscriptions, user } from '@interdomestik/database';
+import { eq, subscriptions, user } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { revokeAgentClientReadScope } from '@interdomestik/domain-membership-billing';
 import { and } from 'drizzle-orm';
 
 import type { ActionResult, UserSession } from '../types';
 import { requireTenantAdminSession } from './access';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function updateUserAgentCore(params: {
   session: UserSession | null;
+  authority: TenantAuthority | null;
   userId: string;
   agentId: string | null;
 }): Promise<ActionResult> {
-  const { session, userId, agentId } = params;
+  const { session, authority, userId, agentId } = params;
   await requireTenantAdminSession(session);
+  if (!authority) throw new Error('Unauthorized');
 
-  const tenantId = ensureTenantId(session);
+  const { tenantId } = readTenantAuthority(authority);
 
   try {
-    await db.transaction(async tx => {
+    await withTenantAuthority(authority, async tx => {
       await tx
         .update(user)
         .set({ agentId })

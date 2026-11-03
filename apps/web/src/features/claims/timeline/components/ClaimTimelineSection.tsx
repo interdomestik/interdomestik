@@ -8,25 +8,26 @@
 
 import 'server-only';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { getClaimTimeline, type TimelineViewerRole } from '@/features/claims/timeline';
 import { ClaimTimeline } from '@/features/claims/timeline/components';
 
 interface ClaimTimelineSectionProps {
   claimId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   viewerRole: TimelineViewerRole;
   showNotes?: boolean;
 }
 
 export async function ClaimTimelineSection({
   claimId,
-  tenantId,
+  authority,
   viewerRole,
   showNotes = false,
 }: ClaimTimelineSectionProps) {
   const timeline = await getClaimTimeline({
     claimId,
-    tenantId,
+    authority,
     viewerRole,
   });
 

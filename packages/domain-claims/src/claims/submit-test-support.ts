@@ -1,8 +1,11 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi, type Mock } from 'vitest';
 import type { CreateClaimValues } from '../validators/claims';
 import type { ClaimStartHandoffContext, ClaimsSession } from './types';
 
 export type SubmitClaimTestArgs = {
+  authority: TenantAuthority | null;
   session: ClaimsSession;
   requestHeaders: Headers;
   handoffContext?: ClaimStartHandoffContext | null;
@@ -11,6 +14,7 @@ export type SubmitClaimTestArgs = {
   data: CreateClaimValues;
 };
 
+export const submitAuthority: TenantAuthority = mintTestTenantAuthority('tenant-1');
 export const appendEventMock: Mock = vi.fn();
 export const ensureTenantIdMock = vi.fn(() => 'tenant-1');
 export const generateClaimNumberMock: Mock = vi.fn();
@@ -111,6 +115,7 @@ export function resetSubmitClaimMocks(): void {
   queueClaimDocumentAiWorkflowsMock.mockResolvedValue([
     {
       runId: 'run-1',
+      tenantId: 'tenant-1',
       workflow: 'claim_intake_extract',
       claimId: 'claim-1',
       documentId: 'legacy-doc-1',
@@ -159,6 +164,7 @@ export function buildSubmitArgs(
   } = {}
 ): SubmitClaimTestArgs {
   return {
+    authority: submitAuthority,
     session: {
       user: { id: 'member-1', role: 'member', tenantId: 'tenant-1', email: 'member@example.com' },
     },

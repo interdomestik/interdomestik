@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { getReplayFixture } from './claim-document-write-replay-fixture';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -6,7 +7,9 @@ import {
 } from './claim-document-write';
 
 const fake = getReplayFixture();
+const authority = mintTestTenantAuthority('tenant-1');
 const params = {
+  authority,
   actorRole: 'member',
   expectedClaimOwnerId: 'member-1',
   userId: 'member-1',
@@ -33,7 +36,8 @@ beforeEach(() => {
 describe('ordinary member-surface write-time ownership', () => {
   it('rechecks the trusted owner in the metadata transaction while retaining an admin actor', async () => {
     expect(await persistClaimDocumentMetadata({ ...params, actorRole: 'admin' })).toBe(true);
-    expect(fake.state.contexts).toEqual([{ tenantId: 'tenant-1', role: 'admin' }]);
+    expect(fake.state.contexts).toHaveLength(1);
+    expect(fake.state.contexts[0]).toBe(authority);
     expect(fake.state.committed.claim_documents).toHaveLength(1);
     expect(fake.state.reads[0]?.table).toBe('claims');
   });

@@ -15,7 +15,7 @@ export async function createLeadAction(input: unknown) {
 
     return await createLead(
       {
-        tenantId: user.tenantId,
+        authority: ctx.authority,
         agentId: user.id,
         branchId: branchId,
       },

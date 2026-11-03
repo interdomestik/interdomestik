@@ -1,4 +1,6 @@
+import { withTenantContext } from '@interdomestik/database';
 import { db } from '@interdomestik/database/db';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { updateAgentCommissionRatesCore } from './update-rates.core';
 
@@ -19,6 +21,16 @@ vi.mock('@interdomestik/database/db', () => ({
     })),
   },
 }));
+
+vi.mock('@interdomestik/database', async () => {
+  const { db: mockedDb } = await import('@interdomestik/database/db');
+  return {
+    withTenantContext: vi.fn(
+      async (_context: unknown, action: (tx: typeof mockedDb) => Promise<unknown>) =>
+        action(mockedDb)
+    ),
+  };
+});
 
 // Mock DB schema
 vi.mock('@interdomestik/database/schema', () => ({
@@ -54,6 +66,8 @@ describe('updateAgentCommissionRatesCore', () => {
     user: { id: 'admin1', role: 'admin', tenantId: 'tenant-1' },
   } as AgentSettingsSession;
 
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -61,6 +75,7 @@ describe('updateAgentCommissionRatesCore', () => {
   it('should fail if unauthorized', async () => {
     const result = await updateAgentCommissionRatesCore({
       session: null,
+      authority: null,
       agentId: 'a1',
       rates: {},
     });
@@ -75,6 +90,7 @@ describe('updateAgentCommissionRatesCore', () => {
 
     const result = await updateAgentCommissionRatesCore({
       session: nonAdminSession,
+      authority,
       agentId: 'a1',
       rates: {},
     });
@@ -84,6 +100,7 @@ describe('updateAgentCommissionRatesCore', () => {
   it('should fail if rates are invalid', async () => {
     const result = await updateAgentCommissionRatesCore({
       session: mockSession,
+      authority,
       agentId: 'a1',
       rates: { new_membership: 1.5 },
     });
@@ -108,11 +125,13 @@ describe('updateAgentCommissionRatesCore', () => {
 
     const result = await updateAgentCommissionRatesCore({
       session: mockSession,
+      authority,
       agentId: 'a1',
       rates: { new_membership: 0.1 },
     });
 
     expect(result).toEqual({ success: true });
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(db.update).toHaveBeenCalled();
   });
 
@@ -121,6 +140,7 @@ describe('updateAgentCommissionRatesCore', () => {
 
     const result = await updateAgentCommissionRatesCore({
       session: mockSession,
+      authority,
       agentId: 'a1',
       rates: { new_membership: 0.1 },
     });

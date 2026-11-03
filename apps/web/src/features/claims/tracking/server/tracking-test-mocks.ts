@@ -7,6 +7,7 @@ export const trackingSchemaMock = {
     updatedAt: 'claims.updatedAt',
   },
   claimTrackingTokens: {
+    id: 'claimTrackingTokens.id',
     claimId: 'claimTrackingTokens.claimId',
     tenantId: 'claimTrackingTokens.tenantId',
     tokenHash: 'claimTrackingTokens.tokenHash',

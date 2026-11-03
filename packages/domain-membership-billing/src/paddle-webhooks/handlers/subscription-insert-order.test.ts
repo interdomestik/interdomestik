@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { projectReceiptLedgerOrder } from './provider-event-order.test-support';
@@ -46,6 +47,11 @@ const hoisted = vi.hoisted(() => {
     return result;
   }
 
+  const db = {
+    query: { subscriptions: { findFirst: vi.fn().mockResolvedValue(null) } },
+    transaction: vi.fn(transaction),
+  };
+
   return {
     ...tables,
     store,
@@ -54,10 +60,11 @@ const hoisted = vi.hoisted(() => {
       store.events.push(params.id);
       return { id: params.id };
     }),
-    db: {
-      query: { subscriptions: { findFirst: vi.fn().mockResolvedValue(null) } },
-      transaction: vi.fn(transaction),
-    },
+    db,
+    withTenantContext: vi.fn(
+      (_context: { tenantId: string }, callback: (tx: unknown) => Promise<unknown>) =>
+        transaction(tx => callback({ ...(tx as object), query: db.query }))
+    ),
     eq: (left: unknown, right: unknown) => ({ op: 'eq', left, right }),
     inArray: (left: unknown, right: unknown) => ({ op: 'inArray', left, right }),
     sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values }),
@@ -73,13 +80,15 @@ vi.mock('@interdomestik/database', () => ({
   inArray: hoisted.inArray,
   sql: hoisted.sql,
   subscriptions: hoisted.subscriptions,
+  withTenantContext: hoisted.withTenantContext,
   webhookEvents: hoisted.webhookEvents,
 }));
-vi.mock('../../subscription', () => ({ findSubscriptionByProviderReference: vi.fn() }));
+vi.mock('../../subscription', () => ({ findPaddleSubscriptionInTenant: vi.fn() }));
 
 import { PaddleEventOrderingError } from '../errors';
 import { upsertSubscription } from './subscription-upsert';
 
+const tenantKsAuthority = mintTestTenantAuthority('tenant_ks');
 const T1 = '2026-09-26T10:00:00.100Z';
 const T2 = '2026-09-26T10:00:00.200Z';
 const domainEventId = 'paddle:tenant_ks:evt_created:subscription-changed';
@@ -91,7 +100,7 @@ function insertInitialSubscription(occurredAt = T1) {
     planState: { planId: 'standard', planKey: null },
     providerEventId: 'evt_created',
     sub: { id: 'sub_1', customerId: 'ctm_1', status: 'active' },
-    tenantId: 'tenant_ks',
+    authority: tenantKsAuthority,
     userId: 'user_1',
   });
 }

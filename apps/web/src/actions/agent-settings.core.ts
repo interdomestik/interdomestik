@@ -11,8 +11,8 @@ import { updateAgentTierCore } from './agent-settings/update-tier';
 export async function getAgentSettings(
   agentId: string
 ): Promise<ActionResult<AgentCommissionSettings | null>> {
-  const { session } = await getActionContext();
-  return getAgentSettingsCore({ session, agentId });
+  const { session, authority } = await getActionContext();
+  return getAgentSettingsCore({ session, authority, agentId });
 }
 
 /** Update agent's commission rates (admin only) */
@@ -20,8 +20,8 @@ export async function updateAgentCommissionRates(
   agentId: string,
   rates: CommissionRates
 ): Promise<ActionResult> {
-  const { session } = await getActionContext();
-  return updateAgentCommissionRatesCore({ session, agentId, rates });
+  const { session, authority } = await getActionContext();
+  return updateAgentCommissionRatesCore({ session, authority, agentId, rates });
 }
 
 /** Update agent tier (admin only) */
@@ -29,6 +29,6 @@ export async function updateAgentTier(
   agentId: string,
   tier: 'standard' | 'premium' | 'vip'
 ): Promise<ActionResult> {
-  const { session } = await getActionContext();
-  return updateAgentTierCore({ session, agentId, tier });
+  const { session, authority } = await getActionContext();
+  return updateAgentTierCore({ session, authority, agentId, tier });
 }

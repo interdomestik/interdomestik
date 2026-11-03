@@ -6,9 +6,18 @@ const mocks = vi.hoisted(() => ({
   eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
   and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
   desc: vi.fn(value => ({ value, op: 'desc' })),
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: unknown) => unknown) =>
+    cb({
+      query: {
+        agentClients: { findFirst: (...args: unknown[]) => mocks.findAssignment(...args) },
+        claims: { findMany: (...args: unknown[]) => mocks.findClaims(...args) },
+      },
+    })
+  ),
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: mocks.withTenantContext,
   db: {
     query: {
       agentClients: { findFirst: mocks.findAssignment },
@@ -30,6 +39,8 @@ vi.mock('@interdomestik/database', () => ({
   desc: mocks.desc,
 }));
 
+import { withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { getAgentMemberDetail } from './get-agent-member-detail';
 
 describe('getAgentMemberDetail', () => {
@@ -53,7 +64,7 @@ describe('getAgentMemberDetail', () => {
 
     const result = await getAgentMemberDetail({
       agentId: 'agent-1',
-      tenantId: 'tenant-1',
+      authority: mintTestTenantAuthority('tenant-1'),
       memberId: 'member-1',
     });
 
@@ -68,7 +79,7 @@ describe('getAgentMemberDetail', () => {
 
     const result = await getAgentMemberDetail({
       agentId: 'agent-1',
-      tenantId: 'tenant-1',
+      authority: mintTestTenantAuthority('tenant-1'),
       memberId: 'member-2',
     });
 
@@ -78,13 +89,15 @@ describe('getAgentMemberDetail', () => {
 
   it('enforces tenant isolation', async () => {
     mocks.findAssignment.mockResolvedValue(null);
+    const authority = mintTestTenantAuthority('tenant-2');
 
     await getAgentMemberDetail({
       agentId: 'agent-2',
-      tenantId: 'tenant-2',
+      authority,
       memberId: 'member-3',
     });
 
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.eq).toHaveBeenCalledWith('agent_clients.tenant_id', 'tenant-2');
   });
 });

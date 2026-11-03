@@ -1,3 +1,7 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { RetryablePaddleWebhookError } from '../../errors';
 import type { PaddleWebhookDeps } from '../../types';
 import {
@@ -11,18 +15,19 @@ type RetryPreparation =
   { kind: 'continue' | 'stop' } | { kind: 'job'; job: MembershipConfirmationJob };
 
 export async function prepareStoredMembershipConfirmationRetry(args: {
-  tenantId?: string | null;
+  authority?: TenantAuthority | null;
   providerEventId?: string;
   webhookPayloadHash?: string;
   providerReference: string;
   deps: Pick<PaddleWebhookDeps, 'membershipConfirmationDelivery' | 'sendThankYouLetter'>;
 }): Promise<RetryPreparation> {
-  const tenantId = normalizeConfirmationText(args.tenantId);
+  const authority = args.authority;
   const providerEventId = normalizeConfirmationText(args.providerEventId);
   const webhookPayloadHash = normalizeConfirmationText(args.webhookPayloadHash);
-  if (!tenantId || !providerEventId || !webhookPayloadHash) {
+  if (!authority || !providerEventId || !webhookPayloadHash) {
     return { kind: 'continue' };
   }
+  const { tenantId } = readTenantAuthority(authority);
   const store = args.deps.membershipConfirmationDelivery;
   if (!store?.claimReadyRetry || !args.deps.sendThankYouLetter) {
     throw new RetryablePaddleWebhookError(
@@ -34,6 +39,7 @@ export async function prepareStoredMembershipConfirmationRetry(args: {
   let claim;
   try {
     claim = await store.claimReadyRetry({
+      authority,
       evidence: {
         tenantId,
         providerReference: args.providerReference,
@@ -54,6 +60,7 @@ export async function prepareStoredMembershipConfirmationRetry(args: {
     return {
       kind: 'job',
       job: toMembershipConfirmationJob({
+        authority,
         claim,
         idempotencyKey,
         send: args.deps.sendThankYouLetter,

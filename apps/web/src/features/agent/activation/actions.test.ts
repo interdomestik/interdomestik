@@ -71,7 +71,7 @@ describe('activateAgentProfile', () => {
     expect(hoisted.activateAgentUserProfile).toHaveBeenCalledWith({
       currentRole: 'member',
       referralCode: expect.stringMatching(/^ARBEN-[0-9A-F]{4}$/),
-      tenantId: 'tenant-1',
+      authority: expect.any(Object),
       userId: 'member-1',
     });
     expect(hoisted.revalidatePath).toHaveBeenCalledWith('/', 'layout');

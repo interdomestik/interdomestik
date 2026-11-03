@@ -1,4 +1,5 @@
-import { agentClients, claims, db, type TenantTransaction } from '@interdomestik/database';
+import { agentClients, claims, type TenantTransaction } from '@interdomestik/database';
+import { ROLES } from '@interdomestik/shared-auth';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 
 type ClaimAccessRecord = {
@@ -7,8 +8,8 @@ type ClaimAccessRecord = {
   userId: string;
 };
 
-const FULL_TENANT_ROLES = new Set(['admin', 'tenant_admin', 'super_admin']);
-const SCOPED_CLAIMS_READ_ROLES = new Set(['staff', 'branch_manager']);
+const FULL_TENANT_ROLES = new Set<string>([ROLES.admin, ROLES.tenant_admin, ROLES.super_admin]);
+const SCOPED_CLAIMS_READ_ROLES = new Set<string>([ROLES.staff, ROLES.branch_manager]);
 
 export function isFullTenantClaimsRole(role: string | null | undefined): boolean {
   return role ? FULL_TENANT_ROLES.has(role) : false;
@@ -84,9 +85,9 @@ export async function hasAgentClaimAccess(args: {
   agentId: string;
   memberId: string;
   tenantId: string;
-  tx?: TenantTransaction;
+  tx: TenantTransaction;
 }): Promise<boolean> {
-  const linkedClient = await (args.tx ?? db).query.agentClients.findFirst({
+  const linkedClient = await args.tx.query.agentClients.findFirst({
     where: (table, { and, eq }) =>
       and(
         eq(table.tenantId, args.tenantId),
@@ -104,9 +105,10 @@ export function buildAccessibleClaimIdsSubquery(args: {
   role: string | null | undefined;
   tenantId: string;
   userId: string;
-  tx?: TenantTransaction;
+  tx: TenantTransaction;
 }) {
-  const database = args.tx ?? db;
+  // The subquery builder comes from the caller's tenant transaction; it is never built on the ambient client.
+  const database = args.tx;
   const branchId = args.branchId ?? null;
 
   if (args.role === 'staff' || args.role === 'branch_manager') {

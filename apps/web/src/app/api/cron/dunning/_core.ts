@@ -1,7 +1,11 @@
 import { logAuditEvent } from '@/lib/audit';
 import { sendPaymentFinalWarningEmail, sendPaymentReminderEmail } from '@/lib/email';
-import { db, subscriptions, user, withTenantContext } from '@interdomestik/database';
+import { listScheduledTenantWork, subscriptions, user } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { and, eq, gt } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { forEachInOrder } from '@/lib/in-order';
 
 export type DunningCronStats = {
   checked: number;
@@ -10,13 +14,14 @@ export type DunningCronStats = {
   errors: number;
 };
 
-type SubscriptionRecord = Awaited<ReturnType<typeof db.query.subscriptions.findMany>>[number];
+type SubscriptionRecord = typeof subscriptions.$inferSelect;
 
 export async function runDunningCronCore(args: {
+  ingress: IngressCapability<'cron'>;
   now: Date;
   headers: Headers;
 }): Promise<{ stats: DunningCronStats }> {
-  const { now, headers } = args;
+  const { ingress, now, headers } = args;
 
   const stats: DunningCronStats = {
     checked: 0,
@@ -25,77 +30,88 @@ export async function runDunningCronCore(args: {
     errors: 0,
   };
 
-  let afterId: string | null = null;
+  // Per-tenant cursor: each tenant's past-due subscriptions are paged under its own RLS context.
+  for (const { tenantId, authority } of await listScheduledTenantWork(ingress)) {
+    let afterId: string | null = null;
 
-  while (true) {
-    const conditions = [
-      eq(subscriptions.status, 'past_due'),
-      gt(subscriptions.gracePeriodEndsAt, now),
-    ];
-    if (afterId) {
-      conditions.push(gt(subscriptions.id, afterId));
+    while (true) {
+      const conditions = [
+        eq(subscriptions.tenantId, tenantId),
+        eq(subscriptions.status, 'past_due'),
+        gt(subscriptions.gracePeriodEndsAt, now),
+      ];
+      if (afterId) {
+        conditions.push(gt(subscriptions.id, afterId));
+      }
+
+      const pastDueSubscriptions = await withTenantAuthority(authority, tx =>
+        tx.query.subscriptions.findMany({
+          where: and(...conditions),
+          orderBy: (subscriptions, { asc }) => [asc(subscriptions.id)],
+          limit: 200,
+        })
+      );
+
+      if (pastDueSubscriptions.length === 0) break;
+
+      stats.checked += pastDueSubscriptions.length;
+
+      await processBatch({
+        authority,
+        subscriptions: pastDueSubscriptions as (SubscriptionRecord & {
+          gracePeriodEndsAt: Date;
+          pastDueAt: Date;
+        })[],
+        now,
+        headers,
+        stats,
+      });
+
+      afterId = pastDueSubscriptions[pastDueSubscriptions.length - 1]?.id ?? afterId;
     }
-
-    // db-access-guard: system-exempt -- reason: dunning cron enumerates tenants before per-row scoped writes
-    const pastDueSubscriptions = await db.query.subscriptions.findMany({
-      where: and(...conditions),
-      orderBy: (subscriptions, { asc }) => [asc(subscriptions.id)],
-      limit: 200,
-    });
-
-    if (pastDueSubscriptions.length === 0) break;
-
-    stats.checked += pastDueSubscriptions.length;
-
-    await processBatch({
-      subscriptions: pastDueSubscriptions as (SubscriptionRecord & {
-        gracePeriodEndsAt: Date;
-        pastDueAt: Date;
-      })[],
-      now,
-      headers,
-      stats,
-    });
-
-    afterId = pastDueSubscriptions[pastDueSubscriptions.length - 1]?.id ?? afterId;
   }
 
   return { stats };
 }
 
 async function processBatch(params: {
+  authority: TenantAuthority;
   subscriptions: (SubscriptionRecord & { gracePeriodEndsAt: Date; pastDueAt: Date })[];
   now: Date;
   headers: Headers;
   stats: DunningCronStats;
 }) {
-  const { subscriptions, now, headers, stats } = params;
-  for (const sub of subscriptions) {
-    if (!sub.gracePeriodEndsAt || !sub.pastDueAt) continue;
+  const { authority, subscriptions, now, headers, stats } = params;
+  await forEachInOrder(subscriptions, async sub => {
+    if (!sub.gracePeriodEndsAt || !sub.pastDueAt) return;
     try {
-      await processDunningSubscription({ sub, now, headers, stats });
+      await processDunningSubscription({ authority, sub, now, headers, stats });
     } catch {
       stats.errors++;
     }
-  }
+  });
 }
 
+// `sub` was selected under `authority` with a tenant predicate, so it belongs to that tenant.
 async function processDunningSubscription(params: {
+  authority: TenantAuthority;
   sub: SubscriptionRecord & { gracePeriodEndsAt: Date; pastDueAt: Date };
   now: Date;
   headers: Headers;
   stats: DunningCronStats;
 }) {
-  const { sub, now, headers, stats } = params;
+  const { authority, sub, now, headers, stats } = params;
   const daysRemaining = calculateDaysDiff(sub.gracePeriodEndsAt, now);
   const daysSinceFailed = calculateDaysDiff(now, sub.pastDueAt);
 
   const emailType = determineDunningEmailType(daysRemaining, daysSinceFailed);
   if (!emailType) return;
 
-  const userRecord = await db.query.user.findFirst({
-    where: and(eq(user.id, sub.userId), eq(user.tenantId, sub.tenantId)),
-  });
+  const userRecord = await withTenantAuthority(authority, tx =>
+    tx.query.user.findFirst({
+      where: and(eq(user.id, sub.userId), eq(user.tenantId, sub.tenantId)),
+    })
+  );
 
   if (!userRecord?.email) return;
 
@@ -110,7 +126,7 @@ async function processDunningSubscription(params: {
   if (emailType === 'day7') stats.day7Sent++;
   else if (emailType === 'day13') stats.day13Sent++;
 
-  await withTenantContext({ tenantId: sub.tenantId, role: 'system' }, async tx => {
+  await withTenantAuthority(authority, async tx => {
     await tx
       .update(subscriptions)
       .set({ lastDunningAt: now })
@@ -120,7 +136,7 @@ async function processDunningSubscription(params: {
   await logAuditEvent({
     actorId: null,
     actorRole: 'system',
-    tenantId: sub.tenantId,
+    authority,
     action: emailType === 'day7' ? 'email.dunning.reminder' : 'email.dunning.final_warning',
     entityType: 'subscription',
     entityId: sub.id,

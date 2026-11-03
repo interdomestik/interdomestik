@@ -5,7 +5,7 @@ import srMessages from '@/messages/sr/membership-success.json';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { renderSuccessPage, resetSuccessHarness, successMocks } from './success-page.test-harness';
+import { renderSuccessPage, resetSuccessHarness, successMocks } from './success-page.test-support';
 
 const hoisted = successMocks();
 

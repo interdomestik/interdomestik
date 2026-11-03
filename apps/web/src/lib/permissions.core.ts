@@ -1,9 +1,10 @@
-import { db } from '@interdomestik/database/db';
 import { agentClients } from '@interdomestik/database/schema';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { and, eq, type SQL } from 'drizzle-orm';
 import { PgColumn } from 'drizzle-orm/pg-core';
 import { ROLE_AGENT } from './roles.core';
 import type { ProtectedActionContext } from './safe-action';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 /**
  * Standardized Scope Filter for Drizzle Queries.
@@ -75,18 +76,23 @@ export async function assertAgentClientAccess(ctx: ProtectedActionContext, clien
   const { actorAgentId } = ctx.scope;
   if (!actorAgentId) return; // Not an agent (Admin/Staff), pass.
 
-  const [link] = await db
-    .select({ id: agentClients.id })
-    .from(agentClients)
-    .where(
-      and(
-        eq(agentClients.tenantId, ctx.tenantId),
-        eq(agentClients.agentId, actorAgentId),
-        eq(agentClients.memberId, clientUserId),
-        eq(agentClients.status, 'active')
-      )
-    )
-    .limit(1);
+  const { tenantId } = readTenantAuthority(ctx.authority);
+  const [link] = await withTenantAuthority(
+    ctx.authority,
+    async tx =>
+      await tx
+        .select({ id: agentClients.id })
+        .from(agentClients)
+        .where(
+          and(
+            eq(agentClients.tenantId, tenantId),
+            eq(agentClients.agentId, actorAgentId),
+            eq(agentClients.memberId, clientUserId),
+            eq(agentClients.status, 'active')
+          )
+        )
+        .limit(1)
+  );
 
   if (!link) {
     const error = new Error('Security Violation: Unauthorized client access.');

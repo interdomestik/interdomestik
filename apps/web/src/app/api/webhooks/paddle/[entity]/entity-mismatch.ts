@@ -1,4 +1,5 @@
-import { db } from '@interdomestik/database';
+import { resolvePaddleUserOwner } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import {
   normalizeBillingText,
   resolveBillingScopeFromSnapshot,
@@ -8,7 +9,7 @@ import {
   resolveBillingEntityFromPathSegment,
   type BillingEntity,
 } from '@interdomestik/domain-membership-billing/paddle-server';
-import { findSubscriptionByProviderReference } from '@interdomestik/domain-membership-billing';
+import { findPaddleSubscriptionByReference } from '@interdomestik/domain-membership-billing';
 
 type PaddleWebhookCustomData = {
   billingEntity?: string;
@@ -47,17 +48,20 @@ function resolveEntityFromSnapshot(snapshot: BillingScopeSnapshot): BillingEntit
   }
 }
 
-async function resolveSnapshotEntity(payload: PaddleWebhookData): Promise<BillingEntity | null> {
+async function resolveSnapshotEntity(
+  delivery: IngressCapability<'paddle-delivery'>,
+  payload: PaddleWebhookData
+): Promise<BillingEntity | null> {
   const subscriptionId =
     normalizeBillingText(payload.subscriptionId) ||
     normalizeBillingText(payload.subscription_id) ||
     normalizeBillingText(payload.id);
   if (!subscriptionId) return null;
 
-  const subscription = await findSubscriptionByProviderReference(subscriptionId);
-  if (!subscription) return null;
+  const lookup = await findPaddleSubscriptionByReference(subscriptionId, delivery);
+  if (!lookup) return null;
 
-  return resolveEntityFromSnapshot(subscription);
+  return resolveEntityFromSnapshot(lookup.subscription);
 }
 
 async function resolveFallbackEntity(payload: PaddleWebhookData): Promise<BillingEntity | null> {
@@ -68,20 +72,17 @@ async function resolveFallbackEntity(payload: PaddleWebhookData): Promise<Billin
   const userId = normalizeBillingText(customData.userId);
   if (!userId) return null;
 
-  // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps route preflight
-  const userRecord = await db.query.user.findFirst({
-    where: (users, { eq }) => eq(users.id, userId),
-    columns: { tenantId: true },
-  });
-  return resolveEntityFromSnapshot({ legalTenantId: userRecord?.tenantId });
+  const owner = await resolvePaddleUserOwner(userId);
+  return resolveEntityFromSnapshot({ legalTenantId: owner?.tenantId });
 }
 
 export async function isEntityMismatch(
+  delivery: IngressCapability<'paddle-delivery'>,
   expectedEntity: BillingEntity,
   data: unknown
 ): Promise<boolean> {
   const payload = (data ?? {}) as PaddleWebhookData;
-  const snapshotEntity = await resolveSnapshotEntity(payload);
+  const snapshotEntity = await resolveSnapshotEntity(delivery, payload);
   if (snapshotEntity) return snapshotEntity !== expectedEntity;
 
   const explicitEntity = resolveExplicitEntity(payload);

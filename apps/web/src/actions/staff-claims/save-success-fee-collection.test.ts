@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import * as domainSave from '@interdomestik/domain-claims/staff-claims/save-success-fee-collection';
 import * as nextCache from 'next/cache';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,6 +17,8 @@ vi.mock('@/lib/audit', () => ({
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('saveSuccessFeeCollectionCore', () => {
   const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
@@ -45,6 +48,7 @@ describe('saveSuccessFeeCollectionCore', () => {
     });
 
     const result = await saveSuccessFeeCollectionCore({
+      authority,
       claimId: 'claim-1',
       deductionAllowed: false,
       recoveredAmount: 1000,

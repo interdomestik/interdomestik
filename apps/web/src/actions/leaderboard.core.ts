@@ -13,6 +13,6 @@ import { getAgentLeaderboardCore } from './leaderboard/get';
 export async function getAgentLeaderboard(
   period: 'week' | 'month' | 'all' = 'month'
 ): Promise<ActionResult<LeaderboardData>> {
-  const { session } = await getActionContext();
-  return getAgentLeaderboardCore({ session, period });
+  const { session, authority } = await getActionContext();
+  return getAgentLeaderboardCore({ session, authority, period });
 }

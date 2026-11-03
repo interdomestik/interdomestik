@@ -1,9 +1,11 @@
 import { getMessagesForClaimCore as getMessagesForClaimCoreDomain } from '@interdomestik/domain-communications/messages/get';
 import { getMessagesSchema } from '@interdomestik/domain-communications/messages/schemas';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { Session } from './context';
 
 export async function getMessagesForClaimCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   claimId: string;
 }) {
   const validation = getMessagesSchema.safeParse({ claimId: params.claimId });

@@ -1,14 +1,19 @@
-import { and, claims, db, eq } from '@interdomestik/database';
-import { ensureAccessTenantId } from '@interdomestik/shared-auth';
+import { and, claims, eq } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { matchesAccessTenant } from '@/lib/db/access-tenant-predicate';
 import { DEFAULT_EVIDENCE_BUCKET } from '@/lib/storage/evidence-bucket';
 import { createInitialClaimUploadIntentToken } from '@/features/claims/upload/server/initial-claim-upload';
+import type { UploadErr, UploadResult } from './upload-result';
 import {
   assertEvidenceStoragePath,
   buildEvidenceStoragePath,
 } from '@/features/claims/upload/server/storage-path';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type SessionUser = {
   id: string;
@@ -27,6 +32,8 @@ export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 export const DEFAULT_BUCKET = DEFAULT_EVIDENCE_BUCKET;
 export const DEFAULT_CLASSIFICATION = 'pii' as const;
 
+export type { UploadResult } from './upload-result';
+
 export const uploadRequestSchema = z.object({
   fileName: z.string().min(1),
   fileType: z.string().min(1),
@@ -36,51 +43,18 @@ export const uploadRequestSchema = z.object({
 
 export type UploadRequest = z.infer<typeof uploadRequestSchema>;
 
-type UploadOk = {
-  ok: true;
-  status: 200;
-  body: {
-    upload: {
-      id: string;
-      path: string;
-      token: string;
-      signedUrl: string;
-      bucket: string;
-      expiresIn: number;
-      intentToken?: string;
-    };
-    classification: string;
-    maxFileSize: number;
-    allowedMimeTypes: readonly string[];
-  };
-};
-
-type UploadErr = {
-  ok: false;
-  status: 400 | 403 | 404 | 413 | 415 | 500;
-  error:
-    | 'Invalid file name'
-    | 'Forbidden'
-    | 'Claim not found'
-    | 'File too large'
-    | 'File type not allowed'
-    | 'Failed to create signed upload URL';
-};
-
-export type UploadResult = UploadOk | UploadErr;
-
 type InitialUploadIntentResult =
-  | { ok: true; intentToken: string }
-  | { ok: false; result: UploadErr };
+  { ok: true; intentToken: string } | { ok: false; result: UploadErr };
 
 type EvidenceUploadPathResult = { ok: true; path: string } | { ok: false; result: UploadErr };
 
 export async function createSignedUploadCore(args: {
   session: Session;
+  authority: TenantAuthority;
   input: UploadRequest;
   bucket: string;
 }): Promise<UploadResult> {
-  const { session, input, bucket } = args;
+  const { session, authority, input, bucket } = args;
 
   const { fileName, fileType, fileSize, claimId } = input;
 
@@ -90,18 +64,22 @@ export async function createSignedUploadCore(args: {
 
   if (fileSize > MAX_FILE_SIZE_BYTES) return { ok: false, status: 413, error: 'File too large' };
 
-  const tenantId = ensureAccessTenantId(session);
+  const { tenantId } = readTenantAuthority(authority);
   let storageTenantId = tenantId;
   if (claimId) {
-    const claim = await db.query.claims.findFirst({
-      where: and(eq(claims.id, claimId), matchesAccessTenant(claims, tenantId)),
-      columns: {
-        id: true,
-        tenantId: true,
-        userId: true,
-        agentId: true,
-      },
-    });
+    const claim = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx.query.claims.findFirst({
+          where: and(eq(claims.id, claimId), matchesAccessTenant(claims, tenantId)),
+          columns: {
+            id: true,
+            tenantId: true,
+            userId: true,
+            agentId: true,
+          },
+        })
+    );
 
     if (!claim) return { ok: false, status: 404, error: 'Claim not found' };
 

@@ -1,5 +1,7 @@
 import { updateClaimStatusCore as updateClaimStatusCoreDomain } from '@interdomestik/domain-claims/agent-claims/update-status';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { logAuditEvent } from '@/lib/audit';
 import { notifyStatusChanged } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
@@ -14,6 +16,7 @@ export async function updateClaimStatusCore(params: {
   claimId: string;
   newStatus: string;
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   requestHeaders: Headers;
 }) {
   const { session, requestHeaders } = params;

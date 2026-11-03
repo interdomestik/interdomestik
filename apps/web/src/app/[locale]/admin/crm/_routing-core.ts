@@ -1,9 +1,10 @@
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { CrmRoutingStrategy } from '@interdomestik/domain-crm/routing';
 import { z } from 'zod';
 
 import {
-  adminCrmRoutingRuleRepository,
+  createAdminCrmRoutingRuleRepository,
   type AdminCrmRoutingRuleAdminRepository,
   type AdminCrmRoutingRuleRow,
   type AdminCrmRoutingRuleWriteInput,
@@ -14,9 +15,9 @@ import {
   ADMIN_CRM_ROUTING_ERROR_MESSAGE_BY_REASON,
   type AdminCrmRoutingActionErrorReason,
   type AdminCrmRoutingActionResult,
-  type AdminCrmRoutingRuleSummary,
   type AdminCrmRoutingRulesPayload,
 } from './_routing-types';
+import { toRuleSummary } from './_routing-rule-summary';
 
 export const ADMIN_CRM_ROUTING_STRING_MAX_LENGTH = 128;
 export const ADMIN_CRM_ROUTING_ACTION_STRATEGIES = [
@@ -140,11 +141,11 @@ export function resolveAdminCrmRoutingActor(
 }
 
 export async function getAdminCrmRoutingRulesCore(
-  args: { actor: CrmActorContext },
+  args: { actor: CrmActorContext; authority: TenantAuthority },
   deps: { repository?: AdminCrmRoutingRuleAdminRepository } = {}
 ): Promise<AdminCrmRoutingRulesPayload> {
   if (args.actor.role !== 'admin') throw new AdminCrmRoutingAccessDeniedError();
-  const repository = deps.repository ?? adminCrmRoutingRuleRepository;
+  const repository = deps.repository ?? createAdminCrmRoutingRuleRepository(args.authority);
   const [rules, branches] = await Promise.all([
     repository.listRoutingRulesForAdmin({ actor: args.actor }),
     repository.listBranches({ tenantId: args.actor.tenantId }),
@@ -162,6 +163,8 @@ export async function getAdminCrmRoutingRulesCore(
 
 export async function runAdminCrmRoutingRuleAction(
   args: {
+    /** The session tenant authority; routing writes run under it and never under the form's ids. */
+    authority: TenantAuthority | null;
     input: unknown;
     kind: AdminCrmRoutingActionKind;
     session: AdminCrmRoutingSession | null;
@@ -169,9 +172,9 @@ export async function runAdminCrmRoutingRuleAction(
   deps: RunAdminCrmRoutingRuleActionDeps = {}
 ): Promise<AdminCrmRoutingActionResult> {
   const actor = resolveAdminCrmRoutingActor(args.session);
-  if (!actor) return { reason: 'forbidden', status: 'error' };
+  if (!actor || !args.authority) return { reason: 'forbidden', status: 'error' };
 
-  const repository = deps.repository ?? adminCrmRoutingRuleRepository;
+  const repository = deps.repository ?? createAdminCrmRoutingRuleRepository(args.authority);
   try {
     if (args.kind === 'create') return await createRule(actor, args.input, repository);
     if (args.kind === 'update') return await updateRule(actor, args.input, repository);
@@ -196,47 +199,6 @@ export function assertNoAdminCrmRoutingPiiKeys(value: unknown): void {
       throw new Error(`Admin CRM routing output contains PII key: ${key}`);
     }
   }
-}
-
-function toRuleSummary(
-  rule: AdminCrmRoutingRuleRow,
-  branchLabels: ReadonlyMap<string, string>
-): AdminCrmRoutingRuleSummary {
-  return {
-    agentPoolCount: rule.agentIds.length,
-    archived: Boolean(rule.archivedAt),
-    capacityCaps: {
-      maxNewLeadsPerAgentPerDay: rule.maxNewLeadsPerAgentPerDay ?? null,
-      maxOpenLeadsPerAgent: rule.maxOpenLeadsPerAgent ?? null,
-    },
-    effectiveWindow: {
-      from: rule.effectiveFrom ?? null,
-      to: rule.effectiveTo ?? null,
-    },
-    enabled: rule.enabled,
-    fallback: {
-      agentId: rule.fallbackAgentId ?? null,
-      ruleId: rule.fallbackRuleId ?? null,
-    },
-    filters: {
-      leadType: rule.leadType ?? null,
-      source: rule.source ?? null,
-      utmCampaign: rule.utmCampaign ?? null,
-      utmMedium: rule.utmMedium ?? null,
-      utmSource: rule.utmSource ?? null,
-    },
-    id: rule.id,
-    priority: rule.priority,
-    scope: rule.branchId
-      ? {
-          branchId: rule.branchId,
-          branchLabel: branchLabels.get(rule.branchId) ?? rule.branchId,
-          kind: 'branch',
-        }
-      : { kind: 'tenant' },
-    strategy: rule.strategy,
-    updatedAt: rule.updatedAt,
-  };
 }
 
 async function createRule(

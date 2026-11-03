@@ -97,7 +97,7 @@ describe('member request-linked claim upload actions', () => {
     expect(hoisted.findOwnedMemberInformationRequest).toHaveBeenCalledWith({
       claimId: 'claim-1',
       informationRequestId: '12345678-1234-4234-8234-123456789012',
-      tenantId: 'tenant-1',
+      authority: expect.any(Object),
       userId: 'member-1',
     });
     if (!result.success) throw new Error('Expected signed upload intent');

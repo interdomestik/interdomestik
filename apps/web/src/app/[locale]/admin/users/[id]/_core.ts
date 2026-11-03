@@ -1,4 +1,4 @@
-import { withTenantContext, type TenantTransaction } from '@interdomestik/database';
+import { type TenantTransaction } from '@interdomestik/database';
 import { db } from '@interdomestik/database/db';
 import {
   subscriptions,
@@ -10,6 +10,11 @@ import {
   type MembershipLifecycleBucket,
   type MembershipLifecycleInput,
 } from '@interdomestik/domain-membership-billing';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { and, eq, type SQL } from 'drizzle-orm';
 
 import {
@@ -90,18 +95,22 @@ async function getMemberWithAgent(dbClient: DbClient, where: SQL) {
 
 export async function getAdminUserProfileCore(args: {
   userId: string;
-  tenantId: string | null;
+  authority: TenantAuthority | null;
   actor: MemberReadActor;
   recentClaimsLimit: number;
 }): Promise<AdminUserProfileResult> {
-  if (!args.tenantId) return { kind: 'not_found' };
+  if (!args.authority) return { kind: 'not_found' };
+  const { authority } = args;
 
   // Denied roles and branch managers without a branch never open a transaction.
-  const scope = resolveMemberReadScope({ tenantId: args.tenantId, actor: args.actor });
+  const scope = resolveMemberReadScope({
+    tenantId: readTenantAuthority(authority).tenantId,
+    actor: args.actor,
+  });
   if (!scope.ok) return { kind: 'not_found' };
   const { tenantId } = scope;
 
-  return withTenantContext({ tenantId, role: scope.role }, async tx => {
+  return withTenantAuthority(authority, async tx => {
     const member = await getMemberWithAgent(
       tx,
       memberReadWhere(scope, eq(userTable.id, args.userId))

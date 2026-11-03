@@ -1,5 +1,7 @@
 import { saveSuccessFeeCollectionCore as saveSuccessFeeCollectionCoreDomain } from '@interdomestik/domain-claims/staff-claims/save-success-fee-collection';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { logAuditEvent } from '@/lib/audit';
 import { revalidatePath } from 'next/cache';
 
@@ -20,6 +22,7 @@ function revalidatePathForAllLocales(path: string) {
 
 export async function saveSuccessFeeCollectionCore(
   params: SaveSuccessFeeCollectionInput & {
+    authority: TenantAuthority | null;
     requestHeaders?: Headers;
     session: NonNullable<Session> | null;
   }

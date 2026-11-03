@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({ rows: [] as unknown[][], insert: vi.fn(), transaction: vi.fn() }));
@@ -12,6 +13,7 @@ import {
 } from './information-requests';
 
 const session = { user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' } };
+const authority = mintTestTenantAuthority('tenant-1');
 const input = {
   claimId: 'claim-1',
   correlationId: '12345678-1234-4234-8234-123456789012',
@@ -58,9 +60,15 @@ describe('information request contract', () => {
     { user: { ...session.user, role: 'member' } },
     { user: { ...session.user, role: 'agent' } },
     { user: { ...session.user, role: 'branch_manager' } },
-    { user: { ...session.user, tenantId: null } },
-  ])('denies non-staff or missing tenant before database access', async actor => {
-    expect(await createInformationRequest(actor, input)).toEqual({
+  ])('denies non-staff before database access', async actor => {
+    expect(await createInformationRequest(actor, authority, input)).toEqual({
+      success: false,
+      error: 'access_denied',
+    });
+    expect(h.transaction).not.toHaveBeenCalled();
+  });
+  it('denies a missing authority before database access', async () => {
+    expect(await createInformationRequest(session, null, input)).toEqual({
       success: false,
       error: 'access_denied',
     });
@@ -76,7 +84,7 @@ describe('information request contract', () => {
     { responsibleStaffId: 'other' },
     { correlationId: 'bad' },
   ])('rejects malformed or injected payload %j', async change => {
-    expect(await createInformationRequest(session, { ...input, ...change })).toEqual({
+    expect(await createInformationRequest(session, authority, { ...input, ...change })).toEqual({
       success: false,
       error: 'invalid_input',
     });
@@ -99,7 +107,7 @@ describe('information request contract', () => {
     { claim: [{ ...owned, staffId: null }] },
   ])('requires exact current owner', async ({ claim }) => {
     h.rows = [claim];
-    expect(await createInformationRequest(session, input)).toEqual({
+    expect(await createInformationRequest(session, authority, input)).toEqual({
       success: false,
       error: 'access_denied',
     });
@@ -109,7 +117,7 @@ describe('information request contract', () => {
     'does not create with verification posture in %s',
     async caseState => {
       h.rows = [[{ ...owned, caseState }], []];
-      expect(await createInformationRequest(session, input)).toEqual({
+      expect(await createInformationRequest(session, authority, input)).toEqual({
         success: false,
         error: 'invalid_state',
       });
@@ -117,7 +125,7 @@ describe('information request contract', () => {
     }
   );
   it('creates in verification', async () => {
-    expect(await createInformationRequest(session, input)).toEqual({
+    expect(await createInformationRequest(session, authority, input)).toEqual({
       success: true,
       requestId: 'request-1',
     });
@@ -126,7 +134,7 @@ describe('information request contract', () => {
   it('replays canonical payload even after claim advances without another insert', async () => {
     h.rows = [[{ ...owned, caseState: 'evaluation' }], [existing]];
     expect(
-      await createInformationRequest(session, {
+      await createInformationRequest(session, authority, {
         ...input,
         requestedInformation: ' Repair estimate ',
       })
@@ -140,47 +148,40 @@ describe('information request contract', () => {
     { dueAt: new Date('2027-01-01') },
   ])('conflicts on reused correlation %j', async change => {
     h.rows = [[owned], [{ ...existing, ...change }]];
-    expect(await createInformationRequest(session, input)).toEqual({
+    expect(await createInformationRequest(session, authority, input)).toEqual({
       success: false,
       error: 'conflict',
     });
   });
   it('resolves an insert conflict with the canonical persisted request', async () => {
     h.rows = [[owned], [], [], [existing]];
-    expect(await createInformationRequest(session, input)).toEqual({
+    expect(await createInformationRequest(session, authority, input)).toEqual({
       success: true,
       requestId: 'request-1',
     });
   });
   it('denies unapproved read roles before querying', async () => {
     expect(
-      await getInformationRequests({ user: { ...session.user, role: 'agent' } }, input.claimId)
+      await getInformationRequests(
+        { user: { ...session.user, role: 'agent' } },
+        authority,
+        input.claimId
+      )
     ).toEqual([]);
     expect(h.transaction).not.toHaveBeenCalled();
   });
-  it.each(['staff', 'member', 'user'])('reads the explicit access tenant for %s', async role => {
+  it.each(['staff', 'member', 'user'])('reads under the session authority for %s', async role => {
     h.rows = [[]];
-    const actor = { user: { ...session.user, role, accessTenantId: 'tenant-access' } };
-    await getInformationRequests(actor, input.claimId);
-    expect(h.transaction).toHaveBeenCalledWith(
-      { tenantId: 'tenant-access', role },
-      expect.any(Function)
-    );
+    const actor = { user: { ...session.user, role } };
+    await getInformationRequests(actor, authority, input.claimId);
+    expect(h.transaction).toHaveBeenCalledWith(authority, expect.any(Function));
+    expect(h.transaction.mock.calls[0][0]).toBe(authority);
     expect(h.insert).not.toHaveBeenCalled();
   });
 
-  it('accepts access-only sessions and denies a session with neither tenant before querying', async () => {
-    h.rows = [[]];
-    const actor = { user: { ...session.user, tenantId: null, accessTenantId: 'tenant-access' } };
-    await getInformationRequests(actor, input.claimId);
-    expect(h.transaction).toHaveBeenCalledWith(
-      { tenantId: 'tenant-access', role: 'staff' },
-      expect.any(Function)
-    );
-    h.transaction.mockClear();
-    await expect(
-      getInformationRequests({ user: { ...session.user, tenantId: null } }, input.claimId)
-    ).resolves.toEqual([]);
+  it('denies a read with no authority or no session before querying', async () => {
+    await expect(getInformationRequests(session, null, input.claimId)).resolves.toEqual([]);
+    await expect(getInformationRequests(null, authority, input.claimId)).resolves.toEqual([]);
     expect(h.transaction).not.toHaveBeenCalled();
   });
 
@@ -206,6 +207,7 @@ describe('information request contract', () => {
     await expect(
       getInformationRequests(
         { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
+        authority,
         input.claimId
       )
     ).resolves.toEqual([
@@ -233,28 +235,12 @@ describe('information request contract', () => {
   });
 });
 
-it.each([
-  { tenantId: 'tenant-home', accessTenantId: 'tenant-access' },
-  { tenantId: null, accessTenantId: 'tenant-access' },
-])('uses the verified access tenant for assigned-staff writes %j', async tenant => {
-  const actor = { user: { ...session.user, ...tenant } };
-  const result = await createInformationRequest(actor, input);
+it('writes under the session authority and stamps its tenant on the row', async () => {
+  const other = mintTestTenantAuthority('tenant-access');
+  const result = await createInformationRequest(session, other, input);
   expect(result.success).toBe(true);
-  expect(h.transaction).toHaveBeenCalledWith(
-    { tenantId: 'tenant-access', role: 'staff' },
-    expect.any(Function)
-  );
+  expect(h.transaction.mock.calls[0][0]).toBe(other);
   expect(h.insert.mock.results[0].value.values).toHaveBeenCalledWith(
     expect.objectContaining({ tenantId: 'tenant-access' })
   );
-});
-
-it('denies whitespace-only tenant scope before any transaction', async () => {
-  await expect(
-    createInformationRequest(
-      { user: { ...session.user, tenantId: ' ', accessTenantId: ' ' } },
-      input
-    )
-  ).resolves.toEqual({ success: false, error: 'access_denied' });
-  expect(h.transaction).not.toHaveBeenCalled();
 });

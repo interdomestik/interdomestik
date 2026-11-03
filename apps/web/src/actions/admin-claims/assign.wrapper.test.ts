@@ -2,6 +2,7 @@ import * as audit from '@/lib/audit';
 import * as notifications from '@/lib/notifications';
 import * as domainAssign from '@interdomestik/domain-claims/agent-claims/assign';
 import * as nextCache from 'next/cache';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { assignClaimCore } from './assign.core';
 
@@ -21,23 +22,26 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
 
-const dbMocks = vi.hoisted(() => ({
-  claimFindFirst: vi.fn(),
-  withTenant: vi.fn((tenantId, tenantColumn, condition) => ({
-    tenantId,
-    tenantColumn,
-    condition,
-  })),
-}));
+const dbMocks = vi.hoisted(() => {
+  const claimFindFirst = vi.fn();
+  const db = { query: { claims: { findFirst: claimFindFirst } } };
+  return {
+    claimFindFirst,
+    db,
+    withTenant: vi.fn((tenantId, tenantColumn, condition) => ({
+      tenantId,
+      tenantColumn,
+      condition,
+    })),
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+  };
+});
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      claims: {
-        findFirst: dbMocks.claimFindFirst,
-      },
-    },
-  },
+  db: dbMocks.db,
+  withTenantContext: dbMocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
@@ -59,6 +63,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
   const mockHeaders = new Headers();
+  const authority = mintTestTenantAuthority('tenant1');
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -75,6 +80,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
       claimId: 'claim1',
       staffId: 'staff1',
       session: mockSession,
+      authority,
       requestHeaders: mockHeaders,
     };
 
@@ -87,6 +93,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
         notifyClaimAssigned: notifications.notifyClaimAssigned,
       })
     );
+    expect(dbMocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
   });
 
   it('should revalidate paths', async () => {
@@ -103,6 +110,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
       claimId: 'claim1',
       staffId: 'staff1',
       session: mockSession,
+      authority,
       requestHeaders: mockHeaders,
     });
 
@@ -129,6 +137,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
       claimId: 'claim1',
       staffId: 'staff1',
       session: mockSession,
+      authority,
       requestHeaders: mockHeaders,
     });
 
@@ -144,6 +153,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
         claimId: 'claim1',
         staffId: 'staff1',
         session: mockSession,
+        authority,
         requestHeaders: mockHeaders,
       })
     ).rejects.toThrow('Domain Error');
@@ -156,6 +166,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
       claimId: 'claim1',
       staffId: 'staff1',
       session: mockSession,
+      authority,
       requestHeaders: mockHeaders,
     });
 
@@ -172,6 +183,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
         ...mockSession,
         user: { ...mockSession.user, role: 'member' },
       },
+      authority,
       requestHeaders: mockHeaders,
     });
 
@@ -189,6 +201,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
         ...mockSession,
         user: { ...mockSession.user, role: 'staff', id: 'staff1' },
       },
+      authority,
       requestHeaders: mockHeaders,
     });
 
@@ -216,6 +229,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
       claimId: 'claim1',
       staffId: 'staff1',
       session: mockSession,
+      authority,
       requestHeaders: mockHeaders,
     });
 
@@ -238,6 +252,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
       claimId: 'claim1',
       staffId: 'staff1',
       session: mockSession,
+      authority,
       requestHeaders: mockHeaders,
     });
 

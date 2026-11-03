@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -7,7 +8,16 @@ const hoisted = vi.hoisted(() => ({
   createSignedUrl: vi.fn(),
 }));
 
+const txMock = vi.hoisted(() => ({
+  query: { claims: { findFirst: hoisted.claimsFindFirst } },
+  select: hoisted.dbSelect,
+}));
+const withTenantContextMock = vi.hoisted(() =>
+  vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) => callback(txMock))
+);
+
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: withTenantContextMock,
   db: {
     query: {
       claims: { findFirst: hoisted.claimsFindFirst },
@@ -48,6 +58,8 @@ function createSelectChain(result: unknown) {
 }
 
 describe('getAdminClaimDetailsCore', () => {
+  const authority = mintTestTenantAuthority('tenant-a');
+
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.createSignedUrl.mockResolvedValue({
@@ -56,7 +68,7 @@ describe('getAdminClaimDetailsCore', () => {
   });
 
   it('returns not_found when tenant context is missing', async () => {
-    const result = await getAdminClaimDetailsCore({ claimId: 'c1' });
+    const result = await getAdminClaimDetailsCore({ claimId: 'c1', authority: null });
 
     expect(result).toEqual({ kind: 'not_found' });
   });
@@ -64,7 +76,7 @@ describe('getAdminClaimDetailsCore', () => {
   it('returns not_found when claim does not exist', async () => {
     hoisted.claimsFindFirst.mockResolvedValue(null);
 
-    const result = await getAdminClaimDetailsCore({ claimId: 'c1', tenantId: 'tenant-a' });
+    const result = await getAdminClaimDetailsCore({ claimId: 'c1', authority });
 
     expect(result).toEqual({ kind: 'not_found' });
   });
@@ -72,9 +84,10 @@ describe('getAdminClaimDetailsCore', () => {
   it('enforces tenant scope for detail query boundary', async () => {
     hoisted.claimsFindFirst.mockResolvedValue(null);
 
-    const result = await getAdminClaimDetailsCore({ claimId: 'c1', tenantId: 'tenant-a' });
+    const result = await getAdminClaimDetailsCore({ claimId: 'c1', authority });
 
     expect(result).toEqual({ kind: 'not_found' });
+    expect(withTenantContextMock).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.and).toHaveBeenCalled();
     expect(hoisted.and).toHaveBeenCalledWith(
       { eq: ['claims.id', 'c1'] },
@@ -103,7 +116,7 @@ describe('getAdminClaimDetailsCore', () => {
 
     hoisted.dbSelect.mockReturnValueOnce(createSelectChain(docsResult));
 
-    const result = await getAdminClaimDetailsCore({ claimId: 'c1', tenantId: 'tenant-a' });
+    const result = await getAdminClaimDetailsCore({ claimId: 'c1', authority });
 
     expect(result.kind).toBe('ok');
     if (result.kind !== 'ok') return;
@@ -142,9 +155,7 @@ describe('getAdminClaimDetailsCore', () => {
 
     hoisted.dbSelect.mockReturnValueOnce(createSelectChain(docsResult));
 
-    await expect(
-      getAdminClaimDetailsCore({ claimId: 'c1', tenantId: 'tenant-a' })
-    ).resolves.toMatchObject({
+    await expect(getAdminClaimDetailsCore({ claimId: 'c1', authority })).resolves.toMatchObject({
       kind: 'ok',
       data: {
         id: 'c1',

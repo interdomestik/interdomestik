@@ -1,10 +1,16 @@
 import type { ProtectedActionContext } from '@/lib/safe-action';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it } from 'vitest';
 
 import { resolveVerificationReadScope, withSessionStaffBranch } from './read-access';
 
 function readContext(userRole: string, branchId: string | null = null) {
-  return { tenantId: 'tenant-ks', userRole, scope: { branchId } };
+  return {
+    authority: mintTestTenantAuthority('tenant-ks'),
+    tenantId: 'tenant-ks',
+    userRole,
+    scope: { branchId },
+  };
 }
 
 function actionContext(

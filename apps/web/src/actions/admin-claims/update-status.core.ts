@@ -1,6 +1,10 @@
 import { updateClaimStatusCore as updateClaimStatusCoreDomain } from '@interdomestik/domain-claims/admin-claims/update-status';
-import { db } from '@interdomestik/database';
+
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 import { logAuditEvent } from '@/lib/audit';
@@ -16,18 +20,20 @@ import type { Session } from './context';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import { claimStatusSchema } from '@interdomestik/domain-claims/validators/claims';
 import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 // ...
 
 export async function updateClaimStatusCore(params: {
   formData: FormData;
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   requestHeaders: Headers;
 }) {
-  const { formData, session, requestHeaders } = params;
+  const { formData, session, authority, requestHeaders } = params;
 
   // Check for authentication and valid session
-  if (!session?.user?.id || !session?.user?.tenantId) {
+  if (!session?.user?.id || !session?.user?.tenantId || !authority) {
     throw new Error('Unauthorized');
   }
 
@@ -72,16 +78,20 @@ export async function updateClaimStatusCore(params: {
     throw new Error('Invalid status');
   }
   const status = parsed.data.status;
-  const tenantId = session.user.tenantId;
+  const { tenantId } = readTenantAuthority(authority);
 
-  const claim = await db.query.claims.findFirst({
-    where: (claimsTable, { eq }) =>
-      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-    columns: {
-      caseLifecycleState: true,
-      recoveryLifecycleState: true,
-    },
-  });
+  const claim = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.claims.findFirst({
+        where: (claimsTable, { eq }) =>
+          withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+        columns: {
+          caseLifecycleState: true,
+          recoveryLifecycleState: true,
+        },
+      })
+  );
 
   if (!claim) {
     throw new Error('Claim not found');
@@ -98,6 +108,7 @@ export async function updateClaimStatusCore(params: {
       hostId: resolveEntryHostIdFromHeaders(requestHeaders),
       newStatus: status,
       session,
+      authority,
       requestHeaders,
     },
     {
@@ -106,14 +117,18 @@ export async function updateClaimStatusCore(params: {
     }
   );
 
-  const updatedClaim = await db.query.claims.findFirst({
-    where: (claimsTable, { eq }) =>
-      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-    columns: {
-      caseLifecycleState: true,
-      recoveryLifecycleState: true,
-    },
-  });
+  const updatedClaim = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.claims.findFirst({
+        where: (claimsTable, { eq }) =>
+          withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+        columns: {
+          caseLifecycleState: true,
+          recoveryLifecycleState: true,
+        },
+      })
+  );
 
   if (!updatedClaim) {
     return;

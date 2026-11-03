@@ -6,7 +6,9 @@ import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
 import { NavigationFeedback } from '@/components/shell/navigation-feedback';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { ADMIN_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { requireEffectivePortalAccessOrNotFound } from '@/server/auth/effective-portal-access';
+import { listSuperAdminTenantOptions } from '@interdomestik/database';
 import { Separator, SidebarInset, SidebarProvider, SidebarTrigger } from '@interdomestik/ui';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 
@@ -44,21 +46,10 @@ export default async function AdminLayout({
   let tenantOptions: AdminTenantOption[] = [];
   if (isSuperAdmin) {
     try {
-      const [{ db }, { tenants }, drizzle] = await Promise.all([
-        import('@interdomestik/database/db'),
-        import('@interdomestik/database/schema'),
-        import('drizzle-orm'),
-      ]);
-
-      // Keep selector lightweight: only active tenants.
-      // db-access-guard: system-exempt -- reason: super-admin tenant selector lists active tenant metadata only
-      const rows = await db
-        .select({ id: tenants.id, name: tenants.name, countryCode: tenants.countryCode })
-        .from(tenants)
-        .where(drizzle.eq(tenants.isActive, true))
-        .orderBy(drizzle.asc(tenants.name));
-
-      tenantOptions = rows;
+      // The tenant directory is deny-all to runtime roles: the selector comes from the platform
+      // projection, which requires the super admin's own session authority.
+      const authorized = await authorizeSessionTenant();
+      tenantOptions = authorized ? await listSuperAdminTenantOptions(authorized.authority) : [];
     } catch (err) {
       console.error('[AdminLayout] SuperAdmin DB fetch failed:', err);
       // Fallback to empty to prevent 500

@@ -1,3 +1,4 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const member = {
@@ -8,6 +9,9 @@ const member = {
   userId: 'user-1',
 };
 
+// The producer is mocked; this stands in for the cron route's admitted capability.
+const INGRESS = Object.freeze({}) as IngressCapability<'cron'>;
+
 const hoisted = vi.hoisted(() => ({
   and: vi.fn((...conditions: unknown[]) => ({ op: 'and', conditions })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
@@ -17,6 +21,8 @@ const hoisted = vi.hoisted(() => ({
     returning: vi.fn(),
     values: vi.fn().mockReturnThis(),
   },
+  ambientSelect: vi.fn(),
+  listScheduledTenantWork: vi.fn(),
   logAuditEvent: vi.fn(),
   lte: vi.fn((left: unknown, right: unknown) => ({ op: 'lte', left, right })),
   select: {
@@ -55,8 +61,9 @@ vi.mock('@/lib/email', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: { select: vi.fn(() => hoisted.select) },
+  db: { select: hoisted.ambientSelect },
   withTenantContext: hoisted.withTenantContext,
+  listScheduledTenantWork: hoisted.listScheduledTenantWork,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -77,6 +84,7 @@ vi.mock('nanoid', () => ({ nanoid: (size?: number) => (size ? 'survey-token' : '
 
 function setupTenantContextHarness() {
   vi.clearAllMocks();
+  hoisted.ambientSelect.mockImplementation(() => hoisted.select);
   hoisted.select.from.mockReturnThis();
   hoisted.select.innerJoin.mockReturnThis();
   hoisted.select.where.mockReturnThis();
@@ -92,18 +100,33 @@ function setupTenantContextHarness() {
   hoisted.txSet.mockReturnValue({ where: hoisted.txWhere });
   hoisted.txWhere.mockResolvedValue(undefined);
   hoisted.withTenantContext.mockImplementation(
-    async (
-      _context: { tenantId: string; role: string },
-      action: (tx: unknown) => Promise<unknown>
-    ) =>
+    async (_context: unknown, action: (tx: unknown) => Promise<unknown>) =>
       await action({
         insert: hoisted.txInsert,
-        select: vi.fn(() => hoisted.txSelect),
+        // The member enumeration selects `subId`; the NPS token lookup selects only `token`.
+        select: vi.fn((fields: Record<string, unknown>) =>
+          'subId' in fields ? hoisted.select : hoisted.txSelect
+        ),
         update: hoisted.txUpdate,
       })
   );
   hoisted.sendNpsSurveyEmail.mockResolvedValue({ success: true, id: 'message-1' });
   hoisted.sendOnboardingEmail.mockResolvedValue({ success: true, id: 'message-1' });
+}
+
+// vi.resetModules() gives the re-imported code a fresh authority registry, so the token the scheduled
+// producer hands out must be minted from the same post-reset module graph.
+async function scheduleMemberTenant() {
+  const { mintTestTenantAuthority } =
+    await import('@interdomestik/database/testing/tenant-authority');
+  const authority = mintTestTenantAuthority(member.tenantId);
+  hoisted.listScheduledTenantWork.mockResolvedValue([{ tenantId: member.tenantId, authority }]);
+  return authority;
+}
+
+function expectEveryTenantContextRanUnder(authority: unknown) {
+  expect(hoisted.withTenantContext).toHaveBeenCalled();
+  for (const [context] of hoisted.withTenantContext.mock.calls) expect(context).toBe(authority);
 }
 
 describe('cron tenant-context writes', () => {
@@ -113,21 +136,25 @@ describe('cron tenant-context writes', () => {
 
   it('writes lifecycle engagement sends through the subscription tenant context', async () => {
     vi.resetModules();
+    const memberAuthority = await scheduleMemberTenant();
     hoisted.select.limit.mockResolvedValueOnce([member]).mockResolvedValue([]);
     const { runEngagementCronCore } =
       await vi.importActual<typeof import('./engagement/_core')>('./engagement/_core');
 
     const results = await runEngagementCronCore({
+      ingress: INGRESS,
       headers: new Headers(),
       now: new Date('2026-01-15T00:00:00.000Z'),
     });
 
     expect(results.day7).toBe(1);
-    expect(hoisted.withTenantContext).toHaveBeenNthCalledWith(
-      1,
-      { tenantId: member.tenantId, role: 'system' },
-      expect.any(Function)
-    );
+    expectEveryTenantContextRanUnder(memberAuthority);
+    expect(hoisted.logAuditEvent).toHaveBeenCalledTimes(1);
+    expect(hoisted.logAuditEvent.mock.calls[0]?.[0].authority).toBe(memberAuthority);
+    expect(hoisted.logAuditEvent.mock.calls[0]?.[0]).not.toHaveProperty('tenantId');
+    expect(hoisted.ambientSelect).not.toHaveBeenCalled();
+    expect(hoisted.eq).toHaveBeenCalledWith('tenantId', member.tenantId);
+    expect(hoisted.select.limit).toHaveBeenCalledWith(200);
     expect(hoisted.txInsert).toHaveBeenCalledWith(expect.anything());
     expect(hoisted.txUpdate).toHaveBeenCalledWith(expect.anything());
     expect(hoisted.insert.values).toHaveBeenCalledWith(
@@ -141,25 +168,23 @@ describe('cron tenant-context writes', () => {
 
   it('writes NPS send and token rows through the subscription tenant context', async () => {
     vi.resetModules();
+    const memberAuthority = await scheduleMemberTenant();
     hoisted.select.limit.mockResolvedValueOnce([member]);
     const { runNpsCronCore } = await vi.importActual<typeof import('./nps/_core')>('./nps/_core');
 
     const results = await runNpsCronCore({
+      ingress: INGRESS,
       headers: new Headers(),
       now: new Date('2026-01-15T00:00:00.000Z'),
     });
 
     expect(results.sent).toBe(1);
-    expect(hoisted.withTenantContext).toHaveBeenNthCalledWith(
-      1,
-      { tenantId: member.tenantId, role: 'system' },
-      expect.any(Function)
-    );
-    expect(hoisted.withTenantContext).toHaveBeenNthCalledWith(
-      2,
-      { tenantId: member.tenantId, role: 'system' },
-      expect.any(Function)
-    );
+    expect(hoisted.ambientSelect).not.toHaveBeenCalled();
+    expect(hoisted.eq).toHaveBeenCalledWith('tenantId', member.tenantId);
+    expect(hoisted.select.limit).toHaveBeenCalledWith(200);
+    expectEveryTenantContextRanUnder(memberAuthority);
+    expect(hoisted.logAuditEvent).toHaveBeenCalledTimes(1);
+    expect(hoisted.logAuditEvent.mock.calls[0]?.[0].authority).toBe(memberAuthority);
     expect(hoisted.txInsert).toHaveBeenCalledWith(expect.anything());
     expect(hoisted.txUpdate).toHaveBeenCalledWith(expect.anything());
     expect(hoisted.insert.values).toHaveBeenCalledWith(

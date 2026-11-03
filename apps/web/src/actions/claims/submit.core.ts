@@ -1,5 +1,9 @@
 import * as Sentry from '@sentry/nextjs';
 import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import {
   ClaimValidationError,
   submitClaimCore as submitClaimCoreDomain,
 } from '@interdomestik/domain-claims/claims/submit';
@@ -12,10 +16,6 @@ import {
   markClaimAiRunDispatchFailedService,
 } from '@/lib/ai/claim-workflows';
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
-import {
-  resolveCommercialLaunchScope,
-  type CommercialEscalationReason,
-} from '@/lib/commercial-claim-categories';
 import { notifyClaimSubmitted } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 
@@ -24,19 +24,9 @@ import { validateInitialClaimEvidenceUpload } from '@/features/claims/upload/ser
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
 import type { Session } from './context';
+import { resolveCommercialFlow, type SubmitClaimCommercialFlow } from './submit-commercial-flow';
 
-type CommercialEscalationDecision = 'requested' | 'declined';
-
-export type SubmitClaimCommercialFlow = {
-  escalationRequest: {
-    claimCategory: string;
-    decision: CommercialEscalationDecision;
-    decisionReason: CommercialEscalationReason;
-  };
-  freeStartCompletion: {
-    claimCategory: string;
-  };
-};
+export type { SubmitClaimCommercialFlow };
 
 export type SubmitClaimResult =
   | {
@@ -47,31 +37,16 @@ export type SubmitClaimResult =
     }
   | { success: false; error: string; code?: string };
 
-function resolveCommercialFlow(rawCategory: string): SubmitClaimCommercialFlow {
-  const launchScope = resolveCommercialLaunchScope(rawCategory);
-  const claimCategory = launchScope.claimCategory ?? rawCategory.trim().toLowerCase();
-
-  return {
-    escalationRequest: {
-      claimCategory,
-      decision: launchScope.escalationEligible ? 'requested' : 'declined',
-      decisionReason: launchScope.decisionReason,
-    },
-    freeStartCompletion: {
-      claimCategory,
-    },
-  };
-}
-
 export async function submitClaimCore(params: {
   idempotencyKey?: string;
   trustedClaimId?: string;
+  authority: TenantAuthority | null;
   session: NonNullable<Session> | null;
   requestHeaders: Headers;
   data: CreateClaimValues;
   handoffContext?: ClaimStartHandoffContext | null;
 }): Promise<SubmitClaimResult> {
-  const { session, requestHeaders } = params;
+  const { authority, session, requestHeaders } = params;
 
   const sentryContext: Record<string, string> = {
     feature: 'claims',
@@ -80,7 +55,7 @@ export async function submitClaimCore(params: {
 
   if (session?.user?.id) {
     sentryContext.userId = session.user.id;
-    sentryContext.tenantId = session.user.tenantId ?? 'unknown';
+    sentryContext.tenantId = authority ? readTenantAuthority(authority).tenantId : 'unknown';
   }
 
   return runCommercialActionWithIdempotency({
@@ -88,7 +63,7 @@ export async function submitClaimCore(params: {
     scope: {
       kind: 'tenant',
       actorUserId: session?.user?.id ?? null,
-      tenantId: session?.user?.tenantId ?? null,
+      authority,
     },
     idempotencyKey: params.idempotencyKey,
     requestFingerprint: params.data,
@@ -112,7 +87,11 @@ export async function submitClaimCore(params: {
           {
             dispatchClaimAiRun: emitClaimAiRunRequestedService,
             logAuditEvent,
-            markClaimAiRunDispatchFailed: markClaimAiRunDispatchFailedService,
+            markClaimAiRunDispatchFailed: ({ runId, message }) => {
+              // The domain refuses to submit without an authority, so this is unreachable without one.
+              if (!authority) throw new Error('Missing tenant authority');
+              return markClaimAiRunDispatchFailedService({ authority, runId, message });
+            },
             notifyClaimSubmitted,
             revalidatePath,
             validateSubmittedClaimFile: ({ actorId, file, tenantId }) =>

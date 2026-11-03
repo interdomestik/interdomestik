@@ -24,10 +24,12 @@ const mocks = vi.hoisted(() => {
   }));
   const tenantTx = {
     insert: txInsert,
+    select,
     update: vi.fn(() => ({ set: txUpdateSet })),
   };
 
   return {
+    authorizeInngestEventTenant: vi.fn(),
     createFunction,
     db: { select },
     downloadClaimAiFileWithRetry: vi.fn(),
@@ -63,6 +65,7 @@ vi.mock('@interdomestik/domain-communications/cron-service', () => ({
   processSeasonalCampaigns: vi.fn(),
 }));
 vi.mock('@interdomestik/database', () => ({
+  authorizeInngestEventTenant: mocks.authorizeInngestEventTenant,
   sql: vi.fn(),
   withTenantContext: mocks.withTenantContext,
 }));
@@ -93,16 +96,21 @@ vi.mock('@interdomestik/domain-claims', () => ({
   resolveClaimDocumentAiExtractionConsent: vi.fn(),
 }));
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import {
   PersistedClaimAiRetryableError,
   processClaimDocumentWorkflowRunService,
 } from './claim-workflows';
 import { claimIntakeExtractionRequested } from '@/lib/inngest/functions';
 
+const authority = mintTestTenantAuthority('tenant-1');
+const ingress = Object.freeze({}) as unknown as IngressCapability<'inngest'>;
+
 type Workflow = 'claim_intake_extract' | 'legal_doc_extract';
 type ClaimHandler = (args: {
   attempt: number;
-  event: { data: { runId: string } };
+  event: { data: { runId: string; tenantId?: string } };
   step: { run: (name: string, callback: () => unknown) => unknown };
 }) => Promise<unknown>;
 
@@ -137,6 +145,7 @@ function failedUpdate() {
 describe('claim workflow unsupported formats', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.authorizeInngestEventTenant.mockResolvedValue(authority);
     mocks.downloadClaimAiFileWithRetry.mockRejectedValue(new Error('blob unavailable'));
   });
 
@@ -150,7 +159,12 @@ describe('claim workflow unsupported formats', () => {
       const downloadFile = vi.fn().mockRejectedValue(new Error('blob unavailable'));
 
       await expect(
-        processClaimDocumentWorkflowRunService({ runId: 'run-1', deps: { downloadFile } })
+        processClaimDocumentWorkflowRunService({
+          runId: 'run-1',
+          ingress,
+          tenantId: 'tenant-1',
+          deps: { downloadFile },
+        })
       ).resolves.toEqual({
         status: 'failed',
         runId: 'run-1',
@@ -178,7 +192,12 @@ describe('claim workflow unsupported formats', () => {
       const downloadFile = vi.fn().mockRejectedValue(new Error('blob unavailable'));
 
       await expect(
-        processClaimDocumentWorkflowRunService({ runId: 'run-1', deps: { downloadFile } })
+        processClaimDocumentWorkflowRunService({
+          runId: 'run-1',
+          ingress,
+          tenantId: 'tenant-1',
+          deps: { downloadFile },
+        })
       ).rejects.toBeInstanceOf(PersistedClaimAiRetryableError);
 
       expect(downloadFile).toHaveBeenCalledWith(
@@ -201,7 +220,7 @@ describe('claim workflow unsupported formats', () => {
       .handler;
 
     await expect(
-      handler({ event: { data: { runId: 'run-1' } }, step, attempt: 0 })
+      handler({ event: { data: { runId: 'run-1', tenantId: 'tenant-1' } }, step, attempt: 0 })
     ).resolves.toEqual({
       status: 'failed',
       runId: 'run-1',

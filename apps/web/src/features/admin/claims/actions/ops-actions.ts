@@ -1,16 +1,8 @@
 'use server';
 
-import {
-  and,
-  auditLog,
-  claimMessages,
-  claims,
-  db,
-  desc,
-  eq,
-  withTenantContext,
-} from '@interdomestik/database';
+import { and, auditLog, claimMessages, claims, desc, eq } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { nanoid } from 'nanoid';
 import {
   assertCanMutateClaim,
@@ -31,6 +23,7 @@ import {
 } from './ops-action-outcome';
 import { ASSIGNMENT_TARGET_DENIED_ERROR, assignClaimOwnerInTransaction } from './ops-assignment';
 import { updateStatusAction } from './ops-status-action';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const ASSIGNMENT_FAILED_ERROR = 'Assignment failed. Please try again.';
 const EXPECTED_ASSIGN_DENIALS: ReadonlySet<string> = new Set([
@@ -66,7 +59,10 @@ export async function assignOwner(
       return { success: false, error: ASSIGNMENT_TARGET_DENIED_ERROR };
     }
 
-    const result = await withTenantContext({ tenantId: ctx.tenantId, role: actorRole }, tx =>
+    const authorized = await authorizeSessionTenant();
+    if (!authorized) return { success: false, error: 'Unauthorized' };
+
+    const result = await withTenantAuthority(authorized.authority, tx =>
       assignClaimOwnerInTransaction(tx, {
         actorId,
         actorRole,
@@ -101,30 +97,48 @@ export async function unassignOwner(claimId: string, locale: string): Promise<Op
       return { success: false, error: 'Unauthorized' };
     }
 
-    const claim = await getClaimForMutation(claimId, ctx.tenantId);
-    assertCanMutateClaim(claim, ctx.session.user.role, 'assign');
+    const authorized = await authorizeSessionTenant();
+    if (!authorized) return { success: false, error: 'Unauthorized' };
+    const { authority } = authorized;
 
-    const updated = await db
-      .update(claims)
-      .set({
-        staffId: null,
-        assignedAt: null,
-        assignedById: null,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(claims.id, claimId), eq(claims.tenantId, ctx.tenantId)))
-      .returning({
-        id: claims.id,
-        staffId: claims.staffId,
-        assignedAt: claims.assignedAt, // Should be null
-      });
+    const actorRole = ctx.session.user.role;
+    const claim = await withTenantAuthority(authority, tx =>
+      getClaimForMutation(claimId, ctx.tenantId, tx)
+    );
+    assertCanMutateClaim(claim, actorRole, 'assign');
+
+    const updated = await withTenantAuthority(authority, tx =>
+      tx
+        .update(claims)
+        .set({
+          staffId: null,
+          assignedAt: null,
+          assignedById: null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(claims.id, claimId), eq(claims.tenantId, ctx.tenantId)))
+        .returning({
+          id: claims.id,
+          staffId: claims.staffId,
+          assignedAt: claims.assignedAt, // Should be null
+        })
+    );
 
     assertRowsAffected(updated);
 
-    await logAudit(ctx.tenantId, ctx.session.user.id, 'unassign_owner', claimId, {
-      previousStaffId: claim.staffId,
-      claimNumber: claim.claimNumber,
-    });
+    await withTenantAuthority(authority, tx =>
+      logAudit(
+        ctx.tenantId,
+        ctx.session.user.id,
+        'unassign_owner',
+        claimId,
+        {
+          previousStaffId: claim.staffId,
+          claimNumber: claim.claimNumber,
+        },
+        tx
+      )
+    );
 
     // CRITICAL: Invalidate BOTH detail layout and global claims list to update KPIs immediately
     revalidateClaim(locale, claimId);
@@ -155,9 +169,11 @@ export async function markSlaAcknowledged(
     // Exercised admin-family role is checked before any claim read or tenant transaction.
     const ctx = await getOpsMutationContext();
     if (!ctx) return { success: false, error: OPS_ACTION_UNAUTHORIZED_ERROR };
+    const authorized = await authorizeSessionTenant();
+    if (!authorized) return { success: false, error: OPS_ACTION_UNAUTHORIZED_ERROR };
 
     // Claim read, internal acknowledgement note and audit share one tenant transaction.
-    await withTenantContext({ tenantId: ctx.tenantId, role: ctx.actorRole }, async tx => {
+    await withTenantAuthority(authorized.authority, async tx => {
       // Keep terminal eligibility valid through the acknowledgement commit.
       await lockClaimForOpsMutation(tx, claimId, ctx.tenantId);
       const claim = await getClaimForMutation(claimId, ctx.tenantId, tx);
@@ -198,10 +214,12 @@ export async function sendMemberReminder(
     if (typeof channel !== 'string' || !REMINDER_CHANNELS.has(channel)) {
       return { success: false, error: INVALID_REMINDER_CHANNEL_ERROR };
     }
+    const authorized = await authorizeSessionTenant();
+    if (!authorized) return { success: false, error: OPS_ACTION_UNAUTHORIZED_ERROR };
 
     // Records an internal follow-up note and audit only; no email/SMS provider is called here.
-    const outcome = await withTenantContext<ReminderTransactionOutcome>(
-      { tenantId: ctx.tenantId, role: ctx.actorRole },
+    const outcome = await withTenantAuthority<ReminderTransactionOutcome>(
+      authorized.authority,
       async tx => {
         // Row lock serializes cooldown eligibility per claim so concurrent attempts cannot both
         // pass the window; the rate-limit read, note and audit then commit or roll back together.

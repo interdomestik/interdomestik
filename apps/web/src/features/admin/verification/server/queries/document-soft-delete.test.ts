@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   aliasedTable: vi.fn(() => ({ name: 'verifier.name' })),
@@ -102,6 +103,7 @@ function chain(result: unknown, terminalWhere = false) {
   return query;
 }
 const ctx = {
+  authority: mintTestTenantAuthority('tenant-ks', { userId: 'verifier-1', role: 'admin' }),
   scope: {},
   tenantId: 'tenant-ks',
   userRole: 'admin',

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -20,6 +21,8 @@ vi.mock('next/cache', () => ({
 
 import { assignClaimCore } from './assign.core';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('staff assign.core audit wiring', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -30,6 +33,7 @@ describe('staff assign.core audit wiring', () => {
     const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 
     const result = await assignClaimCore({
+      authority,
       claimId: 'claim-1',
       requestHeaders,
       session: {

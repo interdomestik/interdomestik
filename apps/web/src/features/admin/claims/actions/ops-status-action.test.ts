@@ -1,9 +1,11 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OpsDomainDenialError } from './ops-action-outcome';
 
 const mocks = vi.hoisted(() => ({
   assertCanMutateClaim: vi.fn(),
   assertTransitionAllowed: vi.fn(),
+  authorizeSessionTenant: vi.fn(),
   getClaimForMutation: vi.fn(),
   getOpsMutationContext: vi.fn(),
   logAudit: vi.fn(),
@@ -22,6 +24,10 @@ vi.mock('./action-helpers', () => ({
   revalidateClaim: mocks.revalidateClaim,
 }));
 
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: mocks.authorizeSessionTenant,
+}));
+
 vi.mock('@interdomestik/domain-claims/admin-claims/status-transition', () => ({
   transitionAdminClaimStatus: vi.fn(),
   transitionAdminClaimStatusInTransaction: mocks.transitionAdminClaimStatusInTransaction,
@@ -35,6 +41,7 @@ vi.mock('@interdomestik/database', async importOriginal => ({
 import { updateStatusAction } from './ops-status-action';
 
 const opsContext = { actorId: 'admin-1', actorRole: 'admin', tenantId: 'tenant-1' };
+const authority = mintTestTenantAuthority('tenant-1', { userId: 'admin-1', role: 'admin' });
 const claim = {
   caseLifecycleState: 'evaluation',
   id: 'claim-1',
@@ -62,6 +69,7 @@ describe('updateStatusAction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getOpsMutationContext.mockResolvedValue(opsContext);
+    mocks.authorizeSessionTenant.mockResolvedValue({ session: {}, authority });
     mocks.withTenantContext.mockImplementation(
       async (_context: unknown, action: (tx: unknown) => Promise<unknown>) => action(mocks.tx)
     );
@@ -82,10 +90,7 @@ describe('updateStatusAction', () => {
     expect(mocks.assertCanMutateClaim).toHaveBeenCalledWith(claim, 'admin', 'status_change');
     expect(mocks.assertTransitionAllowed).toHaveBeenCalledWith('evaluation', 'negotiation');
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1', role: 'admin' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.getClaimForMutation).toHaveBeenCalledWith('claim-1', 'tenant-1', mocks.tx);
     expectTransitionParams({ toStatus: 'negotiation' });
     expect(mocks.logAudit).toHaveBeenCalledWith(
@@ -145,19 +150,30 @@ describe('updateStatusAction', () => {
     expect(mocks.revalidateClaim).not.toHaveBeenCalled();
   });
 
+  it('denies a request without a session authority before any claim read or transaction', async () => {
+    mocks.authorizeSessionTenant.mockResolvedValueOnce(null);
+
+    await expect(updateStatusAction('claim-1', 'negotiation', 'sq')).resolves.toEqual({
+      success: false,
+      error: 'Unauthorized',
+    });
+
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
+    expect(mocks.getClaimForMutation).not.toHaveBeenCalled();
+  });
+
   it.each(['tenant_admin', 'super_admin'])(
     'lets %s change status on a claim assigned to another staff member',
     async role => {
       mocks.getOpsMutationContext.mockResolvedValueOnce({ ...opsContext, actorRole: role });
+      const roleAuthority = mintTestTenantAuthority('tenant-1', { userId: 'admin-1', role });
+      mocks.authorizeSessionTenant.mockResolvedValueOnce({ session: {}, authority: roleAuthority });
 
       await expect(updateStatusAction('claim-1', 'negotiation', 'sq')).resolves.toEqual({
         success: true,
       });
 
-      expect(mocks.withTenantContext).toHaveBeenCalledWith(
-        { tenantId: 'tenant-1', role },
-        expect.any(Function)
-      );
+      expect(mocks.withTenantContext).toHaveBeenCalledWith(roleAuthority, expect.any(Function));
       expect(mocks.transitionAdminClaimStatusInTransaction).toHaveBeenCalledWith(
         mocks.tx,
         expect.objectContaining({ actor: { id: 'admin-1', role } })

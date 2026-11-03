@@ -1,9 +1,14 @@
-import { crmActivities, crmLeads, db } from '@interdomestik/database';
+import { crmActivities, crmLeads } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { leadActivitySchema, type LogLeadActivityInput } from './schema';
 import type { ActionResult, ActivitySession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 export type { LogLeadActivityInput } from './schema';
 
 // NOSONAR
@@ -12,9 +17,10 @@ const ALLOWED_ROLES = new Set(['admin', 'staff', 'agent']);
 
 export async function logLeadActivityCore(params: {
   session: ActivitySession | null;
+  authority: TenantAuthority | null;
   data: LogLeadActivityInput;
 }): Promise<ActionResult> {
-  const { session, data } = params;
+  const { session, authority, data } = params;
 
   if (!session) return { success: false, error: 'Unauthorized' };
 
@@ -27,6 +33,10 @@ export async function logLeadActivityCore(params: {
   if (!session.user.tenantId) {
     return { success: false, error: 'Missing tenantId' };
   }
+  if (!authority) {
+    return { success: false, error: 'Unauthorized' };
+  }
+  const { tenantId } = readTenantAuthority(authority);
 
   const parsed = leadActivitySchema.safeParse(data);
   if (!parsed.success) {
@@ -39,11 +49,13 @@ export async function logLeadActivityCore(params: {
 
   try {
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    const lead = await db.query.crmLeads.findFirst({
-      where: eq(crmLeads.id, leadId),
-    });
+    const lead = await withTenantAuthority(authority, tx =>
+      tx.query.crmLeads.findFirst({
+        where: eq(crmLeads.id, leadId),
+      })
+    );
 
-    if (!lead || lead.tenantId !== session.user.tenantId) {
+    if (lead?.tenantId !== tenantId) {
       return { success: false, error: 'Lead access denied' };
     }
 
@@ -53,7 +65,7 @@ export async function logLeadActivityCore(params: {
 
     const newActivity = {
       id: nanoid(),
-      tenantId: session.user.tenantId,
+      tenantId,
       agentId: session.user.id,
       leadId,
       type: type === 'other' ? 'note' : type,
@@ -64,7 +76,7 @@ export async function logLeadActivityCore(params: {
     };
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    await db.insert(crmActivities).values(newActivity);
+    await withTenantAuthority(authority, tx => tx.insert(crmActivities).values(newActivity));
 
     return { success: true, error: undefined };
   } catch (error) {

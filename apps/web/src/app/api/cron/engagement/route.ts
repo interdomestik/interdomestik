@@ -14,19 +14,17 @@ export async function GET(request: Request) {
   });
   if (limited) return limited;
 
-  if (
-    !authorizeCronRequest({
-      authorizationHeader: request.headers.get('authorization'),
-      cronSecret: process.env.CRON_SECRET,
-    })
-  ) {
+  const ingress = authorizeCronRequest({
+    authorizationHeader: request.headers.get('authorization'),
+  });
+  if (!ingress) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const now = new Date();
 
   try {
-    const results = await runEngagementCronCore({ now, headers: request.headers });
+    const results = await runEngagementCronCore({ ingress, now, headers: request.headers });
     return NextResponse.json({ success: true, results });
   } catch (error) {
     console.error('Cron job error:', error);

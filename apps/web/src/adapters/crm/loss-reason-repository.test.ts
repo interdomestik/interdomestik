@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -26,7 +27,7 @@ describe('crmLossReasonRepository', () => {
 
   it('resolves active tenant and branch-compatible loss reasons', async () => {
     const findFirst = vi.fn(async () => ({ code: 'price', id: 'reason-1' }));
-    const repository = createCrmLossReasonRepository({
+    const repository = createCrmLossReasonRepository(mintTestTenantAuthority('tenant-1'), {
       query: {
         crmLossReasons: { findFirst },
       },
@@ -45,7 +46,7 @@ describe('crmLossReasonRepository', () => {
   });
 
   it('returns null when no active scoped loss reason exists', async () => {
-    const repository = createCrmLossReasonRepository({
+    const repository = createCrmLossReasonRepository(mintTestTenantAuthority('tenant-1'), {
       query: {
         crmLossReasons: { findFirst: vi.fn(async () => null) },
       },

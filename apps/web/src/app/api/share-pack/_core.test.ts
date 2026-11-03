@@ -1,5 +1,8 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 import { createSharePackCore, getSharePackCore, type SharePackServices } from './_core';
+
+const authority = mintTestTenantAuthority('tenant1');
 
 describe('Share Pack API Core', () => {
   const mockServices: SharePackServices = {
@@ -18,7 +21,7 @@ describe('Share Pack API Core', () => {
       });
 
       const result = await createSharePackCore({
-        tenantId: 'tenant1',
+        authority,
         userId: 'user1',
         documentIds: ['d1', 'd2'],
         userAgent: 'test-agent',
@@ -26,6 +29,11 @@ describe('Share Pack API Core', () => {
       });
 
       expect(result.ok).toBe(true);
+      expect(mockServices.createSharePack).toHaveBeenCalledWith({
+        authority,
+        userId: 'user1',
+        documentIds: ['d1', 'd2'],
+      });
       expect(result.data?.packId).toBe('p1');
       expect(mockServices.logAuditEvent).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -33,13 +41,14 @@ describe('Share Pack API Core', () => {
           ids: ['d1', 'd2'],
         })
       );
+      expect(vi.mocked(mockServices.logAuditEvent).mock.calls[0]?.[0].authority).toBe(authority);
     });
 
     it('returns error for invalid IDs', async () => {
       vi.mocked(mockServices.createSharePack).mockRejectedValue(new Error('Invalid IDs'));
 
       const result = await createSharePackCore({
-        tenantId: 'tenant1',
+        authority,
         userId: 'user1',
         documentIds: ['bad1'],
         services: mockServices,
@@ -56,6 +65,7 @@ describe('Share Pack API Core', () => {
         pack: { id: 'p1', expiresAt: new Date() },
         docs: [{ id: 'd1', fileName: 'file1.pdf', mimeType: 'pdf', fileSize: 100 }],
         tenantId: 'tenant1',
+        authority,
       });
 
       const result = await getSharePackCore({
@@ -70,6 +80,9 @@ describe('Share Pack API Core', () => {
         expect.objectContaining({
           shareToken: 'token1',
         })
+      );
+      expect(vi.mocked(mockServices.logAuditEvent).mock.calls.at(-1)?.[0].authority).toBe(
+        authority
       );
     });
 

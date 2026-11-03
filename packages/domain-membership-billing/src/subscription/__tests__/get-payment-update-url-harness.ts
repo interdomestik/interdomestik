@@ -1,3 +1,5 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterEach, beforeEach, vi, type Mock } from 'vitest';
 import type { SubscriptionSession } from '../types';
 
@@ -27,6 +29,7 @@ export const hoisted: PaymentUpdateTestMocks = {
 
 vi.doMock('@interdomestik/database', () => ({
   db: hoisted.db,
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(hoisted.db)),
   subscriptions: hoisted.subscriptions,
   and: vi.fn(),
   eq: vi.fn(),
@@ -66,6 +69,8 @@ export const VALID_TRANSACTION = {
   origin: 'subscription_recurring',
   checkout: { url: `${TRUSTED_LINK}?_ptxn=${TRANSACTION_ID}` },
 };
+
+export const authority: TenantAuthority = mintTestTenantAuthority('tenant_ks');
 
 export const session: SubscriptionSession = { user: { id: 'user_123', role: 'member' } };
 

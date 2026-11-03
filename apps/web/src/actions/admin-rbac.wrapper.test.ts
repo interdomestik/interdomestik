@@ -1,63 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
+import {
+  mockCreateBranchCore,
+  mockDeleteBranchCore,
+  mockListBranchesCore,
+  mockListUserRolesCore,
+  mockUpdateBranchCore,
+} from './admin-rbac.wrapper.test-support';
 import {
   createBranch,
   deleteBranch,
-  grantUserRole,
   listBranches,
   listUserRoles,
-  revokeUserRole,
   updateBranch,
 } from './admin-rbac.core';
 import * as context from './admin-users/context';
 import type { Session } from './admin-users/context.core';
-
-// Mock Domain Functions
-const mockListBranchesCore = vi.fn();
-const mockCreateBranchCore = vi.fn();
-const mockUpdateBranchCore = vi.fn();
-const mockDeleteBranchCore = vi.fn();
-const mockListUserRolesCore = vi.fn();
-const mockGrantUserRoleCore = vi.fn();
-const mockRevokeUserRoleCore = vi.fn();
-const mockRevalidatePath = vi.fn();
-
-vi.mock('@interdomestik/domain-users/admin/rbac', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  listBranchesCore: (...args: any[]) => mockListBranchesCore(...args),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createBranchCore: (...args: any[]) => mockCreateBranchCore(...args),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  updateBranchCore: (...args: any[]) => mockUpdateBranchCore(...args),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  deleteBranchCore: (...args: any[]) => mockDeleteBranchCore(...args),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  listUserRolesCore: (...args: any[]) => mockListUserRolesCore(...args),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  grantUserRoleCore: (...args: any[]) => mockGrantUserRoleCore(...args),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  revokeUserRoleCore: (...args: any[]) => mockRevokeUserRoleCore(...args),
-}));
-
-vi.mock('./admin-users/context');
-vi.mock('@/lib/audit', () => ({
-  logAuditEvent: vi.fn(),
-}));
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: vi.fn(async () => ({
-        user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' },
-      })),
-    },
-  },
-}));
-vi.mock('@/server/auth/effective-portal-access', () => ({
-  requireEffectivePortalAccessOrUnauthorized: vi.fn(async () => undefined),
-}));
-vi.mock('next/cache', () => ({
-  revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
-}));
 
 describe('admin-rbac.core', () => {
   const MOCK_BRANCH_ID = '550e8400-e29b-41d4-a716-446655440000';
@@ -85,9 +42,10 @@ describe('admin-rbac.core', () => {
       expect(mockListBranchesCore).toHaveBeenCalledWith(
         expect.objectContaining({
           session: expect.objectContaining({ user: expect.anything() }),
-          tenantId: 'tenant-1',
+          authority: expect.anything(),
         })
       );
+      expect(mockListBranchesCore.mock.calls[0]?.[0]).not.toHaveProperty('tenantId');
       expect(result).toEqual({ success: true, data: mockResult });
     });
   });
@@ -105,6 +63,8 @@ describe('admin-rbac.core', () => {
       expect(mockCreateBranchCore).toHaveBeenCalledWith(
         expect.objectContaining({
           session: expect.objectContaining({ user: expect.anything() }),
+          // The session producer's tenant capability reaches the domain function.
+          authority: expect.anything(),
           name: 'Branch 1',
           code: 'B1',
         }),
@@ -141,6 +101,7 @@ describe('admin-rbac.core', () => {
       expect(mockUpdateBranchCore).toHaveBeenCalledWith(
         expect.objectContaining({
           session: expect.objectContaining({ user: expect.anything() }),
+          authority: expect.anything(),
           branchId: MOCK_BRANCH_ID,
           name: 'Updated',
           isActive: true,
@@ -202,74 +163,10 @@ describe('admin-rbac.core', () => {
         expect.objectContaining({
           session: expect.objectContaining({ user: expect.anything() }),
           userId: params.userId,
-          tenantId: params.tenantId,
+          authority: expect.anything(),
         })
       );
       expect(result).toEqual({ success: true, data: mockResult });
-    });
-  });
-
-  describe('tenant guard', () => {
-    it('derives tenantId from session when grantUserRole tenantId is missing', async () => {
-      mockGrantUserRoleCore.mockResolvedValueOnce({ success: true });
-      const result = await grantUserRole({
-        userId: '123e4567-e89b-12d3-a456-426614174000',
-        role: 'member',
-      });
-
-      expect(mockGrantUserRoleCore).toHaveBeenCalledWith(
-        expect.objectContaining({ tenantId: 'tenant-1' })
-      );
-      expect(result.success).toBe(true);
-    });
-
-    it('derives tenantId from session when revokeUserRole tenantId is missing', async () => {
-      mockRevokeUserRoleCore.mockResolvedValueOnce({ success: true });
-      const result = await revokeUserRole({
-        userId: '123e4567-e89b-12d3-a456-426614174000',
-        role: 'member',
-        locale: 'en',
-      });
-
-      expect(mockRevokeUserRoleCore).toHaveBeenCalledWith(
-        expect.objectContaining({ tenantId: 'tenant-1' })
-      );
-      expect(result.success).toBe(true);
-      expect(mockRevalidatePath).toHaveBeenCalledWith(
-        '/en/admin/users/123e4567-e89b-12d3-a456-426614174000'
-      );
-      expect(mockRevalidatePath).toHaveBeenCalledWith('/en/admin/users');
-    });
-
-    it('ignores provided tenantId for non-super-admin revoke and uses session tenant', async () => {
-      mockRevokeUserRoleCore.mockResolvedValueOnce({ success: true });
-
-      const result = await revokeUserRole({
-        userId: '123e4567-e89b-12d3-a456-426614174000',
-        role: 'agent',
-        tenantId: 'tenant-foreign',
-      });
-
-      expect(mockRevokeUserRoleCore).toHaveBeenCalledWith(
-        expect.objectContaining({ tenantId: 'tenant-1' })
-      );
-      expect(result.success).toBe(true);
-    });
-
-    it('returns BRANCH_REQUIRED when grant role is branch-scoped without branch', async () => {
-      mockGrantUserRoleCore.mockResolvedValueOnce({ error: 'Branch is required for role: agent' });
-
-      const result = await grantUserRole({
-        userId: '123e4567-e89b-12d3-a456-426614174000',
-        role: 'agent',
-        tenantId: 'tenant-1',
-      });
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.code).toBe('BRANCH_REQUIRED');
-        expect(result.error).toBe('Branch is required for role: agent');
-      }
     });
   });
 });

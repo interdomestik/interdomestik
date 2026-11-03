@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -7,12 +8,11 @@ const hoisted = vi.hoisted(() => ({
   set: vi.fn(),
   update: vi.fn(),
   where: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
-    update: hoisted.update,
-  },
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -32,6 +32,10 @@ import { activateAgentUserProfile } from './activate-agent-profile';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  hoisted.withTenantContext.mockImplementation(
+    async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback({ update: hoisted.update })
+  );
   hoisted.update.mockReturnValue({ set: hoisted.set });
   hoisted.set.mockReturnValue({ where: hoisted.where });
   hoisted.where.mockReturnValue({ returning: hoisted.returning });
@@ -39,16 +43,19 @@ beforeEach(() => {
 });
 
 describe('activateAgentUserProfile', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   it('scopes the role update to the authenticated user, tenant, and current role', async () => {
     await expect(
       activateAgentUserProfile({
         currentRole: 'member',
         referralCode: 'ARBEN-1234',
-        tenantId: 'tenant-1',
+        authority,
         userId: 'member-1',
       })
     ).resolves.toBeUndefined();
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.set).toHaveBeenCalledWith(
       expect.objectContaining({
         role: 'agent',
@@ -74,7 +81,7 @@ describe('activateAgentUserProfile', () => {
       activateAgentUserProfile({
         currentRole: 'member',
         referralCode: 'ARBEN-1234',
-        tenantId: 'tenant-1',
+        authority,
         userId: 'member-1',
       })
     ).rejects.toThrow(/scope no longer matches/i);

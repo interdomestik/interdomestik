@@ -17,7 +17,7 @@ export async function createClaim(prevState: unknown, formData: FormData) {
   // We can't easily change the signature of createClaim if it's used as useFormState.
   // We will wrap the existing body.
 
-  return runAuthenticatedAction(async ({ session, requestHeaders }) => {
+  return runAuthenticatedAction(async ({ session, authority, requestHeaders }) => {
     const limit = await enforceRateLimitForAction({
       name: 'action:create-claim',
       limit: 5,
@@ -32,7 +32,7 @@ export async function createClaim(prevState: unknown, formData: FormData) {
       return { success: false, error: 'Too many requests. Please try again later.' };
     }
 
-    return createClaimCore({ session, requestHeaders, formData });
+    return createClaimCore({ session, authority, requestHeaders, formData });
   });
 }
 
@@ -45,7 +45,7 @@ export async function submitClaim(
   idempotencyKey?: string,
   handoffContext?: ClaimStartHandoffContext | null
 ) {
-  return runAuthenticatedAction(async ({ session, requestHeaders }) => {
+  return runAuthenticatedAction(async ({ session, authority, requestHeaders }) => {
     const limit = await enforceRateLimitForAction({
       name: 'action:submit-claim',
       limit: 5,
@@ -61,12 +61,19 @@ export async function submitClaim(
     }
 
     // submitClaimCore handles validation internally
-    return submitClaimCore({ session, requestHeaders, data, idempotencyKey, handoffContext });
+    return submitClaimCore({
+      session,
+      authority,
+      requestHeaders,
+      data,
+      idempotencyKey,
+      handoffContext,
+    });
   });
 }
 
 export async function updateDraftClaim(claimId: string, data: CreateClaimValues) {
-  return runAuthenticatedAction(async ({ session, requestHeaders }) => {
+  return runAuthenticatedAction(async ({ session, authority, requestHeaders }) => {
     const limit = await enforceRateLimitForAction({
       name: 'action:update-draft',
       limit: 50,
@@ -75,12 +82,12 @@ export async function updateDraftClaim(claimId: string, data: CreateClaimValues)
       productionSensitive: true,
     });
     if (limit.limited) return { success: false, error: 'Too many requests' };
-    return updateDraftClaimCore({ session, requestHeaders, claimId, data });
+    return updateDraftClaimCore({ session, authority, requestHeaders, claimId, data });
   });
 }
 
 export async function cancelClaim(claimId: string) {
-  return runAuthenticatedAction(async ({ session, requestHeaders }) => {
+  return runAuthenticatedAction(async ({ session, authority, requestHeaders }) => {
     const limit = await enforceRateLimitForAction({
       name: 'action:cancel-claim',
       limit: 10,
@@ -89,12 +96,12 @@ export async function cancelClaim(claimId: string) {
       productionSensitive: true,
     });
     if (limit.limited) return { success: false, error: 'Too many requests' };
-    return cancelClaimCore({ session, requestHeaders, claimId });
+    return cancelClaimCore({ session, authority, requestHeaders, claimId });
   });
 }
 
 export async function updateClaimStatus(claimId: string, newStatus: string) {
-  return runAuthenticatedAction(async ({ session, requestHeaders }) => {
+  return runAuthenticatedAction(async ({ session, authority, requestHeaders }) => {
     const limit = await enforceRateLimitForAction({
       name: 'action:update-status',
       limit: 100,
@@ -103,6 +110,6 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
       productionSensitive: true,
     });
     if (limit.limited) return { success: false, error: 'Too many requests' };
-    return updateClaimStatusCore({ session, requestHeaders, claimId, newStatus });
+    return updateClaimStatusCore({ session, authority, requestHeaders, claimId, newStatus });
   });
 }

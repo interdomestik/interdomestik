@@ -1,13 +1,17 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
 import { createCommissionWithDispositionCore } from '../../../commissions/create';
 import { handleNewSubscriptionExtras } from './extras';
+
+const authority = mintTestTenantAuthority('tenant_1');
 
 const databaseMocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
   findAgentSettings: vi.fn(),
   findReferral: vi.fn(),
   transaction: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -26,6 +30,10 @@ vi.mock('@interdomestik/database', () => ({
     transaction: databaseMocks.transaction,
   },
   eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
+  withTenantContext: (context: unknown, callback: unknown) => {
+    databaseMocks.withTenantContext(context);
+    return databaseMocks.transaction(callback);
+  },
 }));
 
 vi.mock('../../../../../domain-referrals/src', () => ({ createMemberReferralRewardCore: vi.fn() }));
@@ -34,7 +42,15 @@ vi.mock('../../../commissions/create-renewal', () => ({ createRenewalCommissionC
 
 describe('handleNewSubscriptionExtras membership events', () => {
   const deps = { logAuditEvent: vi.fn(), sendThankYouLetter: vi.fn() };
-  const tx = { insert: vi.fn(), update: vi.fn() };
+  // The tenant-context transaction also serves tenant-scoped reads through `tx.query`.
+  const tx = {
+    insert: vi.fn(),
+    update: vi.fn(),
+    query: {
+      agentSettings: { findFirst: databaseMocks.findAgentSettings },
+      referrals: { findFirst: databaseMocks.findReferral },
+    },
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -69,7 +85,7 @@ describe('handleNewSubscriptionExtras membership events', () => {
         currentBillingPeriod: { endsAt: '2026-01-01T00:00:00Z' },
         items: [{ price: { unitPrice: { amount: '2000', currencyCode: 'EUR' } } }],
       },
-      tenantId: 'tenant_1',
+      authority,
       userId: 'user_1',
       userRecord: { email: 'member@example.invalid', memberNumber: 'M-1', name: 'Member' },
     });
@@ -112,7 +128,7 @@ describe('handleNewSubscriptionExtras membership events', () => {
           id: 'sub_123',
           items: [{ price: { unitPrice: { amount: '2000', currencyCode: 'EUR' } } }],
         },
-        tenantId: 'tenant_1',
+        authority,
         userId: 'user_1',
         userRecord: { email: 'member@example.invalid', memberNumber: 'M-1', name: 'Member' },
       })

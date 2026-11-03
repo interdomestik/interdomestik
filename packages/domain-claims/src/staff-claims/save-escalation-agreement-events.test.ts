@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { saveClaimEscalationAgreementCore } from './save-escalation-agreement';
@@ -57,6 +58,9 @@ vi.mock('@interdomestik/database', () => ({
   claimEscalationAgreements: mocks.claimEscalationAgreements,
   claims: mocks.claims,
   db: mocks.db,
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) =>
+    mocks.db.transaction(cb)
+  ),
   eq: mocks.eq,
 }));
 
@@ -89,11 +93,14 @@ function agreementParams(overrides = {}) {
     legalActionCapPercentage: 25,
     minimumFee: 25,
     paymentAuthorizationState: 'authorized' as const,
+    authority,
     session: session(),
     termsVersion: '2026-03-v1',
     ...overrides,
   };
 }
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('saveClaimEscalationAgreementCore escalation agreement events', () => {
   beforeEach(() => vi.clearAllMocks());

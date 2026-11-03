@@ -1,10 +1,14 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 import { hoisted } from './persist.fixture';
-import { insertWebhookEvent, markWebhookFailed, persistInvalidSignatureAttempt } from './persist';
-import { subscriptionCreatedReceipt } from './persist.test-support';
+import { insertWebhookEvent, persistInvalidSignatureAttempt } from './persist';
+import { receiptLease, subscriptionCreatedReceipt } from './persist.test-support';
+
+const ksAuthority = mintTestTenantAuthority('tenant_ks');
 
 describe('webhook persistence idempotency', () => {
-  it('persists invalid signature attempts with scope-aware dedupe and DB conflict no-op', async () => {
+  it('persists invalid signature attempts as tenant-less evidence in the caller scope', async () => {
     await persistInvalidSignatureAttempt({
       headers: new Headers(),
       processingScopeKey: 'entity:ks',
@@ -14,18 +18,25 @@ describe('webhook persistence idempotency', () => {
       eventTimestamp: new Date('2026-02-23T00:00:00.000Z'),
       payloadHash: 'hash_1',
       parsedPayload: { ok: true },
-      tenantId: 'tenant_ks',
     });
 
-    expect(hoisted.insertValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        processingScopeKey: 'entity:ks',
-        dedupeKey: 'paddle:entity:ks:event:evt_1',
-      })
-    );
-    expect(hoisted.onConflictDoNothing).toHaveBeenCalledWith();
+    expect(hoisted.appendInvalidSignatureEvidence).toHaveBeenCalledTimes(1);
+    const [evidence] = hoisted.appendInvalidSignatureEvidence.mock.calls[0]!;
+    expect(evidence).toEqual({
+      processingScopeKey: 'entity:ks',
+      dedupeKey: 'paddle:entity:ks:event:evt_1',
+      eventType: 'transaction.completed',
+      eventId: 'evt_1',
+      eventTimestamp: new Date('2026-02-23T00:00:00.000Z'),
+      payloadHash: 'hash_1',
+      payload: { ok: true },
+    });
+    // Unverified evidence never carries a tenant and is never admitted as a genuine receipt.
+    expect(evidence).not.toHaveProperty('tenantId');
+    expect(hoisted.admitVerifiedReceipt).not.toHaveBeenCalled();
   });
-  it('preserves nullable tenant persistence for invalid signatures when tenant is unsafe', async () => {
+
+  it('never forwards a tenant for invalid signatures even when the scope is unsafe', async () => {
     await persistInvalidSignatureAttempt({
       headers: new Headers(),
       processingScopeKey: 'entity:unknown',
@@ -35,18 +46,23 @@ describe('webhook persistence idempotency', () => {
       eventTimestamp: null,
       payloadHash: 'hash_unsafe',
       parsedPayload: { ok: false },
-      tenantId: null,
     });
 
-    expect(hoisted.insertValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tenantId: null,
-        processingScopeKey: 'entity:unknown',
-      })
+    const [evidence] = hoisted.appendInvalidSignatureEvidence.mock.calls[0]!;
+    expect(evidence).toEqual(
+      expect.objectContaining({ processingScopeKey: 'entity:unknown', eventId: null })
     );
+    expect(evidence).not.toHaveProperty('tenantId');
   });
+
   it('returns duplicate=false when DB unique linkage blocks a replayed transaction identity', async () => {
-    hoisted.insertReturning.mockResolvedValueOnce([{ id: 'we_tx_1' }]).mockResolvedValueOnce([]);
+    hoisted.admitVerifiedReceipt
+      .mockResolvedValueOnce({
+        outcome: 'admitted',
+        lease: receiptLease('we_tx_1'),
+        reclaimed: false,
+      })
+      .mockResolvedValueOnce({ outcome: 'duplicate' });
 
     const deps = { logAuditEvent: vi.fn() };
     const common = {
@@ -59,6 +75,7 @@ describe('webhook persistence idempotency', () => {
       signatureValid: true,
       signatureBypassed: false,
       tenantId: 'tenant_ks',
+      authority: ksAuthority,
       providerTransactionId: 'txn_1',
     };
 
@@ -80,19 +97,26 @@ describe('webhook persistence idempotency', () => {
       deps
     );
 
-    expect(first).toEqual({ inserted: true, webhookEventRowId: 'we_tx_1' });
+    expect(first).toEqual({
+      inserted: true,
+      webhookEventRowId: 'we_tx_1',
+      receiptLease: receiptLease('we_tx_1'),
+    });
     expect(replay).toEqual({ inserted: false, webhookEventRowId: null });
-    expect(hoisted.onConflictDoNothing).toHaveBeenCalledWith();
     expect(
-      deps.logAuditEvent.mock.calls.map(([audit]) => [audit.action, audit.entityId, audit.tenantId])
+      deps.logAuditEvent.mock.calls.map(([audit]) => [
+        audit.action,
+        audit.entityId,
+        readTenantAuthority(audit.authority).tenantId,
+      ])
     ).toEqual([
       ['webhook.received', 'we_tx_1', 'tenant_ks'],
       ['webhook.duplicate', undefined, 'tenant_ks'],
     ]);
   });
 
-  it('preserves duplicate webhook audit behavior when tenantId is nullable', async () => {
-    hoisted.insertReturning.mockResolvedValueOnce([]);
+  it('records no tenant-scoped audit for a duplicate when no tenant authority was resolved', async () => {
+    hoisted.admitVerifiedReceipt.mockResolvedValueOnce({ outcome: 'duplicate' });
     const deps = { logAuditEvent: vi.fn() };
 
     const result = await insertWebhookEvent(
@@ -114,130 +138,37 @@ describe('webhook persistence idempotency', () => {
     );
 
     expect(result).toEqual({ inserted: false, webhookEventRowId: null });
-    expect(hoisted.insertValues).toHaveBeenCalledWith(expect.objectContaining({ tenantId: null }));
-    expect(deps.logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: 'webhook.duplicate',
-        tenantId: undefined,
-        metadata: expect.objectContaining({
-          processingScopeKey: 'entity:unknown',
-          providerTransactionId: 'txn_dup',
-        }),
-      })
+    expect(hoisted.admitVerifiedReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: null, providerTransactionId: 'txn_dup' })
     );
+    // No tenant was resolved, so there is no tenant to record the audit row in.
+    expect(deps.logAuditEvent).not.toHaveBeenCalled();
   });
 
-  it('atomically reclaims the exact verified retryable failure', async () => {
-    hoisted.insertReturning.mockResolvedValueOnce([]);
-    hoisted.updateReturning.mockResolvedValueOnce([{ id: 'we_retry' }]);
+  it('admits bypassed signatures but never an unverified receipt', async () => {
+    await insertWebhookEvent({
+      ...subscriptionCreatedReceipt('bypass'),
+      signatureValid: false,
+      signatureBypassed: true,
+    });
+    expect(hoisted.admitVerifiedReceipt).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws before any admission when the signature is neither valid nor bypassed', async () => {
     const logAuditEvent = vi.fn();
 
-    const result = await insertWebhookEvent(
-      {
-        ...subscriptionCreatedReceipt('retry'),
-        processingScopeKey: 'entity:mk',
-        dedupeKey: 'paddle:entity:mk:event:evt_retry',
-        tenantId: null,
-      },
-      { logAuditEvent }
-    );
+    await expect(
+      insertWebhookEvent(
+        {
+          ...subscriptionCreatedReceipt('unverified'),
+          signatureValid: false,
+          signatureBypassed: false,
+        },
+        { logAuditEvent }
+      )
+    ).rejects.toThrow('Unverified Paddle webhook cannot be admitted as a receipt');
 
-    expect(result).toEqual({ inserted: true, webhookEventRowId: 'we_retry' });
-    expect(hoisted.set).toHaveBeenCalledWith({
-      receivedAt: expect.any(Date),
-      processedAt: null,
-      processingResult: null,
-      error: null,
-    });
-    expect(hoisted.eq).toHaveBeenCalledWith('dedupe_key_col', 'paddle:entity:mk:event:evt_retry');
-    expect(hoisted.eq).toHaveBeenCalledWith('processing_scope_key_col', 'entity:mk');
-    expect(hoisted.eq).toHaveBeenCalledWith('payload_hash_col', 'hash_retry');
-    expect(hoisted.eq).toHaveBeenCalledWith('signature_valid_col', true);
-    expect(hoisted.eq).toHaveBeenCalledWith('processing_result_col', 'retryable_error');
-    expect(logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'webhook.retry_received', entityId: 'we_retry' })
-    );
-  });
-
-  it.each(['subscription.created', 'subscription.past_due'])(
-    'atomically reclaims a stale verified %s entity lease',
-    async eventType => {
-      hoisted.insertReturning.mockResolvedValueOnce([]);
-      hoisted.updateReturning.mockResolvedValueOnce([{ id: 'we_stale' }]);
-
-      const result = await insertWebhookEvent({
-        ...subscriptionCreatedReceipt('stale'),
-        eventType,
-        processingScopeKey: 'entity:mk',
-      });
-
-      expect(result).toEqual({ inserted: true, webhookEventRowId: 'we_stale' });
-      expect(hoisted.isNull).toHaveBeenCalledWith('processing_result_col');
-      expect(hoisted.lt).toHaveBeenCalledWith('received_at_col', expect.any(Date));
-      expect(hoisted.eq).toHaveBeenCalledWith('event_type_col', eventType);
-    }
-  );
-
-  it.each(['subscription.created', 'subscription.past_due'])(
-    'keeps every exact non-terminal %s entity lease retryable',
-    async eventType => {
-      hoisted.insertReturning.mockResolvedValueOnce([]);
-      hoisted.updateReturning.mockResolvedValueOnce([]);
-      hoisted.findFirst.mockImplementationOnce(query => {
-        const queryEq = vi.fn();
-        query.where(
-          {
-            provider: 'provider_col',
-            processingScopeKey: 'processing_scope_key_col',
-            dedupeKey: 'dedupe_key_col',
-            eventType: 'event_type_col',
-            payloadHash: 'payload_hash_col',
-            signatureValid: 'signature_valid_col',
-            processingResult: 'processing_result_col',
-          },
-          { and: vi.fn(), eq: queryEq, isNull: vi.fn(), or: vi.fn() }
-        );
-        expect(queryEq).toHaveBeenCalledWith('processing_result_col', 'retryable_error');
-        return { id: 'we_active' };
-      });
-
-      await expect(
-        insertWebhookEvent({
-          ...subscriptionCreatedReceipt('active'),
-          eventType,
-          processingScopeKey: 'entity:mk',
-        })
-      ).rejects.toMatchObject({
-        name: 'RetryablePaddleWebhookError',
-      });
-    }
-  );
-
-  it('distinguishes retryable pre-write failures from permanent processing failures', async () => {
-    await markWebhookFailed({
-      headers: new Headers(),
-      webhookEventRowId: 'we_retryable',
-      eventType: 'subscription.created',
-      eventId: 'evt_retryable',
-      error: new Error('transaction not ready'),
-      retryable: true,
-      tenantId: null,
-    });
-    expect(hoisted.set).toHaveBeenLastCalledWith(
-      expect.objectContaining({ processingResult: 'retryable_error' })
-    );
-
-    await markWebhookFailed({
-      headers: new Headers(),
-      webhookEventRowId: 'we_permanent',
-      eventType: 'subscription.created',
-      eventId: 'evt_permanent',
-      error: new Error('tenant conflict'),
-      retryable: false,
-      tenantId: null,
-    });
-    expect(hoisted.set).toHaveBeenLastCalledWith(
-      expect.objectContaining({ processingResult: 'error' })
-    );
+    expect(hoisted.admitVerifiedReceipt).not.toHaveBeenCalled();
+    expect(logAuditEvent).not.toHaveBeenCalled();
   });
 });

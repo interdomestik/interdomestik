@@ -1,7 +1,12 @@
 import { agentClients, and, db, desc, eq, memberActivities, user } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { sql } from 'drizzle-orm';
 
 import type { ActivitySession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 let memberActivitiesTableExists: Promise<boolean> | null = null;
 type TenantActivitySession = ActivitySession & {
@@ -44,41 +49,51 @@ function assertReadableSession(
   }
 }
 
-async function findTenantMember(memberId: string, tenantId: string) {
-  return db.query.user.findFirst({
-    where: and(eq(user.id, memberId), eq(user.tenantId, tenantId)),
-    columns: {
-      id: true,
-      tenantId: true,
-      agentId: true,
-    },
-  });
+async function findTenantMember(memberId: string, authority: TenantAuthority) {
+  const { tenantId } = readTenantAuthority(authority);
+  return withTenantAuthority(authority, tx =>
+    tx.query.user.findFirst({
+      where: and(eq(user.id, memberId), eq(user.tenantId, tenantId)),
+      columns: {
+        id: true,
+        tenantId: true,
+        agentId: true,
+      },
+    })
+  );
 }
 
 async function findActiveAgentAssignment(params: {
   agentId: string;
   memberId: string;
-  tenantId: string;
+  authority: TenantAuthority;
 }) {
-  return db.query.agentClients.findFirst({
-    where: and(
-      eq(agentClients.tenantId, params.tenantId),
-      eq(agentClients.agentId, params.agentId),
-      eq(agentClients.memberId, params.memberId),
-      eq(agentClients.status, 'active')
-    ),
-    columns: {
-      id: true,
-    },
-  });
+  const { tenantId } = readTenantAuthority(params.authority);
+  return withTenantAuthority(params.authority, tx =>
+    tx.query.agentClients.findFirst({
+      where: and(
+        eq(agentClients.tenantId, tenantId),
+        eq(agentClients.agentId, params.agentId),
+        eq(agentClients.memberId, params.memberId),
+        eq(agentClients.status, 'active')
+      ),
+      columns: {
+        id: true,
+      },
+    })
+  );
 }
 
-async function assertNonMemberReadAccess(session: TenantActivitySession, memberId: string) {
+async function assertNonMemberReadAccess(
+  session: TenantActivitySession,
+  authority: TenantAuthority,
+  memberId: string
+) {
   if (session.user.role === 'member') {
     return;
   }
 
-  const member = await findTenantMember(memberId, session.user.tenantId);
+  const member = await findTenantMember(memberId, authority);
   if (!member) {
     throw new Error('Permission denied');
   }
@@ -90,7 +105,7 @@ async function assertNonMemberReadAccess(session: TenantActivitySession, memberI
   const assignment = await findActiveAgentAssignment({
     agentId: session.user.id,
     memberId,
-    tenantId: session.user.tenantId,
+    authority,
   });
 
   if (!assignment) {
@@ -98,37 +113,42 @@ async function assertNonMemberReadAccess(session: TenantActivitySession, memberI
   }
 }
 
-async function findMemberActivities(memberId: string, tenantId: string) {
-  return db.query.memberActivities.findMany({
-    where: and(eq(memberActivities.memberId, memberId), eq(memberActivities.tenantId, tenantId)),
-    orderBy: [desc(memberActivities.occurredAt)],
-    with: {
-      agent: {
-        columns: {
-          id: true,
-          name: true,
-          email: true,
+async function findMemberActivities(memberId: string, authority: TenantAuthority) {
+  const { tenantId } = readTenantAuthority(authority);
+  return withTenantAuthority(authority, tx =>
+    tx.query.memberActivities.findMany({
+      where: and(eq(memberActivities.memberId, memberId), eq(memberActivities.tenantId, tenantId)),
+      orderBy: [desc(memberActivities.occurredAt)],
+      with: {
+        agent: {
+          columns: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
-    },
-  });
+    })
+  );
 }
 
 export async function getMemberActivitiesCore(params: {
   session: ActivitySession | null;
+  authority: TenantAuthority | null;
   memberId: string;
 }) {
-  const { session, memberId } = params;
+  const { session, authority, memberId } = params;
 
   assertReadableSession(session, memberId);
+  if (!authority) throw new Error('Unauthorized');
 
   try {
     if (!(await hasMemberActivitiesTable())) {
       return [];
     }
 
-    await assertNonMemberReadAccess(session, memberId);
-    return findMemberActivities(memberId, session.user.tenantId);
+    await assertNonMemberReadAccess(session, authority, memberId);
+    return findMemberActivities(memberId, authority);
   } catch (error) {
     if (error instanceof Error && error.message === 'Permission denied') {
       throw error;

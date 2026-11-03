@@ -1,26 +1,27 @@
 import { notifyPaymentVerificationUpdate } from '@/lib/notifications';
 import { ProtectedActionContext } from '@/lib/safe-action';
-import { db } from '@interdomestik/database';
+
 import { auditLog, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
 import { and, eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { verifyCashSchema } from '../schemas';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 // 3. Action: Verify (Approve/Reject/NeedsInfo)
 export async function verifyCashAttemptCore(
   ctx: ProtectedActionContext,
   input: z.infer<typeof verifyCashSchema>
 ) {
-  const { tenantId, session } = ctx;
+  const { tenantId, session, authority } = ctx;
   const { attemptId, decision, note } = input;
 
   if ((decision === 'reject' || decision === 'needs_info') && !note?.trim()) {
     throw new Error('A note is required for this decision.');
   }
 
-  const txResult = await db.transaction(async tx => {
+  const txResult = await withTenantAuthority(authority, async tx => {
     // A. Fetch
     const [result] = await tx
       .select({
@@ -94,14 +95,19 @@ export async function verifyCashAttemptCore(
 
     // G. Notify
     if (newStatus === 'needs_info' || newStatus === 'rejected') {
-      await notifyPaymentVerificationUpdate(lead.agentId, agentEmail, {
-        leadName: `${lead.firstName} ${lead.lastName}`,
-        amount: attempt.amount,
-        currency: attempt.currency,
-        status: newStatus,
-        note: note || undefined,
-        link: `/agent/leads`,
-      });
+      await notifyPaymentVerificationUpdate(
+        lead.agentId,
+        agentEmail,
+        {
+          leadName: `${lead.firstName} ${lead.lastName}`,
+          amount: attempt.amount,
+          currency: attempt.currency,
+          status: newStatus,
+          note: note || undefined,
+          link: `/agent/leads`,
+        },
+        { authority }
+      );
     }
 
     // H. Lead Status Update on Approval
@@ -128,7 +134,7 @@ export async function verifyCashAttemptCore(
   if (txResult.decision === 'approve' && txResult.leadId) {
     try {
       const { convertLeadToMember } = await import('@interdomestik/domain-leads/convert');
-      const conversionResult = await convertLeadToMember({ tenantId }, { leadId: txResult.leadId });
+      const conversionResult = await convertLeadToMember(authority, { leadId: txResult.leadId });
       if (conversionResult) {
         return {
           success: true,

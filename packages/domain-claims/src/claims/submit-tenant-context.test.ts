@@ -6,6 +6,7 @@ import {
   generateClaimNumberMock,
   getActiveSubscriptionMock,
   readTenantLocaleMetadataMock,
+  submitAuthority,
   submitTx,
   tenantContextOrder,
   tenantContexts,
@@ -34,8 +35,21 @@ describe('submitClaimCore tenant RLS context', () => {
       'context:open',
       'context:close',
     ]);
-    expect(tenantContexts).toEqual([{ tenantId: 'tenant-1' }, { tenantId: 'tenant-1' }]);
+    expect(tenantContexts).toHaveLength(2);
+    expect(tenantContexts[0]).toBe(submitAuthority);
+    expect(tenantContexts[1]).toBe(submitAuthority);
+    expect(getActiveSubscriptionMock).toHaveBeenCalledWith('member-1', submitAuthority);
     expect(submitTx.transaction).not.toHaveBeenCalled();
+  });
+
+  it('refuses without a session authority before any data access', async () => {
+    const args = buildSubmitArgs({ files: [] });
+
+    await expect(submitClaimCore({ ...args, authority: null })).rejects.toThrow('Unauthorized');
+
+    expect(getActiveSubscriptionMock).not.toHaveBeenCalled();
+    expect(tenantContexts).toHaveLength(0);
+    expect(txInsert).not.toHaveBeenCalled();
   });
 
   it('numbers the claim from server-read tenant metadata pinned to the writing tenant', async () => {
@@ -60,7 +74,8 @@ describe('submitClaimCore tenant RLS context', () => {
 
     expect(txInsert).not.toHaveBeenCalled();
     expect(generateClaimNumberMock).not.toHaveBeenCalled();
-    expect(tenantContexts).toEqual([{ tenantId: 'tenant-1' }]);
+    expect(tenantContexts).toHaveLength(1);
+    expect(tenantContexts[0]).toBe(submitAuthority);
   });
 
   it('fails closed when the tenant directory has no row for the writing tenant', async () => {

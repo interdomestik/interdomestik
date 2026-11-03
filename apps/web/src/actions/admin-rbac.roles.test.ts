@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { grantUserRoleCore } from '@interdomestik/domain-users/admin/rbac';
@@ -65,6 +66,10 @@ describe('domain-users rbac: branch required roles', () => {
   const session = {
     user: { id: 'admin-1', role: 'super_admin', tenantId: 'tenant_mk' },
   };
+  const authority = mintTestTenantAuthority('tenant_mk', {
+    userId: 'admin-1',
+    role: 'super_admin',
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -77,7 +82,7 @@ describe('domain-users rbac: branch required roles', () => {
   it('rejects assigning agent role without branchId', async () => {
     const result = await grantUserRoleCore({
       session,
-      tenantId: 'tenant_mk',
+      authority,
       userId: 'user-1',
       role: 'agent',
       branchId: null,
@@ -91,7 +96,7 @@ describe('domain-users rbac: branch required roles', () => {
   it('allows restoring a legacy tenant-wide agent role without branchId when explicitly flagged', async () => {
     const result = await grantUserRoleCore({
       session,
-      tenantId: 'tenant_mk',
+      authority,
       userId: 'user-1',
       role: 'agent',
       branchId: null,
@@ -106,7 +111,7 @@ describe('domain-users rbac: branch required roles', () => {
   it('rejects assigning branch_manager role without branchId', async () => {
     const result = await grantUserRoleCore({
       session,
-      tenantId: 'tenant_mk',
+      authority,
       userId: 'user-1',
       role: 'branch_manager',
       branchId: null,
@@ -122,7 +127,7 @@ describe('domain-users rbac: branch required roles', () => {
 
     const result = await grantUserRoleCore({
       session,
-      tenantId: 'tenant_mk',
+      authority,
       userId: 'user-1',
       role: 'agent',
       branchId: 'b-1',
@@ -137,7 +142,7 @@ describe('domain-users rbac: branch required roles', () => {
 
     const result = await grantUserRoleCore({
       session,
-      tenantId: 'tenant_mk',
+      authority,
       userId: 'user-1',
       role: 'agent',
       branchId: 'b-404',
@@ -166,7 +171,7 @@ describe('domain-users rbac: branch required roles', () => {
     await expect(
       grantUserRoleCore({
         session,
-        tenantId: 'tenant_mk',
+        authority,
         userId: 'user-1',
         role: 'agent',
         branchId: 'b-1',

@@ -3,11 +3,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
   handlerPOST: vi.fn(),
-  logAuditEvent: vi.fn(),
+  appendAnonymousTenantAuditEvent: vi.fn(),
   lookupUserTenantByEmail: vi.fn(),
 }));
 
-vi.mock('@/lib/audit', () => ({ logAuditEvent: hoisted.logAuditEvent }));
+vi.mock('@interdomestik/database', () => ({
+  appendAnonymousTenantAuditEvent: hoisted.appendAnonymousTenantAuditEvent,
+}));
+vi.mock('@/lib/audit.core', () => ({
+  extractRequestMetadata: (headers: Headers) => ({
+    ip: headers.get('x-forwarded-for') ?? undefined,
+    userAgent: headers.get('user-agent') ?? undefined,
+  }),
+}));
 vi.mock('@/lib/auth', () => ({ auth: {} }));
 vi.mock('@/lib/auth/tenant-lookup', () => ({
   lookupUserTenantByEmail: hoisted.lookupUserTenantByEmail,

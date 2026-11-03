@@ -1,8 +1,12 @@
-import { db } from '@interdomestik/database/db';
 import * as schema from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq, inArray } from 'drizzle-orm';
 
 import { logAuditEvent } from './audit';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const DELETED_DOCUMENT_RUN_STATUSES = ['queued', 'processing', 'in_progress'];
 const DOCUMENT_AI_DELETED_CODE = 'document_ai_document_deleted';
@@ -13,14 +17,15 @@ const DOCUMENT_AI_DELETED_MESSAGE = 'AI run skipped because the source document 
  * The source file remains in storage but database reads must no longer expose it.
  */
 export async function softDeleteDocument(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   documentId: string;
   deletedBy: string;
 }): Promise<void> {
-  const { tenantId, documentId, deletedBy } = params;
+  const { authority, documentId, deletedBy } = params;
+  const { tenantId } = readTenantAuthority(authority);
   const deletedAt = new Date();
 
-  await db.transaction(async tx => {
+  await withTenantAuthority(authority, async tx => {
     // db-access-guard: tenant-scoped -- reason: document soft-delete is constrained by exact tenantId and documentId.
     const [deletedDocument] = await tx
       .update(schema.documents)
@@ -97,7 +102,7 @@ export async function softDeleteDocument(params: {
   });
 
   await logAuditEvent({
-    tenantId,
+    authority,
     documentId,
     accessType: 'delete',
     accessedBy: deletedBy,

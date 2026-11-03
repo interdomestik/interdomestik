@@ -1,9 +1,19 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   findLeadFirst: vi.fn(),
   dbSelect: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
+
+vi.mock('@interdomestik/database', async () => {
+  const { db } = await import('@interdomestik/database/db');
+  hoisted.withTenantContext.mockImplementation(
+    async (_context: unknown, callback: (tx: unknown) => unknown) => callback(db)
+  );
+  return { withTenantContext: hoisted.withTenantContext };
+});
 
 vi.mock('@interdomestik/database/db', () => ({
   db: {
@@ -37,9 +47,11 @@ vi.mock('drizzle-orm', () => ({
 
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 
-import { crmLeadDetailRepository } from './lead-detail-repository';
+import { createCrmLeadDetailRepository } from './lead-detail-repository';
 import type { AgentCrmLeadDetailLeadRow } from './lead-detail-repository';
 
+const authority = mintTestTenantAuthority('tenant-1');
+const repository = createCrmLeadDetailRepository(authority);
 const actor: CrmActorContext = {
   actorId: 'agent-1',
   role: 'agent',
@@ -54,7 +66,7 @@ function createSelectChain(result: unknown) {
   };
 }
 
-describe('crmLeadDetailRepository', () => {
+describe('createCrmLeadDetailRepository', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -62,8 +74,9 @@ describe('crmLeadDetailRepository', () => {
   it('filters lead reads by tenant, agent, and durable branch custody', async () => {
     hoisted.findLeadFirst.mockResolvedValueOnce({ id: 'lead-1' });
 
-    await crmLeadDetailRepository.findAgentLead({ actor, leadId: 'lead-1' });
+    await repository.findAgentLead({ actor, leadId: 'lead-1' });
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.findLeadFirst).toHaveBeenCalledWith({
       where: {
         and: [
@@ -80,7 +93,7 @@ describe('crmLeadDetailRepository', () => {
     const chain = createSelectChain([{ id: 'deal-1' }]);
     hoisted.dbSelect.mockReturnValueOnce(chain);
 
-    await crmLeadDetailRepository.listAgentLeadDeals({
+    await repository.listAgentLeadDeals({
       actor,
       lead: {
         id: 'lead-1',
@@ -101,7 +114,7 @@ describe('crmLeadDetailRepository', () => {
 
   it('fails closed before querying when branch scope is missing', async () => {
     await expect(
-      crmLeadDetailRepository.findAgentLead({
+      repository.findAgentLead({
         actor: { ...actor, scope: { agentId: 'agent-1', branchId: null } },
         leadId: 'lead-1',
       })
@@ -109,7 +122,7 @@ describe('crmLeadDetailRepository', () => {
     expect(hoisted.findLeadFirst).not.toHaveBeenCalled();
 
     await expect(
-      crmLeadDetailRepository.listAgentLeadDeals({
+      repository.listAgentLeadDeals({
         actor: { ...actor, scope: { agentId: 'agent-1', branchId: null } },
         lead: {
           id: 'lead-1',

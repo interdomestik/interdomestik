@@ -1,5 +1,8 @@
-import { db } from '@interdomestik/database';
 import { memberNotes } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import type { ActionResult, CreateNoteInput, MemberNote, NoteType } from '../member-notes.types';
@@ -7,21 +10,24 @@ import { createNoteSchema, sanitizeNoteContent } from '../member-notes.types';
 import { logAuditEvent } from '@/lib/audit';
 import { canAccessNotes } from './access';
 import type { Session } from './context';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function createMemberNoteCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   data: CreateNoteInput;
 }): Promise<ActionResult<MemberNote>> {
-  const { session, data } = params;
+  const { session, authority, data } = params;
 
   if (!session?.user) return { success: false, error: 'Unauthorized' };
   if (!canAccessNotes(session.user.role)) return { success: false, error: 'Access denied' };
-  let tenantId: string;
   try {
-    tenantId = ensureTenantId(session);
+    ensureTenantId(session);
   } catch {
     return { success: false, error: 'Missing tenantId' };
   }
+  if (!authority) return { success: false, error: 'Unauthorized' };
+  const { tenantId } = readTenantAuthority(authority);
 
   const validated = createNoteSchema.safeParse(data);
   if (!validated.success) return { success: false, error: validated.error.message };
@@ -49,12 +55,12 @@ export async function createMemberNoteCore(params: {
     };
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session before member note insert
-    await db.insert(memberNotes).values(newNote);
+    await withTenantAuthority(authority, async tx => await tx.insert(memberNotes).values(newNote));
 
     await logAuditEvent({
       actorId: session.user.id,
       actorRole: session.user.role,
-      tenantId,
+      authority,
       action: 'member_note.created',
       entityType: 'member_note',
       entityId: newNote.id,

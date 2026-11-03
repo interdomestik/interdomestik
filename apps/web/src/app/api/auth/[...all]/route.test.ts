@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
-  logAuditEvent: vi.fn(),
+  appendAnonymousTenantAuditEvent: vi.fn(),
   handlerGET: vi.fn(),
   handlerPOST: vi.fn(),
 }));
@@ -11,8 +11,15 @@ vi.mock('@/lib/rate-limit', () => ({
   enforceRateLimit: hoisted.enforceRateLimit,
 }));
 
-vi.mock('@/lib/audit', () => ({
-  logAuditEvent: hoisted.logAuditEvent,
+vi.mock('@interdomestik/database', () => ({
+  appendAnonymousTenantAuditEvent: hoisted.appendAnonymousTenantAuditEvent,
+}));
+
+vi.mock('@/lib/audit.core', () => ({
+  extractRequestMetadata: (headers: Headers) => ({
+    ip: headers.get('x-forwarded-for') ?? undefined,
+    userAgent: headers.get('user-agent') ?? undefined,
+  }),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -96,7 +103,7 @@ describe('POST /api/auth/[...all]', () => {
     vi.clearAllMocks();
     hoisted.enforceRateLimit.mockResolvedValue(null);
     hoisted.handlerPOST.mockResolvedValue(new Response('ok', { status: 200 }));
-    hoisted.logAuditEvent.mockResolvedValue(undefined);
+    hoisted.appendAnonymousTenantAuditEvent.mockResolvedValue(true);
   });
 
   it('returns early when rate limited', async () => {
@@ -119,16 +126,59 @@ describe('POST /api/auth/[...all]', () => {
     const res = await POST(req);
 
     expect(res.status).toBe(200);
-    expect(hoisted.logAuditEvent).toHaveBeenCalledTimes(1);
-    expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
+    expect(hoisted.appendAnonymousTenantAuditEvent).toHaveBeenCalledTimes(1);
+    expect(hoisted.appendAnonymousTenantAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'auth.password_reset_requested',
         entityType: 'auth',
         tenantId: 'tenant_ks',
         metadata: { route: '/api/auth/request-password-reset' },
-        headers: req.headers,
       })
     );
+  });
+
+  it('bounds attacker-controlled request metadata on the password reset audit', async () => {
+    const req = new Request('http://localhost:3000/api/auth/request-password-reset', {
+      method: 'POST',
+      headers: {
+        host: 'ks.localhost:3000',
+        'user-agent': 'a'.repeat(5_000),
+        'x-forwarded-for': '9'.repeat(200),
+      },
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    const [event] = hoisted.appendAnonymousTenantAuditEvent.mock.calls[0];
+    expect(event.metadata.userAgent).toBe('a'.repeat(512));
+    expect(event.metadata.ip).toBe('9'.repeat(64));
+  });
+
+  it('appends no password reset audit when the front door names no tenant', async () => {
+    const req = new Request('http://ida.localhost:3000/api/auth/request-password-reset', {
+      method: 'POST',
+      headers: { host: 'ida.localhost:3000' },
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(hoisted.appendAnonymousTenantAuditEvent).not.toHaveBeenCalled();
+    expect(hoisted.handlerPOST).toHaveBeenCalledTimes(1);
+  });
+
+  it('still serves the password reset request when the audit append fails', async () => {
+    hoisted.appendAnonymousTenantAuditEvent.mockRejectedValue(new Error('db down'));
+    const req = new Request('http://localhost:3000/api/auth/request-password-reset', {
+      method: 'POST',
+      headers: { host: 'ks.localhost:3000' },
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(hoisted.handlerPOST).toHaveBeenCalledTimes(1);
   });
 
   it('does not log audit for other auth routes', async () => {
@@ -140,7 +190,7 @@ describe('POST /api/auth/[...all]', () => {
     const res = await POST(req);
 
     expect(res.status).toBe(200);
-    expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
+    expect(hoisted.appendAnonymousTenantAuditEvent).not.toHaveBeenCalled();
     expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'api/auth',

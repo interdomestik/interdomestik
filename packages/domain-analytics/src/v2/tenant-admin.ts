@@ -1,7 +1,11 @@
-import { db } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { branches, claims, user } from '@interdomestik/database/schema';
 import { claimLifecycleStatusIn, claimLifecycleStatusIs } from '@interdomestik/domain-claims';
 import { and, count, eq } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface TenantAdminKPIs {
   totalBranches: number;
@@ -16,7 +20,8 @@ export interface TenantAdminKPIs {
   };
 }
 
-export async function getTenantAdminKPIs(tenantId: string): Promise<TenantAdminKPIs> {
+export async function getTenantAdminKPIs(authority: TenantAuthority): Promise<TenantAdminKPIs> {
+  const { tenantId } = readTenantAuthority(authority);
   const [
     branchCount,
     agentCount,
@@ -27,40 +32,56 @@ export async function getTenantAdminKPIs(tenantId: string): Promise<TenantAdminK
     approvedClaims,
     rejectedClaims,
   ] = await Promise.all([
-    db.select({ count: count() }).from(branches).where(eq(branches.tenantId, tenantId)),
-    db
-      .select({ count: count() })
-      .from(user)
-      .where(and(eq(user.tenantId, tenantId), eq(user.role, 'agent'))),
-    db
-      .select({ count: count() })
-      .from(user)
-      .where(and(eq(user.tenantId, tenantId), eq(user.role, 'member'))),
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('draft'))),
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('submitted'))),
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(
-        and(
-          eq(claims.tenantId, tenantId),
-          claimLifecycleStatusIn(['verification', 'evaluation', 'negotiation', 'court'])
+    withTenantAuthority(authority, tx =>
+      tx.select({ count: count() }).from(branches).where(eq(branches.tenantId, tenantId))
+    ),
+    withTenantAuthority(authority, tx =>
+      tx
+        .select({ count: count() })
+        .from(user)
+        .where(and(eq(user.tenantId, tenantId), eq(user.role, 'agent')))
+    ),
+    withTenantAuthority(authority, tx =>
+      tx
+        .select({ count: count() })
+        .from(user)
+        .where(and(eq(user.tenantId, tenantId), eq(user.role, 'member')))
+    ),
+    withTenantAuthority(authority, tx =>
+      tx
+        .select({ count: count() })
+        .from(claims)
+        .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('draft')))
+    ),
+    withTenantAuthority(authority, tx =>
+      tx
+        .select({ count: count() })
+        .from(claims)
+        .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('submitted')))
+    ),
+    withTenantAuthority(authority, tx =>
+      tx
+        .select({ count: count() })
+        .from(claims)
+        .where(
+          and(
+            eq(claims.tenantId, tenantId),
+            claimLifecycleStatusIn(['verification', 'evaluation', 'negotiation', 'court'])
+          )
         )
-      ),
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('resolved'))),
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('rejected'))),
+    ),
+    withTenantAuthority(authority, tx =>
+      tx
+        .select({ count: count() })
+        .from(claims)
+        .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('resolved')))
+    ),
+    withTenantAuthority(authority, tx =>
+      tx
+        .select({ count: count() })
+        .from(claims)
+        .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('rejected')))
+    ),
   ]);
 
   return {

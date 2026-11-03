@@ -1,9 +1,14 @@
 import { db, memberActivities, user } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { activitySchema, type LogActivityInput } from './schema';
 import type { ActionResult, ActivitySession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type { LogActivityInput } from './schema';
 
@@ -22,9 +27,10 @@ async function hasMemberActivitiesTable(): Promise<boolean> {
 
 export async function logActivityCore(params: {
   session: ActivitySession | null;
+  authority: TenantAuthority | null;
   data: LogActivityInput;
 }): Promise<ActionResult> {
-  const { session, data } = params;
+  const { session, authority, data } = params;
 
   if (!session) {
     return { success: false, error: 'Unauthorized' };
@@ -36,6 +42,10 @@ export async function logActivityCore(params: {
   if (!session.user.tenantId) {
     return { success: false, error: 'Missing tenantId' };
   }
+  if (!authority) {
+    return { success: false, error: 'Unauthorized' };
+  }
+  const { tenantId } = readTenantAuthority(authority);
 
   const result = activitySchema.safeParse(data);
   if (!result.success) {
@@ -50,11 +60,13 @@ export async function logActivityCore(params: {
     }
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    const member = await db.query.user.findFirst({
-      where: eq(user.id, memberId),
-    });
+    const member = await withTenantAuthority(authority, tx =>
+      tx.query.user.findFirst({
+        where: eq(user.id, memberId),
+      })
+    );
 
-    if (!member || member.tenantId !== session.user.tenantId) {
+    if (member?.tenantId !== tenantId) {
       return { success: false, error: 'Member access denied' };
     }
 
@@ -64,7 +76,7 @@ export async function logActivityCore(params: {
 
     const newActivity = {
       id: nanoid(),
-      tenantId: session.user.tenantId,
+      tenantId,
       agentId: session.user.id,
       memberId,
       type,
@@ -76,7 +88,7 @@ export async function logActivityCore(params: {
     };
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    await db.insert(memberActivities).values(newActivity);
+    await withTenantAuthority(authority, tx => tx.insert(memberActivities).values(newActivity));
 
     return { success: true, error: undefined };
   } catch (error) {

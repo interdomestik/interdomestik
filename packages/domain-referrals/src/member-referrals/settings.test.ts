@@ -1,4 +1,5 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -8,8 +9,8 @@ import {
 
 const insertValues = vi.fn();
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       memberReferralSettings: {
         findFirst: vi.fn(),
@@ -22,8 +23,12 @@ vi.mock('@interdomestik/database', () => ({
         })),
       })),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   memberReferralSettings: {
@@ -54,6 +59,8 @@ vi.mock('drizzle-orm', async importOriginal => {
 });
 
 describe('member referral settings', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -62,8 +69,10 @@ describe('member referral settings', () => {
     (db.query.memberReferralSettings.findFirst as any).mockResolvedValue(null);
 
     const result = await getMemberReferralProgramSettingsCore({
-      tenantId: 'tenant-1',
+      authority,
     });
+
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -89,7 +98,7 @@ describe('member referral settings', () => {
     });
 
     const result = await getMemberReferralProgramSettingsCore({
-      tenantId: 'tenant-1',
+      authority,
     });
 
     expect(result.success).toBe(true);
@@ -132,7 +141,7 @@ describe('member referral settings', () => {
     });
 
     const result = await upsertMemberReferralProgramSettingsCore({
-      tenantId: 'tenant-1',
+      authority,
       settings: {
         enabled: true,
         rewardType: 'fixed',
@@ -158,6 +167,7 @@ describe('member referral settings', () => {
       });
     }
     expect(db.insert).toHaveBeenCalled();
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
   });
 
   it('upserts configurable percent reward settings', async () => {
@@ -184,7 +194,7 @@ describe('member referral settings', () => {
     });
 
     const result = await upsertMemberReferralProgramSettingsCore({
-      tenantId: 'tenant-1',
+      authority,
       settings: {
         enabled: true,
         rewardType: 'percent',

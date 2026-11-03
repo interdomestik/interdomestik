@@ -1,4 +1,8 @@
 import { ApiResult } from '@/core-contracts';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 
 // Dependencies needed by the core
 export interface AnalyzePolicyDeps {
@@ -10,7 +14,7 @@ export interface AnalyzePolicyDeps {
     safeName: string;
   }) => Promise<{ ok: true; filePath: string } | { ok: false; error: string }>;
   queuePolicyAnalysis: (args: {
-    tenantId: string;
+    authority: TenantAuthority;
     userId: string;
     fileUrl: string;
     fileName: string;
@@ -23,13 +27,17 @@ export interface AnalyzePolicyDeps {
     policyId: string;
     userId: string;
   }) => Promise<void>;
-  markRunDispatchFailed: (args: { runId: string; message: string }) => Promise<void>;
+  markRunDispatchFailed: (args: {
+    authority: TenantAuthority;
+    runId: string;
+    message: string;
+  }) => Promise<void>;
 }
 
 export interface AnalyzePolicyParams {
   file: File;
   buffer: Buffer; // Passed explicitly to avoid async arrayBuffer() in core
-  session: { userId: string; tenantId: string };
+  session: { userId: string; authority: TenantAuthority };
   deps: AnalyzePolicyDeps;
 }
 
@@ -98,11 +106,12 @@ export async function analyzePolicyCore(
   }
 
   const safeName = sanitizeFileName(file.name);
+  const { tenantId } = readTenantAuthority(session.authority);
 
   try {
     const uploadResult = await deps.uploadFile({
       userId: session.userId,
-      tenantId: session.tenantId,
+      tenantId,
       file,
       buffer,
       safeName,
@@ -113,7 +122,7 @@ export async function analyzePolicyCore(
     }
 
     const queuedAnalysis = await deps.queuePolicyAnalysis({
-      tenantId: session.tenantId,
+      authority: session.authority,
       userId: session.userId,
       fileUrl: uploadResult.filePath,
       fileName: file.name,
@@ -124,7 +133,7 @@ export async function analyzePolicyCore(
     try {
       await deps.emitRequestedRun({
         runId: queuedAnalysis.runId,
-        tenantId: session.tenantId,
+        tenantId,
         policyId: queuedAnalysis.policyId,
         userId: session.userId,
       });
@@ -134,6 +143,7 @@ export async function analyzePolicyCore(
 
       try {
         await deps.markRunDispatchFailed({
+          authority: session.authority,
           runId: queuedAnalysis.runId,
           message,
         });

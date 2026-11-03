@@ -1,5 +1,4 @@
-import { db, eq } from '@interdomestik/database';
-import { generateMemberNumber } from '@interdomestik/database/member-number';
+import { eq, issueTenantMemberNumber } from '@interdomestik/database';
 import {
   createActiveAnnualMembershipFulfillment,
   createAgentAssistedOwnershipAttribution,
@@ -12,11 +11,16 @@ import {
   subscriptions,
   user as userTable,
 } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { nanoid } from 'nanoid';
 
 export interface ConvertLeadResult {
   userId: string;
-  memberNumber: string;
+  memberNumber: string | null;
   subscriptionId: string;
 }
 
@@ -36,36 +40,44 @@ function resolveLeadConversionPlanId(planId?: string): string {
 }
 
 export async function hasTenantLeadForConversion(
-  ctx: { tenantId: string },
+  authority: TenantAuthority,
   args: { leadId: string }
 ): Promise<boolean> {
-  // db-access-guard: tenant-scoped -- reason: lead ownership is constrained by caller tenantId in the query predicate
-  const lead = await db.query.memberLeads.findFirst({
-    where: (l, { eq, and }) => and(eq(l.id, args.leadId), eq(l.tenantId, ctx.tenantId)),
-    columns: { id: true },
-  });
+  const { tenantId } = readTenantAuthority(authority);
+  // db-access-guard: tenant-scoped -- reason: lead ownership is constrained by the authority tenant in the query predicate
+  const lead = await withTenantAuthority(authority, tx =>
+    tx.query.memberLeads.findFirst({
+      where: (l, { eq, and }) => and(eq(l.id, args.leadId), eq(l.tenantId, tenantId)),
+      columns: { id: true },
+    })
+  );
 
   return Boolean(lead);
 }
 
 export async function convertLeadToMember(
-  ctx: { tenantId: string },
+  authority: TenantAuthority,
   args: { leadId: string; planId?: string }
 ): Promise<ConvertLeadResult | null> {
   const { leadId } = args;
+  const { tenantId } = readTenantAuthority(authority);
   const planId = resolveLeadConversionPlanId(args.planId);
 
-  const lead = await db.query.memberLeads.findFirst({
-    where: (l, { eq, and }) => and(eq(l.id, leadId), eq(l.tenantId, ctx.tenantId)),
-  });
+  const lead = await withTenantAuthority(authority, tx =>
+    tx.query.memberLeads.findFirst({
+      where: (l, { eq, and }) => and(eq(l.id, leadId), eq(l.tenantId, tenantId)),
+    })
+  );
 
   if (!lead) throw new Error('Lead not found');
+  // A lead row outside the authority's tenant is never converted.
+  if (lead.tenantId !== tenantId) throw new Error('Lead not found');
   if (isLeadAlreadyConverted(lead)) return null; // Already done (idempotency)
 
   const userId = `usr_${nanoid()}`;
   const now = new Date();
   const canonicalPlanState = await resolveCanonicalMembershipPlanState({
-    tenantId: ctx.tenantId,
+    authority,
     planId,
   });
   const annualMembershipState = createActiveAnnualMembershipFulfillment(
@@ -75,12 +87,12 @@ export async function convertLeadToMember(
   );
 
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  return await db.transaction(async tx => {
+  const converted = await withTenantAuthority(authority, async tx => {
     // A. Insert User with role='member'
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(userTable).values({
       id: userId,
-      tenantId: ctx.tenantId,
+      tenantId: tenantId,
       email: lead.email,
       name: `${lead.firstName} ${lead.lastName}`,
       role: 'member',
@@ -91,18 +103,12 @@ export async function convertLeadToMember(
       branchId: lead.branchId,
     });
 
-    // B. Generate Member Number (uses canonical generator with retry logic)
-    const { memberNumber } = await generateMemberNumber(tx, {
-      userId,
-      joinedAt: now,
-    });
-
     // C. Create Subscription
     const subscriptionId = `sub_${nanoid()}`;
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(subscriptions).values({
       id: subscriptionId,
-      tenantId: ctx.tenantId,
+      tenantId: tenantId,
       userId,
       agentId: lead.agentId,
       branchId: lead.branchId,
@@ -111,14 +117,14 @@ export async function convertLeadToMember(
       updatedAt: now,
     });
 
-    await revokeAgentClientReadScope(tx, { tenantId: ctx.tenantId, memberId: userId });
+    await revokeAgentClientReadScope(tx, { tenantId: tenantId, memberId: userId });
 
     // D. Issue Membership Card
     const cardNumber = `MEM-${nanoid(8).toUpperCase()}`;
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(membershipCards).values({
       id: `card_${nanoid()}`,
-      tenantId: ctx.tenantId,
+      tenantId: tenantId,
       userId,
       subscriptionId,
       status: 'active',
@@ -134,6 +140,16 @@ export async function convertLeadToMember(
       .set({ status: 'converted', convertedUserId: userId, updatedAt: now })
       .where(eq(memberLeads.id, leadId));
 
-    return { userId, memberNumber, subscriptionId };
+    return { userId, subscriptionId };
   });
+
+  // The global member number is issued for the committed member on its own connection; a member
+  // left without one is completed by the session self-heal.
+  const issued = await issueTenantMemberNumber(authority, { userId, joinedAt: now }).catch(
+    error => {
+      console.error('Member number issuance failed:', error);
+      return null;
+    }
+  );
+  return { ...converted, memberNumber: issued?.memberNumber ?? null };
 }

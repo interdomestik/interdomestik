@@ -1,5 +1,6 @@
 import type { ExtractionCritique } from '@/lib/ai/extraction-pipeline';
-import { sql, type TenantTransaction, withTenantContext } from '@interdomestik/database';
+import { sql, type TenantTransaction } from '@interdomestik/database';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aiRuns, documentExtractions } from '@interdomestik/database/schema';
 import {
   CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION,
@@ -48,7 +49,7 @@ export async function persistClaimAiExtraction(args: {
 }) {
   const completedAt = new Date();
 
-  await withTenantContext({ tenantId: args.run.tenantId, role: 'system' }, async tx => {
+  await withTenantAuthority(args.run.authority, async tx => {
     const [activeDocument] = await lockActiveDocument(tx, {
       documentId: args.run.documentId,
       tenantId: args.run.tenantId,

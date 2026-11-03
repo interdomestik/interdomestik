@@ -1,19 +1,23 @@
 import { db } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getWrappedStatsCore } from './get.core';
 
 vi.mock('@interdomestik/database', () => {
-  return {
-    db: {
-      query: {
-        subscriptions: {
-          findFirst: vi.fn(),
-        },
-        claims: {
-          findMany: vi.fn(),
-        },
+  const db = {
+    query: {
+      subscriptions: {
+        findFirst: vi.fn(),
+      },
+      claims: {
+        findMany: vi.fn(),
       },
     },
+  };
+  return {
+    db,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db),
     subscriptions: { userId: 's_userId', tenantId: 's_tenantId' },
     claims: { userId: 'c_userId', tenantId: 'c_tenantId' },
   };
@@ -33,6 +37,8 @@ vi.mock('@interdomestik/database/constants', () => ({
   ],
 }));
 
+const authority = mintTestTenantAuthority('tenant_ks');
+
 describe('getWrappedStatsCore', () => {
   const mockSession = { user: { id: 'u1', name: 'John', tenantId: 'tenant_ks' } };
 
@@ -41,13 +47,16 @@ describe('getWrappedStatsCore', () => {
   });
 
   it('should throw Error if no session', async () => {
-    await expect(getWrappedStatsCore({ session: null })).rejects.toThrow('Unauthorized');
+    await expect(getWrappedStatsCore({ session: null, authority: null })).rejects.toThrow(
+      'Unauthorized'
+    );
   });
 
   it('should throw when tenant context is missing', async () => {
     await expect(
       getWrappedStatsCore({
         session: { user: { id: 'u1', name: 'John', tenantId: null } } as never,
+        authority,
       })
     ).rejects.toThrow('Session missing tenantId. Data integrity issue.');
     expect(db.query.subscriptions.findFirst).not.toHaveBeenCalled();
@@ -56,7 +65,7 @@ describe('getWrappedStatsCore', () => {
 
   it('should return null if no subscription', async () => {
     vi.mocked(db.query.subscriptions.findFirst).mockResolvedValue(null as never);
-    const result = await getWrappedStatsCore({ session: mockSession as never });
+    const result = await getWrappedStatsCore({ session: mockSession as never, authority });
     expect(result).toBeNull();
   });
 
@@ -78,7 +87,7 @@ describe('getWrappedStatsCore', () => {
       },
     ] as never);
 
-    const result = await getWrappedStatsCore({ session: mockSession as never });
+    const result = await getWrappedStatsCore({ session: mockSession as never, authority });
 
     expect(result).not.toBeNull();
     if (result) {

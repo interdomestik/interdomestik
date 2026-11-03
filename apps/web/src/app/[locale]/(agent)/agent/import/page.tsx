@@ -3,7 +3,7 @@ import { GroupDashboardSummary } from '@/features/agent/import/components/group-
 import { CSVUploader } from '@/features/agent/import/components/csv-uploader';
 import { getGroupDashboardSummary } from '@/features/agent/import/server/get-group-dashboard-summary';
 import { auth } from '@/lib/auth';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 
@@ -17,14 +17,18 @@ export default async function AgentImportPage({ params }: { params: Promise<{ lo
     redirect(`/${locale}/member`);
   }
 
-  const tier = await getAgentTier({ agentId: session.user.id, tenantId: session.user.tenantId });
-  if (tier !== 'office') {
+  const authorized = session.user.tenantId ? await authorizeSessionTenant(await headers()) : null;
+  const tier = await getAgentTier({
+    agentId: session.user.id,
+    authority: authorized?.authority ?? null,
+  });
+  if (tier !== 'office' || !authorized) {
     notFound();
   }
 
   const summary = await getGroupDashboardSummary({
     agentId: session.user.id,
-    tenantId: ensureTenantId(session),
+    authority: authorized.authority,
   });
 
   return (

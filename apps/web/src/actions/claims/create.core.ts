@@ -1,5 +1,7 @@
 import { createClaimCore as createClaimCoreDomain } from '@interdomestik/domain-claims/claims/create';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { logAuditEvent } from '@/lib/audit';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
@@ -8,6 +10,7 @@ import type { Session } from './context';
 
 export async function createClaimCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   requestHeaders: Headers;
   formData: FormData;
 }) {

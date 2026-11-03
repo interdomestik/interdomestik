@@ -1,6 +1,7 @@
 import * as roles from '@/lib/roles';
 import { claims, db, eq } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAgentDashboardDataCore } from './get.core';
 
@@ -22,6 +23,8 @@ vi.mock('@interdomestik/database', () => {
 
   return {
     db: mockDb,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof mockDb) => unknown) =>
+      callback(mockDb),
     claims: {
       tenantId: { name: 'tenantId' },
       status: { name: 'status' },
@@ -53,13 +56,17 @@ vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: vi.fn(),
 }));
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('getAgentDashboardDataCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('should throw Error if no session', async () => {
-    await expect(getAgentDashboardDataCore({ session: null })).rejects.toThrow('Unauthorized');
+    await expect(getAgentDashboardDataCore({ session: null, authority: null })).rejects.toThrow(
+      'Unauthorized'
+    );
   });
 
   it('should return empty stats for agent role', async () => {
@@ -75,7 +82,7 @@ describe('getAgentDashboardDataCore', () => {
       user: { id: 'agent1', role: 'agent' },
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await getAgentDashboardDataCore({ session: mockSession as any });
+    const result = await getAgentDashboardDataCore({ session: mockSession as any, authority });
     expect(result.recentClaims).toEqual([]);
     expect(result.stats.total).toBe(0);
   });
@@ -93,10 +100,10 @@ describe('getAgentDashboardDataCore', () => {
       user: { id: 'user1', role: 'user' },
     };
     vi.mocked(roles.isStaffOrAdmin).mockReturnValue(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await expect(getAgentDashboardDataCore({ session: mockSession as any })).rejects.toThrow(
-      'Unauthorized'
-    );
+    await expect(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      getAgentDashboardDataCore({ session: mockSession as any, authority })
+    ).rejects.toThrow('Unauthorized');
   });
 
   it('should return stats for staff', async () => {
@@ -130,7 +137,7 @@ describe('getAgentDashboardDataCore', () => {
     vi.mocked(db.query.claims.findMany).mockResolvedValue([{ id: 'c1' } as any]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await getAgentDashboardDataCore({ session: mockSession as any });
+    const result = await getAgentDashboardDataCore({ session: mockSession as any, authority });
 
     expect(result.stats.total).toBe(10);
     expect(result.stats.new).toBe(2);
@@ -164,10 +171,10 @@ describe('getAgentDashboardDataCore', () => {
       throw new Error('Missing tenant');
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await expect(getAgentDashboardDataCore({ session: mockSession as any })).rejects.toThrow(
-      'Missing tenantId'
-    );
+    await expect(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      getAgentDashboardDataCore({ session: mockSession as any, authority })
+    ).rejects.toThrow('Missing tenantId');
 
     expect(db.select).not.toHaveBeenCalled();
     expect(db.query.claims.findMany).not.toHaveBeenCalled();

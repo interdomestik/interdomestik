@@ -10,7 +10,7 @@ import { NextActionsCard } from '@/features/admin/claims/components/ops/NextActi
 import { getOpsClaimDetail } from '@/features/admin/claims/server/getOpsClaimDetail';
 import { auth } from '@/lib/auth';
 import { isAdmin } from '@/lib/roles';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { Card, CardContent } from '@interdomestik/ui/components/card';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -27,13 +27,15 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
   if (!visibility || !canViewAdminClaims(visibility)) return notFound();
   if (visibility.role === 'branch_manager' && !visibility.branchId) return notFound();
 
-  let tenantId: string;
+  let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
   try {
-    tenantId = ensureTenantId(session);
+    authorized = await authorizeSessionTenant(await headers());
   } catch {
     return notFound();
   }
-  const result = await getOpsClaimDetail(id);
+  if (!authorized) return notFound();
+  const { authority } = authorized;
+  const result = await getOpsClaimDetail(id, authority);
   if (result.kind === 'not_found') return notFound();
 
   const data = result.data;
@@ -107,7 +109,7 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
                 <Suspense fallback={<div className="h-20 animate-pulse bg-muted/50 rounded" />}>
                   <ClaimOpsTimelineSection
                     claimId={data.id}
-                    tenantId={tenantId}
+                    authority={authority}
                     viewerRole="admin"
                     showNotes={true}
                   />

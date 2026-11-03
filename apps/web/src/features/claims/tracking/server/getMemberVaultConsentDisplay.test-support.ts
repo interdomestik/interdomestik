@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi } from 'vitest';
 
 export function tenantChain(rows: unknown[]) {
@@ -17,8 +18,10 @@ export function orderedRowsChain(rows: unknown[]) {
   return { from: vi.fn(() => ({ where })), orderBy, where };
 }
 
+export const baseTenantId = 'tenant-mk';
+export const baseAuthority = mintTestTenantAuthority(baseTenantId);
+
 export const baseParams = {
-  tenantId: 'tenant-mk',
   memberId: 'member-1',
   claimId: 'claim-1',
   claimCategory: 'vehicle',

@@ -16,7 +16,11 @@ import {
   findOwnedMemberUploadClaim,
 } from '@/features/claims/upload/server/access';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { headers } from 'next/headers';
 import { z } from 'zod';
 import { buildMemberAiExtractionConsent, type ConfirmUploadParams } from './upload-consent';
@@ -54,7 +58,10 @@ export async function generateUploadUrl(
 
   const actorRole = resolveMemberActorRoleOnSession(session.user.role);
   if (!actorRole) return { success: false, error: 'Unauthorized', status: 401 };
-  const tenantId = ensureTenantId(session);
+  const authorized = await authorizeSessionTenant(await headers());
+  if (!authorized) return { success: false, error: 'Unauthorized', status: 401 };
+  const { authority } = authorized;
+  const { tenantId } = readTenantAuthority(authority);
   let evidenceBucket: string;
   try {
     evidenceBucket = resolveEvidenceBucketName();
@@ -69,9 +76,8 @@ export async function generateUploadUrl(
   }
 
   const claim = await findOwnedMemberUploadClaim({
-    role: actorRole,
     claimId,
-    tenantId,
+    authority,
     userId: session.user.id,
   });
 
@@ -88,7 +94,7 @@ export async function generateUploadUrl(
       !(await findOwnedMemberInformationRequest({
         claimId,
         informationRequestId: parsedRequestId.data,
-        tenantId,
+        authority,
         userId: session.user.id,
       }))
     ) {
@@ -118,6 +124,7 @@ type ConfirmUploadContext =
       success: true;
       actorRole: string;
       session: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
+      authority: TenantAuthority;
       tenantId: string;
       resolvedBucket: string;
     }
@@ -136,11 +143,14 @@ async function resolveConfirmUploadContext(): Promise<ConfirmUploadContext> {
   if (!actorRole) return { success: false, error: 'Unauthorized', status: 401 };
 
   try {
+    const authorized = await authorizeSessionTenant(await headers());
+    if (!authorized) return { success: false, error: 'Unauthorized', status: 401 };
     return {
       success: true,
       actorRole,
       session,
-      tenantId: ensureTenantId(session),
+      authority: authorized.authority,
+      tenantId: readTenantAuthority(authorized.authority).tenantId,
       resolvedBucket: resolveEvidenceBucketName(),
     };
   } catch (error) {
@@ -185,16 +195,15 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
   if (!uploadContext.success) {
     return uploadContext;
   }
-  const { actorRole, session, tenantId, resolvedBucket } = uploadContext;
+  const { actorRole, session, authority, tenantId, resolvedBucket } = uploadContext;
 
   if (informationRequestId && !informationRequestIdSchema.safeParse(informationRequestId).success) {
     return { success: false, error: 'Invalid information request', status: 400 };
   }
 
   const claim = await findOwnedMemberUploadClaim({
-    role: actorRole,
     claimId,
-    tenantId,
+    authority,
     userId: session.user.id,
   });
 
@@ -207,7 +216,7 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
     !(await findOwnedMemberInformationRequest({
       claimId,
       informationRequestId,
-      tenantId,
+      authority,
       userId: session.user.id,
     }))
   ) {
@@ -250,6 +259,7 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
       originalName,
       resolvedBucket,
       storagePath,
+      authority,
       tenantId,
       userId: session.user.id,
       // Ordinary uploads retain the canonical actor derived from the verified session.

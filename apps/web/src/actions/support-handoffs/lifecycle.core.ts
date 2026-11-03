@@ -4,6 +4,8 @@ import {
   reassignSupportHandoffCore as reassignDomainSupportHandoff,
 } from '@interdomestik/domain-claims/support-handoffs/lifecycle';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { logAuditEvent } from '@/lib/audit';
 import { clearSupportHandoffPublicResponseNotifications } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
@@ -27,6 +29,7 @@ function revalidateMemberHelpPaths() {
 }
 
 export async function acceptSupportHandoffCore(params: {
+  authority: TenantAuthority | null;
   expectedVersion?: number;
   handoffId: string;
   requestHeaders?: Headers;
@@ -42,6 +45,7 @@ export async function acceptSupportHandoffCore(params: {
 }
 
 export async function reassignSupportHandoffCore(params: {
+  authority: TenantAuthority | null;
   expectedVersion?: number;
   handoffId: string;
   nextStaffId: string;
@@ -59,6 +63,7 @@ export async function reassignSupportHandoffCore(params: {
 }
 
 export async function closeSupportHandoffCore(params: {
+  authority: TenantAuthority | null;
   expectedVersion?: number;
   handoffId: string;
   reason: string;
@@ -69,10 +74,11 @@ export async function closeSupportHandoffCore(params: {
 
   if (result.success) {
     try {
+      if (!params.authority) throw new Error('Missing tenant authority');
       const notificationResult = await clearSupportHandoffPublicResponseNotifications(
         result.data.memberId,
         { id: result.data.handoffId },
-        { tenantId: result.data.tenantId }
+        { authority: params.authority }
       );
 
       if (!notificationResult.success) {

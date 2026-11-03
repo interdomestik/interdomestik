@@ -1,6 +1,10 @@
-import { db } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { agentClients, claims } from '@interdomestik/database/schema';
 import { and, count, eq, sql } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface AgentCapacityResult {
   capacity: 'available' | 'near_limit' | 'overloaded';
@@ -8,23 +12,39 @@ export interface AgentCapacityResult {
   recentClaimsVol: number;
 }
 
-export async function getAgentCapacitySignal(agentId: string): Promise<AgentCapacityResult> {
-  // Signals: Total Active Clients + Claims touched in last 30d
+export async function getAgentCapacitySignal(
+  authority: TenantAuthority,
+  agentId: string
+): Promise<AgentCapacityResult> {
+  const { tenantId } = readTenantAuthority(authority);
+  // Signals: Total Active Clients + Claims touched in last 30d, both bound to the caller's tenant.
 
-  // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-  const [clients] = await db
-    .select({ count: count() })
-    .from(agentClients)
-    .where(and(eq(agentClients.agentId, agentId), eq(agentClients.status, 'active')));
+  const { clients, recentClaims } = await withTenantAuthority(authority, async tx => {
+    const [clients] = await tx
+      .select({ count: count() })
+      .from(agentClients)
+      .where(
+        and(
+          eq(agentClients.tenantId, tenantId),
+          eq(agentClients.agentId, agentId),
+          eq(agentClients.status, 'active')
+        )
+      );
+    const [recentClaims] = await tx
+      .select({ count: count() })
+      .from(claims)
+      .where(
+        and(
+          eq(claims.tenantId, tenantId),
+          eq(claims.agentId, agentId),
+          sql`${claims.createdAt} >= NOW() - INTERVAL '30 days'`
+        )
+      );
+    return { clients, recentClaims };
+  });
 
-  // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-  const [recentClaims] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(and(eq(claims.agentId, agentId), sql`created_at >= NOW() - INTERVAL '30 days'`));
-
-  const clientCount = clients.count;
-  const claimVol = recentClaims.count;
+  const clientCount = Number(clients?.count ?? 0);
+  const claimVol = Number(recentClaims?.count ?? 0);
 
   // Heuristic:
   // If clients > 200 OR recent claims > 50 => Overloaded

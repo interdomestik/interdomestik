@@ -1,5 +1,8 @@
-import { agentCommissions, db, user } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { agentCommissions, user } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, desc, eq, sql } from 'drizzle-orm';
 
 import type { Session } from './context';
@@ -10,6 +13,7 @@ import {
   type LeaderboardData,
   type LeaderboardEntry,
 } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 function hasLeaderboardAccess(role: string | null | undefined): boolean {
   return role === 'agent' || role === 'admin' || role === 'staff';
@@ -17,9 +21,10 @@ function hasLeaderboardAccess(role: string | null | undefined): boolean {
 
 export async function getAgentLeaderboardCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   period: unknown; // Accept unknown and validate with Zod
 }): Promise<ActionResult<LeaderboardData>> {
-  const { session, period: rawPeriod } = params;
+  const { session, authority, period: rawPeriod } = params;
 
   if (!session?.user) {
     return { success: false, error: 'Unauthorized' };
@@ -27,6 +32,10 @@ export async function getAgentLeaderboardCore(params: {
 
   if (!hasLeaderboardAccess(session.user.role)) {
     return { success: false, error: 'Access denied' };
+  }
+
+  if (!authority) {
+    return { success: false, error: 'Unauthorized' };
   }
 
   // Validate period input
@@ -37,7 +46,7 @@ export async function getAgentLeaderboardCore(params: {
   const period = periodParsed.data;
 
   try {
-    const tenantId = ensureTenantId(session);
+    const { tenantId } = readTenantAuthority(authority);
 
     let dateFilter = sql`TRUE`;
     const now = new Date();
@@ -53,28 +62,36 @@ export async function getAgentLeaderboardCore(params: {
     const tenantFilter = eq(agentCommissions.tenantId, tenantId);
 
     // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
-    const results = await db
-      .select({
-        agentId: agentCommissions.agentId,
-        totalEarned: sql<string>`COALESCE(SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END), 0)`,
-        dealCount: sql<number>`COUNT(*)`,
-      })
-      .from(agentCommissions)
-      .where(and(dateFilter, tenantFilter))
-      .groupBy(agentCommissions.agentId)
-      .orderBy(
-        desc(
-          sql`SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END)`
-        )
-      )
-      .limit(10);
+    const results = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .select({
+            agentId: agentCommissions.agentId,
+            totalEarned: sql<string>`COALESCE(SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END), 0)`,
+            dealCount: sql<number>`COUNT(*)`,
+          })
+          .from(agentCommissions)
+          .where(and(dateFilter, tenantFilter))
+          .groupBy(agentCommissions.agentId)
+          .orderBy(
+            desc(
+              sql`SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END)`
+            )
+          )
+          .limit(10)
+    );
 
     const topAgents: LeaderboardEntry[] = await Promise.all(
       results.map(async (row, index) => {
-        const agentData = await db.query.user.findFirst({
-          where: and(eq(user.id, row.agentId), eq(user.tenantId, tenantId)),
-          columns: { name: true, image: true },
-        });
+        const agentData = await withTenantAuthority(
+          authority,
+          async tx =>
+            await tx.query.user.findFirst({
+              where: and(eq(user.id, row.agentId), eq(user.tenantId, tenantId)),
+              columns: { name: true, image: true },
+            })
+        );
 
         return {
           rank: index + 1,
@@ -97,20 +114,24 @@ export async function getAgentLeaderboardCore(params: {
       // FIXED: Added tenantFilter to prevent cross-tenant data leak
       // FIXED: Added limit cap to prevent expensive queries
       // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-      const allRanked = await db
-        .select({
-          agentId: agentCommissions.agentId,
-          total: sql<string>`COALESCE(SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END), 0)`,
-        })
-        .from(agentCommissions)
-        .where(and(dateFilter, tenantFilter)) // SECURITY: Added tenantFilter
-        .groupBy(agentCommissions.agentId)
-        .orderBy(
-          desc(
-            sql`SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END)`
-          )
-        )
-        .limit(LEADERBOARD_MAX_RESULTS); // SECURITY: Cap results
+      const allRanked = await withTenantAuthority(
+        authority,
+        async tx =>
+          await tx
+            .select({
+              agentId: agentCommissions.agentId,
+              total: sql<string>`COALESCE(SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END), 0)`,
+            })
+            .from(agentCommissions)
+            .where(and(dateFilter, tenantFilter)) // SECURITY: Added tenantFilter
+            .groupBy(agentCommissions.agentId)
+            .orderBy(
+              desc(
+                sql`SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END)`
+              )
+            )
+            .limit(LEADERBOARD_MAX_RESULTS) // SECURITY: Cap results
+      );
 
       const userIndex = allRanked.findIndex(r => r.agentId === session.user.id);
       currentUserRank = userIndex >= 0 ? userIndex + 1 : null;

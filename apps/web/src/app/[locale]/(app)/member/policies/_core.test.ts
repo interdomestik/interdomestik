@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => {
@@ -19,9 +20,8 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database', () => ({
-  and: hoisted.and,
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       documentExtractions: {
         findMany: hoisted.findDocumentExtractionsMany,
@@ -33,10 +33,17 @@ vi.mock('@interdomestik/database', () => ({
         findMany: hoisted.findPoliciesMany,
       },
     },
-  },
-  eq: hoisted.eq,
-  inArray: hoisted.inArray,
-}));
+  };
+  return {
+    and: hoisted.and,
+    db,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+    eq: hoisted.eq,
+    inArray: hoisted.inArray,
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   documentExtractions: {
@@ -57,6 +64,8 @@ vi.mock('drizzle-orm', () => ({
 import { getPoliciesWithDocumentLinksCore } from './_core';
 
 describe('getPoliciesWithDocumentLinksCore', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.findPoliciesMany.mockResolvedValue([]);
@@ -95,7 +104,7 @@ describe('getPoliciesWithDocumentLinksCore', () => {
     ]);
 
     const result = await getPoliciesWithDocumentLinksCore({
-      tenantId: 'tenant-1',
+      authority,
       userId: 'user-1',
     });
 
@@ -130,7 +139,7 @@ describe('getPoliciesWithDocumentLinksCore', () => {
     ]);
 
     const result = await getPoliciesWithDocumentLinksCore({
-      tenantId: 'tenant-1',
+      authority,
       userId: 'user-1',
     });
 
@@ -187,7 +196,7 @@ describe('getPoliciesWithDocumentLinksCore', () => {
     });
 
     const result = await getPoliciesWithDocumentLinksCore({
-      tenantId: 'tenant-1',
+      authority,
       userId: 'user-1',
     });
 

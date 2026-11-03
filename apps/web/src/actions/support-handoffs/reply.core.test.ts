@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -30,6 +31,7 @@ const memberSession = {
 
 function submitReply() {
   return submitSupportHandoffMemberReplyCore({
+    authority,
     expectedPublicResponseVersion: 2,
     handoffId: 'handoff-1',
     replyText: 'This resolves my request.',
@@ -42,6 +44,8 @@ function expectLocaleRevalidation(locale = 'sq') {
   expect(mocks.revalidatePath).toHaveBeenCalledWith(`/${locale}/member/help`);
   expect(mocks.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/support-handoffs`);
 }
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('submitSupportHandoffMemberReplyCore web action wrapper', () => {
   beforeEach(() => {
@@ -83,6 +87,7 @@ describe('submitSupportHandoffMemberReplyCore web action wrapper', () => {
     mocks.submitDomainMemberReply.mockResolvedValueOnce(successfulReply);
 
     await submitSupportHandoffMemberReplyCore({
+      authority,
       expectedPublicResponseVersion: 2,
       handoffId: 'handoff-1',
       replyText: 'This resolves my request.',

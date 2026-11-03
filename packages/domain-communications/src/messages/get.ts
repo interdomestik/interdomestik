@@ -1,6 +1,10 @@
-import { claimMessages, user, withTenantContext } from '@interdomestik/database';
+import { claimMessages, user } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import type { Session } from '../types';
 import {
@@ -19,25 +23,26 @@ import type { MessageWithSender, SelectedMessageRow } from './types';
  */
 export async function getMessagesForClaimCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   claimId: string;
 }): Promise<{ success: boolean; messages?: MessageWithSender[]; error?: string }> {
-  const { session, claimId } = params;
+  const { session, authority, claimId } = params;
 
   try {
-    if (!session?.user) {
+    if (!session?.user || !authority) {
       return { success: false, error: 'Unauthorized' };
     }
 
     const actor = session.user;
     const userId = actor.id;
     const userRole = actor.role || 'user';
-    const tenantId = ensureTenantId(session);
+    const { tenantId } = readTenantAuthority(authority);
     const isScopedStaff = isScopedClaimsReadRole(userRole);
     const isPrivilegedStaff = isFullTenantClaimsRole(userRole);
     const isStaff = isScopedStaff || isPrivilegedStaff;
     const isAgent = userRole === 'agent';
 
-    return await withTenantContext({ tenantId, role: userRole }, async tx => {
+    return await withTenantAuthority(authority, async tx => {
       const claim = await tx.query.claims.findFirst({
         where: (claimsTable, { eq }) =>
           withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),

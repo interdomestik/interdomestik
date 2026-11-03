@@ -1,86 +1,7 @@
+import { authority, memberSession, mocks } from './acknowledgement.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { acknowledgeSupportHandoffPublicResponseCore } from './acknowledgement';
-import type { SupportHandoffSession } from './types';
 import { ACTIVE_HANDOFF_STATUSES } from './types';
-
-const mocks = vi.hoisted(() => {
-  const updateReturning = vi.fn();
-  const updateWhere = vi.fn(() => ({ returning: updateReturning }));
-  const updateSet = vi.fn(() => ({ where: updateWhere }));
-  const selectLimit = vi.fn();
-  const selectWhere = vi.fn(() => ({ limit: selectLimit }));
-  const selectFrom = vi.fn(() => ({ where: selectWhere }));
-
-  return {
-    and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
-    db: {
-      select: vi.fn(() => ({ from: selectFrom })),
-      update: vi.fn(() => ({ set: updateSet })),
-    },
-    ensureTenantId: vi.fn(() => 'tenant-1'),
-    eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
-    inArray: vi.fn((left, right) => ({ left, op: 'inArray', right })),
-    isNotNull: vi.fn(column => ({ column, op: 'isNotNull' })),
-    logAuditEvent: vi.fn(),
-    selectFrom,
-    selectLimit,
-    selectWhere,
-    sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
-      op: 'sql',
-      strings,
-      values,
-    })),
-    supportHandoffs: {
-      id: 'support_handoffs.id',
-      memberId: 'support_handoffs.member_id',
-      publicResponse: 'support_handoffs.public_response',
-      publicResponseAcknowledgedAt: 'support_handoffs.public_response_acknowledged_at',
-      publicResponseAcknowledgedById: 'support_handoffs.public_response_acknowledged_by_id',
-      publicResponseAcknowledgedVersion: 'support_handoffs.public_response_acknowledged_version',
-      publicResponseVersion: 'support_handoffs.public_response_version',
-      status: 'support_handoffs.status',
-      tenantId: 'support_handoffs.tenant_id',
-      updatedAt: 'support_handoffs.updated_at',
-    },
-    updateReturning,
-    updateSet,
-    updateWhere,
-    withTenant: vi.fn((_tenantId, _column, condition) => ({ condition, scoped: true })),
-  };
-});
-
-vi.mock('@interdomestik/database', () => ({
-  and: mocks.and,
-  db: mocks.db,
-  eq: mocks.eq,
-  sql: mocks.sql,
-  supportHandoffs: mocks.supportHandoffs,
-}));
-
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
-}));
-
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: mocks.ensureTenantId,
-}));
-
-vi.mock('drizzle-orm', () => ({
-  inArray: mocks.inArray,
-  isNotNull: mocks.isNotNull,
-}));
-
-function memberSession(overrides: Partial<SupportHandoffSession['user']> = {}) {
-  return {
-    user: {
-      id: 'member-1',
-      role: 'member',
-      tenantId: 'tenant-1',
-      ...overrides,
-    },
-  } as SupportHandoffSession;
-}
 
 describe('support handoff public response acknowledgement', () => {
   beforeEach(() => {
@@ -104,6 +25,7 @@ describe('support handoff public response acknowledgement', () => {
   it('rejects unauthenticated, staff, and branch-manager acknowledgement writes', async () => {
     await expect(
       acknowledgeSupportHandoffPublicResponseCore({
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: null,
@@ -112,6 +34,7 @@ describe('support handoff public response acknowledgement', () => {
 
     await expect(
       acknowledgeSupportHandoffPublicResponseCore({
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: memberSession({ role: 'staff' }),
@@ -120,6 +43,7 @@ describe('support handoff public response acknowledgement', () => {
 
     await expect(
       acknowledgeSupportHandoffPublicResponseCore({
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: memberSession({ role: 'branch_manager' }),
@@ -132,6 +56,7 @@ describe('support handoff public response acknowledgement', () => {
   it('acknowledges only the member-owned active current response version', async () => {
     const result = await acknowledgeSupportHandoffPublicResponseCore(
       {
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: memberSession(),
@@ -182,6 +107,7 @@ describe('support handoff public response acknowledgement', () => {
 
     const result = await acknowledgeSupportHandoffPublicResponseCore(
       {
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: memberSession(),
@@ -214,6 +140,7 @@ describe('support handoff public response acknowledgement', () => {
     ]);
 
     const result = await acknowledgeSupportHandoffPublicResponseCore({
+      authority,
       expectedPublicResponseVersion: 2,
       handoffId: 'handoff-1',
       session: memberSession(),
@@ -233,6 +160,7 @@ describe('support handoff public response acknowledgement', () => {
 
     await expect(
       acknowledgeSupportHandoffPublicResponseCore({
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: memberSession(),
@@ -256,6 +184,7 @@ describe('support handoff public response acknowledgement', () => {
 
     await expect(
       acknowledgeSupportHandoffPublicResponseCore({
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: memberSession(),
@@ -281,6 +210,7 @@ describe('support handoff public response acknowledgement', () => {
     ]);
 
     const result = await acknowledgeSupportHandoffPublicResponseCore({
+      authority,
       expectedPublicResponseVersion: 2,
       handoffId: 'handoff-1',
       session: memberSession(),

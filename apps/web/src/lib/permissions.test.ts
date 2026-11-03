@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database/db';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { agentClients } from '@interdomestik/database/schema';
 import { eq } from 'drizzle-orm';
 import { PgColumn } from 'drizzle-orm/pg-core';
@@ -21,6 +22,17 @@ vi.mock('drizzle-orm', async () => {
     eq: vi.fn((col, val) => ({ op: 'eq', col, val })),
     and: vi.fn((...args) => ({ op: 'and', args })),
   };
+});
+
+const withTenantContextMock = vi.hoisted(() => vi.fn());
+
+// Mock the tenant-context entrypoint so tenant transactions run against the mocked db
+vi.mock('@interdomestik/database', async () => {
+  const { db: mockedDb } = await import('@interdomestik/database/db');
+  withTenantContextMock.mockImplementation(
+    async (_context: unknown, callback: (tx: unknown) => unknown) => callback(mockedDb)
+  );
+  return { withTenantContext: withTenantContextMock };
 });
 
 // Mock database
@@ -144,6 +156,7 @@ describe('permissions', () => {
           assertAgentClientAccess(
             {
               tenantId: 't1',
+              authority: mintTestTenantAuthority('t1'),
               scope: { actorAgentId: 'a1' },
             } as unknown as ProtectedActionContext,
             'client1'
@@ -167,6 +180,7 @@ describe('permissions', () => {
         const promise = assertAgentClientAccess(
           {
             tenantId: 't1',
+            authority: mintTestTenantAuthority('t1'),
             scope: { actorAgentId: 'a1' },
           } as unknown as ProtectedActionContext,
           'client1'
@@ -182,13 +196,17 @@ describe('permissions', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.mocked(db.select).mockReturnValue({ from: mockFrom } as any);
 
+        const authority = mintTestTenantAuthority('tenant_X');
         await assertAgentClientAccess(
           {
             tenantId: 'tenant_X',
+            authority,
             scope: { actorAgentId: 'agent_Y' },
           } as unknown as ProtectedActionContext,
           'client_Z'
         );
+
+        expect(withTenantContextMock).toHaveBeenCalledWith(authority, expect.any(Function));
 
         // Capture the 'where' call arguments to verify strict filtering
         const whereCall = mockWhere.mock.calls[0][0];

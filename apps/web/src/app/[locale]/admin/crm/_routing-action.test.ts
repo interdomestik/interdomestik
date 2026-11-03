@@ -1,6 +1,8 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  authorizeSessionTenant: vi.fn(),
   getSessionSafe: vi.fn(),
   resolveAdminCrmRoutingActor: vi.fn(),
   revalidatePath: vi.fn(),
@@ -15,6 +17,10 @@ vi.mock('@/components/shell/session', () => ({
   getSessionSafe: hoisted.getSessionSafe,
 }));
 
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: hoisted.authorizeSessionTenant,
+}));
+
 vi.mock('./_routing-core', () => ({
   resolveAdminCrmRoutingActor: hoisted.resolveAdminCrmRoutingActor,
   runAdminCrmRoutingRuleAction: hoisted.runAdminCrmRoutingRuleAction,
@@ -26,6 +32,7 @@ import {
   type AdminCrmRoutingActionState,
 } from './_routing-action';
 
+const TEST_AUTHORITY = mintTestTenantAuthority('tenant-1');
 const idleState: AdminCrmRoutingActionState = { status: 'idle' };
 const adminSession = {
   user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' },
@@ -41,6 +48,7 @@ describe('admin CRM routing server actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.getSessionSafe.mockResolvedValue(adminSession);
+    hoisted.authorizeSessionTenant.mockResolvedValue({ authority: TEST_AUTHORITY });
     hoisted.resolveAdminCrmRoutingActor.mockReturnValue(adminActor);
     hoisted.runAdminCrmRoutingRuleAction.mockResolvedValue({ ruleId: 'rule-1', status: 'ok' });
   });
@@ -66,6 +74,18 @@ describe('admin CRM routing server actions', () => {
     expect(hoisted.revalidatePath).not.toHaveBeenCalled();
   });
 
+  it('refuses to run the core when the session grants no tenant authority', async () => {
+    hoisted.authorizeSessionTenant.mockResolvedValue(null);
+    const formData = new FormData();
+    formData.set('strategy', 'round_robin');
+
+    await expect(createRoutingRuleAction(idleState, formData)).resolves.toEqual({
+      reason: 'forbidden',
+      status: 'error',
+    });
+    expect(hoisted.runAdminCrmRoutingRuleAction).not.toHaveBeenCalled();
+  });
+
   it('normalizes create FormData only after authorization and revalidates on success', async () => {
     const formData = new FormData();
     formData.set('agentIds', 'agent-1, agent-2');
@@ -79,6 +99,7 @@ describe('admin CRM routing server actions', () => {
     });
 
     expect(hoisted.runAdminCrmRoutingRuleAction).toHaveBeenCalledWith({
+      authority: TEST_AUTHORITY,
       input: expect.objectContaining({
         agentIds: ['agent-1', 'agent-2'],
         enabled: true,
@@ -89,6 +110,7 @@ describe('admin CRM routing server actions', () => {
       kind: 'create',
       session: adminSession,
     });
+    expect(hoisted.runAdminCrmRoutingRuleAction.mock.calls[0][0].authority).toBe(TEST_AUTHORITY);
     expect(hoisted.revalidatePath).toHaveBeenCalledWith('/en/admin/crm');
   });
 
@@ -104,9 +126,19 @@ describe('admin CRM routing server actions', () => {
     });
 
     const call = hoisted.runAdminCrmRoutingRuleAction.mock.calls[0]?.[0] as
-      | { input: Record<string, unknown>; kind: string; session: typeof adminSession }
+      | {
+          authority: unknown;
+          input: Record<string, unknown>;
+          kind: string;
+          session: typeof adminSession;
+        }
       | undefined;
-    expect(call).toEqual({ input: expect.any(Object), kind: 'update', session: adminSession });
+    expect(call).toEqual({
+      authority: expect.anything(),
+      input: expect.any(Object),
+      kind: 'update',
+      session: adminSession,
+    });
     expect(call?.input).not.toHaveProperty('agentIds');
     expect(call?.input).not.toHaveProperty('enabled');
     expect(call?.input).not.toHaveProperty('priority');

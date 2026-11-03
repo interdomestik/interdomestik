@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   execute: vi.fn(),
+  withTenantContext: vi.fn(),
   findAssignment: vi.fn(),
   findMember: vi.fn(),
   findMany: vi.fn(),
@@ -11,6 +12,22 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   and: (...args: unknown[]) => mocks.and(...args),
+  withTenantContext: (ctx: unknown, cb: (tx: unknown) => unknown) => {
+    mocks.withTenantContext(ctx);
+    return cb({
+      query: {
+        agentClients: {
+          findFirst: (...args: unknown[]) => mocks.findAssignment(...args),
+        },
+        user: {
+          findFirst: (...args: unknown[]) => mocks.findMember(...args),
+        },
+        memberActivities: {
+          findMany: (...args: unknown[]) => mocks.findMany(...args),
+        },
+      },
+    });
+  },
   db: {
     execute: (...args: unknown[]) => mocks.execute(...args),
     query: {
@@ -46,6 +63,16 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
+// The core is re-imported after vi.resetModules(), so the authority is minted in the same module
+// registry the core reads it from.
+async function loadCore() {
+  const [{ getMemberActivitiesCore }, { mintTestTenantAuthority }] = await Promise.all([
+    import('./get-member'),
+    import('@interdomestik/database/testing/tenant-authority'),
+  ]);
+  return { getMemberActivitiesCore, authority: mintTestTenantAuthority('tenant-1') };
+}
+
 describe('getMemberActivitiesCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -61,10 +88,11 @@ describe('getMemberActivitiesCore', () => {
   it('returns [] without querying when member_activities table is absent', async () => {
     mocks.execute.mockResolvedValue([{ regclass: null }]);
 
-    const { getMemberActivitiesCore } = await import('./get-member');
+    const { getMemberActivitiesCore, authority } = await loadCore();
 
     const result = await getMemberActivitiesCore({
       session: { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } },
+      authority,
       memberId: 'member-1',
     });
 
@@ -76,14 +104,16 @@ describe('getMemberActivitiesCore', () => {
     mocks.execute.mockResolvedValue([{ regclass: 'member_activities' }]);
     mocks.findMany.mockResolvedValue([{ id: 'a1' }]);
 
-    const { getMemberActivitiesCore } = await import('./get-member');
+    const { getMemberActivitiesCore, authority } = await loadCore();
 
     const result = await getMemberActivitiesCore({
       session: { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } },
+      authority,
       memberId: 'member-1',
     });
 
     expect(mocks.findMany).toHaveBeenCalled();
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority);
     expect(mocks.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -114,11 +144,12 @@ describe('getMemberActivitiesCore', () => {
       agentId: 'agent-2',
     });
 
-    const { getMemberActivitiesCore } = await import('./get-member');
+    const { getMemberActivitiesCore, authority } = await loadCore();
 
     await expect(
       getMemberActivitiesCore({
         session: { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } },
+        authority,
         memberId: 'member-1',
       })
     ).rejects.toThrow('Permission denied');
@@ -138,10 +169,11 @@ describe('getMemberActivitiesCore', () => {
     });
     mocks.findMany.mockResolvedValue([{ id: 'a1' }]);
 
-    const { getMemberActivitiesCore } = await import('./get-member');
+    const { getMemberActivitiesCore, authority } = await loadCore();
 
     const result = await getMemberActivitiesCore({
       session: { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } },
+      authority,
       memberId: 'member-1',
     });
 
@@ -181,10 +213,11 @@ describe('getMemberActivitiesCore', () => {
     mocks.execute.mockResolvedValue([{ regclass: 'member_activities' }]);
     mocks.findMany.mockResolvedValue([{ id: 'a1' }]);
 
-    const { getMemberActivitiesCore } = await import('./get-member');
+    const { getMemberActivitiesCore, authority } = await loadCore();
 
     const result = await getMemberActivitiesCore({
       session: { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
+      authority,
       memberId: 'member-1',
     });
 
@@ -197,11 +230,12 @@ describe('getMemberActivitiesCore', () => {
     mocks.execute.mockResolvedValue([{ regclass: 'member_activities' }]);
     mocks.findMember.mockResolvedValue(null);
 
-    const { getMemberActivitiesCore } = await import('./get-member');
+    const { getMemberActivitiesCore, authority } = await loadCore();
 
     await expect(
       getMemberActivitiesCore({
         session: { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } },
+        authority,
         memberId: 'member-1',
       })
     ).rejects.toThrow('Permission denied');

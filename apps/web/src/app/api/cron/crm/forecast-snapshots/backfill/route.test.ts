@@ -1,3 +1,5 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,8 +8,13 @@ const hoisted = vi.hoisted(() => ({
   authorizeCronRequest: vi.fn(),
   enforceRateLimit: vi.fn(),
   getCrmForecastSnapshotBackfillStatus: vi.fn(),
+  listScheduledTenantWork: vi.fn(),
   logCrmForecastSnapshotBackfillResult: vi.fn(),
   runCrmForecastSnapshotBackfillCore: vi.fn(),
+}));
+
+vi.mock('@interdomestik/database', () => ({
+  listScheduledTenantWork: hoisted.listScheduledTenantWork,
 }));
 
 vi.mock('@/lib/rate-limit', () => ({
@@ -35,6 +42,11 @@ import { createCrmForecastSnapshotBackfillResult } from '../_core.test-helpers';
 
 const result = createCrmForecastSnapshotBackfillResult();
 
+// Stands in for the capability the route's cron admission returns; the producer is mocked.
+const INGRESS = Object.freeze({}) as IngressCapability<'cron'>;
+const TENANT_1_AUTHORITY = mintTestTenantAuthority('tenant-1');
+const TENANT_2_AUTHORITY = mintTestTenantAuthority('tenant-2');
+
 function request(body: unknown): NextRequest {
   return new NextRequest('http://localhost:3000/api/cron/crm/forecast-snapshots/backfill', {
     body: typeof body === 'string' ? body : JSON.stringify(body),
@@ -50,7 +62,11 @@ describe('POST /api/cron/crm/forecast-snapshots/backfill', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.enforceRateLimit.mockResolvedValue(null);
-    hoisted.authorizeCronRequest.mockReturnValue(true);
+    hoisted.authorizeCronRequest.mockReturnValue(INGRESS);
+    hoisted.listScheduledTenantWork.mockResolvedValue([
+      { authority: TENANT_1_AUTHORITY, tenantId: 'tenant-1' },
+      { authority: TENANT_2_AUTHORITY, tenantId: 'tenant-2' },
+    ]);
     hoisted.getCrmForecastSnapshotBackfillStatus.mockReturnValue(200);
     hoisted.runCrmForecastSnapshotBackfillCore.mockResolvedValue(result);
   });
@@ -76,7 +92,7 @@ describe('POST /api/cron/crm/forecast-snapshots/backfill', () => {
   });
 
   it('returns 401 and performs no backfill work when unauthorized', async () => {
-    hoisted.authorizeCronRequest.mockReturnValue(false);
+    hoisted.authorizeCronRequest.mockReturnValue(null);
 
     const res = await POST(
       request({ fromDate: '2026-05-14', tenantId: 'tenant-1', toDate: '2026-05-14' })
@@ -88,6 +104,7 @@ describe('POST /api/cron/crm/forecast-snapshots/backfill', () => {
       error: 'Unauthorized',
       success: false,
     });
+    expect(hoisted.listScheduledTenantWork).not.toHaveBeenCalled();
     expect(hoisted.runCrmForecastSnapshotBackfillCore).not.toHaveBeenCalled();
   });
 
@@ -144,16 +161,43 @@ describe('POST /api/cron/crm/forecast-snapshots/backfill', () => {
 
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ result, success: true });
+    expect(hoisted.listScheduledTenantWork).toHaveBeenCalledWith(INGRESS);
     expect(hoisted.runCrmForecastSnapshotBackfillCore).toHaveBeenCalledWith({
+      authority: expect.anything(),
       dryRun: true,
       fromDate: '2026-05-14',
       maxWorkItemsPerDate: 10,
       now: expect.any(Date),
-      tenantId: 'tenant-1',
       toDate: '2026-05-14',
     });
+    expect(hoisted.runCrmForecastSnapshotBackfillCore.mock.calls[0][0].authority).toBe(
+      TENANT_1_AUTHORITY
+    );
     expect(hoisted.assertNoCrmForecastSnapshotBackfillPiiKeys).toHaveBeenCalledWith(result);
     expect(hoisted.logCrmForecastSnapshotBackfillResult).toHaveBeenCalledWith(result, 200);
+  });
+
+  it('rejects a tenant the cron admission did not enumerate instead of minting authority for it', async () => {
+    const res = await POST(
+      request({ fromDate: '2026-05-14', tenantId: 'tenant-unlisted', toDate: '2026-05-14' })
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      code: 'invalid_tenant',
+      error: 'Invalid tenant',
+      success: false,
+    });
+    expect(hoisted.runCrmForecastSnapshotBackfillCore).not.toHaveBeenCalled();
+  });
+
+  it('hands the core the authority of the named tenant only', async () => {
+    await POST(request({ fromDate: '2026-05-14', tenantId: 'tenant-2', toDate: '2026-05-14' }));
+
+    expect(hoisted.runCrmForecastSnapshotBackfillCore).toHaveBeenCalledTimes(1);
+    expect(hoisted.runCrmForecastSnapshotBackfillCore.mock.calls[0][0].authority).toBe(
+      TENANT_2_AUTHORITY
+    );
   });
 
   it('returns 500 with the structured result when every selected date fails', async () => {

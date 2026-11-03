@@ -13,7 +13,13 @@ vi.mock('@/lib/rate-limit-otp', () => ({
   enforceOtpRateLimits: mocks.enforceOtpRateLimits,
 }));
 vi.mock('@/lib/auth/tenant-lookup', () => ({ lookupUserTenantByEmail: mocks.lookupTenant }));
-vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn() }));
+vi.mock('@interdomestik/database', () => ({ appendAnonymousTenantAuditEvent: vi.fn() }));
+vi.mock('@/lib/audit.core', () => ({
+  extractRequestMetadata: (headers: Headers) => ({
+    ip: headers.get('x-forwarded-for') ?? undefined,
+    userAgent: headers.get('user-agent') ?? undefined,
+  }),
+}));
 vi.mock('@/lib/auth', () => ({
   auth: { api: { getSession: mocks.getSession, revokeSession: vi.fn() } },
 }));

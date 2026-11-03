@@ -1,21 +1,22 @@
 import { ProtectedActionContext } from '@/lib/safe-action';
-import { db } from '@interdomestik/database';
+
 import { auditLog } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { resubmitCashSchema } from '../schemas';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 // 4. Action: Resubmit (Agent)
 export async function resubmitCashAttemptCore(
   ctx: ProtectedActionContext,
   input: z.infer<typeof resubmitCashSchema>
 ) {
-  const { tenantId, session } = ctx;
+  const { tenantId, session, authority } = ctx;
   const { attemptId, note } = input;
 
-  return await db.transaction(async tx => {
+  return await withTenantAuthority(authority, async tx => {
     // A. Fetch
     const [result] = await tx
       .select({

@@ -16,23 +16,26 @@ import type { CrmOutboxPort } from '@interdomestik/domain-crm/outbox';
 import { randomUUID } from 'node:crypto';
 import { and, count, eq, gte, inArray, isNull } from 'drizzle-orm';
 
-import { db } from '@interdomestik/database/db';
 import {
   crmActivities,
   crmLeadOwnershipHistory,
   crmLeads,
   crmRoutingCursors,
 } from '@interdomestik/database/schema';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 import { createCrmLeadMutationRepository } from './lead-mutation-repository';
 import { createCrmRoutingRepository } from './routing-repository';
+import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
 
-type CrmRoutingApplicationDb = typeof db;
+type CrmRoutingApplicationDb = CrmTenantExecutor;
 type CrmLeadRow = typeof crmLeads.$inferSelect;
 type AgentCountRow = { agentId: string; count: number };
 
 export type ApplyCrmLeadRoutingDecisionCoordinatorOptions = {
-  database?: CrmRoutingApplicationDb;
+  authority: TenantAuthority;
+  /** An already-scoped tenant transaction (or test double); absent, the coordinator opens one from the authority. */
+  executor?: CrmRoutingApplicationDb;
   createOutboxPort(database: CrmRoutingApplicationDb): Pick<CrmOutboxPort, 'appendEvent'>;
   services?: {
     outboxEventId(): string;
@@ -113,12 +116,15 @@ function buildWorkloadSnapshot(params: {
 function createRoutingApplicationPorts(
   database: CrmRoutingApplicationDb,
   params: {
+    authority: TenantAuthority;
     outbox: Pick<CrmOutboxPort, 'appendEvent'>;
     services: { outboxEventId(): string };
   }
 ): CrmLeadRoutingApplicationPorts {
-  const routing = createCrmRoutingRepository(database);
-  const leads = createCrmLeadMutationRepository(database, { useTransaction: false });
+  const routing = createCrmRoutingRepository(params.authority, database);
+  const leads = createCrmLeadMutationRepository(params.authority, database, {
+    useTransaction: false,
+  });
 
   return {
     advanceRoutingCursor: routing.advanceRoutingCursor,
@@ -229,23 +235,29 @@ function createRoutingApplicationPorts(
 export function createApplyCrmLeadRoutingDecisionCoordinator(
   options: ApplyCrmLeadRoutingDecisionCoordinatorOptions
 ) {
-  const database = options.database ?? db;
+  const { authority, executor } = options;
   const services = options.services ?? { outboxEventId: randomUUID };
 
   return async function applyCrmLeadRoutingDecisionInTransaction(
     input: ApplyCrmLeadRoutingDecisionInput
   ): Promise<ApplyCrmLeadRoutingDecisionResult> {
     try {
-      return await database.transaction(async tx => {
-        const transaction = tx as never as CrmRoutingApplicationDb;
-        return applyCrmLeadRoutingDecision(
-          input,
-          createRoutingApplicationPorts(transaction, {
-            outbox: options.createOutboxPort(transaction),
-            services,
+      return await runInCrmTenantContext(
+        executor,
+        authority,
+        async scoped =>
+          await scoped.transaction(async tx => {
+            const transaction = tx as never as CrmRoutingApplicationDb;
+            return await applyCrmLeadRoutingDecision(
+              input,
+              createRoutingApplicationPorts(transaction, {
+                authority,
+                outbox: options.createOutboxPort(transaction),
+                services,
+              })
+            );
           })
-        );
-      });
+      );
     } catch (error) {
       if (error instanceof CrmRoutingApplicationRollback) return error.result;
       return { outcome: 'repository_failure' };

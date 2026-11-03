@@ -3,6 +3,7 @@ import { claimFixture, transitionClaimFixture } from '../claims/lifecycle-test-s
 import { mocks, READY_ACCEPTED_RECOVERY_RECORD } from './update-status-test-core';
 import { updateClaimStatusCore } from './update-status';
 import {
+  staffAuthority,
   createSession,
   expectBlockedStatusChange,
   mockRecoverySelects,
@@ -26,6 +27,7 @@ describe('staff updateClaimStatusCore recovery and scope', () => {
     mocks.tenantReadSelectChain.limit.mockResolvedValue([]);
 
     const result = await updateClaimStatusCore({
+      authority: staffAuthority,
       claimId: 'claim-1',
       newStatus: 'verification',
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
@@ -48,6 +50,7 @@ describe('staff updateClaimStatusCore recovery and scope', () => {
     ]);
 
     const result = await updateClaimStatusCore({
+      authority: staffAuthority,
       claimId: 'claim-1',
       newStatus: 'verification',
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
@@ -156,8 +159,8 @@ describe('staff updateClaimStatusCore recovery and scope', () => {
     expect(mocks.txInsert).toHaveBeenCalledWith(mocks.serviceUsage);
     expect(mocks.logAuditEvent).not.toHaveBeenCalled();
     expect(mocks.projectClaimStatusAuditProjection).toHaveBeenCalledWith({
+      authority: staffAuthority,
       limit: 10,
-      tenantId: 'tenant-1',
     });
   });
 
@@ -183,6 +186,7 @@ describe('staff updateClaimStatusCore recovery and scope', () => {
     mocks.tenantReadSelectChain.limit.mockResolvedValue([claimFixture('negotiation')]);
 
     const result = await updateClaimStatusCore({
+      authority: staffAuthority,
       claimId: 'claim-1',
       newStatus: 'rejected',
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
@@ -206,6 +210,7 @@ describe('staff updateClaimStatusCore recovery and scope', () => {
 
     const result = await updateClaimStatusCore(
       {
+        authority: staffAuthority,
         claimId: 'claim-1',
         newStatus: 'rejected',
         declineReasonCode: 'no_monetary_recovery_path',
@@ -222,8 +227,8 @@ describe('staff updateClaimStatusCore recovery and scope', () => {
     expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.logAuditEvent).not.toHaveBeenCalled();
     expect(mocks.projectClaimStatusAuditProjection).toHaveBeenCalledWith({
+      authority: staffAuthority,
       limit: 10,
-      tenantId: 'tenant-1',
     });
   });
 });

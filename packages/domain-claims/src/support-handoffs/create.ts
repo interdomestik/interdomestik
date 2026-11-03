@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 import { parseMemberSupportHandoffInput } from './create-input';
 import { persistMemberSupportHandoff } from './create-store';
@@ -13,22 +13,21 @@ import {
 
 export async function createMemberSupportHandoffCore(
   params: {
+    authority: TenantAuthority | null;
     input: CreateSupportHandoffInput & Record<string, unknown>;
     requestHeaders?: Headers;
     session: SupportHandoffSession | null;
   },
   deps: SupportHandoffDeps = {}
 ): Promise<SupportHandoffActionResult<{ id: string }>> {
-  if (params.session?.user?.role !== 'member' && params.session?.user?.role !== 'user') {
+  const { authority } = params;
+  if (
+    !authority ||
+    (params.session?.user?.role !== 'member' && params.session?.user?.role !== 'user')
+  ) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  let tenantId: string;
-  try {
-    tenantId = ensureTenantId(params.session);
-  } catch {
-    return { success: false, error: 'Unauthorized' };
-  }
   const memberId = params.session.user.id;
   const parsed = parseMemberSupportHandoffInput(params.input);
   if (!parsed.success) return parsed;
@@ -36,18 +35,17 @@ export async function createMemberSupportHandoffCore(
   const handoffId = `support_handoff_${randomUUID()}`;
   const now = new Date();
   const persisted = await persistMemberSupportHandoff({
+    authority,
     contactPreference: parsed.contactPreference,
     handoffId,
     memberBranchId: params.session.user.branchId,
     memberId,
-    memberRole: params.session.user.role,
     message: parsed.message,
     now,
     requestedClaimId: parsed.requestedClaimId,
     sourceClaimId: parsed.sourceClaimId,
     sourceHint: parsed.sourceHint,
     subject: parsed.subject,
-    tenantId,
   });
 
   if (!persisted.success) {
@@ -58,7 +56,7 @@ export async function createMemberSupportHandoffCore(
     await deps.logAuditEvent({
       actorId: memberId,
       actorRole: params.session.user.role,
-      tenantId,
+      authority,
       action: 'support_handoff.created',
       entityType: 'support_handoff',
       entityId: handoffId,

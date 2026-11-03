@@ -1,10 +1,19 @@
-import { db, eq, user as userTable } from '@interdomestik/database';
-import { generateMemberNumber } from '@interdomestik/database/member-number';
+import {
+  authorizePaddleBillingTenant,
+  eq,
+  hasTenantMemberCredential,
+  issueTenantMemberNumber,
+  user as userTable,
+} from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { nanoid } from 'nanoid';
 import {
   createSelfServeOwnershipAttribution,
   revokeAgentClientReadScope,
 } from '../../../ownership-attribution';
+import { RetryablePaddleWebhookError } from '../../errors';
 import type {
   RequestPasswordResetOnboarding,
   ResolvePaddleCustomer,
@@ -12,13 +21,19 @@ import type {
 } from '../../types';
 import { resolveCheckoutTransactionEvidence } from './checkout-transaction-evidence';
 import { resolveBranchId } from './context';
+import {
+  normalizeText,
+  shouldPromoteRole,
+  isUniqueViolation,
+  findUserByEmail,
+} from './reconcile-checkout-user-lookup';
 
 type ReconcileCheckoutUserDeps = {
   requestPasswordResetOnboarding?: RequestPasswordResetOnboarding;
   resolvePaddleCustomer?: ResolvePaddleCustomer;
 };
 
-type ReconciledUserRecord = {
+export type ReconciledUserRecord = {
   id: string;
   tenantId: string;
   branchId: string | null;
@@ -31,47 +46,33 @@ type ReconciledUserRecord = {
   agentId?: string | null;
 };
 
-function normalizeText(value: string | null | undefined): string | null {
-  if (typeof value !== 'string') return null;
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-}
-
-function shouldPromoteRole(role: string | null | undefined): boolean {
-  return !role || role === 'user' || role === 'member';
-}
-
-function isUniqueViolation(error: unknown): error is { code: string } {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    typeof (error as { code?: unknown }).code === 'string' &&
-    (error as { code: string }).code === '23505'
-  );
-}
-
-async function findUserByEmail(email: string): Promise<ReconciledUserRecord | null> {
-  // db-access-guard: system-exempt -- reason: checkout reconciliation probes global email ownership before tenant-scoped user writes
-  const userRecord = await db.query.user.findFirst({
-    where: (users, { eq }) => eq(users.email, email),
-    columns: {
-      id: true,
-      tenantId: true,
-      branchId: true,
-      email: true,
-      name: true,
-      role: true,
-      memberNumber: true,
-      agentId: true,
-      createdBy: true,
-      assistedByAgentId: true,
-    },
-  });
-  return userRecord ?? null;
+// The global member number is issued for a committed member on its own connection. The membership
+// confirmation needs it, so a failure fails the delivery as retryable: the receipt is released for
+// redelivery, and the retry finds the member without a number on the existing-user path and issues
+// it there.
+async function issueReconciledMemberNumber(
+  authority: TenantAuthority,
+  userId: string,
+  joinedAt: Date
+): Promise<void> {
+  let issued: Awaited<ReturnType<typeof issueTenantMemberNumber>>;
+  try {
+    issued = await issueTenantMemberNumber(authority, { userId, joinedAt });
+  } catch (cause) {
+    throw new RetryablePaddleWebhookError(
+      `Member number issuance failed for reconciled user ${userId}`,
+      { cause }
+    );
+  }
+  if (!issued) {
+    throw new RetryablePaddleWebhookError(
+      `Member number was not issued for reconciled user ${userId}`
+    );
+  }
 }
 
 export async function reconcileCheckoutUser(
+  delivery: IngressCapability<'paddle-delivery'>,
   sub: SubscriptionPayloadLike,
   deps: ReconcileCheckoutUserDeps = {},
   processingScopeKey = ''
@@ -86,7 +87,29 @@ export async function reconcileCheckoutUser(
   const { customerEmail, customData: mergedCustomData } = evidence;
   const tenantId = normalizeText(mergedCustomData.tenantId)!;
 
-  let existingUser = await findUserByEmail(customerEmail);
+  // The evidence tenant is provider-supplied: it is acceptable only because the billing producer
+  // checks it against the billing tenant the verified entity route bound. An unbound delivery, or
+  // evidence naming another tenant, cannot reconcile; nothing has been read or written yet.
+  let billingAuthority: TenantAuthority;
+  try {
+    billingAuthority = authorizePaddleBillingTenant(delivery, tenantId);
+  } catch (error) {
+    console.warn(
+      `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; checkout tenant ${tenantId} is not the verified billing tenant of this delivery: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+    return null;
+  }
+
+  const emailOwner = await findUserByEmail(delivery, customerEmail);
+  if (emailOwner === 'ambiguous') {
+    console.warn(
+      `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; email ownership for ${customerEmail} is ambiguous or not visible in its owning tenant`
+    );
+    return null;
+  }
+  let existingUser = emailOwner;
   const customDataUserId = normalizeText(mergedCustomData?.userId);
 
   if (existingUser && existingUser.tenantId !== tenantId) {
@@ -103,7 +126,9 @@ export async function reconcileCheckoutUser(
     return null;
   }
 
-  const branchId = await resolveBranchId({ customData: mergedCustomData, tenantId, db });
+  const branchId = await withTenantAuthority(billingAuthority, tx =>
+    resolveBranchId({ customData: mergedCustomData, tenantId, db: tx })
+  );
   const now = new Date();
 
   let shouldRequestOnboarding = false;
@@ -114,7 +139,7 @@ export async function reconcileCheckoutUser(
     try {
       const ownershipAttribution = createSelfServeOwnershipAttribution(mergedCustomData?.agentId);
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-      await db.transaction(async tx => {
+      await withTenantAuthority(billingAuthority, async tx => {
         // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
         await tx.insert(userTable).values({
           id: newUserId,
@@ -129,13 +154,9 @@ export async function reconcileCheckoutUser(
           updatedAt: now,
         });
 
-        await generateMemberNumber(tx, {
-          userId: newUserId,
-          joinedAt: now,
-        });
-
         await revokeAgentClientReadScope(tx, { tenantId, memberId: newUserId });
       });
+      await issueReconciledMemberNumber(billingAuthority, newUserId, now);
 
       shouldRequestOnboarding = true;
       userId = newUserId;
@@ -144,35 +165,29 @@ export async function reconcileCheckoutUser(
         throw error;
       }
 
-      existingUser = await findUserByEmail(customerEmail);
-      if (!existingUser || existingUser.tenantId !== tenantId) {
+      const racedOwner = await findUserByEmail(delivery, customerEmail);
+      if (!racedOwner || racedOwner === 'ambiguous' || racedOwner.tenantId !== tenantId) {
         throw error;
       }
+      existingUser = racedOwner;
 
       userId = existingUser.id;
     }
   }
 
-  let credentialAccount: { id: string; providerId: string } | null = null;
-  if (userId) {
-    // db-access-guard: tenant-scoped -- reason: userId belongs to same-tenant checkout user before credential lookup
-    const accountRecord = await db.query.account.findFirst({
-      where: (accounts, { and, eq }) =>
-        and(eq(accounts.userId, userId), eq(accounts.providerId, 'credential')),
-      columns: { id: true, providerId: true },
-    });
-    credentialAccount = accountRecord ?? null;
-  }
+  // Credentials are identity data the tenant transaction cannot read; their existence is read by
+  // the fixed tenant-bound projection.
+  const hasCredential = userId ? await hasTenantMemberCredential(billingAuthority, userId) : false;
 
   if (
     existingUser &&
-    (!credentialAccount || existingUser.role !== 'member' || !existingUser.memberNumber)
+    (!hasCredential || existingUser.role !== 'member' || !existingUser.memberNumber)
   ) {
     const nextRole = shouldPromoteRole(existingUser.role) ? 'member' : existingUser.role;
     const ownershipAttribution = createSelfServeOwnershipAttribution(mergedCustomData?.agentId);
     const nextAgentId = existingUser.agentId ?? ownershipAttribution.agentId;
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await db.transaction(async tx => {
+    await withTenantAuthority(billingAuthority, async tx => {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       await tx
         .update(userTable)
@@ -186,34 +201,34 @@ export async function reconcileCheckoutUser(
         })
         .where(eq(userTable.id, existingUser.id));
 
-      if (!existingUser.memberNumber) {
-        await generateMemberNumber(tx, {
-          userId: existingUser.id,
-          joinedAt: now,
-        });
-      }
-
       await revokeAgentClientReadScope(tx, { tenantId, memberId: existingUser.id });
     });
+    if (!existingUser.memberNumber) {
+      await issueReconciledMemberNumber(billingAuthority, existingUser.id, now);
+    }
 
-    shouldRequestOnboarding = !credentialAccount;
+    shouldRequestOnboarding = !hasCredential;
   }
 
   // db-access-guard: tenant-scoped -- reason: tenantId from reconciled checkout context constrains final user reload
-  const finalUser = await db.query.user.findFirst({
-    where: (users, { and, eq }) =>
-      and(eq(users.email, customerEmail), eq(users.tenantId, tenantId)),
-    columns: {
-      id: true,
-      tenantId: true,
-      branchId: true,
-      email: true,
-      name: true,
-      role: true,
-      memberNumber: true,
-      agentId: true,
-    },
-  });
+  const finalUser = await withTenantAuthority(
+    billingAuthority,
+    async tx =>
+      await tx.query.user.findFirst({
+        where: (users, { and, eq }) =>
+          and(eq(users.email, customerEmail), eq(users.tenantId, tenantId)),
+        columns: {
+          id: true,
+          tenantId: true,
+          branchId: true,
+          email: true,
+          name: true,
+          role: true,
+          memberNumber: true,
+          agentId: true,
+        },
+      })
+  );
 
   if (!finalUser) {
     console.warn(

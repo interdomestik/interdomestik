@@ -1,8 +1,17 @@
-import { db } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { readPaddleCanonicalUser } from './utils/canonical-user';
 
-import { findSubscriptionByProviderReference } from '../../subscription';
+import {
+  findPaddleSubscriptionByReference,
+  findPaddleSubscriptionInTenant,
+} from '../../subscription';
 import { RetryablePaddleWebhookError } from '../errors';
 import { subscriptionEventDataSchema } from '../schemas';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type SubscriptionEventData = ReturnType<typeof subscriptionEventDataSchema.parse>;
 
@@ -24,24 +33,32 @@ export type ExistingSubscriptionRecord = {
 
 export async function resolvePastDueContext(
   sub: SubscriptionEventData,
-  options: { requireExactProviderRow: boolean; tenantId?: string | null }
+  options: {
+    delivery: IngressCapability<'paddle-delivery'>;
+    requireExactProviderRow: boolean;
+    /** Authority of the canonical tenant the core resolved, when it did. */
+    authority?: TenantAuthority | null;
+  }
 ): Promise<{
   userRecord: PastDueUserRecord;
   existingSub: ExistingSubscriptionRecord;
+  authority: TenantAuthority;
 } | null> {
   const customData = sub.customData || sub.custom_data;
   const customDataUserId = normalizeText(customData?.userId);
   const customDataTenantId = normalizeText(customData?.tenantId);
-  const canonicalTenantId = normalizeText(options.tenantId);
-  if (options.requireExactProviderRow && !canonicalTenantId) {
+  const canonicalAuthority = options.authority ?? null;
+  if (options.requireExactProviderRow && !canonicalAuthority) {
     throw new RetryablePaddleWebhookError(
       `Entity past_due for ${sub.id} requires a canonical tenant`
     );
   }
-  const existingSub = await findExistingPastDueSubscriptionByProvider(
+  const existingLookup = await findExistingPastDueSubscriptionByProvider(
     sub.id,
-    options.requireExactProviderRow ? canonicalTenantId : null
+    options.delivery,
+    options.requireExactProviderRow ? canonicalAuthority : null
   );
+  const existingSub = existingLookup?.subscription ?? null;
   if (options.requireExactProviderRow && !existingSub) {
     throw new RetryablePaddleWebhookError(
       `Entity past_due for ${sub.id} requires an existing provider subscription row`
@@ -61,11 +78,12 @@ export async function resolvePastDueContext(
     return null;
   }
 
-  const userRecord = await findPastDueUserRecord(userId);
-  if (!userRecord) {
+  const userLookup = await findPastDueUserRecord(options.delivery, userId);
+  if (!userLookup) {
     console.warn(`[Webhook] User not found: ${userId}`);
     return null;
   }
+  const userRecord = userLookup.user;
   if (existingTenantId && existingTenantId !== userRecord.tenantId) {
     console.warn(
       `[Webhook] Cannot resolve past_due subscription ${sub.id}; existing subscription tenant=${existingTenantId} conflicts with user tenant=${userRecord.tenantId}`
@@ -79,43 +97,70 @@ export async function resolvePastDueContext(
     return null;
   }
 
+  // The subscription's authority when it exists, otherwise the user's. A tenant that differs from
+  // the authority's fails closed before any write.
+  const authority = existingLookup?.authority ?? userLookup.authority;
+  if (readTenantAuthority(authority).tenantId !== userRecord.tenantId) {
+    console.warn(
+      `[Webhook] Cannot resolve past_due subscription ${sub.id}; user tenant=${userRecord.tenantId} conflicts with webhook authority tenant=${readTenantAuthority(authority).tenantId}`
+    );
+    return null;
+  }
+
   return {
     userRecord,
-    existingSub: existingSub ?? (await findExistingPastDueSubscriptionForUser(userRecord)),
+    existingSub:
+      existingSub ?? (await findExistingPastDueSubscriptionForUser(authority, userRecord)),
+    authority,
   };
 }
 
-async function findPastDueUserRecord(userId: string): Promise<PastDueUserRecord | null> {
-  return (
-    // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps dunning tenant context before tenant-scoped writes
-    (await db.query.user.findFirst({
-      where: (users, { eq }) => eq(users.id, userId),
-      columns: { id: true, email: true, name: true, tenantId: true },
-    })) ?? null
-  );
+async function findPastDueUserRecord(
+  delivery: IngressCapability<'paddle-delivery'>,
+  userId: string
+): Promise<{ user: PastDueUserRecord; authority: TenantAuthority } | null> {
+  const lookup = await readPaddleCanonicalUser(delivery, userId);
+  if (!lookup) return null;
+  const { user, authority } = lookup;
+  return {
+    user: { id: user.id, email: user.email, name: user.name, tenantId: user.tenantId },
+    authority,
+  };
 }
 
 async function findExistingPastDueSubscriptionByProvider(
   subscriptionId: string,
-  tenantId: string | null
-): Promise<ExistingSubscriptionRecord> {
-  return (
-    (await findSubscriptionByProviderReference(
-      subscriptionId,
-      tenantId ? { tenantId } : undefined
-    )) ?? null
-  );
+  delivery: IngressCapability<'paddle-delivery'>,
+  authority: TenantAuthority | null
+): Promise<{
+  subscription: NonNullable<ExistingSubscriptionRecord>;
+  authority: TenantAuthority;
+} | null> {
+  if (authority) {
+    const subscription = await findPaddleSubscriptionInTenant(subscriptionId, authority);
+    return subscription ? { subscription, authority } : null;
+  }
+  return findPaddleSubscriptionByReference(subscriptionId, delivery);
 }
 
 export async function findExistingPastDueSubscriptionForUser(
+  authority: TenantAuthority,
   userRecord: Pick<PastDueUserRecord, 'id' | 'tenantId'>
 ): Promise<ExistingSubscriptionRecord> {
+  const { tenantId } = readTenantAuthority(authority);
+  if (userRecord.tenantId !== tenantId) {
+    throw new Error(
+      `Paddle user ${userRecord.id} tenant conflict: user=${userRecord.tenantId} authority=${tenantId}`
+    );
+  }
   return (
     // db-access-guard: tenant-scoped -- reason: tenantId from canonical user record constrains fallback subscription lookup
-    (await db.query.subscriptions.findFirst({
-      where: (subs, { and, eq }) =>
-        and(eq(subs.userId, userRecord.id), eq(subs.tenantId, userRecord.tenantId)),
-    })) ?? null
+    (await withTenantAuthority(authority, tx =>
+      tx.query.subscriptions.findFirst({
+        where: (subs, { and, eq }) =>
+          and(eq(subs.userId, userRecord.id), eq(subs.tenantId, tenantId)),
+      })
+    )) ?? null
   );
 }
 

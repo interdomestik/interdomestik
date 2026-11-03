@@ -1,5 +1,7 @@
 import { acknowledgeSupportHandoffPublicResponseCore as acknowledgeDomainPublicResponse } from '@interdomestik/domain-claims/support-handoffs/acknowledgement';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { logAuditEvent } from '@/lib/audit';
 import { revalidatePath } from 'next/cache';
 
@@ -21,6 +23,7 @@ function shouldRevalidateAcknowledgementResult(
 }
 
 export async function acknowledgeSupportHandoffPublicResponseCore(params: {
+  authority: TenantAuthority | null;
   expectedPublicResponseVersion: number;
   handoffId: string;
   requestHeaders?: Headers;

@@ -3,7 +3,6 @@ import {
   and,
   claimMessages,
   claims,
-  db,
   eq,
   ilike,
   inArray,
@@ -11,6 +10,10 @@ import {
   user,
 } from '@interdomestik/database';
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
 import { SQL, count, desc, isNotNull, isNull } from 'drizzle-orm';
@@ -20,48 +23,23 @@ import {
   claimLifecycleStatusSql,
 } from './lifecycle-read-sql';
 import { mapClaimsToResponse } from './list-response';
+import type { ClaimsListResponse, ClaimsScope, ListClaimsParams } from './list-types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export type ClaimsScope =
-  'member' | 'admin' | 'staff_queue' | 'staff_all' | 'staff_unassigned' | 'agent_queue';
-
-export type ClaimItem = {
-  id: string;
-  title: string | null;
-  status: string | null;
-  createdAt: string | null;
-  companyName: string | null;
-  claimAmount: string | null;
-  currency: string | null;
-  category: string | null;
-  claimantName?: string | null;
-  claimantEmail?: string | null;
-  claimNumber?: string | null;
-  unreadCount?: number;
-};
-
-export type ClaimsListResponse = {
-  success: boolean;
-  claims?: ClaimItem[];
-  page?: number;
-  perPage?: number;
-  totalCount?: number;
-  totalPages?: number;
-  error?: string;
-};
-
-export type ListClaimsParams = {
-  session: SessionWithTenant;
-  scope: ClaimsScope;
-  status?: string;
-  search?: string;
-  page: number;
-  perPage: number;
-};
+export type { ClaimItem, ClaimsListResponse, ClaimsScope, ListClaimsParams } from './list-types';
 
 const VALID_STATUSES = CLAIM_STATUSES;
 
 export async function listClaims(params: ListClaimsParams): Promise<ClaimsListResponse> {
-  const { session, scope, status: statusFilter, search: searchQuery, page, perPage } = params;
+  const {
+    authority,
+    session,
+    scope,
+    status: statusFilter,
+    search: searchQuery,
+    page,
+    perPage,
+  } = params;
 
   // 1. Auth & Scope Validation
   const authScope = scopeFilter(session);
@@ -72,7 +50,7 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
   }
 
   const { isPrivileged } = access;
-  const tenantId = authScope.tenantId;
+  const { tenantId } = readTenantAuthority(authority);
   const role = session?.user?.role || 'user';
   const isAgent = role === 'agent';
 
@@ -93,14 +71,15 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
     whereClause,
     agentClientsJoinOn,
     page,
-    perPage
+    perPage,
+    authority
   );
 
   // 4. Fetch Metadata & Map Response
   const unreadCounts = await fetchUnreadCounts({
+    authority,
     rows,
     scope,
-    tenantId,
   });
 
   return {
@@ -247,9 +226,10 @@ async function executeClaimsQuery(
   whereClause: SQL | undefined,
   agentClientsJoinOn: any,
   page: number,
-  perPage: number
+  perPage: number,
+  authority: TenantAuthority
 ) {
-  const totalCount = await fetchTotalCount(whereClause, agentClientsJoinOn);
+  const totalCount = await fetchTotalCount(whereClause, agentClientsJoinOn, authority);
   const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
   const offset = (page - 1) * perPage;
 
@@ -258,23 +238,30 @@ async function executeClaimsQuery(
     agentClientsJoinOn,
     perPage,
     offset,
+    authority,
   });
 
   return { totalCount, totalPages, rows };
 }
 
-async function fetchTotalCount(whereClause: SQL | undefined, agentClientsJoinOn: any) {
+async function fetchTotalCount(
+  whereClause: SQL | undefined,
+  agentClientsJoinOn: any,
+  authority: TenantAuthority
+) {
   // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-  let countQuery = db
-    .select({ total: count() })
-    .from(claims)
-    .leftJoin(user, eq(claims.userId, user.id));
+  const [countRow] = await withTenantAuthority(authority, tx => {
+    let countQuery = tx
+      .select({ total: count() })
+      .from(claims)
+      .leftJoin(user, eq(claims.userId, user.id));
 
-  if (agentClientsJoinOn) {
-    countQuery = countQuery.innerJoin(agentClients, agentClientsJoinOn);
-  }
+    if (agentClientsJoinOn) {
+      countQuery = countQuery.innerJoin(agentClients, agentClientsJoinOn);
+    }
 
-  const [countRow] = await countQuery.where(whereClause);
+    return countQuery.where(whereClause);
+  });
   return Number(countRow?.total || 0);
 }
 
@@ -283,71 +270,77 @@ async function fetchClaimRows(params: {
   agentClientsJoinOn: any;
   perPage: number;
   offset: number;
+  authority: TenantAuthority;
 }) {
-  const { whereClause, agentClientsJoinOn, perPage, offset } = params;
+  const { whereClause, agentClientsJoinOn, perPage, offset, authority } = params;
 
   // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-  let rowsQuery = db
-    .select({
-      id: claims.id,
-      title: claims.title,
-      status: claimLifecycleStatusSql(),
-      caseLifecycleState: claims.caseLifecycleState,
-      recoveryLifecycleState: claims.recoveryLifecycleState,
-      createdAt: claims.createdAt,
-      companyName: claims.companyName,
-      claimAmount: claims.claimAmount,
-      currency: claims.currency,
-      category: claims.category,
-      claimantName: user.name,
-      claimantEmail: user.email,
-      claimNumber: claims.claimNumber,
-    })
-    .from(claims)
-    .leftJoin(user, eq(claims.userId, user.id));
+  return withTenantAuthority(authority, async tx => {
+    let rowsQuery = tx
+      .select({
+        id: claims.id,
+        title: claims.title,
+        status: claimLifecycleStatusSql(),
+        caseLifecycleState: claims.caseLifecycleState,
+        recoveryLifecycleState: claims.recoveryLifecycleState,
+        createdAt: claims.createdAt,
+        companyName: claims.companyName,
+        claimAmount: claims.claimAmount,
+        currency: claims.currency,
+        category: claims.category,
+        claimantName: user.name,
+        claimantEmail: user.email,
+        claimNumber: claims.claimNumber,
+      })
+      .from(claims)
+      .leftJoin(user, eq(claims.userId, user.id));
 
-  if (agentClientsJoinOn) {
-    rowsQuery = rowsQuery.innerJoin(agentClients, agentClientsJoinOn);
-  }
+    if (agentClientsJoinOn) {
+      rowsQuery = rowsQuery.innerJoin(agentClients, agentClientsJoinOn);
+    }
 
-  return await rowsQuery
-    .where(whereClause)
-    .orderBy(desc(claims.createdAt))
-    .limit(perPage)
-    .offset(offset);
+    return await rowsQuery
+      .where(whereClause)
+      .orderBy(desc(claims.createdAt))
+      .limit(perPage)
+      .offset(offset);
+  });
 }
 
 async function fetchUnreadCounts(params: {
+  authority: TenantAuthority;
   rows: { id: string }[];
   scope: ClaimsScope;
-  tenantId: string;
 }) {
-  const { rows, scope, tenantId } = params;
+  const { authority, rows, scope } = params;
+  const { tenantId } = readTenantAuthority(authority);
   const unreadCounts = new Map<string, number>();
 
   if (scope !== 'member' && rows.length > 0) {
-    const unreadRows = await db
-      .select({
-        claimId: claimMessages.claimId,
-        total: count(),
-      })
-      .from(claimMessages)
-      .innerJoin(claims, eq(claimMessages.claimId, claims.id))
-      .where(
-        withTenant(
-          tenantId,
-          claims.tenantId,
-          and(
-            inArray(
-              claimMessages.claimId,
-              rows.map(row => row.id)
-            ),
-            isNull(claimMessages.readAt),
-            eq(claimMessages.senderId, claims.userId)
+    const unreadRows = await withTenantAuthority(authority, tx =>
+      tx
+        .select({
+          claimId: claimMessages.claimId,
+          total: count(),
+        })
+        .from(claimMessages)
+        .innerJoin(claims, eq(claimMessages.claimId, claims.id))
+        .where(
+          withTenant(
+            tenantId,
+            claims.tenantId,
+            and(
+              inArray(
+                claimMessages.claimId,
+                rows.map(row => row.id)
+              ),
+              isNull(claimMessages.readAt),
+              eq(claimMessages.senderId, claims.userId)
+            )
           )
         )
-      )
-      .groupBy(claimMessages.claimId);
+        .groupBy(claimMessages.claimId)
+    );
 
     for (const row of unreadRows) {
       unreadCounts.set(row.claimId, Number(row.total || 0));

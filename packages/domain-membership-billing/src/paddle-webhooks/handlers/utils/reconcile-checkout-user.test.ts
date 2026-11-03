@@ -1,100 +1,50 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const hoisted = vi.hoisted(() => ({
-  db: {
-    query: {
-      user: { findFirst: vi.fn() },
-      account: { findFirst: vi.fn() },
-      webhookEvents: { findFirst: vi.fn() },
-      tenantSettings: { findFirst: vi.fn() },
-    },
-    transaction: vi.fn(),
-  },
-  tx: {
-    insert: vi.fn(),
-    update: vi.fn(),
-  },
-  insertedUserValues: vi.fn(),
-  updatedUserValues: vi.fn(),
-  generateMemberNumber: vi.fn(),
-  nanoid: vi.fn(),
-}));
-
-vi.mock('@interdomestik/database', () => ({
-  agentClients: {
-    tenantId: 'agent_clients.tenant_id',
-    memberId: 'agent_clients.member_id',
-    agentId: 'agent_clients.agent_id',
-  },
-  and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
-  db: hoisted.db,
-  eq: vi.fn((left, right) => ({ left, right })),
-  user: { id: 'user.id' },
-}));
-
-vi.mock('@interdomestik/database/member-number', () => ({
-  generateMemberNumber: hoisted.generateMemberNumber,
-}));
-
-vi.mock('nanoid', () => ({
-  nanoid: hoisted.nanoid,
-}));
-
+import { installReconcileCheckoutUserHooks } from './reconcile-checkout-user.hooks.test-support';
+import { hoisted, insertedUserValuesInclude } from './reconcile-checkout-user.test-support';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { describe, expect, it, vi } from 'vitest';
+import { TEST_PADDLE_DELIVERY } from '../../paddle-authority.test-support';
+import { isRetryablePaddleWebhookError } from '../../errors';
 import { reconcileCheckoutUser } from './reconcile-checkout-user';
-
-function insertedUserValuesInclude(fields: Record<string, unknown>): boolean {
-  return hoisted.insertedUserValues.mock.calls.some(([value]) => {
-    if (!value || typeof value !== 'object') return false;
-    return Object.entries(fields).every(([key, expected]) => {
-      return (value as Record<string, unknown>)[key] === expected;
-    });
-  });
-}
 
 describe('reconcileCheckoutUser', () => {
   const requestPasswordResetOnboarding = vi.fn();
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    hoisted.db.query.user.findFirst.mockReset();
-    hoisted.db.query.account.findFirst.mockReset();
-    hoisted.db.query.webhookEvents.findFirst.mockReset();
-    hoisted.db.query.tenantSettings.findFirst.mockReset();
-    hoisted.db.transaction.mockReset();
-    hoisted.tx.insert.mockReset();
-    hoisted.tx.update.mockReset();
-    hoisted.insertedUserValues.mockReset();
-    hoisted.updatedUserValues.mockReset();
-    hoisted.generateMemberNumber.mockReset();
-    hoisted.nanoid.mockReset();
+  installReconcileCheckoutUserHooks();
 
-    hoisted.nanoid.mockReturnValue('user_new');
-    hoisted.generateMemberNumber.mockResolvedValue({
-      memberNumber: 'MEM-2026-000123',
-      isNew: true,
-    });
+  const counterDown = new Error('counter down');
+  it.each([
+    ['is refused', () => hoisted.issueTenantMemberNumber.mockResolvedValue(null), undefined],
+    ['fails', () => hoisted.issueTenantMemberNumber.mockRejectedValue(counterDown), counterDown],
+  ])(
+    'fails reconciliation as retryable, for the receipt to be redelivered, when member-number issuance %s',
+    async (_label, arrange, cause) => {
+      hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
+        payload: {
+          data: { customerEmail: 'buyer@example.com', customData: { tenantId: 'tenant_mk' } },
+        },
+      });
+      hoisted.db.query.user.findFirst.mockResolvedValue(null);
+      hoisted.db.query.tenantSettings.findFirst.mockResolvedValue(undefined);
+      arrange();
 
-    hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.tx));
-
-    hoisted.tx.insert.mockImplementation(() => ({
-      values: hoisted.insertedUserValues,
-    }));
-    hoisted.insertedUserValues.mockReturnValue({
-      onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-    });
-
-    hoisted.tx.update.mockImplementation(() => ({
-      set: hoisted.updatedUserValues,
-    }));
-    hoisted.updatedUserValues.mockReturnValue({
-      where: () => ({
-        returning: async () => [{ id: 'user_existing' }],
-      }),
-    });
-  });
+      await expect(
+        reconcileCheckoutUser(
+          TEST_PADDLE_DELIVERY,
+          { id: 'sub_new', transactionId: 'txn_123', customData: { tenantId: 'tenant_mk' } },
+          { requestPasswordResetOnboarding }
+        )
+      ).rejects.toSatisfy(
+        error => isRetryablePaddleWebhookError(error) && (error as Error).cause === cause
+      );
+      expect(hoisted.insertedUserValues).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'user_new', role: 'member' })
+      );
+      expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
+    }
+  );
 
   it('creates a new member user from stored transaction payload and requests onboarding', async () => {
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+    hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
       payload: {
         data: {
           customerEmail: 'buyer@example.com',
@@ -107,22 +57,22 @@ describe('reconcileCheckoutUser', () => {
         },
       },
     });
-    hoisted.db.query.user.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 'user_new',
-        tenantId: 'tenant_mk',
-        email: 'buyer@example.com',
-        name: 'buyer',
-        memberNumber: 'MEM-2026-000123',
-      });
-    hoisted.db.query.account.findFirst.mockResolvedValue(null);
+    // No tenant owns the email (privileged probe); the reads below are the agent branch lookup and
+    // the final reload.
+    hoisted.db.query.user.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      id: 'user_new',
+      tenantId: 'tenant_mk',
+      email: 'buyer@example.com',
+      name: 'buyer',
+      memberNumber: 'MEM-2026-000123',
+    });
+    hoisted.hasTenantMemberCredential.mockResolvedValue(false);
     hoisted.db.query.tenantSettings.findFirst.mockResolvedValue({
       value: { branchId: 'branch-mk-main' },
     });
 
     const result = await reconcileCheckoutUser(
+      TEST_PADDLE_DELIVERY,
       {
         id: 'sub_new',
         transactionId: 'txn_123',
@@ -134,7 +84,19 @@ describe('reconcileCheckoutUser', () => {
       { requestPasswordResetOnboarding }
     );
 
-    expect(hoisted.db.transaction).toHaveBeenCalledTimes(1);
+    // Every effect runs under the billing authority for the entity-bound tenant, minted from the
+    // evidence tenant only because it equals the binding.
+    expect(hoisted.authorizePaddleBillingTenant).toHaveBeenCalledWith(
+      TEST_PADDLE_DELIVERY,
+      'tenant_mk'
+    );
+    const billingAuthority = hoisted.authorizePaddleBillingTenant.mock.results[0]!.value;
+    expect(readTenantAuthority(billingAuthority).tenantId).toBe('tenant_mk');
+    expect(hoisted.withTenantContext).toHaveBeenCalled();
+    for (const [context] of hoisted.withTenantContext.mock.calls) {
+      expect(context).toBe(billingAuthority);
+    }
+    expect(hoisted.tx.insert).toHaveBeenCalledTimes(1);
     expect(hoisted.tx.insert).toHaveBeenCalled();
     expect(hoisted.insertedUserValues).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -145,10 +107,18 @@ describe('reconcileCheckoutUser', () => {
       })
     );
     expect(insertedUserValuesInclude({ memberId: 'user_new', status: 'active' })).toBe(false);
-    expect(hoisted.generateMemberNumber).toHaveBeenCalledWith(hoisted.tx, {
+    expect(hoisted.issueTenantMemberNumber).toHaveBeenCalledWith(expect.anything(), {
       userId: 'user_new',
       joinedAt: expect.any(Date),
     });
+    // Both identity producers run under the billing authority of the reconciled tenant, after
+    // the tenant transaction that created the member.
+    const [issuedAuthority] = hoisted.issueTenantMemberNumber.mock.calls[0];
+    expect(readTenantAuthority(issuedAuthority).tenantId).toBe('tenant_mk');
+    expect(hoisted.hasTenantMemberCredential).toHaveBeenCalledWith(issuedAuthority, 'user_new');
+    expect(hoisted.withTenantContext.mock.invocationCallOrder[1]).toBeLessThan(
+      hoisted.issueTenantMemberNumber.mock.invocationCallOrder[0]
+    );
     expect(requestPasswordResetOnboarding).toHaveBeenCalledWith({
       email: 'buyer@example.com',
       tenantId: 'tenant_mk',
@@ -166,400 +136,5 @@ describe('reconcileCheckoutUser', () => {
         }),
       })
     );
-  });
-
-  it('reuses an existing same-tenant user and skips onboarding when credentials already exist', async () => {
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
-      payload: {
-        data: {
-          customerEmail: 'existing@example.com',
-          customData: {
-            tenantId: 'tenant_ks',
-          },
-        },
-      },
-    });
-    hoisted.db.query.user.findFirst
-      .mockResolvedValueOnce({
-        id: 'user_existing',
-        tenantId: 'tenant_ks',
-        email: 'existing@example.com',
-        name: 'Existing Member',
-        memberNumber: 'MEM-2026-000001',
-        role: 'member',
-      })
-      .mockResolvedValueOnce({
-        id: 'user_existing',
-        tenantId: 'tenant_ks',
-        email: 'existing@example.com',
-        name: 'Existing Member',
-        memberNumber: 'MEM-2026-000001',
-      });
-    hoisted.db.query.account.findFirst.mockResolvedValue({
-      id: 'acct_credential',
-      providerId: 'credential',
-    });
-    hoisted.db.query.tenantSettings.findFirst.mockResolvedValue(undefined);
-
-    const result = await reconcileCheckoutUser(
-      {
-        id: 'sub_existing',
-        transactionId: 'txn_existing',
-        customData: {
-          tenantId: 'tenant_ks',
-        },
-      },
-      { requestPasswordResetOnboarding }
-    );
-
-    expect(hoisted.db.transaction).not.toHaveBeenCalled();
-    expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
-    expect(result).toEqual(
-      expect.objectContaining({
-        userId: 'user_existing',
-        tenantId: 'tenant_ks',
-      })
-    );
-  });
-
-  it('returns null when stored transaction payload tenant mismatches the existing user tenant', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
-      payload: {
-        data: {
-          customerEmail: 'wrong@example.com',
-          customData: {
-            tenantId: 'tenant_mk',
-          },
-        },
-      },
-    });
-    hoisted.db.query.user.findFirst.mockResolvedValue({
-      id: 'user_wrong',
-      tenantId: 'tenant_ks',
-      email: 'wrong@example.com',
-      name: 'Wrong Tenant',
-      memberNumber: null,
-      role: 'member',
-    });
-
-    const result = await reconcileCheckoutUser(
-      {
-        id: 'sub_wrong',
-        transactionId: 'txn_wrong',
-        customData: {
-          tenantId: 'tenant_mk',
-        },
-      },
-      { requestPasswordResetOnboarding }
-    );
-
-    expect(result).toBeNull();
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('tenant mismatch'));
-    expect(hoisted.db.transaction).not.toHaveBeenCalled();
-    expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
-
-    warnSpy.mockRestore();
-  });
-
-  it('returns null when subscription customData conflicts with stored transaction tenant', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
-      payload: {
-        data: {
-          customerEmail: 'buyer@example.com',
-          customData: {
-            tenantId: 'tenant_mk',
-          },
-        },
-      },
-    });
-
-    const result = await reconcileCheckoutUser(
-      {
-        id: 'sub_conflict',
-        transactionId: 'txn_conflict',
-        customData: {
-          tenantId: 'tenant_bad',
-        },
-      },
-      { requestPasswordResetOnboarding }
-    );
-
-    expect(result).toBeNull();
-    expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
-    expect(hoisted.db.transaction).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('subscription customData conflicts with stored transaction')
-    );
-
-    warnSpy.mockRestore();
-  });
-
-  it('returns null when customData user does not match the canonical email user', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
-      payload: {
-        data: {
-          customerEmail: 'existing@example.com',
-          customData: {
-            tenantId: 'tenant_ks',
-            userId: 'user_stale',
-          },
-        },
-      },
-    });
-    hoisted.db.query.user.findFirst.mockResolvedValue({
-      id: 'user_existing',
-      tenantId: 'tenant_ks',
-      email: 'existing@example.com',
-      name: 'Existing Member',
-      memberNumber: 'MEM-2026-000001',
-      role: 'member',
-    });
-
-    const result = await reconcileCheckoutUser(
-      {
-        id: 'sub_user_conflict',
-        transactionId: 'txn_user_conflict',
-      },
-      { requestPasswordResetOnboarding }
-    );
-
-    expect(result).toBeNull();
-    expect(hoisted.db.transaction).not.toHaveBeenCalled();
-    expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'customData user=user_stale does not match canonical email user=user_existing'
-      )
-    );
-
-    warnSpy.mockRestore();
-  });
-
-  it('returns null instead of creating a member when customData asserts a missing user', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
-      payload: {
-        data: {
-          customerEmail: 'new@example.com',
-          customData: {
-            tenantId: 'tenant_mk',
-            userId: 'user_missing',
-          },
-        },
-      },
-    });
-    hoisted.db.query.user.findFirst.mockResolvedValue(null);
-
-    const result = await reconcileCheckoutUser(
-      {
-        id: 'sub_missing_user',
-        transactionId: 'txn_missing_user',
-      },
-      { requestPasswordResetOnboarding }
-    );
-
-    expect(result).toBeNull();
-    expect(hoisted.db.transaction).not.toHaveBeenCalled();
-    expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'customData user=user_missing does not match canonical email user=none'
-      )
-    );
-
-    warnSpy.mockRestore();
-  });
-
-  it('keeps the reconciled user context when onboarding email delivery fails', async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    requestPasswordResetOnboarding.mockRejectedValueOnce(new Error('email offline'));
-
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
-      payload: {
-        data: {
-          customerEmail: 'buyer@example.com',
-          customData: {
-            tenantId: 'tenant_mk',
-          },
-        },
-      },
-    });
-    hoisted.db.query.user.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
-      id: 'user_new',
-      tenantId: 'tenant_mk',
-      email: 'buyer@example.com',
-      name: 'buyer',
-      memberNumber: 'MEM-2026-000123',
-    });
-    hoisted.db.query.account.findFirst.mockResolvedValue(null);
-    hoisted.db.query.tenantSettings.findFirst.mockResolvedValue({
-      value: { branchId: 'branch-mk-main' },
-    });
-
-    const result = await reconcileCheckoutUser(
-      {
-        id: 'sub_new',
-        transactionId: 'txn_123',
-        customData: {
-          tenantId: 'tenant_mk',
-        },
-      },
-      { requestPasswordResetOnboarding }
-    );
-
-    expect(result).toEqual(
-      expect.objectContaining({
-        userId: 'user_new',
-        tenantId: 'tenant_mk',
-      })
-    );
-    expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Failed to send onboarding password reset'),
-      expect.any(Error)
-    );
-
-    errorSpy.mockRestore();
-  });
-
-  it('reuses a raced same-tenant user when insert hits a unique violation', async () => {
-    const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
-
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
-      payload: {
-        data: {
-          customerEmail: 'race@example.com',
-          customData: {
-            tenantId: 'tenant_mk',
-          },
-        },
-      },
-    });
-    hoisted.db.query.user.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 'user_race',
-        tenantId: 'tenant_mk',
-        branchId: 'branch-mk-main',
-        email: 'race@example.com',
-        name: 'Race Winner',
-        memberNumber: 'MEM-2026-000777',
-        role: 'member',
-        agentId: null,
-      })
-      .mockResolvedValueOnce({
-        id: 'user_race',
-        tenantId: 'tenant_mk',
-        branchId: 'branch-mk-main',
-        email: 'race@example.com',
-        name: 'Race Winner',
-        memberNumber: 'MEM-2026-000777',
-        role: 'member',
-      });
-    hoisted.db.query.account.findFirst.mockResolvedValue({
-      id: 'acct_credential',
-      providerId: 'credential',
-    });
-    hoisted.db.query.tenantSettings.findFirst.mockResolvedValue({
-      value: { branchId: 'branch-mk-main' },
-    });
-    hoisted.insertedUserValues.mockRejectedValueOnce(uniqueViolation);
-
-    const result = await reconcileCheckoutUser(
-      {
-        id: 'sub_race',
-        transactionId: 'txn_race',
-        customData: {
-          tenantId: 'tenant_mk',
-        },
-      },
-      { requestPasswordResetOnboarding }
-    );
-
-    expect(result).toEqual(
-      expect.objectContaining({
-        userId: 'user_race',
-        tenantId: 'tenant_mk',
-      })
-    );
-    expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
-    expect(hoisted.generateMemberNumber).not.toHaveBeenCalled();
-  });
-
-  it('preserves elevated roles while still backfilling member state', async () => {
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
-      payload: {
-        data: {
-          customerEmail: 'admin@example.com',
-          customData: {
-            tenantId: 'tenant_ks',
-            agentId: 'agent_1',
-          },
-        },
-      },
-    });
-    hoisted.db.query.user.findFirst
-      .mockResolvedValueOnce({
-        id: 'user_admin',
-        tenantId: 'tenant_ks',
-        branchId: null,
-        email: 'admin@example.com',
-        name: 'Admin User',
-        memberNumber: null,
-        role: 'admin',
-        agentId: null,
-        createdBy: 'admin',
-      })
-      .mockResolvedValueOnce({
-        id: 'user_admin',
-        tenantId: 'tenant_ks',
-        branchId: 'branch-ks-main',
-        email: 'admin@example.com',
-        name: 'Admin User',
-        memberNumber: 'MEM-2026-000555',
-        role: 'admin',
-      });
-    hoisted.db.query.account.findFirst.mockResolvedValue({
-      id: 'acct_credential',
-      providerId: 'credential',
-    });
-    hoisted.db.query.tenantSettings.findFirst.mockResolvedValue({
-      value: { branchId: 'branch-ks-main' },
-    });
-
-    await reconcileCheckoutUser(
-      {
-        id: 'sub_admin',
-        transactionId: 'txn_admin',
-        customData: {
-          tenantId: 'tenant_ks',
-          agentId: 'agent_1',
-        },
-      },
-      { requestPasswordResetOnboarding }
-    );
-
-    expect(hoisted.tx.update).toHaveBeenCalled();
-    expect(hoisted.updatedUserValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        role: 'admin',
-        branchId: 'branch-ks-main',
-        agentId: 'agent_1',
-        assistedByAgentId: 'agent_1',
-        createdBy: 'admin',
-      })
-    );
-    expect(hoisted.generateMemberNumber).toHaveBeenCalledWith(hoisted.tx, {
-      userId: 'user_admin',
-      joinedAt: expect.any(Date),
-    });
-    expect(insertedUserValuesInclude({ memberId: 'user_admin', status: 'active' })).toBe(false);
-    expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,9 @@
-import { claimDocuments, claims, db, eq } from '@interdomestik/database';
+import { claimDocuments, claims, eq } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
@@ -7,11 +11,13 @@ import { createClaimSchema, type CreateClaimValues } from '../validators/claims'
 import { buildClaimDocumentRows } from './documents';
 import { resolveClaimIncidentCountryUpdate } from './incident-country';
 import type { ClaimsDeps, ClaimsSession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export { cancelClaimCore } from './draft-cancellation';
 
 export async function updateDraftClaimCore(
   params: {
+    authority: TenantAuthority | null;
     session: ClaimsSession | null;
     requestHeaders: Headers;
     claimId: string;
@@ -19,17 +25,20 @@ export async function updateDraftClaimCore(
   },
   deps: ClaimsDeps = {}
 ) {
-  const { session, requestHeaders, claimId, data } = params;
+  const { authority, session, requestHeaders, claimId, data } = params;
 
-  if (!session) {
+  if (!session || !authority) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  const tenantId = ensureTenantId(session);
-  const claim = await db.query.claims.findFirst({
-    where: (claimsTable, { eq }) =>
-      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-  });
+  ensureTenantId(session);
+  const { tenantId } = readTenantAuthority(authority);
+  const claim = await withTenantAuthority(authority, tx =>
+    tx.query.claims.findFirst({
+      where: (claimsTable, { eq }) =>
+        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+    })
+  );
 
   if (!claim) {
     return { success: false, error: 'Claim not found' };
@@ -52,19 +61,21 @@ export async function updateDraftClaimCore(
   const incidentCountry = resolveClaimIncidentCountryUpdate(result.data);
 
   try {
-    await db
-      .update(claims)
-      .set({
-        title,
-        description: description || undefined,
-        category,
-        companyName,
-        claimAmount: claimAmount || undefined,
-        currency: currency || 'EUR',
-        ...incidentCountry,
-        updatedAt: new Date(),
-      })
-      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
+    await withTenantAuthority(authority, tx =>
+      tx
+        .update(claims)
+        .set({
+          title,
+          description: description || undefined,
+          category,
+          companyName,
+          claimAmount: claimAmount || undefined,
+          currency: currency || 'EUR',
+          ...incidentCountry,
+          updatedAt: new Date(),
+        })
+        .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)))
+    );
 
     if (files?.length) {
       const documentRows = buildClaimDocumentRows({
@@ -75,14 +86,14 @@ export async function updateDraftClaimCore(
       });
 
       // db-access-guard: tenant-scoped -- reason: tenantId from validated session before draft document insert
-      await db.insert(claimDocuments).values(documentRows);
+      await withTenantAuthority(authority, tx => tx.insert(claimDocuments).values(documentRows));
     }
 
     if (deps.logAuditEvent) {
       await deps.logAuditEvent({
         actorId: session.user.id,
         actorRole: session.user.role,
-        tenantId,
+        authority,
         action: 'claim.updated',
         entityType: 'claim',
         entityId: claimId,

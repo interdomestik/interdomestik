@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetStaffClaimsListMocks } from './get-staff-claims-list.test-support';
 const { mocks, modules } = await vi.hoisted(async () => {
@@ -13,6 +14,10 @@ vi.mock('drizzle-orm', () => modules.drizzle);
 import { getStaffClaimsList } from './get-staff-claims-list';
 import { VALID_DIASPORA_ORIGIN_NOTES } from './staff-claims-diaspora-origin-notes';
 
+const authorities = {
+  'tenant-ks': mintTestTenantAuthority('tenant-ks'),
+  'tenant-mk': mintTestTenantAuthority('tenant-mk'),
+};
 describe('staff claims history projection', () => {
   beforeEach(() => resetStaffClaimsListMocks(mocks));
 
@@ -21,7 +26,7 @@ describe('staff claims history projection', () => {
 
     await getStaffClaimsList({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       branchId: 'branch-1',
       limit: 20,
     });
@@ -43,7 +48,7 @@ describe('staff claims history projection', () => {
 
     await getStaffClaimsList({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       branchId: 'branch-1',
       limit: 20,
       viewerRole: 'branch_manager',
@@ -89,7 +94,7 @@ describe('staff claims history projection', () => {
     mocks.historyChain.orderBy.mockRejectedValueOnce(new Error('history read failed'));
 
     await expect(
-      getStaffClaimsList({ staffId: 'staff-1', tenantId: 'tenant-ks', limit: 20 })
+      getStaffClaimsList({ staffId: 'staff-1', authority: authorities['tenant-ks'], limit: 20 })
     ).rejects.toThrow('history read failed');
   });
   it('maps assignee details', async () => {
@@ -111,7 +116,7 @@ describe('staff claims history projection', () => {
 
     const [result] = await getStaffClaimsList({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       branchId: 'branch-1',
       limit: 20,
       viewerRole: 'branch_manager',
@@ -151,7 +156,7 @@ describe('staff claims history projection', () => {
 
     const [result] = await getStaffClaimsList({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       branchId: 'branch-1',
       limit: 20,
       viewerRole: 'branch_manager',

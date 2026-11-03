@@ -1,6 +1,7 @@
 import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { isStaffOrHigher } from '@interdomestik/shared-auth';
 import { NextResponse } from 'next/server';
 import { submitAiReview } from './_core';
@@ -49,10 +50,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Invalid review action' }, { status: 400 });
   }
 
+  const authorized = await authorizeSessionTenant(request.headers);
+  if (!authorized) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { id } = await params;
   const result = await submitAiReview({
     runId: id,
-    tenantId: tenant.tenantId,
+    authority: authorized.authority,
     reviewerId: session.user.id,
     reviewerRole: session.user.role,
     action: body.action,
