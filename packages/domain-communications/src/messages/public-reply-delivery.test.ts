@@ -167,6 +167,22 @@ describe('public reply status getter boundary', () => {
     expect(removeExpiredSubscriptions).not.toHaveBeenCalled();
   });
 
+  it('logs a reported email provider failure without its private error text', async () => {
+    email.mockResolvedValueOnce({ success: false, error: 'private provider detail' });
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      await expect(
+        deliverPublicReplyNotification(plan({ pushSubscriptions: [] }), {
+          vapid,
+          sendPush: vi.fn(),
+        })
+      ).resolves.toBeUndefined();
+      expect(errors).toHaveBeenCalledWith('Failed to send new message email:', { name: 'Error' });
+      expect(JSON.stringify(errors.mock.calls)).not.toContain('private');
+    } finally {
+      errors.mockRestore();
+    }
+  });
   it.each([1, 2])(
     'contains an exception from status read %s and keeps private text out of logs',
     async throwAt => {

@@ -74,7 +74,16 @@ async function deliverEmail(plan: PublicReplyNotificationPlan): Promise<void> {
     return;
   }
 
-  await sendNewMessageEmail(plan.verifiedEmail, plan.claim, plan.senderName, plan.messageContent);
+  const result = await sendNewMessageEmail(
+    plan.verifiedEmail,
+    plan.claim,
+    plan.senderName,
+    plan.messageContent
+  );
+  // A reported provider failure is logged like a rejection, without the provider's error text.
+  if (!result.success) {
+    throw new Error('New message email was not sent');
+  }
 }
 
 async function deliverPush(

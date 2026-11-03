@@ -186,4 +186,13 @@ describe('buildAgentWorkspaceClaimsWhere', () => {
     expect(query.params).toEqual(['t1', 'u1']);
     expect(query.sql.toLowerCase()).not.toContain('is null');
   });
+
+  it('keeps a stored empty branch as a branch scope, like message access', () => {
+    const query = dialect.sqlToQuery(
+      buildAgentWorkspaceClaimsWhere({ tenantId: 't1', assignedMemberIds: ['u1'], branchId: '' })!
+    );
+
+    expect(query.params).toEqual(['t1', 'u1', '']);
+    expect(query.sql.toLowerCase()).toContain('is null');
+  });
 });

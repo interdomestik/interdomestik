@@ -265,6 +265,12 @@ export function registerMessageRlsFixture(): void {
       await rlsClient?.end({ timeout: 2 });
       try {
         if (fixtureRoleCreated) {
+          // A non-superuser admin needs the role's privileges for DROP OWNED. Membership is granted
+          // only here, after every restricted-session check, so the LOGIN role stays memberless.
+          const [{ currentUser }] = await adminClient`select current_user as "currentUser"`;
+          await adminClient.unsafe(
+            `grant "${fixtureRole}" to "${String(currentUser).replaceAll('"', '""')}"`
+          );
           // The generated role owns no schema objects; DROP OWNED revokes only its fixture grants.
           await adminClient.unsafe(`drop owned by "${fixtureRole}"`);
           await adminClient.unsafe(`drop role "${fixtureRole}"`);

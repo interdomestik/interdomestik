@@ -37,7 +37,7 @@ export function buildAgentWorkspaceClaimsWhere(params: {
 }) {
   const assignedMembers = inArray(claims.userId, params.assignedMemberIds);
 
-  if (params.branchId) {
+  if (typeof params.branchId === 'string') {
     return and(
       eq(claims.tenantId, params.tenantId),
       assignedMembers,

@@ -3,7 +3,10 @@ import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import type { preparePublicReplyNotification } from './public-reply-notification';
 
-type Params = Parameters<typeof preparePublicReplyNotification>[0];
+// The authority token cannot cross a process boundary; each worker mints its own from tenantId.
+type Params = Omit<Parameters<typeof preparePublicReplyNotification>[0], 'authority'> & {
+  tenantId: string;
+};
 type Observation = {
   status: 'created' | 'skipped';
   reason?: string;
@@ -21,7 +24,7 @@ export async function runReplyPreparationWorkers(url: string, role: string, para
   // tsx/esm alone cannot load extensionless CommonJS dependencies; no runtime resolver is used.
   const loader = new URL('../../../../node_modules/tsx/dist/loader.mjs', import.meta.url);
   const source = fileURLToPath(
-    new URL('./public-reply-concurrency.worker-fixture.ts', import.meta.url)
+    new URL('./public-reply-concurrency-worker.test-support.ts', import.meta.url)
   );
   const env: NodeJS.ProcessEnv = {
     PATH: process.env.PATH,
