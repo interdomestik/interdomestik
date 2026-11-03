@@ -99,6 +99,18 @@ async function assertSeed() {
     }
 
     console.log(`✅ Share Pack documents: ${docs.length} found`);
+
+    console.log('🔍 Asserting nine-role matrix and named relationship fixtures...');
+    const { collectRoleFixtureViolations } = await import('./seed-assert-role-fixtures');
+    const roleFixtureViolations = await collectRoleFixtureViolations(db, schema);
+    if (roleFixtureViolations.length > 0) {
+      for (const violation of roleFixtureViolations) {
+        console.error(`❌ Role fixture invariant failed: ${violation}`);
+      }
+      process.exit(1);
+    }
+
+    console.log('✅ Role matrix (9 roles) and relationship fixtures match the catalogue');
     process.exit(0);
   } catch (err: any) {
     // If table doesn't exist or query fails

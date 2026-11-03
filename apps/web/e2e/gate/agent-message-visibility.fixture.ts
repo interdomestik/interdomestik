@@ -130,7 +130,7 @@ export async function withAgentMessageFixture<T>(
     });
     await dbAdmin.insert(account).values({
       id: `${prefix}-credential`,
-      accountId: agent.email,
+      accountId: agent.id,
       providerId: 'credential',
       userId: agent.id,
       password: credential.password,

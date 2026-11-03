@@ -39,7 +39,7 @@ export async function seedWorkloadUsers(db: any, schema: any, config: SeedConfig
     accountsToSeed.push({
       id: `${id}-credential`,
       userId: id,
-      accountId: email,
+      accountId: id,
       providerId: 'credential',
       password: hashedPassword,
       createdAt: at(),

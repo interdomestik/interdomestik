@@ -141,3 +141,4 @@ export * from './schema';
 // Re-export Drizzle helpers so consumers use the same module instance
 export { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 export * from './e2e-users';
+export * from './e2e-role-fixtures';

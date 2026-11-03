@@ -2,8 +2,18 @@ import { goldenId } from '../seed-utils/seed-ids';
 import { TENANTS } from './constants';
 import type { SeedGoldenContext } from './types';
 
-export function buildAgentAssignmentsToSeed() {
-  return [
+export type AgentAssignmentStatus = 'active' | 'inactive';
+
+export interface AgentAssignmentSeed {
+  id: string;
+  agent: string;
+  member: string;
+  tenant: string;
+  status: AgentAssignmentStatus;
+}
+
+export function buildAgentAssignmentsToSeed(): AgentAssignmentSeed[] {
+  const active: Omit<AgentAssignmentSeed, 'status'>[] = [
     {
       id: goldenId('assign_mk_1'),
       agent: 'mk_agent_a1',
@@ -29,9 +39,21 @@ export function buildAgentAssignmentsToSeed() {
       tenant: TENANTS.PILOT,
     })),
   ];
+
+  return [
+    ...active.map(a => ({ ...a, status: 'active' as const })),
+    // Denial fixture: KS-B agent keeps claim attribution for ks_b_member_1, but the link is inactive.
+    {
+      id: goldenId('assign_ks_b_1_inactive'),
+      agent: 'ks_b_agent_1',
+      member: 'ks_b_member_1',
+      tenant: TENANTS.KS,
+      status: 'inactive',
+    },
+  ];
 }
 
-export async function seedAgentAssignments({ db, schema }: SeedGoldenContext) {
+export async function seedAgentAssignments({ at, db, schema }: SeedGoldenContext) {
   console.log('🤝 Linking Agents to Members...');
 
   for (const a of buildAgentAssignmentsToSeed()) {
@@ -42,8 +64,10 @@ export async function seedAgentAssignments({ db, schema }: SeedGoldenContext) {
         tenantId: a.tenant,
         agentId: goldenId(a.agent),
         memberId: goldenId(a.member),
-        status: 'active',
+        status: a.status,
+        joinedAt: at(),
+        createdAt: at(),
       })
-      .onConflictDoUpdate({ target: schema.agentClients.id, set: { status: 'active' } });
+      .onConflictDoUpdate({ target: schema.agentClients.id, set: { status: a.status } });
   }
 }

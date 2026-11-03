@@ -35,7 +35,7 @@ export async function seedUsersAndAuth(config: SeedConfig) {
       .insert(schema.account)
       .values({
         id: `${u.id}-credential`,
-        accountId: u.email,
+        accountId: u.id,
         providerId: 'credential',
         userId: u.id,
         password: hashedPassword,
@@ -97,7 +97,7 @@ export async function seedUsersAndAuth(config: SeedConfig) {
       .insert(schema.account)
       .values({
         id: `${m.id}-credential`,
-        accountId: m.email,
+        accountId: m.id,
         providerId: 'credential',
         userId: m.id,
         password: hashedPassword,

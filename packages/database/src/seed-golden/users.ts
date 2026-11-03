@@ -27,6 +27,20 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
       tenantId: TENANTS.MK,
     },
     {
+      id: goldenId('global_support'),
+      name: E2E_USERS.GLOBAL_SUPPORT.name,
+      email: E2E_USERS.GLOBAL_SUPPORT.email,
+      role: E2E_USERS.GLOBAL_SUPPORT.dbRole,
+      tenantId: TENANTS.KS,
+    },
+    {
+      id: goldenId('auditor'),
+      name: E2E_USERS.AUDITOR.name,
+      email: E2E_USERS.AUDITOR.email,
+      role: E2E_USERS.AUDITOR.dbRole,
+      tenantId: TENANTS.MK,
+    },
+    {
       id: goldenId('mk_admin'),
       name: E2E_USERS.MK_ADMIN.name,
       email: E2E_USERS.MK_ADMIN.email,
@@ -133,9 +147,9 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
     },
     {
       id: goldenId('ks_staff_2'),
-      name: 'Besian Mustafa',
-      email: 'staff.ks.2@interdomestik.com',
-      role: 'staff',
+      name: E2E_USERS.KS_STAFF_UNASSIGNED.name,
+      email: E2E_USERS.KS_STAFF_UNASSIGNED.email,
+      role: E2E_USERS.KS_STAFF_UNASSIGNED.dbRole,
       tenantId: TENANTS.KS,
     },
     {
@@ -156,11 +170,11 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
     },
     {
       id: goldenId('ks_b_agent_1'),
-      name: 'Valmir Shala',
-      email: 'agent.ks.b1@interdomestik.com',
-      role: 'agent',
+      name: E2E_USERS.KS_AGENT_INACTIVE_LINK.name,
+      email: E2E_USERS.KS_AGENT_INACTIVE_LINK.email,
+      role: E2E_USERS.KS_AGENT_INACTIVE_LINK.dbRole,
       tenantId: TENANTS.KS,
-      branchId: 'ks_branch_b',
+      branchId: E2E_USERS.KS_AGENT_INACTIVE_LINK.branchId,
     },
     {
       id: goldenId('ks_c_agent_1'),
@@ -265,7 +279,7 @@ export async function seedUsers(context: SeedGoldenContext) {
       .insert(schema.account)
       .values({
         id: `${u.id}-credential`,
-        accountId: u.email,
+        accountId: u.id,
         providerId: 'credential',
         userId: u.id,
         password: hashedPassword,
@@ -276,7 +290,7 @@ export async function seedUsers(context: SeedGoldenContext) {
         target: schema.account.id,
         set: {
           password: hashedPassword,
-          accountId: u.email,
+          accountId: u.id,
           updatedAt: at(),
         },
       });
