@@ -25,7 +25,7 @@ import { isKsGateProject } from './gate-project-identity';
 const ACTOR = 'KS_STAFF_UNASSIGNED' as const;
 const STAFF_READY = 'staff-page-ready';
 const LOGIN_READY = 'auth-ready';
-const NOT_FOUND = 'not-found-page';
+const NOT_FOUND_HEADING = '404 (Locale)';
 const RENDER_ERROR = 'Something went wrong!';
 const ROTATED_PASSWORD = `${E2E_PASSWORD}-rotated`;
 const INVALID_CREDENTIALS = 'INVALID_EMAIL_OR_PASSWORD';
@@ -128,20 +128,27 @@ async function expectStaffPortal(page: Page, info: TestInfo) {
  *
  * Either layer may deny it: the proxy redirects an inactive session to the login wall, but trusts a
  * session it saw active in the last 2 s (proxy-session-state.ts), and the staff layout then denies
- * the revoked session with the not-found page.
+ * the revoked session with the not-found page. The portal request is read without following
+ * redirects so the server's own decision is asserted, whichever layer made it.
  */
 async function expectReplayRejected(browser: Browser, info: TestInfo, captured: StorageState) {
   const api = await newDevice(browser, info, captured);
   const portal = await newDevice(browser, info, captured);
   try {
     expect(await currentUserId(api.request, info)).toBeNull();
-    const page = await portal.newPage();
-    await gotoApp(page, routes.staffClaims(info), info);
-    const denial = page.locator(`[data-testid="${LOGIN_READY}"], [data-testid="${NOT_FOUND}"]`);
-    await expect(denial.first()).toBeVisible({ timeout: 15_000 });
-    // The locale error boundary reuses the not-found marker; a render failure is not a denial.
-    await expect(page.getByTestId(NOT_FOUND).filter({ hasText: RENDER_ERROR })).toHaveCount(0);
-    await expect(page.getByTestId(STAFF_READY)).toHaveCount(0);
+    const response = await portal.request.get(`${originOf(info)}${routes.staffClaims(info)}`, {
+      maxRedirects: 0,
+    });
+    const body = await response.text();
+    // Matches the marker as an HTML attribute or inside the streamed render payload.
+    expect(body).not.toContain(STAFF_READY);
+    if (response.status() >= 300 && response.status() < 400) {
+      expect(response.headers().location).toMatch(/\/login(\?|$)/);
+    } else {
+      // The streamed locale not-found page (app/[locale]/not-found.tsx), not the error boundary.
+      expect(body).toContain(NOT_FOUND_HEADING);
+      expect(body).not.toContain(RENDER_ERROR);
+    }
   } finally {
     await api.close();
     await portal.close();
