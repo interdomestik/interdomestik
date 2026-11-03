@@ -17,6 +17,7 @@ export async function sendMessageCore(params: {
   claimId: string;
   content: string;
   isInternal?: boolean;
+  clientMessageId?: string;
 }): Promise<{ success: boolean; message?: MessageWithSender; error?: string }> {
   const result = await sendMessageDbCore(params);
   if (!result.success) {
@@ -40,7 +41,8 @@ export async function sendMessageCore(params: {
     params.authority &&
     result.claimOwnerEmail &&
     !result.isInternal &&
-    result.isStaff
+    result.isStaff &&
+    !result.replayed
   ) {
     // Optional: never fails the persisted message response.
     await notifyPublicReplyCore({

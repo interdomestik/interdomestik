@@ -82,7 +82,7 @@ describe('MessageInput', () => {
     fireEvent.click(sendButton);
 
     await waitFor(() => {
-      expect(onSendMessage).toHaveBeenCalledWith('Hello world', false);
+      expect(onSendMessage).toHaveBeenCalledWith('Hello world', false, expect.any(String));
     });
   });
 
@@ -101,7 +101,7 @@ describe('MessageInput', () => {
     fireEvent.click(sendButton);
 
     await waitFor(() => {
-      expect(onSendMessage).toHaveBeenCalledWith('Internal note content', true);
+      expect(onSendMessage).toHaveBeenCalledWith('Internal note content', true, expect.any(String));
     });
   });
 

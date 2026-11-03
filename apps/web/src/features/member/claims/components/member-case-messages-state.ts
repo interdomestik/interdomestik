@@ -7,6 +7,7 @@ import {
   type MessageWithSender,
 } from '@/actions/messages';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createClientMessageId } from '@/components/messaging/client-message-id';
 
 /** Mounted only within a keyed case panel: drafts and acknowledgements never cross cases. */
 export function useMemberCaseMessages(claimId: string, userId: string) {
@@ -22,6 +23,8 @@ export function useMemberCaseMessages(claimId: string, userId: string) {
   const request = useRef(0);
   const fetching = useRef(false);
   const sendLock = useRef(false);
+  // One retry key per draft text: resending an unchanged draft cannot store it twice.
+  const pendingSend = useRef<{ content: string; clientMessageId: string } | null>(null);
   const acknowledged = useRef(new Map<string, MessageWithSender>());
   const publicMessage = useCallback(
     (message: MessageWithSender) => message.claimId === claimId && message.isInternal === false,
@@ -93,12 +96,21 @@ export function useMemberCaseMessages(claimId: string, userId: string) {
     setSending(true);
     setSendStatus('idle');
     try {
-      const result = await sendMessage(claimId, content, false);
+      if (pendingSend.current?.content !== content) {
+        pendingSend.current = { content, clientMessageId: createClientMessageId() };
+      }
+      const result = await sendMessage(
+        claimId,
+        content,
+        false,
+        pendingSend.current.clientMessageId
+      );
       if (!mounted.current) return;
       if (!result.success) {
         setSendStatus('error');
         return;
       }
+      pendingSend.current = null;
       if (result.message && publicMessage(result.message)) {
         const message = result.message;
         acknowledged.current.set(message.id, message);

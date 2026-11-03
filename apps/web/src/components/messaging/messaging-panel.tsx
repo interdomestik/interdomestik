@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/comp
 import { AlertCircle, Loader2, MessageSquare, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useState, useTransition } from 'react';
+import { createClientMessageId } from './client-message-id';
 import { MessageInput } from './message-input';
 import { MessageThread } from './message-thread';
 import { NO_MESSAGES, useMessageReadState } from './use-message-read-state';
@@ -13,6 +14,8 @@ import { NO_MESSAGES, useMessageReadState } from './use-message-read-state';
 export type OptimisticMessage = MessageWithSender & {
   status?: 'pending' | 'failed';
   tempId?: string;
+  /** Retry key the server uses to store this draft at most once. */
+  clientMessageId?: string;
 };
 
 interface MessagingPanelProps {
@@ -79,8 +82,12 @@ function ScopedMessagingPanel({
     });
   }, [refresh]);
 
-  const handleSendMessage = async (content: string, isInternal: boolean): Promise<boolean> => {
-    const tempId = `temp-${Date.now()}`;
+  const handleSendMessage = async (
+    content: string,
+    isInternal: boolean,
+    clientMessageId: string = createClientMessageId()
+  ): Promise<boolean> => {
+    const tempId = `temp-${clientMessageId}`;
     const optimisticMessage: OptimisticMessage = {
       id: tempId,
       claimId,
@@ -97,13 +104,15 @@ function ScopedMessagingPanel({
       },
       status: 'pending',
       tempId,
+      clientMessageId,
     };
 
-    setOptimisticMessages(prev => [...prev, optimisticMessage]);
+    // A resubmitted draft replaces its own failed entry instead of showing twice.
+    setOptimisticMessages(prev => [...prev.filter(m => m.id !== tempId), optimisticMessage]);
 
     try {
       const { sendMessage } = await import('@/actions/messages');
-      const result = await sendMessage(claimId, content, isInternal);
+      const result = await sendMessage(claimId, content, isInternal, clientMessageId);
 
       if (result.success) {
         // Remove optimistic message and refresh
@@ -126,9 +135,9 @@ function ScopedMessagingPanel({
   };
 
   const handleRetry = (message: OptimisticMessage) => {
-    // Remove failed message and re-trigger the same send.
+    // Remove failed message and resend it under the same key, so a lost success is not duplicated.
     setOptimisticMessages(prev => prev.filter(m => m.id !== message.id));
-    handleSendMessage(message.content, message.isInternal);
+    void handleSendMessage(message.content, message.isInternal, message.clientMessageId);
   };
 
   const allMessages = [...messages, ...optimisticMessages].sort(

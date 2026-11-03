@@ -6,13 +6,21 @@ import { Label } from '@interdomestik/ui/components/label';
 import { Textarea } from '@interdomestik/ui/components/textarea';
 import { Loader2, Lock, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { createClientMessageId } from './client-message-id';
 
 interface MessageInputProps {
   allowInternal?: boolean;
   isAgent?: boolean;
-  onSendMessage: (content: string, isInternal: boolean) => Promise<boolean>;
+  /** `clientMessageId` stays the same while an unchanged draft is resubmitted after a failure. */
+  onSendMessage: (
+    content: string,
+    isInternal: boolean,
+    clientMessageId: string
+  ) => Promise<boolean>;
 }
+
+type PendingDraft = { content: string; isInternal: boolean; clientMessageId: string };
 
 export function MessageInput({
   allowInternal = false,
@@ -24,6 +32,8 @@ export function MessageInput({
   const [isInternal, setIsInternal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  // One retry key per unchanged draft: resubmitting it after a lost response cannot send it twice.
+  const pendingDraft = useRef<PendingDraft | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,9 +43,16 @@ export function MessageInput({
     setIsSending(true);
     setError(null);
 
-    const success = await onSendMessage(content, isInternal);
+    const pending = pendingDraft.current;
+    const clientMessageId =
+      pending?.content === content && pending.isInternal === isInternal
+        ? pending.clientMessageId
+        : createClientMessageId();
+    pendingDraft.current = { content, isInternal, clientMessageId };
+    const success = await onSendMessage(content, isInternal, clientMessageId);
 
     if (success) {
+      pendingDraft.current = null;
       setContent('');
       setIsInternal(false);
     } else {

@@ -114,7 +114,14 @@ describe('member case messages', () => {
       await userEvent.click(screen.getByRole('button', { name: 'member.send' }));
       expect(await screen.findByText('My message')).toBeInTheDocument();
       expect(input).toHaveValue('');
-      expect(send).toHaveBeenLastCalledWith('case-a', 'My message', false);
+      // The retry resends the unchanged draft under its first key, so a lost success is replayed.
+      const clientMessageId = send.mock.calls[0]?.[3];
+      expect(clientMessageId).toMatch(/^[\w-]{8,64}$/);
+      expect(send).toHaveBeenLastCalledWith('case-a', 'My message', false, clientMessageId);
+      await userEvent.type(input, 'Next message');
+      await userEvent.click(screen.getByRole('button', { name: 'member.send' }));
+      await waitFor(() => expect(send).toHaveBeenCalledTimes(3));
+      expect(send.mock.calls[2]?.[3]).not.toBe(clientMessageId);
     }
   );
 

@@ -79,7 +79,8 @@ export async function getClaimMessages(claimId: string): Promise<ActionResult<Me
 export async function sendMessage(
   claimId: string,
   content: string,
-  isInternal: boolean = false
+  isInternal: boolean = false,
+  clientMessageId?: string
 ): Promise<ActionResult> {
   const { requestHeaders, session, authority } = await getActionContext();
   const result = await sendMessageCore({
@@ -89,6 +90,7 @@ export async function sendMessage(
     claimId,
     content,
     isInternal,
+    clientMessageId,
   });
 
   if (!result.success) {

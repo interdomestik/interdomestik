@@ -86,6 +86,19 @@ for (const mode of ['restricted', 'permissive'] as const) {
       expect(await reply()).toMatchObject({ success: true });
       noNotification();
     });
+    it('replays a resent keyed reply without a second message or notification', async () => {
+      const first = await reply(ids.claim, false, 'retry-key-0001');
+      const committed = state.commits;
+      const second = await reply(ids.claim, false, 'retry-key-0001');
+      // The replay commits only its own send transaction; no notification preparation follows.
+      expect(state.commits).toBe(committed + 1);
+      expect(first).toMatchObject({ success: true });
+      expect(second).toEqual(first);
+      expect(state.rows.claimMessages).toHaveLength(1);
+      expect(state.rows.notifications).toHaveLength(1);
+      expect(state.scheduled).toHaveLength(1);
+      expect(state.external).toHaveLength(1);
+    });
     it('rolls back the message on projection failure without notification effects', async () => {
       state.projectionFault = true;
       expect(await reply()).toMatchObject({ success: false });
