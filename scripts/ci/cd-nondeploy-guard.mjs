@@ -17,7 +17,7 @@ const CONTROL_PATHS = new Set([
 const SHA = /^[a-f0-9]{40}$/u;
 const POSITIVE_INTEGER = /^[1-9]\d*$/u;
 // An absolute path, a parent segment or a glob character.
-const UNSAFE_PATH = /^\/|\.\.|[*?[\]{}]/u;
+const UNSAFE_PATH = /(?:^\/)|(?:\.\.)|(?:[*?[\]{}])/u;
 const CURRENT_RUN_STATES = new Set(['in_progress', 'pending', 'queued', 'requested', 'waiting']);
 const fail = message => {
   throw new Error(`CD non-deploy guard: ${message}`);
