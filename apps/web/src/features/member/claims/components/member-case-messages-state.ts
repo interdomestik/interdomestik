@@ -7,6 +7,7 @@ import {
   type MessageWithSender,
 } from '@/actions/messages';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createClientMessageId } from '@/components/messaging/client-message-id';
 
 /** Mounted only within a keyed case panel: drafts and acknowledgements never cross cases. */
 export function useMemberCaseMessages(claimId: string, userId: string) {
@@ -96,7 +97,7 @@ export function useMemberCaseMessages(claimId: string, userId: string) {
     setSendStatus('idle');
     try {
       if (pendingSend.current?.content !== content) {
-        pendingSend.current = { content, clientMessageId: crypto.randomUUID() };
+        pendingSend.current = { content, clientMessageId: createClientMessageId() };
       }
       const result = await sendMessage(
         claimId,

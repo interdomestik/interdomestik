@@ -7,6 +7,7 @@ import { Textarea } from '@interdomestik/ui/components/textarea';
 import { Loader2, Lock, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
+import { createClientMessageId } from './client-message-id';
 
 interface MessageInputProps {
   allowInternal?: boolean;
@@ -46,7 +47,7 @@ export function MessageInput({
     const clientMessageId =
       pending?.content === content && pending.isInternal === isInternal
         ? pending.clientMessageId
-        : crypto.randomUUID();
+        : createClientMessageId();
     pendingDraft.current = { content, isInternal, clientMessageId };
     const success = await onSendMessage(content, isInternal, clientMessageId);
 

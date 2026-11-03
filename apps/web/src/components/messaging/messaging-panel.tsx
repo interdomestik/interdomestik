@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/comp
 import { AlertCircle, Loader2, MessageSquare, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useState, useTransition } from 'react';
+import { createClientMessageId } from './client-message-id';
 import { MessageInput } from './message-input';
 import { MessageThread } from './message-thread';
 import { NO_MESSAGES, useMessageReadState } from './use-message-read-state';
@@ -84,7 +85,7 @@ function ScopedMessagingPanel({
   const handleSendMessage = async (
     content: string,
     isInternal: boolean,
-    clientMessageId: string = crypto.randomUUID()
+    clientMessageId: string = createClientMessageId()
   ): Promise<boolean> => {
     const tempId = `temp-${clientMessageId}`;
     const optimisticMessage: OptimisticMessage = {
