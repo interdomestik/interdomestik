@@ -156,7 +156,7 @@ async function expectReplayRejected(browser: Browser, info: TestInfo, captured: 
 }
 
 function requireKsHost(info: TestInfo) {
-  test.skip(!isKsGateProject(info.project.name), 'Actor is seeded on the KS host');
+  info.skip(!isKsGateProject(info.project.name), 'Actor is seeded on the KS host');
   test.setTimeout(90_000);
 }
 
