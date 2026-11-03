@@ -17,7 +17,8 @@ import {
 
 const asRows = (result: unknown): Record<string, unknown>[] =>
   Array.from(result as Iterable<Record<string, unknown>>);
-const keys = (value: object): string[] => Object.keys(value).sort();
+const byText = (a: string, b: string): number => a.localeCompare(b);
+const keys = (value: object): string[] => Object.keys(value).sort(byText);
 const ids = (items: { id: string }[]): string[] => items.map(item => item.id);
 const num = (result: { n: number | string }[]): number => Number(result[0]?.n ?? Number.NaN);
 
@@ -89,7 +90,7 @@ async function checkList(c: Cores, f: AgentMessageFixture, role: string): Promis
   const group = at(result.data, 0);
   assert.equal(group.memberId, f.memberId);
   assert.deepEqual(keys(group), LIST_KEYS);
-  assert.deepEqual([...ids(group.claims)].sort(), [...f.claimIds].sort());
+  assert.deepEqual([...ids(group.claims)].sort(byText), [...f.claimIds].sort(byText));
   for (const claim of group.claims) {
     assert.deepEqual(keys(claim), LIST_CLAIM_KEYS);
     assert.equal(claim.status, 'submitted');
