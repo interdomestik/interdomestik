@@ -1,9 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import type { TenantTransaction } from '@interdomestik/database';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { keyedMessageId, MESSAGE_KEY_CONFLICT_ERROR } from './store-message';
 import {
   fixture,
   homeTenantId,
@@ -14,6 +13,11 @@ import {
 
 const suite = process.env.MESSAGE_RLS_INTEGRATION === '1' ? describe : describe.skip;
 const OVERLAPPED = 'Synthetic overlapped reply';
+// Loaded after the fixture installs the restricted client: a top-level import would bind the
+// database module to the administrative URL first, and its RLS role assertion refuses that.
+let storeMessage: typeof import('./store-message');
+const keyedMessageId = (...args: Parameters<(typeof storeMessage)['keyedMessageId']>) =>
+  storeMessage.keyedMessageId(...args);
 
 const memberSend = (content: string, clientMessageId: string) =>
   fixture.send({
@@ -75,6 +79,9 @@ async function sendAgainstOpenInsert(outcome: 'commit' | 'rollback', clientMessa
 
 suite('keyed message send on a real NOBYPASSRLS connection', () => {
   registerMessageRlsFixture();
+  beforeAll(async () => {
+    storeMessage = await import('./store-message');
+  });
 
   it('replays the committed row when a same-key send waited on it', async () => {
     const clientMessageId = randomUUID();
@@ -105,7 +112,7 @@ suite('keyed message send on a real NOBYPASSRLS connection', () => {
 
     expect(await memberSend('Synthetic edited draft', clientMessageId)).toEqual({
       success: false,
-      error: MESSAGE_KEY_CONFLICT_ERROR,
+      error: storeMessage.MESSAGE_KEY_CONFLICT_ERROR,
     });
     expect(await storedWithKey(clientMessageId)).toEqual([
       {
