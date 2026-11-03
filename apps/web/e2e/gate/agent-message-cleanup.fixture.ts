@@ -13,6 +13,7 @@ import {
 import { and, eq, inArray } from 'drizzle-orm';
 
 import { cleanupProfileChildren, type ProfileChildFixture } from './agent-profile-children.fixture';
+import { inSequence } from './in-sequence';
 
 /** Cleanup is confined to the generated IDs and runs every step after a partial setup failure. */
 export async function cleanupAgentMessageFixture(args: {
@@ -57,12 +58,12 @@ export async function cleanupAgentMessageFixture(args: {
     () => dbAdmin.delete(branches).where(eq(branches.id, agent.branchId)),
   ];
   let cleanupError: unknown;
-  for (const cleanup of cleanupSteps) {
-    try {
-      await cleanup();
-    } catch (error) {
-      cleanupError ??= error;
-    }
-  }
+  await inSequence(cleanupSteps, cleanup =>
+    Promise.resolve()
+      .then(cleanup)
+      .catch((error: unknown) => {
+        cleanupError ??= error;
+      })
+  );
   if (cleanupError) throw cleanupError;
 }

@@ -58,13 +58,12 @@ function ownData(value: unknown, key: string): unknown {
 export function describePublicReplyFailure(error: unknown): { name: string; code?: string } {
   const name = ownData(error, 'name');
   const code = ownData(error, 'code') ?? ownData(ownData(error, 'cause'), 'code');
+  const fallbackName = error instanceof Error ? 'Error' : 'UnknownError';
   return {
     name:
       typeof name === 'string' && /^[A-Za-z][A-Za-z0-9]{0,39}$/.test(name)
         ? `${name}`
-        : error instanceof Error
-          ? 'Error'
-          : 'UnknownError',
+        : fallbackName,
     ...(typeof code === 'string' && /^[A-Z0-9_]{2,32}$/.test(code) ? { code: `${code}` } : {}),
   };
 }

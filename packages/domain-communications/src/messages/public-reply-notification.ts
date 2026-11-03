@@ -116,7 +116,7 @@ export async function preparePublicReplyNotification(params: {
         )
       )
       .limit(1);
-    if (!message || message.senderId !== actorId || message.isInternal !== false) {
+    if (message?.senderId !== actorId || message.isInternal !== false) {
       return skipped('message_mismatch');
     }
 
@@ -125,7 +125,7 @@ export async function preparePublicReplyNotification(params: {
       where: (users, { eq }) => withTenant(tenantId, users.tenantId, eq(users.id, recipientId)),
       columns: { id: true, email: true, emailVerified: true, tenantId: true },
     });
-    if (!recipient || recipient.tenantId !== tenantId) {
+    if (recipient?.tenantId !== tenantId) {
       return skipped('recipient_not_found');
     }
 

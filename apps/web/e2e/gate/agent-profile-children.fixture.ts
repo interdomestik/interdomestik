@@ -8,6 +8,7 @@ import {
   userNotificationPreferences,
 } from '@interdomestik/database';
 import { inArray } from 'drizzle-orm';
+import { inSequence } from './in-sequence';
 
 export type PreferenceValues = Record<
   | 'emailClaimUpdates'
@@ -282,13 +283,11 @@ export async function cleanupProfileChildren(plan: ProfileChildFixture): Promise
   ];
   let failure: unknown;
   let failed = false;
-  for (const step of steps) {
-    try {
-      await step();
-    } catch (error) {
+  await inSequence(steps, step =>
+    step().catch((error: unknown) => {
       if (!failed) failure = error;
       failed = true;
-    }
-  }
+    })
+  );
   if (failed) throw failure;
 }

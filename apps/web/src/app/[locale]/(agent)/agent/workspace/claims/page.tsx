@@ -32,7 +32,7 @@ function resolveRequestedClaimId(searchParams: SearchParams): string | undefined
 }
 
 // Request-specific auth is read behind this boundary so the page shell can prerender.
-export default function AgentWorkspaceClaimsPage(props: Props) {
+export default function AgentWorkspaceClaimsPage(props: Readonly<Props>) {
   return (
     <Suspense
       fallback={
@@ -51,7 +51,7 @@ export default function AgentWorkspaceClaimsPage(props: Props) {
   );
 }
 
-async function AgentWorkspaceClaimsContent({ params, searchParams }: Props) {
+async function AgentWorkspaceClaimsContent({ params, searchParams }: Readonly<Props>) {
   const { locale } = await params;
   const authorized = await authorizeSessionTenant(await headers());
 

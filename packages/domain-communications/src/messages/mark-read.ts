@@ -16,7 +16,7 @@ import {
 
 function requireMessageScopeString(value: unknown): string {
   if (typeof value !== 'string') {
-    throw new Error('Invalid message access context');
+    throw new TypeError('Invalid message access context');
   }
   return value;
 }

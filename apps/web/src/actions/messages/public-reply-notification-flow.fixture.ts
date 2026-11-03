@@ -70,7 +70,16 @@ function nameOf(table: unknown): string {
 // Ambient clients never close; transaction clients get their own lifetime.
 const OPEN_LIFETIME = Object.freeze({ open: true });
 // Runs synchronously like an async body: a throw becomes a rejection, never a sync throw.
-const promised = <T>(run: () => T): Promise<T> => new Promise<T>(resolve => resolve(run()));
+function promised<T>(run: () => T): Promise<T> {
+  try {
+    return Promise.resolve(run());
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+function withSender(row: Row, users: Row[]): Row {
+  return { ...row, sender: users.find(user => user.id === row.senderId) };
+}
 function client(
   context?: { tenantId: string },
   staged?: Record<string, Row[]>,
@@ -158,12 +167,7 @@ function client(
             .filter(where)
             .slice(0, limit)
             .map(row =>
-              name === 'claimMessages'
-                ? {
-                    ...row,
-                    sender: (staged ?? state.rows).user.find(user => user.id === row.senderId),
-                  }
-                : row
+              name === 'claimMessages' ? withSender(row, (staged ?? state.rows).user) : row
             );
         });
       const builder = {
@@ -233,7 +237,18 @@ export const email = Object.fromEntries(
     'sendStatusChangedEmail',
   ].map(name => [name, delivery(name)])
 );
+async function drainJobs(): Promise<void> {
+  const job = state.jobs.shift();
+  if (!job) return;
+  await job();
+  return drainJobs();
+}
+async function yieldTurns(turns: number): Promise<void> {
+  if (turns <= 0) return;
+  await Promise.resolve();
+  return yieldTurns(turns - 1);
+}
 export async function settle(): Promise<void> {
-  while (state.jobs.length) await state.jobs.shift()!();
-  for (let i = 0; i < 30; i++) await Promise.resolve();
+  await drainJobs();
+  await yieldTurns(30);
 }

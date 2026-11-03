@@ -81,10 +81,11 @@ const user = (id: string, tenantId: string, role: string): Row => ({
   emailVerified: true,
   image: null,
 });
+const SENDER_IDS: Record<string, string> = { member: ids.member, agent: ids.agent };
 export const session = (role = 'staff', overrides: Record<string, unknown> = {}) =>
   ({
     user: {
-      id: role === 'member' ? ids.member : role === 'agent' ? ids.agent : ids.staff,
+      id: SENDER_IDS[role] ?? ids.staff,
       role,
       tenantId: ids.tenant,
       branchId: 'branch-a',

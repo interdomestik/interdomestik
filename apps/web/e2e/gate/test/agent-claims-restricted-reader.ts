@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { count, eq, inArray, sql } from 'drizzle-orm';
 
 import type { AgentMessageFixture } from '../agent-message-visibility.fixture';
+import { inSequence } from '../in-sequence';
 
 import {
   type Cores,
@@ -123,11 +124,11 @@ async function checkWorkspace(c: Cores, f: AgentMessageFixture, role: string): P
   assert.equal(last.lastMessage, 'S1 selected public');
   assert.equal(last.unreadCount, 1);
 
-  for (const deniedId of f.deniedIds) {
+  await inSequence(f.deniedIds, async deniedId => {
     const denied = await c.workspace({ ...base, selectedClaimId: deniedId });
     if (!denied.ok) throw new Error(`workspace denial probe rejected for ${role}`);
     assert.deepEqual(ids(denied.claims), f.claimIds.slice(0, 100));
-  }
+  });
   assert.doesNotMatch(JSON.stringify([initial, selected]), /secret|unspecified visibility/);
   return initial.claims.length;
 }
@@ -138,19 +139,19 @@ async function runFull(c: Cores, f: AgentMessageFixture): Promise<Record<string,
   const baseline = await rawCounts(c);
   assert.deepEqual(baseline, { claims: 0, messages: 0 }, 'RLS not engaged outside context');
 
-  for (const role of DENIED_ROLES) {
+  await inSequence(DENIED_ROLES, async role => {
     const params = { tenantId: f.tenantId, userId: f.agentId, role: role as string };
     assert.deepEqual(await c.list(params), { ok: false, code: 'FORBIDDEN' });
     assert.deepEqual(await c.workspace(params), { ok: false, code: 'FORBIDDEN' });
-  }
+  });
 
   const listClaims = await checkList(c, f, 'agent');
   const workspaceClaims = await checkWorkspace(c, f, 'agent');
   await assertGucReset(dbRls, 'after success');
-  for (const role of ADMIN_FAMILY) {
+  await inSequence(ADMIN_FAMILY, async role => {
     assert.equal(await checkList(c, f, role), 105);
     assert.equal(await checkWorkspace(c, f, role), 100);
-  }
+  });
   await assertGucReset(dbRls, 'after admin family');
 
   const agent = { userId: f.agentId, role: 'agent' };

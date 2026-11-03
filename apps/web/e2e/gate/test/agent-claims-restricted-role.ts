@@ -17,6 +17,7 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { AgentMessageFixture } from '../agent-message-visibility.fixture';
+import { inSequence } from '../in-sequence';
 export type ReaderMode = 'full' | 'failure';
 export interface RestrictedReaderResult {
   ok: true;
@@ -35,7 +36,7 @@ export interface RestrictedRoleHandle {
   runReader(fixture: AgentMessageFixture, mode: ReaderMode): Promise<RestrictedReaderResult>;
   setClaimMessagesSelect(granted: boolean): Promise<void>;
 }
-const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '::1', '[::1]'];
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 const READER_RELATIVE = path.join('e2e', 'gate', 'test', 'agent-claims-restricted-reader.ts');
 const CHILD_TIMEOUT_MS = 120_000;
 // Stable signed 64-bit key serializing S8 test DDL that mutates shared catalog ACL rows.
@@ -82,7 +83,7 @@ function restrictedUrl(role: string, password: string): string {
   } catch {
     throw new Error('DATABASE_URL must be a valid connection URL');
   }
-  if (!LOOPBACK_HOSTS.includes(url.hostname)) {
+  if (!LOOPBACK_HOSTS.has(url.hostname)) {
     throw new Error('Restricted-role regression requires a loopback DATABASE_URL');
   }
   url.username = role;
@@ -250,9 +251,9 @@ export async function withRestrictedAgentClaimsRole<T>(
   let outcome: { value: T } | { error: unknown };
   try {
     await exec(`grant usage on schema public to ${role}`);
-    for (const table of PROTECTED_TABLES) {
-      await exec(`grant select on table public.${ident(table)} to ${role}`);
-    }
+    await inSequence(PROTECTED_TABLES, table =>
+      exec(`grant select on table public.${ident(table)} to ${role}`)
+    );
     const posture = await collectPosture(roleName);
     const value = await action({
       posture,
@@ -280,13 +281,11 @@ export async function withRestrictedAgentClaimsRole<T>(
   } catch (error) {
     cleanupCodes.push(pgCode(error));
   }
-  for (const statement of statements) {
-    try {
-      await exec(statement);
-    } catch (error) {
+  await inSequence(statements, statement =>
+    exec(statement).catch((error: unknown) => {
       cleanupCodes.push(pgCode(error));
-    }
-  }
+    })
+  );
   const cleanupMessage = `Restricted role cleanup failed (${cleanupCodes.join(',')})`;
   if ('error' in outcome) {
     // The original action failure stays primary; cleanup diagnostics are code-only.
