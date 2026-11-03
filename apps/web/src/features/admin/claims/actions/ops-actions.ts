@@ -1,12 +1,11 @@
 'use server';
 
-import { and, auditLog, claimMessages, claims, desc, eq } from '@interdomestik/database';
+import { and, auditLog, claimMessages, desc, eq } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { nanoid } from 'nanoid';
 import {
   assertCanMutateClaim,
-  assertRowsAffected,
   canAssignClaimOwner,
   getActionSession,
   getClaimForMutation,
@@ -21,7 +20,11 @@ import {
   OPS_ACTION_UNAUTHORIZED_ERROR,
   toSafeOpsActionError,
 } from './ops-action-outcome';
-import { ASSIGNMENT_TARGET_DENIED_ERROR, assignClaimOwnerInTransaction } from './ops-assignment';
+import {
+  ASSIGNMENT_TARGET_DENIED_ERROR,
+  assignClaimOwnerInTransaction,
+  unassignClaimOwnerInTransaction,
+} from './ops-assignment';
 import { updateStatusAction } from './ops-status-action';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
@@ -36,6 +39,19 @@ const REMINDER_CHANNELS: ReadonlySet<string> = new Set(['email', 'sms']);
 const REMINDER_COOLDOWN_MINUTES = 10;
 
 type ReminderTransactionOutcome = { recorded: true } | { recorded: false; error: string };
+
+function toSafeAssignmentError(
+  actionName: 'assignOwner' | 'unassignOwner',
+  error: unknown
+): OpsActionResponse {
+  const message = error instanceof Error ? error.message : undefined;
+  if (message !== undefined && EXPECTED_ASSIGN_DENIALS.has(message)) {
+    return { success: false, error: message };
+  }
+  // Never log or return the raw error: Drizzle messages embed SQL and bound params.
+  console.error(`Action Failed: ${actionName}`, error instanceof Error ? error.name : typeof error);
+  return { success: false, error: ASSIGNMENT_FAILED_ERROR };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Assignment Actions
@@ -79,13 +95,7 @@ export async function assignOwner(
 
     return result;
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : undefined;
-    if (message !== undefined && EXPECTED_ASSIGN_DENIALS.has(message)) {
-      return { success: false, error: message };
-    }
-    // Never log or return the raw error: Drizzle messages embed SQL and bound params.
-    console.error('Action Failed: assignOwner', error instanceof Error ? error.name : typeof error);
-    return { success: false, error: ASSIGNMENT_FAILED_ERROR };
+    return toSafeAssignmentError('assignOwner', error);
   }
 }
 
@@ -99,53 +109,24 @@ export async function unassignOwner(claimId: string, locale: string): Promise<Op
 
     const authorized = await authorizeSessionTenant();
     if (!authorized) return { success: false, error: 'Unauthorized' };
-    const { authority } = authorized;
 
-    const actorRole = ctx.session.user.role;
-    const claim = await withTenantAuthority(authority, tx =>
-      getClaimForMutation(claimId, ctx.tenantId, tx)
-    );
-    assertCanMutateClaim(claim, actorRole, 'assign');
-
-    const updated = await withTenantAuthority(authority, tx =>
-      tx
-        .update(claims)
-        .set({
-          staffId: null,
-          assignedAt: null,
-          assignedById: null,
-          updatedAt: new Date(),
-        })
-        .where(and(eq(claims.id, claimId), eq(claims.tenantId, ctx.tenantId)))
-        .returning({
-          id: claims.id,
-          staffId: claims.staffId,
-          assignedAt: claims.assignedAt, // Should be null
-        })
-    );
-
-    assertRowsAffected(updated);
-
-    await withTenantAuthority(authority, tx =>
-      logAudit(
-        ctx.tenantId,
-        ctx.session.user.id,
-        'unassign_owner',
+    const result = await withTenantAuthority(authorized.authority, tx =>
+      unassignClaimOwnerInTransaction(tx, {
+        actorId: ctx.session.user.id,
+        actorRole: ctx.session.user.role,
         claimId,
-        {
-          previousStaffId: claim.staffId,
-          claimNumber: claim.claimNumber,
-        },
-        tx
-      )
+        tenantId: ctx.tenantId,
+      })
     );
 
-    // CRITICAL: Invalidate BOTH detail layout and global claims list to update KPIs immediately
-    revalidateClaim(locale, claimId);
+    if (result.success) {
+      // CRITICAL: Invalidate BOTH detail layout and global claims list to update KPIs immediately
+      revalidateClaim(locale, claimId);
+    }
 
-    return { success: true, data: updated[0] };
+    return result;
   } catch (error: unknown) {
-    return { success: false, error: (error as Error).message };
+    return toSafeAssignmentError('unassignOwner', error);
   }
 }
 

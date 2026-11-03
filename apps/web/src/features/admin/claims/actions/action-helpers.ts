@@ -127,12 +127,6 @@ export function assertTransitionAllowed(currentStatus: ClaimStatus, newStatus: C
   }
 }
 
-export function assertRowsAffected(updated: { id: string }[]) {
-  if (updated.length === 0) {
-    throw new Error('Failed to update claim - no rows affected');
-  }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Audit + Revalidation
 // ─────────────────────────────────────────────────────────────────────────────
