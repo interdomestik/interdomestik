@@ -34,6 +34,7 @@ export function MessageThread({
   onRetry,
 }: MessageThreadProps) {
   const t = useTranslations('messaging');
+  const tRoles = useTranslations('common.roles');
   const scrollRef = useRef<HTMLDivElement>(null);
   const canSeeInternalIndicators = isAgent || isStaffOrAdmin(currentUser.role);
 
@@ -93,6 +94,13 @@ export function MessageThread({
     return parsed.toISOString().slice(0, 10);
   };
 
+  // Only the sender's actual role is labelled: agent keeps its badge, staff/admin show their own role.
+  const getSenderBadge = (role: string | null | undefined): string | null => {
+    if (checkIsAgent(role)) return t('agentBadge');
+    if (isStaffOrAdmin(role)) return tRoles(role as 'staff');
+    return null;
+  };
+
   // Group messages by date
   const groupedMessages = messages.reduce(
     (groups, message) => {
@@ -120,8 +128,7 @@ export function MessageThread({
             <div className="space-y-4">
               {dateMessages.map(message => {
                 const isOwn = message.senderId === currentUser.id;
-                const isAgentMessage =
-                  checkIsAgent(message.sender.role) || isStaffOrAdmin(message.sender.role);
+                const senderBadge = getSenderBadge(message.sender.role);
                 const isPending = message.status === 'pending';
                 const isFailed = message.status === 'failed';
 
@@ -150,9 +157,9 @@ export function MessageThread({
                       {!isOwn && (
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-medium">{message.sender.name}</span>
-                          {isAgentMessage && (
+                          {senderBadge && (
                             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                              {t('agentBadge')}
+                              {senderBadge}
                             </Badge>
                           )}
                         </div>

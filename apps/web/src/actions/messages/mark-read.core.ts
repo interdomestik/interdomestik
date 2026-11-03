@@ -29,5 +29,5 @@ export async function markMessagesAsReadCore(params: {
     }
   }
 
-  return markMessagesAsReadCoreDomain(params);
+  return markMessagesAsReadCoreDomain({ ...params, messageIds: validation.data.messageIds });
 }

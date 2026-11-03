@@ -68,3 +68,14 @@ it('does not read public history when claim authorization fails', async () => {
   await expect(renderPage()).rejects.toThrow('notFound');
   expect(hoisted.getPublicStatusHistoryCoreMock).toHaveBeenCalledTimes(previousReads);
 });
+
+it('denies a member before the parent claim or public history reads', async () => {
+  hoisted.getSessionMock.mockResolvedValueOnce({
+    user: { id: 'member-1', tenantId: 'tenant-ks', role: 'member', branchId: 'branch-a' },
+  });
+  const parentReads = hoisted.getStaffClaimDetailMock.mock.calls.length;
+  const historyReads = hoisted.getPublicStatusHistoryCoreMock.mock.calls.length;
+  await expect(renderPage()).rejects.toThrow('notFound');
+  expect(hoisted.getStaffClaimDetailMock).toHaveBeenCalledTimes(parentReads);
+  expect(hoisted.getPublicStatusHistoryCoreMock).toHaveBeenCalledTimes(historyReads);
+});

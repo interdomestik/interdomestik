@@ -11,6 +11,7 @@ type CompoundPredicate = Extract<Predicate, { conditions: Predicate[] }>;
 
 const mocks = vi.hoisted(() => ({
   context: vi.fn(),
+  actorFindFirst: vi.fn(),
   update: vi.fn(),
   set: vi.fn(),
   updateWhere: vi.fn(),
@@ -31,6 +32,7 @@ vi.mock('@interdomestik/database', () => ({
     agentId: 'agentClients.agentId',
     status: 'agentClients.status',
   },
+  user: { id: 'user.id', tenantId: 'user.tenantId' },
   claimMessages: {
     id: 'claimMessages.id',
     claimId: 'claimMessages.claimId',
@@ -118,8 +120,13 @@ const readableMessage = {
 describe('markMessagesAsReadCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.actorFindFirst.mockResolvedValue({ branchId: null });
     mocks.context.mockImplementation((_context, action) =>
-      action({ update: mocks.update, select: mocks.select })
+      action({
+        update: mocks.update,
+        select: mocks.select,
+        query: { user: { findFirst: mocks.actorFindFirst } },
+      })
     );
     mocks.update.mockReturnValue({ set: mocks.set });
     mocks.set.mockReturnValue({ where: mocks.updateWhere });

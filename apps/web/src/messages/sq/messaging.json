@@ -40,6 +40,7 @@
       "loadError": "Mesazhet nuk u ngarkuan për shkak të një problemi të shërbimit. Teksti që keni shkruar këtu nuk u humb.",
       "retry": "Provo përsëri të ngarkosh mesazhet",
       "statusError": "Mesazhet shfaqen, por statusi i leximit nuk u përditësua."
-    }
+    },
+    "publicAudience": "E dukshme për anëtarin dhe ekipin e rastit."
   }
 }

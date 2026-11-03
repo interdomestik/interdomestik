@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   context: vi.fn(),
   findFirst: vi.fn(),
   findAgentClient: vi.fn(),
+  actorFindFirst: vi.fn(),
   withTenant: vi.fn(() => ({ scoped: true })),
   eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
   and: vi.fn((...conditions) => ({ op: 'and', conditions })),
@@ -38,6 +39,7 @@ vi.mock('@interdomestik/database', () => ({
   },
   user: {
     id: 'user.id',
+    tenantId: 'user.tenantId',
     name: 'user.name',
     image: 'user.image',
     role: 'user.role',
@@ -74,11 +76,13 @@ const getMessagesForClaimCore = (params: { session: never | null; claimId: strin
 describe('getMessagesForClaimCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.actorFindFirst.mockResolvedValue({ branchId: 'branch-a' });
     mocks.context.mockImplementation((_context, action) =>
       action({
         query: {
           claims: { findFirst: mocks.findFirst },
           agentClients: { findFirst: mocks.findAgentClient },
+          user: { findFirst: mocks.actorFindFirst },
         },
         select: vi.fn(() => mocks.selectChain),
       })
@@ -150,6 +154,26 @@ describe('getMessagesForClaimCore', () => {
     });
 
     expect(result).toEqual({ success: false, error: 'Access denied' });
+    expect(mocks.selectChain.orderBy).not.toHaveBeenCalled();
+  });
+
+  it('denies a linked agent messages on a wrong-branch claim', async () => {
+    mocks.findFirst.mockResolvedValue({
+      id: 'claim-1',
+      userId: 'member-1',
+      branchId: 'branch-b',
+    });
+    mocks.findAgentClient.mockResolvedValue({ memberId: 'member-1' });
+
+    const result = await getMessagesForClaimCore({
+      session: {
+        user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1', branchId: 'branch-a' },
+      } as never,
+      claimId: 'claim-1',
+    });
+
+    expect(result).toEqual({ success: false, error: 'Access denied' });
+    expect(mocks.findAgentClient).not.toHaveBeenCalled();
     expect(mocks.selectChain.orderBy).not.toHaveBeenCalled();
   });
 

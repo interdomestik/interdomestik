@@ -215,6 +215,18 @@ describe('MessagingPanel', () => {
     await waitFor(() => {
       expect(screen.getByTestId('message-thread')).toBeInTheDocument();
     });
+    expect(screen.getByTestId('messaging-public-audience')).toBeInTheDocument();
+  });
+
+  it('shows the public audience notice only to agents', () => {
+    render(
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'staff' }}
+      />
+    );
+
+    expect(screen.queryByTestId('messaging-public-audience')).not.toBeInTheDocument();
   });
 
   it('has refresh button', () => {

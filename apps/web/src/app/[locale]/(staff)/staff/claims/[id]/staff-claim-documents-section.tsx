@@ -31,6 +31,7 @@ export function StaffClaimDocumentsSection({
       <div data-testid="staff-claim-documents">
         <OpsDocumentsPanel
           title={title}
+          headerLayout="wrap"
           documents={documents.map(doc => ({
             id: doc.id,
             name: doc.name,

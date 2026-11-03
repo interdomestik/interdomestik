@@ -1,6 +1,13 @@
+import type { TenantTransaction } from '@interdomestik/database';
 import { agentClients, claimMessages, claims, user } from '@interdomestik/database/schema';
-import type * as DatabaseModule from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { ROLES } from '@interdomestik/shared-auth';
 import { and, count, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
+
 import {
   dedupeClaimsById,
   mapToAgentProClaim,
@@ -8,12 +15,20 @@ import {
   type AgentWorkspaceClaimsResult,
   type ClaimRow,
 } from './claim-mapping';
+
 export type { AgentProClaimDTO, AgentWorkspaceClaimsResult } from './claim-mapping';
 
-// Runtime callers pass the tenant transaction so RLS scopes every read to the session tenant.
-type DatabaseClient = typeof DatabaseModule.db | DatabaseModule.TenantTransaction;
+export type AgentWorkspaceClaimsCoreResult =
+  ({ ok: true } & AgentWorkspaceClaimsResult) | { ok: false; code: 'FORBIDDEN' };
 
 const WORKSPACE_CLAIM_LIMIT = 100;
+
+const AGENT_WORKSPACE_READER_ROLES = [
+  ROLES.agent,
+  ROLES.admin,
+  ROLES.tenant_admin,
+  ROLES.super_admin,
+] as readonly string[];
 
 export function buildAgentWorkspaceClaimsWhere(params: {
   tenantId: string;
@@ -22,7 +37,7 @@ export function buildAgentWorkspaceClaimsWhere(params: {
 }) {
   const assignedMembers = inArray(claims.userId, params.assignedMemberIds);
 
-  if (params.branchId) {
+  if (typeof params.branchId === 'string') {
     return and(
       eq(claims.tenantId, params.tenantId),
       assignedMembers,
@@ -42,17 +57,19 @@ function buildAgentWorkspaceClaimByIdWhere(params: {
   return and(buildAgentWorkspaceClaimsWhere(params), eq(claims.id, params.claimId));
 }
 
-async function getClaimByIdInWorkspaceScope(params: {
-  tenantId: string;
-  assignedMemberIds: string[];
-  branchId?: string | null;
-  claimId: string;
-  db: DatabaseClient;
-}): Promise<AgentProClaimDTO | null> {
-  const { tenantId, claimId, assignedMemberIds, branchId, db } = params;
+async function getClaimByIdInWorkspaceScope(
+  tx: TenantTransaction,
+  params: {
+    tenantId: string;
+    assignedMemberIds: string[];
+    branchId?: string | null;
+    claimId: string;
+  }
+): Promise<AgentProClaimDTO | null> {
+  const { tenantId, claimId, assignedMemberIds, branchId } = params;
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const matched = await db.query.claims.findMany({
+  const matched = await tx.query.claims.findMany({
     where: buildAgentWorkspaceClaimByIdWhere({ tenantId, assignedMemberIds, branchId, claimId }),
     with: {
       user: {
@@ -84,25 +101,24 @@ function buildVisibleMessagesWhere(tenantId: string, claimIds: string[]) {
   );
 }
 
-export async function getAgentWorkspaceClaimsCore(params: {
-  tenantId: string;
-  userId: string;
-  db: DatabaseClient;
-  selectedClaimId?: string;
-}): Promise<AgentWorkspaceClaimsResult> {
-  const { tenantId, userId, db, selectedClaimId } = params;
-  const requestedSelectedClaimId =
-    typeof selectedClaimId === 'string' && selectedClaimId.trim() !== ''
-      ? selectedClaimId.trim()
-      : null;
+async function readAgentWorkspaceClaims(
+  tx: TenantTransaction,
+  params: { tenantId: string; userId: string; requestedSelectedClaimId: string | null }
+): Promise<AgentWorkspaceClaimsResult | null> {
+  const { tenantId, userId, requestedSelectedClaimId } = params;
 
   // 0. Fetch Agent Context (Branch)
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const agent = await db.query.user.findFirst({
-    where: eq(user.id, userId),
+  const agent = await tx.query.user.findFirst({
+    where: and(eq(user.id, userId), eq(user.tenantId, tenantId)),
     columns: { branchId: true },
   });
-  const activeAssignments = await db.query.agentClients.findMany({
+
+  // Fail closed: a missing row (access/home-tenant mismatch, revoked or deleted identity) must
+  // never degrade to an unfiltered branch scope. A present row with branchId null stays valid.
+  if (!agent) return null;
+
+  const activeAssignments = await tx.query.agentClients.findMany({
     where: and(
       eq(agentClients.tenantId, tenantId),
       eq(agentClients.agentId, userId),
@@ -127,11 +143,11 @@ export async function getAgentWorkspaceClaimsCore(params: {
 
   // 1. Fetch Claims for Agent's Scope
   // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-  const claimsData = await db.query.claims.findMany({
+  const claimsData = await tx.query.claims.findMany({
     where: buildAgentWorkspaceClaimsWhere({
       tenantId,
       assignedMemberIds,
-      branchId: agent?.branchId,
+      branchId: agent.branchId,
     }),
     orderBy: [desc(claims.createdAt)],
     with: {
@@ -157,12 +173,11 @@ export async function getAgentWorkspaceClaimsCore(params: {
   const selectedClaim = requestedSelectedClaimId
     ? claimIds.includes(requestedSelectedClaimId)
       ? null
-      : await getClaimByIdInWorkspaceScope({
+      : await getClaimByIdInWorkspaceScope(tx, {
           tenantId,
           assignedMemberIds,
           claimId: requestedSelectedClaimId,
-          branchId: agent?.branchId,
-          db,
+          branchId: agent.branchId,
         })
     : null;
 
@@ -175,7 +190,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
 
   if (metadataClaimIds.length > 0) {
     // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-    const unreadCounts = await db
+    const unreadCounts = await tx
       .select({
         claimId: claimMessages.claimId,
         count: count(claimMessages.id),
@@ -194,7 +209,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
       unreadMap.set(row.claimId as string, Number(row.count))
     );
     // db-access-guard: tenant-scoped -- reason: buildVisibleMessagesWhere enforces tenant, visible claim ids and public messages
-    const lastMessages = await db
+    const lastMessages = await tx
       .selectDistinctOn([claimMessages.claimId], {
         claimId: claimMessages.claimId,
         content: claimMessages.content,
@@ -249,4 +264,37 @@ export async function getAgentWorkspaceClaimsCore(params: {
   ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
   return { claims: claimsWithForcedSelection };
+}
+
+/**
+ * Validates the authority's principal role, then performs the whole workspace read closure inside
+ * one tenant transaction. Database failures propagate to the route error boundary.
+ */
+export async function getAgentWorkspaceClaimsCore(params: {
+  authority: TenantAuthority;
+  selectedClaimId?: string;
+}): Promise<AgentWorkspaceClaimsCoreResult> {
+  const { authority, selectedClaimId } = params;
+  const { tenantId, principal } = readTenantAuthority(authority);
+  const role = principal?.role;
+
+  if (!principal || typeof role !== 'string' || !AGENT_WORKSPACE_READER_ROLES.includes(role)) {
+    return { ok: false, code: 'FORBIDDEN' };
+  }
+  const { userId } = principal;
+
+  const requestedSelectedClaimId =
+    typeof selectedClaimId === 'string' && selectedClaimId.trim() !== ''
+      ? selectedClaimId.trim()
+      : null;
+
+  const result = await withTenantAuthority(authority, tx =>
+    readAgentWorkspaceClaims(tx, { tenantId, userId, requestedSelectedClaimId })
+  );
+
+  if (!result) {
+    return { ok: false, code: 'FORBIDDEN' };
+  }
+
+  return { ok: true, claims: result.claims };
 }

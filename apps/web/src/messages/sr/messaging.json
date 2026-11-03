@@ -40,6 +40,7 @@
       "loadError": "Poruke nisu učitane zbog problema sa uslugom. Tekst koji ste napisali ovde nije izgubljen.",
       "retry": "Pokušaj ponovo da učitaš poruke",
       "statusError": "Poruke su prikazane, ali status čitanja nije ažuriran."
-    }
+    },
+    "publicAudience": "Vidljivo članu i timu za slučaj."
   }
 }
