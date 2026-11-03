@@ -8,9 +8,12 @@ export async function openSaveArea(flow: Locator) {
   const band = flow.getByTestId('free-start-secure-save-band');
   await expect(offer.or(opener).or(manager).or(band).first()).toBeVisible();
   if (await offer.isVisible()) return;
-  if (await opener.isVisible()) await opener.click();
-  else if (await manager.isVisible()) await manager.click();
-  await expect(band).toBeVisible();
+  const entry = (await opener.isVisible()) ? opener : manager;
+  // An SSR-visible entry is not handler readiness; click again only while the band is still closed.
+  await expect(async () => {
+    if (!(await band.isVisible())) await entry.click();
+    await expect(band).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 10_000 });
 }
 
 /** Reveal device-specific facts; the separate enable button remains the consent boundary. */

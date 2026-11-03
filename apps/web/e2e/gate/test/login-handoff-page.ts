@@ -48,17 +48,36 @@ export async function interactiveLogin(page: Page, locale: string) {
   await expect(password).toHaveAttribute('type', 'password');
 }
 
+/** Opens the mobile sidebar drawer and resolves once its open animation has settled. */
+export async function openMobileSidebar(page: Page) {
+  const trigger = page.locator('button[data-sidebar="trigger"]:visible');
+  const drawer = page.locator('[data-sidebar="sidebar"][data-mobile="true"][data-state="open"]');
+  await expect(trigger).toHaveCount(1);
+  // An SSR-visible trigger is not handler readiness; re-click only while the drawer is still closed.
+  await expect(async () => {
+    if ((await drawer.count()) === 0) await trigger.click();
+    await expect(drawer).toHaveCount(1, { timeout: 1_000 });
+  }).toPass({ timeout: 10_000 });
+  await expect(drawer).toBeVisible();
+  // An exiting Sheet can remain visible; use the open owner and finish its animation.
+  await expect
+    .poll(() =>
+      drawer.evaluate(node =>
+        node
+          .getAnimations()
+          .every(animation => animation.playState === 'finished' || animation.playState === 'idle')
+      )
+    )
+    .toBe(true);
+  return drawer;
+}
+
 export async function normalLogout(page: Page, locale: string) {
   let footer = page.locator(
     '[data-sidebar="sidebar"] [data-sidebar="footer"] button[data-sidebar="menu-button"]:visible'
   );
   if ((await footer.count()) === 0) {
-    await page.locator('[data-sidebar="trigger"]:visible').click();
-    const drawer = page.locator('[data-sidebar="sidebar"][data-mobile="true"][data-state="open"]');
-    await expect(drawer).toHaveCount(1);
-    await expect
-      .poll(() => drawer.evaluate(el => el.getAnimations().every(a => a.playState === 'finished')))
-      .toBe(true);
+    const drawer = await openMobileSidebar(page);
     footer = drawer.locator('[data-sidebar="footer"] button[data-sidebar="menu-button"]:visible');
   }
   await expect(footer).toHaveCount(1);
