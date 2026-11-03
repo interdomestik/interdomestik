@@ -34,8 +34,9 @@ test('CI RLS integration requires both integration and coverage guards', () => {
     rootScripts['db:rls:test'],
     'pnpm --filter @interdomestik/database test:rls && pnpm --filter @interdomestik/domain-communications test:rls'
   );
+  // Each message suite grants its own role on shared catalog rows, so files run one at a time.
   assert.equal(
     domainScripts['test:rls'],
-    'MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run src/messages/tenant-context.integration.test.ts'
+    'MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/messages/tenant-context.integration.test.ts src/messages/send-negative-matrix.integration.test.ts'
   );
 });
