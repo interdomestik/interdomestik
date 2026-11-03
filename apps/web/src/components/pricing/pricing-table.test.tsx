@@ -129,6 +129,7 @@ describe('PricingTable', () => {
       render(
         <PricingTable
           userId="user-123"
+          billingTestMode={false}
           checkoutConfig={checkoutConfig}
           entityDisclosure={{
             contractingCompany: 'Interdomestik KS LLC',

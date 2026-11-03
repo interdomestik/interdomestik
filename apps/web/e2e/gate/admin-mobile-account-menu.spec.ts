@@ -2,30 +2,15 @@ import type { Page, TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import { interactiveLogin, openMobileSidebar } from './test/login-handoff-page';
 
 // Own fresh sessions: normal UI logout must not revoke a reused project state.
 test.use({ storageState: { cookies: [], origins: [] } });
 
-const MOBILE_DRAWER = '[data-sidebar="sidebar"][data-mobile="true"][data-state="open"]';
 const ACCOUNT_BUTTON = '[data-sidebar="footer"] button[data-sidebar="menu-button"]';
 
 async function openMobileAccount(page: Page) {
-  const trigger = page.locator('button[data-sidebar="trigger"]:visible');
-  await expect(trigger).toHaveCount(1);
-  await trigger.click();
-  const drawer = page.locator(MOBILE_DRAWER);
-  await expect(drawer).toHaveCount(1);
-  await expect(drawer).toBeVisible();
-  // An exiting Sheet can remain visible; use the open owner and finish its animation.
-  await expect
-    .poll(() =>
-      drawer.evaluate(node =>
-        node
-          .getAnimations()
-          .every(animation => animation.playState === 'finished' || animation.playState === 'idle')
-      )
-    )
-    .toBe(true);
+  const drawer = await openMobileSidebar(page);
   const account = drawer.locator(ACCOUNT_BUTTON);
   await expect(account).toHaveCount(1);
   const geometry = await account.evaluate(node => {
@@ -59,19 +44,8 @@ async function openMobileAccount(page: Page) {
 }
 
 async function assertLocalizedLogin(page: Page, locale: string) {
-  await expect(page).toHaveURL(new RegExp(`/${locale}/login(?:\\?|$)`));
-  const form = page.getByTestId('login-form');
-  await expect(form).toHaveCount(1);
-  await expect(form).toBeVisible();
-  await expect(form.getByTestId('login-email')).toBeEditable();
-  const password = form.getByTestId('login-password');
-  await expect(password).toBeEditable();
-  const toggle = password.locator('..').getByRole('button');
-  await expect(toggle).toHaveCount(1);
-  await toggle.click();
-  await expect(password).toHaveAttribute('type', 'text');
-  await toggle.click();
-  await expect(password).toHaveAttribute('type', 'password');
+  await interactiveLogin(page, locale);
+  await expect(page.getByTestId('login-form')).toBeVisible();
 }
 
 async function assertLoggedOut(page: Page, testInfo: TestInfo, locale: string) {

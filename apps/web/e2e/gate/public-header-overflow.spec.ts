@@ -116,7 +116,11 @@ test.describe('public header overflow containment', () => {
       await page.emulateMedia({ forcedColors: 'active' });
       const trigger = header.getByTestId('public-locale-trigger');
       await expect(trigger).not.toHaveAttribute('aria-haspopup');
-      await trigger.press('Enter');
+      // An SSR-visible trigger is not handler readiness; press again only while it is still closed.
+      await expect(async () => {
+        if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.press('Enter');
+        await expect(trigger).toHaveAttribute('aria-expanded', 'true', { timeout: 1_000 });
+      }).toPass({ timeout: 10_000 });
       await expectForcedFocus(trigger);
       await page.keyboard.press('Tab');
       const options = header.getByTestId('public-locale-option');
