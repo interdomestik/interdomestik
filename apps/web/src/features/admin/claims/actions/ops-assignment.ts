@@ -20,6 +20,8 @@ export type AssignClaimOwnerParams = {
   tenantId: string;
 };
 
+export type UnassignClaimOwnerParams = Omit<AssignClaimOwnerParams, 'staffId'>;
+
 type AssignmentGuardSnapshot = Pick<
   typeof claims.$inferSelect,
   'staffId' | 'caseLifecycleState' | 'recoveryLifecycleState'
@@ -95,6 +97,46 @@ export async function assignClaimOwnerInTransaction(
     'assign_owner',
     claimId,
     { previousStaffId: claim.staffId, newStaffId: staffId, claimNumber: claim.claimNumber },
+    tx
+  );
+
+  return { success: true, data: updated[0] };
+}
+
+/**
+ * Claim read, terminal check, CAS clear and audit share one tenant transaction, so a concurrent
+ * reassignment or close conflicts instead of being silently cleared, and the audit records the
+ * owner that was actually removed. An already unowned claim is a no-op without an audit row.
+ */
+export async function unassignClaimOwnerInTransaction(
+  tx: TenantTransaction,
+  params: UnassignClaimOwnerParams
+): Promise<OpsActionResponse> {
+  const { actorId, actorRole, claimId, tenantId } = params;
+
+  const claim = await getClaimForMutation(claimId, tenantId, tx);
+  assertCanMutateClaim(claim, actorRole, 'assign');
+
+  if (!claim.staffId) {
+    return { success: true, data: { id: claimId, staffId: null, assignedAt: null } };
+  }
+
+  // db-access-guard: tenant-scoped -- reason: tenant predicate consumed by this tenant-transaction update
+  const updated = await tx
+    .update(claims)
+    .set({ staffId: null, assignedAt: null, assignedById: null, updatedAt: new Date() })
+    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId), buildAssignmentGuard(claim)))
+    .returning({ id: claims.id, staffId: claims.staffId, assignedAt: claims.assignedAt });
+
+  if (updated.length === 0) return { success: false, error: ASSIGNMENT_CONFLICT_ERROR };
+
+  // Audit failure throws inside the transaction and rolls the clear back.
+  await logAudit(
+    tenantId,
+    actorId,
+    'unassign_owner',
+    claimId,
+    { previousStaffId: claim.staffId, claimNumber: claim.claimNumber },
     tx
   );
 
