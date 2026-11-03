@@ -272,7 +272,15 @@ export async function withRestrictedAgentClaimsRole<T>(
   }
   // Attempt both cleanup statements even if the first throws; record sanitized codes only.
   const cleanupCodes: string[] = [];
-  for (const statement of [`drop owned by ${role}`, `drop role if exists ${role}`]) {
+  const statements = [`drop owned by ${role}`, `drop role if exists ${role}`];
+  try {
+    // PG16: a non-superuser creator needs membership before it may drop the role's objects.
+    const [setup] = await rows(sql`select current_user::text as name`);
+    statements.unshift(`grant ${role} to "${String(setup?.name).replaceAll('"', '""')}"`);
+  } catch (error) {
+    cleanupCodes.push(pgCode(error));
+  }
+  for (const statement of statements) {
     try {
       await exec(statement);
     } catch (error) {

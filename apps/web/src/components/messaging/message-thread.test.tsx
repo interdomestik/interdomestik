@@ -1,8 +1,8 @@
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.unmock('next-intl');
 vi.mock('../../i18n/routing', () => ({ routing: { defaultLocale: 'sq' } }));
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider, type AbstractIntlMessages } from 'next-intl';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AGENT_NAMESPACES,
   APP_NAMESPACES,

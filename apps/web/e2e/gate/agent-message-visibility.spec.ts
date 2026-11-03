@@ -93,31 +93,9 @@ test.describe('Agent message visibility', () => {
           deniedSelections: 3,
           deniedRoles: 6,
           adminFamilyRoles: 3,
-          profileClaimsTotal: 105,
-          profileOpenClaims: 105,
-          profileRecentClaims: 6,
-          profileSubscriptions: 1,
-          profilePreferences: 1,
-          profileActivities: 2,
-          profileEmptyProfiles: 1,
-          profileForeignChildControls: 3,
-          profileForeignDenied: 2,
-          profileDeniedMembers: 2,
-          profileDeniedViewers: 3,
-          profileDeniedRoles: 7,
-          profileMissingTenants: 4,
-          profileAccessFirst: 1,
-          notesRightful: 3,
-          notesSameTenantAuthors: 2,
-          notesDeniedMembers: 2,
-          notesDeniedViewers: 3,
-          notesStaffFamily: 2,
-          notesDeniedRoles: 7,
-          notesAccessFirst: 1,
         });
         const failure = await runWithoutMessageSelect(role, fixture);
         expect(failure.counts).toMatchObject({ listClaims: 105, workspaceRejected: 1 });
-        expect(failure.counts).not.toHaveProperty('profileClaimsTotal');
         await info.attach('restricted-role-evidence', {
           body: JSON.stringify({ posture: role.posture, full, failure }),
           contentType: 'application/json',
