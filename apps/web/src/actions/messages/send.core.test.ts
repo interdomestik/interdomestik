@@ -177,6 +177,35 @@ describe('sendMessageDbCore', () => {
     expect(mocks.userFindFirst).toHaveBeenCalledTimes(1);
   });
 
+  it('returns the committed message when the post-commit audit logger rejects', async () => {
+    mocks.claimsFindFirst.mockResolvedValue({
+      id: 'claim_1',
+      userId: 'member_1',
+      title: 'My Claim',
+    });
+    mocks.insertValues.mockResolvedValue(undefined);
+    mocks.userFindFirst.mockResolvedValue({ email: 'member@example.com' });
+    mocks.logAuditEvent.mockRejectedValueOnce(new Error('private SQL details'));
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const result = await sendMessageDbCore({
+        authority,
+        session: {
+          user: { id: 'user_1', role: 'staff', tenantId: 'tenant_mk' },
+        } as NonNullable<Session>,
+        requestHeaders: new Headers(),
+        claimId: 'claim_1',
+        content: 'Hello',
+      });
+      expect(result).toMatchObject({ success: true, message: { id: 'msg_1' } });
+      expect(mocks.insertValues).toHaveBeenCalledOnce();
+      expect(mocks.logAuditEvent).toHaveBeenCalledOnce();
+      expect(errorLog).toHaveBeenCalledWith('Message audit failed after commit');
+    } finally {
+      errorLog.mockRestore();
+    }
+  });
+
   it.each([
     {
       name: 'denies staff messages for claims outside their scoped branch',

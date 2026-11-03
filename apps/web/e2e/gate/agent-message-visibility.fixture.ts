@@ -4,28 +4,57 @@ import {
   branches,
   claimMessages,
   claims,
-  db,
+  dbAdmin,
   E2E_USERS,
-  session,
+  memberNotes,
   user,
 } from '@interdomestik/database';
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
+import { loadSyntheticMessagePasswords } from './agent-message-credentials.fixture';
+import { cleanupAgentMessageFixture } from './agent-message-cleanup.fixture';
+import {
+  planProfileChildren,
+  seedProfileChildren,
+  type ProfileChildFixture,
+} from './agent-profile-children.fixture';
+
+/** Synthetic identities only; safe to serialize to the restricted-role reader child. */
+export interface AgentMessageFixture {
+  agentId: string;
+  agentName: string;
+  branchId: string;
+  email: string;
+  memberEmail: string;
+  staffId: string;
+  staffEmail: string;
+  tenantId: string;
+  foreignTenantId: string;
+  memberId: string;
+  inactiveMemberId: string;
+  unassignedMemberId: string;
+  claimIds: string[];
+  deniedIds: string[];
+  /**
+   * Rightful own-member notes in expected read order: pinned internal first, then the newer
+   * staff-authored public note, then the older agent-authored public note.
+   */
+  rightfulNoteIds: string[];
+  foreignNoteId: string;
+  /** Profile child rows, empty-member and foreign-tenant controls, and the same-tenant staff author. */
+  children: ProfileChildFixture;
+}
+
+// dbAdmin is used for fixture setup and cleanup only; assertions run under a restricted role.
 export async function withAgentMessageFixture<T>(
   projectName: string,
-  action: (fixture: {
-    agentId: string;
-    email: string;
-    tenantId: string;
-    claimIds: string[];
-    deniedIds: string[];
-  }) => Promise<T>
+  action: (fixture: AgentMessageFixture) => Promise<T>
 ): Promise<T> {
   const isMk = projectName.includes('mk');
   const email = isMk ? E2E_USERS.MK_AGENT.email : E2E_USERS.KS_AGENT.email;
-  const seededAgent = await db.query.user.findFirst({ where: eq(user.email, email) });
+  const seededAgent = await dbAdmin.query.user.findFirst({ where: eq(user.email, email) });
   if (!seededAgent?.tenantId) throw new Error(`Missing seeded agent: ${email}`);
   const tenantId = seededAgent.tenantId;
   const foreignTenantId = isMk ? 'tenant_ks' : 'tenant_mk';
@@ -35,15 +64,20 @@ export async function withAgentMessageFixture<T>(
     branchId: `${prefix}-branch`,
     email: `${prefix}@example.com`,
   };
-  const credential = await db.query.account.findFirst({
+  const credential = await dbAdmin.query.account.findFirst({
     where: and(eq(account.userId, seededAgent.id), eq(account.providerId, 'credential')),
   });
   if (!credential?.password) throw new Error('Missing seeded agent credential');
+  const { memberPassword, staffPassword } = await loadSyntheticMessagePasswords(isMk);
   const memberIds = ['active', 'inactive', 'unassigned'].map(name => `${prefix}-${name}`);
   const assignmentIds = ['active', 'inactive'].map(name => `${prefix}-assignment-${name}`);
   const claimIds = Array.from({ length: 105 }, (_, index) => `${prefix}-claim-${index}`);
   const deniedIds = ['foreign', 'inactive', 'unassigned'].map(name => `${prefix}-${name}-claim`);
   const allClaimIds = [...claimIds, ...deniedIds];
+  const noteIds = ['pinned', 'recent', 'inactive', 'unassigned', 'foreign'].map(
+    name => `${prefix}-note-${name}`
+  );
+  const children = planProfileChildren(prefix);
   const deniedOwners: Record<string, string> = {
     [deniedIds[1]]: memberIds[1],
     [deniedIds[2]]: memberIds[2],
@@ -65,9 +99,25 @@ export async function withAgentMessageFixture<T>(
     createdAt: date(index),
     ...overrides,
   });
+  const note = (
+    index: number,
+    memberId: string,
+    content: string,
+    overrides: Partial<typeof memberNotes.$inferInsert> = {}
+  ): typeof memberNotes.$inferInsert => ({
+    id: noteIds[index],
+    tenantId,
+    memberId,
+    authorId: agent.id,
+    content,
+    createdAt: date(index + 1),
+    ...overrides,
+  });
   try {
-    await db.insert(branches).values({ id: agent.branchId, tenantId, name: prefix, slug: prefix });
-    await db.insert(user).values({
+    await dbAdmin
+      .insert(branches)
+      .values({ id: agent.branchId, tenantId, name: prefix, slug: prefix });
+    await dbAdmin.insert(user).values({
       id: agent.id,
       tenantId,
       name: prefix,
@@ -78,7 +128,7 @@ export async function withAgentMessageFixture<T>(
       createdAt: date(0),
       updatedAt: date(0),
     });
-    await db.insert(account).values({
+    await dbAdmin.insert(account).values({
       id: `${prefix}-credential`,
       accountId: agent.email,
       providerId: 'credential',
@@ -87,8 +137,8 @@ export async function withAgentMessageFixture<T>(
       createdAt: date(0),
       updatedAt: date(0),
     });
-    await db.insert(user).values(
-      memberIds.map(id => ({
+    await dbAdmin.insert(user).values(
+      memberIds.map((id, index) => ({
         id,
         tenantId,
         name: id,
@@ -96,11 +146,13 @@ export async function withAgentMessageFixture<T>(
         role: 'member',
         emailVerified: true,
         branchId: agent.branchId,
+        // Legacy agent projection relation: only the admitted main member points at the agent.
+        agentId: index === 0 ? agent.id : null,
         createdAt: date(0),
         updatedAt: date(0),
       }))
     );
-    await db.insert(agentClients).values(
+    await dbAdmin.insert(agentClients).values(
       assignmentIds.map((id, index) => ({
         id,
         tenantId,
@@ -109,12 +161,25 @@ export async function withAgentMessageFixture<T>(
         status: index === 0 ? 'active' : 'inactive',
       }))
     );
-    await db.insert(claims).values(
+    // The first claim is assigned to this synthetic staff user, so create the
+    // profile child users before inserting claims with a staff foreign key.
+    await seedProfileChildren(
+      {
+        tenantId,
+        foreignTenantId,
+        agentId: agent.id,
+        mainMemberId: memberIds[0],
+        branchId: agent.branchId,
+      },
+      children
+    );
+    await dbAdmin.insert(claims).values(
       allClaimIds.map((id, index) => ({
         id,
         tenantId: id === deniedIds[0] ? foreignTenantId : tenantId,
         userId: deniedOwners[id] ?? memberIds[0],
         branchId: agent.branchId,
+        staffId: index === 0 ? children.staffAuthorId : null,
         title: id,
         claimNumber: id,
         companyName: 'S1 synthetic fixture',
@@ -124,7 +189,7 @@ export async function withAgentMessageFixture<T>(
         updatedAt: date(200 - index),
       }))
     );
-    await db
+    await dbAdmin
       .insert(claimMessages)
       .values([
         message(claimIds[0], 'S1 old internal', 1, { isInternal: true }),
@@ -141,15 +206,62 @@ export async function withAgentMessageFixture<T>(
         message(deniedIds[2], 'S1 unassigned secret', 13),
         message(claimIds[0], 'S1 foreign message secret', 14, { tenantId: foreignTenantId }),
       ]);
-    return await action({ agentId: agent.id, email: agent.email, tenantId, claimIds, deniedIds });
+    await dbAdmin.insert(memberNotes).values([
+      note(0, memberIds[0], 'S8 pinned internal old note', { isPinned: true, isInternal: true }),
+      note(1, memberIds[0], 'S8 recent public note', { isPinned: false, isInternal: false }),
+      note(2, memberIds[1], 'S8 inactive member note'),
+      note(3, memberIds[2], 'S8 unassigned member note'),
+      // Adversarial tenant-isolation control: same own member, other tenant.
+      note(4, memberIds[0], 'S8 foreign tenant note', { tenantId: foreignTenantId }),
+    ]);
+    await dbAdmin.insert(account).values([
+      {
+        id: `${prefix}-member-credential`,
+        accountId: `${memberIds[0]}@example.com`,
+        providerId: 'credential',
+        userId: memberIds[0],
+        password: memberPassword,
+        createdAt: date(0),
+        updatedAt: date(0),
+      },
+      {
+        id: `${prefix}-staff-credential`,
+        accountId: `${children.staffAuthorId}@example.com`,
+        providerId: 'credential',
+        userId: children.staffAuthorId,
+        password: staffPassword,
+        createdAt: date(0),
+        updatedAt: date(0),
+      },
+    ]);
+    return await action({
+      agentId: agent.id,
+      agentName: prefix,
+      branchId: agent.branchId,
+      email: agent.email,
+      memberEmail: `${memberIds[0]}@example.com`,
+      staffId: children.staffAuthorId,
+      staffEmail: `${children.staffAuthorId}@example.com`,
+      tenantId,
+      foreignTenantId,
+      memberId: memberIds[0],
+      inactiveMemberId: memberIds[1],
+      unassignedMemberId: memberIds[2],
+      claimIds,
+      deniedIds,
+      rightfulNoteIds: [noteIds[0], children.staffNoteId, noteIds[1]],
+      foreignNoteId: noteIds[4],
+      children,
+    });
   } finally {
-    await db.delete(claimMessages).where(inArray(claimMessages.claimId, allClaimIds));
-    await db.delete(claims).where(inArray(claims.id, allClaimIds));
-    await db.delete(agentClients).where(inArray(agentClients.id, assignmentIds));
-    await db.delete(user).where(inArray(user.id, memberIds));
-    await db.delete(session).where(eq(session.userId, agent.id));
-    await db.delete(account).where(eq(account.userId, agent.id));
-    await db.delete(user).where(eq(user.id, agent.id));
-    await db.delete(branches).where(eq(branches.id, agent.branchId));
+    await cleanupAgentMessageFixture({
+      agent,
+      allClaimIds,
+      assignmentIds,
+      children,
+      memberIds,
+      noteIds,
+      tenantId,
+    });
   }
 }

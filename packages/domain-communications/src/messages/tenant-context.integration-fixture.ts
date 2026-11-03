@@ -3,11 +3,13 @@ import { afterAll, beforeAll, expect } from 'vitest';
 import postgres from 'postgres';
 import { eq, inArray } from 'drizzle-orm';
 import type { Session } from '../types';
+import { runReplyPreparationWorkers } from './public-reply-concurrency.runtime-fixture';
 
 const suffix = randomUUID();
 export const homeTenantId = `message_home_${suffix}`;
 export const otherTenantId = `message_other_${suffix}`;
 const fixtureRole = `message_rls_${suffix.replaceAll('-', '')}`;
+const fixturePassword = randomUUID().replaceAll('-', '');
 let fixtureRoleCreated = false;
 const previousDbRole = process.env.DB_RLS_ROLE;
 const previousClients = {
@@ -20,6 +22,8 @@ export const ids = {
   staff: `message_staff_${suffix}`,
   agent: `message_agent_${suffix}`,
   claim: `message_claim_${suffix}`,
+  agentBranch: `message_agent_branch_${suffix}`,
+  otherBranch: `message_other_branch_${suffix}`,
   link: `message_link_${suffix}`,
   public: `message_public_${suffix}`,
   internal: `message_internal_${suffix}`,
@@ -46,9 +50,28 @@ export const fixture = {
   get rlsClient() {
     return rlsClient;
   },
+  get roleName() {
+    return fixtureRole;
+  },
+  async setNotificationInsertAllowed(allowed: boolean) {
+    await adminClient.unsafe(
+      `${allowed ? 'grant insert on' : 'revoke insert on'} notifications ${allowed ? 'to' : 'from'} "${fixtureRole}"`
+    );
+  },
+  async concurrentReplies(params: Parameters<typeof runReplyPreparationWorkers>[2]) {
+    const target = new URL(process.env.DATABASE_URL!);
+    target.username = fixtureRole;
+    target.password = fixturePassword;
+    target.search = '';
+    return runReplyPreparationWorkers(target.toString(), fixtureRole, params);
+  },
 };
-export const session = (id: string, role: string, tenantId = homeTenantId) =>
-  ({ user: { id, role, tenantId, branchId: null } }) as NonNullable<Session>;
+export const session = (
+  id: string,
+  role: string,
+  tenantId = homeTenantId,
+  branchId: string | null = null
+) => ({ user: { id, role, tenantId, branchId } }) as NonNullable<Session>;
 
 export function assertSyntheticMessageDatabaseUrl(value: string): void {
   const endpoint = new URL(value);
@@ -73,27 +96,32 @@ export function registerMessageRlsFixture(): void {
     adminClient = postgres(process.env.DATABASE_URL, { max: 1 });
     const tables = await adminClient`
       select c.relname, c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace
-      where n.nspname='public' and c.relname in ('claim','claim_messages','agent_clients','user')
+      where n.nspname='public' and c.relname in
+        ('claim','claim_messages','agent_clients','user','notifications',
+         'user_notification_preferences','push_subscriptions','audit_log')
     `;
-    expect(tables).toHaveLength(4);
+    expect(tables).toHaveLength(8);
     expect(tables.every(table => table.relrowsecurity === true)).toBe(true);
-    // This isolated NOLOGIN role exists only for this synthetic fixture. Never alter a shared role.
-    await adminClient.unsafe(`create role "${fixtureRole}" nologin nosuperuser nobypassrls`);
+    // This owned LOGIN authenticates directly; SET ROLE on an admin session is not restricted.
+    await adminClient.unsafe(
+      `create role "${fixtureRole}" login nosuperuser nobypassrls nocreatedb nocreaterole noinherit noreplication password '${fixturePassword}'`
+    );
     fixtureRoleCreated = true;
     await adminClient.unsafe(`grant usage on schema public to "${fixtureRole}"`);
     await adminClient.unsafe(
-      `grant select on table "user", claim, claim_messages, agent_clients to "${fixtureRole}"`
+      `grant select on table "user", claim, claim_messages, agent_clients, notifications, user_notification_preferences, push_subscriptions, audit_log to "${fixtureRole}"`
     );
     await adminClient.unsafe(`grant insert, update on table claim_messages to "${fixtureRole}"`);
-    const [{ currentUser }] = await adminClient`select current_user as "currentUser"`;
-    await adminClient.unsafe(
-      `grant "${fixtureRole}" to "${String(currentUser).replaceAll('"', '""')}"`
-    );
+    // A least-privilege subset of scripts/ci/export-e2e-rls.sh, never a production grant claim.
+    await adminClient.unsafe(`grant insert on table notifications, audit_log to "${fixtureRole}"`);
+    await adminClient.unsafe(`grant delete on table push_subscriptions to "${fixtureRole}"`);
     process.env.DB_RLS_ROLE = fixtureRole;
-    rlsClient = postgres(process.env.DATABASE_URL, {
-      max: 1,
-      connection: { options: `-c role=${fixtureRole}` },
-    });
+    const restrictedUrl = new URL(process.env.DATABASE_URL);
+    restrictedUrl.username = fixtureRole;
+    restrictedUrl.password = fixturePassword;
+    // Do not inherit credential or session overrides from the administrative URL.
+    restrictedUrl.search = '';
+    rlsClient = postgres(restrictedUrl.toString(), { max: 1 });
     Object.assign(globalThis, { queryClientRls: rlsClient, queryClientAdmin: adminClient });
     database = await import('@interdomestik/database');
     ({ getMessagesForClaimCore: get } = await import('./get'));
@@ -101,9 +129,21 @@ export function registerMessageRlsFixture(): void {
     ({ sendMessageDbCore: send } = await import('./send'));
     const { assertRlsConnectionRoleReady } = await import('@interdomestik/database/db');
     await assertRlsConnectionRoleReady();
-    const [posture] =
-      await rlsClient`select rolsuper, rolbypassrls from pg_roles where rolname=current_user`;
-    expect(posture).toEqual({ rolsuper: false, rolbypassrls: false });
+    const [posture] = await rlsClient`
+      select session_user as "sessionUser", current_user as "currentUser",
+        s.rolsuper as "sessionSuper", s.rolbypassrls as "sessionBypass",
+        c.rolsuper as "currentSuper", c.rolbypassrls as "currentBypass"
+      from pg_roles s, pg_roles c
+      where s.rolname=session_user and c.rolname=current_user
+    `;
+    expect(posture).toEqual({
+      sessionUser: fixtureRole,
+      currentUser: fixtureRole,
+      sessionSuper: false,
+      sessionBypass: false,
+      currentSuper: false,
+      currentBypass: false,
+    });
     await database.dbAdmin.insert(database.tenants).values([
       {
         id: homeTenantId,
@@ -116,6 +156,20 @@ export function registerMessageRlsFixture(): void {
         name: 'Synthetic message other',
         legalName: 'Synthetic message other',
         countryCode: 'MK',
+      },
+    ]);
+    await database.dbAdmin.insert(database.branches).values([
+      {
+        id: ids.agentBranch,
+        tenantId: homeTenantId,
+        name: 'Message agent branch',
+        slug: ids.agentBranch,
+      },
+      {
+        id: ids.otherBranch,
+        tenantId: homeTenantId,
+        name: 'Message other branch',
+        slug: ids.otherBranch,
       },
     ]);
     const now = new Date();
@@ -132,6 +186,7 @@ export function registerMessageRlsFixture(): void {
         email: `${id}@example.test`,
         emailVerified: true,
         name: role === 'staff' ? 'Synthetic Staff Sender' : 'Synthetic Member',
+        branchId: id === ids.agent ? ids.agentBranch : null,
         createdAt: now,
         updatedAt: now,
       }))
@@ -178,6 +233,18 @@ export function registerMessageRlsFixture(): void {
     try {
       if (database) {
         await database.dbAdmin
+          .delete(database.auditLog)
+          .where(eq(database.auditLog.entityId, ids.claim));
+        await database.dbAdmin
+          .delete(database.notifications)
+          .where(eq(database.notifications.tenantId, homeTenantId));
+        await database.dbAdmin
+          .delete(database.pushSubscriptions)
+          .where(inArray(database.pushSubscriptions.tenantId, [homeTenantId, otherTenantId]));
+        await database.dbAdmin
+          .delete(database.userNotificationPreferences)
+          .where(eq(database.userNotificationPreferences.tenantId, homeTenantId));
+        await database.dbAdmin
           .delete(database.claimMessages)
           .where(eq(database.claimMessages.claimId, ids.claim));
         await database.dbAdmin
@@ -187,6 +254,9 @@ export function registerMessageRlsFixture(): void {
         await database.dbAdmin
           .delete(database.user)
           .where(inArray(database.user.id, [ids.member, ids.otherMember, ids.staff, ids.agent]));
+        await database.dbAdmin
+          .delete(database.branches)
+          .where(inArray(database.branches.id, [ids.agentBranch, ids.otherBranch]));
         await database.dbAdmin
           .delete(database.tenants)
           .where(inArray(database.tenants.id, [homeTenantId, otherTenantId]));

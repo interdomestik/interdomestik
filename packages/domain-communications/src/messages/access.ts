@@ -1,4 +1,4 @@
-import { agentClients, claims, type TenantTransaction } from '@interdomestik/database';
+import { agentClients, claims, user, type TenantTransaction } from '@interdomestik/database';
 import { ROLES } from '@interdomestik/shared-auth';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 
@@ -8,15 +8,13 @@ type ClaimAccessRecord = {
   userId: string;
 };
 
-const FULL_TENANT_ROLES = new Set<string>([ROLES.admin, ROLES.tenant_admin, ROLES.super_admin]);
-const SCOPED_CLAIMS_READ_ROLES = new Set<string>([ROLES.staff, ROLES.branch_manager]);
-
+// Strict comparisons, so an altered Set.prototype.has cannot widen role admission.
 export function isFullTenantClaimsRole(role: string | null | undefined): boolean {
-  return role ? FULL_TENANT_ROLES.has(role) : false;
+  return role === ROLES.admin || role === ROLES.tenant_admin || role === ROLES.super_admin;
 }
 
 export function isScopedClaimsReadRole(role: string | null | undefined): boolean {
-  return role ? SCOPED_CLAIMS_READ_ROLES.has(role) : false;
+  return role === ROLES.staff || role === ROLES.branch_manager;
 }
 
 export function hasScopedStaffClaimAccess(args: {
@@ -81,12 +79,39 @@ function buildStaffScopedClaimFilter(args: {
   return or(eq(claims.staffId, args.userId), isNull(claims.staffId));
 }
 
+export async function readAgentScope(
+  tx: TenantTransaction,
+  args: { tenantId: string; userId: string }
+): Promise<{ branchId: string | null } | null> {
+  const actor = await tx.query.user.findFirst({
+    where: and(eq(user.id, args.userId), eq(user.tenantId, args.tenantId)),
+    columns: { branchId: true },
+  });
+  return actor ? { branchId: actor.branchId ?? null } : null;
+}
+
 export async function hasAgentClaimAccess(args: {
   agentId: string;
+  agentBranchId: string | null;
+  claimBranchId: string | null;
   memberId: string;
   tenantId: string;
   tx: TenantTransaction;
 }): Promise<boolean> {
+  // Read the same current tenant identity used by the workspace, not a cached session branch.
+  const scope = await readAgentScope(args.tx, {
+    tenantId: args.tenantId,
+    userId: args.agentId,
+  });
+  if (!scope) return false;
+  if (
+    scope.branchId !== null &&
+    args.claimBranchId !== null &&
+    args.claimBranchId !== scope.branchId
+  ) {
+    return false;
+  }
+
   const linkedClient = await args.tx.query.agentClients.findFirst({
     where: (table, { and, eq }) =>
       and(
@@ -140,10 +165,23 @@ export function buildAccessibleClaimIdsSubquery(args: {
         )
       );
 
+    if (branchId !== null && typeof branchId !== 'string') {
+      throw new Error('Invalid agent branch context');
+    }
+
+    const branchScope =
+      branchId === null ? undefined : or(eq(claims.branchId, branchId), isNull(claims.branchId));
+
     return database
       .select({ id: claims.id })
       .from(claims)
-      .where(and(eq(claims.tenantId, args.tenantId), inArray(claims.userId, activeMemberIds)));
+      .where(
+        and(
+          eq(claims.tenantId, args.tenantId),
+          inArray(claims.userId, activeMemberIds),
+          branchScope
+        )
+      );
   }
 
   return database

@@ -11,7 +11,15 @@ import {
   buildAccessibleClaimIdsSubquery,
   isFullTenantClaimsRole,
   isScopedClaimsReadRole,
+  readAgentScope,
 } from './access';
+
+function requireMessageScopeString(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new Error('Invalid message access context');
+  }
+  return value;
+}
 
 /**
  * Mark messages as read.
@@ -35,17 +43,23 @@ export async function markMessagesAsReadCore(params: {
 
     const actor = session.user;
     const { tenantId } = readTenantAuthority(authority);
-    const userRole = actor.role || 'user';
+    const userRole = requireMessageScopeString(actor.role || 'user');
     const isPrivilegedStaff = isFullTenantClaimsRole(userRole);
     const isStaff = isPrivilegedStaff || isScopedClaimsReadRole(userRole);
 
     return await withTenantAuthority(authority, async tx => {
+      const agentUserId = userRole === 'agent' ? requireMessageScopeString(actor.id) : null;
+      const agentScope =
+        agentUserId !== null ? await readAgentScope(tx, { tenantId, userId: agentUserId }) : null;
+      if (userRole === 'agent' && !agentScope) {
+        return { success: false, error: 'Access denied' };
+      }
       // A read receipt must be created by a recipient for a message visible to their role.
       const baseCondition = and(
         eq(claimMessages.tenantId, tenantId),
         inArray(claimMessages.id, messageIds),
         isNull(claimMessages.readAt),
-        ne(claimMessages.senderId, actor.id),
+        ne(claimMessages.senderId, agentUserId ?? requireMessageScopeString(actor.id)),
         isStaff ? undefined : eq(claimMessages.isInternal, false)
       );
 
@@ -54,11 +68,12 @@ export async function markMessagesAsReadCore(params: {
         : inArray(
             claimMessages.claimId,
             buildAccessibleClaimIdsSubquery({
-              branchId: actor.branchId ?? null,
+              branchId:
+                userRole === 'agent' ? (agentScope?.branchId ?? null) : (actor.branchId ?? null),
               role: userRole,
               tenantId,
               tx,
-              userId: actor.id,
+              userId: agentUserId ?? requireMessageScopeString(actor.id),
             })
           );
 

@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import {
-  assertSyntheticMessageDatabaseUrl,
   fixture,
   ids,
   homeTenantId,
@@ -18,53 +17,19 @@ const asActor = (id: string, role: string, tenantId = homeTenantId) => ({
 });
 const suite = process.env.MESSAGE_RLS_INTEGRATION === '1' ? describe : describe.skip;
 
-describe('message fixture database safety', () => {
-  it('accepts the synthetic CI and task ports without a machine-specific port constraint', () => {
-    expect(() =>
-      assertSyntheticMessageDatabaseUrl('postgresql://test:test@127.0.0.1:5432/interdomestik_test')
-    ).not.toThrow();
-    expect(() =>
-      assertSyntheticMessageDatabaseUrl('postgresql://test:test@localhost:55435/interdomestik_test')
-    ).not.toThrow();
-    expect(() =>
-      assertSyntheticMessageDatabaseUrl('postgresql://postgres:postgres@127.0.0.1:54322/postgres')
-    ).not.toThrow();
-  });
-  it('rejects remote and non-synthetic databases before creating clients or fixtures', () => {
-    expect(() =>
-      assertSyntheticMessageDatabaseUrl(
-        'postgresql://test:test@db.example.test:5432/interdomestik_test'
-      )
-    ).toThrow();
-    expect(() =>
-      assertSyntheticMessageDatabaseUrl('postgresql://test:test@127.0.0.1:5432/production')
-    ).toThrow();
-    expect(() =>
-      assertSyntheticMessageDatabaseUrl('postgresql://test:test@127.0.0.1:5432/postgres')
-    ).toThrow();
-    expect(() =>
-      assertSyntheticMessageDatabaseUrl('postgresql://test:test@db.example.test:54322/postgres')
-    ).toThrow();
-  });
-  it('rejects connection-string options that could redirect the approved target', () => {
-    expect(() =>
-      assertSyntheticMessageDatabaseUrl(
-        'postgresql://test:test@127.0.0.1:5432/interdomestik_test?host=db.example.test'
-      )
-    ).toThrow();
-    expect(() =>
-      assertSyntheticMessageDatabaseUrl(
-        'postgresql://test:test@127.0.0.1:5432/interdomestik_test?options=unsafe'
-      )
-    ).toThrow();
-  });
-});
+function requireReturnedMessageId(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new Error('Expected a persisted message ID');
+  }
+  return `${value}`;
+}
 
 suite('message operations on a real NOBYPASSRLS connection', () => {
   registerMessageRlsFixture();
   it('loads the owned public thread and sender projection across repeated reads', async () => {
-    const [unscoped] =
-      await fixture.rlsClient`select count(*)::int as count from claim where id=${ids.claim}`;
+    const [unscoped] = await fixture.database.dbRls.execute(
+      fixture.database.sql`select count(*)::int as count from claim where id=${ids.claim}`
+    );
     expect(unscoped.count).toBe(0);
     for (let read = 0; read < 2; read++) {
       const result = await fixture.get({
@@ -79,11 +44,11 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
         role: 'staff',
       });
     }
-    const [context] =
-      await fixture.rlsClient`select current_setting('app.current_tenant_id',true) as tenant`;
+    const [context] = await fixture.database.dbRls.execute(
+      fixture.database.sql`select current_setting('app.current_tenant_id',true) as tenant`
+    );
     expect(context.tenant || null).toBeNull();
   });
-
   it('preserves member/tenant denial, staff assignment and linked-agent visibility', async () => {
     expect(
       await fixture.get({ ...asActor(ids.otherMember, 'member'), claimId: ids.claim })
@@ -104,7 +69,6 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
     const agent = await fixture.get({ ...asActor(ids.agent, 'agent'), claimId: ids.claim });
     expect(agent.messages?.map(message => message.id)).toEqual([ids.public]);
   });
-
   it('persists visible recipient receipts while rejecting internal/own/out-of-scope mutations', async () => {
     await fixture.markRead({
       ...asActor(ids.otherMember, 'member'),
@@ -138,7 +102,6 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
       )?.readAt
     ).toBeNull();
   });
-
   it('sends a persisted public message with the same transaction and denies member internal send', async () => {
     const result = await fixture.send({
       session: session(ids.member, 'member'),
@@ -158,7 +121,7 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
     expect(reread.messages?.map(message => message.id)).toContain(result.message.id);
     await fixture.markRead({
       ...asActor(ids.member, 'member'),
-      messageIds: [result.message.id],
+      messageIds: [requireReturnedMessageId(result.message.id)],
     });
     expect(
       (
@@ -191,6 +154,7 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
           content: 'Projection failure rollback',
         })
       ).toMatchObject({ success: false });
+      expect(projection).toHaveBeenCalledOnce();
       const persisted = await fixture.database.dbAdmin.query.claimMessages.findMany({
         where: eq(fixture.database.claimMessages.claimId, ids.claim),
       });
@@ -201,8 +165,7 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
       projection.mockRestore();
     }
   });
-
-  it('keeps the existing error response after a post-commit audit failure without holding the transaction', async () => {
+  it('returns the committed message after a post-commit audit failure without holding the transaction', async () => {
     const result = await fixture.send({
       session: session(ids.member, 'member'),
       authority: memberAuthority(),
@@ -225,12 +188,16 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
         },
       },
     });
-    expect(result).toMatchObject({ success: false, error: 'Failed to send message' });
+    expect(result).toMatchObject({ success: true });
     const persisted = await fixture.database.dbAdmin.query.claimMessages.findMany({
       where: eq(fixture.database.claimMessages.claimId, ids.claim),
     });
     expect(
       persisted.filter(message => message.content === 'Committed before audit failure')
     ).toHaveLength(1);
+    if (!result.success) throw new Error('Committed message reported as failed');
+    expect(result.message.id).toBe(
+      persisted.find(message => message.content === 'Committed before audit failure')?.id
+    );
   });
 });

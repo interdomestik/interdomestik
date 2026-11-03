@@ -1,52 +1,49 @@
-import { withTenantContext } from '@interdomestik/database';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import type { Mock } from 'vitest';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   claimsFindFirst: vi.fn(),
+  ambientClaimsFindFirst: vi.fn(),
   historyFindMany: vi.fn(),
+  withTenantContext: vi.fn(),
   dbSelect: vi.fn(),
+  txSelect: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => {
-  const db = {
+vi.mock('@interdomestik/database', () => ({
+  db: {
     query: {
-      claims: { findFirst: hoisted.claimsFindFirst },
+      claims: { findFirst: hoisted.ambientClaimsFindFirst },
       claimStageHistory: { findMany: hoisted.historyFindMany },
     },
     select: hoisted.dbSelect,
-  };
-  return {
-    db,
-    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
-      callback(db)
-    ),
-    eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
-    claims: { id: 'claims.id', tenantId: 'claims.tenantId' },
-    claimDocuments: {
-      id: 'claimDocuments.id',
-      claimId: 'claimDocuments.claimId',
-      tenantId: 'claimDocuments.tenantId',
-      name: 'claimDocuments.name',
-      fileSize: 'claimDocuments.fileSize',
-      fileType: 'claimDocuments.fileType',
-      createdAt: 'claimDocuments.createdAt',
-    },
-    claimStageHistory: {
-      id: 'claimStageHistory.id',
-      claimId: 'claimStageHistory.claimId',
-      tenantId: 'claimStageHistory.tenantId',
-      fromStatus: 'claimStageHistory.fromStatus',
-      toStatus: 'claimStageHistory.toStatus',
-      note: 'claimStageHistory.note',
-      isPublic: 'claimStageHistory.isPublic',
-      createdAt: 'claimStageHistory.createdAt',
-      changedById: 'claimStageHistory.changedById',
-    },
-    user: { id: 'user.id', name: 'user.name', email: 'user.email' },
-  };
-});
+  },
+  withTenantContext: hoisted.withTenantContext,
+  eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
+  claims: { id: 'claims.id', tenantId: 'claims.tenantId' },
+  claimDocuments: {
+    id: 'claimDocuments.id',
+    claimId: 'claimDocuments.claimId',
+    tenantId: 'claimDocuments.tenantId',
+    name: 'claimDocuments.name',
+    fileSize: 'claimDocuments.fileSize',
+    fileType: 'claimDocuments.fileType',
+    createdAt: 'claimDocuments.createdAt',
+  },
+  claimStageHistory: {
+    id: 'claimStageHistory.id',
+    claimId: 'claimStageHistory.claimId',
+    tenantId: 'claimStageHistory.tenantId',
+    fromStatus: 'claimStageHistory.fromStatus',
+    toStatus: 'claimStageHistory.toStatus',
+    note: 'claimStageHistory.note',
+    isPublic: 'claimStageHistory.isPublic',
+    createdAt: 'claimStageHistory.createdAt',
+    changedById: 'claimStageHistory.changedById',
+  },
+  user: { id: 'user.id', name: 'user.name', email: 'user.email' },
+}));
 
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ and: args })),
@@ -59,6 +56,7 @@ vi.mock('@interdomestik/domain-claims/staff-claims/scope', () => ({
 }));
 
 import { getStaffClaimDetailsCore, getPublicStatusHistoryCore } from './_core';
+import { buildStaffClaimReadScope } from '@interdomestik/domain-claims/staff-claims/scope';
 
 function createSelectChain(result: unknown, resolveAt: 'where' | 'orderBy') {
   const chain = {
@@ -75,19 +73,63 @@ function createSelectChain(result: unknown, resolveAt: 'where' | 'orderBy') {
   return chain;
 }
 
-const authority = mintTestTenantAuthority('tenant_mk');
+const authority = mintTestTenantAuthority('tenant_mk', { userId: 'staff-1', role: 'staff' });
+const branchManagerAuthority = mintTestTenantAuthority('tenant_mk', {
+  userId: 'manager-1',
+  role: 'branch_manager',
+});
+const memberAuthority = mintTestTenantAuthority('tenant_mk', {
+  userId: 'member-1',
+  role: 'member',
+});
 
 describe('getStaffClaimDetailsCore', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.withTenantContext.mockImplementation((_context, read) =>
+      read({ query: { claims: { findFirst: hoisted.claimsFindFirst } }, select: hoisted.txSelect })
+    );
+  });
+
+  it('rejects a non-staff runtime role before opening tenant context', async () => {
+    const result = await getStaffClaimDetailsCore({
+      claimId: 'c1',
+      staffId: 'staff-1',
+      authority: memberAuthority,
+    });
+
+    expect(result).toEqual({ kind: 'not_found' });
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.claimsFindFirst).not.toHaveBeenCalled();
+  });
+
   it('returns not_found when claim does not exist', async () => {
     hoisted.claimsFindFirst.mockResolvedValue(null);
 
     const result = await getStaffClaimDetailsCore({
+      branchId: 'branch-a',
       claimId: 'c1',
       staffId: 'staff-1',
       authority,
     });
 
     expect(result).toEqual({ kind: 'not_found' });
+    expect(hoisted.withTenantContext).toHaveBeenCalledExactlyOnceWith(
+      authority,
+      expect.any(Function)
+    );
+    expect(buildStaffClaimReadScope).toHaveBeenCalledExactlyOnceWith({
+      branchId: 'branch-a',
+      claimId: 'c1',
+      userId: 'staff-1',
+    });
+    expect(hoisted.claimsFindFirst).toHaveBeenCalledExactlyOnceWith({
+      where: { and: [{ eq: ['claims.tenantId', 'tenant_mk'] }, { scope: true }] },
+      with: { user: true },
+    });
+    expect(hoisted.txSelect).not.toHaveBeenCalled();
+    expect(hoisted.ambientClaimsFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.dbSelect).not.toHaveBeenCalled();
   });
 
   it('returns claim, documents (with fileName), and stage history', async () => {
@@ -121,7 +163,7 @@ describe('getStaffClaimDetailsCore', () => {
       },
     ];
 
-    hoisted.dbSelect
+    hoisted.txSelect
       .mockReturnValueOnce(createSelectChain(docsResult, 'where'))
       .mockReturnValueOnce(createSelectChain(historyResult, 'orderBy'));
 
@@ -131,7 +173,6 @@ describe('getStaffClaimDetailsCore', () => {
       authority,
     });
 
-    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(result.kind).toBe('ok');
     if (result.kind !== 'ok') return;
 
@@ -148,7 +189,41 @@ describe('getStaffClaimDetailsCore', () => {
     ]);
 
     expect(result.stageHistory).toEqual(historyResult);
+    expect(hoisted.withTenantContext).toHaveBeenCalledExactlyOnceWith(
+      authority,
+      expect.any(Function)
+    );
+    expect(hoisted.txSelect).toHaveBeenCalledTimes(2);
+    expect(hoisted.ambientClaimsFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.dbSelect).not.toHaveBeenCalled();
   });
+
+  it('propagates tenant context failure without an ambient or child read', async () => {
+    hoisted.withTenantContext.mockRejectedValueOnce(new Error('RLS context unavailable'));
+    await expect(
+      getStaffClaimDetailsCore({
+        claimId: 'c1',
+        staffId: 'staff-1',
+        authority,
+      })
+    ).rejects.toThrow('RLS context unavailable');
+    expect(hoisted.claimsFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.txSelect).not.toHaveBeenCalled();
+    expect(hoisted.ambientClaimsFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.dbSelect).not.toHaveBeenCalled();
+  });
+});
+
+it('rejects a non-staff/branch runtime role before reading public status history', async () => {
+  vi.clearAllMocks();
+  await expect(
+    getPublicStatusHistoryCore({
+      claimId: 'c1',
+      authority: memberAuthority,
+    })
+  ).resolves.toEqual([]);
+  expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+  expect(hoisted.historyFindMany).not.toHaveBeenCalled();
 });
 
 it('reads every public status entry for the authorized tenant and claim, newest first', async () => {
@@ -157,7 +232,14 @@ it('reads every public status entry for the authorized tenant and claim, newest 
     { id: 'original', note: 'Uncertain save' },
   ];
   hoisted.historyFindMany.mockResolvedValueOnce(entries);
+  hoisted.withTenantContext.mockImplementationOnce((_context, read) =>
+    read({ query: { claimStageHistory: { findMany: hoisted.historyFindMany } } })
+  );
   expect(await getPublicStatusHistoryCore({ claimId: 'c1', authority })).toEqual(entries);
+  expect(hoisted.withTenantContext).toHaveBeenCalledExactlyOnceWith(
+    authority,
+    expect.any(Function)
+  );
   expect(hoisted.historyFindMany).toHaveBeenCalledWith({
     where: {
       and: [
@@ -169,4 +251,18 @@ it('reads every public status entry for the authorized tenant and claim, newest 
     columns: { id: true, note: true, toStatus: true, createdAt: true },
     orderBy: [{ desc: 'claimStageHistory.createdAt' }, { desc: 'claimStageHistory.id' }],
   });
+});
+
+it('uses the branch manager role in the same tenant transaction and propagates context failure', async () => {
+  hoisted.withTenantContext.mockClear();
+  hoisted.historyFindMany.mockClear();
+  hoisted.withTenantContext.mockRejectedValueOnce(new Error('RLS context unavailable'));
+  await expect(
+    getPublicStatusHistoryCore({ claimId: 'c1', authority: branchManagerAuthority })
+  ).rejects.toThrow('RLS context unavailable');
+  expect(hoisted.withTenantContext).toHaveBeenCalledExactlyOnceWith(
+    branchManagerAuthority,
+    expect.any(Function)
+  );
+  expect(hoisted.historyFindMany).not.toHaveBeenCalled();
 });
