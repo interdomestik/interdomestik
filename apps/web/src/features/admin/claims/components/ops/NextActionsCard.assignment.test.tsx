@@ -157,7 +157,10 @@ describe('NextActionsCard staff assignment', () => {
       expect(mocks.assignOwner).toHaveBeenCalledWith('claim-123', 'staff-3', 'en')
     );
 
-    await user.click(screen.getByRole('button', { name: 'Acknowledge Breach' }));
+    // The assignment transition keeps the actions disabled until it settles.
+    const acknowledge = screen.getByRole('button', { name: 'Acknowledge Breach' });
+    await waitFor(() => expect(acknowledge).toBeEnabled());
+    await user.click(acknowledge);
     await waitFor(() => expect(mocks.markSlaAcknowledged).toHaveBeenCalledWith('claim-123', 'en'));
   });
 
