@@ -8,6 +8,7 @@ import test from 'node:test';
 import {
   assertNoCompetingRuns,
   classifyScope,
+  createLookupBudget,
   parseScopeManifest,
   readPushEvidence,
   runGuard,
@@ -27,7 +28,10 @@ const currentRun = env => ({
   head_sha: env.GITHUB_SHA,
   status: 'in_progress',
 });
-const runResponse = runs => ({ ok: true, json: async () => ({ workflow_runs: runs }) });
+const runResponse = runs => ({
+  ok: true,
+  json: async () => ({ total_count: runs.length, workflow_runs: runs }),
+});
 const currentResponse = run => ({ ok: true, json: async () => run });
 const guardFetch = (current, runs) => async url =>
   new URL(url).pathname.endsWith(`/runs/${current.id}`)
@@ -52,9 +56,12 @@ function guardEnv(root, overrides = {}) {
     ...overrides,
   };
 }
-async function assertFailureReceipt({ env, fetchImpl, root, error }) {
+async function assertFailureReceipt({ env, fetchImpl, root, error, budget }) {
   const outputs = [];
-  await assert.rejects(() => runGuard(env, fetchImpl, root, value => outputs.push(value)), error);
+  await assert.rejects(
+    () => runGuard(env, fetchImpl, root, value => outputs.push(value), budget),
+    error
+  );
   const receipt = JSON.parse(fs.readFileSync(receiptPath(root, env), 'utf8'));
   assertFields(receipt, {
     sha: env.GITHUB_SHA,
@@ -272,4 +279,22 @@ test('success receipt is canonically bound to event SHA, range, run, and attempt
   assert.equal(fs.existsSync(env.CD_SCOPE_RECEIPT_PATH), false);
   assert.equal(fs.existsSync(env.GITHUB_OUTPUT), false);
   assert.equal(requestCount, 2);
+});
+test('exhausted transient run lookup writes a failure receipt and no deploy output', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cd-exhausted-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const env = guardEnv(root);
+  const sleeps = [];
+  const budget = createLookupBudget({ sleep: async ms => sleeps.push(ms), random: () => 0 });
+  await assertFailureReceipt({
+    env,
+    root,
+    budget,
+    fetchImpl: async url =>
+      new URL(url).pathname.endsWith(`/runs/${env.GITHUB_RUN_ID}`)
+        ? currentResponse(currentRun(env))
+        : { ok: false, status: 502, headers: new Headers() },
+    error: /GitHub run lookup failed with HTTP 502/u,
+  });
+  assert.deepEqual(sleeps, [1000, 2000]);
 });
