@@ -95,13 +95,18 @@ async function expectRow(page: Page, info: TestInfo, row: AccessRow) {
   }
 }
 
+/** Restricts a test to the tenant host whose dataset seeds its actors and cases. */
+function requireSeededHost(info: TestInfo, project: (name: string) => boolean, timeoutMs: number) {
+  test.skip(!project(info.project.name), 'Actor and cases are seeded on another tenant host');
+  test.setTimeout(timeoutMs);
+}
+
 function describeActors(project: (name: string) => boolean, cases: readonly ActorCases[]) {
   cases.forEach(({ actor, rows }, index) => {
     test(`${actor} claim detail access matches the current runtime rules`, async ({
       page,
     }, info) => {
-      test.skip(!project(info.project.name), 'Actor is seeded on another tenant host');
-      test.setTimeout(120_000);
+      requireSeededHost(info, project, 120_000);
       await signInAs(page, info, actor, `10.0.70.${index + 1}`);
       for (const row of rows) await expectRow(page, info, row);
     });
@@ -113,8 +118,7 @@ test.describe('nine-role claim access matrix', () => {
   describeActors(name => name === 'gate-mk-mk', MK_ACTOR_CASES);
 
   test('internal messages reach staff but never the owning member', async ({ page }, info) => {
-    test.skip(!isKsGateProject(info.project.name), 'Anchor case is seeded on the KS host');
-    test.setTimeout(90_000);
+    requireSeededHost(info, isKsGateProject, 90_000);
     const { allowedActor, deniedActor, caseId } =
       E2E_RELATIONSHIP_FIXTURES.INTERNAL_MESSAGE_VISIBILITY;
     const { KS_ANCHOR_PUBLIC: publicMessage, KS_ANCHOR_INTERNAL: internalMessage } =
