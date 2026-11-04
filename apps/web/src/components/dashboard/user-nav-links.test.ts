@@ -19,17 +19,40 @@ describe('resolveUserNavLinks', () => {
   });
 
   it.each(['admin', 'tenant_admin', 'super_admin'])(
-    'gives %s admin settings and no portal profile page',
+    'gives %s the admin account page for its profile and admin settings',
     role => {
       expect(resolveUserNavLinks(role, false)).toEqual({
-        profileHref: null,
+        profileHref: '/admin/account',
         settingsHref: '/admin/settings',
       });
     }
   );
 
+  it.each([
+    ['auditor', false, '/member/settings'],
+    ['auditor', true, '/admin/settings'],
+    ['global_support', false, '/member/settings'],
+    ['global_support', true, '/admin/settings'],
+  ])(
+    'keeps the profile of %s on member settings with admin access %s',
+    (role, adminAccess, settingsHref) => {
+      expect(resolveUserNavLinks(role as string, adminAccess as boolean)).toEqual({
+        profileHref: '/member/settings',
+        settingsHref,
+      });
+    }
+  );
+
   it('never links the retired /profile route', () => {
-    for (const role of ['member', 'agent', 'staff', 'auditor', undefined]) {
+    for (const role of [
+      'member',
+      'agent',
+      'staff',
+      'admin',
+      'auditor',
+      'global_support',
+      undefined,
+    ]) {
       expect(resolveUserNavLinks(role, false).profileHref).not.toBe('/profile');
     }
   });

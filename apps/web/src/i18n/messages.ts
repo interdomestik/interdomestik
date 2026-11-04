@@ -153,6 +153,7 @@ export const ADMIN_NAMESPACES = [
   'admin-branches',
   'admin-settings',
   'admin-leads',
+  'settings',
   'agent',
   'agent-claims',
   'agent-crm',

@@ -33,6 +33,7 @@ vi.mock('@/app/_segment-exports', () => ({
 import type { ReactElement } from 'react';
 import { AccountSettingsPage } from '@/components/settings/account-settings-page';
 import AgentSettingsPage from '../../../(agent)/agent/settings/_core.entry';
+import AdminAccountPage from '../../../admin/account/_core.entry';
 import StaffSettingsPage from './_core.entry';
 
 type Element = ReactElement<{ locale?: string; children?: ReactElement<{ locale?: string }> }>;
@@ -70,6 +71,13 @@ describe('account settings page', () => {
 
   it('mounts the same account settings on the agent route', async () => {
     const page = (await AgentSettingsPage({ params })) as Element;
+
+    expect(page.type).toBe(AccountSettingsPage);
+    expect(page.props.locale).toBe('sq');
+  });
+
+  it('mounts the same account settings on the admin account route', async () => {
+    const page = (await AdminAccountPage({ params })) as Element;
 
     expect(page.type).toBe(AccountSettingsPage);
     expect(page.props.locale).toBe('sq');

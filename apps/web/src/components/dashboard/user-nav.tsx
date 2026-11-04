@@ -121,15 +121,13 @@ function UserNavInner({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          {profileHref && (
-            <DropdownMenuItem asChild>
-              <Link href={profileHref} className="w-full cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                <span>{t('profile')}</span>
-                <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-              </Link>
-            </DropdownMenuItem>
-          )}
+          <DropdownMenuItem asChild>
+            <Link href={profileHref} className="w-full cursor-pointer">
+              <User className="mr-2 h-4 w-4" />
+              <span>{t('profile')}</span>
+              <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href={settingsHref} className="w-full cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
