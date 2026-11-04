@@ -115,7 +115,6 @@ describe('AdminUserRolesPanel', () => {
         role: 'member',
         branchId: undefined,
         locale: 'en',
-        allowLegacyTenantWide: false,
       });
       expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(2);
       expect(navigationMocks.refresh).toHaveBeenCalledTimes(1);
@@ -217,7 +216,18 @@ describe('AdminUserRolesPanel', () => {
     });
   });
 
-  it('disables grant when selected role requires branch and branch is tenant-wide', async () => {
+  it.each([
+    { label: 'a user without roles', existing: [] },
+    {
+      label: 'a user who already holds a tenant-wide agent role',
+      existing: [{ id: 'role-legacy', role: 'agent', branchId: null }],
+    },
+  ])('offers agents no tenant-wide grant for $label', async ({ existing }) => {
+    rbacMocks.listUserRoles.mockResolvedValue({ success: true, data: existing });
+    rbacMocks.listBranches.mockResolvedValue({
+      success: true,
+      data: [{ id: 'ks_branch_a', name: 'KS Branch A', code: 'KS-A' }],
+    } as never);
     render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
 
     await waitFor(() => {
@@ -234,6 +244,9 @@ describe('AdminUserRolesPanel', () => {
     await waitFor(() => {
       expect(rbacMocks.grantUserRole).not.toHaveBeenCalled();
     });
+    fireEvent.click(screen.getByTestId('branch-select-trigger'));
+    expect(screen.getByTestId('branch-option-ks_branch_a')).toBeInTheDocument();
+    expect(screen.queryByTestId('branch-option-__tenant__')).not.toBeInTheDocument();
   });
 
   it('offers supported tenant roles including staff without a custom-role path', async () => {

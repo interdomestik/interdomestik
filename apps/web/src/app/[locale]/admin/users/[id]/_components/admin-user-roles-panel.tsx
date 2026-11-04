@@ -84,7 +84,6 @@ export function AdminUserRolesPanel({
   const [branches, setBranches] = useState<Branch[]>([]);
   const [roles, setRoles] = useState<UserRoleRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasLegacyTenantWideAgentRole, setHasLegacyTenantWideAgentRole] = useState(false);
 
   const [grantRole, setGrantRole] = useState<string>(ROLE_MEMBER);
   const [grantBranchId, setGrantBranchId] = useState<string>(TENANT_WIDE_BRANCH);
@@ -96,18 +95,14 @@ export function AdminUserRolesPanel({
   const [pendingRevokeRowId, setPendingRevokeRowId] = useState<string | null>(null);
 
   const effectiveRoleValue = grantRole.trim();
-  const isLegacyTenantWideAgentGrant =
-    effectiveRoleValue === ROLE_AGENT &&
-    grantBranchId === TENANT_WIDE_BRANCH &&
-    hasLegacyTenantWideAgentRole;
-  const isBranchMissingForRole =
-    isBranchRequiredRole(effectiveRoleValue) &&
-    grantBranchId === TENANT_WIDE_BRANCH &&
-    !isLegacyTenantWideAgentGrant;
+  const requiresBranch = isBranchRequiredRole(effectiveRoleValue);
+  const isBranchMissingForRole = requiresBranch && grantBranchId === TENANT_WIDE_BRANCH;
 
+  // Agents and branch managers always belong to one branch, so they get no tenant-wide choice.
   const branchOptions = useMemo(() => {
+    if (requiresBranch) return branches;
     return [{ id: TENANT_WIDE_BRANCH, name: t('tenant_wide'), code: null }, ...branches];
-  }, [branches, t]);
+  }, [branches, requiresBranch, t]);
 
   const refresh = useCallback(async () => {
     if (!tenantId) {
@@ -132,11 +127,7 @@ export function AdminUserRolesPanel({
       }
 
       if (rolesResult.success) {
-        const nextRoles = rolesResult.data ?? [];
-        setRoles(nextRoles);
-        if (nextRoles.some(role => role.role === ROLE_AGENT && role.branchId === null)) {
-          setHasLegacyTenantWideAgentRole(true);
-        }
+        setRoles(rolesResult.data ?? []);
       } else {
         toast.error(t('toasts.load_roles_error'));
         setRoles([]);
@@ -176,7 +167,6 @@ export function AdminUserRolesPanel({
         role: effectiveRoleValue,
         branchId: grantBranchId === TENANT_WIDE_BRANCH ? undefined : grantBranchId,
         locale,
-        allowLegacyTenantWide: isLegacyTenantWideAgentGrant,
       });
 
       if ('error' in result) {
@@ -297,9 +287,12 @@ export function AdminUserRolesPanel({
 
           <div className="grid gap-2">
             <Label>{t('branch_label')}</Label>
-            <Select value={grantBranchId} onValueChange={setGrantBranchId}>
+            <Select
+              value={isBranchMissingForRole ? '' : grantBranchId}
+              onValueChange={setGrantBranchId}
+            >
               <SelectTrigger data-testid="branch-select-trigger" disabled={!hasTenantContext}>
-                <SelectValue placeholder={t('tenant_wide')} />
+                <SelectValue placeholder={requiresBranch ? t('branch_label') : t('tenant_wide')} />
               </SelectTrigger>
               <SelectContent data-testid="branch-select-content">
                 {branchOptions.map(b => (

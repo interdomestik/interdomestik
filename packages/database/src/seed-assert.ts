@@ -111,6 +111,18 @@ async function assertSeed() {
     }
 
     console.log('✅ Role matrix (9 roles) and relationship fixtures match the catalogue');
+
+    console.log('🔍 Asserting branch membership rules...');
+    const { collectBranchMembershipViolations } = await import('./seed-assert-branch-membership');
+    const branchViolations = await collectBranchMembershipViolations(db);
+    if (branchViolations.length > 0) {
+      for (const violation of branchViolations) {
+        console.error(`❌ Branch membership invariant failed: ${violation}`);
+      }
+      process.exit(1);
+    }
+
+    console.log('✅ Branch membership rules hold for every user, grant, claim and subscription');
     process.exit(0);
   } catch (err: any) {
     // If table doesn't exist or query fails
