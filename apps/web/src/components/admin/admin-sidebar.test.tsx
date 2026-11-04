@@ -32,6 +32,7 @@ vi.mock('next-intl', () => ({
       },
       nav: {
         myAccount: 'My Account',
+        profile: 'Profile',
         language: 'Language',
         backToWebsite: 'Back to Website',
         logout: 'Logout',
@@ -112,6 +113,17 @@ describe('AdminSidebar', () => {
 
     expect(screen.getByText('Admin User')).toBeInTheDocument();
     expect(screen.getByText('Administrator')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['admin', '/admin/account'],
+    ['tenant_admin', '/admin/account'],
+    ['super_admin', '/admin/account'],
+    ['branch_manager', '/staff/settings'],
+  ])('links %s to its own profile page from the account menu', (role, href) => {
+    render(<AdminSidebar user={{ name: 'Account User', email: 'a@example.com', role }} />);
+
+    expect(screen.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', href);
   });
 
   it('localizes the sidebar account role label', () => {
