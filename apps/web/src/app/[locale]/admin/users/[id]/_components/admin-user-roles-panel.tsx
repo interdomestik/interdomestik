@@ -8,7 +8,7 @@ import {
   revokeUserRole,
 } from '@/actions/admin-rbac';
 import { OpsTable } from '@/components/ops';
-import { getRoleLabel } from '@/lib/roles-i18n';
+import { getRoleLabel, roleMutationErrorMessage } from '@/lib/roles-i18n';
 import {
   ROLE_AGENT,
   ROLE_BRANCH_MANAGER,
@@ -181,7 +181,7 @@ export function AdminUserRolesPanel({
 
       if ('error' in result) {
         console.error('Failed to grant role', result);
-        toast.error(result.error);
+        toast.error(roleMutationErrorMessage(result, t));
         return;
       }
 
@@ -216,7 +216,7 @@ export function AdminUserRolesPanel({
 
       if ('error' in result) {
         console.error('Failed to revoke role', result);
-        toast.error(result.error);
+        toast.error(roleMutationErrorMessage(result, t));
         return;
       }
 

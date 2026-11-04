@@ -42,6 +42,7 @@
           "tenant_required": "Tenant context is required to manage roles",
           "role_required": "Role is required",
           "branch_required": "Branch is required for this role. Please select a branch.",
+          "branch_membership_conflict": "A user belongs to one branch. Revoke the role in the other branch first.",
           "load_branches_error": "Failed to load branches",
           "load_roles_error": "Failed to load roles",
           "role_granted": "Role granted",

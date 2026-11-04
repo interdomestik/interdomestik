@@ -8,9 +8,14 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/shared-auth';
 import { isNull } from 'drizzle-orm';
 import type { ActionResult, UserDomainDeps, UserSession } from '../types';
+import { conflictsWithBranchMembership, revokeLeavesForeignBranchGrant } from './branch-membership';
 import { createRoleAssignmentId } from './role-id';
 import { resolveRoleMutationContext } from './role-mutation-context';
-import { canManageAssignedRole, isBranchRequiredRole } from './role-rules';
+import {
+  BRANCH_MEMBERSHIP_CONFLICT,
+  canManageAssignedRole,
+  isBranchRequiredRole,
+} from './role-rules';
 import { lockRoleMutationTarget } from './role-target';
 import { resolveTenantAuthority } from './utils';
 
@@ -109,9 +114,9 @@ export async function grantUserRoleCore(
   }
 
   const granted = await withTenantAuthority(authority, async tx => {
-    if (!(await lockRoleMutationTarget(tx, tenantId, params.userId, session.user.role))) {
-      return false;
-    }
+    const target = await lockRoleMutationTarget(tx, tenantId, params.userId, session.user.role);
+    if (!target) return 'denied';
+    if (branchId && conflictsWithBranchMembership(target, branchId)) return 'branch-conflict';
 
     const updatedUsers = await tx
       .update(user)
@@ -151,10 +156,11 @@ export async function grantUserRoleCore(
     if (insertedRoles.length === 0) {
       throw new Error('Role grant did not persist');
     }
-    return true;
+    return 'granted';
   });
 
-  if (!granted) return { error: 'Role cannot be granted' };
+  if (granted === 'denied') return { error: 'Role cannot be granted' };
+  if (granted === 'branch-conflict') return { ...BRANCH_MEMBERSHIP_CONFLICT };
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
@@ -189,6 +195,9 @@ export async function revokeUserRoleCore(
   const revokeResult = await withTenantAuthority(authority, async tx => {
     const target = await lockRoleMutationTarget(tx, tenantId, params.userId, session.user.role);
     if (!target) return { denied: true, deleted: [] };
+    if (revokeLeavesForeignBranchGrant(target, { role, branchId })) {
+      return { denied: false, branchConflict: true, deleted: [] };
+    }
 
     const roleDeleteScope =
       branchId === null ? isNull(userRoles.branchId) : eq(userRoles.branchId, branchId);
@@ -239,6 +248,7 @@ export async function revokeUserRoleCore(
   });
 
   if (revokeResult.denied) return { error: 'Role cannot be revoked' };
+  if ('branchConflict' in revokeResult) return { ...BRANCH_MEMBERSHIP_CONFLICT };
   if (revokeResult.deleted.length === 0) {
     return { error: 'Role revoke did not persist' };
   }

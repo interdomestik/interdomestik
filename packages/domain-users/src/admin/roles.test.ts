@@ -127,4 +127,46 @@ describe('authorized role writer', () => {
     ).resolves.toEqual({ error: 'Invalid branch' });
     expect(mocks.audit).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['its branch membership', { branchId: 'ks_branch_b' }, []],
+    ['an existing grant', { branchId: null }, [{ role: 'agent', branchId: 'ks_branch_b' }]],
+  ])('rejects a grant in another branch than %s and writes nothing', async (_, row, grants) => {
+    const writes = { update: vi.fn(), delete: vi.fn(), insert: vi.fn() };
+    mocks.withTenantContext
+      .mockImplementationOnce(async (_scope, run) =>
+        run({
+          query: {
+            branches: {
+              findFirst: vi.fn().mockResolvedValue({ id: 'ks_branch_a', isActive: true }),
+            },
+          },
+        })
+      )
+      .mockImplementationOnce(async (_scope, run) =>
+        run({
+          select: vi.fn(() => ({
+            from: () => ({
+              where: () => ({ for: vi.fn().mockResolvedValue([{ role: 'agent', ...row }]) }),
+            }),
+          })),
+          query: { userRoles: { findMany: vi.fn().mockResolvedValue(grants) } },
+          ...writes,
+        })
+      );
+
+    await expect(
+      grantUserRoleCore(
+        { session, authority, userId: 'user-1', role: 'branch_manager', branchId: 'ks_branch_a' },
+        { logAuditEvent: mocks.audit }
+      )
+    ).resolves.toEqual({
+      error: 'Role grants must stay in the user branch',
+      code: 'BRANCH_MEMBERSHIP_CONFLICT',
+    });
+    expect(writes.update).not.toHaveBeenCalled();
+    expect(writes.delete).not.toHaveBeenCalled();
+    expect(writes.insert).not.toHaveBeenCalled();
+    expect(mocks.audit).not.toHaveBeenCalled();
+  });
 });

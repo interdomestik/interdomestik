@@ -42,6 +42,7 @@
           "tenant_required": "Tenant kontekst je potreban za upravljanje ulogama",
           "role_required": "Uloga je obavezna",
           "branch_required": "Filijala je obavezna za ovu ulogu. Izaberite filijalu.",
+          "branch_membership_conflict": "Korisnik pripada jednoj filijali. Prvo uklonite ulogu u drugoj filijali.",
           "load_branches_error": "Učitavanje filijala nije uspelo",
           "load_roles_error": "Učitavanje uloga nije uspelo",
           "role_granted": "Uloga je dodeljena",

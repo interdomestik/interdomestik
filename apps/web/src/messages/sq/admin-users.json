@@ -42,6 +42,7 @@
           "tenant_required": "Konteksti i tenant-it kërkohet për menaxhimin e roleve",
           "role_required": "Roli është i detyrueshëm",
           "branch_required": "Kërkohet degë për këtë rol. Ju lutemi zgjidhni një degë.",
+          "branch_membership_conflict": "Një përdorues i përket një filiali të vetëm. Hiqni fillimisht rolin në filialin tjetër.",
           "load_branches_error": "Ngarkimi i degëve dështoi",
           "load_roles_error": "Ngarkimi i roleve dështoi",
           "role_granted": "Roli u dha",

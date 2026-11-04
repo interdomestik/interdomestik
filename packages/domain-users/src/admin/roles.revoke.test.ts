@@ -55,14 +55,19 @@ import { revokeUserRoleCore } from './roles';
 function revokeTransaction(
   role: string,
   deleteWhere: ReturnType<typeof vi.fn>,
-  updateWhere = vi.fn()
+  updateWhere = vi.fn(),
+  locked: { branchId?: string | null; grants?: { role: string; branchId: string | null }[] } = {}
 ) {
   return {
     select: () => ({
-      from: () => ({ where: () => ({ for: vi.fn().mockResolvedValue([{ role }]) }) }),
+      from: () => ({
+        where: () => ({
+          for: vi.fn().mockResolvedValue([{ role, branchId: locked.branchId ?? null }]),
+        }),
+      }),
     }),
     delete: () => ({ where: deleteWhere }),
-    query: { userRoles: { findMany: vi.fn().mockResolvedValue([]) } },
+    query: { userRoles: { findMany: vi.fn().mockResolvedValue(locked.grants ?? []) } },
     update: () => ({ set: () => ({ where: updateWhere }) }),
   };
 }
@@ -125,5 +130,31 @@ describe('revokeUserRoleCore', () => {
     expect(result).toEqual({ success: true });
     expect(mocks.eq).toHaveBeenCalledWith('userRoles.branchId', 'ks_branch_a');
     expect(mocks.isNull).not.toHaveBeenCalledWith('userRoles.branchId');
+  });
+
+  it('fails closed before deleting when the remaining roles keep a grant outside the branch', async () => {
+    // agent@ks_branch_a then granted staff: membership is cleared but the agent grant remains.
+    const deleteWhere = vi.fn();
+    const updateWhere = vi.fn();
+    mocks.withTenantContext.mockImplementationOnce(async (_context, fn) =>
+      fn(
+        revokeTransaction('staff', deleteWhere, updateWhere, {
+          branchId: null,
+          grants: [
+            { role: 'agent', branchId: 'ks_branch_a' },
+            { role: 'staff', branchId: null },
+          ],
+        })
+      )
+    );
+
+    await expect(
+      revokeUserRoleCore({ session, authority, userId: 'user-1', role: 'staff' })
+    ).resolves.toEqual({
+      error: 'Role grants must stay in the user branch',
+      code: 'BRANCH_MEMBERSHIP_CONFLICT',
+    });
+    expect(deleteWhere).not.toHaveBeenCalled();
+    expect(updateWhere).not.toHaveBeenCalled();
   });
 });

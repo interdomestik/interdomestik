@@ -229,7 +229,7 @@ export async function grantUserRole({
     });
 
     if ('error' in result) {
-      throw new Error(result.error);
+      return roleMutationFailure(result);
     }
 
     revalidateAdminUserPage(locale, userId);
@@ -265,9 +265,15 @@ export async function revokeUserRole({
     });
 
     if ('error' in result) {
-      throw new Error(result.error);
+      return roleMutationFailure(result);
     }
 
     revalidateAdminUserPage(locale, userId);
   });
+}
+
+// A branch membership conflict is an expected outcome the roles panel explains; others throw.
+function roleMutationFailure(result: { error: string; code?: string }): never {
+  if (result.code !== 'BRANCH_MEMBERSHIP_CONFLICT') throw new Error(result.error);
+  return { success: false, error: result.error, code: result.code } as never;
 }
