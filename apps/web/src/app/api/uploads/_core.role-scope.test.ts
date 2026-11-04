@@ -36,7 +36,7 @@ const CLAIM = {
   branchId: 'branch-a',
 };
 
-function upload(user: { id: string; role: string }, claimId?: string) {
+function upload(user: { id: string; role?: string }, claimId?: string) {
   return createSignedUploadCore({
     authority: mintTestTenantAuthority('tenant-ks', { userId: user.id, role: user.role }),
     bucket: 'claim-evidence',
@@ -64,17 +64,24 @@ describe('createSignedUploadCore role and agent scope', () => {
     expect(hoisted.createTenantSignedUploadUrl).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['auditor', 'global_support', 'staff', 'branch_manager', 'tenant_admin', 'admin'])(
-    'gives a %s no initial upload capability',
-    async role => {
-      await expect(upload({ id: 'actor-1', role })).resolves.toEqual({
-        ok: false,
-        status: 403,
-        error: 'Forbidden',
-      });
-      expect(hoisted.createTenantSignedUploadUrl).not.toHaveBeenCalled();
-    }
-  );
+  it.each([
+    'auditor',
+    'global_support',
+    'staff',
+    'branch_manager',
+    'tenant_admin',
+    'admin',
+    'super_admin',
+    'unknown',
+    undefined,
+  ])('gives a %s no initial upload capability', async role => {
+    await expect(upload({ id: 'actor-1', role })).resolves.toEqual({
+      ok: false,
+      status: 403,
+      error: 'Forbidden',
+    });
+    expect(hoisted.createTenantSignedUploadUrl).not.toHaveBeenCalled();
+  });
 
   it('signs the owner upload to its own claim without an agent lookup', async () => {
     const result = await upload({ id: 'member-1', role: 'member' }, 'claim-1');
@@ -111,14 +118,24 @@ describe('createSignedUploadCore role and agent scope', () => {
     expect(hoisted.createTenantSignedUploadUrl).not.toHaveBeenCalled();
   });
 
-  it('keeps a missing or foreign claim a 404 for every role', async () => {
-    hoisted.findClaimFirst.mockResolvedValue(undefined);
+  it('lets an agent upload to a claim it owns as a member', async () => {
+    hoisted.findClaimFirst.mockResolvedValue({ ...CLAIM, userId: 'agent-1' });
 
-    await expect(upload({ id: 'admin-1', role: 'admin' }, 'claim-x')).resolves.toEqual({
-      ok: false,
-      status: 404,
-      error: 'Claim not found',
-    });
-    expect(hoisted.createTenantSignedUploadUrl).not.toHaveBeenCalled();
+    expect((await upload({ id: 'agent-1', role: 'agent' }, 'claim-1')).ok).toBe(true);
+    expect(hoisted.agentScope).not.toHaveBeenCalled();
   });
+
+  it.each(['admin', 'auditor', 'member', 'agent', undefined])(
+    'keeps a missing or foreign claim a 404 for a %s',
+    async role => {
+      hoisted.findClaimFirst.mockResolvedValue(undefined);
+
+      await expect(upload({ id: 'actor-1', role }, 'claim-x')).resolves.toEqual({
+        ok: false,
+        status: 404,
+        error: 'Claim not found',
+      });
+      expect(hoisted.createTenantSignedUploadUrl).not.toHaveBeenCalled();
+    }
+  );
 });

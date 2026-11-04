@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { hasAgentClaimDocumentScope } from '@/app/api/documents/agent-document-scope';
 import { matchesAccessTenant } from '@/lib/db/access-tenant-predicate';
 import { DEFAULT_EVIDENCE_BUCKET } from '@/lib/storage/evidence-bucket';
+import { isMemberUploadRole } from '@/features/claims/upload/server/member-upload-role';
 import { createInitialClaimUploadIntentToken } from '@/features/claims/upload/server/initial-claim-upload';
 import type { UploadErr, UploadResult } from './upload-result';
 import {
@@ -35,11 +36,6 @@ export const DEFAULT_CLASSIFICATION = 'pii' as const;
 
 export type { UploadResult } from './upload-result';
 
-/**
- * Claim evidence is uploaded here only by member-portal actors (agents act as members): staff and
- * administrators use their own evidence action, and read-only roles receive no write capability.
- */
-const MEMBER_UPLOAD_ROLES: ReadonlySet<string> = new Set(['member', 'user', 'agent']);
 const FORBIDDEN: UploadErr = { ok: false, status: 403, error: 'Forbidden' };
 
 export const uploadRequestSchema = z.object({
@@ -82,7 +78,7 @@ export async function createSignedUploadCore(args: {
         columns: { id: true, tenantId: true, userId: true, agentId: true, branchId: true },
       });
       if (!claim) return null;
-      if (!MEMBER_UPLOAD_ROLES.has(role)) return { claim, allowed: false };
+      if (!isMemberUploadRole(role)) return { claim, allowed: false };
       if (claim.userId === session.user.id) return { claim, allowed: true };
       // An agent uploads to an attributed claim only within its active client and branch scope.
       const allowed =
@@ -99,7 +95,7 @@ export async function createSignedUploadCore(args: {
     if (!access) return { ok: false, status: 404, error: 'Claim not found' };
     if (!access.allowed) return FORBIDDEN;
     storageTenantId = access.claim.tenantId;
-  } else if (!MEMBER_UPLOAD_ROLES.has(role)) {
+  } else if (!isMemberUploadRole(role)) {
     return FORBIDDEN;
   }
 

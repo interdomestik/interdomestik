@@ -134,6 +134,7 @@ describe('POST /api/claims/evidence-upload', () => {
     expect(hoisted.findOwnedMemberUploadClaim).toHaveBeenCalledWith({
       claimId: 'claim-1',
       authority: expect.any(Object),
+      role: 'member',
       userId: 'member-2',
     });
     expect(hoisted.upload).not.toHaveBeenCalled();

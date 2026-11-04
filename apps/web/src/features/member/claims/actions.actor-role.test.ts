@@ -10,12 +10,8 @@ const ROLE_CASES = [
   ['member', 'member'],
   ['user', 'member'],
   ['agent', 'member'],
-  ['admin', 'admin'],
-  ['tenant_admin', 'tenant_admin'],
-  ['super_admin', 'super_admin'],
-  ['staff', 'staff'],
-  ['branch_manager', 'branch_manager'],
 ] as const;
+// Other roles reach no member upload claim: findOwnedMemberUploadClaim gates member actors.
 
 describe('member upload trusted canonical actor', () => {
   it.each(ROLE_CASES)(
@@ -31,6 +27,7 @@ describe('member upload trusted canonical actor', () => {
       expect(hoisted.findOwnedMemberUploadClaim).toHaveBeenLastCalledWith({
         claimId: 'claim-1',
         authority: expect.any(Object),
+        role,
         userId: 'member-1',
       });
       await expect(confirmUpload(createConfirmUploadParams())).resolves.toEqual({ success: true });

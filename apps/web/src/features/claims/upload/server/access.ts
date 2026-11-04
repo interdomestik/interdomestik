@@ -5,6 +5,7 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { isMemberUploadRole } from './member-upload-role';
 
 type ClaimScopeRecord = {
   branchId?: string | null;
@@ -85,8 +86,10 @@ export async function findAccessibleAdminUploadClaim(args: {
 export async function findOwnedMemberUploadClaim(args: {
   claimId: string;
   authority: TenantAuthority;
+  role: string | null | undefined;
   userId: string;
 }): Promise<MemberClaimOwnershipRecord | null> {
+  if (!isMemberUploadRole(args.role)) return null;
   const { tenantId } = readTenantAuthority(args.authority);
   // Member upload ownership is read under the member tenant context so RLS evaluates the same
   // exact id, home-tenant, and owner predicates that the member claim detail already satisfies.
