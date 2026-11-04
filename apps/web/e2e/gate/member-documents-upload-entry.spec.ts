@@ -7,7 +7,10 @@ test.describe('Member Documents Upload Entry', () => {
   }, testInfo) => {
     await gotoApp(page, '/member/documents', testInfo, { marker: 'member-documents-page-ready' });
 
-    const claimCards = page.locator('[data-testid^="member-documents-claim-"]');
+    // Navigation can keep an earlier render hidden in the DOM; only the visible page counts.
+    const claimCards = page
+      .locator('[data-testid^="member-documents-claim-"]')
+      .filter({ visible: true });
     const emptyState = page.getByTestId('member-documents-create-claim');
 
     await expect
@@ -28,7 +31,9 @@ test.describe('Member Documents Upload Entry', () => {
       return;
     }
 
-    const uploadActions = page.locator('[data-testid^="member-documents-upload-"]');
+    const uploadActions = page
+      .locator('[data-testid^="member-documents-upload-"]')
+      .filter({ visible: true });
     await expect(uploadActions.first()).toBeVisible();
     await expect(uploadActions).toHaveCount(cardCount);
 
