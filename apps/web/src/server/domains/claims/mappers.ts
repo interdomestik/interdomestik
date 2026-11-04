@@ -7,6 +7,7 @@ import type {
   ClaimOwnerRole,
   ClaimsListV2Dto,
   ClaimsListV2Row,
+  ClaimStatusFilter,
 } from './types';
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -78,7 +79,8 @@ export function mapClaimsToDto(
   facets: { active: number; draft: number; closed: number; total: number },
   page: number,
   perPage: number,
-  role?: string
+  role?: string,
+  statusFilter?: ClaimStatusFilter
 ): ClaimsListV2Dto {
   const canViewOperations = isStaffOrHigher(role);
   const mappedRows: ClaimsListV2Row[] = rows.map(row => {
@@ -132,8 +134,9 @@ export function mapClaimsToDto(
     };
   });
 
-  // Note: If search is active, 'total' from facetsQuery is the filtered total.
-  // facets.total is derived from the query that included search.
+  // Facets keep search and scope but drop the status filter, so the tabs show every bucket. The
+  // listed population is the selected bucket when a status filter is active.
+  const totalCount = Number((statusFilter ? facets[statusFilter] : facets.total) || 0);
 
   return {
     rows: mappedRows,
@@ -145,8 +148,8 @@ export function mapClaimsToDto(
     pagination: {
       page,
       perPage,
-      totalCount: Number(facets.total || 0), // This is the total matching search/scope
-      totalPages: Math.ceil(Number(facets.total || 0) / perPage),
+      totalCount,
+      totalPages: Math.ceil(totalCount / perPage),
     },
   };
 }

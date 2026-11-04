@@ -1,5 +1,6 @@
-import { withTenantContext } from '@interdomestik/database';
 import { branches, claimMessages, claims, user } from '@interdomestik/database/schema';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { claimLifecycleStatusIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import {
   aliasedTable,
@@ -23,43 +24,12 @@ import {
 } from './types';
 
 export function buildClaimsQuery(filters: ClaimsListV2Filters) {
-  const { tenantId, role, branchId, userId, search, statusFilter, statuses, assignment } = filters;
+  const { tenantId, userId, search, statusFilter, statuses, assignment } = filters;
 
-  // 1. Base Scoping (Tenant)
-  const conditions: SQL[] = [eq(claims.tenantId, tenantId)];
-
-  // 2. Role/Branch Scoping
-  // "branch_manager sees only claims for their branch"
-  // "staff sees claims assigned to them OR within their branch"
-  // "tenant_admin sees all tenant claims"
-
-  if (role === 'branch_manager') {
-    if (!branchId) {
-      // Should theoretically not happen if role is correct, but safe fallback:
-      // If BM has no branch, they see nothing? Or fallback to assigned?
-      // Let's assume strict branch scoping.
-      conditions.push(sql`1 = 0`); // Impossible condition
-    } else {
-      conditions.push(eq(claims.branchId, branchId));
-    }
-  } else if (role === 'staff') {
-    // Staff logic: Assigned to me OR (My Branch AND unassigned/assigned) ??
-    // Prompt: "staff sees claims assigned to them OR within their branch (depends on existing RBAC)"
-    // Let's implement: If branchId exists -> Branch Scoped.
-    // Plus always include explicit assignments regardless of branch?
-    // "assigned to them OR within their branch" -> (assignedTo == me) OR (branchId == myBranch)
-    if (branchId) {
-      conditions.push(or(eq(claims.branchId, branchId), eq(claims.staffId, userId))!);
-    } else {
-      // No branch staff (HQ) -> See assigned to me OR unassigned (triage)
-      conditions.push(or(eq(claims.staffId, userId), isNull(claims.staffId))!);
-    }
-  } else if (['admin', 'tenant_admin', 'super_admin'].includes(role || '')) {
-    // No extra filters, sees all in tenant
-  } else {
-    // Users/Members? Should not be here, but if so, scope to own
-    conditions.push(eq(claims.userId, userId));
-  }
+  // 1. Scoping: this list backs the member claims surface, so every role sees only the claims it
+  // owns as claimant. Operational roles read their queues through their own surfaces. The same
+  // conditions drive the facets, so totals and pagination never count another claimant's claims.
+  const conditions: SQL[] = [eq(claims.tenantId, tenantId), eq(claims.userId, userId)];
 
   // 3. Search Filter
   if (search) {
@@ -112,8 +82,8 @@ export function buildClaimsQuery(filters: ClaimsListV2Filters) {
   };
 }
 
-export async function getClaimsListQuery(filters: ClaimsListV2Filters) {
-  return withTenantContext({ tenantId: filters.tenantId, role: filters.role }, async db => {
+export async function getClaimsListQuery(authority: TenantAuthority, filters: ClaimsListV2Filters) {
+  return withTenantAuthority(authority, async db => {
     const { page = 1, perPage = 20 } = filters;
     const offset = (page - 1) * perPage;
 

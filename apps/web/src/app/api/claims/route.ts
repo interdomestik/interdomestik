@@ -1,7 +1,8 @@
-import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { authorizeSessionTenant, type AuthorizedSession } from '@/lib/tenant-authority.server';
 import { getClaimsListV2 } from '@/server/domains/claims';
 import type { ClaimStatusFilter } from '@/server/domains/claims/types';
+import { MissingTenantError } from '@interdomestik/shared-auth';
 import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
 
@@ -23,9 +24,16 @@ export async function GET(request: Request) {
   });
   if (limited) return limited;
 
-  const session = await auth.api.getSession({ headers: request.headers });
+  let authorized: AuthorizedSession | null;
+  try {
+    authorized = await authorizeSessionTenant(request.headers);
+  } catch (error: unknown) {
+    // A session without a tenant grants no claims list; any other failure is not a denial.
+    if (!(error instanceof MissingTenantError)) throw error;
+    authorized = null;
+  }
 
-  if (!session) {
+  if (!authorized) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -36,11 +44,8 @@ export async function GET(request: Request) {
   const status = parseStatusFilter(searchParams.get('status'));
   const search = searchParams.get('search') || undefined;
 
-  // Context extracted in domain function
-  // const context: ClaimsAccessContext = { ... }
-
   try {
-    const result = await getClaimsListV2(session, {
+    const result = await getClaimsListV2(authorized, {
       page,
       perPage: 10,
       statusFilter: status,

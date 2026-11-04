@@ -83,6 +83,22 @@ export const E2E_CASE_FIXTURES = {
     agentId: E2E_USER_IDS.KS_AGENT,
     staffId: E2E_USER_IDS.KS_STAFF,
   },
+  KS_PEER_STAFF: {
+    id: 'golden_ks_a_claim_08',
+    tenantId: 'tenant_ks',
+    branchId: 'ks_branch_a',
+    ownerUserId: 'golden_ks_a_member_4',
+    agentId: E2E_USER_IDS.KS_AGENT,
+    staffId: E2E_USER_IDS.KS_STAFF_UNASSIGNED,
+  },
+  KS_UNASSIGNED: {
+    id: 'golden_ks_a_claim_13',
+    tenantId: 'tenant_ks',
+    branchId: 'ks_branch_a',
+    ownerUserId: E2E_USER_IDS.KS_MEMBER,
+    agentId: E2E_USER_IDS.KS_AGENT,
+    staffId: null,
+  },
   KS_OTHER_BRANCH: {
     id: 'golden_ks_b_claim_01',
     tenantId: 'tenant_ks',

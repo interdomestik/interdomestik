@@ -2,18 +2,14 @@ import {
   claims,
   db,
   E2E_MESSAGE_FIXTURES,
-  E2E_PASSWORD,
   E2E_RELATIONSHIP_FIXTURES,
-  E2E_USER_IDS,
-  E2E_USERS,
-  type E2EUserKey,
 } from '@interdomestik/database';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { eq } from 'drizzle-orm';
-import { getProjectUrlInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import { isKsGateProject } from './gate-project-identity';
+import { requireSeededHost, signInAs } from './nine-role-actor';
 import {
   CASE_TITLES,
   KS_ACTOR_CASES,
@@ -37,17 +33,6 @@ async function staffReference(caseId: string): Promise<string> {
     columns: { claimNumber: true },
   });
   return row?.claimNumber || caseId;
-}
-
-async function signInAs(page: Page, info: TestInfo, actor: E2EUserKey, ip: string) {
-  const { origin } = getProjectUrlInfo(info, null);
-  await page.context().clearCookies();
-  const login = await page.request.post(`${origin}/api/auth/sign-in/email`, {
-    data: { email: E2E_USERS[actor].email, password: E2E_PASSWORD },
-    headers: { Origin: origin, 'x-forwarded-for': ip, ...info.project.use.extraHTTPHeaders },
-  });
-  expect(login.ok(), actor).toBeTruthy();
-  expect((await login.json()).user.id).toBe(E2E_USER_IDS[actor]);
 }
 
 function claimPath([surface, caseId]: AccessRow, info: TestInfo): string {
@@ -93,12 +78,6 @@ async function expectRow(page: Page, info: TestInfo, row: AccessRow) {
     await expect(reference, label).toHaveCount(0);
     await expect(body, label).not.toContainText(title);
   }
-}
-
-/** Restricts a test to the tenant host whose dataset seeds its actors and cases. */
-function requireSeededHost(info: TestInfo, project: (name: string) => boolean, timeoutMs: number) {
-  info.skip(!project(info.project.name), 'Actor and cases are seeded on another tenant host');
-  test.setTimeout(timeoutMs);
 }
 
 function describeActors(project: (name: string) => boolean, cases: readonly ActorCases[]) {

@@ -146,7 +146,7 @@ export function MemberClaimsTable() {
 
   if (data.claims.length === 0) {
     return (
-      <Card>
+      <Card data-testid="member-claims-empty">
         <CardContent className="flex flex-col items-center justify-center py-16">
           <div className="rounded-full bg-muted p-6 mb-4">
             <FileText className="h-12 w-12 text-muted-foreground" />

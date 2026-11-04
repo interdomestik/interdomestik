@@ -16,7 +16,10 @@ vi.mock('./claims/queries', () => ({
   getClaimsListQuery: hoisted.getClaimsListQuery,
 }));
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { getTenantSafeClaimsListQuery } from './claims/list-query';
+
+const AUTHORITY = { authority: 'session' } as unknown as TenantAuthority;
 
 const serverDomainsDir = path.dirname(fileURLToPath(import.meta.url));
 const srcDir = path.resolve(serverDomainsDir, '../..');
@@ -42,6 +45,7 @@ describe('tenant leak guard adoption', () => {
     });
 
     await getTenantSafeClaimsListQuery(
+      AUTHORITY,
       {
         tenantId: 'tenant-b',
         role: 'admin',
@@ -52,6 +56,7 @@ describe('tenant leak guard adoption', () => {
     );
 
     expect(hoisted.getClaimsListQuery).toHaveBeenCalledWith(
+      AUTHORITY,
       expect.objectContaining({ tenantId: 'tenant-b' })
     );
     expect(hoisted.assertNoTenantLeak).toHaveBeenCalledWith(rows, 'tenant-a');
@@ -61,11 +66,11 @@ describe('tenant leak guard adoption', () => {
     const wrapper = readSource('claims/list-query.ts');
     const publicEntry = readSource('claims/index.ts');
 
-    expect(wrapper).toContain('getClaimsListQuery(filters)');
+    expect(wrapper).toContain('getClaimsListQuery(authority, filters)');
     expect(wrapper).toContain('assertNoTenantLeak(result.rows, expectedTenantId)');
     expect(publicEntry).toContain('getTenantSafeClaimsListQuery(');
     expect(publicEntry).toContain('accessConfig.tenantId');
-    expect(publicEntry).not.toContain('getClaimsListQuery(filters)');
+    expect(publicEntry).not.toContain('getClaimsListQuery(');
   });
 
   it('keeps the raw claims list query behind the guarded wrapper', () => {
