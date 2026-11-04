@@ -45,7 +45,7 @@ function parseLoopbackUrl(value, label) {
 }
 
 function databaseTarget(url) {
-  return `${url.hostname}:${url.port || '5432'}${url.pathname}`;
+  return `loopback:${url.port || '5432'}${url.pathname}`;
 }
 
 function assertRoleName(role) {
@@ -66,9 +66,9 @@ export function resolveE2eRuntimeUrl(adminUrl, configuredRuntimeUrl, role = E2E_
     const runtime = new URL(admin);
     runtime.username = role;
     runtime.password = createHmac('sha256', decodeURIComponent(admin.password))
-      // Roles are cluster-wide: key on the cluster, not the database, or two lanes on one
-      // cluster would rotate each other's password.
-      .update(`${role}:v1:${admin.hostname}:${admin.port || '5432'}`)
+      // Roles are cluster-wide and every accepted host is loopback: key on the port alone, so
+      // lanes using localhost, 127.0.0.1 or ::1 for one cluster never rotate each other.
+      .update(`${role}:v2:loopback:${admin.port || '5432'}`)
       .digest('hex');
     return runtime.toString();
   }

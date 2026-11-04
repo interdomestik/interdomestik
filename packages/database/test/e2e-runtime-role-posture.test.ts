@@ -12,13 +12,14 @@ const { provisionE2eRuntimeRole } = runtimeRole as {
   provisionE2eRuntimeRole(input: ProvisionInput): Promise<string>;
 };
 
+const required = process.env.REQUIRE_RLS_INTEGRATION === '1';
 const suffix = randomBytes(6).toString('hex');
 const ROLE = `interdomestik_e2e_runtime_p${suffix}`;
 const DATABASE = `e2e_role_probe_${suffix}`;
 
 // Each adversarial state must make provisioning fail closed; `undo` restores the baseline.
-// `superuser` states can only be built by a superuser admin (CI postgres:16); a non-superuser
-// admin such as local Supabase's skips them by name instead of failing on setup.
+// `superuser` states can only be built by a superuser admin (CI postgres:16). An optional run on a
+// non-superuser admin (local Supabase) skips them by name; a required run fails instead.
 const BYPASSES: {
   name: string;
   setup: string;
@@ -168,7 +169,7 @@ const BYPASSES: {
 test('the E2E runtime role fails closed on every row-security bypass', async t => {
   const adminUrl = process.env.DATABASE_URL;
   if (!adminUrl) {
-    if (process.env.REQUIRE_RLS_INTEGRATION === '1') assert.fail('DATABASE_URL is required.');
+    if (required) assert.fail('DATABASE_URL is required.');
     t.skip('DATABASE_URL is required for the runtime role posture test');
     return;
   }
@@ -198,8 +199,10 @@ test('the E2E runtime role fails closed on every row-security bypass', async t =
     const [{ superuser }] = await admin<{ superuser: boolean }[]>`
       select rolsuper as superuser from pg_roles where rolname = current_user`;
     for (const bypass of BYPASSES) {
-      const skip = bypass.superuser && !superuser && 'building this state needs a superuser admin';
+      const unbuildable = bypass.superuser === true && !superuser;
+      const skip = unbuildable && !required && 'building this state needs a superuser admin';
       await t.test(`rejects ${bypass.name}`, { skip }, async () => {
+        if (unbuildable) assert.fail('REQUIRE_RLS_INTEGRATION=1 needs a superuser admin here');
         await admin.unsafe(bypass.setup);
         try {
           await assert.rejects(provision(), bypass.message);
@@ -221,7 +224,7 @@ test('the E2E runtime role fails closed on every row-security bypass', async t =
 test('concurrent provisioning across sibling databases converges on one credential', async t => {
   const adminUrl = process.env.DATABASE_URL;
   if (!adminUrl) {
-    if (process.env.REQUIRE_RLS_INTEGRATION === '1') assert.fail('DATABASE_URL is required.');
+    if (required) assert.fail('DATABASE_URL is required.');
     t.skip('DATABASE_URL is required for the runtime role concurrency test');
     return;
   }

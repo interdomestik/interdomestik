@@ -170,8 +170,7 @@ export BETTER_AUTH_TRUSTED_ORIGINS
 #   1) E2E_DATABASE_URL
 #   2) Explicitly inherited DATABASE_URL from caller shell
 #   3) Local Supabase default
-# DATABASE_URL_RLS is then always the restricted runtime role on that database
-# (scripts/e2e-runtime-role.mjs); E2E_SERVER_DATABASE_URL_RLS may name its credential.
+# DATABASE_URL_RLS is then the restricted runtime role on it (scripts/e2e-runtime-role.mjs).
 if [[ "${PLAYWRIGHT:-}" == "1" ]]; then
 	if [[ -n "${E2E_DATABASE_URL:-}" ]]; then
 		export DATABASE_URL="${E2E_DATABASE_URL}"
@@ -187,14 +186,9 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
 fi
 
 if [[ "${PLAYWRIGHT:-}" == "1" ]]; then
-	# Plan070 U2-a: the app server's tenant-scoped client logs in as the restricted
-	# NOBYPASSRLS runtime role; fixtures keep the admin URL. Provisioning fails closed.
-	DATABASE_URL_RLS="$(
-		E2E_DATABASE_URL="${DATABASE_URL}" \
-			node "${ROOT_DIR}/scripts/e2e-runtime-role.mjs" --print-url
-	)"
-	export DATABASE_URL_RLS
-	export REQUIRE_RLS_INTEGRATION=1
+	# Plan070 U2-a: the server's tenant client is the NOBYPASSRLS runtime role; fixtures stay admin.
+	DATABASE_URL_RLS="$(E2E_DATABASE_URL="${DATABASE_URL}" node "${ROOT_DIR}/scripts/e2e-runtime-role.mjs" --print-url)"
+	export DATABASE_URL_RLS REQUIRE_RLS_INTEGRATION=1
 elif [[ -n "${E2E_DATABASE_URL_RLS:-}" ]]; then
 	export DATABASE_URL_RLS="${E2E_DATABASE_URL_RLS}"
 elif [[ -n "${INHERITED_DATABASE_URL_RLS:-}" ]]; then

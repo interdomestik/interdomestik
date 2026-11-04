@@ -25,6 +25,11 @@ test('derives one stable restricted credential per admin credential and cluster'
   const otherDb = new URL(resolveE2eRuntimeUrl(ADMIN.replace('interdomestik_test', 'other_db')));
   const otherCluster = new URL(resolveE2eRuntimeUrl(ADMIN.replace(':5432/', ':54322/')));
   const otherAdmin = new URL(resolveE2eRuntimeUrl(ADMIN.replace(':postgres@', ':rotated@')));
+  // Every loopback spelling names the same cluster (e2e-gate.sh uses localhost, lanes 127.0.0.1).
+  for (const host of ['localhost', '[::1]']) {
+    const spelled = new URL(resolveE2eRuntimeUrl(ADMIN.replace('127.0.0.1', host)));
+    assert.equal(spelled.password, first.password, host);
+  }
   assert.equal(otherDb.password, first.password);
   assert.equal(otherDb.pathname, '/other_db');
   assert.notEqual(otherCluster.password, first.password);
