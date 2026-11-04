@@ -38,7 +38,6 @@ export async function getStaffClaimsList(params: {
       assignment,
       authority,
       diasporaOrigin,
-      reader,
       search,
       status,
       tx,

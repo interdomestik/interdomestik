@@ -60,9 +60,7 @@ export type AcknowledgeSupportHandoffPublicResponseInput = {
 };
 
 export type AcknowledgeSupportHandoffPublicResponseErrorCode =
-  | 'CLOSED'
-  | 'STALE_VERSION'
-  | 'UNAUTHORIZED';
+  'CLOSED' | 'STALE_VERSION' | 'UNAUTHORIZED';
 
 export type AcknowledgeSupportHandoffPublicResponseResult = {
   acknowledgedAt: string;

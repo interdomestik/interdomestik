@@ -20,7 +20,9 @@ function descriptor(overrides: Record<string, unknown> = {}) {
 }
 
 describe('resolveStaffClaimReader', () => {
-  beforeEach(() => readTenantAuthority.mockReset());
+  beforeEach(() => {
+    readTenantAuthority.mockReset();
+  });
 
   it.each([
     ['staff', 'ks_branch_a'],

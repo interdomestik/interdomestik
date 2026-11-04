@@ -36,6 +36,8 @@ export { getAssignedStaffClaimAttention } from './staff-claims/assigned-claim-at
 export type { AssignedClaimAttention } from './staff-claims/assigned-claim-attention';
 export type { StaffClaimsListItem } from './staff-claims/get-staff-claims-list';
 export { getStaffClaimDetail } from './staff-claims/get-staff-claim-detail';
+export { resolveStaffClaimReader } from './staff-claims/reader-policy';
+export type { StaffClaimReader, StaffClaimReaderRole } from './staff-claims/reader-policy';
 export {
   buildRecoveryDecisionSnapshot,
   getRecoveryDeclineMemberDescription,

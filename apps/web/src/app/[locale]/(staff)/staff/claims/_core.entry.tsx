@@ -1,5 +1,5 @@
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
-import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
+import { authorizeStaffClaimPage } from '@/features/staff/claims/server/authorize-staff-claim-page';
 import {
   ACTIONABLE_CLAIM_STATUSES,
   getAssignedStaffClaimAttention,
@@ -52,13 +52,8 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
     return notFound();
   }
 
-  // The readers derive actor, role and branch from this authority, so it must be this session's.
-  let authority: Awaited<ReturnType<typeof authorizeSessionUserTenant>>;
-  try {
-    authority = await authorizeSessionUserTenant(session.user.id);
-  } catch {
-    return notFound();
-  }
+  // The readers derive actor, role and branch from this authority, so it must match this session.
+  const authority = await authorizeStaffClaimPage(session.user);
   if (!authority) return notFound();
 
   const resolvedSearchParams = await searchParams;

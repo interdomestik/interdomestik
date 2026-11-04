@@ -35,7 +35,9 @@ vi.mock('@/i18n/routing', () => ({
   ),
   useRouter: () => ({ push: vi.fn() }),
 }));
-vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionUserTenant: mocks.authorize }));
+vi.mock('@/features/staff/claims/server/authorize-staff-claim-page', () => ({
+  authorizeStaffClaimPage: mocks.authorize,
+}));
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: mocks.getSession,
   requireSessionOrRedirect: (session: unknown) => session,

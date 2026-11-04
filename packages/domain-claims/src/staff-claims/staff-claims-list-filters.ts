@@ -7,7 +7,7 @@ import {
   type DiasporaOriginFilter,
 } from '../claims/diaspora-origin-filter';
 import { claimLifecycleStatusIn } from '../claims/lifecycle-read-sql';
-import type { StaffClaimReader } from './reader-policy';
+import { resolveStaffClaimReader } from './reader-policy';
 
 export type StaffClaimsAssignmentFilter = 'all' | 'mine' | 'unassigned';
 
@@ -38,11 +38,13 @@ export function buildStaffClaimsListConditions(params: {
   tx: TenantTransaction;
   assignment: StaffClaimsAssignmentFilter;
   diasporaOrigin: DiasporaOriginFilter;
-  reader: StaffClaimReader;
   search?: string;
   status?: string;
 }): SQL<unknown>[] {
-  const { branchId, role, staffId } = params.reader;
+  // Scope comes only from the authority; a caller cannot hand the builder another reader.
+  const reader = resolveStaffClaimReader(params.authority);
+  if (!reader) throw new Error('The tenant authority grants no staff claim reader');
+  const { branchId, role, staffId } = reader;
   const conditions: SQL<unknown>[] = [claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES)];
 
   if (branchId != null) {

@@ -42,8 +42,8 @@ vi.mock('@/i18n/routing', () => ({
   }),
 }));
 
-vi.mock('@/lib/tenant-authority.server', () => ({
-  authorizeSessionUserTenant: hoisted.authorizeMock,
+vi.mock('@/features/staff/claims/server/authorize-staff-claim-page', () => ({
+  authorizeStaffClaimPage: hoisted.authorizeMock,
 }));
 
 vi.mock('@/components/shell/session', () => ({
@@ -149,7 +149,9 @@ describe('StaffClaimsPage', () => {
 
     render(tree);
 
-    expect(hoisted.authorizeMock).toHaveBeenCalledExactlyOnceWith('manager-1');
+    expect(hoisted.authorizeMock).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: 'manager-1', role: 'branch_manager', branchId: 'branch-1' })
+    );
     expect(hoisted.getStaffClaimsListMock).toHaveBeenCalledWith({
       assignment: 'unassigned',
       diasporaOrigin: 'all',
