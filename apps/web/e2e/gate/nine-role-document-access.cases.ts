@@ -4,11 +4,6 @@ type DocumentKey = keyof typeof E2E_DOCUMENT_FIXTURES;
 export type DocumentActorCases = {
   actor: E2EUserKey;
   allowed: readonly DocumentKey[];
-  /**
-   * Documents the current policy still serves although the intended policy denies them. Each one
-   * is a known gap asserted as served, so the case fails once the fix lands and must move to denied.
-   */
-  knownGapServed?: readonly DocumentKey[];
 };
 
 /** Every catalogue document; each actor row lists the ones it may read, the rest must deny. */
@@ -28,7 +23,7 @@ const ALL_KS: readonly DocumentKey[] = [...KS_A, 'KS_OTHER_BRANCH'];
  * - tenant admins and global support read their home tenant (read-oriented support, ADR-09);
  * - branch managers read their branch;
  * - staff read the cases assigned to them, including an assigned case in another branch;
- * - agents read attributed cases of active clients in their branch (known gap below);
+ * - agents read attributed cases of active clients in their branch;
  * - members read the cases they own; auditors read none.
  */
 export const KS_DOCUMENT_CASES: readonly DocumentActorCases[] = [
@@ -38,10 +33,8 @@ export const KS_DOCUMENT_CASES: readonly DocumentActorCases[] = [
   { actor: 'KS_STAFF', allowed: ['KS_ANCHOR', 'KS_OTHER_MEMBER', 'KS_OTHER_BRANCH'] },
   { actor: 'KS_STAFF_UNASSIGNED', allowed: ['KS_PEER_STAFF'] },
   { actor: 'KS_AGENT', allowed: KS_A },
-  // Known gap: document reads still admit an agent by claim attribution alone, so the inactive
-  // client link does not deny the KS-B case. The fix waits on the reviewed S2 re-pin of the
-  // document read path.
-  { actor: 'KS_AGENT_INACTIVE_LINK', allowed: [], knownGapServed: ['KS_OTHER_BRANCH'] },
+  // Attribution alone admits no agent: the inactive client link denies the attributed KS-B case.
+  { actor: 'KS_AGENT_INACTIVE_LINK', allowed: [] },
   { actor: 'KS_MEMBER', allowed: ['KS_ANCHOR', 'KS_UNASSIGNED'] },
   { actor: 'KS_MEMBER_EMPTY', allowed: [] },
 ];

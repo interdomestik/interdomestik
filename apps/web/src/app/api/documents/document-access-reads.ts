@@ -1,5 +1,5 @@
 import { claimDocuments, claims, documents } from '@interdomestik/database/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { matchesAccessTenant } from '@/lib/db/access-tenant-predicate';
 import { canReadLegacyClaimDocument } from './claim-document-access';
 import { lookupCrossGrantDoc } from './cross-tenant-document-lookup';
@@ -21,11 +21,17 @@ export async function readLocalDocumentAccess(
 ): Promise<DocumentAccessResult | null> {
   const { db, documentId, finalDisposition, mode, session, tenantId, userRole } = args;
 
-  // 1. Try Polymorphic Documents Table
+  // 1. Try Polymorphic Documents Table; a soft-deleted document never reaches authorization.
   const [polyDoc] = await db
     .select()
     .from(documents)
-    .where(and(eq(documents.id, documentId), eq(documents.tenantId, tenantId)));
+    .where(
+      and(
+        eq(documents.id, documentId),
+        eq(documents.tenantId, tenantId),
+        isNull(documents.deletedAt)
+      )
+    );
 
   if (polyDoc) {
     const canRead = await canReadPolymorphicDocument({
