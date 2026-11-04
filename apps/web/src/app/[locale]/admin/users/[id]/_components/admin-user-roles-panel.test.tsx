@@ -148,7 +148,9 @@ describe('AdminUserRolesPanel', () => {
         translationFns.en('toasts.branch_membership_conflict')
       );
     });
-    expect(translationFns.en('toasts.branch_membership_conflict')).toMatch(/one branch/);
+    expect(translationFns.en('toasts.branch_membership_conflict')).toMatch(
+      /one branch.*current branch/
+    );
     expect(navigationMocks.refresh).not.toHaveBeenCalled();
   });
 
