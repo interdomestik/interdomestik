@@ -23,6 +23,7 @@ function scenarioIds() {
     cleanStaff: id('clean_staff'),
     cleanStaffGrant: id('clean_staff_grant'),
     cleanClaim: id('clean_claim'),
+    cleanSubscription: id('clean_subscription'),
     branchlessAgent: id('branchless_agent'),
     foreignBranchUser: id('foreign_branch_user'),
     branchlessGrantUser: id('branchless_grant_user'),
@@ -125,8 +126,14 @@ async function writeScenario(tx: Tx, ids: Ids) {
         "branch_id")
       values (${claimId}, ${a}, ${ids.cleanStaff}, 'Branch rule', 'vehicle', 'Acme', ${branchId})`;
   }
-  await tx`insert into subscriptions ("id", "tenant_id", "user_id", "plan_id", "branch_id")
-    values (${ids.foreignBranchSubscription}, ${a}, ${ids.cleanStaff}, 'standard', ${ids.branchB})`;
+  // One subscription per user, so the clean and the broken rows belong to different users.
+  for (const [subscriptionId, userId, branchId] of [
+    [ids.cleanSubscription, ids.cleanAgent, ids.branchA1],
+    [ids.foreignBranchSubscription, ids.cleanStaff, ids.branchB],
+  ]) {
+    await tx`insert into subscriptions ("id", "tenant_id", "user_id", "plan_id", "branch_id")
+      values (${subscriptionId}, ${a}, ${userId}, 'standard', ${branchId})`;
+  }
 }
 
 function expectedViolations(ids: Ids): Record<string, string[]> {
@@ -162,6 +169,7 @@ test('branch membership rules flag each broken row and no clean row', async t =>
     ids.cleanStaff,
     ids.cleanStaffGrant,
     ids.cleanClaim,
+    ids.cleanSubscription,
   ];
   try {
     await sql
