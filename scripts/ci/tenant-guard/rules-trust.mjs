@@ -184,7 +184,7 @@ export function installTrust(ctx) {
     if (!fact) return false;
     const unit = fact.statements.get(origin.name);
     if (!unit) return true; // re-export or type-only name; resolution already followed it
-    if (!fact.unchanged(unit)) return false;
+    if (!fact.unchanged(unit) && !ctx.c1Admitted(fact, unit)) return false;
     return fact.references.every(
       reference =>
         !within(reference.node, unit) ||
