@@ -1,8 +1,5 @@
 import { and, claimStageHistory, claims, desc, eq, inArray, user } from '@interdomestik/database';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { aliasedTable } from 'drizzle-orm';
@@ -14,45 +11,37 @@ import {
   type StaffClaimsAssignmentFilter,
 } from './staff-claims-list-filters';
 import { mapStaffClaimsListRows, type StaffClaimsListItem } from './staff-claims-list-mapper';
+import { resolveStaffClaimReader } from './reader-policy';
 
 export type { StaffClaimsAssignmentFilter, StaffClaimsListItem };
 
+/**
+ * The staff queue for the reader the authority grants. Null when the authority grants no staff
+ * claim reader; no query runs then. Filters only narrow the reader's queue.
+ */
 export async function getStaffClaimsList(params: {
-  staffId: string;
   authority: TenantAuthority;
-  branchId?: string | null;
   assignment?: StaffClaimsAssignmentFilter;
   diasporaOrigin?: DiasporaOriginFilter;
   limit: number;
   search?: string;
   status?: string;
-  viewerRole?: string | null;
-}): Promise<StaffClaimsListItem[]> {
-  const {
-    staffId,
-    authority,
-    branchId,
-    assignment = 'all',
-    diasporaOrigin = 'all',
-    limit,
-    search,
-    status,
-    viewerRole,
-  } = params;
-  const { tenantId } = readTenantAuthority(authority);
+}): Promise<StaffClaimsListItem[] | null> {
+  const { authority, assignment = 'all', diasporaOrigin = 'all', limit, search, status } = params;
+  const reader = resolveStaffClaimReader(authority);
+  if (!reader) return null;
+  const { tenantId } = reader;
   const assignee = aliasedTable(user, 'assignee');
 
   const { rows, historyRows } = await withTenantAuthority(authority, async tx => {
     const conditions = buildStaffClaimsListConditions({
       assignment,
       authority,
-      branchId,
       diasporaOrigin,
+      reader,
       search,
-      staffId,
       status,
       tx,
-      viewerRole,
     });
     const scopedWhere = withTenant(tenantId, claims.tenantId, and(...conditions));
     // db-access-guard: tenant-scoped -- reason: scopedWhere is consumed under RLS context

@@ -1,5 +1,5 @@
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
 import {
   ACTIONABLE_CLAIM_STATUSES,
   getAssignedStaffClaimAttention,
@@ -52,14 +52,14 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
     return notFound();
   }
 
-  let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
+  // The readers derive actor, role and branch from this authority, so it must be this session's.
+  let authority: Awaited<ReturnType<typeof authorizeSessionUserTenant>>;
   try {
-    authorized = await authorizeSessionTenant();
+    authority = await authorizeSessionUserTenant(session.user.id);
   } catch {
     return notFound();
   }
-  if (!authorized) return notFound();
-  const { authority } = authorized;
+  if (!authority) return notFound();
 
   const resolvedSearchParams = await searchParams;
   const currentStatus = parseStaffStatusFilter(resolvedSearchParams.status);
@@ -72,15 +72,13 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
 
   const claims = await getStaffClaimsList({
     assignment: currentAssignment,
-    branchId: session.user.branchId ?? null,
     diasporaOrigin: currentDiasporaOrigin,
-    staffId: session.user.id,
     limit: 20,
     search: currentSearch,
     status: currentStatus,
     authority,
-    viewerRole: session.user.role,
   });
+  if (!claims) return notFound();
 
   const attention =
     session.user.role === 'staff'

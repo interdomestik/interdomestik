@@ -163,11 +163,8 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
         },
       ]);
 
-      const detail = await getStaffClaimDetail({
-        claimId: assignedClaimId,
-        staffId,
-        authority: staffKs,
-      });
+      // The reader's actor, role and branch come from the authority's principal.
+      const detail = await getStaffClaimDetail({ claimId: assignedClaimId, authority: staffKs });
       expect(detail?.member).toMatchObject({ id: memberId, fullName: 'Fixture Member' });
 
       const mountedDetail = await getStaffClaimDetailsCore({
@@ -196,20 +193,8 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
       expect(publicHistory.map(entry => entry.id)).toEqual([publicHistoryId]);
       expect(publicHistory[0]?.note).toBe('Public fixture note');
 
-      expect(
-        await getStaffClaimDetail({ claimId: otherClaimId, staffId, authority: staffKs })
-      ).toBeNull();
-      expect(
-        await getStaffClaimDetail({ claimId: foreignClaimId, staffId, authority: staffKs })
-      ).toBeNull();
-      expect(
-        await getStaffClaimDetail({
-          branchId: 'branch-not-assigned',
-          claimId: assignedClaimId,
-          staffId,
-          authority: staffKs,
-        })
-      ).toBeNull();
+      expect(await getStaffClaimDetail({ claimId: otherClaimId, authority: staffKs })).toBeNull();
+      expect(await getStaffClaimDetail({ claimId: foreignClaimId, authority: staffKs })).toBeNull();
       expect(
         await getStaffClaimDetailsCore({
           claimId: otherClaimId,

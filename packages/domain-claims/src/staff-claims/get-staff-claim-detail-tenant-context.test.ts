@@ -45,7 +45,15 @@ vi.mock('@interdomestik/database/tenant-security', mocks.tenantSecurityMock);
 
 vi.mock('./matter-allowance', mocks.matterAllowanceMock);
 
-import { getStaffClaimDetail } from './get-staff-claim-detail';
+const resolveStaffClaimReader = vi.hoisted(() => vi.fn());
+vi.mock('./reader-policy', () => ({ resolveStaffClaimReader }));
+import { getStaffClaimDetail as readStaffClaimDetail } from './get-staff-claim-detail';
+import { grantStaffReader, type StaffReaderArgs } from './staff-claim-reader.test-support';
+
+type DetailArgs = Parameters<typeof readStaffClaimDetail>[0] & StaffReaderArgs;
+function getStaffClaimDetail(args: DetailArgs) {
+  return readStaffClaimDetail(grantStaffReader(resolveStaffClaimReader, args));
+}
 
 const authorities = {
   'tenant-ks': mintTestTenantAuthority('tenant-ks'),

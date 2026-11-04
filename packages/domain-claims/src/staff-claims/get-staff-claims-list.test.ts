@@ -11,7 +11,17 @@ vi.mock('@interdomestik/database', () => modules.database);
 vi.mock('@interdomestik/database/tenant-security', () => modules.tenantSecurity);
 vi.mock('drizzle-orm', () => modules.drizzle);
 
-import { getStaffClaimsList } from './get-staff-claims-list';
+const resolveStaffClaimReader = vi.hoisted(() => vi.fn());
+vi.mock('./reader-policy', () => ({ resolveStaffClaimReader }));
+import { getStaffClaimsList as readStaffClaimsList } from './get-staff-claims-list';
+import { grantStaffReader, type StaffReaderArgs } from './staff-claim-reader.test-support';
+
+type ListArgs = Parameters<typeof readStaffClaimsList>[0] & StaffReaderArgs;
+async function getStaffClaimsList(args: ListArgs) {
+  const rows = await readStaffClaimsList(grantStaffReader(resolveStaffClaimReader, args));
+  if (!rows) throw new Error('Expected a granted staff claim reader');
+  return rows;
+}
 const authorities = {
   'tenant-ks': mintTestTenantAuthority('tenant-ks'),
   'tenant-mk': mintTestTenantAuthority('tenant-mk'),
@@ -37,6 +47,17 @@ function expectOwnOrUnassignedQueueScope(args: { staffId: string; tenantId: stri
 }
 describe('getStaffClaimsList', () => {
   beforeEach(() => resetStaffClaimsListMocks(mocks));
+
+  it('reads nothing when the authority grants no staff claim reader', async () => {
+    resolveStaffClaimReader.mockReturnValue(null);
+
+    await expect(
+      readStaffClaimsList({ authority: authorities['tenant-ks'], limit: 20 })
+    ).resolves.toBeNull();
+    expect(resolveStaffClaimReader).toHaveBeenCalledWith(authorities['tenant-ks']);
+    expect(mocks.db.select).not.toHaveBeenCalled();
+    expect(mocks.withTenant).not.toHaveBeenCalled();
+  });
 
   it('returns branch claims for branch managers', async () => {
     mocks.claimChain.limit.mockResolvedValue([

@@ -214,12 +214,17 @@ vi.mock('@/lib/tenant-authority.server', async () => {
   const { ensureTenantId } = await import('@interdomestik/shared-auth');
   return {
     // Mirrors the real producer for the session this render's getSessionSafe returned.
-    authorizeSessionTenant: vi.fn(() => {
-      const session = hoisted.current.session as { user?: unknown } | null;
-      if (!session?.user) return Promise.resolve(null);
-      const authority = mintTestTenantAuthority(ensureTenantId(session as never));
+    authorizeSessionUserTenant: vi.fn((userId: string) => {
+      const session = hoisted.current.session as {
+        user?: { id?: string; role?: string | null };
+      } | null;
+      if (session?.user?.id !== userId) return Promise.resolve(null);
+      const authority = mintTestTenantAuthority(ensureTenantId(session as never), {
+        userId,
+        role: session.user.role ?? null,
+      });
       hoisted.current.authority = authority;
-      return Promise.resolve({ session, authority });
+      return Promise.resolve(authority);
     }),
   };
 });

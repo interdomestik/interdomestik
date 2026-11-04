@@ -11,7 +11,17 @@ vi.mock('@interdomestik/database', () => modules.database);
 vi.mock('@interdomestik/database/tenant-security', () => modules.tenantSecurity);
 vi.mock('drizzle-orm', () => modules.drizzle);
 
-import { getStaffClaimsList } from './get-staff-claims-list';
+const resolveStaffClaimReader = vi.hoisted(() => vi.fn());
+vi.mock('./reader-policy', () => ({ resolveStaffClaimReader }));
+import { getStaffClaimsList as readStaffClaimsList } from './get-staff-claims-list';
+import { grantStaffReader, type StaffReaderArgs } from './staff-claim-reader.test-support';
+
+type ListArgs = Parameters<typeof readStaffClaimsList>[0] & StaffReaderArgs;
+async function getStaffClaimsList(args: ListArgs) {
+  const rows = await readStaffClaimsList(grantStaffReader(resolveStaffClaimReader, args));
+  if (!rows) throw new Error('Expected a granted staff claim reader');
+  return rows;
+}
 import { VALID_DIASPORA_ORIGIN_NOTES } from './staff-claims-diaspora-origin-notes';
 
 const authorities = {

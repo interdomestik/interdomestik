@@ -1,4 +1,4 @@
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
 import { getInformationRequests, getStaffClaimDetail } from '@interdomestik/domain-claims';
 import { ClaimInformationRequestForm } from '@/features/staff/claims/components/ClaimInformationRequestForm';
 import { ClaimInformationRequests } from '@/features/member/claims/components/ClaimInformationRequests';
@@ -56,21 +56,16 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     return notFound();
   }
 
-  let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
+  // The readers derive actor, role and branch from this authority, so it must be this session's.
+  let authority: Awaited<ReturnType<typeof authorizeSessionUserTenant>>;
   try {
-    authorized = await authorizeSessionTenant();
+    authority = await authorizeSessionUserTenant(session.user.id);
   } catch {
     return notFound();
   }
-  if (!authorized) return notFound();
-  const { authority } = authorized;
+  if (!authority) return notFound();
 
-  const detail = await getStaffClaimDetail({
-    branchId: session.user.branchId ?? null,
-    claimId: id,
-    staffId: session.user.id,
-    authority,
-  });
+  const detail = await getStaffClaimDetail({ claimId: id, authority });
 
   if (!detail) return notFound();
 

@@ -7,6 +7,7 @@ import {
   type DiasporaOriginFilter,
 } from '../claims/diaspora-origin-filter';
 import { claimLifecycleStatusIn } from '../claims/lifecycle-read-sql';
+import type { StaffClaimReader } from './reader-policy';
 
 export type StaffClaimsAssignmentFilter = 'all' | 'mine' | 'unassigned';
 
@@ -36,29 +37,26 @@ export function buildStaffClaimsListConditions(params: {
   authority: TenantAuthority;
   tx: TenantTransaction;
   assignment: StaffClaimsAssignmentFilter;
-  branchId?: string | null;
   diasporaOrigin: DiasporaOriginFilter;
+  reader: StaffClaimReader;
   search?: string;
-  staffId: string;
   status?: string;
-  viewerRole?: string | null;
 }): SQL<unknown>[] {
+  const { branchId, role, staffId } = params.reader;
   const conditions: SQL<unknown>[] = [claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES)];
 
-  if (params.branchId != null) {
-    conditions.push(eq(claims.branchId, params.branchId));
+  if (branchId != null) {
+    conditions.push(eq(claims.branchId, branchId));
   }
 
-  const shouldUseFallback =
-    params.viewerRole !== 'branch_manager' ||
-    (params.viewerRole === 'branch_manager' && params.branchId == null);
+  const shouldUseFallback = role !== 'branch_manager' || branchId == null;
 
   if (params.assignment === 'mine') {
-    conditions.push(eq(claims.staffId, params.staffId));
+    conditions.push(eq(claims.staffId, staffId));
   } else if (params.assignment === 'unassigned') {
     conditions.push(isNull(claims.staffId));
   } else if (shouldUseFallback) {
-    const ownOrUnassigned = or(eq(claims.staffId, params.staffId), isNull(claims.staffId));
+    const ownOrUnassigned = or(eq(claims.staffId, staffId), isNull(claims.staffId));
     if (ownOrUnassigned) conditions.push(ownOrUnassigned);
   }
 

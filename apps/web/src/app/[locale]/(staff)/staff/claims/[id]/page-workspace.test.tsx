@@ -241,9 +241,7 @@ describe('staff case workspace hierarchy', () => {
 
     const authority = hoisted.current.authority!;
     expect(hoisted.getStaffClaimDetailMock).toHaveBeenCalledWith({
-      branchId: 'branch-a',
       claimId: 'claim-1',
-      staffId: 'staff-1',
       authority,
     });
     expect(
