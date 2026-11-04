@@ -60,6 +60,10 @@ else
   echo "⚠️  [Gatekeeper] Using local default DATABASE_URL=${DATABASE_URL}"
 fi
 
+# Plan070 U2-a: the web server will log in as the restricted runtime role, which is only
+# provisioned on loopback test databases. Refuse any other target before migrate and reseed.
+E2E_DATABASE_URL="${DATABASE_URL}" node scripts/e2e-runtime-role.mjs --check-target
+
 if [ -n "${E2E_DATABASE_URL_RLS:-}" ]; then
   export DATABASE_URL_RLS="${E2E_DATABASE_URL_RLS}"
 else

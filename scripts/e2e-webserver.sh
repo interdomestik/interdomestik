@@ -167,9 +167,11 @@ export BETTER_AUTH_TRUSTED_ORIGINS
 # Playwright gates must be deterministic and must not depend on whatever DATABASE_URL
 # happens to be configured in a developer's .env.local (which can point to production).
 # Priority for Playwright runtime:
-#   1) E2E_DATABASE_URL / E2E_DATABASE_URL_RLS
-#   2) Explicitly inherited DATABASE_URL / DATABASE_URL_RLS from caller shell
+#   1) E2E_DATABASE_URL
+#   2) Explicitly inherited DATABASE_URL from caller shell
 #   3) Local Supabase default
+# DATABASE_URL_RLS is then always the restricted runtime role on that database
+# (scripts/e2e-runtime-role.mjs); E2E_SERVER_DATABASE_URL_RLS may name its credential.
 if [[ "${PLAYWRIGHT:-}" == "1" ]]; then
 	if [[ -n "${E2E_DATABASE_URL:-}" ]]; then
 		export DATABASE_URL="${E2E_DATABASE_URL}"
@@ -185,12 +187,14 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
 fi
 
 if [[ "${PLAYWRIGHT:-}" == "1" ]]; then
-	if [[ -n "${E2E_DATABASE_URL_RLS:-}" ]]; then
-		export DATABASE_URL_RLS="${E2E_DATABASE_URL_RLS}"
-	else
-		# Keep RLS/admin reads on the same deterministic DB unless explicitly overridden for E2E.
-		export DATABASE_URL_RLS="${DATABASE_URL}"
-	fi
+	# Plan070 U2-a: the app server's tenant-scoped client logs in as the restricted
+	# NOBYPASSRLS runtime role; fixtures keep the admin URL. Provisioning fails closed.
+	DATABASE_URL_RLS="$(
+		E2E_DATABASE_URL="${DATABASE_URL}" \
+			node "${ROOT_DIR}/scripts/e2e-runtime-role.mjs" --print-url
+	)"
+	export DATABASE_URL_RLS
+	export REQUIRE_RLS_INTEGRATION=1
 elif [[ -n "${E2E_DATABASE_URL_RLS:-}" ]]; then
 	export DATABASE_URL_RLS="${E2E_DATABASE_URL_RLS}"
 elif [[ -n "${INHERITED_DATABASE_URL_RLS:-}" ]]; then
