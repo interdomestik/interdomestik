@@ -29,7 +29,6 @@ vi.mock('@/lib/inngest/client', () => ({
   inngest: { createFunction: mocks.createFunction, send: vi.fn() },
 }));
 vi.mock('@interdomestik/domain-communications/cron-service', () => ({
-  processAnnualReports: vi.fn(),
   processEmailSequences: vi.fn(),
   processSeasonalCampaigns: vi.fn(),
 }));

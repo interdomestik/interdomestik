@@ -31,7 +31,6 @@ export async function processEmailSequences(ingress: CronIngress) {
   return result;
 }
 
-export { processAnnualReports } from './strategies/annual';
 export { processSeasonalCampaigns } from './strategies/seasonal';
 
 async function runWelcomeCampaign(

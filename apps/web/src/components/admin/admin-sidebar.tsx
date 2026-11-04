@@ -5,6 +5,7 @@ import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
 import { getRoleLabel } from '@/lib/roles-i18n';
+import { resolveUserNavLinks } from '@/components/dashboard/user-nav-links';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +38,7 @@ import {
   LogOut,
   Settings,
   Shield,
+  User,
   Users,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -62,9 +64,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
   const locale = useLocale();
   const searchParams = useSearchParams();
   const userRoleLabel = getRoleLabel(tCommon, user.role, user.role);
-
   const applyAdminContext = (href: string) => withAdminContext(href, searchParams);
-
   const roleParam = searchParams.get('role');
   let peopleRole = 'members';
   if (roleParam?.includes('agent')) {
@@ -215,6 +215,15 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
           <DropdownMenuContent align="end" className="w-56" side="top" sideOffset={8}>
             <DropdownMenuLabel>{tNav('myAccount')}</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link
+                href={resolveUserNavLinks(user.role, true).profileHref}
+                className="cursor-pointer"
+              >
+                <User className="mr-2 h-4 w-4" />
+                {tNav('profile')}
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="cursor-pointer">
                 <Globe className="mr-2 h-4 w-4" />

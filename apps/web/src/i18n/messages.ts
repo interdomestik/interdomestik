@@ -136,6 +136,7 @@ export const STAFF_NAMESPACES = [
   'claims-tracking',
   'messaging',
   'notifications',
+  'settings',
   'staff-crm',
 ] as const;
 export const ADMIN_NAMESPACES = [
@@ -152,6 +153,7 @@ export const ADMIN_NAMESPACES = [
   'admin-branches',
   'admin-settings',
   'admin-leads',
+  'settings',
   'agent',
   'agent-claims',
   'agent-crm',

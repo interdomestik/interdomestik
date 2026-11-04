@@ -13,7 +13,6 @@ const mocks = vi.hoisted(() => {
         trigger,
       })
     ),
-    processAnnualReports: vi.fn(),
     processClaimDocumentWorkflowRunService: vi.fn(),
     processEmailSequences: vi.fn(),
     processPolicyAnalysisRunService: vi.fn(),
@@ -26,7 +25,6 @@ vi.mock('@interdomestik/database/ingress-registrar', () => ({
 }));
 vi.mock('./client', () => ({ inngest: { createFunction: mocks.createFunction } }));
 vi.mock('@interdomestik/domain-communications/cron-service', () => ({
-  processAnnualReports: mocks.processAnnualReports,
   processEmailSequences: mocks.processEmailSequences,
   processSeasonalCampaigns: mocks.processSeasonalCampaigns,
 }));
@@ -207,26 +205,20 @@ describe('scheduled email campaign Inngest handlers', () => {
     vi.clearAllMocks();
     mocks.mintIngressCapability.mockImplementation(() => Object.freeze({ minted: true }));
     mocks.processEmailSequences.mockResolvedValue({ processed: true });
-    mocks.processAnnualReports.mockResolvedValue({ processed: false });
     mocks.processSeasonalCampaigns.mockResolvedValue({ processed: false });
   });
 
-  it('hands each daily step its own Inngest ingress capability', async () => {
+  it('hands the daily email step its own Inngest ingress capability', async () => {
     const result = await daily({ step });
 
     expect(mocks.processEmailSequences).toHaveBeenCalledWith(expect.any(Object));
-    expect(mocks.processAnnualReports).toHaveBeenCalledWith(expect.any(Object));
-    expect(mocks.mintIngressCapability).toHaveBeenCalledTimes(2);
+    expect(mocks.mintIngressCapability).toHaveBeenCalledTimes(1);
     expect(mocks.mintIngressCapability).toHaveBeenCalledWith('inngest');
-    const emailIngress = mocks.processEmailSequences.mock.calls[0][0];
-    const annualIngress = mocks.processAnnualReports.mock.calls[0][0];
-    expect(emailIngress).toBe(mocks.mintIngressCapability.mock.results[0].value);
-    expect(annualIngress).toBe(mocks.mintIngressCapability.mock.results[1].value);
-    expect(annualIngress).not.toBe(emailIngress);
-    expect(result).toEqual({
-      emailSequences: { processed: true },
-      annualReports: { processed: false },
-    });
+    expect(mocks.processEmailSequences.mock.calls[0][0]).toBe(
+      mocks.mintIngressCapability.mock.results[0].value
+    );
+    expect(step.run).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ emailSequences: { processed: true } });
   });
 
   it('mints a fresh capability for a retried step', async () => {

@@ -13,7 +13,6 @@ export {
   renderPaymentReminderEmail,
 } from './dunning';
 export {
-  renderAnnualReportEmail,
   renderCheckinEmail,
   renderEngagementDay30Email,
   renderEngagementDay60Email,
