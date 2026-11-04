@@ -138,7 +138,7 @@ describe('assignOwner tenant and target input', () => {
 });
 
 describe('unassignOwner shares the assignment actor guard', () => {
-  it.each(['staff', 'branch_manager', 'agent', 'member', 'auditor'])(
+  it.each(['staff', 'branch_manager', 'agent', 'member', 'auditor', 'global_support'])(
     'denies %s before any claim read or write',
     async role => {
       mocks.getSession.mockResolvedValue(sessionFor(role));
