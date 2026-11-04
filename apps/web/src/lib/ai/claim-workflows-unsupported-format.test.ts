@@ -60,7 +60,6 @@ vi.mock('@/app/api/policies/analyze/_services', () => ({
   processPolicyAnalysisRunService: vi.fn(),
 }));
 vi.mock('@interdomestik/domain-communications/cron-service', () => ({
-  processAnnualReports: vi.fn(),
   processEmailSequences: vi.fn(),
   processSeasonalCampaigns: vi.fn(),
 }));

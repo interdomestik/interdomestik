@@ -1,7 +1,6 @@
 export type { EmailTemplate } from './email/templates/types';
 
 export {
-  renderAnnualReportEmail,
   renderCheckinEmail,
   renderClaimAssignedEmail,
   renderClaimSubmittedEmail,
