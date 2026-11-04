@@ -19,6 +19,8 @@ export async function seedAgentPack(config: SeedConfig) {
   };
 
   const TENANT_ID = 'tenant_ks';
+  // Every agent belongs to exactly one branch; the golden seed creates this KS branch.
+  const BRANCH_ID = 'ks_branch_a';
 
   // 1. Create Agent User
   const agentEmail = 'agent@interdomestik.local';
@@ -36,13 +38,14 @@ export async function seedAgentPack(config: SeedConfig) {
       email: agentEmail,
       name: 'Agon Agenti',
       role: 'agent',
+      branchId: BRANCH_ID,
       emailVerified: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
       target: ctx.user.id,
-      set: { role: 'agent' }, // Ensure role constraint
+      set: { role: 'agent', branchId: BRANCH_ID }, // Ensure role and branch constraints
     });
 
   // Account (Credentials)

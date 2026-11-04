@@ -219,18 +219,21 @@ describe('authorized role writer', () => {
     expect(writes.insert).toHaveBeenCalled();
   });
 
-  it('keeps the legacy tenant-wide agent grant clearing an existing membership', async () => {
+  it('clears the branch when a branch member is granted a tenant-wide role', async () => {
     const { set } = mockGrant({ role: 'member', branchId: 'ks_branch_a' }, [], false);
 
     await expect(
-      grantUserRoleCore({
-        session,
-        authority,
-        userId: 'user-1',
-        role: 'agent',
-        allowLegacyTenantWide: true,
-      })
+      grantUserRoleCore({ session, authority, userId: 'user-1', role: 'staff' })
     ).resolves.toEqual({ success: true });
-    expect(set).toHaveBeenCalledWith(expect.objectContaining({ role: 'agent', branchId: null }));
+    expect(set).toHaveBeenCalledWith(expect.objectContaining({ role: 'staff', branchId: null }));
+  });
+
+  it('never grants a tenant-wide agent role, even legacy flags are ignored', async () => {
+    const legacyRequest = { session, authority, userId: 'user-1', role: 'agent' };
+
+    await expect(
+      grantUserRoleCore({ ...legacyRequest, allowLegacyTenantWide: true } as typeof legacyRequest)
+    ).resolves.toEqual({ error: 'Branch is required for role: agent' });
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 });

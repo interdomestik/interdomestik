@@ -189,20 +189,20 @@ export async function listUserRoles({
   );
 }
 
+// Grants a role in the target tenant. Agents and branch managers always need a branch:
+// there is no tenant-wide agent grant.
 export async function grantUserRole({
   userId,
   role,
   branchId,
   tenantId,
   locale,
-  allowLegacyTenantWide,
 }: {
   userId: string;
   role: string;
   branchId?: string;
   tenantId?: string;
   locale?: string;
-  allowLegacyTenantWide?: boolean;
 }): ActionResult<void> {
   return runAuthenticatedAction<void>(async ({ session, authority }) => {
     const resolvedTenantId = resolveTenantForAdminAction(session, tenantId, session.user?.role);
@@ -211,7 +211,8 @@ export async function grantUserRole({
       ['admin', 'tenant_admin', 'super_admin'],
       { requestedTenantId: resolvedTenantId }
     );
-    if (isBranchRequiredRole(role) && !branchId && !allowLegacyTenantWide) {
+    // Fail before any write, with a code the roles panel can explain.
+    if (isBranchRequiredRole(role) && !branchId) {
       return {
         success: false,
         error: `Branch is required for role: ${role}`,
@@ -225,7 +226,6 @@ export async function grantUserRole({
       userId,
       role,
       branchId,
-      allowLegacyTenantWide,
     });
 
     if ('error' in result) {
