@@ -138,7 +138,7 @@ describe('POST /api/share-pack', () => {
     });
     expect(hoisted.createSharePack).toHaveBeenCalledWith({
       authority: expect.any(Object),
-      userId: 'user-1',
+      actor: { id: 'user-1', branchId: null, role: null },
       documentIds: ['doc-1', 'doc-2'],
     });
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
@@ -154,5 +154,18 @@ describe('POST /api/share-pack', () => {
     const authority = hoisted.createSharePack.mock.calls[0]?.[0].authority;
     expect(hoisted.logAuditEvent.mock.calls[0]?.[0].authority).toBe(authority);
     expect(readTenantAuthority(authority).tenantId).toBe('tenant-1');
+  });
+
+  it.each([
+    ['more ids than one pack may hold', Array.from({ length: 51 }, (_v, i) => `doc-${i}`)],
+    ['an oversized id', ['d'.repeat(65)]],
+    ['an empty id', ['']],
+  ])('rejects %s before any authorization read', async (_label, documentIds) => {
+    hoisted.getSession.mockResolvedValue(session());
+
+    const response = await POST(sharePackRequest({ documentIds }));
+
+    expect(response.status).toBe(400);
+    expect(hoisted.createSharePack).not.toHaveBeenCalled();
   });
 });

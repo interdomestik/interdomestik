@@ -10,6 +10,7 @@ import {
   logAuditEvent,
 } from '@/features/share-pack/share-pack.service';
 import { auth } from '@/lib/auth';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 
@@ -22,7 +23,12 @@ const services = {
 };
 
 const DOCUMENT_IDS_FIELD = 'documentIds';
-const createSharePackRequestShape = { [DOCUMENT_IDS_FIELD]: z.array(z.string()) };
+/** Bounded before authorization: every requested id costs reads in the eligibility check. */
+const MAX_SHARE_DOCUMENTS = 50;
+const createSharePackRequestShape = {
+  [DOCUMENT_IDS_FIELD]: z.array(z.string().min(1).max(64)).min(1).max(MAX_SHARE_DOCUMENTS),
+};
+const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' };
 const createSharePackRequestSchema = z.object(createSharePackRequestShape).passthrough();
 
 /**
@@ -30,6 +36,15 @@ const createSharePackRequestSchema = z.object(createSharePackRequestShape).passt
  */
 export async function POST(request: NextRequest) {
   try {
+    const limited = await enforceRateLimit({
+      name: 'api/share-pack:create',
+      limit: 10,
+      windowSeconds: 60,
+      headers: request.headers,
+      productionSensitive: true,
+    });
+    if (limited) return limited;
+
     const session = await auth.api.getSession({
       headers: await headers(),
     });
@@ -63,7 +78,11 @@ export async function POST(request: NextRequest) {
 
     const coreInput = {
       authority: authorized.authority,
-      userId: session.user.id,
+      actor: {
+        id: authorized.session.user.id,
+        branchId: authorized.session.user.branchId ?? null,
+        role: authorized.session.user.role ?? null,
+      },
       ipAddress: clientMetadata.ipAddress ?? undefined,
       userAgent: clientMetadata.userAgent ?? undefined,
       services,
@@ -93,6 +112,15 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const limited = await enforceRateLimit({
+      name: 'api/share-pack:read',
+      limit: 30,
+      windowSeconds: 60,
+      headers: request.headers,
+      productionSensitive: true,
+    });
+    if (limited) return limited;
+
     const { searchParams } = new URL(request.url);
 
     const token = searchParams.get('token');
@@ -110,10 +138,10 @@ export async function GET(request: NextRequest) {
     if (!result.ok) {
       const status = result.error?.includes('Token required') ? 400 : 404;
 
-      return NextResponse.json({ error: result.error }, { status });
+      return NextResponse.json({ error: result.error }, { status, headers: NO_STORE });
     }
 
-    return NextResponse.json(result.data);
+    return NextResponse.json(result.data, { headers: NO_STORE });
   } catch (error) {
     console.error('Share pack access failed:', error);
 
