@@ -83,4 +83,43 @@ describe('hasAgentClaimDocumentScope', () => {
 
     await expect(scope(db)).resolves.toBe(false);
   });
+
+  const activeLink = {
+    tenant_id: 'tenant-ks',
+    agent_id: 'agent-1',
+    member_id: 'member-1',
+    status: 'active',
+  };
+
+  it.each([
+    ['an active link in the access tenant', activeLink, true],
+    ['an inactive link to the claim owner', { ...activeLink, status: 'inactive' }, false],
+    ['an active link held in another tenant', { ...activeLink, tenant_id: 'tenant-mk' }, false],
+    ['an active link to another member', { ...activeLink, member_id: 'member-2' }, false],
+  ])('applies the link condition to %s', async (_label, link, expected) => {
+    await expect(scope(linkTableDb([link]))).resolves.toBe(expected);
+  });
 });
+
+/** The agent row resolves; the link lookup filters the given rows by its own equality condition. */
+function linkTableDb(links: Record<string, string>[]): never {
+  const select = vi.fn().mockReturnValueOnce({
+    from: () => ({ where: () => Promise.resolve([{ branchId: 'branch-a' }]) }),
+  });
+  select.mockReturnValueOnce({
+    from: () => ({
+      where: (condition: SQL) => {
+        const { sql, params } = dialect.sqlToQuery(condition);
+        const equalities = [...sql.matchAll(/"(\w+)" = \$(\d+)/g)].map(
+          ([, column, index]) => [column, params[Number(index) - 1]] as const
+        );
+        expect(equalities.length).toBe(4);
+        const rows = links.filter(row =>
+          equalities.every(([column, value]) => row[column] === value)
+        );
+        return Promise.resolve(rows.map((_row, index) => ({ id: `link-${index}` })));
+      },
+    }),
+  });
+  return { select } as never;
+}
