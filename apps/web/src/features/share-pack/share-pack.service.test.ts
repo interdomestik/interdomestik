@@ -8,6 +8,11 @@ const hoisted = vi.hoisted(() => ({
   withTenantContext: vi.fn(),
   resolveSharePackTenant: vi.fn(),
   findPack: vi.fn(),
+  canShareAllDocuments: vi.fn(),
+}));
+
+vi.mock('@/app/api/documents/share-eligible-documents', () => ({
+  canShareAllDocuments: hoisted.canShareAllDocuments,
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -29,11 +34,17 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
+  isNull: (column: unknown) => ({ isNull: column }),
+}));
+
 vi.mock('@interdomestik/database/schema', () => ({
   documentAccessLog: {},
   documents: {
     id: 'documents.id',
     tenantId: 'documents.tenantId',
+    deletedAt: 'documents.deletedAt',
   },
   sharePacks: {
     id: 'sharePacks.id',
@@ -134,21 +145,22 @@ describe('share-pack.service token security', () => {
     );
   });
 
-  it('creates a share pack under the session tenant authority and scopes it to its tenant', async () => {
+  const actor = { id: 'user-1', role: 'member', branchId: null };
+
+  it('creates a share pack under the session tenant authority in one transaction', async () => {
     const authority = mintTestTenantAuthority('tenant_mk');
-    hoisted.select.mockReturnValue({
-      from: () => ({ where: async () => [{ id: 'doc-1' }, { id: 'doc-2' }] }),
-    });
+    hoisted.canShareAllDocuments.mockResolvedValueOnce(true);
 
-    const result = await createSharePack({
-      authority,
-      userId: 'user-1',
+    const result = await createSharePack({ authority, actor, documentIds: ['doc-1', 'doc-2'] });
+
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority);
+    expect(hoisted.canShareAllDocuments).toHaveBeenCalledWith({
+      actor,
       documentIds: ['doc-1', 'doc-2'],
+      tenantId: 'tenant_mk',
+      tx: expect.objectContaining({ insert: hoisted.insert }),
     });
-
-    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(2);
-    expect(hoisted.withTenantContext).toHaveBeenNthCalledWith(1, authority);
-    expect(hoisted.withTenantContext).toHaveBeenNthCalledWith(2, authority);
     expect(hoisted.values).toHaveBeenCalledWith(
       expect.objectContaining({ tenantId: 'tenant_mk', createdByUserId: 'user-1' })
     );
@@ -158,15 +170,23 @@ describe('share-pack.service token security', () => {
     });
   });
 
-  it('rejects document ids outside the authority tenant before inserting a pack', async () => {
+  it('inserts no pack when the actor may not share every document', async () => {
     const authority = mintTestTenantAuthority('tenant_mk');
-    hoisted.select.mockReturnValue({
-      from: () => ({ where: async () => [{ id: 'doc-1' }] }),
-    });
+    hoisted.canShareAllDocuments.mockResolvedValueOnce(false);
 
     await expect(
-      createSharePack({ authority, userId: 'user-1', documentIds: ['doc-1', 'foreign'] })
+      createSharePack({ authority, actor, documentIds: ['doc-1', 'foreign'] })
     ).rejects.toThrow('Invalid IDs');
+    expect(hoisted.values).not.toHaveBeenCalled();
+  });
+
+  it('inserts no pack when the eligibility check fails', async () => {
+    const authority = mintTestTenantAuthority('tenant_mk');
+    hoisted.canShareAllDocuments.mockRejectedValueOnce(new Error('read failed'));
+
+    await expect(createSharePack({ authority, actor, documentIds: ['doc-1'] })).rejects.toThrow(
+      'read failed'
+    );
     expect(hoisted.values).not.toHaveBeenCalled();
   });
 
@@ -176,9 +196,19 @@ describe('share-pack.service token security', () => {
     const authority = mintTestTenantAuthority('tenant_mk');
     hoisted.resolveSharePackTenant.mockResolvedValueOnce({ tenantId: 'tenant_mk', authority });
     hoisted.findPack.mockResolvedValueOnce({ id: 'pack-1', documentIds: ['doc-1'] });
-    hoisted.select.mockReturnValueOnce({ from: () => ({ where: async () => [{ id: 'doc-1' }] }) });
+    let documentCondition: unknown;
+    hoisted.select.mockReturnValueOnce({
+      from: () => ({
+        where: async (condition: unknown) => {
+          documentCondition = condition;
+          return [{ id: 'doc-1' }];
+        },
+      }),
+    });
 
     const result = await getSharePack({ token });
+    // A deleted document leaves every pack that named it.
+    expect(JSON.stringify(documentCondition)).toContain('"isNull":"documents.deletedAt"');
 
     expect(hoisted.resolveSharePackTenant).toHaveBeenCalledWith(
       'pack-1',

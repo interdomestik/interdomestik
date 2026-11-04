@@ -61,6 +61,7 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
     initialTransitRows(initialContext?.transit ?? [])
   );
   const [focusRequest, setFocusRequest] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
   const nextTransitId = useRef(0);
   const transitRefs = useRef<Array<HTMLSelectElement | null>>([]);
   const addTransitRef = useRef<HTMLButtonElement | null>(null);
@@ -78,6 +79,9 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
     setDestination(initialDestination);
     setTransit(initialTransitRows(initialTransit ? initialTransit.split(',') : []));
   }, [initialDestination, initialOrigin, initialTransit]);
+
+  // Declared after the reset above, so the ready marker follows any state sync on mount.
+  useEffect(() => setHydrated(true), []);
 
   useEffect(() => {
     const index = focusTransitIndex.current;
@@ -137,7 +141,12 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
         <p className="text-sm text-slate-600">{copy.preparationOnly}</p>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form className="space-y-4" onSubmit={applyCorridor}>
+        {/* Ready marker: present only once React owns the form, so awaiting callers keep input. */}
+        <form
+          className="space-y-4"
+          data-testid={hydrated ? 'diaspora-form-ready' : undefined}
+          onSubmit={applyCorridor}
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-2 text-sm font-semibold text-slate-900">
               <span>{copy.origin}</span>

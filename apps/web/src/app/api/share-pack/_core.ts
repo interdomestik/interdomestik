@@ -1,9 +1,10 @@
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import type { ShareActor } from '@/app/api/documents/share-eligible-documents';
 
 export interface SharePackServices {
   createSharePack: (params: {
     authority: TenantAuthority;
-    userId: string;
+    actor: ShareActor;
     documentIds: string[];
   }) => Promise<{ packId: string; token: string; expiresAt: Date }>;
   getSharePack: (params: { token: string }) => Promise<{
@@ -53,29 +54,31 @@ export interface GetSharePackResult {
  */
 export async function createSharePackCore(params: {
   authority: TenantAuthority;
-  userId: string;
+  actor: ShareActor;
   documentIds: string[];
   ipAddress?: string;
   userAgent?: string;
   services: SharePackServices;
 }): Promise<CreateSharePackResult> {
-  const { authority, userId, documentIds, ipAddress, userAgent, services } = params;
+  const { authority, actor, ipAddress, userAgent, services } = params;
+  // Each document is authorized and audited once, however often it was requested.
+  const documentIds = [...new Set(params.documentIds ?? [])];
 
-  if (!documentIds || documentIds.length === 0) {
+  if (documentIds.length === 0) {
     return { ok: false, error: 'IDs required' };
   }
 
   try {
     const result = await services.createSharePack({
       authority,
-      userId,
+      actor,
       documentIds,
     });
 
     await services.logAuditEvent({
       authority,
       ids: documentIds,
-      accessedBy: userId,
+      accessedBy: actor.id,
       shareToken: result.token,
       ipAddress,
       userAgent,
