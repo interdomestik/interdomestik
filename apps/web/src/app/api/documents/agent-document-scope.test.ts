@@ -113,7 +113,7 @@ function linkTableDb(links: Record<string, string>[]): never {
         const equalities = [...sql.matchAll(/"(\w+)" = \$(\d+)/g)].map(
           ([, column, index]) => [column, params[Number(index) - 1]] as const
         );
-        expect(equalities.length).toBe(4);
+        expect(equalities).toHaveLength(4);
         const rows = links.filter(row =>
           equalities.every(([column, value]) => row[column] === value)
         );
