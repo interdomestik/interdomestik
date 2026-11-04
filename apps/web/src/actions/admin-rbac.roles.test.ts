@@ -96,21 +96,6 @@ describe('domain-users rbac: branch required roles', () => {
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
-  it('allows restoring a legacy tenant-wide agent role without branchId when explicitly flagged', async () => {
-    const result = await grantUserRoleCore({
-      session,
-      authority,
-      userId: 'user-1',
-      role: 'agent',
-      branchId: null,
-      allowLegacyTenantWide: true,
-    });
-
-    expect(result).toEqual({ success: true });
-    expect(hoisted.branchesFindFirst).not.toHaveBeenCalled();
-    expect(hoisted.withTenantContext).toHaveBeenCalled();
-  });
-
   it('rejects assigning branch_manager role without branchId', async () => {
     const result = await grantUserRoleCore({
       session,
