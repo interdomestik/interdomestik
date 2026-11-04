@@ -6,7 +6,6 @@
 // the cluster as admin (gate, smoke, state setup, lanes on other databases) agrees on it without
 // exporting a secret, and re-provisioning never rotates it under a running server.
 import { createHmac } from 'node:crypto';
-import { pathToFileURL } from 'node:url';
 import postgres from 'postgres';
 
 export const E2E_RUNTIME_ROLE = 'interdomestik_e2e_runtime';
@@ -116,12 +115,18 @@ async function provisionRole(sql, role, password) {
       where n.nspname = 'public' and (c.relkind in ('r', 'p', 'S')
         or (c.relkind = 'v' and 'security_invoker=true' = any(coalesce(c.reloptions, '{}'))))
       order by c.relname`;
-    for (const { name, kind } of relations) {
-      const privileges =
-        kind === 'S' ? 'USAGE, SELECT' : kind === 'v' ? 'SELECT' : 'SELECT, INSERT, UPDATE, DELETE';
-      const target = kind === 'S' ? `SEQUENCE public.${name}` : `TABLE public.${name}`;
-      await tx.unsafe(`GRANT ${privileges} ON ${target} TO ${role}`);
-    }
+    const names = kinds =>
+      relations.filter(r => kinds.includes(r.kind)).map(r => `public.${r.name}`);
+    const grants = [
+      ['SELECT, INSERT, UPDATE, DELETE ON TABLE', names(['r', 'p'])],
+      ['USAGE, SELECT ON SEQUENCE', names(['S'])],
+      ['SELECT ON TABLE', names(['v'])],
+    ].filter(([, targets]) => targets.length > 0);
+    await Promise.all(
+      grants.map(([privileges, targets]) =>
+        tx.unsafe(`GRANT ${privileges} ${targets.join(', ')} TO ${role}`)
+      )
+    );
   });
 }
 
@@ -198,7 +203,7 @@ async function findRowSecurityBypasses(sql, role) {
           and e.extname || ':' || n.nspname || '.' || p.proname || ':'
             || md5(pg_get_functiondef(p.oid)) = any(${REVIEWED_EXTENSION_OBJECTS}))
       and has_function_privilege(${role}, p.oid, 'EXECUTE')`;
-  return [...relations, ...functions].map(row => row.name).sort();
+  return [...relations, ...functions].map(row => row.name).sort((a, b) => a.localeCompare(b));
 }
 
 async function assertRolePosture(sql, role) {
@@ -237,14 +242,13 @@ async function assertRuntimeSession(runtimeUrl, role) {
 // Advisory locks are per database, so lanes on sibling databases of one cluster can race on
 // the cluster-wide role catalog. Retry only those catalog races; every other error is final.
 const CATALOG_RACE_CODES = new Set(['42710', '23505', '40001', 'XX000']);
-async function provisionRoleWithRetry(sql, role, password) {
-  for (let attempt = 1; ; attempt += 1) {
-    try {
-      return await provisionRole(sql, role, password);
-    } catch (error) {
-      if (attempt >= 5 || !CATALOG_RACE_CODES.has(error?.code)) throw error;
-      await new Promise(resolve => setTimeout(resolve, 200 * attempt));
-    }
+async function provisionRoleWithRetry(sql, role, password, attempt = 1) {
+  try {
+    return await provisionRole(sql, role, password);
+  } catch (error) {
+    if (attempt >= 5 || !CATALOG_RACE_CODES.has(error?.code)) throw error;
+    await new Promise(resolve => setTimeout(resolve, 200 * attempt));
+    return provisionRoleWithRetry(sql, role, password, attempt + 1);
   }
 }
 
@@ -277,24 +281,4 @@ export function describeRuntimeRoleFailure(error) {
   if (error instanceof RuntimeRoleError) return error.message;
   const code = typeof error?.code === 'string' && /^[0-9A-Z]{5}$/u.test(error.code);
   return `database error ${code ? error.code : 'unknown'}`;
-}
-
-async function main() {
-  const adminUrl = process.env.E2E_DATABASE_URL;
-  if (!adminUrl) throw new RuntimeRoleError('E2E_DATABASE_URL is required');
-  if (process.argv.includes('--check-target')) return assertE2eRuntimeTarget(adminUrl);
-  const runtimeUrl = await provisionE2eRuntimeRole({
-    adminUrl,
-    runtimeUrl: process.env.E2E_SERVER_DATABASE_URL_RLS || undefined,
-  });
-  console.error(`[e2e-runtime-role] ${E2E_RUNTIME_ROLE} provisioned (restricted, RLS enforced)`);
-  // Only the caller's command substitution reads the URL; it is never logged.
-  if (process.argv.includes('--print-url')) process.stdout.write(runtimeUrl);
-}
-
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  main().catch(error => {
-    console.error(`[e2e-runtime-role] failed: ${describeRuntimeRoleFailure(error)}`);
-    process.exit(1);
-  });
 }

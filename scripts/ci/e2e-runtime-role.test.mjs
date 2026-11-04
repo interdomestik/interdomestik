@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   assertE2eRuntimeTarget,
@@ -112,4 +114,22 @@ test('failure output keeps only authored messages and the SQLSTATE of driver err
     }
   );
   assert.equal(describeRuntimeRoleFailure(new Error('raw leak-me')), 'database error unknown');
+});
+
+test('the CLI fails closed with a sanitized message before touching a database', () => {
+  const cli = fileURLToPath(new URL('../e2e-runtime-role-cli.mjs', import.meta.url));
+  const run = (env, ...args) =>
+    spawnSync(process.execPath, [cli, ...args], { env: { PATH: process.env.PATH, ...env } });
+  const missing = run({}, '--print-url');
+  assert.equal(missing.status, 1);
+  assert.match(String(missing.stderr), /failed: E2E_DATABASE_URL is required/u);
+  assert.equal(String(missing.stdout), '');
+  const remote = run(
+    { E2E_DATABASE_URL: 'postgresql://p:secret@db.example.com/x' },
+    '--check-target'
+  );
+  assert.equal(remote.status, 1);
+  assert.match(String(remote.stderr), /loopback/u);
+  assert.doesNotMatch(String(remote.stderr), /secret/u);
+  assert.equal(run({ E2E_DATABASE_URL: ADMIN }, '--check-target').status, 0);
 });

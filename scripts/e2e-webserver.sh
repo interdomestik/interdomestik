@@ -187,7 +187,7 @@ fi
 
 if [[ "${PLAYWRIGHT:-}" == "1" ]]; then
 	# Plan070 U2-a: the server's tenant client is the NOBYPASSRLS runtime role; fixtures stay admin.
-	DATABASE_URL_RLS="$(E2E_DATABASE_URL="${DATABASE_URL}" node "${ROOT_DIR}/scripts/e2e-runtime-role.mjs" --print-url)"
+	DATABASE_URL_RLS="$(E2E_DATABASE_URL="${DATABASE_URL}" node "${ROOT_DIR}/scripts/e2e-runtime-role-cli.mjs" --print-url)"
 	export DATABASE_URL_RLS REQUIRE_RLS_INTEGRATION=1
 elif [[ -n "${E2E_DATABASE_URL_RLS:-}" ]]; then
 	export DATABASE_URL_RLS="${E2E_DATABASE_URL_RLS}"
