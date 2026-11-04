@@ -56,7 +56,6 @@ vi.mock('drizzle-orm', () => ({
 }));
 vi.mock('nanoid', () => ({ nanoid: () => 'id-1' }));
 vi.mock('./email', () => ({
-  sendAnnualReportEmail: vi.fn(),
   sendCheckinEmail: h.sendCheckinEmail,
   sendOnboardingEmail: h.sendOnboardingEmail,
   sendSeasonalEmail: vi.fn(),

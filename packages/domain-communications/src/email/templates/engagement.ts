@@ -156,18 +156,3 @@ export function renderSeasonalEmail(params: { season: 'winter' | 'summer'; name:
     ctaUrl: dashboardUrl,
   });
 }
-
-export function renderAnnualReportEmail(params: { name: string; year: number }) {
-  const wrappedUrl = joinUrl(DEFAULT_APP_URL, '/dashboard/wrapped');
-  return buildEmailTemplate({
-    title: `Your ${params.year} Protection Summary is Ready! 🏆`,
-    intro: `Hi ${params.name}, we've summarized your year with Interdomestik. Discover how your membership protected you in ${params.year}.`,
-    details: [
-      'See your total days protected.',
-      'Review your resolved claims and savings.',
-      'Share your protection status with others.',
-    ],
-    ctaLabel: 'View My Summary',
-    ctaUrl: wrappedUrl,
-  });
-}

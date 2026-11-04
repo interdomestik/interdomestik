@@ -31,7 +31,6 @@ export { sendPushToUser } from './push';
 export type { PushPayload } from './push';
 
 export {
-  sendAnnualReportEmail,
   sendCheckinEmail,
   sendClaimAssignedEmail,
   sendClaimSubmittedEmail,
@@ -62,7 +61,6 @@ export {
   DEFAULT_APP_URL,
   buildEmailTemplate,
   joinUrl,
-  renderAnnualReportEmail,
   renderCheckinEmail,
   renderClaimAssignedEmail,
   renderClaimSubmittedEmail,

@@ -1,7 +1,6 @@
 import * as nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import {
-  renderAnnualReportEmail,
   renderCheckinEmail,
   renderClaimAssignedEmail,
   renderClaimSubmittedEmail,
@@ -336,15 +335,6 @@ export async function sendNpsSurveyEmail(
 ): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderNpsSurveyEmail(props));
-}
-
-export async function sendAnnualReportEmail(
-  to: string,
-  name: string,
-  year: number
-): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderAnnualReportEmail({ name, year }));
 }
 
 export async function sendPaymentVerificationEmail(

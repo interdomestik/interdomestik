@@ -30,10 +30,7 @@ export type MemberHomeHeroModel = {
 };
 
 export type ClaimActionKind =
-  | 'missing_documents'
-  | 'authorization_needed'
-  | 'member_action'
-  | 'open_case';
+  'missing_documents' | 'authorization_needed' | 'member_action' | 'open_case';
 
 type ResolveMemberHomeHeroParams = {
   activeClaim: DashboardClaim | null;

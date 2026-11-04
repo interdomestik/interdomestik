@@ -52,6 +52,13 @@ describe('i18n shell namespace coverage', () => {
     expect(admin).toContain("'claims-tracking'");
   });
 
+  it('includes settings on the staff and admin shells that render account settings', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, 'messages.ts'), 'utf8');
+
+    expect(getArrayBlock(source, 'STAFF_NAMESPACES')).toContain("'settings'");
+    expect(getArrayBlock(source, 'ADMIN_NAMESPACES')).toContain("'settings'");
+  });
+
   it('includes freeStart on the home shell loader', () => {
     const source = fs.readFileSync(path.resolve(__dirname, 'messages.ts'), 'utf8');
     const allNamespaces = getArrayBlock(source, 'MESSAGE_NAMESPACES');

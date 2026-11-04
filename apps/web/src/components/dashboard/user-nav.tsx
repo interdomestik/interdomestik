@@ -22,6 +22,7 @@ import {
 import { Briefcase, LayoutTemplate, LogOut, Settings, User } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { resolveUserNavLinks } from './user-nav-links';
 
 type UserNavUser = Readonly<{
   id?: string;
@@ -99,12 +100,7 @@ function UserNavInner({
   }
 
   const role = user.role;
-  let settingsHref = '/member/settings';
-  if (isAdmin(role) || adminAccess) {
-    settingsHref = '/admin/settings';
-  } else if (role === 'agent') {
-    settingsHref = '/agent/settings';
-  }
+  const { profileHref, settingsHref } = resolveUserNavLinks(role, adminAccess);
 
   return (
     <DropdownMenu>
@@ -126,7 +122,7 @@ function UserNavInner({
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link href="/profile" className="w-full cursor-pointer">
+            <Link href={profileHref} className="w-full cursor-pointer">
               <User className="mr-2 h-4 w-4" />
               <span>{t('profile')}</span>
               <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>

@@ -1,7 +1,6 @@
 import type { IngressCapability } from '@interdomestik/database/ingress';
 import { mintIngressCapability } from '@interdomestik/database/ingress-registrar';
 import {
-  processAnnualReports,
   processEmailSequences,
   processSeasonalCampaigns,
 } from '@interdomestik/domain-communications/cron-service';
@@ -53,23 +52,14 @@ export const dailyEmailSequences = inngest.createFunction(
   { id: 'daily-email-sequences' },
   { cron: '0 8 * * *' }, // Every day at 8:00 AM UTC
   async ({ step }) => {
-    // Step 1: Process standard email sequences (welcome, onboarding, checkin)
+    // Standard email sequences (welcome, onboarding, checkin).
     // Invoked only through the signed Inngest serve endpoint; each step mints its own capability so a retry gets a fresh one.
     const emailResult = await step.run('process-email-sequences', async () => {
       const ingress = mintIngressCapability('inngest');
       return await processEmailSequences(ingress);
     });
 
-    // Step 2: Process annual reports (e.g., year-end summary)
-    const annualResult = await step.run('process-annual-reports', async () => {
-      const ingress = mintIngressCapability('inngest');
-      return await processAnnualReports(ingress);
-    });
-
-    return {
-      emailSequences: emailResult,
-      annualReports: annualResult,
-    };
+    return { emailSequences: emailResult };
   }
 );
 
