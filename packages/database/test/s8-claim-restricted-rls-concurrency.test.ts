@@ -13,6 +13,8 @@ import {
 const POOL_SIZE = 4;
 const CONTEXTS = 12;
 
+class DeliberateAbort extends Error {}
+
 // Plan070 U2-b: the restricted RLS client keeps tenant contexts apart when transactions overlap
 // on a small pool, and no committed or rolled-back context survives on a reused connection.
 test('S8 restricted tenant contexts stay isolated under concurrency and rollback', async t => {
@@ -31,7 +33,14 @@ test('S8 restricted tenant contexts stay isolated under concurrency and rollback
       const tenants = Array.from({ length: CONTEXTS }, (_, i) =>
         i % 2 ? MK_TENANT_ID : KS_TENANT_ID
       );
-      const observed = await Promise.all(
+      const observed: {
+        index: number;
+        pid?: number;
+        expected: string;
+        guc?: string;
+        seen: string[];
+      }[] = [];
+      const outcomes = await Promise.all(
         tenants.map((tenantId, index) =>
           withTenantContext({ tenantId }, async tx => {
             const [guc] = await tx.execute<{ pid: number; tenant: string }>(sql`
@@ -42,23 +51,28 @@ test('S8 restricted tenant contexts stay isolated under concurrency and rollback
               .select({ tenantId: claimMessages.tenantId })
               .from(claimMessages)
               .where(inArray(claimMessages.id, [ks.messageId, mk.messageId]));
-            // Every third context aborts after reading, so rollback paths share the pool too.
-            if (index % 3 === 2) throw new Error(`abort ${index}`);
-            return {
+            observed.push({
+              index,
               pid: guc?.pid,
               expected: tenantId,
               guc: guc?.tenant,
               seen: rows.map(r => r.tenantId),
-            };
-          }).catch((error: Error) => ({ aborted: error.message }))
+            });
+            // Every third context aborts after reading, so rollback paths share the pool too.
+            if (index % 3 === 2) throw new DeliberateAbort();
+            return 'committed' as const;
+          }).catch((error: unknown) => {
+            if (error instanceof DeliberateAbort) return 'aborted' as const;
+            throw error;
+          })
         )
       );
-      const committed = observed.filter(row => !('aborted' in row));
-      assert.equal(observed.length - committed.length, CONTEXTS / 3);
-      for (const row of committed) {
+      assert.equal(outcomes.filter(outcome => outcome === 'aborted').length, CONTEXTS / 3);
+      assert.equal(observed.length, CONTEXTS, 'every context, committed or aborted, reported');
+      for (const row of observed) {
         assert.deepEqual(row, { ...row, guc: row.expected, seen: [row.expected] });
       }
-      const pids = new Set(committed.map(row => row.pid));
+      const pids = new Set(observed.map(row => row.pid));
       assert.ok(pids.size > 1, 'transactions overlapped on more than one connection');
       assert.ok(pids.size <= POOL_SIZE, 'the pinned pool forced connection reuse');
 
