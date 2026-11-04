@@ -14,18 +14,20 @@ vi.mock('drizzle-orm', () => modules.drizzle);
 const resolveStaffClaimReader = vi.hoisted(() => vi.fn());
 vi.mock('./reader-policy', () => ({ resolveStaffClaimReader }));
 import { getStaffClaimsList as readStaffClaimsList } from './get-staff-claims-list';
-import { grantStaffReader, type StaffReaderArgs } from './staff-claim-reader.test-support';
+import { requiredStaffReader } from './staff-claim-reader.test-support';
 
-type ListArgs = Parameters<typeof readStaffClaimsList>[0] & StaffReaderArgs;
-async function getStaffClaimsList(args: ListArgs) {
-  const rows = await readStaffClaimsList(grantStaffReader(resolveStaffClaimReader, args));
-  if (!rows) throw new Error('Expected a granted staff claim reader');
-  return rows;
-}
+const getStaffClaimsList = requiredStaffReader(resolveStaffClaimReader, readStaffClaimsList);
 const authorities = {
   'tenant-ks': mintTestTenantAuthority('tenant-ks'),
   'tenant-mk': mintTestTenantAuthority('tenant-mk'),
 };
+const SEARCH_COLUMNS = [
+  'claims.title',
+  'claims.company_name',
+  'claims.claim_number',
+  'user.name',
+  'user.member_number',
+];
 function expectOwnOrUnassignedQueueScope(args: { staffId: string; tenantId: string }) {
   expect(mocks.withTenant).toHaveBeenCalledWith(
     args.tenantId,
@@ -240,5 +242,56 @@ describe('getStaffClaimsList', () => {
     });
 
     expectOwnOrUnassignedQueueScope({ staffId: 'staff-3', tenantId: 'tenant-ks' });
+  });
+
+  it('applies assignment, status, and search filters', async () => {
+    mocks.claimChain.limit.mockResolvedValue([]);
+
+    await getStaffClaimsList({
+      staffId: 'staff-3',
+      authority: authorities['tenant-ks'],
+      branchId: null,
+      limit: 10,
+      assignment: 'unassigned',
+      search: 'Acme',
+      status: 'verification',
+    });
+
+    expect(mocks.withTenant).toHaveBeenCalledWith(
+      'tenant-ks',
+      mocks.claims.tenantId,
+      expect.objectContaining({
+        op: 'and',
+        conditions: expect.arrayContaining([
+          expect.objectContaining({ op: 'inArray' }),
+          expect.objectContaining({ op: 'inArray', values: ['verification'] }),
+          expect.objectContaining({ op: 'isNull', column: 'claims.staff_id' }),
+          expect.objectContaining({
+            op: 'or',
+            conditions: expect.arrayContaining(
+              SEARCH_COLUMNS.map(column =>
+                expect.objectContaining({ op: 'ilike', column, value: '%Acme%' })
+              )
+            ),
+          }),
+        ]),
+      })
+    );
+  });
+
+  it('applies deterministic ordering by updatedAt DESC then id DESC', async () => {
+    mocks.claimChain.limit.mockResolvedValue([]);
+
+    await getStaffClaimsList({
+      staffId: 'staff-4',
+      authority: authorities['tenant-ks'],
+      branchId: 'branch-4',
+      limit: 10,
+    });
+
+    expect(mocks.claimChain.orderBy).toHaveBeenCalledWith(
+      expect.objectContaining({ op: 'desc', value: 'claims.updated_at' }),
+      expect.objectContaining({ op: 'desc', value: 'claims.id' })
+    );
   });
 });

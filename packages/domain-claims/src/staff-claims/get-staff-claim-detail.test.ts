@@ -54,12 +54,9 @@ vi.mock('./matter-allowance', mocks.matterAllowanceMock);
 const resolveStaffClaimReader = vi.hoisted(() => vi.fn());
 vi.mock('./reader-policy', () => ({ resolveStaffClaimReader }));
 import { getStaffClaimDetail as readStaffClaimDetail } from './get-staff-claim-detail';
-import { grantStaffReader, type StaffReaderArgs } from './staff-claim-reader.test-support';
+import { grantedStaffReader } from './staff-claim-reader.test-support';
 
-type DetailArgs = Parameters<typeof readStaffClaimDetail>[0] & StaffReaderArgs;
-function getStaffClaimDetail(args: DetailArgs) {
-  return readStaffClaimDetail(grantStaffReader(resolveStaffClaimReader, args));
-}
+const getStaffClaimDetail = grantedStaffReader(resolveStaffClaimReader, readStaffClaimDetail);
 
 const authorities = {
   'tenant-ks': mintTestTenantAuthority('tenant-ks'),

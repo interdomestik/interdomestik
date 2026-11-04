@@ -3,6 +3,13 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 
 import { createClaimRow } from './get-staff-claim-detail.test-support';
 
+const resolveStaffClaimReader = vi.hoisted(() => vi.fn());
+vi.mock('./reader-policy', () => ({ resolveStaffClaimReader }));
+import { getStaffClaimDetail as readStaffClaimDetail } from './get-staff-claim-detail';
+import { grantedStaffReader } from './staff-claim-reader.test-support';
+
+const getStaffClaimDetail = grantedStaffReader(resolveStaffClaimReader, readStaffClaimDetail);
+
 const mocks = await vi.hoisted(async () => {
   const {
     agreementColumns,
@@ -44,16 +51,6 @@ vi.mock('@interdomestik/database', mocks.databaseMock);
 vi.mock('@interdomestik/database/tenant-security', mocks.tenantSecurityMock);
 
 vi.mock('./matter-allowance', mocks.matterAllowanceMock);
-
-const resolveStaffClaimReader = vi.hoisted(() => vi.fn());
-vi.mock('./reader-policy', () => ({ resolveStaffClaimReader }));
-import { getStaffClaimDetail as readStaffClaimDetail } from './get-staff-claim-detail';
-import { grantStaffReader, type StaffReaderArgs } from './staff-claim-reader.test-support';
-
-type DetailArgs = Parameters<typeof readStaffClaimDetail>[0] & StaffReaderArgs;
-function getStaffClaimDetail(args: DetailArgs) {
-  return readStaffClaimDetail(grantStaffReader(resolveStaffClaimReader, args));
-}
 
 const authorities = {
   'tenant-ks': mintTestTenantAuthority('tenant-ks'),

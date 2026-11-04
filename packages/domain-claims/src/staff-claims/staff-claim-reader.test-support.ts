@@ -30,3 +30,24 @@ export function grantStaffReader<T extends StaffReaderArgs>(
   resolveReader.mockReturnValue(reader);
   return params;
 }
+
+/** A reader call that first grants the staff claim reader its arguments state. */
+export function grantedStaffReader<P extends { authority: TenantAuthority }, R>(
+  resolveReader: Mock,
+  read: (params: P) => Promise<R>
+): (args: P & StaffReaderArgs) => Promise<R> {
+  return args => read(grantStaffReader(resolveReader, args) as unknown as P);
+}
+
+/** As grantedStaffReader, for tests that need the granted reader's result. */
+export function requiredStaffReader<P extends { authority: TenantAuthority }, R>(
+  resolveReader: Mock,
+  read: (params: P) => Promise<R | null>
+): (args: P & StaffReaderArgs) => Promise<R> {
+  const granted = grantedStaffReader(resolveReader, read);
+  return async args => {
+    const result = await granted(args);
+    if (result === null) throw new Error('Expected a granted staff claim reader');
+    return result;
+  };
+}

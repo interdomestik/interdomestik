@@ -111,6 +111,11 @@ vi.mock('next-intl/server', async () => {
   };
 });
 
+vi.mock('@/features/staff/claims/server/authorize-staff-claim-page', async () => {
+  const { mockStaffClaimPageAuthority } = await import('./staff-claim-page-authority.test-support');
+  return mockStaffClaimPageAuthority(hoisted.current);
+});
+
 vi.mock('@/features/staff/claims/server/get-assigned-claim-documents', () => ({
   getAssignedStaffClaimDocuments: vi.fn(() => Promise.resolve([])),
 }));
@@ -123,32 +128,6 @@ vi.mock('next/navigation', () => ({
     throw new Error('notFound');
   },
 }));
-
-vi.mock('@/features/staff/claims/server/authorize-staff-claim-page', async () => {
-  const { mintTestTenantAuthority } =
-    await import('@interdomestik/database/testing/tenant-authority');
-  const { ensureTenantId } = await import('@interdomestik/shared-auth');
-  return {
-    // Mirrors the real producer for the session this render's getSessionSafe returned.
-    authorizeStaffClaimPage: vi.fn((user: { id: string; role?: string | null }) => {
-      const session = hoisted.current.session as { user?: { id?: string } } | null;
-      if (session?.user?.id !== user.id) return Promise.resolve(null);
-      let tenantId: string;
-      try {
-        tenantId = ensureTenantId(session as never);
-      } catch (error) {
-        if ((error as { name?: unknown }).name !== 'MissingTenantError') throw error;
-        return Promise.resolve(null);
-      }
-      const authority = mintTestTenantAuthority(tenantId, {
-        userId: user.id,
-        role: user.role ?? null,
-      });
-      hoisted.current.authority = authority;
-      return Promise.resolve(authority);
-    }),
-  };
-});
 
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: async (context: string) => {
