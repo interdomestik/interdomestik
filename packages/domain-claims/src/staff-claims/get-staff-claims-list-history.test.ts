@@ -11,8 +11,14 @@ vi.mock('@interdomestik/database', () => modules.database);
 vi.mock('@interdomestik/database/tenant-security', () => modules.tenantSecurity);
 vi.mock('drizzle-orm', () => modules.drizzle);
 
-import { getStaffClaimsList } from './get-staff-claims-list';
 import { VALID_DIASPORA_ORIGIN_NOTES } from './staff-claims-diaspora-origin-notes';
+
+const resolveStaffClaimReader = vi.hoisted(() => vi.fn());
+vi.mock('./reader-policy', () => ({ resolveStaffClaimReader }));
+import { getStaffClaimsList as readStaffClaimsList } from './get-staff-claims-list';
+import { requiredStaffReader } from './staff-claim-reader.test-support';
+
+const getStaffClaimsList = requiredStaffReader(resolveStaffClaimReader, readStaffClaimsList);
 
 const authorities = {
   'tenant-ks': mintTestTenantAuthority('tenant-ks'),

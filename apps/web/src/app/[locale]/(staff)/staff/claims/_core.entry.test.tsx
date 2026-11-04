@@ -42,8 +42,8 @@ vi.mock('@/i18n/routing', () => ({
   }),
 }));
 
-vi.mock('@/lib/tenant-authority.server', () => ({
-  authorizeSessionTenant: hoisted.authorizeMock,
+vi.mock('@/features/staff/claims/server/authorize-staff-claim-page', () => ({
+  authorizeStaffClaimPage: hoisted.authorizeMock,
 }));
 
 vi.mock('@/components/shell/session', () => ({
@@ -129,7 +129,7 @@ const authority = mintTestTenantAuthority('tenant-ks');
 
 describe('StaffClaimsPage', () => {
   beforeEach(() => {
-    hoisted.authorizeMock.mockReset().mockResolvedValue({ session: {}, authority });
+    hoisted.authorizeMock.mockReset().mockResolvedValue(authority);
     hoisted.locale = 'en';
     hoisted.getSessionMock.mockClear();
     hoisted.getStaffClaimsListMock.mockClear();
@@ -137,7 +137,7 @@ describe('StaffClaimsPage', () => {
     hoisted.getAssignedStaffClaimAttentionMock.mockReset().mockResolvedValue({});
   });
 
-  it('passes branch-aware search filters into the staff queue query', async () => {
+  it('passes the session user authority and search filters into the staff queue query', async () => {
     const tree = await StaffClaimsPage({
       params: Promise.resolve({ locale: 'en' }),
       searchParams: Promise.resolve({
@@ -149,16 +149,16 @@ describe('StaffClaimsPage', () => {
 
     render(tree);
 
+    expect(hoisted.authorizeMock).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: 'manager-1', role: 'branch_manager', branchId: 'branch-1' })
+    );
     expect(hoisted.getStaffClaimsListMock).toHaveBeenCalledWith({
       assignment: 'unassigned',
-      branchId: 'branch-1',
       diasporaOrigin: 'all',
       limit: 20,
       search: 'Acme',
-      staffId: 'manager-1',
       status: 'verification',
       authority,
-      viewerRole: 'branch_manager',
     });
     expect(
       (hoisted.getStaffClaimsListMock.mock.calls[0] as unknown as [{ authority: unknown }])[0]

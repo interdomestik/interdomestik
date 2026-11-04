@@ -16,5 +16,4 @@ export type JurisdictionHandoffTransactionResult =
   | { success: false; error: JurisdictionHandoffPreCommitError };
 
 export type JurisdictionHandoffResult =
-  | JurisdictionHandoffTransactionResult
-  | { success: false; error: JurisdictionHandoffRollbackCode };
+  JurisdictionHandoffTransactionResult | { success: false; error: JurisdictionHandoffRollbackCode };

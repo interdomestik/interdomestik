@@ -35,7 +35,9 @@ vi.mock('@/i18n/routing', () => ({
   ),
   useRouter: () => ({ push: vi.fn() }),
 }));
-vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: mocks.authorize }));
+vi.mock('@/features/staff/claims/server/authorize-staff-claim-page', () => ({
+  authorizeStaffClaimPage: mocks.authorize,
+}));
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: mocks.getSession,
   requireSessionOrRedirect: (session: unknown) => session,
@@ -100,7 +102,7 @@ const authority = mintTestTenantAuthority('tenant-ks');
 
 describe('staff claim attention', () => {
   beforeEach(() => {
-    mocks.authorize.mockReset().mockResolvedValue({ session: {}, authority });
+    mocks.authorize.mockReset().mockResolvedValue(authority);
     mocks.locale = 'en';
     mocks.getSession.mockReset().mockResolvedValue({
       user: {

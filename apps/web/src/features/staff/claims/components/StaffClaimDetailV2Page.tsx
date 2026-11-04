@@ -52,12 +52,7 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
       staffId: session.user.id,
       authority,
     }),
-    getStaffClaimDetail({
-      branchId: session.user.branchId ?? null,
-      claimId: id,
-      staffId: session.user.id,
-      authority,
-    }),
+    getStaffClaimDetail({ claimId: id, authority }),
     getStaffAssignmentOptions({
       branchId: session.user.branchId ?? null,
       authority,

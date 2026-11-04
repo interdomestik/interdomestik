@@ -51,7 +51,12 @@ vi.mock('@interdomestik/database/tenant-security', mocks.tenantSecurityMock);
 
 vi.mock('./matter-allowance', mocks.matterAllowanceMock);
 
-import { getStaffClaimDetail } from './get-staff-claim-detail';
+const resolveStaffClaimReader = vi.hoisted(() => vi.fn());
+vi.mock('./reader-policy', () => ({ resolveStaffClaimReader }));
+import { getStaffClaimDetail as readStaffClaimDetail } from './get-staff-claim-detail';
+import { grantedStaffReader } from './staff-claim-reader.test-support';
+
+const getStaffClaimDetail = grantedStaffReader(resolveStaffClaimReader, readStaffClaimDetail);
 
 const authorities = {
   'tenant-ks': mintTestTenantAuthority('tenant-ks'),
@@ -69,6 +74,16 @@ describe('getStaffClaimDetail', () => {
     mocks.claimChain.where.mockReturnValue(mocks.claimChain);
     mocks.agentChain.from.mockReturnValue(mocks.agentChain);
     mocks.agentChain.where.mockReturnValue(mocks.agentChain);
+  });
+
+  it('reads nothing when the authority grants no staff claim reader', async () => {
+    resolveStaffClaimReader.mockReturnValue(null);
+
+    await expect(
+      readStaffClaimDetail({ authority: authorities['tenant-ks'], claimId: 'claim-1' })
+    ).resolves.toBeNull();
+    expect(resolveStaffClaimReader).toHaveBeenCalledWith(authorities['tenant-ks']);
+    expect(mocks.db.select).not.toHaveBeenCalled();
   });
 
   it('returns member and claim details for tenant', async () => {

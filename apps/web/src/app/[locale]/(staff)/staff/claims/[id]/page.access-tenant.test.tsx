@@ -21,9 +21,7 @@ describe('staff claim page effective access tenant', () => {
     expect(screen.getByTestId('staff-claim-detail-ready')).toBeInTheDocument();
     const authority = hoisted.current.authority!;
     expect(hoisted.getStaffClaimDetailMock).toHaveBeenCalledExactlyOnceWith({
-      branchId: 'branch-a',
       claimId: 'claim-1',
-      staffId: 'staff-1',
       authority,
     });
     expect(readTenantAuthority(authority).tenantId).toBe('access-b');
@@ -63,9 +61,7 @@ describe('staff claim page effective access tenant', () => {
     hoisted.getStaffClaimDetailMock.mockResolvedValueOnce(null as never);
     await expect(renderPage()).rejects.toThrow('notFound');
     expect(hoisted.getStaffClaimDetailMock).toHaveBeenCalledExactlyOnceWith({
-      branchId: 'branch-a',
       claimId: 'claim-1',
-      staffId: 'staff-1',
       authority: hoisted.current.authority!,
     });
     expect(hoisted.getPublicStatusHistoryCoreMock).not.toHaveBeenCalled();

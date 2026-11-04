@@ -1,8 +1,5 @@
 import { claimEscalationAgreements, claims, eq, user } from '@interdomestik/database';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import {
@@ -13,6 +10,7 @@ import {
 import { buildCommercialHandlingScopeSnapshot } from './commercial-handling-scope';
 import { getMatterAllowanceVisibilityForUser } from './matter-allowance';
 import { buildRecoveryDecisionSnapshot } from './recovery-decision';
+import { resolveStaffClaimReader } from './reader-policy';
 import { buildScopedStaffClaimWhere } from './scope';
 import { resolveClaimLifecycleReadProjection } from '../claims/lifecycle-read-model';
 import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
@@ -65,14 +63,18 @@ function normalizeDate(value: Date | string | null | undefined) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+/**
+ * One claim's staff detail for the reader the authority grants. Null when the authority grants no
+ * staff claim reader (no query runs) or the claim is outside the reader's scope.
+ */
 export async function getStaffClaimDetail(params: {
-  branchId?: string | null;
-  staffId: string;
   authority: TenantAuthority;
   claimId: string;
 }): Promise<StaffClaimDetail | null> {
-  const { branchId = null, authority, claimId } = params;
-  const { tenantId } = readTenantAuthority(authority);
+  const { authority, claimId } = params;
+  const reader = resolveStaffClaimReader(authority);
+  if (!reader) return null;
+  const { branchId, staffId, tenantId } = reader;
 
   return withTenantAuthority(authority, async tx => {
     const rows = await tx
@@ -120,7 +122,7 @@ export async function getStaffClaimDetail(params: {
           branchId,
           claimId,
           tenantId,
-          userId: params.staffId,
+          userId: staffId,
         })
       )
       .limit(1);
