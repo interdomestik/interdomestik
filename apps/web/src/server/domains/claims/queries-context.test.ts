@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const h = vi.hoisted(() => ({ context: vi.fn(), select: vi.fn() }));
-vi.mock('@interdomestik/database', async () => ({
-  claims: (await import('@interdomestik/database/schema')).claims,
-  withTenantContext: h.context,
-  // No global db: all queries must use the transaction supplied by the boundary.
+// No global db: all queries must use the transaction supplied by the authority boundary.
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: h.context,
 }));
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { getClaimsListQuery } from './queries';
+
+const AUTHORITY = { authority: 'session' } as unknown as TenantAuthority;
 
 describe('claims list RLS connection', () => {
   beforeEach(() => {
@@ -24,23 +26,20 @@ describe('claims list RLS connection', () => {
         builder[method] = vi.fn(() => builder);
       h.select.mockReturnValueOnce(builder);
     }
-    const result = await getClaimsListQuery({
+    const result = await getClaimsListQuery(AUTHORITY, {
       tenantId: 'tenant-ks',
       userId: 'member-1',
       role: 'member',
       branchId: null,
     });
-    expect(h.context).toHaveBeenCalledWith(
-      { tenantId: 'tenant-ks', role: 'member' },
-      expect.any(Function)
-    );
+    expect(h.context).toHaveBeenCalledWith(AUTHORITY, expect.any(Function));
     expect(h.select).toHaveBeenCalledTimes(2);
     expect(result).toEqual({ rows, facets });
   });
   it('propagates context failure instead of fabricating an empty list', async () => {
     h.context.mockRejectedValueOnce(new Error('RLS unavailable'));
     await expect(
-      getClaimsListQuery({
+      getClaimsListQuery(AUTHORITY, {
         tenantId: 'tenant-ks',
         userId: 'member-1',
         role: 'member',

@@ -33,8 +33,8 @@ export function ensureClaimsAccess(session: ClaimsSession | null): ClaimsAccessC
   const branchId = user.branchId || null;
   const userId = user.id;
 
-  // Member access is allowed here because getClaimsListV2 is used by the universal /api/claims endpoint.
-  // The query builder in queries.ts enforces strict owner-scoping (eq(claims.userId, userId)) for members.
+  // getClaimsListV2 backs the member claims surface (/api/claims). The query builder in queries.ts
+  // scopes every role to the claims it owns (eq(claims.userId, userId)).
 
   // We return the context, the Query Builder will apply the strict filters.
   return {

@@ -9,6 +9,7 @@ vi.mock('@sentry/nextjs', () => ({
   captureException: vi.fn(),
   withServerActionInstrumentation: (_name: string, _options: unknown, run: () => unknown) => run(),
 }));
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { GET } from './route';
 
 // Exercise the real domain mapper and API serializer, not a pre-sanitized DTO mock.
@@ -57,6 +58,29 @@ describe('claims API role projection', () => {
       expect(body.totalCount).toBe(1);
     }
   );
+
+  it('reads under the authority minted from the same session it scopes to', async () => {
+    h.session.mockResolvedValue({
+      user: { id: 'member-1', tenantId: 'tenant-ks', role: 'member' },
+    });
+    const response = await GET(new Request('http://localhost/api/claims?userId=other&tenantId=x'));
+    expect(response.status).toBe(200);
+    const [authority, filters, expectedTenantId] = h.query.mock.calls[0];
+    expect(readTenantAuthority(authority)).toMatchObject({
+      tenantId: 'tenant-ks',
+      purpose: 'session',
+      principal: { userId: 'member-1', role: 'member' },
+    });
+    expect(filters).toMatchObject({ tenantId: 'tenant-ks', userId: 'member-1' });
+    expect(expectedTenantId).toBe('tenant-ks');
+  });
+
+  it('refuses a session without a tenant before reading', async () => {
+    h.session.mockResolvedValue({ user: { id: 'member-1', role: 'member' } });
+    const response = await GET(new Request('http://localhost/api/claims'));
+    expect(response.status).toBe(401);
+    expect(h.query).not.toHaveBeenCalled();
+  });
 
   it.each(['staff', 'branch_manager', 'admin', 'tenant_admin', 'super_admin'])(
     'retains authorized operational data for %s',

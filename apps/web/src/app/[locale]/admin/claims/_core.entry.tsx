@@ -2,7 +2,7 @@
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
 import { AdminClaimsFilters } from '@/components/admin/claims/claims-filters';
 import { ClaimsList } from '@/components/admin/claims/claims-list';
-import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { getClaimsListV2 } from '@/server/domains/claims';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -31,9 +31,7 @@ export default async function AdminClaimsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const tAdmin = await getTranslations('admin.claims_page');
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authorized = await authorizeSessionTenant(await headers());
 
   const params = await searchParams;
   const page = Number(params?.page || 1);
@@ -50,7 +48,7 @@ export default async function AdminClaimsPage({
 
   let claimsData;
   try {
-    claimsData = await getClaimsListV2(session, {
+    claimsData = await getClaimsListV2(authorized, {
       page,
       statusFilter,
       statuses,

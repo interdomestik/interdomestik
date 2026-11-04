@@ -1,21 +1,23 @@
 // v2.0.0-ops — Admin Claims lifecycle hardening
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MissingTenantError } from '@interdomestik/shared-auth';
 import { GET } from './route';
 
 const hoisted = vi.hoisted(() => ({
-  getSession: vi.fn(),
+  authorizeSessionTenant: vi.fn(),
   enforceRateLimit: vi.fn(),
   getClaimsListV2: vi.fn(),
   setTag: vi.fn(),
 }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: hoisted.getSession,
-    },
-  },
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: hoisted.authorizeSessionTenant,
 }));
+
+const AUTHORIZED = {
+  session: { user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' } },
+  authority: { kind: 'session-authority' },
+};
 
 vi.mock('@/lib/rate-limit', () => ({
   enforceRateLimit: hoisted.enforceRateLimit,
@@ -36,7 +38,7 @@ describe('GET /api/claims', () => {
   });
 
   it('returns 401 when unauthenticated', async () => {
-    hoisted.getSession.mockResolvedValue(null);
+    hoisted.authorizeSessionTenant.mockResolvedValue(null);
 
     const request = new Request('http://localhost:3000/api/claims');
     const response = await GET(request);
@@ -44,12 +46,46 @@ describe('GET /api/claims', () => {
 
     expect(response.status).toBe(401);
     expect(data).toEqual({ success: false, error: 'Unauthorized' });
+    expect(hoisted.getClaimsListV2).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when the session has no tenant', async () => {
+    hoisted.authorizeSessionTenant.mockRejectedValue(new MissingTenantError());
+
+    const response = await GET(new Request('http://localhost:3000/api/claims'));
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ success: false, error: 'Unauthorized' });
+    expect(hoisted.getClaimsListV2).not.toHaveBeenCalled();
+  });
+
+  it('does not report a session lookup failure as a denial', async () => {
+    hoisted.authorizeSessionTenant.mockRejectedValue(new Error('auth store unavailable'));
+
+    await expect(GET(new Request('http://localhost:3000/api/claims'))).rejects.toThrow(
+      'auth store unavailable'
+    );
+    expect(hoisted.getClaimsListV2).not.toHaveBeenCalled();
+  });
+
+  it('resolves the session authority from the request headers', async () => {
+    hoisted.authorizeSessionTenant.mockResolvedValue(AUTHORIZED);
+    hoisted.getClaimsListV2.mockResolvedValue({
+      rows: [],
+      totals: { active: 0, draft: 0, closed: 0 },
+      pagination: { page: 1, perPage: 10, totalCount: 0, totalPages: 0 },
+    });
+    const request = new Request('http://localhost:3000/api/claims', {
+      headers: { cookie: 'session=abc' },
+    });
+
+    await GET(request);
+
+    expect(hoisted.authorizeSessionTenant).toHaveBeenCalledWith(request.headers);
   });
 
   it('returns claims list with ISO dates', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
-    });
+    hoisted.authorizeSessionTenant.mockResolvedValue(AUTHORIZED);
 
     const createdAt = new Date('2025-01-01T00:00:00.000Z');
     const updatedAt = new Date('2025-01-02T00:00:00.000Z');
@@ -91,10 +127,12 @@ describe('GET /api/claims', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(hoisted.getClaimsListV2).toHaveBeenCalledWith(
-      { user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' } },
-      { page: 1, perPage: 10, statusFilter: 'active', search: 'alpha' }
-    );
+    expect(hoisted.getClaimsListV2).toHaveBeenCalledWith(AUTHORIZED, {
+      page: 1,
+      perPage: 10,
+      statusFilter: 'active',
+      search: 'alpha',
+    });
     expect(data).toEqual({
       success: true,
       claims: [
@@ -133,9 +171,7 @@ describe('GET /api/claims', () => {
   });
 
   it('returns 500 when domain throws', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
-    });
+    hoisted.authorizeSessionTenant.mockResolvedValue(AUTHORIZED);
     hoisted.getClaimsListV2.mockRejectedValue(new Error('Boom'));
 
     const request = new Request('http://localhost:3000/api/claims');
