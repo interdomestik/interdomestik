@@ -11,7 +11,6 @@ type ClaimScopeRecord = {
   branchId?: string | null;
   staffId?: string | null;
 };
-
 type MemberClaimOwnershipRecord = {
   id: string;
 };
