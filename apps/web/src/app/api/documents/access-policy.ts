@@ -16,7 +16,6 @@ export type ScopedClaim = {
   branchId?: string | null;
   staffId?: string | null;
   userId: string | null;
-  agentId?: string | null;
 };
 
 export function isFullTenantClaimsRole(role: string | null | undefined): boolean {
@@ -38,8 +37,7 @@ export function hasScopedClaimReadAccess(args: {
   role: string | null | undefined;
   userId: string;
 }): boolean {
-  if (args.role === 'agent') return args.claim.agentId === args.userId;
-
+  // Agents are scoped by their active client links; see agent-document-scope.ts.
   if (args.role === 'branch_manager') {
     const branchId = args.branchId ?? null;
     return branchId !== null && args.claim.branchId === branchId;
