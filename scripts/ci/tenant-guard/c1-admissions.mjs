@@ -9,8 +9,10 @@
 // - the listed units as unchanged inside C1 closure comparisons (a caller's tenant closure and the
 //   closure of a callee handed retained legacy state), and
 // - the listed caller -> legacy sink edges in place of C1's unchanged-caller requirement.
-// Every other rule (custody, receivers, module state, legacy pins, C3 contracts) still judges the
-// listed units as changed code, and the sinks keep propagating through their callers as before.
+// Every rule still classifies the listed units as changed code (custody, receivers, module state,
+// legacy pins, C3 contracts); only rules that compare a callee's closure, such as custody's
+// state-callee check, see the admitted closure comparison. The sinks keep propagating through
+// their callers as before.
 const deepFreeze = value => {
   if (value && typeof value === 'object') {
     for (const child of Object.values(value)) deepFreeze(child);

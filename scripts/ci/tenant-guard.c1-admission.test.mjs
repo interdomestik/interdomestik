@@ -32,8 +32,8 @@ function admissionFor(files, { units = ['attack'], sinkEdges } = {}) {
   };
 }
 
-function runAdmitted(changes, admissions) {
-  const trusted = new Map(Object.entries(KERNEL));
+function runAdmitted(changes, admissions, base = {}) {
+  const trusted = new Map(Object.entries({ ...KERNEL, ...base }));
   const sources = new Map(trusted);
   for (const [file, text] of Object.entries(changes)) sources.set(file, text);
   const graph = createModuleGraph({
@@ -138,4 +138,68 @@ test('the repository admissions are complete, frozen and name only bundled units
       assert.ok(units.has(`${edge.file}#${edge.unit}`), `${edge.unit} is not an admitted unit`);
     }
   }
+});
+
+// The closure hook: retained tenant state handed to an admitted callee. The callee's closure is
+// admitted only through its own bundle; anything it reaches outside the bundle is judged as before.
+const CONTEXTS = 'apps/web/src/contexts.ts';
+const REWRITE = 'apps/web/src/rewrite.ts';
+const NORMALIZE = 'apps/web/src/normalize.ts';
+const STATE_BASE = {
+  [CONTEXTS]: [
+    "import { withTenantContext } from '@interdomestik/database';",
+    "export const CONTEXTS = [{ tenantId: 'tenant-A' }];",
+    'export function readFirst() {',
+    '  return withTenantContext(CONTEXTS[0], tx => tx.select());',
+    '}',
+  ].join('\n'),
+  [NORMALIZE]: 'export function normalize(value: number) { return value; }\n',
+  [REWRITE]: [
+    "import { normalize } from './normalize';",
+    'export function rewrite(value: readonly unknown[]) { return normalize(value.length); }',
+  ].join('\n'),
+  [ATTACK]: [
+    "import { CONTEXTS } from './contexts';",
+    "import { rewrite } from './rewrite';",
+    'export function attack() { return rewrite(CONTEXTS); }',
+  ].join('\n'),
+};
+const REVIEWED_REWRITE = [
+  "import { normalize } from './normalize';",
+  'export function rewrite(value: readonly unknown[]) { return normalize(value.length + 0); }',
+].join('\n');
+const HANDED = /module state .*#CONTEXTS .* is passed to changed code \(rewrite\)/u;
+const rewriteAdmission = text => ({
+  id: 'fixture-closure',
+  reason: 'fixture admission',
+  files: [{ file: REWRITE, sha256: sha256(text), units: ['rewrite'] }],
+  sinkEdges: [],
+});
+
+test('retained state handed to an admitted callee passes only with its exact bundle', () => {
+  const changes = { [REWRITE]: REVIEWED_REWRITE };
+  assertRefused(runAdmitted(changes, [], STATE_BASE), 'C1', HANDED);
+  const admitted = runAdmitted(changes, [rewriteAdmission(REVIEWED_REWRITE)], STATE_BASE);
+  assert.deepEqual(admitted.violations, []);
+  assert.equal(admitted.telemetry.c1Admissions, 1);
+  const broken = runAdmitted(
+    { [REWRITE]: `${REVIEWED_REWRITE}\n// edited` },
+    [rewriteAdmission(REVIEWED_REWRITE)],
+    STATE_BASE
+  );
+  assertRefused(broken, 'C1', HANDED);
+  assert.equal(broken.telemetry.c1Admissions, 0);
+});
+
+test('an admitted callee does not admit a changed dependency outside its bundle', () => {
+  const result = runAdmitted(
+    {
+      [REWRITE]: REVIEWED_REWRITE,
+      [NORMALIZE]: 'export function normalize(value: number) { return value + 1; }\n',
+    },
+    [rewriteAdmission(REVIEWED_REWRITE)],
+    STATE_BASE
+  );
+  assert.equal(result.telemetry.c1Admissions, 1);
+  assertRefused(result, 'C1', HANDED);
 });
