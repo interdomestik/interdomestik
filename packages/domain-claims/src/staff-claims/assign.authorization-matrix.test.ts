@@ -20,6 +20,27 @@ const DENIED_ROLES = [
   '',
 ] as const;
 
+// Shapes produced by the support mocks, so each assertion names the predicate a query consumed.
+const eq = (left: string, right: unknown) => ({ left, right, op: 'eq' });
+const and = (...conditions: unknown[]) => ({ op: 'and', conditions });
+const or = (...conditions: unknown[]) => ({ op: 'or', conditions });
+const isNull = (column: string) => ({ column, op: 'isNull' });
+const scoped = (column: string, condition: unknown) => ({
+  tenantId: 'tenant-1',
+  column,
+  condition,
+});
+
+function expectConsumedScope(claimScope: unknown, assignee: unknown, guard: unknown) {
+  const claimWhere = scoped('claims.tenant_id', claimScope);
+  expect(mocks.selectChain.where).toHaveBeenCalledWith(claimWhere);
+  expect(mocks.userFindFirst).toHaveBeenCalledWith({
+    where: scoped('user.tenant_id', assignee),
+    columns: { id: true },
+  });
+  expect(mocks.updateSetChain.where).toHaveBeenCalledWith(and(claimWhere, guard));
+}
+
 function claimInScope(staffId: string | null) {
   mocks.selectChain.limit.mockResolvedValue([{ id: 'claim-1', staffId, branchId: 'branch-1' }]);
 }
@@ -49,6 +70,11 @@ describe('staff assignClaimCore nine-role authorization matrix', () => {
     mocks.updateSetChain.where.mockReturnValue(mocks.updateWhereChain);
     mocks.updateWhereChain.returning.mockResolvedValue([{ id: 'claim-1' }]);
     mocks.userFindFirst.mockResolvedValue({ id: 'staff-2' });
+    mocks.withTenant.mockImplementation((tenantId, column, condition) => ({
+      tenantId,
+      column,
+      condition,
+    }));
   });
 
   it.each(DENIED_ROLES)('gives %s no assignment or unassignment capability', async role => {
@@ -70,9 +96,14 @@ describe('staff assignClaimCore nine-role authorization matrix', () => {
     const session = createSession({ userId: 'staff-1', branchId: 'branch-1' });
 
     await expect(assign(session, 'staff-2')).resolves.toEqual({ success: true });
-    expect(mocks.eq).toHaveBeenCalledWith('claims.branch_id', 'branch-1');
-    expect(mocks.eq).toHaveBeenCalledWith('user.role', 'staff');
-    expect(mocks.eq).toHaveBeenCalledWith('user.branch_id', 'branch-1');
+    expectConsumedScope(
+      and(eq('claims.id', 'claim-1'), eq('claims.branch_id', 'branch-1')),
+      and(
+        and(eq('user.id', 'staff-2'), eq('user.role', 'staff')),
+        eq('user.branch_id', 'branch-1')
+      ),
+      isNull('claims.staff_id')
+    );
     expect(mocks.logAuditEvent).toHaveBeenCalledTimes(1);
   });
 
@@ -81,10 +112,14 @@ describe('staff assignClaimCore nine-role authorization matrix', () => {
     const session = createSession({ userId: 'staff-1', branchId: null });
 
     await expect(assign(session, 'staff-2')).resolves.toEqual({ success: true });
-    expect(mocks.isNull).toHaveBeenCalledWith('claims.staff_id');
-    expect(mocks.eq).toHaveBeenCalledWith('claims.staff_id', 'staff-1');
-    expect(mocks.eq).not.toHaveBeenCalledWith('claims.branch_id', expect.anything());
-    expect(mocks.eq).toHaveBeenCalledWith('user.role', 'staff');
+    expectConsumedScope(
+      and(
+        eq('claims.id', 'claim-1'),
+        or(eq('claims.staff_id', 'staff-1'), isNull('claims.staff_id'))
+      ),
+      and(eq('user.id', 'staff-2'), eq('user.role', 'staff')),
+      eq('claims.staff_id', 'staff-1')
+    );
   });
 
   it('lets in-scope staff unassign without a target lookup', async () => {
