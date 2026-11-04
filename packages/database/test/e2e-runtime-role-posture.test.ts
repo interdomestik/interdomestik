@@ -4,13 +4,13 @@ import test from 'node:test';
 
 import postgres from 'postgres';
 
-// @ts-expect-error -- untyped root ESM script; the suite exercises its public contract.
-import * as runtimeRole from '../../../scripts/e2e-runtime-role.mjs';
-
 type ProvisionInput = { adminUrl: string; env: Record<string, string>; role: string };
-const { provisionE2eRuntimeRole } = runtimeRole as {
-  provisionE2eRuntimeRole(input: ProvisionInput): Promise<string>;
-};
+type RuntimeRoleModule = { provisionE2eRuntimeRole(input: ProvisionInput): Promise<string> };
+// The root script is untyped ESM; a non-literal specifier keeps every package's type-check (each
+// with its own module settings) from resolving it, and the suite exercises its public contract.
+const RUNTIME_ROLE_MODULE: string = '../../../scripts/e2e-runtime-role.mjs';
+const provisionE2eRuntimeRole = async (input: ProvisionInput): Promise<string> =>
+  ((await import(RUNTIME_ROLE_MODULE)) as RuntimeRoleModule).provisionE2eRuntimeRole(input);
 
 const required = process.env.REQUIRE_RLS_INTEGRATION === '1';
 const suffix = randomBytes(6).toString('hex');
