@@ -64,9 +64,11 @@ export async function collectBranchMembershipViolations(
   db: BranchMembershipDb,
   checks: readonly BranchMembershipCheck[] = BRANCH_MEMBERSHIP_CHECKS
 ): Promise<string[]> {
+  // The checks are independent reads; run them together and report in declaration order.
+  const results = await Promise.all(checks.map(check => db.execute(check.query)));
   const failures: string[] = [];
-  for (const check of checks) {
-    const rows = Array.from(await db.execute(check.query));
+  for (const [index, check] of checks.entries()) {
+    const rows = Array.from(results[index]);
     if (rows.length === 0) continue;
     const sample = rows.slice(0, SAMPLE_LIMIT).map(row => String(row.id));
     const more = rows.length > SAMPLE_LIMIT ? ` and ${rows.length - SAMPLE_LIMIT} more` : '';
