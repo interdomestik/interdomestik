@@ -64,9 +64,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
   const locale = useLocale();
   const searchParams = useSearchParams();
   const userRoleLabel = getRoleLabel(tCommon, user.role, user.role);
-
   const applyAdminContext = (href: string) => withAdminContext(href, searchParams);
-
   const roleParam = searchParams.get('role');
   let peopleRole = 'members';
   if (roleParam?.includes('agent')) {
