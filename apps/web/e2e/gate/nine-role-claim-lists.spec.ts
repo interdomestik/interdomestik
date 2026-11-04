@@ -9,7 +9,7 @@ import {
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { and, eq } from 'drizzle-orm';
 import { getProjectUrlInfo } from '../fixtures/auth.project';
-import { isKsGateProject } from './gate-project-identity';
+import { isKsGateProject, isMkGateProject } from './gate-project-identity';
 import { requireSeededHost, signInAs } from './nine-role-actor';
 import {
   API_PROBE_CASES,
@@ -22,7 +22,6 @@ import {
 import { expectListRow, expectOpsRow, expectSurfaceDenied } from './nine-role-claim-lists.surfaces';
 import { collectOpsPages, type OpsPage } from './nine-role-ops-pages';
 
-const isMkGateProject = (name: string) => name === 'gate-mk-mk';
 const OWNERSHIP = E2E_RELATIONSHIP_FIXTURES.MEMBER_OWNERSHIP;
 /** /api/claims serves fixed pages of this size. */
 const API_PAGE_SIZE = 10;

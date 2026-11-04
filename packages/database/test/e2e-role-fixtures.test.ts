@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import {
   E2E_AGENT_LINK_FIXTURES,
   E2E_CASE_FIXTURES,
+  E2E_DOCUMENT_FIXTURES,
   E2E_MESSAGE_FIXTURES,
   E2E_RELATIONSHIP_FIXTURES,
   E2E_ROLE_MATRIX,
@@ -17,7 +18,10 @@ import { E2E_USERS } from '../src/e2e-users';
 import { collectRoleCatalogueViolations } from '../src/seed-assert-role-fixtures';
 import { buildAgentAssignmentsToSeed } from '../src/seed-golden/agent-assignments';
 import { buildClaimsToSeed } from '../src/seed-golden/claims';
-import { buildRoleRelationshipMessages } from '../src/seed-golden/role-relationships';
+import {
+  buildRoleRelationshipDocuments,
+  buildRoleRelationshipMessages,
+} from '../src/seed-golden/role-relationships';
 import { buildUsersToSeed } from '../src/seed-golden/users';
 import * as schema from '../src/schema';
 import { createSeedConfig } from '../src/seed-types';
@@ -94,6 +98,26 @@ test('anchor case messages are deterministic and split public/internal', () => {
     ]
   );
   assert.equal(first[0].createdAt?.toISOString(), '2025-11-28T00:00:00.000Z');
+});
+
+test('every case fixture carries one owner document under its tenant claims prefix', () => {
+  const seededClaims = new Map(buildClaimsToSeed({ at, schema }).map(claim => [claim.id, claim]));
+  const documents = buildRoleRelationshipDocuments({ at });
+  assert.deepEqual(documents, buildRoleRelationshipDocuments({ at }));
+  assert.deepEqual(Object.keys(E2E_DOCUMENT_FIXTURES), Object.keys(E2E_CASE_FIXTURES));
+
+  for (const [key, fixture] of Object.entries(E2E_CASE_FIXTURES)) {
+    const document = documents.find(row => row.claimId === fixture.id);
+    const claim = seededClaims.get(fixture.id);
+    assert.ok(document && claim, key);
+    assert.equal(document.id, E2E_DOCUMENT_FIXTURES[key as keyof typeof E2E_CASE_FIXTURES].id);
+    assert.equal(document.tenantId, claim.tenantId, `${key}.tenantId`);
+    assert.equal(document.uploadedBy, claim.userId, `${key}.uploadedBy`);
+    assert.ok(
+      document.filePath.startsWith(`pii/tenants/${claim.tenantId}/claims/${fixture.id}/`),
+      `${key}.filePath`
+    );
+  }
 });
 
 test('relationship fixtures reference catalogued identities', () => {

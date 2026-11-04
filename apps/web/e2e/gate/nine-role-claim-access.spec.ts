@@ -8,7 +8,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { eq } from 'drizzle-orm';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-import { isKsGateProject } from './gate-project-identity';
+import { isKsGateProject, isMkGateProject } from './gate-project-identity';
 import { requireSeededHost, signInAs } from './nine-role-actor';
 import {
   CASE_TITLES,
@@ -94,7 +94,7 @@ function describeActors(project: (name: string) => boolean, cases: readonly Acto
 
 test.describe('nine-role claim access matrix', () => {
   describeActors(isKsGateProject, KS_ACTOR_CASES);
-  describeActors(name => name === 'gate-mk-mk', MK_ACTOR_CASES);
+  describeActors(isMkGateProject, MK_ACTOR_CASES);
 
   test('internal messages reach staff but never the owning member', async ({ page }, info) => {
     requireSeededHost(info, isKsGateProject, 90_000);
