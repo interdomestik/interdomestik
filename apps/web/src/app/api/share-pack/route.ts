@@ -119,7 +119,10 @@ export async function GET(request: NextRequest) {
       headers: request.headers,
       productionSensitive: true,
     });
-    if (limited) return limited;
+    if (limited) {
+      limited.headers.set('Cache-Control', NO_STORE['Cache-Control']);
+      return limited;
+    }
 
     const { searchParams } = new URL(request.url);
 
@@ -145,7 +148,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Share pack access failed:', error);
 
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500, headers: NO_STORE });
   }
 }
 

@@ -34,11 +34,17 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
+  isNull: (column: unknown) => ({ isNull: column }),
+}));
+
 vi.mock('@interdomestik/database/schema', () => ({
   documentAccessLog: {},
   documents: {
     id: 'documents.id',
     tenantId: 'documents.tenantId',
+    deletedAt: 'documents.deletedAt',
   },
   sharePacks: {
     id: 'sharePacks.id',
@@ -190,9 +196,19 @@ describe('share-pack.service token security', () => {
     const authority = mintTestTenantAuthority('tenant_mk');
     hoisted.resolveSharePackTenant.mockResolvedValueOnce({ tenantId: 'tenant_mk', authority });
     hoisted.findPack.mockResolvedValueOnce({ id: 'pack-1', documentIds: ['doc-1'] });
-    hoisted.select.mockReturnValueOnce({ from: () => ({ where: async () => [{ id: 'doc-1' }] }) });
+    let documentCondition: unknown;
+    hoisted.select.mockReturnValueOnce({
+      from: () => ({
+        where: async (condition: unknown) => {
+          documentCondition = condition;
+          return [{ id: 'doc-1' }];
+        },
+      }),
+    });
 
     const result = await getSharePack({ token });
+    // A deleted document leaves every pack that named it.
+    expect(JSON.stringify(documentCondition)).toContain('"isNull":"documents.deletedAt"');
 
     expect(hoisted.resolveSharePackTenant).toHaveBeenCalledWith(
       'pack-1',
