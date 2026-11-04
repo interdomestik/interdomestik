@@ -56,9 +56,9 @@ export async function provisionRestrictedRole(adminDb: AdminDb): Promise<void> {
   );
   await grantRlsTestRole(adminDb, S8_CLAIM_TABLES);
   await adminDb.execute(sql.raw(`grant update on table "claim" to ${role}`));
-  for (const table of ['claim_threads', 'claim_messages']) {
-    await adminDb.execute(sql.raw(`grant insert, update, delete on table "${table}" to ${role}`));
-  }
+  await adminDb.execute(
+    sql.raw(`grant insert, update, delete on table "claim_threads", "claim_messages" to ${role}`)
+  );
 }
 
 function tenantRows(tenant: string): TenantRows {
