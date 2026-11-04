@@ -2,11 +2,9 @@
 // Provisions the restricted LOGIN runtime role the E2E web server connects as (Plan070 U2-a).
 // Fixtures keep the admin URL; only the app's DATABASE_URL_RLS uses this role, so every
 // tenant-scoped query in the gate runs under real RLS instead of a BYPASSRLS superuser.
-//
-// The password is derived from the admin credential and cluster, so every process that can
-// already reach the cluster as admin (gate, smoke, state setup, lanes on other databases)
-// agrees on it without exporting a secret, and re-provisioning never rotates it under a
-// running server.
+// The password is derived from the admin credential and cluster, so every process that can reach
+// the cluster as admin (gate, smoke, state setup, lanes on other databases) agrees on it without
+// exporting a secret, and re-provisioning never rotates it under a running server.
 import { createHmac } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import postgres from 'postgres';
@@ -18,6 +16,9 @@ const ROLE_PATTERN = /^interdomestik_e2e_runtime(?:_[a-z0-9]{1,24})?$/u;
 const ROLE_DDL_LOCK_KEY = 930802;
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 const ROLE_FLAGS = 'LOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION';
+// PG <16 lets only superusers name SUPERUSER/BYPASSRLS/REPLICATION in ALTER ROLE (Supabase's admin
+// is not one); an existing role keeps them and assertRoleState fails closed if any is set.
+const ALTER_ROLE_FLAGS = 'LOGIN NOINHERIT NOCREATEDB NOCREATEROLE';
 const TENANT_GUCS = ['app.current_tenant_id', 'app.current_access_tenant_id', 'app.user_role'];
 
 /** Errors whose message is safe to print: they never carry SQL text or credentials. */
@@ -99,9 +100,11 @@ async function provisionRole(sql, role, password) {
   await sql.begin(async tx => {
     await tx`select pg_advisory_xact_lock(${ROLE_DDL_LOCK_KEY})`;
     const [existing] = await tx`select 1 from pg_roles where rolname = ${role}`;
-    const verb = existing ? 'ALTER' : 'CREATE';
+    const command = existing
+      ? `ALTER ROLE ${role} ${ALTER_ROLE_FLAGS}`
+      : `CREATE ROLE ${role} ${ROLE_FLAGS}`;
     const [{ literal }] = await tx`select quote_literal(${password}) as literal`;
-    await tx.unsafe(`${verb} ROLE ${role} ${ROLE_FLAGS} PASSWORD ${literal}`);
+    await tx.unsafe(`${command} PASSWORD ${literal}`);
     const [{ db }] = await tx`select quote_ident(current_database()) as db`;
     await tx.unsafe(`GRANT CONNECT ON DATABASE ${db} TO ${role}`);
     await tx.unsafe(`GRANT USAGE ON SCHEMA public TO ${role}`);

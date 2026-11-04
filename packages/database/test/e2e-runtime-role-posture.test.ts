@@ -17,7 +17,15 @@ const ROLE = `interdomestik_e2e_runtime_p${suffix}`;
 const DATABASE = `e2e_role_probe_${suffix}`;
 
 // Each adversarial state must make provisioning fail closed; `undo` restores the baseline.
-const BYPASSES: { name: string; setup: string; undo: string; message: RegExp }[] = [
+// `superuser` states can only be built by a superuser admin (CI postgres:16); a non-superuser
+// admin such as local Supabase's skips them by name instead of failing on setup.
+const BYPASSES: {
+  name: string;
+  setup: string;
+  undo: string;
+  message: RegExp;
+  superuser?: true;
+}[] = [
   {
     name: 'a public table without row security',
     setup: 'create table public.open_rows(id int)',
@@ -79,6 +87,7 @@ const BYPASSES: { name: string; setup: string; undo: string; message: RegExp }[]
       alter extension pg_stat_statements add table public.open_rows`,
     undo: 'drop extension pg_stat_statements; drop table if exists public.open_rows; drop schema extensions',
     message: /bypass row security on: .*public\.open_rows/u,
+    superuser: true,
   },
   {
     name: 'a SECURITY DEFINER function added to a reviewed extension',
@@ -87,6 +96,7 @@ const BYPASSES: { name: string; setup: string; undo: string; message: RegExp }[]
       alter extension pg_stat_statements add function public.peek()`,
     undo: 'drop extension pg_stat_statements; drop schema extensions',
     message: /bypass row security on: .*public\.peek/u,
+    superuser: true,
   },
   {
     name: 'a materialized view',
@@ -124,18 +134,28 @@ const BYPASSES: { name: string; setup: string; undo: string; message: RegExp }[]
     setup: `alter table t1 owner to ${ROLE}`,
     undo: 'alter table t1 owner to current_user',
     message: /posture is not restricted/u,
+    superuser: true,
+  },
+  {
+    name: 'BYPASSRLS set on the existing role',
+    setup: `alter role ${ROLE} bypassrls`,
+    undo: `alter role ${ROLE} nobypassrls`,
+    message: /posture is not restricted/u,
+    superuser: true,
   },
   {
     name: 'a role-level tenant GUC',
     setup: `alter role ${ROLE} set app.current_access_tenant_id = 'tenant_b'`,
     undo: `alter role ${ROLE} reset all`,
     message: /posture is not restricted/u,
+    superuser: true,
   },
   {
     name: 'a database-level tenant GUC',
     setup: `alter database ${DATABASE} set app.current_access_tenant_id = 'tenant_b'`,
     undo: `alter database ${DATABASE} reset all`,
     message: /not the restricted role/u,
+    superuser: true,
   },
   {
     name: 'CREATE on the public schema',
@@ -175,8 +195,11 @@ test('the E2E runtime role fails closed on every row-security bypass', async t =
     }
     assert.equal(await provision(), runtimeUrl, 'reprovisioning keeps the same credential');
 
+    const [{ superuser }] = await admin<{ superuser: boolean }[]>`
+      select rolsuper as superuser from pg_roles where rolname = current_user`;
     for (const bypass of BYPASSES) {
-      await t.test(`rejects ${bypass.name}`, async () => {
+      const skip = bypass.superuser && !superuser && 'building this state needs a superuser admin';
+      await t.test(`rejects ${bypass.name}`, { skip }, async () => {
         await admin.unsafe(bypass.setup);
         try {
           await assert.rejects(provision(), bypass.message);
