@@ -160,6 +160,39 @@ export const E2E_MESSAGE_FIXTURES = {
   },
 } as const;
 
+type DocumentCaseKey = keyof typeof E2E_CASE_FIXTURES;
+
+function catalogueDocument(caseKey: DocumentCaseKey) {
+  const fixture = E2E_CASE_FIXTURES[caseKey];
+  return {
+    id: `golden_doc_${fixture.id}`,
+    tenantId: fixture.tenantId,
+    accessTenantId: fixture.tenantId,
+    claimId: fixture.id,
+    bucket: 'claim-evidence',
+    category: 'evidence',
+    classification: 'pii',
+    name: `catalogue-${fixture.id}.pdf`,
+    filePath: `pii/tenants/${fixture.tenantId}/claims/${fixture.id}/catalogue-document.pdf`,
+    uploadedBy: fixture.ownerUserId,
+    fileType: 'application/pdf',
+    fileSize: 1024,
+  } as const;
+}
+
+/**
+ * One claim document per case fixture, uploaded by the case owner. The document read matrix
+ * resolves each actor's access to these rows; no storage object backs them.
+ */
+export const E2E_DOCUMENT_FIXTURES = {
+  KS_ANCHOR: catalogueDocument('KS_ANCHOR'),
+  KS_OTHER_MEMBER: catalogueDocument('KS_OTHER_MEMBER'),
+  KS_PEER_STAFF: catalogueDocument('KS_PEER_STAFF'),
+  KS_UNASSIGNED: catalogueDocument('KS_UNASSIGNED'),
+  KS_OTHER_BRANCH: catalogueDocument('KS_OTHER_BRANCH'),
+  MK_FOREIGN_TENANT: catalogueDocument('MK_FOREIGN_TENANT'),
+} as const satisfies Record<DocumentCaseKey, ReturnType<typeof catalogueDocument>>;
+
 type RelationshipFixture = {
   description: string;
   allowedActor: E2EUserKey;

@@ -2,6 +2,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import {
   E2E_AGENT_LINK_FIXTURES,
   E2E_CASE_FIXTURES,
+  E2E_DOCUMENT_FIXTURES,
   E2E_MESSAGE_FIXTURES,
   E2E_ROLE_MATRIX,
   E2E_RUNTIME_ROLES,
@@ -221,6 +222,25 @@ async function collectRelationshipViolations(
   }
 }
 
+async function collectDocumentViolations(db: AssertDb, schema: AssertSchema, failures: string[]) {
+  const documents = Object.entries(E2E_DOCUMENT_FIXTURES);
+  const rows = await Promise.all(
+    documents.map(([, expected]) =>
+      db.query.claimDocuments.findFirst({ where: eq(schema.claimDocuments.id, expected.id) })
+    )
+  );
+  for (const [index, [name, expected]] of documents.entries()) {
+    const row = rows[index];
+    if (!row) {
+      failures.push(`document ${name}: ${expected.id} missing`);
+      continue;
+    }
+    for (const [field, value] of Object.entries(expected)) {
+      expectEqual(failures, `document ${name}.${field}`, row[field as keyof typeof row], value);
+    }
+  }
+}
+
 /** Database check: the role matrix and named relationships exist with the exact expected shape. */
 export async function collectRoleFixtureViolations(
   db: AssertDb,
@@ -229,5 +249,6 @@ export async function collectRoleFixtureViolations(
   const failures = collectRoleCatalogueViolations();
   await collectUserViolations(db, schema, failures);
   await collectRelationshipViolations(db, schema, failures);
+  await collectDocumentViolations(db, schema, failures);
   return failures;
 }

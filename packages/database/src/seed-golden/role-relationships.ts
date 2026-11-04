@@ -1,10 +1,11 @@
-import { E2E_MESSAGE_FIXTURES } from '../e2e-role-fixtures';
+import { E2E_DOCUMENT_FIXTURES, E2E_MESSAGE_FIXTURES } from '../e2e-role-fixtures';
 import type { SeedGoldenContext } from './types';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 
 type ClaimMessageInsert = SeedGoldenContext['schema']['claimMessages']['$inferInsert'];
+type ClaimDocumentInsert = SeedGoldenContext['schema']['claimDocuments']['$inferInsert'];
 
 /**
  * Public + internal message pair on the KS anchor case (internal-visibility denial fixture).
@@ -39,6 +40,30 @@ export async function seedRoleRelationshipMessages(context: SeedGoldenContext): 
             createdAt: message.createdAt,
           },
         })
+    )
+  );
+}
+
+/** One owner-uploaded document per case fixture (document read matrix); created with its case. */
+export function buildRoleRelationshipDocuments({
+  at,
+}: Pick<SeedGoldenContext, 'at'>): ClaimDocumentInsert[] {
+  return Object.values(E2E_DOCUMENT_FIXTURES).map(document => ({
+    ...document,
+    createdAt: at(-30 * DAY_MS),
+  }));
+}
+
+export async function seedRoleRelationshipDocuments(context: SeedGoldenContext): Promise<void> {
+  const { at, db, schema } = context;
+
+  await Promise.all(
+    buildRoleRelationshipDocuments({ at }).map(({ id, ...fields }) =>
+      db
+        .insert(schema.claimDocuments)
+        .values({ id, ...fields })
+        // A reseed resets every catalogue field, so a stale row cannot keep other access or storage.
+        .onConflictDoUpdate({ target: schema.claimDocuments.id, set: fields })
     )
   );
 }
