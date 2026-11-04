@@ -23,8 +23,7 @@ export async function authorizeStaffClaimPage(
   if (!authority) return null;
   const reader = resolveStaffClaimReader(authority);
   if (
-    !reader ||
-    reader.staffId !== user.id ||
+    reader?.staffId !== user.id ||
     reader.role !== user.role ||
     reader.branchId !== (user.branchId ?? null)
   ) {
