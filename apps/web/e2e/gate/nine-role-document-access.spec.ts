@@ -55,6 +55,7 @@ async function expectDocumentAccess(
 function describeActors(project: (name: string) => boolean, cases: readonly DocumentActorCases[]) {
   cases.forEach(({ actor, allowed, knownGapServed = [] }, index) => {
     test(`${actor} reads exactly its catalogue documents`, async ({ page }, info) => {
+      // Intentional: with configured storage the row-only catalogue has no objects to deliver.
       test.skip(hasConfiguredSupabaseStorage(), CONFIGURED_STORAGE_SKIP);
       requireSeededHost(info, project, 90_000);
       await signInAs(page, info, actor, `10.0.71.${index + 1}`);
