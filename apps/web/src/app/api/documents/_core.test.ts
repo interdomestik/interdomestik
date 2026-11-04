@@ -87,6 +87,12 @@ function setupMocks(poly: unknown[] = [], legacy: unknown[] = []) {
   mockBaseDb.select.mockReset().mockReturnValue(createSelectMock([]));
 }
 
+/** Queues the agent's tenant row (branch A) and its active link to the claim owner. */
+function grantAgentScope() {
+  mockDb.select.mockReturnValueOnce(createSelectMock([{ branchId: 'branch-a' }]));
+  mockDb.select.mockReturnValueOnce(createSelectMock([{ id: 'link-1' }]));
+}
+
 async function execAccess(
   session: Parameters<typeof getDocumentAccessCore>[0]['session'],
   docId: string,
@@ -161,6 +167,7 @@ describe('getDocumentAccessCore Hardening', () => {
 
     it('allows assigned agent access to claim document', async () => {
       setupMocks([polymorphicDocs.claim], [{ ...branchScopedClaimRow, claimAgentId: 'agent-1' }]);
+      grantAgentScope();
       expect((await execAccess(agentSession, 'doc1')).ok).toBe(true);
     });
 
@@ -245,6 +252,7 @@ describe('getDocumentAccessCore Hardening', () => {
 
     it('allows assigned agent access to legacy docs', async () => {
       setupMocks([], [{ doc: legacyDoc, ...branchScopedClaimRow, claimAgentId: 'agent-1' }]);
+      grantAgentScope();
       expect((await execAccess(agentSession, 'doc1')).ok).toBe(true);
     });
 

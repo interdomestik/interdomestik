@@ -9,6 +9,7 @@ import {
   isFullTenantClaimsRole,
   isScopedClaimReaderRole,
 } from './access-policy';
+import { hasAgentClaimDocumentScope } from './agent-document-scope';
 import { hasDurableCaseScopedDocumentGrant } from './durable-case-grants';
 
 // Normal-tenant reads pass the tenant-bound transaction opened by getDocumentAccessCore.
@@ -60,22 +61,13 @@ export async function canReadPolymorphicClaimDocument(args: {
 
   if (!claimRow) return false;
   if (userRole !== 'agent' && claimRow.claimOwnerId === session.user.id) return true;
-  if (
-    isScopedClaimReaderRole(userRole) &&
-    hasScopedClaimReadAccess({
-      branchId: session.user.branchId ?? null,
-      claim: {
-        branchId: claimRow.claimBranchId ?? null,
-        staffId: claimRow.claimStaffId ?? null,
-        userId: claimRow.claimOwnerId ?? null,
-        agentId: claimRow.claimAgentId ?? null,
-      },
-      role: userRole,
-      userId: session.user.id,
-    })
-  ) {
-    return true;
-  }
+  const claim = {
+    branchId: claimRow.claimBranchId ?? null,
+    ownerId: claimRow.claimOwnerId ?? null,
+    staffId: claimRow.claimStaffId ?? null,
+    agentId: claimRow.claimAgentId ?? null,
+  };
+  if (await hasScopedClaimDocumentAccess({ claim, db, session, tenantId, userRole })) return true;
 
   return hasAnyCaseScopedGrant(db, tenantId, session, polyDoc.entityId, polyDoc.category);
 }
@@ -98,25 +90,33 @@ export async function canReadLegacyClaimDocument(args: {
     return true;
   }
 
-  if (
-    isScopedClaimReaderRole(userRole) &&
-    hasScopedClaimReadAccess({
-      branchId: session.user.branchId ?? null,
-      claim: {
-        branchId: claim.branchId,
-        staffId: claim.staffId,
-        userId: claim.ownerId,
-        agentId: claim.agentId,
-      },
-      role: userRole,
-      userId: session.user.id,
-    })
-  ) {
-    return true;
-  }
+  if (await hasScopedClaimDocumentAccess({ claim, db, session, tenantId, userRole })) return true;
 
   if (!document.claimId) return false;
   return hasAnyCaseScopedGrant(db, tenantId, session, document.claimId, document.category);
+}
+
+/** Role-scoped claim reads: agents by active client link and branch, staff and managers by policy. */
+async function hasScopedClaimDocumentAccess(args: {
+  claim: ClaimAccessRow;
+  db: DatabaseClient;
+  session: SessionDTO;
+  tenantId: string;
+  userRole: string | undefined;
+}): Promise<boolean> {
+  const { claim, db, session, tenantId, userRole } = args;
+  if (userRole === 'agent') {
+    return hasAgentClaimDocumentScope({ agentId: session.user.id, claim, db, tenantId });
+  }
+  return (
+    isScopedClaimReaderRole(userRole) &&
+    hasScopedClaimReadAccess({
+      branchId: session.user.branchId ?? null,
+      claim: { branchId: claim.branchId, staffId: claim.staffId, userId: claim.ownerId },
+      role: userRole,
+      userId: session.user.id,
+    })
+  );
 }
 
 async function hasAnyCaseScopedGrant(
