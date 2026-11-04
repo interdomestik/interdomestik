@@ -1,7 +1,7 @@
 import { E2E_DOCUMENT_FIXTURES, E2E_RUNTIME_ROLES, E2E_USERS } from '@interdomestik/database';
 import { expect, test, type APIRequestContext, type TestInfo } from '@playwright/test';
 import { getProjectUrlInfo } from '../fixtures/auth.project';
-import { isKsGateProject } from './gate-project-identity';
+import { isKsGateProject, isMkGateProject } from './gate-project-identity';
 import { requireSeededHost, signInAs } from './nine-role-actor';
 import {
   DOCUMENT_KEYS,
@@ -57,7 +57,7 @@ function describeActors(project: (name: string) => boolean, cases: readonly Docu
 
 test.describe('nine-role document access matrix', () => {
   describeActors(isKsGateProject, KS_DOCUMENT_CASES);
-  describeActors(name => name === 'gate-mk-mk', MK_DOCUMENT_CASES);
+  describeActors(isMkGateProject, MK_DOCUMENT_CASES);
 
   test('covers each of the nine runtime roles with a seeded actor', () => {
     const roles = [...KS_DOCUMENT_CASES, ...MK_DOCUMENT_CASES].map(
