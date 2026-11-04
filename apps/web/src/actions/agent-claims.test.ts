@@ -131,8 +131,7 @@ vi.mock('next/cache', () => ({
 vi.mock('next/headers', () => ({
   headers: vi.fn(),
 }));
-import { notifyClaimAssigned } from '@/lib/notifications';
-import { assignClaim, updateClaimStatus } from './agent-claims';
+import { updateClaimStatus } from './agent-claims';
 
 function expectTenantContext(
   withTenantContext: { mock: { calls: unknown[][] } },
@@ -205,82 +204,6 @@ describe('Staff Claims Actions', () => {
 
       expectTenantContext(mocks.withTenantContext, 'tenant_mk');
       expect(mocks.txUpdateReturning).toHaveBeenCalled();
-    });
-  });
-
-  describe('assignClaim', () => {
-    it('should throw if user is not authenticated', async () => {
-      mocks.getSession.mockResolvedValue(null);
-      await expect(assignClaim('claim-1', 'staff-2')).resolves.toEqual({
-        success: false,
-        error: 'Unauthorized',
-      });
-    });
-
-    it('should not allow staff to assign claims to someone else', async () => {
-      mocks.getSession.mockResolvedValue({
-        user: { id: 'staff-1', role: 'staff', tenantId: 'tenant_mk' },
-      });
-
-      await expect(assignClaim('claim-1', 'staff-2')).resolves.toEqual({
-        success: false,
-        error: 'Access denied: Cannot assign other staff',
-      });
-      expect(mocks.dbUpdate).not.toHaveBeenCalled();
-    });
-
-    it('should throw if claim does not exist', async () => {
-      mocks.getSession.mockResolvedValue({
-        user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
-      });
-      mocks.dbQueryUser.mockResolvedValue({ id: 'staff-2', email: 'staff@test.com' });
-      mocks.dbQueryClaims.mockResolvedValue(null); // No claim
-
-      await expect(assignClaim('claim-1', 'staff-2')).resolves.toEqual({
-        success: false,
-        error: 'Claim not found',
-      });
-    });
-
-    it('should throw if staff member does not exist', async () => {
-      mocks.getSession.mockResolvedValue({
-        user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
-      });
-      mocks.dbQueryClaims.mockResolvedValue({ id: 'claim-1', title: 'Test Claim' });
-      mocks.dbQueryUser.mockResolvedValue(null); // No agent
-
-      await expect(assignClaim('claim-1', 'staff-2')).resolves.toEqual({
-        success: false,
-        error: 'Staff member not found',
-      });
-    });
-
-    it('should update staffId and notify staff', async () => {
-      mocks.getSession.mockResolvedValue({
-        user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
-      });
-      mocks.dbQueryClaims.mockResolvedValue({ id: 'claim-1', title: 'Test Claim' });
-      mocks.dbQueryUser.mockResolvedValue({
-        id: 'staff-2',
-        email: 'staff@test.com',
-        name: 'Staff Smith',
-      });
-      mocks.dbUpdate.mockResolvedValue(undefined);
-
-      await assignClaim('claim-1', 'staff-2');
-
-      expectTenantContext(mocks.withTenantContext, 'tenant_mk');
-      expect(mocks.dbUpdate).toHaveBeenCalled();
-      expect(notifyClaimAssigned).toHaveBeenCalledWith(
-        'staff-2',
-        'staff@test.com',
-        { id: 'claim-1', title: 'Test Claim' },
-        'Staff Smith',
-        { authority: mocks.withTenantContext.mock.calls[0]![0] }
-      );
-      expect(vi.mocked(notifyClaimAssigned).mock.calls[0]![4].authority).toBe(
-        mocks.withTenantContext.mock.calls[0]![0]
-      );
     });
   });
 });

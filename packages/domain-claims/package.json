@@ -20,7 +20,6 @@
     "./claims/transition-guard": "./src/claims/transition-guard.ts",
     "./claims/draft": "./src/claims/draft.ts",
     "./admin-claims/status-transition": "./src/admin-claims/status-transition.ts",
-    "./agent-claims/assign": "./src/agent-claims/assign.ts",
     "./agent-claims/update-status": "./src/agent-claims/update-status.ts",
     "./staff-claims/assign": "./src/staff-claims/assign.ts",
     "./staff-claims/commercial-handling-scope": "./src/staff-claims/commercial-handling-scope.ts",
