@@ -57,6 +57,8 @@ vi.mock('@sentry/nextjs', () => ({
 }));
 
 import { POST } from './route';
+const ACCESS_MODULE = '@/features/claims/upload/server/access';
+type AccessModule = typeof import('@/features/claims/upload/server/access');
 
 function createEvidenceUploadRequest(
   file = new File(['test'], 'evidence.pdf', { type: 'application/pdf' }),
@@ -141,6 +143,15 @@ describe('POST /api/claims/evidence-upload', () => {
     expect(hoisted.confirmUpload).not.toHaveBeenCalled();
   });
 
+  it.each(['auditor', 'global_support'])('refuses a %s owner via the real guard', async role => {
+    const { findOwnedMemberUploadClaim } = await vi.importActual<AccessModule>(ACCESS_MODULE);
+    hoisted.findOwnedMemberUploadClaim.mockImplementationOnce(findOwnedMemberUploadClaim);
+    const user = { id: 'member-1', role, tenantId: 'tenant-1' };
+    hoisted.getSession.mockResolvedValueOnce({ user });
+    expect((await POST(createEvidenceUploadRequest())).status).toBe(404);
+    expect(hoisted.upload).not.toHaveBeenCalled();
+  });
+
   it('captures orphan-upload telemetry when metadata confirmation fails after storage upload', async () => {
     hoisted.confirmAdminUpload.mockResolvedValueOnce({
       success: false,
@@ -155,9 +166,7 @@ describe('POST /api/claims/evidence-upload', () => {
     expect(data).toEqual({ error: 'Failed to save document metadata' });
     expect(hoisted.captureMessage).toHaveBeenCalledWith(
       'claim.evidence_upload.confirm_failed_after_storage_upload',
-      expect.objectContaining({
-        level: 'warning',
-      })
+      expect.objectContaining({ level: 'warning' })
     );
   });
 

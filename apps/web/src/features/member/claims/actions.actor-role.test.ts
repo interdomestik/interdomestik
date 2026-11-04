@@ -1,7 +1,7 @@
 import { isTenantAuthority, readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { getUploadActionMocks } from './actions-mocks.spec';
 import { confirmUpload, generateUploadUrl } from './actions';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createConfirmUploadParams } from './actions.test-fixtures';
 
 const hoisted = getUploadActionMocks();
@@ -57,6 +57,23 @@ describe('member upload trusted canonical actor', () => {
       expect(hoisted.insert).not.toHaveBeenCalled();
     }
   );
+  it.each(['auditor', 'global_support'])(
+    'refuses a %s owner through the real guard',
+    async role => {
+      const access = await vi.importActual<typeof import('@/features/claims/upload/server/access')>(
+        '@/features/claims/upload/server/access'
+      );
+      hoisted.findOwnedMemberUploadClaim.mockImplementationOnce(access.findOwnedMemberUploadClaim);
+      hoisted.authGetSession.mockResolvedValue({
+        user: { id: 'member-1', tenantId: 'tenant-1', role },
+      });
+
+      const result = await generateUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024);
+      expect(result.success).toBe(false);
+      expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    }
+  );
+
   it('returns a safe conflict when ownership changed after lookup but before metadata persistence', async () => {
     hoisted.metadataClaimRows.mockResolvedValueOnce([]);
     await expect(confirmUpload(createConfirmUploadParams())).resolves.toEqual({
