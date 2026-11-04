@@ -17,7 +17,10 @@ function makeGrantTx(updatedUsers = [{ id: 'user-1' }]) {
         }),
       }),
     })),
-    query: { branches: { findFirst: hoisted.branchesFindFirst } },
+    query: {
+      branches: { findFirst: hoisted.branchesFindFirst },
+      userRoles: { findMany: vi.fn().mockResolvedValue([]) },
+    },
     update: vi.fn(() => ({
       set: vi.fn(() => ({
         where: vi.fn(() => ({ returning: vi.fn().mockResolvedValue(updatedUsers) })),

@@ -35,3 +35,9 @@ export function isBranchRequiredRole(role: string | null | undefined): boolean {
   const normalizedRole = role?.trim();
   return Boolean(normalizedRole && BRANCH_REQUIRED_ROLE_SET.has(normalizedRole));
 }
+
+/** The result a role grant or revoke returns when it would give a user a second branch. */
+export const BRANCH_MEMBERSHIP_CONFLICT = Object.freeze({
+  error: 'Role grants must stay in the user branch',
+  code: 'BRANCH_MEMBERSHIP_CONFLICT',
+});

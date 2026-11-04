@@ -32,7 +32,8 @@ vi.mock('next/navigation', () => ({
   useParams: () => ({ locale: navigationState.locale }),
 }));
 
-vi.mock('@/lib/roles-i18n', () => ({
+vi.mock('@/lib/roles-i18n', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/roles-i18n')>()),
   getRoleLabel: vi.fn((_tCommon: unknown, role: string) => `role:${role}`),
 }));
 
@@ -127,6 +128,30 @@ describe('AdminUserRolesPanel', () => {
       expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(3);
       expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
     });
+  });
+
+  it('explains a branch membership conflict in the operator locale', async () => {
+    const { toast } = await import('sonner');
+    rbacMocks.grantUserRole.mockResolvedValue({
+      success: false,
+      error: 'Role grants must stay in the user branch',
+      code: 'BRANCH_MEMBERSHIP_CONFLICT',
+    } as never);
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
+
+    const grantButton = screen.getByRole('button', { name: 'Grant role' });
+    await waitFor(() => expect(grantButton).toBeEnabled());
+    fireEvent.click(grantButton);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        translationFns.en('toasts.branch_membership_conflict')
+      );
+    });
+    expect(translationFns.en('toasts.branch_membership_conflict')).toMatch(
+      /one branch.*current branch/
+    );
+    expect(navigationMocks.refresh).not.toHaveBeenCalled();
   });
 
   it('shows remove action, revokes role, and removal sticks after refresh', async () => {

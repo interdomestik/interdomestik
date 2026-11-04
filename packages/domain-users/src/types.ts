@@ -13,7 +13,8 @@ export type UserSession = {
   };
 };
 
-export type ActionResult<T = unknown> = { success: true; data?: T } | { error: string };
+export type ActionResult<T = unknown> =
+  { success: true; data?: T } | { error: string; code?: string };
 
 // An audit row is written inside the tenant that owns it, so every event carries the authority the
 // caller already holds rather than a tenant id the logger would have to trust.

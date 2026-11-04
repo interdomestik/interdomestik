@@ -127,4 +127,110 @@ describe('authorized role writer', () => {
     ).resolves.toEqual({ error: 'Invalid branch' });
     expect(mocks.audit).not.toHaveBeenCalled();
   });
+
+  type Locked = { role: string; branchId: string | null };
+  type Grant = { role: string; branchId: string | null };
+
+  // Mocks one grant: the branch lookup (when a branch is named) and the locked user transaction.
+  function mockGrant(locked: Locked, grants: Grant[], branchLookup = true) {
+    const set = vi.fn(() => ({
+      where: vi.fn(() => ({ returning: vi.fn().mockResolvedValue([{ id: 'user-1' }]) })),
+    }));
+    const writes = {
+      update: vi.fn(() => ({ set })),
+      delete: vi.fn(() => ({ where: vi.fn().mockResolvedValue(undefined) })),
+      insert: vi.fn(() => ({
+        values: vi.fn(() => ({ returning: vi.fn().mockResolvedValue([{ id: 'role-1' }]) })),
+      })),
+    };
+    if (branchLookup) {
+      mocks.withTenantContext.mockImplementationOnce(async (_scope, run) =>
+        run({
+          query: {
+            branches: {
+              findFirst: vi.fn().mockResolvedValue({ id: 'ks_branch_a', isActive: true }),
+            },
+          },
+        })
+      );
+    }
+    mocks.withTenantContext.mockImplementationOnce(async (_scope, run) =>
+      run({
+        select: vi.fn(() => ({
+          from: () => ({ where: () => ({ for: vi.fn().mockResolvedValue([locked]) }) }),
+        })),
+        query: { userRoles: { findMany: vi.fn().mockResolvedValue(grants) } },
+        ...writes,
+      })
+    );
+    return { set, writes };
+  }
+
+  it.each([
+    ['its membership', 'branch_manager', { role: 'member', branchId: 'ks_branch_b' }, []],
+    [
+      'another role grant',
+      'branch_manager',
+      { role: 'agent', branchId: null },
+      [{ role: 'agent', branchId: 'ks_branch_b' }],
+    ],
+    [
+      'the same role being replaced',
+      'agent',
+      { role: 'agent', branchId: null },
+      [{ role: 'agent', branchId: 'ks_branch_b' }],
+    ],
+  ])(
+    'rejects a grant in another branch than %s and writes nothing',
+    async (_, role, locked, grants) => {
+      const { writes } = mockGrant(locked, grants);
+
+      await expect(
+        grantUserRoleCore(
+          { session, authority, userId: 'user-1', role, branchId: 'ks_branch_a' },
+          { logAuditEvent: mocks.audit }
+        )
+      ).resolves.toEqual({
+        error: 'Role grants must stay in the user branch',
+        code: 'BRANCH_MEMBERSHIP_CONFLICT',
+      });
+      expect(writes.update).not.toHaveBeenCalled();
+      expect(writes.delete).not.toHaveBeenCalled();
+      expect(writes.insert).not.toHaveBeenCalled();
+      expect(mocks.audit).not.toHaveBeenCalled();
+    }
+  );
+
+  it('adds a second role in the branch the user already belongs to', async () => {
+    const { set, writes } = mockGrant({ role: 'agent', branchId: 'ks_branch_a' }, [
+      { role: 'agent', branchId: 'ks_branch_a' },
+    ]);
+
+    await expect(
+      grantUserRoleCore({
+        session,
+        authority,
+        userId: 'user-1',
+        role: 'branch_manager',
+        branchId: 'ks_branch_a',
+      })
+    ).resolves.toEqual({ success: true });
+    expect(set).toHaveBeenCalledWith(expect.objectContaining({ branchId: 'ks_branch_a' }));
+    expect(writes.insert).toHaveBeenCalled();
+  });
+
+  it('keeps the legacy tenant-wide agent grant clearing an existing membership', async () => {
+    const { set } = mockGrant({ role: 'member', branchId: 'ks_branch_a' }, [], false);
+
+    await expect(
+      grantUserRoleCore({
+        session,
+        authority,
+        userId: 'user-1',
+        role: 'agent',
+        allowLegacyTenantWide: true,
+      })
+    ).resolves.toEqual({ success: true });
+    expect(set).toHaveBeenCalledWith(expect.objectContaining({ role: 'agent', branchId: null }));
+  });
 });

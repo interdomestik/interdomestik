@@ -36,6 +36,24 @@ describe('admin-rbac.core', () => {
     });
   });
 
+  it('returns a coded branch membership conflict without revalidating', async () => {
+    const conflict = {
+      error: 'Role grants must stay in the user branch',
+      code: 'BRANCH_MEMBERSHIP_CONFLICT',
+    };
+    const expected = { success: false, ...conflict };
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
+    mockGrantUserRoleCore.mockResolvedValueOnce(conflict);
+    await expect(
+      grantUserRole({ userId, role: 'agent', branchId: 'branch-a', locale: 'en' })
+    ).resolves.toEqual(expected);
+    mockRevokeUserRoleCore.mockResolvedValueOnce(conflict);
+    await expect(revokeUserRole({ userId, role: 'staff', locale: 'en' })).resolves.toEqual(
+      expected
+    );
+    expect(mockRevalidatePath).not.toHaveBeenCalled();
+  });
+
   describe('tenant guard', () => {
     it('derives tenantId from session when grantUserRole tenantId is missing', async () => {
       mockGrantUserRoleCore.mockResolvedValueOnce({ success: true });

@@ -27,3 +27,13 @@ export function getRoleLabel(
 
   return normalized;
 }
+
+/** The operator-facing message for a failed role grant or revoke in the roles panel. */
+export function roleMutationErrorMessage(
+  result: { error: string; code?: string },
+  tRolesPanel: (key: string) => string
+): string {
+  return result.code === 'BRANCH_MEMBERSHIP_CONFLICT'
+    ? tRolesPanel('toasts.branch_membership_conflict')
+    : result.error;
+}
