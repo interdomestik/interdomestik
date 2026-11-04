@@ -83,7 +83,6 @@ export async function grantUserRoleCore(
     userId: string;
     role: string;
     branchId?: string | null;
-    allowLegacyTenantWide?: boolean;
   },
   deps: UserDomainDeps = {}
 ): Promise<ActionResult> {
@@ -104,11 +103,8 @@ export async function grantUserRoleCore(
   }
 
   if (isBranchRequiredRole(role)) {
-    if (params.allowLegacyTenantWide && role === 'agent' && !branchId) {
-      branchId = null;
-    } else if (!branchId) {
-      return { error: `Branch is required for role: ${role}` };
-    }
+    // Agents and branch managers always belong to one branch; there is no tenant-wide grant.
+    if (!branchId) return { error: `Branch is required for role: ${role}` };
   } else {
     branchId = null;
   }

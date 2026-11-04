@@ -123,7 +123,7 @@ function judgeSinkEdge(ctx, reportedEdges, site) {
     report(`legacy tenant sink ${key} used as ${form}`);
     return false;
   }
-  if (!fact.unchanged(caller)) {
+  if (!fact.unchanged(caller) && !ctx.c1AdmittedEdge(fact, caller, key)) {
     // A state writer (A5-r2) admits a changed caller whose arguments are fixed: built
     // without the caller's parameters and from unchanged code only.
     if (!sink.writer) report(`changed caller hands a tenant to unchanged legacy ${key}`);

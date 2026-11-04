@@ -2,7 +2,9 @@
 // context: the install stages declare the analyses, then the scan, propagation and report stages
 // execute them in the original evaluation order.
 
+import { C1_ADMISSIONS } from './c1-admissions.mjs';
 import { CONTRACTS, LEGACY_PINS, STATE_CONTRACTS } from './manifest.mjs';
+import { installAdmission } from './rules-admission.mjs';
 import { installCustody } from './rules-custody.mjs';
 import { installDependencies } from './rules-dependencies.mjs';
 import { installReceivers } from './rules-receivers.mjs';
@@ -29,6 +31,7 @@ export function evaluate({
   contracts = CONTRACTS,
   legacyPins = LEGACY_PINS,
   stateContracts = STATE_CONTRACTS,
+  admissions = C1_ADMISSIONS,
 }) {
   const violations = [];
   const accepted = [];
@@ -56,6 +59,7 @@ export function evaluate({
     violations,
   };
   installTrust(ctx);
+  installAdmission(ctx, admissions);
   installDependencies(ctx);
   installState(ctx);
   installStateUse(ctx);
