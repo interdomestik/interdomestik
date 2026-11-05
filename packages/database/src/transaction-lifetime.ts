@@ -97,8 +97,9 @@ async function runScoped<T>(
     return await callback(scopedSql(driverSql, scope, lease));
   } finally {
     scope.open = false;
-    // Detached savepoints finish (and fail) before the driver commits or rolls back.
-    while (scope.children.size > 0) await Promise.allSettled([...scope.children]);
+    // Detached savepoints finish (and fail) before the driver commits or rolls back. A closed scope
+    // admits no new savepoint, so the set is complete here.
+    await Promise.allSettled(scope.children);
   }
 }
 
