@@ -126,6 +126,15 @@ export function assertRefused(result, rule, pattern) {
   );
 }
 
+const LIFETIME = 'a tenant transaction capability can outlive its callback: ';
+/** Splits the lifetime stage (L1) from every other rule, so a fixture asserts both exactly. */
+export function byStage(result) {
+  const lifetime = result.violations
+    .filter(violation => violation.rule === 'L1')
+    .map(violation => `${violation.unit}: ${violation.detail.replace(LIFETIME, '')}`);
+  return { lifetime, other: result.violations.filter(violation => violation.rule !== 'L1') };
+}
+
 export const file = body => ({ 'apps/web/src/attack.ts': body.join('\n') });
 
 export function runWithBase(base, changes = {}, { repin = false } = {}) {

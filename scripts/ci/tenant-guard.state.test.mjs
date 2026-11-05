@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assertRefused, runWithBase } from './tenant-guard-test-support.mjs';
+import { assertRefused, byStage, runWithBase } from './tenant-guard-test-support.mjs';
 
 // ---- A5-r2 A: module state read by a retained tenant input -----------------------------------
 
@@ -128,7 +128,12 @@ const WORK_BASE = {
 };
 
 test('A5-r2 B: an unchanged legacy context handing its transaction to unchanged helpers is accepted', () => {
-  assert.deepEqual(runWithBase(WORK_BASE).violations, []);
+  // C1 accepts the hand-offs; L1 refuses the nested call that hands `work` a carrier it then
+  // reads an inherited member of.
+  assert.deepEqual(byStage(runWithBase(WORK_BASE)), {
+    lifetime: ['readNested: work: a member the carrier does not own (select)'],
+    other: [],
+  });
 });
 
 test('A5-r2 B: a changed transaction helper of an unchanged legacy context is refused', () => {
