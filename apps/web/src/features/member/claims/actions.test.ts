@@ -90,6 +90,7 @@ describe('member claim upload actions', () => {
     expect(hoisted.findOwnedMemberUploadClaim).toHaveBeenCalledWith({
       claimId: 'claim-1',
       authority: expect.any(Object),
+      role: 'member',
       userId: 'member-1',
     });
   });
@@ -104,6 +105,7 @@ describe('member claim upload actions', () => {
     expect(hoisted.findOwnedMemberUploadClaim).toHaveBeenCalledWith({
       claimId: 'claim-1',
       authority: expect.any(Object),
+      role: 'member',
       userId: 'member-1',
     });
   });

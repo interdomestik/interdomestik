@@ -78,6 +78,7 @@ export async function generateUploadUrl(
   const claim = await findOwnedMemberUploadClaim({
     claimId,
     authority,
+    role: session.user.role,
     userId: session.user.id,
   });
 
@@ -204,6 +205,7 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
   const claim = await findOwnedMemberUploadClaim({
     claimId,
     authority,
+    role: session.user.role,
     userId: session.user.id,
   });
 

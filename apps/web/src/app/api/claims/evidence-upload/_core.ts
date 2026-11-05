@@ -57,11 +57,7 @@ async function validateClaimAccess(params: {
     return claim ? { success: true, isAdminSurface } : { success: false, status: 404 };
   }
 
-  const claim = await findOwnedMemberUploadClaim({
-    claimId,
-    authority,
-    userId,
-  });
+  const claim = await findOwnedMemberUploadClaim({ claimId, authority, role, userId });
 
   if (!claim) {
     return { success: false, status: 404 };
