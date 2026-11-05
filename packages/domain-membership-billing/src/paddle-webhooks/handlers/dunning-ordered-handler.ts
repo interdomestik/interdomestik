@@ -23,7 +23,11 @@ export async function handleOrderedPastDue(args: {
 }): Promise<void> {
   try {
     const ordered = await persistOrderedPastDueSubscription({
-      ...args,
+      order: args.order,
+      providerSubscriptionId: args.providerSubscriptionId,
+      subscriptionId: args.subscriptionId,
+      authority: args.authority,
+      buildState: args.buildState,
       persistEffects: async (tx, state) => {
         let request = null;
         if (state.newDunningCount === 1 && args.user.email) {

@@ -47,16 +47,24 @@ type AdminUserClaimSummaryArgs = AdminUserClaimSummaryBase &
     | { db?: undefined; authority: TenantAuthority; tenantId?: undefined }
   );
 
+/** The summary inputs alone: the executor is never carried alongside them. */
+function summaryInput(args: AdminUserClaimSummaryBase, tenantId: string) {
+  return {
+    recentClaimsLimit: args.recentClaimsLimit,
+    scope: args.scope,
+    tenantId,
+    userId: args.userId,
+  };
+}
+
 export async function getAdminUserClaimSummary(args: AdminUserClaimSummaryArgs) {
   if (args.db) {
-    return summarizeAdminUserClaims(args.db, { ...args, tenantId: args.tenantId });
+    return summarizeAdminUserClaims(args.db, summaryInput(args, args.tenantId));
   }
 
   // No caller-supplied executor: the ambient client has no tenant context, so open one.
-  const { tenantId } = readTenantAuthority(args.authority);
-  return withTenantAuthority(args.authority, tx =>
-    summarizeAdminUserClaims(tx, { ...args, tenantId })
-  );
+  const input = summaryInput(args, readTenantAuthority(args.authority).tenantId);
+  return withTenantAuthority(args.authority, tx => summarizeAdminUserClaims(tx, input));
 }
 
 async function summarizeAdminUserClaims(
