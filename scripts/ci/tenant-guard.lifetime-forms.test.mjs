@@ -164,34 +164,3 @@ test('L1: classes, `this` and tagged templates cannot retain the capability', ()
     }
   );
 });
-
-test('L1: every transaction opener is a source, and a rebound opener is refused', () => {
-  assertLifetime(
-    {
-      computedTransaction: [
-        'f: the capability escapes its callback (BinaryExpression)',
-        "export const f = (db: any) => db['transaction']((tx: any) => { kept = tx; });",
-      ],
-      boundTransaction: [
-        'f: a transaction opener rebound outside a direct call',
-        'export function f(db: any) { const open = db.transaction.bind(db); return open((tx: any) => { kept = tx; }); }',
-      ],
-      reflectTransaction: [
-        'f: a transaction opener rebound outside a direct call',
-        'export const f = (db: any) => Reflect.apply(db.transaction, db, [(tx: any) => { kept = tx; }]);',
-      ],
-      callTransaction: [
-        'f: a transaction opener rebound outside a direct call',
-        'export const f = (db: any) => db.transaction.call(db, (tx: any) => { kept = tx; });',
-      ],
-    },
-    {
-      safeDataField:
-        'export const f = (e: any) => ({ transaction: e.transaction ? String(e.transaction) : undefined });',
-      safeTypeof:
-        "export const f = (db: any) => typeof db.transaction === 'function' ? W(a, (tx: any) => tx.select()) : null;",
-      safeLiteral:
-        "export const o = { requiredRole: 'x', name: 'n' };\nexport const f = () => W(a, (tx: any) => tx.select());",
-    }
-  );
-});

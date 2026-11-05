@@ -27,7 +27,8 @@ import {
 
 const MAX_DEPTH = 32;
 
-/** Builds `paramProblem(fact, fn, index)` and `stableTargets(fact, callee)` over `ctx`. */
+/** Builds `paramProblem(fact, fn, index)`, `stableTargets(fact, callee)` and the binding lookups
+ * (`bindingOf`, `usesOf`) over `ctx`. */
 export function createLifetimeFlow(ctx) {
   const { keyOf, outermost, referenceAt, restCarries, unwrap } = ctx;
   const settled = new Map();
@@ -274,5 +275,5 @@ export function createLifetimeFlow(ctx) {
     return null;
   }
 
-  return { paramProblem, stableTargets };
+  return { bindingOf, paramProblem, stableTargets, usesOf };
 }

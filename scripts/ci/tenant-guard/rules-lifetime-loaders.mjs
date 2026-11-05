@@ -4,12 +4,14 @@
 // kernel, every other way to obtain a module is refused unless its target is a literal that the
 // module graph resolves: indirect or computed requires and imports, the module loader package,
 // loader members (`require`, `mainModule`, `getBuiltinModule`) under any receiver or binding key,
-// computed member access on the global loader receivers, import-equals declarations and
-// eval-like or bundler loader globals.
+// computed member access on the global loader receivers, import-equals declarations, eval-like
+// or bundler loader globals, the code evaluator package and `constructor` members.
 
 import ts from 'typescript';
 
 const LOADER_MODULES = new Set(['module', 'node:module']);
+// Modules that compile and run source text in the current realm.
+const EVALUATOR_MODULES = new Set(['node:vm', 'vm']);
 // Loader members, including the Module API reachable through `module.constructor`.
 const LOADER_MEMBERS = new Set([
   '_load',
@@ -50,11 +52,15 @@ export function createLoaderChecks(ctx, entryModule) {
       ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier : null;
     if (specifier && ts.isStringLiteralLike(specifier) && LOADER_MODULES.has(specifier.text))
       return 'an import of the module loader';
+    if (specifier && ts.isStringLiteralLike(specifier) && EVALUATOR_MODULES.has(specifier.text))
+      return 'an import of the code evaluator';
     if (ts.isCallExpression(node) && dynamicLoad(fact, node)) {
       if (!literalSpecifier(node) && !dataSpecifier(node))
         return 'a dynamic import with a computed specifier';
       if (literalSpecifier(node) && LOADER_MODULES.has(node.arguments[0].text))
         return 'a dynamic import of the module loader';
+      if (literalSpecifier(node) && EVALUATOR_MODULES.has(node.arguments[0].text))
+        return 'a dynamic import of the code evaluator';
     }
     return memberProblem(fact, node);
   }
@@ -66,6 +72,8 @@ export function createLoaderChecks(ctx, entryModule) {
       return `a module loader member (${name})`;
     if (typeof name === 'string' && GLOBAL_LOADERS.has(name))
       return `an eval-like global or bundler loader (${name})`;
+    // Any function's `constructor` is `Function`, which compiles source text.
+    if (name === 'constructor') return 'a constructor member (it reaches the Function evaluator)';
     if (name === null && !ts.isBindingElement(node) && !ts.isObjectLiteralElementLike(node)) {
       const receiver = unwrap(node.expression);
       if (
