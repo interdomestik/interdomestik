@@ -20,7 +20,8 @@ import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 import { mapActivity, mapLead } from './lead-mutation-mapping';
-import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import type { CrmTenantExecutor } from './tenant-runner';
 
 class MissingOpenOwnershipHistoryError extends Error {}
 
@@ -132,12 +133,25 @@ async function transferOwnershipInDatabase(
   return mapLead(updated);
 }
 
+type LeadOwnershipTransfer = Parameters<typeof transferOwnershipInDatabase>[1];
+
+/** Transfers lead ownership inside the caller's tenant transaction (the routing application's);
+ * false when the target is invalid or the lead no longer has the expected open ownership. */
+export async function transferLeadOwnershipInTransaction(
+  database: CrmTenantExecutor,
+  params: LeadOwnershipTransfer
+): Promise<boolean> {
+  try {
+    return Boolean(await transferOwnershipInDatabase(database, params));
+  } catch (error) {
+    if (error instanceof MissingOpenOwnershipHistoryError) return false;
+    throw error;
+  }
+}
+
 export function createCrmLeadMutationRepository(
-  authority: TenantAuthority,
-  executor?: CrmTenantExecutor,
-  options: { useTransaction?: boolean } = {}
+  authority: TenantAuthority
 ): CrmLeadMutationRepository {
-  const useTransaction = options.useTransaction ?? true;
   return {
     async createLead(params: { actor: CrmActorContext; lead: CreateCrmLeadData }) {
       const now = new Date();
@@ -147,8 +161,7 @@ export function createCrmLeadMutationRepository(
       }
 
       // db-access-guard: tenant-scoped -- reason: creates CRM lead and initial ownership history with explicit authorized CRM actor tenant
-      return runInCrmTenantContext(
-        executor,
+      return withTenantAuthority(
         authority,
         async scoped =>
           await scoped.transaction(async tx => {
@@ -195,8 +208,7 @@ export function createCrmLeadMutationRepository(
 
     async findById(params: { actor: CrmActorContext; leadId: string }) {
       // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context before domain authorization
-      const lead = await runInCrmTenantContext(
-        executor,
+      const lead = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped.query.crmLeads.findFirst({
@@ -219,8 +231,7 @@ export function createCrmLeadMutationRepository(
       // `crm_activities` is the write-side event source that CRM11 timeline reads project from.
       // Domain writes do not write timeline rows directly.
       // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context
-      const [created] = await runInCrmTenantContext(
-        executor,
+      const [created] = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped
@@ -250,8 +261,7 @@ export function createCrmLeadMutationRepository(
       if (!branchId) return null;
 
       const now = new Date();
-      return runInCrmTenantContext(
-        executor,
+      return withTenantAuthority(
         authority,
         async scoped =>
           await scoped.transaction(async tx => {
@@ -304,12 +314,7 @@ export function createCrmLeadMutationRepository(
       targetBranchId: string;
     }) {
       try {
-        if (!useTransaction) {
-          return await runInCrmTenantContext(executor, authority, async scoped =>
-            transferOwnershipInDatabase(scoped, params)
-          );
-        }
-        const targetIsValid = await runInCrmTenantContext(executor, authority, async scoped =>
+        const targetIsValid = await withTenantAuthority(authority, async scoped =>
           hasValidTransferTarget(scoped, {
             targetAgentId: params.targetAgentId,
             targetBranchId: params.targetBranchId,
@@ -317,8 +322,7 @@ export function createCrmLeadMutationRepository(
           })
         );
         if (!targetIsValid) return null;
-        return await runInCrmTenantContext(
-          executor,
+        return await withTenantAuthority(
           authority,
           async scoped =>
             await scoped.transaction(async tx =>

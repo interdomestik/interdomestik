@@ -6,7 +6,8 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 
-import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import type { CrmTenantExecutor } from './tenant-runner';
 import { forEachInOrder } from '@/lib/in-order';
 
 export const CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN = 1000;
@@ -49,21 +50,19 @@ type CrmForecastSnapshotWorkItemDb = Pick<CrmTenantExecutor, 'select'>;
  * supplied authority yields no work, so a caller-supplied id never selects a tenant by itself.
  */
 export function createCrmForecastSnapshotWorkItemRepository(
-  authorities: readonly TenantAuthority[],
-  executor?: CrmTenantExecutor
+  authorities: readonly TenantAuthority[]
 ): CrmForecastSnapshotWorkItemRepository {
   return {
     async listWorkItems(params) {
       const limit = params.limit ?? CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN;
       const scope = authoritiesInScope(authorities, params.tenantId);
 
-      const rows = await runWorkItemQuery(executor, scope, params, limit + 1);
+      const rows = await runWorkItemQuery(scope, params, limit + 1);
       if (rows.length <= limit) {
         return mapWorkItemRows(rows, limit, rows.length);
       }
 
       const allRows = await runWorkItemQuery(
-        executor,
         scope,
         params,
         CRM_FORECAST_SNAPSHOT_DEFERRED_COUNT_LIMIT
@@ -115,7 +114,6 @@ type WorkItemQueryParams = {
 };
 
 async function runWorkItemQuery(
-  executor: CrmTenantExecutor | undefined,
   scope: readonly ScopedAuthority[],
   params: WorkItemQueryParams,
   limit: number
@@ -129,8 +127,7 @@ async function runWorkItemQuery(
     // Once the budget is spent the remaining tenants are not queried.
     if (remaining <= 0) return;
     rows.push(
-      ...(await runInCrmTenantContext(
-        executor,
+      ...(await withTenantAuthority(
         authority,
         async scoped => await buildWorkItemQuery(scoped, { ...params, tenantId }).limit(remaining)
       ))

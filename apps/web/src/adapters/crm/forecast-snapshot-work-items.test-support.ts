@@ -61,4 +61,13 @@ export function pushCall<TChain>(
   return chain;
 }
 
+/** Makes `database` the tenant transaction each tenant query opens, and returns the repository. */
+export function onWorkItemDatabase<TRepository>(
+  database: unknown,
+  repository: TRepository
+): TRepository {
+  withTenantContext.mockImplementation(async (_context, action) => action(database));
+  return repository;
+}
+
 export { withTenantContext };

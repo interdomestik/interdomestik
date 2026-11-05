@@ -5,6 +5,7 @@ import {
   createDatabaseDouble,
   row,
   withTenantContext,
+  onWorkItemDatabase,
 } from './forecast-snapshot-work-items.test-support';
 import {
   CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN,
@@ -50,9 +51,9 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
   it('uses a grouped normalized-deal query with the exported work-item cap', async () => {
     const { calls, database } = createDatabaseDouble([[row()]]);
 
-    const repository = createCrmForecastSnapshotWorkItemRepository(
-      authoritiesFor('tenant-1'),
-      database as never
+    const repository = onWorkItemDatabase(
+      database,
+      createCrmForecastSnapshotWorkItemRepository(authoritiesFor('tenant-1'))
     );
     const result = await repository.listWorkItems({
       snapshotDateEndExclusive: new Date('2026-05-14T00:00:00.000Z'),
@@ -114,9 +115,11 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
         [tenant3],
       ]);
 
-      const repository = createCrmForecastSnapshotWorkItemRepository(
-        authoritiesFor('tenant-1', 'tenant-2', 'tenant-3'),
-        database as never
+      const repository = onWorkItemDatabase(
+        database,
+        createCrmForecastSnapshotWorkItemRepository(
+          authoritiesFor('tenant-1', 'tenant-2', 'tenant-3')
+        )
       );
       const result = await repository.listWorkItems({ limit: 1, ...window });
 
@@ -144,9 +147,11 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
       // Deferred-count pass: a (3 rows), b (1 row), c (0 rows) are all visited in order.
       const { calls, database } = createDatabaseDouble([[a1, a2, a3], [a1, a2, a3], [b1], []]);
 
-      const repository = createCrmForecastSnapshotWorkItemRepository(
-        authoritiesFor('tenant-a', 'tenant-b', 'tenant-c'),
-        database as never
+      const repository = onWorkItemDatabase(
+        database,
+        createCrmForecastSnapshotWorkItemRepository(
+          authoritiesFor('tenant-a', 'tenant-b', 'tenant-c')
+        )
       );
       const result = await repository.listWorkItems({ limit: 2, ...window });
 
@@ -168,9 +173,9 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
         [row({ tenantId: 'tenant-b' })],
       ]);
 
-      const repository = createCrmForecastSnapshotWorkItemRepository(
-        authoritiesFor('tenant-a', 'tenant-b'),
-        database as never
+      const repository = onWorkItemDatabase(
+        database,
+        createCrmForecastSnapshotWorkItemRepository(authoritiesFor('tenant-a', 'tenant-b'))
       );
       const result = await repository.listWorkItems(window);
 
@@ -192,9 +197,9 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
     it('lets a tenantId filter only narrow the authorities it was given', async () => {
       const { calls, database } = createDatabaseDouble([[row({ tenantId: 'tenant-9' })]]);
 
-      const repository = createCrmForecastSnapshotWorkItemRepository(
-        authoritiesFor('tenant-1', 'tenant-9'),
-        database as never
+      const repository = onWorkItemDatabase(
+        database,
+        createCrmForecastSnapshotWorkItemRepository(authoritiesFor('tenant-1', 'tenant-9'))
       );
       await repository.listWorkItems({ tenantId: 'tenant-9', ...window });
 
@@ -206,9 +211,9 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
     it('returns no work and runs no query for a tenantId without a supplied authority', async () => {
       const { database } = createDatabaseDouble([[row({ tenantId: 'tenant-2' })]]);
 
-      const repository = createCrmForecastSnapshotWorkItemRepository(
-        authoritiesFor('tenant-1'),
-        database as never
+      const repository = onWorkItemDatabase(
+        database,
+        createCrmForecastSnapshotWorkItemRepository(authoritiesFor('tenant-1'))
       );
       await expect(repository.listWorkItems({ tenantId: 'tenant-2', ...window })).resolves.toEqual({
         workItems: [],
@@ -221,7 +226,10 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
     it('returns no work items when there are no authorities', async () => {
       const { database } = createDatabaseDouble([]);
 
-      const repository = createCrmForecastSnapshotWorkItemRepository([], database as never);
+      const repository = onWorkItemDatabase(
+        database,
+        createCrmForecastSnapshotWorkItemRepository([])
+      );
       await expect(repository.listWorkItems(window)).resolves.toEqual({
         workItems: [],
         workItemsDeferred: 0,

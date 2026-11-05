@@ -4,19 +4,15 @@ import { and, eq, isNull, or } from 'drizzle-orm';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { crmLossReasons } from '@interdomestik/database/schema';
 
-import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export function createCrmLossReasonRepository(
-  authority: TenantAuthority,
-  executor?: CrmTenantExecutor
-): LossReasonResolver {
+export function createCrmLossReasonRepository(authority: TenantAuthority): LossReasonResolver {
   return {
     async resolveLossReason(input) {
       const branchId = input.actor.scope.branchId ?? null;
 
       // db-access-guard: tenant-scoped -- reason: CRM loss-reason lookup constrains by authorized actor tenant and branch-compatible vocabulary
-      const row = await runInCrmTenantContext(
-        executor,
+      const row = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped.query.crmLossReasons.findFirst({

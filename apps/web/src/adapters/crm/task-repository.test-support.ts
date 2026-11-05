@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { createCrmTask, type CrmTask } from '@interdomestik/domain-crm/tasks';
 import { crmTasks } from '@interdomestik/database/schema';
-import { createCrmTaskRepository } from './task-repository';
+import type { CrmTenantExecutor } from './tenant-runner';
 
 const hoisted = vi.hoisted(() => ({
   db: {},
@@ -12,7 +12,7 @@ vi.mock('@interdomestik/database/db', () => ({
   db: hoisted.db,
 }));
 
-export type TaskRepositoryDb = NonNullable<Parameters<typeof createCrmTaskRepository>[1]>;
+export type TaskRepositoryDb = CrmTenantExecutor;
 
 export const now = new Date('2026-05-21T08:00:00.000Z');
 

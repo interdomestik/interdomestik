@@ -8,7 +8,7 @@ import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { crmPipelines, crmPipelineStages } from '@interdomestik/database/schema';
 
-import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type CrmPipelineRow = typeof crmPipelines.$inferSelect;
 type CrmPipelineStageRow = typeof crmPipelineStages.$inferSelect;
@@ -81,15 +81,11 @@ function stageValues(stage: CrmPipelineStage) {
   };
 }
 
-export function createCrmPipelineRepository(
-  authority: TenantAuthority,
-  executor?: CrmTenantExecutor
-): CrmPipelineRepository {
+export function createCrmPipelineRepository(authority: TenantAuthority): CrmPipelineRepository {
   return {
     async createPipeline(params) {
       // db-access-guard: tenant-scoped -- reason: CRM pipeline create writes explicit tenantId from the authorized domain mutation output
-      await runInCrmTenantContext(
-        executor,
+      await withTenantAuthority(
         authority,
         async scoped =>
           await scoped.transaction(async tx => {
@@ -104,8 +100,7 @@ export function createCrmPipelineRepository(
 
     async findPipelineById(params) {
       // db-access-guard: tenant-scoped -- reason: CRM pipeline lookup constrains by explicit tenantId and hides archived rows by default
-      const row = await runInCrmTenantContext(
-        executor,
+      const row = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped.query.crmPipelines.findFirst({
@@ -127,8 +122,7 @@ export function createCrmPipelineRepository(
 
     async updatePipeline(params) {
       // db-access-guard: tenant-scoped -- reason: CRM pipeline update constrains by pipeline id plus explicit tenantId from domain mutation output
-      await runInCrmTenantContext(
-        executor,
+      await withTenantAuthority(
         authority,
         async scoped =>
           await scoped.transaction(async tx => {

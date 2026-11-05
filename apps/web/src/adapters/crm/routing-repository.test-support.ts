@@ -1,14 +1,13 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi } from 'vitest';
+import { onCrmTenantDatabase } from './crm-tenant-database.test-support';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import type {
   CrmRoutingAssignmentAuditRecord,
   CrmRoutingCursorAdvancement,
 } from '@interdomestik/domain-crm/routing';
-import {
-  createAdminCrmRoutingRuleRepository,
-  createCrmRoutingRepository,
-} from './routing-repository';
+import { createAdminCrmRoutingRuleRepository } from './routing-repository';
+import type { CrmTenantExecutor } from './tenant-runner';
 
 const hoisted = vi.hoisted(() => ({
   db: {},
@@ -18,8 +17,8 @@ vi.mock('@interdomestik/database/db', () => ({
   db: hoisted.db,
 }));
 
-export type AdminRoutingDb = NonNullable<Parameters<typeof createAdminCrmRoutingRuleRepository>[1]>;
-export type RoutingRepositoryDb = NonNullable<Parameters<typeof createCrmRoutingRepository>[1]>;
+export type AdminRoutingDb = CrmTenantExecutor;
+export type RoutingRepositoryDb = CrmTenantExecutor;
 
 export const now = new Date('2026-05-16T08:00:00.000Z');
 
@@ -108,9 +107,9 @@ export function auditRow(overrides: Record<string, unknown> = {}) {
 }
 
 export function createAdminRepositoryForTest(fakeDb: unknown) {
-  return createAdminCrmRoutingRuleRepository(
-    mintTestTenantAuthority('tenant-1'),
-    fakeDb as AdminRoutingDb
+  return onCrmTenantDatabase(
+    fakeDb as AdminRoutingDb,
+    createAdminCrmRoutingRuleRepository(mintTestTenantAuthority('tenant-1'))
   );
 }
 

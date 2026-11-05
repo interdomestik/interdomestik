@@ -1,5 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { onCrmTenantDatabase } from './crm-tenant-database.test-support';
 
 const hoisted = vi.hoisted(() => ({
   db: {},
@@ -144,9 +145,9 @@ describe('crmDealRepository', () => {
 
   it('creates normalized deals and appends created history in one transaction with legacy mirrors', async () => {
     const fake = createFakeDb();
-    const repository = createCrmDealRepository(
-      mintTestTenantAuthority('tenant-1'),
-      fake.db as never
+    const repository = onCrmTenantDatabase(
+      fake.db as never,
+      createCrmDealRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(
@@ -193,9 +194,9 @@ describe('crmDealRepository', () => {
 
   it('refuses non-EUR legacy mirror writes before opening a transaction', async () => {
     const fake = createFakeDb();
-    const repository = createCrmDealRepository(
-      mintTestTenantAuthority('tenant-1'),
-      fake.db as never
+    const repository = onCrmTenantDatabase(
+      fake.db as never,
+      createCrmDealRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(
@@ -211,9 +212,9 @@ describe('crmDealRepository', () => {
   it('rejects concurrent stage moves when the expected current stage no longer matches', async () => {
     const fake = createFakeDb({ updateRows: [] });
     fake.db.query.crmPipelineStages.findFirst.mockResolvedValueOnce(stageCommit);
-    const repository = createCrmDealRepository(
-      mintTestTenantAuthority('tenant-1'),
-      fake.db as never
+    const repository = onCrmTenantDatabase(
+      fake.db as never,
+      createCrmDealRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(

@@ -1,5 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { onCrmTenantDatabase } from './crm-tenant-database.test-support';
 import {
   adminActor,
   auditRecord,
@@ -28,9 +29,9 @@ describe('crmRoutingRepository', () => {
         crmRoutingRules: { findMany: vi.fn() },
       },
     };
-    const repository = createCrmRoutingRepository(
-      mintTestTenantAuthority('tenant-1'),
-      routingRepositoryDb(fakeDb)
+    const repository = onCrmTenantDatabase(
+      routingRepositoryDb(fakeDb),
+      createCrmRoutingRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(
