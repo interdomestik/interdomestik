@@ -142,7 +142,10 @@ export function createLifetimeFlow(ctx) {
     if (!binding) return null;
     for (const use of usesOf(fact, binding)) {
       if (writes(use.node, ctx)) return `a reassigned capability binding (${id.text})`;
-      // A carrier's other own members are plain data: reading them anywhere lends nothing.
+      // A closure or class over the binding retains the whole carrier, whichever member it reads.
+      if (captureBoundary(use.node) !== owner)
+        return `a nested function or class captures it (${id.text})`;
+      // A carrier's other own members are plain data: reading them in place lends nothing.
       if (otherMember(use.node, path)) {
         const member = use.node.parent.name.text;
         if (!owned[0].has(member)) return `a member the carrier does not own (${member})`;
@@ -150,8 +153,6 @@ export function createLifetimeFlow(ctx) {
         if (writes(use.node.parent, ctx)) return `a written carrier member (${member})`;
         if (!calledMember(use.node.parent)) continue;
       }
-      if (captureBoundary(use.node) !== owner)
-        return `a nested function or class captures it (${id.text})`;
       const problem =
         path.length === 0
           ? valueProblem(fact, use.node, owner, depth)

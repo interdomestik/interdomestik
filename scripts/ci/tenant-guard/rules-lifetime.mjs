@@ -11,20 +11,13 @@ import { KERNEL } from './manifest.mjs';
 import { originKey } from './modules.mjs';
 import { byCodeUnit } from './rules-digest.mjs';
 import { createLifetimeFlow } from './rules-lifetime-flow.mjs';
+import { createLoaderChecks } from './rules-lifetime-loaders.mjs';
 import { isFunctionLike, memberUse } from './syntax.mjs';
 
 const DECLARATION_FILE = /\.d\.[cm]?ts$/u;
 const RULE = 'L1';
-const LOADER_MODULES = new Set(['module', 'node:module']);
-const LOADER_MEMBERS = new Set(['getBuiltinModule', 'mainModule', 'require']);
-const LOADER_RECEIVERS = new Set(['globalThis', 'global', 'module', 'process']);
-// Globals that evaluate code or load a module by a name computed at runtime.
-const GLOBAL_LOADERS = new Set([
-  'eval',
-  'Function',
-  '__non_webpack_require__',
-  '__webpack_require__',
-]);
+// A transaction entry takes (context, callback): any other arity could hide the callback.
+const ENTRY_ARITY = 2;
 
 /** Installs the transaction-lifetime analysis as `ctx.checkLifetime()`. */
 export function installLifetime(ctx) {
@@ -32,32 +25,48 @@ export function installLifetime(ctx) {
   const { originsOf, referenceAt, unwrap } = ctx;
   const flow = createLifetimeFlow(ctx);
 
-  /** The callback a call opens a transaction with, `undefined` when it opens none. */
+  /** The callback a call opens a transaction with (`{ callback }`, or `{ problem }` when it cannot
+   * be located), `undefined` when the call opens none. */
   function openedCallback(fact, call) {
     const callee = unwrap(call.expression);
     // A kernel entry, named directly or as a member of its module namespace (`ns.entry(...)`).
     const root = ts.isPropertyAccessExpression(callee) ? unwrap(callee.expression) : callee;
-    if (ts.isIdentifier(root) && allIn(identifierOrigins(fact, root), TRANSACTION_ENTRIES))
-      return call.arguments.at(-1) ?? null;
+    if (ts.isIdentifier(root) && allIn(identifierOrigins(fact, root), TRANSACTION_ENTRIES)) {
+      if (call.arguments.length !== ENTRY_ARITY || call.arguments.some(ts.isSpreadElement))
+        return { problem: 'a transaction entry called other than as (context, callback)' };
+      return { callback: call.arguments[1] };
+    }
     if (ts.isPropertyAccessExpression(callee) && callee.name.text === 'transaction')
-      return call.arguments[0] ?? null;
+      return { callback: call.arguments[0] ?? null };
     return undefined;
   }
 
   const entryModules = new Map();
   /** Whether `file` exports a transaction entry, directly or through a module object it exports
-   * (`export * as inner from …`), at any depth. */
+   * (`export * as inner from …`), at any depth. Each answer is a complete search of the module
+   * objects reachable from `file`, so a re-export cycle never caches a partial result. */
   function entryModule(file) {
     if (entryModules.has(file)) return entryModules.get(file);
-    entryModules.set(file, false); // a re-export cycle adds nothing
-    const reaches = [...graph.exportNames(file)].some(name =>
-      graph.resolveExport(file, name).some(reachesEntry)
-    );
+    const seen = new Set([file]);
+    const queue = [file];
+    let reaches = false;
+    while (queue.length > 0 && !reaches) {
+      const current = queue.shift();
+      for (const name of graph.exportNames(current)) {
+        for (const origin of graph.resolveExport(current, name)) {
+          if (TRANSACTION_ENTRIES.has(originKey(origin))) reaches = true;
+          for (const inner of origin.namespace ?? []) {
+            if (seen.has(inner)) continue;
+            seen.add(inner);
+            queue.push(inner);
+          }
+        }
+      }
+    }
     entryModules.set(file, reaches);
     return reaches;
   }
-  const reachesEntry = origin =>
-    TRANSACTION_ENTRIES.has(originKey(origin)) || (origin.namespace ?? []).some(entryModule);
+  const { loaderProblem, loadsEntryModule } = createLoaderChecks(ctx, entryModule);
 
   /** Why a reference to a transaction entry, or to a module object exporting one, escapes the
    * one admitted form (the callee of a call, as `entry(...)` or `ns.entry(...)`), or null. */
@@ -83,69 +92,6 @@ export function installLifetime(ctx) {
     const value = ctx.outermost(member ? member.node : node);
     if (ts.isCallExpression(value.parent) && value.parent.expression === value) return null;
     return 'a transaction entry used as a value';
-  }
-
-  const isRequire = (fact, node) =>
-    ts.isIdentifier(node) &&
-    node.text === 'require' &&
-    referenceAt(fact, node) &&
-    !referenceAt(fact, node).binding;
-
-  /** Why `node` reaches a module loader other than a direct `import()` / `require()` call with a
-   * literal specifier, or null. */
-  function loaderProblem(fact, node) {
-    if (isRequire(fact, node)) {
-      const value = ctx.outermost(node);
-      if (!(ts.isCallExpression(value.parent) && value.parent.expression === value))
-        return 'an indirect require';
-    }
-    if (ts.isIdentifier(node) && GLOBAL_LOADERS.has(node.text) && referenceAt(fact, node))
-      return `an eval-like global or bundler loader (${node.text})`;
-    if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference))
-      return 'a CommonJS import (import = require)';
-    const specifier =
-      ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier : null;
-    if (specifier && ts.isStringLiteralLike(specifier) && LOADER_MODULES.has(specifier.text))
-      return 'an import of the module loader';
-    if (
-      ts.isCallExpression(node) &&
-      dynamicLoad(fact, node) &&
-      !literalSpecifier(node) &&
-      !dataSpecifier(node)
-    )
-      return 'a dynamic import with a computed specifier';
-    if (ts.isPropertyAccessExpression(node) && LOADER_MEMBERS.has(node.name.text)) {
-      const receiver = unwrap(node.expression);
-      if (ts.isMetaProperty(receiver)) return `a module loader member (${node.name.text})`;
-      if (
-        ts.isIdentifier(receiver) &&
-        LOADER_RECEIVERS.has(receiver.text) &&
-        !referenceAt(fact, receiver)?.binding
-      )
-        return `a module loader member (${node.name.text})`;
-    }
-    return null;
-  }
-
-  const dynamicLoad = (fact, call) => {
-    const callee = unwrap(call.expression);
-    return callee.kind === ts.SyntaxKind.ImportKeyword || isRequire(fact, callee);
-  };
-  const literalSpecifier = call =>
-    call.arguments.length > 0 && ts.isStringLiteralLike(call.arguments[0]);
-  /** A data template such as `../messages/${locale}/${name}.json`: a static relative prefix and a
-   * `.json` suffix, so the bundler's context holds JSON modules only. */
-  const dataSpecifier = call => {
-    const [specifier] = call.arguments;
-    if (call.arguments.length !== 1 || !ts.isTemplateExpression(specifier)) return false;
-    const tail = specifier.templateSpans.at(-1).literal.text;
-    return /^(?:\.{1,2}|@)\/[\w./-]+\//u.test(specifier.head.text) && /\.json$/u.test(tail);
-  };
-
-  /** A dynamic `import()` / `require()` of a module exporting a transaction entry. */
-  function loadsEntryModule(fact, call) {
-    if (!dynamicLoad(fact, call) || !literalSpecifier(call)) return false;
-    return graph.resolveSpecifier(fact.file, call.arguments[0].text).files.some(entryModule);
   }
 
   /** Type positions erase at runtime, except a class `extends` expression. */
@@ -189,10 +135,10 @@ export function installLifetime(ctx) {
         if (ts.isCallExpression(node) && loadsEntryModule(fact, node))
           report(node, 'a dynamic import of a module exporting a transaction entry');
         if (ts.isCallExpression(node)) {
-          const callback = openedCallback(fact, node);
-          if (callback !== undefined) {
+          const opened = openedCallback(fact, node);
+          if (opened !== undefined) {
             ctx.telemetry.lifetimeSources = (ctx.telemetry.lifetimeSources ?? 0) + 1;
-            const targets = callbackTargets(fact, callback);
+            const targets = opened.problem ?? callbackTargets(fact, opened.callback);
             if (typeof targets === 'string') report(node, targets);
             else {
               for (const target of targets) {
