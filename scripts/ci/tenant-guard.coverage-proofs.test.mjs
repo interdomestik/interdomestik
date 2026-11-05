@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { containsClaimStatusWrite } from '../check-claim-status-writers.mjs';
+import { lifetimeOf } from './tenant-guard-lifetime-test-support.mjs';
 import { assertRefused, byStage, run, runWithBase } from './tenant-guard-test-support.mjs';
 
 // Smallest proofs for the known S8 guard coverage gaps (coordination 164/165, category b).
@@ -131,4 +132,23 @@ test('P2 boundary: a session-resolved read is accepted however its result is kep
     const result = runWithBase(SESSION_READ, { 'apps/web/src/use.ts': imported + body });
     assert.deepEqual(result.violations, [], name);
   }
+});
+
+test('L1 memo keys: canonically equal but distinct carrier keys never split a forwarding cycle', () => {
+  // 'á' (U+00E1) and 'a' + U+0301 are distinct keys that a locale comparison treats as equal; the
+  // obligation cache must order them by code unit, or re-entering the cycle with the keys inserted
+  // in the other order is not recognised and the chain runs past the analysis bound.
+  const HELPERS = 17;
+  const name = index => `hop${index % HELPERS}`;
+  const helpers = Array.from({ length: HELPERS }, (_, index) => {
+    const next =
+      index === HELPERS - 1
+        ? `${name(0)}({ db: args.db, 'a\\u0301': 2, '\\u00e1': 1 }, n - 1)`
+        : `${name(index + 1)}(args, n - 1)`;
+    return `async function ${name(index)}(args: any, n: number): Promise<any> { if (n <= 0) return args.db.select(); return await ${next}; }`;
+  });
+  const entry =
+    "export const f = () => W(a, async (tx: any) => await hop0({ db: tx, '\\u00e1': 1, 'a\\u0301': 2 }, 40));";
+  const { lifetime } = lifetimeOf([...helpers, entry].join('\n'));
+  assert.deepEqual(lifetime, []);
 });

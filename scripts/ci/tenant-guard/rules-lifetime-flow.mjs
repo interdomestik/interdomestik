@@ -10,6 +10,7 @@
 
 import ts from 'typescript';
 import { createLifetimeCallees } from './rules-lifetime-callees.mjs';
+import { byCodeUnit } from './rules-digest.mjs';
 import {
   captureBoundary,
   constInitializer,
@@ -57,7 +58,7 @@ export function createLifetimeFlow(ctx) {
   // to it may still use the capability after it returns unless that call is joined.
   const paramProblem = (fact, fn, index) => obligation(fact, fn, index, [], [], 0).problem;
   function obligation(fact, fn, index, path, owned, depth) {
-    const keys = owned.map(set => [...set].sort((a, b) => a.localeCompare(b)));
+    const keys = owned.map(set => [...set].sort(byCodeUnit));
     const key = JSON.stringify([fact.file, fn.pos, index, path, keys]);
     if (settled.has(key)) return settled.get(key);
     if (active.has(key)) {
