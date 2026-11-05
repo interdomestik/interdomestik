@@ -20,7 +20,7 @@ export const LIFETIME_RUNNERS = deepFreeze([
     // or on the caller's own transaction (parameter 0) when it is handed one.
     file: 'apps/web/src/app/api/documents/durable-case-grants.ts',
     unit: 'withGrantReadContext',
-    sha256: '5a093207756d54cda4daf2b12dbee6013cfdf2710ce2ba32921078394c639d14',
+    sha256: '184f475d6e7989816be8e81d24b393410148512bf8d5b962bd93c056d2abc35f',
     callback: 2,
     lends: [0],
   },
@@ -28,7 +28,7 @@ export const LIFETIME_RUNNERS = deepFreeze([
     // Grant-bound document reads: pins row security and the home tenant the same way.
     file: 'apps/web/src/app/api/documents/cross-tenant-document-lookup.ts',
     unit: 'withDocumentReadContext',
-    sha256: 'a77e78110a55eb999818774fd425dacfa339b58d5cf67ff967616a2de1e926c2',
+    sha256: 'e5d6ceac85c6df6a07636a36911f2a6877cddca4c6c0663705e4c1bb5234632c',
     callback: 2,
     lends: [0],
   },
