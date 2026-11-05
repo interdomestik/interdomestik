@@ -19,11 +19,19 @@ export const LIFETIME_MEMBERS = new Set([
   'with',
 ]);
 const REBINDING = new Set(['apply', 'bind', 'call']);
+// Strict comparisons only: a loose one converts an object operand through its own methods.
 const COMPARISONS = new Set([
   ts.SyntaxKind.EqualsEqualsEqualsToken,
   ts.SyntaxKind.ExclamationEqualsEqualsToken,
-  ts.SyntaxKind.EqualsEqualsToken,
-  ts.SyntaxKind.ExclamationEqualsToken,
+]);
+/** Members the language invokes implicitly (conversions, thenables, serialization). */
+export const IMPLICIT_MEMBERS = new Set([
+  'constructor',
+  'then',
+  'toJSON',
+  'toLocaleString',
+  'toString',
+  'valueOf',
 ]);
 export const kindOf = node => ts.SyntaxKind[node.kind];
 
@@ -58,6 +66,51 @@ function nonArrowOwner(node) {
   let owner = ownerOf(node);
   while (owner && ts.isArrowFunction(owner)) owner = ownerOf(owner);
   return owner;
+}
+
+/** Whether a reference is written: an assignment, update or delete target, a destructuring
+ * assignment target, or the iteration target of `for…of` / `for…in`. */
+export function writes(node, { isWriteTarget, outermost }) {
+  const value = outermost(node);
+  if (isWriteTarget(value)) return true;
+  let current = value;
+  for (let parent = current.parent; parent; parent = current.parent) {
+    const container =
+      ts.isArrayLiteralExpression(parent) ||
+      ts.isSpreadElement(parent) ||
+      ts.isShorthandPropertyAssignment(parent) ||
+      (ts.isPropertyAssignment(parent) && parent.initializer === current) ||
+      ts.isObjectLiteralExpression(parent) ||
+      ts.isParenthesizedExpression(parent);
+    if (!container) break;
+    current = parent;
+  }
+  const loop = current.parent;
+  return (ts.isForOfStatement(loop) || ts.isForInStatement(loop)) && loop.initializer === current;
+}
+
+/** How many `var` and function declarations of `name` hoist into the function or file `scope`
+ * (nested functions excluded): such a declaration rebinds a parameter or a declared function. */
+export function hoistedDeclarations(scope, name) {
+  let count = 0;
+  const visit = node => {
+    if (ts.isFunctionDeclaration(node) && node.name?.text === name) count += 1;
+    if (node !== scope && isFunctionLike(node)) return;
+    if (ts.isVariableDeclarationList(node) && !(node.flags & ts.NodeFlags.BlockScoped)) {
+      for (const declaration of node.declarations)
+        if (bindsName(declaration.name, name)) count += 1;
+    }
+    ts.forEachChild(node, visit);
+  };
+  if (ts.isSourceFile(scope)) ts.forEachChild(scope, visit);
+  else if (scope.body) ts.forEachChild(scope.body, visit);
+  return count;
+}
+function bindsName(pattern, name) {
+  if (ts.isIdentifier(pattern)) return pattern.text === name;
+  return pattern.elements.some(
+    element => !ts.isOmittedExpression(element) && bindsName(element.name, name)
+  );
 }
 
 /** `access` reads a capability member: a reviewed member chain that ends in a call, or a test. */

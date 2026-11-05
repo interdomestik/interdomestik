@@ -8,50 +8,88 @@
 
 import ts from 'typescript';
 import { KERNEL } from './manifest.mjs';
+import { originKey } from './modules.mjs';
 import { byCodeUnit } from './rules-digest.mjs';
 import { createLifetimeFlow } from './rules-lifetime-flow.mjs';
-import { isFunctionLike } from './syntax.mjs';
+import { isFunctionLike, memberUse } from './syntax.mjs';
 
 const DECLARATION_FILE = /\.d\.[cm]?ts$/u;
 const RULE = 'L1';
-const ENTRY_NAMES = new Set(['withTenantAuthority', 'withTenantContext', 'withTenantDb']);
 
 /** Installs the transaction-lifetime analysis as `ctx.checkLifetime()`. */
 export function installLifetime(ctx) {
-  const { TRANSACTION_ENTRIES, allIn, factsOf, identifierOrigins, isTest, sources, unwrap } = ctx;
+  const { TRANSACTION_ENTRIES, allIn, factsOf, graph, identifierOrigins, isTest, sources } = ctx;
+  const { originsOf, referenceAt, unwrap } = ctx;
   const flow = createLifetimeFlow(ctx);
 
   /** The callback a call opens a transaction with, `undefined` when it opens none. */
   function openedCallback(fact, call) {
     const callee = unwrap(call.expression);
-    if (ts.isIdentifier(callee) && allIn(identifierOrigins(fact, callee), TRANSACTION_ENTRIES))
+    // A kernel entry, named directly or as a member of its module namespace (`ns.entry(...)`).
+    const root = ts.isPropertyAccessExpression(callee) ? unwrap(callee.expression) : callee;
+    if (ts.isIdentifier(root) && allIn(identifierOrigins(fact, root), TRANSACTION_ENTRIES))
       return call.arguments.at(-1) ?? null;
     if (ts.isPropertyAccessExpression(callee) && callee.name.text === 'transaction')
       return call.arguments[0] ?? null;
-    // A kernel entry read through a namespace import opens one too.
-    if (namespaceEntry(fact, callee)) return call.arguments.at(-1) ?? null;
     return undefined;
   }
 
-  /** `ns.withTenantAuthority` on a namespace import (`import * as ns`). */
-  function namespaceEntry(fact, node) {
-    if (!ts.isPropertyAccessExpression(node) || !ENTRY_NAMES.has(node.name.text)) return false;
-    const root = unwrap(node.expression);
-    const binding = ts.isIdentifier(root) ? ctx.referenceAt(fact, root)?.binding : null;
-    return binding?.kind === 'import' && binding.imported === '*';
+  const entryModules = new Map();
+  /** Whether `file` exports a transaction entry under any name. */
+  function entryModule(file) {
+    if (!entryModules.has(file)) {
+      entryModules.set(
+        file,
+        [...graph.exportNames(file)].some(name =>
+          graph.resolveExport(file, name).some(origin => TRANSACTION_ENTRIES.has(originKey(origin)))
+        )
+      );
+    }
+    return entryModules.get(file);
   }
 
-  /** A kernel entry read other than as the callee of a call (`.call`, aliases, hand-offs). */
-  function entryValue(fact, node) {
-    const named = ts.isIdentifier(node)
-      ? allIn(identifierOrigins(fact, node), TRANSACTION_ENTRIES)
-      : namespaceEntry(fact, node);
-    if (!named || (ts.isPropertyAccessExpression(node.parent) && node.parent.name === node))
-      return false;
-    if (ts.isExportSpecifier(node.parent) || ts.isImportSpecifier(node.parent)) return false;
-    const value = ctx.outermost(node);
-    return !(ts.isCallExpression(value.parent) && value.parent.expression === value);
+  /** Why a reference to a transaction entry, or to a module object exporting one, escapes the
+   * one admitted form (the callee of a call, as `entry(...)` or `ns.entry(...)`), or null. */
+  function entryProblem(fact, node) {
+    const reference = referenceAt(fact, node);
+    if (!reference?.binding) return null;
+    if (ts.isImportSpecifier(node.parent) || ts.isExportSpecifier(node.parent)) return null;
+    const resolved = originsOf(fact, reference);
+    const modules = [
+      ...(resolved.namespace ?? []),
+      ...resolved.origins.flatMap(origin => origin.namespace ?? []),
+    ];
+    const namespace = modules.some(entryModule);
+    // A module object is admitted only as `ns.member`, resolved member by member.
+    const member = namespace ? memberUse(node) : null;
+    if (namespace && (!member || reference.binding.imported !== '*'))
+      return 'a module object exporting a transaction entry used as a value';
+    if (!allIn(resolved.origins.map(originKey), TRANSACTION_ENTRIES)) return null;
+    const value = ctx.outermost(member ? member.node : node);
+    if (ts.isCallExpression(value.parent) && value.parent.expression === value) return null;
+    return 'a transaction entry used as a value';
   }
+
+  /** A dynamic `import()` / `require()` of a module exporting a transaction entry. */
+  function loadsEntryModule(fact, call) {
+    const callee = call.expression;
+    const loader =
+      callee.kind === ts.SyntaxKind.ImportKeyword ||
+      (ts.isIdentifier(callee) && callee.text === 'require' && !referenceAt(fact, callee)?.binding);
+    const [specifier] = call.arguments;
+    if (!loader || !specifier || !ts.isStringLiteralLike(specifier)) return false;
+    return graph.resolveSpecifier(fact.file, specifier.text).files.some(entryModule);
+  }
+
+  /** Type positions erase at runtime, except a class `extends` expression. */
+  const erased = node =>
+    ts.isTypeNode(node) &&
+    !(
+      ts.isExpressionWithTypeArguments(node) &&
+      ts.isHeritageClause(node.parent) &&
+      node.parent.token === ts.SyntaxKind.ExtendsKeyword &&
+      ts.isClassLike(node.parent.parent)
+    );
 
   /** The functions a transaction callback argument may be, or why it cannot be checked. */
   function callbackTargets(fact, callback) {
@@ -76,8 +114,11 @@ export function installLifetime(ctx) {
           `a tenant transaction capability can outlive its callback: ${detail}`
         );
       ts.forEachChild(fact.sourceFile, function visit(node) {
-        if (ts.isTypeNode(node)) return;
-        if (entryValue(fact, node)) report(node, 'a transaction entry used as a value');
+        if (erased(node)) return;
+        const entry = ts.isIdentifier(node) ? entryProblem(fact, node) : null;
+        if (entry) report(node, entry);
+        if (ts.isCallExpression(node) && loadsEntryModule(fact, node))
+          report(node, 'a dynamic import of a module exporting a transaction entry');
         if (ts.isCallExpression(node)) {
           const callback = openedCallback(fact, node);
           if (callback !== undefined) {
