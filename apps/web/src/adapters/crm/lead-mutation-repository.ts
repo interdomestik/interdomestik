@@ -7,7 +7,6 @@ import type {
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { randomUUID } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
-
 import {
   branches,
   crmActivities,
@@ -17,10 +16,10 @@ import {
   user,
 } from '@interdomestik/database/schema';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 import { mapActivity, mapLead } from './lead-mutation-mapping';
-import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import type { CrmTenantExecutor } from './tenant-runner';
 
 class MissingOpenOwnershipHistoryError extends Error {}
@@ -133,13 +132,10 @@ async function transferOwnershipInDatabase(
   return mapLead(updated);
 }
 
-type LeadOwnershipTransfer = Parameters<typeof transferOwnershipInDatabase>[1];
-
-/** Transfers lead ownership inside the caller's tenant transaction (the routing application's);
- * false when the target is invalid or the lead no longer has the expected open ownership. */
+/** Transfers ownership in the caller's tenant transaction; false on a stale or invalid target. */
 export async function transferLeadOwnershipInTransaction(
   database: CrmTenantExecutor,
-  params: LeadOwnershipTransfer
+  params: Parameters<typeof transferOwnershipInDatabase>[1]
 ): Promise<boolean> {
   try {
     return Boolean(await transferOwnershipInDatabase(database, params));

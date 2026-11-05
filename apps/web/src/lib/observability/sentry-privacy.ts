@@ -114,7 +114,6 @@ export function scrubSentryBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb | null
     return null;
   }
 }
-
 const MEASUREMENT_NAMES = new Set([
   'fp',
   'fcp',
