@@ -8,6 +8,7 @@ import {
 } from './rls-role-assertion';
 import { createRlsRoleReadiness } from './rls-role-readiness';
 import * as schema from './schema';
+import { withTransactionLifetime, type PoolSql } from './transaction-lifetime';
 
 const globalQueryClients = global as unknown as {
   queryClientAdmin?: postgres.Sql;
@@ -237,7 +238,11 @@ export async function assertRlsConnectionRoleReady(): Promise<void> {
 }
 
 export const dbAdmin = drizzle(adminQueryClient, { schema });
-const dbRlsClient = drizzle(rlsQueryClient, { schema });
+// Tenant transactions expire with their callback; see transaction-lifetime.ts.
+const dbRlsClient = drizzle(
+  withTransactionLifetime(rlsQueryClient as unknown as PoolSql) as unknown as postgres.Sql,
+  { schema }
+);
 export const dbRls = createAssertedRlsDatabaseClient(dbRlsClient);
 
 /**
