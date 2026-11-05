@@ -158,9 +158,11 @@ export function installTrust(ctx) {
       }
     }
   }
+  // A pin is one reviewed digest or a frozen list of them (a reviewed kernel transition).
   const legacyPinned = key =>
     legacyPins === null ||
-    (legacyPins.get(key) === legacyDigest(key) && legacyClosureProblems.get(key).length === 0);
+    ([legacyPins.get(key) ?? []].flat().includes(legacyDigest(key)) &&
+      legacyClosureProblems.get(key).length === 0);
 
   // ---- closure-unchanged: a workspace declaration and everything it references -------------
   const closureMemo = new Map();

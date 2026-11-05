@@ -39,13 +39,25 @@ export const LEGACY = new Map([
 export const LEGACY_PINS = new Map([
   [
     `${DB}/tenant.ts#withTenantContext`,
-    'd3f4902e4119dd3a8da409967abca96a957a3565984f3a2fa40f8e088d6ed811',
+    Object.freeze([
+      'd3f4902e4119dd3a8da409967abca96a957a3565984f3a2fa40f8e088d6ed811',
+      '2333f581425f47757aa110f59f0e4b9033dede4109344fa739648cad3aeac895',
+    ]),
   ],
   [
     `${DB}/tenant.ts#withTenantDb`,
-    '0d3100975724823b266d34cad449b5a2aa7185c2a88848f93e2bb22a17250978',
+    Object.freeze([
+      '0d3100975724823b266d34cad449b5a2aa7185c2a88848f93e2bb22a17250978',
+      '2998603bc7080c58c097f6025afb1ac6fbbc2d77bdb080f41d1a918f4d3df0c3',
+    ]),
   ],
-  [`${DB}/db.ts#db`, 'd8c35ada5fb6d1548911b1d8c588b00e78606065b3505daa87a25d20dacde819'],
+  [
+    `${DB}/db.ts#db`,
+    Object.freeze([
+      'd8c35ada5fb6d1548911b1d8c588b00e78606065b3505daa87a25d20dacde819',
+      '1cb8252650ff9453bd42e7edeb3b70c3095fbe87a23778e1a95f66d2eb0f1d66',
+    ]),
+  ],
 ]);
 
 /** Drivers and client construction (R-d). */
