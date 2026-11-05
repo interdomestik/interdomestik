@@ -19,7 +19,6 @@ export type { ClaimStatus } from './staff-claims/types';
 export * from './validators/claims';
 
 export { updateClaimStatusCore as updateAdminClaimStatusCore } from './admin-claims/update-status';
-export { assignClaimCore as assignAgentClaimCore } from './agent-claims/assign';
 export { updateClaimStatusCore as updateAgentClaimStatusCore } from './agent-claims/update-status';
 export * from './claims/list';
 export * from './claims/lifecycle-state';
