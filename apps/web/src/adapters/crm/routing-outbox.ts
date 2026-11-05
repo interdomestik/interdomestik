@@ -15,9 +15,9 @@ export class CrmRoutingOutboxUnavailableError extends Error {
  * with the routing writes. Until a transactional CRM outbox store exists this fails closed: the
  * routing application rolls back and reports `repository_failure` instead of committing routing
  * writes without their event, or an event without its routing writes. */
-export async function appendRoutingOutboxEventInTransaction(
+export function appendRoutingOutboxEventInTransaction(
   _database: CrmTenantExecutor,
   _params: { event: CreateCrmOutboxEventData }
 ): Promise<CrmOutboxAppendResult> {
-  throw new CrmRoutingOutboxUnavailableError();
+  return Promise.reject(new CrmRoutingOutboxUnavailableError());
 }

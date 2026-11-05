@@ -106,7 +106,18 @@ export async function applyCrmLeadRoutingDecision(
   ports: CrmLeadRoutingApplicationPorts
 ): Promise<ApplyCrmLeadRoutingDecisionResult> {
   const plan = planCrmLeadRoutingDecision(input, ports.services);
-  let step = plan.next();
-  while (!step.done) step = plan.next(await performOnPorts(ports, step.value));
-  return step.value;
+  return drivePlanOnPorts(ports, plan, plan.next());
+}
+
+type CrmRoutingPlan = ReturnType<typeof planCrmLeadRoutingDecision>;
+
+/** Performs each plan request in order on `ports`, then resumes the plan with its response. */
+async function drivePlanOnPorts(
+  ports: CrmLeadRoutingApplicationPorts,
+  plan: CrmRoutingPlan,
+  step: ReturnType<CrmRoutingPlan['next']>
+): Promise<ApplyCrmLeadRoutingDecisionResult> {
+  if (step.done) return step.value;
+  const response = await performOnPorts(ports, step.value);
+  return drivePlanOnPorts(ports, plan, plan.next(response));
 }

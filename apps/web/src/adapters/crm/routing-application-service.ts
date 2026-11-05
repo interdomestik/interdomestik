@@ -247,9 +247,20 @@ async function applyInTransaction(
   services: CrmRoutingPlanServices
 ): Promise<ApplyCrmLeadRoutingDecisionResult> {
   const plan = planCrmLeadRoutingDecision(input, services);
-  let step = plan.next();
-  while (!step.done) step = plan.next(await performRoutingRequest(database, step.value));
-  return step.value;
+  return driveRoutingPlan(database, plan, plan.next());
+}
+
+type CrmRoutingPlan = ReturnType<typeof planCrmLeadRoutingDecision>;
+
+/** Performs each plan request in order on the same transaction, then resumes the plan with it. */
+async function driveRoutingPlan(
+  database: CrmRoutingApplicationDb,
+  plan: CrmRoutingPlan,
+  step: ReturnType<CrmRoutingPlan['next']>
+): Promise<ApplyCrmLeadRoutingDecisionResult> {
+  if (step.done) return step.value;
+  const response = await performRoutingRequest(database, step.value);
+  return driveRoutingPlan(database, plan, plan.next(response));
 }
 
 export function createApplyCrmLeadRoutingDecisionCoordinator(

@@ -109,10 +109,21 @@ export async function relayClaimStatusAuditProjectionEvents(
     eventName: 'claim.status_changed',
     eventVersion: 1,
   });
-  let result = batch.result;
-  for (const event of batch.events) {
-    await projectClaimStatusChangedAuditEvent(tx, event, domainEventRelayDelivery(batch, event));
-    result = await recordRelayedDomainEventDelivery(tx, batch, result, event);
-  }
-  return result;
+  return projectAuditEventsFrom(tx, batch, 0, batch.result);
+}
+
+type AuditRelayBatch = Awaited<ReturnType<typeof selectDomainEventRelayBatch>>;
+
+/** Projects and records the batch's events one at a time, in order, on the same transaction. */
+async function projectAuditEventsFrom(
+  tx: AuditProjectionRelayTx,
+  batch: AuditRelayBatch,
+  index: number,
+  result: RelayDomainEventsResult
+): Promise<RelayDomainEventsResult> {
+  const event = batch.events[index];
+  if (!event) return result;
+  await projectClaimStatusChangedAuditEvent(tx, event, domainEventRelayDelivery(batch, event));
+  const recorded = await recordRelayedDomainEventDelivery(tx, batch, result, event);
+  return projectAuditEventsFrom(tx, batch, index + 1, recorded);
 }

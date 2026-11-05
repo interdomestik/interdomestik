@@ -9,9 +9,9 @@ const tenantDatabase = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  withTenantContext: vi.fn(async (context: unknown, action: (tx: unknown) => unknown) => {
+  withTenantContext: vi.fn((context: unknown, action: (tx: unknown) => unknown) => {
     tenantDatabase.contexts.push(context);
-    return action(tenantDatabase.current);
+    return new Promise(resolve => resolve(action(tenantDatabase.current)));
   }),
 }));
 

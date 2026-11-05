@@ -90,10 +90,7 @@ export async function validateSubjectReference(
     if (actor.role === 'agent' && row.agentId !== actor.actorId) {
       return { reason: 'subject_not_visible', visible: false };
     }
-    if (!branchVisible(actor, row.branchId ?? null)) {
-      return { reason: 'subject_not_visible', visible: false };
-    }
-    return { branchId: row.branchId ?? null, tenantId: row.tenantId, visible: true };
+    return rowVisibility(actor, row);
   }
 
   if (subjectReference.kind === 'deal') {
@@ -104,11 +101,7 @@ export async function validateSubjectReference(
         isNull(crmDeals.archivedAt)
       ),
     });
-    if (!row) return { reason: 'subject_not_found', visible: false };
-    if (!branchVisible(actor, row.branchId ?? null)) {
-      return { reason: 'subject_not_visible', visible: false };
-    }
-    return { branchId: row.branchId ?? null, tenantId: row.tenantId, visible: true };
+    return rowVisibility(actor, row);
   }
 
   const row = await database.query.supportHandoffs.findFirst({
@@ -117,6 +110,14 @@ export async function validateSubjectReference(
       eq(supportHandoffs.tenantId, actor.tenantId)
     ),
   });
+  return rowVisibility(actor, row);
+}
+
+/** A found subject row is visible when the actor's branch scope reaches it. */
+function rowVisibility(
+  actor: CrmActorContext,
+  row: { branchId?: string | null; tenantId: string } | undefined
+): CrmTaskSubjectVisibility {
   if (!row) return { reason: 'subject_not_found', visible: false };
   if (!branchVisible(actor, row.branchId ?? null)) {
     return { reason: 'subject_not_visible', visible: false };

@@ -24,10 +24,13 @@ vi.mock('@interdomestik/domain-crm/routing', async importActual => {
 // withTenantAuthority reaches withTenantContext through the package root: open the fake's
 // transaction there.
 vi.mock('@interdomestik/database', () => ({
-  withTenantContext: vi.fn(async (_context: unknown, action: (tx: unknown) => Promise<unknown>) => {
-    if (!hoisted.database) throw new Error('no fake tenant database');
-    return hoisted.database.transaction(action);
-  }),
+  withTenantContext: vi.fn(
+    (_context: unknown, action: (tx: unknown) => Promise<unknown>) =>
+      new Promise(resolve => {
+        if (!hoisted.database) throw new Error('no fake tenant database');
+        resolve(hoisted.database.transaction(action));
+      })
+  ),
 }));
 
 const planMock = hoisted.planMock;

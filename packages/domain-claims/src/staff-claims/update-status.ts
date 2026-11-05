@@ -1,11 +1,4 @@
-import {
-  claimEscalationAgreements,
-  claims,
-  eq,
-  serviceUsage,
-  sql,
-  type TenantTransaction,
-} from '@interdomestik/database';
+import { claimEscalationAgreements, eq } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -20,7 +13,6 @@ import {
 } from './accepted-recovery-prerequisites';
 import { resolveCommercialHandlingScopeGate } from './commercial-handling-scope';
 import { claimStatusSchema } from '../validators/claims';
-import { activateClaimStatusAuditProjection } from '../claims/audit-projection';
 import {
   getMatterAllowanceContextForSubscription,
   getMatterAllowanceSubscriptionContextForUser,
@@ -28,8 +20,6 @@ import {
   hasRecoveryMatterUsageForClaim,
 } from './matter-allowance';
 import { buildRecoveryDecisionSnapshot, getRecoveryDeclinePublicNote } from './recovery-decision';
-import { upsertRecoveryDecisionRecord } from './recovery-decision-record';
-import { safePublicStatusNote } from './rejected-claim-public-note';
 import {
   buildScopedStaffClaimWhere,
   resolveScopedStaffClaimAccess,
@@ -38,11 +28,9 @@ import {
 import {
   finalizeClaimStatusChange,
   type RecoveryStatusChangeParams,
-  type StaffScopeWhere,
   type StatusChangeResult,
 } from './finalize-status-change';
-import { scheduleStatusChangeNotification } from './update-status-notification';
-import { loadStaffCurrentClaimRecord, type CurrentClaimRecord } from './current-claim-record';
+import { loadStaffCurrentClaimRecord } from './current-claim-record';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 const STAFF_LED_RECOVERY_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
 const RECOVERY_DECISION_REQUIRED_ERROR =

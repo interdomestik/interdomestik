@@ -194,10 +194,22 @@ export async function relayDomainEvents(
     ...params,
     consumerName: params.consumer.name,
   });
-  let result = batch.result;
-  for (const event of batch.events) {
-    await params.consumer.deliver(event, domainEventRelayDelivery(batch, event));
-    result = await recordRelayedDomainEventDelivery(tx, batch, result, event);
-  }
-  return result;
+  return deliverEventsFrom(tx, params.consumer, batch, 0, batch.result);
+}
+
+type RelayBatch = Awaited<ReturnType<typeof selectDomainEventRelayBatch>>;
+
+/** Delivers and records the batch's events one at a time, in order, on the same transaction. */
+async function deliverEventsFrom(
+  tx: RelayTx,
+  consumer: RelayDomainEventsParams['consumer'],
+  batch: RelayBatch,
+  index: number,
+  result: RelayDomainEventsResult
+): Promise<RelayDomainEventsResult> {
+  const event = batch.events[index];
+  if (!event) return result;
+  await consumer.deliver(event, domainEventRelayDelivery(batch, event));
+  const recorded = await recordRelayedDomainEventDelivery(tx, batch, result, event);
+  return deliverEventsFrom(tx, consumer, batch, index + 1, recorded);
 }
