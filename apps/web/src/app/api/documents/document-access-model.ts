@@ -10,18 +10,9 @@ import {
 export type DatabaseClient = typeof DatabaseModule.db;
 /** Normal-tenant reads accept the tenant-bound transaction; the base client stays for fallback. */
 export type DocumentReadClient = DatabaseClient | DatabaseModule.TenantTransaction;
-export type DocumentTenantContextRunner = <T>(
-  context: { accessTenantId: string; role: string | null; tenantId: string },
-  action: (tx: DocumentReadClient) => Promise<T>
-) => Promise<T>;
 
 export interface DocumentAccessDeps {
   db: DatabaseClient;
-  /**
-   * Opens the tenant-bound transaction for normal-tenant document, claim, and grant reads.
-   * Defaults to the database package `withTenantContext`; tests inject an explicit runner.
-   */
-  withTenantContext?: DocumentTenantContextRunner;
   storage: {
     createSignedUrl: (
       bucket: string,

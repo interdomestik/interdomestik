@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// getDocumentAccessCore opens its tenant-bound transaction with the database package's
+// withTenantContext; the test stands its runner in there.
+const tenantContext = vi.hoisted(() => ({ run: vi.fn() }));
+vi.mock('@interdomestik/database', async importActual => ({
+  ...(await importActual<typeof import('@interdomestik/database')>()),
+  withTenantContext: tenantContext.run,
+}));
+
 vi.mock('./cross-tenant-document-lookup', () => ({ lookupCrossGrantDoc: vi.fn() }));
 vi.mock('./durable-case-grants', () => ({ hasDurableCaseScopedDocumentGrant: vi.fn() }));
 
@@ -17,19 +25,20 @@ const baseDb = {
     throw new Error('base client used for a normal-tenant read');
   }),
 };
-const runner = vi.fn(async (_context: unknown, action: (tx: never) => Promise<unknown>) => {
-  tenantTx.active = true;
-  try {
-    return await action(txDb as never);
-  } finally {
-    tenantTx.active = false;
-    tenantTx.released += 1;
+const runner = tenantContext.run.mockImplementation(
+  async (_context: unknown, action: (tx: never) => Promise<unknown>) => {
+    tenantTx.active = true;
+    try {
+      return await action(txDb as never);
+    } finally {
+      tenantTx.active = false;
+      tenantTx.released += 1;
+    }
   }
-});
+);
 const deps: DocumentAccessDeps = {
   db: baseDb as unknown as DocumentAccessDeps['db'],
   storage: { createSignedUrl: vi.fn(), download: vi.fn() },
-  withTenantContext: runner as unknown as DocumentAccessDeps['withTenantContext'],
 };
 
 function rowsWhileOpen(rows: unknown[]) {

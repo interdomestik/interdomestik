@@ -2,7 +2,7 @@ import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
-import { appendCaseGrantDocumentAudit } from '@interdomestik/database';
+import { appendCaseGrantDocumentAudit, withTenantContext } from '@interdomestik/database';
 import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import type { TenantStorageFamily } from '@/lib/storage/tenant-prefix';
@@ -13,7 +13,6 @@ import {
   type DocumentAccessResult,
   type DocumentAuditLogger,
   type DocumentReadArgs,
-  type DocumentTenantContextRunner,
   type SessionDTO,
 } from './document-access-model';
 import { readCrossGrantDocumentAccess, readLocalDocumentAccess } from './document-access-reads';
@@ -29,7 +28,6 @@ export type {
   DocumentAccessResult,
   DocumentAuditLogger,
   DocumentReadClient,
-  DocumentTenantContextRunner,
 } from './document-access-model';
 
 // Document access audits are written under the request session's own tenant authority (its access
@@ -122,12 +120,6 @@ export async function logAllowedDocumentAccess(args: {
   });
 }
 
-// Loaded lazily so unit tests that inject a runner never open the real tenant database client.
-const runWithDatabaseTenantContext: DocumentTenantContextRunner = (context, action) =>
-  import('@interdomestik/database').then(({ withTenantContext }) =>
-    withTenantContext(context, action)
-  );
-
 export async function getDocumentAccessCore(args: {
   session: SessionDTO;
   documentId: string;
@@ -139,7 +131,6 @@ export async function getDocumentAccessCore(args: {
   const tenantId = ensureAccessTenantId(session);
   const userRole = (session.user.role as string | undefined) ?? undefined;
   const finalDisposition = getFinalDisposition(disposition);
-  const runInTenantContext = deps.withTenantContext ?? runWithDatabaseTenantContext;
   const read: DocumentReadArgs = {
     documentId,
     finalDisposition,
@@ -151,9 +142,18 @@ export async function getDocumentAccessCore(args: {
 
   // 1-2. Normal-tenant document, claim, and grant reads share one tenant-bound transaction under
   // the effective access tenant and the trusted session role.
-  const localAccess = await runInTenantContext(
+  const localAccess = await withTenantContext(
     { accessTenantId: tenantId, role: userRole ?? null, tenantId },
-    tx => readLocalDocumentAccess({ ...read, db: tx })
+    tx =>
+      readLocalDocumentAccess({
+        db: tx,
+        documentId,
+        finalDisposition,
+        mode,
+        session,
+        tenantId,
+        userRole,
+      })
   );
   if (localAccess) return localAccess;
 

@@ -1,4 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// getDocumentAccessCore opens its tenant-bound transaction with the database package's
+// withTenantContext; the test stands its runner in there.
+const tenantContext = vi.hoisted(() => ({ run: vi.fn() }));
+vi.mock('@interdomestik/database', async importActual => ({
+  ...(await importActual<typeof import('@interdomestik/database')>()),
+  withTenantContext: tenantContext.run,
+}));
 import {
   buildContentDispositionHeader,
   DocumentAccessDeps,
@@ -11,13 +19,12 @@ import {
 const mockDb = { select: vi.fn() };
 const mockBaseDb = { select: vi.fn() };
 const mockStorage = { createSignedUrl: vi.fn(), download: vi.fn() };
-const mockWithTenantContext = vi.fn(
+const mockWithTenantContext = tenantContext.run.mockImplementation(
   async (_context: unknown, action: (tx: never) => Promise<unknown>) => action(mockDb as never)
 );
 const mockDeps: DocumentAccessDeps = {
   db: mockBaseDb as unknown as DocumentAccessDeps['db'],
   storage: mockStorage,
-  withTenantContext: mockWithTenantContext as unknown as DocumentAccessDeps['withTenantContext'],
 };
 
 const memberSession = { user: { id: 'member-1', role: 'member', tenantId: 't1' } };

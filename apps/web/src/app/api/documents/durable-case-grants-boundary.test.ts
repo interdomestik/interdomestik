@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// getDocumentAccessCore opens its tenant-bound transaction with the database package's
+// withTenantContext; the test stands its runner in there.
+const tenantContext = vi.hoisted(() => ({ run: vi.fn() }));
+vi.mock('@interdomestik/database', async importActual => ({
+  ...(await importActual<typeof import('@interdomestik/database')>()),
+  withTenantContext: tenantContext.run,
+}));
+
 vi.mock('./durable-case-grants', () => ({
   hasDurableCaseScopedDocumentGrant: vi.fn().mockResolvedValue(false),
 }));
@@ -13,12 +21,13 @@ import { lookupCrossGrantDoc } from './cross-tenant-document-lookup';
 import { hasDurableCaseScopedDocumentGrant } from './durable-case-grants';
 
 const mockDb = { select: vi.fn() };
+// The same mock serves as the tenant-bound transaction for normal-tenant reads.
+tenantContext.run.mockImplementation(async (_context: unknown, action: (tx: never) => unknown) =>
+  action(mockDb as never)
+);
 const mockDeps: DocumentAccessDeps = {
   db: mockDb as unknown as DocumentAccessDeps['db'],
   storage: { createSignedUrl: vi.fn(), download: vi.fn() },
-  // The same mock serves as the tenant-bound transaction for normal-tenant reads.
-  withTenantContext: (async (_context: unknown, action: (tx: never) => Promise<unknown>) =>
-    action(mockDb as never)) as unknown as DocumentAccessDeps['withTenantContext'],
 };
 const session = { user: { id: 'local-legal-1', role: 'staff', tenantId: 't1' } };
 
