@@ -75,13 +75,30 @@ test('without the successor digest the same kernel change is refused', () => {
   assertRefused(result, 'C1', /depends on changed code \(db\)/u);
 });
 
-test('the manifest pins every legacy entry to frozen, distinct reviewed digests', () => {
+// A completed transition pins the successor alone: the previous kernel, restored byte for byte,
+// is refused again, and so is any unreviewed drift of the successor.
+test('a completed transition admits only the successor kernel', () => {
+  const successorTree = treeOf(SUCCESSOR);
+  const completed = pinsOf(successorTree);
+
+  const after = scan(successorTree, completed);
+  assert.deepEqual(after.violations, [], 'the successor, with C1 callers admitted');
+  assert.ok(after.telemetry.legacyAccepted > 0, 'the unchanged legacy callers were judged');
+
+  const restored = scan(trusted, completed);
+  assertRefused(restored, 'pin', /legacy kernel entry differs from its reviewed contract/u);
+  assertRefused(restored, 'C1', /depends on changed code \(db\)/u);
+
+  for (const path of [LIFETIME, DB]) {
+    const drifted = scan(treeOf({ ...SUCCESSOR, [path]: `${SUCCESSOR[path]} ` }), completed);
+    assertRefused(drifted, 'pin', /legacy kernel entry differs from its reviewed contract/u);
+  }
+});
+
+test('the manifest pins every legacy entry to exactly one reviewed digest', () => {
   assert.deepEqual([...LEGACY_PINS.keys()].sort(), [...LEGACY.keys()].sort());
   for (const [key, pinned] of LEGACY_PINS) {
-    const digests = [pinned].flat();
-    assert.ok(digests.length >= 1 && digests.length <= 2, `${key}: one pin or one transition`);
-    assert.equal(new Set(digests).size, digests.length, `${key}: digests are distinct`);
-    for (const digest of digests) assert.match(digest, /^[0-9a-f]{64}$/u, key);
-    if (Array.isArray(pinned)) assert.ok(Object.isFrozen(pinned), `${key}: frozen transition`);
+    assert.equal(typeof pinned, 'string', `${key}: the transition is complete`);
+    assert.match(pinned, /^[0-9a-f]{64}$/u, key);
   }
 });
