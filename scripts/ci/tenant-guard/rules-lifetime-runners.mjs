@@ -4,7 +4,8 @@
 // or takes a borrowed one from its caller, and hands it to a callback parameter. It is active only
 // while its whole file is byte-identical to the reviewed digest, the file does not export it, and
 // every binding its declaration reads (directly or through same-file declarations) resolves to
-// that file, to the kernel or to an external package. Being private, it can be named only inside
+// that file, to the kernel or to an external package (namespace imports by their modules), and it
+// never reassigns a parameter. Being private, it can be named only inside
 // its reviewed file. While active:
 // - inside the runner, its callback parameter may receive the capability;
 // - every call of the runner is a transaction source whose callback is checked like any other;
@@ -16,6 +17,7 @@
 import ts from 'typescript';
 import { KERNEL } from './manifest.mjs';
 import { sha256 } from './rules-digest.mjs';
+import { writes } from './rules-lifetime-forms.mjs';
 
 /** Builds the runner checks over `ctx` for the reviewed `runners` manifest. */
 export function createRunnerChecks(ctx, runners) {
@@ -35,6 +37,7 @@ export function createRunnerChecks(ctx, runners) {
       if (exported(runner.file, runner.unit)) continue;
       if (fn.parameters.some(param => param.dotDotDotToken || !ts.isIdentifier(param.name)))
         continue;
+      if (reassignsParameter(fn)) continue;
       if (!authenticated(fact, fn, runner.file)) continue;
       active.set(fn, { fact, fn, runner });
     }
@@ -63,11 +66,11 @@ export function createRunnerChecks(ctx, runners) {
         const reference = referenceAt(fact, node);
         const binding = reference?.binding;
         if (binding?.kind === 'import') {
-          const { origins } = originsOf(fact, reference);
-          if (
-            origins.some(origin => origin.file && origin.file !== file && !KERNEL.test(origin.file))
-          )
-            ok = false;
+          // A namespace value carries its modules, not origins; an unresolved origin is unknown.
+          const { origins, namespace = [] } = originsOf(fact, reference);
+          const files = [...origins.map(origin => origin.file), ...namespace];
+          const foreign = target => target && target !== file && !KERNEL.test(target);
+          if (origins.some(origin => origin.unresolved) || files.some(foreign)) ok = false;
         } else if (binding?.decl) {
           const statement = topLevel(binding.decl);
           if (statement && !seen.has(statement)) {
@@ -80,6 +83,20 @@ export function createRunnerChecks(ctx, runners) {
     };
     while (queue.length > 0 && ok) visit(queue.shift());
     return ok;
+  }
+
+  /** Whether any parameter name of `fn` is written anywhere in it: a replaced callback (or lent
+   * borrow) is no longer the value the call site handed over. */
+  function reassignsParameter(fn) {
+    const names = new Set(fn.parameters.map(param => param.name.text));
+    let written = false;
+    const visit = node => {
+      if (written) return;
+      if (ts.isIdentifier(node) && names.has(node.text) && writes(node, ctx)) written = true;
+      ts.forEachChild(node, visit);
+    };
+    visit(fn.body);
+    return written;
   }
 
   /** The active runner declared by `fn`, or null. */

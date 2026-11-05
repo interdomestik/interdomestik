@@ -99,10 +99,12 @@ export function createOpenerChecks(ctx, { bindingOf, stableTargets, usesOf }) {
     return `a transaction opener used as a value (${kindOf(parent)})`;
   }
 
-  /** A member read of the opener: never a rebinding one, and never invoked (an inherited method
-   * such as `valueOf` returns its receiver). */
+  /** A member read of the opener: never a rebinding one, never written (an own `toString` or
+   * `valueOf` would run with the opener as `this` when it is converted), and never invoked (an
+   * inherited method such as `valueOf` returns its receiver). */
   function memberProblem(access, name) {
     if (UNSAFE_MEMBERS.has(name)) return `a transaction opener member (${name})`;
+    if (writes(access, ctx)) return `a transaction opener member written (${name})`;
     const member = outermost(access);
     const parent = member.parent;
     const invoked =

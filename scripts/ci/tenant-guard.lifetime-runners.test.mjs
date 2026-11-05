@@ -95,3 +95,34 @@ test('L1 runners: a lent borrow must be joined and handed over directly', () => 
     'f: the capability escapes its callback (BinaryExpression)',
   ]);
 });
+
+test('L1 runners: a namespace dependency or a replaced parameter deactivates the runner', () => {
+  const call = 'export const f = (id: string) => withLock(id, async (tx: any) => tx.select());';
+  const refused = ['withLock: a callback read from a parameter (work)'];
+  const hooks = "import * as hooks from './hooks';";
+  const namespaced = [
+    hooks,
+    'const { wrap } = hooks;',
+    ...LOCK.slice(0, 2),
+    '  wrap;',
+    ...LOCK.slice(2),
+    call,
+  ];
+  const text = [...HEADER, ...namespaced].join('\n');
+  const files = {
+    [FILE]: text,
+    'apps/web/src/features/hooks.ts':
+      'let kept: any;\nexport const wrap = (work: any) => (tx: any) => { kept = tx; return work(tx); };',
+  };
+  const lifetimeRunners = [
+    { file: FILE, unit: 'withLock', sha256: digest(text), callback: 1, lends: [] },
+  ];
+  assert.deepEqual(byStage(run(files, { lifetimeRunners })).lifetime, refused);
+  const replaced = [
+    ...LOCK.slice(0, 2),
+    '  work = ((inner: any) => inner) (work);',
+    ...LOCK.slice(2),
+    call,
+  ];
+  assert.deepEqual(lifetime(replaced), refused);
+});

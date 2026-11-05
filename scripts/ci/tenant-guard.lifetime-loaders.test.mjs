@@ -107,8 +107,30 @@ test('L1: no module loader, evaluator or computed import reaches a transaction e
         `const r = (module.constructor as any).createRequire(__filename);\nexport const f = () => r('${ENTRY}').withTenantAuthority(a, (tx: any) => { kept = tx; });`,
         { file: 'sample.cts' },
       ],
+      r8DescriptorFunction: [
+        'F: a property descriptor read (Function)',
+        "const F = Object.getOwnPropertyDescriptor(globalThis, 'Function')!.value;\nexport const f = (db: any) => F('db', 'cb', 'return db.transaction(cb)')(db, (tx: any) => { kept = tx; });",
+      ],
+      r8DescriptorEval: [
+        'f: a property descriptor read (eval)',
+        "export const f = (db: any) => Object.getOwnPropertyDescriptor(globalThis, `eval`)!.value('db');",
+      ],
+      r8DataImport: [
+        'f: a dynamic import of a URL module outside the scanned graph',
+        "export const f = async (db: any) => (await import('data:text/javascript,export const open=(db,cb)=>db.transaction(cb)')).open(db, (tx: any) => { kept = tx; });",
+      ],
+      r8StaticUrlImport: [
+        '<ImportDeclaration@9>: an import of a URL module outside the scanned graph',
+        "import { open } from 'https://example.test/open.mjs';\nexport const f = (db: any) => open(db, (tx: any) => { kept = tx; });",
+      ],
     },
     {
+      safeDescriptorData:
+        "export const f = (input: any) => Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), 'value');",
+      safeDescriptorComputed:
+        'export const f = (value: object, key: string) => Object.getOwnPropertyDescriptor(value, key);',
+      safeNodeBuiltin:
+        "import { randomUUID } from 'node:crypto';\nexport const f = () => randomUUID();",
       safeJsonData:
         'export const f = async (l: string, n: string) => (await import(`../messages/${l}/${n}.json`)).default;',
       safeImportUrl:

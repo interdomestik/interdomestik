@@ -22,12 +22,16 @@ const LOADER_MEMBERS = new Set([
   'require',
 ]);
 const LOADER_RECEIVERS = new Set(['global', 'globalThis', 'module', 'process', 'require']);
-// Descriptor reads yield a method's value without a member read naming it. The singular form is
-// admitted with a computed key (own-data hardening reads); a literal key may not name an opener
-// or a constructor, and the plural form names every key at once.
+// Descriptor reads yield a value without a member read naming it. The singular form is admitted
+// called in place; its literal key counts as a member read by that name. The plural form names
+// every key at once.
 const DESCRIPTOR_ALL = 'getOwnPropertyDescriptors';
 const DESCRIPTOR_ONE = 'getOwnPropertyDescriptor';
-const DESCRIBED_NAMES = new Set(['constructor', 'transaction']);
+// Literal descriptor keys refused beyond the refused member names: an opener and the readers.
+const DESCRIBED_NAMES = new Set(['transaction', DESCRIPTOR_ALL, DESCRIPTOR_ONE]);
+// A specifier with a URL scheme (`data:`, `file:`, `https:`) loads source the module graph never
+// scans; `node:` names a built-in, which the loader and evaluator sets cover by name.
+const URL_SPECIFIER = /^(?!node:)[a-z][\d+.a-z-]*:/iu;
 // `Reflect` operations that only enumerate or test keys; the rest read, call or construct.
 const REFLECT_QUERIES = new Set(['has', 'ownKeys']);
 // Globals that evaluate code or load a module by a name computed at runtime.
@@ -71,6 +75,8 @@ export function createLoaderChecks(ctx, entryModule) {
       return 'an import of the module loader';
     if (specifier && ts.isStringLiteralLike(specifier) && EVALUATOR_MODULES.has(specifier.text))
       return 'an import of the code evaluator';
+    if (specifier && ts.isStringLiteralLike(specifier) && URL_SPECIFIER.test(specifier.text))
+      return 'an import of a URL module outside the scanned graph';
     if (ts.isCallExpression(node) && dynamicLoad(fact, node)) {
       if (!literalSpecifier(node) && !dataSpecifier(node))
         return 'a dynamic import with a computed specifier';
@@ -78,6 +84,8 @@ export function createLoaderChecks(ctx, entryModule) {
         return 'a dynamic import of the module loader';
       if (literalSpecifier(node) && EVALUATOR_MODULES.has(node.arguments[0].text))
         return 'a dynamic import of the code evaluator';
+      if (literalSpecifier(node) && URL_SPECIFIER.test(node.arguments[0].text))
+        return 'a dynamic import of a URL module outside the scanned graph';
     }
     return memberProblem(fact, node);
   }
@@ -85,16 +93,10 @@ export function createLoaderChecks(ctx, entryModule) {
   /** A loader member read under any name form, or a computed member of a loader receiver. */
   function memberProblem(fact, node) {
     const name = staticMemberName(node);
-    if (typeof name === 'string' && LOADER_MEMBERS.has(name))
-      return `a module loader member (${name})`;
-    if (typeof name === 'string' && GLOBAL_LOADERS.has(name))
-      return `an eval-like global or bundler loader (${name})`;
-    // `Reflect` reached as a member (`globalThis.Reflect`) bypasses the unbound-name check.
-    if (name === 'Reflect') return 'a Reflect object read through a receiver';
-    if (name === DESCRIPTOR_ALL || (name === DESCRIPTOR_ONE && !describesComputedKey(node)))
-      return `a property descriptor read (${name})`;
-    // Any function's `constructor` is `Function`, which compiles source text.
-    if (name === 'constructor') return 'a constructor member (it reaches the Function evaluator)';
+    const named = typeof name === 'string' ? nameProblem(name) : null;
+    if (named) return named;
+    if (name === DESCRIPTOR_ALL) return `a property descriptor read (${name})`;
+    if (name === DESCRIPTOR_ONE) return descriptorProblem(node) ?? undefined;
     if (name === null && !ts.isBindingElement(node) && !ts.isObjectLiteralElementLike(node)) {
       const receiver = unwrap(node.expression);
       if (
@@ -106,17 +108,22 @@ export function createLoaderChecks(ctx, entryModule) {
     return undefined;
   }
 
-  /** `getOwnPropertyDescriptor(target, key)` called in place, without spreads, with a key that
-   * is not a literal naming an opener or a constructor. */
-  function describesComputedKey(node) {
-    if (!ts.isPropertyAccessExpression(node) && !ts.isElementAccessExpression(node)) return false;
+  /** `getOwnPropertyDescriptor(target, key)`: admitted only called in place, without spreads. A
+   * literal key reads that member by name, so it obeys the member names refused above and may not
+   * name an opener or a descriptor reader; a computed key is outside the stated model (B2). */
+  function descriptorProblem(node) {
+    const refused = `a property descriptor read (${DESCRIPTOR_ONE})`;
+    if (!ts.isPropertyAccessExpression(node) && !ts.isElementAccessExpression(node)) return refused;
     const value = ctx.outermost(node);
     const call = value.parent;
-    if (!ts.isCallExpression(call) || call.expression !== value) return false;
+    if (!ts.isCallExpression(call) || call.expression !== value) return refused;
     // A spread could shift any literal into the key position.
-    if (call.arguments.some(ts.isSpreadElement)) return false;
-    const key = call.arguments[1];
-    return !!key && !(ts.isStringLiteralLike(key) && DESCRIBED_NAMES.has(key.text));
+    if (call.arguments.some(ts.isSpreadElement) || call.arguments.length < 2) return refused;
+    const key = unwrap(call.arguments[1]);
+    if (!ts.isStringLiteralLike(key)) return null;
+    if (DESCRIBED_NAMES.has(key.text) || nameProblem(key.text))
+      return `a property descriptor read (${key.text})`;
+    return null;
   }
 
   const dynamicLoad = (fact, call) => {
@@ -134,6 +141,17 @@ export function createLoaderChecks(ctx, entryModule) {
   }
 
   return { loaderProblem: (fact, node) => loaderProblem(fact, node) ?? null, loadsEntryModule };
+}
+
+/** Why reading a member called `name`, under any receiver and key form, is refused, or null. */
+function nameProblem(name) {
+  if (LOADER_MEMBERS.has(name)) return `a module loader member (${name})`;
+  if (GLOBAL_LOADERS.has(name)) return `an eval-like global or bundler loader (${name})`;
+  // `Reflect` reached as a member (`globalThis.Reflect`) bypasses the unbound-name check.
+  if (name === 'Reflect') return 'a Reflect object read through a receiver';
+  // Any function's `constructor` is `Function`, which compiles source text.
+  if (name === 'constructor') return 'a constructor member (it reaches the Function evaluator)';
+  return null;
 }
 
 const literalSpecifier = call =>

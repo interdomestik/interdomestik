@@ -70,12 +70,20 @@ test('L1: every transaction opener is a source; a detached opener cannot be rebo
         'f: a transaction opener used as a value (ReturnStatement)',
         'function pick(open: any) { return open; }\nexport const f = (db: any) => pick(db.transaction).call(db, (tx: any) => { kept = tx; });',
       ],
+      r8OwnToString: [
+        'f: a transaction opener member written (toString)',
+        "export const f = (db: any) => { db.transaction.toString = function (this: any) { this.call(db, (tx: any) => { kept = tx; }); return ''; }; return String(db.transaction); };",
+      ],
+      r8OwnValueOf: [
+        'f: a transaction opener member written (valueOf)',
+        "export const f = (db: any) => { db['transaction']['valueOf'] ??= () => 0; return String(db.transaction); };",
+      ],
       reflectGet: [
         'f: a Reflect operation other than has or ownKeys',
         "export const f = (db: any) => Reflect.get(db, 'transaction').call(db, (tx: any) => { kept = tx; });",
       ],
       descriptor: [
-        'f: a property descriptor read (getOwnPropertyDescriptor)',
+        'f: a property descriptor read (transaction)',
         "export const f = (db: any) => Object.getOwnPropertyDescriptor(Object.getPrototypeOf(db), 'transaction');",
       ],
       constructorEval: [
