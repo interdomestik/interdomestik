@@ -1,10 +1,9 @@
-import { describe, expect, expectTypeOf, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
-  type AuthorizedTransitionHookTx,
-  transitionClaimStatusInTransaction,
+  authorizeClaimTransitionInTransaction,
   type TransitionClaimStatusParams,
-  type TransitionTx,
+  writeAuthorizedTransitionStatus,
 } from './transition';
 import { authorizedRecoveryEvidence, makeTransitionTx } from './transition-test-support';
 
@@ -19,89 +18,61 @@ function makeParams(overrides: Partial<Params> = {}): Params {
   };
 }
 
-describe('transitionClaimStatusInTransaction authorized hook', () => {
-  it('types the pre-persist hook with transaction operations only', () => {
-    type HookHasTransaction = AuthorizedTransitionHookTx extends { transaction: unknown }
-      ? true
-      : false;
-
-    expectTypeOf<HookHasTransaction>().toEqualTypeOf<false>();
-    expectTypeOf<AuthorizedTransitionHookTx>().toMatchTypeOf<
-      Pick<TransitionTx, 'insert' | 'select' | 'update'>
-    >();
-  });
-
-  it('runs after recovery prerequisite locks and before the claim CAS using narrowed tx ops', async () => {
+// The staff decline record runs between authorization and the status write, on the same
+// transaction: authorization locks the recovery prerequisites, then the caller writes.
+describe('authorized pre-write phase', () => {
+  it('authorizes after recovery prerequisite locks and leaves the claim CAS to the caller', async () => {
     const { calls, tx } = makeTransitionTx({
       current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
       updated: [{ id: 'claim-1', lifecycleVersion: 7 }],
     });
 
-    await transitionClaimStatusInTransaction(
-      tx,
-      makeParams({
-        beforePersistAuthorized: async hookTx => {
-          expect('execute' in hookTx).toBe(false);
-          expect('transaction' in hookTx).toBe(false);
-          calls.operations.push('hook:authorized');
-        },
-      })
-    );
+    const authorized = await authorizeClaimTransitionInTransaction(tx, makeParams());
+    if (!authorized.success) throw new Error('expected an authorized transition');
+    calls.operations.push('prewrite:authorized');
+    await writeAuthorizedTransitionStatus(tx, authorized.transition);
 
     expect(calls.operations.slice(0, 5)).toEqual([
       'select:current',
       'lock:agreement',
       'lock:no-fee',
-      'hook:authorized',
+      'prewrite:authorized',
       'update:claim',
     ]);
-    expect(calls.operations.indexOf('insert:history')).toBeGreaterThan(
-      calls.operations.indexOf('update:claim')
-    );
+    expect(calls.historyValues).toBeUndefined();
   });
 
-  it('does not run when the transition guard rejects', async () => {
-    let hookRan = false;
+  it('returns no authorization when the transition guard rejects', async () => {
     const { calls, tx } = makeTransitionTx({
       current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
       evidence: { ...authorizedRecoveryEvidence, paymentAuthorizationState: 'pending' },
       updated: [{ id: 'claim-1', lifecycleVersion: 7 }],
     });
 
-    const result = await transitionClaimStatusInTransaction(
-      tx,
-      makeParams({
-        beforePersistAuthorized: async () => {
-          hookRan = true;
-        },
-      })
-    );
+    const result = await authorizeClaimTransitionInTransaction(tx, makeParams());
 
     expect(result).toEqual({ success: false, error: 'transition_rejected' });
-    expect(hookRan).toBe(false);
     expect(calls.updateValues).toBeUndefined();
     expect(calls.historyValues).toBeUndefined();
     expect(calls.eventValues).toBeUndefined();
   });
 
-  it('does not persist status, history, or transition events when it fails', async () => {
+  it('refuses a status write whose proof does not match the current state', async () => {
     const { calls, tx } = makeTransitionTx({
       current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
       updated: [{ id: 'claim-1', lifecycleVersion: 7 }],
     });
+    const authorized = await authorizeClaimTransitionInTransaction(tx, makeParams());
+    if (!authorized.success) throw new Error('expected an authorized transition');
 
-    const transition = transitionClaimStatusInTransaction(
-      tx,
-      makeParams({
-        beforePersistAuthorized: async () => {
-          throw new Error('recovery decision write failed');
-        },
-      })
+    const forged = {
+      ...authorized.transition,
+      current: { ...authorized.transition.current, status: 'verification' as const },
+    };
+
+    await expect(writeAuthorizedTransitionStatus(tx, forged)).rejects.toThrow(
+      'mismatched authorization proof'
     );
-
-    await expect(transition).rejects.toThrow('recovery decision write failed');
     expect(calls.updateValues).toBeUndefined();
-    expect(calls.historyValues).toBeUndefined();
-    expect(calls.eventValues).toBeUndefined();
   });
 });

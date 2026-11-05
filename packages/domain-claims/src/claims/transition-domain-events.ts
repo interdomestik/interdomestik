@@ -20,13 +20,14 @@ type TransitionEventArgs = {
 };
 
 async function appendTransitionEvent(
-  args: TransitionEventArgs & {
+  tx: DomainEventTx,
+  args: Omit<TransitionEventArgs, 'tx'> & {
     entityType: 'case' | 'claim' | 'recovery';
     eventName: string;
     payload: Record<string, unknown>;
   }
 ) {
-  await appendEvent(args.tx, {
+  await appendEvent(tx, {
     actor: { id: args.actor.id, role: args.actor.role?.trim() || 'unknown' },
     aggregateVersion: args.lifecycleVersion,
     correlationId: args.correlationId ?? crypto.randomUUID(),
@@ -42,6 +43,8 @@ async function appendTransitionEvent(
 
 export async function recordTransitionDomainEvents(args: TransitionEventArgs): Promise<void> {
   if (args.fromStatus === args.toStatus) return;
+  // The transaction is passed on its own so the event fields can be spread without carrying it.
+  const { tx, ...event } = args;
 
   const correlationId = args.correlationId ?? crypto.randomUUID();
   const fromLifecycle = mapClaimStatusToLifecycleStates(args.fromStatus);
@@ -53,8 +56,8 @@ export async function recordTransitionDomainEvents(args: TransitionEventArgs): P
     toStatus: args.toStatus,
   };
 
-  await appendTransitionEvent({
-    ...args,
+  await appendTransitionEvent(tx, {
+    ...event,
     correlationId,
     entityType: 'claim',
     eventName: 'claim.status_changed',
@@ -62,8 +65,8 @@ export async function recordTransitionDomainEvents(args: TransitionEventArgs): P
   });
 
   if (fromLifecycle.caseLifecycleState !== toLifecycle.caseLifecycleState) {
-    await appendTransitionEvent({
-      ...args,
+    await appendTransitionEvent(tx, {
+      ...event,
       correlationId,
       entityType: 'case',
       eventName: 'case.lifecycle_changed',
@@ -76,8 +79,8 @@ export async function recordTransitionDomainEvents(args: TransitionEventArgs): P
   }
 
   if (fromLifecycle.recoveryLifecycleState !== toLifecycle.recoveryLifecycleState) {
-    await appendTransitionEvent({
-      ...args,
+    await appendTransitionEvent(tx, {
+      ...event,
       correlationId,
       entityType: 'recovery',
       eventName: 'recovery.lifecycle_changed',

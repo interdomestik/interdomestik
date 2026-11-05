@@ -11,34 +11,25 @@ import { isValidTransitionCurrentState } from './transition-current-state';
 import {
   ClaimTransitionAuthorizationError,
   ClaimTransitionConflictError,
-  authorizedTransitionHookTx,
   recordTransitionSideEffects,
+  type AuthorizeClaimTransitionResult,
   type PersistAuthorizedTransitionArgs,
   type TransitionClaimStatusParams,
   type TransitionClaimStatusResult,
   type TransitionTx,
+  type WrittenTransitionStatus,
 } from './transition-side-effects';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export * from './transition-side-effects';
 
-// T-002d: claim-status persistence requires proof from canTransition().
-export async function persistAuthorizedTransition(
+// The CAS status write of an authorized transition. Callers record its side effects next, in the
+// same transaction, through recordAuthorizedTransitionSideEffects.
+export async function writeAuthorizedTransitionStatus(
   tx: TransitionTx,
   args: PersistAuthorizedTransitionArgs
-): Promise<{ lifecycleVersion: number }> {
-  const {
-    actor,
-    authorization,
-    claimId,
-    correlationId,
-    current,
-    isPublic,
-    note,
-    resolveNoteAfterStatusWrite,
-    readWhere,
-    tenantId,
-  } = args;
+): Promise<WrittenTransitionStatus> {
+  const { actor, authorization, claimId, current, readWhere } = args;
 
   if (authorization.from !== current.status || authorization.actorId !== actor.id) {
     throw new ClaimTransitionAuthorizationError(claimId);
@@ -69,49 +60,56 @@ export async function persistAuthorizedTransition(
     .returning({ id: claims.id, lifecycleVersion: claims.lifecycleVersion });
 
   if (updated.length === 0) throw new ClaimTransitionConflictError(claimId);
-  const lifecycleVersion = updated[0].lifecycleVersion;
-
-  const safeNote = resolveNoteAfterStatusWrite
-    ? await resolveNoteAfterStatusWrite(tx, {
-        claimId,
-        fromStatus: current.status,
-        isPublic,
-        note,
-        tenantId,
-      })
-    : note;
-
-  await recordTransitionSideEffects(tx, {
-    actor,
-    claimId,
-    correlationId,
-    evidenceCount: authorization.evidenceCount,
-    evidenceIds: authorization.evidenceIds,
-    fromStatus: current.status,
-    hostId: args.hostId,
-    isPublic,
-    lifecycleVersion,
-    note: safeNote,
-    now,
-    tenantId,
-    toStatus,
-  });
-
-  return { lifecycleVersion };
+  return { lifecycleVersion: updated[0].lifecycleVersion, now, toStatus };
 }
 
-export async function transitionClaimStatusInTransaction(
+// Stage history and domain events of a written transition, with the note the caller resolved.
+export async function recordAuthorizedTransitionSideEffects(
+  tx: TransitionTx,
+  args: PersistAuthorizedTransitionArgs,
+  written: WrittenTransitionStatus,
+  note: string | null
+): Promise<void> {
+  await recordTransitionSideEffects(tx, {
+    actor: args.actor,
+    claimId: args.claimId,
+    correlationId: args.correlationId,
+    evidenceCount: args.authorization.evidenceCount,
+    evidenceIds: args.authorization.evidenceIds,
+    fromStatus: args.current.status,
+    hostId: args.hostId,
+    isPublic: args.isPublic,
+    lifecycleVersion: written.lifecycleVersion,
+    note,
+    now: written.now,
+    tenantId: args.tenantId,
+    toStatus: written.toStatus,
+  });
+}
+
+// T-002d: claim-status persistence requires proof from canTransition().
+export async function persistAuthorizedTransition(
+  tx: TransitionTx,
+  args: PersistAuthorizedTransitionArgs
+): Promise<{ lifecycleVersion: number }> {
+  const written = await writeAuthorizedTransitionStatus(tx, args);
+  await recordAuthorizedTransitionSideEffects(tx, args, written, args.note);
+  return { lifecycleVersion: written.lifecycleVersion };
+}
+
+// Reads the claim under the caller's scope and decides the transition. A caller that must write
+// before the status (in the same transaction) runs that write after this succeeds and before
+// writeAuthorizedTransitionStatus.
+export async function authorizeClaimTransitionInTransaction(
   tx: TransitionTx,
   params: TransitionClaimStatusParams
-): Promise<TransitionClaimStatusResult> {
+): Promise<AuthorizeClaimTransitionResult> {
   const {
     actor,
-    beforePersistAuthorized,
     claimId,
     correlationId,
     isPublic = true,
     note,
-    resolveNoteAfterStatusWrite,
     requiredWhereCondition,
     tenantId,
     toStatus,
@@ -136,25 +134,37 @@ export async function transitionClaimStatusInTransaction(
   });
   if (!decision.allowed) return { success: false, error: 'transition_rejected' };
 
-  if (beforePersistAuthorized) {
-    await beforePersistAuthorized(authorizedTransitionHookTx(tx));
-  }
+  return {
+    success: true,
+    transition: {
+      actor,
+      authorization: decision.authorization,
+      claimId,
+      correlationId,
+      current,
+      hostId: params.hostId,
+      isPublic,
+      note: note ?? null,
+      readWhere,
+      tenantId,
+    },
+  };
+}
 
-  const { lifecycleVersion } = await persistAuthorizedTransition(tx, {
-    actor,
-    authorization: decision.authorization,
-    claimId,
-    correlationId,
-    current,
-    hostId: params.hostId,
-    isPublic,
-    note: note ?? null,
-    resolveNoteAfterStatusWrite,
-    readWhere,
-    tenantId,
-  });
-
-  return { success: true, fromStatus: current.status, lifecycleVersion, status: toStatus };
+export async function transitionClaimStatusInTransaction(
+  tx: TransitionTx,
+  params: TransitionClaimStatusParams
+): Promise<TransitionClaimStatusResult> {
+  const authorized = await authorizeClaimTransitionInTransaction(tx, params);
+  if (!authorized.success) return authorized;
+  const { transition } = authorized;
+  const { lifecycleVersion } = await persistAuthorizedTransition(tx, transition);
+  return {
+    success: true,
+    fromStatus: transition.current.status,
+    lifecycleVersion,
+    status: transition.authorization.to,
+  };
 }
 
 export async function transitionClaimStatus(

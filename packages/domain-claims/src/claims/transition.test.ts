@@ -2,8 +2,11 @@ import { inspect } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
 import {
+  authorizeClaimTransitionInTransaction,
   ClaimTransitionConflictError,
+  recordAuthorizedTransitionSideEffects,
   transitionClaimStatusInTransaction,
+  writeAuthorizedTransitionStatus,
   type TransitionClaimStatusParams,
 } from './transition';
 import { authorizedRecoveryEvidence, makeTransitionTx } from './transition-test-support';
@@ -67,30 +70,29 @@ describe('transitionClaimStatusInTransaction', () => {
     const transition = transitionClaimStatusInTransaction(tx, makeParams());
     await expect(transition).rejects.toThrow(ClaimTransitionConflictError);
   });
-  it('resolves the public note after the claim write and before history', async () => {
+  it('records the note a caller resolves after the claim write and before history', async () => {
     const { calls, tx } = makeTransitionTx({
       current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
       updated: [{ id: 'claim-1', lifecycleVersion: 7 }],
     });
 
-    await transitionClaimStatusInTransaction(
+    const authorized = await authorizeClaimTransitionInTransaction(
       tx,
-      makeParams({
-        isPublic: true,
-        note: 'staff-only detail',
-        resolveNoteAfterStatusWrite: async (_, context) => {
-          expect(calls.updateValues).toBeDefined();
-          expect(calls.historyValues).toBeUndefined();
-          expect(context).toEqual({
-            claimId: 'claim-1',
-            fromStatus: 'evaluation',
-            isPublic: true,
-            note: 'staff-only detail',
-            tenantId: 'tenant-1',
-          });
-          return 'member-safe note';
-        },
-      })
+      makeParams({ isPublic: true, note: 'staff-only detail' })
+    );
+    if (!authorized.success) throw new Error('expected an authorized transition');
+    const written = await writeAuthorizedTransitionStatus(tx, authorized.transition);
+    expect(calls.updateValues).toBeDefined();
+    expect(calls.historyValues).toBeUndefined();
+    expect(authorized.transition).toEqual(
+      expect.objectContaining({ claimId: 'claim-1', isPublic: true, note: 'staff-only detail' })
+    );
+
+    await recordAuthorizedTransitionSideEffects(
+      tx,
+      authorized.transition,
+      written,
+      'member-safe note'
     );
 
     expect(calls.historyValues).toEqual(expect.objectContaining({ note: 'member-safe note' }));

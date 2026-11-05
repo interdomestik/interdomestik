@@ -36,13 +36,14 @@ import {
   STAFF_SCOPE_ACCESS_DENIED_ERROR,
 } from './scope';
 import {
-  transitionClaimStatusInTransaction,
-  type AuthorizedTransitionHookTx,
-} from '../claims/transition';
+  finalizeClaimStatusChange,
+  type RecoveryStatusChangeParams,
+  type StaffScopeWhere,
+  type StatusChangeResult,
+} from './finalize-status-change';
 import { scheduleStatusChangeNotification } from './update-status-notification';
 import { loadStaffCurrentClaimRecord, type CurrentClaimRecord } from './current-claim-record';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-type StaffScopeWhere = ReturnType<typeof buildScopedStaffClaimWhere>;
 const STAFF_LED_RECOVERY_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
 const RECOVERY_DECISION_REQUIRED_ERROR =
   'Staff must accept the recovery decision before staff-led recovery can begin.';
@@ -64,23 +65,6 @@ type UpdateClaimStatusParams = {
   isPublicChange?: boolean;
   session: ClaimsSession | null;
   requestHeaders?: Headers;
-};
-type StatusChangeResult = ActionResult & { afterCommit?: () => Promise<void> };
-type RecoveryStatusChangeParams = {
-  authority: TenantAuthority;
-  tx: TenantTransaction;
-  claimId: string;
-  currentClaim: CurrentClaimRecord;
-  deps: ClaimsDeps;
-  hostId?: string | null;
-  isPublicChange: boolean;
-  note?: string;
-  requestHeaders?: Headers;
-  session: ClaimsSession;
-  status: ClaimStatus;
-  staffScopeWhere: StaffScopeWhere;
-  tenantId: string;
-  trimmedAllowanceOverrideReason?: string;
 };
 async function handleStaffLedRecoveryStatusChange(
   params: RecoveryStatusChangeParams
@@ -233,27 +217,13 @@ async function handleStaffLedRecoveryStatusChange(
   return finalizeClaimStatusChange({
     authority,
     tx,
-    afterTransitionPersisted: async tx => {
-      if (alreadyConsumedForClaim) {
-        return;
-      }
-
-      // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-      await tx
-        .insert(serviceUsage)
-        .values({
-          id: crypto.randomUUID(),
-          tenantId,
+    matterUsage: alreadyConsumedForClaim
+      ? undefined
+      : {
+          serviceCode: matterServiceCode,
           subscriptionId: matterAllowanceSubscription.subscriptionId,
           userId: currentClaim.userId,
-          serviceCode: matterServiceCode,
-          usedAt: new Date(),
-        })
-        .onConflictDoNothing({
-          target: [serviceUsage.tenantId, serviceUsage.subscriptionId, serviceUsage.serviceCode],
-        })
-        .returning({ id: serviceUsage.id });
-    },
+        },
     claimId,
     currentStatus: currentClaim.status,
     currentStaffId: currentClaim.staffId,
@@ -270,107 +240,6 @@ async function handleStaffLedRecoveryStatusChange(
     tenantId,
   });
 }
-type ClaimsTransaction = AuthorizedTransitionHookTx;
-async function assignClaimToActingStaffIfUnassigned(params: {
-  currentStaffId: string | null;
-  session: ClaimsSession;
-  staffScopeWhere: StaffScopeWhere;
-  tenantId: string;
-  tx: ClaimsTransaction;
-}) {
-  if (params.currentStaffId != null) {
-    return;
-  }
-  const now = new Date();
-  // db-access-guard: tenant-scoped -- reason: staffScopeWhere includes tenant, claim, branch, and assignment scope
-  await params.tx
-    .update(claims)
-    .set({
-      staffId: sql`coalesce(${claims.staffId}, ${params.session.user.id})`,
-      assignedAt: sql`coalesce(${claims.assignedAt}, ${now.toISOString().slice(0, -1)}::timestamp)`,
-      assignedById: sql`coalesce(${claims.assignedById}, ${params.session.user.id})`,
-      updatedAt: now,
-    })
-    .where(params.staffScopeWhere);
-}
-
-async function finalizeClaimStatusChange(
-  params: Omit<RecoveryStatusChangeParams, 'currentClaim' | 'trimmedAllowanceOverrideReason'> & {
-    afterTransitionPersisted?: (tx: ClaimsTransaction) => Promise<void>;
-    beforePersistAuthorized?: (tx: AuthorizedTransitionHookTx) => Promise<void>;
-    currentStatus: ClaimStatus | null;
-    currentStaffId: string | null;
-    currentTitle: string;
-    currentUserId: string;
-  }
-): Promise<StatusChangeResult> {
-  const { tx, afterTransitionPersisted, beforePersistAuthorized, ...rest } = params;
-
-  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  const transitionResult = await transitionClaimStatusInTransaction(
-    tx as unknown as Parameters<typeof transitionClaimStatusInTransaction>[0],
-    {
-      actor: { id: rest.session.user.id, role: 'staff' },
-      claimId: rest.claimId,
-      hostId: rest.hostId,
-      isPublic: rest.isPublicChange,
-      note: rest.note ?? null,
-      resolveNoteAfterStatusWrite: safePublicStatusNote,
-      requiredWhereCondition: rest.staffScopeWhere,
-      tenantId: rest.tenantId,
-      toStatus: rest.status,
-      beforePersistAuthorized,
-    }
-  );
-
-  if (transitionResult.success) {
-    await afterTransitionPersisted?.(tx);
-
-    await assignClaimToActingStaffIfUnassigned({
-      currentStaffId: rest.currentStaffId,
-      session: rest.session,
-      staffScopeWhere: rest.staffScopeWhere,
-      tenantId: rest.tenantId,
-      tx,
-    });
-  }
-
-  if (!transitionResult.success) {
-    return {
-      success: false,
-      error:
-        transitionResult.error === 'claim_not_found'
-          ? STAFF_SCOPE_ACCESS_DENIED_ERROR
-          : 'Failed to update claim status',
-    };
-  }
-
-  const sideEffectParams = { ...rest, currentStatus: transitionResult.fromStatus };
-
-  return {
-    success: true,
-    afterCommit: async () => {
-      await activateClaimStatusAuditProjection({
-        authority: sideEffectParams.authority,
-        deps: sideEffectParams.deps,
-      });
-
-      if (sideEffectParams.isPublicChange) {
-        scheduleStatusChangeNotification({
-          authority: sideEffectParams.authority,
-          claimId: sideEffectParams.claimId,
-          claimTitle: sideEffectParams.currentTitle,
-          deps: sideEffectParams.deps,
-          newStatus: sideEffectParams.status,
-          oldStatus: sideEffectParams.currentStatus,
-          userId: sideEffectParams.currentUserId,
-        });
-      }
-    },
-  };
-}
-
-/** Update claim status and optionally add a history note */
 export async function updateClaimStatusCore(
   params: UpdateClaimStatusParams,
   deps: ClaimsDeps = {}
@@ -441,16 +310,9 @@ export async function updateClaimStatusCore(
         return finalizeClaimStatusChange({
           authority,
           tx,
-          beforePersistAuthorized: async tx => {
-            await upsertRecoveryDecisionRecord({
-              claimId,
-              decisionType: 'declined',
-              declineReasonCode: params.declineReasonCode,
-              explanation: trimmedDecisionExplanation,
-              session,
-              tenantId,
-              tx,
-            });
+          recoveryDecline: {
+            declineReasonCode: params.declineReasonCode,
+            explanation: trimmedDecisionExplanation,
           },
           claimId,
           currentStatus: currentClaim.status,

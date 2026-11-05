@@ -39,7 +39,12 @@ describe('T-002b central transition writer paths', () => {
     [
       'staff adapter',
       'packages/domain-claims/src/staff-claims/update-status.ts',
-      'transitionClaimStatusInTransaction',
+      'finalizeClaimStatusChange',
+    ],
+    [
+      'staff transition phases',
+      'packages/domain-claims/src/staff-claims/finalize-status-change.ts',
+      'writeAuthorizedTransitionStatus',
     ],
     [
       'member cancellation command',
