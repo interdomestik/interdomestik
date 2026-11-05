@@ -1,6 +1,4 @@
-import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { CircuitBreaker } from './circuit-breaker';
-import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface RetryConfig {
   maxRetries: number;
@@ -67,29 +65,23 @@ export async function withRetry<T>(
   throw new Error('Max retries exceeded');
 }
 
-export interface TransactionRetryOptions {
-  /**
-   * Every attempt runs inside `withTenantContext(authority, ...)` so RLS applies. The authority is
-   * supplied by the caller from its own authenticated ingress; this helper never mints one.
-   */
-  authority: TenantAuthority;
-}
+// Transient conflicts after which a whole tenant transaction attempt may be run again.
+const TRANSACTION_RETRYABLE_ERRORS = [
+  'deadlock detected',
+  'could not serialize access',
+  'tuple simultaneously updated',
+];
 
-export async function withTransactionRetry<T>(
-  operation: (tx: any) => Promise<T>,
-  config: Partial<RetryConfig>,
-  options: TransactionRetryOptions
-): Promise<T> {
-  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  return withRetry(() => withTenantAuthority(options.authority, operation), {
+/**
+ * Retry settings for a complete transaction attempt. The caller wraps the whole
+ * `withTenantAuthority(authority, tx => ...)` call in `withRetry`, so every attempt opens its own
+ * transaction and no transaction handle passes through the retry helper.
+ */
+export function transactionRetryConfig(config: Partial<RetryConfig> = {}): Partial<RetryConfig> {
+  return {
     ...config,
-    retryableErrors: [
-      ...(config.retryableErrors || []),
-      'deadlock detected',
-      'could not serialize access',
-      'tuple simultaneously updated',
-    ],
-  });
+    retryableErrors: [...(config.retryableErrors || []), ...TRANSACTION_RETRYABLE_ERRORS],
+  };
 }
 
 function isRetryableError(error: any, retryableErrors: string[]): boolean {
@@ -116,28 +108,4 @@ export const LOCK_ORDER = [
 
 export function getLockOrderIndex(tableName: string): number {
   return LOCK_ORDER.indexOf(tableName as any);
-}
-
-// Helper for operations that need consistent table access order
-export async function withDeadlockPrevention<T>(
-  operations: Array<{ tableName: string; operation: () => Promise<any> }>,
-  options: TransactionRetryOptions
-): Promise<T> {
-  // Sort operations by lock order to prevent deadlocks
-  const sortedOps = [...operations].sort(
-    (a, b) => getLockOrderIndex(a.tableName) - getLockOrderIndex(b.tableName)
-  );
-
-  return withTransactionRetry(
-    async tx => {
-      const results: any[] = [];
-      for (const op of sortedOps) {
-        const result = await op.operation();
-        results.push(result);
-      }
-      return results.at(-1); // Return last operation result
-    },
-    {},
-    options
-  );
 }

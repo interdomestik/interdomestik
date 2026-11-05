@@ -5,17 +5,21 @@ const { mockTenantTransaction } = vi.hoisted(() => {
   return { mockTenantTransaction: vi.fn() };
 });
 
-// Mock the database module before importing withTransactionRetry: every attempt is a tenant transaction.
+// Mock the database module before importing the retry helpers: every attempt is a tenant transaction.
 vi.mock('@interdomestik/database', () => ({
   withTenantContext: mockTenantTransaction,
 }));
 
 // Import after mocking
-import { withTransactionRetry } from '@interdomestik/shared-utils/resilience';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { transactionRetryConfig, withRetry } from '@interdomestik/shared-utils/resilience';
+
+// The retry wraps a complete tenant transaction attempt, as registration does.
+const retryTenantTransaction = <T>(operation: (tx: unknown) => Promise<T>) =>
+  withRetry(() => withTenantAuthority(authority, operation), transactionRetryConfig());
+const authority = mintTestTenantAuthority('tenant_mk');
 
 describe('Production Readiness Tests', () => {
-  const authority = mintTestTenantAuthority('tenant_mk');
-
   beforeEach(() => {
     vi.clearAllMocks();
     mockTenantTransaction.mockReset();
@@ -36,13 +40,9 @@ describe('Production Readiness Tests', () => {
         }
       );
 
-      const result = await withTransactionRetry(
-        async () => {
-          return { success: true, data: 'test-result' };
-        },
-        {},
-        { authority }
-      );
+      const result = await retryTenantTransaction(async () => {
+        return { success: true, data: 'test-result' };
+      });
 
       // Assert: the tenant transaction ran twice (first failed with deadlock, second succeeded)
       expect(mockTenantTransaction).toHaveBeenCalledTimes(2);
@@ -54,13 +54,9 @@ describe('Production Readiness Tests', () => {
       mockTenantTransaction.mockRejectedValue(new Error('permission denied'));
 
       await expect(
-        withTransactionRetry(
-          async () => {
-            return { success: true };
-          },
-          {},
-          { authority }
-        )
+        retryTenantTransaction(async () => {
+          return { success: true };
+        })
       ).rejects.toThrow('permission denied');
 
       // Assert: the tenant transaction was only called once (no retry for non-retryable error)

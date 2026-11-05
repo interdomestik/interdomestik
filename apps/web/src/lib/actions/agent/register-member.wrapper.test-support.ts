@@ -6,13 +6,17 @@ const mocks = vi.hoisted(() => ({
   issueTenantMemberNumber: vi.fn(),
   deletedTables: [] as unknown[],
   selectResults: [] as unknown[][],
-  withTransactionRetry: vi.fn(),
+  tenantTx: null as unknown,
+  withRetry: vi.fn(),
   withTenantContext: vi.fn(),
   emailExecute: vi.fn(),
 }));
 
-vi.mock('@interdomestik/shared-utils/resilience', () => ({
-  withTransactionRetry: mocks.withTransactionRetry,
+vi.mock('@interdomestik/shared-utils/resilience', async importOriginal => ({
+  transactionRetryConfig: (
+    await importOriginal<typeof import('@interdomestik/shared-utils/resilience')>()
+  ).transactionRetryConfig,
+  withRetry: mocks.withRetry,
 }));
 
 vi.mock('@interdomestik/shared-utils/circuit-breaker', () => ({
@@ -44,9 +48,10 @@ vi.mock('@interdomestik/database', async () => {
     eq: vi.fn((column: unknown, value: unknown) => ({ kind: 'eq', column, value })),
     membershipPlans: helper.CANONICAL_MEMBERSHIP_PLAN_COLUMNS,
     db,
+    // Every tenant transaction (plan lookup and the registration attempt) gets the test's tx.
     withTenantContext: (context: unknown, cb: (tx: unknown) => unknown) => {
       mocks.withTenantContext(context);
-      return Promise.resolve(cb(db));
+      return Promise.resolve(cb({ ...db, ...(mocks.tenantTx as object | null) }));
     },
   };
 });

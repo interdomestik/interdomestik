@@ -68,7 +68,7 @@ fi
 # Test 6: Applied resilience patterns
 echo ""
 echo "6. ✅ Applied Resilience Patterns:"
-if grep -q "withTransactionRetry" apps/web/src/lib/actions/agent/register-member.core.ts; then
+if grep -q "transactionRetryConfig" apps/web/src/lib/actions/agent/register-member.core.ts; then
     echo "   ✓ Member registration uses transaction retry"
 else
     echo "   ❌ Member registration not updated"

@@ -22,29 +22,27 @@ describe('registerMemberCore', () => {
     });
     mocks.selectResults.length = 0;
     mocks.selectResults.push([], [], [{ id: 'tenant-standard-plan', tier: 'standard' }]);
-    mocks.withTransactionRetry.mockImplementation(async callback => {
-      const tx = {
-        insert: vi.fn().mockImplementation(() => ({
-          values: vi.fn().mockImplementation((value: unknown) => {
-            insertValues.push(value);
-            return {
-              onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-            };
-          }),
-        })),
-        update: vi.fn().mockImplementation(() => ({
-          set: vi.fn().mockImplementation(() => ({
-            where: vi.fn().mockResolvedValue(undefined),
-          })),
-        })),
-        // Registration never deletes; any delete is recorded so the tests can prove that.
-        delete: vi.fn().mockImplementation((table: unknown) => {
-          mocks.deletedTables.push(table);
-          return { where: vi.fn().mockResolvedValue(undefined) };
+    mocks.withRetry.mockImplementation(async (operation: () => Promise<unknown>) => operation());
+    mocks.tenantTx = {
+      insert: vi.fn().mockImplementation(() => ({
+        values: vi.fn().mockImplementation((value: unknown) => {
+          insertValues.push(value);
+          return {
+            onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+          };
         }),
-      };
-      return await callback(tx);
-    });
+      })),
+      update: vi.fn().mockImplementation(() => ({
+        set: vi.fn().mockImplementation(() => ({
+          where: vi.fn().mockResolvedValue(undefined),
+        })),
+      })),
+      // Registration never deletes; any delete is recorded so the tests can prove that.
+      delete: vi.fn().mockImplementation((table: unknown) => {
+        mocks.deletedTables.push(table);
+        return { where: vi.fn().mockResolvedValue(undefined) };
+      }),
+    };
     mocks.emailExecute.mockImplementation(async operation => operation());
   });
 
@@ -60,10 +58,11 @@ describe('registerMemberCore', () => {
 
     expect(result).toEqual({ ok: true });
     expect(mocks.withTenantContext).toHaveBeenCalledWith(authority);
-    expect(mocks.withTransactionRetry).toHaveBeenCalledWith(
+    expect(mocks.withRetry).toHaveBeenCalledWith(
       expect.any(Function),
-      {},
-      { authority }
+      expect.objectContaining({
+        retryableErrors: expect.arrayContaining(['deadlock detected']),
+      })
     );
     // The credential is attached by the kernel append (bcrypt hash only), never by the tenant tx.
     expect(insertValues).not.toContainEqual(expect.objectContaining({ providerId: 'credential' }));
@@ -117,7 +116,7 @@ describe('registerMemberCore', () => {
   });
 
   it('should handle transaction errors (e.g., email duplicate)', async () => {
-    mocks.withTransactionRetry.mockRejectedValue(new Error('Duplicate'));
+    mocks.withRetry.mockRejectedValue(new Error('Duplicate'));
 
     const formData = new FormData();
     formData.append('fullName', 'John Doe');
@@ -145,7 +144,7 @@ describe('registerMemberCore', () => {
     const result = await registerMemberCore(mockAgent, authority, mockBranchId, registrationForm());
 
     expect(result).toEqual(FAILED);
-    expect(mocks.withTransactionRetry).toHaveBeenCalledTimes(1);
+    expect(mocks.withRetry).toHaveBeenCalledTimes(1);
     expect(mocks.deletedTables).toEqual([]);
     expect(mocks.hasTenantMemberCredential).not.toHaveBeenCalled();
     expect(mocks.issueTenantMemberNumber).not.toHaveBeenCalled();
@@ -185,7 +184,7 @@ describe('registerMemberCore', () => {
       );
 
       expect(result).toEqual(FAILED);
-      expect(mocks.withTransactionRetry).toHaveBeenCalledTimes(1);
+      expect(mocks.withRetry).toHaveBeenCalledTimes(1);
       expect(mocks.deletedTables).toEqual([]);
       expect(mocks.issueTenantMemberNumber).not.toHaveBeenCalled();
       expect(mocks.emailExecute).not.toHaveBeenCalled();
@@ -205,7 +204,7 @@ describe('registerMemberCore', () => {
     );
 
     expect(result).toEqual(FAILED);
-    expect(mocks.withTransactionRetry).not.toHaveBeenCalled();
+    expect(mocks.withRetry).not.toHaveBeenCalled();
     expect(mocks.appendTenantMemberCredential).not.toHaveBeenCalled();
   });
 
