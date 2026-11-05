@@ -42,6 +42,14 @@ export function ownerOf(node) {
   return null;
 }
 
+/** The nearest enclosing function or class of `node`: a class body (field initializers, static
+ * blocks, members) may run after the function that declares it has returned. */
+export function captureBoundary(node) {
+  for (let current = node.parent; current; current = current.parent)
+    if (isFunctionLike(current) || ts.isClassLike(current)) return current;
+  return null;
+}
+
 /** Why `fn` cannot hold a borrowed capability at all, or null. */
 export function shapeProblem(fact, fn, referenceAt) {
   if (!fn.body) return 'a function without a body';
@@ -53,6 +61,9 @@ export function shapeProblem(fact, fn, referenceAt) {
   let found = null;
   const visit = node => {
     if (found) return;
+    // A non-arrow function's own `this` is bound by its caller, which could hand it a carrier.
+    if (node.kind === ts.SyntaxKind.ThisKeyword && nonArrowOwner(node) === fn)
+      found = 'a this reference';
     if (ts.isIdentifier(node) && !referenceAt(fact, node)?.binding) {
       if (node.text === 'eval' || node.text === 'Function') found = 'an eval-like global';
       if (node.text === 'arguments' && nonArrowOwner(node) === fn) found = 'implicit arguments';

@@ -17,6 +17,14 @@ const DECLARATION_FILE = /\.d\.[cm]?ts$/u;
 const RULE = 'L1';
 const LOADER_MODULES = new Set(['module', 'node:module']);
 const LOADER_MEMBERS = new Set(['getBuiltinModule', 'mainModule', 'require']);
+const LOADER_RECEIVERS = new Set(['globalThis', 'global', 'module', 'process']);
+// Globals that evaluate code or load a module by a name computed at runtime.
+const GLOBAL_LOADERS = new Set([
+  'eval',
+  'Function',
+  '__non_webpack_require__',
+  '__webpack_require__',
+]);
 
 /** Installs the transaction-lifetime analysis as `ctx.checkLifetime()`. */
 export function installLifetime(ctx) {
@@ -83,35 +91,61 @@ export function installLifetime(ctx) {
     referenceAt(fact, node) &&
     !referenceAt(fact, node).binding;
 
-  /** Why `node` reaches a module loader other than a direct `import()` / `require()` call. */
+  /** Why `node` reaches a module loader other than a direct `import()` / `require()` call with a
+   * literal specifier, or null. */
   function loaderProblem(fact, node) {
     if (isRequire(fact, node)) {
       const value = ctx.outermost(node);
       if (!(ts.isCallExpression(value.parent) && value.parent.expression === value))
         return 'an indirect require';
     }
+    if (ts.isIdentifier(node) && GLOBAL_LOADERS.has(node.text) && referenceAt(fact, node))
+      return `an eval-like global or bundler loader (${node.text})`;
+    if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference))
+      return 'a CommonJS import (import = require)';
     const specifier =
       ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier : null;
     if (specifier && ts.isStringLiteralLike(specifier) && LOADER_MODULES.has(specifier.text))
       return 'an import of the module loader';
     if (
-      ts.isPropertyAccessExpression(node) &&
-      LOADER_MEMBERS.has(node.name.text) &&
-      ts.isIdentifier(unwrap(node.expression)) &&
-      ['globalThis', 'global', 'module', 'process'].includes(unwrap(node.expression).text) &&
-      !referenceAt(fact, unwrap(node.expression))?.binding
+      ts.isCallExpression(node) &&
+      dynamicLoad(fact, node) &&
+      !literalSpecifier(node) &&
+      !dataSpecifier(node)
     )
-      return `a module loader member (${node.name.text})`;
+      return 'a dynamic import with a computed specifier';
+    if (ts.isPropertyAccessExpression(node) && LOADER_MEMBERS.has(node.name.text)) {
+      const receiver = unwrap(node.expression);
+      if (ts.isMetaProperty(receiver)) return `a module loader member (${node.name.text})`;
+      if (
+        ts.isIdentifier(receiver) &&
+        LOADER_RECEIVERS.has(receiver.text) &&
+        !referenceAt(fact, receiver)?.binding
+      )
+        return `a module loader member (${node.name.text})`;
+    }
     return null;
   }
 
+  const dynamicLoad = (fact, call) => {
+    const callee = unwrap(call.expression);
+    return callee.kind === ts.SyntaxKind.ImportKeyword || isRequire(fact, callee);
+  };
+  const literalSpecifier = call =>
+    call.arguments.length > 0 && ts.isStringLiteralLike(call.arguments[0]);
+  /** A data template such as `../messages/${locale}/${name}.json`: a static relative prefix and a
+   * `.json` suffix, so the bundler's context holds JSON modules only. */
+  const dataSpecifier = call => {
+    const [specifier] = call.arguments;
+    if (call.arguments.length !== 1 || !ts.isTemplateExpression(specifier)) return false;
+    const tail = specifier.templateSpans.at(-1).literal.text;
+    return /^(?:\.{1,2}|@)\/[\w./-]+\//u.test(specifier.head.text) && /\.json$/u.test(tail);
+  };
+
   /** A dynamic `import()` / `require()` of a module exporting a transaction entry. */
   function loadsEntryModule(fact, call) {
-    const callee = unwrap(call.expression);
-    const loader = callee.kind === ts.SyntaxKind.ImportKeyword || isRequire(fact, callee);
-    const [specifier] = call.arguments;
-    if (!loader || !specifier || !ts.isStringLiteralLike(specifier)) return false;
-    return graph.resolveSpecifier(fact.file, specifier.text).files.some(entryModule);
+    if (!dynamicLoad(fact, call) || !literalSpecifier(call)) return false;
+    return graph.resolveSpecifier(fact.file, call.arguments[0].text).files.some(entryModule);
   }
 
   /** Type positions erase at runtime, except a class `extends` expression. */

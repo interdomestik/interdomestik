@@ -11,6 +11,7 @@
 import ts from 'typescript';
 import { createLifetimeCallees } from './rules-lifetime-callees.mjs';
 import {
+  captureBoundary,
   constInitializer,
   hoistedDeclarations,
   IMPLICIT_MEMBERS,
@@ -19,7 +20,6 @@ import {
   kindOf,
   memberProblem,
   otherMember,
-  ownerOf,
   shapeProblem,
   tested,
   writes,
@@ -150,7 +150,8 @@ export function createLifetimeFlow(ctx) {
         if (writes(use.node.parent, ctx)) return `a written carrier member (${member})`;
         if (!calledMember(use.node.parent)) continue;
       }
-      if (ownerOf(use.node) !== owner) return `a nested function captures it (${id.text})`;
+      if (captureBoundary(use.node) !== owner)
+        return `a nested function or class captures it (${id.text})`;
       const problem =
         path.length === 0
           ? valueProblem(fact, use.node, owner, depth)
@@ -188,10 +189,15 @@ export function createLifetimeFlow(ctx) {
     return joined(opened, outermost) ? null : 'a nested transaction that is not awaited';
   }
 
-  /** A carrier member that is invoked: it could reach the carrier through `this`. */
+  /** A carrier member that is invoked (a call or a tagged template): it could reach the carrier
+   * through `this`. */
   function calledMember(access) {
     const member = outermost(access);
-    return ts.isCallExpression(member.parent) && member.parent.expression === member;
+    const parent = member.parent;
+    return (
+      (ts.isCallExpression(parent) && parent.expression === member) ||
+      (ts.isTaggedTemplateExpression(parent) && parent.tag === member)
+    );
   }
 
   /** `node` holds an object whose `path` is the borrowed capability. */
