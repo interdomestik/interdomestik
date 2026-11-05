@@ -99,3 +99,36 @@ test('P4: the real client laundered through a setter or a replaced prototype is 
   ]);
   assert.deepEqual(dto.violations, []);
 });
+
+// P2 — declared S8 boundary (accepted on purpose, coordination 167 and Codex r11): the guard
+// protects which tenant a read selects, not where its result is kept. Changed code may call an
+// unchanged no-argument read that resolves the tenant from the request session itself, in every
+// form below. A module-scope initializer or memo shares the result across requests and tenants;
+// revoking the transaction does not protect a cached DTO or promise. A narrow caching rule is
+// deferred beyond the transition; review owns module-scope caching until then.
+const SESSION_READ = {
+  'apps/web/src/session.ts': 'export async function getSession(): Promise<any> { return null; }\n',
+  'apps/web/src/mine.ts': [
+    "import { withTenantContext } from '@interdomestik/database';",
+    "import { getSession } from './session';",
+    "import { ensureTenantId } from './tenant-id';",
+    'export async function readMine() {',
+    '  const session = await getSession();',
+    '  return withTenantContext({ tenantId: ensureTenantId(session) }, tx => tx.select());',
+    '}',
+  ].join('\n'),
+};
+
+test('P2 boundary: a session-resolved read is accepted however its result is kept', () => {
+  const imported = "import { readMine } from './mine';\n";
+  const forms = {
+    direct: 'export async function page() { return readMine(); }\n',
+    moduleInit: 'const cached = readMine();\nexport async function page() { return cached; }\n',
+    moduleMemo: 'let memo: any;\nexport async function page() { return (memo ??= readMine()); }\n',
+    timer: 'export function start() { setTimeout(readMine, 10); }\n',
+  };
+  for (const [name, body] of Object.entries(forms)) {
+    const result = runWithBase(SESSION_READ, { 'apps/web/src/use.ts': imported + body });
+    assert.deepEqual(result.violations, [], name);
+  }
+});
