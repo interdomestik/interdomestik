@@ -20,10 +20,10 @@ export async function findActorCrossGrantContexts(args: {
   db: GrantReader;
   now?: Date;
 }): Promise<CrossGrantContext[]> {
-  // The callback receives only the read fields, never `args`, which carries the database handle.
-  const { accessTenantId, actorId, now } = args;
-  return withGrantReadContext(args.db, accessTenantId, tx =>
-    selectActorCrossGrantContexts(tx, { accessTenantId, actorId, now })
+  // The read handle is split off first, so the callback captures only the request fields.
+  const { db, ...fields } = args;
+  return withGrantReadContext(db, fields.accessTenantId, tx =>
+    selectActorCrossGrantContexts(tx, fields)
   );
 }
 
@@ -60,57 +60,32 @@ async function selectActorCrossGrantContexts(
   }));
 }
 
-type DurableGrantRequest = {
+export async function hasDurableCaseScopedDocumentGrant(args: {
   accessTenantId: string;
   actorId: string;
   caseId: string;
   db: GrantReader;
   documentClass: unknown;
-};
-type DurableGrantFields = Omit<DurableGrantRequest, 'db'> & { homeTenantId: string | null };
-
-/** Whether an active durable grant covers the document class, in any home tenant. Reads only the
- * request's own members: callers may hand it their tenant transaction inside the request. */
-export async function hasDurableCaseScopedDocumentGrant(
-  args: DurableGrantRequest
-): Promise<boolean> {
-  return checkDurableGrant(args.db, {
-    accessTenantId: args.accessTenantId,
-    actorId: args.actorId,
-    caseId: args.caseId,
-    documentClass: args.documentClass,
-    homeTenantId: null,
-  });
-}
-
-/** The same check restricted to grants issued by the document's home tenant. */
-export async function hasDurableCaseScopedDocumentGrantInHomeTenant(
-  args: DurableGrantRequest & { homeTenantId: string }
-): Promise<boolean> {
-  return checkDurableGrant(args.db, {
-    accessTenantId: args.accessTenantId,
-    actorId: args.actorId,
-    caseId: args.caseId,
-    documentClass: args.documentClass,
-    homeTenantId: args.homeTenantId,
-  });
-}
-
-async function checkDurableGrant(db: GrantReader, request: DurableGrantFields): Promise<boolean> {
-  const documentClass = toApprovedDurableDocumentClass(request.documentClass);
+  homeTenantId?: string | null;
+  now?: Date;
+}): Promise<boolean> {
+  // The read handle is split off first, so the callback captures only the request fields.
+  const { db, ...fields } = args;
+  const documentClass = toApprovedDurableDocumentClass(fields.documentClass);
   if (!documentClass) {
     return false;
   }
 
-  const grants = await withGrantReadContext(db, request.accessTenantId, tx =>
-    selectGrantRows(tx, request)
+  const grants = await withGrantReadContext(db, fields.accessTenantId, tx =>
+    selectGrantRows(tx, fields)
   );
   return canUseCaseScopedDocumentGrant({
-    accessTenantId: request.accessTenantId,
-    actorId: request.actorId,
-    caseId: request.caseId,
+    accessTenantId: fields.accessTenantId,
+    actorId: fields.actorId,
+    caseId: fields.caseId,
     documentClass,
     grants,
+    now: fields.now,
   });
 }
 
@@ -120,7 +95,7 @@ async function selectGrantRows(
     accessTenantId: string;
     actorId: string;
     caseId: string;
-    homeTenantId: string | null;
+    homeTenantId?: string | null;
   }
 ) {
   return db

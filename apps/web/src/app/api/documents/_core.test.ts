@@ -7,6 +7,7 @@ vi.mock('@interdomestik/database', async importActual => ({
   ...(await importActual<typeof import('@interdomestik/database')>()),
   withTenantContext: tenantContext.run,
 }));
+import { sessionAuthority, tenantContextOf } from './document-access.test-support';
 import {
   buildContentDispositionHeader,
   DocumentAccessDeps,
@@ -105,7 +106,13 @@ async function execAccess(
   docId: string,
   mode: 'download' | 'signed_url' = 'download'
 ) {
-  return getDocumentAccessCore({ session, documentId: docId, mode, deps: mockDeps });
+  return getDocumentAccessCore({
+    authority: sessionAuthority(session),
+    session,
+    documentId: docId,
+    mode,
+    deps: mockDeps,
+  });
 }
 
 describe('getDocumentAccessCore Hardening', () => {
@@ -233,10 +240,11 @@ describe('getDocumentAccessCore Hardening', () => {
       const session = { user: { ...memberSession.user, tenantId: 'wrong' } };
       const res = await execAccess(session, 'doc1');
       expect(res).toEqual({ ok: false, code: 'NOT_FOUND', message: 'Document not found' });
-      expect(mockWithTenantContext).toHaveBeenCalledWith(
-        { accessTenantId: 'wrong', role: 'member', tenantId: 'wrong' },
-        expect.any(Function)
-      );
+      expect(tenantContextOf(mockWithTenantContext.mock.calls[0]?.[0])).toEqual({
+        accessTenantId: 'wrong',
+        role: 'member',
+        tenantId: 'wrong',
+      });
     });
   });
 

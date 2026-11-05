@@ -16,6 +16,7 @@ vi.mock('./cross-tenant-document-lookup', () => ({
   lookupCrossGrantDoc: vi.fn().mockResolvedValue(null),
 }));
 
+import { sessionAuthority } from './document-access.test-support';
 import { getDocumentAccessCore, type DocumentAccessDeps } from './_core';
 import { lookupCrossGrantDoc } from './cross-tenant-document-lookup';
 import { hasDurableCaseScopedDocumentGrant } from './durable-case-grants';
@@ -68,7 +69,13 @@ describe('document durable case grant boundary', () => {
     setup([claimDoc()], [{ claimOwnerId: 'member-1' }], false);
 
     await expect(
-      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+      getDocumentAccessCore({
+        authority: sessionAuthority(session),
+        deps: mockDeps,
+        documentId: 'doc-1',
+        mode: 'download',
+        session,
+      })
     ).resolves.toEqual(expect.objectContaining({ ok: true }));
     expect(hasDurableCaseScopedDocumentGrant).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -93,7 +100,13 @@ describe('document durable case grant boundary', () => {
     );
 
     await expect(
-      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+      getDocumentAccessCore({
+        authority: sessionAuthority(session),
+        deps: mockDeps,
+        documentId: 'doc-1',
+        mode: 'download',
+        session,
+      })
     ).resolves.toEqual(expect.objectContaining({ ok: true }));
     expect(hasDurableCaseScopedDocumentGrant).toHaveBeenCalledWith(
       expect.objectContaining({ caseId: 'claim-1', documentClass: 'legal' })
@@ -112,7 +125,13 @@ describe('document durable case grant boundary', () => {
     );
 
     await expect(
-      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+      getDocumentAccessCore({
+        authority: sessionAuthority(session),
+        deps: mockDeps,
+        documentId: 'doc-1',
+        mode: 'download',
+        session,
+      })
     ).resolves.toEqual(expect.objectContaining({ ok: true }));
     expect(hasDurableCaseScopedDocumentGrant).not.toHaveBeenCalled();
   });
@@ -125,7 +144,13 @@ describe('document durable case grant boundary', () => {
     setup([doc]);
 
     await expect(
-      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+      getDocumentAccessCore({
+        authority: sessionAuthority(session),
+        deps: mockDeps,
+        documentId: 'doc-1',
+        mode: 'download',
+        session,
+      })
     ).resolves.toEqual({ ok: false, code: 'FORBIDDEN', message: 'Forbidden' });
     expect(hasDurableCaseScopedDocumentGrant).not.toHaveBeenCalled();
   });
@@ -140,7 +165,13 @@ describe('document durable case grant boundary', () => {
     setup([], [], true);
 
     await expect(
-      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+      getDocumentAccessCore({
+        authority: sessionAuthority(session),
+        deps: mockDeps,
+        documentId: 'doc-1',
+        mode: 'download',
+        session,
+      })
     ).resolves.toEqual(expect.objectContaining({ ok: true, tenantId: 'home-t' }));
   });
 
@@ -149,7 +180,13 @@ describe('document durable case grant boundary', () => {
     setup([], [], true);
 
     await expect(
-      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+      getDocumentAccessCore({
+        authority: sessionAuthority(session),
+        deps: mockDeps,
+        documentId: 'doc-1',
+        mode: 'download',
+        session,
+      })
     ).resolves.toEqual({ ok: false, code: 'NOT_FOUND', message: 'Document not found' });
   });
 });

@@ -2,7 +2,7 @@ import { claimDocuments, claims, documents } from '@interdomestik/database/schem
 import { and, eq } from 'drizzle-orm';
 
 import type { DocumentAccessDeps } from './_core';
-import { hasDurableCaseScopedDocumentGrantInHomeTenant } from './durable-case-grants';
+import { hasDurableCaseScopedDocumentGrant } from './durable-case-grants';
 
 type DatabaseClient = DocumentAccessDeps['db'];
 type SessionDTO = { user: { id: string } };
@@ -29,7 +29,7 @@ export async function findDurableGrantedPolymorphicClaimDocument(args: {
     .where(and(eq(documents.id, args.documentId), eq(documents.entityType, 'claim')));
   if (polyDoc?.entityType !== 'claim') return null;
 
-  const allowed = await hasDurableCaseScopedDocumentGrantInHomeTenant({
+  const allowed = await hasDurableCaseScopedDocumentGrant({
     accessTenantId: args.accessTenantId,
     actorId: args.session.user.id,
     caseId: polyDoc.entityId,
@@ -59,7 +59,7 @@ export async function findDurableGrantedLegacyClaimDocument(args: {
     .where(eq(claimDocuments.id, args.documentId));
   if (!row?.doc?.claimId) return null;
 
-  const allowed = await hasDurableCaseScopedDocumentGrantInHomeTenant({
+  const allowed = await hasDurableCaseScopedDocumentGrant({
     accessTenantId: args.accessTenantId,
     actorId: args.session.user.id,
     caseId: row.doc.claimId,

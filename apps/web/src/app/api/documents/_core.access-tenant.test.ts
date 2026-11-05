@@ -27,6 +27,7 @@ vi.mock('./durable-case-grants', () => ({
   hasDurableCaseScopedDocumentGrant: vi.fn().mockResolvedValue(false),
 }));
 
+import { sessionAuthority } from './document-access.test-support';
 import { getDocumentAccessCore, type DocumentAccessDeps } from './_core';
 
 const mockDb = { select: vi.fn() };
@@ -81,6 +82,7 @@ describe('getDocumentAccessCore access tenant isolation', () => {
     };
 
     const result = await getDocumentAccessCore({
+      authority: sessionAuthority(session),
       deps: mockDeps,
       documentId: 'doc-1',
       mode: 'download',
@@ -123,18 +125,20 @@ describe('getDocumentAccessCore access tenant isolation', () => {
     };
     mockDb.select.mockReturnValueOnce(polyChain).mockReturnValueOnce(legacyQuery);
 
+    const session = {
+      user: {
+        id: 'support-1',
+        role: 'global_support',
+        tenantId: 'tenant_legal_compat',
+        accessTenantId: 'tenant_access',
+      },
+    };
     const result = await getDocumentAccessCore({
+      authority: sessionAuthority(session),
       deps: mockDeps,
       documentId: 'legacy-doc-1',
       mode: 'download',
-      session: {
-        user: {
-          id: 'support-1',
-          role: 'global_support',
-          tenantId: 'tenant_legal_compat',
-          accessTenantId: 'tenant_access',
-        },
-      },
+      session,
     });
 
     expect(result).toEqual(expect.objectContaining({ ok: true, tenantId: 'tenant_home' }));

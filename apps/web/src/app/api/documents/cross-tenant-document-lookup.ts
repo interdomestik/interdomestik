@@ -5,7 +5,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { DocumentAccessDeps } from './_core';
 import {
   findActorCrossGrantContexts,
-  hasDurableCaseScopedDocumentGrantInHomeTenant,
+  hasDurableCaseScopedDocumentGrant,
   type CrossGrantContext,
 } from './durable-case-grants';
 
@@ -24,8 +24,8 @@ export async function lookupCrossGrantDoc(args: {
   db: DatabaseClient;
   documentId: string;
 }): Promise<CrossGrantDoc | null> {
-  const contexts = await findActorCrossGrantContexts(args);
   const { accessTenantId, actorId, documentId } = args;
+  const contexts = await findActorCrossGrantContexts(args);
   for (const grantContext of contexts) {
     const result = await withDocumentReadContext(args.db, grantContext.homeTenantId, tx =>
       lookupGrantedDocument({ accessTenantId, actorId, db: tx, documentId, grantContext })
@@ -68,7 +68,7 @@ async function lookupPoly(args: {
     );
   if (!doc) return null;
   if (doc.entityType !== 'claim' || doc.entityId !== args.grantContext.caseId) return null;
-  const allowed = await hasDurableCaseScopedDocumentGrantInHomeTenant({
+  const allowed = await hasDurableCaseScopedDocumentGrant({
     accessTenantId: args.accessTenantId,
     actorId: args.actorId,
     caseId: doc.entityId,
@@ -98,7 +98,7 @@ async function lookupLegacy(args: {
       )
     );
   if (!row?.doc?.claimId || !row.claimId) return null;
-  const allowed = await hasDurableCaseScopedDocumentGrantInHomeTenant({
+  const allowed = await hasDurableCaseScopedDocumentGrant({
     accessTenantId: args.accessTenantId,
     actorId: args.actorId,
     caseId: row.doc.claimId,

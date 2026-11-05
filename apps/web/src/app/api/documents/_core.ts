@@ -2,7 +2,8 @@ import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
-import { appendCaseGrantDocumentAudit, withTenantContext } from '@interdomestik/database';
+import { appendCaseGrantDocumentAudit } from '@interdomestik/database';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import type { TenantStorageFamily } from '@/lib/storage/tenant-prefix';
@@ -121,13 +122,15 @@ export async function logAllowedDocumentAccess(args: {
 }
 
 export async function getDocumentAccessCore(args: {
+  /** The request session's authority, from the same authorization result as `session`. */
+  authority: TenantAuthority;
   session: SessionDTO;
   documentId: string;
   mode: DocumentAccessMode;
   disposition?: 'inline' | 'attachment';
   deps: DocumentAccessDeps;
 }): Promise<DocumentAccessResult> {
-  const { session, documentId, mode, disposition, deps } = args;
+  const { authority, session, documentId, mode, disposition, deps } = args;
   const tenantId = ensureAccessTenantId(session);
   const userRole = (session.user.role as string | undefined) ?? undefined;
   const finalDisposition = getFinalDisposition(disposition);
@@ -141,19 +144,18 @@ export async function getDocumentAccessCore(args: {
   };
 
   // 1-2. Normal-tenant document, claim, and grant reads share one tenant-bound transaction under
-  // the effective access tenant and the trusted session role.
-  const localAccess = await withTenantContext(
-    { accessTenantId: tenantId, role: userRole ?? null, tenantId },
-    tx =>
-      readLocalDocumentAccess({
-        db: tx,
-        documentId,
-        finalDisposition,
-        mode,
-        session,
-        tenantId,
-        userRole,
-      })
+  // the session authority: its tenant and access tenant are the session's access tenant, its role
+  // the session role.
+  const localAccess = await withTenantAuthority(authority, tx =>
+    readLocalDocumentAccess({
+      db: tx,
+      documentId,
+      finalDisposition,
+      mode,
+      session,
+      tenantId,
+      userRole,
+    })
   );
   if (localAccess) return localAccess;
 

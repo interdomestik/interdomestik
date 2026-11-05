@@ -8,7 +8,6 @@ const mocks = vi.hoisted(() => ({
 vi.mock('./durable-case-grants', () => ({
   findActorCrossGrantContexts: mocks.findActorCrossGrantContexts,
   hasDurableCaseScopedDocumentGrant: mocks.hasDurableCaseScopedDocumentGrant,
-  hasDurableCaseScopedDocumentGrantInHomeTenant: mocks.hasDurableCaseScopedDocumentGrant,
 }));
 
 import { lookupCrossGrantDoc } from './cross-tenant-document-lookup';

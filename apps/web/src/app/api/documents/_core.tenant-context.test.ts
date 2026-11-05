@@ -11,6 +11,7 @@ vi.mock('@interdomestik/database', async importActual => ({
 vi.mock('./cross-tenant-document-lookup', () => ({ lookupCrossGrantDoc: vi.fn() }));
 vi.mock('./durable-case-grants', () => ({ hasDurableCaseScopedDocumentGrant: vi.fn() }));
 
+import { sessionAuthority, tenantContextOf } from './document-access.test-support';
 import { getDocumentAccessCore, type DocumentAccessDeps } from './_core';
 import { lookupCrossGrantDoc } from './cross-tenant-document-lookup';
 import { hasDurableCaseScopedDocumentGrant } from './durable-case-grants';
@@ -87,7 +88,13 @@ function user(id: string, role: string): Session {
 }
 
 function access(session: Session) {
-  return getDocumentAccessCore({ deps, documentId: 'doc-1', mode: 'download', session });
+  return getDocumentAccessCore({
+    authority: sessionAuthority(session),
+    deps,
+    documentId: 'doc-1',
+    mode: 'download',
+    session,
+  });
 }
 
 beforeEach(() => {
@@ -130,10 +137,11 @@ describe('getDocumentAccessCore normal-tenant transaction', () => {
         },
       },
     });
-    expect(runner).toHaveBeenCalledWith(
-      { accessTenantId: 'tenant-a', role: session.user.role, tenantId: 'tenant-a' },
-      expect.any(Function)
-    );
+    expect(tenantContextOf(runner.mock.calls[0]?.[0])).toEqual({
+      accessTenantId: 'tenant-a',
+      role: session.user.role,
+      tenantId: 'tenant-a',
+    });
     expect(baseDb.select).not.toHaveBeenCalled();
     expect(lookupCrossGrantDoc).not.toHaveBeenCalled();
   });
@@ -187,10 +195,11 @@ describe('getDocumentAccessCore normal-tenant transaction', () => {
       },
     });
 
-    expect(runner).toHaveBeenCalledWith(
-      { accessTenantId: 'tenant-a', role: 'member', tenantId: 'tenant-a' },
-      expect.any(Function)
-    );
+    expect(tenantContextOf(runner.mock.calls[0]?.[0])).toEqual({
+      accessTenantId: 'tenant-a',
+      role: 'member',
+      tenantId: 'tenant-a',
+    });
   });
 });
 
@@ -234,5 +243,34 @@ describe('getDocumentAccessCore cross-tenant fallback', () => {
     await expect(access(user('member-1', 'member'))).rejects.toThrow('tenant context unavailable');
     expect(lookupCrossGrantDoc).not.toHaveBeenCalled();
     expect(baseDb.select).not.toHaveBeenCalled();
+  });
+
+  it('opens the local transaction with exactly the authority it is given, and refuses others', async () => {
+    const session = user('member-1', 'member');
+    const authority = sessionAuthority(session);
+    setupLocalReads([], []);
+    await getDocumentAccessCore({
+      authority,
+      deps,
+      documentId: 'doc-1',
+      mode: 'download',
+      session,
+    });
+    expect(runner.mock.calls[0]?.[0]).toBe(authority);
+
+    runner.mockClear();
+    vi.mocked(lookupCrossGrantDoc).mockClear();
+    const forged = { tenantId: 'tenant-a' } as unknown as typeof authority;
+    await expect(
+      getDocumentAccessCore({
+        authority: forged,
+        deps,
+        documentId: 'doc-1',
+        mode: 'download',
+        session,
+      })
+    ).rejects.toThrow('Unrecognized tenant authority');
+    expect(runner).not.toHaveBeenCalled();
+    expect(lookupCrossGrantDoc).not.toHaveBeenCalled();
   });
 });

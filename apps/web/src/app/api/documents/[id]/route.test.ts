@@ -102,8 +102,11 @@ describe('GET /api/documents/[id]', () => {
     vi.unstubAllEnvs();
   });
 
-  it('returns 401 when unauthenticated', async () => {
-    hoisted.getSession.mockResolvedValue(null);
+  it.each([
+    ['no session', null],
+    ['a session without a user', { session: { id: 'session-1' }, user: null }],
+  ])('returns 401 when unauthenticated (%s)', async (_name, session) => {
+    hoisted.getSession.mockResolvedValue(session);
 
     const request = new Request('http://localhost:3000/api/documents/doc-1');
     const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
