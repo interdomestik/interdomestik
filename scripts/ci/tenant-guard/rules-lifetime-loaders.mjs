@@ -10,7 +10,14 @@
 import ts from 'typescript';
 
 const LOADER_MODULES = new Set(['module', 'node:module']);
-const LOADER_MEMBERS = new Set(['getBuiltinModule', 'mainModule', 'require']);
+// Loader members, including the Module API reachable through `module.constructor`.
+const LOADER_MEMBERS = new Set([
+  '_load',
+  'createRequire',
+  'getBuiltinModule',
+  'mainModule',
+  'require',
+]);
 const LOADER_RECEIVERS = new Set(['global', 'globalThis', 'module', 'process', 'require']);
 // Globals that evaluate code or load a module by a name computed at runtime.
 const GLOBAL_LOADERS = new Set([
@@ -57,7 +64,9 @@ export function createLoaderChecks(ctx, entryModule) {
     const name = staticMemberName(node);
     if (typeof name === 'string' && LOADER_MEMBERS.has(name))
       return `a module loader member (${name})`;
-    if (name === null) {
+    if (typeof name === 'string' && GLOBAL_LOADERS.has(name))
+      return `an eval-like global or bundler loader (${name})`;
+    if (name === null && !ts.isBindingElement(node) && !ts.isObjectLiteralElementLike(node)) {
       const receiver = unwrap(node.expression);
       if (
         ts.isMetaProperty(receiver) ||
@@ -97,16 +106,19 @@ function dataSpecifier(call) {
   return /^(?:\.{1,2}|@)\/[\w./-]+\//u.test(specifier.head.text) && /\.json$/u.test(tail);
 }
 
-/** The member name `node` reads: a string for a static name, null for a computed element access,
- * undefined when `node` reads no member. Binding-pattern keys count as reads. */
+/** The member name `node` reads: a string for a static name, null for a computed one, undefined
+ * when `node` reads no member. Keys of binding patterns and of object literals (which may be
+ * destructuring assignment targets) count as reads; a computed key counts by its literal. */
 function staticMemberName(node) {
   if (ts.isPropertyAccessExpression(node)) return node.name.text;
   if (ts.isElementAccessExpression(node))
     return ts.isStringLiteralLike(node.argumentExpression) ? node.argumentExpression.text : null;
-  if (ts.isBindingElement(node) && ts.isObjectBindingPattern(node.parent)) {
-    const key = node.propertyName ?? node.name;
-    if (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) return key.text;
-    return undefined;
-  }
-  return undefined;
+  let key;
+  if (ts.isBindingElement(node) && ts.isObjectBindingPattern(node.parent))
+    key = node.propertyName ?? node.name;
+  else if (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) key = node.name;
+  else return undefined;
+  if (ts.isComputedPropertyName(key))
+    return ts.isStringLiteralLike(key.expression) ? key.expression.text : null;
+  return ts.isIdentifier(key) || ts.isStringLiteralLike(key) ? key.text : undefined;
 }

@@ -18,6 +18,7 @@ const DECLARATION_FILE = /\.d\.[cm]?ts$/u;
 const RULE = 'L1';
 // A transaction entry takes (context, callback): any other arity could hide the callback.
 const ENTRY_ARITY = 2;
+const REBINDERS = new Set(['apply', 'bind', 'call']);
 
 /** Installs the transaction-lifetime analysis as `ctx.checkLifetime()`. */
 export function installLifetime(ctx) {
@@ -36,9 +37,35 @@ export function installLifetime(ctx) {
         return { problem: 'a transaction entry called other than as (context, callback)' };
       return { callback: call.arguments[1] };
     }
-    if (ts.isPropertyAccessExpression(callee) && callee.name.text === 'transaction')
-      return { callback: call.arguments[0] ?? null };
+    if (transactionMember(callee)) return { callback: call.arguments[0] ?? null };
     return undefined;
+  }
+
+  /** A `.transaction` / `['transaction']` member read. */
+  const transactionMember = node =>
+    (ts.isPropertyAccessExpression(node) && node.name.text === 'transaction') ||
+    (ts.isElementAccessExpression(node) &&
+      ts.isStringLiteralLike(node.argumentExpression) &&
+      node.argumentExpression.text === 'transaction');
+
+  /** A transaction opener rebound to its receiver outside a direct call: `x.transaction.bind(x)`,
+   * `.call` / `.apply`, or the opener handed to `Function.prototype` rebinding or `Reflect.apply`.
+   * A Drizzle opener is a class method, so a detached read without rebinding cannot open one; a
+   * data field named `transaction` (Sentry events, Paddle transactions) is not reported. */
+  function reboundOpener(node) {
+    if (!transactionMember(node)) return false;
+    const value = ctx.outermost(node);
+    const parent = value.parent;
+    if (ts.isPropertyAccessExpression(parent) && parent.expression === value)
+      return REBINDERS.has(parent.name.text);
+    if (!ts.isCallExpression(parent) || !parent.arguments.includes(value)) return false;
+    const callee = unwrap(parent.expression);
+    if (!ts.isPropertyAccessExpression(callee)) return false;
+    const receiver = unwrap(callee.expression);
+    return (
+      REBINDERS.has(callee.name.text) ||
+      (ts.isIdentifier(receiver) && receiver.text === 'Reflect' && callee.name.text === 'apply')
+    );
   }
 
   const entryModules = new Map();
@@ -132,6 +159,7 @@ export function installLifetime(ctx) {
         if (entry) report(node, entry);
         const loader = loaderProblem(fact, node);
         if (loader) report(node, loader);
+        if (reboundOpener(node)) report(node, 'a transaction opener rebound outside a direct call');
         if (ts.isCallExpression(node) && loadsEntryModule(fact, node))
           report(node, 'a dynamic import of a module exporting a transaction entry');
         if (ts.isCallExpression(node)) {
