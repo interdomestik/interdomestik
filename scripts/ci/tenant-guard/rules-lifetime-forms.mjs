@@ -1,0 +1,139 @@
+// Tenant guard stage helper (L): the syntactic forms the transaction-lifetime analysis admits.
+
+import ts from 'typescript';
+import { hasFlag } from './rules-digest.mjs';
+import { bindingNames } from './scopes.mjs';
+import { isFunctionLike } from './syntax.mjs';
+
+/** The reviewed Drizzle members a borrowed capability may be called through. */
+export const LIFETIME_MEMBERS = new Set([
+  '$count',
+  'delete',
+  'execute',
+  'insert',
+  'query',
+  'select',
+  'selectDistinct',
+  'selectDistinctOn',
+  'transaction',
+  'update',
+  'with',
+]);
+const REBINDING = new Set(['apply', 'bind', 'call']);
+const COMPARISONS = new Set([
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+]);
+export const kindOf = node => ts.SyntaxKind[node.kind];
+
+/** The nearest enclosing function of `node`. */
+export function ownerOf(node) {
+  for (let current = node.parent; current; current = current.parent)
+    if (isFunctionLike(current)) return current;
+  return null;
+}
+
+/** Why `fn` cannot hold a borrowed capability at all, or null. */
+export function shapeProblem(fact, fn, referenceAt) {
+  if (!fn.body) return 'a function without a body';
+  if (fn.asteriskToken) return 'a generator (its iterator retains its parameters)';
+  if (!ts.isFunctionDeclaration(fn) && !ts.isArrowFunction(fn) && !ts.isFunctionExpression(fn))
+    return `a method, accessor or constructor (${kindOf(fn)})`;
+  if (fn.parameters.some(param => ts.isIdentifier(param.name) && param.name.text === 'this'))
+    return 'an explicit this parameter';
+  let found = null;
+  const visit = node => {
+    if (found) return;
+    if (ts.isIdentifier(node) && !referenceAt(fact, node)?.binding) {
+      if (node.text === 'eval' || node.text === 'Function') found = 'an eval-like global';
+      if (node.text === 'arguments' && nonArrowOwner(node) === fn) found = 'implicit arguments';
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(fn, visit);
+  return found;
+}
+function nonArrowOwner(node) {
+  let owner = ownerOf(node);
+  while (owner && ts.isArrowFunction(owner)) owner = ownerOf(owner);
+  return owner;
+}
+
+/** `access` reads a capability member: a reviewed member chain that ends in a call, or a test. */
+export function memberProblem(access, outermost) {
+  if (!LIFETIME_MEMBERS.has(access.name.text))
+    return `an unreviewed capability member (${access.name.text})`;
+  // Optional links only short-circuit to undefined; the chain must still end in a call.
+  for (let chain = access; ;) {
+    if (REBINDING.has(chain.name.text)) return `a rebound capability member (${chain.name.text})`;
+    const outer = outermost(chain);
+    const parent = outer.parent;
+    if (ts.isPropertyAccessExpression(parent) && parent.expression === outer) chain = parent;
+    else if (ts.isCallExpression(parent) && parent.expression === outer) return null;
+    else if (ts.isTypeOfExpression(parent)) return null;
+    else return `a capability member used as a value (${access.name.text})`;
+  }
+}
+
+/** A test of the value that yields no reference to it: `!v`, `typeof v`, comparisons, `v ?`,
+ * `if (v)` and the left side of `&&` (which yields the value only when it is falsy). */
+export function tested(value, parent) {
+  if (ts.isTypeOfExpression(parent)) return true;
+  if (ts.isPrefixUnaryExpression(parent)) return parent.operator === ts.SyntaxKind.ExclamationToken;
+  if (ts.isConditionalExpression(parent)) return parent.condition === value;
+  if (ts.isIfStatement(parent) || ts.isWhileStatement(parent)) return parent.expression === value;
+  if (!ts.isBinaryExpression(parent)) return false;
+  const operator = parent.operatorToken.kind;
+  if (operator === ts.SyntaxKind.AmpersandAmpersandToken) return parent.left === value;
+  return COMPARISONS.has(operator);
+}
+
+export const constInitializer = (parent, value) =>
+  ts.isVariableDeclaration(parent) &&
+  parent.initializer === value &&
+  hasFlag(parent.parent, ts.NodeFlags.Const);
+
+/** Whether the call's completion is joined: awaited, or returned to the caller. */
+export function joined(call, outermost) {
+  const value = outermost(call);
+  const parent = value.parent;
+  return (
+    ts.isAwaitExpression(parent) ||
+    ts.isReturnStatement(parent) ||
+    (ts.isArrowFunction(parent) && parent.body === value)
+  );
+}
+
+/** Whether `fn` may still use the capability at `path` of parameter `index` after it returns:
+ * it is async, or it returns a call that hands that capability on. */
+export function continues(fn, index, path, { returnsOf, unwrap }) {
+  if ((fn.modifiers ?? []).some(m => m.kind === ts.SyntaxKind.AsyncKeyword)) return true;
+  const param = fn.parameters[index];
+  if (!param) return false;
+  const names = new Set(bindingNames(param.name, []).map(id => id.text));
+  return returnsOf(fn).some(value => {
+    const call = unwrap(value);
+    if (!ts.isCallExpression(call)) return false;
+    let found = false;
+    const visit = node => {
+      if (found) return;
+      if (ts.isIdentifier(node) && names.has(node.text) && !otherMember(node, path)) found = true;
+      else ts.forEachChild(node, visit);
+    };
+    call.arguments.forEach(visit);
+    return found;
+  });
+}
+
+/** Whether `node` only reads a member of a carrier other than the borrowed `path` head. */
+export function otherMember(node, path) {
+  const parent = node.parent;
+  return (
+    path.length > 0 &&
+    ts.isPropertyAccessExpression(parent) &&
+    parent.expression === node &&
+    parent.name.text !== path[0]
+  );
+}
