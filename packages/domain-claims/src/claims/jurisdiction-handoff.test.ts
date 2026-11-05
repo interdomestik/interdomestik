@@ -48,7 +48,6 @@ describe('recordJurisdictionHandoffInTransaction', () => {
     expect(baseParams.grantActorResolver).toHaveBeenCalledWith({
       actorId: 'local-legal-1',
       recoveryTenantId: 'tenant_mk',
-      tx,
     });
     expect(handoffMocks.appendEvent).toHaveBeenCalledWith(
       tx,

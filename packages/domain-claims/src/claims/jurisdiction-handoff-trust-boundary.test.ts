@@ -27,7 +27,6 @@ describe('jurisdiction handoff grant actor trust boundary', () => {
     expect(resolver).toHaveBeenCalledWith({
       actorId: 'local-legal-1',
       recoveryTenantId: 'tenant_mk',
-      tx,
     });
     expect(handoffMocks.insertHandoffGrant).not.toHaveBeenCalled();
     expect(handoffMocks.appendEvent).not.toHaveBeenCalled();
