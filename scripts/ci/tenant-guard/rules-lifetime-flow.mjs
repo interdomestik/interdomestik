@@ -56,8 +56,8 @@ export function createLifetimeFlow(ctx) {
   // to it may still use the capability after it returns unless that call is joined.
   const paramProblem = (fact, fn, index) => obligation(fact, fn, index, [], [], 0).problem;
   function obligation(fact, fn, index, path, owned, depth) {
-    const keys = owned.map(set => [...set].sort().join(',')).join('|');
-    const key = `${fact.file}:${fn.pos}:${index}:${path.join('.')}:${keys}`;
+    const keys = owned.map(set => [...set].sort());
+    const key = JSON.stringify([fact.file, fn.pos, index, path, keys]);
     if (settled.has(key)) return settled.get(key);
     if (active.has(key)) {
       cycle = true; // coinductive: assumed safe, never published while the assumption is open
@@ -146,6 +146,8 @@ export function createLifetimeFlow(ctx) {
       if (otherMember(use.node, path)) {
         const member = use.node.parent.name.text;
         if (!owned[0].has(member)) return `a member the carrier does not own (${member})`;
+        // Deleting or replacing an own member could expose an inherited one to later reads.
+        if (writes(use.node.parent, ctx)) return `a written carrier member (${member})`;
         if (!calledMember(use.node.parent)) continue;
       }
       if (ownerOf(use.node) !== owner) return `a nested function captures it (${id.text})`;
@@ -200,6 +202,7 @@ export function createLifetimeFlow(ctx) {
     if (ts.isPropertyAccessExpression(parent) && parent.expression === value) {
       const member = parent.name.text;
       if (!owned[0].has(member)) return `a member the carrier does not own (${member})`;
+      if (member !== head && writes(parent, ctx)) return `a written carrier member (${member})`;
       if (member !== head) return calledMember(parent) ? `a carrier method call (${member})` : null;
       if (writes(parent, ctx)) return `a reassigned carrier member (${head})`;
       return rest.length === 0

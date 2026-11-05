@@ -15,6 +15,8 @@ import { isFunctionLike, memberUse } from './syntax.mjs';
 
 const DECLARATION_FILE = /\.d\.[cm]?ts$/u;
 const RULE = 'L1';
+const LOADER_MODULES = new Set(['module', 'node:module']);
+const LOADER_MEMBERS = new Set(['getBuiltinModule', 'mainModule', 'require']);
 
 /** Installs the transaction-lifetime analysis as `ctx.checkLifetime()`. */
 export function installLifetime(ctx) {
@@ -70,12 +72,38 @@ export function installLifetime(ctx) {
     return 'a transaction entry used as a value';
   }
 
+  const isRequire = (fact, node) =>
+    ts.isIdentifier(node) &&
+    node.text === 'require' &&
+    referenceAt(fact, node) &&
+    !referenceAt(fact, node).binding;
+
+  /** Why `node` reaches a module loader other than a direct `import()` / `require()` call. */
+  function loaderProblem(fact, node) {
+    if (isRequire(fact, node)) {
+      const value = ctx.outermost(node);
+      if (!(ts.isCallExpression(value.parent) && value.parent.expression === value))
+        return 'an indirect require';
+    }
+    const specifier =
+      ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier : null;
+    if (specifier && ts.isStringLiteralLike(specifier) && LOADER_MODULES.has(specifier.text))
+      return 'an import of the module loader';
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      LOADER_MEMBERS.has(node.name.text) &&
+      ts.isIdentifier(unwrap(node.expression)) &&
+      ['globalThis', 'global', 'module', 'process'].includes(unwrap(node.expression).text) &&
+      !referenceAt(fact, unwrap(node.expression))?.binding
+    )
+      return `a module loader member (${node.name.text})`;
+    return null;
+  }
+
   /** A dynamic `import()` / `require()` of a module exporting a transaction entry. */
   function loadsEntryModule(fact, call) {
-    const callee = call.expression;
-    const loader =
-      callee.kind === ts.SyntaxKind.ImportKeyword ||
-      (ts.isIdentifier(callee) && callee.text === 'require' && !referenceAt(fact, callee)?.binding);
+    const callee = unwrap(call.expression);
+    const loader = callee.kind === ts.SyntaxKind.ImportKeyword || isRequire(fact, callee);
     const [specifier] = call.arguments;
     if (!loader || !specifier || !ts.isStringLiteralLike(specifier)) return false;
     return graph.resolveSpecifier(fact.file, specifier.text).files.some(entryModule);
@@ -117,6 +145,8 @@ export function installLifetime(ctx) {
         if (erased(node)) return;
         const entry = ts.isIdentifier(node) ? entryProblem(fact, node) : null;
         if (entry) report(node, entry);
+        const loader = loaderProblem(fact, node);
+        if (loader) report(node, loader);
         if (ts.isCallExpression(node) && loadsEntryModule(fact, node))
           report(node, 'a dynamic import of a module exporting a transaction entry');
         if (ts.isCallExpression(node)) {
