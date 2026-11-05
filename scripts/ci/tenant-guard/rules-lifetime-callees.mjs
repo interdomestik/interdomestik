@@ -24,6 +24,9 @@ export function createLifetimeCallees(ctx, { bindingOf, usesOf }) {
     const reference = referenceAt(fact, node);
     const binding = reference?.binding;
     if (!binding) return `a global callee (${text(fact, node)})`;
+    // A reviewed runner's callback parameter is checked at each call of the runner instead.
+    if (binding.kind === 'param' && ctx.lifetimeRunnerChecks?.isCallbackParam(binding, node))
+      return [];
     if (binding.kind === 'param') return `a callback read from a parameter (${node.text})`;
     const target =
       binding.kind === 'import'

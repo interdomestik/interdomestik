@@ -3,6 +3,7 @@
 // execute them in the original evaluation order.
 
 import { C1_ADMISSIONS } from './c1-admissions.mjs';
+import { LIFETIME_RUNNERS } from './lifetime-runners.mjs';
 import { CONTRACTS, LEGACY_PINS, STATE_CONTRACTS } from './manifest.mjs';
 import { installAdmission } from './rules-admission.mjs';
 import { installCustody } from './rules-custody.mjs';
@@ -33,6 +34,7 @@ export function evaluate({
   legacyPins = LEGACY_PINS,
   stateContracts = STATE_CONTRACTS,
   admissions = C1_ADMISSIONS,
+  lifetimeRunners = LIFETIME_RUNNERS,
 }) {
   const violations = [];
   const accepted = [];
@@ -52,6 +54,7 @@ export function evaluate({
     contracts,
     graph,
     legacyPins,
+    lifetimeRunners,
     sources,
     stateContracts,
     telemetry,

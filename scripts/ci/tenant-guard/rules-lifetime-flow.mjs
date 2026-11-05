@@ -66,6 +66,11 @@ export function createLifetimeFlow(ctx) {
     }
     if (depth > MAX_DEPTH)
       return { problem: 'a forwarding chain deeper than the analysis bound', lent: true };
+    // A reviewed runner lends this borrow to its callback, which is checked at the call site.
+    if (ctx.lifetimeRunnerChecks?.lends(fn, index))
+      return path.length === 0
+        ? { problem: null, lent: true }
+        : { problem: 'a carrier handed to a reviewed runner', lent: true };
     const outer = cycle;
     cycle = false;
     active.add(key);

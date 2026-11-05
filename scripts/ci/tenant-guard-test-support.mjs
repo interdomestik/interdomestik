@@ -100,7 +100,10 @@ export function pinsOf(trusted) {
   return new Map(Object.entries(legacyDigests));
 }
 
-export function run(changes = {}, { contracts = [], resolution, packages = PACKAGES } = {}) {
+export function run(
+  changes = {},
+  { contracts = [], resolution, packages = PACKAGES, lifetimeRunners = [] } = {}
+) {
   const trusted = new Map(Object.entries(KERNEL));
   const sources = new Map(trusted);
   for (const [file, text] of Object.entries(changes)) {
@@ -113,7 +116,14 @@ export function run(changes = {}, { contracts = [], resolution, packages = PACKA
     appAliases: [['@/', 'apps/web/src/']],
     resolution,
   });
-  return evaluate({ sources, trusted, graph, contracts, legacyPins: pinsOf(trusted) });
+  return evaluate({
+    sources,
+    trusted,
+    graph,
+    contracts,
+    legacyPins: pinsOf(trusted),
+    lifetimeRunners,
+  });
 }
 
 export function assertRefused(result, rule, pattern) {

@@ -14,6 +14,7 @@ import { byCodeUnit } from './rules-digest.mjs';
 import { createLifetimeFlow } from './rules-lifetime-flow.mjs';
 import { createLoaderChecks } from './rules-lifetime-loaders.mjs';
 import { createOpenerChecks } from './rules-lifetime-openers.mjs';
+import { createRunnerChecks } from './rules-lifetime-runners.mjs';
 import { isFunctionLike, memberUse } from './syntax.mjs';
 
 const DECLARATION_FILE = /\.d\.[cm]?ts$/u;
@@ -25,6 +26,8 @@ const ENTRY_ARITY = 2;
 export function installLifetime(ctx) {
   const { TRANSACTION_ENTRIES, allIn, factsOf, graph, identifierOrigins, isTest, sources } = ctx;
   const { originsOf, referenceAt, unwrap } = ctx;
+  const runners = createRunnerChecks(ctx, ctx.lifetimeRunners);
+  ctx.lifetimeRunnerChecks = runners;
   const flow = createLifetimeFlow(ctx);
   const { openerProblem } = createOpenerChecks(ctx, flow);
 
@@ -40,7 +43,7 @@ export function installLifetime(ctx) {
       return { callback: call.arguments[1] };
     }
     if (transactionMember(callee)) return { callback: call.arguments[0] ?? null };
-    return undefined;
+    return runners.runnerCallback(fact, call);
   }
 
   /** A `.transaction` / `['transaction']` member read. */
@@ -143,6 +146,8 @@ export function installLifetime(ctx) {
         if (loader) report(node, loader);
         const opener = openerProblem(fact, node);
         if (opener) report(node, opener);
+        const runner = ts.isIdentifier(node) ? runners.referenceProblem(fact, node) : null;
+        if (runner) report(node, runner);
         if (ts.isCallExpression(node) && loadsEntryModule(fact, node))
           report(node, 'a dynamic import of a module exporting a transaction entry');
         if (ts.isCallExpression(node)) {
