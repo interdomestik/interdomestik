@@ -85,8 +85,7 @@ describe('queueClaimDocumentAiWorkflows consented insert shape', () => {
   });
 
   it('preserves legal and evidence workflow/category mapping when consent is granted', async () => {
-    await queueClaimDocumentAiWorkflows({
-      tx: createTx(),
+    await queueClaimDocumentAiWorkflows(createTx(), {
       claimId: 'claim-1',
       tenantId: 'tenant-1',
       userId: 'member-1',

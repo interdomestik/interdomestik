@@ -43,16 +43,19 @@ function buildInputHash(args: {
   return createHash('sha256').update(JSON.stringify(args)).digest('hex');
 }
 
-export async function prepareClaimDocumentAiRun(params: {
-  args: ClaimAiWorkflowQueueInput;
-  file: ClaimAiWorkflowQueueInput['files'][number];
-}): Promise<PreparedQueuedClaimAiRun | null> {
+export async function prepareClaimDocumentAiRun(
+  tx: unknown,
+  params: {
+    args: ClaimAiWorkflowQueueInput;
+    file: ClaimAiWorkflowQueueInput['files'][number];
+  }
+): Promise<PreparedQueuedClaimAiRun | null> {
   const { args, file } = params;
   const category = normalizeCategory(file.category);
   const workflow = resolveWorkflow(category);
   const documentId = file.documentId ?? nanoid();
   const consent = await resolveClaimDocumentAiExtractionConsent({
-    tx: args.tx,
+    tx,
     tenantId: args.tenantId,
     subjectId: args.userId,
     claimId: args.claimId,

@@ -110,6 +110,7 @@ describe('persistClaimDocumentAndQueueWorkflows', () => {
     expect(hoisted.insert).toHaveBeenCalledWith('claim_documents');
     expect(hoisted.insert).not.toHaveBeenCalledWith('claim_document_ai_extraction_consents');
     expect(hoisted.queue).toHaveBeenCalledWith(
+      expect.anything(),
       expect.objectContaining({ claimId: 'claim-1', tenantId: 'tenant-1', userId: 'member-1' })
     );
     expect(hoisted.emit).not.toHaveBeenCalled();
