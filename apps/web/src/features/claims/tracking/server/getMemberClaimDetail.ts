@@ -114,31 +114,34 @@ export async function getMemberClaimDetail(
         const piiStatus =
           claim.userId === ERASURE_REDACTED_VALUE ? 'erased_or_unavailable' : 'available';
         const memberId = claim.userId ?? userId;
-        const [matterAllowance, timeline, vaultConsentDisplay] = await Promise.all([
-          getMatterAllowanceVisibilityForUser({ tenantId, userId: memberId, tx: db }),
-          getMemberTimelineFromDomainEvents(
-            {
-              claimId: claim.id,
-              tenantId,
-              currentStatus: claimStatus,
-              createdAt: claim.createdAt,
-              piiStatus,
-              updatedAt: claim.updatedAt,
-            },
-            authority,
-            db
-          ),
-          getMemberVaultConsentDisplay(
-            {
-              memberId,
-              claimId: claim.id,
-              claimCategory: claim.category ?? '',
-              piiStatus,
-            },
-            authority,
-            db
-          ),
-        ]);
+        // Awaited one by one: each helper borrows the transaction and must finish inside it.
+        const matterAllowance = await getMatterAllowanceVisibilityForUser({
+          tenantId,
+          userId: memberId,
+          tx: db,
+        });
+        const timeline = await getMemberTimelineFromDomainEvents(
+          {
+            claimId: claim.id,
+            tenantId,
+            currentStatus: claimStatus,
+            createdAt: claim.createdAt,
+            piiStatus,
+            updatedAt: claim.updatedAt,
+          },
+          authority,
+          db
+        );
+        const vaultConsentDisplay = await getMemberVaultConsentDisplay(
+          {
+            memberId,
+            claimId: claim.id,
+            claimCategory: claim.category ?? '',
+            piiStatus,
+          },
+          authority,
+          db
+        );
         // Read status notes before the current decision, so a concurrent sensitive write
         // cannot add a note after the decision snapshot used to classify it.
         const recoveryDecisionRows = await recoveryDecisionQuery;
