@@ -44,8 +44,8 @@ jobs:
           source_commit='1a70df23a32f772ef8670ba33a7454883ebc686b'
           source_tree='50e8fceb0c6e16987a9410f251a6e6044e648023'
           # Owner-pinned trusted comparator; it must equal the pin inside the approved source.
-          trusted_commit='859d5019a4e4134f7580033f71460f1602b372aa'
-          trusted_tree='44d8b3e7730ca1c0aaa6a006aa63cf59f361618a'
+          trusted_commit='a9e79c23f6c3d7a326774cee07b71054ee911793'
+          trusted_tree='529031084338b3488c6e51413ede5cca79b77b82'
           # Identity comes only from GitHub event expressions; anything missing or unexpected fails closed.
           for name in EVENT_NAME EVENT_REPO EVENT_REF EVENT_SHA PR_NUMBER PR_BASE_REPO PR_BASE_REF PR_BASE_SHA PR_HEAD_SHA DEFAULT_BRANCH TS_EXPECTED_VERSION; do
             [[ -n "${!name:-}" ]] || fail "missing $name"

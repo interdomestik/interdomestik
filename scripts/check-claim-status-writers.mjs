@@ -37,39 +37,53 @@ export const CLAIM_STATUS_WRITER_ALLOWLIST = new Set([
   ...CLAIM_STATUS_FIXTURE_WRITERS,
 ]);
 
-const CLAIMS_REF = String.raw`(?:schema\.)?claims`;
 const RAW_CLAIM_TABLE_REF = String.raw`(?:(?:"[^"]+"|[A-Za-z_]\w*)\.)?(?:"claim"|claim|claims)`;
-const STATUS_UPDATE_PATTERNS = [
-  // Drizzle updates with status in set
-  new RegExp(
-    String.raw`\.update\(\s*${CLAIMS_REF}\s*\)(?:(?!;)[\s\S]){0,1200}\.set\(\s*\{(?:(?!\n\s*\}\s*\))[\s\S]){0,800}\bstatus\s*:`,
-    'u'
-  ),
-  // Drizzle inserts with status
-  new RegExp(
-    String.raw`\.insert\(\s*${CLAIMS_REF}\s*\)(?:(?!;)[\s\S]){0,1400}\.values\(\s*\{(?:(?!\n\s*\}\s*\);)[\s\S]){0,1000}\bstatus\s*:`,
-    'u'
-  ),
-  new RegExp(
-    String.raw`\.insert\(\s*${CLAIMS_REF}\s*\)(?:(?!;)[\s\S]){0,1800}\.onConflictDoUpdate\(\s*\{(?:(?!\n\s*\}\s*\))[\s\S]){0,900}\bset\s*:\s*\{(?:(?!\n\s*\}\s*\))[\s\S]){0,800}\bstatus\s*:`,
-    'u'
-  ),
-  // Raw SQL updates/inserts
-  new RegExp(String.raw`UPDATE\s+${RAW_CLAIM_TABLE_REF}\s+SET\s+[\s\S]{0,150}\bstatus\b`, 'iu'),
-  new RegExp(String.raw`INSERT\s+INTO\s+${RAW_CLAIM_TABLE_REF}\s+[\s\S]{0,250}\bstatus\b`, 'iu'),
-];
+const IDENTIFIER = String.raw`[A-Za-z_$][\w$]*`;
+// Local names the claims table goes by in one file: `claims`, `schema.claims`, a renamed import
+// (`claims as claimRows`) and any namespace import's `claims` member (`import * as s` -> `s.claims`).
+const RENAMED_CLAIMS_IMPORT = new RegExp(String.raw`\bclaims\s+as\s+(${IDENTIFIER})`, 'gu');
+const NAMESPACE_IMPORT = new RegExp(String.raw`\bimport\s+\*\s+as\s+(${IDENTIFIER})`, 'gu');
 
-const SET_VARIABLE_PATTERN = new RegExp(
-  String.raw`\.update\(\s*${CLAIMS_REF}\s*\)(?:(?!;)[\s\S]){0,1200}\.set\(\s*([A-Za-z_$][\w$]*)\s*\)`,
-  'gu'
-);
+function claimsReference(source) {
+  const names = new Set(['claims', 'schema\\.claims']);
+  for (const match of source.matchAll(RENAMED_CLAIMS_IMPORT)) names.add(escapeRegex(match[1]));
+  for (const match of source.matchAll(NAMESPACE_IMPORT))
+    names.add(`${escapeRegex(match[1])}\\.claims`);
+  return `(?:${[...names].join('|')})`;
+}
+
+function statusUpdatePatterns(claimsRef) {
+  return [
+    // Drizzle updates with status in set
+    new RegExp(
+      String.raw`\.update\(\s*${claimsRef}\s*\)(?:(?!;)[\s\S]){0,1200}\.set\(\s*\{(?:(?!\n\s*\}\s*\))[\s\S]){0,800}\bstatus\s*:`,
+      'u'
+    ),
+    // Drizzle inserts with status
+    new RegExp(
+      String.raw`\.insert\(\s*${claimsRef}\s*\)(?:(?!;)[\s\S]){0,1400}\.values\(\s*\{(?:(?!\n\s*\}\s*\);)[\s\S]){0,1000}\bstatus\s*:`,
+      'u'
+    ),
+    new RegExp(
+      String.raw`\.insert\(\s*${claimsRef}\s*\)(?:(?!;)[\s\S]){0,1800}\.onConflictDoUpdate\(\s*\{(?:(?!\n\s*\}\s*\))[\s\S]){0,900}\bset\s*:\s*\{(?:(?!\n\s*\}\s*\))[\s\S]){0,800}\bstatus\s*:`,
+      'u'
+    ),
+    // Raw SQL updates/inserts
+    new RegExp(String.raw`UPDATE\s+${RAW_CLAIM_TABLE_REF}\s+SET\s+[\s\S]{0,150}\bstatus\b`, 'iu'),
+    new RegExp(String.raw`INSERT\s+INTO\s+${RAW_CLAIM_TABLE_REF}\s+[\s\S]{0,250}\bstatus\b`, 'iu'),
+  ];
+}
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
-function containsClaimStatusVariableSet(source) {
-  for (const match of source.matchAll(SET_VARIABLE_PATTERN)) {
+function containsClaimStatusVariableSet(source, claimsRef) {
+  const setVariable = new RegExp(
+    String.raw`\.update\(\s*${claimsRef}\s*\)(?:(?!;)[\s\S]){0,1200}\.set\(\s*(${IDENTIFIER})\s*\)`,
+    'gu'
+  );
+  for (const match of source.matchAll(setVariable)) {
     const variableName = match[1];
     const declaration = new RegExp(
       String.raw`\b(?:const|let|var)\s+${escapeRegex(variableName)}\s*=\s*\{[\s\S]{0,800}\bstatus\s*:`,
@@ -99,9 +113,10 @@ function walkFiles(root, files = []) {
 }
 
 export function containsClaimStatusWrite(source) {
+  const claimsRef = claimsReference(source);
   return (
-    STATUS_UPDATE_PATTERNS.some(pattern => pattern.test(source)) ||
-    containsClaimStatusVariableSet(source)
+    statusUpdatePatterns(claimsRef).some(pattern => pattern.test(source)) ||
+    containsClaimStatusVariableSet(source, claimsRef)
   );
 }
 

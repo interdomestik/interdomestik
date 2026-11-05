@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assertRefused, runWithBase } from './tenant-guard-test-support.mjs';
+import { assertRefused, byStage, runWithBase } from './tenant-guard-test-support.mjs';
 
 // ---- Q2-r: a schema value reaches only recognized query-builder receivers ---------------------
 
@@ -58,7 +58,13 @@ test('Q2-r: kernel clients, kernel transactions and their facades are recognized
     'export function runner() { return run((scoped: any) => scoped.select().from(claims)); }',
   ];
   const result = runWithBase({ ...RECEIVER_BASE, 'apps/web/src/receiver.ts': lines.join('\n') });
-  assert.deepEqual(result.violations, []);
+  const { lifetime, other } = byStage(result);
+  assert.deepEqual(other, []);
+  // The receivers are recognized; L1 still refuses the facade and the runner shapes themselves.
+  assert.deepEqual(lifetime, [
+    'facade: hookTx: a rebound capability member (bind)',
+    'run: a callback read from a parameter (action)',
+  ]);
 });
 
 test('Q2-r: a hostile receiver is refused however the schema value reaches it', () => {
@@ -180,7 +186,11 @@ test('Q2-r2: a spread or computed key never hides an earlier or overriding recei
       'holder.r.from(claims);',
     ])
   );
-  assert.deepEqual(overridden.violations, []);
+  // The receiver is recognized; L1 refuses the spread carrier the transaction is placed in.
+  assert.deepEqual(byStage(overridden), {
+    lifetime: ['attack: a carrier object with spreads, methods or computed keys'],
+    other: [],
+  });
 
   const injected = receiverRun([
     ...IMPORTS,

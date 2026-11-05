@@ -100,7 +100,10 @@ export function pinsOf(trusted) {
   return new Map(Object.entries(legacyDigests));
 }
 
-export function run(changes = {}, { contracts = [], resolution, packages = PACKAGES } = {}) {
+export function run(
+  changes = {},
+  { contracts = [], resolution, packages = PACKAGES, lifetimeRunners = [] } = {}
+) {
   const trusted = new Map(Object.entries(KERNEL));
   const sources = new Map(trusted);
   for (const [file, text] of Object.entries(changes)) {
@@ -113,7 +116,14 @@ export function run(changes = {}, { contracts = [], resolution, packages = PACKA
     appAliases: [['@/', 'apps/web/src/']],
     resolution,
   });
-  return evaluate({ sources, trusted, graph, contracts, legacyPins: pinsOf(trusted) });
+  return evaluate({
+    sources,
+    trusted,
+    graph,
+    contracts,
+    legacyPins: pinsOf(trusted),
+    lifetimeRunners,
+  });
 }
 
 export function assertRefused(result, rule, pattern) {
@@ -124,6 +134,15 @@ export function assertRefused(result, rule, pattern) {
     match,
     `expected ${rule} ${pattern}; got ${JSON.stringify(result.violations, null, 2)}`
   );
+}
+
+const LIFETIME = 'a tenant transaction capability can outlive its callback: ';
+/** Splits the lifetime stage (L1) from every other rule, so a fixture asserts both exactly. */
+export function byStage(result) {
+  const lifetime = result.violations
+    .filter(violation => violation.rule === 'L1')
+    .map(violation => `${violation.unit}: ${violation.detail.replace(LIFETIME, '')}`);
+  return { lifetime, other: result.violations.filter(violation => violation.rule !== 'L1') };
 }
 
 export const file = body => ({ 'apps/web/src/attack.ts': body.join('\n') });
