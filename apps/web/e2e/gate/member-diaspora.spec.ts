@@ -39,7 +39,7 @@ test.describe('Diaspora Feature', () => {
     if (!originalViewport) throw new Error('Diaspora gate requires a configured viewport.');
 
     await page.setViewportSize({ width: 320, height: 720 });
-    await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-page-ready' });
+    await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-form-ready' });
     await page.getByLabel('Origin').selectOption('DE');
     await page.getByLabel('Destination').selectOption('IT');
 
@@ -108,7 +108,7 @@ test.describe('Diaspora Feature', () => {
   }, testInfo) => {
     const originalViewport = page.viewportSize();
     if (!originalViewport) throw new Error('Diaspora gate requires a configured viewport.');
-    await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-page-ready' });
+    await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-form-ready' });
     await expect(page.getByTestId('diaspora-pack-status')).toHaveCount(0);
     await page.getByLabel('Origin').selectOption('DE');
     await page.getByLabel('Destination').selectOption('IT');

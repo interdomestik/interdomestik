@@ -11,6 +11,10 @@ import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { forEachInOrder } from '@/lib/in-order';
+import {
+  canShareAllDocuments,
+  type ShareActor,
+} from '@/app/api/documents/share-eligible-documents';
 
 // Token expiration in milliseconds (24 hours default)
 const TOKEN_EXPIRY_MS = parseInt(
@@ -106,29 +110,11 @@ export async function logAuditEvent(params: {
 
 export async function createSharePack(params: {
   authority: TenantAuthority;
-  userId: string;
+  actor: ShareActor;
   documentIds: string[];
 }) {
-  const { authority, userId, documentIds } = params;
+  const { authority, actor, documentIds } = params;
   const { tenantId } = readTenantAuthority(authority);
-
-  // Verify all documents belong to this tenant
-  const docsExport = await withTenantAuthority(
-    authority,
-    async tx =>
-      await tx
-        .select({ id: schema.documents.id })
-        .from(schema.documents)
-        .where(and(eq(schema.documents.tenantId, tenantId)))
-  );
-
-  const validDocIds = new Set(docsExport.map(d => d.id));
-  const allValid = documentIds.every(id => validDocIds.has(id));
-
-  if (!allValid) {
-    throw new Error('Invalid IDs');
-  }
-
   const packId = nanoid();
   const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_MS);
 
@@ -137,17 +123,21 @@ export async function createSharePack(params: {
   const packValues: any = {
     id: packId,
     tenantId,
-    createdByUserId: userId,
+    createdByUserId: actor.id,
     createdAt: new Date(),
     expiresAt: expiresAt,
   };
   packValues['document' + 'Ids'] = documentIds;
 
+  // Eligibility and the pack row share one tenant transaction: nothing is written unless the
+  // actor may share every requested active document of this tenant.
   // db-access-guard: tenant-scoped -- reason: tenantId from validated share-pack request before pack insert
-  await withTenantAuthority(
-    authority,
-    async tx => await tx.insert(schema.sharePacks).values(packValues)
-  );
+  await withTenantAuthority(authority, async tx => {
+    if (!(await canShareAllDocuments({ actor, documentIds, tenantId, tx }))) {
+      throw new Error('Invalid IDs');
+    }
+    await tx.insert(schema.sharePacks).values(packValues);
+  });
 
   const token = generateShareToken({ packId, tenantId });
 
@@ -196,13 +186,19 @@ export async function getSharePack(params: { token: string }) {
     authority,
     async tx =>
       await tx
-        .select()
+        .select({
+          id: schema.documents.id,
+          fileName: schema.documents.fileName,
+          mimeType: schema.documents.mimeType,
+          fileSize: schema.documents.fileSize,
+        })
         .from(schema.documents)
         .where(
           and(
             eq(schema.documents.tenantId, tenantId), // MUST verify tenantId
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            inArray(schema.documents.id, (pack as any)['document' + 'Ids'])
+            inArray(schema.documents.id, (pack as any)['document' + 'Ids']),
+            isNull(schema.documents.deletedAt)
           )
         )
   );

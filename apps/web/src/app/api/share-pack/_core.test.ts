@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createSharePackCore, getSharePackCore, type SharePackServices } from './_core';
 
 const authority = mintTestTenantAuthority('tenant1');
+const actor = { id: 'user1', role: 'member', branchId: null };
 
 describe('Share Pack API Core', () => {
   const mockServices: SharePackServices = {
@@ -22,16 +23,17 @@ describe('Share Pack API Core', () => {
 
       const result = await createSharePackCore({
         authority,
-        userId: 'user1',
-        documentIds: ['d1', 'd2'],
+        actor,
+        documentIds: ['d1', 'd2', 'd1'],
         userAgent: 'test-agent',
         services: mockServices,
       });
 
       expect(result.ok).toBe(true);
+      // Duplicates are authorized and audited once.
       expect(mockServices.createSharePack).toHaveBeenCalledWith({
         authority,
-        userId: 'user1',
+        actor,
         documentIds: ['d1', 'd2'],
       });
       expect(result.data?.packId).toBe('p1');
@@ -49,7 +51,7 @@ describe('Share Pack API Core', () => {
 
       const result = await createSharePackCore({
         authority,
-        userId: 'user1',
+        actor,
         documentIds: ['bad1'],
         services: mockServices,
       });
