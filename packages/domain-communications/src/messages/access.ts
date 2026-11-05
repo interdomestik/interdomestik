@@ -112,12 +112,14 @@ export async function hasAgentClaimAccess(args: {
     return false;
   }
 
+  // Plain fields are copied out so the query predicate closure never retains the transaction.
+  const { agentId, memberId, tenantId } = args;
   const linkedClient = await args.tx.query.agentClients.findFirst({
     where: (table, { and, eq }) =>
       and(
-        eq(table.tenantId, args.tenantId),
-        eq(table.agentId, args.agentId),
-        eq(table.memberId, args.memberId),
+        eq(table.tenantId, tenantId),
+        eq(table.agentId, agentId),
+        eq(table.memberId, memberId),
         eq(table.status, 'active')
       ),
   });

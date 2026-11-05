@@ -114,7 +114,6 @@ export function scrubSentryBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb | null
     return null;
   }
 }
-
 const MEASUREMENT_NAMES = new Set([
   'fp',
   'fcp',
@@ -256,7 +255,9 @@ export function scrubSentryEvent<T extends Event>(event: T): T | null {
     result.request = event.request
       ? { url: event.request.url ? scrubUrl(event.request.url) : undefined }
       : undefined;
-    result.transaction = event.transaction ? scrubTransactionName(event.transaction) : undefined;
+    result.transaction = event.transaction
+      ? scrubTransactionName(String(event.transaction))
+      : undefined;
     result.breadcrumbs = event.breadcrumbs
       ?.map(scrubSentryBreadcrumb)
       .filter((b): b is Breadcrumb => b !== null);

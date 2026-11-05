@@ -49,18 +49,18 @@ export function createModuleGraph({
     return sourceFile ?? null;
   };
 
-  function resolveFile(base) {
+  // Resolvers disagree on extension order (TypeScript maps a `.js` specifier to its `.ts` source,
+  // bundlers take the file named): every coexisting variant of the stem is an alternative, and a
+  // directory index counts only where no file variant exists.
+  function resolveFiles(base) {
+    const has = file => sources.has(file);
     const normalized = path.normalize(base);
-    if (sources.has(normalized)) return normalized;
-    const stripped = normalized.replace(/\.(?:[cm]?js|jsx)$/u, '');
-    for (const candidate of [normalized, stripped]) {
-      for (const extension of EXTENSIONS)
-        if (sources.has(candidate + extension)) return candidate + extension;
-      for (const extension of EXTENSIONS) {
-        if (sources.has(`${candidate}/index${extension}`)) return `${candidate}/index${extension}`;
-      }
-    }
-    return null;
+    const candidates = [normalized, normalized.replace(/\.(?:[cm]?js|jsx)$/u, '')];
+    const existing = suffixes => candidates.flatMap(c => suffixes.map(x => c + x)).filter(has);
+    const files = existing(['', ...EXTENSIONS]);
+    if (files.length > 0) return [...new Set(files)];
+    const indexes = candidates.map(c => EXTENSIONS.map(x => `${c}/index${x}`).filter(has));
+    return indexes.find(found => found.length > 0) ?? [];
   }
 
   // The union of every alternative a configured resolver could take. A match that points into
@@ -89,7 +89,7 @@ export function createModuleGraph({
     if (pkg) packageCandidates(pkg, specifier.slice(pkg.name.length)).forEach(add);
     for (const root of resolution.baseRoots) {
       const base = path.join(root || '.', specifier);
-      if (resolveFile(base)) add(base);
+      if (resolveFiles(base).length > 0) add(base);
     }
     return { bases, workspace };
   }
@@ -107,7 +107,7 @@ export function createModuleGraph({
     if (ASSET.test(specifier)) result = { files: [], external: specifier, unresolved: false };
     else if (!workspace) result = { files: [], external: specifier, unresolved: false };
     else {
-      const files = [...new Set(bases.map(resolveFile).filter(Boolean))];
+      const files = [...new Set(bases.flatMap(resolveFiles))];
       result = { files, external: null, unresolved: files.length === 0 };
     }
     resolutionCache.set(cacheKey, result);

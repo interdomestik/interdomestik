@@ -17,7 +17,8 @@ import {
   type CrmPipelineStageRow,
 } from './deal-row-mapping';
 import { createCrmPipelineRepository } from './pipeline-repository';
-import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import type { CrmTenantExecutor } from './tenant-runner';
 
 async function findStage(
   database: Pick<CrmTenantExecutor, 'query'>,
@@ -37,15 +38,12 @@ async function findStage(
   return stage;
 }
 
-export function createCrmDealRepository(
-  authority: TenantAuthority,
-  executor?: CrmTenantExecutor
-): CrmDealRepository {
-  const pipelines = createCrmPipelineRepository(authority, executor);
+export function createCrmDealRepository(authority: TenantAuthority): CrmDealRepository {
+  const pipelines = createCrmPipelineRepository(authority);
 
   return {
     async createDealWithStageHistory(params): Promise<CrmDealWithStageHistory> {
-      const stage = await runInCrmTenantContext(executor, authority, scoped =>
+      const stage = await withTenantAuthority(authority, scoped =>
         findStage(scoped, {
           stageId: params.deal.currentStageId,
           tenantId: params.deal.tenantId,
@@ -54,7 +52,7 @@ export function createCrmDealRepository(
       const mirror = legacyMirrorForStage(stage, params.deal);
 
       // db-access-guard: tenant-scoped -- reason: CRM deal create writes explicit tenantId from domain mutation output and appends same-tenant history in one transaction
-      const [created] = await runInCrmTenantContext(executor, authority, scoped =>
+      const [created] = await withTenantAuthority(authority, scoped =>
         scoped.transaction(async tx => {
           const [row] = await tx
             .insert(crmDeals)
@@ -88,7 +86,7 @@ export function createCrmDealRepository(
 
     async findDealById(params) {
       // db-access-guard: tenant-scoped -- reason: CRM deal lookup constrains by explicit tenantId and hides archived rows by default
-      const row = await runInCrmTenantContext(executor, authority, scoped =>
+      const row = await withTenantAuthority(authority, scoped =>
         scoped.query.crmDeals.findFirst({
           where: and(
             eq(crmDeals.id, params.dealId),
@@ -112,7 +110,7 @@ export function createCrmDealRepository(
 
     async updateDeal(params) {
       // db-access-guard: tenant-scoped -- reason: CRM deal update constrains by deal id and explicit tenantId from domain mutation output
-      const [updated] = await runInCrmTenantContext(executor, authority, scoped =>
+      const [updated] = await withTenantAuthority(authority, scoped =>
         scoped
           .update(crmDeals)
           .set(normalizedDealValues(params.deal))
@@ -126,7 +124,7 @@ export function createCrmDealRepository(
     },
 
     async updateDealWithStageHistory(params): Promise<CrmDealWithStageHistory> {
-      const stage = await runInCrmTenantContext(executor, authority, scoped =>
+      const stage = await withTenantAuthority(authority, scoped =>
         findStage(scoped, {
           stageId: params.deal.currentStageId,
           tenantId: params.deal.tenantId,
@@ -138,7 +136,7 @@ export function createCrmDealRepository(
         : isNull(crmDeals.currentStageId);
 
       // db-access-guard: tenant-scoped -- reason: CRM deal stage update constrains by tenant and expected current stage before same-transaction history append
-      const [updated] = await runInCrmTenantContext(executor, authority, scoped =>
+      const [updated] = await withTenantAuthority(authority, scoped =>
         scoped.transaction(async tx => {
           const [row] = await tx
             .update(crmDeals)

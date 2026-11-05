@@ -6,21 +6,6 @@ import type { TransitionCurrentState } from './transition-current-state';
 import { recordTransitionDomainEvents } from './transition-domain-events';
 
 export type TransitionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-export type TransitionNoteResolver = (
-  tx: TransitionTx,
-  context: Pick<
-    TransitionSideEffectsArgs,
-    'claimId' | 'fromStatus' | 'isPublic' | 'note' | 'tenantId'
-  >
-) => Promise<string | null>;
-export type AuthorizedTransitionHookTx = Pick<TransitionTx, 'insert' | 'select' | 'update'>;
-export function authorizedTransitionHookTx(tx: TransitionTx): AuthorizedTransitionHookTx {
-  return {
-    insert: tx.insert.bind(tx),
-    select: tx.select.bind(tx),
-    update: tx.update.bind(tx),
-  };
-}
 export type TransitionSideEffectsArgs = {
   actor: ClaimTransitionActor;
   claimId: string;
@@ -50,15 +35,23 @@ export class ClaimTransitionAuthorizationError extends Error {
 }
 export type TransitionClaimStatusParams = {
   actor: ClaimTransitionActor;
-  beforePersistAuthorized?: (tx: AuthorizedTransitionHookTx) => Promise<void>;
   claimId: string;
   correlationId?: string;
   hostId?: string | null;
   isPublic?: boolean;
   note?: string | null;
-  resolveNoteAfterStatusWrite?: TransitionNoteResolver;
   requiredWhereCondition?: SQLWrapper;
   tenantId: string;
+  toStatus: ClaimStatus;
+};
+/** A transition whose read context and guard decision were established in this transaction. */
+export type AuthorizeClaimTransitionResult =
+  | { success: true; transition: PersistAuthorizedTransitionArgs }
+  | { success: false; error: 'claim_not_found' | 'invalid_current_status' | 'transition_rejected' };
+/** The status write of an authorized transition: its new version and the write time. */
+export type WrittenTransitionStatus = {
+  lifecycleVersion: number;
+  now: Date;
   toStatus: ClaimStatus;
 };
 export type TransitionClaimStatusResult =
@@ -73,7 +66,6 @@ export type PersistAuthorizedTransitionArgs = {
   current: TransitionCurrentState;
   isPublic: boolean;
   note: string | null;
-  resolveNoteAfterStatusWrite?: TransitionNoteResolver;
   readWhere: SQLWrapper;
   tenantId: string;
 };

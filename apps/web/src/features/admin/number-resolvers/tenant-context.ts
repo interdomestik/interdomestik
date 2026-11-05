@@ -1,17 +1,24 @@
-import type { TenantTransaction } from '@interdomestik/database';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-/** Relational-query surface of the transaction supplied by the tenant authority. */
-export type NumberResolverLookupTx = Pick<TenantTransaction, 'query'>;
+import { findClaimIdByNumber, type ClaimNumberLookup } from './claim-number-lookup';
+import { findMemberIdByNumber, type MemberNumberLookup } from './member-number-lookup';
 
 /**
- * Runs a number-resolver lookup inside the request session's tenant transaction. The lookup sees
- * only the transaction's query surface.
+ * Resolves a claim number inside the request session's tenant transaction. The transaction is
+ * lent only to the named lookup and never leaves this call.
  */
-export function runNumberResolverInTenantContext(
+export function findClaimIdInTenantContext(
   authority: TenantAuthority,
-  lookup: (tx: NumberResolverLookupTx) => Promise<string | null>
+  lookup: ClaimNumberLookup
 ): Promise<string | null> {
-  return withTenantAuthority(authority, lookup);
+  return withTenantAuthority(authority, tx => findClaimIdByNumber(tx, lookup));
+}
+
+/** Resolves a member number inside the request session's tenant transaction. */
+export function findMemberIdInTenantContext(
+  authority: TenantAuthority,
+  lookup: MemberNumberLookup
+): Promise<string | null> {
+  return withTenantAuthority(authority, tx => findMemberIdByNumber(tx, lookup));
 }

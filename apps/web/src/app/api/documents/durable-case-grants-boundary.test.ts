@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// getDocumentAccessCore opens its tenant-bound transaction with the database package's
+// withTenantContext; the test stands its runner in there.
+const tenantContext = vi.hoisted(() => ({ run: vi.fn() }));
+vi.mock('@interdomestik/database', async importActual => ({
+  ...(await importActual<typeof import('@interdomestik/database')>()),
+  withTenantContext: tenantContext.run,
+}));
+
 vi.mock('./durable-case-grants', () => ({
   hasDurableCaseScopedDocumentGrant: vi.fn().mockResolvedValue(false),
 }));
@@ -8,17 +16,19 @@ vi.mock('./cross-tenant-document-lookup', () => ({
   lookupCrossGrantDoc: vi.fn().mockResolvedValue(null),
 }));
 
+import { sessionAuthority } from './document-access.test-support';
 import { getDocumentAccessCore, type DocumentAccessDeps } from './_core';
 import { lookupCrossGrantDoc } from './cross-tenant-document-lookup';
 import { hasDurableCaseScopedDocumentGrant } from './durable-case-grants';
 
 const mockDb = { select: vi.fn() };
+// The same mock serves as the tenant-bound transaction for normal-tenant reads.
+tenantContext.run.mockImplementation(async (_context: unknown, action: (tx: never) => unknown) =>
+  action(mockDb as never)
+);
 const mockDeps: DocumentAccessDeps = {
   db: mockDb as unknown as DocumentAccessDeps['db'],
   storage: { createSignedUrl: vi.fn(), download: vi.fn() },
-  // The same mock serves as the tenant-bound transaction for normal-tenant reads.
-  withTenantContext: (async (_context: unknown, action: (tx: never) => Promise<unknown>) =>
-    action(mockDb as never)) as unknown as DocumentAccessDeps['withTenantContext'],
 };
 const session = { user: { id: 'local-legal-1', role: 'staff', tenantId: 't1' } };
 
@@ -59,7 +69,13 @@ describe('document durable case grant boundary', () => {
     setup([claimDoc()], [{ claimOwnerId: 'member-1' }], false);
 
     await expect(
-      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+      getDocumentAccessCore({
+        authority: sessionAuthority(session),
+        deps: mockDeps,
+        documentId: 'doc-1',
+        mode: 'download',
+        session,
+      })
     ).resolves.toEqual(expect.objectContaining({ ok: true }));
     expect(hasDurableCaseScopedDocumentGrant).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -84,7 +100,13 @@ describe('document durable case grant boundary', () => {
     );
 
     await expect(
-      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+      getDocumentAccessCore({
+        authority: sessionAuthority(session),
+        deps: mockDeps,
+        documentId: 'doc-1',
+        mode: 'download',
+        session,
+      })
     ).resolves.toEqual(expect.objectContaining({ ok: true }));
     expect(hasDurableCaseScopedDocumentGrant).toHaveBeenCalledWith(
       expect.objectContaining({ caseId: 'claim-1', documentClass: 'legal' })
@@ -103,7 +125,13 @@ describe('document durable case grant boundary', () => {
     );
 
     await expect(
-      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+      getDocumentAccessCore({
+        authority: sessionAuthority(session),
+        deps: mockDeps,
+        documentId: 'doc-1',
+        mode: 'download',
+        session,
+      })
     ).resolves.toEqual(expect.objectContaining({ ok: true }));
     expect(hasDurableCaseScopedDocumentGrant).not.toHaveBeenCalled();
   });
@@ -116,7 +144,13 @@ describe('document durable case grant boundary', () => {
     setup([doc]);
 
     await expect(
-      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+      getDocumentAccessCore({
+        authority: sessionAuthority(session),
+        deps: mockDeps,
+        documentId: 'doc-1',
+        mode: 'download',
+        session,
+      })
     ).resolves.toEqual({ ok: false, code: 'FORBIDDEN', message: 'Forbidden' });
     expect(hasDurableCaseScopedDocumentGrant).not.toHaveBeenCalled();
   });
@@ -131,7 +165,13 @@ describe('document durable case grant boundary', () => {
     setup([], [], true);
 
     await expect(
-      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+      getDocumentAccessCore({
+        authority: sessionAuthority(session),
+        deps: mockDeps,
+        documentId: 'doc-1',
+        mode: 'download',
+        session,
+      })
     ).resolves.toEqual(expect.objectContaining({ ok: true, tenantId: 'home-t' }));
   });
 
@@ -140,7 +180,13 @@ describe('document durable case grant boundary', () => {
     setup([], [], true);
 
     await expect(
-      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+      getDocumentAccessCore({
+        authority: sessionAuthority(session),
+        deps: mockDeps,
+        documentId: 'doc-1',
+        mode: 'download',
+        session,
+      })
     ).resolves.toEqual({ ok: false, code: 'NOT_FOUND', message: 'Document not found' });
   });
 });

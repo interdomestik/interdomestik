@@ -11,7 +11,7 @@ import {
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { crmLeads, crmTasks } from '@interdomestik/database/schema';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 
 type AgentCrmTaskQueueLeadRow = {
@@ -87,8 +87,7 @@ function toLeadQueueInput(row: AgentCrmTaskQueueLeadRow) {
 }
 
 export function createAgentCrmTaskWorkQueueRepository(
-  authority: TenantAuthority,
-  executor?: CrmTenantExecutor
+  authority: TenantAuthority
 ): AgentCrmTaskWorkQueueRepository {
   return {
     async readAgentCompletedTaskQueue(input) {
@@ -101,8 +100,7 @@ export function createAgentCrmTaskWorkQueueRepository(
       }
 
       // db-access-guard: tenant-scoped -- reason: CRM32 completed task queue constrains by actor tenant, branch, assignment, completed status, and joined lead visibility before deriving queue DTOs.
-      const rows = await runInCrmTenantContext(
-        executor,
+      const rows = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped
@@ -161,8 +159,7 @@ export function createAgentCrmTaskWorkQueueRepository(
       }
 
       // db-access-guard: tenant-scoped -- reason: CRM28 task queue constrains by actor tenant, branch, assignment, and joined lead visibility before deriving queue DTOs.
-      const rows = await runInCrmTenantContext(
-        executor,
+      const rows = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped

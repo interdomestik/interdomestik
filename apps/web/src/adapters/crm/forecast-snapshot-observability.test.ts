@@ -1,5 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
+import { onCrmTenantDatabase } from './crm-tenant-database.test-support';
 
 import { createCrmForecastSnapshotObservabilityRepository } from './forecast-snapshot-observability';
 
@@ -52,9 +53,9 @@ describe('crmForecastSnapshotObservabilityRepository', () => {
         tenantId: 'tenant-1',
       },
     ]);
-    const repository = createCrmForecastSnapshotObservabilityRepository(
-      mintTestTenantAuthority('tenant-1'),
-      database as never
+    const repository = onCrmTenantDatabase(
+      database as never,
+      createCrmForecastSnapshotObservabilityRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(

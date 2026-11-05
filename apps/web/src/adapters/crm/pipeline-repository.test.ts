@@ -1,5 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { onCrmTenantDatabase } from './crm-tenant-database.test-support';
 
 const hoisted = vi.hoisted(() => ({
   db: {},
@@ -88,9 +89,9 @@ describe('crmPipelineRepository', () => {
       },
       transaction: vi.fn(),
     };
-    const repository = createCrmPipelineRepository(
-      mintTestTenantAuthority('tenant-1'),
-      fakeDb as never
+    const repository = onCrmTenantDatabase(
+      fakeDb as never,
+      createCrmPipelineRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(
@@ -133,9 +134,9 @@ describe('crmPipelineRepository', () => {
       query: { crmPipelines: { findFirst: vi.fn() } },
       transaction: vi.fn(async (callback: (transaction: typeof tx) => unknown) => callback(tx)),
     };
-    const repository = createCrmPipelineRepository(
-      mintTestTenantAuthority('tenant-1'),
-      fakeDb as never
+    const repository = onCrmTenantDatabase(
+      fakeDb as never,
+      createCrmPipelineRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(repository.createPipeline({ pipeline: pipeline() })).resolves.toEqual(pipeline());

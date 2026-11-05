@@ -21,8 +21,7 @@ export type PersistClaimDocumentWithAuthorityParams = PersistClaimDocumentParams
 async function queueAiWorkflows(params: PersistClaimDocumentWithAuthorityParams) {
   // db-access-guard: tenant-scoped -- reason: queue resolver filters exact tenant/user/claim/document scope
   return withTenantAuthority(params.authority, async tx =>
-    queueClaimDocumentAiWorkflows({
-      tx,
+    queueClaimDocumentAiWorkflows(tx, {
       claimId: params.claimId,
       tenantId: params.tenantId,
       userId: params.userId,

@@ -1,7 +1,7 @@
 import { logAuditEvent } from '@/lib/audit';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { SIGNED_URL_REFERRER_POLICY } from '@/lib/storage/signed-url-exposure';
 import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
@@ -28,11 +28,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (limited) return limited;
 
   const { id } = await params;
-  const session = await auth.api.getSession({ headers: request.headers });
+  // The session and its tenant authority come from one authorization of this request.
+  const authorized = await authorizeSessionTenant(request.headers);
 
-  if (!session) {
+  if (!authorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const { authority, session } = authorized;
 
   Sentry.setTag('slo_alert', 'd07.document.download');
 
@@ -45,6 +47,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     dispositionParam === 'inline' ? 'inline' : 'attachment';
 
   const access = await getDocumentAccessCore({
+    authority,
     session,
     documentId: id,
     mode: 'download',

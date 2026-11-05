@@ -7,15 +7,33 @@ import {
   crmRoutingCursors,
 } from '@interdomestik/database/schema';
 
-const applyMock = vi.hoisted(() => vi.fn());
+const hoisted = vi.hoisted(() => ({
+  database: undefined as
+    undefined | { transaction<T>(callback: (tx: unknown) => Promise<T>): Promise<T> },
+  planMock: vi.fn(),
+}));
 
 vi.mock('@interdomestik/domain-crm/routing', async importActual => {
   const actual = await importActual<typeof import('@interdomestik/domain-crm/routing')>();
   return {
     ...actual,
-    applyCrmLeadRoutingDecision: applyMock,
+    planCrmLeadRoutingDecision: hoisted.planMock,
   };
 });
+
+// withTenantAuthority reaches withTenantContext through the package root: open the fake's
+// transaction there.
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(
+    (_context: unknown, action: (tx: unknown) => Promise<unknown>) =>
+      new Promise(resolve => {
+        if (!hoisted.database) throw new Error('no fake tenant database');
+        resolve(hoisted.database.transaction(action));
+      })
+  ),
+}));
+
+const planMock = hoisted.planMock;
 
 export const actor = {
   actorId: 'manager-1',
@@ -199,13 +217,15 @@ export function createFakeDatabase() {
     },
   };
 
+  hoisted.database = database;
   return {
     activeTransactionId: () => activeTransactionId,
     committedWriteTables,
     database,
     transactionIds,
+    tx,
     writeTables,
   };
 }
 
-export { applyMock };
+export { planMock };

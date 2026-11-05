@@ -77,8 +77,7 @@ function createTx(consentRows: unknown[]) {
 }
 
 function queueWith(consentRows: unknown[]) {
-  return queueClaimDocumentAiWorkflows({
-    tx: createTx(consentRows),
+  return queueClaimDocumentAiWorkflows(createTx(consentRows), {
     claimId: 'claim-1',
     tenantId: 'tenant-1',
     userId: 'member-1',
@@ -103,22 +102,24 @@ describe('queueClaimDocumentAiWorkflows', () => {
   });
 
   it('skips AI queueing when no trusted consent resolver exists', async () => {
-    const queuedRuns = await queueClaimDocumentAiWorkflows({
-      tx: { insert: hoisted.txInsert },
-      claimId: 'claim-1',
-      tenantId: 'tenant-1',
-      userId: 'member-1',
-      files: [
-        {
-          documentId: 'doc-1',
-          name: 'evidence.pdf',
-          path: 'p',
-          type: 'application/pdf',
-          size: 1,
-          bucket: 'b',
-        },
-      ],
-    });
+    const queuedRuns = await queueClaimDocumentAiWorkflows(
+      { insert: hoisted.txInsert },
+      {
+        claimId: 'claim-1',
+        tenantId: 'tenant-1',
+        userId: 'member-1',
+        files: [
+          {
+            documentId: 'doc-1',
+            name: 'evidence.pdf',
+            path: 'p',
+            type: 'application/pdf',
+            size: 1,
+            bucket: 'b',
+          },
+        ],
+      }
+    );
 
     expect(queuedRuns).toEqual([]);
     expect(hoisted.txInsert).not.toHaveBeenCalled();

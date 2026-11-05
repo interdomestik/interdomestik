@@ -20,8 +20,10 @@ export async function findActorCrossGrantContexts(args: {
   db: GrantReader;
   now?: Date;
 }): Promise<CrossGrantContext[]> {
-  return withGrantReadContext(args.db, args.accessTenantId, tx =>
-    selectActorCrossGrantContexts(tx, args)
+  // The read handle is split off first, so the callback captures only the request fields.
+  const { db, ...fields } = args;
+  return withGrantReadContext(db, fields.accessTenantId, tx =>
+    selectActorCrossGrantContexts(tx, fields)
   );
 }
 
@@ -67,21 +69,23 @@ export async function hasDurableCaseScopedDocumentGrant(args: {
   homeTenantId?: string | null;
   now?: Date;
 }): Promise<boolean> {
-  const documentClass = toApprovedDurableDocumentClass(args.documentClass);
+  // The read handle is split off first, so the callback captures only the request fields.
+  const { db, ...fields } = args;
+  const documentClass = toApprovedDurableDocumentClass(fields.documentClass);
   if (!documentClass) {
     return false;
   }
 
-  const grants = await withGrantReadContext(args.db, args.accessTenantId, tx =>
-    selectGrantRows(tx, args)
+  const grants = await withGrantReadContext(db, fields.accessTenantId, tx =>
+    selectGrantRows(tx, fields)
   );
   return canUseCaseScopedDocumentGrant({
-    accessTenantId: args.accessTenantId,
-    actorId: args.actorId,
-    caseId: args.caseId,
+    accessTenantId: fields.accessTenantId,
+    actorId: fields.actorId,
+    caseId: fields.caseId,
     documentClass,
     grants,
-    now: args.now,
+    now: fields.now,
   });
 }
 

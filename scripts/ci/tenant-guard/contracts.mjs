@@ -15,7 +15,7 @@ export const CONTRACTS = deepFreeze([
     kinds: {
       'value:db': 2,
     },
-    sha256: '06e12be0af7c53d81aae14ea40de7bf7050aa4c980be0180a4546a312bfee099',
+    sha256: '4985fd403c1066179bc0754624f9c942e4401751727409b771bc8ceff173916f',
     reason:
       'Unchanged base route hands the ambient client to the document access core only for the post-local cross-tenant grant fallback (withDocumentReadContext/withGrantReadContext pin the grant-resolved tenant); local reads run in the session tenant context.',
   },
@@ -25,19 +25,9 @@ export const CONTRACTS = deepFreeze([
     kinds: {
       'value:db': 2,
     },
-    sha256: 'df14f43b7b3743831f10f54fe6ef645cdec3f8a90f8528eb25740c486f7e5e51',
+    sha256: '7d2788c7883d701ab445f80d0b8959291088d1c7f6abae2ec10e871a493ed419',
     reason:
       'Unchanged base download route: same ambient-client hand-off as the signed-url route, used only by the cross-tenant grant fallback and signed-url creation for the already-authorized document.',
-  },
-  {
-    file: 'apps/web/src/app/api/documents/_core.ts',
-    unit: 'runWithDatabaseTenantContext',
-    kinds: {
-      'dynamic-import': 1,
-    },
-    sha256: '994dbf07ad41bcefa1cb3c75049277580d59b0d3654ec13e68ffb65fc14f042f',
-    reason:
-      'Unchanged lazy import of the kernel so injected-runner unit tests never open a client; the runner applies the session access-tenant context built by the unchanged getDocumentAccessCore.',
   },
   {
     file: 'apps/web/src/app/api/documents/cross-tenant-document-lookup.ts',
@@ -256,7 +246,7 @@ export const CONTRACTS = deepFreeze([
     kinds: {
       execute: 1,
     },
-    sha256: '19e08fa2e34b20f632a6428d3ea9e0776bbdeaed8adef0508c514eb18117164e',
+    sha256: 'e9541dfa0debd0ffefbf1865211ca3c4a608ecab864e53196402bf3814f87d3e',
     reason:
       'Parameterized transaction-scoped advisory lock keyed by tenant and subscription to serialize matter allowance counting; no row data.',
   },

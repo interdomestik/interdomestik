@@ -3,10 +3,12 @@
 // execute them in the original evaluation order.
 
 import { C1_ADMISSIONS } from './c1-admissions.mjs';
+import { LIFETIME_RUNNERS } from './lifetime-runners.mjs';
 import { CONTRACTS, LEGACY_PINS, STATE_CONTRACTS } from './manifest.mjs';
 import { installAdmission } from './rules-admission.mjs';
 import { installCustody } from './rules-custody.mjs';
 import { installDependencies } from './rules-dependencies.mjs';
+import { installLifetime } from './rules-lifetime.mjs';
 import { installReceivers } from './rules-receivers.mjs';
 import { installSinks } from './rules-sinks.mjs';
 import { installState } from './rules-state.mjs';
@@ -32,6 +34,7 @@ export function evaluate({
   legacyPins = LEGACY_PINS,
   stateContracts = STATE_CONTRACTS,
   admissions = C1_ADMISSIONS,
+  lifetimeRunners = LIFETIME_RUNNERS,
 }) {
   const violations = [];
   const accepted = [];
@@ -51,6 +54,7 @@ export function evaluate({
     contracts,
     graph,
     legacyPins,
+    lifetimeRunners,
     sources,
     stateContracts,
     telemetry,
@@ -67,7 +71,9 @@ export function evaluate({
   installReceivers(ctx);
   installSinks(ctx);
   installCustody(ctx);
+  installLifetime(ctx);
   scanFiles(ctx);
   propagate(ctx);
+  ctx.checkLifetime();
   return report(ctx);
 }

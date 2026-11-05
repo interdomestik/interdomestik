@@ -31,13 +31,13 @@ import {
   snapshotInsertValues,
   type SnapshotRow,
 } from './reporting-snapshot-mapping';
-import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const defaultForecastSnapshotIds = {
   pipelineSnapshotId: () => randomUUID(),
 };
 
-type CrmReportingScope = { authority: TenantAuthority; executor?: CrmTenantExecutor };
+type CrmReportingScope = { authority: TenantAuthority };
 
 type WeightedRow = {
   agentId: string;
@@ -189,8 +189,7 @@ async function listWeightedRows(
   }
 
   // db-access-guard: tenant-scoped -- reason: CRM reporting weighted rows constrain deals by authorized actor tenant plus agent or branch scope
-  const rows = await runInCrmTenantContext(
-    scope.executor,
+  const rows = await withTenantAuthority(
     scope.authority,
     async scoped =>
       await scoped
@@ -238,8 +237,7 @@ async function listStageIntervalRows(
   }
 
   // db-access-guard: tenant-scoped -- reason: CRM reporting stage-history rows join through tenant-scoped deals constrained by authorized actor scope
-  const rows = await runInCrmTenantContext(
-    scope.executor,
+  const rows = await withTenantAuthority(
     scope.authority,
     async scoped =>
       await scoped
@@ -306,11 +304,8 @@ async function listStageIntervalRows(
   });
 }
 
-export function createCrmReportingRepository(
-  authority: TenantAuthority,
-  executor?: CrmTenantExecutor
-): CrmReportingRepository {
-  const scope: CrmReportingScope = { authority, executor };
+export function createCrmReportingRepository(authority: TenantAuthority): CrmReportingRepository {
+  const scope: CrmReportingScope = { authority };
   return {
     async listAgentLeaderboardRows(input) {
       const rows = await listWeightedRows(scope, input);
@@ -379,7 +374,6 @@ export function createCrmReportingRepository(
 
 export function createCrmForecastSnapshotRepository(
   authority: TenantAuthority,
-  executor?: CrmTenantExecutor,
   ids: { pipelineSnapshotId: () => string } = defaultForecastSnapshotIds
 ): CrmForecastSnapshotRepository {
   return {
@@ -400,8 +394,7 @@ export function createCrmForecastSnapshotRepository(
       for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
           // db-access-guard: tenant-scoped -- reason: CRM forecast snapshot insert derives version numbers from explicit tenant/pipeline snapshot keys and writes those same tenant ids
-          const inserted = await runInCrmTenantContext(
-            executor,
+          const inserted = await withTenantAuthority(
             authority,
             async scoped =>
               await scoped.transaction(async tx => {
@@ -448,8 +441,7 @@ export function createCrmForecastSnapshotRepository(
 
     async listLatestPipelineSnapshots(params) {
       // db-access-guard: tenant-scoped -- reason: CRM forecast snapshot reads constrain by explicit tenant id and optional branch/pipeline scope
-      const rows = await runInCrmTenantContext(
-        executor,
+      const rows = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped

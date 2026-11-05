@@ -4,11 +4,7 @@ import {
   prepareClaimDocumentAiRun,
   type PreparedQueuedClaimAiRun,
 } from './ai-workflow-preparation';
-import type {
-  ClaimAiClaimSnapshot,
-  ClaimAiWorkflowQueueInput,
-  QueuedClaimAiRun,
-} from './ai-workflow-types';
+import type { ClaimAiWorkflowQueueInput, QueuedClaimAiRun } from './ai-workflow-types';
 
 type QueueInsertTx = {
   insert: (table: unknown) => { values: (rows: unknown) => unknown };
@@ -34,30 +30,35 @@ async function insertQueueRows(tx: unknown, table: unknown, rows: unknown): Prom
   await tx.insert(table).values(rows);
 }
 
-export async function queueClaimDocumentAiWorkflows(args: {
-  tx: ClaimAiWorkflowQueueInput['tx'];
-  claimId: ClaimAiWorkflowQueueInput['claimId'];
-  tenantId: ClaimAiWorkflowQueueInput['tenantId'];
-  userId: ClaimAiWorkflowQueueInput['userId'];
-  files: ClaimAiWorkflowQueueInput['files'];
-  claimSnapshot?: ClaimAiClaimSnapshot | null;
-}): Promise<QueuedClaimAiRun[]> {
+/** Prepares one run per file, in order, on the same transaction (files without a run are skipped). */
+async function prepareRunsFrom(
+  tx: unknown,
+  args: ClaimAiWorkflowQueueInput,
+  index: number,
+  prepared: PreparedQueuedClaimAiRun[]
+): Promise<PreparedQueuedClaimAiRun[]> {
+  const file = args.files[index];
+  if (!file) return prepared;
+  const queuedRun = await prepareClaimDocumentAiRun(tx, { args, file });
+  return prepareRunsFrom(tx, args, index + 1, queuedRun ? [...prepared, queuedRun] : prepared);
+}
+
+export async function queueClaimDocumentAiWorkflows(
+  tx: unknown,
+  args: ClaimAiWorkflowQueueInput
+): Promise<QueuedClaimAiRun[]> {
   if (args.files.length === 0) {
     return [];
   }
 
-  const queuedRuns: PreparedQueuedClaimAiRun[] = [];
-  for (const file of args.files) {
-    const queuedRun = await prepareClaimDocumentAiRun({ args, file });
-    if (queuedRun) queuedRuns.push(queuedRun);
-  }
+  const queuedRuns = await prepareRunsFrom(tx, args, 0, []);
 
   if (queuedRuns.length === 0) return [];
 
   const now = new Date();
 
   await insertQueueRows(
-    args.tx,
+    tx,
     documents,
     queuedRuns.map(queuedRun => ({
       id: queuedRun.documentId,
@@ -79,7 +80,7 @@ export async function queueClaimDocumentAiWorkflows(args: {
   );
 
   await insertQueueRows(
-    args.tx,
+    tx,
     aiRuns,
     queuedRuns.map(queuedRun => ({
       id: queuedRun.runId,

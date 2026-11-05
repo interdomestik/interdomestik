@@ -1,5 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { onCrmTenantDatabase } from './crm-tenant-database.test-support';
 import {
   advancement,
   auditRecord,
@@ -27,9 +28,9 @@ describe('crmRoutingRepository', () => {
       },
       update: vi.fn(),
     };
-    const repository = createCrmRoutingRepository(
-      mintTestTenantAuthority('tenant-1'),
-      routingRepositoryDb(fakeDb)
+    const repository = onCrmTenantDatabase(
+      routingRepositoryDb(fakeDb),
+      createCrmRoutingRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(repository.listRoutingRules({ actor: branchManager })).resolves.toEqual([
@@ -73,9 +74,9 @@ describe('crmRoutingRepository', () => {
         updatedAt: now,
       },
     ]);
-    const repository = createCrmRoutingRepository(
-      mintTestTenantAuthority('tenant-1'),
-      fake.db as never
+    const repository = onCrmTenantDatabase(
+      fake.db as never,
+      createCrmRoutingRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(
@@ -130,9 +131,9 @@ describe('crmRoutingRepository', () => {
       },
       update: vi.fn(),
     };
-    const repository = createCrmRoutingRepository(
-      mintTestTenantAuthority('tenant-1'),
-      routingRepositoryDb(fakeDb)
+    const repository = onCrmTenantDatabase(
+      routingRepositoryDb(fakeDb),
+      createCrmRoutingRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(
@@ -163,9 +164,9 @@ describe('crmRoutingRepository', () => {
 
   it('returns cursor_conflict when the compare-and-swap update finds no cursor row', async () => {
     const fake = createUpdateDb([]);
-    const repository = createCrmRoutingRepository(
-      mintTestTenantAuthority('tenant-1'),
-      fake.db as never
+    const repository = onCrmTenantDatabase(
+      fake.db as never,
+      createCrmRoutingRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(repository.advanceRoutingCursor({ advancement })).resolves.toEqual({
@@ -182,9 +183,9 @@ describe('crmRoutingRepository', () => {
       tenantId: advancement.tenantId,
       updatedAt: now,
     });
-    const repository = createCrmRoutingRepository(
-      mintTestTenantAuthority('tenant-1'),
-      fake.db as never
+    const repository = onCrmTenantDatabase(
+      fake.db as never,
+      createCrmRoutingRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(
@@ -240,9 +241,9 @@ describe('crmRoutingRepository', () => {
       },
       update: vi.fn(),
     };
-    const repository = createCrmRoutingRepository(
-      mintTestTenantAuthority('tenant-1'),
-      routingRepositoryDb(fakeDb)
+    const repository = onCrmTenantDatabase(
+      routingRepositoryDb(fakeDb),
+      createCrmRoutingRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(

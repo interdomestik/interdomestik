@@ -16,8 +16,9 @@ import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { circuitBreakers } from '@interdomestik/shared-utils/circuit-breaker';
-import { withTransactionRetry } from '@interdomestik/shared-utils/resilience';
+import { transactionRetryConfig, withRetry } from '@interdomestik/shared-utils/resilience';
 import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
 import { registerMemberSchema } from './schemas';
@@ -109,59 +110,60 @@ export async function registerMemberCore(
   try {
     const passwordHash = await hash(data.password, 10);
     const joinedAt = new Date();
-    await withTransactionRetry(
-      async tx => {
-        const now = joinedAt;
+    // Each attempt opens its own tenant transaction; the retry wraps the whole attempt.
+    await withRetry(
+      () =>
+        withTenantAuthority(authority, async tx => {
+          const now = joinedAt;
 
-        // 1. Create User (Role must be 'member' for the unique index to eventually apply)
-        // We insert with null memberNumber first.
-        await tx.insert(userTable).values({
-          id: userId,
-          tenantId,
-          branchId: agentBranchId,
-          name: data.fullName,
-          email: data.email,
-          emailVerified: false,
-          role: 'member', // Critical change: was 'user'
-          ...attribution,
-          createdAt: now,
-          updatedAt: now,
-        });
+          // 1. Create User (Role must be 'member' for the unique index to eventually apply)
+          // We insert with null memberNumber first.
+          await tx.insert(userTable).values({
+            id: userId,
+            tenantId,
+            branchId: agentBranchId,
+            name: data.fullName,
+            email: data.email,
+            emailVerified: false,
+            role: 'member', // Critical change: was 'user'
+            ...attribution,
+            createdAt: now,
+            updatedAt: now,
+          });
 
-        await revokeAgentClientReadScope(tx, { tenantId, memberId: userId });
+          await revokeAgentClientReadScope(tx, { tenantId, memberId: userId });
 
-        const subscriptionValues =
-          membershipMode === 'sponsored'
-            ? {
-                ...createCanonicalMembershipPlanState(
+          const subscriptionValues =
+            membershipMode === 'sponsored'
+              ? {
+                  ...createCanonicalMembershipPlanState(
+                    canonicalPlanState.planId,
+                    canonicalPlanState.planKey
+                  ),
+                  status: 'paused' as const,
+                  provider: 'group_sponsor',
+                  acquisitionSource: 'group_roster_import',
+                  currentPeriodStart: null,
+                  currentPeriodEnd: null,
+                }
+              : createActiveAnnualMembershipFulfillment(
                   canonicalPlanState.planId,
+                  now,
                   canonicalPlanState.planKey
-                ),
-                status: 'paused' as const,
-                provider: 'group_sponsor',
-                acquisitionSource: 'group_roster_import',
-                currentPeriodStart: null,
-                currentPeriodEnd: null,
-              }
-            : createActiveAnnualMembershipFulfillment(
-                canonicalPlanState.planId,
-                now,
-                canonicalPlanState.planKey
-              );
+                );
 
-        await tx.insert(subscriptions).values({
-          id: subscriptionId,
-          tenantId,
-          branchId: agentBranchId,
-          agentId: agent.id,
-          userId,
-          ...subscriptionValues,
-          createdAt: now,
-          updatedAt: now,
-        });
-      },
-      {},
-      { authority }
+          await tx.insert(subscriptions).values({
+            id: subscriptionId,
+            tenantId,
+            branchId: agentBranchId,
+            agentId: agent.id,
+            userId,
+            ...subscriptionValues,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }),
+      transactionRetryConfig()
     );
 
     // Without a credential the committed registration is left in place for recovery, never

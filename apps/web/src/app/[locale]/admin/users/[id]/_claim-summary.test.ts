@@ -6,7 +6,11 @@ import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it, vi } from 'vitest';
 
-import { getAdminUserClaimSummary, type AdminUserClaimSummaryScope } from './_claim-summary';
+import {
+  getAdminUserClaimSummary,
+  summarizeAdminUserClaimsInTransaction,
+  type AdminUserClaimSummaryScope,
+} from './_claim-summary';
 
 const tenantContext = vi.hoisted(() => ({ withTenantContext: vi.fn() }));
 
@@ -93,8 +97,7 @@ function createDb(counts: Rows, recent: Rows) {
 
 function run(scope: AdminUserClaimSummaryScope, counts: Rows, recent: Rows) {
   const { db, calls } = createDb(counts, recent);
-  const pending = getAdminUserClaimSummary({
-    db,
+  const pending = summarizeAdminUserClaimsInTransaction(db, {
     recentClaimsLimit: 6,
     scope,
     tenantId: 't1',

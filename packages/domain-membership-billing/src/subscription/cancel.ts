@@ -95,7 +95,7 @@ export async function cancelSubscriptionCore(
         if (updatedRows.length === 0) {
           throw new Error('Scheduled cancellation update matched no subscription rows');
         }
-        await recordMembershipSubscriptionChangedEvent({
+        await recordMembershipSubscriptionChangedEvent(tx as DomainEventTx, {
           actor: { id: session.user.id, role: 'member' },
           cancelAtPeriodEnd: true,
           fromStatus: normalizeSubscriptionStatus(sub.status),
@@ -103,7 +103,6 @@ export async function cancelSubscriptionCore(
           subscriptionId,
           tenantId,
           toStatus: normalizeSubscriptionStatus(sub.status, 'active'),
-          tx: tx as DomainEventTx,
         });
       });
     } catch (error) {

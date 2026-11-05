@@ -24,10 +24,11 @@ export async function lookupCrossGrantDoc(args: {
   db: DatabaseClient;
   documentId: string;
 }): Promise<CrossGrantDoc | null> {
+  const { accessTenantId, actorId, documentId } = args;
   const contexts = await findActorCrossGrantContexts(args);
   for (const grantContext of contexts) {
     const result = await withDocumentReadContext(args.db, grantContext.homeTenantId, tx =>
-      lookupGrantedDocument({ ...args, db: tx, grantContext })
+      lookupGrantedDocument({ accessTenantId, actorId, db: tx, documentId, grantContext })
     );
     if (result) return result;
   }

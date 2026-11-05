@@ -25,25 +25,27 @@ export async function insertHandoffGrant(args: {
   | 'inserted'
   | 'revoked_exists'
 > {
-  const inserted = await args.tx
+  // The transaction is split off so the grant fields can be passed on without carrying it.
+  const { tx, ...grant } = args;
+  const inserted = await tx
     .insert(caseScopedAccessGrants)
     .values({
-      id: args.grantId,
-      tenantId: args.homeTenantId,
-      accessTenantId: args.recoveryLegalTenantId,
-      caseId: args.caseId,
-      actorId: args.actorId,
+      id: grant.grantId,
+      tenantId: grant.homeTenantId,
+      accessTenantId: grant.recoveryLegalTenantId,
+      caseId: grant.caseId,
+      actorId: grant.actorId,
       documentClasses: [...HANDOFF_DOCUMENT_CLASSES],
-      expiresAt: args.expiresAt,
+      expiresAt: grant.expiresAt,
       revokedAt: null,
-      createdById: args.createdById,
-      correlationId: args.correlationId,
-      createdAt: args.createdAt,
+      createdById: grant.createdById,
+      correlationId: grant.correlationId,
+      createdAt: grant.createdAt,
     })
     .onConflictDoNothing()
     .returning({ id: caseScopedAccessGrants.id });
   if (inserted.length === 1) return 'inserted';
 
-  const existing = await loadExistingHandoffGrantForConflict(args.tx, args);
-  return classifyExistingHandoffGrant(existing, { ...args, now: args.createdAt });
+  const existing = await loadExistingHandoffGrantForConflict(tx, grant);
+  return classifyExistingHandoffGrant(existing, { ...grant, now: grant.createdAt });
 }

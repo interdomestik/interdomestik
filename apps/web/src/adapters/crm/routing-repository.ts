@@ -1,33 +1,23 @@
-import type {
-  CrmRoutingRepository,
-  CrmRoutingCursorAdvanceResult,
-} from '@interdomestik/domain-crm/routing';
+import type { CrmRoutingRepository } from '@interdomestik/domain-crm/routing';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-import {
-  branches,
-  crmRoutingAssignmentsAudit,
-  crmRoutingCursors,
-  crmRoutingRules,
-  user,
-} from '@interdomestik/database/schema';
+import { branches, crmRoutingRules, user } from '@interdomestik/database/schema';
 
 import type {
   AdminCrmRoutingRuleAdminRepository,
   AdminCrmRoutingRuleRow,
 } from './routing-admin-types';
+import { mapAdminRule, ruleWriteValues, type CrmRoutingRuleRow } from './routing-row-mapping';
 import {
-  auditValues,
-  mapAdminRule,
-  mapAudit,
-  mapRule,
-  ruleWriteValues,
-  type CrmRoutingRuleRow,
-} from './routing-row-mapping';
-import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
+  advanceRoutingCursorInDatabase,
+  appendRoutingAuditInDatabase,
+  findRoutingAuditByIdempotencyInDatabase,
+  listRoutingRulesInDatabase,
+} from './routing-operations';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type {
   AdminCrmRoutingAgentScopeRow,
@@ -43,199 +33,30 @@ function adminRulePredicates(actor: CrmActorContext, ruleId?: string) {
   return predicates;
 }
 
-export function createCrmRoutingRepository(
-  authority: TenantAuthority,
-  executor?: CrmTenantExecutor
-): CrmRoutingRepository {
+export function createCrmRoutingRepository(authority: TenantAuthority): CrmRoutingRepository {
   return {
-    async findRoutingAssignmentAuditByIdempotency(params) {
-      // db-access-guard: tenant-scoped -- reason: routing application idempotency replay constrains by explicit tenantId and opaque idempotency key
-      const existing = await runInCrmTenantContext(
-        executor,
-        authority,
-        async scoped =>
-          await scoped.query.crmRoutingAssignmentsAudit.findFirst({
-            where: and(
-              eq(crmRoutingAssignmentsAudit.tenantId, params.tenantId),
-              eq(crmRoutingAssignmentsAudit.idempotencyKey, params.idempotencyKey)
-            ),
-          })
-      );
-      return existing ? mapAudit(existing) : null;
-    },
-
-    async listRoutingRules(params: { actor: CrmActorContext }) {
-      const actor = params.actor;
-      if (actor.role === 'member') return [];
-      if ((actor.role === 'agent' || actor.role === 'branch_manager') && !actor.scope.branchId) {
-        return [];
-      }
-
-      const predicates = [
-        eq(crmRoutingRules.tenantId, actor.tenantId),
-        eq(crmRoutingRules.enabled, true),
-        isNull(crmRoutingRules.archivedAt),
-      ];
-
-      if (actor.role === 'agent' || actor.role === 'branch_manager') {
-        const branchId = actor.scope.branchId;
-        if (!branchId) return [];
-        predicates.push(
-          or(eq(crmRoutingRules.branchId, branchId), isNull(crmRoutingRules.branchId))!
-        );
-      }
-
-      // db-access-guard: tenant-scoped -- reason: CRM routing rule reads constrain by authorized actor tenant and branch scope when present
-      const rows = await runInCrmTenantContext(
-        executor,
-        authority,
-        async scoped =>
-          await scoped.query.crmRoutingRules.findMany({
-            orderBy: [asc(crmRoutingRules.priority), asc(crmRoutingRules.id)],
-            where: and(...predicates),
-          })
-      );
-
-      return rows.map(mapRule);
-    },
-
-    async advanceRoutingCursor(params): Promise<CrmRoutingCursorAdvanceResult> {
-      const now = new Date();
-      const idempotencyKey = params.idempotencyKey ?? null;
-      const setValues = {
-        cursorValue: params.advancement.nextCursor,
-        lastIdempotencyKey: idempotencyKey,
-        updatedAt: now,
-      };
-
-      // db-access-guard: tenant-scoped -- reason: routing cursor compare-and-swap constrains by explicit tenantId, ruleId, and prior cursor from the routing decision
-      const priorCursor = params.advancement.priorCursor;
-      const rows =
-        priorCursor === null
-          ? await runInCrmTenantContext(
-              executor,
-              authority,
-              async scoped =>
-                await scoped
-                  .insert(crmRoutingCursors)
-                  .values({
-                    ...setValues,
-                    ruleId: params.advancement.ruleId,
-                    tenantId: params.advancement.tenantId,
-                  })
-                  .onConflictDoNothing({
-                    target: [crmRoutingCursors.tenantId, crmRoutingCursors.ruleId],
-                  })
-                  .returning()
-            )
-          : await runInCrmTenantContext(
-              executor,
-              authority,
-              async scoped =>
-                await scoped
-                  .update(crmRoutingCursors)
-                  .set(setValues)
-                  .where(
-                    and(
-                      eq(crmRoutingCursors.tenantId, params.advancement.tenantId),
-                      eq(crmRoutingCursors.ruleId, params.advancement.ruleId),
-                      eq(crmRoutingCursors.cursorValue, priorCursor)
-                    )
-                  )
-                  .returning()
-            );
-
-      if (rows[0]) {
-        return { advancement: params.advancement, success: true };
-      }
-
-      if (idempotencyKey) {
-        // db-access-guard: tenant-scoped -- reason: idempotent cursor retry lookup constrains by tenant, rule, expected cursor, and idempotency key
-        const existing = await runInCrmTenantContext(
-          executor,
-          authority,
-          async scoped =>
-            await scoped.query.crmRoutingCursors.findFirst({
-              where: and(
-                eq(crmRoutingCursors.tenantId, params.advancement.tenantId),
-                eq(crmRoutingCursors.ruleId, params.advancement.ruleId),
-                eq(crmRoutingCursors.cursorValue, params.advancement.nextCursor),
-                eq(crmRoutingCursors.lastIdempotencyKey, idempotencyKey)
-              ),
-            })
-        );
-
-        if (existing) {
-          return { advancement: params.advancement, success: true };
-        }
-      }
-
-      return { reason: 'cursor_conflict', success: false };
-    },
-
-    async appendRoutingAssignmentAudit(params) {
-      const values = auditValues(params);
-
-      // db-access-guard: tenant-scoped -- reason: routing assignment audit copies explicit tenantId from the CRM07 audit record and uses tenant-scoped idempotency
-      const inserted = await runInCrmTenantContext(
-        executor,
-        authority,
-        async scoped =>
-          await scoped
-            .insert(crmRoutingAssignmentsAudit)
-            .values(values)
-            .onConflictDoNothing({
-              target: [
-                crmRoutingAssignmentsAudit.tenantId,
-                crmRoutingAssignmentsAudit.idempotencyKey,
-              ],
-              where: sql`${crmRoutingAssignmentsAudit.idempotencyKey} is not null`,
-            })
-            .returning()
-      );
-
-      if (inserted[0]) {
-        return { auditRecord: mapAudit(inserted[0]), status: 'appended' };
-      }
-
-      const auditIdempotencyKey = values.idempotencyKey;
-      if (!auditIdempotencyKey) {
-        throw new Error('CRM routing audit append conflicted without an idempotency key');
-      }
-
-      // db-access-guard: tenant-scoped -- reason: idempotent routing assignment audit lookup constrains by tenant plus non-null idempotency key
-      const existing = await runInCrmTenantContext(
-        executor,
-        authority,
-        async scoped =>
-          await scoped.query.crmRoutingAssignmentsAudit.findFirst({
-            where: and(
-              eq(crmRoutingAssignmentsAudit.tenantId, values.tenantId),
-              eq(crmRoutingAssignmentsAudit.idempotencyKey, auditIdempotencyKey)
-            ),
-          })
-      );
-
-      if (!existing) {
-        throw new Error('CRM routing audit idempotency conflict did not return an existing row');
-      }
-
-      return { auditRecord: mapAudit(existing), status: 'existing' };
-    },
+    findRoutingAssignmentAuditByIdempotency: params =>
+      withTenantAuthority(authority, scoped =>
+        findRoutingAuditByIdempotencyInDatabase(scoped, params)
+      ),
+    listRoutingRules: params =>
+      withTenantAuthority(authority, scoped => listRoutingRulesInDatabase(scoped, params)),
+    advanceRoutingCursor: params =>
+      withTenantAuthority(authority, scoped => advanceRoutingCursorInDatabase(scoped, params)),
+    appendRoutingAssignmentAudit: params =>
+      withTenantAuthority(authority, scoped => appendRoutingAuditInDatabase(scoped, params)),
   };
 }
 
 export function createAdminCrmRoutingRuleRepository(
-  authority: TenantAuthority,
-  executor?: CrmTenantExecutor
+  authority: TenantAuthority
 ): AdminCrmRoutingRuleAdminRepository {
   async function getRoutingRule(params: {
     actor: CrmActorContext;
     ruleId: string;
   }): Promise<AdminCrmRoutingRuleRow | null> {
     // db-access-guard: tenant-scoped -- reason: CRM routing rule lookup constrains by session-derived tenant and rule ID
-    const row = await runInCrmTenantContext(
-      executor,
+    const row = await withTenantAuthority(
       authority,
       async scoped =>
         await scoped.query.crmRoutingRules.findFirst({
@@ -248,8 +69,7 @@ export function createAdminCrmRoutingRuleRepository(
   return {
     async archiveRoutingRule(params) {
       // db-access-guard: tenant-scoped -- reason: CRM routing rule archive constrains by session-derived tenant and rule ID
-      const rows = await runInCrmTenantContext(
-        executor,
+      const rows = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped
@@ -264,8 +84,7 @@ export function createAdminCrmRoutingRuleRepository(
     async createRoutingRule(params) {
       const values = ruleWriteValues(params.input);
       // db-access-guard: tenant-scoped -- reason: CRM routing rule create derives tenant from authorized admin actor
-      const rows = await runInCrmTenantContext(
-        executor,
+      const rows = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped
@@ -286,8 +105,7 @@ export function createAdminCrmRoutingRuleRepository(
     async listAgentScopes(params) {
       if (params.agentIds.length === 0) return [];
       // db-access-guard: tenant-scoped -- reason: routing admin validation constrains agent lookup by session tenant and submitted agent IDs
-      const rows = await runInCrmTenantContext(
-        executor,
+      const rows = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped.query.user.findMany({
@@ -305,8 +123,7 @@ export function createAdminCrmRoutingRuleRepository(
 
     async listBranches(params) {
       // db-access-guard: tenant-scoped -- reason: routing admin branch labels constrain by session tenant only
-      const rows = await runInCrmTenantContext(
-        executor,
+      const rows = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped.query.branches.findMany({
@@ -320,8 +137,7 @@ export function createAdminCrmRoutingRuleRepository(
 
     async listRoutingRulesForAdmin(params) {
       // db-access-guard: tenant-scoped -- reason: admin routing rule reads constrain by session-derived tenant and expose aggregate rule metadata only
-      const rows = await runInCrmTenantContext(
-        executor,
+      const rows = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped.query.crmRoutingRules.findMany({
@@ -338,8 +154,7 @@ export function createAdminCrmRoutingRuleRepository(
     },
 
     async reorderRoutingRules(params) {
-      return runInCrmTenantContext(
-        executor,
+      return withTenantAuthority(
         authority,
         async scoped =>
           await scoped.transaction(async tx => {
@@ -384,8 +199,7 @@ export function createAdminCrmRoutingRuleRepository(
 
     async setRoutingRuleEnabled(params) {
       // db-access-guard: tenant-scoped -- reason: CRM routing rule enable/disable constrains by session-derived tenant and rule ID
-      const rows = await runInCrmTenantContext(
-        executor,
+      const rows = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped
@@ -400,8 +214,7 @@ export function createAdminCrmRoutingRuleRepository(
     async updateRoutingRule(params) {
       const values = ruleWriteValues(params.input);
       // db-access-guard: tenant-scoped -- reason: CRM routing rule update constrains by session-derived tenant, rule ID, and optimistic updatedAt checksum
-      const rows = await runInCrmTenantContext(
-        executor,
+      const rows = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped

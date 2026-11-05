@@ -23,7 +23,7 @@ import {
   type MemberReadActor,
 } from '@/features/admin/members/server/member-read-scope';
 
-import { getAdminUserClaimSummary } from './_claim-summary';
+import { summarizeAdminUserClaimsInTransaction } from './_claim-summary';
 
 export type AdminUserClaimCounts = {
   total: number;
@@ -118,7 +118,7 @@ export async function getAdminUserProfileCore(args: {
 
     if (!member) return { kind: 'not_found' };
 
-    const [subscription, preferences, claimSummary] = await Promise.all([
+    const [subscription, preferences] = await Promise.all([
       tx.query.subscriptions.findFirst({
         where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, tenantId)),
         orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
@@ -129,15 +129,15 @@ export async function getAdminUserProfileCore(args: {
           eq(userNotificationPreferences.tenantId, tenantId)
         ),
       }),
-      getAdminUserClaimSummary({
-        db: tx,
-        recentClaimsLimit: args.recentClaimsLimit,
-        // The granted scope, not the raw actor: full-tenant roles carry no branch here.
-        scope: { role: scope.role, branchId: scope.branchId },
-        tenantId,
-        userId: member.id,
-      }),
     ]);
+    // Awaited on its own: the transaction it borrows must not outlive this callback.
+    const claimSummary = await summarizeAdminUserClaimsInTransaction(tx, {
+      recentClaimsLimit: args.recentClaimsLimit,
+      // The granted scope, not the raw actor: full-tenant roles carry no branch here.
+      scope: { role: scope.role, branchId: scope.branchId },
+      tenantId,
+      userId: member.id,
+    });
 
     const membershipStatus = getAdminUserMembershipStatus(subscription);
 

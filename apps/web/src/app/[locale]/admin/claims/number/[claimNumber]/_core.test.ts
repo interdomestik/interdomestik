@@ -4,7 +4,11 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ClaimsVisibilityContext } from '@/features/admin/claims/server/claimVisibility';
-import { getClaimNumberResolverCore, type ClaimNumberTenantRunner } from './_core';
+import {
+  findClaimIdByNumber,
+  type ClaimNumberLookup,
+} from '@/features/admin/number-resolvers/claim-number-lookup';
+import { getClaimNumberResolverCore } from './_core';
 
 type WhereBuilder = (c: typeof claims, ops: { eq: typeof eq }) => SQL | undefined;
 
@@ -39,8 +43,8 @@ function expectedSql(withBranch = false): string {
 
 describe('getClaimNumberResolverCore', () => {
   const tx = { query: { claims: { findFirst: vi.fn() } } };
-  const inTenantContext = vi.fn((lookup: Parameters<ClaimNumberTenantRunner>[0]) =>
-    lookup(tx as never)
+  const inTenantContext = vi.fn((lookup: ClaimNumberLookup) =>
+    findClaimIdByNumber(tx as never, lookup)
   );
 
   beforeEach(() => vi.clearAllMocks());

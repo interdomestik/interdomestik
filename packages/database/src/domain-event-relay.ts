@@ -133,34 +133,83 @@ export async function selectDomainEventsForRelay(
   return rows.map(row => ({ ...row, createdAt: normalizeCreatedAt(row.createdAt) }));
 }
 
+export type DomainEventRelayBatch = {
+  consumerName: string;
+  events: DomainEventRelayEvent[];
+  result: RelayDomainEventsResult;
+  tenantId: string;
+};
+
+/** Selects the events one relay pass delivers to `consumerName`, with an empty tally. */
+export async function selectDomainEventRelayBatch(
+  tx: RelayTx,
+  params: Omit<RelayDomainEventsParams, 'consumer'> & { consumerName: string }
+): Promise<DomainEventRelayBatch> {
+  const consumerName = assertNonBlank(params.consumerName, 'consumer.name');
+  const tenantId = assertNonBlank(params.tenantId, 'tenantId');
+  const events = await selectDomainEventsForRelay(tx, { ...params, consumerName });
+  const result = {
+    consumerInvocations: 0,
+    deliveryRecordsAlreadyExisted: 0,
+    deliveryRecordsCreated: 0,
+    selected: events.length,
+  };
+  return { consumerName, events, result, tenantId };
+}
+
+/** The delivery handle one event of `batch` is handed to its consumer with. */
+export function domainEventRelayDelivery(
+  batch: DomainEventRelayBatch,
+  event: DomainEventRelayEvent
+): { idempotencyKey: string } {
+  return { idempotencyKey: domainEventDeliveryIdempotencyKey(event.id, batch.consumerName) };
+}
+
+/** Records the delivery of one event the consumer has handled and counts it into `result`. */
+export async function recordRelayedDomainEventDelivery(
+  tx: RelayTx,
+  batch: DomainEventRelayBatch,
+  result: RelayDomainEventsResult,
+  event: DomainEventRelayEvent
+): Promise<RelayDomainEventsResult> {
+  const { status } = await recordDomainEventDelivery(tx, {
+    consumerName: batch.consumerName,
+    eventId: event.id,
+    tenantId: batch.tenantId,
+  });
+  const created = status === 'delivered' ? 1 : 0;
+  return {
+    consumerInvocations: result.consumerInvocations + 1,
+    deliveryRecordsAlreadyExisted: result.deliveryRecordsAlreadyExisted + 1 - created,
+    deliveryRecordsCreated: result.deliveryRecordsCreated + created,
+    selected: result.selected,
+  };
+}
+
 export async function relayDomainEvents(
   tx: RelayTx,
   params: RelayDomainEventsParams
 ): Promise<RelayDomainEventsResult> {
-  const consumerName = assertNonBlank(params.consumer.name, 'consumer.name');
-  const tenantId = assertNonBlank(params.tenantId, 'tenantId');
-  const events = await selectDomainEventsForRelay(tx, { ...params, consumerName });
-  let consumerInvocations = 0;
-  let deliveryRecordsAlreadyExisted = 0;
-  let deliveryRecordsCreated = 0;
+  const batch = await selectDomainEventRelayBatch(tx, {
+    ...params,
+    consumerName: params.consumer.name,
+  });
+  return deliverEventsFrom(tx, params.consumer, batch, 0, batch.result);
+}
 
-  for (const event of events) {
-    const idempotencyKey = domainEventDeliveryIdempotencyKey(event.id, consumerName);
-    await params.consumer.deliver(event, { idempotencyKey });
-    consumerInvocations += 1;
-    const result = await recordDomainEventDelivery(tx, {
-      consumerName,
-      eventId: event.id,
-      tenantId,
-    });
-    if (result.status === 'delivered') deliveryRecordsCreated += 1;
-    else deliveryRecordsAlreadyExisted += 1;
-  }
+type RelayBatch = Awaited<ReturnType<typeof selectDomainEventRelayBatch>>;
 
-  return {
-    consumerInvocations,
-    deliveryRecordsAlreadyExisted,
-    deliveryRecordsCreated,
-    selected: events.length,
-  };
+/** Delivers and records the batch's events one at a time, in order, on the same transaction. */
+async function deliverEventsFrom(
+  tx: RelayTx,
+  consumer: RelayDomainEventsParams['consumer'],
+  batch: RelayBatch,
+  index: number,
+  result: RelayDomainEventsResult
+): Promise<RelayDomainEventsResult> {
+  const event = batch.events[index];
+  if (!event) return result;
+  await consumer.deliver(event, domainEventRelayDelivery(batch, event));
+  const recorded = await recordRelayedDomainEventDelivery(tx, batch, result, event);
+  return deliverEventsFrom(tx, consumer, batch, index + 1, recorded);
 }

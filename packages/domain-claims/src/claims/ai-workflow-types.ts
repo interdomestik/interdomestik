@@ -36,8 +36,8 @@ export type ClaimAiConsentGrant = {
   recordedAt: string;
 };
 
+/** What a queue request names; the borrowed transaction is passed beside it, never inside it. */
 export type ClaimAiWorkflowQueueInput = {
-  tx: unknown;
   claimId: string;
   tenantId: string;
   userId: string;

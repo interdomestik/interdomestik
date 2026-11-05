@@ -3,7 +3,7 @@ import { and, asc, desc, eq } from 'drizzle-orm';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { crmPipelineSnapshots } from '@interdomestik/database/schema';
 
-import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type CrmForecastSnapshotObservedRow = {
   branchId: string | null;
@@ -28,13 +28,11 @@ function toIso(value: Date | string): string {
 }
 
 export function createCrmForecastSnapshotObservabilityRepository(
-  authority: TenantAuthority,
-  executor?: CrmTenantExecutor
+  authority: TenantAuthority
 ): CrmForecastSnapshotObservabilityRepository {
   return {
     async listObservedSnapshots(params) {
-      const rows = await runInCrmTenantContext(
-        executor,
+      const rows = await withTenantAuthority(
         authority,
         async scoped =>
           await scoped

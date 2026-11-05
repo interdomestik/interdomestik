@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// getDocumentAccessCore opens its tenant-bound transaction with the database package's
+// withTenantContext; the test stands its runner in there.
+const tenantContext = vi.hoisted(() => ({ run: vi.fn() }));
+vi.mock('@interdomestik/database', async importActual => ({
+  ...(await importActual<typeof import('@interdomestik/database')>()),
+  withTenantContext: tenantContext.run,
+}));
+
 const sqlMocks = vi.hoisted(() => ({
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
@@ -19,14 +27,16 @@ vi.mock('./durable-case-grants', () => ({
   hasDurableCaseScopedDocumentGrant: vi.fn().mockResolvedValue(false),
 }));
 
+import { sessionAuthority } from './document-access.test-support';
 import { getDocumentAccessCore, type DocumentAccessDeps } from './_core';
 
 const mockDb = { select: vi.fn() };
+// The same mock serves as the tenant-bound transaction for normal-tenant reads.
+tenantContext.run.mockImplementation(async (_context: unknown, action: (tx: never) => unknown) =>
+  action(mockDb as never)
+);
 const mockDeps: DocumentAccessDeps = {
   db: mockDb as unknown as DocumentAccessDeps['db'],
-  // The same mock serves as the tenant-bound transaction for normal-tenant reads.
-  withTenantContext: (async (_context: unknown, action: (tx: never) => Promise<unknown>) =>
-    action(mockDb as never)) as unknown as DocumentAccessDeps['withTenantContext'],
   storage: {
     createSignedUrl: vi.fn(),
     download: vi.fn(),
@@ -72,6 +82,7 @@ describe('getDocumentAccessCore access tenant isolation', () => {
     };
 
     const result = await getDocumentAccessCore({
+      authority: sessionAuthority(session),
       deps: mockDeps,
       documentId: 'doc-1',
       mode: 'download',
@@ -114,18 +125,20 @@ describe('getDocumentAccessCore access tenant isolation', () => {
     };
     mockDb.select.mockReturnValueOnce(polyChain).mockReturnValueOnce(legacyQuery);
 
+    const session = {
+      user: {
+        id: 'support-1',
+        role: 'global_support',
+        tenantId: 'tenant_legal_compat',
+        accessTenantId: 'tenant_access',
+      },
+    };
     const result = await getDocumentAccessCore({
+      authority: sessionAuthority(session),
       deps: mockDeps,
       documentId: 'legacy-doc-1',
       mode: 'download',
-      session: {
-        user: {
-          id: 'support-1',
-          role: 'global_support',
-          tenantId: 'tenant_legal_compat',
-          accessTenantId: 'tenant_access',
-        },
-      },
+      session,
     });
 
     expect(result).toEqual(expect.objectContaining({ ok: true, tenantId: 'tenant_home' }));

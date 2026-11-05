@@ -6,19 +6,22 @@ import {
   subscriptions,
   type TenantTransaction,
 } from '@interdomestik/database';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export const FAMILY_MATTER_ALLOWANCE = 5;
-export const STANDARD_MATTER_ALLOWANCE = 2;
+import {
+  buildMatterAllowanceWindow,
+  resolveMatterAllowance,
+  type NormalizableDate,
+} from './matter-allowance-window';
+
+export {
+  buildMatterAllowanceWindow,
+  FAMILY_MATTER_ALLOWANCE,
+  STANDARD_MATTER_ALLOWANCE,
+} from './matter-allowance-window';
+
 export const RECOVERY_MATTER_SERVICE_CODE_PREFIX = 'staff_recovery_matter:';
 const RECOVERY_MATTER_SERVICE_CODE_PATTERN = `${RECOVERY_MATTER_SERVICE_CODE_PREFIX}%`;
-
-type NormalizableDate = Date | string | null | undefined;
 
 export type MatterAllowanceVisibility = {
   allowanceTotal: number;
@@ -39,65 +42,9 @@ export type MatterAllowanceSubscriptionContext = {
   subscriptionId: string;
 };
 
-// A caller either runs inside a tenant transaction it already opened (tx plus the tenant it
-// scopes predicates to), or hands over the request's tenant authority so the read opens its own.
-export type MatterAllowanceScope =
-  | { authority?: undefined; tenantId: string; tx: TenantTransaction }
-  | { authority: TenantAuthority; tenantId?: undefined; tx?: undefined };
-
-function scopeTenantId(scope: MatterAllowanceScope): string {
-  return scope.tx ? scope.tenantId : readTenantAuthority(scope.authority).tenantId;
-}
-
-function pickScope(scope: MatterAllowanceScope): MatterAllowanceScope {
-  return scope.tx ? { tenantId: scope.tenantId, tx: scope.tx } : { authority: scope.authority };
-}
-
-function withTenantExecutor<T>(
-  scope: MatterAllowanceScope,
-  action: (executor: TenantTransaction) => Promise<T>
-): Promise<T> {
-  return scope.tx ? action(scope.tx) : withTenantAuthority(scope.authority, action);
-}
-
-function normalizeDate(value: NormalizableDate) {
-  if (!value) return null;
-
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-export function buildMatterAllowanceWindow(params: {
-  currentPeriodEnd: NormalizableDate;
-  currentPeriodStart: NormalizableDate;
-  now: Date;
-}) {
-  const currentPeriodStart = normalizeDate(params.currentPeriodStart);
-  const currentPeriodEnd = normalizeDate(params.currentPeriodEnd);
-
-  if (currentPeriodStart && currentPeriodEnd) {
-    return { end: currentPeriodEnd, start: currentPeriodStart };
-  }
-
-  const fallbackEnd = currentPeriodEnd ?? params.now;
-  const fallbackStart =
-    currentPeriodStart ??
-    new Date(
-      Date.UTC(
-        fallbackEnd.getUTCFullYear() - 1,
-        fallbackEnd.getUTCMonth(),
-        fallbackEnd.getUTCDate()
-      )
-    );
-
-  return { end: fallbackEnd, start: fallbackStart };
-}
-
-function resolveMatterAllowance(planId: string | null | undefined) {
-  return planId === 'family' || planId === 'business'
-    ? FAMILY_MATTER_ALLOWANCE
-    : STANDARD_MATTER_ALLOWANCE;
-}
+// Every read runs inside the tenant transaction its caller already opened, with the tenant that
+// transaction's predicates are scoped to. Callers hand the transaction over as an explicit field.
+export type MatterAllowanceScope = { tenantId: string; tx: TenantTransaction };
 
 export function getRecoveryMatterServiceCode(claimId: string) {
   return `${RECOVERY_MATTER_SERVICE_CODE_PREFIX}${claimId}`;
@@ -109,26 +56,30 @@ export async function hasRecoveryMatterUsageForClaim(
     subscriptionId: string;
   }
 ) {
-  const tenantId = scopeTenantId(params);
-  const [existingUsage] = await withTenantExecutor(params, executor =>
-    executor
-      .select({ id: serviceUsage.id })
-      .from(serviceUsage)
-      .where(
-        withTenant(
-          tenantId,
-          serviceUsage.tenantId,
-          and(
-            eq(serviceUsage.subscriptionId, params.subscriptionId),
-            eq(serviceUsage.serviceCode, getRecoveryMatterServiceCode(params.claimId))
-          )
+  const [existingUsage] = await params.tx
+    .select({ id: serviceUsage.id })
+    .from(serviceUsage)
+    .where(
+      withTenant(
+        params.tenantId,
+        serviceUsage.tenantId,
+        and(
+          eq(serviceUsage.subscriptionId, params.subscriptionId),
+          eq(serviceUsage.serviceCode, getRecoveryMatterServiceCode(params.claimId))
         )
       )
-      .limit(1)
-  );
+    )
+    .limit(1);
 
   return !!existingUsage;
 }
+
+type UsageWindow = {
+  lockUsage?: boolean;
+  end: Date;
+  start: Date;
+  subscriptionId: string;
+};
 
 export async function countRecoveryMatterUsageInWindow(
   params: MatterAllowanceScope & {
@@ -138,53 +89,68 @@ export async function countRecoveryMatterUsageInWindow(
     subscriptionId: string;
   }
 ) {
-  const tenantId = scopeTenantId(params);
+  const { tenantId } = params;
   if (params.lockUsage !== false)
-    await params.tx?.execute(
+    await params.tx.execute(
       sql`select pg_advisory_xact_lock(hashtextextended(${JSON.stringify(['recovery', tenantId, params.subscriptionId])}, 0))`
     );
   const endBoundary = params.end.toISOString();
   const startBoundary = params.start.toISOString();
-  const [usageCount] = await withTenantExecutor(params, executor =>
-    executor
-      .select({ count: sql<number>`count(*)` })
-      .from(serviceUsage)
-      .where(
-        withTenant(
-          tenantId,
-          serviceUsage.tenantId,
-          and(
-            eq(serviceUsage.subscriptionId, params.subscriptionId),
-            sql`${serviceUsage.serviceCode} like ${RECOVERY_MATTER_SERVICE_CODE_PATTERN}`,
-            sql`${serviceUsage.usedAt} >= CAST(${startBoundary} AS timestamp)`,
-            sql`${serviceUsage.usedAt} <= CAST(${endBoundary} AS timestamp)`
-          )
+  const [usageCount] = await params.tx
+    .select({ count: sql<number>`count(*)` })
+    .from(serviceUsage)
+    .where(
+      withTenant(
+        tenantId,
+        serviceUsage.tenantId,
+        and(
+          eq(serviceUsage.subscriptionId, params.subscriptionId),
+          sql`${serviceUsage.serviceCode} like ${RECOVERY_MATTER_SERVICE_CODE_PATTERN}`,
+          sql`${serviceUsage.usedAt} >= CAST(${startBoundary} AS timestamp)`,
+          sql`${serviceUsage.usedAt} <= CAST(${endBoundary} AS timestamp)`
         )
       )
-      .limit(1)
-  );
+    )
+    .limit(1);
 
   return Number(usageCount?.count ?? 0);
 }
 
-export async function getMatterAllowanceSubscriptionContextForUser(
+// The scope's transaction is passed as an explicit field of a fresh argument, never copied out.
+async function countUsageInWindow(scope: MatterAllowanceScope, window: UsageWindow) {
+  const { lockUsage, end, start, subscriptionId } = window;
+  return await countRecoveryMatterUsageInWindow({
+    tenantId: scope.tenantId,
+    tx: scope.tx,
+    lockUsage,
+    end,
+    start,
+    subscriptionId,
+  });
+}
+
+export function getMatterAllowanceSubscriptionContextForUser(
   params: MatterAllowanceScope & {
     userId: string;
   }
 ): Promise<MatterAllowanceSubscriptionContext | null> {
-  const tenantId = scopeTenantId(params);
-  const [subscription] = await withTenantExecutor(params, executor =>
-    executor
-      .select({
-        id: subscriptions.id,
-        currentPeriodEnd: subscriptions.currentPeriodEnd,
-        currentPeriodStart: subscriptions.currentPeriodStart,
-        planId: subscriptions.planId,
-      })
-      .from(subscriptions)
-      .where(withTenant(tenantId, subscriptions.tenantId, eq(subscriptions.userId, params.userId)))
-      .limit(1)
-  );
+  return subscriptionContextForUser(params, params.userId);
+}
+
+async function subscriptionContextForUser(
+  scope: MatterAllowanceScope,
+  userId: string
+): Promise<MatterAllowanceSubscriptionContext | null> {
+  const [subscription] = await scope.tx
+    .select({
+      id: subscriptions.id,
+      currentPeriodEnd: subscriptions.currentPeriodEnd,
+      currentPeriodStart: subscriptions.currentPeriodStart,
+      planId: subscriptions.planId,
+    })
+    .from(subscriptions)
+    .where(withTenant(scope.tenantId, subscriptions.tenantId, eq(subscriptions.userId, userId)))
+    .limit(1);
 
   if (!subscription) return null;
 
@@ -192,24 +158,35 @@ export async function getMatterAllowanceSubscriptionContextForUser(
   return { subscriptionId, ...context };
 }
 
-export async function getMatterAllowanceContextForSubscription(
-  params: MatterAllowanceScope & {
-    lockUsage?: boolean;
-    now?: Date;
-    subscription: MatterAllowanceSubscriptionContext;
-  }
-): Promise<MatterAllowanceContext> {
-  const { subscription } = params;
+type AllowanceRequest = {
+  lockUsage?: boolean;
+  now?: Date;
+};
 
+// Optional request settings travel apart from the scope: a missing field read from the scope
+// object would be looked up on its prototype.
+export function getMatterAllowanceContextForSubscription(
+  params: MatterAllowanceScope & {
+    subscription: MatterAllowanceSubscriptionContext;
+  },
+  request: AllowanceRequest = {}
+): Promise<MatterAllowanceContext> {
+  return allowanceContextForSubscription(params, params.subscription, request);
+}
+
+async function allowanceContextForSubscription(
+  scope: MatterAllowanceScope,
+  subscription: MatterAllowanceSubscriptionContext,
+  request: AllowanceRequest
+): Promise<MatterAllowanceContext> {
   const allowanceWindow = buildMatterAllowanceWindow({
     currentPeriodEnd: subscription.currentPeriodEnd,
     currentPeriodStart: subscription.currentPeriodStart,
-    now: params.now ?? new Date(),
+    now: request.now ?? new Date(),
   });
   const allowanceTotal = resolveMatterAllowance(subscription.planId);
-  const consumedCount = await countRecoveryMatterUsageInWindow({
-    ...pickScope(params),
-    lockUsage: params.lockUsage,
+  const consumedCount = await countUsageInWindow(scope, {
+    lockUsage: request.lockUsage,
     end: allowanceWindow.end,
     start: allowanceWindow.start,
     subscriptionId: subscription.subscriptionId,
@@ -225,40 +202,28 @@ export async function getMatterAllowanceContextForSubscription(
   };
 }
 
-export async function getMatterAllowanceContextForUser(
-  params: MatterAllowanceScope & {
-    lockUsage?: boolean;
-    userId: string;
-    now?: Date;
-  }
+async function allowanceContextForUser(
+  scope: MatterAllowanceScope,
+  userId: string,
+  request: AllowanceRequest
 ): Promise<MatterAllowanceContext | null> {
-  const subscription = await getMatterAllowanceSubscriptionContextForUser({
-    ...pickScope(params),
-    userId: params.userId,
-  });
+  const subscription = await subscriptionContextForUser(scope, userId);
 
   if (!subscription) return null;
 
-  return getMatterAllowanceContextForSubscription({
-    ...pickScope(params),
-    lockUsage: params.lockUsage,
-    now: params.now,
-    subscription,
-  });
+  return allowanceContextForSubscription(scope, subscription, request);
 }
 
 export async function getMatterAllowanceVisibilityForUser(
   params: MatterAllowanceScope & {
     userId: string;
-    now?: Date;
-  }
+  },
+  request: Pick<AllowanceRequest, 'now'> = {}
 ): Promise<MatterAllowanceVisibility | null> {
   // Visibility is advisory; only allowance-consuming workflows need the write lock.
-  const context = await getMatterAllowanceContextForUser({
-    ...pickScope(params),
+  const context = await allowanceContextForUser(params, params.userId, {
     lockUsage: false,
-    now: params.now,
-    userId: params.userId,
+    now: request.now,
   });
 
   if (!context) return null;

@@ -42,7 +42,6 @@ export async function recordJurisdictionHandoffInTransaction(
     actorId: params.grantActorId,
     recoveryTenantId: recovery.recoveryLegalTenantId,
     resolver: params.grantActorResolver,
-    tx,
   });
   if (!canGrantActorReceiveAccess) {
     return { success: false, error: 'grant_actor_not_recovery_tenant' };

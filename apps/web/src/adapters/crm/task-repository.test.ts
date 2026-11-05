@@ -1,5 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { onCrmTenantDatabase } from './crm-tenant-database.test-support';
 import { agentActor, createFakeDb, rowFromTask } from './task-repository.test-support';
 import { CrmTaskRepositoryFailure } from '@interdomestik/domain-crm/tasks';
 import { crmTaskHistory, crmTasks } from '@interdomestik/database/schema';
@@ -12,7 +13,10 @@ describe('crmTaskRepository', () => {
 
   it('creates a CRM task and initial history row in one transaction without raw subject text', async () => {
     const fake = createFakeDb({});
-    const repository = createCrmTaskRepository(mintTestTenantAuthority('tenant-1'), fake.db);
+    const repository = onCrmTenantDatabase(
+      fake.db,
+      createCrmTaskRepository(mintTestTenantAuthority('tenant-1'))
+    );
 
     const saved = await repository.saveTask({ actor: agentActor, task: fake.task });
 
@@ -48,7 +52,10 @@ describe('crmTaskRepository', () => {
 
   it('throws a deterministic conflict and skips history append on stale lifecycle writes', async () => {
     const fake = createFakeDb({ updateRows: [] });
-    const repository = createCrmTaskRepository(mintTestTenantAuthority('tenant-1'), fake.db);
+    const repository = onCrmTenantDatabase(
+      fake.db,
+      createCrmTaskRepository(mintTestTenantAuthority('tenant-1'))
+    );
 
     await expect(
       repository.saveTask({
@@ -70,7 +77,10 @@ describe('crmTaskRepository', () => {
       leadRow: { agentId: 'agent-2', branchId: 'branch-1', id: 'lead-1', tenantId: 'tenant-1' },
     });
     fake.query.crmTasks.findFirst.mockResolvedValueOnce(rowFromTask(fake.task));
-    const repository = createCrmTaskRepository(mintTestTenantAuthority('tenant-1'), fake.db);
+    const repository = onCrmTenantDatabase(
+      fake.db,
+      createCrmTaskRepository(mintTestTenantAuthority('tenant-1'))
+    );
 
     await expect(
       repository.appendTaskHistory({
@@ -88,7 +98,10 @@ describe('crmTaskRepository', () => {
   it('replays equivalent idempotent creates and rejects non-equivalent material', async () => {
     const fake = createFakeDb({});
     fake.query.crmTasks.findFirst.mockResolvedValueOnce(rowFromTask(fake.task));
-    const repository = createCrmTaskRepository(mintTestTenantAuthority('tenant-1'), fake.db);
+    const repository = onCrmTenantDatabase(
+      fake.db,
+      createCrmTaskRepository(mintTestTenantAuthority('tenant-1'))
+    );
 
     await expect(
       repository.saveTask({ actor: agentActor, task: fake.task })
@@ -117,7 +130,10 @@ describe('crmTaskRepository', () => {
     fake.query.crmTasks.findFirst
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(rowFromTask(fake.task));
-    const repository = createCrmTaskRepository(mintTestTenantAuthority('tenant-1'), fake.db);
+    const repository = onCrmTenantDatabase(
+      fake.db,
+      createCrmTaskRepository(mintTestTenantAuthority('tenant-1'))
+    );
 
     await expect(
       repository.saveTask({ actor: agentActor, task: fake.task })
@@ -134,9 +150,9 @@ describe('crmTaskRepository', () => {
     const invisibleLead = createFakeDb({
       leadRow: { agentId: 'agent-2', branchId: 'branch-1', id: 'lead-1', tenantId: 'tenant-1' },
     });
-    const repository = createCrmTaskRepository(
-      mintTestTenantAuthority('tenant-1'),
-      invisibleLead.db
+    const repository = onCrmTenantDatabase(
+      invisibleLead.db,
+      createCrmTaskRepository(mintTestTenantAuthority('tenant-1'))
     );
 
     await expect(

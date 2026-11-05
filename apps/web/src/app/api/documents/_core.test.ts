@@ -1,4 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+type TenantRun = (context: unknown, action: (tx: never) => unknown) => unknown;
+const tenantContext = vi.hoisted(() => ({ run: vi.fn<TenantRun>() }));
+vi.mock('@interdomestik/database', async importActual => ({
+  ...(await importActual<typeof import('@interdomestik/database')>()),
+  withTenantContext: tenantContext.run,
+}));
+import { sessionAuthority, tenantContextOf } from './document-access.test-support';
 import {
   buildContentDispositionHeader,
   DocumentAccessDeps,
@@ -6,18 +14,14 @@ import {
   safeFilename,
 } from './_core';
 
-// Normal-tenant reads run on the explicit tenant-bound transaction handle (`mockDb`); the base
-// client is reserved for the cross-tenant grant fallback after that transaction is released.
+// withTenantContext opens the local transaction (`mockDb`); the base client is the fallback.
 const mockDb = { select: vi.fn() };
 const mockBaseDb = { select: vi.fn() };
 const mockStorage = { createSignedUrl: vi.fn(), download: vi.fn() };
-const mockWithTenantContext = vi.fn(
-  async (_context: unknown, action: (tx: never) => Promise<unknown>) => action(mockDb as never)
-);
+const tenantRun = tenantContext.run.mockImplementation((_, action) => action(mockDb as never));
 const mockDeps: DocumentAccessDeps = {
   db: mockBaseDb as unknown as DocumentAccessDeps['db'],
   storage: mockStorage,
-  withTenantContext: mockWithTenantContext as unknown as DocumentAccessDeps['withTenantContext'],
 };
 
 const memberSession = { user: { id: 'member-1', role: 'member', tenantId: 't1' } };
@@ -93,13 +97,12 @@ function grantAgentScope() {
   mockDb.select.mockReturnValueOnce(createSelectMock([{ id: 'link-1' }]));
 }
 
-async function execAccess(
-  session: Parameters<typeof getDocumentAccessCore>[0]['session'],
-  docId: string,
-  mode: 'download' | 'signed_url' = 'download'
-) {
-  return getDocumentAccessCore({ session, documentId: docId, mode, deps: mockDeps });
-}
+type CoreSession = Parameters<typeof getDocumentAccessCore>[0]['session'];
+const execAccess = (session: CoreSession, documentId: string, mode: Mode = 'download') => {
+  const authority = sessionAuthority(session);
+  return getDocumentAccessCore({ authority, deps: mockDeps, documentId, mode, session });
+};
+type Mode = 'download' | 'signed_url';
 
 describe('getDocumentAccessCore Hardening', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -226,10 +229,8 @@ describe('getDocumentAccessCore Hardening', () => {
       const session = { user: { ...memberSession.user, tenantId: 'wrong' } };
       const res = await execAccess(session, 'doc1');
       expect(res).toEqual({ ok: false, code: 'NOT_FOUND', message: 'Document not found' });
-      expect(mockWithTenantContext).toHaveBeenCalledWith(
-        { accessTenantId: 'wrong', role: 'member', tenantId: 'wrong' },
-        expect.any(Function)
-      );
+      const context = tenantContextOf(tenantRun.mock.calls[0]?.[0]);
+      expect(context).toEqual({ accessTenantId: 'wrong', role: 'member', tenantId: 'wrong' });
     });
   });
 

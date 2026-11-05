@@ -161,7 +161,7 @@ async function persistSubscriptionInsert(args: SubscriptionWriteArgs): Promise<'
       ...args.values,
       ...providerEventOrderValues(args.order),
     });
-    await recordMembershipSubscriptionChangedEvent({
+    await recordMembershipSubscriptionChangedEvent(tx as DomainEventTx, {
       cancelAtPeriodEnd: args.values.cancelAtPeriodEnd,
       fromStatus: 'none',
       id: args.eventId,
@@ -169,7 +169,6 @@ async function persistSubscriptionInsert(args: SubscriptionWriteArgs): Promise<'
       subscriptionId: args.sub.id,
       tenantId,
       toStatus: args.values.status,
-      tx: tx as DomainEventTx,
     });
     return 'apply';
   });
@@ -218,7 +217,7 @@ async function persistSubscriptionUpdate(
         .returning({ id: subscriptions.id });
       if (updatedRows.length !== 1)
         throw new Error(`Paddle subscription ${args.sub.id} update matched no tenant-scoped row`);
-      await recordMembershipSubscriptionChangedEvent({
+      await recordMembershipSubscriptionChangedEvent(tx as DomainEventTx, {
         cancelAtPeriodEnd: args.values.cancelAtPeriodEnd,
         fromStatus: normalizeExistingStatus(fromStatus),
         id: args.eventId,
@@ -226,7 +225,6 @@ async function persistSubscriptionUpdate(
         subscriptionId: subscription.id,
         tenantId,
         toStatus: args.values.status,
-        tx: tx as DomainEventTx,
       });
       return 'apply';
     }

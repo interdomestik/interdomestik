@@ -15,10 +15,16 @@ export type TrustedGrantActorSnapshot = {
   tenantId: string;
 };
 
+/**
+ * Reads the grant actor's tenant and role from a trusted source. It receives identifiers only and
+ * opens its own authorized recovery-tenant read: the handoff transaction runs under the home
+ * tenant, so it cannot establish recovery-tenant visibility, and it is never lent to the resolver.
+ * A separate read is not atomic with the grant insert; before a production caller adopts this,
+ * concurrent actor removal or role change must be shown unable to create an invalid grant.
+ */
 export type TrustedGrantActorResolver = (args: {
   actorId: string;
   recoveryTenantId: string;
-  tx: HandoffTx;
 }) => Promise<TrustedGrantActorSnapshot | null>;
 
 export type JurisdictionHandoffParams = {

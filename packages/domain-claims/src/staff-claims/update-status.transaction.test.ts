@@ -59,7 +59,16 @@ vi.mock('@interdomestik/database', () => ({
 }));
 vi.mock('@interdomestik/database/tenant-security', () => ({ withTenant: vi.fn() }));
 vi.mock('./current-claim-record', () => ({ loadStaffCurrentClaimRecord: mocks.load }));
-vi.mock('../claims/transition', () => ({ transitionClaimStatusInTransaction: mocks.transition }));
+vi.mock('../claims/transition', () => ({
+  authorizeClaimTransitionInTransaction: mocks.transition,
+  recordAuthorizedTransitionSideEffects: vi.fn(),
+  writeAuthorizedTransitionStatus: vi.fn(async () => ({ lifecycleVersion: 7 })),
+}));
+vi.mock('./rejected-claim-public-note', () => ({
+  safePublicStatusNote: vi.fn(
+    async (_tx: unknown, context: { note: string | null }) => context.note
+  ),
+}));
 vi.mock('../claims/audit-projection', () => ({
   activateClaimStatusAuditProjection: mocks.project,
 }));
@@ -125,7 +134,16 @@ describe('staff status transaction boundary', () => {
     mocks.subscription.mockResolvedValue({ subscriptionId: 'sub-1' });
     mocks.usage.mockResolvedValue(false);
     mocks.allowance.mockResolvedValue({ consumedCount: 0, allowanceTotal: 2 });
-    mocks.transition.mockResolvedValue({ success: true, fromStatus: 'evaluation' });
+    mocks.transition.mockResolvedValue({
+      success: true,
+      transition: {
+        claimId: 'claim-1',
+        current: { status: 'evaluation' },
+        isPublic: true,
+        note: null,
+        tenantId: 'tenant-1',
+      },
+    });
   });
 
   it('commits before effects', async () => {

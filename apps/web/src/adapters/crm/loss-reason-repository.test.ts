@@ -1,5 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { onCrmTenantDatabase } from './crm-tenant-database.test-support';
 
 const hoisted = vi.hoisted(() => ({
   db: {},
@@ -27,11 +28,14 @@ describe('crmLossReasonRepository', () => {
 
   it('resolves active tenant and branch-compatible loss reasons', async () => {
     const findFirst = vi.fn(async () => ({ code: 'price', id: 'reason-1' }));
-    const repository = createCrmLossReasonRepository(mintTestTenantAuthority('tenant-1'), {
-      query: {
-        crmLossReasons: { findFirst },
-      },
-    } as never);
+    const repository = onCrmTenantDatabase(
+      {
+        query: {
+          crmLossReasons: { findFirst },
+        },
+      } as never,
+      createCrmLossReasonRepository(mintTestTenantAuthority('tenant-1'))
+    );
 
     await expect(
       repository.resolveLossReason({ actor, lossReasonId: 'reason-1' })
@@ -46,11 +50,14 @@ describe('crmLossReasonRepository', () => {
   });
 
   it('returns null when no active scoped loss reason exists', async () => {
-    const repository = createCrmLossReasonRepository(mintTestTenantAuthority('tenant-1'), {
-      query: {
-        crmLossReasons: { findFirst: vi.fn(async () => null) },
-      },
-    } as never);
+    const repository = onCrmTenantDatabase(
+      {
+        query: {
+          crmLossReasons: { findFirst: vi.fn(async () => null) },
+        },
+      } as never,
+      createCrmLossReasonRepository(mintTestTenantAuthority('tenant-1'))
+    );
 
     await expect(
       repository.resolveLossReason({ actor, lossReasonId: 'missing-reason' })
