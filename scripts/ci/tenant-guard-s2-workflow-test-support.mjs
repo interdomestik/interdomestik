@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
+import { officialArchive } from './db-access-required-compiler.mjs';
 import { commit, git, rootDir, tmp, writeFile } from './db-access-required-git.mjs';
 import { TRUSTED } from './tenant-guard/trusted.mjs';
 
@@ -21,7 +22,9 @@ export const workflow = yaml.load(
 export const step = workflow.jobs['tenant-guard-s2'].steps.find(
   entry => entry.id === 'protected_tenant_guard'
 );
-export const archive = path.join(rootDir, 'tmp', 'db-access-protected', `typescript-${TS}.tgz`);
+// The official TypeScript archive is provisioned on import (downloaded once, accepted only at the
+// approved lock SRI). A missing or corrupted archive fails this suite instead of skipping it.
+export const archive = officialArchive;
 export const sri = file =>
   `sha512-${createHash('sha512').update(fs.readFileSync(file)).digest('base64')}`;
 export const lockIntegrity =
@@ -29,7 +32,8 @@ export const lockIntegrity =
     fs.readFileSync(path.join(rootDir, 'pnpm-lock.yaml'), 'utf8')
   )?.[1];
 export const ready = fs.existsSync(archive) && lockIntegrity && sri(archive) === lockIntegrity;
-export const skip = ready ? false : `needs the verified TypeScript ${TS} archive at ${archive}`;
+assert.ok(ready, `needs the verified TypeScript ${TS} archive at ${archive}`);
+export const skip = false;
 
 // Protected main: the current working tree (tracked and unignored files) as one commit on top of
 // the trusted comparator. It is also the approved source unless a test pins a variant.
