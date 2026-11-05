@@ -153,7 +153,8 @@ test('withTenantAuthority confines the restricted role under concurrency, expiry
         assert.ok(used.size <= POOL_SIZE, 'the pinned pool forced connection reuse');
 
         // Each probe holds its connection, so concurrent probes cover every pooled backend.
-        const released = await Promise.all(
+        // allSettled drains every probe before asserting, so no transaction outlives this case.
+        const probes = await Promise.allSettled(
           Array.from({ length: POOL_SIZE * 3 }, () =>
             dbRls.transaction(async tx => {
               const row = await gucsOf(tx);
@@ -161,6 +162,14 @@ test('withTenantAuthority confines the restricted role under concurrency, expiry
               return row;
             })
           )
+        );
+        assert.deepEqual(
+          probes.flatMap(probe => (probe.status === 'rejected' ? [probe.reason] : [])),
+          [],
+          'every reset probe completed'
+        );
+        const released = probes.map(probe =>
+          probe.status === 'fulfilled' ? probe.value : undefined
         );
         assert.ok(released.every(Boolean), 'every probe returned a row');
         const probed = new Set(released.map(row => row?.pid));

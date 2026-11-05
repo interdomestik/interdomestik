@@ -178,10 +178,19 @@ export async function openS8RestrictedSession(
   }
   const adminSql = postgres(databaseUrl, { max: 1 });
   const adminDb = drizzle(adminSql);
-  await requireRlsPreconditions(adminDb, adminSql, requireIntegration, t, S8_CLAIM_TABLES);
-  if (t.signal.aborted) return null;
-
-  await provisionRestrictedRole(adminDb);
+  // The admin client is owned from creation: a skip or any setup failure before seeding ends it.
+  const endAdmin = () => adminSql.end({ timeout: 1 }).catch(() => undefined);
+  try {
+    await requireRlsPreconditions(adminDb, adminSql, requireIntegration, t, S8_CLAIM_TABLES);
+    if (!t.signal.aborted) await provisionRestrictedRole(adminDb);
+  } catch (error) {
+    await endAdmin();
+    throw error;
+  }
+  if (t.signal.aborted) {
+    await endAdmin();
+    return null;
+  }
   const fixture = createS8ClaimFixture();
   const env = applyRlsTestConnectionEnv(databaseUrl);
   const previous = Object.entries(extraEnv).map(([key]) => [key, process.env[key]] as const);
