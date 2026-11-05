@@ -53,7 +53,7 @@ function observedFacts(o) {
  */
 export function buildReceipt({ mode, failureCodes, context, observation }) {
   if (!MODES.includes(mode)) throw new Error(`unknown runtime attestation mode: ${mode}`);
-  const codes = [...new Set(failureCodes)].sort();
+  const codes = [...new Set(failureCodes)].sort((a, b) => Number(a > b) - Number(a < b));
   return {
     schemaVersion: RECEIPT_SCHEMA_VERSION,
     status: classify(codes),

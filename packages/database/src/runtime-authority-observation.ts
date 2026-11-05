@@ -147,18 +147,16 @@ function ledgerRow(row: Record<string, unknown>): { hash: string; createdAt: num
   return { hash: text(row.hash), createdAt };
 }
 
-/** The marker: exactly one row, or null when absent, unreadable or ambiguous. */
-async function readMarker(query: RuntimeAuthorityQuery, readable: boolean): Promise<string | null> {
-  if (!readable) return null;
+/** The marker: exactly one row, or null when absent or ambiguous. */
+async function readMarker(query: RuntimeAuthorityQuery): Promise<string | null> {
   const rows = await query(STATEMENTS.marker);
   return rows.length === 1 ? text(rows[0].marker) : null;
 }
 
 async function readLedger(
-  query: RuntimeAuthorityQuery,
-  readable: boolean
-): Promise<RuntimeAuthorityObservation['migrationLedger']> {
-  return readable ? (await query(STATEMENTS.ledger)).map(ledgerRow) : null;
+  query: RuntimeAuthorityQuery
+): Promise<{ hash: string; createdAt: number }[]> {
+  return (await query(STATEMENTS.ledger)).map(ledgerRow);
 }
 
 /**
@@ -176,7 +174,11 @@ export async function observeRuntimeAuthority(
     if (now() > deadline) throw new RuntimeAuthorityObservationError('DEADLINE_EXCEEDED');
     return run(statement);
   };
-  for (const bound of BOUNDS) await query(bound);
+  // The bounds apply in order on the one transaction connection before any catalogue read.
+  await BOUNDS.reduce<Promise<unknown>>(
+    (applied, bound) => applied.then(() => query(bound)),
+    Promise.resolve()
+  );
   const [identity] = await query(STATEMENTS.identity);
   if (!identity) malformed();
   const [login] = await query(STATEMENTS.login);
@@ -210,8 +212,8 @@ export async function observeRuntimeAuthority(
     databasePrivileges,
     roleSettings,
     effectiveSettings,
-    backendMarker: await readMarker(query, flag(readable?.marker)),
-    migrationLedger: await readLedger(query, flag(readable?.ledger)),
+    backendMarker: flag(readable?.marker) ? await readMarker(query) : null,
+    migrationLedger: flag(readable?.ledger) ? await readLedger(query) : null,
   };
 }
 
