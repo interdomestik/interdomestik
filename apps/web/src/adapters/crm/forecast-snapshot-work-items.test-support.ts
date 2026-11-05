@@ -66,9 +66,7 @@ export function onWorkItemDatabase<TRepository>(
   database: unknown,
   repository: TRepository
 ): TRepository {
-  withTenantContext.mockImplementation(
-    (_context, action) => new Promise(resolve => resolve(action(database)))
-  );
+  withTenantContext.mockImplementation((_context, action) => Promise.resolve(action(database)));
   return repository;
 }
 

@@ -86,16 +86,6 @@ export function createLoaderChecks(ctx, entryModule) {
     );
   };
 
-  /** A static import, re-export or `import = require` of a module outside the scanned graph. */
-  function declarationProblem(node) {
-    if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference))
-      return 'a CommonJS import (import = require)';
-    const specifier =
-      ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier : null;
-    if (!specifier || !ts.isStringLiteralLike(specifier)) return null;
-    return specifierProblem(specifier.text, 'an import of');
-  }
-
   /** A dynamic `import()` / `require()`: its specifier must be a literal or a data template. */
   function dynamicLoadProblem(fact, node) {
     if (!ts.isCallExpression(node) || !dynamicLoad(fact, node)) return null;
@@ -155,6 +145,16 @@ export function createLoaderChecks(ctx, entryModule) {
   }
 
   return { loaderProblem: (fact, node) => loaderProblem(fact, node) ?? null, loadsEntryModule };
+}
+
+/** A static import, re-export or `import = require` of a module outside the scanned graph. */
+function declarationProblem(node) {
+  if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference))
+    return 'a CommonJS import (import = require)';
+  const specifier =
+    ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier : null;
+  if (!specifier || !ts.isStringLiteralLike(specifier)) return null;
+  return specifierProblem(specifier.text, 'an import of');
 }
 
 /** Why reading a member called `name`, under any receiver and key form, is refused, or null. */
