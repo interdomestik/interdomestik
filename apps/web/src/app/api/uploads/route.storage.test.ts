@@ -7,6 +7,11 @@ const hoisted = vi.hoisted(() => ({
   storageFrom: vi.fn(),
   createSignedUploadUrl: vi.fn(),
   findClaimFirst: vi.fn(),
+  agentScope: vi.fn(),
+}));
+
+vi.mock('@/app/api/documents/agent-document-scope', () => ({
+  hasAgentClaimDocumentScope: hoisted.agentScope,
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -106,7 +111,8 @@ describe('POST /api/uploads', () => {
     vi.unstubAllEnvs();
   });
 
-  it('returns 200 when agent is assigned to the claim', async () => {
+  it('returns 200 when the claim is in the agent scope', async () => {
+    hoisted.agentScope.mockResolvedValue(true);
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET', 'claim-evidence');
 

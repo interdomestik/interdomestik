@@ -115,6 +115,7 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
       findOwnedMemberUploadClaim({
         claimId: 'claim-1',
         authority,
+        role: 'member',
         userId: 'member-1',
       })
     ).resolves.toEqual({ id: 'claim-1' });
@@ -144,6 +145,7 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
     await findOwnedMemberUploadClaim({
       claimId: 'claim-1',
       authority,
+      role: 'member',
       userId: 'member-1',
     });
 
@@ -156,7 +158,7 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
     expect(hoisted.globalFindClaimFirst).not.toHaveBeenCalled();
   });
 
-  it.each(['admin', 'staff'])(
+  it.each(['agent', 'user'])(
     'carries the session actor role %s through its tenant authority into the lookup',
     async role => {
       const actorAuthority = mintTestTenantAuthority('tenant-1', { userId: 'actor-1', role });
@@ -165,6 +167,7 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
         findOwnedMemberUploadClaim({
           claimId: 'claim-1',
           authority: actorAuthority,
+          role,
           userId: 'actor-1',
         })
       ).resolves.toEqual({ id: 'claim-1' });
@@ -175,6 +178,17 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
     }
   );
 
+  it.each(['auditor', 'global_support', 'staff', 'admin', 'super_admin', null, 'unknown'])(
+    'gives a %s owner no member upload claim without reading it',
+    async role => {
+      await expect(
+        findOwnedMemberUploadClaim({ claimId: 'claim-1', authority, role, userId: 'member-1' })
+      ).resolves.toBeNull();
+      expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+      expect(hoisted.findClaimFirst).not.toHaveBeenCalled();
+    }
+  );
+
   it('returns null when the tenant-scoped ownership lookup finds no row', async () => {
     hoisted.findClaimFirst.mockResolvedValueOnce(undefined);
 
@@ -182,6 +196,7 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
       findOwnedMemberUploadClaim({
         claimId: 'claim-1',
         authority,
+        role: 'member',
         userId: 'member-2',
       })
     ).resolves.toBeNull();
@@ -195,6 +210,7 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
       findOwnedMemberUploadClaim({
         claimId: 'claim-1',
         authority,
+        role: 'member',
         userId: 'member-1',
       })
     ).rejects.toThrow('tenant context unavailable');
