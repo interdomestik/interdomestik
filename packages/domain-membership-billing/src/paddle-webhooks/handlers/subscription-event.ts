@@ -4,19 +4,22 @@ import type { InternalSubscriptionStatus } from '../subscription-status';
 
 export type SubscriptionEventStatus = InternalSubscriptionStatus | 'none';
 
-export async function recordMembershipSubscriptionChangedEvent(params: {
-  actor?: { id: string; role: string };
-  cancelAtPeriodEnd: boolean;
-  correlationId?: string;
-  id?: string;
-  fromStatus: SubscriptionEventStatus;
-  now: Date;
-  subscriptionId: string;
-  tenantId: string;
-  toStatus: InternalSubscriptionStatus;
-  tx: DomainEventTx;
-}) {
-  await appendEvent(params.tx, {
+/** Appends the change event through the borrowed transaction, passed on its own. */
+export async function recordMembershipSubscriptionChangedEvent(
+  tx: DomainEventTx,
+  params: {
+    actor?: { id: string; role: string };
+    cancelAtPeriodEnd: boolean;
+    correlationId?: string;
+    id?: string;
+    fromStatus: SubscriptionEventStatus;
+    now: Date;
+    subscriptionId: string;
+    tenantId: string;
+    toStatus: InternalSubscriptionStatus;
+  }
+) {
+  await appendEvent(tx, {
     actor: params.actor ?? { id: 'paddle-webhook', role: 'system' },
     aggregateVersion: 0,
     correlationId:
