@@ -42,7 +42,12 @@ export const PRIVILEGED = new Map([
   ],
   [
     `${DB}/db.ts#dbRls`,
-    { form: 'member', callers: [`${DB}/tenant.ts`], reexports: [`${DB}/index.ts`] },
+    {
+      form: 'member',
+      // U2-e: the read-only, catalogue-only observation of the deployed tenant client's authority.
+      callers: [`${DB}/tenant.ts`, `${DB}/runtime-authority-observation.ts`],
+      reexports: [`${DB}/index.ts`],
+    },
   ],
   [
     `${DB}/tenant-authority.ts#mintTenantAuthority`,
