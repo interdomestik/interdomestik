@@ -80,7 +80,10 @@ test('a transaction hands out a working client and returns the callback result',
   const pool = withTransactionLifetime(driver.pool);
   const result = await pool.begin(async sql => {
     assert.deepEqual(sql.options, { fake: true });
-    return [await sql.unsafe('select 1'), await sql.savepoint(inner => inner.unsafe('select 2'))];
+    return [
+      await sql.unsafe('select 1'),
+      await sql.savepoint(async inner => inner.unsafe('select 2')),
+    ];
   });
   assert.deepEqual(result, ['select 1', 'select 2']);
   assert.deepEqual(driver.sent, ['select 1', 'select 2']);
