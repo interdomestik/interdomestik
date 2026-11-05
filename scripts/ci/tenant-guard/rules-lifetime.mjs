@@ -14,6 +14,7 @@ import { isFunctionLike } from './syntax.mjs';
 
 const DECLARATION_FILE = /\.d\.[cm]?ts$/u;
 const RULE = 'L1';
+const ENTRY_NAMES = new Set(['withTenantAuthority', 'withTenantContext', 'withTenantDb']);
 
 /** Installs the transaction-lifetime analysis as `ctx.checkLifetime()`. */
 export function installLifetime(ctx) {
@@ -27,7 +28,29 @@ export function installLifetime(ctx) {
       return call.arguments.at(-1) ?? null;
     if (ts.isPropertyAccessExpression(callee) && callee.name.text === 'transaction')
       return call.arguments[0] ?? null;
+    // A kernel entry read through a namespace import opens one too.
+    if (namespaceEntry(fact, callee)) return call.arguments.at(-1) ?? null;
     return undefined;
+  }
+
+  /** `ns.withTenantAuthority` on a namespace import (`import * as ns`). */
+  function namespaceEntry(fact, node) {
+    if (!ts.isPropertyAccessExpression(node) || !ENTRY_NAMES.has(node.name.text)) return false;
+    const root = unwrap(node.expression);
+    const binding = ts.isIdentifier(root) ? ctx.referenceAt(fact, root)?.binding : null;
+    return binding?.kind === 'import' && binding.imported === '*';
+  }
+
+  /** A kernel entry read other than as the callee of a call (`.call`, aliases, hand-offs). */
+  function entryValue(fact, node) {
+    const named = ts.isIdentifier(node)
+      ? allIn(identifierOrigins(fact, node), TRANSACTION_ENTRIES)
+      : namespaceEntry(fact, node);
+    if (!named || (ts.isPropertyAccessExpression(node.parent) && node.parent.name === node))
+      return false;
+    if (ts.isExportSpecifier(node.parent) || ts.isImportSpecifier(node.parent)) return false;
+    const value = ctx.outermost(node);
+    return !(ts.isCallExpression(value.parent) && value.parent.expression === value);
   }
 
   /** The functions a transaction callback argument may be, or why it cannot be checked. */
@@ -53,6 +76,8 @@ export function installLifetime(ctx) {
           `a tenant transaction capability can outlive its callback: ${detail}`
         );
       ts.forEachChild(fact.sourceFile, function visit(node) {
+        if (ts.isTypeNode(node)) return;
+        if (entryValue(fact, node)) report(node, 'a transaction entry used as a value');
         if (ts.isCallExpression(node)) {
           const callback = openedCallback(fact, node);
           if (callback !== undefined) {

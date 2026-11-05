@@ -2,7 +2,6 @@
 
 import ts from 'typescript';
 import { hasFlag } from './rules-digest.mjs';
-import { bindingNames } from './scopes.mjs';
 import { isFunctionLike } from './syntax.mjs';
 
 /** The reviewed Drizzle members a borrowed capability may be called through. */
@@ -99,33 +98,23 @@ export const constInitializer = (parent, value) =>
 export function joined(call, outermost) {
   const value = outermost(call);
   const parent = value.parent;
-  return (
-    ts.isAwaitExpression(parent) ||
-    ts.isReturnStatement(parent) ||
-    (ts.isArrowFunction(parent) && parent.body === value)
-  );
+  if (ts.isAwaitExpression(parent)) return true;
+  if (ts.isArrowFunction(parent)) return parent.body === value;
+  return ts.isReturnStatement(parent) && !finallyMayOverride(parent);
 }
 
-/** Whether `fn` may still use the capability at `path` of parameter `index` after it returns:
- * it is async, or it returns a call that hands that capability on. */
-export function continues(fn, index, path, { returnsOf, unwrap }) {
-  if ((fn.modifiers ?? []).some(m => m.kind === ts.SyntaxKind.AsyncKeyword)) return true;
-  const param = fn.parameters[index];
-  if (!param) return false;
-  const names = new Set(bindingNames(param.name, []).map(id => id.text));
-  return returnsOf(fn).some(value => {
-    const call = unwrap(value);
-    if (!ts.isCallExpression(call)) return false;
-    let found = false;
-    const visit = node => {
-      if (found) return;
-      if (ts.isIdentifier(node) && names.has(node.text) && !otherMember(node, path)) found = true;
-      else ts.forEachChild(node, visit);
-    };
-    call.arguments.forEach(visit);
-    return found;
-  });
+/** Whether a `finally` around the return could complete abruptly and discard its promise. */
+function finallyMayOverride(statement) {
+  for (let node = statement; node && !isFunctionLike(node); node = node.parent) {
+    const parent = node.parent;
+    if (ts.isTryStatement(parent) && parent.finallyBlock && node !== parent.finallyBlock)
+      return true;
+  }
+  return false;
 }
+
+export const isAsync = fn =>
+  (fn.modifiers ?? []).some(modifier => modifier.kind === ts.SyntaxKind.AsyncKeyword);
 
 /** Whether `node` only reads a member of a carrier other than the borrowed `path` head. */
 export function otherMember(node, path) {

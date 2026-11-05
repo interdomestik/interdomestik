@@ -12,7 +12,7 @@ import ts from 'typescript';
 import { createLifetimeCallees } from './rules-lifetime-callees.mjs';
 import {
   constInitializer,
-  continues,
+  isAsync,
   joined,
   kindOf,
   memberProblem,
@@ -26,8 +26,9 @@ const MAX_DEPTH = 32;
 
 /** Builds `paramProblem(fact, fn, index)` and `stableTargets(fact, callee)` over `ctx`. */
 export function createLifetimeFlow(ctx) {
-  const { isWriteTarget, keyOf, outermost, referenceAt, restCarries, returnsOf, unwrap } = ctx;
+  const { isWriteTarget, keyOf, outermost, referenceAt, restCarries, unwrap } = ctx;
   const settled = new Map();
+  const frames = [];
   const active = new Set();
   let cycle = false;
   const bindingIndex = new WeakMap();
@@ -46,29 +47,41 @@ export function createLifetimeFlow(ctx) {
   const { stableTargets } = createLifetimeCallees(ctx, { bindingOf, usesOf });
 
   // ---- obligations: parameter `index` of `fn` borrows the capability at `path` of its argument --
-  function paramProblem(fact, fn, index, path = [], depth = 0) {
+  // `lent`: the function hands the capability on (to a helper or a nested transaction), so a call
+  // to it may still use the capability after it returns unless that call is joined.
+  const paramProblem = (fact, fn, index, path = [], depth = 0) =>
+    obligation(fact, fn, index, path, depth).problem;
+  function obligation(fact, fn, index, path, depth) {
     const key = `${fact.file}:${fn.pos}:${index}:${path.join('.')}`;
     if (settled.has(key)) return settled.get(key);
     if (active.has(key)) {
       cycle = true; // coinductive: assumed safe, never published while the assumption is open
-      return null;
+      return { problem: null, lent: true };
     }
-    if (depth > MAX_DEPTH) return 'a forwarding chain deeper than the analysis bound';
+    if (depth > MAX_DEPTH)
+      return { problem: 'a forwarding chain deeper than the analysis bound', lent: true };
     const outer = cycle;
     cycle = false;
     active.add(key);
+    const frame = { lent: false };
+    frames.push(frame);
     let problem;
     try {
       problem =
         shapeProblem(fact, fn, referenceAt) ?? parameterProblem(fact, fn, index, path, depth);
     } finally {
+      frames.pop();
       active.delete(key);
     }
+    const result = { problem, lent: frame.lent };
     const assumed = cycle && !problem;
-    if (!assumed || active.size === 0) settled.set(key, problem);
+    if (!assumed || active.size === 0) settled.set(key, result);
     cycle = outer || assumed;
-    return problem;
+    return result;
   }
+  const lend = () => {
+    if (frames.length > 0) frames.at(-1).lent = true;
+  };
 
   function parameterProblem(fact, fn, index, path, depth) {
     const params = fn.parameters;
@@ -84,14 +97,18 @@ export function createLifetimeFlow(ctx) {
     if (path.length === 0) return 'a destructured capability (its members are extracted)';
     if (!ts.isObjectBindingPattern(name)) return 'an array pattern carries it';
     const [head, ...rest] = path;
+    // Every element binding the property borrows it: `{ x: u, x: v }` binds it twice.
     for (const element of name.elements) {
+      let problem = null;
       if (element.dotDotDotToken) {
-        if (restCarries(name, head)) return patternProblem(fact, element.name, path, owner, depth);
-        continue;
+        if (restCarries(name, head))
+          problem = patternProblem(fact, element.name, path, owner, depth);
+      } else {
+        const key = ctx.elementKey(element);
+        if (typeof key !== 'string') return 'a computed binding key';
+        if (key === head) problem = patternProblem(fact, element.name, rest, owner, depth);
       }
-      const key = ctx.elementKey(element);
-      if (typeof key !== 'string') return 'a computed binding key';
-      if (key === head) return patternProblem(fact, element.name, rest, owner, depth);
+      if (problem) return problem;
     }
     return null;
   }
@@ -118,7 +135,7 @@ export function createLifetimeFlow(ctx) {
     const value = outermost(node);
     const parent = value.parent;
     if (ts.isPropertyAccessExpression(parent) && parent.expression === value)
-      return memberProblem(parent, outermost);
+      return memberProblem(parent, outermost) ?? openingProblem(parent);
     if (ts.isCallExpression(parent) && parent.arguments.includes(value))
       return argumentProblem(fact, parent, parent.arguments.indexOf(value), [], depth);
     const carried = carrierOf(value, parent);
@@ -129,6 +146,14 @@ export function createLifetimeFlow(ctx) {
     if (constInitializer(parent, value)) return patternProblem(fact, parent.name, [], owner, depth);
     if (tested(value, parent)) return null;
     return `the capability escapes its callback (${kindOf(parent)})`;
+  }
+
+  /** A nested transaction opened on the capability runs its callback later: it must be joined. */
+  function openingProblem(access) {
+    if (access.name.text !== 'transaction') return null;
+    lend();
+    const opened = outermost(access).parent;
+    return joined(opened, outermost) ? null : 'a nested transaction that is not awaited';
   }
 
   /** A carrier member that is invoked: it could reach the carrier through `this`. */
@@ -175,6 +200,7 @@ export function createLifetimeFlow(ctx) {
     const unsafe = literal.properties.find(
       member =>
         typeof keyOf(member) !== 'string' ||
+        keyOf(member) === '__proto__' ||
         !(ts.isPropertyAssignment(member) || ts.isShorthandPropertyAssignment(member)) ||
         (ts.isPropertyAssignment(member) && ts.isFunctionExpression(unwrap(member.initializer)))
     );
@@ -193,10 +219,13 @@ export function createLifetimeFlow(ctx) {
     const targets = stableTargets(fact, unwrap(call.expression));
     if (typeof targets === 'string') return targets;
     for (const target of targets) {
-      if (continues(target.fn, index, path, { returnsOf, unwrap }) && !joined(call, outermost))
-        return `an asynchronous helper that is not awaited (${text(fact, call.expression)})`;
-      const problem = paramProblem(target.fact, target.fn, index, path, depth + 1);
+      const { problem, lent } = obligation(target.fact, target.fn, index, path, depth + 1);
       if (problem) return `${text(fact, call.expression)}: ${problem}`;
+      // A helper that may still run continues this function too, once its call is joined here.
+      if (!lent && !isAsync(target.fn)) continue;
+      if (!joined(call, outermost))
+        return `an asynchronous helper that is not awaited (${text(fact, call.expression)})`;
+      lend();
     }
     return null;
   }

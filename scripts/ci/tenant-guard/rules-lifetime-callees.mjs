@@ -62,7 +62,7 @@ export function createLifetimeCallees(ctx, { bindingOf, usesOf }) {
       for (const element of param.name.elements) {
         if (element.name !== binding.id) continue;
         const key = element.dotDotDotToken ? null : elementKey(element);
-        return typeof key === 'string' ? { fn, index, path: [key] } : null;
+        return typeof key === 'string' ? { fn, index, path: [key], id: binding.id } : null;
       }
     }
     return null;
@@ -77,11 +77,19 @@ export function createLifetimeCallees(ctx, { bindingOf, usesOf }) {
     const key = `${fact.file}:${slot.fn.pos}:${slot.index}:${path.join('.')}`;
     if (seen.has(key)) return [];
     seen.add(key);
-    if (usesOf(fact, binding).some(use => isWriteTarget(outermost(use.node))))
-      return `a reassigned callback parameter (${binding.name})`;
+    if (!immutablePath(fact, binding, memberPath))
+      return `a callback parameter that may be changed (${binding.name})`;
     const declared = declaredFunction(fact, slot.fn);
     if (!declared) return `a callback parameter of an undeclared runner (${binding.name})`;
+    // A default applies whenever a caller omits the argument: it is always a candidate.
+    const fallback = defaultCallback(fact, slot, path);
+    if (typeof fallback === 'string') return fallback;
     const targets = [];
+    if (fallback) {
+      const resolved = stableTargets(fact, fallback, seen);
+      if (typeof resolved === 'string') return resolved;
+      targets.push(...resolved);
+    }
     const callers = callersOf(fact, declared);
     // Fail closed: a runner no reviewed source calls proves nothing about its callbacks.
     if (callers.length === 0) return `a callback runner with no reviewed callers (${binding.name})`;
@@ -92,7 +100,7 @@ export function createLifetimeCallees(ctx, { bindingOf, usesOf }) {
         return `a callback runner handed on as a value (${binding.name})`;
       if (call.arguments.slice(0, slot.index + 1).some(ts.isSpreadElement))
         return `a spread callback argument (${binding.name})`;
-      const argument = carriedCallback(call.arguments[slot.index], path);
+      const argument = carriedCallback(caller.fact, call.arguments[slot.index], path);
       if (typeof argument === 'string') return argument;
       if (!argument) continue;
       const resolved = stableTargets(caller.fact, argument, seen);
@@ -102,26 +110,53 @@ export function createLifetimeCallees(ctx, { bindingOf, usesOf }) {
     return targets;
   }
 
+  /** Whether the callback binding (read at `memberPath`) cannot be changed before it is called:
+   * the binding is never written, and a carrier is only ever read through its members. */
+  function immutablePath(fact, binding, memberPath) {
+    return usesOf(fact, binding).every(use => {
+      const value = outermost(use.node);
+      if (isWriteTarget(value)) return false;
+      if (memberPath.length === 0) return true;
+      const parent = value.parent;
+      return (
+        ts.isPropertyAccessExpression(parent) &&
+        parent.expression === value &&
+        !isWriteTarget(outermost(parent))
+      );
+    });
+  }
+
+  /** The default a parameter slot falls back to at `path`, or null, or why it cannot be read. */
+  function defaultCallback(fact, slot, path) {
+    const param = slot.fn.parameters[slot.index];
+    if (slot.path.length === 0) return carriedCallback(fact, param.initializer, path);
+    const element = param.name.elements.find(item => item.name === slot.id);
+    if (param.initializer) return 'a defaulted callback carrier';
+    return element?.initializer ? carriedCallback(fact, element.initializer, []) : null;
+  }
+
   /** The callback an argument passes at `path` (null when none), or why it cannot be read. */
-  function carriedCallback(argument, path) {
+  function carriedCallback(fact, argument, path) {
     if (!argument) return null;
     const value = unwrap(argument);
-    if (path.length === 0) return isUndefined(value) ? null : value;
+    if (path.length === 0) return isUndefined(fact, value) ? null : value;
     if (!ts.isObjectLiteralExpression(value)) return 'a callback carried by a non-literal object';
     let found = null;
     for (const property of value.properties) {
       const key = keyOf(property);
-      if (typeof key !== 'string') return 'a callback carried with spreads or computed keys';
+      if (typeof key !== 'string' || key === '__proto__')
+        return 'a callback carried with spreads, computed keys or a prototype';
       if (key !== path[0]) continue;
       if (ts.isShorthandPropertyAssignment(property)) found = property.name;
       else if (ts.isPropertyAssignment(property)) found = property.initializer;
       else return 'a callback carried as a method or accessor';
     }
-    return found && !isUndefined(unwrap(found)) ? found : null;
+    if (!found && path[0] in Object.prototype) return 'a callback read from the object prototype';
+    return found && !isUndefined(fact, unwrap(found)) ? found : null;
   }
-  const isUndefined = node =>
+  const isUndefined = (fact, node) =>
     node.kind === ts.SyntaxKind.UndefinedKeyword ||
-    (ts.isIdentifier(node) && node.text === 'undefined');
+    (ts.isIdentifier(node) && node.text === 'undefined' && !referenceAt(fact, node)?.binding);
 
   return { stableTargets };
 }
