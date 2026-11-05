@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TenantTransaction } from '@interdomestik/database';
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 
 function createSelectChain() {
   return {
@@ -10,7 +9,6 @@ function createSelectChain() {
   };
 }
 
-const authority = mintTestTenantAuthority('tenant-1');
 const NOW = new Date('2026-03-14T12:00:00.000Z');
 
 const mocks = vi.hoisted(() => {
@@ -20,7 +18,6 @@ const mocks = vi.hoisted(() => {
 
   return {
     db: { select: vi.fn() },
-    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
     subscriptions: columns,
     serviceUsage: columns,
     subscriptionQuery,
@@ -86,12 +83,14 @@ describe('allowance visibility', () => {
       },
     ]);
     mocks.usageQuery.limit.mockResolvedValue([{ count: test.count }]);
-    const result = await getMatterAllowanceVisibilityForUser({
-      authority,
-      userId: 'member-1',
-      now: NOW,
-    });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
+    const result = await getMatterAllowanceVisibilityForUser(
+      {
+        tx: mocks.db as unknown as TenantTransaction,
+        tenantId: 'tenant-1',
+        userId: 'member-1',
+      },
+      { now: NOW }
+    );
     expect(result).toEqual({
       allowanceTotal: test.allowanceTotal,
       consumedCount: test.count,
@@ -110,11 +109,14 @@ describe('allowance visibility', () => {
     mocks.db.select.mockReturnValueOnce(mocks.subscriptionQuery);
     mocks.subscriptionQuery.limit.mockResolvedValue([]);
 
-    const result = await getMatterAllowanceVisibilityForUser({
-      authority,
-      userId: 'member-3',
-      now: NOW,
-    });
+    const result = await getMatterAllowanceVisibilityForUser(
+      {
+        tx: mocks.db as unknown as TenantTransaction,
+        tenantId: 'tenant-1',
+        userId: 'member-3',
+      },
+      { now: NOW }
+    );
 
     expect(result).toBeNull();
   });
@@ -135,12 +137,14 @@ describe('transaction propagation', () => {
     mocks.db.select.mockReset().mockImplementation(() => {
       throw new Error('Global read forbidden');
     });
-    const result = await getMatterAllowanceVisibilityForUser({
-      tx: { select, execute } as unknown as TenantTransaction,
-      tenantId: 'tenant-1',
-      userId: 'member-1',
-      now: NOW,
-    });
+    const result = await getMatterAllowanceVisibilityForUser(
+      {
+        tx: { select, execute } as unknown as TenantTransaction,
+        tenantId: 'tenant-1',
+        userId: 'member-1',
+      },
+      { now: NOW }
+    );
     expect(result).toMatchObject({ allowanceTotal: 2, consumedCount: 1, remainingCount: 1 });
     expect(result).not.toHaveProperty('subscriptionId');
     expect(select).toHaveBeenCalledTimes(2);
@@ -175,11 +179,13 @@ describe('transaction propagation', () => {
         subscriptionId: 'sub-1',
       })
     ).toBe(true);
-    const context = await getMatterAllowanceContextForSubscription({
-      ...scope,
-      subscription: subscription!,
-      now: NOW,
-    });
+    const context = await getMatterAllowanceContextForSubscription(
+      {
+        ...scope,
+        subscription: subscription!,
+      },
+      { now: NOW }
+    );
     expect(context.consumedCount).toBe(1);
     expect(execute).toHaveBeenCalledWith(
       expect.objectContaining({

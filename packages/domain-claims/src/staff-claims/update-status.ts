@@ -224,6 +224,7 @@ async function handleStaffLedRecoveryStatusChange(
           subscriptionId: matterAllowanceSubscription.subscriptionId,
           userId: currentClaim.userId,
         },
+    recoveryDecline: undefined,
     claimId,
     currentStatus: currentClaim.status,
     currentStaffId: currentClaim.staffId,
@@ -310,6 +311,7 @@ export async function updateClaimStatusCore(
         return finalizeClaimStatusChange({
           authority,
           tx,
+          matterUsage: undefined,
           recoveryDecline: {
             declineReasonCode: params.declineReasonCode,
             explanation: trimmedDecisionExplanation,
@@ -334,6 +336,8 @@ export async function updateClaimStatusCore(
       return finalizeClaimStatusChange({
         authority,
         tx,
+        matterUsage: undefined,
+        recoveryDecline: undefined,
         claimId,
         currentStatus: currentClaim.status,
         currentStaffId: currentClaim.staffId,

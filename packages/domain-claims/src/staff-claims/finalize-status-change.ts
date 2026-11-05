@@ -120,10 +120,12 @@ async function recordMatterServiceUsage(
 
 export async function finalizeClaimStatusChange(
   params: Omit<RecoveryStatusChangeParams, 'currentClaim' | 'trimmedAllowanceOverrideReason'> & {
+    // Both are required keys, explicitly undefined when absent: the transaction travels in the
+    // same argument object, whose missing keys would be looked up on its prototype.
     /** Usage to consume after the status write (staff-led recovery). */
-    matterUsage?: MatterUsage;
+    matterUsage: MatterUsage | undefined;
     /** A decline decision to record after authorization and before the status write. */
-    recoveryDecline?: RecoveryDecline;
+    recoveryDecline: RecoveryDecline | undefined;
     currentStatus: ClaimStatus | null;
     currentStaffId: string | null;
     currentTitle: string;
