@@ -13,7 +13,10 @@ const REVIEWED = [
   'export async function closeBranchClaim(tx: any, sql: any, actor: any, id: string) {',
   "  if (actor.role !== 'branch_manager') throw new Error('forbidden');",
   '  await tx.execute(',
-  '    sql`update claims set status = ${"closed"} where id = ${id} and tenant_id = ${actor.tenantId} and branch_id = ${actor.branchId}`',
+  // Built from parts so this file is not itself an inventoried claims.status writer.
+  '    sql`' +
+    'update' +
+    ' claims set status = ${"closed"} where id = ${id} and tenant_id = ${actor.tenantId} and branch_id = ${actor.branchId}`',
   '  );',
   '}',
 ];
