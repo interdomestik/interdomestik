@@ -22,8 +22,20 @@ test('L1: every transaction opener is a source; a detached opener cannot be rebo
         'f: a transaction opener handed to a callee that is not a declared name (Reflect.apply)',
         'export const f = (db: any) => Reflect.apply(db.transaction, db, [(tx: any) => { kept = tx; }]);',
       ],
+      constAlias: [
+        'f: a transaction opener used as a value (VariableDeclaration)',
+        'export function f(db: any) { const open = db.transaction; return open((tx: any) => { kept = tx; }); }',
+      ],
+      untaggedSpan: [
+        'f: a transaction opener used as a value (TemplateSpan)',
+        'export const f = (e: any) => `${e.transaction}`;',
+      ],
+      propagated: [
+        'f: a transaction opener used as a value (BinaryExpression)',
+        'export const f = (db: any) => (db.transaction ?? null).call(db, (tx: any) => { kept = tx; });',
+      ],
       aliasCall: [
-        'f: a transaction opener member (call)',
+        'f: a transaction opener used as a value (VariableDeclaration)',
         'export function f(db: any) { const open = db.transaction; return open.call(db, (tx: any) => { kept = tx; }); }',
       ],
       literalBind: [
@@ -83,7 +95,7 @@ test('L1: every transaction opener is a source; a detached opener cannot be rebo
         'export const f = (db: any) => db.transaction.valueOf().call(db, (tx: any) => { kept = tx; });',
       ],
       taggedSpan: [
-        'f: a transaction opener handed to a template tag',
+        'f: a transaction opener used as a value (TemplateSpan)',
         'export function f(db: any) { const tag = (_: any, open: any) => open.call(db, (tx: any) => { kept = tx; }); return tag`${db.transaction}`; }',
       ],
       implicitArguments: [
@@ -114,6 +126,18 @@ test('L1: every transaction opener is a source; a detached opener cannot be rebo
         'f: a Reflect operation other than has or ownKeys',
         'export function f(db: any) { const R = Reflect; return R.apply(db.transaction, db, [(tx: any) => { kept = tx; }]); }',
       ],
+      globalReflect: [
+        'f: a Reflect object read through a receiver',
+        "export function f(db: any) { return globalThis.Reflect.get(db, 'transaction').call(db, (tx: any) => { kept = tx; }); }",
+      ],
+      spreadDescriptorKey: [
+        'f: a property descriptor read (getOwnPropertyDescriptor)',
+        "export function f(db: any) { const open = (Object.getOwnPropertyDescriptor as any)(...[Object.getPrototypeOf(db), 'transaction'], 'safe').value; return open.call(db, (tx: any) => { kept = tx; }); }",
+      ],
+      destructuredOpenerMember: [
+        'f: a transaction opener used as a value (VariableDeclaration)',
+        'export function f(db: any) { const { name } = db.transaction; return name; }',
+      ],
     },
     {
       safeDataField:
@@ -123,14 +147,11 @@ test('L1: every transaction opener is a source; a detached opener cannot be rebo
       safeLiteral:
         "export const o = { requiredRole: 'x', name: 'n' };\nexport const f = () => W(a, (tx: any) => tx.select());",
       safeSentry:
-        'function scrub(value: string): string { return /^x/.test(value) ? "x" : "[redacted]"; }\nexport const f = (e: any) => ({ transaction: e.transaction ? scrub(e.transaction) : undefined });',
+        'function scrub(value: string): string { return /^x/.test(value) ? "x" : "[redacted]"; }\nexport const f = (e: any) => ({ transaction: e.transaction ? scrub(String(e.transaction)) : undefined });',
       safePaddle:
         'function data(c: any) { return c.customData ?? c.custom_data ?? null; }\nfunction entries(t: any) { return [data(t), ...(t.items ?? []).map((i: any) => data(i))]; }\nexport const f = (p: any) => entries(p.transaction).length;',
       safeAssignTarget: 'export const f = (r: any, e: any) => { r.transaction = String(e.name); };',
-      safeNullThis:
-        'export function f(db: any) { const open = db.transaction; return open((tx: any) => { kept = tx; }); }',
       safeReflectKeys: 'export const f = (r: object) => Reflect.ownKeys(r).length;',
-      safeUntaggedSpan: 'export const f = (e: any) => `${e.transaction}`;',
       safeOwnDescriptor:
         'export const f = (v: any, k: string) => Object.getOwnPropertyDescriptor(v, k)?.value;',
     }

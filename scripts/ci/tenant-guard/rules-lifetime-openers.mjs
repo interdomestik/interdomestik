@@ -4,14 +4,13 @@
 // invoked with a client-like `this`: rebound (`call`, `apply`, `bind`, `Reflect.apply`) or
 // installed as a method of another object. Every read of a member named `transaction` that is
 // not the callee of a direct call (a property, a literal element, a destructuring key, a
-// reflective read) is therefore followed. Its value may only be tested, coerced, read for an
-// inert member, propagated by an operator, aliased by a const, or handed to a stable declared
-// function whose parameter obeys the same rule. Data fields that happen to be called
+// reflective read) is therefore followed through an allowlist: it may only be tested, read for an
+// inert member that is not invoked, converted by `String`, or handed to a stable declared function
+// whose parameter obeys the same allowlist. Data fields that happen to be called
 // `transaction` (Sentry events, Paddle transactions) pass this way; nothing else does.
 
 import ts from 'typescript';
 import {
-  constInitializer,
   hoistedDeclarations,
   kindOf,
   shapeProblem,
@@ -23,15 +22,8 @@ const NAME = 'transaction';
 const MAX_DEPTH = 16;
 // Members of a function value that rebind it or reach the code evaluator.
 const UNSAFE_MEMBERS = new Set(['__proto__', 'apply', 'bind', 'call', 'constructor', 'prototype']);
-// Global conversions that only read a value's primitive form.
-const COERCIONS = new Set(['Boolean', 'Number', 'String']);
-const MATCHERS = new Set(['exec', 'test']);
-const PROPAGATING = new Set([
-  ts.SyntaxKind.BarBarToken,
-  ts.SyntaxKind.QuestionQuestionToken,
-  ts.SyntaxKind.AmpersandAmpersandToken,
-  ts.SyntaxKind.CommaToken,
-]);
+// The one global conversion admitted: it reads only the value's string form.
+const COERCION = 'String';
 
 /** Builds `openerProblem(fact, node)` over `ctx` and the lifetime flow's callee resolution. */
 export function createOpenerChecks(ctx, { bindingOf, stableTargets, usesOf }) {
@@ -88,19 +80,14 @@ export function createOpenerChecks(ctx, { bindingOf, stableTargets, usesOf }) {
     return valueProblem(fact, node, 0);
   }
 
-  /** `node` evaluates to the opener. */
+  /** `node` evaluates to the opener. An allowlist: it may be tested, read for an inert member,
+   * converted by `String`, or handed to a stable declared function whose parameter obeys the
+   * same allowlist. Aliases, operators, templates and every other use are refused. */
   function valueProblem(fact, node, depth) {
     if (depth > MAX_DEPTH) return 'a transaction opener followed beyond the analysis bound';
     const value = outermost(node);
     const parent = value.parent;
-    // Invoked without a receiver: `this` is undefined, so it cannot open a transaction.
-    if (ts.isCallExpression(parent) && parent.expression === value) return null;
     if (tested(value, parent)) return null;
-    // An untagged template converts the value to a string; a tag receives the value itself.
-    if (ts.isTemplateSpan(parent))
-      return ts.isTaggedTemplateExpression(parent.parent.parent)
-        ? 'a transaction opener handed to a template tag'
-        : null;
     if (ts.isPropertyAccessExpression(parent) && parent.expression === value)
       return memberProblem(parent, parent.name.text);
     if (ts.isElementAccessExpression(parent) && parent.expression === value)
@@ -109,11 +96,6 @@ export function createOpenerChecks(ctx, { bindingOf, stableTargets, usesOf }) {
         : 'a computed member of a transaction opener';
     if (ts.isCallExpression(parent) && parent.arguments.includes(value))
       return argumentProblem(fact, parent, parent.arguments.indexOf(value), depth);
-    if (constInitializer(parent, value))
-      return ts.isIdentifier(parent.name)
-        ? bindingUses(fact, parent.name, depth + 1)
-        : patternProblem(parent.name);
-    if (propagates(value, parent)) return valueProblem(fact, parent, depth + 1);
     return `a transaction opener used as a value (${kindOf(parent)})`;
   }
 
@@ -129,41 +111,10 @@ export function createOpenerChecks(ctx, { bindingOf, stableTargets, usesOf }) {
     return invoked ? `a method of a transaction opener invoked (${name})` : null;
   }
 
-  /** Operators that may yield their operand: `a || b`, `a ?? b`, `c ? a : b`, `await a`. */
-  function propagates(value, parent) {
-    if (ts.isAwaitExpression(parent)) return true;
-    if (ts.isConditionalExpression(parent)) return parent.condition !== value;
-    if (!ts.isBinaryExpression(parent) || !PROPAGATING.has(parent.operatorToken.kind)) return false;
-    const kind = parent.operatorToken.kind;
-    return (
-      parent.right === value ||
-      (kind !== ts.SyntaxKind.CommaToken && kind !== ts.SyntaxKind.AmpersandAmpersandToken)
-    );
-  }
-
-  /** A destructuring of the opener itself may extract only inert members. */
-  function patternProblem(pattern) {
-    if (!ts.isObjectBindingPattern(pattern)) return 'a transaction opener destructured as an array';
-    for (const element of pattern.elements) {
-      if (element.dotDotDotToken) continue;
-      const name = keyName(element.propertyName ?? element.name);
-      if (typeof name !== 'string') return 'a computed member of a transaction opener';
-      const problem = memberProblem(name);
-      if (problem) return problem;
-    }
-    return null;
-  }
-
-  /** The opener handed to a call: a coercion, or a stable function whose parameter obeys L. */
+  /** The opener handed to a call: `String`, or a stable function whose parameter obeys L. */
   function argumentProblem(fact, call, index, depth) {
     const callee = unwrap(call.expression);
-    if (COERCIONS.has(callee.text) && unbound(fact, callee)) return null;
-    // A regular expression literal's own matchers read only the argument's string form.
-    if (
-      ts.isPropertyAccessExpression(callee) &&
-      ts.isRegularExpressionLiteral(unwrap(callee.expression)) &&
-      MATCHERS.has(callee.name.text)
-    )
+    if (COERCION === callee.text && unbound(fact, callee) && call.arguments.length === 1)
       return null;
     if (call.arguments.slice(0, index).some(ts.isSpreadElement))
       return 'a spread precedes a transaction opener argument';
@@ -177,11 +128,11 @@ export function createOpenerChecks(ctx, { bindingOf, stableTargets, usesOf }) {
         return 'a rest parameter receives a transaction opener';
       const param = fn.parameters[index];
       if (!param) continue;
-      if (ts.isIdentifier(param.name) && hoistedDeclarations(fn, param.name.text) > 0)
+      if (!ts.isIdentifier(param.name)) return 'a transaction opener parameter destructured';
+      if (param.initializer) return 'a transaction opener parameter with a default';
+      if (hoistedDeclarations(fn, param.name.text) > 0)
         return `a redeclared transaction opener parameter (${param.name.text})`;
-      const problem = ts.isIdentifier(param.name)
-        ? bindingUses(owner, param.name, depth + 1)
-        : patternProblem(param.name);
+      const problem = bindingUses(owner, param.name, depth + 1);
       if (problem) return problem;
     }
     return null;

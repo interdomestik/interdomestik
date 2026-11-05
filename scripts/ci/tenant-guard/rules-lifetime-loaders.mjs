@@ -89,6 +89,8 @@ export function createLoaderChecks(ctx, entryModule) {
       return `a module loader member (${name})`;
     if (typeof name === 'string' && GLOBAL_LOADERS.has(name))
       return `an eval-like global or bundler loader (${name})`;
+    // `Reflect` reached as a member (`globalThis.Reflect`) bypasses the unbound-name check.
+    if (name === 'Reflect') return 'a Reflect object read through a receiver';
     if (name === DESCRIPTOR_ALL || (name === DESCRIPTOR_ONE && !describesComputedKey(node)))
       return `a property descriptor read (${name})`;
     // Any function's `constructor` is `Function`, which compiles source text.
@@ -104,13 +106,15 @@ export function createLoaderChecks(ctx, entryModule) {
     return undefined;
   }
 
-  /** `getOwnPropertyDescriptor(target, key)` called in place with a key that is not a literal
-   * naming an opener or a constructor. */
+  /** `getOwnPropertyDescriptor(target, key)` called in place, without spreads, with a key that
+   * is not a literal naming an opener or a constructor. */
   function describesComputedKey(node) {
     if (!ts.isPropertyAccessExpression(node) && !ts.isElementAccessExpression(node)) return false;
     const value = ctx.outermost(node);
     const call = value.parent;
     if (!ts.isCallExpression(call) || call.expression !== value) return false;
+    // A spread could shift any literal into the key position.
+    if (call.arguments.some(ts.isSpreadElement)) return false;
     const key = call.arguments[1];
     return !!key && !(ts.isStringLiteralLike(key) && DESCRIBED_NAMES.has(key.text));
   }
