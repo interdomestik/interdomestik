@@ -49,7 +49,6 @@ export {
 } from './domain-event-relay';
 export {
   CLAIM_STATUS_AUDIT_PROJECTION_CONSUMER_NAME,
-  claimStatusAuditProjectionConsumer,
   projectClaimStatusChangedAuditEvent,
   relayClaimStatusAuditProjectionEvents,
   type ProjectClaimStatusChangedAuditResult,

@@ -1,7 +1,10 @@
 import { CLAIM_STATUSES, type ClaimStatus } from './constants';
-import { relayDomainEvents } from './domain-event-relay';
+import {
+  domainEventRelayDelivery,
+  recordRelayedDomainEventDelivery,
+  selectDomainEventRelayBatch,
+} from './domain-event-relay';
 import type {
-  DomainEventRelayConsumer,
   DomainEventRelayEvent,
   RelayDomainEventsParams,
   RelayDomainEventsResult,
@@ -94,23 +97,22 @@ export async function projectClaimStatusChangedAuditEvent(
   return { auditLogId, status: row ? 'projected' : 'already_projected' };
 }
 
-export function claimStatusAuditProjectionConsumer(tx: DomainEventTx): DomainEventRelayConsumer {
-  return {
-    name: CLAIM_STATUS_AUDIT_PROJECTION_CONSUMER_NAME,
-    deliver: async (event, delivery) => {
-      await projectClaimStatusChangedAuditEvent(tx, event, delivery);
-    },
-  };
-}
-
+/** Projects each undelivered claim status event into the audit log and records its delivery,
+ * calling the projection directly with the transaction (no consumer object retains it). */
 export async function relayClaimStatusAuditProjectionEvents(
   tx: AuditProjectionRelayTx,
   params: Omit<RelayDomainEventsParams, 'consumer'>
 ): Promise<RelayDomainEventsResult> {
-  return relayDomainEvents(tx, {
+  const batch = await selectDomainEventRelayBatch(tx, {
     ...params,
-    consumer: claimStatusAuditProjectionConsumer(tx),
+    consumerName: CLAIM_STATUS_AUDIT_PROJECTION_CONSUMER_NAME,
     eventName: 'claim.status_changed',
     eventVersion: 1,
   });
+  let result = batch.result;
+  for (const event of batch.events) {
+    await projectClaimStatusChangedAuditEvent(tx, event, domainEventRelayDelivery(batch, event));
+    result = await recordRelayedDomainEventDelivery(tx, batch, result, event);
+  }
+  return result;
 }
