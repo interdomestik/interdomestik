@@ -186,21 +186,34 @@ export async function openS8RestrictedSession(
   const env = applyRlsTestConnectionEnv(databaseUrl);
   const previous = Object.entries(extraEnv).map(([key]) => [key, process.env[key]] as const);
   Object.assign(process.env, extraEnv);
+  type OwnedPool = { end(options: { timeout: number }): Promise<void> };
+  let appPools: OwnedPool[] = [];
+  // Closing always ends every client this session owns, even when row cleanup fails.
   const close = async (): Promise<void> => {
     for (const [key, value] of previous) {
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;
     }
     env.restore();
-    await cleanupS8ClaimFixture(adminDb, fixture);
-    await adminSql.end({ timeout: 1 });
+    try {
+      await cleanupS8ClaimFixture(adminDb, fixture);
+    } finally {
+      await Promise.allSettled([adminSql, ...appPools].map(client => client.end({ timeout: 1 })));
+    }
   };
   try {
     await seedS8ClaimFixture(adminDb, fixture);
-    const [{ dbRls }, { withTenantContext }] = await Promise.all([
+    const [{ dbRls, dbAdmin }, { withTenantContext }] = await Promise.all([
       import('../src/db'),
       import('../src/tenant'),
     ]);
+    // Pools come from drizzle's session: the asserted RLS proxy binds `$client`, dropping `.end`.
+    appPools = [dbRls, dbAdmin].map(client => {
+      const pool = (client as unknown as { session?: { client?: Partial<OwnedPool> } }).session
+        ?.client;
+      assert.equal(typeof pool?.end, 'function', 'the app database pool can be closed');
+      return pool as OwnedPool;
+    });
     return { adminDb, fixture, dbRls, withTenantContext, close };
   } catch (error) {
     await close();
