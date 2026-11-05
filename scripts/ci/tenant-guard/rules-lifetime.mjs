@@ -37,18 +37,19 @@ export function installLifetime(ctx) {
   }
 
   const entryModules = new Map();
-  /** Whether `file` exports a transaction entry under any name. */
+  /** Whether `file` exports a transaction entry, directly or through a module object it exports
+   * (`export * as inner from …`), at any depth. */
   function entryModule(file) {
-    if (!entryModules.has(file)) {
-      entryModules.set(
-        file,
-        [...graph.exportNames(file)].some(name =>
-          graph.resolveExport(file, name).some(origin => TRANSACTION_ENTRIES.has(originKey(origin)))
-        )
-      );
-    }
-    return entryModules.get(file);
+    if (entryModules.has(file)) return entryModules.get(file);
+    entryModules.set(file, false); // a re-export cycle adds nothing
+    const reaches = [...graph.exportNames(file)].some(name =>
+      graph.resolveExport(file, name).some(reachesEntry)
+    );
+    entryModules.set(file, reaches);
+    return reaches;
   }
+  const reachesEntry = origin =>
+    TRANSACTION_ENTRIES.has(originKey(origin)) || (origin.namespace ?? []).some(entryModule);
 
   /** Why a reference to a transaction entry, or to a module object exporting one, escapes the
    * one admitted form (the callee of a call, as `entry(...)` or `ns.entry(...)`), or null. */
@@ -62,9 +63,13 @@ export function installLifetime(ctx) {
       ...resolved.origins.flatMap(origin => origin.namespace ?? []),
     ];
     const namespace = modules.some(entryModule);
-    // A module object is admitted only as `ns.member`, resolved member by member.
+    // A module object is admitted only as `ns.member` naming a declaration: a member that is a
+    // module object itself (`ns.inner`) would be one more unresolved namespace value.
     const member = namespace ? memberUse(node) : null;
-    if (namespace && (!member || reference.binding.imported !== '*'))
+    const memberObject = resolved.origins.some(origin =>
+      (origin.namespace ?? []).some(entryModule)
+    );
+    if (namespace && (!member || reference.binding.imported !== '*' || memberObject))
       return 'a module object exporting a transaction entry used as a value';
     if (!allIn(resolved.origins.map(originKey), TRANSACTION_ENTRIES)) return null;
     const value = ctx.outermost(member ? member.node : node);
