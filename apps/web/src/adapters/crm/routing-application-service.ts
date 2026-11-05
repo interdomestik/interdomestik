@@ -13,7 +13,6 @@ import {
   type CrmRoutingWorkloadSnapshot,
 } from '@interdomestik/domain-crm/routing';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
-import type { CrmOutboxPort } from '@interdomestik/domain-crm/outbox';
 import { randomUUID } from 'node:crypto';
 import { and, count, eq, gte, inArray, isNull } from 'drizzle-orm';
 
@@ -33,18 +32,15 @@ import {
   findRoutingAuditByIdempotencyInDatabase,
   listRoutingRulesInDatabase,
 } from './routing-operations';
+import { appendRoutingOutboxEventInTransaction } from './routing-outbox';
 import type { CrmTenantExecutor } from './tenant-runner';
 
 type CrmRoutingApplicationDb = CrmTenantExecutor;
-type CrmRoutingOutbox = Pick<CrmOutboxPort, 'appendEvent'>;
 type CrmLeadRow = typeof crmLeads.$inferSelect;
 type AgentCountRow = { agentId: string; count: number };
 
 export type ApplyCrmLeadRoutingDecisionCoordinatorOptions = {
   authority: TenantAuthority;
-  /** Enqueues the routed event; it is invoked inside the routing transaction, so a failure rolls
-   * the whole application back. */
-  outbox: CrmRoutingOutbox;
   services?: CrmRoutingPlanServices;
 };
 
@@ -219,14 +215,13 @@ async function getRoutingWorkloadSnapshotInDatabase(
 /** Performs one routing plan request on the routing transaction. */
 async function performRoutingRequest(
   database: CrmRoutingApplicationDb,
-  outbox: CrmRoutingOutbox,
   request: CrmRoutingRequest
 ): Promise<unknown> {
   switch (request.operation) {
     case 'advanceRoutingCursor':
       return advanceRoutingCursorInDatabase(database, request.params);
     case 'appendOutboxEvent':
-      return outbox.appendEvent(request.params);
+      return appendRoutingOutboxEventInTransaction(database, request.params);
     case 'appendRoutingAssignmentAudit':
       return appendRoutingAuditInDatabase(database, request.params);
     case 'findRoutingAssignmentAuditByIdempotency':
@@ -249,28 +244,25 @@ async function performRoutingRequest(
 async function applyInTransaction(
   database: CrmRoutingApplicationDb,
   input: ApplyCrmLeadRoutingDecisionInput,
-  outbox: CrmRoutingOutbox,
   services: CrmRoutingPlanServices
 ): Promise<ApplyCrmLeadRoutingDecisionResult> {
   const plan = planCrmLeadRoutingDecision(input, services);
   let step = plan.next();
-  while (!step.done) step = plan.next(await performRoutingRequest(database, outbox, step.value));
+  while (!step.done) step = plan.next(await performRoutingRequest(database, step.value));
   return step.value;
 }
 
 export function createApplyCrmLeadRoutingDecisionCoordinator(
   options: ApplyCrmLeadRoutingDecisionCoordinatorOptions
 ) {
-  const { authority, outbox } = options;
+  const { authority } = options;
   const services = options.services ?? { outboxEventId: randomUUID };
 
   return async function applyCrmLeadRoutingDecisionInTransaction(
     input: ApplyCrmLeadRoutingDecisionInput
   ): Promise<ApplyCrmLeadRoutingDecisionResult> {
     try {
-      return await withTenantAuthority(authority, tx =>
-        applyInTransaction(tx, input, outbox, services)
-      );
+      return await withTenantAuthority(authority, tx => applyInTransaction(tx, input, services));
     } catch (error) {
       if (error instanceof CrmRoutingApplicationRollback) return error.result;
       return { outcome: 'repository_failure' };

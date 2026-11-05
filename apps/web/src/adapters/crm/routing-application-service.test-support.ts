@@ -220,6 +220,7 @@ export function createFakeDatabase() {
     committedWriteTables,
     database,
     transactionIds,
+    tx,
     writeTables,
   };
 }

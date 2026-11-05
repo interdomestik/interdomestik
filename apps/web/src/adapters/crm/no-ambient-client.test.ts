@@ -143,10 +143,12 @@ describe('CRM repositories without an injected executor', () => {
     [
       'routing application',
       () =>
-        createApplyCrmLeadRoutingDecisionCoordinator({
-          authority,
-          outbox: { appendEvent: vi.fn() },
-        })({ actor: adminActor, idempotencyKey: 'k', leadId: 'l', now: window.to } as never),
+        createApplyCrmLeadRoutingDecisionCoordinator({ authority })({
+          actor: adminActor,
+          idempotencyKey: 'k',
+          leadId: 'l',
+          now: window.to,
+        } as never),
     ],
   ];
 
