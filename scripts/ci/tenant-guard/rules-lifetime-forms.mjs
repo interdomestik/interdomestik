@@ -107,7 +107,8 @@ export function hoistedDeclarations(scope, name) {
   const visit = node => {
     if (ts.isFunctionDeclaration(node) && node.name?.text === name) count += 1;
     if (node !== scope && isFunctionLike(node)) return;
-    if (ts.isVariableDeclarationList(node) && !(node.flags & ts.NodeFlags.BlockScoped)) {
+    const blockScoped = node.flags & ts.NodeFlags.BlockScoped;
+    if (ts.isVariableDeclarationList(node) && blockScoped === 0) {
       for (const declaration of node.declarations)
         if (bindsName(declaration.name, name)) count += 1;
     }

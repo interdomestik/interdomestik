@@ -12,27 +12,32 @@ import { hasFlag } from './rules-digest.mjs';
 import { hoistedDeclarations, writes } from './rules-lifetime-forms.mjs';
 import { isFunctionLike } from './syntax.mjs';
 
-/** Builds `stableTargets(fact, callee)`: [{ fact, fn }] or why the callee cannot be followed. */
+/** Builds `stableTargets(fact, callee)`: `{ targets: [{ fact, fn }] }`, or `{ problem }` saying
+ * why the callee cannot be followed. */
 export function createLifetimeCallees(ctx, { bindingOf, usesOf }) {
   const { factsOf, originsOf, referenceAt, unwrap } = ctx;
   const text = (fact, node) => node.getText(fact.sourceFile).slice(0, 40);
 
+  const refused = problem => ({ problem, targets: [] });
   function stableTargets(fact, callee) {
     const node = unwrap(callee);
-    if (isFunctionLike(node)) return [{ fact, fn: node }];
-    if (!ts.isIdentifier(node)) return `a callee that is not a declared name (${text(fact, node)})`;
+    if (isFunctionLike(node)) return { problem: null, targets: [{ fact, fn: node }] };
+    if (!ts.isIdentifier(node))
+      return refused(`a callee that is not a declared name (${text(fact, node)})`);
     const reference = referenceAt(fact, node);
     const binding = reference?.binding;
-    if (!binding) return `a global callee (${text(fact, node)})`;
+    if (!binding) return refused(`a global callee (${text(fact, node)})`);
     // A reviewed runner's callback parameter is checked at each call of the runner instead.
     if (binding.kind === 'param' && ctx.lifetimeRunnerChecks?.isCallbackParam(binding, node))
-      return [];
-    if (binding.kind === 'param') return `a callback read from a parameter (${node.text})`;
+      return { problem: null, targets: [] };
+    if (binding.kind === 'param') return refused(`a callback read from a parameter (${node.text})`);
     const target =
       binding.kind === 'import'
         ? importedDeclaration(fact, reference)
         : localDeclaration(fact, binding.decl);
-    return target ? [target] : `a callee that is not a stable function declaration (${node.text})`;
+    return target
+      ? { problem: null, targets: [target] }
+      : refused(`a callee that is not a stable function declaration (${node.text})`);
   }
 
   function importedDeclaration(fact, reference) {

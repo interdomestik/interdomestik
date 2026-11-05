@@ -33,12 +33,10 @@ export function createOpenerChecks(ctx, { bindingOf, stableTargets, usesOf }) {
   let cycle = false;
   const unbound = (fact, node) =>
     ts.isIdentifier(node) && referenceAt(fact, node) && !referenceAt(fact, node).binding;
-  const keyName = key =>
-    ts.isComputedPropertyName(key)
-      ? ts.isStringLiteralLike(key.expression)
-        ? key.expression.text
-        : null
-      : key.text;
+  const keyName = key => {
+    if (!ts.isComputedPropertyName(key)) return key.text;
+    return ts.isStringLiteralLike(key.expression) ? key.expression.text : null;
+  };
 
   /** Why the read at `node` lets a transaction opener be invoked unseen, or null. */
   function openerProblem(fact, node) {
@@ -120,24 +118,29 @@ export function createOpenerChecks(ctx, { bindingOf, stableTargets, usesOf }) {
       return null;
     if (call.arguments.slice(0, index).some(ts.isSpreadElement))
       return 'a spread precedes a transaction opener argument';
-    const targets = stableTargets(fact, callee);
-    if (typeof targets === 'string') return `a transaction opener handed to ${targets}`;
+    const { problem: unstable, targets } = stableTargets(fact, callee);
+    if (unstable) return `a transaction opener handed to ${unstable}`;
     for (const { fact: owner, fn } of targets) {
-      // Implicit `arguments`, an erased `this` parameter or `this` itself would reach it unseen.
-      const shape = shapeProblem(owner, fn, referenceAt);
-      if (shape) return `a transaction opener handed to ${shape}`;
-      if (fn.parameters.slice(0, index + 1).some(param => param.dotDotDotToken))
-        return 'a rest parameter receives a transaction opener';
-      const param = fn.parameters[index];
-      if (!param) continue;
-      if (!ts.isIdentifier(param.name)) return 'a transaction opener parameter destructured';
-      if (param.initializer) return 'a transaction opener parameter with a default';
-      if (hoistedDeclarations(fn, param.name.text) > 0)
-        return `a redeclared transaction opener parameter (${param.name.text})`;
-      const problem = bindingUses(owner, param.name, depth + 1);
+      const problem = receiverProblem(owner, fn, index, depth);
       if (problem) return problem;
     }
     return null;
+  }
+
+  /** Parameter `index` of the stable function `fn` receives the opener and obeys L. */
+  function receiverProblem(owner, fn, index, depth) {
+    // Implicit `arguments`, an erased `this` parameter or `this` itself would reach it unseen.
+    const shape = shapeProblem(owner, fn, referenceAt);
+    if (shape) return `a transaction opener handed to ${shape}`;
+    if (fn.parameters.slice(0, index + 1).some(param => param.dotDotDotToken))
+      return 'a rest parameter receives a transaction opener';
+    const param = fn.parameters[index];
+    if (!param) return null;
+    if (!ts.isIdentifier(param.name)) return 'a transaction opener parameter destructured';
+    if (param.initializer) return 'a transaction opener parameter with a default';
+    if (hoistedDeclarations(fn, param.name.text) > 0)
+      return `a redeclared transaction opener parameter (${param.name.text})`;
+    return bindingUses(owner, param.name, depth + 1);
   }
 
   /** Every use of the binding `id` holds the opener. A cycle is assumed safe (each use on it is

@@ -52,42 +52,56 @@ export function createLoaderChecks(ctx, entryModule) {
   /** Why `node` reaches a module loader other than a direct `import()` / `require()` call with a
    * literal specifier, or null. */
   function loaderProblem(fact, node) {
-    if (ts.isIdentifier(node) && isRequire(fact, node)) {
-      const value = ctx.outermost(node);
-      if (!(ts.isCallExpression(value.parent) && value.parent.expression === value))
-        return 'an indirect require';
-    }
-    if (ts.isIdentifier(node) && GLOBAL_LOADERS.has(node.text) && referenceAt(fact, node))
+    return (
+      identifierProblem(fact, node) ??
+      declarationProblem(node) ??
+      dynamicLoadProblem(fact, node) ??
+      memberProblem(fact, node)
+    );
+  }
+
+  /** An unbound `require` not called in place, an eval-like global, or a `Reflect` operation. */
+  function identifierProblem(fact, node) {
+    if (!ts.isIdentifier(node)) return null;
+    if (isRequire(fact, node) && !calledInPlace(node)) return 'an indirect require';
+    if (GLOBAL_LOADERS.has(node.text) && referenceAt(fact, node))
       return `an eval-like global or bundler loader (${node.text})`;
-    if (ts.isIdentifier(node) && node.text === 'Reflect' && unbound(fact, node)) {
-      const parent = ctx.outermost(node).parent;
-      const query =
-        ts.isPropertyAccessExpression(parent) &&
-        parent.expression === ctx.outermost(node) &&
-        REFLECT_QUERIES.has(parent.name.text);
-      if (!query) return 'a Reflect operation other than has or ownKeys';
-    }
+    if (node.text === 'Reflect' && unbound(fact, node) && !reflectQuery(node))
+      return 'a Reflect operation other than has or ownKeys';
+    return null;
+  }
+
+  const calledInPlace = node => {
+    const value = ctx.outermost(node);
+    return ts.isCallExpression(value.parent) && value.parent.expression === value;
+  };
+
+  const reflectQuery = node => {
+    const value = ctx.outermost(node);
+    const parent = value.parent;
+    return (
+      ts.isPropertyAccessExpression(parent) &&
+      parent.expression === value &&
+      REFLECT_QUERIES.has(parent.name.text)
+    );
+  };
+
+  /** A static import, re-export or `import = require` of a module outside the scanned graph. */
+  function declarationProblem(node) {
     if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference))
       return 'a CommonJS import (import = require)';
     const specifier =
       ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier : null;
-    if (specifier && ts.isStringLiteralLike(specifier) && LOADER_MODULES.has(specifier.text))
-      return 'an import of the module loader';
-    if (specifier && ts.isStringLiteralLike(specifier) && EVALUATOR_MODULES.has(specifier.text))
-      return 'an import of the code evaluator';
-    if (specifier && ts.isStringLiteralLike(specifier) && URL_SPECIFIER.test(specifier.text))
-      return 'an import of a URL module outside the scanned graph';
-    if (ts.isCallExpression(node) && dynamicLoad(fact, node)) {
-      if (!literalSpecifier(node) && !dataSpecifier(node))
-        return 'a dynamic import with a computed specifier';
-      if (literalSpecifier(node) && LOADER_MODULES.has(node.arguments[0].text))
-        return 'a dynamic import of the module loader';
-      if (literalSpecifier(node) && EVALUATOR_MODULES.has(node.arguments[0].text))
-        return 'a dynamic import of the code evaluator';
-      if (literalSpecifier(node) && URL_SPECIFIER.test(node.arguments[0].text))
-        return 'a dynamic import of a URL module outside the scanned graph';
-    }
-    return memberProblem(fact, node);
+    if (!specifier || !ts.isStringLiteralLike(specifier)) return null;
+    return specifierProblem(specifier.text, 'an import of');
+  }
+
+  /** A dynamic `import()` / `require()`: its specifier must be a literal or a data template. */
+  function dynamicLoadProblem(fact, node) {
+    if (!ts.isCallExpression(node) || !dynamicLoad(fact, node)) return null;
+    if (!literalSpecifier(node))
+      return dataSpecifier(node) ? null : 'a dynamic import with a computed specifier';
+    return specifierProblem(node.arguments[0].text, 'a dynamic import of');
   }
 
   /** A loader member read under any name form, or a computed member of a loader receiver. */
@@ -154,6 +168,14 @@ function nameProblem(name) {
   return null;
 }
 
+/** A literal specifier naming the loader, the evaluator or a URL module, worded as `form`. */
+function specifierProblem(text, form) {
+  if (LOADER_MODULES.has(text)) return `${form} the module loader`;
+  if (EVALUATOR_MODULES.has(text)) return `${form} the code evaluator`;
+  if (URL_SPECIFIER.test(text)) return `${form} a URL module outside the scanned graph`;
+  return null;
+}
+
 const literalSpecifier = call =>
   call.arguments.length > 0 && ts.isStringLiteralLike(call.arguments[0]);
 
@@ -163,7 +185,7 @@ function dataSpecifier(call) {
   const [specifier] = call.arguments;
   if (call.arguments.length !== 1 || !ts.isTemplateExpression(specifier)) return false;
   const tail = specifier.templateSpans.at(-1).literal.text;
-  return /^(?:\.{1,2}|@)\/[\w./-]+\//u.test(specifier.head.text) && /\.json$/u.test(tail);
+  return /^(?:\.{1,2}|@)\/[\w./-]+\//u.test(specifier.head.text) && tail.endsWith('.json');
 }
 
 /** The member name `node` reads: a string for a static name, null for a computed one, undefined

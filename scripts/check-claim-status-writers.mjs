@@ -45,10 +45,10 @@ const RENAMED_CLAIMS_IMPORT = new RegExp(String.raw`\bclaims\s+as\s+(${IDENTIFIE
 const NAMESPACE_IMPORT = new RegExp(String.raw`\bimport\s+\*\s+as\s+(${IDENTIFIER})`, 'gu');
 
 function claimsReference(source) {
-  const names = new Set(['claims', 'schema\\.claims']);
+  const names = new Set(['claims', String.raw`schema\.claims`]);
   for (const match of source.matchAll(RENAMED_CLAIMS_IMPORT)) names.add(escapeRegex(match[1]));
   for (const match of source.matchAll(NAMESPACE_IMPORT))
-    names.add(`${escapeRegex(match[1])}\\.claims`);
+    names.add(String.raw`${escapeRegex(match[1])}\.claims`);
   return `(?:${[...names].join('|')})`;
 }
 

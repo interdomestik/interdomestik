@@ -63,21 +63,20 @@ export function installLifetime(ctx) {
     const queue = [file];
     let reaches = false;
     while (queue.length > 0 && !reaches) {
-      const current = queue.shift();
-      for (const name of graph.exportNames(current)) {
-        for (const origin of graph.resolveExport(current, name)) {
-          if (TRANSACTION_ENTRIES.has(originKey(origin))) reaches = true;
-          for (const inner of origin.namespace ?? []) {
-            if (seen.has(inner)) continue;
-            seen.add(inner);
-            queue.push(inner);
-          }
-        }
+      const origins = exportOrigins(queue.shift());
+      reaches = origins.some(origin => TRANSACTION_ENTRIES.has(originKey(origin)));
+      for (const inner of origins.flatMap(origin => origin.namespace ?? [])) {
+        if (seen.has(inner)) continue;
+        seen.add(inner);
+        queue.push(inner);
       }
     }
     entryModules.set(file, reaches);
     return reaches;
   }
+  /** The origins of every name `file` exports. */
+  const exportOrigins = file =>
+    [...graph.exportNames(file)].flatMap(name => graph.resolveExport(file, name));
   const { loaderProblem, loadsEntryModule } = createLoaderChecks(ctx, entryModule);
 
   /** Why a reference to a transaction entry, or to a module object exporting one, escapes the
@@ -116,56 +115,63 @@ export function installLifetime(ctx) {
       ts.isClassLike(node.parent.parent)
     );
 
-  /** The functions a transaction callback argument may be, or why it cannot be checked. */
+  /** `{ targets }`, the functions a transaction callback argument may be, or `{ problem }`. */
   function callbackTargets(fact, callback) {
-    if (callback === null) return [];
-    if (ts.isSpreadElement(callback)) return 'a spread transaction callback';
+    if (callback === null) return { problem: null, targets: [] };
+    if (ts.isSpreadElement(callback))
+      return { problem: 'a spread transaction callback', targets: [] };
     const value = unwrap(callback);
-    if (isFunctionLike(value)) return [{ fact, fn: value }];
+    if (isFunctionLike(value)) return { problem: null, targets: [{ fact, fn: value }] };
     return flow.stableTargets(fact, value);
+  }
+
+  /** Every lifetime problem at `node` itself, in report order. */
+  function nodeProblems(fact, node) {
+    const identifier = ts.isIdentifier(node);
+    const call = ts.isCallExpression(node);
+    const dynamicImport = call && loadsEntryModule(fact, node);
+    return [
+      identifier ? entryProblem(fact, node) : null,
+      loaderProblem(fact, node),
+      openerProblem(fact, node),
+      identifier ? runners.referenceProblem(fact, node) : null,
+      dynamicImport ? 'a dynamic import of a module exporting a transaction entry' : null,
+      ...(call ? openedProblems(fact, node) : []),
+    ].filter(Boolean);
+  }
+
+  /** A call that opens a transaction: each function its callback may be borrows it at 0. */
+  function openedProblems(fact, call) {
+    const opened = openedCallback(fact, call);
+    if (opened === undefined) return [];
+    ctx.telemetry.lifetimeSources = (ctx.telemetry.lifetimeSources ?? 0) + 1;
+    if (opened.problem) return [opened.problem];
+    const { problem, targets } = callbackTargets(fact, opened.callback);
+    if (problem) return [problem];
+    return targets.map(target => flow.paramProblem(target.fact, target.fn, 0));
+  }
+
+  function checkFile(file, fact) {
+    const report = (node, detail) =>
+      ctx.violate(
+        file,
+        node,
+        fact.sourceFile,
+        RULE,
+        `a tenant transaction capability can outlive its callback: ${detail}`
+      );
+    ts.forEachChild(fact.sourceFile, function visit(node) {
+      if (erased(node)) return;
+      for (const detail of nodeProblems(fact, node)) report(node, detail);
+      ts.forEachChild(node, visit);
+    });
   }
 
   function checkLifetime() {
     for (const file of [...sources.keys()].sort(byCodeUnit)) {
       if (isTest(file) || DECLARATION_FILE.test(file) || KERNEL.test(file)) continue;
       const fact = factsOf(file);
-      if (!fact) continue;
-      const report = (node, detail) =>
-        ctx.violate(
-          file,
-          node,
-          fact.sourceFile,
-          RULE,
-          `a tenant transaction capability can outlive its callback: ${detail}`
-        );
-      ts.forEachChild(fact.sourceFile, function visit(node) {
-        if (erased(node)) return;
-        const entry = ts.isIdentifier(node) ? entryProblem(fact, node) : null;
-        if (entry) report(node, entry);
-        const loader = loaderProblem(fact, node);
-        if (loader) report(node, loader);
-        const opener = openerProblem(fact, node);
-        if (opener) report(node, opener);
-        const runner = ts.isIdentifier(node) ? runners.referenceProblem(fact, node) : null;
-        if (runner) report(node, runner);
-        if (ts.isCallExpression(node) && loadsEntryModule(fact, node))
-          report(node, 'a dynamic import of a module exporting a transaction entry');
-        if (ts.isCallExpression(node)) {
-          const opened = openedCallback(fact, node);
-          if (opened !== undefined) {
-            ctx.telemetry.lifetimeSources = (ctx.telemetry.lifetimeSources ?? 0) + 1;
-            const targets = opened.problem ?? callbackTargets(fact, opened.callback);
-            if (typeof targets === 'string') report(node, targets);
-            else {
-              for (const target of targets) {
-                const problem = flow.paramProblem(target.fact, target.fn, 0);
-                if (problem) report(node, problem);
-              }
-            }
-          }
-        }
-        ts.forEachChild(node, visit);
-      });
+      if (fact) checkFile(file, fact);
     }
   }
 

@@ -57,7 +57,7 @@ export function createLifetimeFlow(ctx) {
   // to it may still use the capability after it returns unless that call is joined.
   const paramProblem = (fact, fn, index) => obligation(fact, fn, index, [], [], 0).problem;
   function obligation(fact, fn, index, path, owned, depth) {
-    const keys = owned.map(set => [...set].sort());
+    const keys = owned.map(set => [...set].sort((a, b) => a.localeCompare(b)));
     const key = JSON.stringify([fact.file, fn.pos, index, path, keys]);
     if (settled.has(key)) return settled.get(key);
     if (active.has(key)) {
@@ -108,36 +108,42 @@ export function createLifetimeFlow(ctx) {
     if (ts.isIdentifier(name)) return bindingProblem(fact, name, path, owned, owner, depth);
     if (path.length === 0) return 'a destructured capability (its members are extracted)';
     if (!ts.isObjectBindingPattern(name)) return 'an array pattern carries it';
-    const [head, ...rest] = path;
+    const taken = takenKeys(name, owned[0]);
+    if (taken.problem) return taken.problem;
+    // Every element binding the property borrows it: `{ x: u, x: v }` binds it twice.
+    const scope = { path, owned, owner, depth, keys: taken.keys };
+    for (const element of name.elements) {
+      const problem = elementProblem(fact, name, element, scope);
+      if (problem) return problem;
+    }
+    return null;
+  }
+
+  /** The static keys a pattern takes, each one a key the carrier owns. */
+  function takenKeys(name, ownedKeys) {
     const keys = [];
     for (const element of name.elements) {
       if (element.dotDotDotToken) continue;
       const key = ctx.elementKey(element);
-      if (typeof key !== 'string') return 'a computed binding key';
-      if (!owned[0].has(key)) return `a destructured member the carrier does not own (${key})`;
+      if (typeof key !== 'string') return { problem: 'a computed binding key', keys };
+      if (!ownedKeys.has(key))
+        return { problem: `a destructured member the carrier does not own (${key})`, keys };
       keys.push(key);
     }
-    // Every element binding the property borrows it: `{ x: u, x: v }` binds it twice.
-    for (const element of name.elements) {
-      let problem = null;
-      if (element.dotDotDotToken) {
-        // The rest object owns exactly the keys the pattern did not take.
-        const remaining = new Set([...owned[0]].filter(key => !keys.includes(key)));
-        if (restCarries(name, head))
-          problem = patternProblem(
-            fact,
-            element.name,
-            path,
-            [remaining, ...owned.slice(1)],
-            owner,
-            depth
-          );
-      } else if (ctx.elementKey(element) === head) {
-        problem = patternProblem(fact, element.name, rest, owned.slice(1), owner, depth);
-      }
-      if (problem) return problem;
+    return { problem: null, keys };
+  }
+
+  /** One element of a pattern that receives the carrier at `path`. */
+  function elementProblem(fact, name, element, { path, owned, owner, depth, keys }) {
+    const [head, ...rest] = path;
+    if (element.dotDotDotToken) {
+      if (!restCarries(name, head)) return null;
+      // The rest object owns exactly the keys the pattern did not take.
+      const remaining = new Set([...owned[0]].filter(key => !keys.includes(key)));
+      return patternProblem(fact, element.name, path, [remaining, ...owned.slice(1)], owner, depth);
     }
-    return null;
+    if (ctx.elementKey(element) !== head) return null;
+    return patternProblem(fact, element.name, rest, owned.slice(1), owner, depth);
   }
 
   function bindingProblem(fact, id, path, owned, owner, depth) {
@@ -147,25 +153,29 @@ export function createLifetimeFlow(ctx) {
     const binding = bindingOf(fact, id);
     if (!binding) return null;
     for (const use of usesOf(fact, binding)) {
-      if (writes(use.node, ctx)) return `a reassigned capability binding (${id.text})`;
-      // A closure or class over the binding retains the whole carrier, whichever member it reads.
-      if (captureBoundary(use.node) !== owner)
-        return `a nested function or class captures it (${id.text})`;
-      // A carrier's other own members are plain data: reading them in place lends nothing.
-      if (otherMember(use.node, path)) {
-        const member = use.node.parent.name.text;
-        if (!owned[0].has(member)) return `a member the carrier does not own (${member})`;
-        // Deleting or replacing an own member could expose an inherited one to later reads.
-        if (writes(use.node.parent, ctx)) return `a written carrier member (${member})`;
-        if (!calledMember(use.node.parent)) continue;
-      }
-      const problem =
-        path.length === 0
-          ? valueProblem(fact, use.node, owner, depth)
-          : carrierProblem(fact, use.node, path, owned, owner, depth);
+      const problem = useProblem(fact, id, use.node, { path, owned, owner, depth });
       if (problem) return problem;
     }
     return null;
+  }
+
+  /** One use of a binding that holds the capability, or a carrier of it at `path`. */
+  function useProblem(fact, id, node, { path, owned, owner, depth }) {
+    if (writes(node, ctx)) return `a reassigned capability binding (${id.text})`;
+    // A closure or class over the binding retains the whole carrier, whichever member it reads.
+    if (captureBoundary(node) !== owner)
+      return `a nested function or class captures it (${id.text})`;
+    // A carrier's other own members are plain data: reading them in place lends nothing.
+    if (otherMember(node, path)) {
+      const member = node.parent.name.text;
+      if (!owned[0].has(member)) return `a member the carrier does not own (${member})`;
+      // Deleting or replacing an own member could expose an inherited one to later reads.
+      if (writes(node.parent, ctx)) return `a written carrier member (${member})`;
+      if (!calledMember(node.parent)) return null;
+    }
+    return path.length === 0
+      ? valueProblem(fact, node, owner, depth)
+      : carrierProblem(fact, node, path, owned, owner, depth);
   }
 
   /** `node` evaluates to the borrowed capability itself. */
@@ -177,11 +187,7 @@ export function createLifetimeFlow(ctx) {
     if (ts.isCallExpression(parent) && parent.arguments.includes(value))
       return argumentProblem(fact, parent, parent.arguments.indexOf(value), [], [], depth);
     const carried = carrierOf(value, parent);
-    if (carried) {
-      if (carried.problem) return carried.problem;
-      const { call, index, key, keys } = carried;
-      return argumentProblem(fact, call, index, [key], [keys], depth);
-    }
+    if (carried) return carriedProblem(fact, carried, [], [], depth);
     if (constInitializer(parent, value))
       return patternProblem(fact, parent.name, [], [], owner, depth);
     if (tested(value, parent)) return null;
@@ -211,29 +217,36 @@ export function createLifetimeFlow(ctx) {
   function carrierProblem(fact, node, path, owned, owner, depth) {
     const value = outermost(node);
     const parent = value.parent;
-    const [head, ...rest] = path;
-    if (ts.isPropertyAccessExpression(parent) && parent.expression === value) {
-      const member = parent.name.text;
-      if (!owned[0].has(member)) return `a member the carrier does not own (${member})`;
-      if (member !== head && writes(parent, ctx)) return `a written carrier member (${member})`;
-      if (member !== head) return calledMember(parent) ? `a carrier method call (${member})` : null;
-      if (writes(parent, ctx)) return `a reassigned carrier member (${head})`;
-      return rest.length === 0
-        ? valueProblem(fact, parent, owner, depth)
-        : carrierProblem(fact, parent, rest, owned.slice(1), owner, depth);
-    }
+    if (ts.isPropertyAccessExpression(parent) && parent.expression === value)
+      return carrierMemberProblem(fact, parent, { path, owned, owner, depth });
     if (ts.isCallExpression(parent) && parent.arguments.includes(value))
       return argumentProblem(fact, parent, parent.arguments.indexOf(value), path, owned, depth);
     const carried = carrierOf(value, parent);
-    if (carried) {
-      if (carried.problem) return carried.problem;
-      const { call, index, key, keys } = carried;
-      return argumentProblem(fact, call, index, [key, ...path], [keys, ...owned], depth);
-    }
+    if (carried) return carriedProblem(fact, carried, path, owned, depth);
     if (constInitializer(parent, value))
       return patternProblem(fact, parent.name, path, owned, owner, depth);
     if (tested(value, parent)) return null;
     return `the capability carrier escapes its callback (${kindOf(parent)})`;
+  }
+
+  /** A member read of the carrier: its own data, or the borrowed capability one level down. */
+  function carrierMemberProblem(fact, access, { path, owned, owner, depth }) {
+    const [head, ...rest] = path;
+    const member = access.name.text;
+    if (!owned[0].has(member)) return `a member the carrier does not own (${member})`;
+    if (member !== head && writes(access, ctx)) return `a written carrier member (${member})`;
+    if (member !== head) return calledMember(access) ? `a carrier method call (${member})` : null;
+    if (writes(access, ctx)) return `a reassigned carrier member (${head})`;
+    return rest.length === 0
+      ? valueProblem(fact, access, owner, depth)
+      : carrierProblem(fact, access, rest, owned.slice(1), owner, depth);
+  }
+
+  /** The literal carrying the capability (or its carrier) is handed to a call as an argument. */
+  function carriedProblem(fact, carried, path, owned, depth) {
+    if (carried.problem) return carried.problem;
+    const { call, index, key, keys } = carried;
+    return argumentProblem(fact, call, index, [key, ...path], [keys, ...owned], depth);
   }
 
   /** A static property of an object literal handed directly to a call, or a problem, or null. */
@@ -245,7 +258,7 @@ export function createLifetimeFlow(ctx) {
         : null;
     if (!property) return null;
     const literal = property.parent;
-    const unsafe = literal.properties.find(
+    const unsafe = literal.properties.some(
       member =>
         typeof keyOf(member) !== 'string' ||
         keyOf(member) === '__proto__' ||
@@ -266,8 +279,8 @@ export function createLifetimeFlow(ctx) {
   function argumentProblem(fact, call, index, path, owned, depth) {
     if (call.questionDotToken) return 'an optional call receives it';
     if (call.arguments.slice(0, index).some(ts.isSpreadElement)) return 'a spread precedes it';
-    const targets = stableTargets(fact, unwrap(call.expression));
-    if (typeof targets === 'string') return targets;
+    const { problem: unstable, targets } = stableTargets(fact, unwrap(call.expression));
+    if (unstable) return unstable;
     for (const target of targets) {
       const { problem, lent } = obligation(target.fact, target.fn, index, path, owned, depth + 1);
       if (problem) return `${text(fact, call.expression)}: ${problem}`;
