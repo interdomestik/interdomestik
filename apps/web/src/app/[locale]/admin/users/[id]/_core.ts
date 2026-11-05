@@ -23,7 +23,7 @@ import {
   type MemberReadActor,
 } from '@/features/admin/members/server/member-read-scope';
 
-import { getAdminUserClaimSummary } from './_claim-summary';
+import { summarizeAdminUserClaimsInTransaction } from './_claim-summary';
 
 export type AdminUserClaimCounts = {
   total: number;
@@ -131,8 +131,7 @@ export async function getAdminUserProfileCore(args: {
       }),
     ]);
     // Awaited on its own: the transaction it borrows must not outlive this callback.
-    const claimSummary = await getAdminUserClaimSummary({
-      db: tx,
+    const claimSummary = await summarizeAdminUserClaimsInTransaction(tx, {
       recentClaimsLimit: args.recentClaimsLimit,
       // The granted scope, not the raw actor: full-tenant roles carry no branch here.
       scope: { role: scope.role, branchId: scope.branchId },

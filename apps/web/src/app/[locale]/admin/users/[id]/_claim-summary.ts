@@ -39,38 +39,31 @@ type AdminUserClaimSummaryBase = {
   userId: string;
 };
 
-type AdminUserClaimSummaryArgs = AdminUserClaimSummaryBase &
-  // The caller already runs inside its own tenant transaction.
-  (
-    | { db: DbClient; tenantId: string; authority?: undefined }
-    // No executor: a tenant transaction is opened under the session's tenant authority.
-    | { db?: undefined; authority: TenantAuthority; tenantId?: undefined }
-  );
+type AdminUserClaimSummaryInput = AdminUserClaimSummaryBase & { tenantId: string };
 
-/** The summary inputs alone: the executor is never carried alongside them. */
-function summaryInput(args: AdminUserClaimSummaryBase, tenantId: string) {
-  return {
-    recentClaimsLimit: args.recentClaimsLimit,
-    scope: args.scope,
-    tenantId,
-    userId: args.userId,
-  };
+/** Summarizes inside the caller's own tenant transaction, which is lent only for this call. */
+export function summarizeAdminUserClaimsInTransaction(
+  db: DbClient,
+  input: AdminUserClaimSummaryInput
+) {
+  return summarizeAdminUserClaims(db, input);
 }
 
-export async function getAdminUserClaimSummary(args: AdminUserClaimSummaryArgs) {
-  if (args.db) {
-    return summarizeAdminUserClaims(args.db, summaryInput(args, args.tenantId));
-  }
-
-  // No caller-supplied executor: the ambient client has no tenant context, so open one.
-  const input = summaryInput(args, readTenantAuthority(args.authority).tenantId);
+/** Summarizes in a tenant transaction opened under the session's tenant authority. */
+export async function getAdminUserClaimSummary(
+  args: AdminUserClaimSummaryBase & { authority: TenantAuthority }
+) {
+  // The ambient client has no tenant context, so open one.
+  const input: AdminUserClaimSummaryInput = {
+    recentClaimsLimit: args.recentClaimsLimit,
+    scope: args.scope,
+    tenantId: readTenantAuthority(args.authority).tenantId,
+    userId: args.userId,
+  };
   return withTenantAuthority(args.authority, tx => summarizeAdminUserClaims(tx, input));
 }
 
-async function summarizeAdminUserClaims(
-  db: DbClient,
-  args: AdminUserClaimSummaryBase & { tenantId: string }
-) {
+async function summarizeAdminUserClaims(db: DbClient, args: AdminUserClaimSummaryInput) {
   const where = and(
     eq(claims.userId, args.userId),
     eq(claims.tenantId, args.tenantId),

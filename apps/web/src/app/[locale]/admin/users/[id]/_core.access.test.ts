@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => {
     withTenantContext: vi.fn((_context: unknown, action: (client: typeof tx) => Promise<unknown>) =>
       action(tx)
     ),
-    getAdminUserClaimSummary: vi.fn(),
+    summarizeAdminUserClaimsInTransaction: vi.fn(),
   };
 });
 
@@ -26,7 +26,9 @@ vi.mock('@interdomestik/database', async importOriginal => ({
   ...(await importOriginal<typeof import('@interdomestik/database')>()),
   withTenantContext: mocks.withTenantContext,
 }));
-vi.mock('./_claim-summary', () => ({ getAdminUserClaimSummary: mocks.getAdminUserClaimSummary }));
+vi.mock('./_claim-summary', () => ({
+  summarizeAdminUserClaimsInTransaction: mocks.summarizeAdminUserClaimsInTransaction,
+}));
 
 import { getAdminUserProfileCore } from './_core';
 
@@ -61,7 +63,7 @@ function memberLookup(): { params: unknown[]; sql: string; with: unknown } {
 function expectNoDependentReads(): void {
   expect(mocks.tx.query.subscriptions.findFirst).not.toHaveBeenCalled();
   expect(mocks.tx.query.userNotificationPreferences.findFirst).not.toHaveBeenCalled();
-  expect(mocks.getAdminUserClaimSummary).not.toHaveBeenCalled();
+  expect(mocks.summarizeAdminUserClaimsInTransaction).not.toHaveBeenCalled();
 }
 
 function expectNoTransaction(): void {
@@ -76,7 +78,10 @@ describe('getAdminUserProfileCore member-read access', () => {
     mocks.tx.query.user.findFirst.mockResolvedValue(MEMBER);
     mocks.tx.query.subscriptions.findFirst.mockResolvedValue(undefined);
     mocks.tx.query.userNotificationPreferences.findFirst.mockResolvedValue(undefined);
-    mocks.getAdminUserClaimSummary.mockResolvedValue({ counts: COUNTS, recentClaims: [] });
+    mocks.summarizeAdminUserClaimsInTransaction.mockResolvedValue({
+      counts: COUNTS,
+      recentClaims: [],
+    });
   });
 
   it.each(['admin', 'tenant_admin', 'super_admin'])(
@@ -98,8 +103,7 @@ describe('getAdminUserProfileCore member-read access', () => {
       );
       expect(lookup.with).toEqual({ agent: true });
       // The granted full-tenant scope drops the actor's own branch from the claim summary.
-      expect(mocks.getAdminUserClaimSummary).toHaveBeenCalledWith({
-        db: mocks.tx,
+      expect(mocks.summarizeAdminUserClaimsInTransaction).toHaveBeenCalledWith(mocks.tx, {
         recentClaimsLimit: 6,
         scope: { role, branchId: null },
         tenantId: 't1',
@@ -112,7 +116,8 @@ describe('getAdminUserProfileCore member-read access', () => {
     await load('super_admin', null, 't-selected');
     expectTransactionUnder('t-selected', 'super_admin');
     expect(memberLookup().params).toEqual(['u1', 't-selected']);
-    expect(mocks.getAdminUserClaimSummary).toHaveBeenCalledWith(
+    expect(mocks.summarizeAdminUserClaimsInTransaction).toHaveBeenCalledWith(
+      mocks.tx,
       expect.objectContaining({
         scope: { role: 'super_admin', branchId: null },
         tenantId: 't-selected',
@@ -132,9 +137,10 @@ describe('getAdminUserProfileCore member-read access', () => {
     expect(mocks.tx.query.subscriptions.findFirst.mock.invocationCallOrder[0]).toBeGreaterThan(
       memberOrder
     );
-    expect(mocks.getAdminUserClaimSummary.mock.invocationCallOrder[0]).toBeGreaterThan(memberOrder);
-    expect(mocks.getAdminUserClaimSummary).toHaveBeenCalledWith({
-      db: mocks.tx,
+    expect(mocks.summarizeAdminUserClaimsInTransaction.mock.invocationCallOrder[0]).toBeGreaterThan(
+      memberOrder
+    );
+    expect(mocks.summarizeAdminUserClaimsInTransaction).toHaveBeenCalledWith(mocks.tx, {
       recentClaimsLimit: 6,
       scope: { role: 'branch_manager', branchId: 'b-A' },
       tenantId: 't1',
@@ -183,7 +189,9 @@ describe('getAdminUserProfileCore member-read access', () => {
   });
 
   it('propagates dependent read failures for an authorized member', async () => {
-    mocks.getAdminUserClaimSummary.mockRejectedValueOnce(new Error('claims unavailable'));
+    mocks.summarizeAdminUserClaimsInTransaction.mockRejectedValueOnce(
+      new Error('claims unavailable')
+    );
     await expect(load('branch_manager', 'b-A')).rejects.toThrow('claims unavailable');
   });
 });
