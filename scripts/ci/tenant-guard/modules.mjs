@@ -49,25 +49,18 @@ export function createModuleGraph({
     return sourceFile ?? null;
   };
 
-  // Resolvers disagree on extension order: TypeScript resolves a `.js` specifier to its `.ts`
-  // source first, while bundlers take the file named. Every coexisting variant of the stem is
-  // therefore an alternative; a directory index counts only where no file variant exists.
+  // Resolvers disagree on extension order (TypeScript maps a `.js` specifier to its `.ts` source,
+  // bundlers take the file named): every coexisting variant of the stem is an alternative, and a
+  // directory index counts only where no file variant exists.
   function resolveFiles(base) {
+    const has = file => sources.has(file);
     const normalized = path.normalize(base);
-    const stripped = normalized.replace(/\.(?:[cm]?js|jsx)$/u, '');
-    const files = new Set();
-    if (sources.has(normalized)) files.add(normalized);
-    for (const candidate of [normalized, stripped])
-      for (const extension of EXTENSIONS)
-        if (sources.has(candidate + extension)) files.add(candidate + extension);
-    if (files.size > 0) return [...files];
-    for (const candidate of [normalized, stripped]) {
-      const indexes = EXTENSIONS.map(extension => `${candidate}/index${extension}`).filter(file =>
-        sources.has(file)
-      );
-      if (indexes.length > 0) return indexes;
-    }
-    return [];
+    const candidates = [normalized, normalized.replace(/\.(?:[cm]?js|jsx)$/u, '')];
+    const existing = suffixes => candidates.flatMap(c => suffixes.map(x => c + x)).filter(has);
+    const files = existing(['', ...EXTENSIONS]);
+    if (files.length > 0) return [...new Set(files)];
+    const indexes = candidates.map(c => EXTENSIONS.map(x => `${c}/index${x}`).filter(has));
+    return indexes.find(found => found.length > 0) ?? [];
   }
 
   // The union of every alternative a configured resolver could take. A match that points into
