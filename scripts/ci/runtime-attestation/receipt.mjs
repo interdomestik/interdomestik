@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import path from 'node:path';
 
 // U2-e receipt: a versioned, allowlisted, secret-free record of one observation and its verdict.
 // States: PASS (every check verified), INPUTS_NOT_PROVISIONED (only owner-provisioned inputs are
@@ -71,4 +72,19 @@ export function buildReceipt({ mode, failureCodes, context, observation }) {
     deployment: context.deployment,
     observed: observedFacts(observation),
   };
+}
+
+/**
+ * The receipt is written only under this run's staging evidence directory, built from the numeric
+ * run id. The configured path must name exactly that file.
+ */
+export function receiptPathFor(root, runId, configured) {
+  const id = Number(runId);
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error('GITHUB_RUN_ID must be a run id');
+  const parts = ['tmp', 'cd-evidence', String(id), 'staging', 'runtime-attestation'];
+  const out = path.join(root, ...parts, 'receipt.json');
+  if (path.resolve(root, configured ?? '') !== out) {
+    throw new Error("RUNTIME_ATTESTATION_RECEIPT_PATH must be this run's staging receipt");
+  }
+  return out;
 }

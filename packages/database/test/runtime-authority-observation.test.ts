@@ -11,11 +11,13 @@ import {
 
 // U2-e against a real restricted LOGIN: the observation is taken on that LOGIN's own connection in
 // one read-only transaction, then evaluated by the CD evaluator exactly as staging will be.
-type Evaluate = (o: unknown, input: unknown) => { ok: boolean; failureCodes: string[] };
+type Evaluation = { ok: boolean; failureCodes: string[] };
+type Evaluate = (o: unknown, input: unknown) => Evaluation;
 const EVALUATOR_MODULE: string = '../../../scripts/ci/runtime-attestation/evaluate.mjs';
-const evaluate: Evaluate = async (...args) =>
+const evaluate = async (o: unknown, input: unknown): Promise<Evaluation> =>
   ((await import(EVALUATOR_MODULE)) as { evaluateObservation: Evaluate }).evaluateObservation(
-    ...args
+    o,
+    input
   );
 
 const required = process.env.REQUIRE_RLS_INTEGRATION === '1';

@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { fetchVercelAttestation } from '../fetch-vercel-attestation.mjs';
 import { evaluateObservation } from './evaluate.mjs';
 import { readExpectedLedger } from './journal.mjs';
-import { buildReceipt } from './receipt.mjs';
+import { buildReceipt, receiptPathFor } from './receipt.mjs';
 import { STAGING_EXPECTATION } from './staging-expectation.mjs';
 
 // U2-e collector: signs in as the dedicated staging observer on the immutable deployment, asks the
@@ -35,6 +35,9 @@ class CollectionFailure extends Error {
     this.code = code;
   }
 }
+
+/** Only an immutable Vercel deployment host may be contacted. */
+const isAllowedDeploymentHost = value => typeof value === 'string' && HOST.test(value);
 
 const fail = code => {
   throw new CollectionFailure(code);
@@ -230,8 +233,8 @@ export async function collect(input) {
   const receipt = (failureCodes, observation = null) =>
     buildReceipt({ mode, failureCodes, context, observation });
 
-  if (!HOST.test(hostname ?? '') || !SHA.test(expectedSha ?? ''))
-    return receipt(['COLLECTOR_INPUT_INVALID']);
+  if (!isAllowedDeploymentHost(hostname)) return receipt(['COLLECTOR_INPUT_INVALID']);
+  if (!SHA.test(expectedSha ?? '')) return receipt(['COLLECTOR_INPUT_INVALID']);
   if (!credentials?.email || !credentials?.password)
     return receipt(['OBSERVER_ACCOUNT_UNPROVISIONED']);
   const headers = input.bypassSecret ? { 'x-vercel-protection-bypass': input.bypassSecret } : {};
@@ -281,7 +284,11 @@ async function main() {
     runId: env.GITHUB_RUN_ID,
     runAttempt: env.GITHUB_RUN_ATTEMPT,
   });
-  const out = env.RUNTIME_ATTESTATION_RECEIPT_PATH;
+  const out = receiptPathFor(
+    process.cwd(),
+    env.GITHUB_RUN_ID,
+    env.RUNTIME_ATTESTATION_RECEIPT_PATH
+  );
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, `${JSON.stringify(receipt, null, 2)}\n`);
   const summary = `U2-e runtime attestation (${receipt.mode}): ${receipt.status} ${receipt.failureCodes.join(',')}`;

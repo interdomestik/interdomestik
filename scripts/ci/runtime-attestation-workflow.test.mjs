@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 
 import { collectorEnv } from './runtime-attestation/isolated-collect.mjs';
-import { MODES } from './runtime-attestation/receipt.mjs';
+import { MODES, receiptPathFor } from './runtime-attestation/receipt.mjs';
 
 // U2-e wiring contract. In `observe` mode the collector runs inside the staging release-gate step
 // on the immutable deployment, before the gate, with an allowlisted environment; its receipt is
@@ -75,4 +75,22 @@ test('U2-e: observer secrets live only in this step; the collector sees an allow
   for (const name of [...OBSERVER, 'VERCEL_AUTOMATION_BYPASS_SECRET', 'RUNTIME_ATTESTATION_MODE'])
     assert.ok(name in env, name);
   assert.ok(!('DATABASE_URL' in collectorEnv({ DATABASE_URL: 'x' })));
+});
+
+test("U2-e: the receipt is written only to this run's evidence file, built from the run id", () => {
+  const configured = step.env.RUNTIME_ATTESTATION_RECEIPT_PATH.replace(
+    '${{ github.run_id }}',
+    '42'
+  );
+  assert.equal(receiptPathFor(rootDir, '42', configured), path.join(rootDir, configured));
+  const refused = [
+    ['43', configured],
+    ['0', configured.replace('/42/', '/0/')],
+    ['4.2', configured],
+    ['../42', configured],
+    ['42', 'tmp/cd-evidence/42/staging/runtime-attestation/../../x.json'],
+    ['42', undefined],
+  ];
+  for (const [runId, candidate] of refused)
+    assert.throws(() => receiptPathFor(rootDir, runId, candidate), /GITHUB_RUN_ID|RECEIPT_PATH/u);
 });
