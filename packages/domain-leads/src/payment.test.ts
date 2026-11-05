@@ -35,6 +35,7 @@ vi.mock('drizzle-orm', () => ({
   and: mocks.and,
   eq: mocks.eq,
   ne: mocks.ne,
+  notInArray: (left: unknown, right: unknown) => ({ op: 'notIn', left, right }),
 }));
 
 vi.mock('nanoid', () => ({
@@ -110,7 +111,10 @@ describe('startPayment', () => {
     expect(mocks.findLead).toHaveBeenCalledWith({ where: scopedWhere });
     expect(mocks.where).toHaveBeenCalledWith({
       op: 'and',
-      args: [scopedWhere, { op: 'ne', left: 'member_leads.status', right: 'converted' }],
+      args: [
+        scopedWhere,
+        { op: 'notIn', left: 'member_leads.status', right: ['converted', 'paid'] },
+      ],
     });
     expect(mocks.insertValues).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -139,6 +143,21 @@ describe('startPayment', () => {
       )
     ).rejects.toThrow(/lead not found/i);
 
+    expect(mocks.insertValues).not.toHaveBeenCalled();
+  });
+
+  it('refuses a payment on a verified lead and inserts no attempt', async () => {
+    installTransactionHarness();
+    mocks.findLead.mockResolvedValue({ id: 'lead-1', status: 'paid' });
+
+    await expect(
+      startPayment(
+        { authority },
+        { amountCents: 15000, leadId: 'lead-1', method: 'cash', priceId: 'default_membership' }
+      )
+    ).rejects.toThrow(/already verified/i);
+
+    expect(mocks.update).not.toHaveBeenCalled();
     expect(mocks.insertValues).not.toHaveBeenCalled();
   });
 });

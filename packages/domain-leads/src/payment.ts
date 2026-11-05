@@ -3,7 +3,7 @@ import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, notInArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
@@ -56,7 +56,8 @@ async function markLeadPaymentPending(
     const updatedRows = await tx
       .update(memberLeads)
       .set({ status: 'payment_pending' })
-      .where(and(scopedWhere, ne(memberLeads.status, 'converted')))
+      // A verified ('paid') or converted lead never re-enters payment, even under a race.
+      .where(and(scopedWhere, notInArray(memberLeads.status, ['converted', 'paid'])))
       .returning({ id: memberLeads.id });
 
     if (updatedRows.length === 0) {
@@ -90,6 +91,7 @@ export async function startPayment(ctx: StartPaymentContext, input: StartPayment
 
   if (!lead) throw new Error('Lead not found');
   if (lead.status === 'converted') throw new Error('Lead already converted');
+  if (lead.status === 'paid') throw new Error('Lead payment already verified');
 
   const attemptId = `pay_attempt_${nanoid()}`;
 

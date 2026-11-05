@@ -42,6 +42,7 @@
       },
       "toasts": {
         "approve_success": "Payment approved.",
+        "approve_fulfillment_pending": "Payment approved, but the membership setup did not finish and needs follow-up.",
         "reject_success": "Payment rejected.",
         "needs_info_success": "Info request sent.",
         "note_required": "Note is required.",

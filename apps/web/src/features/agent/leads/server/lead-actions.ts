@@ -4,7 +4,7 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { startPayment } from '@interdomestik/domain-leads';
-import type { SQL } from 'drizzle-orm';
+import { notInArray, type SQL } from 'drizzle-orm';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type LeadScopeCondition = SQL<unknown>;
@@ -33,6 +33,22 @@ function buildAgentLeadWhere(scope: AgentLeadScope): LeadScopeCondition {
   return scopedWhere;
 }
 
+// Lead statuses an agent's status-only write may not leave from, given the requested status.
+function lockedFrom(requested: LeadStatus): NonNullable<LeadStatus>[] {
+  return requested === 'converted' ? ['paid', 'payment_pending'] : ['paid'];
+}
+
+function isCashLocked(current: LeadStatus | null | undefined, requested: LeadStatus): boolean {
+  if (requested === 'paid' || current === 'paid') return true;
+  return requested === 'converted' && current === 'payment_pending';
+}
+
+function cashLockedError(): Error {
+  return new Error(
+    'This lead has a cash payment in verification; membership setup completes there.'
+  );
+}
+
 export async function updateScopedAgentLeadStatus(params: {
   notes?: string;
   scope: AgentLeadScope;
@@ -50,6 +66,9 @@ export async function updateScopedAgentLeadStatus(params: {
   if (!lead) {
     throw new Error('Lead not found or access denied');
   }
+  // Only payment verification marks a lead paid, and only member conversion completes a lead
+  // whose cash payment is in verification or verified.
+  if (isCashLocked(lead.status, status)) throw cashLockedError();
 
   if (status === 'payment_pending') {
     await startPayment(
@@ -70,8 +89,9 @@ export async function updateScopedAgentLeadStatus(params: {
 
   const updatedNotes = notes ? [lead.notes, notes].filter(Boolean).join('\n') : lead.notes;
 
+  // The same rule is re-checked in the write itself, so a concurrent approval cannot be overwritten.
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  await withTenantAuthority(scope.authority, tx =>
+  const written = await withTenantAuthority(scope.authority, tx =>
     tx
       .update(memberLeads)
       .set({
@@ -79,8 +99,10 @@ export async function updateScopedAgentLeadStatus(params: {
         status,
         updatedAt: new Date(),
       })
-      .where(scopedWhere)
+      .where(and(scopedWhere, notInArray(memberLeads.status, lockedFrom(status))))
+      .returning({ id: memberLeads.id })
   );
+  if (written.length === 0) throw cashLockedError();
 
   return { success: true };
 }

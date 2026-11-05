@@ -12,6 +12,7 @@ import { type CashVerificationDetailsDTO } from '../server/types';
 import { VerificationDocuments } from './VerificationDocuments';
 import { VerificationSummary } from './VerificationSummary';
 import { VerificationTimeline } from './VerificationTimeline';
+import { verificationToastKey } from './approval-toast';
 
 interface VerificationDetailsDrawerProps {
   attemptId: string | null;
@@ -82,7 +83,9 @@ export function VerificationDetailsDrawer({
     setActionPending(false);
 
     if (res.success) {
-      toast.success(t(`toasts.${decision}_success`));
+      const toastKey = verificationToastKey(decision, res);
+      if (toastKey === 'toasts.approve_fulfillment_pending') toast.warning(t(toastKey));
+      else toast.success(t(toastKey));
       onActionComplete();
       onClose();
     } else {

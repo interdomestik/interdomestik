@@ -42,6 +42,7 @@
       },
       "toasts": {
         "approve_success": "Pagesa u aprovua.",
+        "approve_fulfillment_pending": "Pagesa u aprovua, por konfigurimi i anëtarësisë nuk përfundoi dhe kërkon ndjekje.",
         "reject_success": "Pagesa u refuzua.",
         "needs_info_success": "Kërkesa për info u dërgua.",
         "note_required": "Shënimi është i detyrueshëm.",
