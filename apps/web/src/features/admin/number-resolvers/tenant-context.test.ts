@@ -2,63 +2,80 @@ import type { TenantTransaction } from '@interdomestik/database';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runNumberResolverInTenantContext } from './tenant-context';
+import type { ClaimsVisibilityContext } from '@/features/admin/claims/server/claimVisibility';
+import type { GrantedMemberReadScope } from '@/features/admin/members/server/member-read-scope';
+import { findClaimIdInTenantContext, findMemberIdInTenantContext } from './tenant-context';
 
-const mocks = vi.hoisted(() => ({ withTenantContext: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  withTenantAuthority: vi.fn(),
+  findClaimIdByNumber: vi.fn(),
+  findMemberIdByNumber: vi.fn(),
+}));
 
-vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantContext }));
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: mocks.withTenantAuthority,
+}));
+vi.mock('./claim-number-lookup', () => ({ findClaimIdByNumber: mocks.findClaimIdByNumber }));
+vi.mock('./member-number-lookup', () => ({ findMemberIdByNumber: mocks.findMemberIdByNumber }));
 
-// Narrow stand-in: the adapter only forwards the transaction, it never reads it.
+// Narrow stand-in: the adapter only lends the transaction, it never reads it.
 const tx = { query: { marker: 'tenant-tx' } } as unknown as TenantTransaction;
 const authority = mintTestTenantAuthority('tenant-access', {
   userId: 'admin-1',
   role: 'tenant_admin',
 });
+const visibility: ClaimsVisibilityContext = {
+  tenantId: 'tenant-access',
+  userId: 'admin-1',
+  role: 'tenant_admin',
+  branchId: null,
+};
+const claimLookup = { claimNumber: 'CLM-KS-2024-000001', visibility };
+const memberLookup = {
+  memberNumber: 'MEM-2024-000001',
+  scope: { ok: true } as unknown as GrantedMemberReadScope,
+};
 
-describe('runNumberResolverInTenantContext', () => {
+describe('number resolver tenant context', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.withTenantContext.mockImplementation(
-      (_context: unknown, action: (t: TenantTransaction) => Promise<unknown>) => action(tx)
+    mocks.withTenantAuthority.mockImplementation(
+      (_authority: unknown, action: (t: TenantTransaction) => Promise<unknown>) => action(tx)
     );
   });
 
-  it('delegates once with the exact authority and hands the actual transaction to the lookup', async () => {
-    const lookup = vi.fn().mockResolvedValue('id-1');
+  it('lends the actual transaction to the claim lookup once, under the exact authority', async () => {
+    mocks.findClaimIdByNumber.mockResolvedValue('claim-1');
 
-    const result = await runNumberResolverInTenantContext(authority, lookup);
+    await expect(findClaimIdInTenantContext(authority, claimLookup)).resolves.toBe('claim-1');
 
-    expect(result).toBe('id-1');
-    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext.mock.calls[0][0]).toBe(authority);
-    expect(lookup).toHaveBeenCalledTimes(1);
-    expect(lookup.mock.calls[0][0]).toBe(tx);
+    expect(mocks.withTenantAuthority).toHaveBeenCalledTimes(1);
+    expect(mocks.withTenantAuthority.mock.calls[0][0]).toBe(authority);
+    expect(mocks.findClaimIdByNumber).toHaveBeenCalledExactlyOnceWith(tx, claimLookup);
   });
 
-  it('returns null when the lookup finds nothing', async () => {
-    const result = await runNumberResolverInTenantContext(
-      authority,
-      vi.fn().mockResolvedValue(null)
-    );
+  it('lends the actual transaction to the member lookup once, under the exact authority', async () => {
+    mocks.findMemberIdByNumber.mockResolvedValue(null);
 
-    expect(result).toBeNull();
+    await expect(findMemberIdInTenantContext(authority, memberLookup)).resolves.toBeNull();
+
+    expect(mocks.withTenantAuthority.mock.calls[0][0]).toBe(authority);
+    expect(mocks.findMemberIdByNumber).toHaveBeenCalledExactlyOnceWith(tx, memberLookup);
   });
 
   it('propagates a lookup failure unchanged', async () => {
     const failure = new Error('connection terminated');
+    mocks.findClaimIdByNumber.mockRejectedValue(failure);
 
-    await expect(
-      runNumberResolverInTenantContext(authority, vi.fn().mockRejectedValue(failure))
-    ).rejects.toBe(failure);
+    await expect(findClaimIdInTenantContext(authority, claimLookup)).rejects.toBe(failure);
   });
 
   it('propagates a tenant-context failure without running the lookup', async () => {
     const failure = new Error('rls role not ready');
-    mocks.withTenantContext.mockRejectedValueOnce(failure);
-    const lookup = vi.fn();
+    mocks.withTenantAuthority.mockRejectedValueOnce(failure);
 
-    await expect(runNumberResolverInTenantContext(authority, lookup)).rejects.toBe(failure);
+    await expect(findMemberIdInTenantContext(authority, memberLookup)).rejects.toBe(failure);
 
-    expect(lookup).not.toHaveBeenCalled();
+    expect(mocks.findMemberIdByNumber).not.toHaveBeenCalled();
   });
 });

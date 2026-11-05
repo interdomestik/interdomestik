@@ -5,14 +5,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ADMIN_ALLOWED_ROLES } from '@/lib/rbac-portals';
 
-import { getMemberNumberResolverCore, type MemberNumberTenantRunner } from './_core';
+import {
+  findMemberIdByNumber,
+  type MemberNumberLookup,
+} from '@/features/admin/number-resolvers/member-number-lookup';
+import { getMemberNumberResolverCore } from './_core';
 
 const dialect = new PgDialect();
 
 describe('getMemberNumberResolverCore', () => {
   const tx = { query: { user: { findFirst: vi.fn() } } };
-  const inTenantContext = vi.fn((lookup: Parameters<MemberNumberTenantRunner>[0]) =>
-    lookup(tx as never)
+  const inTenantContext = vi.fn((lookup: MemberNumberLookup) =>
+    findMemberIdByNumber(tx as never, lookup)
   );
   const mockParse = vi.fn();
 

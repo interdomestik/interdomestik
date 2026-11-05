@@ -1,19 +1,8 @@
-import type { TenantTransaction } from '@interdomestik/database';
-import { user } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
+import { resolveMemberReadScope } from '@/features/admin/members/server/member-read-scope';
+import type { MemberNumberLookup } from '@/features/admin/number-resolvers/member-number-lookup';
 
-import {
-  memberReadWhere,
-  resolveMemberReadScope,
-} from '@/features/admin/members/server/member-read-scope';
-
-/** Relational-query surface of the transaction supplied by withTenantContext. */
-export type MemberNumberLookupTx = Pick<TenantTransaction, 'query'>;
-
-/** Runs the lookup inside the caller-owned tenant context and returns its value. */
-export type MemberNumberTenantRunner = (
-  lookup: (tx: MemberNumberLookupTx) => Promise<string | null>
-) => Promise<string | null>;
+/** Resolves the lookup inside the caller-owned tenant context and returns the user id. */
+export type MemberNumberTenantLookup = (lookup: MemberNumberLookup) => Promise<string | null>;
 
 export type MemberNumberResolverResult =
   { ok: true; userId: string } | { ok: false; error: 'FORBIDDEN' | 'NOT_FOUND' };
@@ -21,7 +10,7 @@ export type MemberNumberResolverResult =
 /**
  * Core logic for resolving a member number to a user ID.
  * Validates role-based access, member-read scope and format before any lookup, then queries only
- * through the supplied tenant transaction so RLS evaluates the session's tenant context.
+ * through the supplied tenant lookup so RLS evaluates the session's tenant context.
  */
 export async function getMemberNumberResolverCore(params: {
   memberNumber: string;
@@ -30,7 +19,7 @@ export async function getMemberNumberResolverCore(params: {
   branchId: string | null;
   allowedRoles: readonly string[];
   parseMemberNumber: (num: string) => unknown;
-  inTenantContext: MemberNumberTenantRunner;
+  inTenantContext: MemberNumberTenantLookup;
 }): Promise<MemberNumberResolverResult> {
   const {
     memberNumber,
@@ -59,17 +48,8 @@ export async function getMemberNumberResolverCore(params: {
     return { ok: false, error: 'NOT_FOUND' };
   }
 
-  // 4. Lookup User
-  const userId = await inTenantContext(async tx => {
-    // db-access-guard: tenant-scoped -- reason: explicit session access-tenant and branch-scope predicate inside withTenantContext
-    const foundUser = await tx.query.user.findFirst({
-      where: memberReadWhere(scope, eq(user.memberNumber, memberNumber)),
-      columns: {
-        id: true,
-      },
-    });
-    return foundUser?.id ?? null;
-  });
+  // 4. Lookup User (member-read scoped, inside the caller's tenant transaction)
+  const userId = await inTenantContext({ memberNumber, scope });
 
   if (!userId) {
     return { ok: false, error: 'NOT_FOUND' };

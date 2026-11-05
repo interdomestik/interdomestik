@@ -1,5 +1,5 @@
 import { canViewAdminClaims, resolveClaimsVisibility } from '@/features/admin/claims/server';
-import { runNumberResolverInTenantContext } from '@/features/admin/number-resolvers/tenant-context';
+import { findClaimIdInTenantContext } from '@/features/admin/number-resolvers/tenant-context';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
@@ -46,7 +46,7 @@ export default async function ClaimNumberResolverPage({ params }: Props) {
   const { claimId } = await getClaimNumberResolverCore({
     claimNumber,
     visibility,
-    inTenantContext: lookup => runNumberResolverInTenantContext(authority, lookup),
+    inTenantContext: lookup => findClaimIdInTenantContext(authority, lookup),
   });
 
   if (!claimId) {

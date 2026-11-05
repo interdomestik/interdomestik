@@ -1,4 +1,4 @@
-import { runNumberResolverInTenantContext } from '@/features/admin/number-resolvers/tenant-context';
+import { findMemberIdInTenantContext } from '@/features/admin/number-resolvers/tenant-context';
 import { parseMemberNumber } from '@/features/admin/members/utils/memberNumber';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { ADMIN_ALLOWED_ROLES } from '@/lib/rbac-portals';
@@ -35,7 +35,7 @@ export default async function MemberNumberResolverPage({ params }: ResolverPageP
     branchId,
     allowedRoles: ADMIN_ALLOWED_ROLES,
     parseMemberNumber,
-    inTenantContext: lookup => runNumberResolverInTenantContext(authority, lookup),
+    inTenantContext: lookup => findMemberIdInTenantContext(authority, lookup),
   });
 
   if (!result.ok) {
