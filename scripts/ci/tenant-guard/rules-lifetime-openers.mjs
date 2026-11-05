@@ -10,7 +10,14 @@
 // `transaction` (Sentry events, Paddle transactions) pass this way; nothing else does.
 
 import ts from 'typescript';
-import { constInitializer, kindOf, tested, writes } from './rules-lifetime-forms.mjs';
+import {
+  constInitializer,
+  hoistedDeclarations,
+  kindOf,
+  shapeProblem,
+  tested,
+  writes,
+} from './rules-lifetime-forms.mjs';
 
 const NAME = 'transaction';
 const MAX_DEPTH = 16;
@@ -18,7 +25,6 @@ const MAX_DEPTH = 16;
 const UNSAFE_MEMBERS = new Set(['__proto__', 'apply', 'bind', 'call', 'constructor', 'prototype']);
 // Global conversions that only read a value's primitive form.
 const COERCIONS = new Set(['Boolean', 'Number', 'String']);
-const REFLECTORS = new Set(['Object', 'Reflect']);
 const MATCHERS = new Set(['exec', 'test']);
 const PROPAGATING = new Set([
   ts.SyntaxKind.BarBarToken,
@@ -64,20 +70,8 @@ export function createOpenerChecks(ctx, { bindingOf, stableTargets, usesOf }) {
       writes(node.parent, ctx)
     )
       return 'a transaction opener read by a destructuring assignment';
-    if (ts.isCallExpression(node) && reflectiveRead(fact, node))
-      return 'a transaction opener read by reflection';
+    // Reflective reads (`Reflect.get`, property descriptors) are refused by the loader checks.
     return null;
-  }
-
-  /** `Reflect.get(x, 'transaction')`, `Object.getOwnPropertyDescriptor(p, 'transaction')`. */
-  function reflectiveRead(fact, call) {
-    const callee = unwrap(call.expression);
-    const receiver =
-      ts.isPropertyAccessExpression(callee) || ts.isElementAccessExpression(callee)
-        ? unwrap(callee.expression)
-        : null;
-    if (!receiver || !REFLECTORS.has(receiver.text) || !unbound(fact, receiver)) return false;
-    return call.arguments.some(arg => ts.isStringLiteralLike(arg) && arg.text === NAME);
   }
 
   /** A read whose value is not called in place. A plain assignment target reads nothing. */
@@ -101,12 +95,17 @@ export function createOpenerChecks(ctx, { bindingOf, stableTargets, usesOf }) {
     const parent = value.parent;
     // Invoked without a receiver: `this` is undefined, so it cannot open a transaction.
     if (ts.isCallExpression(parent) && parent.expression === value) return null;
-    if (tested(value, parent) || ts.isTemplateSpan(parent)) return null;
+    if (tested(value, parent)) return null;
+    // An untagged template converts the value to a string; a tag receives the value itself.
+    if (ts.isTemplateSpan(parent))
+      return ts.isTaggedTemplateExpression(parent.parent.parent)
+        ? 'a transaction opener handed to a template tag'
+        : null;
     if (ts.isPropertyAccessExpression(parent) && parent.expression === value)
-      return memberProblem(parent.name.text);
+      return memberProblem(parent, parent.name.text);
     if (ts.isElementAccessExpression(parent) && parent.expression === value)
       return ts.isStringLiteralLike(parent.argumentExpression)
-        ? memberProblem(parent.argumentExpression.text)
+        ? memberProblem(parent, parent.argumentExpression.text)
         : 'a computed member of a transaction opener';
     if (ts.isCallExpression(parent) && parent.arguments.includes(value))
       return argumentProblem(fact, parent, parent.arguments.indexOf(value), depth);
@@ -118,8 +117,17 @@ export function createOpenerChecks(ctx, { bindingOf, stableTargets, usesOf }) {
     return `a transaction opener used as a value (${kindOf(parent)})`;
   }
 
-  const memberProblem = name =>
-    UNSAFE_MEMBERS.has(name) ? `a transaction opener member (${name})` : null;
+  /** A member read of the opener: never a rebinding one, and never invoked (an inherited method
+   * such as `valueOf` returns its receiver). */
+  function memberProblem(access, name) {
+    if (UNSAFE_MEMBERS.has(name)) return `a transaction opener member (${name})`;
+    const member = outermost(access);
+    const parent = member.parent;
+    const invoked =
+      (ts.isCallExpression(parent) && parent.expression === member) ||
+      (ts.isTaggedTemplateExpression(parent) && parent.tag === member);
+    return invoked ? `a method of a transaction opener invoked (${name})` : null;
+  }
 
   /** Operators that may yield their operand: `a || b`, `a ?? b`, `c ? a : b`, `await a`. */
   function propagates(value, parent) {
@@ -162,10 +170,15 @@ export function createOpenerChecks(ctx, { bindingOf, stableTargets, usesOf }) {
     const targets = stableTargets(fact, callee);
     if (typeof targets === 'string') return `a transaction opener handed to ${targets}`;
     for (const { fact: owner, fn } of targets) {
+      // Implicit `arguments`, an erased `this` parameter or `this` itself would reach it unseen.
+      const shape = shapeProblem(owner, fn, referenceAt);
+      if (shape) return `a transaction opener handed to ${shape}`;
       if (fn.parameters.slice(0, index + 1).some(param => param.dotDotDotToken))
         return 'a rest parameter receives a transaction opener';
       const param = fn.parameters[index];
       if (!param) continue;
+      if (ts.isIdentifier(param.name) && hoistedDeclarations(fn, param.name.text) > 0)
+        return `a redeclared transaction opener parameter (${param.name.text})`;
       const problem = ts.isIdentifier(param.name)
         ? bindingUses(owner, param.name, depth + 1)
         : patternProblem(param.name);

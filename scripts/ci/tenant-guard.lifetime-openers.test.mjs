@@ -59,11 +59,11 @@ test('L1: every transaction opener is a source; a detached opener cannot be rebo
         'function pick(open: any) { return open; }\nexport const f = (db: any) => pick(db.transaction).call(db, (tx: any) => { kept = tx; });',
       ],
       reflectGet: [
-        'f: a transaction opener read by reflection',
+        'f: a Reflect operation other than has or ownKeys',
         "export const f = (db: any) => Reflect.get(db, 'transaction').call(db, (tx: any) => { kept = tx; });",
       ],
       descriptor: [
-        'f: a transaction opener read by reflection',
+        'f: a property descriptor read (getOwnPropertyDescriptor)',
         "export const f = (db: any) => Object.getOwnPropertyDescriptor(Object.getPrototypeOf(db), 'transaction');",
       ],
       constructorEval: [
@@ -78,6 +78,42 @@ test('L1: every transaction opener is a source; a detached opener cannot be rebo
         '<ImportDeclaration@9>: an import of the code evaluator',
         "import vm from 'node:vm';\nexport const f = (db: any) => vm.runInThisContext('(db, cb) => db.transaction(cb)')(db, (tx: any) => { kept = tx; });",
       ],
+      valueOfCall: [
+        'f: a method of a transaction opener invoked (valueOf)',
+        'export const f = (db: any) => db.transaction.valueOf().call(db, (tx: any) => { kept = tx; });',
+      ],
+      taggedSpan: [
+        'f: a transaction opener handed to a template tag',
+        'export function f(db: any) { const tag = (_: any, open: any) => open.call(db, (tx: any) => { kept = tx; }); return tag`${db.transaction}`; }',
+      ],
+      implicitArguments: [
+        'f: a transaction opener handed to implicit arguments',
+        'function h(open: any, db: any) { return arguments[0].call(db, (tx: any) => { kept = tx; }); }\nexport const f = (db: any) => h(db.transaction, db);',
+      ],
+      varRedeclared: [
+        'f: a redeclared transaction opener parameter (open)',
+        'function h(open: any, db: any) { var open: any; return open.call(db, (tx: any) => { kept = tx; }); }\nexport const f = (db: any) => h(db.transaction, db);',
+      ],
+      thisParameter: [
+        'f: a transaction opener handed to an explicit this parameter',
+        'function h(this: void, open: any, db: any) { return open.call(db, (tx: any) => { kept = tx; }); }\nexport const f = (db: any) => h(db.transaction, db);',
+      ],
+      descriptorsValue: [
+        'f: a property descriptor read (getOwnPropertyDescriptors)',
+        'export function f(db: any) { const open = Object.getOwnPropertyDescriptors(Object.getPrototypeOf(db)).transaction.value; return open.call(db, (tx: any) => { kept = tx; }); }',
+      ],
+      descriptorAlias: [
+        'g: a property descriptor read (getOwnPropertyDescriptor)',
+        'const g = Object.getOwnPropertyDescriptor;\nexport const f = (v: any, k: string) => g(v, k);',
+      ],
+      reflectConstructor: [
+        'f: a Reflect operation other than has or ownKeys',
+        "export function f(db: any) { const F = Reflect.get(() => {}, 'constructor'); return F('db', 'cb', 'return db.transaction(cb)')(db, (tx: any) => { kept = tx; }); }",
+      ],
+      reflectAlias: [
+        'f: a Reflect operation other than has or ownKeys',
+        'export function f(db: any) { const R = Reflect; return R.apply(db.transaction, db, [(tx: any) => { kept = tx; }]); }',
+      ],
     },
     {
       safeDataField:
@@ -87,12 +123,16 @@ test('L1: every transaction opener is a source; a detached opener cannot be rebo
       safeLiteral:
         "export const o = { requiredRole: 'x', name: 'n' };\nexport const f = () => W(a, (tx: any) => tx.select());",
       safeSentry:
-        'function scrub(value: string): string { return /^x/.test(value) ? value.slice(1) : String(value); }\nexport const f = (e: any) => ({ transaction: e.transaction ? scrub(e.transaction) : undefined });',
+        'function scrub(value: string): string { return /^x/.test(value) ? "x" : "[redacted]"; }\nexport const f = (e: any) => ({ transaction: e.transaction ? scrub(e.transaction) : undefined });',
       safePaddle:
         'function data(c: any) { return c.customData ?? c.custom_data ?? null; }\nfunction entries(t: any) { return [data(t), ...(t.items ?? []).map((i: any) => data(i))]; }\nexport const f = (p: any) => entries(p.transaction).length;',
       safeAssignTarget: 'export const f = (r: any, e: any) => { r.transaction = String(e.name); };',
       safeNullThis:
         'export function f(db: any) { const open = db.transaction; return open((tx: any) => { kept = tx; }); }',
+      safeReflectKeys: 'export const f = (r: object) => Reflect.ownKeys(r).length;',
+      safeUntaggedSpan: 'export const f = (e: any) => `${e.transaction}`;',
+      safeOwnDescriptor:
+        'export const f = (v: any, k: string) => Object.getOwnPropertyDescriptor(v, k)?.value;',
     }
   );
 });

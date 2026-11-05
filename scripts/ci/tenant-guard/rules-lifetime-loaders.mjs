@@ -5,7 +5,8 @@
 // module graph resolves: indirect or computed requires and imports, the module loader package,
 // loader members (`require`, `mainModule`, `getBuiltinModule`) under any receiver or binding key,
 // computed member access on the global loader receivers, import-equals declarations, eval-like
-// or bundler loader globals, the code evaluator package and `constructor` members.
+// or bundler loader globals, the code evaluator package, `constructor` members, property
+// descriptor reads and `Reflect` operations other than key queries.
 
 import ts from 'typescript';
 
@@ -21,6 +22,14 @@ const LOADER_MEMBERS = new Set([
   'require',
 ]);
 const LOADER_RECEIVERS = new Set(['global', 'globalThis', 'module', 'process', 'require']);
+// Descriptor reads yield a method's value without a member read naming it. The singular form is
+// admitted with a computed key (own-data hardening reads); a literal key may not name an opener
+// or a constructor, and the plural form names every key at once.
+const DESCRIPTOR_ALL = 'getOwnPropertyDescriptors';
+const DESCRIPTOR_ONE = 'getOwnPropertyDescriptor';
+const DESCRIBED_NAMES = new Set(['constructor', 'transaction']);
+// `Reflect` operations that only enumerate or test keys; the rest read, call or construct.
+const REFLECT_QUERIES = new Set(['has', 'ownKeys']);
 // Globals that evaluate code or load a module by a name computed at runtime.
 const GLOBAL_LOADERS = new Set([
   'eval',
@@ -46,6 +55,14 @@ export function createLoaderChecks(ctx, entryModule) {
     }
     if (ts.isIdentifier(node) && GLOBAL_LOADERS.has(node.text) && referenceAt(fact, node))
       return `an eval-like global or bundler loader (${node.text})`;
+    if (ts.isIdentifier(node) && node.text === 'Reflect' && unbound(fact, node)) {
+      const parent = ctx.outermost(node).parent;
+      const query =
+        ts.isPropertyAccessExpression(parent) &&
+        parent.expression === ctx.outermost(node) &&
+        REFLECT_QUERIES.has(parent.name.text);
+      if (!query) return 'a Reflect operation other than has or ownKeys';
+    }
     if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference))
       return 'a CommonJS import (import = require)';
     const specifier =
@@ -72,6 +89,8 @@ export function createLoaderChecks(ctx, entryModule) {
       return `a module loader member (${name})`;
     if (typeof name === 'string' && GLOBAL_LOADERS.has(name))
       return `an eval-like global or bundler loader (${name})`;
+    if (name === DESCRIPTOR_ALL || (name === DESCRIPTOR_ONE && !describesComputedKey(node)))
+      return `a property descriptor read (${name})`;
     // Any function's `constructor` is `Function`, which compiles source text.
     if (name === 'constructor') return 'a constructor member (it reaches the Function evaluator)';
     if (name === null && !ts.isBindingElement(node) && !ts.isObjectLiteralElementLike(node)) {
@@ -83,6 +102,17 @@ export function createLoaderChecks(ctx, entryModule) {
         return 'a computed member of a module loader receiver';
     }
     return undefined;
+  }
+
+  /** `getOwnPropertyDescriptor(target, key)` called in place with a key that is not a literal
+   * naming an opener or a constructor. */
+  function describesComputedKey(node) {
+    if (!ts.isPropertyAccessExpression(node) && !ts.isElementAccessExpression(node)) return false;
+    const value = ctx.outermost(node);
+    const call = value.parent;
+    if (!ts.isCallExpression(call) || call.expression !== value) return false;
+    const key = call.arguments[1];
+    return !!key && !(ts.isStringLiteralLike(key) && DESCRIBED_NAMES.has(key.text));
   }
 
   const dynamicLoad = (fact, call) => {
