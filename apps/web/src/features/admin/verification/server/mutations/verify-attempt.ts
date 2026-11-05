@@ -7,8 +7,44 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { verifyCashSchema } from '../schemas';
-import { resolveVerificationReadScope, withSessionStaffBranch } from '../queries/read-access';
+import {
+  resolveVerificationReadScope,
+  withSessionStaffBranch,
+  type VerificationReadScope,
+} from '../queries/read-access';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+
+type Decision = z.infer<typeof verifyCashSchema>['decision'];
+
+const DECISION_STATUS = {
+  approve: 'succeeded',
+  reject: 'rejected',
+  needs_info: 'needs_info',
+} as const satisfies Record<Decision, string>;
+
+/** Refuses a lead outside the staff branch (as not found) and a decision on one's own lead. */
+function assertDecisionAdmitted(
+  scope: VerificationReadScope,
+  lead: { branchId: string | null; agentId: string },
+  actorId: string
+): void {
+  if (scope.kind === 'branch' && lead.branchId !== scope.branchId) {
+    throw new Error('Payment attempt not found.');
+  }
+  if (lead.agentId === actorId) {
+    throw new Error('Conflict of Interest: You cannot verify payments for your own leads.');
+  }
+}
+
+/** The answer to repeating a closed attempt's own decision; any other change is refused. */
+function repeatedDecision(attempt: { status: string; leadId: string }, decision: Decision) {
+  // A repeated approval retries the idempotent member conversion that may not have completed.
+  if (decision === 'approve' && attempt.status === 'succeeded')
+    return { success: true, message: 'Already approved', leadId: attempt.leadId, decision };
+  if (decision === 'reject' && attempt.status === 'rejected')
+    return { success: true, message: 'Already rejected', leadId: null, decision };
+  throw new Error(`Attempt is already processed as ${attempt.status}`);
+}
 
 // 3. Action: Verify (Approve/Reject/NeedsInfo)
 export async function verifyCashAttemptCore(
@@ -42,30 +78,17 @@ export async function verifyCashAttemptCore(
 
     if (!result) throw new Error('Payment attempt not found.');
     const { attempt, lead, agentEmail } = result;
-    if (scope.kind === 'branch' && lead.branchId !== scope.branchId) {
-      throw new Error('Payment attempt not found.');
-    }
 
     // B. Security
-    if (lead.agentId === session.user.id) {
-      throw new Error('Conflict of Interest: You cannot verify payments for your own leads.');
-    }
+    assertDecisionAdmitted(scope, lead, session.user.id);
 
     // C. Validation
     if (attempt.status !== 'pending' && attempt.status !== 'needs_info') {
-      // A repeated approval retries the idempotent member conversion that may not have completed.
-      if (decision === 'approve' && attempt.status === 'succeeded')
-        return { success: true, message: 'Already approved', leadId: attempt.leadId, decision };
-      if (decision === 'reject' && attempt.status === 'rejected')
-        return { success: true, message: 'Already rejected', leadId: null, decision };
-
-      throw new Error(`Attempt is already processed as ${attempt.status}`);
+      return repeatedDecision(attempt, decision);
     }
 
     // D. Status
-    let newStatus: 'succeeded' | 'rejected' | 'needs_info' = 'succeeded';
-    if (decision === 'reject') newStatus = 'rejected';
-    else if (decision === 'needs_info') newStatus = 'needs_info';
+    const newStatus = DECISION_STATUS[decision];
 
     // E. Update: only one decision can move an open attempt; a concurrent loser changes nothing.
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
