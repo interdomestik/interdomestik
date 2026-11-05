@@ -3,7 +3,7 @@ import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { PaddleEventOrderingError, RetryablePaddleWebhookError } from '../errors';
 import type { PastDueEmailDeps } from '../types';
 import type { PastDueUserRecord } from './dunning-context';
-import { deliverPastDueEffects, persistPastDueEffects } from './dunning-effects';
+import { deliverPastDueEffects } from './dunning-effects';
 import { persistOrderedPastDueSubscription, type LockedDunningState } from './dunning-order';
 import type { PaddleSubscriptionEventOrder } from './subscription-event-order';
 
@@ -28,7 +28,8 @@ export async function handleOrderedPastDue(args: {
       subscriptionId: args.subscriptionId,
       authority: args.authority,
       buildState: args.buildState,
-      persistEffects: async (tx, state) => {
+      // Runs inside the ordered transaction: a failure here rolls the snapshot back.
+      effects: state => {
         let request = null;
         if (state.newDunningCount === 1 && args.user.email) {
           if (!args.deps.preparePastDueEmail) {
@@ -41,7 +42,12 @@ export async function handleOrderedPastDue(args: {
             gracePeriodEndDate: state.gracePeriodEnd.toLocaleDateString(),
           });
         }
-        await persistPastDueEffects(tx, { ...args, userId: args.user.id, ...state, request });
+        return {
+          userId: args.user.id,
+          newDunningCount: state.newDunningCount,
+          gracePeriodEnd: state.gracePeriodEnd,
+          request,
+        };
       },
     });
     if (ordered.kind !== 'stale') await deliverPastDueEffects(args, args.deps);

@@ -49,15 +49,18 @@ function effectKey(scope: PastDueEffectScope): string {
   return `${TEMPLATE}:${digest}`;
 }
 
+/** The past-due effects of one ordered snapshot, derived from its locked state. */
+export type PastDueEffectInput = {
+  userId: string;
+  newDunningCount: number;
+  gracePeriodEnd: Date;
+  request: PreparedPastDueEmail | null;
+};
+
 /** Audit and immutable email intent commit with the locked ordered snapshot. */
 export async function persistPastDueEffects(
   tx: DomainEventTx,
-  args: PastDueEffectScope & {
-    userId: string;
-    newDunningCount: number;
-    gracePeriodEnd: Date;
-    request: PreparedPastDueEmail | null;
-  }
+  args: PastDueEffectScope & PastDueEffectInput
 ): Promise<void> {
   const key = effectKey(args);
   const { tenantId } = readTenantAuthority(args.authority);

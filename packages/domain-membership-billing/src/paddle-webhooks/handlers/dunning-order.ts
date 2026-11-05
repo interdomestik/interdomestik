@@ -5,6 +5,7 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 
+import { persistPastDueEffects, type PastDueEffectInput } from './dunning-effects';
 import {
   lockSubscriptionEventOrder,
   type PaddleSubscriptionEventOrder,
@@ -27,8 +28,9 @@ export type OrderedPastDueResult<TState> =
 /**
  * Applies an entity-scoped `subscription.past_due` snapshot to the exact existing
  * provider subscription row. The ordering decision, dunning counters derived from the
- * locked row and the ordering marker commit in one transaction; stale and replayed
- * events write nothing.
+ * locked row, the ordering marker and the past-due effects (audit and email intent,
+ * derived from the state by `effects` without the transaction) commit in one
+ * transaction; stale and replayed events write nothing.
  */
 export async function persistOrderedPastDueSubscription<
   TState extends { values: Partial<typeof subscriptions.$inferInsert> },
@@ -38,7 +40,7 @@ export async function persistOrderedPastDueSubscription<
   subscriptionId: string;
   authority: TenantAuthority;
   buildState: (locked: LockedDunningState) => TState;
-  persistEffects: (tx: DomainEventTx, state: TState) => Promise<void>;
+  effects: (state: TState) => PastDueEffectInput;
 }): Promise<OrderedPastDueResult<TState>> {
   const { tenantId } = readTenantAuthority(args.authority);
   // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context constrains the locked dunning update.
@@ -93,7 +95,17 @@ export async function persistOrderedPastDueSubscription<
         `Paddle subscription ${args.providerSubscriptionId} dunning update matched no tenant-scoped row`
       );
     }
-    await args.persistEffects(tx, state);
+    const effects = args.effects(state);
+    await persistPastDueEffects(tx as DomainEventTx, {
+      authority: args.authority,
+      order: args.order,
+      providerSubscriptionId: args.providerSubscriptionId,
+      subscriptionId: args.subscriptionId,
+      userId: effects.userId,
+      newDunningCount: effects.newDunningCount,
+      gracePeriodEnd: effects.gracePeriodEnd,
+      request: effects.request,
+    });
     return { kind: 'apply', state };
   });
 }

@@ -77,7 +77,7 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
         persistOrderedPastDueSubscription({
           ...scope,
           buildState,
-          persistEffects: async () => {
+          effects: () => {
             throw new Error('injected atomic failure');
           },
         })
