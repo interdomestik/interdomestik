@@ -31,6 +31,22 @@ export type RateLimitOptions = {
 export type RateLimitResult =
   { limited: false } | { limited: true; status: 429 | 503; retryAfter?: number; error: string };
 
+// Upstash resolves a backend timeout as an allow: { success: true, reason: 'timeout' }. That is a
+// backend failure, not a limit decision, so it takes the backend-failure path below (503 where the
+// caller fails closed, the existing fail-open policy elsewhere).
+const BACKEND_TIMEOUT = 'rate limit backend timed out';
+
+type Ratelimiter = ReturnType<typeof createRatelimit>;
+
+async function limitOrThrowOnTimeout(
+  ratelimit: Ratelimiter,
+  key: string
+): Promise<Awaited<ReturnType<Ratelimiter['limit']>>> {
+  const result = await ratelimit.limit(key);
+  if (result.reason === 'timeout') throw new Error(BACKEND_TIMEOUT);
+  return result;
+}
+
 let warnedMissingUpstashEnv = false;
 let warnedUnavailableBackendFailOpen = false;
 
@@ -112,7 +128,7 @@ export async function enforceRateLimit({
     const ratelimit = createRatelimit(limit, windowSeconds, analytics);
     const key = buildRateLimitKey({ name, headers, keySuffix, keyMode });
 
-    const result = await ratelimit.limit(key);
+    const result = await limitOrThrowOnTimeout(ratelimit, key);
 
     if (result.success) return null;
 
@@ -196,7 +212,7 @@ export async function enforceRateLimitForAction({
   try {
     const ratelimit = createRatelimit(limit, windowSeconds, analytics);
     const key = buildRateLimitKey({ name, headers, keySuffix, keyMode });
-    const result = await ratelimit.limit(key);
+    const result = await limitOrThrowOnTimeout(ratelimit, key);
 
     if (result.success) return { limited: false };
 
