@@ -19,6 +19,7 @@ export interface ClaimsListProps {
 
 const STATUS_ORDER = [
   'submitted',
+  'submitted_to_airline',
   'verification',
   'evaluation',
   'negotiation',

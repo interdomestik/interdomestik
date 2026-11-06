@@ -86,6 +86,7 @@ vi.mock('next-intl', () => ({
     // Return mock values for known namespaces/keys
     const mocks: Record<string, string> = {
       'groups.submitted': 'Submitted',
+      'groups.submitted_to_airline': 'Submitted to airline',
       'groups.verification': 'Verification',
       'groups.evaluation': 'Evaluation',
       'groups.negotiation': 'Negotiation',
@@ -182,6 +183,18 @@ describe('ClaimsList', () => {
     // The component groups by status. Mock status is 'submitted'.
     render(<ClaimsList data={mockData} />);
     expect(screen.getByText('Submitted • 1')).toBeInTheDocument();
+  });
+
+  it('groups airline-stage claims under their own header instead of Other', () => {
+    const airlineRow = {
+      ...mockData.rows[0],
+      id: '2',
+      title: 'Claim 2',
+      status: 'submitted_to_airline' as const,
+    };
+    render(<ClaimsList data={{ ...mockData, rows: [...mockData.rows, airlineRow] }} />);
+    expect(screen.getByText('Submitted to airline • 1')).toBeInTheDocument();
+    expect(screen.queryByText(/^Other • /)).not.toBeInTheDocument();
   });
 
   it('renders no claims message for empty array', () => {

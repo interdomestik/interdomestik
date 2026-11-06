@@ -109,6 +109,20 @@ export const STATUS_TO_LIFECYCLE: Record<ClaimStatus, LifecycleStage> = {
   rejected: 'completed',
 };
 
+/**
+ * Claim statuses per lifecycle stage, derived from STATUS_TO_LIFECYCLE so the stage tab filter and
+ * the stage counts agree with the stage each row displays (airline claims: negotiation).
+ */
+export const LIFECYCLE_STAGE_STATUSES = Object.entries(STATUS_TO_LIFECYCLE).reduce<
+  Record<LifecycleStage, ClaimStatus[]>
+>(
+  (stages, [status, stage]) => {
+    stages[stage].push(status as ClaimStatus);
+    return stages;
+  },
+  { intake: [], verification: [], processing: [], negotiation: [], legal: [], completed: [] }
+);
+
 /** Status to owner role mapping (who needs to act next). */
 export const STATUS_TO_OWNER: Record<ClaimStatus, OwnerRole> = {
   draft: 'member',

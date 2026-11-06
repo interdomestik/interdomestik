@@ -12,6 +12,7 @@ import { and, eq, lt } from 'drizzle-orm';
 export const OPEN_CLAIMS_STATUSES = [
   'draft',
   'submitted',
+  'submitted_to_airline',
   'verification',
   'evaluation',
   'negotiation',

@@ -45,6 +45,7 @@
         },
         "groups": {
           "submitted": "Dorëzuar",
+          "submitted_to_airline": "Dorëzuar te linja ajrore",
           "verification": "Verifikim",
           "evaluation": "Vlerësim",
           "negotiation": "Negociata",

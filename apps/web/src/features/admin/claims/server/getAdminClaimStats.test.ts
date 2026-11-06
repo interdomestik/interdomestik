@@ -40,7 +40,8 @@ const STAGE_STATUSES = {
   intake: ['draft', 'submitted'],
   verification: ['verification'],
   processing: ['evaluation'],
-  negotiation: ['negotiation'],
+  // Airline-stage claims display as negotiation, so they count there too.
+  negotiation: ['submitted_to_airline', 'negotiation'],
   legal: ['court'],
   completed: ['resolved', 'rejected'],
 };
@@ -134,7 +135,7 @@ describe('readAdminClaimStats', () => {
     await expect(readAdminClaimStats(tx, createContext())).resolves.toStrictEqual(ZERO_STATS);
   });
 
-  it('counts each lifecycle stage over the unchanged status groups', async () => {
+  it('counts each lifecycle stage over the statuses it displays', async () => {
     const { tx, select } = createTx();
 
     await readAdminClaimStats(tx, createContext());
