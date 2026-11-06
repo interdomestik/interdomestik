@@ -23,10 +23,17 @@ import { matchesAccessTenant } from '@/lib/db/access-tenant-predicate';
 import { isMemberNumberSearch } from '../../members/utils/memberNumber';
 import type { RawClaimRow } from '../mappers';
 import type { LifecycleStage, OpsCenterFilters, OpsPoolAnchor } from '../types';
-import { LIFECYCLE_STAGE_STATUSES, OPS_POOL_LIMIT, TERMINAL_STATUSES } from '../types';
+import { OPS_POOL_LIMIT, TERMINAL_STATUSES } from '../types';
 import type { ClaimsVisibilityContext } from './claimVisibility';
 
-const LIFECYCLE_STATUS_MAP: Record<LifecycleStage, ClaimStatus[]> = LIFECYCLE_STAGE_STATUSES;
+const LIFECYCLE_STATUS_MAP: Record<LifecycleStage, ClaimStatus[]> = {
+  intake: ['draft', 'submitted'],
+  verification: ['verification'],
+  processing: ['evaluation'],
+  negotiation: ['negotiation'],
+  legal: ['court'],
+  completed: ['resolved', 'rejected'],
+};
 
 /** Keyset page size for the transferred-candidate scan (bounds memory and bind params). */
 export const TRANSFERRED_SCAN_PAGE_SIZE = 500;

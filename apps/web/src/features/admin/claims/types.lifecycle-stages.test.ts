@@ -12,7 +12,7 @@ describe('LIFECYCLE_STAGE_STATUSES', () => {
     }
   });
 
-  it('keeps airline-stage claims in the negotiation tab, pool and count', () => {
+  it('keeps airline-stage claims in the negotiation tab and count', () => {
     expect(LIFECYCLE_STAGE_STATUSES.negotiation).toEqual(['submitted_to_airline', 'negotiation']);
   });
 });

@@ -110,8 +110,8 @@ export const STATUS_TO_LIFECYCLE: Record<ClaimStatus, LifecycleStage> = {
 };
 
 /**
- * Claim statuses per lifecycle stage, derived from STATUS_TO_LIFECYCLE so the stage tabs, the ops
- * pools and the stage counts agree with the stage each row displays (airline claims: negotiation).
+ * Claim statuses per lifecycle stage, derived from STATUS_TO_LIFECYCLE so the stage tab filter and
+ * the stage counts agree with the stage each row displays (airline claims: negotiation).
  */
 export const LIFECYCLE_STAGE_STATUSES = Object.entries(STATUS_TO_LIFECYCLE).reduce<
   Record<LifecycleStage, ClaimStatus[]>
