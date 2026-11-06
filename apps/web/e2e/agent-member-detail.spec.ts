@@ -1,4 +1,4 @@
-import { agentClients, and, db, eq, user } from '@interdomestik/database';
+import { E2E_USERS, agentClients, and, db, eq, user } from '@interdomestik/database';
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
 import { gotoApp } from './utils/navigation';
@@ -6,7 +6,7 @@ import { gotoApp } from './utils/navigation';
 test.describe('Agent Member Detail', () => {
   test('agent can view assigned member detail', async ({ agentPage: page }, testInfo) => {
     const agent = await db.query.user.findFirst({
-      where: eq(user.email, 'agent.ks.a1@interdomestik.com'),
+      where: eq(user.email, E2E_USERS.KS_AGENT.email),
       columns: { id: true, tenantId: true },
     });
 
@@ -52,7 +52,7 @@ test.describe('Agent Member Detail', () => {
 
   test('agent cannot access unassigned member', async ({ agentPage: page }, testInfo) => {
     const member = await db.query.user.findFirst({
-      where: eq(user.email, 'member.ks.b1@interdomestik.com'),
+      where: eq(user.email, E2E_USERS.KS_MEMBER_B1.email),
       columns: { id: true },
     });
 

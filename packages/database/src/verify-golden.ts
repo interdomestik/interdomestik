@@ -2,6 +2,7 @@ import * as dotenv from 'dotenv';
 import { eq } from 'drizzle-orm';
 import { resolve } from 'node:path';
 import { db } from './db';
+import { E2E_USERS } from './e2e-users';
 import { branches, claims, user } from './schema';
 
 dotenv.config({ path: resolve(__dirname, '../../../.env') });
@@ -10,7 +11,7 @@ async function verify() {
   console.log('Verifying Golden Data...');
 
   const member = await db.query.user.findFirst({
-    where: eq(user.email, 'member.mk.1@interdomestik.com'),
+    where: eq(user.email, E2E_USERS.MK_MEMBER.email),
   });
   console.log('Member:', member ? 'FOUND' : 'MISSING');
 

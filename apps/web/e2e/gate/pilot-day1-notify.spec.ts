@@ -1,4 +1,13 @@
-import { claimMessages, claims, db, eq, user, desc } from '@interdomestik/database';
+import {
+  E2E_PACK_USERS,
+  E2E_USERS,
+  claimMessages,
+  claims,
+  db,
+  eq,
+  user,
+  desc,
+} from '@interdomestik/database';
 import { test } from '@playwright/test';
 import crypto from 'node:crypto';
 
@@ -12,9 +21,9 @@ test('Simulate Multi-User Claim Messages (DB Direct)', async () => {
   const insertedMessageIds: string[] = [];
 
   // 1. Resolve User IDs
-  const memberEmail = 'member.ks.a1@interdomestik.com';
-  const agentEmail = 'agent.ks.a1@interdomestik.com';
-  const staffEmail = 'staff.ks.extra@interdomestik.com';
+  const memberEmail = E2E_USERS.KS_MEMBER.email;
+  const agentEmail = E2E_USERS.KS_AGENT.email;
+  const staffEmail = E2E_PACK_USERS.KS_STAFF.email;
 
   const member = await db.query.user.findFirst({ where: eq(user.email, memberEmail) });
   const agent = await db.query.user.findFirst({ where: eq(user.email, agentEmail) });

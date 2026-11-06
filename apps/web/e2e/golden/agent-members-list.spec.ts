@@ -1,4 +1,4 @@
-import { db, eq, user } from '@interdomestik/database';
+import { E2E_USERS, db, eq, user } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
@@ -22,7 +22,7 @@ test.describe('Agent Members List', () => {
     await expect(page.getByTestId('agent-member-detail-ready')).toBeVisible();
 
     const unassigned = await db.query.user.findFirst({
-      where: eq(user.email, 'member.ks.b1@interdomestik.com'),
+      where: eq(user.email, E2E_USERS.KS_MEMBER_B1.email),
       columns: { id: true },
     });
 
