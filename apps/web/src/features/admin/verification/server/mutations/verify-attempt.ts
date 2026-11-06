@@ -3,11 +3,48 @@ import { ProtectedActionContext } from '@/lib/safe-action';
 
 import { auditLog, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { verifyCashSchema } from '../schemas';
+import {
+  resolveVerificationReadScope,
+  withSessionStaffBranch,
+  type VerificationReadScope,
+} from '../queries/read-access';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+
+type Decision = z.infer<typeof verifyCashSchema>['decision'];
+
+const DECISION_STATUS = {
+  approve: 'succeeded',
+  reject: 'rejected',
+  needs_info: 'needs_info',
+} as const satisfies Record<Decision, string>;
+
+/** Refuses a lead outside the staff branch (as not found) and a decision on one's own lead. */
+function assertDecisionAdmitted(
+  scope: VerificationReadScope,
+  lead: { branchId: string | null; agentId: string },
+  actorId: string
+): void {
+  if (scope.kind === 'branch' && lead.branchId !== scope.branchId) {
+    throw new Error('Payment attempt not found.');
+  }
+  if (lead.agentId === actorId) {
+    throw new Error('Conflict of Interest: You cannot verify payments for your own leads.');
+  }
+}
+
+/** The answer to repeating a closed attempt's own decision; any other change is refused. */
+function repeatedDecision(attempt: { status: string; leadId: string }, decision: Decision) {
+  // A repeated approval retries the idempotent member conversion that may not have completed.
+  if (decision === 'approve' && attempt.status === 'succeeded')
+    return { success: true, message: 'Already approved', leadId: attempt.leadId, decision };
+  if (decision === 'reject' && attempt.status === 'rejected')
+    return { success: true, message: 'Already rejected', leadId: null, decision };
+  throw new Error(`Attempt is already processed as ${attempt.status}`);
+}
 
 // 3. Action: Verify (Approve/Reject/NeedsInfo)
 export async function verifyCashAttemptCore(
@@ -20,6 +57,10 @@ export async function verifyCashAttemptCore(
   if ((decision === 'reject' || decision === 'needs_info') && !note?.trim()) {
     throw new Error('A note is required for this decision.');
   }
+
+  // Decisions need the same operations role and branch admission as verification reads.
+  const scope = resolveVerificationReadScope(withSessionStaffBranch(ctx));
+  if (scope.kind === 'none') throw new Error('Payment attempt not found.');
 
   const txResult = await withTenantAuthority(authority, async tx => {
     // A. Fetch
@@ -39,28 +80,19 @@ export async function verifyCashAttemptCore(
     const { attempt, lead, agentEmail } = result;
 
     // B. Security
-    if (lead.agentId === session.user.id) {
-      throw new Error('Conflict of Interest: You cannot verify payments for your own leads.');
-    }
+    assertDecisionAdmitted(scope, lead, session.user.id);
 
     // C. Validation
     if (attempt.status !== 'pending' && attempt.status !== 'needs_info') {
-      if (decision === 'approve' && attempt.status === 'succeeded')
-        return { success: true, message: 'Already approved', leadId: null, decision };
-      if (decision === 'reject' && attempt.status === 'rejected')
-        return { success: true, message: 'Already rejected', leadId: null, decision };
-
-      throw new Error(`Attempt is already processed as ${attempt.status}`);
+      return repeatedDecision(attempt, decision);
     }
 
     // D. Status
-    let newStatus: 'succeeded' | 'rejected' | 'needs_info' = 'succeeded';
-    if (decision === 'reject') newStatus = 'rejected';
-    else if (decision === 'needs_info') newStatus = 'needs_info';
+    const newStatus = DECISION_STATUS[decision];
 
-    // E. Update
+    // E. Update: only one decision can move an open attempt; a concurrent loser changes nothing.
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await tx
+    const decided = await tx
       .update(leadPaymentAttempts)
       .set({
         status: newStatus,
@@ -70,7 +102,16 @@ export async function verifyCashAttemptCore(
         updatedAt: new Date(),
         verificationNote: note || null,
       })
-      .where(eq(leadPaymentAttempts.id, attemptId));
+      .where(
+        and(
+          eq(leadPaymentAttempts.id, attemptId),
+          inArray(leadPaymentAttempts.status, ['pending', 'needs_info'])
+        )
+      )
+      .returning({ id: leadPaymentAttempts.id });
+    if (decided.length === 0) {
+      throw new Error('This payment attempt was just decided by someone else. Reload and retry.');
+    }
 
     // F. Audit
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
@@ -110,13 +151,14 @@ export async function verifyCashAttemptCore(
       );
     }
 
-    // H. Lead Status Update on Approval
+    // H. Lead Status Update on Approval: the payment is verified ('paid'). Only the member
+    // conversion below marks the lead 'converted', together with its converted user.
     if (decision === 'approve') {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       await tx
         .update(memberLeads)
         .set({
-          status: 'converted',
+          status: 'paid',
           updatedAt: new Date(),
         })
         .where(
@@ -145,8 +187,12 @@ export async function verifyCashAttemptCore(
       }
     } catch (err) {
       console.error('Lead conversion failed:', err);
-      // Payment is verified, but conversion failed - log for manual intervention
-      // Don't fail the overall verification
+      // The payment stays verified and the lead stays 'paid'; approving again retries the setup.
+      return {
+        ...txResult,
+        fulfillment: 'pending' as const,
+        message: 'Payment approved; membership setup is pending.',
+      };
     }
   }
 

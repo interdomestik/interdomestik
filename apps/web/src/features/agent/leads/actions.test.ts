@@ -2,7 +2,7 @@ import { isTenantAuthority, readTenantAuthority } from '@interdomestik/database/
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
-  const where = vi.fn();
+  const where = vi.fn(() => ({ returning: async () => [{ id: 'lead' }] }));
   const set = vi.fn(() => ({ where }));
   const update = vi.fn(() => ({ set }));
 
@@ -58,6 +58,11 @@ vi.mock('@interdomestik/domain-leads', () => ({
   startPayment: mocks.startPayment,
 }));
 
+vi.mock('drizzle-orm', async original => ({
+  ...(await original<typeof import('drizzle-orm')>()),
+  notInArray: (left: unknown, right: unknown) => ({ op: 'notIn', left, right }),
+}));
+
 vi.mock('next/cache', () => ({
   revalidatePath: mocks.revalidatePath,
 }));
@@ -70,6 +75,7 @@ vi.mock('@interdomestik/database', () => ({
     tenantId: 'member_leads.tenant_id',
     branchId: 'member_leads.branch_id',
     agentId: 'member_leads.agent_id',
+    status: 'member_leads.status',
   },
   and: mocks.and,
   eq: mocks.eq,
@@ -169,7 +175,13 @@ describe('convertLeadToClient', () => {
       'tenant-1',
     ]);
     expect(mocks.findLead).toHaveBeenCalledWith({ where: scopedWhere });
-    expect(mocks.where).toHaveBeenCalledWith(scopedWhere);
+    expect(mocks.where).toHaveBeenCalledWith({
+      op: 'and',
+      args: [
+        scopedWhere,
+        { op: 'notIn', left: 'member_leads.status', right: ['paid', 'payment_pending'] },
+      ],
+    });
     expect(mocks.startPayment).not.toHaveBeenCalled();
   });
 
@@ -240,7 +252,10 @@ describe('updateLeadStatus', () => {
 
     const scopedWhere = scopedWhereForLead('lead-2');
     expect(mocks.findLead).toHaveBeenCalledWith({ where: scopedWhere });
-    expect(mocks.where).toHaveBeenCalledWith(scopedWhere);
+    expect(mocks.where).toHaveBeenCalledWith({
+      op: 'and',
+      args: [scopedWhere, { op: 'notIn', left: 'member_leads.status', right: ['paid'] }],
+    });
     expect(mocks.startPayment).not.toHaveBeenCalled();
   });
 

@@ -42,6 +42,7 @@
       },
       "toasts": {
         "approve_success": "Plaćanje je odobreno.",
+        "approve_fulfillment_pending": "Plaćanje je odobreno, ali podešavanje članstva nije završeno i zahteva proveru.",
         "reject_success": "Plaćanje je odbijeno.",
         "needs_info_success": "Zahtev za informacijama je poslat.",
         "note_required": "Napomena je obavezna.",

@@ -15,6 +15,7 @@ import { VerificationDetailsDrawer } from '../VerificationDetailsDrawer';
 import { VerificationFiltersBar } from './VerificationFiltersBar';
 import { VerificationKpis } from './VerificationKpis';
 import { VerificationTableV2 } from './VerificationTableV2';
+import { verificationToastKey } from '../approval-toast';
 
 interface VerificationOpsCenterClientProps {
   initialData: CashVerificationRequestDTO[];
@@ -120,7 +121,9 @@ export function VerificationOpsCenterClient({
 
     if (res.success) {
       trackOpsEvent({ surface: 'verification', action: decision, entityId: attemptId });
-      toast.success(t(`toasts.${decision}_success`));
+      const toastKey = verificationToastKey(decision, res);
+      if (toastKey === 'toasts.approve_fulfillment_pending') toast.warning(t(toastKey));
+      else toast.success(t(toastKey));
       if (decision === 'needs_info') {
         setRequests(prev =>
           prev.map(r => (r.id === attemptId ? { ...r, status: 'needs_info' } : r))
