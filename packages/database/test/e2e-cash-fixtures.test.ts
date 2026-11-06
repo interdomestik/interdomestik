@@ -54,8 +54,10 @@ test('each cash identity is a seeded KS-D login with the attribution conversion 
       key
     );
   }
-  const member = seeded.get(E2E_USER_IDS.KS_MEMBER_CONVERTED_LEAD);
-  assert.ok(member && 'createdBy' in member);
+  const member: Record<string, unknown> | undefined = seeded.get(
+    E2E_USER_IDS.KS_MEMBER_CONVERTED_LEAD
+  );
+  assert.ok(member);
   assert.deepEqual(
     [member.agentId, member.createdBy, member.assistedByAgentId],
     [E2E_USER_IDS.KS_AGENT_CASH_STATES, 'agent', E2E_USER_IDS.KS_AGENT_CASH_STATES]
@@ -78,7 +80,8 @@ test('lead and attempt rows are the states the verify, resubmit and convert step
       key
     );
     // Every state was decided once by an operator other than the lead's agent.
-    assert.ok(attempt.verifiedBy && attempt.verifiedBy !== lead.agentId, key);
+    assert.ok(attempt.verifiedBy, key);
+    assert.notEqual(attempt.verifiedBy as string, lead.agentId as string, key);
     assert.ok(attempt.verifiedAt, key);
     // Requesting info or rejecting needs a note; a resubmission keeps the note it answers.
     const noted = ['needs_info', 'rejected'].includes(attempt.status) || attempt.isResubmission;

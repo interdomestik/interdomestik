@@ -21,6 +21,17 @@ function loadEnvFromRoot() {
 
 loadEnvFromRoot();
 
+/** Prints each violation under its invariant label and stops the run, or confirms the catalogue. */
+function exitOnViolations(label: string, violations: readonly string[], passed: string): void {
+  if (violations.length > 0) {
+    for (const violation of violations) {
+      console.error(`❌ ${label} invariant failed: ${violation}`);
+    }
+    process.exit(1);
+  }
+  console.log(`✅ ${passed}`);
+}
+
 async function assertSeed() {
   const { db } = await import('./db');
   const schema = await import('./schema');
@@ -103,50 +114,34 @@ async function assertSeed() {
     console.log('🔍 Asserting nine-role matrix and named relationship fixtures...');
     const { collectRoleFixtureViolations } = await import('./seed-assert-role-fixtures');
     const roleFixtureViolations = await collectRoleFixtureViolations(db, schema);
-    if (roleFixtureViolations.length > 0) {
-      for (const violation of roleFixtureViolations) {
-        console.error(`❌ Role fixture invariant failed: ${violation}`);
-      }
-      process.exit(1);
-    }
-
-    console.log('✅ Role matrix (9 roles) and relationship fixtures match the catalogue');
+    exitOnViolations(
+      'Role fixture',
+      roleFixtureViolations,
+      'Role matrix (9 roles) and relationship fixtures match the catalogue'
+    );
 
     console.log('🔍 Asserting branch membership rules...');
     const { collectBranchMembershipViolations } = await import('./seed-assert-branch-membership');
     const branchViolations = await collectBranchMembershipViolations(db);
-    if (branchViolations.length > 0) {
-      for (const violation of branchViolations) {
-        console.error(`❌ Branch membership invariant failed: ${violation}`);
-      }
-      process.exit(1);
-    }
-
-    console.log('✅ Branch membership rules hold for every user, grant, claim and subscription');
+    exitOnViolations(
+      'Branch membership',
+      branchViolations,
+      'Branch membership rules hold for every user, grant, claim and subscription'
+    );
 
     console.log('🔍 Asserting membership lifecycle fixtures...');
     const { collectLifecycleViolations } = await import('./seed-assert-lifecycle');
     const lifecycleViolations = await collectLifecycleViolations(db, schema);
-    if (lifecycleViolations.length > 0) {
-      for (const violation of lifecycleViolations) {
-        console.error(`❌ Membership lifecycle invariant failed: ${violation}`);
-      }
-      process.exit(1);
-    }
-
-    console.log('✅ Membership lifecycle states match the catalogue');
+    exitOnViolations(
+      'Membership lifecycle',
+      lifecycleViolations,
+      'Membership lifecycle states match the catalogue'
+    );
 
     console.log('🔍 Asserting cash verification state fixtures...');
     const { collectCashStateViolations } = await import('./seed-assert-cash');
     const cashViolations = await collectCashStateViolations(db, schema);
-    if (cashViolations.length > 0) {
-      for (const violation of cashViolations) {
-        console.error(`❌ Cash state invariant failed: ${violation}`);
-      }
-      process.exit(1);
-    }
-
-    console.log('✅ Cash verification states match the catalogue');
+    exitOnViolations('Cash state', cashViolations, 'Cash verification states match the catalogue');
     process.exit(0);
   } catch (err: any) {
     // If table doesn't exist or query fails
