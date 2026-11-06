@@ -44,8 +44,6 @@
       "no_branches_subtitle": "Try adjusting your filters or create a new branch.",
       "status_active": "Active",
       "status_inactive": "Inactive",
-      "status_active": "Active",
-      "status_inactive": "Inactive",
       "active_operations": "Full Operational Status",
       "inactive_branch": "Operations Suspended",
       "list_title": "Branch List",
@@ -68,6 +66,7 @@
       "sort_open_claims_desc": "Open Claims (High-Low)",
       "sort_cash_pending_desc": "Cash Pending (High-Low)",
       "sort_sla_breaches_desc": "SLA Breaches (High-Low)",
+      "sort_health_score_asc": "Health (Worst First)",
       "dashboard": {
         "back_to_branches": "Back to Branches",
         "status_active": "Active",
@@ -102,13 +101,8 @@
       "create_success": "Branch created",
       "create_success_description": "Branch {name} created successfully.",
       "unexpected_error": "An unexpected error occurred.",
-      "health": {
-        "healthy": "Healthy",
-        "watch": "Needs Attention",
-        "urgent": "Urgent",
-        "inactive": "Inactive"
-      },
       "health_score": "Health {score}/100",
+      "back_to_branches": "Back to Branches",
       "filters": {
         "needs_attention": "Needs Attention"
       },
@@ -174,6 +168,10 @@
         "no_staff": "No staff assignments found"
       },
       "health": {
+        "healthy": "Healthy",
+        "watch": "Needs Attention",
+        "urgent": "Urgent",
+        "inactive": "Inactive",
         "tooltip": {
           "healthy": {
             "title": "Operations are under control.",
