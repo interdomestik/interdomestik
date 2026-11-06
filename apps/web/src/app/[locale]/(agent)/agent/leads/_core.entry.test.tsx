@@ -125,19 +125,27 @@ describe('AgentLeadsEntry auth redirect', () => {
     expectNoLeadEntryDataAccess();
   });
 
-  it('renders notFound for a standard-tier agent', async () => {
-    mockEntrySession({
-      id: 'agent-1',
-      role: 'agent',
-      tenantId: 'tenant-1',
-      branchId: 'branch-1',
-    });
-    hoisted.findAgentSettingsMock.mockResolvedValue({ tier: 'standard' });
+  it.each([
+    ['a standard-tier agent', { tier: 'standard' }],
+    ['an agent without settings', undefined],
+  ])(
+    "loads leads for %s: lead entry is every agent's enrollment path",
+    async (_label, settings) => {
+      mockEntrySession({
+        id: 'agent-1',
+        role: 'agent',
+        tenantId: 'tenant-1',
+        branchId: 'branch-1',
+      });
+      hoisted.findAgentSettingsMock.mockResolvedValue(settings);
+      hoisted.getAgentLeadsCoreMock.mockResolvedValue([]);
 
-    await expectEntryNotFound();
-
-    expect(hoisted.getAgentLeadsCoreMock).not.toHaveBeenCalled();
-  });
+      await expect(
+        AgentLeadsEntry({ params: Promise.resolve({ locale: 'en' }) })
+      ).resolves.toBeDefined();
+      expect(hoisted.getAgentLeadsCoreMock).toHaveBeenCalled();
+    }
+  );
 
   it('renders notFound for an agent session without branch scope', async () => {
     mockEntrySession({

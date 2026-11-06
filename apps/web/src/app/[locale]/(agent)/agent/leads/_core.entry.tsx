@@ -2,9 +2,7 @@ import { AgentLeadsProPage } from '@/features/agent/leads/components/AgentLeadsP
 import { auth } from '@/lib/auth';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 
-import { agentSettings } from '@interdomestik/database/schema';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
-import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { getAgentLeadsCore } from './_core';
@@ -39,20 +37,8 @@ export default async function AgentLeadsEntry({ params }: Readonly<Props>) {
   const { authority } = authorized;
   const { tenantId } = readTenantAuthority(authority);
 
-  // Tier Gating (Strict)
-  // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
-  const settings = await withTenantAuthority(authority, tx =>
-    tx.query.agentSettings.findFirst({
-      where: eq(agentSettings.agentId, session.user.id),
-      columns: { tier: true },
-    })
-  );
-  const tier = settings?.tier || 'standard';
-
-  if (!['pro', 'office'].includes(tier)) {
-    notFound();
-  }
-
+  // Every branch agent records leads here: since ACQ-2 (owner D1 a) a lead with consent, paid and
+  // approved, is the only way a member is enrolled, so the workspace is not limited to a tier.
   const branchId = session.user.branchId;
   const leadsData = await withTenantAuthority(authority, tx =>
     getAgentLeadsCore({ tenantId, agentId: session.user.id, branchId }, { db: tx })
