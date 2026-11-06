@@ -33,7 +33,7 @@ export interface ServiceHealth {
 
 const startTime = Date.now();
 
-function resolveBuildMetadata(): HealthCheckResult['build'] {
+export function resolveBuildMetadata(): HealthCheckResult['build'] {
   return {
     commitSha:
       process.env.COMMIT_SHA ||
