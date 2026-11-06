@@ -243,7 +243,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pnpm --filter @interdomestik/web run start:ci > /tmp/web-start.log 2>&1 &
+          # Plan070: the app's tenant client is the restricted NOBYPASSRLS runtime role, provisioned
+          # and posture-checked first. A provisioning failure stops here; there is no admin fallback.
+          runtime_url="$(E2E_DATABASE_URL="${DATABASE_URL}" node scripts/e2e-runtime-role-cli.mjs --print-url)"
+          DATABASE_URL_RLS="${runtime_url}" REQUIRE_RLS_INTEGRATION=1 \
+            pnpm --filter @interdomestik/web run start:ci > /tmp/web-start.log 2>&1 &
           echo $! > /tmp/web-start.pid
           for _ in {1..60}; do
             if curl -fsS http://127.0.0.1:3000/api/health >/dev/null; then
