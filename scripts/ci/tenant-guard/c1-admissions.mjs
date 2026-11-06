@@ -84,6 +84,68 @@ export const C1_ADMISSIONS = deepFreeze([
     ],
   },
   {
+    id: 'documents-staff-draft-denial-2026-11',
+    // Successor of documents-read-restriction-2026-11 for the same bundle plus the staff draft
+    // denial. Owner decision 2026-11-06 (chat): "Stafi nuk ka te drejt ne draft"; Plan070 standing
+    // approval 2026-11-04 with Codex. The predecessor stays until main carries this bundle.
+    reason:
+      'Reviewed document-read restriction: agent attribution additionally requires an active ' +
+      'same-tenant client link and the existing workspace branch scope; the local polymorphic ' +
+      'lookup excludes soft-deleted rows. Staff are denied every document of a member draft or ' +
+      'a claim without a lifecycle, after the claimant-owner check and before the uploader, ' +
+      'scope and grant paths. Tenant transactions, the case-grant fallback, storage and audit ' +
+      'boundaries are unchanged.',
+    files: [
+      {
+        file: `${DOCUMENTS}/claim-document-access.ts`,
+        sha256: 'aeb071d9d68b7349cf609c6c2a651d4e5c1816da81bd841ac8205a236ffd5b65',
+        units: [
+          'canReadPolymorphicClaimDocument',
+          'canReadLegacyClaimDocument',
+          'hasScopedClaimDocumentAccess',
+        ],
+      },
+      {
+        file: `${DOCUMENTS}/agent-document-scope.ts`,
+        sha256: '737b484c43c108aee209c2a51a33d15f7621d65ac73cc81e845ad213eac6e25e',
+        units: ['hasAgentClaimDocumentScope'],
+      },
+      {
+        file: `${DOCUMENTS}/access-policy.ts`,
+        sha256: 'e3dbde4be395247019c12fe7410fee2c2a84c1eabd8b2a5e6106fe33c9114c68',
+        units: ['hasScopedClaimReadAccess', 'isStaffBlockedFromClaim'],
+      },
+      {
+        file: `${DOCUMENTS}/document-access-reads.ts`,
+        sha256: 'adb7578ca3b0b8c8917502cce1bf9d129f100fe9a8a0b90f501bbff1f0644f36',
+        units: ['readLocalDocumentAccess'],
+      },
+    ],
+    sinkEdges: [
+      {
+        file: `${DOCUMENTS}/claim-document-access.ts`,
+        unit: 'canReadPolymorphicClaimDocument',
+        sink: CASE_GRANT_SINK,
+      },
+      {
+        file: `${DOCUMENTS}/claim-document-access.ts`,
+        unit: 'canReadLegacyClaimDocument',
+        sink: CASE_GRANT_SINK,
+      },
+      // The claim readers carry the case-grant sink to their caller, the local document read.
+      {
+        file: `${DOCUMENTS}/document-access-reads.ts`,
+        unit: 'readLocalDocumentAccess',
+        sink: `${DOCUMENTS}/claim-document-access.ts#canReadLegacyClaimDocument`,
+      },
+      {
+        file: `${DOCUMENTS}/document-access-reads.ts`,
+        unit: 'readLocalDocumentAccess',
+        sink: `${DOCUMENTS}/polymorphic-document-access.ts#canReadPolymorphicDocument`,
+      },
+    ],
+  },
+  {
     id: 'tx-lifetime-transition-2026-11',
     // Plan070 standing owner approval 2026-11-04 (chat): "miratohen te gjitha kerkesat deri ne
     // perfundim te planit 070 ne bashkpunim me codex", bound to Codex YES on this exact bundle
@@ -184,5 +246,34 @@ export const C1_ADMISSIONS = deepFreeze([
         sink: `${DOCUMENTS}/_core.ts#getDocumentAccessCore`,
       },
     ],
+  },
+  {
+    id: 'draft-handoff-and-airline-stage-2026-11',
+    // Plan070 standing owner approval 2026-11-04 with Codex; owner decision 2026-11-06 (chat):
+    // "Stafi nuk ka te drejt ne draft".
+    reason:
+      'Reviewed claim-state corrections. The jurisdiction handoff loads the claim lifecycle and ' +
+      'refuses a member draft or a claim without a lifecycle for every role, so no recovery ' +
+      'grant is issued on a draft. The ops pool negotiation stage also matches ' +
+      'submitted_to_airline, as the shared lifecycle mapping already does. Tenant ' +
+      'transactions, grant writes and the transferred-candidate scan are unchanged.',
+    files: [
+      {
+        file: 'packages/domain-claims/src/claims/jurisdiction-handoff-auth.ts',
+        sha256: '0c7dba6cfe47dfebd1ca96ab88453b11cab85f4064d5bbb4472c62cd3838ba6e',
+        units: ['canInitiateHandoff'],
+      },
+      {
+        file: 'packages/domain-claims/src/claims/jurisdiction-handoff-store.ts',
+        sha256: '294ab8f572826fc77eff35421e721a91d08a61dd4250249d8672ba2aef193d2a',
+        units: ['loadHandoffClaim'],
+      },
+      {
+        file: 'apps/web/src/features/admin/claims/server/readOpsCenterPool.ts',
+        sha256: '939a4cd3ea17619e41e59f087783ea927ca135dbd9555b124cbca03a6a38113d',
+        units: ['LIFECYCLE_STATUS_MAP'],
+      },
+    ],
+    sinkEdges: [],
   },
 ]);

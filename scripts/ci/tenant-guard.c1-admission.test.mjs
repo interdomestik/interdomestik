@@ -203,3 +203,57 @@ test('an admitted callee does not admit a changed dependency outside its bundle'
   assert.equal(result.telemetry.c1Admissions, 1);
   assertRefused(result, 'C1', HANDED);
 });
+
+// A changed module constant read by the callee a retained transaction reaches is admitted only
+// when the constant itself is a listed unit; listing its readers does not cover it.
+const LOAD = 'apps/web/src/load.ts';
+const READ = 'apps/web/src/read.ts';
+const readWith = statuses =>
+  [
+    `const STAGE_MAP: Record<string, string[]> = { negotiation: ${statuses} };`,
+    'export function readRows(tx: { select(): unknown }, stage: string) {',
+    '  return STAGE_MAP[stage]?.length ? tx.select() : null;',
+    '}',
+  ].join('\n');
+const CONST_BASE = {
+  [LOAD]: [
+    "import { withTenantContext } from '@interdomestik/database';",
+    "import { readRows } from './read';",
+    'export function load(input: { tenantId: string }) {',
+    "  return withTenantContext({ tenantId: input.tenantId }, tx => readRows(tx, 'negotiation'));",
+    '}',
+  ].join('\n'),
+  [READ]: readWith("['negotiation']"),
+};
+const REVIEWED_READ = readWith("['submitted_to_airline', 'negotiation']");
+const constAdmission = units => ({
+  id: 'fixture-const',
+  reason: 'fixture admission',
+  files: [{ file: READ, sha256: sha256(REVIEWED_READ), units }],
+  sinkEdges: [],
+});
+const HANDS_TX = /hands its transaction to changed code \(readRows\)/u;
+
+test('a changed module constant is admitted only as its own listed unit', () => {
+  assertRefused(runAdmitted({ [READ]: REVIEWED_READ }, [], CONST_BASE), 'C1', HANDS_TX);
+  const readerOnly = runAdmitted(
+    { [READ]: REVIEWED_READ },
+    [constAdmission(['readRows'])],
+    CONST_BASE
+  );
+  assert.equal(readerOnly.telemetry.c1Admissions, 1);
+  assertRefused(readerOnly, 'C1', HANDS_TX);
+  const listed = runAdmitted(
+    { [READ]: REVIEWED_READ },
+    [constAdmission(['STAGE_MAP'])],
+    CONST_BASE
+  );
+  assert.deepEqual(listed.violations, []);
+  const edited = runAdmitted(
+    { [READ]: `${REVIEWED_READ}\n// edited` },
+    [constAdmission(['STAGE_MAP'])],
+    CONST_BASE
+  );
+  assert.equal(edited.telemetry.c1Admissions, 0);
+  assertRefused(edited, 'C1', HANDS_TX);
+});
