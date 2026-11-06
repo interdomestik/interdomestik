@@ -69,6 +69,8 @@ export const KS_ACTOR_CASES: readonly ActorCases[] = [
     actor: rel.STAFF_ASSIGNMENT.deniedActor,
     rows: [
       ['staff', rel.STAFF_ASSIGNMENT.caseId, false],
+      // A member draft reaches staff only after submission.
+      ['staff', DRAFT, false],
       ['staff', REJECTED, true],
       ['staff', AIRLINE, true],
     ],

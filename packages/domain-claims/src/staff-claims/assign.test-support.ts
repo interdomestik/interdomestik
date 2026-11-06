@@ -17,6 +17,7 @@ const mocks: {
   and: Mock;
   or: Mock;
   isNull: Mock;
+  lifecycleNotIn: Mock;
   ensureTenantId: Mock;
   logAuditEvent: Mock;
   claims: {
@@ -61,6 +62,7 @@ const mocks: {
     and: vi.fn((...conditions) => ({ op: 'and', conditions })),
     or: vi.fn((...conditions) => ({ op: 'or', conditions })),
     isNull: vi.fn(column => ({ column, op: 'isNull' })),
+    lifecycleNotIn: vi.fn(statuses => ({ op: 'lifecycleNotIn', statuses })),
     ensureTenantId: vi.fn(() => 'tenant-1'),
     logAuditEvent: vi.fn(),
     claims: {
@@ -112,6 +114,9 @@ vi.mock('@interdomestik/shared-auth', () => ({
 vi.mock('drizzle-orm', () => ({
   isNull: mocks.isNull,
   or: mocks.or,
+}));
+vi.mock('../claims/lifecycle-read-sql', () => ({
+  claimLifecycleStatusNotIn: mocks.lifecycleNotIn,
 }));
 function createSession(options: {
   userId: string;

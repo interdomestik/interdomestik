@@ -73,6 +73,10 @@ async function canShareDocument(args: {
   const { actor, row, tenantId, tx } = args;
   const role = actor.role ?? undefined;
   if (isFullTenantClaimsRole(role)) return true;
+  // Before any uploader shortcut: staff never share documents of a member's unsubmitted draft.
+  if (role === 'staff' && row.entityType === 'claim') {
+    if (!(await isSubmittedClaim({ claimId: row.entityId, tenantId, tx }))) return false;
+  }
   if (
     row.uploadedBy === actor.id &&
     !(role === 'agent' && row.entityType === 'claim') &&
@@ -90,6 +94,20 @@ async function canShareDocument(args: {
     .from(policies)
     .where(and(eq(policies.id, row.entityId), eq(policies.tenantId, tenantId)));
   return policy?.ownerId === actor.id;
+}
+
+/** Fails closed: a missing claim or lifecycle counts as not submitted. */
+async function isSubmittedClaim(args: {
+  claimId: string;
+  tenantId: string;
+  tx: TenantTransaction;
+}): Promise<boolean> {
+  const [claim] = await args.tx
+    .select({ caseLifecycleState: claims.caseLifecycleState })
+    .from(claims)
+    .where(and(eq(claims.id, args.claimId), eq(claims.tenantId, args.tenantId)));
+  const lifecycle = claim?.caseLifecycleState;
+  return lifecycle != null && lifecycle !== 'draft';
 }
 
 async function canShareClaimDocument(args: {

@@ -19,7 +19,8 @@ const FULL_TENANT_CLAIMS_ROLES = new Set(['admin', 'tenant_admin', 'super_admin'
 
 export function canAccessClaimFromAdminUploadSurface(args: {
   branchId?: string | null;
-  claim: ClaimScopeRecord;
+  // The lifecycle is required so the staff check always sees it: a member draft is not staff work.
+  claim: ClaimScopeRecord & { caseLifecycleState: string | null };
   role: string | null | undefined;
   userId: string;
 }): boolean {
@@ -38,7 +39,12 @@ export function canAccessClaimFromAdminUploadSurface(args: {
     return branchId !== null && claim.branchId === branchId;
   }
 
-  if (role !== 'staff') {
+  // Fail closed: a missing lifecycle is denied like a member draft.
+  if (
+    role !== 'staff' ||
+    claim.caseLifecycleState == null ||
+    claim.caseLifecycleState === 'draft'
+  ) {
     return false;
   }
 
@@ -55,13 +61,14 @@ export async function findAccessibleAdminUploadClaim(args: {
   role: string | null | undefined;
   authority: TenantAuthority;
   userId: string;
-}): Promise<ClaimScopeRecord | null> {
+}): Promise<(ClaimScopeRecord & { caseLifecycleState: string | null }) | null> {
   const { tenantId } = readTenantAuthority(args.authority);
   const claim = await withTenantAuthority(args.authority, tx =>
     tx.query.claims.findFirst({
       where: and(eq(claims.id, args.claimId), eq(claims.tenantId, tenantId)),
       columns: {
         branchId: true,
+        caseLifecycleState: true,
         staffId: true,
       },
     })

@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getPaymentAuthorizationState: vi.fn(),
   transitionClaimStatus: vi.fn(),
   withTenant: vi.fn(() => ({ scoped: true })),
+  staffScope: vi.fn(() => ({ staffScope: true })),
 }));
 
 vi.mock('@interdomestik/database', () => {
@@ -35,6 +36,14 @@ vi.mock('../admin-claims/payment-authorization', () => ({
   getPaymentAuthorizationState: mocks.getPaymentAuthorizationState,
 }));
 vi.mock('./transition', () => ({ transitionClaimStatus: mocks.transitionClaimStatus }));
+vi.mock('../staff-claims/scope', () => ({
+  buildScopedStaffClaimWhere: mocks.staffScope,
+  resolveScopedStaffClaimAccess: ({ claimId }: { claimId: string }) => ({
+    branchId: null,
+    claimId,
+    userId: 'staff-1',
+  }),
+}));
 
 import { updateClaimStatusCore } from './status';
 
@@ -92,7 +101,7 @@ describe('updateClaimStatusCore', () => {
     mocks.transitionClaimStatus.mockResolvedValue(persistedNegotiation);
   });
 
-  it('rejects when claim is not found in tenant scope', async () => {
+  it('reads a staff claim only through the staff scope, which excludes member drafts', async () => {
     mocks.findFirst.mockImplementationOnce(query => {
       runClaimScope(query);
       return null;
@@ -100,7 +109,33 @@ describe('updateClaimStatusCore', () => {
     const result = await runStatusUpdate();
 
     expect(result).toEqual({ success: false, error: 'Claim not found', data: undefined });
+    expect(mocks.staffScope).toHaveBeenCalledWith({
+      branchId: null,
+      claimId: 'claim-1',
+      tenantId: 'tenant-1',
+      userId: 'staff-1',
+    });
+    expect(mocks.withTenant).not.toHaveBeenCalled();
+    expect(mocks.transitionClaimStatus).not.toHaveBeenCalled();
+  });
+
+  it('keeps the tenant-wide lookup for admins', async () => {
+    mocks.findFirst.mockImplementationOnce(query => {
+      runClaimScope(query);
+      return null;
+    });
+    const adminSession = { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' } };
+    const result = await updateClaimStatusCore({
+      authority,
+      session: adminSession as never,
+      requestHeaders,
+      claimId: 'claim-1',
+      newStatus: 'submitted',
+    });
+
+    expect(result).toEqual({ success: false, error: 'Claim not found', data: undefined });
     expect(mocks.withTenant).toHaveBeenCalledWith('tenant-1', 'claims.tenant_id', eqCondition);
+    expect(mocks.staffScope).not.toHaveBeenCalled();
   });
 
   it('preserves validation and authorization errors', async () => {

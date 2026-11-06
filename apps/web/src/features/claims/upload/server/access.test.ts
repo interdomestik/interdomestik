@@ -79,7 +79,7 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
     expect(
       canAccessClaimFromAdminUploadSurface({
         branchId: 'branch-2',
-        claim: { branchId: 'branch-1', staffId: 'staff-2' },
+        claim: { branchId: 'branch-1', caseLifecycleState: 'submitted', staffId: 'staff-2' },
         role: 'staff',
         userId: 'staff-2',
       })
@@ -90,9 +90,23 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
     expect(
       canAccessClaimFromAdminUploadSurface({
         branchId: 'branch-2',
-        claim: { branchId: 'branch-1', staffId: 'staff-1' },
+        claim: { branchId: 'branch-1', caseLifecycleState: 'submitted', staffId: 'staff-1' },
         role: 'staff',
         userId: 'staff-2',
+      })
+    ).toBe(false);
+  });
+
+  it.each([
+    ['assigned branch staff', 'branch-1', 'staff-1'],
+    ['branchless staff on an unassigned claim', null, null],
+  ])('denies %s a member draft', (_label, branchId, staffId) => {
+    expect(
+      canAccessClaimFromAdminUploadSurface({
+        branchId,
+        claim: { branchId: 'branch-1', caseLifecycleState: 'draft', staffId },
+        role: 'staff',
+        userId: 'staff-1',
       })
     ).toBe(false);
   });
@@ -101,7 +115,7 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
     expect(
       canAccessClaimFromAdminUploadSurface({
         branchId: 'branch-2',
-        claim: { branchId: 'branch-1', staffId: null },
+        claim: { branchId: 'branch-1', caseLifecycleState: 'submitted', staffId: null },
         role: 'branch_manager',
         userId: 'manager-1',
       })

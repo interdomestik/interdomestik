@@ -1,12 +1,16 @@
 import { agentClients, claims, user, type TenantTransaction } from '@interdomestik/database';
 import { ROLES } from '@interdomestik/shared-auth';
-import { and, eq, inArray, isNull, or } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 
 type ClaimAccessRecord = {
   branchId?: string | null;
+  /** Required so every caller proves the lifecycle it read: a member draft is not staff work. */
+  caseLifecycleState: string | null;
   staffId?: string | null;
   userId: string;
 };
+
+const DRAFT_CASE_STATE = 'draft';
 
 // Strict comparisons, so an altered Set.prototype.has cannot widen role admission.
 export function isFullTenantClaimsRole(role: string | null | undefined): boolean {
@@ -23,6 +27,9 @@ export function hasScopedStaffClaimAccess(args: {
   userId: string;
 }): boolean {
   const branchId = args.branchId ?? null;
+  // Fail closed: a missing lifecycle is denied like a draft.
+  const lifecycle = args.claim.caseLifecycleState;
+  if (lifecycle == null || lifecycle === DRAFT_CASE_STATE) return false;
 
   if (branchId !== null) {
     return args.claim.branchId === branchId;
@@ -72,11 +79,12 @@ function buildStaffScopedClaimFilter(args: {
     return eq(claims.branchId, args.branchId);
   }
 
+  const submitted = ne(claims.caseLifecycleState, DRAFT_CASE_STATE);
   if (args.branchId !== null) {
-    return eq(claims.branchId, args.branchId);
+    return and(submitted, eq(claims.branchId, args.branchId));
   }
 
-  return or(eq(claims.staffId, args.userId), isNull(claims.staffId));
+  return and(submitted, or(eq(claims.staffId, args.userId), isNull(claims.staffId)));
 }
 
 export async function readAgentScope(

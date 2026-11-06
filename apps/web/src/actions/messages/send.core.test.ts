@@ -131,6 +131,7 @@ describe('sendMessageDbCore', () => {
       id: 'claim_1',
       userId: 'member_1',
       title: 'My Claim',
+      caseLifecycleState: 'submitted',
     });
     mocks.insertValues.mockResolvedValue(undefined);
     mocks.logAuditEvent.mockResolvedValue(undefined);
@@ -182,6 +183,7 @@ describe('sendMessageDbCore', () => {
       id: 'claim_1',
       userId: 'member_1',
       title: 'My Claim',
+      caseLifecycleState: 'submitted',
     });
     mocks.insertValues.mockResolvedValue(undefined);
     mocks.userFindFirst.mockResolvedValue({ email: 'member@example.com' });

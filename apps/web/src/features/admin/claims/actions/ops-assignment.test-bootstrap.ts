@@ -23,11 +23,12 @@ vi.mock('@interdomestik/database', async () => {
 });
 
 const { assignOwner, unassignOwner } = await import('./ops-actions');
-const { ASSIGNMENT_CONFLICT_ERROR, ASSIGNMENT_TARGET_DENIED_ERROR } =
+const { ASSIGNMENT_CONFLICT_ERROR, ASSIGNMENT_DRAFT_ERROR, ASSIGNMENT_TARGET_DENIED_ERROR } =
   await import('./ops-assignment');
 
 export {
   ASSIGNMENT_CONFLICT_ERROR,
+  ASSIGNMENT_DRAFT_ERROR,
   ASSIGNMENT_TARGET_DENIED_ERROR,
   assignOwner,
   mocks as assignmentActionMocks,

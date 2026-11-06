@@ -198,6 +198,8 @@ export function registerMessageRlsFixture(): void {
       staffId: ids.staff,
       category: 'retail',
       companyName: 'Synthetic Co',
+      // Submitted work: staff scopes exclude member drafts (the column default).
+      caseLifecycleState: 'submitted',
       description: 'Isolated message tenant-context regression',
       origin: 'portal',
       title: 'Synthetic message case',

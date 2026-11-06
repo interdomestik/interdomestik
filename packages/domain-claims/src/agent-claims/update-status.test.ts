@@ -72,6 +72,8 @@ function mockClaim(status: string) {
       id: 'claim-1',
       staffId: 'staff-1',
       status,
+      // Case lifecycle states share the legacy status names used here.
+      caseLifecycleState: status,
       title: 'Claim',
       userEmail: 'member@example.com',
       userId: 'member-1',
@@ -137,6 +139,17 @@ describe('agent updateClaimStatusCore', () => {
         { authority }
       )
     );
+  });
+
+  it('denies assigned staff a member draft without transitioning', async () => {
+    const logAuditEvent = vi.fn();
+    mockClaim('draft');
+
+    const result = await runStatusUpdate({ logAuditEvent }, 'submitted');
+
+    expect(result).toEqual({ success: false, error: 'Access denied', data: undefined });
+    expect(mocks.transitionClaimStatus).not.toHaveBeenCalled();
+    expect(logAuditEvent).not.toHaveBeenCalled();
   });
 
   it.each([

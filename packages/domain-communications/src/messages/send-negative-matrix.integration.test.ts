@@ -70,6 +70,8 @@ suite('message send negative matrix on a real NOBYPASSRLS connection', () => {
         branchId: ids.otherBranch,
         category: 'retail',
         companyName: 'Synthetic Co',
+        // Submitted work: staff scopes exclude member drafts (the column default).
+        caseLifecycleState: 'submitted',
         description: 'Branch-scoped message negative matrix',
         origin: 'portal',
         title: 'Synthetic branch case',

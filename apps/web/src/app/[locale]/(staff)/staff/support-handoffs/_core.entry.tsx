@@ -34,6 +34,7 @@ import {
   parseUrgencyFilter,
 } from './support-handoff-filters';
 import { SupportHandoffAttentionRow } from './support-handoff-attention-row';
+import { SupportHandoffClaimLink } from './support-handoff-claim-link';
 import { SupportHandoffDetailPanel } from './support-handoff-detail-panel';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
@@ -411,18 +412,11 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
                     <span>{t('table.needs_follow_up')}</span>
                   </div>
                 ) : null}
-                {handoff.claim ? (
-                  <Button asChild variant="link" size="sm" className="h-auto px-0 py-1 text-xs">
-                    <Link
-                      href={`/staff/claims/${handoff.claim.id}`}
-                      data-testid="staff-support-handoff-claim-link"
-                    >
-                      {handoff.claim.claimNumber || handoff.claim.title || t('table.claim_link')}
-                    </Link>
-                  </Button>
-                ) : (
-                  <div className="mt-1 text-xs text-muted-foreground">{t('table.no_claim')}</div>
-                )}
+                <SupportHandoffClaimLink
+                  claim={handoff.claim}
+                  fallbackLabel={t('table.claim_link')}
+                  noClaimLabel={t('table.no_claim')}
+                />
               </div>
               <div>
                 <div className="font-medium text-slate-900">{handoff.member.name}</div>

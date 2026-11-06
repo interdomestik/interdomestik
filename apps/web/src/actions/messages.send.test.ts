@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import './messages.test.base';
-import { mocks, mockSelectChain, resetMocks } from './messages.test.base';
+import { mocks, mockSelectChain, resetMocks, SUBMITTED } from './messages.test.base';
 
 let sendMessage: typeof import('./messages').sendMessage;
 
@@ -102,7 +102,7 @@ describe('sendMessage', () => {
     mocks.getSession.mockResolvedValue({
       user: { id: 'staff-1', role: 'staff', tenantId: 'tenant_mk' },
     });
-    mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
+    mocks.dbQuery.mockResolvedValue({ ...SUBMITTED, id: 'claim-123', userId: 'user-123' });
     mocks.dbInsert.mockResolvedValue(undefined);
     mockSelectChain.limit.mockReturnValue([
       {
@@ -128,7 +128,7 @@ describe('sendMessage', () => {
     mocks.getSession.mockResolvedValue({
       user: { id: 'staff-2', role: 'staff', tenantId: 'tenant_mk' },
     });
-    mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'other-user' });
+    mocks.dbQuery.mockResolvedValue({ ...SUBMITTED, id: 'claim-123', userId: 'other-user' });
     mocks.dbInsert.mockResolvedValue(undefined);
     mockSelectChain.limit.mockReturnValue([
       {
