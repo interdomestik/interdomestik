@@ -5,6 +5,7 @@ export const tx = {} as never;
 export const baseClaim = {
   branchId: 'branch-a',
   incidentCountryCode: 'MK',
+  caseLifecycleState: 'submitted',
   lifecycleVersion: 7,
   recoveryLegalTenantId: null,
   staffId: 'staff-1',

@@ -42,9 +42,28 @@ async function lookupGrantedDocument(args: {
   documentId: string;
   grantContext: CrossGrantContext;
 }): Promise<CrossGrantDoc | null> {
+  if (!(await isSubmittedGrantCase(args))) return null;
   const polyDoc = await lookupPoly(args);
   if (polyDoc) return polyDoc;
   return lookupLegacy(args);
+}
+
+// A member draft is not a case yet: no grant reads its documents, including a grant issued before
+// handoffs refused drafts. A claim without a lifecycle fails closed.
+async function isSubmittedGrantCase(args: {
+  db: DocumentReadDb;
+  grantContext: CrossGrantContext;
+}): Promise<boolean> {
+  const [claim] = await args.db
+    .select({ caseLifecycleState: claims.caseLifecycleState })
+    .from(claims)
+    .where(
+      and(
+        eq(claims.id, args.grantContext.caseId),
+        eq(claims.tenantId, args.grantContext.homeTenantId)
+      )
+    );
+  return claim?.caseLifecycleState != null && claim.caseLifecycleState !== 'draft';
 }
 
 async function lookupPoly(args: {
