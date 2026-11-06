@@ -11,6 +11,7 @@ import {
 export const ASSIGNMENT_TARGET_ROLE = 'staff';
 export const ASSIGNMENT_TARGET_DENIED_ERROR = 'Staff member not found or out of scope';
 export const ASSIGNMENT_CONFLICT_ERROR = 'Claim changed. Reload and try again.';
+export const ASSIGNMENT_DRAFT_ERROR = 'A draft claim cannot be assigned before it is submitted.';
 
 export type AssignClaimOwnerParams = {
   actorId: string;
@@ -71,6 +72,8 @@ export async function assignClaimOwnerInTransaction(
 
   const claim = await getClaimForMutation(claimId, tenantId, tx);
   assertCanMutateClaim(claim, actorRole, 'assign');
+  // A member's draft is not staff work: assigning it would hand staff a claim they cannot open.
+  if (claim.status === 'draft') return { success: false, error: ASSIGNMENT_DRAFT_ERROR };
 
   const target = await findAssignableStaff(tx, tenantId, staffId);
   if (!target) return { success: false, error: ASSIGNMENT_TARGET_DENIED_ERROR };

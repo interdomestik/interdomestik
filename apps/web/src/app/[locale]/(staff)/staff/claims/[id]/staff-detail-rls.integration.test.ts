@@ -107,6 +107,8 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
           title: 'Assigned fixture',
           category: 'retail',
           companyName: 'Fixture',
+          // Submitted work: staff scopes exclude member drafts (the column default).
+          caseLifecycleState: 'submitted',
         },
         {
           id: otherClaimId,
@@ -116,6 +118,8 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
           title: 'Other assignment fixture',
           category: 'retail',
           companyName: 'Fixture',
+          // Submitted work: staff scopes exclude member drafts (the column default).
+          caseLifecycleState: 'submitted',
         },
         {
           id: foreignClaimId,
@@ -125,6 +129,8 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
           title: 'Foreign fixture',
           category: 'retail',
           companyName: 'Fixture',
+          // Submitted work: staff scopes exclude member drafts (the column default).
+          caseLifecycleState: 'submitted',
         },
       ]);
       await dbAdmin.insert(claimStageHistory).values([

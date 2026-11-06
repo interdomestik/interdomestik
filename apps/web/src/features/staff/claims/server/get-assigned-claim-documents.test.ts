@@ -41,7 +41,12 @@ vi.mock('@interdomestik/database', () => ({
     claimId: 'link.claim_id',
     documentId: 'link.document_id',
   },
-  claims: { id: 'claims.id', staffId: 'claims.staff_id', tenantId: 'claims.tenant_id' },
+  claims: {
+    caseLifecycleState: 'claims.case_lifecycle_state',
+    id: 'claims.id',
+    staffId: 'claims.staff_id',
+    tenantId: 'claims.tenant_id',
+  },
   withTenantContext: hoisted.withTenantContext,
 }));
 
@@ -50,6 +55,7 @@ vi.mock('drizzle-orm', () => ({
   desc: (column: unknown) => ({ op: 'desc', column }),
   eq: (left: unknown, right: unknown) => ({ op: 'eq', left, right }),
   isNull: (column: unknown) => ({ op: 'isNull', column }),
+  ne: (left: unknown, right: unknown) => ({ op: 'ne', left, right }),
 }));
 
 import { getAssignedStaffClaimDocuments } from './get-assigned-claim-documents';
@@ -152,6 +158,7 @@ describe('getAssignedStaffClaimDocuments', () => {
           { op: 'eq', left: 'claims.id', right: 'claim-1' },
           { op: 'eq', left: 'claims.tenant_id', right: 'tenant-a' },
           { op: 'eq', left: 'claims.staff_id', right: 'staff-1' },
+          { op: 'ne', left: 'claims.case_lifecycle_state', right: 'draft' },
         ],
       },
       {
@@ -172,6 +179,7 @@ describe('getAssignedStaffClaimDocuments', () => {
             { op: 'eq', left: 'claims.id', right: 'claim_documents.claim_id' },
             { op: 'eq', left: 'claims.tenant_id', right: 'tenant-a' },
             { op: 'eq', left: 'claims.staff_id', right: 'staff-1' },
+            { op: 'ne', left: 'claims.case_lifecycle_state', right: 'draft' },
           ],
         },
       },

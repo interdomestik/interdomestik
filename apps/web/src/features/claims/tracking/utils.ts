@@ -1,5 +1,5 @@
 import { claims } from '@interdomestik/database/schema';
-import { and, eq, inArray, or, SQL } from 'drizzle-orm';
+import { and, eq, inArray, ne, or, SQL } from 'drizzle-orm';
 
 export interface ClaimVisibilityContext {
   tenantId: string;
@@ -54,6 +54,8 @@ export function buildClaimVisibilityWhere(context: ClaimVisibilityContext): SQL 
       break;
 
     case 'staff':
+      // A member's draft is not staff work until it is submitted.
+      conditions.push(ne(claims.caseLifecycleState, 'draft'));
       // Assigned OR Branch
       if (branchId) {
         conditions.push(or(eq(claims.branchId, branchId), eq(claims.staffId, userId))!);

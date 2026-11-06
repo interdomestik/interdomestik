@@ -51,6 +51,7 @@ const columns = [
   'title',
   'actionUrl',
   'isRead',
+  'caseLifecycleState',
 ];
 export const tables = Object.fromEntries(
   [
@@ -109,6 +110,7 @@ export function seedRows(): Record<string, Row[]> {
         userId: ids.member,
         staffId: ids.staff,
         branchId: 'branch-a',
+        caseLifecycleState: 'submitted',
         title: 'Synthetic case',
       },
       {

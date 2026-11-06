@@ -9,6 +9,7 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { ActionResult, ClaimsDeps, ClaimsSession } from './types';
 import type { TransitionClaimStatusResult } from './transition';
 
+import { buildScopedStaffClaimWhere, resolveScopedStaffClaimAccess } from '../staff-claims/scope';
 import { claimStatusSchema } from '../validators/claims';
 import { activateClaimStatusAuditProjection } from './audit-projection';
 import { transitionClaimStatus } from './transition';
@@ -84,10 +85,16 @@ export async function updateClaimStatusCore(
   const { tenantId } = readTenantAuthority(authority);
 
   try {
+    // Staff change only claims in their own scope, never a member's draft; admins keep the tenant.
     const claim = await withTenantAuthority(authority, tx =>
       tx.query.claims.findFirst({
         where: (claimsTable, { eq }) =>
-          withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+          session.user.role === 'staff'
+            ? buildScopedStaffClaimWhere({
+                ...resolveScopedStaffClaimAccess({ claimId, session }),
+                tenantId,
+              })
+            : withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
       })
     );
 

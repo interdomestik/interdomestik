@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import './messages.test.base';
-import { mocks, mockSelectChain, resetMocks } from './messages.test.base';
+import { mocks, mockSelectChain, resetMocks, SUBMITTED } from './messages.test.base';
 
 let getMessagesForClaim: typeof import('./messages').getMessagesForClaim;
 
@@ -71,7 +71,7 @@ describe('getMessagesForClaim', () => {
     mocks.getSession.mockResolvedValue({
       user: { id: 'staff-1', role: 'staff', tenantId: 'tenant_mk' },
     });
-    mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'other-user' });
+    mocks.dbQuery.mockResolvedValue({ ...SUBMITTED, id: 'claim-123', userId: 'other-user' });
     mockSelectChain.orderBy.mockReturnValue([]);
 
     const result = await getMessagesForClaim('claim-123');

@@ -48,7 +48,12 @@ async function findMessageSendDenial(args: {
   userId: string;
   branchId: string | null;
   tenantId: string;
-  claim: { branchId: string | null; staffId: string | null; userId: string };
+  claim: {
+    branchId: string | null;
+    caseLifecycleState: string | null;
+    staffId: string | null;
+    userId: string;
+  };
   isInternal: boolean;
   tx: TenantTransaction;
 }): Promise<string | null> {

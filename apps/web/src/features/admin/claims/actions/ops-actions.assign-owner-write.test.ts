@@ -3,6 +3,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ASSIGNMENT_CONFLICT_ERROR,
+  ASSIGNMENT_DRAFT_ERROR,
   ASSIGNMENT_TARGET_DENIED_ERROR,
   assignmentActionMocks as mocks,
   assignOwner,
@@ -110,6 +111,19 @@ describe('assignOwner tenant transaction', () => {
       success: false,
       error: ASSIGNMENT_TARGET_DENIED_ERROR,
     });
+    expectNoWritesOrRevalidation(tx);
+  });
+
+  it('refuses to assign a member draft before target lookup or writes', async () => {
+    const draft = { ...UNASSIGNED_CLAIM, caseLifecycleState: 'draft' };
+    const { tx, targetLock } = createFakeTx({ claim: draft });
+    routeTenantContext(mocks.withTenantContext, tx);
+
+    await expect(assignOwner('claim-1', 'staff-1', 'en')).resolves.toEqual({
+      success: false,
+      error: ASSIGNMENT_DRAFT_ERROR,
+    });
+    expect(targetLock).not.toHaveBeenCalled();
     expectNoWritesOrRevalidation(tx);
   });
 

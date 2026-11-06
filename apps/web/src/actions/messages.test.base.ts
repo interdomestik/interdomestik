@@ -107,3 +107,6 @@ export const resetMocks = () => {
   mockSelectChain.orderBy.mockReturnValue([]);
   mockSelectChain.limit.mockReturnValue([]);
 };
+
+/** A claim staff may handle: submitted, never a member draft. */
+export const SUBMITTED = { caseLifecycleState: 'submitted' } as const;

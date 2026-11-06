@@ -17,11 +17,8 @@ import {
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
 import { SQL, count, desc, isNotNull, isNull } from 'drizzle-orm';
-import {
-  claimLifecycleStatusIn,
-  claimLifecycleStatusNotIn,
-  claimLifecycleStatusSql,
-} from './lifecycle-read-sql';
+import { claimLifecycleStatusIn, claimLifecycleStatusSql } from './lifecycle-read-sql';
+import { listDraftExclusion } from './list-draft-scope';
 import { mapClaimsToResponse } from './list-response';
 import type { ClaimsListResponse, ClaimsScope, ListClaimsParams } from './list-types';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
@@ -198,11 +195,11 @@ function buildScopeConditions( // NOSONAR - complexity justified by RBAC require
     if (!userId) throw new Error('User ID required for staff queue');
     conditions.push(eq(claims.staffId, userId));
   } else if (scope === 'staff_unassigned') {
-    conditions.push(isNull(claims.staffId), claimLifecycleStatusNotIn(['draft']));
+    conditions.push(isNull(claims.staffId));
   } else if (scope === 'agent_queue' && isPrivileged) {
     conditions.push(isNotNull(claims.agentId));
   }
-
+  conditions.push(...listDraftExclusion(scope, session));
   return conditions;
 }
 
