@@ -143,3 +143,4 @@ export * from './e2e-users';
 export * from './e2e-role-fixtures';
 export * from './e2e-lifecycle-fixtures';
 export * from './e2e-cash-fixtures';
+export * from './e2e-claim-state-fixtures';

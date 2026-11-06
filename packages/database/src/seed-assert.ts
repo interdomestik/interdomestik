@@ -142,6 +142,11 @@ async function assertSeed() {
     const { collectCashStateViolations } = await import('./seed-assert-cash');
     const cashViolations = await collectCashStateViolations(db, schema);
     exitOnViolations('Cash state', cashViolations, 'Cash verification states match the catalogue');
+
+    console.log('🔍 Asserting named claim state fixtures...');
+    const { collectClaimStateViolations } = await import('./seed-assert-claim-states');
+    const claimStateViolations = await collectClaimStateViolations(db, schema);
+    exitOnViolations('Claim state', claimStateViolations, 'Named claim states match the catalogue');
     process.exit(0);
   } catch (err: any) {
     // If table doesn't exist or query fails

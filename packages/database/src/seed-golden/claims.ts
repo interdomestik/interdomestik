@@ -4,6 +4,7 @@ import {
   buildCommercialAgreementsToSeed,
   upsertCommercialAgreements,
 } from './commercial-agreements';
+import { seedClaimStates } from './claim-states';
 import { TENANTS } from './constants';
 import { seedRoleRelationshipDocuments, seedRoleRelationshipMessages } from './role-relationships';
 import type { ClaimStatus } from '../constants';
@@ -206,6 +207,7 @@ export async function seedClaims(context: SeedGoldenContext) {
       });
   }
 
+  await seedClaimStates(context);
   await seedRoleRelationshipMessages(context);
   await seedRoleRelationshipDocuments(context);
 

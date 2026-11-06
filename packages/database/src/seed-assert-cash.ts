@@ -10,7 +10,8 @@ import { compareRow } from './seed-assert-lifecycle';
 type AssertDb = (typeof import('./db'))['db'];
 type AssertSchema = typeof import('./schema');
 
-function compareExactSet(
+/** The found rows are exactly the expected ids: a missing or an extra row fails. */
+export function compareExactSet(
   failures: string[],
   label: string,
   found: { id: string }[],
