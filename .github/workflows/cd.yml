@@ -174,11 +174,27 @@ jobs:
     steps:
       - { uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd } # v4
       - { uses: ./.github/actions/setup, with: { install-playwright: 'true' } }
+      # U2-e runtime attestation (observe mode) runs first on the immutable deployment, with an
+      # allowlisted environment; its receipt lands in EVIDENCE_DIR and is uploaded below. The
+      # release gate never sees the observer account, and its own exit status is preserved.
       - name: Run Staging Release Gate
         shell: bash
-        env: { INTERDOMESTIK_VERCEL_IPV4_ONLY: '1', NODE_OPTIONS: '--import=${{ github.workspace }}/scripts/ci/cd-runner-preflight.mjs', VERCEL_AUTOMATION_BYPASS_SECRET: '${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}' }
+        env:
+          INTERDOMESTIK_VERCEL_IPV4_ONLY: '1'
+          NODE_OPTIONS: '--import=${{ github.workspace }}/scripts/ci/cd-runner-preflight.mjs'
+          VERCEL_AUTOMATION_BYPASS_SECRET: '${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}'
+          EXPECTED_COMMIT_SHA: '${{ github.sha }}'
+          RUNTIME_ATTESTATION_MODE: observe
+          RUNTIME_ATTESTATION_HOSTNAME: '${{ needs.deploy-staging.outputs.hostname }}'
+          RUNTIME_ATTESTATION_CANONICAL_HOST: staging.interdomestik.com
+          RUNTIME_ATTESTATION_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging/runtime-attestation/receipt.json'
+          RUNTIME_ATTESTATION_OBSERVER_EMAIL: '${{ secrets.RUNTIME_ATTESTATION_OBSERVER_EMAIL }}'
+          RUNTIME_ATTESTATION_OBSERVER_PASSWORD: '${{ secrets.RUNTIME_ATTESTATION_OBSERVER_PASSWORD }}'
         run: >-
-          set -euo pipefail; mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/release-gates"; pnpm -s release:gate:raw --envName staging --suite p0 --baseUrl "${BASE_URL}" --authBaseUrl "${AUTH_BASE_URL}" --outDir "${EVIDENCE_DIR}/release-gates" 2>&1 | tee "${EVIDENCE_DIR}/logs/release-gate-staging.log"
+          set -euo pipefail; mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/release-gates";
+          attestation_status=0; node scripts/ci/runtime-attestation/isolated-collect.mjs || attestation_status=$?;
+          env -u RUNTIME_ATTESTATION_OBSERVER_EMAIL -u RUNTIME_ATTESTATION_OBSERVER_PASSWORD pnpm -s release:gate:raw --envName staging --suite p0 --baseUrl "${BASE_URL}" --authBaseUrl "${AUTH_BASE_URL}" --outDir "${EVIDENCE_DIR}/release-gates" 2>&1 | tee "${EVIDENCE_DIR}/logs/release-gate-staging.log";
+          exit "${attestation_status}"
       - name: Upload staging verification artifacts
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
