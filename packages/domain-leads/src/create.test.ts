@@ -53,14 +53,21 @@ describe('createLead', () => {
     );
   });
 
-  it('records a public-form lead with no capturing user and keeps company fields', async () => {
+  it('records a public-form lead with no capturing user, a lowercase email and company fields', async () => {
     await createLead(
       { authority, ...agentCtx, captureChannel: 'public_form' },
-      { ...input, leadKind: 'company', companyName: 'Fleet LLC', teamSize: '11-25' }
+      {
+        ...input,
+        email: ' Fleet.Ops@Example.COM ',
+        leadKind: 'company',
+        companyName: 'Fleet LLC',
+        teamSize: '11-25',
+      }
     );
 
     expect(mocks.insertValues).toHaveBeenCalledWith(
       expect.objectContaining({
+        email: 'fleet.ops@example.com',
         leadKind: 'company',
         companyName: 'Fleet LLC',
         teamSize: '11-25',

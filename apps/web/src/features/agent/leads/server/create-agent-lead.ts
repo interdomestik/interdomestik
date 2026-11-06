@@ -56,23 +56,32 @@ function isUniqueViolation(error: unknown): boolean {
   );
 }
 
+type LeadOwner = { agentId: string; branchId: string };
+
 /**
- * An open lead of the same agent for the same normalized email is returned as is; any other lead
- * with that email is a possible duplicate for review and is never merged (IDA-CRM-003).
+ * An open lead of the same agent in the agent's current branch is returned as is; any other lead
+ * with that email (another agent, another branch, closed) is a possible duplicate for review and
+ * is never merged (IDA-CRM-003).
  */
-async function findSameEmailLead(authority: TenantAuthority, email: string, agentId: string) {
+async function findSameEmailLead(authority: TenantAuthority, email: string, owner: LeadOwner) {
   const { tenantId } = readTenantAuthority(authority);
   // db-access-guard: tenant-scoped -- reason: tenantId from the authority scopes this read
   const existing = await withTenantAuthority(authority, tx =>
     tx
-      .select({ id: memberLeads.id, agentId: memberLeads.agentId, status: memberLeads.status })
+      .select({
+        id: memberLeads.id,
+        agentId: memberLeads.agentId,
+        branchId: memberLeads.branchId,
+        status: memberLeads.status,
+      })
       .from(memberLeads)
       .where(and(eq(memberLeads.tenantId, tenantId), sql`lower(${memberLeads.email}) = ${email}`))
       .limit(1)
   );
   const lead = existing[0];
   if (!lead) return null;
-  if (lead.agentId === agentId && OPEN_STATUSES.has(lead.status)) {
+  const ownLead = lead.agentId === owner.agentId && lead.branchId === owner.branchId;
+  if (ownLead && OPEN_STATUSES.has(lead.status)) {
     return { success: true as const, data: { leadId: lead.id, existing: true } };
   }
   return refuse('POSSIBLE_DUPLICATE', 'A lead with this email already exists and needs review.');
@@ -91,14 +100,16 @@ export async function createAgentLeadCore(
   const parsed = createAgentLeadSchema.safeParse(params.input);
   if (!parsed.success) return refuse('INVALID_PAYLOAD', 'Validation failed');
   const data = parsed.data;
+  const owner = { agentId, branchId };
 
   return runCommercialActionWithIdempotency({
     action: 'agent-lead.create',
     scope: { kind: 'tenant', authority: ctx.authority, actorUserId: agentId },
     idempotencyKey: params.idempotencyKey,
-    requestFingerprint: data,
+    // The branch is part of the request: a replay after a branch move must not return the old result.
+    requestFingerprint: { branchId, input: data },
     execute: async (): Promise<CreateAgentLeadResult> => {
-      const duplicate = await findSameEmailLead(ctx.authority, data.email, agentId);
+      const duplicate = await findSameEmailLead(ctx.authority, data.email, owner);
       if (duplicate) return duplicate;
       try {
         const { leadId } = await createLead(
@@ -121,7 +132,7 @@ export async function createAgentLeadCore(
         // A concurrent create for the same email lost the unique-index race: resolve it the same way.
         if (!isUniqueViolation(error)) throw error;
         return (
-          (await findSameEmailLead(ctx.authority, data.email, agentId)) ??
+          (await findSameEmailLead(ctx.authority, data.email, owner)) ??
           refuse('POSSIBLE_DUPLICATE', 'A lead with this email already exists and needs review.')
         );
       }

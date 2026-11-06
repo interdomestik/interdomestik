@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -52,5 +52,25 @@ describe('BusinessLeadForm', () => {
       expect(call[1].get('_idempotencyKey')).toBe('request-retry');
       expect(call[1].get('consent')).toBeNull();
     }
+  });
+
+  it('shows the localized consent error, not the server text', async () => {
+    submit.mockResolvedValueOnce({
+      success: false,
+      error: 'Validation failed',
+      code: 'INVALID_PAYLOAD',
+      issues: { consent: 'Confirm that we may contact you' },
+    } as never);
+    const { container } = render(
+      <BusinessLeadKeyProvider value="request-consent">
+        <BusinessLeadForm locale="sq" />
+      </BusinessLeadKeyProvider>
+    );
+    fireEvent.submit(container.querySelector('form')!);
+    expect(await screen.findByText('notice.consentRequired')).toHaveAttribute(
+      'id',
+      'business-lead-consent-error'
+    );
+    expect(screen.queryByText('Confirm that we may contact you')).toBeNull();
   });
 });

@@ -248,7 +248,10 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
             />
             <span>{t('notice.consent')}</span>
           </label>
-          <FieldError id="business-lead-consent-error" message={fieldErrors.consent} />
+          <FieldError
+            id="business-lead-consent-error"
+            message={fieldErrors.consent ? t('notice.consentRequired') : undefined}
+          />
         </div>
 
         <div className="md:col-span-2 flex flex-col gap-3 border-t border-slate-200 pt-5">

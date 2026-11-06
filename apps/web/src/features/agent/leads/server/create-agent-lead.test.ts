@@ -75,6 +75,7 @@ describe('createAgentLeadCore', () => {
         action: 'agent-lead.create',
         idempotencyKey: 'k1',
         scope: { kind: 'tenant', authority, actorUserId: 'agent-1' },
+        requestFingerprint: expect.objectContaining({ branchId: 'branch-1' }),
       })
     );
   });
@@ -122,7 +123,9 @@ describe('createAgentLeadCore', () => {
   });
 
   it("returns the agent's own open lead for the same email instead of a second row", async () => {
-    hoisted.existing.mockResolvedValue([{ id: 'lead_old', agentId: 'agent-1', status: 'new' }]);
+    hoisted.existing.mockResolvedValue([
+      { id: 'lead_old', agentId: 'agent-1', branchId: 'branch-1', status: 'new' },
+    ]);
     await expect(create(individual)).resolves.toEqual({
       success: true,
       data: { leadId: 'lead_old', existing: true },
@@ -131,8 +134,12 @@ describe('createAgentLeadCore', () => {
   });
 
   it.each([
-    ['another agent', { id: 'lead_x', agentId: 'agent-2', status: 'new' }],
-    ['a closed lead', { id: 'lead_x', agentId: 'agent-1', status: 'converted' }],
+    ['another agent', { id: 'lead_x', agentId: 'agent-2', branchId: 'branch-1', status: 'new' }],
+    ['another branch', { id: 'lead_x', agentId: 'agent-1', branchId: 'branch-0', status: 'new' }],
+    [
+      'a closed lead',
+      { id: 'lead_x', agentId: 'agent-1', branchId: 'branch-1', status: 'converted' },
+    ],
   ])('flags a lead of %s as a possible duplicate, never merged', async (_label, row) => {
     hoisted.existing.mockResolvedValue([row]);
     await expect(create(individual)).resolves.toMatchObject({ code: 'POSSIBLE_DUPLICATE' });
@@ -142,7 +149,9 @@ describe('createAgentLeadCore', () => {
   it('resolves a lost unique-index race through the same duplicate rule', async () => {
     hoisted.existing
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ id: 'lead_race', agentId: 'agent-1', status: 'new' }]);
+      .mockResolvedValueOnce([
+        { id: 'lead_race', agentId: 'agent-1', branchId: 'branch-1', status: 'new' },
+      ]);
     hoisted.createLead.mockRejectedValue(Object.assign(new Error('dup'), { code: '23505' }));
     await expect(create(individual)).resolves.toEqual({
       success: true,

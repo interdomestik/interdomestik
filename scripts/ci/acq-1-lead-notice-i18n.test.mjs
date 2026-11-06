@@ -33,7 +33,11 @@ test('both lead entry points carry the complete consent notice in every locale',
     agentBodies.add(create.notice.body);
 
     const form = readCatalog(locale, 'pricing.json').pricing.businessLead.form;
-    assertKeys(form.notice, ['title', 'body', 'company', 'consent'], `${locale}.public`);
+    assertKeys(
+      form.notice,
+      ['title', 'body', 'company', 'consent', 'consentRequired'],
+      `${locale}.public`
+    );
     assert.equal(form.privacyNote, undefined, `${locale}: the passive note is retired`);
     publicBodies.add(form.notice.body);
   }

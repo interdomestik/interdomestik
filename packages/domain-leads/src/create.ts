@@ -16,7 +16,9 @@ export const createLeadSchema = z
   .object({
     firstName: z.string().min(1),
     lastName: z.string().min(1),
-    email: z.string().email(),
+    // Stored lowercase for every writer, so the raw (tenant_id, email) unique index also catches
+    // case variants of one address racing in from the agent dialog and the public form.
+    email: z.string().trim().toLowerCase().email(),
     phone: z.string().min(5),
     notes: z.string().optional(),
     leadKind: z.enum(['individual', 'company']).default('individual'),
