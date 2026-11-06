@@ -25,6 +25,8 @@ const eq = (left: string, right: unknown) => ({ left, right, op: 'eq' });
 const and = (...conditions: unknown[]) => ({ op: 'and', conditions });
 const or = (...conditions: unknown[]) => ({ op: 'or', conditions });
 const isNull = (column: string) => ({ column, op: 'isNull' });
+// A member's draft is never staff work: both scopes carry the lifecycle exclusion.
+const submitted = { op: 'lifecycleNotIn', statuses: ['draft'] };
 const scoped = (column: string, condition: unknown) => ({
   tenantId: 'tenant-1',
   column,
@@ -97,7 +99,7 @@ describe('staff assignClaimCore nine-role authorization matrix', () => {
 
     await expect(assign(session, 'staff-2')).resolves.toEqual({ success: true });
     expectConsumedScope(
-      and(eq('claims.id', 'claim-1'), eq('claims.branch_id', 'branch-1')),
+      and(eq('claims.id', 'claim-1'), submitted, eq('claims.branch_id', 'branch-1')),
       and(
         and(eq('user.id', 'staff-2'), eq('user.role', 'staff')),
         eq('user.branch_id', 'branch-1')
@@ -115,6 +117,7 @@ describe('staff assignClaimCore nine-role authorization matrix', () => {
     expectConsumedScope(
       and(
         eq('claims.id', 'claim-1'),
+        submitted,
         or(eq('claims.staff_id', 'staff-1'), isNull('claims.staff_id'))
       ),
       and(eq('user.id', 'staff-2'), eq('user.role', 'staff')),

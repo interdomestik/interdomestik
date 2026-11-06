@@ -32,6 +32,7 @@ const doc = (id: string, entityType: string, entityId: string, uploadedBy = 'som
 const claim = (overrides: Record<string, string | null> = {}) => ({
   agentId: null,
   branchId: 'branch-a',
+  caseLifecycleState: 'submitted',
   ownerId: 'member-1',
   staffId: null,
   ...overrides,
@@ -90,6 +91,18 @@ describe('canShareAllDocuments', () => {
     ['another member', { id: 'member-2', role: 'member' }, claim(), false],
     ['the assigned staff', { id: 'staff-1', role: 'staff' }, claim({ staffId: 'staff-1' }), true],
     ['unassigned staff', { id: 'staff-2', role: 'staff' }, claim({ staffId: 'staff-1' }), false],
+    [
+      'the assigned staff of a member draft',
+      { id: 'staff-1', role: 'staff' },
+      claim({ staffId: 'staff-1', caseLifecycleState: 'draft' }),
+      false,
+    ],
+    [
+      'the owner of their own draft',
+      { id: 'member-1', role: 'member' },
+      claim({ caseLifecycleState: 'draft' }),
+      true,
+    ],
     [
       'the branch manager',
       { id: 'bm-1', role: 'branch_manager', branchId: 'branch-a' },

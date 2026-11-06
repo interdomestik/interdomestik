@@ -104,6 +104,7 @@ async function canShareClaimDocument(args: {
     .select({
       agentId: claims.agentId,
       branchId: claims.branchId,
+      caseLifecycleState: claims.caseLifecycleState,
       ownerId: claims.userId,
       staffId: claims.staffId,
     })
@@ -114,6 +115,9 @@ async function canShareClaimDocument(args: {
   if (role === 'agent') {
     return hasAgentClaimDocumentScope({ agentId: actor.id, claim, db: tx, tenantId });
   }
+  // A member's draft is not staff work: staff cannot share its documents before submission.
+  const lifecycle = claim.caseLifecycleState;
+  if (role === 'staff' && (lifecycle == null || lifecycle === 'draft')) return false;
   return (
     isScopedClaimReaderRole(role) &&
     hasScopedClaimReadAccess({

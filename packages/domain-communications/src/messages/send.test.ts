@@ -227,6 +227,7 @@ describe('sendMessageDbCore authority', () => {
         title: 'Claim',
         userId: 'member-1',
         branchId: 'branch-1',
+        caseLifecycleState: 'submitted',
         staffId: 'staff-9',
       });
     });
@@ -293,6 +294,21 @@ describe('sendMessageDbCore authority', () => {
 
       expect(result).toMatchObject({ success: true, isInternal });
       expect(mocks.tx.insert).toHaveBeenCalledTimes(1);
+    });
+
+    it('denies staff of the claim branch a member draft without writing', async () => {
+      mocks.tx.query.claims.findFirst.mockResolvedValue({
+        id: 'claim-1',
+        title: 'Claim',
+        userId: 'member-1',
+        branchId: 'branch-1',
+        caseLifecycleState: 'draft',
+        staffId: null,
+      });
+      const result = await send({ id: 'staff-2', role: 'staff', branchId: 'branch-1' }, true);
+
+      expect(result).toEqual({ success: false, error: 'Access denied' });
+      expect(mocks.tx.insert).not.toHaveBeenCalled();
     });
   });
 });

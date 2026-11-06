@@ -9,6 +9,8 @@ import { isMemberUploadRole } from './member-upload-role';
 
 type ClaimScopeRecord = {
   branchId?: string | null;
+  /** Required so the staff check always sees the lifecycle: a member draft is not staff work. */
+  caseLifecycleState: string | null;
   staffId?: string | null;
 };
 type MemberClaimOwnershipRecord = {
@@ -38,7 +40,12 @@ export function canAccessClaimFromAdminUploadSurface(args: {
     return branchId !== null && claim.branchId === branchId;
   }
 
-  if (role !== 'staff') {
+  // Fail closed: a missing lifecycle is denied like a member draft.
+  if (
+    role !== 'staff' ||
+    claim.caseLifecycleState == null ||
+    claim.caseLifecycleState === 'draft'
+  ) {
     return false;
   }
 
@@ -62,6 +69,7 @@ export async function findAccessibleAdminUploadClaim(args: {
       where: and(eq(claims.id, args.claimId), eq(claims.tenantId, tenantId)),
       columns: {
         branchId: true,
+        caseLifecycleState: true,
         staffId: true,
       },
     })
