@@ -1,4 +1,13 @@
-import { db, E2E_USERS, eq, memberLeads, user } from '@interdomestik/database';
+import {
+  db,
+  E2E_USERS,
+  eq,
+  leadPaymentAttempts,
+  memberLeads,
+  membershipCards,
+  subscriptions,
+  user,
+} from '@interdomestik/database';
 import { expect } from '@playwright/test';
 
 export type OwnedLead = { id: string; email: string };
@@ -9,7 +18,8 @@ export type OwnedLead = { id: string; email: string };
  *
  * `idPrefix` must stay outside the seed cleanup prefixes (`golden_`, `pack_ks_`, `member_`): a
  * converted lead keeps app-created rows (attempt, member) that the prefix cleanup does not own, and
- * the reseed removes these leads through their agent instead. Callers remove what they leave open.
+ * the reseed would not remove the member it was converted into. Callers remove the lead with
+ * `removeOwnedMemberLead`.
  */
 export async function insertOwnedMemberLead(
   tenant: 'ks' | 'mk',
@@ -33,4 +43,26 @@ export async function insertOwnedMemberLead(
     status: 'new',
   });
   return { id, email };
+}
+
+/**
+ * Removes an owned lead and every row the app derived from it: its payment attempts and, when it
+ * was converted, the member's card, subscription and user. One transaction, so a failure leaves the
+ * graph whole for the next attempt instead of half-deleted.
+ */
+export async function removeOwnedMemberLead(lead: OwnedLead | undefined): Promise<void> {
+  if (!lead) return;
+  await db.transaction(async tx => {
+    const [row] = await tx
+      .select({ convertedUserId: memberLeads.convertedUserId })
+      .from(memberLeads)
+      .where(eq(memberLeads.id, lead.id));
+    await tx.delete(leadPaymentAttempts).where(eq(leadPaymentAttempts.leadId, lead.id));
+    await tx.delete(memberLeads).where(eq(memberLeads.id, lead.id));
+    const memberId = row?.convertedUserId;
+    if (!memberId) return;
+    await tx.delete(membershipCards).where(eq(membershipCards.userId, memberId));
+    await tx.delete(subscriptions).where(eq(subscriptions.userId, memberId));
+    await tx.delete(user).where(eq(user.id, memberId));
+  });
 }

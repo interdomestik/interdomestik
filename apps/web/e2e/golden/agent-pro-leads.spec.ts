@@ -1,4 +1,3 @@
-import { db, eq, memberLeads } from '@interdomestik/database';
 import en from '../../src/messages/en/agent.json';
 import mk from '../../src/messages/mk/agent.json';
 import sq from '../../src/messages/sq/agent.json';
@@ -8,7 +7,7 @@ import { getTenantFromTestInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
 import { messagesFor } from '../utils/locale-messages';
 import { gotoApp } from '../utils/navigation';
-import { insertOwnedMemberLead } from '../utils/owned-member-lead';
+import { insertOwnedMemberLead, removeOwnedMemberLead } from '../utils/owned-member-lead';
 
 test.describe('Agent Pro Leads (Golden)', () => {
   test('Agent can access Pro Leads worklist and see advanced columns', async ({
@@ -40,7 +39,7 @@ test.describe('Agent Pro Leads (Golden)', () => {
       }
       await expect(worklist.getByTestId(`lead-row-${lead.id}`)).toBeVisible();
     } finally {
-      await db.delete(memberLeads).where(eq(memberLeads.id, lead.id));
+      await removeOwnedMemberLead(lead);
     }
   });
 });
