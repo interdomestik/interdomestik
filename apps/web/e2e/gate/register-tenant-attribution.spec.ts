@@ -171,6 +171,20 @@ async function approveCash(admin: Page, email: string): Promise<void> {
     .filter({ visible: true })
     .filter({ has: admin.getByText(email, { exact: true }) });
   await row.getByTestId('cash-approve').click({ timeout: 30_000 });
+  // The click does not await the server action: the flow ends only once its conversion committed,
+  // so cleanup never runs while a conversion still writes.
+  await expect
+    .poll(
+      async () => {
+        const [lead] = await db
+          .select({ memberId: memberLeads.convertedUserId })
+          .from(memberLeads)
+          .where(eq(memberLeads.email, email));
+        return lead?.memberId ?? null;
+      },
+      { timeout: 30_000 }
+    )
+    .not.toBeNull();
 }
 
 test.describe('Registration tenant attribution', () => {
@@ -230,20 +244,7 @@ test.describe('Registration tenant attribution', () => {
       if (failed) throw failed.reason;
       const emails = expectations.map(entry => entry.email);
 
-      // Conversion creates each member in the tenant of the host its lead was recorded on.
-      await expect
-        .poll(
-          async () => {
-            const leads = await db
-              .select({ email: memberLeads.email, memberId: memberLeads.convertedUserId })
-              .from(memberLeads)
-              .where(inArray(memberLeads.email, emails));
-            return leads.filter(lead => lead.memberId).length;
-          },
-          { timeout: 30_000 }
-        )
-        .toBe(expectations.length);
-
+      // Every flow waited for its conversion; each member is in the tenant of its lead's host.
       const members = await db
         .select({ email: user.email, tenantId: user.tenantId, role: user.role })
         .from(user)
