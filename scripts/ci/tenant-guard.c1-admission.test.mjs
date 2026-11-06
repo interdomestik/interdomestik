@@ -257,3 +257,25 @@ test('a changed module constant is admitted only as its own listed unit', () => 
   assert.equal(edited.telemetry.c1Admissions, 0);
   assertRefused(edited, 'C1', HANDS_TX);
 });
+
+test('a successor admission binds every file, unit owner and sink edge of its predecessor', () => {
+  const byId = new Map(C1_ADMISSIONS.map(admission => [admission.id, admission]));
+  const pairs = [
+    ['documents-read-restriction-2026-11', 'documents-staff-draft-denial-2026-11'],
+    ['tx-lifetime-transition-2026-11', 'tx-lifetime-staff-draft-grants-2026-11'],
+  ];
+  for (const [before, after] of pairs) {
+    const base = byId.get(before);
+    const next = byId.get(after);
+    const nextFiles = new Set(next.files.map(entry => entry.file));
+    for (const entry of base.files) assert.ok(nextFiles.has(entry.file), `${after}: ${entry.file}`);
+    const edges = new Set(next.sinkEdges.map(edge => `${edge.file}#${edge.unit}->${edge.sink}`));
+    for (const edge of base.sinkEdges) {
+      assert.ok(
+        edges.has(`${edge.file}#${edge.unit}->${edge.sink}`),
+        `${after} keeps ${edge.unit}`
+      );
+    }
+    assert.ok(next.files.some((entry, index) => entry.sha256 !== base.files[index]?.sha256));
+  }
+});
