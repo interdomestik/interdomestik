@@ -66,6 +66,7 @@ export async function updateClaimStatusCore(
         id: claims.id,
         title: claims.title,
         staffId: claims.staffId,
+        caseLifecycleState: claims.caseLifecycleState,
         userId: claims.userId,
         userEmail: user.email,
       })
@@ -78,7 +79,12 @@ export async function updateClaimStatusCore(
     return { success: false, error: 'Claim not found', data: undefined };
   }
 
-  if (isStaff(session.user.role) && claimWithUser.staffId !== session.user.id) {
+  // Staff act only on their own submitted claims: a member's draft (or a missing lifecycle) is denied.
+  const lifecycle = claimWithUser.caseLifecycleState;
+  if (
+    isStaff(session.user.role) &&
+    (claimWithUser.staffId !== session.user.id || lifecycle == null || lifecycle === 'draft')
+  ) {
     return { success: false, error: 'Access denied', data: undefined };
   }
 
