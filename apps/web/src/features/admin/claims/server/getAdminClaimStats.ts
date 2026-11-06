@@ -1,6 +1,5 @@
 // v2.0.2-admin-claims-ops — Lifecycle Stats Query
 import { withTenantContext, type TenantTransaction } from '@interdomestik/database';
-import type { ClaimStatus } from '@interdomestik/database/constants';
 import { claims } from '@interdomestik/database/schema';
 import { claimLifecycleStatusIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import * as Sentry from '@sentry/nextjs';
@@ -8,15 +7,17 @@ import { and, count, sql } from 'drizzle-orm';
 
 import { matchesAccessTenant } from '@/lib/db/access-tenant-predicate';
 
-import type { LifecycleStats } from '../types';
+import { LIFECYCLE_STAGE_STATUSES, type LifecycleStats } from '../types';
 import { adminClaimsBranchCondition, type ClaimsVisibilityContext } from './claimVisibility';
 
-const INTAKE_STATUSES: ClaimStatus[] = ['draft', 'submitted'];
-const VERIFICATION_STATUSES: ClaimStatus[] = ['verification'];
-const PROCESSING_STATUSES: ClaimStatus[] = ['evaluation'];
-const NEGOTIATION_STATUSES: ClaimStatus[] = ['negotiation'];
-const LEGAL_STATUSES: ClaimStatus[] = ['court'];
-const COMPLETED_STATUSES: ClaimStatus[] = ['resolved', 'rejected'];
+const {
+  intake: INTAKE_STATUSES,
+  verification: VERIFICATION_STATUSES,
+  processing: PROCESSING_STATUSES,
+  negotiation: NEGOTIATION_STATUSES,
+  legal: LEGAL_STATUSES,
+  completed: COMPLETED_STATUSES,
+} = LIFECYCLE_STAGE_STATUSES;
 
 /**
  * Reads claim counts per lifecycle stage inside the caller's tenant transaction.

@@ -134,6 +134,17 @@ describe('getAdminClaimsV2', () => {
     expect(firstOrderByArgs).toEqual(secondOrderByArgs);
   });
 
+  it('filters the negotiation tab over airline-stage claims it displays as negotiation', async () => {
+    mockQueryResults([], 0);
+
+    await getAdminClaimsV2(ADMIN_CONTEXT, { lifecycleStage: 'negotiation' });
+
+    expect(hoisted.claimLifecycleStatusIn).toHaveBeenCalledWith([
+      'submitted_to_airline',
+      'negotiation',
+    ]);
+  });
+
   it('applies the lifecycle stage and trimmed search filters to the list and the count', async () => {
     mockQueryResults([], 0);
 

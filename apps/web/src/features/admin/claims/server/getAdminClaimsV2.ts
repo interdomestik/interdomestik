@@ -12,18 +12,16 @@ import * as Sentry from '@sentry/nextjs';
 import { aliasedTable, and, count, desc, eq, ilike, inArray, or, SQL } from 'drizzle-orm';
 
 import { mapClaimsToOperationalRows, type RawClaimRow } from '../mappers';
-import type { AdminClaimsV2Filters, AdminClaimsV2Response, LifecycleStage } from '../types';
+import {
+  LIFECYCLE_STAGE_STATUSES,
+  type AdminClaimsV2Filters,
+  type AdminClaimsV2Response,
+  type LifecycleStage,
+} from '../types';
 import { adminClaimsBranchCondition, type ClaimsVisibilityContext } from './claimVisibility';
 import { readAdminClaimStats } from './getAdminClaimStats';
 
-const LIFECYCLE_STATUS_MAP: Record<LifecycleStage, string[]> = {
-  intake: ['draft', 'submitted'],
-  verification: ['verification'],
-  processing: ['evaluation'],
-  negotiation: ['negotiation'],
-  legal: ['court'],
-  completed: ['resolved', 'rejected'],
-};
+const LIFECYCLE_STATUS_MAP: Record<LifecycleStage, string[]> = LIFECYCLE_STAGE_STATUSES;
 
 function buildConditions(context: ClaimsVisibilityContext, filters: AdminClaimsV2Filters): SQL[] {
   const { tenantId, role, branchId, userId } = context;
