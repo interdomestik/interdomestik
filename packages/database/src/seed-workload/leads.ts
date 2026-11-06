@@ -1,4 +1,5 @@
 import type { SeedConfig } from '../seed-types';
+import { agentCapturedLead } from '../seed-utils/lead-consent';
 import { TENANTS, WORKLOAD_PREFIX } from './constants';
 
 export async function seedWorkloadLeads(db: any, schema: any, agents: any[], config: SeedConfig) {
@@ -19,7 +20,7 @@ export async function seedWorkloadLeads(db: any, schema: any, agents: any[], con
       id: leadId,
       tenantId: TENANTS.KS,
       branchId: agent.branchId,
-      agentId: agent.id,
+      ...agentCapturedLead(agent.id, now),
       firstName: `Demo-KS`,
       lastName: `Lead-${i + 1}`,
       email: `lead.ks.work${i + 1}@example.com`,
@@ -49,7 +50,7 @@ export async function seedWorkloadLeads(db: any, schema: any, agents: any[], con
       id: leadId,
       tenantId: TENANTS.MK,
       branchId: agent.branchId,
-      agentId: agent.id,
+      ...agentCapturedLead(agent.id, now),
       firstName: `Demo-MK`,
       lastName: `Lead-${i + 1}`,
       email: `lead.mk.work${i + 1}@example.com`,

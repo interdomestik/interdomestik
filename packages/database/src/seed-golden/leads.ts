@@ -1,3 +1,4 @@
+import { agentCapturedLead } from '../seed-utils/lead-consent';
 import { goldenId } from '../seed-utils/seed-ids';
 import { seedCashStates } from './cash-states';
 import { TENANTS } from './constants';
@@ -36,7 +37,7 @@ export async function seedLeads(context: SeedGoldenContext) {
         id: goldenId(l.id),
         tenantId: l.tenant,
         branchId: l.branch,
-        agentId: goldenId(l.agent),
+        ...agentCapturedLead(goldenId(l.agent), at()),
         firstName: 'Demo',
         lastName: `Lead ${l.id}`,
         email: `${l.id}@example.com`,
@@ -65,7 +66,7 @@ export async function seedLeads(context: SeedGoldenContext) {
       id: goldenId('lead_balkan'),
       tenantId: TENANTS.MK,
       branchId: 'mk_branch_a',
-      agentId: goldenId('agent_balkan_1'),
+      ...agentCapturedLead(goldenId('agent_balkan_1'), at()),
       firstName: 'Balkan',
       lastName: 'Lead',
       email: 'lead.balkan@example.com',

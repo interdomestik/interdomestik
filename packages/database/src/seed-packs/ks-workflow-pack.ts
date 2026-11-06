@@ -1,4 +1,5 @@
 import { cleanupByPrefixes } from '../seed-utils/cleanup';
+import { agentCapturedLead } from '../seed-utils/lead-consent';
 import { hashPassword } from '../seed-utils/hash-password';
 import { withClaimLifecycleFields } from '../seed-utils/claim-lifecycle';
 import { goldenId, packId } from '../seed-utils/seed-ids';
@@ -536,8 +537,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
   // 3. KS-C (Peja) - Low Volume, Healthy
   console.log('✅ Seeding KS Peja (Low Volume)...');
   await seedBranchClaims(packId('ks', 'branch_c'), 10, 'ks_c');
-
-  // === LEADS (Fixed) ===
+  // === LEADS (Fixed): each captured by its agent with consent ===
   const LEAD_NAMES = [
     { first: 'Luan', last: 'Limani' },
     { first: 'Mimoza', last: 'Mula' },
@@ -554,7 +554,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
         id: leadId,
         tenantId: TENANTS.KS,
         branchId: packId('ks', 'branch_a'), // Assign mostly to main
-        agentId: 'golden_ks_agent_a1',
+        ...agentCapturedLead('golden_ks_agent_a1', date),
         firstName: lead.first,
         lastName: lead.last,
         email: `lead.${i}@ks.pack`,

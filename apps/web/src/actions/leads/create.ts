@@ -18,6 +18,7 @@ export async function createLeadAction(input: unknown) {
         authority: ctx.authority,
         agentId: user.id,
         branchId: branchId,
+        captureChannel: 'agent_assisted',
       },
       data
     );
