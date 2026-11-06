@@ -11,8 +11,9 @@ import { routes } from './routes';
 import { gotoApp } from './utils/navigation';
 
 // PC05: lifecycle truth over the seeded read-only states. Each state is its own KS member, so no
-// shared subscription row is mutated and the cases need no serial order or reset.
-type Expected = { bucket: string; access: 'allowed' | 'denied'; detail: boolean };
+// shared subscription row is mutated and the cases need no serial order or reset. The admin profile
+// reports a numbered member without a subscription as `registered`; the portal bucket is `none`.
+type Expected = { bucket: string; admin?: string; access: 'allowed' | 'denied'; detail: boolean };
 
 const EXPECTED: Record<E2EMembershipLifecycleKey, Expected> = {
   TRIALING: { bucket: 'trialing', access: 'allowed', detail: false },
@@ -21,7 +22,7 @@ const EXPECTED: Record<E2EMembershipLifecycleKey, Expected> = {
   SCHEDULED_CANCEL: { bucket: 'scheduled_cancel', access: 'allowed', detail: true },
   CANCELED: { bucket: 'canceled', access: 'denied', detail: false },
   EXPIRED: { bucket: 'canceled', access: 'denied', detail: false },
-  NO_SUBSCRIPTION: { bucket: 'none', access: 'denied', detail: false },
+  NO_SUBSCRIPTION: { bucket: 'none', admin: 'registered', access: 'denied', detail: false },
 };
 const CASES = Object.entries(EXPECTED) as [E2EMembershipLifecycleKey, Expected][];
 
@@ -42,7 +43,7 @@ test.describe('PC05 membership lifecycle reporting truth', () => {
       const ready = page.getByTestId('dashboard-page-ready');
       await expect(ready.getByTestId('membership-lifecycle-status'), key).toHaveAttribute(
         'data-lifecycle-status',
-        expected.bucket,
+        expected.admin ?? expected.bucket,
         { timeout: 30_000 }
       );
       await expect(ready.getByTestId('membership-lifecycle-status-detail'), key).toHaveCount(
