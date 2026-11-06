@@ -123,6 +123,18 @@ async function assertSeed() {
     }
 
     console.log('✅ Branch membership rules hold for every user, grant, claim and subscription');
+
+    console.log('🔍 Asserting membership lifecycle fixtures...');
+    const { collectLifecycleViolations } = await import('./seed-assert-lifecycle');
+    const lifecycleViolations = await collectLifecycleViolations(db, schema);
+    if (lifecycleViolations.length > 0) {
+      for (const violation of lifecycleViolations) {
+        console.error(`❌ Membership lifecycle invariant failed: ${violation}`);
+      }
+      process.exit(1);
+    }
+
+    console.log('✅ Membership lifecycle states match the catalogue');
     process.exit(0);
   } catch (err: any) {
     // If table doesn't exist or query fails
