@@ -3,10 +3,11 @@ import { E2E_USERS } from './e2e-users';
 /**
  * Cash verification states seeded as read-only rows in a dedicated KS branch.
  *
- * The golden branches carry count and health contracts (KS-A three open attempts and urgent,
- * KS-B one and watch, KS-C healthy), so these states live in KS-D with their own agent. Every row
- * is the state the verify, resubmit and convert transitions leave behind; which actions each state
- * admits is asserted by the tests, not declared here. Instants are fixed calendar values.
+ * The golden branches carry count and health contracts (KS-A three open attempts, KS-B one; the
+ * health labels are asserted by the golden tests), so these states live in KS-D with their own
+ * agent. Every row is the state the verify, resubmit and convert transitions leave behind; which
+ * actions each state admits is asserted by the tests, not declared here. Instants are fixed
+ * calendar values.
  */
 export const E2E_CASH_STATES_BRANCH = {
   id: 'ks_branch_d',

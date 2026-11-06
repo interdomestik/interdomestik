@@ -73,6 +73,8 @@ export function VerificationStatusSpine({
 
   return (
     <div
+      data-testid="verification-status"
+      data-status={variant.labelKey}
       className={cn(
         'flex flex-col items-center justify-center rounded-lg border transition-colors',
         compact ? 'min-w-[84px] py-1 gap-0.5' : 'min-w-[96px] md:min-w-[112px] gap-1.5 p-2',

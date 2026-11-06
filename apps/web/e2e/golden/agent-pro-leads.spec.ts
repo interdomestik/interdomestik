@@ -1,39 +1,46 @@
+import { db, eq, memberLeads } from '@interdomestik/database';
+import en from '../../src/messages/en/agent.json';
+import mk from '../../src/messages/mk/agent.json';
+import sq from '../../src/messages/sq/agent.json';
+import sr from '../../src/messages/sr/agent.json';
 import { expect, test } from '../fixtures/auth.fixture';
+import { getTenantFromTestInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
+import { messagesFor } from '../utils/locale-messages';
 import { gotoApp } from '../utils/navigation';
+import { insertOwnedMemberLead } from '../utils/owned-member-lead';
 
 test.describe('Agent Pro Leads (Golden)', () => {
   test('Agent can access Pro Leads worklist and see advanced columns', async ({
     agentPage: page,
   }, testInfo) => {
-    // 1. Navigate directly to Pro Leads Worklist
-    // We bypass the workspace landing page to avoid potential redirects.
-    // The sidebar link points to /agent/leads, so we test that route directly.
-    await gotoApp(page, routes.agentLeads(testInfo), testInfo, { marker: 'agent-leads-pro' });
+    const t = messagesFor({ en, mk, sq, sr }, testInfo).agent.leads_pro;
+    const tenant = getTenantFromTestInfo(testInfo) === 'mk' ? 'mk' : 'ks';
+    // The test owns one lead of the signed-in agent, so the worklist renders its table whatever
+    // leads other tests add or remove in parallel.
+    const lead = await insertOwnedMemberLead(tenant, 'e2e_pro_leads', 'Worklist');
 
-    // 2. Verify URL and Page Ready
-    await expect(page).toHaveURL(new RegExp(`.*${routes.agentLeads(testInfo)}`));
-    await expect(page.getByTestId('agent-leads-pro')).toBeVisible();
+    try {
+      // The sidebar link points to /agent/leads, so that route is opened directly.
+      await gotoApp(page, routes.agentLeads(testInfo), testInfo, { marker: 'agent-leads-pro' });
+      await expect(page).toHaveURL(new RegExp(`.*${routes.agentLeads(testInfo)}`));
 
-    // 3. Verify Pro UI Elements
-    // Filters Bar
-    await expect(page.getByTestId('ops-filters-bar')).toBeVisible();
-    await expect(page.getByTestId('leads-pro-search')).toBeVisible();
+      // The router keeps a hidden copy of a revisited page, so the worklist is read where visible.
+      const worklist = page.getByTestId('agent-leads-pro').filter({ visible: true });
+      await expect(worklist).toBeVisible();
+      await expect(worklist.getByTestId('ops-filters-bar')).toBeVisible();
+      await expect(worklist.getByTestId('leads-pro-search')).toBeVisible();
+      await expect(worklist.getByTestId('ops-tab-converted')).toBeVisible();
 
-    // Pro Columns (Header check)
-    // We check for column headers that are specific to Pro view
-    await expect(page.getByRole('columnheader', { name: /Lead Name & Email/i })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: /Phone & Branch/i })).toBeVisible();
-
-    // 4. Verify Filters (Existence)
-    // We check that the filter tabs are present, confirming Pro UI is loaded.
-    const convertedTab = page.getByTestId('ops-tab-converted');
-    await expect(convertedTab).toBeVisible();
-
-    // 5. Navigate back to Workspace
-    // 5. Navigate back (Optional/Flaky on Workspace)
-    // We skip the back navigation as the workspace root can be redirect-sensitive.
-    // The core test value is the Leads Worklist functionality above.
-    // await page.getByRole('button', { name: /ArrowLeft/i }).click();
+      // The Pro columns render in the page's locale, with the owned lead among the rows.
+      for (const header of [t.columns.lead, t.columns.details]) {
+        await expect(
+          worklist.getByRole('columnheader', { name: header, exact: true })
+        ).toBeVisible();
+      }
+      await expect(worklist.getByTestId(`lead-row-${lead.id}`)).toBeVisible();
+    } finally {
+      await db.delete(memberLeads).where(eq(memberLeads.id, lead.id));
+    }
   });
 });

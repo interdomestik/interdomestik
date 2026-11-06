@@ -89,15 +89,24 @@ jobs:
         if: matrix.shardIndex == 1
         run: pnpm --filter @interdomestik/web run e2e:gate
 
-      # Core subscription lifecycle (Phase 4B)
-      - name: E2E Subscription Lifecycle (KS+MK)
+      # Core subscription lifecycle (Phase 4B), then the flows that change cash data together with
+      # the exact branch cash counts (PC04) they could disturb, one test at a time.
+      - name: E2E Serial Golden Flows (KS+MK)
         if: matrix.shardIndex == 1
-        run: pnpm --filter @interdomestik/web exec playwright test e2e/golden/subscription-entry.spec.ts --project=ks-sq --project=mk-mk
+        run: |
+          set -euo pipefail
+          pnpm --filter @interdomestik/web exec playwright test e2e/golden/subscription-entry.spec.ts --project=ks-sq --project=mk-mk
+          pnpm --filter @interdomestik/web exec playwright test e2e/golden/cash-ops.regressions.spec.ts e2e/golden/admin-verification-flow.spec.ts e2e/pc04-branch-cash-truth.spec.ts --project=ks-sq --project=mk-mk --workers=1
 
-      # Phase 5 deterministic batch - SHARDED
-      # Keep deterministic projects only; smoke already runs separately below.
+      # Phase 5 deterministic batch - SHARDED, on the tenant projects that match golden specs.
+      # A sharded run passes with zero selected tests, so the unsharded --list runs first: it exits
+      # non-zero when the selection is empty. Smoke already runs separately below.
       - name: E2E Phase 5 Deterministic Batch
-        run: pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/agent-pro-leads.spec.ts apps/web/e2e/golden/agent-leads-drawer.spec.ts apps/web/e2e/golden/verification-list-ops.spec.ts apps/web/e2e/golden/verification-details-ops.spec.ts apps/web/e2e/golden/agent-pro-claims.spec.ts apps/web/e2e/golden/agent-pro-claims-messaging.spec.ts apps/web/e2e/golden/rbac-scope.spec.ts apps/web/e2e/golden/agent-pro-claims-rbac.spec.ts --project=gate-ks-sq --project=gate-mk-mk --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: |
+          set -euo pipefail
+          specs=(e2e/golden/agent-pro-leads.spec.ts e2e/golden/agent-leads-drawer.spec.ts e2e/golden/verification-list-ops.spec.ts e2e/golden/verification-details-ops.spec.ts e2e/golden/agent-pro-claims.spec.ts e2e/golden/agent-pro-claims-messaging.spec.ts e2e/golden/rbac-scope.spec.ts e2e/golden/agent-pro-claims-rbac.spec.ts e2e/golden/functional-flows.spec.ts e2e/claim-resolver-isolation.spec.ts e2e/pc05-membership-lifecycle-truth.spec.ts e2e/pc07-cash-verification-states.spec.ts)
+          pnpm --filter @interdomestik/web exec playwright test "${specs[@]}" --project=ks-sq --project=mk-mk --list > /dev/null
+          pnpm --filter @interdomestik/web exec playwright test "${specs[@]}" --project=ks-sq --project=mk-mk --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
       # Smoke as final sanity
       - name: E2E Smoke

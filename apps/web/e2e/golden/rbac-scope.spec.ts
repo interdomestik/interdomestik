@@ -45,10 +45,8 @@ test.describe('RBAC Scope Guards (Golden)', () => {
       )
       .limit(1);
 
-    if (!attempt) {
-      test.skip(true, 'No eligible cross-branch attempt found in DB');
-      return;
-    }
+    // The golden seed has KS cash attempts outside KS-A (KS-B, KS-D), so one must exist.
+    expect(attempt, 'seeded KS cash attempt outside KS-A').toBeTruthy();
 
     // Direct API check (Deterministic RBAC enforcement)
     const apiBase = new URL(testInfo.project.use.baseURL!).origin;

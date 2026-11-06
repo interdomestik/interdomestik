@@ -1,62 +1,44 @@
-import { db, E2E_USERS, eq, memberLeads, user } from '@interdomestik/database';
+import { db, eq, memberLeads } from '@interdomestik/database';
 import { OPS_TEST_IDS } from '../../src/components/ops/testids';
+import en from '../../src/messages/en/agent.json';
+import mk from '../../src/messages/mk/agent.json';
+import sq from '../../src/messages/sq/agent.json';
+import sr from '../../src/messages/sr/agent.json';
 import { expect, test } from '../fixtures/auth.fixture';
+import { getTenantFromTestInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
+import { messagesFor } from '../utils/locale-messages';
 import { gotoApp } from '../utils/navigation';
+import { insertOwnedMemberLead } from '../utils/owned-member-lead';
 
 test.describe('Agent Leads Drawer (Golden)', () => {
   test('Agent can view lead details via drawer', async ({ agentPage: page }, testInfo) => {
-    // 1. Seed lead for this specific test run
-    const tenant = testInfo.project.name.includes('mk') ? 'mk' : 'ks';
-    const agentEmail = tenant === 'mk' ? E2E_USERS.MK_AGENT.email : E2E_USERS.KS_AGENT.email;
-    const testEmail = `drawer-test-${tenant}-${Date.now()}-${Math.random()}@example.com`;
+    const t = messagesFor({ en, mk, sq, sr }, testInfo).agent.leads_pro;
+    const tenant = getTenantFromTestInfo(testInfo) === 'mk' ? 'mk' : 'ks';
+    // The test owns one lead of the signed-in agent and removes it afterwards.
+    const { id: leadId } = await insertOwnedMemberLead(tenant, 'e2e_lead_drawer', 'Drawer');
 
-    const agent = await db.query.user.findFirst({
-      where: eq(user.email, agentEmail),
-    });
+    try {
+      await gotoApp(page, routes.agentLeads(testInfo), testInfo, { marker: 'agent-leads-pro' });
+      // The router keeps a hidden copy of a revisited page, so the table is read where visible.
+      const table = page.getByTestId(OPS_TEST_IDS.TABLE.ROOT).filter({ visible: true });
+      await expect(table).toBeVisible();
+      const row = table.locator(`[data-testid="lead-row-${leadId}"]`);
+      await expect(row).toBeVisible({ timeout: 15000 });
 
-    if (agent) {
-      await db.insert(memberLeads).values({
-        id: `lead-drawer-${Date.now()}-${Math.random()}`,
-        tenantId: agent.tenantId,
-        branchId: agent.branchId!,
-        agentId: agent.id,
-        firstName: 'Drawer',
-        lastName: 'Test',
-        email: testEmail,
-        phone: '1234567890',
-        status: 'new',
-      });
+      await row.click();
+      await expect(page).toHaveURL(/selected=/);
+      const drawer = page.getByTestId(OPS_TEST_IDS.DRAWER);
+      await expect(drawer).toBeVisible();
+      await expect(drawer.getByText(t.fields.status, { exact: true })).toBeVisible();
+      await expect(drawer.getByTestId('lead-created-at')).toBeVisible();
+      await expect(drawer.getByTestId('agent-lead-next-step')).toBeVisible();
+
+      await page.keyboard.press('Escape');
+      await expect(page).not.toHaveURL(/selected=/);
+      await expect(drawer).not.toBeVisible();
+    } finally {
+      await db.delete(memberLeads).where(eq(memberLeads.id, leadId));
     }
-
-    // 2. Navigate to Leads
-    await gotoApp(page, routes.agentLeads(testInfo), testInfo, { marker: 'agent-leads-pro' });
-
-    // 3. Locate our specific seeded row
-    await expect(page.getByTestId(OPS_TEST_IDS.TABLE.ROOT)).toBeVisible();
-    const row = page.locator(`[data-testid^="lead-row-"]`).filter({ hasText: testEmail }).first();
-    await expect(row).toBeVisible({ timeout: 15000 });
-
-    // 4. Click Row -> Verify URL
-    await row.click();
-    await expect(page).toHaveURL(/selected=/);
-
-    // 5. Verify Drawer Opens
-    const drawer = page.getByTestId(OPS_TEST_IDS.DRAWER);
-    await expect(drawer).toBeVisible();
-
-    // 6. Verify Content
-    await expect(drawer.getByText(/Status/i)).toBeVisible({ timeout: 10000 });
-    await expect(drawer.getByTestId('lead-created-at')).toBeVisible();
-
-    // 7. Verify Actions section
-    await expect(drawer.getByTestId('agent-lead-next-step')).toBeVisible();
-
-    // 8. Close Drawer (Using Escape for maximum reliability with Sheets)
-    await page.keyboard.press('Escape');
-
-    // Verify URL does not have selected param
-    await expect(page).not.toHaveURL(/selected=/);
-    await expect(drawer).not.toBeVisible();
   });
 });
