@@ -171,8 +171,8 @@ async function approveCash(admin: Page, email: string): Promise<void> {
     .filter({ visible: true })
     .filter({ has: admin.getByText(email, { exact: true }) });
   await row.getByTestId('cash-approve').click({ timeout: 30_000 });
-  // The click does not await the server action: the flow ends only once its conversion committed,
-  // so cleanup never runs while a conversion still writes.
+  // The click does not await the server action: the flow ends once its conversion committed, so
+  // cleanup waits for it. Only a conversion slower than this poll can still finish after cleanup.
   await expect
     .poll(
       async () => {
