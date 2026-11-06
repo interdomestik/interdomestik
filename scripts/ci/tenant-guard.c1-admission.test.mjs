@@ -203,3 +203,79 @@ test('an admitted callee does not admit a changed dependency outside its bundle'
   assert.equal(result.telemetry.c1Admissions, 1);
   assertRefused(result, 'C1', HANDED);
 });
+
+// A changed module constant read by the callee a retained transaction reaches is admitted only
+// when the constant itself is a listed unit; listing its readers does not cover it.
+const LOAD = 'apps/web/src/load.ts';
+const READ = 'apps/web/src/read.ts';
+const readWith = statuses =>
+  [
+    `const STAGE_MAP: Record<string, string[]> = { negotiation: ${statuses} };`,
+    'export function readRows(tx: { select(): unknown }, stage: string) {',
+    '  return STAGE_MAP[stage]?.length ? tx.select() : null;',
+    '}',
+  ].join('\n');
+const CONST_BASE = {
+  [LOAD]: [
+    "import { withTenantContext } from '@interdomestik/database';",
+    "import { readRows } from './read';",
+    'export function load(input: { tenantId: string }) {',
+    "  return withTenantContext({ tenantId: input.tenantId }, tx => readRows(tx, 'negotiation'));",
+    '}',
+  ].join('\n'),
+  [READ]: readWith("['negotiation']"),
+};
+const REVIEWED_READ = readWith("['submitted_to_airline', 'negotiation']");
+const constAdmission = units => ({
+  id: 'fixture-const',
+  reason: 'fixture admission',
+  files: [{ file: READ, sha256: sha256(REVIEWED_READ), units }],
+  sinkEdges: [],
+});
+const HANDS_TX = /hands its transaction to changed code \(readRows\)/u;
+
+test('a changed module constant is admitted only as its own listed unit', () => {
+  assertRefused(runAdmitted({ [READ]: REVIEWED_READ }, [], CONST_BASE), 'C1', HANDS_TX);
+  const readerOnly = runAdmitted(
+    { [READ]: REVIEWED_READ },
+    [constAdmission(['readRows'])],
+    CONST_BASE
+  );
+  assert.equal(readerOnly.telemetry.c1Admissions, 1);
+  assertRefused(readerOnly, 'C1', HANDS_TX);
+  const listed = runAdmitted(
+    { [READ]: REVIEWED_READ },
+    [constAdmission(['STAGE_MAP'])],
+    CONST_BASE
+  );
+  assert.deepEqual(listed.violations, []);
+  const edited = runAdmitted(
+    { [READ]: `${REVIEWED_READ}\n// edited` },
+    [constAdmission(['STAGE_MAP'])],
+    CONST_BASE
+  );
+  assert.equal(edited.telemetry.c1Admissions, 0);
+  assertRefused(edited, 'C1', HANDS_TX);
+});
+
+test('a successor admission binds every file, unit owner and sink edge of its predecessor', () => {
+  const byId = new Map(C1_ADMISSIONS.map(admission => [admission.id, admission]));
+  const pairs = [
+    ['documents-read-restriction-2026-11', 'documents-staff-draft-denial-2026-11'],
+    ['tx-lifetime-transition-2026-11', 'tx-lifetime-staff-draft-grants-2026-11'],
+  ];
+  for (const [before, after] of pairs) {
+    const base = byId.get(before);
+    const next = byId.get(after);
+    const nextFiles = new Set(next.files.map(entry => entry.file));
+    for (const entry of base.files) assert.ok(nextFiles.has(entry.file), `${after}: ${entry.file}`);
+    const edges = new Set(next.sinkEdges.map(edge => `${edge.file}#${edge.unit}->${edge.sink}`));
+    for (const edge of base.sinkEdges) {
+      assert.ok(
+        edges.has(`${edge.file}#${edge.unit}->${edge.sink}`),
+        `${after} keeps ${edge.unit}`
+      );
+    }
+    assert.ok(next.files.some((entry, index) => entry.sha256 !== base.files[index]?.sha256));
+  }
+});
