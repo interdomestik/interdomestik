@@ -89,9 +89,9 @@ jobs:
         if: matrix.shardIndex == 1
         run: pnpm --filter @interdomestik/web run e2e:gate
 
-      # Core subscription lifecycle (Phase 4B), then the flows that change cash data together with
-      # the exact branch cash counts (PC04) they could disturb, one test at a time.
-      - name: E2E Serial Golden Flows (KS+MK)
+      # Core subscription lifecycle (Phase 4B), then (same step, serial) the golden flows that change
+      # cash data together with the exact branch cash counts (PC04) they could disturb.
+      - name: E2E Subscription Lifecycle (KS+MK)
         if: matrix.shardIndex == 1
         run: |
           set -euo pipefail

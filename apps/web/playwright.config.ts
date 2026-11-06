@@ -362,7 +362,11 @@ export default defineConfig({
         },
         storageState: KS_MEMBER_STATE,
       },
-      testIgnore: [/setup\.state\.spec\.ts/, /visual\/.*\.spec\.ts/], // Opt-in visual baselines
+      testIgnore: [
+        /setup\.state\.spec\.ts/,
+        /claim-resolver-isolation\.spec\.ts/,
+        /visual\/.*\.spec\.ts/,
+      ], // Ignore MK tests and opt-in visual baselines
     },
     {
       name: 'mk-mk',
