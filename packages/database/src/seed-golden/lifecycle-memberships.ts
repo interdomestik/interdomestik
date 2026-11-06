@@ -1,3 +1,4 @@
+import { getTableColumns, sql, type Table } from 'drizzle-orm';
 import {
   E2E_MEMBERSHIP_LIFECYCLE_FIXTURES,
   e2eLifecycleInstant,
@@ -83,19 +84,34 @@ export function buildLifecycleSubscriptionsToSeed() {
   });
 }
 
+/** Every column but the key takes the incoming value on conflict, so a rerun restores the state. */
+function excludedSet(table: Table, row: Record<string, unknown>) {
+  const columns = getTableColumns(table);
+  return Object.fromEntries(
+    Object.keys(row)
+      .filter(key => key !== 'id')
+      .map(key => [key, sql.raw(`excluded."${columns[key].name}"`)])
+  );
+}
+
 /** Upserts restore each state on every run, so a drifted row cannot survive a reseed. */
 export async function seedLifecycleMemberships({ db, schema }: SeedGoldenContext) {
   console.log('💳 Seeding membership lifecycle states...');
-  for (const { subscription, card } of buildLifecycleSubscriptionsToSeed()) {
-    const { id: _subscriptionId, ...subscriptionSet } = subscription;
-    await db
-      .insert(schema.subscriptions)
-      .values(subscription)
-      .onConflictDoUpdate({ target: schema.subscriptions.id, set: subscriptionSet });
-    const { id: _cardId, ...cardSet } = card;
-    await db
-      .insert(schema.membershipCards)
-      .values(card)
-      .onConflictDoUpdate({ target: schema.membershipCards.id, set: cardSet });
-  }
+  const rows = buildLifecycleSubscriptionsToSeed();
+  const subscriptions = rows.map(row => row.subscription);
+  const cards = rows.map(row => row.card);
+  await db
+    .insert(schema.subscriptions)
+    .values(subscriptions)
+    .onConflictDoUpdate({
+      target: schema.subscriptions.id,
+      set: excludedSet(schema.subscriptions, subscriptions[0]),
+    });
+  await db
+    .insert(schema.membershipCards)
+    .values(cards)
+    .onConflictDoUpdate({
+      target: schema.membershipCards.id,
+      set: excludedSet(schema.membershipCards, cards[0]),
+    });
 }

@@ -46,7 +46,7 @@ test('lifecycle instants never depend on the seed clock or the wall clock', () =
   assert.ok(new Date(E2E_LIFECYCLE_INSTANTS.FAR_FUTURE).getUTCFullYear() >= 2099);
   assert.deepEqual(buildLifecycleSubscriptionsToSeed(), buildLifecycleSubscriptionsToSeed());
 
-  const allowed = new Set(Object.values(E2E_LIFECYCLE_INSTANTS));
+  const allowed = new Set<string>(Object.values(E2E_LIFECYCLE_INSTANTS));
   for (const { subscription, card } of buildLifecycleSubscriptionsToSeed()) {
     for (const value of [...Object.values(subscription), ...Object.values(card)]) {
       if (value instanceof Date) assert.ok(allowed.has(value.toISOString()), subscription.id);
