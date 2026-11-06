@@ -52,6 +52,7 @@ const validInput: SubmitBusinessMembershipLeadInput = {
   teamSize: '11-25',
   notes: 'Needs fleet and property protection.',
   locale: 'sq',
+  consent: true,
 };
 
 describe('submitBusinessMembershipLeadCore', () => {
@@ -102,7 +103,7 @@ describe('submitBusinessMembershipLeadCore', () => {
         companyName: 'Interdomestik Fleet',
         teamSize: '11-25',
         source: 'business_membership_public',
-        consentNoticeVersion: 'business-intake-privacy-note-v1',
+        consentNoticeVersion: 'lead-notice-v1',
       })
     );
     // Company data lives in columns now, never serialized into the free-text notes.
@@ -190,22 +191,20 @@ describe('submitBusinessMembershipLeadCore', () => {
     expect(mockCreateLead.mock.calls[0]?.[1]?.notes).toContain('"utmSource":null');
   });
 
-  it('rejects invalid payloads with field issues', async () => {
+  it.each([
+    [{ companyName: '' }, { companyName: 'Company name is required' }],
+    [{ consent: false }, { consent: 'Confirm that we may contact you' }],
+  ])('rejects invalid payloads with field issues', async (change, issues) => {
     const result = await submitBusinessMembershipLeadCore({
       requestHeaders: new Headers(),
-      data: {
-        ...validInput,
-        companyName: '',
-      },
+      data: { ...validInput, ...change },
     });
 
     expect(result).toEqual({
       success: false,
       error: 'Validation failed',
       code: 'INVALID_PAYLOAD',
-      issues: {
-        companyName: 'Company name is required',
-      },
+      issues,
     });
     expect(mockCreateLead).not.toHaveBeenCalled();
   });

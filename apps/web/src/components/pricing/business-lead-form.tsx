@@ -222,8 +222,36 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
           <FieldError id="business-lead-notes-error" message={fieldErrors.notes} />
         </div>
 
+        <section
+          aria-labelledby="business-lead-notice-title"
+          className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600 md:col-span-2"
+          data-testid="business-lead-notice"
+        >
+          <h3 id="business-lead-notice-title" className="font-bold text-slate-950">
+            {t('notice.title')}
+          </h3>
+          <p>{t('notice.body')}</p>
+          <p>{t('notice.company')}</p>
+        </section>
+
+        <div className="space-y-2 md:col-span-2">
+          <label className="flex min-h-[44px] cursor-pointer items-start gap-3 text-sm font-medium text-slate-950">
+            <input
+              type="checkbox"
+              name="consent"
+              value="yes"
+              className="mt-0.5 h-5 w-5 shrink-0 accent-primary"
+              aria-invalid={Boolean(fieldErrors.consent)}
+              aria-describedby={fieldErrors.consent ? 'business-lead-consent-error' : undefined}
+              disabled={pending}
+              data-testid="business-lead-consent"
+            />
+            <span>{t('notice.consent')}</span>
+          </label>
+          <FieldError id="business-lead-consent-error" message={fieldErrors.consent} />
+        </div>
+
         <div className="md:col-span-2 flex flex-col gap-3 border-t border-slate-200 pt-5">
-          <p className="text-sm font-medium text-slate-500">{t('privacyNote')}</p>
           <Button
             type="submit"
             disabled={pending}

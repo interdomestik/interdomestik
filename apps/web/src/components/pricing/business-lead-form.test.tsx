@@ -28,6 +28,8 @@ describe('BusinessLeadForm', () => {
       expect((form.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(
         false
       );
+      const consent = form.elements.namedItem('consent') as HTMLInputElement;
+      expect([consent.type, consent.checked, consent.value]).toEqual(['checkbox', false, 'yes']);
     }
   });
 
@@ -48,6 +50,7 @@ describe('BusinessLeadForm', () => {
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(2));
     for (const call of submit.mock.calls) {
       expect(call[1].get('_idempotencyKey')).toBe('request-retry');
+      expect(call[1].get('consent')).toBeNull();
     }
   });
 });
