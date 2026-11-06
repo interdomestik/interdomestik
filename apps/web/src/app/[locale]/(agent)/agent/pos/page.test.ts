@@ -17,7 +17,7 @@ vi.mock('@/lib/auth', () => ({
 import AgentPOSPage from './page';
 
 describe('AgentPOSPage', () => {
-  it('redirects agents to canonical enrollment with locale + mode', async () => {
+  it('redirects agents to the leads workspace with locale', async () => {
     hoisted.getSession.mockResolvedValueOnce({ user: { role: 'agent' } });
 
     const redirectMock = vi.mocked(redirect);
@@ -26,7 +26,7 @@ describe('AgentPOSPage', () => {
     });
 
     await expect(AgentPOSPage({ params: Promise.resolve({ locale: 'sq' }) })).rejects.toThrow(
-      'redirect:/sq/agent/clients/new?mode=pos'
+      'redirect:/sq/agent/leads'
     );
   });
 

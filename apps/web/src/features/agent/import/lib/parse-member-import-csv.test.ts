@@ -2,16 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { MAX_MEMBER_IMPORT_ROWS } from '@/lib/actions/agent/schemas';
 import { parseMemberImportCsv } from './parse-member-import-csv';
 
-function makeCredential(label: string) {
-  return ['member', label, 'access'].join('-');
-}
-
 describe('parseMemberImportCsv', () => {
   it('parses required columns and defaults planId to standard', () => {
-    const csv = [
-      'fullName,email,phone,password,planId',
-      `Jane Doe,jane@example.com,+38344111222,${makeCredential('jane')},`,
-    ].join('\n');
+    const csv = ['fullName,email,phone,planId', 'Jane Doe,jane@example.com,+38344111222,'].join(
+      '\n'
+    );
 
     expect(parseMemberImportCsv(csv)).toEqual({
       headerErrors: [],
@@ -20,7 +15,6 @@ describe('parseMemberImportCsv', () => {
           fullName: 'Jane Doe',
           email: 'jane@example.com',
           phone: '+38344111222',
-          password: makeCredential('jane'),
           planId: 'standard',
           isValid: true,
           error: undefined,
@@ -29,8 +23,17 @@ describe('parseMemberImportCsv', () => {
     });
   });
 
+  it('refuses a roster that carries a password column (members set their own credential)', () => {
+    const csv = ['fullName,email,phone,password', 'Jane Doe,jane@example.com,+383441,x'].join('\n');
+
+    expect(parseMemberImportCsv(csv)).toEqual({
+      headerErrors: ['Remove the password column: members set their own credential'],
+      rows: [],
+    });
+  });
+
   it('flags rows that are missing required account fields', () => {
-    const csv = ['fullName,email,phone,password', 'Jane Doe,,+38344111222,'].join('\n');
+    const csv = ['fullName,email,phone', 'Jane Doe,,+38344111222'].join('\n');
 
     expect(parseMemberImportCsv(csv)).toEqual({
       headerErrors: [],
@@ -39,10 +42,9 @@ describe('parseMemberImportCsv', () => {
           fullName: 'Jane Doe',
           email: '',
           phone: '+38344111222',
-          password: '',
           planId: 'standard',
           isValid: false,
-          error: 'Missing required fields: email, password',
+          error: 'Missing required fields: email',
         },
       ],
     });
@@ -52,37 +54,28 @@ describe('parseMemberImportCsv', () => {
     const csv = ['fullName,phone', 'Jane Doe,+38344111222'].join('\n');
 
     expect(parseMemberImportCsv(csv)).toEqual({
-      headerErrors: ['Missing required columns: email, password'],
+      headerErrors: ['Missing required columns: email'],
       rows: [],
     });
   });
 
   it('keeps commas inside quoted CSV fields', () => {
     const csv = [
-      'fullName,email,phone,password,planId',
-      `"Doe, Jane",jane@example.com,+38344111222,${makeCredential('doe')},family`,
+      'fullName,email,phone,planId',
+      '"Doe, Jane",jane@example.com,+38344111222,family',
     ].join('\n');
 
-    expect(parseMemberImportCsv(csv)).toEqual({
-      headerErrors: [],
-      rows: [
-        {
-          fullName: 'Doe, Jane',
-          email: 'jane@example.com',
-          phone: '+38344111222',
-          password: makeCredential('doe'),
-          planId: 'family',
-          isValid: true,
-          error: undefined,
-        },
-      ],
+    expect(parseMemberImportCsv(csv).rows[0]).toMatchObject({
+      fullName: 'Doe, Jane',
+      planId: 'family',
+      isValid: true,
     });
   });
 
   it('rejects CSV files that exceed the maximum batch size', () => {
-    const row = `Jane Doe,jane@example.com,+38344111222,${makeCredential('limit')},standard`;
+    const row = 'Jane Doe,jane@example.com,+38344111222,standard';
     const csv = [
-      'fullName,email,phone,password,planId',
+      'fullName,email,phone,planId',
       ...new Array(MAX_MEMBER_IMPORT_ROWS + 1).fill(row),
     ].join('\n');
 

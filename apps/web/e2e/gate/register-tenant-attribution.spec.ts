@@ -1,14 +1,5 @@
-import {
-  E2E_PASSWORD,
-  E2E_USERS,
-  account,
-  agentClients,
-  db,
-  inArray,
-  subscriptions,
-  user,
-} from '@interdomestik/database';
-import { expect, test, type BrowserContext } from '@playwright/test';
+import { E2E_PASSWORD, E2E_USERS, db, inArray, memberLeads, user } from '@interdomestik/database';
+import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 
 type TenantRegistrationTarget = {
   actorEmail: string;
@@ -106,26 +97,20 @@ async function loginActor(
   return page;
 }
 
-async function cleanupRegisteredUsers(emails: string[]) {
-  const insertedUsers = await db.query.user.findMany({
-    where: (table, { inArray: inArrayInner }) => inArrayInner(table.email, emails),
-    columns: { id: true, email: true },
-  });
-
-  if (insertedUsers.length === 0) {
-    return;
-  }
-
-  const userIds = insertedUsers.map(entry => entry.id);
-
-  await db.delete(agentClients).where(inArray(agentClients.memberId, userIds));
-  await db.delete(subscriptions).where(inArray(subscriptions.userId, userIds));
-  await db.delete(account).where(inArray(account.userId, userIds));
-  await db.delete(user).where(inArray(user.id, userIds));
+async function createLeadThroughDialog(page: Page, email: string, label: string): Promise<void> {
+  await page.goto('agent/leads');
+  await expect(page.getByTestId('agent-leads-pro').first()).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId('new-lead-button').click();
+  await page.getByTestId('lead-form-firstname').fill('Attribution');
+  await page.getByTestId('lead-form-lastname').fill(label);
+  await page.getByTestId('lead-form-email').fill(email);
+  await page.getByTestId('lead-form-phone').fill('+38344111222');
+  await page.getByTestId('lead-form-consent').click();
+  await page.getByTestId('lead-form-submit').click();
 }
 
 test.describe('Registration tenant attribution', () => {
-  test('concurrent tenant-host registrations preserve persisted tenant attribution', async ({
+  test('concurrent tenant-host lead entry keeps tenant attribution; direct registration writes nothing', async ({
     browser,
   }, testInfo) => {
     test.skip(
@@ -135,71 +120,79 @@ test.describe('Registration tenant attribution', () => {
 
     const suffix = `${Date.now()}`;
     const expectations: RegisteredExpectation[] = [];
+    const retiredEmails: string[] = [];
     const contexts: BrowserContext[] = [];
 
     try {
-      const requests = await Promise.all(
+      await Promise.all(
         buildTenantTargets().flatMap((target, tenantIndex) =>
-          Array.from({ length: 3 }, async (_, requestIndex) => {
+          Array.from({ length: 2 }, async (_, requestIndex) => {
             const context = await browser.newContext({
-              baseURL: `http://${target.host}/${target.locale}`,
+              baseURL: `http://${target.host}/${target.locale}/`,
               extraHTTPHeaders: {
                 'x-forwarded-host': target.host,
+                'x-forwarded-for': `10.20.${tenantIndex}.${requestIndex + 10}`,
               },
             });
             contexts.push(context);
             const page = await loginActor(context, target);
 
             const email = `pd05-${target.label}-${tenantIndex}-${requestIndex}-${suffix}@example.com`;
-            expectations.push({
-              email,
-              expectedTenantId: target.expectedTenantId,
-            });
+            const retiredEmail = `retired-${email}`;
+            expectations.push({ email, expectedTenantId: target.expectedTenantId });
+            retiredEmails.push(retiredEmail);
 
-            return page.request.post('/api/register', {
-              data: {
-                email,
-                name: `PD05 ${target.label.toUpperCase()} ${requestIndex}`,
-                role: 'user',
-                password: E2E_PASSWORD,
-                phone: `+38344111${tenantIndex}${requestIndex}${suffix.slice(-2)}`,
-                planId: 'standard',
-              },
-              headers: {
-                'x-forwarded-host': target.host,
-                'x-forwarded-for': `10.20.${tenantIndex}.${requestIndex + 10}`,
-              },
+            // ACQ-2 (owner D1 a): direct registration is retired and must refuse without a write.
+            const retired = await page.request.post(`http://${target.host}/api/register`, {
+              data: { email: retiredEmail, name: 'Retired', planId: 'standard' },
             });
+            expect(retired.status()).toBe(410);
+
+            await createLeadThroughDialog(page, email, `${target.label}-${requestIndex}`);
           })
         )
       );
 
-      for (const response of requests) {
-        const body = await response.json();
-        expect(response.status()).toBe(200);
-        expect(body, `Unexpected register payload: ${JSON.stringify(body)}`).toMatchObject({
-          ok: true,
-        });
-      }
+      await expect
+        .poll(
+          async () =>
+            (
+              await db
+                .select({ email: memberLeads.email })
+                .from(memberLeads)
+                .where(
+                  inArray(
+                    memberLeads.email,
+                    expectations.map(entry => entry.email)
+                  )
+                )
+            ).length,
+          { timeout: 20_000 }
+        )
+        .toBe(expectations.length);
 
-      const insertedUsers = await db.query.user.findMany({
-        where: (table, { inArray: inArrayInner }) =>
-          inArrayInner(
-            table.email,
+      const leads = await db
+        .select({ email: memberLeads.email, tenantId: memberLeads.tenantId })
+        .from(memberLeads)
+        .where(
+          inArray(
+            memberLeads.email,
             expectations.map(entry => entry.email)
-          ),
-        columns: { email: true, tenantId: true, role: true },
-      });
-
-      expect(insertedUsers).toHaveLength(expectations.length);
-
+          )
+        );
       for (const expectation of expectations) {
-        const inserted = insertedUsers.find(entry => entry.email === expectation.email);
+        const inserted = leads.find(entry => entry.email === expectation.email);
         expect(inserted?.tenantId).toBe(expectation.expectedTenantId);
-        expect(inserted?.role).toBe('member');
       }
+
+      const retiredUsers = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(inArray(user.email, retiredEmails));
+      expect(retiredUsers).toHaveLength(0);
     } finally {
-      await cleanupRegisteredUsers(expectations.map(entry => entry.email));
+      const emails = expectations.map(entry => entry.email);
+      if (emails.length > 0) await db.delete(memberLeads).where(inArray(memberLeads.email, emails));
       await Promise.all(contexts.map(context => context.close()));
     }
   });

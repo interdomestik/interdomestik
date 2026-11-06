@@ -1,16 +1,11 @@
 import { sendMemberWelcomeEmail } from '@/lib/email';
 import {
-  createActiveAnnualMembershipFulfillment,
   createAgentAssistedOwnershipAttribution,
   createCanonicalMembershipPlanState,
   resolveCanonicalMembershipPlanState,
   revokeAgentClientReadScope,
 } from '@interdomestik/domain-membership-billing';
-import {
-  appendTenantMemberCredential,
-  hasTenantMemberCredential,
-  issueTenantMemberNumber,
-} from '@interdomestik/database';
+import { issueTenantMemberNumber } from '@interdomestik/database';
 import { subscriptions, user as userTable } from '@interdomestik/database/schema';
 import {
   readTenantAuthority,
@@ -19,7 +14,6 @@ import {
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { circuitBreakers } from '@interdomestik/shared-utils/circuit-breaker';
 import { transactionRetryConfig, withRetry } from '@interdomestik/shared-utils/resilience';
-import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
 import { registerMemberSchema } from './schemas';
 
@@ -27,39 +21,7 @@ type RegisterMemberCoreOptions = {
   membershipMode?: 'direct' | 'sponsored';
 };
 
-type CredentialOutcome = 'attached' | 'refused' | 'unknown';
-
-type RegistrationAttempt = {
-  authority: TenantAuthority;
-  userId: string;
-  email: string;
-  passwordHash: string;
-};
-
-// The credential is identity data the tenant transaction cannot write, so it is attached by the
-// fixed kernel append after that transaction commits. Only a returned refusal proves no credential
-// was written; a thrown append may have committed before its acknowledgement was lost, so it is
-// re-read, and an unreadable outcome stays unknown.
-async function attachCredential(attempt: RegistrationAttempt): Promise<CredentialOutcome> {
-  try {
-    const attached = await appendTenantMemberCredential(attempt.authority, {
-      userId: attempt.userId,
-      email: attempt.email,
-      passwordHash: attempt.passwordHash,
-    });
-    return attached ? 'attached' : 'refused';
-  } catch (error) {
-    console.error('Member credential append failed:', error);
-    try {
-      return (await hasTenantMemberCredential(attempt.authority, attempt.userId))
-        ? 'attached'
-        : 'unknown';
-    } catch (recheckError) {
-      console.error('Member credential recheck failed:', recheckError);
-      return 'unknown';
-    }
-  }
-}
+export const DIRECT_REGISTRATION_RETIRED = 'DIRECT_REGISTRATION_RETIRED' as const;
 
 export async function registerMemberCore(
   agent: { id: string; name?: string | null },
@@ -68,12 +30,22 @@ export async function registerMemberCore(
   formData: FormData,
   options: RegisterMemberCoreOptions = {}
 ) {
+  // A direct registration activated a membership with no payment act and an agent-set password.
+  // Members now come only from lead conversion after payment (ACQ-2 D1 a); only the trusted
+  // roster import may register, as a paused sponsored membership with no credential.
+  if (options.membershipMode !== 'sponsored') {
+    return {
+      ok: false as const,
+      error: 'Direct member registration is retired. Record a lead instead.' as const,
+      code: DIRECT_REGISTRATION_RETIRED,
+    };
+  }
+
   const { tenantId, principal } = readTenantAuthority(authority);
   const rawData = {
     fullName: formData.get('fullName'),
     email: formData.get('email'),
     phone: formData.get('phone'),
-    password: formData.get('password'),
     planId: formData.get('planId'),
     notes: formData.get('notes') || undefined,
   };
@@ -100,7 +72,6 @@ export async function registerMemberCore(
   const data = validated.data;
   const userId = nanoid();
   const subscriptionId = nanoid();
-  const membershipMode = options.membershipMode ?? 'direct';
   const canonicalPlanState = await resolveCanonicalMembershipPlanState({
     authority,
     planId: data.planId,
@@ -108,7 +79,6 @@ export async function registerMemberCore(
   const attribution = createAgentAssistedOwnershipAttribution(agent.id);
 
   try {
-    const passwordHash = await hash(data.password, 10);
     const joinedAt = new Date();
     // Each attempt opens its own tenant transaction; the retry wraps the whole attempt.
     await withRetry(
@@ -133,24 +103,17 @@ export async function registerMemberCore(
 
           await revokeAgentClientReadScope(tx, { tenantId, memberId: userId });
 
-          const subscriptionValues =
-            membershipMode === 'sponsored'
-              ? {
-                  ...createCanonicalMembershipPlanState(
-                    canonicalPlanState.planId,
-                    canonicalPlanState.planKey
-                  ),
-                  status: 'paused' as const,
-                  provider: 'group_sponsor',
-                  acquisitionSource: 'group_roster_import',
-                  currentPeriodStart: null,
-                  currentPeriodEnd: null,
-                }
-              : createActiveAnnualMembershipFulfillment(
-                  canonicalPlanState.planId,
-                  now,
-                  canonicalPlanState.planKey
-                );
+          const subscriptionValues = {
+            ...createCanonicalMembershipPlanState(
+              canonicalPlanState.planId,
+              canonicalPlanState.planKey
+            ),
+            status: 'paused' as const,
+            provider: 'group_sponsor',
+            acquisitionSource: 'group_roster_import',
+            currentPeriodStart: null,
+            currentPeriodEnd: null,
+          };
 
           await tx.insert(subscriptions).values({
             id: subscriptionId,
@@ -165,22 +128,6 @@ export async function registerMemberCore(
         }),
       transactionRetryConfig()
     );
-
-    // Without a credential the committed registration is left in place for recovery, never
-    // withdrawn: a refusal means another writer changed the member (or gave it an account) after
-    // this transaction committed, and nothing proves the rows are still only this attempt's.
-    const credential = await attachCredential({
-      authority,
-      userId,
-      email: data.email,
-      passwordHash,
-    });
-    if (credential !== 'attached') {
-      console.error(
-        `Registration ${userId} left pending for recovery (credential outcome: ${credential})`
-      );
-      throw new Error('Member credential was not attached');
-    }
 
     // The global member number is issued for the committed member. The registration contract
     // allows a member without one (a later sign-in self-heal may assign it), so a failure here does

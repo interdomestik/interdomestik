@@ -30,10 +30,9 @@ class MockFileReader {
   readAsText() {
     this.onload?.({
       target: {
-        result: [
-          'fullName,email,phone,password,planId',
-          'Jane Doe,jane@example.com,+38344111222,Secret123!,',
-        ].join('\n'),
+        result: ['fullName,email,phone,planId', 'Jane Doe,jane@example.com,+38344111222,'].join(
+          '\n'
+        ),
       },
     });
   }

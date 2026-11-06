@@ -6,16 +6,11 @@ const mocks = vi.hoisted(() => ({
   registerMemberCore: vi.fn(),
 }));
 
-function makeCredential(label: string) {
-  return ['member', label, 'access'].join('-');
-}
-
 function buildImportRow(
   overrides: Partial<{
     fullName: string;
     email: string;
     phone: string;
-    password: string;
     planId: 'standard' | 'family';
   }> = {}
 ) {
@@ -23,7 +18,6 @@ function buildImportRow(
     fullName: 'Jane Doe',
     email: 'jane@example.com',
     phone: '+38344111222',
-    password: makeCredential('jane'),
     planId: 'standard' as const,
     ...overrides,
   };
@@ -57,7 +51,6 @@ describe('importMembersCore', () => {
           fullName: 'Bad Email',
           email: 'not-an-email',
           phone: '+38344111223',
-          password: makeCredential('bad-email'),
         }),
       ],
     });
@@ -121,5 +114,7 @@ describe('importMembersCore', () => {
       expect.any(FormData),
       { membershipMode: 'sponsored' }
     );
+    const formData = mocks.registerMemberCore.mock.calls[0]?.[3] as FormData;
+    expect(formData.has('password')).toBe(false);
   });
 });

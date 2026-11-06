@@ -57,7 +57,6 @@ export async function importMembersCore({
     formData.set('fullName', validated.data.fullName);
     formData.set('email', validated.data.email);
     formData.set('phone', validated.data.phone);
-    formData.set('password', validated.data.password);
     formData.set('planId', validated.data.planId);
 
     const result = await registerMemberCore(agent, authority, branchId, formData, {
