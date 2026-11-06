@@ -45,6 +45,7 @@ export async function canReadPolymorphicClaimDocument(args: {
   polyDoc: {
     category?: unknown;
     entityId: string;
+    uploadedBy?: string | null;
   };
   session: SessionDTO;
   tenantId: string;
@@ -65,6 +66,7 @@ export async function canReadPolymorphicClaimDocument(args: {
   if (!claimRow) return false;
   if (userRole !== 'agent' && claimRow.claimOwnerId === session.user.id) return true;
   if (isStaffBlockedFromClaim(userRole, claimRow.claimCaseLifecycleState)) return false;
+  if (userRole === 'staff' && polyDoc.uploadedBy === session.user.id) return true;
   const claim = {
     branchId: claimRow.claimBranchId ?? null,
     caseLifecycleState: claimRow.claimCaseLifecycleState ?? null,

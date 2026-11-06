@@ -12,6 +12,7 @@ import {
   canReadPolymorphicClaimDocument,
 } from './claim-document-access';
 import { hasDurableCaseScopedDocumentGrant } from './durable-case-grants';
+import { canReadPolymorphicDocument } from './polymorphic-document-access';
 
 const staff = { id: 'staff-1', branchId: 'branch-a' };
 const draftClaim = {
@@ -78,6 +79,38 @@ describe('staff document reads on a member draft', () => {
     ).resolves.toBe(false);
     expect(hasDurableCaseScopedDocumentGrant).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['draft', false],
+    [null, false],
+    ['submitted', true],
+  ])(
+    'treats a staff uploader of a %s claim upload through the polymorphic entry as %s',
+    async (lifecycle, allowed) => {
+      const row = {
+        claimAgentId: null,
+        claimBranchId: 'branch-b',
+        claimCaseLifecycleState: lifecycle,
+        claimOwnerId: 'member-1',
+        claimStaffId: null,
+      };
+      await expect(
+        canReadPolymorphicDocument({
+          db: dbWithClaim(row) as never,
+          polyDoc: {
+            category: 'legal',
+            entityId: 'claim-1',
+            entityType: 'claim',
+            id: 'doc-1',
+            uploadedBy: 'staff-1',
+          },
+          session: { user: staff } as never,
+          tenantId: 't1',
+          userRole: 'staff',
+        })
+      ).resolves.toBe(allowed);
+    }
+  );
 
   it('still lets a member read the documents of their own draft', async () => {
     await expect(

@@ -22,7 +22,11 @@ vi.mock('@interdomestik/database/schema', () => ({
     id: 'claim_documents.id',
     tenantId: 'claim_documents.tenant_id',
   },
-  claims: { id: 'claims.id' },
+  claims: {
+    caseLifecycleState: 'claims.case_lifecycle_state',
+    id: 'claims.id',
+    tenantId: 'claims.tenant_id',
+  },
   documents: {
     deletedAt: 'documents.deleted_at',
     entityId: 'documents.entity_id',
@@ -46,8 +50,9 @@ function selectResult(rows: unknown[], legacy = false) {
   };
 }
 
-function dbWith(polyRows: unknown[], legacyRows: unknown[] = []) {
+function dbWith(polyRows: unknown[], legacyRows: unknown[] = [], lifecycle = 'submitted') {
   const db = { select: vi.fn() };
+  db.select.mockReturnValueOnce(selectResult([{ caseLifecycleState: lifecycle }]));
   db.select.mockReturnValueOnce(selectResult(polyRows));
   db.select.mockReturnValueOnce(selectResult(legacyRows, true));
   return db;
