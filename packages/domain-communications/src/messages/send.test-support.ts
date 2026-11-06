@@ -76,7 +76,7 @@ export const staffSession = { user: { id: 'staff-1', role: 'admin', tenantId: 't
 export function resetSendMocks(): void {
   vi.clearAllMocks();
   mocks.withTenantContext.mockImplementation(
-    async (_authority: unknown, action: (tx: unknown) => unknown) => action(mocks.tx)
+    (_authority: unknown, action: (tx: unknown) => unknown) => Promise.resolve(action(mocks.tx))
   );
   mocks.tx.query.claims.findFirst.mockResolvedValue({
     id: 'claim-1',

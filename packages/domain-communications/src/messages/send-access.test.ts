@@ -1,5 +1,5 @@
 import { authority, mocks, resetSendMocks, staffSession } from './send.test-support';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { sendMessageDbCore } from './send';
 
