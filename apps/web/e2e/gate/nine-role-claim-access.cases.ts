@@ -1,5 +1,6 @@
 import {
   E2E_CASE_FIXTURES,
+  E2E_CLAIM_STATE_FIXTURES,
   E2E_RELATIONSHIP_FIXTURES,
   type E2EUserKey,
 } from '@interdomestik/database';
@@ -13,6 +14,9 @@ const OTHER_MEMBER = E2E_CASE_FIXTURES.KS_OTHER_MEMBER.id;
 const OTHER_BRANCH = E2E_CASE_FIXTURES.KS_OTHER_BRANCH.id;
 const FOREIGN = E2E_CASE_FIXTURES.MK_FOREIGN_TENANT.id;
 const rel = E2E_RELATIONSHIP_FIXTURES;
+const DRAFT = E2E_CLAIM_STATE_FIXTURES.DRAFT.id;
+const REJECTED = E2E_CLAIM_STATE_FIXTURES.REJECTED.id;
+const AIRLINE = E2E_CLAIM_STATE_FIXTURES.SUBMITTED_TO_AIRLINE.id;
 
 /**
  * Seeded titles (seed-golden/claims.ts); KS-A titles carry the current status. Body text runs
@@ -23,6 +27,9 @@ export const CASE_TITLES: Record<string, RegExp> = {
   [OTHER_MEMBER]: /KS-A \S+ Claim 2(?!\d)/,
   [OTHER_BRANCH]: /KS-B Claim 1(?!\d)/,
   [FOREIGN]: /Rear ended in Skopje/,
+  [DRAFT]: /KS-D Draft Claim/,
+  [REJECTED]: /KS-D Rejected Claim/,
+  [AIRLINE]: /KS-D Submitted to Airline Claim/,
 };
 
 /**
@@ -35,6 +42,9 @@ export const KS_ACTOR_CASES: readonly ActorCases[] = [
     rows: [
       ['admin', rel.CROSS_TENANT.caseId, true],
       ['admin', rel.CROSS_TENANT.deniedCaseId, false],
+      ['admin', DRAFT, true],
+      ['admin', REJECTED, true],
+      ['admin', AIRLINE, true],
     ],
   },
   {
@@ -44,6 +54,7 @@ export const KS_ACTOR_CASES: readonly ActorCases[] = [
       ['admin', rel.CROSS_BRANCH.deniedCaseId, false],
       ['staff', rel.CROSS_BRANCH.caseId, true],
       ['staff', rel.CROSS_BRANCH.deniedCaseId, false],
+      ['admin', AIRLINE, false],
     ],
   },
   {
@@ -56,7 +67,11 @@ export const KS_ACTOR_CASES: readonly ActorCases[] = [
   },
   {
     actor: rel.STAFF_ASSIGNMENT.deniedActor,
-    rows: [['staff', rel.STAFF_ASSIGNMENT.caseId, false]],
+    rows: [
+      ['staff', rel.STAFF_ASSIGNMENT.caseId, false],
+      ['staff', REJECTED, true],
+      ['staff', AIRLINE, true],
+    ],
   },
   {
     actor: rel.AGENT_ACTIVE_VS_INACTIVE_LINK.allowedActor,
@@ -81,6 +96,23 @@ export const KS_ACTOR_CASES: readonly ActorCases[] = [
     ],
   },
   {
+    actor: 'KS_MEMBER_CONVERTED_LEAD',
+    rows: [
+      ['member', DRAFT, true],
+      ['member', REJECTED, true],
+      ['member', AIRLINE, true],
+      ['member', ANCHOR, false],
+    ],
+  },
+  {
+    actor: 'KS_AGENT_CASH_STATES',
+    rows: [
+      ['agent', DRAFT, false],
+      ['agent', REJECTED, false],
+      ['agent', AIRLINE, false],
+    ],
+  },
+  {
     actor: 'GLOBAL_SUPPORT',
     rows: [
       ['member', ANCHOR, false],
@@ -96,6 +128,7 @@ export const MK_ACTOR_CASES: readonly ActorCases[] = [
     rows: [
       ['admin', FOREIGN, true],
       ['admin', ANCHOR, false],
+      ['admin', AIRLINE, false],
     ],
   },
   {
