@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
 
 const MESSAGES_DIR = new URL('../../apps/web/src/messages/', import.meta.url);
 
@@ -58,4 +59,12 @@ test('no locale catalog repeats a key within one object', () => {
     }
   }
   assert.deepEqual(offenders, []);
+});
+
+test('this contract owns the branch catalogs it repaired', () => {
+  for (const locale of ['en', 'sq', 'mk', 'sr']) {
+    const file = `apps/web/src/messages/${locale}/admin-branches.json`;
+    assert.equal(structuredArtifactOwner(file), 'locale-catalog-integrity-contract', file);
+  }
+  assert.equal(structuredArtifactOwner('apps/web/src/messages/de/admin-branches.json'), null);
 });
