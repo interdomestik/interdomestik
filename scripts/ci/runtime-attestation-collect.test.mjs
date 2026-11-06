@@ -134,10 +134,11 @@ test('U2-e collector: missing owner inputs are INPUTS_NOT_PROVISIONED, never PAS
     [noAccount.status, noAccount.failureCodes],
     ['INPUTS_NOT_PROVISIONED', ['OBSERVER_ACCOUNT_UNPROVISIONED']]
   );
-  const unenrolled = await run(deployment(), {
-    // The reviewed staging expectation itself, until a marker is enrolled.
-    expectation: STAGING_EXPECTATION,
-  });
+  const unenrolled = await run(
+    deployment({ respond: c => json(200, observation(c, { backendMarker: null })) }),
+    // The reviewed staging expectation itself, while the staging marker is not yet enrolled.
+    { expectation: STAGING_EXPECTATION }
+  );
   assert.deepEqual(
     [unenrolled.status, unenrolled.failureCodes],
     ['INPUTS_NOT_PROVISIONED', ['BACKEND_MARKER_UNAVAILABLE']]
