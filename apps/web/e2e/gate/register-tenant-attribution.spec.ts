@@ -184,7 +184,6 @@ test.describe('Registration tenant attribution', () => {
 
     const suffix = `${Date.now()}`;
     const expectations: RegisteredExpectation[] = [];
-    const leadIds: { id: string; email: string }[] = [];
     const retiredEmails: string[] = [];
     const contexts: BrowserContext[] = [];
     const newContext = async (target: TenantRegistrationTarget, ip: string) => {
@@ -197,7 +196,8 @@ test.describe('Registration tenant attribution', () => {
     };
 
     try {
-      await Promise.all(
+      // Every flow settles before the assertions or the cleanup run, so nothing still writes.
+      const flows = await Promise.allSettled(
         buildTenantTargets().flatMap((target, tenantIndex) =>
           Array.from({ length: 2 }, async (_, requestIndex) => {
             const ip = `10.20.${tenantIndex}.${requestIndex + 10}`;
@@ -214,13 +214,7 @@ test.describe('Registration tenant attribution', () => {
             });
             expect(retired.status()).toBe(410);
 
-            const id = await recordLeadAndTakeCash(
-              page,
-              target,
-              email,
-              `${target.label}-${requestIndex}`
-            );
-            leadIds.push({ id, email });
+            await recordLeadAndTakeCash(page, target, email, `${target.label}-${requestIndex}`);
 
             const adminIp = `10.21.${tenantIndex}.${requestIndex + 10}`;
             const admin = await loginActor(
@@ -232,6 +226,9 @@ test.describe('Registration tenant attribution', () => {
           })
         )
       );
+      const failed = flows.find(flow => flow.status === 'rejected');
+      if (failed) throw failed.reason;
+      const emails = expectations.map(entry => entry.email);
 
       // Conversion creates each member in the tenant of the host its lead was recorded on.
       await expect
@@ -240,12 +237,7 @@ test.describe('Registration tenant attribution', () => {
             const leads = await db
               .select({ email: memberLeads.email, memberId: memberLeads.convertedUserId })
               .from(memberLeads)
-              .where(
-                inArray(
-                  memberLeads.id,
-                  leadIds.map(lead => lead.id)
-                )
-              );
+              .where(inArray(memberLeads.email, emails));
             return leads.filter(lead => lead.memberId).length;
           },
           { timeout: 30_000 }
@@ -255,12 +247,7 @@ test.describe('Registration tenant attribution', () => {
       const members = await db
         .select({ email: user.email, tenantId: user.tenantId, role: user.role })
         .from(user)
-        .where(
-          inArray(
-            user.email,
-            expectations.map(entry => entry.email)
-          )
-        );
+        .where(inArray(user.email, emails));
       expect(members).toHaveLength(expectations.length);
       for (const expectation of expectations) {
         const member = members.find(entry => entry.email === expectation.email);
@@ -274,7 +261,17 @@ test.describe('Registration tenant attribution', () => {
         .where(inArray(user.email, retiredEmails));
       expect(retiredUsers).toHaveLength(0);
     } finally {
-      for (const lead of leadIds) await removeOwnedMemberLead(lead);
+      // Leads are found by the test-owned emails, so a flow that failed midway is cleaned too.
+      const owned = await db
+        .select({ id: memberLeads.id, email: memberLeads.email })
+        .from(memberLeads)
+        .where(
+          inArray(
+            memberLeads.email,
+            expectations.map(entry => entry.email)
+          )
+        );
+      for (const lead of owned) await removeOwnedMemberLead(lead);
       await Promise.all(contexts.map(context => context.close()));
     }
   });
