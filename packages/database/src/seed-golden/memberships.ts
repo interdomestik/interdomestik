@@ -1,5 +1,6 @@
 import { goldenId } from '../seed-utils/seed-ids';
 import { TENANTS } from './constants';
+import { seedLifecycleMemberships } from './lifecycle-memberships';
 import { buildSeededMembershipCardIdentifiers } from './membership-cards';
 import type { SeedGoldenContext } from './types';
 
@@ -53,7 +54,8 @@ export function buildSubscriptionsToSeed() {
   ];
 }
 
-export async function seedMemberships({ at, db, schema }: SeedGoldenContext) {
+export async function seedMemberships(context: SeedGoldenContext) {
+  const { at, db, schema } = context;
   console.log('💳 Seeding Subscriptions...');
   await db
     .insert(schema.membershipPlans)
@@ -127,4 +129,6 @@ export async function seedMemberships({ at, db, schema }: SeedGoldenContext) {
       })
       .onConflictDoNothing();
   }
+
+  await seedLifecycleMemberships(context);
 }
