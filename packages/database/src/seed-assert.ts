@@ -135,6 +135,18 @@ async function assertSeed() {
     }
 
     console.log('✅ Membership lifecycle states match the catalogue');
+
+    console.log('🔍 Asserting cash verification state fixtures...');
+    const { collectCashStateViolations } = await import('./seed-assert-cash');
+    const cashViolations = await collectCashStateViolations(db, schema);
+    if (cashViolations.length > 0) {
+      for (const violation of cashViolations) {
+        console.error(`❌ Cash state invariant failed: ${violation}`);
+      }
+      process.exit(1);
+    }
+
+    console.log('✅ Cash verification states match the catalogue');
     process.exit(0);
   } catch (err: any) {
     // If table doesn't exist or query fails

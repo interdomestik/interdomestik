@@ -55,6 +55,8 @@ export const E2E_USER_IDS = {
   KS_MEMBER_CANCELED: 'golden_ks_lifecycle_canceled',
   KS_MEMBER_EXPIRED: 'golden_ks_lifecycle_expired',
   KS_MEMBER_NO_SUBSCRIPTION: 'golden_ks_lifecycle_no_subscription',
+  KS_AGENT_CASH_STATES: 'golden_ks_d_agent_1',
+  KS_MEMBER_CONVERTED_LEAD: 'golden_ks_cash_converted_member',
   KS_STAFF_UNASSIGNED: 'golden_ks_staff_2',
   KS_AGENT_INACTIVE_LINK: 'golden_ks_b_agent_1',
   GLOBAL_SUPPORT: 'golden_global_support',

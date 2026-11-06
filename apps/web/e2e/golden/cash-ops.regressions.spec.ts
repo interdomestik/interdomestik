@@ -1,5 +1,6 @@
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
+import { CASH_STATE_ROW_TEXT } from '../utils/cash-states';
 import { gotoApp } from '../utils/navigation';
 
 /**
@@ -84,7 +85,10 @@ test.describe('Golden Flow: Cash Operations', () => {
     await expect(page.getByTestId('verification-ops-page')).toBeVisible();
 
     // 3. Content Check (Row OR Empty State)
-    const rows = page.getByTestId('cash-verification-row');
+    // Catalogued cash states are read-only baseline rows; this smoke check never rejects one.
+    const rows = page
+      .getByTestId('cash-verification-row')
+      .filter({ hasNotText: CASH_STATE_ROW_TEXT });
     const emptyState = page.getByTestId('ops-table-empty');
 
     await expect(rows.first().or(emptyState)).toBeVisible();

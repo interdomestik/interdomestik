@@ -1,7 +1,8 @@
 import { db, leadPaymentAttempts, notifications } from '@interdomestik/database';
-import { eq } from 'drizzle-orm';
+import { and, eq, notInArray } from 'drizzle-orm';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
+import { CASH_STATE_ATTEMPT_IDS, CASH_STATE_ROW_TEXT } from '../utils/cash-states';
 import { gotoApp } from '../utils/navigation';
 
 test.describe('Admin Verification Flow (Golden)', () => {
@@ -22,6 +23,7 @@ test.describe('Admin Verification Flow (Golden)', () => {
     const row = page
       .getByTestId('cash-verification-row')
       .filter({ has: page.getByRole('button', { name: /Details|Detajet/i }) }) // Ensure it has details button
+      .filter({ hasNotText: CASH_STATE_ROW_TEXT }) // Catalogued cash states stay read-only
       .first();
     await expect(row).toBeVisible();
 
@@ -78,7 +80,12 @@ test.describe('Admin Verification Flow (Golden)', () => {
     const [needsInfoAttempt] = await db
       .select()
       .from(leadPaymentAttempts)
-      .where(eq(leadPaymentAttempts.status, 'needs_info'))
+      .where(
+        and(
+          eq(leadPaymentAttempts.status, 'needs_info'),
+          notInArray(leadPaymentAttempts.id, [...CASH_STATE_ATTEMPT_IDS])
+        )
+      )
       .limit(1);
 
     if (needsInfoAttempt) {

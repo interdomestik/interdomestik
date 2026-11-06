@@ -1,4 +1,5 @@
 import { goldenId } from '../seed-utils/seed-ids';
+import { seedCashStates } from './cash-states';
 import { TENANTS } from './constants';
 import type { SeedGoldenContext } from './types';
 
@@ -23,7 +24,8 @@ export function buildLeadsToSeed() {
   ];
 }
 
-export async function seedLeads({ at, db, schema }: SeedGoldenContext) {
+export async function seedLeads(context: SeedGoldenContext) {
+  const { at, db, schema } = context;
   console.log('💰 Seeding Leads & Cash Pending (KS)...');
   const ksLeads = buildLeadsToSeed();
 
@@ -84,4 +86,6 @@ export async function seedLeads({ at, db, schema }: SeedGoldenContext) {
       createdAt: at(),
     })
     .onConflictDoNothing();
+
+  await seedCashStates(context);
 }
