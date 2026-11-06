@@ -4,7 +4,7 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull, ne } from 'drizzle-orm';
 
 export type AssignedStaffClaimDocument = {
   fileSize: number;
@@ -28,7 +28,7 @@ export function buildAssignedStaffDocumentUrl(documentId: string): string {
 
 /**
  * Ordinary claim evidence for the currently assigned staff member only. The staff role and the
- * exact claim + tenant + staffId assignment are checked inside the tenant transaction before any
+ * exact claim + tenant + staffId assignment of a submitted (non-draft) claim are checked inside the tenant transaction before any
  * document metadata is read. The document statement rechecks that assignment at its own snapshot;
  * every other viewer receives no documents and no links.
  */
@@ -48,7 +48,12 @@ export async function getAssignedStaffClaimDocuments(args: {
       .select({ id: claims.id })
       .from(claims)
       .where(
-        and(eq(claims.id, claimId), eq(claims.tenantId, tenantId), eq(claims.staffId, staffId))
+        and(
+          eq(claims.id, claimId),
+          eq(claims.tenantId, tenantId),
+          eq(claims.staffId, staffId),
+          ne(claims.caseLifecycleState, 'draft')
+        )
       )
       .limit(1);
     if (!assignment) return [];
@@ -67,7 +72,8 @@ export async function getAssignedStaffClaimDocuments(args: {
         and(
           eq(claims.id, claimDocuments.claimId),
           eq(claims.tenantId, tenantId),
-          eq(claims.staffId, staffId)
+          eq(claims.staffId, staffId),
+          ne(claims.caseLifecycleState, 'draft')
         )
       )
       .leftJoin(

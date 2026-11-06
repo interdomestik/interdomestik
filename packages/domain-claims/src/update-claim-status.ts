@@ -58,7 +58,9 @@ export async function updateClaimStatus(params: {
         .where(scopedWhere)
         .limit(1);
 
-      if (!existingClaim) {
+      // Staff never act on a member draft; it reaches staff only after submission.
+      const lifecycle = existingClaim?.caseLifecycleState;
+      if (!existingClaim || lifecycle == null || lifecycle === 'draft') {
         return { success: false, error: 'Claim not found or access denied', data: undefined };
       }
 

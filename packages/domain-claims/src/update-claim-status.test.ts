@@ -135,6 +135,18 @@ describe('updateClaimStatus', () => {
     );
   });
 
+  it('denies staff a member draft or a claim without a lifecycle without transitioning', async () => {
+    mocks.selectChain.limit.mockResolvedValueOnce([claimRow('draft')]);
+    await expect(call({ newStatus: 'submitted' })).resolves.toEqual(
+      failure('Claim not found or access denied')
+    );
+    mocks.selectChain.limit.mockResolvedValueOnce([
+      { ...claimRow('submitted'), caseLifecycleState: null },
+    ]);
+    await expect(call()).resolves.toEqual(failure('Claim not found or access denied'));
+    expect(mocks.transition).not.toHaveBeenCalled();
+  });
+
   it('maps command rejection without writing status directly', async () => {
     mocks.transition.mockResolvedValue({ success: false, error: 'transition_rejected' });
 
