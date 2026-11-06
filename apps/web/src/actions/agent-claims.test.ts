@@ -170,6 +170,7 @@ describe('Staff Claims Actions', () => {
           id: 'claim-1',
           title: 'Test Claim',
           status: 'submitted',
+          caseLifecycleState: 'submitted',
           staffId: 'staff-1',
           userId: 'user-1',
           userEmail: 'user@test.com',
