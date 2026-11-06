@@ -85,6 +85,7 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['notifications.json', 't410-notification-acknowledgement-i18n-contract'],
   ['membership.json', 's6-member-payment-recovery-i18n-contract'],
   ['admin-leads.json', 'cash-approval-fulfillment-i18n-contract'],
+  ['agent.json', 'acq-1b-lead-company-fields-i18n-contract'],
 ]);
 const GENERATED_EXACT_FILES = new Set([
   'bun.lockb',

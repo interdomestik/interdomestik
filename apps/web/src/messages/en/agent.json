@@ -400,6 +400,8 @@
         "source": "Source",
         "branch": "Branch",
         "notes": "Notes",
+        "company": "Company",
+        "team_size": "Team size",
         "next_step": "Next Step"
       },
       "statuses": {
