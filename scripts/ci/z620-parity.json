@@ -1,6 +1,7 @@
 {
   "version": 1,
   "workflowDigests": {
+    ".github/workflows/staging-runtime-attestation-enrol.yml": "164255dc6a63eadfcb4d06e74eb52aa080646e39f479ee02ec33e1ac8beb70c3",
     ".github/workflows/ci.yml": "709ef16b1211f89302660b6e30917da57c68b37d3426cf9a36427e5f9a768f46",
     ".github/workflows/security.yml": "4fb57012d21e9728ada15aee103fc8cbb35b048801353366b345498e6a97ff5b",
     ".github/workflows/e2e-pr.yml": "8de719069e85a68e9b7a37c907f7fcb88e7eb99e2798ce7a5d85882ae457ca3e",
@@ -10,6 +11,9 @@
     ".github/workflows/cd.yml": "53dcaeb63accf16af65584a9fd43902c7d84f00d7013e07d5a4217f17684f51b"
   },
   "workflows": {
+    ".github/workflows/staging-runtime-attestation-enrol.yml": {
+      "enrol": ["release-only", "GitHub manual staging enrolment"]
+    },
     ".github/workflows/ci.yml": {
       "validation-surface": ["policy", "pnpm validation-surface"],
       "audit": ["exact", "pnpm test:ci:contracts"],
