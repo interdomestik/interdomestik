@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -39,24 +40,16 @@ const CONTEXT = {
   GITHUB_RUN_ID: '123',
   GITHUB_RUN_ATTEMPT: '1',
 };
-const AUTHORITY = {
-  ...STAGING_AUTHORITY,
-  reviewed: true,
-  host: 'db.xjyseqtfuxcuviiankhy.supabase.co',
-  port: 5432,
-  database: 'postgres',
-  adminUser: 'postgres',
-  adminRole: 'postgres',
-  runtimeUser: 'interdomestik_runtime_rls',
-  caPem: '-----BEGIN CERTIFICATE-----\nAA==\n-----END CERTIFICATE-----\n',
-  identityProbeUserId: 'wIMVobA1WeEPIFzLnPMx7knwi7Za7F0e',
-};
-const HOST = 'db.xjyseqtfuxcuviiankhy.supabase.co';
+const AUTHORITY = STAGING_AUTHORITY;
+const UNREVIEWED = { ...STAGING_AUTHORITY, reviewed: false };
+const PRODUCTION_REF = 'gunosplgrvnvrftudttr';
+const CA_SHA256 = '700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7';
+const HOST = STAGING_AUTHORITY.host;
 const ADMIN_PASS = 'fixture-admin-pass';
 const RUNTIME_PASS = 'fixture-runtime-pass';
 const urlFor = (user, pass) => `postgresql://${user}:${pass}@${HOST}:5432/postgres`;
-const ADMIN_URL = urlFor('postgres', ADMIN_PASS);
-const RUNTIME_URL = urlFor('interdomestik_runtime_rls', RUNTIME_PASS);
+const ADMIN_URL = urlFor('postgres.xjyseqtfuxcuviiankhy', ADMIN_PASS);
+const RUNTIME_URL = urlFor('interdomestik_runtime_rls.xjyseqtfuxcuviiankhy', RUNTIME_PASS);
 
 const refusal = code => error => error?.code === code;
 
@@ -117,38 +110,59 @@ test('runner: the dispatch context is checked again before any connection', () =
     assert.throws(() => assertDispatchContext({ ...CONTEXT, ...change }, SHA), refusal(code));
 });
 
-test('runner: the committed authority is unreviewed, so enrolment fails closed today', () => {
-  assert.throws(
-    () => assertAuthorityReviewed(STAGING_AUTHORITY),
-    refusal('STAGING_AUTHORITY_UNREVIEWED')
-  );
-  assert.equal(STAGING_AUTHORITY.projectRef, 'xjyseqtfuxcuviiankhy');
+test('runner: the committed authority is the reviewed staging project, never production', () => {
+  assert.doesNotThrow(() => assertAuthorityReviewed(STAGING_AUTHORITY));
   assert.ok(Object.isFrozen(STAGING_AUTHORITY));
-  assert.doesNotThrow(() => assertAuthorityReviewed(AUTHORITY));
+  assert.deepEqual(
+    [STAGING_AUTHORITY.projectRef, STAGING_AUTHORITY.adminUser, STAGING_AUTHORITY.runtimeUser],
+    [
+      'xjyseqtfuxcuviiankhy',
+      'postgres.xjyseqtfuxcuviiankhy',
+      'interdomestik_runtime_rls.xjyseqtfuxcuviiankhy',
+    ]
+  );
+  assert.equal(JSON.stringify(STAGING_AUTHORITY).includes(PRODUCTION_REF), false);
+  assert.equal(
+    crypto.createHash('sha256').update(STAGING_AUTHORITY.caPem).digest('hex'),
+    CA_SHA256,
+    'the pinned CA is the reviewed Dashboard download'
+  );
+  assert.throws(() => assertAuthorityReviewed(UNREVIEWED), refusal('STAGING_AUTHORITY_UNREVIEWED'));
   for (const change of [{ caPem: null }, { port: null }, { identityProbeUserId: '' }])
     assert.throws(
       () => assertAuthorityReviewed({ ...AUTHORITY, ...change }),
       refusal('STAGING_AUTHORITY_INCOMPLETE')
     );
   assert.throws(
-    () => assertAuthorityReviewed({ ...AUTHORITY, runtimeUser: 'postgres' }),
+    () => assertAuthorityReviewed({ ...AUTHORITY, runtimeUser: 'postgres.xjyseqtfuxcuviiankhy' }),
     refusal('STAGING_AUTHORITY_ROLE_MISMATCH')
   );
+  for (const change of [
+    { adminUser: `postgres.${PRODUCTION_REF}` },
+    { runtimeUser: 'interdomestik_runtime_rls' },
+    { projectRef: PRODUCTION_REF },
+  ])
+    assert.throws(
+      () => assertAuthorityReviewed({ ...AUTHORITY, ...change }),
+      refusal('STAGING_AUTHORITY_PROJECT_MISMATCH')
+    );
 });
 
 test('runner: secret URLs must match the reviewed authority exactly', () => {
   assert.deepEqual(parseTarget(ADMIN_URL, AUTHORITY, 'ADMIN'), {
-    username: 'postgres',
+    username: 'postgres.xjyseqtfuxcuviiankhy',
     password: ADMIN_PASS,
   });
   assert.equal(
     parseTarget(RUNTIME_URL, AUTHORITY, 'RUNTIME').username,
-    'interdomestik_runtime_rls'
+    'interdomestik_runtime_rls.xjyseqtfuxcuviiankhy'
   );
   for (const [url, code] of [
     ['not a url', 'ADMIN_URL_INVALID'],
     [ADMIN_URL.replace('postgresql:', 'http:'), 'ADMIN_URL_INVALID'],
-    [ADMIN_URL.replace('db.xjy', 'db.gunos'), 'ADMIN_HOST_REJECTED'],
+    [ADMIN_URL.replace('aws-1-eu-west-1', 'aws-0-eu-central-1'), 'ADMIN_HOST_REJECTED'],
+    // The production admin login on the same shared pooler host (the 2026-11-06 staging secret).
+    [urlFor(`postgres.${PRODUCTION_REF}`, ADMIN_PASS), 'ADMIN_USER_REJECTED'],
     [ADMIN_URL.replace(':5432', ':6543'), 'ADMIN_PORT_REJECTED'],
     [`${ADMIN_URL}x`, 'ADMIN_DATABASE_REJECTED'],
     [urlFor('other', ADMIN_PASS), 'ADMIN_USER_REJECTED'],
@@ -169,7 +183,12 @@ test('runner: secret URLs must match the reviewed authority exactly', () => {
 test('runner: an unreviewed run records candidate facts, never connects, never records secrets', async () => {
   let connections = 0;
   const env = { ...CONTEXT, DATABASE_URL: ADMIN_URL, DATABASE_URL_RLS: RUNTIME_URL };
-  const receipt = await run({ env, headSha: SHA, connect: () => (connections += 1) });
+  const receipt = await run({
+    env,
+    headSha: SHA,
+    authority: UNREVIEWED,
+    connect: () => (connections += 1),
+  });
   assert.equal(connections, 0);
   assert.deepEqual(
     [receipt.ok, receipt.transaction, receipt.readback, receipt.code],
@@ -179,7 +198,11 @@ test('runner: an unreviewed run records candidate facts, never connects, never r
   assert.equal(receipt.candidate.admin.passwordPresent, true);
   const text = JSON.stringify(receipt);
   for (const secret of [ADMIN_PASS, RUNTIME_PASS]) assert.equal(text.includes(secret), false);
-  const outside = await run({ env: { ...env, GITHUB_REF: 'refs/heads/x' }, headSha: SHA });
+  const outside = await run({
+    env: { ...env, GITHUB_REF: 'refs/heads/x' },
+    headSha: SHA,
+    authority: UNREVIEWED,
+  });
   assert.deepEqual([outside.code, outside.candidate], ['REF_REJECTED', undefined]);
 });
 
@@ -202,8 +225,27 @@ test('runner: candidate facts copy only allowlisted shapes, never other URL cont
   );
   assert.equal(describeTarget(`${ADMIN_URL}?sslmode=require`).sslmode, 'require');
   const env = { ...CONTEXT, DATABASE_URL: odd[0], DATABASE_URL_RLS: odd[2] };
-  const receipt = await run({ env, headSha: SHA, connect: () => assert.fail('connected') });
+  const receipt = await run({
+    env,
+    headSha: SHA,
+    authority: UNREVIEWED,
+    connect: () => assert.fail('connected'),
+  });
   assert.equal(JSON.stringify(receipt).includes(CANARY), false);
+});
+
+test('runner: a reviewed run never connects with the production admin secret', async () => {
+  let connections = 0;
+  const env = {
+    ...CONTEXT,
+    DATABASE_URL: urlFor(`postgres.${PRODUCTION_REF}`, ADMIN_PASS),
+    DATABASE_URL_RLS: RUNTIME_URL,
+  };
+  const receipt = await run({ env, headSha: SHA, connect: () => (connections += 1) });
+  assert.deepEqual(
+    [connections, receipt.ok, receipt.transaction, receipt.code, receipt.candidate],
+    [0, false, 'not_started', 'ADMIN_USER_REJECTED', undefined]
+  );
 });
 
 test('runner: the receipt path is built from numeric run ids only', () => {
