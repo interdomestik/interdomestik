@@ -1,126 +1,140 @@
+import { db, leadPaymentAttempts, memberLeads } from '@interdomestik/database';
+import { eq } from 'drizzle-orm';
+import en from '../../src/messages/en/agent.json';
+import mk from '../../src/messages/mk/agent.json';
+import sq from '../../src/messages/sq/agent.json';
+import sr from '../../src/messages/sr/agent.json';
 import { expect, test } from '../fixtures/auth.fixture';
+import { getTenantFromTestInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
-import { CASH_STATE_ROW_TEXT } from '../utils/cash-states';
+import { messagesFor } from '../utils/locale-messages';
 import { gotoApp } from '../utils/navigation';
+import {
+  insertOwnedMemberLead,
+  removeOwnedMemberLead,
+  type OwnedLead,
+} from '../utils/owned-member-lead';
 
 /**
- * Cash Ops Regressions (Golden Flow)
+ * Cash Ops Regressions (Golden Flow): Pay Cash -> branch manager approval -> member conversion,
+ * and an admin rejection.
  *
- * Covers: Lead Creation -> Cash Payment -> BM Verification -> Admin Queue
+ * The agent workspace has no manual member-lead creation today (CreateLeadDialog is unmounted), so
+ * each flow starts from a member lead the test owns, assigned to the signed-in agent's branch. Each
+ * lead is removed after the run with everything derived from it (attempts, converted member), so
+ * the seeded branch counts (PC04) and reports never see it and reruns do not accumulate members.
  */
+async function attemptStatuses(leadId: string): Promise<string[]> {
+  const rows = await db
+    .select({ status: leadPaymentAttempts.status })
+    .from(leadPaymentAttempts)
+    .where(eq(leadPaymentAttempts.leadId, leadId));
+  return rows.map(row => row.status);
+}
+
+function queueRow(page: import('@playwright/test').Page, email: string) {
+  return page
+    .getByTestId('cash-verification-row')
+    .filter({ visible: true })
+    .filter({ has: page.getByText(email, { exact: true }) });
+}
+
 test.describe('Golden Flow: Cash Operations', () => {
-  // Use serial mode because tests depend on data created in previous steps
   test.describe.configure({ mode: 'serial' });
 
-  let sharedLeadEmail: string;
+  let paid: OwnedLead | undefined;
 
-  test('1. Agent: Create lead and initiate cash payment', async ({ agentPage: page }, testInfo) => {
-    sharedLeadEmail = `smoke.balkan.${Date.now()}@test.com`;
+  test.afterAll(async () => {
+    await removeOwnedMemberLead(paid);
+  });
 
-    // 1. Navigate to leads page
-    await gotoApp(page, routes.agentLeads(testInfo), testInfo, { marker: 'page-ready' });
+  test('1. Agent: start a cash payment on an owned new lead', async ({
+    agentPage: page,
+  }, testInfo) => {
+    const t = messagesFor({ en, mk, sq, sr }, testInfo).agent.leads_pro;
+    paid = await insertOwnedMemberLead(
+      getTenantFromTestInfo(testInfo) === 'mk' ? 'mk' : 'ks',
+      'e2e_cash_ops_paid',
+      'Cash paid'
+    );
 
-    // 2. Create New Lead
-    await page.getByTestId('new-lead-button').click();
-
-    const form = page.getByTestId('create-lead-form');
-    await expect(form).toBeVisible();
-
-    await form.getByTestId('lead-form-firstname').fill('Smoke');
-    await form.getByTestId('lead-form-lastname').fill('Test');
-    await form.getByTestId('lead-form-email').fill(sharedLeadEmail);
-    await form.getByTestId('lead-form-phone').fill('+38970888888');
-    await form.getByTestId('lead-form-submit').click();
-
-    // 3. Verify Lead created and in list
-    // gotoApp handles wait for marker, but here we just submitted a form
-    await expect(form).toBeHidden({ timeout: 15000 });
-
-    const row = page.getByTestId('lead-row').filter({ hasText: sharedLeadEmail }).first();
+    await gotoApp(page, routes.agentLeads(testInfo), testInfo, { marker: 'agent-leads-pro' });
+    const row = page.locator(`[data-testid="lead-row-${paid.id}"]`).filter({ visible: true });
     await expect(row).toBeVisible({ timeout: 15000 });
+    await row.click();
 
-    // 4. Initiate Cash Payment
-    await row.click(); // Open drawer
     const drawer = page.getByRole('dialog');
     await expect(drawer).toBeVisible();
-
-    // Revel secondary actions
-    await drawer.getByTestId('more-actions-button').click();
-
-    const payBtn = drawer.getByTestId('pay-cash-button');
-    await expect(payBtn).toBeVisible();
-    await payBtn.click();
-
-    // 5. Verify status changed to Waiting Approval (PAYMENT PENDING in UI)
-    await expect(drawer.getByTestId('ops-status-badge')).toContainText(/PAYMENT PENDING/i, {
-      timeout: 10000,
-    });
+    await drawer.getByRole('button', { name: t.more_actions }).click();
+    await drawer.getByTestId('pay-cash-button').click();
+    await expect(page.getByText(t.toasts.payment_requested)).toBeVisible();
+    await expect(drawer.getByTestId('ops-status-badge')).toHaveText(t.statuses.payment_pending);
+    await expect.poll(() => attemptStatuses(paid!.id)).toEqual(['pending']);
   });
 
-  test('2. Branch Manager: Verify cash payment', async ({ branchManagerPage: page }, testInfo) => {
-    // 1. Navigate to Verification Queue (Admin Leads page)
-    await gotoApp(page, routes.adminLeads(testInfo), testInfo, { marker: 'page-ready' });
-
-    // 2. Find the row for our lead
-    const row = page
-      .getByTestId('cash-verification-row')
-      .filter({ hasText: sharedLeadEmail })
-      .first();
-    await expect(row).toBeVisible({ timeout: 15000 });
-
-    // 3. Approve
-    await row.getByTestId('cash-approve').click();
-
-    // 4. Verify Success (Row should disappear from queue)
-    await expect(row).toBeHidden({ timeout: 10000 });
-  });
-
-  test('3. Cash Ops: Verification queue loads and allows processing (Admin)', async ({
-    adminPage: page,
+  test('2. Branch Manager: approve the cash payment and convert the lead', async ({
+    branchManagerPage: page,
   }, testInfo) => {
-    // 1. Navigate to Verification Center
-    await gotoApp(page, routes.adminLeads(testInfo), testInfo, { marker: 'page-ready' });
+    expect(paid, 'lead from step 1').toBeTruthy();
+    const params = new URLSearchParams({ query: paid!.email });
+    await gotoApp(page, `${routes.adminLeads(testInfo)}?${params}`, testInfo, {
+      marker: 'verification-ops-page',
+    });
+    const row = queueRow(page, paid!.email);
+    await expect(row).toHaveCount(1);
+    await row.getByTestId('cash-approve').click();
+    await expect(row).toHaveCount(0, { timeout: 10000 });
 
-    // 2. VERIFY ROUTING: Check Page Title/Header
-    await expect(page.getByTestId('verification-ops-page')).toBeVisible();
+    await expect.poll(() => attemptStatuses(paid!.id)).toEqual(['succeeded']);
+    await expect
+      .poll(async () => {
+        const [lead] = await db
+          .select({ status: memberLeads.status, convertedUserId: memberLeads.convertedUserId })
+          .from(memberLeads)
+          .where(eq(memberLeads.id, paid!.id));
+        return lead?.status === 'converted' && lead.convertedUserId !== null;
+      })
+      .toBe(true);
+  });
 
-    // 3. Content Check (Row OR Empty State)
-    // Catalogued cash states are read-only baseline rows; this smoke check never rejects one.
-    const rows = page
-      .getByTestId('cash-verification-row')
-      .filter({ hasNotText: CASH_STATE_ROW_TEXT });
-    const emptyState = page.getByTestId('ops-table-empty');
+  test('3. Admin: reject an owned pending cash payment', async ({ adminPage: page }, testInfo) => {
+    const tenant = getTenantFromTestInfo(testInfo) === 'mk' ? 'mk' : 'ks';
+    const rejected = await insertOwnedMemberLead(tenant, 'e2e_cash_ops_rejected', 'Cash rejected');
+    try {
+      const [lead] = await db
+        .select({ tenantId: memberLeads.tenantId })
+        .from(memberLeads)
+        .where(eq(memberLeads.id, rejected.id));
+      await db.insert(leadPaymentAttempts).values({
+        id: `${rejected.id}_attempt`,
+        tenantId: lead.tenantId,
+        leadId: rejected.id,
+        method: 'cash',
+        status: 'pending',
+        amount: 15000,
+      });
+      await db
+        .update(memberLeads)
+        .set({ status: 'payment_pending' })
+        .where(eq(memberLeads.id, rejected.id));
 
-    await expect(rows.first().or(emptyState)).toBeVisible();
+      const params = new URLSearchParams({ query: rejected.email });
+      await gotoApp(page, `${routes.adminLeads(testInfo)}?${params}`, testInfo, {
+        marker: 'verification-ops-page',
+      });
+      const row = queueRow(page, rejected.email);
+      await expect(row).toHaveCount(1);
+      await row.getByTestId('cash-reject').click();
 
-    if ((await rows.count()) > 0) {
-      console.log('Verification queue has items, testing processing logic...');
-
-      // Try to reject the first one (not necessarily our lead from step 1 since it's already approved)
-      const firstRow = rows.first();
-
-      // We expect this row to disappear after rejection
-      await firstRow.getByTestId('cash-reject').click();
-
-      // Handle Dialog
       const dialog = page.getByRole('dialog');
       await expect(dialog).toBeVisible();
-      await dialog
-        .getByTestId('verification-action-note')
-        .fill('Rejecting for E2E test smoke check.');
+      await dialog.getByTestId('verification-action-note').fill('Rejecting for E2E test.');
       await dialog.getByTestId('verification-action-submit').click();
-
       await expect(dialog).toBeHidden();
-
-      // Force reload to ensure fresh data from server (handles potential UI sync issues)
-      await page.reload();
-      await page.waitForLoadState('domcontentloaded');
-
-      // Wait for the specific row to be removed from the DOM
-      await expect(firstRow).toBeHidden({ timeout: 10000 });
-    } else {
-      console.log('Verification queue is empty (contract fulfilled).');
-      await expect(emptyState).toBeVisible();
+      await expect(row).toHaveCount(0, { timeout: 10000 });
+      await expect.poll(() => attemptStatuses(rejected.id)).toEqual(['rejected']);
+    } finally {
+      await removeOwnedMemberLead(rejected);
     }
   });
 });

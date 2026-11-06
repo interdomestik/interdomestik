@@ -9,12 +9,12 @@ test.describe('Verification Details Ops (Golden)', () => {
     await gotoApp(page, routes.adminLeads(testInfo), testInfo, { marker: 'verification-ops-page' });
 
     // 2. Locate and open first item
-    const detailsBtn = page.getByTestId('verification-details-button').first();
-
-    if (!(await detailsBtn.isVisible())) {
-      test.skip(true, 'No verification requests available to test details drawer');
-      return;
-    }
+    // Every tenant's golden seed has open cash requests, so a details button must be present.
+    const detailsBtn = page
+      .getByTestId('verification-details-button')
+      .filter({ visible: true })
+      .first();
+    await expect(detailsBtn).toBeVisible();
 
     await detailsBtn.click();
 

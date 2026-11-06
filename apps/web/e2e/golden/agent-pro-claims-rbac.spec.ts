@@ -1,54 +1,56 @@
 import { expect, test } from '../fixtures/auth.fixture';
+import { getTenantFromTestInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+
+// Seeded claims of each tenant's signed-in agent (golden seed `buildClaimsToSeed`), and a claim of
+// the other tenant that the agent must never open.
+const LINKED_CLAIM = {
+  ks: { id: 'golden_ks_a_claim_01', title: 'KS-A SUBMITTED Claim 1' },
+  mk: { id: 'golden_mk_track_claim_001', title: 'MK Deterministic Claim' },
+} as const;
+const CROSS_TENANT_CLAIM_ID = { ks: 'golden_claim_mk_1', mk: 'golden_ks_b_claim_01' } as const;
 
 test.describe('Agent Pro Claims RBAC (Golden)', () => {
   test('Agent CAN access linked member claim but CANNOT access unlinked claim', async ({
     agentPage: page,
   }, testInfo) => {
-    // 1. Navigate to Claims Workspace
-    await gotoApp(page, routes.agentWorkspaceClaims(testInfo), testInfo, {
+    const tenant = getTenantFromTestInfo(testInfo) === 'mk' ? 'mk' : 'ks';
+    const linked = LINKED_CLAIM[tenant];
+    const claimsUrl = routes.agentWorkspaceClaims(testInfo);
+    await gotoApp(page, claimsUrl, testInfo, { marker: 'agent-claims-pro-page' });
+
+    // The router keeps a hidden copy of a revisited page, so the table is read where visible.
+    const table = page.getByTestId('ops-table').filter({ visible: true });
+    const drawerContent = page.getByTestId('ops-drawer-content');
+    const selectedClaimId = drawerContent.getByTestId('workspace-selected-claim-id');
+
+    // --- POSITIVE CASE (linked claim, opened from its row) ---
+    const linkedRow = table.getByTestId('claim-row').filter({ hasText: linked.title });
+    await expect(linkedRow).toHaveCount(1);
+    await linkedRow.click();
+    await expect(selectedClaimId).toHaveText(linked.id);
+
+    await page
+      .getByTestId('action-message')
+      .first()
+      .evaluate(el => (el as HTMLElement).click());
+    await expect(page.getByTestId('messaging-panel')).toBeVisible();
+
+    await page.getByTestId('sheet-close-button').evaluate((el: HTMLElement) => el.click());
+    await expect(drawerContent).not.toBeVisible();
+
+    // --- URL-forced drawer: the agent's own claim opens, so the refusal below comes from the
+    // tenant filter and not from a URL parameter that never opens anything. ---
+    await gotoApp(page, `${claimsUrl}?selected=${linked.id}`, testInfo, {
       marker: 'agent-claims-pro-page',
     });
+    await expect(selectedClaimId).toHaveText(linked.id);
 
-    const table = page.getByTestId('ops-table');
-    const drawerContent = page.getByTestId('ops-drawer-content');
-
-    // --- POSITIVE CASE (Linked Claim) ---
-    // Seeded data usually has specific titles for KS vs MK
-    const isMK = testInfo.project.name.includes('mk');
-    const linkedClaimTitle = isMK ? 'MK SUBMITTED Claim 1' : 'KS-A SUBMITTED Claim 1';
-    const linkedRow = table.getByTestId('claim-row').filter({ hasText: linkedClaimTitle }).first();
-
-    if (await linkedRow.isVisible()) {
-      await linkedRow.click();
-      await expect(drawerContent).toBeVisible();
-
-      // Switch to Messaging view
-      await page
-        .getByTestId('action-message')
-        .first()
-        .evaluate(el => (el as HTMLElement).click());
-
-      // Verify Messaging Panel
-      const messagingPanel = page.getByTestId('messaging-panel');
-      await expect(messagingPanel).toBeVisible();
-
-      // Close drawer
-      // Close drawer via button (more robust than Escape)
-      await page.getByTestId('sheet-close-button').evaluate((el: HTMLElement) => el.click());
-      await expect(drawerContent).not.toBeVisible();
-    }
-
-    // --- NEGATIVE CASE (Cross-Tenant Claim) ---
-    // Agent should never see claims from another tenant
-    const crossTenantClaimId = isMK ? 'golden_ks_b_claim_01' : 'golden_claim_mk_1';
-
-    // Attempt to force-open the drawer via URL parameter for the cross-tenant claim
-    const targetUrl = `${routes.agentWorkspaceClaims(testInfo)}?selected=${crossTenantClaimId}`;
-    await gotoApp(page, targetUrl, testInfo, { marker: 'agent-claims-pro-page' });
-
-    // Drawer content should NOT be visible because server-side query filters it out by tenant
+    // --- NEGATIVE CASE (cross-tenant claim) ---
+    await gotoApp(page, `${claimsUrl}?selected=${CROSS_TENANT_CLAIM_ID[tenant]}`, testInfo, {
+      marker: 'agent-claims-pro-page',
+    });
     await expect(drawerContent).not.toBeVisible();
   });
 });

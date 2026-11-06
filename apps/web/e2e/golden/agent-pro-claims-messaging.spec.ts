@@ -22,10 +22,8 @@ test.describe('Agent Pro Claims Messaging (Golden)', () => {
 
     const rowToClick = (await specificRow.isVisible()) ? specificRow : firstRow;
 
-    if (!(await rowToClick.isVisible())) {
-      test.skip(true, 'No claims available to test messaging');
-      return;
-    }
+    // Every tenant's signed-in agent has seeded claims, so a row must be present.
+    await expect(rowToClick).toBeVisible();
 
     await rowToClick.click();
 
