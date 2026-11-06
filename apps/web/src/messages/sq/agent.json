@@ -369,6 +369,39 @@
       "success": "Aktiviteti u regjistrua"
     },
     "leads_pro": {
+      "create": {
+        "trigger": "Lead i ri",
+        "title": "Lead i ri",
+        "description": "Regjistroni një person ose kompani që kërkoi të kontaktohet për anëtarësim.",
+        "kind": {
+          "label": "Lloji i lead-it",
+          "individual": "Individ",
+          "company": "Kompani"
+        },
+        "fields": {
+          "firstName": "Emri",
+          "lastName": "Mbiemri",
+          "email": "Adresa e email-it",
+          "phone": "Telefoni",
+          "notes": "Shënime",
+          "companyName": "Emri i kompanisë",
+          "teamSize": "Numri i punonjësve",
+          "teamSizePlaceholder": "Zgjidhni numrin e punonjësve"
+        },
+        "notice": {
+          "title": "Si i përdorim këto të dhëna",
+          "body": "Interdomestik përdor emrin, numrin e telefonit dhe email-in, si dhe emrin e kompanisë dhe numrin e punonjësve nëse jepen, vetëm për ta kontaktuar këtë person rreth anëtarësimit në Interdomestik dhe për të përgatitur një ofertë. Nuk i shesim këto të dhëna dhe nuk i ndajmë për reklama. Nëse personi nuk bëhet anëtar, i fshijmë pas 12 muajsh. Personi mund të na kërkojë në çdo kohë të mos e kontaktojmë më, ose t'i shohë, korrigjojë apo fshijë të dhënat e tij, përmes agjentit ose kontaktit tonë për privatësinë.",
+          "company": "Ky lead është personi kontaktues i kompanisë dhe mbulon vetëm të dhënat e tij. Çdo punonjës vendos vetë nëse anëtarësohet.",
+          "attestation": "Ia tregova ose ia lexova këtë njoftim personit dhe ai/ajo kërkoi të kontaktohet për anëtarësim."
+        },
+        "submit": "Krijo lead-in",
+        "submitting": "Duke krijuar…",
+        "success": "Lead-i u krijua",
+        "errors": {
+          "duplicate": "Ekziston tashmë një lead me këtë email. Duhet shqyrtuar para se të krijohet një i ri.",
+          "generic": "Lead-i nuk u krijua. Provoni përsëri."
+        }
+      },
       "back_to_members": "Kthehu te anëtarët",
       "title": "Lead-et",
       "subtitle": "Menaxho dhe gjurmo të gjithë lead-et e tu.",
