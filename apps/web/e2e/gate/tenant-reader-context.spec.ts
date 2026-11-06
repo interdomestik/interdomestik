@@ -22,7 +22,7 @@ const GATE_SEEDS: Record<string, GateSeed> = {
     member: {
       id: 'golden_ks_a_member_1',
       name: 'KS A-Member 1',
-      email: 'member.ks.a1@interdomestik.com',
+      email: E2E_USERS.KS_MEMBER.email,
     },
     lead: {
       attemptId: 'golden_attempt_ks_a_cash_lead_1',

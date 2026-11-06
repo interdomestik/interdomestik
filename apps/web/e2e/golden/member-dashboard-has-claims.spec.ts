@@ -1,4 +1,4 @@
-import { E2E_PASSWORD } from '@interdomestik/database';
+import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
@@ -6,7 +6,7 @@ import { gotoApp } from '../utils/navigation';
 test.describe('Portal with cases', () => {
   test('keeps safe Case and Updates projections', async ({ page }, testInfo) => {
     const isMk = testInfo.project.name.includes('mk');
-    const email = isMk ? 'member.mk.1@interdomestik.com' : 'member.tracking.ks@interdomestik.com';
+    const email = (isMk ? E2E_USERS.MK_MEMBER : E2E_USERS.KS_MEMBER_TRACKING).email;
     const origin = new URL(String(testInfo.project.use.baseURL)).origin;
     const login = await page.request.post(`${origin}/api/auth/sign-in/email`, {
       data: { email, password: E2E_PASSWORD },

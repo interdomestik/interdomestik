@@ -1,4 +1,4 @@
-import { E2E_PASSWORD } from '@interdomestik/database';
+import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import {
   assertSmokeBaselineRestored,
@@ -10,10 +10,10 @@ import {
 import { routes } from './routes';
 import { gotoApp } from './utils/navigation';
 
-const MEMBER_KS = { email: 'member.ks.a1@interdomestik.com', password: E2E_PASSWORD };
-const MEMBER_MK = { email: 'member.mk.1@interdomestik.com', password: E2E_PASSWORD };
-const ADMIN_KS = { email: 'admin.ks@interdomestik.com', password: E2E_PASSWORD };
-const ADMIN_MK = { email: 'admin.mk@interdomestik.com', password: E2E_PASSWORD };
+const MEMBER_KS = { email: E2E_USERS.KS_MEMBER.email, password: E2E_PASSWORD };
+const MEMBER_MK = { email: E2E_USERS.MK_MEMBER.email, password: E2E_PASSWORD };
+const ADMIN_KS = { email: E2E_USERS.KS_ADMIN.email, password: E2E_PASSWORD };
+const ADMIN_MK = { email: E2E_USERS.MK_ADMIN.email, password: E2E_PASSWORD };
 const RUN_ID = Date.now();
 let savedDraftId: string | null = null;
 let retainedSmokeOwner: SmokeOwnerBaseline | null = null;

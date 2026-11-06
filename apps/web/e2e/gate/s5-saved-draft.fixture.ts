@@ -29,8 +29,8 @@ export type S5Session = { page: Page; token: string };
 
 // Golden-seeded active member in the same tenant as E2E_USERS.KS_MEMBER.
 export const KS_MEMBER_A2: S5Member = {
-  email: 'member.ks.a2@interdomestik.com',
-  tenantId: E2E_USERS.KS_MEMBER.tenantId,
+  email: E2E_USERS.KS_MEMBER_A2.email,
+  tenantId: E2E_USERS.KS_MEMBER_A2.tenantId,
 };
 
 // The free-start and secure-save surface is served on the neutral IDA host.

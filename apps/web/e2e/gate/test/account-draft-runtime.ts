@@ -35,7 +35,7 @@ export function neutralTarget(info: TestInfo) {
   } as TestInfo;
 }
 export async function unpaidOwner(secondary = false) {
-  const email = secondary ? 'member.ks.a3@interdomestik.com' : E2E_USERS.KS_MEMBER_EMPTY.email;
+  const email = (secondary ? E2E_USERS.KS_MEMBER_A3 : E2E_USERS.KS_MEMBER_EMPTY).email;
   const rows = await db.query.user.findMany({
     columns: { id: true, role: true, tenantId: true, emailVerified: true },
     where: and(eq(user.email, email), eq(user.tenantId, 'tenant_ks')),
@@ -92,7 +92,7 @@ export async function normalMemberLogin(
   try {
     await page
       .getByTestId('login-email')
-      .fill(secondary ? 'member.ks.a3@interdomestik.com' : E2E_USERS.KS_MEMBER_EMPTY.email);
+      .fill((secondary ? E2E_USERS.KS_MEMBER_A3 : E2E_USERS.KS_MEMBER_EMPTY).email);
     await page.getByTestId('login-password').fill(E2E_PASSWORD);
     const password = page.waitForResponse(
       r =>

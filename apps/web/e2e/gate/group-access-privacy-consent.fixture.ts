@@ -33,8 +33,8 @@ function isMkProject(testInfo: TestInfo): boolean {
 function getOfficeSeededAgent(testInfo: TestInfo): OfficeSeededAgent {
   return {
     email: isMkProject(testInfo)
-      ? 'agent.balkan.1@interdomestik.com'
-      : 'agent.ks.b1@interdomestik.com',
+      ? E2E_USERS.MK_AGENT_BALKAN.email
+      : E2E_USERS.KS_AGENT_INACTIVE_LINK.email,
   };
 }
 
