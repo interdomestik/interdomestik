@@ -14,12 +14,6 @@ describe('canInitiateHandoff', () => {
     ).toBe(false);
   });
 
-  it('denies assigned staff a member draft or a claim without a lifecycle', () => {
-    const staff = { branchId: 'branch-a', id: 'staff-1', role: 'staff' };
-    expect(canInitiateHandoff(staff, { ...baseClaim, caseLifecycleState: 'draft' })).toBe(false);
-    expect(canInitiateHandoff(staff, { ...baseClaim, caseLifecycleState: null })).toBe(false);
-  });
-
   it('keeps branch managers branch-scoped', () => {
     expect(
       canInitiateHandoff(

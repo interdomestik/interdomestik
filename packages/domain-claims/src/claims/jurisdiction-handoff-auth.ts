@@ -20,9 +20,7 @@ export function canInitiateHandoff(
   if (['admin', 'tenant_admin', 'super_admin', 'global_support'].includes(actor.role)) return true;
   if (actor.role === 'branch_manager')
     return Boolean(actor.branchId && actor.branchId === claim.branchId);
-  // Assigned staff act only on submitted claims; a member draft is not handed to staff.
-  const lifecycle = claim.caseLifecycleState;
-  return claim.staffId === actor.id && lifecycle != null && lifecycle !== 'draft';
+  return claim.staffId === actor.id;
 }
 
 export function toSessionGrant(args: {

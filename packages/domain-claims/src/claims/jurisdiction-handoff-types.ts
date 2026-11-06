@@ -4,7 +4,6 @@ export type HandoffTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export type HandoffClaimRow = {
   branchId: string | null;
-  caseLifecycleState: string | null;
   incidentCountryCode: string | null;
   lifecycleVersion: number;
   recoveryLegalTenantId: string | null;

@@ -9,8 +9,6 @@ import { isMemberUploadRole } from './member-upload-role';
 
 type ClaimScopeRecord = {
   branchId?: string | null;
-  /** Required so the staff check always sees the lifecycle: a member draft is not staff work. */
-  caseLifecycleState: string | null;
   staffId?: string | null;
 };
 type MemberClaimOwnershipRecord = {
@@ -21,7 +19,8 @@ const FULL_TENANT_CLAIMS_ROLES = new Set(['admin', 'tenant_admin', 'super_admin'
 
 export function canAccessClaimFromAdminUploadSurface(args: {
   branchId?: string | null;
-  claim: ClaimScopeRecord;
+  // The lifecycle is required so the staff check always sees it: a member draft is not staff work.
+  claim: ClaimScopeRecord & { caseLifecycleState: string | null };
   role: string | null | undefined;
   userId: string;
 }): boolean {
@@ -62,7 +61,7 @@ export async function findAccessibleAdminUploadClaim(args: {
   role: string | null | undefined;
   authority: TenantAuthority;
   userId: string;
-}): Promise<ClaimScopeRecord | null> {
+}): Promise<(ClaimScopeRecord & { caseLifecycleState: string | null }) | null> {
   const { tenantId } = readTenantAuthority(args.authority);
   const claim = await withTenantAuthority(args.authority, tx =>
     tx.query.claims.findFirst({
