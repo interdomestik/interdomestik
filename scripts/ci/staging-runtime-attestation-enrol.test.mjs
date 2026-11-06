@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +9,7 @@ import yaml from 'js-yaml';
 
 import {
   assertAuthorityReviewed,
+  checkedOutSha,
   assertDispatchContext,
   connectionOptions,
   describeTarget,
@@ -213,6 +215,21 @@ test('runner: the receipt path is built from numeric run ids only', () => {
     receiptPath('/r', { GITHUB_RUN_ID: '../../etc', GITHUB_RUN_ATTEMPT: '1' }),
     path.join('/r', 'tmp/runtime-attestation-enrol/invalid-run/receipt.json')
   );
+});
+
+test('runner: the checkout commit comes from a detached .git/HEAD only', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enrol-head-'));
+  try {
+    assert.equal(checkedOutSha(root), null);
+    fs.mkdirSync(path.join(root, '.git'));
+    fs.writeFileSync(path.join(root, '.git', 'HEAD'), `${SHA}\n`);
+    assert.equal(checkedOutSha(root), SHA);
+    fs.writeFileSync(path.join(root, '.git', 'HEAD'), 'ref: refs/heads/main\n');
+    assert.equal(checkedOutSha(root), null);
+    assert.throws(() => assertDispatchContext(CONTEXT, null), refusal('CHECKOUT_SHA_MISMATCH'));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('expectation: the enrolled marker is a single well-formed staging label', () => {

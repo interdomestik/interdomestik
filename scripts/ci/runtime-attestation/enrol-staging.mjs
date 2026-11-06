@@ -4,7 +4,6 @@
 // verifies both identities, runs the enrolment and the restricted readback, and writes one sanitized
 // receipt. Fixed codes only: no URL, credential, option or driver text is ever printed or written.
 
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -26,7 +25,7 @@ const AUTHORITY_FIELDS = [
   'runtimeUser',
   'caPem',
 ];
-const RUN_ID = /^[1-9][0-9]{0,19}$/u;
+const RUN_ID = /^[1-9]\d{0,19}$/u;
 
 const refuse = code => {
   throw new EnrolError(code);
@@ -220,6 +219,19 @@ export async function run({ env, headSha, connect = options => postgres(options)
   return receipt;
 }
 
+/**
+ * The detached checkout's commit, read from .git/HEAD without running a program. A symbolic HEAD
+ * (a branch checkout) yields null, which the dispatch check refuses.
+ */
+export function checkedOutSha(root) {
+  try {
+    const head = fs.readFileSync(path.join(root, '.git', 'HEAD'), 'utf8').trim();
+    return /^[0-9a-f]{40}$/u.test(head) ? head : null;
+  } catch {
+    return null;
+  }
+}
+
 export function receiptPath(root, env) {
   if (!RUN_ID.test(env.GITHUB_RUN_ID ?? '') || !RUN_ID.test(env.GITHUB_RUN_ATTEMPT ?? ''))
     return path.join(root, 'tmp/runtime-attestation-enrol/invalid-run/receipt.json');
@@ -229,7 +241,7 @@ export function receiptPath(root, env) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = process.cwd();
-  const headSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  const headSha = checkedOutSha(root);
   const receipt = await run({ env: process.env, headSha });
   const out = receiptPath(root, process.env);
   fs.mkdirSync(path.dirname(out), { recursive: true });

@@ -17,12 +17,11 @@ const API_ROLES = ['anon', 'authenticated', 'service_role'];
 const LEDGER_COLUMNS = 'created_at,hash,id';
 // Privilege names are known for these majors only (17 added MAINTAIN); newer servers are refused.
 const SUPPORTED_SERVER = { min: 150000, max: 179999 };
-const BOUNDS = [
-  'SET LOCAL statement_timeout = 5000',
-  'SET LOCAL lock_timeout = 3000',
-  'SET LOCAL idle_in_transaction_session_timeout = 10000',
-  'SET LOCAL search_path = pg_catalog, pg_temp',
-];
+// Transaction-local bounds (SET LOCAL equivalents) applied in one statement.
+const BOUNDS = `SELECT pg_catalog.set_config('statement_timeout', '5000', true),
+  pg_catalog.set_config('lock_timeout', '3000', true),
+  pg_catalog.set_config('idle_in_transaction_session_timeout', '10000', true),
+  pg_catalog.set_config('search_path', 'pg_catalog, pg_temp', true)`;
 const ADVISORY_LOCK =
   "SELECT pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('" + ENROL_OPERATION + "'))";
 
@@ -141,10 +140,9 @@ async function createMarker(tx, role, marker) {
   await tx.unsafe('REVOKE ALL ON TABLE runtime_attestation.backend_marker FROM PUBLIC');
   const present =
     await tx`SELECT rolname::text AS name FROM pg_catalog.pg_roles WHERE rolname IN ${tx(API_ROLES)}`;
-  for (const grantee of [...present.map(row => row.name), role]) {
-    await tx`REVOKE ALL ON SCHEMA runtime_attestation FROM ${tx(grantee)}`;
-    await tx`REVOKE ALL ON TABLE runtime_attestation.backend_marker FROM ${tx(grantee)}`;
-  }
+  const grantees = [...present.map(row => row.name), role];
+  await tx`REVOKE ALL ON SCHEMA runtime_attestation FROM ${tx(grantees)}`;
+  await tx`REVOKE ALL ON TABLE runtime_attestation.backend_marker FROM ${tx(grantees)}`;
   await tx`GRANT USAGE ON SCHEMA runtime_attestation TO ${tx(role)}`;
   await tx`GRANT SELECT ON TABLE runtime_attestation.backend_marker TO ${tx(role)}`;
 }
@@ -172,7 +170,7 @@ export async function enrolStaging(admin, { role, marker }) {
   try {
     assertEnrolInputs({ role, marker });
     const result = await admin.begin(async tx => {
-      for (const bound of BOUNDS) await tx.unsafe(bound);
+      await tx.unsafe(BOUNDS);
       await tx.unsafe(ADVISORY_LOCK);
       await rolePosture(tx, role);
       const [{ present }] = await tx`
@@ -204,7 +202,7 @@ export async function enrolStaging(admin, { role, marker }) {
 export async function readBack(restricted, { role, marker }) {
   try {
     return await restricted.begin('read only', async tx => {
-      for (const bound of BOUNDS) await tx.unsafe(bound);
+      await tx.unsafe(BOUNDS);
       const [id] =
         await tx`SELECT session_user::text AS "session", current_user::text AS "current"`;
       if (id.session !== role || id.current !== role) refuse('READBACK_IDENTITY_MISMATCH');
