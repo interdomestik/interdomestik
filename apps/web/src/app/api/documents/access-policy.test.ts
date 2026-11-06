@@ -4,7 +4,10 @@ import {
   hasCaseScopedDocumentGrant,
   hasScopedClaimReadAccess,
   isFullTenantClaimsRole,
+  isStaffBlockedFromClaim,
 } from './access-policy';
+
+const SUBMITTED = { caseLifecycleState: 'submitted' };
 
 describe('document access policy', () => {
   it('treats global support as selected-tenant read, not legal-entity mutation', () => {
@@ -57,7 +60,7 @@ describe('document access policy', () => {
     expect(
       hasScopedClaimReadAccess({
         branchId: 'branch-1',
-        claim: { branchId: 'branch-1', staffId: 'staff-2', userId: 'member-1' },
+        claim: { ...SUBMITTED, branchId: 'branch-1', staffId: 'staff-2', userId: 'member-1' },
         role: 'staff',
         userId: 'staff-1',
       })
@@ -65,7 +68,7 @@ describe('document access policy', () => {
     expect(
       hasScopedClaimReadAccess({
         branchId: 'branch-1',
-        claim: { branchId: 'branch-1', staffId: 'staff-1', userId: 'member-1' },
+        claim: { ...SUBMITTED, branchId: 'branch-1', staffId: 'staff-1', userId: 'member-1' },
         role: 'staff',
         userId: 'staff-1',
       })
@@ -76,18 +79,36 @@ describe('document access policy', () => {
     expect(
       hasScopedClaimReadAccess({
         branchId: 'branch-1',
-        claim: { branchId: 'branch-2', staffId: 'staff-1', userId: 'member-1' },
+        claim: { ...SUBMITTED, branchId: 'branch-2', staffId: 'staff-1', userId: 'member-1' },
         role: 'staff',
         userId: 'staff-1',
       })
     ).toBe(true);
   });
 
+  it.each(['draft', null])('denies assigned staff a claim whose lifecycle is %s', lifecycle => {
+    expect(
+      hasScopedClaimReadAccess({
+        branchId: 'branch-1',
+        claim: {
+          caseLifecycleState: lifecycle,
+          branchId: 'branch-1',
+          staffId: 'staff-1',
+          userId: 'member-1',
+        },
+        role: 'staff',
+        userId: 'staff-1',
+      })
+    ).toBe(false);
+    expect(isStaffBlockedFromClaim('staff', lifecycle)).toBe(true);
+    expect(isStaffBlockedFromClaim('branch_manager', lifecycle)).toBe(false);
+  });
+
   it('does not grant branchless staff access to every unassigned claim document', () => {
     expect(
       hasScopedClaimReadAccess({
         branchId: null,
-        claim: { branchId: null, staffId: null, userId: 'member-1' },
+        claim: { ...SUBMITTED, branchId: null, staffId: null, userId: 'member-1' },
         role: 'staff',
         userId: 'staff-1',
       })

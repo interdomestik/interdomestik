@@ -93,7 +93,10 @@ describe('canReadPolymorphicClaimDocument access ordering', () => {
     await expect(
       canReadPolymorphicClaimDocument({
         ...baseArgs,
-        db: dbWithClaim({ claimOwnerId: 'member-1' }) as never,
+        db: dbWithClaim({
+          claimOwnerId: 'member-1',
+          claimCaseLifecycleState: 'submitted',
+        }) as never,
         session: { user: { id: 'local-legal-1' } },
         userRole: 'staff',
       })
