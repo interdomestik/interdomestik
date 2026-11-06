@@ -19,7 +19,20 @@ const CONVERTED_SUBSCRIPTION_ID = 'golden_sub_ks_cash_converted';
 const CASH_AMOUNT = 15000;
 const FIXTURES: readonly E2ECashStateFixture[] = Object.values(E2E_CASH_STATE_FIXTURES);
 
-/** The cash-state agent and the member its converted lead became (agent-assisted, as conversion). */
+/** The converted member as conversion leaves it: agent-assisted, with no agent client grant. */
+export function convertedMemberExpectation() {
+  return {
+    id: MEMBER_ID,
+    role: 'member' as const,
+    tenantId: TENANTS.KS,
+    branchId: BRANCH,
+    agentId: AGENT_ID,
+    createdBy: 'agent',
+    assistedByAgentId: AGENT_ID,
+  };
+}
+
+/** The cash-state agent and the member its converted lead became. */
 export function buildCashStateUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
   const agent = E2E_CASH_STATE_USERS.KS_AGENT_CASH_STATES;
   const member = E2E_CASH_STATE_USERS.KS_MEMBER_CONVERTED_LEAD;
@@ -33,15 +46,9 @@ export function buildCashStateUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>)
       branchId: BRANCH,
     },
     {
-      id: MEMBER_ID,
+      ...convertedMemberExpectation(),
       name: member.name,
       email: member.email,
-      role: 'member' as const,
-      tenantId: TENANTS.KS,
-      branchId: BRANCH,
-      agentId: AGENT_ID,
-      createdBy: 'agent',
-      assistedByAgentId: AGENT_ID,
       memberNumber: 'MEM-2026-000023',
       memberNumberIssuedAt: at(),
     },
@@ -102,7 +109,7 @@ export function buildConvertedMembershipToSeed() {
       planKey: 'golden_ks_plan_basic',
       cancelAtPeriodEnd: false,
       currentPeriodStart: e2eCashInstant('DECIDED'),
-      currentPeriodEnd: e2eCashInstant('PERIOD_END'),
+      currentPeriodEnd: e2eCashInstant('ANNUAL_PERIOD_END'),
     },
     card: {
       id: `card_${CONVERTED_SUBSCRIPTION_ID}`,

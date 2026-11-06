@@ -1,6 +1,10 @@
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { E2E_CASH_STATES_BRANCH } from './e2e-cash-fixtures';
-import { buildCashStatesToSeed, buildConvertedMembershipToSeed } from './seed-golden/cash-states';
+import {
+  buildCashStatesToSeed,
+  buildConvertedMembershipToSeed,
+  convertedMemberExpectation,
+} from './seed-golden/cash-states';
 import { compareRow } from './seed-assert-lifecycle';
 
 type AssertDb = (typeof import('./db'))['db'];
@@ -20,6 +24,22 @@ function compareExactSet(
         (extra.length > 0 ? ` (unexpected ${extra.join(', ')})` : '')
     );
   }
+}
+
+type Row = Record<string, unknown>;
+
+/**
+ * The converted member keeps the attribution conversion writes and holds no active agent client
+ * grant: conversion revokes that read scope, so an active grant would expose the member to an agent.
+ */
+export function collectConvertedMemberDrift(user: Row | undefined, activeGrants: Row[]): string[] {
+  const failures: string[] = [];
+  const expected = convertedMemberExpectation();
+  compareRow(failures, `user ${expected.id}`, user, expected);
+  for (const grant of activeGrants) {
+    failures.push(`user ${expected.id}: active agent client grant ${String(grant.id)}`);
+  }
+  return failures;
 }
 
 /**
@@ -85,5 +105,15 @@ export async function collectCashStateViolations(
   compareExactSet(failures, 'converted member cards', cards, [card]);
   compareRow(failures, subscription.id, subscriptions[0], subscription);
   compareRow(failures, card.id, cards[0], card);
+
+  const memberId = convertedMemberExpectation().id;
+  const [user] = await db.select().from(schema.user).where(eq(schema.user.id, memberId));
+  const grants = await db
+    .select()
+    .from(schema.agentClients)
+    .where(
+      and(eq(schema.agentClients.memberId, memberId), eq(schema.agentClients.status, 'active'))
+    );
+  failures.push(...collectConvertedMemberDrift(user, grants));
   return failures;
 }

@@ -9,9 +9,11 @@ import {
 } from '../src/e2e-cash-fixtures';
 import { E2E_USER_IDS } from '../src/e2e-role-fixtures';
 import { E2E_USERS } from '../src/e2e-users';
+import { collectConvertedMemberDrift } from '../src/seed-assert-cash';
 import {
   buildCashStatesToSeed,
   buildConvertedMembershipToSeed,
+  convertedMemberExpectation,
 } from '../src/seed-golden/cash-states';
 import { buildLeadsToSeed } from '../src/seed-golden/leads';
 import { buildBranchesToSeed } from '../src/seed-golden/tenants-branches';
@@ -105,6 +107,27 @@ test('the converted lead names its member, membership and card', () => {
     [card.userId, card.subscriptionId, card.status],
     [memberId, subscription.id, 'active']
   );
+  // Conversion starts one annual term at the approval: the end is the same instant a year later.
+  const annualEnd = new Date(E2E_CASH_INSTANTS.DECIDED);
+  annualEnd.setUTCFullYear(annualEnd.getUTCFullYear() + 1);
+  assert.deepEqual(
+    [subscription.currentPeriodStart.toISOString(), subscription.currentPeriodEnd.toISOString()],
+    [E2E_CASH_INSTANTS.DECIDED, annualEnd.toISOString()]
+  );
+});
+
+test('the seed assertion refuses drifted attribution and any active agent client grant', () => {
+  const member = convertedMemberExpectation();
+  assert.deepEqual(collectConvertedMemberDrift({ ...member, extra: 'ignored' }, []), []);
+  assert.deepEqual(collectConvertedMemberDrift(undefined, []), [`user ${member.id}: missing`]);
+  for (const field of ['agentId', 'createdBy', 'assistedByAgentId', 'branchId'] as const) {
+    const drifted = collectConvertedMemberDrift({ ...member, [field]: 'other' }, []);
+    assert.equal(drifted.length, 1, field);
+    assert.match(drifted[0], new RegExp(`\\.${field}: `), field);
+  }
+  assert.deepEqual(collectConvertedMemberDrift(member, [{ id: 'grant_1' }]), [
+    `user ${member.id}: active agent client grant grant_1`,
+  ]);
 });
 
 test('cash instants never depend on the seed clock or the wall clock', () => {
@@ -119,7 +142,8 @@ test('cash instants never depend on the seed clock or the wall clock', () => {
   for (const value of [...values, ...Object.values(subscription), ...Object.values(card)]) {
     if (value instanceof Date) assert.ok(allowed.has(value.toISOString()), value.toISOString());
   }
-  for (const instant of Object.values(E2E_CASH_INSTANTS).slice(0, 3)) {
+  for (const instant of [E2E_CASH_INSTANTS.SUBMITTED, E2E_CASH_INSTANTS.DECIDED]) {
     assert.ok(new Date(instant) < SEED_BASE, instant);
   }
+  assert.ok(new Date(E2E_CASH_INSTANTS.RESUBMITTED) < SEED_BASE);
 });

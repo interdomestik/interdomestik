@@ -37,7 +37,8 @@ export const E2E_CASH_INSTANTS = {
   SUBMITTED: '2025-12-01T09:00:00.000Z',
   DECIDED: '2025-12-02T09:00:00.000Z',
   RESUBMITTED: '2025-12-03T09:00:00.000Z',
-  PERIOD_END: '2099-12-31T00:00:00.000Z',
+  /** Conversion grants one annual term from the approval (createActiveAnnualMembershipState). */
+  ANNUAL_PERIOD_END: '2026-12-02T09:00:00.000Z',
 } as const;
 
 export type E2ECashInstant = keyof typeof E2E_CASH_INSTANTS;
