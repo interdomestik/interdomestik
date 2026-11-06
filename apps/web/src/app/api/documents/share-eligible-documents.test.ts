@@ -116,9 +116,24 @@ describe('canShareAllDocuments', () => {
       false,
     ],
   ])('decides a claim document for %s', async (_label, actor, claimRow, expected) => {
-    const { tx } = fakeTx([doc('d', 'claim', 'claim-1')], [claimRow]);
+    // Staff first read the claim lifecycle, then the claim scope.
+    const claimReads = actor.role === 'staff' ? [[claimRow], [claimRow]] : [[claimRow]];
+    const { tx } = fakeTx([doc('d', 'claim', 'claim-1')], ...claimReads);
     await expect(share(actor as ShareActor, ['d'], tx)).resolves.toBe(expected);
     expect(agentScope).not.toHaveBeenCalled();
+  });
+
+  it('denies staff who uploaded a document of a member draft before the uploader shortcut', async () => {
+    const { tx } = fakeTx(
+      [doc('d', 'claim', 'claim-1', 'staff-1')],
+      [claim({ caseLifecycleState: 'draft' })]
+    );
+    await expect(share({ id: 'staff-1', role: 'staff' }, ['d'], tx)).resolves.toBe(false);
+  });
+
+  it('still lets staff share their own upload on a submitted claim', async () => {
+    const { tx } = fakeTx([doc('d', 'claim', 'claim-1', 'staff-1')], [claim()]);
+    await expect(share({ id: 'staff-1', role: 'staff' }, ['d'], tx)).resolves.toBe(true);
   });
 
   it.each([true, false])('defers an agent to its document scope (%s)', async allowed => {
