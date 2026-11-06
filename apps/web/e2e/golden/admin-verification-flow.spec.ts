@@ -1,4 +1,5 @@
 import { db, leadPaymentAttempts, notifications } from '@interdomestik/database';
+import { memberLeads } from '@interdomestik/database/schema/leads';
 import { and, eq, notInArray } from 'drizzle-orm';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
@@ -78,8 +79,9 @@ test.describe('Admin Verification Flow (Golden)', () => {
 
     // 10a. Simulate Agent Resubmission (DB Hack for speed)
     const [needsInfoAttempt] = await db
-      .select()
+      .select({ id: leadPaymentAttempts.id, leadEmail: memberLeads.email })
       .from(leadPaymentAttempts)
+      .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
       .where(
         and(
           eq(leadPaymentAttempts.status, 'needs_info'),
@@ -99,9 +101,13 @@ test.describe('Admin Verification Flow (Golden)', () => {
         .where(eq(leadPaymentAttempts.id, needsInfoAttempt.id));
 
       await page.reload();
-      await expect(
-        page.getByTestId('ops-table').getByText(/Resubmitted|Ridorëzuar/i)
-      ).toBeVisible();
+      // Scope to the resubmitted row: the catalogued RESUBMITTED state shows the same badge.
+      const resubmittedRow = page
+        .getByTestId('ops-table')
+        .getByTestId('cash-verification-row')
+        .filter({ visible: true })
+        .filter({ has: page.getByText(needsInfoAttempt.leadEmail, { exact: true }) });
+      await expect(resubmittedRow.getByText(/Resubmitted|Ridorëzuar/i)).toBeVisible();
     }
 
     // 11. Test Search
