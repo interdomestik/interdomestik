@@ -181,6 +181,29 @@ test('runner: an unreviewed run records candidate facts, never connects, never r
   assert.deepEqual([outside.code, outside.candidate], ['REF_REJECTED', undefined]);
 });
 
+test('runner: candidate facts copy only allowlisted shapes, never other URL content', async () => {
+  const CANARY = 'canary7f3a';
+  const odd = [
+    `${ADMIN_URL}?sslmode=${CANARY}`,
+    `${ADMIN_URL}?${CANARY}=1`,
+    urlFor(`u%20${CANARY}`, ADMIN_PASS),
+    `postgresql://postgres:${ADMIN_PASS}@${CANARY}%2Fx.example:5432/db%20${CANARY}`,
+  ];
+  for (const url of odd) {
+    const facts = describeTarget(url);
+    assert.equal(JSON.stringify(facts).includes(CANARY), false, url);
+    assert.equal(JSON.stringify(facts).includes(ADMIN_PASS), false, url);
+  }
+  assert.deepEqual(
+    [describeTarget(odd[0]).sslmode, describeTarget(odd[1]).otherParameters],
+    ['unrecognized', 1]
+  );
+  assert.equal(describeTarget(`${ADMIN_URL}?sslmode=require`).sslmode, 'require');
+  const env = { ...CONTEXT, DATABASE_URL: odd[0], DATABASE_URL_RLS: odd[2] };
+  const receipt = await run({ env, headSha: SHA, connect: () => assert.fail('connected') });
+  assert.equal(JSON.stringify(receipt).includes(CANARY), false);
+});
+
 test('runner: the receipt path is built from numeric run ids only', () => {
   assert.equal(
     receiptPath('/r', CONTEXT),

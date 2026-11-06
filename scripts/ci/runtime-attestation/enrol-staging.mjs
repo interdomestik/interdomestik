@@ -81,22 +81,34 @@ export function parseTarget(text, authority, kind) {
   return { username: user, password: decodeURIComponent(url.password) };
 }
 
+const SAFE_HOST = /^[a-z0-9.-]{1,253}$/u;
+const SAFE_NAME = /^[a-z_][a-z0-9_.]{0,127}$/u;
+const SSL_MODES = new Set(['require', 'verify-full']);
+const safe = (value, pattern) => (pattern.test(value) ? value : 'unrecognized');
+const sslModeFact = mode => {
+  if (mode === null) return null;
+  return SSL_MODES.has(mode) ? mode : 'unrecognized';
+};
+
 /**
- * Non-secret connection facts of one URL (never the password), recorded while the authority is not
- * yet reviewed so the descriptor can be prepared. They are candidates, never self-approving.
+ * Non-secret connection facts of one URL, recorded while the authority is not yet reviewed so the
+ * descriptor can be prepared. They are candidates, never self-approving. Only allowlisted shapes are
+ * copied; anything else becomes a fixed indicator, so no URL content outside them (a password, a
+ * parameter name or value) can reach the uploaded receipt.
  */
 export function describeTarget(text) {
   try {
     const url = new URL(text ?? '');
+    const params = [...url.searchParams];
     return {
       valid: url.protocol === 'postgres:' || url.protocol === 'postgresql:',
-      host: url.hostname,
-      port: Number(url.port || 5432),
-      database: decodeURIComponent(url.pathname.slice(1)),
-      username: decodeURIComponent(url.username),
+      host: safe(url.hostname, SAFE_HOST),
+      port: /^\d{1,5}$/u.test(url.port || '5432') ? Number(url.port || 5432) : 'unrecognized',
+      database: safe(decodeURIComponent(url.pathname.slice(1)), SAFE_NAME),
+      username: safe(decodeURIComponent(url.username), SAFE_NAME),
       passwordPresent: url.password.length > 0,
-      parameters: [...url.searchParams.keys()].sort(),
-      sslmode: url.searchParams.get('sslmode'),
+      sslmode: sslModeFact(url.searchParams.get('sslmode')),
+      otherParameters: params.filter(([key]) => key !== 'sslmode').length,
     };
   } catch {
     return { valid: false };

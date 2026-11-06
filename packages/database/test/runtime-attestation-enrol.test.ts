@@ -48,7 +48,7 @@ function urlFor(base: string, database: string, user?: string): string {
   return url.toString();
 }
 
-type Scratch = { admin: Sql; restricted: Sql };
+type Scratch = { admin: Sql; restricted: Sql; database: string };
 
 async function withScratch(adminUrl: string, cluster: Sql, run: (s: Scratch) => Promise<void>) {
   scratchCount += 1;
@@ -60,7 +60,7 @@ async function withScratch(adminUrl: string, cluster: Sql, run: (s: Scratch) => 
     await admin.unsafe(`create schema drizzle;
       create table drizzle.__drizzle_migrations (id serial primary key, hash text not null, created_at bigint);
       insert into drizzle.__drizzle_migrations (hash, created_at) values ('h1', 1), ('h2', 2), ('h3', 3)`);
-    await run({ admin, restricted });
+    await run({ admin, restricted, database });
   } finally {
     await Promise.allSettled([admin.end(), restricted.end()]);
     await cluster.unsafe(`drop database if exists ${database} with (force)`);
@@ -80,6 +80,7 @@ const markerAbsent = async (admin: Sql): Promise<boolean> =>
   (
     await admin`select count(*)::int as n from pg_namespace where nspname = 'runtime_attestation'`
   )[0].n === 0;
+const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const ledgerUsage = async (admin: Sql): Promise<boolean> =>
   (await admin`select has_schema_privilege(${ROLE}::name, 'drizzle', 'USAGE') as u`)[0].u === true;
 
@@ -177,7 +178,19 @@ test('U2-e staging enrolment on a real PostgreSQL', async t => {
     });
 
     await t.test('pre-existing extra access fails the postconditions and rolls back', async () => {
+      const [{ v }] = await cluster`select current_setting('server_version_num')::int as v`;
+      const maintain =
+        v >= 170000
+          ? [
+              `grant maintain on drizzle.__drizzle_migrations to ${ROLE}`,
+              `create table drizzle.m(id int); grant maintain on drizzle.m to ${ROLE}`,
+            ]
+          : [];
       for (const setup of [
+        ...maintain,
+        `grant usage on schema drizzle to ${ROLE} with grant option`,
+        `grant select (hash) on drizzle.__drizzle_migrations to ${ROLE} with grant option`,
+        `grant select (hash) on drizzle.__drizzle_migrations to public`,
         `grant insert (hash) on drizzle.__drizzle_migrations to ${ROLE}`,
         `grant usage on schema drizzle to ${ROLE}; grant usage on sequence drizzle.__drizzle_migrations_id_seq to ${ROLE}`,
         `create table drizzle.other(id int); grant select on drizzle.other to ${ROLE}`,
@@ -211,6 +224,34 @@ test('U2-e staging enrolment on a real PostgreSQL', async t => {
           });
         }
       }
+    );
+
+    await t.test('a ledger change committed while enrolment waits for its lock is refused', () =>
+      scratch(async ({ admin, database }) => {
+        const other = postgres(urlFor(adminUrl, database), QUIET);
+        const ddl = await other.reserve();
+        try {
+          await ddl`begin`;
+          await ddl.unsafe('alter table drizzle.__drizzle_migrations add column extra int');
+          const pending = core.enrolStaging(admin, INPUTS);
+          const waiting = async () =>
+            (
+              await cluster`select count(*)::int as n from pg_stat_activity
+                where datname = ${database} and wait_event_type = 'Lock'`
+            )[0].n;
+          for (let tries = 0; (await waiting()) === 0 && tries < 100; tries += 1) await pause(20);
+          await ddl`commit`;
+          const result = await pending;
+          assert.deepEqual(
+            [result.transaction, result.code],
+            ['not_committed', 'LEDGER_SHAPE_MISMATCH']
+          );
+          assert.equal(await markerAbsent(admin), true);
+        } finally {
+          ddl.release();
+          await other.end();
+        }
+      })
     );
 
     await t.test('a missing or replaced ledger is refused', async () => {

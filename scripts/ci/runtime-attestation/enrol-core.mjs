@@ -6,12 +6,17 @@
 
 import { createHash } from 'node:crypto';
 
+import { EXPECTED_MATRIX, markerAcl, privilegeMatrix } from './enrol-privileges.mjs';
+
+export { EXPECTED_MATRIX };
 export const ENROL_OPERATION = 'ida.u2e.staging-enrol.v1';
 export const MARKER_PATTERN =
   /^ida\.staging\.backend-marker\.v1:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const ROLE_PATTERN = /^[a-z_][a-z0-9_]{0,62}$/u;
 const API_ROLES = ['anon', 'authenticated', 'service_role'];
 const LEDGER_COLUMNS = 'created_at,hash,id';
+// Privilege names are known for these majors only (17 added MAINTAIN); newer servers are refused.
+const SUPPORTED_SERVER = { min: 150000, max: 179999 };
 const BOUNDS = [
   'SET LOCAL statement_timeout = 5000',
   'SET LOCAL lock_timeout = 3000',
@@ -58,6 +63,13 @@ async function rolePosture(tx, role) {
   if (posture.owned !== 0) refuse('ROLE_OWNS_OBJECTS');
   if (posture.dbCreate !== false) refuse('ROLE_CAN_CREATE_SCHEMA');
   return posture;
+}
+
+async function serverVersion(tx) {
+  const [{ version }] =
+    await tx`SELECT pg_catalog.current_setting('server_version_num')::int AS version`;
+  if (version < SUPPORTED_SERVER.min || version > SUPPORTED_SERVER.max)
+    refuse('SERVER_VERSION_UNSUPPORTED');
 }
 
 async function ledgerShape(tx) {
@@ -137,78 +149,6 @@ async function createMarker(tx, role, marker) {
   await tx`GRANT SELECT ON TABLE runtime_attestation.backend_marker TO ${tx(role)}`;
 }
 
-/** Grants other than the owner's on the marker objects; nothing but the two reads may exist. */
-async function markerAcl(tx) {
-  const [acl] = await tx`
-    WITH ns AS (SELECT oid, nspowner, nspacl FROM pg_catalog.pg_namespace WHERE nspname = 'runtime_attestation'),
-      tbl AS (SELECT c.oid, c.relowner, c.relacl FROM pg_catalog.pg_class c, ns
-        WHERE c.relnamespace = ns.oid AND c.relname = 'backend_marker')
-    SELECT
-      (SELECT pg_catalog.string_agg(CASE WHEN a.grantee = 0 THEN 'PUBLIC' ELSE pg_catalog.pg_get_userbyid(a.grantee) END
-        || ':' || a.privilege_type || ':' || a.is_grantable, ',')
-        FROM ns, pg_catalog.aclexplode(ns.nspacl) a WHERE a.grantee <> ns.nspowner) AS schema,
-      (SELECT pg_catalog.string_agg(CASE WHEN a.grantee = 0 THEN 'PUBLIC' ELSE pg_catalog.pg_get_userbyid(a.grantee) END
-        || ':' || a.privilege_type || ':' || a.is_grantable, ',')
-        FROM tbl, pg_catalog.aclexplode(tbl.relacl) a WHERE a.grantee <> tbl.relowner) AS "table",
-      (SELECT count(*) FROM pg_catalog.pg_attribute x, tbl WHERE x.attrelid = tbl.oid AND x.attacl IS NOT NULL)::int
-        AS "columnAcls"`;
-  return acl;
-}
-
-async function privilegeMatrix(tx, role) {
-  const [m] = await tx`
-    WITH r AS (SELECT ${role}::pg_catalog.name AS n),
-      l AS (SELECT 'drizzle.__drizzle_migrations'::pg_catalog.regclass AS oid),
-      k AS (SELECT 'runtime_attestation.backend_marker'::pg_catalog.regclass AS oid)
-    SELECT
-      pg_catalog.has_schema_privilege(r.n, 'drizzle', 'USAGE') AS "ledgerSchemaUsage",
-      pg_catalog.has_schema_privilege(r.n, 'drizzle', 'CREATE') AS "ledgerSchemaCreate",
-      pg_catalog.has_table_privilege(r.n, l.oid, 'SELECT') AS "ledgerSelect",
-      pg_catalog.has_table_privilege(r.n, l.oid, 'SELECT WITH GRANT OPTION') AS "ledgerGrantOption",
-      pg_catalog.has_table_privilege(r.n, l.oid, 'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') AS "ledgerWrite",
-      pg_catalog.has_any_column_privilege(r.n, l.oid, 'INSERT,UPDATE,REFERENCES') AS "ledgerColumnWrite",
-      pg_catalog.has_schema_privilege(r.n, 'runtime_attestation', 'USAGE') AS "markerSchemaUsage",
-      pg_catalog.has_schema_privilege(r.n, 'runtime_attestation', 'CREATE') AS "markerSchemaCreate",
-      pg_catalog.has_table_privilege(r.n, k.oid, 'SELECT') AS "markerSelect",
-      pg_catalog.has_table_privilege(r.n, k.oid, 'SELECT WITH GRANT OPTION') AS "markerGrantOption",
-      pg_catalog.has_table_privilege(r.n, k.oid, 'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') AS "markerWrite",
-      pg_catalog.has_any_column_privilege(r.n, k.oid, 'INSERT,UPDATE,REFERENCES') AS "markerColumnWrite",
-      (SELECT count(*) FROM pg_catalog.pg_class c WHERE c.relnamespace = 'drizzle'::pg_catalog.regnamespace
-        AND CASE WHEN c.relkind = 'S' THEN pg_catalog.has_sequence_privilege(r.n, c.oid, 'USAGE,SELECT,UPDATE')
-          ELSE false END)::int
-        AS "sequenceAccess",
-      (SELECT count(*) FROM pg_catalog.pg_class c WHERE c.relnamespace = 'drizzle'::pg_catalog.regnamespace
-        AND c.oid <> l.oid
-        AND CASE WHEN c.relkind IN ('r', 'v', 'm', 'f', 'p')
-          THEN pg_catalog.has_table_privilege(r.n, c.oid, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
-            OR pg_catalog.has_any_column_privilege(r.n, c.oid, 'SELECT,INSERT,UPDATE,REFERENCES')
-          ELSE false END)::int
-        AS "otherRelationAccess",
-      (SELECT count(*) FROM pg_catalog.pg_proc p WHERE p.pronamespace = 'drizzle'::pg_catalog.regnamespace
-        AND pg_catalog.has_function_privilege(r.n, p.oid, 'EXECUTE'))::int AS "functionAccess"
-    FROM r, l, k`;
-  return m;
-}
-
-/** The only privileges the runtime role may hold on the enrolled objects and the ledger schema. */
-export const EXPECTED_MATRIX = Object.freeze({
-  ledgerSchemaUsage: true,
-  ledgerSchemaCreate: false,
-  ledgerSelect: true,
-  ledgerGrantOption: false,
-  ledgerWrite: false,
-  ledgerColumnWrite: false,
-  markerSchemaUsage: true,
-  markerSchemaCreate: false,
-  markerSelect: true,
-  markerGrantOption: false,
-  markerWrite: false,
-  markerColumnWrite: false,
-  sequenceAccess: 0,
-  otherRelationAccess: 0,
-  functionAccess: 0,
-});
-
 async function postconditions(tx, role, before) {
   const acl = await markerAcl(tx);
   const grant = privilege => `${role}:${privilege}:false`;
@@ -237,9 +177,12 @@ export async function enrolStaging(admin, { role, marker }) {
       await rolePosture(tx, role);
       const [{ present }] = await tx`
         SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = 'runtime_attestation') AS present`;
+      await serverVersion(tx);
       await ledgerShape(tx);
-      // Excludes concurrent ledger writes (a migration run) until commit; bounded by lock_timeout.
+      // Excludes concurrent ledger writes and DDL until commit; bounded by lock_timeout. The shape
+      // is checked again under the lock, so a change committed before the lock cannot slip through.
       await tx.unsafe('LOCK TABLE drizzle.__drizzle_migrations IN SHARE MODE');
+      await ledgerShape(tx);
       const before = await ledgerSnapshot(tx);
       if (present) await existingMarkerShape(tx, marker);
       else await createMarker(tx, role, marker);
