@@ -1,8 +1,3 @@
-import { E2E_CASH_STATE_USERS } from './e2e-cash-fixtures';
-import { e2eEmail } from './e2e-email';
-
-export { E2E_EMAIL_DOMAIN, e2eEmail } from './e2e-email';
-
 export const DEFAULT_E2E_PASSWORD = 'GoldenPass123!'; // NOSONAR - deterministic local E2E fixture credential; CI injects a generated override.
 
 type E2EPasswordEnv = Record<string, string | undefined>;
@@ -13,6 +8,14 @@ export function getE2EPassword(env: E2EPasswordEnv = process.env): string {
 }
 
 export const E2E_PASSWORD = getE2EPassword();
+
+/** The one mailbox domain of every synthetic E2E identity; seeds and tests never spell it. */
+export const E2E_EMAIL_DOMAIN = 'interdomestik.com';
+
+/** The synthetic E2E address for a local part, always in {@link E2E_EMAIL_DOMAIN}. */
+export function e2eEmail(local: string): string {
+  return `${local}@${E2E_EMAIL_DOMAIN}`;
+}
 
 /**
  * Single source of truth for E2E user identities and expected DB states.
@@ -271,7 +274,20 @@ export const E2E_USERS = {
     dbRole: 'auditor',
     tenantId: 'tenant_mk',
   },
-  ...E2E_CASH_STATE_USERS,
+  KS_AGENT_CASH_STATES: {
+    email: e2eEmail('agent.ks.d1'),
+    name: 'Arta Krasniqi',
+    dbRole: 'agent',
+    tenantId: 'tenant_ks',
+    branchId: 'ks_branch_d',
+  },
+  KS_MEMBER_CONVERTED_LEAD: {
+    email: e2eEmail('member.ks.converted-lead'),
+    name: 'KS Converted Lead Member',
+    dbRole: 'member',
+    tenantId: 'tenant_ks',
+    branchId: 'ks_branch_d',
+  },
 } as const;
 
 export type E2EUserKey = keyof typeof E2E_USERS;

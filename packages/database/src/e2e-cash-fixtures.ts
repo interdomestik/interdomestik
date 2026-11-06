@@ -1,4 +1,4 @@
-import { e2eEmail } from './e2e-email';
+import { E2E_USERS } from './e2e-users';
 
 /**
  * Cash verification states seeded as read-only rows in a dedicated KS branch.
@@ -15,22 +15,10 @@ export const E2E_CASH_STATES_BRANCH = {
   code: 'KS-D',
 } as const;
 
-/** Login identities of the cash states, spread into E2E_USERS. */
+/** Login identities of the cash states; the E2E_USERS catalogue owns their addresses. */
 export const E2E_CASH_STATE_USERS = {
-  KS_AGENT_CASH_STATES: {
-    email: e2eEmail('agent.ks.d1'),
-    name: 'Arta Krasniqi',
-    dbRole: 'agent',
-    tenantId: 'tenant_ks',
-    branchId: E2E_CASH_STATES_BRANCH.id,
-  },
-  KS_MEMBER_CONVERTED_LEAD: {
-    email: e2eEmail('member.ks.converted-lead'),
-    name: 'KS Converted Lead Member',
-    dbRole: 'member',
-    tenantId: 'tenant_ks',
-    branchId: E2E_CASH_STATES_BRANCH.id,
-  },
+  KS_AGENT_CASH_STATES: E2E_USERS.KS_AGENT_CASH_STATES,
+  KS_MEMBER_CONVERTED_LEAD: E2E_USERS.KS_MEMBER_CONVERTED_LEAD,
 } as const;
 
 export const E2E_CASH_INSTANTS = {

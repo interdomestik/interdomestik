@@ -48,6 +48,7 @@ test('each cash identity is a seeded KS-D login with the attribution conversion 
   for (const key of Object.keys(E2E_CASH_STATE_USERS) as (keyof typeof E2E_CASH_STATE_USERS)[]) {
     const user = seeded.get(E2E_USER_IDS[key]);
     assert.ok(user, key);
+    assert.equal(E2E_USERS[key].branchId, E2E_CASH_STATES_BRANCH.id, key);
     assert.deepEqual(
       [user.email, user.role, user.tenantId, 'branchId' in user ? user.branchId : null],
       [E2E_USERS[key].email, E2E_USERS[key].dbRole, 'tenant_ks', E2E_CASH_STATES_BRANCH.id],
