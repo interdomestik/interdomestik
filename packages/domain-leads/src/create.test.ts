@@ -2,15 +2,26 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  existing: vi.fn(),
   insertValues: vi.fn(),
   withTenantContext: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantContext }));
-vi.mock('@interdomestik/database/schema', () => ({ memberLeads: { table: 'memberLeads' } }));
+vi.mock('@interdomestik/database', () => ({
+  and: (...args: unknown[]) => ({ and: args }),
+  eq: (left: unknown, right: unknown) => ({ eq: [left, right] }),
+  sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({
+    sql: strings.join('?'),
+    values,
+  }),
+  withTenantContext: mocks.withTenantContext,
+}));
+vi.mock('@interdomestik/database/schema', () => ({
+  memberLeads: { id: 'id', tenantId: 'tenant_id', email: 'email' },
+}));
 vi.mock('nanoid', () => ({ nanoid: () => 'seed' }));
 
-import { createLead } from './create';
+import { createLead, LeadEmailConflictError } from './create';
 
 const input = {
   firstName: 'Arben',
@@ -27,7 +38,11 @@ describe('createLead', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    const tx = { insert: () => ({ values: mocks.insertValues }) };
+    mocks.existing.mockResolvedValue([]);
+    const tx = {
+      insert: () => ({ values: mocks.insertValues }),
+      select: () => ({ from: () => ({ where: () => ({ limit: mocks.existing }) }) }),
+    };
     mocks.withTenantContext.mockImplementation(async (_context, callback) => callback(tx));
   });
 
@@ -115,5 +130,17 @@ describe('createLead', () => {
     ).rejects.toThrow();
 
     expect(mocks.withTenantContext).not.toHaveBeenCalled();
+  });
+
+  it('refuses an existing lead of the tenant written in another letter case', async () => {
+    mocks.existing.mockResolvedValue([{ id: 'lead_legacy' }]);
+    const created = createLead(
+      { authority, ...agentCtx, captureChannel: 'public_form' },
+      { ...input, email: 'Arben@Example.com' }
+    );
+
+    await expect(created).rejects.toBeInstanceOf(LeadEmailConflictError);
+    await expect(created).rejects.toMatchObject({ code: '23505' });
+    expect(mocks.insertValues).not.toHaveBeenCalled();
   });
 });
