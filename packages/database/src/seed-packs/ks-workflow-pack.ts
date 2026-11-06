@@ -4,7 +4,7 @@ import { withClaimLifecycleFields } from '../seed-utils/claim-lifecycle';
 import { goldenId, packId } from '../seed-utils/seed-ids';
 import { createSeededRandom } from '../seed-utils/seeded-random';
 import { withTransientDbWriteRetry } from '../seed-utils/transient-write-retry';
-import { E2E_PASSWORD } from '../e2e-users';
+import { E2E_PACK_USERS, E2E_PASSWORD, e2eEmail } from '../e2e-users';
 import { inArray, sql } from 'drizzle-orm';
 import type { SeedConfig } from '../seed-types';
 
@@ -129,7 +129,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
     {
       id: packId('ks', 'staff_extra'),
       name: 'Agim Ramadani',
-      email: 'staff.ks.extra@interdomestik.com',
+      email: E2E_PACK_USERS.KS_STAFF.email,
       role: 'staff',
       tenantId: TENANTS.KS,
       passHash: hashedPass,
@@ -138,7 +138,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
     ...ALBANIAN_NAMES.map((name, i) => ({
       id: packId('ks', 'member', i + 1),
       name: name,
-      email: `ks.member.pack.${i + 1}@interdomestik.com`,
+      email: e2eEmail(`ks.member.pack.${i + 1}`),
       role: 'member',
       tenantId: TENANTS.KS,
       passHash: hashedPass,

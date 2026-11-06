@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { E2E_USERS } from '@interdomestik/database';
 
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
@@ -32,14 +33,11 @@ test.describe('Seed Contract Verification', () => {
     const isMk = testInfo.project.name.includes('mk');
     if (!isKs && !isMk) return;
 
-    const expectedStaff = isKs ? 'staff.ks@interdomestik.com' : 'staff.mk@interdomestik.com';
-    const otherTenantStaff = isKs ? 'staff.mk@interdomestik.com' : 'staff.ks@interdomestik.com';
-    const expectedMember = isKs
-      ? 'member.ks.a1@interdomestik.com'
-      : 'member.mk.1@interdomestik.com';
-    const otherTenantMember = isKs
-      ? 'member.mk.1@interdomestik.com'
-      : 'member.ks.a1@interdomestik.com';
+    const { KS_STAFF, MK_STAFF, KS_MEMBER, MK_MEMBER } = E2E_USERS;
+    const expectedStaff = (isKs ? KS_STAFF : MK_STAFF).email;
+    const otherTenantStaff = (isKs ? MK_STAFF : KS_STAFF).email;
+    const expectedMember = (isKs ? KS_MEMBER : MK_MEMBER).email;
+    const otherTenantMember = (isKs ? MK_MEMBER : KS_MEMBER).email;
 
     for (const locale of ['en', 'sq', 'mk', 'sr'] as const) {
       await gotoApp(page, `${routes.adminUsers(locale)}?role=admin%2Cstaff`, testInfo, {

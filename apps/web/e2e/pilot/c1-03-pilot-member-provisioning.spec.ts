@@ -1,4 +1,12 @@
-import { E2E_PASSWORD, db, eq, subscriptions, user } from '@interdomestik/database';
+import {
+  E2E_PASSWORD,
+  E2E_USERS,
+  db,
+  e2eEmail,
+  eq,
+  subscriptions,
+  user,
+} from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
 import { gotoApp } from '../utils/navigation';
 
@@ -17,7 +25,7 @@ test.describe('C1 Pilot: Agent Member Provisioning', () => {
     browser,
   }, testInfo) => {
     const seededAgent = await db.query.user.findFirst({
-      where: eq(user.email, 'agent.pilot@interdomestik.com'),
+      where: eq(user.email, E2E_USERS.PILOT_MK_AGENT.email),
       columns: { id: true, branchId: true, tenantId: true },
     });
 
@@ -27,7 +35,7 @@ test.describe('C1 Pilot: Agent Member Provisioning', () => {
     const agentBranch = seededAgent.branchId;
 
     const timestamp = Date.now();
-    const memberEmail = `member.mk.pilot.${timestamp}@interdomestik.com`;
+    const memberEmail = e2eEmail(`member.mk.pilot.${timestamp}`);
     const memberName = `Pilot Member ${timestamp}`;
 
     await gotoApp(agentPage, '/agent/clients/new', testInfo, { marker: 'dashboard-page-ready' });

@@ -1,4 +1,4 @@
-import { E2E_PASSWORD } from '@interdomestik/database';
+import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 
 import { resolvePlaywrightNetwork } from '../../playwright-network';
@@ -17,7 +17,7 @@ const SEEDS = {
     title: 'MK Deterministic Claim',
     claimNumber: 'CLM-MK-2026-900001',
     memberName: 'Aleksandar Stojanovski',
-    memberEmail: 'member.mk.1@interdomestik.com',
+    memberEmail: E2E_USERS.MK_MEMBER.email,
     memberNumber: 'MEM-2026-000001',
     memberId: 'golden_mk_member_1',
   },
@@ -26,7 +26,7 @@ const SEEDS = {
     title: 'Aksident i lehtë – Demo Tracking',
     claimNumber: 'CLM-XK-2026-800001',
     memberName: 'KS Tracking Demo',
-    memberEmail: 'member.tracking.ks@interdomestik.com',
+    memberEmail: E2E_USERS.KS_MEMBER_TRACKING.email,
     memberNumber: 'MEM-2026-000014',
     memberId: 'golden_ks_member_tracking',
   },
@@ -35,7 +35,7 @@ const SEEDS = {
 const KS_EMPTY_MEMBER = {
   memberId: 'golden_ks_empty_member',
   memberName: 'KS Empty Member',
-  memberEmail: 'member.ks.empty@interdomestik.com',
+  memberEmail: E2E_USERS.KS_MEMBER_EMPTY.email,
 } as const;
 
 type Seed = (typeof SEEDS)[keyof typeof SEEDS];

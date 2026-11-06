@@ -1,4 +1,4 @@
-import { E2E_PASSWORD, E2E_USERS } from '../e2e-users';
+import { E2E_PASSWORD, E2E_USERS, e2eEmail } from '../e2e-users';
 import { hashPassword } from '../seed-utils/hash-password';
 import { goldenId } from '../seed-utils/seed-ids';
 import { TENANTS } from './constants';
@@ -58,7 +58,7 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
     {
       id: goldenId('mk_staff_2'),
       name: 'Aneta Nikolovska',
-      email: 'staff.mk.2@interdomestik.com',
+      email: E2E_USERS.MK_STAFF_2.email,
       role: 'staff',
       tenantId: TENANTS.MK,
       branchId: 'mk_branch_a',
@@ -81,7 +81,7 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
     {
       id: goldenId('pilot_mk_agent_2'),
       name: 'Bekim Hoxha',
-      email: 'agent.pilot.2@interdomestik.com',
+      email: E2E_USERS.PILOT_MK_AGENT_2.email,
       role: 'agent',
       tenantId: TENANTS.PILOT,
       branchId: 'pilot_branch_prishtina_central',
@@ -97,7 +97,7 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
     ...pilotMembers.map(([suffix, name]) => ({
       id: goldenId(`pilot_prishtina_member_${suffix}`),
       name,
-      email: `member.pilot.prishtina.${suffix}@interdomestik.com`,
+      email: e2eEmail(`member.pilot.prishtina.${suffix}`),
       role: 'member' as const,
       tenantId: TENANTS.PILOT,
       branchId: 'pilot_branch_prishtina_central',
@@ -179,7 +179,7 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
     {
       id: goldenId('ks_c_agent_1'),
       name: 'Luan Berisha',
-      email: 'agent.ks.c1@interdomestik.com',
+      email: E2E_USERS.KS_AGENT_BRANCH_C.email,
       role: 'agent',
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_c',
@@ -187,7 +187,7 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
     ...Array.from({ length: 6 }).map((_, i) => ({
       id: goldenId(`ks_a_member_${i + 1}`),
       name: `KS A-Member ${i + 1}`,
-      email: `member.ks.a${i + 1}@interdomestik.com`,
+      email: e2eEmail(`member.ks.a${i + 1}`),
       role: 'member' as const,
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_a',
@@ -197,7 +197,7 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
     ...Array.from({ length: 4 }).map((_, i) => ({
       id: goldenId(`ks_b_member_${i + 1}`),
       name: `KS B-Member ${i + 1}`,
-      email: `member.ks.b${i + 1}@interdomestik.com`,
+      email: e2eEmail(`member.ks.b${i + 1}`),
       role: 'member' as const,
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_b',
@@ -207,7 +207,7 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
     ...Array.from({ length: 2 }).map((_, i) => ({
       id: goldenId(`ks_c_member_${i + 1}`),
       name: `KS C-Member ${i + 1}`,
-      email: `member.ks.c${i + 1}@interdomestik.com`,
+      email: e2eEmail(`member.ks.c${i + 1}`),
       role: 'member' as const,
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_c',
@@ -217,7 +217,7 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
     {
       id: goldenId('ks_empty_member'),
       name: 'KS Empty Member',
-      email: 'member.ks.empty@interdomestik.com',
+      email: E2E_USERS.KS_MEMBER_EMPTY.email,
       role: 'member' as const,
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_a',
@@ -227,7 +227,7 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
     {
       id: goldenId('agent_balkan_1'),
       name: 'Balkan Agent 1',
-      email: 'agent.balkan.1@interdomestik.com',
+      email: E2E_USERS.MK_AGENT_BALKAN.email,
       role: 'agent',
       tenantId: TENANTS.MK,
       branchId: 'mk_branch_a',
@@ -235,7 +235,7 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
     {
       id: goldenId('ks_member_tracking'),
       name: 'KS Tracking Demo',
-      email: 'member.tracking.ks@interdomestik.com',
+      email: E2E_USERS.KS_MEMBER_TRACKING.email,
       role: 'member',
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_a',

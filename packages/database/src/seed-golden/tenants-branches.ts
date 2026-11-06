@@ -1,3 +1,4 @@
+import { e2eEmail } from '../e2e-users';
 import { TENANTS } from './constants';
 import type { SeedGoldenContext } from './types';
 
@@ -63,7 +64,7 @@ export async function seedTenants({ db, schema, sql }: SeedGoldenContext) {
       {
         id: TENANTS.MK,
         name: 'North Macedonia',
-        contact: { email: 'support.mk@interdomestik.com' },
+        contact: { email: e2eEmail('support.mk') },
         legalName: 'Interdomestik MK DOOEL',
         code: 'MK',
         countryCode: 'MK',
@@ -71,7 +72,7 @@ export async function seedTenants({ db, schema, sql }: SeedGoldenContext) {
       {
         id: TENANTS.PILOT,
         name: 'Pilot Macedonia',
-        contact: { email: 'support.pilot@interdomestik.com' },
+        contact: { email: e2eEmail('support.pilot') },
         legalName: 'Interdomestik Pilot MK',
         code: 'MK-PILOT',
         countryCode: 'MK',
@@ -79,7 +80,7 @@ export async function seedTenants({ db, schema, sql }: SeedGoldenContext) {
       {
         id: TENANTS.KS,
         name: 'Kosovo',
-        contact: { email: 'support.ks@interdomestik.com' },
+        contact: { email: e2eEmail('support.ks') },
         legalName: 'Interdomestik KS LLC',
         code: 'KS',
         countryCode: 'XK',

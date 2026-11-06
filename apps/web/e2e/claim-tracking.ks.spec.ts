@@ -3,10 +3,11 @@
  *
  * Tests public claim tracking and member/agent claim visibility.
  * Uses seeded data from seed-golden.ts:
- * - member.tracking.ks@interdomestik.com (tracking demo member)
+ * - E2E_USERS.KS_MEMBER_TRACKING (tracking demo member)
  * - golden_ks_track_claim_001 (tracking claim)
  * - demo-ks-track-token-001 (public tracking token)
  */
+import { E2E_USERS } from '@interdomestik/database';
 import { expect, test } from './fixtures/auth.fixture';
 import { gotoApp } from './utils/navigation';
 
@@ -31,13 +32,13 @@ test.describe('Claim Tracking KS', () => {
 
     // 4. Assert No PII (email should not be visible)
     const bodyText = await page.innerText('body');
-    expect(bodyText).not.toContain('member.tracking.ks@interdomestik.com');
+    expect(bodyText).not.toContain(E2E_USERS.KS_MEMBER_TRACKING.email);
   });
 
   test('Authenticated member can view their claims list', async ({
     authenticatedPage: page,
   }, testInfo) => {
-    // Using the standard KS member from fixtures (member.ks.a1@interdomestik.com)
+    // Using the standard KS member from fixtures (E2E_USERS.KS_MEMBER)
     // Navigate to member claims page
     await gotoApp(page, '/member/claims', testInfo);
     await page.waitForLoadState('domcontentloaded');
@@ -51,7 +52,7 @@ test.describe('Claim Tracking KS', () => {
   });
 
   test('Agent can access claims workspace', async ({ agentPage: page }, testInfo) => {
-    // Using the standard KS agent from fixtures (agent.ks.a1@interdomestik.com)
+    // Using the standard KS agent from fixtures (E2E_USERS.KS_AGENT)
     // Navigate to agent workspace claims
     await gotoApp(page, '/agent/workspace/claims', testInfo);
     await page.waitForLoadState('domcontentloaded');
