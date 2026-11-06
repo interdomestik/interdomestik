@@ -1,85 +1,11 @@
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { authority, mocks, resetSendMocks, staffSession } from './send.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const mocks = vi.hoisted(() => ({
-  agentAccess: vi.fn(),
-  tx: {
-    insert: vi.fn(),
-    query: {
-      claims: { findFirst: vi.fn() },
-      user: { findFirst: vi.fn() },
-    },
-    select: vi.fn(),
-  },
-  withTenantContext: vi.fn(),
-}));
-
-vi.mock('@interdomestik/database', () => ({
-  claimMessages: {
-    claimId: 'cm.claim_id',
-    content: 'cm.content',
-    createdAt: 'cm.created_at',
-    id: 'cm.id',
-    isInternal: 'cm.is_internal',
-    readAt: 'cm.read_at',
-    senderId: 'cm.sender_id',
-    tenantId: 'cm.tenant_id',
-  },
-  user: { id: 'u.id', image: 'u.image', name: 'u.name', role: 'u.role' },
-  withTenantContext: mocks.withTenantContext,
-}));
-
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: vi.fn(() => ({ scoped: true })),
-}));
-
-vi.mock('drizzle-orm', () => ({ eq: vi.fn() }));
-vi.mock('./access', async importOriginal => ({
-  ...(await importOriginal<typeof import('./access')>()),
-  hasAgentClaimAccess: mocks.agentAccess,
-}));
-vi.mock('nanoid', () => ({ nanoid: () => 'message-1' }));
 
 import { sendMessageDbCore } from './send';
 
-const authority = mintTestTenantAuthority('tenant-1');
-const projectionFrom = () => ({
-  leftJoin: () => ({
-    where: () => ({
-      limit: () =>
-        Promise.resolve([
-          {
-            id: 'message-1',
-            claimId: 'claim-1',
-            senderId: 'staff-1',
-            content: 'Hello',
-            isInternal: false,
-            readAt: null,
-            createdAt: new Date('2026-01-01T00:00:00.000Z'),
-            sender: { id: 'staff-1', name: 'Staff', image: null, role: 'admin' },
-          },
-        ]),
-    }),
-  }),
-});
-const staffSession = { user: { id: 'staff-1', role: 'admin', tenantId: 'tenant-1' } };
-
 // Who may send on a claim: split from send.test.ts to keep each focused test file small.
 describe('sendMessageDbCore send access', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.withTenantContext.mockImplementation(
-      async (_authority: unknown, action: (tx: unknown) => unknown) => action(mocks.tx)
-    );
-    mocks.tx.query.claims.findFirst.mockResolvedValue({
-      id: 'claim-1',
-      title: 'Claim',
-      userId: 'member-1',
-    });
-    mocks.tx.query.user.findFirst.mockResolvedValue({ email: 'member@example.com' });
-    mocks.tx.insert.mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) });
-    mocks.tx.select.mockReturnValue({ from: projectionFrom });
-  });
+  beforeEach(resetSendMocks);
 
   const DENIED = 'Access denied';
   const INTERNAL_DENIED = 'Only staff can send internal messages';
