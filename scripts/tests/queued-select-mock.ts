@@ -4,8 +4,14 @@ export function createQueuedLimit(mockFn: MockFn, selectResults: unknown[][]) {
   return mockFn(async () => selectResults.shift() ?? []);
 }
 
-export function createQueuedWhere(mockFn: MockFn, selectResults: unknown[][]) {
+// `lockRows` answers a `select ... for update` (a row lock read), apart from the queued results.
+export function createQueuedWhere(
+  mockFn: MockFn,
+  selectResults: unknown[][],
+  lockRows: unknown[] = []
+) {
   return mockFn(() => ({
+    for: mockFn(async () => lockRows),
     orderBy: mockFn(() => ({
       limit: createQueuedLimit(mockFn, selectResults),
     })),
@@ -13,8 +19,12 @@ export function createQueuedWhere(mockFn: MockFn, selectResults: unknown[][]) {
   }));
 }
 
-export function createQueuedFrom(mockFn: MockFn, selectResults: unknown[][]) {
+export function createQueuedFrom(
+  mockFn: MockFn,
+  selectResults: unknown[][],
+  lockRows: unknown[] = []
+) {
   return mockFn(() => ({
-    where: createQueuedWhere(mockFn, selectResults),
+    where: createQueuedWhere(mockFn, selectResults, lockRows),
   }));
 }

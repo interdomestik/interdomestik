@@ -1,4 +1,5 @@
 import { notifyPaymentVerificationUpdate } from '@/lib/notifications';
+import { isMemberEmailConflictError } from '@interdomestik/domain-leads/member-email-conflict';
 import { ProtectedActionContext } from '@/lib/safe-action';
 
 import { auditLog, user } from '@interdomestik/database/schema';
@@ -186,12 +187,21 @@ export async function verifyCashAttemptCore(
         };
       }
     } catch (err) {
-      console.error('Lead conversion failed:', err);
+      const conflict = isMemberEmailConflictError(err);
+      // Redacted: SQL parameters and conflict details can carry the member's email.
+      console.error('Lead conversion failed', {
+        leadId: txResult.leadId,
+        reason: conflict ? 'member_email_conflict' : ((err as Error | null)?.name ?? 'unknown'),
+      });
       // The payment stays verified and the lead stays 'paid'; approving again retries the setup.
+      // An email that already has an account is never attached: an operator reconciles it.
       return {
         ...txResult,
         fulfillment: 'pending' as const,
-        message: 'Payment approved; membership setup is pending.',
+        ...(conflict && { reason: 'member_email_conflict' as const }),
+        message: conflict
+          ? 'Payment approved; the email already belongs to an account and needs reconciliation.'
+          : 'Payment approved; membership setup is pending.',
       };
     }
   }
