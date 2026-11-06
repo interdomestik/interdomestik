@@ -33,6 +33,15 @@ export const LIFETIME_RUNNERS = deepFreeze([
     lends: [0],
   },
   {
+    // The same runner after the staff draft change to its file (owner 2026-11-06, Plan070 with
+    // Codex): the runner itself is unchanged; the entry above stays until main carries this file.
+    file: 'apps/web/src/app/api/documents/cross-tenant-document-lookup.ts',
+    unit: 'withDocumentReadContext',
+    sha256: 'e3e9a34d1b0f84987e7e139a85354fdf7ca0b34f8a67a7f0c445c6cc8cd3a43d',
+    callback: 2,
+    lends: [0],
+  },
+  {
     // Email recovery: serializes one user with a transaction-scoped advisory lock.
     file: 'apps/web/src/lib/auth/different-email-recovery-store.ts',
     unit: 'withUserLock',
