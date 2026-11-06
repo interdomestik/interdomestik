@@ -79,6 +79,7 @@ function legacyDoc(overrides: Record<string, unknown> = {}) {
 const claimRow = {
   claimOwnerId: 'member-1',
   claimBranchId: 'branch-a',
+  claimCaseLifecycleState: 'submitted',
   claimStaffId: 'staff-1',
   claimAgentId: null,
 };
