@@ -54,6 +54,10 @@ export function assertAuthorityReviewed(authority) {
     refuse('STAGING_AUTHORITY_INCOMPLETE');
   if (authority.runtimeUser.split('.')[0] !== STAGING_EXPECTATION.loginRole)
     refuse('STAGING_AUTHORITY_ROLE_MISMATCH');
+  // The pooler host is shared across projects; the routing suffix of each login selects the project.
+  for (const user of [authority.adminUser, authority.runtimeUser])
+    if (user.split('.').slice(1).join('.') !== authority.projectRef)
+      refuse('STAGING_AUTHORITY_PROJECT_MISMATCH');
 }
 
 /** Strictly parses one secret URL against the reviewed authority; nothing in the URL can override it. */
@@ -152,18 +156,23 @@ async function verifyRuntime(restricted) {
 
 const digest = value => sha256(JSON.stringify(value));
 
-export async function run({ env, headSha, connect = options => postgres(options) }) {
+export async function run({
+  env,
+  headSha,
+  connect = options => postgres(options),
+  authority = STAGING_AUTHORITY,
+}) {
   const receipt = {
     schemaVersion: 'ida.u2e-staging-enrol-receipt.v1',
     operation: ENROL_OPERATION,
     sourceSha: headSha,
     runId: env.GITHUB_RUN_ID ?? null,
     runAttempt: env.GITHUB_RUN_ATTEMPT ?? null,
-    authoritySha256: digest(STAGING_AUTHORITY),
+    authoritySha256: digest(authority),
     expectationSha256: digest(STAGING_EXPECTATION),
-    projectRef: STAGING_AUTHORITY.projectRef,
-    database: STAGING_AUTHORITY.database,
-    adminRole: STAGING_AUTHORITY.adminRole,
+    projectRef: authority.projectRef,
+    database: authority.database,
+    adminRole: authority.adminRole,
     runtimeRole: STAGING_EXPECTATION.loginRole,
     serverVersionNum: null,
     transaction: 'not_started',
@@ -178,19 +187,19 @@ export async function run({ env, headSha, connect = options => postgres(options)
   const clients = [];
   try {
     assertDispatchContext(env, headSha);
-    if (STAGING_AUTHORITY.reviewed !== true)
+    if (authority.reviewed !== true)
       receipt.candidate = {
         admin: describeTarget(env.DATABASE_URL),
         runtime: describeTarget(env.DATABASE_URL_RLS),
       };
-    assertAuthorityReviewed(STAGING_AUTHORITY);
-    const adminTarget = parseTarget(env.DATABASE_URL, STAGING_AUTHORITY, 'ADMIN');
-    const runtimeTarget = parseTarget(env.DATABASE_URL_RLS, STAGING_AUTHORITY, 'RUNTIME');
-    const admin = connect(connectionOptions(adminTarget, STAGING_AUTHORITY));
+    assertAuthorityReviewed(authority);
+    const adminTarget = parseTarget(env.DATABASE_URL, authority, 'ADMIN');
+    const runtimeTarget = parseTarget(env.DATABASE_URL_RLS, authority, 'RUNTIME');
+    const admin = connect(connectionOptions(adminTarget, authority));
     clients.push(admin);
-    const restricted = connect(connectionOptions(runtimeTarget, STAGING_AUTHORITY));
+    const restricted = connect(connectionOptions(runtimeTarget, authority));
     clients.push(restricted);
-    receipt.serverVersionNum = await verifyAdmin(admin, STAGING_AUTHORITY);
+    receipt.serverVersionNum = await verifyAdmin(admin, authority);
     await verifyRuntime(restricted);
     const inputs = {
       role: STAGING_EXPECTATION.loginRole,
