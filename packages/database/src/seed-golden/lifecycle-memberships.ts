@@ -1,4 +1,3 @@
-import { getTableColumns, sql, type Table } from 'drizzle-orm';
 import {
   E2E_MEMBERSHIP_LIFECYCLE_FIXTURES,
   e2eLifecycleInstant,
@@ -6,6 +5,7 @@ import {
 } from '../e2e-lifecycle-fixtures';
 import { E2E_USER_IDS } from '../e2e-role-fixtures';
 import { E2E_USERS } from '../e2e-users';
+import { excludedSet } from '../seed-utils/excluded-set';
 import { TENANTS } from './constants';
 import { buildSeededMembershipCardIdentifiers } from './membership-cards';
 import type { SeedGoldenContext } from './types';
@@ -82,16 +82,6 @@ export function buildLifecycleSubscriptionsToSeed() {
       },
     ];
   });
-}
-
-/** Every column but the key takes the incoming value on conflict, so a rerun restores the state. */
-function excludedSet(table: Table, row: Record<string, unknown>) {
-  const columns = getTableColumns(table);
-  return Object.fromEntries(
-    Object.keys(row)
-      .filter(key => key !== 'id')
-      .map(key => [key, sql.raw(`excluded."${columns[key].name}"`)])
-  );
 }
 
 /** Upserts restore each state on every run, so a drifted row cannot survive a reseed. */

@@ -1,7 +1,9 @@
 import { db, leadPaymentAttempts, notifications } from '@interdomestik/database';
-import { eq } from 'drizzle-orm';
+import { memberLeads } from '@interdomestik/database/schema/leads';
+import { and, eq, notInArray } from 'drizzle-orm';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
+import { CASH_STATE_ATTEMPT_IDS, CASH_STATE_ROW_TEXT } from '../utils/cash-states';
 import { gotoApp } from '../utils/navigation';
 
 test.describe('Admin Verification Flow (Golden)', () => {
@@ -22,6 +24,7 @@ test.describe('Admin Verification Flow (Golden)', () => {
     const row = page
       .getByTestId('cash-verification-row')
       .filter({ has: page.getByRole('button', { name: /Details|Detajet/i }) }) // Ensure it has details button
+      .filter({ hasNotText: CASH_STATE_ROW_TEXT }) // Catalogued cash states stay read-only
       .first();
     await expect(row).toBeVisible();
 
@@ -76,9 +79,15 @@ test.describe('Admin Verification Flow (Golden)', () => {
 
     // 10a. Simulate Agent Resubmission (DB Hack for speed)
     const [needsInfoAttempt] = await db
-      .select()
+      .select({ id: leadPaymentAttempts.id, leadEmail: memberLeads.email })
       .from(leadPaymentAttempts)
-      .where(eq(leadPaymentAttempts.status, 'needs_info'))
+      .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
+      .where(
+        and(
+          eq(leadPaymentAttempts.status, 'needs_info'),
+          notInArray(leadPaymentAttempts.id, [...CASH_STATE_ATTEMPT_IDS])
+        )
+      )
       .limit(1);
 
     if (needsInfoAttempt) {
@@ -92,9 +101,13 @@ test.describe('Admin Verification Flow (Golden)', () => {
         .where(eq(leadPaymentAttempts.id, needsInfoAttempt.id));
 
       await page.reload();
-      await expect(
-        page.getByTestId('ops-table').getByText(/Resubmitted|Ridorëzuar/i)
-      ).toBeVisible();
+      // Scope to the resubmitted row: the catalogued RESUBMITTED state shows the same badge.
+      const resubmittedRow = page
+        .getByTestId('ops-table')
+        .getByTestId('cash-verification-row')
+        .filter({ visible: true })
+        .filter({ has: page.getByText(needsInfoAttempt.leadEmail, { exact: true }) });
+      await expect(resubmittedRow.getByText(/Resubmitted|Ridorëzuar/i)).toBeVisible();
     }
 
     // 11. Test Search

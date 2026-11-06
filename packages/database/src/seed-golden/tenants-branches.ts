@@ -1,3 +1,4 @@
+import { E2E_CASH_STATES_BRANCH } from '../e2e-cash-fixtures';
 import { e2eEmail } from '../e2e-users';
 import { TENANTS } from './constants';
 import type { SeedGoldenContext } from './types';
@@ -39,6 +40,7 @@ export function buildBranchesToSeed() {
       slug: 'ks-branch-c',
       code: 'KS-C',
     },
+    { ...E2E_CASH_STATES_BRANCH, tenantId: TENANTS.KS },
     {
       id: 'mk_branch_empty',
       name: 'MK Branch Empty',

@@ -274,6 +274,20 @@ export const E2E_USERS = {
     dbRole: 'auditor',
     tenantId: 'tenant_mk',
   },
+  KS_AGENT_CASH_STATES: {
+    email: e2eEmail('agent.ks.d1'),
+    name: 'Arta Krasniqi',
+    dbRole: 'agent',
+    tenantId: 'tenant_ks',
+    branchId: 'ks_branch_d',
+  },
+  KS_MEMBER_CONVERTED_LEAD: {
+    email: e2eEmail('member.ks.converted-lead'),
+    name: 'KS Converted Lead Member',
+    dbRole: 'member',
+    tenantId: 'tenant_ks',
+    branchId: 'ks_branch_d',
+  },
 } as const;
 
 export type E2EUserKey = keyof typeof E2E_USERS;

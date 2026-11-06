@@ -84,7 +84,8 @@ async function openBranchDashboard(page: Page, testInfo: TestInfo, label: string
 }
 
 async function expectBranchCashCard(page: Page, branchCode: string, expectedCount: number) {
-  const branchCard = page.getByTestId(`branch-card-${branchCode}`);
+  // The router keeps a hidden copy of a revisited page; only the visible card is the answer.
+  const branchCard = page.getByTestId(`branch-card-${branchCode}`).filter({ visible: true });
   await expect(branchCard).toBeVisible();
   await expect(branchCard.getByLabel(/Pagesa cash në pritje|Cash Pending/i)).toContainText(
     String(expectedCount)

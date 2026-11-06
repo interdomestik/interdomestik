@@ -9,7 +9,12 @@ type Row = Record<string, unknown>;
 
 const comparable = (value: unknown) => (value instanceof Date ? value.toISOString() : value);
 
-function compareRow(failures: string[], label: string, actual: Row | undefined, expected: Row) {
+export function compareRow(
+  failures: string[],
+  label: string,
+  actual: Row | undefined,
+  expected: Row
+) {
   if (!actual) {
     failures.push(`${label}: missing`);
     return;

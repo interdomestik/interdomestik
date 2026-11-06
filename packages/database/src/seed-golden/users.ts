@@ -2,7 +2,7 @@ import { E2E_PASSWORD, E2E_USERS, e2eEmail } from '../e2e-users';
 import { hashPassword } from '../seed-utils/hash-password';
 import { goldenId } from '../seed-utils/seed-ids';
 import { TENANTS } from './constants';
-import { buildLifecycleUsersToSeed } from './lifecycle-memberships';
+import { buildStateUsersToSeed } from './state-users';
 import type { SeedGoldenContext } from './types';
 
 const pilotMembers = [
@@ -244,7 +244,7 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
       memberNumber: 'MEM-2026-000014',
       memberNumberIssuedAt: at(),
     },
-    ...buildLifecycleUsersToSeed({ at }),
+    ...buildStateUsersToSeed({ at }),
   ];
 }
 
