@@ -10,11 +10,15 @@ import { isKsGateProject } from './gate-project-identity';
 import { requireSeededHost, signInAs } from './nine-role-actor';
 
 // Named claim states in KS-D: a member draft, a rejected (closed) case and a recovery submitted to
-// the airline, all owned by the converted member. The member's list places each state by its
-// lifecycle pair and labels it with its own status. Expectations are written here, not read from
-// the seed catalogue; who may open each claim is in the nine-role access matrix.
-type Placement = 'draft' | 'closed';
-const PLACED: Record<Placement, E2EClaimStateKey> = { draft: 'DRAFT', closed: 'REJECTED' };
+// the airline (active), all owned by the converted member. The member's list places each state by
+// its lifecycle pair and labels it with its own status. Expectations are written here, not read
+// from the seed catalogue; who may open each claim is in the nine-role access matrix.
+type Placement = 'active' | 'draft' | 'closed';
+const PLACED: Record<Placement, E2EClaimStateKey> = {
+  active: 'SUBMITTED_TO_AIRLINE',
+  draft: 'DRAFT',
+  closed: 'REJECTED',
+};
 const STATUS_LABELS = { en: en.claims.status, mk: mk.claims.status, sq: sq.claims.status };
 const STATES = Object.entries(E2E_CLAIM_STATE_FIXTURES) as [
   E2EClaimStateKey,

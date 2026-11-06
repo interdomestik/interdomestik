@@ -16,6 +16,7 @@ import { claimLifecycleStatusIn } from '@interdomestik/domain-claims/claims/life
 const ACTIVE_STATUSES = [
   'draft',
   'submitted',
+  'submitted_to_airline',
   'verification',
   'evaluation',
   'negotiation',

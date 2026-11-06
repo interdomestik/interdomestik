@@ -42,6 +42,7 @@
         },
         "groups": {
           "submitted": "Podneti",
+          "submitted_to_airline": "Podneto avio-kompaniji",
           "verification": "Verifikacija",
           "evaluation": "Evaluacija",
           "negotiation": "Pregovori",

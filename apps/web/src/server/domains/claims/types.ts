@@ -1,5 +1,6 @@
 // v2.0.0-ops — Admin Claims lifecycle hardening
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import { LIFECYCLE_ACTIVE_STATUSES } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 
 export type ClaimStatusFilter = 'active' | 'draft' | 'closed' | undefined;
 export type ClaimLifecycleStage = ClaimStatus | 'unknown';
@@ -59,13 +60,9 @@ export interface ClaimsListV2Dto {
   };
 }
 
-export const IN_PROGRESS_STATUSES: ClaimStatus[] = [
-  'submitted',
-  'verification',
-  'evaluation',
-  'negotiation',
-  'court',
-];
+// The domain lifecycle set is the single definition of an active claim, so airline-stage claims
+// are not dropped from the active filter or its facet count.
+export const IN_PROGRESS_STATUSES: ClaimStatus[] = [...LIFECYCLE_ACTIVE_STATUSES];
 
 export const CLOSED_STATUSES: ClaimStatus[] = ['resolved', 'rejected'];
 

@@ -101,6 +101,7 @@ describe('getAgentMembersList aggregate query', () => {
     expect(mocks.claimLifecycleStatusIn).toHaveBeenCalledWith([
       'draft',
       'submitted',
+      'submitted_to_airline',
       'verification',
       'evaluation',
       'negotiation',

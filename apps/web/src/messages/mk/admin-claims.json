@@ -42,6 +42,7 @@
         },
         "groups": {
           "submitted": "Поднесени",
+          "submitted_to_airline": "Поднесено до авиокомпанијата",
           "verification": "Верификација",
           "evaluation": "Евалуација",
           "negotiation": "Преговори",

@@ -43,4 +43,10 @@ describe('claims list scope', () => {
     expect(params.slice(0, 2)).toEqual(['tenant_ks', 'actor-1']);
     expect(sql).not.toMatch(/branch_id" = /);
   });
+
+  it('counts airline-stage claims as active in the status filter', () => {
+    const { params } = render('member', null, { statusFilter: 'active' });
+    expect(params).toEqual(expect.arrayContaining(['submitted', 'submitted_to_airline', 'court']));
+    expect(params).not.toContain('draft');
+  });
 });

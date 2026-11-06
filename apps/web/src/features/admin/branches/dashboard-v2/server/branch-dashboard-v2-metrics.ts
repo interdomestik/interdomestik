@@ -102,14 +102,6 @@ export async function getStaffLoad(branchId: string, authority: TenantAuthority)
 
   if (relevantStaff.length === 0) return [];
 
-  const IN_PROGRESS_STATUSES = [
-    'submitted',
-    'verification',
-    'evaluation',
-    'negotiation',
-    'court',
-  ] as const;
-
   return Promise.all(
     relevantStaff.map(async staff => {
       const workload = await withTenantAuthority(authority, tx =>
@@ -121,7 +113,7 @@ export async function getStaffLoad(branchId: string, authority: TenantAuthority)
               eq(claims.staffId, staff.id),
               eq(claims.branchId, branchId), // Workload IN THIS BRANCH
               eq(claims.tenantId, tenantId),
-              lifecycleSql.claimLifecycleStatusIn(IN_PROGRESS_STATUSES)
+              lifecycleSql.claimLifecycleStatusIn(lifecycleSql.LIFECYCLE_ACTIVE_STATUSES)
             )
           )
       );

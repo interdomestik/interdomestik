@@ -42,6 +42,7 @@
         },
         "groups": {
           "submitted": "Submitted",
+          "submitted_to_airline": "Submitted to airline",
           "verification": "Verification",
           "evaluation": "Evaluation",
           "negotiation": "Negotiation",
