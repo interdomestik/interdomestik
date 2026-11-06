@@ -15,4 +15,25 @@ ALTER TABLE "member_leads" ADD CONSTRAINT "member_leads_company_check" CHECK ("m
 ALTER TABLE "member_leads" ADD CONSTRAINT "member_leads_consent_check" CHECK (("member_leads"."capture_channel" = 'legacy' and "member_leads"."consent_notice_version" = 'pre-consent-legacy')
         or ("member_leads"."capture_channel" <> 'legacy' and "member_leads"."consent_captured_at" is not null
           and "member_leads"."consent_notice_version" <> 'pre-consent-legacy'
-          and ("member_leads"."capture_channel" <> 'agent_assisted' or "member_leads"."consent_captured_by" is not null)));
+          and ("member_leads"."capture_channel" <> 'agent_assisted' or "member_leads"."consent_captured_by" is not null)));--> statement-breakpoint
+-- The legacy marker exists only for rows this migration backfilled: a new lead, or an update that
+-- turns a captured lead back into a legacy one, is refused, so consent cannot be skipped later.
+CREATE OR REPLACE FUNCTION member_leads_legacy_consent_guard_fn()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  IF NEW."capture_channel" = 'legacy'
+    AND (TG_OP = 'INSERT' OR OLD."capture_channel" IS DISTINCT FROM 'legacy') THEN
+    RAISE EXCEPTION 'member_leads: legacy consent is reserved for pre-consent backfilled rows'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+--> statement-breakpoint
+CREATE TRIGGER "member_leads_legacy_consent_guard"
+BEFORE INSERT OR UPDATE OF "capture_channel" ON "member_leads"
+FOR EACH ROW
+EXECUTE FUNCTION member_leads_legacy_consent_guard_fn();

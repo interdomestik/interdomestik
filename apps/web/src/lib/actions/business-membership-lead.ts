@@ -14,7 +14,7 @@ import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
 
 // The intake form shows the `privacyNote` copy (pricing catalogs, EN/SQ/MK/SR) at submission; the
 // lead stores this version so a later copy change gets a new version instead of rewriting history.
-export const BUSINESS_INTAKE_NOTICE_VERSION = 'business-intake-privacy-note-v1';
+const BUSINESS_INTAKE_NOTICE_VERSION = 'business-intake-privacy-note-v1';
 const BUSINESS_INTAKE_SOURCE = 'business_membership_public';
 
 const submitBusinessMembershipLeadSchema = z.object({

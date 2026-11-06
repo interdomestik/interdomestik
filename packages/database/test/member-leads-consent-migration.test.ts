@@ -70,3 +70,22 @@ test('ACQ-1b migration enforces kind, channel, company and consent rules in the 
   assert.doesNotMatch(sql, /NOT VALID/u);
   assert.doesNotMatch(sql, /cascade/iu);
 });
+
+test('ACQ-1b migration reserves the legacy marker for backfilled rows only', async () => {
+  const sql = await readMigration();
+
+  const guard =
+    sql.match(/FUNCTION member_leads_legacy_consent_guard_fn\(\)([\s\S]+?)\$\$;/u)?.[1] ?? '';
+  assert.match(guard, /SET search_path = pg_catalog, public/u);
+  assert.match(
+    guard,
+    /NEW\."capture_channel" = 'legacy'\s+AND \(TG_OP = 'INSERT' OR OLD\."capture_channel" IS DISTINCT FROM 'legacy'\)/u
+  );
+  assert.match(guard, /RAISE EXCEPTION[\s\S]+ERRCODE = 'check_violation'/u);
+  assert.match(
+    sql,
+    /CREATE TRIGGER "member_leads_legacy_consent_guard"\s+BEFORE INSERT OR UPDATE OF "capture_channel" ON "member_leads"\s+FOR EACH ROW\s+EXECUTE FUNCTION member_leads_legacy_consent_guard_fn\(\);/u
+  );
+  // The trigger is created after the backfill, so only the migrated rows ever carry the marker.
+  assert.ok(sql.indexOf('CREATE TRIGGER') > sql.indexOf(`DEFAULT 'legacy' NOT NULL`));
+});
