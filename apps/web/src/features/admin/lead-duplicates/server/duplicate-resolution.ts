@@ -121,6 +121,7 @@ export async function resolveDuplicateReferralCore(
           eq(auditLog.id, id),
           eq(auditLog.tenantId, tenantId),
           eq(auditLog.action, LEAD_DUPLICATE_RESOLVED_ACTION),
+          eq(auditLog.entityType, LEAD_DUPLICATE_RESOLUTION_ENTITY),
           eq(auditLog.entityId, referralId)
         )
       )

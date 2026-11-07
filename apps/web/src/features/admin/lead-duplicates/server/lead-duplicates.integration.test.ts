@@ -26,7 +26,8 @@ describe.skipIf(!enabled)('duplicate referral review against PostgreSQL', () => 
     const { mintTestTenantAuthority } =
       await import('@interdomestik/database/testing/tenant-authority');
     const { listDuplicateReferrals } = await import('./list-duplicate-referrals');
-    const { resolveDuplicateReferralCore } = await import('./duplicate-resolution');
+    const { duplicateResolutionId, resolveDuplicateReferralCore } =
+      await import('./duplicate-resolution');
 
     const run = `crm003-${Date.now().toString(36)}`;
     const [tenantA, tenantB] = [`${run}-ta`, `${run}-tb`];
@@ -142,6 +143,26 @@ describe.skipIf(!enabled)('duplicate referral review against PostgreSQL', () => 
         resolveDuplicateReferralCore(adminCtx, { referralId: `${run}-r4`, outcome: 'dismissed' })
       ).resolves.toMatchObject({ code: 'NOT_FOUND' });
 
+      // A resolution whose transaction rolls back leaves the referral pending and its id free.
+      const resolutionRow = (referralId: string, entityType: string) => ({
+        id: duplicateResolutionId(tenantA, referralId),
+        tenantId: tenantA,
+        actorId: admin,
+        actorRole: 'tenant_admin',
+        action: 'AGENT_LEAD_DUPLICATE_RESOLVED',
+        entityType,
+        entityId: referralId,
+        metadata: { outcome: 'dismissed' },
+        createdAt: now,
+      });
+      await expect(
+        withTenantAuthority(adminCtx.authority, async tx => {
+          await tx.insert(auditLog).values(resolutionRow(`${run}-r3`, 'lead_duplicate_referral'));
+          throw new Error('rollback after the resolution insert');
+        })
+      ).rejects.toThrow('rollback after the resolution insert');
+      expect(ids(await listDuplicateReferrals(adminCtx))).toEqual(['r1', 'r2', 'r3']);
+
       // Concurrent identical resolutions: one row, one first writer, the rest replay it.
       const same = await Promise.all(
         Array.from({ length: 6 }, () =>
@@ -192,6 +213,14 @@ describe.skipIf(!enabled)('duplicate referral review against PostgreSQL', () => 
       expect(ids(await listDuplicateReferrals(adminCtx))).toEqual(['r2']);
       expect(ids(await listDuplicateReferrals(adminCtx, 'resolved')).sort()).toEqual(['r1', 'r3']);
       expect(ids(await listDuplicateReferrals(bm1, 'resolved'))).toEqual(['r1']);
+
+      // A stored row in the resolution slot with another entity type is never accepted as the
+      // winner: the resolve is refused and the referral stays pending.
+      await dbAdmin.insert(auditLog).values(resolutionRow(`${run}-r2`, 'unrelated_entity'));
+      await expect(
+        resolveDuplicateReferralCore(adminCtx, { referralId: `${run}-r2`, outcome: 'dismissed' })
+      ).resolves.toMatchObject({ success: false, code: 'ALREADY_RESOLVED' });
+      expect(ids(await listDuplicateReferrals(adminCtx))).toEqual(['r2']);
 
       // Moving the lead out of the manager's branch withdraws visibility and resolution.
       await dbAdmin

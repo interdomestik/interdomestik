@@ -70,4 +70,18 @@ describe('ResolveDuplicateActions', () => {
     await waitFor(() => expect(hoisted.refresh).toHaveBeenCalledTimes(1));
     expect(hoisted.resolveLeadDuplicateAction).toHaveBeenCalledTimes(2);
   });
+
+  it('treats a rejected action (transport failure) as a recoverable error', async () => {
+    hoisted.resolveLeadDuplicateAction
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce({ success: true, data: {} });
+    render(<ResolveDuplicateActions referralId="ref-1" />);
+
+    fireEvent.click(dismiss());
+    await waitFor(() => expect(hoisted.toastError).toHaveBeenCalledWith('toast_error'));
+    await waitFor(() => expect(dismiss()).not.toBeDisabled());
+
+    fireEvent.click(dismiss());
+    await waitFor(() => expect(hoisted.refresh).toHaveBeenCalledTimes(1));
+  });
 });

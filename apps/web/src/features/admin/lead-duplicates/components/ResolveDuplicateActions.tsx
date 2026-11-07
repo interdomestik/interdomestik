@@ -16,11 +16,12 @@ export function ResolveDuplicateActions({ referralId }: Readonly<{ referralId: s
 
   const resolve = (outcome: DuplicateResolutionOutcome) => {
     startTransition(async () => {
-      const result = await resolveLeadDuplicateAction({ referralId, outcome });
-      if (result.success) {
+      // A transport failure (rejected action) gets the same recoverable error as a refusal.
+      const result = await resolveLeadDuplicateAction({ referralId, outcome }).catch(() => null);
+      if (result?.success) {
         toast.success(t('toast_resolved'));
         router.refresh();
-      } else if (result.code === 'ALREADY_RESOLVED') {
+      } else if (result?.code === 'ALREADY_RESOLVED') {
         toast.error(t('toast_already_resolved'));
         router.refresh();
       } else {

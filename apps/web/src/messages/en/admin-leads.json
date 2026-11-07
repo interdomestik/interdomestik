@@ -106,7 +106,9 @@
         "toast_error": "Could not save the review",
         "pending_tab": "Pending",
         "resolved_tab": "Resolved",
-        "resolved_empty": "No resolved duplicates yet."
+        "resolved_empty": "No resolved duplicates yet.",
+        "load_error": "The duplicate review could not be loaded.",
+        "retry": "Try again"
       }
     },
     "analytics": {

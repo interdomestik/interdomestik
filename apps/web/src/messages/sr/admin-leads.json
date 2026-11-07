@@ -106,7 +106,9 @@
         "toast_error": "Pregled nije moguće sačuvati",
         "pending_tab": "Na čekanju",
         "resolved_tab": "Rešeni",
-        "resolved_empty": "Još nema rešenih duplikata."
+        "resolved_empty": "Još nema rešenih duplikata.",
+        "load_error": "Pregled duplikata nije moguće učitati.",
+        "retry": "Pokušaj ponovo"
       }
     },
     "analytics": {

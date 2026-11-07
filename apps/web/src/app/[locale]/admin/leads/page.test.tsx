@@ -15,6 +15,10 @@ vi.mock('@/features/admin/verification/components/v2/VerificationOpsCenterPage',
   default: hoisted.verificationOpsCenterPageMock,
 }));
 
+vi.mock('@/features/admin/lead-duplicates/components/LeadDuplicatesLink', () => ({
+  LeadDuplicatesLink: () => null,
+}));
+
 vi.mock('@/features/admin/lead-duplicates/components/LeadDuplicatesPage', () => ({
   LeadDuplicatesPage: hoisted.leadDuplicatesPageMock,
 }));

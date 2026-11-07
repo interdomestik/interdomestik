@@ -1,5 +1,6 @@
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
 import { GlassCard } from '@/components/ui/glass-card';
+import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -21,13 +22,29 @@ export async function LeadDuplicatesPage({ state }: Readonly<{ state: DuplicateR
   }
   const t = await getTranslations('admin.leads');
   const result = await listLeadDuplicatesAction(state);
-  const rows = (result?.success ? result.data : []) as DuplicateReferralRow[];
 
   return (
     <div className="space-y-6" data-testid="lead-duplicates-page">
       <AdminPageHeader title={t('title')} subtitle={t('subtitle')} />
       <GlassCard className="p-6">
-        <LeadDuplicateReviewPanel rows={rows} state={state} />
+        {result.success ? (
+          <LeadDuplicateReviewPanel
+            rows={(result.data ?? []) as DuplicateReferralRow[]}
+            state={state}
+          />
+        ) : (
+          // A failed load must never read as a cleared queue: say so and offer a retry.
+          <div role="alert" data-testid="lead-duplicates-error" className="space-y-2 text-sm">
+            <p>{t('duplicates.load_error')}</p>
+            <Link
+              href={`/admin/leads?view=duplicates&state=${state}`}
+              data-testid="lead-duplicates-retry"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {t('duplicates.retry')}
+            </Link>
+          </div>
+        )}
       </GlassCard>
     </div>
   );

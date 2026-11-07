@@ -106,7 +106,9 @@
         "toast_error": "Shqyrtimi nuk u ruajt",
         "pending_tab": "Në pritje",
         "resolved_tab": "Të zgjidhura",
-        "resolved_empty": "Ende nuk ka dublikata të zgjidhura."
+        "resolved_empty": "Ende nuk ka dublikata të zgjidhura.",
+        "load_error": "Shqyrtimi i dublikatave nuk u ngarkua.",
+        "retry": "Provo përsëri"
       }
     },
     "analytics": {
