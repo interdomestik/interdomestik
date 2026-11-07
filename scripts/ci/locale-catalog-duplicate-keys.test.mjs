@@ -8,18 +8,25 @@ const MESSAGES_DIR = new URL('../../apps/web/src/messages/', import.meta.url);
 
 // JSON.parse keeps the last of two equal keys, so a duplicated object silently drops the first
 // one's entries (EN admin.branches.health lost its labels this way). Scan the raw text instead.
+// The text must already be valid JSON; keys compare by their decoded value (`h` is `h`).
 export function duplicateKeys(source) {
+  JSON.parse(source);
   const found = [];
   const scopes = [];
   let index = 0;
   const readString = () => {
-    let value = '';
-    for (index += 1; source[index] !== '"'; index += 1) {
+    const start = index;
+    for (index += 1; index < source.length && source[index] !== '"'; index += 1) {
       if (source[index] === '\\') index += 1;
-      value += source[index];
     }
+    if (index >= source.length) throw new SyntaxError('Unterminated string');
     index += 1;
-    return value;
+    return JSON.parse(source.slice(start, index));
+  };
+  const nextIsColon = () => {
+    let cursor = index;
+    while (/\s/u.test(source[cursor] ?? '')) cursor += 1;
+    return source[cursor] === ':';
   };
   while (index < source.length) {
     const char = source[index];
@@ -32,8 +39,7 @@ export function duplicateKeys(source) {
     }
     const value = readString();
     const scope = scopes.at(-1);
-    const isKey = scope?.object && /^\s*:/u.test(source.slice(index, index + 8));
-    if (!isKey) continue;
+    if (!scope?.object || !nextIsColon()) continue;
     if (scope.keys.has(value)) found.push(value);
     scope.keys.add(value);
   }
@@ -43,6 +49,16 @@ export function duplicateKeys(source) {
 test('the duplicate scanner ignores braces and quotes inside values', () => {
   assert.deepEqual(duplicateKeys('{"a": "{x} \\"a\\": 1", "b": {"a": 1}, "c": ["a"]}'), []);
   assert.deepEqual(duplicateKeys('{"a": {"x": 1}, "a": {"y": 1}}'), ['a']);
+});
+
+test('the duplicate scanner compares decoded keys across any whitespace', () => {
+  assert.deepEqual(duplicateKeys('{"health": 1, "\\u0068ealth": 2}'), ['health']);
+  assert.deepEqual(duplicateKeys('{"health": 1, "health"          \n : 2}'), ['health']);
+});
+
+test('the duplicate scanner refuses invalid JSON instead of scanning it', () => {
+  assert.throws(() => duplicateKeys('{"a": "unterminated'), SyntaxError);
+  assert.throws(() => duplicateKeys('{"a": 1,}'), SyntaxError);
 });
 
 test('no locale catalog repeats a key within one object', () => {
