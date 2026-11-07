@@ -4,7 +4,8 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { randomUUID } from 'node:crypto';
-import { expect } from 'vitest';
+import { inspect } from 'node:util';
+import { expect, vi } from 'vitest';
 
 import { authRequestAuthority } from './auth-request-authority';
 import * as store from './different-email-recovery-store';
@@ -15,6 +16,7 @@ import {
 } from './different-email-recovery-store.contract-test-support';
 import { databaseHooks } from './hooks';
 import { authProviders } from './providers';
+import { resetCompletion } from './reset-completion';
 import { userSchemaConfig } from './schema';
 
 /**
@@ -48,7 +50,7 @@ export function resetAuth() {
       },
     }),
     user: userSchemaConfig,
-    hooks: { before: authRequestAuthority },
+    hooks: { before: authRequestAuthority, after: resetCompletion },
     databaseHooks: {
       ...databaseHooks,
       verification: {
@@ -145,20 +147,31 @@ export async function changeEmail(userId: string, currentEmail: string, target: 
   return ok;
 }
 
-/** Runs `body` while deleting rows of `table` owned by `userId` raises, then removes the trap. */
-export async function withDeleteFailure<T>(
-  table: 'session' | 'verification',
+const TRAPS = {
+  session: { table: 'session', event: 'delete', owned: (id: string) => `old."userId" = '${id}'` },
+  'reset-token': {
+    table: 'verification',
+    event: 'delete',
+    owned: (id: string) => `old."value" = '${id}' and old."identifier" like 'reset-password:%'`,
+  },
+  'user-update': { table: 'user', event: 'update', owned: (id: string) => `old."id" = '${id}'` },
+} as const;
+
+/** Runs `body` while the given write on rows owned by `userId` raises, then removes the trap. */
+export async function withWriteFailure<T>(
+  trap: keyof typeof TRAPS,
   userId: string,
   body: () => Promise<T>
 ): Promise<T> {
   expect(userId).toMatch(/^[0-9a-f-]{36}$/u);
-  const owned = table === 'session' ? `old."userId" = '${userId}'` : `old."value" = '${userId}'`;
+  const { table, event, owned } = TRAPS[trap];
   const name = `ida_acq2c_block_${table}`;
+  const kept = event === 'delete' ? 'old' : 'new';
   await recoverySql.unsafe(
     `create or replace function ${name}() returns trigger language plpgsql as $$ begin ` +
-      `if ${owned} then raise exception 'ACQ2C_FORCED_DELETE_FAILURE'; end if; return old; end $$; ` +
-      `drop trigger if exists ${name} on "${table}"; ` +
-      `create trigger ${name} before delete on "${table}" for each row execute function ${name}();`
+      `if ${owned(userId)} then raise exception 'ACQ2C_FORCED_WRITE_FAILURE'; end if; ` +
+      `return ${kept}; end $$; drop trigger if exists ${name} on "${table}"; ` +
+      `create trigger ${name} before ${event} on "${table}" for each row execute function ${name}();`
   );
   try {
     return await body();
@@ -169,11 +182,29 @@ export async function withDeleteFailure<T>(
   }
 }
 
+/** Every line the console received, rendered with error messages, causes and stacks. */
+export function captureConsole() {
+  const lines: string[] = [];
+  for (const method of ['error', 'warn', 'info', 'log', 'debug'] as const) {
+    vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
+      lines.push(args.map(arg => inspect(arg, { depth: 6 })).join(' '));
+    });
+  }
+  return lines;
+}
+
+export async function emailVerified(userId: string) {
+  // prettier-ignore
+  const [row] = await recoverySql<{ emailVerified: boolean }[]>`select "emailVerified" from "user" where "id" = ${userId}`;
+  return row?.emailVerified;
+}
+
 export async function cleanupResetRows() {
   gates.beforeToken = undefined;
   gates.beforeHash = undefined;
   for (const id of resetUsers) {
-    await recoverySql`delete from "verification" where "value" = ${id}`;
+    const bound = `%${id}%`;
+    await recoverySql`delete from "verification" where "value" = ${id} or "value" like ${bound}`;
   }
   resetUsers.clear();
 }

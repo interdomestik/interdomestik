@@ -8,9 +8,11 @@ vi.mock('../email', () => ({
 }));
 
 import {
+  captureConsole,
   changeEmail,
   cleanupResetRows,
   credentialOwner,
+  emailVerified,
   gates,
   NEW_PASSWORD,
   PASSWORD,
@@ -20,7 +22,7 @@ import {
   sessionUser,
   signIn,
   tokenFrom,
-  withDeleteFailure,
+  withWriteFailure,
 } from './different-email-recovery-reset.contract-test-support';
 import {
   cleanupRecoveryRows,
@@ -41,6 +43,7 @@ async function signedIn(auth: ReturnType<typeof resetAuth>, email: string, passw
 }
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   mocks.mail.mockReset();
   await cleanupResetRows();
   await cleanupRecoveryRows();
@@ -87,12 +90,15 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
     it('a first password created from the link signs in as the same account', async () => {
       const auth = resetAuth();
       const owner = await credentialOwner('first-password', false);
+      await recoverySql`update "user" set "emailVerified" = false where "id" = ${owner.id}`;
 
       expect((await resetWith(auth, await mailedToken(auth, owner.email))).status).toBe(200);
 
       // prettier-ignore
       const accounts = await recoverySql`select "providerId", "accountId" from "account" where "userId" = ${owner.id}`;
       expect(accounts).toEqual([{ providerId: 'credential', accountId: owner.id }]);
+      // Following the link proved the mailbox it was mailed to (ACQ-2b2 activation).
+      expect(await emailVerified(owner.id)).toBe(true);
       expect(await sessionUser(auth, await signedIn(auth, owner.email, NEW_PASSWORD))).toBe(
         owner.id
       );
@@ -119,14 +125,56 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       expect(await signIn(auth, owner.email, NEW_PASSWORD)).toBeNull();
     });
 
+    it('verifies only the exact address the completed link was mailed to', async () => {
+      const auth = resetAuth();
+      const owner = await credentialOwner('stale-mailbox');
+      await recoverySql`update "user" set "emailVerified" = false where "id" = ${owner.id}`;
+      const token = await mailedToken(auth, owner.email);
+      const elsewhere = `elsewhere-${owner.email}`;
+      gates.beforeHash = async () => {
+        gates.beforeHash = undefined;
+        await recoverySql`update "user" set "email" = ${elsewhere} where "id" = ${owner.id}`;
+      };
+
+      expect((await resetWith(auth, token)).status).toBe(200);
+
+      expect(await emailVerified(owner.id)).toBe(false);
+      // A replayed or expired link completes nothing and verifies nothing.
+      expect((await resetWith(auth, token, `${NEW_PASSWORD}-replay`)).status).toBe(400);
+      expect(await emailVerified(owner.id)).toBe(false);
+    });
+
+    it('a failed mailbox verification never undoes the completed reset', async () => {
+      const auth = resetAuth();
+      const owner = await credentialOwner('verify-failure');
+      await recoverySql`update "user" set "emailVerified" = false where "id" = ${owner.id}`;
+      const before = await signedIn(auth, owner.email);
+      const token = await mailedToken(auth, owner.email);
+      const lines = captureConsole();
+
+      const response = await withWriteFailure('user-update', owner.id, () =>
+        resetWith(auth, token)
+      );
+
+      expect(response.status).toBe(200);
+      expect(await sessionUser(auth, before)).toBeNull();
+      expect(await emailVerified(owner.id)).toBe(false);
+      const rendered = lines.join('\n');
+      expect(rendered).toContain('mailbox_verification_failed');
+      for (const secret of [token, owner.id, owner.email]) expect(rendered).not.toContain(secret);
+      expect(await sessionUser(auth, await signedIn(auth, owner.email, NEW_PASSWORD))).toBe(
+        owner.id
+      );
+    });
+
     it('a failed session revocation never reports a successful reset', async () => {
       const auth = resetAuth();
       const owner = await credentialOwner('revocation-failure');
       const before = await signedIn(auth, owner.email);
       const token = await mailedToken(auth, owner.email);
-      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      captureConsole();
 
-      const response = await withDeleteFailure('session', owner.id, () => resetWith(auth, token));
+      const response = await withWriteFailure('session', owner.id, () => resetWith(auth, token));
 
       expect(response.status).toBeGreaterThanOrEqual(500);
       // Better Auth writes the hash before revoking (no transaction): the caller sees a failure,

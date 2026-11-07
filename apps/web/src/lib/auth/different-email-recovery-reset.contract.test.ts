@@ -10,6 +10,7 @@ vi.mock('../email', () => ({
 
 import * as store from './different-email-recovery-store';
 import {
+  captureConsole,
   changeEmail,
   credentialOwner,
   gates,
@@ -18,7 +19,7 @@ import {
   resetRows,
   resetWith,
   tokenFrom,
-  withDeleteFailure,
+  withWriteFailure,
 } from './different-email-recovery-reset.contract-test-support';
 import {
   cleanupRecoveryRows,
@@ -42,6 +43,7 @@ async function expectRefused(response: Response) {
 }
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   mocks.mail.mockReset();
   await cleanupResetRows();
   await cleanupRecoveryRows();
@@ -80,7 +82,7 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       await requestReset(auth, owner.email);
       const token = mailedToken();
 
-      const changed = await withDeleteFailure('verification', owner.id, () =>
+      const changed = await withWriteFailure('reset-token', owner.id, () =>
         changeEmail(owner.id, owner.email, `moved-${owner.email}`)
       );
 
@@ -122,18 +124,42 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       await expectRefused(await resetWith(auth, mailedToken()));
     });
 
+    it('withholds a stale link and logs nothing sensitive when its withdrawal fails', async () => {
+      const auth = resetAuth();
+      const owner = await credentialOwner('privacy');
+      const moved = `moved-${owner.email}`;
+      let stored = '';
+      gates.beforeToken = async identifier => {
+        gates.beforeToken = undefined;
+        stored = identifier.slice('reset-password:'.length);
+        expect(await changeEmail(owner.id, owner.email, moved)).toBe(true);
+      };
+      const lines = captureConsole();
+
+      const response = await withWriteFailure('reset-token', owner.id, () =>
+        requestReset(auth, owner.email)
+      );
+
+      expect(await response.json()).toEqual(GENERIC);
+      expect(mocks.mail).not.toHaveBeenCalled();
+      // The failed withdrawal rolled back, so the never-mailed token row remains until it expires.
+      expect(await resetRows(owner.id)).toEqual([`reset-password:${stored}`]);
+      const rendered = lines.join('\n');
+      expect(rendered).toContain('reset_store_unavailable');
+      for (const secret of [stored, owner.id, owner.email, moved, 'ACQ2C_FORCED_WRITE_FAILURE']) {
+        expect(rendered).not.toContain(secret);
+      }
+    });
+
     it('keeps the generic response when delivery fails or the address is unknown', async () => {
       const auth = resetAuth();
       const owner = await credentialOwner('generic');
-      const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      captureConsole();
       mocks.mail.mockRejectedValueOnce(new Error('SYNTHETIC_DELIVERY_FAILURE'));
 
       expect(await (await requestReset(auth, owner.email)).json()).toEqual(GENERIC);
       expect(await (await requestReset(auth, `nobody-${owner.email}`)).json()).toEqual(GENERIC);
-
-      const logged = JSON.stringify(log.mock.calls);
-      expect(logged).not.toContain(owner.email);
-      expect(logged).not.toMatch(/reset-password\/[A-Za-z0-9]/u);
+      expect(mocks.mail).toHaveBeenCalledTimes(1);
     });
 
     it('releases mail only for the current, canonical-equivalent mailbox of a known user', async () => {

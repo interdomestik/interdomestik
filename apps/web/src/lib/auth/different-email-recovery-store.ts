@@ -1,6 +1,7 @@
 import { dbAdmin } from '@interdomestik/database/db';
 import { user, verification } from '@interdomestik/database/schema';
 import { and, eq, like, ne, sql } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 
 type Stage = 'current' | 'replacement';
 type Tx = Parameters<Parameters<typeof dbAdmin.transaction>[0]>[0];
@@ -14,6 +15,8 @@ type ReplacementReservation = { currentDigest: string; newEmail: string; nonce: 
 const identifier = (userId: string, stage: Stage) => `ida-ui03b:${userId}:${stage}`;
 const canonical = (email: string) => email.trim().toLowerCase();
 const RESET_PREFIX = 'reset-password:';
+const MAILBOX_PREFIX = 'ida-reset-mailbox:';
+const RESET_LIFETIME_MS = 60 * 60 * 1000; // providers.ts resetPasswordTokenExpiresIn
 const expiry = (now: Date) => new Date(now.getTime() + 300_000);
 
 // prettier-ignore
@@ -128,20 +131,63 @@ export async function confirmReplacementProof(userId: string, digest: (email: st
   } catch { return { ok: false }; }
 }
 
+/** A fixed, content-free failure: database errors carry the reset token, user id and SQL text. */
+export class ResetStoreFailure extends Error {
+  constructor() {
+    super('reset_store_unavailable');
+    this.name = 'ResetStoreFailure';
+  }
+}
+async function contentFree<T>(work: () => Promise<T>): Promise<T> {
+  try {
+    return await work();
+  } catch {
+    throw new ResetStoreFailure();
+  }
+}
+
 /**
  * ACQ-2c: a reset link is mailed only while the address it was issued for is still the account's.
  * Serialized with the email change by the same user lock: a change that committed first makes this
  * withdraw the token; a change that commits later deletes it. Unknown users get no mail.
  * Reset authority is fixed when Better Auth consumes a token: one consumed before a change commits
  * still completes; every token not yet consumed by then is refused ("consume wins").
+ * A released link records the exact address it was mailed to, for `verifyResetMailbox`.
  */
 // prettier-ignore
 export async function releaseResetMailIfCurrent(userId: string, token: string, mailedEmail: string): Promise<boolean> {
-  return withUserLock(userId, async tx => {
+  return contentFree(() => withUserLock(userId, async tx => {
     const current = await owner(tx, userId);
-    if (current && canonical(current.email) === canonical(mailedEmail)) return true;
+    if (current && canonical(current.email) === canonical(mailedEmail)) {
+      const now = new Date();
+      // db-access-guard: system-exempt -- reason: the released reset link records its issuance mailbox for the session user only
+      await tx.insert(verification).values({ id: randomUUID(), identifier: `${MAILBOX_PREFIX}${token}`, value: JSON.stringify({ userId, email: current.email }), expiresAt: new Date(now.getTime() + RESET_LIFETIME_MS), createdAt: now, updatedAt: now });
+      return true;
+    }
     // db-access-guard: system-exempt -- reason: a stale-mailbox reset token is withdrawn by exact identifier and owning user
     await tx.delete(verification).where(and(eq(verification.identifier, `${RESET_PREFIX}${token}`), eq(verification.value, userId)));
     return false;
+  }));
+}
+
+/**
+ * ACQ-2c: a completed reset proves control of the mailbox its link was mailed to, so it verifies
+ * that address, and only while it is still the account's exact address. Unknown, expired or used
+ * bindings verify nothing; each binding is used once.
+ */
+// prettier-ignore
+export async function verifyResetMailbox(token: string): Promise<void> {
+  return contentFree(async () => {
+    // db-access-guard: system-exempt -- reason: the issuance binding is read by its exact secret reset token
+    const [binding] = await dbAdmin.select().from(verification).where(eq(verification.identifier, `${MAILBOX_PREFIX}${token}`)).limit(1);
+    if (!binding) return;
+    const { userId, email } = JSON.parse(binding.value) as { userId: string; email: string };
+    await withUserLock(userId, async tx => {
+      // db-access-guard: system-exempt -- reason: a used or expired issuance binding is removed by its exact row id
+      await tx.delete(verification).where(eq(verification.id, binding.id));
+      if (binding.expiresAt <= new Date()) return;
+      // db-access-guard: system-exempt -- reason: verifies only that user's mailbox by exact issuance-address compare-and-swap
+      await tx.update(user).set({ emailVerified: true }).where(and(eq(user.id, userId), eq(user.email, email)));
+    });
   });
 }
