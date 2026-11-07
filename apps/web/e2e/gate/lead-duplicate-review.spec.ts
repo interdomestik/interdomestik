@@ -49,20 +49,24 @@ test.describe('Lead duplicate review (IDA-CRM-003)', () => {
       referralId = await referralFor(existing.id);
 
       const reviewUrl = `${routes.adminLeads(testInfo)}?view=duplicates`;
+      // The router keeps a hidden copy of a revisited page, so rows are read where visible.
+      const row = () =>
+        adminPage.getByTestId(`lead-duplicate-${referralId}`).filter({ visible: true });
       await gotoApp(adminPage, reviewUrl, testInfo, { marker: 'lead-duplicates-page' });
-      const row = adminPage.getByTestId(`lead-duplicate-${referralId}`);
-      await expect(row).toBeVisible();
-      await row.getByTestId(`duplicate-keep-${referralId}`).click();
+      await expect(row()).toBeVisible();
+      await row().getByTestId(`duplicate-keep-${referralId}`).click();
       // The refreshed pending queue no longer holds the resolved referral, also after a reload.
-      await expect(row).toHaveCount(0);
+      await expect(row()).toHaveCount(0);
       await adminPage.reload();
-      await expect(adminPage.getByTestId('lead-duplicates-page')).toBeVisible();
-      await expect(adminPage.getByTestId(`lead-duplicate-${referralId}`)).toHaveCount(0);
+      await expect(
+        adminPage.getByTestId('lead-duplicates-page').filter({ visible: true })
+      ).toBeVisible();
+      await expect(row()).toHaveCount(0);
 
       await gotoApp(adminPage, `${reviewUrl}&state=resolved`, testInfo, {
         marker: 'lead-duplicates-page',
       });
-      await expect(adminPage.getByTestId(`lead-duplicate-${referralId}`)).toBeVisible();
+      await expect(row()).toBeVisible();
 
       const resolutions = await db
         .select({ id: auditLog.id })
