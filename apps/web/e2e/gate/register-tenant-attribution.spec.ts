@@ -10,6 +10,7 @@ import {
 import en from '../../src/messages/en/agent.json';
 import mk from '../../src/messages/mk/agent.json';
 import sq from '../../src/messages/sq/agent.json';
+import { gotoApp } from '../utils/navigation';
 import { removeOwnedMemberLead } from '../utils/owned-member-lead';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 
@@ -125,6 +126,9 @@ async function leadIdFor(email: string): Promise<string | null> {
   return row?.id ?? null;
 }
 
+const tenantBaseUrl = (target: TenantRegistrationTarget): string =>
+  `http://${target.host}/${target.locale}/`;
+
 // The replacement enrollment journey (ACQ-2, owner D1 a): consented lead, then Pay Cash.
 async function recordLeadAndTakeCash(
   page: Page,
@@ -132,8 +136,11 @@ async function recordLeadAndTakeCash(
   email: string,
   label: string
 ): Promise<string> {
-  await page.goto('agent/leads');
-  await expect(page.getByTestId('agent-leads-pro').first()).toBeVisible({ timeout: 30_000 });
+  await gotoApp(page, 'agent/leads', test.info(), {
+    baseURL: tenantBaseUrl(target),
+    marker: 'agent-leads-pro',
+    markerTimeoutMs: 30_000,
+  });
   await page.getByTestId('new-lead-button').click();
   await page.getByTestId('lead-form-firstname').fill('Attribution');
   await page.getByTestId('lead-form-lastname').fill(label);
@@ -164,8 +171,15 @@ async function recordLeadAndTakeCash(
   return leadId;
 }
 
-async function approveCash(admin: Page, email: string): Promise<void> {
-  await admin.goto(`admin/leads?${new URLSearchParams({ query: email })}`);
+async function approveCash(
+  admin: Page,
+  target: TenantRegistrationTarget,
+  email: string
+): Promise<void> {
+  await gotoApp(admin, `admin/leads?${new URLSearchParams({ query: email })}`, test.info(), {
+    baseURL: tenantBaseUrl(target),
+    marker: 'verification-ops-page',
+  });
   const row = admin
     .getByTestId('cash-verification-row')
     .filter({ visible: true })
@@ -202,7 +216,7 @@ test.describe('Registration tenant attribution', () => {
     const contexts: BrowserContext[] = [];
     const newContext = async (target: TenantRegistrationTarget, ip: string) => {
       const context = await browser.newContext({
-        baseURL: `http://${target.host}/${target.locale}/`,
+        baseURL: tenantBaseUrl(target),
         extraHTTPHeaders: { 'x-forwarded-host': target.host, 'x-forwarded-for': ip },
       });
       contexts.push(context);
@@ -236,7 +250,7 @@ test.describe('Registration tenant attribution', () => {
               target,
               target.adminEmail
             );
-            await approveCash(admin, email);
+            await approveCash(admin, target, email);
           })
         )
       );
