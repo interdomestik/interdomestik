@@ -47,10 +47,22 @@ export function buildAuthProviders(env: GitHubOAuthEnv = process.env as GitHubOA
           compare(password, hashedPassword),
       },
       resetPasswordTokenExpiresIn: 60 * 60, // 1 hour
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      sendResetPassword: async ({ user, url }: { user: any; url: string }) => {
-        // Never throw here; the API handler already returns a generic response.
-        // If email delivery is misconfigured (e.g., RESEND_API_KEY missing), we keep the UX consistent.
+      // A reset ends every session of that user (ACQ-2c), including first-password activation.
+      revokeSessionsOnPasswordReset: true,
+      sendResetPassword: async ({
+        user,
+        url,
+        token,
+      }: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        user: any;
+        url: string;
+        token: string;
+      }) => {
+        // A rejection here never changes the generic API response; Better Auth absorbs it. A link
+        // for a mailbox the account no longer uses is withdrawn and never mailed (ACQ-2c).
+        const { releaseResetMailIfCurrent } = await import('./different-email-recovery-store');
+        if (!(await releaseResetMailIfCurrent(user.id, token, user.email))) return;
         const { sendPasswordResetEmail } = await import('../email');
         await sendPasswordResetEmail(user.email, url);
       },

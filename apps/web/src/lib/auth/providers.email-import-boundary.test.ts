@@ -13,6 +13,9 @@ vi.mock('next/server', () => ({
   after: (callback: () => Promise<void> | void) => mocks.callbacks.push(callback),
 }));
 vi.mock('better-auth/plugins/email-otp', () => ({ emailOTP: mocks.emailOTP }));
+vi.mock('./different-email-recovery-store', () => ({
+  releaseResetMailIfCurrent: async () => true,
+}));
 
 type OtpConfig = {
   sendVerificationOTP: (
@@ -105,6 +108,7 @@ describe('email module import boundary', () => {
       .sendResetPassword({
         user: { email: message.email },
         url: 'https://ida.test/reset/synthetic',
+        token: 'synthetic',
       })
       .then(() => {
         settled = true;
@@ -125,6 +129,7 @@ describe('email module import boundary', () => {
       configured.emailAndPassword.sendResetPassword({
         user: { email: message.email },
         url: 'https://ida.test/reset/synthetic',
+        token: 'synthetic',
       })
     ).rejects.toThrow();
     expect(mocks.reset).not.toHaveBeenCalled();

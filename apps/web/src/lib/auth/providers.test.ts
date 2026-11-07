@@ -24,6 +24,11 @@ vi.mock('../email', () => ({
   sendSignInOtpEmail: mocks.sendSignInOtpEmail,
 }));
 
+// The mailbox-currency check is covered by providers.reset-mail.test.ts.
+vi.mock('./different-email-recovery-store', () => ({
+  releaseResetMailIfCurrent: async () => true,
+}));
+
 import { authProviders, buildAuthProviders } from './providers';
 
 describe('authProviders email OTP plugin', () => {
@@ -122,6 +127,7 @@ describe('authProviders email OTP plugin', () => {
       authProviders.emailAndPassword.sendResetPassword({
         user: { email: 'synthetic@example.com' },
         url: 'https://ida.test/reset/synthetic',
+        token: 'synthetic',
       })
     ).rejects.toBe(failure);
     expect(mocks.sendPasswordResetEmail).toHaveBeenCalledWith(

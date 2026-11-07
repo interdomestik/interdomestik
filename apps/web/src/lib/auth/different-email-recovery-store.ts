@@ -1,6 +1,6 @@
 import { dbAdmin } from '@interdomestik/database/db';
 import { user, verification } from '@interdomestik/database/schema';
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, eq, like, ne, sql } from 'drizzle-orm';
 
 type Stage = 'current' | 'replacement';
 type Tx = Parameters<Parameters<typeof dbAdmin.transaction>[0]>[0];
@@ -13,6 +13,7 @@ type CurrentReservation = { currentEmail: string; digest: string; nonce: string;
 type ReplacementReservation = { currentDigest: string; newEmail: string; nonce: string; now: Date; replacementDigest: string; userId: string };
 const identifier = (userId: string, stage: Stage) => `ida-ui03b:${userId}:${stage}`;
 const canonical = (email: string) => email.trim().toLowerCase();
+const RESET_PREFIX = 'reset-password:';
 const expiry = (now: Date) => new Date(now.getTime() + 300_000);
 
 // prettier-ignore
@@ -119,7 +120,28 @@ export async function confirmReplacementProof(userId: string, digest: (email: st
       if (!current || !oldEmail || current.email !== oldEmail || await collision(tx, userId, newEmail)) { await clearStage(tx, userId, 'replacement'); return { ok: false }; }
       // db-access-guard: system-exempt -- reason: dual-proof completion updates only session user by exact old-email compare-and-swap
       const [updated] = await tx.update(user).set({ email: newEmail, emailVerified: true }).where(and(eq(user.id, userId), eq(user.email, oldEmail))).returning({ id: user.id });
+      // ACQ-2c: links sent to the old mailbox die with the change; a cleanup failure rolls the change back.
+      // db-access-guard: system-exempt -- reason: email change withdraws only the session user's outstanding reset tokens
+      if (updated?.id === userId) await tx.delete(verification).where(and(eq(verification.value, userId), like(verification.identifier, `${RESET_PREFIX}%`)));
       await clearStage(tx, userId, 'replacement'); return { ok: updated?.id === userId };
     });
   } catch { return { ok: false }; }
+}
+
+/**
+ * ACQ-2c: a reset link is mailed only while the address it was issued for is still the account's.
+ * Serialized with the email change by the same user lock: a change that committed first makes this
+ * withdraw the token; a change that commits later deletes it. Unknown users get no mail.
+ * Reset authority is fixed when Better Auth consumes a token: one consumed before a change commits
+ * still completes; every token not yet consumed by then is refused ("consume wins").
+ */
+// prettier-ignore
+export async function releaseResetMailIfCurrent(userId: string, token: string, mailedEmail: string): Promise<boolean> {
+  return withUserLock(userId, async tx => {
+    const current = await owner(tx, userId);
+    if (current && canonical(current.email) === canonical(mailedEmail)) return true;
+    // db-access-guard: system-exempt -- reason: a stale-mailbox reset token is withdrawn by exact identifier and owning user
+    await tx.delete(verification).where(and(eq(verification.identifier, `${RESET_PREFIX}${token}`), eq(verification.value, userId)));
+    return false;
+  });
 }
