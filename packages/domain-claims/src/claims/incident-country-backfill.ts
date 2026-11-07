@@ -1,6 +1,8 @@
 import { resolveClaimIncidentCountry, type ClaimIncidentCountry } from './incident-country';
 export type IncidentCountryBackfillSource =
-  'claim_pack_json' | 'diaspora_origin_note' | 'existing_incident_country';
+  | 'claim_pack_json'
+  | 'diaspora_origin_note'
+  | 'existing_incident_country';
 export type IncidentCountryBackfillRow = {
   claimPackJson?: unknown;
   diasporaPublicNotes?: Array<string | null | undefined>;

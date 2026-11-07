@@ -35,7 +35,8 @@ type ConsentSelectableTx = {
 };
 
 export type ClaimDocumentAiConsentResolution =
-  { kind: 'granted'; grant: ClaimAiConsentGrant } | { kind: 'blocked'; reason: string };
+  | { kind: 'granted'; grant: ClaimAiConsentGrant }
+  | { kind: 'blocked'; reason: string };
 
 function toIso(value: Date | string | null | undefined): string | undefined {
   if (value == null) return undefined;

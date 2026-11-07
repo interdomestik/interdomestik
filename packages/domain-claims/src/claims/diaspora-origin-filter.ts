@@ -23,9 +23,8 @@ export const DIASPORA_ORIGIN_NOTES = DIASPORA_ORIGIN_COUNTRIES.flatMap(country =
   `Member-submitted Diaspora/Green Card guidance: ${country}; not incident-country authority.`,
 ]);
 
-export const parseDiasporaOriginFilter = (
-  value: string | null | undefined
-): DiasporaOriginFilter => (value === 'diaspora' ? 'diaspora' : 'all');
+export const parseDiasporaOriginFilter = (value: string | null | undefined): DiasporaOriginFilter =>
+  value === 'diaspora' ? 'diaspora' : 'all';
 
 export const matchesDiasporaOriginFilter = (
   filter: DiasporaOriginFilter,

@@ -28,7 +28,8 @@ function resolveDefaultBranchId(value: unknown): string | null {
   }
 
   const normalizedValue = value as
-    { branchId?: string; defaultBranchId?: string; id?: string; value?: string } | string;
+    | { branchId?: string; defaultBranchId?: string; id?: string; value?: string }
+    | string;
   if (typeof normalizedValue === 'string') {
     return normalizedValue;
   }
