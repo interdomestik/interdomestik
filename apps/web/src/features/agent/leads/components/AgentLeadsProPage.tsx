@@ -22,6 +22,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { convertLeadToClient, updateLeadStatus } from '../actions';
+import { LeadProfileDetails } from './LeadProfileDetails';
 
 const LOCALIZED_STATUSES = new Set([
   'new',
@@ -42,6 +43,9 @@ type AgentLeadPro = {
   status?: string | null;
   branchId?: string | null;
   branch?: { name?: string | null } | null;
+  leadKind?: string | null;
+  companyName?: string | null;
+  teamSize?: string | null;
   notes?: string | null;
   createdAt?: string | Date | null;
   updatedAt?: string | Date | null;
@@ -274,26 +278,7 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-sm border-t pt-4">
-              <div>
-                <span className="block text-muted-foreground">{t('fields.email')}</span>
-                <span className="font-medium">{selectedLead.email}</span>
-              </div>
-              <div>
-                <span className="block text-muted-foreground">{t('fields.phone')}</span>
-                <span className="font-medium">{selectedLead.phone || '-'}</span>
-              </div>
-              <div>
-                <span className="block text-muted-foreground">{t('fields.source')}</span>
-                <span className="font-medium capitalize">{selectedLead.source || '-'}</span>
-              </div>
-              <div>
-                <span className="block text-muted-foreground">{t('fields.branch')}</span>
-                <span className="font-medium">
-                  {selectedLead.branch?.name || selectedLead.branchId || '-'}
-                </span>
-              </div>
-            </div>
+            <LeadProfileDetails lead={selectedLead} />
 
             {selectedLead.notes && (
               <div className="border-t pt-4">

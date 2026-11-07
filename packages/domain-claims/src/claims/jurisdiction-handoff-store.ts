@@ -26,6 +26,7 @@ export async function loadHandoffClaim(
   const [row] = await tx
     .select({
       branchId: claims.branchId,
+      caseLifecycleState: claims.caseLifecycleState,
       incidentCountryCode: claims.incidentCountryCode,
       lifecycleVersion: claims.lifecycleVersion,
       recoveryLegalTenantId: claims.recoveryLegalTenantId,

@@ -89,19 +89,22 @@ export const memberLeads = pgTable(
     index('idx_member_leads_tenant_agent').on(table.tenantId, table.agentId),
     check('member_leads_lead_kind_check', sql`${table.leadKind} in ('individual', 'company')`),
     check(
-      'member_leads_capture_channel_check',
-      sql`${table.captureChannel} in ('agent_assisted', 'public_form', 'legacy')`
-    ),
-    check(
       'member_leads_company_check',
-      sql`${table.leadKind} = 'individual' or nullif(btrim(${table.companyName}), '') is not null`
+      sql`${table.leadKind} <> 'company' or nullif(btrim(${table.companyName}), '') is not null`
     ),
+    // The legacy notice version and the legacy channel only ever come together; every other row
+    // names a real channel.
+    check(
+      'member_leads_capture_channel_check',
+      sql`case when ${table.consentNoticeVersion} = 'pre-consent-legacy' then ${table.captureChannel} = 'legacy'
+        else ${table.captureChannel} in ('agent_assisted', 'public_form') end`
+    ),
+    // Captured consent has a time (and, agent-assisted, the agent); only a legacy row has none.
     check(
       'member_leads_consent_check',
-      sql`(${table.captureChannel} = 'legacy' and ${table.consentNoticeVersion} = 'pre-consent-legacy')
-        or (${table.captureChannel} <> 'legacy' and ${table.consentCapturedAt} is not null
-          and ${table.consentNoticeVersion} <> 'pre-consent-legacy'
-          and (${table.captureChannel} <> 'agent_assisted' or ${table.consentCapturedBy} is not null))`
+      sql`case ${table.captureChannel} when 'public_form' then ${table.consentCapturedAt} is not null
+        when 'agent_assisted' then ${table.consentCapturedAt} is not null and ${table.consentCapturedBy} is not null
+        else ${table.consentCapturedAt} is null end`
     ),
   ]
 );

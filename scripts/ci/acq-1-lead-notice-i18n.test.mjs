@@ -45,3 +45,15 @@ test('both lead entry points carry the complete consent notice in every locale',
   assert.equal(publicBodies.size, LOCALES.length, 'each locale has its own public notice');
   assert.equal(structuredArtifactOwner('apps/web/src/messages/de/agent.json'), null);
 });
+
+// ACQ-1b moved company name and team size out of lead notes, so the agent drawer labels them.
+test('the agent lead drawer labels company fields in every locale', () => {
+  const teamSizes = new Set();
+  for (const locale of LOCALES) {
+    const fields = readCatalog(locale, 'agent.json').agent.leads_pro.fields;
+    assertKeys(fields, ['company', 'team_size'], `${locale}.fields`);
+    assert.notEqual(fields.company, fields.team_size, locale);
+    teamSizes.add(fields.team_size);
+  }
+  assert.equal(teamSizes.size, LOCALES.length, 'each locale has its own wording');
+});

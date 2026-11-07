@@ -12604,17 +12604,17 @@
           "name": "member_leads_lead_kind_check",
           "value": "\"member_leads\".\"lead_kind\" in ('individual', 'company')"
         },
-        "member_leads_capture_channel_check": {
-          "name": "member_leads_capture_channel_check",
-          "value": "\"member_leads\".\"capture_channel\" in ('agent_assisted', 'public_form', 'legacy')"
-        },
         "member_leads_company_check": {
           "name": "member_leads_company_check",
-          "value": "\"member_leads\".\"lead_kind\" = 'individual' or nullif(btrim(\"member_leads\".\"company_name\"), '') is not null"
+          "value": "\"member_leads\".\"lead_kind\" <> 'company' or nullif(btrim(\"member_leads\".\"company_name\"), '') is not null"
+        },
+        "member_leads_capture_channel_check": {
+          "name": "member_leads_capture_channel_check",
+          "value": "case when \"member_leads\".\"consent_notice_version\" = 'pre-consent-legacy' then \"member_leads\".\"capture_channel\" = 'legacy'\n        else \"member_leads\".\"capture_channel\" in ('agent_assisted', 'public_form') end"
         },
         "member_leads_consent_check": {
           "name": "member_leads_consent_check",
-          "value": "(\"member_leads\".\"capture_channel\" = 'legacy' and \"member_leads\".\"consent_notice_version\" = 'pre-consent-legacy')\n        or (\"member_leads\".\"capture_channel\" <> 'legacy' and \"member_leads\".\"consent_captured_at\" is not null\n          and \"member_leads\".\"consent_notice_version\" <> 'pre-consent-legacy'\n          and (\"member_leads\".\"capture_channel\" <> 'agent_assisted' or \"member_leads\".\"consent_captured_by\" is not null))"
+          "value": "case \"member_leads\".\"capture_channel\" when 'public_form' then \"member_leads\".\"consent_captured_at\" is not null\n        when 'agent_assisted' then \"member_leads\".\"consent_captured_at\" is not null and \"member_leads\".\"consent_captured_by\" is not null\n        else \"member_leads\".\"consent_captured_at\" is null end"
         }
       },
       "isRLSEnabled": false

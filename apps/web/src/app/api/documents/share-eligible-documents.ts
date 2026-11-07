@@ -122,6 +122,7 @@ async function canShareClaimDocument(args: {
     .select({
       agentId: claims.agentId,
       branchId: claims.branchId,
+      caseLifecycleState: claims.caseLifecycleState,
       ownerId: claims.userId,
       staffId: claims.staffId,
     })
@@ -136,7 +137,12 @@ async function canShareClaimDocument(args: {
     isScopedClaimReaderRole(role) &&
     hasScopedClaimReadAccess({
       branchId: actor.branchId ?? null,
-      claim: { branchId: claim.branchId, staffId: claim.staffId, userId: claim.ownerId },
+      claim: {
+        branchId: claim.branchId,
+        caseLifecycleState: claim.caseLifecycleState,
+        staffId: claim.staffId,
+        userId: claim.ownerId,
+      },
       role,
       userId: actor.id,
     })
