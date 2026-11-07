@@ -11,6 +11,8 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('@interdomestik/database', () => ({
   and: (...args: unknown[]) => ({ op: 'and', args }),
   eq: (left: unknown, right: unknown) => ({ op: 'eq', left, right }),
+  inArray: (column: unknown, values: unknown) => ({ op: 'inArray', column, values }),
+  auditLog: {},
   sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({ op: 'sql', strings, values }),
   memberLeads: {
     id: 'member_leads.id',
@@ -50,6 +52,7 @@ describe('createAgentLeadCore persistence errors', () => {
     hoisted.withTenantContext.mockImplementation(async (_ctx, callback) =>
       callback({
         select: () => ({ from: () => ({ where: () => ({ limit: hoisted.existing }) }) }),
+        insert: () => ({ values: () => ({ onConflictDoNothing: async () => undefined }) }),
       })
     );
   });

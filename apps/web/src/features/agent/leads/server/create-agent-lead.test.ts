@@ -11,6 +11,8 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('@interdomestik/database', () => ({
   and: (...args: unknown[]) => ({ op: 'and', args }),
   eq: (left: unknown, right: unknown) => ({ op: 'eq', left, right }),
+  inArray: (column: unknown, values: unknown) => ({ op: 'inArray', column, values }),
+  auditLog: {},
   sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({ op: 'sql', strings, values }),
   memberLeads: {
     id: 'member_leads.id',
@@ -50,6 +52,7 @@ describe('createAgentLeadCore', () => {
     hoisted.withTenantContext.mockImplementation(async (_ctx, callback) =>
       callback({
         select: () => ({ from: () => ({ where: () => ({ limit: hoisted.existing }) }) }),
+        insert: () => ({ values: () => ({ onConflictDoNothing: async () => undefined }) }),
       })
     );
   });
@@ -142,8 +145,11 @@ describe('createAgentLeadCore', () => {
     ],
   ])('flags a lead of %s as a possible duplicate, never merged', async (_label, row) => {
     hoisted.existing.mockResolvedValue([row]);
+    hoisted.createLead.mockRejectedValue({
+      code: '23505',
+      constraint_name: 'idx_leads_tenant_email',
+    });
     await expect(create(individual)).resolves.toMatchObject({ code: 'POSSIBLE_DUPLICATE' });
-    expect(hoisted.createLead).not.toHaveBeenCalled();
   });
 
   it('resolves a lost unique-index race through the same duplicate rule', async () => {
@@ -152,7 +158,10 @@ describe('createAgentLeadCore', () => {
       .mockResolvedValueOnce([
         { id: 'lead_race', agentId: 'agent-1', branchId: 'branch-1', status: 'new' },
       ]);
-    hoisted.createLead.mockRejectedValue(Object.assign(new Error('dup'), { code: '23505' }));
+    hoisted.createLead.mockRejectedValue({
+      code: '23505',
+      constraint_name: 'idx_leads_tenant_email',
+    });
     await expect(create(individual)).resolves.toEqual({
       success: true,
       data: { leadId: 'lead_race', existing: true },
