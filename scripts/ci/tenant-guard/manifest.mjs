@@ -44,21 +44,21 @@ export const LEGACY_PINS = new Map([
     `${DB}/tenant.ts#withTenantContext`,
     Object.freeze([
       '7c4ebd07641253e5bfc99b8ccca57d75c76846124af23bc60d218c0f93a97c2a',
-      '2efd162e279e7aaadbecefda84a1378ef781a32ce26d6b87418520458e912340',
+      '97650c0c5409095be3aedf0c68ecd4bde4bb898a9264b892f2d61a6bff691e37',
     ]),
   ],
   [
     `${DB}/tenant.ts#withTenantDb`,
     Object.freeze([
       'a64f414e6134b84d2413b13dd893984199fe2e9877d92ab32b7d251f3579bf3e',
-      'e29c7b75ef621433b2e77cf164ef4bd9ec4fce6cce78b5fe2f1aac9248130e56',
+      '0a9dacf96cfdce1a57a728efee7b3a723802f8cc5fd8a8c6346eabea33597f8f',
     ]),
   ],
   [
     `${DB}/db.ts#db`,
     Object.freeze([
       '87c17c85b25d8ff366209f0c61e73c19e6822fd7a6b649175a2740af7fc8ca9f',
-      '857021f508e1d30c85013dbced38744b148edfd73184445cc404a65f4b57ac49',
+      'f6030648819e130f965138672b666c115e78791f5997a6395069e7adcbda8d92',
     ]),
   ],
 ]);
