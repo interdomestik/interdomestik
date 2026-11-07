@@ -58,6 +58,36 @@ test('a unit admits one predecessor and one distinct successor at most', () => {
 
   const duplicate = run(file(NEXT), { contracts: [contractFor(NEXT), contractFor(NEXT)] });
   assertRefused(duplicate, 'contract', /one predecessor and one distinct successor at most/u);
+  const shared = contractFor(NEXT);
+  const reused = run(file(NEXT), { contracts: [shared, shared] });
+  assertRefused(reused, 'contract', /one predecessor and one distinct successor at most/u);
+});
+
+// A contract names one AST unit. Another unit bearing the same name (here an object method) never
+// borrows the reviewed unit's digest or budget, whichever of the two the scan meets first.
+const methodNamed = body => [
+  'export const tools = {',
+  '  async lockRow(tx: any, sql: any, id: string) {',
+  `    await tx.execute(sql\`${body}\`);`,
+  '  },',
+  '};',
+];
+
+test('a second unit bearing a contracted name fails closed and excuses nothing', () => {
+  const contract = contractFor(PREVIOUS, { execute: 2 });
+  const stolen = run(file([...PREVIOUS, ...methodNamed('select 9 from claims')]), {
+    contracts: [contract],
+  });
+  assertRefused(stolen, 'contract', /the contracted name is borne by more than one unit/u);
+  assertRefused(stolen, 'C3', /execute needs a source-bound contract/u);
+
+  for (const order of [
+    [...PREVIOUS, ...methodNamed('select 1 from claims where id = ${id} for share')],
+    [...methodNamed('select 1 from claims where id = ${id} for share'), ...PREVIOUS],
+  ]) {
+    const both = run(file(order), { contracts: TRANSITION });
+    assertRefused(both, 'contract', /the contracted name is borne by more than one unit/u);
+  }
 });
 
 test('repository contract transitions name at most two distinct postimages per unit', () => {

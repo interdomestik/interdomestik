@@ -177,16 +177,23 @@ export function installSinks(ctx) {
 
   // ---- contracts (C3 and connection control) -----------------------------------------------
   // A unit may carry one open transition: the reviewed predecessor and its successor postimage.
+  // A contract names exactly one AST unit: a second unit bearing the same name fails closed.
   const contractUse = new Map();
-  const contractDigests = new Map(); // `${file}#${unit}` -> measured digest of a contracted unit
+  const contractUnits = new Map(); // `${file}#${unit}` -> { unit, digest } of the contracted unit
+  const ambiguousContractUnits = new Set();
   function covered(fact, node, kind) {
     const unit = unitOf(node);
     const name = unitName(unit, fact.sourceFile);
     const unitKey = `${fact.file}#${name}`;
     if (!contracts.some(entry => entry.file === fact.file && entry.unit === name)) return false;
-    if (!contractDigests.has(unitKey))
-      contractDigests.set(unitKey, sha256(fingerprint(unit, fact.sourceFile)));
-    const digest = contractDigests.get(unitKey);
+    const seen = contractUnits.get(unitKey);
+    if (seen && seen.unit !== unit) {
+      ambiguousContractUnits.add(unitKey);
+      return false;
+    }
+    if (!seen)
+      contractUnits.set(unitKey, { unit, digest: sha256(fingerprint(unit, fact.sourceFile)) });
+    const { digest } = contractUnits.get(unitKey);
     const contract = contracts.find(
       entry => entry.file === fact.file && entry.unit === name && entry.sha256 === digest
     );
@@ -246,8 +253,9 @@ export function installSinks(ctx) {
   }
   Object.assign(ctx, {
     builderProjection,
+    ambiguousContractUnits,
     connectionControlUnits,
-    contractDigests,
+    contractUnits,
     contractUse,
     covered,
     legacyOps,
