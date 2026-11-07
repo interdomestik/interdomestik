@@ -91,7 +91,7 @@ describe('getVerificationRequestsAction read admission', () => {
     'reads %s tenant-wide in the actor transaction',
     async role => {
       hoisted.getSession.mockResolvedValue(sessionFor(role, 'branch-1'));
-      const rows = [{ id: 'attempt-1', memberEmailVerified: false }];
+      const rows = [{ id: 'attempt-1', memberEmailVerified: false, memberCredentialId: null }];
       const { executed } = createRecordingTx([rows]);
 
       await expect(getVerificationRequestsAction({ view: 'queue' })).resolves.toEqual({

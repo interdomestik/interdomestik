@@ -23,7 +23,7 @@ import { resendActivationInviteCore } from './resend-activation-invite';
 function createTx() {
   const next = async () => hoisted.reads.shift() ?? [];
   const chain: Record<string, unknown> = { for: next, limit: next };
-  for (const step of ['from', 'innerJoin', 'where']) chain[step] = () => chain;
+  for (const step of ['from', 'innerJoin', 'leftJoin', 'where']) chain[step] = () => chain;
   return {
     select: () => chain,
     insert: () => ({
@@ -47,6 +47,7 @@ const unverified = {
   memberId: 'member-1',
   email: 'member@example.test',
   emailVerified: false,
+  credentialId: null,
 };
 const input = { attemptId: 'att-1' };
 
@@ -134,8 +135,11 @@ describe('resendActivationInviteCore (ACQ-2b2)', () => {
     expect(hoisted.sendMemberActivationInvite).not.toHaveBeenCalled();
   });
 
-  it('never re-invites a member who already proved their mailbox', async () => {
-    queue([{ id: 'att-1' }], [{ ...unverified, emailVerified: true }]);
+  it.each([
+    ['proved their mailbox', { emailVerified: true }],
+    ['set a password from the invite', { credentialId: 'credential-1' }],
+  ])('never re-invites a member who already %s', async (_label, activated) => {
+    queue([{ id: 'att-1' }], [{ ...unverified, ...activated }]);
     await expect(resendActivationInviteCore(ctxFor('admin'), input)).resolves.toEqual({
       success: false,
       error: 'already_active',

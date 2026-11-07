@@ -113,6 +113,14 @@ test.describe('ACQ-2b2 member activation invite', () => {
         .click();
       await expect.poll(() => convertedMemberId(owned.id)).not.toBeNull();
       memberId = await convertedMemberId(owned.id);
+      // Until the member sets a password, the history row offers to resend the invite.
+      const history = `/admin/leads?${new URLSearchParams({ view: 'history', query: owned.email })}`;
+      const historyRow = adminPage
+        .getByTestId('cash-verification-row')
+        .filter({ visible: true })
+        .filter({ has: adminPage.getByText(owned.email, { exact: true }) });
+      await gotoApp(adminPage, history, testInfo, { marker: 'verification-ops-page' });
+      await expect(historyRow.getByTestId('resend-activation-invite')).toBeVisible();
 
       // The member opens the exact emailed link: Better Auth checks the token and returns them to
       // the reset page on this deployment, never to a host the lane does not serve.
@@ -172,6 +180,11 @@ test.describe('ACQ-2b2 member activation invite', () => {
         .from(user)
         .where(sql`lower(${user.email}) = ${owned.email.toLowerCase()}`);
       expect(mailbox).toEqual([{ id: memberId }]);
+
+      // The password set from the invite completes activation: no resend is offered any more.
+      await gotoApp(adminPage, history, testInfo, { marker: 'verification-ops-page' });
+      await expect(historyRow).toBeVisible();
+      await expect(historyRow.getByTestId('resend-activation-invite')).toHaveCount(0);
     } finally {
       await context.close();
       if (memberId) {

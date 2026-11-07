@@ -28,13 +28,13 @@ describe('getVerificationRequests access', () => {
   );
 
   it('reads the admin queue tenant-wide through the callback transaction', async () => {
-    const rows = [{ id: 'attempt-1', memberEmailVerified: null }];
+    const rows = [{ id: 'attempt-1', memberEmailVerified: false, memberCredentialId: 'cred-1' }];
     const { executed } = createRecordingTx([rows]);
 
     const context = ctx('admin', 'branch-1');
     const result = await getVerificationRequests(context, { view: 'queue' });
 
-    // Without the member join the pending flag is false, never the raw column.
+    // A member who set a password from the invite is active although emailVerified stays false.
     expect(result).toEqual([{ id: 'attempt-1', memberActivationPending: false }]);
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
     expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toBe(context.authority);
@@ -67,6 +67,7 @@ describe('getVerificationRequests access', () => {
       expect(query.sql).toContain('"verifier"');
       // ACQ-2b2: only branch managers see resendable activations; staff never join the member.
       expect(query.sql.includes('"member"')).toBe(role === 'branch_manager');
+      expect(query.sql.includes('"member_credential"')).toBe(role === 'branch_manager');
       expect(query.sql).toMatch(/"updated_at" desc/);
     }
   );
