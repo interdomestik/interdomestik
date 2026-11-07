@@ -1,4 +1,5 @@
 import { notifyPaymentVerificationUpdate } from '@/lib/notifications';
+import { sendMemberActivationInvite } from '@/lib/member-activation-invite';
 import { isMemberEmailConflictError } from '@interdomestik/domain-leads/member-email-conflict';
 import { ProtectedActionContext } from '@/lib/safe-action';
 
@@ -179,11 +180,23 @@ export async function verifyCashAttemptCore(
       const { convertLeadToMember } = await import('@interdomestik/domain-leads/convert');
       const conversionResult = await convertLeadToMember(authority, { leadId: txResult.leadId });
       if (conversionResult) {
+        // The member stays unverified until their own first email-code sign-in (ACQ-2b2).
+        const invite = await sendMemberActivationInvite({
+          email: conversionResult.email,
+          tenantId,
+        });
+        if (!invite.sent) {
+          console.error('Member activation invite not sent', {
+            userId: conversionResult.userId,
+            reason: invite.reason,
+          });
+        }
         return {
           success: true,
           status: 'succeeded' as const,
           memberNumber: conversionResult.memberNumber,
           userId: conversionResult.userId,
+          invite: invite.sent ? ('sent' as const) : ('pending' as const),
         };
       }
     } catch (err) {

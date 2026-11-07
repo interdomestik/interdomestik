@@ -21,6 +21,7 @@
     "./email": "./src/email.ts",
     "./email-templates": "./src/email-templates.ts",
     "./email/thank-you-letter": "./src/email/thank-you-letter.ts",
+    "./email/member-activation": "./src/email/member-activation.ts",
     "./email/templates": "./src/email/templates/index.ts",
     "./cron-service": "./src/cron-service.ts"
   },

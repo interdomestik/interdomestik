@@ -23,6 +23,8 @@ export * from './member-email-conflict';
 
 export interface ConvertLeadResult {
   userId: string;
+  /** The committed member email (trimmed, lowercased): the only recipient of the invite. */
+  email: string;
   memberNumber: string | null;
   subscriptionId: string;
 }
@@ -124,7 +126,8 @@ export async function convertLeadToMember(
       email,
       name: `${lead.firstName} ${lead.lastName}`,
       role: 'member',
-      emailVerified: true,
+      // Unverified until the member's own first email-code sign-in proves the mailbox (ACQ-2b2).
+      emailVerified: false,
       ...(lead.agentId ? createAgentAssistedOwnershipAttribution(lead.agentId) : {}),
       createdAt: now,
       updatedAt: now,
@@ -184,5 +187,5 @@ export async function convertLeadToMember(
       return null;
     }
   );
-  return { ...converted, memberNumber: issued?.memberNumber ?? null };
+  return { ...converted, email, memberNumber: issued?.memberNumber ?? null };
 }
