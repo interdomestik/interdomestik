@@ -47,16 +47,18 @@ export function resetAgentLeadMocks(): void {
   agentLeadMocks.existing.mockResolvedValue([]);
   agentLeadMocks.createLead.mockResolvedValue({ leadId: 'lead_new' });
   agentLeadMocks.referralWrite.mockResolvedValue(undefined);
-  agentLeadMocks.idempotency.mockImplementation(async ({ execute }) => execute());
-  agentLeadMocks.withTenantContext.mockImplementation(async (_ctx, callback) =>
-    callback({
-      select: () => ({ from: () => ({ where: () => ({ limit: agentLeadMocks.existing }) }) }),
-      insert: () => ({
-        values: (values: unknown) => {
-          agentLeadMocks.referralValues(values);
-          return { onConflictDoNothing: agentLeadMocks.referralWrite };
-        },
-      }),
-    })
+  agentLeadMocks.idempotency.mockImplementation(({ execute }) => Promise.resolve(execute()));
+  agentLeadMocks.withTenantContext.mockImplementation((_ctx, callback) =>
+    Promise.resolve(
+      callback({
+        select: () => ({ from: () => ({ where: () => ({ limit: agentLeadMocks.existing }) }) }),
+        insert: () => ({
+          values: (values: unknown) => {
+            agentLeadMocks.referralValues(values);
+            return { onConflictDoNothing: agentLeadMocks.referralWrite };
+          },
+        }),
+      })
+    )
   );
 }
