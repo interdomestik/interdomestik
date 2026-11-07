@@ -231,7 +231,13 @@
         "successTitle": "Business intake received",
         "successBody": "We have your request and will follow up to confirm the right business protection setup.",
         "successToast": "Business intake received",
-        "privacyNote": "By submitting this intake, you allow Interdomestik to contact you about business membership setup.",
+        "notice": {
+          "title": "How we use your details",
+          "body": "Interdomestik uses your name, phone number and email, and your company name and team size, only to contact you about Interdomestik membership and to prepare your offer. An agent from your local branch will contact you. We do not sell your details or share them for advertising. If you do not become a member, we delete them after 12 months. You can ask us at any time to stop contacting you, or to see, correct or delete your details, through your agent or our privacy contact.",
+          "company": "As the contact person, this request covers only your own details. Each employee decides for themselves whether to join.",
+          "consent": "I ask Interdomestik to contact me about membership and I have read the notice above.",
+          "consentRequired": "Tick the box so we may contact you about membership."
+        },
         "submit": "Send business intake",
         "submitPending": "Sending intake",
         "fields": {

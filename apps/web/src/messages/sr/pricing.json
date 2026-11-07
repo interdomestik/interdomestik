@@ -231,7 +231,13 @@
         "successTitle": "Poslovni prijem je primljen",
         "successBody": "Primili smo vaš zahtev i javićemo vam se da potvrdimo pravi poslovni paket zaštite.",
         "successToast": "Poslovni prijem je primljen",
-        "privacyNote": "Slanjem ovog prijema dozvoljavate Interdomestiku da vas kontaktira u vezi sa postavljanjem poslovnog članstva.",
+        "notice": {
+          "title": "Kako koristimo vaše podatke",
+          "body": "Interdomestik koristi vaše ime, broj telefona i imejl, kao i naziv kompanije i broj zaposlenih, samo da bi vas kontaktirao u vezi sa članstvom u Interdomestiku i pripremio vašu ponudu. Kontaktiraće vas agent iz vaše filijale. Ne prodajemo vaše podatke i ne delimo ih radi oglašavanja. Ako ne postanete član, brišemo ih nakon 12 meseci. U svakom trenutku možete zatražiti da prestanemo da vas kontaktiramo, ili da vidite, ispravite ili obrišete svoje podatke, preko svog agenta ili našeg kontakta za privatnost.",
+          "company": "Kao kontakt osoba, ovaj zahtev obuhvata samo vaše podatke. Svaki zaposleni sam odlučuje da li će se učlaniti.",
+          "consent": "Tražim da me Interdomestik kontaktira u vezi sa članstvom i pročitao/la sam obaveštenje iznad.",
+          "consentRequired": "Označite polje da bismo mogli da vas kontaktiramo u vezi sa članstvom."
+        },
         "submit": "Pošalji poslovni prijem",
         "submitPending": "Prijem se šalje",
         "fields": {

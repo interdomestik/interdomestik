@@ -6,15 +6,15 @@ import { createLead } from '@interdomestik/domain-leads';
 import { headers } from 'next/headers';
 import { z } from 'zod';
 
+import { LEAD_NOTICE_VERSION } from '@/features/agent/leads/lead-notice';
 import { resolveBusinessLeadOwner } from '@/lib/business-leads/resolve-business-lead-owner';
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { ActionError, ActionSuccess } from '@/lib/safe-action';
 import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
 
-// The intake form shows the `privacyNote` copy (pricing catalogs, EN/SQ/MK/SR) at submission; the
-// lead stores this version so a later copy change gets a new version instead of rewriting history.
-const BUSINESS_INTAKE_NOTICE_VERSION = 'business-intake-privacy-note-v1';
+// The intake form shows the `notice` copy (pricing catalogs, EN/SQ/MK/SR) above an unticked
+// checkbox; the lead stores LEAD_NOTICE_VERSION, so a later copy change gets a new version.
 const BUSINESS_INTAKE_SOURCE = 'business_membership_public';
 
 const submitBusinessMembershipLeadSchema = z.object({
@@ -26,6 +26,7 @@ const submitBusinessMembershipLeadSchema = z.object({
   teamSize: z.string().trim().min(1, 'Team size is required'),
   notes: z.string().trim().max(2000, 'Notes are too long').optional(),
   locale: z.string().trim().min(2).max(10).optional(),
+  consent: z.boolean().refine(value => value, 'Confirm that we may contact you'),
 });
 
 export type SubmitBusinessMembershipLeadInput = z.infer<typeof submitBusinessMembershipLeadSchema>;
@@ -158,7 +159,7 @@ export async function submitBusinessMembershipLeadCore(params: {
             companyName: parsed.data.companyName,
             teamSize: parsed.data.teamSize,
             source: BUSINESS_INTAKE_SOURCE,
-            consentNoticeVersion: BUSINESS_INTAKE_NOTICE_VERSION,
+            consentNoticeVersion: LEAD_NOTICE_VERSION,
             notes: serializeLeadNotes({
               data: parsed.data,
               referer: params.requestHeaders.get('referer'),
@@ -208,6 +209,7 @@ export async function submitBusinessMembershipLead(
       teamSize: readOptionalString(formData.get('teamSize')) ?? '',
       notes: readOptionalString(formData.get('notes')),
       locale: readOptionalString(formData.get('locale')),
+      consent: formData.get('consent') === 'yes',
     },
   });
 }
