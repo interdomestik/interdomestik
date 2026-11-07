@@ -4,7 +4,6 @@ export type ParsedMemberImportRow = {
   fullName: string;
   email: string;
   phone: string;
-  password: string;
   planId: 'standard' | 'family';
   isValid: boolean;
   error?: string;
@@ -15,7 +14,9 @@ type ParsedMemberImportCsv = {
   rows: ParsedMemberImportRow[];
 };
 
-const REQUIRED_HEADERS = ['fullName', 'email', 'phone', 'password'] as const;
+const REQUIRED_HEADERS = ['fullName', 'email', 'phone'] as const;
+// Members set their own credential after activation; a roster must never carry passwords.
+const FORBIDDEN_HEADERS = ['password'] as const;
 
 function normalizeHeader(header: string) {
   return header.trim().replace(/^\uFEFF/, '');
@@ -62,6 +63,16 @@ export function parseMemberImportCsv(csv: string): ParsedMemberImportCsv {
 
   const headers = splitCsvLine(headerLine).map(normalizeHeader);
   const missingHeaders = REQUIRED_HEADERS.filter(header => !headers.includes(header));
+  const forbiddenHeaders = FORBIDDEN_HEADERS.filter(header => headers.includes(header));
+
+  if (forbiddenHeaders.length > 0) {
+    return {
+      headerErrors: [
+        `Remove the ${forbiddenHeaders.join(', ')} column: members set their own credential`,
+      ],
+      rows: [],
+    };
+  }
 
   if (missingHeaders.length > 0) {
     return {
@@ -91,7 +102,6 @@ export function parseMemberImportCsv(csv: string): ParsedMemberImportCsv {
       fullName: row.fullName ?? '',
       email: row.email ?? '',
       phone: row.phone ?? '',
-      password: row.password ?? '',
       planId,
       isValid: missingFields.length === 0,
       error:

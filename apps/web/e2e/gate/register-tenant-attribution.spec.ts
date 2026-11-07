@@ -1,17 +1,22 @@
 import {
   E2E_PASSWORD,
   E2E_USERS,
-  account,
-  agentClients,
   db,
+  eq,
   inArray,
-  subscriptions,
+  memberLeads,
   user,
 } from '@interdomestik/database';
-import { expect, test, type BrowserContext } from '@playwright/test';
+import en from '../../src/messages/en/agent.json';
+import mk from '../../src/messages/mk/agent.json';
+import sq from '../../src/messages/sq/agent.json';
+import { gotoApp } from '../utils/navigation';
+import { removeOwnedMemberLead } from '../utils/owned-member-lead';
+import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 
 type TenantRegistrationTarget = {
   actorEmail: string;
+  adminEmail: string;
   expectedTenantId: string;
   host: string;
   locale: string;
@@ -65,6 +70,7 @@ function buildTenantTargets(): TenantRegistrationTarget[] {
   return [
     {
       actorEmail: E2E_USERS.KS_AGENT.email,
+      adminEmail: E2E_USERS.KS_ADMIN.email,
       expectedTenantId: E2E_USERS.KS_AGENT.tenantId,
       host: siblingTenantHost(projectHost, 'ks'),
       locale: 'sq',
@@ -72,6 +78,7 @@ function buildTenantTargets(): TenantRegistrationTarget[] {
     },
     {
       actorEmail: E2E_USERS.MK_AGENT.email,
+      adminEmail: E2E_USERS.MK_ADMIN.email,
       expectedTenantId: E2E_USERS.MK_AGENT.tenantId,
       host: siblingTenantHost(projectHost, 'mk'),
       locale: 'mk',
@@ -82,14 +89,15 @@ function buildTenantTargets(): TenantRegistrationTarget[] {
 
 async function loginActor(
   context: BrowserContext,
-  target: TenantRegistrationTarget
+  target: TenantRegistrationTarget,
+  email = target.actorEmail
 ): Promise<import('@playwright/test').Page> {
   const page = await context.newPage();
   const origin = `http://${target.host}`;
   const loginURL = `${origin}/api/auth/sign-in/email`;
 
   const response = await page.request.post(loginURL, {
-    data: { email: target.actorEmail, password: E2E_PASSWORD },
+    data: { email, password: E2E_PASSWORD },
     headers: {
       Origin: origin,
       Referer: `${origin}/${target.locale}/login`,
@@ -98,34 +106,107 @@ async function loginActor(
   });
 
   if (!response.ok()) {
-    throw new Error(
-      `API login failed for ${target.actorEmail}: ${response.status()} ${await response.text()}`
-    );
+    throw new Error(`API login failed for ${email}: ${response.status()} ${await response.text()}`);
   }
 
   return page;
 }
 
-async function cleanupRegisteredUsers(emails: string[]) {
-  const insertedUsers = await db.query.user.findMany({
-    where: (table, { inArray: inArrayInner }) => inArrayInner(table.email, emails),
-    columns: { id: true, email: true },
+const MORE_ACTIONS: Record<string, string> = {
+  en: en.agent.leads_pro.more_actions,
+  mk: mk.agent.leads_pro.more_actions,
+  sq: sq.agent.leads_pro.more_actions,
+};
+
+async function leadIdFor(email: string): Promise<string | null> {
+  const [row] = await db
+    .select({ id: memberLeads.id })
+    .from(memberLeads)
+    .where(eq(memberLeads.email, email));
+  return row?.id ?? null;
+}
+
+const tenantBaseUrl = (target: TenantRegistrationTarget): string =>
+  `http://${target.host}/${target.locale}/`;
+
+// The replacement enrollment journey (ACQ-2, owner D1 a): consented lead, then Pay Cash.
+async function recordLeadAndTakeCash(
+  page: Page,
+  target: TenantRegistrationTarget,
+  email: string,
+  label: string
+): Promise<string> {
+  await gotoApp(page, 'agent/leads', test.info(), {
+    baseURL: tenantBaseUrl(target),
+    marker: 'agent-leads-pro',
+    markerTimeoutMs: 30_000,
   });
+  // The server-rendered marker can precede hydration; retry until the click opens the form.
+  await expect(async () => {
+    await page.getByTestId('new-lead-button').click();
+    await expect(page.getByTestId('lead-form-firstname')).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
+  await page.getByTestId('lead-form-firstname').fill('Attribution');
+  await page.getByTestId('lead-form-lastname').fill(label);
+  await page.getByTestId('lead-form-email').fill(email);
+  await page.getByTestId('lead-form-phone').fill('+38344111222');
+  await page.getByTestId('lead-form-consent').click();
+  await page.getByTestId('lead-form-submit').click();
+  await expect.poll(() => leadIdFor(email), { timeout: 20_000 }).not.toBeNull();
+  const leadId = (await leadIdFor(email))!;
 
-  if (insertedUsers.length === 0) {
-    return;
-  }
+  await page.reload();
+  await page.getByTestId(`lead-row-${leadId}`).filter({ visible: true }).click();
+  const drawer = page.getByRole('dialog');
+  await drawer.getByRole('button', { name: MORE_ACTIONS[target.locale] }).click();
+  await drawer.getByTestId('pay-cash-button').click();
+  await expect
+    .poll(
+      async () => {
+        const [row] = await db
+          .select({ status: memberLeads.status })
+          .from(memberLeads)
+          .where(eq(memberLeads.id, leadId));
+        return row?.status;
+      },
+      { timeout: 20_000 }
+    )
+    .toBe('payment_pending');
+  return leadId;
+}
 
-  const userIds = insertedUsers.map(entry => entry.id);
-
-  await db.delete(agentClients).where(inArray(agentClients.memberId, userIds));
-  await db.delete(subscriptions).where(inArray(subscriptions.userId, userIds));
-  await db.delete(account).where(inArray(account.userId, userIds));
-  await db.delete(user).where(inArray(user.id, userIds));
+async function approveCash(
+  admin: Page,
+  target: TenantRegistrationTarget,
+  email: string
+): Promise<void> {
+  await gotoApp(admin, `admin/leads?${new URLSearchParams({ query: email })}`, test.info(), {
+    baseURL: tenantBaseUrl(target),
+    marker: 'verification-ops-page',
+  });
+  const row = admin
+    .getByTestId('cash-verification-row')
+    .filter({ visible: true })
+    .filter({ has: admin.getByText(email, { exact: true }) });
+  await row.getByTestId('cash-approve').click({ timeout: 30_000 });
+  // The click does not await the server action: the flow ends once its conversion committed, so
+  // cleanup waits for it. Only a conversion slower than this poll can still finish after cleanup.
+  await expect
+    .poll(
+      async () => {
+        const [lead] = await db
+          .select({ memberId: memberLeads.convertedUserId })
+          .from(memberLeads)
+          .where(eq(memberLeads.email, email));
+        return lead?.memberId ?? null;
+      },
+      { timeout: 30_000 }
+    )
+    .not.toBeNull();
 }
 
 test.describe('Registration tenant attribution', () => {
-  test('concurrent tenant-host registrations preserve persisted tenant attribution', async ({
+  test('concurrent tenant-host lead entry keeps tenant attribution; direct registration writes nothing', async ({
     browser,
   }, testInfo) => {
     test.skip(
@@ -135,71 +216,81 @@ test.describe('Registration tenant attribution', () => {
 
     const suffix = `${Date.now()}`;
     const expectations: RegisteredExpectation[] = [];
+    const retiredEmails: string[] = [];
     const contexts: BrowserContext[] = [];
+    const newContext = async (target: TenantRegistrationTarget, ip: string) => {
+      const context = await browser.newContext({
+        baseURL: tenantBaseUrl(target),
+        extraHTTPHeaders: { 'x-forwarded-host': target.host, 'x-forwarded-for': ip },
+      });
+      contexts.push(context);
+      return context;
+    };
 
     try {
-      const requests = await Promise.all(
+      // Every flow settles before the assertions or the cleanup run, so nothing still writes.
+      const flows = await Promise.allSettled(
         buildTenantTargets().flatMap((target, tenantIndex) =>
-          Array.from({ length: 3 }, async (_, requestIndex) => {
-            const context = await browser.newContext({
-              baseURL: `http://${target.host}/${target.locale}`,
-              extraHTTPHeaders: {
-                'x-forwarded-host': target.host,
-              },
-            });
-            contexts.push(context);
-            const page = await loginActor(context, target);
+          Array.from({ length: 2 }, async (_, requestIndex) => {
+            const ip = `10.20.${tenantIndex}.${requestIndex + 10}`;
+            const page = await loginActor(await newContext(target, ip), target);
 
             const email = `pd05-${target.label}-${tenantIndex}-${requestIndex}-${suffix}@example.com`;
-            expectations.push({
-              email,
-              expectedTenantId: target.expectedTenantId,
-            });
+            const retiredEmail = `retired-${email}`;
+            expectations.push({ email, expectedTenantId: target.expectedTenantId });
+            retiredEmails.push(retiredEmail);
 
-            return page.request.post('/api/register', {
-              data: {
-                email,
-                name: `PD05 ${target.label.toUpperCase()} ${requestIndex}`,
-                role: 'user',
-                password: E2E_PASSWORD,
-                phone: `+38344111${tenantIndex}${requestIndex}${suffix.slice(-2)}`,
-                planId: 'standard',
-              },
-              headers: {
-                'x-forwarded-host': target.host,
-                'x-forwarded-for': `10.20.${tenantIndex}.${requestIndex + 10}`,
-              },
+            // ACQ-2 (owner D1 a): direct registration is retired and must refuse without a write.
+            const retired = await page.request.post(`http://${target.host}/api/register`, {
+              data: { email: retiredEmail, name: 'Retired', planId: 'standard' },
             });
+            expect(retired.status()).toBe(410);
+
+            await recordLeadAndTakeCash(page, target, email, `${target.label}-${requestIndex}`);
+
+            const adminIp = `10.21.${tenantIndex}.${requestIndex + 10}`;
+            const admin = await loginActor(
+              await newContext(target, adminIp),
+              target,
+              target.adminEmail
+            );
+            await approveCash(admin, target, email);
           })
         )
       );
+      const failed = flows.find(flow => flow.status === 'rejected');
+      if (failed) throw failed.reason;
+      const emails = expectations.map(entry => entry.email);
 
-      for (const response of requests) {
-        const body = await response.json();
-        expect(response.status()).toBe(200);
-        expect(body, `Unexpected register payload: ${JSON.stringify(body)}`).toMatchObject({
-          ok: true,
-        });
-      }
-
-      const insertedUsers = await db.query.user.findMany({
-        where: (table, { inArray: inArrayInner }) =>
-          inArrayInner(
-            table.email,
-            expectations.map(entry => entry.email)
-          ),
-        columns: { email: true, tenantId: true, role: true },
-      });
-
-      expect(insertedUsers).toHaveLength(expectations.length);
-
+      // Every flow waited for its conversion; each member is in the tenant of its lead's host.
+      const members = await db
+        .select({ email: user.email, tenantId: user.tenantId, role: user.role })
+        .from(user)
+        .where(inArray(user.email, emails));
+      expect(members).toHaveLength(expectations.length);
       for (const expectation of expectations) {
-        const inserted = insertedUsers.find(entry => entry.email === expectation.email);
-        expect(inserted?.tenantId).toBe(expectation.expectedTenantId);
-        expect(inserted?.role).toBe('member');
+        const member = members.find(entry => entry.email === expectation.email);
+        expect(member?.tenantId).toBe(expectation.expectedTenantId);
+        expect(member?.role).toBe('member');
       }
+
+      const retiredUsers = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(inArray(user.email, retiredEmails));
+      expect(retiredUsers).toHaveLength(0);
     } finally {
-      await cleanupRegisteredUsers(expectations.map(entry => entry.email));
+      // Leads are found by the test-owned emails, so a flow that failed midway is cleaned too.
+      const owned = await db
+        .select({ id: memberLeads.id, email: memberLeads.email })
+        .from(memberLeads)
+        .where(
+          inArray(
+            memberLeads.email,
+            expectations.map(entry => entry.email)
+          )
+        );
+      for (const lead of owned) await removeOwnedMemberLead(lead);
       await Promise.all(contexts.map(context => context.close()));
     }
   });

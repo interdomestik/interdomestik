@@ -1,10 +1,9 @@
 import { dbMock } from './agent.shared.test-support';
 import { db } from '@interdomestik/database/db';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { redirect } from 'next/navigation';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { leadLookupPredicate, makeCredential } from './agent.test-support';
-import { logActivity, registerMember } from './agent';
+import { leadLookupPredicate } from './agent.test-support';
+import { logActivity } from './agent';
 import { getAgentSession } from './agent/context';
 
 describe('agent actions', () => {
@@ -67,37 +66,6 @@ describe('agent actions', () => {
       const result = await logActivity('lead1', 'call', 'Called user');
       expect(result).toEqual({ error: 'Not found' });
       expect(db.insert).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('registerMember', () => {
-    it('should redirect to agent clients after registering member (locale-aware redirect wrapper)', async () => {
-      const { getAgentSession } = await import('./agent/context');
-      const { registerMemberCore } = await import('./agent/register-member');
-
-      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { id: 'agent1', name: 'Agent', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
-      });
-
-      (registerMemberCore as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true });
-
-      const formData = new FormData();
-      formData.set('fullName', 'P2-A-2026-02-13');
-      formData.set('email', 'p2-a@example.test');
-      formData.set('phone', '+38344111222');
-      formData.set('password', makeCredential('registered-member'));
-      formData.set('planId', 'standard');
-
-      const result = await registerMember(null, formData);
-
-      expect(result).toBeUndefined();
-      expect(registerMemberCore).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'agent1' }),
-        expect.anything(),
-        'b1',
-        formData
-      );
-      expect(redirect).toHaveBeenCalledWith('/en/agent/clients');
     });
   });
 });

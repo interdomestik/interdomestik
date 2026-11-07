@@ -53,7 +53,7 @@ test('tenant-host lane guard passes current inventoried alias and regression fil
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /E2E tenant-host lane guard passed/u);
-  assert.match(result.stdout, /12 projects, 12 files inventoried/u);
+  assert.match(result.stdout, /12 projects, 11 files inventoried/u);
 });
 
 test('secure neutral OTP proof uses an explicit trusted browser origin', () => {

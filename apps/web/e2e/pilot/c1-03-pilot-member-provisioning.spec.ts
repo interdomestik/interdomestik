@@ -1,125 +1,138 @@
 import {
-  E2E_PASSWORD,
-  E2E_USERS,
+  account,
   db,
+  E2E_USERS,
   e2eEmail,
   eq,
+  memberLeads,
   subscriptions,
   user,
 } from '@interdomestik/database';
+import en from '../../src/messages/en/agent.json';
 import { expect, test } from '../fixtures/auth.fixture';
 import { gotoApp } from '../utils/navigation';
+import { removeOwnedMemberLead, type OwnedLead } from '../utils/owned-member-lead';
 
 const PILOT_TENANT_ID = 'pilot-mk';
-const PILOT_HOST = 'pilot.127.0.0.1.nip.io:3000';
-const KS_HOST = 'ks.127.0.0.1.nip.io:3000';
-const PILOT_LOCALE = 'en';
 
-function pilotPath(pathname: string): string {
-  return `/${PILOT_LOCALE}${pathname}`;
-}
-
+/**
+ * C1 pilot provisioning after ACQ-2 (owner D1 a): an agent never registers a member directly or
+ * sets the customer's password. The agent records the lead with consent, takes cash, an approver
+ * verifies it, and conversion creates the member with the agent's tenant and branch attribution.
+ * The member's own first sign-in (an OTP invite) and its cross-host isolation are proven in ACQ-2b.
+ */
 test.describe('C1 Pilot: Agent Member Provisioning', () => {
-  test('agent creates member with inherited tenant+branch and member stays isolated from KS host', async ({
+  test.describe.configure({ mode: 'serial' });
+
+  let lead: OwnedLead | undefined;
+  test.afterAll(async () => removeOwnedMemberLead(lead));
+
+  test('agent records a consented lead and takes cash; the retired direct path is closed', async ({
     agentPage,
-    browser,
   }, testInfo) => {
-    const seededAgent = await db.query.user.findFirst({
-      where: eq(user.email, E2E_USERS.PILOT_MK_AGENT.email),
-      columns: { id: true, branchId: true, tenantId: true },
-    });
+    const email = e2eEmail(`member.mk.pilot.${Date.now()}`);
+    await gotoApp(agentPage, '/agent/clients/new', testInfo, { marker: 'agent-leads-pro' });
+    await expect(agentPage).toHaveURL(/\/agent\/leads$/);
 
-    if (!seededAgent?.id || !seededAgent.tenantId || !seededAgent.branchId) {
-      throw new Error('Expected seeded pilot agent with tenantId and branchId');
-    }
-    const agentBranch = seededAgent.branchId;
-
-    const timestamp = Date.now();
-    const memberEmail = e2eEmail(`member.mk.pilot.${timestamp}`);
-    const memberName = `Pilot Member ${timestamp}`;
-
-    await gotoApp(agentPage, '/agent/clients/new', testInfo, { marker: 'dashboard-page-ready' });
-    await expect(agentPage.getByTestId('agent-register-member-form')).toBeVisible();
-
-    await agentPage.getByTestId('agent-register-member-full-name').fill(memberName);
-    await agentPage.getByTestId('agent-register-member-email').fill(memberEmail);
-    await agentPage.getByTestId('agent-register-member-phone').fill('+38970111222');
-    await agentPage.getByTestId('agent-register-member-password').fill(E2E_PASSWORD);
-    await agentPage.getByTestId('agent-register-member-plan-trigger').click();
-    await agentPage.getByTestId('agent-register-member-plan-standard').click();
-    await agentPage.getByTestId('agent-register-member-submit').click();
-
-    await expect(agentPage).toHaveURL(/\/(?:en\/)?agent\/clients$/);
+    await agentPage.getByTestId('new-lead-button').click();
+    await agentPage.getByTestId('lead-form-firstname').fill('Pilot');
+    await agentPage.getByTestId('lead-form-lastname').fill('Member');
+    await agentPage.getByTestId('lead-form-email').fill(email);
+    await agentPage.getByTestId('lead-form-phone').fill('+38970111222');
+    await expect(agentPage.getByTestId('lead-form-submit')).toBeDisabled();
+    await agentPage.getByTestId('lead-form-consent').click();
+    await agentPage.getByTestId('lead-form-submit').click();
 
     await expect
-      .poll(
-        async () => {
-          const created = await db.query.user.findFirst({
-            where: eq(user.email, memberEmail),
-            columns: { id: true },
-          });
-          return created?.id ?? null;
-        },
-        { timeout: 15_000 }
-      )
+      .poll(async () => {
+        const [row] = await db
+          .select({ id: memberLeads.id })
+          .from(memberLeads)
+          .where(eq(memberLeads.email, email));
+        return row?.id ?? null;
+      })
       .not.toBeNull();
-
-    const createdMember = await db.query.user.findFirst({
-      where: eq(user.email, memberEmail),
-      columns: { id: true, email: true, role: true, tenantId: true, branchId: true, agentId: true },
+    const [row] = await db.select().from(memberLeads).where(eq(memberLeads.email, email));
+    lead = { id: row!.id, email };
+    expect(row).toMatchObject({
+      tenantId: PILOT_TENANT_ID,
+      captureChannel: 'agent_assisted',
+      consentNoticeVersion: 'lead-notice-v1',
     });
 
-    if (!createdMember?.id) {
-      throw new Error('Created member not found in database');
-    }
+    const leadRow = agentPage.getByTestId(`lead-row-${lead.id}`).filter({ visible: true });
+    await leadRow.click();
+    const drawer = agentPage.getByRole('dialog');
+    await drawer.getByRole('button', { name: en.agent.leads_pro.more_actions }).click();
+    await drawer.getByTestId('pay-cash-button').click();
+    await expect
+      .poll(async () => {
+        const [current] = await db
+          .select({ status: memberLeads.status })
+          .from(memberLeads)
+          .where(eq(memberLeads.id, lead!.id));
+        return current?.status;
+      })
+      .toBe('payment_pending');
 
-    expect(createdMember.role).toBe('member');
-    expect(createdMember.tenantId).toBe(PILOT_TENANT_ID);
-    expect(createdMember.branchId).toBe(agentBranch);
-    expect(createdMember.agentId).toBe(seededAgent.id);
+    const retired = await agentPage.request.post('/api/register', {
+      data: { email: e2eEmail(`retired.${Date.now()}`), name: 'Retired', planId: 'standard' },
+    });
+    expect(retired.status()).toBe(410);
+  });
 
-    const createdSubscription = await db.query.subscriptions.findFirst({
-      where: eq(subscriptions.userId, createdMember.id),
-      columns: { id: true, tenantId: true, branchId: true, agentId: true, status: true },
+  test('approver verifies the cash and conversion creates an attributed member', async ({
+    adminPage,
+  }, testInfo) => {
+    expect(lead, 'lead from the agent step').toBeTruthy();
+    const agent = await db.query.user.findFirst({
+      where: eq(user.email, E2E_USERS.PILOT_MK_AGENT.email),
+      columns: { id: true, branchId: true },
     });
 
-    if (!createdSubscription?.id) {
-      throw new Error('Created subscription not found in database');
-    }
+    await gotoApp(
+      adminPage,
+      `/admin/leads?${new URLSearchParams({ query: lead!.email })}`,
+      testInfo,
+      {
+        marker: 'verification-ops-page',
+      }
+    );
+    const queued = adminPage
+      .getByTestId('cash-verification-row')
+      .filter({ visible: true })
+      .filter({ has: adminPage.getByText(lead!.email, { exact: true }) });
+    await queued.getByTestId('cash-approve').click();
 
-    expect(createdSubscription.tenantId).toBe(PILOT_TENANT_ID);
-    expect(createdSubscription.branchId).toBe(agentBranch);
-    expect(createdSubscription.agentId).toBe(seededAgent.id);
-    expect(createdSubscription.status).toBe('active');
+    await expect
+      .poll(async () => {
+        const [converted] = await db
+          .select({ id: memberLeads.convertedUserId })
+          .from(memberLeads)
+          .where(eq(memberLeads.id, lead!.id));
+        return converted?.id ?? null;
+      })
+      .not.toBeNull();
+    const [converted] = await db.select().from(memberLeads).where(eq(memberLeads.id, lead!.id));
+    const memberId = converted!.convertedUserId!;
 
-    const memberContext = await browser.newContext({
-      baseURL: `http://${PILOT_HOST}/${PILOT_LOCALE}`,
-      extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
-      locale: 'en-US',
+    const member = await db.query.user.findFirst({ where: eq(user.id, memberId) });
+    expect(member).toMatchObject({
+      role: 'member',
+      tenantId: PILOT_TENANT_ID,
+      branchId: agent!.branchId,
+      agentId: agent!.id,
     });
-    const memberPage = await memberContext.newPage();
-
-    await memberPage.goto(pilotPath('/login'));
-    await memberPage.getByTestId('login-email').fill(memberEmail);
-    await memberPage.getByTestId('login-password').fill(E2E_PASSWORD);
-    await memberPage.getByTestId('login-submit').click();
-
-    await expect(memberPage).toHaveURL(/\/(?:en\/)?member$/);
-    await expect(memberPage.getByTestId('member-dashboard-ready')).toBeVisible();
-
-    const ksContext = await browser.newContext({
-      baseURL: `http://${KS_HOST}/${PILOT_LOCALE}`,
-      extraHTTPHeaders: { 'x-forwarded-host': KS_HOST },
-      locale: 'en-US',
-      storageState: await memberContext.storageState(),
+    const subscription = await db.query.subscriptions.findFirst({
+      where: eq(subscriptions.userId, memberId),
     });
-    const ksPage = await ksContext.newPage();
-
-    await ksPage.goto(pilotPath('/member'), { waitUntil: 'domcontentloaded' });
-    await expect(ksPage).not.toHaveURL(/\/(?:en\/)?member$/);
-    await expect(ksPage).toHaveURL(/\/(?:en\/)?login/);
-
-    await ksContext.close();
-    await memberContext.close();
+    expect(subscription).toMatchObject({
+      tenantId: PILOT_TENANT_ID,
+      branchId: agent!.branchId,
+      agentId: agent!.id,
+      status: 'active',
+    });
+    // Nobody but the customer chooses a credential: conversion attaches none.
+    expect(await db.select().from(account).where(eq(account.userId, memberId))).toHaveLength(0);
   });
 });

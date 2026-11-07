@@ -14,7 +14,6 @@ import { getAgentAuthority, getAgentSession } from './agent/context';
 import { createLeadCore } from './agent/create-lead';
 import { importMembersCore } from './agent/import-members.core';
 import { logActivityCore } from './agent/log-activity';
-import { registerMemberCore } from './agent/register-member';
 import { updateLeadStatusCore } from './agent/update-lead-status';
 import { importMembersSchema } from './agent/schemas';
 
@@ -151,41 +150,6 @@ export async function logActivity(leadId: string, type: string, summary: string)
   const locale = resolveLocaleFromReferer((await headers()).get('referer'));
   revalidatePath(`/${locale}/agent/leads/${leadId}`);
   return result;
-}
-
-export async function registerMember(prevState: unknown, formData: FormData) {
-  const session = await getAgentSession();
-  if (!session) {
-    return { error: 'Unauthorized', fields: undefined };
-  }
-
-  try {
-    ensureTenantId(session);
-  } catch {
-    return { error: 'Missing tenantId', fields: undefined };
-  }
-
-  const authority = await getAgentAuthority();
-  if (!authority) {
-    return { error: 'Missing tenantId', fields: undefined };
-  }
-
-  const result = await registerMemberCore(
-    { id: session.user.id, name: session.user.name },
-    authority,
-    session.user.branchId ?? null,
-    formData
-  );
-  if (!result.ok) {
-    return {
-      error: result.error,
-      fields: 'fields' in result ? result.fields : undefined,
-    };
-  }
-
-  const locale = resolveLocaleFromReferer((await headers()).get('referer'));
-  revalidatePath(`/${locale}/agent/clients`);
-  redirect(`/${locale}/agent/clients`);
 }
 
 export async function importMembers(prevState: unknown, formData: FormData) {

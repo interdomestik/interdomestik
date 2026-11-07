@@ -45,11 +45,10 @@ export function CSVUploader() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const validRows = rows
     .filter(row => row.isValid)
-    .map(({ fullName, email, phone, password, planId }) => ({
+    .map(({ fullName, email, phone, planId }) => ({
       fullName,
       email,
       phone,
-      password,
       planId,
     }));
 
@@ -189,8 +188,8 @@ export function CSVUploader() {
       <div className="text-center space-y-2">
         <h3 className="text-xl font-bold">Upload Sponsored Member Roster</h3>
         <p className="text-muted-foreground max-w-xs">
-          Upload a CSV with fullName, email, phone, password, and optional planId to reserve
-          sponsored seats for activation.
+          Upload a CSV with fullName, email, phone and optional planId to reserve sponsored seats
+          for activation.
         </p>
       </div>
     </div>

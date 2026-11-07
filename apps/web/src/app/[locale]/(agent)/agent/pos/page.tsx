@@ -12,6 +12,7 @@ export default async function AgentPOSPage({ params }: { params: Promise<{ local
     redirect(`/${locale}/member`);
   }
 
-  // Phase C pilot: POS is an entrypoint only. Canonical enrollment lives at /agent/clients/new.
-  redirect(`/${locale}/agent/clients/new?mode=pos`);
+  // POS is an entrypoint only. Enrollment starts as a lead with consent; the member is created on
+  // conversion after payment (Plan070 ACQ-2, owner D1 a).
+  redirect(`/${locale}/agent/leads`);
 }

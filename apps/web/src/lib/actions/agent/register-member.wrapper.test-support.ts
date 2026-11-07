@@ -1,8 +1,6 @@
 import { vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  appendTenantMemberCredential: vi.fn(),
-  hasTenantMemberCredential: vi.fn(),
   issueTenantMemberNumber: vi.fn(),
   deletedTables: [] as unknown[],
   selectResults: [] as unknown[][],
@@ -41,8 +39,6 @@ vi.mock('@interdomestik/database', async () => {
       agentId: 'agent_clients.agent_id',
     },
     and: vi.fn((...conditions: unknown[]) => ({ kind: 'and', conditions })),
-    appendTenantMemberCredential: mocks.appendTenantMemberCredential,
-    hasTenantMemberCredential: mocks.hasTenantMemberCredential,
     issueTenantMemberNumber: mocks.issueTenantMemberNumber,
     asc: vi.fn((value: unknown) => ({ kind: 'asc', value })),
     eq: vi.fn((column: unknown, value: unknown) => ({ kind: 'eq', column, value })),
@@ -72,7 +68,6 @@ export function registrationForm(email = 'john@example.com'): FormData {
   formData.append('fullName', 'John Doe');
   formData.append('email', email);
   formData.append('phone', '1234567890');
-  formData.append('password', 'Secret123!');
   formData.append('planId', 'standard');
   return formData;
 }
