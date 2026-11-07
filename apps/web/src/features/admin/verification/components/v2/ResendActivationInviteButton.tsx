@@ -11,7 +11,10 @@ interface ResendActivationInviteButtonProps {
 }
 
 /** Resends a converted member's activation email; disabled while the request is in flight. */
-export function ResendActivationInviteButton({ id, onResend }: ResendActivationInviteButtonProps) {
+export function ResendActivationInviteButton({
+  id,
+  onResend,
+}: Readonly<ResendActivationInviteButtonProps>) {
   const t = useTranslations('admin.leads.actions');
   const [busy, setBusy] = useState(false);
 

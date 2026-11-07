@@ -41,6 +41,22 @@ export function VerificationTableV2({
     columns.push({ key: 'verifier', header: t('table.verifier') });
   }
 
+  // History rows offer only the activation resend; queue rows carry the verification decisions.
+  const actionsFor = (req: CashVerificationRequestDTO) => {
+    if (!historyMode) {
+      return (
+        <VerificationActions
+          id={req.id}
+          onViewDetails={onViewDetails}
+          onVerify={onVerify}
+          onAction={onAction}
+        />
+      );
+    }
+    if (!req.memberActivationPending) return null;
+    return <ResendActivationInviteButton id={req.id} onResend={onResendInvite} />;
+  };
+
   const rows = data.map(req => ({
     id: req.id,
     testId: 'cash-verification-row',
@@ -55,18 +71,7 @@ export function VerificationTableV2({
       <AmountCell key={`${req.id}-amount`} request={req} />,
       ...(historyMode ? [<VerifierCell key={`${req.id}-verifier`} request={req} />] : []),
     ],
-    actions: historyMode ? (
-      req.memberActivationPending ? (
-        <ResendActivationInviteButton id={req.id} onResend={onResendInvite} />
-      ) : null
-    ) : (
-      <VerificationActions
-        id={req.id}
-        onViewDetails={onViewDetails}
-        onVerify={onVerify}
-        onAction={onAction}
-      />
-    ),
+    actions: actionsFor(req),
   }));
 
   return (
