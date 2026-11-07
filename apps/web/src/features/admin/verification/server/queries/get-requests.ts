@@ -3,7 +3,11 @@ import { branches, documents, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
 import { aliasedTable, and, asc, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 import { CashVerificationRequestDTO, VerificationView } from '../types';
-import { resolveVerificationReadScope, type VerificationReadContext } from './read-access';
+import {
+  canResendActivationInvite,
+  resolveVerificationReadScope,
+  type VerificationReadContext,
+} from './read-access';
 
 // 1. Query: Get Verification Requests (Queue or History)
 // OPS-GRADE: Strict tenant + RBAC scoping + Search + Pagination(limit)
@@ -55,6 +59,9 @@ export async function getVerificationRequests(
 
   // Verifier Alias for History Join
   const verifier = aliasedTable(user, 'verifier');
+  // History rows of converted members who have not yet proven their mailbox (ACQ-2b2 resend).
+  const member = aliasedTable(user, 'member');
+  const showActivation = view === 'history' && canResendActivationInvite(userRole);
 
   // Sorting: Queue = FIFO (Oldest First), History = LIFO (Newest First)
   // For Resubmission: Should bubble to top?
@@ -96,6 +103,9 @@ export async function getVerificationRequests(
         // Audit Info
         verificationNote: leadPaymentAttempts.verificationNote,
         verifierName: view === 'history' ? verifier.name : sql<null>`null`,
+        memberActivationPending: showActivation
+          ? sql<boolean>`coalesce(${member.emailVerified} = false, false)`
+          : sql<boolean>`false`,
       })
       .from(leadPaymentAttempts)
       .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
@@ -117,6 +127,17 @@ export async function getVerificationRequests(
       queryBuilder = queryBuilder.leftJoin(
         verifier,
         eq(leadPaymentAttempts.verifiedBy, verifier.id)
+      );
+    }
+
+    if (showActivation) {
+      queryBuilder = queryBuilder.leftJoin(
+        member,
+        and(
+          eq(memberLeads.status, 'converted'),
+          eq(member.id, memberLeads.convertedUserId),
+          eq(member.tenantId, tenantId)
+        )
       );
     }
 

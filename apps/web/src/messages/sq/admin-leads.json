@@ -46,7 +46,12 @@
         "reject_success": "Pagesa u refuzua.",
         "needs_info_success": "Kërkesa për info u dërgua.",
         "note_required": "Shënimi është i detyrueshëm.",
-        "error": "Ndodhi një gabim gjatë verifikimit."
+        "error": "Ndodhi një gabim gjatë verifikimit.",
+        "approve_invite_pending": "Pagesa u miratua dhe anëtarësia u krijua, por emaili i aktivizimit nuk u dërgua. Ridërgojeni nga Historiku.",
+        "resend_invite_success": "Emaili i aktivizimit u dërgua sërish.",
+        "resend_invite_cooldown": "Sapo u dërgua një email aktivizimi. Prisni një minutë para se të dërgoni një tjetër.",
+        "resend_invite_failed": "Emaili i aktivizimit nuk u dërgua. Provoni më vonë.",
+        "resend_invite_already_active": "Ky anëtar e ka aktivizuar tashmë llogarinë."
       },
       "actions": {
         "approve": "Aprovo",
@@ -55,7 +60,8 @@
         "needs_info": "Kërko Info",
         "cancel": "Anulo",
         "submit": "Dërgo",
-        "details": "Detajet"
+        "details": "Detajet",
+        "resend_invite": "Ridërgo emailin e aktivizimit"
       },
       "drawer": {
         "title": "Detajet e Verifikimit",

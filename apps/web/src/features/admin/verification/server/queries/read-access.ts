@@ -49,3 +49,11 @@ export function withSessionStaffBranch(ctx: ProtectedActionContext): ProtectedAc
   const branchId = sessionUser.role === 'staff' ? sessionUser.branchId || null : null;
   return { ...ctx, scope: { ...ctx.scope, branchId } };
 }
+
+/**
+ * Resending a member activation invite is narrower than a verification decision: admins across
+ * the tenant and branch managers in their branch (ACQ-2b2). Staff never resend.
+ */
+export function canResendActivationInvite(userRole: string): boolean {
+  return userRole !== 'staff' && isStaffOrHigher(userRole);
+}

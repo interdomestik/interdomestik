@@ -20,6 +20,8 @@ export type CashVerificationRequestDTO = {
   documentPath: string | null;
   verificationNote: string | null;
   verifierName: string | null;
+  /** History only: a converted member who has not yet signed in with their email code. */
+  memberActivationPending?: boolean;
 };
 
 export type VerificationView = 'queue' | 'history';
