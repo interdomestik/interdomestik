@@ -7,6 +7,7 @@ import type {
   DuplicateReferralRow,
   DuplicateReviewState,
 } from '../server/list-duplicate-referrals';
+import { leadStatusLabelKey } from './lead-status-label';
 import { ResolveDuplicateActions } from './ResolveDuplicateActions';
 
 function LeadCell({
@@ -81,7 +82,9 @@ export async function LeadDuplicateReviewPanel({
                     <LeadCell lead={row.lead} missing={t('lead_missing')} />
                   </td>
                   <td className="py-3 pr-4">
-                    {row.lead ? <Badge variant="outline">{row.lead.status}</Badge> : null}
+                    {row.lead ? (
+                      <Badge variant="outline">{t(leadStatusLabelKey(row.lead.status))}</Badge>
+                    ) : null}
                   </td>
                   <td className="py-3 pr-4">{row.lead?.branchName ?? ''}</td>
                   <td className="py-3 pr-4">
