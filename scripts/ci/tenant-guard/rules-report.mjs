@@ -74,19 +74,42 @@ function reportPins(ctx) {
   }
 }
 
-// Unused or over-broad contracts are reported so the manifest cannot silently widen.
-function reportContracts({ contractUse, contracts, violations }) {
+// Unused or over-broad contracts are reported so the manifest cannot silently widen. During an
+// open transition (at most two distinct postimages for one unit) the entry whose postimage the
+// source does not carry is excused only while its sibling matches the one measured unit of that
+// name and is fully used. A name borne by more than one contracted unit excuses nothing.
+function reportContracts(ctx) {
+  const { ambiguousContractUnits, contractUnits, contractUse, contracts, violations } = ctx;
+  const unitKey = contract => `${contract.file}#${contract.unit}`;
+  const usedOf = (contract, kind) =>
+    contractUse.get(`${unitKey(contract)}#${contract.sha256}#${kind}`) ?? 0;
+  const refuse = (contract, detail) =>
+    violations.push({
+      rule: 'contract',
+      file: contract.file,
+      line: 0,
+      unit: contract.unit,
+      detail,
+    });
   for (const contract of contracts) {
+    const key = unitKey(contract);
+    const siblings = contracts.filter(other => unitKey(other) === key);
+    const distinct = new Set(siblings.map(other => other.sha256)).size;
+    const measured = ambiguousContractUnits.has(key) ? undefined : contractUnits.get(key)?.digest;
+    const carried = siblings.find(other => other.sha256 === measured);
+    if (ambiguousContractUnits.has(key))
+      refuse(contract, 'the contracted name is borne by more than one unit');
+    if (siblings.length > 2 || distinct !== siblings.length)
+      refuse(contract, 'a unit admits one predecessor and one distinct successor at most');
+    else if (
+      carried &&
+      contract.sha256 !== measured &&
+      Object.entries(carried.kinds).every(([kind, count]) => usedOf(carried, kind) === count)
+    )
+      continue;
     for (const [kind, count] of Object.entries(contract.kinds)) {
-      const used = contractUse.get(`${contract.file}#${contract.unit}#${kind}`) ?? 0;
-      if (used === count) continue;
-      violations.push({
-        rule: 'contract',
-        file: contract.file,
-        line: 0,
-        unit: contract.unit,
-        detail: `${kind}: contract admits ${count}, source has ${used}`,
-      });
+      const used = usedOf(contract, kind);
+      if (used !== count) refuse(contract, `${kind}: contract admits ${count}, source has ${used}`);
     }
   }
 }
