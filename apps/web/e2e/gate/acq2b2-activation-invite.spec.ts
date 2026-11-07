@@ -128,6 +128,11 @@ test.describe('ACQ-2b2 member activation invite', () => {
         return servedOrigins.includes(landed.origin) && onResetPage;
       });
       const memberOrigin = new URL(page.url()).origin;
+      // A fresh browser meets the cookie notice first; the member declines optional cookies.
+      const consentBanner = page.getByTestId('cookie-consent-banner');
+      await expect(consentBanner).toBeVisible();
+      await page.getByTestId('cookie-consent-decline').click();
+      await expect(consentBanner).toHaveCount(0);
 
       const password = `Activ8-${randomUUID()}`;
       const form = page.getByRole('form', { name: 'Reset password form' });
