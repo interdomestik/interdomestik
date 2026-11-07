@@ -27,8 +27,7 @@ export const RECOVERY_DECLINE_REASON_CODES = [
 ] as const;
 export type RecoveryDeclineReasonCode = (typeof RECOVERY_DECLINE_REASON_CODES)[number];
 export type MemberRecoveryDeclineReasonCode =
-  | Exclude<RecoveryDeclineReasonCode, 'conflict_or_integrity_concern'>
-  | 'other';
+  Exclude<RecoveryDeclineReasonCode, 'conflict_or_integrity_concern'> | 'other';
 export type CommercialHandlingScopeSnapshot = {
   claimCategory: string | null;
   decisionReason: CommercialEscalationReason;

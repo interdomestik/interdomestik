@@ -2,12 +2,7 @@ import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { SessionWithTenant } from '@interdomestik/shared-auth';
 
 export type ClaimsScope =
-  | 'member'
-  | 'admin'
-  | 'staff_queue'
-  | 'staff_all'
-  | 'staff_unassigned'
-  | 'agent_queue';
+  'member' | 'admin' | 'staff_queue' | 'staff_all' | 'staff_unassigned' | 'agent_queue';
 
 export type ClaimItem = {
   id: string;
