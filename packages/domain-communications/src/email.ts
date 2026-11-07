@@ -264,7 +264,11 @@ export async function sendMemberWelcomeEmail(
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderPasswordResetEmail({ resetUrl }));
+  // The link is a credential: an automated run catches it on loopback and telemetry stays content-free.
+  return sendEmail(to, renderPasswordResetEmail({ resetUrl }), {
+    automatedCatcher: true,
+    telemetryPolicy: 'content-free',
+  });
 }
 
 export async function sendSignInOtpEmail(
