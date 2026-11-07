@@ -83,7 +83,31 @@
         "resubmitted": "Ridorëzuar",
         "approved": "Aprovuar"
       },
-      "success": "Pagesa u verifikua"
+      "duplicates": {
+        "tab": "Dublikata të mundshme",
+        "title": "Kontakte të mundshme të dyfishta",
+        "description": "Agjentëve iu tha se këto kontakte mund të ekzistojnë tashmë. Shqyrtojini një nga një; kontaktet nuk bashkohen kurrë automatikisht.",
+        "empty": "Nuk ka dublikata të mundshme për shqyrtim.",
+        "referred_at": "Referuar",
+        "existing_lead": "Kontakti ekzistues",
+        "lead_status": "Statusi i kontaktit",
+        "lead_branch": "Dega e kontaktit",
+        "submitted_by": "Dërguar nga",
+        "state": "Shqyrtimi",
+        "state_pending": "Në pritje",
+        "lead_missing": "Kontakti ekzistues nuk është i disponueshëm",
+        "keep_existing": "Mbaje kontaktin ekzistues",
+        "dismiss": "Hidhe poshtë",
+        "outcome_kept_existing": "Kontakti ekzistues u mbajt",
+        "outcome_dismissed": "U hodh poshtë",
+        "resolved_by": "nga {name}",
+        "toast_resolved": "Shqyrtimi i dublikatës u ruajt",
+        "toast_already_resolved": "Ky referim është zgjidhur tashmë ndryshe",
+        "toast_error": "Shqyrtimi nuk u ruajt",
+        "pending_tab": "Në pritje",
+        "resolved_tab": "Të zgjidhura",
+        "resolved_empty": "Ende nuk ka dublikata të zgjidhura."
+      }
     },
     "analytics": {
       "title": "Përmbledhja e Analitikës",
