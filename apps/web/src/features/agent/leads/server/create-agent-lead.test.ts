@@ -159,8 +159,8 @@ describe('createAgentLeadCore', () => {
     });
   });
 
-  it('rethrows any other write failure', async () => {
+  it('rethrows any other write failure without its details', async () => {
     hoisted.createLead.mockRejectedValue(new Error('db down'));
-    await expect(create(individual)).rejects.toThrow('db down');
+    await expect(create(individual)).rejects.toThrow('Agent lead could not be saved');
   });
 });

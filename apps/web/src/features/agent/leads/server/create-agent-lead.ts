@@ -49,6 +49,28 @@ function refuse(code: string, error: string): ActionError {
   return { success: false, error, code };
 }
 
+/**
+ * Database errors carry the SQL parameters (email, phone, notes) and are logged by the action
+ * runner, so only this content-free error leaves the core. It keeps the SQLSTATE code alone.
+ */
+export class AgentLeadPersistenceError extends Error {
+  readonly code: string | undefined;
+
+  constructor(code: string | undefined) {
+    super('Agent lead could not be saved');
+    this.name = 'AgentLeadPersistenceError';
+    this.code = code;
+  }
+}
+
+function toPersistenceError(error: unknown): AgentLeadPersistenceError {
+  const cause = (error as { cause?: unknown } | null)?.cause;
+  const code = [error, cause]
+    .map(candidate => (candidate as { code?: unknown } | null)?.code)
+    .find((value): value is string => typeof value === 'string' && /^[0-9A-Z]{5}$/.test(value));
+  return new AgentLeadPersistenceError(code);
+}
+
 function isUniqueViolation(error: unknown): boolean {
   const cause = (error as { cause?: unknown } | null)?.cause;
   return [error, cause].some(
@@ -102,40 +124,44 @@ export async function createAgentLeadCore(
   const data = parsed.data;
   const owner = { agentId, branchId };
 
-  return runCommercialActionWithIdempotency({
-    action: 'agent-lead.create',
-    scope: { kind: 'tenant', authority: ctx.authority, actorUserId: agentId },
-    idempotencyKey: params.idempotencyKey,
-    // The branch is part of the request: a replay after a branch move must not return the old result.
-    requestFingerprint: { branchId, input: data },
-    execute: async (): Promise<CreateAgentLeadResult> => {
-      const duplicate = await findSameEmailLead(ctx.authority, data.email, owner);
-      if (duplicate) return duplicate;
-      try {
-        const { leadId } = await createLead(
-          { authority: ctx.authority, agentId, branchId, captureChannel: 'agent_assisted' },
-          {
-            firstName: data.firstName,
-            lastName: data.lastName,
-            email: data.email,
-            phone: data.phone,
-            notes: data.notes,
-            leadKind: data.leadKind,
-            companyName: data.leadKind === 'company' ? data.companyName : undefined,
-            teamSize: data.leadKind === 'company' ? data.teamSize || undefined : undefined,
-            source: 'agent_workspace',
-            consentNoticeVersion: LEAD_NOTICE_VERSION,
-          }
-        );
-        return { success: true, data: { leadId, existing: false } };
-      } catch (error) {
-        // A concurrent create for the same email lost the unique-index race: resolve it the same way.
-        if (!isUniqueViolation(error)) throw error;
-        return (
-          (await findSameEmailLead(ctx.authority, data.email, owner)) ??
-          refuse('POSSIBLE_DUPLICATE', 'A lead with this email already exists and needs review.')
-        );
-      }
-    },
-  });
+  try {
+    return await runCommercialActionWithIdempotency({
+      action: 'agent-lead.create',
+      scope: { kind: 'tenant', authority: ctx.authority, actorUserId: agentId },
+      idempotencyKey: params.idempotencyKey,
+      // The branch is part of the request: a replay after a branch move must not return the old result.
+      requestFingerprint: { branchId, input: data },
+      execute: async (): Promise<CreateAgentLeadResult> => {
+        const duplicate = await findSameEmailLead(ctx.authority, data.email, owner);
+        if (duplicate) return duplicate;
+        try {
+          const { leadId } = await createLead(
+            { authority: ctx.authority, agentId, branchId, captureChannel: 'agent_assisted' },
+            {
+              firstName: data.firstName,
+              lastName: data.lastName,
+              email: data.email,
+              phone: data.phone,
+              notes: data.notes,
+              leadKind: data.leadKind,
+              companyName: data.leadKind === 'company' ? data.companyName : undefined,
+              teamSize: data.leadKind === 'company' ? data.teamSize || undefined : undefined,
+              source: 'agent_workspace',
+              consentNoticeVersion: LEAD_NOTICE_VERSION,
+            }
+          );
+          return { success: true, data: { leadId, existing: false } };
+        } catch (error) {
+          // A concurrent create for the same email lost the unique-index race: resolve it the same way.
+          if (!isUniqueViolation(error)) throw error;
+          return (
+            (await findSameEmailLead(ctx.authority, data.email, owner)) ??
+            refuse('POSSIBLE_DUPLICATE', 'A lead with this email already exists and needs review.')
+          );
+        }
+      },
+    });
+  } catch (error) {
+    throw toPersistenceError(error);
+  }
 }
