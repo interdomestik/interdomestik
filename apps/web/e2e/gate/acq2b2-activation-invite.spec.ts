@@ -10,7 +10,6 @@ import {
   verification,
 } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';
-import { canonicalHostForTenant } from '@/lib/tenant/tenant-host-aliases';
 import { expect, test } from '../fixtures/auth.fixture';
 import { path as routePath } from '../fixtures/routes';
 import { gotoApp } from '../utils/navigation';
@@ -62,7 +61,7 @@ async function convertedMemberId(leadId: string): Promise<string | null> {
 
 /**
  * ACQ-2b2 (owner decision B): approving a cash payment converts the lead and emails the member a
- * password-set link through the existing reset flow on their tenant host. The member sets a
+ * password-set link through the existing reset flow on this deployment. The member sets a
  * password from it and signs in as the converted account; nobody else chose that credential.
  */
 test.describe('ACQ-2b2 member activation invite', () => {
@@ -115,26 +114,20 @@ test.describe('ACQ-2b2 member activation invite', () => {
       await expect.poll(() => convertedMemberId(owned.id)).not.toBeNull();
       memberId = await convertedMemberId(owned.id);
 
-      // The emailed link carries one reset token and returns the member to their own tenant's
-      // reset page: its canonical host on a production-mode server unless a host override is set.
+      // The member opens the exact emailed link: Better Auth checks the token and returns them to
+      // the reset page on this deployment, never to a host the lane does not serve.
       const link = await waitForActivationLink(owned.email, seen);
-      const token = /^\/api\/auth\/reset-password\/([^/]+)$/u.exec(link.pathname)?.[1];
-      expect(token, 'the link carries one reset token').toBeTruthy();
-      const callbackURL = link.searchParams.get('callbackURL');
-      expect(callbackURL, 'the link names where the member returns').toBeTruthy();
-      const callback = new URL(callbackURL!);
-      const resetPage = new URL(routePath(testInfo, '/reset-password'));
-      expect(callback.pathname).toBe(resetPage.pathname);
-      expect([canonicalHostForTenant('tenant_ks'), new URL(tenantOrigin).host]).toContain(
-        callback.host
-      );
-      // No canonical host is served here, so the member continues on the local tenant host.
+      const servedOrigins = [link.origin, tenantOrigin];
+      expect(link.pathname).toMatch(/^\/api\/auth\/reset-password\/[^/]+$/u);
+      const resetPath = new URL(routePath(testInfo, '/reset-password')).pathname;
       const page = await context.newPage();
-      resetPage.searchParams.set('token', token!);
-      await gotoApp(page, resetPage, testInfo, {
-        baseURL: tenantOrigin,
-        marker: 'domcontentloaded',
+      await gotoApp(page, link, testInfo, { baseURL: link.origin, marker: 'domcontentloaded' });
+      await expect(page).toHaveURL(url => {
+        const landed = new URL(url);
+        const onResetPage = landed.pathname === resetPath && landed.searchParams.has('token');
+        return servedOrigins.includes(landed.origin) && onResetPage;
       });
+      const memberOrigin = new URL(page.url()).origin;
 
       const password = `Activ8-${randomUUID()}`;
       const form = page.getByRole('form', { name: 'Reset password form' });
@@ -153,7 +146,7 @@ test.describe('ACQ-2b2 member activation invite', () => {
       const memberHome = new URL(routePath(testInfo, '/member')).pathname;
       await expect(page).toHaveURL(url => {
         const landed = new URL(url);
-        return landed.origin === tenantOrigin && landed.pathname.startsWith(memberHome);
+        return landed.origin === memberOrigin && landed.pathname.startsWith(memberHome);
       });
 
       // The password belongs to the converted account: same user, tenant and role, one mailbox.

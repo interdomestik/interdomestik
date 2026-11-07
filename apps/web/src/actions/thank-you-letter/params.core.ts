@@ -1,5 +1,6 @@
 import type { ThankYouLetterParams } from '@/lib/email/thank-you-letter';
-import { coerceTenantId, resolveTenantAppOrigin } from '@/lib/tenant/tenant-hosts';
+import { resolveTenantEmailOrigins } from '@/lib/email-link-origins';
+import { coerceTenantId } from '@/lib/tenant/tenant-hosts';
 import { isConfirmationLocale, type PreviewThankYouLetterParams } from './types';
 
 const DATE_LOCALES = {
@@ -34,7 +35,7 @@ export function buildThankYouLetterParams(
     providerReference: params.providerReference,
     dashboardUrl: new URL(
       `/${params.locale}/member/membership`,
-      resolveTenantAppOrigin(tenantId)
+      resolveTenantEmailOrigins(tenantId).appOrigin
     ).toString(),
     locale: params.locale,
   };

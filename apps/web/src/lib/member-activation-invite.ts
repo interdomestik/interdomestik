@@ -7,8 +7,9 @@ export type MemberActivationInviteResult =
 /**
  * Invites a converted member to set their password (owner decision B, ACQ-2b2). The recipient
  * comes from the committed conversion; the link is the existing password-reset flow on the
- * member's own tenant host, as for Paddle onboarding. Reset delivery is fire-and-forget inside the
- * auth hook, so `sent` means the request was accepted. A failure never undoes the membership: the
+ * member's tenant host or this deployment's shared origin, as for Paddle onboarding, and is never
+ * issued when no origin of this deployment can be established. Reset delivery is fire-and-forget
+ * inside the auth hook, so `sent` means the request was accepted. A failure never undoes the membership: the
  * caller records it, an operator can resend, and the member can use "forgot password".
  */
 export async function sendMemberActivationInvite(params: {
