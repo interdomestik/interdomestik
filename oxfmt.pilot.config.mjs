@@ -21,5 +21,7 @@ export default {
     'packages/database/drizzle/meta/**',
     'apps/web/next-env.d.ts',
     '**/storybook-static/**',
+    // Oxfmt moves the inline, line-sensitive NOSONAR on buildScopeConditions.
+    'packages/domain-claims/src/claims/list.ts',
   ],
 };
