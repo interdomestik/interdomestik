@@ -6,11 +6,16 @@ import { createLead } from '@interdomestik/domain-leads';
 import { headers } from 'next/headers';
 import { z } from 'zod';
 
+import { LEAD_NOTICE_VERSION } from '@/features/agent/leads/lead-notice';
 import { resolveBusinessLeadOwner } from '@/lib/business-leads/resolve-business-lead-owner';
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { ActionError, ActionSuccess } from '@/lib/safe-action';
 import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
+
+// The intake form shows the `notice` copy (pricing catalogs, EN/SQ/MK/SR) above an unticked
+// checkbox; the lead stores LEAD_NOTICE_VERSION, so a later copy change gets a new version.
+const BUSINESS_INTAKE_SOURCE = 'business_membership_public';
 
 const submitBusinessMembershipLeadSchema = z.object({
   firstName: z.string().trim().min(1, 'First name is required'),
@@ -21,6 +26,7 @@ const submitBusinessMembershipLeadSchema = z.object({
   teamSize: z.string().trim().min(1, 'Team size is required'),
   notes: z.string().trim().max(2000, 'Notes are too long').optional(),
   locale: z.string().trim().min(2).max(10).optional(),
+  consent: z.boolean().refine(value => value, 'Confirm that we may contact you'),
 });
 
 export type SubmitBusinessMembershipLeadInput = z.infer<typeof submitBusinessMembershipLeadSchema>;
@@ -60,9 +66,6 @@ function serializeLeadNotes(args: {
   }
 
   return JSON.stringify({
-    source: 'business_membership_public',
-    companyName: args.data.companyName,
-    teamSize: args.data.teamSize,
     locale: args.data.locale ?? null,
     note: args.data.notes ?? null,
     landingPage: referer,
@@ -145,12 +148,18 @@ export async function submitBusinessMembershipLeadCore(params: {
             authority,
             agentId: owner.agentId,
             branchId: owner.branchId,
+            captureChannel: 'public_form',
           },
           {
             firstName: parsed.data.firstName,
             lastName: parsed.data.lastName,
             email: parsed.data.email,
             phone: parsed.data.phone,
+            leadKind: 'company',
+            companyName: parsed.data.companyName,
+            teamSize: parsed.data.teamSize,
+            source: BUSINESS_INTAKE_SOURCE,
+            consentNoticeVersion: LEAD_NOTICE_VERSION,
             notes: serializeLeadNotes({
               data: parsed.data,
               referer: params.requestHeaders.get('referer'),
@@ -200,6 +209,7 @@ export async function submitBusinessMembershipLead(
       teamSize: readOptionalString(formData.get('teamSize')) ?? '',
       notes: readOptionalString(formData.get('notes')),
       locale: readOptionalString(formData.get('locale')),
+      consent: formData.get('consent') === 'yes',
     },
   });
 }

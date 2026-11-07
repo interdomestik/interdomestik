@@ -14,9 +14,21 @@ export type DocumentAccessSession = {
 
 export type ScopedClaim = {
   branchId?: string | null;
+  caseLifecycleState: string | null;
   staffId?: string | null;
   userId: string | null;
 };
+
+/**
+ * Staff have no rights on a member draft: a claim reaches staff only after submission. A missing
+ * lifecycle fails closed. Callers check claim ownership first.
+ */
+export function isStaffBlockedFromClaim(
+  role: string | null | undefined,
+  caseLifecycleState: string | null | undefined
+): boolean {
+  return role === 'staff' && (caseLifecycleState == null || caseLifecycleState === 'draft');
+}
 
 export function isFullTenantClaimsRole(role: string | null | undefined): boolean {
   return (
@@ -43,7 +55,11 @@ export function hasScopedClaimReadAccess(args: {
     return branchId !== null && args.claim.branchId === branchId;
   }
 
-  return args.role === 'staff' && args.claim.staffId === args.userId;
+  return (
+    args.role === 'staff' &&
+    args.claim.staffId === args.userId &&
+    !isStaffBlockedFromClaim(args.role, args.claim.caseLifecycleState)
+  );
 }
 
 export function hasCaseScopedDocumentGrant(args: {

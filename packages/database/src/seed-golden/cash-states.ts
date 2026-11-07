@@ -6,6 +6,7 @@ import {
   type E2ECashStateFixture,
 } from '../e2e-cash-fixtures';
 import { E2E_USER_IDS } from '../e2e-role-fixtures';
+import { agentCapturedLead } from '../seed-utils/lead-consent';
 import { excludedSet } from '../seed-utils/excluded-set';
 import { TENANTS } from './constants';
 import { buildSeededMembershipCardIdentifiers } from './membership-cards';
@@ -66,7 +67,7 @@ export function buildCashStatesToSeed() {
       id: fixture.leadId,
       tenantId: TENANTS.KS,
       branchId: BRANCH,
-      agentId: AGENT_ID,
+      ...agentCapturedLead(AGENT_ID, e2eCashInstant('SUBMITTED')),
       firstName: 'Cash',
       lastName: fixture.leadId,
       email: fixture.email,

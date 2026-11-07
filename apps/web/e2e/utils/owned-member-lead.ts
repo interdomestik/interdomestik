@@ -41,6 +41,11 @@ export async function insertOwnedMemberLead(
     email,
     phone: '+38970888888',
     status: 'new',
+    // An agent-captured lead carries the consent its agent recorded (member_leads_consent_check).
+    consentNoticeVersion: 'e2e-agent-notice-v1',
+    consentCapturedAt: new Date(),
+    consentCapturedBy: agent!.id,
+    captureChannel: 'agent_assisted',
   });
   return { id, email };
 }

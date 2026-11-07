@@ -22,6 +22,7 @@ test.describe('Post-E2 Public Entry Coverage', () => {
       await expect(page.locator('#business-lead-companyName-error')).toBeVisible();
       await expect(page.locator('#business-lead-email-error')).toBeVisible();
       await expect(page.locator('#business-lead-teamSize-error')).toBeVisible();
+      await expect(page.locator('#business-lead-consent-error')).toBeVisible();
     });
   });
 

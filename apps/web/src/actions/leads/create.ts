@@ -1,25 +1,18 @@
 'use server';
 
+import { createAgentLeadCore } from '@/features/agent/leads/server/create-agent-lead';
 import { runAuthenticatedAction } from '@/lib/safe-action';
-import { createLead, createLeadSchema } from '@interdomestik/domain-leads';
 
-export async function createLeadAction(input: unknown) {
-  return runAuthenticatedAction(async ctx => {
-    const data = createLeadSchema.parse(input);
-    const { user } = ctx.session;
-    const { branchId } = ctx.scope;
-
-    if (!branchId) {
-      throw new Error('Agent must belong to a branch to create leads.');
-    }
-
-    return await createLead(
+export async function createLeadAction(input: unknown, idempotencyKey?: string) {
+  return runAuthenticatedAction(ctx =>
+    createAgentLeadCore(
       {
         authority: ctx.authority,
-        agentId: user.id,
-        branchId: branchId,
+        userRole: ctx.userRole,
+        agentId: ctx.scope.actorAgentId,
+        branchId: ctx.scope.branchId,
       },
-      data
-    );
-  });
+      { input, idempotencyKey }
+    )
+  );
 }

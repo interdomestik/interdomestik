@@ -66,7 +66,11 @@ describe('document durable case grant boundary', () => {
 
   it('allows polymorphic claim documents when the durable grant authorizes the case', async () => {
     vi.mocked(hasDurableCaseScopedDocumentGrant).mockResolvedValueOnce(true);
-    setup([claimDoc()], [{ claimOwnerId: 'member-1' }], false);
+    setup(
+      [claimDoc()],
+      [{ claimOwnerId: 'member-1', claimCaseLifecycleState: 'submitted' }],
+      false
+    );
 
     await expect(
       getDocumentAccessCore({
@@ -95,6 +99,7 @@ describe('document durable case grant boundary', () => {
         {
           doc: { id: 'doc-1', claimId: 'claim-1', category: 'legal', uploadedBy: 'member-1' },
           claimOwnerId: 'member-1',
+          claimCaseLifecycleState: 'submitted',
         },
       ]
     );

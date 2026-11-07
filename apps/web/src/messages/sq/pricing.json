@@ -231,7 +231,13 @@
         "successTitle": "Kërkesa për biznes u pranua",
         "successBody": "Kemi marrë kërkesën tuaj dhe do t'ju kontaktojmë për të konfirmuar konfigurimin e duhur të mbrojtjes.",
         "successToast": "Kërkesa për biznes u pranua",
-        "privacyNote": "Duke dërguar këtë hyrje, ju lejoni Interdomestik t'ju kontaktojë për konfigurimin e anëtarësimit për biznes.",
+        "notice": {
+          "title": "Si i përdorim të dhënat tuaja",
+          "body": "Interdomestik përdor emrin, numrin e telefonit dhe email-in tuaj, si dhe emrin e kompanisë dhe numrin e punonjësve, vetëm për t'ju kontaktuar rreth anëtarësimit në Interdomestik dhe për të përgatitur ofertën tuaj. Do t'ju kontaktojë një agjent nga dega juaj. Nuk i shesim të dhënat tuaja dhe nuk i ndajmë për reklama. Nëse nuk bëheni anëtar, i fshijmë pas 12 muajsh. Në çdo kohë mund të kërkoni të mos ju kontaktojmë më, ose t'i shihni, korrigjoni apo fshini të dhënat tuaja, përmes agjentit tuaj ose kontaktit tonë për privatësinë.",
+          "company": "Si person kontaktues, kjo kërkesë mbulon vetëm të dhënat tuaja. Çdo punonjës vendos vetë nëse anëtarësohet.",
+          "consent": "Kërkoj që Interdomestik të më kontaktojë rreth anëtarësimit dhe e kam lexuar njoftimin më sipër.",
+          "consentRequired": "Shënoni kutinë që të mund t'ju kontaktojmë rreth anëtarësimit."
+        },
         "submit": "Dërgo kërkesën",
         "submitPending": "Po dërgohet kërkesa",
         "fields": {

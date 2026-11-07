@@ -15,12 +15,23 @@ import {
 } from '@/components/ops/adapters/leads';
 import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
 import { Link } from '@/i18n/routing';
+import { CreateLeadDialog } from './CreateLeadDialog';
 import { Button } from '@interdomestik/ui';
 import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { convertLeadToClient, updateLeadStatus } from '../actions';
+import { LeadProfileDetails } from './LeadProfileDetails';
+
+const LOCALIZED_STATUSES = new Set([
+  'new',
+  'contacted',
+  'payment_pending',
+  'converted',
+  'lost',
+  'expired',
+]);
 
 type AgentLeadPro = {
   id: string;
@@ -32,6 +43,9 @@ type AgentLeadPro = {
   status?: string | null;
   branchId?: string | null;
   branch?: { name?: string | null } | null;
+  leadKind?: string | null;
+  companyName?: string | null;
+  teamSize?: string | null;
   notes?: string | null;
   createdAt?: string | Date | null;
   updatedAt?: string | Date | null;
@@ -39,24 +53,8 @@ type AgentLeadPro = {
 
 export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>) {
   const t = useTranslations('agent.leads_pro');
-  const localizeLeadStatus = (status: string | null | undefined) => {
-    switch (status) {
-      case 'new':
-        return t('statuses.new');
-      case 'contacted':
-        return t('statuses.contacted');
-      case 'payment_pending':
-        return t('statuses.payment_pending');
-      case 'converted':
-        return t('statuses.converted');
-      case 'lost':
-        return t('statuses.lost');
-      case 'expired':
-        return t('statuses.expired');
-      default:
-        return t('statuses.none');
-    }
-  };
+  const localizeLeadStatus = (status: string | null | undefined) =>
+    status && LOCALIZED_STATUSES.has(status) ? t(`statuses.${status}`) : t('statuses.none');
   const localizeActionLabel = (actionId: string, fallbackLabel: string) => {
     switch (actionId) {
       case 'convert':
@@ -225,6 +223,7 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
             <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
           </div>
         </div>
+        <CreateLeadDialog />
       </div>
 
       {/* Filters */}
@@ -279,26 +278,7 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-sm border-t pt-4">
-              <div>
-                <span className="block text-muted-foreground">{t('fields.email')}</span>
-                <span className="font-medium">{selectedLead.email}</span>
-              </div>
-              <div>
-                <span className="block text-muted-foreground">{t('fields.phone')}</span>
-                <span className="font-medium">{selectedLead.phone || '-'}</span>
-              </div>
-              <div>
-                <span className="block text-muted-foreground">{t('fields.source')}</span>
-                <span className="font-medium capitalize">{selectedLead.source || '-'}</span>
-              </div>
-              <div>
-                <span className="block text-muted-foreground">{t('fields.branch')}</span>
-                <span className="font-medium">
-                  {selectedLead.branch?.name || selectedLead.branchId || '-'}
-                </span>
-              </div>
-            </div>
+            <LeadProfileDetails lead={selectedLead} />
 
             {selectedLead.notes && (
               <div className="border-t pt-4">

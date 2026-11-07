@@ -14,6 +14,16 @@ describe('canInitiateHandoff', () => {
     ).toBe(false);
   });
 
+  it.each(['staff', 'admin', 'tenant_admin', 'super_admin', 'global_support', 'branch_manager'])(
+    'denies %s a handoff of a member draft or a claim without a lifecycle',
+    role => {
+      const actor = { branchId: 'branch-a', id: 'staff-1', role };
+      expect(canInitiateHandoff(actor, { ...baseClaim, caseLifecycleState: 'draft' })).toBe(false);
+      expect(canInitiateHandoff(actor, { ...baseClaim, caseLifecycleState: null })).toBe(false);
+      expect(canInitiateHandoff(actor, baseClaim)).toBe(true);
+    }
+  );
+
   it('keeps branch managers branch-scoped', () => {
     expect(
       canInitiateHandoff(

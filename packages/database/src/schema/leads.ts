@@ -1,6 +1,7 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   index,
   integer,
   pgTable,
@@ -48,6 +49,24 @@ export const memberLeads = pgTable(
       .notNull()
       .default('new'),
 
+    // Lead kind: a person, or a company contact whose employees may later join.
+    leadKind: text('lead_kind', { enum: ['individual', 'company'] })
+      .notNull()
+      .default('individual'),
+    companyName: text('company_name'),
+    teamSize: text('team_size'),
+
+    // Consent and provenance (IDA-CRM-001/002): the notice version the prospect accepted, when,
+    // through which channel and, for agent-assisted capture, by whom. Rows captured before consent
+    // was recorded carry the 'legacy' channel and notice version.
+    consentNoticeVersion: text('consent_notice_version').notNull(),
+    consentCapturedAt: timestamp('consent_captured_at', { withTimezone: true }),
+    consentCapturedBy: text('consent_captured_by').references(() => user.id),
+    captureChannel: text('capture_channel', {
+      enum: ['agent_assisted', 'public_form', 'legacy'],
+    }).notNull(),
+    source: text('source'),
+
     // Metadata
     notes: text('notes'),
     convertedUserId: text('converted_user_id').references(() => user.id), // If converted
@@ -68,6 +87,25 @@ export const memberLeads = pgTable(
     // Performance indexes for branch dashboards
     index('idx_member_leads_tenant_branch').on(table.tenantId, table.branchId),
     index('idx_member_leads_tenant_agent').on(table.tenantId, table.agentId),
+    check('member_leads_lead_kind_check', sql`${table.leadKind} in ('individual', 'company')`),
+    check(
+      'member_leads_company_check',
+      sql`${table.leadKind} <> 'company' or nullif(btrim(${table.companyName}), '') is not null`
+    ),
+    // The legacy notice version and the legacy channel only ever come together; every other row
+    // names a real channel.
+    check(
+      'member_leads_capture_channel_check',
+      sql`case when ${table.consentNoticeVersion} = 'pre-consent-legacy' then ${table.captureChannel} = 'legacy'
+        else ${table.captureChannel} in ('agent_assisted', 'public_form') end`
+    ),
+    // Captured consent has a time (and, agent-assisted, the agent); only a legacy row has none.
+    check(
+      'member_leads_consent_check',
+      sql`case ${table.captureChannel} when 'public_form' then ${table.consentCapturedAt} is not null
+        when 'agent_assisted' then ${table.consentCapturedAt} is not null and ${table.consentCapturedBy} is not null
+        else ${table.consentCapturedAt} is null end`
+    ),
   ]
 );
 

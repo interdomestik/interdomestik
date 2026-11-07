@@ -52,6 +52,7 @@ const validInput: SubmitBusinessMembershipLeadInput = {
   teamSize: '11-25',
   notes: 'Needs fleet and property protection.',
   locale: 'sq',
+  consent: true,
 };
 
 describe('submitBusinessMembershipLeadCore', () => {
@@ -91,15 +92,22 @@ describe('submitBusinessMembershipLeadCore', () => {
         authority,
         agentId: 'agent_system',
         branchId: 'branch_default',
+        captureChannel: 'public_form',
       },
       expect.objectContaining({
         firstName: 'Arben',
         lastName: 'Lila',
         email: 'ops@interdomestik.test',
         phone: '+38344111222',
-        notes: expect.stringContaining('"companyName":"Interdomestik Fleet"'),
+        leadKind: 'company',
+        companyName: 'Interdomestik Fleet',
+        teamSize: '11-25',
+        source: 'business_membership_public',
+        consentNoticeVersion: 'lead-notice-v1',
       })
     );
+    // Company data lives in columns now, never serialized into the free-text notes.
+    expect(mockCreateLead.mock.calls[0]?.[1]?.notes).not.toContain('Interdomestik Fleet');
     expect(mockCreateLead.mock.calls[0]?.[0].authority).toBe(authority);
     expect(mockCreateLead.mock.calls[0]?.[1]?.notes).toContain('"utmSource":"google"');
     expect(mockCreateLead.mock.calls[0]?.[1]?.notes).toContain('"utmCampaign":"fleet"');
@@ -183,22 +191,20 @@ describe('submitBusinessMembershipLeadCore', () => {
     expect(mockCreateLead.mock.calls[0]?.[1]?.notes).toContain('"utmSource":null');
   });
 
-  it('rejects invalid payloads with field issues', async () => {
+  it.each([
+    [{ companyName: '' }, { companyName: 'Company name is required' }],
+    [{ consent: false }, { consent: 'Confirm that we may contact you' }],
+  ])('rejects invalid payloads with field issues', async (change, issues) => {
     const result = await submitBusinessMembershipLeadCore({
       requestHeaders: new Headers(),
-      data: {
-        ...validInput,
-        companyName: '',
-      },
+      data: { ...validInput, ...change },
     });
 
     expect(result).toEqual({
       success: false,
       error: 'Validation failed',
       code: 'INVALID_PAYLOAD',
-      issues: {
-        companyName: 'Company name is required',
-      },
+      issues,
     });
     expect(mockCreateLead).not.toHaveBeenCalled();
   });

@@ -87,7 +87,7 @@ export async function AgentDashboardV2Page({
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild>
             {isPro ? (
-              <Link href="/agent/leads/new">
+              <Link href="/agent/leads">
                 {t('dashboardV2.addNewLead')} <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             ) : (
@@ -213,7 +213,7 @@ export async function AgentDashboardV2Page({
           label={isPro ? t('dashboardV2.rapidProspect') : t('dashboardV2.rapidPosLabel')}
           description={isPro ? t('dashboardV2.addLead') : t('dashboardV2.quickSale')}
           iconName="user-plus"
-          href={isPro ? '/agent/leads/new' : '/agent/pos'}
+          href={isPro ? '/agent/leads' : '/agent/pos'}
           colorClassName="from-slate-900/60 to-slate-950/80"
           testId="action-prospect"
         />
@@ -282,7 +282,7 @@ export async function AgentDashboardV2Page({
                     <p className="mb-4">{t('dashboardV2.noClientsYet')}</p>
                     <Button asChild>
                       {isPro ? (
-                        <Link href="/agent/leads/new">{t('dashboardV2.addYourFirstLead')}</Link>
+                        <Link href="/agent/leads">{t('dashboardV2.addYourFirstLead')}</Link>
                       ) : (
                         <Link href="/agent/pos">{t('dashboardV2.startRapidPosSale')}</Link>
                       )}

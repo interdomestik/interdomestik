@@ -512,6 +512,39 @@
       "success": "Aktivnost je zabeležena"
     },
     "leads_pro": {
+      "create": {
+        "trigger": "Novi lid",
+        "title": "Novi lid",
+        "description": "Evidentirajte osobu ili kompaniju koja je tražila da bude kontaktirana u vezi sa članstvom.",
+        "kind": {
+          "label": "Vrsta lida",
+          "individual": "Fizičko lice",
+          "company": "Kompanija"
+        },
+        "fields": {
+          "firstName": "Ime",
+          "lastName": "Prezime",
+          "email": "Imejl",
+          "phone": "Telefon",
+          "notes": "Beleške",
+          "companyName": "Naziv kompanije",
+          "teamSize": "Broj zaposlenih",
+          "teamSizePlaceholder": "Izaberite broj zaposlenih"
+        },
+        "notice": {
+          "title": "Kako koristimo ove podatke",
+          "body": "Interdomestik koristi ime, broj telefona i imejl, kao i naziv kompanije i broj zaposlenih ako su navedeni, samo da bi kontaktirao ovu osobu u vezi sa članstvom u Interdomestiku i pripremio ponudu. Ne prodajemo ove podatke i ne delimo ih radi oglašavanja. Ako osoba ne postane član, brišemo ih nakon 12 meseci. Osoba u svakom trenutku može zatražiti da prestanemo da je kontaktiramo, ili da vidi, ispravi ili obriše svoje podatke, preko svog agenta ili našeg kontakta za privatnost.",
+          "company": "Ovaj lid je kontakt osoba kompanije i obuhvata samo njene podatke. Svaki zaposleni sam odlučuje da li će se učlaniti.",
+          "attestation": "Pokazao/la sam ili pročitao/la ovo obaveštenje osobi i ona je tražila da bude kontaktirana u vezi sa članstvom."
+        },
+        "submit": "Kreiraj lid",
+        "submitting": "Kreiranje…",
+        "success": "Lid je kreiran",
+        "errors": {
+          "duplicate": "Lid sa ovim imejlom već postoji. Potrebna je provera pre nego što se kreira novi.",
+          "generic": "Lid nije mogao da se kreira. Pokušajte ponovo."
+        }
+      },
       "back_to_members": "Nazad na članove",
       "title": "Potencijalni klijenti",
       "subtitle": "Upravljajte i pratite sve svoje potencijalne klijente.",
@@ -542,6 +575,8 @@
         "source": "Izvor",
         "branch": "Filijala",
         "notes": "Beleške",
+        "company": "Kompanija",
+        "team_size": "Veličina tima",
         "next_step": "Sledeći korak"
       },
       "statuses": {

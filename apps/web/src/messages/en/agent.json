@@ -370,6 +370,39 @@
       "success": "Activity logged"
     },
     "leads_pro": {
+      "create": {
+        "trigger": "New lead",
+        "title": "New lead",
+        "description": "Record a person or company who asked to be contacted about membership.",
+        "kind": {
+          "label": "Lead type",
+          "individual": "Individual",
+          "company": "Company"
+        },
+        "fields": {
+          "firstName": "First name",
+          "lastName": "Last name",
+          "email": "Email",
+          "phone": "Phone",
+          "notes": "Notes",
+          "companyName": "Company name",
+          "teamSize": "Team size",
+          "teamSizePlaceholder": "Select team size"
+        },
+        "notice": {
+          "title": "How we use these details",
+          "body": "Interdomestik uses the name, phone number and email, and the company name and team size if given, only to contact this person about Interdomestik membership and to prepare an offer. We do not sell these details or share them for advertising. If the person does not become a member, we delete them after 12 months. The person can ask us at any time to stop contacting them, or to see, correct or delete their details, through their agent or our privacy contact.",
+          "company": "This lead is the company's contact person and covers only their own details. Each employee decides for themselves whether to join.",
+          "attestation": "I showed or read this notice to the person, and they asked to be contacted about membership."
+        },
+        "submit": "Create lead",
+        "submitting": "Creating…",
+        "success": "Lead created",
+        "errors": {
+          "duplicate": "A lead with this email already exists. It needs review before a new one is created.",
+          "generic": "The lead could not be created. Try again."
+        }
+      },
       "back_to_members": "Back to members",
       "title": "Leads",
       "subtitle": "Manage and track all your leads.",
@@ -400,6 +433,8 @@
         "source": "Source",
         "branch": "Branch",
         "notes": "Notes",
+        "company": "Company",
+        "team_size": "Team size",
         "next_step": "Next Step"
       },
       "statuses": {
