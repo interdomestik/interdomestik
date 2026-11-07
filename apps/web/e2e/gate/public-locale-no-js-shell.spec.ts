@@ -161,7 +161,7 @@ test('business membership returns native validation without duplicating the form
     // Invalid input exercises native action state without creating a lead.
     await form.locator('button[type="submit"]').click();
     await expect(page.locator('#business-lead-firstName-error')).toBeVisible();
-    await expect(form.locator('[aria-invalid="true"]')).toHaveCount(6);
+    await expect(form.locator('[aria-invalid="true"]')).toHaveCount(7);
     await expect(form).toHaveCount(1);
     await expect(form).toBeVisible();
   });

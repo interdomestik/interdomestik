@@ -27,7 +27,7 @@ test.describe('Hydrated business form validation', () => {
     // Empty input exercises validation without creating a business lead.
     await form.locator('button[type="submit"]').click();
     await expect(page.locator('#business-lead-firstName-error')).toBeVisible();
-    await expect(form.locator('[aria-invalid="true"]')).toHaveCount(6);
+    await expect(form.locator('[aria-invalid="true"]')).toHaveCount(7);
     await expect(form).toHaveCount(1);
   });
 });
