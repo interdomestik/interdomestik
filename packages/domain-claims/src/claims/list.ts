@@ -167,6 +167,7 @@ function buildClaimsWhereClause(params: {
   return withTenant(tenantId, claims.tenantId, baseWhere);
 }
 
+// prettier-ignore
 function buildScopeConditions( // NOSONAR - complexity justified by RBAC requirements
   authScope: any,
   scope: ClaimsScope,
