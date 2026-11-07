@@ -58,10 +58,6 @@ const TENANT_HOST_FILE_ALLOWLIST = new Map([
   ['apps/web/e2e/live/temp-check-claims.spec.ts', 'temporary live host diagnostic'],
   ['apps/web/e2e/pilot/_host.ts', 'pilot helper resolving actor host aliases'],
   [
-    'apps/web/e2e/pilot/c1-03-pilot-member-provisioning.spec.ts',
-    'pilot cross-host provisioning check',
-  ],
-  [
     'apps/web/e2e/pilot/c2-02-cross-tenant-artifact-isolation.spec.ts',
     'cross-tenant isolation check',
   ],

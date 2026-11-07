@@ -1,9 +1,8 @@
 import { dbMock } from './agent.shared.test-support';
 import { db } from '@interdomestik/database/db';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { redirect } from 'next/navigation';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { leadLookupPredicate, makeCredential } from './agent.test-support';
+import { leadLookupPredicate } from './agent.test-support';
 import { logActivity } from './agent';
 import { getAgentSession } from './agent/context';
 
