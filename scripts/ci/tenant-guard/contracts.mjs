@@ -8,7 +8,7 @@ const deepFreeze = value => {
   return value;
 };
 
-export const CONTRACTS = deepFreeze([
+const REVIEWED = [
   {
     file: 'apps/web/src/app/api/documents/[id]/route.ts',
     unit: 'GET',
@@ -250,4 +250,23 @@ export const CONTRACTS = deepFreeze([
     reason:
       'Parameterized transaction-scoped advisory lock keyed by tenant and subscription to serialize matter allowance counting; no row data.',
   },
+];
+
+// An open transition (one per unit, see rules-report.mjs): a reviewed entry re-bound to the exact
+// successor postimage of its unit. The reviewed entry stays until main carries the successor.
+function successorOf(file, unit, sha256, note) {
+  const base = REVIEWED.find(entry => entry.file === file && entry.unit === unit);
+  return { ...base, kinds: { ...base.kinds }, sha256, reason: `${base.reason} ${note}` };
+}
+
+export const CONTRACTS = deepFreeze([
+  ...REVIEWED,
+  // ACQ-2c (Plan070 with Codex): the same lock; a committed change also deletes that user's
+  // outstanding reset tokens in its transaction.
+  successorOf(
+    'apps/web/src/lib/auth/different-email-recovery-store.ts',
+    'confirmReplacementProof',
+    'a0a6b15ae60af7aaa66f1bdefed54a6b3c1136351dc77692f7abf40bfcba63b5',
+    "ACQ-2c: the committed change deletes only that user's reset-password tokens in the same transaction."
+  ),
 ]);

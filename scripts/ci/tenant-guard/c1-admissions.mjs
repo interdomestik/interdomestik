@@ -13,6 +13,8 @@
 // legacy pins, C3 contracts); only rules that compare a callee's closure, such as custody's
 // state-callee check, see the admitted closure comparison. The sinks keep propagating through
 // their callers as before.
+import { ACQ2C_CREDENTIAL_HARDENING } from './c1-admissions-auth.mjs';
+
 const deepFreeze = value => {
   if (value && typeof value === 'object') {
     for (const child of Object.values(value)) deepFreeze(child);
@@ -290,4 +292,5 @@ export const C1_ADMISSIONS = deepFreeze([
     ],
     sinkEdges: [],
   },
+  ACQ2C_CREDENTIAL_HARDENING,
 ]);
