@@ -33,18 +33,13 @@ export type DuplicateReferral = {
 /**
  * Records a possible duplicate for review (IDA-CRM-003) without merging it. The tenant-wide lookup
  * stays inside this server boundary, and the agent never sees the existing lead. The row holds
- * references only: no email, name, phone, notes or SQL. Its id derives from the request key, so a
- * retry of the same submission adds no second referral, and a failed write fails the request
- * instead of being lost.
+ * references only: no email, name, phone, notes or SQL. Its id derives from the request key and the
+ * existing lead, so a retry of one submission adds no second referral, and a failed write fails the
+ * request instead of being lost.
  */
 export async function recordLeadDuplicateReferral(referral: DuplicateReferral): Promise<void> {
   const { authority, agentId, branchId, email, idempotencyKey } = referral;
   const { tenantId } = readTenantAuthority(authority);
-  const referralId = `lead-dup-${createHash('sha256')
-    .update([tenantId, agentId, idempotencyKey].join('\u0000'))
-    .digest('hex')
-    .slice(0, 40)}`;
-
   // db-access-guard: tenant-scoped -- reason: tenantId from the authority scopes this read and write
   await withTenantAuthority(authority, async tx => {
     const [existing] = await tx
@@ -52,6 +47,13 @@ export async function recordLeadDuplicateReferral(referral: DuplicateReferral): 
       .from(memberLeads)
       .where(and(eq(memberLeads.tenantId, tenantId), sql`lower(${memberLeads.email}) = ${email}`))
       .limit(1);
+    const existingLeadId = existing?.id ?? null;
+    // The existing lead is part of the id: an edited email under the same request key refers a
+    // different lead and keeps its own referral, while a retry of one submission maps to one row.
+    const referralId = `lead-dup-${createHash('sha256')
+      .update([tenantId, agentId, idempotencyKey, existingLeadId ?? ''].join('\u0000'))
+      .digest('hex')
+      .slice(0, 40)}`;
     await tx
       .insert(auditLog)
       .values({
@@ -61,7 +63,7 @@ export async function recordLeadDuplicateReferral(referral: DuplicateReferral): 
         actorRole: 'agent',
         action: LEAD_DUPLICATE_REFERRAL_ACTION,
         entityType: 'member_lead',
-        entityId: existing?.id ?? null,
+        entityId: existingLeadId,
         metadata: { submittingBranchId: branchId, review: 'pending' },
         createdAt: new Date(),
       })

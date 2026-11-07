@@ -52,7 +52,7 @@ describe('CreateLeadDialog', () => {
     expect(screen.getByTestId('lead-form-notice')).toHaveTextContent('notice.company');
   });
 
-  it('sends the confirmed lead with one request key, reused on retry after a failure', async () => {
+  it('sends the confirmed lead, and a resubmission after a refusal with a new key', async () => {
     hoisted.createLeadAction.mockResolvedValueOnce({ success: false, code: 'INTERNAL' });
     openAndFill();
     fireEvent.click(screen.getByTestId('lead-form-consent'));
@@ -69,7 +69,8 @@ describe('CreateLeadDialog', () => {
       companyName: undefined,
     });
     expect(first?.[1]).toEqual(expect.any(String));
-    expect(second?.[1]).toBe(first?.[1]);
+    expect(second?.[1]).toEqual(expect.any(String));
+    expect(second?.[1]).not.toBe(first?.[1]);
     await waitFor(() => expect(hoisted.refresh).toHaveBeenCalled());
   });
 

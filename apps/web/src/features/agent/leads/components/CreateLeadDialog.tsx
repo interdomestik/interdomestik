@@ -75,6 +75,8 @@ export function CreateLeadDialog({ onSuccess }: Readonly<{ onSuccess?: () => voi
       onSuccess?.();
       return;
     }
+    // A refused submission is finished: an edited resubmission is a new request with its own key.
+    setRequestKey(newRequestKey());
     toast.error(res.code === 'POSSIBLE_DUPLICATE' ? t('errors.duplicate') : t('errors.generic'));
   };
 
