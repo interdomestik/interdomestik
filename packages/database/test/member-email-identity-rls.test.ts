@@ -78,7 +78,8 @@ test('the case-insensitive email index holds across tenants under the restricted
       const failure = await insertMember(
         MK_TENANT_ID,
         `acq2b1_mk_${suffix}`,
-        ksEmail.toUpperCase()
+        // Letter case and surrounding whitespace fold to the same mailbox.
+        ` ${ksEmail.toUpperCase()} `
       ).then(
         () => null,
         error => error

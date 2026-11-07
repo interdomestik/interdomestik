@@ -11,7 +11,7 @@ export function createQueuedWhere(
   lockRows: unknown[] = []
 ) {
   return mockFn(() => ({
-    for: mockFn(async () => lockRows),
+    for: mockFn(() => Promise.resolve(lockRows)),
     orderBy: mockFn(() => ({
       limit: createQueuedLimit(mockFn, selectResults),
     })),
