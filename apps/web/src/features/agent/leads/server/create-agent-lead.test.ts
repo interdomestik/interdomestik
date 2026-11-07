@@ -1,57 +1,34 @@
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { vi } from 'vitest';
 
-const hoisted = vi.hoisted(() => ({
-  createLead: vi.fn(),
-  existing: vi.fn(),
-  idempotency: vi.fn(),
-  withTenantContext: vi.fn(),
-}));
+vi.mock(
+  '@interdomestik/database',
+  async () => (await import('./create-agent-lead.test-support')).databaseModule
+);
+vi.mock(
+  '@interdomestik/domain-leads',
+  async () => (await import('./create-agent-lead.test-support')).domainLeadsModule
+);
+vi.mock(
+  '@/lib/commercial-action-idempotency',
+  async () => (await import('./create-agent-lead.test-support')).idempotencyModule
+);
 
-vi.mock('@interdomestik/database', () => ({
-  and: (...args: unknown[]) => ({ op: 'and', args }),
-  eq: (left: unknown, right: unknown) => ({ op: 'eq', left, right }),
-  sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({ op: 'sql', strings, values }),
-  memberLeads: {
-    id: 'member_leads.id',
-    tenantId: 'member_leads.tenant_id',
-    agentId: 'member_leads.agent_id',
-    email: 'member_leads.email',
-    status: 'member_leads.status',
-  },
-  withTenantContext: hoisted.withTenantContext,
-}));
-vi.mock('@interdomestik/domain-leads', () => ({ createLead: hoisted.createLead }));
-vi.mock('@/lib/commercial-action-idempotency', () => ({
-  runCommercialActionWithIdempotency: hoisted.idempotency,
-}));
+import { AgentLeadPersistenceError, createAgentLeadCore } from './create-agent-lead';
+import {
+  agent,
+  agentLeadMocks as hoisted,
+  authority,
+  individual,
+  resetAgentLeadMocks,
+} from './create-agent-lead.test-support';
 
-import { createAgentLeadCore } from './create-agent-lead';
-
-const authority = mintTestTenantAuthority('tenant-1');
-const agent = { authority, userRole: 'agent', agentId: 'agent-1', branchId: 'branch-1' };
-const individual = {
-  leadKind: 'individual',
-  firstName: ' Arta ',
-  lastName: 'Krasniqi',
-  email: ' Arta.K@Example.com ',
-  phone: '+38344111222',
-  consentConfirmed: true,
-};
 const create = (input: unknown, ctx: Partial<typeof agent> = {}) =>
   createAgentLeadCore({ ...agent, ...ctx }, { input, idempotencyKey: 'k1' });
 
 describe('createAgentLeadCore', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    hoisted.existing.mockResolvedValue([]);
-    hoisted.createLead.mockResolvedValue({ leadId: 'lead_new' });
-    hoisted.idempotency.mockImplementation(async ({ execute }) => execute());
-    hoisted.withTenantContext.mockImplementation(async (_ctx, callback) =>
-      callback({
-        select: () => ({ from: () => ({ where: () => ({ limit: hoisted.existing }) }) }),
-      })
-    );
+    resetAgentLeadMocks();
   });
 
   it('creates an agent-assisted lead with the normalized email and the stored notice version', async () => {
@@ -142,8 +119,11 @@ describe('createAgentLeadCore', () => {
     ],
   ])('flags a lead of %s as a possible duplicate, never merged', async (_label, row) => {
     hoisted.existing.mockResolvedValue([row]);
+    hoisted.createLead.mockRejectedValue({
+      code: '23505',
+      constraint_name: 'idx_leads_tenant_email',
+    });
     await expect(create(individual)).resolves.toMatchObject({ code: 'POSSIBLE_DUPLICATE' });
-    expect(hoisted.createLead).not.toHaveBeenCalled();
   });
 
   it('resolves a lost unique-index race through the same duplicate rule', async () => {
@@ -152,15 +132,156 @@ describe('createAgentLeadCore', () => {
       .mockResolvedValueOnce([
         { id: 'lead_race', agentId: 'agent-1', branchId: 'branch-1', status: 'new' },
       ]);
-    hoisted.createLead.mockRejectedValue(Object.assign(new Error('dup'), { code: '23505' }));
+    hoisted.createLead.mockRejectedValue({
+      code: '23505',
+      constraint_name: 'idx_leads_tenant_email',
+    });
     await expect(create(individual)).resolves.toEqual({
       success: true,
       data: { leadId: 'lead_race', existing: true },
     });
   });
 
-  it('rethrows any other write failure', async () => {
+  it('rethrows any other write failure without its details', async () => {
     hoisted.createLead.mockRejectedValue(new Error('db down'));
-    await expect(create(individual)).rejects.toThrow('db down');
+    await expect(create(individual)).rejects.toThrow('Agent lead could not be saved');
+  });
+});
+
+// Astra ACQ-1 P2: the action runner logs thrown errors, and database errors carry SQL parameters.
+describe('createAgentLeadCore persistence errors', () => {
+  beforeEach(() => {
+    resetAgentLeadMocks();
+  });
+
+  async function thrownBy(run: Promise<unknown>): Promise<AgentLeadPersistenceError> {
+    const error = await run.then(
+      () => null,
+      (failure: unknown) => failure
+    );
+    expect(error).toBeInstanceOf(AgentLeadPersistenceError);
+    return error as AgentLeadPersistenceError;
+  }
+
+  it('drops the SQL and parameters of a failed lookup', async () => {
+    hoisted.existing.mockRejectedValue(
+      Object.assign(new Error('Failed query: select ... params: arta.k@example.com'), {
+        cause: Object.assign(new Error('connection terminated'), { code: '57P01' }),
+      })
+    );
+
+    const error = await thrownBy(create(individual));
+    expect(error.code).toBe('57P01');
+    expect(JSON.stringify({ message: error.message, cause: error.cause })).not.toContain('arta');
+  });
+
+  it('drops the contact details of a failed insert', async () => {
+    hoisted.createLead.mockRejectedValue(
+      new Error('Failed query: insert into member_leads params: Arta,Krasniqi,+38344111222')
+    );
+
+    const error = await thrownBy(create(individual));
+    expect(error.code).toBeUndefined();
+    expect(error.message).not.toContain('38344111222');
+  });
+
+  it('drops the request of a failed idempotency reservation', async () => {
+    hoisted.idempotency.mockRejectedValue(
+      new Error('insert reservation params: arta.k@example.com')
+    );
+
+    const error = await thrownBy(create(individual));
+    expect(error.message).toBe('Agent lead could not be saved');
+  });
+});
+
+const foreign = { id: 'lead_foreign', agentId: 'agent-2', branchId: 'branch-0', status: 'new' };
+const indexConflict = { code: '23505', constraint_name: 'idx_leads_tenant_email' };
+const caseVariant = Object.assign(new Error('A lead with this email already exists'), {
+  name: 'LeadEmailConflictError',
+  code: '23505',
+});
+
+// Astra ACQ-1 P1 (option A): one answer for every out-of-scope conflict, with a durable referral.
+describe('createAgentLeadCore possible duplicates', () => {
+  beforeEach(() => {
+    resetAgentLeadMocks();
+    hoisted.existing.mockResolvedValue([foreign]);
+  });
+
+  it.each([
+    ['another agent', { ...foreign, branchId: 'branch-1' }, indexConflict],
+    ['another branch', { ...foreign, agentId: 'agent-1' }, indexConflict],
+    [
+      'a closed own lead',
+      { ...foreign, agentId: 'agent-1', branchId: 'branch-1', status: 'lost' },
+      indexConflict,
+    ],
+    ['a case variant', foreign, caseVariant],
+    ['a lost race to a foreign lead', foreign, indexConflict],
+  ])('answers %s with one identical payload', async (_label, row, failure) => {
+    hoisted.existing.mockResolvedValue([row]);
+    hoisted.createLead.mockRejectedValue(failure);
+
+    await expect(create(individual)).resolves.toEqual({
+      success: false,
+      code: 'POSSIBLE_DUPLICATE',
+      error: 'A lead with this email already exists and needs review.',
+    });
+  });
+
+  it('records a referral with references only, keyed to the request', async () => {
+    hoisted.createLead.mockRejectedValue(indexConflict);
+
+    await create(individual);
+    await create(individual);
+    const [first, second] = hoisted.referralValues.mock.calls.map(([values]) => values);
+    expect(first).toMatchObject({
+      tenantId: 'tenant-1',
+      actorId: 'agent-1',
+      actorRole: 'agent',
+      action: 'AGENT_LEAD_POSSIBLE_DUPLICATE',
+      entityType: 'member_lead',
+      entityId: 'lead_foreign',
+      metadata: { submittingBranchId: 'branch-1', review: 'pending' },
+    });
+    expect(second.id).toBe(first.id);
+    expect(JSON.stringify(first)).not.toMatch(/arta|krasniqi|38344111222/i);
+  });
+
+  it('gives another request its own referral', async () => {
+    hoisted.createLead.mockRejectedValue(indexConflict);
+
+    await create(individual);
+    await createAgentLeadCore(agent, { input: individual, idempotencyKey: 'k2' });
+    const [first, second] = hoisted.referralValues.mock.calls.map(([values]) => values);
+    expect(second.id).not.toBe(first.id);
+  });
+
+  it('keeps a separate referral for an edited email under the same request key', async () => {
+    hoisted.createLead.mockRejectedValue(indexConflict);
+
+    await create(individual);
+    hoisted.existing.mockResolvedValue([{ ...foreign, id: 'lead_other' }]);
+    await create({ ...individual, email: 'someone.else@example.com' });
+    const [first, second] = hoisted.referralValues.mock.calls.map(([values]) => values);
+    expect([first.entityId, second.entityId]).toEqual(['lead_foreign', 'lead_other']);
+    expect(second.id).not.toBe(first.id);
+  });
+
+  it('fails the request when the referral cannot be written', async () => {
+    hoisted.createLead.mockRejectedValue(indexConflict);
+    hoisted.referralWrite.mockRejectedValue(
+      new Error('insert into audit_log params: lead_foreign')
+    );
+
+    await expect(create(individual)).rejects.toBeInstanceOf(AgentLeadPersistenceError);
+  });
+
+  it('keeps any other unique violation a persistence failure, without a referral', async () => {
+    hoisted.createLead.mockRejectedValue({ code: '23505', constraint_name: 'member_leads_pkey' });
+
+    await expect(create(individual)).rejects.toBeInstanceOf(AgentLeadPersistenceError);
+    expect(hoisted.referralValues).not.toHaveBeenCalled();
   });
 });

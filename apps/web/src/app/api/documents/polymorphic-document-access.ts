@@ -28,7 +28,8 @@ export async function canReadPolymorphicDocument(args: {
   if (isFullTenantClaimsRole(userRole)) return true;
   if (
     polyDoc.uploadedBy === session.user.id &&
-    !(userRole === 'agent' && polyDoc.entityType === 'claim') &&
+    // Agents never, and staff only after the claim's draft check, read claim uploads as uploaders.
+    !((userRole === 'agent' || userRole === 'staff') && polyDoc.entityType === 'claim') &&
     polyDoc.entityType !== 'policy'
   ) {
     return true;

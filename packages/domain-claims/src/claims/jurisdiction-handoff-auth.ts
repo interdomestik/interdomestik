@@ -17,6 +17,9 @@ export function canInitiateHandoff(
   claim: HandoffClaimRow
 ): boolean {
   if (!HOME_AUTHORIZED_ROLES.has(actor.role)) return false;
+  // A member draft is not a case yet: no role hands it to another jurisdiction, so no grant on a
+  // draft is ever issued to recovery-tenant staff.
+  if (claim.caseLifecycleState == null || claim.caseLifecycleState === 'draft') return false;
   if (['admin', 'tenant_admin', 'super_admin', 'global_support'].includes(actor.role)) return true;
   if (actor.role === 'branch_manager')
     return Boolean(actor.branchId && actor.branchId === claim.branchId);

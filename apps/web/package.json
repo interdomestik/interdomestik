@@ -12,6 +12,7 @@
     "start:ci": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
+    "type-check:fast": "pnpm --package=typescript@7.0.2 dlx tsc --noEmit --incremental false",
     "test:unit": "node scripts/vitest-unit.mjs",
     "test:e2e": "playwright test",
     "e2e:gate": "NEXT_PUBLIC_BILLING_TEST_MODE=1 pnpm run build:ci && NEXT_PUBLIC_BILLING_TEST_MODE=1 playwright test --project=gate-ks-sq --project=gate-mk-mk --workers=1",
