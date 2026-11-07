@@ -1,6 +1,6 @@
-import { withTenantContext } from '@interdomestik/database';
 import { branches, documents, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aliasedTable, and, asc, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 import { CashVerificationRequestDTO, VerificationView } from '../types';
 import {
@@ -75,7 +75,7 @@ export async function getVerificationRequests(
   // Limit: Keep UI fast
   const limit = view === 'history' ? 50 : 100;
 
-  return withTenantContext({ tenantId, role: userRole }, async tx => {
+  return withTenantAuthority(ctx.authority, async tx => {
     let queryBuilder = tx
       .select({
         id: leadPaymentAttempts.id,
@@ -134,6 +134,7 @@ export async function getVerificationRequests(
       queryBuilder = queryBuilder.leftJoin(
         member,
         and(
+          eq(leadPaymentAttempts.status, 'succeeded'),
           eq(memberLeads.status, 'converted'),
           eq(member.id, memberLeads.convertedUserId),
           eq(member.tenantId, tenantId)
