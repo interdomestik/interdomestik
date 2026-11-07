@@ -18,3 +18,23 @@ test('cash approval catalogs have bounded ownership and localized pending-setup 
   }
   assert.equal(structuredArtifactOwner('apps/web/src/messages/de/admin-leads.json'), null);
 });
+
+test('duplicate review copy (IDA-CRM-003) is complete and localized in every catalog', () => {
+  const read = locale =>
+    JSON.parse(
+      fs.readFileSync(
+        new URL(`../../apps/web/src/messages/${locale}/admin-leads.json`, import.meta.url),
+        'utf8'
+      )
+    ).admin.leads.duplicates;
+  const english = read('en');
+  const keys = Object.keys(english).sort();
+  assert.ok(keys.includes('keep_existing') && keys.includes('dismiss') && keys.includes('tab'));
+  for (const locale of ['en', 'sq', 'mk', 'sr']) {
+    const copy = read(locale);
+    assert.deepEqual(Object.keys(copy).sort(), keys, locale);
+    for (const key of keys) assert.ok(copy[key].trim().length > 0, `${locale}.${key}`);
+    assert.match(copy.resolved_by, /\{name\}/u, `${locale}.resolved_by`);
+    if (locale !== 'en') assert.notEqual(copy.tab, english.tab, `${locale}.tab`);
+  }
+});

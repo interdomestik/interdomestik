@@ -19,12 +19,10 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { newLeadRequestKey } from './lead-request-key';
+
 const TEAM_SIZES = ['1-10', '11-25', '26-50', '51-100', '100+'] as const;
 type LeadKind = 'individual' | 'company';
-
-function newRequestKey(): string {
-  return globalThis.crypto.randomUUID();
-}
 
 function readOptional(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -39,12 +37,12 @@ export function CreateLeadDialog({ onSuccess }: Readonly<{ onSuccess?: () => voi
   const [consent, setConsent] = useState(false);
   const [pending, setPending] = useState(false);
   // One key per dialog session: a double submit or a retry replays the same result.
-  const [requestKey, setRequestKey] = useState(newRequestKey);
+  const [requestKey, setRequestKey] = useState(newLeadRequestKey);
 
   const reset = () => {
     setKind('individual');
     setConsent(false);
-    setRequestKey(newRequestKey());
+    setRequestKey(newLeadRequestKey());
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -75,6 +73,8 @@ export function CreateLeadDialog({ onSuccess }: Readonly<{ onSuccess?: () => voi
       onSuccess?.();
       return;
     }
+    // A refused submission is finished: an edited resubmission is a new request with its own key.
+    setRequestKey(newLeadRequestKey());
     toast.error(res.code === 'POSSIBLE_DUPLICATE' ? t('errors.duplicate') : t('errors.generic'));
   };
 
