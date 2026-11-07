@@ -17,7 +17,10 @@ const input = {
   lastName: 'Krasniqi',
   email: 'arben@example.com',
   phone: '+38344111222',
+  consentNoticeVersion: 'lead-notice-v1',
 };
+const now = new Date('2026-11-06T10:00:00.000Z');
+const agentCtx = { agentId: 'agent-1', branchId: 'branch-1', now } as const;
 
 describe('createLead', () => {
   const authority = mintTestTenantAuthority('tenant-1');
@@ -30,7 +33,7 @@ describe('createLead', () => {
 
   it('inserts the lead under the authority, stamped with the authority tenant', async () => {
     await expect(
-      createLead({ authority, agentId: 'agent-1', branchId: 'branch-1' }, input)
+      createLead({ authority, ...agentCtx, captureChannel: 'agent_assisted' }, input)
     ).resolves.toEqual({ leadId: 'lead_seed' });
 
     expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
@@ -41,14 +44,53 @@ describe('createLead', () => {
         agentId: 'agent-1',
         branchId: 'branch-1',
         status: 'new',
+        leadKind: 'individual',
+        consentNoticeVersion: 'lead-notice-v1',
+        consentCapturedAt: now,
+        consentCapturedBy: 'agent-1',
+        captureChannel: 'agent_assisted',
       })
     );
+  });
+
+  it('records a public-form lead with no capturing user and keeps company fields', async () => {
+    await createLead(
+      { authority, ...agentCtx, captureChannel: 'public_form' },
+      { ...input, leadKind: 'company', companyName: 'Fleet LLC', teamSize: '11-25' }
+    );
+
+    expect(mocks.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leadKind: 'company',
+        companyName: 'Fleet LLC',
+        teamSize: '11-25',
+        consentCapturedBy: null,
+        captureChannel: 'public_form',
+      })
+    );
+  });
+
+  it.each([
+    ['missing consent', { ...input, consentNoticeVersion: undefined }],
+    ['blank consent', { ...input, consentNoticeVersion: '  ' }],
+    ['legacy marker', { ...input, consentNoticeVersion: 'pre-consent-legacy' }],
+    ['company without a name', { ...input, leadKind: 'company' as const }],
+  ])('refuses %s before touching the database', async (_label, bad) => {
+    await expect(
+      createLead({ authority, ...agentCtx, captureChannel: 'agent_assisted' }, bad as never)
+    ).rejects.toThrow();
+
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('fails closed without a write for an unrecognized authority', async () => {
     await expect(
       createLead(
-        { authority: { tenantId: 'tenant-1' } as never, agentId: 'agent-1', branchId: 'branch-1' },
+        {
+          authority: { tenantId: 'tenant-1' } as never,
+          ...agentCtx,
+          captureChannel: 'agent_assisted',
+        },
         input
       )
     ).rejects.toThrow('Unrecognized tenant authority');
@@ -59,7 +101,10 @@ describe('createLead', () => {
 
   it('validates input before touching the database', async () => {
     await expect(
-      createLead({ authority, agentId: 'agent-1', branchId: 'branch-1' }, { ...input, phone: '1' })
+      createLead(
+        { authority, ...agentCtx, captureChannel: 'agent_assisted' },
+        { ...input, phone: '1' }
+      )
     ).rejects.toThrow();
 
     expect(mocks.withTenantContext).not.toHaveBeenCalled();

@@ -545,6 +545,8 @@
         "source": "Izvor",
         "branch": "Filijala",
         "notes": "Beleške",
+        "company": "Kompanija",
+        "team_size": "Veličina tima",
         "next_step": "Sledeći korak"
       },
       "statuses": {

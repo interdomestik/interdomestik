@@ -12,6 +12,11 @@ import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { ActionError, ActionSuccess } from '@/lib/safe-action';
 import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
 
+// The intake form shows the `privacyNote` copy (pricing catalogs, EN/SQ/MK/SR) at submission; the
+// lead stores this version so a later copy change gets a new version instead of rewriting history.
+const BUSINESS_INTAKE_NOTICE_VERSION = 'business-intake-privacy-note-v1';
+const BUSINESS_INTAKE_SOURCE = 'business_membership_public';
+
 const submitBusinessMembershipLeadSchema = z.object({
   firstName: z.string().trim().min(1, 'First name is required'),
   lastName: z.string().trim().min(1, 'Last name is required'),
@@ -60,9 +65,6 @@ function serializeLeadNotes(args: {
   }
 
   return JSON.stringify({
-    source: 'business_membership_public',
-    companyName: args.data.companyName,
-    teamSize: args.data.teamSize,
     locale: args.data.locale ?? null,
     note: args.data.notes ?? null,
     landingPage: referer,
@@ -145,12 +147,18 @@ export async function submitBusinessMembershipLeadCore(params: {
             authority,
             agentId: owner.agentId,
             branchId: owner.branchId,
+            captureChannel: 'public_form',
           },
           {
             firstName: parsed.data.firstName,
             lastName: parsed.data.lastName,
             email: parsed.data.email,
             phone: parsed.data.phone,
+            leadKind: 'company',
+            companyName: parsed.data.companyName,
+            teamSize: parsed.data.teamSize,
+            source: BUSINESS_INTAKE_SOURCE,
+            consentNoticeVersion: BUSINESS_INTAKE_NOTICE_VERSION,
             notes: serializeLeadNotes({
               data: parsed.data,
               referer: params.requestHeaders.get('referer'),

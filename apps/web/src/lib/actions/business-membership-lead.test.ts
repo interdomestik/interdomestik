@@ -91,15 +91,22 @@ describe('submitBusinessMembershipLeadCore', () => {
         authority,
         agentId: 'agent_system',
         branchId: 'branch_default',
+        captureChannel: 'public_form',
       },
       expect.objectContaining({
         firstName: 'Arben',
         lastName: 'Lila',
         email: 'ops@interdomestik.test',
         phone: '+38344111222',
-        notes: expect.stringContaining('"companyName":"Interdomestik Fleet"'),
+        leadKind: 'company',
+        companyName: 'Interdomestik Fleet',
+        teamSize: '11-25',
+        source: 'business_membership_public',
+        consentNoticeVersion: 'business-intake-privacy-note-v1',
       })
     );
+    // Company data lives in columns now, never serialized into the free-text notes.
+    expect(mockCreateLead.mock.calls[0]?.[1]?.notes).not.toContain('Interdomestik Fleet');
     expect(mockCreateLead.mock.calls[0]?.[0].authority).toBe(authority);
     expect(mockCreateLead.mock.calls[0]?.[1]?.notes).toContain('"utmSource":"google"');
     expect(mockCreateLead.mock.calls[0]?.[1]?.notes).toContain('"utmCampaign":"fleet"');

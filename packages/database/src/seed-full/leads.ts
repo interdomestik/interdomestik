@@ -1,5 +1,6 @@
 import { db } from '../db';
 import * as schema from '../schema';
+import { agentCapturedLead } from '../seed-utils/lead-consent';
 import { TENANTS } from './constants';
 
 import type { SeedConfig } from '../seed-types';
@@ -18,7 +19,7 @@ export async function seedBalkanFlows(config: SeedConfig) {
       id: leadCashId,
       tenantId: TENANTS.MK,
       branchId: 'mk_branch_a',
-      agentId: agentId,
+      ...agentCapturedLead(agentId, at()),
       firstName: 'Balkan',
       lastName: 'CashLead',
       email: 'lead.cash.mk@example.com',
@@ -53,7 +54,7 @@ export async function seedBalkanFlows(config: SeedConfig) {
       id: leadCardId,
       tenantId: TENANTS.MK,
       branchId: 'mk_branch_a',
-      agentId: agentId,
+      ...agentCapturedLead(agentId, at()),
       firstName: 'Balkan',
       lastName: 'CardLead',
       email: 'lead.card.mk@example.com',
