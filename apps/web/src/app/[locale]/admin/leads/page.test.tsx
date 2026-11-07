@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   setRequestLocaleMock: vi.fn(),
   verificationOpsCenterPageMock: vi.fn(() => null),
+  leadDuplicatesPageMock: vi.fn((_props: { state: string }) => null),
 }));
 
 vi.mock('next-intl/server', () => ({
@@ -12,6 +13,14 @@ vi.mock('next-intl/server', () => ({
 
 vi.mock('@/features/admin/verification/components/v2/VerificationOpsCenterPage', () => ({
   default: hoisted.verificationOpsCenterPageMock,
+}));
+
+vi.mock('@/features/admin/lead-duplicates/components/LeadDuplicatesLink', () => ({
+  LeadDuplicatesLink: () => null,
+}));
+
+vi.mock('@/features/admin/lead-duplicates/components/LeadDuplicatesPage', () => ({
+  LeadDuplicatesPage: hoisted.leadDuplicatesPageMock,
 }));
 
 import AdminLeadsPage from './page';
@@ -29,5 +38,21 @@ describe('AdminLeadsPage', () => {
     expect(hoisted.setRequestLocaleMock.mock.invocationCallOrder[0]).toBeLessThan(
       hoisted.verificationOpsCenterPageMock.mock.invocationCallOrder[0]
     );
+  });
+
+  it.each([
+    [undefined, 'pending'],
+    ['resolved', 'resolved'],
+    ['anything', 'pending'],
+  ])('routes view=duplicates (state %s) to the duplicate review as %s', async (state, expected) => {
+    hoisted.verificationOpsCenterPageMock.mockClear();
+    const view = await AdminLeadsPage({
+      params: Promise.resolve({ locale: 'sq' }),
+      searchParams: Promise.resolve({ view: 'duplicates', state }),
+    });
+    renderToStaticMarkup(view);
+
+    expect(hoisted.leadDuplicatesPageMock).toHaveBeenLastCalledWith({ state: expected }, undefined);
+    expect(hoisted.verificationOpsCenterPageMock).not.toHaveBeenCalled();
   });
 });
