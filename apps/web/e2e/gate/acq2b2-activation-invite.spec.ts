@@ -77,7 +77,10 @@ test.describe('ACQ-2b2 member activation invite', () => {
     test.setTimeout(180_000);
     const tenantOrigin = new URL(String(testInfo.project.use.baseURL)).origin;
     const seen = new Set<string>();
-    const context = await browser.newContext();
+    // The member's browser carries the project's tenant headers, like every other fresh context.
+    const context = await browser.newContext({
+      extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
+    });
     let lead: OwnedLead | undefined;
     let memberId: string | null = null;
     try {
