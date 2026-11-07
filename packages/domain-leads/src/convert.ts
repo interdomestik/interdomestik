@@ -126,7 +126,7 @@ export async function convertLeadToMember(
       email,
       name: `${lead.firstName} ${lead.lastName}`,
       role: 'member',
-      // Unverified until the member's own first email-code sign-in proves the mailbox (ACQ-2b2).
+      // Unverified: conversion does not prove the mailbox; the invite lets the member set a password (ACQ-2b2).
       emailVerified: false,
       ...(lead.agentId ? createAgentAssistedOwnershipAttribution(lead.agentId) : {}),
       createdAt: now,

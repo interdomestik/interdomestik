@@ -180,7 +180,7 @@ export async function verifyCashAttemptCore(
       const { convertLeadToMember } = await import('@interdomestik/domain-leads/convert');
       const conversionResult = await convertLeadToMember(authority, { leadId: txResult.leadId });
       if (conversionResult) {
-        // The member stays unverified until their own first email-code sign-in (ACQ-2b2).
+        // The member is created unverified and invited to set a password (ACQ-2b2, owner decision B).
         const invite = await sendMemberActivationInvite({
           email: conversionResult.email,
           tenantId,

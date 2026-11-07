@@ -19,7 +19,7 @@ const PILOT_TENANT_ID = 'pilot-mk';
  * C1 pilot provisioning after ACQ-2 (owner D1 a): an agent never registers a member directly or
  * sets the customer's password. The agent records the lead with consent, takes cash, an approver
  * verifies it, and conversion creates the member with the agent's tenant and branch attribution.
- * The member's own first sign-in (an OTP invite) and its cross-host isolation are proven in ACQ-2b.
+ * The member sets a password from the ACQ-2b invite (a tenant-host reset link).
  */
 test.describe('C1 Pilot: Agent Member Provisioning', () => {
   test.describe.configure({ mode: 'serial' });

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const hoisted = vi.hoisted(() => ({ send: vi.fn() }));
-vi.mock('@interdomestik/domain-communications/email/member-activation', () => ({
-  sendMemberActivationEmail: hoisted.send,
+const hoisted = vi.hoisted(() => ({ requestReset: vi.fn() }));
+vi.mock('@/app/api/webhooks/paddle/paddle-onboarding', () => ({
+  requestPasswordResetOnboarding: hoisted.requestReset,
 }));
 
 import { sendMemberActivationInvite } from './member-activation-invite';
@@ -10,37 +10,28 @@ import { sendMemberActivationInvite } from './member-activation-invite';
 describe('sendMemberActivationInvite', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    hoisted.send.mockResolvedValue({ success: true, id: 'msg-1' });
+    hoisted.requestReset.mockResolvedValue(undefined);
   });
 
-  it.each([
-    ['tenant_ks', 'sq'],
-    ['tenant_mk', 'mk'],
-  ])('sends %s members to their own tenant sign-in page in %s', async (tenantId, locale) => {
-    await expect(sendMemberActivationInvite({ email: 'm@example.com', tenantId })).resolves.toEqual(
-      {
-        sent: true,
-      }
-    );
-    const [to, url, sentLocale] = hoisted.send.mock.calls[0]!;
-    expect(to).toBe('m@example.com');
-    expect(sentLocale).toBe(locale);
-    expect(new URL(url).pathname).toBe(`/${locale}/login`);
-    expect(new URL(url).search).toBe('');
-  });
+  it.each(['tenant_ks', 'tenant_mk'])(
+    'requests a password-set link for %s members on their own tenant',
+    async tenantId => {
+      await expect(
+        sendMemberActivationInvite({ email: 'm@example.com', tenantId })
+      ).resolves.toEqual({ sent: true });
+      expect(hoisted.requestReset).toHaveBeenCalledWith({ email: 'm@example.com', tenantId });
+    }
+  );
 
   it('refuses an unknown tenant instead of using another host', async () => {
     await expect(
       sendMemberActivationInvite({ email: 'm@example.com', tenantId: 'tenant_xx' })
     ).resolves.toEqual({ sent: false, reason: 'unknown_tenant' });
-    expect(hoisted.send).not.toHaveBeenCalled();
+    expect(hoisted.requestReset).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['a failed delivery', () => hoisted.send.mockResolvedValue({ success: false, error: 'x' })],
-    ['a thrown delivery error', () => hoisted.send.mockRejectedValue(new Error('smtp down'))],
-  ])('reports %s without throwing', async (_label, arrange) => {
-    arrange();
+  it('reports a failed reset request without throwing', async () => {
+    hoisted.requestReset.mockRejectedValue(new Error('auth unavailable'));
     await expect(
       sendMemberActivationInvite({ email: 'm@example.com', tenantId: 'tenant_ks' })
     ).resolves.toEqual({ sent: false, reason: 'delivery_failed' });

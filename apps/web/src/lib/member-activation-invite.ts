@@ -1,19 +1,15 @@
-import { sendMemberActivationEmail } from '@interdomestik/domain-communications/email/member-activation';
-import { normalizeSignInOtpLocale } from '@interdomestik/domain-communications/email';
-import {
-  coerceTenantId,
-  preferredLocaleForTenant,
-  resolveTenantAppOrigin,
-} from '@/lib/tenant/tenant-hosts';
+import { requestPasswordResetOnboarding } from '@/app/api/webhooks/paddle/paddle-onboarding';
+import { coerceTenantId } from '@/lib/tenant/tenant-hosts';
 
 export type MemberActivationInviteResult =
   { sent: true } | { sent: false; reason: 'unknown_tenant' | 'delivery_failed' };
 
 /**
- * Invites a converted (unverified) member to sign in with an email code on their tenant's own
- * sign-in page. The recipient comes from the committed conversion; the link carries neither a
- * token nor the address. A failure never undoes the membership: the caller records it and the
- * member can still sign in from the login page.
+ * Invites a converted member to set their password (owner decision B, ACQ-2b2). The recipient
+ * comes from the committed conversion; the link is the existing password-reset flow on the
+ * member's own tenant host, as for Paddle onboarding. Reset delivery is fire-and-forget inside the
+ * auth hook, so `sent` means the request was accepted. A failure never undoes the membership: the
+ * caller records it, an operator can resend, and the member can use "forgot password".
  */
 export async function sendMemberActivationInvite(params: {
   email: string;
@@ -22,10 +18,10 @@ export async function sendMemberActivationInvite(params: {
   // An unknown tenant never falls back to another tenant's host.
   const tenantId = coerceTenantId(params.tenantId);
   if (!tenantId) return { sent: false, reason: 'unknown_tenant' };
-  const locale = normalizeSignInOtpLocale(preferredLocaleForTenant(tenantId));
-  const signInUrl = new URL(`/${locale}/login`, resolveTenantAppOrigin(tenantId)).toString();
-  const result = await sendMemberActivationEmail(params.email, signInUrl, locale).catch(() => ({
-    success: false as const,
-  }));
-  return result.success ? { sent: true } : { sent: false, reason: 'delivery_failed' };
+  try {
+    await requestPasswordResetOnboarding({ email: params.email, tenantId });
+    return { sent: true };
+  } catch {
+    return { sent: false, reason: 'delivery_failed' };
+  }
 }

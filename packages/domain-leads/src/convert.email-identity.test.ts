@@ -67,7 +67,7 @@ describe('convertLeadToMember email identity', () => {
     });
     const member = harness.insertRecords.find(record => record.table === tableRefs.user);
     expect(member?.values.email).toBe('arben.k@example.com');
-    // The member's own first email-code sign-in verifies the mailbox (ACQ-2b2).
+    // Nobody has proven the mailbox yet; the member sets a password from the invite (ACQ-2b2).
     expect(member?.values.emailVerified).toBe(false);
   });
 
