@@ -141,7 +141,11 @@ async function recordLeadAndTakeCash(
     marker: 'agent-leads-pro',
     markerTimeoutMs: 30_000,
   });
-  await page.getByTestId('new-lead-button').click();
+  // The server-rendered marker can precede hydration; retry until the click opens the form.
+  await expect(async () => {
+    await page.getByTestId('new-lead-button').click();
+    await expect(page.getByTestId('lead-form-firstname')).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
   await page.getByTestId('lead-form-firstname').fill('Attribution');
   await page.getByTestId('lead-form-lastname').fill(label);
   await page.getByTestId('lead-form-email').fill(email);
