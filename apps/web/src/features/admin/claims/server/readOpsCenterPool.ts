@@ -30,7 +30,7 @@ const LIFECYCLE_STATUS_MAP: Record<LifecycleStage, ClaimStatus[]> = {
   intake: ['draft', 'submitted'],
   verification: ['verification'],
   processing: ['evaluation'],
-  negotiation: ['negotiation'],
+  negotiation: ['submitted_to_airline', 'negotiation'],
   legal: ['court'],
   completed: ['resolved', 'rejected'],
 };

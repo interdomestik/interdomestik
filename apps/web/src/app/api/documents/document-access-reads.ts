@@ -71,6 +71,7 @@ export async function readLocalDocumentAccess(
       doc: claimDocuments,
       claimOwnerId: claims.userId,
       claimBranchId: claims.branchId,
+      claimCaseLifecycleState: claims.caseLifecycleState,
       claimStaffId: claims.staffId,
       claimAgentId: claims.agentId,
     })
@@ -87,6 +88,7 @@ export async function readLocalDocumentAccess(
   const canRead = await canReadLegacyClaimDocument({
     claim: {
       branchId: row.claimBranchId ?? null,
+      caseLifecycleState: row.claimCaseLifecycleState ?? null,
       ownerId: row.claimOwnerId ?? null,
       staffId: row.claimStaffId ?? null,
       agentId: row.claimAgentId ?? null,

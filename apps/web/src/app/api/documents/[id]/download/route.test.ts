@@ -63,6 +63,7 @@ function claimDocumentRow({ uploadedBy, claimOwnerId, claimStaffId, name }: Clai
       fileSize: 123,
     },
     claimOwnerId,
+    claimCaseLifecycleState: 'submitted',
     ...(claimStaffId === undefined ? {} : { claimStaffId }),
   };
 }

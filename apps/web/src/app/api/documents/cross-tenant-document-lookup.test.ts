@@ -19,8 +19,9 @@ function selectResult(rows: unknown[], legacy = false) {
   };
 }
 
-function dbWith(polyRows: unknown[], legacyRows: unknown[] = []) {
+function dbWith(polyRows: unknown[], legacyRows: unknown[] = [], lifecycle = 'submitted') {
   const db = { select: vi.fn() };
+  db.select.mockReturnValueOnce(selectResult([{ caseLifecycleState: lifecycle }]));
   db.select.mockReturnValueOnce(selectResult(polyRows));
   db.select.mockReturnValueOnce(selectResult(legacyRows, true));
   return db;
@@ -78,6 +79,19 @@ describe('lookupCrossGrantDoc', () => {
       })
     );
   });
+
+  it.each([['draft'], [null]])(
+    'refuses every document of a %s-lifecycle claim even with a matching grant',
+    async lifecycle => {
+      const doc = { category: 'legal', entityId: 'claim-1', entityType: 'claim', id: 'doc-1' };
+      mocks.hasDurableCaseScopedDocumentGrant.mockResolvedValue(true);
+      const db = dbWith([doc], [], lifecycle as never);
+
+      await expect(lookupCrossGrantDoc({ ...request, db: db as never })).resolves.toBeNull();
+      expect(db.select).toHaveBeenCalledTimes(1);
+      expect(mocks.hasDurableCaseScopedDocumentGrant).not.toHaveBeenCalled();
+    }
+  );
 
   it('returns not found for existing cross-tenant claim documents without a matching grant', async () => {
     const doc = {

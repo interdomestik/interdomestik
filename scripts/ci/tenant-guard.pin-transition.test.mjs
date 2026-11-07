@@ -95,10 +95,20 @@ test('a completed transition admits only the successor kernel', () => {
   }
 });
 
-test('the manifest pins every legacy entry to exactly one reviewed digest', () => {
+// One reviewed digest, or one open transition: every entry a frozen [previous, successor] pair of
+// distinct digests, so an entry can never admit a third kernel or be extended after review.
+test('the manifest pins every legacy entry to one digest or one frozen transition pair', () => {
   assert.deepEqual([...LEGACY_PINS.keys()].sort(), [...LEGACY.keys()].sort());
+  const shapes = new Set();
   for (const [key, pinned] of LEGACY_PINS) {
-    assert.equal(typeof pinned, 'string', `${key}: the transition is complete`);
-    assert.match(pinned, /^[0-9a-f]{64}$/u, key);
+    const digests = [pinned].flat();
+    shapes.add(digests.length);
+    if (typeof pinned !== 'string') {
+      assert.ok(Object.isFrozen(pinned), `${key}: a transition pair is frozen`);
+      assert.equal(digests.length, 2, `${key}: [previous, successor] only`);
+      assert.notEqual(digests[0], digests[1], `${key}: the successor differs`);
+    }
+    for (const digest of digests) assert.match(digest, /^[0-9a-f]{64}$/u, key);
   }
+  assert.equal(shapes.size, 1, 'every entry is in the same transition state');
 });

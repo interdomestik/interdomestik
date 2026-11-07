@@ -8,6 +8,7 @@ import {
   hasScopedClaimReadAccess,
   isFullTenantClaimsRole,
   isScopedClaimReaderRole,
+  isStaffBlockedFromClaim,
 } from './access-policy';
 import { hasAgentClaimDocumentScope } from './agent-document-scope';
 import { hasDurableCaseScopedDocumentGrant } from './durable-case-grants';
@@ -33,6 +34,7 @@ type ClaimDocument = {
 
 type ClaimAccessRow = {
   branchId: string | null;
+  caseLifecycleState: string | null;
   ownerId: string | null;
   staffId: string | null;
   agentId: string | null;
@@ -43,6 +45,7 @@ export async function canReadPolymorphicClaimDocument(args: {
   polyDoc: {
     category?: unknown;
     entityId: string;
+    uploadedBy?: string | null;
   };
   session: SessionDTO;
   tenantId: string;
@@ -53,6 +56,7 @@ export async function canReadPolymorphicClaimDocument(args: {
     .select({
       claimOwnerId: claims.userId,
       claimBranchId: claims.branchId,
+      claimCaseLifecycleState: claims.caseLifecycleState,
       claimStaffId: claims.staffId,
       claimAgentId: claims.agentId,
     })
@@ -61,8 +65,11 @@ export async function canReadPolymorphicClaimDocument(args: {
 
   if (!claimRow) return false;
   if (userRole !== 'agent' && claimRow.claimOwnerId === session.user.id) return true;
+  if (isStaffBlockedFromClaim(userRole, claimRow.claimCaseLifecycleState)) return false;
+  if (userRole === 'staff' && polyDoc.uploadedBy === session.user.id) return true;
   const claim = {
     branchId: claimRow.claimBranchId ?? null,
+    caseLifecycleState: claimRow.claimCaseLifecycleState ?? null,
     ownerId: claimRow.claimOwnerId ?? null,
     staffId: claimRow.claimStaffId ?? null,
     agentId: claimRow.claimAgentId ?? null,
@@ -83,12 +90,10 @@ export async function canReadLegacyClaimDocument(args: {
   const { claim, db, document, session, tenantId, userRole } = args;
 
   if (isFullTenantClaimsRole(userRole)) return true;
-  if (
-    userRole !== 'agent' &&
-    (document.uploadedBy === session.user.id || claim.ownerId === session.user.id)
-  ) {
-    return true;
-  }
+  if (userRole !== 'agent' && claim.ownerId === session.user.id) return true;
+  // Staff have no rights on someone else's draft, not even as its uploader or through a grant.
+  if (isStaffBlockedFromClaim(userRole, claim.caseLifecycleState)) return false;
+  if (userRole !== 'agent' && document.uploadedBy === session.user.id) return true;
 
   if (await hasScopedClaimDocumentAccess({ claim, db, session, tenantId, userRole })) return true;
 
@@ -112,7 +117,12 @@ async function hasScopedClaimDocumentAccess(args: {
     isScopedClaimReaderRole(userRole) &&
     hasScopedClaimReadAccess({
       branchId: session.user.branchId ?? null,
-      claim: { branchId: claim.branchId, staffId: claim.staffId, userId: claim.ownerId },
+      claim: {
+        branchId: claim.branchId,
+        caseLifecycleState: claim.caseLifecycleState,
+        staffId: claim.staffId,
+        userId: claim.ownerId,
+      },
       role: userRole,
       userId: session.user.id,
     })

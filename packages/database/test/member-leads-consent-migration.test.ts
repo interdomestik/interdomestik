@@ -42,31 +42,40 @@ test('ACQ-1b migration backfills existing leads as legacy and leaves new rows wi
 
 test('ACQ-1b migration enforces kind, channel, company and consent rules in the database', async () => {
   const sql = await readMigration();
+  const checkOf = (name: string) =>
+    sql.match(
+      new RegExp(`"${name}" CHECK \\(([\\s\\S]+?)\\);--> statement-breakpoint`, 'u')
+    )?.[1] ?? '';
 
   assert.match(
-    sql,
-    /"member_leads_lead_kind_check" CHECK \([^;]+in \('individual', 'company'\)\)/u
+    checkOf('member_leads_lead_kind_check'),
+    /"lead_kind" in \('individual', 'company'\)/u
   );
   assert.match(
-    sql,
-    /"member_leads_capture_channel_check" CHECK \([^;]+in \('agent_assisted', 'public_form', 'legacy'\)\)/u
+    checkOf('member_leads_company_check'),
+    /"lead_kind" <> 'company' or nullif\(btrim\("member_leads"\."company_name"\), ''\) is not null/u
+  );
+  // The legacy notice version and the legacy channel only ever come together.
+  const channel = checkOf('member_leads_capture_channel_check');
+  assert.match(
+    channel,
+    /case when "member_leads"\."consent_notice_version" = 'pre-consent-legacy' then "member_leads"\."capture_channel" = 'legacy'/u
   );
   assert.match(
-    sql,
-    /"member_leads_company_check" CHECK \([^;]+= 'individual' or nullif\(btrim\("member_leads"\."company_name"\), ''\) is not null\)/u
+    channel,
+    /else "member_leads"\."capture_channel" in \('agent_assisted', 'public_form'\) end/u
   );
-  const consent = sql.match(/"member_leads_consent_check" CHECK \(([\s\S]+?)\);/u)?.[1] ?? '';
-  // A legacy row is only ever the backfill marker, never a new lead with a real notice.
+  // Captured consent has a time and, agent-assisted, the agent; only a legacy row has none.
+  const consent = checkOf('member_leads_consent_check');
   assert.match(
     consent,
-    /"capture_channel" = 'legacy' and "member_leads"\."consent_notice_version" = 'pre-consent-legacy'\)/u
+    /when 'public_form' then "member_leads"\."consent_captured_at" is not null/u
   );
-  assert.match(consent, /"consent_captured_at" is not null/u);
-  assert.match(consent, /"consent_notice_version" <> 'pre-consent-legacy'/u);
   assert.match(
     consent,
-    /"capture_channel" <> 'agent_assisted' or [^)]*"consent_captured_by" is not null/u
+    /when 'agent_assisted' then "member_leads"\."consent_captured_at" is not null and "member_leads"\."consent_captured_by" is not null/u
   );
+  assert.match(consent, /else "member_leads"\."consent_captured_at" is null end/u);
   assert.doesNotMatch(sql, /NOT VALID/u);
   assert.doesNotMatch(sql, /cascade/iu);
 });
@@ -79,12 +88,12 @@ test('ACQ-1b migration reserves the legacy marker for backfilled rows only', asy
   assert.match(guard, /SET search_path = pg_catalog, public/u);
   assert.match(
     guard,
-    /NEW\."capture_channel" = 'legacy'\s+AND \(TG_OP = 'INSERT' OR OLD\."capture_channel" IS DISTINCT FROM 'legacy'\)/u
+    /NEW\."consent_captured_at" IS NULL\s+AND \(TG_OP = 'INSERT' OR OLD\."consent_captured_at" IS NOT NULL\)/u
   );
   assert.match(guard, /RAISE EXCEPTION[\s\S]+ERRCODE = 'check_violation'/u);
   assert.match(
     sql,
-    /CREATE TRIGGER "member_leads_legacy_consent_guard"\s+BEFORE INSERT OR UPDATE OF "capture_channel" ON "member_leads"\s+FOR EACH ROW\s+EXECUTE FUNCTION member_leads_legacy_consent_guard_fn\(\);/u
+    /CREATE TRIGGER "member_leads_legacy_consent_guard"\s+BEFORE INSERT OR UPDATE OF "consent_captured_at" ON "member_leads"\s+FOR EACH ROW\s+EXECUTE FUNCTION member_leads_legacy_consent_guard_fn\(\);/u
   );
   // The trigger is created after the backfill, so only the migrated rows ever carry the marker.
   assert.ok(sql.indexOf('CREATE TRIGGER') > sql.indexOf(`DEFAULT 'legacy' NOT NULL`));
