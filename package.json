@@ -265,7 +265,7 @@
     "@upstash/context7-mcp": "^2.3.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
-    "glob": "^13.0.6",
+    "glob": "^14.0.2",
     "gzip-size": "^7.0.0",
     "hono": "^4.13.8",
     "husky": "^8.0.0",
