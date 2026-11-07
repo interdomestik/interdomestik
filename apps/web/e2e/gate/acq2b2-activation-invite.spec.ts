@@ -127,7 +127,6 @@ test.describe('ACQ-2b2 member activation invite', () => {
         const onResetPage = landed.pathname === resetPath && landed.searchParams.has('token');
         return servedOrigins.includes(landed.origin) && onResetPage;
       });
-      const memberOrigin = new URL(page.url()).origin;
       // A fresh browser meets the cookie notice first; the member declines optional cookies.
       const consentBanner = page.getByTestId('cookie-consent-banner');
       await expect(consentBanner).toBeVisible();
@@ -144,14 +143,20 @@ test.describe('ACQ-2b2 member activation invite', () => {
         await expect(page).toHaveURL(/\/sq\/login(?:\?|$)/u, { timeout: 10_000 });
       }).toPass({ timeout: 40_000 });
 
+      // The member signs in on their tenant host; this lane serves no neutral front door on loopback.
+      await gotoApp(page, '/login', testInfo, { marker: 'domcontentloaded' });
       await interactiveLogin(page, 'sq');
+      if (await consentBanner.isVisible()) {
+        await page.getByTestId('cookie-consent-decline').click();
+        await expect(consentBanner).toHaveCount(0);
+      }
       await page.getByTestId('login-email').fill(owned.email);
       await page.getByTestId('login-password').fill(password);
       await page.getByTestId('login-submit').click();
       const memberHome = new URL(routePath(testInfo, '/member')).pathname;
       await expect(page).toHaveURL(url => {
         const landed = new URL(url);
-        return landed.origin === memberOrigin && landed.pathname.startsWith(memberHome);
+        return landed.origin === tenantOrigin && landed.pathname.startsWith(memberHome);
       });
 
       // The password belongs to the converted account: same user, tenant and role, one mailbox.
