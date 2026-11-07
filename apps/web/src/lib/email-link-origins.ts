@@ -21,9 +21,7 @@ export type EmailLinkOriginFailure =
   | 'invalid_auth_origin'
   | 'production_origin_outside_production'
   | 'invalid_tenant_host'
-  | 'conflicting_tenant_host'
-  | 'auth_origin_mismatch'
-  | 'untrusted_callback';
+  | 'conflicting_tenant_host';
 
 export class EmailLinkOriginError extends Error {
   readonly reason: EmailLinkOriginFailure;
@@ -144,18 +142,4 @@ export function resolveTenantEmailOrigins(tenantId: TenantId): TenantEmailOrigin
   const appOrigin =
     explicit ?? (production ? `https://${canonicalHostForTenant(tenantId)}` : authOrigin);
   return Object.freeze({ authOrigin, appOrigin });
-}
-
-/** The origin Better Auth issues server-side links from: a static base or the dynamic fallback. */
-export function configuredAuthBaseOrigin(baseURL: unknown): string | null {
-  const fallback =
-    typeof baseURL === 'object' && baseURL !== null && 'fallback' in baseURL
-      ? baseURL.fallback
-      : baseURL;
-  if (typeof fallback !== 'string') return null;
-  try {
-    return new URL(fallback).origin;
-  } catch {
-    return null;
-  }
 }

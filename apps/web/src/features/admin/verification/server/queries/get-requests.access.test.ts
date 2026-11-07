@@ -28,13 +28,14 @@ describe('getVerificationRequests access', () => {
   );
 
   it('reads the admin queue tenant-wide through the callback transaction', async () => {
-    const rows = [{ id: 'attempt-1' }];
+    const rows = [{ id: 'attempt-1', memberEmailVerified: null }];
     const { executed } = createRecordingTx([rows]);
 
     const context = ctx('admin', 'branch-1');
     const result = await getVerificationRequests(context, { view: 'queue' });
 
-    expect(result).toBe(rows);
+    // Without the member join the pending flag is false, never the raw column.
+    expect(result).toEqual([{ id: 'attempt-1', memberActivationPending: false }]);
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
     expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toBe(context.authority);
     expect(executed).toHaveLength(1);

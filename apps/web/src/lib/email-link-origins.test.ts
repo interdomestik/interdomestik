@@ -1,9 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  configuredAuthBaseOrigin,
-  EmailLinkOriginError,
-  resolveTenantEmailOrigins,
-} from './email-link-origins';
+import { EmailLinkOriginError, resolveTenantEmailOrigins } from './email-link-origins';
 
 const CLEARED_KEYS = [
   'VERCEL_ENV',
@@ -140,15 +136,5 @@ describe('resolveTenantEmailOrigins', () => {
   it('refuses a loopback tenant host on a production deployment', () => {
     stub({ VERCEL_ENV: 'production', KS_HOST: 'ks.localhost:3000' });
     expect(refusal()).toBe('invalid_tenant_host');
-  });
-});
-
-describe('configuredAuthBaseOrigin', () => {
-  it('reads a static base or the dynamic fallback, and nothing else', () => {
-    expect(configuredAuthBaseOrigin('http://127.0.0.1:3310')).toBe('http://127.0.0.1:3310');
-    expect(configuredAuthBaseOrigin({ allowedHosts: [], fallback: `${STAGING}/x` })).toBe(STAGING);
-    expect(configuredAuthBaseOrigin({ allowedHosts: [] })).toBeNull();
-    expect(configuredAuthBaseOrigin('not a url')).toBeNull();
-    expect(configuredAuthBaseOrigin(undefined)).toBeNull();
   });
 });

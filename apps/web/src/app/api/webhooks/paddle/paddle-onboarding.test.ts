@@ -2,20 +2,10 @@ import { EmailLinkOriginError } from '@/lib/email-link-origins';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { requestPasswordResetOnboarding } from './paddle-onboarding';
 
-const hoisted = vi.hoisted(() => ({
-  requestPasswordReset: vi.fn(),
-  isTrustedOrigin: vi.fn(),
-  baseURL: { current: undefined as unknown },
-}));
+const hoisted = vi.hoisted(() => ({ requestPasswordReset: vi.fn() }));
 
 vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: { requestPasswordReset: hoisted.requestPasswordReset },
-    $context: Promise.resolve({ isTrustedOrigin: hoisted.isTrustedOrigin }),
-    get options() {
-      return { baseURL: hoisted.baseURL.current };
-    },
-  },
+  auth: { api: { requestPasswordReset: hoisted.requestPasswordReset } },
 }));
 
 const STAGING = 'https://staging.example.test';
@@ -41,31 +31,18 @@ describe('requestPasswordResetOnboarding', () => {
     vi.stubEnv('VERCEL_ENV', 'preview');
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('BETTER_AUTH_URL', STAGING);
-    hoisted.baseURL.current = { allowedHosts: ['*.example.test'], fallback: STAGING };
-    hoisted.isTrustedOrigin.mockReturnValue(true);
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it('keeps both halves of a preview reset link on the preview deployment', async () => {
+  it('keeps a preview reset link on the preview deployment', async () => {
     await requestPasswordResetOnboarding({ email: 'member@example.com', tenantId: 'tenant_ks' });
 
-    expect(hoisted.isTrustedOrigin).toHaveBeenCalledWith(`${STAGING}/sq/reset-password`);
     expect(hoisted.requestPasswordReset).toHaveBeenCalledWith({
       body: { email: 'member@example.com', redirectTo: `${STAGING}/sq/reset-password` },
     });
-  });
-
-  it('refuses a callback Better Auth would not trust', async () => {
-    hoisted.isTrustedOrigin.mockReturnValue(false);
-    await expectRefused('untrusted_callback');
-  });
-
-  it('refuses when Better Auth would issue the token from another origin', async () => {
-    hoisted.baseURL.current = 'https://www.interdomestik.com';
-    await expectRefused('auth_origin_mismatch');
   });
 
   it('refuses an unknown tenant', async () => {
@@ -75,5 +52,10 @@ describe('requestPasswordResetOnboarding', () => {
   it('refuses a preview without its own auth origin', async () => {
     vi.stubEnv('BETTER_AUTH_URL', '');
     await expectRefused('missing_auth_origin');
+  });
+
+  it('refuses a preview configured with a production origin', async () => {
+    vi.stubEnv('BETTER_AUTH_URL', 'https://www.interdomestik.com');
+    await expectRefused('production_origin_outside_production');
   });
 });

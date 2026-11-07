@@ -103,9 +103,7 @@ export async function getVerificationRequests(
         // Audit Info
         verificationNote: leadPaymentAttempts.verificationNote,
         verifierName: view === 'history' ? verifier.name : sql<null>`null`,
-        memberActivationPending: showActivation
-          ? sql<boolean>`coalesce(${member.emailVerified} = false, false)`
-          : sql<boolean>`false`,
+        memberEmailVerified: showActivation ? member.emailVerified : sql<null>`null`,
       })
       .from(leadPaymentAttempts)
       .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
@@ -147,6 +145,9 @@ export async function getVerificationRequests(
       .orderBy(...orderBy)
       .limit(limit);
 
-    return rows as CashVerificationRequestDTO[];
+    return rows.map(({ memberEmailVerified, ...row }) => ({
+      ...row,
+      memberActivationPending: memberEmailVerified === false,
+    })) as CashVerificationRequestDTO[];
   });
 }
