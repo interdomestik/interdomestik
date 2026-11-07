@@ -5,6 +5,7 @@ import { inArray, sql } from 'drizzle-orm';
 
 import { user } from '../src/schema';
 import type { TenantTransaction } from '../src/tenant';
+import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
 import {
   KS_TENANT_ID,
   MK_TENANT_ID,
@@ -29,7 +30,16 @@ test('the case-insensitive email index holds across tenants under the restricted
   const { adminDb, fixture } = session;
   const created: string[] = [];
   const suffix = `${Date.now()}`;
+  const role = quoteIdentifier(TEST_DB_ROLE);
   try {
+    // The S8 fixture grants only the claim tables; this proof reads and writes "user" itself.
+    const [posture] = await adminDb.execute<{ rls: boolean; policies: number }>(sql`
+      select c.relrowsecurity as rls,
+        (select count(*)::int from pg_policy p
+          where p.polrelid = c.oid and p.polname = 'tenant_isolation_user') as policies
+      from pg_class c where c.oid = '"user"'::regclass`);
+    assert.deepEqual(posture, { rls: true, policies: 1 }, '"user" is tenant-isolated by RLS');
+    await adminDb.execute(sql.raw(`grant select, insert on table "user" to ${role}`));
     const [{ withTenantAuthority }, { mintTestTenantAuthority }] = await Promise.all([
       import('../src/tenant-authority-context'),
       import('../src/testing/tenant-authority'),
@@ -92,6 +102,7 @@ test('the case-insensitive email index holds across tenants under the restricted
     });
   } finally {
     if (created.length > 0) await adminDb.delete(user).where(inArray(user.id, created));
+    await adminDb.execute(sql.raw(`revoke select, insert on table "user" from ${role}`));
     await session.close();
   }
 });
