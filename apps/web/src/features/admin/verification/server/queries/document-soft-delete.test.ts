@@ -56,7 +56,6 @@ vi.mock('@interdomestik/database/schema', () => ({
     tenantId: 'documents.tenant_id',
     uploadedAt: 'documents.uploaded_at',
   },
-  account: { id: 'account.id', providerId: 'account.provider_id', userId: 'account.user_id' },
   user: { email: 'user.email', id: 'user.id', name: 'user.name' },
 }));
 

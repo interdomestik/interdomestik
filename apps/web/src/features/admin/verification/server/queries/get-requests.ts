@@ -1,4 +1,4 @@
-import { account, branches, documents, user } from '@interdomestik/database/schema';
+import { branches, documents, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aliasedTable, and, asc, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
@@ -59,10 +59,8 @@ export async function getVerificationRequests(
 
   // Verifier Alias for History Join
   const verifier = aliasedTable(user, 'verifier');
-  // History rows of converted members who have neither proven their mailbox nor set a password
-  // from the invite (ACQ-2b2 resend). Better Auth keeps emailVerified false after a reset.
+  // History rows of converted members who have not yet proven their mailbox (ACQ-2b2 resend).
   const member = aliasedTable(user, 'member');
-  const credential = aliasedTable(account, 'member_credential');
   const showActivation = view === 'history' && canResendActivationInvite(userRole);
 
   // Sorting: Queue = FIFO (Oldest First), History = LIFO (Newest First)
@@ -106,7 +104,6 @@ export async function getVerificationRequests(
         verificationNote: leadPaymentAttempts.verificationNote,
         verifierName: view === 'history' ? verifier.name : sql<null>`null`,
         memberEmailVerified: showActivation ? member.emailVerified : sql<null>`null`,
-        memberCredentialId: showActivation ? credential.id : sql<string | null>`null`,
       })
       .from(leadPaymentAttempts)
       .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
@@ -141,10 +138,6 @@ export async function getVerificationRequests(
           eq(member.tenantId, tenantId)
         )
       );
-      queryBuilder = queryBuilder.leftJoin(
-        credential,
-        and(eq(credential.userId, member.id), eq(credential.providerId, 'credential'))
-      );
     }
 
     const rows = await queryBuilder
@@ -152,9 +145,9 @@ export async function getVerificationRequests(
       .orderBy(...orderBy)
       .limit(limit);
 
-    return rows.map(({ memberEmailVerified, memberCredentialId, ...row }) => ({
+    return rows.map(({ memberEmailVerified, ...row }) => ({
       ...row,
-      memberActivationPending: memberEmailVerified === false && !memberCredentialId,
+      memberActivationPending: memberEmailVerified === false,
     })) as CashVerificationRequestDTO[];
   });
 }
