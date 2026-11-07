@@ -382,9 +382,14 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
   and is read-only unless the owner explicitly authorizes a justified change.
 - Canonical routes `/member`, `/agent`, `/staff` and `/admin` must not be renamed or bypassed.
   Contractual `page-ready` and `*-page-ready` markers remain enforced.
-- Supabase Auth remains the identity/session system of record, `better-auth` the orchestrator and
-  `@interdomestik/shared-auth` the provider-agnostic boundary. Tenant/RLS and document lifecycle
-  protections remain mandatory. Authentication must never be bypassed, including in development.
+- Better Auth is the sole identity/session system of record; `@interdomestik/shared-auth` is the
+  enforced provider-agnostic application boundary. Provider clients and derived types remain in
+  declared adapters and reviewed transitional exceptions, with no new escapes. Supabase PostgreSQL
+  supplies persistence, not a second identity/session authority. Shared-auth enforcement is currently
+  partial; the [PD-R5-IAM v1.1 wording amendment](../architecture/amendments/2026-11-07-pd-r5-iam-v1.md)
+  does not deliver enforcement, signing authorization or privileged-authentication controls.
+  Tenant/RLS and document lifecycle protections remain mandatory.
+  Authentication must never be bypassed, including in development.
 - Paddle remains the only V3 pilot billing provider. No routing, auth, tenancy, domain, schema,
   billing or deployment expansion is implied by a green check or planning entry.
 - `README.md`, `AGENTS.md` and architecture documents change only on an explicit owner request.

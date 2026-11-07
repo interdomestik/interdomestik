@@ -160,3 +160,65 @@ test('rejects two concurrent in-progress objectives', () => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /more than one item is in progress/u);
 });
+
+const identityMutations = [
+  [
+    'a different owner',
+    text => text.replace('Better Auth is the sole identity', 'Supabase Auth is the sole identity'),
+  ],
+  ['non-exclusive ownership', text => text.replace('the sole identity', 'an identity')],
+  [
+    'identity without session ownership',
+    text => text.replace(/identity(?: and |\/)session/u, 'identity'),
+  ],
+  [
+    'a missing shared-auth boundary',
+    text => text.replace('@interdomestik/shared-auth', '@interdomestik/legacy-auth'),
+  ],
+  [
+    'unenforced provider separation',
+    text =>
+      text.replace(
+        'enforced provider-agnostic application boundary',
+        'not enforced provider-agnostic application boundary'
+      ),
+  ],
+  [
+    'provider-specific coupling',
+    text =>
+      text.replace(
+        'provider-agnostic application boundary',
+        'provider-specific application boundary'
+      ),
+  ],
+];
+
+for (const repoPath of ['AGENTS.md', 'docs/plans/current-program.md']) {
+  for (const [label, mutate] of identityMutations) {
+    test(`rejects ${label} in ${repoPath} independently`, () => {
+      const root = fixture();
+      const target = join(root, repoPath);
+      const original = readFileSync(target, 'utf8');
+      const altered = mutate(original);
+      assert.notEqual(altered, original, 'fixture mutation must change the authority');
+      writeFileSync(target, altered);
+      const result = run(root);
+      assert.equal(result.status, 1);
+      assert.ok(
+        result.stderr.includes(`${repoPath}: missing identity ownership and provider boundary`)
+      );
+    });
+  }
+
+  test(`rejects authentication bypass in ${repoPath} independently`, () => {
+    const root = fixture();
+    const target = join(root, repoPath);
+    const original = readFileSync(target, 'utf8');
+    const altered = original.replace('never be bypassed', 'be bypassed');
+    assert.notEqual(altered, original, 'fixture mutation must change the authority');
+    writeFileSync(target, altered);
+    const result = run(root);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes(`${repoPath}: missing no auth bypass`));
+  });
+}
