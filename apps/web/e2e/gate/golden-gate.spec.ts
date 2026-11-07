@@ -91,8 +91,8 @@ test.describe('Golden Gate: Critical Path', () => {
       // Navigate to claims list
       await gotoApp(page, routes.memberClaims(testInfo), testInfo, { marker: 'page-title' });
 
-      // Verify page loaded
-      await expect(page.getByTestId('page-title')).toBeVisible();
+      // The router can keep a hidden copy of a revisited page, so the title is read where visible.
+      await expect(page.getByTestId('page-title').filter({ visible: true })).toBeVisible();
     });
   });
 

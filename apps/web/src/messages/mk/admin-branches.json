@@ -66,6 +66,7 @@
       "sort_open_claims_desc": "Отворени штети (Високо-Ниско)",
       "sort_cash_pending_desc": "Готовина во чекање (Високо-Ниско)",
       "sort_sla_breaches_desc": "SLA Прекршувања (Високо-Ниско)",
+      "sort_health_score_asc": "Здравје (Најлошо прво)",
       "dashboard": {
         "back_to_branches": "Назад кон филијали",
         "status_active": "Активно",
