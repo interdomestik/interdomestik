@@ -6,14 +6,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   convertLeadToMember: vi.fn(),
   hasTenantLeadForConversion: vi.fn(),
-  recordAuditEvent: vi.fn(),
+  recordPaddleLeadEmailConflict: vi.fn(),
 }));
 
 vi.mock('@interdomestik/domain-leads', () => ({
   convertLeadToMember: hoisted.convertLeadToMember,
   hasTenantLeadForConversion: hoisted.hasTenantLeadForConversion,
+  recordPaddleLeadEmailConflict: hoisted.recordPaddleLeadEmailConflict,
 }));
-vi.mock('@/lib/audit.core', () => ({ logAuditEvent: hoisted.recordAuditEvent }));
 
 import { reconcilePaddleLeadConversion } from './paddle-lead-conversion';
 
@@ -32,36 +32,33 @@ describe('reconcilePaddleLeadConversion email conflict', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.hasTenantLeadForConversion.mockResolvedValue(true);
-    hoisted.recordAuditEvent.mockResolvedValue(undefined);
+    hoisted.recordPaddleLeadEmailConflict.mockResolvedValue(undefined);
   });
 
   it('records the conflict without the email and completes', async () => {
     hoisted.convertLeadToMember.mockRejectedValue(new MemberEmailConflictError());
 
     await expect(reconcile()).resolves.toBeUndefined();
-    expect(hoisted.recordAuditEvent).toHaveBeenCalledWith({
-      authority,
-      actorRole: 'system',
-      action: 'PADDLE_LEAD_CONVERSION_EMAIL_CONFLICT',
-      entityType: 'member_lead',
-      entityId: 'lead_1',
-      metadata: { disposition: 'member_email_conflict', reconciliation: 'operator' },
+    expect(hoisted.recordPaddleLeadEmailConflict).toHaveBeenCalledWith(authority, {
+      leadId: 'lead_1',
     });
   });
 
   it('retries the delivery when the conflict cannot be recorded', async () => {
     hoisted.convertLeadToMember.mockRejectedValue(new MemberEmailConflictError());
-    hoisted.recordAuditEvent.mockRejectedValue(new Error('audit down'));
+    hoisted.recordPaddleLeadEmailConflict.mockRejectedValue(new Error('audit down'));
 
     const failure = await reconcile().catch(error => error);
     expect(isRetryablePaddleWebhookError(failure)).toBe(true);
   });
 
-  it('keeps any other conversion failure as it was', async () => {
+  it('retries the delivery on any other conversion failure', async () => {
     const error = new Error('db down');
     hoisted.convertLeadToMember.mockRejectedValue(error);
 
-    await expect(reconcile()).rejects.toBe(error);
-    expect(hoisted.recordAuditEvent).not.toHaveBeenCalled();
+    const failure = await reconcile().catch(caught => caught);
+    expect(isRetryablePaddleWebhookError(failure)).toBe(true);
+    expect((failure as Error).cause).toBe(error);
+    expect(hoisted.recordPaddleLeadEmailConflict).not.toHaveBeenCalled();
   });
 });

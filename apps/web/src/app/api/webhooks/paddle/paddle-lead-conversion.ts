@@ -2,7 +2,6 @@ import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
-import { logAuditEvent as recordAuditEvent } from '@/lib/audit.core';
 import { sendMemberActivationInvite } from '@/lib/member-activation-invite';
 import { isMemberEmailConflictError } from '@interdomestik/domain-leads/member-email-conflict';
 import { RetryablePaddleWebhookError } from '@interdomestik/domain-membership-billing/paddle-webhooks';
@@ -56,7 +55,7 @@ export async function reconcilePaddleLeadConversion(params: {
     return;
   }
 
-  const { convertLeadToMember, hasTenantLeadForConversion } =
+  const { convertLeadToMember, hasTenantLeadForConversion, recordPaddleLeadEmailConflict } =
     await import('@interdomestik/domain-leads');
 
   const leadBelongsToTenant = await hasTenantLeadForConversion(authority, { leadId });
@@ -66,8 +65,17 @@ export async function reconcilePaddleLeadConversion(params: {
   try {
     converted = await convertLeadToMember(authority, { leadId });
   } catch (error) {
-    if (!isMemberEmailConflictError(error)) throw error;
-    await recordLeadEmailConflict(authority, leadId);
+    // The conversion is one transaction and replay-safe, so any other failure left nothing behind
+    // and redelivery may retry it.
+    if (!isMemberEmailConflictError(error)) {
+      throw new RetryablePaddleWebhookError('Lead conversion failed', { cause: error });
+    }
+    // A collision is deterministic, so redelivery cannot heal it: the paid lead is recorded for
+    // an operator and the webhook is acknowledged. Nothing is attached, reassigned or invited.
+    // Only a failure to record it is retried.
+    await recordPaddleLeadEmailConflict(authority, { leadId }).catch(cause => {
+      throw new RetryablePaddleWebhookError('Lead email conflict could not be recorded', { cause });
+    });
     return;
   }
   // A redelivered event finds the lead converted (no result) and sends nothing twice. A failed
@@ -79,23 +87,5 @@ export async function reconcilePaddleLeadConversion(params: {
       userId: converted.userId,
       reason: invite.reason,
     });
-  }
-}
-
-// A collision is deterministic, so redelivery cannot heal it: the paid lead is recorded for an
-// operator and the webhook is acknowledged. Nothing is attached, reassigned or invited. Only a
-// failure to record it is retried.
-async function recordLeadEmailConflict(authority: TenantAuthority, leadId: string): Promise<void> {
-  try {
-    await recordAuditEvent({
-      authority,
-      actorRole: 'system',
-      action: 'PADDLE_LEAD_CONVERSION_EMAIL_CONFLICT',
-      entityType: 'member_lead',
-      entityId: leadId,
-      metadata: { disposition: 'member_email_conflict', reconciliation: 'operator' },
-    });
-  } catch (cause) {
-    throw new RetryablePaddleWebhookError('Lead email conflict could not be recorded', { cause });
   }
 }

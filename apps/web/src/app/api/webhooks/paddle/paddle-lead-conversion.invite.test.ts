@@ -10,8 +10,8 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('@interdomestik/domain-leads', () => ({
   convertLeadToMember: hoisted.convertLeadToMember,
   hasTenantLeadForConversion: hoisted.hasTenantLeadForConversion,
+  recordPaddleLeadEmailConflict: vi.fn(),
 }));
-vi.mock('@/lib/audit.core', () => ({ logAuditEvent: vi.fn() }));
 vi.mock('@/lib/member-activation-invite', () => ({
   sendMemberActivationInvite: hoisted.sendMemberActivationInvite,
 }));

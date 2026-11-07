@@ -11,7 +11,7 @@ test('ACQ-2b1 migration refuses existing case-folded duplicates before the globa
   const sql = await read('drizzle/0098_user_email_lower_unique.sql');
   const check = sql.indexOf('GROUP BY lower(btrim("email")) HAVING count(*) > 1');
   const index = sql.indexOf(
-    'CREATE UNIQUE INDEX "user_email_lower_unique" ON "user" USING btree (lower("email"));'
+    'CREATE UNIQUE INDEX "user_email_lower_unique" ON "user" USING btree (lower(btrim("email")));'
   );
   assert.ok(check > 0, 'duplicate pre-check');
   assert.ok(index > check, 'the index is created only after the pre-check');
