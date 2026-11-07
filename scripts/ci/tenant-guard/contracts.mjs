@@ -92,6 +92,19 @@ export const CONTRACTS = deepFreeze([
       'Pre-tenant account recovery: share-row-exclusive lock on the user table to serialize the email replacement proof check; fixed SQL, no connection-control.',
   },
   {
+    // ACQ-2c successor (Plan070 with Codex): the same lock; a committed change also deletes
+    // that user's outstanding reset tokens in its transaction. The entry above stays until main
+    // carries this postimage (one open transition per unit, see rules-report.mjs).
+    file: 'apps/web/src/lib/auth/different-email-recovery-store.ts',
+    unit: 'confirmReplacementProof',
+    kinds: {
+      execute: 1,
+    },
+    sha256: 'a0a6b15ae60af7aaa66f1bdefed54a6b3c1136351dc77692f7abf40bfcba63b5',
+    reason:
+      "Pre-tenant account recovery: share-row-exclusive lock on the user table to serialize the email replacement proof check; fixed SQL, no connection-control. ACQ-2c: the committed change deletes only that user's reset-password tokens in the same transaction.",
+  },
+  {
     file: 'apps/web/src/lib/auth/schema.ts',
     unit: 'databaseAdapter',
     kinds: {

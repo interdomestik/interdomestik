@@ -176,15 +176,22 @@ export function installSinks(ctx) {
   }
 
   // ---- contracts (C3 and connection control) -----------------------------------------------
+  // A unit may carry one open transition: the reviewed predecessor and its successor postimage.
   const contractUse = new Map();
+  const contractDigests = new Map(); // `${file}#${unit}` -> measured digest of a contracted unit
   function covered(fact, node, kind) {
     const unit = unitOf(node);
     const name = unitName(unit, fact.sourceFile);
-    const contract = contracts.find(entry => entry.file === fact.file && entry.unit === name);
+    const unitKey = `${fact.file}#${name}`;
+    if (!contracts.some(entry => entry.file === fact.file && entry.unit === name)) return false;
+    if (!contractDigests.has(unitKey))
+      contractDigests.set(unitKey, sha256(fingerprint(unit, fact.sourceFile)));
+    const digest = contractDigests.get(unitKey);
+    const contract = contracts.find(
+      entry => entry.file === fact.file && entry.unit === name && entry.sha256 === digest
+    );
     if (!contract || !(kind in contract.kinds)) return false;
-    const digest = sha256(fingerprint(unit, fact.sourceFile));
-    if (contract.sha256 !== digest) return false;
-    const key = `${fact.file}#${name}#${kind}`;
+    const key = `${unitKey}#${digest}#${kind}`;
     contractUse.set(key, (contractUse.get(key) ?? 0) + 1);
     return contractUse.get(key) <= contract.kinds[kind];
   }
@@ -240,6 +247,7 @@ export function installSinks(ctx) {
   Object.assign(ctx, {
     builderProjection,
     connectionControlUnits,
+    contractDigests,
     contractUse,
     covered,
     legacyOps,

@@ -74,11 +74,33 @@ function reportPins(ctx) {
   }
 }
 
-// Unused or over-broad contracts are reported so the manifest cannot silently widen.
-function reportContracts({ contractUse, contracts, violations }) {
+// Unused or over-broad contracts are reported so the manifest cannot silently widen. During an
+// open transition (at most two entries for one unit) the entry whose postimage the source does not
+// carry is excused only while its sibling matches the measured unit and is fully used.
+function reportContracts({ contractDigests, contractUse, contracts, violations }) {
+  const unitKey = contract => `${contract.file}#${contract.unit}`;
+  const usedOf = (contract, kind) =>
+    contractUse.get(`${unitKey(contract)}#${contract.sha256}#${kind}`) ?? 0;
   for (const contract of contracts) {
+    const siblings = contracts.filter(other => unitKey(other) === unitKey(contract));
+    const measured = contractDigests.get(unitKey(contract));
+    const carried = siblings.find(other => other !== contract && other.sha256 === measured);
+    if (siblings.length > 2 || siblings.some(o => o !== contract && o.sha256 === contract.sha256))
+      violations.push({
+        rule: 'contract',
+        file: contract.file,
+        line: 0,
+        unit: contract.unit,
+        detail: 'a unit admits one predecessor and one distinct successor at most',
+      });
+    else if (
+      carried &&
+      contract.sha256 !== measured &&
+      Object.entries(carried.kinds).every(([kind, count]) => usedOf(carried, kind) === count)
+    )
+      continue;
     for (const [kind, count] of Object.entries(contract.kinds)) {
-      const used = contractUse.get(`${contract.file}#${contract.unit}#${kind}`) ?? 0;
+      const used = usedOf(contract, kind);
       if (used === count) continue;
       violations.push({
         rule: 'contract',
