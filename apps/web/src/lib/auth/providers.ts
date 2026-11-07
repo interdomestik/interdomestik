@@ -1,6 +1,7 @@
 import { compare, hash } from 'bcryptjs';
 import { emailOTP } from 'better-auth/plugins/email-otp';
 import { after } from 'next/server';
+import { resetCompletionPlugin } from './reset-completion';
 import { getGitHubSocialProvider } from './social-providers';
 
 type GitHubOAuthEnv = {
@@ -83,6 +84,7 @@ export function buildAuthProviders(env: GitHubOAuthEnv = process.env as GitHubOA
         resendStrategy: 'rotate',
         disableSignUp: false,
       }),
+      resetCompletionPlugin(),
     ],
     ...(githubProvider
       ? {

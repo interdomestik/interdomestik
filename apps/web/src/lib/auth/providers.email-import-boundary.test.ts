@@ -65,7 +65,7 @@ describe('email module import boundary', () => {
 
   it('does not evaluate email during provider setup or registration, then evaluates during delivery', async () => {
     const configured = await providers();
-    expect(configured.plugins).toHaveLength(1);
+    expect(configured.plugins).toHaveLength(2);
     expect(mocks.evaluated).not.toHaveBeenCalled();
     const request = new Request('https://ida.test/api/auth/email-otp', {
       headers: { 'x-interdomestik-locale': 'en' },

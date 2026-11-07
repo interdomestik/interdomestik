@@ -19,6 +19,7 @@ import {
   requestReset,
   resetAuth,
   resetWith,
+  resetWithQuery,
   sessionUser,
   signIn,
   tokenFrom,
@@ -102,6 +103,22 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       expect(await sessionUser(auth, await signedIn(auth, owner.email, NEW_PASSWORD))).toBe(
         owner.id
       );
+    });
+
+    it.each([
+      ['a query-only token', undefined],
+      ['a blank body token beside the query token', ''],
+    ])('%s verifies the mailbox and ends the sessions', async (_label, bodyToken) => {
+      const auth = resetAuth();
+      const owner = await credentialOwner(`query-${bodyToken === undefined ? 'only' : 'blank'}`);
+      const before = await signedIn(auth, owner.email);
+      await recoverySql`update "user" set "emailVerified" = false where "id" = ${owner.id}`;
+
+      const token = await mailedToken(auth, owner.email);
+      expect((await resetWithQuery(auth, token, bodyToken)).status).toBe(200);
+
+      expect(await emailVerified(owner.id)).toBe(true);
+      expect(await sessionUser(auth, before)).toBeNull();
     });
 
     it('consume wins: a token consumed before an email change commits still completes', async () => {

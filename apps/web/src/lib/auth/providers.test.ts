@@ -40,7 +40,7 @@ describe('authProviders email OTP plugin', () => {
   };
 
   it('registers the email OTP plugin', () => {
-    expect(authProviders.plugins).toHaveLength(1);
+    expect(authProviders.plugins).toHaveLength(2);
     expect(mocks.emailOTP).toHaveBeenCalledTimes(1);
     expect(otpPlugin).toBeDefined();
   });

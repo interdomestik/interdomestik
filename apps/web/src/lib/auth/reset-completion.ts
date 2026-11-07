@@ -1,3 +1,4 @@
+import type { BetterAuthPlugin } from 'better-auth';
 import { createAuthMiddleware } from 'better-auth/api';
 
 /**
@@ -6,16 +7,27 @@ import { createAuthMiddleware } from 'better-auth/api';
  * replayed resets never reach this point with a successful result. A verification failure never
  * changes the completed reset; it is logged without content.
  */
-export const resetCompletion = createAuthMiddleware(async ctx => {
-  if (ctx.path !== '/reset-password') return;
-  const returned = ctx.context.returned as { status?: unknown } | undefined;
-  if (returned?.status !== true || returned instanceof Error) return;
-  const token: unknown = ctx.body?.token ?? ctx.query?.token;
-  if (typeof token !== 'string' || token.length === 0) return;
-  try {
-    const { verifyResetMailbox } = await import('./different-email-recovery-store');
-    await verifyResetMailbox(token);
-  } catch {
-    console.error('[auth][reset] mailbox_verification_failed');
-  }
-});
+export function resetCompletionPlugin(): BetterAuthPlugin {
+  return {
+    id: 'ida-reset-completion',
+    hooks: {
+      after: [
+        {
+          matcher: ctx => ctx.path === '/reset-password',
+          handler: createAuthMiddleware(async ctx => {
+            const returned = ctx.context.returned as { status?: unknown } | undefined;
+            if (returned?.status !== true || returned instanceof Error) return;
+            const token: unknown = ctx.body?.token || ctx.query?.token;
+            if (typeof token !== 'string' || token.length === 0) return;
+            try {
+              const { verifyResetMailbox } = await import('./different-email-recovery-store');
+              await verifyResetMailbox(token);
+            } catch {
+              console.error('[auth][reset] mailbox_verification_failed');
+            }
+          }),
+        },
+      ],
+    },
+  };
+}

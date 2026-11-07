@@ -6,10 +6,13 @@ vi.mock('better-auth/api', () => ({
 }));
 vi.mock('./different-email-recovery-store', () => ({ verifyResetMailbox: mocks.verify }));
 
-import { resetCompletion } from './reset-completion';
+import { resetCompletionPlugin } from './reset-completion';
 
 type Ctx = { path: string; body?: unknown; query?: unknown; context: { returned?: unknown } };
-const run = resetCompletion as unknown as (ctx: Ctx) => Promise<void>;
+const plugin = resetCompletionPlugin();
+const [hook] = plugin.hooks?.after ?? [];
+const run = hook.handler as unknown as (ctx: Ctx) => Promise<void>;
+const matches = hook.matcher as unknown as (ctx: Ctx) => boolean;
 const done = (overrides: Partial<Ctx> = {}): Ctx => ({
   path: '/reset-password',
   body: { token: 'token-1', newPassword: 'x' },
@@ -17,10 +20,18 @@ const done = (overrides: Partial<Ctx> = {}): Ctx => ({
   ...overrides,
 });
 
-describe('resetCompletion (ACQ-2c)', () => {
+describe('resetCompletionPlugin (ACQ-2c)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.verify.mockResolvedValue(undefined);
+  });
+
+  it('runs one after hook, only for the reset endpoint', () => {
+    expect(plugin.id).toBe('ida-reset-completion');
+    expect(plugin.hooks?.after).toHaveLength(1);
+    expect(plugin.hooks?.before).toBeUndefined();
+    expect(matches(done())).toBe(true);
+    expect(matches(done({ path: '/request-password-reset' }))).toBe(false);
   });
 
   it('verifies the mailbox bound to a completed reset token', async () => {
@@ -29,7 +40,6 @@ describe('resetCompletion (ACQ-2c)', () => {
   });
 
   it.each([
-    ['another endpoint', done({ path: '/request-password-reset' })],
     ['a refused reset', done({ context: { returned: new Error('INVALID_TOKEN') } })],
     ['an unsuccessful result', done({ context: { returned: { status: false } } })],
     ['a missing token', done({ body: { newPassword: 'x' } })],

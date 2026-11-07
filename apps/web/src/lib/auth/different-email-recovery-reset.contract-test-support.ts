@@ -16,7 +16,6 @@ import {
 } from './different-email-recovery-store.contract-test-support';
 import { databaseHooks } from './hooks';
 import { authProviders } from './providers';
-import { resetCompletion } from './reset-completion';
 import { userSchemaConfig } from './schema';
 
 /**
@@ -50,7 +49,8 @@ export function resetAuth() {
       },
     }),
     user: userSchemaConfig,
-    hooks: { before: authRequestAuthority, after: resetCompletion },
+    hooks: { before: authRequestAuthority },
+    plugins: authProviders.plugins,
     databaseHooks: {
       ...databaseHooks,
       verification: {
@@ -77,9 +77,9 @@ export function resetAuth() {
 }
 type ResetAuth = ReturnType<typeof resetAuth>;
 
-function post(auth: ResetAuth, path: string, body: Record<string, unknown>) {
+function post(auth: ResetAuth, path: string, body: Record<string, unknown>, query = '') {
   return auth.handler(
-    new Request(`http://localhost:3000/api/auth/${path}`, {
+    new Request(`http://localhost:3000/api/auth/${path}${query}`, {
       method: 'POST',
       headers: {
         host: 'ida.localhost:3000',
@@ -97,6 +97,13 @@ export function requestReset(auth: ResetAuth, email: string) {
 
 export function resetWith(auth: ResetAuth, token: string, newPassword = NEW_PASSWORD) {
   return post(auth, 'reset-password', { token, newPassword });
+}
+
+/** A reset whose token travels in the query; `bodyToken` adds a (blank) body token beside it. */
+export function resetWithQuery(auth: ResetAuth, token: string, bodyToken?: string) {
+  const body = bodyToken === undefined ? {} : { token: bodyToken };
+  const query = `?token=${encodeURIComponent(token)}`;
+  return post(auth, 'reset-password', { ...body, newPassword: NEW_PASSWORD }, query);
 }
 
 /** The session cookie of a fresh sign-in, or null when the credentials are refused. */
