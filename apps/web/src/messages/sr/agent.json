@@ -217,9 +217,6 @@
       "message_alert": "Nova poruka ({count})",
       "no_users": "Nema pronađenih članova."
     },
-    "crm": "Pregled CRM-a",
-    "leads": "Potencijalni klijenti",
-    "deals": "Dogovori",
     "crm_dashboard": {
       "title": "Pregled prodaje",
       "subtitle": "Pratite svoj učinak i prodajni tok.",
