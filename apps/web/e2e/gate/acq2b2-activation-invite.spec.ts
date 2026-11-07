@@ -10,7 +10,9 @@ import {
   verification,
 } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';
+import { canonicalHostForTenant } from '@/lib/tenant/tenant-host-aliases';
 import { expect, test } from '../fixtures/auth.fixture';
+import { path as routePath } from '../fixtures/routes';
 import { gotoApp } from '../utils/navigation';
 import {
   insertOwnedMemberLead,
@@ -113,14 +115,25 @@ test.describe('ACQ-2b2 member activation invite', () => {
       await expect.poll(() => convertedMemberId(owned.id)).not.toBeNull();
       memberId = await convertedMemberId(owned.id);
 
-      // The member opens the emailed link in their own browser: it lands on the tenant reset page.
+      // The emailed link carries one reset token and returns the member to their own tenant's
+      // reset page: its canonical host on a production-mode server unless a host override is set.
       const link = await waitForActivationLink(owned.email, seen);
+      const token = /^\/api\/auth\/reset-password\/([^/]+)$/u.exec(link.pathname)?.[1];
+      expect(token, 'the link carries one reset token').toBeTruthy();
+      const callbackURL = link.searchParams.get('callbackURL');
+      expect(callbackURL, 'the link names where the member returns').toBeTruthy();
+      const callback = new URL(callbackURL!);
+      const resetPage = new URL(routePath(testInfo, '/reset-password'));
+      expect(callback.pathname).toBe(resetPage.pathname);
+      expect([canonicalHostForTenant('tenant_ks'), new URL(tenantOrigin).host]).toContain(
+        callback.host
+      );
+      // No canonical host is served here, so the member continues on the local tenant host.
       const page = await context.newPage();
-      await gotoApp(page, link, testInfo, { baseURL: link.origin, marker: 'domcontentloaded' });
-      await expect(page).toHaveURL(url => {
-        const landed = new URL(url);
-        const onResetPage = landed.pathname === '/sq/reset-password';
-        return landed.origin === tenantOrigin && onResetPage && landed.searchParams.has('token');
+      resetPage.searchParams.set('token', token!);
+      await gotoApp(page, resetPage, testInfo, {
+        baseURL: tenantOrigin,
+        marker: 'domcontentloaded',
       });
 
       const password = `Activ8-${randomUUID()}`;
@@ -137,9 +150,10 @@ test.describe('ACQ-2b2 member activation invite', () => {
       await page.getByTestId('login-email').fill(owned.email);
       await page.getByTestId('login-password').fill(password);
       await page.getByTestId('login-submit').click();
+      const memberHome = new URL(routePath(testInfo, '/member')).pathname;
       await expect(page).toHaveURL(url => {
         const landed = new URL(url);
-        return landed.origin === tenantOrigin && landed.pathname.startsWith('/sq/member');
+        return landed.origin === tenantOrigin && landed.pathname.startsWith(memberHome);
       });
 
       // The password belongs to the converted account: same user, tenant and role, one mailbox.
