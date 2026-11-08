@@ -10,14 +10,11 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import {
-  renderSponsorMail,
-  type SponsorMailInput,
-} from '@interdomestik/domain-communications/sponsor-mail';
 
 import { deriveEntryIntervals, entryEnd } from '../sponsor-coverage/evaluate';
 import { parseTimestamp, readPersonCoverage } from '../sponsor-coverage/resolve';
 import { checkSponsorMail, type SponsorMailCheck } from './mail-checks';
+import type { SponsorMailInput } from './mail-input';
 import {
   claimDueMail,
   finishMail,
@@ -40,10 +37,7 @@ export type SponsorMailDeps = {
   appUrl: string;
   supportEmail: string;
   hasCredential(userId: string): Promise<boolean>;
-  sendEmail(
-    to: string,
-    template: { subject: string; html: string; text: string }
-  ): Promise<SendResult>;
+  sendMail(to: string, input: SponsorMailInput): Promise<SendResult>;
   sendActivation(email: string): Promise<SendResult>;
 };
 export type PreparedMail = {
@@ -176,7 +170,7 @@ export async function deliverSponsorMail(
     const result =
       mail.kind === 'activation'
         ? await deps.sendActivation(mail.recipient)
-        : await deps.sendEmail(mail.recipient, renderSponsorMail(sponsorMailInput(mail, deps)));
+        : await deps.sendMail(mail.recipient, sponsorMailInput(mail, deps));
     // There is no durable success counter. §brief fallback: finish activation after one success.
     return result.ok ? { state: 'sent' } : { state: 'error', code: 'send_failed' };
   } catch {

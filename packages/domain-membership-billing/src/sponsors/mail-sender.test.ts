@@ -75,7 +75,7 @@ function deps(): SponsorMailDeps {
     supportEmail: 'help@example.test',
     formatDate: (date: Date): string => date.toISOString(),
     hasCredential: vi.fn(async () => false),
-    sendEmail: vi.fn(async () => ({ ok: true })),
+    sendMail: vi.fn(async () => ({ ok: true })),
     sendActivation: vi.fn(async () => ({ ok: true })),
   };
 }
@@ -145,7 +145,7 @@ describe('mail lease and completion', () => {
 });
 
 describe('mail delivery', () => {
-  it('renders controller, dates and derived opt-out URL using the tenant origin', async () => {
+  it('passes controller, dates and derived opt-out URL using the tenant origin', async () => {
     const d = deps();
     expect(sponsorMailInput(mail(), d)).toMatchObject({
       entityName: 'Controller',
@@ -154,12 +154,15 @@ describe('mail delivery', () => {
       loginUrl: 'https://tenant.example/en/login',
     });
     expect(await deliverSponsorMail(mail(), d)).toEqual({ state: 'sent' });
-    expect(d.sendEmail).toHaveBeenCalledWith(
+    expect(d.sendMail).toHaveBeenCalledWith(
       'current@example.test',
       expect.objectContaining({
-        subject: expect.any(String),
-        html: expect.stringContaining('Controller'),
-        text: expect.stringContaining('Company'),
+        kind: 'sponsor_notice',
+        entityName: 'Controller',
+        companyName: 'Company',
+        startDate: now.toISOString(),
+        optOutUrl: `https://tenant.example/sponsor/opt-out/${optOutToken(d.secret, 'e1')}`,
+        loginUrl: 'https://tenant.example/en/login',
       })
     );
   });
@@ -168,7 +171,7 @@ describe('mail delivery', () => {
     const d = deps();
     expect(await deliverSponsorMail(mail({ kind: 'activation' }), d)).toEqual({ state: 'sent' });
     expect(d.sendActivation).toHaveBeenCalledWith('current@example.test');
-    expect(d.sendEmail).not.toHaveBeenCalled();
+    expect(d.sendMail).not.toHaveBeenCalled();
     expect(() => sponsorMailInput(mail({ kind: 'activation' }), d)).toThrow(
       'activation_requires_auth_helper'
     );
@@ -183,10 +186,10 @@ describe('mail delivery', () => {
       state: 'skipped',
       reason: 'recipient_missing',
     });
-    expect(d.sendEmail).not.toHaveBeenCalled();
-    d.sendEmail = vi.fn(async () => ({ ok: false, code: 'private@example.test token=secret' }));
+    expect(d.sendMail).not.toHaveBeenCalled();
+    d.sendMail = vi.fn(async () => ({ ok: false, code: 'private@example.test token=secret' }));
     expect(await deliverSponsorMail(mail(), d)).toEqual({ state: 'error', code: 'send_failed' });
-    d.sendEmail = vi.fn(async () => {
+    d.sendMail = vi.fn(async () => {
       throw new Error('private@example.test');
     });
     expect(await deliverSponsorMail(mail(), d)).toEqual({ state: 'error', code: 'send_exception' });
@@ -220,7 +223,7 @@ describe('mail delivery', () => {
         []
       );
       const d = deps();
-      d.sendEmail = vi.fn(async () => {
+      d.sendMail = vi.fn(async () => {
         expect(fake.inTransaction).toBe(false);
         expect(fake.writes).toHaveLength(1);
         return { ok: true };
@@ -229,11 +232,11 @@ describe('mail delivery', () => {
         claimed: 2,
         outcomes: { [exists ? 'sent' : 'skipped']: 1, lease_lost: 1 },
       });
-      expect(d.sendEmail).toHaveBeenCalledTimes(exists ? 1 : 0);
+      expect(d.sendMail).toHaveBeenCalledTimes(exists ? 1 : 0);
       if (exists)
-        expect(d.sendEmail).toHaveBeenCalledWith(
+        expect(d.sendMail).toHaveBeenCalledWith(
           'current@example.test',
-          expect.objectContaining({ subject: expect.any(String) })
+          expect.objectContaining({ kind: row.kind })
         );
       expect(
         sqlQueries().some(query => query.params.includes('u1') && query.params.includes('tenant-1'))

@@ -6,6 +6,7 @@ import {
 } from '@/lib/tenant/tenant-hosts';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { sendEmail } from '@interdomestik/domain-communications/email';
+import { renderSponsorMail } from '@interdomestik/domain-communications/sponsor-mail';
 import type { SponsorMailDeps } from '@interdomestik/domain-membership-billing/sponsors/mail-sender';
 import { readSponsorRosterSecret } from '@interdomestik/domain-membership-billing/sponsors/roster-crypto';
 import { sponsorCredentialCheck } from '@interdomestik/domain-membership-billing/sponsors/sponsor-jobs';
@@ -34,8 +35,8 @@ export function sponsorMailDeps(
     appUrl: resolveTenantAppOrigin(tenant),
     supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() || DEFAULT_SUPPORT_EMAIL,
     hasCredential: sponsorCredentialCheck(authority),
-    sendEmail: async (to, template) => {
-      const result = await sendEmail(to, template);
+    sendMail: async (to, input) => {
+      const result = await sendEmail(to, renderSponsorMail(input));
       return result.success ? { ok: true } : { ok: false, code: 'send_failed' };
     },
     sendActivation: async email => {

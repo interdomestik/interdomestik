@@ -798,9 +798,6 @@ importers:
       '@interdomestik/database':
         specifier: workspace:*
         version: link:../database
-      '@interdomestik/domain-communications':
-        specifier: workspace:*
-        version: link:../domain-communications
       '@interdomestik/domain-referrals':
         specifier: workspace:*
         version: link:../domain-referrals
