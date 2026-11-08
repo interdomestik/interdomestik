@@ -1,7 +1,9 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
+import { contractScratch } from './contract-test-scratch.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const CONTRACT_DIR = 'scripts/ci';
@@ -113,29 +115,114 @@ function runShard(root, name, files, { capture, skipArgs = [] }) {
   // A shard is always its own top-level test runner, even when launched from inside one.
   const env = { ...process.env };
   delete env.NODE_TEST_CONTEXT;
-  const child = spawn(process.execPath, [...NODE_TEST_ARGS, ...skipArgs, ...files], {
-    cwd: root,
-    env,
-    stdio: capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
-  });
   const chunks = [];
+  let failed = false;
+  let finished = false;
+  const reportError = error => {
+    failed = true;
+    const message = `${error.stack ?? error.message}\n`;
+    if (capture) chunks.push(Buffer.from(message));
+    else process.stderr.write(message);
+  };
+  const outcome = (code, signal) => ({
+    name,
+    files: files.length,
+    code,
+    signal,
+    error: failed,
+    seconds: (Date.now() - started) / 1000,
+    output: Buffer.concat(chunks),
+  });
+  let scratch;
+  let child;
+  try {
+    scratch = contractScratch(env);
+    child = spawn(process.execPath, [...NODE_TEST_ARGS, ...skipArgs, ...files], {
+      cwd: root,
+      env,
+      detached: scratch.detached,
+      stdio: capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
+    });
+  } catch (error) {
+    reportError(error);
+    const result = Promise.resolve(scratch?.cleanup())
+      .catch(reportError)
+      .then(() => outcome(null, null));
+    return { stop() {}, result };
+  }
+  try {
+    scratch.register?.(child.pid); // Same tick as the spawn, so an enclosing run can end it.
+  } catch (error) {
+    reportError(error);
+  }
   if (capture) {
     child.stdout.on('data', chunk => chunks.push(chunk));
     child.stderr.on('data', chunk => chunks.push(chunk));
   }
+  child.on('error', reportError);
+  // Cleanup starts when the runner exits, not when its stdio closes: a descendant that keeps a
+  // pipe open must not postpone the bounded wait. Captured output then drains for at most 2 s.
+  const closed = new Promise(resolve => child.once('close', resolve));
   const result = new Promise(resolve => {
-    child.on('error', error => {
-      chunks.push(Buffer.from(`${error.stack ?? error.message}\n`));
-      resolve({ name, files: files.length, code: null, signal: null, error: true });
-    });
-    child.on('close', (code, signal) =>
-      resolve({ name, files: files.length, code, signal, seconds: (Date.now() - started) / 1000 })
-    );
+    let ended = false;
+    const end = async (code, signal) => {
+      if (ended) return; // 'close' alone ends a runner that failed to spawn.
+      ended = true;
+      try {
+        await scratch.cleanup(child.pid);
+      } catch (error) {
+        reportError(error);
+      }
+      const drained = await Promise.race([
+        closed.then(() => true),
+        delay(2000, false, { ref: false }),
+      ]);
+      if (!drained) {
+        child.stdout?.destroy();
+        child.stderr?.destroy();
+      }
+      finished = true;
+      resolve(outcome(code, signal));
+    };
+    child.once('exit', end).once('close', end);
   });
-  return { child, result: result.then(outcome => ({ ...outcome, output: Buffer.concat(chunks) })) };
+  let escalation;
+  const signalChild = signal => {
+    try {
+      scratch.stop(child, signal);
+    } catch (error) {
+      reportError(error);
+    }
+  };
+  return {
+    // An interrupted runner that ignores the signal is killed after 5 s, with its group.
+    stop(signal) {
+      if (finished) return;
+      signalChild(signal);
+      escalation ??= setTimeout(() => {
+        if (!finished) signalChild('SIGKILL');
+      }, 5000).unref();
+    },
+    result,
+  };
 }
 
 const passed = outcome => outcome.code === 0 && outcome.signal === null && !outcome.error;
+
+async function waitForShards(running, onResult = outcome => outcome) {
+  let interrupted = false;
+  const stop = signal => {
+    interrupted = true;
+    for (const shard of running) shard.stop(signal);
+  };
+  process.on('SIGINT', stop).on('SIGTERM', stop);
+  try {
+    const outcomes = await Promise.all(running.map(({ result }) => result.then(onResult)));
+    return { outcomes, interrupted };
+  } finally {
+    process.off('SIGINT', stop).off('SIGTERM', stop);
+  }
+}
 
 // Runs every shard concurrently without fail-fast. Each shard is still serialized internally and
 // the run fails unless every shard exits 0.
@@ -148,23 +235,12 @@ export async function runParallel({
   const running = Object.entries(shards).map(([name, files]) =>
     runShard(root, name, files, { capture: true, skipArgs })
   );
-  const stop = signal => {
-    for (const { child } of running) child.kill(signal);
-  };
-  process.once('SIGINT', stop).once('SIGTERM', stop);
-  const outcomes = await Promise.all(
-    running.map(({ result }) =>
-      result.then(outcome => {
-        write(
-          grouped ? `::group::contract shard ${outcome.name}\n` : `--- shard ${outcome.name}\n`
-        );
-        write(outcome.output.toString('utf8'));
-        if (grouped) write('::endgroup::\n');
-        return outcome;
-      })
-    )
-  );
-  process.off('SIGINT', stop).off('SIGTERM', stop);
+  const { outcomes, interrupted } = await waitForShards(running, outcome => {
+    write(grouped ? `::group::contract shard ${outcome.name}\n` : `--- shard ${outcome.name}\n`);
+    write(outcome.output.toString('utf8'));
+    if (grouped) write('::endgroup::\n');
+    return outcome;
+  });
   for (const outcome of outcomes) {
     const status = passed(outcome)
       ? 'pass'
@@ -173,17 +249,22 @@ export async function runParallel({
       `contract shard ${outcome.name}: ${status}; ${outcome.files} file(s); ${outcome.seconds ?? 0}s\n`
     );
   }
-  return outcomes.every(passed) ? 0 : 1;
+  return !interrupted && outcomes.every(passed) ? 0 : 1;
 }
 
 async function runSerial(root, files, skipArgs, capture) {
-  const { result } = runShard(root, 'serial', files, { capture, skipArgs });
-  return passed(await result) ? 0 : 1;
+  const { outcomes, interrupted } = await waitForShards([
+    runShard(root, 'serial', files, { capture, skipArgs }),
+  ]);
+  return !interrupted && passed(outcomes[0]) ? 0 : 1;
 }
 
 // `capture` keeps a nested runner's output out of the caller's stream (used by the contract tests).
 export async function main(argv, root = REPO_ROOT, { capture = false } = {}) {
   const [mode, shard] = argv;
+  if (mode === 'z620' && shard === undefined) {
+    return runSerial(root, ['scripts/ci/z620-runner.test.mjs'], [], capture);
+  }
   const { shards, skipArgs } = contractTestPlan(root);
   const serial = files => runSerial(root, files, skipArgs, capture);
   if (mode === 'parallel') return runParallel({ root });
@@ -201,7 +282,7 @@ export async function main(argv, root = REPO_ROOT, { capture = false } = {}) {
     return 0;
   }
   console.error(
-    'Usage: node scripts/ci/contract-test-shards.mjs <all|parallel|core|guard-trust [shard]|list <shard>>'
+    'Usage: node scripts/ci/contract-test-shards.mjs <all|parallel|core|guard-trust [shard]|list <shard>|z620>'
   );
   return 2;
 }

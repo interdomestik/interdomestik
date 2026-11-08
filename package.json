@@ -131,7 +131,7 @@
     "test:z620-e2e-port": "node --test scripts/ci/z620-e2e-port.test.mjs",
     "test:z620-parity-policy": "node --test scripts/ci/z620-parity-policy.test.mjs",
     "test:z620-p4-benchmark": "node --test scripts/ci/z620-p4-benchmark.test.mjs",
-    "test:z620-runner": "node --test scripts/ci/z620-runner.test.mjs",
+    "test:z620-runner": "node scripts/ci/contract-test-shards.mjs z620",
     "test:z620-resources": "node --test scripts/ci/z620-resource.test.mjs",
     "test:z620-sonar-contract": "node --test scripts/ci/z620-sonar-contract.test.mjs",
     "test:ci:contracts": "node scripts/ci/contract-test-shards.mjs all",
