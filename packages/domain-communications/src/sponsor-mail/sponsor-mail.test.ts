@@ -166,7 +166,7 @@ describe('renderSponsorMail', () => {
   it('states data control, limited company visibility and account retention', () => {
     const notice = renderSponsorMail(NOTICE).text;
     expect(notice).toContain('holds and controls');
-    expect(notice).toContain('(name, address)');
+    expect(notice).toContain('(name and e-mail address)');
     expect(notice).toContain('only sees that you are registered');
     expect(notice).toContain('never your claims, documents, messages or usage');
     expect(notice).toContain('The account is yours');

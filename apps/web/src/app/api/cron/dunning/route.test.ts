@@ -15,6 +15,10 @@ const h = vi.hoisted(() => ({
   runDunningCronCore: vi.fn(), txSet: vi.fn(), txUpdate: vi.fn(), txWhere: vi.fn(), withTenantContext: vi.fn(),
 }));
 
+vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
+  readSponsorOutlook: vi.fn().mockResolvedValue(new Map()),
+}));
+
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: h.enforceRateLimit }));
 
 vi.mock('../_auth', () => ({ authorizeCronRequest: h.authorizeCronRequest }));
@@ -116,7 +120,7 @@ describe('GET /api/cron/dunning', () => {
     const now = new Date('2026-01-08T00:00:00.000Z');
     await runDunningCronCore({ ingress: INGRESS, headers: new Headers(), now });
     expect(h.listScheduledTenantWork).toHaveBeenCalledWith(INGRESS);
-    expect(h.withTenantContext).toHaveBeenCalledTimes(4); // page, member read, update, empty page
+    expect(h.withTenantContext).toHaveBeenCalledTimes(5); // page, member read, outlook, update, empty page
     for (const [context] of h.withTenantContext.mock.calls) expect(context).toBe(authorities.get('tenant-1'));
     expect(h.txUpdate).toHaveBeenCalledWith(expect.objectContaining({ id: 'subscriptions.id' }));
     expect(h.txSet).toHaveBeenCalledWith({ lastDunningAt: now });

@@ -15,6 +15,10 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import {
+  resolveEffectiveMembership,
+  type EffectiveMembership,
+} from '@interdomestik/domain-membership-billing/sponsor-coverage';
 import { and, eq, type SQL } from 'drizzle-orm';
 
 import {
@@ -78,6 +82,7 @@ export type AdminUserProfileOk = {
     createdAt: Date | null;
   }>;
   membershipStatus: AdminUserMembershipStatus;
+  membership: EffectiveMembership<SubscriptionRow>;
 };
 
 export type AdminUserProfileResult = { kind: 'not_found' } | AdminUserProfileOk;
@@ -139,7 +144,17 @@ export async function getAdminUserProfileCore(args: {
       userId: member.id,
     });
 
-    const membershipStatus = getAdminUserMembershipStatus(subscription);
+    const now = new Date();
+    const memberships = await resolveEffectiveMembership(tx, tenantId, [member.id], now);
+    const membership = memberships.get(member.id) ?? { source: 'none' as const };
+    const membershipStatus = getAdminUserMembershipStatus(
+      membership.source === 'sponsor'
+        ? membership.lifecycle
+        : membership.source === 'subscription'
+          ? membership.subscription
+          : null,
+      now
+    );
 
     return {
       kind: 'ok',
@@ -149,6 +164,7 @@ export async function getAdminUserProfileCore(args: {
       counts: claimSummary.counts,
       recentClaims: claimSummary.recentClaims,
       membershipStatus,
+      membership,
     };
   });
 }

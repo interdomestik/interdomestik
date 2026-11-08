@@ -2,7 +2,6 @@ import type { db } from '@interdomestik/database/db';
 import {
   agentClients,
   memberActivities,
-  subscriptions,
   userNotificationPreferences,
   user as userTable,
 } from '@interdomestik/database/schema';
@@ -10,6 +9,7 @@ import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
+import { resolveEffectiveMembership } from '@interdomestik/domain-membership-billing/sponsor-coverage';
 import { getAgentMemberDetail } from '@interdomestik/domain-agent';
 import { and, desc, eq } from 'drizzle-orm';
 
@@ -26,6 +26,11 @@ const membershipStatusStyles: Record<string, string> = {
 };
 
 export type AgentClientMembership = {
+  source: 'sponsor' | 'subscription' | 'none';
+  planId: string | null;
+  currentPeriodStart: Date | null;
+  currentPeriodEnd: Date | null;
+  cancelAtPeriodEnd: boolean;
   status: string;
   badgeClass: string;
   subscription: SubscriptionRecord | null;
@@ -102,12 +107,9 @@ export async function getAgentClientProfileCore(args: {
     }
   }
 
-  const [subscription, preferences, claimSummary, activities] = await Promise.all([
+  const [memberships, preferences, claimSummary, activities] = await Promise.all([
     withTenantAuthority(authority, tx =>
-      tx.query.subscriptions.findFirst({
-        where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, tenantId)),
-        orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
-      })
+      resolveEffectiveMembership(tx, tenantId, [member.id], new Date())
     ),
     withTenantAuthority(authority, tx =>
       tx.query.userNotificationPreferences.findFirst({
@@ -138,13 +140,30 @@ export async function getAgentClientProfileCore(args: {
     ),
   ]);
 
-  const rawStatus = (subscription as { status?: string | null } | null | undefined)?.status;
+  const effective = memberships.get(member.id) ?? { source: 'none' as const };
+  const subscription = effective.source === 'subscription' ? effective.subscription : null;
+  const rawStatus =
+    effective.source === 'sponsor' ? effective.lifecycle.status : subscription?.status;
   const membershipStatus = rawStatus && membershipStatusStyles[rawStatus] ? rawStatus : 'none';
 
   return {
     kind: 'ok',
     member,
     membership: {
+      source: effective.source,
+      planId: effective.source === 'sponsor' ? effective.planId : (subscription?.planId ?? null),
+      currentPeriodStart:
+        effective.source === 'sponsor'
+          ? effective.windowStart
+          : (subscription?.currentPeriodStart ?? null),
+      currentPeriodEnd:
+        effective.source === 'sponsor'
+          ? effective.windowEnd
+          : (subscription?.currentPeriodEnd ?? null),
+      cancelAtPeriodEnd:
+        effective.source === 'sponsor'
+          ? effective.lifecycle.cancelAtPeriodEnd
+          : (subscription?.cancelAtPeriodEnd ?? false),
       status: membershipStatus,
       badgeClass: membershipStatusStyles[membershipStatus],
       subscription: (subscription ?? null) as SubscriptionRecord | null,

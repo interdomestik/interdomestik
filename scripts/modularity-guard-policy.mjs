@@ -88,6 +88,7 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['agent.json', 'acq-1-lead-notice-i18n-contract'],
   ['pricing.json', 'acq-1-lead-notice-i18n-contract'],
   ['admin-branches.json', 'locale-catalog-integrity-contract'],
+  ['agent-members.json', 'acq-3b-sponsor-i18n-contract'],
   // German catalogs without a per-file feature owner, registered by exact locale-scoped name.
   ['de/about.json', 'de-locale-catalog-contract'],
   ['de/accidentJourney.json', 'de-locale-catalog-contract'],

@@ -68,7 +68,9 @@
           "preferences_unset": "Preferencat nuk janë vendosur",
           "no_claims": "Nuk ka ende kërkesa për dëmshpërblim",
           "unknown": "E panjohur",
-          "not_set": "Nuk është vendosur"
+          "not_set": "Nuk është vendosur",
+          "source": "Burimi",
+          "period_start": "Fillimi i periudhës"
         },
         "status": {
           "active": "Aktive",
@@ -90,6 +92,11 @@
           "open": "Kërkesa të hapura",
           "resolved": "Të zgjidhura",
           "rejected": "Të refuzuara"
+        },
+        "source": {
+          "sponsor": "Sponsor",
+          "subscription": "Abonim",
+          "none": "Asnjë"
         }
       },
       "filters": {
@@ -106,12 +113,18 @@
           "status": "Statusi",
           "plan": "Plani",
           "period_end": "Skadimi",
-          "actions": "Veprime"
+          "actions": "Veprime",
+          "source": "Burimi"
         },
         "view_profile": "Shiko profilin",
         "view_claims": "Shiko kërkesat",
         "message_alert": "Mesazh i ri ({count})",
-        "no_users": "Nuk u gjetën anëtarë."
+        "no_users": "Nuk u gjetën anëtarë.",
+        "source": {
+          "sponsor": "Sponsor",
+          "subscription": "Abonim",
+          "none": "Asnjë"
+        }
       }
     }
   }

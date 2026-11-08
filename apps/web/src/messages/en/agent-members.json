@@ -68,7 +68,9 @@
           "preferences_unset": "Preferences not set",
           "no_claims": "No claims yet",
           "unknown": "Unknown",
-          "not_set": "Not set"
+          "not_set": "Not set",
+          "source": "Source",
+          "period_start": "Period start"
         },
         "status": {
           "active": "Active",
@@ -90,6 +92,11 @@
           "open": "Open claims",
           "resolved": "Resolved",
           "rejected": "Rejected"
+        },
+        "source": {
+          "sponsor": "Sponsor",
+          "subscription": "Subscription",
+          "none": "None"
         }
       },
       "filters": {
@@ -106,12 +113,18 @@
           "status": "Status",
           "plan": "Plan",
           "period_end": "Expires",
-          "actions": "Actions"
+          "actions": "Actions",
+          "source": "Source"
         },
         "view_profile": "View profile",
         "view_claims": "View claims",
         "message_alert": "New message ({count})",
-        "no_users": "No members found."
+        "no_users": "No members found.",
+        "source": {
+          "sponsor": "Sponsor",
+          "subscription": "Subscription",
+          "none": "None"
+        }
       }
     }
   }
