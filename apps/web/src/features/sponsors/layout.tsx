@@ -14,5 +14,9 @@ export async function SponsorLayout({
   setRequestLocale(locale);
   const messages = await getMessages({ locale });
   const scoped = Object.fromEntries(namespaces.map(namespace => [namespace, messages[namespace]]));
-  return <NextIntlClientProvider messages={scoped}>{children}</NextIntlClientProvider>;
+  return (
+    <NextIntlClientProvider locale={locale} messages={scoped}>
+      {children}
+    </NextIntlClientProvider>
+  );
 }

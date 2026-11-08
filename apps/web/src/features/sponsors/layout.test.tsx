@@ -31,6 +31,7 @@ describe('sponsor layout', () => {
       sponsors: { title: 'Sponsors' },
       sponsorTasks: { title: 'Tasks' },
     });
+    expect(element.props.locale).toBe('en');
     expect(element.props.children).toBe(children);
   });
 });
