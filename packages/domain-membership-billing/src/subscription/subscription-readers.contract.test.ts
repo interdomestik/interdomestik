@@ -95,9 +95,6 @@ function sourceFiles(directory: string): string[] {
 }
 
 function subscriptionReads(source: string): boolean {
-  // Every detection path needs the token, possibly spelled with a Unicode escape; skip the AST
-  // only for files that contain neither.
-  if (!/subscriptions/i.test(source) && !source.includes('\\u')) return false;
   const ast = ts.createSourceFile('source.tsx', source, ts.ScriptTarget.Latest, true);
   const tableNames = new Set(['subscriptions']);
   for (const statement of ast.statements) {
