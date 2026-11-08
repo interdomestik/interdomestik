@@ -11,6 +11,7 @@ import {
   user,
   type TenantTransaction,
 } from '@interdomestik/database';
+import { isNotNull, or, type SQL } from 'drizzle-orm';
 
 import { type CoverageEntry, type EffectiveMembership, evaluateCoverage } from './evaluate';
 
@@ -82,19 +83,8 @@ export function groupCoverageRows(
   );
 }
 
-/**
- * ACQ-3b §3.6.1: one statement reads each person's subscription row and every roster entry bound
- * to them, with its term, approved-revision flag and handover `paid_until`. People outside the
- * tenant are absent from the result.
- */
-export async function resolveEffectiveMembership(
-  tx: TenantTransaction,
-  tenantId: string,
-  userIds: readonly string[],
-  now: Date
-): Promise<Map<string, EffectiveMembership<SubscriptionRow>>> {
-  if (userIds.length === 0) return new Map();
-  const rows: CoverageRow[] = await tx
+function selectCoverageRows(tx: TenantTransaction, where: SQL | undefined): Promise<CoverageRow[]> {
+  return tx
     .select({
       userId: user.id,
       subscription: subscriptions,
@@ -144,8 +134,61 @@ export async function resolveEffectiveMembership(
         eq(sponsorRevisionDecisions.decision, 'approved')
       )
     )
-    .where(and(eq(user.tenantId, tenantId), inArray(user.id, [...userIds])));
+    .where(where);
+}
 
+function evaluatePeople(
+  rows: readonly CoverageRow[],
+  now: Date
+): Map<string, EffectiveMembership<SubscriptionRow>> {
   const people = groupCoverageRows(rows);
   return new Map([...people].map(([userId, inputs]) => [userId, evaluateCoverage(inputs, now)]));
+}
+
+/**
+ * ACQ-3b §3.6.1: one statement reads each person's subscription row and every roster entry bound
+ * to them, with its term, approved-revision flag and handover `paid_until`. People outside the
+ * tenant are absent from the result.
+ */
+export async function resolveEffectiveMembership(
+  tx: TenantTransaction,
+  tenantId: string,
+  userIds: readonly string[],
+  now: Date
+): Promise<Map<string, EffectiveMembership<SubscriptionRow>>> {
+  if (userIds.length === 0) return new Map();
+  const rows = await selectCoverageRows(
+    tx,
+    and(eq(user.tenantId, tenantId), inArray(user.id, [...userIds]))
+  );
+  return evaluatePeople(rows, now);
+}
+
+export type CoveredMember = {
+  userId: string;
+  membership: Exclude<EffectiveMembership<SubscriptionRow>, { source: 'none' }>;
+};
+
+/**
+ * The set form: the same rows and the same rules for the whole tenant, in one statement. One row
+ * per covered member (source 1 or 2); it is the only basis for membership-based selection and
+ * active-member totals (§3.6.3). Source 2 still passes through the row's lifecycle bucket.
+ */
+export async function effectiveCoverageMembers(
+  tx: TenantTransaction,
+  tenantId: string,
+  now: Date
+): Promise<CoveredMember[]> {
+  const rows = await selectCoverageRows(
+    tx,
+    and(
+      eq(user.tenantId, tenantId),
+      or(isNotNull(subscriptions.id), isNotNull(sponsorRosterEntries.id))
+    )
+  );
+  const covered: CoveredMember[] = [];
+  for (const [userId, membership] of evaluatePeople(rows, now)) {
+    if (membership.source !== 'none') covered.push({ userId, membership });
+  }
+  return covered.sort((a, b) => a.userId.localeCompare(b.userId));
 }
