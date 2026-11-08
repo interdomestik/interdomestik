@@ -1,1 +1,9 @@
-export { SponsorLayout as default } from '@/features/sponsors/layout';
+import { SponsorLayout } from '@/features/sponsors/layout';
+
+export default function AgentSponsorsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}): React.JSX.Element {
+  return <SponsorLayout>{children}</SponsorLayout>;
+}
