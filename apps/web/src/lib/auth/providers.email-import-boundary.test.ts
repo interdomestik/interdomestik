@@ -13,6 +13,9 @@ vi.mock('next/server', () => ({
   after: (callback: () => Promise<void> | void) => mocks.callbacks.push(callback),
 }));
 vi.mock('better-auth/plugins/email-otp', () => ({ emailOTP: mocks.emailOTP }));
+vi.mock('./different-email-recovery-store', () => ({
+  releaseResetMailIfCurrent: async () => true,
+}));
 
 type OtpConfig = {
   sendVerificationOTP: (
@@ -62,7 +65,7 @@ describe('email module import boundary', () => {
 
   it('does not evaluate email during provider setup or registration, then evaluates during delivery', async () => {
     const configured = await providers();
-    expect(configured.plugins).toHaveLength(1);
+    expect(configured.plugins).toHaveLength(2);
     expect(mocks.evaluated).not.toHaveBeenCalled();
     const request = new Request('https://ida.test/api/auth/email-otp', {
       headers: { 'x-interdomestik-locale': 'en' },
@@ -105,6 +108,7 @@ describe('email module import boundary', () => {
       .sendResetPassword({
         user: { email: message.email },
         url: 'https://ida.test/reset/synthetic',
+        token: 'synthetic',
       })
       .then(() => {
         settled = true;
@@ -125,6 +129,7 @@ describe('email module import boundary', () => {
       configured.emailAndPassword.sendResetPassword({
         user: { email: message.email },
         url: 'https://ida.test/reset/synthetic',
+        token: 'synthetic',
       })
     ).rejects.toThrow();
     expect(mocks.reset).not.toHaveBeenCalled();

@@ -49,4 +49,13 @@ export const LIFETIME_RUNNERS = deepFreeze([
     callback: 1,
     lends: [],
   },
+  {
+    // The same runner after ACQ-2c reset-link changes to its file (Plan070 with Codex): the runner
+    // itself is unchanged; the entry above stays until main carries this file.
+    file: 'apps/web/src/lib/auth/different-email-recovery-store.ts',
+    unit: 'withUserLock',
+    sha256: 'a7f31cbe5cabeddfb2880009c212e21f77352faa21113905d189ebc6ac40aed7',
+    callback: 1,
+    lends: [],
+  },
 ]);
