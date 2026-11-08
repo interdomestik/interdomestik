@@ -127,6 +127,7 @@ export const PRIVILEGED = new Map([
       callers: [
         'apps/web/src/lib/actions/agent/register-member.core.ts',
         'packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.ts',
+        'packages/domain-membership-billing/src/sponsors/sponsor-jobs.ts',
       ],
       reexports: [`${DB}/index.ts`],
     },
@@ -141,6 +142,7 @@ export const PRIVILEGED = new Map([
         'apps/web/src/lib/actions/agent/register-member.core.ts',
         'packages/domain-leads/src/convert.ts',
         'packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.ts',
+        'packages/domain-membership-billing/src/sponsors/sponsor-jobs.ts',
       ],
       reexports: [`${DB}/index.ts`],
     },
@@ -173,6 +175,14 @@ export const PRIVILEGED = new Map([
     {
       form: 'call',
       callers: ['apps/web/src/features/share-pack/share-pack.service.ts'],
+      reexports: [`${DB}/index.ts`],
+    },
+  ],
+  [
+    `${DB}/public-token-tenant.ts#resolveSponsorOptOutTenant`,
+    {
+      form: 'call',
+      callers: ['packages/domain-membership-billing/src/sponsors/opt-out.ts'],
       reexports: [`${DB}/index.ts`],
     },
   ],
