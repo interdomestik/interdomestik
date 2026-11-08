@@ -10,7 +10,7 @@ import {
   seedSubscription,
   seedTerm,
 } from './acq3b-seed.fixture';
-import { actionForm, copy, locales, loginPerson, tabTo } from './acq3b-ui.fixture';
+import { actionForm, copy, locales, loginPerson, tabTo, visible } from './acq3b-ui.fixture';
 
 test.describe('ACQ-3b staff tasks and accessible sponsor pages', () => {
   for (const locale of locales) {
@@ -41,17 +41,19 @@ test.describe('ACQ-3b staff tasks and accessible sponsor pages', () => {
           await gotoApp(page, routePath(info, `/${locale}/staff/sponsors`), info, {
             marker: 'staff-sponsors-page-ready',
           });
-          await expect(page.getByTestId('staff-sponsors-page-ready')).toContainText(
+          await expect(visible(page.getByTestId('staff-sponsors-page-ready'))).toContainText(
             copy(locale, 'sponsors', 'title')
           );
-          const tasks = page.getByRole('link', {
-            name: copy(locale, 'sponsorTasks', 'tasksLink'),
-            exact: true,
-          });
+          const tasks = visible(
+            page.getByRole('link', {
+              name: copy(locale, 'sponsorTasks', 'tasksLink'),
+              exact: true,
+            })
+          );
           await tabTo(page, tasks);
           await page.keyboard.press('Enter');
           await expect(page).toHaveURL(routePath(info, `/${locale}/staff/sponsors/tasks`));
-          const ready = page.getByTestId('staff-sponsor-tasks-page-ready');
+          const ready = visible(page.getByTestId('staff-sponsor-tasks-page-ready'));
           await expect(ready).toBeVisible();
           await expect(ready.getByRole('heading', { level: 1 })).toHaveText(
             copy(locale, 'sponsorTasks', 'title')
@@ -71,7 +73,7 @@ test.describe('ACQ-3b staff tasks and accessible sponsor pages', () => {
           await gotoApp(page, routePath(info, `/${locale}/staff/sponsors/${sponsorId}`), info, {
             marker: 'staff-sponsors-detail-page-ready',
           });
-          await expect(page.getByTestId('staff-sponsors-detail-page-ready')).toContainText(
+          await expect(visible(page.getByTestId('staff-sponsors-detail-page-ready'))).toContainText(
             copy(locale, 'sponsors', 'terms')
           );
           await gotoApp(
@@ -80,7 +82,7 @@ test.describe('ACQ-3b staff tasks and accessible sponsor pages', () => {
             info,
             { marker: 'staff-sponsors-roster-page-ready' }
           );
-          await expect(page.getByTestId('staff-sponsors-roster-page-ready')).toContainText(
+          await expect(visible(page.getByTestId('staff-sponsors-roster-page-ready'))).toContainText(
             copy(locale, 'sponsors', 'roster')
           );
           const decision = actionForm(page, locale, 'decideRevision');
@@ -92,13 +94,13 @@ test.describe('ACQ-3b staff tasks and accessible sponsor pages', () => {
           await gotoApp(page, routePath(info, `/${locale}/agent/sponsors`), info, {
             marker: 'agent-sponsors-page-ready',
           });
-          await expect(page.getByTestId('agent-sponsors-page-ready')).toContainText(
+          await expect(visible(page.getByTestId('agent-sponsors-page-ready'))).toContainText(
             copy(locale, 'sponsors', 'title')
           );
           await gotoApp(page, routePath(info, `/${locale}/agent/sponsors/${sponsorId}`), info, {
             marker: 'agent-sponsors-detail-page-ready',
           });
-          await expect(page.getByTestId('agent-sponsors-detail-page-ready')).toContainText(
+          await expect(visible(page.getByTestId('agent-sponsors-detail-page-ready'))).toContainText(
             copy(locale, 'sponsors', 'terms')
           );
           await gotoApp(
@@ -107,7 +109,7 @@ test.describe('ACQ-3b staff tasks and accessible sponsor pages', () => {
             info,
             { marker: 'agent-sponsors-roster-page-ready' }
           );
-          await expect(page.getByTestId('agent-sponsors-roster-page-ready')).toContainText(
+          await expect(visible(page.getByTestId('agent-sponsors-roster-page-ready'))).toContainText(
             copy(locale, 'sponsors', 'roster')
           );
           await tabTo(page, actionForm(page, locale, 'uploadRoster').getByRole('button'));

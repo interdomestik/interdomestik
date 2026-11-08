@@ -28,10 +28,15 @@ export function copy(
   return value.replace(/\{(\w+)\}/gu, (match, name: string) => String(values[name] ?? match));
 }
 
+// Streaming can leave hidden page copies; keep locators on the rendered content.
+export function visible(locator: Locator): Locator {
+  return locator.filter({ visible: true });
+}
+
 export async function dismissCookies(page: Page): Promise<void> {
-  const banner = page.getByTestId('cookie-consent-banner');
+  const banner = visible(page.getByTestId('cookie-consent-banner'));
   if (await banner.isVisible()) {
-    await page.getByTestId('cookie-consent-decline').click();
+    await visible(page.getByTestId('cookie-consent-decline')).click();
     await expect(banner).toHaveCount(0);
   }
 }
@@ -45,9 +50,9 @@ export async function loginPerson(
   await gotoApp(page, routePath(info, `/${locale}/login`), info, { marker: 'login-form' });
   await dismissCookies(page);
   await interactiveLogin(page, locale);
-  await page.getByTestId('login-email').fill(person.email);
-  await page.getByTestId('login-password').fill(E2E_PASSWORD);
-  await page.getByTestId('login-submit').click();
+  await visible(page.getByTestId('login-email')).fill(person.email);
+  await visible(page.getByTestId('login-password')).fill(E2E_PASSWORD);
+  await visible(page.getByTestId('login-submit')).click();
   await expect(page).toHaveURL(url => !url.pathname.includes('/login'));
 }
 
@@ -74,7 +79,7 @@ export async function tabTo(page: Page, target: Locator): Promise<void> {
 
 export function actionForm(page: Page, locale: Locale, operation: string): Locator {
   // These forms currently expose accessible legends and names but no action test IDs.
-  return page.locator('form').filter({
+  return visible(page.locator('form')).filter({
     has: page.getByRole('button', {
       name: copy(locale, 'sponsors', `actions.${operation}`),
       exact: true,
@@ -83,6 +88,5 @@ export function actionForm(page: Page, locale: Locale, operation: string): Locat
 }
 
 export function rosterRow(page: Page, email: string): Locator {
-  // Streaming can leave a hidden copy of the page; only the rendered row counts.
-  return page.locator('li').filter({ visible: true, has: page.getByText(email, { exact: true }) });
+  return visible(page.locator('li')).filter({ has: page.getByText(email, { exact: true }) });
 }

@@ -11,7 +11,7 @@ import {
   seedSubscription,
   seedTerm,
 } from './acq3b-seed.fixture';
-import { copy, locales, loginPerson, rosterRow, tabTo } from './acq3b-ui.fixture';
+import { copy, locales, loginPerson, rosterRow, tabTo, visible } from './acq3b-ui.fixture';
 import { formatPilotDate } from '../../src/lib/utils/date';
 
 test.describe('ACQ-3b member membership and leave', () => {
@@ -37,15 +37,15 @@ test.describe('ACQ-3b member membership and leave', () => {
           await gotoApp(page, routePath(info, `/${locale}/member/membership`), info, {
             marker: 'membership-page-ready',
           });
-          await expect(page.getByTestId('membership-current-period-end')).toHaveText(
+          await expect(visible(page.getByTestId('membership-current-period-end'))).toHaveText(
             formatPilotDate(f.paidEnd, locale, '')
           );
-          await expect(page.getByTestId('membership-sponsor-coverage')).toHaveCount(0);
+          await expect(visible(page.getByTestId('membership-sponsor-coverage'))).toHaveCount(0);
           await gotoApp(page, routePath(info, `/${locale}/pricing`), info, {
             marker: 'pricing-page-ready',
           });
           const date = formatPilotDate(f.paidEnd, locale, '');
-          await expect(page.getByTestId('pricing-sponsor-notice')).toHaveText(
+          await expect(visible(page.getByTestId('pricing-sponsor-notice'))).toHaveText(
             copy(locale, 'pricing', 'sponsorNotice.startsOn', { date })
           );
         });
@@ -54,25 +54,27 @@ test.describe('ACQ-3b member membership and leave', () => {
           await gotoApp(page, routePath(info, `/${locale}/member/membership`), info, {
             marker: 'membership-page-ready',
           });
-          await expect(page.getByTestId('membership-entity-disclosure')).toContainText(
+          await expect(visible(page.getByTestId('membership-entity-disclosure'))).toContainText(
             f.entityName
           );
-          await expect(page.getByTestId('membership-sponsor-coverage')).toHaveText(
+          await expect(visible(page.getByTestId('membership-sponsor-coverage'))).toHaveText(
             copy(locale, 'membership', 'sponsorCoverage.covered_until', {
               date: formatPilotDate(f.end, locale, ''),
             })
           );
-          await expect(page.getByTestId('membership-current-period-end')).toHaveText(
+          await expect(visible(page.getByTestId('membership-current-period-end'))).toHaveText(
             `${formatPilotDate(f.start, locale, '')} – ${formatPilotDate(f.end, locale, '')}`
           );
           // Product currently lacks the requested leave-company-programme test ID.
-          const leave = page.getByRole('button', {
-            name: copy(locale, 'membership', 'sponsorCoverage.leave'),
-            exact: true,
-          });
+          const leave = visible(
+            page.getByRole('button', {
+              name: copy(locale, 'membership', 'sponsorCoverage.leave'),
+              exact: true,
+            })
+          );
           await tabTo(page, leave);
           await page.keyboard.press('Enter');
-          const dialog = page.getByRole('dialog');
+          const dialog = visible(page.getByRole('dialog'));
           await expect(dialog).toBeVisible();
           await tabTo(
             page,

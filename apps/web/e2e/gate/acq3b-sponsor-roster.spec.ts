@@ -14,7 +14,7 @@ import { withFreshPage } from './test/login-handoff-page';
 import { withSponsorFixture } from './acq3b-context.fixture';
 import { provisionOwnedRoster } from './acq3b-jobs.fixture';
 import { readTerms, seedSubscription } from './acq3b-seed.fixture';
-import { actionForm, copy, loginPerson, rosterRow, tabTo } from './acq3b-ui.fixture';
+import { actionForm, copy, loginPerson, rosterRow, tabTo, visible } from './acq3b-ui.fixture';
 
 test('ACQ-3b office agent creates a contract; independent staff approves; CSV preserves privacy', async ({
   browser,
@@ -157,7 +157,7 @@ test('ACQ-3b office agent creates a contract; independent staff approves; CSV pr
         });
       });
       await gotoApp(page, path, info, { marker: 'agent-sponsors-roster-page-ready' });
-      const ready = page.getByTestId('agent-sponsors-roster-page-ready');
+      const ready = visible(page.getByTestId('agent-sponsors-roster-page-ready'));
       await expect(ready).toContainText(
         copy(locale, 'sponsors', 'seatsUsed', { used: 4, seats: 4 })
       );

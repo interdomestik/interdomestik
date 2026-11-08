@@ -5,7 +5,7 @@ import { gotoApp } from '../utils/navigation';
 import { withFreshPage } from './test/login-handoff-page';
 import { rosterSecret, withSponsorFixture } from './acq3b-context.fixture';
 import { readEntry, seedEntry, seedSponsor, seedTerm } from './acq3b-seed.fixture';
-import { copy, dismissCookies, locales, tabTo } from './acq3b-ui.fixture';
+import { copy, dismissCookies, locales, tabTo, visible } from './acq3b-ui.fixture';
 
 // The URL contains a bearer opt-out token; never retain it in traces or screenshots.
 test.use({ screenshot: 'off', trace: 'off', video: 'off' });
@@ -30,18 +30,27 @@ test.describe('ACQ-3b public opt-out', () => {
           const before = await readEntry(f, entryId);
           await gotoApp(page, url, info, { marker: 'public-sponsor-opt-out-page-ready' });
           await expect(
-            page.getByRole('heading', { name: copy(locale, 'sponsorOptOut', 'title'), exact: true })
+            visible(
+              page.getByRole('heading', {
+                name: copy(locale, 'sponsorOptOut', 'title'),
+                exact: true,
+              })
+            )
           ).toBeVisible();
           expect(await readEntry(f, entryId)).toEqual(before);
           expect(before.revokedAt).toBeNull();
           await dismissCookies(page);
-          const confirm = page.getByRole('button', {
-            name: copy(locale, 'sponsorOptOut', 'confirm'),
-            exact: true,
-          });
+          const confirm = visible(
+            page.getByRole('button', {
+              name: copy(locale, 'sponsorOptOut', 'confirm'),
+              exact: true,
+            })
+          );
           await tabTo(page, confirm);
           await page.keyboard.press('Enter');
-          const status = page.getByTestId('public-sponsor-opt-out-page-ready').getByRole('status');
+          const status = visible(page.getByTestId('public-sponsor-opt-out-page-ready')).getByRole(
+            'status'
+          );
           await expect(status).toHaveText(copy(locale, 'sponsorOptOut', 'done'));
           await expect(status).toHaveAttribute('aria-live', 'polite');
           await expect(status).toBeFocused();

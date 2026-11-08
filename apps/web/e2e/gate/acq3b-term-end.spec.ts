@@ -16,7 +16,7 @@ import { withFreshPage } from './test/login-handoff-page';
 import { withSponsorFixture } from './acq3b-context.fixture';
 import { runEndJobs } from './acq3b-jobs.fixture';
 import { seedEntry, seedSponsor, seedSubscription, seedTerm } from './acq3b-seed.fixture';
-import { copy, loginPerson } from './acq3b-ui.fixture';
+import { copy, loginPerson, visible } from './acq3b-ui.fixture';
 
 test('ACQ-3b contiguous renewal survives expiry; only an uncovered person gets one offer', async ({
   browser,
@@ -105,12 +105,14 @@ test('ACQ-3b contiguous renewal survives expiry; only an uncovered person gets o
       await gotoApp(page, routePath(info, '/member/membership'), info, {
         marker: 'membership-page-ready',
       });
-      await expect(page.getByTestId('membership-sponsor-coverage')).toBeVisible();
+      await expect(visible(page.getByTestId('membership-sponsor-coverage'))).toBeVisible();
       await expect(
-        page.getByRole('button', {
-          name: copy(locale, 'membership', 'sponsorCoverage.leave'),
-          exact: true,
-        })
+        visible(
+          page.getByRole('button', {
+            name: copy(locale, 'membership', 'sponsorCoverage.leave'),
+            exact: true,
+          })
+        )
       ).toBeVisible();
     });
     await withFreshPage(browser, info, false, async page => {
@@ -118,12 +120,14 @@ test('ACQ-3b contiguous renewal survives expiry; only an uncovered person gets o
       await gotoApp(page, routePath(info, '/member/membership'), info, {
         marker: 'membership-page-ready',
       });
-      await expect(page.getByTestId('membership-sponsor-coverage')).toHaveCount(0);
+      await expect(visible(page.getByTestId('membership-sponsor-coverage'))).toHaveCount(0);
       await expect(
-        page.getByRole('button', {
-          name: copy(locale, 'membership', 'sponsorCoverage.leave'),
-          exact: true,
-        })
+        visible(
+          page.getByRole('button', {
+            name: copy(locale, 'membership', 'sponsorCoverage.leave'),
+            exact: true,
+          })
+        )
       ).toHaveCount(0);
     });
   });
