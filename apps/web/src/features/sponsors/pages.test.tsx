@@ -51,6 +51,9 @@ vi.mock('@/i18n/routing', () => ({
     <a href={href}>{children}</a>
   ),
 }));
+vi.mock('@/features/sponsor-tasks/sponsor-tasks-link', () => ({
+  SponsorTasksLink: () => <span>sponsor-tasks</span>,
+}));
 
 function translate(key: string, values: Record<string, string | number> = {}): string {
   let result: unknown = messages.sponsors;
@@ -167,6 +170,8 @@ describe('sponsor surfaces', () => {
         const view = render(await resolveServer(element));
         const suffix = 'termId' in ids ? '-roster' : 'sponsorId' in ids ? '-detail' : '';
         expect(screen.getByTestId(`${area}-sponsors${suffix}-page-ready`)).toBeInTheDocument();
+        const tasksLink = screen.queryByText('sponsor-tasks');
+        expect(Boolean(tasksLink)).toBe(area === 'staff' && suffix === '');
         view.unmount();
       }
     }

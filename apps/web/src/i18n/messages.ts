@@ -58,6 +58,8 @@ export const MESSAGE_NAMESPACES = [
   'servicesPage',
   'settings',
   'sponsors',
+  'sponsorOptOut',
+  'sponsorTasks',
   'stats',
   'staff-crm',
   'testimonials',
@@ -89,7 +91,7 @@ export const HOME_NAMESPACES = [
   'footer',
 ] as const;
 // prettier-ignore
-export const SITE_NAMESPACES = ['about', 'pricing', 'services', 'legal', 'entityDisclosure'] as const;
+export const SITE_NAMESPACES = ['about', 'pricing', 'services', 'legal', 'entityDisclosure', 'sponsorOptOut'] as const;
 export const AUTH_NAMESPACES = ['auth'] as const;
 export const APP_NAMESPACES = [
   'common',
@@ -139,6 +141,7 @@ export const STAFF_NAMESPACES = [
   'notifications',
   'settings',
   'staff-crm',
+  'sponsorTasks',
 ] as const;
 export const ADMIN_NAMESPACES = [
   'admin',

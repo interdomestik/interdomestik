@@ -1,0 +1,88 @@
+{
+  "sponsorTasks": {
+    "title": "Sponsor tasks",
+    "tasksLink": "Tasks",
+    "empty": "There are no sponsor tasks to review.",
+    "loading": "Loading sponsor tasks…",
+    "retry": "Try again",
+    "saving": "Saving…",
+    "saved": "Saved. Refresh the list to see the latest tasks.",
+    "person": "Open user {id}",
+    "unbound": "This entry is not yet linked to an account.",
+    "intent": "Handover: {id}",
+    "entry": "Entry: {id} · Term: {term} · Sponsor: {sponsor}",
+    "since": "Needs review since {date} (UTC)",
+    "observedAt": "Cancellation observed on {date} (UTC)",
+    "transaction": "Paddle transaction: {id}",
+    "billingPeriod": "Billing period starts: {date} (UTC)",
+    "subscription": "Subscription: {id}",
+    "lastEnd": "Last seat ended: {date} (UTC)",
+    "paidUntil": "Paid-until date and time (UTC, as shown in Paddle)",
+    "evidenceId": "Paddle evidence ID (txn_… or adj_…)",
+    "disposition": "Closure outcome",
+    "chooseDisposition": "Choose an outcome",
+    "evidenceRule": "After cancelling in Paddle, record the paid-until date and transaction or adjustment ID. Evidence can be recorded only once and cannot be replaced here.",
+    "closureRule": "Closure is administrative. It ends the operational task, while provider settlement and charge reconciliation continue. Paddle must show the required state before closure.",
+    "renewingRule": "Renewing as a member revokes all linked sponsor entries. It does not promise future individual renewal while an earlier cancellation is unresolved.",
+    "refundRule": "Acknowledgement records that staff reviewed this charge. Any refund decision stays in Paddle.",
+    "erasureRule": "Deletion must use the existing admin erasure process on the linked user page, with the required admin access. This task never deletes an account.",
+    "actions": {
+      "evidence": "Record evidence",
+      "close": "Close handover",
+      "acknowledge": "Acknowledge charge"
+    },
+    "dispositions": {
+      "canceled": "Paddle shows canceled",
+      "renewing_as_member": "Paddle shows active with no scheduled change"
+    },
+    "errors": {
+      "forbidden": "Only staff with a valid tenant and branch can use these tasks.",
+      "invalid": "Check the IDs, paid-until date and closure outcome.",
+      "not_found": "This task is no longer available. Refresh the list.",
+      "conflict": "The task state changed. Refresh and review it.",
+      "error": "The request could not be completed. Please try again."
+    },
+    "conflicts": {
+      "evidence": "Evidence is already recorded, the evidence ID is in use, or this handover no longer accepts evidence. Refresh and review it.",
+      "close": "Paddle does not yet show the required state, or the handover is no longer open. Review Paddle and refresh before trying again.",
+      "acknowledge": "The charge changed. Refresh and review it."
+    },
+    "reasons": {
+      "paddle_state": "Paddle needs review. Check the subscription and its handover; record evidence after cancellation or close the handover when Paddle permits.",
+      "empty_interval": "The seat would start at or after its end. Review the contract dates and paid-until evidence with the responsible staff.",
+      "binding": "The entry could not be bound safely to an account. Review the roster and account identity with the responsible staff.",
+      "unknown": "The reason needs staff review. Check the entry before taking action."
+    },
+    "kinds": {
+      "intent_review": {
+        "title": "Handover review",
+        "help": "Check Paddle and the member’s instructions. Record paid-until evidence once, or close the handover with a verified Paddle state."
+      },
+      "observed_cancel": {
+        "title": "Observed cancellations",
+        "help": "Paddle cancellation has been observed. Review the member’s next steps; charge reconciliation continues independently."
+      },
+      "charge": {
+        "title": "Charges to review",
+        "help": "Review the Paddle transaction and acknowledge it. A charge does not change coverage; refunds are a separate staff decision in Paddle."
+      },
+      "entry_review": {
+        "title": "Entries to review",
+        "help": "Review the reason for each held entry and coordinate the required correction."
+      },
+      "rejected_entry": {
+        "title": "Overlapping sponsors",
+        "help": "This entry was rejected because sponsorships overlap. Commercial handling is a separate owner decision."
+      },
+      "checkout_race": {
+        "title": "Individual checkout during sponsorship",
+        "help": "An active Paddle subscription has no handover while sponsorship covers the person. Review the subscription in Paddle and coordinate with staff."
+      },
+      "unactivated_account": {
+        "title": "Unactivated accounts",
+        "help": "These accounts have no credential and their last seat ended at least 90 days ago. Review them through the existing admin user and erasure process."
+      }
+    },
+    "refresh": "Refresh tasks"
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "sponsorTasks": {
+    "title": "Sponsorenaufgaben",
+    "tasksLink": "Aufgaben",
+    "empty": "Es gibt keine Sponsorenaufgaben zur Prüfung.",
+    "loading": "Aufgaben werden geladen…",
+    "retry": "Erneut versuchen",
+    "saving": "Wird gespeichert…",
+    "saved": "Gespeichert. Liste aktualisieren, um die neuesten Aufgaben zu sehen.",
+    "person": "Benutzer {id} öffnen",
+    "unbound": "Dieser Eintrag ist noch keinem Konto zugeordnet.",
+    "intent": "Übergang: {id}",
+    "entry": "Eintrag: {id} · Laufzeit: {term} · Sponsor: {sponsor}",
+    "since": "Prüfung erforderlich seit {date} (UTC)",
+    "observedAt": "Kündigung am {date} festgestellt (UTC)",
+    "transaction": "Paddle-Transaktion: {id}",
+    "billingPeriod": "Abrechnungszeitraum beginnt: {date} (UTC)",
+    "subscription": "Abonnement: {id}",
+    "lastEnd": "Letzter Platz endete: {date} (UTC)",
+    "paidUntil": "Bezahlt bis: Datum und Uhrzeit (UTC, laut Paddle)",
+    "evidenceId": "Paddle-Beleg-ID (txn_… oder adj_…)",
+    "disposition": "Abschlussergebnis",
+    "chooseDisposition": "Ergebnis auswählen",
+    "evidenceRule": "Nach der Kündigung in Paddle das bezahlte Enddatum und die Transaktions- oder Korrektur-ID erfassen. Der Beleg kann nur einmal erfasst und hier nicht ersetzt werden.",
+    "closureRule": "Der Abschluss ist administrativ. Er beendet die operative Aufgabe; Klärung mit dem Anbieter und Zahlungsabgleich laufen weiter. Paddle muss den erforderlichen Zustand anzeigen.",
+    "renewingRule": "Verlängerung als Mitglied widerruft alle verknüpften Sponsoreneinträge. Solange eine frühere Kündigung ungeklärt ist, wird keine weitere individuelle Verlängerung zugesagt.",
+    "refundRule": "Die Bestätigung dokumentiert die Prüfung der Zahlung durch Mitarbeitende. Die Erstattungsentscheidung bleibt in Paddle.",
+    "erasureRule": "Die Löschung erfolgt über das bestehende Admin-Löschverfahren auf der verlinkten Benutzerseite mit den erforderlichen Admin-Rechten. Diese Aufgabe löscht kein Konto.",
+    "actions": {
+      "evidence": "Beleg erfassen",
+      "close": "Übergang abschließen",
+      "acknowledge": "Zahlungsprüfung bestätigen"
+    },
+    "dispositions": {
+      "canceled": "Paddle zeigt gekündigt",
+      "renewing_as_member": "Paddle zeigt aktiv ohne geplante Änderung"
+    },
+    "errors": {
+      "forbidden": "Nur Mitarbeitende mit gültigem Mandanten und gültiger Niederlassung können diese Aufgaben nutzen.",
+      "invalid": "IDs, bezahltes Enddatum und Abschlussergebnis prüfen.",
+      "not_found": "Diese Aufgabe ist nicht mehr verfügbar. Liste aktualisieren.",
+      "conflict": "Der Aufgabenstatus hat sich geändert. Aktualisieren und prüfen.",
+      "error": "Die Anfrage konnte nicht abgeschlossen werden. Bitte erneut versuchen."
+    },
+    "conflicts": {
+      "evidence": "Ein Beleg ist bereits erfasst, die Beleg-ID wird verwendet oder dieser Übergang nimmt keine Belege mehr an. Aktualisieren und prüfen.",
+      "close": "Paddle zeigt den erforderlichen Zustand noch nicht oder der Übergang ist nicht mehr offen. Paddle prüfen und vor einem erneuten Versuch aktualisieren.",
+      "acknowledge": "Die Zahlung hat sich geändert. Aktualisieren und prüfen."
+    },
+    "reasons": {
+      "paddle_state": "Paddle muss geprüft werden. Abonnement und Übergang prüfen; nach Kündigung Beleg erfassen oder abschließen, sobald Paddle es erlaubt.",
+      "empty_interval": "Der Platz würde an oder nach seinem Ende beginnen. Vertragsdaten und Zahlungsbeleg mit den zuständigen Mitarbeitenden prüfen.",
+      "binding": "Der Eintrag konnte keinem Konto sicher zugeordnet werden. Liste und Kontoidentität mit den zuständigen Mitarbeitenden prüfen.",
+      "unknown": "Der Grund muss von Mitarbeitenden geprüft werden. Eintrag vor einer Aktion prüfen."
+    },
+    "kinds": {
+      "intent_review": {
+        "title": "Übergänge prüfen",
+        "help": "Paddle und die Anweisungen des Mitglieds prüfen. Den Zahlungsbeleg einmal erfassen oder den Übergang mit bestätigtem Paddle-Zustand abschließen."
+      },
+      "observed_cancel": {
+        "title": "Festgestellte Kündigungen",
+        "help": "Eine Kündigung in Paddle wurde festgestellt. Nächste Schritte für das Mitglied prüfen; der Zahlungsabgleich läuft unabhängig weiter."
+      },
+      "charge": {
+        "title": "Zahlungen prüfen",
+        "help": "Paddle-Transaktion prüfen und bestätigen. Eine Zahlung ändert den Schutz nicht; Erstattungen sind eine separate Entscheidung der Mitarbeitenden in Paddle."
+      },
+      "entry_review": {
+        "title": "Einträge prüfen",
+        "help": "Den Grund für jeden zurückgehaltenen Eintrag prüfen und die nötige Korrektur abstimmen."
+      },
+      "rejected_entry": {
+        "title": "Überlappende Sponsoren",
+        "help": "Dieser Eintrag wurde wegen überlappender Sponsorenschaften abgelehnt. Die kaufmännische Behandlung ist eine separate Entscheidung des Eigentümers."
+      },
+      "checkout_race": {
+        "title": "Individuelles Abonnement während der Sponsorenschaft",
+        "help": "Ein aktives Paddle-Abonnement hat keinen Übergang, während die Person über einen Sponsor abgesichert ist. Abonnement in Paddle prüfen und mit Mitarbeitenden abstimmen."
+      },
+      "unactivated_account": {
+        "title": "Nicht aktivierte Konten",
+        "help": "Diese Konten haben keine Anmeldedaten und ihr letzter Platz endete vor mindestens 90 Tagen. Über das bestehende Admin-Verfahren für Benutzer und Löschung prüfen."
+      }
+    },
+    "refresh": "Aufgaben aktualisieren"
+  }
+}

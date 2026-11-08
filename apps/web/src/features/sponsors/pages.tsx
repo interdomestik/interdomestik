@@ -1,4 +1,5 @@
 import { Link } from '@/i18n/routing';
+import { SponsorTasksLink } from '@/features/sponsor-tasks/sponsor-tasks-link';
 import {
   listSponsorsForActor,
   readSponsorRoster,
@@ -164,6 +165,7 @@ export async function SponsorPage({
       className="mx-auto max-w-5xl space-y-6 p-4 sm:p-8"
     >
       <h1 className="text-2xl font-bold">{sponsor?.legalName ?? t('title')}</h1>
+      {area === 'staff' && !sponsorId && <SponsorTasksLink />}
       {sponsor && (
         <Link className="underline" href={base}>
           {t('backToSponsors')}

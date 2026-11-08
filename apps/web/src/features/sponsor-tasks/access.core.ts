@@ -1,0 +1,46 @@
+import 'server-only';
+
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import type { listSponsorStaffTasks } from '@interdomestik/domain-membership-billing/sponsors/staff-tasks';
+import { ROLES } from '@interdomestik/shared-auth';
+
+type StaffContext = {
+  authority: TenantAuthority;
+  actor: Parameters<typeof listSponsorStaffTasks>[1];
+  tenantId: string;
+};
+
+export async function authorizeSponsorTasks(): Promise<StaffContext | null> {
+  try {
+    const authorized = await authorizeSessionTenant();
+    if (!authorized) return null;
+    const { authority, session } = authorized;
+    const descriptor = readTenantAuthority(authority);
+    const principal = descriptor.principal;
+    if (
+      !principal ||
+      principal.role !== ROLES.staff ||
+      session.user.role !== ROLES.staff ||
+      principal.userId !== session.user.id ||
+      (principal.branchId ?? null) !== (session.user.branchId ?? null) ||
+      descriptor.tenantId !== descriptor.accessTenantId
+    )
+      return null;
+    return {
+      authority,
+      tenantId: descriptor.tenantId,
+      actor: {
+        userId: principal.userId,
+        role: ROLES.staff,
+        branchId: principal.branchId ?? null,
+        agentTier: null,
+      },
+    };
+  } catch {
+    return null;
+  }
+}

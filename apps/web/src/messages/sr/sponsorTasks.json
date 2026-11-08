@@ -1,0 +1,88 @@
+{
+  "sponsorTasks": {
+    "title": "Zadaci za sponzore",
+    "tasksLink": "Zadaci",
+    "empty": "Nema zadataka za sponzore za pregled.",
+    "loading": "Učitavanje zadataka…",
+    "retry": "Pokušaj ponovo",
+    "saving": "Čuvanje…",
+    "saved": "Sačuvano. Osveži listu za najnovije zadatke.",
+    "person": "Otvori korisnika {id}",
+    "unbound": "Ovaj unos još nije povezan sa nalogom.",
+    "intent": "Prelazak: {id}",
+    "entry": "Unos: {id} · Period: {term} · Sponzor: {sponsor}",
+    "since": "Za pregled od {date} (UTC)",
+    "observedAt": "Otkazivanje primećeno {date} (UTC)",
+    "transaction": "Paddle transakcija: {id}",
+    "billingPeriod": "Obračunski period počinje: {date} (UTC)",
+    "subscription": "Pretplata: {id}",
+    "lastEnd": "Poslednje mesto je završeno: {date} (UTC)",
+    "paidUntil": "Datum i vreme do kada je plaćeno (UTC, prema Paddle-u)",
+    "evidenceId": "ID dokaza u Paddle-u (txn_… ili adj_…)",
+    "disposition": "Ishod zatvaranja",
+    "chooseDisposition": "Izaberi ishod",
+    "evidenceRule": "Posle otkazivanja u Paddle-u, unesi datum do kada je plaćeno i ID transakcije ili korekcije. Dokaz se beleži samo jednom i ovde se ne može zameniti.",
+    "closureRule": "Zatvaranje je administrativno. Završava operativni zadatak, dok razrešenje sa pružaocem i provera naplata traju. Paddle mora da pokaže potrebno stanje.",
+    "renewingRule": "Obnavljanje kao član opoziva sve povezane sponzorske unose. Ne obećava buduće individualno obnavljanje dok ranije otkazivanje nije razrešeno.",
+    "refundRule": "Potvrda beleži da je osoblje pregledalo naplatu. Odluka o povraćaju ostaje u Paddle-u.",
+    "erasureRule": "Brisanje ide kroz postojeći administratorski postupak na povezanoj stranici korisnika, uz potreban administratorski pristup. Ovaj zadatak ne briše naloge.",
+    "actions": {
+      "evidence": "Zabeleži dokaz",
+      "close": "Zatvori prelazak",
+      "acknowledge": "Potvrdi pregled naplate"
+    },
+    "dispositions": {
+      "canceled": "Paddle prikazuje otkazanu pretplatu",
+      "renewing_as_member": "Paddle prikazuje aktivnu pretplatu bez zakazane promene"
+    },
+    "errors": {
+      "forbidden": "Samo osoblje sa važećim tenantom i filijalom može da koristi ove zadatke.",
+      "invalid": "Proveri ID oznake, datum do kada je plaćeno i ishod zatvaranja.",
+      "not_found": "Ovaj zadatak više nije dostupan. Osveži listu.",
+      "conflict": "Stanje zadatka se promenilo. Osveži i pregledaj.",
+      "error": "Zahtev nije mogao da se završi. Pokušaj ponovo."
+    },
+    "conflicts": {
+      "evidence": "Dokaz je već zabeležen, ID je u upotrebi ili prelazak više ne prihvata dokaze. Osveži i pregledaj.",
+      "close": "Paddle još ne prikazuje potrebno stanje ili prelazak više nije otvoren. Pregledaj Paddle i osveži pre novog pokušaja.",
+      "acknowledge": "Naplata se promenila. Osveži i pregledaj."
+    },
+    "reasons": {
+      "paddle_state": "Potreban je pregled u Paddle-u. Proveri pretplatu i prelazak; zabeleži dokaz posle otkazivanja ili zatvori kada Paddle dozvoli.",
+      "empty_interval": "Mesto bi počelo na ili posle svog kraja. Pregledaj datume ugovora i dokaze sa odgovornim osobljem.",
+      "binding": "Unos nije mogao bezbedno da se poveže sa nalogom. Pregledaj spisak i identitet sa odgovornim osobljem.",
+      "unknown": "Razlog zahteva pregled osoblja. Proveri unos pre postupanja."
+    },
+    "kinds": {
+      "intent_review": {
+        "title": "Pregled prelaska",
+        "help": "Proveri Paddle i uputstva člana. Jednom zabeleži dokaz o plaćenom periodu ili zatvori prelazak uz provereno stanje u Paddle-u."
+      },
+      "observed_cancel": {
+        "title": "Primećena otkazivanja",
+        "help": "Primećeno je otkazivanje u Paddle-u. Pregledaj naredne korake člana; provera naplata se nastavlja nezavisno."
+      },
+      "charge": {
+        "title": "Naplate za pregled",
+        "help": "Pregledaj Paddle transakciju i potvrdi je. Naplata ne menja pokriće; povraćaj je posebna odluka osoblja u Paddle-u."
+      },
+      "entry_review": {
+        "title": "Unosi za pregled",
+        "help": "Pregledaj razlog za svaki zadržani unos i uskladi potrebnu ispravku."
+      },
+      "rejected_entry": {
+        "title": "Preklapanje sponzora",
+        "help": "Unos je odbijen zbog preklapanja sponzorstava. Komercijalno postupanje je posebna odluka vlasnika."
+      },
+      "checkout_race": {
+        "title": "Individualna pretplata tokom sponzorstva",
+        "help": "Aktivna Paddle pretplata nema prelazak dok sponzorstvo pokriva osobu. Pregledaj pretplatu i uskladi postupanje sa osobljem."
+      },
+      "unactivated_account": {
+        "title": "Neaktivirani nalozi",
+        "help": "Ovi nalozi nemaju akreditiv, a poslednje mesto je završeno pre najmanje 90 dana. Pregledaj ih kroz postojeći administratorski postupak za korisnike i brisanje."
+      }
+    },
+    "refresh": "Osveži zadatke"
+  }
+}
