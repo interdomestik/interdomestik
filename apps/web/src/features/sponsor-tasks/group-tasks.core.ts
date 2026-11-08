@@ -3,6 +3,7 @@ import type { SponsorStaffTask } from '@interdomestik/domain-membership-billing/
 export const TASK_KINDS = [
   'intent_review',
   'observed_cancel',
+  'scheduled_cancel',
   'charge',
   'entry_review',
   'rejected_entry',

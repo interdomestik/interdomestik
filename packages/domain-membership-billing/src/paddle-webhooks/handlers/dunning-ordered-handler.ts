@@ -3,7 +3,7 @@ import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { PaddleEventOrderingError, RetryablePaddleWebhookError } from '../errors';
 import type { PastDueEmailDeps } from '../types';
 import type { PastDueUserRecord } from './dunning-context';
-import { deliverPastDueEffects } from './dunning-effects';
+import { type PastDueEffectInput, deliverPastDueEffects } from './dunning-effects';
 import { persistOrderedPastDueSubscription, type LockedDunningState } from './dunning-order';
 import type { PaddleSubscriptionEventOrder } from './subscription-event-order';
 
@@ -14,7 +14,7 @@ export async function handleOrderedPastDue(args: {
   authority: TenantAuthority;
   user: PastDueUserRecord;
   planName: string;
-  /** ACQ-3b: sponsor coverage holds, so the frozen mail drops the loss-of-access claim. */
+  /** Initial copy only; delivery rechecks coverage before selecting the event-frozen variant. */
   accessContinues?: boolean;
   deps: PastDueEmailDeps;
   buildState: (row: LockedDunningState) => {
@@ -33,23 +33,36 @@ export async function handleOrderedPastDue(args: {
       // Runs inside the ordered transaction: a failure here rolls the snapshot back.
       effects: state => {
         let request = null;
+        let coverageCopy: PastDueEffectInput['coverageCopy'];
         if (state.newDunningCount === 1 && args.user.email) {
           if (!args.deps.preparePastDueEmail) {
             throw new RetryablePaddleWebhookError('Past-due email preparation unavailable');
           }
-          request = args.deps.preparePastDueEmail(args.user.email, {
-            accessContinues: args.accessContinues,
+          const facts = {
             memberName: args.user.name || 'Member',
             planName: args.planName,
             gracePeriodDays: 14,
             gracePeriodEndDate: state.gracePeriodEnd.toLocaleDateString(),
-          });
+          };
+          coverageCopy = {
+            covered: args.deps.preparePastDueEmail(args.user.email, {
+              ...facts,
+              accessContinues: true,
+            }),
+            uncovered: args.deps.preparePastDueEmail(args.user.email, {
+              ...facts,
+              accessContinues: false,
+            }),
+            periodEnd: state.values.currentPeriodEnd?.toISOString() ?? null,
+          };
+          request = args.accessContinues ? coverageCopy.covered : coverageCopy.uncovered;
         }
         return {
           userId: args.user.id,
           newDunningCount: state.newDunningCount,
           gracePeriodEnd: state.gracePeriodEnd,
           request,
+          coverageCopy,
         };
       },
     });

@@ -15,6 +15,7 @@ import {
   activationCandidates,
   entryTasks,
   listSponsorStaffTasks,
+  scheduledCancelTasks,
 } from './staff-tasks';
 
 const now = new Date('2027-06-01T00:00:00Z');
@@ -61,6 +62,26 @@ describe('sponsor staff-task queue', () => {
       row({ userId: null, termEnd: '2026-01-01 00:00:00+00' }),
     ];
     expect([...activationCandidates(rows as never, now).keys()]).toEqual(['old']);
+  });
+
+  it('lists an unwanted scheduled cancel only until it takes effect', () => {
+    const task = (effectiveAt: string) => ({
+      kind: 'scheduled_cancel' as const,
+      taskId: effectiveAt,
+      intentId: 'sph_1',
+      userId: 'usr_1',
+      effectiveAt: new Date(effectiveAt),
+    });
+    expect(
+      scheduledCancelTasks([task('2027-06-15T00:00:00Z'), task('2027-05-15T00:00:00Z')], now)
+    ).toEqual([
+      {
+        kind: 'scheduled_cancel',
+        intentId: 'sph_1',
+        userId: 'usr_1',
+        at: new Date('2027-06-15T00:00:00Z'),
+      },
+    ]);
   });
 
   it.each(['agent', 'branch_manager', 'auditor', 'global_support', 'member'])(

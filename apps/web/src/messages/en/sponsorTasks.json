@@ -13,6 +13,7 @@
     "entry": "Entry: {id} · Term: {term} · Sponsor: {sponsor}",
     "since": "Needs review since {date} (UTC)",
     "observedAt": "Cancellation observed on {date} (UTC)",
+    "scheduledAt": "Cancellation takes effect on {date} (UTC)",
     "transaction": "Paddle transaction: {id}",
     "billingPeriod": "Billing period starts: {date} (UTC)",
     "subscription": "Subscription: {id}",
@@ -61,6 +62,10 @@
       "observed_cancel": {
         "title": "Observed cancellations",
         "help": "Paddle cancellation has been observed. Review the member’s next steps; charge reconciliation continues independently."
+      },
+      "scheduled_cancel": {
+        "title": "Scheduled cancellations",
+        "help": "Paddle has a cancellation scheduled that no sponsored seat needs. Remove it in Paddle only at the member’s request; the system never changes it."
       },
       "charge": {
         "title": "Charges to review",

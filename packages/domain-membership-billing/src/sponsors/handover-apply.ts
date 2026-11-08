@@ -17,6 +17,7 @@ import type { AttemptOutcome } from '../sponsor-coverage/handover-evidence';
 import { SPONSOR_SYSTEM_ACTOR, writeSponsorAudit } from './audit';
 import type { HandoverState } from './handover-intent-read';
 import type { HandoverPlan } from './handover-plan';
+import { recordScheduledHandoverTask } from './handover-scheduled-tasks.core';
 
 export type DispatchTicket = { attemptId: string; providerSubscriptionId: string };
 
@@ -69,6 +70,9 @@ export async function applyHandoverPlan(
           eq(sponsorHandoverCancelAttempts.outcome, 'unknown')
         )
       );
+  }
+  if (plan.scheduledCancelAt) {
+    await recordScheduledHandoverTask(tx, tenantId, intent.id, plan.scheduledCancelAt);
   }
   await updateEntries(tx, tenantId, plan);
   if (plan.endOffer) {

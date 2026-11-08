@@ -14,7 +14,10 @@ vi.mock('../../commissions/create', async function () {
   const support = await import('./test-support');
   return support.createCommissionMockModule();
 });
-vi.mock('./dunning-sponsor', () => ({ readPastDueAccessContinues: async () => false }));
+vi.mock('./dunning-sponsor', () => ({
+  readPastDueAccessContinues: async () => false,
+  pastDueAccessContinuesInTx: async () => false,
+}));
 vi.mock('@interdomestik/database/member-number', async function () {
   const support = await import('./test-support');
   return support.createMemberNumberMockModule();

@@ -13,6 +13,7 @@
     "entry": "Hyrja: {id} · Afati: {term} · Sponsori: {sponsor}",
     "since": "Kërkon shqyrtim që nga {date} (UTC)",
     "observedAt": "Anulimi u vërejt më {date} (UTC)",
+    "scheduledAt": "Anulimi hyn në fuqi më {date} (UTC)",
     "transaction": "Transaksioni Paddle: {id}",
     "billingPeriod": "Periudha e faturimit fillon: {date} (UTC)",
     "subscription": "Abonimi: {id}",
@@ -61,6 +62,10 @@
       "observed_cancel": {
         "title": "Anulimet e vërejtura",
         "help": "U vërejt anulimi në Paddle. Shqyrto hapat e ardhshëm të anëtarit; kontrolli i pagesave vazhdon veçmas."
+      },
+      "scheduled_cancel": {
+        "title": "Anulime të planifikuara",
+        "help": "Paddle ka një anulim të planifikuar që nuk i nevojitet asnjë vendi të sponsorizuar. Hiqeni në Paddle vetëm me kërkesë të anëtarit; sistemi nuk e ndryshon kurrë."
       },
       "charge": {
         "title": "Pagesat për shqyrtim",

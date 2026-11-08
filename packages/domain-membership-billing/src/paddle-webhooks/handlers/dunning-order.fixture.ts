@@ -175,7 +175,10 @@ vi.mock('@interdomestik/database/schema', () => ({
   auditLog: hoisted.auditLog,
   engagementEmailSends: hoisted.engagementEmailSends,
 }));
-vi.mock('./dunning-sponsor', () => ({ readPastDueAccessContinues: async () => false }));
+vi.mock('./dunning-sponsor', () => ({
+  readPastDueAccessContinues: async () => false,
+  pastDueAccessContinuesInTx: async () => false,
+}));
 vi.mock('../../subscription', () => ({
   findPaddleSubscriptionByReference: hoisted.findPaddleSubscriptionByReference,
   findPaddleSubscriptionInTenant: hoisted.findPaddleSubscriptionInTenant,

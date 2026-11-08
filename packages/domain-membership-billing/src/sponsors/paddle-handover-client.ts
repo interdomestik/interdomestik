@@ -8,7 +8,10 @@ import {
 import { getPaddle } from '../paddle-server';
 import type { PaddleReadBack, PaddleTransaction } from '../sponsor-coverage/handover-evidence';
 
-export type HandoverSubscription = PaddleReadBack & { nextBilledAt: string | null };
+export type HandoverSubscription = PaddleReadBack & {
+  nextBilledAt: string | null;
+  scheduledChange: { action: string; effectiveAt?: string } | null;
+};
 export type CancelResponse =
   | { kind: 'ok'; subscription: PaddleReadBack }
   | { kind: 'definite_error'; code: string }
@@ -24,7 +27,12 @@ export type HandoverPaddleClient = {
 export function toReadBack(entity: Subscription): HandoverSubscription {
   return {
     status: entity.status,
-    scheduledChange: entity.scheduledChange ? { action: entity.scheduledChange.action } : null,
+    scheduledChange: entity.scheduledChange
+      ? {
+          action: entity.scheduledChange.action,
+          effectiveAt: entity.scheduledChange.effectiveAt,
+        }
+      : null,
     currentBillingPeriod: entity.currentBillingPeriod
       ? {
           startsAt: entity.currentBillingPeriod.startsAt,

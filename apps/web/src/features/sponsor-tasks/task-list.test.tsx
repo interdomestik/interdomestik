@@ -24,6 +24,7 @@ const now = new Date('2026-11-08T00:00:00Z');
 const tasks: SponsorStaffTask[] = [
   { kind: 'intent_review', intentId: 'i1', userId: 'u1', since: now },
   { kind: 'observed_cancel', intentId: 'i2', userId: 'u2', at: now, state: 'done' },
+  { kind: 'scheduled_cancel', intentId: 'i7', userId: 'u7', at: now },
   {
     kind: 'charge',
     chargeId: 'c1',
@@ -94,6 +95,9 @@ describe('sponsor task groups', () => {
       '/admin/users/u6'
     );
     expect(screen.getByText('erasureRule')).toBeInTheDocument();
+    expect(
+      screen.getByText(`scheduledAt:${JSON.stringify({ date: now.toISOString() })}`)
+    ).toBeInTheDocument();
   });
 
   it('shows an empty state and offers the locale-aware tasks link', () => {

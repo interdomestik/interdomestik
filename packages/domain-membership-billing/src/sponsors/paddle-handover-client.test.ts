@@ -98,7 +98,7 @@ describe('handover Paddle client', () => {
   it('maps subscription evidence and preserves exact timestamps', () => {
     expect(toReadBack(subscription)).toEqual({
       status: 'active',
-      scheduledChange: { action: 'cancel' },
+      scheduledChange: { action: 'cancel', effectiveAt: endsAt },
       currentBillingPeriod: { startsAt, endsAt },
       nextBilledAt: endsAt,
     });

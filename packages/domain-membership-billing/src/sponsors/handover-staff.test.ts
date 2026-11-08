@@ -1,4 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
+import { sponsorHandoverIntents, sponsorRosterEntries } from '@interdomestik/database';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { auditTransaction } from './audit-test-support';
+import { readHandoverState, type HandoverState } from './handover-intent-read';
+import { planHandoverStep } from './handover-plan';
+
+vi.mock('./handover-worker', () => ({ lockPerson: vi.fn() }));
+vi.mock('./handover-intent-read', () => ({ readHandoverState: vi.fn() }));
 
 vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   withTenantAuthority: vi.fn(() => {
@@ -84,4 +93,89 @@ describe('staff handover actions', () => {
       error: 'invalid',
     });
   });
+});
+
+it('accepts unique staff evidence after canceled-without-evidence and keeps paidUntil write-once', async () => {
+  const state: HandoverState = {
+    intent: {
+      id: 'intent',
+      userId: 'member',
+      providerSubscriptionId: 'sub_1',
+      state: 'pending',
+      cancelDispatchedAt: '2027-01-01',
+      dispatchPeriodEndsAt: '2027-01-15',
+      staffDisposition: null,
+      restorationCutoff: null,
+      attempts: 1,
+      paidUntil: null,
+      paidUntilEvidence: null,
+      canceledConfirmedAt: null,
+      reconciliationClosedAt: null,
+    },
+    attempts: [{ id: 'attempt', attemptNo: 1, outcome: 'unknown' }],
+    linked: [
+      {
+        id: 'entry',
+        sponsorId: 'sponsor',
+        termId: 'term',
+        termStart: new Date('2027-01-01'),
+        termEnd: new Date('2028-01-01'),
+        terminatedEffectiveAt: null,
+        termEffective: true,
+        planId: 'standard',
+        planKey: 'plan',
+        legalEntityId: 'ks',
+        conflictDecision: 'accepted',
+        revokedAt: null,
+        outcome: 'awaiting_paid_end',
+        startsAt: null,
+        handoverPaidUntil: null,
+      },
+    ],
+  };
+  const plan = planHandoverStep(state, readBack({ status: 'canceled' }), [], now);
+  if (!plan.nextState) throw new Error('Expected a recovery state');
+  state.intent.state = plan.nextState;
+  state.intent.canceledConfirmedAt = now.toISOString();
+  vi.mocked(readHandoverState).mockResolvedValue(state);
+  const db = auditTransaction({
+    selects: [[{ userId: 'member', providerSubscriptionId: 'sub_1' }], []],
+  });
+  vi.mocked(withTenantAuthority).mockImplementationOnce(async (_authority, callback) =>
+    callback(db.tx)
+  );
+  const input = {
+    intentId: 'intent',
+    paidUntil: new Date('2027-01-15'),
+    evidenceId: 'support:123',
+    now,
+  };
+  const record = () =>
+    recordHandoverEvidence(
+      mintTestTenantAuthority('tenant'),
+      actor('staff'),
+      { hasCredential: async () => true },
+      input
+    );
+  await expect(record()).resolves.toEqual({ ok: true, value: { started: 1 } });
+  expect(
+    db.writes.filter(write => write.table === sponsorHandoverIntents).map(write => write.values)
+  ).toContainEqual(
+    expect.objectContaining({
+      paidUntilEvidence: 'staff:support:123',
+      paidUntil: input.paidUntil.toISOString(),
+    })
+  );
+  expect(
+    db.writes.filter(write => write.table === sponsorRosterEntries).map(write => write.values)
+  ).toContainEqual({ outcome: 'seated', reviewReason: null });
+  state.intent.paidUntil = input.paidUntil.toISOString();
+  const second = auditTransaction({
+    selects: [[{ userId: 'member', providerSubscriptionId: 'sub_1' }]],
+  });
+  vi.mocked(withTenantAuthority).mockImplementationOnce(async (_authority, callback) =>
+    callback(second.tx)
+  );
+  await expect(record()).resolves.toEqual({ ok: false, error: 'conflict' });
+  expect(second.writes).toEqual([]);
 });

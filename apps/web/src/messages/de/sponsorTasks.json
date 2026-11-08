@@ -13,6 +13,7 @@
     "entry": "Eintrag: {id} · Laufzeit: {term} · Sponsor: {sponsor}",
     "since": "Prüfung erforderlich seit {date} (UTC)",
     "observedAt": "Kündigung am {date} festgestellt (UTC)",
+    "scheduledAt": "Die Kündigung wird am {date} (UTC) wirksam",
     "transaction": "Paddle-Transaktion: {id}",
     "billingPeriod": "Abrechnungszeitraum beginnt: {date} (UTC)",
     "subscription": "Abonnement: {id}",
@@ -61,6 +62,10 @@
       "observed_cancel": {
         "title": "Festgestellte Kündigungen",
         "help": "Eine Kündigung in Paddle wurde festgestellt. Nächste Schritte für das Mitglied prüfen; der Zahlungsabgleich läuft unabhängig weiter."
+      },
+      "scheduled_cancel": {
+        "title": "Geplante Kündigungen",
+        "help": "In Paddle ist eine Kündigung geplant, die kein gesponserter Platz benötigt. Entfernen Sie sie in Paddle nur auf Wunsch des Mitglieds; das System ändert sie nie."
       },
       "charge": {
         "title": "Zahlungen prüfen",

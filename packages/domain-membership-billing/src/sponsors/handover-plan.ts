@@ -20,6 +20,7 @@ import {
   type ReconciliationIntent,
   reconciliationMayClose,
 } from '../sponsor-coverage/handover-reconciliation';
+import type { HandoverSubscription } from './paddle-handover-client';
 import type { HandoverState } from './handover-intent-read';
 
 type IntentState = ReconciliationIntent['state'];
@@ -32,6 +33,7 @@ export type HandoverPlan = {
   charges: PaddleTransaction[];
   /** First observation of `canceled`: record it and mark `unknown` attempts `moot`. */
   observedCancel: boolean;
+  scheduledCancelAt: string | null;
   nextState: IntentState | null;
   evidence: { paidUntil: string; transactionId: string } | null;
   /** Entries the entry-start producer runs for (step 2). */
@@ -60,7 +62,8 @@ export function retryDelayMs(attempts: number): number {
 
 export function planHandoverStep(
   state: HandoverState,
-  readBack: PaddleReadBack,
+  readBack: PaddleReadBack &
+    Partial<Pick<HandoverSubscription, 'nextBilledAt' | 'scheduledChange'>>,
   transactions: readonly PaddleTransaction[],
   now: Date
 ): HandoverPlan {
@@ -68,6 +71,7 @@ export function planHandoverStep(
   const plan: HandoverPlan = {
     charges: chargesAfterBoundary(intent, transactions),
     observedCancel: false,
+    scheduledCancelAt: null,
     nextState: null,
     evidence: null,
     startEntries: [],
@@ -78,6 +82,12 @@ export function planHandoverStep(
     closeReconciliation: false,
     nextRunAt: new Date(now.getTime() + DAY_MS),
   };
+  if (readBack.status === 'active' && readBack.scheduledChange?.action === 'cancel') {
+    const effectiveAt = readBack.scheduledChange.effectiveAt;
+    if (effectiveAt && Number.isFinite(Date.parse(effectiveAt))) {
+      plan.scheduledCancelAt = new Date(effectiveAt).toISOString();
+    }
+  }
   const paidUntil = intent.paidUntil ? new Date(intent.paidUntil) : null;
 
   if (readBack.status === 'canceled') {
@@ -91,6 +101,11 @@ export function planHandoverStep(
     }
   }
 
+  // A scheduled cancel is a staff task only when nothing wants it: the worker's own cancel for a
+  // live linked entry is the intended outcome, not a task (§3.7 "Observed cancellation").
+  if (ACTIVE.has(intent.state) && linked.some(entry => isLiveEntry(entry, now, paidUntil))) {
+    plan.scheduledCancelAt = null;
+  }
   const finalState = plan.nextState ?? intent.state;
   plan.closeReconciliation = reconciliationMayClose({
     intent: { ...intent, state: finalState },
@@ -126,9 +141,10 @@ function observeCancellation(plan: HandoverPlan, state: HandoverState, now: Date
   } else if (
     intent.state === 'pending' ||
     intent.state === 'cancel_scheduled' ||
-    intent.state === 'staff_review'
+    intent.state === 'staff_review' ||
+    (intent.state === 'done' && intent.paidUntil === null)
   ) {
-    plan.nextState = 'done';
+    plan.nextState = intent.paidUntil === null ? 'staff_review' : 'done';
   }
 }
 
@@ -145,7 +161,8 @@ function noLiveEntry(plan: HandoverPlan, intent: HandoverState['intent']): void 
 function planLive(
   plan: HandoverPlan,
   state: HandoverState,
-  readBack: PaddleReadBack,
+  readBack: PaddleReadBack &
+    Partial<Pick<HandoverSubscription, 'nextBilledAt' | 'scheduledChange'>>,
   transactions: readonly PaddleTransaction[],
   now: Date,
   paidUntil: Date | null
@@ -170,6 +187,13 @@ function planLive(
     return;
   }
   if (finding.kind !== 'not_scheduled') return;
+  const nextBilledAt = readBack.nextBilledAt ? Date.parse(readBack.nextBilledAt) : NaN;
+  if (!Number.isFinite(nextBilledAt)) {
+    // Missing provider timing cannot authorize a cancel; use the existing staff recovery path.
+    plan.nextState = 'staff_review';
+    return;
+  }
+  if (nextBilledAt - now.getTime() < DAY_MS) return;
   const boundaryText = readBack.currentBillingPeriod?.endsAt;
   if (!boundaryText) {
     plan.nextState = 'staff_review';

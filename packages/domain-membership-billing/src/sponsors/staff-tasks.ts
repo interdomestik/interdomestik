@@ -9,6 +9,10 @@ import { effectiveCoverageMembers, parseTimestamp } from '../sponsor-coverage/re
 import { isSponsorStaff, type SponsorActor } from './access';
 import { credentialsOf } from './credential-batch';
 import {
+  readScheduledHandoverTasks,
+  type ScheduledHandoverTask,
+} from './handover-scheduled-tasks.core';
+import {
   readOpenCharges,
   readTaskEntries,
   readTaskIntents,
@@ -23,6 +27,8 @@ import type { SponsorResult } from './terms';
 export type SponsorStaffTask =
   | { kind: 'intent_review'; intentId: string; userId: string; since: Date }
   | { kind: 'observed_cancel'; intentId: string; userId: string; state: string; at: Date }
+  /** A provider-scheduled cancel nothing wants; staff may remove it at the member's request. */
+  | { kind: 'scheduled_cancel'; intentId: string; userId: string; at: Date }
   | {
       kind: 'charge';
       chargeId: string;
@@ -93,6 +99,21 @@ export function activationCandidates(rows: readonly EntryRow[], now: Date): Map<
 }
 
 /** The open staff tasks of the tenant; staff and admins only. */
+/** Only before it takes effect; afterwards Paddle reports `canceled` (observed_cancel). */
+export function scheduledCancelTasks(
+  rows: readonly ScheduledHandoverTask[],
+  now: Date
+): SponsorStaffTask[] {
+  return rows
+    .filter(row => row.effectiveAt > now)
+    .map(row => ({
+      kind: 'scheduled_cancel',
+      intentId: row.intentId,
+      userId: row.userId,
+      at: row.effectiveAt,
+    }));
+}
+
 export async function listSponsorStaffTasks(
   authority: TenantAuthority,
   actor: SponsorActor,
@@ -110,6 +131,7 @@ export async function listSponsorStaffTasks(
       charges: await readOpenCharges(tx, tenantId),
       entries: await readTaskEntries(tx, tenantId),
       races: await readUnhandledPaddleRows(tx, tenantId, covered),
+      scheduled: await readScheduledHandoverTasks(tx, tenantId),
     };
   });
   const tasks: SponsorStaffTask[] = [];
@@ -133,6 +155,7 @@ export async function listSponsorStaffTasks(
       });
     }
   }
+  tasks.push(...scheduledCancelTasks(read.scheduled, now));
   for (const charge of read.charges) {
     tasks.push({
       kind: 'charge',

@@ -1,3 +1,4 @@
+import type { TenantTransaction } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -17,6 +18,15 @@ export function sponsorAccessContinues(
 ): boolean {
   if (outlook?.covering) return true;
   return Boolean(outlook?.nextStart && periodEnd && outlook.nextStart <= periodEnd);
+}
+
+/** The same decision inside a caller's tenant transaction (delivery holds the subscription lock). */
+export async function pastDueAccessContinuesInTx(
+  tx: TenantTransaction,
+  args: { tenantId: string; userId: string; periodEnd: Date | null; now: Date }
+): Promise<boolean> {
+  const outlooks = await readSponsorOutlook(tx, args.tenantId, [args.userId], args.now);
+  return sponsorAccessContinues(outlooks.get(args.userId), args.periodEnd);
 }
 
 export async function readPastDueAccessContinues(args: {

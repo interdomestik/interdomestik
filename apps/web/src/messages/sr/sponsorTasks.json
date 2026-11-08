@@ -13,6 +13,7 @@
     "entry": "Unos: {id} · Period: {term} · Sponzor: {sponsor}",
     "since": "Za pregled od {date} (UTC)",
     "observedAt": "Otkazivanje primećeno {date} (UTC)",
+    "scheduledAt": "Otkazivanje stupa na snagu {date} (UTC)",
     "transaction": "Paddle transakcija: {id}",
     "billingPeriod": "Obračunski period počinje: {date} (UTC)",
     "subscription": "Pretplata: {id}",
@@ -61,6 +62,10 @@
       "observed_cancel": {
         "title": "Primećena otkazivanja",
         "help": "Primećeno je otkazivanje u Paddle-u. Pregledaj naredne korake člana; provera naplata se nastavlja nezavisno."
+      },
+      "scheduled_cancel": {
+        "title": "Zakazana otkazivanja",
+        "help": "Paddle ima zakazano otkazivanje koje nije potrebno nijednom sponzorisanom mestu. Uklonite ga u Paddle-u samo na zahtev člana; sistem ga nikada ne menja."
       },
       "charge": {
         "title": "Naplate za pregled",

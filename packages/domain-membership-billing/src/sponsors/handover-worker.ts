@@ -108,6 +108,18 @@ export async function runHandoverIntent(
       now: new Date(),
     })
   );
+  // A cancel response settles only its own attempt. Coverage requires a fresh provider read.
+  const afterCancel = await deps.client.getSubscription(providerSubscriptionId);
+  const afterTransactions = await deps.client.listTransactions(providerSubscriptionId);
+  await withTenantAuthority(authority, async tx => {
+    await lockPerson(tx, tenantId, snapshot.intent.userId);
+    const state = await readHandoverState(tx, tenantId, intentId, { lock: true });
+    if (!state || state.intent.reconciliationClosedAt) return;
+    const plan = planHandoverStep(state, afterCancel, afterTransactions, now);
+    // Leave an unscheduled observation to the next run, never dispatch twice in this run.
+    plan.dispatch = null;
+    await applyHandoverPlan(tx, { tenantId, state, plan, now, hasCredential: deps.hasCredential });
+  });
   return 'dispatched';
 }
 

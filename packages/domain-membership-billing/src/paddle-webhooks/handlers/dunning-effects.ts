@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { and, eq, type DomainEventTx } from '@interdomestik/database';
+import { and, eq, type DomainEventTx, type TenantTransaction } from '@interdomestik/database';
 import { auditLog, engagementEmailSends } from '@interdomestik/database/schema';
 import {
   readTenantAuthority,
@@ -7,6 +7,7 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { z } from 'zod';
 
+import { pastDueAccessContinuesInTx } from './dunning-sponsor';
 import { RetryablePaddleWebhookError } from '../errors';
 import type { PastDueEmailDeps, PreparedPastDueEmail } from '../types';
 import {
@@ -55,6 +56,11 @@ export type PastDueEffectInput = {
   newDunningCount: number;
   gracePeriodEnd: Date;
   request: PreparedPastDueEmail | null;
+  coverageCopy?: {
+    covered: PreparedPastDueEmail;
+    uncovered: PreparedPastDueEmail;
+    periodEnd: string | null;
+  };
 };
 
 /** Audit and immutable email intent commit with the locked ordered snapshot. */
@@ -88,11 +94,11 @@ export async function persistPastDueEffects(
     subscriptionId: args.subscriptionId,
     templateKey: TEMPLATE,
     status: 'pending',
-    metadata: { request: requestSchema.parse(args.request) },
+    metadata: { request: requestSchema.parse(args.request), coverageCopy: args.coverageCopy },
   });
 }
 
-/** Replay can only finish an existing intent, never reconstruct it from current data. */
+/** Replay keeps event payment/recipient facts, but selects copy using current sponsor coverage. */
 export async function deliverPastDueEffects(
   args: PastDueEffectScope,
   deps: PastDueEmailDeps
@@ -127,7 +133,13 @@ export async function deliverPastDueEffects(
         'Past-due delivery retry window expired; reconcile provider acceptance'
       );
     }
-    const request = requestSchema.parse(delivery.metadata?.request);
+    const request = await selectPastDueCopy(tx, {
+      tenantId,
+      userId: delivery.userId,
+      metadata: delivery.metadata,
+    });
+    // Keep the original key and retry window. An uncertain prior send or changed-payload
+    // provider rejection remains unconfirmed; never rotate the key to force another email.
     if (!deps.sendPreparedPastDueEmail)
       throw new RetryablePaddleWebhookError('Past-due email sender unavailable');
     const result = await deps.sendPreparedPastDueEmail(request, key);
@@ -144,4 +156,29 @@ export async function deliverPastDueEffects(
       })
       .where(scope);
   });
+}
+
+const coverageCopySchema = z.object({
+  covered: requestSchema,
+  uncovered: requestSchema,
+  periodEnd: z.string().nullable(),
+});
+
+/**
+ * ACQ-3b §3.10: delivery re-checks sponsor coverage in the locked transaction and sends the
+ * matching event-frozen variant. An intent stored before the variants existed keeps its request.
+ */
+async function selectPastDueCopy(
+  tx: TenantTransaction,
+  args: { tenantId: string; userId: string; metadata: Record<string, unknown> | null }
+): Promise<PreparedPastDueEmail> {
+  const copies = coverageCopySchema.safeParse(args.metadata?.coverageCopy);
+  if (!copies.success) return requestSchema.parse(args.metadata?.request);
+  const covered = await pastDueAccessContinuesInTx(tx, {
+    tenantId: args.tenantId,
+    userId: args.userId,
+    periodEnd: copies.data.periodEnd ? new Date(copies.data.periodEnd) : null,
+    now: new Date(),
+  });
+  return covered ? copies.data.covered : copies.data.uncovered;
 }

@@ -106,6 +106,7 @@ export async function persistOrderedPastDueSubscription<
       newDunningCount: effects.newDunningCount,
       gracePeriodEnd: effects.gracePeriodEnd,
       request: effects.request,
+      coverageCopy: effects.coverageCopy,
     });
     return { kind: 'apply', state };
   });

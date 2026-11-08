@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { CoverageEntry } from '../sponsor-coverage/evaluate';
-import type { PaddleReadBack } from '../sponsor-coverage/handover-evidence';
+import type { HandoverSubscription } from './paddle-handover-client';
 import type { HandoverState, IntentSnapshot } from './handover-intent-read';
 import { planHandoverStep, retryDelayMs } from './handover-plan';
 
@@ -51,8 +51,9 @@ const state = (over: Partial<HandoverState> = {}): HandoverState => ({
   ...over,
 });
 
-const active = (endsAt: string, scheduled = false): PaddleReadBack => ({
+const active = (endsAt: string, scheduled = false): HandoverSubscription => ({
   status: 'active',
+  nextBilledAt: endsAt,
   scheduledChange: scheduled ? { action: 'cancel' } : null,
   currentBillingPeriod: { startsAt: '2026-12-15T00:00:00Z', endsAt },
 });
@@ -125,7 +126,7 @@ describe('planHandoverStep', () => {
     expect(plan.endOffer).toBe(true);
   });
 
-  it('marks a dispatched intent done on observed cancellation and keeps reconciling', () => {
+  it('keeps a canceled dispatched intent recoverable until paid-period evidence exists', () => {
     const plan = planHandoverStep(
       state({
         intent: intent({
@@ -138,7 +139,9 @@ describe('planHandoverStep', () => {
       [],
       now
     );
-    expect(plan.nextState).toBe('done');
+    expect(plan.nextState).toBe('staff_review');
+    expect(plan.evidence).toBeNull();
+    expect(plan.endOffer).toBe(true);
     expect(plan.observedCancel).toBe(true);
     expect(plan.closeReconciliation).toBe(false);
   });
@@ -171,6 +174,121 @@ describe('planHandoverStep', () => {
     );
     expect(plan.charges.map(charge => charge.id)).toEqual(['txn_new']);
   });
+
+  it.each([1, 23])(
+    'defers cancellation %s hours before renewal without changing outcomes',
+    hours => {
+      const readBack = active(new Date(now.getTime() + hours * 3_600_000).toISOString());
+      const plan = planHandoverStep(state(), readBack, [], now);
+      expect(plan.dispatch).toBeNull();
+      expect(plan.nextState).toBeNull();
+      expect(plan.emptyIntervalEntries).toEqual([]);
+    }
+  );
+
+  it('allows cancellation exactly 24 hours before renewal', () => {
+    const readBack = active(new Date(now.getTime() + 24 * 3_600_000).toISOString());
+    expect(planHandoverStep(state(), readBack, [], now).dispatch).not.toBeNull();
+  });
+
+  it('uses next_billed_at and can publish the later paid period after a missed window', () => {
+    const current = active('2027-01-15T00:00:00Z');
+    const deferred = planHandoverStep(
+      state(),
+      { ...current, nextBilledAt: '2027-01-10T01:00:00Z' },
+      [],
+      now
+    );
+    expect(deferred.dispatch).toBeNull();
+    const renewed = active('2027-02-15T00:00:00Z');
+    const nextNow = d('2027-01-16T00:00:00Z');
+    expect(planHandoverStep(state(), renewed, [], nextNow).dispatch).not.toBeNull();
+    const evidence = planHandoverStep(
+      state(),
+      { ...renewed, scheduledChange: { action: 'cancel' } },
+      [{ id: 'txn_later', status: 'paid', billingPeriod: { startsAt: '2026-12-15T00:00:00Z' } }],
+      nextNow
+    );
+    expect(evidence.evidence?.paidUntil).toBe('2027-02-15T00:00:00Z');
+    expect(evidence.startEntries[0]?.interval.start).toEqual(d('2027-02-15T00:00:00Z'));
+  });
+
+  it('does not dispatch without a valid next billing time', () => {
+    for (const nextBilledAt of [null, 'invalid']) {
+      const plan = planHandoverStep(state(), { ...active('2027-01-15'), nextBilledAt }, [], now);
+      expect(plan.dispatch).toBeNull();
+      expect(plan.nextState).toBe('staff_review');
+    }
+  });
+
+  it('recovers an already-done intent without evidence while reconciliation is still open', () => {
+    const plan = planHandoverStep(
+      state({ intent: intent({ state: 'done', cancelDispatchedAt: '2027-01-05' }) }),
+      { status: 'canceled', scheduledChange: null, currentBillingPeriod: null },
+      [],
+      now
+    );
+    expect(plan.nextState).toBe('staff_review');
+    expect(plan.closeReconciliation).toBe(false);
+  });
+
+  it('finishes an observed cancellation with existing write-once coverage evidence', () => {
+    const plan = planHandoverStep(
+      state({
+        intent: intent({
+          state: 'cancel_scheduled',
+          paidUntil: '2027-01-15',
+          cancelDispatchedAt: '2027-01-05',
+        }),
+      }),
+      { status: 'canceled', scheduledChange: null, currentBillingPeriod: null },
+      [],
+      now
+    );
+    expect(plan.nextState).toBe('done');
+    expect(plan.evidence).toBeNull();
+  });
+
+  it.each([
+    'pending',
+    'cancel_scheduled',
+    'staff_review',
+    'closed_by_staff',
+    'done',
+    'void',
+  ] as const)(
+    'detects a dated scheduled cancel in monitored state %s without settling unknown attempts',
+    currentState => {
+      const input = state({
+        intent: intent({
+          state: currentState,
+          staffDisposition: currentState === 'closed_by_staff' ? 'renewing_as_member' : null,
+          cancelDispatchedAt: currentState === 'void' ? null : '2027-01-05',
+        }),
+        attempts: [{ id: 'attempt', attemptNo: 1, outcome: 'unknown' }],
+      });
+      const readBack = {
+        ...active('2027-01-15'),
+        scheduledChange: {
+          action: 'cancel',
+          effectiveAt: '2027-01-15T12:00:00Z',
+        },
+      };
+      const plan = planHandoverStep(input, readBack, [], now);
+      const wanted = currentState === 'pending' || currentState === 'cancel_scheduled';
+      expect(plan.scheduledCancelAt).toBe(wanted ? null : '2027-01-15T12:00:00.000Z');
+      if (wanted) {
+        const unwanted = planHandoverStep({ ...input, linked: [] }, readBack, [], now);
+        expect(unwanted.scheduledCancelAt).toBe('2027-01-15T12:00:00.000Z');
+      }
+      expect(plan.observedCancel).toBe(false);
+      expect(input.attempts[0]?.outcome).toBe('unknown');
+      if (currentState === 'closed_by_staff') {
+        expect(plan.nextState).toBeNull();
+        expect(plan.closeReconciliation).toBe(false);
+      }
+    }
+  );
 
   it('backs off retries up to one day without a limit', () => {
     expect(retryDelayMs(0)).toBe(5 * 60_000);
