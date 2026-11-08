@@ -94,7 +94,7 @@
           "rejected": "Abgelehnt"
         },
         "source": {
-          "sponsor": "Sponsor",
+          "sponsor": "Sponsoring",
           "subscription": "Abonnement",
           "none": "Keine"
         }
@@ -121,7 +121,7 @@
         "message_alert": "Neue Nachricht ({count})",
         "no_users": "Keine Mitglieder gefunden.",
         "source": {
-          "sponsor": "Sponsor",
+          "sponsor": "Sponsoring",
           "subscription": "Abonnement",
           "none": "Keine"
         }

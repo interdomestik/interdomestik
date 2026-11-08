@@ -94,7 +94,7 @@
           "rejected": "Të refuzuara"
         },
         "source": {
-          "sponsor": "Sponsor",
+          "sponsor": "Sponsorizim",
           "subscription": "Abonim",
           "none": "Asnjë"
         }
@@ -121,7 +121,7 @@
         "message_alert": "Mesazh i ri ({count})",
         "no_users": "Nuk u gjetën anëtarë.",
         "source": {
-          "sponsor": "Sponsor",
+          "sponsor": "Sponsorizim",
           "subscription": "Abonim",
           "none": "Asnjë"
         }
