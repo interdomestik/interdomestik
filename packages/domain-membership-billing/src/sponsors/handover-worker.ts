@@ -34,7 +34,11 @@ export type HandoverRunOutcome = 'skipped' | 'observed' | 'dispatched';
  * the person's entries `FOR UPDATE` in id order; the caller then takes the intent (lock 7). A
  * revocation, termination or provisioning step committed meanwhile is therefore seen, never raced.
  */
-async function lockPerson(tx: TenantTransaction, tenantId: string, userId: string) {
+export async function lockPerson(
+  tx: TenantTransaction,
+  tenantId: string,
+  userId: string
+): Promise<void> {
   await lockSponsorPerson(tx, userId);
   const personEntries = and(
     eq(sponsorRosterEntries.tenantId, tenantId),
