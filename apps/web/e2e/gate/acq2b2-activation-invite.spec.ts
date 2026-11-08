@@ -77,9 +77,11 @@ test.describe('ACQ-2b2 member activation invite', () => {
     test.setTimeout(180_000);
     const tenantOrigin = new URL(String(testInfo.project.use.baseURL)).origin;
     const seen = new Set<string>();
-    // The member's browser carries the project's tenant headers, like every other fresh context.
+    // The member's browser carries the project's tenant headers but none of the project's stored
+    // sign-in: a new context inherits that session, and /login would then redirect past the form.
     const context = await browser.newContext({
       extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
+      storageState: { cookies: [], origins: [] },
     });
     let lead: OwnedLead | undefined;
     let memberId: string | null = null;
