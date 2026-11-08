@@ -9,6 +9,31 @@ import {
 
 const ACTION = 'sponsor_intent.scheduled_cancel';
 
+/** A fresh positive read-back hides retry escalation only through the newest locked attempt. */
+export async function recordHandoverScheduleConfirmation(
+  tx: TenantTransaction,
+  tenantId: string,
+  intentId: string,
+  newestAttemptNo: number
+): Promise<void> {
+  const digest = createHash('sha256')
+    .update(`${tenantId}|${intentId}|${newestAttemptNo}`)
+    .digest('hex');
+  await tx
+    .insert(auditLog)
+    .values({
+      id: `sph-confirmed:${digest}`,
+      tenantId,
+      actorId: null,
+      actorRole: 'system',
+      action: 'sponsor_intent.schedule_confirmed',
+      entityType: 'sponsor_handover_intent',
+      entityId: intentId,
+      metadata: { afterAttempt: newestAttemptNo },
+    })
+    .onConflictDoNothing({ target: auditLog.id });
+}
+
 /** One durable task identity per tenant, intent and provider effective instant, under the intent lock. */
 export async function recordScheduledHandoverTask(
   tx: TenantTransaction,

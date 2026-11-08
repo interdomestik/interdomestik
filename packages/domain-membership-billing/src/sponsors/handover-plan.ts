@@ -33,6 +33,8 @@ export type HandoverPlan = {
   charges: PaddleTransaction[];
   /** First observation of `canceled`: record it and mark `unknown` attempts `moot`. */
   observedCancel: boolean;
+  /** Fresh read-back recovered the wanted schedule after the current attempts. */
+  scheduleConfirmed: boolean;
   scheduledCancelAt: string | null;
   nextState: IntentState | null;
   evidence: { paidUntil: string; transactionId: string } | null;
@@ -71,6 +73,7 @@ export function planHandoverStep(
   const plan: HandoverPlan = {
     charges: chargesAfterBoundary(intent, transactions),
     observedCancel: false,
+    scheduleConfirmed: false,
     scheduledCancelAt: null,
     nextState: null,
     evidence: null,
@@ -129,6 +132,11 @@ export function planHandoverStep(
     plan.dispatch = null;
     plan.nextRunAt = new Date(intent.nextAttemptAt);
   }
+  plan.scheduleConfirmed =
+    intent.state === 'cancel_scheduled' &&
+    readBack.status === 'active' &&
+    readBack.scheduledChange?.action === 'cancel' &&
+    plan.dispatch === null;
   return plan;
 }
 

@@ -1,5 +1,6 @@
 import {
   and,
+  auditLog,
   eq,
   inArray,
   isNull,
@@ -15,6 +16,32 @@ import { gte, isNotNull, or } from 'drizzle-orm';
 
 /** §3.7 step 4: a pending cancel still retrying after this many attempts is also a staff task. */
 export const HANDOVER_ESCALATION_ATTEMPTS = 5;
+
+/** Positive schedule observations, read once for the tenant's staff-task transaction. */
+export async function readScheduleConfirmations(
+  tx: TenantTransaction,
+  tenantId: string
+): Promise<{ intentId: string; afterAttempt: number }[]> {
+  const rows = await tx
+    .select({ intentId: auditLog.entityId, metadata: auditLog.metadata })
+    .from(auditLog)
+    .where(
+      and(
+        eq(auditLog.tenantId, tenantId),
+        eq(auditLog.action, 'sponsor_intent.schedule_confirmed'),
+        eq(auditLog.entityType, 'sponsor_handover_intent')
+      )
+    );
+  return rows.flatMap(row => {
+    if (row.intentId === null) return [];
+    const afterAttempt = row.metadata?.afterAttempt;
+    return typeof afterAttempt === 'number' &&
+      Number.isSafeInteger(afterAttempt) &&
+      afterAttempt > 0
+      ? [{ intentId: row.intentId, afterAttempt }]
+      : [];
+  });
+}
 
 /**
  * ACQ-3b staff-task queue (§3.7, §3.6.1, §3.9): the durable rows each task is derived from. Each

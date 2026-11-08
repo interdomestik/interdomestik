@@ -121,3 +121,44 @@ describe('locked handover retry deadline', () => {
     expect(plan.scheduledCancelAt).toBe('2027-01-15T00:00:00.000Z');
   });
 });
+
+describe('scheduled recovery confirmation', () => {
+  it.each([
+    'pending',
+    'cancel_scheduled',
+    'staff_review',
+    'closed_by_staff',
+    'void',
+    'done',
+  ] as const)(
+    'confirms a scheduled read-back only for cancel_scheduled, starting from %s',
+    intentState => {
+      const input = state();
+      input.intent.state = intentState;
+      input.intent.paidUntil = '2027-01-15T00:00:00Z';
+      const plan = planHandoverStep(
+        input,
+        {
+          ...subscription,
+          scheduledChange: { action: 'cancel' },
+        },
+        [],
+        now
+      );
+      expect(plan.scheduleConfirmed).toBe(intentState === 'cancel_scheduled');
+      expect(plan.dispatch).toBeNull();
+    }
+  );
+  it.each([
+    { status: 'active', scheduledChange: null },
+    { status: 'active', scheduledChange: { action: 'pause' } },
+    { status: 'paused', scheduledChange: { action: 'cancel' } },
+    { status: 'canceled', scheduledChange: { action: 'cancel' } },
+  ])('does not confirm other read-backs: %j', readBack => {
+    const input = state(null);
+    input.intent.state = 'cancel_scheduled';
+    input.intent.paidUntil = '2027-01-15T00:00:00Z';
+    const plan = planHandoverStep(input, { ...subscription, ...readBack }, [], now);
+    expect(plan.scheduleConfirmed).toBe(false);
+  });
+});

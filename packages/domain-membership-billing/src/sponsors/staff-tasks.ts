@@ -16,6 +16,7 @@ import {
   HANDOVER_ESCALATION_ATTEMPTS,
   readOpenCharges,
   readRecancellationAttempts,
+  readScheduleConfirmations,
   readTaskEntries,
   readTaskIntents,
   readUnhandledPaddleRows,
@@ -138,10 +139,10 @@ export function intentTasks(rows: readonly IntentRow[], now: Date): SponsorStaff
   return out;
 }
 
-/** Five latest unknown outcomes with a dispatch in the last two maximum retry delays. */
+/** Five latest unknown outcomes stay escalated until positive recovery evidence is recorded. */
 export function recancellationTasks(
   rows: readonly Awaited<ReturnType<typeof readRecancellationAttempts>>[number][],
-  now: Date
+  confirmations: readonly Awaited<ReturnType<typeof readScheduleConfirmations>>[number][]
 ): SponsorStaffTask[] {
   const grouped = new Map<string, (typeof rows)[number][]>();
   for (const row of rows) {
@@ -155,8 +156,12 @@ export function recancellationTasks(
       .slice(0, HANDOVER_ESCALATION_ATTEMPTS);
     const newest = latest[0];
     if (!newest || latest.length < HANDOVER_ESCALATION_ATTEMPTS) return [];
-    const age = now.getTime() - parseTimestamp(newest.dispatchedAt).getTime();
-    if (age < 0 || age > 2 * DAY_MS || latest.some(attempt => attempt.outcome !== 'unknown'))
+    if (
+      latest.some(attempt => attempt.outcome !== 'unknown') ||
+      confirmations.some(
+        row => row.intentId === newest.intentId && row.afterAttempt >= newest.attemptNo
+      )
+    )
       return [];
     return [
       {
@@ -200,6 +205,7 @@ export async function listSponsorStaffTasks(
     return {
       intents: await readTaskIntents(tx, tenantId),
       retries: await readRecancellationAttempts(tx, tenantId),
+      confirmations: await readScheduleConfirmations(tx, tenantId),
       charges: await readOpenCharges(tx, tenantId),
       entries: await readTaskEntries(tx, tenantId),
       races: await readUnhandledPaddleRows(tx, tenantId, covered),
@@ -208,7 +214,7 @@ export async function listSponsorStaffTasks(
   });
   const tasks: SponsorStaffTask[] = [];
   tasks.push(...intentTasks(read.intents, now));
-  tasks.push(...recancellationTasks(read.retries, now));
+  tasks.push(...recancellationTasks(read.retries, read.confirmations));
   tasks.push(...scheduledCancelTasks(read.scheduled, now));
   for (const charge of read.charges) {
     tasks.push({

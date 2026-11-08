@@ -34,6 +34,7 @@ function plan(overrides: Partial<HandoverPlan> = {}): HandoverPlan {
   return {
     charges: [],
     observedCancel: false,
+    scheduleConfirmed: false,
     scheduledCancelAt: null,
     nextState: null,
     evidence: null,
