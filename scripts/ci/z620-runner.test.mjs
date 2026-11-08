@@ -17,6 +17,12 @@ import {
 
 const root = path.resolve(import.meta.dirname, '../..');
 
+function temporaryFixture(t, prefix) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  return dir;
+}
+
 test('parity inventory exactly covers configured workflow jobs', () => {
   const parity = JSON.parse(
     fs.readFileSync(path.join(root, 'scripts/ci/z620-parity.json'), 'utf8')
@@ -63,8 +69,8 @@ test('safe identifiers reject path traversal', () => {
   assert.throws(() => safeId('../verify'), /Invalid identifier/);
 });
 
-test('lane lock is exclusive and recoverable', () => {
-  const stateRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'z620-lock-'));
+test('lane lock is exclusive and recoverable', t => {
+  const stateRoot = temporaryFixture(t, 'z620-lock-');
   const release = acquireLaneLock(stateRoot, 'verify');
   assert.throws(() => acquireLaneLock(stateRoot, 'verify'), /EEXIST/);
   release();
@@ -72,8 +78,8 @@ test('lane lock is exclusive and recoverable', () => {
   releaseAgain();
 });
 
-test('materialized clone is detached, exact and clean', () => {
-  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'z620-clone-'));
+test('materialized clone is detached, exact and clean', t => {
+  const temporaryRoot = temporaryFixture(t, 'z620-clone-');
   const cloneDir = path.join(temporaryRoot, 'clone');
   const sha = execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
   assert.equal(materializeClone(root, cloneDir, sha), sha);
@@ -83,8 +89,8 @@ test('materialized clone is detached, exact and clean', () => {
   );
 });
 
-test('evidence checksum covers finalized JSON files', () => {
-  const runDir = fs.mkdtempSync(path.join(os.tmpdir(), 'z620-evidence-'));
+test('evidence checksum covers finalized JSON files', t => {
+  const runDir = temporaryFixture(t, 'z620-evidence-');
   writeJson(path.join(runDir, 'manifest.json'), { status: 'pass' });
   const checksums = checksumEvidence(runDir, ['manifest.json']);
   assert.match(checksums['manifest.json'], /^[a-f0-9]{64}$/);
