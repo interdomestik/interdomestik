@@ -6,11 +6,13 @@ import { ActionForm } from './action-form';
 export async function SponsorRoster({
   roster,
   uploadEnabled,
+  locale,
 }: {
   roster: RosterView;
   uploadEnabled: boolean;
+  locale: string;
 }): Promise<React.JSX.Element> {
-  const t = await getTranslations('sponsors');
+  const t = await getTranslations({ locale, namespace: 'sponsors' });
   const target = { sponsorId: roster.sponsorId, termId: roster.term.termId };
   return (
     <section className="space-y-4">

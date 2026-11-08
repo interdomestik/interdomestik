@@ -7,7 +7,7 @@ import {
 } from '@interdomestik/domain-membership-billing/sponsors/roster-view';
 import { sponsorCredentialCheck } from '@interdomestik/domain-membership-billing/sponsors/sponsor-jobs';
 import { formatPilotDateTime } from '@/lib/utils/date';
-import { getLocale, getTranslations, setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { ActionForm } from './action-form';
 import { sponsorContext, mayUseArea, type SponsorArea } from './context.core';
@@ -20,8 +20,14 @@ export type SponsorPageProps = {
   params: Promise<{ locale: string; sponsorId?: string; termId?: string }>;
 };
 
-async function TermSummary({ term }: { term: SponsorTermView }): Promise<React.JSX.Element> {
-  const [t, locale] = await Promise.all([getTranslations('sponsors'), getLocale()]);
+async function TermSummary({
+  term,
+  locale,
+}: {
+  term: SponsorTermView;
+  locale: string;
+}): Promise<React.JSX.Element> {
+  const t = await getTranslations({ locale, namespace: 'sponsors' });
   const at = (value: Date): string => formatPilotDateTime(value, locale, '');
   return (
     <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -61,7 +67,7 @@ export async function SponsorPage({
   setRequestLocale(locale);
   const context = await sponsorContext();
   if (!context || !mayUseArea(context.actor, area)) notFound();
-  const t = await getTranslations('sponsors');
+  const t = await getTranslations({ locale, namespace: 'sponsors' });
   const sponsors = await listSponsorsForActor(context.authority, context.actor);
   const sponsor = sponsorId ? sponsors.find(row => row.sponsorId === sponsorId) : undefined;
   if (sponsorId && !sponsor) notFound();
@@ -110,9 +116,14 @@ export async function SponsorPage({
     if (!result.ok || result.value.sponsorId !== sponsor.sponsorId) notFound();
     content = (
       <>
-        <TermSummary term={term} />
-        <SponsorRoster roster={result.value} uploadEnabled={await sponsorUploadEnabled(context)} />
+        <TermSummary term={term} locale={locale} />
+        <SponsorRoster
+          roster={result.value}
+          uploadEnabled={await sponsorUploadEnabled(context)}
+          locale={locale}
+        />
         <TermControls
+          locale={locale}
           sponsorId={sponsor.sponsorId}
           term={term}
           terms={sponsor.terms}
@@ -130,7 +141,7 @@ export async function SponsorPage({
         ) : (
           sponsor.terms.map(term => (
             <section key={term.termId} className="rounded-lg border p-4 space-y-3">
-              <TermSummary term={term} />
+              <TermSummary term={term} locale={locale} />
               <Link
                 className="underline"
                 href={`${base}/${sponsor.sponsorId}/terms/${term.termId}`}

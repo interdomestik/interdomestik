@@ -14,13 +14,15 @@ export async function TermControls({
   term,
   terms,
   actor,
+  locale,
 }: {
   sponsorId: string;
   term: SponsorTermView;
   terms: SponsorTermView[];
   actor: SponsorActor;
+  locale: string;
 }): Promise<React.JSX.Element> {
-  const t = await getTranslations('sponsors');
+  const t = await getTranslations({ locale, namespace: 'sponsors' });
   const target = { sponsorId, termId: term.termId };
   const latest = term.revisions[0];
   const successor = hasSuccessor(term, terms);

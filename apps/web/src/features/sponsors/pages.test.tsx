@@ -95,9 +95,10 @@ describe('sponsor surfaces', () => {
     const [localeCall] = vi.mocked(setRequestLocale).mock.invocationCallOrder;
     expect(localeCall).toBeLessThan(mocks.context.mock.invocationCallOrder[0]);
     expect(localeCall).toBeLessThan(vi.mocked(getTranslations).mock.invocationCallOrder[0]);
+    expect(getTranslations).toHaveBeenCalledWith({ locale: 'en', namespace: 'sponsors' });
   });
   it('renders only roster identities, three statuses, counts, and the left-company marker', async () => {
-    render(await SponsorRoster({ roster, uploadEnabled: false }));
+    render(await SponsorRoster({ roster, uploadEnabled: false, locale: 'en' }));
     expect(screen.getByText('3 of 10 seats used')).toBeInTheDocument();
     for (const label of ['Registered', 'Awaiting employee', 'Left the programme']) {
       expect(screen.getByText(label)).toBeInTheDocument();
@@ -111,13 +112,14 @@ describe('sponsor surfaces', () => {
     expect(screen.getAllByRole('button', { name: 'Mark as left the company' })).toHaveLength(2);
   });
   it('exposes upload only for an effective term with the switch enabled', async () => {
-    const view = render(await SponsorRoster({ roster, uploadEnabled: true }));
+    const view = render(await SponsorRoster({ roster, uploadEnabled: true, locale: 'en' }));
     expect(screen.getByLabelText('Employee CSV file')).toHaveAttribute('accept', '.csv,text/csv');
     view.unmount();
     render(
       await SponsorRoster({
         roster: { ...roster, term: { ...roster.term, effective: false } },
         uploadEnabled: true,
+        locale: 'en',
       })
     );
     expect(screen.queryByLabelText('Employee CSV file')).not.toBeInTheDocument();
@@ -130,6 +132,7 @@ describe('sponsor surfaces', () => {
         term: roster.term,
         terms: sponsor.terms,
         actor: { ...context.actor, userId: 'creator' },
+        locale: 'en',
       })
     );
     expect(screen.getByRole('button', { name: 'Record decision' })).toBeDisabled();
@@ -143,6 +146,7 @@ describe('sponsor surfaces', () => {
         term: roster.term,
         terms: sponsor.terms,
         actor: context.actor,
+        locale: 'en',
       })
     );
     expect(screen.getByRole('button', { name: 'Record decision' })).toBeEnabled();
@@ -154,6 +158,7 @@ describe('sponsor surfaces', () => {
         term: roster.term,
         terms: sponsor.terms,
         actor: { ...context.actor, role: ROLES.agent, agentTier: 'office' },
+        locale: 'en',
       })
     );
     expect(screen.queryByRole('button', { name: 'Record decision' })).not.toBeInTheDocument();

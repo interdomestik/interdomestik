@@ -14,7 +14,7 @@ export async function SponsorTasksPage({
 }): Promise<ReactElement> {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('sponsorTasks');
+  const t = await getTranslations({ locale, namespace: 'sponsorTasks' });
   const result = await loadSponsorTasks();
   return (
     <div className="mx-auto max-w-5xl space-y-6" data-testid={`${area}-sponsor-tasks-page-ready`}>
