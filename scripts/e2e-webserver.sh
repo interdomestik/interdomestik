@@ -205,6 +205,7 @@ export DB_MAX_LIFETIME=3600
 if [[ -z "${BETTER_AUTH_SECRET:-}" ]]; then
 	export BETTER_AUTH_SECRET="$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('base64'))")"
 fi
+export SPONSOR_ROSTER_SECRET="${SPONSOR_ROSTER_SECRET:-e2e-sponsor-roster-secret-not-for-production-01}"
 
 echo "E2E webserver env:"
 echo "  BASE_URL=${BASE_URL}"
