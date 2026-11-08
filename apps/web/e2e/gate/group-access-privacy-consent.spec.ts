@@ -12,14 +12,16 @@ test.describe('Group access privacy', () => {
 
     await withGroupAccessPrivacyFixture(testInfo, async context => {
       await loginAsOfficeSeededAgent(page, testInfo, context.officeAgent);
-      // ACQ-3b retires the roster import: /agent/import always redirects to the sponsor list,
-      // even when the legacy OD-18 import setting is enabled.
-      await context.enableSponsoredImport();
-      await gotoApp(page, routes.agentImport(testInfo), testInfo, {
-        marker: 'agent-sponsors-page-ready',
-      });
-      await expect(page).toHaveURL(/\/agent\/sponsors$/);
-      await expect(page.getByTestId('group-dashboard-summary')).toHaveCount(0);
+      // ACQ-3b retires the roster import: /agent/import redirects to the sponsor list whether the
+      // legacy OD-18 import setting is explicitly off or on.
+      for (const enabled of [false, true]) {
+        await context.setSponsoredImport(enabled);
+        await gotoApp(page, routes.agentImport(testInfo), testInfo, {
+          marker: 'agent-sponsors-page-ready',
+        });
+        await expect(page).toHaveURL(/\/agent\/sponsors$/);
+        await expect(page.getByTestId('group-dashboard-summary')).toHaveCount(0);
+      }
 
       await expect(page.getByText(context.seededMemberName)).toHaveCount(0);
       await expect(page.getByText(context.claimTitle)).toHaveCount(0);
