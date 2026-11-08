@@ -38,13 +38,17 @@ export function scanGroup(pgid, procRoot = '/proc') {
     if (state !== 'Z' && state !== 'X') return { live: true };
     zombies.push(entry);
   }
-  return { live: false, zombies: zombies.sort().join(','), incomplete };
+  return {
+    live: false,
+    zombies: zombies.toSorted((a, b) => Number(a) - Number(b)).join(','),
+    incomplete,
+  };
 }
 
 // The same pass from one `ps` snapshot, for hosts without procfs (macOS). A failed `ps` is unknown.
 export function scanGroupPs(
   pgid,
-  run = () => execFileSync('ps', ['-A', '-o', 'pid=,pgid=,stat='])
+  run = () => execFileSync('/bin/ps', ['-A', '-o', 'pid=,pgid=,stat='])
 ) {
   let listing;
   try {
@@ -59,7 +63,11 @@ export function scanGroupPs(
     if (!state.startsWith('Z')) return { live: true };
     zombies.push(pid);
   }
-  return { live: false, zombies: zombies.sort().join(','), incomplete: false };
+  return {
+    live: false,
+    zombies: zombies.toSorted((a, b) => a.localeCompare(b)).join(','),
+    incomplete: false,
+  };
 }
 
 // Whether a process group still has a member that is not a zombie. It reads /proc and, without
@@ -176,9 +184,9 @@ export function contractScratch(env) {
         }
         unlockDirectories(directory, current);
         // A nested group whose supervisor has gone is orphaned: terminate it before removal.
-        for (const nested of nestedGroups(directory)) {
-          if (signalGroup(nested, 'SIGTERM')) killed = (await endGroup(nested, 2000)) || killed;
-        }
+        const signalled = nestedGroups(directory).filter(nested => signalGroup(nested, 'SIGTERM'));
+        const ended = await Promise.all(signalled.map(nested => endGroup(nested, 2000)));
+        killed = ended.some(Boolean) || killed;
         fs.rmSync(directory, { recursive: true, force: true });
       }
       if (killed) throw new Error('Test subprocesses were still running and were killed');
