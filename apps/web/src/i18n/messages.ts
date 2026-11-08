@@ -57,6 +57,7 @@ export const MESSAGE_NAMESPACES = [
   'services',
   'servicesPage',
   'settings',
+  'sponsors',
   'stats',
   'staff-crm',
   'testimonials',

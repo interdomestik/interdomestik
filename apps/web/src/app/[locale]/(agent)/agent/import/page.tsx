@@ -1,65 +1,10 @@
-import { CSVUploader } from '@/features/agent/import/components/csv-uploader';
-import { resolveSponsoredImportAccess } from '@/lib/actions/agent/sponsored-import-access';
-import { auth } from '@/lib/auth';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
-import { headers } from 'next/headers';
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
-export default async function AgentImportPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function AgentImportPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<never> {
   const { locale } = await params;
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (session?.user?.role !== 'agent') {
-    redirect(`/${locale}/member`);
-  }
-
-  const authorized = session.user.tenantId ? await authorizeSessionTenant(await headers()) : null;
-  if (!authorized) {
-    notFound();
-  }
-  // Dark unless the tenant enabled sponsored import (OD-18 Option B); office-tier agents only.
-  const access = await resolveSponsoredImportAccess({
-    agentId: session.user.id,
-    authority: authorized.authority,
-  });
-  if (access !== 'allowed') {
-    notFound();
-  }
-
-  return (
-    <div className="max-w-5xl mx-auto py-8 space-y-8 px-4">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-display font-bold tracking-tight">Sponsored Member Import</h1>
-        <p className="text-muted-foreground">
-          Upload a CSV roster to create sponsored member seats in bulk through the agent write path.
-        </p>
-      </div>
-
-      <div className="rounded-[2rem] border bg-card/50 backdrop-blur-xl p-8 shadow-sm">
-        <CSVUploader />
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="p-6 rounded-2xl bg-muted/30 border space-y-2">
-          <h3 className="font-bold">Template Guidelines</h3>
-          <p className="text-sm text-muted-foreground">
-            Use columns: <strong>fullName, email, phone</strong>. Optional: <strong>planId</strong>{' '}
-            (`standard` or `family`).
-          </p>
-          <p className="text-xs text-blue-600 font-medium cursor-pointer hover:underline">
-            Download CSV Template
-          </p>
-        </div>
-        <div className="p-6 rounded-2xl bg-muted/30 border space-y-2">
-          <h3 className="font-bold">Account Model</h3>
-          <p className="text-sm text-muted-foreground">
-            Each imported row creates an individual member account with sponsored coverage pending
-            member activation.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+  redirect(`/${locale}/agent/sponsors`);
 }
