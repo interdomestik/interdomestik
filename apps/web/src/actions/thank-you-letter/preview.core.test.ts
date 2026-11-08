@@ -3,7 +3,11 @@ import { previewThankYouLetterCore } from './preview.core';
 
 vi.mock('@/lib/tenant/tenant-hosts', () => ({
   coerceTenantId: (tenantId: string) => (tenantId === 'tenant_ks' ? tenantId : null),
-  resolveTenantAppOrigin: (tenantId: string) => `https://${tenantId}.example.test`,
+}));
+vi.mock('@/lib/email-link-origins', () => ({
+  resolveTenantEmailOrigins: (tenantId: string) => ({
+    appOrigin: `https://${tenantId}.example.test`,
+  }),
 }));
 
 const params = {

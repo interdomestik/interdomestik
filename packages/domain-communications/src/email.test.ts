@@ -188,8 +188,8 @@ describe('email delivery fallback', () => {
       automated({});
       expect(await send()).toEqual(mock);
       vi.stubEnv('E2E_SMTP_HOST', '127.0.0.1');
-      const { sendPasswordResetEmail } = await import('./email');
-      expect(await sendPasswordResetEmail('a@example.com', 'https://x.test/r')).toEqual(mock);
+      const { sendWelcomeEmail } = await import('./email');
+      expect(await sendWelcomeEmail('a@example.com', 'Member')).toEqual(mock);
       expect(m.createTransport).not.toHaveBeenCalled();
       expect(m.resendConstructor).not.toHaveBeenCalled();
     });
@@ -197,6 +197,11 @@ describe('email delivery fallback', () => {
       m.sendMail.mockResolvedValue({ messageId: 'caught' });
       automated({ E2E_SMTP_HOST: '127.0.0.1', E2E_SMTP_PORT: '2525' });
       expect(await send()).toEqual({ success: true, id: 'caught' });
+      const { sendPasswordResetEmail: reset } = await import('./email');
+      expect(await reset('a@example.com', 'https://x.test/r')).toEqual({
+        success: true,
+        id: 'caught',
+      });
       expect(m.createTransport).toHaveBeenCalledWith(expect.objectContaining({ port: 2525 }));
       vi.stubEnv('INTERDOMESTIK_AUTOMATED', '0');
       vi.stubEnv('SMTP_HOST', '');

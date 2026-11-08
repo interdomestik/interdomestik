@@ -1,3 +1,4 @@
+export * from './mutations/resend-activation-invite';
 export * from './mutations/resubmit-attempt';
 export * from './mutations/verify-attempt';
 export * from './queries/get-details';

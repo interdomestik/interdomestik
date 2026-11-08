@@ -4,6 +4,8 @@ import { runAuthenticatedAction } from '@/lib/safe-action';
 import { withSessionStaffBranch } from '../server/queries/read-access';
 import {
   getVerificationRequests,
+  resendActivationInviteCore,
+  resendActivationInviteSchema,
   resubmitCashAttemptCore,
   resubmitCashSchema,
   verifyCashAttemptCore,
@@ -31,5 +33,12 @@ export async function resubmitCashAttemptAction(input: unknown) {
   return runAuthenticatedAction(async ctx => {
     const data = resubmitCashSchema.parse(input);
     return await resubmitCashAttemptCore(ctx, data);
+  });
+}
+
+export async function resendActivationInviteAction(input: unknown) {
+  return runAuthenticatedAction(async ctx => {
+    const data = resendActivationInviteSchema.parse(input);
+    return await resendActivationInviteCore(ctx, data);
   });
 }

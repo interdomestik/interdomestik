@@ -46,7 +46,12 @@
         "reject_success": "Payment rejected.",
         "needs_info_success": "Info request sent.",
         "note_required": "Note is required.",
-        "error": "An error occurred during verification."
+        "error": "An error occurred during verification.",
+        "approve_invite_pending": "Payment approved and membership created, but the activation email was not sent. Resend it from History.",
+        "resend_invite_success": "Activation email sent again.",
+        "resend_invite_cooldown": "An activation email was just sent. Wait a minute before sending another.",
+        "resend_invite_failed": "The activation email could not be sent. Try again later.",
+        "resend_invite_already_active": "This member has already activated their account."
       },
       "actions": {
         "approve": "Approve",
@@ -55,7 +60,8 @@
         "needs_info": "Needs Info",
         "cancel": "Cancel",
         "submit": "Submit",
-        "details": "Details"
+        "details": "Details",
+        "resend_invite": "Resend activation email"
       },
       "drawer": {
         "title": "Verification Details",

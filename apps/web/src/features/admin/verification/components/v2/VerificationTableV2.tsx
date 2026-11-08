@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { OpsTable } from '@/components/ops';
 import { CashVerificationRequestDTO } from '../../server/types';
 import { ProofCell } from './ProofCell';
+import { ResendActivationInviteButton } from './ResendActivationInviteButton';
 import { VerificationActions } from './VerificationActions';
 import { AmountCell, BranchCell, LeadCell } from './VerificationRowCells';
 import { VerificationStatusSpine } from './VerificationStatusSpine';
@@ -15,6 +16,7 @@ interface VerificationTableV2Props {
   onViewDetails: (id: string) => void;
   onAction: (id: string, decision: 'reject' | 'needs_info') => void;
   onVerify: (id: string) => void;
+  onResendInvite: (id: string) => Promise<void>;
 }
 
 export function VerificationTableV2({
@@ -23,6 +25,7 @@ export function VerificationTableV2({
   onViewDetails,
   onAction,
   onVerify,
+  onResendInvite,
 }: VerificationTableV2Props) {
   const t = useTranslations('admin.leads');
 
@@ -38,6 +41,22 @@ export function VerificationTableV2({
     columns.push({ key: 'verifier', header: t('table.verifier') });
   }
 
+  // History rows offer only the activation resend; queue rows carry the verification decisions.
+  const actionsFor = (req: CashVerificationRequestDTO) => {
+    if (!historyMode) {
+      return (
+        <VerificationActions
+          id={req.id}
+          onViewDetails={onViewDetails}
+          onVerify={onVerify}
+          onAction={onAction}
+        />
+      );
+    }
+    if (!req.memberActivationPending) return null;
+    return <ResendActivationInviteButton id={req.id} onResend={onResendInvite} />;
+  };
+
   const rows = data.map(req => ({
     id: req.id,
     testId: 'cash-verification-row',
@@ -52,14 +71,7 @@ export function VerificationTableV2({
       <AmountCell key={`${req.id}-amount`} request={req} />,
       ...(historyMode ? [<VerifierCell key={`${req.id}-verifier`} request={req} />] : []),
     ],
-    actions: historyMode ? null : (
-      <VerificationActions
-        id={req.id}
-        onViewDetails={onViewDetails}
-        onVerify={onVerify}
-        onAction={onAction}
-      />
-    ),
+    actions: actionsFor(req),
   }));
 
   return (
@@ -67,7 +79,11 @@ export function VerificationTableV2({
       columns={columns}
       rows={rows}
       emptyLabel={t('empty_state')}
-      actionsHeader={historyMode ? undefined : t('table.actions')}
+      actionsHeader={
+        !historyMode || data.some(req => req.memberActivationPending)
+          ? t('table.actions')
+          : undefined
+      }
     />
   );
 }

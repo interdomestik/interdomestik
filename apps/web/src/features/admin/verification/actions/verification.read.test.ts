@@ -32,6 +32,10 @@ vi.mock('../server/verification.core', async () => {
 });
 
 import { createRecordingTenantTransaction } from '@/test/recording-tenant-transaction';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { getVerificationRequestsAction } from './verification';
 
 function createRecordingTx(results: unknown[][]) {
@@ -40,6 +44,12 @@ function createRecordingTx(results: unknown[][]) {
     async (_context: unknown, callback: (tx: TenantTransaction) => Promise<unknown>) => callback(tx)
   );
   return { executed };
+}
+
+// The read runs in a transaction minted for the session's tenant and role.
+function actorOf(authority: unknown) {
+  const { tenantId, principal } = readTenantAuthority(authority as TenantAuthority);
+  return [tenantId, principal?.role];
 }
 
 function sessionFor(role: string | undefined, branchId: string | null = null) {
@@ -81,17 +91,14 @@ describe('getVerificationRequestsAction read admission', () => {
     'reads %s tenant-wide in the actor transaction',
     async role => {
       hoisted.getSession.mockResolvedValue(sessionFor(role, 'branch-1'));
-      const rows = [{ id: 'attempt-1' }];
+      const rows = [{ id: 'attempt-1', memberEmailVerified: false }];
       const { executed } = createRecordingTx([rows]);
 
       await expect(getVerificationRequestsAction({ view: 'queue' })).resolves.toEqual({
         success: true,
-        data: rows,
+        data: [{ id: 'attempt-1', memberActivationPending: true }],
       });
-      expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toStrictEqual({
-        tenantId: 'tenant-ks',
-        role,
-      });
+      expect(actorOf(hoisted.withTenantContext.mock.calls[0]?.[0])).toEqual(['tenant-ks', role]);
       expect(executed[0]?.params).not.toContain('branch-1');
     }
   );
@@ -103,10 +110,7 @@ describe('getVerificationRequestsAction read admission', () => {
     await expect(getVerificationRequestsAction({ view: 'history' })).resolves.toMatchObject({
       success: true,
     });
-    expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toStrictEqual({
-      tenantId: 'tenant-ks',
-      role,
-    });
+    expect(actorOf(hoisted.withTenantContext.mock.calls[0]?.[0])).toEqual(['tenant-ks', role]);
     expect(executed[0]?.params).toContain('branch-1');
   });
 

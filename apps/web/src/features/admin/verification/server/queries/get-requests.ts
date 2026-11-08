@@ -1,9 +1,13 @@
-import { withTenantContext } from '@interdomestik/database';
 import { branches, documents, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aliasedTable, and, asc, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 import { CashVerificationRequestDTO, VerificationView } from '../types';
-import { resolveVerificationReadScope, type VerificationReadContext } from './read-access';
+import {
+  canResendActivationInvite,
+  resolveVerificationReadScope,
+  type VerificationReadContext,
+} from './read-access';
 
 // 1. Query: Get Verification Requests (Queue or History)
 // OPS-GRADE: Strict tenant + RBAC scoping + Search + Pagination(limit)
@@ -55,6 +59,9 @@ export async function getVerificationRequests(
 
   // Verifier Alias for History Join
   const verifier = aliasedTable(user, 'verifier');
+  // History rows of converted members who have not yet proven their mailbox (ACQ-2b2 resend).
+  const member = aliasedTable(user, 'member');
+  const showActivation = view === 'history' && canResendActivationInvite(userRole);
 
   // Sorting: Queue = FIFO (Oldest First), History = LIFO (Newest First)
   // For Resubmission: Should bubble to top?
@@ -68,7 +75,7 @@ export async function getVerificationRequests(
   // Limit: Keep UI fast
   const limit = view === 'history' ? 50 : 100;
 
-  return withTenantContext({ tenantId, role: userRole }, async tx => {
+  return withTenantAuthority(ctx.authority, async tx => {
     let queryBuilder = tx
       .select({
         id: leadPaymentAttempts.id,
@@ -96,6 +103,7 @@ export async function getVerificationRequests(
         // Audit Info
         verificationNote: leadPaymentAttempts.verificationNote,
         verifierName: view === 'history' ? verifier.name : sql<null>`null`,
+        memberEmailVerified: showActivation ? member.emailVerified : sql<null>`null`,
       })
       .from(leadPaymentAttempts)
       .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
@@ -120,11 +128,26 @@ export async function getVerificationRequests(
       );
     }
 
+    if (showActivation) {
+      queryBuilder = queryBuilder.leftJoin(
+        member,
+        and(
+          eq(leadPaymentAttempts.status, 'succeeded'),
+          eq(memberLeads.status, 'converted'),
+          eq(member.id, memberLeads.convertedUserId),
+          eq(member.tenantId, tenantId)
+        )
+      );
+    }
+
     const rows = await queryBuilder
       .where(and(...conditions))
       .orderBy(...orderBy)
       .limit(limit);
 
-    return rows as CashVerificationRequestDTO[];
+    return rows.map(({ memberEmailVerified, ...row }) => ({
+      ...row,
+      memberActivationPending: memberEmailVerified === false,
+    })) as CashVerificationRequestDTO[];
   });
 }

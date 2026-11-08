@@ -262,9 +262,12 @@ export async function sendMemberWelcomeEmail(
   return sendEmail(to, renderMemberWelcomeEmail(params));
 }
 
+// Credential links and codes: automated runs catch them on loopback; telemetry is content-free.
+const CREDENTIAL_EMAIL = { automatedCatcher: true, telemetryPolicy: 'content-free' } as const;
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderPasswordResetEmail({ resetUrl }));
+  return sendEmail(to, renderPasswordResetEmail({ resetUrl }), CREDENTIAL_EMAIL);
 }
 
 export async function sendSignInOtpEmail(
@@ -273,10 +276,7 @@ export async function sendSignInOtpEmail(
   locale: SignInOtpLocale = 'en'
 ): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderSignInOtpEmail(otp, locale), {
-    automatedCatcher: true,
-    telemetryPolicy: 'content-free',
-  });
+  return sendEmail(to, renderSignInOtpEmail(otp, locale), CREDENTIAL_EMAIL);
 }
 
 // ============================================================================

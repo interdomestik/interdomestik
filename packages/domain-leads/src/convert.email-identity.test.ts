@@ -60,12 +60,15 @@ describe('convertLeadToMember email identity', () => {
     );
   });
 
-  it('writes the member email trimmed and lowercased', async () => {
+  it('writes the member unverified, with the email trimmed and lowercased', async () => {
     await expect(convertLeadToMember(authority, { leadId: 'lead-1' })).resolves.toMatchObject({
       userId: 'usr_seed',
+      email: 'arben.k@example.com',
     });
     const member = harness.insertRecords.find(record => record.table === tableRefs.user);
     expect(member?.values.email).toBe('arben.k@example.com');
+    // Nobody has proven the mailbox yet; the member sets a password from the invite (ACQ-2b2).
+    expect(member?.values.emailVerified).toBe(false);
   });
 
   it.each(['user_email_unique', 'user_email_lower_unique'])(

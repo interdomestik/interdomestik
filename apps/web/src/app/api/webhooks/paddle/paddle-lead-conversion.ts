@@ -2,6 +2,7 @@ import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
+import { sendMemberActivationInvite } from '@/lib/member-activation-invite';
 import { isMemberEmailConflictError } from '@interdomestik/domain-leads/member-email-conflict';
 import { RetryablePaddleWebhookError } from '@interdomestik/domain-membership-billing/paddle-webhooks';
 import { getPaddleLeadId } from './paddle-lead-id';
@@ -60,8 +61,9 @@ export async function reconcilePaddleLeadConversion(params: {
   const leadBelongsToTenant = await hasTenantLeadForConversion(authority, { leadId });
   if (!leadBelongsToTenant) return;
 
+  let converted: Awaited<ReturnType<typeof convertLeadToMember>>;
   try {
-    await convertLeadToMember(authority, { leadId });
+    converted = await convertLeadToMember(authority, { leadId });
   } catch (error) {
     // The conversion is one transaction and replay-safe, so any other failure left nothing behind
     // and redelivery may retry it.
@@ -73,6 +75,17 @@ export async function reconcilePaddleLeadConversion(params: {
     // Only a failure to record it is retried.
     await recordPaddleLeadEmailConflict(authority, { leadId }).catch(cause => {
       throw new RetryablePaddleWebhookError('Lead email conflict could not be recorded', { cause });
+    });
+    return;
+  }
+  // A redelivered event finds the lead converted (no result) and sends nothing twice. A failed
+  // invite never fails the webhook: the membership is committed and sign-in stays open.
+  if (!converted) return;
+  const invite = await sendMemberActivationInvite({ email: converted.email, tenantId });
+  if (!invite.sent) {
+    console.error('Member activation invite not sent', {
+      userId: converted.userId,
+      reason: invite.reason,
     });
   }
 }

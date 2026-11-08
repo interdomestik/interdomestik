@@ -8,14 +8,14 @@ import { toast } from 'sonner';
 import { useOpsSelectionParam, trackOpsEvent } from '@/components/ops';
 import { useResponsiveSearch } from '@/hooks/use-responsive-search';
 import { useSiblingNavigationCancel } from '@/hooks/use-sibling-navigation-cancel';
-import { verifyCashAttemptAction } from '../../actions/verification';
+import { resendActivationInviteAction, verifyCashAttemptAction } from '../../actions/verification';
 import { type CashVerificationRequestDTO } from '../../server/types';
 import { VerificationActionDialog } from '../VerificationActionDialog';
 import { VerificationDetailsDrawer } from '../VerificationDetailsDrawer';
 import { VerificationFiltersBar } from './VerificationFiltersBar';
 import { VerificationKpis } from './VerificationKpis';
 import { VerificationTableV2 } from './VerificationTableV2';
-import { verificationToastKey } from '../approval-toast';
+import { resendInviteToastKey, verificationToastKey } from '../approval-toast';
 
 interface VerificationOpsCenterClientProps {
   initialData: CashVerificationRequestDTO[];
@@ -122,7 +122,8 @@ export function VerificationOpsCenterClient({
     if (res.success) {
       trackOpsEvent({ surface: 'verification', action: decision, entityId: attemptId });
       const toastKey = verificationToastKey(decision, res);
-      if (toastKey === 'toasts.approve_fulfillment_pending') toast.warning(t(toastKey));
+      if (decision === 'approve' && toastKey !== 'toasts.approve_success')
+        toast.warning(t(toastKey));
       else toast.success(t(toastKey));
       if (decision === 'needs_info') {
         setRequests(prev =>
@@ -158,6 +159,19 @@ export function VerificationOpsCenterClient({
     setActionDialogOpen(false);
   };
 
+  const handleResendInvite = async (attemptId: string) => {
+    const res = await resendActivationInviteAction({ attemptId });
+    const toastKey = resendInviteToastKey(res);
+    if (res.success) {
+      toast.success(t(toastKey));
+    } else if (toastKey === 'toasts.resend_invite_already_active') {
+      toast.info(t(toastKey));
+      setRequests(prev =>
+        prev.map(r => (r.id === attemptId ? { ...r, memberActivationPending: false } : r))
+      );
+    } else toast.error(t(toastKey));
+  };
+
   const handleDrawerActionComplete = () => {
     router.refresh();
   };
@@ -191,6 +205,7 @@ export function VerificationOpsCenterClient({
         onViewDetails={handleSelect}
         onVerify={id => handleVerify(id, 'approve')}
         onAction={initiateAction}
+        onResendInvite={handleResendInvite}
       />
 
       {/* Action Dialog */}

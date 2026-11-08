@@ -28,17 +28,16 @@ describe('getVerificationRequests access', () => {
   );
 
   it('reads the admin queue tenant-wide through the callback transaction', async () => {
-    const rows = [{ id: 'attempt-1' }];
+    const rows = [{ id: 'attempt-1', memberEmailVerified: null }];
     const { executed } = createRecordingTx([rows]);
 
-    const result = await getVerificationRequests(ctx('admin', 'branch-1'), { view: 'queue' });
+    const context = ctx('admin', 'branch-1');
+    const result = await getVerificationRequests(context, { view: 'queue' });
 
-    expect(result).toBe(rows);
+    // Without the member join the pending flag is false, never the raw column.
+    expect(result).toEqual([{ id: 'attempt-1', memberActivationPending: false }]);
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toStrictEqual({
-      tenantId: 'tenant-ks',
-      role: 'admin',
-    });
+    expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toBe(context.authority);
     expect(executed).toHaveLength(1);
     const query = executed[0]!;
     expect(query.params).toEqual(
@@ -56,18 +55,18 @@ describe('getVerificationRequests access', () => {
     async role => {
       const { executed } = createRecordingTx([[]]);
 
-      await getVerificationRequests(ctx(role, 'branch-1'), { view: 'history', query: ' ana ' });
+      const context = ctx(role, 'branch-1');
+      await getVerificationRequests(context, { view: 'history', query: ' ana ' });
 
-      expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toStrictEqual({
-        tenantId: 'tenant-ks',
-        role,
-      });
+      expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toBe(context.authority);
       const query = executed[0]!;
       expect(query.params).toEqual(
         expect.arrayContaining(['tenant-ks', 'branch-1', 'succeeded', 'rejected', '%ana%'])
       );
       expect(query.params.at(-1)).toBe(50);
       expect(query.sql).toContain('"verifier"');
+      // ACQ-2b2: only branch managers see resendable activations; staff never join the member.
+      expect(query.sql.includes('"member"')).toBe(role === 'branch_manager');
       expect(query.sql).toMatch(/"updated_at" desc/);
     }
   );
