@@ -1,3 +1,5 @@
+'use client';
+
 import { Link } from '@/i18n/routing';
 import type { SponsorStaffTask } from '@interdomestik/domain-membership-billing/sponsors/staff-tasks';
 import { useFormatter, useTranslations } from 'next-intl';
