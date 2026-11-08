@@ -184,9 +184,13 @@ export function contractScratch(env) {
         }
         unlockDirectories(directory, current);
         // A nested group whose supervisor has gone is orphaned: terminate it before removal.
-        const signalled = nestedGroups(directory).filter(nested => signalGroup(nested, 'SIGTERM'));
-        const ended = await Promise.all(signalled.map(nested => endGroup(nested, 2000)));
-        killed = ended.some(Boolean) || killed;
+        // One group at a time, as before: a later signalling error surfaces only after every
+        // earlier group has been fully ended.
+        killed = await nestedGroups(directory).reduce(async (previous, nested) => {
+          const before = await previous;
+          if (!signalGroup(nested, 'SIGTERM')) return before;
+          return (await endGroup(nested, 2000)) || before;
+        }, Promise.resolve(killed));
         fs.rmSync(directory, { recursive: true, force: true });
       }
       if (killed) throw new Error('Test subprocesses were still running and were killed');
