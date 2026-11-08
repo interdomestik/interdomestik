@@ -100,7 +100,7 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['de/agent-crm.json', 'de-locale-catalog-contract'],
   ['de/agent-members.json', 'de-locale-catalog-contract'],
   ['de/agent-toolkit.json', 'de-locale-catalog-contract'],
-  ['de/auth.json', 'de-locale-catalog-contract'],
+  ['de/auth.json', 'i18n-keys-parity-contract'],
   ['de/claimCategories.json', 'de-locale-catalog-contract'],
   ['de/commercialTerms.json', 'de-locale-catalog-contract'],
   ['de/common.json', 'de-locale-catalog-contract'],
@@ -139,6 +139,13 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['de/trustStats.json', 'de-locale-catalog-contract'],
   ['de/voiceClaim.json', 'de-locale-catalog-contract'],
   ['de/wizard.json', 'de-locale-catalog-contract'],
+  ['en/auth.json', 'i18n-keys-parity-contract'],
+  ['mk/auth.json', 'i18n-keys-parity-contract'],
+  ['sr/auth.json', 'i18n-keys-parity-contract'],
+  ['mk/services.json', 'i18n-keys-parity-contract'],
+  ['sr/services.json', 'i18n-keys-parity-contract'],
+  ['mk/trust.json', 'i18n-keys-parity-contract'],
+  ['sr/trust.json', 'i18n-keys-parity-contract'],
 ]);
 /** Registry keys: a bare filename applies to every locale; `<locale>/<file>` to that locale only. */
 export const LOCALE_CATALOG_OWNER_KEYS = Object.freeze([...LOCALE_CATALOG_OWNERS.keys()]);

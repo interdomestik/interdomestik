@@ -2,8 +2,8 @@
 /**
  * i18n-keys-parity.ts
  *
- * Validates that all locales have identical key structures for specified namespaces.
- * Fails with exit code 1 if any keys are missing.
+ * Validates identical namespace files and nested key structures across all locales.
+ * Fails with exit code 1 if any namespaces or keys are missing.
  *
  * Usage: npx tsx scripts/i18n-keys-parity.ts
  */
@@ -16,21 +16,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const LOCALES = ['en', 'sq', 'mk', 'sr', 'de'] as const;
-const NAMESPACES = ['admin-claims', 'claims'] as const;
 const MESSAGES_DIR = path.join(__dirname, '../apps/web/src/messages');
 const compareText = (left: string, right: string) => left.localeCompare(right);
 
 type KeyPath = string;
 
-function getKeyPaths(obj: Record<string, unknown>, prefix = ''): KeyPath[] {
+function getKeyPaths(obj: unknown, prefix = ''): KeyPath[] {
+  if (typeof obj !== 'object' || obj === null) return [];
   const keys: KeyPath[] = [];
   for (const [key, value] of Object.entries(obj)) {
     const fullPath = prefix ? `${prefix}.${key}` : key;
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      keys.push(...getKeyPaths(value as Record<string, unknown>, fullPath));
-    } else {
-      keys.push(fullPath);
-    }
+    keys.push(fullPath, ...getKeyPaths(value, fullPath));
   }
   return keys.sort(compareText);
 }
@@ -51,8 +47,23 @@ function loadNamespace(locale: string, namespace: string): Record<string, unknow
 
 function checkParity(): boolean {
   let hasErrors = false;
+  const namespaces = new Set<string>();
 
-  for (const namespace of NAMESPACES) {
+  for (const locale of LOCALES) {
+    try {
+      const entries = fs.readdirSync(path.join(MESSAGES_DIR, locale), { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isFile() && entry.name.endsWith('.json')) {
+          namespaces.add(entry.name.slice(0, -5));
+        }
+      }
+    } catch {
+      console.error(`❌ ${locale}: Locale directory not found or unreadable`);
+      hasErrors = true;
+    }
+  }
+
+  for (const namespace of [...namespaces].sort(compareText)) {
     console.log(`\n📦 Checking namespace: ${namespace}`);
 
     const localeKeys: Map<string, Set<KeyPath>> = new Map();
@@ -62,7 +73,7 @@ function checkParity(): boolean {
     for (const locale of LOCALES) {
       const data = loadNamespace(locale, namespace);
       if (!data) {
-        console.error(`   ❌ ${locale}: File not found or invalid`);
+        console.error(`   ❌ ${locale}/${namespace}.json: File not found or invalid`);
         hasErrors = true;
         continue;
       }
@@ -80,7 +91,7 @@ function checkParity(): boolean {
 
       const missing = [...allKeys].filter(k => !keys.has(k));
       if (missing.length > 0) {
-        console.error(`   ❌ ${locale}: Missing ${missing.length} keys:`);
+        console.error(`   ❌ ${locale}/${namespace}.json: Missing ${missing.length} keys:`);
         missing.forEach(k => console.error(`      - ${k}`));
         hasErrors = true;
       }
