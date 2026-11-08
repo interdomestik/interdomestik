@@ -210,11 +210,13 @@ export async function emailVerified(userId: string) {
 export async function cleanupResetRows() {
   gates.beforeToken = undefined;
   gates.beforeHash = undefined;
-  const ids = [...resetUsers];
+  if (resetUsers.size === 0) return;
+  // One statement: it removes every tracked user's rows or none, and the users stay tracked for a
+  // retry until it succeeds.
+  const tracked = recoverySql.array([...resetUsers]);
+  await recoverySql`delete from "verification" where exists (
+    select 1 from unnest(${tracked}::text[]) as t(id) where strpos("value", t.id) > 0)`;
   resetUsers.clear();
-  await Promise.all(
-    ids.map(id => recoverySql`delete from "verification" where strpos("value", ${id}) > 0`)
-  );
 }
 
 /** Runs a reset contract suite only where the real PostgreSQL contract lane asks for it. */
