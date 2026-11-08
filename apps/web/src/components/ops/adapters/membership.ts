@@ -10,6 +10,7 @@ export type DbDocument = {
 };
 
 type SubscriptionLike = {
+  sponsorCoverage?: { entryId: string };
   id: string;
   status: string | null;
   planId?: string | null;
@@ -22,33 +23,27 @@ type SubscriptionLike = {
 };
 
 export type OpsActionConfig = Omit<OpsAction, 'onClick'> & { id: string };
-export type SponsoredMembershipState =
-  'activation_required' | 'eligible_for_family_upgrade' | 'none';
+export type SponsoredMembershipState = 'inactive' | 'covered' | 'none';
 
-export function isSponsoredSubscription(sub: SubscriptionLike | undefined) {
-  if (!sub) return false;
-  return sub.provider === 'group_sponsor' || sub.acquisitionSource === 'group_roster_import';
+export function isSponsoredSubscription(sub: SubscriptionLike | undefined): boolean {
+  return Boolean(
+    sub?.sponsorCoverage ||
+    sub?.provider === 'group_sponsor' ||
+    (sub?.provider !== 'paddle' && sub?.acquisitionSource === 'group_roster_import')
+  );
 }
 
 export function getSponsoredMembershipState(
   sub: SubscriptionLike | undefined
 ): SponsoredMembershipState {
-  if (!isSponsoredSubscription(sub)) {
-    return 'none';
-  }
-
-  if (sub?.status === 'paused') {
-    return 'activation_required';
-  }
-
-  if (sub?.status === 'active' && sub.planId === 'standard') {
-    return 'eligible_for_family_upgrade';
-  }
-
-  return 'none';
+  if (sub?.sponsorCoverage) return 'covered';
+  return isSponsoredSubscription(sub) ? 'inactive' : 'none';
 }
 
-export function toOpsStatus(status: string | null | undefined) {
+export function toOpsStatus(status: string | null | undefined): {
+  label: string;
+  variant: ReturnType<typeof toOpsBadgeVariant>;
+} {
   const safeStatus = status || 'none';
   return {
     label: safeStatus.replace(/_/g, ' ').toUpperCase(),
@@ -129,6 +124,8 @@ export function getMembershipActions(
     };
   }
 
+  if (sub.sponsorCoverage || sub.provider !== 'paddle') return { secondary: [] };
+
   const secondary: OpsActionConfig[] = [];
   let primary: OpsActionConfig | undefined;
 
@@ -146,14 +143,14 @@ export function getMembershipActions(
   if (isPastDue) {
     primary = {
       id: 'update_payment',
-      label: 'Update Payment Method',
+      label: t('dunning.update_payment_button'),
       variant: 'default',
     };
   } else if (isActive && daysToRenewal <= 30 && daysToRenewal >= 0) {
     // If within 30 days of currentPeriodEnd AND active => show "Renew"
     primary = {
       id: 'renew',
-      label: 'Renew',
+      label: t('actions.renew'),
       variant: 'default',
     };
   } else if (!isActive && !isTrialing) {
@@ -169,7 +166,7 @@ export function getMembershipActions(
   if ((isActive || isPastDue) && !sub.canceledAt && !sub.cancelAtPeriodEnd) {
     secondary.push({
       id: 'cancel',
-      label: 'Request Cancellation',
+      label: t('actions.cancel'),
       variant: 'destructive',
     });
   }

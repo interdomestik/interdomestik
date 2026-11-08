@@ -91,7 +91,7 @@
       "empty_list": "No subscriptions",
       "no_membership_title": "Finish your membership",
       "no_membership_body": "You do not have an active paid membership yet. Choose a plan to continue into checkout and unlock claim access.",
-      "membership_not_active_title": "Protection is not active yet",
+      "membership_not_active_title": "This membership is inactive",
       "membership_not_active_body": "This membership is not active yet. Complete checkout to restore protection and claim access.",
       "complete_membership": "Complete membership",
       "choose_plan": "Choose a plan",
@@ -107,7 +107,9 @@
       "accepted_escalation_survives": "Accepted recovery matters keep their surviving escalation terms after membership cancellation.",
       "cooling_off_applies_separately": "Any statutory cooling-off rights are reviewed separately under the published terms.",
       "payment_update_preparing": "Preparing your secure payment update link…",
-      "payment_update_opening": "Opening the secure payment page…"
+      "payment_update_opening": "Opening the secure payment page…",
+      "renew": "Renew",
+      "cancel": "Request cancellation"
     },
     "errors": {
       "action_failed": "We could not complete that membership action. Please try again.",
@@ -200,6 +202,17 @@
       "valid_thru": "Valid thru",
       "emergency_hotline": "Emergency Hotline",
       "back_to_dashboard": "Back to Dashboard"
+    },
+    "sponsorCoverage": {
+      "covered_until": "Covered until {date}",
+      "leave": "Leave the company programme",
+      "confirm_body": "Your company membership ends now. You can buy an individual membership after leaving.",
+      "keep": "Keep membership",
+      "confirm": "Confirm leave",
+      "pending": "Leaving…",
+      "success": "You have left the company programme. You can now buy an individual membership.",
+      "not_found": "This company membership is no longer available. Refresh the page.",
+      "error": "We could not leave the programme. Please try again."
     }
   }
 }

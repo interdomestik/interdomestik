@@ -103,7 +103,7 @@ describe('MembershipOpsPage', () => {
     expect(actionMocks.getPaymentUpdateUrl).not.toHaveBeenCalled();
   });
 
-  it('shows a family self-upgrade CTA for active sponsored standard memberships', () => {
+  it('shows inactive legacy state even when the old sponsored row says active', () => {
     selectionMocks.selectedId = 'sub-1';
 
     render(
@@ -126,7 +126,7 @@ describe('MembershipOpsPage', () => {
 
     expect(screen.queryByRole('button', { name: 'dunning.update_payment_button' })).toBeNull();
 
-    const link = screen.getByRole('link', { name: 'sponsored.upgrade.cta' });
-    expect(link).toHaveAttribute('href', '/pricing?plan=family');
+    expect(screen.queryByRole('link', { name: 'sponsored.upgrade.cta' })).toBeNull();
+    expect(screen.getByText('ops.membership_not_active_title')).toBeInTheDocument();
   });
 });

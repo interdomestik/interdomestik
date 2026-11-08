@@ -266,6 +266,10 @@
           "100+": "100+ persona"
         }
       }
+    },
+    "sponsorNotice": {
+      "coveredUntil": "Anëtarësia përmes kompanisë suaj ju mbulon deri më {date}. Nuk keni nevojë të blini anëtarësi.",
+      "startsOn": "Anëtarësia përmes kompanisë suaj fillon më {date}. Nuk keni nevojë të blini anëtarësi."
     }
   }
 }

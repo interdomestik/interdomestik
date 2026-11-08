@@ -6,8 +6,12 @@ import {
 } from './pricing-table-test-support';
 import { authClient } from '@/lib/auth-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PricingTable } from './pricing-table';
+
+vi.mock('@/app/[locale]/(app)/member/membership/leave-sponsorship.core', () => ({
+  getCompanyMembershipOutlook: async () => ({ ok: false }),
+}));
 
 describe('PricingTable', () => {
   beforeEach(resetPricingTest);
