@@ -46,7 +46,12 @@
         "reject_success": "Plaćanje je odbijeno.",
         "needs_info_success": "Zahtev za informacijama je poslat.",
         "note_required": "Napomena je obavezna.",
-        "error": "Došlo je do greške tokom verifikacije."
+        "error": "Došlo je do greške tokom verifikacije.",
+        "approve_invite_pending": "Plaćanje je odobreno i članstvo je kreirano, ali imejl za aktivaciju nije poslat. Pošaljite ga ponovo iz Istorije.",
+        "resend_invite_success": "Imejl za aktivaciju je ponovo poslat.",
+        "resend_invite_cooldown": "Imejl za aktivaciju je upravo poslat. Sačekajte minut pre slanja novog.",
+        "resend_invite_failed": "Imejl za aktivaciju nije poslat. Pokušajte kasnije.",
+        "resend_invite_already_active": "Ovaj član je već aktivirao svoj nalog."
       },
       "actions": {
         "approve": "Odobri",
@@ -55,7 +60,8 @@
         "needs_info": "Potrebne informacije",
         "cancel": "Otkaži",
         "submit": "Pošalji",
-        "details": "Detalji"
+        "details": "Detalji",
+        "resend_invite": "Ponovo pošalji imejl za aktivaciju"
       },
       "drawer": {
         "title": "Detalji verifikacije",

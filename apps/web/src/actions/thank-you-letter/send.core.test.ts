@@ -11,7 +11,11 @@ vi.mock('@/lib/email', async () => ({
 vi.mock('@/lib/tenant/tenant-hosts', () => ({
   coerceTenantId: (tenantId: string) =>
     ['tenant_ks', 'tenant_mk', 'tenant_al'].includes(tenantId) ? tenantId : null,
-  resolveTenantAppOrigin: (tenantId: string) => `https://${tenantId}.example.test`,
+}));
+vi.mock('@/lib/email-link-origins', () => ({
+  resolveTenantEmailOrigins: (tenantId: string) => ({
+    appOrigin: `https://${tenantId}.example.test`,
+  }),
 }));
 
 const params = {

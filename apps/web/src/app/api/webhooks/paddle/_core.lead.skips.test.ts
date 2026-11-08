@@ -1,3 +1,4 @@
+import { isRetryablePaddleWebhookError } from '@interdomestik/domain-membership-billing/paddle-webhooks/persist';
 import { installCoreHooks } from './_core.lead.hooks.test-support';
 import { describe, expect, it } from 'vitest';
 
@@ -113,16 +114,20 @@ describe('handlePaddleWebhookCore lead conversion', () => {
     expect(hoisted.insertWebhookEvent).not.toHaveBeenCalled();
   });
 
-  it('marks the webhook failed for unexpected conversion errors', async () => {
-    hoisted.convertLeadToMember.mockRejectedValueOnce(new Error('database unavailable'));
+  it('marks the webhook retryable for unexpected conversion errors', async () => {
+    const cause = new Error('database unavailable');
+    hoisted.convertLeadToMember.mockRejectedValueOnce(cause);
 
-    await expect(callPaddleWebhookCore()).rejects.toThrow('database unavailable');
+    const failure = await callPaddleWebhookCore().catch((error: unknown) => error);
+    expect(isRetryablePaddleWebhookError(failure)).toBe(true);
+    expect((failure as Error).cause).toBe(cause);
 
     expect(hoisted.markWebhookFailed).toHaveBeenCalledWith(
       expect.objectContaining({
         receiptLease: receiptAdmission().receiptLease,
         eventType: 'transaction.completed',
         eventId: 'evt_verified',
+        retryable: true,
         tenantId: 'tenant_1',
       }),
       expect.any(Object)

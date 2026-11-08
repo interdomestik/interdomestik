@@ -32,7 +32,7 @@ export function mailboxConfigured() {
   return Boolean(process.env.E2E_SMTP_HOST?.trim());
 }
 
-function api(path: string) {
+export function api(path: string) {
   const { hostname, port } = new URL(
     process.env.E2E_MAILPIT_API?.trim() || 'http://127.0.0.1:8025'
   );
@@ -41,7 +41,7 @@ function api(path: string) {
 }
 
 type Summary = { ID: string; Subject: string; To: Array<{ Address: string }> };
-async function json<T>(response: Response): Promise<T> {
+export async function json<T>(response: Response): Promise<T> {
   if (!response.ok) throw new Error(`mail catcher answered ${response.status}`);
   return (await response.json()) as T;
 }

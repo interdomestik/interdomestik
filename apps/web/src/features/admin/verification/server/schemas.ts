@@ -10,3 +10,7 @@ export const resubmitCashSchema = z.object({
   attemptId: z.string(),
   note: z.string().optional(),
 });
+
+export const resendActivationInviteSchema = z.object({
+  attemptId: z.string().min(1),
+});

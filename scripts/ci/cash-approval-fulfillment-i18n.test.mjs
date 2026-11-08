@@ -10,11 +10,22 @@ test('cash approval catalogs have bounded ownership and localized pending-setup 
     const catalog = JSON.parse(fs.readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'));
     const toasts = JSON.stringify(catalog).match(/"toasts":\{[^}]*\}/u)?.[0] ?? '';
     const copy = JSON.parse(toasts.slice('"toasts":'.length));
-    for (const key of ['approve_success', 'approve_fulfillment_pending']) {
+    const toastKeys = [
+      'approve_success',
+      'approve_fulfillment_pending',
+      'approve_invite_pending',
+      'resend_invite_success',
+      'resend_invite_cooldown',
+      'resend_invite_failed',
+      'resend_invite_already_active',
+    ];
+    for (const key of toastKeys) {
       assert.equal(typeof copy[key], 'string', `${locale}.${key}`);
       assert.ok(copy[key].trim().length > 0, `${locale}.${key}`);
     }
     assert.notEqual(copy.approve_fulfillment_pending, copy.approve_success);
+    assert.notEqual(copy.approve_invite_pending, copy.approve_success);
+    assert.ok(catalog.admin.leads.actions.resend_invite.trim().length > 0, `${locale}.resend`);
   }
   assert.equal(structuredArtifactOwner('apps/web/src/messages/de/admin-leads.json'), null);
 });

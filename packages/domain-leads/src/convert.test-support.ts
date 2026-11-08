@@ -13,6 +13,8 @@ const mocks = vi.hoisted(() => ({
   and: vi.fn((...clauses) => ({ clauses, op: 'and' })),
   asc: vi.fn(value => ({ op: 'asc', value })),
   selectResults: [] as unknown[][],
+  // The lead as the conversion transaction re-reads it under lock.
+  lockedLead: [{ status: 'new', convertedUserId: null }] as unknown[],
   db: {
     query: {
       memberLeads: {

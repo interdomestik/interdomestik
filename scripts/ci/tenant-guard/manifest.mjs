@@ -36,31 +36,16 @@ export const LEGACY = new Map([
  * in the runtime import closure of each entry's module (see rules.mjs legacyDigest). A kernel change to the context,
  * transaction lifecycle or ambient client fails the guard until it is reviewed and re-pinned.
  */
-// Open transition (ACQ-1b, member_leads consent columns): [previous, successor]. The successor
-// kernel differs only in the schema modules of the closure; complete it to the successor alone in
-// the next guard change after ACQ-1b merges.
 export const LEGACY_PINS = new Map([
   [
     `${DB}/tenant.ts#withTenantContext`,
-    Object.freeze([
-      '7c4ebd07641253e5bfc99b8ccca57d75c76846124af23bc60d218c0f93a97c2a',
-      '97650c0c5409095be3aedf0c68ecd4bde4bb898a9264b892f2d61a6bff691e37',
-    ]),
+    '97650c0c5409095be3aedf0c68ecd4bde4bb898a9264b892f2d61a6bff691e37',
   ],
   [
     `${DB}/tenant.ts#withTenantDb`,
-    Object.freeze([
-      'a64f414e6134b84d2413b13dd893984199fe2e9877d92ab32b7d251f3579bf3e',
-      '0a9dacf96cfdce1a57a728efee7b3a723802f8cc5fd8a8c6346eabea33597f8f',
-    ]),
+    '0a9dacf96cfdce1a57a728efee7b3a723802f8cc5fd8a8c6346eabea33597f8f',
   ],
-  [
-    `${DB}/db.ts#db`,
-    Object.freeze([
-      '87c17c85b25d8ff366209f0c61e73c19e6822fd7a6b649175a2740af7fc8ca9f',
-      'f6030648819e130f965138672b666c115e78791f5997a6395069e7adcbda8d92',
-    ]),
-  ],
+  [`${DB}/db.ts#db`, 'f6030648819e130f965138672b666c115e78791f5997a6395069e7adcbda8d92'],
 ]);
 
 /** Drivers and client construction (R-d). */

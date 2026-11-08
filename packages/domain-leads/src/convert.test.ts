@@ -24,7 +24,7 @@ describe('convertLeadToMember', () => {
     mocks.asc.mockClear();
     mocks.selectResults.length = 0;
     mocks.db.select.mockImplementation(() => ({
-      from: createQueuedFrom(vi.fn, mocks.selectResults),
+      from: createQueuedFrom(vi.fn, mocks.selectResults, mocks.lockedLead),
     }));
   });
 
@@ -83,7 +83,7 @@ describe('convertLeadToMember', () => {
 
     const result = await convertLeadToMember(authority, { leadId: 'lead-1' });
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       userId: 'usr_user-seed',
       memberNumber: 'M-1001',
       subscriptionId: 'sub_subscription-seed',
@@ -218,7 +218,7 @@ describe('convertLeadToMember', () => {
       callback({ ...tx, select: mocks.db.select, query: mocks.db.query })
     );
 
-    await expect(convertLeadToMember(authority, { leadId: 'lead-1' })).resolves.toEqual({
+    await expect(convertLeadToMember(authority, { leadId: 'lead-1' })).resolves.toMatchObject({
       userId: 'usr_user-seed',
       memberNumber: null,
       subscriptionId: 'sub_subscription-seed',

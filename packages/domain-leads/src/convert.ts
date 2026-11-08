@@ -1,4 +1,4 @@
-import { eq, issueTenantMemberNumber } from '@interdomestik/database';
+import { and, eq, issueTenantMemberNumber } from '@interdomestik/database';
 import {
   createActiveAnnualMembershipFulfillment,
   createAgentAssistedOwnershipAttribution,
@@ -17,11 +17,30 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { nanoid } from 'nanoid';
+import { MemberEmailConflictError } from './member-email-conflict';
+
+export * from './member-email-conflict';
 
 export interface ConvertLeadResult {
   userId: string;
+  /** The committed member email (trimmed, lowercased): the only recipient of the invite. */
+  email: string;
   memberNumber: string | null;
   subscriptionId: string;
+}
+
+// Only the email uniqueness indexes on "user" are a member email conflict; every other unique
+// violation (card number, member number, ids) stays a plain failure.
+const MEMBER_EMAIL_UNIQUE_INDEXES = new Set(['user_email_unique', 'user_email_lower_unique']);
+
+function isMemberEmailUniqueViolation(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; current && depth < 4; depth += 1) {
+    const pg = current as { code?: unknown; constraint_name?: unknown; cause?: unknown };
+    if (pg.code === '23505') return MEMBER_EMAIL_UNIQUE_INDEXES.has(String(pg.constraint_name));
+    current = pg.cause;
+  }
+  return false;
 }
 
 type LeadConversionState = Pick<typeof memberLeads.$inferSelect, 'status' | 'convertedUserId'>;
@@ -75,6 +94,7 @@ export async function convertLeadToMember(
   if (isLeadAlreadyConverted(lead)) return null; // Already done (idempotency)
 
   const userId = `usr_${nanoid()}`;
+  const email = lead.email.trim().toLowerCase();
   const now = new Date();
   const canonicalPlanState = await resolveCanonicalMembershipPlanState({
     authority,
@@ -88,15 +108,26 @@ export async function convertLeadToMember(
 
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   const converted = await withTenantAuthority(authority, async tx => {
+    // A concurrent approval of the same lead waits here and then sees it converted, so a replay
+    // returns no result instead of reporting the member it just created as an email conflict.
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
+    const [locked] = await tx
+      .select({ status: memberLeads.status, convertedUserId: memberLeads.convertedUserId })
+      .from(memberLeads)
+      .where(and(eq(memberLeads.id, leadId), eq(memberLeads.tenantId, tenantId)))
+      .for('update');
+    if (!locked || isLeadAlreadyConverted(locked)) return null;
+
     // A. Insert User with role='member'
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(userTable).values({
       id: userId,
       tenantId: tenantId,
-      email: lead.email,
+      email,
       name: `${lead.firstName} ${lead.lastName}`,
       role: 'member',
-      emailVerified: true,
+      // Unverified: conversion does not prove the mailbox; the invite lets the member set a password (ACQ-2b2).
+      emailVerified: false,
       ...(lead.agentId ? createAgentAssistedOwnershipAttribution(lead.agentId) : {}),
       createdAt: now,
       updatedAt: now,
@@ -141,7 +172,12 @@ export async function convertLeadToMember(
       .where(eq(memberLeads.id, leadId));
 
     return { userId, subscriptionId };
+  }).catch(error => {
+    // The transaction has rolled back: no user, subscription or card of this attempt remains.
+    if (isMemberEmailUniqueViolation(error)) throw new MemberEmailConflictError();
+    throw error;
   });
+  if (!converted) return null;
 
   // The global member number is issued for the committed member on its own connection; a member
   // left without one is completed by the session self-heal.
@@ -151,5 +187,5 @@ export async function convertLeadToMember(
       return null;
     }
   );
-  return { ...converted, memberNumber: issued?.memberNumber ?? null };
+  return { ...converted, email, memberNumber: issued?.memberNumber ?? null };
 }

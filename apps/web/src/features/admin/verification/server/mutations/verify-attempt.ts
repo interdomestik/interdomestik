@@ -1,4 +1,6 @@
 import { notifyPaymentVerificationUpdate } from '@/lib/notifications';
+import { sendMemberActivationInvite } from '@/lib/member-activation-invite';
+import { isMemberEmailConflictError } from '@interdomestik/domain-leads/member-email-conflict';
 import { ProtectedActionContext } from '@/lib/safe-action';
 
 import { auditLog, user } from '@interdomestik/database/schema';
@@ -44,6 +46,31 @@ function repeatedDecision(attempt: { status: string; leadId: string }, decision:
   if (decision === 'reject' && attempt.status === 'rejected')
     return { success: true, message: 'Already rejected', leadId: null, decision };
   throw new Error(`Attempt is already processed as ${attempt.status}`);
+}
+
+type PendingFulfillment = {
+  fulfillment: 'pending';
+  reason?: 'member_email_conflict';
+  message: string;
+};
+
+/** An approved payment whose member setup did not complete; logged without the member's email. */
+function pendingFulfillment(leadId: string, err: unknown): PendingFulfillment {
+  const conflict = isMemberEmailConflictError(err);
+  // Redacted: SQL parameters and conflict details can carry the member's email.
+  console.error('Lead conversion failed', {
+    leadId,
+    reason: conflict ? 'member_email_conflict' : ((err as Error | null)?.name ?? 'unknown'),
+  });
+  // The payment stays verified and the lead stays 'paid'; approving again retries the setup.
+  // An email that already has an account is never attached: an operator reconciles it.
+  if (!conflict)
+    return { fulfillment: 'pending', message: 'Payment approved; membership setup is pending.' };
+  return {
+    fulfillment: 'pending',
+    reason: 'member_email_conflict',
+    message: 'Payment approved; the email already belongs to an account and needs reconciliation.',
+  };
 }
 
 // 3. Action: Verify (Approve/Reject/NeedsInfo)
@@ -178,21 +205,27 @@ export async function verifyCashAttemptCore(
       const { convertLeadToMember } = await import('@interdomestik/domain-leads/convert');
       const conversionResult = await convertLeadToMember(authority, { leadId: txResult.leadId });
       if (conversionResult) {
+        // The member is created unverified and invited to set a password (ACQ-2b2, owner decision B).
+        const invite = await sendMemberActivationInvite({
+          email: conversionResult.email,
+          tenantId,
+        });
+        if (!invite.sent) {
+          console.error('Member activation invite not sent', {
+            userId: conversionResult.userId,
+            reason: invite.reason,
+          });
+        }
         return {
           success: true,
           status: 'succeeded' as const,
           memberNumber: conversionResult.memberNumber,
           userId: conversionResult.userId,
+          invite: invite.sent ? ('sent' as const) : ('pending' as const),
         };
       }
     } catch (err) {
-      console.error('Lead conversion failed:', err);
-      // The payment stays verified and the lead stays 'paid'; approving again retries the setup.
-      return {
-        ...txResult,
-        fulfillment: 'pending' as const,
-        message: 'Payment approved; membership setup is pending.',
-      };
+      return { ...txResult, ...pendingFulfillment(txResult.leadId, err) };
     }
   }
 

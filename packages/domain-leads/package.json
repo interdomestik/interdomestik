@@ -8,8 +8,8 @@
     ".": "./src/index.ts",
     "./create": "./src/create.ts",
     "./payment": "./src/payment.ts",
-    "./verify": "./src/verify.ts",
-    "./convert": "./src/convert.ts"
+    "./convert": "./src/convert.ts",
+    "./member-email-conflict": "./src/member-email-conflict.ts"
   },
   "scripts": {
     "test:unit": "vitest run",

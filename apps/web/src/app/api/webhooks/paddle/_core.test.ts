@@ -1,56 +1,43 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { hoisted } from './_core.fixture';
-import { buildTenantPasswordResetRedirectUrl, requestPasswordResetOnboarding } from './_core';
+import { EmailLinkOriginError } from '@/lib/email-link-origins';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import './_core.fixture';
+import { buildTenantPasswordResetRedirectUrl } from './_core';
+
+const DEPLOYMENT_KEYS = ['VERCEL_ENV', 'VERCEL_TARGET_ENV', 'INTERDOMESTIK_DEPLOY_ENV'];
+const HOST_KEYS = ['KS_HOST', 'MK_HOST', 'AL_HOST', 'PILOT_HOST', 'NEXT_PUBLIC_APP_URL'];
 
 describe('paddle webhook onboarding helpers', () => {
-  const mutableEnv = process.env as Record<string, string | undefined>;
-  const originalKsHost = process.env.KS_HOST;
-  const originalMkHost = process.env.MK_HOST;
-  const originalDefaultPublicTenantId = process.env.DEFAULT_PUBLIC_TENANT_ID;
-  const originalNodeEnv = process.env.NODE_ENV;
-  const originalVercelEnv = process.env.VERCEL_ENV;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    mutableEnv.KS_HOST = originalKsHost;
-    mutableEnv.MK_HOST = originalMkHost;
-    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = originalDefaultPublicTenantId;
-    mutableEnv.NODE_ENV = originalNodeEnv;
-    mutableEnv.VERCEL_ENV = originalVercelEnv;
+    for (const key of [...DEPLOYMENT_KEYS, ...HOST_KEYS]) vi.stubEnv(key, '');
   });
 
-  it('builds a tenant-specific reset password URL', () => {
-    delete mutableEnv.MK_HOST;
-    mutableEnv.NODE_ENV = 'development';
-    delete mutableEnv.VERCEL_ENV;
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('builds a tenant reset URL on the issuing deployment outside production', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('BETTER_AUTH_URL', 'http://127.0.0.1:3310');
 
     expect(buildTenantPasswordResetRedirectUrl('tenant_mk')).toBe(
-      'http://mk.localhost/mk/reset-password'
+      'http://127.0.0.1:3310/mk/reset-password'
     );
   });
 
-  it('falls back to the configured default public tenant for invalid tenant IDs', () => {
-    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = 'tenant_al';
-    mutableEnv.AL_HOST = 'al.example.test';
+  it('builds the canonical tenant reset URL on a production deployment', () => {
+    vi.stubEnv('VERCEL_ENV', 'production');
+    vi.stubEnv('BETTER_AUTH_URL', 'https://www.interdomestik.com');
 
-    expect(buildTenantPasswordResetRedirectUrl('not-a-tenant')).toBe(
-      'https://al.example.test/sq/reset-password'
+    expect(buildTenantPasswordResetRedirectUrl('tenant_ks')).toBe(
+      'https://ks.interdomestik.com/sq/reset-password'
     );
   });
 
-  it('requests password reset onboarding with tenant-specific redirect', async () => {
-    mutableEnv.KS_HOST = 'ks.example.test';
+  it('rejects an unknown tenant instead of borrowing a default tenant host', () => {
+    vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', 'tenant_al');
+    vi.stubEnv('BETTER_AUTH_URL', 'http://127.0.0.1:3310');
 
-    await requestPasswordResetOnboarding({
-      email: 'member@example.com',
-      tenantId: 'tenant_ks',
-    });
-
-    expect(hoisted.requestPasswordReset).toHaveBeenCalledWith({
-      body: {
-        email: 'member@example.com',
-        redirectTo: 'https://ks.example.test/sq/reset-password',
-      },
-    });
+    expect(() => buildTenantPasswordResetRedirectUrl('not-a-tenant')).toThrow(EmailLinkOriginError);
   });
 });

@@ -50,7 +50,12 @@ async function ownershipSnapshot(userId: string) {
   return { accounts, cards, drafts, identity, subscriptions };
 }
 
-async function stageReplacement(userId: string, currentEmail: string, target: string, tag: string) {
+export async function stageReplacement(
+  userId: string,
+  currentEmail: string,
+  target: string,
+  tag: string
+) {
   const current = randomUUID(),
     replacement = randomUUID();
   // prettier-ignore

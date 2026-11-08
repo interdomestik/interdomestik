@@ -15,6 +15,7 @@ const hoisted = vi.hoisted(() => ({
   resolvePaddleUserOwner: vi.fn(),
   convertLeadToMember: vi.fn(),
   hasTenantLeadForConversion: vi.fn(),
+  recordPaddleLeadEmailConflict: vi.fn(),
   findPaddleSubscriptionByReference: vi.fn(),
   handlePaddleEvent: vi.fn(),
   insertWebhookEvent: vi.fn(),
@@ -44,7 +45,13 @@ vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   findPaddleSubscriptionByReference: hoisted.findPaddleSubscriptionByReference,
 }));
 
-vi.mock('@interdomestik/domain-membership-billing/paddle-webhooks', () => ({
+// The real typed retry marker stays, so the core's real retry classification recognises it.
+vi.mock('@interdomestik/domain-membership-billing/paddle-webhooks', async () => ({
+  RetryablePaddleWebhookError: (
+    await vi.importActual<
+      typeof import('@interdomestik/domain-membership-billing/paddle-webhooks')
+    >('@interdomestik/domain-membership-billing/paddle-webhooks')
+  ).RetryablePaddleWebhookError,
   handlePaddleEvent: hoisted.handlePaddleEvent,
   insertWebhookEvent: hoisted.insertWebhookEvent,
   markWebhookFailed: hoisted.markWebhookFailed,
@@ -59,6 +66,7 @@ vi.mock('@interdomestik/domain-membership-billing/paddle-webhooks', () => ({
 vi.mock('@interdomestik/domain-leads', () => ({
   convertLeadToMember: hoisted.convertLeadToMember,
   hasTenantLeadForConversion: hoisted.hasTenantLeadForConversion,
+  recordPaddleLeadEmailConflict: hoisted.recordPaddleLeadEmailConflict,
 }));
 
 vi.mock('@/actions/thank-you-letter/send', () => ({
