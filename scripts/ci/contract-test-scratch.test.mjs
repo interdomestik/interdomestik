@@ -184,26 +184,39 @@ test('a process group holding only zombies counts as finished', t => {
   proc(11, 'a b) (c', 'Z', 10);
   proc(12, 'node', 'S', 99);
   fs.mkdirSync(path.join(root, 'self'));
-  assert.equal(groupHasLiveMember(10, root), false);
+  assert.equal(groupHasLiveMember(10, { procRoot: root }), false);
   fs.mkdirSync(path.join(root, '14')); // Listed, then gone before its stat could be read.
-  assert.equal(groupHasLiveMember(10, root), true);
+  assert.equal(groupHasLiveMember(10, { procRoot: root }), true);
   fs.rmdirSync(path.join(root, '14'));
   proc(13, 'node', 'R', 10);
-  assert.equal(groupHasLiveMember(10, root), true);
-  assert.equal(groupHasLiveMember(10, path.join(root, 'missing')), null);
+  assert.equal(groupHasLiveMember(10, { procRoot: root }), true);
+});
+
+test('without procfs, two ps snapshots decide through the automatic fallback', () => {
+  const procRoot = path.join(os.tmpdir(), 'no-procfs-here');
+  let calls = 0;
+  const ps = rows => () => {
+    calls += 1;
+    return rows.join('\n');
+  };
+  assert.equal(groupHasLiveMember(7, { procRoot, ps: ps([' 7 7 Z', ' 8 7 Z', ' 9 3 S']) }), false);
+  assert.equal(calls, 2);
+  assert.equal(groupHasLiveMember(7, { procRoot, ps: ps([' 7 7 Z', ' 8 7 S']) }), true);
+  const failing = () => {
+    throw new Error('ps unavailable');
+  };
+  // An unknown snapshot never proves the group finished.
+  assert.equal(groupHasLiveMember(7, { procRoot, ps: failing }), true);
 });
 
 test('only two complete passes over the same zombies prove a group finished', () => {
-  const passes = results => () => results.shift();
+  const passes = results => ({ scan: () => results.shift() });
   const zombies = (list, incomplete = false) => ({ live: false, zombies: list, incomplete });
   // A member forks after the first listing, then becomes a zombie: the second pass sees the child.
-  assert.equal(groupHasLiveMember(10, '/proc', passes([zombies('10'), zombies('10,11')])), true);
-  assert.equal(groupHasLiveMember(10, '/proc', passes([zombies('10'), { live: true }])), true);
-  assert.equal(groupHasLiveMember(10, '/proc', passes([zombies('10', true), zombies('10')])), true);
-  assert.equal(
-    groupHasLiveMember(10, '/proc', passes([zombies('10,11'), zombies('10,11')])),
-    false
-  );
+  assert.equal(groupHasLiveMember(10, passes([zombies('10'), zombies('10,11')])), true);
+  assert.equal(groupHasLiveMember(10, passes([zombies('10'), { live: true }])), true);
+  assert.equal(groupHasLiveMember(10, passes([zombies('10', true), zombies('10')])), true);
+  assert.equal(groupHasLiveMember(10, passes([zombies('10,11'), zombies('10,11')])), false);
 });
 
 test('a ps snapshot decides group liveness where procfs is missing', () => {
@@ -218,12 +231,6 @@ test('a ps snapshot decides group liveness where procfs is missing', () => {
     throw new Error('ps unavailable');
   };
   assert.equal(scanGroupPs(7, failing).incomplete, true);
-  // An unknown snapshot never proves the group finished.
-  const scans = [scanGroupPs(7, failing), scanGroupPs(7, failing)];
-  assert.equal(
-    groupHasLiveMember(7, '/proc', () => scans.shift()),
-    true
-  );
 });
 
 test(

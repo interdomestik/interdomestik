@@ -62,20 +62,20 @@ export function scanGroupPs(
   return { live: false, zombies: zombies.sort().join(','), incomplete: false };
 }
 
-// Whether a process group still has a member that is not a zombie: null when neither procfs nor
-// an injected scan is available. A member can fork after one pass lists the directory and
-// then turn into a zombie, so "only zombies" holds only for two complete passes that saw the same
-// zombies: a zombie cannot fork, so nothing alive was left to start a member the passes missed.
-export function groupHasLiveMember(pgid, procRoot = '/proc', scan = scanGroup) {
-  let first = scan(pgid, procRoot);
-  if (first === null && scan === scanGroup && procRoot === '/proc') {
-    scan = scanGroupPs;
-    first = scan(pgid);
+// Whether a process group still has a member that is not a zombie. It reads /proc and, without
+// procfs (macOS), `ps` snapshots. A member can fork after one pass lists the processes and then turn
+// into a zombie, so "only zombies" holds only for two complete passes that saw the same zombies: a
+// zombie cannot fork, so nothing alive was left to start a member the passes missed.
+export function groupHasLiveMember(pgid, { procRoot = '/proc', ps, scan } = {}) {
+  let pass = scan ?? (id => scanGroup(id, procRoot));
+  let first = pass(pgid);
+  if (first === null && !scan) {
+    pass = id => scanGroupPs(id, ps);
+    first = pass(pgid);
   }
-  if (first === null) return null;
   if (first.live) return true;
-  const second = scan(pgid, procRoot);
-  if (second === null || second.live || first.incomplete || second.incomplete) return true;
+  const second = pass(pgid);
+  if (second.live || first.incomplete || second.incomplete) return true;
   return first.zombies !== second.zombies;
 }
 
@@ -111,10 +111,7 @@ export function contractScratch(env) {
   // Whether the group finished before the deadline. Exited descendants that nobody reaped stay as
   // zombies and still answer a group signal.
   async function waitForGroup(pid, deadline) {
-    if (!signalGroup(pid, 0)) return true;
-    const live = groupHasLiveMember(pid);
-    if (live === false) return true;
-    if (live === null) throw new Error('Cannot confirm that test subprocesses exited');
+    if (!signalGroup(pid, 0) || !groupHasLiveMember(pid)) return true;
     if (performance.now() >= deadline) return false;
     await setTimeout(50);
     return waitForGroup(pid, deadline);
