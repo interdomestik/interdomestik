@@ -14,6 +14,8 @@ export async function handleOrderedPastDue(args: {
   authority: TenantAuthority;
   user: PastDueUserRecord;
   planName: string;
+  /** ACQ-3b: sponsor coverage holds, so the frozen mail drops the loss-of-access claim. */
+  accessContinues?: boolean;
   deps: PastDueEmailDeps;
   buildState: (row: LockedDunningState) => {
     values: Partial<typeof subscriptions.$inferInsert>;
@@ -36,6 +38,7 @@ export async function handleOrderedPastDue(args: {
             throw new RetryablePaddleWebhookError('Past-due email preparation unavailable');
           }
           request = args.deps.preparePastDueEmail(args.user.email, {
+            accessContinues: args.accessContinues,
             memberName: args.user.name || 'Member',
             planName: args.planName,
             gracePeriodDays: 14,
