@@ -28,6 +28,21 @@ describe('leave programme confirmation', () => {
     expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
     expect(screen.getByRole('button', { name: 'sponsorCoverage.leave' })).toBeDisabled();
   });
+  it('keeps completion and status with entry A when reused for entry B', async () => {
+    h.leave.mockResolvedValue({ ok: true });
+    const { rerender } = render(<LeaveCompanyProgramme entryId="A" t={t} />);
+    fireEvent.click(screen.getByRole('button', { name: 'sponsorCoverage.leave' }));
+    fireEvent.click(screen.getByRole('button', { name: 'sponsorCoverage.confirm' }));
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('sponsorCoverage.success')
+    );
+    rerender(<LeaveCompanyProgramme entryId="B" t={t} />);
+    expect(screen.getByRole('button', { name: 'sponsorCoverage.leave' })).toBeEnabled();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    rerender(<LeaveCompanyProgramme entryId="A" t={t} />);
+    expect(screen.getByRole('button', { name: 'sponsorCoverage.leave' })).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent('sponsorCoverage.success');
+  });
   it('allows keeping membership without calling the action', () => {
     render(<LeaveCompanyProgramme entryId="mine" t={t} />);
     fireEvent.click(screen.getByRole('button', { name: 'sponsorCoverage.leave' }));

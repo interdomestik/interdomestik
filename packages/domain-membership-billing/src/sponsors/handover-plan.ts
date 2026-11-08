@@ -124,6 +124,11 @@ export function planHandoverStep(
   }
   // Every cancel, the first and each retry, backs off by the attempts already made (step 4).
   if (plan.dispatch) plan.nextRunAt = new Date(now.getTime() + retryDelayMs(intent.attempts));
+  // Enforce the locked retry deadline after computing observation and reconciliation effects.
+  if (plan.dispatch && intent.nextAttemptAt && Date.parse(intent.nextAttemptAt) > now.getTime()) {
+    plan.dispatch = null;
+    plan.nextRunAt = new Date(intent.nextAttemptAt);
+  }
   return plan;
 }
 

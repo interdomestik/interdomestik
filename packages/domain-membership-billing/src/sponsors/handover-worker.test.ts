@@ -9,7 +9,7 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { auditTransaction } from './audit-test-support';
 import { readHandoverState, type HandoverState } from './handover-intent-read';
-import { runHandoverIntent } from './handover-worker';
+import { runHandoverIntent, scanMark } from './handover-worker';
 import type { HandoverPaddleClient, HandoverSubscription } from './paddle-handover-client';
 
 vi.mock('@interdomestik/database/tenant-authority-context', () => ({
@@ -40,6 +40,7 @@ function state(): HandoverState {
       attempts: 0,
       paidUntil: null,
       paidUntilEvidence: null,
+      nextAttemptAt: null,
       canceledConfirmedAt: null,
       reconciliationClosedAt: null,
     },
@@ -195,6 +196,29 @@ describe('handover post-cancel observation', () => {
     ).resolves.toBe('observed');
     expect(client.cancelAtNextPeriod).not.toHaveBeenCalled();
     expect(db.writes).toEqual([]);
+  });
+
+  it('honors backoff when a second pass reads its snapshot after the first dispatch', async () => {
+    const { db, client, dispatched } = setup(subscription);
+    dispatched.intent.nextAttemptAt = new Date(now.getTime() + 10 * 60_000).toISOString();
+    const snapshot = structuredClone(dispatched);
+    expect(scanMark(snapshot.intent)).toBe(scanMark(dispatched.intent));
+    vi.mocked(readHandoverState)
+      .mockReset()
+      .mockResolvedValueOnce(snapshot)
+      .mockResolvedValue(dispatched);
+    await expect(
+      runHandoverIntent(
+        authority,
+        { client, hasCredential: async () => true },
+        { intentId: 'intent', now }
+      )
+    ).resolves.toBe('observed');
+    expect(client.cancelAtNextPeriod).not.toHaveBeenCalled();
+    expect(db.writes.some(write => write.table === sponsorHandoverCancelAttempts)).toBe(false);
+    expect(db.writes.at(-1)?.values).toMatchObject({
+      nextAttemptAt: dispatched.intent.nextAttemptAt,
+    });
   });
 
   it('rechecks locked state after staff closes during the provider call', async () => {

@@ -25,18 +25,21 @@ export function LeaveCompanyProgramme({
   const pendingRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-  const [left, setLeft] = useState(false);
+  const [statuses, setStatuses] = useState<Record<string, string>>({});
+  const status = statuses[entryId] ?? null;
+  const left = status === 'success';
+  const setStatus = (value: string): void => {
+    setStatuses(previous => ({ ...previous, [entryId]: value }));
+  };
   const leave = async () => {
     if (pendingRef.current || left) return;
     pendingRef.current = true;
     setPending(true);
-    setStatus(null);
+    setStatus('');
     try {
       const result = await leaveCompanyProgramme({ entryId });
       setStatus(result.ok ? 'success' : result.error === 'not_found' ? 'not_found' : 'error');
       if (result.ok) {
-        setLeft(true);
         router.refresh();
       }
     } catch {

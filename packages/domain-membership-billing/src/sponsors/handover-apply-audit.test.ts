@@ -22,6 +22,7 @@ function state(): HandoverState {
       attempts: 0,
       paidUntil: null,
       paidUntilEvidence: null,
+      nextAttemptAt: null,
       canceledConfirmedAt: null,
       reconciliationClosedAt: null,
     },

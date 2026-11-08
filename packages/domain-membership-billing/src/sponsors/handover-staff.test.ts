@@ -109,6 +109,7 @@ it('accepts unique staff evidence after canceled-without-evidence and keeps paid
       attempts: 1,
       paidUntil: null,
       paidUntilEvidence: null,
+      nextAttemptAt: null,
       canceledConfirmedAt: null,
       reconciliationClosedAt: null,
     },

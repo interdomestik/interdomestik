@@ -22,6 +22,7 @@ export type IntentSnapshot = ReconciliationIntent & {
   userId: string;
   providerSubscriptionId: string;
   attempts: number;
+  nextAttemptAt: string | null;
   paidUntilEvidence: string | null;
   canceledConfirmedAt: string | null;
   reconciliationClosedAt: string | null;
@@ -52,6 +53,7 @@ export async function readHandoverState(
       dispatchPeriodEndsAt: sponsorHandoverIntents.dispatchPeriodEndsAt,
       restorationCutoff: sponsorHandoverIntents.restorationCutoff,
       attempts: sponsorHandoverIntents.attempts,
+      nextAttemptAt: sponsorHandoverIntents.nextAttemptAt,
       paidUntil: sponsorHandoverIntents.paidUntil,
       paidUntilEvidence: sponsorHandoverIntents.paidUntilEvidence,
       canceledConfirmedAt: sponsorHandoverIntents.canceledConfirmedAt,

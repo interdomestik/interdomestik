@@ -39,6 +39,7 @@ const intent = (over: Partial<IntentSnapshot> = {}): IntentSnapshot => ({
   attempts: 0,
   paidUntil: null,
   paidUntilEvidence: null,
+  nextAttemptAt: null,
   canceledConfirmedAt: null,
   reconciliationClosedAt: null,
   ...over,

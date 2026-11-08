@@ -3,6 +3,7 @@ import {
   eq,
   inArray,
   isNull,
+  sponsorHandoverCancelAttempts,
   sponsorHandoverCharges,
   sponsorHandoverIntents,
   sponsorRosterEntries,
@@ -41,6 +42,46 @@ export async function readTaskIntents(tx: TenantTransaction, tenantId: string) {
             gte(sponsorHandoverIntents.attempts, HANDOVER_ESCALATION_ATTEMPTS)
           )
         )
+      )
+    );
+}
+
+/** Open re-cancellations, with every attempt so the newest five can be evaluated together. */
+export async function readRecancellationAttempts(
+  tx: TenantTransaction,
+  tenantId: string
+): Promise<
+  {
+    intentId: string;
+    userId: string;
+    attempts: number;
+    attemptNo: number;
+    outcome: string;
+    dispatchedAt: string;
+  }[]
+> {
+  return tx
+    .select({
+      intentId: sponsorHandoverIntents.id,
+      userId: sponsorHandoverIntents.userId,
+      attempts: sponsorHandoverIntents.attempts,
+      attemptNo: sponsorHandoverCancelAttempts.attemptNo,
+      outcome: sponsorHandoverCancelAttempts.outcome,
+      dispatchedAt: sponsorHandoverCancelAttempts.dispatchedAt,
+    })
+    .from(sponsorHandoverCancelAttempts)
+    .innerJoin(
+      sponsorHandoverIntents,
+      and(
+        eq(sponsorHandoverIntents.tenantId, sponsorHandoverCancelAttempts.tenantId),
+        eq(sponsorHandoverIntents.id, sponsorHandoverCancelAttempts.intentId)
+      )
+    )
+    .where(
+      and(
+        eq(sponsorHandoverCancelAttempts.tenantId, tenantId),
+        eq(sponsorHandoverIntents.state, 'cancel_scheduled'),
+        isNull(sponsorHandoverIntents.reconciliationClosedAt)
       )
     );
 }

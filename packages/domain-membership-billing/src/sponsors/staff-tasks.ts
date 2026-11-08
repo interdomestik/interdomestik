@@ -15,6 +15,7 @@ import {
 import {
   HANDOVER_ESCALATION_ATTEMPTS,
   readOpenCharges,
+  readRecancellationAttempts,
   readTaskEntries,
   readTaskIntents,
   readUnhandledPaddleRows,
@@ -137,6 +138,37 @@ export function intentTasks(rows: readonly IntentRow[], now: Date): SponsorStaff
   return out;
 }
 
+/** Five latest unknown outcomes with a dispatch in the last two maximum retry delays. */
+export function recancellationTasks(
+  rows: readonly Awaited<ReturnType<typeof readRecancellationAttempts>>[number][],
+  now: Date
+): SponsorStaffTask[] {
+  const grouped = new Map<string, (typeof rows)[number][]>();
+  for (const row of rows) {
+    const group = grouped.get(row.intentId) ?? [];
+    group.push(row);
+    grouped.set(row.intentId, group);
+  }
+  return [...grouped.values()].flatMap((group): SponsorStaffTask[] => {
+    const latest = group
+      .sort((a, b) => b.attemptNo - a.attemptNo)
+      .slice(0, HANDOVER_ESCALATION_ATTEMPTS);
+    const newest = latest[0];
+    if (!newest || latest.length < HANDOVER_ESCALATION_ATTEMPTS) return [];
+    const age = now.getTime() - parseTimestamp(newest.dispatchedAt).getTime();
+    if (age < 0 || age > 2 * DAY_MS || latest.some(attempt => attempt.outcome !== 'unknown'))
+      return [];
+    return [
+      {
+        kind: 'retrying_cancel',
+        intentId: newest.intentId,
+        userId: newest.userId,
+        attempts: newest.attempts,
+      },
+    ];
+  });
+}
+
 /** Only before it takes effect; afterwards Paddle reports `canceled` (observed_cancel). */
 export function scheduledCancelTasks(
   rows: readonly ScheduledHandoverTask[],
@@ -167,6 +199,7 @@ export async function listSponsorStaffTasks(
       .map(member => member.userId);
     return {
       intents: await readTaskIntents(tx, tenantId),
+      retries: await readRecancellationAttempts(tx, tenantId),
       charges: await readOpenCharges(tx, tenantId),
       entries: await readTaskEntries(tx, tenantId),
       races: await readUnhandledPaddleRows(tx, tenantId, covered),
@@ -175,6 +208,7 @@ export async function listSponsorStaffTasks(
   });
   const tasks: SponsorStaffTask[] = [];
   tasks.push(...intentTasks(read.intents, now));
+  tasks.push(...recancellationTasks(read.retries, now));
   tasks.push(...scheduledCancelTasks(read.scheduled, now));
   for (const charge of read.charges) {
     tasks.push({
