@@ -12,7 +12,12 @@ const h = vi.hoisted(() => ({
   order: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({ withTenantContext: h.tenant }));
+vi.mock('@interdomestik/database/tenant-authority', () => ({
+  readTenantAuthority: (authority: { tenantId: string }) => authority,
+}));
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: h.tenant,
+}));
 vi.mock('@interdomestik/database/schema', () => {
   const table = (name: string) =>
     new Proxy({}, { get: (_target, key) => `${name}.${String(key)}` });
@@ -28,7 +33,8 @@ vi.mock('drizzle-orm', () => ({
 
 import { getMemberCaseSummaries } from './get-member-case-summaries';
 
-const get = (memberId = 'm', tenantId = 't') => getMemberCaseSummaries({ memberId, tenantId });
+const get = (memberId = 'm', tenantId = 't') =>
+  getMemberCaseSummaries({ authority: { tenantId } as never, memberId });
 const chain: Record<string, unknown> = new Proxy(
   {},
   { get: (_target, key) => (key === 'orderBy' ? h.order : () => chain) }
@@ -59,17 +65,10 @@ describe('getMemberCaseSummaries', () => {
     h.tenant.mockImplementation(async (_context, action) => action({ select: h.select }));
   });
 
-  it('fails closed without a tenant', async () => {
-    await expect(get('m', '')).rejects.toThrow('Missing tenant context');
-  });
-
   it('scopes one query and returns safe facts', async () => {
     h.rows = [row({ documentCount: 3 })];
     const result = await get('member-1', 'tenant-1');
-    expect(h.tenant).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1', role: 'member' },
-      expect.any(Function)
-    );
+    expect(h.tenant).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
     expect(h.select).toHaveBeenCalledTimes(1);
     expect(h.eq.mock.calls.flat()).toEqual(
       'document.claimId claim.id document.tenantId tenant-1 claim.tenantId tenant-1 claim.userId member-1'.split(

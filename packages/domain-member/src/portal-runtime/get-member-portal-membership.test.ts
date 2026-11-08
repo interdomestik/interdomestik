@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const h = vi.hoisted(() => ({
   find: vi.fn(),
+  resolve: vi.fn(),
   scope: vi.fn(),
   eq: vi.fn((...pair: unknown[]) => pair),
   authSession: vi.fn(),
@@ -24,9 +25,14 @@ const MEMBER_CONTEXT_MODULE = new URL(
   import.meta.url
 ).href;
 
-vi.mock('@interdomestik/database', () => ({
-  subscriptions: { tenantId: 'subscription.tenantId', userId: 'subscription.userId' },
-  withTenantContext: h.scope,
+vi.mock('@interdomestik/database/tenant-authority', () => ({
+  readTenantAuthority: (authority: { tenantId: string }) => authority,
+}));
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: h.scope,
+}));
+vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
+  resolveEffectiveMembership: h.resolve,
 }));
 vi.mock('drizzle-orm', async importOriginal => ({
   ...(await importOriginal<typeof import('drizzle-orm')>()),
@@ -36,46 +42,48 @@ vi.mock('drizzle-orm', async importOriginal => ({
 
 import { getMemberPortalMembership } from './get-member-portal-membership';
 
-const get = (tenantId = 'tenant-1') =>
+const authority = { tenantId: 'tenant-1' } as never;
+const get = () =>
   getMemberPortalMembership({
+    authority,
     memberId: 'member-1',
     now: new Date('2026-08-28T12:00:00.000Z'),
-    tenantId,
   });
 
 describe('getMemberPortalMembership', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     h.find.mockResolvedValue(null);
+    h.resolve.mockImplementation(async () => {
+      const subscription = await h.find();
+      return new Map([
+        [
+          'member-1',
+          subscription && subscription.provider !== 'group_sponsor'
+            ? { source: 'subscription', subscription }
+            : { source: 'none' },
+        ],
+      ]);
+    });
     h.scope.mockImplementation(async (_context, action) =>
       action({ query: { subscriptions: { findFirst: h.find } } })
     );
   });
 
-  it('rejects a missing tenant and performs one tenant/member read', async () => {
-    await expect(get('')).rejects.toThrow('Missing tenant context');
+  it('reads once under the session authority for its tenant and member', async () => {
     await expect(get()).resolves.toEqual({
       bucket: 'none',
       currentPeriodEnd: null,
       grantsNewCaseAccess: false,
     });
-    expect(h.scope).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1', role: 'member' },
-      expect.any(Function)
-    );
+    expect(h.scope).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(h.find).toHaveBeenCalledTimes(1);
-    expect(h.eq.mock.calls.flat()).toEqual([
-      'subscription.tenantId',
+    expect(h.resolve).toHaveBeenCalledWith(
+      expect.any(Object),
       'tenant-1',
-      'subscription.userId',
-      'member-1',
-    ]);
-    expect(h.find.mock.calls[0][0].columns).toEqual({
-      cancelAtPeriodEnd: true,
-      currentPeriodEnd: true,
-      gracePeriodEndsAt: true,
-      status: true,
-    });
+      ['member-1'],
+      new Date('2026-08-28T12:00:00.000Z')
+    );
   });
 
   it.each([
@@ -118,6 +126,40 @@ describe('getMemberPortalMembership', () => {
   it('propagates read failures', async () => {
     h.find.mockRejectedValueOnce(new Error('database unavailable'));
     await expect(get()).rejects.toThrow('database unavailable');
+  });
+
+  it.each([true, false])(
+    'uses sponsor lifecycle and current term end (cancel=%s)',
+    async cancelAtPeriodEnd => {
+      const currentPeriodEnd = new Date('2026-12-31');
+      h.resolve.mockResolvedValueOnce(
+        new Map([
+          [
+            'member-1',
+            {
+              source: 'sponsor',
+              windowEnd: currentPeriodEnd,
+              coverageEnd: new Date('2027-12-31'),
+              lifecycle: { status: 'active', cancelAtPeriodEnd, gracePeriodEndsAt: null },
+            },
+          ],
+        ])
+      );
+      await expect(get()).resolves.toEqual({
+        bucket: cancelAtPeriodEnd ? 'scheduled_cancel' : 'active',
+        currentPeriodEnd,
+        grantsNewCaseAccess: true,
+      });
+    }
+  );
+
+  it('denies access for a group_sponsor row without covering roster entries', async () => {
+    h.find.mockResolvedValueOnce({ provider: 'group_sponsor', status: 'active' });
+    await expect(get()).resolves.toEqual({
+      bucket: 'none',
+      currentPeriodEnd: null,
+      grantsNewCaseAccess: false,
+    });
   });
 });
 

@@ -12,6 +12,7 @@
     "./paddle": "./src/paddle.ts",
     "./paddle-server": "./src/paddle-server.ts",
     "./subscription": "./src/subscription.ts",
+    "./sponsor-coverage": "./src/sponsor-coverage/index.ts",
     "./sponsors/handover-worker": "./src/sponsors/handover-worker.ts",
     "./sponsors/opt-out": "./src/sponsors/opt-out.ts",
     "./sponsors/paddle-handover-client": "./src/sponsors/paddle-handover-client.ts",
