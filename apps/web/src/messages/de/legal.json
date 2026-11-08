@@ -1,0 +1,40 @@
+{
+  "legal": {
+    "terms": {
+      "title": "Nutzungsbedingungen",
+      "intro": "Willkommen bei Interdomestik Asistenca. Diese Bedingungen regeln Ihre Mitgliedschaft.",
+      "sections": {
+        "membership": "Die Mitgliedschaft gilt 1 Jahr ab dem Kaufdatum. Sie umfasst den Zugang zu unserem Schutznetzwerk und die Vermittlung von Rabatten.",
+        "services": "Wir bieten Unterstützung bei der Schadensabwicklung, Rechtsberatung und Schadensbewertung.",
+        "fees": "Mitgliedsgebühren werden nach Ablauf des 30-tägigen Erstattungsfensters zum Start nicht erstattet. Erfolgshonorare fallen nur bei erfolgreicher Erstattung im Schadensfall an."
+      }
+    },
+    "privacy": {
+      "title": "Datenschutzerklärung",
+      "intro": "Ihre Privatsphäre ist uns wichtig. Ihre Mitgliedschaft umfasst einen strengen Datenschutz.",
+      "sections": {
+        "handling": {
+          "title": "Wie wir mit Ihren Daten umgehen",
+          "body": "Wir erheben nur die Informationen, die zur Erbringung der Mitgliedschaftsleistungen, zur Bearbeitung von Schadensfällen und zur Erfüllung gesetzlicher Pflichten erforderlich sind. Der Zugriff ist nach Rolle und Mandantenbereich beschränkt."
+        },
+        "rights": {
+          "title": "Ihre Rechte",
+          "body": "Sie können Auskunft über Ihre gespeicherten Daten, deren Berichtigung und, soweit gesetzlich zulässig, deren Löschung verlangen."
+        },
+        "deletion": {
+          "title": "Löschanträge",
+          "body": "Angemeldete Benutzer können über den unten genannten Endpunkt mit einem optionalen JSON-Body einen Löschantrag stellen.",
+          "followup": "Anträge werden als Compliance-Ereignisse protokolliert und vom Betrieb geprüft, bevor unumkehrbare Löschvorgänge ausgeführt werden."
+        }
+      }
+    },
+    "cookies": {
+      "title": "Cookie-Richtlinie",
+      "intro": "Wir verwenden notwendige Cookies, um das Portal sicher und funktionsfähig zu halten. Optionale Analyse-Cookies werden erst nach ausdrücklicher Einwilligung aktiviert.",
+      "preference": "Sie können Ihre Einstellung jederzeit ändern, indem Sie während Ihrer Sitzung die Steuerelemente des Cookie-Banners erneut aufrufen."
+    },
+    "refund": {
+      "title": "Erstattungsrichtlinie"
+    }
+  }
+}

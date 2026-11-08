@@ -1,0 +1,306 @@
+{
+  "admin-crm": {
+    "title": "CRM-Berichte",
+    "description": "Mandantenweite CRM-Berichte zu Pipeline-Zustand, Qualität der Quellen und Prognose-Snapshots.",
+    "snapshot": {
+      "title": "Neuester Prognose-Snapshot",
+      "description": "Vorheriges UTC-Snapshot-Datum, gruppiert nach Währung.",
+      "empty": "Für das vorherige UTC-Datum wurde kein Prognose-Snapshot erstellt.",
+      "staleEmpty": "Der neueste Snapshot ist veraltet. Aktuelle Werte sind ausgeblendet, bis der Scheduler sie aktualisiert.",
+      "fresh": "Aktuell",
+      "delayed": "Verzögert",
+      "stale": "Veraltet",
+      "date": "Snapshot {date}",
+      "versionLabel": "Snapshot-Version"
+    },
+    "branchPipeline": {
+      "title": "Pipeline-Übersicht der Filialen",
+      "description": "Aktuelle gewichtete Pipeline der letzten 90 Tage nach Filiale, Pipeline und Währung.",
+      "empty": "Für das Standard-Berichtsfenster sind keine aktuellen Pipeline-Zeilen verfügbar."
+    },
+    "sourceBreakdown": {
+      "title": "Aufschlüsselung nach Quelle",
+      "description": "Wichtigste CRM-Quellen nach Anzahl der Deals im Standard-Berichtsfenster.",
+      "empty": "Für das Standard-Berichtsfenster sind keine Quellenzeilen verfügbar.",
+      "deals": "{count, plural, one {# Deal} other {# Deals}}"
+    },
+    "branchManager": {
+      "title": "CRM-Berichte der Filiale",
+      "description": "Filialbezogene CRM-Berichte zu Pipeline-Zustand, Qualität der Quellen und Prognose-Snapshots.",
+      "snapshot": {
+        "title": "Prognose-Snapshot der Filiale",
+        "description": "Vorheriges UTC-Snapshot-Datum für Ihre Filiale, gruppiert nach Währung.",
+        "empty": "Für das vorherige UTC-Datum wurde kein Prognose-Snapshot der Filiale erstellt.",
+        "staleEmpty": "Der neueste Snapshot der Filiale ist veraltet. Aktuelle Werte sind ausgeblendet, bis der Scheduler sie aktualisiert."
+      },
+      "branchPipeline": {
+        "title": "Pipeline-Übersicht der Filiale",
+        "description": "Aktuelle gewichtete Pipeline der letzten 90 Tage für Ihre Filiale, gruppiert nach Pipeline und Währung.",
+        "empty": "Für das Standard-Berichtsfenster sind keine Pipeline-Zeilen der Filiale verfügbar."
+      },
+      "sourceBreakdown": {
+        "title": "Aufschlüsselung der Filiale nach Quelle",
+        "description": "Wichtigste CRM-Quellen nach Anzahl der Deals für Ihre Filiale im Standard-Berichtsfenster.",
+        "empty": "Für das Standard-Berichtsfenster sind keine Quellenzeilen der Filiale verfügbar."
+      }
+    },
+    "metrics": {
+      "totalPipeline": "Gesamt",
+      "weighted": "Gewichtet",
+      "openDeals": "Offene Deals",
+      "closedWon": "Gewonnen abgeschlossen",
+      "closedLost": "Verloren abgeschlossen"
+    },
+    "labels": {
+      "noBranch": "Keine Filiale",
+      "tenantWide": "Mandantenweit",
+      "unknownSource": "Unbekannte Quelle"
+    },
+    "forecastAlert": {
+      "severity": {
+        "ok": "OK",
+        "warning": "Warnung",
+        "critical": "Kritisch",
+        "unknown": "Unbekannt"
+      },
+      "ok": {
+        "headline": "Prognose-Snapshots sind in Ordnung",
+        "explanation": "Die neuesten erwarteten Arbeitselemente für Prognose-Snapshots wurden ohne verzögerte, veraltete, fehlende, zurückgestellte oder unerwartete Zeilen beobachtet."
+      },
+      "warning": {
+        "headline": "Prognose-Snapshots müssen geprüft werden",
+        "explanation": "Einige Arbeitselemente für Prognose-Snapshots sind verzögert, fehlen, sind zurückgestellt oder wurden unerwartet beobachtet. Prüfen Sie die Beobachtbarkeit, bevor Sie Reparaturen ausführen."
+      },
+      "critical": {
+        "headline": "Prognose-Snapshots erfordern Aufmerksamkeit",
+        "explanation": "Für die neueste erwartete Snapshot-Arbeit wurden keine Snapshots beobachtet oder sie enthält veraltete Zeilen. Nutzen Sie Beobachtbarkeit und Nachbefüllung, bevor Sie sich auf die Daten verlassen."
+      },
+      "unknown": {
+        "headline": "Zustand der Prognose-Snapshots ist unbekannt",
+        "explanation": "Die Erwartungen an Prognose-Snapshots sind nicht verfügbar oder das Lesen der Beobachtbarkeit ist fehlgeschlagen. Versuchen Sie es erneut, sobald die Berichtsdaten verfügbar sind."
+      },
+      "metrics": {
+        "expected": "Erwartet",
+        "observed": "Beobachtet",
+        "missing": "Fehlend",
+        "stale": "Veraltet",
+        "deferred": "Zurückgestellt",
+        "latestCreated": "Zuletzt erstellt",
+        "latestRun": "Letzter Lauf",
+        "none": "Keine"
+      }
+    },
+    "forecastObservability": {
+      "title": "Beobachtbarkeit der Prognose-Snapshots",
+      "description": "Betriebliche Abdeckung für das vorherige UTC-Datum der Prognose-Snapshots.",
+      "empty": "Für das vorherige UTC-Datum wurden keine erwarteten oder beobachteten Arbeitselemente für Prognose-Snapshots gefunden.",
+      "summary": {
+        "expected": "Erwartet",
+        "observed": "Beobachtet",
+        "missing": "Fehlend",
+        "unexpected": "Unerwartet beobachtet",
+        "delayed": "Verzögert",
+        "stale": "Veraltet",
+        "deferred": "Zurückgestellt erwartet",
+        "latestRun": "Letzter Lauf"
+      },
+      "status": {
+        "fresh": "Aktuell",
+        "delayed": "Verzögert",
+        "stale": "Veraltet",
+        "missing": "Fehlend"
+      },
+      "coverage": {
+        "title": "Abdeckung",
+        "empty": "Für dieses Datum sind keine erwarteten Arbeitselemente für Prognose-Snapshots verfügbar.",
+        "branch": "Filiale",
+        "pipeline": "Pipeline",
+        "currency": "Währung",
+        "status": "Status",
+        "version": "Version",
+        "latestCreated": "Zuletzt erstellt",
+        "hidden": "{count, plural, one {# Abdeckungszeile ausgeblendet} other {# Abdeckungszeilen ausgeblendet}}",
+        "hiddenHelp": "Abdeckungszeilen werden nach deterministischer Sortierung begrenzt."
+      },
+      "batches": {
+        "title": "Beobachtete Stapel",
+        "empty": "Für dieses Datum sind keine beobachteten Stapel von Prognose-Snapshots verfügbar.",
+        "sourceRun": "Quelllauf",
+        "observed": "Beobachtet",
+        "branches": "Filialen",
+        "pipelines": "Pipelines",
+        "currencies": "Währungen",
+        "lastCreated": "Zuletzt erstellt"
+      },
+      "labels": {
+        "none": "Keine"
+      }
+    },
+    "backfill": {
+      "title": "Nachbefüllung der Prognose-Snapshots",
+      "description": "Begrenzte Reparaturen der Prognose-Snapshots für diesen Mandanten als Probelauf ausführen und bestätigen.",
+      "help": "Führen Sie zuerst einen Probelauf aus, prüfen Sie die aggregierten Auswirkungen und bestätigen Sie den reinen Anfügemodus nur, wenn die Anfrage unverändert ist.",
+      "fields": {
+        "tenantId": "Mandanten-ID",
+        "fromDate": "Von Datum",
+        "toDate": "Bis Datum",
+        "maxWorkItemsPerDate": "Max. Arbeitselemente"
+      },
+      "dryRun": {
+        "button": "Probelauf",
+        "pending": "Probelauf läuft",
+        "help": "Ein Probelauf fügt keine Snapshots ein. Abgeschlossene oder teilweise Probeläufe erzeugen eine kurzlebige Bestätigung."
+      },
+      "confirm": {
+        "button": "Schreiben bestätigen",
+        "pending": "Snapshots werden geschrieben",
+        "warning": "Der Schreibmodus fügt für die exakte Anfrage des Probelaufs Snapshots nur an.",
+        "invalidates": "Wenn Sie ein Feld ändern, ist ein neuer Probelauf erforderlich.",
+        "expired": "Die Bestätigung ist abgelaufen. Führen Sie einen neuen Probelauf aus.",
+        "invalid": "Die Bestätigung passt nicht mehr zu dieser Anfrage. Führen Sie einen neuen Probelauf aus.",
+        "inFlight": "Für diese Bestätigung läuft bereits ein Schreibvorgang."
+      },
+      "result": {
+        "summary": "Ergebnis der Nachbefüllung",
+        "dateRows": "Ergebnisse nach Datum",
+        "noDateRows": "Es wurden keine Datumszeilen zurückgegeben."
+      },
+      "status": {
+        "completed": "Abgeschlossen",
+        "partial": "Teilweise",
+        "failed": "Fehlgeschlagen",
+        "deferred": "Zurückgestellt"
+      },
+      "summary": {
+        "datesConsidered": "Berücksichtigte Daten",
+        "datesCompleted": "Abgeschlossene Daten",
+        "datesPartial": "Teilweise Daten",
+        "datesDeferred": "Zurückgestellte Daten",
+        "datesFailed": "Fehlgeschlagene Daten",
+        "workItemsConsidered": "Berücksichtigte Arbeitselemente",
+        "workItemsSucceeded": "Erfolgreiche Arbeitselemente",
+        "workItemsDeferred": "Zurückgestellte Arbeitselemente",
+        "workItemsFailed": "Fehlgeschlagene Arbeitselemente",
+        "snapshotsInserted": "Eingefügte Snapshots",
+        "versionConflicts": "Versionskonflikte",
+        "generatedAt": "Erstellt am",
+        "sourceRunId": "Quelllauf"
+      },
+      "table": {
+        "date": "Datum",
+        "status": "Status",
+        "workItems": "Arbeitselemente",
+        "succeeded": "Erfolgreich",
+        "failed": "Fehlgeschlagen",
+        "inserted": "Eingefügt"
+      },
+      "error": {
+        "unauthorized": "Dieses Konto kann keine Nachbefüllung der Prognose-Snapshots ausführen.",
+        "invalid_request": "Die Anfrage zur Nachbefüllung enthält nicht unterstützte Felder.",
+        "invalid_range": "Verwenden Sie einen gültigen UTC-Datumsbereich.",
+        "range_too_large": "Der Datumsbereich ist größer als das zulässige Nachbefüllungsfenster.",
+        "date_out_of_bounds": "Der Datumsbereich liegt außerhalb der zulässigen historischen Grenzen.",
+        "invalid_tenant": "Der übermittelte Mandant muss zu Ihrer aktuellen Admin-Sitzung passen.",
+        "confirmation_invalid": "Die Bestätigung passt nicht mehr zu dieser Anfrage. Führen Sie einen neuen Probelauf aus.",
+        "confirmation_expired": "Die Bestätigung ist abgelaufen. Führen Sie einen neuen Probelauf aus.",
+        "confirmation_in_flight": "Für diese Bestätigung läuft bereits ein Schreibvorgang.",
+        "rate_limited": "Zu viele Versuche der Nachbefüllung. Warten Sie und versuchen Sie es erneut.",
+        "all_dates_failed": "Alle Daten sind fehlgeschlagen. Es ist keine Schreibbestätigung verfügbar.",
+        "partial_failure": "Die Nachbefüllung wurde mit teilweisen Fehlern abgeschlossen.",
+        "internal_error": "Die Nachbefüllung konnte nicht abgeschlossen werden. Versuchen Sie es später erneut."
+      }
+    },
+    "routing": {
+      "title": "Routing-Regeln",
+      "counts": "{total, plural, one {# Regel} other {# Regeln}} · {active} aktiv · {archived} archiviert",
+      "empty": "Es wurden keine Routing-Regeln konfiguriert.",
+      "actions": {
+        "archive": "Archivieren",
+        "create": "Anlegen",
+        "disable": "Deaktivieren",
+        "enable": "Aktivieren",
+        "moveDown": "Nach unten",
+        "moveUp": "Nach oben",
+        "update": "Aktualisieren"
+      },
+      "fields": {
+        "agentIds": "Agenten-IDs",
+        "branchId": "Filial-ID",
+        "effectiveFrom": "Gültig ab",
+        "effectiveTo": "Gültig bis",
+        "fallbackAgentId": "Ersatz-Agenten-ID",
+        "fallbackRuleId": "Ersatzregel-ID",
+        "leadType": "Lead-Typ",
+        "maxNewLeadsPerAgentPerDay": "Tageslimit",
+        "maxOpenLeadsPerAgent": "Limit offener Leads",
+        "priority": "Priorität",
+        "source": "Quelle",
+        "strategy": "Strategie",
+        "utmCampaign": "UTM-Kampagne",
+        "utmMedium": "UTM-Medium",
+        "utmSource": "UTM-Quelle"
+      },
+      "result": {
+        "idle": "Noch keine Routing-Aktion.",
+        "success": "Routing-Regel gespeichert."
+      },
+      "rule": {
+        "active": "Aktiv",
+        "archived": "Archiviert",
+        "disabled": "Deaktiviert",
+        "fallback": "Ersatz",
+        "filters": "Filter",
+        "noFallback": "Kein Ersatz",
+        "noFilters": "Keine Filter",
+        "tenantScope": "Mandantenweit"
+      },
+      "strategy": {
+        "least_loaded": "Geringste Auslastung",
+        "manual_only": "Nur manuell",
+        "round_robin": "Reihum"
+      },
+      "error": {
+        "invalidStrategy": "Wählen Sie eine unterstützte Routing-Strategie.",
+        "invalidPriority": "Priorität und Kapazitätslimits müssen nicht negative ganze Zahlen sein.",
+        "invalidWindow": "Der Beginn der Gültigkeit muss vor dem Ende liegen.",
+        "emptyAgentPool": "Agenten-IDs sind erforderlich, außer die Strategie ist „Nur manuell“.",
+        "duplicateAgent": "Agenten-IDs dürfen nicht doppelt vorkommen.",
+        "duplicateRule": "Regel-IDs dürfen nicht doppelt vorkommen.",
+        "crossTenantAgent": "Jeder Agent muss zu diesem Mandanten gehören.",
+        "branchAgent": "Jeder Agent muss zum gewählten Filialbereich passen.",
+        "invalidBranch": "Wählen Sie eine gültige Filiale für diesen Mandanten.",
+        "selfFallback": "Eine Regel kann nicht auf sich selbst zurückfallen.",
+        "branchFallback": "Ersatzregeln müssen zum Mandanten- und Filialbereich passen.",
+        "archivedFallback": "Archivierte Regeln können nicht als Ersatz verwendet werden.",
+        "disabledFallback": "Deaktivierte Regeln können nicht als Ersatz verwendet werden.",
+        "fieldTooLong": "Ein Feld ist länger als zulässig.",
+        "unknownField": "Die Anfrage enthält ein nicht unterstütztes Feld.",
+        "forbidden": "Dieses Konto kann keine Routing-Regeln verwalten.",
+        "notFound": "Die Routing-Regel wurde nicht gefunden.",
+        "cursorConflict": "Die Regel hat sich geändert, bevor diese Aktualisierung gespeichert wurde.",
+        "generic": "Routing-Regeln konnten nicht gespeichert werden. Versuchen Sie es später erneut."
+      }
+    },
+    "charts": {
+      "hiddenItems": "{count, plural, one {# weitere Zeile in der Diagrammübersicht ausgeblendet} other {# weitere Zeilen in der Diagrammübersicht ausgeblendet}}",
+      "pipelineAmount": {
+        "title": "Diagramm Pipeline-Betrag",
+        "description": "Ergänzender Vergleich von gesamtem und gewichtetem Pipeline-Betrag. Maßgeblich ist die Tabelle oben.",
+        "summaryIntro": "Zusammenfassung des Diagramms Pipeline-Betrag",
+        "total": "Gesamt",
+        "weighted": "Gewichtet"
+      }
+    },
+    "excludedRows": "{count, plural, one {# aggregierte Zeile ausgeschlossen} other {# aggregierte Zeilen ausgeschlossen}}",
+    "excludedRowsHelp": "Zeilen können aus aggregierten Kennzahlen ausgeschlossen werden, wenn erforderliche Berichtsfelder fehlen oder widersprüchlich sind.",
+    "error": {
+      "tenant": "CRM-Berichte sind für diesen Mandantenkontext nicht verfügbar.",
+      "role": "Dieses Admin-Konto kann keine CRM-Berichte ansehen.",
+      "branch": "CRM-Berichte erfordern einen gültigen Filialbereich.",
+      "agent": "Agentenbezogene CRM-Berichte werden im Admin-Dashboard nicht angezeigt.",
+      "window": "Das CRM-Berichtsfenster ist ungültig.",
+      "grouping": "Diese Gruppierung der CRM-Berichte wird nicht unterstützt.",
+      "generic": "CRM-Berichte konnten nicht geladen werden. Versuchen Sie es später erneut."
+    }
+  }
+}

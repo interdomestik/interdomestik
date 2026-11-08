@@ -13,7 +13,7 @@ import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
 // ...
 
-const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+const LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 
 function revalidatePathForAllLocales(path: string) {
   for (const locale of LOCALES) {

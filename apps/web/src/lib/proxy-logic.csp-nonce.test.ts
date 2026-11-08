@@ -7,7 +7,7 @@ const mutableEnv = process.env as Record<string, string | undefined>;
 
 vi.mock('@/i18n/routing', () => ({
   routing: {
-    locales: ['sq', 'en', 'sr', 'mk'],
+    locales: ['sq', 'en', 'sr', 'mk', 'de'],
   },
 }));
 

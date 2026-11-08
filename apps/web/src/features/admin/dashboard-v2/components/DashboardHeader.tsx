@@ -1,6 +1,7 @@
 'use client';
 
 import { Link } from '@/i18n/routing';
+import { toIntlLocaleTag } from '@/lib/utils/intl-locale';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
 import { Plus, Shield, Users, Wallet } from 'lucide-react';
@@ -12,7 +13,7 @@ export function DashboardHeader({ tenantName, today }: { tenantName: string; tod
   const locale = useLocale();
 
   // Format date using Intl
-  const formattedDate = new Intl.DateTimeFormat(toIntlLocale(locale), {
+  const formattedDate = new Intl.DateTimeFormat(toIntlLocaleTag(locale), {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -75,17 +76,4 @@ export function DashboardHeader({ tenantName, today }: { tenantName: string; tod
       </div>
     </div>
   );
-}
-
-function toIntlLocale(locale: string) {
-  switch (locale) {
-    case 'mk':
-      return 'mk-MK';
-    case 'sq':
-      return 'sq-AL';
-    case 'sr':
-      return 'sr-RS';
-    default:
-      return 'en-US';
-  }
 }

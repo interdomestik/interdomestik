@@ -1,0 +1,137 @@
+{
+  "claims-tracking": {
+    "tracking": {
+      "header": {
+        "share_link": "Tracking-Link teilen",
+        "link_copied": "Link in die Zwischenablage kopiert",
+        "error_generating_link": "Link konnte nicht erstellt werden",
+        "share_dialog_title": "Status des Schadensfalls teilen",
+        "share_dialog_desc": "Jeder mit diesem Link kann den aktuellen Status dieses Schadensfalls sehen. Der Link läuft nach 7 Tagen ab."
+      },
+      "timeline": {
+        "empty": "Keine Ereignisse in der Zeitachse verfügbar.",
+        "generic": "Fallaktualisierung",
+        "redacted": "Fallaktualisierung nicht verfügbar",
+        "caseUpdate": "Fallaktualisierung",
+        "recoveryUpdate": "Aktualisierung zur Erstattung",
+        "membershipUpdate": "Aktualisierung zur Mitgliedschaft"
+      },
+      "documents": {
+        "title": "Dokumente",
+        "empty": "Noch keine Dokumente hochgeladen."
+      },
+      "public": {
+        "title": "Status des Schadensfalls",
+        "last_updated": "Zuletzt aktualisiert am {date}",
+        "next_step_title": "Wie geht es weiter?",
+        "no_pii_notice": "Dies ist eine sichere, eingeschränkte Ansicht. Für alle Details melden Sie sich bitte an."
+      },
+      "sla": {
+        "title": "SLA-Status",
+        "running": "Die Reaktionsfrist läuft.",
+        "incomplete": "Wir warten auf Ihre Informationen, bevor die SLA-Frist beginnt.",
+        "verification": "Ihr Fall wird verifiziert. Wenn wir etwas von Ihnen brauchen, erscheint es als konkrete Informationsanfrage auf dieser Seite."
+      },
+      "assurance": {
+        "title": "Zusicherung zur Bearbeitung",
+        "stateLabel": "SLA-Status",
+        "latestUpdateLabel": "Letzte öffentliche Aktualisierung",
+        "supportLabel": "Brauchen Sie Hilfe?",
+        "supportCta": "Support kontaktieren",
+        "state": {
+          "member_action_required": "Wartet auf Ihre Aktion",
+          "verification_in_progress": "Verifizierung des Falls",
+          "active_handling": "Reaktionsfrist aktiv",
+          "completed": "Endergebnis veröffentlicht",
+          "outside_operational_sla": "Keine aktive Reaktionsfrist"
+        },
+        "body": {
+          "member_action_required": "Wir brauchen Ihre Informationen, bevor die Reaktionsfrist weiterlaufen kann. Laden Sie die angeforderten Nachweise hoch oder kontaktieren Sie den Support, wenn Sie nicht weiterkommen.",
+          "verification_in_progress": "Ihr Fall wird verifiziert. Prüfen Sie die Details und Aktualisierungen auf dieser Seite und sehen Sie sich konkrete Informationsanfragen mit Aufgaben für Sie an. Kontaktieren Sie den Support, wenn Sie Hilfe brauchen.",
+          "active_handling": "Ihr Schadensfall befindet sich in aktiver Bearbeitung. Die Reaktionsfrist ist aktiv, und öffentliche Aktualisierungen erscheinen hier, während das Team den Fall voranbringt.",
+          "completed": "Für diesen Schadensfall liegt ein Endergebnis vor. Sehen Sie in der Zeitachse nach, was passiert ist, oder kontaktieren Sie den Support, wenn Sie Hilfe beim Ergebnis brauchen.",
+          "outside_operational_sla": "Für diese Phase gibt es keine aktive betriebliche Reaktionsfrist. Die Zeitachse zeigt weiterhin öffentliche Aktualisierungen, die geteilt werden dürfen."
+        }
+      }
+    },
+    "case_companion": {
+      "title": "Fallbegleiter",
+      "ownerLabel": "Zuständig",
+      "statusLabel": "Aktueller nächster Schritt",
+      "expectationLabel": "Zeitpunkt",
+      "dateUnavailableLabel": "Datum nicht verfügbar.",
+      "owner": {
+        "member": "Sie",
+        "interdomestik": "Fallteam von Interdomestik",
+        "insurer": "Externe Partei",
+        "court": "Gericht"
+      },
+      "status_sentence": {
+        "draft": "Ihr Schadensfall ist noch nicht eingereicht.",
+        "submitted": "Das Fallteam prüft den eingereichten Schadensfall.",
+        "submitted_to_airline": "Das Fallpaket liegt bei der externen Partei.",
+        "verification": "Das Fallteam führt die Verifizierung für diesen Fall durch.",
+        "evaluation": "Das Fallteam prüft die sicheren Falldetails.",
+        "negotiation": "Die Antwort der externen Partei wird weiterverfolgt.",
+        "court": "Die nächste Aktualisierung hängt vom Zeitplan des Gerichts ab.",
+        "resolved": "Für diesen Fall liegt ein Endergebnis vor.",
+        "rejected": "Dieser Fall kann im aktuellen Umfang nicht fortgesetzt werden.",
+        "redacted": "Dieser Fall ist in einer geschützten, eingeschränkten Ansicht verfügbar."
+      },
+      "action": {
+        "submit_claim": "Reichen Sie den Schadensfall ein, wenn Ihre Informationen bereit sind.",
+        "upload_evidence": "Laden Sie die angeforderten Nachweise hoch, sobald sie verfügbar sind.",
+        "review_case_details": "Prüfen Sie Ihre Falldetails und die letzten Aktualisierungen auf dieser Seite.",
+        "no_action": "Im Moment ist von Ihnen nichts zu tun.",
+        "complete": "Prüfen Sie die letzte Aktualisierung und kontaktieren Sie den Support, wenn etwas nicht stimmt."
+      },
+      "awaiting_date": {
+        "member_action_required": "Datum wartet auf Ihre Aktion.",
+        "case_team_review": "Datum wartet auf die Prüfung durch das Fallteam.",
+        "external_party": "Datum wartet auf die Antwort der externen Partei.",
+        "court_schedule": "Datum wartet auf den Zeitplan des Gerichts.",
+        "outcome_recorded": "Endergebnis erfasst; kein Datum für einen nächsten Schritt erforderlich.",
+        "not_recorded": "Noch kein Datum für den nächsten Schritt erfasst.",
+        "erased_subject": "Datum ausgeblendet, da die Daten der betroffenen Person gelöscht wurden."
+      }
+    },
+    "vault_consent": {
+      "title": "Einwilligung zur KI-Dokumentenauswertung",
+      "description": "Zeigt den erfassten Status der KI-Dokumentenauswertung geeigneter Nachweise in diesem Schadensfall. Dies ist keine allgemeine Einwilligung zu Speicherung, Zugriff, Weitergabe, medizinischer oder rechtlicher Verarbeitung.",
+      "categoryLabel": "Kategorie",
+      "categoryEvidence": "Nachweis",
+      "metadataUpdatedLabel": "Metadaten aktualisiert",
+      "consentStatusLabel": "Status der KI-Dokumentenauswertung",
+      "statusAccepted": "Für die KI-Dokumentenauswertung akzeptiert",
+      "statusWithdrawn": "Für die KI-Dokumentenauswertung widerrufen",
+      "statusMissing": "Für die KI-Dokumentenauswertung nicht erfasst",
+      "recordedAtLabel": "Erfasst",
+      "versionLabel": "Datenschutzversion",
+      "unavailable": "Nicht verfügbar",
+      "empty": "Keine Metadaten zu geeigneten Nachweisen verfügbar.",
+      "erased": "Metadaten zu Nachweisen sind für diese geschützte betroffene Person nicht verfügbar."
+    },
+    "status": {
+      "draft": "Entwurf",
+      "submitted": "Eingereicht",
+      "submitted_to_airline": "An die Fluggesellschaft übermittelt",
+      "verification": "Verifizierung",
+      "evaluation": "Bewertung",
+      "negotiation": "Verhandlung",
+      "court": "Gericht",
+      "resolved": "Gelöst",
+      "rejected": "Abgelehnt",
+      "next_step": {
+        "draft": "Bitte reichen Sie Ihren Schadensfall zur Prüfung ein.",
+        "submitted": "Wir haben Ihren Schadensfall erhalten, und das Fallteam wird ihn in Kürze prüfen.",
+        "submitted_to_airline": "Wir haben Ihr Fallpaket an die Fluggesellschaft übermittelt.",
+        "verification": "Wir verifizieren die eingereichten Dokumente und Nachweise.",
+        "evaluation": "Unsere Experten bewerten die Schäden und die Haftung.",
+        "negotiation": "Wir verhandeln mit der Versicherung über eine faire Einigung.",
+        "court": "Ein Gerichtsverfahren wurde eingeleitet.",
+        "resolved": "Der Schadensfall wurde abgeschlossen.",
+        "rejected": "Der Schadensfall konnte nicht bearbeitet werden."
+      }
+    }
+  }
+}

@@ -4,7 +4,7 @@ import test from 'node:test';
 import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
 
 const OWNER = 'acq-1-lead-notice-i18n-contract';
-const LOCALES = ['en', 'sq', 'mk', 'sr'];
+const LOCALES = ['en', 'sq', 'mk', 'sr', 'de'];
 const NOTICE_VERSION_FILE = new URL(
   '../../apps/web/src/features/agent/leads/lead-notice.ts',
   import.meta.url
@@ -43,7 +43,7 @@ test('both lead entry points carry the complete consent notice in every locale',
   }
   assert.equal(agentBodies.size, LOCALES.length, 'each locale has its own agent notice');
   assert.equal(publicBodies.size, LOCALES.length, 'each locale has its own public notice');
-  assert.equal(structuredArtifactOwner('apps/web/src/messages/de/agent.json'), null);
+  assert.equal(structuredArtifactOwner('apps/web/src/messages/hr/agent.json'), null);
 });
 
 // ACQ-1b moved company name and team size out of lead notes, so the agent drawer labels them.

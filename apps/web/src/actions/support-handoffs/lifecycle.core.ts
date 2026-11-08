@@ -12,7 +12,7 @@ import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
 
-const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+const LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 
 function revalidatePathForAllLocales(path: string) {
   for (const locale of LOCALES) {

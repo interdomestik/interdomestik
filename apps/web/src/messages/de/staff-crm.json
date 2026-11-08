@@ -1,0 +1,81 @@
+{
+  "staff-crm": {
+    "title": "CRM-Berichte",
+    "description": "Betriebsberichte für das Team zu Pipeline-Auslastung, Trichterbewegung und Phasengeschwindigkeit.",
+    "pipelineWorkload": {
+      "title": "Pipeline-Auslastung",
+      "description": "Aktuelle offene Pipeline der letzten 90 Tage nach Filiale, Pipeline und Währung.",
+      "empty": "Für das Standard-Berichtsfenster ist keine offene Pipeline-Auslastung verfügbar."
+    },
+    "funnelMovement": {
+      "title": "Trichterbewegung",
+      "description": "Wichtigste Bewegungen zwischen CRM-Phasen nach Einträgen im Zeitraum.",
+      "empty": "Für das Standard-Berichtsfenster ist keine Trichterbewegung verfügbar."
+    },
+    "stageVelocity": {
+      "title": "Phasengeschwindigkeit",
+      "description": "Langsamste CRM-Phasen nach Median der vergangenen Tage.",
+      "empty": "Keine Stichproben zur Phasengeschwindigkeit erreichen die Mindestanzahl.",
+      "excludedOpenIntervals": "{count, plural, one {# offenes Intervall ausgeschlossen} other {# offene Intervalle ausgeschlossen}}",
+      "excludedOpenIntervalsHelp": "Offene Phasenintervalle werden bei der Berechnung der Phasengeschwindigkeit ausgeschlossen."
+    },
+    "metrics": {
+      "openDeals": "Offene Deals",
+      "totalPipeline": "Gesamt",
+      "weighted": "Gewichtet",
+      "commit": "Zusage",
+      "bestCase": "Bestfall",
+      "entered": "Eingetreten",
+      "exited": "Ausgetreten",
+      "wonLost": "Gewonnen / verloren",
+      "conversion": "Konversion",
+      "dropOff": "Abbruch",
+      "medianDays": "Median",
+      "averageDays": "Durchschnitt",
+      "minimumDays": "Minimum",
+      "maximumDays": "Maximum",
+      "sampleCount": "Stichproben"
+    },
+    "label": {
+      "no-branch": "Keine Filiale"
+    },
+    "charts": {
+      "hiddenItems": "{count, plural, one {# weitere Zeile in der Diagrammübersicht ausgeblendet} other {# weitere Zeilen in der Diagrammübersicht ausgeblendet}}",
+      "pipelineAmount": {
+        "title": "Diagramm Pipeline-Betrag",
+        "description": "Ergänzender Vergleich von gesamtem und gewichtetem Pipeline-Betrag. Maßgeblich ist die Tabelle oben.",
+        "summaryIntro": "Zusammenfassung des Diagramms Pipeline-Betrag",
+        "total": "Gesamt",
+        "weighted": "Gewichtet"
+      },
+      "funnelMovement": {
+        "title": "Diagramm Trichterbewegung",
+        "description": "Ergänzender Vergleich der Phasenbewegungen. Maßgeblich ist die Tabelle oben.",
+        "summaryIntro": "Zusammenfassung des Diagramms Trichterbewegung",
+        "entered": "Eingetreten",
+        "exited": "Ausgetreten",
+        "won": "Gewonnen",
+        "lost": "Verloren"
+      },
+      "stageVelocity": {
+        "title": "Diagramm Phasengeschwindigkeit",
+        "description": "Ergänzender Vergleich von Median- und Durchschnittstagen. Maßgeblich ist die Tabelle oben.",
+        "summaryIntro": "Zusammenfassung des Diagramms Phasengeschwindigkeit",
+        "median": "Median",
+        "average": "Durchschnitt"
+      }
+    },
+    "durationDays": "{days} Tage",
+    "excludedRows": "{count, plural, one {# aggregierte Zeile ausgeschlossen} other {# aggregierte Zeilen ausgeschlossen}}",
+    "excludedRowsHelp": "Zeilen können aus aggregierten Kennzahlen ausgeschlossen werden, wenn erforderliche Berichtsfelder fehlen oder widersprüchlich sind.",
+    "error": {
+      "tenant": "CRM-Berichte sind für diesen Mandantenkontext nicht verfügbar.",
+      "role": "Dieses Mitarbeiterkonto kann keine CRM-Berichte ansehen.",
+      "branch": "CRM-Berichte erfordern einen gültigen Filialbereich.",
+      "agent": "Agentenbezogene CRM-Berichte werden im Mitarbeiter-Dashboard nicht angezeigt.",
+      "window": "Das CRM-Berichtsfenster ist ungültig.",
+      "grouping": "Diese Gruppierung der CRM-Berichte wird nicht unterstützt.",
+      "generic": "CRM-Berichte konnten nicht geladen werden. Versuchen Sie es später erneut."
+    }
+  }
+}

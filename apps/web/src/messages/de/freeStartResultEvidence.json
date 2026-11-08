@@ -1,0 +1,93 @@
+{
+  "freeStart": {
+    "result": {
+      "evidence": {
+        "heading": "Checkliste für Nachweise",
+        "summary": "Sie haben {available} Punkte als vorhanden markiert. {required} Punkte sind für dieses Paket wichtig.",
+        "status": {
+          "available": "Als vorhanden markiert",
+          "required": "Wichtig zu beschaffen",
+          "optional": "Nützlich, falls vorhanden"
+        },
+        "items": {
+          "vehicle_photos": {
+            "name": "Fotos des Fahrzeugschadens",
+            "description": "Nehmen Sie nach Möglichkeit Nahaufnahmen und die weitere Umgebung auf."
+          },
+          "vehicle_police_report": {
+            "name": "Polizei- oder Unfallbericht",
+            "description": "Bewahren Sie den Bericht oder die Aktennummer auf, falls vorhanden."
+          },
+          "vehicle_insurance_details": {
+            "name": "Versicherungsangaben",
+            "description": "Bewahren Sie Police, Schadennummer und Nachrichten des Versicherers zusammen auf."
+          },
+          "vehicle_repair_estimate": {
+            "name": "Kostenvoranschlag für die Reparatur",
+            "description": "Verwenden Sie einen Kostenvoranschlag oder eine Rechnung mit den erwarteten Kosten."
+          },
+          "vehicle_registration": {
+            "name": "Fahrzeugzulassung",
+            "description": "Bewahren Sie eine lesbare Kopie der aktuellen Zulassung auf."
+          },
+          "vehicle_driver_license": {
+            "name": "Führerschein",
+            "description": "Bewahren Sie eine lesbare Kopie für den beteiligten Fahrer auf."
+          },
+          "property_photos": {
+            "name": "Fotos des Sachschadens",
+            "description": "Fotografieren Sie nach Möglichkeit jeden betroffenen Bereich vor dem Aufräumen."
+          },
+          "property_ownership": {
+            "name": "Eigentums- oder Mietnachweis",
+            "description": "Verwenden Sie das Dokument, das Sie mit dem beschädigten Eigentum verbindet."
+          },
+          "property_damage_report": {
+            "name": "Schadensbericht",
+            "description": "Bewahren Sie Berichte der Hausverwaltung, von Notdiensten oder Handwerkern auf."
+          },
+          "property_insurance_policy": {
+            "name": "Police der Sachversicherung",
+            "description": "Bewahren Sie die relevanten Seiten der Police und die Schadennummer auf."
+          },
+          "property_repair_quotes": {
+            "name": "Angebote für Reparaturen",
+            "description": "Sammeln Sie klare Kostenvoranschläge für die erforderlichen Arbeiten."
+          },
+          "property_correspondence": {
+            "name": "Nachrichten mit der verantwortlichen Partei",
+            "description": "Bewahren Sie relevante E-Mails, Briefe oder Nachrichtenverläufe auf."
+          },
+          "injury_medical_records": {
+            "name": "Medizinische Unterlagen",
+            "description": "Bewahren Sie Behandlungsnotizen, Entlassungspapiere und Zusammenfassungen auf."
+          },
+          "injury_incident_report": {
+            "name": "Vorfallsbericht",
+            "description": "Bewahren Sie den Bericht auf, der festhält, wann und wie die Verletzung entstanden ist."
+          },
+          "injury_witness_statements": {
+            "name": "Angaben zu Zeugen",
+            "description": "Bewahren Sie Namen, Kontaktdaten und schriftliche Aussagen auf."
+          },
+          "injury_expense_receipts": {
+            "name": "Belege für Ausgaben",
+            "description": "Bewahren Sie Belege für Behandlung, Fahrten und andere damit verbundene Kosten auf."
+          },
+          "injury_photos": {
+            "name": "Relevante Fotos",
+            "description": "Bewahren Sie gegebenenfalls datierte Fotos vom Ort oder von sichtbaren Folgen auf."
+          },
+          "injury_lost_income": {
+            "name": "Nachweise über Verdienstausfall",
+            "description": "Bewahren Sie Unterlagen von Arbeitgeber oder Zahlungen auf, die entgangenes Einkommen zeigen."
+          },
+          "unknown": {
+            "name": "Unterstützendes Dokument",
+            "description": "Bewahren Sie eine klare Kopie auf, wenn sie hilft, den Vorfall oder den Verlust zu erklären."
+          }
+        }
+      }
+    }
+  }
+}

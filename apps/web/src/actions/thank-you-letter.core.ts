@@ -21,7 +21,7 @@ export async function sendThankYouLetter(params: {
   expiresAt: Date;
   providerReference: string;
   tenantId: string;
-  locale: 'en' | 'sq' | 'mk' | 'sr';
+  locale: 'en' | 'sq' | 'mk' | 'sr' | 'de';
   idempotencyKey: string;
 }): Promise<{ success: true; id: string } | { success: false; error: string }> {
   return sendThankYouLetterCore(params satisfies SendThankYouLetterParams);
@@ -40,7 +40,7 @@ export async function previewThankYouLetter(params: {
   expiresAt: Date;
   providerReference: string;
   tenantId: string;
-  locale: 'en' | 'sq' | 'mk' | 'sr';
+  locale: 'en' | 'sq' | 'mk' | 'sr' | 'de';
 }): Promise<{ html: string; text: string }> {
   return previewThankYouLetterCore(params satisfies PreviewThankYouLetterParams);
 }

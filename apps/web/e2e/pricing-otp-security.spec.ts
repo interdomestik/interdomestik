@@ -118,7 +118,7 @@ test.describe('IDA-UI03a0b2 protected OTP journey', () => {
       }
     });
     await page.context().addCookies([{ name: 'tenant-only', value: '1', url: tenantOrigin }]);
-    for (const locale of ['sq', 'en', 'sr', 'mk'] as const) {
+    for (const locale of ['sq', 'en', 'sr', 'mk', 'de'] as const) {
       await page.goto(`${tenantOrigin}/${locale}/pricing`, { waitUntil: 'domcontentloaded' });
       awaitingIdaDocument = true;
       await page.getByTestId('plan-cta-standard').click();
@@ -128,7 +128,7 @@ test.describe('IDA-UI03a0b2 protected OTP journey', () => {
       expect(await page.evaluate(() => document.cookie)).not.toContain('tenant-only=1');
     }
     expect(docs).toEqual(
-      ['sq', 'en', 'sr', 'mk'].map(
+      ['sq', 'en', 'sr', 'mk', 'de'].map(
         locale => `${idaOrigin}/${locale}/pricing?plan=standard|${tenantOrigin}/`
       )
     );

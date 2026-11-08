@@ -21,7 +21,7 @@ vi.mock('nanoid', () => ({
 
 export const TEST_AUTHORITY = mintTestTenantAuthority('tenant-1');
 export const TEST_NOW = '2026-05-21T10:00:00.000Z';
-export const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+export const LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 
 export function session(overrides: Record<string, unknown> = {}) {
   return {

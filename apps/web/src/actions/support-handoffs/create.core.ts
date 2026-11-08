@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
 
-const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+const LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 const CONTACT_PREFERENCES = ['staff_reply', 'phone', 'email', 'whatsapp'] as const;
 
 function normalizeContactPreference(value: unknown): SupportHandoffContactPreference {

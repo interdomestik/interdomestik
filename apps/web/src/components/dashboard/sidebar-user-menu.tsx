@@ -56,7 +56,7 @@ function SidebarUserMenuInner({
   const t = useTranslations('nav');
   const tCommon = useTranslations('common');
 
-  const switchLocale = (nextLocale: 'en' | 'sq' | 'mk' | 'sr') => {
+  const switchLocale = (nextLocale: 'en' | 'sq' | 'mk' | 'sr' | 'de') => {
     router.replace(localeSwitchHref(pathname, window.location.search, retainedLocaleQueryKeys), {
       locale: nextLocale,
     });
@@ -137,6 +137,10 @@ function SidebarUserMenuInner({
                   <DropdownMenuItem onClick={() => switchLocale('sr')} className="cursor-pointer">
                     <span className="mr-2">🇷🇸</span> Srpski
                     {locale === 'sr' && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => switchLocale('de')} className="cursor-pointer">
+                    <span className="mr-2">🇩🇪</span> Deutsch
+                    {locale === 'de' && <Check className="ml-auto h-4 w-4" />}
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>

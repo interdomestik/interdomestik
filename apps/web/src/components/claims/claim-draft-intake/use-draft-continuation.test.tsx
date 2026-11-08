@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe('exact saved draft continuation', () => {
-  it.each(['en', 'sq', 'mk', 'sr'])(
+  it.each(['en', 'sq', 'mk', 'sr', 'de'])(
     'keeps %s on the existing query contract with only an opaque fragment',
     locale => {
       expect(savedDraftContinuationHref(locale, id)).toBe(
@@ -33,7 +33,7 @@ describe('exact saved draft continuation', () => {
     const { result } = renderHook(() => useDraftContinuation(resume));
     expect(result.current.blocked).toBe(false);
     expect(resume).not.toHaveBeenCalled();
-    expect(savedDraftContinuationHref('de', id)).toBeNull();
+    expect(savedDraftContinuationHref('hr', id)).toBeNull();
   });
   it('blocks editing until the exact read succeeds, once under StrictMode', async () => {
     window.history.replaceState(null, '', `/#draft=${id}`);

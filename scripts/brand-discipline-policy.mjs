@@ -1,4 +1,4 @@
-export const SUPPORTED_MESSAGE_LOCALES = ['sq', 'en', 'sr', 'mk'];
+export const SUPPORTED_MESSAGE_LOCALES = ['sq', 'en', 'sr', 'mk', 'de'];
 
 export const BANNED_BRAND_FRAMINGS = [
   {

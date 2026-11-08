@@ -4,7 +4,7 @@ import test from 'node:test';
 import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
 
 test('cash approval catalogs have bounded ownership and localized pending-setup copy', () => {
-  for (const locale of ['en', 'sq', 'mk', 'sr']) {
+  for (const locale of ['en', 'sq', 'mk', 'sr', 'de']) {
     const path = `apps/web/src/messages/${locale}/admin-leads.json`;
     assert.equal(structuredArtifactOwner(path), 'cash-approval-fulfillment-i18n-contract');
     const catalog = JSON.parse(fs.readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'));
@@ -27,7 +27,7 @@ test('cash approval catalogs have bounded ownership and localized pending-setup 
     assert.notEqual(copy.approve_invite_pending, copy.approve_success);
     assert.ok(catalog.admin.leads.actions.resend_invite.trim().length > 0, `${locale}.resend`);
   }
-  assert.equal(structuredArtifactOwner('apps/web/src/messages/de/admin-leads.json'), null);
+  assert.equal(structuredArtifactOwner('apps/web/src/messages/hr/admin-leads.json'), null);
 });
 
 test('duplicate review copy (IDA-CRM-003) is complete and localized in every catalog', () => {
@@ -41,7 +41,7 @@ test('duplicate review copy (IDA-CRM-003) is complete and localized in every cat
   const english = read('en');
   const keys = Object.keys(english).sort();
   assert.ok(keys.includes('keep_existing') && keys.includes('dismiss') && keys.includes('tab'));
-  for (const locale of ['en', 'sq', 'mk', 'sr']) {
+  for (const locale of ['en', 'sq', 'mk', 'sr', 'de']) {
     const copy = read(locale);
     assert.deepEqual(Object.keys(copy).sort(), keys, locale);
     for (const key of keys) assert.ok(copy[key].trim().length > 0, `${locale}.${key}`);

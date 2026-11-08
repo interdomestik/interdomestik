@@ -1,0 +1,29 @@
+{
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "empty": "Noch keine Benachrichtigungen",
+    "markRead": "Als gelesen markieren: {title}",
+    "markAllRead": "Alle als gelesen markieren",
+    "markedRead": "Benachrichtigung als gelesen markiert.",
+    "markedAllRead": "Alle Benachrichtigungen als gelesen markiert.",
+    "viewAll": "Alle Benachrichtigungen ansehen",
+    "settings": "Benachrichtigungseinstellungen",
+    "preferences": {
+      "title": "Benachrichtigungseinstellungen",
+      "description": "Wählen Sie, wie und wann Sie Benachrichtigungen erhalten möchten",
+      "email": "E-Mail-Benachrichtigungen",
+      "emailDescription": "Aktualisierungen per E-Mail erhalten",
+      "inApp": "In-App-Benachrichtigungen",
+      "inAppDescription": "Benachrichtigungen in der App erhalten",
+      "push": "Push-Benachrichtigungen",
+      "pushDescription": "Push-Benachrichtigungen auf Ihrem Gerät erhalten"
+    },
+    "types": {
+      "claimSubmitted": "Schadensfall eingereicht",
+      "claimAssigned": "Schadensfall zugewiesen",
+      "statusChanged": "Status geändert",
+      "newMessage": "Neue Nachricht",
+      "slaWarning": "SLA-Warnung"
+    }
+  }
+}

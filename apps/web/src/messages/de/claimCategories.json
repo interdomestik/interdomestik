@@ -1,0 +1,28 @@
+{
+  "claimCategories": {
+    "title": "Wobei können wir Ihnen helfen?",
+    "subtitle": "Wählen Sie Ihre Schadensart, um zu beginnen. Unsere Experten sind auf jede Kategorie spezialisiert.",
+    "startClaim": "Schadensfall starten",
+    "quickSelectLabel": "Oder wählen Sie eine bestimmte Schadensart:",
+    "vehicle": {
+      "title": "Fahrzeugschaden",
+      "description": "Autounfälle, Kollisionsschäden, Diebstahl und Vandalismus.",
+      "examples": "z. B. Verkehrsunfälle, Fahrerflucht, Parkschäden"
+    },
+    "property": {
+      "title": "Sachschaden",
+      "description": "Schäden an Haus, Wohnung und Gebäude.",
+      "examples": "z. B. Wasserschaden, Feuer, Sturm, Einbruch"
+    },
+    "injury": {
+      "title": "Personenschaden",
+      "description": "Behandlungskosten, Rehabilitation und Entschädigung für Verletzungen.",
+      "examples": "z. B. Arbeitsunfälle, Unfälle, ärztliche Behandlungsfehler"
+    },
+    "travel": {
+      "title": "Reise & Flug",
+      "description": "Flugverspätungen, Annullierungen und verlorenes Gepäck.",
+      "examples": "z. B. Entschädigung nach EU261 bis zu 600 EUR"
+    }
+  }
+}

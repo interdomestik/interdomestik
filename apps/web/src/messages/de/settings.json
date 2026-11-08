@@ -1,0 +1,88 @@
+{
+  "settings": {
+    "title": "Einstellungen",
+    "description": "Verwalten Sie Ihre Kontoeinstellungen und Präferenzen.",
+    "profile": {
+      "sectionTitle": "Profilinformationen",
+      "title": "Profil",
+      "description": "Aktualisieren Sie Ihre persönlichen Angaben.",
+      "fullName": "Vollständiger Name",
+      "fullNamePlaceholder": "Max Mustermann",
+      "profileImage": "URL des Profilbilds",
+      "profileImagePlaceholder": "https://example.com/avatar.jpg",
+      "saveChanges": "Änderungen speichern",
+      "saving": "Wird gespeichert...",
+      "success": "Profil aktualisiert",
+      "successDescription": "Ihre Änderungen wurden erfolgreich gespeichert.",
+      "error": "Profil konnte nicht aktualisiert werden"
+    },
+    "security": {
+      "sectionTitle": "Sicherheit",
+      "title": "Passwort ändern",
+      "description": "Schützen Sie Ihr Konto mit einem starken Passwort.",
+      "currentPassword": "Aktuelles Passwort",
+      "newPassword": "Neues Passwort",
+      "confirmPassword": "Passwort bestätigen",
+      "updatePassword": "Passwort aktualisieren",
+      "updating": "Wird aktualisiert...",
+      "success": "Passwort aktualisiert",
+      "successDescription": "Ihr Passwort wurde erfolgreich geändert.",
+      "error": "Passwort konnte nicht geändert werden"
+    },
+    "language": {
+      "sectionTitle": "Sprache & Region",
+      "title": "Sprache",
+      "description": "Wählen Sie Ihre bevorzugte Sprache für die Oberfläche.",
+      "selectLabel": "Sprache auswählen",
+      "selectPlaceholder": "Eine Sprache auswählen",
+      "hint": "Damit ändert sich die Sprache in der gesamten Anwendung."
+    },
+    "residenceCountry": {
+      "sectionTitle": "Wohnsitzland",
+      "title": "Wohnsitzland",
+      "description": "Halten Sie Ihr angegebenes Wohnsitzland für Mitgliedschaftsbedingungen und Datenschutz aktuell.",
+      "label": "Ländercode",
+      "placeholder": "DE",
+      "save": "Land speichern",
+      "saving": "Wird gespeichert...",
+      "success": "Wohnsitzland aktualisiert",
+      "error": "Wohnsitzland konnte nicht aktualisiert werden",
+      "decision": {
+        "pending_terms_reacceptance": "Aktualisiert. Die erneute Zustimmung zu den Bedingungen steht für die Verlängerung aus.",
+        "deferred_active_recovery_runoff": "Aktualisiert. Eine aktive Erstattung läuft weiter, bis die Erstattungsangelegenheit abgeschlossen ist."
+      }
+    },
+    "notifications": {
+      "sectionTitle": "Benachrichtigungen",
+      "title": "Benachrichtigungseinstellungen",
+      "description": "Wählen Sie, wie Sie Aktualisierungen erhalten möchten.",
+      "save": "Einstellungen speichern",
+      "saving": "Wird gespeichert...",
+      "saved": "Einstellungen gespeichert",
+      "savedDescription": "Ihre Benachrichtigungseinstellungen wurden aktualisiert.",
+      "email": {
+        "title": "E-Mail-Benachrichtigungen",
+        "claimUpdates": "Aktualisierungen zu Schadensfällen",
+        "claimUpdatesHint": "E-Mail-Benachrichtigungen erhalten, wenn sich der Status Ihres Schadensfalls ändert.",
+        "newsletter": "Newsletter",
+        "newsletterHint": "Tipps und Neuigkeiten zu Verbraucherrechten erhalten.",
+        "marketing": "Werbe-E-Mails",
+        "marketingHint": "Sonderangebote und Aktionen erhalten."
+      },
+      "push": {
+        "title": "Push-Benachrichtigungen",
+        "claimUpdates": "Aktualisierungen zu Schadensfällen",
+        "claimUpdatesHint": "Sofortige Benachrichtigungen zu wichtigen Aktualisierungen erhalten.",
+        "messages": "Neue Nachrichten",
+        "messagesHint": "Benachrichtigt werden, wenn ein Agent Ihnen eine Nachricht sendet."
+      },
+      "inApp": {
+        "title": "In-App-Benachrichtigungen",
+        "all": "Alle Benachrichtigungen",
+        "allHint": "Alle Benachrichtigungen im Benachrichtigungscenter der App anzeigen."
+      },
+      "loadError": "Einstellungen konnten nicht geladen werden",
+      "saveError": "Einstellungen konnten nicht gespeichert werden"
+    }
+  }
+}

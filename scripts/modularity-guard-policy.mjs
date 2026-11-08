@@ -68,7 +68,7 @@ const STRUCTURED_OWNERS = [
     'interdomestik-three-agent-trial-contract',
   ],
   [
-    /^apps\/web\/src\/features\/help-now\/copy-(?:en|sq|mk|sr)\.json$/u,
+    /^apps\/web\/src\/features\/help-now\/copy-(?:en|sq|mk|sr|de)\.json$/u,
     's7-helpnow-localized-copy-contract',
   ],
 ];
@@ -88,7 +88,60 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['agent.json', 'acq-1-lead-notice-i18n-contract'],
   ['pricing.json', 'acq-1-lead-notice-i18n-contract'],
   ['admin-branches.json', 'locale-catalog-integrity-contract'],
+  // German catalogs without a per-file feature owner, registered by exact locale-scoped name.
+  ['de/about.json', 'de-locale-catalog-contract'],
+  ['de/accidentJourney.json', 'de-locale-catalog-contract'],
+  ['de/admin-commissions.json', 'de-locale-catalog-contract'],
+  ['de/admin-common.json', 'de-locale-catalog-contract'],
+  ['de/admin-crm.json', 'de-locale-catalog-contract'],
+  ['de/admin-dashboard.json', 'de-locale-catalog-contract'],
+  ['de/admin-settings.json', 'de-locale-catalog-contract'],
+  ['de/admin.json', 'de-locale-catalog-contract'],
+  ['de/agent-crm.json', 'de-locale-catalog-contract'],
+  ['de/agent-members.json', 'de-locale-catalog-contract'],
+  ['de/agent-toolkit.json', 'de-locale-catalog-contract'],
+  ['de/auth.json', 'de-locale-catalog-contract'],
+  ['de/claimCategories.json', 'de-locale-catalog-contract'],
+  ['de/commercialTerms.json', 'de-locale-catalog-contract'],
+  ['de/common.json', 'de-locale-catalog-contract'],
+  ['de/consumerRights.json', 'de-locale-catalog-contract'],
+  ['de/coverageMatrix.json', 'de-locale-catalog-contract'],
+  ['de/documents.json', 'de-locale-catalog-contract'],
+  ['de/entityDisclosure.json', 'de-locale-catalog-contract'],
+  ['de/evidence.json', 'de-locale-catalog-contract'],
+  ['de/faq.json', 'de-locale-catalog-contract'],
+  ['de/features.json', 'de-locale-catalog-contract'],
+  ['de/flightJourney.json', 'de-locale-catalog-contract'],
+  ['de/footer.json', 'de-locale-catalog-contract'],
+  ['de/freeStartResult.json', 'de-locale-catalog-contract'],
+  ['de/freeStartResultEvidence.json', 'de-locale-catalog-contract'],
+  ['de/help.json', 'de-locale-catalog-contract'],
+  ['de/hero.json', 'de-locale-catalog-contract'],
+  ['de/howItWorks.json', 'de-locale-catalog-contract'],
+  ['de/howMembershipWorks.json', 'de-locale-catalog-contract'],
+  ['de/injuryJourney.json', 'de-locale-catalog-contract'],
+  ['de/legal.json', 'de-locale-catalog-contract'],
+  ['de/memberBenefits.json', 'de-locale-catalog-contract'],
+  ['de/membership-success.json', 'de-locale-catalog-contract'],
+  ['de/metadata.json', 'de-locale-catalog-contract'],
+  ['de/nav.json', 'de-locale-catalog-contract'],
+  ['de/nps.json', 'de-locale-catalog-contract'],
+  ['de/partners.json', 'de-locale-catalog-contract'],
+  ['de/propertyJourney.json', 'de-locale-catalog-contract'],
+  ['de/services.json', 'de-locale-catalog-contract'],
+  ['de/servicesPage.json', 'de-locale-catalog-contract'],
+  ['de/settings.json', 'de-locale-catalog-contract'],
+  ['de/staff-crm.json', 'de-locale-catalog-contract'],
+  ['de/stats.json', 'de-locale-catalog-contract'],
+  ['de/testimonials.json', 'de-locale-catalog-contract'],
+  ['de/timeline.json', 'de-locale-catalog-contract'],
+  ['de/trust.json', 'de-locale-catalog-contract'],
+  ['de/trustStats.json', 'de-locale-catalog-contract'],
+  ['de/voiceClaim.json', 'de-locale-catalog-contract'],
+  ['de/wizard.json', 'de-locale-catalog-contract'],
 ]);
+/** Registry keys: a bare filename applies to every locale; `<locale>/<file>` to that locale only. */
+export const LOCALE_CATALOG_OWNER_KEYS = Object.freeze([...LOCALE_CATALOG_OWNERS.keys()]);
 const GENERATED_EXACT_FILES = new Set([
   'bun.lockb',
   'package-lock.json',
@@ -125,8 +178,10 @@ export function isExplicitModularityException(filePath) {
 }
 export function structuredArtifactOwner(filePath) {
   const relPath = toPolicyPath(filePath);
-  const match = /^apps\/web\/src\/messages\/(?:en|mk|sq|sr)\/([^/]+\.json)$/u.exec(relPath);
-  const localeOwner = LOCALE_CATALOG_OWNERS.get(match?.[1]);
+  const match = /^apps\/web\/src\/messages\/((de|en|mk|sq|sr)\/([^/]+\.json))$/u.exec(relPath);
+  const localeOwner = match
+    ? (LOCALE_CATALOG_OWNERS.get(match[3]) ?? LOCALE_CATALOG_OWNERS.get(match[1]))
+    : undefined;
   if (localeOwner) return localeOwner;
   return STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1] ?? null;
 }

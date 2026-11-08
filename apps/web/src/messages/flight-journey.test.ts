@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const locales = ['sq', 'en', 'sr', 'mk'] as const;
+const locales = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 
 function readMessages(locale: (typeof locales)[number]): Record<string, unknown> {
   const file = path.resolve(__dirname, locale, 'flightJourney.json');

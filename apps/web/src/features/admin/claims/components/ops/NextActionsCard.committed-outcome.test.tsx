@@ -4,6 +4,7 @@ import { NextIntlClientProvider, createTranslator } from 'next-intl';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { installOpsBrowserGlobals } from './ops-browser.test-fixture';
+import de from '@/messages/de/admin-claims.json';
 import en from '@/messages/en/admin-claims.json';
 import mk from '@/messages/mk/admin-claims.json';
 import sq from '@/messages/sq/admin-claims.json';
@@ -48,7 +49,7 @@ vi.mock('./OpsStatusUpdateModal', () => ({
     />
   ),
 }));
-const CATALOGS = { en, sq, mk, sr } as const;
+const CATALOGS = { en, sq, mk, sr, de } as const;
 const COPY = {
   en: [
     'Your change was saved. Refresh the page to see the latest state. Do not repeat this action.',
@@ -65,6 +66,10 @@ const COPY = {
   sr: [
     'Promena je sačuvana. Osvežite stranicu da biste videli najnovije stanje. Ne ponavljajte akciju.',
     'Osveži',
+  ],
+  de: [
+    'Ihre Änderung wurde gespeichert. Aktualisieren Sie die Seite, um den neuesten Stand zu sehen. Wiederholen Sie diese Aktion nicht.',
+    'Aktualisieren',
   ],
 } as const;
 const SERVER_TEXT = 'Server says: Saved. Reload the page if the latest state is not shown.';
@@ -253,7 +258,7 @@ describe('NextActionsCard committed-write refresh-pending outcome', () => {
     expect(totalMutationCalls()).toBe(0);
   });
 
-  it.each(['en', 'sq', 'mk', 'sr'] as const)(
+  it.each(['en', 'sq', 'mk', 'sr', 'de'] as const)(
     '%s resolves real catalog keys and renders the localized warning and refresh action',
     async locale => {
       const [message, refresh] = COPY[locale];

@@ -10,7 +10,7 @@ test('bounded admin user recovery catalog ownership', () => {
     );
   }
   for (const denied of [
-    'apps/web/src/messages/de/admin-users.json',
+    'apps/web/src/messages/hr/admin-users.json',
     'apps/web/src/messages/en/admin.json',
   ]) {
     assert.equal(structuredArtifactOwner(denied), null);

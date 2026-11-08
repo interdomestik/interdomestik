@@ -30,7 +30,7 @@ type RateArgs = {
   secret: string;
   tenantId: string;
 };
-const locale = z.enum(['sq', 'en', 'sr', 'mk']);
+const locale = z.enum(['sq', 'en', 'sr', 'mk', 'de']);
 const startSchema = z.strictObject({ locale });
 // prettier-ignore
 const currentSchema = z.strictObject({ code: z.string().regex(/^\d{6}$/), email: z.string().trim().toLowerCase().email(), locale });

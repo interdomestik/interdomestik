@@ -1,0 +1,33 @@
+{
+  "admin": {
+    "settings_page": {
+      "title": "Admin-Einstellungen",
+      "description": "Systemweite Parameter und das Verhalten der Plattform konfigurieren.",
+      "sections": {
+        "general": {
+          "title": "Allgemein",
+          "description": "Grundlegende Plattformkennung und Kontaktdaten.",
+          "app_name": "Name der Anwendung",
+          "support_email": "Support-E-Mail"
+        },
+        "claims": {
+          "title": "Bearbeitung von Schadensfällen",
+          "description": "Regeln und Automatisierung für die Bearbeitung von Schadensfällen.",
+          "auto_assignment": "Automatische Zuweisung von Agenten",
+          "auto_assignment_desc": "Neue Schadensfälle automatisch verfügbaren Agenten zuweisen.",
+          "default_expiry": "Standardablauf eines Schadensfalls (Tage)"
+        },
+        "system": {
+          "title": "System",
+          "description": "Systemzustand und Wartungssteuerung.",
+          "maintenance_mode": "Wartungsmodus",
+          "maintenance_mode_desc": "Benutzerzugriff während Aktualisierungen verhindern.",
+          "verbose_logging": "Ausführliche Protokollierung",
+          "verbose_logging_desc": "Detaillierte Protokolle zur Fehlersuche aktivieren."
+        }
+      },
+      "save_changes": "Änderungen speichern",
+      "success_message": "Einstellungen erfolgreich aktualisiert"
+    }
+  }
+}

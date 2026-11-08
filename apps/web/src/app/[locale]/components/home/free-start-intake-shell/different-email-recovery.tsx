@@ -71,7 +71,7 @@ function useRecoveryRunner(isPending: boolean, set: RecoverySetters) {
 }
 
 export function DifferentEmailRecovery() {
-  const locale = useLocale() as 'sq' | 'en' | 'sr' | 'mk';
+  const locale = useLocale() as 'sq' | 'en' | 'sr' | 'mk' | 'de';
   const t = useTranslations('freeStart');
   const copy = parseCopy(t.raw('secureSave'));
   const [stage, setStage] = useState<Stage>('closed');

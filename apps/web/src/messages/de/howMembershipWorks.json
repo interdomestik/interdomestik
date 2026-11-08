@@ -1,0 +1,22 @@
+{
+  "howMembershipWorks": {
+    "title": "So funktioniert die Mitgliedschaft",
+    "subtitle": "In 4 einfachen Schritten zum geschützten Mitglied",
+    "step1": {
+      "title": "Dem Club beitreten",
+      "description": "Wählen Sie Ihren Plan und werden Sie in nur 2 Minuten Mitglied."
+    },
+    "step2": {
+      "title": "Digitale Karte erhalten",
+      "description": "Erhalten Sie Ihre Karte sofort per E-Mail und in Apple/Google Wallet."
+    },
+    "step3": {
+      "title": "Leistungen nutzen",
+      "description": "Nutzen Sie die 24/7-Hotline, den Schadensrechner und Partnerrabatte."
+    },
+    "step4": {
+      "title": "Hilfe, wenn Sie sie brauchen",
+      "description": "Wenn ein Unfall passiert, rufen Sie uns an und wir kümmern uns um alles."
+    }
+  }
+}

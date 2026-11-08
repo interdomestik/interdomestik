@@ -21,6 +21,7 @@ const LOCALE_MAP: Record<string, string> = {
   sq: 'sq-AL',
   mk: 'mk-MK',
   sr: 'sr-Latn-RS',
+  de: 'de-DE',
 };
 
 export function AdminPageHeader({

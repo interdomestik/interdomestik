@@ -1,0 +1,186 @@
+{
+  "admin": {
+    "users_page": {
+      "title": "Benutzerverwaltung",
+      "description": "Plattformbenutzer und Rollenzuweisungen verwalten.",
+      "add_agent": "Agent hinzufügen",
+      "add_agent_title": "Neuen Agenten hinzufügen",
+      "add_agent_description": "Wählen Sie eine Person aus dem Team, die zum Agenten befördert werden soll.",
+      "select_user": "Benutzer auswählen",
+      "select_user_placeholder": "Einen Benutzer auswählen",
+      "select_branch": "Filiale auswählen",
+      "select_branch_placeholder": "Eine Filiale auswählen",
+      "no_branch": "Keine Filiale",
+      "cancel": "Abbrechen",
+      "confirm": "Bestätigen",
+      "add_agent_success": "Agent hinzugefügt",
+      "add_agent_success_desc": "Benutzer erfolgreich zum Agenten befördert.",
+      "add_agent_error": "Fehler beim Hinzufügen des Agenten",
+      "unexpected_error": "Ein unerwarteter Fehler ist aufgetreten.",
+      "roles_panel": {
+        "title": "Rollen",
+        "description": "Mandantenbezogene Rollen für diesen Benutzer.",
+        "missing_tenant": "Mandantenkontext fehlt. Öffnen Sie dieses Profil erneut aus der Benutzerliste des Mandanten.",
+        "role_label": "Rolle",
+        "role_placeholder": "Rolle auswählen",
+        "custom_role": "Benutzerdefiniert…",
+        "custom_role_placeholder": "rollen_name",
+        "branch_label": "Filiale",
+        "tenant_wide": "Mandantenweit",
+        "grant_role": "Rolle vergeben",
+        "new_branch_name": "Name der neuen Filiale",
+        "new_branch_code": "Code der neuen Filiale (optional)",
+        "create_branch": "Filiale anlegen",
+        "remove": "Entfernen",
+        "empty": "Keine Rollen zugewiesen",
+        "table": {
+          "role": "Rolle",
+          "branch": "Filiale",
+          "actions": "Aktionen"
+        },
+        "toasts": {
+          "tenant_required": "Zum Verwalten von Rollen ist ein Mandantenkontext erforderlich",
+          "role_required": "Eine Rolle ist erforderlich",
+          "branch_required": "Für diese Rolle ist eine Filiale erforderlich. Bitte wählen Sie eine Filiale.",
+          "branch_membership_conflict": "Ein Benutzer gehört zu einer Filiale. Vergeben Sie diese Rolle in der aktuellen Filiale des Benutzers; ein Wechsel in eine andere Filiale wird hier nicht unterstützt.",
+          "load_branches_error": "Filialen konnten nicht geladen werden",
+          "load_roles_error": "Rollen konnten nicht geladen werden",
+          "role_granted": "Rolle vergeben",
+          "grant_error": "Rolle konnte nicht vergeben werden",
+          "role_revoked": "Rolle entzogen",
+          "revoke_error": "Rolle konnte nicht entzogen werden",
+          "branch_name_required": "Ein Filialname ist erforderlich",
+          "branch_created": "Filiale angelegt",
+          "branch_create_error": "Filiale konnte nicht angelegt werden"
+        }
+      },
+      "load_users_error": "Die Benutzer konnten nicht geladen werden. Versuchen Sie es erneut.",
+      "load_agent_choices_error": "Die Agentenauswahl konnte nicht geladen werden. Sie können Benutzer weiterhin ansehen, aber Zuweisungen sind vorübergehend nicht möglich."
+    },
+    "users_filters": {
+      "search_placeholder": "Nach Name oder E-Mail suchen",
+      "labels": {
+        "role": "Rolle",
+        "assignment": "Zuweisung"
+      },
+      "roles": {
+        "all": "Alle Rollen",
+        "user": "Mitglieder",
+        "agent": "Agenten",
+        "staff": "Mitarbeitende",
+        "admin": "Admins"
+      },
+      "assignments": {
+        "all": "Alle Zuweisungen",
+        "assigned": "Zugewiesen",
+        "unassigned": "Unternehmenseigen"
+      }
+    },
+    "users_table": {
+      "sections": {
+        "members": "Mitglieder",
+        "agents": "Agenten",
+        "staff": "Mitarbeitende",
+        "unassigned": "Unternehmenseigene Mitglieder"
+      },
+      "headers": {
+        "user": "Benutzer",
+        "role": "Rolle",
+        "member_id": "Mitglieds-ID",
+        "identity_id": "Mitglieds-/Konto-ID",
+        "assigned_agent": "Zugewiesener Agent",
+        "joined": "Beigetreten"
+      },
+      "message_alert": "Neue Nachricht ({count})",
+      "tenant_classification_pending": "Mandantenzuordnung ausstehend",
+      "select_agent": "Agent auswählen",
+      "unassigned": "Unternehmenseigen",
+      "no_users": "Keine Benutzer gefunden",
+      "success_message": "Benutzer erfolgreich zugewiesen",
+      "view_profile": "Profil ansehen"
+    },
+    "member_profile": {
+      "actions": {
+        "back": "Zurück zu den Benutzern",
+        "view_claim": "Schadensfall ansehen",
+        "resend_welcome_email": "Willkommens-E-Mail erneut senden",
+        "resend_welcome_email_sending": "Wird gesendet...",
+        "resend_welcome_email_success": "Willkommens-E-Mail erfolgreich gesendet!",
+        "resend_welcome_email_error": "E-Mail konnte nicht gesendet werden",
+        "unexpected_error": "Ein unerwarteter Fehler ist aufgetreten"
+      },
+      "sections": {
+        "membership": "Mitgliedschaft",
+        "account": "Konto",
+        "agent": "Zugewiesener Agent",
+        "preferences": "Benachrichtigungseinstellungen",
+        "claims_overview": "Übersicht der Schadensfälle",
+        "recent_claims": "Letzte Schadensfälle"
+      },
+      "labels": {
+        "member_id": "Mitglieds-ID",
+        "account_id": "Konto-ID",
+        "joined": "Beigetreten",
+        "email_verified_yes": "E-Mail verifiziert",
+        "email_verified_no": "E-Mail nicht verifiziert",
+        "status": "Status",
+        "account_type": "Kontotyp",
+        "role_scope": "Rollenbereich",
+        "plan": "Plan",
+        "period_end": "Laufzeitende",
+        "cancel_at_period_end": "Kündigung zum Laufzeitende",
+        "no_agent": "Kein Agent zugewiesen",
+        "preferences_unset": "Keine Einstellungen festgelegt",
+        "no_claims": "Noch keine Schadensfälle",
+        "unknown": "Unbekannt",
+        "not_set": "Nicht festgelegt",
+        "not_applicable": "Nicht zutreffend",
+        "tenant_review": "Mandantenprüfung",
+        "tenant_review_pending": "Spätere Prüfung der Mitgliedsdetails ausstehend",
+        "tenant_review_confirmed": "Durch die aktuelle Mandantenzuordnung bestätigt"
+      },
+      "status": {
+        "active": "Aktiv",
+        "active_in_grace": "Aktiv in der Kulanzfrist",
+        "grace_expired": "Kulanzfrist abgelaufen",
+        "scheduled_cancel": "Kündigung geplant",
+        "trialing": "In der Testphase",
+        "canceled": "Gekündigt",
+        "none": "Kein Abonnement",
+        "registered": "Registriertes Mitglied",
+        "operator": "Betriebskonto"
+      },
+      "status_context": {
+        "active_in_grace": "Kulanzfrist endet am {date}",
+        "scheduled_cancel": "Zugang endet am {date}"
+      },
+      "preferences": {
+        "email_claims": "E-Mail-Aktualisierungen zu Schadensfällen",
+        "email_newsletter": "E-Mail-Newsletter",
+        "email_marketing": "E-Mail-Werbung",
+        "push_claims": "Push-Aktualisierungen zu Schadensfällen",
+        "push_messages": "Push-Nachrichten",
+        "in_app": "In-App-Benachrichtigungen"
+      },
+      "claims": {
+        "total": "Schadensfälle gesamt",
+        "open": "Offene Schadensfälle",
+        "resolved": "Gelöst",
+        "rejected": "Abgelehnt"
+      },
+      "tenant_resolution": {
+        "title": "Mandantenzuordnung klären",
+        "description": "Bestätigen Sie den aktuellen Mandanten, wenn dieses Konto hierher gehört. Weisen Sie es nur neu zu, wenn das Konto noch keine mandantengebundenen Datensätze hat.",
+        "confirm_current_tenant": "Aktuellen Mandanten bestätigen",
+        "confirmed": "Mandantenzuordnung bereits bestätigt.",
+        "confirmed_success": "Mandantenzuordnung bestätigt",
+        "reassign_label": "Dieses Konto zu einem anderen Mandanten verschieben",
+        "reassign_tenant": "Mandant neu zuweisen",
+        "reassigned_success": "Mandant neu zugewiesen",
+        "select_tenant_first": "Wählen Sie zuerst einen Mandanten",
+        "no_reassign_options": "Keine aktiven Ziele für eine Neuzuweisung verfügbar.",
+        "reassign_locked": "Nur Superadmins können ein Mitglied einem anderen Mandanten zuweisen."
+      }
+    }
+  }
+}
