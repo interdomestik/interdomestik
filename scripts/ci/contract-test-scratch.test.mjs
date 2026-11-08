@@ -10,6 +10,7 @@ import {
   RETIRED_LEGACY_FILES,
   RETIRED_LEGACY_TESTS,
 } from './contract-test-shards.mjs';
+import { contractScratch } from './contract-test-scratch.mjs';
 
 const [candidate] = GUARD_TRUST_SHARDS.candidate;
 
@@ -134,3 +135,17 @@ test(
     }
   }
 );
+
+test('managed scratch leaves room for Unix socket paths inside it', async () => {
+  // Inside a managed shard this reuses the shard's scratch, exactly as a nested runner does.
+  const env = { ...process.env };
+  const scratch = contractScratch(env);
+  try {
+    // tsx creates `<TMPDIR>/tsx-<uid>/<pid>.pipe`; sun_path holds 103 bytes on macOS.
+    const uid = process.getuid?.() ?? 0;
+    const socket = path.join(env.TMPDIR ?? os.tmpdir(), `tsx-${uid}`, '4194304.pipe');
+    assert.ok(socket.length <= 103, `${socket} is ${socket.length} bytes`);
+  } finally {
+    await scratch.cleanup();
+  }
+});

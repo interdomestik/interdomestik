@@ -4,7 +4,9 @@ import path from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 
 const marker = 'INTERDOMESTIK_CONTRACT_TMPDIR';
-const prefix = 'interdomestik-contract-';
+// Short on purpose: tools such as tsx create Unix sockets inside TMPDIR, and macOS limits a socket
+// path to 103 bytes (its per-user temporary directory alone is about 57).
+const prefix = 'idct-';
 
 export function contractScratch(env) {
   // A contract can invoke the runner itself. Its subprocesses must stay in the outer group.
