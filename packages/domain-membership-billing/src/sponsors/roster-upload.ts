@@ -20,6 +20,7 @@ import { nanoid } from 'nanoid';
 
 import { parseTimestamp } from '../sponsor-coverage/resolve';
 import { canManageRoster, type SponsorActor } from './access';
+import { writeSponsorAudit } from './audit';
 import {
   normalizeRosterEmail,
   optOutToken,
@@ -157,27 +158,44 @@ export async function uploadRoster(
       return { ok: false, error: 'conflict' };
     }
     const binding = await bindableUsers(tx, tenantId, term, fresh);
-    if (fresh.length > 0) {
-      await tx.insert(sponsorRosterEntries).values(
-        fresh.map(row => {
-          const id = `spe_${nanoid()}`;
-          return {
-            id,
-            tenantId,
-            termId: input.termId,
-            firstName: row.firstName,
-            lastName: row.lastName,
-            emailNormalized: row.emailNormalized,
-            emailHmac: row.emailHmac,
-            userId: binding.get(row.emailNormalized) ?? null,
-            addedBy: actor.userId,
-            // The token is derived, never stored; its hash is written once here (it may only be
-            // cleared later, §3.8).
-            optoutTokenHash: optOutTokenHash(optOutToken(input.secret, id)),
-          };
-        })
-      );
-    }
+    const entries = fresh.map(row => {
+      const id = `spe_${nanoid()}`;
+      return {
+        id,
+        tenantId,
+        termId: input.termId,
+        firstName: row.firstName,
+        lastName: row.lastName,
+        emailNormalized: row.emailNormalized,
+        emailHmac: row.emailHmac,
+        userId: binding.get(row.emailNormalized) ?? null,
+        addedBy: actor.userId,
+        // The token is derived, never stored; its hash is written once here (it may only be
+        // cleared later, §3.8).
+        optoutTokenHash: optOutTokenHash(optOutToken(input.secret, id)),
+      };
+    });
+    if (entries.length > 0) await tx.insert(sponsorRosterEntries).values(entries);
+    await writeSponsorAudit(tx, tenantId, [
+      {
+        action: 'sponsor_roster.list_uploaded',
+        entityType: 'sponsor_term',
+        entityId: input.termId,
+        actorId: actor.userId,
+        actorRole: actor.role,
+        metadata: { count: entries.length, termId: input.termId },
+      },
+      ...entries
+        .filter(entry => entry.userId !== null)
+        .map(entry => ({
+          action: 'sponsor_roster.bound_at_upload' as const,
+          entityType: 'sponsor_roster_entry' as const,
+          entityId: entry.id,
+          actorId: actor.userId,
+          actorRole: actor.role,
+          metadata: { termId: input.termId },
+        })),
+    ]);
     return {
       ok: true,
       value: {

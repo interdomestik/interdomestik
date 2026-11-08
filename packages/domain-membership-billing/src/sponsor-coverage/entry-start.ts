@@ -8,6 +8,7 @@ import {
 } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 
+import { SPONSOR_SYSTEM_ACTOR, writeSponsorAudit } from '../sponsors/audit';
 import type { EntryInterval } from './evaluate';
 
 /**
@@ -77,6 +78,17 @@ export async function produceEntryStart(
         eq(sponsorRosterEntries.id, params.entryId)
       )
     );
+  if (plan.outcome === 'seated') {
+    await writeSponsorAudit(tx, params.tenantId, [
+      {
+        action: 'sponsor_entry.started',
+        entityType: 'sponsor_roster_entry',
+        entityId: params.entryId,
+        ...SPONSOR_SYSTEM_ACTOR,
+        metadata: { at: params.interval.start.toISOString() },
+      },
+    ]);
+  }
   if (plan.mails.length === 0) return plan;
   await tx
     .insert(sponsorMailOutbox)
@@ -109,6 +121,7 @@ export async function produceEntryStarts(
 ): Promise<EntryStartPlan[]> {
   const planned = params.starts.map(start => ({
     entryId: start.entryId,
+    at: start.interval.start.toISOString(),
     plan: planEntryStart(start.interval, params),
   }));
   const idsWith = (outcome: EntryStartPlan['outcome']) =>
@@ -129,6 +142,19 @@ export async function produceEntryStarts(
       .set({ outcome: 'staff_review', reviewReason: 'empty_interval' })
       .where(where(review));
   }
+  await writeSponsorAudit(
+    tx,
+    params.tenantId,
+    planned
+      .filter(item => item.plan.outcome === 'seated')
+      .map(item => ({
+        action: 'sponsor_entry.started',
+        entityType: 'sponsor_roster_entry',
+        entityId: item.entryId,
+        ...SPONSOR_SYSTEM_ACTOR,
+        metadata: { at: item.at },
+      }))
+  );
   const mails = planned.flatMap(item =>
     item.plan.mails.map(mail => ({
       id: nanoid(),

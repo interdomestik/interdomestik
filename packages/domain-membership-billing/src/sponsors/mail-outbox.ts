@@ -20,6 +20,7 @@ import {
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { lt, lte } from 'drizzle-orm';
 
+import { SPONSOR_SYSTEM_ACTOR, writeSponsorAudit } from './audit';
 import type { MailSkipReason } from './mail-checks';
 
 export type MailRow = typeof sponsorMailOutbox.$inferSelect;
@@ -150,6 +151,17 @@ async function finishRow(
       )
     )
     .returning({ id: sponsorMailOutbox.id });
+  if (updated.length > 0 && values.state === 'failed' && result.state === 'error') {
+    await writeSponsorAudit(tx, tenantId, [
+      {
+        action: 'sponsor_mail.failed',
+        entityType: 'sponsor_mail',
+        entityId: row.id,
+        ...SPONSOR_SYSTEM_ACTOR,
+        metadata: { kind: row.kind, code: result.code },
+      },
+    ]);
+  }
   return updated.length > 0 ? values.state : 'lease_lost';
 }
 

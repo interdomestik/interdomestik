@@ -18,6 +18,7 @@ import { withTenantAuthority } from '@interdomestik/database/tenant-authority-co
 import { nanoid } from 'nanoid';
 
 import { canManageSponsor, type SponsorActor } from './access';
+import { writeSponsorAudit } from './audit';
 
 export type SponsorResult<T> =
   { ok: true; value: T } | { ok: false; error: 'not_found' | 'forbidden' | 'invalid' | 'conflict' };
@@ -98,6 +99,17 @@ export async function createSponsor(
       })
       .onConflictDoNothing()
       .returning({ id: sponsors.id });
+    if (inserted.length > 0) {
+      await writeSponsorAudit(tx, tenantId, [
+        {
+          action: 'sponsor.created',
+          entityType: 'sponsor',
+          entityId: sponsorId,
+          actorId: actor.userId,
+          actorRole: actor.role,
+        },
+      ]);
+    }
     return inserted.length > 0
       ? { ok: true, value: { sponsorId } }
       : { ok: false, error: 'conflict' };
@@ -167,6 +179,24 @@ export async function createTerm(
         ...input.revision,
         createdBy: actor.userId,
       });
+      await writeSponsorAudit(tx, tenantId, [
+        {
+          action: 'sponsor_term.created',
+          entityType: 'sponsor_term',
+          entityId: termId,
+          actorId: actor.userId,
+          actorRole: actor.role,
+          metadata: { sponsorId: input.sponsorId },
+        },
+        {
+          action: 'sponsor_revision.created',
+          entityType: 'sponsor_revision',
+          entityId: revisionId,
+          actorId: actor.userId,
+          actorRole: actor.role,
+          metadata: { termId },
+        },
+      ]);
       return { ok: true, value: { termId, revisionId } };
     });
   } catch (error) {
@@ -236,6 +266,16 @@ export async function addRevision(
       ...input.revision,
       createdBy: actor.userId,
     });
+    await writeSponsorAudit(tx, tenantId, [
+      {
+        action: 'sponsor_revision.created',
+        entityType: 'sponsor_revision',
+        entityId: revisionId,
+        actorId: actor.userId,
+        actorRole: actor.role,
+        metadata: { termId: input.termId },
+      },
+    ]);
     return { ok: true, value: { revisionId } };
   });
 }

@@ -8,6 +8,7 @@ import {
 import { nanoid } from 'nanoid';
 
 import { parseTimestamp } from '../sponsor-coverage/resolve';
+import { SPONSOR_SYSTEM_ACTOR, writeSponsorAudit } from './audit';
 
 /**
  * ACQ-3b §3.7 linking an entry to the person's handover intent (lock 7). One intent exists per
@@ -46,7 +47,7 @@ export async function linkHandoverIntent(
 
   let intent = await lockIntent(tx, tenantId, providerSubscriptionId);
   if (!intent) {
-    await tx
+    const inserted = await tx
       .insert(sponsorHandoverIntents)
       .values({
         id: `sph_${nanoid()}`,
@@ -56,7 +57,19 @@ export async function linkHandoverIntent(
         providerSubscriptionId,
         state: params.mode === 'handover' ? 'pending' : 'staff_review',
       })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning({ id: sponsorHandoverIntents.id, state: sponsorHandoverIntents.state });
+    await writeSponsorAudit(
+      tx,
+      tenantId,
+      inserted.map(intent => ({
+        action: 'sponsor_intent.state',
+        entityType: 'sponsor_handover_intent',
+        entityId: intent.id,
+        ...SPONSOR_SYSTEM_ACTOR,
+        metadata: { state: intent.state },
+      }))
+    );
     intent = await lockIntent(tx, tenantId, providerSubscriptionId);
     if (!intent) return { kind: 'review' };
     return attach(tx, tenantId, params.entryId, intent);

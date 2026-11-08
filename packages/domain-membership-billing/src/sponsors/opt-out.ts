@@ -24,6 +24,7 @@ import { gt } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { canManageRoster, type SponsorActor } from './access';
+import { SPONSOR_SYSTEM_ACTOR, writeSponsorAudit } from './audit';
 import { optOutTokenHash } from './roster-crypto';
 import type { SponsorResult } from './terms';
 
@@ -122,6 +123,19 @@ async function revokeSponsorPerson(tx: TenantTransaction, input: Revocation): Pr
       optoutTokenHash: null,
     })
     .where(and(eq(sponsorRosterEntries.tenantId, tenantId), inArray(sponsorRosterEntries.id, ids)));
+  await writeSponsorAudit(
+    tx,
+    tenantId,
+    ids.map(entityId => ({
+      action: input.reason === 'opted_out' ? 'sponsor_entry.opted_out' : 'sponsor_entry.revoked',
+      entityType: 'sponsor_roster_entry',
+      entityId,
+      ...(input.reason === 'opted_out'
+        ? SPONSOR_SYSTEM_ACTOR
+        : { actorId: input.requireUserId, actorRole: 'member' }),
+      metadata: { reason: input.reason },
+    }))
+  );
   await tx
     .insert(sponsorMailOutbox)
     .values({
@@ -237,6 +251,18 @@ export async function markLeftCompany(
         )
       )
       .returning({ id: sponsorRosterEntries.id });
+    if (updated.length > 0) {
+      await writeSponsorAudit(tx, tenantId, [
+        {
+          action: 'sponsor_roster.left_company',
+          entityType: 'sponsor_roster_entry',
+          entityId: input.entryId,
+          actorId: actor.userId,
+          actorRole: actor.role,
+          metadata: { at: input.now.toISOString() },
+        },
+      ]);
+    }
     return { ok: true, value: { marked: updated.length > 0 } };
   });
 }

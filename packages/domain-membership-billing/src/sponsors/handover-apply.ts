@@ -14,6 +14,7 @@ import { nanoid } from 'nanoid';
 
 import { produceEntryStarts } from '../sponsor-coverage/entry-start';
 import type { AttemptOutcome } from '../sponsor-coverage/handover-evidence';
+import { SPONSOR_SYSTEM_ACTOR, writeSponsorAudit } from './audit';
 import type { HandoverState } from './handover-intent-read';
 import type { HandoverPlan } from './handover-plan';
 
@@ -101,6 +102,22 @@ export async function applyHandoverPlan(
       updatedAt: iso(now),
     })
     .where(intentWhere);
+
+  if (plan.nextState && plan.nextState !== intent.state) {
+    await writeSponsorAudit(tx, tenantId, [
+      {
+        action: 'sponsor_intent.state',
+        entityType: 'sponsor_handover_intent',
+        entityId: intent.id,
+        ...SPONSOR_SYSTEM_ACTOR,
+        metadata: {
+          previousState: intent.state,
+          state: plan.nextState,
+          ...(plan.evidence ? { evidenceId: plan.evidence.transactionId } : {}),
+        },
+      },
+    ]);
+  }
 
   // Producer runs after the evidence is durable in this transaction (step 2).
   if (plan.startEntries.length > 0) {
@@ -245,5 +262,14 @@ export async function resolveAttempt(
       .where(
         and(eq(sponsorHandoverIntents.tenantId, tenantId), eq(sponsorHandoverIntents.id, intentId))
       );
+    await writeSponsorAudit(tx, tenantId, [
+      {
+        action: 'sponsor_intent.state',
+        entityType: 'sponsor_handover_intent',
+        entityId: intentId,
+        ...SPONSOR_SYSTEM_ACTOR,
+        metadata: { previousState: intent.state, state: 'staff_review' },
+      },
+    ]);
   }
 }

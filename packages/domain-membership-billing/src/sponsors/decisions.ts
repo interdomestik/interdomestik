@@ -20,6 +20,7 @@ import { nanoid } from 'nanoid';
 
 import { parseTimestamp } from '../sponsor-coverage/resolve';
 import { canDecideRevision, type SponsorActor } from './access';
+import { writeSponsorAudit } from './audit';
 import type { SponsorResult } from './terms';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -93,6 +94,18 @@ export async function decideRevision(
       })
       .onConflictDoNothing()
       .returning({ id: sponsorRevisionDecisions.id });
+    if (inserted.length > 0) {
+      await writeSponsorAudit(tx, tenantId, [
+        {
+          action: 'sponsor_revision.decided',
+          entityType: 'sponsor_revision',
+          entityId: input.revisionId,
+          actorId: actor.userId,
+          actorRole: actor.role,
+          metadata: { decision: input.decision },
+        },
+      ]);
+    }
     return inserted.length > 0
       ? { ok: true, value: { decisionId } }
       : { ok: false, error: 'conflict' };
@@ -195,6 +208,16 @@ export async function terminateTerm(
         terminatedAt: input.now.toISOString(),
       })
       .where(and(eq(sponsorTerms.tenantId, tenantId), eq(sponsorTerms.id, input.termId)));
+    await writeSponsorAudit(tx, tenantId, [
+      {
+        action: 'sponsor_term.terminated',
+        entityType: 'sponsor_term',
+        entityId: input.termId,
+        actorId: actor.userId,
+        actorRole: actor.role,
+        metadata: { at: input.effectiveAt.toISOString() },
+      },
+    ]);
     const entries = await tx
       .select({ id: sponsorRosterEntries.id })
       .from(sponsorRosterEntries)
