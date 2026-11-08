@@ -3,7 +3,8 @@ import { eq } from 'drizzle-orm';
 import { dbAdmin } from './db';
 import { npsSurveyTokens } from './schema/automation';
 import { sharePacks } from './schema/documents';
-import { sponsorRosterEntries } from './schema/sponsor-roster';
+// Via the barrel: the sponsor schema loads leads and its relations, so it stays out of this graph.
+import { sponsorRosterEntries } from './schema';
 import { claimTrackingTokens } from './schema/tracking';
 import { mintTenantAuthority, type TenantAuthority } from './tenant-authority';
 

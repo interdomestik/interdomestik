@@ -9,6 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 type Predicate = { args?: unknown[]; left?: unknown; op: string; right?: unknown };
 
 const hoisted = vi.hoisted(() => ({
+  effectiveCoverageMembers: vi.fn(),
+  inArray: vi.fn((left: unknown, right: unknown) => ({ left, op: 'inArray', right })),
   and: vi.fn((...args: unknown[]) => ({ args, op: 'and' })),
   eq: vi.fn((left: unknown, right: unknown) => ({ left, op: 'eq', right })),
   gte: vi.fn((left: unknown, right: unknown) => ({ left, op: 'gte', right })),
@@ -35,16 +37,24 @@ vi.mock('@interdomestik/database', () => ({
 }));
 vi.mock('@interdomestik/database/schema', () => hoisted.tables);
 
+vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
+  effectiveCoverageMembers: hoisted.effectiveCoverageMembers,
+}));
+
 vi.mock('drizzle-orm', () => ({
   and: hoisted.and,
+  inArray: hoisted.inArray,
   eq: hoisted.eq,
   gte: hoisted.gte,
   lte: hoisted.lte,
 }));
 
-import { selectActiveSubscriptionMembers } from './_scheduled-members';
+import {
+  selectActiveSubscriptionMembers,
+  type ScheduledSubscriptionMember,
+} from './_scheduled-members';
 
-function memberRows(tenantId: string, count: number) {
+function memberRows(tenantId: string, count: number): ScheduledSubscriptionMember[] {
   return Array.from({ length: count }, (_, index) => ({
     email: `${tenantId}-${index}@example.com`,
     name: `${tenantId} ${index}`,
@@ -58,7 +68,7 @@ function memberRows(tenantId: string, count: number) {
 const INGRESS = Object.freeze({}) as IngressCapability<'cron'>;
 const authorities: Record<string, TenantAuthority> = {};
 
-function scheduleTenants(tenantIds: string[]) {
+function scheduleTenants(tenantIds: string[]): void {
   for (const tenantId of tenantIds) authorities[tenantId] = mintTestTenantAuthority(tenantId);
   hoisted.listScheduledTenantWork.mockResolvedValue(
     tenantIds.map(tenantId => ({ tenantId, authority: authorities[tenantId] }))
@@ -72,6 +82,17 @@ function conditions(predicate: Predicate): Predicate[] {
 beforeEach(() => {
   vi.clearAllMocks();
   hoisted.rowsByTenant = {};
+  hoisted.effectiveCoverageMembers.mockResolvedValue([
+    { userId: 'sponsored', membership: { source: 'sponsor' } },
+    {
+      userId: 'paddle',
+      membership: { source: 'subscription', subscription: { status: 'active' } },
+    },
+    {
+      userId: 'canceled',
+      membership: { source: 'subscription', subscription: { status: 'canceled' } },
+    },
+  ]);
   hoisted.txCalls.length = 0;
   hoisted.withTenantContext.mockImplementation(
     async (context: TenantAuthority, action: (tx: unknown) => Promise<unknown>) => {
@@ -160,7 +181,7 @@ describe('selectActiveSubscriptionMembers', () => {
     expect(members.map(member => member.tenantId)).toEqual(['tenant-a', 'tenant-a', 'tenant-b']);
   });
 
-  it('keeps tenant, active status and the optional createdAt window in the where, and binds the user join to the tenant', async () => {
+  it('keeps tenant, effective coverage and the optional createdAt window in the where, and binds the user join to the tenant', async () => {
     scheduleTenants(['tenant-a']);
     const start = new Date('2026-01-01T00:00:00.000Z');
     const end = new Date('2026-01-01T23:59:59.999Z');
@@ -174,7 +195,7 @@ describe('selectActiveSubscriptionMembers', () => {
     const [call] = hoisted.txCalls;
     expect(conditions(call.where)).toEqual([
       { left: 'subscriptions.tenantId', op: 'eq', right: 'tenant-a' },
-      { left: 'subscriptions.status', op: 'eq', right: 'active' },
+      { left: 'subscriptions.userId', op: 'inArray', right: ['sponsored', 'paddle'] },
       { left: 'subscriptions.createdAt', op: 'gte', right: start },
       { left: 'subscriptions.createdAt', op: 'lte', right: end },
     ]);
@@ -191,7 +212,7 @@ describe('selectActiveSubscriptionMembers', () => {
 
     expect(conditions(hoisted.txCalls[0].where)).toEqual([
       { left: 'subscriptions.tenantId', op: 'eq', right: 'tenant-a' },
-      { left: 'subscriptions.status', op: 'eq', right: 'active' },
+      { left: 'subscriptions.userId', op: 'inArray', right: ['sponsored', 'paddle'] },
     ]);
     expect(hoisted.gte).not.toHaveBeenCalled();
     expect(hoisted.lte).not.toHaveBeenCalled();
@@ -202,6 +223,24 @@ describe('selectActiveSubscriptionMembers', () => {
       tenantId: 'subscriptions.tenantId',
       userId: 'subscriptions.userId',
     });
+  });
+
+  it('selects source 1 and access-active source 2, excluding uncovered sponsor rows', async () => {
+    scheduleTenants(['tenant-a']);
+    await selectActiveSubscriptionMembers({ ingress: INGRESS, limit: 5 });
+    expect(hoisted.inArray).toHaveBeenCalledWith('subscriptions.userId', ['sponsored', 'paddle']);
+    expect(hoisted.effectiveCoverageMembers).toHaveBeenCalledWith(
+      expect.objectContaining({ select: expect.any(Function) }),
+      'tenant-a',
+      expect.any(Date)
+    );
+  });
+
+  it('does not query recipients when the set has no covered members', async () => {
+    scheduleTenants(['tenant-a']);
+    hoisted.effectiveCoverageMembers.mockResolvedValue([]);
+    expect(await selectActiveSubscriptionMembers({ ingress: INGRESS, limit: 5 })).toEqual([]);
+    expect(hoisted.selectedFields).not.toHaveBeenCalled();
   });
 
   it('binds every tenant visit to its own tenant predicate', async () => {

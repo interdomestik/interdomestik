@@ -5,6 +5,8 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
+import { effectiveCoverageMembers } from '../sponsor-coverage';
+
 export type MembershipLifecycleStatus =
   'active' | 'trialing' | 'active_in_grace' | 'grace_expired' | 'scheduled_cancel' | 'canceled';
 
@@ -21,7 +23,11 @@ export type MembershipLifecycleInput =
   | undefined;
 
 export type MembershipLifecycleCounts = {
+  /** Effective members (sources 1 and 2), deduplicated by the coverage set. */
   total: number;
+  /** Persisted provider rows; denominator for provider lifecycle reporting, not membership. */
+  providerLifecycleTotal: number;
+  /** Provider lifecycle buckets below describe persisted rows, never membership access. */
   active: number;
   trialing: number;
   activeInGrace: number;
@@ -30,6 +36,7 @@ export type MembershipLifecycleCounts = {
   canceled: number;
   none: number;
   accessActive: number;
+  sponsored: number;
 };
 
 export function getMembershipLifecycleBucket(args: {
@@ -89,6 +96,7 @@ export function isSubscriptionInsideGracePeriod(args: {
 export function createEmptyMembershipLifecycleCounts(): MembershipLifecycleCounts {
   return {
     total: 0,
+    providerLifecycleTotal: 0,
     active: 0,
     trialing: 0,
     activeInGrace: 0,
@@ -97,9 +105,11 @@ export function createEmptyMembershipLifecycleCounts(): MembershipLifecycleCount
     canceled: 0,
     none: 0,
     accessActive: 0,
+    sponsored: 0,
   };
 }
 
+/** Pure lifecycle-input summary; tenant membership totals must use the coverage set below. */
 export function summarizeMembershipLifecycle(
   rows: MembershipLifecycleInput[],
   now?: Date
@@ -109,6 +119,7 @@ export function summarizeMembershipLifecycle(
   for (const subscription of rows) {
     const bucket = getMembershipLifecycleBucket({ subscription, now });
     counts.total += 1;
+    counts.providerLifecycleTotal += 1;
 
     if (bucket === 'active') counts.active += 1;
     else if (bucket === 'trialing') counts.trialing += 1;
@@ -133,8 +144,16 @@ export async function getTenantMembershipLifecycleCounts(args: {
   const now = args.now ?? new Date();
   const nowTimestamp = now.toISOString();
   const { tenantId } = readTenantAuthority(args.authority);
-  const [row] = await withTenantAuthority(args.authority, tx =>
-    tx
+  return withTenantAuthority(args.authority, async tx => {
+    const covered = await effectiveCoverageMembers(tx, tenantId, now);
+    const membershipCounts = summarizeMembershipLifecycle(
+      covered.map(({ membership }) =>
+        membership.source === 'sponsor' ? membership.lifecycle : membership.subscription
+      ),
+      now
+    );
+    // Provider lifecycle reporting is intentionally independent of effective coverage.
+    const [row] = await tx
       .select({
         total: sql<number>`COUNT(*)::int`,
         active: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} = 'active' AND COALESCE(${subscriptions.cancelAtPeriodEnd}, false) = false THEN 1 ELSE 0 END), 0)::int`,
@@ -143,21 +162,22 @@ export async function getTenantMembershipLifecycleCounts(args: {
         graceExpired: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} = 'past_due' AND (${subscriptions.gracePeriodEndsAt} IS NULL OR ${subscriptions.gracePeriodEndsAt} <= ${nowTimestamp}::timestamp) THEN 1 ELSE 0 END), 0)::int`,
         scheduledCancel: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} IN ('active', 'trialing') AND COALESCE(${subscriptions.cancelAtPeriodEnd}, false) = true THEN 1 ELSE 0 END), 0)::int`,
         canceled: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} IN ('canceled', 'paused', 'expired') THEN 1 ELSE 0 END), 0)::int`,
-        accessActive: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} IN ('active', 'trialing') OR (${subscriptions.status} = 'past_due' AND ${subscriptions.gracePeriodEndsAt} IS NOT NULL AND ${subscriptions.gracePeriodEndsAt} > ${nowTimestamp}::timestamp) THEN 1 ELSE 0 END), 0)::int`,
       })
       .from(subscriptions)
-      .where(eq(subscriptions.tenantId, tenantId))
-  );
+      .where(eq(subscriptions.tenantId, tenantId));
 
-  return {
-    total: Number(row?.total ?? 0),
-    active: Number(row?.active ?? 0),
-    trialing: Number(row?.trialing ?? 0),
-    activeInGrace: Number(row?.activeInGrace ?? 0),
-    graceExpired: Number(row?.graceExpired ?? 0),
-    scheduledCancel: Number(row?.scheduledCancel ?? 0),
-    canceled: Number(row?.canceled ?? 0),
-    none: 0,
-    accessActive: Number(row?.accessActive ?? 0),
-  };
+    return {
+      total: covered.length,
+      providerLifecycleTotal: Number(row?.total ?? 0),
+      active: Number(row?.active ?? 0),
+      trialing: Number(row?.trialing ?? 0),
+      activeInGrace: Number(row?.activeInGrace ?? 0),
+      graceExpired: Number(row?.graceExpired ?? 0),
+      scheduledCancel: Number(row?.scheduledCancel ?? 0),
+      canceled: Number(row?.canceled ?? 0),
+      none: 0,
+      accessActive: membershipCounts.accessActive,
+      sponsored: covered.filter(({ membership }) => membership.source === 'sponsor').length,
+    };
+  });
 }

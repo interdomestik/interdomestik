@@ -77,7 +77,20 @@ vi.mock('drizzle-orm', () => ({
   and: hoisted.and,
   eq: hoisted.eq,
   gte: hoisted.gte,
+  inArray: vi.fn((left: unknown, right: unknown) => ({ op: 'inArray', left, right })),
   lte: hoisted.lte,
+}));
+
+// Selection reads the coverage set first (ACQ-3b §3.6.3); the member is sponsor-covered here.
+vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
+  effectiveCoverageMembers: vi.fn(async () => [
+    { userId: member.userId, membership: { source: 'sponsor' } },
+  ]),
+}));
+
+vi.mock('@interdomestik/domain-membership-billing', () => ({
+  getMembershipLifecycleBucket: vi.fn(),
+  membershipLifecycleGrantsAccess: vi.fn(() => false),
 }));
 
 vi.mock('nanoid', () => ({ nanoid: (size?: number) => (size ? 'survey-token' : 'id-1') }));
