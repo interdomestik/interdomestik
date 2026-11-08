@@ -4,11 +4,14 @@ import {
   agentSettings,
   claimDocuments,
   claimStageHistory,
+  and,
   claims,
   db,
   eq,
+  tenantSettings,
   user,
 } from '@interdomestik/database';
+import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
 import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
@@ -21,6 +24,8 @@ type PrivacyFixtureContext = {
   claimCompanyName: string;
   claimDocumentName: string;
   claimTitle: string;
+  /** Opts the tenant into the sponsored roster import (OD-18 Option B: dark by default). */
+  enableSponsoredImport: () => Promise<void>;
   internalHistoryNote: string;
   officeAgent: OfficeSeededAgent;
   seededMemberName: string;
@@ -38,7 +43,23 @@ function getOfficeSeededAgent(testInfo: TestInfo): OfficeSeededAgent {
   };
 }
 
+// Projects that share a tenant (gate-mk-mk and gate-mk-contract) may run this fixture concurrently.
+// Each run snapshots and restores shared rows (the agent tier, the tenant's import setting), so a
+// session-held advisory lock serializes runs per tenant from the snapshot through the restore. The
+// transaction only holds the lock: every fixture write commits on its own so the app sees it, and a
+// killed worker's connection drops the lock with it.
 export async function withGroupAccessPrivacyFixture(
+  testInfo: TestInfo,
+  run: (context: PrivacyFixtureContext) => Promise<void>
+) {
+  const lockKey = `e2e-group-access-privacy:${isMkProject(testInfo) ? 'mk' : 'ks'}`;
+  await db.transaction(async tx => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${lockKey}))`);
+    await runGroupAccessPrivacyFixture(testInfo, run);
+  });
+}
+
+async function runGroupAccessPrivacyFixture(
   testInfo: TestInfo,
   run: (context: PrivacyFixtureContext) => Promise<void>
 ) {
@@ -76,6 +97,32 @@ export async function withGroupAccessPrivacyFixture(
   const previousTier = existingSettings?.tier ?? 'standard';
   const createdSettings = !existingSettings?.id;
   let tierElevated = false;
+  const importSettingScope = and(
+    eq(tenantSettings.tenantId, tenantId),
+    eq(tenantSettings.category, 'acquisition'),
+    eq(tenantSettings.key, 'sponsored_import')
+  );
+  const previousImportSetting = await db.query.tenantSettings.findFirst({
+    where: importSettingScope,
+    columns: { value: true },
+  });
+  let importSettingWritten = false;
+  const enableSponsoredImport = async () => {
+    importSettingWritten = true;
+    await db
+      .insert(tenantSettings)
+      .values({
+        id: `e2e-ga04-import-${suffix}`,
+        tenantId,
+        category: 'acquisition',
+        key: 'sponsored_import',
+        value: { enabled: true },
+      })
+      .onConflictDoUpdate({
+        target: [tenantSettings.tenantId, tenantSettings.category, tenantSettings.key],
+        set: { value: { enabled: true }, updatedAt: new Date() },
+      });
+  };
 
   try {
     if (createdSettings) {
@@ -127,11 +174,20 @@ export async function withGroupAccessPrivacyFixture(
       claimCompanyName: claimRecord.companyName,
       claimDocumentName,
       claimTitle: claimRecord.title,
+      enableSponsoredImport,
       internalHistoryNote,
       officeAgent,
       seededMemberName,
     });
   } finally {
+    if (importSettingWritten && previousImportSetting) {
+      await db
+        .update(tenantSettings)
+        .set({ value: previousImportSetting.value, updatedAt: new Date() })
+        .where(importSettingScope);
+    } else if (importSettingWritten) {
+      await db.delete(tenantSettings).where(importSettingScope);
+    }
     await db.delete(claimDocuments).where(eq(claimDocuments.id, claimDocumentId));
     await db.delete(claimStageHistory).where(eq(claimStageHistory.id, internalHistoryId));
     if (tierElevated && createdSettings) {

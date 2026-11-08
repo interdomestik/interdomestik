@@ -16,6 +16,7 @@ import { importMembersCore } from './agent/import-members.core';
 import { logActivityCore } from './agent/log-activity';
 import { updateLeadStatusCore } from './agent/update-lead-status';
 import { importMembersSchema } from './agent/schemas';
+import { resolveSponsoredImportAccess } from './agent/sponsored-import-access';
 
 function resolveLocaleFromReferer(referer: string | null): string {
   // Keep in sync with apps/web/src/i18n/routing.ts (localePrefix: 'always').
@@ -164,6 +165,17 @@ export async function importMembers(prevState: unknown, formData: FormData) {
     return { error: 'Missing tenantId', summary: undefined, results: undefined };
   }
 
+  const authority = await getAgentAuthority();
+  if (!authority) {
+    return { error: 'Missing tenantId', summary: undefined, results: undefined };
+  }
+  // The page gate is not an authorization boundary: the action itself requires an enabled tenant
+  // (OD-18 Option B) and an office-tier agent before it reads the payload.
+  const access = await resolveSponsoredImportAccess({ agentId: session.user.id, authority });
+  if (access !== 'allowed') {
+    return { error: 'Unauthorized', summary: undefined, results: undefined };
+  }
+
   const rowsJson = formData.get('rowsJson');
   if (typeof rowsJson !== 'string') {
     return { error: 'Invalid import payload', summary: undefined, results: undefined };
@@ -182,11 +194,6 @@ export async function importMembers(prevState: unknown, formData: FormData) {
 
   if (!validated.success) {
     return { error: 'Validation failed', summary: undefined, results: undefined };
-  }
-
-  const authority = await getAgentAuthority();
-  if (!authority) {
-    return { error: 'Missing tenantId', summary: undefined, results: undefined };
   }
 
   const result = await importMembersCore({

@@ -12,6 +12,12 @@ test.describe('Group access privacy', () => {
 
     await withGroupAccessPrivacyFixture(testInfo, async context => {
       await loginAsOfficeSeededAgent(page, testInfo, context.officeAgent);
+      // OD-18 Option B: even an office agent finds the import closed until the tenant opts in.
+      await gotoApp(page, routes.agentImport(testInfo), testInfo, { marker: 'not-found-page' });
+      await expect(page.getByTestId('not-found-page')).toBeVisible();
+      await expect(page.getByTestId('group-dashboard-summary')).toHaveCount(0);
+
+      await context.enableSponsoredImport();
       await gotoApp(page, routes.agentImport(testInfo), testInfo, {
         marker: 'group-dashboard-summary',
       });

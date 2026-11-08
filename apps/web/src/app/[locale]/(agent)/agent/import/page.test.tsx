@@ -6,7 +6,7 @@ import { notFound, redirect } from 'next/navigation';
 
 const hoisted = vi.hoisted(() => ({
   authorizeSessionTenant: vi.fn(),
-  getAgentTier: vi.fn(),
+  resolveSponsoredImportAccess: vi.fn(),
   getGroupDashboardSummary: vi.fn(),
   getSession: vi.fn(),
 }));
@@ -23,8 +23,8 @@ vi.mock('@/lib/tenant-authority.server', () => ({
   authorizeSessionTenant: hoisted.authorizeSessionTenant,
 }));
 
-vi.mock('@/app/[locale]/(agent)/agent/_layout.core', () => ({
-  getAgentTier: hoisted.getAgentTier,
+vi.mock('@/lib/actions/agent/sponsored-import-access', () => ({
+  resolveSponsoredImportAccess: hoisted.resolveSponsoredImportAccess,
 }));
 
 vi.mock('@/features/agent/import/server/get-group-dashboard-summary', () => ({
@@ -63,14 +63,14 @@ describe('AgentImportPage', () => {
     await expect(AgentImportPage({ params })).rejects.toThrow('redirect:/sq/member');
   });
 
-  it('hides the page from non-office agents', async () => {
+  it.each(['not_office', 'dark'])('hides the page when access is %s', async access => {
     const session = { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } };
     hoisted.getSession.mockResolvedValueOnce(session);
     hoisted.authorizeSessionTenant.mockResolvedValueOnce({
       session,
       authority: mintTestTenantAuthority('tenant-1'),
     });
-    hoisted.getAgentTier.mockResolvedValueOnce('pro');
+    hoisted.resolveSponsoredImportAccess.mockResolvedValueOnce(access);
 
     const notFoundMock = vi.mocked(notFound);
     notFoundMock.mockImplementationOnce(() => {
@@ -85,7 +85,7 @@ describe('AgentImportPage', () => {
     const authority = mintTestTenantAuthority('tenant-1');
     hoisted.getSession.mockResolvedValueOnce(session);
     hoisted.authorizeSessionTenant.mockResolvedValueOnce({ session, authority });
-    hoisted.getAgentTier.mockResolvedValueOnce('office');
+    hoisted.resolveSponsoredImportAccess.mockResolvedValueOnce('allowed');
     hoisted.getGroupDashboardSummary.mockResolvedValueOnce({
       activatedMembersCount: 7,
       membersUsingBenefitsCount: 3,
@@ -99,7 +99,10 @@ describe('AgentImportPage', () => {
     expect(screen.getByText('Sponsored Member Import')).toBeInTheDocument();
     expect(screen.getByText('Group summary 7 / 43')).toBeInTheDocument();
     expect(screen.getByText('Mock CSV Uploader')).toBeInTheDocument();
-    expect(hoisted.getAgentTier).toHaveBeenCalledWith({ agentId: 'agent-1', authority });
+    expect(hoisted.resolveSponsoredImportAccess).toHaveBeenCalledWith({
+      agentId: 'agent-1',
+      authority,
+    });
     expect(hoisted.getGroupDashboardSummary).toHaveBeenCalledWith({
       agentId: 'agent-1',
       authority,

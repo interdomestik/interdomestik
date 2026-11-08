@@ -25,6 +25,62 @@ describe('agent actions', () => {
       });
     });
 
+    it.each(['dark', 'not_office'])(
+      'refuses the action itself when access is %s, before the payload or the core',
+      async access => {
+        const importMembers = await loadImportMembersAction();
+        const { importMembersCore } = await import('./agent/import-members.core');
+        const { resolveSponsoredImportAccess } = await import('./agent/sponsored-import-access');
+        vi.mocked(getAgentSession).mockResolvedValue(IMPORT_AGENT_SESSION as never);
+        vi.mocked(resolveSponsoredImportAccess).mockResolvedValueOnce(access as never);
+
+        await expect(importMembers(null, createRowsFormData([buildImportRow()]))).resolves.toEqual({
+          error: 'Unauthorized',
+          summary: undefined,
+          results: undefined,
+        });
+        expect(resolveSponsoredImportAccess).toHaveBeenCalledWith({
+          agentId: 'agent1',
+          authority: expect.anything(),
+        });
+        expect(importMembersCore).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each([
+      [
+        'no tenant authority',
+        'Missing tenantId',
+        async () => {
+          const { getAgentAuthority } = await import('./agent/context');
+          vi.mocked(getAgentAuthority).mockResolvedValueOnce(null);
+        },
+      ],
+      [
+        'denied access',
+        'Unauthorized',
+        async () => {
+          const { resolveSponsoredImportAccess } = await import('./agent/sponsored-import-access');
+          vi.mocked(resolveSponsoredImportAccess).mockResolvedValueOnce('dark');
+        },
+      ],
+    ])('refuses on %s without reading the payload', async (_label, error, arrange) => {
+      const importMembers = await loadImportMembersAction();
+      vi.mocked(getAgentSession).mockResolvedValue(IMPORT_AGENT_SESSION as never);
+      await arrange();
+      const payload = createRowsFormData([buildImportRow()]);
+      const read = vi.spyOn(payload, 'get').mockImplementation(() => {
+        throw new Error('the payload was read before authorization');
+      });
+
+      await expect(importMembers(null, payload)).resolves.toEqual({
+        error,
+        summary: undefined,
+        results: undefined,
+      });
+      expect(read).not.toHaveBeenCalled();
+    });
+
     it('delegates bulk import to the core and returns the structured result', async () => {
       const importMembers = await loadImportMembersAction();
       const { importMembersCore } = await import('./agent/import-members.core');
