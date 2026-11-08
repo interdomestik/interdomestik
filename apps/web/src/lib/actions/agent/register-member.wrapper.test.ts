@@ -12,6 +12,7 @@ describe('registerMemberCore', () => {
   const sponsored = { membershipMode: 'sponsored' } as const;
   const insertValues: unknown[] = [];
   let insertedUsers: unknown[] = [];
+  const conflictTargets: unknown[][] = [];
   const register = (formData = registrationForm()) =>
     registerMemberCore(agent, authority, branchId, formData, sponsored);
 
@@ -19,6 +20,7 @@ describe('registerMemberCore', () => {
     vi.clearAllMocks();
     insertValues.length = 0;
     insertedUsers = [{ id: 'new-id' }];
+    conflictTargets.length = 0;
     mocks.deletedTables.length = 0;
     mocks.issueTenantMemberNumber.mockResolvedValue({ memberNumber: 'MEM-1', isNew: true });
     mocks.selectResults.length = 0;
@@ -29,7 +31,10 @@ describe('registerMemberCore', () => {
         values: vi.fn().mockImplementation((value: unknown) => {
           insertValues.push(value);
           return {
-            onConflictDoNothing: vi.fn(() => ({ returning: vi.fn(async () => insertedUsers) })),
+            onConflictDoNothing: vi.fn((...target: unknown[]) => {
+              conflictTargets.push(target);
+              return { returning: vi.fn(() => Promise.resolve(insertedUsers)) };
+            }),
             onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
           };
         }),
@@ -103,6 +108,8 @@ describe('registerMemberCore', () => {
     expect(insertValues).not.toContainEqual(expect.objectContaining({ status: 'paused' }));
     expect(mocks.issueTenantMemberNumber).not.toHaveBeenCalled();
     expect(mocks.emailExecute).not.toHaveBeenCalled();
+    // No conflict target: the folded-email index arbitrates as well as the stored-email one.
+    expect(conflictTargets).toEqual([[]]);
   });
 
   it('fails validation without a write', async () => {

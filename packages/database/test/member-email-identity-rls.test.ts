@@ -92,6 +92,35 @@ test('the case-insensitive email index holds across tenants under the restricted
       assert.deepEqual(rows, [], 'the refused insert rolled back');
     });
 
+    // ACQ-3a: the roster import inserts with a target-less ON CONFLICT DO NOTHING, so a hidden
+    // account in another tenant, in any spelling, yields no row and no error: never an oracle.
+    await t.test('a target-less conflict skip hides every spelling of an account', async () => {
+      const skipped = await Promise.all(
+        [ksEmail, ` ${ksEmail.toUpperCase()} `].map((email, index) =>
+          withTenantAuthority(mintTestTenantAuthority(MK_TENANT_ID), (tx: TenantTransaction) => {
+            const id = `acq3a_mk_${index}_${suffix}`;
+            created.push(id);
+            const now = new Date();
+            return tx
+              .insert(user)
+              .values({
+                id,
+                tenantId: MK_TENANT_ID,
+                email,
+                name: 'ACQ-3a roster import',
+                emailVerified: false,
+                role: 'member',
+                createdAt: now,
+                updatedAt: now,
+              })
+              .onConflictDoNothing()
+              .returning({ id: user.id });
+          })
+        )
+      );
+      assert.deepEqual(skipped, [[], []]);
+    });
+
     await t.test('concurrent case variants in two tenants create exactly one account', async () => {
       const results = await Promise.allSettled([
         insertMember(KS_TENANT_ID, `acq2b1_race_ks_${suffix}`, `Race.${suffix}@Example.test`),

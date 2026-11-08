@@ -85,9 +85,12 @@ export async function registerMemberCore(
           const now = joinedAt;
 
           // 1. Create User (Role must be 'member' for the unique index to eventually apply)
-          // We insert with null memberNumber first. Email is unique across every tenant, so an
-          // address that already has an account creates nothing here and the import reports the
-          // row exactly as it reports a new one: the roster is never an account-existence oracle.
+          // We insert with null memberNumber first. An email is unique across every tenant twice
+          // over: as stored, and folded (`user_email_lower_unique`, lower(btrim(email))). The
+          // conflict clause names no target so that every unique index arbitrates: an address
+          // that already has an account, in any spelling, creates nothing here and the import
+          // reports the row exactly as it reports a new one, so the roster is never an
+          // account-existence oracle.
           const inserted = await tx
             .insert(userTable)
             .values({
@@ -102,7 +105,7 @@ export async function registerMemberCore(
               createdAt: now,
               updatedAt: now,
             })
-            .onConflictDoNothing({ target: userTable.email })
+            .onConflictDoNothing()
             .returning({ id: userTable.id });
           if (inserted.length === 0) {
             return false;

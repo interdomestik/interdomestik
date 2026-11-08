@@ -15,7 +15,7 @@ vi.mock('./agent/context', () => ({
   ),
 }));
 vi.mock('./agent/sponsored-import-access', () => ({
-  resolveSponsoredImportAccess: vi.fn(async () => 'allowed'),
+  resolveSponsoredImportAccess: vi.fn(() => Promise.resolve('allowed')),
 }));
 vi.mock('./agent/register-member', () => ({
   registerMemberCore: vi.fn(),
