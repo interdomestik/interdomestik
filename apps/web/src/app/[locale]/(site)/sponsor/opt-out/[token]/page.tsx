@@ -19,7 +19,7 @@ export default async function SponsorOptOutPage({
   await connection();
   const { locale, token } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('sponsorOptOut');
+  const t = await getTranslations({ locale, namespace: 'sponsorOptOut' });
   // GET only presents the confirmation. No token resolution, validation or domain call.
   return (
     <div
@@ -28,9 +28,7 @@ export default async function SponsorOptOutPage({
     >
       <Card>
         <CardHeader>
-          <CardTitle>
-            <h1>{t('title')}</h1>
-          </CardTitle>
+          <CardTitle as="h1">{t('title')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <p>{t('explanation')}</p>

@@ -22,6 +22,9 @@ describe('public opt-out GET page', () => {
       expect(screen.getByTestId('public-sponsor-opt-out-page-ready')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'confirm' })).toBeInTheDocument();
       expect(screen.getByText('explanation')).toBeInTheDocument();
+      expect(screen.getAllByRole('heading')).toEqual([
+        screen.getByRole('heading', { level: 1, name: 'title' }),
+      ]);
       expect(domain).not.toHaveBeenCalled();
       expect(fetchMock).not.toHaveBeenCalled();
     }
