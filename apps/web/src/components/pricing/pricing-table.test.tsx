@@ -121,7 +121,7 @@ describe('PricingTable', () => {
     });
   });
 
-  it.each(['en', 'sq', 'mk', 'sr'])(
+  it.each(['en', 'sq', 'mk', 'sr', 'de'])(
     'keeps %s member plan review cancellable and presentation-only',
     async locale => {
       localeState.value = locale;

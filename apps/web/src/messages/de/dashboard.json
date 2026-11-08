@@ -1,0 +1,555 @@
+{
+  "dashboard": {
+    "welcome_back": "Willkommen zurück! Hier sehen Sie, was heute bei Ihren Fällen passiert.",
+    "overview": "Dashboard-Übersicht",
+    "member_landing": {
+      "account_error_title": "Fehler in der Kontokonfiguration",
+      "account_error_body": "Wir konnten Ihre Profildaten nicht abrufen. Bitte wenden Sie sich an den Support.",
+      "account_error_cta": "Hilfe erhalten",
+      "active_claim_title": "Aktiver Fall",
+      "updated_label": "Aktualisiert",
+      "help_label": "Brauchen Sie Hilfe?",
+      "primary_cta": "Neuen Fall beginnen",
+      "secondary_cta": "Fälle ansehen",
+      "empty_title": "Noch keine Fälle",
+      "empty_body": "Wenn Sie Ihren ersten Fall einreichen, erscheint er hier."
+    },
+    "portal": {
+      "title": "Ihre Fälle, klar und übersichtlich.",
+      "description": "Halten Sie Ihre Fälle, Dokumente und nächsten Schritte beisammen.",
+      "disclaimer": "Nur Orientierung; Ergebnisse werden nicht versprochen.",
+      "navigation": {
+        "label": "Schnellzugriffe",
+        "help_now": "Soforthilfe",
+        "cases": "Fälle",
+        "documents": "Dokumente",
+        "membership": "Mitgliedschaft"
+      },
+      "next_steps": {
+        "member_action": "Angeforderte Falldetails ergänzen",
+        "review_case": "Falldetails und Aktualisierungen prüfen",
+        "team_review": "Ihr Fall wird geprüft",
+        "external_response": "Warten auf externe Antwort",
+        "court_schedule": "Gerichtstermine prüfen"
+      },
+      "regions": {
+        "case": {
+          "label": "Ihre Fälle",
+          "loading": "Ihre Fälle werden geladen…",
+          "empty": "Hier gibt es noch keine Fälle. Nutzen Sie den nächsten Schritt unten, wenn Sie beginnen möchten.",
+          "error": "Ihre Fälle konnten nicht geladen werden."
+        },
+        "actions": {
+          "label": "Etwas Neues beginnen",
+          "loading": "Ihr nächster Schritt wird geladen…",
+          "empty": "Kein nächster Schritt verfügbar.",
+          "error": "Ihr nächster Schritt konnte nicht geladen werden."
+        },
+        "updates": {
+          "label": "Falldaten und Status",
+          "loading": "Falldaten werden geladen…",
+          "empty": "Falldaten erscheinen hier, sobald sie verfügbar sind.",
+          "error": "Falldaten konnten nicht geladen werden."
+        }
+      },
+      "actions": {
+        "none": "Entwurf – inaktiv",
+        "active": "Fall beginnen",
+        "trialing": "Fall beginnen",
+        "active_in_grace": "Fortfahren – Zahlung fällig",
+        "grace_expired": "Entwurf – Nachfrist abgelaufen",
+        "scheduled_cancel": "Fall beginnen – Mitgliedschaft endet",
+        "canceled": "Entwurf – Mitgliedschaft gekündigt"
+      },
+      "membership_status": {
+        "status_label": "Status der Mitgliedschaft",
+        "access_label": "Zugang zu neuen Fällen",
+        "access_allowed": "Verfügbar",
+        "access_denied": "Nicht verfügbar",
+        "current_period_end_label": "Aktueller Zeitraum endet",
+        "unavailable": "Nicht verfügbar",
+        "retry": "Erneut versuchen",
+        "statuses": {
+          "none": "Keine aktive Mitgliedschaft",
+          "active": "Aktiv",
+          "trialing": "Testphase",
+          "active_in_grace": "Aktiv in der Nachfrist",
+          "grace_expired": "Nachfrist abgelaufen",
+          "scheduled_cancel": "Endet planmäßig",
+          "canceled": "Gekündigt"
+        }
+      },
+      "warnings": {
+        "active_in_grace": "Zahlungsproblem; der Zugang ist noch aktiv.",
+        "grace_expired": "Nachfrist abgelaufen; verlängern Sie, um einzureichen.",
+        "scheduled_cancel": "Die Mitgliedschaft endet nach diesem Zeitraum."
+      }
+    },
+    "activeClaims": "Aktive Fälle",
+    "activeClaimsDesc": "Ihre laufenden Streitigkeiten",
+    "resolvedClaims": "Gelöste Fälle",
+    "totalSaved": "Insgesamt gespart",
+    "moneyRecovered": "Zurückerhaltenes Geld",
+    "lifetimeTotal": "Gesamtsumme",
+    "actionItems": "Aufgaben",
+    "pendingTasks": "Offene Aufgaben",
+    "needsAttention": "Erfordert Aufmerksamkeit",
+    "noChange": "Keine Änderung",
+    "recentActivity": "Letzte Aktivitäten",
+    "quickActions": "Schnellaktionen",
+    "referral": {
+      "title": "Freunde einladen und verdienen",
+      "description": "Teilen Sie Ihren Empfehlungslink und verfolgen Sie das Guthaben, das Sie durch erste bezahlte Mitgliedschaften erhalten.",
+      "friends": "Eingeladene Freunde",
+      "pending": "Ausstehend",
+      "credited": "Verfügbares Guthaben",
+      "paid": "Ausgezahlt",
+      "copied": "Link kopiert!",
+      "copyError": "Kopieren fehlgeschlagen",
+      "loadError": "Empfehlungsdetails konnten nicht geladen werden",
+      "copyAction": "Empfehlungslink kopieren",
+      "shareAction": "Empfehlungslink teilen",
+      "share": "Teilen",
+      "shareTitle": "Asistenca beitreten",
+      "shareText": "Schützen Sie Ihre Familie mit einer Mitgliedschaft bei Asistenca!",
+      "rewardInfoCreditOnly": "Mitglieder erhalten {reward} als Kontoguthaben, nachdem die erste bezahlte Mitgliedschaft aktiviert wurde.",
+      "rewardInfoPayout": "Mitglieder erhalten {reward}, nachdem die erste bezahlte Mitgliedschaft aktiviert wurde. Auszahlungen werden freigeschaltet, sobald das verfügbare Guthaben {threshold} erreicht.",
+      "payoutEligible": "Auszahlungsfähiges Guthaben: {amount}",
+      "programDisabled": "Empfehlungsprämien für Mitglieder sind für diesen Mandanten derzeit deaktiviert."
+    },
+    "diaspora_ribbon": {
+      "text": "🇩🇪🇨🇭 Für die Diaspora: Hilfe im Ausland + Hinweise zu Flug und Reisen + Grüne Karte",
+      "cta": "Paket ansehen"
+    },
+    "home_grid": {
+      "cta_incident": "UNFALL? WAS NUN?",
+      "cta_report": "SCHADEN MELDEN (60 Sek.)",
+      "cta_green_card": "GRÜNE KARTE – Ausland (Diaspora)",
+      "cta_benefits": "10 VORTEILE DER MITGLIEDSCHAFT"
+    },
+    "member_cta_pages": {
+      "shared": {
+        "next_steps": "Was als Nächstes zu tun ist",
+        "secondary": "Support kontaktieren"
+      },
+      "claim_report": {
+        "description": "Auf dieser Seite beginnen Sie einen neuen Fall als Mitglied. Teilen Sie zuerst die grundlegenden Fakten mit; danach führt unser Team den Fall im bestehenden Fallablauf fort.",
+        "boundary": "Diese Seite startet nur die Erfassung eines Falls. Sie ersetzt weder die Prüfung noch die Entscheidung oder die Bearbeitung durch Mitarbeitende.",
+        "primary": "Neuen Fall beginnen"
+      },
+      "green_card": {
+        "description": "Unterstützung zur Grünen Karte und im Ausland erfolgt über den Diaspora-Bereich für Mitglieder, in dem die aktuellen Reisehinweise und Kontaktwege bereits vorhanden sind.",
+        "boundary": "Diese Seite verweist Sie auf den aktiven Diaspora-Ablauf, statt eine separate, nur für die Pilotphase bestimmte Oberfläche zu pflegen.",
+        "primary": "Diaspora-Support öffnen"
+      },
+      "benefits": {
+        "description": "Vorteile der Mitgliedschaft, Kontext zur Deckung und aktuelle kommerzielle Details werden im Mitgliedschaftsbereich gepflegt.",
+        "boundary": "Diese Übergabeseite ersetzt weder die aktuelle Mitgliedschaftsseite noch die Vertragsbedingungen.",
+        "primary": "Vorteile der Mitgliedschaft öffnen"
+      },
+      "incident_guide": {
+        "description": "Soforthilfe bietet kostenlose Orientierung für die ersten Minuten nach einem Vorfall. Sie ist eine Checkliste für Sicherheit, Beweissicherung und den nächsten ausdrücklichen Schritt als Mitglied.",
+        "boundary": "Diese Seite ist eine Checkliste der Soforthilfe, nicht das interne Handbuch für Mitarbeitende.",
+        "primary": "Vorfallsmeldung öffnen",
+        "secondary": "Mitglieder-Support kontaktieren",
+        "help_now_label": "Soforthilfe",
+        "pack_title": "Paket für den Ort des Vorfalls",
+        "pack_description": "Folgen Sie dieser Reihenfolge, bevor Sie persönliche Angaben eingeben. Dadurch wird nicht automatisch ein Fall, ein CRM-Lead oder eine Übergabe an Mitarbeitende erstellt.",
+        "checklist_title": "Erste Maßnahmen",
+        "checklist": {
+          "scene_safety": "Begeben Sie sich nach Möglichkeit in Sicherheit, sichern Sie Mitfahrende und vermeiden Sie neue Gefahren am Ort des Geschehens.",
+          "emergency_services": "Rufen Sie zuerst die örtlichen Notdienste, wenn jemand verletzt, eingeklemmt oder bedroht ist oder weiterhin unmittelbare Gefahr besteht.",
+          "document_scene": "Fotografieren oder filmen Sie Positionen, Kennzeichen, Schäden, Straßenverhältnisse, Schilder und sichtbare Spuren, bevor etwas bewegt wird.",
+          "exchange_information": "Tauschen Sie Angaben zu Fahrern, Fahrzeugen, Zeugen, Behörden und verfügbaren Versicherungen aus, ohne Schuld einzugestehen oder unklare Erklärungen zu unterschreiben.",
+          "record_timeline": "Notieren Sie Uhrzeit, Ort, Fahrtrichtung, Wetter, Anwesenheit der Polizei und den Hergang in sachlichen Fakten.",
+          "preserve_documents": "Bewahren Sie Polizeiberichte, ärztliche Notizen, Rechnungen, Abschleppbelege, Fotos und Nachrichten gemeinsam für die Fallakte auf."
+        },
+        "disclaimer_title": "Grenze des kostenlosen Bereichs",
+        "disclaimers": {
+          "not_legal_advice": "Dies ist keine Rechtsberatung.",
+          "not_medical_advice": "Dies ist keine medizinische Beratung.",
+          "not_insurer_assessment": "Dies ist weder eine Bewertung noch eine Entscheidung über die Haftung.",
+          "not_professional_opinion": "Dies ist keine fachliche Stellungnahme.",
+          "educational_only": "Dies ist nur eine informative Anleitung zur Beweissicherung.",
+          "professional_review_required": "Vor professionellen Schritten zur Durchsetzung ist eine fachliche Prüfung erforderlich."
+        },
+        "member_boundary_title": "Eskalation erfordert Zustimmung",
+        "member_boundary_body": "Wenn Sie in den Mitgliederbereich wechseln, entscheiden Sie, was Sie einreichen. Ohne einen ausdrücklichen nächsten Schritt wird von dieser Seite aus kein Mitgliedsdatensatz, kein Fall, kein CRM-Lead und keine Übergabe erstellt.",
+        "pack_status_title": "Status des Pakets",
+        "zone_label": "Servicebereich",
+        "zones": {
+          "free": "Kostenlose Orientierung"
+        },
+        "outcome_label": "Ergebnis",
+        "outcomes": {
+          "requires_member_zone": "Schritt als Mitglied erforderlich"
+        },
+        "no_pii_value": "Hier sind keine persönlichen, medizinischen oder fallbezogenen Angaben erforderlich.",
+        "escalation_title": "Nächster ausdrücklicher Schritt",
+        "escalation_body": "Nutzen Sie die Meldung für Mitglieder, wenn Sie den Vorfall Ihrem Konto zuordnen möchten, oder wenden Sie sich an den Support, wenn Sie menschliche Hilfe bei der Entscheidung über den nächsten Schritt benötigen."
+      }
+    },
+    "protection_status": {
+      "active": "Aktive Mitgliedschaft",
+      "inactive": "Keine aktive Mitgliedschaft"
+    },
+    "categories": {
+      "property_damage": "Sachschaden",
+      "health_safety": "Gesundheit und Sicherheit",
+      "my_documents": "Meine Dokumente",
+      "contact_center": "Kontaktcenter"
+    },
+    "member_assistance": {
+      "common": {
+        "unavailable": "Nicht verfügbar"
+      },
+      "header": {
+        "brand": "Interdomestik",
+        "logoAlt": "Interdomestik-Logo",
+        "product": "Interdomestik IDA",
+        "tagline": "Gemeinsam einfacher",
+        "notifications": "Benachrichtigungen",
+        "profile": "Mitgliedsprofil"
+      },
+      "welcome": {
+        "active": "Aktiv",
+        "inactive": "Besucher / nicht aktiv"
+      },
+      "primary": {
+        "kicker": "Erste Maßnahme",
+        "title": "Wenn etwas passiert, beginnen Sie hier",
+        "body": "Der erste Schritt hilft Ihnen, sich zu orientieren, Beweise zu sichern und zu entscheiden, ob Sie einen Fall als Mitglied eröffnen.",
+        "helpNow": "Soforthilfe",
+        "helpNowSubtitle": "Sofortige Orientierung, wenn etwas passiert",
+        "openCase": "Fall eröffnen",
+        "openCaseSubtitle": "Akte anlegen und Nachweise speichern"
+      },
+      "membershipValue": {
+        "label": "Wert der IDA-Mitgliedschaft",
+        "price": "Nur 20 €/Jahr",
+        "cardTitle": "Mitglied",
+        "cardSubtitle": "Assistance rund um die Uhr",
+        "benefits": {
+          "assistance": "Assistance rund um die Uhr",
+          "activation": "Sofortige Aktivierung",
+          "cases": "Online-Fälle in IDA"
+        }
+      },
+      "heroResolver": {
+        "nextActionLabel": "Nächster Schritt",
+        "states": {
+          "visitor_general": {
+            "kicker": "IDA-Assistance",
+            "title": "Treten Sie der IDA-Assistance bei.",
+            "highlight": "Kennen Sie den nächsten Schritt.",
+            "body": "Erhalten Sie nach einem Unfall geführte Hilfe, halten Sie Dokumente geordnet und eröffnen Sie einen Fall, sobald die Mitgliedschaft aktiv ist.",
+            "valueLabel": "Mitgliedschaft",
+            "value": "20 EUR/Jahr",
+            "cta": "Assistance aktivieren"
+          },
+          "visitor_broker_tpl": {
+            "kicker": "Einstieg über Empfehlung",
+            "title": "Starten Sie die IDA-Assistance.",
+            "highlight": "Halten Sie den Fall geordnet.",
+            "body": "Nutzen Sie IDA, um zu dokumentieren, was passiert ist, Dateien zu sichern und mit einem an die Mitgliedschaft gebundenen Fallablauf fortzufahren.",
+            "valueLabel": "Mitgliedschaft",
+            "value": "20 EUR/Jahr",
+            "cta": "Assistance aktivieren"
+          },
+          "visitor_diaspora": {
+            "kicker": "Unterstützung für die Diaspora",
+            "title": "Auf Reisen oder im Ausland lebend?",
+            "highlight": "Beginnen Sie mit IDA.",
+            "body": "Nutzen Sie die Assistance zur Orientierung nach einem Unfall, für den Kontext zur Grünen Karte, für Dokumente und klare nächste Schritte.",
+            "valueLabel": "Mitgliedschaft",
+            "value": "20 EUR/Jahr",
+            "cta": "Diaspora-Assistance aktivieren"
+          },
+          "member_active_no_case": {
+            "kicker": "Aktives Mitglied",
+            "title": "Brauchen Sie jetzt Hilfe?",
+            "highlight": "Eröffnen Sie Ihren ersten Fall.",
+            "body": "Ihre Mitgliedschaft ist aktiv. Beginnen Sie einen Fall, wenn Fakten, Fotos oder Dokumente in Ihrem Konto gespeichert werden sollen.",
+            "valueLabel": "Status",
+            "value": "Aktive Assistance",
+            "cta": "Ersten Fall eröffnen"
+          },
+          "member_active_has_open_case": {
+            "kicker": "Aktiver Fall",
+            "title": "Ihr Fall ist in Bearbeitung.",
+            "highlight": "Verfolgen Sie Status und nächste Schritte.",
+            "body": "Verfolgen Sie Status, Dokumente und nächste Schritte in der Fallakte.",
+            "valueLabel": "Status",
+            "value": "In Bearbeitung",
+            "cta": "Fall ansehen"
+          },
+          "missing_documents": {
+            "kicker": "Handlungsbedarf",
+            "title": "Dokumente werden benötigt.",
+            "highlight": "Laden Sie sie jetzt hoch.",
+            "body": "Der Fall benötigt Ihre Dokumente, bevor das Team die Prüfung fortsetzen kann.",
+            "valueLabel": "Status",
+            "value": "Fehlende Dokumente",
+            "cta": "Dokumente öffnen"
+          },
+          "authorization_needed": {
+            "kicker": "Vollmacht",
+            "title": "Eine Vollmacht wird benötigt.",
+            "highlight": "Vor der Durchsetzung prüfen.",
+            "body": "Die professionelle Durchsetzung kann erst fortgesetzt werden, wenn die erforderliche Vollmacht, Vereinbarung, Bedingungen und der Prüfpfad vorliegen.",
+            "valueLabel": "Status",
+            "value": "Unterschrift erforderlich",
+            "cta": "Vollmacht prüfen"
+          },
+          "member_action": {
+            "kicker": "Handlungsbedarf",
+            "title": "Ihr nächster Schritt im Fall ist bereit.",
+            "highlight": "Prüfen Sie ihn, damit es weitergeht.",
+            "body": "In der Fallakte wartet eine Aufgabe für Sie. Öffnen Sie den nächsten Schritt und geben Sie die angeforderte Antwort.",
+            "valueLabel": "Status",
+            "value": "Aktion des Mitglieds erforderlich",
+            "cta": "Mit dem nächsten Schritt fortfahren",
+            "actions": {
+              "review_offer": {
+                "cta": "Angebot prüfen",
+                "ariaLabel": "Angebot für Fall {claimReference} prüfen"
+              },
+              "provide_info": {
+                "cta": "Informationen bereitstellen",
+                "ariaLabel": "Informationen für Fall {claimReference} bereitstellen"
+              }
+            }
+          }
+        }
+      },
+      "nextStep": {
+        "kicker": "Nächster Schritt",
+        "activate": {
+          "title": "Assistance aktivieren",
+          "body": "Sie können die kostenlose Orientierung jetzt nutzen. Aktivieren Sie die Mitgliedschaft, um einen Fall zu speichern, den Status zu verfolgen, die IDA-Karte zu nutzen und den Mitglieder-Support zu erreichen.",
+          "cta": "Assistance aktivieren"
+        },
+        "firstCase": {
+          "title": "Eröffnen Sie Ihren ersten Fall",
+          "body": "Legen Sie eine Fallakte an, wenn Sie Fakten, Nachweise und Dokumente Ihrem Konto zuordnen möchten.",
+          "cta": "Ersten Fall eröffnen"
+        },
+        "missingDocs": {
+          "title": "Fehlende Dokumente hochladen",
+          "body": "Ihr Fall benötigt Ihre Dokumente, bevor das Team die Prüfung fortsetzen kann.",
+          "cta": "Dokumente öffnen"
+        },
+        "memberAction": {
+          "title": "Ihre Aktion ist erforderlich",
+          "body": "Prüfen Sie den veröffentlichten nächsten Schritt, damit die Fallakte vorankommt.",
+          "cta": "Fall ansehen"
+        },
+        "authorization": {
+          "title": "Vollmacht unterschreiben",
+          "body": "Die professionelle Durchsetzung kann nur mit Vollmacht, Vereinbarung, Bedingungen und einem Prüfpfad fortgesetzt werden.",
+          "cta": "Vollmacht prüfen"
+        },
+        "review": {
+          "title": "Der Fall wird geprüft",
+          "body": "Ihr Fall ist dokumentiert und sichtbar. Verfolgen Sie Statusaktualisierungen und veröffentlichte nächste Schritte in der Fallakte.",
+          "cta": "Fall ansehen"
+        },
+        "history": {
+          "title": "Frühere Fälle ansehen",
+          "body": "Es ist kein aktiver Fall ausgewählt. Ihre abgeschlossenen oder gespeicherten Fälle bleiben zur Einsicht verfügbar.",
+          "cta": "Fälle ansehen"
+        }
+      },
+      "inactive": {
+        "title": "Was kostenlos ist und was eine Mitgliedschaft erfordert",
+        "body": "Die kostenlose Selbsthilfe umfasst Orientierung, Checklisten, Hinweise zu nächsten Schritten und die Vorbereitung von Dokumenten. Die Assistance für Mitglieder ergänzt einen gespeicherten Fall, Status, Zeitverlauf, Dokumententresor, IDA-Karte und Support.",
+        "cta": "Assistance aktivieren"
+      },
+      "services": {
+        "kicker": "Hauptleistungen",
+        "title": "Was passiert gerade?",
+        "open": "Öffnen",
+        "cards": {
+          "helpNow": {
+            "mobile": "Unfall",
+            "situation": "Ich hatte gerade einen Unfall",
+            "title": "Leitfaden für den Unfallort + Grüne Karte",
+            "body": "Wählen Sie das Land, in dem der Unfall passiert ist, und erhalten Sie die erste Orientierung: Polizei, Europäischer Unfallbericht, Fotos und Dokumente."
+          },
+          "reportClaim": {
+            "mobile": "Melden",
+            "situation": "Ich möchte einen Schaden melden",
+            "title": "Schaden melden",
+            "body": "Eröffnen Sie eine Fallakte und speichern Sie Nachweise, Dokumente und den Fallstatus."
+          },
+          "complaint": {
+            "mobile": "Beschwerde",
+            "situation": "Ich habe ein niedriges oder unklares Angebot erhalten",
+            "title": "Beschwerde einreichen",
+            "body": "Nutzen Sie dies bei einer Ablehnung, Verzögerung oder einem unklaren Angebot."
+          },
+          "procedureGuide": {
+            "mobile": "Verfahren",
+            "situation": "Ich brauche die Verfahrensschritte",
+            "title": "Verfahrensleitfaden",
+            "body": "Erhalten Sie Verfahrensschritte nach Land, Schadensart und erforderlichen Dokumenten."
+          },
+          "recovery": {
+            "mobile": "Durchsetzung",
+            "situation": "Ich möchte, dass Interdomestik den Fall begleitet",
+            "title": "Mediation / Durchsetzung",
+            "body": "Mit Vollmacht kann Interdomestik den Fall in Ihrem Namen begleiten."
+          },
+          "flightDelay": {
+            "mobile": "Flug",
+            "situation": "Mein Flug war verspätet",
+            "title": "Verspäteter Flug",
+            "body": "Prüfen Sie, ob ein verspäteter Flug für eine Entschädigung in Frage kommen kann."
+          }
+        }
+      },
+      "cases": {
+        "kicker": "Fallstatus",
+        "title": "Aktive Fälle",
+        "viewAll": "Alle ansehen",
+        "caseFallback": "Fall des Mitglieds",
+        "caseNumber": "Fallnummer",
+        "status": "Status",
+        "open": "Fall ansehen",
+        "support": "Support anfordern",
+        "lastUpdate": "Letzte Aktualisierung",
+        "timelinePreview": "Die Fallakte ist sichtbar. Die nächste Statusaktualisierung erscheint dort.",
+        "emptyTitle": "Noch kein Fall eröffnet",
+        "emptyBody": "Wenn ein Schaden entsteht, führt IDA Sie Schritt für Schritt.",
+        "emptyCta": "Fall eröffnen"
+      },
+      "documents": {
+        "kicker": "Dokumententresor",
+        "title": "Übersicht der gespeicherten Dokumente",
+        "body": "Das Dashboard zeigt nur Anzahlen. Sensible oder medizinische Dokumentinhalte bleiben im geschützten Fallablauf.",
+        "saved": "Gespeicherte Dokumente",
+        "missing": "Fehlende Dokumente",
+        "missingActive": "Öffnen Sie den Tresor, um angeforderte Uploads für aktive Fälle zu sehen.",
+        "missingNoCase": "Fehlende Dokumente erscheinen, nachdem ein Fall eröffnet wurde.",
+        "consent": "Die Prüfung medizinischer oder sensibler Dokumente erfordert vor dem Upload oder der Prüfung eine ausdrückliche Einwilligung.",
+        "cta": "Dokumententresor öffnen"
+      },
+      "trust": {
+        "title": "Vertrauen und Datenschutz",
+        "body": "IDA hält den Fall geordnet und transparent, ohne ein Ergebnis zu versprechen.",
+        "center": "Vertrauenscenter",
+        "items": {
+          "caseNumber": "Eindeutige Fallnummer",
+          "documents": "Gespeicherte Dokumente",
+          "transparent": "Transparenter Ablauf",
+          "privacy": "Datenschutz und Sicherheit"
+        }
+      },
+      "bottomNav": {
+        "label": "Navigation für Mitglieder",
+        "home": "Start",
+        "cases": "Fälle",
+        "help": "Hilfe",
+        "documents": "Doks",
+        "more": "Mehr"
+      }
+    },
+    "member": {
+      "home": {
+        "hero": {
+          "title": "Ihre Fallakte. Die richtigen Schritte. Den Fall bis zum Abschluss verfolgen.",
+          "subtitle": "Wenn ein Unfall passiert, improvisieren Sie nicht: Eröffnen Sie den Fall, laden Sie Nachweise hoch und verfolgen Sie den Status. Wir führen Sie Schritt für Schritt.",
+          "trust": {
+            "caseNumber": "Jeder Fall erhält eine eindeutige ID",
+            "organizedFile": "Dokumente bleiben in einer geordneten Fallakte",
+            "nextStep": "Der nächste Schritt ist immer klar"
+          }
+        },
+        "cta": {
+          "help_now": "Jetzt Hilfe erhalten (60-Sekunden-Anruf)",
+          "start_claim": "Fall melden"
+        },
+        "benefits": {
+          "title": "Wichtigste Vorteile für Mitglieder",
+          "abroad": {
+            "title": "Hilfe bei Unfällen im Ausland (Grüne Karte)",
+            "body": "Erhalten Sie länderspezifische Orientierung, wenn im Ausland etwas passiert."
+          },
+          "diaspora": {
+            "title": "Unterstützung für die Diaspora",
+            "body": "Praktische Unterstützung für Mitglieder, die außerhalb des Kosovo leben oder reisen."
+          },
+          "fast": {
+            "title": "Schnelle Hilfe",
+            "body": "Erreichen Sie den Support schnell und erhalten Sie klare nächste Schritte."
+          }
+        },
+        "qa": {
+          "title": "Schnellaktionen",
+          "abroad": "Unfall im Ausland?",
+          "incident_guide": "Leitfaden für Vorfälle",
+          "help_now": "Jetzt Hilfe erhalten (60-Sekunden-Anruf)",
+          "documents": "Dokumente",
+          "benefits": "Vorteile",
+          "support": "Support",
+          "start_claim": "Fall melden"
+        },
+        "chip": {
+          "invite_earn": "Einladen und verdienen"
+        },
+        "how": {
+          "title": "So funktioniert es",
+          "step1": "Kontaktieren Sie uns",
+          "step2": "Wir führen Sie",
+          "step3": "Wir verfolgen den Status gemeinsam"
+        },
+        "claims": {
+          "title": "Status Ihres Falls",
+          "status_label": "Status",
+          "continue": "Fall fortsetzen",
+          "start": "Fall melden",
+          "next_step_label": "Neuester Fall",
+          "empty": "Derzeit kein aktiver Fall. Melden Sie einen, wenn Sie Unterstützung brauchen."
+        },
+        "center": {
+          "title": "Mitgliedercenter",
+          "notifications": "Benachrichtigungen",
+          "profile": "Profil und Einstellungen",
+          "support": "Support"
+        },
+        "footer": {
+          "privacy": "Ihre Mitgliedschaftsdaten und Falldetails werden sicher behandelt.",
+          "security": "Brauchen Sie dringend Hilfe? Nutzen Sie den 60-Sekunden-Anruf für geführte Unterstützung.",
+          "contact": "Support kontaktieren"
+        },
+        "micro": {
+          "upload_success": "In Ihrer Fallakte gespeichert. Nichts geht verloren.",
+          "submit_success": "Fall angenommen. Sie können ihn im Dashboard verfolgen.",
+          "submit_missing": "Nicht erforderlich, aber es stärkt Ihren Fall.",
+          "error_safe": "Die Aktion konnte nicht abgeschlossen werden. Ihre Daten sind sicher. Versuchen Sie es erneut."
+        },
+        "promise": {
+          "title": "Unser Versprechen",
+          "body": "Wir helfen Ihnen, das Problem zu verstehen, den Fall zu dokumentieren und den Ablauf klar zu verfolgen. Wir versprechen keinen Sieg. Wir versprechen Ordnung, Transparenz und Orientierung, damit Sie nie allein sind."
+        }
+      }
+    },
+    "shell": {
+      "search_placeholder": "Suchen...",
+      "search_title": "Suche",
+      "search_action": "Suchen",
+      "portal_label": "Portal: {portal}",
+      "surface_label": "Oberfläche: {surface}",
+      "portal": {
+        "member": "Mitglied",
+        "agent": "Agent",
+        "staff": "Mitarbeitende",
+        "admin": "Admin"
+      },
+      "surface": {
+        "legacy": "legacy",
+        "v3": "v3"
+      }
+    }
+  }
+}

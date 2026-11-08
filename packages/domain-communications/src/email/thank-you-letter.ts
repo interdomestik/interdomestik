@@ -1,4 +1,4 @@
-export type ConfirmationLocale = 'en' | 'sq' | 'mk' | 'sr';
+export type ConfirmationLocale = 'en' | 'sq' | 'mk' | 'sr' | 'de';
 
 type ThankYouLetterParams = {
   memberName: string;
@@ -106,6 +106,30 @@ const TRANSLATIONS = {
       'Ako vam je i dalje potreban pristup nalogu, koristite posebnu bezbednu poruku za podešavanje naloga.',
     boundary: 'Ova potvrda ne dodaje niti menja pogodnosti, pokriće, prava na povraćaj ili uslove.',
     cta: 'Otvori članstvo',
+  },
+  de: {
+    subject: 'Mitgliedschaft bestätigt',
+    headline: 'Ihre Mitgliedschaft ist aktiv',
+    greeting: 'Hallo',
+    intro:
+      'Paddle hat diese Mitgliedschaft als aktiv gemeldet. Die folgenden Angaben stammen aus dem Ereignis des Anbieters.',
+    statusLabel: 'Status beim Anbieter',
+    statusValue: 'Aktiv',
+    memberNumberLabel: 'Mitgliedsnummer',
+    planLabel: 'Paddle-Tarif',
+    priceLabel: 'Tarifpreis beim Anbieter',
+    startsLabel: 'Abrechnungszeitraum beginnt',
+    endsLabel: 'Abrechnungszeitraum endet',
+    referenceLabel: 'Paddle-Abonnementreferenz',
+    nextTitle: 'Nächste Schritte',
+    nextStatus: 'Prüfen Sie den aktuellen Status in Ihrem Mitgliederbereich.',
+    nextCase:
+      'Um einen gespeicherten ersten Fall fortzusetzen, öffnen Sie diesen Entwurf und reichen Sie ihn separat ein. Mit dieser E-Mail wurde kein Fall eingereicht.',
+    nextAccess:
+      'Wenn Sie noch Zugang zu Ihrem Konto benötigen, verwenden Sie die separate, sichere E-Mail zur Kontoeinrichtung.',
+    boundary:
+      'Diese Bestätigung fügt keine Leistungen, Deckungen, Erstattungsrechte oder Bedingungen hinzu und ändert sie nicht.',
+    cta: 'Mitgliedschaft öffnen',
   },
 } as const;
 

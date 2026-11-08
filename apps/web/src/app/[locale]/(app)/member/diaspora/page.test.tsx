@@ -277,7 +277,7 @@ describe('DiasporaPage', () => {
     );
   });
 
-  it.each(['en', 'sq', 'mk', 'sr'])(
+  it.each(['en', 'sq', 'mk', 'sr', 'de'])(
     'normalizes an explicit lowercase country independently from the %s interface locale',
     async locale => {
       const tree = await DiasporaPage({

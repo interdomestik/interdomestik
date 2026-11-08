@@ -1,0 +1,7 @@
+{
+  "timeline": {
+    "nextSla": "Nächste SLA-Frist: {target}",
+    "atRisk": "Erfordert Aufmerksamkeit",
+    "updatedAt": "Zuletzt aktualisiert: {date}"
+  }
+}

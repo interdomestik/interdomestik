@@ -1,0 +1,41 @@
+{
+  "footer": {
+    "description": "Die führende Verbraucherschutzplattform auf dem Balkan. Wir helfen Bürgerinnen und Bürgern, Streitigkeiten mit Unternehmen und Institutionen zu lösen.",
+    "noWinNoFee": "Erfolgshonorar nur nach Erstattung",
+    "company": "Unternehmen",
+    "about": "Über uns",
+    "careers": "Karriere",
+    "press": "Presse",
+    "legal": "Rechtliches",
+    "privacy": "Datenschutz",
+    "terms": "Bedingungen",
+    "cookies": "Cookies",
+    "support": "Support",
+    "help": "Hilfezentrum",
+    "contact": "Kontakt",
+    "faq": "FAQ",
+    "social": "Folgen Sie uns",
+    "hours": "Öffnungszeiten: {hours}",
+    "copyright": "© {year} {appName}. Alle Rechte vorbehalten.",
+    "disclaimer": "Unterstützungsdienst für Schadensfälle. Keine Anwaltskanzlei. Wir sind kein Notdienst.",
+    "hotlineLabel": "24/7-Hotline",
+    "chatWithUs": "Mit uns chatten",
+    "emailUs": "E-Mail an uns",
+    "membership": "Mitgliedschaft",
+    "plansPricing": "Pläne & Preise",
+    "joinClub": "Dem Club beitreten",
+    "memberLogin": "Mitglieder-Login",
+    "safetyNet": {
+      "eyebrow": "Dringende Unterstützung im Schadensfall",
+      "title": "Rufen Sie an oder schreiben Sie per WhatsApp für den nächsten sicheren Schritt",
+      "body": "Nutzen Sie die Hotline für schnelle Weiterleitung, Unterstützung und Hinweise zum nächsten Schritt.",
+      "call": "Hotline anrufen",
+      "whatsapp": "WhatsApp öffnen",
+      "chips": [
+        "Support auf Albanisch / Englisch",
+        "Start mit Fokus auf Schadensfälle",
+        "Weiterleitung in unter 60 Sekunden"
+      ]
+    }
+  }
+}

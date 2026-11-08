@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import AdminCommissionsPage from './_core.entry';
 
+const intl = vi.hoisted(() => ({ locale: 'en' }));
+
 vi.mock('@/actions/commissions.admin', () => ({
   bulkApproveCommissions: vi.fn(),
   getAllCommissions: vi.fn(),
@@ -73,7 +75,7 @@ vi.mock('lucide-react', () => ({
 }));
 
 vi.mock('next-intl', () => ({
-  useLocale: () => 'en',
+  useLocale: () => intl.locale,
   useTranslations: () => (key: string, values?: Record<string, string | number>) => {
     const translations: Record<string, string> = {
       title: 'Commission Management',
@@ -96,6 +98,7 @@ vi.mock('next-intl', () => ({
 describe('Admin commissions page', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
+    intl.locale = 'en';
 
     const commissionsAdmin = await import('@/actions/commissions.admin');
     vi.mocked(commissionsAdmin.getAllCommissions).mockResolvedValue({
@@ -193,6 +196,13 @@ describe('Admin commissions page', () => {
       expect(screen.getByText(/Reward reward-1/i)).toBeInTheDocument();
       expect(screen.getByText('All Commissions')).toBeInTheDocument();
     });
+  });
+
+  it('formats German reward amounts with the German Intl locale', async () => {
+    intl.locale = 'de';
+    render(<AdminCommissionsPage />);
+
+    expect(await screen.findByText(/Reward reward-1\S* • 7,50\s€/u)).toBeInTheDocument();
   });
 
   it('shows a deterministic enterprise-control violation when bulk approval is blocked', async () => {

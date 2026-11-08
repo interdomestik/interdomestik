@@ -29,7 +29,7 @@ function getString(formData: FormData, key: string) {
 
 function getMemberReplyLocale(formData: FormData): SupportHandoffActionLocale {
   const locale = getString(formData, 'locale');
-  return locale === 'en' || locale === 'sr' || locale === 'mk' ? locale : 'sq';
+  return locale === 'en' || locale === 'sr' || locale === 'mk' || locale === 'de' ? locale : 'sq';
 }
 
 function getSafeReturnTo(formData: FormData) {

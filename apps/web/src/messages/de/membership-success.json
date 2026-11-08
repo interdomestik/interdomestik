@@ -1,0 +1,14 @@
+{
+  "membership": {
+    "success": {
+      "registered_title": "Ihr Konto ist bereit",
+      "registered_status": "Mitgliedschaft noch nicht bestätigt",
+      "registered_body": "Wir können auf dieser Seite noch keine aktive Mitgliedschaft bestätigen. Wenn Sie gerade bezahlt haben, prüfen Sie den Status in Kürze erneut. Leistungen und der Zugang zu Schadensfällen stehen erst zur Verfügung, wenn die Mitgliedschaft als aktiv bestätigt ist.",
+      "registered_primary_cta": "Mitgliedschaftsstatus prüfen",
+      "registered_secondary_cta": "Mein Konto öffnen",
+      "registered_helper": "Die Statusprüfung aktualisiert nur den aktuellen Status. Sie öffnet weder die Zahlungsseite noch belastet sie Sie.",
+      "registered_recheck_pending": "Status geprüft. Die Mitgliedschaft ist noch nicht bestätigt.",
+      "registered_recheck_active": "Status geprüft. Die Mitgliedschaft ist jetzt aktiv."
+    }
+  }
+}

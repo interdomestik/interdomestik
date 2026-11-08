@@ -9,6 +9,6 @@ test('S5 local disclosure owns only canonical Free Start locale catalogs', () =>
     assert.equal(structuredArtifactOwner(path), 's5-local-draft-disclosure-i18n-contract');
   }
 
-  assert.equal(structuredArtifactOwner('apps/web/src/messages/de/freeStart.json'), null);
+  assert.equal(structuredArtifactOwner('apps/web/src/messages/hr/freeStart.json'), null);
   assert.equal(structuredArtifactOwner('apps/web/src/messages/en/freeStart-extra.json'), null);
 });

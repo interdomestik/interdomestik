@@ -12,7 +12,7 @@ import {
 import { revalidatePath } from 'next/cache';
 
 function revalidateInformationRequestPaths(claimId: string) {
-  for (const locale of ['sq', 'en', 'sr', 'mk']) {
+  for (const locale of ['sq', 'en', 'sr', 'mk', 'de']) {
     revalidatePath(`/${locale}/staff/claims/${claimId}`);
     revalidatePath(`/${locale}/member/claims/${claimId}`);
   }

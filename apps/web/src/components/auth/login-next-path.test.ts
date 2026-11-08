@@ -3,7 +3,7 @@ import { resolveSafeNextPath, sanitizeInternalContinuationPath } from './login-n
 
 const hash = '#draft=63ffc31e-8c64-4758-995a-c57f40de7568';
 describe('post-authentication saved-draft target', () => {
-  it.each(['en', 'sq', 'mk', 'sr'])('recovers the exact canonical %s member path', locale => {
+  it.each(['en', 'sq', 'mk', 'sr', 'de'])('recovers the exact canonical %s member path', locale => {
     expect(resolveSafeNextPath(null, 'member', locale, hash)).toBe(
       `/${locale}/member/claims/new?mode=drafts${hash}`
     );

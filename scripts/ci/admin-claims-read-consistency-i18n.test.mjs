@@ -4,7 +4,7 @@ import test from 'node:test';
 import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
 
 test('claims read recovery catalogs have bounded ownership and complete localized result copy', () => {
-  for (const locale of ['en', 'sq', 'mk', 'sr']) {
+  for (const locale of ['en', 'sq', 'mk', 'sr', 'de']) {
     const path = `apps/web/src/messages/${locale}/admin-claims.json`;
     assert.equal(structuredArtifactOwner(path), 's7-admin-claims-read-consistency-i18n-contract');
     const catalog = JSON.parse(fs.readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'));
@@ -15,6 +15,6 @@ test('claims read recovery catalogs have bounded ownership and complete localize
     }
     assert.ok(copy.read_result.includes('{count}'));
   }
-  assert.equal(structuredArtifactOwner('apps/web/src/messages/de/admin-claims.json'), null);
+  assert.equal(structuredArtifactOwner('apps/web/src/messages/hr/admin-claims.json'), null);
   assert.equal(structuredArtifactOwner('apps/web/src/messages/en/admin.json'), null);
 });

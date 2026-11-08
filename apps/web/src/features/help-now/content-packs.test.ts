@@ -29,9 +29,10 @@ describe('MOB-01 content-pack gating', () => {
     expect(unsignedPacks.every(pack => !canExposeCountryPack(pack))).toBe(true);
   });
 
-  it('keeps unsupported route locales on English copy while preserving Germany as a trip country', () => {
-    expect(HELP_NOW_CONTENT_LOCALES).not.toContain('de');
-    expect(getHelpNowContentLocale('de')).toBe('en');
+  it('serves German copy for the de route while preserving Germany as a trip country', () => {
+    expect(HELP_NOW_CONTENT_LOCALES).toContain('de');
+    expect(getHelpNowContentLocale('de')).toBe('de');
+    expect(HELP_NOW_CONTENT_LOCALES).not.toContain('hr');
     expect(HELP_NOW_COUNTRY_PACKS.some(pack => pack.country === 'DE')).toBe(true);
   });
 

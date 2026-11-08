@@ -4,7 +4,7 @@ import test from 'node:test';
 import { CHECKED_SURFACES } from '../brand-discipline-policy.mjs';
 import { createTempRoot, runScript, writeFile } from '../plan-test-helpers.mjs';
 
-const locales = ['sq', 'en', 'sr', 'mk'];
+const locales = ['sq', 'en', 'sr', 'mk', 'de'];
 
 function messageFixture(overrides = {}) {
   return {

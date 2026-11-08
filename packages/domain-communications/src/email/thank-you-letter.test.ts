@@ -35,7 +35,7 @@ describe('provider-backed membership confirmation template', () => {
   });
 
   it('omits unverified marketing, benefit, refund and protection claims', () => {
-    const rendered = (['en', 'sq', 'mk', 'sr'] as ConfirmationLocale[])
+    const rendered = (['en', 'sq', 'mk', 'sr', 'de'] as ConfirmationLocale[])
       .map(locale => renderThankYouLetterEmail({ ...baseParams, locale }))
       .map(template => template.text)
       .join('\n');

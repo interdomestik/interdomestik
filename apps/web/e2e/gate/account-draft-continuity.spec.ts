@@ -4,6 +4,7 @@ import en from '../../src/messages/en/freeStart.json';
 import sq from '../../src/messages/sq/freeStart.json';
 import mk from '../../src/messages/mk/freeStart.json';
 import sr from '../../src/messages/sr/freeStart.json';
+import de from '../../src/messages/de/freeStart.json';
 import { gotoApp } from '../utils/navigation';
 import { routes } from '../routes';
 import { withFreshPage } from './test/login-handoff-page';
@@ -16,9 +17,9 @@ import {
   sideEffects,
   unpaidOwner,
 } from './test/account-draft-runtime';
-const copies = { en, sq, mk, sr };
+const copies = { en, sq, mk, sr, de };
 for (const surface of ['public', 'member'] as const) {
-  for (const locale of ['en', 'sq', 'mk', 'sr'] as const) {
+  for (const locale of ['en', 'sq', 'mk', 'sr', 'de'] as const) {
     test(`verified unpaid ${surface} ${locale} facts save and restore without OTP or Submit`, async ({
       browser,
     }, rawInfo) => {

@@ -56,4 +56,10 @@ describe('formatClaimCreatedDate', () => {
       'декември'
     );
   });
+
+  it('formats DE claim dates in German instead of the English fallback', () => {
+    expect(formatClaimCreatedDate(new Date('2025-12-30T12:00:00.000Z'), 'de')).toContain(
+      'Dezember'
+    );
+  });
 });

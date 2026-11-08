@@ -15,6 +15,7 @@ import {
   type MemberReferralAdminRewardRow,
   type MemberReferralProgramSettings,
 } from '@/actions/member-referrals';
+import { toIntlLocaleTag } from '@/lib/utils/intl-locale';
 import {
   Button,
   Card,
@@ -197,26 +198,26 @@ export default function AdminCommissionsPage() {
   }
 
   const formatAmount = (amount: string, currency = 'EUR') => {
-    return new Intl.NumberFormat(toIntlLocale(locale), { style: 'currency', currency }).format(
+    return new Intl.NumberFormat(toIntlLocaleTag(locale), { style: 'currency', currency }).format(
       Number.parseFloat(amount)
     );
   };
 
   const formatRewardAmount = (reward: MemberReferralAdminRewardRow) =>
-    new Intl.NumberFormat(toIntlLocale(locale), {
+    new Intl.NumberFormat(toIntlLocaleTag(locale), {
       style: 'currency',
       currency: reward.currencyCode,
     }).format(reward.rewardCents / 100);
 
   const formatSettingsAmount = (amountCents: number) =>
-    new Intl.NumberFormat(toIntlLocale(locale), {
+    new Intl.NumberFormat(toIntlLocaleTag(locale), {
       style: 'currency',
       currency: referralSettings.currencyCode || 'EUR',
     }).format(amountCents / 100);
 
   const formatDate = (value: string | Date | null | undefined) => {
     if (!value) return '-';
-    return new Intl.DateTimeFormat(toIntlLocale(locale), { dateStyle: 'medium' }).format(
+    return new Intl.DateTimeFormat(toIntlLocaleTag(locale), { dateStyle: 'medium' }).format(
       typeof value === 'string' ? new Date(value) : value
     );
   };
@@ -606,17 +607,4 @@ export default function AdminCommissionsPage() {
       </Card>
     </div>
   );
-}
-
-function toIntlLocale(locale: string) {
-  switch (locale) {
-    case 'mk':
-      return 'mk-MK';
-    case 'sq':
-      return 'sq-AL';
-    case 'sr':
-      return 'sr-RS';
-    default:
-      return 'en-US';
-  }
 }

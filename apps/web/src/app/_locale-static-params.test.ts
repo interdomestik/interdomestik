@@ -8,6 +8,7 @@ describe('generateLocaleStaticParams', () => {
       { locale: 'en' },
       { locale: 'sr' },
       { locale: 'mk' },
+      { locale: 'de' },
     ]);
   });
 });

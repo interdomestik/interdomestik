@@ -44,7 +44,7 @@ vi.mock('next/font/google', () => ({
 
 vi.mock('@/i18n/routing', () => ({
   routing: {
-    locales: ['sq', 'en', 'sr', 'mk'],
+    locales: ['sq', 'en', 'sr', 'mk', 'de'],
   },
 }));
 

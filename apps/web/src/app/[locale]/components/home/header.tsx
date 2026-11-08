@@ -7,7 +7,7 @@ import { ChevronDown, ShieldCheck } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef, useState, useSyncExternalStore } from 'react';
 
-const publicLocales = ['sq', 'en', 'sr', 'mk'] as const;
+const publicLocales = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 
 // better-auth's react bridge wires the same getter as both the client and server
 // snapshot (`useSyncExternalStore(subscribe, get, get)`), so if another component

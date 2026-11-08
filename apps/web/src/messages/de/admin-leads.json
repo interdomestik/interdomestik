@@ -1,0 +1,143 @@
+{
+  "admin": {
+    "leads": {
+      "title": "Zahlungsverifizierung",
+      "subtitle": "Von Agenten eingezogene Barzahlungen verifizieren.",
+      "approve": "Genehmigen",
+      "reject": "Ablehnen",
+      "success": "Zahlung verifiziert",
+      "tabs": {
+        "queue": "Warteschlange",
+        "history": "Verlauf"
+      },
+      "status": {
+        "pending": "Ausstehend",
+        "succeeded": "Genehmigt",
+        "rejected": "Abgelehnt",
+        "needs_info": "Info benötigt",
+        "resubmitted": "Erneut eingereicht"
+      },
+      "table": {
+        "amount": "Betrag",
+        "verification": "Verifizierung",
+        "branch": "Filiale",
+        "lead": "Lead",
+        "agent": "Agent",
+        "proof": "Nachweis",
+        "status": "Status",
+        "verifier": "Prüfer",
+        "date": "Datum",
+        "note": "Notiz",
+        "actions": "Aktionen"
+      },
+      "stats": {
+        "count": "Anfragen gesamt",
+        "pending_count": "Ausstehende Anfragen",
+        "pending_value": "Gesamtwert",
+        "total_value": "Gesamtwert"
+      },
+      "filters": {
+        "branch_placeholder": "Filiale auswählen",
+        "all_branches": "Alle Filialen"
+      },
+      "toasts": {
+        "approve_success": "Zahlung genehmigt.",
+        "approve_fulfillment_pending": "Zahlung genehmigt, aber die Einrichtung der Mitgliedschaft wurde nicht abgeschlossen und muss nachverfolgt werden.",
+        "reject_success": "Zahlung abgelehnt.",
+        "needs_info_success": "Informationsanfrage gesendet.",
+        "note_required": "Eine Notiz ist erforderlich.",
+        "error": "Bei der Verifizierung ist ein Fehler aufgetreten.",
+        "approve_invite_pending": "Zahlung genehmigt und Mitgliedschaft angelegt, aber die Aktivierungs-E-Mail wurde nicht gesendet. Senden Sie sie im Verlauf erneut.",
+        "resend_invite_success": "Aktivierungs-E-Mail erneut gesendet.",
+        "resend_invite_cooldown": "Gerade wurde eine Aktivierungs-E-Mail gesendet. Warten Sie eine Minute, bevor Sie eine weitere senden.",
+        "resend_invite_failed": "Die Aktivierungs-E-Mail konnte nicht gesendet werden. Versuchen Sie es später erneut.",
+        "resend_invite_already_active": "Dieses Mitglied hat sein Konto bereits aktiviert."
+      },
+      "actions": {
+        "approve": "Genehmigen",
+        "reject": "Ablehnen",
+        "view_proof": "Nachweis ansehen",
+        "needs_info": "Info benötigt",
+        "cancel": "Abbrechen",
+        "submit": "Absenden",
+        "details": "Details",
+        "resend_invite": "Aktivierungs-E-Mail erneut senden"
+      },
+      "drawer": {
+        "title": "Details der Verifizierung",
+        "documents": "Dokumente",
+        "timeline": "Ereignisverlauf"
+      },
+      "labels": {
+        "missing_proof": "Nachweis fehlt",
+        "note": "Notiz"
+      },
+      "dialogs": {
+        "needs_info_title": "Zusätzliche Informationen anfordern",
+        "needs_info_description": "Fügen Sie eine Notiz hinzu, die beschreibt, was fehlt, bevor Sie diese Anfrage senden.",
+        "reject_description": "Fügen Sie eine Notiz hinzu, die erklärt, warum diese Zahlungsverifizierung abgelehnt wird."
+      },
+      "placeholders": {
+        "search": "Suchen (Name, E-Mail, ID)...",
+        "needs_info_note": "Beschreiben Sie, welche Informationen fehlen..."
+      },
+      "empty_state": "Keine ausstehenden Anfragen zur Verifizierung von Barzahlungen gefunden.",
+      "search_placeholder": "Suchen (Name, E-Mail, Filiale)...",
+      "kpis": {
+        "pending": "Ausstehend",
+        "needs_info": "Info benötigt",
+        "resubmitted": "Erneut eingereicht",
+        "approved": "Genehmigt"
+      },
+      "duplicates": {
+        "tab": "Mögliche Duplikate",
+        "title": "Mögliche doppelte Leads",
+        "description": "Agenten wurde mitgeteilt, dass diese Leads bereits existieren könnten. Prüfen Sie jeden einzeln; Leads werden nie automatisch zusammengeführt.",
+        "empty": "Keine möglichen Duplikate zu prüfen.",
+        "referred_at": "Empfohlen",
+        "existing_lead": "Bestehender Lead",
+        "lead_status": "Lead-Status",
+        "lead_status_new": "Neu",
+        "lead_status_contacted": "Kontaktiert",
+        "lead_status_payment_pending": "Zahlung ausstehend",
+        "lead_status_paid": "Bezahlt",
+        "lead_status_converted": "Konvertiert",
+        "lead_status_lost": "Verloren",
+        "lead_status_disqualified": "Disqualifiziert",
+        "lead_status_expired": "Abgelaufen",
+        "lead_status_unknown": "Unbekannt",
+        "lead_branch": "Filiale des Leads",
+        "submitted_by": "Eingereicht von",
+        "state": "Prüfung",
+        "state_pending": "Ausstehend",
+        "lead_missing": "Bestehender Lead nicht verfügbar",
+        "keep_existing": "Bestehenden Lead behalten",
+        "dismiss": "Verwerfen",
+        "outcome_kept_existing": "Bestehender Lead behalten",
+        "outcome_dismissed": "Verworfen",
+        "resolved_by": "von {name}",
+        "toast_resolved": "Duplikatprüfung gespeichert",
+        "toast_already_resolved": "Diese Empfehlung wurde bereits anders entschieden",
+        "toast_error": "Die Prüfung konnte nicht gespeichert werden",
+        "pending_tab": "Ausstehend",
+        "resolved_tab": "Erledigt",
+        "resolved_empty": "Noch keine erledigten Duplikate.",
+        "load_error": "Die Duplikatprüfung konnte nicht geladen werden.",
+        "retry": "Erneut versuchen"
+      }
+    },
+    "analytics": {
+      "title": "Analyseübersicht",
+      "description": "Kennzahlen zur Plattformleistung und zur Verteilung der Schadensfälle.",
+      "metrics": {
+        "total_value": "Gesamtwert der Schadensfälle",
+        "avg_value": "Durchschnittlicher Schadensbetrag",
+        "success_rate": "Lösungsquote",
+        "active_users": "Aktive Anspruchsteller"
+      },
+      "status_distribution": "Verteilung nach Status",
+      "category_distribution": "Verteilung nach Kategorie",
+      "no_data": "Nicht genügend Daten für die Darstellung"
+    }
+  }
+}

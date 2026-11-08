@@ -6,40 +6,16 @@
  * member needs to fill in manually.
  */
 
+import { formatClaimedAmount, PH, type LetterData } from './letter-placeholders';
+import { germanLetter } from './letter-template-de';
 import type { ClaimPackType, ComplaintLetter, IntakeAnswers } from './types';
 
-// ---------------------------------------------------------------------------
-// Placeholder markers
-// ---------------------------------------------------------------------------
-
-const PH = {
-  senderName: '[YOUR_FULL_NAME]',
-  senderAddress: '[YOUR_ADDRESS]',
-  recipientName: '[RECIPIENT_NAME]',
-  recipientAddress: '[RECIPIENT_ADDRESS]',
-  date: '[DATE]',
-  referenceNumber: '[REFERENCE_NUMBER]',
-  responseDeadline: '[RESPONSE_DEADLINE]',
-  claimedAmount: '[CLAIMED_AMOUNT]',
-} as const;
-
 const ALL_PLACEHOLDERS = Object.values(PH);
-
-// ---------------------------------------------------------------------------
-// Letter bodies by type and locale
-// ---------------------------------------------------------------------------
-
-type LetterData = {
-  subject: string;
-  body: string;
-};
 
 function vehicleLetter(answers: IntakeAnswers, locale: string): LetterData {
   const incidentDate = answers.incidentDate || PH.date;
   const description = answers.description || 'the incident described below';
-  const amount = answers.estimatedAmount
-    ? `${(answers.estimatedAmount / 100).toFixed(2)} ${answers.currency || 'EUR'}`
-    : PH.claimedAmount;
+  const amount = formatClaimedAmount(answers);
 
   if (locale === 'sq') {
     return {
@@ -160,9 +136,7 @@ ${PH.senderName}`,
 function propertyLetter(answers: IntakeAnswers, locale: string): LetterData {
   const incidentDate = answers.incidentDate || PH.date;
   const description = answers.description || 'the damage described below';
-  const amount = answers.estimatedAmount
-    ? `${(answers.estimatedAmount / 100).toFixed(2)} ${answers.currency || 'EUR'}`
-    : PH.claimedAmount;
+  const amount = formatClaimedAmount(answers);
 
   if (locale === 'sq') {
     return {
@@ -282,9 +256,7 @@ ${PH.senderName}`,
 function injuryLetter(answers: IntakeAnswers, locale: string): LetterData {
   const incidentDate = answers.incidentDate || PH.date;
   const description = answers.description || 'the injury described below';
-  const amount = answers.estimatedAmount
-    ? `${(answers.estimatedAmount / 100).toFixed(2)} ${answers.currency || 'EUR'}`
-    : PH.claimedAmount;
+  const amount = formatClaimedAmount(answers);
 
   if (locale === 'sq') {
     return {
@@ -405,28 +377,29 @@ ${PH.senderName}`,
 // Public API
 // ---------------------------------------------------------------------------
 
-export function generateLetter(
-  claimType: ClaimPackType,
-  answers: IntakeAnswers,
-  locale = 'en'
-): ComplaintLetter {
-  let data: LetterData;
+function buildLetter(claimType: ClaimPackType, answers: IntakeAnswers, locale: string): LetterData {
+  if (locale === 'de') return germanLetter(claimType, answers);
 
   switch (claimType) {
     case 'vehicle':
-      data = vehicleLetter(answers, locale);
-      break;
+      return vehicleLetter(answers, locale);
     case 'property':
-      data = propertyLetter(answers, locale);
-      break;
+      return propertyLetter(answers, locale);
     case 'injury':
-      data = injuryLetter(answers, locale);
-      break;
+      return injuryLetter(answers, locale);
     default: {
       const _exhaustive: never = claimType;
       throw new Error(`Unknown claim type: ${_exhaustive}`);
     }
   }
+}
+
+export function generateLetter(
+  claimType: ClaimPackType,
+  answers: IntakeAnswers,
+  locale = 'en'
+): ComplaintLetter {
+  const data = buildLetter(claimType, answers, locale);
 
   // Determine which placeholders are still present in the generated letter
   const placeholders = ALL_PLACEHOLDERS.filter(ph => data.body.includes(ph));

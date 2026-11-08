@@ -1,0 +1,22 @@
+{
+  "howItWorks": {
+    "title": "So funktioniert es",
+    "subtitle": "Einfacher 4-Schritte-Prozess zur Vorbereitung Ihres Schadenswegs",
+    "step1": {
+      "title": "Schadensfall einreichen",
+      "description": "Füllen Sie unser einfaches Formular mit den Angaben zum Vorfall aus und laden Sie Nachweise hoch."
+    },
+    "step2": {
+      "title": "Kostenlose Bewertung",
+      "description": "Unsere Experten prüfen Ihren Fall innerhalb von 24 Stunden und schätzen Ihre Chancen ein."
+    },
+    "step3": {
+      "title": "Wir kümmern uns um alles",
+      "description": "Wir verhandeln in Ihrem Namen mit Versicherern und Gegenparteien."
+    },
+    "step4": {
+      "title": "Entschädigung erhalten",
+      "description": "Sie erhalten die erstattete Auszahlung, wenn der Schadensfall erfolgreich ist. Ein etwaiges Erfolgshonorar wird erst nach der Erstattung berechnet."
+    }
+  }
+}

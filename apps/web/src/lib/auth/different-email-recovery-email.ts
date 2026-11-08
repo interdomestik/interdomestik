@@ -1,6 +1,6 @@
 import { sendEmail } from '@interdomestik/domain-communications/email';
 
-export type RecoveryLocale = 'sq' | 'en' | 'sr' | 'mk';
+export type RecoveryLocale = 'sq' | 'en' | 'sr' | 'mk' | 'de';
 export type RecoveryStage = 'current' | 'replacement';
 type Template = { html: string; subject: string; text: string };
 type Mailer = (
@@ -49,6 +49,16 @@ const COPY: Record<RecoveryLocale, Copy> = {
     replacement: {
       subject: 'Потврдете ја новата е-пошта',
       body: 'Користете го овој код за да ја потврдите новата е-пошта. Важи 5 минути и работи само најновиот код.',
+    },
+  },
+  de: {
+    current: {
+      subject: 'Bestätigen Sie Ihre ursprüngliche E-Mail-Adresse',
+      body: 'Verwenden Sie diesen Code, um Ihre ursprüngliche E-Mail-Adresse zu bestätigen. Er ist 5 Minuten gültig und nur der neueste Code funktioniert.',
+    },
+    replacement: {
+      subject: 'Bestätigen Sie Ihre neue E-Mail-Adresse',
+      body: 'Verwenden Sie diesen Code, um Ihre neue E-Mail-Adresse zu bestätigen. Er ist 5 Minuten gültig und nur der neueste Code funktioniert.',
     },
   },
 };

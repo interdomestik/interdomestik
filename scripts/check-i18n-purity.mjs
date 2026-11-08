@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const DEFAULT_BASE_LOCALE = 'en';
-const DEFAULT_LOCALES = ['sq', 'mk', 'sr'];
+const DEFAULT_LOCALES = ['sq', 'mk', 'sr', 'de'];
 const DEFAULT_MESSAGES_DIR = 'apps/web/src/messages';
 const DEFAULT_BASELINE_PATH = 'scripts/i18n-purity-baseline.json';
 const DEFAULT_REPORT_PATH = 'tmp/i18n-purity/report.json';
@@ -80,7 +80,7 @@ function parseArgs(argv) {
 }
 
 function printUsage() {
-  console.log(`Usage: node scripts/check-i18n-purity.mjs [options]\n\nOptions:\n  --base=<locale>           Base locale (default: en)\n  --locales=<list>          Comma-separated locales (default: sq,mk,sr)\n  --messages-dir=<path>     Messages directory (default: apps/web/src/messages)\n  --baseline=<path>         Baseline file (default: scripts/i18n-purity-baseline.json)\n  --report=<path>           Output report file (default: tmp/i18n-purity/report.json)\n  --write-baseline          Write/update baseline and exit 0\n  --help, -h                Show this message\n`);
+  console.log(`Usage: node scripts/check-i18n-purity.mjs [options]\n\nOptions:\n  --base=<locale>           Base locale (default: en)\n  --locales=<list>          Comma-separated locales (default: sq,mk,sr,de)\n  --messages-dir=<path>     Messages directory (default: apps/web/src/messages)\n  --baseline=<path>         Baseline file (default: scripts/i18n-purity-baseline.json)\n  --report=<path>           Output report file (default: tmp/i18n-purity/report.json)\n  --write-baseline          Write/update baseline and exit 0\n  --help, -h                Show this message\n`);
 }
 
 function flattenMessages(value, prefix = '') {

@@ -1,0 +1,53 @@
+{
+  "evidence": {
+    "title": "Nachweise hinzufügen",
+    "subtitle": "Laden Sie Belege, Tickets oder Fotos hoch.",
+    "upload": {
+      "cta": "Klicken, um Dateien hochzuladen",
+      "sub": "PDF, JPG oder PNG bis 10 MB",
+      "secure": "Uploads über signierte URLs · Speicherung mit PII-Kennzeichnung"
+    },
+    "tooltip": "Klare Nachweise erhöhen Ihre Erfolgschancen um 40 %. Fügen Sie Polizeiberichte oder Arztrechnungen bei.",
+    "promptTitle": "Fügen Sie diese für schnellere Ergebnisse hinzu",
+    "promptDescription": "Wählen Sie ein paar der folgenden Punkte, damit wir schnell beginnen können.",
+    "prompts": {
+      "flight_delay": [
+        "Bordkarte oder Ticket",
+        "Mitteilung der Airline über Verspätung/Annullierung",
+        "Belege für Mahlzeiten/Hotels/Transport"
+      ],
+      "damaged_goods": [
+        "Fotos des Schadens",
+        "Kaufbeleg oder Rechnung",
+        "Kostenvoranschlag für Reparatur/Gutachten"
+      ],
+      "service_issue": [
+        "Vertrag/Rechnung",
+        "Screenshots von Chats/E-Mails",
+        "Rechnungen oder Kündigungsschreiben"
+      ],
+      "travel": ["Reiseplan und Tickets", "Fotos/Videos des Vorfalls", "Belege für Ausgaben"],
+      "default": [
+        "Fotos oder Screenshots",
+        "Belege/Rechnungen",
+        "Jegliche offizielle Korrespondenz"
+      ]
+    },
+    "validation": {
+      "mime": "Nur PDF-, JPG- oder PNG-Dateien sind erlaubt.",
+      "size": "Dateien dürfen höchstens 10 MB groß sein.",
+      "count": "Sie können bis zu {count} Dateien anhängen.",
+      "prepare": "Upload konnte nicht vorbereitet werden. Bitte versuchen Sie es erneut.",
+      "upload": "Upload fehlgeschlagen. Bitte versuchen Sie es erneut."
+    },
+    "emptyWarning": {
+      "title": "Sie können auch ohne Nachweise einreichen",
+      "body": "Mit Belegen oder Fotos kommt Ihr Schadensfall jedoch schneller voran. Fügen Sie sie jetzt oder später hinzu."
+    },
+    "privacyBadgeTitle": "Ihre Daten bleiben privat",
+    "privacyBadge": "Dateien mit PII-Kennzeichnung, signierte URLs, verschlüsselt bei der Übertragung.",
+    "slaTitle": "Reaktions-SLA",
+    "slaCopy": "Auf neue Einreichungen antworten wir in unter 24 Std.",
+    "consent": "Mit dem Absenden stimmen Sie unseren Nutzungsbedingungen und unserer Datenschutzerklärung zu."
+  }
+}

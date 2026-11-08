@@ -13,11 +13,13 @@ const EN_LINK = 'Organize incident details';
 const SQ_LINK = 'Organizo të dhënat e ngjarjes';
 const MK_LINK = 'Организирај ги податоците за настанот';
 const SR_LINK = 'Organizuj podatke o događaju';
+const DE_LINK = 'Angaben zum Vorfall ordnen';
 const LOCALE_CASES = [
   { locale: 'en', countryLabel: 'Trip country', link: EN_LINK, country: 'XK' },
   { locale: 'sq', countryLabel: 'Shteti i udhëtimit', link: SQ_LINK, country: 'XK' },
   { locale: 'mk', countryLabel: 'Земја на патување', link: MK_LINK, country: 'MK' },
   { locale: 'sr', countryLabel: 'Zemlja putovanja', link: SR_LINK, country: 'XK' },
+  { locale: 'de', countryLabel: 'Reiseland', link: DE_LINK, country: 'XK' },
 ] as const;
 const LEFTOVER_ENGLISH =
   /Trip country|Access zone|L2|Signed packs|Evidence Coach|Trip Mode|No file selected|Generate local preview/;
@@ -87,7 +89,7 @@ describe('Help Now continuation', () => {
   });
 
   it('builds the link from the validated content locale only', () => {
-    render(<HelpNowExperience locale="de" />);
+    render(<HelpNowExperience locale="hr" />);
 
     expect(getOnlyContinuation(EN_LINK)).toHaveAttribute('href', '/en/#free-start-intake');
   });

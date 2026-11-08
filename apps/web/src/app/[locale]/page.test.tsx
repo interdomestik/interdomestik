@@ -134,7 +134,7 @@ describe('HomePage server shell', () => {
 
   it('exports locales', () => {
     expect(page.generateStaticParams()).toEqual(
-      ['sq', 'en', 'sr', 'mk'].map(locale => ({ locale }))
+      ['sq', 'en', 'sr', 'mk', 'de'].map(locale => ({ locale }))
     );
   });
 
