@@ -18,9 +18,10 @@
 
 ## Auth, tenancy, and data access
 
-- Supabase Auth is the system of record for identities and sessions.
-- `better-auth` is the active orchestrator.
-- `@interdomestik/shared-auth` is the provider-agnostic boundary. Use it instead of bypassing auth or session checks.
+- Better Auth is the sole identity and session system of record; Supabase PostgreSQL supplies persistence.
+- `@interdomestik/shared-auth` defines the enforced provider-agnostic application boundary.
+- Existing enforcement is partial. Keep provider clients/types in declared adapters and reviewed transitional exceptions; do not introduce new boundary escapes or bypass auth/session checks.
+- Follow `docs/architecture/amendments/2026-11-07-pd-r5-iam-v1.md`; wording adoption does not authorize runtime changes.
 - Validate sessions with shared-auth helpers such as `requireTenantSession` and `ensureTenantId`.
 - Keep tenant isolation explicit. Use `withTenant(...)` for tenant-scoped Drizzle queries.
 

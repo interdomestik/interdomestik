@@ -22,15 +22,15 @@ Your role is to deliver **pilot-complete features** with **zero architectural dr
    - `/admin`
      These routes must **never** be renamed, bypassed, shadowed, or conditionally rerouted.
 
-3. **Authentication Layering (DO NOT COLLAPSE)**
-   - **Identity**: Supabase Auth
-   - **Session / Orchestration**: Better-Auth
-   - **Boundary**: `@interdomestik/shared-auth`
+3. **Identity Ownership And Provider Boundary**
+   - **Identity and sessions**: Better Auth is the sole system of record
+   - **Persistence**: Supabase PostgreSQL, not a second identity/session authority
+   - **Boundary**: `@interdomestik/shared-auth` defines the enforced provider-agnostic contract
 
    Rules:
-   - Never import Supabase or Better-Auth clients directly in feature or domain code
-   - Always go through the shared boundary
-   - This layering is intentional and transitional
+   - Confine provider clients/types to declared adapters and explicitly reviewed transitional exceptions
+   - Existing enforcement is partial; do not introduce new boundary escapes or bypass authentication
+   - Follow `docs/architecture/amendments/2026-11-07-pd-r5-iam-v1.md`; wording adoption does not authorize runtime changes
 
 4. **Payments**
    - **Stripe is legacy and forbidden** in V3 pilot flows

@@ -35,8 +35,8 @@ graph TD
         DomainMember --> DB[(Supabase PostgreSQL)]
         DomainUsers --> DB
         DomainClaims --> DB
-        SharedAuth --> SupabaseAuth[Supabase Auth Service]
-        SharedAuth --> BetterAuth[Better-Auth Orchestrator]
+        SharedAuth --> BetterAuth[Better Auth: identity and session owner]
+        BetterAuth --> DB
     end
 ```
 
@@ -54,11 +54,24 @@ Route protection is decoupled from the UI.
 
 ### 2.2 Hybrid Authentication
 
-We use a **Split-Stack Auth** model for the V3 Pilot to ensure stability while modernizing:
+This legacy heading and anchor are retained for governance continuity. Under PD-R5-IAM v1.1,
+the single-owner contract below supersedes the former split-stack wording.
 
-1.  **Identity & Persistence:** **Supabase Auth** (User tables, JWTs, Password resets).
-2.  **Orchestration:** **Better-Auth** (Session management, MFA flow coordination).
-3.  **Boundary:** `@interdomestik/shared-auth` package wraps all auth logic. Consumer apps never import Supabase/Better-Auth clients directly.
+1. **Identity and sessions:** Better Auth is the sole system of record for credential and session
+   lifecycle. Supabase PostgreSQL provides persistence; Supabase Auth is not a second authority.
+2. **Application boundary:** `@interdomestik/shared-auth` defines the enforced provider-agnostic
+   contract. Provider clients and provider-derived types are confined to declared adapters and
+   explicitly reviewed transitional exceptions, with no new boundary escapes.
+3. **Current implementation:** Better Auth is mounted; shared-auth enforcement is partial. The
+   topology diagram shows the target authentication boundary, not proof that all consumers already
+   use it exclusively. Inventory and ratchet existing exceptions in the existing architecture-check lane.
+4. **Separate control obligations:** tenant/role/branch/resource authorization, MFA, session rotation
+   at privilege change, revocation and sensitive reauthentication remain required. Storage service-role
+   signing requires its own current-authority, object, expiry, revocation and integrity evidence.
+
+The versioned [PD-R5-IAM v1.1 amendment](architecture/amendments/2026-11-07-pd-r5-iam-v1.md)
+changes ownership wording only. It does not implement these controls, change the proxy, expand
+privileged access, or authorize a provider cutover, schema migration or release.
 
 ### 2.3 Domain Isolation
 
