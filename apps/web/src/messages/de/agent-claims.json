@@ -1,0 +1,432 @@
+{
+  "agent-claims": {
+    "claims": {
+      "informationRequest": {
+        "title": "Fehlende Informationen anfordern",
+        "description": "Beschreiben Sie genau, was fehlt und warum das Mitglied es bereitstellen muss.",
+        "requestedInformation": "Benötigte Informationen",
+        "explanationForMember": "Erklärung für das Mitglied",
+        "dueAt": "Fälligkeitsdatum und -uhrzeit",
+        "dueHint": "Verwenden Sie Ihre Ortszeit. Dieses Datum ändert den Antwort-Timer des Falls nicht.",
+        "submit": "Anfrage senden",
+        "saving": "Wird gesendet…",
+        "success": "Informationsanfrage gespeichert.",
+        "invalid_input": "Geben Sie die benötigten Informationen, eine Erklärung sowie ein gültiges Datum und eine gültige Uhrzeit ein.",
+        "access_denied": "Nur die zugewiesene zuständige Person kann diese Anfrage erstellen.",
+        "invalid_state": "Informationen können nur angefordert werden, solange sich der Fall in der Verifizierung befindet.",
+        "conflict": "Dieser Anfrageversuch wurde bereits mit anderen Angaben verwendet. Aktualisieren Sie und versuchen Sie es erneut.",
+        "failed": "Die Anfrage konnte nicht bestätigt werden. Versuchen Sie es mit denselben Angaben erneut."
+      },
+      "staff_queue": {
+        "subtitle": "Was heute bearbeitet werden muss.",
+        "results_count": "{count, plural, one {# Fall} other {# Fälle}}",
+        "search_placeholder": "Fall, Mitglied, Unternehmen oder Nummer suchen",
+        "search": "Suchen",
+        "clear_search": "Zurücksetzen",
+        "pending_search": "Fälle werden gesucht...",
+        "pending_filter": "Filter werden aktualisiert...",
+        "assignment_filter_label": "Filter nach Zuweisung",
+        "status_filter_label": "Filter nach Status",
+        "diaspora_filter_label": "Filter nach Herkunft",
+        "all_actionable": "Alle zu bearbeitenden",
+        "empty_filtered": "Keine Fälle entsprechen den aktuellen Filtern",
+        "empty_default": "Keine Fälle in der Warteschlange",
+        "attention": {
+          "group": {
+            "staff": "Warten auf Ihre Aktion",
+            "member": "Warten auf Nachweise des Mitglieds",
+            "untracked": "Weitere zugewiesene Fälle",
+            "unassigned": "Nicht zugewiesene Fälle"
+          },
+          "next_actor": {
+            "staff": "Als Nächstes: Prüfung durch zugewiesene Mitarbeitende",
+            "member": "Als Nächstes: Upload durch das Mitglied",
+            "untracked": "Keine offene Nachweisanfrage erfasst"
+          },
+          "overdue_follow_up": "Operatives Nachfassen: Das erfasste Fälligkeitsdatum der Anfrage {date} UTC ist überschritten. Fragen Sie beim Mitglied nach."
+        },
+        "assignment_state": {
+          "unassigned": "Nicht zugewiesen",
+          "assigned_to_you": "Ihnen zugewiesen",
+          "assigned": "Zugewiesen",
+          "assigned_to_named": "{name} zugewiesen"
+        },
+        "assignment_filter": {
+          "all_staff": "Meine Warteschlange + nicht zugewiesen",
+          "mine": "Mir zugewiesen",
+          "all_branch": "Alle Fälle der Filiale"
+        },
+        "diaspora_filter": {
+          "all": "Alle Herkünfte",
+          "diaspora": "Diaspora / Grüne Karte"
+        },
+        "table": {
+          "claim": "Fall",
+          "member": "Mitglied",
+          "status_stage": "Status + Phase",
+          "updated": "Aktualisiert",
+          "action": "Aktion",
+          "no_claim_number": "Keine Fallnummer",
+          "no_company": "Kein Unternehmen angegeben",
+          "no_member_number": "Keine Mitgliedsnummer"
+        },
+        "origin_badge": "Diaspora / Grüne Karte"
+      },
+      "support_handoffs": {
+        "nav": "Support-Übergaben",
+        "title": "Support-Übergaben",
+        "subtitle": "Support-Anfragen von Mitgliedern, bereit zur Übernahme durch Mitarbeitende.",
+        "branch_manager_readonly": "Filialleitungen können Support-Übergaben überwachen, aber Annehmen, Neuzuweisen und Schließen bleiben Mitarbeitenden vorbehalten.",
+        "empty": "Keine Support-Übergaben entsprechen den aktuellen Filtern.",
+        "status": {
+          "open": "Offen",
+          "accepted": "Angenommen",
+          "closed": "Geschlossen"
+        },
+        "urgency": {
+          "critical": "Kritisch",
+          "high": "Hoch",
+          "normal": "Normal",
+          "low": "Niedrig"
+        },
+        "trust_risk": {
+          "high": "Hohes Vertrauensrisiko",
+          "medium": "Mittleres Vertrauensrisiko",
+          "low": "Geringes Vertrauensrisiko",
+          "informational": "Zur Information"
+        },
+        "filters": {
+          "search": "Suchen",
+          "search_placeholder": "Anfrage, Mitglied, Fall oder Nummer suchen",
+          "assignment": {
+            "label": "Zuweisung",
+            "all_staff": "Meine Warteschlange + nicht zugewiesen",
+            "all_branch": "Alle Übergaben der Filiale",
+            "mine": "Mir zugewiesen",
+            "unassigned": "Nicht zugewiesen"
+          },
+          "status": {
+            "label": "Status",
+            "all": "Alle Status"
+          },
+          "urgency": {
+            "label": "Dringlichkeit",
+            "all": "Alle Dringlichkeiten"
+          },
+          "claim": {
+            "label": "Fallverknüpfung",
+            "all": "Alle",
+            "linked": "Mit Fall verknüpft",
+            "unlinked": "Kein Fall"
+          },
+          "attention": {
+            "label": "Aufmerksamkeit",
+            "all": "Alle",
+            "needs_follow_up": "Nachfassen erforderlich"
+          }
+        },
+        "table": {
+          "request": "Anfrage",
+          "member": "Mitglied",
+          "relationship": "Beziehung",
+          "risk": "Risiko",
+          "owner": "Zuständig",
+          "actions": "Aktionen",
+          "claim_link": "Verknüpften Fall öffnen",
+          "no_claim": "Kein verknüpfter Fall",
+          "no_member_number": "Keine Mitgliedsnummer",
+          "no_branch": "Keine Filiale",
+          "no_plan": "Kein Tarif",
+          "no_agent": "Kein Agent",
+          "needs_follow_up": "Nachfassen erforderlich",
+          "public_response_sent": "Aktualisierung gesendet",
+          "unassigned": "Nicht zugewiesen"
+        },
+        "actions": {
+          "accept": "Annehmen",
+          "reassign": "Neu zuweisen",
+          "close": "Schließen",
+          "readonly": "Nur lesen",
+          "reassign_reason": "Grund für die Neuzuweisung",
+          "close_reason": "Grund für die Erledigung"
+        },
+        "detail": {
+          "expand": "Details ansehen",
+          "collapse": "Details ausblenden",
+          "loading": "Details werden geladen...",
+          "unavailable": "Für diese Übergabe sind keine Details verfügbar.",
+          "full_message": "Vollständige Nachricht",
+          "source": "Quelle",
+          "source_member_help": "Hilfeseite für Mitglieder",
+          "source_claim_detail": "Detailseite des Falls",
+          "source_unknown": "Unbekannte Quelle",
+          "contact_preference": "Bevorzugter Kontakt",
+          "contact_preference_staff_reply": "Antwort über die Plattform",
+          "contact_preference_phone": "Rückruf erbeten",
+          "contact_preference_email": "Antwort per E-Mail erbeten",
+          "contact_preference_whatsapp": "Antwort per WhatsApp erbeten",
+          "lifecycle": "Lebenszyklus",
+          "lifecycle_created": "Erstellt",
+          "lifecycle_accepted": "Angenommen",
+          "lifecycle_reassigned": "Neu zugewiesen",
+          "lifecycle_closed": "Geschlossen",
+          "lifecycle_pending": "Ausstehend",
+          "lifecycle_reason": "Grund",
+          "member_reply_title": "Antwort des Mitglieds",
+          "member_reply_at": "Mitglied hat am {date} geantwortet",
+          "member_reply_empty": "Noch keine Antwort des Mitglieds auf die aktuelle Aktualisierung.",
+          "member_reply_warning": "Das Mitglied hat auf die aktuelle Aktualisierung geantwortet. Prüfen Sie die Antwort, bevor Sie eine neue senden.",
+          "public_response_title": "Aktualisierung an das Mitglied",
+          "public_response_empty": "An das Mitglied wurde noch keine Aktualisierung gesendet.",
+          "public_response_acknowledged_at": "Mitglied hat am {date} bestätigt",
+          "public_response_awaiting_acknowledgement": "Bestätigung des Mitglieds ausstehend",
+          "public_response_label": "Öffentliche Antwort",
+          "public_response_placeholder": "Schreiben Sie eine kurze Aktualisierung, die das Mitglied sehen kann...",
+          "public_response_readonly": "Nur die zugewiesene zuständige Person kann die für das Mitglied sichtbare Antwort senden oder aktualisieren.",
+          "public_response_submit": "Antwort senden",
+          "public_response_update": "Antwort aktualisieren"
+        }
+      },
+      "queue": "Fall-Warteschlange",
+      "claims_queue": "Fall-Warteschlange",
+      "manage_triage": "Alle eingereichten Fälle verwalten und sichten.",
+      "table": {
+        "claimant": "Antragstellende Person",
+        "claim": "Fall",
+        "status": "Status",
+        "amount": "Betrag",
+        "date": "Datum",
+        "actions": "Aktionen",
+        "triage": "Sichtung",
+        "message_alert": "Neue Nachricht ({count})",
+        "no_claims": "Keine Fälle gefunden.",
+        "no_claims_ready": "Komponente für die Fallliste folgt in Kürze",
+        "recent_activity": "Letzte Aktivitäten"
+      },
+      "actions": {
+        "approve": "Genehmigen",
+        "reject": "Ablehnen",
+        "requestInfo": "Informationen anfordern",
+        "review": "Fall prüfen",
+        "open": "Öffnen"
+      },
+      "details": {
+        "title": "Falldetails",
+        "claimantInfo": "Angaben zur antragstellenden Person",
+        "name": "Name",
+        "email": "E-Mail",
+        "description": "Beschreibung",
+        "amount": "Betrag",
+        "company": "Betreff / Unternehmen",
+        "title_label": "Titel",
+        "category_label": "Kategorie",
+        "status_label": "Status",
+        "sla_status_label": "SLA-Status",
+        "sla_phase": {
+          "running": "Läuft",
+          "incomplete": "Warten auf Informationen des Mitglieds",
+          "not_applicable": "Nicht aktiv"
+        },
+        "evidence": "Nachweisdateien",
+        "noEvidence": "Keine Dokumente hochgeladen.",
+        "notes": "Interne Notizen",
+        "notesPlaceholder": "Private Notizen für Agenten folgen in Kürze.",
+        "timeline": "Zeitverlauf des Falls",
+        "no_messages": "Noch kein Interaktionsverlauf.",
+        "message_placeholder": "Nachricht oder interne Notiz eingeben...",
+        "internal_note": "Interne Notiz",
+        "send_message": "Nachricht senden",
+        "incident_date": "Datum des Vorfalls",
+        "messages": "Nachrichten",
+        "documents": "Dokumente",
+        "no_documents": "Keine Dokumente hochgeladen",
+        "unknown_date": "Unbekanntes Datum",
+        "branch_manager_readonly_notice": "Filialleitungen können hier den Fallstatus und den Kontext des Mitglieds prüfen, aber Zuweisung, Nachrichten und Fallaktionen bleiben in der Pilotphase Mitarbeitenden vorbehalten.",
+        "staff_claim": {
+          "section_title": "Fall",
+          "status": "Status",
+          "updated": "Aktualisiert",
+          "submitted": "Eingereicht"
+        },
+        "staff_member": {
+          "section_title": "Mitglied",
+          "membership_number": "Mitgliedsnr."
+        },
+        "staff_matter_allowance": {
+          "section_title": "Kontingent an Angelegenheiten",
+          "used_this_year": "In diesem Jahr genutzt",
+          "remaining_this_year": "In diesem Jahr verbleibend",
+          "plan_allowance": "Kontingent des Tarifs"
+        },
+        "staff_agent": {
+          "section_title": "Agent"
+        },
+        "staff_note": {
+          "section_title": "Letzte Statusnotiz",
+          "empty": "Noch keine öffentlichen Statusnotizen.",
+          "history_title": "Öffentlicher Statusverlauf"
+        },
+        "verification_guidance": "Der Fallstatus ist Verifizierung. Konkrete Pflichten erscheinen nur in den zu diesem Fall erfassten Informationsanfragen.",
+        "workspace": {
+          "back": "Zurück zur Fallliste",
+          "nav_label": "Abschnitte des Falls",
+          "reference_label": "Fallreferenz",
+          "handling": "Bearbeitungsaktionen",
+          "requests": "Informationsanfragen",
+          "context": "Kontext des Falls",
+          "history": "Statusverlauf"
+        }
+      },
+      "staff_actions": {
+        "title": "Aktionen für Mitarbeitende",
+        "staff_only": "Nur Mitarbeitende",
+        "common": {
+          "pending": "Ausstehend",
+          "ready": "Bereit",
+          "missing": "Fehlt",
+          "not_recorded": "Nicht erfasst",
+          "yes": "Ja",
+          "no": "Nein"
+        },
+        "success": {
+          "title": "Erfolg",
+          "assignment_self": "Fall Ihnen zugewiesen",
+          "assignment_named": "Fall {name} zugewiesen",
+          "assignment_updated": "Zuweisung des Falls aktualisiert",
+          "agreement_saved": "Eskalationsvereinbarung gespeichert",
+          "recovery_accepted": "Durchsetzung angenommen",
+          "recovery_declined": "Durchsetzung abgelehnt",
+          "status_updated": "Fallstatus aktualisiert",
+          "collection_saved": "Einzug des Erfolgshonorars gespeichert"
+        },
+        "error": {
+          "title": "Fehler",
+          "status_save_unconfirmed": "Wir konnten das Speichern nicht bestätigen. Ihre Eingaben sind noch vorhanden. Prüfen Sie den Fallverlauf, bevor Sie es erneut versuchen."
+        },
+        "validation": {
+          "recovered_amount_positive": "Der durchgesetzte Betrag muss eine positive Zahl sein."
+        },
+        "commercial_scope": {
+          "title": "Einschränkung des Startumfangs"
+        },
+        "assignment": {
+          "title": "Zuweisung",
+          "assign_claim": "Fall zuweisen",
+          "save": "Zuweisung speichern",
+          "current_assignee": "Aktuell zuständig",
+          "out_of_scope": "{name} (außerhalb des Bereichs)",
+          "unassigned": "Nicht zugewiesen",
+          "assigned_to_you": "Ihnen zugewiesen",
+          "assigned_to_named": "{name} zugewiesen",
+          "assigned_to_colleague": "Einer Kollegin oder einem Kollegen zugewiesen"
+        },
+        "recovery_decision": {
+          "title": "Entscheidung zur Durchsetzung",
+          "description": "Mitarbeitende müssen die Durchsetzung ausdrücklich annehmen oder ablehnen, bevor Verhandlungs- oder Gerichtsarbeit beginnen kann.",
+          "summary_status": "Status der Entscheidung",
+          "summary_decline_category": "Ablehnungskategorie",
+          "summary_explanation": "Begründung der Entscheidung",
+          "explanation_label": "Begründung der Entscheidung",
+          "explanation_placeholder": "Erfassen Sie die nur für Mitarbeitende bestimmte Begründung der Annahme oder Ablehnung...",
+          "private_note": "Diese Begründung bleibt bei den Mitarbeitenden und wird in der Entscheidungskarte des Mitglieds nicht angezeigt.",
+          "accept": "Durchsetzung annehmen",
+          "decline_category_label": "Ablehnungskategorie",
+          "decline_category_placeholder": "Ablehnungskategorie auswählen",
+          "decline": "Durchsetzung ablehnen",
+          "preview_title": "Vorschau der Entscheidung für das Mitglied",
+          "preview_locale_note": "Angezeigt in Ihrer aktuellen Sprache. Mitglieder sehen diesen Wortlaut in ihrer gewählten Sprache.",
+          "preview_select_category": "Wählen Sie eine Ablehnungskategorie, um den Wortlaut für das Mitglied anzuzeigen.",
+          "decline_reasons": {
+            "guidance_only_scope": "Im aktuellen Umfang nur Orientierung oder Weiterverweisung",
+            "insufficient_evidence": "Unzureichende Nachweise für die Durchsetzung durch Mitarbeitende",
+            "no_monetary_recovery_path": "Kein klarer Weg zu einer finanziellen Durchsetzung",
+            "counterparty_unidentified": "Gegenpartei oder Versicherer kann nicht identifiziert werden",
+            "time_limit_risk": "Fristrisiko verhindert die Durchsetzung durch Mitarbeitende",
+            "conflict_or_integrity_concern": "Interessenkonflikt oder Bedenken hinsichtlich der Integrität"
+          }
+        },
+        "recovery_prerequisites": {
+          "title": "Voraussetzungen der angenommenen Durchsetzung",
+          "description": "Eine angenommene Durchsetzung kann erst in Verhandlung oder Gericht übergehen, wenn beide Voraussetzungen erfüllt sind.",
+          "agreement": "Vereinbarung",
+          "collection_path": "Einzugsweg"
+        },
+        "escalation_agreement": {
+          "title": "Eskalationsvereinbarung",
+          "description": "Erfassen Sie hier die kommerziellen Bedingungen, nachdem die Entscheidung zur Durchsetzung angenommen wurde. Diese Vereinbarung ersetzt nicht die ausdrückliche Entscheidung zur Durchsetzung oben.",
+          "accepted_next_state": "Angenommener nächster Status",
+          "accepted_next_state_placeholder": "Angenommenen nächsten Status auswählen",
+          "decision_reason": "Grund der Entscheidung",
+          "decision_reason_placeholder": "Erfassen Sie, warum die Mitarbeitenden diesen Eskalationsweg angenommen haben...",
+          "fee": "Honorar",
+          "fee_percentage": "Honorarsatz",
+          "minimum_fee": "Mindesthonorar",
+          "minimum_fee_input": "Mindesthonorar (EUR)",
+          "legal_action_cap": "Obergrenze für rechtliche Schritte",
+          "payment_authorization": "Zahlungsautorisierung",
+          "payment_authorization_placeholder": "Status der Autorisierung auswählen",
+          "terms_version": "Version der Bedingungen",
+          "signed": "Unterzeichnet",
+          "save": "Eskalationsvereinbarung speichern",
+          "empty": "Für diesen Fall ist keine Eskalationsvereinbarung gespeichert.",
+          "empty_requires_save": "Speichern Sie die angenommene Eskalationsvereinbarung, bevor Sie diesen Fall in Verhandlung oder Gericht überführen.",
+          "payment_authorization_options": {
+            "pending": "Ausstehend",
+            "authorized": "Autorisiert",
+            "revoked": "Widerrufen"
+          }
+        },
+        "success_fee": {
+          "title": "Einzug des Erfolgshonorars",
+          "description": "Erfassen Sie den durchgesetzten Betrag. Die kommerziellen Regeln lösen den Einzug zuerst durch Abzug, soweit zulässig, dann über die hinterlegte Zahlungsmethode und dann per Rechnung mit Fälligkeit innerhalb von 7 Tagen.",
+          "recovered_amount": "Durchgesetzter Betrag",
+          "success_fee": "Erfolgshonorar",
+          "collection_method": "Einzugsmethode",
+          "stored_payment_method": "Hinterlegte Zahlungsmethode",
+          "invoice_due": "Rechnung fällig",
+          "resolved": "Festgelegt",
+          "deduct_from_payout": "Von der Auszahlung abziehen?",
+          "collection_path_placeholder": "Einzugsweg auswählen",
+          "save": "Einzug des Erfolgshonorars speichern",
+          "empty": "Für diesen Fall wurde keine Einzugsreihenfolge für das Erfolgshonorar erfasst.",
+          "empty_requires_save": "Es ist noch kein Einzugsweg für das Erfolgshonorar erfasst. Speichern Sie einen, bevor Sie diesen angenommenen Fall in Verhandlung oder Gericht überführen.",
+          "locked_without_agreement": "Speichern Sie zuerst die Eskalationsvereinbarung, um den Einzug des Erfolgshonorars freizuschalten.",
+          "collection_method_options": {
+            "deduction": "Von der Auszahlung abziehen",
+            "payment_method_charge": "Hinterlegte Zahlungsmethode belasten",
+            "invoice": "Ersatzweise Rechnung"
+          },
+          "deduction_path_options": {
+            "allowed": "Ja, der Abzug ist rechtlich zulässig",
+            "fallback": "Nein, Ersatzreihenfolge verwenden"
+          }
+        },
+        "status_update": {
+          "title": "Status aktualisieren",
+          "select_status": "Status auswählen",
+          "note_label": "Statusnotiz",
+          "visible_to_member": "Für das Mitglied sichtbar",
+          "note_placeholder": "Grund für die Statusänderung...",
+          "requires_recovery_decision": "Nehmen Sie die Durchsetzung oben an, bevor Sie den Fall in Verhandlung oder Gericht überführen.",
+          "requires_escalation_agreement": "Speichern Sie die angenommene Eskalationsvereinbarung, bevor Sie diesen Fall in Verhandlung oder Gericht überführen.",
+          "requires_collection_path": "Speichern Sie den Einzugsweg für das Erfolgshonorar, bevor Sie diesen angenommenen Fall in Verhandlung oder Gericht überführen.",
+          "allowance_override_reason": "Grund für die Überschreitung des Kontingents",
+          "allowance_override_description": "Wenn das Mitglied sein jährliches Kontingent an Angelegenheiten ausgeschöpft hat, erfassen Sie hier den internen Grund für die Ausnahme oder erweitern Sie die Deckung, bevor die Durchsetzung durch Mitarbeitende beginnt.",
+          "allowance_override_placeholder": "Erklären Sie, warum die Durchsetzung trotz ausgeschöpftem Kontingent beginnen soll...",
+          "save": "Fall aktualisieren",
+          "check_history_hint": "Öffnen Sie den Fallverlauf in einem neuen Tab. Wenn die Aktualisierung bereits vorhanden ist, speichern Sie sie nicht erneut. Andernfalls bestätigen Sie vor einem erneuten Versuch, dass Sie geprüft haben. Ihr Entwurf bleibt hier erhalten.",
+          "open_history": "Verlauf prüfen (neuer Tab)",
+          "history_checked": "Ich habe den Verlauf geprüft; erneuten Versuch erlauben"
+        }
+      },
+      "triage": {
+        "title": "Sichtungsaktionen",
+        "changeStatus": "Status ändern",
+        "selectStatus": "Status auswählen",
+        "verify": "Angaben verifizieren",
+        "reject": "Fall ablehnen",
+        "notice": "Eine Statusänderung aktualisiert den Zeitverlauf der Person sofort."
+      }
+    }
+  }
+}

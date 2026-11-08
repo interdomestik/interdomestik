@@ -20,7 +20,7 @@ beforeEach(() => {
 });
 
 describe('AddAgentDialog actual admin-shell messages', () => {
-  it.each(['en', 'sq', 'mk', 'sr'])(
+  it.each(['en', 'sq', 'mk', 'sr', 'de'])(
     'renders both empty lists with the actual %s provider and namespace loader',
     async locale => {
       const messages = await loadMessagesForNamespaces(locale, ADMIN_NAMESPACES, { strict: true });

@@ -25,6 +25,7 @@ const SUPPORTED_LOCALES = [
   { code: 'sq', name: 'Shqip', flag: '🇦🇱' },
   { code: 'sr', name: 'Srpski', flag: '🇷🇸' },
   { code: 'mk', name: 'Македонски', flag: '🇲🇰' },
+  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
 ] as const;
 
 export function LanguageSettings() {

@@ -224,10 +224,10 @@ test('T117B/member upload catalog ownership', () => {
   }
 
   for (const denied of [
-    'apps/web/src/messages/de/dashboard.json',
+    'apps/web/src/messages/hr/dashboard.json',
     'apps/web/src/messages/en/common.json',
     'apps/web/src/messages/en/portal.json',
-    'apps/web/src/messages/de/claims.json',
+    'apps/web/src/messages/hr/claims.json',
   ]) {
     assert.equal(structuredArtifactOwner(denied), null, denied);
   }

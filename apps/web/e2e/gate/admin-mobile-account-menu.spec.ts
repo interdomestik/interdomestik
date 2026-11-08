@@ -63,13 +63,13 @@ test.describe('mobile admin account actionability', () => {
   });
 
   for (const width of [390, 320]) {
-    test(`normal account clicks and logout remain reachable at ${width} CSS px in four locales`, async ({
+    test(`normal account clicks and logout remain reachable at ${width} CSS px in five locales`, async ({
       page,
       loginAs,
     }, testInfo) => {
       await loginAs('admin');
       await page.setViewportSize({ width, height: 844 });
-      for (const locale of ['en', 'sq', 'mk', 'sr'] as const) {
+      for (const locale of ['en', 'sq', 'mk', 'sr', 'de'] as const) {
         await gotoApp(page, routes.adminUsers(locale), testInfo, { marker: 'admin-users-page' });
         await expect(page.getByTestId('admin-users-page')).toHaveCount(1);
         await openMobileAccount(page);
@@ -80,7 +80,7 @@ test.describe('mobile admin account actionability', () => {
       }
       const menu = await openMobileAccount(page);
       await menu.getByRole('menuitem').last().click();
-      await assertLoggedOut(page, testInfo, 'sr');
+      await assertLoggedOut(page, testInfo, 'de');
     });
   }
 });

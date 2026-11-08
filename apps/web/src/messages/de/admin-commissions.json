@@ -1,0 +1,73 @@
+{
+  "admin": {
+    "commissions_page": {
+      "title": "Provisionsverwaltung",
+      "description": "Agentenprovisionen, Empfehlungsprämien für Mitglieder und Programmeinstellungen prüfen.",
+      "summary": {
+        "pending": "Ausstehend",
+        "approved": "Genehmigt",
+        "paid": "Bezahlt",
+        "total_owed": "Offen insgesamt",
+        "items": "{count} Einträge"
+      },
+      "settings": {
+        "title": "Einstellungen des Mitglieder-Empfehlungsprogramms",
+        "enable_title": "Empfehlungsprämien für Mitglieder aktivieren",
+        "enable_description": "Mitgliedern erlauben, Prämien für die erste bezahlte Mitgliedschaft zu erhalten, die sie empfehlen.",
+        "reward_type": "Prämienart",
+        "settlement_mode": "Abrechnungsmodus",
+        "fixed_reward": "Feste Prämie (Cent)",
+        "percent_reward": "Prozentuale Prämie (Basispunkte)",
+        "current_reward": "Aktuelle Prämie: {amount}",
+        "payout_threshold": "Auszahlungsschwelle (Cent)",
+        "currency_code": "Währungscode",
+        "qualifying_event": "Auslösendes Ereignis",
+        "fraud_review_title": "Betrugsprüfung erforderlich",
+        "fraud_review_description": "Neue Prämien ausstehend halten, bis ein Admin sie prüft und genehmigt.",
+        "save": "Empfehlungseinstellungen speichern"
+      },
+      "reward_types": {
+        "fixed": "Fester Betrag",
+        "percent": "Prozentsatz der ersten Zahlung"
+      },
+      "settlement_modes": {
+        "credit_only": "Nur Gutschrift",
+        "credit_or_payout": "Gutschrift oder Auszahlung"
+      },
+      "qualifying_event_types": {
+        "first_paid_membership": "Erste bezahlte Mitgliedschaft"
+      },
+      "rewards": {
+        "title": "Empfehlungsprämien für Mitglieder",
+        "empty": "Noch keine Empfehlungsprämien",
+        "reward_label": "Prämie {id} • {amount}",
+        "referrer_label": "Empfehlende Person {id}",
+        "referred_member_label": "Empfohlenes Mitglied {id}"
+      },
+      "commissions": {
+        "title": "Alle Provisionen",
+        "empty": "Noch keine Provisionen",
+        "unknown_member": "Unbekanntes Mitglied",
+        "bulk_approve": "Sammelgenehmigung",
+        "action_failed": "Provisionsaktion fehlgeschlagen"
+      },
+      "statuses": {
+        "pending": "Ausstehend",
+        "approved": "Genehmigt",
+        "credited": "Gutgeschrieben",
+        "paid": "Bezahlt",
+        "void": "Storniert"
+      },
+      "commission_types": {
+        "new_membership": "neue Mitgliedschaft",
+        "renewal": "Verlängerung",
+        "upgrade": "Upgrade",
+        "b2b": "Unternehmensmitgliedschaft",
+        "signup_bonus": "Anmeldebonus",
+        "membership_sale": "Mitgliedschaftsverkauf",
+        "referral_bonus": "Empfehlungsbonus",
+        "renewal_bonus": "Verlängerungsbonus"
+      }
+    }
+  }
+}

@@ -259,6 +259,13 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
                     <span className="mr-2">🇷🇸</span> Srpski
                     {locale === 'sr' && <Check className="ml-auto h-4 w-4" />}
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.replace(pathname, { locale: 'de' })}
+                    className="cursor-pointer"
+                  >
+                    <span className="mr-2">🇩🇪</span> Deutsch
+                    {locale === 'de' && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>

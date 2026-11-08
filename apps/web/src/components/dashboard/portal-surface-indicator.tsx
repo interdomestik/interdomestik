@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 type PortalKey = 'member' | 'agent' | 'staff' | 'admin';
-const SUPPORTED_LOCALES = new Set(['sq', 'en', 'sr', 'mk']);
+const SUPPORTED_LOCALES = new Set(['sq', 'en', 'sr', 'mk', 'de']);
 
 function inferPortalKeyFromPath(pathname: string | null): PortalKey | null {
   if (!pathname) return null;

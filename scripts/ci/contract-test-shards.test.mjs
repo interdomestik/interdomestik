@@ -80,6 +80,7 @@ const minimalSuite = (overrides = {}) =>
   );
 
 test('full serialized contract script runs every active file for local and Z620 parity', () => {
+  assert.equal(scripts['test:z620-runner'], 'node scripts/ci/contract-test-shards.mjs z620');
   assert.equal(scripts['test:ci:contracts'], 'node scripts/ci/contract-test-shards.mjs all');
   assert.equal(scripts['test:ci:contracts:core'], 'node scripts/ci/contract-test-shards.mjs core');
   assert.equal(

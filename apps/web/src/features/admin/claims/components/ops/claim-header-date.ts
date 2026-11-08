@@ -1,8 +1,10 @@
 import { format } from 'date-fns';
-import { enUS, mk, sq, sr } from 'date-fns/locale';
+import { de, enUS, mk, sq, sr } from 'date-fns/locale';
 
 function toDateFnsLocale(locale: string) {
   switch (locale) {
+    case 'de':
+      return de;
     case 'mk':
       return mk;
     case 'sq':

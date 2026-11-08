@@ -24,8 +24,8 @@ export default async function PublicTrackingPage({ params, searchParams }: PageP
   const userAgent = headerList.get('user-agent') || 'unknown';
 
   // Validate locale simple check
-  const locale = (['en', 'sq', 'mk', 'sr'].includes(lang || '') ? lang : 'en') as
-    'en' | 'sq' | 'mk' | 'sr';
+  const locale = (['en', 'sq', 'mk', 'sr', 'de'].includes(lang || '') ? lang : 'en') as
+    'en' | 'sq' | 'mk' | 'sr' | 'de';
 
   const result = await getTrackingViewCore(
     { token, ipAddress, userAgent },

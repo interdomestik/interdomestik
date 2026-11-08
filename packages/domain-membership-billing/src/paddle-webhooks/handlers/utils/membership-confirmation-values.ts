@@ -1,7 +1,7 @@
 import type { CheckoutCustomData } from '../../types';
 import type { WebhookUserRecord } from './new-membership-ownership';
 
-type ConfirmationLocale = 'en' | 'sq' | 'mk' | 'sr';
+type ConfirmationLocale = 'en' | 'sq' | 'mk' | 'sr' | 'de';
 type BillingInterval = 'day' | 'week' | 'month' | 'year';
 
 const LOCALE_TAGS: Record<ConfirmationLocale, string> = {
@@ -9,6 +9,7 @@ const LOCALE_TAGS: Record<ConfirmationLocale, string> = {
   sq: 'sq-AL',
   mk: 'mk-MK',
   sr: 'sr-Latn-RS',
+  de: 'de-DE',
 };
 
 const BILLING_INTERVALS: Record<
@@ -38,6 +39,12 @@ const BILLING_INTERVALS: Record<
     week: ['nedelja', 'nedelje'],
     month: ['mesec', 'meseca'],
     year: ['godina', 'godine'],
+  },
+  de: {
+    day: ['Tag', 'Tage'],
+    week: ['Woche', 'Wochen'],
+    month: ['Monat', 'Monate'],
+    year: ['Jahr', 'Jahre'],
   },
 };
 
@@ -126,7 +133,7 @@ export function normalizeConfirmationText(value: unknown): string | null {
 }
 
 function isConfirmationLocale(value: unknown): value is ConfirmationLocale {
-  return value === 'en' || value === 'sq' || value === 'mk' || value === 'sr';
+  return value === 'en' || value === 'sq' || value === 'mk' || value === 'sr' || value === 'de';
 }
 
 function parseProviderDate(value: unknown): Date | null {

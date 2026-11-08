@@ -1,0 +1,61 @@
+{
+  "common": {
+    "appName": "Asistenca",
+    "companyName": "Interdomestik",
+    "tagline": "Da, wenn Sie uns brauchen",
+    "loading": "Wird geladen...",
+    "processing": "Wird verarbeitet...",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "submit": "Absenden",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "view": "Ansehen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Zurück",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "all": "Alle",
+    "unassigned": "Nicht zugewiesen",
+    "no_results": "Keine Ergebnisse.",
+    "none": "Keine",
+    "yes": "Ja",
+    "no": "Nein",
+    "or": "oder",
+    "and": "und",
+    "tryAgain": "Erneut versuchen",
+    "admin": "Admin",
+    "pagination": {
+      "pageOf": "Seite {page} von {total}"
+    },
+    "notFound": {
+      "title": "Seite nicht gefunden",
+      "description": "Leider konnten wir die gesuchte Seite nicht finden."
+    },
+    "roles": {
+      "admin": "Administrator",
+      "agent": "Agent",
+      "member": "Mitglied",
+      "staff": "Mitarbeitende",
+      "user": "Mitglied",
+      "super_admin": "Superadministrator",
+      "tenant_admin": "Mandantenadministrator",
+      "branch_manager": "Filialleitung",
+      "promoter": "Promoter"
+    },
+    "errors": {
+      "title": "Fehler",
+      "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+      "retry": "Bitte versuchen Sie es erneut. Wenn das Problem weiterhin besteht, wenden Sie sich an den Support.",
+      "unauthorized": "Nicht autorisiert"
+    },
+    "cookie_consent": {
+      "title": "Cookie-Einstellungen",
+      "description": "Wir verwenden Cookies, um Ihre Erfahrung zu verbessern.",
+      "details": "Mit einem Klick auf „Alle akzeptieren“ stimmen Sie der Verwendung von Cookies für Analysen und personalisierte Inhalte zu.",
+      "accept": "Alle akzeptieren",
+      "decline": "Nur notwendige"
+    }
+  }
+}

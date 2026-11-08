@@ -59,7 +59,7 @@ test('i18n', () => {
       't410-notification-acknowledgement-i18n-contract'
     );
 
-  assert.equal(owner('apps/web/src/messages/de/notifications.json'), null);
+  assert.equal(owner('apps/web/src/messages/hr/notifications.json'), null);
   assert.equal(owner('apps/web/src/messages/en/unrelated.json'), null);
 });
 

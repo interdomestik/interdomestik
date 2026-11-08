@@ -11,7 +11,7 @@ import {
 } from './test/login-handoff-isolated-expiry';
 import { expireOwnedSession } from './test/login-handoff-expiry';
 
-const locales = ['en', 'sq', 'mk', 'sr'] as const;
+const locales = ['en', 'sq', 'mk', 'sr', 'de'] as const;
 
 test.describe('Login handoff feedback continuity', () => {
   for (const locale of locales) {

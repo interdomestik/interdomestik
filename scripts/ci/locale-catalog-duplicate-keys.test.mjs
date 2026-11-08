@@ -78,9 +78,9 @@ test('no locale catalog repeats a key within one object', () => {
 });
 
 test('this contract owns the branch catalogs it repaired', () => {
-  for (const locale of ['en', 'sq', 'mk', 'sr']) {
+  for (const locale of ['en', 'sq', 'mk', 'sr', 'de']) {
     const file = `apps/web/src/messages/${locale}/admin-branches.json`;
     assert.equal(structuredArtifactOwner(file), 'locale-catalog-integrity-contract', file);
   }
-  assert.equal(structuredArtifactOwner('apps/web/src/messages/de/admin-branches.json'), null);
+  assert.equal(structuredArtifactOwner('apps/web/src/messages/hr/admin-branches.json'), null);
 });

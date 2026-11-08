@@ -58,6 +58,11 @@ export const RECOVERY_DECISION_LABELS = {
     accepted: 'Prihvaćeno za naplatu koju vodi osoblje',
     declined: 'Odbijeno za naplatu koju vodi osoblje',
   },
+  de: {
+    pending: 'Entscheidung der Mitarbeitenden ausstehend',
+    accepted: 'Zur Durchsetzung durch Mitarbeitende angenommen',
+    declined: 'Zur Durchsetzung durch Mitarbeitende abgelehnt',
+  },
 } as const;
 
 export function getRecoveryDecisionLabel(snapshot: RecoveryDecisionSnapshot, locale: string) {

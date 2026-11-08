@@ -1,0 +1,73 @@
+{
+  "services": {
+    "meta": {
+      "title": "Premium-Leistungen | Interdomestik",
+      "description": "Schnelle, sichere und professionelle Schadensabwicklung bei Fahrzeugschäden, Sachschäden und Personenschäden."
+    },
+    "hero": {
+      "title": "Professioneller Service zur Lösung von Schadensfällen",
+      "subtitle": "Wir helfen, komplexe Schadensfälle mit klarem Umfang, Prüfschritten und transparenter Nachverfolgung zu ordnen.",
+      "cta": "Schadensfall starten"
+    },
+    "solutions": {
+      "title": "Was wir lösen",
+      "vehicle": {
+        "title": "Fahrzeug & Verkehr",
+        "description": "Kollisionsschäden, Haftpflichtansprüche gegenüber Dritten und Fahrerflucht."
+      },
+      "property": {
+        "title": "Sachschaden",
+        "description": "Feuer, Überschwemmung, Diebstahl oder Schäden an Ihrem Zuhause oder Geschäftsräumen."
+      },
+      "injury": {
+        "title": "Personenschaden",
+        "description": "Entschädigung für Verletzungen durch Unfälle oder Fahrlässigkeit."
+      },
+      "flight": {
+        "title": "Flugverspätungen",
+        "description": "Bis zu 600 € Entschädigung für verspätete oder annullierte Flüge (EU261)."
+      }
+    },
+    "process": {
+      "title": "So funktioniert es",
+      "step1": {
+        "title": "1. Schadensfall starten",
+        "description": "Füllen Sie unseren einfachen, geführten Assistenten in unter 5 Minuten aus."
+      },
+      "step2": {
+        "title": "2. Wir prüfen",
+        "description": "Unsere Experten analysieren Ihren Fall und Ihre Nachweise innerhalb von 24 Stunden."
+      },
+      "step3": {
+        "title": "3. Lösung",
+        "description": "Wir verhandeln mit der Gegenpartei, um Ihre Entschädigung zu sichern."
+      }
+    },
+    "safety": {
+      "title": "Schnelligkeit & Sicherheit",
+      "speed": {
+        "title": "Schnelle Aufnahme",
+        "description": "Das Einreichen dauert weniger als 5 Minuten."
+      },
+      "response": {
+        "title": "Reaktion in 24 Std.",
+        "description": "Wir prüfen jeden neuen Schadensfall innerhalb von 24 Stunden."
+      },
+      "secure": {
+        "title": "Sichere Daten",
+        "description": "Ihre Dokumente sind verschlüsselt und geschützt."
+      }
+    },
+    "faq": {
+      "title": "Häufig gestellte Fragen",
+      "q1": "Was kostet das?",
+      "a1": "Die Mitgliedschaft beginnt mit veröffentlichten Jahresbedingungen. Ein Erfolgshonorar fällt nur nach erfolgreicher Erstattung bei angenommenen Angelegenheiten an.",
+      "q2": "Wie lange dauert es?",
+      "a2": "Einfache Schadensfälle werden in wenigen Wochen gelöst. Komplexe Fälle können länger dauern, aber wir halten Sie auf dem Laufenden."
+    },
+    "finalCta": {
+      "title": "Bereit loszulegen?",
+      "btn": "Jetzt Schadensfall eröffnen"
+    }
+  }
+}

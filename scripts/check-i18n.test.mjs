@@ -36,6 +36,14 @@ function writeMessagesFixture(root, { srDescription }) {
       },
     },
   }));
+
+  writeFile(root, 'apps/web/src/messages/de/servicesPage.json', JSON.stringify({
+    servicesPage: {
+      meta: {
+        description: 'Unterstützung bei Fahrzeug-, Eigentums- und Personenschäden.',
+      },
+    },
+  }));
 }
 
 test('collectI18nFailures reports Serbian orthography regressions with preferred spellings', () => {
@@ -46,7 +54,7 @@ test('collectI18nFailures reports Serbian orthography regressions with preferred
 
   const failures = collectI18nFailures({
     root,
-    locales: ['en', 'sq', 'mk', 'sr'],
+    locales: ['en', 'sq', 'mk', 'sr', 'de'],
     baseLocale: 'en',
   });
 

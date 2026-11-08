@@ -33,7 +33,7 @@ export const snapshotSchema = z.object({
   planInterval: z.string().min(1),
   memberSince: z.string().datetime(),
   expiresAt: z.string().datetime(),
-  locale: z.enum(['en', 'sq', 'mk', 'sr']),
+  locale: z.enum(['en', 'sq', 'mk', 'sr', 'de']),
   tenantId: z.string().min(1),
   userId: z.string().min(1),
   subscriptionId: z.string().min(1),

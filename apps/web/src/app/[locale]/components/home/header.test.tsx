@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import deNavMessages from '@/messages/de/nav.json';
 import enCommonMessages from '@/messages/en/common.json';
 import enNavMessages from '@/messages/en/nav.json';
 import mkNavMessages from '@/messages/mk/nav.json';
@@ -22,6 +23,7 @@ const navCatalogs: Record<string, HeaderNavCatalog> = {
   en: enNavMessages.nav,
   sr: srNavMessages.nav,
   mk: mkNavMessages.nav,
+  de: deNavMessages.nav,
 };
 
 vi.mock('next-intl', () => ({
@@ -89,7 +91,7 @@ describe('Header', () => {
     expect(screen.getByTestId('public-header')).not.toHaveAttribute('role');
   });
 
-  it('opens a real four-locale control with 44px targets', () => {
+  it('opens a real five-locale control with 44px targets', () => {
     render(<Header />);
 
     const toggle = screen.getByRole('button', { name: enNavMessages.nav.language });
@@ -103,12 +105,13 @@ describe('Header', () => {
     const localeOptions = document.getElementById('public-locale-options');
     expect(localeOptions).toHaveClass('right-0');
     expect(localeOptions?.parentElement).toContainElement(toggle);
-    expect(localeLinks).toHaveLength(4);
+    expect(localeLinks).toHaveLength(5);
     expect(localeLinks.map(link => link.getAttribute('data-locale'))).toEqual([
       'sq',
       'en',
       'sr',
       'mk',
+      'de',
     ]);
     expect(localeLinks.every(link => link.className.includes('min-h-11'))).toBe(true);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
@@ -229,7 +232,7 @@ describe('Header', () => {
     }
   );
 
-  it.each(['sq', 'en', 'sr', 'mk'])('qualifies both destinations once for %s', locale => {
+  it.each(['sq', 'en', 'sr', 'mk', 'de'])('qualifies both destinations once for %s', locale => {
     const catalog = navCatalogs[locale];
     h.locale = locale;
 
@@ -243,7 +246,9 @@ describe('Header', () => {
     expect(catalog.myAccount).not.toBe('myAccount');
     expect(authAction()).toHaveTextContent(catalog.myAccount);
     expect(authAction()).toHaveAttribute('href', `/${locale}/member`);
-    expect(authAction().getAttribute('href')).not.toMatch(/^\/(sq|en|sr|mk)\/(sq|en|sr|mk)\//);
+    expect(authAction().getAttribute('href')).not.toMatch(
+      /^\/(sq|en|sr|mk|de)\/(sq|en|sr|mk|de)\//
+    );
   });
 
   it('returns to the login door when the member signs out', () => {

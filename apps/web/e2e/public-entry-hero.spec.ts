@@ -55,7 +55,7 @@ async function expectContrast(hero: Locator) {
 test.describe('Help Now public entry', () => {
   test('keeps truthful help-first behavior in all locales', async ({ browser }, info) => {
     await withAnonymousPage(browser, info, async page => {
-      for (const locale of ['sq', 'en', 'sr', 'mk'] as const) {
+      for (const locale of ['sq', 'en', 'sr', 'mk', 'de'] as const) {
         const hero = await openHero(page, info, locale);
         await expect(hero.getByRole('heading', { level: 1 })).toBeVisible();
         for (const id of ['vehicle', 'injury', 'property'] as const) {
@@ -89,7 +89,7 @@ test.describe('Help Now public entry', () => {
       await language.focus();
       await expect(language).toBeFocused();
       await language.press('Enter');
-      await expect(page.getByTestId('public-locale-option')).toHaveCount(4);
+      await expect(page.getByTestId('public-locale-option')).toHaveCount(5);
       await language.press('Escape');
 
       const vehicle = hero.getByTestId('public-entry-vehicle');

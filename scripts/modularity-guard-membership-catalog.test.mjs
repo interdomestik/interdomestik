@@ -9,5 +9,5 @@ test('S6 member payment recovery owns the canonical membership locale catalogs',
       's6-member-payment-recovery-i18n-contract'
     );
   }
-  assert.equal(structuredArtifactOwner('apps/web/src/messages/de/membership.json'), null);
+  assert.equal(structuredArtifactOwner('apps/web/src/messages/hr/membership.json'), null);
 });

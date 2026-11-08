@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   emailOTP: vi.fn((config: unknown) => config),
   normalizeSignInOtpLocale: vi.fn((value: string | null | undefined) =>
-    ['sq', 'en', 'sr', 'mk'].includes(value ?? '') ? value : 'en'
+    ['sq', 'en', 'sr', 'mk', 'de'].includes(value ?? '') ? value : 'en'
   ),
   sendPasswordResetEmail: vi.fn(),
   sendSignInOtpEmail: vi.fn(),
@@ -94,7 +94,8 @@ describe('authProviders email OTP plugin', () => {
     ['en', 'en'],
     ['sr', 'sr'],
     ['mk', 'mk'],
-    ['de', 'en'],
+    ['de', 'de'],
+    ['hr', 'en'],
   ])('allowlists the %s OTP wording locale as %s', async (header, expected) => {
     await otpPlugin.sendVerificationOTP(
       { email: 'member@example.com', otp: '123456', type: 'sign-in' },

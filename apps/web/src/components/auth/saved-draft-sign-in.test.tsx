@@ -21,7 +21,7 @@ describe('saved draft email-code sign-in recovery', () => {
       value: { hash: `#draft=${id}`, assign: h.assign },
     });
   });
-  it.each(['en', 'sq', 'mk', 'sr'])(
+  it.each(['en', 'sq', 'mk', 'sr', 'de'])(
     'rechecks exact ownership before returning in %s',
     async locale => {
       h.resume.mockResolvedValue({ ok: true, draft: { id } });

@@ -1,0 +1,163 @@
+{
+  "servicesPage": {
+    "meta": {
+      "title": "Schadensumfang & Leistungen - Asistenca",
+      "description": "Unterstützung mit Fokus auf Schadensfälle bei Fahrzeug-, Sach- und Personenschäden, mit klaren Grenzen für reine Beratung und Weiterleitung."
+    },
+    "hero": {
+      "badge": "Schadensumfang zum Start",
+      "title": "Zuerst Fahrzeug-, Sach- und Personenschäden",
+      "subtitle": "Free Start und die Mitgliedschaft beginnen mit den Schadensarten, die wir jetzt unterstützen können. Reine Beratungsfälle bleiben beratend, und Angelegenheiten außerhalb des Umfangs werden zum richtigen nächsten Schritt weitergeleitet."
+    },
+    "scope": {
+      "eyebrow": "Geschäftliche Grenzen",
+      "title": "Der Startumfang steht fest, bevor das Team mit der Bearbeitung beginnt",
+      "subtitle": "Diese Ansicht zeigt, welche Angelegenheiten zum aktuellen Erstattungsweg beim Start passen, welche nur beratend bleiben und wann Interdomestik zu Weiterleitung oder rechtlichen Wegen mit Zustimmung wechselt.",
+      "launch": {
+        "title": "Wird jetzt bearbeitet",
+        "description": "Diese Schadensarten passen zum Erstattungsweg beim Start, wenn ein plausibles finanzielles Ergebnis möglich ist.",
+        "items": [
+          "Fahrzeugschäden",
+          "Sachschäden",
+          "Personenschäden mit einem Weg zur finanziellen Erstattung"
+        ],
+        "note": "Free Start kann das Paket vorbereiten. Die Mitgliedschaft ergänzt eine Ersteinschätzung durch Menschen und eine Dokumentenprüfung vor jeder angenommenen Eskalation."
+      },
+      "guidance": {
+        "title": "Nur Beratung",
+        "description": "Diese Kategorien können weiterhin Beratung oder eine Dokumentenprüfung erhalten, gehen beim Start aber nicht in die Erstattung mit Erfolgshonorar.",
+        "items": [
+          "Streitigkeiten mit Vermietern ohne direkten Weg zur finanziellen Erstattung",
+          "Einbehaltener Lohn oder Arbeitsstreitigkeiten ohne klaren Auszahlungsweg",
+          "Durchsetzung von Reparaturen oder Streitigkeiten über Vertragskündigungen ohne direkte Auszahlung",
+          "Weitergehende Verbraucherbeschwerden außerhalb der Schadensarten zum Start"
+        ],
+        "note": "Diese Angelegenheiten bleiben beratend. Wir können beim Paket und einer Dokumentenprüfung helfen und dann weiterleiten, wenn ein Partnerweg sinnvoller ist."
+      },
+      "outOfScope": {
+        "title": "Außerhalb des Umfangs",
+        "description": "Diese Angelegenheiten sind nicht Teil des Startvertrags und werden nicht zur Bearbeitung durch das Team angenommen.",
+        "items": [
+          "Strafverteidigung",
+          "Scheidungs- und Familienrecht",
+          "Einwanderung",
+          "Allgemeine Geschäftsstreitigkeiten außerhalb definierter Gruppenpakete"
+        ],
+        "note": "Wir nehmen diese Angelegenheiten nicht zur Bearbeitung durch das Team an. Wo möglich, leiten wir Sie an einen geeigneteren externen Anbieter weiter."
+      },
+      "boundary": {
+        "title": "Grenzen der Weiterleitung",
+        "body": "Reine Beratungsfälle und Angelegenheiten außerhalb des Umfangs gehen nicht in die Bearbeitung mit Erfolgshonorar über. Sie bleiben je nach Fall beratend, in Eigenregie, Beratung im Rahmen der Mitgliedschaft oder reine Weiterleitung.",
+        "items": [
+          "Maßnahmen externer Rechtspartner erfordern nach Annahme des Falls eine separate schriftliche Zustimmung.",
+          "Entschädigung bei Flugverspätung bleibt außerhalb des aktuellen Startwegs und kommt in einer späteren Phase zurück."
+        ]
+      }
+    },
+    "disclaimers": {
+      "eyebrow": "Geschäftliche Hinweise",
+      "freeStart": {
+        "title": "Free Start dient nur der Information",
+        "body": "Free Start bietet Ihnen informative Hinweise, Vorlagen und Werkzeuge für den nächsten Schritt. Es startet weder eine Prüfung durch Menschen noch eine Rechtsberatung oder eine vom Team geführte Erstattung."
+      },
+      "hotline": {
+        "title": "Die Hotline bedeutet Weiterleitung und Unterstützung",
+        "body": "Die Hotline dient der dringenden Weiterleitung, Unterstützung und Hinweisen zum nächsten Schritt. Sie bedeutet keine sofortige rechtliche Prüfung, keine Annahme des Schadensfalls und keine Bearbeitung durch das Team."
+      }
+    },
+    "categories": {
+      "consultation": {
+        "title": "Enthaltene Hilfe vor einer vom Team geführten Erstattung",
+        "subtitle": "Was Free Start und die Mitgliedschaft auf dem Startweg umfassen",
+        "services": [
+          {
+            "title": "Free-Start-Schadenspaket",
+            "description": "Free Start bietet Ihnen die Prüfung der Voraussetzungen, eine Einschätzung, eine Checkliste für Nachweise, einen ersten Beschwerdebrief, einen Zeitplan und die Paketzustellung, ohne eine Prüfung durch Menschen zu starten.",
+            "badge": "FREE START"
+          },
+          {
+            "title": "Ersteinschätzung in der Mitgliedschaft",
+            "description": "Antwort auf die Ersteinschätzung durch Menschen innerhalb von 24 Geschäftsstunden nach einem vollständigen Schadenspaket, dazu Verfolgung im Dashboard.",
+            "badge": "MITGLIEDSCHAFT"
+          },
+          {
+            "title": "Dokumentenprüfung pro Angelegenheit",
+            "description": "Die Mitgliedschaft umfasst eine Dokumentenprüfung pro Angelegenheit, damit das Team fehlende Nachweise und Hinweise zum nächsten Schritt vor jeder angenommenen Eskalation bestätigen kann.",
+            "badge": "MITGLIEDSCHAFT"
+          },
+          {
+            "title": "Erster Beschwerde- oder Versichererbrief",
+            "description": "Der Startweg umfasst den ersten Brief an den Beschwerdegegner, den Versicherer oder die Gegenpartei, bevor die Verhandlungen beginnen.",
+            "badge": "ENTHALTEN"
+          },
+          {
+            "title": "Weiterleitung und Unterstützung per Hotline",
+            "description": "Dringende Weiterleitung und Unterstützung bleiben im öffentlichen Bereich und im Mitgliederbereich verfügbar, aber ein Hotline-Kontakt startet weder eine rechtliche Prüfung noch die Annahme eines Falls.",
+            "badge": "NUR WEITERLEITUNG"
+          },
+          {
+            "title": "Dokumentenhilfe nur mit Beratung",
+            "description": "Reine Beratungsstreitigkeiten können weiterhin Beratungspakete und eine Dokumentenprüfung erhalten, bleiben aber außerhalb der Erstattung mit Erfolgshonorar.",
+            "badge": "BERATUNG"
+          }
+        ]
+      },
+      "expertise": {
+        "title": "Wie eine vom Team geführte Eskalation beginnt",
+        "subtitle": "Die Bearbeitung durch das Team beginnt erst nach Prüfung, Annahme und Vereinbarung",
+        "services": [
+          {
+            "title": "Zuerst kommt die Annahme des Falls",
+            "description": "Die Bearbeitung durch das Team beginnt erst, nachdem die Prüfung des Umfangs einen Schadensfall im Startumfang, einen plausiblen Weg zur finanziellen Erstattung, eine identifizierbare Gegenpartei oder einen Versicherer und genügend Nachweise für die Prüfung bestätigt hat.",
+            "badge": "FALLPRÜFUNG"
+          },
+          {
+            "title": "Die Erstattungsarbeit beginnt nach der Vereinbarung",
+            "description": "Verhandlungen mit Versicherern und Gegenparteien, formelle Mediation und aktive Nachverfolgung der Erstattung beginnen erst nach Annahme des Falls und einer Eskalationsvereinbarung.",
+            "badge": "NACH ANNAHME"
+          }
+        ]
+      },
+      "legal": {
+        "title": "Separate Wege mit Zustimmung und Weiterleitung",
+        "subtitle": "Was eine schriftliche Zustimmung erfordert und was nur Beratung oder Weiterleitung bleibt",
+        "services": [
+          {
+            "title": "Weg über Rechtspartner und feste Kosten",
+            "description": "Maßnahmen externer Rechtspartner, Klageeinreichung, Gutachten, Übersetzungen, ärztliche Stellungnahmen und andere feste Kosten erfordern nach Annahme des Falls eine separate schriftliche Zustimmung.",
+            "badge": "SCHRIFTLICHE ZUSTIMMUNG"
+          },
+          {
+            "title": "Grenze für Beratung und Angelegenheiten außerhalb des Umfangs",
+            "description": "Reine Beratungsfälle und Angelegenheiten außerhalb des Umfangs gehen nicht in die Bearbeitung mit Erfolgshonorar über. Sie bleiben je nach Fall beratend, in Eigenregie, Beratung im Rahmen der Mitgliedschaft oder reine Weiterleitung.",
+            "badge": "NUR WEITERLEITUNG"
+          }
+        ]
+      }
+    },
+    "experts": {
+      "title": "Wer diesen Weg unterstützt",
+      "subtitle": "Ersteinschätzung, Dokumentenprüfung und Partnerkoordination im bestehenden Startumfang",
+      "list": [
+        {
+          "title": "Ersteinschätzung von Schadensfällen",
+          "description": "Prüfung des Umfangs und Hinweise zum nächsten Schritt, sobald ein vollständiges Paket die Ersteinschätzung der Mitgliedschaft erreicht."
+        },
+        {
+          "title": "Dokumentenprüfung",
+          "description": "Prüfung von Nachweisen und Dokumenten vor jeder angenommenen Eskalation oder separaten rechtlichen Zustimmung."
+        },
+        {
+          "title": "Partnerkoordination",
+          "description": "Weiterleitung und Übergabe an Rechtspartner nur, wenn die Angelegenheit zum Vertrag passt und das Mitglied zustimmt."
+        }
+      ]
+    },
+    "cta": {
+      "title": "Bereit loszulegen?",
+      "subtitle": "Beginnen Sie mit den Schadensarten, die wir jetzt unterstützen, oder kontaktieren Sie uns für Beratung und Weiterleitung, wenn Ihre Angelegenheit außerhalb des Startumfangs liegt.",
+      "primary": "Mitglied werden",
+      "secondary": "Kostenlose Beratung"
+    }
+  }
+}

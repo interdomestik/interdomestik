@@ -33,7 +33,7 @@ interface ClaimHeaderProps {
 
 function resolveRouteLocale(pathname: string | null, fallbackLocale: string): string {
   const routeLocale = pathname?.split('/')[1];
-  if (routeLocale && ['en', 'sq', 'mk', 'sr'].includes(routeLocale)) {
+  if (routeLocale && ['en', 'sq', 'mk', 'sr', 'de'].includes(routeLocale)) {
     return routeLocale;
   }
 

@@ -46,7 +46,7 @@ describe('subscription locale isolation', () => {
             userId: 'user_123',
             tenantId: 'tenant_mk',
             agentId: 'agent_1',
-            locale: 'de',
+            locale: 'hr',
           },
           items: [
             {

@@ -15,7 +15,7 @@ import { logAuditEvent } from '@/lib/audit';
 
 import type { Session } from './context';
 
-const LOCALES = ['en', 'sq', 'mk', 'sr'] as const;
+const LOCALES = ['en', 'sq', 'mk', 'sr', 'de'] as const;
 
 function revalidateAdminUserPaths(userId: string) {
   revalidatePath('/admin/users');

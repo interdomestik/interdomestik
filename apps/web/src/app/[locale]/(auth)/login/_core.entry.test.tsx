@@ -40,7 +40,7 @@ describe('LoginPage neutral single entry', () => {
 
   afterEach(() => restoreNeutralHostEnv(originalEnv));
 
-  it.each(['en', 'sq', 'mk', 'sr'])(
+  it.each(['en', 'sq', 'mk', 'sr', 'de'])(
     'renders the %s portal shell with a single password form and no tenant chooser',
     async locale => {
       hoisted.resolveTenantContextFromRequestMock.mockResolvedValueOnce(PUBLIC_FRONT_DOOR_CONTEXT);
@@ -144,7 +144,7 @@ describe('LoginPage neutral single entry', () => {
       'formRegionLabel',
     ];
 
-    for (const locale of ['en', 'sq', 'mk', 'sr']) {
+    for (const locale of ['en', 'sq', 'mk', 'sr', 'de']) {
       const file = readFileSync(join(process.cwd(), 'src/messages', locale, 'auth.json'), 'utf8');
       const messages = JSON.parse(file) as {
         auth?: { login?: { portal?: Record<string, string> } };

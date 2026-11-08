@@ -1,0 +1,9 @@
+{
+  "entityDisclosure": {
+    "title": "Vertragspartner",
+    "contractingCompany": "Vertragsgesellschaft",
+    "governingLaw": "Anwendbares Recht",
+    "unavailableTitle": "Vertragspartner nicht verfügbar",
+    "unavailableBody": "Wir können die Vertragsgesellschaft und das anwendbare Recht derzeit nicht anzeigen. Bitte wenden Sie sich an den Support, bevor Sie fortfahren."
+  }
+}

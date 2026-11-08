@@ -1,0 +1,201 @@
+{
+  "agent-crm": {
+    "crm": {
+      "dashboard": {
+        "title": "Vertriebsübersicht",
+        "subtitle": "Verfolgen Sie Ihre Leistung und Pipeline.",
+        "stats": {
+          "leads_new": "Neue Leads",
+          "leads_contacted": "Kontaktiert",
+          "deals_won": "Gewonnene Deals",
+          "commission": "Provision"
+        }
+      },
+      "leads": {
+        "title": "Lead-Verwaltung",
+        "subtitle": "Verwalten und konvertieren Sie Ihre potenziellen Mitglieder.",
+        "table": {
+          "name": "Name",
+          "stage": "Phase",
+          "source": "Quelle",
+          "last_contact": "Letzter Kontakt",
+          "actions": "Aktionen"
+        },
+        "stages": {
+          "new": "Neu",
+          "contacted": "Kontaktiert",
+          "qualified": "Qualifiziert",
+          "proposal": "Angebot",
+          "won": "Gewonnen",
+          "lost": "Verloren"
+        }
+      },
+      "taskQueue": {
+        "title": "Aufgaben-Warteschlange",
+        "description": "Offene CRM-Aufgaben zu Leads, die Ihnen zugewiesen sind.",
+        "count": "{count, plural, =0 {0 Aufgaben} one {# Aufgabe} other {# Aufgaben}}",
+        "countLabel": "{count, plural, =0 {Keine sichtbaren Aufgaben} one {# sichtbare Aufgabe} other {# sichtbare Aufgaben}}",
+        "empty": "Keine sichtbaren CRM-Aufgaben.",
+        "unknownLead": "Lead",
+        "openLead": "Lead öffnen",
+        "dueWithDate": "{bucket}: {date}",
+        "completed": {
+          "title": "Kürzlich erledigt",
+          "description": "Erledigte CRM-Aufgaben zu Leads, die Ihnen zugewiesen sind.",
+          "count": "{count, plural, =0 {0 Aufgaben} one {# Aufgabe} other {# Aufgaben}}",
+          "countLabel": "{count, plural, =0 {Keine kürzlich erledigten Aufgaben} one {# kürzlich erledigte Aufgabe} other {# kürzlich erledigte Aufgaben}}",
+          "empty": "Keine kürzlich erledigten CRM-Aufgaben.",
+          "completedAt": "Erledigt: {date}"
+        },
+        "actions": {
+          "group": "Aktionen im Aufgabenablauf",
+          "start": "Starten",
+          "starting": "Wird gestartet...",
+          "complete": "Erledigen",
+          "completing": "Wird erledigt...",
+          "success": {
+            "start": "Aufgabe gestartet.",
+            "complete": "Aufgabe erledigt."
+          },
+          "error": {
+            "unavailable": "Diese Aufgabe ist nicht mehr verfügbar.",
+            "conflict": "Diese Aufgabe hat sich geändert. Aktualisieren Sie die Warteschlange und versuchen Sie es erneut.",
+            "rate_limited": "Zu viele Versuche. Warten Sie einen Moment und versuchen Sie es erneut.",
+            "transient": "Die Aufgabe konnte nicht aktualisiert werden. Versuchen Sie es erneut."
+          }
+        },
+        "secondaryActions": {
+          "group": "Weitere Aufgabenaktionen",
+          "groupFor": "Weitere Aufgabenaktionen für {label}",
+          "open": "Weitere Aktionen",
+          "openFor": "Weitere Aktionen für {label}",
+          "close": "Aktionen schließen",
+          "closeFor": "Aktionen für {label} schließen"
+        },
+        "dueActions": {
+          "group": "Aktionen zum Fälligkeitsdatum",
+          "field": "Fälligkeitsdatum und -uhrzeit",
+          "edit": "Fälligkeitsdatum bearbeiten",
+          "save": "Fälligkeitsdatum speichern",
+          "saving": "Wird gespeichert...",
+          "clear": "Fälligkeitsdatum entfernen",
+          "clearing": "Wird entfernt...",
+          "cancel": "Abbrechen",
+          "success": {
+            "set": "Fälligkeitsdatum aktualisiert.",
+            "clear": "Fälligkeitsdatum entfernt."
+          },
+          "error": {
+            "unavailable": "Diese Aufgabe ist nicht mehr verfügbar.",
+            "invalid_date": "Geben Sie ein gültiges Datum und eine gültige Uhrzeit ein.",
+            "conflict": "Diese Aufgabe hat sich geändert. Aktualisieren Sie die Warteschlange und versuchen Sie es erneut.",
+            "rate_limited": "Zu viele Versuche. Warten Sie einen Moment und versuchen Sie es erneut.",
+            "transient": "Das Fälligkeitsdatum konnte nicht aktualisiert werden. Versuchen Sie es erneut."
+          }
+        },
+        "priorityActions": {
+          "group": "Aktionen zur Aufgabenpriorität",
+          "groupFor": "Aktionen zur Aufgabenpriorität für {label}",
+          "field": "Aufgabenpriorität",
+          "fieldFor": "Aufgabenpriorität für {label}",
+          "save": "Priorität speichern",
+          "saveFor": "Priorität für {label} speichern",
+          "saving": "Wird gespeichert...",
+          "success": "Priorität aktualisiert.",
+          "error": {
+            "unavailable": "Diese Aufgabe ist nicht mehr verfügbar.",
+            "invalid_priority": "Wählen Sie eine gültige Priorität.",
+            "conflict": "Diese Aufgabe hat sich geändert. Aktualisieren Sie die Warteschlange und versuchen Sie es erneut.",
+            "terminal": "Diese Aufgabe hat sich geändert. Aktualisieren Sie die Warteschlange und versuchen Sie es erneut.",
+            "rate_limited": "Zu viele Versuche. Warten Sie einen Moment und versuchen Sie es erneut.",
+            "transient": "Die Priorität konnte nicht aktualisiert werden. Versuchen Sie es erneut."
+          }
+        },
+        "cancelActions": {
+          "group": "Aktionen zum Abbrechen der Aufgabe",
+          "groupFor": "Aktionen zum Abbrechen der Aufgabe für {label}",
+          "confirmGroup": "Abbruch der Aufgabe bestätigen",
+          "confirmGroupFor": "Abbruch der Aufgabe für {label} bestätigen",
+          "field": "Grund für den Abbruch",
+          "open": "Aufgabe abbrechen",
+          "openFor": "Aufgabe für {label} abbrechen",
+          "placeholder": "Grund auswählen",
+          "confirm": "Abbruch bestätigen",
+          "confirming": "Wird abgebrochen...",
+          "dismiss": "Aufgabe behalten",
+          "success": "Aufgabe abgebrochen.",
+          "reasons": {
+            "not_needed": "Nicht benötigt",
+            "duplicate": "Doppelte Aufgabe",
+            "created_in_error": "Versehentlich angelegt"
+          },
+          "error": {
+            "unavailable": "Diese Aufgabe ist nicht mehr verfügbar.",
+            "invalid_reason": "Wählen Sie einen Grund für den Abbruch.",
+            "conflict": "Diese Aufgabe hat sich geändert. Aktualisieren Sie die Warteschlange und versuchen Sie es erneut.",
+            "rate_limited": "Zu viele Versuche. Warten Sie einen Moment und versuchen Sie es erneut.",
+            "transient": "Die Aufgabe konnte nicht abgebrochen werden. Versuchen Sie es erneut."
+          }
+        },
+        "reopenActions": {
+          "group": "Aktionen zur Wiederaufnahme der Aufgabe",
+          "groupFor": "Aktionen zur Wiederaufnahme der Aufgabe für {label}",
+          "confirmGroup": "Wiederaufnahme der Aufgabe bestätigen",
+          "confirmGroupFor": "Wiederaufnahme der Aufgabe für {label} bestätigen",
+          "field": "Grund für die Wiederaufnahme",
+          "open": "Aufgabe wieder öffnen",
+          "openFor": "Aufgabe für {label} wieder öffnen",
+          "placeholder": "Grund auswählen",
+          "confirm": "Wiederöffnen bestätigen",
+          "confirming": "Wird wieder geöffnet...",
+          "dismiss": "Als erledigt belassen",
+          "success": "Aufgabe wieder geöffnet.",
+          "reasons": {
+            "follow_up_required": "Nachfassen erforderlich",
+            "incomplete": "Aufgabe unvollständig",
+            "manually_reopened": "Manuelle Wiederaufnahme"
+          },
+          "error": {
+            "unavailable": "Diese Aufgabe ist nicht mehr verfügbar.",
+            "invalid_reason": "Wählen Sie einen Grund für die Wiederaufnahme.",
+            "conflict": "Diese Aufgabe hat sich geändert. Aktualisieren Sie die Warteschlange und versuchen Sie es erneut.",
+            "terminal": "Diese Aufgabe hat sich geändert. Aktualisieren Sie die Warteschlange und versuchen Sie es erneut.",
+            "rate_limited": "Zu viele Versuche. Warten Sie einen Moment und versuchen Sie es erneut.",
+            "transient": "Die Aufgabe konnte nicht wieder geöffnet werden. Versuchen Sie es erneut."
+          }
+        },
+        "labels": {
+          "manual": "Aufgabe",
+          "follow_up": "Nachfassen",
+          "support_handoff": "Support-Übergabe",
+          "assistance_review": "Prüfung der Unterstützung",
+          "data_quality": "Datenqualität"
+        },
+        "status": {
+          "pending": "Ausstehend",
+          "in_progress": "In Bearbeitung",
+          "completed": "Erledigt"
+        },
+        "completionReasons": {
+          "resolved": "Gelöst",
+          "no_longer_needed": "Nicht mehr benötigt",
+          "duplicate": "Doppelte Aufgabe",
+          "converted": "Konvertiert",
+          "manually_closed": "Manuell geschlossen"
+        },
+        "priority": {
+          "low": "Niedrig",
+          "normal": "Normal",
+          "high": "Hoch",
+          "urgent": "Dringend"
+        },
+        "dueBucket": {
+          "overdue": "Überfällig",
+          "due_today": "Heute fällig",
+          "upcoming": "Demnächst",
+          "undated": "Kein Fälligkeitsdatum"
+        }
+      }
+    }
+  }
+}

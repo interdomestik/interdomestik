@@ -121,7 +121,7 @@ describe('member portal request context', () => {
     });
   });
 
-  it.each(['', 'de', 'SQ', '../../admin'])(
+  it.each(['', 'hr', 'SQ', '../../admin'])(
     'rejects unsupported locale %s before locale setup, identity or projections',
     async locale => {
       await expect(getMemberPortalContext(locale)).rejects.toThrow('notFound');

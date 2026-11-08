@@ -32,7 +32,7 @@ beforeEach(() => {
   h.parseAcknowledge.mockImplementation(input => ({ success: true, data: input }));
   h.parseFulfil.mockImplementation(input => ({ success: true, data: input }));
 });
-it('obtains the session server-side and refreshes both mounted routes in four locales', async () => {
+it('obtains the session server-side and refreshes both mounted routes in five locales', async () => {
   const session = { user: { id: 'staff' } };
   const input = { claimId: 'claim-1' };
   h.context.mockResolvedValue({ session, authority });
@@ -41,7 +41,7 @@ it('obtains the session server-side and refreshes both mounted routes in four lo
   expect(h.create).toHaveBeenCalledWith(session, authority, input);
   expect(h.create.mock.calls[0][1]).toBe(authority);
   expect(h.revalidate.mock.calls.map(([path]) => path).sort()).toEqual(
-    ['en', 'mk', 'sq', 'sr']
+    ['de', 'en', 'mk', 'sq', 'sr']
       .flatMap(locale => [`/${locale}/member/claims/claim-1`, `/${locale}/staff/claims/claim-1`])
       .sort()
   );
@@ -66,7 +66,7 @@ it('refreshes both mounted routes after assigned staff acknowledges evidence', a
 
   expect(h.acknowledge).toHaveBeenCalledWith(session, authority, input);
   expect(h.acknowledge.mock.calls[0][1]).toBe(authority);
-  expect(h.revalidate).toHaveBeenCalledTimes(8);
+  expect(h.revalidate).toHaveBeenCalledTimes(10);
 });
 
 it('refreshes member and staff views only after fulfilment succeeds', async () => {
@@ -88,5 +88,5 @@ it('refreshes member and staff views only after fulfilment succeeds', async () =
   await fulfilClaimInformationRequest(input);
   expect(h.fulfil).toHaveBeenCalledWith(session, authority, input);
   expect(h.fulfil.mock.calls[0][1]).toBe(authority);
-  expect(h.revalidate).toHaveBeenCalledTimes(8);
+  expect(h.revalidate).toHaveBeenCalledTimes(10);
 });

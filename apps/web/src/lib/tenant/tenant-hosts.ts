@@ -11,7 +11,7 @@ import type { TenantResolutionResult } from './tenant-resolution-types';
 
 export type { TenantId } from './tenant-host-aliases';
 export type { TenantResolutionResult, TenantResolutionSource } from './tenant-resolution-types';
-export type TenantLocale = 'sq' | 'en' | 'sr' | 'mk';
+export type TenantLocale = 'sq' | 'en' | 'sr' | 'mk' | 'de';
 
 export const TENANT_COOKIE_NAME = 'tenantId';
 export const TENANT_HEADER_NAME = 'x-tenant-id';
