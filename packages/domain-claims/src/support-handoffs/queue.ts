@@ -5,6 +5,7 @@ import {
   desc,
   eq,
   membershipPlans,
+  inArray,
   subscriptions,
   supportHandoffs,
   user,
@@ -13,6 +14,7 @@ import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
+import { resolveEffectiveMembership } from '@interdomestik/domain-membership-billing/sponsor-coverage';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasSupportHandoffCurrentCycleMemberReply } from '@interdomestik/domain-crm/support-handoffs';
 import { aliasedTable, type SQL } from 'drizzle-orm';
@@ -20,28 +22,17 @@ import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
 import type {
   SupportHandoffContactPreference,
   SupportHandoffQueueAssignmentFilter,
-  SupportHandoffQueueAttentionFilter,
   SupportHandoffQueueItem,
   SupportHandoffStaffDetail,
   SupportHandoffStatus,
   SupportHandoffTrustRisk,
   SupportHandoffUrgency,
 } from './types';
-import {
-  buildOwnOrUnassignedStaffScope,
-  buildStaffSupportHandoffQueueScope,
-  type SupportHandoffClaimLinkFilter,
-} from './queue-scope';
+import { buildOwnOrUnassignedStaffScope, buildStaffSupportHandoffQueueScope } from './queue-scope';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export { buildStaffSupportHandoffQueueScope } from './queue-scope';
 export type { SupportHandoffClaimLinkFilter } from './queue-scope';
-
-function normalizeDate(value: Date | string | null | undefined) {
-  if (!value) return new Date(0).toISOString();
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? new Date(0).toISOString() : date.toISOString();
-}
 
 function normalizeNullableDate(value: Date | string | null | undefined) {
   if (!value) return null;
@@ -58,51 +49,38 @@ function normalizeContactPreference(
   return 'staff_reply';
 }
 
-export async function getStaffSupportHandoffQueue(params: {
-  authority: TenantAuthority;
-  assignment?: SupportHandoffQueueAssignmentFilter;
-  attention?: SupportHandoffQueueAttentionFilter;
-  branchId?: string | null;
-  claimLink?: SupportHandoffClaimLinkFilter;
-  limit: number;
-  search?: string;
-  staffId: string;
-  status?: SupportHandoffStatus | 'all';
-  urgency?: SupportHandoffUrgency | 'all';
-  viewerRole?: string | null;
-}): Promise<SupportHandoffQueueItem[]> {
+export async function getStaffSupportHandoffQueue(
+  params: Omit<
+    Parameters<typeof buildStaffSupportHandoffQueueScope>[0],
+    'tenantId' | 'assignment' | 'status'
+  > & {
+    authority: TenantAuthority;
+    assignment?: SupportHandoffQueueAssignmentFilter;
+    status?: SupportHandoffStatus | 'all';
+    limit: number;
+  }
+): Promise<SupportHandoffQueueItem[]> {
   const { tenantId } = readTenantAuthority(params.authority);
   const staffUser = aliasedTable(user, 'support_handoff_staff');
   const agentUser = aliasedTable(user, 'support_handoff_agent');
-  const rows = await withTenantAuthority(params.authority, tx =>
-    tx
+  return withTenantAuthority(params.authority, async tx => {
+    const rows = await tx
       .select({
-        id: supportHandoffs.id,
-        subject: supportHandoffs.subject,
-        message: supportHandoffs.message,
-        status: supportHandoffs.status,
-        urgency: supportHandoffs.urgency,
-        trustRisk: supportHandoffs.trustRisk,
-        lifecycleVersion: supportHandoffs.lifecycleVersion,
-        memberReplyAt: supportHandoffs.memberReplyAt,
-        memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
-        publicResponseAt: supportHandoffs.publicResponseAt,
-        publicResponseVersion: supportHandoffs.publicResponseVersion,
-        createdAt: supportHandoffs.createdAt,
-        updatedAt: supportHandoffs.updatedAt,
-        staffId: supportHandoffs.staffId,
+        handoff: supportHandoffs,
         staffName: staffUser.name,
-        memberId: user.id,
-        memberName: user.name,
-        memberEmail: user.email,
-        memberNumber: user.memberNumber,
-        claimId: claims.id,
-        claimNumber: claims.claimNumber,
-        claimTitle: claims.title,
-        claimStatus: claimLifecycleStatusSql(),
+        member: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          memberNumber: user.memberNumber,
+        },
+        claim: {
+          id: claims.id,
+          claimNumber: claims.claimNumber,
+          title: claims.title,
+          status: claimLifecycleStatusSql(),
+        },
         branchName: branches.name,
-        planName: membershipPlans.name,
-        membershipStatus: subscriptions.status,
         agentName: agentUser.name,
       })
       .from(supportHandoffs)
@@ -124,72 +102,82 @@ export async function getStaffSupportHandoffQueue(params: {
         )
       )
       .leftJoin(
-        membershipPlans,
-        and(eq(subscriptions.planKey, membershipPlans.id), eq(membershipPlans.tenantId, tenantId))
-      )
-      .leftJoin(
         agentUser,
         and(eq(subscriptions.agentId, agentUser.id), eq(agentUser.tenantId, tenantId))
       )
       .where(
         buildStaffSupportHandoffQueueScope({
+          ...params,
           assignment: params.assignment ?? 'all',
           attention: params.attention ?? 'all',
-          branchId: params.branchId,
           claimLink: params.claimLink ?? 'all',
-          search: params.search,
-          staffId: params.staffId,
           status: params.status ?? 'open',
           tenantId,
           urgency: params.urgency ?? 'all',
-          viewerRole: params.viewerRole,
         })
       )
       .orderBy(desc(supportHandoffs.createdAt), desc(supportHandoffs.id))
-      .limit(params.limit)
-  );
-
-  return rows.map(row => ({
-    id: row.id,
-    subject: row.subject,
-    message: row.message,
-    status: row.status as SupportHandoffStatus,
-    urgency: row.urgency as SupportHandoffUrgency,
-    trustRisk: row.trustRisk as SupportHandoffTrustRisk,
-    lifecycleVersion: row.lifecycleVersion,
-    needsFollowUp:
-      row.status === 'accepted' &&
-      hasSupportHandoffCurrentCycleMemberReply({
-        memberReplyAt: normalizeNullableDate(row.memberReplyAt),
-        memberReplyResponseVersion: row.memberReplyResponseVersion ?? null,
-        publicResponseVersion: row.publicResponseVersion ?? 0,
-      }),
-    publicResponseAt: normalizeNullableDate(row.publicResponseAt),
-    createdAt: normalizeDate(row.createdAt),
-    updatedAt: normalizeDate(row.updatedAt),
-    staffId: row.staffId ?? null,
-    staffName: row.staffName ?? null,
-    member: {
-      id: row.memberId ?? '',
-      name: row.memberName ?? '',
-      email: row.memberEmail ?? null,
-      memberNumber: row.memberNumber ?? null,
-    },
-    claim: row.claimId
-      ? {
-          id: row.claimId,
-          claimNumber: row.claimNumber ?? null,
-          title: row.claimTitle ?? null,
-          status: row.claimStatus ?? null,
-        }
-      : null,
-    relationship: {
-      branchName: row.branchName ?? null,
-      planName: row.planName ?? null,
-      membershipStatus: row.membershipStatus ?? null,
-      agentName: row.agentName ?? null,
-    },
-  }));
+      .limit(params.limit);
+    const memberIds = [...new Set(rows.flatMap(row => (row.member ? [row.member.id] : [])))];
+    const memberships = await resolveEffectiveMembership(tx, tenantId, memberIds, new Date());
+    const effective = new Map(
+      [...memberships].map(([id, membership]) => [
+        id,
+        membership.source === 'sponsor'
+          ? { planKey: membership.planKey, ...membership.lifecycle }
+          : membership.source === 'subscription'
+            ? membership.subscription
+            : null,
+      ])
+    );
+    const planKeys = [
+      ...new Set([...effective.values()].flatMap(row => (row?.planKey ? [row.planKey] : []))),
+    ];
+    const plans = planKeys.length
+      ? await tx
+          .select({ id: membershipPlans.id, name: membershipPlans.name })
+          .from(membershipPlans)
+          .where(and(eq(membershipPlans.tenantId, tenantId), inArray(membershipPlans.id, planKeys)))
+      : [];
+    return rows.map(row => {
+      const membership = effective.get(row.member?.id ?? '');
+      const handoff = row.handoff;
+      return {
+        id: handoff.id,
+        subject: handoff.subject,
+        message: handoff.message,
+        status: handoff.status as SupportHandoffStatus,
+        urgency: handoff.urgency as SupportHandoffUrgency,
+        trustRisk: handoff.trustRisk as SupportHandoffTrustRisk,
+        lifecycleVersion: handoff.lifecycleVersion,
+        needsFollowUp:
+          handoff.status === 'accepted' &&
+          hasSupportHandoffCurrentCycleMemberReply({
+            memberReplyAt: normalizeNullableDate(handoff.memberReplyAt),
+            memberReplyResponseVersion: handoff.memberReplyResponseVersion ?? null,
+            publicResponseVersion: handoff.publicResponseVersion ?? 0,
+          }),
+        publicResponseAt: normalizeNullableDate(handoff.publicResponseAt),
+        createdAt: normalizeNullableDate(handoff.createdAt) ?? new Date(0).toISOString(),
+        updatedAt: normalizeNullableDate(handoff.updatedAt) ?? new Date(0).toISOString(),
+        staffId: handoff.staffId ?? null,
+        staffName: row.staffName ?? null,
+        member: {
+          id: row.member?.id ?? '',
+          name: row.member?.name ?? '',
+          email: row.member?.email ?? null,
+          memberNumber: row.member?.memberNumber ?? null,
+        },
+        claim: row.claim?.id ? row.claim : null,
+        relationship: {
+          branchName: row.branchName ?? null,
+          planName: plans.find(plan => plan.id === membership?.planKey)?.name ?? null,
+          membershipStatus: membership?.status ?? null,
+          agentName: row.agentName ?? null,
+        },
+      };
+    });
+  });
 }
 
 export async function getStaffSupportHandoffDetail(params: {

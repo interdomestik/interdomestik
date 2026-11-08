@@ -12,6 +12,7 @@ import {
 } from '@interdomestik/database/tenant-authority';
 
 import { PaddleSubscriptionReferenceAmbiguousError } from './paddle-webhooks/errors';
+import { resolveEffectiveMembership } from './sponsor-coverage/resolve';
 
 import {
   getMembershipLifecycleBucket,
@@ -35,15 +36,18 @@ export async function hasActiveMembership(
   authority: TenantAuthority
 ): Promise<boolean> {
   const { tenantId } = readTenantAuthority(authority);
-  const sub = await withTenantAuthority(authority, tx =>
-    tx.query.subscriptions.findFirst({
-      where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
-    })
-  );
-
-  if (!sub) return false;
-
-  return membershipLifecycleGrantsAccess(getMembershipLifecycleBucket({ subscription: sub }));
+  return withTenantAuthority(authority, async tx => {
+    const now = new Date();
+    const memberships = await resolveEffectiveMembership(tx, tenantId, [userId], now);
+    const membership = memberships.get(userId);
+    const subscription =
+      membership?.source === 'sponsor'
+        ? membership.lifecycle
+        : membership?.source === 'subscription'
+          ? membership.subscription
+          : null;
+    return membershipLifecycleGrantsAccess(getMembershipLifecycleBucket({ subscription, now }));
+  });
 }
 
 export type PaddleSubscriptionLookup = {
@@ -132,18 +136,35 @@ export function resolveProviderSubscriptionHandle(subscription: {
     : subscription.id;
 }
 
-export async function getActiveSubscription(userId: string, authority: TenantAuthority) {
+export async function getActiveSubscription(
+  userId: string,
+  authority: TenantAuthority
+): Promise<typeof subscriptions.$inferSelect | null> {
   const { tenantId } = readTenantAuthority(authority);
-  const sub = await withTenantAuthority(authority, tx =>
-    tx.query.subscriptions.findFirst({
+  return withTenantAuthority(authority, async tx => {
+    const now = new Date();
+    const memberships = await resolveEffectiveMembership(tx, tenantId, [userId], now);
+    const membership = memberships.get(userId);
+    if (!membership || membership.source === 'none') return null;
+    if (membership.source === 'subscription') {
+      const sub = membership.subscription;
+      return membershipLifecycleGrantsAccess(
+        getMembershipLifecycleBucket({ subscription: sub, now })
+      )
+        ? sub
+        : null;
+    }
+    const sub = await tx.query.subscriptions.findFirst({
       where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
-    })
-  );
-
-  if (!sub) return null;
-
-  const bucket = getMembershipLifecycleBucket({ subscription: sub });
-  if (!membershipLifecycleGrantsAccess(bucket)) return null;
-
-  return sub;
+    });
+    if (!sub) return null;
+    return {
+      ...sub,
+      ...membership.lifecycle,
+      planId: membership.planId,
+      planKey: membership.planKey,
+      currentPeriodStart: membership.windowStart,
+      currentPeriodEnd: membership.windowEnd,
+    };
+  });
 }
