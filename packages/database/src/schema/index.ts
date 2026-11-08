@@ -45,3 +45,6 @@ export * from './tracking';
 
 // Seed infrastructure
 export * from './seed-meta';
+export * from './sponsors';
+export * from './sponsor-handover';
+export * from './sponsor-roster';

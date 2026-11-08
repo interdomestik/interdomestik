@@ -78,6 +78,7 @@ export const subscriptions = pgTable(
     uniqueIndex('idx_subscriptions_user').on(table.userId),
     uniqueIndex('idx_subscriptions_provider_subscription').on(table.providerSubscriptionId),
     uniqueIndex('subscriptions_tenant_id_id_uq').on(table.tenantId, table.id),
+    uniqueIndex('subscriptions_tenant_id_id_user_uq').on(table.tenantId, table.id, table.userId),
     index('subscriptions_legal_entity_idx').on(table.legalEntityId),
     check(
       'subscriptions_governing_law_snapshot_check',
