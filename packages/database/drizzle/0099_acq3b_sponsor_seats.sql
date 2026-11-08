@@ -336,7 +336,8 @@ BEGIN
      (OLD.id, OLD.tenant_id, OLD.intent_id, OLD.attempt_no, OLD.dispatched_at,
       OLD.authorizing_entry_id, OLD.authorizing_term_id, OLD.authorizing_term_start,
       OLD.authorizing_end, OLD.boundary_at)
-     OR OLD.outcome <> 'unknown' THEN
+     OR OLD.outcome <> 'unknown'
+     OR NEW.outcome = 'unknown' THEN
     RAISE EXCEPTION 'sponsor_handover_cancel_attempts: only one move from unknown is allowed'
       USING ERRCODE = 'check_violation';
   END IF;
