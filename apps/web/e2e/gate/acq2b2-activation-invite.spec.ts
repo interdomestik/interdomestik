@@ -183,6 +183,11 @@ test.describe('ACQ-2b2 member activation invite', () => {
         .from(user)
         .where(sql`lower(${user.email}) = ${owned.email.toLowerCase()}`);
       expect(mailbox).toEqual([{ id: memberId }]);
+
+      // The password set from the invite verifies the mailbox (ACQ-2c): no resend is offered any more.
+      await gotoApp(adminPage, history, testInfo, { marker: 'verification-ops-page' });
+      await expect(historyRow).toBeVisible();
+      await expect(historyRow.getByTestId('resend-activation-invite')).toHaveCount(0);
     } finally {
       await context.close();
       if (memberId) {
