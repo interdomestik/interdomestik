@@ -128,6 +128,7 @@ export const AGENT_NAMESPACES = [
   'messaging',
   'notifications',
   'settings',
+  'sponsors',
 ] as const;
 export const STAFF_NAMESPACES = [
   'common',
@@ -141,6 +142,7 @@ export const STAFF_NAMESPACES = [
   'notifications',
   'settings',
   'staff-crm',
+  'sponsors',
   'sponsorTasks',
 ] as const;
 export const ADMIN_NAMESPACES = [
@@ -166,6 +168,8 @@ export const ADMIN_NAMESPACES = [
   'claims-tracking',
   'messaging',
   'notifications',
+  'sponsors',
+  'sponsorTasks',
 ] as const;
 import { mergeMessages } from './utils/merge';
 type LoadAllMessagesOptions = { strict?: boolean };
