@@ -1,10 +1,14 @@
-import type { TenantTransaction } from '@interdomestik/database';
+import { inArray, sponsorRosterEntries, type TenantTransaction } from '@interdomestik/database';
 import { lockSponsorPerson } from '@interdomestik/database/sponsor-locks';
 import { describe, expect, it, vi } from 'vitest';
 
 import { auditTransaction } from './audit-test-support';
 import { bindEntryIdentity } from './provisioning-identity';
 
+vi.mock('@interdomestik/database', async importOriginal => {
+  const actual = await importOriginal<typeof import('@interdomestik/database')>();
+  return { ...actual, inArray: vi.fn(actual.inArray) };
+});
 vi.mock('@interdomestik/database/sponsor-locks', () => ({
   lockSponsorEntryIdentity: vi.fn(),
   lockSponsorPerson: vi.fn(),
@@ -50,7 +54,10 @@ describe('bindEntryIdentity after an insert conflict', () => {
   });
 
   it('takes lock 2, terms and entries before it writes the binding (retention order)', async () => {
-    const db = auditTransaction({ selects: [[{ userId: null }], [{ id: 'usr_existing' }]] });
+    // Unbound entry, one visible account, then the term subquery and the locked terms.
+    const db = auditTransaction({
+      selects: [[{ userId: null }], [{ id: 'usr_existing' }], [], [{ id: 'term' }]],
+    });
     const order: unknown[] = [];
     vi.mocked(lockSponsorPerson).mockImplementation(async () => void order.push('person'));
     const select = (...args: Parameters<typeof db.tx.select>): unknown => {
@@ -69,5 +76,7 @@ describe('bindEntryIdentity after an insert conflict', () => {
     const tx = { ...db.tx, select, update } as unknown as TenantTransaction;
     expect(await bind(tx)).toEqual({ kind: 'bound', userId: 'usr_existing', created: false });
     expect(order).toEqual(['person', 'share', 'update', 'write']);
+    // An entry uploaded meanwhile into another term is not locked here (that term is not held).
+    expect(inArray).toHaveBeenCalledWith(sponsorRosterEntries.termId, ['term']);
   });
 });

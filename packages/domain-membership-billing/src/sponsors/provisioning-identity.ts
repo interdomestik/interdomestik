@@ -98,6 +98,8 @@ export async function bindEntryIdentity(
  * §3.5 order before the binding write, as admission and retention expect: lock 2, then the
  * person's terms and this entry's term `FOR SHARE`, then those entries `FOR UPDATE`, in id order.
  * Writing the entry first would hold its row while waiting for a term retention already holds.
+ * Only entries of the terms locked here are locked: an entry uploaded meanwhile into another term
+ * is left to admission, which takes that term before its entries (never a term after an entry).
  */
 async function lockBindingRows(
   tx: TenantTransaction,
@@ -114,16 +116,25 @@ async function lockBindingRows(
     .select({ termId: sponsorRosterEntries.termId })
     .from(sponsorRosterEntries)
     .where(rows);
-  await tx
+  const locked = await tx
     .select({ id: sponsorTerms.id })
     .from(sponsorTerms)
     .where(and(eq(sponsorTerms.tenantId, tenantId), inArray(sponsorTerms.id, termIds)))
     .orderBy(asc(sponsorTerms.id))
     .for('share');
+  if (locked.length === 0) return;
   await tx
     .select({ id: sponsorRosterEntries.id })
     .from(sponsorRosterEntries)
-    .where(rows)
+    .where(
+      and(
+        rows,
+        inArray(
+          sponsorRosterEntries.termId,
+          locked.map(term => term.id)
+        )
+      )
+    )
     .orderBy(asc(sponsorRosterEntries.id))
     .for('update');
 }
