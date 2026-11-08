@@ -114,7 +114,13 @@ test('ACQ-3b office agent creates a contract; independent staff approves; CSV pr
           ].join('\n')
         ),
       });
-      await upload.getByRole('button').click();
+      // The file input also has the button role; submit by the action's own name.
+      await upload
+        .getByRole('button', {
+          name: copy(locale, 'sponsors', 'actions.uploadRoster'),
+          exact: true,
+        })
+        .click();
       await expect(upload.getByRole('status')).toHaveText(
         copy(locale, 'sponsors', 'uploadSummary', {
           inserted: 4,
