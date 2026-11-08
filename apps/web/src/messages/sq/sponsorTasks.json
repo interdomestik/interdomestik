@@ -38,7 +38,7 @@
       "renewing_as_member": "Paddle tregon aktiv pa ndryshim të planifikuar"
     },
     "errors": {
-      "forbidden": "Vetëm stafi me tenant dhe degë të vlefshme mund t’i përdorë këto detyra.",
+      "forbidden": "Vetëm stafi me organizatë dhe degë të vlefshme mund t’i përdorë këto detyra.",
       "invalid": "Kontrolloni ID-të, datën deri kur është paguar dhe rezultatin e mbylljes.",
       "not_found": "Kjo detyrë nuk është më e disponueshme. Rifreskoni listën.",
       "conflict": "Gjendja e detyrës ndryshoi. Rifreskoni dhe shqyrtojeni.",
@@ -51,14 +51,14 @@
     },
     "reasons": {
       "paddle_state": "Paddle kërkon shqyrtim. Kontrolloni abonimin dhe kalimin e tij; regjistroni provën pas anulimit ose mbyllni kalimin kur Paddle e lejon.",
-      "empty_interval": "Vendi do të fillonte në ose pas përfundimit të tij. Shqyrtoni datat e kontratës dhe provën e pagesës me stafin përgjegjës.",
+      "empty_interval": "Vendi do të fillonte në ose pas përfundimit të tij. Shqyrtoni datat e kontratës dhe provën për datën deri kur është paguar me stafin përgjegjës.",
       "binding": "Hyrja nuk mund të lidhej në mënyrë të sigurt me një llogari. Shqyrtoni listën dhe identitetin e llogarisë me stafin përgjegjës.",
       "unknown": "Arsyeja kërkon shqyrtim nga stafi. Kontrolloni hyrjen para se të veproni."
     },
     "kinds": {
       "intent_review": {
         "title": "Shqyrtimi i kalimit",
-        "help": "Kontrolloni Paddle dhe udhëzimet e anëtarit. Regjistroni provën e pagesës vetëm një herë ose mbyllni kalimin me gjendje të verifikuar në Paddle."
+        "help": "Kontrolloni Paddle dhe udhëzimet e anëtarit. Regjistroni vetëm një herë provën për datën deri kur është paguar ose mbyllni kalimin me gjendje të verifikuar në Paddle."
       },
       "observed_cancel": {
         "title": "Anulimet e vërejtura",
