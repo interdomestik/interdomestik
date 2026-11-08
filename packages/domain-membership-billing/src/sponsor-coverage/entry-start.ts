@@ -1,6 +1,7 @@
 import {
   and,
   eq,
+  inArray,
   sponsorMailOutbox,
   sponsorRosterEntries,
   type TenantTransaction,
@@ -77,4 +78,58 @@ export async function produceEntryStart(
     )
     .onConflictDoNothing({ target: sponsorMailOutbox.idempotencyKey });
   return plan;
+}
+
+/**
+ * The producer for several entries of one person in one transaction (evidence publication, §3.7
+ * step 2): the same plan per entry, written as one update per outcome and one outbox insert.
+ */
+export async function produceEntryStarts(
+  tx: TenantTransaction,
+  params: {
+    tenantId: string;
+    starts: readonly { entryId: string; interval: EntryInterval }[];
+    handover: boolean;
+    hasCredential: boolean;
+  }
+): Promise<EntryStartPlan[]> {
+  const planned = params.starts.map(start => ({
+    entryId: start.entryId,
+    plan: planEntryStart(start.interval, params),
+  }));
+  const idsWith = (outcome: EntryStartPlan['outcome']) =>
+    planned.filter(item => item.plan.outcome === outcome).map(item => item.entryId);
+  const seated = idsWith('seated');
+  const review = idsWith('staff_review');
+  const where = (ids: string[]) =>
+    and(eq(sponsorRosterEntries.tenantId, params.tenantId), inArray(sponsorRosterEntries.id, ids));
+  if (seated.length > 0) {
+    await tx
+      .update(sponsorRosterEntries)
+      .set({ outcome: 'seated', reviewReason: null })
+      .where(where(seated));
+  }
+  if (review.length > 0) {
+    await tx
+      .update(sponsorRosterEntries)
+      .set({ outcome: 'staff_review', reviewReason: 'empty_interval' })
+      .where(where(review));
+  }
+  const mails = planned.flatMap(item =>
+    item.plan.mails.map(mail => ({
+      id: nanoid(),
+      tenantId: params.tenantId,
+      rosterEntryId: item.entryId,
+      kind: mail.kind,
+      idempotencyKey: entryStartIdempotencyKey(item.entryId, mail.kind),
+      ...(mail.notBefore ? { nextAttemptAt: mail.notBefore.toISOString() } : {}),
+    }))
+  );
+  if (mails.length > 0) {
+    await tx
+      .insert(sponsorMailOutbox)
+      .values(mails)
+      .onConflictDoNothing({ target: sponsorMailOutbox.idempotencyKey });
+  }
+  return planned.map(item => item.plan);
 }
