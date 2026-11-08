@@ -3,7 +3,7 @@ import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matri
 import { getSessionSafe } from '@/components/shell/session';
 import { MembershipOpsPage } from '@/features/member/membership/components/MembershipOpsPage';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import {
   getMemberDocumentsCore,
@@ -13,7 +13,8 @@ import {
 
 export default async function MembershipPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  const coverageMatrix = await getTranslations('coverageMatrix');
+  setRequestLocale(locale);
+  const coverageMatrix = await getTranslations({ locale, namespace: 'coverageMatrix' });
   const session = await getSessionSafe('MemberMembershipPage');
 
   if (!session) {

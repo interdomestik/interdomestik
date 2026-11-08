@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { describe, expect, it, vi } from 'vitest';
 import { expectCoverageMatrix, getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 
@@ -23,6 +24,7 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('next-intl/server', () => ({
+  setRequestLocale: vi.fn(),
   getTranslations: vi.fn(async (options?: { namespace?: string } | string) =>
     getNamespacedTranslation(options)
   ),
@@ -65,6 +67,8 @@ describe('MembershipPage commercial coverage matrix', () => {
       rowKey: 'coverageMatrix.rows.guidance.title',
       sectionTestId: 'membership-coverage-matrix',
     });
+    expect(setRequestLocale).toHaveBeenCalledWith('en');
+    expect(getTranslations).toHaveBeenCalledWith({ locale: 'en', namespace: 'coverageMatrix' });
     expect(hoisted.getSessionSafeMock).toHaveBeenCalledWith('MemberMembershipPage');
     expect(hoisted.ensureTenantIdMock).toHaveBeenCalledWith({
       user: {
