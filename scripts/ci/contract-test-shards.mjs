@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { contractScratch } from './contract-test-scratch.mjs';
 
@@ -154,25 +155,48 @@ function runShard(root, name, files, { capture, skipArgs = [] }) {
     child.stderr.on('data', chunk => chunks.push(chunk));
   }
   child.on('error', reportError);
+  // Cleanup starts when the runner exits, not when its stdio closes: a descendant that keeps a
+  // pipe open must not postpone the bounded wait. Captured output then drains for at most 2 s.
+  const closed = new Promise(resolve => child.once('close', resolve));
   const result = new Promise(resolve => {
-    child.once('close', async (code, signal) => {
+    let ended = false;
+    const end = async (code, signal) => {
+      if (ended) return; // 'close' alone ends a runner that failed to spawn.
+      ended = true;
       try {
         await scratch.cleanup(child.pid);
       } catch (error) {
         reportError(error);
       }
+      const drained = await Promise.race([
+        closed.then(() => true),
+        delay(2000, false, { ref: false }),
+      ]);
+      if (!drained) {
+        child.stdout?.destroy();
+        child.stderr?.destroy();
+      }
       finished = true;
       resolve(outcome(code, signal));
-    });
+    };
+    child.once('exit', end).once('close', end);
   });
+  let escalation;
+  const signalChild = signal => {
+    try {
+      scratch.stop(child, signal);
+    } catch (error) {
+      reportError(error);
+    }
+  };
   return {
+    // An interrupted runner that ignores the signal is killed after 5 s, with its group.
     stop(signal) {
       if (finished) return;
-      try {
-        scratch.stop(child, signal);
-      } catch (error) {
-        reportError(error);
-      }
+      signalChild(signal);
+      escalation ??= setTimeout(() => {
+        if (!finished) signalChild('SIGKILL');
+      }, 5000).unref();
     },
     result,
   };

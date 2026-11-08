@@ -17,6 +17,9 @@ const [candidate] = GUARD_TRUST_SHARDS.candidate;
 function fixtureRoot(t, parent, file, body) {
   const root = fs.mkdtempSync(path.join(parent, 'contract-scratch-proof-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  // Under the launcher the fixtures stay inside its scratch, which survives an interrupted test.
+  const managed = process.env.INTERDOMESTIK_CONTRACT_TMPDIR;
+  if (managed) assert.ok(root.startsWith(fs.realpathSync(managed) + path.sep), root);
   const paths = new Set([
     ...Object.values(GUARD_TRUST_SHARDS).flat(),
     ...RETIRED_LEGACY_FILES,
@@ -39,12 +42,10 @@ function fixtureRoot(t, parent, file, body) {
 
 test(
   'managed Z620 and DB contract runs remove only their own scratch on pass, fail and interrupt',
-  { skip: process.platform === 'win32', timeout: 20000 },
+  { skip: process.platform === 'win32', timeout: 40000 },
   async t => {
-    // Standalone launcher proofs use a sibling of the enclosing shard, if there is one.
-    const parent = path.dirname(
-      process.env.INTERDOMESTIK_CONTRACT_TMPDIR ?? path.join(os.tmpdir(), '_')
-    );
+    // Inside a managed shard this is the shard's own scratch.
+    const parent = fs.realpathSync(os.tmpdir());
     const runner = new URL('./contract-test-shards.mjs', import.meta.url).href;
     const cases = [
       { args: ['z620'], file: 'scripts/ci/z620-runner.test.mjs', descendant: true },
@@ -53,9 +54,16 @@ test(
       { args: ['guard-trust', 'candidate'], file: candidate, fail: true },
       { args: ['guard-trust', 'candidate'], file: candidate, signal: 'SIGTERM' },
       { args: ['z620'], file: 'scripts/ci/z620-runner.test.mjs', signal: 'SIGINT' },
+      // Ignores the signal and leaves a descendant holding the runner's stdio open.
+      {
+        args: ['z620'],
+        file: 'scripts/ci/z620-runner.test.mjs',
+        signal: 'SIGTERM',
+        stubborn: true,
+      },
     ];
 
-    for (const { args, file, fail, signal, descendant } of cases) {
+    for (const { args, file, fail, signal, descendant, stubborn } of cases) {
       const body = `
         import { spawn } from 'node:child_process';
         import fs from 'node:fs';
@@ -72,6 +80,11 @@ test(
           ${
             descendant
               ? 'spawn(process.execPath, [\'-e\', \'setTimeout(() => { const fs = require("node:fs"); fs.statSync(process.argv[1]); fs.writeFileSync(process.env.READY + ".late", "done"); }, 200)\', dir], { stdio: \'ignore\' }).unref();'
+              : ''
+          }
+          ${
+            stubborn
+              ? "process.on('SIGTERM', () => {}); spawn(process.execPath, ['-e', 'process.on(\"SIGTERM\", () => {}); setInterval(() => {}, 1000)'], { stdio: 'inherit' });"
               : ''
           }
           ${signal ? 'await new Promise(() => setInterval(() => {}, 1000));' : ''}
@@ -172,7 +185,23 @@ test('a process group holding only zombies counts as finished', t => {
   proc(12, 'node', 'S', 99);
   fs.mkdirSync(path.join(root, 'self'));
   assert.equal(groupHasLiveMember(10, root), false);
+  fs.mkdirSync(path.join(root, '14')); // Listed, then gone before its stat could be read.
+  assert.equal(groupHasLiveMember(10, root), true);
+  fs.rmdirSync(path.join(root, '14'));
   proc(13, 'node', 'R', 10);
   assert.equal(groupHasLiveMember(10, root), true);
   assert.equal(groupHasLiveMember(10, path.join(root, 'missing')), null);
+});
+
+test('only two complete passes over the same zombies prove a group finished', () => {
+  const passes = results => () => results.shift();
+  const zombies = (list, incomplete = false) => ({ live: false, zombies: list, incomplete });
+  // A member forks after the first listing, then becomes a zombie: the second pass sees the child.
+  assert.equal(groupHasLiveMember(10, '/proc', passes([zombies('10'), zombies('10,11')])), true);
+  assert.equal(groupHasLiveMember(10, '/proc', passes([zombies('10'), { live: true }])), true);
+  assert.equal(groupHasLiveMember(10, '/proc', passes([zombies('10', true), zombies('10')])), true);
+  assert.equal(
+    groupHasLiveMember(10, '/proc', passes([zombies('10,11'), zombies('10,11')])),
+    false
+  );
 });
