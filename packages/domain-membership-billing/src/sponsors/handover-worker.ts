@@ -16,7 +16,7 @@ import { withTenantAuthority } from '@interdomestik/database/tenant-authority-co
 
 import { attemptOutcomeFromResponse } from '../sponsor-coverage/handover-evidence';
 import { applyHandoverPlan, resolveAttempt } from './handover-apply';
-import { listDueIntents, readHandoverState } from './handover-intent-read';
+import { type IntentSnapshot, listDueIntents, readHandoverState } from './handover-intent-read';
 import { planHandoverStep } from './handover-plan';
 import type { HandoverPaddleClient } from './paddle-handover-client';
 
@@ -63,6 +63,22 @@ export async function lockPerson(
 }
 
 /**
+ * The intent facts a Paddle scan is interpreted against. A scan read before another worker or staff
+ * changed any of them is stale: it is discarded and the next run scans again (never closes
+ * reconciliation on transactions listed before a concurrent terminal transition).
+ */
+export function scanMark(intent: IntentSnapshot): string {
+  return JSON.stringify([
+    intent.state,
+    intent.staffDisposition,
+    intent.cancelDispatchedAt,
+    intent.attempts,
+    intent.paidUntil,
+    intent.canceledConfirmedAt,
+  ]);
+}
+
+/**
  * ACQ-3b §3.7 one intent: read Paddle outside any transaction, decide and write under the person
  * locks, then, only after the attempt row has committed, send the cancel and resolve that attempt
  * from its own response. The only Paddle write is the cancel.
@@ -79,6 +95,7 @@ export async function runHandoverIntent(
   );
   if (!snapshot || snapshot.intent.reconciliationClosedAt) return 'skipped';
   const providerSubscriptionId = snapshot.intent.providerSubscriptionId;
+  const scannedFrom = scanMark(snapshot.intent);
   const readBack = await deps.client.getSubscription(providerSubscriptionId);
   const transactions = await deps.client.listTransactions(providerSubscriptionId);
 
@@ -86,6 +103,7 @@ export async function runHandoverIntent(
     await lockPerson(tx, tenantId, snapshot.intent.userId);
     const state = await readHandoverState(tx, tenantId, intentId, { lock: true });
     if (!state || state.intent.reconciliationClosedAt) return null;
+    if (scanMark(state.intent) !== scannedFrom) return null;
     const plan = planHandoverStep(state, readBack, transactions, now);
     return applyHandoverPlan(tx, {
       tenantId,
@@ -109,12 +127,18 @@ export async function runHandoverIntent(
     })
   );
   // A cancel response settles only its own attempt. Coverage requires a fresh provider read.
+  const resolved = await withTenantAuthority(authority, tx =>
+    readHandoverState(tx, tenantId, intentId, { lock: false })
+  );
+  if (!resolved || resolved.intent.reconciliationClosedAt) return 'dispatched';
+  const rescannedFrom = scanMark(resolved.intent);
   const afterCancel = await deps.client.getSubscription(providerSubscriptionId);
   const afterTransactions = await deps.client.listTransactions(providerSubscriptionId);
   await withTenantAuthority(authority, async tx => {
     await lockPerson(tx, tenantId, snapshot.intent.userId);
     const state = await readHandoverState(tx, tenantId, intentId, { lock: true });
     if (!state || state.intent.reconciliationClosedAt) return;
+    if (scanMark(state.intent) !== rescannedFrom) return;
     const plan = planHandoverStep(state, afterCancel, afterTransactions, now);
     // Leave an unscheduled observation to the next run, never dispatch twice in this run.
     plan.dispatch = null;

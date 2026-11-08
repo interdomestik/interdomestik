@@ -14,6 +14,7 @@
     "since": "Needs review since {date} (UTC)",
     "observedAt": "Cancellation observed on {date} (UTC)",
     "scheduledAt": "Cancellation takes effect on {date} (UTC)",
+    "attempts": "Cancel attempts without a confirmed result so far: {count}",
     "transaction": "Paddle transaction: {id}",
     "billingPeriod": "Billing period starts: {date} (UTC)",
     "subscription": "Subscription: {id}",
@@ -66,6 +67,10 @@
       "scheduled_cancel": {
         "title": "Scheduled cancellations",
         "help": "Paddle has a cancellation scheduled that no sponsored seat needs. Remove it in Paddle only at the member’s request; the system never changes it."
+      },
+      "retrying_cancel": {
+        "title": "Cancellations not yet confirmed",
+        "help": "The cancel request was sent at least 5 times without a confirmed result from Paddle. The system keeps retrying and monitoring. Check the subscription in Paddle and contact the member if needed; nothing here changes the handover."
       },
       "charge": {
         "title": "Charges to review",

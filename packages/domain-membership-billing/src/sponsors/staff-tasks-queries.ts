@@ -10,7 +10,10 @@ import {
   subscriptions,
   type TenantTransaction,
 } from '@interdomestik/database';
-import { isNotNull, or } from 'drizzle-orm';
+import { gte, isNotNull, or } from 'drizzle-orm';
+
+/** §3.7 step 4: a pending cancel still retrying after this many attempts is also a staff task. */
+export const HANDOVER_ESCALATION_ATTEMPTS = 5;
 
 /**
  * ACQ-3b staff-task queue (§3.7, §3.6.1, §3.9): the durable rows each task is derived from. Each
@@ -23,6 +26,7 @@ export async function readTaskIntents(tx: TenantTransaction, tenantId: string) {
       userId: sponsorHandoverIntents.userId,
       state: sponsorHandoverIntents.state,
       canceledConfirmedAt: sponsorHandoverIntents.canceledConfirmedAt,
+      attempts: sponsorHandoverIntents.attempts,
       updatedAt: sponsorHandoverIntents.updatedAt,
     })
     .from(sponsorHandoverIntents)
@@ -31,7 +35,11 @@ export async function readTaskIntents(tx: TenantTransaction, tenantId: string) {
         eq(sponsorHandoverIntents.tenantId, tenantId),
         or(
           eq(sponsorHandoverIntents.state, 'staff_review'),
-          isNotNull(sponsorHandoverIntents.canceledConfirmedAt)
+          isNotNull(sponsorHandoverIntents.canceledConfirmedAt),
+          and(
+            eq(sponsorHandoverIntents.state, 'pending'),
+            gte(sponsorHandoverIntents.attempts, HANDOVER_ESCALATION_ATTEMPTS)
+          )
         )
       )
     );

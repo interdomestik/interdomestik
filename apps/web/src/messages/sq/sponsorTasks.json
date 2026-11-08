@@ -14,6 +14,7 @@
     "since": "Kërkon shqyrtim që nga {date} (UTC)",
     "observedAt": "Anulimi u vërejt më {date} (UTC)",
     "scheduledAt": "Anulimi hyn në fuqi më {date} (UTC)",
+    "attempts": "Tentativa anulimi pa rezultat të konfirmuar deri tani: {count}",
     "transaction": "Transaksioni Paddle: {id}",
     "billingPeriod": "Periudha e faturimit fillon: {date} (UTC)",
     "subscription": "Abonimi: {id}",
@@ -66,6 +67,10 @@
       "scheduled_cancel": {
         "title": "Anulime të planifikuara",
         "help": "Paddle ka një anulim të planifikuar që nuk i nevojitet asnjë vendi të sponsorizuar. Hiqeni në Paddle vetëm me kërkesë të anëtarit; sistemi nuk e ndryshon kurrë."
+      },
+      "retrying_cancel": {
+        "title": "Anulime ende të pakonfirmuara",
+        "help": "Kërkesa për anulim u dërgua të paktën 5 herë pa rezultat të konfirmuar nga Paddle. Sistemi vazhdon të provojë dhe të monitorojë. Kontrollo abonimin në Paddle dhe kontakto anëtarin nëse duhet; asgjë këtu nuk e ndryshon kalimin."
       },
       "charge": {
         "title": "Pagesat për shqyrtim",

@@ -14,6 +14,7 @@ import {
   acknowledgeHandoverCharge,
   activationCandidates,
   entryTasks,
+  intentTasks,
   listSponsorStaffTasks,
   scheduledCancelTasks,
 } from './staff-tasks';
@@ -97,4 +98,26 @@ describe('sponsor staff-task queue', () => {
       expect(hasCredential).not.toHaveBeenCalled();
     }
   );
+
+  it('escalates a pending cancel only after five attempts, without hiding other intent tasks', () => {
+    type Intent = Parameters<typeof intentTasks>[0][number];
+    const intent = (over: Partial<Intent>): Intent => ({
+      id: 'spi_1',
+      userId: 'usr_1',
+      state: 'pending',
+      canceledConfirmedAt: null,
+      attempts: 5,
+      updatedAt: '2027-05-01 00:00:00+00',
+      ...over,
+    });
+    expect(
+      intentTasks([intent({ attempts: 4 }), intent({ state: 'cancel_scheduled' })], now)
+    ).toEqual([]);
+    expect(intentTasks([intent({})], now)).toEqual([
+      { kind: 'retrying_cancel', intentId: 'spi_1', userId: 'usr_1', attempts: 5 },
+    ]);
+    expect(intentTasks([intent({ state: 'staff_review', attempts: 9 })], now)).toEqual([
+      expect.objectContaining({ kind: 'intent_review' }),
+    ]);
+  });
 });

@@ -48,23 +48,22 @@ export type SponsorMailCheck = { send: true } | { send: false; reason: MailSkipR
 const skip = (reason: MailSkipReason): SponsorMailCheck => ({ send: false, reason });
 
 /**
- * Successors are admitted, non-revoked entries in later, effective, non-empty contiguous terms
- * (§3.6.2): a successor terminated at its own start continues nothing.
+ * A successor continues coverage only when the coverage resolver gives it a non-empty interval
+ * starting at its own `term_start`, contiguous with this entry's effective end (§3.6.2). Eligibility
+ * (admitted, not revoked, not in staff review, effective term) comes from the same derivation.
  */
 export function hasContinuingSuccessor(
   entry: CoverageEntry,
   entries: readonly CoverageEntry[]
 ): boolean {
+  const intervals = deriveEntryIntervals(entries);
   return entries.some(
     next =>
       next.id !== entry.id &&
       next.sponsorId === entry.sponsorId &&
-      next.termEffective &&
-      next.conflictDecision === 'accepted' &&
-      next.revokedAt === null &&
       next.termStart > entry.termStart &&
       next.termStart.getTime() === effectiveEnd(entry).getTime() &&
-      effectiveEnd(next).getTime() > next.termStart.getTime()
+      intervals.get(next.id)?.start.getTime() === next.termStart.getTime()
   );
 }
 

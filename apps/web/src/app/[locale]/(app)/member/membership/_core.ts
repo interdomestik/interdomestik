@@ -110,6 +110,26 @@ export async function getMemberSubscriptionsCore(args: {
   });
 }
 
+/**
+ * A sponsorship the member may leave (§3.6), read on its own so an account bound to a pending or
+ * future entry is offered the leave action before any subscription row exists.
+ */
+export async function getMemberLeavableSponsorEntryCore(args: {
+  userId: string;
+  tenantId: string | null | undefined;
+  now?: Date;
+}): Promise<string | null> {
+  if (!args.tenantId) return null;
+  const authority = await authorizeSessionUserTenant(args.userId);
+  if (!authority) return null;
+  const { tenantId } = readTenantAuthority(authority);
+  if (tenantId !== args.tenantId) return null;
+  const [entryId] = await withTenantAuthority(authority, tx =>
+    listLeavableSponsorEntries(tx, tenantId, args.userId, args.now ?? new Date())
+  );
+  return entryId ?? null;
+}
+
 export function computeDunningState(args: {
   subscription: SubscriptionDunningInput;
   now?: Date;

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { getMembershipCoreMocks } from './membership-core-test-support';
-import { getMemberSubscriptionsCore } from './_core';
+import { getMemberLeavableSponsorEntryCore, getMemberSubscriptionsCore } from './_core';
 
 const h = getMembershipCoreMocks();
 const row = { id: 'sub-1', provider: 'paddle', status: 'canceled', planId: 'old', plan: null };
@@ -78,6 +78,16 @@ describe('effective membership workspace', () => {
     h.findSubscriptionMany.mockResolvedValue([]);
     h.resolve.mockResolvedValue(new Map([['member-1', { source: 'none' }]]));
     expect(await getMemberSubscriptionsCore(args)).toEqual([]);
+  });
+  it('reads a leavable future sponsorship without any subscription row', async () => {
+    h.leavable.mockResolvedValue(['future-entry']);
+    expect(await getMemberLeavableSponsorEntryCore(args)).toBe('future-entry');
+    h.leavable.mockResolvedValue([]);
+    expect(await getMemberLeavableSponsorEntryCore(args)).toBeNull();
+    h.authorize.mockResolvedValue(mintTestTenantAuthority('tenant-other'));
+    h.leavable.mockClear();
+    expect(await getMemberLeavableSponsorEntryCore(args)).toBeNull();
+    expect(h.leavable).not.toHaveBeenCalled();
   });
   it.each([null, mintTestTenantAuthority('tenant-other')])(
     'refuses absent or mismatched session authority',

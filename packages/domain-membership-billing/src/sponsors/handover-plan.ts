@@ -122,7 +122,8 @@ export function planHandoverStep(
   if (finalState === 'pending' && !plan.dispatch) {
     plan.nextRunAt = new Date(now.getTime() + retryDelayMs(intent.attempts));
   }
-  if (plan.dispatch) plan.nextRunAt = new Date(now.getTime() + 5 * MINUTE_MS);
+  // Every cancel, the first and each retry, backs off by the attempts already made (step 4).
+  if (plan.dispatch) plan.nextRunAt = new Date(now.getTime() + retryDelayMs(intent.attempts));
   return plan;
 }
 

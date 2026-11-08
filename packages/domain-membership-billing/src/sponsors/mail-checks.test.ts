@@ -119,7 +119,7 @@ describe('kind-specific send checks', () => {
       termStart: day(31),
       termEnd: day(60),
       startsAt: null,
-      outcome: 'staff_review',
+      outcome: 'pending',
     });
     expect(
       checkSponsorMail('renewal_notice', facts(entry(), { entries: [entry(), next] }), day(3))
@@ -131,8 +131,10 @@ describe('kind-specific send checks', () => {
       { conflictDecision: 'rejected' },
       { revokedAt: day(4) },
       { terminatedEffectiveAt: day(31) },
+      // The resolver excludes a successor in staff review, so the predecessor's notice is sent.
+      { outcome: 'staff_review' },
     ] satisfies Partial<CoverageEntry>[]) {
-      expect(hasContinuingSuccessor(entry(), [{ ...next, ...change }])).toBe(false);
+      expect(hasContinuingSuccessor(entry(), [entry(), { ...next, ...change }])).toBe(false);
     }
     expect(
       checkSponsorMail('renewal_notice', facts(entry({ revokedAt: day(2) })), day(3)).send

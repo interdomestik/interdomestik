@@ -130,6 +130,15 @@ vi.doMock('@/app/[locale]/(app)/member/membership/leave-sponsorship.core', () =>
   leaveCompanyProgramme: vi.fn(),
 }));
 
+// The dialog itself is covered by leave-company-programme.test.tsx.
+vi.doMock('../leave-company-programme', () => ({
+  LeaveCompanyProgramme: ({ entryId }: { entryId: string }) => (
+    <button type="button" data-entry-id={entryId}>
+      sponsorCoverage.leave
+    </button>
+  ),
+}));
+
 export const { MembershipOpsPage } = await import('../MembershipOpsPage');
 
 export function setupMembershipOpsPageHarness(): void {

@@ -14,6 +14,7 @@
     "since": "Prüfung erforderlich seit {date} (UTC)",
     "observedAt": "Kündigung am {date} festgestellt (UTC)",
     "scheduledAt": "Die Kündigung wird am {date} (UTC) wirksam",
+    "attempts": "Kündigungsversuche ohne bestätigtes Ergebnis bisher: {count}",
     "transaction": "Paddle-Transaktion: {id}",
     "billingPeriod": "Abrechnungszeitraum beginnt: {date} (UTC)",
     "subscription": "Abonnement: {id}",
@@ -66,6 +67,10 @@
       "scheduled_cancel": {
         "title": "Geplante Kündigungen",
         "help": "In Paddle ist eine Kündigung geplant, die kein gesponserter Platz benötigt. Entfernen Sie sie in Paddle nur auf Wunsch des Mitglieds; das System ändert sie nie."
+      },
+      "retrying_cancel": {
+        "title": "Noch nicht bestätigte Kündigungen",
+        "help": "Die Kündigungsanfrage wurde mindestens 5-mal ohne bestätigtes Ergebnis von Paddle gesendet. Das System versucht es weiter und überwacht. Prüfen Sie das Abonnement in Paddle und kontaktieren Sie bei Bedarf das Mitglied; hier wird an der Übergabe nichts geändert."
       },
       "charge": {
         "title": "Zahlungen prüfen",

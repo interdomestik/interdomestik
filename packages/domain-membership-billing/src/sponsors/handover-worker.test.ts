@@ -170,6 +170,31 @@ describe('handover post-cancel observation', () => {
         write => write.table === sponsorHandoverIntents && 'attempts' in write.values
       )
     ).toHaveLength(1);
+    // The next retry backs off by the attempts already made (one): ten minutes, not five.
+    expect(db.writes.at(-1)?.values).toMatchObject({
+      nextAttemptAt: new Date(now.getTime() + 10 * 60_000).toISOString(),
+    });
+  });
+
+  it('discards a scan read before another worker moved the intent, and writes nothing', async () => {
+    const { db, client, dispatched } = setup(subscription);
+    dispatched.intent.state = 'done';
+    dispatched.intent.paidUntil = '2027-01-15T00:00:00Z';
+    dispatched.intent.canceledConfirmedAt = now.toISOString();
+    vi.mocked(readHandoverState)
+      .mockReset()
+      .mockResolvedValueOnce(state())
+      .mockResolvedValue(dispatched);
+    vi.mocked(client.listTransactions).mockResolvedValue([]);
+    await expect(
+      runHandoverIntent(
+        authority,
+        { client, hasCredential: async () => true },
+        { intentId: 'intent', now }
+      )
+    ).resolves.toBe('observed');
+    expect(client.cancelAtNextPeriod).not.toHaveBeenCalled();
+    expect(db.writes).toEqual([]);
   });
 
   it('rechecks locked state after staff closes during the provider call', async () => {

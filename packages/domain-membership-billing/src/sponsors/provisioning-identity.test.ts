@@ -1,10 +1,14 @@
 import type { TenantTransaction } from '@interdomestik/database';
+import { lockSponsorPerson } from '@interdomestik/database/sponsor-locks';
 import { describe, expect, it, vi } from 'vitest';
 
 import { auditTransaction } from './audit-test-support';
 import { bindEntryIdentity } from './provisioning-identity';
 
-vi.mock('@interdomestik/database/sponsor-locks', () => ({ lockSponsorEntryIdentity: vi.fn() }));
+vi.mock('@interdomestik/database/sponsor-locks', () => ({
+  lockSponsorEntryIdentity: vi.fn(),
+  lockSponsorPerson: vi.fn(),
+}));
 
 const entry = {
   id: 'entry',
@@ -43,5 +47,27 @@ describe('bindEntryIdentity after an insert conflict', () => {
     const db = auditTransaction({ selects: [[{ userId: null }], [], []] });
     const result = await bind(db.tx);
     expect(result).toMatchObject({ kind: 'bound', created: true });
+  });
+
+  it('takes lock 2, terms and entries before it writes the binding (retention order)', async () => {
+    const db = auditTransaction({ selects: [[{ userId: null }], [{ id: 'usr_existing' }]] });
+    const order: unknown[] = [];
+    vi.mocked(lockSponsorPerson).mockImplementation(async () => void order.push('person'));
+    const select = (...args: Parameters<typeof db.tx.select>): unknown => {
+      const chain = db.tx.select(...args) as unknown as Record<
+        string,
+        (...a: unknown[]) => unknown
+      >;
+      const lock = chain.for;
+      chain.for = (mode: unknown) => (order.push(mode), lock(mode));
+      return chain;
+    };
+    const update = (...args: Parameters<typeof db.tx.update>): unknown => (
+      order.push('write'),
+      db.tx.update(...args)
+    );
+    const tx = { ...db.tx, select, update } as unknown as TenantTransaction;
+    expect(await bind(tx)).toEqual({ kind: 'bound', userId: 'usr_existing', created: false });
+    expect(order).toEqual(['person', 'share', 'update', 'write']);
   });
 });

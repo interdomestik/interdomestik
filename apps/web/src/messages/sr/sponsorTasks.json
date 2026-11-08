@@ -14,6 +14,7 @@
     "since": "Za pregled od {date} (UTC)",
     "observedAt": "Otkazivanje primećeno {date} (UTC)",
     "scheduledAt": "Otkazivanje stupa na snagu {date} (UTC)",
+    "attempts": "Pokušaji otkazivanja bez potvrđenog rezultata do sada: {count}",
     "transaction": "Paddle transakcija: {id}",
     "billingPeriod": "Obračunski period počinje: {date} (UTC)",
     "subscription": "Pretplata: {id}",
@@ -66,6 +67,10 @@
       "scheduled_cancel": {
         "title": "Zakazana otkazivanja",
         "help": "Paddle ima zakazano otkazivanje koje nije potrebno nijednom sponzorisanom mestu. Uklonite ga u Paddle-u samo na zahtev člana; sistem ga nikada ne menja."
+      },
+      "retrying_cancel": {
+        "title": "Otkazivanja koja još nisu potvrđena",
+        "help": "Zahtev za otkazivanje poslat je najmanje 5 puta bez potvrđenog rezultata iz Paddle-a. Sistem nastavlja da pokušava i prati. Proverite pretplatu u Paddle-u i po potrebi kontaktirajte člana; ništa ovde ne menja prenos."
       },
       "charge": {
         "title": "Naplate za pregled",

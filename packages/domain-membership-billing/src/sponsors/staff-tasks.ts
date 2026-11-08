@@ -13,6 +13,7 @@ import {
   type ScheduledHandoverTask,
 } from './handover-scheduled-tasks.core';
 import {
+  HANDOVER_ESCALATION_ATTEMPTS,
   readOpenCharges,
   readTaskEntries,
   readTaskIntents,
@@ -27,6 +28,8 @@ import type { SponsorResult } from './terms';
 export type SponsorStaffTask =
   | { kind: 'intent_review'; intentId: string; userId: string; since: Date }
   | { kind: 'observed_cancel'; intentId: string; userId: string; state: string; at: Date }
+  /** Still retrying without a confirmed result; monitoring and the attempts are unchanged. */
+  | { kind: 'retrying_cancel'; intentId: string; userId: string; attempts: number }
   /** A provider-scheduled cancel nothing wants; staff may remove it at the member's request. */
   | { kind: 'scheduled_cancel'; intentId: string; userId: string; at: Date }
   | {
@@ -98,7 +101,42 @@ export function activationCandidates(rows: readonly EntryRow[], now: Date): Map<
   );
 }
 
-/** The open staff tasks of the tenant; staff and admins only. */
+type IntentRow = Awaited<ReturnType<typeof readTaskIntents>>[number];
+
+/** Intent-derived tasks: review, a retrying cancel past the threshold, a recent cancellation. */
+export function intentTasks(rows: readonly IntentRow[], now: Date): SponsorStaffTask[] {
+  const out: SponsorStaffTask[] = [];
+  for (const intent of rows) {
+    if (intent.state === 'staff_review') {
+      out.push({
+        kind: 'intent_review',
+        intentId: intent.id,
+        userId: intent.userId,
+        since: parseTimestamp(intent.updatedAt),
+      });
+    }
+    if (intent.state === 'pending' && intent.attempts >= HANDOVER_ESCALATION_ATTEMPTS) {
+      out.push({
+        kind: 'retrying_cancel',
+        intentId: intent.id,
+        userId: intent.userId,
+        attempts: intent.attempts,
+      });
+    }
+    const canceled = optional(intent.canceledConfirmedAt);
+    if (canceled && now.getTime() - canceled.getTime() < OBSERVED_CANCEL_WINDOW_MS) {
+      out.push({
+        kind: 'observed_cancel',
+        intentId: intent.id,
+        userId: intent.userId,
+        state: intent.state,
+        at: canceled,
+      });
+    }
+  }
+  return out;
+}
+
 /** Only before it takes effect; afterwards Paddle reports `canceled` (observed_cancel). */
 export function scheduledCancelTasks(
   rows: readonly ScheduledHandoverTask[],
@@ -114,6 +152,7 @@ export function scheduledCancelTasks(
     }));
 }
 
+/** The open staff tasks of the tenant; staff and admins only. */
 export async function listSponsorStaffTasks(
   authority: TenantAuthority,
   actor: SponsorActor,
@@ -135,26 +174,7 @@ export async function listSponsorStaffTasks(
     };
   });
   const tasks: SponsorStaffTask[] = [];
-  for (const intent of read.intents) {
-    if (intent.state === 'staff_review') {
-      tasks.push({
-        kind: 'intent_review',
-        intentId: intent.id,
-        userId: intent.userId,
-        since: parseTimestamp(intent.updatedAt),
-      });
-    }
-    const canceled = optional(intent.canceledConfirmedAt);
-    if (canceled && now.getTime() - canceled.getTime() < OBSERVED_CANCEL_WINDOW_MS) {
-      tasks.push({
-        kind: 'observed_cancel',
-        intentId: intent.id,
-        userId: intent.userId,
-        state: intent.state,
-        at: canceled,
-      });
-    }
-  }
+  tasks.push(...intentTasks(read.intents, now));
   tasks.push(...scheduledCancelTasks(read.scheduled, now));
   for (const charge of read.charges) {
     tasks.push({

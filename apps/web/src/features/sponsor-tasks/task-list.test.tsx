@@ -23,6 +23,7 @@ vi.mock('next-intl', () => ({
 const now = new Date('2026-11-08T00:00:00Z');
 const tasks: SponsorStaffTask[] = [
   { kind: 'intent_review', intentId: 'i1', userId: 'u1', since: now },
+  { kind: 'retrying_cancel', intentId: 'i8', userId: 'u8', attempts: 6 },
   { kind: 'observed_cancel', intentId: 'i2', userId: 'u2', at: now, state: 'done' },
   { kind: 'scheduled_cancel', intentId: 'i7', userId: 'u7', at: now },
   {
@@ -98,6 +99,7 @@ describe('sponsor task groups', () => {
     expect(
       screen.getByText(`scheduledAt:${JSON.stringify({ date: now.toISOString() })}`)
     ).toBeInTheDocument();
+    expect(screen.getByText('attempts:{"count":6}')).toBeInTheDocument();
   });
 
   it('shows an empty state and offers the locale-aware tasks link', () => {

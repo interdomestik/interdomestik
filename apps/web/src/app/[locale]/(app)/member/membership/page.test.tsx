@@ -17,6 +17,7 @@ const hoisted = vi.hoisted(() => ({
     },
   })),
   getSubscriptionsMock: vi.fn(async () => []),
+  getLeaveMock: vi.fn(async () => 'entry-future'),
   membershipOpsPageMock: vi.fn((_: unknown) => <div>membership-ops-page</div>),
   redirectMock: vi.fn(),
 }));
@@ -42,6 +43,7 @@ vi.mock('@interdomestik/shared-auth', () => ({
 vi.mock('./_core', () => ({
   getMemberDocumentsCore: hoisted.getDocumentsMock,
   getMemberSubscriptionsCore: hoisted.getSubscriptionsMock,
+  getMemberLeavableSponsorEntryCore: hoisted.getLeaveMock,
 }));
 
 vi.mock('@/features/member/membership/components/MembershipOpsPage', () => ({
@@ -79,5 +81,9 @@ describe('MembershipPage commercial coverage matrix', () => {
       tenantId: 'tenant-ks',
     });
     expect(screen.getByText('membership-ops-page')).toBeInTheDocument();
+    // No subscription record: a bound future sponsorship still reaches the leave action.
+    expect(hoisted.membershipOpsPageMock).toHaveBeenCalledWith(
+      expect.objectContaining({ leaveEntryId: 'entry-future' })
+    );
   });
 });

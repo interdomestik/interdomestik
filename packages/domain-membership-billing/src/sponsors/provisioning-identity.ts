@@ -1,13 +1,17 @@
 import {
   and,
+  asc,
   eq,
+  inArray,
+  or,
   sponsorRosterEntries,
+  sponsorTerms,
   sql,
   type TenantTransaction,
   user,
 } from '@interdomestik/database';
 import { ne } from 'drizzle-orm';
-import { lockSponsorEntryIdentity } from '@interdomestik/database/sponsor-locks';
+import { lockSponsorEntryIdentity, lockSponsorPerson } from '@interdomestik/database/sponsor-locks';
 import { nanoid } from 'nanoid';
 
 /**
@@ -67,6 +71,7 @@ export async function bindEntryIdentity(
   }
   if (!userId) return { kind: 'foreign' };
   const created = createdId !== null;
+  await lockBindingRows(tx, tenantId, userId, entry.id);
 
   const [taken] = await tx
     .select({ id: sponsorRosterEntries.id })
@@ -87,6 +92,40 @@ export async function bindEntryIdentity(
     .set({ userId })
     .where(and(eq(sponsorRosterEntries.tenantId, tenantId), eq(sponsorRosterEntries.id, entry.id)));
   return { kind: 'bound', userId, created };
+}
+
+/**
+ * §3.5 order before the binding write, as admission and retention expect: lock 2, then the
+ * person's terms and this entry's term `FOR SHARE`, then those entries `FOR UPDATE`, in id order.
+ * Writing the entry first would hold its row while waiting for a term retention already holds.
+ */
+async function lockBindingRows(
+  tx: TenantTransaction,
+  tenantId: string,
+  userId: string,
+  entryId: string
+): Promise<void> {
+  await lockSponsorPerson(tx, userId);
+  const rows = and(
+    eq(sponsorRosterEntries.tenantId, tenantId),
+    or(eq(sponsorRosterEntries.userId, userId), eq(sponsorRosterEntries.id, entryId))
+  );
+  const termIds = tx
+    .select({ termId: sponsorRosterEntries.termId })
+    .from(sponsorRosterEntries)
+    .where(rows);
+  await tx
+    .select({ id: sponsorTerms.id })
+    .from(sponsorTerms)
+    .where(and(eq(sponsorTerms.tenantId, tenantId), inArray(sponsorTerms.id, termIds)))
+    .orderBy(asc(sponsorTerms.id))
+    .for('share');
+  await tx
+    .select({ id: sponsorRosterEntries.id })
+    .from(sponsorRosterEntries)
+    .where(rows)
+    .orderBy(asc(sponsorRosterEntries.id))
+    .for('update');
 }
 
 async function visibleAccounts(

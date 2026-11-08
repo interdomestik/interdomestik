@@ -27,6 +27,7 @@ function TaskDetails({ task }: { task: SponsorStaffTask }): ReactElement {
         <p>{t('entry', { id: task.entryId, term: task.termId, sponsor: task.sponsorId })}</p>
       )}
       {task.kind === 'intent_review' && <p>{t('since', { date: date(task.since) })}</p>}
+      {task.kind === 'retrying_cancel' && <p>{t('attempts', { count: task.attempts })}</p>}
       {task.kind === 'observed_cancel' && <p>{t('observedAt', { date: date(task.at) })}</p>}
       {task.kind === 'scheduled_cancel' && <p>{t('scheduledAt', { date: date(task.at) })}</p>}
       {task.kind === 'charge' && (
