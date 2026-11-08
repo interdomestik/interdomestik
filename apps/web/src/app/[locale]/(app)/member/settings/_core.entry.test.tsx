@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { expectCommercialTerms } from '@/test/commercial-terms-test-utils';
 import { getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
+import { getTranslations } from 'next-intl/server';
 
 const hoisted = vi.hoisted(() => ({
   headersMock: vi.fn(
@@ -112,13 +113,15 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
 import SettingsPage from './_core.entry';
 
 describe('SettingsPage commercial billing terms', () => {
-  it('renders the shared annual billing rules in member settings', async () => {
+  it.each(['en', 'sq', 'mk', 'sr', 'de'])('renders settings in %s', async locale => {
     const tree = await SettingsPage({
-      params: Promise.resolve({ locale: 'en' }),
+      params: Promise.resolve({ locale }),
     });
 
     render(tree);
 
+    expect(getTranslations).toHaveBeenCalledWith({ locale, namespace: 'settings' });
+    expect(getTranslations).toHaveBeenCalledWith({ locale, namespace: 'commercialTerms' });
     expectCommercialTerms({ sectionTestId: 'settings-billing-terms' });
     expect(screen.getByTestId('residence-country-settings')).toHaveTextContent('DE');
     expect(hoisted.userFindFirstMock).toHaveBeenCalledWith(
