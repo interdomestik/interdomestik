@@ -1,3 +1,5 @@
+import { ROLES } from '@interdomestik/shared-auth';
+
 /**
  * ACQ-3b §3.4: who does what. Server-side and fail closed: an unknown role or a missing branch
  * never grants anything. Auditors and global support read nothing here and write nothing.
@@ -16,7 +18,12 @@ export type SponsorScope = {
   branchId: string;
 };
 
-const STAFF_ROLES: ReadonlySet<string> = new Set(['staff', 'tenant_admin', 'admin', 'super_admin']);
+const STAFF_ROLES: ReadonlySet<string> = new Set([
+  ROLES.staff,
+  ROLES.tenant_admin,
+  ROLES.admin,
+  ROLES.super_admin,
+]);
 
 export const isSponsorStaff = (actor: SponsorActor): boolean => STAFF_ROLES.has(actor.role);
 

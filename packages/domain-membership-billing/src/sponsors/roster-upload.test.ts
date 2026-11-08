@@ -17,13 +17,16 @@ const row = (email: string, firstName = 'Ana', lastName = 'Krasniqi') => ({
   lastName,
 });
 
+const env = (values: Record<string, string>): NodeJS.ProcessEnv =>
+  ({ NODE_ENV: 'test', ...values }) as NodeJS.ProcessEnv;
+
 describe('roster crypto', () => {
   it('fails closed without a long enough secret', () => {
-    expect(() => readSponsorRosterSecret({})).toThrow(SponsorRosterSecretMissingError);
-    expect(() => readSponsorRosterSecret({ SPONSOR_ROSTER_SECRET: 'short' })).toThrow(
+    expect(() => readSponsorRosterSecret(env({}))).toThrow(SponsorRosterSecretMissingError);
+    expect(() => readSponsorRosterSecret(env({ SPONSOR_ROSTER_SECRET: 'short' }))).toThrow(
       SponsorRosterSecretMissingError
     );
-    expect(readSponsorRosterSecret({ SPONSOR_ROSTER_SECRET: ` ${secret} ` })).toBe(secret);
+    expect(readSponsorRosterSecret(env({ SPONSOR_ROSTER_SECRET: ` ${secret} ` }))).toBe(secret);
   });
 
   it('normalizes addresses and separates the email and opt-out derivations', () => {
