@@ -95,8 +95,9 @@ function sourceFiles(directory: string): string[] {
 }
 
 function subscriptionReads(source: string): boolean {
-  // Every detection path below needs the token; skip the AST for files that never mention it.
-  if (!/subscriptions/i.test(source)) return false;
+  // Every detection path needs the token, possibly spelled with a Unicode escape; skip the AST
+  // only for files that contain neither.
+  if (!/subscriptions/i.test(source) && !source.includes('\\u')) return false;
   const ast = ts.createSourceFile('source.tsx', source, ts.ScriptTarget.Latest, true);
   const tableNames = new Set(['subscriptions']);
   for (const statement of ast.statements) {
@@ -212,6 +213,7 @@ describe('ACQ-3 §3.6.3 subscription reader inventory', () => {
     'tx.query.user.findMany({ with: { subscriptions: { limit: 1 } } })',
     'sql`select s.id from subscriptions s join branches b on b.id = s.branch_id`',
     'sql`select * from ${schema.subscriptions}`',
+    "import { subscript\\u0069ons as seats } from '@interdomestik/database'; tx.select().from(seats)",
   ])('detects readers despite aliases, namespaces and relational access: %s', source => {
     expect(subscriptionReads(source)).toBe(true);
   });
