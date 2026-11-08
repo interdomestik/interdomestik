@@ -4,9 +4,11 @@ import {
   agentSettings,
   claimDocuments,
   claimStageHistory,
+  and,
   claims,
   db,
   eq,
+  tenantSettings,
   user,
 } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';
@@ -21,6 +23,8 @@ type PrivacyFixtureContext = {
   claimCompanyName: string;
   claimDocumentName: string;
   claimTitle: string;
+  /** Opts the tenant into the sponsored roster import (OD-18 Option B: dark by default). */
+  enableSponsoredImport: () => Promise<void>;
   internalHistoryNote: string;
   officeAgent: OfficeSeededAgent;
   seededMemberName: string;
@@ -76,6 +80,32 @@ export async function withGroupAccessPrivacyFixture(
   const previousTier = existingSettings?.tier ?? 'standard';
   const createdSettings = !existingSettings?.id;
   let tierElevated = false;
+  const importSettingScope = and(
+    eq(tenantSettings.tenantId, tenantId),
+    eq(tenantSettings.category, 'acquisition'),
+    eq(tenantSettings.key, 'sponsored_import')
+  );
+  const previousImportSetting = await db.query.tenantSettings.findFirst({
+    where: importSettingScope,
+    columns: { value: true },
+  });
+  let importSettingWritten = false;
+  const enableSponsoredImport = async () => {
+    importSettingWritten = true;
+    await db
+      .insert(tenantSettings)
+      .values({
+        id: `e2e-ga04-import-${suffix}`,
+        tenantId,
+        category: 'acquisition',
+        key: 'sponsored_import',
+        value: { enabled: true },
+      })
+      .onConflictDoUpdate({
+        target: [tenantSettings.tenantId, tenantSettings.category, tenantSettings.key],
+        set: { value: { enabled: true }, updatedAt: new Date() },
+      });
+  };
 
   try {
     if (createdSettings) {
@@ -127,11 +157,20 @@ export async function withGroupAccessPrivacyFixture(
       claimCompanyName: claimRecord.companyName,
       claimDocumentName,
       claimTitle: claimRecord.title,
+      enableSponsoredImport,
       internalHistoryNote,
       officeAgent,
       seededMemberName,
     });
   } finally {
+    if (importSettingWritten && previousImportSetting) {
+      await db
+        .update(tenantSettings)
+        .set({ value: previousImportSetting.value, updatedAt: new Date() })
+        .where(importSettingScope);
+    } else if (importSettingWritten) {
+      await db.delete(tenantSettings).where(importSettingScope);
+    }
     await db.delete(claimDocuments).where(eq(claimDocuments.id, claimDocumentId));
     await db.delete(claimStageHistory).where(eq(claimStageHistory.id, internalHistoryId));
     if (tierElevated && createdSettings) {
