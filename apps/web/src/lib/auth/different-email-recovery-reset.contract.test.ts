@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ mail: vi.fn() }));
 vi.mock('../email', () => ({
@@ -12,6 +12,8 @@ import * as store from './different-email-recovery-store';
 import {
   captureConsole,
   changeEmail,
+  cleanEachResetContract,
+  describeResetContract,
   credentialOwner,
   gates,
   requestReset,
@@ -21,12 +23,7 @@ import {
   tokenFrom,
   withWriteFailure,
 } from './different-email-recovery-reset.contract-test-support';
-import {
-  cleanupRecoveryRows,
-  ownerSnapshot,
-  recoverySql,
-} from './different-email-recovery-store.contract-test-support';
-import { cleanupResetRows } from './different-email-recovery-reset.contract-test-support';
+import { ownerSnapshot, recoverySql } from './different-email-recovery-store.contract-test-support';
 
 const GENERIC = {
   status: true,
@@ -42,15 +39,9 @@ async function expectRefused(response: Response) {
   expect(await response.json()).toMatchObject({ code: 'INVALID_TOKEN' });
 }
 
-afterEach(async () => {
-  vi.restoreAllMocks();
-  mocks.mail.mockReset();
-  await cleanupResetRows();
-  await cleanupRecoveryRows();
-});
-afterAll(async () => recoverySql.end());
+cleanEachResetContract(mocks.mail);
 
-describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
+describeResetContract(
   'ACQ-2c reset links and the dual-proof email change (real PostgreSQL)',
   () => {
     it('a committed change withdraws every reset link of that user and nothing else', async () => {

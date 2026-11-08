@@ -5,11 +5,12 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { randomUUID } from 'node:crypto';
 import { inspect } from 'node:util';
-import { expect, vi } from 'vitest';
+import { afterAll, afterEach, describe, expect, vi, type Mock } from 'vitest';
 
 import { authRequestAuthority } from './auth-request-authority';
 import * as store from './different-email-recovery-store';
 import {
+  cleanupRecoveryRows,
   createRecoveryOwner,
   recoverySql,
   stageReplacement,
@@ -214,4 +215,20 @@ export async function cleanupResetRows() {
     await recoverySql`delete from "verification" where "value" = ${id} or "value" like ${bound}`;
   }
   resetUsers.clear();
+}
+
+/** Runs a reset contract suite only where the real PostgreSQL contract lane asks for it. */
+export const describeResetContract = describe.runIf(
+  process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1'
+);
+
+/** Registers the per-test cleanup every reset contract file needs, and closes the pool once. */
+export function cleanEachResetContract(mail: Mock) {
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    mail.mockReset();
+    await cleanupResetRows();
+    await cleanupRecoveryRows();
+  });
+  afterAll(async () => recoverySql.end());
 }
