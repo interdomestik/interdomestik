@@ -210,11 +210,11 @@ export async function emailVerified(userId: string) {
 export async function cleanupResetRows() {
   gates.beforeToken = undefined;
   gates.beforeHash = undefined;
-  for (const id of resetUsers) {
-    const bound = `%${id}%`;
-    await recoverySql`delete from "verification" where "value" = ${id} or "value" like ${bound}`;
-  }
+  const ids = [...resetUsers];
   resetUsers.clear();
+  await Promise.all(
+    ids.map(id => recoverySql`delete from "verification" where strpos("value", ${id}) > 0`)
+  );
 }
 
 /** Runs a reset contract suite only where the real PostgreSQL contract lane asks for it. */
@@ -230,5 +230,5 @@ export function cleanEachResetContract(mail: Mock) {
     await cleanupResetRows();
     await cleanupRecoveryRows();
   });
-  afterAll(async () => recoverySql.end());
+  afterAll(() => recoverySql.end());
 }
