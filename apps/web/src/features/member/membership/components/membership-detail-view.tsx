@@ -15,11 +15,7 @@ import { formatPilotDateTime } from '@/lib/utils/date';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useLocale } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-import {
-  activateSponsoredMembership,
-  cancelSubscription,
-  getPaymentUpdateUrl,
-} from '@/actions/subscription.core';
+import { cancelSubscription, getPaymentUpdateUrl } from '@/actions/subscription.core';
 import { buildCancellationFeedbackMessage } from '@/features/member/membership/cancellation-feedback';
 import { toast } from 'sonner';
 import { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
@@ -128,17 +124,6 @@ export function DetailView({ subscription, documents, t }: DetailViewProps) {
       return;
     }
     try {
-      if (id === 'activate_sponsored') {
-        const result = await activateSponsoredMembership(subscription.id);
-        if ('error' in result) {
-          toast.error(t('errors.action_failed'));
-          return;
-        }
-
-        toast.success(t('sponsored.activation.success'));
-        return;
-      }
-
       if (id === 'complete_membership') {
         router.push(getMembershipPricingHref(subscription.planId));
         return;
@@ -210,28 +195,12 @@ export function DetailView({ subscription, documents, t }: DetailViewProps) {
             </p>
           ) : null}
 
-          {primary?.id === 'complete_membership' ? (
+          {primary?.id === 'complete_membership' || sponsoredState === 'activation_required' ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
               <h4 className="text-sm font-semibold text-slate-900">
                 {t('ops.membership_not_active_title')}
               </h4>
               <p className="mt-1 text-sm text-slate-600">{t('ops.membership_not_active_body')}</p>
-            </div>
-          ) : null}
-
-          {sponsoredState === 'activation_required' ? (
-            <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4">
-              <h4 className="text-sm font-semibold text-slate-900">
-                {t('sponsored.activation.title')}
-              </h4>
-              <p className="mt-1 text-sm text-slate-600">{t('sponsored.activation.body')}</p>
-              <button
-                type="button"
-                onClick={() => handleAction('activate_sponsored')}
-                className="mt-3 inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-              >
-                {t('sponsored.activation.cta')}
-              </button>
             </div>
           ) : null}
 

@@ -1,6 +1,4 @@
-import { GroupDashboardSummary } from '@/features/agent/import/components/group-dashboard-summary';
 import { CSVUploader } from '@/features/agent/import/components/csv-uploader';
-import { getGroupDashboardSummary } from '@/features/agent/import/server/get-group-dashboard-summary';
 import { resolveSponsoredImportAccess } from '@/lib/actions/agent/sponsored-import-access';
 import { auth } from '@/lib/auth';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
@@ -30,11 +28,6 @@ export default async function AgentImportPage({ params }: { params: Promise<{ lo
     notFound();
   }
 
-  const summary = await getGroupDashboardSummary({
-    agentId: session.user.id,
-    authority: authorized.authority,
-  });
-
   return (
     <div className="max-w-5xl mx-auto py-8 space-y-8 px-4">
       <div className="space-y-2">
@@ -43,8 +36,6 @@ export default async function AgentImportPage({ params }: { params: Promise<{ lo
           Upload a CSV roster to create sponsored member seats in bulk through the agent write path.
         </p>
       </div>
-
-      <GroupDashboardSummary summary={summary} />
 
       <div className="rounded-[2rem] border bg-card/50 backdrop-blur-xl p-8 shadow-sm">
         <CSVUploader />

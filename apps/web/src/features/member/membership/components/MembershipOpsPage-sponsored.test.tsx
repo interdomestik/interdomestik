@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import {
   MembershipOpsPage,
@@ -75,9 +75,8 @@ describe('MembershipOpsPage', () => {
     expect(screen.getByRole('button', { name: 'dunning.update_payment_button' })).toBeEnabled();
   });
 
-  it('activates paused sponsored memberships from the member ops view', async () => {
+  it('shows the existing inactive state for legacy paused sponsored memberships', async () => {
     selectionMocks.selectedId = 'sub-1';
-    actionMocks.activateSponsoredMembership.mockResolvedValue({ success: true });
 
     render(
       <MembershipOpsPage
@@ -97,11 +96,11 @@ describe('MembershipOpsPage', () => {
       />
     );
 
-    fireEvent.click(screen.getByText('sponsored.activation.cta'));
-
-    await waitFor(() => {
-      expect(actionMocks.activateSponsoredMembership).toHaveBeenCalledWith('sub-1');
-    });
+    expect(screen.getByText('ops.membership_not_active_title')).toBeInTheDocument();
+    expect(screen.getByText('ops.membership_not_active_body')).toBeInTheDocument();
+    expect(screen.queryByText('sponsored.activation.cta')).not.toBeInTheDocument();
+    expect(actionMocks.cancelSubscription).not.toHaveBeenCalled();
+    expect(actionMocks.getPaymentUpdateUrl).not.toHaveBeenCalled();
   });
 
   it('shows a family self-upgrade CTA for active sponsored standard memberships', () => {

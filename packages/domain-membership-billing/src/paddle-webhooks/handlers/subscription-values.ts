@@ -56,6 +56,7 @@ export function mapToSubscriptionValues(
     sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at;
   const currentEndsAt = sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at;
   const baseValues = {
+    provider: 'paddle',
     status: mappedStatus,
     ...createCanonicalMembershipPlanState(planState.planId, planState.planKey),
     providerCustomerId: (sub.customerId || sub.customer_id) as string | null,

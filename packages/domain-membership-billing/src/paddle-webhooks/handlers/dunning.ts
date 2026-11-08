@@ -160,7 +160,7 @@ async function persistPastDueSubscription(args: {
       async tx =>
         await tx
           .update(subscriptions)
-          .set(args.values)
+          .set({ ...args.values, provider: 'paddle' })
           .where(and(eq(subscriptions.id, existingSubId), eq(subscriptions.tenantId, tenantId)))
     );
     return;
@@ -174,6 +174,7 @@ async function persistPastDueSubscription(args: {
         await tx.insert(subscriptions).values({
           id: args.subscriptionId,
           ...args.values,
+          provider: 'paddle',
         })
     );
   } catch (error) {
@@ -195,7 +196,7 @@ async function persistPastDueSubscription(args: {
       async tx =>
         await tx
           .update(subscriptions)
-          .set(args.values)
+          .set({ ...args.values, provider: 'paddle' })
           .where(
             and(eq(subscriptions.id, racedSubscription.id), eq(subscriptions.tenantId, tenantId))
           )

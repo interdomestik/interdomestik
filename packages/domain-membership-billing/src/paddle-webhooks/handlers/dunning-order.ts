@@ -85,6 +85,7 @@ export async function persistOrderedPastDueSubscription<
       .update(subscriptions)
       .set({
         ...state.values,
+        provider: 'paddle',
         providerEventOccurredAt: args.order.occurredAt,
         providerEventId: args.order.providerEventId,
       })

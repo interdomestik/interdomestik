@@ -10,6 +10,36 @@ import {
 } from './test-support';
 
 describe('handleSubscriptionPastDue', () => {
+  it('takes over the sponsored anchor in the same unordered past-due update', async () => {
+    const set = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
+    hoisted.db.update.mockReturnValue({ set });
+    mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_anchor', tenantId: 'tenant_abc' });
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
+      id: 'sub_anchor',
+      tenantId: 'tenant_abc',
+      userId: 'user_123',
+      provider: 'group_sponsor',
+      dunningAttemptCount: 1,
+    });
+    mockUserOwner(hoisted, 'tenant_abc');
+    hoisted.db.query.user.findFirst.mockResolvedValue({
+      id: 'user_123',
+      tenantId: 'tenant_abc',
+      email: 'member@example.com',
+      name: 'Member',
+    });
+    await handleSubscriptionPastDue(createPastDueSubscriptionEvent());
+    expect(set).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        provider: 'paddle',
+        status: 'past_due',
+        providerSubscriptionId: 'sub_paddle_456',
+        dunningAttemptCount: 2,
+      })
+    );
+    expect(hoisted.db.insert).not.toHaveBeenCalled();
+  });
+
   it('sends the payment failed email on the first dunning attempt', async () => {
     const sendPaymentFailedEmail = vi.fn().mockResolvedValue(undefined);
 

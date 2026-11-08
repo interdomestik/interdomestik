@@ -4,7 +4,6 @@ import { afterEach, beforeEach, vi } from 'vitest';
 export const originalConfirm = globalThis.confirm;
 
 export const actionMocks = {
-  activateSponsoredMembership: vi.fn(),
   cancelSubscription: vi.fn(),
   getPaymentUpdateUrl: vi.fn(),
   getMembershipActions: vi.fn(),
@@ -94,7 +93,6 @@ vi.doMock('@/hooks/use-media-query', () => ({
 }));
 
 vi.doMock('@/actions/subscription.core', () => ({
-  activateSponsoredMembership: actionMocks.activateSponsoredMembership,
   cancelSubscription: actionMocks.cancelSubscription,
   getPaymentUpdateUrl: actionMocks.getPaymentUpdateUrl,
 }));
