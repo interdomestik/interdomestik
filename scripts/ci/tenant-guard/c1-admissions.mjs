@@ -14,6 +14,7 @@
 // state-callee check, see the admitted closure comparison. The sinks keep propagating through
 // their callers as before.
 import { ACQ2C_CREDENTIAL_HARDENING } from './c1-admissions-auth.mjs';
+import { DE_LOCALE_ADDITION } from './c1-admissions-i18n.mjs';
 
 const deepFreeze = value => {
   if (value && typeof value === 'object') {
@@ -293,4 +294,5 @@ export const C1_ADMISSIONS = deepFreeze([
     sinkEdges: [],
   },
   ACQ2C_CREDENTIAL_HARDENING,
+  DE_LOCALE_ADDITION,
 ]);
