@@ -20,7 +20,12 @@ import { nanoid } from 'nanoid';
 
 import { parseTimestamp } from '../sponsor-coverage/resolve';
 import { canManageRoster, type SponsorActor } from './access';
-import { normalizeRosterEmail, rosterEmailHmac } from './roster-crypto';
+import {
+  normalizeRosterEmail,
+  optOutToken,
+  optOutTokenHash,
+  rosterEmailHmac,
+} from './roster-crypto';
 import type { SponsorResult } from './terms';
 
 export const MAX_UPLOAD_ROWS = 500;
@@ -154,17 +159,23 @@ export async function uploadRoster(
     const binding = await bindableUsers(tx, tenantId, term, fresh);
     if (fresh.length > 0) {
       await tx.insert(sponsorRosterEntries).values(
-        fresh.map(row => ({
-          id: `spe_${nanoid()}`,
-          tenantId,
-          termId: input.termId,
-          firstName: row.firstName,
-          lastName: row.lastName,
-          emailNormalized: row.emailNormalized,
-          emailHmac: row.emailHmac,
-          userId: binding.get(row.emailNormalized) ?? null,
-          addedBy: actor.userId,
-        }))
+        fresh.map(row => {
+          const id = `spe_${nanoid()}`;
+          return {
+            id,
+            tenantId,
+            termId: input.termId,
+            firstName: row.firstName,
+            lastName: row.lastName,
+            emailNormalized: row.emailNormalized,
+            emailHmac: row.emailHmac,
+            userId: binding.get(row.emailNormalized) ?? null,
+            addedBy: actor.userId,
+            // The token is derived, never stored; its hash is written once here (it may only be
+            // cleared later, §3.8).
+            optoutTokenHash: optOutTokenHash(optOutToken(input.secret, id)),
+          };
+        })
       );
     }
     return {
