@@ -27,15 +27,15 @@
     "details": {
       "claimantInfo": "Информации за подносителот",
       "description": "Опис",
-      "amount": "Amount",
-      "company": "Subject / Company",
-      "evidence": "Evidence Files",
-      "noEvidence": "No documents uploaded.",
+      "amount": "Износ",
+      "company": "Лице / Компанија",
+      "evidence": "Доказни документи",
+      "noEvidence": "Нема прикачени документи.",
       "messages": "Пораки"
     },
     "notes": {
-      "title": "Agent Notes",
-      "description": "Quick reminders and private workspace notes.",
+      "title": "Белешки на агентот",
+      "description": "Брзи потсетници и приватни белешки во работниот простор.",
       "noteDescription": "Додај белешка за интеракцијата на овој член или важни детали.",
       "addNote": "Додај белешка",
       "editNote": "Уреди белешка",

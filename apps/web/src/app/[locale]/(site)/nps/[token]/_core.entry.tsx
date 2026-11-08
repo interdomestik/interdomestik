@@ -7,10 +7,10 @@ export default async function NpsSurveyPage({
   params,
 }: {
   params: Promise<{ locale: string; token: string }>;
-}) {
+}): Promise<React.JSX.Element> {
   const { locale, token } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('nps');
+  const t = await getTranslations({ locale, namespace: 'nps' });
 
   return (
     <div className="min-h-screen bg-muted/30">

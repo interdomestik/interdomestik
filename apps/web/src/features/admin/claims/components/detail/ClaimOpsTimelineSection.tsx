@@ -12,6 +12,7 @@ import { ClaimOpsTimeline } from './ClaimOpsTimeline';
 import { getClaimTimeline, type TimelineViewerRole } from '@/features/claims/timeline';
 
 interface ClaimOpsTimelineSectionProps {
+  locale: string;
   claimId: string;
   authority: TenantAuthority;
   viewerRole: TimelineViewerRole;
@@ -21,10 +22,11 @@ interface ClaimOpsTimelineSectionProps {
 export async function ClaimOpsTimelineSection({
   claimId,
   authority,
+  locale,
   viewerRole,
   showNotes = false,
-}: ClaimOpsTimelineSectionProps) {
-  const tTimeline = await getTranslations('admin.claims_page.timeline');
+}: ClaimOpsTimelineSectionProps): Promise<React.JSX.Element> {
+  const tTimeline = await getTranslations({ locale, namespace: 'admin.claims_page.timeline' });
   const timeline = await getClaimTimeline({ claimId, authority, viewerRole });
 
   return (

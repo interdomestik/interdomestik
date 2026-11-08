@@ -17,6 +17,7 @@ const PREFERENCE_Items: PreferenceItem[] = [
 ];
 
 interface PreferencesCardProps {
+  readonly locale: string;
   readonly preferences: {
     readonly emailClaimUpdates?: boolean;
     readonly emailNewsletter?: boolean;
@@ -27,9 +28,12 @@ interface PreferencesCardProps {
   } | null;
 }
 
-export async function PreferencesCard({ preferences }: PreferencesCardProps) {
-  const t = await getTranslations('admin.member_profile');
-  const tCommon = await getTranslations('common');
+export async function PreferencesCard({
+  preferences,
+  locale,
+}: PreferencesCardProps): Promise<React.JSX.Element> {
+  const t = await getTranslations({ locale, namespace: 'admin.member_profile' });
+  const tCommon = await getTranslations({ locale, namespace: 'common' });
 
   if (!preferences) {
     return (

@@ -11,7 +11,8 @@ vi.mock('@/i18n/routing', () => ({
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
+  useLocale: () => 'sq',
+  useTranslations: () => (key: string, values?: Record<string, string | number>) => {
     const translations: Record<string, string> = {
       'headers.user': 'User',
       'headers.status': 'Status',
@@ -22,6 +23,7 @@ vi.mock('next-intl', () => ({
       'sections.all': 'All Members',
       view_profile: 'View Profile',
       no_users: 'No users found',
+      expandAll: `Shfaq të gjithë (${values?.count})`,
     };
     return translations[key] || key;
   },
@@ -121,5 +123,22 @@ describe('AgentUsersSections', () => {
     render(<AgentUsersSections users={mockUsers} />);
     expect(screen.getByText('User')).toBeInTheDocument();
     expect(screen.getByText('Actions')).toBeInTheDocument();
+  });
+  it('formats expiry using the page locale instead of the browser default', () => {
+    render(
+      <AgentUsersSections
+        users={[
+          {
+            ...mockUsers[0],
+            subscription: {
+              status: 'active',
+              planId: 'standard',
+              currentPeriodEnd: new Date(2027, 10, 8),
+            },
+          },
+        ]}
+      />
+    );
+    expect(screen.getByText('08.11.2027')).toBeInTheDocument();
   });
 });

@@ -56,6 +56,13 @@
       "details": "By clicking 'Accept', you agree to our use of cookies for analytics and personalized content.",
       "accept": "Accept All",
       "decline": "Necessary Only"
+    },
+    "interface": {
+      "statusSuccess": "Status updated successfully",
+      "statusError": "Failed to update status",
+      "expandAll": "Expand All ({count})",
+      "searchMembers": "Search members",
+      "loadingPage": "Loading page"
     }
   }
 }

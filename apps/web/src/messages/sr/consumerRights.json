@@ -29,6 +29,9 @@
       }
     },
     "cta": "Pokrenite zahtev",
-    "learnMore": "Saznajte više"
+    "learnMore": "Saznajte više",
+    "assistance": {
+      "helpBody": "Ako smatrate da su vaša prava prekršena, možemo vam pomoći da podnesete zahtev."
+    }
   }
 }

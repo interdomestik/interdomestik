@@ -18,7 +18,8 @@ import {
   UserCheck,
   X,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { formatPilotDate } from '@/lib/utils/date';
+import { useLocale, useTranslations } from 'next-intl';
 import { CashVerificationRequestDTO } from '../server/types';
 
 interface VerificationTableProps {
@@ -35,7 +36,8 @@ export function VerificationTable({
   onViewDetails,
   onVerify,
   onAction,
-}: VerificationTableProps) {
+}: VerificationTableProps): React.JSX.Element {
+  const locale = useLocale();
   const t = useTranslations('admin.leads');
 
   const baseColumns = [
@@ -153,7 +155,7 @@ export function VerificationTable({
         </div>,
         <div key="date" className="text-xs text-muted-foreground flex items-center gap-1">
           <Clock className="w-3 h-3" />
-          {new Date(req.updatedAt).toLocaleDateString()}
+          {formatPilotDate(req.updatedAt, locale, '-')}
         </div>
       );
     }

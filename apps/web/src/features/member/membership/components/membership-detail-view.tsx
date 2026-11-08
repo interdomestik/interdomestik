@@ -146,7 +146,7 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
         }
 
         cancellationKeyRef.current = null;
-        toast.success(buildCancellationFeedbackMessage(t, result.cancellationTerms));
+        toast.success(buildCancellationFeedbackMessage(t, result.cancellationTerms, locale));
         return;
       }
 

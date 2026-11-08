@@ -15,12 +15,15 @@ import { canReviewLeadDuplicates } from '../server/review-scope';
 import { LeadDuplicateReviewPanel } from './LeadDuplicateReviewPanel';
 
 /** `/admin/leads?view=duplicates`: only duplicate reviewers; everyone else returns to the queue. */
-export async function LeadDuplicatesPage({ state }: Readonly<{ state: DuplicateReviewState }>) {
+export async function LeadDuplicatesPage({
+  state,
+  locale,
+}: Readonly<{ state: DuplicateReviewState; locale: string }>): Promise<React.JSX.Element> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session || !canReviewLeadDuplicates(session.user.role)) {
     redirect('/admin/leads');
   }
-  const t = await getTranslations('admin.leads');
+  const t = await getTranslations({ locale, namespace: 'admin.leads' });
   const result = await listLeadDuplicatesAction(state);
 
   return (
@@ -29,6 +32,7 @@ export async function LeadDuplicatesPage({ state }: Readonly<{ state: DuplicateR
       <GlassCard className="p-6">
         {result.success ? (
           <LeadDuplicateReviewPanel
+            locale={locale}
             rows={(result.data ?? []) as DuplicateReferralRow[]}
             state={state}
           />

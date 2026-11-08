@@ -1,3 +1,19 @@
+import type { AbstractIntlMessages } from 'next-intl';
+import en from '@/messages/en/claimCategories.json';
+import sq from '@/messages/sq/claimCategories.json';
+import shared from '@/messages/en/claims.json';
+const language = vi.hoisted(() => ({ locale: 'en' }));
+vi.mock('next-intl', async () => {
+  const { createTranslator } = await vi.importActual<typeof import('next-intl')>('next-intl');
+  return {
+    useTranslations: (namespace: string) =>
+      createTranslator({
+        locale: language.locale,
+        namespace,
+        messages: { ...shared, ...(language.locale === 'sq' ? sq : en) } as AbstractIntlMessages,
+      }),
+  };
+});
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CallMeNowDialog } from './call-me-now-dialog';
@@ -80,6 +96,7 @@ vi.mock('@interdomestik/ui/components/input', () => ({
 describe('CallMeNowDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    language.locale = 'en';
   });
 
   it('renders trigger button', () => {
@@ -115,5 +132,14 @@ describe('CallMeNowDialog', () => {
   it('displays category in dialog description', () => {
     render(<CallMeNowDialog category="travel" />);
     expect(screen.getByText(/travel case/i)).toBeInTheDocument();
+  });
+  it('localizes the callback form without English labels', () => {
+    language.locale = 'sq';
+    render(<CallMeNowDialog category="vehicle" />);
+    expect(
+      screen.getByRole('button', { name: 'Kërko telefonatë të menjëhershme' })
+    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Emri juaj i plotë')).toBeInTheDocument();
+    expect(screen.getByText('Numri i telefonit')).toBeInTheDocument();
   });
 });

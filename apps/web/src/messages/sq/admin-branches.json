@@ -2,11 +2,11 @@
   "admin": {
     "branches": {
       "title": "Menaxhimi i Degëve",
-      "description": "Menaxhoni degët e organizatës suaj.",
+      "description": "Menaxhoni degët e subjektit suaj.",
       "listTitle": "Degët",
       "createButton": "Degë e Re",
       "createTitle": "Krijoni Degë të Re",
-      "createDescription": "Shtoni një degë të re në organizatën tuaj.",
+      "createDescription": "Shtoni një degë të re në subjektin tuaj.",
       "editTitle": "Ndrysho Degën",
       "editDescription": "Përditëso detajet e degës.",
       "createSuccess": "Dega u krijua me sukses.",
@@ -53,7 +53,7 @@
       "table_status": "Statusi",
       "table_kpis": "Treguesit kyç",
       "table_open_claims": "Dëmet e Hapura",
-      "table_cash_pending": "Pagesa cash në pritje",
+      "table_cash_pending": "Pagesa me para në dorë në pritje",
       "table_sla_breaches": "Shkeljet SLA",
       "table_actions": "Veprimet",
       "view_dashboard": "Shiko Panelin",
@@ -65,7 +65,7 @@
       "sort_name_asc": "Emri (A-Z)",
       "sort_health_score_asc": "Shëndeti (Më Keq Fillimisht)",
       "sort_open_claims_desc": "Dëmet e Hapura (Lart-Poshtë)",
-      "sort_cash_pending_desc": "Pagesa cash në pritje (Lart-Poshtë)",
+      "sort_cash_pending_desc": "Pagesa me para në dorë në pritje (Lart-Poshtë)",
       "sort_sla_breaches_desc": "Shkeljet SLA (Lart-Poshtë)",
       "dashboard": {
         "back_to_branches": "Kthehu te Degët",
@@ -77,7 +77,7 @@
         "stats_total_claims": "Kërkesat Gjithsej",
         "stats_claims_this_month": "Këtë Muaj",
         "stats_open_claims": "Dëmet e Hapura",
-        "stats_cash_pending": "Pagesa cash në pritje",
+        "stats_cash_pending": "Pagesa me para në dorë në pritje",
         "stats_sla_breaches": "Shkeljet e Afatit",
         "agents_title": "Agjentët",
         "agents_description": "{count, plural, =0 {Nuk ka agjentë} =1 {1 agjent} other {# agjentë}} në këtë degë",
@@ -91,7 +91,7 @@
       },
       "create_branch": "Degë e Re",
       "create_branch_title": "Krijoni Degë të Re",
-      "create_branch_description": "Shtoni një degë të re në organizatën tuaj.",
+      "create_branch_description": "Shtoni një degë të re në subjektin tuaj.",
       "field_name": "Emri i Degës",
       "placeholder_name": "psh. Dega Kryesore",
       "field_code": "Kodi i Degës",
@@ -108,13 +108,13 @@
       "sort": {
         "name_asc": "Emri (A–Z)",
         "open_claims_desc": "Dëmet e Hapura",
-        "cash_pending_desc": "Pagesa cash në pritje",
+        "cash_pending_desc": "Pagesa me para në dorë në pritje",
         "sla_breaches_desc": "Shkeljet SLA",
         "health_score_asc": "Shëndeti (Më Keq Fillimisht)"
       },
       "kpis": {
         "open_claims": "Dëmet e Hapura",
-        "cash_pending": "Pagesa cash në pritje",
+        "cash_pending": "Pagesa me para në dorë në pritje",
         "sla_breaches": "Shkeljet SLA",
         "total_agents": "Agjentët Totale",
         "total_members": "Anëtarët Totale"
@@ -130,12 +130,12 @@
         "no_alerts": "Nuk ka alarme kritike",
         "sla_breach_title": "Rrezik Shkelje SLA",
         "sla_breach_desc": "{count} kërkesa kanë shkelur afatin",
-        "cash_pending_title": "Pagesa cash në pritje autorizimi",
+        "cash_pending_title": "Pagesa me para në dorë në pritje autorizimi",
         "cash_pending_desc": "{count} pagesa në pritje verifikimi"
       },
       "pipeline": {
-        "title": "Pipeline i Dëmeve",
-        "empty": "Nuk ka dëme aktive në pipeline",
+        "title": "Procesi i Dëmeve",
+        "empty": "Nuk ka dëme aktive në proces",
         "statuses": {
           "submitted": "Dorëzuar",
           "verification": "Verifikim",

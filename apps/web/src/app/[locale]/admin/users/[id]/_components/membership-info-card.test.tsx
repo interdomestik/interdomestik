@@ -6,11 +6,6 @@ vi.mock('next-intl/server', () => ({
   getTranslations: vi.fn(async () => (key: string) => key),
 }));
 
-vi.mock('./utils', () => ({
-  formatDate: (value: Date | null, fallback: string) =>
-    value?.toISOString().slice(0, 10) ?? fallback,
-}));
-
 vi.mock('@/features/admin/users/components/tenant-classification-controls', () => ({
   TenantClassificationControls: ({
     userId,
@@ -30,6 +25,7 @@ describe('MembershipInfoCard', () => {
     };
 
     const jsx = await MembershipInfoCard({
+      locale: 'en',
       membershipSource: 'subscription',
       subscription: mockSubscription,
       membershipStatus: 'active',
@@ -53,6 +49,7 @@ describe('MembershipInfoCard', () => {
 
   it('renders grace-period lifecycle context for admin reporting', async () => {
     const jsx = await MembershipInfoCard({
+      locale: 'en',
       membershipSource: 'subscription',
       subscription: {
         planId: 'Premium Plan',
@@ -83,6 +80,7 @@ describe('MembershipInfoCard', () => {
 
   it('renders scheduled-cancel lifecycle context for admin reporting', async () => {
     const jsx = await MembershipInfoCard({
+      locale: 'en',
       membershipSource: 'subscription',
       subscription: {
         planId: 'Premium Plan',
@@ -113,6 +111,7 @@ describe('MembershipInfoCard', () => {
 
   it('renders empty state when no subscription', async () => {
     const jsx = await MembershipInfoCard({
+      locale: 'en',
       membershipSource: 'none',
       subscription: null,
       membershipStatus: 'none',
@@ -133,6 +132,7 @@ describe('MembershipInfoCard', () => {
 
   it('renders operator account state instead of member subscription state', async () => {
     const jsx = await MembershipInfoCard({
+      locale: 'en',
       membershipSource: 'none',
       subscription: null,
       membershipStatus: 'operator',
@@ -155,6 +155,7 @@ describe('MembershipInfoCard', () => {
 
   it('renders registered member state when member identity exists without billing subscription', async () => {
     const jsx = await MembershipInfoCard({
+      locale: 'en',
       membershipSource: 'none',
       subscription: null,
       membershipStatus: 'registered',
@@ -177,6 +178,7 @@ describe('MembershipInfoCard', () => {
 
   it('renders tenant classification review state when pending', async () => {
     const jsx = await MembershipInfoCard({
+      locale: 'en',
       membershipSource: 'none',
       subscription: null,
       membershipStatus: 'registered',
@@ -199,6 +201,7 @@ describe('MembershipInfoCard', () => {
   it('separates sponsor window and coverage end from the Paddle lifecycle', async () => {
     render(
       await MembershipInfoCard({
+        locale: 'en',
         membershipSource: 'sponsor',
         coverageEnd: new Date('2028-01-01'),
         providerStatus: 'canceled',
@@ -220,9 +223,9 @@ describe('MembershipInfoCard', () => {
     );
     expect(screen.getByText('source.sponsor')).toBeInTheDocument();
     expect(screen.getByText('sponsor-plan')).toBeInTheDocument();
-    expect(screen.getByText('2026-01-01')).toBeInTheDocument();
-    expect(screen.getByText('2027-01-01')).toBeInTheDocument();
-    expect(screen.getByText('2028-01-01')).toBeInTheDocument();
+    expect(screen.getByText('Jan 1, 2026')).toBeInTheDocument();
+    expect(screen.getByText('Jan 1, 2027')).toBeInTheDocument();
+    expect(screen.getByText('Jan 1, 2028')).toBeInTheDocument();
     expect(screen.getByTestId('provider-lifecycle')).toHaveTextContent('labels.provider_lifecycle');
     expect(screen.getByTestId('provider-lifecycle')).toHaveTextContent('provider_status.canceled');
     expect(screen.getByTestId('membership-lifecycle-status')).toHaveTextContent('status.active');

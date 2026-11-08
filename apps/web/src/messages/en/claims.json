@@ -147,7 +147,7 @@
       "editDraft": "Edit draft",
       "cancelClaim": "Cancel claim",
       "cancelConfirm": "Cancel this claim? You can’t undo this.",
-      "cancelled": "Claim cancelled",
+      "cancelled": "Claim canceled",
       "cancelFailed": "Failed to cancel claim"
     },
     "claimsPro": {

@@ -61,7 +61,7 @@
         "all_clear": "Të gjitha sistemet janë operacionale."
       },
       "panels": {
-        "claims_pipeline": "Pipeline i Dëmeve",
+        "claims_pipeline": "Procesi i Dëmeve",
         "unassigned": "Pa Caktuar",
         "in_progress": "Në Progres",
         "in_review": "Në Shqyrtim",

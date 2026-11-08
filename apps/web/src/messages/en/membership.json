@@ -218,6 +218,23 @@
       "success": "You have left the company program. You can now buy an individual membership.",
       "not_found": "This company membership is no longer available. Refresh the page.",
       "error": "We could not remove you from the program. Please try again."
+    },
+    "policies": {
+      "title": "My Policies",
+      "body": "Manage your insurance documents and see AI insights.",
+      "add": "Add Policy",
+      "emptyTitle": "No policies uploaded yet",
+      "emptyBody": "Upload your insurance policy to unlock AI-powered insights, hidden perks, and advocacy tools.",
+      "uploadFirst": "Upload First Policy",
+      "analyzed": "AI Analyzed",
+      "unknownProvider": "Unknown Provider",
+      "noNumber": "No Number",
+      "coverage": "Coverage:",
+      "deductible": "Deductible:",
+      "unavailable": "N/A",
+      "hiddenPerks": "HIDDEN PERKS",
+      "more": "+{count} more",
+      "viewPdf": "View PDF"
     }
   }
 }

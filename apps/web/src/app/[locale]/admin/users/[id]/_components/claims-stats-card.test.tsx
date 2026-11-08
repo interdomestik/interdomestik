@@ -9,7 +9,7 @@ vi.mock('next-intl/server', () => ({
 describe('ClaimsStatsCard', () => {
   it('renders stats counts', async () => {
     const counts = { total: 10, open: 5, resolved: 3, rejected: 2 };
-    const jsx = await ClaimsStatsCard({ counts });
+    const jsx = await ClaimsStatsCard({ locale: 'en', counts });
     render(jsx);
 
     expect(screen.getByText('sections.claims_overview')).toBeInTheDocument();

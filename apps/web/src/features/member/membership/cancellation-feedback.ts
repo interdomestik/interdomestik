@@ -1,17 +1,19 @@
+import { formatPilotDate } from '@/lib/utils/date';
 import type { CancellationTermsSummary } from '@interdomestik/domain-membership-billing/subscription/types';
 
 type TranslationFn = (key: string, values?: Record<string, string | number>) => string;
 
 export function buildCancellationFeedbackMessage(
   t: TranslationFn,
-  cancellationTerms: CancellationTermsSummary
-) {
+  cancellationTerms: CancellationTermsSummary,
+  locale: string
+): string {
   const parts = [t('actions.cancel_requested')];
 
   if (cancellationTerms.currentPeriodEndsAt) {
     parts.push(
       t('actions.cancel_keeps_access_until', {
-        date: new Date(cancellationTerms.currentPeriodEndsAt).toLocaleDateString(),
+        date: formatPilotDate(cancellationTerms.currentPeriodEndsAt, locale, '-'),
       })
     );
   }

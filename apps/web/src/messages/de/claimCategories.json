@@ -23,6 +23,20 @@
       "title": "Reise & Flug",
       "description": "Flugverspätungen, Annullierungen und verlorenes Gepäck.",
       "examples": "z. B. Entschädigung nach EU261 bis zu 600 EUR"
+    },
+    "callback": {
+      "trigger": "Sofortigen Rückruf anfordern",
+      "received": "Anfrage erhalten!",
+      "receivedBody": "Unser Team ruft Sie in Kürze unter {phone} an.",
+      "title": "Jetzt mit einem Experten sprechen",
+      "body": "Lassen Sie die Formulare aus. Hinterlassen Sie Ihre Nummer und wir rufen Sie innerhalb von 15 Minuten an, um Ihren Fall zu besprechen: {category}.",
+      "name": "Ihr Name",
+      "namePlaceholder": "Ihr vollständiger Name",
+      "phone": "Telefonnummer",
+      "sending": "Wird gesendet…",
+      "submit": "Jetzt zurückrufen",
+      "nameRequired": "Bitte geben Sie Ihren Namen ein",
+      "phoneRequired": "Bitte geben Sie eine gültige Telefonnummer ein"
     }
   }
 }

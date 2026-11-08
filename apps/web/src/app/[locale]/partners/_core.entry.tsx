@@ -55,10 +55,14 @@ const PARTNER_CATEGORIES = [
   },
 ];
 
-export default async function PartnersPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function PartnersPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<React.JSX.Element> {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('partners');
+  const t = await getTranslations({ locale, namespace: 'partners' });
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background">

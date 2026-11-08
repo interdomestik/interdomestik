@@ -17,7 +17,7 @@ describe('PreferencesCard', () => {
       inAppAll: false,
     };
 
-    const jsx = await PreferencesCard({ preferences: mockPrefs });
+    const jsx = await PreferencesCard({ locale: 'en', preferences: mockPrefs });
     render(jsx);
 
     expect(screen.getByText('sections.preferences')).toBeInTheDocument();
@@ -25,7 +25,7 @@ describe('PreferencesCard', () => {
   });
 
   it('renders unset state', async () => {
-    const jsx = await PreferencesCard({ preferences: null });
+    const jsx = await PreferencesCard({ locale: 'en', preferences: null });
     render(jsx);
 
     expect(screen.getByText('labels.preferences_unset')).toBeInTheDocument();

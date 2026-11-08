@@ -9,8 +9,14 @@ type Agent = {
   image: string | null;
 };
 
-export async function AgentInfoCard({ agent }: { agent: Agent | null | undefined }) {
-  const t = await getTranslations('admin.member_profile');
+export async function AgentInfoCard({
+  agent,
+  locale,
+}: {
+  agent: Agent | null | undefined;
+  locale: string;
+}): Promise<React.JSX.Element> {
+  const t = await getTranslations({ locale, namespace: 'admin.member_profile' });
 
   return (
     <Card>

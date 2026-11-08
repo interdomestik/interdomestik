@@ -1,16 +1,16 @@
 {
   "staff-crm": {
     "title": "CRM izveštavanje",
-    "description": "Operativno izveštavanje za osoblje o opterećenju pipeline-a, kretanju kroz funnel i brzini faza.",
+    "description": "Operativno izveštavanje za osoblje o opterećenju prodajnog toka, kretanju kroz prodajni levak i brzini faza.",
     "pipelineWorkload": {
-      "title": "Opterećenje pipeline-a",
-      "description": "Živi 90-dnevni otvoreni pipeline po filijali, pipeline-u i valuti.",
-      "empty": "Nema otvorenog opterećenja pipeline-a za podrazumevani period izveštavanja."
+      "title": "Opterećenje prodajnog toka",
+      "description": "Živi 90-dnevni otvoreni prodajni tok po filijali, prodajnom toku i valuti.",
+      "empty": "Nema otvorenog opterećenja prodajnog toka za podrazumevani period izveštavanja."
     },
     "funnelMovement": {
-      "title": "Kretanje kroz funnel",
+      "title": "Kretanje kroz prodajni levak",
       "description": "Najveća CRM kretanja po fazama prema ulascima u periodu.",
-      "empty": "Nema kretanja kroz funnel za podrazumevani period izveštavanja."
+      "empty": "Nema kretanja kroz prodajni levak za podrazumevani period izveštavanja."
     },
     "stageVelocity": {
       "title": "Brzina faza",
@@ -42,16 +42,16 @@
     "charts": {
       "hiddenItems": "{count, plural, one {# dodatni red je sakriven iz rezimea grafikona} other {# dodatnih redova je sakriveno iz rezimea grafikona}}",
       "pipelineAmount": {
-        "title": "Grafikon iznosa pipeline-a",
-        "description": "Dopunsko poređenje ukupnog i ponderisanog iznosa pipeline-a. Tabela iznad je izvor istine.",
-        "summaryIntro": "Rezime grafikona iznosa pipeline-a",
+        "title": "Grafikon iznosa prodajnog toka",
+        "description": "Dopunsko poređenje ukupnog i ponderisanog iznosa prodajnog toka. Tabela iznad je izvor istine.",
+        "summaryIntro": "Rezime grafikona iznosa prodajnog toka",
         "total": "Ukupno",
         "weighted": "Ponderisano"
       },
       "funnelMovement": {
-        "title": "Grafikon kretanja kroz funnel",
+        "title": "Grafikon kretanja kroz prodajni levak",
         "description": "Dopunsko poređenje kretanja po fazama. Tabela iznad je izvor istine.",
-        "summaryIntro": "Rezime grafikona kretanja kroz funnel",
+        "summaryIntro": "Rezime grafikona kretanja kroz prodajni levak",
         "entered": "Ušlo",
         "exited": "Izašlo",
         "won": "Dobijeno",
@@ -69,7 +69,7 @@
     "excludedRows": "{count, plural, one {# agregirani red je izuzet} other {# agregiranih redova je izuzeto}}",
     "excludedRowsHelp": "Redovi se mogu izuzeti iz agregiranih metrika kada obavezna polja za izveštavanje nedostaju ili nisu dosledna.",
     "error": {
-      "tenant": "CRM izveštavanje nije dostupno za ovaj tenant kontekst.",
+      "tenant": "CRM izveštavanje nije dostupno za ovaj kontekst subjekta.",
       "role": "Ovaj nalog osoblja ne može da vidi CRM izveštavanje.",
       "branch": "CRM izveštavanje zahteva važeći opseg filijale.",
       "agent": "CRM izveštavanje u opsegu agenta se ne prikazuje na tabli osoblja.",

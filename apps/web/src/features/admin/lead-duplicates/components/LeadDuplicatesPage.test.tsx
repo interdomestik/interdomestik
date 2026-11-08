@@ -31,7 +31,7 @@ vi.mock('./LeadDuplicateReviewPanel', () => ({ LeadDuplicateReviewPanel: hoisted
 import { LeadDuplicatesPage } from './LeadDuplicatesPage';
 
 const render = async (state: 'pending' | 'resolved') =>
-  renderToStaticMarkup(await LeadDuplicatesPage({ state }));
+  renderToStaticMarkup(await LeadDuplicatesPage({ locale: 'en', state }));
 
 describe('LeadDuplicatesPage', () => {
   beforeEach(() => {
@@ -44,7 +44,10 @@ describe('LeadDuplicatesPage', () => {
 
     const html = await render('pending');
 
-    expect(hoisted.panel).toHaveBeenCalledWith({ rows: [], state: 'pending' }, undefined);
+    expect(hoisted.panel).toHaveBeenCalledWith(
+      { rows: [], state: 'pending', locale: 'en' },
+      undefined
+    );
     expect(html).not.toContain('lead-duplicates-error');
   });
 

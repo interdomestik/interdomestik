@@ -23,7 +23,7 @@
       "unsure": "I’m not sure"
     },
     "thirdParty": {
-      "title": "Is a neighbour, tenant, or another person involved?",
+      "title": "Is a neighbor, tenant, or another person involved?",
       "hint": "This only helps us suggest what to preserve. It does not decide fault or liability.",
       "yes": "Yes",
       "no": "No",

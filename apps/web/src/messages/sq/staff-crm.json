@@ -1,16 +1,16 @@
 {
   "staff-crm": {
     "title": "Raportimi CRM",
-    "description": "Raportim operativ për stafin mbi ngarkesën e pipeline-it, lëvizjen në funnel dhe shpejtësinë e fazave.",
+    "description": "Raportim operativ për stafin mbi ngarkesën e procesit, lëvizjen në hinkën e shitjeve dhe shpejtësinë e fazave.",
     "pipelineWorkload": {
-      "title": "Ngarkesa e pipeline-it",
-      "description": "Pipeline i hapur 90-ditor sipas degës, pipeline-it dhe valutës.",
-      "empty": "Nuk ka ngarkesë të hapur të pipeline-it për dritaren standarde të raportimit."
+      "title": "Ngarkesa e procesit",
+      "description": "Procesi i hapur 90-ditor sipas degës, procesit dhe valutës.",
+      "empty": "Nuk ka ngarkesë të hapur të procesit për dritaren standarde të raportimit."
     },
     "funnelMovement": {
-      "title": "Lëvizja në funnel",
+      "title": "Lëvizja në hinkën e shitjeve",
       "description": "Lëvizjet kryesore të fazave CRM sipas hyrjeve të periudhës.",
-      "empty": "Nuk ka lëvizje në funnel për dritaren standarde të raportimit."
+      "empty": "Nuk ka lëvizje në hinkën e shitjeve për dritaren standarde të raportimit."
     },
     "stageVelocity": {
       "title": "Shpejtësia e fazave",
@@ -42,16 +42,16 @@
     "charts": {
       "hiddenItems": "{count, plural, one {# rresht shtesë është fshehur nga përmbledhja e grafikut} other {# rreshta shtesë janë fshehur nga përmbledhja e grafikut}}",
       "pipelineAmount": {
-        "title": "Grafiku i shumës së pipeline-it",
-        "description": "Krahasim plotësues i shumës totale dhe të ponderuar të pipeline-it. Tabela sipër është burimi kryesor.",
-        "summaryIntro": "Përmbledhje e grafikut të shumës së pipeline-it",
+        "title": "Grafiku i shumës së procesit",
+        "description": "Krahasim plotësues i shumës totale dhe të ponderuar të procesit. Tabela sipër është burimi kryesor.",
+        "summaryIntro": "Përmbledhje e grafikut të shumës së procesit",
         "total": "Totali",
         "weighted": "E peshuar"
       },
       "funnelMovement": {
-        "title": "Grafiku i lëvizjes në funnel",
+        "title": "Grafiku i lëvizjes në hinkën e shitjeve",
         "description": "Krahasim plotësues i lëvizjes së fazave. Tabela sipër është burimi kryesor.",
-        "summaryIntro": "Përmbledhje e grafikut të lëvizjes në funnel",
+        "summaryIntro": "Përmbledhje e grafikut të lëvizjes në hinkën e shitjeve",
         "entered": "Hyrë",
         "exited": "Dalë",
         "won": "Fituar",
@@ -69,7 +69,7 @@
     "excludedRows": "{count, plural, one {# rresht agregat u përjashtua} other {# rreshta agregatë u përjashtuan}}",
     "excludedRowsHelp": "Rreshtat mund të përjashtohen nga metrikat agregate kur fushat e kërkuara të raportimit mungojnë ose janë jokonsistente.",
     "error": {
-      "tenant": "Raportimi CRM nuk është i disponueshëm për këtë kontekst tenant.",
+      "tenant": "Raportimi CRM nuk është i disponueshëm për këtë kontekst subjekti.",
       "role": "Kjo llogari stafi nuk mund të shohë raportimin CRM.",
       "branch": "Raportimi CRM kërkon fushëveprim të vlefshëm dege.",
       "agent": "Raportimi CRM me fushëveprim agjenti nuk shfaqet në panelin e stafit.",

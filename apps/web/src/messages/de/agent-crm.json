@@ -36,7 +36,7 @@
         "count": "{count, plural, =0 {0 Aufgaben} one {# Aufgabe} other {# Aufgaben}}",
         "countLabel": "{count, plural, =0 {Keine sichtbaren Aufgaben} one {# sichtbare Aufgabe} other {# sichtbare Aufgaben}}",
         "empty": "Keine sichtbaren CRM-Aufgaben.",
-        "unknownLead": "Lead",
+        "unknownLead": "Interessent",
         "openLead": "Lead öffnen",
         "dueWithDate": "{bucket}: {date}",
         "completed": {

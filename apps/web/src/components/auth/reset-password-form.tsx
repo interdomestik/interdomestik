@@ -17,8 +17,9 @@ import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { toast } from 'sonner';
 
-export function ResetPasswordForm() {
+export function ResetPasswordForm(): React.JSX.Element {
   const common = useTranslations('common');
+  const t = useTranslations('auth.passwordRecovery');
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -34,9 +35,9 @@ export function ResetPasswordForm() {
   if (!token) {
     return (
       <Card className="w-full max-w-md animate-fade-in shadow-xl border-none ring-1 ring-white/10 bg-white/5 backdrop-blur-lg p-6 text-center">
-        <p className="text-red-500 mb-4">Invalid or missing reset token.</p>
+        <p className="text-red-500 mb-4">{t('invalidToken')}</p>
         <Button asChild variant="outline">
-          <Link href="/login">Back to Login</Link>
+          <Link href="/login">{t('backToLogin')}</Link>
         </Button>
       </Card>
     );
@@ -52,7 +53,7 @@ export function ResetPasswordForm() {
     const confirmPassword = formData.get('confirmPassword') as string;
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('mismatch'));
       setLoading(false);
       return;
     }
@@ -70,13 +71,13 @@ export function ResetPasswordForm() {
       );
 
       if (error) {
-        setError(error.message || 'Failed to reset password');
+        setError(error.message || t('failed'));
       } else {
-        toast.success('Password reset successfully');
+        toast.success(t('success'));
         router.push('/login');
       }
     } catch {
-      setError('An unexpected error occurred');
+      setError(t('unexpected'));
     } finally {
       setLoading(false);
     }
@@ -85,16 +86,14 @@ export function ResetPasswordForm() {
   return (
     <Card className="w-full max-w-md animate-fade-in shadow-xl border-none ring-1 ring-white/10 bg-white/5 backdrop-blur-lg">
       <CardHeader className="text-center space-y-1">
-        <CardTitle className="text-2xl font-bold tracking-tight">Reset Password</CardTitle>
-        <CardDescription className="text-muted-foreground">
-          Enter your new password below to regain access to your account.
-        </CardDescription>
+        <CardTitle className="text-2xl font-bold tracking-tight">{t('resetTitle')}</CardTitle>
+        <CardDescription className="text-muted-foreground">{t('resetBody')}</CardDescription>
       </CardHeader>
       <CardContent>
         <form
           className="space-y-4"
           onSubmit={onSubmit}
-          aria-label="Reset password form"
+          aria-label={t('formLabel')}
           data-hydrated={isHydrated ? 'true' : 'false'}
         >
           {error && (
@@ -108,7 +107,7 @@ export function ResetPasswordForm() {
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="password">New Password</Label>
+            <Label htmlFor="password">{t('newPassword')}</Label>
             <Input
               id="password"
               name="password"
@@ -119,7 +118,7 @@ export function ResetPasswordForm() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
             <Input
               id="confirmPassword"
               name="confirmPassword"
@@ -135,7 +134,7 @@ export function ResetPasswordForm() {
             size="lg"
             disabled={loading}
           >
-            {loading ? common('loading') : 'Reset Password'}
+            {loading ? common('loading') : t('resetTitle')}
           </Button>
         </form>
       </CardContent>

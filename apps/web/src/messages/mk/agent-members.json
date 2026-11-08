@@ -58,8 +58,8 @@
         "labels": {
           "member_id": "ID на член",
           "joined": "Придружен",
-          "email_verified_yes": "Email верификуван",
-          "email_verified_no": "Email не е верификуван",
+          "email_verified_yes": "Потврдена е-пошта",
+          "email_verified_no": "Непотврдена е-пошта",
           "status": "Статус",
           "plan": "План",
           "period_end": "Крај на период",
@@ -80,9 +80,9 @@
           "none": "Без претплата"
         },
         "preferences": {
-          "email_claims": "Email ажурирања за барања",
-          "email_newsletter": "Email билтен",
-          "email_marketing": "Email маркетинг",
+          "email_claims": "Известувања за барања по е-пошта",
+          "email_newsletter": "Билтен по е-пошта",
+          "email_marketing": "Промотивни пораки по е-пошта",
           "push_claims": "Push ажурирања за барања",
           "push_messages": "Push пораки",
           "in_app": "Известувања во апликација"
@@ -101,7 +101,7 @@
       },
       "filters": {
         "search_label": "Пребарај членови",
-        "search_placeholder": "Барај по име или email"
+        "search_placeholder": "Барај по име или е-пошта"
       },
       "table": {
         "sections": {
