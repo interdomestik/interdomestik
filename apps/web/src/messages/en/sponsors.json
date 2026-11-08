@@ -32,7 +32,7 @@
     "revisionSummary": "Revision {revision}: {seats} seats, {price} {currency} minor units per seat.",
     "seatsUsed": "{used} of {seats} seats used",
     "seatContinues": "Leaving the company is information only. The employee keeps the seat until the term ends; it cannot be reassigned.",
-    "uploadDark": "List upload is not enabled for this organisation. Existing sponsors and contract actions remain available.",
+    "uploadDark": "List upload is not enabled for this organization. Existing sponsors and contract actions remain available.",
     "approvalRequired": "Approve a revision before uploading employees.",
     "csvHelp": "CSV columns: firstName, lastName, email. Maximum {max} rows; no other personal information.",
     "uploadSummary": "Inserted: {inserted}. Invalid: {invalid}. Duplicates: {duplicates}. Already listed: {alreadyListed}.",
@@ -70,7 +70,7 @@
     "statuses": {
       "registered": "Registered",
       "awaiting_employee": "Awaiting employee",
-      "left_programme": "Left the programme"
+      "left_programme": "Left the program"
     },
     "decisions": {
       "approved": "Approved",
@@ -82,7 +82,7 @@
       "forbidden": "You do not have access to this action.",
       "not_found": "This sponsor record is unavailable or you do not have access.",
       "conflict": "The record changed or the seat limit was reached. Refresh and check before trying again.",
-      "dark": "List upload is not enabled for this organisation.",
+      "dark": "List upload is not enabled for this organization.",
       "unavailable": "Unable to complete the request. Refresh to check the current state before retrying."
     }
   }

@@ -1,10 +1,10 @@
 {
   "sponsorOptOut": {
-    "title": "Leave your company membership programme",
-    "explanation": "Confirm that you want to leave your company’s membership programme. This ends your current and future seats from this company. Nothing else about your account changes. A later list from the company is a new agreement.",
+    "title": "Leave your company membership program",
+    "explanation": "Confirm that you want to leave your company’s membership program. This ends your current and future seats from this company. Nothing else about your account changes. A later list from the company is a new agreement.",
     "confirm": "Confirm leaving",
     "pending": "Confirming…",
-    "done": "You have left the programme. A confirmation e-mail follows.",
+    "done": "You have left the program. A confirmation email follows.",
     "invalid": "This link is no longer valid.",
     "error": "We could not confirm your request. Please try again.",
     "retry": "Try again"

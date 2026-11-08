@@ -9,9 +9,9 @@ export const SQ_COPY: SponsorMailCopy = {
       paragraphs: [
         `${input.companyName} paguan anëtarësinë për ju nga ${input.startDate} deri më ${input.termEnd}.`,
         `${input.entityName}, subjekti në vendin tuaj, i mban dhe i kontrollon të dhënat që na dha ${input.companyName} (emrin dhe adresën e email-it).`,
-        `${input.companyName} sheh vetëm që jeni të regjistruar, kurrë dëmet, dokumentet, mesazhet apo përdorimin tuaj.`,
+        `${input.companyName} sheh vetëm që jeni të regjistruar, kurrë kërkesat tuaja për dëmshpërblim, dokumentet, mesazhet apo përdorimin tuaj.`,
         'Llogaria është e juaja.',
-        'Për t’u larguar, përdorni lidhjen më poshtë ose zgjidhni "Largohu" në faqen e anëtarësisë pasi të hyni në llogari.',
+        'Për t’u larguar, përdorni lidhjen më poshtë ose zgjidhni "Largohu nga programi i kompanisë" në faqen e anëtarësisë pasi të hyni në llogari.',
       ],
       links: [
         { label: 'Largohu nga anëtarësia e sponsorizuar', url: input.optOutUrl },

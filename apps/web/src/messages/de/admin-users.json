@@ -141,7 +141,7 @@
         "source": "Quelle",
         "period_start": "Beginn des Zeitraums",
         "coverage_end": "Ende der Absicherung",
-        "provider_lifecycle": "Paddle-Anbieterstatus"
+        "provider_lifecycle": "Abonnementstatus bei Paddle"
       },
       "status": {
         "active": "Aktiv",

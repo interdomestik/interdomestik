@@ -8,13 +8,13 @@ export const SR_COPY: SponsorMailCopy = {
       subject: `${input.companyName} plaća vaše članstvo u Interdomestiku`,
       paragraphs: [
         `${input.companyName} plaća članstvo za vas od ${input.startDate} do ${input.termEnd}.`,
-        `${input.entityName}, pravno lice u vašoj zemlji, čuva i kontroliše podatke koje nam je dao ${input.companyName} (ime i adresa e-pošte).`,
-        `${input.companyName} vidi samo da ste registrovani, nikada vaše štete, dokumente, poruke ili korišćenje.`,
+        `${input.entityName}, pravno lice u vašoj zemlji, čuva i kontroliše podatke koje nam je dostavila kompanija ${input.companyName} (ime i adresa e-pošte).`,
+        `${input.companyName} vidi samo da ste registrovani; nema uvid u vaše zahteve, dokumente, poruke niti u to kako koristite uslugu.`,
         'Nalog je vaš.',
-        'Da biste napustili članstvo, koristite link ispod ili izaberite „Napusti“ na stranici članstva nakon prijave.',
+        'Da biste napustili članstvo, koristite link ispod ili izaberite „Napustite program kompanije“ na stranici članstva nakon prijave.',
       ],
       links: [
-        { label: 'Napusti sponzorisano članstvo', url: input.optOutUrl },
+        { label: 'Napustite sponzorisano članstvo', url: input.optOutUrl },
         { label: 'Prijavite se', url: input.loginUrl },
       ],
     }),
@@ -34,14 +34,14 @@ export const SR_COPY: SponsorMailCopy = {
     foreign_account: (input): SponsorMailContent => ({
       subject: 'Sponzorisano članstvo nije moglo da se doda',
       paragraphs: [
-        `${input.companyName} je naveo ovu adresu, ali ona već pripada nalogu u Interdomestiku u drugoj zemlji, pa nismo mogli da dodamo sponzorisano članstvo.`,
+        `Kompanija ${input.companyName} je navela ovu adresu, ali ona već pripada nalogu u Interdomestiku u drugoj zemlji, pa nismo mogli da dodamo sponzorisano članstvo.`,
         `Kontaktirajte nas na ${input.supportEmail}.`,
       ],
     }),
     not_eligible: (input): SponsorMailContent => ({
       subject: 'Ovaj nalog ne može da ima članstvo',
       paragraphs: [
-        `${input.companyName} je naveo ovu adresu, ali ona pripada nalogu koji ne može da ima članstvo.`,
+        `Kompanija ${input.companyName} je navela ovu adresu, ali ona pripada nalogu koji ne može da ima članstvo.`,
         `Kontaktirajte nas na ${input.supportEmail}.`,
       ],
     }),

@@ -146,7 +146,9 @@ describe('renderSponsorMail', () => {
     const notice = renderSponsorMail(NOTICE);
     expect(notice.html).toContain('href="https://example.test/leave?token=abc&amp;lang=en"');
     expect(notice.html).toContain(`href="${NOTICE.loginUrl}"`);
-    expect(notice.text).toContain('"Leave" on the membership page after signing in');
+    expect(notice.text).toContain(
+      '"Leave the company program" on the membership page after signing in'
+    );
     const offer = renderSponsorMail(FIXTURES.membership_end_offer);
     expect(offer.html).toContain('href="https://example.test/offer"');
     expect(offer.text).not.toContain(COMPANY.companyName);
@@ -166,7 +168,7 @@ describe('renderSponsorMail', () => {
   it('states data control, limited company visibility and account retention', () => {
     const notice = renderSponsorMail(NOTICE).text;
     expect(notice).toContain('holds and controls');
-    expect(notice).toContain('(name and e-mail address)');
+    expect(notice).toContain('(name and email address)');
     expect(notice).toContain('only sees that you are registered');
     expect(notice).toContain('never your claims, documents, messages or usage');
     expect(notice).toContain('The account is yours');

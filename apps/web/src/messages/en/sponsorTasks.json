@@ -23,7 +23,7 @@
     "evidenceId": "Paddle evidence ID (txn_… or adj_…)",
     "disposition": "Closure outcome",
     "chooseDisposition": "Choose an outcome",
-    "evidenceRule": "After cancelling in Paddle, record the paid-until date and transaction or adjustment ID. Evidence can be recorded only once and cannot be replaced here.",
+    "evidenceRule": "After canceling in Paddle, record the paid-until date and transaction or adjustment ID. Evidence can be recorded only once and cannot be replaced here.",
     "closureRule": "Closure is administrative. It ends the operational task, while provider settlement and charge reconciliation continue. Paddle must show the required state before closure.",
     "renewingRule": "Renewing as a member revokes all linked sponsor entries. It does not promise future individual renewal while an earlier cancellation is unresolved.",
     "refundRule": "Acknowledgement records that staff reviewed this charge. Any refund decision stays in Paddle.",

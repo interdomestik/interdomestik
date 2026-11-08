@@ -40,7 +40,7 @@ describe('dunning template variants', () => {
   it.each([
     ['en', 'Payment pending'],
     ['sq', 'Pagesë në pritje'],
-    ['mk', 'Плаќање во исчекување'],
+    ['mk', 'Плаќање на чекање'],
     ['sr', 'Plaćanje na čekanju'],
     ['de', 'Zahlung ausstehend'],
   ])('provides payment-only copy for %s', (locale, title) => {

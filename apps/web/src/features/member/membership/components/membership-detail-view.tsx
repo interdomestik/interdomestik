@@ -220,10 +220,10 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
           formatTimestamp={value => formatPilotDateTime(value, locale, t('plan.na'))}
         />
         <OpsDocumentsPanel
-          title="Documents"
+          title={t('documents.title')}
           documents={toOpsDocuments(documents)}
-          emptyLabel="No documents"
-          viewLabel="View"
+          emptyLabel={t('documents.empty')}
+          viewLabel={t('documents.view')}
         />
       </div>
     </div>

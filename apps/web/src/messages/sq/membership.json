@@ -60,6 +60,11 @@
         "body": "Linja shërben për orientim urgjent, mbështetje dhe hapin e radhës. Nuk do të thotë shqyrtim të menjëhershëm ligjor, pranim të rastit ose trajtim nga stafi."
       }
     },
+    "documents": {
+      "title": "Dokumentet",
+      "empty": "Nuk ka dokumente",
+      "view": "Shiko"
+    },
     "plan": {
       "title": "Plani Aktual",
       "description": "Niveli i mbrojtjes",

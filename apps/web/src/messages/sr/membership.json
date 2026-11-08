@@ -60,6 +60,11 @@
         "body": "Linija služi za hitno usmeravanje, podršku i sledeći korak. Ne znači hitan pravni pregled, prihvatanje predmeta ili obradu koju vodi tim."
       }
     },
+    "documents": {
+      "title": "Dokumenta",
+      "empty": "Nema dokumenata",
+      "view": "Prikaži"
+    },
     "plan": {
       "title": "Trenutni plan",
       "description": "Vaš nivo zaštite",

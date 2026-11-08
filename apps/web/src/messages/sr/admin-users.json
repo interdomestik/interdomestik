@@ -187,7 +187,7 @@
       },
       "provider_status": {
         "active": "Aktivna",
-        "past_due": "Dospelo plaćanje",
+        "past_due": "Kašnjenje u plaćanju",
         "paused": "Pauzirana",
         "canceled": "Otkazana",
         "trialing": "Probni period",

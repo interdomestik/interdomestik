@@ -100,7 +100,7 @@ describe('sponsor surfaces', () => {
   it('renders only roster identities, three statuses, counts, and the left-company marker', async () => {
     render(await SponsorRoster({ roster, uploadEnabled: false, locale: 'en' }));
     expect(screen.getByText('3 of 10 seats used')).toBeInTheDocument();
-    for (const label of ['Registered', 'Awaiting employee', 'Left the programme']) {
+    for (const label of ['Registered', 'Awaiting employee', 'Left the program']) {
       expect(screen.getByText(label)).toBeInTheDocument();
       expect(screen.getByText(`${label}: 1`)).toBeInTheDocument();
     }

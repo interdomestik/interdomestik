@@ -60,6 +60,11 @@
         "body": "Die Hotline dient der dringenden Weiterleitung, Unterstützung und Hinweisen zum nächsten Schritt. Sie bedeutet keine sofortige rechtliche Prüfung, keine Annahme des Schadensfalls und keine Bearbeitung durch das Team."
       }
     },
+    "documents": {
+      "title": "Dokumente",
+      "empty": "Keine Dokumente",
+      "view": "Ansehen"
+    },
     "plan": {
       "title": "Aktueller Plan",
       "description": "Ihre Schutzstufe",

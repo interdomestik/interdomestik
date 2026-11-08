@@ -11,7 +11,7 @@ export const DE_COPY: SponsorMailCopy = {
         `${input.entityName}, die Landesgesellschaft, hält und kontrolliert die Daten, die uns ${input.companyName} gegeben hat (Name und E-Mail-Adresse).`,
         `${input.companyName} sieht nur, dass Sie registriert sind, niemals Ihre Schadensfälle, Dokumente, Nachrichten oder Ihre Nutzung.`,
         'Das Konto gehört Ihnen.',
-        'Zum Verlassen nutzen Sie den Link unten oder wählen Sie nach der Anmeldung auf der Mitgliedschaftsseite „Verlassen“.',
+        'Zum Verlassen nutzen Sie den Link unten oder wählen Sie nach der Anmeldung auf der Mitgliedschaftsseite „Firmenprogramm verlassen“.',
       ],
       links: [
         { label: 'Gesponserte Mitgliedschaft verlassen', url: input.optOutUrl },

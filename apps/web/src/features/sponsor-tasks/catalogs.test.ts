@@ -20,7 +20,7 @@ describe.each(['sponsorOptOut', 'sponsorTasks'])('%s catalogs', namespace => {
     expect(Object.keys(messages)).toEqual([namespace]);
     const translate = createTranslator({ locale: 'en', messages, namespace });
     expect(translate('title')).toBe(
-      namespace === 'sponsorOptOut' ? 'Leave your company membership programme' : 'Sponsor tasks'
+      namespace === 'sponsorOptOut' ? 'Leave your company membership program' : 'Sponsor tasks'
     );
   });
   it('keeps EN/SQ/MK/SR/DE keys, placeholders and nonempty copy aligned', () => {

@@ -94,9 +94,9 @@ const PAYMENT_FACTS = {
     footer: 'Ky rikujtim ka të bëjë me pagesën e abonimit tuaj.',
   },
   mk: {
-    title: 'Плаќање во исчекување — ажурирајте го начинот на плаќање',
+    title: 'Плаќање на чекање — ажурирајте го начинот на плаќање',
     intro: (name: string, plan: string) =>
-      `Здраво ${name}, вашето плаќање за ${plan} сè уште е во исчекување. Проверете го начинот на плаќање.`,
+      `Здраво ${name}, вашето плаќање за ${plan} сè уште е на чекање. Проверете го начинот на плаќање.`,
     plan: 'План',
     end: 'Дополнителниот рок за плаќање завршува',
     days: 'Преостанати денови',
@@ -118,7 +118,7 @@ const PAYMENT_FACTS = {
     intro: (name: string, plan: string) =>
       `Hallo ${name}, Ihre Zahlung für ${plan} steht noch aus. Bitte überprüfen Sie Ihre Zahlungsmethode.`,
     plan: 'Tarif',
-    end: 'Zahlungsfrist endet',
+    end: 'Kulanzfrist für die Zahlung endet',
     days: 'Verbleibende Tage',
     cta: 'Zahlungsmethode aktualisieren',
     footer: 'Diese Erinnerung betrifft Ihre Abonnementzahlung.',

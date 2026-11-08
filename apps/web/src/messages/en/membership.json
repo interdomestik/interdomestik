@@ -60,6 +60,11 @@
         "body": "The hotline is for urgent routing, support, and next-step guidance. It does not mean immediate legal review, claim acceptance, or staff-led handling."
       }
     },
+    "documents": {
+      "title": "Documents",
+      "empty": "No documents",
+      "view": "View"
+    },
     "plan": {
       "title": "Current Plan",
       "description": "Your protection tier",
@@ -205,14 +210,14 @@
     },
     "sponsorCoverage": {
       "covered_until": "Covered until {date}",
-      "leave": "Leave the company programme",
+      "leave": "Leave the company program",
       "confirm_body": "Your company membership ends now. You can buy an individual membership after leaving.",
       "keep": "Keep membership",
       "confirm": "Confirm leave",
       "pending": "Leaving…",
-      "success": "You have left the company programme. You can now buy an individual membership.",
+      "success": "You have left the company program. You can now buy an individual membership.",
       "not_found": "This company membership is no longer available. Refresh the page.",
-      "error": "We could not leave the programme. Please try again."
+      "error": "We could not remove you from the program. Please try again."
     }
   }
 }

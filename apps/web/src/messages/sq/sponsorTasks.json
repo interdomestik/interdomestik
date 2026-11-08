@@ -4,13 +4,13 @@
     "tasksLink": "Detyrat",
     "empty": "Nuk ka detyra sponsorësh për shqyrtim.",
     "loading": "Duke ngarkuar detyrat…",
-    "retry": "Provo përsëri",
+    "retry": "Provoni përsëri",
     "saving": "Duke ruajtur…",
-    "saved": "U ruajt. Rifresko listën për të parë detyrat e fundit.",
+    "saved": "U ruajt. Rifreskoni listën për të parë detyrat e fundit.",
     "person": "Hap përdoruesin {id}",
     "unbound": "Kjo hyrje ende nuk është lidhur me një llogari.",
     "intent": "Kalimi: {id}",
-    "entry": "Hyrja: {id} · Afati: {term} · Sponsori: {sponsor}",
+    "entry": "Hyrja: {id} · Periudha: {term} · Sponsori: {sponsor}",
     "since": "Kërkon shqyrtim që nga {date} (UTC)",
     "observedAt": "Anulimi u vërejt më {date} (UTC)",
     "scheduledAt": "Anulimi hyn në fuqi më {date} (UTC)",
@@ -22,10 +22,10 @@
     "paidUntil": "Data dhe ora deri kur është paguar (UTC, sipas Paddle)",
     "evidenceId": "ID e provës në Paddle (txn_… ose adj_…)",
     "disposition": "Rezultati i mbylljes",
-    "chooseDisposition": "Zgjidh një rezultat",
-    "evidenceRule": "Pas anulimit në Paddle, regjistro datën deri kur është paguar dhe ID-në e transaksionit ose rregullimit. Prova regjistrohet vetëm një herë dhe nuk zëvendësohet këtu.",
-    "closureRule": "Mbyllja është administrative. Ajo përfundon detyrën operative, ndërsa zgjidhja me ofruesin dhe kontrolli i pagesave vazhdojnë. Paddle duhet të tregojë gjendjen e kërkuar.",
-    "renewingRule": "Rinovimi si anëtar revokon të gjitha hyrjet e lidhura të sponsorit. Nuk premton rinovim të ardhshëm individual kur një anulim i mëparshëm është ende i pazgjidhur.",
+    "chooseDisposition": "Zgjidhni një rezultat",
+    "evidenceRule": "Pas anulimit në Paddle, regjistroni datën deri kur është paguar dhe ID-në e transaksionit ose të rregullimit. Prova regjistrohet vetëm një herë dhe nuk mund të zëvendësohet këtu.",
+    "closureRule": "Mbyllja është administrative. Ajo përfundon detyrën operative, ndërsa zgjidhja me ofruesin dhe kontrolli i pagesave vazhdojnë. Paddle duhet të tregojë gjendjen e kërkuar para mbylljes.",
+    "renewingRule": "Rinovimi si anëtar shfuqizon të gjitha hyrjet e lidhura të sponsorit. Ai nuk premton rinovim individual në të ardhmen për sa kohë një anulim i mëparshëm mbetet i pazgjidhur.",
     "refundRule": "Konfirmimi regjistron se stafi shqyrtoi këtë pagesë. Vendimi për rimbursim mbetet në Paddle.",
     "erasureRule": "Fshirja bëhet përmes procesit ekzistues administrativ në faqen e lidhur të përdoruesit, me qasjen e nevojshme administrative. Kjo detyrë nuk fshin llogari.",
     "actions": {
@@ -39,30 +39,30 @@
     },
     "errors": {
       "forbidden": "Vetëm stafi me tenant dhe degë të vlefshme mund t’i përdorë këto detyra.",
-      "invalid": "Kontrollo ID-të, datën deri kur është paguar dhe rezultatin e mbylljes.",
-      "not_found": "Kjo detyrë nuk është më e disponueshme. Rifresko listën.",
-      "conflict": "Gjendja e detyrës ndryshoi. Rifresko dhe shqyrtoje.",
-      "error": "Kërkesa nuk u përfundua. Provo përsëri."
+      "invalid": "Kontrolloni ID-të, datën deri kur është paguar dhe rezultatin e mbylljes.",
+      "not_found": "Kjo detyrë nuk është më e disponueshme. Rifreskoni listën.",
+      "conflict": "Gjendja e detyrës ndryshoi. Rifreskoni dhe shqyrtojeni.",
+      "error": "Kërkesa nuk mund të përfundohej. Provoni përsëri."
     },
     "conflicts": {
-      "evidence": "Prova është regjistruar, ID-ja përdoret ose ky kalim nuk pranon më prova. Rifresko dhe shqyrtoje.",
-      "close": "Paddle ende nuk tregon gjendjen e kërkuar ose kalimi nuk është më i hapur. Kontrollo Paddle dhe rifresko para se të provosh përsëri.",
-      "acknowledge": "Pagesa ndryshoi. Rifresko dhe shqyrtoje."
+      "evidence": "Prova është regjistruar tashmë, ID-ja e provës përdoret ose ky kalim nuk pranon më prova. Rifreskoni dhe shqyrtojeni.",
+      "close": "Paddle ende nuk tregon gjendjen e kërkuar ose kalimi nuk është më i hapur. Kontrolloni Paddle dhe rifreskoni para se të provoni përsëri.",
+      "acknowledge": "Pagesa ndryshoi. Rifreskoni dhe shqyrtojeni."
     },
     "reasons": {
-      "paddle_state": "Paddle kërkon shqyrtim. Kontrollo abonimin dhe kalimin; regjistro provën pas anulimit ose mbylle kur Paddle e lejon.",
-      "empty_interval": "Vendi do të fillonte në ose pas përfundimit të tij. Shqyrto datat e kontratës dhe provën e pagesës me stafin përgjegjës.",
-      "binding": "Hyrja nuk u lidh në mënyrë të sigurt me një llogari. Shqyrto listën dhe identitetin me stafin përgjegjës.",
-      "unknown": "Arsyeja kërkon shqyrtim nga stafi. Kontrollo hyrjen para veprimit."
+      "paddle_state": "Paddle kërkon shqyrtim. Kontrolloni abonimin dhe kalimin e tij; regjistroni provën pas anulimit ose mbyllni kalimin kur Paddle e lejon.",
+      "empty_interval": "Vendi do të fillonte në ose pas përfundimit të tij. Shqyrtoni datat e kontratës dhe provën e pagesës me stafin përgjegjës.",
+      "binding": "Hyrja nuk mund të lidhej në mënyrë të sigurt me një llogari. Shqyrtoni listën dhe identitetin e llogarisë me stafin përgjegjës.",
+      "unknown": "Arsyeja kërkon shqyrtim nga stafi. Kontrolloni hyrjen para se të veproni."
     },
     "kinds": {
       "intent_review": {
         "title": "Shqyrtimi i kalimit",
-        "help": "Kontrollo Paddle dhe udhëzimet e anëtarit. Regjistro provën e pagesës vetëm një herë ose mbyll kalimin me gjendje të verifikuar në Paddle."
+        "help": "Kontrolloni Paddle dhe udhëzimet e anëtarit. Regjistroni provën e pagesës vetëm një herë ose mbyllni kalimin me gjendje të verifikuar në Paddle."
       },
       "observed_cancel": {
         "title": "Anulimet e vërejtura",
-        "help": "U vërejt anulimi në Paddle. Shqyrto hapat e ardhshëm të anëtarit; kontrolli i pagesave vazhdon veçmas."
+        "help": "U vërejt anulimi në Paddle. Shqyrtoni hapat e ardhshëm të anëtarit; kontrolli i pagesave vazhdon veçmas."
       },
       "scheduled_cancel": {
         "title": "Anulime të planifikuara",
@@ -70,27 +70,27 @@
       },
       "retrying_cancel": {
         "title": "Anulime ende të pakonfirmuara",
-        "help": "Kërkesa për anulim u dërgua të paktën 5 herë pa rezultat të konfirmuar nga Paddle. Sistemi vazhdon të provojë dhe të monitorojë. Kontrollo abonimin në Paddle dhe kontakto anëtarin nëse duhet; asgjë këtu nuk e ndryshon kalimin."
+        "help": "Kërkesa për anulim u dërgua të paktën 5 herë pa rezultat të konfirmuar nga Paddle. Sistemi vazhdon të provojë dhe të monitorojë. Kontrolloni abonimin në Paddle dhe kontaktoni anëtarin nëse duhet; asgjë këtu nuk e ndryshon kalimin."
       },
       "charge": {
         "title": "Pagesat për shqyrtim",
-        "help": "Shqyrto transaksionin në Paddle dhe konfirmoje. Pagesa nuk ndryshon mbulimin; rimbursimi është vendim i veçantë i stafit në Paddle."
+        "help": "Shqyrtoni transaksionin në Paddle dhe konfirmojeni. Pagesa nuk ndryshon mbulimin; rimbursimi është vendim i veçantë i stafit në Paddle."
       },
       "entry_review": {
         "title": "Hyrjet për shqyrtim",
-        "help": "Shqyrto arsyen për çdo hyrje të pezulluar dhe bashkërendo korrigjimin."
+        "help": "Shqyrtoni arsyen për çdo hyrje të pezulluar dhe bashkërendoni korrigjimin e nevojshëm."
       },
       "rejected_entry": {
         "title": "Sponsorë me mbulim të mbivendosur",
-        "help": "Kjo hyrje u refuzua për shkak të mbivendosjes së sponsorëve. Trajtimi tregtar është vendim i veçantë i pronarit."
+        "help": "Kjo hyrje u refuzua sepse sponsorizimet mbivendosen. Trajtimi tregtar është vendim i veçantë i pronarit."
       },
       "checkout_race": {
         "title": "Abonim individual gjatë sponsorizimit",
-        "help": "Një abonim aktiv në Paddle nuk ka kalim ndërsa sponsorizimi mbulon personin. Shqyrto abonimin në Paddle dhe bashkërendo me stafin."
+        "help": "Një abonim aktiv në Paddle nuk ka kalim ndërsa sponsorizimi e mbulon personin. Shqyrtoni abonimin në Paddle dhe bashkërendoni me stafin."
       },
       "unactivated_account": {
         "title": "Llogari të paaktivizuara",
-        "help": "Këto llogari nuk kanë kredencial dhe vendi i fundit përfundoi të paktën 90 ditë më parë. Shqyrtoji përmes procesit ekzistues administrativ të përdoruesve dhe fshirjes."
+        "help": "Këto llogari nuk kanë kredencial dhe vendi i fundit përfundoi të paktën 90 ditë më parë. Shqyrtojini përmes procesit ekzistues administrativ të përdoruesve dhe fshirjes."
       }
     },
     "refresh": "Rifresko detyrat"

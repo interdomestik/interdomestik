@@ -8,10 +8,10 @@ export const EN_COPY: SponsorMailCopy = {
       subject: `${input.companyName} pays for your Interdomestik membership`,
       paragraphs: [
         `${input.companyName} pays for your membership from ${input.startDate} until ${input.termEnd}.`,
-        `${input.entityName}, the country entity, holds and controls the data ${input.companyName} gave us (name and e-mail address).`,
+        `${input.entityName}, the country entity, holds and controls the data ${input.companyName} gave us (name and email address).`,
         `${input.companyName} only sees that you are registered, never your claims, documents, messages or usage.`,
         'The account is yours.',
-        'To leave, use the opt-out link below, or choose "Leave" on the membership page after signing in.',
+        'To leave, use the opt-out link below, or choose "Leave the company program" on the membership page after signing in.',
       ],
       links: [
         { label: 'Leave the sponsored membership', url: input.optOutUrl },
