@@ -192,3 +192,13 @@ export async function effectiveCoverageMembers(
   }
   return covered.sort((a, b) => a.userId.localeCompare(b.userId));
 }
+
+/** One person's coverage inputs, read in one statement under the caller's locks (§3.7). */
+export async function readPersonCoverage(
+  tx: TenantTransaction,
+  tenantId: string,
+  userId: string
+): Promise<{ subscription: SubscriptionRow | null; entries: CoverageEntry[] } | null> {
+  const rows = await selectCoverageRows(tx, and(eq(user.tenantId, tenantId), eq(user.id, userId)));
+  return groupCoverageRows(rows).get(userId) ?? null;
+}
