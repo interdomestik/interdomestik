@@ -10,7 +10,7 @@ import {
   RETIRED_LEGACY_FILES,
   RETIRED_LEGACY_TESTS,
 } from './contract-test-shards.mjs';
-import { contractScratch, groupHasLiveMember } from './contract-test-scratch.mjs';
+import { contractScratch, groupHasLiveMember, scanGroupPs } from './contract-test-scratch.mjs';
 
 const [candidate] = GUARD_TRUST_SHARDS.candidate;
 
@@ -205,3 +205,47 @@ test('only two complete passes over the same zombies prove a group finished', ()
     false
   );
 });
+
+test('a ps snapshot decides group liveness where procfs is missing', () => {
+  const listing = rows => () => rows.join('\n');
+  assert.deepEqual(scanGroupPs(7, listing(['  7  7 Z', ' 8 7 Z+', ' 9 3 S'])), {
+    live: false,
+    zombies: '7,8',
+    incomplete: false,
+  });
+  assert.deepEqual(scanGroupPs(7, listing([' 7 7 Z', ' 8 7 S+'])), { live: true });
+  const failing = () => {
+    throw new Error('ps unavailable');
+  };
+  assert.equal(scanGroupPs(7, failing).incomplete, true);
+  // An unknown snapshot never proves the group finished.
+  const scans = [scanGroupPs(7, failing), scanGroupPs(7, failing)];
+  assert.equal(
+    groupHasLiveMember(7, '/proc', () => scans.shift()),
+    true
+  );
+});
+
+test(
+  'scratch cleanup ends a nested group whose supervisor is gone, even one ignoring SIGTERM',
+  { skip: process.platform === 'win32', timeout: 20000 },
+  async () => {
+    for (const stubborn of [false, true]) {
+      const env = { ...process.env };
+      delete env.INTERDOMESTIK_CONTRACT_TMPDIR; // An outer supervisor, not a reused scratch.
+      const scratch = contractScratch(env);
+      const nested = path.join(scratch.directory, 'fixture', 'idct-nested');
+      fs.mkdirSync(nested, { recursive: true });
+      const code = `${stubborn ? "process.on('SIGTERM', () => {});" : ''} setInterval(() => {}, 1000);`;
+      const orphan = spawn(process.execPath, ['-e', code], { detached: true, stdio: 'ignore' });
+      const exited = new Promise(resolve => orphan.once('exit', (_, signal) => resolve(signal)));
+      fs.writeFileSync(path.join(nested, '.idct-group'), String(orphan.pid));
+      await setTimeout(200); // Let the orphan install its handler.
+      const cleanup = scratch.cleanup();
+      if (stubborn) await assert.rejects(cleanup, /were still running and were killed/u);
+      else await cleanup;
+      assert.equal(await exited, stubborn ? 'SIGKILL' : 'SIGTERM');
+      assert.equal(fs.existsSync(scratch.directory), false);
+    }
+  }
+);

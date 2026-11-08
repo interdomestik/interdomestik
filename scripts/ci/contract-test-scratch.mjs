@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,6 +8,9 @@ const marker = 'INTERDOMESTIK_CONTRACT_TMPDIR';
 // Short on purpose: tools such as tsx create Unix sockets inside TMPDIR, and macOS limits a socket
 // path to 103 bytes (its per-user temporary directory alone is about 57).
 const prefix = 'idct-';
+// A supervisor records its runner's process group here, inside its own scratch, so an enclosing
+// supervisor can end a nested group whose supervisor it killed.
+const groupFile = '.idct-group';
 
 // One /proc pass over a process group: whether any member is alive, which zombie members it
 // saw, and whether a listed entry vanished before its stat could be read.
@@ -37,12 +41,37 @@ export function scanGroup(pgid, procRoot = '/proc') {
   return { live: false, zombies: zombies.sort().join(','), incomplete };
 }
 
-// Whether a process group still has a member that is not a zombie: null without procfs (macOS),
-// where the group signal alone decides. A member can fork after one pass lists the directory and
+// The same pass from one `ps` snapshot, for hosts without procfs (macOS). A failed `ps` is unknown.
+export function scanGroupPs(
+  pgid,
+  run = () => execFileSync('ps', ['-A', '-o', 'pid=,pgid=,stat='])
+) {
+  let listing;
+  try {
+    listing = String(run());
+  } catch {
+    return { live: false, zombies: '', incomplete: true };
+  }
+  const zombies = [];
+  for (const line of listing.split('\n')) {
+    const [pid, pgrp, state = ''] = line.trim().split(/\s+/u);
+    if (Number(pgrp) !== pgid) continue;
+    if (!state.startsWith('Z')) return { live: true };
+    zombies.push(pid);
+  }
+  return { live: false, zombies: zombies.sort().join(','), incomplete: false };
+}
+
+// Whether a process group still has a member that is not a zombie: null when neither procfs nor
+// an injected scan is available. A member can fork after one pass lists the directory and
 // then turn into a zombie, so "only zombies" holds only for two complete passes that saw the same
 // zombies: a zombie cannot fork, so nothing alive was left to start a member the passes missed.
 export function groupHasLiveMember(pgid, procRoot = '/proc', scan = scanGroup) {
-  const first = scan(pgid, procRoot);
+  let first = scan(pgid, procRoot);
+  if (first === null && scan === scanGroup && procRoot === '/proc') {
+    scan = scanGroupPs;
+    first = scan(pgid);
+  }
   if (first === null) return null;
   if (first.live) return true;
   const second = scan(pgid, procRoot);
@@ -71,10 +100,10 @@ export function contractScratch(env) {
       process.kill(-pid, signal);
       return true;
     } catch (error) {
-      // Darwin answers EPERM, not success, for a group whose remaining members are all zombies.
-      if (error.code === 'ESRCH' || (error.code === 'EPERM' && process.platform === 'darwin')) {
-        return false;
-      }
+      if (error.code === 'ESRCH') return false;
+      // EPERM: members exist (Darwin also answers it for a zombie-only group); the member scan
+      // decides whether any of them is alive.
+      if (error.code === 'EPERM') return true;
       throw error;
     }
   }
@@ -82,10 +111,36 @@ export function contractScratch(env) {
   // Whether the group finished before the deadline. Exited descendants that nobody reaped stay as
   // zombies and still answer a group signal.
   async function waitForGroup(pid, deadline) {
-    if (!signalGroup(pid, 0) || groupHasLiveMember(pid) === false) return true;
+    if (!signalGroup(pid, 0)) return true;
+    const live = groupHasLiveMember(pid);
+    if (live === false) return true;
+    if (live === null) throw new Error('Cannot confirm that test subprocesses exited');
     if (performance.now() >= deadline) return false;
     await setTimeout(50);
     return waitForGroup(pid, deadline);
+  }
+
+  // Ends one group: the grace period, then SIGKILL. Returns whether it had to be killed.
+  async function endGroup(pid, grace) {
+    if (await waitForGroup(pid, performance.now() + grace)) return false;
+    signalGroup(pid, 'SIGKILL');
+    if (!(await waitForGroup(pid, performance.now() + 2000))) {
+      throw new Error('Test subprocesses are still running');
+    }
+    return true;
+  }
+
+  // Groups recorded by nested supervisors anywhere inside this scratch (never through symlinks).
+  function nestedGroups(current, found = []) {
+    for (const child of fs.readdirSync(current, { withFileTypes: true })) {
+      const location = path.join(current, child.name);
+      if (child.isDirectory()) nestedGroups(location, found);
+      else if (child.isFile() && child.name === groupFile && current !== directory) {
+        const pgid = Number(fs.readFileSync(location, 'utf8'));
+        if (Number.isSafeInteger(pgid) && pgid > 1) found.push(pgid);
+      }
+    }
+    return found;
   }
 
   function unlockDirectories(current, info) {
@@ -106,17 +161,13 @@ export function contractScratch(env) {
     detached: true,
     directory,
     stop: (child, signal) => signalGroup(child.pid, signal),
+    register(pid) {
+      if (pid) fs.writeFileSync(path.join(directory, groupFile), String(pid));
+    },
     async cleanup(pid) {
       // A runner may have closed its stdio while a descendant is still using its temporary files.
       // A group that outlives the grace period is killed and still fails the run.
-      let killed = false;
-      if (!(await waitForGroup(pid, performance.now() + 5000))) {
-        killed = signalGroup(pid, 'SIGKILL');
-        if (!(await waitForGroup(pid, performance.now() + 2000))) {
-          throw new Error('Test subprocesses are still running');
-        }
-      }
-
+      let killed = await endGroup(pid, 5000);
       const current = fs.lstatSync(directory, { throwIfNoEntry: false });
       if (current) {
         if (
@@ -127,6 +178,10 @@ export function contractScratch(env) {
           throw new Error(`Test scratch directory was replaced: ${directory}`);
         }
         unlockDirectories(directory, current);
+        // A nested group whose supervisor has gone is orphaned: terminate it before removal.
+        for (const nested of nestedGroups(directory)) {
+          if (signalGroup(nested, 'SIGTERM')) killed = (await endGroup(nested, 2000)) || killed;
+        }
         fs.rmSync(directory, { recursive: true, force: true });
       }
       if (killed) throw new Error('Test subprocesses were still running and were killed');

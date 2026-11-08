@@ -150,6 +150,11 @@ function runShard(root, name, files, { capture, skipArgs = [] }) {
       .then(() => outcome(null, null));
     return { stop() {}, result };
   }
+  try {
+    scratch.register?.(child.pid); // Same tick as the spawn, so an enclosing run can end it.
+  } catch (error) {
+    reportError(error);
+  }
   if (capture) {
     child.stdout.on('data', chunk => chunks.push(chunk));
     child.stderr.on('data', chunk => chunks.push(chunk));
