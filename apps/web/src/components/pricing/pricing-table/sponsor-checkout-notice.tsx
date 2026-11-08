@@ -1,5 +1,6 @@
 'use client';
 import { forwardRef } from 'react';
+import { formatPilotDate } from '@/lib/utils/date';
 import type { SponsorCheckoutNotice as Notice } from './pricing-decisions';
 
 type Props = {
@@ -10,7 +11,7 @@ type Props = {
 
 export const SponsorCheckoutNotice = forwardRef<HTMLDivElement, Props>(
   function SponsorCheckoutNotice({ notice, locale, t }, ref) {
-    const date = new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(notice.date);
+    const date = formatPilotDate(notice.date, locale, '');
     return (
       <div
         ref={ref}

@@ -44,7 +44,7 @@ test.describe('ACQ-3b member membership and leave', () => {
           await gotoApp(page, routePath(info, `/${locale}/pricing`), info, {
             marker: 'pricing-page-ready',
           });
-          const date = new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(f.paidEnd);
+          const date = formatPilotDate(f.paidEnd, locale, '');
           await expect(page.getByTestId('pricing-sponsor-notice')).toHaveText(
             copy(locale, 'pricing', 'sponsorNotice.startsOn', { date })
           );
