@@ -10,7 +10,7 @@ import {
   RETIRED_LEGACY_FILES,
   RETIRED_LEGACY_TESTS,
 } from './contract-test-shards.mjs';
-import { contractScratch } from './contract-test-scratch.mjs';
+import { contractScratch, groupHasLiveMember } from './contract-test-scratch.mjs';
 
 const [candidate] = GUARD_TRUST_SHARDS.candidate;
 
@@ -114,7 +114,17 @@ test(
             await setTimeout(20);
           }
           assert.ok(fs.existsSync(ready), Buffer.concat(output).toString());
-          assert.ok(fs.existsSync(fs.readFileSync(ready, 'utf8')));
+          // The fixture reported its directory inside the shard's own scratch, which still exists.
+          const [scratch, ...others] = fs
+            .readdirSync(temporary)
+            .filter(name => name !== 'neighbor');
+          assert.deepEqual(others, []);
+          const fixtures = fs.readdirSync(path.join(temporary, scratch));
+          const [fixture] = fixtures.filter(name => name.startsWith('fixture-'));
+          assert.equal(
+            fs.readFileSync(ready, 'utf8'),
+            path.join(fs.realpathSync(temporary), scratch, fixture)
+          );
           assert.ok(child.kill(signal));
         }
         const result = await done;
@@ -143,9 +153,26 @@ test('managed scratch leaves room for Unix socket paths inside it', async () => 
   try {
     // tsx creates `<TMPDIR>/tsx-<uid>/<pid>.pipe`; sun_path holds 103 bytes on macOS.
     const uid = process.getuid?.() ?? 0;
-    const socket = path.join(env.TMPDIR ?? os.tmpdir(), `tsx-${uid}`, '4194304.pipe');
+    const socket = path.join(scratch.directory, `tsx-${uid}`, '4194304.pipe');
     assert.ok(socket.length <= 103, `${socket} is ${socket.length} bytes`);
   } finally {
     await scratch.cleanup();
   }
+});
+
+test('a process group holding only zombies counts as finished', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proc-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const proc = (pid, comm, state, pgrp) => {
+    fs.mkdirSync(path.join(root, String(pid)));
+    fs.writeFileSync(path.join(root, String(pid), 'stat'), `${pid} (${comm}) ${state} 1 ${pgrp} 0`);
+  };
+  proc(10, 'node', 'Z', 10);
+  proc(11, 'a b) (c', 'Z', 10);
+  proc(12, 'node', 'S', 99);
+  fs.mkdirSync(path.join(root, 'self'));
+  assert.equal(groupHasLiveMember(10, root), false);
+  proc(13, 'node', 'R', 10);
+  assert.equal(groupHasLiveMember(10, root), true);
+  assert.equal(groupHasLiveMember(10, path.join(root, 'missing')), null);
 });
