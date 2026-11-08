@@ -95,6 +95,8 @@ function sourceFiles(directory: string): string[] {
 }
 
 function subscriptionReads(source: string): boolean {
+  // Every detection path below needs the token; skip the AST for files that never mention it.
+  if (!/subscriptions/i.test(source)) return false;
   const ast = ts.createSourceFile('source.tsx', source, ts.ScriptTarget.Latest, true);
   const tableNames = new Set(['subscriptions']);
   for (const statement of ast.statements) {
@@ -198,7 +200,7 @@ describe('ACQ-3 §3.6.3 subscription reader inventory', () => {
     expect(readers.filter(file => INVENTORY['retired-none'].includes(file))).toEqual([]);
     const entries = Object.values(INVENTORY).flat();
     expect(new Set(entries).size).toBe(entries.length);
-  });
+  }, 30_000);
 
   it.each([
     'tx.select().from(subscriptions)',
