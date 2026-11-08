@@ -2,7 +2,7 @@ import { enforceRateLimit } from '@/lib/rate-limit';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { authorizeCronRequest } from '../_auth';
-import { runSponsorCronCore } from './_core';
+import { runSponsorCronCore } from './sponsor-cron.core';
 
 export async function GET(req: NextRequest) {
   const limited = await enforceRateLimit({

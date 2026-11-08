@@ -42,7 +42,7 @@ vi.mock('@interdomestik/domain-membership-billing/sponsors/mail-sender', () => (
 }));
 vi.mock('./_mail', () => ({ sponsorMailDeps: h.deps }));
 
-import { isHourlyPass, runSponsorCronCore } from './_core';
+import { isHourlyPass, runSponsorCronCore } from './sponsor-cron.core';
 
 const run = (iso: string) => runSponsorCronCore({ ingress: {} as never, now: new Date(iso) });
 
