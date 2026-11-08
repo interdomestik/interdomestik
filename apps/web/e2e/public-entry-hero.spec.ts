@@ -89,7 +89,7 @@ test.describe('Help Now public entry', () => {
       await language.focus();
       await expect(language).toBeFocused();
       await language.press('Enter');
-      await expect(page.getByTestId('public-locale-option')).toHaveCount(4);
+      await expect(page.getByTestId('public-locale-option')).toHaveCount(5);
       await language.press('Escape');
 
       const vehicle = hero.getByTestId('public-entry-vehicle');

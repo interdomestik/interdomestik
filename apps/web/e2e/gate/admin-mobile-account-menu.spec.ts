@@ -63,7 +63,7 @@ test.describe('mobile admin account actionability', () => {
   });
 
   for (const width of [390, 320]) {
-    test(`normal account clicks and logout remain reachable at ${width} CSS px in four locales`, async ({
+    test(`normal account clicks and logout remain reachable at ${width} CSS px in five locales`, async ({
       page,
       loginAs,
     }, testInfo) => {
@@ -80,7 +80,7 @@ test.describe('mobile admin account actionability', () => {
       }
       const menu = await openMobileAccount(page);
       await menu.getByRole('menuitem').last().click();
-      await assertLoggedOut(page, testInfo, 'sr');
+      await assertLoggedOut(page, testInfo, 'de');
     });
   }
 });

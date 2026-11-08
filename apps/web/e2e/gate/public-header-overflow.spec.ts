@@ -102,7 +102,7 @@ test.describe('public header overflow containment', () => {
           await trigger.click();
           await expect(trigger).toBeFocused();
           await expect(trigger).toHaveAttribute('aria-expanded', 'true');
-          await expect(header.getByTestId('public-locale-option')).toHaveCount(4);
+          await expect(header.getByTestId('public-locale-option')).toHaveCount(5);
           await settle(page);
           await collectHeader(header, info, `${locale}-${width}-open`);
         }
@@ -127,6 +127,7 @@ test.describe('public header overflow containment', () => {
       await expectForcedFocus(options.first());
       await expect(options.nth(0)).toHaveAttribute('href', /\/sq$/);
       await expect(options.nth(3)).toHaveAttribute('href', /\/mk$/);
+      await expect(options.nth(4)).toHaveAttribute('href', /\/de$/);
       await page.keyboard.press('Escape');
       await expect(trigger).toBeFocused();
       await trigger.press('Space');
