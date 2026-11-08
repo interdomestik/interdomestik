@@ -8,3 +8,5 @@ export type {
   EntryInterval,
   SponsorCoverage,
 } from './evaluate';
+export { readSponsorOutlook } from './outlook';
+export type { SponsorOutlook } from './outlook';
