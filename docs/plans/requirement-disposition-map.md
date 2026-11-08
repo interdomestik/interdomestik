@@ -18,6 +18,10 @@ backlog after pilot readiness. Ordering and active scope remain in those two can
 
 - Source: SRS v0.9 Approved Decisions Integration Review, 2026-08-17;
   SHA-256 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`.
+- Identity wording overlay: [PD-R5-IAM v1.1](../architecture/amendments/2026-11-07-pd-r5-iam-v1.md).
+  From explicit amendment approval, apply only its enumerated identity/runtime/interface replacements
+  over the unchanged SRS source. Preserve all 510 requirement IDs, acceptance clauses, attributes
+  and 29 approved decisions. The amendment does not close any requirement or change queue/status.
 - Retrievable owner-held source, relative to the owner's macOS home:
   `Documents/Codex/2026-07-28/referenced-chatgpt-conversation-this-is-untrusted/outputs/srs-v09/Interdomestik_IDA_Enterprise_SRS_v0.9_Approved_Decisions_Integration_Review.docx`.
   The owner supplied this document; its hash was rechecked on 2026-09-15. It is not bundled
@@ -375,7 +379,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-TEN-012 | Tenant lifecycle audit | Target | unresolved | S2/S10–S12 | open | none | U | U | U |
 | IDA-TEN-013 | Validated tenant selection | Canonical | unresolved | S2/S10–S12 | open | none | U | U | U |
 | IDA-TEN-014 | Tenant cache isolation | Canonical | unresolved | S2/S10–S12 | open | none | U | U | U |
-| IDA-IAM-001 | Authentication boundary | Canonical | pilot-required | S1/S8/S11–S12 | protected PR #1803 adds a same-origin neutral OTP preflight before code consumption, then verifies through Better Auth and Supabase-backed identity/session boundaries with no bypass; whole authentication acceptance remains open | none | in-progress; native OTP/session E2E pending protected receipt; Engineering | U | U |
+| IDA-IAM-001 | Authentication boundary | Canonical | pilot-required | S1/S8/S11–S12 | protected PR #1803 adds a same-origin neutral OTP preflight before code consumption, then verifies through Better Auth and Supabase-backed identity/session boundaries (historical receipt wording; identity ownership follows the approved PD-R5-IAM v1.1 overlay) with no bypass; whole authentication acceptance remains open | none | in-progress; native OTP/session E2E pending protected receipt; Engineering | U | U |
 | IDA-IAM-002 | Authentication is not authorization | Canonical | unresolved | S1/S8/S11–S12 | protected PR #1803 separately exercises owner/tenant authorization after authentication; broader authorization acceptance remains open | none | in-progress; isolation proof pending protected receipt; Engineering | U | U |
 | IDA-IAM-003 | Exercised role | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-004 | Role catalogue | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |

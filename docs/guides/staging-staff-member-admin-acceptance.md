@@ -34,7 +34,7 @@ Measure member-case search and staff/admin member/case search separately on supp
 
 ## M0–M5 conformance before every implementation
 
-Record applicable ADR/invariant, existing code boundary, and focused regression proof in the existing receipt. Check transition sole-writer and guards (M0); event/read-model foundations (M1); case/recovery separation and staff operational ownership (M2); server-resolved access tenant, RLS and cache isolation, distinct from host/legal/booking identity (M3); derived product views and mandatory applicable AI/billing contracts (M4); and only the actually authorized live-cutover compatibility state (M5). Preserve Supabase Auth → better-auth → shared-auth layering, canonical routes and page-ready contracts. A staging defect does not authorize architecture refactoring, proxy edits, a live cutover or bypassing RLS.
+Record applicable ADR/invariant, existing code boundary, and focused regression proof in the existing receipt. Check transition sole-writer and guards (M0); event/read-model foundations (M1); case/recovery separation and staff operational ownership (M2); server-resolved access tenant, RLS and cache isolation, distinct from host/legal/booking identity (M3); derived product views and mandatory applicable AI/billing contracts (M4); and only the actually authorized live-cutover compatibility state (M5). Preserve Better Auth as sole identity/session owner and the enforced provider-agnostic shared-auth contract under PD-R5-IAM v1.1, with declared adapters and reviewed transitional exceptions; current enforcement remains partial. Preserve canonical routes and page-ready contracts. A staging defect does not authorize architecture refactoring, proxy edits, a live cutover or bypassing RLS.
 
 ## Completion
 

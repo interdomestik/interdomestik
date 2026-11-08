@@ -21,7 +21,10 @@ const AUTHORITY_BOUNDARIES = [
     'protected canonical routes',
   ],
   [/page-ready[^]*?(?:contractual|enforced)/u, 'contractual clarity markers'],
-  [/Supabase Auth[^]*?better-auth[^]*?@interdomestik\/shared-auth/u, 'authentication layering'],
+  [
+    /Better Auth is the sole identity(?: and |\/)session system of record[.;]\s+`@interdomestik\/shared-auth` is the\s+enforced provider-agnostic application boundary\./u,
+    'identity ownership and provider boundary',
+  ],
   [/Authentication[^]*?never be bypassed[^]*?development/iu, 'no auth bypass'],
   [/tenant\/RLS[^]*?mandatory/iu, 'mandatory tenant/RLS boundary'],
   [/Paddle[^]*?only V3 pilot billing provider/u, 'Paddle-only billing boundary'],

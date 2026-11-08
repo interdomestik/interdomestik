@@ -73,9 +73,13 @@ tokens, private documents or production customer data in logs or receipts.
 
 Keep apps/web/src/proxy.ts read-only absent explicit justified owner authority.
 Preserve /member, /agent, /staff, /admin and page-ready/*-page-ready contracts.
-Never bypass authentication, including in development. Preserve Supabase Auth
-as identity/session record, better-auth as orchestrator and shared-auth as the
-provider-agnostic boundary. Maintain tenant/RLS, document lifecycle, privacy and
+Never bypass authentication, including in development. Better Auth is the sole
+identity/session system of record; shared-auth defines the enforced provider-agnostic
+application boundary. Supabase PostgreSQL supplies persistence, not a second identity
+authority. Existing enforcement is partial; keep provider clients/types in declared
+adapters and reviewed transitional exceptions, with no new boundary escapes. Follow
+docs/architecture/amendments/2026-11-07-pd-r5-iam-v1.md; wording adoption does not
+authorize runtime changes. Maintain tenant/RLS, document lifecycle, privacy and
 data integrity. Paddle is the only V3 pilot billing provider. No architectural,
 schema, auth, routing, tenancy, domain or billing refactor without explicit scope.
 README.md, AGENTS.md and architecture documents require explicit owner scope.

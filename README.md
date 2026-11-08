@@ -8,17 +8,17 @@ Interdomestik is a subscription-based consumer protection service that helps mem
 
 ## 🛠️ Tech Stack
 
-| Layer            | Technology                                                                                                      |
-| ---------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Monorepo**     | Turborepo + pnpm (Workspaces)                                                                                   |
-| **Frontend**     | Next.js 15 (App Router)                                                                                         |
-| **Architecture** | Domain-Driven Design (DDD)                                                                                      |
-| **Routing**      | **Proxy-based** (Middleware may exist but is not authoritative; `proxy.ts` is the source of truth)              |
-| **UI**           | Custom Design System + Radix UI + Tailwind CSS                                                                  |
-| **Database**     | Supabase (PostgreSQL) + Drizzle ORM                                                                             |
-| **Auth**         | Supabase Auth (identity & persistence) + Better Auth via `@interdomestik/shared-auth` (orchestration, policies) |
-| **Payments**     | **Paddle (V3 only)** — Stripe references exist only in legacy code and are not part of the V3 runtime           |
-| **i18n**         | next-intl (SQ, EN, MK, SR, DE, HR)                                                                              |
+| Layer            | Technology                                                                                                                       |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Monorepo**     | Turborepo + pnpm (Workspaces)                                                                                                    |
+| **Frontend**     | Next.js 15 (App Router)                                                                                                          |
+| **Architecture** | Domain-Driven Design (DDD)                                                                                                       |
+| **Routing**      | **Proxy-based** (Middleware may exist but is not authoritative; `proxy.ts` is the source of truth)                               |
+| **UI**           | Custom Design System + Radix UI + Tailwind CSS                                                                                   |
+| **Database**     | Supabase (PostgreSQL) + Drizzle ORM                                                                                              |
+| **Auth**         | Better Auth (sole identity/session owner); `@interdomestik/shared-auth` application boundary (enforcement partially implemented) |
+| **Payments**     | **Paddle (V3 only)** — Stripe references exist only in legacy code and are not part of the V3 runtime                            |
+| **i18n**         | next-intl (SQ, EN, MK, SR, DE, HR)                                                                                               |
 
 ## 📁 Project Structure
 
@@ -43,13 +43,19 @@ interdomestik/
 
 ## 🔐 Authentication Architecture (V3)
 
-Authentication in Interdomestik V3 is **intentionally abstracted and in transition**.
+Better Auth is the sole identity and session system of record in the adopted target architecture.
 
-- **Supabase Auth** remains the system of record for identities and sessions.
-- **better-auth** is used as the active authentication orchestrator.
-- **`@interdomestik/shared-auth`** provides a provider-agnostic boundary layer, allowing the system to evolve without coupling business logic to a single auth vendor.
+- **Better Auth** owns credential and session lifecycle; Supabase PostgreSQL supplies persistence.
+  Supabase Auth is not a second identity or session authority.
+- **`@interdomestik/shared-auth`** defines the provider-agnostic application contract. Provider clients
+  and provider-derived types belong in declared adapters and reviewed transitional exceptions.
+- **Implementation status:** Better Auth is mounted today; shared-auth enforcement remains partial.
+  New boundary escapes are prohibited; existing exceptions require an explicit inventory and ratchet.
+- Tenant, role, branch and resource authorization, service-role signing, privileged MFA, session
+  rotation and revocation retain their separate implementation and acceptance requirements.
 
-This design is deliberate and supports future authentication flexibility without disrupting the V3 pilot.
+[PD-R5-IAM v1.1](docs/architecture/amendments/2026-11-07-pd-r5-iam-v1.md) records the versioned
+wording amendment. It does not certify security acceptance or authorize deployment.
 
 ## 🚀 Getting Started
 

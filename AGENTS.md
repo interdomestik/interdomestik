@@ -20,8 +20,13 @@ Use this file for repository-wide instructions. For reviews also follow `code_re
   read-only unless the owner explicitly authorizes a justified change.
 - Canonical routes `/member`, `/agent`, `/staff` and `/admin` must not be renamed or bypassed.
 - `page-ready` and `*-page-ready` markers are contractual and covered by E2E gates.
-- Supabase Auth is the identity/session system of record, `better-auth` is the orchestrator and
-  `@interdomestik/shared-auth` is the provider-agnostic boundary. Do not collapse this layering.
+- Better Auth is the sole identity and session system of record.
+  `@interdomestik/shared-auth` is the enforced provider-agnostic application boundary. Provider
+  clients and provider-derived types belong in declared adapters and explicitly reviewed
+  transitional exceptions; do not introduce new boundary escapes. Supabase PostgreSQL provides
+  persistence, not a second identity/session authority. Existing shared-auth enforcement is partial;
+  this identity wording amendment does not claim completed enforcement or authorize runtime changes.
+  See `docs/architecture/amendments/2026-11-07-pd-r5-iam-v1.md`.
 - Authentication must never be bypassed, including in development.
 - Tenant/RLS, document lifecycle, privacy and data-integrity protections remain mandatory.
 - Paddle is the only V3 pilot billing provider.
