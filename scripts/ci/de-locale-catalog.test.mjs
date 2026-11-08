@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
+import { LOCALE_CATALOG_OWNER_KEYS, structuredArtifactOwner } from '../modularity-guard-policy.mjs';
 
 const MESSAGES_DIR = fileURLToPath(new URL('../../apps/web/src/messages/', import.meta.url));
 const LOCALES_SOURCE = fileURLToPath(
@@ -72,6 +72,18 @@ test('every de catalog has an explicit modularity owner', () => {
   for (const name of ['agent.json', 'freeStart.json', 'pricing.json']) {
     assert.notEqual(structuredArtifactOwner(`apps/web/src/messages/en/${name}`), null, name);
   }
+});
+
+test('every de catalog file has an explicit owner-registry entry', () => {
+  const keys = new Set(LOCALE_CATALOG_OWNER_KEYS);
+  for (const name of catalogNames('de')) {
+    assert.ok(keys.has(name) || keys.has(`de/${name}`), `${name} has no registry entry`);
+  }
+  for (const key of LOCALE_CATALOG_OWNER_KEYS.filter(entry => entry.startsWith('de/'))) {
+    assert.ok(catalogNames('de').includes(key.slice(3)), `${key} names no de catalog`);
+    assert.ok(!keys.has(key.slice(3)), `${key} duplicates a locale-wide entry`);
+  }
+  assert.equal(LOCALE_CATALOG_OWNER_KEYS.filter(entry => entry.startsWith('de/')).length, 50);
 });
 
 test('unknown de catalogs and unknown locales stay unowned', () => {

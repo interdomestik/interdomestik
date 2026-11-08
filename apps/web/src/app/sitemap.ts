@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 const BASE_URL = 'https://interdomestikasistenca.com';
-const ROUTES = ['', '/pricing', '/services', '/contact', '/faq'] as const;
+const ROUTES = ['', '/pricing', '/services'] as const;
 const SITEMAP_LOCALES = ['en', 'sq', 'sr', 'mk', 'de'] as const;
 
 const localizedUrl = (locale: string, route: string): string => `${BASE_URL}/${locale}${route}`;
