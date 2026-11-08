@@ -1,0 +1,39 @@
+{
+  "testimonials": {
+    "title": "Erfolgsgeschichten",
+    "subtitle": "Was unsere Mitglieder sagen",
+    "stories": [
+      {
+        "quote": "Nach dem Unfall wusste ich nicht, was ich tun sollte. Interdomestik hat mir geholfen, in nur 3 Wochen 3.200 € zurückzubekommen.",
+        "name": "Arben M.",
+        "role": "Standard-Mitglied",
+        "amount": "3.200 €",
+        "time": "3 Wochen"
+      },
+      {
+        "quote": "Der Versicherer bot mir nur 800 € an. Mit den Experten von Interdomestik habe ich 2.100 € erhalten.",
+        "name": "Flutura K.",
+        "role": "Familienmitglied",
+        "amount": "2.100 €",
+        "time": "5 Wochen"
+      },
+      {
+        "quote": "Der Ablauf war ganz einfach. Ein Anruf, und sie haben sich um alles gekümmert.",
+        "name": "Besnik H.",
+        "role": "Standard-Mitglied",
+        "amount": "1.850 €",
+        "time": "4 Wochen"
+      },
+      {
+        "quote": "Als Unternehmen brauchten wir einen zuverlässigen Partner. Interdomestik schützt unsere 10 Fahrzeuge.",
+        "name": "Albana S.",
+        "role": "Business-Mitglied",
+        "amount": "5.400 €",
+        "time": "6 Wochen"
+      }
+    ],
+    "mainHeading1": "Geschichten, die",
+    "mainHeading2": "Vertrauen schaffen.",
+    "recoveredIn": "Erstattet in"
+  }
+}

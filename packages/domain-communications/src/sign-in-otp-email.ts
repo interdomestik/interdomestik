@@ -1,7 +1,7 @@
 import * as nodemailer from 'nodemailer';
 import type { Resend } from 'resend';
 
-export const SIGN_IN_OTP_LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+export const SIGN_IN_OTP_LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 
 export type SignInOtpLocale = (typeof SIGN_IN_OTP_LOCALES)[number];
 export type EmailTelemetryPolicy = 'content-free';
@@ -54,6 +54,10 @@ const COPY: Record<SignInOtpLocale, SignInOtpCopy> = {
   mk: {
     subject: 'Код за потврда на е-поштата',
     body: 'Користете го 6-цифрениот код за да ја потврдите е-поштата и да продолжите. Важи 5 минути; важи само најновиот код. Не потврдува плаќање, активно членство, барање за надомест или прифатен случај.',
+  },
+  de: {
+    subject: 'Ihr Code zur Bestätigung Ihrer E-Mail-Adresse',
+    body: 'Verwenden Sie den 6-stelligen Code, um Ihre E-Mail-Adresse zu bestätigen und fortzufahren. Er ist 5 Minuten gültig; nur der neueste Code funktioniert. Er bestätigt weder eine Zahlung noch eine aktive Mitgliedschaft, einen Schadensfall oder einen angenommenen Fall.',
   },
 };
 

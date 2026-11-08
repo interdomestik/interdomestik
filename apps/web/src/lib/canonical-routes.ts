@@ -1,7 +1,7 @@
 import type { RoleLike } from './roles.core';
 
 const ADMIN_ROLES = new Set(['admin', 'super_admin', 'tenant_admin', 'branch_manager']);
-const SUPPORTED_LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+const SUPPORTED_LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 
 function normalizeLocale(locale: string): (typeof SUPPORTED_LOCALES)[number] | null {
   const trimmed = locale?.trim();

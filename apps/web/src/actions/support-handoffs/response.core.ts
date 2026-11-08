@@ -33,6 +33,10 @@ const SUPPORT_HANDOFF_PUBLIC_RESPONSE_NOTIFICATION_COPY: Record<
     content: 'Dostupno je ažuriranje osoblja za vaš zahtev za podršku.',
     title: 'Dostupno je ažuriranje osoblja',
   },
+  de: {
+    content: 'Zu Ihrer Supportanfrage liegt eine Aktualisierung des Teams vor.',
+    title: 'Aktualisierung des Teams verfügbar',
+  },
 };
 
 function revalidatePathForAllLocales(path: string) {

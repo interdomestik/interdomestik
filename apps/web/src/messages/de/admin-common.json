@@ -1,0 +1,36 @@
+{
+  "admin": {
+    "sidebar": {
+      "title": "Admin",
+      "subtitle": "Kontrollzentrum",
+      "dashboard": "Dashboard",
+      "claims": "Fallverwaltung",
+      "users": "Benutzer",
+      "members": "Mitglieder",
+      "agents": "Agenten",
+      "staff": "Mitarbeitende",
+      "crm": "CRM-Berichte",
+      "analytics": "Analysen",
+      "branches": "Filialen",
+      "leads": "Lead-Verifizierung",
+      "settings": "Einstellungen"
+    },
+    "errors": {
+      "admin": {
+        "title": "Fehler in der Admin-Konsole",
+        "description": "Im Admin-Bereich ist ein unerwarteter Fehler aufgetreten. Das Systemlayout ist weiterhin aktiv.",
+        "digest_label": "Fehler-Digest:",
+        "unknown_digest": "Unbekannt",
+        "try_again": "Erneut versuchen"
+      },
+      "branch_dashboard": {
+        "title": "Etwas ist schiefgelaufen",
+        "description": "Beim Laden des Filial-Dashboards ist ein Fehler aufgetreten.",
+        "try_again": "Erneut versuchen"
+      }
+    },
+    "tenant_selector": {
+      "placeholder": "Mandant"
+    }
+  }
+}

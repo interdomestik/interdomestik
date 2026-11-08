@@ -1,0 +1,34 @@
+{
+  "consumerRights": {
+    "title": "Ihre Verbraucherrechte",
+    "intro": "Kennen Sie Ihre Rechte nach dem Gesetz über den Verbraucherschutz im Kosovo (Nr. 06/L-034).",
+    "rights": {
+      "safety": {
+        "title": "Recht auf Sicherheit",
+        "description": "Schutz vor Produkten und Dienstleistungen, die Leben und Gesundheit gefährden."
+      },
+      "information": {
+        "title": "Recht auf Information",
+        "description": "Zugang zu klaren, genauen und wahrheitsgemäßen Informationen über Waren und Dienstleistungen."
+      },
+      "redress": {
+        "title": "Recht auf Abhilfe",
+        "description": "Ausgleich für mangelhafte Waren, einschließlich Reparatur, Ersatz oder Erstattung."
+      },
+      "representation": {
+        "title": "Recht auf Vertretung",
+        "description": "Das Recht, Verbraucherverbände zu gründen und ihnen beizutreten, um kollektive Interessen zu schützen."
+      },
+      "choice": {
+        "title": "Recht auf Auswahl",
+        "description": "Die Möglichkeit, aus einer Vielzahl von Produkten und Dienstleistungen zu wettbewerbsfähigen Preisen zu wählen."
+      },
+      "education": {
+        "title": "Recht auf Bildung",
+        "description": "Zugang zu Programmen und Informationen, die Ihnen helfen, fundierte Entscheidungen zu treffen."
+      }
+    },
+    "cta": "Schadensfall starten",
+    "learnMore": "Mehr erfahren"
+  }
+}

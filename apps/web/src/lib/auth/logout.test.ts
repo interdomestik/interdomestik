@@ -14,7 +14,7 @@ describe('redirectToLocalizedLogin', () => {
   it('falls back to the default locale login for unsupported locales', () => {
     const replace = vi.fn();
 
-    redirectToLocalizedLogin('de', replace);
+    redirectToLocalizedLogin('hr', replace);
 
     expect(replace).toHaveBeenCalledWith('/sq/login');
   });

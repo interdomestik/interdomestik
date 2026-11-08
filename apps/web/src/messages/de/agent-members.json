@@ -1,0 +1,118 @@
+{
+  "agent-members": {
+    "members": {
+      "page": {
+        "title": "Mitglieder",
+        "description": "Ihre zugewiesenen Mitglieder und aktiven Gespräche.",
+        "register_member": "Mitglied registrieren"
+      },
+      "cockpit": {
+        "title": "Agenten-Cockpit",
+        "description": "Priorisieren Sie Nachfassaktionen bei Mitgliedern und halten Sie Übergaben auf Kurs.",
+        "my_members_cta": "Meine Mitglieder",
+        "claims_queue_cta": "Warteschlange der Schadensfälle",
+        "needs_attention_label": "Erfordert jetzt Aufmerksamkeit",
+        "open_claims_label": "Offene Schadensfälle",
+        "support_link": "Agenten-Support"
+      },
+      "register": {
+        "title": "Neues Mitglied registrieren",
+        "description": "Ein Mitglied manuell registrieren und seine Mitgliedschaft aktivieren.",
+        "form": {
+          "full_name": "Vollständiger Name",
+          "full_name_placeholder": "z. B. Max Mustermann",
+          "email": "E-Mail",
+          "email_placeholder": "max@example.com",
+          "phone": "Telefon",
+          "phone_placeholder": "+383 44 ...",
+          "plan": "Mitgliedschaftsplan",
+          "select_plan": "Plan auswählen",
+          "notes": "Notizen",
+          "notes_placeholder": "Weitere Angaben...",
+          "cancel": "Abbrechen",
+          "submit": "Mitglied registrieren"
+        },
+        "plans": {
+          "standard": "Standard (20 €/Jahr)",
+          "family": "Familie (35 €/Jahr)"
+        }
+      },
+      "panel": {
+        "title": "Meine Mitglieder",
+        "description": "Mitglieder, die gerade Ihre Aufmerksamkeit brauchen.",
+        "empty": "Noch keine zugewiesenen Mitglieder.",
+        "view_all": "Alle Mitglieder ansehen"
+      },
+      "profile": {
+        "actions": {
+          "back": "Zurück zu den Mitgliedern",
+          "view_claim": "Schadensfall ansehen"
+        },
+        "sections": {
+          "membership": "Mitgliedschaft",
+          "agent": "Zugewiesener Agent",
+          "preferences": "Benachrichtigungseinstellungen",
+          "claims_overview": "Übersicht der Schadensfälle",
+          "recent_claims": "Letzte Schadensfälle"
+        },
+        "labels": {
+          "member_id": "Mitglieds-ID",
+          "joined": "Beigetreten",
+          "email_verified_yes": "E-Mail verifiziert",
+          "email_verified_no": "E-Mail nicht verifiziert",
+          "status": "Status",
+          "plan": "Plan",
+          "period_end": "Laufzeitende",
+          "cancel_at_period_end": "Kündigung zum Laufzeitende",
+          "no_agent": "Kein Agent zugewiesen",
+          "preferences_unset": "Keine Einstellungen festgelegt",
+          "no_claims": "Noch keine Schadensfälle",
+          "unknown": "Unbekannt",
+          "not_set": "Nicht festgelegt"
+        },
+        "status": {
+          "active": "Aktiv",
+          "past_due": "Überfällig",
+          "paused": "Pausiert",
+          "canceled": "Gekündigt",
+          "none": "Kein Abonnement"
+        },
+        "preferences": {
+          "email_claims": "E-Mail-Aktualisierungen zu Schadensfällen",
+          "email_newsletter": "E-Mail-Newsletter",
+          "email_marketing": "E-Mail-Werbung",
+          "push_claims": "Push-Aktualisierungen zu Schadensfällen",
+          "push_messages": "Push-Nachrichten",
+          "in_app": "In-App-Benachrichtigungen"
+        },
+        "claims": {
+          "total": "Schadensfälle gesamt",
+          "open": "Offene Schadensfälle",
+          "resolved": "Gelöst",
+          "rejected": "Abgelehnt"
+        }
+      },
+      "filters": {
+        "search_label": "Mitglieder suchen",
+        "search_placeholder": "Nach Name oder E-Mail suchen"
+      },
+      "table": {
+        "sections": {
+          "attention": "Erfordert Aufmerksamkeit",
+          "all": "Alle Mitglieder"
+        },
+        "headers": {
+          "user": "Mitglied",
+          "status": "Status",
+          "plan": "Plan",
+          "period_end": "Läuft ab",
+          "actions": "Aktionen"
+        },
+        "view_profile": "Profil ansehen",
+        "view_claims": "Schadensfälle ansehen",
+        "message_alert": "Neue Nachricht ({count})",
+        "no_users": "Keine Mitglieder gefunden."
+      }
+    }
+  }
+}

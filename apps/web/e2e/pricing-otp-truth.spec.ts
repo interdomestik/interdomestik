@@ -97,7 +97,7 @@ test.describe('IDA-UI03a0b1 neutral OTP truth', () => {
     });
     const page = await context.newPage();
     try {
-      for (const locale of ['sq', 'en', 'sr', 'mk'] as Locale[]) {
+      for (const locale of ['sq', 'en', 'sr', 'mk', 'de'] as Locale[]) {
         await gotoApp(page, routes.pricing(locale), info, { marker: 'pricing-page-ready' });
         await expect(page.getByTestId('pricing-commercial-disclaimers')).toBeVisible();
         await expect(page.getByTestId('pricing-billing-terms')).toBeVisible();

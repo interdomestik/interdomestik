@@ -33,7 +33,7 @@ vi.mock('next/cache', () => ({
 const authority = mintTestTenantAuthority('tenant-1');
 
 describe('saveRecoveryDecisionCore', () => {
-  const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+  const LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
   const REVALIDATED_LOCALE_PATHS = [
     ...LOCALES.map(locale => `/${locale}/staff/claims/claim-1`),
     ...LOCALES.map(locale => `/${locale}/staff/claims`),

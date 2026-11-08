@@ -1,0 +1,121 @@
+{
+  "wizard": {
+    "categories": {
+      "title": "Um welche Art von Schadensfall handelt es sich?",
+      "subtitle": "Wählen Sie die Kategorie, die am besten zu Ihrem Anliegen passt.",
+      "freeConsultation": "✨ Kostenlose Beratung inklusive",
+      "flight_delay": {
+        "label": "Flugverspätung",
+        "description": "Entschädigung nach EU261 bis zu 600 €",
+        "examples": "Flugverspätung oder -annullierung, verlorenes Gepäck"
+      },
+      "damaged_goods": {
+        "label": "Beschädigte Waren",
+        "description": "Artikel kamen beschädigt oder nicht wie beschrieben an",
+        "examples": "Beschädigte Verpackung, defekte Produkte, falscher Artikel"
+      },
+      "service_issue": {
+        "label": "Problem mit einer Dienstleistung",
+        "description": "Schlechter Service von Versorgern, Telekommunikation usw.",
+        "examples": "Internetausfall, Abrechnungsfehler, unhöflicher Service"
+      },
+      "other": {
+        "label": "Sonstiges",
+        "description": "Jede andere Verbraucherstreitigkeit",
+        "examples": "Vertragsstreitigkeiten, arbeitsrechtliche Fragen, Versicherung"
+      }
+    },
+    "quickTags": {
+      "flight_delay": "Flugverspätung",
+      "car_accident": "Autounfall",
+      "water_damage": "Wasserschaden",
+      "workplace_injury": "Arbeitsunfall",
+      "theft": "Diebstahl",
+      "medical_malpractice": "Ärztlicher Behandlungsfehler"
+    },
+    "details": {
+      "title": "Erzählen Sie uns, was passiert ist",
+      "subtitle": "Details helfen uns, Ihren Schadensfall schneller zu bearbeiten.",
+      "claim_title": "Titel des Schadensfalls",
+      "claim_title_placeholder": "z. B. Flugverspätung nach Berlin",
+      "claim_title_desc": "Eine kurze Zusammenfassung des Problems.",
+      "company": "Name des Unternehmens",
+      "company_placeholder": "z. B. Lufthansa, Zara, VK Egnatia",
+      "amount": "Betrag (optional)",
+      "currency": "Währung",
+      "date": "Datum des Vorfalls",
+      "description": "Beschreibung",
+      "description_placeholder": "Beschreiben Sie genau, was passiert ist...",
+      "helpfulTips": "💡 Hilfreiche Tipps:",
+      "voice_note_label": "Oder nehmen Sie eine Sprachnachricht auf",
+      "voice_note_desc": "Sparen Sie sich das Tippen. Erklären Sie in 60 Sekunden, was passiert ist.",
+      "new_badge": "Neu",
+      "voice_uploading": "Sprachnachricht wird hochgeladen...",
+      "voice_uploaded": "Sprachnachricht angehängt!",
+      "voice_upload_failed": "Upload fehlgeschlagen"
+    },
+    "categoryFields": {
+      "vehicle": {
+        "titlePlaceholder": "z. B. Autounfall auf der Autobahn",
+        "titleDesc": "Kurze Zusammenfassung des Fahrzeugvorfalls",
+        "companyPlaceholder": "z. B. Versicherung, Versicherung des anderen Fahrers",
+        "descriptionPlaceholder": "Beschreiben Sie den Unfall: was passiert ist, wo, wer beteiligt war, Ausmaß des Schadens an Ihrem Fahrzeug..."
+      },
+      "property": {
+        "titlePlaceholder": "z. B. Wasserschaden in der Wohnung",
+        "titleDesc": "Kurze Zusammenfassung des Sachschadens",
+        "companyPlaceholder": "z. B. Hausverwaltung, Versicherung",
+        "descriptionPlaceholder": "Beschreiben Sie den Schaden: Ursache, betroffene Bereiche, wann Sie ihn entdeckt haben, ergriffene Notmaßnahmen..."
+      },
+      "injury": {
+        "titlePlaceholder": "z. B. Arbeitsunfall – Rückenzerrung",
+        "titleDesc": "Kurze Zusammenfassung der Verletzung",
+        "companyPlaceholder": "z. B. Arbeitgeber, Krankenhaus, Versicherung",
+        "descriptionPlaceholder": "Beschreiben Sie die Verletzung: wie sie entstanden ist, welche Körperteile betroffen sind, erhaltene Behandlung, aktuelle Beschwerden..."
+      },
+      "travel": {
+        "titlePlaceholder": "z. B. Flugverspätung nach Berlin",
+        "titleDesc": "Kurze Zusammenfassung des Reiseproblems",
+        "companyPlaceholder": "z. B. Lufthansa, Ryanair, Booking.com",
+        "descriptionPlaceholder": "Beschreiben Sie, was passiert ist: Flugdaten, geplante und tatsächliche Zeiten, Grund für Verspätung/Annullierung falls bekannt, geforderte Entschädigung..."
+      }
+    },
+    "categoryInstructions": {
+      "vehicle": {
+        "title": "Angaben zum Fahrzeugschaden",
+        "subtitle": "Machen Sie Angaben zum Unfall oder Schaden an Ihrem Fahrzeug.",
+        "tips": "Angeben: Datum und Uhrzeit des Vorfalls, Ort, beteiligte Parteien, gegebenenfalls Nummer des Polizeiberichts und Beschreibung des Schadens."
+      },
+      "property": {
+        "title": "Angaben zum Sachschaden",
+        "subtitle": "Beschreiben Sie den Schaden an Ihrem Eigentum und wie er entstanden ist.",
+        "tips": "Angeben: Art des Objekts, Ursache des Schadens (Feuer, Wasser, Sturm usw.), Ausmaß des Schadens und durchgeführte Notreparaturen."
+      },
+      "injury": {
+        "title": "Angaben zum Personenschaden",
+        "subtitle": "Machen Sie Angaben zu Ihrer Verletzung und zur medizinischen Behandlung.",
+        "tips": "Angeben: Art der Verletzung, wo und wie sie entstanden ist, erhaltene Behandlung, behandelnde Stellen sowie anhaltende Beschwerden oder Einschränkungen."
+      },
+      "travel": {
+        "title": "Angaben zu Reise & Flug",
+        "subtitle": "Machen Sie Angaben zu Ihrer Flug- oder Reisebuchung.",
+        "tips": "Angeben: Buchungsnummer, Flugnummer, Abflug-/Ankunftsflughafen, geplante und tatsächliche Zeiten sowie Grund für Verspätung/Annullierung falls bekannt."
+      }
+    },
+    "review": {
+      "title": "Prüfen & absenden",
+      "subtitle": "Bitte prüfen Sie Ihre Angaben vor dem Absenden.",
+      "summary": "Zusammenfassung des Schadensfalls",
+      "category": "Kategorie",
+      "date": "Datum",
+      "company": "Unternehmen",
+      "claim_title": "Titel",
+      "description": "Beschreibung",
+      "evidence": "Nachweise",
+      "amount": "Forderungsbetrag",
+      "files_attached": "{count} Dateien angehängt",
+      "offline_title": "Sie sind offline",
+      "offline_description": "Ihr Fall ist als Entwurf gespeichert, aber Sie können ihn erst absenden, wenn die Verbindung wiederhergestellt ist."
+    }
+  }
+}

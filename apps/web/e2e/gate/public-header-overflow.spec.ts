@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page, type TestInfo } from '@playwrigh
 import { routes, type Locale } from '../routes';
 import { withAnonymousPage } from '../utils/anonymous-context';
 import { gotoApp } from '../utils/navigation';
-const locales = ['sq', 'en', 'sr', 'mk'] as const;
+const locales = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 const widths = [320, 360, 390, 430] as const;
 async function openHeader(page: Page, info: TestInfo, locale: Locale) {
   await page.addInitScript(() => {

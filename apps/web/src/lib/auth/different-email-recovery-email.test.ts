@@ -3,14 +3,17 @@ import { describe, expect, it, vi } from 'vitest';
 import { deliverRecoveryCode, renderRecoveryEmail } from './different-email-recovery-email';
 
 describe('IDA-UI03b content-free recovery email', () => {
-  it.each(['sq', 'en', 'sr', 'mk'] as const)('renders localized purpose copy for %s', locale => {
-    const current = renderRecoveryEmail(locale, 'current', '123456');
-    const replacement = renderRecoveryEmail(locale, 'replacement', '654321');
-    expect(current.text).toContain('123456');
-    expect(replacement.text).toContain('654321');
-    expect(current.text).not.toBe(replacement.text);
-    expect(`${current.text} ${replacement.text}`).toMatch(/5|five|пет/i);
-  });
+  it.each(['sq', 'en', 'sr', 'mk', 'de'] as const)(
+    'renders localized purpose copy for %s',
+    locale => {
+      const current = renderRecoveryEmail(locale, 'current', '123456');
+      const replacement = renderRecoveryEmail(locale, 'replacement', '654321');
+      expect(current.text).toContain('123456');
+      expect(replacement.text).toContain('654321');
+      expect(current.text).not.toBe(replacement.text);
+      expect(`${current.text} ${replacement.text}`).toMatch(/5|five|пет/i);
+    }
+  );
 
   it('awaits the shared mail primitive with content-free telemetry', async () => {
     const send = vi.fn().mockResolvedValue({ success: true, id: 'provider-id' });

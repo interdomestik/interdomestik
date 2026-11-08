@@ -1,0 +1,99 @@
+{
+  "freeStart": {
+    "result": {
+      "announcement": "Ihr vorläufiges Free-Start-Ergebnis ist bereit.",
+      "badge": "Free Start abgeschlossen",
+      "heading": "Ihr vorläufiges Ergebnis ist bereit.",
+      "body": "Nutzen Sie dieses Ergebnis, um zu ordnen, was Sie wissen, und den nächsten Schritt vorzubereiten. Es wurde nichts gespeichert und kein Fall eröffnet.",
+      "disclaimer": "Dieses Ergebnis ist eine allgemeine Information, keine Rechtsberatung und keine Entscheidung über Ihren Anspruch.",
+      "preparation": {
+        "eyebrow": "Vorbereitungsanzeige",
+        "note": "Diese Zahl zeigt nur, wie vollständig Ihre eingegebenen Informationen sind. Sie sagt weder eine Berechtigung noch ein Ergebnis voraus.",
+        "levels": {
+          "high": "Gut vorbereitet",
+          "medium": "Nützlicher Ausgangspunkt",
+          "low": "Früher Ausgangspunkt"
+        }
+      },
+      "nextStep": {
+        "eyebrow": "Ihr nächster Schritt",
+        "heading": "Machen Sie weiter, wenn Sie bereit sind.",
+        "defaultCta": "Weiter",
+        "levels": {
+          "high": "Ihre Fakten sind für die unten gezeigte Prüfoption geordnet.",
+          "medium": "Eine Dokumentenprüfung kann Ihnen helfen, das Paket zu prüfen, bevor Sie einen Brief senden.",
+          "low": "Ein kurzes Beratungsgespräch kann Ihnen helfen, den klarsten nächsten Schritt zu wählen."
+        }
+      },
+      "letter": {
+        "heading": "Ihr Briefentwurf",
+        "helper": "Prüfen Sie jedes Detail, bevor Sie ihn verwenden. Der Entwurf bleibt vorläufig und wird hier weder gesendet noch gespeichert.",
+        "copy": "Brief kopieren",
+        "copied": "Brief kopiert.",
+        "copyError": "Kopieren war nicht möglich. Markieren Sie den Brieftext und kopieren Sie ihn manuell.",
+        "download": "Brief herunterladen",
+        "placeholders": "Füllen Sie diese Platzhalter aus, bevor Sie den Brief verwenden:"
+      },
+      "timeline": {
+        "heading": "Zeitplan zur Orientierung",
+        "intro": "Dies sind Planungsspannen, keine zugesagten Antwort- oder Lösungstermine.",
+        "ranges": {
+          "days": "{start}–{end} Tage",
+          "weeks": "{start}–{end} Wochen",
+          "months": "{start}–{end} Monate",
+          "businessDays": "{start}–{end} Werktage",
+          "afterResponse": "Nachdem die Gegenpartei geantwortet hat",
+          "unknown": "Der Zeitpunkt hängt vom nächsten Schritt ab"
+        },
+        "items": {
+          "evidence_collection": {
+            "label": "Nachweise sammeln",
+            "description": "Sammeln Sie die in der Checkliste gezeigten Unterlagen und bewahren Sie die Originale sicher auf."
+          },
+          "first_letter": {
+            "label": "Ersten Brief prüfen und senden",
+            "description": "Prüfen Sie den Entwurf, füllen Sie jeden Platzhalter aus und wählen Sie, wie Sie ihn senden."
+          },
+          "expected_response": {
+            "label": "Zeit für eine Antwort einplanen",
+            "description": "Bewahren Sie den Zustellnachweis auf und notieren Sie jede Antwort, die Sie erhalten."
+          },
+          "insurer_assessment": {
+            "label": "Bewertung durch den Versicherer",
+            "description": "Bewahren Sie Bewertung, Rückfragen und jedes aktualisierte Angebot zusammen auf."
+          },
+          "damage_assessment": {
+            "label": "Schadensbewertung",
+            "description": "Halten Sie Besichtigungen, Kostenvoranschläge und Änderungen am Reparaturumfang fest."
+          },
+          "medical_documentation": {
+            "label": "Medizinische Unterlagen aktualisieren",
+            "description": "Halten Sie den Behandlungsverlauf und die damit verbundenen Kosten aktuell."
+          },
+          "escalation_window": {
+            "label": "Nächste Option prüfen",
+            "description": "Wenn das Problem ungelöst bleibt, nutzen Sie den verfügbaren Supportweg, um zu prüfen, wie es weitergeht."
+          },
+          "resolution": {
+            "vehicle": {
+              "label": "Fortschritt bei Reparatur oder Zahlung verfolgen",
+              "description": "Bewahren Sie eine schriftliche Bestätigung der vereinbarten Reparatur, Zahlung oder nächsten Maßnahme auf."
+            },
+            "property": {
+              "label": "Fortschritt bei Reparatur oder Zahlung verfolgen",
+              "description": "Bewahren Sie eine schriftliche Bestätigung der vereinbarten Arbeiten, Zahlung oder nächsten Maßnahme auf."
+            },
+            "injury": {
+              "label": "Fortschritt bei Behandlung und Antwort verfolgen",
+              "description": "Bewahren Sie schriftliche Bestätigungen zu Entscheidungen, Zahlungen und verbleibenden Schritten auf."
+            }
+          },
+          "unknown": {
+            "label": "Planungsschritt",
+            "description": "Bewahren Sie die relevante Unterlage auf und klären Sie, was als Nächstes geschehen muss."
+          }
+        }
+      }
+    }
+  }
+}

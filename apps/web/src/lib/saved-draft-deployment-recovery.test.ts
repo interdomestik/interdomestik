@@ -21,7 +21,7 @@ describe('saved draft deployment recovery', () => {
       expect(isOutdatedServerAction(candidate)).toBe(false);
     }
   });
-  it.each(['en', 'sq', 'mk', 'sr'])('returns only the canonical %s draft review', locale => {
+  it.each(['en', 'sq', 'mk', 'sr', 'de'])('returns only the canonical %s draft review', locale => {
     expect(savedDraftRecoveryHref(locale, id)).toBe(
       `/${locale}/member/claims/new?mode=drafts#draft=${id}`
     );

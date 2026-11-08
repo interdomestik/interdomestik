@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import deCatalog from '@/messages/de/agent-claims.json';
 import enCatalog from '@/messages/en/agent-claims.json';
 import mkCatalog from '@/messages/mk/agent-claims.json';
 import sqCatalog from '@/messages/sq/agent-claims.json';
@@ -73,7 +74,13 @@ vi.mock('next-intl/server', () => ({
           ? `${count} ${count === 1 ? 'rast' : 'raste'}`
           : `${count} ${count === 1 ? 'claim' : 'claims'}`;
       }
-      const catalogs = { en: enCatalog, mk: mkCatalog, sq: sqCatalog, sr: srCatalog };
+      const catalogs = {
+        de: deCatalog,
+        en: enCatalog,
+        mk: mkCatalog,
+        sq: sqCatalog,
+        sr: srCatalog,
+      };
       const catalog = catalogs[mocks.locale as keyof typeof catalogs];
       const value = key
         .split('.')
@@ -161,7 +168,7 @@ describe('staff claim attention', () => {
     expect(screen.queryByTestId('staff-claim-next-actor')).not.toBeInTheDocument();
   });
 
-  it.each(['en', 'sq', 'mk', 'sr'])(
+  it.each(['en', 'sq', 'mk', 'sr', 'de'])(
     'groups assigned work and saved-date follow-ups in %s',
     async locale => {
       mocks.getSession.mockResolvedValueOnce({
@@ -184,9 +191,13 @@ describe('staff claim attention', () => {
         })
       );
 
-      const catalog = { en: enCatalog, mk: mkCatalog, sq: sqCatalog, sr: srCatalog }[
-        locale as 'en' | 'mk' | 'sq' | 'sr'
-      ];
+      const catalog = {
+        de: deCatalog,
+        en: enCatalog,
+        mk: mkCatalog,
+        sq: sqCatalog,
+        sr: srCatalog,
+      }[locale as 'de' | 'en' | 'mk' | 'sq' | 'sr'];
       const copy = catalog['agent-claims'].claims.staff_queue.attention;
       expect(screen.getByTestId('staff-claims-group-staff')).toHaveTextContent(copy.group.staff);
       expect(screen.getByTestId('staff-claims-group-member')).toHaveTextContent(copy.group.member);

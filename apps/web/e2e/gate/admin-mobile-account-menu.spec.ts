@@ -69,7 +69,7 @@ test.describe('mobile admin account actionability', () => {
     }, testInfo) => {
       await loginAs('admin');
       await page.setViewportSize({ width, height: 844 });
-      for (const locale of ['en', 'sq', 'mk', 'sr'] as const) {
+      for (const locale of ['en', 'sq', 'mk', 'sr', 'de'] as const) {
         await gotoApp(page, routes.adminUsers(locale), testInfo, { marker: 'admin-users-page' });
         await expect(page.getByTestId('admin-users-page')).toHaveCount(1);
         await openMobileAccount(page);

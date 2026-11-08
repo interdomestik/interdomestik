@@ -34,7 +34,7 @@ import { updateClaimStatusCore } from './update-status.core';
 const authority = mintTestTenantAuthority('tenant-1');
 
 describe('staff update-status.core audit wiring', () => {
-  const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+  const LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 
   beforeEach(() => {
     vi.clearAllMocks();

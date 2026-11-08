@@ -1,0 +1,100 @@
+{
+  "propertyJourney": {
+    "eyebrow": "SOFORTHILFE",
+    "intro": "Wir prüfen zuerst die Sicherheit. Dann helfen wir Ihnen, die Fakten zu sichern und einen möglichen Ansprechpartner zu finden, ohne über Schuld oder Deckung zu entscheiden.",
+    "privacy": "Ihre Antworten werden nur verwendet, um Sie auf dieser Seite zu leiten. Sie werden weder gespeichert noch gesendet.",
+    "title": "Besteht noch eine akute Gefahr, oder sind Sie unsicher, ob das Objekt sicher genutzt werden kann?",
+    "changeAnswer": "Antwort ändern",
+    "safety": {
+      "yes": "Ja",
+      "no": "Nein",
+      "unsure": "Ich bin mir nicht sicher"
+    },
+    "danger": {
+      "title": "Bringen Sie sich in Sicherheit, bevor Sie fortfahren.",
+      "body": "Betreten Sie das Objekt nicht erneut und stellen Sie Gas, Strom oder Wasser erst wieder her, wenn örtliche Dienste oder qualifizierte Fachleute sagen, dass es sicher ist.",
+      "emergency": "Kontaktieren Sie den zuständigen örtlichen Notdienst, Versorger oder Sicherheitsdienst. In der EU können Sie kostenlos die 112 anrufen."
+    },
+    "damage": {
+      "title": "Welche Art von Schaden ist entstanden?",
+      "hint": "Wählen Sie die passendste Beschreibung; Sie müssen die Ursache nicht kennen.",
+      "water": "Wasser, Leck oder Überschwemmung",
+      "fire": "Feuer oder Rauch",
+      "storm": "Sturm oder Naturereignis",
+      "theft": "Diebstahl, versuchter Diebstahl oder Vandalismus",
+      "product": "Produkt, Haushaltsgerät oder Ausrüstung",
+      "other": "Anderer Schaden",
+      "unsure": "Ich bin mir nicht sicher"
+    },
+    "thirdParty": {
+      "title": "Ist ein Nachbar, Mieter oder eine andere Person beteiligt?",
+      "hint": "Dies hilft uns nur, vorzuschlagen, was Sie sichern sollten. Es entscheidet nicht über Schuld oder Haftung.",
+      "yes": "Ja",
+      "no": "Nein",
+      "unsure": "Ich bin mir nicht sicher"
+    },
+    "role": {
+      "title": "In welcher Beziehung stehen Sie zu dem Objekt?",
+      "owner": "Eigentümer",
+      "tenant": "Mieter",
+      "business": "Gewerblicher Nutzer",
+      "acting": "Ich handle mit Vollmacht für eine andere Person",
+      "unsure": "Ich bin mir nicht sicher"
+    },
+    "countries": {
+      "placeholder": "Land auswählen",
+      "continue": "Weiter",
+      "propertyTitle": "In welchem Land befindet sich das Objekt?",
+      "propertyHint": "Wählen Sie es selbst; wir leiten es nicht aus Sprache, Wohnsitz oder Standort ab.",
+      "propertyLabel": "Land, in dem sich das Objekt befindet",
+      "residenceTitle": "In welchem Land leben Sie üblicherweise?",
+      "residenceHint": "Dies kann ein anderes Land sein als das, in dem sich das Objekt befindet.",
+      "residenceLabel": "Land des gewöhnlichen Aufenthalts",
+      "options": {
+        "XK": "Kosovo",
+        "AL": "Albanien",
+        "MK": "Nordmazedonien",
+        "DE": "Deutschland",
+        "IT": "Italien",
+        "AT": "Österreich",
+        "CH": "Schweiz",
+        "RS": "Serbien",
+        "ME": "Montenegro",
+        "HR": "Kroatien",
+        "SI": "Slowenien",
+        "OTHER": "Ein anderes Land",
+        "UNKNOWN": "Ich bin mir nicht sicher"
+      }
+    },
+    "evidence": {
+      "title": "Schützen Sie Menschen und sichern Sie die Fakten zum Schaden.",
+      "body": "Unternehmen Sie nur sichere Schritte. Verzögern Sie keine dringenden Arbeiten und bewahren Sie gefährliche Gegenstände nicht nur als Beweis auf. Dies entscheidet nicht über Deckung, Schuld, Reparaturweg oder Entschädigung.",
+      "items": {
+        "safePhotos": "Fotos oder Videos betroffener Bereiche und Gegenstände nur, wenn es sicher ist.",
+        "inventory": "Eine Liste beschädigter oder gestohlener Gegenstände mit Datum, Seriennummern und relevanten Nachrichten.",
+        "receipts": "Belege, Kostenvoranschläge und Kosten für Notmaßnahmen oder vorübergehende Unterkunft. Halten Sie vorübergehende Arbeiten zur Schadensbegrenzung von der dauerhaften Reparatur getrennt."
+      },
+      "type": {
+        "water": "Kontaktieren Sie bei Bedarf einen Versorger oder qualifizierten Dienst; berühren Sie kein verunreinigtes Wasser und keine unsicheren Installationen.",
+        "fire": "Betreten Sie den Bereich erst wieder, wenn örtliche Dienste oder qualifizierte Fachleute sagen, dass er sicher ist.",
+        "storm": "Begrenzen Sie weitere Schäden nur, wenn es sicher ist, und bewahren Sie Belege für vorübergehende Maßnahmen auf.",
+        "theft": "Die Polizei kann ein geeigneter Ansprechpartner sein; bewahren Sie die Aktennummer auf, falls Sie eine erhalten.",
+        "product": "Verwenden Sie den Gegenstand nicht weiter, wenn er unsicher sein könnte. Bewahren Sie ihn nur auf, wenn es sicher ist, und kontaktieren Sie gegebenenfalls Verkäufer, Hersteller, Versorger oder einen qualifizierten Dienst.",
+        "other": "Halten Sie Datum, Ort und die Fakten fest, die Sie bereits kennen, und holen Sie bei Bedarf eine fachliche Beurteilung ein.",
+        "unsure": "Holen Sie eine fachliche Begutachtung oder Beratung ein, wenn Art oder Sicherheit des Schadens unklar sind."
+      },
+      "thirdParty": "Sichern Sie Nachrichten und Kontaktdaten, ohne Schuld anzuerkennen oder zuzuweisen.",
+      "role": {
+        "owner": "Benachrichtigen Sie gegebenenfalls den Versicherer oder die Hausverwaltung.",
+        "tenant": "Benachrichtigen Sie gegebenenfalls den Eigentümer oder die Hausverwaltung und den Versicherer.",
+        "business": "Benachrichtigen Sie gegebenenfalls die für die Räumlichkeiten verantwortliche Person und den Versicherer.",
+        "acting": "Versicherer, Eigentümer oder Verwaltung und Polizei sind mögliche parallele Ansprechpartner. Diese Seite weist keine Vollmacht nach.",
+        "unsure": "Versicherer, Eigentümer oder Verwaltung und Polizei sind mögliche parallele Ansprechpartner; wählen Sie je nach Situation."
+      },
+      "diasporaTitle": "Befindet sich das Objekt außerhalb des Landes, in dem Sie leben?",
+      "diasporaBody": "Länder-, Policen- und Vertragsregeln müssen separat geprüft werden. Wir nehmen nicht an, warum sich die Länder unterscheiden, und ziehen keine rechtliche Schlussfolgerung.",
+      "handoff": "Jetzt beginnt eine neue Free-Start-Aufnahme. Keine dieser Orientierungsantworten wird übernommen; Sie entscheiden, was Sie einreichen.",
+      "continue": "Meine Schadensinformationen ordnen"
+    }
+  }
+}

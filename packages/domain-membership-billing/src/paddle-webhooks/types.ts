@@ -66,7 +66,7 @@ export type PrepareThankYouLetter = (params: {
   expiresAt: Date;
   providerReference: string;
   tenantId: string;
-  locale: 'en' | 'sq' | 'mk' | 'sr';
+  locale: 'en' | 'sq' | 'mk' | 'sr' | 'de';
 }) => PreparedMembershipConfirmationEmail;
 
 export type SendThankYouLetter = (params: {
@@ -88,7 +88,7 @@ export type MembershipConfirmationSnapshot = {
   planInterval: string;
   memberSince: string;
   expiresAt: string;
-  locale: 'en' | 'sq' | 'mk' | 'sr';
+  locale: 'en' | 'sq' | 'mk' | 'sr' | 'de';
   tenantId: string;
   userId: string;
   subscriptionId: string;

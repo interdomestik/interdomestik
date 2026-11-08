@@ -68,9 +68,10 @@ const STRUCTURED_OWNERS = [
     'interdomestik-three-agent-trial-contract',
   ],
   [
-    /^apps\/web\/src\/features\/help-now\/copy-(?:en|sq|mk|sr)\.json$/u,
+    /^apps\/web\/src\/features\/help-now\/copy-(?:en|sq|mk|sr|de)\.json$/u,
     's7-helpnow-localized-copy-contract',
   ],
+  [/^apps\/web\/src\/messages\/de\/[^/]+\.json$/u, 'de-locale-catalog-contract'],
 ];
 const LOCALE_CATALOG_OWNERS = new Map([
   ['admin-users.json', 's7-admin-user-read-recovery-i18n-contract'],
@@ -125,7 +126,7 @@ export function isExplicitModularityException(filePath) {
 }
 export function structuredArtifactOwner(filePath) {
   const relPath = toPolicyPath(filePath);
-  const match = /^apps\/web\/src\/messages\/(?:en|mk|sq|sr)\/([^/]+\.json)$/u.exec(relPath);
+  const match = /^apps\/web\/src\/messages\/(?:de|en|mk|sq|sr)\/([^/]+\.json)$/u.exec(relPath);
   const localeOwner = LOCALE_CATALOG_OWNERS.get(match?.[1]);
   if (localeOwner) return localeOwner;
   return STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1] ?? null;

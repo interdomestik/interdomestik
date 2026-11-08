@@ -46,7 +46,7 @@ test('collectI18nFailures reports Serbian orthography regressions with preferred
 
   const failures = collectI18nFailures({
     root,
-    locales: ['en', 'sq', 'mk', 'sr'],
+    locales: ['en', 'sq', 'mk', 'sr', 'de'],
     baseLocale: 'en',
   });
 

@@ -1,0 +1,212 @@
+{
+  "admin": {
+    "branches": {
+      "title": "Filialverwaltung",
+      "description": "Verwalten Sie die Filialen Ihrer Organisation.",
+      "listTitle": "Filialen",
+      "createButton": "Neue Filiale",
+      "createTitle": "Neue Filiale anlegen",
+      "createDescription": "Fügen Sie Ihrer Organisation eine neue Filiale hinzu.",
+      "editTitle": "Filiale bearbeiten",
+      "editDescription": "Filialdaten aktualisieren.",
+      "createSuccess": "Filiale erfolgreich angelegt.",
+      "createError": "Filiale konnte nicht angelegt werden.",
+      "updateSuccess": "Filiale erfolgreich aktualisiert.",
+      "updateError": "Filiale konnte nicht aktualisiert werden.",
+      "deleteSuccess": "Filiale erfolgreich gelöscht.",
+      "deleteError": "Filiale konnte nicht gelöscht werden.",
+      "fields": {
+        "name": "Name der Filiale",
+        "code": "Filialcode",
+        "slug": "Slug",
+        "status": "Status",
+        "isActive": "Aktivstatus"
+      },
+      "status": {
+        "active": "Aktiv",
+        "inactive": "Inaktiv"
+      },
+      "actions": {
+        "label": "Aktionen",
+        "edit": "Bearbeiten",
+        "delete": "Löschen",
+        "open": "Menü öffnen",
+        "showInactive": "Inaktive anzeigen"
+      },
+      "deleteTitle": "Sind Sie sicher?",
+      "deleteConfirm": "Damit wird die Filiale {name} vorläufig gelöscht. Aktive Mitglieder können betroffen sein.",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "saving": "Wird gespeichert...",
+      "deleting": "Wird gelöscht...",
+      "noResults": "Keine Filialen gefunden.",
+      "no_branches": "Keine Filialen gefunden.",
+      "no_branches_subtitle": "Passen Sie Ihre Filter an oder legen Sie eine neue Filiale an.",
+      "status_active": "Aktiv",
+      "status_inactive": "Inaktiv",
+      "active_operations": "Voll betriebsbereit",
+      "inactive_branch": "Betrieb ausgesetzt",
+      "list_title": "Filialliste",
+      "list_description": "Derzeit sind {count} Filialen registriert.",
+      "table_name": "Name der Filiale",
+      "table_code": "Code",
+      "table_status": "Status",
+      "table_kpis": "KPIs",
+      "table_open_claims": "Offene Schadensfälle",
+      "table_cash_pending": "Ausstehende Barzahlungen",
+      "table_sla_breaches": "SLA-Verstöße",
+      "table_actions": "Aktionen",
+      "view_dashboard": "Dashboard ansehen",
+      "search_placeholder": "Filialen suchen...",
+      "filter_status": "Status",
+      "filter_all": "Alle Status",
+      "filter_attention": "Erfordert Aufmerksamkeit",
+      "sort_label": "Sortieren nach",
+      "sort_name_asc": "Name (A–Z)",
+      "sort_open_claims_desc": "Offene Schadensfälle (absteigend)",
+      "sort_cash_pending_desc": "Ausstehende Barzahlungen (absteigend)",
+      "sort_sla_breaches_desc": "SLA-Verstöße (absteigend)",
+      "sort_health_score_asc": "Zustand (schlechteste zuerst)",
+      "dashboard": {
+        "back_to_branches": "Zurück zu den Filialen",
+        "status_active": "Aktiv",
+        "status_inactive": "Inaktiv",
+        "code_label": "Code",
+        "stats_agents": "Agenten",
+        "stats_members": "Mitglieder",
+        "stats_total_claims": "Schadensfälle gesamt",
+        "stats_claims_this_month": "Diesen Monat",
+        "stats_open_claims": "Offene Schadensfälle",
+        "stats_cash_pending": "Ausstehende Barzahlungen",
+        "stats_sla_breaches": "SLA-Verstöße",
+        "agents_title": "Agenten",
+        "agents_description": "{count, plural, =0 {Keine Agenten} =1 {1 Agent} other {# Agenten}} in dieser Filiale",
+        "no_agents": "Noch keine Agenten in dieser Filiale.",
+        "col_rank": "Rang",
+        "col_agent_name": "Agent",
+        "col_members": "Mitglieder",
+        "col_active_claims": "Aktiv",
+        "col_submitted_30d": "Eingereicht (30 T.)",
+        "unknown_agent": "Unbekannt"
+      },
+      "create_branch": "Neue Filiale",
+      "create_branch_title": "Neue Filiale anlegen",
+      "create_branch_description": "Fügen Sie Ihrer Organisation eine neue Filiale hinzu.",
+      "field_name": "Name der Filiale",
+      "placeholder_name": "z. B. Hauptfiliale",
+      "field_code": "Filialcode",
+      "placeholder_code": "z. B. BR-001",
+      "submit": "Anlegen",
+      "create_error": "Anlegen fehlgeschlagen",
+      "create_success": "Filiale angelegt",
+      "create_success_description": "Filiale {name} erfolgreich angelegt.",
+      "unexpected_error": "Ein unerwarteter Fehler ist aufgetreten.",
+      "health_score": "Zustand {score}/100",
+      "back_to_branches": "Zurück zu den Filialen",
+      "filters": {
+        "needs_attention": "Erfordert Aufmerksamkeit"
+      },
+      "sort": {
+        "name_asc": "Name (A–Z)",
+        "open_claims_desc": "Offene Schadensfälle",
+        "cash_pending_desc": "Ausstehende Barzahlungen",
+        "sla_breaches_desc": "SLA-Verstöße",
+        "health_score_asc": "Zustand (schlechteste zuerst)"
+      },
+      "kpis": {
+        "open_claims": "Offene Schadensfälle",
+        "cash_pending": "Ausstehende Barzahlungen",
+        "sla_breaches": "SLA-Verstöße",
+        "total_agents": "Agenten gesamt",
+        "total_members": "Mitglieder gesamt"
+      },
+      "view_dashboard_subtitle": "Betriebs- und Risikoübersicht",
+      "health_status_healthy": "Gesund",
+      "health_status_attention": "Erfordert Aufmerksamkeit",
+      "health_status_urgent": "Dringend",
+      "health_status_inactive": "Inaktiv",
+      "alerts": {
+        "title": "Betriebliche Warnungen",
+        "no_alerts": "Keine kritischen Warnungen",
+        "sla_breach_title": "Risiko eines SLA-Verstoßes",
+        "sla_breach_desc": "{count} Schadensfälle haben die SLA-Frist überschritten",
+        "cash_pending_title": "Barzahlungen warten auf Freigabe",
+        "cash_pending_desc": "{count} Zahlungen warten auf Verifizierung"
+      },
+      "pipeline": {
+        "title": "Pipeline der Schadensfälle",
+        "empty": "Keine aktiven Schadensfälle in der Pipeline",
+        "statuses": {
+          "submitted": "Eingereicht",
+          "verification": "Verifizierung",
+          "evaluation": "Bewertung",
+          "negotiation": "Verhandlung",
+          "court": "Gericht",
+          "resolved": "Gelöst"
+        }
+      },
+      "agent_health": {
+        "title": "Zustand der Agenten",
+        "agent": "Agent",
+        "score": "Punktzahl",
+        "open": "Offen",
+        "cash": "Bar",
+        "sla": "SLA",
+        "table_status": "Status",
+        "status": {
+          "healthy": "Gesund",
+          "attention": "Erfordert Aufmerksamkeit",
+          "urgent": "Dringend",
+          "inactive": "Inaktiv"
+        },
+        "no_agents": "Keine Agenten gefunden"
+      },
+      "staff_load": {
+        "title": "Auslastung des Teams",
+        "name": "Mitarbeiter/in",
+        "workload": "Aktive Schadensfälle",
+        "no_staff": "Keine Zuweisungen an Mitarbeitende gefunden"
+      },
+      "health": {
+        "healthy": "Gesund",
+        "watch": "Erfordert Aufmerksamkeit",
+        "urgent": "Dringend",
+        "inactive": "Inaktiv",
+        "tooltip": {
+          "healthy": {
+            "title": "Der Betrieb ist unter Kontrolle.",
+            "action": "Keine Aktion erforderlich.",
+            "bullets": [
+              "Keine kritischen Verzögerungen",
+              "Zahlungen laufen normal",
+              "Schadensfälle kommen fristgerecht voran"
+            ]
+          },
+          "attention": {
+            "title": "Einige Punkte müssen beobachtet werden.",
+            "action": "Offene Punkte prüfen.",
+            "bullets": [
+              "Einige Schadensfälle oder Zahlungen müssen nachverfolgt werden",
+              "Kleinere Verzögerungen festgestellt",
+              "Das Risiko ist beherrschbar, wenn es früh angegangen wird"
+            ]
+          },
+          "urgent": {
+            "title": "Sofortiges Handeln erforderlich.",
+            "action": "Heute untersuchen und lösen.",
+            "bullets": [
+              "Schadensfälle sind über das akzeptable Maß hinaus verzögert",
+              "Zahlungen warten auf Verifizierung",
+              "Das betriebliche Risiko ist hoch"
+            ]
+          },
+          "inactive": {
+            "title": "Die Filiale ist derzeit nicht in Betrieb.",
+            "action": "Filialstatus prüfen.",
+            "bullets": ["Keine aktiven Schadensfälle oder Aktivitäten festgestellt"]
+          }
+        }
+      }
+    }
+  }
+}

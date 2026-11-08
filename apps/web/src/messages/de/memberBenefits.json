@@ -1,0 +1,38 @@
+{
+  "memberBenefits": {
+    "title": "Vorteile der Mitgliedschaft",
+    "subtitle": "Was Sie als Mitglied unseres Schutzclubs erhalten",
+    "hotline": {
+      "title": "24/7-Notfall-Hotline",
+      "description": "Rufen Sie jederzeit an, Tag und Nacht. Unsere Experten sind immer bereit.",
+      "highlight": "Ohne Wartezeit"
+    },
+    "voiceClaim": {
+      "title": "Schadensmeldung per Sprache",
+      "description": "Melden Sie Ihren Schadensfall in 60 Sekunden per Telefon. Keine Formulare, kein Stress.",
+      "highlight": "60 Sekunden"
+    },
+    "legalConsult": {
+      "title": "Rechtsberatungen",
+      "description": "Unbegrenzte Beratungen mit Rechtsexperten zu jedem Anliegen.",
+      "highlight": "Unbegrenzt"
+    },
+    "calculator": {
+      "title": "Schadensrechner",
+      "description": "Berechnen Sie den Wert Ihres Schadens sofort mit unseren Tools.",
+      "highlight": "Kostenlos"
+    },
+    "partnerDiscounts": {
+      "title": "Partnerrabatte",
+      "description": "10–20 % Rabatt bei Autowerkstätten, Kliniken und Kanzleien.",
+      "highlight": "Bis zu 20 %"
+    },
+    "guides": {
+      "title": "Expertenleitfäden",
+      "description": "Checklisten und Leitfäden für jede Art von Unfall und Situation.",
+      "highlight": "Sofort einsetzbar"
+    },
+    "mainHeading1": "Schutz, der",
+    "mainHeading2": "nur Ihnen gehört."
+  }
+}

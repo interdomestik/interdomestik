@@ -10,7 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: route === '' ? 1 : 0.8,
   }));
 
-  const locales = ['en', 'sq', 'sr', 'mk'];
+  const locales = ['en', 'sq', 'sr', 'mk', 'de'];
   const localedRoutes = locales.flatMap(locale =>
     routes.map(route => ({
       ...route,

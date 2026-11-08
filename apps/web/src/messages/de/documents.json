@@ -1,0 +1,21 @@
+{
+  "documents": {
+    "title": "Dokumente",
+    "subtitle": "Alle Dokumente zu Ihren Schadensfällen.",
+    "empty": "Noch keine Dokumente hochgeladen.",
+    "filesCount": "Dateien: {count}",
+    "uploadEvidence": "Nachweise hochladen",
+    "createClaim": "Schadensfall anlegen",
+    "viewClaim": "Schadensfall ansehen",
+    "claimFallback": "Schadensfall",
+    "emptyList": "Keine Dokumente angehängt.",
+    "actions": {
+      "view": "Ansehen",
+      "download": "Herunterladen"
+    },
+    "errors": {
+      "view": "Dokument konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
+      "download": "Dokument konnte nicht heruntergeladen werden. Bitte versuchen Sie es erneut."
+    }
+  }
+}

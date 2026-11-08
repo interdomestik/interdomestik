@@ -1,0 +1,77 @@
+{
+  "accidentJourney": {
+    "eyebrow": "SOFORTHILFE",
+    "intro": "Zuerst stellen wir sicher, dass alle in Sicherheit sind. Dann zeigen wir Ihnen, was Sie sichern sollten, und den klarsten nächsten Schritt.",
+    "privacy": "Ihre Antworten werden nur verwendet, um Sie auf dieser Seite zu leiten. Sie werden weder gespeichert noch gesendet.",
+    "title": "Ist jemand verletzt?",
+    "changeAnswer": "Antwort ändern",
+    "injury": {
+      "yes": "Ja, jemand ist verletzt",
+      "materialOnly": "Nein, nur Sachschaden",
+      "unsure": "Ich bin mir nicht sicher"
+    },
+    "injured": {
+      "title": "Sicherheit geht vor.",
+      "body": "Entfernen Sie sich nur dann aus der unmittelbaren Gefahr, wenn es sicher ist. Dokumentieren Sie erst weiter, wenn die Lage unter Kontrolle ist.",
+      "emergency": "Kontaktieren Sie den örtlichen Notruf und folgen Sie den Anweisungen der Leitstelle."
+    },
+    "unsure": {
+      "title": "Behandeln Sie dies als mögliche Verletzung.",
+      "body": "Fahren Sie nicht mit dem Weg für Sachschäden fort, bis die Lage klar ist.",
+      "emergency": "Lassen Sie die Situation sofort professionell oder durch den Notdienst beurteilen."
+    },
+    "vehicleSafety": {
+      "title": "Kann das Fahrzeug sicher bewegt werden?",
+      "hint": "Wenn Sie Bedenken bei Rädern, Lenkung oder Bremsen haben, bewegen Sie es nicht.",
+      "yes": "Ja, es kann sicher bewegt werden",
+      "no": "Nein, es kann nicht bewegt werden",
+      "unsure": "Ich bin mir beim Fahrzeug nicht sicher"
+    },
+    "unsafeVehicle": {
+      "title": "Bewegen Sie das Fahrzeug nicht.",
+      "body": "Halten Sie Abstand zum Verkehr und verwenden Sie Warnsignale nur, wenn Sie dies sicher tun können.",
+      "emergency": "Fordern Sie örtliche Pannenhilfe an oder kontaktieren Sie den Notruf."
+    },
+    "countries": {
+      "placeholder": "Land auswählen",
+      "continue": "Weiter",
+      "incidentTitle": "In welchem Land ist der Unfall passiert?",
+      "incidentHint": "Sie bestätigen dies selbst; wir leiten es nicht aus Sprache, Wohnsitz oder Standort ab.",
+      "incidentLabel": "Land, in dem der Unfall passiert ist",
+      "registrationTitle": "Wo ist Ihr Fahrzeug zugelassen?",
+      "registrationHint": "Dies kann ein anderes Land sein als das, in dem der Unfall passiert ist.",
+      "registrationLabel": "Zulassungsland des Fahrzeugs",
+      "counterpartyTitle": "Aus welchem Land stammt der Versicherer oder das andere Fahrzeug?",
+      "counterpartyHint": "Wenn Sie es nicht wissen, wählen Sie „Ich bin mir nicht sicher“.",
+      "counterpartyLabel": "Land des Versicherers oder der Gegenpartei",
+      "options": {
+        "XK": "Kosovo",
+        "AL": "Albanien",
+        "MK": "Nordmazedonien",
+        "DE": "Deutschland",
+        "IT": "Italien",
+        "AT": "Österreich",
+        "CH": "Schweiz",
+        "RS": "Serbien",
+        "ME": "Montenegro",
+        "HR": "Kroatien",
+        "SI": "Slowenien",
+        "OTHER": "Ein anderes Land",
+        "UNKNOWN": "Ich bin mir nicht sicher"
+      }
+    },
+    "evidence": {
+      "title": "Sichern Sie die wichtigen Fakten.",
+      "body": "Wenn der Unfallort sicher ist, sammeln Sie Nachweise, ohne sich selbst zu gefährden. Dies sind allgemeine Schritte; das rechtliche Verfahren kann je nach Land abweichen.",
+      "items": {
+        "scene": "Fotos vom Unfallort, den Fahrzeugen, den Schäden und den Kennzeichen.",
+        "insurance": "Versicherungs- oder Grüne-Karte-Daten der Beteiligten.",
+        "context": "Datum, Uhrzeit, Ort und Angaben zu Zeugen.",
+        "reference": "Eine Polizei- oder EAS-Referenz nur, wenn zutreffend und vorhanden."
+      },
+      "diasporaTitle": "Nicht zu Hause? Wir sind bei Ihnen.",
+      "diasporaBody": "Unfallland, Fahrzeugzulassung und Gegenpartei bleiben getrennt, damit Ihr Weg klar bleibt.",
+      "continue": "Meine Fallinformationen ordnen"
+    }
+  }
+}

@@ -1,4 +1,4 @@
-const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+const LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 
 export type SupportHandoffActionLocale = (typeof LOCALES)[number];
 

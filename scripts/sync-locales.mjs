@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const LOCALES_DIR = path.resolve(__dirname, '../apps/web/src/messages');
-const LOCALES = ['sq', 'en', 'sr', 'mk'];
+const LOCALES = ['sq', 'en', 'sr', 'mk', 'de'];
 const CANONICAL_LOCALE = 'sq'; // User has been updating sq.json most recently
 
 function readJsonResult(locale, namespaceFile) {

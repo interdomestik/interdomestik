@@ -1,0 +1,107 @@
+{
+  "admin": {
+    "overview_page": {
+      "title": "Admin-Übersicht",
+      "description": "Systemzustand, Fallvolumen und Filialauslastung im gesamten Admin-Bereich überwachen.",
+      "kpis_total_members": "Mitglieder gesamt",
+      "kpis_total_agents": "Agenten gesamt",
+      "kpis_total_active_claims": "Aktive Schadensfälle gesamt",
+      "kpis_claims_updated_24h": "Aktualisierte Schadensfälle (24 Std.)",
+      "claims_by_stage": "Schadensfälle nach Phase",
+      "claims_by_branch": "Schadensfälle nach Filiale",
+      "no_active_claims": "Keine aktiven Schadensfälle",
+      "no_branch_accumulation": "Noch keine Filialaktivität"
+    },
+    "dashboard": {
+      "title": "Admin-Dashboard",
+      "recent_activity": "Letzte Aktivitäten",
+      "unassigned_claims": "Nicht zugewiesene Schadensfälle",
+      "quick_actions": "Schnellaktionen",
+      "view_all": "Alle ansehen",
+      "no_recent_activity": "Keine aktuellen Aktivitäten gefunden",
+      "no_unassigned_claims": "Alle Schadensfälle wurden zugewiesen",
+      "create_user": "Benutzer anlegen",
+      "invite_agent": "Agent einladen",
+      "assign": "Zuweisen",
+      "timeline": "Zeitachse",
+      "status_label": "Status",
+      "no_messages": "Noch kein Interaktionsverlauf.",
+      "message_placeholder": "Nachricht oder interne Notiz eingeben...",
+      "internal_note": "Interne Notiz",
+      "send_message": "Nachricht senden",
+      "view_details": "Details ansehen"
+    },
+    "dashboard_v2": {
+      "header": {
+        "title": "Betriebsübersicht",
+        "new_branch": "Neue Filiale",
+        "agents": "Agenten",
+        "verify_leads": "Leads verifizieren"
+      },
+      "footer": {
+        "data_freshness": "Datenaktualität: Echtzeit"
+      },
+      "kpis": {
+        "branches": "Filialen gesamt",
+        "agents": "Aktive Agenten",
+        "members": "Mitglieder gesamt",
+        "open_claims": "Offene Schadensfälle",
+        "cash_pending": "Ausstehende Barzahlungen",
+        "sla_breaches": "SLA-Verstöße"
+      },
+      "branches": {
+        "title": "Zustand der Filialen",
+        "active": "Aktiv",
+        "active_users": "Aktive Benutzer",
+        "no_branches": "Keine Filialen gefunden."
+      },
+      "alerts": {
+        "title": "Betriebliche Warnungen",
+        "subtitle": "Kritische Systemmeldungen, die Aufmerksamkeit erfordern.",
+        "all_clear": "Alle Systeme funktionieren."
+      },
+      "panels": {
+        "claims_pipeline": "Pipeline der Schadensfälle",
+        "unassigned": "Nicht zugewiesen",
+        "in_progress": "In Bearbeitung",
+        "in_review": "In Prüfung",
+        "approved": "Genehmigt",
+        "rejected": "Abgelehnt",
+        "leads": "Leads & Konversion",
+        "conversion_rate": "Quote",
+        "recent_activity": "Letzte Aktivitäten",
+        "no_recent_leads": "Keine aktuellen Leads",
+        "total": "Leads gesamt",
+        "top_performers": "Spitzenreiter",
+        "no_agent_data": "Keine Agentendaten verfügbar",
+        "agent": "Agent",
+        "sales": "Verkäufe",
+        "lead_status": {
+          "new": "Neu",
+          "payment_pending": "Zahlung ausstehend",
+          "converted": "Konvertiert",
+          "disqualified": "Disqualifiziert",
+          "expired": "Abgelaufen"
+        }
+      }
+    },
+    "dashboardOverview": {
+      "title": "Admin-Übersicht",
+      "description": "Systemzustand und betriebliche Auslastung.",
+      "kpis": {
+        "members": "Mitglieder gesamt",
+        "agents": "Agenten gesamt",
+        "activeClaims": "Aktive Schadensfälle gesamt",
+        "updated24h": "Aktualisierte Schadensfälle (24 Std.)"
+      },
+      "sections": {
+        "byStage": "Schadensfälle nach Phase",
+        "byBranch": "Schadensfälle nach Filiale"
+      },
+      "empty": {
+        "noActiveClaims": "Keine aktiven Schadensfälle",
+        "noBranchAccumulation": "Keine Filialauslastung"
+      }
+    }
+  }
+}

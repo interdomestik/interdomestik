@@ -1,4 +1,4 @@
-export type ConfirmationLocale = 'en' | 'sq' | 'mk' | 'sr';
+export type ConfirmationLocale = 'en' | 'sq' | 'mk' | 'sr' | 'de';
 
 export function isConfirmationLocale(value: unknown): value is ConfirmationLocale {
   return value === 'en' || value === 'sq' || value === 'mk' || value === 'sr';

@@ -39,7 +39,7 @@ function getSafeReturnTo(formData: FormData) {
 
 function getAcknowledgementLocale(formData: FormData): SupportHandoffActionLocale {
   const locale = getString(formData, 'locale');
-  return locale === 'en' || locale === 'sr' || locale === 'mk' ? locale : 'sq';
+  return locale === 'en' || locale === 'sr' || locale === 'mk' || locale === 'de' ? locale : 'sq';
 }
 
 async function formatAcknowledgedAt(value: string, locale: SupportHandoffActionLocale) {

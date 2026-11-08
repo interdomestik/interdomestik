@@ -1,0 +1,80 @@
+{
+  "help": {
+    "title": "Hilfe & Support",
+    "description": "Brauchen Sie Unterstützung bei Ihrem Schadensfall oder haben Sie Fragen zu unseren Leistungen? Wenden Sie sich an unser Team.",
+    "contact": {
+      "title": "Support kontaktieren",
+      "description": "Unser Team ist Montag bis Freitag von 9:00 bis 17:00 Uhr erreichbar.",
+      "callUs": "Anrufen",
+      "emailUs": "E-Mail schreiben",
+      "whatsapp": "WhatsApp",
+      "chatWithUs": "Mit uns chatten"
+    },
+    "request": {
+      "title": "Das Team um Hilfe bitten",
+      "description": "Senden Sie eine Supportanfrage an die Eingangswarteschlange des Teams. Wir fügen Ihren Mitgliedskontext und optional einen Link zum Schadensfall serverseitig hinzu.",
+      "subject": "Wobei brauchen Sie Hilfe?",
+      "message": "Details",
+      "contactPreference": "Bevorzugter Kontaktweg",
+      "claim": "Zugehöriger Schadensfall",
+      "noClaim": "Kein zugehöriger Schadensfall",
+      "claimContextTitle": "Zugehöriger Schadensfall",
+      "claimContextStatus": "Status: {status}",
+      "submit": "Supportanfrage senden",
+      "created": "Ihre Anfrage wurde an die Support-Warteschlange des Teams gesendet.",
+      "error": "Wir konnten die Anfrage nicht senden. Versuchen Sie es erneut mit einem kurzen Betreff und ausreichend Details.",
+      "contact": {
+        "staff_reply": "Antwort des Teams",
+        "phone": "Telefon",
+        "email": "E-Mail",
+        "whatsapp": "WhatsApp"
+      }
+    },
+    "publicResponse": {
+      "title": "Aktualisierung des Teams",
+      "updatedAt": "Aktualisiert am {date}",
+      "acknowledge": "Aktualisierung bestätigen",
+      "acknowledging": "Wird bestätigt...",
+      "acknowledgedAt": "Bestätigt am {date}",
+      "acknowledgementError": "Wir konnten diese Aktualisierung nicht bestätigen. Versuchen Sie es erneut.",
+      "acknowledgementStale": "Das Support-Team hat diese Antwort gerade aktualisiert. Bitte prüfen Sie die neueste Aktualisierung."
+    },
+    "memberReply": {
+      "label": "Dem Team antworten",
+      "placeholder": "Teilen Sie dem Team mit, ob dies Ihre Anfrage löst oder was Sie noch brauchen...",
+      "submit": "Antwort senden",
+      "submitting": "Wird gesendet...",
+      "sent": "Antwort gesendet",
+      "error": "Wir konnten Ihre Antwort nicht senden. Versuchen Sie es erneut.",
+      "stale": "Diese Support-Aktualisierung hat sich geändert. Bitte prüfen Sie die neueste Aktualisierung, bevor Sie antworten.",
+      "alreadyReplied": "Sie haben auf diese Aktualisierung bereits geantwortet.",
+      "required": "Eine Antwort ist erforderlich.",
+      "tooLong": "Die Antwort darf höchstens 1.000 Zeichen lang sein."
+    },
+    "advisory": {
+      "claimSpecific": "Sie haben für diesen Schadensfall bereits eine aktive Supportanfrage. Sie können trotzdem eine neue senden.",
+      "claimSpecificMeta": "Status: {status} · Gesendet am {date}",
+      "genericActive": "Sie haben {count, plural, one {# aktive Supportanfrage} other {# aktive Supportanfragen}}. Sie können trotzdem eine neue senden.",
+      "status": {
+        "accepted": "angenommen",
+        "open": "offen"
+      }
+    },
+    "faq": {
+      "title": "Häufige Fragen",
+      "q1": {
+        "question": "Wie lange dauert ein Schadensfall?",
+        "answer": "In der Regel 2–4 Wochen für die Erstbewertung."
+      },
+      "q2": {
+        "question": "Welche Dokumente brauche ich?",
+        "answer": "Kaufnachweis, Fotos des Schadens und Unfallbericht."
+      }
+    },
+    "legal": {
+      "title": "Rechtliche Informationen",
+      "consumerRights": "Leitfaden zu Verbraucherrechten",
+      "consumerRightsDesc": "Erfahren Sie mehr über Ihre Rechte nach den geltenden Verbraucherschutzgesetzen."
+    }
+  }
+}

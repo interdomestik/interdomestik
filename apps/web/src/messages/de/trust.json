@@ -1,0 +1,18 @@
+{
+  "trust": {
+    "activeMembers": "Aktive Mitglieder",
+    "activeMembersValue": "8.500+",
+    "memberSavings": "Ersparnisse der Mitglieder",
+    "memberSavingsValue": "150.000 €+",
+    "successRate": "Erfolgsquote",
+    "successRateValue": "94 %",
+    "hotlineResponse": "Hotline-Reaktion",
+    "hotlineResponseValue": "<60 Sek.",
+    "trustCuesLabel": "Vertrauensmerkmale rund um den Schadensfall",
+    "trustCues": [
+      "Fahrzeug • Eigentum • Verletzung",
+      "Support per Telefon + WhatsApp",
+      "Support auf Albanisch / Englisch"
+    ]
+  }
+}

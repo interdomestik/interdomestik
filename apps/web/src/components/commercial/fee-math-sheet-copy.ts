@@ -1,3 +1,4 @@
+import { DE_FEE_MATH_SHEET_COPY } from './fee-math-sheet-copy-de';
 import { EN_FEE_MATH_SHEET_COPY } from './fee-math-sheet-copy-en';
 import { MK_FEE_MATH_SHEET_COPY } from './fee-math-sheet-copy-mk';
 import { SQ_FEE_MATH_SHEET_COPY } from './fee-math-sheet-copy-sq';
@@ -39,6 +40,7 @@ const NET_AMOUNT_LABELS = {
   mk: 'Вие добивате пред судски трошоци',
   sq: 'Ju merrni para kostove gjyqësore',
   sr: 'Vi dobijate pre sudskih troškova',
+  de: 'Sie erhalten vor Gerichtskosten',
 } as const;
 
 function resolveFeeMathLocale(locale: string): keyof typeof NET_AMOUNT_LABELS {
@@ -46,6 +48,7 @@ function resolveFeeMathLocale(locale: string): keyof typeof NET_AMOUNT_LABELS {
   if (normalized.startsWith('mk')) return 'mk';
   if (normalized.startsWith('sq')) return 'sq';
   if (normalized.startsWith('sr')) return 'sr';
+  if (normalized.startsWith('de')) return 'de';
   return 'en';
 }
 
@@ -57,6 +60,8 @@ export function getFeeMathSheetCopy(locale: string): FeeMathSheetCopy {
       return SQ_FEE_MATH_SHEET_COPY;
     case 'sr':
       return SR_FEE_MATH_SHEET_COPY;
+    case 'de':
+      return DE_FEE_MATH_SHEET_COPY;
     default:
       return EN_FEE_MATH_SHEET_COPY;
   }

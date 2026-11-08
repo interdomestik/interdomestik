@@ -1,0 +1,33 @@
+{
+  "commercialTerms": {
+    "eyebrow": "Bedingungen der Jahresmitgliedschaft",
+    "title": "Regeln zu jährlicher Abrechnung, Kündigung und Erstattung",
+    "subtitle": "Derselbe Vertrag gilt bei den Preisen, an der Kasse und in den Mitgliedereinstellungen.",
+    "sections": {
+      "annualBilling": {
+        "title": "Jährliche Abrechnung in v1",
+        "body": "Mitgliedschaften werden zum Start jährlich abgerechnet. Die öffentlichen Preise zeigen die Jahresgebühr und die bezahlte Laufzeit, bevor der Bezahlvorgang beginnt."
+      },
+      "cancellation": {
+        "title": "Eine Kündigung beendet die nächste Verlängerung",
+        "body": "Sie können die Verlängerung jederzeit kündigen. Der Zugang bleibt bis zum Ende der aktuellen bezahlten Laufzeit aktiv, und eine Kündigung reaktiviert keine abgelaufenen Leistungen."
+      },
+      "refundWindow": {
+        "title": "30-tägiges Erstattungsfenster zum Start",
+        "body": "Wir erstatten die Mitgliedsgebühr, wenn Sie innerhalb von 30 Tagen nach dem Kauf darum bitten und für diese Mitgliedschaft noch keine vom Team geführte Erstattungsangelegenheit angenommen wurde."
+      },
+      "coolingOff": {
+        "title": "Widerrufsrechte bleiben unberührt",
+        "body": "Ein gesetzliches Widerrufs- oder Rücktrittsrecht gilt unabhängig von der Erstattungszusage zum Start. Wenn das örtliche Recht eine andere Widerrufsfrist vorsieht, gilt diese gesetzliche Regel."
+      },
+      "acceptedMatters": {
+        "title": "Angenommene Eskalationen bestehen nach einer Kündigung fort",
+        "body": "Wenn Interdomestik eine Erstattungsangelegenheit bereits angenommen hat, bleiben die vereinbarten Erfolgshonorar- und Eskalationsbedingungen für diese angenommene Angelegenheit in Kraft, auch wenn die Mitgliedschaft später gekündigt wird."
+      }
+    },
+    "footer": {
+      "title": "Was die Erstattung abdeckt",
+      "body": "Die Erstattung zum Start deckt nur die Mitgliedsgebühr ab. Sie hebt keine Gebühren oder Partnerkosten auf, die für eine angenommene Eskalation bereits vereinbart wurden."
+    }
+  }
+}

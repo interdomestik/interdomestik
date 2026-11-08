@@ -55,7 +55,9 @@ export function buildCheckoutCustomData(args: {
   search?: string;
 }) {
   const attribution = getCheckoutAttribution(args.search ?? '');
-  const locale = ['en', 'sq', 'mk', 'sr'].includes(args.locale ?? '') ? args.locale : undefined;
+  const locale = ['en', 'sq', 'mk', 'sr', 'de'].includes(args.locale ?? '')
+    ? args.locale
+    : undefined;
 
   return {
     acquisitionSource: 'self_serve_web',

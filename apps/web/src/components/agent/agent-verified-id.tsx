@@ -75,6 +75,20 @@ const DASHBOARD_MONTHS: Record<string, string[]> = {
     'новембар',
     'децембар',
   ],
+  de: [
+    'Januar',
+    'Februar',
+    'März',
+    'April',
+    'Mai',
+    'Juni',
+    'Juli',
+    'August',
+    'September',
+    'Oktober',
+    'November',
+    'Dezember',
+  ],
 };
 
 function getDateLocale(locale: string): string {

@@ -7,7 +7,7 @@ type VerifiedIdentity = { email: string; userId: string };
 // prettier-ignore
 type NeutralEmailOtpArgs = Readonly<{ initialEmail?: string; locale: string; onVerified: (identity: VerifiedIdentity) => Promise<void>; retryVerifiedIntent?: boolean; tenantId?: string | null }>;
 const allowlistedLocale = (locale: string) =>
-  ['sq', 'en', 'sr', 'mk'].includes(locale) ? locale : 'en';
+  ['sq', 'en', 'sr', 'mk', 'de'].includes(locale) ? locale : 'en';
 function maskEmail(email: string): string {
   const [name = '', domain = ''] = email.split('@');
   return `${name.slice(0, 1)}${'•'.repeat(Math.min(5, Math.max(1, name.length - 1)))}@${domain}`;

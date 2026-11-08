@@ -1,0 +1,77 @@
+{
+  "injuryJourney": {
+    "eyebrow": "SOFORTHILFE",
+    "intro": "Wir prüfen zuerst die Sicherheit. Dann zeigen wir Ihnen, was Sie sichern sollten und wie Sie weitermachen können, ohne eine Diagnose oder Ihre Identität anzugeben.",
+    "privacy": "Ihre Antworten werden nur verwendet, um Sie auf dieser Seite zu leiten. Sie werden weder gespeichert noch gesendet.",
+    "title": "Sind Sie jetzt in Gefahr, brauchen Sie dringend Hilfe oder sind Sie unsicher?",
+    "changeAnswer": "Antwort ändern",
+    "urgency": {
+      "yes": "Ja",
+      "no": "Nein",
+      "unsure": "Ich bin mir nicht sicher"
+    },
+    "urgent": {
+      "title": "Ihre Sicherheit geht vor.",
+      "body": "Ordnen Sie den Fall erst weiter, wenn Sie außer Gefahr sind und die nötige Hilfe haben.",
+      "emergency": "Kontaktieren Sie den örtlichen Notruf. In der Europäischen Union können Sie kostenlos die 112 anrufen. Außerhalb der EU verwenden Sie die örtliche Notrufnummer."
+    },
+    "source": {
+      "title": "Wie ist die Verletzung entstanden?",
+      "hint": "Wählen Sie die Situation, die am besten beschreibt, was passiert ist; wir fragen nicht nach einer Diagnose.",
+      "traffic": "Verkehrsunfall",
+      "workplace": "Verletzung bei der Arbeit",
+      "fall": "Sturz oder Vorfall auf einem Grundstück",
+      "product": "Produkt oder Gerät",
+      "treatment": "Vermutetes Problem während einer Behandlung",
+      "assault": "Übergriff oder andere Gefahr",
+      "unsure": "Ich bin mir nicht sicher"
+    },
+    "referral": {
+      "treatmentTitle": "Dies erfordert eine fachliche Beurteilung.",
+      "treatmentBody": "Bewahren Sie die Dokumente auf, die Sie bereits haben, und holen Sie Rat bei einer geeigneten Fachperson ein. Interdomestik sagt für diese Kategorie weder eine Bearbeitung noch eine Erstattung zu.",
+      "assaultTitle": "Sicherheit und fachliche Unterstützung gehen vor.",
+      "assaultBody": "Wenn die Gefahr anhält, kontaktieren Sie den örtlichen Notruf. Suchen Sie fachliche Unterstützung vor Ort, bevor Sie einen Schadensfall ordnen.",
+      "unsureTitle": "Sie können beginnen, ohne die Kategorie zu kennen.",
+      "unsureBody": "Halten Sie Datum, Ort und die Fakten fest, die Sie bereits kennen. Holen Sie fachlichen Rat ein, wenn die Lage unklar ist; diese Seite entscheidet nicht, ob ein Anspruch besteht."
+    },
+    "countries": {
+      "placeholder": "Land auswählen",
+      "continue": "Weiter",
+      "incidentTitle": "In welchem Land ist der Vorfall passiert?",
+      "incidentHint": "Sie bestätigen dies selbst; wir leiten es nicht aus Sprache, Wohnsitz oder Standort ab.",
+      "incidentLabel": "Land, in dem der Vorfall passiert ist",
+      "residenceTitle": "In welchem Land leben Sie üblicherweise?",
+      "residenceHint": "Dies kann ein anderes Land sein als das, in dem der Vorfall passiert ist.",
+      "residenceLabel": "Land des gewöhnlichen Aufenthalts",
+      "options": {
+        "XK": "Kosovo",
+        "AL": "Albanien",
+        "MK": "Nordmazedonien",
+        "DE": "Deutschland",
+        "IT": "Italien",
+        "AT": "Österreich",
+        "CH": "Schweiz",
+        "RS": "Serbien",
+        "ME": "Montenegro",
+        "HR": "Kroatien",
+        "SI": "Slowenien",
+        "OTHER": "Ein anderes Land",
+        "UNKNOWN": "Ich bin mir nicht sicher"
+      }
+    },
+    "evidence": {
+      "title": "Sichern Sie die Fakten, die Sie brauchen könnten.",
+      "body": "Wenn Sie in Sicherheit sind, sichern Sie diese allgemeinen Fakten. Dies ist keine Diagnose, keine Haftungsbewertung und keine Zusage einer Entschädigung.",
+      "items": {
+        "incident": "Datum, Ort und Vorfallsbericht, falls einer ausgestellt wurde.",
+        "photos": "Gefahrlos aufgenommene Fotos und Angaben zu Zeugen.",
+        "costs": "Rechnungen und Kosten im Zusammenhang mit dem Vorfall.",
+        "impact": "Eine Zeitachse der finanziellen und praktischen Folgen."
+      },
+      "diasporaTitle": "Ist der Vorfall außerhalb des Landes passiert, in dem Sie leben?",
+      "diasporaBody": "Vorfallsland und Wohnsitz bleiben getrennt, damit der grenzüberschreitende Kontext klar ist, ohne eine rechtliche Schlussfolgerung zu ziehen.",
+      "handoff": "Die bewährte Free-Start-Aufnahme beginnt jetzt. Keine dieser Orientierungsantworten wird übernommen; Sie entscheiden, was Sie einreichen.",
+      "continue": "Meine Fallinformationen ordnen"
+    }
+  }
+}

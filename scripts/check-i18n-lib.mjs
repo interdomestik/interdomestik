@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const DEFAULT_LOCALES = ['en', 'sq', 'mk', 'sr'];
+export const DEFAULT_LOCALES = ['en', 'sq', 'mk', 'sr', 'de'];
 
 const SERBIAN_GLOSSARY_PREFERENCES = new Map([
   ['Podrska', 'Podrška'],

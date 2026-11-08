@@ -1,0 +1,479 @@
+{
+  "agent": {
+    "title": "Agenten-Arbeitsbereich",
+    "crm": "CRM-Übersicht",
+    "dashboard": "Dashboard",
+    "leads": "Leads",
+    "leads_list": {
+      "title": "Lead-Verwaltung",
+      "subtitle": "Leads anlegen und in Mitglieder umwandeln.",
+      "create": "Neuer Lead",
+      "createSuccess": "Lead erfolgreich angelegt",
+      "paymentSuccess": "Zahlung eingeleitet",
+      "table": {
+        "firstName": "Vorname",
+        "lastName": "Nachname",
+        "email": "E-Mail",
+        "status": "Status",
+        "actions": "Aktionen"
+      },
+      "form": {
+        "firstName": "Vorname",
+        "lastName": "Nachname",
+        "email": "E-Mail",
+        "phone": "Telefon",
+        "notes": "Notizen",
+        "submit": "Lead anlegen"
+      }
+    },
+    "deals": "Deals",
+    "claims": "Fälle",
+    "members": "Mitglieder",
+    "claims_queue": "Fall-Warteschlange",
+    "settings": "Einstellungen",
+    "stats": {
+      "total": "Fälle gesamt",
+      "new": "Neu (eingereicht)",
+      "verification": "In Verifizierung",
+      "closed": "Gelöst / Abgelehnt"
+    },
+    "pipeline": {
+      "title": "Pipeline-Übersicht",
+      "subtitle": "Leistung Ihres Vertriebstrichters",
+      "new_leads": "Neue Leads",
+      "contacted": "Kontaktiert",
+      "won": "Gewonnen"
+    },
+    "details": {
+      "claimantInfo": "Angaben zur antragstellenden Person",
+      "company": "Unternehmen",
+      "amount": "Forderungsbetrag",
+      "description": "Beschreibung",
+      "evidence": "Nachweise",
+      "noEvidence": "Keine Nachweise beigefügt"
+    },
+    "table": {
+      "recent_activity": "Letzte Aktivitäten",
+      "no_claims": "Keine Fälle gefunden."
+    },
+    "notes": {
+      "title": "Notizen zum Mitglied",
+      "description": "Verfolgen Sie Interaktionen und wichtige Informationen zu diesem Mitglied.",
+      "noteDescription": "Fügen Sie eine Notiz zu einer Interaktion oder wichtigen Details dieses Mitglieds hinzu.",
+      "addNote": "Notiz hinzufügen",
+      "editNote": "Notiz bearbeiten",
+      "newNote": "Neue Notiz",
+      "noNotes": "Noch keine Notizen",
+      "noNotesDescription": "Beginnen Sie, Interaktionen mit {name} zu erfassen.",
+      "noteType": "Notiztyp",
+      "noteContent": "Inhalt",
+      "noteContentPlaceholder": "Geben Sie hier Ihre Notiz ein...",
+      "cancel": "Abbrechen",
+      "create": "Anlegen",
+      "update": "Aktualisieren",
+      "saving": "Wird gespeichert...",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "pin": "Anheften",
+      "unpin": "Lösen",
+      "loading": "Notizen werden geladen...",
+      "noteCreated": "Notiz angelegt",
+      "noteUpdated": "Notiz aktualisiert",
+      "noteDeleted": "Notiz gelöscht",
+      "createError": "Notiz konnte nicht angelegt werden",
+      "updateError": "Notiz konnte nicht aktualisiert werden",
+      "deleteError": "Notiz konnte nicht gelöscht werden",
+      "pinError": "Anheften konnte nicht umgeschaltet werden",
+      "types": {
+        "call": "Anruf",
+        "meeting": "Termin",
+        "email": "E-Mail",
+        "general": "Allgemein",
+        "follow_up": "Nachfassen",
+        "issue": "Problem"
+      }
+    },
+    "commissions": {
+      "title": "Provisionen",
+      "summary": "Provisionsübersicht",
+      "pending": "Ausstehend",
+      "approved": "Genehmigt",
+      "paid": "Ausgezahlt",
+      "items": "Einträge",
+      "recentCommissions": "Letzte Provisionen",
+      "noCommissions": "Noch keine Provisionen",
+      "noCommissionsHint": "Neue Mitgliedschaften und Verlängerungen erscheinen hier, sobald sie eine Provision erzielen.",
+      "types": {
+        "new_membership": "Neue Mitgliedschaft",
+        "renewal": "Verlängerung",
+        "upgrade": "Upgrade",
+        "b2b": "B2B-Deal"
+      },
+      "status": {
+        "pending": "Ausstehend",
+        "approved": "Genehmigt",
+        "paid": "Ausgezahlt",
+        "void": "Storniert"
+      },
+      "referralLink": {
+        "title": "Ihr Empfehlungslink",
+        "description": "Teilen Sie diesen Link, um Provisionen für neue Mitgliedschaften zu erhalten.",
+        "copied": "Kopiert!",
+        "copyError": "Link konnte nicht kopiert werden",
+        "loadError": "Empfehlungslink konnte nicht geladen werden"
+      }
+    },
+    "leaderboard": {
+      "title": "Top-Agenten",
+      "week": "Woche",
+      "month": "Monat",
+      "allTime": "Gesamt",
+      "noData": "Noch keine Ranglistendaten",
+      "you": "Sie",
+      "deals": "Deals",
+      "yourRank": "Ihr Rang"
+    },
+    "followUps": {
+      "title": "Fällige Nachfassaktionen",
+      "description": "Leads mit einer offenen Nachfassaktion, die für jetzt oder früher geplant ist.",
+      "dueCount": "{count, plural, =0 {0 fällig} one {# fällig} other {# fällig}}",
+      "empty": "Keine fälligen Nachfassaktionen.",
+      "unknownLead": "Lead",
+      "scheduledFor": "Geplant für {date}",
+      "openLead": "Lead öffnen"
+    },
+    "reporting": {
+      "unknownSource": "Unbekannte Quelle",
+      "weightedPipeline": {
+        "title": "Gewichtete Pipeline",
+        "description": "Offener Pipeline-Wert, gruppiert nach Währung.",
+        "empty": "Kein Pipeline-Wert im Berichtsfenster.",
+        "excludedRows": "{count, plural, one {# Zeile aus dieser Übersicht ausgeschlossen} other {# Zeilen aus dieser Übersicht ausgeschlossen}}",
+        "openDeals": "{count, plural, =0 {0 offene Deals} one {# offener Deal} other {# offene Deals}}",
+        "raw": "Offener Rohwert",
+        "weighted": "Gewichteter Wert",
+        "commit": "Zusage",
+        "best": "Bester Fall",
+        "closedWon": "Gewonnen abgeschlossen",
+        "closedLost": "Verloren abgeschlossen"
+      },
+      "sourceBreakdown": {
+        "title": "Aufschlüsselung nach Quelle",
+        "description": "Pipeline-Qualität nach Lead-Quelle.",
+        "empty": "Keine Quellendaten im Berichtsfenster.",
+        "deals": "{count, plural, =0 {0 Deals} one {# Deal} other {# Deals}}",
+        "weighted": "Gewichtet",
+        "winRate": "Abschlussquote"
+      },
+      "winRate": {
+        "title": "Abschlussquote nach Quelle",
+        "description": "Gewonnene und verlorene Ergebnisse nach Lead-Quelle.",
+        "empty": "Keine gewonnenen oder verlorenen Deals im Berichtsfenster.",
+        "counts": "{won} gewonnen / {lost} verloren / {open} offen"
+      },
+      "charts": {
+        "hiddenItems": "{count, plural, one {# weitere Zeile in der Diagrammübersicht ausgeblendet} other {# weitere Zeilen in der Diagrammübersicht ausgeblendet}}",
+        "pipelineAmount": {
+          "title": "Diagramm Pipeline-Betrag",
+          "description": "Ergänzender Vergleich von gesamtem und gewichtetem Pipeline-Betrag. Maßgeblich ist die Tabelle oben.",
+          "summaryIntro": "Zusammenfassung des Diagramms Pipeline-Betrag",
+          "total": "Gesamt",
+          "weighted": "Gewichtet"
+        }
+      }
+    },
+    "dashboardV2": {
+      "assignedBranch": "Zugewiesene Filiale",
+      "addNewLead": "Neuen Lead hinzufügen",
+      "rapidPosSale": "Schneller POS-Verkauf",
+      "myMemberDashboard": "Mein Mitglieder-Dashboard",
+      "verifiedAgent": "Verifizierter Agent",
+      "activeSince": "Aktiv seit",
+      "monthlyPace": "Monatliches Tempo",
+      "paidThisMonth": "Diesen Monat ausgezahlt",
+      "pipelinePulse": "Pipeline-Puls",
+      "clientBase": "Kundenstamm",
+      "active": "Aktiv",
+      "won": "Gewonnen",
+      "conversion": "Umwandlung",
+      "totalClients": "Kunden gesamt",
+      "campaignDescription": "Akquise-Kampagne",
+      "rapidProspect": "Schnelle Akquise",
+      "rapidPosLabel": "Schneller POS",
+      "addLead": "Lead hinzufügen",
+      "quickSale": "Schnellverkauf",
+      "earningsBoost": "Verdienst-Boost",
+      "expertise": "Expertise",
+      "existingDataPreserved": "Bestehende Daten bleiben erhalten",
+      "yourClients": "Ihre Kunden",
+      "clientsSignedUp": "Von Ihnen angemeldete Mitglieder ({count} insgesamt)",
+      "noClientsYet": "Noch keine Kunden. Beginnen Sie mit dem Verkauf von Mitgliedschaften!",
+      "addYourFirstLead": "Ersten Lead hinzufügen",
+      "startRapidPosSale": "Schnellen POS-Verkauf starten",
+      "viewAllClients": "Alle Kunden ansehen"
+    },
+    "claimsPage": {
+      "title": "Fälle der Kunden verfolgen",
+      "empty": "Keine Kunden mit Fällen gefunden."
+    },
+    "claimsPro": {
+      "title": "Fall-Arbeitsliste (Pro)",
+      "subtitle": "Fälle der Mitglieder überwachen und verfolgen.",
+      "backToWorkspace": "Zurück zum Arbeitsbereich",
+      "switchToLite": "Zu Lite wechseln",
+      "claimNotAccessible": "Auf diesen Fall kann nicht zugegriffen werden.",
+      "searchPlaceholder": "Nach Fallnummer oder Mitglied suchen...",
+      "empty": "Keine Fälle entsprechen den Filtern.",
+      "readOnlyDetails": "Details (nur lesen)",
+      "statusLabel": "Status:",
+      "branchLabel": "Filiale:",
+      "na": "k. A.",
+      "timelineComingSoon": "Zeitverlauf und Dokumente folgen im nächsten Update.",
+      "closeMessaging": "Nachrichten schließen",
+      "closeLabel": "Schließen",
+      "dialogDescription": "Details zum ausgewählten Fall",
+      "drawerTitle": "Fall {claimNumber}",
+      "unknownMember": "Unbekannt",
+      "updatedPrefix": "Akt.:",
+      "actions": {
+        "uploadEvidence": "Nachweise hochladen",
+        "sendMessage": "Nachricht senden"
+      },
+      "tabs": {
+        "all": "Alle Fälle",
+        "open": "Offen / Aktiv",
+        "closed": "Geschlossen / Gelöst"
+      },
+      "columns": {
+        "claim": "Fall",
+        "status": "Status",
+        "member": "Mitglied",
+        "meta": "Erstellt / Letzte Aktualisierung"
+      }
+    },
+    "leads_page": {
+      "backToLeads": "Zurück zu den Leads",
+      "detailTitleFallback": "Lead-Details",
+      "sourceLabel": "Quelle",
+      "emptyValue": "Nicht angegeben",
+      "detail": {
+        "contactInformation": "Kontaktdaten",
+        "type": "Typ",
+        "email": "E-Mail",
+        "phone": "Telefon",
+        "company": "Unternehmen"
+      },
+      "types": {
+        "individual": "Privatperson",
+        "business": "Unternehmen"
+      },
+      "stages": {
+        "new": "Neu",
+        "contacted": "Kontaktiert",
+        "qualified": "Qualifiziert",
+        "proposal": "Angebot",
+        "negotiation": "Verhandlung",
+        "won": "Gewonnen",
+        "lost": "Verloren",
+        "unknown": "Unbekannte Phase"
+      },
+      "actions": {
+        "createDealUnavailable": "Anlegen von Deals nicht verfügbar"
+      },
+      "deals": {
+        "title": "Deals",
+        "empty": "Noch keine Deals angelegt.",
+        "membershipPlan": "Mitgliedschaftstarif"
+      },
+      "dealStatuses": {
+        "open": "Offen",
+        "won": "Gewonnen",
+        "lost": "Verloren",
+        "unknown": "Unbekannt"
+      },
+      "followUp": {
+        "title": "Nächste Nachfassaktion",
+        "empty": "Für diesen Lead ist keine offene Nachfassaktion geplant.",
+        "defaultSubject": "Beim Lead nachfassen",
+        "scheduleNow": "Nachfassaktion hinzufügen",
+        "dueNow": "Jetzt fällig",
+        "scheduled": "Geplant",
+        "complete": "Nachfassaktion abschließen"
+      },
+      "activityHistory": "Aktivitätsverlauf"
+    },
+    "workspace": {
+      "title": "Agent-Pro-Arbeitsbereich",
+      "subtitle": "Erweiterte Werkzeuge und Steuerungen für erfahrene Nutzer.",
+      "switch_to_lite": "Zu Lite wechseln",
+      "cards": {
+        "leads": {
+          "title": "Leads (Pro)",
+          "headline": "Alle verwalten",
+          "description": "Erweiterte Filter, Massenaktionen und Exporte.",
+          "action_text": "Leads öffnen"
+        },
+        "claims": {
+          "title": "Fall-Warteschlange",
+          "headline": "Bearbeitung",
+          "description": "Detaillierte Werkzeuge zur Prüfung und Entscheidung von Fällen.",
+          "action_text": "Warteschlange öffnen"
+        },
+        "reports": {
+          "title": "Berichte",
+          "headline": "Analysen",
+          "description": "Leistungskennzahlen und Provisionsberichte.",
+          "action_text": "Demnächst verfügbar"
+        }
+      }
+    },
+    "activity": {
+      "section_title": "Aktivitäten des Mitglieds"
+    },
+    "activity_feed": {
+      "empty": "Noch keine Aktivitäten erfasst.",
+      "unknown_time": "Unbekannte Zeit",
+      "logged_by": "Erfasst von",
+      "anonymous_agent": "Agent"
+    },
+    "activity_dialog": {
+      "trigger": "Aktivität erfassen",
+      "title": "Aktivität erfassen",
+      "description": "Erfassen Sie einen Anruf, einen Termin oder eine Notiz für dieses {entityType}.",
+      "entity_type": {
+        "member": "Mitglied",
+        "lead": "Lead"
+      },
+      "fields": {
+        "type": {
+          "label": "Typ",
+          "placeholder": "Typ auswählen"
+        },
+        "subject": {
+          "label": "Betreff",
+          "placeholder": "z. B. Erstgespräch"
+        },
+        "description": {
+          "label": "Beschreibung",
+          "placeholder": "Details hinzufügen..."
+        }
+      },
+      "types": {
+        "call": "Anruf",
+        "email": "E-Mail",
+        "meeting": "Termin",
+        "note": "Notiz",
+        "other": "Sonstiges"
+      },
+      "save": "Aktivität speichern",
+      "success": "Aktivität erfasst"
+    },
+    "leads_pro": {
+      "create": {
+        "trigger": "Neuer Lead",
+        "title": "Neuer Lead",
+        "description": "Erfassen Sie eine Person oder ein Unternehmen, die bzw. das um Kontakt zur Mitgliedschaft gebeten hat.",
+        "kind": {
+          "label": "Lead-Typ",
+          "individual": "Privatperson",
+          "company": "Unternehmen"
+        },
+        "fields": {
+          "firstName": "Vorname",
+          "lastName": "Nachname",
+          "email": "E-Mail",
+          "phone": "Telefon",
+          "notes": "Notizen",
+          "companyName": "Name des Unternehmens",
+          "teamSize": "Teamgröße",
+          "teamSizePlaceholder": "Teamgröße auswählen"
+        },
+        "notice": {
+          "title": "Wie wir diese Angaben verwenden",
+          "body": "Interdomestik verwendet den Namen, die Telefonnummer und die E-Mail-Adresse sowie, falls angegeben, den Namen des Unternehmens und die Teamgröße ausschließlich, um diese Person wegen einer Mitgliedschaft bei Interdomestik zu kontaktieren und ein Angebot vorzubereiten. Wir verkaufen diese Angaben nicht und geben sie nicht zu Werbezwecken weiter. Wird die Person kein Mitglied, löschen wir die Angaben nach 12 Monaten. Die Person kann uns jederzeit über ihren Agenten oder unseren Datenschutzkontakt auffordern, die Kontaktaufnahme einzustellen, oder ihre Angaben einsehen, berichtigen oder löschen lassen.",
+          "company": "Dieser Lead ist die Kontaktperson des Unternehmens und umfasst nur deren eigene Angaben. Jede beschäftigte Person entscheidet selbst, ob sie beitritt.",
+          "attestation": "Ich habe der Person diesen Hinweis gezeigt oder vorgelesen, und sie hat um Kontakt zur Mitgliedschaft gebeten."
+        },
+        "submit": "Lead anlegen",
+        "submitting": "Wird angelegt…",
+        "success": "Lead angelegt",
+        "errors": {
+          "duplicate": "Ein Lead mit dieser E-Mail-Adresse existiert bereits. Er muss geprüft werden, bevor ein neuer angelegt wird.",
+          "generic": "Der Lead konnte nicht angelegt werden. Versuchen Sie es erneut."
+        }
+      },
+      "back_to_members": "Zurück zu den Mitgliedern",
+      "title": "Leads",
+      "subtitle": "Verwalten und verfolgen Sie alle Ihre Leads.",
+      "search_placeholder": "Leads nach Name, E-Mail oder Telefon suchen...",
+      "empty_title": "Keine Leads gefunden",
+      "empty_subtitle": "Passen Sie Ihre Filter oder Ihre Suche an.",
+      "empty_label": "Keine Leads entsprechen Ihren Filtern",
+      "details": "Lead-Details",
+      "tabs": {
+        "all": "Alle Leads",
+        "new": "Neu",
+        "in_progress": "In Bearbeitung",
+        "clients": "Kunden",
+        "lost": "Verloren"
+      },
+      "columns": {
+        "lead": "Name und E-Mail des Leads",
+        "status": "Status",
+        "details": "Telefon und Filiale",
+        "meta": "Erstellt / Letzter Kontakt"
+      },
+      "fields": {
+        "status": "Status",
+        "created": "Erstellt",
+        "updated": "Aktualisiert",
+        "email": "E-Mail",
+        "phone": "Telefon",
+        "source": "Quelle",
+        "branch": "Filiale",
+        "notes": "Notizen",
+        "company": "Unternehmen",
+        "team_size": "Teamgröße",
+        "next_step": "Nächster Schritt"
+      },
+      "statuses": {
+        "new": "Neu",
+        "contacted": "Kontaktiert",
+        "payment_pending": "Zahlung ausstehend",
+        "converted": "Umgewandelt",
+        "lost": "Verloren",
+        "expired": "Abgelaufen",
+        "none": "Keiner"
+      },
+      "actions": {
+        "convert": "In Kunden umwandeln",
+        "mark_contacted": "Als kontaktiert markieren",
+        "pay_cash": "Bar bezahlen",
+        "mark_lost": "Als verloren markieren"
+      },
+      "more_actions": "Weitere Aktionen",
+      "timeline": {
+        "title": "Zeitverlauf",
+        "empty": "Noch keine Ereignisse",
+        "events": {
+          "created": {
+            "title": "Lead angelegt",
+            "source_prefix": "Quelle:",
+            "unknown_source": "Unbekannt"
+          },
+          "converted": {
+            "title": "Umgewandelt",
+            "description": "Lead in Kunden umgewandelt"
+          }
+        }
+      },
+      "toasts": {
+        "converted": "Lead erfolgreich umgewandelt",
+        "marked_contacted": "Lead als kontaktiert markiert",
+        "payment_requested": "Zahlung angefordert",
+        "marked_lost": "Lead als verloren markiert",
+        "action_failed": "Aktion fehlgeschlagen"
+      }
+    }
+  }
+}
