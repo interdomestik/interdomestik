@@ -19,7 +19,12 @@ import type { EntryInterval } from './evaluate';
 export type EntryStartMail = {
   kind: 'handover_confirmed' | 'sponsor_notice' | 'activation';
   notBefore: Date | null;
+  /** §3.8: activation is resent at 3 and 10 days; each row re-checks "no credential" at send. */
+  resendDays?: number;
 };
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const ACTIVATION_RESEND_DAYS = [3, 10] as const;
 
 export type EntryStartPlan =
   | { outcome: 'staff_review'; reviewReason: 'empty_interval'; mails: [] }
@@ -35,12 +40,21 @@ export function planEntryStart(
   const mails: EntryStartMail[] = [];
   if (options.handover) mails.push({ kind: 'handover_confirmed', notBefore: null });
   mails.push({ kind: 'sponsor_notice', notBefore: interval.start });
-  if (!options.hasCredential) mails.push({ kind: 'activation', notBefore: interval.start });
+  if (!options.hasCredential) {
+    mails.push({ kind: 'activation', notBefore: interval.start });
+    for (const days of ACTIVATION_RESEND_DAYS) {
+      const notBefore = new Date(interval.start.getTime() + days * DAY_MS);
+      mails.push({ kind: 'activation', notBefore, resendDays: days });
+    }
+  }
   return { outcome: 'seated', reviewReason: null, mails };
 }
 
-export const entryStartIdempotencyKey = (entryId: string, kind: EntryStartMail['kind']): string =>
-  `sponsor-entry:${entryId}:${kind}`;
+export const entryStartIdempotencyKey = (
+  entryId: string,
+  kind: EntryStartMail['kind'],
+  resendDays?: number
+): string => `sponsor-entry:${entryId}:${kind}${resendDays ? `:resend-${resendDays}d` : ''}`;
 
 /** Applies the plan inside the caller's person transaction (§3.5 locks already held). */
 export async function produceEntryStart(
@@ -72,7 +86,7 @@ export async function produceEntryStart(
         tenantId: params.tenantId,
         rosterEntryId: params.entryId,
         kind: mail.kind,
-        idempotencyKey: entryStartIdempotencyKey(params.entryId, mail.kind),
+        idempotencyKey: entryStartIdempotencyKey(params.entryId, mail.kind, mail.resendDays),
         ...(mail.notBefore ? { nextAttemptAt: mail.notBefore.toISOString() } : {}),
       }))
     )
@@ -121,7 +135,7 @@ export async function produceEntryStarts(
       tenantId: params.tenantId,
       rosterEntryId: item.entryId,
       kind: mail.kind,
-      idempotencyKey: entryStartIdempotencyKey(item.entryId, mail.kind),
+      idempotencyKey: entryStartIdempotencyKey(item.entryId, mail.kind, mail.resendDays),
       ...(mail.notBefore ? { nextAttemptAt: mail.notBefore.toISOString() } : {}),
     }))
   );

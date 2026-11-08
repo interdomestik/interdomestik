@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { entryStartIdempotencyKey, planEntryStart } from './entry-start';
 
 const at = (m: number) => new Date(Date.UTC(2027, m, 1));
+const plusDays = (d: Date, days: number) => new Date(d.getTime() + days * 86_400_000);
 
 describe('planEntryStart', () => {
   it('sends an empty interval to staff review and queues nothing', () => {
@@ -21,6 +22,8 @@ describe('planEntryStart', () => {
         { kind: 'handover_confirmed', notBefore: null },
         { kind: 'sponsor_notice', notBefore: at(4) },
         { kind: 'activation', notBefore: at(4) },
+        { kind: 'activation', notBefore: plusDays(at(4), 3), resendDays: 3 },
+        { kind: 'activation', notBefore: plusDays(at(4), 10), resendDays: 10 },
       ],
     });
   });
@@ -34,6 +37,9 @@ describe('planEntryStart', () => {
   it('keys each mail by entry and kind so a rerun queues nothing new', () => {
     expect(entryStartIdempotencyKey('entry-1', 'sponsor_notice')).toBe(
       'sponsor-entry:entry-1:sponsor_notice'
+    );
+    expect(entryStartIdempotencyKey('entry-1', 'activation', 3)).toBe(
+      'sponsor-entry:entry-1:activation:resend-3d'
     );
   });
 });
