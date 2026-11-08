@@ -38,7 +38,7 @@ describe('previewThankYouLetterCore', () => {
   });
 
   it('fails closed for an unsupported runtime locale', async () => {
-    await expect(previewThankYouLetterCore({ ...params, locale: 'de' as never })).rejects.toThrow(
+    await expect(previewThankYouLetterCore({ ...params, locale: 'hr' as never })).rejects.toThrow(
       'Unsupported confirmation locale'
     );
   });

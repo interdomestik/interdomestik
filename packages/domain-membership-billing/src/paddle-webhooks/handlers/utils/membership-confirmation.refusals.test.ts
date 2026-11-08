@@ -61,7 +61,7 @@ describe('processMembershipConfirmation', () => {
 
   it.each([
     ['missing locale', subscription, undefined, userRecord],
-    ['unsupported locale', subscription, { locale: 'de' }, userRecord],
+    ['unsupported locale', subscription, { locale: 'hr' }, userRecord],
     ['non-string locale', subscription, { locale: 42 }, userRecord],
     [
       'missing provider price',

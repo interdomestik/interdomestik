@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { sendPreparedThankYouLetterCore, sendThankYouLetterCore } from './send.core';
+import {
+  prepareThankYouLetterCore,
+  sendPreparedThankYouLetterCore,
+  sendThankYouLetterCore,
+} from './send.core';
 
 const mocks = vi.hoisted(() => ({ sendEmail: vi.fn() }));
 
@@ -54,6 +58,26 @@ describe('sendThankYouLetterCore', () => {
     );
   });
 
+  it('prepares the German confirmation the Paddle webhook delivers', () => {
+    const prepared = prepareThankYouLetterCore({
+      email: params.email,
+      memberName: params.memberName,
+      memberNumber: params.memberNumber,
+      planName: params.planName,
+      planPrice: params.planPrice,
+      memberSince: params.memberSince,
+      expiresAt: params.expiresAt,
+      providerReference: params.providerReference,
+      planInterval: 'Jahr',
+      tenantId: 'tenant_ks',
+      locale: 'de',
+    });
+
+    expect(prepared.subject).toBe('Mitgliedschaft bestätigt');
+    expect(prepared.html).toContain('<html lang="de">');
+    expect(prepared.text).toContain('https://tenant_ks.example.test/de/member/membership');
+  });
+
   it('fails closed for an unsupported tenant', async () => {
     await expect(
       sendThankYouLetterCore({ ...params, tenantId: 'tenant_foreign' })
@@ -62,7 +86,7 @@ describe('sendThankYouLetterCore', () => {
   });
 
   it('fails closed for an unsupported runtime locale', async () => {
-    await expect(sendThankYouLetterCore({ ...params, locale: 'de' as never })).resolves.toEqual({
+    await expect(sendThankYouLetterCore({ ...params, locale: 'hr' as never })).resolves.toEqual({
       success: false,
       error: 'Unsupported confirmation locale',
     });
