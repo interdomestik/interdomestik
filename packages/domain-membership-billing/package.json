@@ -21,6 +21,7 @@
     "./sponsors/paddle-handover-client": "./src/sponsors/paddle-handover-client.ts",
     "./sponsors/retention": "./src/sponsors/retention.ts",
     "./sponsors/roster-crypto": "./src/sponsors/roster-crypto.ts",
+    "./sponsors/roster-view": "./src/sponsors/roster-view.ts",
     "./sponsors/sponsor-jobs": "./src/sponsors/sponsor-jobs.ts",
     "./subscription/types": "./src/subscription/types.ts",
     "./subscription/cancel": "./src/subscription/cancel.ts",

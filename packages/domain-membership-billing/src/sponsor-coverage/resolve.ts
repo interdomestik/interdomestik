@@ -202,3 +202,17 @@ export async function readPersonCoverage(
   const rows = await selectCoverageRows(tx, and(eq(user.tenantId, tenantId), eq(user.id, userId)));
   return groupCoverageRows(rows).get(userId) ?? null;
 }
+
+/** Every bound roster entry of these people, with its term facts, in one statement (§3.4 view). */
+export async function readCoverageEntries(
+  tx: TenantTransaction,
+  tenantId: string,
+  userIds: readonly string[]
+): Promise<Map<string, CoverageEntry[]>> {
+  if (userIds.length === 0) return new Map();
+  const rows = await selectCoverageRows(
+    tx,
+    and(eq(user.tenantId, tenantId), inArray(user.id, [...userIds]))
+  );
+  return new Map([...groupCoverageRows(rows)].map(([userId, person]) => [userId, person.entries]));
+}
