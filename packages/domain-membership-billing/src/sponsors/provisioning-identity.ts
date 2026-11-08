@@ -51,20 +51,22 @@ export async function bindEntryIdentity(
     .where(and(eq(sponsorRosterEntries.tenantId, tenantId), eq(sponsorRosterEntries.id, entry.id)));
   if (current?.userId) return { kind: 'bound', userId: current.userId, created: false };
 
-  const visible = await tx
-    .select({ id: user.id })
-    .from(user)
-    .where(
-      and(eq(user.tenantId, tenantId), eq(sql`lower(btrim(${user.email}))`, entry.emailNormalized))
-    )
-    .limit(2);
+  const visible = await visibleAccounts(tx, tenantId, entry.emailNormalized);
   if (visible.length > 1) return { kind: 'binding_review' };
 
   const existing = visible[0]?.id ?? null;
   if (!existing && !params.mayCreate) return { kind: 'wait' };
-  const userId = existing ?? (await createSponsoredMember(tx, params));
+  const createdId = existing ? null : await createSponsoredMember(tx, params);
+  let userId = existing ?? createdId;
+  if (!userId) {
+    // The insert met an address taken meanwhile; a same-tenant signup that just committed is
+    // visible to this new statement and is bound like any existing account.
+    const raced = await visibleAccounts(tx, tenantId, entry.emailNormalized);
+    if (raced.length > 1) return { kind: 'binding_review' };
+    userId = raced[0]?.id ?? null;
+  }
   if (!userId) return { kind: 'foreign' };
-  const created = existing === null;
+  const created = createdId !== null;
 
   const [taken] = await tx
     .select({ id: sponsorRosterEntries.id })
@@ -85,6 +87,18 @@ export async function bindEntryIdentity(
     .set({ userId })
     .where(and(eq(sponsorRosterEntries.tenantId, tenantId), eq(sponsorRosterEntries.id, entry.id)));
   return { kind: 'bound', userId, created };
+}
+
+async function visibleAccounts(
+  tx: TenantTransaction,
+  tenantId: string,
+  emailNormalized: string
+): Promise<{ id: string }[]> {
+  return tx
+    .select({ id: user.id })
+    .from(user)
+    .where(and(eq(user.tenantId, tenantId), eq(sql`lower(btrim(${user.email}))`, emailNormalized)))
+    .limit(2);
 }
 
 /**

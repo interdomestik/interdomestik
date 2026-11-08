@@ -5,5 +5,5 @@ export default function AdminSponsorsLayout({
 }: {
   children: React.ReactNode;
 }): React.JSX.Element {
-  return <SponsorLayout>{children}</SponsorLayout>;
+  return <SponsorLayout namespaces={['sponsors', 'sponsorTasks']}>{children}</SponsorLayout>;
 }

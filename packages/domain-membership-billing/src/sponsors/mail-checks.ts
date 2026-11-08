@@ -47,7 +47,10 @@ export type MailSkipReason =
 export type SponsorMailCheck = { send: true } | { send: false; reason: MailSkipReason };
 const skip = (reason: MailSkipReason): SponsorMailCheck => ({ send: false, reason });
 
-/** Successors are admitted, non-revoked entries in later, effective contiguous terms. */
+/**
+ * Successors are admitted, non-revoked entries in later, effective, non-empty contiguous terms
+ * (§3.6.2): a successor terminated at its own start continues nothing.
+ */
 export function hasContinuingSuccessor(
   entry: CoverageEntry,
   entries: readonly CoverageEntry[]
@@ -60,7 +63,8 @@ export function hasContinuingSuccessor(
       next.conflictDecision === 'accepted' &&
       next.revokedAt === null &&
       next.termStart > entry.termStart &&
-      next.termStart.getTime() === effectiveEnd(entry).getTime()
+      next.termStart.getTime() === effectiveEnd(entry).getTime() &&
+      effectiveEnd(next).getTime() > next.termStart.getTime()
   );
 }
 

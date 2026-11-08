@@ -28,7 +28,7 @@ function personRows(userId: string | null = 'member'): Record<string, unknown>[]
   return [
     [{ userId, emailHmac: 'private-hmac', sponsorId: 'sponsor' }],
     [],
-    [{ id: 'term' }],
+    [{ id: 'term', termEnd: '2099-01-01T00:00:00Z', terminatedEffectiveAt: null }],
     [{ id: 'entry' }, { id: 'future' }],
   ];
 }
@@ -93,6 +93,29 @@ describe('revocation audit', () => {
     use(empty);
     expect(await optOutByToken('private-token', now)).toEqual({ ok: true, revoked: 0 });
     expectAudits(empty, []);
+  });
+  it('locks the sponsor terms for share and only live entries for update', async () => {
+    const run = async (rows: Record<string, unknown>[][]): Promise<unknown[][]> => {
+      const db = auditTransaction({ selects: rows });
+      const locks: unknown[][] = [];
+      const select = (...args: Parameters<typeof db.tx.select>): unknown => {
+        const chain = db.tx.select(...args) as unknown as Record<
+          string,
+          (...a: unknown[]) => unknown
+        >;
+        const { for: lock, innerJoin } = chain;
+        chain.for = (...mode: unknown[]) => (locks.push(mode), lock(...mode));
+        chain.innerJoin = (...join: unknown[]) => (locks.push(['join']), innerJoin(...join));
+        return chain;
+      };
+      use({ ...db, tx: { ...db.tx, select } as unknown as typeof db.tx });
+      await optOutByToken('private-token', now);
+      return locks;
+    };
+    expect(await run(personRows())).toEqual([['join'], ['share'], ['update']]);
+    const ended = personRows();
+    ended[2] = [{ id: 'term', termEnd: '2026-01-01T00:00:00Z', terminatedEffectiveAt: null }];
+    expect(await run(ended)).toEqual([['join'], ['share']]);
   });
   it('does not open a transaction for an invalid token', async () => {
     vi.mocked(resolveSponsorOptOutTenant).mockResolvedValue(null);

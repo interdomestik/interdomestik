@@ -130,6 +130,7 @@ describe('kind-specific send checks', () => {
       { termEffective: false },
       { conflictDecision: 'rejected' },
       { revokedAt: day(4) },
+      { terminatedEffectiveAt: day(31) },
     ] satisfies Partial<CoverageEntry>[]) {
       expect(hasContinuingSuccessor(entry(), [{ ...next, ...change }])).toBe(false);
     }

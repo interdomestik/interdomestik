@@ -11,7 +11,6 @@ import {
   sponsors,
   sponsorTermRevisions,
   sponsorTerms,
-  sql,
   type TenantTransaction,
 } from '@interdomestik/database';
 import { lockSponsorEntryIdentity, lockSponsorPerson } from '@interdomestik/database/sponsor-locks';
@@ -20,13 +19,14 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import { gt } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { canManageRoster, type SponsorActor } from './access';
 import { SPONSOR_SYSTEM_ACTOR, writeSponsorAudit } from './audit';
 import { optOutTokenHash } from './roster-crypto';
 import type { SponsorResult } from './terms';
+
+export { listLeavableSponsorEntries } from './leavable-entries';
 
 /**
  * ACQ-3b §3.7 opt-out (token) and leave (`/member/membership`): revoke the person's current and
@@ -73,7 +73,11 @@ async function revokeSponsorPerson(tx: TenantTransaction, input: Revocation): Pr
     .from(sponsorTerms)
     .where(and(eq(sponsorTerms.tenantId, tenantId), eq(sponsorTerms.sponsorId, target.sponsorId)));
   const terms = await tx
-    .select({ id: sponsorTerms.id })
+    .select({
+      id: sponsorTerms.id,
+      termEnd: sponsorTerms.termEnd,
+      terminatedEffectiveAt: sponsorTerms.terminatedEffectiveAt,
+    })
     .from(sponsorTerms)
     .where(and(eq(sponsorTerms.tenantId, tenantId), inArray(sponsorTerms.id, sponsorTermIds)))
     .orderBy(asc(sponsorTerms.id))
@@ -84,30 +88,21 @@ async function revokeSponsorPerson(tx: TenantTransaction, input: Revocation): Pr
         isNull(sponsorRosterEntries.userId),
         eq(sponsorRosterEntries.emailHmac, target.emailHmac ?? '')
       );
+  // Current and future terms only: a past entry keeps its history. Filtering on the terms already
+  // held FOR SHARE keeps the entry lock to entries, so two people of one sponsor never deadlock.
+  const liveTermIds = terms
+    .filter(term => new Date(term.terminatedEffectiveAt ?? term.termEnd) > now)
+    .map(term => term.id);
+  if (liveTermIds.length === 0) return 0;
   const entries = await tx
     .select({ id: sponsorRosterEntries.id })
     .from(sponsorRosterEntries)
-    .innerJoin(
-      sponsorTerms,
-      and(
-        eq(sponsorTerms.tenantId, sponsorRosterEntries.tenantId),
-        eq(sponsorTerms.id, sponsorRosterEntries.termId)
-      )
-    )
     .where(
       and(
         eq(sponsorRosterEntries.tenantId, tenantId),
         person,
-        inArray(
-          sponsorRosterEntries.termId,
-          terms.map(term => term.id)
-        ),
-        isNull(sponsorRosterEntries.revokedAt),
-        // Current and future entries only: a past entry keeps its history.
-        gt(
-          sql`coalesce(${sponsorTerms.terminatedEffectiveAt}, ${sponsorTerms.termEnd})`,
-          now.toISOString()
-        )
+        inArray(sponsorRosterEntries.termId, liveTermIds),
+        isNull(sponsorRosterEntries.revokedAt)
       )
     )
     .orderBy(asc(sponsorRosterEntries.id))

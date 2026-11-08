@@ -6,10 +6,12 @@ import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import {
   readSponsorOutlook,
-  resolveEffectiveMembership,
   type SponsorOutlook,
 } from '@interdomestik/domain-membership-billing/sponsor-coverage';
-import { leaveSponsorship } from '@interdomestik/domain-membership-billing/sponsors/opt-out';
+import {
+  leaveSponsorship,
+  listLeavableSponsorEntries,
+} from '@interdomestik/domain-membership-billing/sponsors/opt-out';
 import { ROLES } from '@interdomestik/shared-auth';
 import { revalidatePath } from 'next/cache';
 
@@ -38,18 +40,13 @@ export async function leaveCompanyProgramme(input: unknown): Promise<LeaveSponso
     if (principal?.userId !== userId || principal.role !== ROLES.member)
       return { ok: false, error: 'forbidden' };
     const now = new Date();
-    const memberships = await withTenantAuthority(authority, tx =>
-      resolveEffectiveMembership(tx, tenantId, [userId], now)
+    // Current coverage, a pending handover or a future start: the member's own live entries.
+    const leavable = await withTenantAuthority(authority, tx =>
+      listLeavableSponsorEntries(tx, tenantId, userId, now)
     );
-    const covering = memberships.get(userId);
-    if (covering?.source !== 'sponsor' || covering.entryId !== input.entryId) {
-      return { ok: false, error: 'not_found' };
-    }
-    const result = await leaveSponsorship(
-      authority,
-      { userId },
-      { entryId: covering.entryId, now }
-    );
+    const entryId = leavable.find(id => id === input.entryId);
+    if (!entryId) return { ok: false, error: 'not_found' };
+    const result = await leaveSponsorship(authority, { userId }, { entryId, now });
     if (!result.ok)
       return { ok: false, error: result.error === 'not_found' ? 'not_found' : 'error' };
     revalidatePath('/[locale]/member/membership', 'page');

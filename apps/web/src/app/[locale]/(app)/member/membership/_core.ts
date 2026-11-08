@@ -2,6 +2,7 @@ import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { resolveEffectiveMembership } from '@interdomestik/domain-membership-billing/sponsor-coverage';
+import { listLeavableSponsorEntries } from '@interdomestik/domain-membership-billing/sponsors/opt-out';
 import {
   and,
   eq,
@@ -99,7 +100,13 @@ export async function getMemberSubscriptionsCore(args: {
         ? effective.subscription
         : { status: 'expired' as const }),
     });
-    return [record];
+    const [leaveEntryId] = await listLeavableSponsorEntries(
+      tx,
+      tenantId,
+      args.userId,
+      args.now ?? new Date()
+    );
+    return [leaveEntryId ? { ...record, sponsorLeaveEntryId: leaveEntryId } : record];
   });
 }
 

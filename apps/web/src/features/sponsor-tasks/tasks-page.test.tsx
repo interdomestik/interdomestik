@@ -1,11 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import Page from './page';
+import { SponsorTasksPage } from './tasks-page';
 
 const load = vi.hoisted(() => vi.fn());
-vi.mock('@/features/sponsor-tasks/tasks.core', () => ({ loadSponsorTasks: load }));
-vi.mock('@/features/sponsor-tasks/task-list', () => ({
+vi.mock('./tasks.core', () => ({ loadSponsorTasks: load }));
+vi.mock('./task-list', () => ({
   SponsorTaskList: () => <div>task list</div>,
 }));
 vi.mock('next-intl/server', () => ({
@@ -18,11 +18,14 @@ vi.mock('@/i18n/routing', () => ({
   ),
 }));
 
-describe('staff sponsor tasks page', () => {
+describe.each(['staff', 'admin'] as const)('%s sponsor tasks page', area => {
+  const Page = (props: {
+    params: Promise<{ locale: string }>;
+  }): ReturnType<typeof SponsorTasksPage> => SponsorTasksPage({ area, ...props });
   it('renders ready content after an authorized read', async () => {
     load.mockResolvedValue({ ok: true, tasks: [] });
     render(await Page({ params: Promise.resolve({ locale: 'en' }) }));
-    expect(screen.getByTestId('staff-sponsor-tasks-page-ready')).toHaveTextContent('task list');
+    expect(screen.getByTestId(`${area}-sponsor-tasks-page-ready`)).toHaveTextContent('task list');
   });
   it.each(['forbidden', 'error'])('shows %s without task data', async error => {
     load.mockResolvedValue({ ok: false, error });
@@ -30,7 +33,7 @@ describe('staff sponsor tasks page', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(`errors.${error}`);
     expect(screen.queryByText('task list')).not.toBeInTheDocument();
     if (error === 'error')
-      expect(screen.getByRole('link')).toHaveAttribute('href', '/en/staff/sponsors/tasks');
+      expect(screen.getByRole('link')).toHaveAttribute('href', `/en/${area}/sponsors/tasks`);
     else expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

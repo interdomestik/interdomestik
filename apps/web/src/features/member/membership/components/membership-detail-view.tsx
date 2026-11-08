@@ -68,6 +68,7 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
     primary = undefined;
   }
   const sponsoredState = getSponsoredMembershipState(subscription);
+  const leaveEntryId = subscription.sponsorCoverage?.entryId ?? subscription.sponsorLeaveEntryId;
   const isMountedRef = useRef(true);
   const isPaymentUpdatePendingRef = useRef(false);
   const [isPaymentUpdatePending, setIsPaymentUpdatePending] = useState(false);
@@ -182,9 +183,7 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
             disclosure={subscription.entityDisclosure}
           />
 
-          {subscription.sponsorCoverage ? (
-            <LeaveCompanyProgramme entryId={subscription.sponsorCoverage.entryId} t={t} />
-          ) : null}
+          {leaveEntryId ? <LeaveCompanyProgramme entryId={leaveEntryId} t={t} /> : null}
 
           <OpsActionBar
             primary={primary ? mapAction(primary) : undefined}

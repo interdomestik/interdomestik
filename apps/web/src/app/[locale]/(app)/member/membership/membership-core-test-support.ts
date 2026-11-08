@@ -13,6 +13,7 @@ const hoisted = vi.hoisted(() => {
   return {
     authorize: vi.fn(),
     resolve: vi.fn(),
+    leavable: vi.fn(),
     findPlan: vi.fn(),
     sponsorDisclosure: vi.fn().mockResolvedValue({ ...disclosure, source: 'sponsor' }),
     and,
@@ -60,6 +61,9 @@ vi.mock('@/lib/tenant-authority.server', () => ({
 vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
   resolveEffectiveMembership: hoisted.resolve,
 }));
+vi.mock('@interdomestik/domain-membership-billing/sponsors/opt-out', () => ({
+  listLeavableSponsorEntries: hoisted.leavable,
+}));
 vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   withTenantAuthority: vi.fn((_authority: unknown, callback: (tx: unknown) => unknown) =>
     callback({
@@ -73,3 +77,4 @@ vi.mock('@interdomestik/database/tenant-authority-context', () => ({
 }));
 hoisted.authorize.mockResolvedValue(mintTestTenantAuthority('tenant-ks'));
 hoisted.resolve.mockResolvedValue(new Map());
+hoisted.leavable.mockResolvedValue([]);

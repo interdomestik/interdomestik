@@ -100,14 +100,14 @@ describe('sponsor task groups', () => {
     render(
       <>
         <SponsorTaskList tasks={[]} />
-        <SponsorTasksLink />
+        <SponsorTasksLink area="staff" />
+        <SponsorTasksLink area="admin" />
       </>
     );
     expect(screen.getByRole('status')).toHaveTextContent('empty');
-    expect(screen.getByRole('link', { name: 'tasksLink' })).toHaveAttribute(
-      'href',
-      '/staff/sponsors/tasks'
-    );
+    expect(
+      screen.getAllByRole('link', { name: 'tasksLink' }).map(link => link.getAttribute('href'))
+    ).toEqual(['/staff/sponsors/tasks', '/admin/sponsors/tasks']);
   });
 
   it('uses safe generic copy for an unknown review reason', () => {

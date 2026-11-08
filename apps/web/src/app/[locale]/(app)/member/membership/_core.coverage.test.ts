@@ -50,6 +50,21 @@ describe('effective membership workspace', () => {
     ]);
     expect(h.sponsorDisclosure).not.toHaveBeenCalled();
   });
+  it('offers leave for a pending sponsored entry while the paid period runs', async () => {
+    h.resolve.mockResolvedValue(
+      new Map([['member-1', { source: 'subscription', subscription: row }]])
+    );
+    h.leavable.mockResolvedValue(['pending-entry']);
+    expect(await getMemberSubscriptionsCore(args)).toEqual([
+      expect.objectContaining({ sponsorLeaveEntryId: 'pending-entry' }),
+    ]);
+    expect(h.leavable).toHaveBeenCalledWith(
+      expect.anything(),
+      'tenant-ks',
+      'member-1',
+      expect.any(Date)
+    );
+  });
   it('source 3 makes a legacy active sponsor row inactive', async () => {
     h.findSubscriptionMany.mockResolvedValue([
       { ...row, status: 'active', provider: 'group_sponsor' },

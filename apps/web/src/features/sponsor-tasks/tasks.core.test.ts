@@ -74,6 +74,13 @@ function descriptor(
   };
 }
 
+const HANDOVER_ROLES: readonly string[] = [
+  ROLES.staff,
+  ROLES.tenant_admin,
+  ROLES.admin,
+  ROLES.super_admin,
+];
+
 describe('staff-only sponsor reader and actions', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -88,26 +95,28 @@ describe('staff-only sponsor reader and actions', () => {
     entries.forEach(entry => entry.domain.mockResolvedValue({ ok: true, value: {} }));
   });
 
-  it.each([...Object.values(ROLES).filter(role => role !== ROLES.staff), 'unknown', '', null])(
-    'refuses every reader and action for non-staff role %s',
-    async role => {
-      mocks.authorize.mockResolvedValue({
-        authority,
-        session: { user: { id: 'staff-1', role, branchId: 'branch-1' } },
-      });
-      mocks.read.mockReturnValue(descriptor(role));
-      expect(await loadSponsorTasks()).toEqual({ ok: false, error: 'forbidden' });
-      await Promise.all(
-        entries.map(async entry => {
-          expect(await entry.action(form(entry.input))).toEqual({ ok: false, error: 'forbidden' });
-          expect(entry.domain).not.toHaveBeenCalled();
-        })
-      );
-      expect(mocks.list).not.toHaveBeenCalled();
-      expect(mocks.credential).not.toHaveBeenCalled();
-      expect(mocks.client).not.toHaveBeenCalled();
-    }
-  );
+  it.each([
+    ...Object.values(ROLES).filter(role => !HANDOVER_ROLES.includes(role)),
+    'unknown',
+    '',
+    null,
+  ])('refuses every reader and action for non-staff role %s', async role => {
+    mocks.authorize.mockResolvedValue({
+      authority,
+      session: { user: { id: 'staff-1', role, branchId: 'branch-1' } },
+    });
+    mocks.read.mockReturnValue(descriptor(role));
+    expect(await loadSponsorTasks()).toEqual({ ok: false, error: 'forbidden' });
+    await Promise.all(
+      entries.map(async entry => {
+        expect(await entry.action(form(entry.input))).toEqual({ ok: false, error: 'forbidden' });
+        expect(entry.domain).not.toHaveBeenCalled();
+      })
+    );
+    expect(mocks.list).not.toHaveBeenCalled();
+    expect(mocks.credential).not.toHaveBeenCalled();
+    expect(mocks.client).not.toHaveBeenCalled();
+  });
 
   it.each(['session', 'tenant', 'branch', 'principal', 'identity', 'accessTenant'])(
     'fails closed on missing or mismatched %s',
@@ -143,6 +152,26 @@ describe('staff-only sponsor reader and actions', () => {
     expect(mocks.list).toHaveBeenCalledWith(authority, actor, { hasCredential }, expect.any(Date));
     expect(mocks.credential).toHaveBeenCalledWith(authority);
   });
+
+  it.each([ROLES.tenant_admin, ROLES.admin, ROLES.super_admin])(
+    'admits %s with its own role and refuses a session role that differs',
+    async role => {
+      mocks.authorize.mockResolvedValue({
+        authority,
+        session: { user: { id: 'staff-1', role, branchId: 'branch-1' } },
+      });
+      mocks.read.mockReturnValue(descriptor(role));
+      expect(await loadSponsorTasks()).toEqual({ ok: true, tasks: [] });
+      expect(mocks.list).toHaveBeenCalledWith(
+        authority,
+        { ...actor, role },
+        { hasCredential },
+        expect.any(Date)
+      );
+      mocks.read.mockReturnValue(descriptor(ROLES.staff));
+      expect(await loadSponsorTasks()).toEqual({ ok: false, error: 'forbidden' });
+    }
+  );
 
   it('admits tenant-wide staff without a branch', async () => {
     mocks.authorize.mockResolvedValue({

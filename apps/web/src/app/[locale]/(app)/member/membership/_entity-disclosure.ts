@@ -21,6 +21,8 @@ export type SubscriptionRecord = Omit<SubscriptionWithPlan, 'plan'> & {
   plan: MembershipWorkspacePlan | null;
   entityDisclosure: EntityDisclosureModel;
   sponsorCoverage?: SponsorCoverage;
+  /** A pending or future sponsored entry the member may leave before coverage starts. */
+  sponsorLeaveEntryId?: string;
 };
 
 export async function attachMembershipEntityDisclosure(

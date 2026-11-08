@@ -8,6 +8,14 @@ import {
 import type { listSponsorStaffTasks } from '@interdomestik/domain-membership-billing/sponsors/staff-tasks';
 import { ROLES } from '@interdomestik/shared-auth';
 
+// §3.4: staff and administrators record handover evidence and close handovers.
+const HANDOVER_ROLES: ReadonlySet<string> = new Set([
+  ROLES.staff,
+  ROLES.tenant_admin,
+  ROLES.admin,
+  ROLES.super_admin,
+]);
+
 type StaffContext = {
   authority: TenantAuthority;
   actor: Parameters<typeof listSponsorStaffTasks>[1];
@@ -23,8 +31,9 @@ export async function authorizeSponsorTasks(): Promise<StaffContext | null> {
     const principal = descriptor.principal;
     if (
       !principal ||
-      principal.role !== ROLES.staff ||
-      session.user.role !== ROLES.staff ||
+      !principal.role ||
+      !HANDOVER_ROLES.has(principal.role) ||
+      session.user.role !== principal.role ||
       principal.userId !== session.user.id ||
       (principal.branchId ?? null) !== (session.user.branchId ?? null) ||
       descriptor.tenantId !== descriptor.accessTenantId
@@ -35,7 +44,7 @@ export async function authorizeSponsorTasks(): Promise<StaffContext | null> {
       tenantId: descriptor.tenantId,
       actor: {
         userId: principal.userId,
-        role: ROLES.staff,
+        role: principal.role,
         branchId: principal.branchId ?? null,
         agentTier: null,
       },

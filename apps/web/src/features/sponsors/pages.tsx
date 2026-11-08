@@ -164,7 +164,7 @@ export async function SponsorPage({
       className="mx-auto max-w-5xl space-y-6 p-4 sm:p-8"
     >
       <h1 className="text-2xl font-bold">{sponsor?.legalName ?? t('title')}</h1>
-      {area === 'staff' && !sponsorId && <SponsorTasksLink />}
+      {area !== 'agent' && !sponsorId && <SponsorTasksLink area={area} />}
       {sponsor && (
         <nav className="flex flex-wrap gap-x-4 gap-y-1">
           <Link className="underline" href={base}>

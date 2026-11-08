@@ -172,7 +172,7 @@ describe('sponsor surfaces', () => {
         const suffix = 'termId' in ids ? '-roster' : 'sponsorId' in ids ? '-detail' : '';
         expect(screen.getByTestId(`${area}-sponsors${suffix}-page-ready`)).toBeInTheDocument();
         const tasksLink = screen.queryByText('sponsor-tasks');
-        expect(Boolean(tasksLink)).toBe(area === 'staff' && suffix === '');
+        expect(Boolean(tasksLink)).toBe(area !== 'agent' && suffix === '');
         view.unmount();
       }
     }
