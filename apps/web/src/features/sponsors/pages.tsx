@@ -6,7 +6,8 @@ import {
   type SponsorTermView,
 } from '@interdomestik/domain-membership-billing/sponsors/roster-view';
 import { sponsorCredentialCheck } from '@interdomestik/domain-membership-billing/sponsors/sponsor-jobs';
-import { getTranslations } from 'next-intl/server';
+import { formatPilotDateTime } from '@/lib/utils/date';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { ActionForm } from './action-form';
 import { sponsorContext, mayUseArea, type SponsorArea } from './context.core';
@@ -20,16 +21,17 @@ export type SponsorPageProps = {
 };
 
 async function TermSummary({ term }: { term: SponsorTermView }): Promise<React.JSX.Element> {
-  const t = await getTranslations('sponsors');
+  const [t, locale] = await Promise.all([getTranslations('sponsors'), getLocale()]);
+  const at = (value: Date): string => formatPilotDateTime(value, locale, '');
   return (
     <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       <div>
         <dt>{t('fields.termStart')}</dt>
-        <dd>{term.termStart.toISOString()}</dd>
+        <dd>{at(term.termStart)}</dd>
       </div>
       <div>
         <dt>{t('fields.termEnd')}</dt>
-        <dd>{term.termEnd.toISOString()}</dd>
+        <dd>{at(term.termEnd)}</dd>
       </div>
       <div>
         <dt>{t('fields.planKey')}</dt>
@@ -45,7 +47,7 @@ async function TermSummary({ term }: { term: SponsorTermView }): Promise<React.J
       </div>
       <div>
         <dt>{t('terminated')}</dt>
-        <dd>{term.terminatedEffectiveAt?.toISOString() ?? t('no')}</dd>
+        <dd>{term.terminatedEffectiveAt ? at(term.terminatedEffectiveAt) : t('no')}</dd>
       </div>
     </dl>
   );
@@ -107,9 +109,6 @@ export async function SponsorPage({
     if (!result.ok || result.value.sponsorId !== sponsor.sponsorId) notFound();
     content = (
       <>
-        <Link className="underline" href={`${base}/${sponsor.sponsorId}`}>
-          {t('backToSponsor')}
-        </Link>
         <TermSummary term={term} />
         <SponsorRoster roster={result.value} uploadEnabled={await sponsorUploadEnabled(context)} />
         <TermControls
@@ -167,9 +166,16 @@ export async function SponsorPage({
       <h1 className="text-2xl font-bold">{sponsor?.legalName ?? t('title')}</h1>
       {area === 'staff' && !sponsorId && <SponsorTasksLink />}
       {sponsor && (
-        <Link className="underline" href={base}>
-          {t('backToSponsors')}
-        </Link>
+        <nav className="flex flex-wrap gap-x-4 gap-y-1">
+          <Link className="underline" href={base}>
+            {t('backToSponsors')}
+          </Link>
+          {termId && (
+            <Link className="underline" href={`${base}/${sponsor.sponsorId}`}>
+              {t('backToSponsor')}
+            </Link>
+          )}
+        </nav>
       )}
       {content}
     </main>

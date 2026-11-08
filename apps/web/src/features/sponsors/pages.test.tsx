@@ -41,6 +41,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-intl/server', () => ({
   getTranslations: async () => translate,
   getMessages: async () => messages,
+  getLocale: async () => 'en',
 }));
 vi.mock('next-intl', () => ({
   useTranslations: () => translate,

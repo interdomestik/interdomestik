@@ -83,5 +83,6 @@ export function actionForm(page: Page, locale: Locale, operation: string): Locat
 }
 
 export function rosterRow(page: Page, email: string): Locator {
-  return page.locator('li').filter({ has: page.getByText(email, { exact: true }) });
+  // Streaming can leave a hidden copy of the page; only the rendered row counts.
+  return page.locator('li').filter({ visible: true, has: page.getByText(email, { exact: true }) });
 }
