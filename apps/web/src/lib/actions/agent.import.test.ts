@@ -25,6 +25,28 @@ describe('agent actions', () => {
       });
     });
 
+    it.each(['dark', 'not_office'])(
+      'refuses the action itself when access is %s, before the payload or the core',
+      async access => {
+        const importMembers = await loadImportMembersAction();
+        const { importMembersCore } = await import('./agent/import-members.core');
+        const { resolveSponsoredImportAccess } = await import('./agent/sponsored-import-access');
+        vi.mocked(getAgentSession).mockResolvedValue(IMPORT_AGENT_SESSION as never);
+        vi.mocked(resolveSponsoredImportAccess).mockResolvedValueOnce(access as never);
+
+        await expect(importMembers(null, createRowsFormData([buildImportRow()]))).resolves.toEqual({
+          error: 'Unauthorized',
+          summary: undefined,
+          results: undefined,
+        });
+        expect(resolveSponsoredImportAccess).toHaveBeenCalledWith({
+          agentId: 'agent1',
+          authority: expect.anything(),
+        });
+        expect(importMembersCore).not.toHaveBeenCalled();
+      }
+    );
+
     it('delegates bulk import to the core and returns the structured result', async () => {
       const importMembers = await loadImportMembersAction();
       const { importMembersCore } = await import('./agent/import-members.core');

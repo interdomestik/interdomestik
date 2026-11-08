@@ -1,4 +1,3 @@
-import { sendMemberWelcomeEmail } from '@/lib/email';
 import {
   createAgentAssistedOwnershipAttribution,
   createCanonicalMembershipPlanState,
@@ -12,7 +11,6 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import { circuitBreakers } from '@interdomestik/shared-utils/circuit-breaker';
 import { transactionRetryConfig, withRetry } from '@interdomestik/shared-utils/resilience';
 import { nanoid } from 'nanoid';
 import { registerMemberSchema } from './schemas';
@@ -65,7 +63,7 @@ export async function registerMemberCore(
     console.error('Registration refused: agent does not match the tenant authority principal');
     return {
       ok: false as const,
-      error: 'Failed to register member. Email might already exist.' as const,
+      error: 'Failed to register member.' as const,
     };
   }
 
@@ -81,25 +79,34 @@ export async function registerMemberCore(
   try {
     const joinedAt = new Date();
     // Each attempt opens its own tenant transaction; the retry wraps the whole attempt.
-    await withRetry(
+    const created = await withRetry(
       () =>
         withTenantAuthority(authority, async tx => {
           const now = joinedAt;
 
           // 1. Create User (Role must be 'member' for the unique index to eventually apply)
-          // We insert with null memberNumber first.
-          await tx.insert(userTable).values({
-            id: userId,
-            tenantId,
-            branchId: agentBranchId,
-            name: data.fullName,
-            email: data.email,
-            emailVerified: false,
-            role: 'member', // Critical change: was 'user'
-            ...attribution,
-            createdAt: now,
-            updatedAt: now,
-          });
+          // We insert with null memberNumber first. Email is unique across every tenant, so an
+          // address that already has an account creates nothing here and the import reports the
+          // row exactly as it reports a new one: the roster is never an account-existence oracle.
+          const inserted = await tx
+            .insert(userTable)
+            .values({
+              id: userId,
+              tenantId,
+              branchId: agentBranchId,
+              name: data.fullName,
+              email: data.email,
+              emailVerified: false,
+              role: 'member', // Critical change: was 'user'
+              ...attribution,
+              createdAt: now,
+              updatedAt: now,
+            })
+            .onConflictDoNothing({ target: userTable.email })
+            .returning({ id: userTable.id });
+          if (inserted.length === 0) {
+            return false;
+          }
 
           await revokeAgentClientReadScope(tx, { tenantId, memberId: userId });
 
@@ -125,9 +132,13 @@ export async function registerMemberCore(
             createdAt: now,
             updatedAt: now,
           });
+          return true;
         }),
       transactionRetryConfig()
     );
+    if (!created) {
+      return { ok: true as const };
+    }
 
     // The global member number is issued for the committed member. The registration contract
     // allows a member without one (a later sign-in self-heal may assign it), so a failure here does
@@ -137,25 +148,14 @@ export async function registerMemberCore(
       return null;
     });
 
-    // Send email with circuit breaker protection
-    try {
-      await circuitBreakers.email.execute(() =>
-        sendMemberWelcomeEmail(data.email, {
-          memberName: data.fullName,
-          agentName: agent.name || 'Your Agent',
-        })
-      );
-    } catch (emailError) {
-      // Don't fail registration if email fails, just log it
-      console.warn('Welcome email failed:', emailError);
-    }
-
+    // No email leaves an import: the employer's roster is not the employee's consent (OD-18). The
+    // employee's own acceptance flow replaces this paused registration in ACQ-3b.
     return { ok: true as const };
   } catch (err) {
     console.error('Registration failed:', err);
     return {
       ok: false as const,
-      error: 'Failed to register member. Email might already exist.' as const,
+      error: 'Failed to register member.' as const,
     };
   }
 }

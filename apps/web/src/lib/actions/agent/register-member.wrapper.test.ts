@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mocks, registrationForm } from './register-member.wrapper.test-support';
 import { DIRECT_REGISTRATION_RETIRED, registerMemberCore } from './register-member.core';
 
-const FAILED = { ok: false, error: 'Failed to register member. Email might already exist.' };
+const FAILED = { ok: false, error: 'Failed to register member.' };
 
 describe('registerMemberCore', () => {
   const agent = { id: 'agent1', name: 'Agent Smith' };
@@ -11,12 +11,14 @@ describe('registerMemberCore', () => {
   const branchId = 'mk_branch_a';
   const sponsored = { membershipMode: 'sponsored' } as const;
   const insertValues: unknown[] = [];
+  let insertedUsers: unknown[] = [];
   const register = (formData = registrationForm()) =>
     registerMemberCore(agent, authority, branchId, formData, sponsored);
 
   beforeEach(() => {
     vi.clearAllMocks();
     insertValues.length = 0;
+    insertedUsers = [{ id: 'new-id' }];
     mocks.deletedTables.length = 0;
     mocks.issueTenantMemberNumber.mockResolvedValue({ memberNumber: 'MEM-1', isNew: true });
     mocks.selectResults.length = 0;
@@ -26,7 +28,10 @@ describe('registerMemberCore', () => {
       insert: vi.fn().mockImplementation(() => ({
         values: vi.fn().mockImplementation((value: unknown) => {
           insertValues.push(value);
-          return { onConflictDoUpdate: vi.fn().mockResolvedValue(undefined) };
+          return {
+            onConflictDoNothing: vi.fn(() => ({ returning: vi.fn(async () => insertedUsers) })),
+            onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+          };
         }),
       })),
       update: vi.fn().mockImplementation(() => ({
@@ -86,6 +91,18 @@ describe('registerMemberCore', () => {
       joinedAt: expect.any(Date),
     });
     expect(mocks.deletedTables).toEqual([]);
+    expect(mocks.emailExecute).not.toHaveBeenCalled();
+  });
+
+  it('reports an address that already has an account exactly like a new one, creating nothing', async () => {
+    insertedUsers = [];
+
+    await expect(register()).resolves.toEqual({ ok: true });
+
+    expect(insertValues).toHaveLength(1);
+    expect(insertValues).not.toContainEqual(expect.objectContaining({ status: 'paused' }));
+    expect(mocks.issueTenantMemberNumber).not.toHaveBeenCalled();
+    expect(mocks.emailExecute).not.toHaveBeenCalled();
   });
 
   it('fails validation without a write', async () => {
