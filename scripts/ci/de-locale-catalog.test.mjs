@@ -60,22 +60,31 @@ test('every de catalog has the en key paths, value types and ICU tokens', () => 
   }
 });
 
-test('every de catalog has a modularity owner and unknown locales stay unowned', () => {
+test('every de catalog has an explicit modularity owner', () => {
   for (const name of catalogNames('de')) {
-    assert.ok(structuredArtifactOwner(`apps/web/src/messages/de/${name}`), name);
+    const englishOwner = structuredArtifactOwner(`apps/web/src/messages/en/${name}`);
+    assert.equal(
+      structuredArtifactOwner(`apps/web/src/messages/de/${name}`),
+      englishOwner ?? 'de-locale-catalog-contract',
+      name
+    );
+  }
+  for (const name of ['agent.json', 'freeStart.json', 'pricing.json']) {
+    assert.notEqual(structuredArtifactOwner(`apps/web/src/messages/en/${name}`), null, name);
+  }
+});
+
+test('unknown de catalogs and unknown locales stay unowned', () => {
+  for (const name of ['unknown.json', 'common-extra.json', 'nested/common.json']) {
+    assert.equal(structuredArtifactOwner(`apps/web/src/messages/de/${name}`), null, name);
   }
   assert.equal(structuredArtifactOwner('apps/web/src/messages/hr/common.json'), null);
 });
 
-test('mapped de catalogs share the per-file owner of their en counterpart', () => {
-  for (const name of ['agent.json', 'freeStart.json', 'pricing.json']) {
-    assert.equal(
-      structuredArtifactOwner(`apps/web/src/messages/de/${name}`),
-      structuredArtifactOwner(`apps/web/src/messages/en/${name}`)
-    );
+test('the de catalog contract does not widen ownership of other locales', () => {
+  for (const locale of ['en', 'sq', 'mk', 'sr']) {
+    for (const name of ['common.json', 'admin.json', 'auth.json']) {
+      assert.equal(structuredArtifactOwner(`apps/web/src/messages/${locale}/${name}`), null);
+    }
   }
-  assert.equal(
-    structuredArtifactOwner('apps/web/src/messages/de/common.json'),
-    'de-locale-catalog-contract'
-  );
 });

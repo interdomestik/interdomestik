@@ -71,7 +71,6 @@ const STRUCTURED_OWNERS = [
     /^apps\/web\/src\/features\/help-now\/copy-(?:en|sq|mk|sr|de)\.json$/u,
     's7-helpnow-localized-copy-contract',
   ],
-  [/^apps\/web\/src\/messages\/de\/[^/]+\.json$/u, 'de-locale-catalog-contract'],
 ];
 const LOCALE_CATALOG_OWNERS = new Map([
   ['admin-users.json', 's7-admin-user-read-recovery-i18n-contract'],
@@ -89,6 +88,59 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['agent.json', 'acq-1-lead-notice-i18n-contract'],
   ['pricing.json', 'acq-1-lead-notice-i18n-contract'],
   ['admin-branches.json', 'locale-catalog-integrity-contract'],
+]);
+/** German catalogs without a per-file feature owner; each name is registered explicitly. */
+const DE_LOCALE_CATALOGS = new Set([
+  'about.json',
+  'accidentJourney.json',
+  'admin-commissions.json',
+  'admin-common.json',
+  'admin-crm.json',
+  'admin-dashboard.json',
+  'admin-settings.json',
+  'admin.json',
+  'agent-crm.json',
+  'agent-members.json',
+  'agent-toolkit.json',
+  'auth.json',
+  'claimCategories.json',
+  'commercialTerms.json',
+  'common.json',
+  'consumerRights.json',
+  'coverageMatrix.json',
+  'documents.json',
+  'entityDisclosure.json',
+  'evidence.json',
+  'faq.json',
+  'features.json',
+  'flightJourney.json',
+  'footer.json',
+  'freeStartResult.json',
+  'freeStartResultEvidence.json',
+  'help.json',
+  'hero.json',
+  'howItWorks.json',
+  'howMembershipWorks.json',
+  'injuryJourney.json',
+  'legal.json',
+  'memberBenefits.json',
+  'membership-success.json',
+  'metadata.json',
+  'nav.json',
+  'nps.json',
+  'partners.json',
+  'propertyJourney.json',
+  'services.json',
+  'servicesPage.json',
+  'settings.json',
+  'staff-crm.json',
+  'stats.json',
+  'testimonials.json',
+  'timeline.json',
+  'trust.json',
+  'trustStats.json',
+  'voiceClaim.json',
+  'wizard.json',
 ]);
 const GENERATED_EXACT_FILES = new Set([
   'bun.lockb',
@@ -126,9 +178,10 @@ export function isExplicitModularityException(filePath) {
 }
 export function structuredArtifactOwner(filePath) {
   const relPath = toPolicyPath(filePath);
-  const match = /^apps\/web\/src\/messages\/(?:de|en|mk|sq|sr)\/([^/]+\.json)$/u.exec(relPath);
-  const localeOwner = LOCALE_CATALOG_OWNERS.get(match?.[1]);
+  const match = /^apps\/web\/src\/messages\/(de|en|mk|sq|sr)\/([^/]+\.json)$/u.exec(relPath);
+  const localeOwner = LOCALE_CATALOG_OWNERS.get(match?.[2]);
   if (localeOwner) return localeOwner;
+  if (match?.[1] === 'de' && DE_LOCALE_CATALOGS.has(match[2])) return 'de-locale-catalog-contract';
   return STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1] ?? null;
 }
 export function classifyModularityFile(filePath) {
