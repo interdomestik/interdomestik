@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TaskActionForm } from './task-action-form';
 
@@ -14,6 +14,12 @@ vi.mock('./actions', () => ({
   acknowledgeChargeAction: mocks.acknowledge,
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
+// Focus moves in an effect after the result renders; wait for it, not just for the text.
+async function expectFocused(text: string): Promise<void> {
+  const node = await screen.findByText(text);
+  await waitFor(() => expect(node).toHaveFocus());
+}
+
 const forms = [
   { kind: 'evidence', action: mocks.evidence },
   { kind: 'close', action: mocks.close },
@@ -39,7 +45,7 @@ describe.each(forms)('$kind form', ({ kind, action }) => {
     action.mockResolvedValue({ ok: true });
     render(<TaskActionForm kind={kind} id="task-1" />);
     submitForm(kind);
-    expect(await screen.findByText('saved')).toHaveFocus();
+    await expectFocused('saved');
     expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
     expect(screen.getByRole('button', { name: `actions.${kind}` })).toBeDisabled();
     expect(mocks.refresh).not.toHaveBeenCalled();
@@ -57,9 +63,7 @@ describe.each(forms)('$kind form', ({ kind, action }) => {
       action.mockResolvedValue({ ok: false, error });
       render(<TaskActionForm kind={kind} id="task-1" />);
       submitForm(kind);
-      expect(
-        await screen.findByText(error === 'conflict' ? `conflicts.${kind}` : `errors.${error}`)
-      ).toHaveFocus();
+      await expectFocused(error === 'conflict' ? `conflicts.${kind}` : `errors.${error}`);
       expect(screen.getByRole('button')).toBeEnabled();
       expect(mocks.refresh).not.toHaveBeenCalled();
     }
@@ -69,6 +73,6 @@ describe.each(forms)('$kind form', ({ kind, action }) => {
     action.mockRejectedValue(new Error('offline'));
     render(<TaskActionForm kind={kind} id="task-1" />);
     submitForm(kind);
-    expect(await screen.findByText('errors.error')).toHaveFocus();
+    await expectFocused('errors.error');
   });
 });

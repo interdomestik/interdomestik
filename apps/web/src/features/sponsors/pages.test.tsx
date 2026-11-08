@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ROLES } from '@interdomestik/shared-auth';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import messages from '@/messages/en/sponsors.json';
 import { context, roster, sponsor, term } from './test-fixtures';
 import { SponsorPage } from './pages';
@@ -39,9 +40,10 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('next-intl/server', () => ({
-  getTranslations: async () => translate,
+  getTranslations: vi.fn(async () => translate),
   getMessages: async () => messages,
   getLocale: async () => 'en',
+  setRequestLocale: vi.fn(),
 }));
 vi.mock('next-intl', () => ({
   useTranslations: () => translate,
@@ -87,6 +89,13 @@ beforeEach(() => {
 });
 
 describe('sponsor surfaces', () => {
+  it('sets the route locale before loading context or translations', async () => {
+    await SponsorPage({ area: 'staff', params: Promise.resolve({ locale: 'en' }) });
+    expect(setRequestLocale).toHaveBeenCalledWith('en');
+    const [localeCall] = vi.mocked(setRequestLocale).mock.invocationCallOrder;
+    expect(localeCall).toBeLessThan(mocks.context.mock.invocationCallOrder[0]);
+    expect(localeCall).toBeLessThan(vi.mocked(getTranslations).mock.invocationCallOrder[0]);
+  });
   it('renders only roster identities, three statuses, counts, and the left-company marker', async () => {
     render(await SponsorRoster({ roster, uploadEnabled: false }));
     expect(screen.getByText('3 of 10 seats used')).toBeInTheDocument();

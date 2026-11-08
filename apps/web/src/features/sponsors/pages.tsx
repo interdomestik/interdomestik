@@ -7,7 +7,7 @@ import {
 } from '@interdomestik/domain-membership-billing/sponsors/roster-view';
 import { sponsorCredentialCheck } from '@interdomestik/domain-membership-billing/sponsors/sponsor-jobs';
 import { formatPilotDateTime } from '@/lib/utils/date';
-import { getLocale, getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { ActionForm } from './action-form';
 import { sponsorContext, mayUseArea, type SponsorArea } from './context.core';
@@ -57,7 +57,8 @@ export async function SponsorPage({
   area,
   params,
 }: SponsorPageProps & { area: SponsorArea }): Promise<React.JSX.Element> {
-  const { sponsorId, termId } = await params;
+  const { locale, sponsorId, termId } = await params;
+  setRequestLocale(locale);
   const context = await sponsorContext();
   if (!context || !mayUseArea(context.actor, area)) notFound();
   const t = await getTranslations('sponsors');
