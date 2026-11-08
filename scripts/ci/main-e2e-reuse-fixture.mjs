@@ -141,7 +141,7 @@ export const commandChainDrifts = [
   removed("const fastEnv = { PW_FAST_GATES: '1' };"),
   removed("const strictArgs = ['--max-failures=1', ...reportArgs];"),
   removed("const strictWorkers = ['--workers=1', ...strictArgs];"),
-  removed("const gateArgs = ['e2e/gate', ...strictWorkers];"),
+  removed("const gateArgs = ['e2e/gate', 'e2e/security', ...strictWorkers];"),
   removed('gatekeeper: true,'),
   removed("const pwArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];"),
   removed('await runDetachedCommand(command, args, { cwd: rootDir, env });'),

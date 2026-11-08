@@ -60,6 +60,8 @@ test('PR verification owns the full gate and orchestration never repeats it or R
 });
 
 test('canonical PR lanes consolidate MK while pilot invocations retain the legacy project', () => {
+  // The gate path filter keeps the security specs that GATE_SECURITY_MATCH admits.
+  assert.match(runner, /const gateArgs = \['e2e\/gate', 'e2e\/security', \.\.\.strictWorkers\];/u);
   assert.match(runner, /pr: gateLane\(\[ksSq, mkContract\], true\)/u);
   assert.match(runner, /'pr-fast': gateLane\(\[ksSq, mkContract\]\)/u);
   assert.match(runner, /gate: gateLane\(\[ksSq, mkMk\], true\)/u);

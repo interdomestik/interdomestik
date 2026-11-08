@@ -41,7 +41,9 @@ const reportArgs = playwrightReportArgs(process.env.PW_EVIDENCE_LANE);
 const strictArgs = ['--max-failures=1', ...reportArgs];
 const workerArgs = ['--workers=1', ...reportArgs];
 const strictWorkers = ['--workers=1', ...strictArgs];
-const gateArgs = ['e2e/gate', ...strictWorkers];
+// The gate projects also admit the configured security specs (GATE_SECURITY_MATCH); the path filter
+// must not drop them.
+const gateArgs = ['e2e/gate', 'e2e/security', ...strictWorkers];
 const setupArgs = ['e2e/setup.state.spec.ts', '--project=setup-ks', '--project=setup-mk'];
 const mergeArgs = ['e2e/gate', 'e2e/golden', '--grep-invert', '@quarantine|@visual|@legacy'];
 const pwArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];
