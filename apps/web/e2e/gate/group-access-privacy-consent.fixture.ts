@@ -11,6 +11,7 @@ import {
   tenantSettings,
   user,
 } from '@interdomestik/database';
+import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
 import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
@@ -42,7 +43,23 @@ function getOfficeSeededAgent(testInfo: TestInfo): OfficeSeededAgent {
   };
 }
 
+// Projects that share a tenant (gate-mk-mk and gate-mk-contract) may run this fixture concurrently.
+// Each run snapshots and restores shared rows (the agent tier, the tenant's import setting), so a
+// session-held advisory lock serializes runs per tenant from the snapshot through the restore. The
+// transaction only holds the lock: every fixture write commits on its own so the app sees it, and a
+// killed worker's connection drops the lock with it.
 export async function withGroupAccessPrivacyFixture(
+  testInfo: TestInfo,
+  run: (context: PrivacyFixtureContext) => Promise<void>
+) {
+  const lockKey = `e2e-group-access-privacy:${isMkProject(testInfo) ? 'mk' : 'ks'}`;
+  await db.transaction(async tx => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${lockKey}))`);
+    await runGroupAccessPrivacyFixture(testInfo, run);
+  });
+}
+
+async function runGroupAccessPrivacyFixture(
   testInfo: TestInfo,
   run: (context: PrivacyFixtureContext) => Promise<void>
 ) {
