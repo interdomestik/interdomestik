@@ -112,7 +112,14 @@ test.describe('ACQ-3b staff tasks and accessible sponsor pages', () => {
           await expect(visible(page.getByTestId('agent-sponsors-roster-page-ready'))).toContainText(
             copy(locale, 'sponsors', 'roster')
           );
-          await tabTo(page, actionForm(page, locale, 'uploadRoster').getByRole('button'));
+          // The upload form's file input also has the button role; target the named action.
+          await tabTo(
+            page,
+            actionForm(page, locale, 'uploadRoster').getByRole('button', {
+              name: copy(locale, 'sponsors', 'actions.uploadRoster'),
+              exact: true,
+            })
+          );
         });
       });
     });

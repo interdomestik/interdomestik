@@ -44,7 +44,8 @@ describe('bindEntryIdentity after an insert conflict', () => {
     });
     const result = await bind(db.tx);
     expect(result.kind).toBe(kind);
-    if (kind === 'bound') expect(result).toEqual({ kind, userId: 'usr_signup', created: false });
+    if (kind === 'bound')
+      expect(result).toEqual({ kind, userId: 'usr_signup', created: false, lockedTermIds: [] });
   });
 
   it('marks an account it inserted itself as created', async () => {
@@ -74,7 +75,12 @@ describe('bindEntryIdentity after an insert conflict', () => {
       db.tx.update(...args)
     );
     const tx = { ...db.tx, select, update } as unknown as TenantTransaction;
-    expect(await bind(tx)).toEqual({ kind: 'bound', userId: 'usr_existing', created: false });
+    expect(await bind(tx)).toEqual({
+      kind: 'bound',
+      userId: 'usr_existing',
+      created: false,
+      lockedTermIds: ['term'],
+    });
     expect(order).toEqual(['person', 'share', 'update', 'write']);
     // An entry uploaded meanwhile into another term is not locked here (that term is not held).
     expect(inArray).toHaveBeenCalledWith(sponsorRosterEntries.termId, ['term']);

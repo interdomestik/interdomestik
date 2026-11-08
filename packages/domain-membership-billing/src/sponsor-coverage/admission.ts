@@ -95,11 +95,17 @@ const optional = (value: string | null): Date | null => (value ? parseTimestamp(
  * Admission under the person's lock (§3.5): lock 2, then the person's terms `FOR SHARE`, then the
  * person's entries `FOR UPDATE` in id order. Writes each decision once with `clock_timestamp()`.
  * The caller owns the tenant transaction; the guard trigger refuses any second write.
+ *
+ * Entries are locked only in the terms locked here; one uploaded meanwhile into another term is
+ * admitted by its own job. `scope` (from identity binding, which already holds those terms) keeps
+ * the term set: a term discovered after entry locks would be taken out of the §3.5 order, against a
+ * termination that holds that term and waits for one of ours (Astra round 4).
  */
 export async function admitPersonEntries(
   tx: TenantTransaction,
   tenantId: string,
-  userId: string
+  userId: string,
+  scope?: { termIds: readonly string[] }
 ): Promise<AdmissionDecision[]> {
   await lockSponsorPerson(tx, userId);
   const personEntries = and(
@@ -119,9 +125,16 @@ export async function admitPersonEntries(
       terminatedEffectiveAt: sponsorTerms.terminatedEffectiveAt,
     })
     .from(sponsorTerms)
-    .where(and(eq(sponsorTerms.tenantId, tenantId), inArray(sponsorTerms.id, personTermIds)))
+    .where(
+      and(
+        eq(sponsorTerms.tenantId, tenantId),
+        inArray(sponsorTerms.id, personTermIds),
+        scope ? inArray(sponsorTerms.id, [...scope.termIds]) : undefined
+      )
+    )
     .orderBy(asc(sponsorTerms.id))
     .for('share');
+  if (terms.length === 0) return [];
   const entries = await tx
     .select({
       id: sponsorRosterEntries.id,
@@ -130,7 +143,15 @@ export async function admitPersonEntries(
       revokedAt: sponsorRosterEntries.revokedAt,
     })
     .from(sponsorRosterEntries)
-    .where(personEntries)
+    .where(
+      and(
+        personEntries,
+        inArray(
+          sponsorRosterEntries.termId,
+          terms.map(term => term.id)
+        )
+      )
+    )
     .orderBy(asc(sponsorRosterEntries.id))
     .for('update');
   if (entries.length === 0) return [];

@@ -29,7 +29,8 @@ export type UnboundEntry = {
 };
 
 export type IdentityResult =
-  | { kind: 'bound'; userId: string; created: boolean }
+  /** `lockedTermIds`: the terms this binding holds `FOR SHARE`, the admission scope after it. */
+  | { kind: 'bound'; userId: string; created: boolean; lockedTermIds?: string[] }
   /** The address belongs to an account outside this tenant. */
   | { kind: 'foreign' }
   /** The address cannot be bound to exactly one person of this term. */
@@ -71,7 +72,7 @@ export async function bindEntryIdentity(
   }
   if (!userId) return { kind: 'foreign' };
   const created = createdId !== null;
-  await lockBindingRows(tx, tenantId, userId, entry.id);
+  const lockedTermIds = await lockBindingRows(tx, tenantId, userId, entry.id);
 
   const [taken] = await tx
     .select({ id: sponsorRosterEntries.id })
@@ -91,7 +92,7 @@ export async function bindEntryIdentity(
     .update(sponsorRosterEntries)
     .set({ userId })
     .where(and(eq(sponsorRosterEntries.tenantId, tenantId), eq(sponsorRosterEntries.id, entry.id)));
-  return { kind: 'bound', userId, created };
+  return { kind: 'bound', userId, created, lockedTermIds };
 }
 
 /**
@@ -106,7 +107,7 @@ async function lockBindingRows(
   tenantId: string,
   userId: string,
   entryId: string
-): Promise<void> {
+): Promise<string[]> {
   await lockSponsorPerson(tx, userId);
   const rows = and(
     eq(sponsorRosterEntries.tenantId, tenantId),
@@ -122,21 +123,15 @@ async function lockBindingRows(
     .where(and(eq(sponsorTerms.tenantId, tenantId), inArray(sponsorTerms.id, termIds)))
     .orderBy(asc(sponsorTerms.id))
     .for('share');
-  if (locked.length === 0) return;
+  const lockedTermIds = locked.map(term => term.id);
+  if (lockedTermIds.length === 0) return lockedTermIds;
   await tx
     .select({ id: sponsorRosterEntries.id })
     .from(sponsorRosterEntries)
-    .where(
-      and(
-        rows,
-        inArray(
-          sponsorRosterEntries.termId,
-          locked.map(term => term.id)
-        )
-      )
-    )
+    .where(and(rows, inArray(sponsorRosterEntries.termId, lockedTermIds)))
     .orderBy(asc(sponsorRosterEntries.id))
     .for('update');
+  return lockedTermIds;
 }
 
 async function visibleAccounts(

@@ -57,6 +57,7 @@ export async function provisionEntry(
     const started = facts.termStart.getTime() <= now.getTime();
     let userId = facts.userId;
     let created = false;
+    let admissionScope: { termIds: string[] } | undefined;
     if (!userId) {
       if (!facts.emailHmac || !facts.emailNormalized) return skip;
       const identity = await bindEntryIdentity(tx, {
@@ -84,8 +85,9 @@ export async function provisionEntry(
       }
       userId = identity.userId;
       created = identity.created;
+      if (identity.lockedTermIds) admissionScope = { termIds: identity.lockedTermIds };
     }
-    const decisions = await admitPersonEntries(tx, tenantId, userId);
+    const decisions = await admitPersonEntries(tx, tenantId, userId, admissionScope);
     const decided = decisions.find(item => item.entryId === input.entryId)?.decision;
     if (decided === 'rejected' || (!decided && facts.conflictDecision !== 'accepted')) {
       return { outcome: 'rejected', createdUserId: null };
