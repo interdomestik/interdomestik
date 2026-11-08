@@ -21,7 +21,7 @@ import { resolveSponsoredImportAccess } from './agent/sponsored-import-access';
 function resolveLocaleFromReferer(referer: string | null): string {
   // Keep in sync with apps/web/src/i18n/routing.ts (localePrefix: 'always').
   const defaultLocale = 'sq';
-  const locales = ['sq', 'en', 'sr', 'mk'] as const;
+  const locales = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 
   if (!referer) return defaultLocale;
   try {

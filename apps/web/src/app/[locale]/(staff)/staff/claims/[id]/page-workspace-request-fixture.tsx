@@ -14,9 +14,12 @@ import sqClaimsTracking from '@/messages/sq/claims-tracking.json';
 import srAgentClaims from '@/messages/sr/agent-claims.json';
 import srClaims from '@/messages/sr/claims.json';
 import srClaimsTracking from '@/messages/sr/claims-tracking.json';
+import deAgentClaims from '@/messages/de/agent-claims.json';
+import deClaims from '@/messages/de/claims.json';
+import deClaimsTracking from '@/messages/de/claims-tracking.json';
 
 /** Locales this route ships; request acceptance runs across all of them. */
-export const LOCALES = ['en', 'sq', 'mk', 'sr'] as const;
+export const LOCALES = ['en', 'sq', 'mk', 'sr', 'de'] as const;
 export type WorkspaceLocale = (typeof LOCALES)[number];
 
 /** Pinned so next-intl formatting is deterministic instead of machine dependent. */
@@ -29,6 +32,7 @@ const CATALOGS: Record<WorkspaceLocale, Record<string, unknown>> = {
   sq: { ...sqAgentClaims, ...sqClaims, ...sqClaimsTracking },
   mk: { ...mkAgentClaims, ...mkClaims, ...mkClaimsTracking },
   sr: { ...srAgentClaims, ...srClaims, ...srClaimsTracking },
+  de: { ...deAgentClaims, ...deClaims, ...deClaimsTracking },
 };
 
 /** Real message bundle for a locale; both the client provider and the server seam read it. */

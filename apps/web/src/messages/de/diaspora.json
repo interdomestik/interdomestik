@@ -1,0 +1,94 @@
+{
+  "diaspora": {
+    "eyebrow": "Grüne Karte im Ausland",
+    "title": "Schnellstart Grüne Karte im Ausland",
+    "description": "Wählen Sie das Land, in dem der Unfall passiert ist. Wir zeigen die ersten Schritte, die Notrufnummern und den schnellsten Weg zum Support oder zum Start eines Schadensfalls.",
+    "selector": {
+      "label": "Land wählen",
+      "hint": "Verwenden Sie das Land, in dem der Unfall passiert ist.",
+      "required": {
+        "title": "Wählen Sie ein Land, um Hinweise zu sehen",
+        "description": "Länderspezifische Notrufnummern und die Vorbereitung des Schadensfalls erscheinen erst, nachdem Sie gewählt haben, wo der Unfall passiert ist."
+      },
+      "options": {
+        "DE": "Deutschland",
+        "CH": "Schweiz",
+        "AT": "Österreich",
+        "IT": "Italien"
+      }
+    },
+    "corridor": {
+      "title": "Planen Sie Ihren Reisekorridor",
+      "preparationOnly": "Nur zur Vorbereitung. Damit wird kein Schadensfall gestartet oder aktualisiert.",
+      "origin": "Abfahrtsland",
+      "destination": "Zielland",
+      "chooseCountry": "Land wählen",
+      "transitGroup": "Transitländer",
+      "transitHint": "Fügen Sie jedes Transitland in der Reihenfolge der Reise hinzu.",
+      "transit": "Transitland {position}",
+      "addTransit": "Transitland hinzufügen",
+      "removeTransit": "Transitland {position} entfernen",
+      "apply": "Zusammenfassung des Korridors anzeigen",
+      "summaryTitle": "Ihr Reisekorridor",
+      "options": {
+        "AT": "Österreich",
+        "DE": "Deutschland",
+        "CH": "Schweiz",
+        "IT": "Italien",
+        "MK": "Nordmazedonien",
+        "AL": "Albanien",
+        "XK": "Kosovo",
+        "FR": "Frankreich",
+        "BE": "Belgien",
+        "NL": "Niederlande",
+        "ES": "Spanien",
+        "PT": "Portugal",
+        "HU": "Ungarn",
+        "PL": "Polen",
+        "CZ": "Tschechien",
+        "RO": "Rumänien",
+        "SE": "Schweden",
+        "NO": "Norwegen",
+        "DK": "Dänemark",
+        "IE": "Irland"
+      }
+    },
+    "packStatus": {
+      "title": "Status der Soforthilfe-Pakete für diesen Korridor",
+      "description": "Die Verfügbarkeit richtet sich nach dem aktuell geprüften Register der Soforthilfe-Pakete.",
+      "exposed": "Freigegeben",
+      "unavailable": "Nicht verfügbar",
+      "boundary": "Eine Freigabe des Pakets bedeutet nicht, dass es heruntergeladen, aktuell, verifiziert oder offline bereit ist."
+    },
+    "guidance": {
+      "countryDescription": "Länderspezifische Hinweise zu Unfällen mit Grüner Karte.",
+      "emergency": "Notrufnummern",
+      "police": "Polizei",
+      "ambulance": "Rettungsdienst",
+      "fire": "Feuerwehr",
+      "general": "Allgemeiner Notruf",
+      "rules": "Betriebliche Prüfungen",
+      "firstSteps": "Erste Schritte",
+      "firstStepsHint": "Erledigen Sie dies, bevor Sie den Unfallort verlassen, sofern es sicher ist.",
+      "policeRequired": "Polizeibericht erforderlich",
+      "policeNotRequired": "Polizeibericht in der Regel nicht erforderlich",
+      "europeanFormAllowed": "Europäischer Unfallbericht zulässig",
+      "europeanFormNotAllowed": "Europäischer Unfallbericht nicht zulässig",
+      "notes": "Zusätzliche Hinweise"
+    },
+    "actions": {
+      "title": "Nächster Schritt",
+      "description": "Nutzen Sie den direkten Support, wenn Sie jetzt Hilfe brauchen, oder bereiten Sie einen unterstützten Entwurf für einen Fahrzeugschaden zur späteren Einreichung vor.",
+      "selectionRequired": "Kontaktieren Sie jetzt den Support oder wählen Sie oben das Unfallland, bevor Sie einen Fahrzeugschaden vorbereiten.",
+      "support": "Jetzt Support kontaktieren",
+      "whatsapp": "WhatsApp-Support öffnen",
+      "claim": "Fahrzeugschaden vorbereiten"
+    },
+    "boundary": {
+      "title": "Was dieser Schnellstart leistet",
+      "description": "Dies ist der begrenzte Mitglieder-Schnellstart für Unfälle im Ausland.",
+      "pointOne": "Er gibt erste Hinweise und leitet Sie in die aktuellen Support- und Schadensabläufe weiter.",
+      "pointTwo": "Er ersetzt weder die Prüfung durch das Team noch eine rechtliche Bewertung oder die länderspezifische Bearbeitung durch Versicherer."
+    }
+  }
+}

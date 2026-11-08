@@ -1,5 +1,6 @@
 import type { HelpNowContentLocale } from './content-packs';
 import type { HelpNowCopy } from './copy-types';
+import helpNowCopyDe from './copy-de.json';
 import helpNowCopyEn from './copy-en.json';
 import helpNowCopyMk from './copy-mk.json';
 import helpNowCopySq from './copy-sq.json';
@@ -13,6 +14,7 @@ const COPY = {
   sq: helpNowCopySq satisfies HelpNowCopy,
   mk: helpNowCopyMk satisfies HelpNowCopy,
   sr: helpNowCopySr satisfies HelpNowCopy,
+  de: helpNowCopyDe satisfies HelpNowCopy,
 } satisfies Readonly<Record<HelpNowContentLocale, HelpNowCopy>>;
 
 export const getHelpNowCopy = (locale: HelpNowContentLocale): HelpNowCopy => COPY[locale];

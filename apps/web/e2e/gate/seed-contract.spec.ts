@@ -39,7 +39,7 @@ test.describe('Seed Contract Verification', () => {
     const expectedMember = (isKs ? KS_MEMBER : MK_MEMBER).email;
     const otherTenantMember = (isKs ? MK_MEMBER : KS_MEMBER).email;
 
-    for (const locale of ['en', 'sq', 'mk', 'sr'] as const) {
+    for (const locale of ['en', 'sq', 'mk', 'sr', 'de'] as const) {
       await gotoApp(page, `${routes.adminUsers(locale)}?role=admin%2Cstaff`, testInfo, {
         marker: 'admin-users-page',
       });

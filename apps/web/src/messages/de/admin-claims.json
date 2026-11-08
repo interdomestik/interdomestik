@@ -1,0 +1,277 @@
+{
+  "admin": {
+    "claims_page": {
+      "title": "Verwaltung der Schadensfälle",
+      "description": "Alle Schadensfälle der Benutzer ansehen und verwalten.",
+      "assignment": {
+        "label": "Zugewiesene Mitarbeitende",
+        "placeholder": "Mitarbeitende auswählen",
+        "unassigned": "Nicht zugewiesen",
+        "success_message": "Schadensfall erfolgreich zugewiesen"
+      },
+      "sections": {
+        "active": "Aktiv",
+        "draft": "Entwürfe",
+        "resolved": "Geschlossen"
+      },
+      "member_number": "Mitgliedsnummer",
+      "copy_member_number": "Mitgliedsnummer kopieren",
+      "copy_member_link": "Mitgliedslink kopieren",
+      "header": {
+        "copy_traceable_link": "Link mit nachverfolgbarer Nummer kopieren",
+        "copy_canonical_link": "Kanonischen Systemlink kopieren",
+        "claim_number_link": "Link zur Schadensnummer",
+        "canonical_url": "Kanonische URL",
+        "copy_failed": "Link konnte nicht kopiert werden",
+        "copy_success": "{label} in die Zwischenablage kopiert"
+      },
+      "message_alert": "Neue Nachricht ({count})",
+      "table": {
+        "title": "Titel",
+        "amount": "Betrag",
+        "headers": {
+          "complainant": "Anspruchsteller",
+          "title": "Titel",
+          "status": "Status",
+          "amount": "Betrag",
+          "date": "Datum",
+          "branch": "Filiale",
+          "assignee": "Zuständig",
+          "updated": "Aktualisiert",
+          "actions": "Öffnen"
+        },
+        "groups": {
+          "submitted": "Eingereicht",
+          "submitted_to_airline": "An die Fluggesellschaft übermittelt",
+          "verification": "Verifizierung",
+          "evaluation": "Bewertung",
+          "negotiation": "Verhandlung",
+          "court": "Gericht",
+          "resolved": "Gelöst",
+          "rejected": "Abgelehnt",
+          "draft": "Entwurf",
+          "other": "Sonstige"
+        },
+        "group_header": "{label} • {count}",
+        "row": {
+          "stage_line": "{stage} • {days} Tage",
+          "owner_waiting": "Wartet auf {owner}",
+          "owner_assigned": "Zuständig: {name} ({role})",
+          "owner_system": "Systemsperre",
+          "stuck": "Erfordert Aufmerksamkeit",
+          "branch_type": "{branch} • {type}",
+          "member": "{name} ({email})",
+          "amount_unknown": "—",
+          "metadata_condensed": "{member} • {branch}"
+        },
+        "empty_state": "Keine operativen Schadensfälle für diesen Filter."
+      },
+      "source": {
+        "origin_label": "Herkunft",
+        "branch": "Filiale",
+        "agent": "Agent",
+        "member": "Mitglied",
+        "unknown": "Unbekannt",
+        "created": "Angelegt",
+        "diaspora_badge": "Diaspora / Grüne Karte",
+        "diaspora_badge_country": "Diaspora / Grüne Karte ({country})",
+        "origin": {
+          "portal": "Portal",
+          "agent": "Agent",
+          "admin": "Admin",
+          "api": "API"
+        }
+      },
+      "filters": {
+        "status_label": "Lebenszyklusstatus",
+        "assigned_label": "Zuweisung",
+        "assigned_all": "Alle",
+        "assigned_only": "Zugewiesen",
+        "unassigned_only": "Nicht zugewiesen",
+        "assigned_to_me": "Mir zugewiesen",
+        "assignment_label": "Zuweisung",
+        "origin_label": "Herkunft",
+        "origin_all": "Alle Herkünfte",
+        "origin_diaspora": "Diaspora / Grüne Karte",
+        "pending_filter": "Filter werden aktualisiert...",
+        "pending_search": "Suche wird aktualisiert..."
+      },
+      "lifecycle_tabs": {
+        "all": "Alle",
+        "intake": "Aufnahme",
+        "verification": "Verifizierung",
+        "processing": "Bearbeitung",
+        "negotiation": "Verhandlung",
+        "legal": "Rechtlich",
+        "completed": "Abgeschlossen"
+      },
+      "indicators": {
+        "stuck": "Erfordert Aufmerksamkeit",
+        "sla_breach": "SLA-Verstoß",
+        "cash_pending": "Barzahlung ausstehend",
+        "unassigned": "Nicht zugewiesen",
+        "waiting_on_member": "Wartet auf Mitglied",
+        "waiting_on_staff": "Wartet auf Mitarbeitende",
+        "waiting_on_system": "Systemverarbeitung"
+      },
+      "operational_card": {
+        "view_claim": "Schadensfall ansehen",
+        "directive": {
+          "staff_action_required": "Aktion des Teams erforderlich",
+          "staff_action_with_name": "Aktion des Teams — {name}",
+          "member_waiting": "Wartet auf Mitglied",
+          "system_completed": "Abgeschlossen — keine Aktion",
+          "unknown_status": "Status muss geprüft werden"
+        },
+        "badge": {
+          "unassigned": "Zuständige Person zuweisen"
+        }
+      },
+      "pagination_info": "Seite {page} von {total} ({count} Schadensfälle)",
+      "access_denied": "Zugriff verweigert. Sie haben keine Berechtigung, Schadensfälle anzusehen.",
+      "read_failed": "Die Schadensfälle konnten nicht geladen werden. Ihre Filter sind unverändert. Versuchen Sie es erneut.",
+      "read_result": "Gefundene Schadensfälle: {count}.",
+      "ops_center": {
+        "title": "Betriebszentrale",
+        "data_age": "Vor {seconds} Sek. aktualisiert",
+        "kpi": {
+          "sla_breach": "SLA-Verstöße",
+          "unassigned": "Nicht zugewiesen",
+          "stuck": "Erfordert Aufmerksamkeit",
+          "total_open": "Offene Schadensfälle",
+          "waiting_member": "Wartet auf Mitglied",
+          "assigned_to_me": "Mir zugewiesen"
+        },
+        "queue": {
+          "all": "Alle",
+          "needs_action": "Aktion erforderlich",
+          "sla_breach": "SLA-Risiko",
+          "unassigned": "Nicht zugewiesen",
+          "stuck": "Festgefahren",
+          "waiting_member": "Wartet auf Mitglied",
+          "mine": "Mir zugewiesen",
+          "workload": "Arbeitslast"
+        },
+        "prioritized_list": {
+          "title": "Höchste Priorität",
+          "load_more": "Weitere Schadensfälle laden",
+          "empty": "Keine Schadensfälle entsprechen diesem Filter"
+        },
+        "preview": {
+          "loading": "Details werden geladen...",
+          "open_full": "Vollständige Details öffnen"
+        },
+        "refresh": "Aktualisieren"
+      },
+      "next_actions": {
+        "title": "Nächster Schritt",
+        "secondary_label": "Ebenfalls verfügbar",
+        "stuck": "Festgefahren",
+        "days": "Tage",
+        "status": "Status",
+        "actions": {
+          "assign": {
+            "label": "Mir zuweisen",
+            "description": "Übernehmen Sie die Zuständigkeit, um diesen Schadensfall freizugeben."
+          },
+          "update_status": {
+            "label": "Status weiterschalten",
+            "description": "Schadensfall in die nächste Phase verschieben."
+          },
+          "ack_sla": {
+            "label": "Verstoß bestätigen",
+            "description": "SLA-Frist verpasst. Notiz erforderlich."
+          },
+          "escalate": {
+            "label": "Eskalieren",
+            "description": "Aufmerksamkeit der Leitung anfordern."
+          },
+          "message_poke": {
+            "label": "Erinnerung erfassen",
+            "description": "Eine interne Erinnerung zur Zeitachse des Falls hinzufügen."
+          },
+          "review_blockers": {
+            "label": "Hindernisse prüfen",
+            "description": "Zeitachse auf Probleme prüfen."
+          },
+          "reopen": {
+            "label": "Schadensfall wieder öffnen",
+            "description": "Zurück in die Bewertung verschieben."
+          },
+          "message_respond": {
+            "label": "Notiz erfassen",
+            "description": "Eine interne Notiz für die zuständige Person hinzufügen."
+          },
+          "reassign": {
+            "label": "Neu zuweisen",
+            "description": "Zuständigkeit an eine andere Person im Team übertragen."
+          }
+        },
+        "no_action": "Keine sofortigen Aktionen erforderlich.",
+        "risk": {
+          "sla_breach": "SLA-Verstoß",
+          "stuck": "Festgefahren",
+          "unassigned": "Nicht zugewiesen",
+          "back_to_queue": "Zurück zur Warteschlange",
+          "sla": "SLA",
+          "breach": "Verstoß",
+          "days": "Tage",
+          "status": "Status"
+        },
+        "toast": {
+          "failed": "Aktion fehlgeschlagen",
+          "completed": "Aktion abgeschlossen",
+          "unexpected_error": "Ein unerwarteter Fehler ist aufgetreten"
+        },
+        "committed_refresh_pending": "Ihre Änderung wurde gespeichert. Aktualisieren Sie die Seite, um den neuesten Stand zu sehen. Wiederholen Sie diese Aktion nicht."
+      },
+      "evidence": {
+        "title": "Nachweise",
+        "upload_button": "Hochladen",
+        "dialog_title": "Nachweise hochladen",
+        "dialog_description": "Fügen Sie Fotos oder Dokumente zu diesem Schadensfall hinzu.",
+        "document_type_label": "Dokumenttyp",
+        "document_type_placeholder": "Dokumenttyp auswählen",
+        "file_label": "Datei",
+        "upload_success": "Nachweis erfolgreich hochgeladen",
+        "upload_failed": "Nachweis konnte nicht hochgeladen werden",
+        "uploading": "Wird hochgeladen...",
+        "no_docs": "Keine Dokumente hochgeladen.",
+        "types": {
+          "evidence": "Nachweis",
+          "legal": "Rechtsdokument",
+          "image": "Bild",
+          "audio": "Audio",
+          "document": "Dokument"
+        }
+      },
+      "timeline": {
+        "title": "Aktivitätsverlauf",
+        "empty": "Noch keine Aktivität erfasst."
+      },
+      "status_form": {
+        "placeholder": "Status",
+        "success": "Status erfolgreich aktualisiert",
+        "error": "Status konnte nicht aktualisiert werden"
+      },
+      "status_modal": {
+        "title": "Status des Schadensfalls aktualisieren",
+        "description": "Wählen Sie den neuen Status für diesen Schadensfall. Diese Aktion wird protokolliert.",
+        "placeholder": "Neuen Status auswählen...",
+        "confirm": "Aktualisierung bestätigen",
+        "cancel": "Abbrechen",
+        "error": "Status konnte nicht aktualisiert werden",
+        "unexpected_error": "Ein unerwarteter Fehler ist aufgetreten"
+      },
+      "detail": {
+        "fields": {
+          "branch": "Filiale",
+          "claim_limit": "Schadenslimit"
+        },
+        "description": {
+          "empty": "Keine Beschreibung angegeben."
+        }
+      }
+    }
+  }
+}

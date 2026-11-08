@@ -45,7 +45,7 @@ export type AuthTelemetryInput = {
   occurredAt?: string | Date | number | null;
 };
 
-const SUPPORTED_LOCALES = new Set(['sq', 'en', 'sr', 'mk']);
+const SUPPORTED_LOCALES = new Set(['sq', 'en', 'sr', 'mk', 'de']);
 
 function normalizeScalar(value: string | null | undefined, fallback: string): string {
   const trimmed = value?.trim();

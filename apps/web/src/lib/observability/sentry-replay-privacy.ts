@@ -55,7 +55,7 @@ export function isReplaySafeLocation(href: string): boolean {
     return (
       !url.search &&
       !url.hash &&
-      (/^\/(sq|en|sr|mk)(\/login)?\/?$/.test(url.pathname) || url.pathname === '/')
+      (/^\/(sq|en|sr|mk|de)(\/login)?\/?$/.test(url.pathname) || url.pathname === '/')
     );
   } catch {
     return false;

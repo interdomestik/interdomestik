@@ -1,0 +1,311 @@
+{
+  "claims": {
+    "uploadRecovery": {
+      "identityChanged": "Kehren Sie zum ursprünglichen Fall zurück, um diesen Upload abzuschließen.",
+      "description": "Behalten Sie die aktuelle Datei, während Sie es erneut versuchen. Wenn dieser Upload nicht abgeschlossen werden kann, laden Sie die ursprüngliche Seite neu und prüfen Sie deren Dokumente, bevor Sie einen weiteren Upload starten.",
+      "action": "Ursprüngliche Seite neu laden und Dokumente prüfen"
+    },
+    "title": "Meine Fälle",
+    "description": "Verwalten Sie Ihre Verbraucherbeschwerden und verfolgen Sie deren Status.",
+    "new": "Neuer Fall",
+    "draftIntakeCopy": "{\"heading\":\"Bereiten Sie Ihren Fallentwurf vor\",\"supporting\":\"Speichern Sie die Fakten, die Sie jetzt haben, und kehren Sie später zurück.\",\"truth\":\"Nur ein Entwurf – dadurch wird kein Fall erstellt oder eingereicht, kein Fall zugewiesen, kein Team benachrichtigt und keine Prüfung gestartet.\",\"categoryHeading\":\"Wählen Sie, was passiert ist\",\"categoryBody\":\"Die Vorbereitung für Fahrzeug und Eigentum ist verfügbar. Personenschäden sind in diesem Entwurf nicht verfügbar.\",\"categoryContinue\":\"Weiter zu den Details\",\"unsupported\":\"In diesem Entwurf nicht verfügbar\",\"previewHeading\":\"Prüfen Sie Ihre vorbereiteten Fakten\",\"previewBody\":\"Speichern Sie ausdrücklich, wenn diese Fakten bereit sind.\",\"backToDetails\":\"Zurück zu den Details\",\"submitDisabled\":\"Fall einreichen – Voraussetzungen nicht erfüllt\",\"submitExplanation\":\"Für das Einreichen eines Falls sind eine aktive Mitgliedschaft und ein vollständiger, gespeicherter Entwurf ohne ungespeicherte Änderungen erforderlich. Das Speichern des Entwurfs reicht den Fall nicht ein.\",\"submitFirstSaveExplanation\":\"Speichern Sie zuerst diesen vollständigen Entwurf. Für das Einreichen ist außerdem eine aktive Mitgliedschaft erforderlich. Das Speichern des Entwurfs reicht den Fall nicht ein.\",\"submitIncompleteExplanation\":\"Vervollständigen Sie die erforderlichen Fakten des Entwurfs und speichern Sie ihn vor dem Einreichen. Eine aktive Mitgliedschaft ist weiterhin erforderlich, und das Speichern reicht den Fall nicht ein.\",\"submitMembershipExplanation\":\"Um einen Fall einzureichen, benötigen Sie eine aktive Mitgliedschaft. Sie können diesen gespeicherten Entwurf weiter verwalten; das Speichern reicht den Fall nicht ein.\",\"submitUnsavedExplanation\":\"Speichern Sie Ihre Änderungen vor dem Einreichen. Das Speichern von Änderungen reicht den Fall nicht ein.\",\"existingCaseSuccess\":\"Für diesen gespeicherten Entwurf gibt es bereits einen eingereichten Fall. Sie können ihn im Dashboard verfolgen. Wenn Sie den gespeicherten Entwurf später bearbeiten oder löschen, wird der Fall dadurch nicht geändert oder gelöscht.\"}",
+    "empty": {
+      "title": "Keine Fälle gefunden",
+      "description": "Sie haben noch keinen Fall eingereicht. Beginnen Sie mit Ihrem ersten Fall.",
+      "filtered": "Passen Sie Ihre Filter oder Ihre Suche an.",
+      "createFirst": "Ersten Fall anlegen"
+    },
+    "table": {
+      "title": "Titel",
+      "company": "Unternehmen",
+      "category": "Kategorie",
+      "status": "Status",
+      "amount": "Betrag",
+      "created": "Erstellt"
+    },
+    "showing": "Angezeigt",
+    "claim": "Fall",
+    "claimsPlural": "Fälle",
+    "status": {
+      "draft": "Entwurf",
+      "submitted": "Eingereicht",
+      "submitted_to_airline": "Bei der Fluggesellschaft eingereicht",
+      "verification": "Verifizierung",
+      "evaluation": "Bewertung",
+      "negotiation": "Verhandlung",
+      "court": "Gericht",
+      "resolved": "Gelöst",
+      "rejected": "Abgelehnt",
+      "contacting": "Kontaktaufnahme",
+      "negotiating": "In Verhandlung",
+      "mediation": "Mediation",
+      "closed": "Abgeschlossen"
+    },
+    "stage": {
+      "draft": "Entwurf",
+      "submitted": "Eingereicht",
+      "submitted_to_airline": "Bei der Fluggesellschaft eingereicht",
+      "verification": "Verifizierung",
+      "evaluation": "Bewertung",
+      "negotiation": "Verhandlung",
+      "court": "Gericht",
+      "resolved": "Gelöst",
+      "rejected": "Abgelehnt"
+    },
+    "owner": {
+      "staff": "Mitarbeitende",
+      "member": "Mitglied / Agent",
+      "agent": "Agent",
+      "admin": "Admin",
+      "system": "System",
+      "unknown": "System"
+    },
+    "owner_genitive": {
+      "staff": "Mitarbeitende",
+      "member": "Mitglied / Agent",
+      "agent": "Agent",
+      "admin": "Admin",
+      "system": "System",
+      "unknown": "System"
+    },
+    "category": {
+      "consumer": "Verbraucher",
+      "consumer_rights": "Verbraucherrechte",
+      "housing": "Wohnen",
+      "insurance": "Versicherung",
+      "employment": "Arbeit",
+      "contracts": "Verträge",
+      "utilities": "Versorgungsleistungen",
+      "auto": "Fahrzeug",
+      "vehicle": "Fahrzeug",
+      "travel": "Reisen",
+      "retail": "Einzelhandel",
+      "real_estate": "Immobilien",
+      "property": "Eigentum",
+      "flight_delay": "Flugverspätung",
+      "damaged_goods": "Beschädigte Waren",
+      "service_issue": "Problem mit einer Dienstleistung",
+      "liability": "Haftung",
+      "medical": "Medizinisch",
+      "test": "Test",
+      "other": "Sonstiges"
+    },
+    "priority": {
+      "low": "Niedrig",
+      "normal": "Normal",
+      "high": "Hoch",
+      "urgent": "Dringend"
+    },
+    "wizard": {
+      "step1": "Kategorie",
+      "step2": "Details",
+      "step3": "Nachweise",
+      "step4": "Prüfung",
+      "progress": "Schritt {current} von {total}",
+      "continue_details": "Weiter -> Details",
+      "continue_upload": "Weiter -> Upload",
+      "continue_review": "Weiter -> Prüfung",
+      "submit_label": "Fall einreichen",
+      "required_fields": "Bitte füllen Sie die Pflichtfelder aus",
+      "submit_success": "Fall eingereicht. Sie können ihn im Dashboard verfolgen. Ihr gespeicherter Entwurf bleibt davon getrennt; wenn Sie den Entwurf später bearbeiten oder löschen, wird dieser Fall dadurch nicht geändert oder gelöscht.",
+      "submit_failed": "Die Einreichung konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut oder wenden Sie sich an den Support.",
+      "submit_reload": "Gespeicherten Entwurf neu laden",
+      "submit_outdated": "Die App wurde aktualisiert. Laden Sie Ihren gespeicherten Entwurf neu, prüfen Sie ihn und reichen Sie ihn dann ein. Mit dieser Anfrage wurde kein Fall eingereicht.",
+      "submit_unexpected": "Etwas Unerwartetes ist passiert. Bitte versuchen Sie es noch einmal oder wenden Sie sich an den Support.",
+      "help": {
+        "title": "Brauchen Sie Hilfe?",
+        "call_60s": "Jetzt Hilfe erhalten (60-Sekunden-Anruf)",
+        "whatsapp": "WhatsApp-Support"
+      },
+      "handoff": {
+        "title": "Kontext eines Falls im Ausland",
+        "sourceLabel": "Quelle",
+        "sourceValue": "Diaspora / Grüne Karte – Schnellstart",
+        "countryLabel": "Land der Hinweise",
+        "countryContext": "Dieses Land stammt aus dem Schnellstart. Es wird erst Teil Ihres Falls, wenn Sie es bestätigen.",
+        "confirmCountry": "Ich bestätige, dass {country} das Land des Vorfalls ist.",
+        "confirmationRequired": "Bestätigen Sie das Land des Vorfalls, bevor Sie diesen gespeicherten Entwurf einreichen.",
+        "incidentLocationLabel": "Ort des Vorfalls",
+        "incidentLocationValue": "Im Ausland"
+      }
+    },
+    "disclaimer": {
+      "not_insurer": "Interdomestik ist kein Versicherer. Wir bieten Orientierung und Unterstützung bei der Fallbearbeitung.",
+      "insurer_decides": "Die endgültige Entscheidung und Zahlung trifft der Versicherer.",
+      "privacy": "Ihre Dokumente werden sicher behandelt."
+    },
+    "success": {
+      "title": "Fall angelegt",
+      "case_id": "Fall-ID",
+      "next_step_1": "Unser Team prüft Ihre Meldung und Ihre Nachweise.",
+      "next_step_2": "Sie erhalten Hinweise zu den nächsten Schritten in der App oder über den Support.",
+      "help_call": "Jetzt anrufen",
+      "help_whatsapp": "WhatsApp",
+      "go_to_claim": "Zum Fall"
+    },
+    "actions": {
+      "editDraft": "Entwurf bearbeiten",
+      "cancelClaim": "Fall stornieren",
+      "cancelConfirm": "Diesen Fall stornieren? Dies kann nicht rückgängig gemacht werden.",
+      "cancelled": "Fall storniert",
+      "cancelFailed": "Fall konnte nicht storniert werden"
+    },
+    "claimsPro": {
+      "actions": {
+        "uploadEvidence": "Nachweise hochladen",
+        "sendMessage": "Nachricht senden"
+      }
+    },
+    "edit": {
+      "title": "Entwurf bearbeiten",
+      "description": "Aktualisieren Sie die Angaben, bevor Sie Ihren Fall einreichen.",
+      "updated": "Entwurf aktualisiert",
+      "failed": "Fall konnte nicht aktualisiert werden"
+    },
+    "gate": {
+      "membership_required_title": "Aktive Mitgliedschaft erforderlich",
+      "membership_required_message": "Für neue Fälle benötigen Sie einen aktiven Mitgliedschaftstarif. Bitte wählen Sie einen Tarif, um unsere Rechtsschutzleistungen zu nutzen.",
+      "view_plans": "Tarife ansehen"
+    },
+    "detail": {
+      "recoveryDecision": {
+        "acceptedTitle": "Zur Durchsetzung durch Mitarbeitende angenommen",
+        "acceptedDescription": "Wir haben diese Angelegenheit zur Durchsetzung durch Mitarbeitende angenommen.",
+        "declinedTitle": "Durchsetzung durch Mitarbeitende ist nicht verfügbar",
+        "nextAction": "Nächste Aktion",
+        "supportCta": "Support zu dieser Entscheidung kontaktieren",
+        "reasons": {
+          "guidance_only_scope": {
+            "title": "Nur Orientierung",
+            "description": "Diese Angelegenheit bleibt im aktuellen Startumfang auf Orientierung oder Weiterverweisung beschränkt."
+          },
+          "insufficient_evidence": {
+            "title": "Weitere Nachweise erforderlich",
+            "description": "Wir benötigen stärkere Nachweise, bevor die Durchsetzung durch Mitarbeitende beginnen kann."
+          },
+          "no_monetary_recovery_path": {
+            "title": "Kein klarer Weg zur Durchsetzung",
+            "description": "Diese Angelegenheit zeigt derzeit keinen klaren Weg zu einer finanziellen Durchsetzung durch Mitarbeitende."
+          },
+          "counterparty_unidentified": {
+            "title": "Angaben zur Gegenpartei fehlen",
+            "description": "Wir können den Versicherer oder die Gegenpartei, die für die Durchsetzung durch Mitarbeitende erforderlich ist, nicht identifizieren."
+          },
+          "time_limit_risk": {
+            "title": "Bedenken wegen einer Frist",
+            "description": "Eine Frist verhindert nach den derzeit verfügbaren Informationen die Durchsetzung durch Mitarbeitende."
+          },
+          "other": {
+            "title": "Entscheidung nach Prüfung durch Mitarbeitende",
+            "description": "Wir können für diese Angelegenheit keine Durchsetzung durch Mitarbeitende anbieten. Wenden Sie sich an den Support, wenn Sie eine Erklärung benötigen."
+          }
+        }
+      },
+      "evidenceUpload": {
+        "description": "Fügen Sie diesem Fall Fotos oder Dokumente hinzu.",
+        "typeLabel": "Dokumenttyp",
+        "file": "Datei",
+        "pending": "Wird hochgeladen...",
+        "success": "Nachweis erfolgreich hochgeladen",
+        "failed": "Nachweis konnte nicht hochgeladen werden",
+        "storage": "Speicherdienst nicht verfügbar",
+        "aiConsent": "Ich stimme der KI-gestützten Dokumentenauswertung für diese hochgeladene Datei zu, um Fallfelder für die Prüfung durch Menschen vorzubereiten.",
+        "types": {
+          "evidence": "Nachweis",
+          "legal": "Rechtliches Dokument"
+        }
+      },
+      "continuity": {
+        "backToWorkspace": "Zurück zum Mitgliederbereich",
+        "caseLabel": "Fall",
+        "sectionNavigation": "Abschnitte des Falls",
+        "progress": "Fortschritt",
+        "evidence": "Nachweise",
+        "history": "Verlauf",
+        "messages": "Nachrichten"
+      },
+      "caseDetails": "Falldetails",
+      "description": "Beschreibung",
+      "claimAmount": "Forderungsbetrag",
+      "category": "Kategorie",
+      "evidence": "Beigefügte Nachweise",
+      "documentsEmpty": "Noch keine Dokumente hochgeladen",
+      "viewDocument": "Ansehen",
+      "progress": {
+        "title": "Fortschrittsübersicht",
+        "currentState": "Aktueller Stand",
+        "latestUpdate": "Letzte Aktualisierung",
+        "nextAction": "Erwartete nächste Aktion"
+      },
+      "matterAllowance": {
+        "title": "Kontingent an Angelegenheiten",
+        "used": "In diesem Jahr genutzt",
+        "remaining": "In diesem Jahr verbleibend",
+        "total": "Kontingent des Tarifs"
+      }
+    },
+    "timeline": {
+      "title": "Zeitverlauf",
+      "empty": "Noch keine Einträge im Zeitverlauf",
+      "initial": "Erstellt",
+      "actor_system": "System",
+      "actor_staff": "Mitarbeitende",
+      "actor_member": "Mitglied",
+      "actor_admin": "Admin"
+    },
+    "informationRequests": {
+      "title": "Angeforderte Informationen",
+      "reference": "Referenz der Anfrage",
+      "dueAt": "Erfasstes Fälligkeitsdatum",
+      "owner": "Zuständiges Team",
+      "ownerLabel": "Fallteam von Interdomestik",
+      "statusLabel": "Status der Anfrage",
+      "status": {
+        "open": "Offen – das Einreichen oder Bestätigen von Nachweisen schließt diese Anfrage nicht",
+        "fulfilled": "Nach Prüfung der Nachweise von zugewiesenen Mitarbeitenden erfüllt"
+      },
+      "nextActorLabel": "Als Nächstes handelt",
+      "nextActor": {
+        "member": "Mitglied",
+        "assignedStaff": "Zugewiesene Fallbearbeitende",
+        "none": "Niemand für diese Anfrage"
+      },
+      "nextActionLabel": "Nächste Aktion",
+      "nextAction": {
+        "uploadEvidence": "Laden Sie die angeforderten Nachweise hoch",
+        "reviewEvidence": "Eingereichte Nachweise prüfen und den Eingang bestätigen",
+        "reviewRequest": "Prüfung der Nachweise fortsetzen; die Anfrage bleibt offen",
+        "none": "Keine weitere Aktion für diese Anfrage"
+      },
+      "fulfilledUsing": "Mit diesem Upload erfüllt",
+      "reviewConfirmation": "Ich habe {documentName} für diese Anfrage geprüft",
+      "fulfil": "Anfrage mit diesem Upload als erfüllt markieren",
+      "fulfilling": "Wird als erfüllt markiert...",
+      "fulfilmentSuccess": "Anfrage als erfüllt markiert.",
+      "fulfilmentConflict": "Die Anfrage oder der verknüpfte Upload hat sich geändert. Aktualisieren Sie und prüfen Sie erneut.",
+      "fulfilmentError": "Die Anfrage konnte nicht als erfüllt markiert werden. Versuchen Sie es erneut.",
+      "incomplete": "Beim Erstellen dieser Anfrage fehlten Informationen.",
+      "loadError": "Informationsanfragen konnten nicht geladen werden. Andere Falldetails bleiben verfügbar.",
+      "retryRead": "Erneut versuchen",
+      "loadingRequests": "Informationsanfragen werden geladen…",
+      "empty": "Für diesen Fall gibt es keine Informationsanfragen.",
+      "upload": "Angeforderte Nachweise hochladen",
+      "evidenceList": "Für diese Anfrage eingereichte Nachweise",
+      "download": "Herunterladen",
+      "downloadPreparing": "Sicherer Download wird vorbereitet...",
+      "downloadSuccess": "Download gestartet. Wenn er sich nicht öffnet, wählen Sie erneut „Herunterladen“, um einen neuen privaten Link zu erhalten.",
+      "downloadError": "Das Dokument konnte nicht heruntergeladen werden. Versuchen Sie es erneut.",
+      "submitted": "Zur Prüfung durch Mitarbeitende eingereicht",
+      "acknowledged": "Von Mitarbeitenden bestätigt",
+      "acknowledge": "Nachweis bestätigen",
+      "acknowledging": "Wird bestätigt...",
+      "acknowledgementSuccess": "Nachweis bestätigt.",
+      "acknowledgementError": "Der Nachweis konnte nicht bestätigt werden. Aktualisieren Sie und versuchen Sie es erneut.",
+      "progress": {
+        "awaiting_evidence": "Nachweise ausstehend",
+        "submitted": "Nachweise eingereicht",
+        "acknowledged": "Nachweise bestätigt"
+      }
+    }
+  }
+}

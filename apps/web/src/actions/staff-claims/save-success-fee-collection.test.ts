@@ -21,7 +21,7 @@ vi.mock('next/cache', () => ({
 const authority = mintTestTenantAuthority('tenant-1');
 
 describe('saveSuccessFeeCollectionCore', () => {
-  const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+  const LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 
   beforeEach(() => {
     vi.clearAllMocks();

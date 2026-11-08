@@ -8,6 +8,7 @@ const DATE_LOCALES = {
   sq: 'sq-AL',
   mk: 'mk-MK',
   sr: 'sr-Latn-RS',
+  de: 'de-DE',
 } as const;
 
 export function buildThankYouLetterParams(

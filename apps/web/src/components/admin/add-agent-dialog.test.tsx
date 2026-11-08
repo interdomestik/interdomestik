@@ -222,7 +222,7 @@ describe('AddAgentDialog', () => {
     }
   );
 
-  it.each(['en', 'sq', 'mk', 'sr'])(
+  it.each(['en', 'sq', 'mk', 'sr', 'de'])(
     'uses existing nonempty loading, error, retry and empty copy in %s',
     locale => {
       const catalog = (file: string) =>

@@ -1,0 +1,16 @@
+{
+  "stats": {
+    "verifiedBadge": "Verifizierte Statistiken",
+    "title": "Unsere Wirkung in Zahlen",
+    "subtitle": "Transparente, verifizierte Ergebnisse unserer Unterstützung bei Schadensfällen auf dem Balkan.",
+    "totalClaims": "Bearbeitete Schadensfälle insgesamt",
+    "successRate": "Erfolgsquote",
+    "totalRecovered": "Insgesamt erstattet",
+    "avgResponse": "Durchschnittliche Reaktionszeit",
+    "trustTitle": "Warum Sie diesen Zahlen vertrauen können",
+    "trustDescription": "Alle Statistiken stammen aus verifizierten Fallabschlüssen und werden vierteljährlich unabhängig geprüft.",
+    "dataSecurity": "Daten geschützt",
+    "verifiedResults": "Verifizierte Ergebnisse",
+    "legalCompliance": "Rechtskonformität"
+  }
+}

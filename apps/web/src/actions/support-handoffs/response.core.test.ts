@@ -89,8 +89,8 @@ describe('updateSupportHandoffPublicResponseCore', () => {
         title: 'Përditësim nga stafi',
       }
     );
-    expect(mocks.revalidatePath).toHaveBeenCalledTimes(8);
-    for (const locale of ['sq', 'en', 'sr', 'mk']) {
+    expect(mocks.revalidatePath).toHaveBeenCalledTimes(10);
+    for (const locale of ['sq', 'en', 'sr', 'mk', 'de']) {
       expect(mocks.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/support-handoffs`);
       expect(mocks.revalidatePath).toHaveBeenCalledWith(`/${locale}/member/help`);
     }

@@ -1,0 +1,21 @@
+{
+  "features": {
+    "title": "Alles, was Sie zum Schutz Ihrer Rechte brauchen",
+    "claimManagement": {
+      "title": "Schadensfallverwaltung",
+      "description": "Legen Sie Ihre Schadensfälle an und verfolgen Sie sie von Anfang bis Ende mit Statusaktualisierungen in Echtzeit."
+    },
+    "professionalSupport": {
+      "title": "Professionelle Unterstützung",
+      "description": "Unsere erfahrenen Agenten helfen Ihnen bei jedem Schritt des Prozesses."
+    },
+    "documentManagement": {
+      "title": "Dokumentenverwaltung",
+      "description": "Laden Sie alle Ihre Dokumente an einem sicheren Ort hoch und organisieren Sie sie."
+    },
+    "messaging": {
+      "title": "Sichere Kommunikation",
+      "description": "Kommunizieren Sie mit Agenten und behalten Sie alle Gespräche an einem Ort im Blick."
+    }
+  }
+}

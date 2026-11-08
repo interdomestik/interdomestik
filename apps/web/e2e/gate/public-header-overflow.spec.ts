@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page, type TestInfo } from '@playwrigh
 import { routes, type Locale } from '../routes';
 import { withAnonymousPage } from '../utils/anonymous-context';
 import { gotoApp } from '../utils/navigation';
-const locales = ['sq', 'en', 'sr', 'mk'] as const;
+const locales = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 const widths = [320, 360, 390, 430] as const;
 async function openHeader(page: Page, info: TestInfo, locale: Locale) {
   await page.addInitScript(() => {
@@ -102,7 +102,7 @@ test.describe('public header overflow containment', () => {
           await trigger.click();
           await expect(trigger).toBeFocused();
           await expect(trigger).toHaveAttribute('aria-expanded', 'true');
-          await expect(header.getByTestId('public-locale-option')).toHaveCount(4);
+          await expect(header.getByTestId('public-locale-option')).toHaveCount(5);
           await settle(page);
           await collectHeader(header, info, `${locale}-${width}-open`);
         }
@@ -127,6 +127,7 @@ test.describe('public header overflow containment', () => {
       await expectForcedFocus(options.first());
       await expect(options.nth(0)).toHaveAttribute('href', /\/sq$/);
       await expect(options.nth(3)).toHaveAttribute('href', /\/mk$/);
+      await expect(options.nth(4)).toHaveAttribute('href', /\/de$/);
       await page.keyboard.press('Escape');
       await expect(trigger).toBeFocused();
       await trigger.press('Space');

@@ -1,0 +1,85 @@
+{
+  "flightJourney": {
+    "eyebrow": "SOFORTHILFE",
+    "intro": "Klären Sie zuerst, was Sie jetzt brauchen, und sichern Sie dann die Reiseunterlagen.",
+    "privacy": "Ihre Antworten werden weder gespeichert noch gesendet.",
+    "title": "Sind Sie noch am Flughafen oder versuchen Sie, Ihre Reise fortzusetzen?",
+    "changeAnswer": "Antwort ändern",
+    "answers": {
+      "yes": "Ja",
+      "no": "Nein",
+      "unsure": "Ich bin mir nicht sicher"
+    },
+    "priority": {
+      "title": "Bitten Sie um die Hilfe, die Sie jetzt brauchen.",
+      "body": "Nutzen Sie den offiziellen Kanal der ausführenden Fluggesellschaft und lassen Sie sich Ihre Optionen schriftlich geben.",
+      "expenses": "Wenn die Fluggesellschaft nicht helfen kann oder will, halten Sie fest, worum Sie gebeten haben, und bewahren Sie detaillierte Belege für notwendige, angemessene Vorkehrungen auf, die Sie selbst bezahlen.",
+      "emergency": "Bei einem Gesundheits- oder Sicherheitsrisiko holen Sie sofort Hilfe vor Ort."
+    },
+    "disruption": {
+      "title": "Welches Problem hatten Sie mit dem Flug oder dem Gepäck?",
+      "hint": "Wählen Sie die Situation, die am besten passt.",
+      "delay": "Der Flug war verspätet",
+      "cancellation": "Der Flug wurde annulliert oder der Flugplan erheblich geändert",
+      "denied": "Mir wurde die Beförderung verweigert oder der Flug war überbucht",
+      "connection": "Ich habe einen Anschlussflug verpasst oder der Flug wurde umgeleitet",
+      "baggage": "Mein Gepäck wurde verspätet, verloren oder beschädigt",
+      "assistance": "Die erforderliche Unterstützung bei Behinderung oder eingeschränkter Mobilität wurde nicht gewährt",
+      "other": "Etwas anderes oder ich bin mir nicht sicher"
+    },
+    "connection": {
+      "title": "Waren die betroffenen Flüge in einer Buchung?"
+    },
+    "baggage": {
+      "title": "Haben Sie das Gepäck gemeldet und eine Referenz wie eine PIR erhalten?"
+    },
+    "notice": {
+      "title": "Hat Ihnen die Fluggesellschaft eine schriftliche Mitteilung, einen Grund oder eine Option gegeben?"
+    },
+    "result": {
+      "title": "Gehen Sie den nächsten Schritt und sichern Sie die Nachweise.",
+      "current": "Nutzen Sie den offiziellen Kanal der ausführenden Fluggesellschaft und bitten Sie schriftlich um Unterstützung oder Optionen.",
+      "complete": "Kontaktieren Sie die ausführende Fluggesellschaft schriftlich und bewahren Sie ihre Antwort auf.",
+      "evidenceTitle": "Reiseunterlagen sichern",
+      "evidence": {
+        "booking": "Die Buchungsbestätigung und die Bordkarten.",
+        "messages": "Nachrichten der Fluggesellschaft und die tatsächlichen Abflug- oder Ankunftszeiten.",
+        "choices": "Der Grund, die Mitteilung und die Ihnen angebotenen Optionen.",
+        "receipts": "Detaillierte Belege für notwendige, angemessene Ausgaben."
+      },
+      "type": {
+        "delay": "Notieren Sie die tatsächliche Ankunftszeit und verlangen Sie die Mitteilung über Fluggastrechte.",
+        "cancellation": "Lassen Sie sich die Optionen schriftlich geben; diese Seite wählt weder eine Erstattung noch eine Umbuchung für Sie.",
+        "denied": "Bewahren Sie einen Nachweis auf, dass Sie sich rechtzeitig eingefunden haben, und verlangen Sie den Grund schriftlich.",
+        "connection": "Bewahren Sie die Unterlagen beider Flüge auf und halten Sie fest, ob sie in einer Buchung waren.",
+        "baggage": "Melden Sie es umgehend und bewahren Sie den Gepäckanhänger und die PIR-Referenz auf.",
+        "assistance": "Wenden Sie sich sofort an den Assistenzschalter; Gesundheit und Sicherheit gehen vor.",
+        "other": "Fragen Sie schriftlich, was passiert ist und welche Optionen verfügbar sind."
+      },
+      "conditional": {
+        "connection_yes": "Eine einzige Buchung kann eine wichtige Tatsache sein; diese Seite entscheidet nicht über Ihre Rechte.",
+        "connection_no": "Separate Tickets können anders behandelt werden; gehen Sie nicht vom gleichen Ergebnis aus.",
+        "connection_unsure": "Prüfen Sie die Bestätigung, um zu sehen, ob die Flüge in einer Buchung waren.",
+        "baggage_yes": "Bewahren Sie die Meldereferenz auf und prüfen Sie den Status im offiziellen Kanal.",
+        "baggage_no": "Melden Sie es umgehend; die maßgeblichen offiziellen Fristen können kurz sein.",
+        "baggage_unsure": "Suchen Sie nach einer PIR oder Referenz und melden Sie es unverzüglich, falls Sie keine haben.",
+        "notice_yes": "Bewahren Sie die Mitteilung und jede angebotene Option auf.",
+        "notice_no": "Verlangen Sie die Mitteilung, den Grund und die Optionen schriftlich.",
+        "notice_unsure": "Prüfen Sie Ihre Nachrichten und bitten Sie um eine schriftliche Klarstellung."
+      },
+      "diasporaTitle": "Reisen Sie zwischen Ländern?",
+      "diasporaBody": "Strecke, ausführende Fluggesellschaft, Buchung und anwendbare Regeln müssen unabhängig von Staatsangehörigkeit oder Reisepass separat geprüft werden.",
+      "reform": "Die EU-Regeln ändern sich; die Änderungen vom Juli 2026 gelten noch nicht. Prüfen Sie die aktuelle offizielle Quelle für Ihre Reise.",
+      "distinctions": "Betreuung, Erstattung und Entschädigung sind verschiedene Fragen; das eine beweist nicht das andere.",
+      "official": "Offizielle Fluggastrechte ansehen – öffnet eine externe Seite",
+      "boundary": "Diese Orientierung ist kostenlos. Die Bearbeitung von Flugschadensfällen durch Interdomestik ist im aktuellen Angebot nicht aktiv, und hier wurde kein Fall erstellt."
+    },
+    "noScript": {
+      "title": "Hilfe bei einem Flugproblem",
+      "body": "Kontaktieren Sie die ausführende Fluggesellschaft, lassen Sie sich die Optionen schriftlich geben und bewahren Sie Mitteilungen und Belege auf.",
+      "baggage": "Bei Gepäck melden Sie es umgehend und bewahren Sie den Anhänger und die PIR-Referenz auf.",
+      "emergency": "Bei einem Gesundheits- oder Sicherheitsrisiko holen Sie sofort Hilfe vor Ort.",
+      "boundary": "Interdomestik eröffnet im aktuellen Angebot keinen Flugfall."
+    }
+  }
+}

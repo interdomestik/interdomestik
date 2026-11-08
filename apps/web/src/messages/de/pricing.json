@@ -1,0 +1,271 @@
+{
+  "pricing": {
+    "title": "Mitgliedschaft mit Fokus auf Schadensfälle",
+    "subtitle": "Beginnen Sie mit Fahrzeug-, Sach- und Personenschäden. Reine Beratungsfälle bleiben beratend, und Angelegenheiten außerhalb des Umfangs werden weitergeleitet.",
+    "monthly": "Monatlich",
+    "yearly": "Jährlich",
+    "switchLabel": "17 % sparen mit jährlicher Zahlung",
+    "yearlySaving": "17 % sparen mit jährlicher Abrechnung",
+    "perYear": "/Jahr",
+    "perMonth": "/Monat",
+    "billedAnnually": "Jährliche Abrechnung",
+    "billedMonthly": "Monatliche Abrechnung",
+    "basic": {
+      "name": "Basis",
+      "price": "15 €",
+      "period": "/Jahr",
+      "description": "Grundschutz für Einzelpersonen",
+      "features": [
+        "24/7-Notfall-Hotline",
+        "2 Rechtsberatungen pro Jahr",
+        "Zugang zum Schadensrechner",
+        "Expertenleitfäden & Checklisten",
+        "25 % Rabatt auf die Vermittlungsgebühr"
+      ]
+    },
+    "standard": {
+      "name": "Asistenca",
+      "price": "20 €",
+      "monthlyPrice": "2 €",
+      "period": "/Jahr",
+      "description": "Umfassende Beratung & Erstattung für Einzelpersonen",
+      "features": [
+        "24/7-Notfall-Supportleitung",
+        "Unbegrenzte Rechtsberatungen",
+        "Fallverfolgung über die IDA-App",
+        "Digitale IDA-Karte als sofortiger Nachweis",
+        "50 % Rabatt auf die Vermittlungsgebühr",
+        "Das Unternehmen streckt Rechtskosten vor"
+      ],
+      "popular": "Am beliebtesten"
+    },
+    "family": {
+      "name": "Asistenca+",
+      "price": "35 €",
+      "monthlyPrice": "4 €",
+      "period": "/Jahr",
+      "description": "Premium-Mitgliedschaft für den gesamten Haushalt",
+      "features": [
+        "Alles aus Asistenca",
+        "Schützt bis zu 5 Familienmitglieder",
+        "Gemeinsamer Zugang über die IDA-App",
+        "Digitale IDA-Karten für Haushaltsmitglieder"
+      ]
+    },
+    "business": {
+      "name": "Business",
+      "price": "95 €",
+      "monthlyPrice": "10 €",
+      "period": "/Jahr",
+      "description": "Professioneller Schutz für Unternehmen",
+      "features": [
+        "Alles aus Familie",
+        "Bis zu 10 Fahrzeuge/Objekte",
+        "Persönliche Ansprechperson",
+        "Gewerbliche Rechtsvermittlung",
+        "Einbindung von Mitarbeitenden"
+      ]
+    },
+    "cta": "Mitgliedschaft starten",
+    "loginRequired": "Zum Upgraden anmelden",
+    "scope": {
+      "eyebrow": "Umfang zum Start",
+      "title": "Was wir jetzt bearbeiten, was Beratung bleibt und was wir weiterleiten",
+      "subtitle": "Interdomestik startet mit einem Vertrag mit Fokus auf Schadensfälle. Diese Grenzen zeigen, wo Free Start und die Mitgliedschaft helfen können, wo eine vom Team geführte Erstattung beginnen kann und wo wir Sie nur zum richtigen nächsten Schritt weiterleiten.",
+      "launch": {
+        "title": "Wird jetzt bearbeitet",
+        "description": "Diese Schadensarten passen zum Erstattungsweg beim Start, wenn ein plausibles finanzielles Ergebnis möglich ist.",
+        "items": [
+          "Fahrzeugschäden",
+          "Sachschäden",
+          "Personenschäden mit einem Weg zur finanziellen Erstattung"
+        ],
+        "note": "Free Start kann das Paket vorbereiten. Die Mitgliedschaft ergänzt eine Ersteinschätzung durch Menschen und eine Dokumentenprüfung vor jeder angenommenen Eskalation."
+      },
+      "guidance": {
+        "title": "Nur Beratung",
+        "description": "Diese Kategorien können weiterhin Beratung oder eine Dokumentenprüfung erhalten, gehen beim Start aber nicht in die Erstattung mit Erfolgshonorar.",
+        "items": [
+          "Streitigkeiten mit Vermietern ohne direkten Weg zur finanziellen Erstattung",
+          "Einbehaltener Lohn oder Arbeitsstreitigkeiten ohne klaren Auszahlungsweg",
+          "Durchsetzung von Reparaturen oder Streitigkeiten über Vertragskündigungen ohne direkte Auszahlung",
+          "Weitergehende Verbraucherbeschwerden außerhalb der Schadensarten zum Start"
+        ],
+        "note": "Wir halten diese Angelegenheiten beratend und leiten weiter, wenn ein Partnerweg sinnvoller ist."
+      },
+      "outOfScope": {
+        "title": "Außerhalb des Umfangs",
+        "description": "Diese Angelegenheiten sind nicht Teil des Startvertrags und werden nicht zur Bearbeitung durch das Team angenommen.",
+        "items": [
+          "Strafverteidigung",
+          "Scheidungs- und Familienrecht",
+          "Einwanderung",
+          "Allgemeine Geschäftsstreitigkeiten außerhalb definierter Gruppenpakete"
+        ],
+        "note": "Wir deuten hier keine Deckung an. Wo möglich, leiten wir Sie an einen geeigneteren externen Anbieter weiter."
+      },
+      "boundary": {
+        "title": "Grenzen der Weiterleitung",
+        "body": "Partnerweiterleitung und rechtliche Wege beginnen erst nach der Prüfung des Umfangs. Eine vom Team geführte Eskalation ist nur für angenommene Erstattungsangelegenheiten verfügbar; alles andere bleibt Beratung in Eigenregie, Beratung im Rahmen der Mitgliedschaft oder eine Weiterleitung.",
+        "items": [
+          "Maßnahmen externer Rechtspartner erfordern nach Annahme des Falls eine separate schriftliche Zustimmung.",
+          "Entschädigung bei Flugverspätung bleibt außerhalb des aktuellen Startwegs und kommt in einer späteren Phase zurück."
+        ]
+      }
+    },
+    "disclaimers": {
+      "eyebrow": "Geschäftliche Hinweise",
+      "freeStart": {
+        "title": "Free Start dient nur der Information",
+        "body": "Free Start bietet Ihnen informative Hinweise, Vorlagen und Werkzeuge für den nächsten Schritt. Es startet weder eine Prüfung durch Menschen noch eine Rechtsberatung oder eine vom Team geführte Erstattung."
+      },
+      "hotline": {
+        "title": "Support kontaktieren",
+        "body": "Die Hotline dient der dringenden Weiterleitung, Unterstützung und Hinweisen zum nächsten Schritt. Sie bedeutet keine sofortige rechtliche Prüfung, keine Annahme des Schadensfalls und keine Bearbeitung durch das Team."
+      }
+    },
+    "successFeeCalculator": {
+      "eyebrow": "Berechnung des Erfolgshonorars",
+      "title": "Sehen Sie die Berechnung des Erfolgshonorars, bevor Sie eskalieren",
+      "subtitle": "Nutzen Sie den öffentlichen Rechner, um das Honorar auf das Geld zu schätzen, das Interdomestik tatsächlich für Sie zurückholt. Ohne Erstattung fällt kein Erfolgshonorar an Interdomestik an; Kosten des Gerichtswegs und Kosten Dritter bleiben separat und erfordern vor rechtlichen Schritten eine schriftliche Vereinbarung.",
+      "calculator": {
+        "title": "Öffentlicher Honorarrechner",
+        "description": "Das Standard-Erfolgshonorar beträgt 15 % bei Asistenca und 12 % bei Asistenca+ Familie, jeweils mit mindestens 25 EUR. Arbeiten im Rahmen rechtlicher Schritte erfordern eine separate schriftliche Zustimmung und eine höhere Obergrenze.",
+        "planLabel": "Mitgliedschaftsplan",
+        "amountLabel": "Erstatteter Betrag (EUR)",
+        "breakdown": {
+          "recoveryAmount": "Erstatteter Betrag",
+          "feeRate": "Satz des Erfolgshonorars",
+          "minimumFee": "Mindesthonorar",
+          "feeAmount": "Geschätztes Honorar, wenn Geld erstattet wird",
+          "legalActionCap": "Obergrenze für rechtliche Schritte nach schriftlicher Zustimmung",
+          "minimumApplied": "Mindesthonorar greift",
+          "minimumAppliedTrue": "Ja",
+          "minimumAppliedFalse": "Nein",
+          "noRecovery": "Ohne Erstattung kein Erfolgshonorar an Interdomestik"
+        }
+      },
+      "plans": {
+        "standard": {
+          "label": "Asistenca",
+          "feeRate": "15 % Erfolgshonorar",
+          "minimumFee": "Mindestens 25 EUR",
+          "legalActionCap": "Obergrenze von 25 % nur, wenn Sie externe rechtliche Schritte separat genehmigen"
+        },
+        "family": {
+          "label": "Asistenca+ Familie",
+          "feeRate": "12 % Erfolgshonorar",
+          "minimumFee": "Mindestens 25 EUR",
+          "legalActionCap": "Obergrenze von 22 % nur, wenn Sie externe rechtliche Schritte separat genehmigen"
+        }
+      },
+      "examplesTitle": "Rechenbeispiele vor einer Eskalation",
+      "examplesSubtitle": "Diese Beispiele machen die öffentliche Honorarregel für angenommene Erstattungsangelegenheiten konkret.",
+      "examples": {
+        "standard": {
+          "title": "Beispiel Standardplan",
+          "description": "Eine Erstattung von 1.000 EUR bei Asistenca ergibt ein Erfolgshonorar von 150 EUR."
+        },
+        "family": {
+          "title": "Beispiel Familienplan",
+          "description": "Eine Erstattung von 1.000 EUR bei Asistenca+ Familie ergibt ein Erfolgshonorar von 120 EUR."
+        },
+        "minimum": {
+          "title": "Beispiel Mindesthonorar",
+          "description": "Auch eine kleine Erstattung kann das Mindesthonorar von 25 EUR auslösen, wenn der Prozentsatz niedriger wäre."
+        },
+        "legalActionCap": {
+          "title": "Beispiel Obergrenze für rechtliche Schritte",
+          "description": "Wenn Sie später eine separate Zustimmung zu rechtlichen Schritten unterschreiben, beträgt die Obergrenze bei einer Asistenca-Erstattung von 4.000 EUR 1.000 EUR."
+        }
+      },
+      "footer": {
+        "title": "Was die Obergrenze tatsächlich bedeutet",
+        "body": "Die höhere Obergrenze von 25 % bzw. 22 % ist ein Höchstwert für separat genehmigte Arbeiten im Rahmen rechtlicher Schritte, nicht das Standard-Erfolgshonorar. Interdomestik muss diese Obergrenze zeigen, bevor eine Vereinbarung über rechtliche Schritte unterschrieben wird."
+      }
+    },
+    "meta": {
+      "title": "Mitgliedschaftspläne - Interdomestik",
+      "description": "Mitgliedschaft für Fahrzeug-, Sach- und Personenschäden mit klaren Grenzen für reine Beratung und Weiterleitung."
+    },
+    "mainHeading1": "Wählen Sie Ihren",
+    "mainHeading2": "Mitgliedschaftsplan.",
+    "joinSecurely": "E-Mail-Prüfung",
+    "preCheckout": {
+      "planSummary": "Zusammenfassung des Plans",
+      "responsePromise": "Ziel für die priorisierte Ersteinschätzung: unter 24 Geschäftsstunden",
+      "continue": "Weiter zur Kasse",
+      "cancel": "Zurück"
+    },
+    "localCheckout": {
+      "title": "Lokaler Bezahlvorgang ist nicht konfiguriert",
+      "body": "{planName} kann in dieser lokalen Umgebung noch keine echte Zahlung öffnen. Fügen Sie ein Paddle-Client-Token hinzu, um den Bezahlvorgang lokal zu testen."
+    },
+    "otpStep": {
+      "title": "Bestätigen Sie Ihre E-Mail-Adresse, um fortzufahren",
+      "truth": "Wir senden Ihnen einen 6-stelligen Code. Der Code bestätigt Ihre E-Mail-Adresse und öffnet oder erstellt Ihr Konto. Er bestätigt weder eine Zahlung noch eine aktive Mitgliedschaft, einen Schadensfall oder einen angenommenen Fall.",
+      "emailLabel": "E-Mail",
+      "send": "Code senden",
+      "sent": "Wenn diese Adresse E-Mails von uns empfangen kann, ist ein Code unterwegs. Er ist 5 Minuten gültig. Nur der neueste Code funktioniert.",
+      "codeLabel": "6-stelliger Code",
+      "verify": "E-Mail bestätigen",
+      "changeEmail": "E-Mail ändern",
+      "resend": "Neuen Code senden",
+      "resendCooldown": "Neuen Code in {seconds} Sek. senden",
+      "errors": {
+        "missingEmail": "Geben Sie Ihre E-Mail-Adresse ein, um fortzufahren.",
+        "sendFailed": "Wir konnten gerade keinen Code senden. Versuchen Sie es erneut.",
+        "verify": "Wir konnten diesen Code nicht bestätigen. Prüfen Sie den neuesten Code oder senden Sie einen neuen.",
+        "accountStop": "E-Mail bestätigt. Mit diesem Konto kann dieser Bezahlvorgang nicht fortgesetzt werden. Verwenden Sie Ihr Konto oder kontaktieren Sie den Support."
+      }
+    },
+    "businessLead": {
+      "title": "Sprechen Sie mit unserem Business-Team",
+      "subtitle": "Business-Mitgliedschaften werden mit einer kurzen begleiteten Aufnahme eingerichtet, damit wir vor der Aktivierung den passenden Schutzumfang festlegen können.",
+      "callCta": "Business-Aufnahme anrufen",
+      "whatsappCta": "WhatsApp öffnen",
+      "note": "Wir bestätigen Fahrzeuge, Objekte und Team, bevor wir das Business-Paket aktivieren.",
+      "form": {
+        "title": "Begleitete Einrichtung anfragen",
+        "subtitle": "Teilen Sie uns das Wichtigste mit, und unser Team meldet sich mit dem passenden Umfang der Business-Mitgliedschaft.",
+        "successTitle": "Business-Aufnahme erhalten",
+        "successBody": "Wir haben Ihre Anfrage erhalten und melden uns, um die passende Einrichtung des Business-Schutzes zu bestätigen.",
+        "successToast": "Business-Aufnahme erhalten",
+        "notice": {
+          "title": "Wie wir Ihre Angaben verwenden",
+          "body": "Interdomestik verwendet Ihren Namen, Ihre Telefonnummer und E-Mail-Adresse sowie den Namen Ihres Unternehmens und die Teamgröße nur, um Sie wegen einer Interdomestik-Mitgliedschaft zu kontaktieren und Ihr Angebot vorzubereiten. Ein Agent Ihrer örtlichen Filiale wird Sie kontaktieren. Wir verkaufen Ihre Angaben nicht und geben sie nicht für Werbung weiter. Wenn Sie nicht Mitglied werden, löschen wir sie nach 12 Monaten. Sie können uns jederzeit über Ihren Agenten oder unseren Datenschutzkontakt bitten, Sie nicht mehr zu kontaktieren, oder Ihre Angaben einsehen, berichtigen oder löschen lassen.",
+          "company": "Als Kontaktperson umfasst diese Anfrage nur Ihre eigenen Angaben. Jede Mitarbeiterin und jeder Mitarbeiter entscheidet selbst, ob sie oder er beitritt.",
+          "consent": "Ich bitte Interdomestik, mich wegen einer Mitgliedschaft zu kontaktieren, und habe den obigen Hinweis gelesen.",
+          "consentRequired": "Setzen Sie das Häkchen, damit wir Sie wegen einer Mitgliedschaft kontaktieren dürfen."
+        },
+        "submit": "Business-Aufnahme senden",
+        "submitPending": "Aufnahme wird gesendet",
+        "fields": {
+          "firstName": "Vorname",
+          "lastName": "Nachname",
+          "companyName": "Name des Unternehmens",
+          "email": "Geschäftliche E-Mail",
+          "phone": "Telefonnummer",
+          "teamSize": "Teamgröße",
+          "notes": "Wobei brauchen Sie Hilfe?"
+        },
+        "placeholders": {
+          "firstName": "Arben",
+          "lastName": "Lila",
+          "companyName": "Interdomestik Fleet",
+          "email": "ops@company.com",
+          "phone": "+383 44 111 222",
+          "teamSize": "Teamgröße auswählen",
+          "notes": "Fahrzeuge, Objekte, Absicherung des Teams, Standorte oder alles, was wir sonst wissen sollten."
+        },
+        "teamSizeOptions": {
+          "1-10": "1–10 Personen",
+          "11-25": "11–25 Personen",
+          "26-50": "26–50 Personen",
+          "51-100": "51–100 Personen",
+          "100+": "100+ Personen"
+        }
+      }
+    }
+  }
+}

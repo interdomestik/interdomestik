@@ -1,0 +1,205 @@
+{
+  "membership": {
+    "page": {
+      "title": "Mitgliedschaft",
+      "description": "Verwalten Sie Ihr Abonnement und die Details Ihres Plans."
+    },
+    "scope": {
+      "eyebrow": "Umfang des Plans",
+      "title": "Umfang Ihres Plans und Grenzen der Weiterleitung",
+      "subtitle": "Die Mitgliedschaft unterstützt zuerst die Schadensarten zum Start. Reine Beratungskategorien bleiben beratend, und Angelegenheiten außerhalb des Umfangs werden außerhalb des Plans weitergeleitet.",
+      "launch": {
+        "title": "Wird jetzt bearbeitet",
+        "description": "Diese Schadensarten passen zum Erstattungsweg beim Start, wenn ein plausibles finanzielles Ergebnis möglich ist.",
+        "items": [
+          "Fahrzeugschäden",
+          "Sachschäden",
+          "Personenschäden mit einem Weg zur finanziellen Erstattung"
+        ],
+        "note": "Ihr Plan umfasst hier Ersteinschätzung und Dokumentenprüfung. Eine vom Team geführte Erstattung beginnt erst nach Annahme des Falls."
+      },
+      "guidance": {
+        "title": "Nur Beratung",
+        "description": "Diese Kategorien können im Rahmen der Mitgliedschaft Beratung und Dokumentenprüfung erhalten, aber keine Eskalation mit Erfolgshonorar.",
+        "items": [
+          "Streitigkeiten mit Vermietern ohne direkten Weg zur finanziellen Erstattung",
+          "Einbehaltener Lohn oder Arbeitsstreitigkeiten ohne klaren Auszahlungsweg",
+          "Durchsetzung von Reparaturen oder Streitigkeiten über Vertragskündigungen ohne direkte Auszahlung",
+          "Weitergehende Verbraucherbeschwerden außerhalb der Schadensarten zum Start"
+        ],
+        "note": "Diese Angelegenheiten bleiben im Plan beratend und können bei Bedarf weitergeleitet werden."
+      },
+      "outOfScope": {
+        "title": "Außerhalb des Umfangs",
+        "description": "Diese Angelegenheiten sind nicht Teil des Startvertrags und werden nicht zur Bearbeitung durch das Team angenommen.",
+        "items": [
+          "Strafverteidigung",
+          "Scheidungs- und Familienrecht",
+          "Einwanderung",
+          "Allgemeine Geschäftsstreitigkeiten außerhalb definierter Gruppenpakete"
+        ],
+        "note": "Diese Angelegenheiten werden nur weitergeleitet oder abgelehnt, statt in die Bearbeitung im Rahmen des Plans zu gelangen."
+      },
+      "boundary": {
+        "title": "Grenzen der Weiterleitung",
+        "body": "Die Mitgliedschaft macht nicht jede Angelegenheit zu einer Bearbeitung durch das Team. Wir prüfen zuerst den Umfang, nehmen nur Fälle mit einem echten Erstattungsweg an und bitten vor jeder Maßnahme externer Rechtspartner um eine separate Zustimmung.",
+        "items": [
+          "Maßnahmen externer Rechtspartner erfordern nach Annahme des Falls eine separate schriftliche Zustimmung.",
+          "Entschädigung bei Flugverspätung ist nicht Teil des aktuellen Bearbeitungswegs zum Start."
+        ]
+      }
+    },
+    "disclaimers": {
+      "eyebrow": "Geschäftliche Hinweise",
+      "freeStart": {
+        "title": "Free Start dient nur der Information",
+        "body": "Free Start bietet Ihnen informative Hinweise, Vorlagen und Werkzeuge für den nächsten Schritt. Es startet weder eine Prüfung durch Menschen noch eine Rechtsberatung oder eine vom Team geführte Erstattung."
+      },
+      "hotline": {
+        "title": "Die Hotline bedeutet Weiterleitung und Unterstützung",
+        "body": "Die Hotline dient der dringenden Weiterleitung, Unterstützung und Hinweisen zum nächsten Schritt. Sie bedeutet keine sofortige rechtliche Prüfung, keine Annahme des Schadensfalls und keine Bearbeitung durch das Team."
+      }
+    },
+    "plan": {
+      "title": "Aktueller Plan",
+      "description": "Ihre Schutzstufe",
+      "active": "Aktiv",
+      "plan_label": "Plan",
+      "status_label": "Status",
+      "renews_label": "Verlängert sich",
+      "current_period_label": "Aktueller Zeitraum endet",
+      "na": "k. A.",
+      "no_membership": "Keine aktive Mitgliedschaft",
+      "manage_button": "Abonnement verwalten",
+      "cancel_button": "Abonnement kündigen",
+      "cancel_confirm": "Möchten Sie wirklich kündigen? Sie verlieren den Zugang am Ende des Abrechnungszeitraums.",
+      "view_plans_button": "Pläne ansehen"
+    },
+    "benefits": {
+      "title": "Nutzung & Leistungen",
+      "description_active": "Ihre Mitgliedschaftsleistungen",
+      "description_inactive": "Treten Sie bei, um Leistungen zu nutzen",
+      "hotline": "24/7-Notfall-Hotline",
+      "voice_claim": "Schadensmeldung per Sprache",
+      "legal": "Rechtsberatungen",
+      "discounts": "Partnerrabatte",
+      "restore_message": "Aktualisieren Sie Ihre Zahlung, um den Zugang zu den Leistungen wiederherzustellen.",
+      "activate_message": "Nutzen Sie die Preisseite, um Ihren Schutz zu aktivieren."
+    },
+    "ops": {
+      "title": "Abonnements",
+      "empty_list": "Keine Abonnements",
+      "no_membership_title": "Schließen Sie Ihre Mitgliedschaft ab",
+      "no_membership_body": "Sie haben noch keine aktive bezahlte Mitgliedschaft. Wählen Sie einen Plan, um zur Kasse zu gelangen und den Zugang zu Schadensfällen freizuschalten.",
+      "membership_not_active_title": "Der Schutz ist noch nicht aktiv",
+      "membership_not_active_body": "Diese Mitgliedschaft ist noch nicht aktiv. Schließen Sie den Bezahlvorgang ab, um Schutz und Zugang zu Schadensfällen wiederherzustellen.",
+      "complete_membership": "Mitgliedschaft abschließen",
+      "choose_plan": "Plan wählen",
+      "select_subscription": "Abonnement auswählen",
+      "back_to_list": "Zurück zur Liste"
+    },
+    "actions": {
+      "confirm_cancel": "Möchten Sie wirklich kündigen? Die Kündigung betrifft nur die künftige Verlängerung, und Ihr aktueller Zugang bleibt bis zum Ende des laufenden Abrechnungszeitraums aktiv.",
+      "cancel_requested": "Kündigung vorgemerkt.",
+      "cancel_keeps_access_until": "Ihr Zugang zur Mitgliedschaft bleibt bis {date} aktiv.",
+      "refund_eligible": "Ihre Anfrage liegt noch innerhalb des 30-tägigen Erstattungsfensters zum Start und wird anhand der veröffentlichten Bedingungen geprüft.",
+      "refund_window_closed": "Das 30-tägige Erstattungsfenster zum Start ist abgelaufen, daher betrifft die Kündigung nur die künftige Verlängerung.",
+      "accepted_escalation_survives": "Für angenommene Erstattungsangelegenheiten gelten die fortbestehenden Eskalationsbedingungen auch nach der Kündigung der Mitgliedschaft.",
+      "cooling_off_applies_separately": "Gesetzliche Widerrufsrechte werden nach den veröffentlichten Bedingungen separat geprüft.",
+      "payment_update_preparing": "Ihr sicherer Link zur Aktualisierung der Zahlung wird vorbereitet…",
+      "payment_update_opening": "Die sichere Zahlungsseite wird geöffnet…"
+    },
+    "errors": {
+      "action_failed": "Wir konnten diese Aktion zur Mitgliedschaft nicht abschließen. Bitte versuchen Sie es erneut.",
+      "payment_update_failed": "Wir konnten den Link zur Aktualisierung der Zahlung nicht öffnen. Bitte versuchen Sie es erneut."
+    },
+    "sponsored": {
+      "activation": {
+        "title": "Gesponserter Platz wartet auf Aktivierung",
+        "body": "Ihr Sponsor hat diesen Plan für Sie reserviert. Aktivieren Sie ihn, um Ihren gedeckten Mitgliedschaftszeitraum zu beginnen.",
+        "cta": "Gesponserten Schutz aktivieren",
+        "success": "Gesponserter Schutz aktiviert."
+      },
+      "upgrade": {
+        "title": "Familien-Upgrade verfügbar",
+        "body": "Ihr Sponsor übernimmt die Einzelstufe. Wechseln Sie zum Familienschutz, wenn Sie Zugang für Ihren Haushalt in Ihrem eigenen Plan möchten.",
+        "cta": "Auf Familie upgraden"
+      }
+    },
+    "dunning": {
+      "payment_failed_title": "Zahlung fehlgeschlagen – noch {daysRemaining} Tage",
+      "payment_failed_message": "Ihre letzte Zahlung war nicht erfolgreich. Bitte aktualisieren Sie Ihre Zahlungsmethode, damit Sie den Zugang zu Ihren Mitgliedschaftsleistungen nicht verlieren.",
+      "grace_period_ends": "Kulanzfrist endet: {date}",
+      "update_payment_button": "Zahlungsmethode aktualisieren",
+      "suspended_title": "Mitgliedschaft ausgesetzt",
+      "suspended_message": "Ihre Kulanzfrist ist abgelaufen und Ihre Mitgliedschaft ist jetzt ausgesetzt. Bitte aktualisieren Sie Ihre Zahlungsmethode, um den Zugang wiederherzustellen.",
+      "payment_issue": "Zahlungsproblem",
+      "days_to_update": "⏳ {daysRemaining} Tage, um die Zahlung zu aktualisieren",
+      "payment_attempts": "Zahlungsversuche: {count}",
+      "grace_deadline_title": "Ende der Kulanzfrist",
+      "grace_deadline_future_label": "Kulanzfrist endet",
+      "grace_deadline_passed_label": "Kulanzfrist endete",
+      "grace_deadline_unavailable": "Für dieses Abonnement ist noch kein Ende der Kulanzfrist verfügbar."
+    },
+    "timeline": {
+      "title": "Zeitachse",
+      "empty": "Keine Ereignisse",
+      "created_title": "Mitgliedschaft angelegt",
+      "created_description": "Erstes Abonnement angelegt",
+      "period_end_title": "Aktueller Zeitraum endet",
+      "period_ended_title": "Zeitraum beendet",
+      "period_end_description": "Enddatum des aktuellen Abrechnungszeitraums",
+      "canceled_title": "Gekündigt",
+      "canceled_description": "Mitgliedschaft gekündigt"
+    },
+    "success": {
+      "title": "Willkommen bei Interdomestik!",
+      "subtitle": "Ihre Mitgliedschaft ist jetzt aktiv. Sie sind offiziell Teil unseres Netzwerks.",
+      "pending_subtitle": "Ihre Zahlung ist eingegangen. Die Aktivierung der Mitgliedschaft läuft noch.",
+      "active_note": "Ihre Mitgliedschaft ist im Mitgliederportal aktiv und der Zugang zu Schadensfällen ist bereit.",
+      "pending_note": "Wir schließen die Aktivierung noch ab. Öffnen Sie jetzt Ihr Dashboard und aktualisieren Sie diese Seite, sobald der Mitgliedschaftsstatus nachgezogen hat.",
+      "classification_note": "Ihre Mitglieds-ID ist jetzt aktiv. Die Zuordnung zum Einreichungsland wird später bestätigt, wenn wir Ihre Mitgliedsdaten prüfen.",
+      "onboarding_note": "Wir schließen die Kontoeinrichtung zuerst mit einem Anmeldelink ab. Bei Bedarf können Sie danach ein Passwort festlegen.",
+      "activation_pending_title": "Aktivierung läuft",
+      "activation_pending_body": "Ihre Zahlung ist eingegangen und wir schließen die Kontoaktivierung ab. Sie können Ihr Dashboard jetzt öffnen; der Zugang zu Schadensfällen erscheint, sobald die Aktivierung abgeschlossen ist.",
+      "status_active": "Aktiv",
+      "status_pending": "Ausstehend",
+      "hotline_label": "Support-Hotline",
+      "hotline_disclaimer": {
+        "title": "Nur Weiterleitung und Unterstützung",
+        "body": "Nutzen Sie die Hotline für dringende Weiterleitung, Unterstützung und Hinweise zum nächsten Schritt. Sie bedeutet keine sofortige rechtliche Prüfung und keine automatische Annahme des Falls."
+      },
+      "hotline_number": "+383 49 123 456",
+      "hotline_hint": "Speichern Sie diese Nummer jetzt in Ihrem Telefon",
+      "card_label": "Ihre digitale Schutzkarte",
+      "card_id_prefix": "MITGLIEDS-ID:",
+      "cta_wallet": "Zu Apple/Google Wallet hinzufügen",
+      "cta_install": "App installieren",
+      "cta_save_contact": "Hotline in Kontakten speichern",
+      "cta_dashboard": "Zum Dashboard",
+      "cta_open_dashboard": "Dashboard öffnen",
+      "cta_start_claim": "Schadensfall starten",
+      "cta_refresh_status": "Mitgliedschaftsstatus aktualisieren",
+      "cta_helper": "Öffnen Sie Ihr Dashboard, um den Mitgliedschaftsstatus zu prüfen, oder starten Sie einen Schadensfall, sobald die Aktivierung abgeschlossen ist.",
+      "cta_helper_pending": "Öffnen Sie jetzt Ihr Dashboard und aktualisieren Sie dann diese Seite, um zu prüfen, ob die Aktivierung abgeschlossen ist.",
+      "benefits_title": "Erste Schritte",
+      "benefits_1": "Jederzeit Zugang zu Rechtsberatungen",
+      "benefits_2": "Schäden in 60 Sekunden berechnen",
+      "benefits_3": "Unfall-Checklisten herunterladen",
+      "benefits_4": "Schadensmeldung per Sprache mit einem Anruf"
+    },
+    "card": {
+      "title": "Digitaler Ausweis",
+      "subtitle": "Ihre Mitgliedsidentität",
+      "description": "Zeigen Sie diese Karte zur Verifizierung in Notfällen oder bei unseren Partnern vor.",
+      "hotline_disclaimer": {
+        "title": "Nur Weiterleitung und Unterstützung",
+        "body": "Nutzen Sie die Hotline für dringende Weiterleitung, Unterstützung und Hinweise zum nächsten Schritt. Sie bedeutet keine sofortige rechtliche Prüfung und keine automatische Annahme des Falls."
+      },
+      "member_since": "Mitglied seit",
+      "valid_thru": "Gültig bis",
+      "emergency_hotline": "Notfall-Hotline",
+      "back_to_dashboard": "Zurück zum Dashboard"
+    }
+  }
+}

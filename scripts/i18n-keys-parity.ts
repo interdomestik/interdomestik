@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const LOCALES = ['en', 'sq', 'mk', 'sr'] as const;
+const LOCALES = ['en', 'sq', 'mk', 'sr', 'de'] as const;
 const NAMESPACES = ['admin-claims', 'claims'] as const;
 const MESSAGES_DIR = path.join(__dirname, '../apps/web/src/messages');
 const compareText = (left: string, right: string) => left.localeCompare(right);

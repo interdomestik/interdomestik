@@ -1,0 +1,28 @@
+{
+  "faq": {
+    "title": "Häufig gestellte Fragen",
+    "subtitle": "Alles, was Sie über die Mitgliedschaft wissen müssen",
+    "questions": [
+      {
+        "question": "Was ist, wenn ich im Laufe des Jahres keine Hilfe brauche?",
+        "answer": "Ihre Mitgliedschaft bleibt aktiv und steht bereit, wenn Sie sie brauchen. Außerdem haben Sie das ganze Jahr über Zugriff auf den Schadensrechner, Leitfäden und Partnerrabatte."
+      },
+      {
+        "question": "Worin unterscheidet sich Interdomestik von einer Versicherung?",
+        "answer": "Wir sind keine Versicherung. Wir sind Ihr Schutzclub – Rechts- und Technikexperten, die für Sie arbeiten, nicht für den Versicherer. Sie zahlen nur 20 €/Jahr und ein Erfolgshonorar nur, wenn Sie gewinnen."
+      },
+      {
+        "question": "Wie schnell kann ich einen Schadensfall melden?",
+        "answer": "In 60 Sekunden! Rufen Sie unsere 24/7-Hotline an oder senden Sie eine WhatsApp-Nachricht. Keine Formulare, kein Warten."
+      },
+      {
+        "question": "Was ist, wenn ich den Schadensfall nicht gewinne?",
+        "answer": "Wenn es bei einer angenommenen Angelegenheit keine erfolgreiche Erstattung gibt, zahlen Sie kein Erfolgshonorar."
+      },
+      {
+        "question": "Kann ich meine Mitgliedschaft kündigen?",
+        "answer": "Ja. Die Mitgliedschaft wird in v1 jährlich abgerechnet, und eine Kündigung beendet die nächste Verlängerung. Wenn Sie innerhalb von 30 Tagen nach dem Kauf und bevor eine vom Team geführte Erstattungsangelegenheit angenommen wurde darum bitten, erstatten wir die Mitgliedsgebühr. Ein gesetzliches Widerrufsrecht gilt davon unabhängig."
+      }
+    ]
+  }
+}

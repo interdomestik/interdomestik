@@ -1,0 +1,46 @@
+{
+  "messaging": {
+    "title": "Nachrichten",
+    "placeholder": "Nachricht eingeben...",
+    "sent": "Nachricht gesendet",
+    "sending": "Wird gesendet...",
+    "sendError": "Nachricht konnte nicht gesendet werden",
+    "retry": "Erneut versuchen",
+    "failedToSend": "Senden fehlgeschlagen",
+    "shortcut": "Zum Senden Strg+Enter drücken",
+    "agentBadge": "Agent",
+    "internalNote": "Interne Notiz",
+    "internalNoteLabel": "Als interne Notiz senden (nur für Mitarbeitende sichtbar)",
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "empty": {
+      "title": "Noch keine Nachrichten",
+      "description": "Beginnen Sie das Gespräch hier, damit die Kommunikation zum Schadensfall an einem Ort bleibt."
+    },
+    "quickReplies": {
+      "greeting": "Hallo, wie kann ich Ihnen helfen?",
+      "docs_request": "Bitte laden Sie die erforderlichen Dokumente hoch.",
+      "status_update": "Ihr Schadensfall wird bearbeitet.",
+      "closing": "Vielen Dank für Ihre Nachricht."
+    },
+    "member": {
+      "refresh": "Nachrichten aktualisieren",
+      "loading": "Nachrichten werden geladen…",
+      "loadError": "Nachrichten konnten nicht geladen werden. Versuchen Sie es erneut, um nach Aktualisierungen zu suchen.",
+      "readError": "Nachrichten werden angezeigt, aber ihr Lesestatus konnte nicht gespeichert werden. Versuchen Sie es erneut, um ihn zu aktualisieren.",
+      "sendError": "Ihre Nachricht konnte nicht gesendet werden. Ihr Entwurf ist hier gespeichert; versuchen Sie es erneut.",
+      "label": "Nachricht an Ihr Fallteam",
+      "hint": "Bis zu 2.000 Zeichen. Zum Senden Strg+Enter oder ⌘+Enter drücken.",
+      "send": "Nachricht senden",
+      "read": "Gelesen"
+    },
+    "read": {
+      "refresh": "Nachrichten aktualisieren",
+      "loading": "Nachrichten werden geladen…",
+      "loadError": "Nachrichten konnten wegen eines Dienstproblems nicht geladen werden. Nichts, was Sie hier geschrieben haben, ist verloren gegangen.",
+      "retry": "Nachrichten erneut laden",
+      "statusError": "Nachrichten werden angezeigt, aber ihr Lesestatus konnte nicht aktualisiert werden."
+    },
+    "publicAudience": "Sichtbar für das Mitglied und das Fallteam."
+  }
+}

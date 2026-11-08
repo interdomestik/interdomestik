@@ -9,6 +9,6 @@ test('T210 owns only the canonical member timeline locale catalogs', () => {
     assert.equal(structuredArtifactOwner(path), 't210-member-timeline-i18n-contract');
   }
 
-  assert.equal(structuredArtifactOwner('apps/web/src/messages/de/claims-tracking.json'), null);
+  assert.equal(structuredArtifactOwner('apps/web/src/messages/hr/claims-tracking.json'), null);
   assert.equal(structuredArtifactOwner('apps/web/src/messages/en/unrelated.json'), null);
 });

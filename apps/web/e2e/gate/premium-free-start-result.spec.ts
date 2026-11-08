@@ -80,7 +80,7 @@ test.describe('premium Free Start result', () => {
     try {
       const page = await neutral.newPage();
       const neutralFailures = watchRuntime(page);
-      for (const locale of ['sq', 'en', 'sr', 'mk']) {
+      for (const locale of ['sq', 'en', 'sr', 'mk', 'de']) {
         neutralUrl.pathname = routes.home(locale);
         await page.setViewportSize({ width: 320, height: 844 });
         await gotoOrigin(page, neutralUrl, info, 'free-start-intake-shell');

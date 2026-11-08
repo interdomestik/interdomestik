@@ -49,6 +49,14 @@ const ENTITY_LABELS: Record<string, EntityDisclosureNoticeLabels> = {
     unavailableBody:
       'Trenutno ne možemo da prikažemo ugovornu kompaniju i merodavno pravo. Kontaktirajte podršku pre nastavka.',
   },
+  de: {
+    title: 'Vertragspartner',
+    contractingCompany: 'Vertragsgesellschaft',
+    governingLaw: 'Anwendbares Recht',
+    unavailableTitle: 'Vertragspartner nicht verfügbar',
+    unavailableBody:
+      'Wir können die Vertragsgesellschaft und das anwendbare Recht derzeit nicht anzeigen. Bitte wenden Sie sich an den Support, bevor Sie fortfahren.',
+  },
 };
 
 function entityLabelsFor(locale: string): EntityDisclosureNoticeLabels {

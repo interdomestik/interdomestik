@@ -1,0 +1,28 @@
+{
+  "voiceClaim": {
+    "badge": "Der schnellste Weg",
+    "title": "Ein Anruf. Das war's.",
+    "subtitle": "Melden Sie Ihren Unfall/Schaden in 60 Sekunden per Telefon. Keine Formulare, kein Stress, kein Warten.",
+    "step1": "Rufen Sie unsere 24/7-Hotline an",
+    "step2": "Beschreiben Sie den Unfall",
+    "step3": "Wir kümmern uns um alles",
+    "cta": "Jetzt anrufen",
+    "whatsappCta": "WhatsApp senden",
+    "stats": {
+      "time": "60 Sek.",
+      "timeLabel": "um einen Unfall/Schaden zu melden",
+      "noForms": "0",
+      "noFormsLabel": "auszufüllende Formulare"
+    },
+    "noStress": "Kein Stress",
+    "noWaiting": "Kein Warten",
+    "noForms": "Keine Formulare",
+    "recorder": {
+      "tapToRecord": "Zum Aufnehmen tippen (max. 60 Sek.)",
+      "recording": "Aufnahme läuft...",
+      "start": "Start",
+      "stop": "Stopp",
+      "readyToUpload": "Sprachnachricht bereit zum Hochladen."
+    }
+  }
+}

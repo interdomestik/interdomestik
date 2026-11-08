@@ -7,9 +7,10 @@ import en from '../../src/messages/en/freeStart.json';
 import sq from '../../src/messages/sq/freeStart.json';
 import mk from '../../src/messages/mk/freeStart.json';
 import sr from '../../src/messages/sr/freeStart.json';
+import de from '../../src/messages/de/freeStart.json';
 
 const KEY = 'interdomestik_free_start_recovery_v1';
-const catalogs = { en, sq, mk, sr };
+const catalogs = { en, sq, mk, sr, de };
 
 function recoveryOrigin(info: TestInfo) {
   const configured = process.env.IDA_RECOVERY_ORIGIN?.trim() || process.env.IDA_HOST?.trim();
@@ -22,7 +23,7 @@ function recoveryOrigin(info: TestInfo) {
   return target.origin;
 }
 
-for (const locale of ['en', 'sq', 'mk', 'sr'] as const) {
+for (const locale of ['en', 'sq', 'mk', 'sr', 'de'] as const) {
   for (const category of ['vehicle', 'property'] as const) {
     test(`${locale} ${category} entry exposes both recovery decisions at 390×844`, async ({
       browser,
