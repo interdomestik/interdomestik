@@ -64,6 +64,7 @@ const INVENTORY = {
     `${BILLING}sponsors/cache-job.ts`,
     `${BILLING}sponsors/mail-producers.ts`,
     `${BILLING}sponsors/provisioning.ts`,
+    `${BILLING}sponsors/staff-tasks-queries.ts`,
   ],
   seed: [
     'packages/database/src/seed-assert-branch-membership.ts',

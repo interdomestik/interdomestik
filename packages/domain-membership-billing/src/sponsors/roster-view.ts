@@ -14,6 +14,7 @@ import { withTenantAuthority } from '@interdomestik/database/tenant-authority-co
 
 import type { CoverageEntry } from '../sponsor-coverage/evaluate';
 import { readCoverageEntries } from '../sponsor-coverage/resolve';
+import { credentialsOf } from './credential-batch';
 import { canSeeRoster, isSponsorStaff, type SponsorActor } from './access';
 import {
   type CompanyVisibleStatus,
@@ -24,7 +25,7 @@ import {
 import { type SponsorTermView, termViews } from './roster-view-terms';
 import type { SponsorResult } from './terms';
 
-export type { SponsorTermView } from './roster-view-terms';
+export type { SponsorRevisionView, SponsorTermView } from './roster-view-terms';
 
 /**
  * ACQ-3b §3.4 read model: the sponsors an actor may see, and one term's roster with the
@@ -54,7 +55,6 @@ export type RosterView = {
   entries: RosterViewEntry[];
   counts: StatusCounts;
 };
-const CREDENTIAL_BATCH = 20;
 
 /** Which sponsors a role may see; `null` means none at all. */
 type Visibility = { all: true } | { branchId: string } | { createdBy: string };
@@ -171,28 +171,6 @@ async function loadRoster(
     );
   const userIds = [...new Set(rows.flatMap(row => (row.userId ? [row.userId] : [])))];
   return { sponsor, rows, people: await readCoverageEntries(tx, tenantId, userIds) };
-}
-
-async function credentialsOf(
-  userIds: readonly string[],
-  hasCredential: (userId: string) => Promise<boolean>
-): Promise<Set<string>> {
-  const batches: string[][] = [];
-  for (let at = 0; at < userIds.length; at += CREDENTIAL_BATCH) {
-    batches.push(userIds.slice(at, at + CREDENTIAL_BATCH));
-  }
-  const found = new Set<string>();
-  await batches.reduce<Promise<void>>(
-    (previous, batch) =>
-      previous.then(async () => {
-        const results = await Promise.all(batch.map(userId => hasCredential(userId)));
-        batch.forEach((userId, index) => {
-          if (results[index]) found.add(userId);
-        });
-      }),
-    Promise.resolve()
-  );
-  return found;
 }
 
 /** One term's roster with company-visible statuses; refused unless the actor may see it. */
