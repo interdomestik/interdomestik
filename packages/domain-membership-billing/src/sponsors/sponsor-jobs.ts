@@ -4,13 +4,47 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { and, eq, tenantSettings } from '@interdomestik/database';
 
 import { type ProvisionOutcome, provisionEntry } from './provisioning';
 import { listProvisioningWork } from './provisioning-facts';
 
 export const PROVISIONING_BATCH_LIMIT = 200;
 
+/** SRS OD-18 / ACQ-3a tenant switch: list upload and new provisioning stay dark until enabled. */
+export const SPONSORED_IMPORT_SETTING = {
+  category: 'acquisition',
+  key: 'sponsored_import',
+} as const;
+
+export async function isSponsorProvisioningEnabled(authority: TenantAuthority): Promise<boolean> {
+  const { tenantId } = readTenantAuthority(authority);
+  const [setting] = await withTenantAuthority(authority, tx =>
+    tx
+      .select({ value: tenantSettings.value })
+      .from(tenantSettings)
+      .where(
+        and(
+          eq(tenantSettings.tenantId, tenantId),
+          eq(tenantSettings.category, SPONSORED_IMPORT_SETTING.category),
+          eq(tenantSettings.key, SPONSORED_IMPORT_SETTING.key)
+        )
+      )
+      .limit(1)
+  );
+  const value = setting?.value as { enabled?: unknown } | null | undefined;
+  return value?.enabled === true;
+}
+
+/** The credential snapshot read used by sponsor jobs (§3.7 activation); the one privileged caller. */
+export function sponsorCredentialCheck(
+  authority: TenantAuthority
+): (userId: string) => Promise<boolean> {
+  return userId => hasTenantMemberCredential(authority, userId);
+}
+
 export type ProvisioningRunSummary = {
+  disabled?: true;
   processed: number;
   failed: number;
   outcomes: Partial<Record<ProvisionOutcome, number>>;
@@ -26,11 +60,14 @@ export async function runSponsorProvisioning(
   options: { now: Date; limit?: number }
 ): Promise<ProvisioningRunSummary> {
   const { tenantId } = readTenantAuthority(authority);
+  if (!(await isSponsorProvisioningEnabled(authority))) {
+    return { disabled: true, processed: 0, failed: 0, outcomes: {} };
+  }
   const ids = await withTenantAuthority(authority, tx =>
     listProvisioningWork(tx, tenantId, options.now, options.limit ?? PROVISIONING_BATCH_LIMIT)
   );
   const summary: ProvisioningRunSummary = { processed: 0, failed: 0, outcomes: {} };
-  const hasCredential = (userId: string) => hasTenantMemberCredential(authority, userId);
+  const hasCredential = sponsorCredentialCheck(authority);
   await ids.reduce<Promise<void>>(
     (previous, entryId) =>
       previous.then(async () => {

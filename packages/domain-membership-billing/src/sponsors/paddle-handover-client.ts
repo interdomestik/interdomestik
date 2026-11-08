@@ -56,15 +56,21 @@ export function classifyCancelFailure(error: unknown): CancelResponse {
 
 export function createHandoverPaddleClient(
   tenantId: string,
-  paddle: Paddle = getPaddle({ tenantId })
+  injected?: Paddle
 ): HandoverPaddleClient {
+  // Resolved on first use, so a tenant with no due intent never needs a Paddle client.
+  let resolved: Paddle | undefined = injected;
+  const client = (): Paddle => {
+    resolved ??= getPaddle({ tenantId });
+    return resolved;
+  };
   return {
     async getSubscription(providerSubscriptionId): Promise<HandoverSubscription> {
-      return toReadBack(await paddle.subscriptions.get(providerSubscriptionId));
+      return toReadBack(await client().subscriptions.get(providerSubscriptionId));
     },
     async cancelAtNextPeriod(providerSubscriptionId): Promise<CancelResponse> {
       try {
-        const subscription = await paddle.subscriptions.cancel(providerSubscriptionId, {
+        const subscription = await client().subscriptions.cancel(providerSubscriptionId, {
           effectiveFrom: 'next_billing_period',
         });
         return { kind: 'ok', subscription: toReadBack(subscription) };
@@ -73,7 +79,7 @@ export function createHandoverPaddleClient(
       }
     },
     async listTransactions(providerSubscriptionId): Promise<PaddleTransaction[]> {
-      const collection = paddle.transactions.list({ subscriptionId: [providerSubscriptionId] });
+      const collection = client().transactions.list({ subscriptionId: [providerSubscriptionId] });
       const transactions: PaddleTransaction[] = [];
       async function readNextPage(): Promise<PaddleTransaction[]> {
         if (!collection.hasMore) return transactions;

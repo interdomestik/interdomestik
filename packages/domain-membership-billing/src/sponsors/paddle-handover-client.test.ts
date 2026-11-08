@@ -135,9 +135,10 @@ describe('handover Paddle client', () => {
     const get = vi.spyOn(paddle.subscriptions, 'get').mockResolvedValue(subscription);
     vi.mocked(getPaddle).mockReturnValue(paddle);
     const client = createHandoverPaddleClient('tenant_mk');
-    expect(getPaddle).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
+    expect(getPaddle).not.toHaveBeenCalled();
     expect(await client.getSubscription('sub_1')).toEqual(toReadBack(subscription));
     expect(get).toHaveBeenCalledWith('sub_1');
+    expect(getPaddle).toHaveBeenCalledExactlyOnceWith({ tenantId: 'tenant_mk' });
   });
 
   it('concatenates every page in order without filtering transaction statuses', async () => {
