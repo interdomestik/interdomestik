@@ -3,95 +3,95 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Offline | Interdomestik</title>
-    <style>
-      :root {
-        --primary: #0f766e;
-        --primary-foreground: #ffffff;
-        --background: #ffffff;
-        --foreground: #0f172a;
-        --muted: #f1f5f9;
-        --muted-foreground: #64748b;
-      }
-      body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        background-color: var(--background);
-        color: var(--foreground);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        margin: 0;
-        text-align: center;
-        padding: 20px;
-      }
-      .icon-container {
-        background-color: var(--muted);
-        border-radius: 50%;
-        padding: 24px;
-        margin-bottom: 24px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
-      svg {
-        width: 48px;
-        height: 48px;
-        color: var(--muted-foreground);
-      }
-      h1 {
-        font-size: 24px;
-        font-weight: 700;
-        margin: 0 0 12px 0;
-        color: var(--foreground);
-      }
-      p {
-        color: var(--muted-foreground);
-        margin: 0 0 32px 0;
-        line-height: 1.5;
-        max-width: 300px;
-      }
-      button {
-        background-color: var(--primary);
-        color: var(--primary-foreground);
-        border: none;
-        padding: 12px 32px;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: opacity 0.2s;
-      }
-      button:active {
-        opacity: 0.9;
-      }
-    </style>
+    <title>Offline Help Now | Interdomestik</title>
+    <link rel="stylesheet" href="/offline.css" />
   </head>
   <body>
-    <div class="icon-container">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="lucide lucide-wifi-off"
-      >
-        <path d="M12 20h.01" />
-        <path d="M8.5 16.429a5 5 0 0 1 7 0" />
-        <path d="M5 12.859a10 10 0 0 1 14 0" />
-        <path d="M2 8.571a15 15 0 0 1 20 0" />
-        <line x1="1" x2="23" y1="1" y2="23" />
-      </svg>
-    </div>
-    <h1>No Internet Connection</h1>
-    <p>You are currently offline. Please check your connection and try again.</p>
-    <button onclick="window.location.reload()">Retry</button>
+    <main>
+      <h1>Help Now — offline</h1>
+      <p>Public scene checklist only. No account records, saved photo notes or queued changes.</p>
+      <p>Country-specific numbers and rules require an online connection.</p>
+      <nav aria-label="Language">
+        <a href="#en">English</a> · <a href="#sq">Shqip</a> · <a href="#mk">Македонски</a> ·
+        <a href="#sr">Srpski</a> · <a href="#de">Deutsch</a>
+      </nav>
+      <section id="en" lang="en">
+        <h2>Someone is hurt: call local emergency services.</h2>
+        <p>No one is hurt: continue the scene checklist.</p>
+        <ol>
+          <li>Move to safety</li>
+          <li>Turn on hazard lights</li>
+          <li>Take scene photos</li>
+          <li>Exchange details</li>
+          <li>Find witnesses</li>
+          <li>Do not admit fault</li>
+        </ol>
+        <p>Checklist, photo prompts and next-step options only. No case is created here.</p>
+      </section>
+      <section id="sq" lang="sq">
+        <h2>Nëse ka të lënduar, thirrni urgjencën lokale.</h2>
+        <p>Nëse nuk ka të lënduar, vazhdoni listën e vendit të ngjarjes.</p>
+        <ol>
+          <li>Dilni në vend të sigurt</li>
+          <li>Ndizni dritat paralajmëruese</li>
+          <li>Bëni foto</li>
+          <li>Shkëmbeni të dhënat</li>
+          <li>Gjeni dëshmitarë</li>
+          <li>Mos pranoni fajin</li>
+        </ol>
+        <p>
+          Vetëm lista, udhëzime për foto dhe mundësi për hapin e ardhshëm. Këtu nuk hapet asnjë
+          rast.
+        </p>
+      </section>
+      <section id="mk" lang="mk">
+        <h2>Ако има повредени, јавете се на локалната итна служба.</h2>
+        <p>Ако нема повредени, продолжете со списокот за местото.</p>
+        <ol>
+          <li>Преместете се на безбедно</li>
+          <li>Вклучете четири трепкачи</li>
+          <li>Фотографирајте</li>
+          <li>Разменете податоци</li>
+          <li>Побарајте сведоци</li>
+          <li>Не признавајте вина</li>
+        </ol>
+        <p>
+          Само список, упатства за фотографии и можности за следен чекор. Тука не се отвора случај.
+        </p>
+      </section>
+      <section id="sr" lang="sr">
+        <h2>Ako je neko povređen, pozovite lokalnu hitnu službu.</h2>
+        <p>Ako nema povređenih, nastavite listu na mestu događaja.</p>
+        <ol>
+          <li>Pomerite se na sigurno</li>
+          <li>Uključite sva četiri migavca</li>
+          <li>Fotografišite mesto</li>
+          <li>Razmenite podatke</li>
+          <li>Pronađite svedoke</li>
+          <li>Ne priznajte krivicu</li>
+        </ol>
+        <p>
+          Samo lista, uputstva za fotografije i mogućnosti za sledeći korak. Ovde se ne otvara
+          slučaj.
+        </p>
+      </section>
+      <section id="de" lang="de">
+        <h2>Jemand ist verletzt: Rufen Sie den örtlichen Notruf an.</h2>
+        <p>Niemand ist verletzt: Fahren Sie mit der Checkliste für den Unfallort fort.</p>
+        <ol>
+          <li>In Sicherheit bringen</li>
+          <li>Warnblinker einschalten</li>
+          <li>Fotos vom Unfallort machen</li>
+          <li>Daten austauschen</li>
+          <li>Zeugen suchen</li>
+          <li>Keine Schuld eingestehen</li>
+        </ol>
+        <p>
+          Nur Checkliste, Fotohinweise und Optionen für die nächsten Schritte. Hier wird kein Fall
+          erstellt.
+        </p>
+      </section>
+      <a href="">Retry / Provo përsëri / Обиди се повторно / Pokušaj ponovo / Erneut versuchen</a>
+    </main>
   </body>
 </html>

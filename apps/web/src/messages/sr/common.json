@@ -1,5 +1,13 @@
 {
   "common": {
+    "pwa": {
+      "offlineTitle": "Niste povezani na internet",
+      "offlineBody": "Povežite se da biste videli radni prostor. Nema keširanih podataka. Promene se ne stavljaju u red niti šalju dok ste van mreže.",
+      "retry": "Pokušaj ponovo",
+      "install": "Instaliraj aplikaciju",
+      "iosTitle": "Instaliraj na početni ekran",
+      "iosInstructions": "Dodirni Podeli, pa Dodaj na početni ekran."
+    },
     "appName": "Interdomestik",
     "loading": "Učitavanje...",
     "processing": "Obrada...",

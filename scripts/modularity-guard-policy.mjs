@@ -75,6 +75,7 @@ const STRUCTURED_OWNERS = [
 // A constant keeps owner/path pairs such as auth.json clear of secret-scanner key heuristics.
 const PARITY_OWNER = 'i18n-keys-parity-contract';
 const LOCALE_CATALOG_OWNERS = new Map([
+  ['common.json', 'pwa-i18n-contract'],
   ['admin-users.json', 's7-admin-user-read-recovery-i18n-contract'],
   ['admin-claims.json', 's7-admin-claims-read-consistency-i18n-contract'],
   ['freeStart.json', 's5-local-draft-disclosure-i18n-contract'],

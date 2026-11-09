@@ -1,5 +1,13 @@
 {
   "common": {
+    "pwa": {
+      "offlineTitle": "Jeni jashtë linje",
+      "offlineBody": "Rilidhuni për të parë hapësirën tuaj të punës. Nuk ka të dhëna të ruajtura për përdorim jashtë linje. Ndryshimet nuk vendosen në radhë dhe nuk dërgohen jashtë linje.",
+      "retry": "Provo përsëri",
+      "install": "Instalo aplikacionin",
+      "iosTitle": "Instalo në ekranin kryesor",
+      "iosInstructions": "Prek Ndaj, pastaj Shto në ekranin kryesor."
+    },
     "appName": "Asistenca",
     "companyName": "Interdomestik",
     "tagline": "Pranë jush kur duhet",

@@ -15,6 +15,7 @@ import { Bell, Mail, MessageSquare, Smartphone } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { syncPushSubscription } from '@/lib/pwa/push-subscription';
 
 import {
   getNotificationPreferences,
@@ -23,7 +24,7 @@ import {
 } from '@/actions/user-settings';
 
 interface NotificationSettingsProps {
-  initialPreferences?: Partial<NotificationPreferences>;
+  readonly initialPreferences?: Partial<NotificationPreferences>;
 }
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -43,89 +44,6 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
     ...DEFAULT_PREFERENCES,
     ...initialPreferences,
   });
-
-  const syncPushSubscription = async (nextPreferences: NotificationPreferences) => {
-    const wantsPush = nextPreferences.pushClaimUpdates || nextPreferences.pushMessages;
-    if (!wantsPush) {
-      // Best-effort unsubscribe when user disables all push channels.
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-      try {
-        const registration = await navigator.serviceWorker.getRegistration();
-        if (!registration) return;
-        const existing = await registration.pushManager.getSubscription();
-        if (!existing) return;
-
-        await fetch('/api/settings/push', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endpoint: existing.endpoint }),
-        });
-        await existing.unsubscribe();
-      } catch {
-        // Ignore unsubscribe failures; preferences save should still succeed.
-      }
-      return;
-    }
-
-    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!vapidPublicKey) {
-      return;
-    }
-
-    if (
-      !('serviceWorker' in navigator) ||
-      !('PushManager' in window) ||
-      !('Notification' in window)
-    ) {
-      return;
-    }
-
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      return;
-    }
-
-    const urlBase64ToUint8Array = (base64String: string) => {
-      const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-      const rawData = window.atob(base64);
-      const outputArray = new Uint8Array(rawData.length);
-      for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-      }
-      return outputArray;
-    };
-
-    const registration =
-      (await navigator.serviceWorker.getRegistration()) ??
-      (await navigator.serviceWorker.register('/sw.js'));
-
-    const subscription =
-      (await registration.pushManager.getSubscription()) ??
-      (await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-      }));
-
-    const json = subscription.toJSON();
-    const endpoint = json.endpoint;
-    const p256dh = json.keys?.p256dh;
-    const auth = json.keys?.auth;
-
-    if (!endpoint || !p256dh || !auth) {
-      return;
-    }
-
-    await fetch('/api/settings/push', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        endpoint,
-        keys: { p256dh, auth },
-        userAgent: navigator.userAgent,
-      }),
-    });
-  };
 
   // Load preferences on mount if not provided as props
   useEffect(() => {

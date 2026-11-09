@@ -1,5 +1,13 @@
 {
   "common": {
+    "pwa": {
+      "offlineTitle": "You are offline",
+      "offlineBody": "Reconnect to view your workspace. No cached records are available. Changes are not queued or sent while offline.",
+      "retry": "Retry",
+      "install": "Install App",
+      "iosTitle": "Install on your home screen",
+      "iosInstructions": "Tap Share, then Add to Home Screen."
+    },
     "appName": "Asistenca",
     "companyName": "Interdomestik",
     "tagline": "There when you need us",

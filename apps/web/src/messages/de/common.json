@@ -1,5 +1,13 @@
 {
   "common": {
+    "pwa": {
+      "offlineTitle": "Du bist offline",
+      "offlineBody": "Verbinde dich mit dem Internet, um deinen Arbeitsbereich zu sehen. Es sind keine zwischengespeicherten Daten verfügbar. Änderungen werden offline weder vorgemerkt noch gesendet.",
+      "retry": "Erneut versuchen",
+      "install": "App installieren",
+      "iosTitle": "Auf dem Home-Bildschirm installieren",
+      "iosInstructions": "Tippe auf Teilen und dann auf Zum Home-Bildschirm."
+    },
     "appName": "Asistenca",
     "companyName": "Interdomestik",
     "tagline": "Da, wenn Sie uns brauchen",
