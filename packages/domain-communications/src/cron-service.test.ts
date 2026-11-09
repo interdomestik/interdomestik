@@ -6,9 +6,20 @@ import {
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { evaluateWhere, findClause, pageRowsByTenant } from './tenant-campaign-test-support';
+import {
+  evaluateWhere,
+  findClause,
+  pageRowsByTenant,
+  recordingOperators,
+} from './tenant-campaign-test-support';
 
 // The producer is mocked; this stands in for the cron or Inngest entry's admitted capability.
+Object.assign(recordingOperators, {
+  isNull: (left: unknown) => ({ op: 'isNull', left }),
+  ne: (left: unknown, right: unknown) => ({ op: 'ne', left, right }),
+  or: (...clauses: unknown[]) => ({ op: 'or', clauses }),
+});
+
 const INGRESS = Object.freeze({}) as IngressCapability<'inngest'>;
 const authorities: Record<string, TenantAuthority> = {};
 
@@ -116,6 +127,13 @@ describe('processEmailSequences welcome campaign', () => {
       async (options: { where: unknown; with: unknown; limit: number }) => {
         const clause = evaluateWhere(options.where, 'subscriptions');
         expect(findClause(clause, 'eq', 'subscriptions.status')).toEqual({ right: 'active' });
+        expect(clause.clauses).toContainEqual({
+          op: 'or',
+          clauses: [
+            { op: 'isNull', left: 'subscriptions.provider' },
+            { op: 'ne', left: 'subscriptions.provider', right: 'group_sponsor' },
+          ],
+        });
         expect(options.with).toEqual({ user: true });
         expect(options.limit).toBe(500);
         const page = pageRowsByTenant(rowsByTenant, options.where, 'subscriptions', 1);
@@ -154,6 +172,37 @@ describe('processEmailSequences welcome campaign', () => {
       'b1@example.com',
     ]);
     expect(result.errors).toEqual([]);
+  });
+
+  it('excludes sponsored rows with or without coverage while retaining Paddle and legacy rows', async () => {
+    scheduleTenants(['tenant-a']);
+    const rows = [
+      { ...subscription('sponsor-covered', 'tenant-a'), provider: 'group_sponsor' },
+      { ...subscription('sponsor-uncovered', 'tenant-a'), provider: 'group_sponsor' },
+      { ...subscription('paddle', 'tenant-a'), provider: 'paddle' },
+      { ...subscription('legacy', 'tenant-a'), provider: null },
+    ];
+    h.findManySubscriptions.mockImplementation(async (options: { where: unknown }) => {
+      const clause = evaluateWhere(options.where, 'subscriptions');
+      if (findClause(clause, 'gt', 'subscriptions.id')) return [];
+      const providerClause = clause.clauses?.find(part => part.op === 'or');
+      if (!providerClause) throw new Error('Missing provider exclusion');
+      return rows.filter(row =>
+        providerClause.clauses?.some(
+          part =>
+            part.left === 'subscriptions.provider' &&
+            (part.op === 'isNull'
+              ? row.provider === null
+              : row.provider !== null && row.provider !== part.right)
+        )
+      );
+    });
+    const result = await processEmailSequences(INGRESS);
+    expect(result.errors).toEqual([]);
+    expect(h.sendWelcomeEmail.mock.calls.map(call => call[0])).toEqual([
+      'paddle@example.com',
+      'legacy@example.com',
+    ]);
   });
 
   it('does not query subscriptions when there are no tenants', async () => {

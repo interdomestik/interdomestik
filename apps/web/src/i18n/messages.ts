@@ -57,6 +57,9 @@ export const MESSAGE_NAMESPACES = [
   'services',
   'servicesPage',
   'settings',
+  'sponsors',
+  'sponsorOptOut',
+  'sponsorTasks',
   'stats',
   'staff-crm',
   'testimonials',
@@ -88,7 +91,7 @@ export const HOME_NAMESPACES = [
   'footer',
 ] as const;
 // prettier-ignore
-export const SITE_NAMESPACES = ['about', 'pricing', 'services', 'legal', 'entityDisclosure'] as const;
+export const SITE_NAMESPACES = ['about', 'pricing', 'services', 'legal', 'entityDisclosure', 'sponsorOptOut'] as const;
 export const AUTH_NAMESPACES = ['auth'] as const;
 export const APP_NAMESPACES = [
   'common',
@@ -125,6 +128,7 @@ export const AGENT_NAMESPACES = [
   'messaging',
   'notifications',
   'settings',
+  'sponsors',
 ] as const;
 export const STAFF_NAMESPACES = [
   'common',
@@ -138,6 +142,8 @@ export const STAFF_NAMESPACES = [
   'notifications',
   'settings',
   'staff-crm',
+  'sponsors',
+  'sponsorTasks',
 ] as const;
 export const ADMIN_NAMESPACES = [
   'admin',
@@ -162,6 +168,8 @@ export const ADMIN_NAMESPACES = [
   'claims-tracking',
   'messaging',
   'notifications',
+  'sponsors',
+  'sponsorTasks',
 ] as const;
 import { mergeMessages } from './utils/merge';
 type LoadAllMessagesOptions = { strict?: boolean };

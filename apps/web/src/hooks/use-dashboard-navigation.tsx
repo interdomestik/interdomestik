@@ -12,7 +12,6 @@ import {
   LayoutTemplate,
   Settings,
   ShieldCheck,
-  Upload,
   UserPlus,
   Users,
 } from 'lucide-react';
@@ -94,9 +93,9 @@ export function buildDashboardNavigationModel(params: {
       { title: t('agentCommissions'), href: '/agent/commissions', icon: DollarSign }
     );
 
-    // Tier Gating: Bulk Import only for Office
+    // Sponsor management is available to office agents.
     if (agentTier === 'office') {
-      agentItems.push({ title: t('bulkImport'), href: '/agent/import', icon: Upload });
+      agentItems.push({ title: t('sponsors'), href: '/agent/sponsors', icon: Briefcase });
     }
   }
 

@@ -7,6 +7,7 @@ import { type MemberPortalCopy } from '@/components/dashboard/member-portal-runt
 import { requireSessionOrRedirect } from '@/components/shell/session';
 import { LOCALES } from '@/i18n/locales';
 import { getCachedSession } from '@/lib/auth.server';
+import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
 import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
 import { getMemberCaseSummaries, getMemberPortalMembership } from '@interdomestik/domain-member';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -39,7 +40,9 @@ export const getMemberPortalContext = cache(async (requestedLocale: string) => {
 
   // prettier-ignore
   const [t, dashboard] = await Promise.all([getTranslations({ locale, namespace: 'claims' }), getTranslations({ locale, namespace: 'dashboard' })]);
-  const q = { memberId, tenantId };
+  const authority = await authorizeSessionUserTenant(memberId);
+  if (!authority) notFound();
+  const q = { authority, memberId };
   const cases = getMemberCaseSummaries(q);
   const membership = getMemberPortalMembership(q);
   const portal = dashboard.raw('portal') as PortalMessages;

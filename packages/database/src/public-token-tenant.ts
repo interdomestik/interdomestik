@@ -3,6 +3,8 @@ import { eq } from 'drizzle-orm';
 import { dbAdmin } from './db';
 import { npsSurveyTokens } from './schema/automation';
 import { sharePacks } from './schema/documents';
+// Via the barrel: the sponsor schema loads leads and its relations, so it stays out of this graph.
+import { sponsorRosterEntries } from './schema';
 import { claimTrackingTokens } from './schema/tracking';
 import { mintTenantAuthority, type TenantAuthority } from './tenant-authority';
 
@@ -15,6 +17,7 @@ export type ClaimTrackingTokenTenant = {
 };
 export type NpsSurveyTokenTenant = { tenantId: string; authority: TenantAuthority };
 export type SharePackTenant = { tenantId: string; authority: TenantAuthority };
+export type SponsorOptOutTenant = { tenantId: string; entryId: string; authority: TenantAuthority };
 
 function mintPublicTokenAuthority(tenantId: string): TenantAuthority {
   return mintTenantAuthority({ tenantId, purpose: 'public-token' });
@@ -95,4 +98,30 @@ export async function resolveSharePackTenant(
   if (row.tenantId !== tokenTenantId) return null;
   if (row.revokedAt || row.expiresAt.getTime() <= now.getTime()) return null;
   return { tenantId: row.tenantId, authority: mintPublicTokenAuthority(row.tenantId) };
+}
+
+/**
+ * ACQ-3b §3.8: resolves the tenant and roster entry of one sponsor opt-out link. The caller passes
+ * the hash of the presented token (the token is derived, never stored). A hash present on more
+ * than one row never resolves; the opt-out itself re-reads the entry and acts only on its own
+ * person and sponsor inside the tenant transaction. A cleared hash (revoked, or 30 days after the
+ * term ended) cannot match.
+ */
+export async function resolveSponsorOptOutTenant(
+  tokenHash: string
+): Promise<SponsorOptOutTenant | null> {
+  if (!tokenHash) return null;
+  // db-access-guard: system-exempt -- reason: exact opt-out token hash to tenant/entry resolution only; the opt-out stays tenant-scoped
+  const rows = await dbAdmin
+    .select({ tenantId: sponsorRosterEntries.tenantId, entryId: sponsorRosterEntries.id })
+    .from(sponsorRosterEntries)
+    .where(eq(sponsorRosterEntries.optoutTokenHash, tokenHash))
+    .limit(2);
+  if (rows.length !== 1) return null;
+  const [row] = rows;
+  return {
+    tenantId: row.tenantId,
+    entryId: row.entryId,
+    authority: mintPublicTokenAuthority(row.tenantId),
+  };
 }

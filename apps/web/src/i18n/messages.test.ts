@@ -38,6 +38,16 @@ describe('i18n shell namespace coverage', () => {
     expect(admin).toContain("'dashboard'");
   });
 
+  it('gives every sponsor portal its sponsor client catalogs', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, 'messages.ts'), 'utf8');
+
+    expect(getArrayBlock(source, 'AGENT_NAMESPACES')).toContain("'sponsors'");
+    for (const portal of ['STAFF_NAMESPACES', 'ADMIN_NAMESPACES']) {
+      expect(getArrayBlock(source, portal)).toContain("'sponsors'");
+      expect(getArrayBlock(source, portal)).toContain("'sponsorTasks'");
+    }
+  });
+
   it('includes claims-tracking on staff shells that render claim detail status copy', () => {
     const source = fs.readFileSync(path.resolve(__dirname, 'messages.ts'), 'utf8');
     const staff = getArrayBlock(source, 'STAFF_NAMESPACES');

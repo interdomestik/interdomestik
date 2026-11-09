@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => {
   const usageQuery = createSelectChain();
 
   return {
+    resolveMembership: vi.fn(),
     db: { select: vi.fn() },
     subscriptions: columns,
     serviceUsage: columns,
@@ -37,6 +38,28 @@ vi.mock('@interdomestik/database', () => mocks);
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
+
+vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
+  resolveEffectiveMembership: mocks.resolveMembership,
+}));
+
+beforeEach(() => {
+  mocks.resolveMembership.mockImplementation(
+    async (tx: TenantTransaction, tenantId: string, userIds: string[]) => {
+      const [subscription] = await tx
+        .select()
+        .from(mocks.subscriptions as never)
+        .where(mocks.withTenant(tenantId, mocks.subscriptions.tenantId, {}))
+        .limit(1);
+      return new Map(
+        userIds.map(id => [
+          id,
+          subscription ? { source: 'subscription', subscription } : { source: 'none' },
+        ])
+      );
+    }
+  );
+});
 
 import {
   getMatterAllowanceVisibilityForUser,
@@ -171,6 +194,7 @@ describe('transaction propagation', () => {
       ...scope,
       userId: 'member-1',
     });
+    if (!subscription) throw new Error('Expected subscription context');
     expect(subscription?.subscriptionId).toBe('sub-1');
     expect(
       await hasRecoveryMatterUsageForClaim({
@@ -182,7 +206,7 @@ describe('transaction propagation', () => {
     const context = await getMatterAllowanceContextForSubscription(
       {
         ...scope,
-        subscription: subscription!,
+        subscription,
       },
       { now: NOW }
     );
@@ -204,7 +228,9 @@ it('serializes two decisions through commit', async () => {
   let tail = Promise.resolve();
   const events: string[] = [];
   async function decide(id: number) {
-    let release!: () => void;
+    let release: () => void = () => {
+      throw new Error('Lock not acquired');
+    };
     const execute = vi.fn(async () => {
       const previous = tail;
       tail = new Promise<void>(resolve => {

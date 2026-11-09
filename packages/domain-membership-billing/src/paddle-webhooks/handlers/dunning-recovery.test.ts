@@ -1,9 +1,45 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { deps, hoisted, seed } from './dunning-order.fixture';
 import { KS_AUTHORITY, pastDue, T1, T2 } from './dunning-order.test-support';
 import { handleSubscriptionPastDue } from './dunning';
+import * as sponsorCoverage from './dunning-sponsor';
+
+afterEach(() => vi.restoreAllMocks());
 
 describe('ordered past-due effect recovery', () => {
+  it.each([true, false])(
+    'refreshes coverage on delivery replay (access continues: %s)',
+    async covered => {
+      seed('active', T1, 'evt_old');
+      vi.spyOn(sponsorCoverage, 'readPastDueAccessContinues').mockResolvedValue(!covered);
+      const coverage = vi
+        .spyOn(sponsorCoverage, 'pastDueAccessContinuesInTx')
+        .mockResolvedValue(!covered);
+      vi.mocked(deps.preparePastDueEmail).mockImplementation((to, params) => ({
+        from: 'support@example.com',
+        to,
+        subject: params.planName,
+        html: params.accessContinues ? '<p>Payment facts only</p>' : '<p>Access may end</p>',
+        text: params.accessContinues ? 'Payment facts only' : 'Access may end',
+      }));
+      vi.mocked(deps.sendPreparedPastDueEmail).mockResolvedValueOnce({
+        success: false,
+        error: 'outage',
+      });
+      await expect(handleSubscriptionPastDue(pastDue(T2, 'evt_due'), deps)).rejects.toThrow(
+        'unconfirmed'
+      );
+      const originalKey = vi.mocked(deps.sendPreparedPastDueEmail).mock.calls[0]?.[1];
+      coverage.mockResolvedValue(covered);
+      await handleSubscriptionPastDue(pastDue(T2, 'evt_due'), deps);
+      expect(deps.sendPreparedPastDueEmail).toHaveBeenLastCalledWith(
+        expect.objectContaining({ text: covered ? 'Payment facts only' : 'Access may end' }),
+        originalKey
+      );
+      expect(hoisted.store.row?.dunningAttemptCount).toBe(1);
+    }
+  );
+
   it('recovers effects when execution fails after the ordered state commits', async () => {
     seed('active', T1, 'evt_older');
     hoisted.store.crashAfterCommit = true;

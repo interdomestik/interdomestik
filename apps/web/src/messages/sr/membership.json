@@ -60,6 +60,11 @@
         "body": "Linija služi za hitno usmeravanje, podršku i sledeći korak. Ne znači hitan pravni pregled, prihvatanje predmeta ili obradu koju vodi tim."
       }
     },
+    "documents": {
+      "title": "Dokumenta",
+      "empty": "Nema dokumenata",
+      "view": "Prikaži"
+    },
     "plan": {
       "title": "Trenutni plan",
       "description": "Vaš nivo zaštite",
@@ -91,7 +96,7 @@
       "empty_list": "Nema pretplata",
       "no_membership_title": "Dovršite članstvo",
       "no_membership_body": "Još nemate aktivno plaćeno članstvo. Izaberite plan da nastavite na checkout i otključate pristup zahtevima.",
-      "membership_not_active_title": "Zaštita još nije aktivna",
+      "membership_not_active_title": "Ovo članstvo je neaktivno",
       "membership_not_active_body": "Ovo članstvo još nije aktivno. Dovršite checkout da vratite zaštitu i pristup zahtevima.",
       "complete_membership": "Dovrši članstvo",
       "choose_plan": "Izaberi plan",
@@ -107,7 +112,9 @@
       "accepted_escalation_survives": "Prihvaćeni predmeti naplate zadržavaju važeće eskalacione uslove i nakon otkazivanja članstva.",
       "cooling_off_applies_separately": "Sva zakonska prava na odustanak razmatraju se odvojeno prema objavljenim uslovima.",
       "payment_update_preparing": "Pripremamo vaš bezbedni link za ažuriranje plaćanja…",
-      "payment_update_opening": "Otvaramo bezbednu stranicu za plaćanje…"
+      "payment_update_opening": "Otvaramo bezbednu stranicu za plaćanje…",
+      "renew": "Obnovi",
+      "cancel": "Zatraži otkazivanje"
     },
     "errors": {
       "action_failed": "Nismo mogli da završimo tu člansku radnju. Pokušajte ponovo.",
@@ -200,6 +207,17 @@
       "valid_thru": "Važi do",
       "emergency_hotline": "Hitna linija",
       "back_to_dashboard": "Nazad na kontrolnu tablu"
+    },
+    "sponsorCoverage": {
+      "covered_until": "Pokriveni do {date}",
+      "leave": "Napustite program kompanije",
+      "confirm_body": "Vaše članstvo preko kompanije završava se sada. Nakon napuštanja možete kupiti individualno članstvo.",
+      "keep": "Zadrži članstvo",
+      "confirm": "Potvrdi napuštanje",
+      "pending": "Napuštanje…",
+      "success": "Napustili ste program kompanije. Sada možete kupiti individualno članstvo.",
+      "not_found": "Ovo članstvo preko kompanije više nije dostupno. Osvežite stranicu.",
+      "error": "Nismo uspeli da napustimo program. Pokušajte ponovo."
     }
   }
 }

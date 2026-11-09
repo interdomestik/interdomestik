@@ -137,7 +137,11 @@
         "not_applicable": "Nicht zutreffend",
         "tenant_review": "Mandantenprüfung",
         "tenant_review_pending": "Spätere Prüfung der Mitgliedsdetails ausstehend",
-        "tenant_review_confirmed": "Durch die aktuelle Mandantenzuordnung bestätigt"
+        "tenant_review_confirmed": "Durch die aktuelle Mandantenzuordnung bestätigt",
+        "source": "Quelle",
+        "period_start": "Beginn des Zeitraums",
+        "coverage_end": "Ende der Absicherung",
+        "provider_lifecycle": "Abonnementstatus bei Paddle"
       },
       "status": {
         "active": "Aktiv",
@@ -180,6 +184,19 @@
         "select_tenant_first": "Wählen Sie zuerst einen Mandanten",
         "no_reassign_options": "Keine aktiven Ziele für eine Neuzuweisung verfügbar.",
         "reassign_locked": "Nur Superadmins können ein Mitglied einem anderen Mandanten zuweisen."
+      },
+      "provider_status": {
+        "active": "Aktiv",
+        "past_due": "Überfällig",
+        "paused": "Pausiert",
+        "canceled": "Gekündigt",
+        "trialing": "Testphase",
+        "expired": "Abgelaufen"
+      },
+      "source": {
+        "sponsor": "Sponsoring",
+        "subscription": "Abonnement",
+        "none": "Keine"
       }
     }
   }

@@ -68,7 +68,9 @@
           "preferences_unset": "Поставките не се поставени",
           "no_claims": "Сè уште нема барања",
           "unknown": "Непознато",
-          "not_set": "Не е поставено"
+          "not_set": "Не е поставено",
+          "source": "Извор",
+          "period_start": "Почеток на периодот"
         },
         "status": {
           "active": "Активен",
@@ -90,6 +92,11 @@
           "open": "Отворени барања",
           "resolved": "Решени",
           "rejected": "Одбиени"
+        },
+        "source": {
+          "sponsor": "Спонзор",
+          "subscription": "Претплата",
+          "none": "Нема"
         }
       },
       "filters": {
@@ -106,12 +113,18 @@
           "status": "Статус",
           "plan": "План",
           "period_end": "Истекува",
-          "actions": "Дејствија"
+          "actions": "Дејствија",
+          "source": "Извор"
         },
         "view_profile": "Погледни профил",
         "view_claims": "Погледни барања",
         "message_alert": "Нова порака ({count})",
-        "no_users": "Членови не се пронајдени."
+        "no_users": "Членови не се пронајдени.",
+        "source": {
+          "sponsor": "Спонзор",
+          "subscription": "Претплата",
+          "none": "Нема"
+        }
       }
     }
   }

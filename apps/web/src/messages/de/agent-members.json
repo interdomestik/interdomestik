@@ -68,7 +68,9 @@
           "preferences_unset": "Keine Einstellungen festgelegt",
           "no_claims": "Noch keine Schadensfälle",
           "unknown": "Unbekannt",
-          "not_set": "Nicht festgelegt"
+          "not_set": "Nicht festgelegt",
+          "source": "Quelle",
+          "period_start": "Beginn des Zeitraums"
         },
         "status": {
           "active": "Aktiv",
@@ -90,6 +92,11 @@
           "open": "Offene Schadensfälle",
           "resolved": "Gelöst",
           "rejected": "Abgelehnt"
+        },
+        "source": {
+          "sponsor": "Sponsoring",
+          "subscription": "Abonnement",
+          "none": "Keine"
         }
       },
       "filters": {
@@ -106,12 +113,18 @@
           "status": "Status",
           "plan": "Plan",
           "period_end": "Läuft ab",
-          "actions": "Aktionen"
+          "actions": "Aktionen",
+          "source": "Quelle"
         },
         "view_profile": "Profil ansehen",
         "view_claims": "Schadensfälle ansehen",
         "message_alert": "Neue Nachricht ({count})",
-        "no_users": "Keine Mitglieder gefunden."
+        "no_users": "Keine Mitglieder gefunden.",
+        "source": {
+          "sponsor": "Sponsoring",
+          "subscription": "Abonnement",
+          "none": "Keine"
+        }
       }
     }
   }

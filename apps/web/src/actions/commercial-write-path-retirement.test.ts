@@ -45,5 +45,15 @@ describe('commercial write-path retirement', () => {
     );
 
     expect(readSource('actions/claims.ts')).not.toContain('submitClaim');
+    expect(readSource('actions/subscription.core.ts')).not.toContain('activateSponsoredMembership');
+    expect(readSource('actions/subscription.core.ts')).not.toContain('@interdomestik/database');
+    expect(
+      existsSync(path.join(SRC_ROOT, 'features/agent/import/server/get-group-dashboard-summary.ts'))
+    ).toBe(false);
+    expect(
+      existsSync(
+        path.join(SRC_ROOT, 'features/agent/import/components/group-dashboard-summary.tsx')
+      )
+    ).toBe(false);
   });
 });

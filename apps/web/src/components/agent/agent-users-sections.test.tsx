@@ -92,6 +92,14 @@ describe('AgentUsersSections', () => {
     expect(screen.getByText('No users found')).toBeInTheDocument();
   });
 
+  it.each(['sponsor', 'subscription', 'none'] as const)(
+    'shows the supplied %s source label',
+    membershipSource => {
+      render(<AgentUsersSections users={[{ ...mockUsers[0], membershipSource }]} />);
+      expect(screen.getByText(`headers.source: source.${membershipSource}`)).toBeInTheDocument();
+    }
+  );
+
   it('renders user names', () => {
     render(<AgentUsersSections users={mockUsers} />);
     expect(screen.getByText('John Doe')).toBeInTheDocument();

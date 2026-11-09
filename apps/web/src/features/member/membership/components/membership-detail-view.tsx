@@ -1,5 +1,7 @@
 'use client';
 
+import { LeaveCompanyProgramme } from './leave-company-programme';
+
 import { OpsActionBar, OpsDocumentsPanel, OpsStatusBadge, OpsTimeline } from '@/components/ops';
 import {
   DbDocument,
@@ -10,16 +12,12 @@ import {
   toOpsStatus,
   toOpsTimelineEvents,
 } from '@/components/ops/adapters/membership';
-import { Link, useRouter } from '@/i18n/routing';
+import { useRouter } from '@/i18n/routing';
 import { formatPilotDateTime } from '@/lib/utils/date';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useLocale } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-import {
-  activateSponsoredMembership,
-  cancelSubscription,
-  getPaymentUpdateUrl,
-} from '@/actions/subscription.core';
+import { cancelSubscription, getPaymentUpdateUrl } from '@/actions/subscription.core';
 import { buildCancellationFeedbackMessage } from '@/features/member/membership/cancellation-feedback';
 import { toast } from 'sonner';
 import { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
@@ -50,12 +48,13 @@ type DetailViewProps = Readonly<{
   t: TranslationFn;
 }>;
 
-export function DetailView({ subscription, documents, t }: DetailViewProps) {
+export function DetailView({ subscription, documents, t }: DetailViewProps): React.JSX.Element {
   const cancellationKeyRef = useRef<string | null>(null);
   const router = useRouter();
   const locale = useLocale();
   const { primary: adapterPrimary, secondary } = getMembershipActions(subscription, t);
   const isPaddlePaymentUpdate =
+    !subscription.sponsorCoverage &&
     subscription.provider === 'paddle' &&
     (subscription.status === 'active' || subscription.status === 'past_due');
   let primary: OpsActionConfig | undefined = adapterPrimary;
@@ -69,6 +68,7 @@ export function DetailView({ subscription, documents, t }: DetailViewProps) {
     primary = undefined;
   }
   const sponsoredState = getSponsoredMembershipState(subscription);
+  const leaveEntryId = subscription.sponsorCoverage?.entryId ?? subscription.sponsorLeaveEntryId;
   const isMountedRef = useRef(true);
   const isPaymentUpdatePendingRef = useRef(false);
   const [isPaymentUpdatePending, setIsPaymentUpdatePending] = useState(false);
@@ -128,17 +128,6 @@ export function DetailView({ subscription, documents, t }: DetailViewProps) {
       return;
     }
     try {
-      if (id === 'activate_sponsored') {
-        const result = await activateSponsoredMembership(subscription.id);
-        if ('error' in result) {
-          toast.error(t('errors.action_failed'));
-          return;
-        }
-
-        toast.success(t('sponsored.activation.success'));
-        return;
-      }
-
       if (id === 'complete_membership') {
         router.push(getMembershipPricingHref(subscription.planId));
         return;
@@ -194,6 +183,8 @@ export function DetailView({ subscription, documents, t }: DetailViewProps) {
             disclosure={subscription.entityDisclosure}
           />
 
+          {leaveEntryId ? <LeaveCompanyProgramme entryId={leaveEntryId} t={t} /> : null}
+
           <OpsActionBar
             primary={primary ? mapAction(primary) : undefined}
             secondary={secondary.map(mapAction)}
@@ -210,43 +201,12 @@ export function DetailView({ subscription, documents, t }: DetailViewProps) {
             </p>
           ) : null}
 
-          {primary?.id === 'complete_membership' ? (
+          {primary?.id === 'complete_membership' || sponsoredState === 'inactive' ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
               <h4 className="text-sm font-semibold text-slate-900">
                 {t('ops.membership_not_active_title')}
               </h4>
               <p className="mt-1 text-sm text-slate-600">{t('ops.membership_not_active_body')}</p>
-            </div>
-          ) : null}
-
-          {sponsoredState === 'activation_required' ? (
-            <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4">
-              <h4 className="text-sm font-semibold text-slate-900">
-                {t('sponsored.activation.title')}
-              </h4>
-              <p className="mt-1 text-sm text-slate-600">{t('sponsored.activation.body')}</p>
-              <button
-                type="button"
-                onClick={() => handleAction('activate_sponsored')}
-                className="mt-3 inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-              >
-                {t('sponsored.activation.cta')}
-              </button>
-            </div>
-          ) : null}
-
-          {sponsoredState === 'eligible_for_family_upgrade' ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
-              <h4 className="text-sm font-semibold text-slate-900">
-                {t('sponsored.upgrade.title')}
-              </h4>
-              <p className="mt-1 text-sm text-slate-600">{t('sponsored.upgrade.body')}</p>
-              <Link
-                href="/pricing?plan=family"
-                className="mt-3 inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900"
-              >
-                {t('sponsored.upgrade.cta')}
-              </Link>
             </div>
           ) : null}
         </CardContent>
@@ -260,10 +220,10 @@ export function DetailView({ subscription, documents, t }: DetailViewProps) {
           formatTimestamp={value => formatPilotDateTime(value, locale, t('plan.na'))}
         />
         <OpsDocumentsPanel
-          title="Documents"
+          title={t('documents.title')}
           documents={toOpsDocuments(documents)}
-          emptyLabel="No documents"
-          viewLabel="View"
+          emptyLabel={t('documents.empty')}
+          viewLabel={t('documents.view')}
         />
       </div>
     </div>

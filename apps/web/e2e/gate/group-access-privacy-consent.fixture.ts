@@ -25,7 +25,7 @@ type PrivacyFixtureContext = {
   claimDocumentName: string;
   claimTitle: string;
   /** Opts the tenant into the sponsored roster import (OD-18 Option B: dark by default). */
-  enableSponsoredImport: () => Promise<void>;
+  setSponsoredImport: (enabled: boolean) => Promise<void>;
   internalHistoryNote: string;
   officeAgent: OfficeSeededAgent;
   seededMemberName: string;
@@ -107,7 +107,7 @@ async function runGroupAccessPrivacyFixture(
     columns: { value: true },
   });
   let importSettingWritten = false;
-  const enableSponsoredImport = async () => {
+  const setSponsoredImport = async (enabled: boolean) => {
     importSettingWritten = true;
     await db
       .insert(tenantSettings)
@@ -116,11 +116,11 @@ async function runGroupAccessPrivacyFixture(
         tenantId,
         category: 'acquisition',
         key: 'sponsored_import',
-        value: { enabled: true },
+        value: { enabled },
       })
       .onConflictDoUpdate({
         target: [tenantSettings.tenantId, tenantSettings.category, tenantSettings.key],
-        set: { value: { enabled: true }, updatedAt: new Date() },
+        set: { value: { enabled }, updatedAt: new Date() },
       });
   };
 
@@ -174,7 +174,7 @@ async function runGroupAccessPrivacyFixture(
       claimCompanyName: claimRecord.companyName,
       claimDocumentName,
       claimTitle: claimRecord.title,
-      enableSponsoredImport,
+      setSponsoredImport,
       internalHistoryNote,
       officeAgent,
       seededMemberName,

@@ -4,7 +4,6 @@ import { afterEach, beforeEach, vi } from 'vitest';
 export const originalConfirm = globalThis.confirm;
 
 export const actionMocks = {
-  activateSponsoredMembership: vi.fn(),
   cancelSubscription: vi.fn(),
   getPaymentUpdateUrl: vi.fn(),
   getMembershipActions: vi.fn(),
@@ -60,23 +59,12 @@ vi.doMock('@/components/ops', () => ({
 
 vi.doMock('@/components/ops/adapters/membership', () => ({
   getMembershipActions: actionMocks.getMembershipActions,
-  getSponsoredMembershipState: (subscription?: {
-    status?: string | null;
-    planId?: string | null;
-    provider?: string | null;
-    acquisitionSource?: string | null;
-  }) => {
-    const isSponsored =
-      subscription?.provider === 'group_sponsor' ||
-      subscription?.acquisitionSource === 'group_roster_import';
-
-    if (!isSponsored) return 'none';
-    if (subscription?.status === 'paused') return 'activation_required';
-    if (subscription?.status === 'active' && subscription?.planId === 'standard') {
-      return 'eligible_for_family_upgrade';
-    }
-    return 'none';
-  },
+  getSponsoredMembershipState: (subscription?: { provider?: string; sponsorCoverage?: unknown }) =>
+    subscription?.sponsorCoverage
+      ? 'covered'
+      : subscription?.provider === 'group_sponsor'
+        ? 'inactive'
+        : 'none',
   toOpsDocuments: () => [],
   toOpsStatus: () => ({ label: 'active', variant: 'default' }),
   toOpsTimelineEvents: () => timelineMocks.events,
@@ -94,7 +82,6 @@ vi.doMock('@/hooks/use-media-query', () => ({
 }));
 
 vi.doMock('@/actions/subscription.core', () => ({
-  activateSponsoredMembership: actionMocks.activateSponsoredMembership,
   cancelSubscription: actionMocks.cancelSubscription,
   getPaymentUpdateUrl: actionMocks.getPaymentUpdateUrl,
 }));
@@ -139,9 +126,22 @@ vi.doMock('@interdomestik/ui', () => ({
   CardTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
 }));
 
+vi.doMock('@/app/[locale]/(app)/member/membership/leave-sponsorship.core', () => ({
+  leaveCompanyProgramme: vi.fn(),
+}));
+
+// The dialog itself is covered by leave-company-programme.test.tsx.
+vi.doMock('../leave-company-programme', () => ({
+  LeaveCompanyProgramme: ({ entryId }: { entryId: string }) => (
+    <button type="button" data-entry-id={entryId}>
+      sponsorCoverage.leave
+    </button>
+  ),
+}));
+
 export const { MembershipOpsPage } = await import('../MembershipOpsPage');
 
-export function setupMembershipOpsPageHarness() {
+export function setupMembershipOpsPageHarness(): void {
   beforeEach(() => {
     vi.clearAllMocks();
     selectionMocks.selectedId = null;

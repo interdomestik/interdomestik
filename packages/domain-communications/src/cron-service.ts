@@ -48,10 +48,11 @@ async function runWelcomeCampaign(
       afterId =>
         withTenantAuthority(authority, tx =>
           tx.query.subscriptions.findMany({
-            where: (subscriptions, { eq, and, gt }) =>
+            where: (subscriptions, { eq, and, gt, isNull, ne, or }) =>
               and(
                 eq(subscriptions.tenantId, tenantId),
                 eq(subscriptions.status, 'active'),
+                or(isNull(subscriptions.provider), ne(subscriptions.provider, 'group_sponsor')),
                 gt(subscriptions.createdAt, subDays(now, 1)),
                 afterId ? gt(subscriptions.id, afterId) : undefined
               ),

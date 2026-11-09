@@ -15,6 +15,7 @@ const hoisted = vi.hoisted(() => ({
     },
   })),
   redirectMock: vi.fn(),
+  resolveMock: vi.fn(),
   findFirstMock: vi.fn(async () => ({
     status: 'active',
     planId: 'asistenca',
@@ -35,10 +36,7 @@ vi.mock('next-intl/server', () => ({
 }));
 
 vi.mock('@/lib/tenant-authority.server', () => ({
-  authorizeSessionTenant: vi.fn(async () => ({
-    session: { user: { id: 'member-1', tenantId: 'tenant-ks' } },
-    authority: mintTestTenantAuthority('tenant-ks'),
-  })),
+  authorizeSessionUserTenant: vi.fn(async () => mintTestTenantAuthority('tenant-ks')),
 }));
 
 vi.mock('@/components/shell/session', () => ({
@@ -64,6 +62,13 @@ vi.mock('@interdomestik/database', () => {
   };
 });
 
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: (_authority: unknown, callback: (tx: unknown) => unknown) => callback({}),
+}));
+vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
+  resolveEffectiveMembership: hoisted.resolveMock,
+}));
+
 vi.mock('next/link', () => ({
   default: ({ children, href = '#' }: { children: ReactNode; href?: string }) => (
     <a href={href}>{children}</a>
@@ -79,6 +84,18 @@ import MemberCardPage from './page';
 describe('MemberCardPage hotline disclaimer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.resolveMock.mockImplementation(
+      async () =>
+        new Map([
+          [
+            'member-1',
+            {
+              source: 'subscription',
+              subscription: await hoisted.findFirstMock(),
+            },
+          ],
+        ])
+    );
     hoisted.getSessionSafeMock.mockResolvedValue({
       user: {
         id: 'member-1',
@@ -159,5 +176,34 @@ describe('MemberCardPage hotline disclaimer', () => {
     ).rejects.toThrow('redirect:/mk/login');
 
     expect(hoisted.redirectMock).toHaveBeenCalledWith('/mk/login');
+  });
+  it('source 1 renders the sponsor plan and period instead of canceled Paddle facts', async () => {
+    hoisted.resolveMock.mockResolvedValueOnce(
+      new Map([
+        [
+          'member-1',
+          {
+            source: 'sponsor',
+            planId: 'family',
+            windowEnd: new Date('2028-02-01T12:00:00Z'),
+            lifecycle: { status: 'active', gracePeriodEndsAt: null, cancelAtPeriodEnd: true },
+          },
+        ],
+      ])
+    );
+    render(await MemberCardPage({ params: Promise.resolve({ locale: 'en' }) }));
+    expect(screen.getByText('FAMILY')).toBeInTheDocument();
+    expect(
+      screen.getByText(new Date('2028-02-01T12:00:00Z').toLocaleDateString('en'))
+    ).toBeInTheDocument();
+  });
+  it('source 3 redirects an uncovered legacy sponsor to membership', async () => {
+    hoisted.resolveMock.mockResolvedValueOnce(new Map([['member-1', { source: 'none' }]]));
+    hoisted.redirectMock.mockImplementationOnce((url: string) => {
+      throw new Error(`redirect:${url}`);
+    });
+    await expect(MemberCardPage({ params: Promise.resolve({ locale: 'en' }) })).rejects.toThrow(
+      'redirect:/en/member/membership'
+    );
   });
 });

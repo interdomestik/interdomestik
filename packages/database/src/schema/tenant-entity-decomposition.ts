@@ -38,6 +38,7 @@ export const legalEntities = pgTable(
   },
   table => [
     index('legal_entities_tenant_idx').on(table.tenantId),
+    uniqueIndex('legal_entities_tenant_id_id_uq').on(table.tenantId, table.id),
     check('legal_entities_country_code_check', sql`${table.countryCode} ~ '^[A-Z]{2}$'`),
     check(
       'legal_entities_governing_law_check',

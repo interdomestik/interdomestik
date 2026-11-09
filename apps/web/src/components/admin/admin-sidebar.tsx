@@ -24,23 +24,8 @@ import {
   SidebarMenuButton,
   SidebarRail,
 } from '@interdomestik/ui';
-import {
-  Banknote,
-  BarChart,
-  Briefcase,
-  Check,
-  ChevronUp,
-  FileText,
-  GitBranch,
-  Globe,
-  Home,
-  LayoutDashboard,
-  LogOut,
-  Settings,
-  Shield,
-  User,
-  Users,
-} from 'lucide-react';
+import { Check, ChevronUp, Globe, Home, LogOut, Shield, User } from 'lucide-react';
+import { adminSidebarItems } from './admin-sidebar-items';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { withAdminContext } from './admin-sidebar-context';
@@ -83,66 +68,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
   // Retain the server-authorized user's existing role and branch rules here.
   // ShellNavigation consumes this admitted list; it does not decide access.
   // Query-sensitive people selection also remains owned by this consumer.
-  const sidebarItems = [
-    {
-      title: 'dashboard',
-      href: '/admin/overview',
-      icon: LayoutDashboard,
-    },
-    {
-      title: 'branches',
-      href: '/admin/branches',
-      icon: GitBranch,
-      hidden: !['super_admin', 'tenant_admin', 'admin'].includes(user.role),
-    },
-    {
-      title: 'claims',
-      href: '/admin/claims',
-      icon: FileText,
-    },
-    {
-      title: 'leads',
-      href: '/admin/leads',
-      icon: Banknote,
-    },
-    {
-      title: 'crm',
-      href: '/admin/crm',
-      icon: BarChart,
-      hidden:
-        !['super_admin', 'tenant_admin', 'admin'].includes(user.role) &&
-        !(user.role === 'branch_manager' && user.branchId),
-    },
-    {
-      title: 'members',
-      href: '/admin/users',
-      icon: Users,
-      peopleKey: 'members',
-    },
-    {
-      title: 'agents',
-      href: '/admin/users?role=agent',
-      icon: Briefcase,
-      peopleKey: 'agents',
-    },
-    {
-      title: 'staff',
-      href: '/admin/users?role=admin,staff',
-      icon: Shield,
-      peopleKey: 'staff',
-    },
-    {
-      title: 'analytics',
-      href: '/admin/analytics',
-      icon: BarChart,
-    },
-    {
-      title: 'settings',
-      href: '/admin/settings',
-      icon: Settings,
-      peopleKey: undefined,
-    },
-  ].filter(item => !item.hidden);
+  const sidebarItems = adminSidebarItems(user.role, user.branchId);
 
   return (
     <Sidebar
@@ -178,7 +104,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
               id: 'admin',
               items: sidebarItems.map(item => ({
                 href: applyAdminContext(item.href),
-                title: t(item.title),
+                title: item.title === 'sponsors' ? tNav('sponsors') : t(item.title),
                 icon: item.icon,
                 prefetch: item.peopleKey === 'members' || item.peopleKey === 'agents' || undefined,
                 selected:

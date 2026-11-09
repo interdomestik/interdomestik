@@ -22,6 +22,7 @@ import {
   type SubscriptionEventData,
 } from './dunning-state';
 import { handleOrderedPastDue } from './dunning-ordered-handler';
+import { readPastDueAccessContinues } from './dunning-sponsor';
 import { resolveSubscriptionEventOrder } from './subscription-event-order';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
@@ -76,6 +77,12 @@ export async function handleSubscriptionPastDue(
     planId: priceId,
   });
   const now = new Date();
+  const accessContinues = await readPastDueAccessContinues({
+    authority: context.authority,
+    userId: context.userRecord.id,
+    sub,
+    now,
+  });
   const buildState = (existingSub: ExistingSubscriptionRecord) =>
     buildPastDueState({
       sub,
@@ -96,6 +103,7 @@ export async function handleSubscriptionPastDue(
       user: context.userRecord,
       planName: sub.items?.[0]?.price?.description || 'Membership',
       buildState,
+      accessContinues,
       deps,
     });
     return;
@@ -128,6 +136,7 @@ export async function handleSubscriptionPastDue(
   });
   await sendInitialPaymentFailedEmail({
     deps,
+    accessContinues,
     userId: context.userRecord.id,
     userRecord: context.userRecord,
     sub,
@@ -160,7 +169,7 @@ async function persistPastDueSubscription(args: {
       async tx =>
         await tx
           .update(subscriptions)
-          .set(args.values)
+          .set({ ...args.values, provider: 'paddle' })
           .where(and(eq(subscriptions.id, existingSubId), eq(subscriptions.tenantId, tenantId)))
     );
     return;
@@ -174,6 +183,7 @@ async function persistPastDueSubscription(args: {
         await tx.insert(subscriptions).values({
           id: args.subscriptionId,
           ...args.values,
+          provider: 'paddle',
         })
     );
   } catch (error) {
@@ -195,7 +205,7 @@ async function persistPastDueSubscription(args: {
       async tx =>
         await tx
           .update(subscriptions)
-          .set(args.values)
+          .set({ ...args.values, provider: 'paddle' })
           .where(
             and(eq(subscriptions.id, racedSubscription.id), eq(subscriptions.tenantId, tenantId))
           )
@@ -228,6 +238,7 @@ async function logPastDueAuditEvent(args: {
 }
 
 async function sendInitialPaymentFailedEmail(args: {
+  accessContinues: boolean;
   deps: Pick<PaddleWebhookDeps, 'sendPaymentFailedEmail'>;
   userId: string;
   userRecord: PastDueUserRecord;
@@ -247,6 +258,7 @@ async function sendInitialPaymentFailedEmail(args: {
 
     const planName = args.sub.items?.[0]?.price?.description || 'Membership';
     await args.deps.sendPaymentFailedEmail(args.userRecord.email, {
+      accessContinues: args.accessContinues,
       memberName: args.userRecord.name || 'Member',
       planName,
       gracePeriodDays: DUNNING_GRACE_PERIOD_DAYS,

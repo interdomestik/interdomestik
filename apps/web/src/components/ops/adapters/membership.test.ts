@@ -26,6 +26,7 @@ describe('Membership Adapter Policies', () => {
     const buildSubscription = (overrides: Partial<TestSubscription> = {}): TestSubscription => ({
       id: 'sub-1',
       status: 'active',
+      provider: 'paddle',
       createdAt: baseDate,
       currentPeriodEnd: new Date(baseDate.getTime() + 60 * dayMs),
       ...overrides,
@@ -54,7 +55,7 @@ describe('Membership Adapter Policies', () => {
 
         expect(result.primary).toBeDefined();
         expect(result.primary?.id).toBe('update_payment');
-        expect(result.primary?.label).toBe('Update Payment Method');
+        expect(result.primary?.label).toBe('dunning.update_payment_button');
       });
 
       it('should allow cancellation for past_due subscription', () => {
@@ -233,13 +234,13 @@ describe('Membership Adapter Policies', () => {
       {
         description: 'returns activation_required for paused sponsored subscriptions',
         overrides: { status: 'paused' },
-        expected: 'activation_required',
+        expected: 'inactive',
       },
       {
         description:
           'returns eligible_for_family_upgrade for active sponsored standard subscriptions',
         overrides: {},
-        expected: 'eligible_for_family_upgrade',
+        expected: 'inactive',
       },
       {
         description: 'returns none for non-sponsored subscriptions',

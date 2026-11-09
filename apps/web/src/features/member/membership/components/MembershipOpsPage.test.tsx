@@ -33,6 +33,14 @@ describe('MembershipOpsPage', () => {
     expect(screen.getByText('ops.no_membership_body')).toBeInTheDocument();
   });
 
+  it('offers leaving a company programme with no subscription record', () => {
+    const { rerender } = render(<MembershipOpsPage subscriptions={[]} documents={[]} />);
+    const leave = { name: 'sponsorCoverage.leave' };
+    expect(screen.queryByRole('button', leave)).not.toBeInTheDocument();
+    rerender(<MembershipOpsPage subscriptions={[]} documents={[]} leaveEntryId="entry-future" />);
+    expect(screen.getByRole('button', leave)).toHaveAttribute('data-entry-id', 'entry-future');
+  });
+
   it('routes cancellation through the canonical subscription action', async () => {
     selectionMocks.selectedId = 'sub-1';
     actionMocks.cancelSubscription.mockResolvedValue({
