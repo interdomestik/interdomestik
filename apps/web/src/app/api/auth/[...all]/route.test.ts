@@ -93,7 +93,7 @@ describe('POST /api/auth/[...all]', () => {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        email: options?.email ?? 'admin.ks@interdomestik.com',
+        email: options?.email ?? 'admin.ks@plan070.example.invalid',
         password: 'not-used-in-route-test',
       }),
     });
@@ -203,7 +203,7 @@ describe('POST /api/auth/[...all]', () => {
     hoisted.enforceRateLimit.mockResolvedValueOnce(new Response('limited', { status: 429 }));
 
     const req = buildEmailSignInRequest({
-      email: '  ADMIN.KS@interdomestik.com ',
+      email: '  ADMIN.KS@plan070.example.invalid ',
     });
 
     const res = await POST(req);
@@ -214,7 +214,7 @@ describe('POST /api/auth/[...all]', () => {
       expect.objectContaining({
         name: 'api/auth/sign-in/email:identity',
         limit: 20,
-        keySuffix: 'tenant:tenant_ks:email_hash:2985f89bf0896586e6ee',
+        keySuffix: 'tenant:tenant_ks:email_hash:78e38b7c59de97579084',
         productionSensitive: true,
       })
     );
@@ -233,7 +233,7 @@ describe('POST /api/auth/[...all]', () => {
       expect.objectContaining({
         name: 'api/auth/sign-in/email:identity',
         limit: 20,
-        keySuffix: 'tenant:tenant_ks:email_hash:2985f89bf0896586e6ee',
+        keySuffix: 'tenant:tenant_ks:email_hash:78e38b7c59de97579084',
         productionSensitive: true,
       })
     );

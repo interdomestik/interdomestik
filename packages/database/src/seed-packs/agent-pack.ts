@@ -1,8 +1,11 @@
+import { assertSeedTargetAllowed } from '../seed-target-guard';
+import { E2E_AGENT_PACK_USERS } from '../e2e-agent-pack-fixtures';
 import type { SeedConfig } from '../seed-types';
 import { hashPassword } from '../seed-utils/hash-password';
 import { packId } from '../seed-utils/seed-ids';
 
 export async function seedAgentPack(config: SeedConfig) {
+  assertSeedTargetAllowed(process.env);
   console.log('🕴️ Seeding Agent Pack...');
   const { db } = await import('../db');
   // Import schema from root src/schema.ts re-export
@@ -23,8 +26,8 @@ export async function seedAgentPack(config: SeedConfig) {
   const BRANCH_ID = 'ks_branch_a';
 
   // 1. Create Agent User
-  const agentEmail = 'agent@interdomestik.local';
-  const agentUserId = packId('agent', 'agon');
+  const agentEmail = E2E_AGENT_PACK_USERS.AGENT.email;
+  const agentUserId = E2E_AGENT_PACK_USERS.AGENT.id;
   const agentPasswordHash = await hashPassword('password123');
 
   console.log(`Checking Agent: ${agentEmail}`);
@@ -75,17 +78,14 @@ export async function seedAgentPack(config: SeedConfig) {
     .onConflictDoNothing();
 
   // 2. Create Clients (Members linked to Agent)
-  const CLIENTS = [
-    { email: 'client.paid@example.com', name: 'Client Paid', status: 'active' },
-    { email: 'client.pending@example.com', name: 'Client Pending', status: 'paused' },
-  ];
+  const CLIENTS = E2E_AGENT_PACK_USERS.CLIENTS;
 
   const seededClients: { id: string; subscriptionId: string | null }[] = [];
 
   const genericPasswordHash = await hashPassword('password123');
 
   for (const [i, client] of CLIENTS.entries()) {
-    const clientId = packId('agent', 'client', i);
+    const clientId = client.id;
 
     // User
     await db

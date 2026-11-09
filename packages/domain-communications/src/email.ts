@@ -1,3 +1,4 @@
+import { isAutomatedEmail as isAutomated, shouldSuppressExternalEmail } from './non-sending-email';
 import * as nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import {
@@ -55,8 +56,6 @@ export function getResendClient(telemetry = createEmailTelemetry()) {
   }
 }
 
-const isAutomated = () =>
-  ['INTERDOMESTIK_AUTOMATED', 'PLAYWRIGHT'].some(k => process.env[k] === '1');
 function getEmailClient(telemetry: EmailTelemetry, options: EmailSendOptions) {
   // Priority 0: Automated Testing (mock, or the loopback catcher for messages that opt in)
   if (isAutomated()) {
@@ -99,6 +98,7 @@ export async function sendEmail(
   template: { subject: string; html: string; text: string },
   options: EmailSendOptions = {}
 ): Promise<EmailResult> {
+  if (shouldSuppressExternalEmail(to)) return { success: true, id: 'suppressed-synthetic' };
   const telemetry = createEmailTelemetry(options.telemetryPolicy);
   const provider = getEmailClient(telemetry, options);
   if (provider === 'rejected') return { success: false, error: 'Email provider not configured' };

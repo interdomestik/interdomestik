@@ -22,11 +22,11 @@ The application is multi-tenant. Tests rely on **subdomain routing**.
 
 These users must exist, be verified, and have a known password (e.g., `TestUser123!`).
 
-| Email                            | Role     | Tenant      | Critical Flags                         |
-| :------------------------------- | :------- | :---------- | :------------------------------------- |
-| `member.ks.a1@interdomestik.com` | `MEMBER` | `tenant_ks` | `emailVerified: true`, `banned: false` |
-| `member.mk.1@interdomestik.com`  | `MEMBER` | `tenant_mk` | `emailVerified: true`, `banned: false` |
-| `admin.ks@interdomestik.com`     | `ADMIN`  | `tenant_ks` | `emailVerified: true`                  |
+| Email                                  | Role     | Tenant      | Critical Flags                         |
+| :------------------------------------- | :------- | :---------- | :------------------------------------- |
+| `member.ks.a1@plan070.example.invalid` | `MEMBER` | `tenant_ks` | `emailVerified: true`, `banned: false` |
+| `member.mk.1@plan070.example.invalid`  | `MEMBER` | `tenant_mk` | `emailVerified: true`, `banned: false` |
+| `admin.ks@plan070.example.invalid`     | `ADMIN`  | `tenant_ks` | `emailVerified: true`                  |
 
 > **Invariant:** A user is NOT valid unless they exist in **BOTH** the Auth tables (Better Auth) and the Domain tables (`public.users`), linked by ID/Email.
 
@@ -65,7 +65,7 @@ When tests fail with **"User not found"** or **"Invalid credentials"**, run thes
 
 ```sql
 SELECT id, email, "emailVerified", banned FROM "user"
-WHERE email = 'member.ks.a1@interdomestik.com';
+WHERE email = 'member.ks.a1@plan070.example.invalid';
 -- EXPECT: 1 row, emailVerified = true
 ```
 
@@ -73,7 +73,7 @@ WHERE email = 'member.ks.a1@interdomestik.com';
 
 ```sql
 SELECT id, email, "tenantId" FROM public.users
-WHERE email = 'member.ks.a1@interdomestik.com';
+WHERE email = 'member.ks.a1@plan070.example.invalid';
 -- EXPECT: 1 row, matches Auth ID
 ```
 
@@ -84,14 +84,14 @@ SELECT t.id, t.slug, m.role
 FROM public.tenants t
 JOIN public.members m ON m."tenantId" = t.id
 JOIN public.users u ON m."userId" = u.id
-WHERE u.email = 'member.ks.a1@interdomestik.com';
+WHERE u.email = 'member.ks.a1@plan070.example.invalid';
 -- EXPECT: slug = 'ks', role = 'MEMBER'
 ```
 
 ### 4. (Better Auth) Are accounts/sessions valid?
 
 ```sql
-SELECT * FROM account WHERE "userId" = (SELECT id FROM "user" WHERE email = 'member.ks.a1@interdomestik.com');
+SELECT * FROM account WHERE "userId" = (SELECT id FROM "user" WHERE email = 'member.ks.a1@plan070.example.invalid');
 -- EXPECT: At least 1 row (provider = 'credential' or similar)
 ```
 

@@ -168,12 +168,12 @@ jobs:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       SENTRY_ORG: ${{ vars.SENTRY_ORG || secrets.SENTRY_ORG }}
       SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT || secrets.SENTRY_PROJECT }}
-      RELEASE_GATE_MEMBER_EMAIL: member.ks.a1@interdomestik.com
-      RELEASE_GATE_AGENT_EMAIL: agent.ks.a1@interdomestik.com
-      RELEASE_GATE_OFFICE_AGENT_EMAIL: agent.ks.b1@interdomestik.com
-      RELEASE_GATE_STAFF_EMAIL: staff.ks@interdomestik.com
-      RELEASE_GATE_ADMIN_KS_EMAIL: admin.ks@interdomestik.com
-      RELEASE_GATE_ADMIN_MK_EMAIL: admin.mk@interdomestik.com
+      RELEASE_GATE_MEMBER_EMAIL: member.ks.a1@plan070.example.invalid
+      RELEASE_GATE_AGENT_EMAIL: agent.ks.a1@plan070.example.invalid
+      RELEASE_GATE_OFFICE_AGENT_EMAIL: agent.ks.b1@plan070.example.invalid
+      RELEASE_GATE_STAFF_EMAIL: staff.ks@plan070.example.invalid
+      RELEASE_GATE_ADMIN_KS_EMAIL: admin.ks@plan070.example.invalid
+      RELEASE_GATE_ADMIN_MK_EMAIL: admin.mk@plan070.example.invalid
       RELEASE_GATE_MK_USER_URL: ''
       RELEASE_GATE_TARGET_USER_URL: /admin/users/golden_mk_admin?tenantId=tenant_mk
       RELEASE_GATE_REQUIRE_ROLE_PANEL: 'false'

@@ -38,6 +38,7 @@ fi
 
 echo "🐳 Running in Docker (playwright): ${command_string}"
 docker_args=(compose run --rm --no-deps)
+docker_args+=(-e "SEED_TARGET_CONFIRM=${SEED_TARGET_CONFIRM:-plan070:host.docker.internal}")
 if [[ "${BUILD_MODE}" -eq 1 ]]; then
   docker_args+=(--build)
 fi

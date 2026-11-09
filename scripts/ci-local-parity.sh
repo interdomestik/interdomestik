@@ -15,7 +15,6 @@ fi
 COMPOSE_PROFILE="ci-local"
 POSTGRES_SERVICE="ci-postgres"
 RUNNER_SERVICE="ci-parity"
-
 usage() {
   echo 'Usage: scripts/ci-local-parity.sh [quick|pr|full|sonar|sonar-pr|ready|clean]'
 }
@@ -187,18 +186,19 @@ export_ci_defaults() {
   d BETTER_AUTH_URL http://127.0.0.1:3000
   d BETTER_AUTH_SECRET test-secret-for-ci-only-do-not-use-in-production
   d DATABASE_URL postgresql://postgres:postgres@ci-postgres:5432/interdomestik_test
+  d SEED_TARGET_CONFIRM plan070:ci-postgres
   d DATABASE_URL_RLS "${DATABASE_URL}"
   d E2E_DATABASE_URL "${DATABASE_URL}"
   d E2E_DATABASE_URL_RLS "${DATABASE_URL_RLS}"
   d NODE_OPTIONS --max-old-space-size=4096
   d UPSTASH_REDIS_REST_URL http://localhost:8080
   d UPSTASH_REDIS_REST_TOKEN dummy-token
-  d RELEASE_GATE_MEMBER_EMAIL member.ks.a1@interdomestik.com
-  d RELEASE_GATE_AGENT_EMAIL agent.ks.a1@interdomestik.com
-  d RELEASE_GATE_OFFICE_AGENT_EMAIL agent.ks.b1@interdomestik.com
-  d RELEASE_GATE_STAFF_EMAIL staff.ks@interdomestik.com
-  d RELEASE_GATE_ADMIN_KS_EMAIL admin.ks@interdomestik.com
-  d RELEASE_GATE_ADMIN_MK_EMAIL admin.mk@interdomestik.com
+  d RELEASE_GATE_MEMBER_EMAIL member.ks.a1@plan070.example.invalid
+  d RELEASE_GATE_AGENT_EMAIL agent.ks.a1@plan070.example.invalid
+  d RELEASE_GATE_OFFICE_AGENT_EMAIL agent.ks.b1@plan070.example.invalid
+  d RELEASE_GATE_STAFF_EMAIL staff.ks@plan070.example.invalid
+  d RELEASE_GATE_ADMIN_KS_EMAIL admin.ks@plan070.example.invalid
+  d RELEASE_GATE_ADMIN_MK_EMAIL admin.mk@plan070.example.invalid
   d RELEASE_GATE_MK_USER_URL ''
   d RELEASE_GATE_TARGET_USER_URL /admin/users/golden_mk_admin?tenantId=tenant_mk
   d RELEASE_GATE_REQUIRE_ROLE_PANEL false

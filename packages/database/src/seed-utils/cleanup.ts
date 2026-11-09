@@ -1,6 +1,7 @@
 import { inArray, like, or } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../schema';
+import { seedIdentityCleanupPredicate } from './identity-cleanup';
 
 export async function cleanupByPrefixes(
   db: PostgresJsDatabase<typeof schema>,
@@ -8,16 +9,6 @@ export async function cleanupByPrefixes(
   prefixes: string[],
   cleanupEmails = true
 ) {
-  const targetEmailPatterns = [
-    'admin.%@interdomestik.com',
-    'staff.%@interdomestik.com',
-    'bm.%@interdomestik.com',
-    'agent.%@interdomestik.com',
-    'member.%@interdomestik.com',
-    'ks.%@interdomestik.com',
-    'mk.%@interdomestik.com',
-  ];
-
   if (!prefixes.length) return;
 
   const likePatterns = prefixes.map(p => `${p}%`);
@@ -100,7 +91,7 @@ export async function cleanupByPrefixes(
   // 6. Delete Sessions & Accounts (Delete children of user first)
   // Delete by User ID prefix
   const userIdConditions = likePatterns.map(p => like(dbSchema.account.userId, p));
-  if (userIdConditions.length > 0) {
+  if (!cleanupEmails && userIdConditions.length > 0) {
     await db.delete(dbSchema.account).where(or(...userIdConditions));
     await db
       .delete(dbSchema.session)
@@ -110,32 +101,30 @@ export async function cleanupByPrefixes(
   // Also delete accounts/sessions for the email-based users
   if (cleanupEmails) {
     const emailUserIds = await db.query.user.findMany({
-      where: or(...targetEmailPatterns.map(p => like(dbSchema.user.email, p))),
+      where: seedIdentityCleanupPredicate(dbSchema.user),
       columns: { id: true },
     });
     if (emailUserIds.length > 0) {
       const ids = emailUserIds.map(u => u.id);
       // Delete their accounts/sessions explicitly too
-      await db
-        .delete(dbSchema.account)
-        .where(or(...ids.map(id => like(dbSchema.account.userId, id))));
-      await db
-        .delete(dbSchema.session)
-        .where(or(...ids.map(id => like(dbSchema.session.userId, id))));
+      await db.delete(dbSchema.account).where(inArray(dbSchema.account.userId, ids));
+      await db.delete(dbSchema.session).where(inArray(dbSchema.session.userId, ids));
     }
   }
 
   // 7. Clean up Users and their dependencies comprehensively
   // Collect all User IDs to be deleted (both by prefix and email)
-  const usersByPrefix = await db.query.user.findMany({
-    where: or(...likePatterns.map(p => like(dbSchema.user.id, p))),
-    columns: { id: true },
-  });
+  const usersByPrefix = cleanupEmails
+    ? []
+    : await db.query.user.findMany({
+        where: or(...likePatterns.map(p => like(dbSchema.user.id, p))),
+        columns: { id: true },
+      });
 
   let usersByEmail: { id: string }[] = [];
   if (cleanupEmails) {
     usersByEmail = await db.query.user.findMany({
-      where: or(...targetEmailPatterns.map(p => like(dbSchema.user.email, p))),
+      where: seedIdentityCleanupPredicate(dbSchema.user),
       columns: { id: true },
     });
   }

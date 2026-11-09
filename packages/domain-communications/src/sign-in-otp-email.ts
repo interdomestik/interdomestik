@@ -1,3 +1,4 @@
+import { isNonSendingEmail } from './non-sending-email';
 import * as nodemailer from 'nodemailer';
 import type { Resend } from 'resend';
 
@@ -92,6 +93,7 @@ export async function sendViaResend(
   options: EmailSendOptions,
   telemetry: EmailTelemetry
 ): Promise<EmailResult> {
+  if (isNonSendingEmail(to)) return { success: true, id: 'suppressed-synthetic' };
   const fail = (error: unknown, fallback: string): EmailResult => {
     telemetry.failed('resend', 'delivery', () => console.error('Resend error:', error));
     const providerError = error instanceof Error ? error.message : fallback;

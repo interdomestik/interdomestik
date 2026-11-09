@@ -140,8 +140,8 @@ describe('resolveTenantIdForEmailSignIn', () => {
 
 describe('extractEmailFromSignInBody', () => {
   it('normalizes email from payload', () => {
-    expect(extractEmailFromSignInBody({ email: '  ADMIN.KS@interdomestik.com  ' })).toBe(
-      'admin.ks@interdomestik.com'
+    expect(extractEmailFromSignInBody({ email: '  ADMIN.KS@plan070.example.invalid  ' })).toBe(
+      'admin.ks@plan070.example.invalid'
     );
   });
 
@@ -155,7 +155,7 @@ describe('evaluateEmailSignInTenantGuard', () => {
     const result = await evaluateEmailSignInTenantGuard({
       url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
       headers: new Headers(),
-      body: { email: 'admin.ks@interdomestik.com' },
+      body: { email: 'admin.ks@plan070.example.invalid' },
       lookupUserTenantByEmail: async () => 'tenant_ks',
     });
     expect(result).toEqual({ decision: 'allow' });
@@ -173,7 +173,7 @@ describe('evaluateEmailSignInTenantGuard', () => {
     const result = await evaluateEmailSignInTenantGuard({
       url,
       headers: new Headers({ 'x-tenant-id': 'tenant_mk' }),
-      body: { email: 'admin.ks@interdomestik.com' },
+      body: { email: 'admin.ks@plan070.example.invalid' },
       lookupUserTenantByEmail: async () => 'tenant_ks',
     });
     if (url.endsWith('/sign-in/email-otp')) {
@@ -192,7 +192,7 @@ describe('evaluateEmailSignInTenantGuard', () => {
     const result = await evaluateEmailSignInTenantGuard({
       url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
       headers: new Headers({ host: 'ks.localhost:3000' }),
-      body: { email: 'admin.ks@interdomestik.com' },
+      body: { email: 'admin.ks@plan070.example.invalid' },
       lookupUserTenantByEmail: async () => 'tenant_ks',
     });
 
@@ -208,7 +208,7 @@ describe('evaluateEmailSignInTenantGuard', () => {
         host: 'ida.127.0.0.1.nip.io:3000',
         'x-tenant-id': 'tenant_mk',
       }),
-      body: { email: 'admin.mk@interdomestik.com' },
+      body: { email: 'admin.mk@plan070.example.invalid' },
       lookupUserTenantByEmail: async () => 'tenant_mk',
     });
 
@@ -224,7 +224,7 @@ describe('evaluateEmailSignInTenantGuard', () => {
         host: 'ida.127.0.0.1.nip.io:3000',
         'x-tenant-id': 'tenant_mk',
       }),
-      body: { email: 'admin.ks@interdomestik.com' },
+      body: { email: 'admin.ks@plan070.example.invalid' },
       lookupUserTenantByEmail: async () => 'tenant_ks',
     });
 
@@ -241,7 +241,7 @@ describe('evaluateEmailSignInTenantGuard', () => {
     const result = await evaluateEmailSignInTenantGuard({
       url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
       headers: new Headers({ host: 'pilot.localhost:3000' }),
-      body: { email: 'member.pilot.prishtina.01@interdomestik.com' },
+      body: { email: 'member.pilot.prishtina.01@plan070.example.invalid' },
       lookupUserTenantByEmail: async () => 'pilot-mk',
     });
 
