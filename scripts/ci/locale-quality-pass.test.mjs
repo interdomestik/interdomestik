@@ -51,7 +51,17 @@ const strings = value =>
     : value && typeof value === 'object'
       ? Object.values(value).flatMap(strings)
       : [];
-const values = file => strings(JSON.parse(fs.readFileSync(path.join(MESSAGES_DIR, file), 'utf8')));
+const read = file => JSON.parse(fs.readFileSync(path.join(MESSAGES_DIR, file), 'utf8'));
+const values = file => strings(read(file));
+// Wording the pass replaced in its owned catalogs: British spelling, untranslated English terms,
+// Cyrillic loanwords and Albanian leftovers in Macedonian and Serbian.
+const REPLACED = {
+  en: /\b(?:cancell(?:ed|ing)|travelling|licence|neighbour)\b/iu,
+  de: /\b(?:dashboard|snapshot|slug|upgrade|promoter|legacy)\b/iu,
+  sq: /\b(?:leads?|pipeline|dry[- ]run|backfill|funnel|snapshot|dashboard)\b/iu,
+  mk: /\b(?:pipeline|dry[- ]run|backfill|funnel|leads?)\b|тенант|[ëç]/iu,
+  sr: /\b(?:pipeline|dry[- ]run|backfill|funnel)\b|[ëç]/iu,
+};
 
 test('the quality pass owns exactly the catalogs it corrected', () => {
   const owned = LOCALES.flatMap(catalogs).filter(
@@ -79,4 +89,17 @@ test('Albanian, Macedonian and Serbian copy never shows the English word tenant'
     )
   );
   assert.deepEqual(found, []);
+});
+
+test('corrected catalogs keep the replaced wording out and the German callback CTA', () => {
+  const found = Object.entries(OWNED).flatMap(([locale, names]) =>
+    names.flatMap(name =>
+      values(`${locale}/${name}.json`)
+        .filter(value => REPLACED[locale].test(value))
+        .map(value => `${locale}/${name}: ${value}`)
+    )
+  );
+  assert.deepEqual(found, []);
+  const { callback } = read('de/claimCategories.json').claimCategories;
+  assert.equal(callback.submit, 'Jetzt Rückruf anfordern');
 });
