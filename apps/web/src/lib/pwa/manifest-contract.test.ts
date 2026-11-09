@@ -35,4 +35,13 @@ describe('same-origin tenant manifest contract', () => {
     const entry = fs.readFileSync(path.join(web, 'src/app/[locale]/_core.entry.tsx'), 'utf8');
     expect(entry.match(/manifest: '\/manifest.json'/g)).toHaveLength(2);
   });
+  it('is the registered owner of the manifest structured artifact', () => {
+    const registry = fs.readFileSync(
+      path.join(web, '../../scripts/modularity-guard-policy.mjs'),
+      'utf8'
+    );
+    expect(registry).toContain(
+      "[/^apps\\/web\\/public\\/manifest\\.json$/u, 'pwa-manifest-contract']"
+    );
+  });
 });
