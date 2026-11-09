@@ -83,7 +83,7 @@ export default async function StaffClaimDetailsPage({
           authority,
           claimId: id,
         })
-      : Promise.resolve({ success: true as const, messages: [] }),
+      : Promise.resolve({ success: true as const, messages: [], canAcknowledge: false }),
   ]);
 
   const currentAssigneeLabel = findAssigneeLabel(assignmentOptions, detail.claim.staffId);
@@ -257,6 +257,7 @@ export default async function StaffClaimDetailsPage({
               }}
               allowInternal={true}
               initialMessages={initialMessages}
+              initialCanAcknowledge={initialMessagesResult.canAcknowledge === true}
               initialReadFailed={initialReadFailed}
               fetchOnMount={false}
             />

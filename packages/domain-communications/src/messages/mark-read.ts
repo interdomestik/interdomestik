@@ -8,12 +8,8 @@ import { hasPermission, PERMISSIONS } from '@interdomestik/shared-auth';
 import { and, eq, inArray, isNull, ne } from 'drizzle-orm';
 
 import type { Session } from '../types';
-import {
-  buildAccessibleClaimIdsSubquery,
-  isFullTenantClaimsRole,
-  isMessageParticipant,
-  readAgentScope,
-} from './access';
+import { isMessageParticipant, readAgentScope } from './access';
+import { buildAcknowledgementClaimFilter } from './acknowledgement';
 
 function requireMessageScopeString(value: unknown): string {
   if (typeof value !== 'string') {
@@ -48,7 +44,6 @@ export async function markMessagesAsReadCore(params: {
     if (!isMessageParticipant(userRole)) {
       return { success: false, error: 'Access denied' };
     }
-    const isPrivilegedStaff = isFullTenantClaimsRole(userRole);
     const isStaff = hasPermission(userRole, PERMISSIONS['claims.update']);
 
     return await withTenantAuthority(authority, async tx => {
@@ -67,19 +62,14 @@ export async function markMessagesAsReadCore(params: {
         isStaff ? undefined : eq(claimMessages.isInternal, false)
       );
 
-      const accessCondition = isPrivilegedStaff
-        ? undefined
-        : inArray(
-            claimMessages.claimId,
-            buildAccessibleClaimIdsSubquery({
-              branchId:
-                userRole === 'agent' ? (agentScope?.branchId ?? null) : (actor.branchId ?? null),
-              role: userRole,
-              tenantId,
-              tx,
-              userId: agentUserId ?? requireMessageScopeString(actor.id),
-            })
-          );
+      const accessCondition = buildAcknowledgementClaimFilter({
+        claimIdColumn: claimMessages.claimId,
+        branchId: userRole === 'agent' ? (agentScope?.branchId ?? null) : (actor.branchId ?? null),
+        role: userRole,
+        tenantId,
+        tx,
+        userId: agentUserId ?? requireMessageScopeString(actor.id),
+      });
 
       // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
       await tx

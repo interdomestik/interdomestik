@@ -16,6 +16,7 @@ import {
   isScopedClaimsReadRole,
 } from './access';
 import { normalizeSelectedMessages } from './normalize';
+import { canAcknowledgeClaim } from './acknowledgement';
 import type { MessageWithSender, SelectedMessageRow } from './types';
 
 /**
@@ -27,7 +28,12 @@ export async function getMessagesForClaimCore(params: {
   session: NonNullable<Session> | null;
   authority: TenantAuthority | null;
   claimId: string;
-}): Promise<{ success: boolean; messages?: MessageWithSender[]; error?: string }> {
+}): Promise<{
+  success: boolean;
+  messages?: MessageWithSender[];
+  canAcknowledge?: boolean;
+  error?: string;
+}> {
   const { session, authority, claimId } = params;
 
   try {
@@ -89,6 +95,14 @@ export async function getMessagesForClaimCore(params: {
         }
       }
 
+      const canAcknowledge = await canAcknowledgeClaim({
+        tx,
+        tenantId,
+        role: userRole,
+        userId,
+        branchId: actor.branchId,
+        claimId,
+      });
       const visibilityCondition = isStaff ? undefined : eq(claimMessages.isInternal, false);
       const messageCondition = visibilityCondition
         ? and(eq(claimMessages.claimId, claimId), visibilityCondition)
@@ -115,7 +129,7 @@ export async function getMessagesForClaimCore(params: {
         .where(withTenant(tenantId, claimMessages.tenantId, messageCondition))
         .orderBy(claimMessages.createdAt)) as unknown as SelectedMessageRow[];
 
-      return { success: true, messages: normalizeSelectedMessages(selected) };
+      return { success: true, messages: normalizeSelectedMessages(selected), canAcknowledge };
     });
   } catch (error) {
     console.error('Error fetching messages:', error);

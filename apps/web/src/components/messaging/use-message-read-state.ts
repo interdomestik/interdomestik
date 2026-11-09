@@ -14,7 +14,7 @@ export const MESSAGE_POLL_INTERVAL_MS = 30000;
 interface UseMessageReadStateOptions {
   readonly claimId: string;
   readonly currentUserId: string;
-  readonly currentUserRole: string;
+  readonly initialCanAcknowledge: boolean;
   readonly canAcknowledge: boolean;
   readonly fetchOnMount: boolean;
   readonly initialMessages: MessageWithSender[];
@@ -34,7 +34,7 @@ export interface MessageReadState {
 export function useMessageReadState({
   claimId,
   currentUserId,
-  currentUserRole,
+  initialCanAcknowledge,
   canAcknowledge,
   fetchOnMount,
   initialMessages,
@@ -51,11 +51,6 @@ export function useMessageReadState({
   const [isReading, setIsReading] = useState(false);
   const generationRef = useRef(0);
   const mountedRef = useRef(true);
-  const receiptScope = JSON.stringify([claimId, currentUserId, currentUserRole]);
-  const deniedReceiptScope = useRef<string | null>(null);
-  useEffect(() => {
-    deniedReceiptScope.current = null;
-  }, [receiptScope]);
   // Only the current generation holds automatic polling. A manual refresh or server seed retires
   // older work without claiming to cancel its transport or an already-started receipt write.
   const pendingOperationsRef = useRef({ count: 0 });
@@ -92,11 +87,11 @@ export function useMessageReadState({
   }, []);
 
   const markRead = useCallback(
-    async (loaded: MessageWithSender[], generation: number) => {
+    async (loaded: MessageWithSender[], generation: number, serverCanAcknowledge: boolean) => {
       // An invalidated generation never starts a receipt in the first place.
       if (!isCurrent(generation)) return;
 
-      if (!canAcknowledge || deniedReceiptScope.current === receiptScope) {
+      if (!canAcknowledge || !serverCanAcknowledge) {
         setReadStatusFailed(false);
         return;
       }
@@ -117,7 +112,6 @@ export function useMessageReadState({
         // A started receipt cannot be cancelled, so only its reported status is dropped here.
         if (!isCurrent(generation)) return;
         if (result.success !== true && result.error === 'Access denied') {
-          deniedReceiptScope.current = receiptScope;
           setReadStatusFailed(false);
           return;
         }
@@ -131,7 +125,7 @@ export function useMessageReadState({
         release();
       }
     },
-    [canAcknowledge, claimPending, currentUserId, isCurrent, receiptScope]
+    [canAcknowledge, claimPending, currentUserId, isCurrent]
   );
 
   const read = useCallback(async () => {
@@ -140,8 +134,10 @@ export function useMessageReadState({
     setIsReading(true);
 
     let loaded: MessageWithSender[] | null = null;
+    let serverCanAcknowledge = false;
     try {
       const result = await getMessagesForClaim(claimId);
+      serverCanAcknowledge = result.canAcknowledge === true;
       loaded = result.success === true && Array.isArray(result.messages) ? result.messages : null;
     } catch {
       loaded = null;
@@ -165,7 +161,7 @@ export function useMessageReadState({
 
       // Awaited while this claim is still held, so the receipt it starts continues the same
       // uninterrupted stretch of outstanding work as far as the automatic poll is concerned.
-      if (loaded) await markRead(loaded, generation);
+      if (loaded) await markRead(loaded, generation, serverCanAcknowledge);
     } finally {
       // Released on every path - rendered, stale, failed, unmounted - and after the receipt it
       // may have started took a claim of its own, so a settled read can never leave the automatic
@@ -225,8 +221,15 @@ export function useMessageReadState({
     setHasLoadedHistory(true);
     setRetrievalFailed(false);
     setReadStatusFailed(false);
-    void markRead(initialMessages, generation);
-  }, [fetchOnMount, initialMessages, initialReadFailed, markRead, nextGeneration]);
+    void markRead(initialMessages, generation, initialCanAcknowledge);
+  }, [
+    fetchOnMount,
+    initialCanAcknowledge,
+    initialMessages,
+    initialReadFailed,
+    markRead,
+    nextGeneration,
+  ]);
 
   return {
     hasLoadedHistory,

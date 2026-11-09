@@ -124,6 +124,7 @@ describe('explicit messaging role admission', () => {
     const result = await getMessagesForClaim(ids.claim);
     expect(result.success).toBe(row.read);
     if (row.read) {
+      expect(result.canAcknowledge).toBe(row.send);
       expect(result.messages?.map(message => message.id)).toEqual(visibleIds(row));
     } else {
       expect(result).toEqual({ success: false, error: 'Access denied' });
@@ -143,6 +144,35 @@ describe('explicit messaging role admission', () => {
         error: 'Access denied',
       });
       expect(state.rows).toEqual(before);
+      noWriteEffects();
+    }
+  );
+
+  it('recomputes capability from the current server session on every history load', async () => {
+    actAs('staff');
+    const viewerId = state.session!.user.id;
+    expect(await getMessagesForClaim(ids.claim)).toMatchObject({ canAcknowledge: true });
+    actAs('branch_manager');
+    expect(state.session!.user.id).toBe(viewerId);
+    expect(await getMessagesForClaim(ids.claim)).toMatchObject({ canAcknowledge: false });
+    actAs('staff');
+    expect(await getMessagesForClaim(ids.claim)).toMatchObject({ canAcknowledge: true });
+    noWriteEffects();
+  });
+
+  it.each(['member', 'staff', 'agent'])(
+    '%s can clear unread after an observer reads',
+    async participant => {
+      state.rows.claimMessages[0].senderId = participant === 'staff' ? ids.member : ids.staff;
+      actAs('branch_manager');
+      expect(await getMessagesForClaim(ids.claim)).toMatchObject({ canAcknowledge: false });
+      actAs('global_support');
+      expect(await getMessagesForClaim(ids.claim)).toMatchObject({ canAcknowledge: false });
+      expect(state.rows.claimMessages.every(message => message.readAt === null)).toBe(true);
+      actAs(participant);
+      expect(await getMessagesForClaim(ids.claim)).toMatchObject({ canAcknowledge: true });
+      expect(await markMessagesAsRead([messageIds[0]])).toEqual({ success: true });
+      expect(state.rows.claimMessages[0].readAt).toBeInstanceOf(Date);
       noWriteEffects();
     }
   );

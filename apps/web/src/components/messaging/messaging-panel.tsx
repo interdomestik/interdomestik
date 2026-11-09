@@ -28,6 +28,7 @@ interface MessagingPanelProps {
   };
   readonly isAgent?: boolean;
   readonly allowInternal?: boolean;
+  readonly initialCanAcknowledge?: boolean;
   readonly initialMessages?: MessageWithSender[];
   readonly fetchOnMount?: boolean;
   readonly readOnly?: boolean;
@@ -53,6 +54,7 @@ function ScopedMessagingPanel({
   isAgent = false,
   allowInternal = false,
   initialMessages = NO_MESSAGES,
+  initialCanAcknowledge = false,
   fetchOnMount = true,
   readOnly = false,
   initialReadFailed = false,
@@ -69,7 +71,7 @@ function ScopedMessagingPanel({
   } = useMessageReadState({
     claimId,
     currentUserId: currentUser.id,
-    currentUserRole: currentUser.role,
+    initialCanAcknowledge,
     canAcknowledge: !readOnly,
     fetchOnMount,
     initialMessages,

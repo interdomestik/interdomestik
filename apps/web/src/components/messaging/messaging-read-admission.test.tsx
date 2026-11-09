@@ -16,7 +16,7 @@ const receipt = vi.mocked(markMessagesAsRead);
 const options = {
   claimId: 'claim-1',
   currentUserId: 'viewer-1',
-  currentUserRole: 'global_support',
+  initialCanAcknowledge: false,
   canAcknowledge: true,
   fetchOnMount: true,
   initialMessages: NO_MESSAGES,
@@ -29,7 +29,7 @@ describe('message receipt admission', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
-    read.mockResolvedValue({ success: true, messages: [buildMessage()] });
+    read.mockResolvedValue({ success: true, canAcknowledge: true, messages: [buildMessage()] });
     receipt.mockResolvedValue({ success: false, error: 'Access denied' });
   });
 
@@ -38,26 +38,59 @@ describe('message receipt admission', () => {
     vi.useRealTimers();
   });
 
-  it('silently stops denied receipts while polling and manual refresh still read history', async () => {
+  it('uses refreshed server permission with unchanged client props: allowed, denied, allowed', async () => {
+    receipt.mockResolvedValue({ success: true });
+    const { result } = renderHook(useMessageReadState, { initialProps: options });
+    await flush();
+    expect(receipt).toHaveBeenCalledTimes(1);
+    read.mockResolvedValueOnce({
+      success: true,
+      canAcknowledge: false,
+      messages: [buildMessage()],
+    });
+    await tick();
+    expect(receipt).toHaveBeenCalledTimes(1);
+    await tick();
+    expect(read).toHaveBeenCalledTimes(3);
+    expect(receipt).toHaveBeenCalledTimes(2);
+    expect(result.current.readStatusFailed).toBe(false);
+  });
+
+  it('keeps a raced denial silent and lets the next history load decide again', async () => {
     const { result } = renderHook(useMessageReadState, { initialProps: options });
     await flush();
     expect(receipt).toHaveBeenCalledTimes(1);
     expect(result.current.readStatusFailed).toBe(false);
+    read.mockResolvedValueOnce({
+      success: true,
+      canAcknowledge: false,
+      messages: [buildMessage()],
+    });
     await tick();
-    await tick();
-    await act(() => result.current.refresh());
-    expect(read).toHaveBeenCalledTimes(4);
     expect(receipt).toHaveBeenCalledTimes(1);
-    expect(result.current.messages).toHaveLength(1);
-    expect(result.current.readStatusFailed).toBe(false);
+    receipt.mockResolvedValue({ success: true });
+    await act(() => result.current.refresh());
+    expect(read).toHaveBeenCalledTimes(3);
+    expect(receipt).toHaveBeenCalledTimes(2);
     expect(result.current.retrievalFailed).toBe(false);
+    expect(result.current.readStatusFailed).toBe(false);
   });
 
-  it.each(['result', 'transport'])(
+  it('fails closed when history omits acknowledgement capability', async () => {
+    read.mockResolvedValue({ success: true, messages: [buildMessage()] });
+    renderHook(useMessageReadState, { initialProps: options });
+    await flush();
+    expect(receipt).not.toHaveBeenCalled();
+  });
+
+  it.each(['result', '500', 'transport'])(
     'preserves error and retry for another %s failure',
     async kind => {
-      if (kind === 'result') {
-        receipt.mockResolvedValueOnce({ success: false, error: 'Failed to mark messages as read' });
+      if (kind !== 'transport') {
+        receipt.mockResolvedValueOnce({
+          success: false,
+          error: kind === '500' ? '500 Internal Server Error' : 'Failed to mark messages as read',
+        });
       } else {
         receipt.mockRejectedValueOnce(new Error('transport failure'));
       }
@@ -71,20 +104,19 @@ describe('message receipt admission', () => {
     }
   );
 
-  it.each(['claimId', 'currentUserId', 'currentUserRole'] as const)(
-    'resets terminal denial when %s changes, including returning to the original scope',
-    async field => {
-      const { result, rerender } = renderHook(useMessageReadState, { initialProps: options });
-      await flush();
-      rerender({ ...options, [field]: 'new-scope' });
-      await flush();
-      expect(receipt).toHaveBeenCalledTimes(2);
-      rerender(options);
-      await flush();
-      expect(receipt).toHaveBeenCalledTimes(3);
-      expect(result.current.readStatusFailed).toBe(false);
-    }
-  );
+  it('uses changed server seed capability without a client scope change', async () => {
+    receipt.mockResolvedValue({ success: true });
+    const seeded = { ...options, fetchOnMount: false, initialMessages: [buildMessage()] };
+    const { rerender } = renderHook(useMessageReadState, { initialProps: seeded });
+    await flush();
+    expect(receipt).not.toHaveBeenCalled();
+    rerender({ ...seeded, initialCanAcknowledge: true });
+    await flush();
+    expect(receipt).toHaveBeenCalledTimes(1);
+    rerender(seeded);
+    await flush();
+    expect(receipt).toHaveBeenCalledTimes(1);
+  });
 
   it.each([true, false])(
     'read-only panel sends no receipts (fetchOnMount=%s)',
