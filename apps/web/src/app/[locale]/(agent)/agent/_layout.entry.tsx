@@ -1,12 +1,10 @@
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
+import { AgentRoleShell } from '@/components/shell/agent-role-shell';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
 import { toClientShellUser } from '@/components/shell/client-shell-user';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { AGENT_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { requireEffectivePortalAccessOrNotFound } from '@/server/auth/effective-portal-access';
-import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { getAgentTier } from './_layout.core';
 
@@ -40,13 +38,9 @@ export default async function AgentLayout({
   return (
     <div className="min-h-screen" data-testid="agent-page-ready">
       <AuthenticatedShell locale={locale} messages={messages}>
-        <SidebarProvider defaultOpen={true}>
-          <DashboardSidebar agentTier={agentTier} user={shellUser} adminAccess={false} />
-          <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-            <DashboardHeader user={shellUser} adminAccess={false} />
-            <div className="flex-1 p-6 md:p-8 pt-6">{children}</div>
-          </SidebarInset>
-        </SidebarProvider>
+        <AgentRoleShell agentTier={agentTier} user={shellUser}>
+          {children}
+        </AgentRoleShell>
       </AuthenticatedShell>
     </div>
   );

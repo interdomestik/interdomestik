@@ -59,18 +59,18 @@ type SectionProps = {
   children: ReactNode;
 };
 
-function Section({ title, count, defaultOpen = true, children }: SectionProps) {
+function Section({ title, count, defaultOpen = true, children }: Readonly<SectionProps>) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <section className="rounded-md border bg-white">
+    <section className="min-w-0 rounded-md border bg-white">
       <button
         type="button"
         className="flex w-full items-center justify-between px-4 py-3"
         onClick={() => setOpen(prev => !prev)}
         aria-expanded={open}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <h2 className="text-lg font-semibold">{title}</h2>
           <span className="text-sm text-muted-foreground">({count})</span>
         </div>
@@ -113,74 +113,85 @@ export function AgentUsersSections({ users }: Readonly<UsersSectionsProps>): Rea
     onExpand: () => void,
     totalCount: number
   ) => (
-    <div className="space-y-4">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t('headers.user')}</TableHead>
-            <TableHead>{t('headers.status')}</TableHead>
-            <TableHead>{t('headers.plan')}</TableHead>
-            <TableHead>{t('headers.period_end')}</TableHead>
-            <TableHead className="text-right">{t('headers.actions')}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map(member => (
-            <TableRow
-              key={member.id}
-              className={member.unreadCount ? 'bg-amber-50/40 hover:bg-amber-50/60' : undefined}
-            >
-              <TableCell>
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={member.image || ''} />
-                    <AvatarFallback>{member.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <span className="font-medium text-foreground">{member.name}</span>
-                    <span className="text-xs text-muted-foreground font-mono">{member.email}</span>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge
-                  className={cn(
-                    'font-medium text-[10px] uppercase tracking-wider',
-                    membershipStatusStyles[member.subscription?.status || 'none']
-                  )}
-                  variant="outline"
-                >
-                  {member.subscription?.status || 'none'}
-                </Badge>
-                {member.membershipSource ? (
-                  <span className="block text-xs text-muted-foreground">
-                    {t('headers.source')}: {t(`source.${member.membershipSource}`)}
-                  </span>
-                ) : null}
-              </TableCell>
-              <TableCell className="text-sm font-bold">
-                {member.subscription?.planId ? (
-                  <span className="capitalize">{member.subscription.planId.replace('_', ' ')}</span>
-                ) : (
-                  <span className="opacity-30">-</span>
-                )}
-              </TableCell>
-              <TableCell className="text-sm font-medium">
-                {member.subscription?.currentPeriodEnd ? (
-                  formatPilotDate(member.subscription.currentPeriodEnd, locale, '-')
-                ) : (
-                  <span className="opacity-30">-</span>
-                )}
-              </TableCell>
-              <TableCell className="text-right">
-                <Button asChild size="sm" variant="outline" className="h-8 shadow-sm">
-                  <Link href={`/agent/clients/${member.id}`}>{t('view_profile')}</Link>
-                </Button>
-              </TableCell>
+    <div className="min-w-0 space-y-4">
+      <div
+        role="region"
+        aria-label={t('headers.user')}
+        tabIndex={0}
+        className="max-w-full overflow-x-auto [&>div]:overflow-visible"
+      >
+        <Table className="min-w-[40rem]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('headers.user')}</TableHead>
+              <TableHead>{t('headers.status')}</TableHead>
+              <TableHead>{t('headers.plan')}</TableHead>
+              <TableHead>{t('headers.period_end')}</TableHead>
+              <TableHead className="text-right">{t('headers.actions')}</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {rows.map(member => (
+              <TableRow
+                key={member.id}
+                className={member.unreadCount ? 'bg-amber-50/40 hover:bg-amber-50/60' : undefined}
+              >
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src={member.image || ''} />
+                      <AvatarFallback>{member.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-foreground">{member.name}</span>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {member.email}
+                      </span>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    className={cn(
+                      'font-medium text-[10px] uppercase tracking-wider',
+                      membershipStatusStyles[member.subscription?.status || 'none']
+                    )}
+                    variant="outline"
+                  >
+                    {member.subscription?.status || 'none'}
+                  </Badge>
+                  {member.membershipSource ? (
+                    <span className="block text-xs text-muted-foreground">
+                      {t('headers.source')}: {t(`source.${member.membershipSource}`)}
+                    </span>
+                  ) : null}
+                </TableCell>
+                <TableCell className="text-sm font-bold">
+                  {member.subscription?.planId ? (
+                    <span className="capitalize">
+                      {member.subscription.planId.replace('_', ' ')}
+                    </span>
+                  ) : (
+                    <span className="opacity-30">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-sm font-medium">
+                  {member.subscription?.currentPeriodEnd ? (
+                    formatPilotDate(member.subscription.currentPeriodEnd, locale, '-')
+                  ) : (
+                    <span className="opacity-30">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button asChild size="sm" variant="outline" className="min-h-11 shadow-sm">
+                    <Link href={`/agent/clients/${member.id}`}>{t('view_profile')}</Link>
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       {isLimited && totalCount > DISPLAY_LIMIT && (
         <div className="flex justify-center pt-2">
           <Button variant="ghost" size="sm" onClick={onExpand} className="text-primary font-bold">

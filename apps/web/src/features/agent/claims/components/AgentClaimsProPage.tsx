@@ -4,44 +4,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
-import {
-  OpsActionBar,
-  OpsDrawer,
-  OpsFiltersBar,
-  OpsStatusBadge,
-  OpsTable,
-  toOpsBadgeVariant,
-} from '@/components/ops';
+import { OpsActionBar, OpsDrawer, OpsFiltersBar, OpsTable } from '@/components/ops';
 import { getClaimActions } from '@/components/ops/adapters/claims';
 import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui';
 import { ArrowLeft } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { translateClaimStatus, useAgentClaimRows, type AgentProClaim } from './agent-claim-rows';
 import { getClaimSelectionCloseHref, getSelectedClaimId } from './claim-selection';
 
-// Define minimal Claim type for Pro table
-export type AgentProClaim = {
-  id: string;
-  title: string;
-  claimNumber: string;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-  member: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
-  branch: {
-    name: string;
-  } | null;
-  unreadCount?: number;
-  lastMessage?: string | null;
-  _count?: {
-    documents: number;
-    timelineEvents: number;
-  };
-};
+export type { AgentProClaim } from './agent-claim-rows';
 
 interface AgentClaimsProPageProps {
   claims: AgentProClaim[];
@@ -54,54 +26,33 @@ interface AgentClaimsProPageProps {
   };
 }
 
-export function AgentClaimsProPage({
-  claims,
-  selectedClaimId,
-  currentUser,
-}: AgentClaimsProPageProps) {
+export function AgentClaimsProPage({ claims, currentUser }: Readonly<AgentClaimsProPageProps>) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
   const t = useTranslations('agent');
   const tClaims = useTranslations('claims');
-  const formatDate = useMemo(
-    () =>
-      new Intl.DateTimeFormat(resolveDateLocale(locale), {
-        day: 'numeric',
-        month: 'numeric',
-        year: 'numeric',
-      }),
-    [locale]
-  );
-  const formatShortDate = useMemo(
-    () =>
-      new Intl.DateTimeFormat(resolveDateLocale(locale), {
-        day: 'numeric',
-        month: 'numeric',
-      }),
-    [locale]
-  );
-
   // URL Selection for Drawer
-  const selectedId = (selectedClaimId?.trim() || getSelectedClaimId(searchParams)) ?? null;
+  const selectionParams = new URLSearchParams(searchParams.toString());
+  const selectedId = getSelectedClaimId(selectionParams);
   // Drawer View Mode
   const [viewMode, setViewMode] = useState<'details' | 'messaging'>('details');
 
   const handleSelect = (id: string) => {
     setViewMode('details'); // Reset view on new selection
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(selectionParams);
     params.delete('claimId');
     params.set('selected', id);
-    router.replace(`?${params.toString()}`);
+    router.replace(`?${params.toString()}`, { scroll: false });
   };
 
   const handleClose = () => {
-    const nextHref = getClaimSelectionCloseHref(searchParams);
+    const nextHref = getClaimSelectionCloseHref(selectionParams);
     if (!nextHref) {
       return;
     }
 
-    router.replace(nextHref);
+    router.replace(nextHref, { scroll: false });
   };
 
   // Local Filter State
@@ -129,104 +80,34 @@ export function AgentClaimsProPage({
     return true;
   });
 
-  // Table Configuration
-  const columns = [
-    { key: 'claim', header: t('claimsPro.columns.claim') },
-    { key: 'status', header: t('claimsPro.columns.status') },
-    { key: 'member', header: t('claimsPro.columns.member') },
-    { key: 'meta', header: t('claimsPro.columns.meta') },
-  ];
-
-  const rows = filteredClaims.map(claim => ({
-    id: claim.id,
-    cells: [
-      // Claim
-      <div key="claim">
-        <div className="font-medium flex items-center gap-2">
-          {claim.claimNumber}
-          {claim.unreadCount && claim.unreadCount > 0 && (
-            <span
-              className="flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-destructive rounded-full"
-              data-testid={`unread-badge-${claim.id}`}
-            >
-              {claim.unreadCount}
-            </span>
-          )}
-        </div>
-        <div className="text-sm text-foreground/90 truncate w-48 font-medium" title={claim.title}>
-          {claim.title}
-        </div>
-        <div className="text-xs text-muted-foreground w-48 truncate">
-          {claim.lastMessage ? (
-            <span className="text-foreground/80 font-medium">
-              &quot;{claim.lastMessage.slice(0, 30)}
-              {claim.lastMessage.length > 30 ? '...' : ''}&quot;
-            </span>
-          ) : (
-            `ID: ${claim.id.slice(0, 8)}`
-          )}
-        </div>
-      </div>,
-      // Status
-      <OpsStatusBadge
-        key="status"
-        label={translateClaimStatus(tClaims, claim.status)}
-        variant={toOpsBadgeVariant(claim.status)}
-      />,
-      // Member
-      <div key="member">
-        <div className="font-medium">{claim.member?.name || t('claimsPro.unknownMember')}</div>
-        <div className="text-xs text-muted-foreground">{claim.member?.email}</div>
-      </div>,
-      // Meta
-      <div key="meta" className="text-xs text-muted-foreground">
-        <div>{formatDate.format(new Date(claim.createdAt))}</div>
-        <div className="opacity-70">
-          {t('claimsPro.updatedPrefix')} {formatShortDate.format(new Date(claim.updatedAt))}
-        </div>
-      </div>,
-    ],
-    onClick: () => handleSelect(claim.id),
-    testId: 'claim-row',
-  }));
+  const { columns, rows } = useAgentClaimRows(filteredClaims, handleSelect);
 
   const selectedClaim = claims.find(c => c.id === selectedId);
   const showNotAccessibleClaimState = Boolean(selectedId) && !selectedClaim;
 
-  // Actions Logic
   const actions = useMemo(() => {
-    if (!selectedClaim) return { secondary: [] };
-
-    // Use adapter to get standard actions (including message)
     const available = getClaimActions(selectedClaim, t);
-
     return {
       secondary: available.secondary.map(action => ({
         ...action,
         testId: `action-${action.id}`,
-        onClick:
-          action.id === 'message'
-            ? () => setViewMode('messaging')
-            : action.id === 'upload'
-              ? () => console.log('Upload clicked')
-              : () => {},
+        onClick: () => {
+          if (action.id === 'message') setViewMode('messaging');
+          if (action.id === 'upload') console.log('Upload clicked');
+        },
       })),
     };
   }, [selectedClaim, t]);
 
-  // Drawer Footer (Only show when in details mode?)
-  // Actually OpsActionBar usually lives in the body or footer.
-  // OpsDrawer has a `footer` prop. Let's put OpsActionBar there for Details mode.
-
   return (
-    <div className="space-y-6" data-testid="agent-claims-pro-page">
+    <div className="min-w-0 space-y-6 [overflow-wrap:anywhere]" data-testid="agent-claims-pro-page">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{t('claimsPro.title')}</h1>
           <p className="text-muted-foreground">{t('claimsPro.subtitle')}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex min-w-0 flex-wrap gap-2">
           <Link href="/agent/workspace" locale={locale}>
             <Button variant="outline" size="sm" className="gap-2">
               <ArrowLeft className="w-4 h-4" />
@@ -265,11 +146,10 @@ export function AgentClaimsProPage({
         searchInputTestId="claims-search"
       />
 
-      {/* Table */}
-      <OpsTable columns={columns} rows={rows} emptyLabel={t('claimsPro.empty')} />
-
       {/* Drawer */}
       <OpsDrawer
+        inlineOnMobile
+        selectionKey={selectedClaim?.id}
         open={!!selectedClaim}
         onOpenChange={open => !open && handleClose()}
         title={
@@ -282,13 +162,19 @@ export function AgentClaimsProPage({
         descriptionText={t('claimsPro.dialogDescription')}
         footer={
           viewMode === 'details' && selectedClaim ? (
-            <OpsActionBar secondary={actions.secondary} />
+            <OpsActionBar
+              secondary={actions.secondary}
+              className="[&>div]:flex-wrap [&_button]:min-h-11 [&_button]:max-w-full [&_button]:h-auto [&_button]:whitespace-normal"
+            />
           ) : undefined
         }
       >
         {selectedClaim && (
           <div className="space-y-6" data-testid="ops-drawer-content">
-            <p className="text-xs text-muted-foreground" data-testid="workspace-selected-claim-id">
+            <p
+              className="break-all text-xs text-muted-foreground"
+              data-testid="workspace-selected-claim-id"
+            >
               {selectedClaim.id}
             </p>
             {viewMode === 'details' ? (
@@ -308,8 +194,8 @@ export function AgentClaimsProPage({
                 </div>
               </div>
             ) : (
-              <div className="h-full flex flex-col">
-                <div className="flex items-center justify-between mb-4">
+              <div className="min-w-0 flex flex-col">
+                <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 mb-4">
                   <h3 className="font-medium">{t('details.messages')}</h3>
                   <Button
                     variant="ghost"
@@ -324,36 +210,23 @@ export function AgentClaimsProPage({
                   claimId={selectedClaim.id}
                   currentUser={currentUser}
                   isAgent={true}
+                  allowInternal={false}
                 />
               </div>
             )}
           </div>
         )}
       </OpsDrawer>
+
+      {/* Table */}
+      <OpsTable
+        columns={columns}
+        rows={rows}
+        emptyLabel={t('claimsPro.empty')}
+        mobileCards
+        scrollLabel={t('claimsPro.title')}
+        containerClassName="min-w-0 max-w-full"
+      />
     </div>
   );
-}
-
-function resolveDateLocale(locale: string): string {
-  switch (locale) {
-    case 'mk':
-      return 'mk-MK';
-    case 'sq':
-      return 'sq-AL';
-    case 'sr':
-      return 'sr-RS';
-    default:
-      return locale;
-  }
-}
-
-function translateClaimStatus(
-  tClaims: ReturnType<typeof useTranslations<'claims'>>,
-  status: string
-): string {
-  try {
-    return tClaims(`status.${status}`);
-  } catch {
-    return status;
-  }
 }
