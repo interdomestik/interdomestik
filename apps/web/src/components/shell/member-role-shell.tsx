@@ -51,9 +51,9 @@ export function MemberRoleShell({
         </>
       }
       account={
-        <div role="group" aria-label={t('myAccount')}>
+        <fieldset aria-label={t('myAccount')} className="m-0 min-w-0 border-0 p-0">
           <UserNav user={user} adminAccess={false} />
-        </div>
+        </fieldset>
       }
       sidebarAccount={
         <SidebarUserMenu

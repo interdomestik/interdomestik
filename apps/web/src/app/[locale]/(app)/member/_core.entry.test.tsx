@@ -6,12 +6,12 @@ import { getTranslations } from 'next-intl/server';
 
 const h = vi.hoisted(() => ({
   shell: vi.fn(),
-  session: vi.fn(async () => ({ user: { id: 'agent-1', role: 'agent' } })),
+  session: vi.fn(() => Promise.resolve({ user: { id: 'agent-1', role: 'agent' } })),
   required: vi.fn(value => value),
   redirect: vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
-  messages: vi.fn(async () => ({})),
+  messages: vi.fn(() => Promise.resolve({})),
   pick: vi.fn(() => ({})),
   pass: ({ children }: { children: React.ReactNode }) => children,
 }));
