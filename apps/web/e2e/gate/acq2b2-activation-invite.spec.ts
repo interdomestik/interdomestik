@@ -10,6 +10,7 @@ import {
   verification,
 } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';
+import sqAuth from '../../src/messages/sq/auth.json';
 import { expect, test } from '../fixtures/auth.fixture';
 import { path as routePath } from '../fixtures/routes';
 import { gotoApp } from '../utils/navigation';
@@ -147,7 +148,7 @@ test.describe('ACQ-2b2 member activation invite', () => {
       await expect(consentBanner).toHaveCount(0);
 
       const password = `Activ8-${randomUUID()}`;
-      const form = page.getByRole('form', { name: 'Reset password form' });
+      const form = page.getByRole('form', { name: sqAuth.auth.passwordRecovery.formLabel });
       // SSR-visible controls are not handler readiness: retry until the client handler submits.
       await expect(async () => {
         await form.locator('#password').fill(password);
