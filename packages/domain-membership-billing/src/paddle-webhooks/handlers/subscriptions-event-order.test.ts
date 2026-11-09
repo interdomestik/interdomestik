@@ -90,6 +90,7 @@ function deliveryDeps() {
     claim: vi.fn().mockResolvedValue(claimed(true)),
     ready: vi.fn().mockResolvedValue(undefined),
     complete: vi.fn().mockResolvedValue(undefined),
+    skip: vi.fn(),
     fail: vi.fn().mockResolvedValue(undefined),
   };
   return {

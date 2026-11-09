@@ -12,8 +12,8 @@ const { user } = await import('@interdomestik/database/schema/auth');
 async function main() {
   console.log('[Triage] Connecting to Database...');
 
-  const staffEmail = 'staff.ks.extra@interdomestik.com';
-  const memberEmail = 'member.ks.a1@interdomestik.com';
+  const staffEmail = 'staff.ks.extra@plan070.example.invalid';
+  const memberEmail = 'member.ks.a1@plan070.example.invalid';
 
   const staff = await db.query.user.findFirst({ where: eq(user.email, staffEmail) });
   const member = await db.query.user.findFirst({ where: eq(user.email, memberEmail) });

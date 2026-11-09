@@ -211,3 +211,24 @@ describe('membership confirmation delivery store', () => {
     expect(rows.get(idempotencyKey)).toEqual({ ...before, tenantId: 'tenant_ks' });
   });
 });
+
+it('settles suppressed confirmation and refuses all replay claims without a receipt', async () => {
+  const { repository, rows } = createRepository();
+  const store = createMembershipConfirmationDeliveryStore(repository, () => 'delivery_123');
+  await store.claim({ authority, idempotencyKey, snapshot });
+  const claim = { authority, idempotencyKey, deliveryId: 'delivery_123' };
+  await store.ready({ ...claim, subscriptionId: snapshot.subscriptionId });
+  await store.skip(claim);
+  await store.skip(claim);
+  expect(rows.get(idempotencyKey)).toMatchObject({
+    status: 'skipped',
+    providerMessageId: null,
+    error: null,
+  });
+  expect(await store.claim({ authority, idempotencyKey, snapshot })).toEqual({
+    kind: 'already_skipped',
+  });
+  expect(
+    await store.claimReadyRetry!({ authority, idempotencyKey, evidence: retryEvidence })
+  ).toEqual({ kind: 'already_skipped' });
+});

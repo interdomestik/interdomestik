@@ -12,6 +12,7 @@ const h = vi.hoisted(() => ({
   findFirstUser: vi.fn(), findManySubscriptions: vi.fn(),
   gt: vi.fn((left: unknown, right: unknown) => ({ op: 'gt', left, right })),
   listScheduledTenantWork: vi.fn(), txFindManySubscriptions: vi.fn(),
+  isDunningSuppressed: vi.fn().mockResolvedValue(false),
   runDunningCronCore: vi.fn(), txSet: vi.fn(), txUpdate: vi.fn(), txWhere: vi.fn(), withTenantContext: vi.fn(),
 }));
 
@@ -23,12 +24,19 @@ vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: h.enforceRateLimit }));
 
 vi.mock('../_auth', () => ({ authorizeCronRequest: h.authorizeCronRequest }));
 
+// Route/core orchestration tests isolate the suppression repository; its tenant-scoped
+// reads and terminal writes are exercised by _core.sponsor.test.ts.
+vi.mock('./dunning-suppression', () => ({
+  isDunningSuppressed: h.isDunningSuppressed,
+  recordDunningSuppression: vi.fn(),
+}));
+
 vi.mock('./_core', () => ({ runDunningCronCore: h.runDunningCronCore }));
 
 vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn() }));
 vi.mock('@/lib/email', () => ({
-  sendPaymentFinalWarningEmail: vi.fn(),
-  sendPaymentReminderEmail: vi.fn(),
+  sendPaymentFinalWarningEmail: vi.fn().mockResolvedValue({ success: true, id: 'mail-1' }),
+  sendPaymentReminderEmail: vi.fn().mockResolvedValue({ success: true, id: 'mail-1' }),
 }));
 vi.mock('@interdomestik/database', () => ({
   db: {
@@ -120,6 +128,7 @@ describe('GET /api/cron/dunning', () => {
     const now = new Date('2026-01-08T00:00:00.000Z');
     await runDunningCronCore({ ingress: INGRESS, headers: new Headers(), now });
     expect(h.listScheduledTenantWork).toHaveBeenCalledWith(INGRESS);
+    expect(h.isDunningSuppressed).toHaveBeenCalledExactlyOnceWith(authorities.get('tenant-1'), JSON.stringify(['dunning', 'tenant-1', 'sub-1', '2026-01-01T00:00:00.000Z', 'day7']));
     expect(h.withTenantContext).toHaveBeenCalledTimes(5); // page, member read, outlook, update, empty page
     for (const [context] of h.withTenantContext.mock.calls) expect(context).toBe(authorities.get('tenant-1'));
     expect(h.txUpdate).toHaveBeenCalledWith(expect.objectContaining({ id: 'subscriptions.id' }));
@@ -176,6 +185,7 @@ describe('GET /api/cron/dunning', () => {
       const { stats } = await run();
 
       expect(stats).toEqual({ checked: 0, day7Sent: 0, day13Sent: 0, errors: 0 });
+      expect(h.isDunningSuppressed).not.toHaveBeenCalled();
       expect(h.withTenantContext).not.toHaveBeenCalled();
       expect(h.findManySubscriptions).not.toHaveBeenCalled();
     });

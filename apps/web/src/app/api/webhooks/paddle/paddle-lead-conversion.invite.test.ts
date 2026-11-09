@@ -64,4 +64,19 @@ describe('reconcilePaddleLeadConversion activation invite', () => {
     expect(JSON.stringify(log.mock.calls)).not.toContain('a@b.test');
     log.mockRestore();
   });
+  it('settles suppression without logging a delivery failure', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    hoisted.convertLeadToMember.mockResolvedValue({ userId: 'u1', email: 'a@b.test' });
+    hoisted.sendMemberActivationInvite.mockResolvedValue({
+      sent: false,
+      reason: 'email_suppressed',
+    });
+    try {
+      const result = await reconcile();
+      expect(result).toBeUndefined();
+      expect(log).not.toHaveBeenCalled();
+    } finally {
+      log.mockRestore();
+    }
+  });
 });

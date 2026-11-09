@@ -1,3 +1,4 @@
+import { campaignSelectMock } from './campaign-query.test-support';
 import { INGRESS, authorityFor, h, scheduleTenants, user } from './campaign-execution.test-support';
 import {
   readTenantAuthority,
@@ -15,14 +16,15 @@ describe('tenant-scoped campaign execution', () => {
     vi.clearAllMocks();
     h.events.length = 0;
     h.findManyLogs.mockResolvedValue([]);
+    h.findManySkipped.mockResolvedValue([]);
     h.insertValues.mockResolvedValue(undefined);
     h.withTenantContext.mockImplementation(
       async (context: TenantAuthority, action: (tx: unknown) => Promise<unknown>) => {
         h.events.push(`ctx:${readTenantAuthority(context).tenantId}`);
         return action({
+          select: campaignSelectMock(h.findManyLogs, h.findManySkipped),
           insert: () => ({ values: h.insertValues }),
           query: {
-            emailCampaignLogs: { findMany: h.findManyLogs },
             user: { findMany: h.findManyUsers },
           },
         });
@@ -125,12 +127,14 @@ describe('tenant-scoped campaign execution', () => {
     it('makes one query under the given authority and keys results by tenant and user', async () => {
       const authority = authorityFor('tenant-a');
       h.findManyLogs.mockResolvedValue([{ tenantId: 'tenant-a', userId: 'a1' }]);
+      h.findManySkipped.mockResolvedValue([{ tenantId: 'tenant-a', userId: 'a2' }]);
 
       const sentSet = await getAlreadySentUserIdSet({
         authority,
         campaignId: 'campaign-1',
         users: [
           { id: 'a1', tenantId: 'tenant-a' },
+          { id: 'a2', tenantId: 'tenant-a' },
           { id: 'x1', tenantId: 'tenant-other' },
           { id: 'n1', tenantId: null },
         ],
@@ -139,7 +143,8 @@ describe('tenant-scoped campaign execution', () => {
       expect(h.withTenantContext).toHaveBeenCalledTimes(1);
       expect(h.withTenantContext.mock.calls[0][0]).toBe(authority);
       expect(h.findManyLogs).toHaveBeenCalledTimes(1);
-      expect([...sentSet]).toEqual(['tenant-a:a1']);
+      expect(h.findManySkipped).toHaveBeenCalledTimes(1);
+      expect([...sentSet]).toEqual(['tenant-a:a1', 'tenant-a:a2']);
     });
 
     it('does not query when no user belongs to the authority tenant', async () => {

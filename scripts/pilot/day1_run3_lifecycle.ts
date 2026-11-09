@@ -15,7 +15,7 @@ import crypto from 'node:crypto';
 async function main() {
   console.log('[Seeder Run3] Connecting to Database...');
 
-  const staffEmail = 'staff.ks.extra@interdomestik.com';
+  const staffEmail = 'staff.ks.extra@plan070.example.invalid';
   const staff = await db.query.user.findFirst({ where: eq(user.email, staffEmail) });
 
   if (!staff) {
@@ -30,7 +30,7 @@ async function main() {
 
   for (let j = 1; j <= 3; j++) {
     const memberId = `member_run3_${j}_${crypto.randomBytes(4).toString('hex')}`;
-    const email = `member.run3.${j}@interdomestik.com`;
+    const email = `member.run3.${j}@plan070.example.invalid`;
 
     // Check if user already exists to make script re-runnable or just insert
     const existing = await db.query.user.findFirst({ where: eq(user.email, email) });

@@ -70,6 +70,7 @@ describe('membership confirmation delivery repository', () => {
   it.each([
     ['reclaimError', () => repository.reclaimError(authority, 'key')],
     ['markReady', () => repository.markReady(authority, 'delivery_1', 'key', 'sub_1')],
+    ['markSkipped', () => repository.markSkipped(authority, 'delivery_1', 'key')],
     ['markSent', () => repository.markSent(authority, 'delivery_1', 'key', 'msg_1')],
     ['markError', () => repository.markError(authority, 'delivery_1', 'key', 'boom')],
   ])('%s writes only under the authority', async (_name, run) => {

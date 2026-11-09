@@ -257,13 +257,20 @@ async function sendInitialPaymentFailedEmail(args: {
     }
 
     const planName = args.sub.items?.[0]?.price?.description || 'Membership';
-    await args.deps.sendPaymentFailedEmail(args.userRecord.email, {
+    const delivery = await args.deps.sendPaymentFailedEmail(args.userRecord.email, {
       accessContinues: args.accessContinues,
       memberName: args.userRecord.name || 'Member',
       planName,
       gracePeriodDays: DUNNING_GRACE_PERIOD_DAYS,
       gracePeriodEndDate: args.gracePeriodEnd.toLocaleDateString(),
     });
+    if (!(
+      delivery &&
+      typeof delivery === 'object' &&
+      'success' in delivery &&
+      delivery.success === true
+    ))
+      return;
     console.log(`[Webhook] ✉️ Day 0 dunning email sent to ${redactEmail(args.userRecord.email)}`);
   } catch (emailError) {
     console.error('[Webhook] Failed to send dunning email:', emailError);

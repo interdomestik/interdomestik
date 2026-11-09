@@ -1,3 +1,4 @@
+import { requireEmailDelivery } from './non-sending-email';
 import { listScheduledTenantWork } from '@interdomestik/database';
 import type { IngressCapability } from '@interdomestik/database/ingress';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
@@ -64,7 +65,7 @@ async function runWelcomeCampaign(
       async sub => {
         if (sub.user?.email && sub.user?.name) {
           const { email, name } = sub.user;
-          await withRetries(() => sendWelcomeEmail(email, name));
+          return requireEmailDelivery(await withRetries(() => sendWelcomeEmail(email, name)));
         }
       },
       context
@@ -88,7 +89,10 @@ async function runOnboardingCampaign(
     windowEnd,
     context,
     async u => {
-      if (u.email) await withRetries(() => sendOnboardingEmail(u.email!, u.name ?? ''));
+      if (u.email)
+        return requireEmailDelivery(
+          await withRetries(() => sendOnboardingEmail(u.email!, u.name ?? ''))
+        );
     }
   );
 }
@@ -103,6 +107,9 @@ async function runCheckinCampaign(
   const day14End = endOfDay(subDays(now, 14));
 
   await processStandardUserCampaign(ingress, campaignId, day14Start, day14End, context, async u => {
-    if (u.email) await withRetries(() => sendCheckinEmail(u.email!, u.name ?? ''));
+    if (u.email)
+      return requireEmailDelivery(
+        await withRetries(() => sendCheckinEmail(u.email!, u.name ?? ''))
+      );
   });
 }

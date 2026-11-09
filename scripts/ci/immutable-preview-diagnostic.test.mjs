@@ -153,14 +153,14 @@ test('session evidence is an allowlist and never retains identity or token mater
     {
       session: { token: 'session-secret' },
       user: {
-        email: 'admin.ks@interdomestik.com',
+        email: 'admin.ks@plan070.example.invalid',
         name: 'Arbër Krasniqi',
         role: 'tenant_admin',
         tenantId: 'tenant_ks',
         accessTenantId: 'tenant_ks',
       },
     },
-    'admin.ks@interdomestik.com'
+    'admin.ks@plan070.example.invalid'
   );
   assert.deepEqual(summary, {
     identityMatchesExpected: true,
@@ -174,7 +174,7 @@ test('session evidence is an allowlist and never retains identity or token mater
 test('browser errors are reduced to non-sensitive categories', () => {
   assert.equal(
     classifyDiagnosticError(
-      'Hydration failed for Arbër Krasniqi admin.ks@interdomestik.com token=secret'
+      'Hydration failed for Arbër Krasniqi admin.ks@plan070.example.invalid token=secret'
     ),
     'hydration'
   );
@@ -183,7 +183,7 @@ test('browser errors are reduced to non-sensitive categories', () => {
   assert.doesNotMatch(
     JSON.stringify([
       classifyDiagnosticError('Private member payload: Jane Example'),
-      classifyDiagnosticError('admin.ks@interdomestik.com'),
+      classifyDiagnosticError('admin.ks@plan070.example.invalid'),
     ]),
     /Jane|admin\.ks|@/u
   );

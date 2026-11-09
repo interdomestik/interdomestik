@@ -178,4 +178,20 @@ describe('ordered past-due effect recovery', () => {
     expect(deps.sendPreparedPastDueEmail).not.toHaveBeenCalled();
     expect(hoisted.withTenantContext).toHaveBeenCalledWith(KS_AUTHORITY, expect.any(Function));
   });
+  it('records suppression as skipped without a provider receipt and does not retry it', async () => {
+    seed('active', T1, 'evt_old');
+    vi.mocked(deps.sendPreparedPastDueEmail).mockResolvedValue({
+      success: false,
+      error: 'email_suppressed',
+    });
+    await handleSubscriptionPastDue(pastDue(T2, 'evt_due'), deps);
+    expect(hoisted.store.deliveries[0]).toMatchObject({
+      status: 'skipped',
+      error: 'email_suppressed',
+      providerMessageId: null,
+      sentAt: null,
+    });
+    await handleSubscriptionPastDue(pastDue(T2, 'evt_due'), deps);
+    expect(deps.sendPreparedPastDueEmail).toHaveBeenCalledOnce();
+  });
 });

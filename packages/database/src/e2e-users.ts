@@ -10,7 +10,7 @@ export function getE2EPassword(env: E2EPasswordEnv = process.env): string {
 export const E2E_PASSWORD = getE2EPassword();
 
 /** The one mailbox domain of every synthetic E2E identity; seeds and tests never spell it. */
-export const E2E_EMAIL_DOMAIN = 'interdomestik.com';
+export const E2E_EMAIL_DOMAIN = 'plan070.example.invalid';
 
 /** The synthetic E2E address for a local part, always in {@link E2E_EMAIL_DOMAIN}. */
 export function e2eEmail(local: string): string {
