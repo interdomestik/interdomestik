@@ -62,14 +62,17 @@ export async function markMessagesAsReadCore(params: {
         isStaff ? undefined : eq(claimMessages.isInternal, false)
       );
 
-      const accessCondition = buildAcknowledgementClaimFilter({
-        claimIdColumn: claimMessages.claimId,
-        branchId: userRole === 'agent' ? (agentScope?.branchId ?? null) : (actor.branchId ?? null),
-        role: userRole,
-        tenantId,
-        tx,
-        userId: agentUserId ?? requireMessageScopeString(actor.id),
-      });
+      const accessCondition = buildAcknowledgementClaimFilter(
+        {
+          branchId:
+            userRole === 'agent' ? (agentScope?.branchId ?? null) : (actor.branchId ?? null),
+          role: userRole,
+          tenantId,
+          tx,
+          userId: agentUserId ?? requireMessageScopeString(actor.id),
+        },
+        'message'
+      );
 
       // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
       await tx

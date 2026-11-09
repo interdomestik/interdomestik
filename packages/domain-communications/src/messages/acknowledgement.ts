@@ -1,5 +1,5 @@
-import { claims } from '@interdomestik/database';
-import { and, eq, inArray, ne, type AnyColumn } from 'drizzle-orm';
+import { claimMessages, claims } from '@interdomestik/database';
+import { and, eq, inArray, ne, type SQL } from 'drizzle-orm';
 import {
   buildAccessibleClaimIdsSubquery,
   isFullTenantClaimsRole,
@@ -11,11 +11,20 @@ type AcknowledgementScope = Parameters<typeof buildAccessibleClaimIdsSubquery>[0
 
 /** Shared claim admission for the history capability and the receipt UPDATE. */
 export function buildAcknowledgementClaimFilter(
-  args: AcknowledgementScope & { claimIdColumn: AnyColumn }
-) {
-  if (!isMessageParticipant(args.role)) return ne(args.claimIdColumn, args.claimIdColumn);
+  args: AcknowledgementScope,
+  target: 'claim' | 'message'
+): SQL | undefined {
+  // Keep schema references at the query builder; callers pass only scope and a scalar target.
+  if (!isMessageParticipant(args.role)) {
+    return target === 'claim'
+      ? ne(claims.id, claims.id)
+      : ne(claimMessages.claimId, claimMessages.claimId);
+  }
   if (isFullTenantClaimsRole(args.role)) return undefined;
-  return inArray(args.claimIdColumn, buildAccessibleClaimIdsSubquery(args));
+  const accessibleClaimIds = buildAccessibleClaimIdsSubquery(args);
+  return target === 'claim'
+    ? inArray(claims.id, accessibleClaimIds)
+    : inArray(claimMessages.claimId, accessibleClaimIds);
 }
 
 export async function canAcknowledgeClaim(
@@ -33,7 +42,16 @@ export async function canAcknowledgeClaim(
     where: and(
       eq(claims.tenantId, args.tenantId),
       eq(claims.id, args.claimId),
-      buildAcknowledgementClaimFilter({ ...args, branchId, claimIdColumn: claims.id })
+      buildAcknowledgementClaimFilter(
+        {
+          tx: args.tx,
+          tenantId: args.tenantId,
+          userId: args.userId,
+          role: args.role,
+          branchId,
+        },
+        'claim'
+      )
     ),
   });
   return admitted != null;
