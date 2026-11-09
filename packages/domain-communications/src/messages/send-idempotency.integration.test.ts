@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { TenantTransaction } from '@interdomestik/database';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import {
@@ -19,7 +19,7 @@ let storeMessage: typeof import('./store-message');
 const keyedMessageId = (...args: Parameters<(typeof storeMessage)['keyedMessageId']>) =>
   storeMessage.keyedMessageId(...args);
 
-const memberSend = (content: string, clientMessageId: string) =>
+const memberSend = (content: string, clientMessageId: string, logAuditEvent = vi.fn()) =>
   fixture.send({
     session: session(ids.member, 'member'),
     authority: mintTestTenantAuthority(homeTenantId, { userId: ids.member, role: 'member' }),
@@ -27,6 +27,7 @@ const memberSend = (content: string, clientMessageId: string) =>
     claimId: ids.claim,
     content,
     clientMessageId,
+    deps: { logAuditEvent },
   });
 
 async function storedWithKey(clientMessageId: string) {
@@ -37,17 +38,31 @@ async function storedWithKey(clientMessageId: string) {
     .where(eq(claimMessages.id, keyedMessageId(homeTenantId, ids.member, clientMessageId)));
 }
 
-/** Resolves once another session waits on this transaction's uncommitted row. */
-async function waitForBlockedSend(tx: TenantTransaction, attemptsLeft = 200): Promise<void> {
-  // pg_stat_activity is snapshotted per transaction; pg_locks is read fresh on every call.
-  const [row] = await tx.execute(fixture.database.sql`
+/** Observe actual lock waiters; reaching the deadline is a failure, never a timing-based pass. */
+async function waitForBlockedSend(
+  tx: TenantTransaction,
+  kind: 'key' | 'table' = 'key',
+  attemptsLeft = 200
+): Promise<void> {
+  // Refresh pg_stat_activity so sessions connected after the first poll remain observable.
+  const { sql } = fixture.database;
+  await tx.execute(sql`select pg_stat_clear_snapshot()`);
+  const locks =
+    kind === 'key'
+      ? sql`
     select count(*)::int as waiting from pg_locks
     where locktype = 'transactionid' and not granted and transactionid = pg_current_xact_id()::xid
-  `);
-  if (Number(row?.waiting) > 0) return;
+  `
+      : sql`
+    select count(*)::int as waiting from pg_locks l join pg_stat_activity a on a.pid=l.pid
+    where l.relation='claim_messages'::regclass and l.mode='RowExclusiveLock'
+      and not l.granted and a.usename=${fixture.roleName}
+  `;
+  const [row] = await tx.execute(locks);
+  if (Number(row?.waiting) >= (kind === 'table' ? 2 : 1)) return;
   if (attemptsLeft === 0) throw new Error('The keyed send never waited on the open insert');
   await new Promise(resolve => setTimeout(resolve, 25));
-  return waitForBlockedSend(tx, attemptsLeft - 1);
+  return waitForBlockedSend(tx, kind, attemptsLeft - 1);
 }
 
 /**
@@ -81,6 +96,77 @@ suite('keyed message send on a real NOBYPASSRLS connection', () => {
   registerMessageRlsFixture();
   beforeAll(async () => {
     storeMessage = await import('./store-message');
+  });
+
+  it('admits two actual sends to the insert together, stores once and audits only the winner', async () => {
+    const clientMessageId = randomUUID();
+    const audit = vi.fn();
+    let sends: Promise<Awaited<ReturnType<typeof memberSend>>[]> | undefined;
+    const held = fixture.database.dbAdmin.transaction(async tx => {
+      await tx.execute(fixture.database.sql`lock table claim_messages in share mode`);
+      // Both restricted sessions must reach their INSERT before the test releases the table.
+      sends = Promise.all([
+        memberSend(OVERLAPPED, clientMessageId, audit),
+        memberSend(OVERLAPPED, clientMessageId, audit),
+      ]);
+      await waitForBlockedSend(tx as unknown as TenantTransaction, 'table');
+    });
+    try {
+      await held;
+      if (!sends) throw new Error('The two sends never started');
+      const results = await sends;
+      expect(results.every(result => result.success)).toBe(true);
+      expect(results.filter(result => result.success && !result.replayed)).toHaveLength(1);
+      expect(results.filter(result => result.success && result.replayed)).toHaveLength(1);
+      expect(await storedWithKey(clientMessageId)).toEqual([
+        { id: keyedMessageId(homeTenantId, ids.member, clientMessageId), content: OVERLAPPED },
+      ]);
+      expect(audit).toHaveBeenCalledTimes(1);
+    } finally {
+      await sends;
+    }
+  }, 15_000);
+
+  it('rolls back on injected failure after the actual insert and permits a clean same-key retry', async () => {
+    const clientMessageId = randomUUID();
+    const audit = vi.fn();
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    let insertObserved = false;
+    const store = storeMessage.storeClaimMessage;
+    const failedStore = vi
+      .spyOn(storeMessage, 'storeClaimMessage')
+      .mockImplementationOnce(async (tx, values, key) => {
+        const result = await store(tx, values, key);
+        expect(result).toMatchObject({ success: true, replayed: false });
+        const { claimMessages } = fixture.database;
+        const inserted = await tx
+          .select({ id: claimMessages.id })
+          .from(claimMessages)
+          .where(eq(claimMessages.id, keyedMessageId(homeTenantId, ids.member, clientMessageId)));
+        expect(inserted).toHaveLength(1);
+        insertObserved = true;
+        throw new Error('Injected failure after actual message insert');
+      });
+    try {
+      expect(await memberSend(OVERLAPPED, clientMessageId, audit)).toEqual({
+        success: false,
+        error: 'Failed to send message',
+      });
+      expect(logged).toHaveBeenCalled();
+      expect(failedStore).toHaveBeenCalledTimes(1);
+      expect(insertObserved).toBe(true);
+      expect(await storedWithKey(clientMessageId)).toEqual([]);
+      expect(audit).not.toHaveBeenCalled();
+    } finally {
+      failedStore.mockRestore();
+      logged.mockRestore();
+    }
+    expect(await memberSend(OVERLAPPED, clientMessageId, audit)).toMatchObject({
+      success: true,
+      replayed: false,
+    });
+    expect(await storedWithKey(clientMessageId)).toHaveLength(1);
+    expect(audit).toHaveBeenCalledTimes(1);
   });
 
   it('replays the committed row when a same-key send waited on it', async () => {
