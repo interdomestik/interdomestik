@@ -12,6 +12,7 @@ import {
   ClaimDocumentUploadConflictError,
   persistClaimDocumentMetadata,
 } from './claim-document-write';
+import { buildEvidenceStoragePath } from './storage-path';
 
 const fake = getReplayFixture();
 
@@ -33,7 +34,16 @@ const foreignTenantId = copy.id(foreign.tenantId);
 const foreignOwnerId = copy.id(foreign.uploadedBy);
 const authority = mintTestTenantAuthority(tenantId);
 const REQUEST_ID = copy.id(`${source.id}:information-request`);
-const PATH = `pii/tenants/${tenantId}/claims/${claimId}`;
+const evidencePath = (fileId: string): string =>
+  buildEvidenceStoragePath({
+    bucket: 'claim-evidence',
+    claimId,
+    expectedBucket: 'claim-evidence',
+    fileId,
+    fileName: `${fileId}.pdf`,
+    shape: 'assigned',
+    tenantId,
+  });
 const CONSENT = {
   granted: true,
   locale: 'en',
@@ -44,7 +54,7 @@ const NEWER = {
   aiExtractionConsent: undefined,
   fileId: newerId,
   originalName: 'newer.pdf',
-  storagePath: `${PATH}/${newerId}.pdf`,
+  storagePath: evidencePath(newerId),
 };
 
 function params(overrides: Partial<PersistParams> = {}): PersistParams {
@@ -60,7 +70,7 @@ function params(overrides: Partial<PersistParams> = {}): PersistParams {
     mimeType: source.fileType,
     originalName: source.name,
     resolvedBucket: source.bucket,
-    storagePath: `${PATH}/${document.id}.pdf`,
+    storagePath: evidencePath(document.id),
     tenantId,
     userId: ownerId,
     ...overrides,
