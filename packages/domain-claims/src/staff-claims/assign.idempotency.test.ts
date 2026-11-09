@@ -1,4 +1,5 @@
 import { mocks, createSession } from './assign.test-support';
+import { withTenantContext } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
@@ -29,9 +30,20 @@ function start(key: keyof typeof E2E_CASE_FIXTURES) {
   return { claim, params: { authority, claimId: claim.id, session } };
 }
 
+function expectAssignmentGuard(previousStaffId: string | null) {
+  const guard = previousStaffId
+    ? { left: 'claims.staff_id', right: previousStaffId, op: 'eq' }
+    : { column: 'claims.staff_id', op: 'isNull' };
+  expect(mocks.updateSetChain.where).toHaveBeenCalledWith({
+    op: 'and',
+    conditions: [expect.objectContaining({ scoped: true }), guard],
+  });
+}
+
 describe('staff assignment from isolated catalogue cases (mocked DB)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.insert.mockReturnValue({ values: mocks.auditValues });
     mocks.ensureTenantId.mockReturnValue(E2E_CASE_FIXTURES.KS_ANCHOR.tenantId);
     mocks.select.mockReturnValue(mocks.selectChain);
     mocks.selectChain.from.mockReturnValue(mocks.selectChain);
@@ -48,10 +60,10 @@ describe('staff assignment from isolated catalogue cases (mocked DB)', () => {
 
   it('replays self-assignment of KS_ANCHOR without mutation or audit', async () => {
     const { params } = start('KS_ANCHOR');
-    const result = await assignClaimCore(params, { logAuditEvent: mocks.logAuditEvent });
+    const result = await assignClaimCore(params);
     expect(result).toEqual({ success: true });
     expect(mocks.update).not.toHaveBeenCalled();
-    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+    expect(mocks.auditValues).not.toHaveBeenCalled();
   });
 
   it('replays the selected assignee of KS_PEER_STAFF without resolving or updating it', async () => {
@@ -59,6 +71,15 @@ describe('staff assignment from isolated catalogue cases (mocked DB)', () => {
     expect(await assignClaimCore({ ...params, staffId: peerId })).toEqual({ success: true });
     expect(mocks.userFindFirst).not.toHaveBeenCalled();
     expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.auditValues).not.toHaveBeenCalled();
+  });
+
+  it('does not update or audit an already unassigned claim', async () => {
+    const { params } = start('KS_UNASSIGNED');
+    await expect(assignClaimCore({ ...params, staffId: null })).resolves.toEqual({ success: true });
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.insert).not.toHaveBeenCalled();
+    expect(mocks.auditValues).not.toHaveBeenCalled();
   });
 
   it('denies a branchless actor outside the selected case scope', async () => {
@@ -83,30 +104,24 @@ describe('staff assignment from isolated catalogue cases (mocked DB)', () => {
   it('allows a branchless actor to assign an eligible tenant staff member', async () => {
     const { claim, params } = start('KS_UNASSIGNED');
     mocks.updateWhereChain.returning.mockResolvedValue([{ id: claim.id }]);
-    const result = await assignClaimCore(
-      {
-        ...params,
-        session: createSession({ userId: actorId, tenantId: claim.tenantId, branchId: null }),
-        staffId: peerId,
-      },
-      { logAuditEvent: mocks.logAuditEvent }
-    );
+    const result = await assignClaimCore({
+      ...params,
+      session: createSession({ userId: actorId, tenantId: claim.tenantId, branchId: null }),
+      staffId: peerId,
+    });
     expect(result).toEqual({ success: true });
     expect(mocks.update).toHaveBeenCalledTimes(1);
-    expect(mocks.logAuditEvent).toHaveBeenCalledTimes(1);
+    expect(mocks.auditValues).toHaveBeenCalledTimes(1);
   });
 
   it('denies a simulated CAS loser without an audit effect', async () => {
     const { params } = start('KS_UNASSIGNED');
     mocks.updateWhereChain.returning.mockResolvedValue([]);
-    const result = await assignClaimCore(
-      { ...params, staffId: peerId },
-      {
-        logAuditEvent: mocks.logAuditEvent,
-      }
-    );
+    const result = await assignClaimCore({ ...params, staffId: peerId });
+    expectAssignmentGuard(null);
+    expect(mocks.insert).not.toHaveBeenCalled();
     expect(result).toEqual({ success: false, error: 'Claim not found or access denied' });
-    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+    expect(mocks.auditValues).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -120,14 +135,14 @@ describe('staff assignment from isolated catalogue cases (mocked DB)', () => {
       mocks.updateWhereChain.returning.mockResolvedValue([{ id: claim.id }]);
       const previousStaffId = claim.staffId;
       const request = { ...params, staffId };
-      const deps = { logAuditEvent: mocks.logAuditEvent };
-      expect(await assignClaimCore(request, deps)).toEqual({ success: true });
+      expect(await assignClaimCore(request)).toEqual({ success: true });
+      expectAssignmentGuard(previousStaffId);
       // Model the committed row on the next read; this is replay coverage, not SQL proof.
       mocks.selectChain.limit.mockResolvedValue([{ ...claim, staffId }]);
-      expect(await assignClaimCore(request, deps)).toEqual({ success: true });
+      expect(await assignClaimCore(request)).toEqual({ success: true });
       expect(mocks.update).toHaveBeenCalledTimes(1);
       expect(mocks.updateChain.set).toHaveBeenCalledWith(expect.objectContaining({ staffId }));
-      expect(mocks.logAuditEvent).toHaveBeenCalledExactlyOnceWith(
+      expect(mocks.auditValues).toHaveBeenCalledExactlyOnceWith(
         expect.objectContaining({
           action,
           entityId: claim.id,
@@ -135,6 +150,37 @@ describe('staff assignment from isolated catalogue cases (mocked DB)', () => {
         })
       );
       expect(E2E_CASE_FIXTURES[key].staffId).toBe(previousStaffId);
+    }
+  );
+
+  it.each([peerId, null])(
+    'rolls back a catalogue assignment to %s on audit failure',
+    async staffId => {
+      const { claim, params } = start('KS_ANCHOR');
+      let committed: Record<string, unknown> = { ...claim };
+      mocks.updateWhereChain.returning.mockResolvedValue([{ id: claim.id }]);
+      mocks.auditValues.mockRejectedValueOnce(new Error('audit insert failed'));
+      const original = vi.mocked(withTenantContext).getMockImplementation()!;
+      vi.mocked(withTenantContext).mockImplementation(async (context, action) => {
+        const result = await original(context, action);
+        committed = { ...committed, ...mocks.updateChain.set.mock.lastCall?.[0] };
+        return result;
+      });
+      const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        await expect(assignClaimCore({ ...params, staffId })).resolves.toEqual({
+          success: false,
+          error: 'Failed to assign claim',
+        });
+        expectAssignmentGuard(claim.staffId);
+        expect(mocks.update).toHaveBeenCalledTimes(1);
+        expect(mocks.auditValues).toHaveBeenCalledTimes(1);
+        expect(committed).toEqual(claim);
+        expect(E2E_CASE_FIXTURES.KS_ANCHOR.staffId).toBe(claim.staffId);
+      } finally {
+        vi.mocked(withTenantContext).mockImplementation(original);
+        errorLog.mockRestore();
+      }
     }
   );
 });

@@ -24,6 +24,7 @@ describe('locale layout metadata', () => {
 
     await expect(generateMetadata(props)).resolves.toEqual({
       title: { default: 'Interdomestik', template: '%s | Interdomestik' },
+      manifest: '/manifest.json',
       openGraph: { type: 'website', locale: ogLocale, siteName: 'Interdomestik' },
     });
     expect(entry.generateMetadata).toHaveBeenCalledWith(props);
