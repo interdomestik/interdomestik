@@ -25,6 +25,13 @@ function keyPaths(value, prefix = '') {
 const files = new Map(LOCALES.map(locale => [locale, catalogNames(locale)]));
 const namespaces = [...new Set([...files.values()].flat())].sort();
 
+test('catalog discovery is non-empty for every locale, so parity cannot pass vacuously', () => {
+  for (const locale of LOCALES) {
+    assert.ok(files.get(locale).length > 0, `${locale}: no namespace catalogs discovered`);
+  }
+  assert.ok(namespaces.length > 0, 'no namespace catalogs discovered');
+});
+
 for (const locale of LOCALES) {
   test(`${locale} ships every namespace and no extra namespace`, () => {
     const missing = namespaces.filter(name => !files.get(locale).includes(name));

@@ -45,60 +45,61 @@ function loadNamespace(locale: string, namespace: string): Record<string, unknow
   }
 }
 
-function checkParity(): boolean {
-  let hasErrors = false;
+function discoverNamespaces(): { namespaces: string[]; ok: boolean } {
+  let ok = true;
   const namespaces = new Set<string>();
-
   for (const locale of LOCALES) {
     try {
       const entries = fs.readdirSync(path.join(MESSAGES_DIR, locale), { withFileTypes: true });
-      for (const entry of entries) {
-        if (entry.isFile() && entry.name.endsWith('.json')) {
-          namespaces.add(entry.name.slice(0, -5));
-        }
-      }
+      entries
+        .filter(entry => entry.isFile() && entry.name.endsWith('.json'))
+        .forEach(entry => namespaces.add(entry.name.slice(0, -5)));
     } catch {
       console.error(`❌ ${locale}: Locale directory not found or unreadable`);
-      hasErrors = true;
+      ok = false;
     }
   }
+  if (namespaces.size === 0) {
+    console.error('❌ No namespace catalogs discovered; parity cannot be checked');
+    ok = false;
+  }
+  return { namespaces: [...namespaces].sort(compareText), ok };
+}
 
-  for (const namespace of [...namespaces].sort(compareText)) {
-    console.log(`\n📦 Checking namespace: ${namespace}`);
+function checkNamespace(namespace: string): boolean {
+  console.log(`\n📦 Checking namespace: ${namespace}`);
+  let ok = true;
+  const localeKeys: Map<string, Set<KeyPath>> = new Map();
+  const allKeys: Set<KeyPath> = new Set();
 
-    const localeKeys: Map<string, Set<KeyPath>> = new Map();
-    const allKeys: Set<KeyPath> = new Set();
-
-    // Load all locale keys
-    for (const locale of LOCALES) {
-      const data = loadNamespace(locale, namespace);
-      if (!data) {
-        console.error(`   ❌ ${locale}/${namespace}.json: File not found or invalid`);
-        hasErrors = true;
-        continue;
-      }
-
-      const keys = getKeyPaths(data);
-      localeKeys.set(locale, new Set(keys));
-      keys.forEach(k => allKeys.add(k));
-      console.log(`   ✓ ${locale}: ${keys.length} keys`);
+  for (const locale of LOCALES) {
+    const data = loadNamespace(locale, namespace);
+    if (!data) {
+      console.error(`   ❌ ${locale}/${namespace}.json: File not found or invalid`);
+      ok = false;
+      continue;
     }
-
-    // Check for missing keys
-    for (const locale of LOCALES) {
-      const keys = localeKeys.get(locale);
-      if (!keys) continue;
-
-      const missing = [...allKeys].filter(k => !keys.has(k));
-      if (missing.length > 0) {
-        console.error(`   ❌ ${locale}/${namespace}.json: Missing ${missing.length} keys:`);
-        missing.forEach(k => console.error(`      - ${k}`));
-        hasErrors = true;
-      }
-    }
+    const keys = getKeyPaths(data);
+    localeKeys.set(locale, new Set(keys));
+    keys.forEach(k => allKeys.add(k));
+    console.log(`   ✓ ${locale}: ${keys.length} keys`);
   }
 
-  return !hasErrors;
+  for (const [locale, keys] of localeKeys) {
+    const missing = [...allKeys].filter(k => !keys.has(k));
+    if (missing.length > 0) {
+      console.error(`   ❌ ${locale}/${namespace}.json: Missing ${missing.length} keys:`);
+      missing.forEach(k => console.error(`      - ${k}`));
+      ok = false;
+    }
+  }
+  return ok;
+}
+
+function checkParity(): boolean {
+  const { namespaces, ok } = discoverNamespaces();
+  const results = namespaces.map(checkNamespace);
+  return ok && results.every(Boolean);
 }
 
 console.log('🔍 i18n Key Parity Check');
