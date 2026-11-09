@@ -143,13 +143,25 @@ describe('mark-read scalar admission', () => {
     }
   );
 
-  it.each(['member', 'agent', 'staff', 'branch_manager', 'admin', 'tenant_admin', 'super_admin'])(
+  it.each(['member', 'agent', 'staff', 'admin', 'tenant_admin', 'super_admin'])(
     'keeps valid %s scope',
     async role => {
-      const actor = { ...user(role), branchId: role === 'branch_manager' ? 'branch-1' : null };
+      const actor = user(role);
       expect(await markMessagesAsReadCore(input(actor))).toEqual({ success: true });
       expect(calls.update).toHaveBeenCalledOnce();
       expect(serialized().params).toContain('tenant-1');
+    }
+  );
+
+  it.each(['branch_manager', 'global_support', 'auditor', 'unknown'])(
+    'denies read-only or unknown %s before opening a write transaction',
+    async role => {
+      expect(await markMessagesAsReadCore(input(user(role)))).toEqual({
+        success: false,
+        error: 'Access denied',
+      });
+      expect(calls.context).not.toHaveBeenCalled();
+      expect(calls.update).not.toHaveBeenCalled();
     }
   );
 

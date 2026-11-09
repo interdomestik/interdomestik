@@ -6,6 +6,7 @@ import { MessagingPanel } from './messaging-panel';
 vi.mock('@/actions/messages', () => ({
   getMessagesForClaim: vi.fn().mockResolvedValue({
     success: true,
+    canAcknowledge: true,
     messages: [],
   }),
   markMessagesAsRead: vi.fn().mockResolvedValue({ success: true }),
@@ -40,7 +41,7 @@ vi.mock('next-intl', () => ({
 describe('MessagingPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetMessages.mockResolvedValue({ success: true, messages: [] });
+    mockGetMessages.mockResolvedValue({ success: true, canAcknowledge: true, messages: [] });
     mockMarkMessagesAsRead.mockResolvedValue({ success: true } as never);
   });
 
@@ -111,6 +112,7 @@ describe('MessagingPanel', () => {
       <MessagingPanel
         claimId="claim-1"
         currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+        initialCanAcknowledge={true}
         initialMessages={initialMessages}
       />
     );
@@ -136,6 +138,7 @@ describe('MessagingPanel', () => {
         claimId="claim-1"
         currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
         fetchOnMount={false}
+        initialCanAcknowledge={true}
         initialMessages={[
           {
             id: 'msg-2',
@@ -196,6 +199,7 @@ describe('MessagingPanel', () => {
       <MessagingPanel
         claimId="claim-1"
         currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+        initialCanAcknowledge={true}
         initialMessages={initialMessages}
       />
     );

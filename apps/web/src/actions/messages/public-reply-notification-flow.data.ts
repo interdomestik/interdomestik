@@ -12,9 +12,9 @@ const eq =
   row =>
     row[column.field] === value;
 const and =
-  (...predicates: Predicate[]): Predicate =>
+  (...predicates: (Predicate | undefined)[]): Predicate =>
   row =>
-    predicates.every(p => p(row));
+    predicates.every(p => !p || p(row));
 const or =
   (...predicates: Predicate[]): Predicate =>
   row =>
@@ -23,7 +23,23 @@ export const operators = {
   eq,
   and,
   or,
-  inArray: (c: Column, values: unknown[]) => (r: Row) => values.includes(r[c.field]),
+  ne:
+    (c: Column, value: unknown): Predicate =>
+    r => {
+      const compared =
+        typeof value === 'object' && value !== null && 'field' in value
+          ? r[String(value.field)]
+          : value;
+      return r[c.field] !== compared;
+    },
+  isNull:
+    (c: Column): Predicate =>
+    r =>
+      r[c.field] == null,
+  inArray:
+    (c: Column, values: unknown[] | { values: () => unknown[] }): Predicate =>
+    r =>
+      (Array.isArray(values) ? values : values.values()).includes(r[c.field]),
 };
 const columns = [
   'id',
@@ -52,6 +68,8 @@ const columns = [
   'actionUrl',
   'isRead',
   'caseLifecycleState',
+  'branchId',
+  'staffId',
 ];
 export const tables = Object.fromEntries(
   [

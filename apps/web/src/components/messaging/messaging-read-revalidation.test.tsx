@@ -55,7 +55,7 @@ function typeDraft() {
 function renderStrictPanel(props: PanelProps) {
   return render(
     <NextIntlClientProvider locale="en" messages={catalogs.en} timeZone="UTC">
-      <MessagingPanel {...props} />
+      <MessagingPanel initialCanAcknowledge={true} {...props} />
     </NextIntlClientProvider>,
     { wrapper: StrictMode }
   );
@@ -65,7 +65,7 @@ describe('staff message server re-render revalidation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     receipt.mockResolvedValue({ success: true });
-    read.mockResolvedValue({ success: true, messages: [] });
+    read.mockResolvedValue({ success: true, canAcknowledge: true, messages: [] });
   });
 
   it('adopts a successful server re-render after a failed one', async () => {
@@ -125,6 +125,7 @@ describe('staff message server re-render revalidation', () => {
     await act(async () => {
       pendingRead.resolve({
         success: true,
+        canAcknowledge: true,
         messages: [buildMessage({ id: 'msg-stale', content: 'Stale client history' })],
       });
     });
