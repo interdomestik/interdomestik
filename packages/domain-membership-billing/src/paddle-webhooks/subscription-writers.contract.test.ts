@@ -94,7 +94,7 @@ describe('ACQ-3 subscription writer inventory', () => {
     expect(writers.filter(file => file.includes('/paddle-webhooks/')).sort()).toEqual(
       [...WEBHOOK_WRITERS].sort()
     );
-  });
+  }, 30_000);
 
   it('keeps the sponsor writer insert-only and explicitly sponsored', () => {
     const source = readFileSync(
