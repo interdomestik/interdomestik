@@ -83,7 +83,6 @@ export function OpsTable({
       <ScrollContainer
         className="max-w-full overflow-x-auto [&>div]:overflow-visible"
         aria-label={scrollLabel}
-        tabIndex={scrollLabel ? 0 : undefined}
       >
         <Table className="min-w-max">
           <TableHeader>

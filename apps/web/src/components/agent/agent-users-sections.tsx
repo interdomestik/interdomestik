@@ -116,7 +116,6 @@ export function AgentUsersSections({ users }: Readonly<UsersSectionsProps>): Rea
     <div className="min-w-0 space-y-4">
       <section
         aria-label={t('headers.user')}
-        tabIndex={0}
         className="max-w-full overflow-x-auto [&>div]:overflow-visible"
       >
         <Table className="min-w-[40rem]">

@@ -102,7 +102,6 @@ export default async function AgentMembersPage({
             data-testid="agent-members-list"
             className="max-w-full overflow-x-auto"
             aria-label={t('members.cockpit.title')}
-            tabIndex={0}
           >
             <table className="w-full min-w-[36rem] text-sm">
               <thead>
