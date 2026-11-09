@@ -164,6 +164,12 @@ async function assertSeed() {
       linkViolations,
       'Agent link lifecycle matches the catalogue'
     );
+    const { collectDiscoveryViolations } = await import('./seed-assert-discovery');
+    exitOnViolations(
+      'Discovery',
+      await collectDiscoveryViolations(db, schema),
+      'Discovery documents, share packs, messages and notifications match the catalogue'
+    );
     process.exit(0);
   } catch (err: any) {
     // If table doesn't exist or query fails
