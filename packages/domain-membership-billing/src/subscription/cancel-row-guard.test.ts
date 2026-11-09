@@ -72,6 +72,31 @@ describe('cancelSubscriptionCore row guard', () => {
     hoisted.paddle.subscriptions.cancel.mockResolvedValue({});
   });
 
+  it.each(['active', 'paused', 'canceled'])(
+    'refuses a %s group_sponsor row before any Paddle call or mutation',
+    async status => {
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
+        id: 'sub_123',
+        userId: 'user_123',
+        tenantId: 'tenant_abc',
+        provider: 'group_sponsor',
+        providerSubscriptionId: 'sub_provider',
+        status,
+      });
+      await expect(
+        cancelSubscriptionCore({ session, authority, subscriptionId: 'sub_123' }, { logAuditEvent })
+      ).resolves.toEqual({
+        error: 'Subscription not found or access denied',
+        success: undefined,
+      });
+      expect(hoisted.paddle.subscriptions.cancel).not.toHaveBeenCalled();
+      expect(hoisted.db.select).not.toHaveBeenCalled();
+      expect(hoisted.db.update).not.toHaveBeenCalled();
+      expect(hoisted.appendEvent).not.toHaveBeenCalled();
+      expect(logAuditEvent).not.toHaveBeenCalled();
+    }
+  );
+
   it('does not emit a cancellation event when the tenant-scoped update matches no rows', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const mockReturning = vi.fn().mockResolvedValue([]);

@@ -254,6 +254,31 @@ vi.mock('@interdomestik/database', () => ({
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
+vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
+  resolveEffectiveMembership: async (
+    tx: {
+      select: () => {
+        from: (t: unknown) => {
+          where: (w: unknown) => { limit: (n: number) => Promise<unknown[]> };
+        };
+      };
+    },
+    tenantId: string,
+    userIds: string[]
+  ) => {
+    const [subscription] = await tx
+      .select()
+      .from(mocks.subscriptions)
+      .where(mocks.withTenant(tenantId, mocks.subscriptions.tenantId, {}))
+      .limit(1);
+    return new Map(
+      userIds.map(id => [
+        id,
+        subscription ? { source: 'subscription', subscription } : { source: 'none' },
+      ])
+    );
+  },
+}));
 vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: mocks.ensureTenantId,
 }));

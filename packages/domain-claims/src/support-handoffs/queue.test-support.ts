@@ -2,6 +2,8 @@ import type { Mock } from 'vitest';
 import { vi } from 'vitest';
 
 const mocks: {
+  resolveMembership: Mock;
+  inArray: Mock;
   and: Mock;
   branches: { id: string; name: string; tenantId: string };
   claims: {
@@ -66,6 +68,8 @@ const mocks: {
   user: { email: string; id: string; memberNumber: string; name: string; tenantId: string };
   withTenant: Mock;
 } = vi.hoisted(() => ({
+  resolveMembership: vi.fn(() => Promise.resolve(new Map())),
+  inArray: vi.fn((left, right) => ({ left, right })),
   and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
   branches: {
     id: 'branches.id',
@@ -148,10 +152,13 @@ const mocks: {
 }));
 vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
+  inArray: mocks.inArray,
   branches: mocks.branches,
   claims: mocks.claims,
   db: mocks.db,
-  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => await cb(mocks.db)),
+  withTenantContext: vi.fn(
+    async (_ctx: unknown, cb: (tx: unknown) => unknown) => await cb(mocks.db)
+  ),
   desc: mocks.desc,
   eq: mocks.eq,
   ilike: mocks.ilike,
@@ -170,6 +177,10 @@ vi.mock('drizzle-orm', () => ({
   isNotNull: mocks.isNotNull,
   isNull: mocks.isNull,
   sql: vi.fn((strings, ...values) => ({ op: 'sql', strings, values })),
+}));
+
+vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
+  resolveEffectiveMembership: mocks.resolveMembership,
 }));
 
 export { mocks };

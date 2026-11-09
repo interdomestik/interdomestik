@@ -1,6 +1,10 @@
-import { withTenantContext } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { claimDocuments, claims } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { and, asc, count, eq, sql } from 'drizzle-orm';
 
 import type { CaseLifecycleStatus, CaseSummary, NextStepToken } from './types';
@@ -20,13 +24,13 @@ const NEXT_STEP = {
 } as const satisfies Record<CaseLifecycleStatus, NextStepToken>;
 
 export async function getMemberCaseSummaries(params: {
+  authority: TenantAuthority;
   memberId: string;
-  tenantId: string;
 }): Promise<CaseSummary[]> {
-  const { memberId, tenantId } = params;
-  if (!tenantId) throw new Error('Missing tenant context');
+  const { authority, memberId } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
-  return withTenantContext({ tenantId, role: 'member' }, async tx => {
+  return withTenantAuthority(authority, async tx => {
     // db-access-guard: tenant-scoped -- reason: explicit tenant/member predicates inside RLS context
     const rows = await tx
       .select({

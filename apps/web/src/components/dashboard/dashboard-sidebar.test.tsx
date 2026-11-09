@@ -183,9 +183,9 @@ describe('DashboardSidebar consumers', () => {
     expect(screen.getByText('Interdomestik')).toBeInTheDocument();
     rerender(<DashboardSidebar user={shellUser('agent')} agentTier="office" />);
     expect(links()).toContain('/agent/leads');
-    expect(links()).toContain('/agent/import');
+    expect(links()).toContain('/agent/sponsors');
     rerender(<DashboardSidebar user={shellUser('agent')} />);
-    expect(links()).not.toContain('/agent/import');
+    expect(links()).not.toContain('/agent/sponsors');
     expect(links()).not.toContain('/agent/leads');
   });
   it('retains the established session fallback', () => {

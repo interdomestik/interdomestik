@@ -1,11 +1,4 @@
-import {
-  and,
-  claimDocuments,
-  claims,
-  eq,
-  subscriptions,
-  withTenantContext,
-} from '@interdomestik/database';
+import { and, claimDocuments, claims, eq } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -14,17 +7,8 @@ import { withTenantAuthority } from '@interdomestik/database/tenant-authority-co
 import { count } from 'drizzle-orm';
 import { cache } from 'react';
 
-export const getCachedTenantSubscriptions = cache(async (userId: string, tenantId: string) => {
-  return withTenantContext({ tenantId, role: 'member' }, tx =>
-    tx.query.subscriptions.findMany({
-      where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
-      orderBy: (subscriptionTable, { desc }) => [desc(subscriptionTable.createdAt)],
-    })
-  );
-});
-
 export const getCachedClaimDocumentCount = cache(
-  async (userId: string, authority: TenantAuthority) => {
+  async (userId: string, authority: TenantAuthority): Promise<number> => {
     const { tenantId } = readTenantAuthority(authority);
     const rows = await withTenantAuthority(authority, tx =>
       // db-access-guard: tenant-scoped -- reason: document summary joins only viewer-owned claims inside tenant context

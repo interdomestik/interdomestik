@@ -5,32 +5,23 @@ import { withGroupAccessPrivacyFixture } from './group-access-privacy-consent.fi
 import { loginAsOfficeSeededAgent } from './group-access-privacy-login';
 
 test.describe('Group access privacy', () => {
-  test('office group access stays aggregate-only without explicit member consent', async ({
+  test('the retired import lands on the sponsor list without member case facts', async ({
     page,
   }, testInfo) => {
     test.setTimeout(90_000);
 
     await withGroupAccessPrivacyFixture(testInfo, async context => {
       await loginAsOfficeSeededAgent(page, testInfo, context.officeAgent);
-      // OD-18 Option B: even an office agent finds the import closed until the tenant opts in.
-      await gotoApp(page, routes.agentImport(testInfo), testInfo, { marker: 'not-found-page' });
-      await expect(page.getByTestId('not-found-page')).toBeVisible();
-      await expect(page.getByTestId('group-dashboard-summary')).toHaveCount(0);
-
-      await context.enableSponsoredImport();
-      await gotoApp(page, routes.agentImport(testInfo), testInfo, {
-        marker: 'group-dashboard-summary',
-      });
-
-      const summary = page.locator('[data-testid="group-dashboard-summary"]:visible').first();
-      await expect(summary).toBeVisible();
-      await expect(summary.getByText('Aggregate group access dashboard')).toBeVisible();
-      await expect(
-        summary.getByText(
-          'This view stays aggregate-only. No claim facts, notes, or documents are visible here without explicit member consent.'
-        )
-      ).toBeVisible();
-      await expect(page.getByRole('heading', { name: 'Open cases' })).toBeVisible();
+      // ACQ-3b retires the roster import: /agent/import redirects to the sponsor list whether the
+      // legacy OD-18 import setting is explicitly off or on.
+      for (const enabled of [false, true]) {
+        await context.setSponsoredImport(enabled);
+        await gotoApp(page, routes.agentImport(testInfo), testInfo, {
+          marker: 'agent-sponsors-page-ready',
+        });
+        await expect(page).toHaveURL(/\/agent\/sponsors$/);
+        await expect(page.getByTestId('group-dashboard-summary')).toHaveCount(0);
+      }
 
       await expect(page.getByText(context.seededMemberName)).toHaveCount(0);
       await expect(page.getByText(context.claimTitle)).toHaveCount(0);

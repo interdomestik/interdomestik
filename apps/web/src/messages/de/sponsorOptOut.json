@@ -1,0 +1,12 @@
+{
+  "sponsorOptOut": {
+    "title": "Firmenmitgliedschaft verlassen",
+    "explanation": "Bestätigen Sie, dass Sie das Mitgliedschaftsprogramm Ihres Unternehmens verlassen möchten. Damit enden Ihre aktuellen und zukünftigen Mitgliedschaftsplätze über dieses Unternehmen. An Ihrem Konto ändert sich sonst nichts. Eine spätere Liste des Unternehmens stellt eine neue Vereinbarung dar.",
+    "confirm": "Austritt bestätigen",
+    "pending": "Wird bestätigt…",
+    "done": "Sie haben das Programm verlassen. Eine Bestätigung per E-Mail folgt.",
+    "invalid": "Dieser Link ist nicht mehr gültig.",
+    "error": "Wir konnten Ihre Anfrage nicht bestätigen. Bitte versuchen Sie es erneut.",
+    "retry": "Erneut versuchen"
+  }
+}

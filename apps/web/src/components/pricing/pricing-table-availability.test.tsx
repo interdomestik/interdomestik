@@ -12,6 +12,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PricingTable } from './pricing-table';
 
+vi.mock('@/app/[locale]/(app)/member/membership/leave-sponsorship.core', () => ({
+  getCompanyMembershipOutlook: async () => ({ ok: false }),
+}));
+
 describe('PricingTable', () => {
   beforeEach(resetPricingTest);
 

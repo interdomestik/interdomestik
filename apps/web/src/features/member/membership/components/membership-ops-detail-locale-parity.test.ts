@@ -60,4 +60,12 @@ describe('Ops membership detail truthful-facts locale parity', () => {
       );
     }
   });
+
+  it('carries the documents panel labels in every pilot locale', () => {
+    for (const [locale, catalog] of Object.entries(catalogs)) {
+      for (const key of ['title', 'empty', 'view'] as const) {
+        expect(catalog.membership.documents[key], `${locale}.${key}`).toBeTruthy();
+      }
+    }
+  });
 });

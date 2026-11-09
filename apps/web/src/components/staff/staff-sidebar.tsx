@@ -20,6 +20,7 @@ import {
 } from '@interdomestik/ui';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { BarChart3, ChevronUp, FileText, Inbox, LogOut, Shield } from 'lucide-react';
+import { ROLES } from '@interdomestik/shared-auth';
 import { useLocale, useTranslations } from 'next-intl';
 
 type StaffSidebarUser = Readonly<{
@@ -42,8 +43,11 @@ function StaffSidebarInner({ user }: Readonly<{ user: StaffSidebarUser | null | 
       href: '/staff/support-handoffs',
       icon: Inbox,
     },
-    ...(user?.role === 'staff'
-      ? [{ title: tNav('staffCrm'), href: '/staff/crm', icon: BarChart3 }]
+    ...(user?.role === ROLES.staff
+      ? [
+          { title: tNav('staffCrm'), href: '/staff/crm', icon: BarChart3 },
+          { title: tNav('sponsors'), href: '/staff/sponsors', icon: Inbox },
+        ]
       : []),
   ];
 

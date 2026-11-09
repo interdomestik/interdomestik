@@ -2,21 +2,20 @@ import { formatDate } from '@/lib/utils/date';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 
-import { AgentClientMembership, SubscriptionRecord } from '../_core';
+import { AgentClientMembership } from '../_core';
 
 interface MembershipCardProps {
-  readonly subscription: SubscriptionRecord | null;
   readonly membership: AgentClientMembership;
   readonly t: (key: string) => string;
   readonly tCommon: (key: string) => string;
 }
 
-export function MembershipCard({ subscription, membership, t, tCommon }: MembershipCardProps) {
+export function MembershipCard({ membership, t, tCommon }: MembershipCardProps): React.JSX.Element {
   const { status: membershipStatus, badgeClass: membershipBadgeClass } = membership;
 
   const getCancelAtPeriodEndLabel = (): string => {
-    if (!subscription) return tCommon('none');
-    return subscription.cancelAtPeriodEnd ? tCommon('yes') : tCommon('no');
+    if (membership.source === 'none') return tCommon('none');
+    return membership.cancelAtPeriodEnd ? tCommon('yes') : tCommon('no');
   };
 
   return (
@@ -26,6 +25,14 @@ export function MembershipCard({ subscription, membership, t, tCommon }: Members
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">{t('labels.source')}</span>
+          <span>{t(`source.${membership.source}`)}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">{t('labels.period_start')}</span>
+          <span>{formatDate(membership.currentPeriodStart, tCommon('none'))}</span>
+        </div>
+        <div className="flex items-center justify-between">
           <span className="text-muted-foreground">{t('labels.status')}</span>
           <Badge className={membershipBadgeClass} variant="outline">
             {t(`status.${membershipStatus}`)}
@@ -34,13 +41,13 @@ export function MembershipCard({ subscription, membership, t, tCommon }: Members
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">{t('labels.plan')}</span>
           <span className="font-medium text-foreground">
-            {subscription?.planId || t('labels.not_set')}
+            {membership.planId || t('labels.not_set')}
           </span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">{t('labels.period_end')}</span>
           <span className="font-medium text-foreground">
-            {formatDate(subscription?.currentPeriodEnd ?? null, tCommon('none'))}
+            {formatDate(membership.currentPeriodEnd ?? null, tCommon('none'))}
           </span>
         </div>
         <div className="flex items-center justify-between">

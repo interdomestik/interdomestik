@@ -137,7 +137,11 @@
         "not_applicable": "Nije primenljivo",
         "tenant_review": "Pregled tenant-a",
         "tenant_review_pending": "Čeka kasniji pregled članskih podataka",
-        "tenant_review_confirmed": "Potvrđeno trenutnom tenant atribucijom"
+        "tenant_review_confirmed": "Potvrđeno trenutnom tenant atribucijom",
+        "source": "Izvor",
+        "period_start": "Početak perioda",
+        "coverage_end": "Kraj pokrića",
+        "provider_lifecycle": "Status kod pružaoca Paddle"
       },
       "status": {
         "active": "Aktivan",
@@ -180,6 +184,19 @@
         "select_tenant_first": "Prvo izaberi tenant",
         "no_reassign_options": "Nema dostupnih aktivnih ciljeva za preraspodelu.",
         "reassign_locked": "Samo super admin može da preraspodeli člana u drugi tenant."
+      },
+      "provider_status": {
+        "active": "Aktivna",
+        "past_due": "Kašnjenje u plaćanju",
+        "paused": "Pauzirana",
+        "canceled": "Otkazana",
+        "trialing": "Probni period",
+        "expired": "Istekla"
+      },
+      "source": {
+        "sponsor": "Sponzor",
+        "subscription": "Pretplata",
+        "none": "Nema"
       }
     }
   }

@@ -266,6 +266,10 @@
           "100+": "100+ ljudi"
         }
       }
+    },
+    "sponsorNotice": {
+      "coveredUntil": "Članstvo preko vaše kompanije vas pokriva do {date}. Ne morate da kupujete članstvo.",
+      "startsOn": "Članstvo preko vaše kompanije počinje {date}. Ne morate da kupujete članstvo."
     }
   }
 }

@@ -5,7 +5,7 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { revokeAgentClientReadScope } from '@interdomestik/domain-membership-billing';
-import { and } from 'drizzle-orm';
+import { and, isNull, ne, or } from 'drizzle-orm';
 
 import type { ActionResult, UserSession } from '../types';
 import { requireTenantAdminSession } from './access';
@@ -37,7 +37,11 @@ export async function updateUserAgentCore(params: {
           withTenant(
             tenantId,
             subscriptions.tenantId,
-            and(eq(subscriptions.userId, userId), eq(subscriptions.status, 'active'))
+            and(
+              eq(subscriptions.userId, userId),
+              eq(subscriptions.status, 'active'),
+              or(isNull(subscriptions.provider), ne(subscriptions.provider, 'group_sponsor'))
+            )
           )
         );
 

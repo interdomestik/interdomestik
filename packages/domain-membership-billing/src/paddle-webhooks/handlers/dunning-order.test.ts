@@ -5,6 +5,22 @@ import { handleSubscriptionPastDue } from './dunning';
 import { PaddleEventOrderingError, RetryablePaddleWebhookError } from '../errors';
 
 describe('handleSubscriptionPastDue entity-scoped provider event order', () => {
+  it.each([true, false])('takes over only an applied ordered event (apply=%s)', async apply => {
+    seed('active', T1, 'evt_older');
+    if (!hoisted.store.row) throw new Error('Missing seeded row');
+    hoisted.store.row = Object.assign(hoisted.store.row, { provider: 'group_sponsor' });
+    await handleSubscriptionPastDue(
+      pastDue(apply ? T2 : T1, apply ? 'evt_new' : 'evt_older'),
+      deps
+    );
+    expect(hoisted.store.row).toMatchObject({
+      provider: apply ? 'paddle' : 'group_sponsor',
+      status: apply ? 'past_due' : 'active',
+      dunningAttemptCount: apply ? 1 : 0,
+    });
+    expect(hoisted.store.audits).toHaveLength(apply ? 1 : 0);
+  });
+
   it.each(['active', 'canceled'])(
     'ignores an older past_due after a newer %s snapshot without dunning effects',
     async status => {

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -26,6 +27,7 @@ const mocks = vi.hoisted(() => {
       select: vi.fn(),
       query: { user: { findMany } },
     },
+    resolveMembership: vi.fn(),
     withTenantContext: vi.fn(),
     eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
     and: vi.fn((...parts) => ({ op: 'and', parts })),
@@ -69,6 +71,13 @@ vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: mocks.ensureTenantId,
 }));
 
+vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
+  resolveEffectiveMembership: mocks.resolveMembership,
+}));
+
+const authority = mintTestTenantAuthority('tenant_ks', { userId: 'agent-1', role: 'agent' });
+const adminAuthority = mintTestTenantAuthority('tenant_ks', { userId: 'admin-1', role: 'admin' });
+
 import { getAgentUsersCore } from './get-users';
 
 function sessionFor(role: string | undefined, id = 'agent-1') {
@@ -83,6 +92,9 @@ function expectNoGlobalDb() {
 describe('getAgentUsersCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.resolveMembership.mockResolvedValue(
+      new Map([['member-1', { source: 'subscription', subscription: { id: 'sub-1' } }]])
+    );
     mocks.withTenantContext.mockImplementation(
       async (_context: unknown, callback: (tx: unknown) => Promise<unknown>) => callback(mocks.tx)
     );
@@ -93,14 +105,14 @@ describe('getAgentUsersCore', () => {
   });
 
   it('throws when session is missing', async () => {
-    await expect(getAgentUsersCore({ session: null })).rejects.toThrow('Unauthorized');
+    await expect(getAgentUsersCore({ authority, session: null })).rejects.toThrow('Unauthorized');
     expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 
   it.each(['staff', 'tenant_admin', 'super_admin', 'branch_manager', 'member', undefined])(
     'denies role %j before any transaction or query',
     async role => {
-      await expect(getAgentUsersCore({ session: sessionFor(role) })).rejects.toThrow(
+      await expect(getAgentUsersCore({ authority, session: sessionFor(role) })).rejects.toThrow(
         'Unauthorized'
       );
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
@@ -112,7 +124,7 @@ describe('getAgentUsersCore', () => {
   it('queries members for agent from both legacy and canonical member roles', async () => {
     mocks.selectChain.where.mockResolvedValue([{ memberId: 'member-1' }]);
 
-    await getAgentUsersCore({ session: sessionFor('agent') });
+    await getAgentUsersCore({ authority, session: sessionFor('agent') });
 
     expect(mocks.inArray).toHaveBeenCalledWith(mocks.user.role, ['user', 'member']);
   });
@@ -121,15 +133,13 @@ describe('getAgentUsersCore', () => {
     mocks.selectChain.where.mockResolvedValue([{ memberId: 'member-1' }, { memberId: 'member-2' }]);
 
     await getAgentUsersCore({
+      authority,
       session: sessionFor('agent'),
       filters: { search: 'ar', limit: 10, offset: 20 },
     });
 
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toStrictEqual({
-      tenantId: 'tenant_ks',
-      role: 'agent',
-    });
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authority);
     expect(mocks.tx.select).toHaveBeenCalledTimes(1);
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.agentId, 'agent-1');
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.status, 'active');
@@ -147,7 +157,9 @@ describe('getAgentUsersCore', () => {
   });
 
   it('returns empty without reading users when the agent has no active links', async () => {
-    await expect(getAgentUsersCore({ session: sessionFor('agent') })).resolves.toEqual([]);
+    await expect(getAgentUsersCore({ authority, session: sessionFor('agent') })).resolves.toEqual(
+      []
+    );
 
     expect(mocks.tx.query.user.findMany).not.toHaveBeenCalled();
     expectNoGlobalDb();
@@ -159,12 +171,12 @@ describe('getAgentUsersCore', () => {
       { id: 'member-2', subscriptions: [] },
     ]);
 
-    const result = await getAgentUsersCore({ session: sessionFor('admin', 'admin-1') });
-
-    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toStrictEqual({
-      tenantId: 'tenant_ks',
-      role: 'admin',
+    const result = await getAgentUsersCore({
+      authority: adminAuthority,
+      session: sessionFor('admin', 'admin-1'),
     });
+
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(adminAuthority);
     expect(mocks.tx.select).not.toHaveBeenCalled();
     expect(result).toEqual([
       {
@@ -172,9 +184,17 @@ describe('getAgentUsersCore', () => {
         subscriptions: [{ id: 'sub-1' }],
         unreadCount: 0,
         alertLink: null,
+        membershipSource: 'subscription',
         subscription: { id: 'sub-1' },
       },
-      { id: 'member-2', subscriptions: [], unreadCount: 0, alertLink: null, subscription: null },
+      {
+        id: 'member-2',
+        subscriptions: [],
+        unreadCount: 0,
+        alertLink: null,
+        membershipSource: 'none',
+        subscription: null,
+      },
     ]);
     expectNoGlobalDb();
   });
@@ -183,8 +203,8 @@ describe('getAgentUsersCore', () => {
     const failure = new Error('permission denied for table user');
     mocks.tx.query.user.findMany.mockRejectedValue(failure);
 
-    await expect(getAgentUsersCore({ session: sessionFor('admin', 'admin-1') })).rejects.toBe(
-      failure
-    );
+    await expect(
+      getAgentUsersCore({ authority: adminAuthority, session: sessionFor('admin', 'admin-1') })
+    ).rejects.toBe(failure);
   });
 });

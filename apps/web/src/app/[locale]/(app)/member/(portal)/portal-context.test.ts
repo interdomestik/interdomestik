@@ -25,6 +25,9 @@ vi.mock('react', async importOriginal => ({
   },
 }));
 vi.mock('@/lib/auth.server', () => ({ getCachedSession: h.session }));
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionUserTenant: async (userId: string) => ({ userId }),
+}));
 vi.mock('@/components/shell/session', () => ({
   requireSessionOrRedirect: (session: unknown) => {
     if (!session) throw new Error('login');
@@ -81,6 +84,7 @@ vi.mock('@/i18n/routing', () => ({ Link: 'a', usePathname: () => h.pathname }));
 
 import { getMemberPortalContext } from './portal-context';
 import PortalLayout from './layout';
+const own = (memberId: string) => ({ authority: { userId: memberId }, memberId });
 import PortalPage from './page';
 import PortalDefault from './default';
 import CaseSlot from './@case/page';
@@ -111,14 +115,8 @@ describe('member portal request context', () => {
     expect(context.copy.membershipStatus.accessAllowed).toBe('access_allowed');
     expect(setRequestLocale).toHaveBeenCalledExactlyOnceWith(locale);
     expect(h.session).toHaveBeenCalledTimes(1);
-    expect(h.cases).toHaveBeenCalledExactlyOnceWith({
-      memberId: 'member-a',
-      tenantId: 'tenant_ks',
-    });
-    expect(h.membership).toHaveBeenCalledExactlyOnceWith({
-      memberId: 'member-a',
-      tenantId: 'tenant_ks',
-    });
+    expect(h.cases).toHaveBeenCalledExactlyOnceWith(own('member-a'));
+    expect(h.membership).toHaveBeenCalledExactlyOnceWith(own('member-a'));
   });
 
   it.each(['', 'hr', 'SQ', '../../admin'])(
@@ -142,8 +140,8 @@ describe('member portal request context', () => {
     const id = role === 'agent' ? 'agent-a' : 'member-a';
     h.session.mockResolvedValueOnce({ user: { id, role, tenantId } });
     expect(await getMemberPortalContext('sq')).toEqual(expect.objectContaining({ canDraft }));
-    expect(h.cases).toHaveBeenCalledExactlyOnceWith({ memberId: id, tenantId });
-    expect(h.membership).toHaveBeenCalledExactlyOnceWith({ memberId: id, tenantId });
+    expect(h.cases).toHaveBeenCalledExactlyOnceWith(own(id));
+    expect(h.membership).toHaveBeenCalledExactlyOnceWith(own(id));
   });
 
   it.each([
@@ -170,14 +168,8 @@ describe('member portal request context', () => {
     const values = await Promise.all(pending);
     expect(new Set(values).size).toBe(1);
     expect(h.session).toHaveBeenCalledTimes(1);
-    expect(h.cases).toHaveBeenCalledExactlyOnceWith({
-      memberId: 'member-a',
-      tenantId: 'tenant_ks',
-    });
-    expect(h.membership).toHaveBeenCalledExactlyOnceWith({
-      memberId: 'member-a',
-      tenantId: 'tenant_ks',
-    });
+    expect(h.cases).toHaveBeenCalledExactlyOnceWith(own('member-a'));
+    expect(h.membership).toHaveBeenCalledExactlyOnceWith(own('member-a'));
     expect(values[1].caseTask).toBe(values[3].caseTask);
   });
 
@@ -272,8 +264,8 @@ describe('member portal request context', () => {
     });
     const next = await getMemberPortalContext('sq');
     expect(next.caseTask).not.toBe(first.caseTask);
-    expect(h.cases).toHaveBeenLastCalledWith({ memberId: 'member-b', tenantId: 'tenant_mk' });
-    expect(h.membership).toHaveBeenLastCalledWith({ memberId: 'member-b', tenantId: 'tenant_mk' });
+    expect(h.cases).toHaveBeenLastCalledWith(own('member-b'));
+    expect(h.membership).toHaveBeenLastCalledWith(own('member-b'));
     expect(next.canDraft).toBe(false);
   });
 

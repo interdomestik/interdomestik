@@ -16,6 +16,10 @@ import {
   shouldRenderBusinessMembershipLink,
 } from './pricing-table';
 
+vi.mock('@/app/[locale]/(app)/member/membership/leave-sponsorship.core', () => ({
+  getCompanyMembershipOutlook: async () => ({ ok: false }),
+}));
+
 describe('PricingTable', () => {
   beforeEach(resetPricingTest);
 

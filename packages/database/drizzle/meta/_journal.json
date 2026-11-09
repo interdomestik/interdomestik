@@ -694,6 +694,13 @@
       "when": 1793997269203,
       "tag": "0098_user_email_lower_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1794150129699,
+      "tag": "0099_acq3b_sponsor_seats",
+      "breakpoints": true
     }
   ]
 }

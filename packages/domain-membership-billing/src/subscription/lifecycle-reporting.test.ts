@@ -2,6 +2,7 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  effectiveCoverageMembers: vi.fn(),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   subscriptions: {
     tenantId: 'subscriptions.tenant_id',
@@ -31,12 +32,16 @@ vi.mock('@interdomestik/database', () => {
   };
   return {
     db,
-    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: unknown) => unknown) => cb(db)),
     eq: hoisted.eq,
     sql: hoisted.sql,
     subscriptions: hoisted.subscriptions,
   };
 });
+
+vi.mock('../sponsor-coverage', () => ({
+  effectiveCoverageMembers: hoisted.effectiveCoverageMembers,
+}));
 
 import {
   deriveMembershipStatus,
@@ -49,6 +54,12 @@ describe('membership lifecycle reporting', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.aggregateRows.length = 0;
+    hoisted.effectiveCoverageMembers.mockResolvedValue([
+      {
+        userId: 'paddle',
+        membership: { source: 'subscription', subscription: { status: 'active' } },
+      },
+    ]);
     hoisted.where.mockResolvedValue(hoisted.aggregateRows);
     hoisted.from.mockReturnValue({ where: hoisted.where });
     hoisted.select.mockReturnValue({ from: hoisted.from });
@@ -124,6 +135,68 @@ describe('membership lifecycle reporting', () => {
     });
   });
 
+  it('counts sponsor and Paddle coverage independently of provider lifecycle buckets', async () => {
+    hoisted.aggregateRows.push({
+      total: 4,
+      active: 2,
+      trialing: 0,
+      activeInGrace: 0,
+      graceExpired: 0,
+      scheduledCancel: 0,
+      canceled: 2,
+      accessActive: 2,
+    });
+    hoisted.effectiveCoverageMembers.mockResolvedValue([
+      {
+        userId: 'sponsor-with-canceled-paddle',
+        membership: {
+          source: 'sponsor',
+          lifecycle: { status: 'active', cancelAtPeriodEnd: true, gracePeriodEndsAt: null },
+        },
+      },
+      {
+        userId: 'paddle',
+        membership: { source: 'subscription', subscription: { status: 'active' } },
+      },
+      {
+        userId: 'canceled',
+        membership: { source: 'subscription', subscription: { status: 'canceled' } },
+      },
+    ]);
+    const authority = mintTestTenantAuthority('tenant_ks');
+    const now = new Date('2026-04-21T00:00:00Z');
+    const counts = await getTenantMembershipLifecycleCounts({ authority, now });
+    expect(counts).toMatchObject({
+      total: 3,
+      providerLifecycleTotal: 4,
+      accessActive: 2,
+      sponsored: 1,
+      canceled: 2,
+    });
+    expect(hoisted.effectiveCoverageMembers).toHaveBeenCalledWith(
+      expect.objectContaining({ select: hoisted.select }),
+      'tenant_ks',
+      now
+    );
+  });
+
+  it('does not count an uncovered group_sponsor cache row as membership', async () => {
+    hoisted.aggregateRows.push({
+      total: 1,
+      active: 1,
+      trialing: 0,
+      activeInGrace: 0,
+      graceExpired: 0,
+      scheduledCancel: 0,
+      canceled: 0,
+      accessActive: 1,
+    });
+    hoisted.effectiveCoverageMembers.mockResolvedValue([]);
+    expect(
+      await getTenantMembershipLifecycleCounts({ authority: mintTestTenantAuthority('tenant_ks') })
+    ).toMatchObject({ total: 0, accessActive: 0, sponsored: 0 });
+  });
+
   it('loads tenant lifecycle counts through an aggregate reporting query', async () => {
     hoisted.aggregateRows.push({
       total: 2,
@@ -146,7 +219,6 @@ describe('membership lifecycle reporting', () => {
       expect.objectContaining({
         activeInGrace: expect.anything(),
         scheduledCancel: expect.anything(),
-        accessActive: expect.anything(),
       })
     );
     expect(counts.accessActive).toBe(1);

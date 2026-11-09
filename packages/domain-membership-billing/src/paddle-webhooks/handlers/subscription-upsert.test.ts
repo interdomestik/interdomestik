@@ -43,6 +43,41 @@ describe('upsertSubscription tenant-scoped update guard', () => {
     hoisted.returning.mockResolvedValue([]);
   });
 
+  it.each(['active', 'past_due', 'paused', 'canceled', 'trialing', 'expired'] as const)(
+    'takes over a sponsored anchor in the same %s snapshot update',
+    async mappedStatus => {
+      hoisted.returning.mockResolvedValue([{ id: 'sub_anchor' }]);
+      hoisted.appendEvent.mockResolvedValue({ id: 'event-1' });
+      const existingSub = {
+        id: 'sub_anchor',
+        tenantId: 'tenant_abc',
+        userId: 'user_123',
+        status: 'active',
+        provider: 'group_sponsor',
+      };
+      await expect(
+        upsertSubscription({
+          existingSub,
+          mappedStatus,
+          authority,
+          userId: 'user_123',
+          planState: { planId: 'standard', planKey: 'mk-standard-plan' },
+          sub: { id: 'sub_paddle', customerId: 'ctm_1' },
+        })
+      ).resolves.toEqual({ subscriptionId: 'sub_anchor', effectsApplied: true });
+      expect(hoisted.set).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          provider: 'paddle',
+          status: mappedStatus,
+          providerSubscriptionId: 'sub_paddle',
+          tenantId: 'tenant_abc',
+          userId: 'user_123',
+        })
+      );
+      expect(hoisted.tx.insert).not.toHaveBeenCalled();
+    }
+  );
+
   it('does not emit a subscription event when the update matches no tenant row', async () => {
     await expect(
       upsertSubscription({

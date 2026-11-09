@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => {
   };
   return {
     tx,
+    resolveEffectiveMembership: vi.fn(),
     withTenantContext: vi.fn((_context: unknown, action: (client: typeof tx) => Promise<unknown>) =>
       action(tx)
     ),
@@ -25,6 +26,9 @@ const mocks = vi.hoisted(() => {
 vi.mock('@interdomestik/database', async importOriginal => ({
   ...(await importOriginal<typeof import('@interdomestik/database')>()),
   withTenantContext: mocks.withTenantContext,
+}));
+vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
+  resolveEffectiveMembership: mocks.resolveEffectiveMembership,
 }));
 vi.mock('./_claim-summary', () => ({
   summarizeAdminUserClaimsInTransaction: mocks.summarizeAdminUserClaimsInTransaction,
@@ -61,6 +65,7 @@ function memberLookup(): { params: unknown[]; sql: string; with: unknown } {
 }
 
 function expectNoDependentReads(): void {
+  expect(mocks.resolveEffectiveMembership).not.toHaveBeenCalled();
   expect(mocks.tx.query.subscriptions.findFirst).not.toHaveBeenCalled();
   expect(mocks.tx.query.userNotificationPreferences.findFirst).not.toHaveBeenCalled();
   expect(mocks.summarizeAdminUserClaimsInTransaction).not.toHaveBeenCalled();
@@ -75,6 +80,7 @@ function expectNoTransaction(): void {
 describe('getAdminUserProfileCore member-read access', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.resolveEffectiveMembership.mockResolvedValue(new Map());
     mocks.tx.query.user.findFirst.mockResolvedValue(MEMBER);
     mocks.tx.query.subscriptions.findFirst.mockResolvedValue(undefined);
     mocks.tx.query.userNotificationPreferences.findFirst.mockResolvedValue(undefined);
@@ -95,6 +101,7 @@ describe('getAdminUserProfileCore member-read access', () => {
         counts: COUNTS,
         recentClaims: [],
         membershipStatus: 'none',
+        membership: { source: 'none' },
       });
       expectTransactionUnder('t1', role);
       const lookup = memberLookup();
@@ -193,5 +200,46 @@ describe('getAdminUserProfileCore member-read access', () => {
       new Error('claims unavailable')
     );
     await expect(load('branch_manager', 'b-A')).rejects.toThrow('claims unavailable');
+  });
+  it.each([
+    {
+      source: 'sponsor',
+      lifecycle: { status: 'active', cancelAtPeriodEnd: false, gracePeriodEndsAt: null },
+      planId: 'sponsor-plan',
+      windowStart: new Date('2026-01-01'),
+      windowEnd: new Date('2027-01-01'),
+      coverageEnd: new Date('2028-01-01'),
+    },
+    {
+      source: 'subscription',
+      subscription: {
+        status: 'past_due',
+        gracePeriodEndsAt: new Date('2099-01-01'),
+        planId: 'paid-plan',
+      },
+    },
+    { source: 'none' },
+  ])('uses resolved $source membership without replacing the provider row', async membership => {
+    const provider = { provider: 'paddle', status: 'canceled', planId: 'old-plan' };
+    mocks.tx.query.subscriptions.findFirst.mockResolvedValue(provider);
+    mocks.resolveEffectiveMembership.mockResolvedValue(new Map([['u1', membership]]));
+    const result = await load('tenant_admin', null);
+    expect(result).toMatchObject({
+      kind: 'ok',
+      subscription: provider,
+      membership,
+      membershipStatus:
+        membership.source === 'sponsor'
+          ? 'active'
+          : membership.source === 'subscription'
+            ? 'active_in_grace'
+            : 'none',
+    });
+    expect(mocks.resolveEffectiveMembership).toHaveBeenCalledWith(
+      mocks.tx,
+      't1',
+      ['u1'],
+      expect.any(Date)
+    );
   });
 });

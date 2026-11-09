@@ -13,7 +13,14 @@ import { getTenantMembershipLifecycleCounts } from '@interdomestik/domain-member
 import { and, count, eq } from 'drizzle-orm';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export async function fetchKpis(authority: TenantAuthority) {
+export async function fetchKpis(authority: TenantAuthority): Promise<{
+  branches: number;
+  agents: number;
+  members: number;
+  claimsOpen: number;
+  cashPending: number;
+  slaBreaches: number;
+}> {
   const { tenantId } = readTenantAuthority(authority);
   // 1. Branch Count
   const [branchesData] = await withTenantAuthority(authority, tx =>
@@ -28,7 +35,7 @@ export async function fetchKpis(authority: TenantAuthority) {
       .where(and(eq(user.tenantId, tenantId), eq(user.role, 'agent')))
   );
 
-  // 3. Member Count (access-active subscriptions)
+  // 3. Effective member count, including sponsorship, through the coverage-set reporting boundary.
   const lifecycleCounts = await getTenantMembershipLifecycleCounts({ authority });
 
   // 4. Open Claims

@@ -137,7 +137,11 @@
         "not_applicable": "Not applicable",
         "tenant_review": "Tenant review",
         "tenant_review_pending": "Pending later member-detail review",
-        "tenant_review_confirmed": "Confirmed by current tenant attribution"
+        "tenant_review_confirmed": "Confirmed by current tenant attribution",
+        "source": "Source",
+        "period_start": "Period start",
+        "coverage_end": "Coverage end",
+        "provider_lifecycle": "Paddle provider lifecycle"
       },
       "status": {
         "active": "Active",
@@ -180,6 +184,19 @@
         "select_tenant_first": "Select a tenant first",
         "no_reassign_options": "No active reassignment targets are available.",
         "reassign_locked": "Only super admins can reassign a member to another tenant."
+      },
+      "provider_status": {
+        "active": "Active",
+        "past_due": "Past due",
+        "paused": "Paused",
+        "canceled": "Canceled",
+        "trialing": "Trialing",
+        "expired": "Expired"
+      },
+      "source": {
+        "sponsor": "Sponsor",
+        "subscription": "Subscription",
+        "none": "None"
       }
     }
   }

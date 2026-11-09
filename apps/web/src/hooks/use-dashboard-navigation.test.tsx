@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useDashboardNavigation } from './use-dashboard-navigation';
+import { buildDashboardNavigationModel, useDashboardNavigation } from './use-dashboard-navigation';
 
 const mockCanAccessAdmin = vi.fn();
 vi.mock('@/actions/admin-access', () => ({
@@ -40,6 +40,16 @@ function HookHarness({ agentTier }: { agentTier?: string }) {
 describe('useDashboardNavigation', () => {
   beforeEach(() => {
     mockCanAccessAdmin.mockResolvedValue(false);
+  });
+
+  it('replaces import with sponsors for office agents only', () => {
+    for (const agentTier of ['office', 'pro', 'standard', 'field']) {
+      const model = buildDashboardNavigationModel({ t: key => key, role: 'agent', agentTier });
+      expect(model.items.some(item => item.href === '/agent/import')).toBe(false);
+      expect(model.items.some(item => item.href === '/agent/sponsors')).toBe(
+        agentTier === 'office'
+      );
+    }
   });
 
   it('does not check admin access before role is known', async () => {

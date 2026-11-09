@@ -86,6 +86,7 @@ export const memberLeads = pgTable(
     uniqueIndex('idx_leads_tenant_email').on(table.tenantId, table.email),
     // Performance indexes for branch dashboards
     index('idx_member_leads_tenant_branch').on(table.tenantId, table.branchId),
+    uniqueIndex('member_leads_tenant_id_id_branch_uq').on(table.tenantId, table.id, table.branchId),
     index('idx_member_leads_tenant_agent').on(table.tenantId, table.agentId),
     check('member_leads_lead_kind_check', sql`${table.leadKind} in ('individual', 'company')`),
     check(

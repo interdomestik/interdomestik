@@ -8,6 +8,7 @@ import { createEmailTelemetry, sendViaResend, type EmailResult } from './sign-in
 export async function sendPaymentFailedEmail(
   to: string,
   params: {
+    accessContinues?: boolean;
     memberName: string;
     planName: string;
     gracePeriodDays: number;

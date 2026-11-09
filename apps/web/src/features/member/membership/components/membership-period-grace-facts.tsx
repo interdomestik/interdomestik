@@ -5,16 +5,19 @@ import { formatPilotDate } from '@/lib/utils/date';
 import { useEffect, useState } from 'react';
 
 type MembershipPeriodGraceFactsProps = Readonly<{
-  subscription: Pick<SubscriptionRecord, 'status' | 'currentPeriodEnd' | 'gracePeriodEndsAt'>;
+  subscription: Pick<
+    SubscriptionRecord,
+    'status' | 'currentPeriodStart' | 'currentPeriodEnd' | 'gracePeriodEndsAt' | 'sponsorCoverage'
+  >;
   locale: string;
-  t: (key: string) => string;
+  t: (key: string, values?: Record<string, string | number>) => string;
 }>;
 
 export function MembershipPeriodGraceFacts({
   subscription,
   locale,
   t,
-}: MembershipPeriodGraceFactsProps) {
+}: MembershipPeriodGraceFactsProps): React.JSX.Element {
   const [nowMs, setNowMs] = useState(() => Date.now());
   const rawGracePeriodEndsAt = subscription.gracePeriodEndsAt;
   const gracePeriodEndsAt = rawGracePeriodEndsAt ? new Date(rawGracePeriodEndsAt) : null;
@@ -35,11 +38,21 @@ export function MembershipPeriodGraceFacts({
 
   return (
     <>
+      {subscription.sponsorCoverage ? (
+        <p data-testid="membership-sponsor-coverage">
+          {t('sponsorCoverage.covered_until', {
+            date: formatPilotDate(subscription.sponsorCoverage.coverageEnd, locale, t('plan.na')),
+          })}
+        </p>
+      ) : null}
       <div>
         <h4 className="text-sm font-medium text-muted-foreground">
           {t('plan.current_period_label')}
         </h4>
         <p data-testid="membership-current-period-end">
+          {subscription.sponsorCoverage
+            ? `${formatPilotDate(subscription.currentPeriodStart, locale, t('plan.na'))} – `
+            : ''}
           {formatPilotDate(subscription.currentPeriodEnd, locale, t('plan.na'))}
         </p>
       </div>
