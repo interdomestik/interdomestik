@@ -8,7 +8,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@interdomestik/ui';
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { RoleShellMobileNavigation, type RoleShellLabels } from './role-shell-mobile-navigation';
 import { ShellNavigation, type ShellNavigationItem } from './shell-navigation';
 
@@ -61,6 +61,7 @@ function RoleShellDesktopSidebar({
 export function RoleShell(props: RoleShellProps): ReactNode {
   const { children, context, tools, account, mobileNavigation = 'bottom', labels } = props;
   const [mobilePanel, setMobilePanel] = useState<'more' | 'sidebar'>('more');
+  const pendingOpener = useRef<HTMLElement | null>(null);
   const mobileNavigationControl = (
     <RoleShellMobileNavigation
       items={props.items}
@@ -70,6 +71,7 @@ export function RoleShell(props: RoleShellProps): ReactNode {
       account={props.sidebarAccount}
       mode={mobileNavigation}
       panel={mobilePanel}
+      pendingOpener={pendingOpener}
       onMoreOpen={() => setMobilePanel('more')}
     />
   );
@@ -92,7 +94,10 @@ export function RoleShell(props: RoleShellProps): ReactNode {
             }
             title={labels.toggleSidebar ?? labels.navigation}
             aria-label={labels.toggleSidebar ?? labels.navigation}
-            onClick={() => setMobilePanel('sidebar')}
+            onClick={event => {
+              pendingOpener.current = event.currentTarget;
+              setMobilePanel('sidebar');
+            }}
           />
           {mobileNavigation === 'drawer' && mobileNavigationControl}
           <div className="min-w-0 flex-1 break-words">{context}</div>

@@ -10,7 +10,7 @@ import {
   useSidebar,
 } from '@interdomestik/ui';
 import { Menu, MoreHorizontal } from 'lucide-react';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import {
   getActiveShellNavigationItem,
   ShellNavigation,
@@ -33,6 +33,7 @@ export function RoleShellMobileNavigation({
   account,
   mode,
   panel = 'more',
+  pendingOpener,
   onMoreOpen,
 }: Readonly<{
   items: readonly ShellNavigationItem[];
@@ -42,6 +43,7 @@ export function RoleShellMobileNavigation({
   account: ReactNode;
   mode: 'bottom' | 'drawer';
   panel?: 'more' | 'sidebar';
+  pendingOpener: RefObject<HTMLElement | null>;
   onMoreOpen?: () => void;
 }>): ReactNode {
   const { openMobile, setOpenMobile, isMobile } = useSidebar();
@@ -68,6 +70,9 @@ export function RoleShellMobileNavigation({
             className="size-11 md:hidden"
             data-sidebar="trigger"
             aria-label={labels.toggleSidebar ?? labels.navigation}
+            onClick={event => {
+              pendingOpener.current = event.currentTarget;
+            }}
           >
             <Menu aria-hidden="true" className="size-5" />
           </Button>
@@ -95,7 +100,7 @@ export function RoleShellMobileNavigation({
               <button
                 type="button"
                 onClick={event => {
-                  returnFocus.current = event.currentTarget;
+                  pendingOpener.current = event.currentTarget;
                   onMoreOpen?.();
                 }}
                 data-active={moreActive}
@@ -116,15 +121,20 @@ export function RoleShellMobileNavigation({
         descriptionText={labels.navigation}
         closeLabel={labels.close}
         onOpenAutoFocus={() => {
-          if (!isDrawer) return;
+          const activeElement = document.activeElement;
           returnFocus.current =
-            document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            pendingOpener.current ??
+            (activeElement instanceof HTMLElement && activeElement !== document.body
+              ? activeElement
+              : null);
+          pendingOpener.current = null;
         }}
         onCloseAutoFocus={event => {
-          if (returnFocus.current?.isConnected) {
+          if (returnFocus.current?.isConnected && returnFocus.current !== document.body) {
             event.preventDefault();
             returnFocus.current.focus();
           }
+          returnFocus.current = null;
         }}
         className="max-h-[85dvh] min-w-0 overflow-y-auto overscroll-contain pb-[max(1.5rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-16 motion-reduce:animate-none motion-reduce:transition-none [&>button]:flex [&>button]:size-11 [&>button]:items-center [&>button]:justify-center"
       >

@@ -43,6 +43,50 @@ beforeEach(() => {
 });
 
 describe('RoleShell', () => {
+  it.each(['bottom', 'drawer'] as const)(
+    'returns focus to the %s drawer trigger after a Safari-style click from body focus',
+    async mode => {
+      const user = userEvent.setup();
+      const { container } = render(shell('/workspace', mode));
+      const selector =
+        mode === 'bottom'
+          ? 'button[data-sidebar="trigger"]'
+          : 'button[data-sidebar="trigger"][aria-haspopup]';
+      const trigger = container.querySelector(selector) as HTMLButtonElement;
+      expect(document.activeElement).toBe(document.body);
+      fireEvent.click(trigger);
+      const dialog = await screen.findByRole('dialog', { name: labels.navigation });
+      await waitFor(() =>
+        expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus()
+      );
+      await user.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      await waitFor(() => expect(trigger).toHaveFocus());
+    }
+  );
+
+  it.each(['Control', 'Meta'])(
+    'returns focus to the current control after reopening More with %s+B',
+    async modifier => {
+      const user = userEvent.setup();
+      render(shell());
+      await user.click(screen.getByRole('button', { name: 'More' }));
+      await user.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      const search = screen.getByRole('button', { name: 'Search' });
+      search.focus();
+      expect(search).toHaveFocus();
+      await user.keyboard(`{${modifier}>}b{/${modifier}}`);
+      const dialog = await screen.findByRole('dialog', { name: 'More' });
+      await waitFor(() =>
+        expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus()
+      );
+      await user.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      await waitFor(() => expect(search).toHaveFocus());
+    }
+  );
+
   it('returns focus to the header trigger after its full mobile drawer closes', async () => {
     const user = userEvent.setup();
     const { container } = render(shell());
