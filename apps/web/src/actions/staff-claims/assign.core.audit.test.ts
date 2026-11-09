@@ -3,16 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   domainAssignClaim: vi.fn(),
-  logAuditEvent: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
 vi.mock('@interdomestik/domain-claims/staff-claims/assign', () => ({
   assignClaimCore: hoisted.domainAssignClaim,
-}));
-
-vi.mock('@/lib/audit', () => ({
-  logAuditEvent: hoisted.logAuditEvent,
 }));
 
 vi.mock('next/cache', () => ({
@@ -29,7 +24,7 @@ describe('staff assign.core audit wiring', () => {
     hoisted.domainAssignClaim.mockResolvedValue({ success: true });
   });
 
-  it('passes the audit logger into the staff domain assignment mutation', async () => {
+  it('delegates assignment and audit atomically to the domain mutation', async () => {
     const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 
     const result = await assignClaimCore({
@@ -49,8 +44,21 @@ describe('staff assign.core audit wiring', () => {
         claimId: 'claim-1',
         requestHeaders,
         staffId: 'staff-2',
-      }),
-      { logAuditEvent: hoisted.logAuditEvent }
+      })
     );
+    expect(hoisted.revalidatePath).toHaveBeenCalledTimes(10);
+  });
+
+  it('does not revalidate when the atomic domain mutation fails', async () => {
+    const failure = { success: false, error: 'Failed to assign claim' };
+    hoisted.domainAssignClaim.mockResolvedValueOnce(failure);
+    await expect(
+      assignClaimCore({
+        authority,
+        claimId: 'claim-1',
+        session: null,
+      })
+    ).resolves.toEqual(failure);
+    expect(hoisted.revalidatePath).not.toHaveBeenCalled();
   });
 });
