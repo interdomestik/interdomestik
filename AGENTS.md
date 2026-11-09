@@ -125,9 +125,10 @@ pnpm --filter @interdomestik/web test:e2e -- --project=chromium --grep "specific
   camelCase functions/variables and UPPER_SNAKE_CASE constants.
 - For tenant-scoped data, validate the session and use the established tenant/RLS query boundary.
   Use transactions for multi-write invariants and fail closed on authorization ambiguity.
-- Reuse existing components and locale catalogs. Preserve EN/SQ/MK/SR where the feature exercises
-  user-facing copy. Test relevant loading/error/empty/retry, keyboard/focus, responsive and WCAG
-  behavior in addition to the happy path.
+- Reuse existing components and locale catalogs. Preserve all five locales (SQ/EN/SR/MK/DE, the
+  `LOCALES` in `apps/web/src/i18n/locales.ts`) where the feature exercises user-facing copy. Test
+  relevant loading/error/empty/retry, keyboard/focus, responsive and WCAG behavior in addition to
+  the happy path.
 - Use conventional commits such as `feat:`, `fix:`, `test:`, `refactor:` or `docs:`.
 - Never commit production secrets. Local Supabase services bind to loopback; environment files stay
   development-only and gitignored.
