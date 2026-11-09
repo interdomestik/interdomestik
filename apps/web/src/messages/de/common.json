@@ -1,5 +1,16 @@
 {
   "common": {
+    "pwa": {
+      "offlineHeading": "Soforthilfe — offline",
+      "offlinePrivacy": "Nur die öffentliche Checkliste für den Unfallort. Keine Kontodaten, gespeicherten Fotonotizen oder vorgemerkten Änderungen.",
+      "offlineAvailability": "Länderspezifische Rufnummern und Regeln erfordern eine Internetverbindung.",
+      "offlineTitle": "Du bist offline",
+      "offlineBody": "Verbinde dich mit dem Internet, um deinen Arbeitsbereich zu sehen. Es sind keine zwischengespeicherten Daten verfügbar. Änderungen werden offline weder vorgemerkt noch gesendet.",
+      "retry": "Erneut versuchen",
+      "install": "App installieren",
+      "iosTitle": "Auf dem Home-Bildschirm installieren",
+      "iosInstructions": "Tippe auf Teilen und dann auf Zum Home-Bildschirm."
+    },
     "appName": "Asistenca",
     "companyName": "Interdomestik",
     "tagline": "Da, wenn Sie uns brauchen",
@@ -42,7 +53,7 @@
       "super_admin": "Superadministrator",
       "tenant_admin": "Mandantenadministrator",
       "branch_manager": "Filialleitung",
-      "promoter": "Promoter"
+      "promoter": "Vermittler"
     },
     "errors": {
       "title": "Fehler",
@@ -56,6 +67,13 @@
       "details": "Mit einem Klick auf „Alle akzeptieren“ stimmen Sie der Verwendung von Cookies für Analysen und personalisierte Inhalte zu.",
       "accept": "Alle akzeptieren",
       "decline": "Nur notwendige"
+    },
+    "interface": {
+      "statusSuccess": "Der Status wurde erfolgreich aktualisiert",
+      "statusError": "Der Status konnte nicht aktualisiert werden",
+      "expandAll": "Alle anzeigen ({count})",
+      "searchMembers": "Mitglieder suchen",
+      "loadingPage": "Seite wird geladen"
     }
   }
 }

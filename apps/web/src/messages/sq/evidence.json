@@ -12,7 +12,7 @@
     "promptDescription": "Zgjidh disa nga këto dokumente për ta nisur shpejt.",
     "prompts": {
       "flight_delay": [
-        "Bileta ose boarding pass",
+        "Bileta ose karta e imbarkimit",
         "Njoftimi i vonesës/anulimit nga linja",
         "Fatura për ushqim/hotel/transport"
       ],
@@ -23,11 +23,11 @@
       ],
       "service_issue": [
         "Kontratë ose faturë",
-        "Screenshote bisedash/email",
+        "Pamje të bisedave ose email-eve",
         "Fatura ose njoftim anulimi"
       ],
       "travel": ["Itinerari dhe biletat", "Foto/video të incidentit", "Fatura për shpenzime"],
-      "default": ["Foto ose screenshote", "Fatura/kupona", "Çdo korrespondencë zyrtare"]
+      "default": ["Foto ose pamje ekrani", "Fatura/kupona", "Çdo korrespondencë zyrtare"]
     },
     "validation": {
       "mime": "Lejohen vetëm PDF, JPG ose PNG.",

@@ -60,7 +60,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
   }
 
   const [t, commercialTerms, residenceCountry] = await Promise.all([
-    getTranslations('settings'),
+    getTranslations({ locale, namespace: 'settings' }),
     getTranslations({ locale, namespace: 'commercialTerms' }),
     getResidenceCountry(session as MemberSettingsSession),
   ]);

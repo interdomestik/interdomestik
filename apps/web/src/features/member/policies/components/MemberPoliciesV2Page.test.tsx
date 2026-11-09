@@ -1,6 +1,26 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import React from 'react';
+import type { AbstractIntlMessages } from 'next-intl';
+import en from '@/messages/en/membership.json';
+import sq from '@/messages/sq/membership.json';
+
+vi.mock('next-intl/server', async () => {
+  const { createTranslator } = await vi.importActual<typeof import('next-intl')>('next-intl');
+  return {
+    getTranslations: vi.fn(async ({ locale, namespace }: { locale: string; namespace: string }) =>
+      createTranslator({
+        locale,
+        namespace,
+        messages: {
+          membership: {
+            policies: locale === 'sq' ? sq.membership.policies : en.membership.policies,
+          },
+        } as AbstractIntlMessages,
+      })
+    ),
+  };
+});
+import { render, screen } from '@testing-library/react';
 
 const hoisted = vi.hoisted(() => ({
   getPoliciesWithDocumentLinksCore: vi.fn(),
@@ -70,5 +90,15 @@ describe('MemberPoliciesV2Page', () => {
     });
     expect(screen.getByRole('button', { name: 'View PDF' })).toBeDisabled();
     expect(container.innerHTML).not.toContain('https://cdn.example/policy.pdf');
+  });
+  it('uses the route locale for the empty state and upload action', async () => {
+    hoisted.getPoliciesWithDocumentLinksCore.mockResolvedValue([]);
+    render(await MemberPoliciesV2Page({ locale: 'sq' }));
+    expect(screen.getByRole('heading', { name: 'Policat e mia' })).toBeInTheDocument();
+    expect(screen.getByText('Ende nuk keni ngarkuar polica')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ngarko policën e parë' })).toHaveAttribute(
+      'href',
+      '/member/policies/upload'
+    );
   });
 });

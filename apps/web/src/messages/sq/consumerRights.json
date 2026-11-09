@@ -29,6 +29,9 @@
       }
     },
     "cta": "Fillo Kërkesën për Dëmshpërblim",
-    "learnMore": "Mëso Më Shumë"
+    "learnMore": "Mëso Më Shumë",
+    "assistance": {
+      "helpBody": "Nëse mendoni se të drejtat tuaja janë shkelur, mund t’ju ndihmojmë të paraqitni një kërkesë."
+    }
   }
 }

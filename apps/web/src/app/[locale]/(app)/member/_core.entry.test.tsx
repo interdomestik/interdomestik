@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { getTranslations } from 'next-intl/server';
 
 const h = vi.hoisted(() => ({
   shell: vi.fn(),
@@ -16,10 +17,22 @@ const h = vi.hoisted(() => ({
 }));
 
 vi.mock('next/navigation', () => ({ redirect: h.redirect }));
-vi.mock('next-intl/server', () => ({ getMessages: h.messages, setRequestLocale: vi.fn() }));
+vi.mock('next-intl/server', () => ({
+  getMessages: h.messages,
+  getTranslations: vi.fn(async () => (key: string) => key),
+  setRequestLocale: vi.fn(),
+}));
 vi.mock('next-intl', () => ({ NextIntlClientProvider: h.pass }));
 vi.mock('@/lib/auth.server', () => ({ getCachedSession: h.session }));
-vi.mock('@/components/shell/session', () => ({ requireSessionOrRedirect: h.required }));
+vi.mock('@/components/shell/session', () => ({
+  getSessionSafe: h.session,
+  requireSessionOrRedirect: h.required,
+}));
+vi.mock('@/i18n/routing', () => ({ Link: h.pass, redirect: h.redirect }));
+vi.mock('@/components/dashboard/claims/claims-filters', () => ({ ClaimsFilters: () => null }));
+vi.mock('@/components/dashboard/claims/member-claims-table', () => ({
+  MemberClaimsTable: () => null,
+}));
 vi.mock('@/components/shell/navigation-feedback', () => ({ NavigationFeedback: h.pass }));
 vi.mock('@/i18n/messages', () => ({ APP_NAMESPACES: [], pickMessages: h.pick }));
 vi.mock('@/components/shell/member-role-shell', () => ({
@@ -28,10 +41,18 @@ vi.mock('@/components/shell/member-role-shell', () => ({
     return children;
   },
 }));
+vi.mock('@interdomestik/ui', () => ({ Button: h.pass }));
 
 import DashboardLayout from './_core.entry';
+import ClaimsPage from './claims/_core.entry';
 
 describe('MemberDashboard layout role handling', () => {
+  it.each(['en', 'sq', 'mk', 'sr', 'de'])('loads claims in %s', async locale => {
+    await ClaimsPage({ params: Promise.resolve({ locale }) });
+
+    expect(getTranslations).toHaveBeenCalledExactlyOnceWith({ locale, namespace: 'claims' });
+  });
+
   it('requires the parent app layout to share the request-scoped session source', () => {
     const source = readFileSync(resolve(import.meta.dirname, '../_core.entry.tsx'), 'utf8');
     expect(source).toContain('await getCachedSession()');

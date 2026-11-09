@@ -13,7 +13,9 @@ vi.mock('@/components/admin/admin-users-role-tabs', () => ({ AdminUsersRoleTabs:
 vi.mock('@/components/admin/users-filters', () => ({ UsersFilters: () => null }));
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: async (namespace: string) => (key: string) => `${namespace}.${key}`,
+  getTranslations:
+    async (namespace: string | { locale: string; namespace: string }) => (key: string) =>
+      `${typeof namespace === 'string' ? namespace : namespace.namespace}.${key}`,
 }));
 vi.mock('next/navigation', () => ({
   notFound: () => {
@@ -38,6 +40,7 @@ describe('AdminUsersPage read recovery', () => {
     });
     render(
       await AdminUsersPage({
+        params: Promise.resolve({ locale: 'en' }),
         searchParams: Promise.resolve({ search: 'kept', assignment: 'assigned', page: '2' }),
       })
     );
@@ -58,7 +61,12 @@ describe('AdminUsersPage read recovery', () => {
       code: 'INTERNAL_SERVER_ERROR',
       error: 'private detail',
     });
-    render(await AdminUsersPage({ searchParams: Promise.resolve({}) }));
+    render(
+      await AdminUsersPage({
+        params: Promise.resolve({ locale: 'en' }),
+        searchParams: Promise.resolve({}),
+      })
+    );
     expect(screen.getByRole('alert')).toHaveTextContent(
       'admin.users_page.load_agent_choices_error'
     );
@@ -69,7 +77,12 @@ describe('AdminUsersPage read recovery', () => {
   it('renders one main recovery when both reads fail', async () => {
     getUsers.mockResolvedValue({ success: false, code: 'INTERNAL_SERVER_ERROR' });
     getAgents.mockResolvedValue({ success: false, code: 'INTERNAL_SERVER_ERROR' });
-    render(await AdminUsersPage({ searchParams: Promise.resolve({}) }));
+    render(
+      await AdminUsersPage({
+        params: Promise.resolve({ locale: 'en' }),
+        searchParams: Promise.resolve({}),
+      })
+    );
     expect(screen.getAllByRole('alert')).toHaveLength(1);
     expect(screen.getByRole('alert')).toHaveTextContent('load_users_error');
     expect(screen.queryByTestId('users-sections')).not.toBeInTheDocument();
@@ -79,7 +92,12 @@ describe('AdminUsersPage read recovery', () => {
     'keeps valid empty or skipped reads successful on %s',
     async role => {
       getUsers.mockResolvedValue({ success: true, data: [] });
-      render(await AdminUsersPage({ searchParams: Promise.resolve({ role }) }));
+      render(
+        await AdminUsersPage({
+          params: Promise.resolve({ locale: 'en' }),
+          searchParams: Promise.resolve({ role }),
+        })
+      );
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
       expect(screen.getByTestId('users-sections')).toHaveAttribute('data-users', '0');
       expect(screen.getByTestId('users-sections')).toHaveAttribute(
@@ -93,9 +111,12 @@ describe('AdminUsersPage read recovery', () => {
   it('keeps a choices denial closed even when users also fail without a denial', async () => {
     getUsers.mockResolvedValue({ success: false, code: 'INTERNAL_SERVER_ERROR' });
     getAgents.mockResolvedValue({ success: false, code: 'FORBIDDEN_SCOPE' });
-    await expect(AdminUsersPage({ searchParams: Promise.resolve({}) })).rejects.toThrow(
-      'TEST_NOT_FOUND'
-    );
+    await expect(
+      AdminUsersPage({
+        params: Promise.resolve({ locale: 'en' }),
+        searchParams: Promise.resolve({}),
+      })
+    ).rejects.toThrow('TEST_NOT_FOUND');
   });
 
   it.each(['UNAUTHORIZED', 'FORBIDDEN', 'FORBIDDEN_SCOPE'])(
@@ -104,9 +125,12 @@ describe('AdminUsersPage read recovery', () => {
       for (const denied of ['users', 'choices']) {
         getUsers.mockResolvedValue({ success: denied !== 'users', data: [], code });
         getAgents.mockResolvedValue({ success: denied !== 'choices', data: [], code });
-        await expect(AdminUsersPage({ searchParams: Promise.resolve({}) })).rejects.toThrow(
-          'TEST_NOT_FOUND'
-        );
+        await expect(
+          AdminUsersPage({
+            params: Promise.resolve({ locale: 'en' }),
+            searchParams: Promise.resolve({}),
+          })
+        ).rejects.toThrow('TEST_NOT_FOUND');
       }
     }
   );

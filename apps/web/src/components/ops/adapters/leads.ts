@@ -47,7 +47,7 @@ export function toOpsTimelineEvents(lead: LeadOpsInput | undefined): OpsTimeline
       id: `${lead.id}-created`,
       title: 'Lead Created',
       description: `Source: ${lead.source || 'Unknown'}`,
-      date: new Date(lead.createdAt).toLocaleString(),
+      date: new Date(lead.createdAt).toISOString(),
       tone: 'neutral',
     });
   }
@@ -59,7 +59,7 @@ export function toOpsTimelineEvents(lead: LeadOpsInput | undefined): OpsTimeline
       id: `${lead.id}-converted`,
       title: 'Converted',
       description: 'Lead converted to client',
-      date: new Date().toLocaleString(), // Mock date as we don't have convertedAt in DTO yet
+      date: new Date().toISOString(), // Mock date as we don't have convertedAt in DTO yet
       tone: 'success',
     });
   }

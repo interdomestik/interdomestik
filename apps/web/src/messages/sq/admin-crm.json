@@ -1,22 +1,22 @@
 {
   "admin-crm": {
     "title": "Raportimi CRM",
-    "description": "Raportim CRM për tenantin mbi shëndetin e pipeline-it, cilësinë e burimeve dhe snapshot-et e parashikimit.",
+    "description": "Raportim CRM për subjektin mbi shëndetin e procesit, cilësinë e burimeve dhe regjistrimet e çastit të parashikimit.",
     "snapshot": {
-      "title": "Snapshot-i i fundit i parashikimit",
-      "description": "Data e mëparshme UTC e snapshot-it, e grupuar sipas valutës.",
-      "empty": "Nuk është gjeneruar snapshot parashikimi për datën e mëparshme UTC.",
-      "staleEmpty": "Snapshot-i i fundit është i vjetër. Vlerat fshihen derisa planifikuesi t'i rifreskojë.",
+      "title": "Regjistrimi i çastit i fundit i parashikimit",
+      "description": "Data e mëparshme UTC e regjistrimit të çastit, e grupuar sipas valutës.",
+      "empty": "Nuk është gjeneruar regjistrim i çastit i parashikimit për datën e mëparshme UTC.",
+      "staleEmpty": "Regjistrimi i çastit i fundit është i vjetër. Vlerat fshihen derisa planifikuesi t'i rifreskojë.",
       "fresh": "I freskët",
       "delayed": "I vonuar",
       "stale": "I vjetër",
       "date": "Pamje {date}",
-      "versionLabel": "Versioni i snapshot-it"
+      "versionLabel": "Versioni i regjistrimit të çastit"
     },
     "branchPipeline": {
-      "title": "Përmbledhje pipeline sipas degës",
-      "description": "Pipeline i ponderuar live 90-ditor sipas degës, pipeline-it dhe valutës.",
-      "empty": "Nuk ka rreshta pipeline live për dritaren standarde të raportimit."
+      "title": "Përmbledhje procesi sipas degës",
+      "description": "Procesi i ponderuar aktual 90-ditor sipas degës, procesit dhe valutës.",
+      "empty": "Nuk ka rreshta të procesit aktual për dritaren standarde të raportimit."
     },
     "sourceBreakdown": {
       "title": "Ndarja sipas burimit",
@@ -26,17 +26,17 @@
     },
     "branchManager": {
       "title": "Raportimi CRM i degës",
-      "description": "Raportim CRM i kufizuar në degë për shëndetin e pipeline-it, cilësinë e burimeve dhe snapshot-et e parashikimit.",
+      "description": "Raportim CRM i kufizuar në degë për shëndetin e procesit, cilësinë e burimeve dhe regjistrimet e çastit të parashikimit.",
       "snapshot": {
-        "title": "Snapshot parashikimi i degës",
-        "description": "Data e mëparshme UTC e snapshot-it për degën tuaj, e grupuar sipas valutës.",
-        "empty": "Nuk është gjeneruar snapshot parashikimi për degën në datën e mëparshme UTC.",
-        "staleEmpty": "Snapshot-i i fundit i degës është i vjetër. Vlerat fshihen derisa planifikuesi t'i rifreskojë."
+        "title": "Regjistrim i çastit i parashikimit të degës",
+        "description": "Data e mëparshme UTC e regjistrimit të çastit për degën tuaj, e grupuar sipas valutës.",
+        "empty": "Nuk është gjeneruar regjistrim i çastit i parashikimit për degën në datën e mëparshme UTC.",
+        "staleEmpty": "Regjistrimi i çastit i fundit i degës është i vjetër. Vlerat fshihen derisa planifikuesi t'i rifreskojë."
       },
       "branchPipeline": {
-        "title": "Përmbledhje pipeline e degës",
-        "description": "Pipeline i ponderuar live 90-ditor për degën tuaj, i grupuar sipas pipeline-it dhe valutës.",
-        "empty": "Nuk ka rreshta pipeline për degën në dritaren standarde të raportimit."
+        "title": "Përmbledhje procesi e degës",
+        "description": "Procesi i ponderuar aktual 90-ditor për degën tuaj, i grupuar sipas procesit dhe valutës.",
+        "empty": "Nuk ka rreshta procesi për degën në dritaren standarde të raportimit."
       },
       "sourceBreakdown": {
         "title": "Ndarja sipas burimit për degën",
@@ -53,7 +53,7 @@
     },
     "labels": {
       "noBranch": "Pa degë",
-      "tenantWide": "Në nivel tenanti",
+      "tenantWide": "Në nivel subjekti",
       "unknownSource": "Burim i panjohur"
     },
     "forecastAlert": {
@@ -64,20 +64,20 @@
         "unknown": "E panjohur"
       },
       "ok": {
-        "headline": "Snapshot-et e parashikimit janë të shëndetshme",
-        "explanation": "Punët e fundit të pritura të snapshot-eve të parashikimit janë vëzhguar pa rreshta të vonuar, të vjetruar, mungues, të shtyrë ose të papritur."
+        "headline": "Regjistrimet e çastit të parashikimit janë të shëndetshme",
+        "explanation": "Punët e fundit të pritura të regjistrimeve të çastit të parashikimit janë vëzhguar pa rreshta të vonuar, të vjetruar, mungues, të shtyrë ose të papritur."
       },
       "warning": {
-        "headline": "Snapshot-et e parashikimit kërkojnë rishikim",
-        "explanation": "Disa punë të snapshot-eve të parashikimit janë të vonuara, mungojnë, janë shtyrë ose janë vëzhguar papritur. Kontrolloni observueshmërinë para riparimeve."
+        "headline": "Regjistrimet e çastit të parashikimit kërkojnë rishikim",
+        "explanation": "Disa punë të regjistrimeve të çastit të parashikimit janë të vonuara, mungojnë, janë shtyrë ose janë vëzhguar papritur. Kontrolloni observueshmërinë para riparimeve."
       },
       "critical": {
-        "headline": "Snapshot-et e parashikimit kërkojnë vëmendje",
-        "explanation": "Puna e fundit e pritur nuk ka snapshot-e të vëzhguara ose përfshin rreshta të vjetruar. Përdorni observueshmërinë dhe backfill-in para se të mbështeteni te të dhënat."
+        "headline": "Regjistrimet e çastit të parashikimit kërkojnë vëmendje",
+        "explanation": "Puna e fundit e pritur nuk ka regjistrime të çastit të vëzhguara ose përfshin rreshta të vjetruar. Përdorni observueshmërinë dhe plotësimin prapaveprues para se të mbështeteni te të dhënat."
       },
       "unknown": {
-        "headline": "Shëndeti i snapshot-eve të parashikimit është i panjohur",
-        "explanation": "Pritshmëritë e snapshot-eve nuk janë të disponueshme ose leximi i observueshmërisë dështoi. Provoni përsëri kur të dhënat të jenë gati."
+        "headline": "Shëndeti i regjistrimeve të çastit të parashikimit është i panjohur",
+        "explanation": "Pritshmëritë e regjistrimeve të çastit nuk janë të disponueshme ose leximi i observueshmërisë dështoi. Provoni përsëri kur të dhënat të jenë gati."
       },
       "metrics": {
         "expected": "Pritura",
@@ -91,9 +91,9 @@
       }
     },
     "forecastObservability": {
-      "title": "Vëzhgueshmëria e snapshot-it të parashikimit",
-      "description": "Mbulim operacional për datën e mëparshme UTC të snapshot-it të parashikimit.",
-      "empty": "Nuk u gjetën work items të pritura ose të vëzhguara për datën e mëparshme UTC.",
+      "title": "Vëzhgueshmëria e regjistrimit të çastit të parashikimit",
+      "description": "Mbulim operacional për datën e mëparshme UTC të regjistrimit të çastit të parashikimit.",
+      "empty": "Nuk u gjetën njësi pune të pritura ose të vëzhguara për datën e mëparshme UTC.",
       "summary": {
         "expected": "Të pritura",
         "observed": "Të vëzhguara",
@@ -102,7 +102,7 @@
         "delayed": "Të vonuara",
         "stale": "Të vjetra",
         "deferred": "Të shtyra",
-        "latestRun": "Run-i i fundit"
+        "latestRun": "Ekzekutimi i fundit"
       },
       "status": {
         "fresh": "I freskët",
@@ -112,7 +112,7 @@
       },
       "coverage": {
         "title": "Mbulimi",
-        "empty": "Nuk ka work items të pritura të snapshot-it për këtë datë.",
+        "empty": "Nuk ka njësi pune të pritura të regjistrimit të çastit për këtë datë.",
         "branch": "Dega",
         "pipeline": "Linja e shitjeve",
         "currency": "Valuta",
@@ -123,9 +123,9 @@
         "hiddenHelp": "Rreshtat e mbulimit kufizohen pas renditjes deterministike."
       },
       "batches": {
-        "title": "Batch-et e vëzhguara",
-        "empty": "Nuk ka batch-e snapshot-i të vëzhguara për këtë datë.",
-        "sourceRun": "Run burim",
+        "title": "Grupet e vëzhguara",
+        "empty": "Nuk ka grupe regjistrimesh të çastit të vëzhguara për këtë datë.",
+        "sourceRun": "Ekzekutimi burimor",
         "observed": "Të vëzhguara",
         "branches": "Degë",
         "pipelines": "Linja shitjesh",
@@ -137,31 +137,31 @@
       }
     },
     "backfill": {
-      "title": "Backfill i snapshot-it të parashikimit",
-      "description": "Kryeni dry-run dhe konfirmoni riparime të kufizuara të snapshot-eve për këtë tenant.",
-      "help": "Kryeni fillimisht dry-run, kontrolloni ndikimin agregat dhe konfirmoni shkrimin append-only vetëm nëse kërkesa nuk ka ndryshuar.",
+      "title": "Plotësimi prapaveprues i regjistrimit të çastit të parashikimit",
+      "description": "Kryeni simulim dhe konfirmoni riparime të kufizuara të regjistrimeve të çastit për këtë subjekt.",
+      "help": "Kryeni fillimisht simulim, kontrolloni ndikimin agregat dhe konfirmoni shkrimin vetëm me shtim vetëm nëse kërkesa nuk ka ndryshuar.",
       "fields": {
-        "tenantId": "ID e tenantit",
+        "tenantId": "ID e subjektit",
         "fromDate": "Nga data",
         "toDate": "Deri më",
-        "maxWorkItemsPerDate": "Maks. work items"
+        "maxWorkItemsPerDate": "Maks. njësi pune"
       },
       "dryRun": {
         "button": "Provë",
-        "pending": "Dry-run po ekzekutohet",
-        "help": "Dry-run nuk fut snapshot-e. Dry-run-et e përfunduara ose të pjesshme krijojnë konfirmim jetëshkurtër."
+        "pending": "Simulimi po ekzekutohet",
+        "help": "Simulimi nuk shton regjistrime të çastit. Simulimet e përfunduara ose të pjesshme krijojnë konfirmim jetëshkurtër."
       },
       "confirm": {
         "button": "Konfirmo shkrimin",
-        "pending": "Snapshot-et po shkruhen",
-        "warning": "Shkrimi fut snapshot-e append-only për të njëjtën kërkesë dry-run.",
-        "invalidates": "Çdo ndryshim fushe kërkon dry-run të ri.",
-        "expired": "Konfirmimi skadoi. Kryeni dry-run të ri.",
-        "invalid": "Konfirmimi nuk përputhet më me këtë kërkesë. Kryeni dry-run të ri.",
+        "pending": "Regjistrimet e çastit po shkruhen",
+        "warning": "Shkrimi fut regjistrime të çastit vetëm me shtim për të njëjtën kërkesë simulimi.",
+        "invalidates": "Çdo ndryshim fushe kërkon simulim të ri.",
+        "expired": "Konfirmimi skadoi. Kryeni simulim të ri.",
+        "invalid": "Konfirmimi nuk përputhet më me këtë kërkesë. Kryeni simulim të ri.",
         "inFlight": "Një shkrim është tashmë në proces për këtë konfirmim."
       },
       "result": {
-        "summary": "Rezultati i backfill-it",
+        "summary": "Rezultati i plotësimit prapaveprues",
         "dateRows": "Rezultatet sipas datës",
         "noDateRows": "Nuk u kthyen rreshta datash."
       },
@@ -177,14 +177,14 @@
         "datesPartial": "Data të pjesshme",
         "datesDeferred": "Data të shtyra",
         "datesFailed": "Data të dështuara",
-        "workItemsConsidered": "Work items të shqyrtuara",
-        "workItemsSucceeded": "Work items të suksesshme",
-        "workItemsDeferred": "Work items të shtyra",
-        "workItemsFailed": "Work items të dështuara",
-        "snapshotsInserted": "Snapshot-e të futura",
+        "workItemsConsidered": "Njësi pune të shqyrtuara",
+        "workItemsSucceeded": "Njësi pune të suksesshme",
+        "workItemsDeferred": "Njësi pune të shtyra",
+        "workItemsFailed": "Njësi pune të dështuara",
+        "snapshotsInserted": "Regjistrime të çastit të futura",
         "versionConflicts": "Konflikte versioni",
         "generatedAt": "Gjeneruar më",
-        "sourceRunId": "Run burim"
+        "sourceRunId": "Ekzekutimi burimor"
       },
       "table": {
         "date": "Data",
@@ -195,19 +195,19 @@
         "inserted": "Futur"
       },
       "error": {
-        "unauthorized": "Ky llogari nuk mund të kryejë backfill të snapshot-eve të parashikimit.",
-        "invalid_request": "Kërkesa e backfill-it përmban fusha të pambështetura.",
+        "unauthorized": "Kjo llogari nuk mund të kryejë plotësimin prapaveprues të regjistrimeve të çastit të parashikimit.",
+        "invalid_request": "Kërkesa e plotësimit prapaveprues përmban fusha të pambështetura.",
         "invalid_range": "Përdorni një interval të vlefshëm datash UTC.",
         "range_too_large": "Intervali i datave është më i madh se dritarja e lejuar.",
         "date_out_of_bounds": "Intervali i datave është jashtë kufijve historikë të lejuar.",
-        "invalid_tenant": "Tenanti i dorëzuar duhet të përputhet me sesionin tuaj admin.",
-        "confirmation_invalid": "Konfirmimi nuk përputhet më me këtë kërkesë. Kryeni dry-run të ri.",
-        "confirmation_expired": "Konfirmimi skadoi. Kryeni dry-run të ri.",
+        "invalid_tenant": "Subjekti i dorëzuar duhet të përputhet me sesionin tuaj admin.",
+        "confirmation_invalid": "Konfirmimi nuk përputhet më me këtë kërkesë. Kryeni simulim të ri.",
+        "confirmation_expired": "Konfirmimi skadoi. Kryeni simulim të ri.",
         "confirmation_in_flight": "Një shkrim është tashmë në proces për këtë konfirmim.",
-        "rate_limited": "Shumë tentativa backfill. Prisni dhe provoni përsëri.",
+        "rate_limited": "Shumë tentativa për plotësim prapaveprues. Prisni dhe provoni përsëri.",
         "all_dates_failed": "Të gjitha datat dështuan. Nuk ka konfirmim shkrimi.",
-        "partial_failure": "Backfill përfundoi me dështime të pjesshme.",
-        "internal_error": "Backfill nuk mund të përfundohej. Provoni më vonë."
+        "partial_failure": "Plotësimi prapaveprues përfundoi me dështime të pjesshme.",
+        "internal_error": "Plotësimi prapaveprues nuk mund të përfundohej. Provoni më vonë."
       }
     },
     "routing": {
@@ -230,9 +230,9 @@
         "effectiveTo": "Efektive deri",
         "fallbackAgentId": "ID agjenti rezervë",
         "fallbackRuleId": "ID rregulli rezervë",
-        "leadType": "Lloji i lead-it",
+        "leadType": "Lloji i kontaktit të mundshëm",
         "maxNewLeadsPerAgentPerDay": "Kufiri ditor",
-        "maxOpenLeadsPerAgent": "Kufiri i lead-eve të hapura",
+        "maxOpenLeadsPerAgent": "Kufiri i kontakteve të hapura të mundshme",
         "priority": "Prioriteti",
         "source": "Burimi",
         "strategy": "Strategjia",
@@ -252,7 +252,7 @@
         "filters": "Filtrat",
         "noFallback": "Pa rezervë",
         "noFilters": "Pa filtra",
-        "tenantScope": "Në gjithë organizatën"
+        "tenantScope": "Në gjithë subjektin"
       },
       "strategy": {
         "least_loaded": "Më pak i ngarkuar",
@@ -266,11 +266,11 @@
         "emptyAgentPool": "ID-të e agjentëve kërkohen nëse strategjia nuk është vetëm manuale.",
         "duplicateAgent": "ID-të e agjentëve nuk duhet të përsëriten.",
         "duplicateRule": "ID-të e rregullave nuk duhet të përsëriten.",
-        "crossTenantAgent": "Çdo agjent duhet t’i përkasë këtij tenanti.",
+        "crossTenantAgent": "Çdo agjent duhet t’i përkasë këtij subjekti.",
         "branchAgent": "Çdo agjent duhet të përputhet me degën e zgjedhur.",
-        "invalidBranch": "Zgjidhni një degë të vlefshme për këtë tenant.",
+        "invalidBranch": "Zgjidhni një degë të vlefshme për këtë subjekt.",
         "selfFallback": "Një rregull nuk mund të ketë vetveten si rezervë.",
-        "branchFallback": "Rregullat rezervë duhet të përputhen me tenantin dhe degën.",
+        "branchFallback": "Rregullat rezervë duhet të përputhen me subjektin dhe degën.",
         "archivedFallback": "Rregullat e arkivuara nuk mund të përdoren si rezervë.",
         "disabledFallback": "Rregullat e çaktivizuara nuk mund të përdoren si rezervë.",
         "fieldTooLong": "Një fushë është më e gjatë se kufiri i lejuar.",
@@ -284,9 +284,9 @@
     "charts": {
       "hiddenItems": "{count, plural, one {# rresht shtesë është fshehur nga përmbledhja e grafikut} other {# rreshta shtesë janë fshehur nga përmbledhja e grafikut}}",
       "pipelineAmount": {
-        "title": "Grafiku i shumës së pipeline-it",
-        "description": "Krahasim plotësues i shumës totale dhe të ponderuar të pipeline-it. Tabela sipër është burimi kryesor.",
-        "summaryIntro": "Përmbledhje e grafikut të shumës së pipeline-it",
+        "title": "Grafiku i shumës së procesit",
+        "description": "Krahasim plotësues i shumës totale dhe të ponderuar të procesit. Tabela sipër është burimi kryesor.",
+        "summaryIntro": "Përmbledhje e grafikut të shumës së procesit",
         "total": "Totali",
         "weighted": "I ponderuar"
       }
@@ -294,7 +294,7 @@
     "excludedRows": "{count, plural, one {# rresht agregat i përjashtuar} other {# rreshta agregatë të përjashtuar}}",
     "excludedRowsHelp": "Rreshtat mund të përjashtohen nga metrikat agregate kur mungojnë ose janë jokonsistente fushat e raportimit.",
     "error": {
-      "tenant": "Raportimi CRM nuk është i disponueshëm për këtë kontekst tenanti.",
+      "tenant": "Raportimi CRM nuk është i disponueshëm për këtë kontekst subjekti.",
       "role": "Ky llogari admini nuk mund të shohë raportimin CRM.",
       "branch": "Raportimi CRM kërkon fushë të vlefshme dege.",
       "agent": "Raportimi CRM me fushë agjenti nuk shfaqet në panelin e adminit.",

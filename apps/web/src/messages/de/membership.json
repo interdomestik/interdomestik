@@ -218,6 +218,23 @@
       "success": "Sie haben das Firmenprogramm verlassen. Sie können jetzt eine individuelle Mitgliedschaft erwerben.",
       "not_found": "Diese Firmenmitgliedschaft ist nicht mehr verfügbar. Laden Sie die Seite neu.",
       "error": "Der Austritt ist fehlgeschlagen. Bitte versuchen Sie es erneut."
+    },
+    "policies": {
+      "title": "Meine Versicherungspolicen",
+      "body": "Verwalten Sie Ihre Versicherungsunterlagen und sehen Sie KI-Analysen ein.",
+      "add": "Police hinzufügen",
+      "emptyTitle": "Noch keine Policen hochgeladen",
+      "emptyBody": "Laden Sie Ihre Versicherungspolice hoch, um KI-Analysen, zusätzliche Vorteile und Werkzeuge zur Interessenvertretung zu nutzen.",
+      "uploadFirst": "Erste Police hochladen",
+      "analyzed": "Mit KI analysiert",
+      "unknownProvider": "Unbekannter Versicherer",
+      "noNumber": "Ohne Nummer",
+      "coverage": "Deckung:",
+      "deductible": "Selbstbeteiligung:",
+      "unavailable": "Nicht verfügbar",
+      "hiddenPerks": "ZUSÄTZLICHE VORTEILE",
+      "more": "+{count} weitere",
+      "viewPdf": "PDF ansehen"
     }
   }
 }

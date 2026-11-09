@@ -218,6 +218,23 @@
       "success": "Napustili ste program kompanije. Sada možete kupiti individualno članstvo.",
       "not_found": "Ovo članstvo preko kompanije više nije dostupno. Osvežite stranicu.",
       "error": "Nismo uspeli da napustimo program. Pokušajte ponovo."
+    },
+    "policies": {
+      "title": "Moje polise",
+      "body": "Upravljajte dokumentima osiguranja i pogledajte analize veštačke inteligencije.",
+      "add": "Dodaj polisu",
+      "emptyTitle": "Još nema otpremljenih polisa",
+      "emptyBody": "Otpremite polisu osiguranja da biste dobili analize veštačke inteligencije, dodatne pogodnosti i alate za zastupanje.",
+      "uploadFirst": "Otpremi prvu polisu",
+      "analyzed": "Analizirano veštačkom inteligencijom",
+      "unknownProvider": "Nepoznat osiguravač",
+      "noNumber": "Bez broja",
+      "coverage": "Pokriće:",
+      "deductible": "Franšiza:",
+      "unavailable": "Nije dostupno",
+      "hiddenPerks": "DODATNE POGODNOSTI",
+      "more": "+{count} više",
+      "viewPdf": "Prikaži PDF"
     }
   }
 }

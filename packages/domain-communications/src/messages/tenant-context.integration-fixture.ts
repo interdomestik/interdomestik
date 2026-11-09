@@ -3,11 +3,12 @@ import { afterAll, beforeAll, expect } from 'vitest';
 import postgres from 'postgres';
 import { eq, inArray } from 'drizzle-orm';
 import type { Session } from '../types';
+import { messageCatalogueCopy } from './message-catalogue.test-support';
 import { runReplyPreparationWorkers } from './public-reply-concurrency.runtime-fixture';
 
 const suffix = randomUUID();
-export const homeTenantId = `message_home_${suffix}`;
-export const otherTenantId = `message_other_${suffix}`;
+const catalogue = messageCatalogueCopy(suffix, process.env.VITEST_POOL_ID ?? 'main');
+export const { homeTenantId, otherTenantId, ids } = catalogue;
 const fixtureRole = `message_rls_${suffix.replaceAll('-', '')}`;
 const fixturePassword = randomUUID().replaceAll('-', '');
 let fixtureRoleCreated = false;
@@ -15,18 +16,6 @@ const previousDbRole = process.env.DB_RLS_ROLE;
 const previousClients = {
   queryClientRls: (globalThis as { queryClientRls?: unknown }).queryClientRls,
   queryClientAdmin: (globalThis as { queryClientAdmin?: unknown }).queryClientAdmin,
-};
-export const ids = {
-  member: `message_member_${suffix}`,
-  otherMember: `message_other_${suffix}`,
-  staff: `message_staff_${suffix}`,
-  agent: `message_agent_${suffix}`,
-  claim: `message_claim_${suffix}`,
-  agentBranch: `message_agent_branch_${suffix}`,
-  otherBranch: `message_other_branch_${suffix}`,
-  link: `message_link_${suffix}`,
-  public: `message_public_${suffix}`,
-  internal: `message_internal_${suffix}`,
 };
 let database: typeof import('@interdomestik/database');
 let get: (typeof import('./get'))['getMessagesForClaimCore'];
@@ -121,7 +110,7 @@ export function registerMessageRlsFixture(): void {
     restrictedUrl.password = fixturePassword;
     // Do not inherit credential or session overrides from the administrative URL.
     restrictedUrl.search = '';
-    rlsClient = postgres(restrictedUrl.toString(), { max: 1 });
+    rlsClient = postgres(restrictedUrl.toString(), { max: 2 });
     Object.assign(globalThis, { queryClientRls: rlsClient, queryClientAdmin: adminClient });
     database = await import('@interdomestik/database');
     ({ getMessagesForClaimCore: get } = await import('./get'));
@@ -172,63 +161,10 @@ export function registerMessageRlsFixture(): void {
         slug: ids.otherBranch,
       },
     ]);
-    const now = new Date();
-    await database.dbAdmin.insert(database.user).values(
-      [
-        [ids.member, 'member'],
-        [ids.otherMember, 'member'],
-        [ids.staff, 'staff'],
-        [ids.agent, 'agent'],
-      ].map(([id, role]) => ({
-        id,
-        role,
-        tenantId: homeTenantId,
-        email: `${id}@example.test`,
-        emailVerified: true,
-        name: role === 'staff' ? 'Synthetic Staff Sender' : 'Synthetic Member',
-        branchId: id === ids.agent ? ids.agentBranch : null,
-        createdAt: now,
-        updatedAt: now,
-      }))
-    );
-    await database.dbAdmin.insert(database.claims).values({
-      id: ids.claim,
-      userId: ids.member,
-      tenantId: homeTenantId,
-      staffId: ids.staff,
-      category: 'retail',
-      companyName: 'Synthetic Co',
-      // Submitted work: staff scopes exclude member drafts (the column default).
-      caseLifecycleState: 'submitted',
-      description: 'Isolated message tenant-context regression',
-      origin: 'portal',
-      title: 'Synthetic message case',
-    });
-    await database.dbAdmin.insert(database.agentClients).values({
-      id: ids.link,
-      tenantId: homeTenantId,
-      agentId: ids.agent,
-      memberId: ids.member,
-      status: 'active',
-    });
-    await database.dbAdmin.insert(database.claimMessages).values([
-      {
-        id: ids.public,
-        tenantId: homeTenantId,
-        claimId: ids.claim,
-        senderId: ids.staff,
-        content: 'Public test update',
-        isInternal: false,
-      },
-      {
-        id: ids.internal,
-        tenantId: homeTenantId,
-        claimId: ids.claim,
-        senderId: ids.staff,
-        content: 'Private test note',
-        isInternal: true,
-      },
-    ]);
+    await database.dbAdmin.insert(database.user).values(catalogue.users);
+    await database.dbAdmin.insert(database.claims).values(catalogue.claim);
+    await database.dbAdmin.insert(database.agentClients).values(catalogue.link);
+    await database.dbAdmin.insert(database.claimMessages).values(catalogue.messages);
   });
 
   afterAll(async () => {

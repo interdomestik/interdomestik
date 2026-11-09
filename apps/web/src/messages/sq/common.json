@@ -1,5 +1,16 @@
 {
   "common": {
+    "pwa": {
+      "offlineHeading": "Ndihmë tani — jashtë linje",
+      "offlinePrivacy": "Vetëm listë publike për vendin e ngjarjes. Pa të dhëna llogarie, shënime të ruajtura për fotografitë apo ndryshime në radhë.",
+      "offlineAvailability": "Numrat dhe rregullat specifike për vendin kërkojnë lidhje interneti.",
+      "offlineTitle": "Jeni jashtë linje",
+      "offlineBody": "Rilidhuni për të parë hapësirën tuaj të punës. Nuk ka të dhëna të ruajtura për përdorim jashtë linje. Ndryshimet nuk vendosen në radhë dhe nuk dërgohen jashtë linje.",
+      "retry": "Provo përsëri",
+      "install": "Instalo aplikacionin",
+      "iosTitle": "Instalo në ekranin kryesor",
+      "iosInstructions": "Prek Ndaj, pastaj Shto në ekranin kryesor."
+    },
     "appName": "Asistenca",
     "companyName": "Interdomestik",
     "tagline": "Pranë jush kur duhet",
@@ -39,7 +50,7 @@
       "member": "Anëtar",
       "staff": "Staf",
       "super_admin": "Kryeadministrator",
-      "tenant_admin": "Administrator i tenant-it",
+      "tenant_admin": "Administrator i subjektit",
       "branch_manager": "Menaxher i filialit",
       "promoter": "Promotor",
       "user": "Anëtar"
@@ -56,6 +67,13 @@
       "details": "Duke klikuar 'Pranoji të Gjitha', ju pajtoheni me përdorimin tonë të cookies për analitikë dhe përmbajtje të personalizuar.",
       "accept": "Pranoji të Gjitha",
       "decline": "Vetëm të Domosdoshme"
+    },
+    "interface": {
+      "statusSuccess": "Statusi u përditësua me sukses",
+      "statusError": "Statusi nuk u përditësua",
+      "expandAll": "Shfaq të gjithë ({count})",
+      "searchMembers": "Kërko anëtarë",
+      "loadingPage": "Duke ngarkuar faqen"
     }
   }
 }

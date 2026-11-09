@@ -8,18 +8,23 @@ type Props = Readonly<{
   searchParams: Promise<{ view?: string; query?: string; state?: string }>;
 }>;
 
-export default async function AdminLeadsPage({ params, searchParams }: Props) {
+export default async function AdminLeadsPage({
+  params,
+  searchParams,
+}: Props): Promise<React.JSX.Element> {
   const { locale } = await params;
   setRequestLocale(locale);
 
   const { view, state } = await searchParams;
   if (view === 'duplicates') {
-    return <LeadDuplicatesPage state={state === 'resolved' ? 'resolved' : 'pending'} />;
+    return (
+      <LeadDuplicatesPage locale={locale} state={state === 'resolved' ? 'resolved' : 'pending'} />
+    );
   }
   return (
     <>
-      <LeadDuplicatesLink />
-      <VerificationOpsCenterPage searchParams={searchParams} />
+      <LeadDuplicatesLink locale={locale} />
+      <VerificationOpsCenterPage locale={locale} searchParams={searchParams} />
     </>
   );
 }

@@ -19,7 +19,7 @@ vi.mock('next-intl', () => ({
       editDraft: 'Edit Draft',
       cancelClaim: 'Cancel Claim',
       cancelConfirm: 'Are you sure you want to cancel this claim?',
-      cancelled: 'Claim cancelled',
+      cancelled: 'Claim canceled',
       cancelFailed: 'Failed to cancel claim',
     };
     return translations[key] || key;

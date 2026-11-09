@@ -15,6 +15,7 @@ vi.mock('next/navigation', () => ({
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
+  useLocale: () => 'sq',
   useTranslations: () => (key: string, params?: Record<string, unknown>) => {
     const translations: Record<string, string> = {
       'table.claimant': 'Claimant',
@@ -26,6 +27,7 @@ vi.mock('next-intl', () => ({
       'table.no_claims': 'No claims found.',
       'table.message_alert': `New message (${params?.count || 0})`,
       'actions.review': 'Review Case',
+      'actions.view_status': 'View Status',
       loading: 'Loading...',
       'errors.generic': 'An error occurred',
       tryAgain: 'Try Again',

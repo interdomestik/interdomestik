@@ -29,6 +29,9 @@
       }
     },
     "cta": "Start a Claim",
-    "learnMore": "Learn More"
+    "learnMore": "Learn More",
+    "assistance": {
+      "helpBody": "If you believe your rights have been violated, we can help you file a claim."
+    }
   }
 }

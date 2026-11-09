@@ -75,7 +75,7 @@ test.describe('Diaspora Feature', () => {
     await switchLocale(page, 'Language', 'Shqip', routes.memberDiaspora('sq'));
     await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(preservedQuery);
     await expect(
-      page.getByRole('region', { name: 'Korridori yt i udhëtimit', exact: true })
+      page.getByRole('region', { name: 'Korridori juaj i udhëtimit', exact: true })
     ).toContainText('Gjermania → Austri → Austri → Italia');
     await switchLocale(page, 'Gjuha', 'Македонски', routes.memberDiaspora('mk'));
     await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(preservedQuery);

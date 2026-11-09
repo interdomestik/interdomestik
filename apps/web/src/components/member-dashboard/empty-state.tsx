@@ -7,7 +7,7 @@ export type MemberEmptyStateProps = {
 };
 
 export async function MemberEmptyState({ locale }: MemberEmptyStateProps): Promise<ReactElement> {
-  const t = await getTranslations('dashboard.member_landing');
+  const t = await getTranslations({ locale, namespace: 'dashboard.member_landing' });
 
   return (
     <section data-testid="member-empty-state">

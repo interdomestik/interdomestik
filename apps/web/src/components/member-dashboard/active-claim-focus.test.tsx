@@ -2,8 +2,9 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn(async (namespace?: string) => {
-    if (namespace === 'dashboard.member_landing') {
+  getTranslations: vi.fn(async (namespace?: string | { locale: string; namespace?: string }) => {
+    const ns = typeof namespace === 'string' ? namespace : namespace?.namespace;
+    if (ns === 'dashboard.member_landing') {
       return (key: string) => {
         const messages: Record<string, string> = {
           active_claim_title: 'Kërkesë aktive',
@@ -14,7 +15,7 @@ vi.mock('next-intl/server', () => ({
       };
     }
 
-    if (namespace === 'claims.status') {
+    if (ns === 'claims.status') {
       return (key: string) => {
         const messages: Record<string, string> = {
           court: 'Në gjyq',

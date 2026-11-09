@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { advance, setupSearchHarness } from '@/hooks/responsive-search-test-support';
 import { AgentMembersSearch } from './agent-members-search';
 
+vi.mock('next-intl', () => ({ useTranslations: () => () => 'Kërko anëtarë' }));
+
 const { pathnameMock, pushMock, replaceMock, searchParamsMock } = vi.hoisted(() => ({
   pathnameMock: vi.fn(() => '/agent/members'),
   pushMock: vi.fn(),
@@ -48,6 +50,7 @@ describe('AgentMembersSearch', () => {
   it('commits the trimmed term once per typing burst as a relative replace', () => {
     render(<AgentMembersSearch />);
 
+    expect(searchInput()).toHaveAttribute('placeholder', 'Kërko anëtarë');
     type('  ada');
     advance(SEARCH_COMMIT_DELAY_MS - 50);
     type('  ada  ');

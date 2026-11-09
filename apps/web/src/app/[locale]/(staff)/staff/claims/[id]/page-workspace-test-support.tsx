@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
-import { vi } from 'vitest';
+import { expect, vi } from 'vitest';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { PublicInformationRequest } from '@interdomestik/domain-claims';
 
@@ -97,9 +97,11 @@ vi.mock('next-intl/server', async () => {
     );
 
   return {
-    getTranslations: vi.fn((namespace?: string) =>
+    getTranslations: vi.fn((namespace?: string | { locale: string; namespace?: string }) =>
       Promise.resolve((key: string) => {
-        const path = [...(namespace ? namespace.split('.') : []), ...key.split('.')];
+        const ns = typeof namespace === 'string' ? namespace : namespace?.namespace;
+        if (typeof namespace !== 'string') expect(namespace?.locale).toBe(hoisted.locale);
+        const path = [...(ns ? ns.split('.') : []), ...key.split('.')];
         const value = read(hoisted.locale, path);
         // Keys outside these catalogs stay visible as keys, as next-intl itself falls back.
         return typeof value === 'string' ? value : path.join('.');

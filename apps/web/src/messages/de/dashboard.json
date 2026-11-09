@@ -491,7 +491,7 @@
           "help_now": "Jetzt Hilfe erhalten (60-Sekunden-Anruf)",
           "documents": "Dokumente",
           "benefits": "Vorteile",
-          "support": "Support",
+          "support": "Unterstützung",
           "start_claim": "Fall melden"
         },
         "chip": {
@@ -515,7 +515,7 @@
           "title": "Mitgliedercenter",
           "notifications": "Benachrichtigungen",
           "profile": "Profil und Einstellungen",
-          "support": "Support"
+          "support": "Unterstützung"
         },
         "footer": {
           "privacy": "Ihre Mitgliedschaftsdaten und Falldetails werden sicher behandelt.",
@@ -547,7 +547,7 @@
         "admin": "Admin"
       },
       "surface": {
-        "legacy": "legacy",
+        "legacy": "Klassisch",
         "v3": "v3"
       }
     }

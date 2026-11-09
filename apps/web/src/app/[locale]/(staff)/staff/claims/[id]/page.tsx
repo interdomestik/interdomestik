@@ -42,13 +42,15 @@ function toClaimStatus(value: unknown): ClaimStatus {
   return CLAIM_STATUSES.includes(value as ClaimStatus) ? (value as ClaimStatus) : 'draft';
 }
 
-export default async function StaffClaimDetailsPage({ params }: PageProps) {
+export default async function StaffClaimDetailsPage({
+  params,
+}: PageProps): Promise<React.JSX.Element> {
   const { id, locale } = await params;
   setRequestLocale(locale);
-  const tClaims = await getTranslations('agent-claims.claims');
-  const tStatus = await getTranslations('claims-tracking.status');
-  const tEvidence = await getTranslations('claims');
-  const tCommon = await getTranslations('common');
+  const tClaims = await getTranslations({ locale, namespace: 'agent-claims.claims' });
+  const tStatus = await getTranslations({ locale, namespace: 'claims-tracking.status' });
+  const tEvidence = await getTranslations({ locale, namespace: 'claims' });
+  const tCommon = await getTranslations({ locale, namespace: 'common' });
 
   const session = requireSessionOrRedirect(await getSessionSafe('StaffClaimDetailsPage'), locale);
   // Pilot policy: branch managers have read-only visibility; claim actions remain staff-only.

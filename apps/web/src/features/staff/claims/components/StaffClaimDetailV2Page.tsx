@@ -25,7 +25,13 @@ import { notFound } from 'next/navigation';
 
 import { getStaffClaimDetailsCore } from '@/app/[locale]/(staff)/staff/claims/[id]/_core';
 
-export async function StaffClaimDetailV2Page({ id, locale }: { id: string; locale: string }) {
+export async function StaffClaimDetailV2Page({
+  id,
+  locale,
+}: {
+  id: string;
+  locale: string;
+}): Promise<React.JSX.Element> {
   setRequestLocale(locale);
 
   let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
@@ -64,7 +70,7 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
   const currentAssigneeLabel =
     assignmentOptions.find(option => option.id === claim.staffId)?.label ?? null;
 
-  const t = await getTranslations('agent-claims.claims');
+  const t = await getTranslations({ locale, namespace: 'agent-claims.claims' });
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in p-4 md:p-8 max-w-7xl mx-auto">

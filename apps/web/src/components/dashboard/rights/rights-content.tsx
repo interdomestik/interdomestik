@@ -12,7 +12,7 @@ import {
 import { AlertTriangle, FileText, Gavel, Info, Scale, Shield, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-export function RightsContent() {
+export function RightsContent(): React.JSX.Element {
   const t = useTranslations('consumerRights');
 
   const rights = [
@@ -79,9 +79,7 @@ export function RightsContent() {
             <Shield className="h-6 w-6 text-primary" />
             <CardTitle>{t('cta')}</CardTitle>
           </div>
-          <CardDescription>
-            If you believe your rights have been violated, we can help you file a claim.
-          </CardDescription>
+          <CardDescription>{t('assistance.helpBody')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild size="lg">

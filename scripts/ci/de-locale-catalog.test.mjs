@@ -95,9 +95,10 @@ test('unknown de catalogs and unknown locales stay unowned', () => {
 
 test('the de catalog contract does not widen ownership of other locales', () => {
   for (const locale of ['en', 'sq', 'mk', 'sr']) {
-    for (const name of ['common.json', 'admin.json']) {
-      assert.equal(structuredArtifactOwner(`apps/web/src/messages/${locale}/${name}`), null);
-    }
+    const common = structuredArtifactOwner(`apps/web/src/messages/${locale}/common.json`);
+    assert.notEqual(common, 'de-locale-catalog-contract', `${locale}/common.json`);
+    assert.equal(structuredArtifactOwner(`apps/web/src/messages/${locale}/admin.json`), null);
   }
-  assert.equal(structuredArtifactOwner('apps/web/src/messages/sq/auth.json'), null);
+  const sqAuth = structuredArtifactOwner('apps/web/src/messages/sq/auth.json');
+  assert.notEqual(sqAuth, 'de-locale-catalog-contract');
 });

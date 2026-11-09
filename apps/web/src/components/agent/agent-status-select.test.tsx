@@ -13,7 +13,9 @@ vi.mock('next-intl', () => ({
       court: 'Court',
       resolved: 'Resolved',
       rejected: 'Rejected',
-      status_label: 'Status',
+      status_label: 'Gjendja',
+      statusSuccess: 'Gjendja u përditësua',
+      statusError: 'Gjendja nuk u përditësua',
     };
     return translations[key] || key;
   },
@@ -56,7 +58,7 @@ describe('AgentStatusSelect', () => {
 
   it('renders status label', () => {
     render(<AgentStatusSelect claimId="claim-123" currentStatus="submitted" />);
-    expect(screen.getByText('Status:')).toBeInTheDocument();
+    expect(screen.getByText('Gjendja:')).toBeInTheDocument();
   });
 
   it('renders select component', () => {

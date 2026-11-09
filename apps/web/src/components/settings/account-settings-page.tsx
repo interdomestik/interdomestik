@@ -21,7 +21,9 @@ function SettingsSkeleton() {
  * Profile, password and language settings for the signed-in user. Portals mount it under their
  * own canonical route; the portal layout has already admitted the role.
  */
-export async function AccountSettingsPage({ locale }: Readonly<{ locale: string }>) {
+export async function AccountSettingsPage({
+  locale,
+}: Readonly<{ locale: string }>): Promise<React.JSX.Element> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -30,7 +32,7 @@ export async function AccountSettingsPage({ locale }: Readonly<{ locale: string 
     redirect(`/${locale}/login`);
   }
 
-  const tCommon = await getTranslations('settings');
+  const tCommon = await getTranslations({ locale, namespace: 'settings' });
 
   return (
     <div className="space-y-8">

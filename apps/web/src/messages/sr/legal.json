@@ -15,7 +15,7 @@
       "sections": {
         "handling": {
           "title": "Kako obrađujemo vaše podatke",
-          "body": "Prikupljamo samo informacije koje su potrebne za pružanje usluga članstva, obradu zahteva i ispunjavanje zakonskih obaveza. Pristup je ograničen po ulozi i opsegu tenant-a."
+          "body": "Prikupljamo samo informacije koje su potrebne za pružanje usluga članstva, obradu zahteva i ispunjavanje zakonskih obaveza. Pristup je ograničen po ulozi i opsegu subjekta."
         },
         "rights": {
           "title": "Vaša prava",

@@ -207,6 +207,7 @@
         "approve": "Approve",
         "reject": "Reject",
         "requestInfo": "Request Info",
+        "view_status": "View Status",
         "review": "Review Case",
         "open": "Open"
       },

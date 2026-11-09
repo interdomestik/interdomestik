@@ -1,5 +1,16 @@
 {
   "common": {
+    "pwa": {
+      "offlineHeading": "Help Now — offline",
+      "offlinePrivacy": "Public scene checklist only. No account records, saved photo notes or queued changes.",
+      "offlineAvailability": "Country-specific numbers and rules require an online connection.",
+      "offlineTitle": "You are offline",
+      "offlineBody": "Reconnect to view your workspace. No cached records are available. Changes are not queued or sent while offline.",
+      "retry": "Retry",
+      "install": "Install App",
+      "iosTitle": "Install on your home screen",
+      "iosInstructions": "Tap Share, then Add to Home Screen."
+    },
     "appName": "Asistenca",
     "companyName": "Interdomestik",
     "tagline": "There when you need us",
@@ -56,6 +67,13 @@
       "details": "By clicking 'Accept', you agree to our use of cookies for analytics and personalized content.",
       "accept": "Accept All",
       "decline": "Necessary Only"
+    },
+    "interface": {
+      "statusSuccess": "Status updated successfully",
+      "statusError": "Failed to update status",
+      "expandAll": "Expand All ({count})",
+      "searchMembers": "Search members",
+      "loadingPage": "Loading page"
     }
   }
 }

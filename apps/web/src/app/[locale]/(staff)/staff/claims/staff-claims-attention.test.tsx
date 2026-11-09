@@ -57,44 +57,46 @@ vi.mock('next-intl/server', () => ({
     mocks.locale = locale;
   }),
   getTranslations: vi.fn(
-    async (namespace?: string) => (key: string, values?: Record<string, string | number>) => {
-      if (namespace === 'claims-tracking.status') {
-        const sqStatus: Record<string, string> = {
-          submitted: 'Dorëzuar',
-          verification: 'Verifikim',
-          evaluation: 'Vlerësim',
-          negotiation: 'Negociim',
-          court: 'Gjykatë',
+    async (namespace?: string | { locale: string; namespace?: string }) =>
+      (key: string, values?: Record<string, string | number>) => {
+        const ns = typeof namespace === 'string' ? namespace : namespace?.namespace;
+        if (ns === 'claims-tracking.status') {
+          const sqStatus: Record<string, string> = {
+            submitted: 'Dorëzuar',
+            verification: 'Verifikim',
+            evaluation: 'Vlerësim',
+            negotiation: 'Negociim',
+            court: 'Gjykatë',
+          };
+          return mocks.locale === 'sq' ? (sqStatus[key] ?? key) : key;
+        }
+        if (key === 'staff_queue.results_count') {
+          const count = values?.count ?? 0;
+          return mocks.locale === 'sq'
+            ? `${count} ${count === 1 ? 'rast' : 'raste'}`
+            : `${count} ${count === 1 ? 'claim' : 'claims'}`;
+        }
+        const catalogs = {
+          de: deCatalog,
+          en: enCatalog,
+          mk: mkCatalog,
+          sq: sqCatalog,
+          sr: srCatalog,
         };
-        return mocks.locale === 'sq' ? (sqStatus[key] ?? key) : key;
+        const catalog = catalogs[mocks.locale as keyof typeof catalogs];
+        const value = key
+          .split('.')
+          .reduce<unknown>(
+            (current, part) =>
+              current && typeof current === 'object'
+                ? (current as Record<string, unknown>)[part]
+                : undefined,
+            catalog?.['agent-claims'].claims
+          );
+        return typeof value === 'string'
+          ? value.replace(/\{(name|date)\}/g, (_, field: string) => String(values?.[field] ?? ''))
+          : key;
       }
-      if (key === 'staff_queue.results_count') {
-        const count = values?.count ?? 0;
-        return mocks.locale === 'sq'
-          ? `${count} ${count === 1 ? 'rast' : 'raste'}`
-          : `${count} ${count === 1 ? 'claim' : 'claims'}`;
-      }
-      const catalogs = {
-        de: deCatalog,
-        en: enCatalog,
-        mk: mkCatalog,
-        sq: sqCatalog,
-        sr: srCatalog,
-      };
-      const catalog = catalogs[mocks.locale as keyof typeof catalogs];
-      const value = key
-        .split('.')
-        .reduce<unknown>(
-          (current, part) =>
-            current && typeof current === 'object'
-              ? (current as Record<string, unknown>)[part]
-              : undefined,
-          catalog?.['agent-claims'].claims
-        );
-      return typeof value === 'string'
-        ? value.replace(/\{(name|date)\}/g, (_, field: string) => String(values?.[field] ?? ''))
-        : key;
-    }
   ),
 }));
 vi.mock('next/navigation', () => ({

@@ -9,7 +9,8 @@ import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
-import { useTranslations } from 'next-intl';
+import { formatPilotDate } from '@/lib/utils/date';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
 import { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
@@ -25,7 +26,8 @@ export function MembershipOpsPage({
   documents: DbDocument[];
   /** A leavable sponsorship when no subscription record exists yet. */
   leaveEntryId?: string | null;
-}) {
+}): React.JSX.Element {
+  const locale = useLocale();
   const { selectedId, setSelectedId } = useOpsSelectionParam();
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const t = useTranslations('membership');
@@ -46,7 +48,7 @@ export function MembershipOpsPage({
           {s.plan?.name || s.planId}
         </span>
         <span className="text-xs text-muted-foreground">
-          {s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '-'}
+          {s.createdAt ? formatPilotDate(s.createdAt, locale, '-') : '-'}
         </span>
       </div>,
       <OpsStatusBadge key="status" {...toOpsStatus(s.status)} />,
@@ -56,8 +58,8 @@ export function MembershipOpsPage({
   }));
 
   const tableColumns = [
-    { key: 'plan', header: 'Plan' },
-    { key: 'status', header: 'Status' },
+    { key: 'plan', header: t('plan.plan_label') },
+    { key: 'status', header: t('plan.status_label') },
   ];
 
   return (

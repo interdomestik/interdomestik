@@ -12,22 +12,22 @@
     "promptDescription": "Изберете неколку ставки подолу за да започнеме побрзо.",
     "prompts": {
       "flight_delay": [
-        "Bileta ose boarding pass",
-        "Njoftimi i vonesës/anulimit nga linja",
-        "Fatura për ushqim/hotel/transport"
+        "Билет или карта за влез во авион",
+        "Известување од авиокомпанијата за доцнење/откажување",
+        "Сметки за храна/хотел/превоз"
       ],
       "damaged_goods": [
-        "Foto të dëmit",
-        "Faturë ose kupon blerjeje",
-        "Vlerësim ose preventiv riparimi"
+        "Фотографии од штетата",
+        "Фактура или фискална сметка",
+        "Процена или понуда за поправка"
       ],
       "service_issue": [
-        "Kontratë ose faturë",
-        "Screenshote bisedash/email",
-        "Fatura ose njoftim anulimi"
+        "Договор или фактура",
+        "Снимки од разговори/е-пошта",
+        "Фактури или известување за откажување"
       ],
-      "travel": ["Itinerari dhe biletat", "Foto/video të incidentit", "Fatura për shpenzime"],
-      "default": ["Foto ose screenshote", "Fatura/kupona", "Çdo korrespondencë zyrtare"]
+      "travel": ["План и билети", "Фото/видео од настанот", "Сметки за трошоци"],
+      "default": ["Фотографии или снимки", "Сметки", "Службена преписка"]
     },
     "validation": {
       "mime": "Дозволени се само PDF, JPG или PNG датотеки.",

@@ -8,6 +8,7 @@ import { presentMemberDomainEvent } from '../server/member-event-presentation-re
 import { useTrackingLabelTranslator } from './useTrackingLabelTranslator';
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'sq',
   useTranslations: (namespace?: string) => {
     const messages: Record<string, Record<string, string>> = {
       'claims-tracking.status': { evaluation: 'Evaluation' },

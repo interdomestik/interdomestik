@@ -81,8 +81,8 @@
         "all": "Sva obaveštenja",
         "allHint": "Prikaži sva obaveštenja u centru obaveštenja aplikacije."
       },
-      "loadError": "Неуспешно учитавање подешавања",
-      "saveError": "Неуспешно чување подешавања"
+      "loadError": "Neuspešno učitavanje podešavanja",
+      "saveError": "Neuspešno čuvanje podešavanja"
     }
   }
 }

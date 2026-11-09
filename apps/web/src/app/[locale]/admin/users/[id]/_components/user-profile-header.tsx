@@ -3,14 +3,16 @@ import { Badge } from '@interdomestik/ui/components/badge';
 import { BadgeCheck, Mail } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { getRoleLabel } from '@/lib/roles-i18n';
-import { formatDate } from './utils';
+import { formatPilotDate } from '@/lib/utils/date';
 
 export async function UserProfileHeader({
+  locale,
   member,
   membershipStatus,
   membershipBadgeClass,
   isMembershipProfile,
 }: {
+  locale: string;
   member: {
     id: string;
     memberNumber?: string | null;
@@ -25,9 +27,9 @@ export async function UserProfileHeader({
   membershipStatus: string;
   membershipBadgeClass: string;
   isMembershipProfile: boolean;
-}) {
-  const t = await getTranslations('admin.member_profile');
-  const tCommon = await getTranslations('common');
+}): Promise<React.JSX.Element> {
+  const t = await getTranslations({ locale, namespace: 'admin.member_profile' });
+  const tCommon = await getTranslations({ locale, namespace: 'common' });
 
   return (
     <div className="rounded-2xl border bg-muted/20 p-6">
@@ -75,7 +77,7 @@ export async function UserProfileHeader({
           </div>
           <div>
             <span className="font-medium text-foreground">{t('labels.joined')}:</span>{' '}
-            {formatDate(member.createdAt, tCommon('none'))}
+            {formatPilotDate(member.createdAt, locale, tCommon('none'))}
           </div>
         </div>
       </div>

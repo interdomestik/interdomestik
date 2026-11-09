@@ -115,7 +115,7 @@
       "rewardInfoCreditOnly": "Članovi zarađuju {reward} kao kredit na nalogu nakon aktivacije prvog plaćenog članstva.",
       "rewardInfoPayout": "Članovi zarađuju {reward} nakon aktivacije prvog plaćenog članstva. Isplate se otključavaju kada dostupan kredit dostigne {threshold}.",
       "payoutEligible": "Saldo spreman za isplatu: {amount}",
-      "programDisabled": "Nagrade za preporuke članova su trenutno onemogućene za ovog tenant-a."
+      "programDisabled": "Nagrade za preporuke članova su trenutno onemogućene za ovaj subjekt."
     },
     "diaspora_ribbon": {
       "text": "🇩🇪🇨🇭 Za Dijasporu: Pomoć dok ste u inostranstvu + uputstva za avio/putovanja + Zeleni Karton",
@@ -154,7 +154,7 @@
         "secondary": "Kontaktiraj člansku podršku",
         "help_now_label": "Pomoć sada",
         "pack_title": "Paket za mesto incidenta",
-        "pack_description": "Koristite ovaj redosled pre unošenja ličnih podataka. Ne kreira automatski zahtev, CRM lead ili predaju osoblju.",
+        "pack_description": "Koristite ovaj redosled pre unošenja ličnih podataka. Ne kreira automatski zahtev, potencijalni CRM kontakt ili predaju osoblju.",
         "checklist_title": "Prve radnje",
         "checklist": {
           "scene_safety": "Pomerite se na bezbedno ako možete, obezbedite putnike i izbegnite novi rizik na mestu događaja.",
@@ -174,7 +174,7 @@
           "professional_review_required": "Profesionalni pregled je potreban pre aktivnosti za Professional Recovery."
         },
         "member_boundary_title": "Eskalacija zahteva saglasnost",
-        "member_boundary_body": "Ako nastavite u člansku zonu, vi odlučujete šta ćete predati. Sa ove stranice se ne kreira članski zapis, zahtev, CRM lead ili predaja bez vašeg izričitog sledećeg koraka.",
+        "member_boundary_body": "Ako nastavite u člansku zonu, vi odlučujete šta ćete predati. Sa ove stranice se ne kreira članski zapis, zahtev, potencijalni CRM kontakt ili predaja bez vašeg izričitog sledećeg koraka.",
         "pack_status_title": "Status pack-a",
         "zone_label": "Servisna zona",
         "zones": {

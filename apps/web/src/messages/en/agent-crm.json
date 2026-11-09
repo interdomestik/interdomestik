@@ -121,9 +121,9 @@
           "openFor": "Cancel task for {label}",
           "placeholder": "Select reason",
           "confirm": "Confirm cancellation",
-          "confirming": "Cancelling...",
+          "confirming": "Canceling...",
           "dismiss": "Keep task",
-          "success": "Task cancelled.",
+          "success": "Task canceled.",
           "reasons": {
             "not_needed": "Not needed",
             "duplicate": "Duplicate task",
@@ -134,7 +134,7 @@
             "invalid_reason": "Select a cancellation reason.",
             "conflict": "This task changed. Refresh the queue and try again.",
             "rate_limited": "Too many attempts. Wait a moment and try again.",
-            "transient": "The task could not be cancelled. Try again."
+            "transient": "The task could not be canceled. Try again."
           }
         },
         "reopenActions": {

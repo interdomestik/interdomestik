@@ -2,7 +2,7 @@
   "admin": {
     "leads": {
       "title": "Verifikimi i Pagesave",
-      "subtitle": "Verifiko pagesat cash të mbledhura nga agjentët.",
+      "subtitle": "Verifikoni pagesat me para në dorë të mbledhura nga agjentët.",
       "approve": "Aprovo",
       "reject": "Refuzo",
       "success": "Pagesa u verifikua",
@@ -81,7 +81,7 @@
         "search": "Kërko (Emri, Email, ID)...",
         "needs_info_note": "Përshkruaj çfarë informacioni mungon..."
       },
-      "empty_state": "Nuk ka kërkesa për verifikim të pagesave cash.",
+      "empty_state": "Nuk ka kërkesa për verifikim të pagesave me para në dorë.",
       "search_placeholder": "Kërko (Emri, Email, Dega)...",
       "kpis": {
         "pending": "Në Pritje",

@@ -10,7 +10,7 @@
       "fresh": "Aktuell",
       "delayed": "Verzögert",
       "stale": "Veraltet",
-      "date": "Snapshot {date}",
+      "date": "Momentaufnahme {date}",
       "versionLabel": "Snapshot-Version"
     },
     "branchPipeline": {

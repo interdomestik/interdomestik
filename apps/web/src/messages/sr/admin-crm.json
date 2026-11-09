@@ -1,7 +1,7 @@
 {
   "admin-crm": {
     "title": "CRM izveštaji",
-    "description": "CRM izveštaji na nivou organizacije za stanje prodajnog toka, kvalitet izvora i prognozne snimke.",
+    "description": "CRM izveštaji na nivou subjekta za stanje prodajnog toka, kvalitet izvora i prognozne snimke.",
     "snapshot": {
       "title": "Najnoviji prognozni snimak",
       "description": "Prethodni UTC datum snimka, grupisan po valuti.",
@@ -14,9 +14,9 @@
       "versionLabel": "Verzija snimka"
     },
     "branchPipeline": {
-      "title": "Sažetak pipeline-a po ogranku",
-      "description": "Živi 90-dnevni ponderisani pipeline po ogranku, pipeline-u i valuti.",
-      "empty": "Nema živih pipeline redova za podrazumevani period izveštavanja."
+      "title": "Sažetak prodajnog toka po ogranku",
+      "description": "Živi 90-dnevni ponderisani prodajni tok po ogranku, prodajnom toku i valuti.",
+      "empty": "Nema tekućih redova prodajnog toka za podrazumevani period izveštavanja."
     },
     "sourceBreakdown": {
       "title": "Pregled po izvoru",
@@ -26,7 +26,7 @@
     },
     "branchManager": {
       "title": "CRM izveštaji ogranka",
-      "description": "CRM izveštaji ogranka za stanje pipeline-a, kvalitet izvora i prognozne snimke.",
+      "description": "CRM izveštaji ogranka za stanje prodajnog toka, kvalitet izvora i prognozne snimke.",
       "snapshot": {
         "title": "Prognozni snimak ogranka",
         "description": "Prethodni UTC datum snimka za vaš ogranak, grupisan po valuti.",
@@ -34,9 +34,9 @@
         "staleEmpty": "Najnoviji snimak ogranka je zastareo. Vrednosti su sakrivene dok ih planer ne osveži."
       },
       "branchPipeline": {
-        "title": "Sažetak pipeline-a ogranka",
-        "description": "Živi 90-dnevni ponderisani pipeline za vaš ogranak, grupisan po pipeline-u i valuti.",
-        "empty": "Nema pipeline redova ogranka za podrazumevani period izveštavanja."
+        "title": "Sažetak prodajnog toka ogranka",
+        "description": "Živi 90-dnevni ponderisani prodajni tok za vaš ogranak, grupisan po prodajnom toku i valuti.",
+        "empty": "Nema redova prodajnog toka ogranka za podrazumevani period izveštavanja."
       },
       "sourceBreakdown": {
         "title": "Pregled izvora ogranka",
@@ -53,7 +53,7 @@
     },
     "labels": {
       "noBranch": "Bez filijale",
-      "tenantWide": "Cela organizacija",
+      "tenantWide": "Ceo subjekt",
       "unknownSource": "Nepoznat izvor"
     },
     "forecastAlert": {
@@ -73,7 +73,7 @@
       },
       "critical": {
         "headline": "Prognozni snimci zahtevaju pažnju",
-        "explanation": "Najnoviji očekivani rad nema uočene snimke ili sadrži zastarele redove. Koristite nadzor i backfill pre oslanjanja na podatke."
+        "explanation": "Najnoviji očekivani posao nema uočene snimke ili sadrži zastarele redove. Koristite nadzor i naknadnu dopunu pre oslanjanja na podatke."
       },
       "unknown": {
         "headline": "Zdravlje prognoznih snimaka je nepoznato",
@@ -137,31 +137,31 @@
       }
     },
     "backfill": {
-      "title": "Backfill prognoznih snimaka",
-      "description": "Pokrenite dry-run i potvrdite ograničene popravke prognoznih snimaka za ovu organizaciju.",
-      "help": "Prvo pokrenite dry-run, pregledajte agregatni uticaj, zatim potvrdite append-only upis samo ako zahtev nije promenjen.",
+      "title": "Naknadna dopuna prognoznih snimaka",
+      "description": "Pokrenite simulaciju i potvrdite ograničene popravke prognoznih snimaka za ovaj subjekt.",
+      "help": "Prvo pokrenite simulaciju, pregledajte agregatni uticaj, zatim potvrdite upis samo sa dodavanjem samo ako zahtev nije promenjen.",
       "fields": {
-        "tenantId": "ID organizacije",
+        "tenantId": "ID subjekta",
         "fromDate": "Od datuma",
         "toDate": "Do datuma",
         "maxWorkItemsPerDate": "Maks. radnih stavki"
       },
       "dryRun": {
         "button": "Proba",
-        "pending": "Dry-run je u toku",
-        "help": "Dry-run ne upisuje snimke. Završeni ili delimični dry-run kreira kratkotrajnu potvrdu."
+        "pending": "Simulacija je u toku",
+        "help": "Simulacija ne upisuje snimke. Završena ili delimična simulacija kreira kratkotrajnu potvrdu."
       },
       "confirm": {
         "button": "Potvrdi upis",
         "pending": "Snimci se upisuju",
-        "warning": "Upis dodaje append-only snimke za tačan dry-run zahtev.",
-        "invalidates": "Promena bilo kog polja zahteva novi dry-run.",
-        "expired": "Potvrda je istekla. Pokrenite novi dry-run.",
-        "invalid": "Potvrda se više ne poklapa sa ovim zahtevom. Pokrenite novi dry-run.",
+        "warning": "Upis dodaje snimke bez izmene postojećih, za isti zahtev iz simulacije.",
+        "invalidates": "Promena bilo kog polja zahteva novu simulaciju.",
+        "expired": "Potvrda je istekla. Pokrenite novu simulaciju.",
+        "invalid": "Potvrda više ne odgovara ovom zahtevu. Pokrenite novu simulaciju.",
         "inFlight": "Upis je već u toku za ovu potvrdu."
       },
       "result": {
-        "summary": "Rezultat backfill-a",
+        "summary": "Rezultat naknadne dopune",
         "dateRows": "Rezultati po datumu",
         "noDateRows": "Nema vraćenih redova datuma."
       },
@@ -195,19 +195,19 @@
         "inserted": "Upisano"
       },
       "error": {
-        "unauthorized": "Ovaj nalog ne može da pokrene backfill prognoznih snimaka.",
-        "invalid_request": "Backfill zahtev sadrži nepodržana polja.",
+        "unauthorized": "Ovaj nalog ne može da pokrene naknadnu dopunu prognoznih snimaka.",
+        "invalid_request": "Zahtev za naknadnu dopunu sadrži nepodržana polja.",
         "invalid_range": "Koristite važeći UTC opseg datuma.",
-        "range_too_large": "Opseg datuma je veći od dozvoljenog backfill prozora.",
+        "range_too_large": "Opseg datuma je veći od dozvoljenog perioda za naknadnu dopunu.",
         "date_out_of_bounds": "Opseg datuma je van dozvoljenih istorijskih granica.",
-        "invalid_tenant": "Poslata organizacija mora da se poklapa sa trenutnom admin sesijom.",
-        "confirmation_invalid": "Potvrda se više ne poklapa sa ovim zahtevom. Pokrenite novi dry-run.",
-        "confirmation_expired": "Potvrda je istekla. Pokrenite novi dry-run.",
+        "invalid_tenant": "Poslati subjekt mora da se poklapa sa trenutnom admin sesijom.",
+        "confirmation_invalid": "Potvrda više ne odgovara ovom zahtevu. Pokrenite novu simulaciju.",
+        "confirmation_expired": "Potvrda je istekla. Pokrenite novu simulaciju.",
         "confirmation_in_flight": "Upis je već u toku za ovu potvrdu.",
-        "rate_limited": "Previše backfill pokušaja. Sačekajte i pokušajte ponovo.",
+        "rate_limited": "Previše pokušaja naknadne dopune. Sačekajte i pokušajte ponovo.",
         "all_dates_failed": "Svi datumi su neuspešni. Potvrda upisa nije dostupna.",
-        "partial_failure": "Backfill je završen sa delimičnim greškama.",
-        "internal_error": "Backfill nije mogao da se završi. Pokušajte kasnije."
+        "partial_failure": "Naknadna dopuna je završena uz delimične neuspehe.",
+        "internal_error": "Naknadna dopuna nije mogla da se završi. Pokušajte kasnije."
       }
     },
     "routing": {
@@ -252,7 +252,7 @@
         "filters": "Filteri",
         "noFallback": "Bez rezerve",
         "noFilters": "Bez filtera",
-        "tenantScope": "Cela organizacija"
+        "tenantScope": "Ceo subjekt"
       },
       "strategy": {
         "least_loaded": "Najmanje opterećen",
@@ -266,11 +266,11 @@
         "emptyAgentPool": "ID-jevi agenata su obavezni osim kada je strategija samo ručna.",
         "duplicateAgent": "ID-jevi agenata ne smeju da se ponavljaju.",
         "duplicateRule": "ID-jevi pravila ne smeju da se ponavljaju.",
-        "crossTenantAgent": "Svaki agent mora pripadati ovoj organizaciji.",
+        "crossTenantAgent": "Svaki agent mora pripadati ovom subjektu.",
         "branchAgent": "Svaki agent mora odgovarati izabranom ogranku.",
-        "invalidBranch": "Izaberite važeći ogranak za ovu organizaciju.",
+        "invalidBranch": "Izaberite važeći ogranak za ovaj subjekt.",
         "selfFallback": "Pravilo ne može koristiti samo sebe kao rezervu.",
-        "branchFallback": "Rezervna pravila moraju odgovarati organizaciji i ogranku.",
+        "branchFallback": "Rezervna pravila moraju odgovarati subjektu i ogranku.",
         "archivedFallback": "Arhivirana pravila ne mogu biti rezerve.",
         "disabledFallback": "Onemogućena pravila ne mogu biti rezerve.",
         "fieldTooLong": "Jedno polje je duže od dozvoljenog ograničenja.",
@@ -284,9 +284,9 @@
     "charts": {
       "hiddenItems": "{count, plural, one {# dodatni red je sakriven iz rezimea grafikona} other {# dodatnih redova je sakriveno iz rezimea grafikona}}",
       "pipelineAmount": {
-        "title": "Grafikon iznosa pipeline-a",
-        "description": "Dopunsko poređenje ukupnog i ponderisanog iznosa pipeline-a. Tabela iznad je izvor istine.",
-        "summaryIntro": "Rezime grafikona iznosa pipeline-a",
+        "title": "Grafikon iznosa prodajnog toka",
+        "description": "Dopunsko poređenje ukupnog i ponderisanog iznosa prodajnog toka. Tabela iznad je izvor istine.",
+        "summaryIntro": "Rezime grafikona iznosa prodajnog toka",
         "total": "Ukupno",
         "weighted": "Ponderisano"
       }
@@ -294,7 +294,7 @@
     "excludedRows": "{count, plural, one {# agregatni red izuzet} other {# agregatnih redova izuzeto}}",
     "excludedRowsHelp": "Redovi mogu biti izuzeti iz agregatnih metrika kada nedostaju ili nisu dosledna obavezna polja za izveštavanje.",
     "error": {
-      "tenant": "CRM izveštaji nisu dostupni za ovaj kontekst organizacije.",
+      "tenant": "CRM izveštaji nisu dostupni za ovaj kontekst subjekta.",
       "role": "Ovaj administratorski nalog ne može da vidi CRM izveštaje.",
       "branch": "CRM izveštaji zahtevaju važeći opseg ogranka.",
       "agent": "CRM izveštaji za opseg agenta nisu prikazani na admin tabli.",

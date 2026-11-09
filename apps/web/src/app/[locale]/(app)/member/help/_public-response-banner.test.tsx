@@ -1,3 +1,4 @@
+import { getFormatter, getTranslations } from 'next-intl/server';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -117,6 +118,8 @@ describe('PublicResponseBanner', () => {
       memberId: 'member-1',
       authority,
     });
+    expect(getTranslations).toHaveBeenCalledWith({ locale: 'en', namespace: 'help' });
+    expect(getFormatter).toHaveBeenCalledWith({ locale: 'en' });
     expect(mocks.dateTime).toHaveBeenCalledWith(new Date('2026-05-04T11:00:00.000Z'), {
       dateStyle: 'medium',
       timeStyle: 'short',
@@ -166,6 +169,8 @@ describe('PublicResponseBanner', () => {
       })
     );
 
+    expect(getTranslations).toHaveBeenCalledWith({ locale: 'sq', namespace: 'help' });
+    expect(getFormatter).toHaveBeenCalledWith({ locale: 'sq' });
     expect(mocks.dateTime).toHaveBeenCalledWith(new Date('2026-05-04T12:00:00.000Z'), {
       dateStyle: 'medium',
       timeStyle: 'short',

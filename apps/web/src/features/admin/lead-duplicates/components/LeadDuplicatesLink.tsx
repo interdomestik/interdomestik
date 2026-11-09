@@ -6,10 +6,14 @@ import { headers } from 'next/headers';
 import { canReviewLeadDuplicates } from '../server/review-scope';
 
 /** The entry to duplicate review from the verification page, shown only to duplicate reviewers. */
-export async function LeadDuplicatesLink() {
+export async function LeadDuplicatesLink({
+  locale,
+}: Readonly<{
+  locale: string;
+}>): Promise<React.JSX.Element | null> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session || !canReviewLeadDuplicates(session.user.role)) return null;
-  const t = await getTranslations('admin.leads.duplicates');
+  const t = await getTranslations({ locale, namespace: 'admin.leads.duplicates' });
 
   return (
     <Link

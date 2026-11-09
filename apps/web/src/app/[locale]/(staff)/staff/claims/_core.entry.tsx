@@ -40,11 +40,14 @@ function parseDiasporaFilter(value: SearchParamValue): DiasporaOriginFilter {
   return parseDiasporaOriginFilter(getSingleParam(value));
 }
 
-export default async function StaffClaimsPage({ params, searchParams }: Props) {
+export default async function StaffClaimsPage({
+  params,
+  searchParams,
+}: Props): Promise<React.JSX.Element> {
   const { locale } = await params;
   setRequestLocale(locale);
-  const tClaims = await getTranslations('agent-claims.claims');
-  const tStatus = await getTranslations('claims-tracking.status');
+  const tClaims = await getTranslations({ locale, namespace: 'agent-claims.claims' });
+  const tStatus = await getTranslations({ locale, namespace: 'claims-tracking.status' });
 
   const session = requireSessionOrRedirect(await getSessionSafe('StaffClaimsPage'), locale);
   // Pilot policy: branch managers can monitor queue volume, but only staff process claims.

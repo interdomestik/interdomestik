@@ -1,5 +1,8 @@
 import { AlertTriangle } from 'lucide-react';
 
+import { formatPilotDate } from '@/lib/utils/date';
+import { useLocale } from 'next-intl';
+
 import { UpdatePaymentButton } from './update-payment-button';
 
 interface GracePeriodBannerProps {
@@ -14,7 +17,8 @@ export function GracePeriodBanner({
   gracePeriodEndsAt,
   subscriptionId,
   t,
-}: GracePeriodBannerProps) {
+}: GracePeriodBannerProps): React.JSX.Element {
+  const locale = useLocale();
   return (
     <div className="rounded-lg border-2 border-orange-500 bg-orange-50 p-4 dark:bg-orange-950/30">
       <div className="flex items-start gap-3">
@@ -28,7 +32,7 @@ export function GracePeriodBanner({
           </p>
           <p className="mt-2 text-sm text-orange-600">
             {t('dunning.grace_period_ends', {
-              date: gracePeriodEndsAt?.toLocaleDateString() || '',
+              date: formatPilotDate(gracePeriodEndsAt, locale, ''),
             })}
           </p>
           <UpdatePaymentButton
