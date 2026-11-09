@@ -10,22 +10,37 @@ import { nanoid } from 'nanoid';
 export type CampaignOutcome = void | 'skipped';
 const templateKey = (campaignId: string) => `campaign:${campaignId}`;
 
-export async function skippedCampaignUsers(
+/** One bounded statement combines terminal sent and suppressed identities for this tenant. */
+export async function completedCampaignUsers(
   authority: TenantAuthority,
   campaignId: string,
   userIds: string[]
 ) {
   const { tenantId } = readTenantAuthority(authority);
   return withTenantAuthority(authority, tx =>
-    tx.query.engagementEmailSends.findMany({
-      columns: { tenantId: true, userId: true },
-      where: and(
-        eq(engagementEmailSends.tenantId, tenantId),
-        eq(engagementEmailSends.templateKey, templateKey(campaignId)),
-        eq(engagementEmailSends.status, 'skipped'),
-        inArray(engagementEmailSends.userId, userIds)
-      ),
-    })
+    tx
+      .select({ tenantId: emailCampaignLogs.tenantId, userId: emailCampaignLogs.userId })
+      .from(emailCampaignLogs)
+      .where(
+        and(
+          eq(emailCampaignLogs.tenantId, tenantId),
+          eq(emailCampaignLogs.campaignId, campaignId),
+          inArray(emailCampaignLogs.userId, userIds)
+        )
+      )
+      .union(
+        tx
+          .select({ tenantId: engagementEmailSends.tenantId, userId: engagementEmailSends.userId })
+          .from(engagementEmailSends)
+          .where(
+            and(
+              eq(engagementEmailSends.tenantId, tenantId),
+              eq(engagementEmailSends.templateKey, templateKey(campaignId)),
+              eq(engagementEmailSends.status, 'skipped'),
+              inArray(engagementEmailSends.userId, userIds)
+            )
+          )
+      )
   );
 }
 

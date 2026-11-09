@@ -1,14 +1,12 @@
-import { inArray, listScheduledTenantWork } from '@interdomestik/database';
+import { listScheduledTenantWork } from '@interdomestik/database';
 import type { IngressCapability } from '@interdomestik/database/ingress';
-import { emailCampaignLogs } from '@interdomestik/database/schema';
 import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
-import { and, eq } from 'drizzle-orm';
 import {
   recordCampaignOutcome,
-  skippedCampaignUsers,
+  completedCampaignUsers,
   type CampaignOutcome,
 } from './campaign-outcome';
 import { stringifyError } from './campaign-retry';
@@ -52,18 +50,9 @@ export async function getAlreadySentUserIdSet(args: {
   // Users of any other tenant are excluded from the query; they are never written under this authority.
   const userIds = args.users.filter(user => user.tenantId === tenantId).map(user => user.id);
   if (userIds.length === 0) return new Set();
-  const rows = await withTenantAuthority(args.authority, tx =>
-    tx.query.emailCampaignLogs.findMany({
-      where: and(
-        eq(emailCampaignLogs.campaignId, args.campaignId),
-        eq(emailCampaignLogs.tenantId, tenantId),
-        inArray(emailCampaignLogs.userId, userIds)
-      ),
-    })
-  );
-  const skipped = await skippedCampaignUsers(args.authority, args.campaignId, userIds);
+  const rows = await completedCampaignUsers(args.authority, args.campaignId, userIds);
   const sent = new Set<string>();
-  for (const row of [...rows, ...skipped]) {
+  for (const row of rows) {
     sent.add(`${row.tenantId}:${row.userId}`);
   }
   return sent;

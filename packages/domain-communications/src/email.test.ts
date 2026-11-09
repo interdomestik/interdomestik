@@ -1,3 +1,4 @@
+import { campaignSelectMock } from './campaign-query.test-support';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // prettier-ignore
 const localizedOtpCopy = [
@@ -23,8 +24,8 @@ vi.mock('resend', () => ({ Resend: function MockResend(...args: unknown[]) { m.r
 // prettier-ignore
 vi.mock('@interdomestik/database', () => ({ db: { insert: m.dbInsert, query: { emailCampaignLogs: { findMany: m.findManyLogs } } }, inArray: m.inArray, withTenantContext: m.withTenantContext }));
 // prettier-ignore
-vi.mock('@interdomestik/database/schema', () => ({ emailCampaignLogs: { campaignId: 'emailCampaignLogs.campaignId', tenantId: 'emailCampaignLogs.tenantId', userId: 'emailCampaignLogs.userId' } }));
-vi.mock('drizzle-orm', () => ({ and: m.and, eq: m.eq, or: m.or }));
+vi.mock('@interdomestik/database/schema', () => ({ engagementEmailSends: { tenantId: 'engagementEmailSends.tenantId', userId: 'engagementEmailSends.userId', templateKey: 'engagementEmailSends.templateKey', status: 'engagementEmailSends.status' }, emailCampaignLogs: { campaignId: 'emailCampaignLogs.campaignId', tenantId: 'emailCampaignLogs.tenantId', userId: 'emailCampaignLogs.userId' } }));
+vi.mock('drizzle-orm', () => ({ inArray: m.inArray, and: m.and, eq: m.eq, or: m.or }));
 vi.mock('nanoid', () => ({ nanoid: m.nanoid }));
 describe('email delivery fallback', () => {
   beforeEach(() => {
@@ -240,7 +241,7 @@ describe('campaign execution tenant-context writes', () => {
   beforeEach(() => {
     vi.clearAllMocks(); m.findManyLogs.mockResolvedValue([]); m.nanoid.mockReturnValue('test-id-123');
     m.txInsert.mockReturnValue({ values: m.txValues }); m.txValues.mockResolvedValue(undefined);
-    m.withTenantContext.mockImplementation(async (_context: unknown, action: (tx: unknown) => Promise<void>) => await action({ insert: m.txInsert, query: { emailCampaignLogs: { findMany: m.findManyLogs } } }));
+    m.withTenantContext.mockImplementation(async (_context: unknown, action: (tx: unknown) => Promise<void>) => await action({ select: campaignSelectMock(m.findManyLogs), insert: m.txInsert, query: { emailCampaignLogs: { findMany: m.findManyLogs } } }));
   });
   it('writes campaign logs through each item tenant context', async () => {
     const { executeCampaign, processCampaignUser } = await import('./campaign-execution');

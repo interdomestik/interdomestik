@@ -1,3 +1,4 @@
+import { campaignSelectMock } from './campaign-query.test-support';
 import { INGRESS, authorityFor, h, scheduleTenants, user } from './campaign-execution.test-support';
 import {
   readTenantAuthority,
@@ -22,10 +23,9 @@ describe('tenant-scoped campaign execution', () => {
       async (context: TenantAuthority, action: (tx: unknown) => Promise<unknown>) => {
         h.events.push(`ctx:${readTenantAuthority(context).tenantId}`);
         return action({
+          select: campaignSelectMock(h.findManyLogs, h.findManySkipped),
           insert: () => ({ values: h.insertValues }),
           query: {
-            emailCampaignLogs: { findMany: h.findManyLogs },
-            engagementEmailSends: { findMany: h.findManySkipped },
             user: { findMany: h.findManyUsers },
           },
         });

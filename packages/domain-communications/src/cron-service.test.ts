@@ -1,3 +1,4 @@
+import { campaignSelectMock } from './campaign-query.test-support';
 import type { IngressCapability } from '@interdomestik/database/ingress';
 import {
   readTenantAuthority,
@@ -110,10 +111,9 @@ describe('processEmailSequences welcome campaign', () => {
     h.withTenantContext.mockImplementation(
       async (context: TenantAuthority, action: (tx: unknown) => Promise<unknown>) =>
         action({
+          select: campaignSelectMock(h.findManyLogs, h.findManySkipped),
           insert: () => ({ values: h.insertValues }),
           query: {
-            emailCampaignLogs: { findMany: h.findManyLogs },
-            engagementEmailSends: { findMany: h.findManySkipped },
             subscriptions: {
               findMany: (options: unknown) => {
                 welcomeEvents.push(`ctx:${readTenantAuthority(context).tenantId}`);
