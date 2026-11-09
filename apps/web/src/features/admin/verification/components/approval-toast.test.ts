@@ -24,6 +24,7 @@ describe('verificationToastKey', () => {
 
 describe('resendInviteToastKey', () => {
   it('maps each resend outcome to its own copy', () => {
+    expect(resendInviteToastKey({ success: true, invite: 'skipped' })).toBeNull();
     expect(resendInviteToastKey({ success: true })).toBe('toasts.resend_invite_success');
     expect(resendInviteToastKey({ success: false, error: 'cooldown' })).toBe(
       'toasts.resend_invite_cooldown'

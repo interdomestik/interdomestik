@@ -166,7 +166,7 @@ function buildFreeStartGroupPrivacyScenarios(runCtx) {
         'Aggregate group access dashboard',
         'This view stays aggregate-only. No claim facts, notes, or documents are visible here without explicit member consent.',
       ],
-      forbiddenPhrases: ['KS A-Member 1', 'member.ks.a1@interdomestik.com'],
+      forbiddenPhrases: ['KS A-Member 1', runCtx.credentials?.member?.email].filter(Boolean),
     },
   ];
 }

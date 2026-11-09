@@ -23,7 +23,7 @@ pnpm dev
 
 ### 2.1. Member Claim Visibility
 
-**Actor:** Member (MK) `member.mk.1@interdomestik.com`
+**Actor:** Member (MK) `member.mk.1@plan070.example.invalid`
 **Password:** `GoldenPass123!`
 
 1. **Login** at `/login`
@@ -38,7 +38,7 @@ pnpm dev
 
 ### 2.2. Tenant Isolation (KS vs MK)
 
-**Actor:** Tenant Admin (KS) `admin.ks@interdomestik.com`
+**Actor:** Tenant Admin (KS) `admin.ks@plan070.example.invalid`
 **Password:** `GoldenPass123!`
 
 1. **Login** at `/login`
@@ -50,7 +50,7 @@ pnpm dev
 
 ### 2.3. Branch Isolation (Branch A vs Branch B)
 
-**Actor:** Branch Manager A (MK) `bm.mk.a@interdomestik.com`
+**Actor:** Branch Manager A (MK) `bm.mk.a@plan070.example.invalid`
 **Password:** `GoldenPass123!`
 
 1. **Login** at `/login`
@@ -60,7 +60,7 @@ pnpm dev
 
 ### 2.4. Staff Claim Processing
 
-**Actor:** Staff (MK) `staff.mk@interdomestik.com`
+**Actor:** Staff (MK) `staff.mk@plan070.example.invalid`
 **Password:** `GoldenPass123!`
 
 1. **Login** at `/login`
@@ -86,7 +86,7 @@ pnpm dev
 
 ### 2.5. Agent Scoping
 
-**Actor:** Agent A1 (MK) `agent.mk.a1@interdomestik.com`
+**Actor:** Agent A1 (MK) `agent.mk.a1@plan070.example.invalid`
 **Password:** `GoldenPass123!`
 
 1. **Login** at `/login`
@@ -96,7 +96,7 @@ pnpm dev
 
 ### 2.6. Super Admin Global View
 
-**Actor:** Super Admin `super@interdomestik.com`
+**Actor:** Super Admin `super@plan070.example.invalid`
 **Password:** `GoldenPass123!`
 
 1. **Login** at `/login`

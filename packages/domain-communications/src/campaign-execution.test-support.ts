@@ -20,6 +20,7 @@ export function authorityFor(tenantId: string): TenantAuthority {
 type HMocks = {
   events: string[];
   findManyLogs: MockFunction;
+  findManySkipped: MockFunction;
   findManyUsers: MockFunction;
   insertValues: MockFunction;
   listScheduledTenantWork: MockFunction;
@@ -29,6 +30,7 @@ type HMocks = {
 const h: HMocks = vi.hoisted(() => ({
   events: [] as string[],
   findManyLogs: vi.fn(),
+  findManySkipped: vi.fn().mockResolvedValue([]),
   findManyUsers: vi.fn(),
   insertValues: vi.fn(),
   listScheduledTenantWork: vi.fn(),
@@ -42,6 +44,13 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
+  engagementEmailSends: {
+    tenantId: 'engagementEmailSends.tenantId',
+    userId: 'engagementEmailSends.userId',
+    templateKey: 'engagementEmailSends.templateKey',
+    status: 'engagementEmailSends.status',
+    dedupeKey: 'engagementEmailSends.dedupeKey',
+  },
   emailCampaignLogs: {
     campaignId: 'emailCampaignLogs.campaignId',
     tenantId: 'emailCampaignLogs.tenantId',
@@ -49,6 +58,7 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
 }));
 vi.mock('drizzle-orm', () => ({
+  inArray: (left: unknown, right: unknown[]) => ({ left, op: 'inArray', right }),
   and: (...clauses: unknown[]) => ({ clauses, op: 'and' }),
   eq: (left: unknown, right: unknown) => ({ left, op: 'eq', right }),
 }));

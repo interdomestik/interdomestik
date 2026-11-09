@@ -72,6 +72,7 @@ export async function prepareStoredMembershipConfirmationRetry(args: {
     return { kind: 'continue' };
   }
 
+  if (claim.kind === 'already_skipped') return { kind: 'stop' };
   console.warn(
     `[Webhook] Membership confirmation retry not sent for subscription ${args.providerReference}; delivery claim is ${claim.kind}`
   );

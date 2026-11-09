@@ -121,6 +121,7 @@ export async function prepareMembershipConfirmation(
       }),
     };
   }
+  if (existingClaim.kind === 'already_skipped') return { kind: 'stop' };
   if (existingClaim.kind !== 'not_found') {
     console.warn(
       `[Webhook] Membership confirmation not sent for subscription ${sub.id}; delivery claim is ${existingClaim.kind}`
@@ -184,6 +185,7 @@ export async function prepareMembershipConfirmation(
     );
   }
   assertMembershipConfirmationClaimSettled(claim, sub.id);
+  if (claim.kind === 'already_skipped') return { kind: 'stop' };
   if (claim.kind !== 'claimed') {
     console.warn(
       `[Webhook] Membership confirmation not sent for subscription ${sub.id}; delivery claim is ${claim.kind}`
@@ -233,6 +235,14 @@ export async function deliverMembershipConfirmation(job: MembershipConfirmationJ
       providerReference: job.snapshot.providerReference,
       idempotencyKey: job.idempotencyKey,
     });
+    if (!delivery.success && delivery.error === 'email_suppressed') {
+      await job.store.skip({
+        authority: job.authority,
+        deliveryId: job.deliveryId,
+        idempotencyKey: job.idempotencyKey,
+      });
+      return;
+    }
     if (!delivery.success) {
       await recordDeliveryFailure({
         store: job.store,

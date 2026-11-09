@@ -91,4 +91,19 @@ describe('verifyCashAttemptCore activation invite', () => {
     expect(JSON.stringify(log.mock.calls)).not.toContain('example.test');
     log.mockRestore();
   });
+  it('settles suppression without logging a delivery failure', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    hoisted.sendMemberActivationInvite.mockResolvedValue({
+      sent: false,
+      reason: 'email_suppressed',
+    });
+    try {
+      const result = await verifyCashAttemptCore(ctx, approve);
+      expect(result).toMatchObject({ success: true, invite: 'skipped' });
+      expect(log).not.toHaveBeenCalled();
+    } finally {
+      log.mockRestore();
+    }
+  });
 });

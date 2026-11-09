@@ -162,6 +162,7 @@ export function VerificationOpsCenterClient({
   const handleResendInvite = async (attemptId: string) => {
     const res = await resendActivationInviteAction({ attemptId });
     const toastKey = resendInviteToastKey(res);
+    if (!toastKey) return;
     if (res.success) {
       toast.success(t(toastKey));
     } else if (toastKey === 'toasts.resend_invite_already_active') {

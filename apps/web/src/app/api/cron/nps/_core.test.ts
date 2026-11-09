@@ -23,6 +23,7 @@ const hoisted = vi.hoisted(() => ({
   sendNpsSurveyEmail: vi.fn(),
   withTenantContext: vi.fn(),
   writes: [] as unknown[],
+  dedupeKeys: new Set<string>(),
 }));
 
 vi.mock('@/lib/audit', () => ({ logAuditEvent: hoisted.logAuditEvent }));
@@ -49,6 +50,7 @@ describe('runNpsCronCore tenant authority', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.writes.length = 0;
+    hoisted.dedupeKeys.clear();
     hoisted.listScheduledTenantWork.mockImplementation(async (ingress: unknown) => {
       if (ingress !== INGRESS) throw new Error('Ingress capability required');
       return [
@@ -64,10 +66,13 @@ describe('runNpsCronCore tenant authority', () => {
           insert: () => ({
             values: (values: Record<string, unknown>) => {
               record('insert', values);
+              const key = String(values.dedupeKey);
+              const inserted = !hoisted.dedupeKeys.has(key);
+              hoisted.dedupeKeys.add(key);
               return {
                 onConflictDoNothing: () => ({
                   // The engagement send insert returns its id; the token insert is awaited as is.
-                  returning: async () => [{ id: 'send-1' }],
+                  returning: () => Promise.resolve(inserted ? [{ id: 'send-1' }] : []),
                   then: (resolve: (value: unknown) => void) => resolve(undefined),
                 }),
               };
@@ -158,6 +163,23 @@ describe('runNpsCronCore tenant authority', () => {
     expect(hoisted.selectActiveSubscriptionMembers).not.toHaveBeenCalled();
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
     expect(hoisted.sendNpsSurveyEmail).not.toHaveBeenCalled();
+    expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
+  });
+  it('records suppressed NPS mail as skipped with no delivery receipt', async () => {
+    hoisted.selectActiveSubscriptionMembers.mockResolvedValue([memberOf('tenant-a', 'sub-a')]);
+    hoisted.sendNpsSurveyEmail.mockResolvedValue({
+      success: false,
+      suppressed: true,
+      error: 'email_suppressed',
+    });
+    expect(await run()).toEqual({ sent: 0, skipped: 1, errors: 0 });
+    expect(
+      writes()
+        .filter(write => write.kind === 'update')
+        .map(write => write.values)
+    ).toEqual([{ status: 'skipped', error: 'email_suppressed' }]);
+    expect(await run()).toEqual({ sent: 0, skipped: 1, errors: 0 });
+    expect(hoisted.sendNpsSurveyEmail).toHaveBeenCalledTimes(1);
     expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
   });
 });

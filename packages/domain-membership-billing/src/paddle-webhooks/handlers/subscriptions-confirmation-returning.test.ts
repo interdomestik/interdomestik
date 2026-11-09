@@ -36,6 +36,7 @@ describe('returning subscription confirmation', () => {
     })),
     ready: vi.fn(),
     complete: vi.fn(),
+    skip: vi.fn(),
     fail: vi.fn(),
   };
 

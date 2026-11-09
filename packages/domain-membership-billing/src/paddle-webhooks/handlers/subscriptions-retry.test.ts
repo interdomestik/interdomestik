@@ -187,6 +187,7 @@ describe('handleSubscriptionChanged entity retry', () => {
       claim: vi.fn(),
       ready: vi.fn(),
       complete: vi.fn(),
+      skip: vi.fn(),
       fail: vi.fn(),
     };
     hoisted.db.query.subscriptions.findFirst.mockRejectedValue(
@@ -236,6 +237,7 @@ describe('handleSubscriptionChanged entity retry', () => {
       claim: vi.fn(),
       ready: vi.fn(),
       complete: vi.fn(),
+      skip: vi.fn(),
       fail: vi.fn(),
     };
     hoisted.db.query.subscriptions.findFirst.mockRejectedValue(
