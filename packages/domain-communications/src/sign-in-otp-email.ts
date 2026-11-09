@@ -1,4 +1,9 @@
-import { isNonSendingEmail } from './non-sending-email';
+import {
+  selectEmailRecipients,
+  suppressedEmailResult,
+  type EmailRecipients,
+} from './non-sending-email';
+export { automatedSmtpTarget } from './non-sending-email';
 import * as nodemailer from 'nodemailer';
 import type { Resend } from 'resend';
 
@@ -26,7 +31,10 @@ export type EmailTelemetry = Readonly<{
   fallback: (provider: EmailProvider, defaultLog?: DefaultLog) => void;
   unavailable: (provider: EmailProvider, defaultLog?: DefaultLog) => void;
 }>;
-export type EmailResult = { success: true; id: string } | { success: false; error: string };
+export type EmailResult =
+  | { success: true; id: string; suppressed?: false }
+  | { success: false; error: string; suppressed?: false }
+  | typeof suppressedEmailResult;
 export type EmailSendOptions = {
   attachments?: { filename: string; content: Buffer | string }[];
   automatedCatcher?: boolean;
@@ -88,12 +96,13 @@ export function createEmailTelemetry(policy?: EmailTelemetryPolicy): EmailTeleme
 export async function sendViaResend(
   client: Resend,
   from: string,
-  to: string,
+  recipients: EmailRecipients,
   template: { subject: string; html: string; text: string },
   options: EmailSendOptions,
   telemetry: EmailTelemetry
 ): Promise<EmailResult> {
-  if (isNonSendingEmail(to)) return { success: true, id: 'suppressed-synthetic' };
+  const to = selectEmailRecipients(recipients);
+  if (!to) return suppressedEmailResult;
   const fail = (error: unknown, fallback: string): EmailResult => {
     telemetry.failed('resend', 'delivery', () => console.error('Resend error:', error));
     const providerError = error instanceof Error ? error.message : fallback;
@@ -155,18 +164,6 @@ export function renderSignInOtpEmail(otp: string, locale: SignInOtpLocale) {
     ].join(''),
     text: `${copy.body}\n\n${otp}`,
   };
-}
-
-const LOOPBACK_SMTP_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
-
-// Automated runs use no real provider, only an opted-in loopback catcher (E2E_SMTP_HOST).
-export function automatedSmtpTarget() {
-  const host = process.env.E2E_SMTP_HOST?.trim();
-  if (!host) return null;
-  const port = Number(process.env.E2E_SMTP_PORT?.trim() || '1025');
-  const valid = LOOPBACK_SMTP_HOSTS.has(host) && Number.isInteger(port) && port > 0 && port < 65536;
-  if (!valid) return 'rejected' as const;
-  return { host, port, connectionTimeout: 5000, socketTimeout: 10000 };
 }
 
 const smtpTransports: Record<string, nodemailer.Transporter> = {};

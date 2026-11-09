@@ -172,4 +172,23 @@ describe('membership confirmation delivery failures', () => {
 
     error.mockRestore();
   });
+  it('records suppression as failure without completing the confirmation receipt', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    sendThankYouLetter.mockResolvedValue({
+      success: false,
+      suppressed: true,
+      error: 'email_suppressed',
+    });
+    try {
+      await expect(processMembershipConfirmation(confirmationArgs())).rejects.toBeInstanceOf(
+        RetryablePaddleWebhookError
+      );
+      expect(deliveryStore.complete).not.toHaveBeenCalled();
+      expect(deliveryStore.fail).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'email_suppressed' })
+      );
+    } finally {
+      error.mockRestore();
+    }
+  });
 });

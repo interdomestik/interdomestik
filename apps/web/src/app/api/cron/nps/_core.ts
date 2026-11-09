@@ -174,7 +174,7 @@ async function processNpsMember(args: {
     } else {
       const err = sendResult.error || 'Unknown error';
       // If "Resend not configured" (e.g. dev mode suppression), count as skipped
-      const isSkipped = err === 'Resend not configured';
+      const isSkipped = ['Resend not configured', 'email_suppressed'].includes(err);
       const status = isSkipped ? 'skipped' : 'error';
 
       await updateEngagementSend(authority, dedupeKey, {

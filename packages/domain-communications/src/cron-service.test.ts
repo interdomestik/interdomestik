@@ -96,7 +96,7 @@ describe('processEmailSequences welcome campaign', () => {
     h.findManyLogs.mockResolvedValue([]);
     h.findManyUsers.mockResolvedValue([]);
     h.insertValues.mockResolvedValue(undefined);
-    h.sendWelcomeEmail.mockResolvedValue(undefined);
+    h.sendWelcomeEmail.mockResolvedValue({ success: true, id: 'email-1' });
     h.withTenantContext.mockImplementation(
       async (context: TenantAuthority, action: (tx: unknown) => Promise<unknown>) =>
         action({
@@ -213,5 +213,20 @@ describe('processEmailSequences welcome campaign', () => {
     expect(h.withTenantContext).not.toHaveBeenCalled();
     expect(h.findManySubscriptions).not.toHaveBeenCalled();
     expect(result.stats.attempted).toBe(0);
+  });
+  it('never writes a campaign delivery receipt for a suppressed email', async () => {
+    scheduleTenants(['tenant-a']);
+    h.findManySubscriptions
+      .mockResolvedValueOnce([subscription('a1', 'tenant-a')])
+      .mockResolvedValue([]);
+    h.sendWelcomeEmail.mockResolvedValue({
+      success: false,
+      suppressed: true,
+      error: 'email_suppressed',
+    });
+    const result = await processEmailSequences(INGRESS);
+    expect(result.stats.sent).toBe(0);
+    expect(result.stats.failed).toBe(1);
+    expect(h.insertValues).not.toHaveBeenCalled();
   });
 });

@@ -27,8 +27,8 @@ vi.mock('./_core', () => ({ runDunningCronCore: h.runDunningCronCore }));
 
 vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn() }));
 vi.mock('@/lib/email', () => ({
-  sendPaymentFinalWarningEmail: vi.fn(),
-  sendPaymentReminderEmail: vi.fn(),
+  sendPaymentFinalWarningEmail: vi.fn().mockResolvedValue({ success: true, id: 'mail-1' }),
+  sendPaymentReminderEmail: vi.fn().mockResolvedValue({ success: true, id: 'mail-1' }),
 }));
 vi.mock('@interdomestik/database', () => ({
   db: {

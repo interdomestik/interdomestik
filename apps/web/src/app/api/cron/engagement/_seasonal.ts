@@ -160,7 +160,9 @@ export async function handleFailure(
   headers: Headers,
   error: string = 'Unknown error'
 ) {
-  const status = error === 'Resend not configured' ? 'skipped' : 'error';
+  const status = ['Resend not configured', 'email_suppressed'].includes(error ?? '')
+    ? 'skipped'
+    : 'error';
 
   await updateEngagementSend(authority, dedupeKey, { status, error });
 

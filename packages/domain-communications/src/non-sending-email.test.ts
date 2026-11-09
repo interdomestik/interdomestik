@@ -29,7 +29,7 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
-it.each(['', 'external.example.test'])(
+it.each(['', 'external.example.test', '127.0.0.1'])(
   'suppresses reserved recipients before external provider initialization (SMTP=%s)',
   async smtpHost => {
     vi.stubEnv('SMTP_HOST', smtpHost);
@@ -40,11 +40,11 @@ it.each(['', 'external.example.test'])(
         'person@invalid',
         'member@other.invalid',
         'Staff <STAFF@SYNTHETIC.INVALID>',
-        'real@example.com, member@other.invalid',
       ].map(async to => {
         await expect(sendEmail(to, { subject: 'fixture', html: '', text: '' })).resolves.toEqual({
-          success: true,
-          id: 'suppressed-synthetic',
+          success: false,
+          suppressed: true,
+          error: 'email_suppressed',
         });
       })
     );
@@ -73,14 +73,15 @@ it('delivers a reserved-domain OTP through the opted-in automated loopback catch
   expect(transport.resend).not.toHaveBeenCalled();
 });
 
-it('preserves automated mock behavior when the caller did not opt into the catcher', async () => {
+it('suppresses invalid mail without the catcher opt-in even in automation', async () => {
   vi.stubEnv('PLAYWRIGHT', '1');
   const { sendEmail } = await import('./email');
   await expect(
     sendEmail('member@other.invalid', { subject: 'fixture', html: '', text: '' })
   ).resolves.toEqual({
-    success: true,
-    id: 'mock-id',
+    success: false,
+    suppressed: true,
+    error: 'email_suppressed',
   });
   expect(transport.smtp).not.toHaveBeenCalled();
   expect(transport.resend).not.toHaveBeenCalled();
@@ -93,10 +94,11 @@ it('never falls back from loopback SMTP to external Resend for a reserved recipi
   await expect(
     sendEmail('member@other.invalid', { subject: 'fixture', html: '', text: '' })
   ).resolves.toEqual({
-    success: true,
-    id: 'suppressed-synthetic',
+    success: false,
+    suppressed: true,
+    error: 'email_suppressed',
   });
-  expect(transport.sendMail).toHaveBeenCalledOnce();
+  expect(transport.sendMail).not.toHaveBeenCalled();
   expect(transport.resendSend).not.toHaveBeenCalled();
 });
 
@@ -115,8 +117,9 @@ it('guards direct Resend delivery too, including dunning callers', async () => {
       createEmailTelemetry()
     )
   ).resolves.toEqual({
-    success: true,
-    id: 'suppressed-synthetic',
+    success: false,
+    suppressed: true,
+    error: 'email_suppressed',
   });
   expect(transport.resendSend).not.toHaveBeenCalled();
 });
@@ -132,4 +135,66 @@ it('matches the reserved TLD rather than one dataset domain or a longer non-rese
 it('installed Zod validators used by Better Auth and Paddle accept the reserved TLD', () => {
   expect(z.email().safeParse(e2eEmail('member.ks.a1')).success).toBe(true);
   expect(z.string().email().safeParse(e2eEmail('member.ks.a1')).success).toBe(true);
+});
+
+it.each([
+  'real@example.com, member@other.invalid',
+  '"support@other.invalid team" <real@example.com>',
+  ['real@example.com', 'member@other.invalid'],
+])('preserves actual real mailboxes in mixed recipients: %s', async to => {
+  vi.stubEnv('SMTP_HOST', '');
+  transport.resendSend.mockResolvedValue({ data: { id: 'real-id' } });
+  const { sendEmail } = await import('./email');
+  await expect(sendEmail(to, { subject: 'fixture', html: '', text: '' })).resolves.toEqual({
+    success: true,
+    id: 'real-id',
+  });
+  expect(transport.resendSend).toHaveBeenCalledWith(
+    expect.objectContaining({ to: 'real@example.com' }),
+    undefined
+  );
+});
+
+it('does not treat plain loopback SMTP or rejected catcher settings as an opt-in', async () => {
+  vi.stubEnv('PLAYWRIGHT', '1');
+  vi.stubEnv('E2E_SMTP_HOST', 'external.example.test');
+  const { sendSignInOtpEmail } = await import('./email');
+  await expect(sendSignInOtpEmail('member@other.invalid', '123456', 'en')).resolves.toMatchObject({
+    success: false,
+    suppressed: true,
+  });
+  expect(transport.smtp).not.toHaveBeenCalled();
+});
+
+it('suppresses prepared dunning before provider initialization and automated mock receipts', async () => {
+  vi.stubEnv('PLAYWRIGHT', '1');
+  const { sendPreparedPastDueEmail } = await import('./dunning-email');
+  await expect(
+    sendPreparedPastDueEmail(
+      {
+        from: 'sender@example.com',
+        to: 'member@other.invalid',
+        subject: 'fixture',
+        html: '',
+        text: '',
+      },
+      'key'
+    )
+  ).resolves.toEqual({ success: false, suppressed: true, error: 'email_suppressed' });
+  expect(transport.resend).not.toHaveBeenCalled();
+});
+
+it('passes multiple remaining real mailboxes as separate provider recipients', async () => {
+  vi.stubEnv('SMTP_HOST', '');
+  transport.resendSend.mockResolvedValue({ data: { id: 'real-id' } });
+  const { sendEmail } = await import('./email');
+  await sendEmail(['one@example.com, member@other.invalid', 'Two <two@example.com>'], {
+    subject: 'fixture',
+    html: '',
+    text: '',
+  });
+  expect(transport.resendSend).toHaveBeenCalledWith(
+    expect.objectContaining({ to: ['one@example.com', 'two@example.com'] }),
+    undefined
+  );
 });

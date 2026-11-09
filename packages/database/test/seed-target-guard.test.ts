@@ -2,14 +2,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { assertSeedTargetAllowed } from '../src/seed-target-guard';
-
 const production = 'gunosplgrvnvrftudttr';
 const staging = 'xjyseqtfuxcuviiankhy';
 const local = 'postgresql://fixture:credential-CANARY@127.0.0.1:54322/postgres';
 const direct = (ref: string) => `postgresql://fixture:credential-CANARY@db.${ref}.supabase.co/db`;
 const pooled = (ref: string) =>
   `postgresql://postgres.${ref}:credential-CANARY@aws-0-eu.pooler.supabase.com:6543/db`;
-
 test('loopback needs no confirmation; missing/malformed/non-postgres targets fail closed', () => {
   for (const host of ['localhost', '127.0.0.1', '127.0.0.1:55438', '[::1]']) {
     assert.equal(
@@ -153,6 +151,7 @@ test('exported golden, full, workload and agent-pack entry points preflight firs
     ['seed-full/index.ts', 'seedFull'],
     ['seed-workload/index.ts', 'seedWorkload'],
     ['seed-packs/agent-pack.ts', 'seedAgentPack'],
+    ['seed-packs/ks-workflow-pack.ts', 'seedKsWorkflowPack'],
   ];
   for (const [file, entry] of entries) {
     const source = readFileSync(new URL(`../src/${file}`, import.meta.url), 'utf8');
@@ -163,4 +162,128 @@ test('exported golden, full, workload and agent-pack entry points preflight firs
       )
     );
   }
+});
+
+test('every query and PG source refuses production even when URL identity is staging', () => {
+  const keys = [
+    'user',
+    'username',
+    'host',
+    'hostname',
+    'hostaddr',
+    'options',
+    'database',
+    'application_name',
+    'sslmode',
+    'unknown',
+  ];
+  for (const key of keys) {
+    assert.throws(
+      () =>
+        assertSeedTargetAllowed({
+          DATABASE_URL: `${pooled(staging)}?${key}=${encodeURIComponent('postgres.' + production)}`,
+          SEED_TARGET_CONFIRM: `plan070:${staging}`,
+        }),
+      /production$/
+    );
+  }
+  const driverEnvironmentKeys = `PGHOST PGHOSTADDR PGUSER PGUSERNAME PGDATABASE PGPORT
+    PGPASSWORD PGAPPNAME PGOPTIONS PGTARGETSESSIONATTRS PGMAX PGSSL PGSSLNEGOTIATION
+    PGIDLE_TIMEOUT PGCONNECT_TIMEOUT PGMAX_LIFETIME PGMAX_PIPELINE PGBACKOFF PGKEEP_ALIVE
+    PGPREPARE PGDEBUG PGFETCH_TYPES PGPUBLICATIONS PGTARGET_SESSION_ATTRS USERNAME USER LOGNAME`;
+  for (const key of driverEnvironmentKeys.split(/\s+/)) {
+    assert.throws(
+      () =>
+        assertSeedTargetAllowed({
+          DATABASE_URL: local,
+          [key]: production,
+        }),
+      /production$/
+    );
+  }
+});
+
+test('conflicting sources and opaque startup overrides refuse instead of trusting a token', () => {
+  const other = 'abcdefghijklmnopqrst';
+  assert.throws(
+    () =>
+      assertSeedTargetAllowed({
+        DATABASE_URL: pooled(staging).replace('aws-0-eu.pooler.supabase.com', 'other.example.com'),
+        SEED_TARGET_CONFIRM: `plan070:${staging}`,
+      }),
+    /ambiguous$/
+  );
+  for (const query of [
+    `user=postgres.${other}`,
+    `username=postgres.${other}`,
+    'host=localhost',
+    'hostname=localhost',
+    'hostaddr=127.0.0.1',
+    'options=-c%20role%3Dpostgres',
+    'database=other',
+    'unknown=anything',
+    `user=postgres.${staging}&user=postgres.${other}`,
+  ]) {
+    assert.throws(
+      () =>
+        assertSeedTargetAllowed({
+          DATABASE_URL: `${pooled(staging)}?${query}`,
+          SEED_TARGET_CONFIRM: `plan070:${staging}`,
+        }),
+      /ambiguous$/
+    );
+  }
+  for (const key of [
+    'PGHOST',
+    'PGHOSTADDR',
+    'PGUSER',
+    'PGUSERNAME',
+    'PGOPTIONS',
+    'PGSERVICE',
+    'PGSERVICEFILE',
+  ]) {
+    assert.throws(
+      () => assertSeedTargetAllowed({ DATABASE_URL: local, [key]: 'different' }),
+      /ambiguous$/
+    );
+  }
+  assert.throws(
+    () =>
+      assertSeedTargetAllowed({
+        DATABASE_URL: direct(staging),
+        DATABASE_URL_RLS: direct(other),
+        SEED_TARGET_CONFIRM: `plan070:${staging}`,
+      }),
+    /ambiguous$/
+  );
+  assert.throws(
+    () => assertSeedTargetAllowed({ DATABASE_URL: local, DATABASE_URL_RLS: direct(production) }),
+    /production$/
+  );
+});
+
+test('matching identity sources and explicit driver fallbacks resolve to one confirmed target', () => {
+  assert.equal(
+    assertSeedTargetAllowed({
+      DATABASE_URL: `${pooled(staging)}?user=postgres.${staging}&sslmode=require`,
+      PGUSER: `postgres.${staging}`,
+      PGHOST: 'aws-0-eu.pooler.supabase.com',
+      SEED_TARGET_CONFIRM: `plan070:${staging}`,
+    }),
+    'confirmed-non-local'
+  );
+  for (const key of ['PGUSER', 'PGUSERNAME']) {
+    assert.equal(
+      assertSeedTargetAllowed({
+        DATABASE_URL: 'postgres://aws-0-eu.pooler.supabase.com/db',
+        [key]: `postgres.${staging}`,
+        SEED_TARGET_CONFIRM: `plan070:${staging}`,
+      }),
+      'confirmed-non-local'
+    );
+  }
+  assert.throws(
+    () => assertSeedTargetAllowed({ DATABASE_URL: 'postgres://localhost/db' }),
+    /invalid$/
+  );
 });

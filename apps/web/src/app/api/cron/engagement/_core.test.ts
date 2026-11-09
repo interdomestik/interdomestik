@@ -187,4 +187,18 @@ describe('runEngagementCronCore tenant authority', () => {
     expect(writes().map(write => write.authority)).toEqual([authorityB, authorityB]);
     expect(hoisted.logAuditEvent.mock.calls[0]?.[0].authority).toBe(authorityB);
   });
+  it('records suppressed engagement mail as skipped with no delivery receipt', async () => {
+    membersOnFirstCadence([memberOf('tenant-a', 'sub-a')]);
+    hoisted.sendOnboardingEmail.mockResolvedValue({
+      success: false,
+      suppressed: true,
+      error: 'email_suppressed',
+    });
+    await run();
+    expect(
+      writes()
+        .filter(write => write.kind === 'update')
+        .map(write => write.values)
+    ).toEqual([{ status: 'skipped', error: 'email_suppressed' }]);
+  });
 });

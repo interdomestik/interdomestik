@@ -1,4 +1,4 @@
-import { and, eq, inArray, or } from 'drizzle-orm';
+import { and, eq, inArray, or, sql } from 'drizzle-orm';
 import { E2E_PACK_USERS, e2eEmail } from '../e2e-users';
 import { E2E_AGENT_PACK_USERS } from '../e2e-agent-pack-fixtures';
 import { buildUsersToSeed } from '../seed-golden/users';
@@ -37,14 +37,26 @@ export function seedCleanupIdentities(): readonly SeedIdentity[] {
   return [...goldenAndKs, E2E_AGENT_PACK_USERS.AGENT, ...E2E_AGENT_PACK_USERS.CLIENTS];
 }
 
-export function seedIdentityCleanupPredicate(user: typeof schema.user) {
-  return or(
-    ...seedCleanupIdentities().map(identity =>
-      and(
-        eq(user.id, identity.id),
-        eq(user.tenantId, identity.tenantId),
-        inArray(user.email, [identity.email, identity.legacyEmail])
-      )
-    )
+export function seedIdentityCleanupPredicate(
+  user: typeof schema.user,
+  prefixes?: readonly string[]
+) {
+  return (
+    or(
+      ...seedCleanupIdentities()
+        .filter(
+          identity =>
+            !prefixes ||
+            (identity.id.startsWith('pack_ks_') &&
+              prefixes.some(prefix => identity.id.startsWith(prefix)))
+        )
+        .map(identity =>
+          and(
+            eq(user.id, identity.id),
+            eq(user.tenantId, identity.tenantId),
+            inArray(user.email, [identity.email, identity.legacyEmail])
+          )
+        )
+    ) ?? sql`false`
   );
 }

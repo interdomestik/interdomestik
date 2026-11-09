@@ -88,50 +88,12 @@ export async function cleanupByPrefixes(
   // 5. Delete Agent Clients
   // await db.delete(dbSchema.agentClients).where(...) // IDs usually uuid? or prefixed?
 
-  // 6. Delete Sessions & Accounts (Delete children of user first)
-  // Delete by User ID prefix
-  const userIdConditions = likePatterns.map(p => like(dbSchema.account.userId, p));
-  if (!cleanupEmails && userIdConditions.length > 0) {
-    await db.delete(dbSchema.account).where(or(...userIdConditions));
-    await db
-      .delete(dbSchema.session)
-      .where(or(...likePatterns.map(p => like(dbSchema.session.userId, p))));
-  }
-
-  // Also delete accounts/sessions for the email-based users
-  if (cleanupEmails) {
-    const emailUserIds = await db.query.user.findMany({
-      where: seedIdentityCleanupPredicate(dbSchema.user),
-      columns: { id: true },
-    });
-    if (emailUserIds.length > 0) {
-      const ids = emailUserIds.map(u => u.id);
-      // Delete their accounts/sessions explicitly too
-      await db.delete(dbSchema.account).where(inArray(dbSchema.account.userId, ids));
-      await db.delete(dbSchema.session).where(inArray(dbSchema.session.userId, ids));
-    }
-  }
-
-  // 7. Clean up Users and their dependencies comprehensively
-  // Collect all User IDs to be deleted (both by prefix and email)
-  const usersByPrefix = cleanupEmails
-    ? []
-    : await db.query.user.findMany({
-        where: or(...likePatterns.map(p => like(dbSchema.user.id, p))),
-        columns: { id: true },
-      });
-
-  let usersByEmail: { id: string }[] = [];
-  if (cleanupEmails) {
-    usersByEmail = await db.query.user.findMany({
-      where: seedIdentityCleanupPredicate(dbSchema.user),
-      columns: { id: true },
-    });
-  }
-
-  const allUserIds = Array.from(
-    new Set([...usersByPrefix.map(u => u.id), ...usersByEmail.map(u => u.id)])
-  );
+  // Only catalogue tuples own user cleanup, including the KS overlay.
+  const usersToDelete = await db.query.user.findMany({
+    where: seedIdentityCleanupPredicate(dbSchema.user, cleanupEmails ? undefined : prefixes),
+    columns: { id: true },
+  });
+  const allUserIds = usersToDelete.map(user => user.id);
 
   if (allUserIds.length > 0) {
     console.log(`  Found ${allUserIds.length} users to clean up. removing dependencies...`);

@@ -148,4 +148,11 @@ describe('dunning sponsor outlook at delivery', () => {
     expect(h.outlook).not.toHaveBeenCalled();
     expect(h.reminder).not.toHaveBeenCalled();
   });
+  it('does not count or acknowledge a suppressed reminder as sent', async () => {
+    h.page.mockResolvedValueOnce([subscription(7)]);
+    h.reminder.mockResolvedValue({ success: false, suppressed: true, error: 'email_suppressed' });
+    const result = await runDunningCronCore({ ingress, now, headers: new Headers() });
+    expect(result.stats.day7Sent).toBe(0);
+    expect(h.update).not.toHaveBeenCalled();
+  });
 });

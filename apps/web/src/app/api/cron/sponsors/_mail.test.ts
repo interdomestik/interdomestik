@@ -82,4 +82,10 @@ describe('sponsor mail adapter', () => {
     });
     expect(h.sendEmail).not.toHaveBeenCalled();
   });
+  it('maps suppression to a non-delivered sponsor outcome', async () => {
+    h.sendEmail.mockResolvedValue({ success: false, suppressed: true, error: 'email_suppressed' });
+    expect(
+      await sponsorMailDeps('tenant_ks', authority)?.sendMail('member@other.invalid', input)
+    ).toEqual({ ok: false, code: 'email_suppressed' });
+  });
 });

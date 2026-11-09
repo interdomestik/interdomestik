@@ -1,4 +1,9 @@
-import { isAutomatedEmail as isAutomated, shouldSuppressExternalEmail } from './non-sending-email';
+import {
+  isAutomatedEmail as isAutomated,
+  selectEmailRecipients,
+  suppressedEmailResult,
+  type EmailRecipients,
+} from './non-sending-email';
 import * as nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import {
@@ -32,19 +37,16 @@ import {
   type EmailTelemetry,
   type SignInOtpLocale,
 } from './sign-in-otp-email';
-
+export { isEmailSuppressed } from './non-sending-email';
 export { normalizeSignInOtpLocale } from './sign-in-otp-email';
 export type { EmailResult };
-
 let resendClient: Resend | null = null;
-
 export function getResendClient(telemetry = createEmailTelemetry()) {
   if (resendClient) return resendClient;
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     return null;
   }
-
   try {
     resendClient = new Resend(apiKey);
     return resendClient;
@@ -55,7 +57,6 @@ export function getResendClient(telemetry = createEmailTelemetry()) {
     return null;
   }
 }
-
 function getEmailClient(telemetry: EmailTelemetry, options: EmailSendOptions) {
   // Priority 0: Automated Testing (mock, or the loopback catcher for messages that opt in)
   if (isAutomated()) {
@@ -83,7 +84,6 @@ function getEmailClient(telemetry: EmailTelemetry, options: EmailSendOptions) {
 
   return null;
 }
-
 export function getSenderAddress() {
   return (
     process.env.RESEND_FROM_EMAIL ||
@@ -92,13 +92,13 @@ export function getSenderAddress() {
     'Interdomestik <no-reply@interdomestik.com>'
   );
 }
-
 export async function sendEmail(
-  to: string,
+  recipients: EmailRecipients,
   template: { subject: string; html: string; text: string },
   options: EmailSendOptions = {}
 ): Promise<EmailResult> {
-  if (shouldSuppressExternalEmail(to)) return { success: true, id: 'suppressed-synthetic' };
+  const to = selectEmailRecipients(recipients, options.automatedCatcher);
+  if (!to) return suppressedEmailResult;
   const telemetry = createEmailTelemetry(options.telemetryPolicy);
   const provider = getEmailClient(telemetry, options);
   if (provider === 'rejected') return { success: false, error: 'Email provider not configured' };

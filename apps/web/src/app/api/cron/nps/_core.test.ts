@@ -160,4 +160,18 @@ describe('runNpsCronCore tenant authority', () => {
     expect(hoisted.sendNpsSurveyEmail).not.toHaveBeenCalled();
     expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
   });
+  it('records suppressed NPS mail as skipped with no delivery receipt', async () => {
+    hoisted.selectActiveSubscriptionMembers.mockResolvedValue([memberOf('tenant-a', 'sub-a')]);
+    hoisted.sendNpsSurveyEmail.mockResolvedValue({
+      success: false,
+      suppressed: true,
+      error: 'email_suppressed',
+    });
+    expect(await run()).toEqual({ sent: 0, skipped: 1, errors: 0 });
+    expect(
+      writes()
+        .filter(write => write.kind === 'update')
+        .map(write => write.values)
+    ).toEqual([{ status: 'skipped', error: 'email_suppressed' }]);
+  });
 });

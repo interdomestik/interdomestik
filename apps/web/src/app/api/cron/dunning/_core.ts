@@ -126,7 +126,7 @@ async function processDunningSubscription(params: {
     (outlook?.nextStart && sub.currentPeriodEnd && outlook.nextStart <= sub.currentPeriodEnd)
   );
 
-  await sendDunningEmail({
+  const delivery = await sendDunningEmail({
     accessContinues,
     email: userRecord.email,
     userName: userRecord.name,
@@ -135,6 +135,7 @@ async function processDunningSubscription(params: {
     emailType,
   });
 
+  if (!delivery?.success) return;
   if (emailType === 'day7') stats.day7Sent++;
   else if (emailType === 'day13') stats.day13Sent++;
 
@@ -179,7 +180,7 @@ function determineDunningEmailType(
   return null;
 }
 
-async function sendDunningEmail(params: {
+function sendDunningEmail(params: {
   email: string;
   userName: string | null;
   sub: SubscriptionRecord & { gracePeriodEndsAt: Date };
@@ -197,8 +198,8 @@ async function sendDunningEmail(params: {
   };
 
   if (emailType === 'day7') {
-    await sendPaymentReminderEmail(email, emailParams);
+    return sendPaymentReminderEmail(email, emailParams);
   } else if (emailType === 'day13') {
-    await sendPaymentFinalWarningEmail(email, emailParams);
+    return sendPaymentFinalWarningEmail(email, emailParams);
   }
 }

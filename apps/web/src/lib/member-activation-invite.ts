@@ -1,3 +1,4 @@
+import { isEmailSuppressed } from '@interdomestik/domain-communications/email';
 import { requestPasswordResetOnboarding } from '@/app/api/webhooks/paddle/paddle-onboarding';
 import { coerceTenantId } from '@/lib/tenant/tenant-hosts';
 
@@ -19,6 +20,7 @@ export async function sendMemberActivationInvite(params: {
   // An unknown tenant never falls back to another tenant's host.
   const tenantId = coerceTenantId(params.tenantId);
   if (!tenantId) return { sent: false, reason: 'unknown_tenant' };
+  if (isEmailSuppressed(params.email, true)) return { sent: false, reason: 'delivery_failed' };
   try {
     await requestPasswordResetOnboarding({ email: params.email, tenantId });
     return { sent: true };

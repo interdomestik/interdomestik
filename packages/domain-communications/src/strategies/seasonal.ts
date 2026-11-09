@@ -1,3 +1,4 @@
+import { requireEmailDelivery } from '../non-sending-email';
 import type { IngressCapability } from '@interdomestik/database/ingress';
 import { processBatchedUserCampaign, withRetries } from '../campaign-execution';
 import { sendSeasonalEmail } from '../email';
@@ -26,7 +27,9 @@ export async function processSeasonalCampaigns(ingress: IngressCapability<'cron'
     ingress,
     campaignId,
     sendToUser: async (u, authority) => {
-      await withRetries(() => sendSeasonalEmail(u.email!, { season: season, name: u.name ?? '' }));
+      requireEmailDelivery(
+        await withRetries(() => sendSeasonalEmail(u.email!, { season: season, name: u.name ?? '' }))
+      );
       // In-app rows are tenant-owned; a user without a tenant only receives the email.
       if (!u.tenantId) return;
       await withRetries(() =>

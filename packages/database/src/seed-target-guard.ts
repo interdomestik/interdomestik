@@ -1,6 +1,26 @@
 const PRODUCTION_PROJECT_REF = 'gunosplgrvnvrftudttr';
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
-
+// postgres 3.4.9 parseOptions: these affect transport, not startup identity.
+const TRANSPORT_QUERY_KEYS = new Set([
+  'ssl',
+  'sslmode',
+  'sslrootcert',
+  'sslnegotiation',
+  'idle_timeout',
+  'connect_timeout',
+  'max_lifetime',
+  'max_pipeline',
+  'backoff',
+  'keep_alive',
+  'prepare',
+  'debug',
+  'fetch_types',
+  'publications',
+  'target_session_attrs',
+  'max',
+]);
+const HOST_KEYS = new Set(['host', 'hostname', 'hostaddr']);
+const USER_KEYS = new Set(['user', 'username']);
 type SeedEnvironment = Readonly<Record<string, string | undefined>>;
 type SeedTargetClassification = 'local' | 'confirmed-non-local';
 
@@ -8,16 +28,7 @@ function refuse(classification: string): never {
   throw new Error(`Seed target refused: ${classification}`);
 }
 
-function parsedUrl(value: string | undefined): URL | null {
-  if (!value) return null;
-  try {
-    return new URL(value);
-  } catch {
-    return null;
-  }
-}
-
-function decodedTargetPart(value: string): string {
+function decode(value: string): string {
   try {
     return decodeURIComponent(value);
   } catch {
@@ -25,55 +36,100 @@ function decodedTargetPart(value: string): string {
   }
 }
 
-function identifiesProduction(url: URL | null): boolean {
-  return Boolean(
-    url &&
-    [url.hostname, url.username].some(value =>
-      decodedTargetPart(value).toLowerCase().includes(PRODUCTION_PROJECT_REF)
-    )
-  );
+function production(value: string | undefined): boolean {
+  const normalized = decode(value ?? '')
+    .trim()
+    .toLowerCase();
+  return normalized === 'production' || normalized.includes(PRODUCTION_PROJECT_REF);
 }
 
-function hasProductionMarker(env: SeedEnvironment): boolean {
-  const markers = [
+function parse(value: string | undefined): URL | null {
+  try {
+    return value ? new URL(value) : null;
+  } catch {
+    return null;
+  }
+}
+
+function present(values: (string | undefined)[]): string[] {
+  return values
+    .filter((value): value is string => Boolean(value))
+    .map(value => decode(value).toLowerCase());
+}
+
+function rejectProduction(env: SeedEnvironment, urls: (URL | null)[]): void {
+  const markers = present([
     env.NODE_ENV,
     env.VERCEL_ENV,
     env.SUPABASE_PROJECT_REF,
     env.SUPABASE_REF,
     env.SUPABASE_PROJECT_ID,
-  ];
-  return markers.some(value => {
-    const marker = value?.trim().toLowerCase();
-    return marker === 'production' || marker === PRODUCTION_PROJECT_REF;
-  });
+    env.USERNAME,
+    env.USER,
+    env.LOGNAME,
+    ...Object.entries(env)
+      .filter(([key]) => key.startsWith('PG'))
+      .map(([, value]) => value),
+  ]);
+  // Scan all query values: unknown startup keys must not hide production evidence.
+  const urlMarkers = urls.flatMap(url =>
+    url ? [url.hostname, url.username, url.pathname, ...url.searchParams.values()] : []
+  );
+  // Also catch production in malformed/multi-host authorities before the validity refusal.
+  const authorities = [env.DATABASE_URL, env.DATABASE_URL_RLS].map(value =>
+    value?.split('://')[1]?.split(/[/?]/)[0]?.split('@').at(-1)
+  );
+  if ([...markers, ...urlMarkers, ...authorities].some(production)) refuse('production');
 }
 
-/** Public target identity, never a connection string or credential. */
-function confirmationTarget(url: URL): string {
-  const hostRef = /^db\.([a-z]{20})\.supabase\.co$/i.exec(url.hostname)?.[1];
-  const userRef = /^postgres\.([a-z]{20})$/i.exec(decodeURIComponent(url.username))?.[1];
-  return (hostRef ?? userRef ?? url.hostname).toLowerCase();
+function hostRef(host: string): string | undefined {
+  return /^(?:db\.)?([a-z]{20})\.supabase\.co$/.exec(host)?.[1];
 }
 
-/** Pure preflight: no DB access, logging, environment mutation or production override. */
+function userRef(user: string): string | undefined {
+  return /^postgres\.([a-z]{20})$/.exec(user)?.[1];
+}
+
+function unique(values: string[]): string | undefined {
+  const distinct = new Set(values);
+  if (distinct.size > 1) refuse('ambiguous');
+  return values[0];
+}
+
+function databaseTarget(url: URL, env: SeedEnvironment): string {
+  if (!['postgres:', 'postgresql:'].includes(url.protocol)) refuse('invalid');
+  const hosts = present([url.hostname, env.PGHOST, env.PGHOSTADDR]);
+  const users = present([url.username, env.PGUSERNAME, env.PGUSER]);
+  for (const [key, value] of url.searchParams) {
+    if (HOST_KEYS.has(key)) hosts.push(decode(value).toLowerCase());
+    else if (USER_KEYS.has(key)) users.push(decode(value).toLowerCase());
+    else if (!TRANSPORT_QUERY_KEYS.has(key)) refuse('ambiguous');
+  }
+  // options/service/socket overrides have no safely resolved single target here.
+  if (env.PGOPTIONS || env.PGSERVICE || env.PGSERVICEFILE) refuse('ambiguous');
+  const host = unique(hosts);
+  unique(users);
+  if (!host || /[,/\s]/.test(host)) refuse('ambiguous');
+  // Require explicit user identity: do not silently delegate to os.userInfo().username.
+  if (!users.length) refuse('invalid');
+  const refs = [...hosts.map(hostRef), ...users.map(userRef)].filter((ref): ref is string => !!ref);
+  const ref = unique(refs);
+  if (ref && hostRef(host) !== ref && !host.endsWith('.pooler.supabase.com')) refuse('ambiguous');
+  return ref ?? host;
+}
+
+/** Pure preflight; all refusals expose only a classification, never credentials. */
 export function assertSeedTargetAllowed(env: SeedEnvironment): SeedTargetClassification {
-  const database = parsedUrl(env.DATABASE_URL);
-  const targets = [database, parsedUrl(env.SUPABASE_URL), parsedUrl(env.NEXT_PUBLIC_SUPABASE_URL)];
-  // Production evidence wins even when another marker or the DB hostname says local.
-  if (hasProductionMarker(env) || targets.some(identifiesProduction)) refuse('production');
-  if (!database || !['postgres:', 'postgresql:'].includes(database.protocol)) {
-    refuse('invalid');
-  }
-  if (LOOPBACK_HOSTS.has(database.hostname.toLowerCase())) return 'local';
-
-  let target: string;
-  try {
-    target = confirmationTarget(database);
-  } catch {
-    return refuse('invalid');
-  }
-  if (env.SEED_TARGET_CONFIRM !== `plan070:${target}`) {
-    refuse('non-local-unconfirmed');
-  }
+  const database = parse(env.DATABASE_URL);
+  const rls = parse(env.DATABASE_URL_RLS);
+  const advisory = [parse(env.SUPABASE_URL), parse(env.NEXT_PUBLIC_SUPABASE_URL)];
+  rejectProduction(env, [database, rls, ...advisory]);
+  if (!database || (env.DATABASE_URL_RLS && !rls)) refuse('invalid');
+  const target = databaseTarget(database, env);
+  const targets = [target];
+  if (rls) targets.push(databaseTarget(rls, env));
+  unique(targets);
+  if (LOOPBACK_HOSTS.has(target)) return 'local';
+  if (env.SEED_TARGET_CONFIRM !== `plan070:${target}`) refuse('non-local-unconfirmed');
   return 'confirmed-non-local';
 }
