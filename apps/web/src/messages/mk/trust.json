@@ -1,9 +1,6 @@
 {
   "trust": {
-    "claimsProcessed": "Обработени барања",
-    "compensationWon": "Освоен надомест",
     "successRate": "Стапка на успех",
-    "responseTime": "Прв одговор",
     "activeMembers": "Активни членови",
     "activeMembersValue": "8.500+",
     "memberSavings": "Заштеди на членови",

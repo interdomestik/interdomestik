@@ -50,7 +50,8 @@
       "amount": "Shuma",
       "description": "Përshkrimi",
       "evidence": "Dëshmi",
-      "noEvidence": "Nuk ka dëshmi të bashkëngjitura"
+      "noEvidence": "Nuk ka dëshmi të bashkëngjitura",
+      "messages": "Mesazhet"
     },
     "table": {
       "recent_activity": "Aktiviteti i Fundit",

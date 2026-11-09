@@ -51,7 +51,8 @@
       "amount": "Claim Amount",
       "description": "Description",
       "evidence": "Evidence",
-      "noEvidence": "No evidence attached"
+      "noEvidence": "No evidence attached",
+      "messages": "Messages"
     },
     "table": {
       "recent_activity": "Recent Activity",

@@ -232,7 +232,6 @@
         "placeholder": "Izaberi novi status...",
         "cancel": "Otkaži",
         "confirm": "Potvrdi ažuriranje",
-        "success": "Status je uspešno ažuriran",
         "error": "Ažuriranje statusa nije uspelo",
         "unexpected_error": "Došlo je do neočekivane greške"
       },
@@ -275,5 +274,8 @@
         }
       }
     }
+  },
+  "admin_claims": {
+    "claim": "Zahtev"
   }
 }
