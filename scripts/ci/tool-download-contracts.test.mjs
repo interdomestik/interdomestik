@@ -50,10 +50,26 @@ const pins = [
     'b251ab2bcd4cd8ba9e56ff37698c033ebf38582b477d21ebd86586d927cf87e7',
   ],
 ];
+// Lines of the official gitleaks_8.30.0_checksums.txt release asset, in published order.
+const OFFICIAL_CHECKSUMS = [
+  ['193d2e4580e3871f66a5c74d4a6098264d2dd0a50a49b53f7fb58081ab174742', 'linux_armv6.tar.gz'],
+  ['35b08db8fc11f4cec66fe54227a9bbd8ecfd7456941d31837f9137edb77ee60e', 'windows_x32.zip'],
+  ['54fe94f644b832dd08e8c3a5915efb3bfa862386d59fb27ca0792cb687a83573', 'windows_x64.zip'],
+  ['79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66e', 'linux_x64.tar.gz'],
+  ['92f1dff6a9d75c027e8379edc38e79d1e8d4e9af5789f123f7ea394f416703e0', 'windows_armv7.zip'],
+  ['9da53611213a9d95d9352941ae5ebd4992ac0684eaf76e135eee13ee73c25085', 'linux_x32.tar.gz'],
+  ['affb600da323925f775df81709c9878cda3f276f30c8e9c5ebef45d66b60834d', 'linux_armv7.tar.gz'],
+  ['b251ab2bcd4cd8ba9e56ff37698c033ebf38582b477d21ebd86586d927cf87e7', 'darwin_arm64.tar.gz'],
+  ['b4cbbb6ddf7d1b2a603088cd03a4e3f7ce48ee7fd449b51f7de6ee2906f5fa2f', 'linux_arm64.tar.gz'],
+  ['bb1c0e78f785cbf7c88a967d304372a5e36c3703b22a769fa44fd8bc514db8f6', 'windows_armv6.zip'],
+  ['ca221d012d247080c2f6f61f4b7a83bffa2453806b0c195c795bbe9a8c775ed5', 'darwin_x64.tar.gz'],
+];
 
 test('gitleaks pins match the exact official checksums-file bytes and published digest', () => {
-  // Official gitleaks_8.30.0_checksums.txt; its SHA-256 equals the release asset digest.
-  const checksums = fs.readFileSync('scripts/ci/fixtures/gitleaks-8.30.0-checksums.txt');
+  // Rebuilt byte for byte; its SHA-256 equals the release asset digest published by GitHub.
+  const checksums = Buffer.from(
+    OFFICIAL_CHECKSUMS.map(([digest, file]) => `${digest}  gitleaks_8.30.0_${file}\n`).join('')
+  );
   assert.equal(checksums.length, 1099);
   assert.equal(
     createHash('sha256').update(checksums).digest('hex'),
