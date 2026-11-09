@@ -203,7 +203,7 @@ process.env.IDA_HOST = IDA_HOST;
 
 fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
 
-const restrictedServerEnv = configureE2eDatabaseEnv();
+const restrictedServerPrefix = configureE2eDatabaseEnv();
 
 const useExternalWebServer = process.env.PW_EXTERNAL_SERVER === '1';
 
@@ -428,7 +428,7 @@ export default defineConfig({
     : {
         // E2E runs against a production server (Next `start`) for artifact consistency.
         // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
-        command: `bash ${WEB_SERVER_SCRIPT}`,
+        command: `${restrictedServerPrefix}bash ${WEB_SERVER_SCRIPT}`,
         // Use a static readiness URL. DB correctness is enforced by gatekeeper before
         // Playwright starts; /api/health can report degraded states unrelated to
         // webserver boot and block test startup.
@@ -459,7 +459,6 @@ export default defineConfig({
           // Disable rate limiting completely by unsetting Upstash vars
           UPSTASH_REDIS_REST_URL: '',
           UPSTASH_REDIS_REST_TOKEN: '',
-          ...restrictedServerEnv,
         },
       },
 });
