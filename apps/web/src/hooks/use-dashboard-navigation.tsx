@@ -1,4 +1,5 @@
 import { canAccessAdmin } from '@/actions/admin-access';
+import type { ShellNavigationItem } from '@/components/shell/shell-navigation';
 import { authClient } from '@/lib/auth-client';
 import { isAdmin } from '@/lib/roles.core';
 import {
@@ -8,6 +9,7 @@ import {
   FileText,
   FolderOpen,
   Home,
+  LifeBuoy,
   LayoutDashboard,
   LayoutTemplate,
   Settings,
@@ -18,14 +20,14 @@ import {
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-type IconType = typeof Home;
 type Translator = (key: string) => string;
+type DashboardNavigationItem = ShellNavigationItem & { mobileOrder?: number };
 
 export type DashboardNavigationModel = {
-  items: { title: string; href: string; icon: IconType }[];
-  memberItems: { title: string; href: string; icon: IconType }[];
-  agentItems: { title: string; href: string; icon: IconType }[];
-  adminItems: { title: string; href: string; icon: IconType }[];
+  items: DashboardNavigationItem[];
+  memberItems: DashboardNavigationItem[];
+  agentItems: DashboardNavigationItem[];
+  adminItems: DashboardNavigationItem[];
   role?: string;
 };
 
@@ -38,23 +40,34 @@ export function buildDashboardNavigationModel(params: {
   const { t, role, agentTier = 'standard', adminAccess = false } = params;
   const isAgent = role === 'agent';
 
-  const memberItems = isAgent
+  const memberItems: DashboardNavigationItem[] = isAgent
     ? []
     : [
         {
           title: t('overview'),
           href: '/member',
           icon: LayoutDashboard,
+          exact: true,
+          shortTitle: t('home'),
+          mobileOrder: 0,
         },
         {
           title: t('claims'),
           href: '/member/claims',
           icon: FileText,
+          mobileOrder: 1,
         },
         {
           title: t('documents'),
           href: '/member/documents',
           icon: FolderOpen,
+          mobileOrder: 3,
+        },
+        {
+          title: t('help'),
+          href: '/member/help',
+          icon: LifeBuoy,
+          mobileOrder: 2,
         },
         {
           title: t('membershipSection'),
@@ -74,7 +87,7 @@ export function buildDashboardNavigationModel(params: {
       ];
 
   // 2. Agent Sales Items (Only for agents)
-  const agentItems: { title: string; href: string; icon: IconType }[] = [];
+  const agentItems: DashboardNavigationItem[] = [];
   if (isAgent) {
     agentItems.push(
       { title: t('agentHub'), href: '/agent', icon: Home },
@@ -99,7 +112,7 @@ export function buildDashboardNavigationModel(params: {
     }
   }
 
-  const adminItems: { title: string; href: string; icon: IconType }[] = [];
+  const adminItems: DashboardNavigationItem[] = [];
   if (isAdmin(role) || adminAccess) {
     adminItems.push({
       title: t('adminDashboard'),

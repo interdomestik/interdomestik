@@ -15,6 +15,7 @@ import type { LucideIcon } from 'lucide-react';
 export type ShellNavigationItem = Readonly<{
   href: string;
   title: string;
+  shortTitle?: string;
   icon: LucideIcon;
   exact?: boolean;
   /** Query-sensitive selection remains owned by the existing consumer. */
@@ -30,6 +31,19 @@ type NavigationGroup = Readonly<{
 }>;
 
 const routePath = (href: string) => href.split(/[?#]/)[0];
+
+export function getActiveShellNavigationItem(
+  items: readonly ShellNavigationItem[],
+  pathname: string
+): ShellNavigationItem | undefined {
+  return items
+    .filter(item => {
+      if (item.selected !== undefined) return item.selected;
+      const path = routePath(item.href);
+      return pathname === path || (!item.exact && pathname.startsWith(`${path}/`));
+    })
+    .sort((a, b) => routePath(b.href).length - routePath(a.href).length)[0];
+}
 
 /** Presentation of admitted items only; this component makes no access decisions. */
 export function ShellNavigation({
@@ -47,14 +61,10 @@ export function ShellNavigation({
       return true;
     }),
   }));
-  const active = uniqueGroups
-    .flatMap(group => group.items)
-    .filter(item => {
-      if (item.selected !== undefined) return item.selected;
-      const path = routePath(item.href);
-      return pathname === path || (!item.exact && pathname.startsWith(`${path}/`));
-    })
-    .sort((a, b) => routePath(b.href).length - routePath(a.href).length)[0];
+  const active = getActiveShellNavigationItem(
+    uniqueGroups.flatMap(group => group.items),
+    pathname
+  );
 
   return (
     <nav aria-label={label} data-testid="shell-navigation">

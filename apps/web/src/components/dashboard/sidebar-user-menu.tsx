@@ -97,7 +97,7 @@ function SidebarUserMenuInner({
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur"
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur [&_[role=menuitem]]:min-h-11"
             side="bottom"
             align="end"
             sideOffset={4}
@@ -121,7 +121,7 @@ function SidebarUserMenuInner({
                 <span>{t('language')}</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
-                <DropdownMenuSubContent>
+                <DropdownMenuSubContent className="[&_[role=menuitem]]:min-h-11">
                   <DropdownMenuItem onClick={() => switchLocale('en')} className="cursor-pointer">
                     <span className="mr-2">🇬🇧</span> English
                     {locale === 'en' && <Check className="ml-auto h-4 w-4" />}
@@ -155,7 +155,7 @@ function SidebarUserMenuInner({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleSignOut}
-              className="text-red-500 focus:text-red-500 cursor-pointer"
+              className="min-h-11 text-red-500 focus:text-red-500 cursor-pointer"
             >
               <LogOut className="mr-2 h-4 w-4" />
               {t('logout')}
