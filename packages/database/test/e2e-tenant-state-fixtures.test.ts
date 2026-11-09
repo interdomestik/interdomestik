@@ -22,6 +22,7 @@ import {
 import * as schema from '../src/schema';
 import { sql } from 'drizzle-orm';
 import { goldenId } from '../src/seed-utils/seed-ids';
+import { assertUpsertedOnEachRun, createUpsertCaptureDb } from './seed-upsert-capture.support';
 
 test('the golden branch seed includes the named inactive branch', () => {
   const branch = buildBranchesToSeed().find(row => row.id === goldenId('ks_branch_inactive'));
@@ -124,36 +125,17 @@ test('empty tenant and empty branch fail on unexpected business population', asy
 });
 
 test('normal tenant and branch seed steps upsert every new fixture field on repeated runs', async t => {
-  const writes: { rows: Row[]; update: Row }[] = [];
-  const db = {
-    insert: () => ({
-      values: (rows: Row | Row[]) => ({
-        onConflictDoUpdate: async ({ set }: { set: Row }) => {
-          writes.push({ rows: Array.isArray(rows) ? rows : [rows], update: set });
-        },
-      }),
-    }),
-  } as unknown as Parameters<typeof seedTenants>[0]['db'];
+  const capture = createUpsertCaptureDb();
+  const db = capture.db as Parameters<typeof seedTenants>[0]['db'];
   const context = { db, schema, sql, at: () => new Date(0) };
   t.mock.method(console, 'log', () => {});
   for (let run = 0; run < 2; run++) {
     await seedTenants(context);
     await seedBranches(context);
   }
-  for (const expected of [...buildTenantStatesToSeed(), buildInactiveBranchToSeed()]) {
-    const matching = writes.filter(write => write.rows.some(row => row.id === expected.id));
-    assert.equal(matching.length, 2, `${expected.id} seeded once on each run`);
-    for (const write of matching) {
-      assert.deepEqual(
-        write.rows.find(row => row.id === expected.id),
-        expected
-      );
-      assert.deepEqual(
-        Object.keys(write.update).sort(),
-        Object.keys(expected)
-          .filter(key => key !== 'id')
-          .sort()
-      );
-    }
-  }
+  assertUpsertedOnEachRun(
+    capture.writes,
+    [...buildTenantStatesToSeed(), buildInactiveBranchToSeed()],
+    2
+  );
 });

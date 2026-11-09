@@ -63,25 +63,25 @@ export async function collectTenantStateViolations(
 
   // Empty means no business population, not merely an empty claims list.
   const emptyTenantId = E2E_TENANT_STATE_FIXTURES.EMPTY_TENANT.id;
-  for (const table of [
-    schema.branches,
-    schema.user,
-    schema.claims,
-    schema.subscriptions,
-    schema.agentClients,
-    schema.memberLeads,
-  ]) {
-    const rows = await db
-      .select({ id: table.id })
-      .from(table)
-      .where(eq(table.tenantId, emptyTenantId));
+  const tenantPopulation = await Promise.all(
+    [
+      schema.branches,
+      schema.user,
+      schema.claims,
+      schema.subscriptions,
+      schema.agentClients,
+      schema.memberLeads,
+    ].map(table => db.select({ id: table.id }).from(table).where(eq(table.tenantId, emptyTenantId)))
+  );
+  for (const rows of tenantPopulation) {
     compareExactSet(failures, `empty tenant ${emptyTenantId}`, rows, []);
   }
-  for (const table of [schema.user, schema.claims, schema.subscriptions, schema.memberLeads]) {
-    const rows = await db
-      .select({ id: table.id })
-      .from(table)
-      .where(eq(table.branchId, emptyBranch.id));
+  const branchPopulation = await Promise.all(
+    [schema.user, schema.claims, schema.subscriptions, schema.memberLeads].map(table =>
+      db.select({ id: table.id }).from(table).where(eq(table.branchId, emptyBranch.id))
+    )
+  );
+  for (const rows of branchPopulation) {
     compareExactSet(failures, `empty branch ${emptyBranch.id}`, rows, []);
   }
 

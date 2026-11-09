@@ -20,6 +20,7 @@ import { buildUsersToSeed } from '../src/seed-golden/users';
 import * as schema from '../src/schema';
 import { goldenId } from '../src/seed-utils/seed-ids';
 import { sql } from 'drizzle-orm';
+import { assertUpsertedOnEachRun, createUpsertCaptureDb } from './seed-upsert-capture.support';
 
 test('the reactivation pair has its own catalogued member', () => {
   assert.ok('KS_MEMBER_LINK_LIFECYCLE' in E2E_USERS, 'the lifecycle member must be catalogued');
@@ -162,37 +163,15 @@ test('an extra grant, substituted pair or extra history checkpoint fails strictl
 });
 
 test('the normal assignment step upserts the final pair and every history field on repeated runs', async t => {
-  const writes: { rows: Row[]; update: Row }[] = [];
-  const db = {
-    insert: () => ({
-      values: (rows: Row | Row[]) => ({
-        onConflictDoUpdate: async ({ set }: { set: Row }) => {
-          writes.push({ rows: Array.isArray(rows) ? rows : [rows], update: set });
-        },
-      }),
-    }),
-  } as unknown as Parameters<typeof seedAgentAssignments>[0]['db'];
+  const capture = createUpsertCaptureDb();
+  const db = capture.db as Parameters<typeof seedAgentAssignments>[0]['db'];
   t.mock.method(console, 'log', () => {});
   const context = { db, schema, sql, at: () => new Date(0) };
   await seedAgentAssignments(context);
   await seedAgentAssignments(context);
-  for (const expected of [
-    buildAgentLinkLifecycleRow(),
-    ...buildAgentLinkLifecycleHistoryToSeed(),
-  ]) {
-    const matching = writes.filter(write => write.rows.some(row => row.id === expected.id));
-    assert.equal(matching.length, 2, `${expected.id} seeded once on each run`);
-    for (const write of matching) {
-      assert.deepEqual(
-        write.rows.find(row => row.id === expected.id),
-        expected
-      );
-      assert.deepEqual(
-        Object.keys(write.update).sort(),
-        Object.keys(expected)
-          .filter(key => key !== 'id')
-          .sort()
-      );
-    }
-  }
+  assertUpsertedOnEachRun(
+    capture.writes,
+    [buildAgentLinkLifecycleRow(), ...buildAgentLinkLifecycleHistoryToSeed()],
+    2
+  );
 });
