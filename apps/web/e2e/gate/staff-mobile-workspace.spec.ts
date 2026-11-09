@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
 import { getTenantFromTestInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
+import { initializeConsent } from '../utils/consent';
 import { gotoApp } from '../utils/navigation';
 
 test.use({ viewport: { width: 390, height: 844 } });
@@ -15,14 +16,6 @@ const WORKSPACE_SECTIONS = [
   'staff-claim-context',
   'staff-status-history',
 ] as const;
-
-async function initializeConsent(page: Page): Promise<void> {
-  // Reuse the pre-navigation consent setup from public-header-overflow.spec.ts.
-  await page.addInitScript(() => {
-    localStorage.setItem('interdomestik_cookie_consent_v1', 'necessary');
-    document.cookie = 'cookie_consent=necessary; Path=/; SameSite=Lax';
-  });
-}
 
 async function expectReflow(page: Page): Promise<void> {
   await expect
