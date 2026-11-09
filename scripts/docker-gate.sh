@@ -108,8 +108,8 @@ cleanup() { pnpm store prune >/dev/null 2>&1 || true; } && \
 trap cleanup EXIT && \
 pnpm install --frozen-lockfile --prefer-offline && \
 pnpm db:migrate && \
-pnpm --filter @interdomestik/database seed:e2e -- --reset && \
-pnpm --filter @interdomestik/database seed:assert-e2e"
+SEED_TARGET_CONFIRM=\"\${SEED_TARGET_CONFIRM:-plan070:host.docker.internal}\" pnpm --filter @interdomestik/database seed:e2e -- --reset && \
+SEED_TARGET_CONFIRM=\"\${SEED_TARGET_CONFIRM:-plan070:host.docker.internal}\" pnpm --filter @interdomestik/database seed:assert-e2e"
 
 echo "6. Booting gate web service..."
 docker compose --profile gate up -d web

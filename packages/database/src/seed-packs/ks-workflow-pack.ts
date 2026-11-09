@@ -1,3 +1,4 @@
+import { assertSeedTargetAllowed } from '../seed-target-guard';
 import { cleanupByPrefixes } from '../seed-utils/cleanup';
 import { agentCapturedLead } from '../seed-utils/lead-consent';
 import { hashPassword } from '../seed-utils/hash-password';
@@ -10,10 +11,9 @@ import { inArray, sql } from 'drizzle-orm';
 import type { SeedConfig } from '../seed-types';
 
 const KS_PACK_RANDOM_SEED = 0x6b_73_20_26;
-
 export async function seedKsWorkflowPack(config: SeedConfig) {
+  assertSeedTargetAllowed(process.env);
   console.log('🇽🇰 Seeding Kosovo Workflow Pack (Overlay)...');
-
   const { db } = await import('../db');
   const schema = await import('../schema');
   const { at } = config;

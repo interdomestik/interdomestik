@@ -37,7 +37,7 @@ function signInRequest(tenantId: string, cookieTenantId = 'tenant_ks'): Request 
     },
     body: JSON.stringify({
       additionalData: { tenantId },
-      email: 'admin.mk@interdomestik.com',
+      email: 'admin.mk@plan070.example.invalid',
       password: 'not-used-in-route-test',
     }),
   });

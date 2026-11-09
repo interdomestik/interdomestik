@@ -5,12 +5,12 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { isNull } from 'drizzle-orm';
 
-import type { ClaimsDeps, ClaimsSession } from '../claims/types';
+import type { ClaimsSession } from '../claims/types';
 import { assignClaimSchema } from '../validators/claims';
-import { buildScopedStaffClaimWhere, buildStaffClaimReadScope } from './scope';
+import { buildScopedStaffClaimWhere } from './scope';
 import type { ActionResult } from './types';
+import { assignClaimInTransaction } from './assign-transaction';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type StaffUser = ClaimsSession['user'] & { branchId?: string | null };
@@ -18,10 +18,6 @@ type StaffClaimRecord = { id: string; staffId: string | null; branchId: string |
 
 function resolveNextStaffId(params: { requestedStaffId?: string | null; userId: string }) {
   return params.requestedStaffId === undefined ? params.userId : params.requestedStaffId;
-}
-
-function buildAssignmentGuard(previousStaffId: string | null) {
-  return previousStaffId ? eq(claims.staffId, previousStaffId) : isNull(claims.staffId);
 }
 
 async function getScopedClaim(args: {
@@ -77,16 +73,13 @@ async function findScopedAssignee(args: {
 }
 
 /** Assign a claim to an in-scope staff member, defaulting to self-assignment */
-export async function assignClaimCore(
-  params: {
-    authority: TenantAuthority | null;
-    claimId: string;
-    staffId?: string | null;
-    session: ClaimsSession | null;
-    requestHeaders?: Headers;
-  },
-  deps: ClaimsDeps = {}
-): Promise<ActionResult> {
+export async function assignClaimCore(params: {
+  authority: TenantAuthority | null;
+  claimId: string;
+  staffId?: string | null;
+  session: ClaimsSession | null;
+  requestHeaders?: Headers;
+}): Promise<ActionResult> {
   const { authority, claimId, session, requestHeaders } = params;
 
   if (!authority || session?.user?.role !== 'staff') {
@@ -94,7 +87,7 @@ export async function assignClaimCore(
   }
 
   ensureTenantId(session);
-  const { tenantId } = readTenantAuthority(authority);
+  readTenantAuthority(authority);
   const user = session.user as StaffUser;
   const branchId = user.branchId ?? null;
   const nextStaffId = resolveNextStaffId({
@@ -134,48 +127,18 @@ export async function assignClaimCore(
       }
     }
 
-    const previousStaffId = existingClaim.staffId;
-    const now = new Date();
-    const scopedWhere = withTenant(
-      tenantId,
-      claims.tenantId,
-      buildStaffClaimReadScope({ branchId, claimId, userId: user.id })
-    );
-    // db-access-guard: tenant-scoped -- reason: tenant predicate built by scopedWhere and consumed by this DB call
-    const updatedClaims = await withTenantAuthority(authority, tx =>
-      tx
-        .update(claims)
-        .set({
-          staffId: nextStaffId,
-          assignedAt: nextStaffId ? now : null,
-          assignedById: nextStaffId ? user.id : null,
-          updatedAt: now,
-        })
-        .where(and(scopedWhere, buildAssignmentGuard(previousStaffId ?? null)))
-        .returning({ id: claims.id })
-    );
-
-    if (updatedClaims.length === 0) {
-      return { success: false, error: 'Claim not found or access denied' };
-    }
-
-    if (deps.logAuditEvent) {
-      await deps.logAuditEvent({
-        actorId: user.id,
-        actorRole: user.role,
+    return await withTenantAuthority(authority, tx =>
+      assignClaimInTransaction(tx, {
         authority,
-        action: nextStaffId ? 'claim.assigned' : 'claim.unassigned',
-        entityType: 'claim',
-        entityId: claimId,
-        metadata: {
-          previousStaffId,
-          newStaffId: nextStaffId,
-        },
-        headers: requestHeaders,
-      });
-    }
-
-    return { success: true };
+        branchId,
+        claimId,
+        userId: user.id,
+        actorRole: user.role,
+        nextStaffId,
+        previousStaffId: existingClaim.staffId,
+        requestHeaders,
+      })
+    );
   } catch (error) {
     console.error('Failed to assign claim:', error);
     return { success: false, error: 'Failed to assign claim' };

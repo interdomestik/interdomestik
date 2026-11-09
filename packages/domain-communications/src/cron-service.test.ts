@@ -1,3 +1,4 @@
+import { campaignSelectMock } from './campaign-query.test-support';
 import type { IngressCapability } from '@interdomestik/database/ingress';
 import {
   readTenantAuthority,
@@ -38,6 +39,7 @@ type FakeSubscription = {
 
 const h = vi.hoisted(() => ({
   findManyLogs: vi.fn(),
+  findManySkipped: vi.fn().mockResolvedValue([]),
   findManySubscriptions: vi.fn(),
   findManyUsers: vi.fn(),
   insertValues: vi.fn(),
@@ -55,6 +57,13 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
+  engagementEmailSends: {
+    tenantId: 'engagementEmailSends.tenantId',
+    userId: 'engagementEmailSends.userId',
+    templateKey: 'engagementEmailSends.templateKey',
+    status: 'engagementEmailSends.status',
+    dedupeKey: 'engagementEmailSends.dedupeKey',
+  },
   emailCampaignLogs: {
     campaignId: 'emailCampaignLogs.campaignId',
     tenantId: 'emailCampaignLogs.tenantId',
@@ -62,6 +71,7 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
 }));
 vi.mock('drizzle-orm', () => ({
+  inArray: (left: unknown, right: unknown[]) => ({ left, op: 'inArray', right }),
   and: (...clauses: unknown[]) => ({ clauses, op: 'and' }),
   eq: (left: unknown, right: unknown) => ({ left, op: 'eq', right }),
 }));
@@ -94,15 +104,16 @@ describe('processEmailSequences welcome campaign', () => {
     welcomeEvents.length = 0;
     welcomeAuthorities.length = 0;
     h.findManyLogs.mockResolvedValue([]);
+    h.findManySkipped.mockResolvedValue([]);
     h.findManyUsers.mockResolvedValue([]);
     h.insertValues.mockResolvedValue(undefined);
-    h.sendWelcomeEmail.mockResolvedValue(undefined);
+    h.sendWelcomeEmail.mockResolvedValue({ success: true, id: 'email-1' });
     h.withTenantContext.mockImplementation(
       async (context: TenantAuthority, action: (tx: unknown) => Promise<unknown>) =>
         action({
+          select: campaignSelectMock(h.findManyLogs, h.findManySkipped),
           insert: () => ({ values: h.insertValues }),
           query: {
-            emailCampaignLogs: { findMany: h.findManyLogs },
             subscriptions: {
               findMany: (options: unknown) => {
                 welcomeEvents.push(`ctx:${readTenantAuthority(context).tenantId}`);
@@ -213,5 +224,29 @@ describe('processEmailSequences welcome campaign', () => {
     expect(h.withTenantContext).not.toHaveBeenCalled();
     expect(h.findManySubscriptions).not.toHaveBeenCalled();
     expect(result.stats.attempted).toBe(0);
+  });
+  it('never writes a campaign delivery receipt for a suppressed email', async () => {
+    scheduleTenants(['tenant-a']);
+    h.findManySubscriptions
+      .mockResolvedValueOnce([subscription('a1', 'tenant-a')])
+      .mockResolvedValue([]);
+    h.insertValues.mockReturnValue({ onConflictDoNothing: vi.fn().mockResolvedValue(undefined) });
+    h.sendWelcomeEmail.mockResolvedValue({
+      success: false,
+      suppressed: true,
+      error: 'email_suppressed',
+    });
+    const result = await processEmailSequences(INGRESS);
+    expect(result.stats.sent).toBe(0);
+    expect(result.stats.failed).toBe(0);
+    expect(result.stats.skipped).toBe(1);
+    expect(result.errors).toEqual([]);
+    expect(h.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'skipped', sentAt: null, providerMessageId: null })
+    );
+    h.findManySkipped.mockResolvedValue([{ tenantId: 'tenant-a', userId: 'user-a1' }]);
+    h.findManySubscriptions.mockResolvedValueOnce([subscription('a1', 'tenant-a')]);
+    await processEmailSequences(INGRESS);
+    expect(h.sendWelcomeEmail).toHaveBeenCalledTimes(1);
   });
 });

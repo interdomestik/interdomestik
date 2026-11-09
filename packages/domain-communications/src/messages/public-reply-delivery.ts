@@ -68,7 +68,7 @@ export function describePublicReplyFailure(error: unknown): { name: string; code
   };
 }
 
-async function deliverEmail(plan: PublicReplyNotificationPlan): Promise<void> {
+async function deliverEmail(plan: PublicReplyNotificationPlan): Promise<'sent' | 'skipped' | void> {
   if (!plan.verifiedEmail) {
     return;
   }
@@ -80,9 +80,11 @@ async function deliverEmail(plan: PublicReplyNotificationPlan): Promise<void> {
     plan.messageContent
   );
   // A reported provider failure is logged like a rejection, without the provider's error text.
+  if (!result.success && result.error === 'email_suppressed') return 'skipped';
   if (!result.success) {
     throw new Error('New message email was not sent');
   }
+  return 'sent';
 }
 
 async function deliverPush(

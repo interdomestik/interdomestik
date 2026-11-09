@@ -68,7 +68,7 @@ describe('auth core ida live-login cutover', () => {
     const result = await evaluateEmailSignInTenantGuard({
       url: 'https://ks.localhost:3000/api/auth/sign-in/email',
       headers: new Headers({ host: 'ks.localhost:3000' }),
-      body: { email: 'admin.ks@interdomestik.com' },
+      body: { email: 'admin.ks@plan070.example.invalid' },
       lookupUserTenantByEmail: async () => 'tenant_ks',
     });
 
@@ -90,7 +90,10 @@ describe('auth core ida live-login cutover', () => {
         host: 'ida.localhost:3000',
         cookie: 'tenantId=tenant_ks; better-auth.session_token=stale',
       }),
-      body: { email: 'admin.mk@interdomestik.com', additionalData: { tenantId: 'tenant_mk' } },
+      body: {
+        email: 'admin.mk@plan070.example.invalid',
+        additionalData: { tenantId: 'tenant_mk' },
+      },
       lookupUserTenantByEmail: async () => 'tenant_mk',
     });
 
@@ -118,7 +121,10 @@ describe('auth core ida live-login cutover', () => {
     const result = await evaluateEmailSignInTenantGuard({
       url: 'https://ks.localhost:3000/api/auth/sign-in/email',
       headers: new Headers({ host: 'ks.localhost:3000' }),
-      body: { email: 'admin.ks@interdomestik.com', additionalData: { tenantId: 'tenant_ks' } },
+      body: {
+        email: 'admin.ks@plan070.example.invalid',
+        additionalData: { tenantId: 'tenant_ks' },
+      },
       lookupUserTenantByEmail: async () => 'tenant_ks',
     });
 

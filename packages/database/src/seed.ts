@@ -3,6 +3,7 @@ import { config as loadEnv } from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { assertSeedTargetAllowed } from './seed-target-guard';
 import { seedFull } from './seed-full';
 import { seedGolden } from './seed-golden';
 import { seedAgentPack } from './seed-packs/agent-pack';
@@ -96,19 +97,9 @@ async function checkSeedMeta(
   mode: SeedMode,
   forceReset: boolean
 ): Promise<{ action: 'seed' | 'skip' | 'block'; reason: string }> {
-  const isProduction =
-    process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
-  const allowReset = process.env.SEED_ALLOW_RESET === 'true';
-
   const existingMeta = await readSeedMeta(db);
   if (existingMeta) {
     if (mode === 'e2e') {
-      if (isProduction && !allowReset) {
-        return {
-          action: 'block',
-          reason: 'E2E reset refused in production without SEED_ALLOW_RESET=true.',
-        };
-      }
       if (existingMeta.version !== SEED_VERSION) {
         return {
           action: 'seed',
@@ -131,12 +122,6 @@ async function checkSeedMeta(
   const hasData = await hasExistingData(db);
   if (hasData) {
     if (mode === 'e2e') {
-      if (isProduction && !allowReset) {
-        return {
-          action: 'block',
-          reason: 'E2E reset refused in production without SEED_ALLOW_RESET=true.',
-        };
-      }
       return {
         action: 'seed',
         reason: 'seed_meta missing but data exists; E2E reset permitted.',
@@ -232,6 +217,7 @@ function resolveSeedBaseTime(mode: SeedMode): Date {
 }
 
 async function main() {
+  assertSeedTargetAllowed(process.env);
   const args = process.argv.slice(2);
   const mode = (args.find(a => !a.startsWith('--')) || 'e2e') as SeedMode;
   const forceReset = args.includes('--reset');

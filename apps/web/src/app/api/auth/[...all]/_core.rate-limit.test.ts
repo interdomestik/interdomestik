@@ -56,9 +56,9 @@ describe('getAuthRateLimitKeySuffix', () => {
         method: 'POST',
         url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
         headers,
-        body: { email: '  STAFF.KS@interdomestik.com ' },
+        body: { email: '  STAFF.KS@plan070.example.invalid ' },
       })
-    ).toBe('tenant:tenant_ks:email_hash:a3b3cdfa6ffbc6575b5f');
+    ).toBe('tenant:tenant_ks:email_hash:6ce4fd837993324df951');
   });
 
   it('returns null for non-email auth routes', () => {
@@ -67,7 +67,7 @@ describe('getAuthRateLimitKeySuffix', () => {
         method: 'POST',
         url: 'https://interdomestik-web.vercel.app/api/auth/request-password-reset',
         headers: new Headers({ host: 'ks.localhost:3000' }),
-        body: { email: 'staff.ks@interdomestik.com' },
+        body: { email: 'staff.ks@plan070.example.invalid' },
       })
     ).toBeNull();
   });
@@ -78,7 +78,7 @@ describe('getAuthRateLimitKeySuffix', () => {
         method: 'POST',
         url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
         headers: new Headers({ host: 'interdomestik-web.vercel.app' }),
-        body: { email: 'staff.ks@interdomestik.com' },
+        body: { email: 'staff.ks@plan070.example.invalid' },
       })
     ).toMatch(/^neutral:email_hash:[a-f0-9]{20}$/);
   });
@@ -91,7 +91,7 @@ describe('getAuthRateLimitKeySuffix', () => {
         method: 'POST',
         url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email-otp',
         headers,
-        body: { email: '  STAFF.KS@interdomestik.com ' },
+        body: { email: '  STAFF.KS@plan070.example.invalid ' },
       })
     ).toBeNull();
   });

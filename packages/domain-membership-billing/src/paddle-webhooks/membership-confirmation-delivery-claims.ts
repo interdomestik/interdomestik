@@ -147,6 +147,7 @@ export async function claimStoredDelivery(args: {
   if (!parsed.success || !args.evidenceMatches(existing, parsed.data.snapshot)) {
     return { kind: 'conflict' };
   }
+  if (existing.status === 'skipped') return { kind: 'already_skipped' };
   if (existing.status === 'sent') return { kind: 'already_sent' };
   if (existing.status === 'authorized') {
     return args.authorizedClaim(existing, parsed.data.snapshot);

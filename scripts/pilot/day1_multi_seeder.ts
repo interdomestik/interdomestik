@@ -14,9 +14,9 @@ import crypto from 'node:crypto';
 async function main() {
   console.log('[Seeder] Connecting to Database...');
 
-  const agentEmail = 'agent.ks.a1@interdomestik.com';
-  const memberEmail = 'member.ks.a1@interdomestik.com';
-  const staffEmail = 'staff.ks.extra@interdomestik.com';
+  const agentEmail = 'agent.ks.a1@plan070.example.invalid';
+  const memberEmail = 'member.ks.a1@plan070.example.invalid';
+  const staffEmail = 'staff.ks.extra@plan070.example.invalid';
 
   const agent = await db.query.user.findFirst({ where: eq(user.email, agentEmail) });
   const member = await db.query.user.findFirst({ where: eq(user.email, memberEmail) });

@@ -42,6 +42,7 @@ describe('subscription confirmation dispatch', () => {
     })),
     ready: vi.fn(),
     complete: vi.fn(),
+    skip: vi.fn(),
     fail: vi.fn(),
   };
 

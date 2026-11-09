@@ -259,3 +259,22 @@ describe('mail delivery', () => {
     }
   );
 });
+
+it.each(['sponsor_notice', 'activation'] as const)(
+  'settles %s suppression without retry or failure audit',
+  async kind => {
+    const dependencies = deps();
+    dependencies.sendMail = vi.fn().mockResolvedValue({ ok: false, code: 'email_suppressed' });
+    dependencies.sendActivation = vi
+      .fn()
+      .mockResolvedValue({ ok: false, code: 'email_suppressed' });
+    const outcome = await deliverSponsorMail(mail({ kind }), dependencies);
+    expect(outcome).toEqual({ state: 'skipped', reason: 'email_suppressed' });
+    fake.rows = [[{ id: 'm1', attempts: 1, kind }]];
+    expect(await finishMail(authority, lease, outcome, now)).toBe('skipped');
+    expect(fake.writes).toContainEqual(
+      expect.objectContaining({ state: 'skipped', leaseUntil: null, terminalAt: now.toISOString() })
+    );
+    // The transaction fake has no insert method: attempting a failure audit fails this test.
+  }
+);

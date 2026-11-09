@@ -6,7 +6,7 @@ describe('toClientShellUser', () => {
     const result = toClientShellUser({
       id: 'staff-1',
       name: 'Drita Gashi',
-      email: 'staff.ks@interdomestik.com',
+      email: 'staff.ks@plan070.example.invalid',
       image: null,
       role: 'staff',
       tenantId: 'tenant-ks',
@@ -18,7 +18,7 @@ describe('toClientShellUser', () => {
     expect(result).toEqual({
       id: 'staff-1',
       name: 'Drita Gashi',
-      email: 'staff.ks@interdomestik.com',
+      email: 'staff.ks@plan070.example.invalid',
       image: null,
       role: 'staff',
     });
