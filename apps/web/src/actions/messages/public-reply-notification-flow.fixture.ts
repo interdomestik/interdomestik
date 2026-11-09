@@ -100,6 +100,10 @@ function client(
       row => !context || row.tenantId === context.tenantId
     );
   };
+  const updateRows = (table: unknown, values: Partial<Row>, where: Predicate) => {
+    if (!context) throw new Error('Unscoped fixture update');
+    for (const row of rows(nameOf(table)).filter(where)) Object.assign(row, values);
+  };
   return {
     query: Object.fromEntries(
       Object.keys(tables).map(name => [
@@ -157,13 +161,7 @@ function client(
     }),
     update: (table: unknown) => ({
       set: (values: Partial<Row>) => ({
-        where: (where: Predicate) =>
-          promised(() => {
-            if (!context) throw new Error('Unscoped fixture update');
-            rows(nameOf(table))
-              .filter(where)
-              .forEach(row => Object.assign(row, values));
-          }),
+        where: (where: Predicate) => promised(() => updateRows(table, values, where)),
       }),
     }),
     select: (fields: Record<string, Column>) => {
