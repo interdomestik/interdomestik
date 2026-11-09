@@ -18,6 +18,12 @@ const portalCopy = (testInfo: TestInfo) => CATALOGS[routes.getLocale(testInfo)].
 // prettier-ignore
 const openPortal = async (page: Page, testInfo: TestInfo) => gotoApp(page, routes.member(testInfo), testInfo, { marker: 'member-dashboard-ready' });
 
+async function expectNoDocumentOverflow(page: Page): Promise<void> {
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+    .toBe(true);
+}
+
 test.describe('Unified Member Portal', () => {
   test('renders canonical regions and navigation', async ({
     authenticatedPage: page,
@@ -139,3 +145,79 @@ test.describe('Unified Member Portal', () => {
     });
   }
 });
+
+for (const width of [360, 390, 430]) {
+  test.describe(`Member role shell at ${width}px`, () => {
+    test.use({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true });
+
+    test('keeps navigation, More and account controls reachable without overflow', async ({
+      authenticatedPage: page,
+    }, testInfo) => {
+      await openPortal(page, testInfo);
+      await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
+
+      const bottomNav = page.getByTestId('role-shell-bottom-nav');
+      await expect(bottomNav).toBeVisible();
+      const memberHome = routes.member(testInfo);
+      const primaryPaths = [
+        memberHome,
+        routes.memberClaims(testInfo),
+        routes.memberHelp(testInfo),
+        `${memberHome}/documents`,
+      ];
+      const links = bottomNav.getByRole('link');
+      await expect(links).toHaveCount(primaryPaths.length);
+      for (const [index, href] of primaryPaths.entries()) {
+        await expect(links.nth(index)).toBeVisible();
+        await expect(links.nth(index)).toHaveAttribute('href', href);
+      }
+      const active = bottomNav.locator('a[aria-current="page"]');
+      await expect(active).toHaveCount(1);
+      await expect(active).toHaveAttribute('href', memberHome);
+
+      const more = bottomNav.getByRole('button');
+      await expect(more).toHaveCount(1);
+      const tapTargets = bottomNav.locator('a, button');
+      await expect(tapTargets).toHaveCount(primaryPaths.length + 1);
+      for (const target of await tapTargets.all()) {
+        await expect(target).toBeVisible();
+        const box = await target.boundingBox();
+        expect(box?.width).toBeGreaterThanOrEqual(44);
+        expect(box?.height).toBeGreaterThanOrEqual(44);
+      }
+      await expectNoDocumentOverflow(page);
+
+      await more.click();
+      const sheet = page.getByRole('dialog');
+      await expect(sheet).toBeVisible();
+      await expect(more).toHaveAttribute('aria-expanded', 'true');
+      const secondaryPaths = [
+        routes.memberMembership(testInfo),
+        routes.memberNewClaim(testInfo),
+        routes.memberSettings(testInfo),
+      ];
+      await expect(sheet.getByRole('link')).toHaveCount(secondaryPaths.length);
+      for (const href of secondaryPaths) {
+        await expect(sheet.locator(`a[href="${href}"]`)).toBeVisible();
+      }
+      await expectNoDocumentOverflow(page);
+      await page.keyboard.press('Escape');
+      await expect(sheet).toHaveCount(0);
+      await expect(more).toHaveAttribute('aria-expanded', 'false');
+      await expect(more).toBeFocused();
+
+      const account = page.getByTestId('user-nav');
+      await expect(account).toBeVisible();
+      await account.click();
+      const menu = page.getByRole('menu');
+      await expect(menu).toBeVisible();
+      // The existing account menu's last item is Logout; inspect it without revoking shared state.
+      const logoutRow = menu.getByRole('menuitem').last();
+      await expect(logoutRow).toBeVisible();
+      expect((await logoutRow.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+      await expectNoDocumentOverflow(page);
+      await page.keyboard.press('Escape');
+      await expect(menu).toHaveCount(0);
+    });
+  });
+}
