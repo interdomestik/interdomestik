@@ -16,18 +16,29 @@ interface BranchDashboardHeaderProps {
   health: HealthProfile;
 }
 
-export function BranchDashboardHeader({ branch, health }: BranchDashboardHeaderProps) {
+export function BranchDashboardHeader({ branch, health }: Readonly<BranchDashboardHeaderProps>) {
   const t = useTranslations('admin.branches');
   const styles = severityStyles(health.severity);
 
   return (
-    <GlassCard className={cn('p-6 border-l-4 flex items-center justify-between', styles.border)}>
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="branch-dashboard-title">
+    <GlassCard
+      className={cn(
+        'min-w-0 p-4 sm:p-6 border-l-4 flex flex-col items-start gap-4 lg:flex-row lg:items-center lg:justify-between',
+        styles.border
+      )}
+    >
+      <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <h1
+            className="min-w-0 text-2xl font-bold tracking-tight [overflow-wrap:anywhere]"
+            data-testid="branch-dashboard-title"
+          >
             {branch.name}
           </h1>
-          <Badge variant="outline" className="font-mono text-xs opacity-70">
+          <Badge
+            variant="outline"
+            className="max-w-full font-mono text-xs opacity-70 [overflow-wrap:anywhere]"
+          >
             {branch.code}
           </Badge>
           {!branch.isActive && <Badge variant="secondary">{t('status.inactive')}</Badge>}
@@ -37,10 +48,10 @@ export function BranchDashboardHeader({ branch, health }: BranchDashboardHeaderP
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 max-w-full flex-wrap items-center gap-4">
         <HealthExplanationTooltip severity={health.severity} subject="branch">
-          <div className="flex items-center gap-4 cursor-pointer">
-            <div className="flex flex-col items-end">
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-4">
+            <div className="flex min-w-0 flex-col items-end">
               <span className={cn('text-sm font-medium', styles.text)}>{t(health.labelKey)}</span>
               <span className="text-xs text-muted-foreground" data-testid="branch-health-score">
                 {t('health_score', { score: health.score })}
@@ -49,7 +60,7 @@ export function BranchDashboardHeader({ branch, health }: BranchDashboardHeaderP
 
             <div
               className={cn(
-                'flex items-center justify-center w-12 h-12 rounded-full border-4 text-lg font-bold shadow-sm',
+                'flex items-center justify-center w-12 h-12 shrink-0 rounded-full border-4 text-lg font-bold shadow-sm',
                 styles.border,
                 styles.text,
                 'bg-background'

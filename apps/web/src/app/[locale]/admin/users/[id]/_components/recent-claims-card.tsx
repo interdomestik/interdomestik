@@ -20,11 +20,11 @@ export async function RecentClaimsCard({
   locale,
   recentClaims,
   queryString,
-}: {
+}: Readonly<{
   locale: string;
   recentClaims: RecentClaim[];
   queryString?: string;
-}): Promise<React.JSX.Element> {
+}>): Promise<React.JSX.Element> {
   const t = await getTranslations({ locale, namespace: 'admin.member_profile' });
   const tClaims = await getTranslations({ locale, namespace: 'claims' });
   const tCommon = await getTranslations({ locale, namespace: 'common' });
@@ -92,6 +92,7 @@ export async function RecentClaimsCard({
           columns={columns}
           rows={rows}
           emptyLabel={t('labels.no_claims')}
+          scrollLabel={t('sections.recent_claims')}
           actionsHeader={t('actions.view_claim')}
         />
       </CardContent>

@@ -16,18 +16,18 @@ interface StaffLoadPanelProps {
   }[];
 }
 
-export function StaffLoadPanel({ staff }: StaffLoadPanelProps) {
+export function StaffLoadPanel({ staff }: Readonly<StaffLoadPanelProps>) {
   const t = useTranslations('admin.branches.staff_load');
   const sorted = [...staff].sort((a, b) => b.workload - a.workload);
 
   return (
-    <GlassCard className="h-full flex flex-col">
-      <div className="p-4 border-b border-border/50 flex items-center justify-between">
+    <GlassCard className="min-w-0 h-full flex flex-col">
+      <div className="p-4 border-b border-border/50 flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-semibold">{t('title')}</h3>
         <Badge variant="outline">{staff.length}</Badge>
       </div>
-      <div className="p-0 overflow-auto">
-        <table className="w-full text-sm text-left">
+      <section aria-label={t('title')} className="min-w-0 max-w-full p-0 overflow-x-auto">
+        <table className="w-full min-w-[16rem] text-sm text-left">
           <thead className="text-xs text-muted-foreground bg-muted/30 uppercase">
             <tr>
               <th className="px-4 py-3 font-medium">{t('name')}</th>
@@ -36,26 +36,16 @@ export function StaffLoadPanel({ staff }: StaffLoadPanelProps) {
           </thead>
           <tbody className="divide-y divide-border/50">
             {sorted.map(person => {
-              const styles = severityStyles(
-                person.severity === 'urgent'
-                  ? 'urgent'
-                  : person.severity === 'attention'
-                    ? 'attention'
-                    : 'healthy'
-              );
+              const styles = severityStyles(person.severity);
 
               return (
                 <tr key={person.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium">{person.name}</td>
+                  <td className="max-w-48 px-4 py-3 font-medium [overflow-wrap:anywhere]">
+                    {person.name}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <HealthExplanationTooltip
-                      severity={
-                        person.severity === 'urgent'
-                          ? 'urgent'
-                          : person.severity === 'attention'
-                            ? 'attention'
-                            : 'healthy'
-                      }
+                      severity={person.severity}
                       subject="staff"
                       disabled={person.workload === 0}
                     >
@@ -79,7 +69,7 @@ export function StaffLoadPanel({ staff }: StaffLoadPanelProps) {
             )}
           </tbody>
         </table>
-      </div>
+      </section>
     </GlassCard>
   );
 }

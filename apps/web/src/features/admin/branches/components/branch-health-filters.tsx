@@ -26,7 +26,10 @@ interface BranchHealthFiltersProps {
   onFilterChange: (filters: BranchFiltersState) => void;
 }
 
-export function BranchHealthFilters({ filters, onFilterChange }: BranchHealthFiltersProps) {
+export function BranchHealthFilters({
+  filters,
+  onFilterChange,
+}: Readonly<BranchHealthFiltersProps>) {
   const t = useTranslations('admin.branches');
 
   const updateFilter = <K extends keyof BranchFiltersState>(
@@ -43,13 +46,16 @@ export function BranchHealthFilters({ filters, onFilterChange }: BranchHealthFil
   ];
 
   const rightActions = (
-    <div className="flex items-center gap-3">
+    <div className="flex min-w-0 w-full flex-wrap items-center gap-3 sm:w-auto">
       {/* Sort Select */}
       <Select
         value={filters.sortBy}
         onValueChange={val => updateFilter('sortBy', val as BranchFiltersState['sortBy'])}
       >
-        <SelectTrigger className="w-[180px] bg-background/50 border-white/10">
+        <SelectTrigger
+          aria-label={t('sort_label')}
+          className="min-h-11 w-full max-w-full sm:w-[180px] bg-background/50 border-white/10"
+        >
           <SelectValue placeholder={t('sort_label')} />
         </SelectTrigger>
         <SelectContent>
@@ -62,13 +68,16 @@ export function BranchHealthFilters({ filters, onFilterChange }: BranchHealthFil
       </Select>
 
       {/* Needs Attention Toggle */}
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-background/50">
+      <div className="flex min-h-11 min-w-0 max-w-full items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-background/50">
         <Checkbox
           id="attention-mode"
           checked={filters.needsAttention}
           onCheckedChange={(val: boolean) => updateFilter('needsAttention', val)}
         />
-        <label htmlFor="attention-mode" className="text-sm cursor-pointer whitespace-nowrap">
+        <label
+          htmlFor="attention-mode"
+          className="min-w-0 text-sm cursor-pointer [overflow-wrap:anywhere]"
+        >
           {t('filter_attention')}
         </label>
       </div>
@@ -76,8 +85,9 @@ export function BranchHealthFilters({ filters, onFilterChange }: BranchHealthFil
   );
 
   return (
-    <div className="mb-6">
+    <div className="min-w-0 mb-6" data-workspace-controls>
       <OpsFiltersBar
+        className="min-w-0 flex-wrap"
         tabs={tabs}
         activeTab={filters.status}
         onTabChange={tabId => updateFilter('status', tabId as BranchFiltersState['status'])}

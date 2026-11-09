@@ -26,6 +26,14 @@ vi.mock('next-intl', () => ({
 }));
 
 describe('ClaimsPipelinePanel', () => {
+  it('keeps large counts and long fallback labels in a wrapping row', () => {
+    const status = 'long_status_'.repeat(30);
+    render(<ClaimsPipelinePanel pipeline={[{ status, count: 123456789 }]} />);
+    expect(screen.getByTestId(`branch-pipeline-${status}`)).toHaveClass('flex-wrap');
+    expect(screen.getByText('123456789')).toHaveTextContent('123456789');
+    expect(screen.getByText(status.replaceAll('_', ' ').trim())).toBeInTheDocument();
+  });
+
   it('renders localized labels for known claim statuses', () => {
     render(
       <ClaimsPipelinePanel

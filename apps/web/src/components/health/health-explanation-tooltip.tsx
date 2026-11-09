@@ -3,11 +3,12 @@
 import {
   Tooltip,
   TooltipContent,
+  TooltipPortal,
   TooltipProvider,
   TooltipTrigger,
 } from '@interdomestik/ui/components/tooltip';
 import { cn } from '@interdomestik/ui/lib/utils';
-import { AlertCircle, CheckCircle2, PauseCircle, XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info, PauseCircle, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -55,10 +56,11 @@ export function HealthExplanationTooltip({
   children,
   subject = 'branch', // currently unused in copy but useful for future specificity
   disabled = false,
-}: HealthExplanationTooltipProps) {
+}: Readonly<HealthExplanationTooltipProps>) {
   const t = useTranslations('admin.branches.health.tooltip');
   const config = severityConfig[severity];
   const Icon = config.icon;
+  const [open, setOpen] = React.useState(false);
 
   if (disabled) return <>{children}</>;
 
@@ -69,54 +71,67 @@ export function HealthExplanationTooltip({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="inline-flex cursor-help" data-subject={subject}>
-            {children}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent
-          side="top"
-          className={cn(
-            'w-72 p-0 overflow-hidden border backdrop-blur-xl bg-background/95',
-            config.border
-          )}
-        >
-          {/* Header */}
-          <div
-            className={cn('flex items-center gap-2 px-4 py-3 border-b', config.bg, config.border)}
+      <Tooltip open={open} onOpenChange={setOpen}>
+        <div className="inline-flex min-w-0 max-w-full items-center gap-1" data-subject={subject}>
+          {children}
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label={t(`${severity}.title`)}
+              aria-expanded={open}
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={event => {
+                // Radix normally closes on activation; a tap must expose this explanation.
+                event.preventDefault();
+                setOpen(true);
+              }}
+            >
+              <Info aria-hidden="true" className="size-4" />
+            </button>
+          </TooltipTrigger>
+        </div>
+        <TooltipPortal>
+          <TooltipContent
+            side="top"
+            collisionPadding={16}
+            className={cn(
+              'w-72 max-w-[calc(100vw-2rem)] max-h-[var(--radix-tooltip-content-available-height)] p-0 overflow-y-auto border backdrop-blur-xl bg-background/95 [overflow-wrap:anywhere]',
+              config.border
+            )}
           >
-            <Icon className={cn('h-5 w-5 shrink-0', config.color)} />
-            <p className="font-semibold text-sm">{t(`${severity}.title`)}</p>
-          </div>
-
-          {/* Body */}
-          <div className="p-4 space-y-4">
-            <ul className="space-y-2">
-              {bullets.map((bullet, i) => (
-                <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                  <span
-                    className={cn(
-                      'mt-1.5 h-1 w-1 rounded-full shrink-0',
-                      config.color.replace('text-', 'bg-')
-                    )}
-                  />
-                  <span>{bullet}</span>
-                </li>
-              ))}
-            </ul>
-
-            {/* Action Line */}
-            <div className="pt-2 border-t mt-2">
-              <p className="text-xs font-medium flex items-center gap-2">
-                <span className="text-muted-foreground uppercase text-[10px] tracking-wider">
-                  Action:
-                </span>
-                <span className={config.color}>{t(`${severity}.action`)}</span>
-              </p>
+            {/* Header */}
+            <div
+              className={cn('flex items-center gap-2 px-4 py-3 border-b', config.bg, config.border)}
+            >
+              <Icon className={cn('h-5 w-5 shrink-0', config.color)} />
+              <p className="font-semibold text-sm">{t(`${severity}.title`)}</p>
             </div>
-          </div>
-        </TooltipContent>
+
+            {/* Body */}
+            <div className="p-4 space-y-4">
+              <ul className="space-y-2">
+                {bullets.map((bullet, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <span
+                      className={cn(
+                        'mt-1.5 h-1 w-1 rounded-full shrink-0',
+                        config.color.replace('text-', 'bg-')
+                      )}
+                    />
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Action Line */}
+              <div className="pt-2 border-t mt-2">
+                <p className="text-xs font-medium flex items-center gap-2">
+                  <span className={config.color}>{t(`${severity}.action`)}</span>
+                </p>
+              </div>
+            </div>
+          </TooltipContent>
+        </TooltipPortal>
       </Tooltip>
     </TooltipProvider>
   );

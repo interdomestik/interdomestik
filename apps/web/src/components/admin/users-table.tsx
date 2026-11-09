@@ -152,7 +152,7 @@ export function UsersTable({
   };
 
   const tableContent = (
-    <Table>
+    <Table className="min-w-[48rem]">
       <TableHeader>
         <TableRow className="hover:bg-transparent border-white/10">
           <TableHead>{t('headers.user')}</TableHead>
@@ -174,13 +174,13 @@ export function UsersTable({
           >
             <TableCell>
               <div className="flex items-center gap-3">
-                <Avatar className="h-9 w-9 border border-white/10">
+                <Avatar className="h-9 w-9 shrink-0 border border-white/10">
                   <AvatarImage src={user.image || ''} />
                   <AvatarFallback className="bg-white/10 text-muted-foreground">
                     {user.name?.[0]?.toUpperCase() || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col">
+                <div className="flex min-w-0 max-w-72 flex-col [overflow-wrap:anywhere]">
                   <span className="font-medium">{user.name}</span>
                   <span className="text-xs text-muted-foreground">{user.email}</span>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -196,7 +196,7 @@ export function UsersTable({
                       asChild
                       size="sm"
                       variant="ghost"
-                      className="h-7 px-2 text-xs hover:bg-blue-500/10 hover:text-blue-500 border border-white/10"
+                      className="min-h-11 h-auto whitespace-normal px-2 text-xs hover:bg-blue-500/10 hover:text-blue-500 border border-white/10"
                     >
                       <Link href={withUsersListContext(`/admin/users/${user.id}`)}>
                         {t('view_profile')}
@@ -206,7 +206,7 @@ export function UsersTable({
                       <Button
                         asChild
                         size="sm"
-                        className="h-7 gap-2 px-3 text-xs font-semibold shadow-sm animate-pulse bg-amber-500 text-white hover:bg-amber-600 border-none"
+                        className="min-h-11 h-auto whitespace-normal gap-2 px-3 text-xs font-semibold shadow-sm animate-pulse bg-amber-500 text-white hover:bg-amber-600 border-none"
                       >
                         <Link href={withUsersListContext(user.alertLink)}>
                           <span className="relative flex h-2 w-2">
@@ -228,7 +228,7 @@ export function UsersTable({
             </TableCell>
             <TableCell>
               {getIdentityValue(user) ? (
-                <code className="text-xs font-mono bg-white/5 px-1.5 py-0.5 rounded text-muted-foreground">
+                <code className="inline-block max-w-48 [overflow-wrap:anywhere] text-xs font-mono bg-white/5 px-1.5 py-0.5 rounded text-muted-foreground">
                   {getIdentityValue(user)}
                 </code>
               ) : (
@@ -242,7 +242,7 @@ export function UsersTable({
                   value={assignedAgents[user.id] || COMPANY_OWNED_VALUE}
                   onValueChange={val => handleAgentChange(user.id, val)}
                 >
-                  <SelectTrigger className="w-[180px] bg-white/5 border-white/10 focus:ring-0 focus:ring-offset-0">
+                  <SelectTrigger className="min-h-11 w-[180px] bg-white/5 border-white/10 focus:ring-0 focus:ring-offset-0">
                     <SelectValue placeholder={t('select_agent')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -274,9 +274,11 @@ export function UsersTable({
     </Table>
   );
 
-  if (!showContainer) {
-    return tableContent;
-  }
-
-  return <GlassCard className="overflow-x-auto p-0">{tableContent}</GlassCard>;
+  const scrollContent = (
+    <section aria-label={t('headers.user')} className="min-w-0 max-w-full overflow-x-auto">
+      {tableContent}
+    </section>
+  );
+  if (!showContainer) return scrollContent;
+  return <GlassCard className="min-w-0 p-0">{scrollContent}</GlassCard>;
 }

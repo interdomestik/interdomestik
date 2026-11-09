@@ -25,7 +25,7 @@ interface BranchHealthViewProps {
   initialBranches: BranchWithKpis[];
 }
 
-export function BranchHealthView({ initialBranches }: BranchHealthViewProps) {
+export function BranchHealthView({ initialBranches }: Readonly<BranchHealthViewProps>) {
   const t = useTranslations('admin.branches');
   const router = useRouter();
 
@@ -126,7 +126,7 @@ export function BranchHealthView({ initialBranches }: BranchHealthViewProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6 [overflow-wrap:anywhere]" data-workspace-controls>
       <BranchHealthFilters filters={filters} onFilterChange={setFilters} />
 
       <div className="flex items-center justify-between px-2 text-sm text-muted-foreground pb-2 border-b border-white/5">
@@ -140,7 +140,7 @@ export function BranchHealthView({ initialBranches }: BranchHealthViewProps) {
             subtitle={t('no_branches_subtitle', { defaultValue: 'Try adjusting your filters' })}
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredBranches.map(branch => (
               <BranchHealthCard
                 key={branch.id}

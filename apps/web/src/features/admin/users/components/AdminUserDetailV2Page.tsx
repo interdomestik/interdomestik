@@ -142,7 +142,7 @@ export async function AdminUserDetailV2Page({
     };
   }
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8 [overflow-wrap:anywhere]" data-workspace-controls>
       <div className="flex items-center gap-3 text-sm text-muted-foreground">
         <Button asChild variant="ghost" size="sm">
           <Link href={backHref}>
@@ -165,7 +165,7 @@ export async function AdminUserDetailV2Page({
 
       <AdminUserRolesPanel userId={member.id} tenantId={tenantId} />
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-3 [&>*]:min-w-0">
         <MembershipInfoCard
           locale={locale}
           membershipSource={membership.source}
@@ -190,7 +190,7 @@ export async function AdminUserDetailV2Page({
         <PreferencesCard locale={locale} preferences={preferences ?? null} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         <ClaimsStatsCard locale={locale} counts={counts} />
         <RecentClaimsCard locale={locale} recentClaims={recentClaims} queryString={backQuery} />
       </div>

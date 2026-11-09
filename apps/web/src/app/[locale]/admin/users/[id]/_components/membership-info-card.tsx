@@ -21,7 +21,7 @@ export async function MembershipInfoCard({
   canReassignTenant,
   tenantOptions,
   userId,
-}: {
+}: Readonly<{
   locale: string;
   membershipSource: 'sponsor' | 'subscription' | 'none';
   coverageEnd?: Date | null;
@@ -42,7 +42,7 @@ export async function MembershipInfoCard({
   canReassignTenant: boolean;
   tenantOptions: AdminTenantOption[];
   userId: string;
-}): Promise<React.JSX.Element> {
+}>): Promise<React.JSX.Element> {
   const t = await getTranslations({ locale, namespace: 'admin.member_profile' });
   const tCommon = await getTranslations({ locale, namespace: 'common' });
 
@@ -64,13 +64,13 @@ export async function MembershipInfoCard({
       : null;
 
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader>
         <CardTitle className="text-sm font-medium">
           {t(isMembershipProfile ? 'sections.membership' : 'sections.account')}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm">
+      <CardContent className="space-y-3 text-sm [overflow-wrap:anywhere] [&>.flex]:flex-wrap [&>.flex]:gap-2 [&>.flex>*]:min-w-0 [&>.flex>*]:max-w-full">
         {isMembershipProfile ? (
           <>
             <div className="flex items-center justify-between">

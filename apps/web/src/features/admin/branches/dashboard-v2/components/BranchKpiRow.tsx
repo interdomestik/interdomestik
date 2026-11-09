@@ -16,11 +16,11 @@ interface BranchKpiRowProps {
   };
 }
 
-export function BranchKpiRow({ kpis }: BranchKpiRowProps) {
+export function BranchKpiRow({ kpis }: Readonly<BranchKpiRowProps>) {
   const t = useTranslations('admin.branches.kpis');
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
       <KpiCard
         testId="branch-kpi-open-claims"
         label={t('open_claims')}
@@ -67,24 +67,24 @@ function KpiCard({
   icon: Icon,
   alert,
   warning,
-}: {
+}: Readonly<{
   testId: string;
   label: string;
   value: number;
   icon: LucideIcon;
   alert?: boolean;
   warning?: boolean;
-}) {
+}>) {
   return (
     <GlassCard
       data-testid={testId}
       className={cn(
-        'p-4 flex items-center justify-between transition-colors',
+        'min-w-0 p-4 flex items-center justify-between gap-3 transition-colors',
         alert && 'bg-red-500/5 border-red-500/20',
         warning && !alert && 'bg-amber-500/5 border-amber-500/20'
       )}
     >
-      <div className="flex flex-col gap-1">
+      <div className="flex min-w-0 flex-col gap-1">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           {label}
         </span>
@@ -100,7 +100,7 @@ function KpiCard({
       </div>
       <div
         className={cn(
-          'p-2 rounded-lg bg-muted/50',
+          'shrink-0 p-2 rounded-lg bg-muted/50',
           alert && 'bg-red-500/10 text-red-500',
           warning && 'bg-amber-500/10 text-amber-500'
         )}

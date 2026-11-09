@@ -12,14 +12,14 @@ interface BranchDashboardV2Props {
   data: BranchDashboardV2Data;
 }
 
-export function BranchDashboardV2({ data }: BranchDashboardV2Props) {
+export function BranchDashboardV2({ data }: Readonly<BranchDashboardV2Props>) {
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6 [overflow-wrap:anywhere]" data-workspace-controls>
       <BranchDashboardHeader branch={data.branch} health={data.health} />
 
       <BranchKpiRow kpis={data.kpis} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 [&>*]:min-w-0">
         {/* Priority Panels */}
         <OperationalAlertsPanel
           alerts={{
@@ -33,7 +33,7 @@ export function BranchDashboardV2({ data }: BranchDashboardV2Props) {
         <StaffLoadPanel staff={data.staffLoad} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid min-w-0 grid-cols-1 gap-6 [&>*]:min-w-0">
         <AgentHealthPanel agents={data.agentHealth} />
       </div>
     </div>

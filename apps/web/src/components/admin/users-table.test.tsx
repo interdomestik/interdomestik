@@ -11,6 +11,26 @@ describe('UsersTable', () => {
     vi.clearAllMocks();
   });
 
+  it('contains long identity content in a named local scrolling region in grouped tables', () => {
+    const name = 'LongName'.repeat(40);
+    const email = `${'long-email'.repeat(40)}@example.com`;
+    const id = 'operator-id'.repeat(40);
+    render(
+      <UsersTable
+        users={[{ ...mockUsers[1], name, email, id }]}
+        agents={[]}
+        showContainer={false}
+      />
+    );
+    expect(screen.getByRole('region', { name: 'User' })).toHaveClass(
+      'overflow-x-auto',
+      'max-w-full'
+    );
+    expect(screen.getByText(name)).toHaveTextContent(name);
+    expect(screen.getByText(email)).toHaveTextContent(email);
+    expect(screen.getByText(id)).toHaveTextContent(id);
+  });
+
   it('retains agent choices for Agent rows which also carry member capability', () => {
     render(<UsersSections users={[mockUsers[1]]} agents={mockAgents} />);
     expect(screen.getAllByText('Select Agent')).toHaveLength(2);

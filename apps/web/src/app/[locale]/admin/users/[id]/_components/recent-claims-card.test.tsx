@@ -41,6 +41,9 @@ describe('RecentClaimsCard', () => {
     expect(screen.getByText('sections.recent_claims')).toBeInTheDocument();
     expect(screen.getByText('Claim 1')).toBeInTheDocument();
     expect(screen.getByText('100 EUR')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'sections.recent_claims' })).toHaveClass(
+      'overflow-x-auto'
+    );
   });
 
   it('renders empty state', async () => {

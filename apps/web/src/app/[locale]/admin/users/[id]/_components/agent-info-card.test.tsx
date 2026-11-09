@@ -7,6 +7,14 @@ vi.mock('next-intl/server', () => ({
 }));
 
 describe('AgentInfoCard', () => {
+  it('wraps long assigned-agent names and email addresses without removing text', async () => {
+    const name = 'Agent'.repeat(50);
+    const email = `${'agent'.repeat(50)}@example.com`;
+    render(await AgentInfoCard({ locale: 'de', agent: { name, email, image: null } }));
+    expect(screen.getByText(name).parentElement).toHaveClass('min-w-0', '[overflow-wrap:anywhere]');
+    expect(screen.getByText(email)).toHaveTextContent(email);
+  });
+
   it('renders agent details', async () => {
     const mockAgent = {
       name: 'Agent Smith',

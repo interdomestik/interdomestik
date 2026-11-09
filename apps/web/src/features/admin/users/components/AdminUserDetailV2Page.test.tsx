@@ -118,7 +118,9 @@ describe('admin membership projection', () => {
         recentClaims: [],
         preferences: null,
       });
-      render(await loadPage());
+      const { container } = render(await loadPage());
+      expect(container.firstChild).toHaveClass('min-w-0', '[overflow-wrap:anywhere]');
+      expect(container.firstChild).toHaveAttribute('data-workspace-controls');
       expect(screen.getByText('membership-card')).toBeInTheDocument();
       const props = h.card.mock.calls[0]?.[0];
       expect(props).toMatchObject({

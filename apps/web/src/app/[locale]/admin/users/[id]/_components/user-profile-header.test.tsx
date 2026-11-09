@@ -24,6 +24,24 @@ describe('UserProfileHeader', () => {
     image: null,
   };
 
+  it('keeps long names, emails and account ids available in shrinking layout items', async () => {
+    const name = 'LongName'.repeat(30);
+    const email = `${'long-email'.repeat(30)}@example.com`;
+    const id = 'account-id'.repeat(30);
+    render(
+      await UserProfileHeader({
+        locale: 'de',
+        member: { ...mockMember, name, email, id, memberNumber: null },
+        membershipStatus: 'operator',
+        membershipBadgeClass: 'bg-sky',
+        isMembershipProfile: false,
+      })
+    );
+    expect(screen.getByRole('heading', { name })).toHaveClass('[overflow-wrap:anywhere]');
+    expect(screen.getByText(email)).toHaveClass('min-w-0', '[overflow-wrap:anywhere]');
+    expect(screen.getByText(id)).toHaveTextContent(id);
+  });
+
   it('renders the canonical member number instead of the raw user id', async () => {
     const jsx = await UserProfileHeader({
       locale: 'en',

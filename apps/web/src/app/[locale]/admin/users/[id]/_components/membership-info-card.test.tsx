@@ -17,6 +17,27 @@ vi.mock('@/features/admin/users/components/tenant-classification-controls', () =
 }));
 
 describe('MembershipInfoCard', () => {
+  it('keeps long plan values in wrapping data rows', async () => {
+    const planId = 'LongPlan'.repeat(40);
+    const { container } = render(
+      await MembershipInfoCard({
+        locale: 'de',
+        membershipSource: 'subscription',
+        subscription: { planId, currentPeriodEnd: new Date(), cancelAtPeriodEnd: false },
+        membershipStatus: 'active',
+        membershipBadgeClass: 'bg-green',
+        isMembershipProfile: true,
+        role: 'member',
+        currentTenantId: null,
+        canReassignTenant: false,
+        tenantOptions: [],
+        userId: 'user-1',
+      })
+    );
+    expect(screen.getByText(planId)).toHaveTextContent(planId);
+    expect(container.querySelector('[class*="space-y-3"]')).toHaveClass('[&>.flex]:flex-wrap');
+  });
+
   it('renders subscription details', async () => {
     const mockSubscription = {
       planId: 'Premium Plan',

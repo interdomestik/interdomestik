@@ -123,6 +123,7 @@ export default async function AdminUsersPage({
     <div
       className="w-full max-w-[calc(100vw-3rem)] min-w-0 space-y-6 sm:max-w-full"
       data-testid="admin-users-page"
+      data-workspace-controls
     >
       <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

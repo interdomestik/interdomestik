@@ -20,20 +20,20 @@ interface AgentHealthPanelProps {
   }[];
 }
 
-export function AgentHealthPanel({ agents }: AgentHealthPanelProps) {
+export function AgentHealthPanel({ agents }: Readonly<AgentHealthPanelProps>) {
   const t = useTranslations('admin.branches.agent_health');
 
   // Sort by health score ascending (worst first)
   const sorted = [...agents].sort((a, b) => a.health.score - b.health.score);
 
   return (
-    <GlassCard className="h-full flex flex-col col-span-1 lg:col-span-2">
-      <div className="p-4 border-b border-border/50 flex items-center justify-between">
+    <GlassCard className="min-w-0 h-full flex flex-col">
+      <div className="p-4 border-b border-border/50 flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-semibold">{t('title')}</h3>
         <Badge variant="outline">{agents.length}</Badge>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
+      <section aria-label={t('title')} className="min-w-0 max-w-full overflow-x-auto">
+        <table className="w-full min-w-[40rem] text-sm text-left">
           <thead className="text-xs text-muted-foreground bg-muted/30 uppercase">
             <tr>
               <th className="px-4 py-3 font-medium">{t('agent')}</th>
@@ -49,7 +49,9 @@ export function AgentHealthPanel({ agents }: AgentHealthPanelProps) {
               const styles = severityStyles(agent.health.severity);
               return (
                 <tr key={agent.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium">{agent.name}</td>
+                  <td className="max-w-48 px-4 py-3 font-medium [overflow-wrap:anywhere]">
+                    {agent.name}
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <span className={cn('font-bold', styles.text)}>{agent.health.score}</span>
                   </td>
@@ -89,7 +91,7 @@ export function AgentHealthPanel({ agents }: AgentHealthPanelProps) {
             )}
           </tbody>
         </table>
-      </div>
+      </section>
     </GlassCard>
   );
 }

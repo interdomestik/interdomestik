@@ -103,7 +103,7 @@ async function expectDrawer(page: Page, branchManager: boolean): Promise<void> {
   await expect(drawer).toBeVisible();
   await expect(drawer.locator('a[href$="/admin/claims"]')).toHaveCount(1);
   await expect(drawer.locator('a[href$="/admin/branches"]')).toHaveCount(branchManager ? 0 : 1);
-  await expect(drawer.getByTestId('sidebar-user-menu-button')).toBeVisible();
+  await expectEnabledAndUncovered(drawer.getByTestId('sidebar-user-menu-button'));
   for (const target of await drawer.getByRole('navigation').getByRole('link').all()) {
     const box = await target.boundingBox();
     expect(box?.height).toBeGreaterThanOrEqual(44);
@@ -247,5 +247,51 @@ test('branch-manager claim detail keeps messaging, evidence and handling read-on
     }
     await expectDrawer(page, true);
     await expectReflow(page);
+  }
+});
+
+test('people and branches reflow in the shared shell', async ({
+  adminPage: page,
+  branchManagerPage,
+}, info) => {
+  test.setTimeout(180_000);
+  await initializeConsent(page);
+  const lists = [
+    { path: routes.adminUsers(info), marker: 'admin-users-page' },
+    { path: routes.adminBranches(info), marker: 'branches-screen' },
+  ];
+  for (const list of lists) {
+    await gotoApp(page, list.path, info, { marker: list.marker });
+    const detailLink = page.getByTestId(list.marker).locator(`a[href*="${list.path}/"]`).first();
+    await expect(detailLink).toBeVisible();
+    const detailHref = await detailLink.getAttribute('href');
+    expect(detailHref).toBeTruthy();
+    for (const width of widths) {
+      await page.setViewportSize({ width, height: 844 });
+      await expectReflow(page);
+      await expectDrawer(page, false);
+    }
+    await gotoApp(page, detailHref!, info, { marker: 'admin-page-ready' });
+    for (const width of widths) {
+      await page.setViewportSize({ width, height: 844 });
+      await expectReflow(page);
+      const scrollers = page.getByRole('region').filter({ has: page.locator('table') });
+      expect(await scrollers.count()).toBeGreaterThan(0);
+      for (const region of await scrollers.all()) {
+        const box = await region.boundingBox();
+        expect(box?.x).toBeGreaterThanOrEqual(0);
+        expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width);
+      }
+    }
+  }
+  await initializeConsent(branchManagerPage);
+  await gotoApp(branchManagerPage, routes.admin(info), info, { marker: 'branch-dashboard-title' });
+  await expect(branchManagerPage).toHaveURL(/\/admin\/branches\/[^/?]+/);
+  const header = branchManagerPage.locator('[data-role-shell-header]');
+  await expect(header.getByRole('combobox')).toHaveCount(0);
+  for (const width of widths) {
+    await branchManagerPage.setViewportSize({ width, height: 844 });
+    await expectReflow(branchManagerPage);
+    await expectDrawer(branchManagerPage, true);
   }
 });

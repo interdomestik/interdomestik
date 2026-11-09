@@ -11,7 +11,7 @@ export async function UserProfileHeader({
   membershipStatus,
   membershipBadgeClass,
   isMembershipProfile,
-}: {
+}: Readonly<{
   locale: string;
   member: {
     id: string;
@@ -27,23 +27,25 @@ export async function UserProfileHeader({
   membershipStatus: string;
   membershipBadgeClass: string;
   isMembershipProfile: boolean;
-}): Promise<React.JSX.Element> {
+}>): Promise<React.JSX.Element> {
   const t = await getTranslations({ locale, namespace: 'admin.member_profile' });
   const tCommon = await getTranslations({ locale, namespace: 'common' });
 
   return (
-    <div className="rounded-2xl border bg-muted/20 p-6">
+    <div className="min-w-0 rounded-2xl border bg-muted/20 p-4 sm:p-6 [overflow-wrap:anywhere]">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <Avatar className="h-16 w-16">
+        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+          <Avatar className="h-16 w-16 shrink-0">
             <AvatarImage src={member.image || ''} />
             <AvatarFallback className="text-lg">
               {member.name?.[0]?.toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold">{member.name || t('labels.unknown')}</h1>
+              <h1 className="min-w-0 text-2xl font-semibold [overflow-wrap:anywhere]">
+                {member.name || t('labels.unknown')}
+              </h1>
               <Badge variant="outline">{getRoleLabel(tCommon, member.role)}</Badge>
               <Badge className={membershipBadgeClass} variant="outline">
                 {t(`status.${isMembershipProfile ? membershipStatus : 'operator'}`)}
@@ -55,9 +57,9 @@ export async function UserProfileHeader({
               )}
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                {member.email}
+              <span className="inline-flex min-w-0 max-w-full items-start gap-2">
+                <Mail className="h-4 w-4 shrink-0" />
+                <span className="min-w-0 [overflow-wrap:anywhere]">{member.email}</span>
               </span>
               <span className="inline-flex items-center gap-2">
                 <BadgeCheck className="h-4 w-4" />
@@ -68,14 +70,14 @@ export async function UserProfileHeader({
             </div>
           </div>
         </div>
-        <div className="grid gap-2 text-sm text-muted-foreground">
-          <div>
+        <div className="grid min-w-0 gap-2 text-sm text-muted-foreground">
+          <div className="min-w-0">
             <span className="font-medium text-foreground">
               {t(isMembershipProfile ? 'labels.member_id' : 'labels.account_id')}:
             </span>{' '}
             {member.memberNumber || member.id}
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="font-medium text-foreground">{t('labels.joined')}:</span>{' '}
             {formatPilotDate(member.createdAt, locale, tCommon('none'))}
           </div>
