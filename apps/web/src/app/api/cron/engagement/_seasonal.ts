@@ -169,6 +169,7 @@ export async function handleFailure(
   if (status === 'skipped') results.skipped++;
   else results.errors++;
 
+  if (error === 'email_suppressed') return;
   await logAuditEvent({
     actorId: null,
     actorRole: 'system',

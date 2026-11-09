@@ -65,7 +65,7 @@ async function runWelcomeCampaign(
       async sub => {
         if (sub.user?.email && sub.user?.name) {
           const { email, name } = sub.user;
-          requireEmailDelivery(await withRetries(() => sendWelcomeEmail(email, name)));
+          return requireEmailDelivery(await withRetries(() => sendWelcomeEmail(email, name)));
         }
       },
       context
@@ -90,7 +90,9 @@ async function runOnboardingCampaign(
     context,
     async u => {
       if (u.email)
-        requireEmailDelivery(await withRetries(() => sendOnboardingEmail(u.email!, u.name ?? '')));
+        return requireEmailDelivery(
+          await withRetries(() => sendOnboardingEmail(u.email!, u.name ?? ''))
+        );
     }
   );
 }
@@ -106,6 +108,8 @@ async function runCheckinCampaign(
 
   await processStandardUserCampaign(ingress, campaignId, day14Start, day14End, context, async u => {
     if (u.email)
-      requireEmailDelivery(await withRetries(() => sendCheckinEmail(u.email!, u.name ?? '')));
+      return requireEmailDelivery(
+        await withRetries(() => sendCheckinEmail(u.email!, u.name ?? ''))
+      );
   });
 }

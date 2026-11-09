@@ -1,3 +1,4 @@
+import { isEmailSuppressed } from '@interdomestik/domain-communications/email';
 import { sendMemberActivationInvite } from '@/lib/member-activation-invite';
 import type { ProtectedActionContext } from '@/lib/safe-action';
 import { auditLog, user } from '@interdomestik/database/schema';
@@ -17,7 +18,7 @@ export const RESEND_ACTIVATION_INVITE_ACTION = 'MEMBER_ACTIVATION_INVITE_RESENT'
 export const RESEND_ACTIVATION_INVITE_COOLDOWN_MS = 60_000;
 
 export type ResendActivationInviteResult =
-  | { success: true; invite: 'sent' }
+  | { success: true; invite: 'sent' | 'skipped' }
   | { success: false; error: 'not_found' | 'already_active' | 'cooldown' | 'delivery_failed' };
 
 type Admission = { ok: true; email: string; memberId: string } | ResendActivationInviteResult;
@@ -74,6 +75,7 @@ export async function resendActivationInviteCore(
       return { success: false, error: 'not_found' };
     }
     if (row.emailVerified) return { success: false, error: 'already_active' };
+    if (isEmailSuppressed(row.email, true)) return { success: true, invite: 'skipped' };
 
     const since = new Date(Date.now() - RESEND_ACTIVATION_INVITE_COOLDOWN_MS);
     const [recent] = await tx
@@ -109,6 +111,7 @@ export async function resendActivationInviteCore(
   if (!('ok' in admission)) return admission;
   const invite = await sendMemberActivationInvite({ email: admission.email, tenantId });
   if (invite.sent) return { success: true, invite: 'sent' };
+  if (invite.reason === 'email_suppressed') return { success: true, invite: 'skipped' };
   console.error('Member activation invite resend failed', {
     userId: admission.memberId,
     reason: invite.reason,

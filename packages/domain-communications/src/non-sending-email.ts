@@ -53,6 +53,11 @@ export function isEmailSuppressed(to: EmailRecipients, automatedCatcher = false)
 }
 
 /** Campaign callbacks must not turn a resolved suppression into a sent receipt. */
-export function requireEmailDelivery(result: { success: boolean; error?: string }): void {
+export function requireEmailDelivery(result: {
+  success: boolean;
+  error?: string;
+  suppressed?: boolean;
+}): void | 'skipped' {
+  if (result.suppressed || result.error === 'email_suppressed') return 'skipped';
   if (!result.success) throw new Error(result.error ?? 'email_delivery_failed');
 }

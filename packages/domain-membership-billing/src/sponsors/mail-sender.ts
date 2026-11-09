@@ -200,6 +200,7 @@ export async function deliverSponsorMail(
       mail.kind === 'activation'
         ? await deps.sendActivation(mail.recipient)
         : await deps.sendMail(mail.recipient, sponsorMailInput(mail, deps));
+    if (result.code === 'email_suppressed') return { state: 'skipped', reason: 'email_suppressed' };
     // There is no durable success counter. §brief fallback: finish activation after one success.
     return result.ok ? { state: 'sent' } : { state: 'error', code: 'send_failed' };
   } catch {

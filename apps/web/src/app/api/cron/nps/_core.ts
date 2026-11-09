@@ -182,6 +182,7 @@ async function processNpsMember(args: {
         error: err,
       });
 
+      if (err === 'email_suppressed') return 'skipped';
       await logAuditEvent({
         actorId: null,
         actorRole: 'system',

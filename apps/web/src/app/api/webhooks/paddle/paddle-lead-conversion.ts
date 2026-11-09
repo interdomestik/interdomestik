@@ -82,7 +82,7 @@ export async function reconcilePaddleLeadConversion(params: {
   // invite never fails the webhook: the membership is committed and sign-in stays open.
   if (!converted) return;
   const invite = await sendMemberActivationInvite({ email: converted.email, tenantId });
-  if (!invite.sent) {
+  if (!invite.sent && invite.reason !== 'email_suppressed') {
     console.error('Member activation invite not sent', {
       userId: converted.userId,
       reason: invite.reason,

@@ -13,14 +13,23 @@ afterEach(() => {
   vi.useRealTimers();
   vi.resetAllMocks();
 });
-it('rejects suppressed seasonal delivery before the campaign can record it as sent', async () => {
+it('keeps the in-app notification and returns a skipped email outcome', async () => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2026-11-09'));
   h.send.mockResolvedValue({ success: false, suppressed: true, error: 'email_suppressed' });
   h.campaign.mockImplementation(({ sendToUser }) =>
-    sendToUser({ email: 'member@other.invalid', name: 'Member' })
+    sendToUser({
+      id: 'u1',
+      tenantId: 'tenant-a',
+      email: 'member@other.invalid',
+      name: 'Member',
+    }).then((outcome: unknown) => {
+      expect(outcome).toBe('skipped');
+      return {};
+    })
   );
-  await expect(processSeasonalCampaigns({} as IngressCapability<'cron'>)).rejects.toThrow(
-    'email_suppressed'
-  );
+  await expect(processSeasonalCampaigns({} as IngressCapability<'cron'>)).resolves.toMatchObject({
+    processed: true,
+  });
+  expect(h.notify).toHaveBeenCalledTimes(1);
 });

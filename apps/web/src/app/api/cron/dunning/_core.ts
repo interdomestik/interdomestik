@@ -1,3 +1,4 @@
+import { isDunningSuppressed, recordDunningSuppression } from './dunning-suppression';
 import { logAuditEvent } from '@/lib/audit';
 import { sendPaymentFinalWarningEmail, sendPaymentReminderEmail } from '@/lib/email';
 import { listScheduledTenantWork, subscriptions, user } from '@interdomestik/database';
@@ -108,6 +109,14 @@ async function processDunningSubscription(params: {
 
   const emailType = determineDunningEmailType(daysRemaining, daysSinceFailed);
   if (!emailType) return;
+  const suppressionKey = JSON.stringify([
+    'dunning',
+    sub.tenantId,
+    sub.id,
+    sub.pastDueAt.toISOString(),
+    emailType,
+  ]);
+  if (await isDunningSuppressed(authority, suppressionKey)) return;
 
   const userRecord = await withTenantAuthority(authority, tx =>
     tx.query.user.findFirst({
@@ -135,6 +144,10 @@ async function processDunningSubscription(params: {
     emailType,
   });
 
+  if (delivery && !delivery.success && delivery.error === 'email_suppressed') {
+    await recordDunningSuppression(authority, suppressionKey, sub.userId, sub.id);
+    return;
+  }
   if (!delivery?.success) return;
   if (emailType === 'day7') stats.day7Sent++;
   else if (emailType === 'day13') stats.day13Sent++;

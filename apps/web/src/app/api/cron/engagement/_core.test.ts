@@ -25,6 +25,7 @@ const hoisted = vi.hoisted(() => ({
   sendSeasonalEmail: vi.fn(),
   withTenantContext: vi.fn(),
   writes: [] as unknown[],
+  dedupeKeys: new Set<string>(),
 }));
 
 vi.mock('@/lib/audit', () => ({ logAuditEvent: hoisted.logAuditEvent }));
@@ -55,6 +56,7 @@ describe('runEngagementCronCore tenant authority', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.writes.length = 0;
+    hoisted.dedupeKeys.clear();
     hoisted.listScheduledTenantWork.mockImplementation(async (ingress: unknown) => {
       if (ingress !== INGRESS) throw new Error('Ingress capability required');
       return [
@@ -68,7 +70,14 @@ describe('runEngagementCronCore tenant authority', () => {
           insert: () => ({
             values: (values: Record<string, unknown>) => {
               hoisted.writes.push({ authority, kind: 'insert', values });
-              return { onConflictDoNothing: () => ({ returning: async () => [{ id: 'send-1' }] }) };
+              const key = String(values.dedupeKey);
+              const inserted = !hoisted.dedupeKeys.has(key);
+              hoisted.dedupeKeys.add(key);
+              return {
+                onConflictDoNothing: () => ({
+                  returning: () => Promise.resolve(inserted ? [{ id: 'send-1' }] : []),
+                }),
+              };
             },
           }),
           update: () => ({
@@ -200,5 +209,9 @@ describe('runEngagementCronCore tenant authority', () => {
         .filter(write => write.kind === 'update')
         .map(write => write.values)
     ).toEqual([{ status: 'skipped', error: 'email_suppressed' }]);
+    membersOnFirstCadence([memberOf('tenant-a', 'sub-a')]);
+    await run();
+    expect(hoisted.sendOnboardingEmail).toHaveBeenCalledTimes(1);
+    expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
   });
 });

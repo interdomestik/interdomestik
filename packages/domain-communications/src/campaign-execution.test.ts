@@ -16,6 +16,7 @@ describe('tenant-scoped campaign execution', () => {
     vi.clearAllMocks();
     h.events.length = 0;
     h.findManyLogs.mockResolvedValue([]);
+    h.findManySkipped.mockResolvedValue([]);
     h.insertValues.mockResolvedValue(undefined);
     h.withTenantContext.mockImplementation(
       async (context: TenantAuthority, action: (tx: unknown) => Promise<unknown>) => {
@@ -24,6 +25,7 @@ describe('tenant-scoped campaign execution', () => {
           insert: () => ({ values: h.insertValues }),
           query: {
             emailCampaignLogs: { findMany: h.findManyLogs },
+            engagementEmailSends: { findMany: h.findManySkipped },
             user: { findMany: h.findManyUsers },
           },
         });
@@ -183,5 +185,26 @@ describe('tenant-scoped campaign execution', () => {
       expect(context.stats.sent).toBe(3);
       expect(context.errors).toEqual([]);
     });
+  });
+  it('persists batched suppression and never sends that campaign again', async () => {
+    scheduleTenants(['tenant-a']);
+    h.findManyLogs.mockResolvedValue([]);
+    h.findManySkipped.mockResolvedValue([]);
+    h.findManyUsers.mockResolvedValueOnce([user('u1', 'tenant-a')]).mockResolvedValue([]);
+    h.insertValues.mockReturnValue({ onConflictDoNothing: vi.fn().mockResolvedValue(undefined) });
+    const sendToUser = vi.fn().mockResolvedValue('skipped');
+    const args = { ingress: INGRESS, campaignId: 'winter', sendToUser };
+    const first = await processBatchedUserCampaign(args);
+    expect(first.stats).toMatchObject({ sent: 0, skipped: 1, failed: 0 });
+    expect(first.errors).toEqual([]);
+    expect(first.logs).toEqual([]);
+    expect(h.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'skipped', sentAt: null })
+    );
+    h.findManySkipped.mockResolvedValue([{ tenantId: 'tenant-a', userId: 'u1' }]);
+    h.findManyUsers.mockResolvedValueOnce([user('u1', 'tenant-a')]);
+    const replay = await processBatchedUserCampaign(args);
+    expect(replay.stats).toMatchObject({ sent: 0, skipped: 1, failed: 0 });
+    expect(sendToUser).toHaveBeenCalledTimes(1);
   });
 });

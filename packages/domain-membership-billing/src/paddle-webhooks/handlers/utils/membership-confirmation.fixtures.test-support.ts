@@ -9,14 +9,21 @@ const sendThankYouLetter: Mock = vi.fn();
 
 const prepareThankYouLetter: Mock = vi.fn();
 
-const deliveryStore: { claimExisting: Mock; claim: Mock; ready: Mock; complete: Mock; fail: Mock } =
-  {
-    claimExisting: vi.fn().mockResolvedValue({ kind: 'not_found' }),
-    claim: vi.fn(),
-    ready: vi.fn(),
-    complete: vi.fn(),
-    fail: vi.fn(),
-  };
+const deliveryStore: {
+  claimExisting: Mock;
+  claim: Mock;
+  ready: Mock;
+  complete: Mock;
+  skip: Mock;
+  fail: Mock;
+} = {
+  claimExisting: vi.fn().mockResolvedValue({ kind: 'not_found' }),
+  claim: vi.fn(),
+  ready: vi.fn(),
+  complete: vi.fn(),
+  skip: vi.fn(),
+  fail: vi.fn(),
+};
 
 const userRecord = {
   email: 'member@example.test',

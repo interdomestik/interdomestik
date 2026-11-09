@@ -103,6 +103,15 @@ export const databaseMembershipConfirmationDeliveryRepository: MembershipConfirm
       });
     },
 
+    async markSkipped(authority, deliveryId, dedupeKey) {
+      return updateClaimedDelivery(authority, deliveryId, dedupeKey, {
+        status: 'skipped',
+        providerMessageId: null,
+        sentAt: null,
+        error: null,
+      });
+    },
+
     async markError(authority, deliveryId, dedupeKey, error) {
       return updateClaimedDelivery(authority, deliveryId, dedupeKey, {
         status: 'error',

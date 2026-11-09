@@ -37,7 +37,8 @@ export function sponsorMailDeps(
     hasCredential: sponsorCredentialCheck(authority),
     sendMail: async (to, input) => {
       const result = await sendEmail(to, renderSponsorMail(input));
-      if (result.suppressed) return { ok: false, code: 'email_suppressed' };
+      if (result.suppressed || (!result.success && result.error === 'email_suppressed'))
+        return { ok: false, code: 'email_suppressed' };
       return result.success ? { ok: true } : { ok: false, code: 'send_failed' };
     },
     sendActivation: async email => {

@@ -89,3 +89,10 @@ describe('sponsor mail adapter', () => {
     ).toEqual({ ok: false, code: 'email_suppressed' });
   });
 });
+
+it('preserves activation suppression for the terminal outbox outcome', async () => {
+  h.activate.mockResolvedValue({ sent: false, reason: 'email_suppressed' });
+  expect(
+    await sponsorMailDeps('tenant_ks', authority)?.sendActivation('member@other.invalid')
+  ).toEqual({ ok: false, code: 'email_suppressed' });
+});

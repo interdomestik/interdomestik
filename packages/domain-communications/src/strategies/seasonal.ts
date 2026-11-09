@@ -27,11 +27,11 @@ export async function processSeasonalCampaigns(ingress: IngressCapability<'cron'
     ingress,
     campaignId,
     sendToUser: async (u, authority) => {
-      requireEmailDelivery(
+      const outcome = requireEmailDelivery(
         await withRetries(() => sendSeasonalEmail(u.email!, { season: season, name: u.name ?? '' }))
       );
       // In-app rows are tenant-owned; a user without a tenant only receives the email.
-      if (!u.tenantId) return;
+      if (!u.tenantId) return outcome;
       await withRetries(() =>
         sendNotification(
           u.id,
@@ -44,6 +44,7 @@ export async function processSeasonalCampaigns(ingress: IngressCapability<'cron'
           }
         )
       );
+      return outcome;
     },
   });
 

@@ -123,7 +123,7 @@ export type MembershipConfirmationClaim =
       requiresEffects: boolean;
       snapshot: MembershipConfirmationSnapshot;
     }
-  | { kind: 'already_sent' | 'conflict' | 'in_progress' };
+  | { kind: 'already_sent' | 'already_skipped' | 'conflict' | 'in_progress' };
 
 /**
  * Every store call runs under the tenant authority of the webhook delivery that owns the claim; a
@@ -150,6 +150,11 @@ export type MembershipConfirmationDeliveryStore = {
     deliveryId: string;
     idempotencyKey: string;
     subscriptionId: string;
+  }) => Promise<void>;
+  skip: (params: {
+    authority: TenantAuthority;
+    deliveryId: string;
+    idempotencyKey: string;
   }) => Promise<void>;
   complete: (params: {
     authority: TenantAuthority;

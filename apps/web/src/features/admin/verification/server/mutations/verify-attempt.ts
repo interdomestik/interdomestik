@@ -210,18 +210,19 @@ export async function verifyCashAttemptCore(
           email: conversionResult.email,
           tenantId,
         });
-        if (!invite.sent) {
+        if (!invite.sent && invite.reason !== 'email_suppressed') {
           console.error('Member activation invite not sent', {
             userId: conversionResult.userId,
             reason: invite.reason,
           });
         }
+        const unsent = invite.sent || invite.reason !== 'email_suppressed' ? 'pending' : 'skipped';
         return {
           success: true,
           status: 'succeeded' as const,
           memberNumber: conversionResult.memberNumber,
           userId: conversionResult.userId,
-          invite: invite.sent ? ('sent' as const) : ('pending' as const),
+          invite: invite.sent ? ('sent' as const) : unsent,
         };
       }
     } catch (err) {

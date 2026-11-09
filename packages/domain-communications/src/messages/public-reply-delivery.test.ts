@@ -214,3 +214,16 @@ describe('public reply status getter boundary', () => {
     }
   );
 });
+
+it('keeps suppression out of error logs while push continues', async () => {
+  email.mockResolvedValueOnce({ success: false, suppressed: true, error: 'email_suppressed' });
+  const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  const sendPush = vi.fn().mockResolvedValue(undefined);
+  try {
+    await deliverPublicReplyNotification(plan(), { vapid, sendPush });
+    expect(errors).not.toHaveBeenCalled();
+    expect(sendPush).toHaveBeenCalled();
+  } finally {
+    errors.mockRestore();
+  }
+});

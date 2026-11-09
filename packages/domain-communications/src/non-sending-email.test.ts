@@ -198,3 +198,13 @@ it('passes multiple remaining real mailboxes as separate provider recipients', a
     undefined
   );
 });
+
+it('keeps terminal suppression separate from delivered and failed campaign sends', async () => {
+  const { requireEmailDelivery } = await import('./non-sending-email');
+  expect(requireEmailDelivery({ success: false, suppressed: true })).toBe('skipped');
+  expect(requireEmailDelivery({ success: false, error: 'email_suppressed' })).toBe('skipped');
+  expect(requireEmailDelivery({ success: true })).toBeUndefined();
+  expect(() => requireEmailDelivery({ success: false, error: 'provider_failed' })).toThrow(
+    'provider_failed'
+  );
+});

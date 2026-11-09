@@ -42,7 +42,7 @@ describe('sendMemberActivationInvite', () => {
     try {
       await expect(
         sendMemberActivationInvite({ email: 'member@other.invalid', tenantId: 'tenant_ks' })
-      ).resolves.toEqual({ sent: false, reason: 'delivery_failed' });
+      ).resolves.toEqual({ sent: false, reason: 'email_suppressed' });
       expect(hoisted.requestReset).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllEnvs();

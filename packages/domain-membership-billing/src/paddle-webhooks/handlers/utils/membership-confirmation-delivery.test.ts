@@ -17,6 +17,7 @@ describe('membership confirmation delivery failures', () => {
     claim: vi.fn(),
     ready: vi.fn(),
     complete: vi.fn(),
+    skip: vi.fn(),
     fail: vi.fn(),
   };
   const subscription = {
@@ -172,7 +173,7 @@ describe('membership confirmation delivery failures', () => {
 
     error.mockRestore();
   });
-  it('records suppression as failure without completing the confirmation receipt', async () => {
+  it('records suppression as terminal without retry, receipt or error log', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     sendThankYouLetter.mockResolvedValue({
       success: false,
@@ -180,13 +181,13 @@ describe('membership confirmation delivery failures', () => {
       error: 'email_suppressed',
     });
     try {
-      await expect(processMembershipConfirmation(confirmationArgs())).rejects.toBeInstanceOf(
-        RetryablePaddleWebhookError
-      );
+      await expect(processMembershipConfirmation(confirmationArgs())).resolves.toBeUndefined();
       expect(deliveryStore.complete).not.toHaveBeenCalled();
-      expect(deliveryStore.fail).toHaveBeenCalledWith(
-        expect.objectContaining({ error: 'email_suppressed' })
+      expect(deliveryStore.fail).not.toHaveBeenCalled();
+      expect(deliveryStore.skip).toHaveBeenCalledWith(
+        expect.objectContaining({ deliveryId: 'delivery_123' })
       );
+      expect(error).not.toHaveBeenCalled();
     } finally {
       error.mockRestore();
     }
