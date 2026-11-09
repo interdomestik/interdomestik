@@ -14,7 +14,9 @@ const state = vi.hoisted(() => ({
 vi.mock('@/app/_segment-exports', () => ({ generateMetadata: vi.fn(), generateViewport: vi.fn() }));
 vi.mock('next-intl/server', () => ({
   setRequestLocale: vi.fn(),
-  getMessages: vi.fn(async () => ({ nav: {}, dashboard: {}, common: {}, 'agent-claims': {} })),
+  getMessages: vi.fn(() =>
+    Promise.resolve({ nav: {}, dashboard: {}, common: {}, 'agent-claims': {} })
+  ),
 }));
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: state.getSession,
