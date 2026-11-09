@@ -230,7 +230,7 @@ test.describe('Golden Gate: Critical Path', () => {
         /Open Claims|Dëmet e Hapura|Kërkesat e Hapura|Отворени Штети/i
       );
       await expect(page.locator('main')).toContainText(
-        /Cash|Cash Pending|Kesh|Kesh në pritje|Кеш|Готовина во чекање/i
+        /Cash|Cash Pending|Kesh|Kesh në pritje|para në dorë në pritje|Кеш|Готовина во чекање/i
       );
     });
 

@@ -87,9 +87,9 @@ async function expectBranchCashCard(page: Page, branchCode: string, expectedCoun
   // The router keeps a hidden copy of a revisited page; only the visible card is the answer.
   const branchCard = page.getByTestId(`branch-card-${branchCode}`).filter({ visible: true });
   await expect(branchCard).toBeVisible();
-  await expect(branchCard.getByLabel(/Pagesa cash në pritje|Cash Pending/i)).toContainText(
-    String(expectedCount)
-  );
+  await expect(
+    branchCard.getByLabel(/Pagesa me para në dorë në pritje|Cash Pending/i)
+  ).toContainText(String(expectedCount));
 }
 
 async function expectOpenCashState({
@@ -114,7 +114,7 @@ async function expectOpenCashState({
 async function expectDashboardAndAgentCash(page: Page, expectedCount: number) {
   await expect(page.getByTestId('branch-dashboard-title')).toBeVisible();
   await expect(page.locator('main')).toContainText(
-    new RegExp(`Pagesa cash në pritje[\\s\\S]*${expectedCount}`, 'i')
+    new RegExp(`Pagesa me para në dorë në pritje[\\s\\S]*${expectedCount}`, 'i')
   );
 
   const agentRow = page.getByRole('row', { name: new RegExp(KS_AGENT_A1_NAME, 'i') });
