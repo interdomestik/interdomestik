@@ -80,6 +80,7 @@ test('assigned staff case stays inside the shared mobile shell', async ({
   staffPage: page,
 }, info) => {
   test.setTimeout(120_000);
+  // The assigned case fixture is seeded in KS only; other tenants skip this test.
   test.skip(
     getTenantFromTestInfo(info) !== 'ks',
     'Assigned seeded document fixture is maintained in KS; MK seeded cases are unassigned'
