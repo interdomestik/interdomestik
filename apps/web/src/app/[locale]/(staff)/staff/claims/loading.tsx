@@ -5,6 +5,7 @@ export default function StaffClaimsLoading(): React.JSX.Element {
     <LocalizedPageSkeleton
       titleKey="agent-claims.claims.claims_queue"
       variant="list"
+      titleSize="3xl"
       testId="staff-claims-loading"
     />
   );
