@@ -64,7 +64,6 @@
       "sort_label": "Rendit sipas",
       "sort_name_asc": "Emri (A-Z)",
       "sort_health_score_asc": "Shëndeti (Më Keq Fillimisht)",
-      "sort_health_score_desc": "Shëndeti (Më i Keq)",
       "sort_open_claims_desc": "Dëmet e Hapura (Lart-Poshtë)",
       "sort_cash_pending_desc": "Pagesa cash në pritje (Lart-Poshtë)",
       "sort_sla_breaches_desc": "Shkeljet SLA (Lart-Poshtë)",

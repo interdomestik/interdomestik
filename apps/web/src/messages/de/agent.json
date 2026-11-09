@@ -50,7 +50,8 @@
       "amount": "Forderungsbetrag",
       "description": "Beschreibung",
       "evidence": "Nachweise",
-      "noEvidence": "Keine Nachweise beigefügt"
+      "noEvidence": "Keine Nachweise beigefügt",
+      "messages": "Nachrichten"
     },
     "table": {
       "recent_activity": "Letzte Aktivitäten",

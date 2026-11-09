@@ -94,7 +94,8 @@
         "origin_all": "Alle Herkünfte",
         "origin_diaspora": "Diaspora / Grüne Karte",
         "pending_filter": "Filter werden aktualisiert...",
-        "pending_search": "Suche wird aktualisiert..."
+        "pending_search": "Suche wird aktualisiert...",
+        "handler_label": "Zuständig"
       },
       "lifecycle_tabs": {
         "all": "Alle",
@@ -273,5 +274,8 @@
         }
       }
     }
+  },
+  "admin_claims": {
+    "claim": "Schadensfall"
   }
 }

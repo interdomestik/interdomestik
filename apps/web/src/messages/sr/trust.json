@@ -1,9 +1,6 @@
 {
   "trust": {
-    "claimsProcessed": "Obrađeni zahtevi",
-    "compensationWon": "Dobijena naknada",
     "successRate": "Stopa uspeha",
-    "responseTime": "Prvi odgovor",
     "activeMembers": "Aktivni članovi",
     "activeMembersValue": "8.500+",
     "memberSavings": "Uštede članova",

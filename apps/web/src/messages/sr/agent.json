@@ -44,67 +44,22 @@
     },
     "claims_queue": "Red zahteva",
     "settings": "Podešavanja",
-    "manage_triage": "Upravljajte i trijažirajte sve podnete zahteve.",
     "table": {
-      "claimant": "Podnosilac",
-      "claim": "Zahtev",
-      "status": "Status",
-      "amount": "Iznos",
-      "date": "Datum",
-      "actions": "Akcije",
-      "triage": "Trijaža",
-      "message_alert": "Nova poruka ({count})",
       "no_claims": "Nema pronađenih zahteva.",
-      "no_claims_ready": "Komponenta liste zahteva uskoro stiže",
       "recent_activity": "Nedavne aktivnosti"
     },
-    "actions": {
-      "approve": "Odobri",
-      "reject": "Odbij",
-      "requestInfo": "Zatraži informacije",
-      "review": "Pregledaj slučaj"
-    },
     "details": {
-      "title": "Detalji zahteva",
       "claimantInfo": "Podaci podnosioca",
-      "name": "Ime",
-      "email": "E-pošta",
       "description": "Opis",
       "amount": "Iznos",
       "company": "Predmet / kompanija",
-      "title_label": "Naslov",
-      "category_label": "Kategorija",
-      "status_label": "Status",
       "evidence": "Dokazi",
       "noEvidence": "Nijedan dokument nije otpremljen.",
-      "notes": "Interne beleške",
-      "notesPlaceholder": "Funkcija privatnih beleški agenta uskoro stiže.",
-      "timeline": "Vremenska linija slučaja",
-      "no_messages": "Još nema istorije interakcija.",
-      "message_placeholder": "Unesite poruku ili internu belešku...",
-      "internal_note": "Interna beleška",
-      "send_message": "Pošalji poruku",
-      "incident_date": "Datum incidenta",
-      "messages": "Poruke",
-      "documents": "Dokumenta",
-      "no_documents": "Nijedan dokument nije otpremljen",
-      "unknown_date": "Nepoznat datum"
-    },
-    "triage": {
-      "title": "Akcije trijaže",
-      "changeStatus": "Promeni status",
-      "selectStatus": "Izaberi status",
-      "verify": "Proveri informacije",
-      "reject": "Odbij zahtev",
-      "notice": "Promena statusa odmah ažurira korisnikovu vremensku liniju."
+      "messages": "Poruke"
     },
     "notes": {
       "title": "Agent Notes",
       "description": "Quick reminders and private workspace notes.",
-      "priority": "Priority Triage",
-      "priority_text": "All claims from Interdomestik Insurance need to be verified within 24 hours.",
-      "deadline": "Upcoming Deadline",
-      "deadline_text": "End of quarter reporting starts on Monday. Ensure all resolved cases are documented.",
       "noteDescription": "Dodajte belešku o interakciji ovog člana ili važne detalje.",
       "addNote": "Dodaj belešku",
       "editNote": "Izmeni belešku",
@@ -139,97 +94,7 @@
         "issue": "Problem"
       }
     },
-    "members_page": {
-      "title": "Članovi",
-      "description": "Vaši dodeljeni članovi i aktivni razgovori."
-    },
-    "members_panel": {
-      "title": "Moji članovi",
-      "description": "Članovi kojima je trenutno potrebna vaša pažnja.",
-      "empty": "No assigned members yet.",
-      "view_all": "Pogledaj sve članove"
-    },
-    "member_profile": {
-      "actions": {
-        "back": "Nazad na članove",
-        "view_claim": "Pogledaj zahtev"
-      },
-      "sections": {
-        "membership": "Članstvo",
-        "agent": "Dodeljeni agent",
-        "preferences": "Podešavanja obaveštenja",
-        "claims_overview": "Pregled zahteva",
-        "recent_claims": "Nedavni zahtevi"
-      },
-      "labels": {
-        "member_id": "ID člana",
-        "joined": "Pridružen",
-        "email_verified_yes": "E-pošta je potvrđena",
-        "email_verified_no": "E-pošta nije potvrđena",
-        "status": "Status",
-        "plan": "Plan",
-        "period_end": "Kraj perioda",
-        "cancel_at_period_end": "Otkaži na kraju perioda",
-        "no_agent": "Nema dodeljenog agenta",
-        "preferences_unset": "Podešavanja nisu postavljena",
-        "no_claims": "Još nema zahteva",
-        "unknown": "Nepoznato",
-        "not_set": "Nije postavljeno"
-      },
-      "status": {
-        "active": "Aktivan",
-        "past_due": "Dospelo",
-        "paused": "Pauziran",
-        "canceled": "Otkazan",
-        "none": "Nije pretplaćen"
-      },
-      "preferences": {
-        "email_claims": "Ažuriranja zahteva e-poštom",
-        "email_newsletter": "Bilten e-poštom",
-        "email_marketing": "Marketing e-poštom",
-        "push_claims": "Push ažuriranja zahteva",
-        "push_messages": "Push poruke",
-        "in_app": "Obaveštenja u aplikaciji"
-      },
-      "claims": {
-        "total": "Ukupno zahteva",
-        "open": "Otvoreni zahtevi",
-        "resolved": "Rešeni",
-        "rejected": "Odbijeni"
-      }
-    },
-    "users_filters": {
-      "search_placeholder": "Pretraži po imenu ili e-pošti"
-    },
-    "users_table": {
-      "sections": {
-        "attention": "Potrebna pažnja",
-        "all": "Svi članovi"
-      },
-      "headers": {
-        "user": "Član",
-        "assigned_agent": "Dodeljeni agent",
-        "joined": "Pridružen",
-        "actions": "Akcije"
-      },
-      "view_profile": "Pogledaj profil",
-      "view_claims": "Pogledaj zahteve",
-      "message_alert": "Nova poruka ({count})",
-      "no_users": "Nema pronađenih članova."
-    },
-    "crm_dashboard": {
-      "title": "Pregled prodaje",
-      "subtitle": "Pratite svoj učinak i prodajni tok.",
-      "stats": {
-        "leads_new": "Novi potencijalni klijenti",
-        "leads_contacted": "Kontaktirani",
-        "deals_won": "Dobijeni poslovi",
-        "commission": "Provizija"
-      }
-    },
     "leads_page": {
-      "title": "Upravljanje potencijalnim klijentima",
-      "subtitle": "Upravljajte i konvertujte svoje potencijalne članove.",
       "backToLeads": "Nazad na potencijalne klijente",
       "detailTitleFallback": "Detalji potencijalnog klijenta",
       "sourceLabel": "Izvor",
@@ -244,13 +109,6 @@
       "types": {
         "individual": "Fizičko lice",
         "business": "Biznis"
-      },
-      "table": {
-        "name": "Ime",
-        "stage": "Faza",
-        "source": "Izvor",
-        "last_contact": "Poslednji kontakt",
-        "actions": "Akcije"
       },
       "stages": {
         "new": "Novi",

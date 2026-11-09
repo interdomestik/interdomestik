@@ -1,6 +1,5 @@
 {
   "dashboard": {
-    "welcome": "Dobrodošli, {name}!",
     "overview": "Pregled panela",
     "member_landing": {
       "account_error_title": "Greška u konfiguraciji naloga",
@@ -87,7 +86,6 @@
     },
     "activeClaims": "Aktivni zahtevi",
     "resolvedClaims": "Rešeni zahtevi",
-    "pendingActions": "Radnje u toku",
     "recentActivity": "Nedavna aktivnost",
     "quickActions": "Brze radnje",
     "welcome_back": "Dobrodošli nazad! Evo pregleda vaših zahteva za odštetu danas.",

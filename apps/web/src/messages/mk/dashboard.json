@@ -1,6 +1,5 @@
 {
   "dashboard": {
-    "welcome": "Добредојдовте, {name}!",
     "overview": "Преглед на панелот",
     "member_landing": {
       "account_error_title": "Грешка во конфигурацијата на сметката",
@@ -87,7 +86,6 @@
     },
     "activeClaims": "Активни барања",
     "resolvedClaims": "Решени барања",
-    "pendingActions": "Дејствија во тек",
     "recentActivity": "Последна активност",
     "quickActions": "Брзи дејствија",
     "welcome_back": "Добредојдовте назад! Еве преглед на вашите барања за отштета денес.",

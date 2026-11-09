@@ -1,12 +1,7 @@
 {
   "services": {
-    "speed": {
-      "title": "Obaveza odgovora",
-      "desc": "Pregledamo sve nove zahteve u roku od <bold>24 radna sata</bold>. Nećete ostati bez jasnog odgovora."
-    },
     "safety": {
       "title": "Naknada tek posle naplate",
-      "desc": "Ne plaćate ništa unapred. Naša uslužna naknada odbija se samo nakon uspešne naplate.",
       "speed": {
         "title": "Brza prijava",
         "description": "Potrebno je manje od 5 minuta za podnošenje."
