@@ -59,7 +59,7 @@ describe('staff message automatic poll and outstanding reads', () => {
     vi.clearAllMocks();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
     receipt.mockResolvedValue({ success: true });
-    read.mockResolvedValue({ success: true, messages: [] });
+    read.mockResolvedValue({ success: true, canAcknowledge: true, messages: [] });
   });
 
   afterEach(() => {
@@ -90,6 +90,7 @@ describe('staff message automatic poll and outstanding reads', () => {
     await act(async () => {
       slow.resolve({
         success: true,
+        canAcknowledge: true,
         messages: [buildMessage({ id: 'msg-slow', content: 'Slow but still valid reply' })],
       });
     });
@@ -114,7 +115,7 @@ describe('staff message automatic poll and outstanding reads', () => {
     expect(read).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      slow.resolve({ success: true, messages: [] });
+      slow.resolve({ success: true, canAcknowledge: true, messages: [] });
     });
     await flush();
 
@@ -155,6 +156,7 @@ describe('staff message automatic poll and outstanding reads', () => {
     await act(async () => {
       manual.resolve({
         success: true,
+        canAcknowledge: true,
         messages: [buildMessage({ id: 'msg-manual', content: 'Explicit refresh reply' })],
       });
     });
@@ -166,6 +168,7 @@ describe('staff message automatic poll and outstanding reads', () => {
     await act(async () => {
       slow.resolve({
         success: true,
+        canAcknowledge: true,
         messages: [buildMessage({ id: 'msg-superseded', content: 'Superseded earlier reply' })],
       });
     });
@@ -224,6 +227,7 @@ describe('staff message automatic poll and outstanding reads', () => {
     await act(async () => {
       slow.resolve({
         success: true,
+        canAcknowledge: true,
         messages: [buildMessage({ id: 'msg-late', content: 'Late reply after unmount' })],
       });
     });

@@ -50,7 +50,11 @@ async function submitDraft(text?: string) {
 describe('MessagingPanel send retry', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(getMessagesForClaim).mockResolvedValue({ success: true, messages: [] });
+    vi.mocked(getMessagesForClaim).mockResolvedValue({
+      success: true,
+      canAcknowledge: true,
+      messages: [],
+    });
     vi.mocked(markMessagesAsRead).mockResolvedValue({ success: true } as never);
   });
 
