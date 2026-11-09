@@ -175,7 +175,8 @@ for (const width of [360, 390, 430]) {
       await expect(active).toHaveCount(1);
       await expect(active).toHaveAttribute('href', memberHome);
 
-      const more = bottomNav.getByRole('button');
+      // A CSS locator keeps resolving while the modal sheet marks the background aria-hidden.
+      const more = bottomNav.locator('button');
       await expect(more).toHaveCount(1);
       const tapTargets = bottomNav.locator('a, button');
       await expect(tapTargets).toHaveCount(primaryPaths.length + 1);
