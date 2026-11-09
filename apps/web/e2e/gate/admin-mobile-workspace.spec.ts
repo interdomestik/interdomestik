@@ -195,7 +195,11 @@ test('admin drawer, claims list and same-case detail reflow without covering con
   await expect(page.locator('[data-role-shell-header]')).toHaveCSS('position', 'static');
   await expectUncovered(adminMessages.locator('p.whitespace-pre-wrap').last());
   const handling = detail.locator('[data-admin-claim-handling]');
-  for (const control of await handling.locator('button').all()) {
+  await expect(handling).toBeVisible();
+  const handlingControls = await handling.locator('button').all();
+  // The admin handling card always renders its controls; an empty list would skip every check.
+  expect(handlingControls.length).toBeGreaterThan(0);
+  for (const control of handlingControls) {
     if (await control.isDisabled()) {
       await expectGeometricallyUncovered(control);
     } else {
