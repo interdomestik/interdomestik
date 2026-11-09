@@ -34,10 +34,10 @@ export function assertUpsertedOnEachRun(
         expected
       );
       assert.deepEqual(
-        Object.keys(write.update).sort(),
+        Object.keys(write.update).sort((a, b) => a.localeCompare(b)),
         Object.keys(expected)
           .filter(key => key !== 'id')
-          .sort()
+          .sort((a, b) => a.localeCompare(b))
       );
     }
   }
