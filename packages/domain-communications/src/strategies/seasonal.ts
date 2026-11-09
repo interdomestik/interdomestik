@@ -31,19 +31,20 @@ export async function processSeasonalCampaigns(ingress: IngressCapability<'cron'
         await withRetries(() => sendSeasonalEmail(u.email!, { season: season, name: u.name ?? '' }))
       );
       // In-app rows are tenant-owned; a user without a tenant only receives the email.
-      if (!u.tenantId) return outcome;
-      await withRetries(() =>
-        sendNotification(
-          u.id,
-          'sla_warning',
-          {},
-          {
-            title: season === 'winter' ? 'Winter Safety Check ❄️' : 'Summer Readiness ☀️',
-            actionUrl: '/dashboard',
-            authority,
-          }
-        )
-      );
+      if (u.tenantId) {
+        await withRetries(() =>
+          sendNotification(
+            u.id,
+            'sla_warning',
+            {},
+            {
+              title: season === 'winter' ? 'Winter Safety Check ❄️' : 'Summer Readiness ☀️',
+              actionUrl: '/dashboard',
+              authority,
+            }
+          )
+        );
+      }
       return outcome;
     },
   });

@@ -205,25 +205,7 @@ export async function verifyCashAttemptCore(
       const { convertLeadToMember } = await import('@interdomestik/domain-leads/convert');
       const conversionResult = await convertLeadToMember(authority, { leadId: txResult.leadId });
       if (conversionResult) {
-        // The member is created unverified and invited to set a password (ACQ-2b2, owner decision B).
-        const invite = await sendMemberActivationInvite({
-          email: conversionResult.email,
-          tenantId,
-        });
-        if (!invite.sent && invite.reason !== 'email_suppressed') {
-          console.error('Member activation invite not sent', {
-            userId: conversionResult.userId,
-            reason: invite.reason,
-          });
-        }
-        const unsent = invite.sent || invite.reason !== 'email_suppressed' ? 'pending' : 'skipped';
-        return {
-          success: true,
-          status: 'succeeded' as const,
-          memberNumber: conversionResult.memberNumber,
-          userId: conversionResult.userId,
-          invite: invite.sent ? ('sent' as const) : unsent,
-        };
+        return await inviteConvertedMember(conversionResult, tenantId);
       }
     } catch (err) {
       return { ...txResult, ...pendingFulfillment(txResult.leadId, err) };
@@ -231,4 +213,29 @@ export async function verifyCashAttemptCore(
   }
 
   return txResult;
+}
+
+async function inviteConvertedMember(
+  conversionResult: { email: string; userId: string; memberNumber: string | null },
+  tenantId: string
+) {
+  // The member is created unverified and invited to set a password (ACQ-2b2, owner decision B).
+  const invite = await sendMemberActivationInvite({
+    email: conversionResult.email,
+    tenantId,
+  });
+  if (!invite.sent && invite.reason !== 'email_suppressed') {
+    console.error('Member activation invite not sent', {
+      userId: conversionResult.userId,
+      reason: invite.reason,
+    });
+  }
+  const unsent = invite.sent || invite.reason !== 'email_suppressed' ? 'pending' : 'skipped';
+  return {
+    success: true,
+    status: 'succeeded' as const,
+    memberNumber: conversionResult.memberNumber,
+    userId: conversionResult.userId,
+    invite: invite.sent ? ('sent' as const) : unsent,
+  };
 }

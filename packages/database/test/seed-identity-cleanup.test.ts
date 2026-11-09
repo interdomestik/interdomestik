@@ -71,3 +71,19 @@ test('KS overlay only matches catalogue tuples, never a pack ID with a real mail
   const empty = new PgDialect().sqlToQuery(seedIdentityCleanupPredicate(user, ['unrecognised'])!);
   assert.equal(empty.sql, 'false');
 });
+
+test('workload cleanup uses exact workload tuples and does not widen E2E cleanup', () => {
+  const query = new PgDialect().sqlToQuery(seedIdentityCleanupPredicate(user, ['work_'])!);
+  assert.equal(query.params.length, 59 * 4);
+  assert.doesNotMatch(query.sql, /\blike\b/i);
+  const tuples = Array.from({ length: 59 }, (_, i) => query.params.slice(i * 4, i * 4 + 4));
+  const matches = (id: string, tenant: string, email: string) =>
+    tuples.some(tuple => tuple[0] === id && tuple[1] === tenant && tuple[2] === email);
+  assert.equal(matches('work_ks_member_1', 'tenant_ks', 'member.ks.work1@example.com'), true);
+  assert.equal(matches('work_mk_mgr', 'tenant_mk', 'mgr.mk.work@example.com'), true);
+  assert.equal(matches('real-user', 'tenant_ks', 'member.ks.work1@example.com'), false);
+  assert.equal(matches('work_ks_member_1', 'tenant_ks', 'real.person@example.com'), false);
+  assert.equal(matches('work_ks_member_1', 'tenant_mk', 'member.ks.work1@example.com'), false);
+  const e2e = new PgDialect().sqlToQuery(seedIdentityCleanupPredicate(user)!);
+  assert.ok(!e2e.params.includes('work_ks_member_1'));
+});

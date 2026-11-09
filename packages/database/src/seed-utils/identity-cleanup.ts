@@ -3,6 +3,7 @@ import { E2E_PACK_USERS, e2eEmail } from '../e2e-users';
 import { E2E_AGENT_PACK_USERS } from '../e2e-agent-pack-fixtures';
 import { buildUsersToSeed } from '../seed-golden/users';
 import type * as schema from '../schema';
+import { buildWorkloadUsers } from '../seed-workload/user-fixtures';
 import { packId } from './seed-ids';
 
 export type SeedIdentity = Readonly<{
@@ -41,15 +42,16 @@ export function seedIdentityCleanupPredicate(
   user: typeof schema.user,
   prefixes?: readonly string[]
 ) {
+  const identities = prefixes
+    ? [
+        ...seedCleanupIdentities().filter(identity => identity.id.startsWith('pack_ks_')),
+        ...buildWorkloadUsers().map(identity => ({ ...identity, legacyEmail: identity.email })),
+      ]
+    : seedCleanupIdentities();
   return (
     or(
-      ...seedCleanupIdentities()
-        .filter(
-          identity =>
-            !prefixes ||
-            (identity.id.startsWith('pack_ks_') &&
-              prefixes.some(prefix => identity.id.startsWith(prefix)))
-        )
+      ...identities
+        .filter(identity => !prefixes || prefixes.some(prefix => identity.id.startsWith(prefix)))
         .map(identity =>
           and(
             eq(user.id, identity.id),

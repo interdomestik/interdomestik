@@ -14,15 +14,16 @@ test('direct KS invocation refuses production before resolving any database modu
       return nextResolve(specifier, context);
     },
   });
-  const previous = process.env.NODE_ENV;
-  process.env.NODE_ENV = 'production';
+  const mutableEnv = process.env as Record<string, string | undefined>;
+  const previous = mutableEnv.NODE_ENV;
+  mutableEnv.NODE_ENV = 'production';
   try {
     const { seedKsWorkflowPack } = await import('../src/seed-packs/ks-workflow-pack');
     await assert.rejects(seedKsWorkflowPack({} as SeedConfig), /Seed target refused: production$/);
     assert.equal(databaseResolved, false);
   } finally {
-    if (previous === undefined) delete process.env.NODE_ENV;
-    else process.env.NODE_ENV = previous;
+    if (previous === undefined) delete mutableEnv.NODE_ENV;
+    else mutableEnv.NODE_ENV = previous;
     hooks.deregister();
   }
 });
