@@ -24,7 +24,8 @@
     :global([data-testid='staff-support-handoffs-filters']),
     :global([data-testid='staff-support-handoffs-row']),
     :global([data-testid='staff-claim-detail-actions']),
-    :global([data-testid='staff-claim-requests'])
+    :global([data-testid='staff-claim-requests']),
+    :global([data-workspace-controls])
   )
   :is(button, a, input:not([type='hidden']), select, textarea) {
   min-width: 0;
@@ -39,7 +40,8 @@
     :global([data-testid='staff-support-handoffs-filters']),
     :global([data-testid='staff-support-handoffs-row']),
     :global([data-testid='staff-claim-detail-actions']),
-    :global([data-testid='staff-claim-requests'])
+    :global([data-testid='staff-claim-requests']),
+    :global([data-workspace-controls])
   )
   :is(button, a) {
   height: auto;
@@ -68,15 +70,13 @@
 @media (max-width: 767px) {
   /* Yield the chrome for editing, including while a mobile keyboard reduces the viewport.
      Only shell chrome changes; composer/thread internals retain their shared presentation. */
-  .workspace:has(:is(input, textarea, select, [contenteditable='true']):focus)
-    :global([data-testid='role-shell'])
-    > div
-    > header {
+  .workspace:has(:is(input, textarea, select, [contenteditable='true']):focus, form:focus-within)
+    :global([data-role-shell-header]) {
     position: static;
   }
 
-  .workspace:has(:is(input, textarea, select, [contenteditable='true']):focus)
-    :global([data-testid='role-shell-bottom-nav']) {
+  .workspace:has(:is(input, textarea, select, [contenteditable='true']):focus, form:focus-within)
+    :global([data-role-shell-bottom-navigation]) {
     display: none;
   }
 }

@@ -21,7 +21,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@interdomestik/ui';
-import { Check, ChevronUp, Globe, Home, LogOut } from 'lucide-react';
+import { Check, ChevronUp, Globe, Home, LogOut, User } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { ClientShellUser } from '@/components/shell/client-shell-user';
 import { getRoleLabel } from '@/lib/roles-i18n';
@@ -46,9 +46,11 @@ function localeSwitchHref(
 function SidebarUserMenuInner({
   user,
   retainedLocaleQueryKeys,
+  profileHref,
 }: Readonly<{
   user: ClientShellUser | null;
   retainedLocaleQueryKeys: readonly string[];
+  profileHref?: string;
 }>) {
   const pathname = usePathname();
   const router = useRouter();
@@ -115,6 +117,14 @@ function SidebarUserMenuInner({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {profileHref && (
+              <DropdownMenuItem asChild>
+                <Link href={profileHref} className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  {t('profile')}
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="cursor-pointer">
                 <Globe className="mr-2 h-4 w-4" />
@@ -169,13 +179,16 @@ function SidebarUserMenuInner({
 
 function SidebarUserMenuFromSession({
   retainedLocaleQueryKeys,
+  profileHref,
 }: Readonly<{
   retainedLocaleQueryKeys: readonly string[];
+  profileHref?: string;
 }>) {
   const { data: session } = authClient.useSession();
   return (
     <SidebarUserMenuInner
       retainedLocaleQueryKeys={retainedLocaleQueryKeys}
+      profileHref={profileHref}
       user={(session?.user as ClientShellUser | undefined) ?? null}
     />
   );
@@ -184,13 +197,26 @@ function SidebarUserMenuFromSession({
 export function SidebarUserMenu({
   user,
   retainedLocaleQueryKeys = [],
+  profileHref,
 }: Readonly<{
   user?: ClientShellUser | null;
   retainedLocaleQueryKeys?: readonly string[];
+  profileHref?: string;
 }>) {
   if (user !== undefined) {
-    return <SidebarUserMenuInner user={user} retainedLocaleQueryKeys={retainedLocaleQueryKeys} />;
+    return (
+      <SidebarUserMenuInner
+        user={user}
+        retainedLocaleQueryKeys={retainedLocaleQueryKeys}
+        profileHref={profileHref}
+      />
+    );
   }
 
-  return <SidebarUserMenuFromSession retainedLocaleQueryKeys={retainedLocaleQueryKeys} />;
+  return (
+    <SidebarUserMenuFromSession
+      retainedLocaleQueryKeys={retainedLocaleQueryKeys}
+      profileHref={profileHref}
+    />
+  );
 }

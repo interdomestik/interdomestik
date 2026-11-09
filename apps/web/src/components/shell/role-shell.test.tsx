@@ -116,6 +116,10 @@ describe('RoleShell', () => {
     );
     expect(within(nav).getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('main')).toContainElement(screen.getByRole('heading'));
+    expect(screen.getByRole('banner')).toHaveAttribute('data-role-shell-header');
+    expect(screen.getByTestId('role-shell-bottom-nav')).toHaveAttribute(
+      'data-role-shell-bottom-navigation'
+    );
     expect(screen.getByRole('button', { name: 'Account' })).toBeInTheDocument();
   });
 

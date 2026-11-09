@@ -2,9 +2,28 @@ import type { ComponentProps } from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AdminSidebar } from './admin-sidebar';
+import { AdminRoleShell } from '@/components/shell/admin-role-shell';
+import type { RoleShell } from '@/components/shell/role-shell';
 
 const hoisted = vi.hoisted(() => ({
+  shellProps: [] as ComponentProps<typeof RoleShell>[],
   searchParamsMock: vi.fn(() => new URLSearchParams()),
+}));
+
+vi.mock('@/components/shell/role-shell', () => ({
+  RoleShell: (props: ComponentProps<typeof RoleShell>) => {
+    hoisted.shellProps.push(props);
+    return (
+      <>
+        {props.context}
+        {props.account}
+        {props.children}
+      </>
+    );
+  },
+}));
+vi.mock('@/components/dashboard/portal-surface-indicator', () => ({
+  PortalSurfaceIndicator: () => null,
 }));
 
 // Mock next-intl hooks
@@ -73,6 +92,9 @@ vi.mock('@/lib/auth-client', () => ({
 
 // Mock UI components
 vi.mock('@interdomestik/ui', () => ({
+  Avatar: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  AvatarFallback: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  AvatarImage: () => null,
   useSidebar: () => ({ isMobile: false, setOpenMobile: vi.fn() }),
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -111,7 +133,7 @@ describe('AdminSidebar', () => {
       />
     );
 
-    expect(screen.getByText('Admin User')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Admin User/ })).toBeInTheDocument();
     expect(screen.getByText('Administrator')).toBeInTheDocument();
   });
 
@@ -235,4 +257,37 @@ describe('AdminSidebar', () => {
       '/admin/users?tenantId=tenant_ks&role=admin%2Cstaff'
     );
   });
+});
+
+describe('AdminRoleShell adapter', () => {
+  it.each(['admin', 'tenant_admin', 'super_admin', 'branch_manager'])(
+    'keeps %s navigation decisions in a drawer with persistent title and account',
+    role => {
+      hoisted.searchParamsMock.mockReturnValue(
+        new URLSearchParams('tenantId=tenant_ks&role=agent&search=private')
+      );
+      hoisted.shellProps.length = 0;
+      render(
+        <AdminRoleShell
+          user={{ role, branchId: null, name: 'Operator', email: 'operator@example.com' }}
+          tenantSelector={null}
+        >
+          <p>Existing claim</p>
+        </AdminRoleShell>
+      );
+      expect(screen.getByRole('heading', { name: 'Admin Panel' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Operator/ })).toBeInTheDocument();
+      expect(screen.getByText('Existing claim')).toBeInTheDocument();
+      const props = hoisted.shellProps.at(-1)!;
+      expect(props.mobileNavigation).toBe('drawer');
+      expect(props.sidebarAccount).toBeTruthy();
+      expect(props.items.every(item => !item.href.includes('search='))).toBe(true);
+      expect(props.items.find(item => item.title === 'Agents')).toMatchObject({ selected: true });
+      const paths = props.items.map(item => item.href.split('?')[0]);
+      expect(paths.includes('/admin/branches')).toBe(role !== 'branch_manager');
+      expect(paths.includes('/admin/crm')).toBe(role !== 'branch_manager');
+      expect(paths.includes('/admin/sponsors')).toBe(role !== 'branch_manager');
+      expect(paths).toContain('/admin/claims');
+    }
+  );
 });

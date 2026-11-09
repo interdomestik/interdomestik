@@ -10,7 +10,7 @@ import type { ReactNode } from 'react';
 import type { ClientShellUser } from './client-shell-user';
 import { useDashboardShellSlots } from './dashboard-shell-slots';
 import { RoleShell } from './role-shell';
-import styles from './staff-workspace.module.css';
+import styles from './role-workspace.module.css';
 
 export function StaffRoleShell({
   children,
