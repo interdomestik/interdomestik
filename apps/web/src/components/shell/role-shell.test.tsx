@@ -197,25 +197,47 @@ describe('RoleShell', () => {
     ).toBeInTheDocument();
   });
 
-  it('retains desktop sidebar navigation, account and content across narrow transitions', async () => {
-    state.mobile = false;
-    const user = userEvent.setup();
-    const { container, rerender } = render(shell());
-    const sidebar = screen.getByTestId('role-shell-sidebar');
-    const owner = sidebar.closest('div[data-collapsible="icon"]');
-    const trigger = container.querySelector('button[data-sidebar="trigger"]') as HTMLButtonElement;
-    expect(owner).toHaveAttribute('data-state', 'collapsed');
-    await user.click(trigger);
-    expect(owner).toHaveAttribute('data-state', 'expanded');
-    await user.click(trigger);
-    expect(owner).toHaveAttribute('data-state', 'collapsed');
-    expect(within(sidebar).getAllByRole('link')).toHaveLength(items.length);
-    expect(
-      within(sidebar).getByRole('button', { name: 'Existing account control' })
-    ).toBeInTheDocument();
-    state.mobile = true;
-    rerender(shell());
-    expect(screen.queryByTestId('role-shell-sidebar')).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Existing portal content' })).toBeInTheDocument();
-  });
+  it.each([
+    ['bottom', 'Control'],
+    ['bottom', 'Meta'],
+    ['drawer', 'Control'],
+    ['drawer', 'Meta'],
+  ] as const)(
+    'restores %s shortcut focus after desktop clicks and a narrow transition (%s+B)',
+    async (mode, modifier) => {
+      state.mobile = false;
+      const user = userEvent.setup();
+      const { container, rerender } = render(shell('/workspace', mode));
+      const sidebar = screen.getByTestId('role-shell-sidebar');
+      const owner = sidebar.closest('div[data-collapsible="icon"]');
+      const trigger = container.querySelector(
+        'button[data-sidebar="trigger"]'
+      ) as HTMLButtonElement;
+      expect(owner).toHaveAttribute('data-state', 'collapsed');
+      await user.click(trigger);
+      expect(owner).toHaveAttribute('data-state', 'expanded');
+      await user.click(trigger);
+      expect(owner).toHaveAttribute('data-state', 'collapsed');
+      expect(within(sidebar).getAllByRole('link')).toHaveLength(items.length);
+      expect(
+        within(sidebar).getByRole('button', { name: 'Existing account control' })
+      ).toBeInTheDocument();
+      state.mobile = true;
+      rerender(shell('/workspace', mode));
+      expect(screen.queryByTestId('role-shell-sidebar')).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Existing portal content' })).toBeInTheDocument();
+      // Model the responsive CSS in jsdom: the drawer header stays connected but is hidden.
+      if (mode === 'drawer') trigger.style.display = 'none';
+      const search = screen.getByRole('button', { name: 'Search' });
+      search.focus();
+      await user.keyboard(`{${modifier}>}b{/${modifier}}`);
+      const dialog = await screen.findByRole('dialog');
+      await waitFor(() =>
+        expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus()
+      );
+      await user.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      await waitFor(() => expect(search).toHaveFocus());
+    }
+  );
 });

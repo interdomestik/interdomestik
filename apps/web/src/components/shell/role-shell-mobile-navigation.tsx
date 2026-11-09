@@ -12,6 +12,11 @@ import {
 import { Menu, MoreHorizontal } from 'lucide-react';
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import {
+  canRestoreMobileSheetFocus,
+  recordMobileSheetOpener,
+  type PendingSheetOpener,
+} from './mobile-sheet-focus';
+import {
   getActiveShellNavigationItem,
   ShellNavigation,
   type ShellNavigationItem,
@@ -43,7 +48,7 @@ export function RoleShellMobileNavigation({
   account: ReactNode;
   mode: 'bottom' | 'drawer';
   panel?: 'more' | 'sidebar';
-  pendingOpener: RefObject<HTMLElement | null>;
+  pendingOpener: RefObject<PendingSheetOpener | null>;
   onMoreOpen?: () => void;
 }>): ReactNode {
   const { openMobile, setOpenMobile, isMobile } = useSidebar();
@@ -60,6 +65,10 @@ export function RoleShellMobileNavigation({
     if (!isMobile) setOpenMobile(false);
   }, [isMobile, setOpenMobile]);
 
+  useEffect(() => {
+    if (!isMobile || !openMobile) pendingOpener.current = null;
+  }, [isMobile, openMobile, pendingOpener]);
+
   return (
     <Sheet open={isMobile && openMobile} onOpenChange={setOpenMobile}>
       {mode === 'drawer' ? (
@@ -71,7 +80,7 @@ export function RoleShellMobileNavigation({
             data-sidebar="trigger"
             aria-label={labels.toggleSidebar ?? labels.navigation}
             onClick={event => {
-              pendingOpener.current = event.currentTarget;
+              recordMobileSheetOpener(pendingOpener, event.currentTarget, isMobile && !openMobile);
             }}
           >
             <Menu aria-hidden="true" className="size-5" />
@@ -100,7 +109,11 @@ export function RoleShellMobileNavigation({
               <button
                 type="button"
                 onClick={event => {
-                  pendingOpener.current = event.currentTarget;
+                  recordMobileSheetOpener(
+                    pendingOpener,
+                    event.currentTarget,
+                    isMobile && !openMobile
+                  );
                   onMoreOpen?.();
                 }}
                 data-active={moreActive}
@@ -123,18 +136,19 @@ export function RoleShellMobileNavigation({
         onOpenAutoFocus={() => {
           const activeElement = document.activeElement;
           returnFocus.current =
-            pendingOpener.current ??
+            pendingOpener.current?.element ??
             (activeElement instanceof HTMLElement && activeElement !== document.body
               ? activeElement
               : null);
           pendingOpener.current = null;
         }}
         onCloseAutoFocus={event => {
-          if (returnFocus.current?.isConnected && returnFocus.current !== document.body) {
-            event.preventDefault();
-            returnFocus.current.focus();
-          }
+          const target = returnFocus.current;
           returnFocus.current = null;
+          pendingOpener.current = null;
+          if (!canRestoreMobileSheetFocus(target)) return;
+          target.focus();
+          if (document.activeElement === target) event.preventDefault();
         }}
         className="max-h-[85dvh] min-w-0 overflow-y-auto overscroll-contain pb-[max(1.5rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-16 motion-reduce:animate-none motion-reduce:transition-none [&>button]:flex [&>button]:size-11 [&>button]:items-center [&>button]:justify-center"
       >

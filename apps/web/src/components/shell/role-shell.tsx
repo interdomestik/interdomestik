@@ -8,7 +8,8 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@interdomestik/ui';
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
+import { recordMobileSheetOpener, type PendingSheetOpener } from './mobile-sheet-focus';
 import { RoleShellMobileNavigation, type RoleShellLabels } from './role-shell-mobile-navigation';
 import { ShellNavigation, type ShellNavigationItem } from './shell-navigation';
 
@@ -25,6 +26,32 @@ type RoleShellProps = Readonly<{
   sidebarAccount: ReactNode;
   mobileNavigation?: 'bottom' | 'drawer';
 }>;
+
+function RoleShellHeaderTrigger({
+  mode,
+  labels,
+  pendingOpener,
+  onOpen,
+}: Readonly<{
+  mode: 'bottom' | 'drawer';
+  labels: RoleShellLabels;
+  pendingOpener: RefObject<PendingSheetOpener | null>;
+  onOpen: () => void;
+}>): ReactNode {
+  const { isMobile, openMobile } = useSidebar();
+  return (
+    <SidebarTrigger
+      className={mode === 'bottom' ? 'size-11 shrink-0' : 'hidden size-11 shrink-0 md:inline-flex'}
+      title={labels.toggleSidebar ?? labels.navigation}
+      aria-label={labels.toggleSidebar ?? labels.navigation}
+      onClick={event => {
+        const opening = isMobile && !openMobile;
+        recordMobileSheetOpener(pendingOpener, event.currentTarget, opening);
+        if (opening) onOpen();
+      }}
+    />
+  );
+}
 
 function RoleShellDesktopSidebar({
   items,
@@ -61,7 +88,7 @@ function RoleShellDesktopSidebar({
 export function RoleShell(props: RoleShellProps): ReactNode {
   const { children, context, tools, account, mobileNavigation = 'bottom', labels } = props;
   const [mobilePanel, setMobilePanel] = useState<'more' | 'sidebar'>('more');
-  const pendingOpener = useRef<HTMLElement | null>(null);
+  const pendingOpener = useRef<PendingSheetOpener | null>(null);
   const mobileNavigationControl = (
     <RoleShellMobileNavigation
       items={props.items}
@@ -86,18 +113,11 @@ export function RoleShell(props: RoleShellProps): ReactNode {
       <RoleShellDesktopSidebar {...props} />
       <div className="bg-mesh flex min-h-svh min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex min-h-16 min-w-0 flex-wrap items-center gap-2 border-b bg-background/95 py-2 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] backdrop-blur-xl">
-          <SidebarTrigger
-            className={
-              mobileNavigation === 'bottom'
-                ? 'size-11 shrink-0'
-                : 'hidden size-11 shrink-0 md:inline-flex'
-            }
-            title={labels.toggleSidebar ?? labels.navigation}
-            aria-label={labels.toggleSidebar ?? labels.navigation}
-            onClick={event => {
-              pendingOpener.current = event.currentTarget;
-              setMobilePanel('sidebar');
-            }}
+          <RoleShellHeaderTrigger
+            mode={mobileNavigation}
+            labels={labels}
+            pendingOpener={pendingOpener}
+            onOpen={() => setMobilePanel('sidebar')}
           />
           {mobileNavigation === 'drawer' && mobileNavigationControl}
           <div className="min-w-0 flex-1 break-words">{context}</div>
