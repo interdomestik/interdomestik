@@ -1,4 +1,10 @@
 import { LocalizedPageSkeleton } from '@/components/ui/page-skeleton';
+import enAgent from '@/messages/en/agent.json';
+import enCommon from '@/messages/en/common.json';
+import sqAgent from '@/messages/sq/agent.json';
+import sqCommon from '@/messages/sq/common.json';
+import { render, screen } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { ReactElement } from 'react';
 import { Suspense } from 'react';
@@ -15,6 +21,8 @@ const hoisted = vi.hoisted(() => ({
   getSessionMock: vi.fn(),
   getAgentWorkspaceClaimsCoreMock: vi.fn(),
 }));
+
+vi.unmock('next-intl');
 
 vi.mock('next/headers', () => ({
   headers: hoisted.headersMock,
@@ -106,6 +114,26 @@ describe('AgentWorkspaceClaimsPage', () => {
     expect(hoisted.getSessionMock).not.toHaveBeenCalled();
     expect(hoisted.headersMock).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['en', enAgent, enCommon],
+    ['sq', sqAgent, sqCommon],
+  ] as const)(
+    'renders the %s fallback with the real title and loading text',
+    (locale, agentCopy, commonCopy) => {
+      const { fallback } = renderBoundary().props;
+      render(
+        <NextIntlClientProvider locale={locale} messages={{ ...agentCopy, ...commonCopy }}>
+          {fallback}
+        </NextIntlClientProvider>
+      );
+
+      expect(
+        screen.getByRole('heading', { level: 1, name: agentCopy.agent.claimsPro.title })
+      ).toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent(commonCopy.common.loading);
+    }
+  );
 
   it('redirects unauthenticated users to the locale login path', async () => {
     hoisted.getSessionMock.mockResolvedValue(null);

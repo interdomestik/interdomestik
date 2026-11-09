@@ -34,7 +34,7 @@ describe.each(['list', 'detail', 'dashboard'] as const)('%s page skeleton', vari
     expect(heading.closest('[aria-hidden="true"]')).toBeNull();
     expect(status.closest('[aria-hidden="true"]')).toBeNull();
 
-    const shapes = container.querySelectorAll('.animate-pulse');
+    const shapes = container.querySelectorAll<HTMLElement>('.animate-pulse');
     expect(shapes.length).toBeGreaterThan(0);
     for (const shape of shapes) {
       expect(shape).toHaveAttribute('aria-hidden', 'true');
