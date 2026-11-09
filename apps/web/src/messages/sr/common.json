@@ -1,5 +1,16 @@
 {
   "common": {
+    "pwa": {
+      "offlineHeading": "Pomoć odmah — van mreže",
+      "offlinePrivacy": "Samo javna lista za mesto događaja. Nema podataka naloga, sačuvanih beležaka o fotografijama ni promena na čekanju.",
+      "offlineAvailability": "Brojevi i pravila za određenu zemlju zahtevaju internet vezu.",
+      "offlineTitle": "Niste povezani na internet",
+      "offlineBody": "Povežite se da biste videli radni prostor. Nema keširanih podataka. Promene se ne stavljaju u red niti šalju dok ste van mreže.",
+      "retry": "Pokušaj ponovo",
+      "install": "Instaliraj aplikaciju",
+      "iosTitle": "Instaliraj na početni ekran",
+      "iosInstructions": "Dodirni Podeli, pa Dodaj na početni ekran."
+    },
     "appName": "Interdomestik",
     "loading": "Učitavanje...",
     "processing": "Obrada...",

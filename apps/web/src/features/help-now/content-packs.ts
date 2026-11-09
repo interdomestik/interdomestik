@@ -1,4 +1,4 @@
-export const HELP_NOW_CACHE_NAME = 'interdomestik-help-now-v1';
+export const HELP_NOW_CACHE_NAME = 'interdomestik-help-now-v2';
 export const HELP_NOW_PACK_ASSET = '/help-now-packs/content-packs.v1.json';
 
 export const HELP_NOW_CONTENT_LOCALES = ['en', 'sq', 'mk', 'sr', 'de'] as const;

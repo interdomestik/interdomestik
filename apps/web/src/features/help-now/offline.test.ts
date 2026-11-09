@@ -1,76 +1,41 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { HELP_NOW_PACK_ASSET } from './content-packs';
+import { sendPwaWorkerMessage } from '@/lib/pwa/worker-message';
 import { saveTripModePackForOffline } from './offline';
 
-function withServiceWorkerController(controller: unknown) {
-  const descriptor = Object.getOwnPropertyDescriptor(globalThis.navigator, 'serviceWorker');
-  Object.defineProperty(globalThis.navigator, 'serviceWorker', {
-    configurable: true,
-    value: { controller },
-  });
-  return () => {
-    if (descriptor) Object.defineProperty(globalThis.navigator, 'serviceWorker', descriptor);
-    else Reflect.deleteProperty(globalThis.navigator, 'serviceWorker');
-  };
-}
+vi.mock('@/lib/pwa/worker-message', () => ({ sendPwaWorkerMessage: vi.fn() }));
 
-describe('saveTripModePackForOffline', () => {
+describe('public Trip Mode download', () => {
   afterEach(() => {
     globalThis.history.pushState(null, '', '/');
     vi.unstubAllGlobals();
+    vi.clearAllMocks();
   });
-
-  it('does not report saved without a controlling service worker', async () => {
-    const open = vi.fn();
-    vi.stubGlobal('caches', { open });
-    const restore = withServiceWorkerController(null);
-
-    try {
-      await expect(saveTripModePackForOffline()).resolves.toBe('unsupported');
-      expect(open).not.toHaveBeenCalled();
-    } finally {
-      restore();
-    }
+  function browser(controller: unknown): void {
+    vi.stubGlobal('navigator', { serviceWorker: { controller } });
+    vi.stubGlobal('MessageChannel', class {});
+    vi.stubGlobal('caches', { open: vi.fn() });
+  }
+  it('requires a controlling worker and a public Help Now route', async () => {
+    browser(null);
+    await expect(saveTripModePackForOffline()).resolves.toBe('unsupported');
+    browser({});
+    await expect(saveTripModePackForOffline()).resolves.toBe('unsupported');
+    expect(sendPwaWorkerMessage).not.toHaveBeenCalled();
   });
-
-  it('does not report saved outside the public Help Now route', async () => {
-    const open = vi.fn();
-    vi.stubGlobal('caches', { open });
-    const restore = withServiceWorkerController({});
-
-    try {
-      await expect(saveTripModePackForOffline()).resolves.toBe('unsupported');
-      expect(open).not.toHaveBeenCalled();
-    } finally {
-      restore();
-    }
+  it('delegates all writes to the worker and reports saved only after its acknowledgment', async () => {
+    const worker = {};
+    browser(worker);
+    history.pushState(null, '', '/de/help-now');
+    vi.mocked(sendPwaWorkerMessage).mockResolvedValue(true);
+    await expect(saveTripModePackForOffline()).resolves.toBe('saved');
+    expect(sendPwaWorkerMessage).toHaveBeenCalledWith(worker, 'CACHE_HELP_NOW_PACK');
+    expect(caches.open).not.toHaveBeenCalled();
   });
-
-  it('saves public Trip Mode assets when the service worker controls the page', async () => {
-    const addAll = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal('caches', { open: vi.fn().mockResolvedValue({ addAll }) });
-    const restore = withServiceWorkerController({});
-    globalThis.history.pushState(null, '', '/de/help-now');
-
-    try {
-      await expect(saveTripModePackForOffline()).resolves.toBe('saved');
-      expect(addAll).toHaveBeenCalledWith([HELP_NOW_PACK_ASSET, '/de/help-now']);
-    } finally {
-      restore();
-    }
-  });
-
-  it('reports failed when the controlled cache write rejects', async () => {
-    vi.stubGlobal('caches', {
-      open: vi.fn().mockResolvedValue({ addAll: vi.fn().mockRejectedValue(new Error('quota')) }),
-    });
-    const restore = withServiceWorkerController({});
-    globalThis.history.pushState(null, '', '/sq/help-now');
-
-    try {
-      await expect(saveTripModePackForOffline()).resolves.toBe('failed');
-    } finally {
-      restore();
-    }
+  it.each([false, new Error('worker failure')])('reports worker failure: %s', async result => {
+    browser({});
+    history.pushState(null, '', '/sq/help-now');
+    if (result instanceof Error) vi.mocked(sendPwaWorkerMessage).mockRejectedValue(result);
+    else vi.mocked(sendPwaWorkerMessage).mockResolvedValue(result);
+    await expect(saveTripModePackForOffline()).resolves.toBe('failed');
   });
 });
