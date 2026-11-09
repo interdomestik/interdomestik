@@ -7,11 +7,13 @@ import { E2E_USER_IDS } from '../../../../../../../../packages/database/src/e2e-
 import { buildCashStatesToSeed } from '../../../../../../../../packages/database/src/seed-golden/cash-states';
 import { createMutationCopy } from '../../../../../../../../packages/database/src/testing/mutation-copy';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   selectRows: vi.fn(),
   updateWhere: vi.fn(),
+  updateReturning: vi.fn(),
   insertValues: vi.fn(),
   withTenantContext: vi.fn(),
 }));
@@ -54,12 +56,14 @@ function start(key: E2ECashStateKey) {
     session: { user: { id: lead.agentId, role: 'agent' } },
   } as unknown as ProtectedActionContext;
   hoisted.selectRows.mockResolvedValue([{ attempt, lead }]);
+  hoisted.updateReturning.mockResolvedValue([{ id: attempt.id }]);
   return { attempt, lead, ctx };
 }
 
 describe('cash resubmission from isolated catalogue rows (mocked DB)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.updateWhere.mockReturnValue({ returning: hoisted.updateReturning });
     hoisted.withTenantContext.mockImplementation(
       (_context: unknown, callback: (tx: ReturnType<typeof createTx>) => Promise<unknown>) =>
         callback(createTx())
@@ -86,6 +90,11 @@ describe('cash resubmission from isolated catalogue rows (mocked DB)', () => {
       const input = { attemptId: attempt.id, note: 'retry' };
       await expect(resubmitCashAttemptCore(ctx, input)).resolves.toEqual({ success: true });
       expect(hoisted.withTenantContext).toHaveBeenCalledWith(ctx.authority, expect.any(Function));
+      const predicate = new PgDialect().sqlToQuery(hoisted.updateWhere.mock.calls[0][0]);
+      expect(predicate.sql).toBe(
+        '("lead_payment_attempts"."id" = $1 and "lead_payment_attempts"."tenant_id" = $2 and "lead_payment_attempts"."status" in ($3, $4))'
+      );
+      expect(predicate.params).toEqual([attempt.id, lead.tenantId, 'needs_info', 'rejected']);
       // The next lookup models committed state, without claiming a real rollback or race proof.
       hoisted.selectRows.mockResolvedValue([{ attempt: { ...attempt, status: 'pending' }, lead }]);
       await expect(resubmitCashAttemptCore(ctx, input)).rejects.toThrow(
@@ -102,4 +111,16 @@ describe('cash resubmission from isolated catalogue rows (mocked DB)', () => {
       expect(E2E_CASH_STATE_FIXTURES[key].attemptStatus).toBe(attempt.status);
     }
   );
+  it('refuses a CAS loser without a changed row or audit', async () => {
+    const { attempt, ctx } = start('NEEDS_INFO');
+    hoisted.updateReturning.mockResolvedValueOnce([]);
+
+    await expect(
+      resubmitCashAttemptCore(ctx, { attemptId: attempt.id, note: 'retry' })
+    ).rejects.toThrow('This payment attempt was just decided by someone else. Reload and retry.');
+
+    expect(hoisted.updateWhere).toHaveBeenCalledTimes(1);
+    expect(hoisted.updateReturning).toHaveBeenCalledTimes(1);
+    expect(hoisted.insertValues).not.toHaveBeenCalled();
+  });
 });
