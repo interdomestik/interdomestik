@@ -38,6 +38,8 @@ runs:
 
     - name: Ensure ripgrep
       shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         if command -v rg >/dev/null 2>&1; then
@@ -56,7 +58,7 @@ runs:
             RIPGREP_SHA256='33e15bcf1624b25cdd2a55813a47a2f95dbe126268203e76aa6a585d1e7b149c'
             RIPGREP_DIR="ripgrep-${RIPGREP_VERSION}-${RIPGREP_TARGET}"
             RIPGREP_ARCHIVE="${RIPGREP_DIR}.tar.gz"
-            RIPGREP_URL="https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/${RIPGREP_ARCHIVE}"
+            RIPGREP_URL='https://api.github.com/repos/BurntSushi/ripgrep/releases/assets/478120097'
             temp_dir="$(mktemp -d "${RUNNER_TEMP:?}/ripgrep.XXXXXX")"
             install_dir="${RUNNER_TEMP}/ripgrep-${RIPGREP_VERSION}/bin"
             trap 'rm -rf -- "${temp_dir}"' EXIT
@@ -67,6 +69,8 @@ runs:
                 --silent \
                 --show-error \
                 --location \
+                --header "Authorization: Bearer ${GH_TOKEN:?}" \
+                --header 'Accept: application/octet-stream' \
                 --proto '=https' \
                 --proto-redir '=https' \
                 --tlsv1.2 \
