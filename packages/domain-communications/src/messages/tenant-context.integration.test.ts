@@ -207,6 +207,9 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
     }
   });
   it('returns the committed message after a post-commit audit failure without holding the transaction', async () => {
+    // Recorded here and asserted after send: the send swallows audit errors, so an expectation
+    // inside the callback could not fail the test.
+    let visibleToAudit: boolean | undefined;
     const result = await fixture.send({
       session: session(ids.member, 'member'),
       authority: memberAuthority(),
@@ -222,14 +225,15 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
                 where: eq(fixture.database.claimMessages.claimId, ids.claim),
               })
           );
-          expect(rows.some(message => message.content === 'Committed before audit failure')).toBe(
-            true
+          visibleToAudit = rows.some(
+            message => message.content === 'Committed before audit failure'
           );
           throw new Error('Synthetic audit failure');
         },
       },
     });
     expect(result).toMatchObject({ success: true });
+    expect(visibleToAudit).toBe(true);
     const persisted = await fixture.database.dbAdmin.query.claimMessages.findMany({
       where: eq(fixture.database.claimMessages.claimId, ids.claim),
     });

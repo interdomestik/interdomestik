@@ -85,6 +85,7 @@ describe('cash resubmission from isolated catalogue rows (mocked DB)', () => {
       const { attempt, lead, ctx } = start(key);
       const input = { attemptId: attempt.id, note: 'retry' };
       await expect(resubmitCashAttemptCore(ctx, input)).resolves.toEqual({ success: true });
+      expect(hoisted.withTenantContext).toHaveBeenCalledWith(ctx.authority, expect.any(Function));
       // The next lookup models committed state, without claiming a real rollback or race proof.
       hoisted.selectRows.mockResolvedValue([{ attempt: { ...attempt, status: 'pending' }, lead }]);
       await expect(resubmitCashAttemptCore(ctx, input)).rejects.toThrow(
