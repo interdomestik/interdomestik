@@ -92,8 +92,10 @@ vi.mock('@/lib/auth-client', () => ({
 
 // Mock UI components
 vi.mock('@interdomestik/ui', () => ({
-  Avatar: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  AvatarFallback: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  Avatar: ({ children }: Readonly<{ children: React.ReactNode }>) => <span>{children}</span>,
+  AvatarFallback: ({ children }: Readonly<{ children: React.ReactNode }>) => (
+    <span>{children}</span>
+  ),
   AvatarImage: () => null,
   useSidebar: () => ({ isMobile: false, setOpenMobile: vi.fn() }),
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

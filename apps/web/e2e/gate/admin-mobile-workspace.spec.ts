@@ -6,6 +6,7 @@ import {
 import type { Locator, Page, TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
+import { initializeConsent } from '../utils/consent';
 import { gotoApp } from '../utils/navigation';
 import en from '../../src/messages/en/admin-claims.json';
 import sq from '../../src/messages/sq/admin-claims.json';
@@ -24,14 +25,6 @@ function seededCase(info: TestInfo) {
     thread: E2E_DISCOVERY_THREADS[key],
     document: E2E_DOCUMENT_FIXTURES[key],
   };
-}
-
-async function necessaryCookies(page: Page): Promise<void> {
-  const banner = page.getByTestId('cookie-consent-banner').filter({ visible: true });
-  if (await banner.count()) {
-    await banner.getByTestId('cookie-consent-decline').click();
-    await expect(banner).toHaveCount(0);
-  }
 }
 
 async function expectReflow(page: Page): Promise<void> {
@@ -53,6 +46,46 @@ async function expectUncovered(control: Locator): Promise<void> {
         const box = element.getBoundingClientRect();
         const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
         return hit === element || (hit !== null && element.contains(hit));
+      })
+    )
+    .toBe(true);
+}
+
+async function expectEnabledAndUncovered(control: Locator): Promise<void> {
+  await expect(control).toBeEnabled();
+  await expectUncovered(control);
+}
+
+async function expectGeometricallyUncovered(control: Locator): Promise<void> {
+  await control.scrollIntoViewIfNeeded();
+  await expect(control).toBeVisible();
+  await expect
+    .poll(() =>
+      control.evaluate(element => {
+        const box = element.getBoundingClientRect();
+        if (
+          box.left < 0 ||
+          box.top < 0 ||
+          box.right > window.innerWidth ||
+          box.bottom > window.innerHeight
+        ) {
+          return false;
+        }
+        const shellParts = document.querySelectorAll(
+          '[data-role-shell-header], [data-role-shell-bottom-navigation]'
+        );
+        for (const part of shellParts) {
+          const shell = part.getBoundingClientRect();
+          if (
+            box.left < shell.right &&
+            box.right > shell.left &&
+            box.top < shell.bottom &&
+            box.bottom > shell.top
+          ) {
+            return false;
+          }
+        }
+        return true;
       })
     )
     .toBe(true);
@@ -92,8 +125,8 @@ test('admin drawer, claims list and same-case detail reflow without covering con
 }, info) => {
   test.setTimeout(180_000);
   const { claim, thread, document } = seededCase(info);
+  await initializeConsent(page);
   await gotoApp(page, routes.adminClaims(info), info, { marker: 'admin-claims-v2-ready' });
-  await necessaryCookies(page);
   for (const width of widths) {
     await page.setViewportSize({ width, height: 844 });
     await expectDrawer(page, false);
@@ -114,10 +147,10 @@ test('admin drawer, claims list and same-case detail reflow without covering con
   for (const content of expectedMessages) {
     await expect(adminMessages.getByText(content, { exact: true })).toBeVisible();
   }
+  await initializeConsent(staffPage);
   await gotoApp(staffPage, routes.staffClaimDetail(claim.id, info), info, {
     marker: 'staff-claim-detail-ready',
   });
-  await necessaryCookies(staffPage);
   const staffMessages = staffPage.getByTestId('messaging-panel').filter({ visible: true });
   for (const content of expectedMessages) {
     await expect(staffMessages.getByText(content, { exact: true })).toBeVisible();
@@ -154,16 +187,24 @@ test('admin drawer, claims list and same-case detail reflow without covering con
         .evaluate(element => getComputedStyle(element).position)
     )
     .toBe('static');
-  await expectUncovered(composer);
+  await expectEnabledAndUncovered(composer);
   const send = adminMessages.getByTestId('send-message-button');
   await send.focus();
   await expect(send).toBeFocused();
-  await expectUncovered(send);
+  await expectEnabledAndUncovered(send);
   await expect(page.locator('[data-role-shell-header]')).toHaveCSS('position', 'static');
   await expectUncovered(adminMessages.locator('p.whitespace-pre-wrap').last());
   const handling = detail.locator('[data-admin-claim-handling]');
-  for (const control of await handling.locator('button').all()) {
-    await expectUncovered(control);
+  await expect(handling).toBeVisible();
+  const handlingControls = await handling.locator('button').all();
+  // The admin handling card always renders its controls; an empty list would skip every check.
+  expect(handlingControls.length).toBeGreaterThan(0);
+  for (const control of handlingControls) {
+    if (await control.isDisabled()) {
+      await expectGeometricallyUncovered(control);
+    } else {
+      await expectEnabledAndUncovered(control);
+    }
     const box = await control.boundingBox();
     expect(box?.height).toBeGreaterThanOrEqual(24);
     expect(box?.width).toBeGreaterThanOrEqual(24);
@@ -179,8 +220,8 @@ test('branch-manager claim detail keeps messaging, evidence and handling read-on
   const { claim } = seededCase(info);
   const locale = routes.getLocale(info) as keyof typeof catalogs;
   const copy = catalogs[locale].admin.claims_page;
+  await initializeConsent(page);
   await gotoApp(page, routes.adminClaims(info), info, { marker: 'admin-claims-v2-ready' });
-  await necessaryCookies(page);
   await expect(page.getByTestId('view-claim').first()).toBeVisible();
   for (const width of widths) {
     await page.setViewportSize({ width, height: 844 });
