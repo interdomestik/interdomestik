@@ -1,0 +1,82 @@
+.workspace {
+  min-width: 0;
+}
+
+.content {
+  min-width: 0;
+  padding: 1rem;
+  overflow-wrap: anywhere;
+}
+
+/* Queues retain their existing stacked rows and desktop comparison layout. */
+.content :global([data-testid='staff-page-ready']),
+.content :global([data-testid='staff-claim-detail-ready']),
+.content :global([data-testid='staff-claims-row']) > *,
+.content :global([data-testid='staff-support-handoffs-row']) > * {
+  min-width: 0;
+}
+
+/* Only queue and handling/evidence controls: the shared messaging UI is untouched. */
+.content
+  :is(
+    :global([data-testid='staff-claims-filters']),
+    :global([data-testid='staff-claims-row']),
+    :global([data-testid='staff-support-handoffs-filters']),
+    :global([data-testid='staff-support-handoffs-row']),
+    :global([data-testid='staff-claim-detail-actions']),
+    :global([data-testid='staff-claim-requests'])
+  )
+  :is(button, a, input:not([type='hidden']), select, textarea) {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 2.75rem;
+  scroll-margin-block: 20rem 8rem;
+}
+
+.content
+  :is(
+    :global([data-testid='staff-claims-filters']),
+    :global([data-testid='staff-support-handoffs-filters']),
+    :global([data-testid='staff-support-handoffs-row']),
+    :global([data-testid='staff-claim-detail-actions']),
+    :global([data-testid='staff-claim-requests'])
+  )
+  :is(button, a) {
+  height: auto;
+  white-space: normal;
+}
+
+/* Wide comparisons scroll at their existing table container, never at page level. */
+.content :has(> table) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.content :global([data-testid='ops-document-row']) {
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .content {
+    padding: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Yield the chrome for editing, including while a mobile keyboard reduces the viewport.
+     Only shell chrome changes; composer/thread internals retain their shared presentation. */
+  .workspace:has(:is(input, textarea, select, [contenteditable='true']):focus)
+    :global([data-testid='role-shell'])
+    > div
+    > header {
+    position: static;
+  }
+
+  .workspace:has(:is(input, textarea, select, [contenteditable='true']):focus)
+    :global([data-testid='role-shell-bottom-nav']) {
+    display: none;
+  }
+}

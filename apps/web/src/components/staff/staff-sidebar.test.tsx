@@ -127,6 +127,7 @@ describe('StaffSidebar', () => {
       expect(screen.getAllByRole('link').map(link => link.getAttribute('href'))).not.toContain(
         '/staff/crm'
       );
+      expect(screen.queryByRole('link', { name: 'sponsors' })).not.toBeInTheDocument();
     }
   });
 

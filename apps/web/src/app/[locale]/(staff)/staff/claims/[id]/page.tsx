@@ -44,7 +44,7 @@ function toClaimStatus(value: unknown): ClaimStatus {
 
 export default async function StaffClaimDetailsPage({
   params,
-}: PageProps): Promise<React.JSX.Element> {
+}: Readonly<PageProps>): Promise<React.JSX.Element> {
   const { id, locale } = await params;
   setRequestLocale(locale);
   const tClaims = await getTranslations({ locale, namespace: 'agent-claims.claims' });
@@ -120,6 +120,7 @@ export default async function StaffClaimDetailsPage({
     history: tClaims('details.workspace.history'),
     messages: tClaims('details.messages'),
     requests: tClaims('details.workspace.requests'),
+    documents: isAssignedStaff ? tEvidence('detail.evidence') : undefined,
   });
 
   const contextGroups = buildStaffClaimContextGroups({
@@ -156,7 +157,7 @@ export default async function StaffClaimDetailsPage({
     // the context and history sections owned by their own components) clears the sticky shared
     // header, which is taller when it wraps at 320 CSS px or with enlarged root text.
     <div
-      className="space-y-6 [&_section]:scroll-mt-80 md:[&_section]:scroll-mt-20"
+      className="min-w-0 space-y-6 [&_section]:scroll-mt-80 md:[&_section]:scroll-mt-20"
       data-testid="staff-claim-detail-ready"
     >
       <StaffClaimWorkspaceHeader

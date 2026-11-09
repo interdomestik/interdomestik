@@ -4,6 +4,7 @@ import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemberRoleShell } from './member-role-shell';
 import { AgentRoleShell } from './agent-role-shell';
+import { StaffRoleShell } from './staff-role-shell';
 import { buildDashboardNavigationModel } from '@/hooks/use-dashboard-navigation';
 
 const state = vi.hoisted(() => ({
@@ -52,6 +53,55 @@ const mount = () =>
       <div data-testid="member-dashboard-ready">Unchanged portal slots</div>
     </MemberRoleShell>
   );
+
+describe('StaffRoleShell', () => {
+  it.each(['staff', 'branch_manager'])(
+    'retains %s destinations, account actions, content and More focus return',
+    async role => {
+      state.pathname = '/staff/claims/case-1';
+      const user = userEvent.setup();
+      render(
+        <StaffRoleShell user={{ id: 'staff-1', role, name: 'Operator' }} adminAccess={false}>
+          <div data-testid="staff-claim-detail-ready">Existing case</div>
+        </StaffRoleShell>
+      );
+      const bottom = screen.getByTestId('role-shell-bottom-nav');
+      expect(
+        within(bottom)
+          .getAllByRole('link')
+          .map(link => link.getAttribute('href'))
+      ).toEqual(['/staff/claims', '/staff/support-handoffs']);
+      expect(within(bottom).getByRole('link', { name: 'claims_queue' })).toHaveAttribute(
+        'aria-current',
+        'page'
+      );
+      expect(screen.getByTestId('staff-claim-detail-ready')).toHaveTextContent('Existing case');
+      const more = within(bottom).getByRole('button', { name: 'more' });
+      await user.click(more);
+      const sheet = screen.getByRole('dialog');
+      const paths = within(sheet)
+        .getAllByRole('link')
+        .map(link => link.getAttribute('href'));
+      expect(paths).toEqual(
+        role === 'staff'
+          ? ['/staff/crm', '/staff/sponsors', '/staff/settings']
+          : ['/staff/settings']
+      );
+      await user.click(within(sheet).getByTestId('sidebar-user-menu-button'));
+      expect(await screen.findByRole('menuitem', { name: /language/ })).toBeInTheDocument();
+      await user.keyboard('{Escape}');
+      await user.keyboard('{Escape}');
+      await waitFor(() => expect(more).toHaveFocus());
+      await user.click(await screen.findByTestId('user-nav'));
+      expect(await screen.findByRole('menuitem', { name: /profile/ })).toHaveAttribute(
+        'href',
+        '/staff/settings'
+      );
+      expect(state.useSession).not.toHaveBeenCalled();
+      expect(state.canAccessAdmin).not.toHaveBeenCalled();
+    }
+  );
+});
 
 beforeEach(() => {
   state.pathname = '/member';

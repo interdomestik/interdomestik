@@ -4,6 +4,7 @@ import type { StaffClaimSectionLink } from './StaffClaimWorkspaceHeader';
 /** Section ids the mounted staff claim route owns, in the order it renders them. */
 export const SECTION_HANDLING = 'staff-claim-handling';
 export const SECTION_REQUESTS = 'staff-claim-requests';
+export const SECTION_DOCUMENTS = 'staff-claim-documents';
 export const SECTION_MESSAGES = 'staff-claim-messages';
 export const SECTION_CONTEXT = 'staff-claim-context';
 // StaffStatusHistory owns this anchor; the workspace only links to it.
@@ -17,6 +18,7 @@ export type StaffClaimSectionLabels = Readonly<{
   history: string;
   messages: string;
   requests: string;
+  documents?: string;
 }>;
 
 /**
@@ -30,6 +32,7 @@ export function buildStaffClaimSections(
   return [
     ...(isStaff ? [{ id: SECTION_HANDLING, label: labels.handling }] : []),
     { id: SECTION_REQUESTS, label: labels.requests },
+    ...(isStaff && labels.documents ? [{ id: SECTION_DOCUMENTS, label: labels.documents }] : []),
     ...(isStaff ? [{ id: SECTION_MESSAGES, label: labels.messages }] : []),
     { id: SECTION_CONTEXT, label: labels.context },
     { id: SECTION_HISTORY, label: labels.history },
