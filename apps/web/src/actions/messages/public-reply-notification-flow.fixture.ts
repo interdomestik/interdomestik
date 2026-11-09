@@ -155,7 +155,18 @@ function client(
           );
         }),
     }),
-    select: () => {
+    update: (table: unknown) => ({
+      set: (values: Partial<Row>) => ({
+        where: (where: Predicate) =>
+          promised(() => {
+            if (!context) throw new Error('Unscoped fixture update');
+            rows(nameOf(table))
+              .filter(where)
+              .forEach(row => Object.assign(row, values));
+          }),
+      }),
+    }),
+    select: (fields: Record<string, Column>) => {
       let where: Predicate = () => true;
       let name = 'claimMessages';
       const read = (limit = Number.POSITIVE_INFINITY) =>
@@ -176,16 +187,24 @@ function client(
           return builder;
         },
         leftJoin: () => builder,
-        // An unlimited read is awaited on where(); limit() replaces it before it runs.
         where: (value: Predicate) => {
           where = value;
-          let limited = false;
-          const all = Promise.resolve().then(() => (limited ? [] : read()));
+          let consumed = false;
+          const all = Promise.resolve().then(() => (consumed ? [] : read()));
+          const readOnce = (count?: number) => {
+            consumed = true;
+            return read(count);
+          };
           return Object.assign(all, {
-            limit: (count?: number) => {
-              limited = true;
-              return read(count);
+            // Subqueries use the same staged tenant rows as the outer update.
+            values: () => {
+              consumed = true;
+              return rows(name)
+                .filter(where)
+                .map(row => row[Object.values(fields)[0].field]);
             },
+            orderBy: () => readOnce(),
+            limit: readOnce,
           });
         },
         limit: read,

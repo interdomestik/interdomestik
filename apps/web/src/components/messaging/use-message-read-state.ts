@@ -14,6 +14,8 @@ export const MESSAGE_POLL_INTERVAL_MS = 30000;
 interface UseMessageReadStateOptions {
   readonly claimId: string;
   readonly currentUserId: string;
+  readonly currentUserRole: string;
+  readonly canAcknowledge: boolean;
   readonly fetchOnMount: boolean;
   readonly initialMessages: MessageWithSender[];
   readonly initialReadFailed: boolean;
@@ -32,6 +34,8 @@ export interface MessageReadState {
 export function useMessageReadState({
   claimId,
   currentUserId,
+  currentUserRole,
+  canAcknowledge,
   fetchOnMount,
   initialMessages,
   initialReadFailed,
@@ -47,6 +51,11 @@ export function useMessageReadState({
   const [isReading, setIsReading] = useState(false);
   const generationRef = useRef(0);
   const mountedRef = useRef(true);
+  const receiptScope = JSON.stringify([claimId, currentUserId, currentUserRole]);
+  const deniedReceiptScope = useRef<string | null>(null);
+  useEffect(() => {
+    deniedReceiptScope.current = null;
+  }, [receiptScope]);
   // Only the current generation holds automatic polling. A manual refresh or server seed retires
   // older work without claiming to cancel its transport or an already-started receipt write.
   const pendingOperationsRef = useRef({ count: 0 });
@@ -87,6 +96,11 @@ export function useMessageReadState({
       // An invalidated generation never starts a receipt in the first place.
       if (!isCurrent(generation)) return;
 
+      if (!canAcknowledge || deniedReceiptScope.current === receiptScope) {
+        setReadStatusFailed(false);
+        return;
+      }
+
       const unreadIds = loaded
         .filter(message => message.senderId !== currentUserId && !message.readAt)
         .map(message => message.id);
@@ -102,6 +116,11 @@ export function useMessageReadState({
         const result = await markMessagesAsRead(unreadIds);
         // A started receipt cannot be cancelled, so only its reported status is dropped here.
         if (!isCurrent(generation)) return;
+        if (result.success !== true && result.error === 'Access denied') {
+          deniedReceiptScope.current = receiptScope;
+          setReadStatusFailed(false);
+          return;
+        }
         setReadStatusFailed(result.success !== true);
       } catch {
         if (!isCurrent(generation)) return;
@@ -112,7 +131,7 @@ export function useMessageReadState({
         release();
       }
     },
-    [claimPending, currentUserId, isCurrent]
+    [canAcknowledge, claimPending, currentUserId, isCurrent, receiptScope]
   );
 
   const read = useCallback(async () => {

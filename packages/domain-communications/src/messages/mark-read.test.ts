@@ -218,24 +218,24 @@ describe('markMessagesAsReadCore', () => {
     );
   });
 
-  it.each([
-    ['staff', 'staff-1', 'branch-1'],
-    ['branch_manager', 'manager-1', 'branch-1'],
-  ])('preserves internal-message access for scoped %s reads', async (role, id, branchId) => {
-    await markMessagesAsReadCore({
-      session: { user: { id, role, tenantId: 'tenant-1', branchId } } as never,
-      messageIds: ['msg-1'],
-    });
+  it.each([['staff', 'staff-1', 'branch-1']])(
+    'preserves internal-message access for scoped %s reads',
+    async (role, id, branchId) => {
+      await markMessagesAsReadCore({
+        session: { user: { id, role, tenantId: 'tenant-1', branchId } } as never,
+        messageIds: ['msg-1'],
+      });
 
-    expect(
-      evaluate(getBasePredicate(), {
-        ...readableMessage,
-        'claimMessages.isInternal': true,
-        'claimMessages.senderId': 'other-staff',
-      })
-    ).toBe(true);
-    expect(mocks.select).toHaveBeenCalledTimes(1);
-  });
+      expect(
+        evaluate(getBasePredicate(), {
+          ...readableMessage,
+          'claimMessages.isInternal': true,
+          'claimMessages.senderId': 'other-staff',
+        })
+      ).toBe(true);
+      expect(mocks.select).toHaveBeenCalledTimes(1);
+    }
+  );
 
   it('preserves full-tenant internal-message access without a claim subquery', async () => {
     await markMessagesAsReadCore({

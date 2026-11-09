@@ -5,11 +5,13 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { hasPermission, PERMISSIONS } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import type { Session } from '../types';
 import {
   hasAgentClaimAccess,
   hasScopedClaimsReadAccess,
+  isMemberMessageRole,
   isFullTenantClaimsRole,
   isScopedClaimsReadRole,
 } from './access';
@@ -50,6 +52,10 @@ export async function getMessagesForClaimCore(params: {
 
       if (!claim) {
         return { success: false, error: 'Claim not found' };
+      }
+
+      if (!hasPermission(userRole, PERMISSIONS['claims.read']) && !isMemberMessageRole(userRole)) {
+        return { success: false, error: 'Access denied' };
       }
 
       if (isPrivilegedStaff) {

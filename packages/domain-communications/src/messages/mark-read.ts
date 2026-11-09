@@ -4,13 +4,14 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { hasPermission, PERMISSIONS } from '@interdomestik/shared-auth';
 import { and, eq, inArray, isNull, ne } from 'drizzle-orm';
 
 import type { Session } from '../types';
 import {
   buildAccessibleClaimIdsSubquery,
   isFullTenantClaimsRole,
-  isScopedClaimsReadRole,
+  isMessageParticipant,
   readAgentScope,
 } from './access';
 
@@ -44,8 +45,11 @@ export async function markMessagesAsReadCore(params: {
     const actor = session.user;
     const { tenantId } = readTenantAuthority(authority);
     const userRole = requireMessageScopeString(actor.role || 'user');
+    if (!isMessageParticipant(userRole)) {
+      return { success: false, error: 'Access denied' };
+    }
     const isPrivilegedStaff = isFullTenantClaimsRole(userRole);
-    const isStaff = isPrivilegedStaff || isScopedClaimsReadRole(userRole);
+    const isStaff = hasPermission(userRole, PERMISSIONS['claims.update']);
 
     return await withTenantAuthority(authority, async tx => {
       const agentUserId = userRole === 'agent' ? requireMessageScopeString(actor.id) : null;

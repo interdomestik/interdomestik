@@ -107,6 +107,8 @@ suite('message send negative matrix on a real NOBYPASSRLS connection', () => {
         [{ id: ids.otherMember, role: 'member' }, ids.claim, false, DENIED],
         [{ id: ids.otherMember, role: 'staff' }, ids.claim, false, DENIED],
         [{ id: ids.member, role: 'branch_manager' }, ids.claim, false, DENIED],
+        [{ id: ids.member, role: 'auditor' }, ids.claim, false, DENIED],
+        [{ id: ids.member, role: 'global_support' }, ids.claim, false, DENIED],
         [{ id: ids.staff, role: 'staff', branchId: ids.agentBranch }, branchClaim, false, DENIED],
         [{ id: ids.agent, role: 'agent' }, branchClaim, false, AGENT_DENIED],
         [{ id: inactiveAgent, role: 'agent' }, ids.claim, false, AGENT_DENIED],

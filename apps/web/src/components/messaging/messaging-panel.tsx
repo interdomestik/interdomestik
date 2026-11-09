@@ -69,6 +69,8 @@ function ScopedMessagingPanel({
   } = useMessageReadState({
     claimId,
     currentUserId: currentUser.id,
+    currentUserRole: currentUser.role,
+    canAcknowledge: !readOnly,
     fetchOnMount,
     initialMessages,
     initialReadFailed,
