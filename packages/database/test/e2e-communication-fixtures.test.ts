@@ -53,6 +53,11 @@ test('message intentions distinguish branch scope, internal notes and read-only 
   assert.ok(unassigned.STAFF_REPLY.access.read.allowed.includes('KS_STAFF_UNASSIGNED'));
   assert.ok(unassigned.INTERNAL_NOTE.access.read.denied.includes('KS_MEMBER'));
   assert.ok(unassigned.INTERNAL_NOTE.access.deniedWrite.actors.includes('KS_AGENT'));
+  const mk = E2E_DISCOVERY_THREADS.MK_FOREIGN_TENANT;
+  assert.ok(mk.STAFF_REPLY.access.read.allowed.includes('MK_AGENT'));
+  assert.ok(!mk.STAFF_REPLY.access.deniedWrite.actors.includes('MK_AGENT'));
+  assert.ok(mk.INTERNAL_NOTE.access.read.denied.includes('MK_AGENT'));
+  assert.ok(mk.INTERNAL_NOTE.access.deniedWrite.actors.includes('MK_AGENT'));
   assert.ok(unassigned.STAFF_REPLY.access.read.denied.includes('GLOBAL_SUPPORT'));
   assert.ok(unassigned.STAFF_REPLY.access.read.denied.includes('AUDITOR'));
   assert.ok(unassigned.STAFF_REPLY.access.deniedWrite.actors.includes('KS_BRANCH_MANAGER'));

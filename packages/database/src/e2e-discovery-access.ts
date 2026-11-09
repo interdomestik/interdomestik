@@ -106,7 +106,15 @@ export const E2E_DISCOVERY_MESSAGE_READERS = {
     'KS_MEMBER',
   ],
   KS_OTHER_BRANCH: ['KS_ADMIN', 'KS_MEMBER_B1'],
-  MK_FOREIGN_TENANT: ['SUPER_ADMIN', 'MK_ADMIN', 'MK_BRANCH_MANAGER', 'MK_STAFF', 'MK_MEMBER'],
+  // MK_AGENT holds the active same-branch link to MK_MEMBER (golden_assign_mk_1).
+  MK_FOREIGN_TENANT: [
+    'SUPER_ADMIN',
+    'MK_ADMIN',
+    'MK_BRANCH_MANAGER',
+    'MK_STAFF',
+    'MK_AGENT',
+    'MK_MEMBER',
+  ],
 } as const satisfies Record<string, readonly E2EDiscoveryActor[]>;
 
 export const E2E_DISCOVERY_INTERNAL_READERS = {
