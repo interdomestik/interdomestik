@@ -18,6 +18,11 @@ vi.mock('next-intl/server', () => ({
     Promise.resolve({ nav: {}, dashboard: {}, common: {}, 'agent-claims': {} })
   ),
 }));
+vi.mock('@/i18n/messages', () => ({
+  BASE_NAMESPACES: ['common'],
+  STAFF_NAMESPACES: ['agent-claims'],
+  pickMessages: (messages: Record<string, unknown>) => messages,
+}));
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: state.getSession,
   requireSessionOrRedirect: state.requireSession,
