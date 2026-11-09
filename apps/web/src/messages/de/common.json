@@ -1,6 +1,9 @@
 {
   "common": {
     "pwa": {
+      "offlineHeading": "Soforthilfe — offline",
+      "offlinePrivacy": "Nur die öffentliche Checkliste für den Unfallort. Keine Kontodaten, gespeicherten Fotonotizen oder vorgemerkten Änderungen.",
+      "offlineAvailability": "Länderspezifische Rufnummern und Regeln erfordern eine Internetverbindung.",
       "offlineTitle": "Du bist offline",
       "offlineBody": "Verbinde dich mit dem Internet, um deinen Arbeitsbereich zu sehen. Es sind keine zwischengespeicherten Daten verfügbar. Änderungen werden offline weder vorgemerkt noch gesendet.",
       "retry": "Erneut versuchen",

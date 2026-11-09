@@ -101,11 +101,21 @@ describe('PWA cache privacy policy', () => {
   ];
   it.each(unsafeHeaders)('rejects unsafe responses on writes and reads: %j', async headers => {
     const h = workerHarness();
-    h.fetch.mockImplementation(request => Promise.resolve(publicResponse(request.url, headers)));
+    h.fetch.mockImplementation(request =>
+      Promise.resolve(
+        publicResponse(request.url, {
+          ...Object.fromEntries(publicAssetResponse(request).headers),
+          ...headers,
+        })
+      )
+    );
     await h.message('CACHE_HELP_NOW_PACK');
     expect(h.stores.get(PACK_CACHE)?.size ?? 0).toBe(0);
     const cache = await h.caches.open(PACK_CACHE);
-    await cache.put(h.request(PACK), publicResponse(PACK, headers, 'PERSONAL'));
+    await cache.put(
+      h.request(PACK),
+      publicResponse(PACK, { 'content-type': 'application/json', ...headers }, 'PERSONAL')
+    );
     h.fetch.mockRejectedValue(new Error('offline'));
     const response = await h.dispatch('fetch', { request: h.request(PACK) });
     expect(response?.status).toBe(503);
@@ -127,9 +137,10 @@ describe('PWA cache privacy policy', () => {
   it.each(['redirect', 'wrong-url', 'opaque'])('rejects %s public responses', async kind => {
     const h = workerHarness();
     h.fetch.mockImplementation(request => {
-      const response = publicResponse(kind === 'wrong-url' ? '/en/member' : request.url, {
-        'content-type': 'application/json',
-      });
+      const response = publicResponse(
+        kind === 'wrong-url' ? '/en/member' : request.url,
+        Object.fromEntries(publicAssetResponse(request).headers)
+      );
       if (kind !== 'wrong-url')
         Object.defineProperty(response, kind === 'redirect' ? 'redirected' : 'type', {
           value: kind === 'redirect' ? true : 'opaque',
@@ -154,7 +165,7 @@ describe('PWA cache privacy policy', () => {
         expect(response?.status).toBe(200);
       })
     );
-    expect(h.caches.keys).not.toHaveBeenCalled();
+    expect(h.caches.keys).toHaveBeenCalledTimes(1);
     expect(h.caches.open).not.toHaveBeenCalled();
     expect(h.caches.match).not.toHaveBeenCalled();
   });

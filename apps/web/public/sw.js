@@ -1,4 +1,5 @@
 // Only these reviewed, credential-free public resources may enter Cache Storage.
+globalThis.importScripts('/sw-offline.js');
 const CACHE_NAME = 'interdomestik-offline-v2';
 const HELP_NOW_CACHE_NAME = 'interdomestik-help-now-v2';
 const CURRENT_CACHES = new Set([CACHE_NAME, HELP_NOW_CACHE_NAME]);
@@ -8,34 +9,7 @@ const STATIC_ASSETS = new Map([
   ['/offline.css', 'text/css'],
 ]);
 const HELP_NOW_PUBLIC_ROUTE = /^\/(sq|en|sr|mk|de|hr)\/help-now\/?$/;
-const OFFLINE_COPY = {
-  en: [
-    'You are offline',
-    'Reconnect to view your workspace. No cached records are available. Changes are not queued or sent while offline.',
-    'Retry',
-  ],
-  sq: [
-    'Jeni jashtë linje',
-    'Rilidhuni për të parë hapësirën tuaj të punës. Nuk ka të dhëna të ruajtura për përdorim jashtë linje. Ndryshimet nuk vendosen në radhë dhe nuk dërgohen jashtë linje.',
-    'Provo përsëri',
-  ],
-  mk: [
-    'Немате интернет-врска',
-    'Поврзете се за да го видите работниот простор. Нема зачувани записи. Промените не се ставаат во редица и не се испраќаат без интернет-врска.',
-    'Обиди се повторно',
-  ],
-  sr: [
-    'Niste povezani na internet',
-    'Povežite se da biste videli radni prostor. Nema keširanih podataka. Promene se ne stavljaju u red niti šalju dok ste van mreže.',
-    'Pokušaj ponovo',
-  ],
-  de: [
-    'Du bist offline',
-    'Verbinde dich mit dem Internet, um deinen Arbeitsbereich zu sehen. Es sind keine zwischengespeicherten Daten verfügbar. Änderungen werden offline weder vorgemerkt noch gesendet.',
-    'Erneut versuchen',
-  ],
-};
-function classifyRequest(request) {
+function canReadPublicCache(request) {
   const url = new URL(request.url);
   if (
     request.method !== 'GET' ||
@@ -44,11 +18,28 @@ function classifyRequest(request) {
     request.cache === 'no-store' ||
     /private|no-store/i.test(request.headers.get('cache-control') || '') ||
     /text\/x-component/i.test(request.headers.get('accept') || '') ||
-    ['authorization', 'range', 'rsc', 'next-router-prefetch', 'next-action'].some(header =>
-      request.headers.has(header)
-    )
+    [
+      'authorization',
+      'cookie',
+      'range',
+      'rsc',
+      'next-router-state-tree',
+      'next-router-prefetch',
+      'next-url',
+      'next-action',
+    ].some(header => request.headers.has(header))
   )
-    return 'network';
+    return false;
+  return (
+    url.pathname === PACK_URL ||
+    STATIC_ASSETS.has(url.pathname) ||
+    HELP_NOW_PUBLIC_ROUTE.test(url.pathname)
+  );
+}
+
+function classifyRequest(request) {
+  if (!canReadPublicCache(request)) return 'network';
+  const url = new URL(request.url);
   if (url.pathname === PACK_URL) return 'pack';
   return STATIC_ASSETS.has(url.pathname) ? 'static' : 'network';
 }
@@ -57,8 +48,7 @@ function safePublicResponse(response, pathname) {
   const expectedUrl = new URL(pathname, globalThis.location.origin).href;
   const type = pathname === PACK_URL ? 'application/json' : STATIC_ASSETS.get(pathname);
   return (
-    response &&
-    response.status === 200 &&
+    response?.status === 200 &&
     response.type === 'basic' &&
     !response.redirected &&
     response.url === expectedUrl &&
@@ -78,21 +68,6 @@ function publicRequest(pathname) {
   });
 }
 
-function offlineNotice(request) {
-  const requestedLocale = new URL(request.url).pathname.split('/')[1];
-  const locale = Object.hasOwn(OFFLINE_COPY, requestedLocale) ? requestedLocale : 'en';
-  const [title, body, retry] = OFFLINE_COPY[locale];
-  return new Response(
-    `<!doctype html><html lang="${locale}"><meta name="viewport" content="width=device-width">` +
-      `<title>${title} | Interdomestik</title><h1>${title}</h1><p>${body}</p>` +
-      `<a href="">${retry}</a></html>`,
-    {
-      status: 503,
-      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
-    }
-  );
-}
-
 function unavailablePack() {
   return new Response(JSON.stringify({ ok: false, reason: 'offline_without_cached_pack' }), {
     status: 503,
@@ -100,9 +75,10 @@ function unavailablePack() {
   });
 }
 
-async function readPublic(pathname) {
+async function readPublic(request, pathname) {
+  if (!canReadPublicCache(request) || (pathname !== PACK_URL && !STATIC_ASSETS.has(pathname)))
+    return undefined;
   const name = pathname === PACK_URL ? HELP_NOW_CACHE_NAME : CACHE_NAME;
-  if (!(await caches.keys()).includes(name)) return undefined;
   const response = await (await caches.open(name)).match(publicRequest(pathname));
   return safePublicResponse(response, pathname) ? response : undefined;
 }
@@ -130,7 +106,7 @@ async function servePublic(request) {
     // Runtime reads do not write. Only an explicit download saves the public pack.
     return await fetch(publicRequest(pathname));
   } catch {
-    return (await readPublic(pathname)) || unavailablePack();
+    return (await readPublic(request, pathname)) || unavailablePack();
   }
 }
 
@@ -141,15 +117,16 @@ async function networkOnly(request) {
     const url = new URL(request.url);
     if (
       request.mode === 'navigate' &&
-      url.origin === globalThis.location.origin &&
+      canReadPublicCache(request) &&
       HELP_NOW_PUBLIC_ROUTE.test(url.pathname) &&
-      !url.search &&
-      !['rsc', 'next-action'].some(header => request.headers.has(header)) &&
-      (await readPublic(PACK_URL))
+      (await readPublic(request, PACK_URL))
     ) {
-      return (await readPublic('/offline.html')) || offlineNotice(request);
+      const template = await readPublic(request, '/offline.html');
+      return template
+        ? globalThis.pwaOffline.localizeDocument(request, await template.text())
+        : globalThis.pwaOffline.notice(request);
     }
-    return request.mode === 'navigate' ? offlineNotice(request) : unavailablePack();
+    return request.mode === 'navigate' ? globalThis.pwaOffline.notice(request) : unavailablePack();
   }
 }
 
@@ -157,19 +134,38 @@ globalThis.addEventListener('install', event => {
   event.waitUntil(globalThis.skipWaiting());
 });
 
-async function activatePublicCaches() {
+async function removeLegacyCaches() {
   await Promise.all(
     (await caches.keys()).filter(key => !CURRENT_CACHES.has(key)).map(key => caches.delete(key))
   );
-  await globalThis.clients.claim();
+  return true;
+}
+
+const LEGACY_SWEEP_INTERVAL_MS = 5000;
+let lastLegacySweep = -Infinity;
+let legacySweep;
+function purgeLegacyCaches() {
+  if (legacySweep) return legacySweep;
+  if (Date.now() - lastLegacySweep < LEGACY_SWEEP_INTERVAL_MS) return Promise.resolve(false);
+  lastLegacySweep = Date.now();
+  legacySweep = removeLegacyCaches()
+    .catch(() => false)
+    .finally(() => {
+      legacySweep = undefined;
+    });
+  return legacySweep;
 }
 
 globalThis.addEventListener('activate', event => {
-  event.waitUntil(activatePublicCaches());
+  event.waitUntil(removeLegacyCaches().then(() => globalThis.clients.claim()));
 });
 
 globalThis.addEventListener('message', event => {
   if (!event.source?.url || new URL(event.source.url).origin !== globalThis.location.origin) return;
+  if (event.data?.type === 'PURGE_LEGACY_CACHES') {
+    event.waitUntil(purgeLegacyCaches());
+    return;
+  }
   if (event.data?.type !== 'CACHE_HELP_NOW_PACK') return;
   event.waitUntil(
     savePublicAssets([...STATIC_ASSETS.keys(), PACK_URL])
@@ -181,6 +177,7 @@ globalThis.addEventListener('message', event => {
 });
 
 globalThis.addEventListener('fetch', event => {
+  if (event.request.mode === 'navigate') event.waitUntil(purgeLegacyCaches());
   event.respondWith(
     classifyRequest(event.request) === 'network'
       ? networkOnly(event.request)

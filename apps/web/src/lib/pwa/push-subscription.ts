@@ -1,22 +1,31 @@
 import type { NotificationPreferences } from '@/actions/user-settings';
 import { isPwaEnabled, registerPwaWorker } from './registration';
 
-async function unsubscribePush(): Promise<void> {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-  try {
-    const registration = await navigator.serviceWorker.getRegistration();
-    if (!registration) return;
-    const existing = await registration.pushManager.getSubscription();
-    if (!existing) return;
-    await fetch('/api/settings/push', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ endpoint: existing.endpoint }),
-    });
-    await existing.unsubscribe();
-  } catch {
-    // Preferences save should still succeed when unsubscribe is unavailable.
-  }
+export type PushSyncResult = Readonly<{ ok: true } | { ok: false; reason: 'push-sync-failed' }>;
+const SYNCED: PushSyncResult = { ok: true };
+const FAILED: PushSyncResult = { ok: false, reason: 'push-sync-failed' };
+
+async function unsubscribePush(): Promise<PushSyncResult> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return SYNCED;
+  const registration = await navigator.serviceWorker.getRegistration();
+  if (!registration) return SYNCED;
+  const existing = await registration.pushManager.getSubscription();
+  if (!existing) return SYNCED;
+  const results = await Promise.allSettled([
+    Promise.resolve()
+      .then(() =>
+        fetch('/api/settings/push', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: existing.endpoint }),
+        })
+      )
+      .then(response => response.ok),
+    Promise.resolve().then(() => existing.unsubscribe()),
+  ]);
+  return results.every(result => result.status === 'fulfilled' && result.value === true)
+    ? SYNCED
+    : FAILED;
 }
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
@@ -28,17 +37,11 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   return outputArray;
 }
 
-export async function syncPushSubscription(
-  nextPreferences: Readonly<NotificationPreferences>
-): Promise<void> {
-  if (!nextPreferences.pushClaimUpdates && !nextPreferences.pushMessages) {
-    await unsubscribePush();
-    return;
-  }
-  if (!isPwaEnabled()) return;
+async function subscribePush(): Promise<PushSyncResult> {
+  if (!isPwaEnabled()) return SYNCED;
   const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!vapidPublicKey) {
-    return;
+    return SYNCED;
   }
 
   if (
@@ -46,16 +49,16 @@ export async function syncPushSubscription(
     !('PushManager' in window) ||
     !('Notification' in window)
   ) {
-    return;
+    return SYNCED;
   }
 
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') {
-    return;
+    return SYNCED;
   }
 
   const registration = await registerPwaWorker();
-  if (!registration) return;
+  if (!registration) return SYNCED;
 
   const subscription =
     (await registration.pushManager.getSubscription()) ??
@@ -70,10 +73,10 @@ export async function syncPushSubscription(
   const auth = json.keys?.auth;
 
   if (!endpoint || !p256dh || !auth) {
-    return;
+    return SYNCED;
   }
 
-  await fetch('/api/settings/push', {
+  const response = await fetch('/api/settings/push', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -82,4 +85,16 @@ export async function syncPushSubscription(
       userAgent: navigator.userAgent,
     }),
   });
+  return response.ok ? SYNCED : FAILED;
+}
+
+export async function syncPushSubscription(
+  preferences: Readonly<NotificationPreferences>
+): Promise<PushSyncResult> {
+  try {
+    if (!preferences.pushClaimUpdates && !preferences.pushMessages) return await unsubscribePush();
+    return await subscribePush();
+  } catch {
+    return FAILED;
+  }
 }

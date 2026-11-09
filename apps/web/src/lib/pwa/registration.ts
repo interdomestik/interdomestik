@@ -12,7 +12,10 @@ function ownsRegistration(registration: ServiceWorkerRegistration): boolean {
 
 export function registerPwaWorker(): Promise<ServiceWorkerRegistration | undefined> {
   if (!isPwaEnabled() || !globalThis.navigator?.serviceWorker) return Promise.resolve(undefined);
-  return navigator.serviceWorker.register('/sw.js', { scope: '/' });
+  return navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(registration => {
+    registration.active?.postMessage({ type: 'PURGE_LEGACY_CACHES' });
+    return registration;
+  });
 }
 
 export async function removeDisabledPwaWorker(): Promise<void> {

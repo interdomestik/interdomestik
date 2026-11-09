@@ -74,7 +74,11 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
       const result = await updateNotificationPreferences(preferences);
 
       if (result.success) {
-        await syncPushSubscription(preferences);
+        const pushResult = await syncPushSubscription(preferences);
+        if (!pushResult.ok) {
+          toast.error(t('notifications.saveError'));
+          return;
+        }
         toast.success(t('notifications.saved'), {
           description: t('notifications.savedDescription'),
         });

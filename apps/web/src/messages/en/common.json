@@ -1,6 +1,9 @@
 {
   "common": {
     "pwa": {
+      "offlineHeading": "Help Now — offline",
+      "offlinePrivacy": "Public scene checklist only. No account records, saved photo notes or queued changes.",
+      "offlineAvailability": "Country-specific numbers and rules require an online connection.",
       "offlineTitle": "You are offline",
       "offlineBody": "Reconnect to view your workspace. No cached records are available. Changes are not queued or sent while offline.",
       "retry": "Retry",

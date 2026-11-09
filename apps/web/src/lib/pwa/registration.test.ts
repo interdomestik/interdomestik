@@ -29,10 +29,12 @@ describe('shared PWA registration policy', () => {
   });
   it('registers the existing root worker and scope when enabled', async () => {
     vi.stubEnv('NEXT_PUBLIC_ENABLE_PWA', 'true');
-    const register = vi.fn().mockResolvedValue({});
+    const postMessage = vi.fn();
+    const register = vi.fn().mockResolvedValue({ active: { postMessage } });
     vi.stubGlobal('navigator', { serviceWorker: { register } });
     await registerPwaWorker();
     expect(register).toHaveBeenCalledWith('/sw.js', { scope: '/' });
+    expect(postMessage).toHaveBeenCalledWith({ type: 'PURGE_LEGACY_CACHES' });
   });
   it('disabled cleanup preserves other workers and unrelated caches', async () => {
     vi.stubEnv('NEXT_PUBLIC_ENABLE_PWA', 'false');
@@ -81,7 +83,7 @@ describe('shared PWA registration policy', () => {
   it('still allows push opt-out while PWA is disabled', async () => {
     vi.stubEnv('NEXT_PUBLIC_ENABLE_PWA', 'false');
     vi.stubGlobal('PushManager', class {});
-    const unsubscribe = vi.fn();
+    const unsubscribe = vi.fn().mockResolvedValue(true);
     const getRegistration = vi.fn().mockResolvedValue({
       pushManager: {
         getSubscription: () =>
