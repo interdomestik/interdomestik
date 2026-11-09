@@ -25,7 +25,7 @@ import {
 
 export { validateDeliveryContract };
 export { GitHubClient, eventPullNumber, trustedGitHubApiUrl } from './pr-delivery-api.mjs';
-const MAX_ATTEMPTS = 290;
+const MAX_ATTEMPTS = 460;
 
 function fail(message, waiting = false, retryAfterMs = DELIVERY_POLL_MS) {
   const error = new Error(`${waiting ? 'WAIT: ' : ''}${message}`);

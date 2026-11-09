@@ -187,7 +187,7 @@ test('delivery workflow stays exact and default-deny', () => {
     "github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft";
 
   assert.ok(job);
-  assert.equal(job['timeout-minutes'], 150);
+  assert.equal(job['timeout-minutes'], 240);
   assert.equal(
     workflow.concurrency['cancel-in-progress'],
     true,
