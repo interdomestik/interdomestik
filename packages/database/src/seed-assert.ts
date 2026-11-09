@@ -147,6 +147,23 @@ async function assertSeed() {
     const { collectClaimStateViolations } = await import('./seed-assert-claim-states');
     const claimStateViolations = await collectClaimStateViolations(db, schema);
     exitOnViolations('Claim state', claimStateViolations, 'Named claim states match the catalogue');
+
+    const { collectTenantStateViolations } = await import('./seed-assert-tenant-states');
+    const tenantStateViolations = await collectTenantStateViolations(db, schema);
+    exitOnViolations(
+      'Tenant state',
+      tenantStateViolations,
+      'Named tenant states match the catalogue'
+    );
+
+    const { collectAgentLinkLifecycleViolations } =
+      await import('./seed-assert-agent-link-lifecycle');
+    const linkViolations = await collectAgentLinkLifecycleViolations(db, schema);
+    exitOnViolations(
+      'Agent link lifecycle',
+      linkViolations,
+      'Agent link lifecycle matches the catalogue'
+    );
     process.exit(0);
   } catch (err: any) {
     // If table doesn't exist or query fails
