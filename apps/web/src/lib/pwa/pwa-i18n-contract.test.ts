@@ -34,10 +34,11 @@ function assertOfflineLocale(locale: string, html: string): void {
 }
 
 describe('pwa-i18n-contract', () => {
-  it('owns common catalog additions with complete locale parity', () => {
-    expect(read('../../scripts/modularity-guard-policy.mjs')).toContain(
-      "['common.json', 'pwa-i18n-contract']"
-    );
+  it('keeps the owned common catalogs in complete PWA locale parity', () => {
+    const registry = read('../../scripts/modularity-guard-policy.mjs');
+    for (const locale of locales) {
+      expect(registry).toContain(`['${locale}/common.json', 'locale-quality-pass-i18n-contract']`);
+    }
     const workerCopy = vm.runInContext('OFFLINE_COPY', workerHarness().context);
     for (const locale of locales) {
       const copy = JSON.parse(read(`src/messages/${locale}/common.json`)).common.pwa;
