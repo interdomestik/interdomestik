@@ -102,6 +102,28 @@ describe('RoleShell', () => {
     await waitFor(() => expect(more).toHaveFocus());
   });
 
+  it.each(['Escape', 'close button'])(
+    'returns focus to More after %s when a Safari-style click opens it from body focus',
+    async dismissal => {
+      const user = userEvent.setup();
+      render(shell());
+      const more = screen.getByRole('button', { name: 'More' });
+      expect(document.body).toHaveFocus();
+      // Unlike user.click, fireEvent.click does not focus the button before activation.
+      fireEvent.click(more);
+      const dialog = await screen.findByRole('dialog', { name: 'More' });
+      const close = within(dialog).getByRole('button', { name: 'Cancel' });
+      await waitFor(() => expect(close).toHaveFocus());
+      if (dismissal === 'Escape') {
+        await user.keyboard('{Escape}');
+      } else {
+        await user.click(close);
+      }
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      await waitFor(() => expect(more).toHaveFocus());
+    }
+  );
+
   it('selects the longest matching destination and closes More only for ordinary navigation', async () => {
     const user = userEvent.setup();
     render(shell('/workspace/cases/new'));

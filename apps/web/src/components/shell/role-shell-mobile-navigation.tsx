@@ -94,7 +94,10 @@ export function RoleShellMobileNavigation({
             <SheetTrigger asChild>
               <button
                 type="button"
-                onClick={onMoreOpen}
+                onClick={event => {
+                  returnFocus.current = event.currentTarget;
+                  onMoreOpen?.();
+                }}
                 data-active={moreActive}
                 className="flex min-h-14 min-w-11 flex-1 basis-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
               >
@@ -113,6 +116,7 @@ export function RoleShellMobileNavigation({
         descriptionText={labels.navigation}
         closeLabel={labels.close}
         onOpenAutoFocus={() => {
+          if (!isDrawer) return;
           returnFocus.current =
             document.activeElement instanceof HTMLElement ? document.activeElement : null;
         }}
