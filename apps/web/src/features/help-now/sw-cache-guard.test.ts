@@ -8,7 +8,7 @@ import {
   publicResponse,
   publicAssetResponse,
   workerHarness,
-} from './sw-test-harness';
+} from './sw-test-utils';
 
 describe('PWA cache privacy policy', () => {
   it('classifies protected, data, public pack and reviewed static requests', () => {

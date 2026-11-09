@@ -31,9 +31,9 @@ describe('same-origin tenant manifest contract', () => {
       }
     }
   );
-  it('declares the explicit manifest metadata for supported and fallback locales', () => {
-    const entry = fs.readFileSync(path.join(web, 'src/app/[locale]/_core.entry.tsx'), 'utf8');
-    expect(entry.match(/manifest: '\/manifest.json'/g)).toHaveLength(2);
+  it('declares the manifest once in the locale layout metadata for every locale', () => {
+    const layout = fs.readFileSync(path.join(web, 'src/app/[locale]/locale-metadata.ts'), 'utf8');
+    expect(layout.match(/manifest: '\/manifest.json'/g)).toHaveLength(1);
   });
   it('is the registered owner of the manifest structured artifact', () => {
     const registry = fs.readFileSync(

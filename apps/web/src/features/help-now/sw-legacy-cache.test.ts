@@ -7,7 +7,7 @@ import {
   publicResponse,
   runLegacyDownload,
   workerHarness,
-} from './sw-test-harness';
+} from './sw-test-utils';
 
 describe('legacy tabs with a hardened worker', () => {
   it.each(['en', 'sq', 'mk', 'sr', 'de', 'hr', 'en/'])(

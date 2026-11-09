@@ -1,7 +1,7 @@
 import vm from 'node:vm';
 import { FLIGHT_HEADERS } from 'next/dist/client/components/app-router-headers';
 import { describe, expect, it } from 'vitest';
-import { PACK, workerHarness } from './sw-test-harness';
+import { PACK, workerHarness } from './sw-test-utils';
 
 const exclusions: RequestInit[] = [
   ...[...FLIGHT_HEADERS, 'Next-Url', 'Next-Action', 'Authorization', 'Cookie', 'Range'].map(
