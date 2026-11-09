@@ -9,6 +9,33 @@ const STATIC_ASSETS = new Map([
   ['/offline.css', 'text/css'],
 ]);
 const HELP_NOW_PUBLIC_ROUTE = /^\/(sq|en|sr|mk|de|hr)\/help-now\/?$/;
+// Mirror next/dist/client/components/app-router-headers: guarded by a parity test.
+const FLIGHT_HEADERS = [
+  'rsc',
+  'next-router-state-tree',
+  'next-router-prefetch',
+  'next-hmr-refresh',
+  'next-router-segment-prefetch',
+];
+function isFlightRequest(request) {
+  return (
+    [...FLIGHT_HEADERS, 'next-url', 'next-action'].some(header => request.headers.has(header)) ||
+    /text\/x-component/i.test(request.headers.get('accept') || '') ||
+    new URL(request.url).searchParams.has('_rsc')
+  );
+}
+
+function isLegacyHelpNowDownload(request) {
+  const url = new URL(request.url);
+  return (
+    request.method === 'GET' &&
+    request.mode !== 'navigate' &&
+    url.origin === globalThis.location.origin &&
+    HELP_NOW_PUBLIC_ROUTE.test(url.pathname) &&
+    !isFlightRequest(request)
+  );
+}
+
 function canReadPublicCache(request) {
   const url = new URL(request.url);
   if (
@@ -17,17 +44,8 @@ function canReadPublicCache(request) {
     url.search ||
     request.cache === 'no-store' ||
     /private|no-store/i.test(request.headers.get('cache-control') || '') ||
-    /text\/x-component/i.test(request.headers.get('accept') || '') ||
-    [
-      'authorization',
-      'cookie',
-      'range',
-      'rsc',
-      'next-router-state-tree',
-      'next-router-prefetch',
-      'next-url',
-      'next-action',
-    ].some(header => request.headers.has(header))
+    isFlightRequest(request) ||
+    ['authorization', 'cookie', 'range'].some(header => request.headers.has(header))
   )
     return false;
   return (
@@ -146,9 +164,14 @@ let lastLegacySweep = -Infinity;
 let legacySweep;
 function purgeLegacyCaches() {
   if (legacySweep) return legacySweep;
-  if (Date.now() - lastLegacySweep < LEGACY_SWEEP_INTERVAL_MS) return Promise.resolve(false);
-  lastLegacySweep = Date.now();
-  legacySweep = removeLegacyCaches()
+  const delay = Math.max(0, lastLegacySweep + LEGACY_SWEEP_INTERVAL_MS - Date.now());
+  const ready =
+    delay > 0 ? new Promise(resolve => globalThis.setTimeout(resolve, delay)) : Promise.resolve();
+  legacySweep = ready
+    .then(() => {
+      lastLegacySweep = Date.now();
+      return removeLegacyCaches();
+    })
     .catch(() => false)
     .finally(() => {
       legacySweep = undefined;
@@ -157,7 +180,7 @@ function purgeLegacyCaches() {
 }
 
 globalThis.addEventListener('activate', event => {
-  event.waitUntil(removeLegacyCaches().then(() => globalThis.clients.claim()));
+  event.waitUntil(purgeLegacyCaches().then(() => globalThis.clients.claim()));
 });
 
 globalThis.addEventListener('message', event => {
@@ -177,6 +200,14 @@ globalThis.addEventListener('message', event => {
 });
 
 globalThis.addEventListener('fetch', event => {
+  if (isLegacyHelpNowDownload(event.request)) {
+    // Cache.addAll rejects atomically on a network error. Remove its already-opened
+    // v1 cache as well, without a caches.keys scan or waiting for another event.
+    const cleanup = caches.delete('interdomestik-help-now-v1').catch(() => false);
+    event.waitUntil(cleanup);
+    event.respondWith(cleanup.then(() => Response.error()));
+    return;
+  }
   if (event.request.mode === 'navigate') event.waitUntil(purgeLegacyCaches());
   event.respondWith(
     classifyRequest(event.request) === 'network'

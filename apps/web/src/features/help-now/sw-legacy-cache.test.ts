@@ -1,66 +1,67 @@
 import { describe, expect, it } from 'vitest';
 import {
+  LEGACY_CACHE,
   ORIGIN,
   PACK,
-  PACK_CACHE,
-  STATIC_CACHE,
   publicAssetResponse,
   publicResponse,
+  runLegacyDownload,
   workerHarness,
 } from './sw-test-harness';
 
 describe('legacy tabs with a hardened worker', () => {
-  it('removes a cache recreated by the origin/main addAll writer on the next navigation', async () => {
-    const h = workerHarness();
-    await h.dispatch('activate');
-    h.fetch.mockImplementation(request =>
-      Promise.resolve(
-        request.url.endsWith('/en/help-now')
-          ? publicResponse('/en/help-now', {}, 'SYNTHETIC PRIVATE RECORD')
-          : publicAssetResponse(request)
-      )
-    );
-    // Model the old page-side helper: Cache.addAll still runs in already-loaded tabs.
-    const legacy = await h.caches.open('interdomestik-help-now-v1');
-    const saved = await legacy.addAll([PACK, '/en/help-now']).then(() => 'saved');
-    expect(saved).toBe('saved');
-    expect(await (await legacy.match(`${ORIGIN}/en/help-now`))?.text()).toContain('PRIVATE');
-    h.caches.open.mockClear();
-    h.fetch.mockRejectedValue(new Error('offline'));
-    const response = await h.dispatch('fetch', { request: h.navigate('/en/help-now') });
-    expect(response?.status).toBe(503);
-    expect(await response?.text()).not.toContain('PRIVATE');
-    expect(h.stores.has('interdomestik-help-now-v1')).toBe(false);
-    expect(h.caches.match).not.toHaveBeenCalled();
-    expect(
-      h.caches.open.mock.calls.every(([name]) => [PACK_CACHE, STATIC_CACHE].includes(name))
-    ).toBe(true);
-  });
+  it.each(['en', 'sq', 'mk', 'sr', 'de', 'hr', 'en/'])(
+    'rejects the real origin/main writer for %s without retaining private entries',
+    async locale => {
+      const h = workerHarness();
+      await h.dispatch('activate');
+      const route = locale.endsWith('/') ? '/en/help-now/' : `/${locale}/help-now`;
+      h.fetch.mockImplementation(request =>
+        Promise.resolve(
+          request.url.includes('/help-now') && !request.url.includes('/help-now-packs/')
+            ? publicResponse(request.url, {}, 'SYNTHETIC PRIVATE RECORD')
+            : publicAssetResponse(request)
+        )
+      );
+      expect(await runLegacyDownload(h, route)).toBe('failed');
+      expect(h.stores.has(LEGACY_CACHE)).toBe(false);
+      expect(h.stores.size).toBe(0);
+      expect(h.fetch.mock.calls.some(([request]) => new URL(request.url).pathname === route)).toBe(
+        false
+      );
+      // No subsequent navigation or message is needed to prevent the private write.
+      h.advance(60000);
+      await h.dispatch('fetch', { request: h.request(PACK) });
+      expect(h.stores.size).toBe(0);
+      expect(h.caches.match).not.toHaveBeenCalled();
+    }
+  );
 
-  it('coalesces navigation/message sweeps and removes later legacy writes after five seconds', async () => {
+  it('schedules one deferred sweep for throttle-window navigation and messages', async () => {
     const h = workerHarness();
-    await h.caches.open('legacy');
     await h.message('PURGE_LEGACY_CACHES');
-    expect(h.stores.has('legacy')).toBe(false);
-    const legacy = await h.caches.open('legacy');
-    await legacy.put(
-      h.request(PACK),
-      publicResponse(PACK, { 'content-type': 'application/json' }, 'PRIVATE')
-    );
+    const legacy = await h.caches.open(LEGACY_CACHE);
+    await legacy.put(h.request(PACK), publicResponse(PACK, {}, 'PRIVATE'));
     h.fetch.mockRejectedValue(new Error('offline'));
     h.caches.open.mockClear();
     const pack = await h.dispatch('fetch', { request: h.request(PACK) });
     expect(pack?.status).toBe(503);
     expect(await pack?.text()).not.toContain('PRIVATE');
-    expect(h.caches.open.mock.calls.some(([name]) => name === 'legacy')).toBe(false);
-    await Promise.all([
-      h.dispatch('fetch', { request: h.navigate('/en/member') }),
-      h.message('PURGE_LEGACY_CACHES'),
-    ]);
+    expect(h.caches.open.mock.calls.some(([name]) => name === LEGACY_CACHE)).toBe(false);
+    const navigation = h.startDispatch('fetch', { request: h.navigate('/en/member') });
+    const message = h.startDispatch('message', {
+      data: { type: 'PURGE_LEGACY_CACHES' },
+      source: { url: ORIGIN },
+    });
+    expect((await navigation.response)?.status).toBe(503);
+    expect(h.setTimeout).toHaveBeenCalledTimes(1);
+    h.advance(4999);
     expect(h.caches.keys).toHaveBeenCalledTimes(1);
-    h.advance(5000);
-    await h.dispatch('fetch', { request: h.navigate('/sq/admin') });
+    h.advance(1);
+    await Promise.all([navigation.done, message.done]);
     expect(h.caches.keys).toHaveBeenCalledTimes(2);
-    expect(h.stores.has('legacy')).toBe(false);
+    expect(h.stores.has(LEGACY_CACHE)).toBe(false);
+    h.advance(60000);
+    expect(h.caches.keys).toHaveBeenCalledTimes(2);
   });
 });
