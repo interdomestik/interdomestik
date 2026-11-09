@@ -38,7 +38,7 @@
       "renewing_as_member": "Paddle prikazuje aktivnu pretplatu bez zakazane promene"
     },
     "errors": {
-      "forbidden": "Samo osoblje sa važećim kontekstom organizacije i filijale može da koristi ove zadatke.",
+      "forbidden": "Samo osoblje sa važećim subjektom i važećom filijalom može da koristi ove zadatke.",
       "invalid": "Proverite ID oznake, datum do kada je plaćeno i ishod zatvaranja.",
       "not_found": "Ovaj zadatak više nije dostupan. Osvežite spisak.",
       "conflict": "Stanje zadatka se promenilo. Osvežite spisak i pregledajte zadatak.",

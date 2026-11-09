@@ -9,11 +9,15 @@ import { CashVerificationRequestDTO, VerificationView } from '../../server/verif
 import { VerificationOpsCenterClient } from './VerificationOpsCenterClient';
 
 type Props = {
+  locale: string;
   searchParams: Promise<{ view?: string; query?: string }>;
 };
 
-export default async function VerificationOpsCenterPage({ searchParams }: Props) {
-  const t = await getTranslations('admin.leads');
+export default async function VerificationOpsCenterPage({
+  searchParams,
+  locale,
+}: Readonly<Props>): Promise<React.JSX.Element> {
+  const t = await getTranslations({ locale, namespace: 'admin.leads' });
   const session = await auth.api.getSession({ headers: await headers() });
   const params = await searchParams;
 

@@ -20,7 +20,7 @@
     "recorder": {
       "tapToRecord": "Zum Aufnehmen tippen (max. 60 Sek.)",
       "recording": "Aufnahme läuft...",
-      "start": "Start",
+      "start": "Aufnahme starten",
       "stop": "Stopp",
       "readyToUpload": "Sprachnachricht bereit zum Hochladen."
     }

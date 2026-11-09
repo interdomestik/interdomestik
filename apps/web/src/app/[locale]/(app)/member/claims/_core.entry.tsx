@@ -28,7 +28,7 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
     return null;
   }
 
-  const t = await getTranslations('claims');
+  const t = await getTranslations({ locale, namespace: 'claims' });
 
   return (
     <div className="space-y-6">

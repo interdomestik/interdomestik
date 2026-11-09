@@ -1,10 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { COUNTRY_CODES } from '@interdomestik/domain-country-guidance';
 import { describe, expect, it, vi } from 'vitest';
+import { getTranslations } from 'next-intl/server';
 
 const hoisted = vi.hoisted(() => ({
   setRequestLocaleMock: vi.fn(),
-  getTranslationsMock: vi.fn(async (_options?: { locale: string }) => {
+  getTranslationsMock: vi.fn(async (_options?: { locale: string; namespace: string }) => {
     const messages = {
       title: 'Green Card abroad quickstart',
       description: 'Choose the country where the accident happened and follow the first steps.',
@@ -286,8 +287,8 @@ describe('DiasporaPage', () => {
       });
 
       render(tree);
-
       expect(hoisted.setRequestLocaleMock).toHaveBeenCalledWith(locale);
+      expect(getTranslations).toHaveBeenLastCalledWith({ locale, namespace: 'diaspora' });
       expect(screen.getByTestId('diaspora-selected-country')).toHaveTextContent('Italy');
       expect(screen.getByRole('link', { name: 'Prepare vehicle claim' })).toHaveAttribute(
         'href',

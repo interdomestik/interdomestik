@@ -20,17 +20,18 @@ export function AgentStatusSelect({
   claimId: string;
   currentStatus: string;
   disabled?: boolean;
-}) {
+}): React.JSX.Element {
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations('common.interface');
 
   const handleStatusChange = (value: ClaimStatus) => {
     if (disabled) return;
     startTransition(async () => {
       try {
         await updateClaimStatus(claimId, value);
-        toast.success('Status updated successfully');
+        toast.success(t('statusSuccess'));
       } catch (error) {
-        toast.error('Failed to update status');
+        toast.error(t('statusError'));
         console.error(error);
       }
     });
@@ -50,7 +51,7 @@ export function AgentStatusSelect({
         disabled={isPending || disabled}
       >
         <SelectTrigger className="w-[180px] h-9">
-          <SelectValue placeholder="Status" />
+          <SelectValue placeholder={tDetails('status_label')} />
         </SelectTrigger>
         <SelectContent>
           {AGENT_STATUSES.map(status => (

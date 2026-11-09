@@ -23,6 +23,20 @@
       "title": "Travel & Flight",
       "description": "Flight delays, cancellations, and lost baggage claims.",
       "examples": "e.g., EU261 compensation up to 600 EUR"
+    },
+    "callback": {
+      "trigger": "Request Immediate Callback",
+      "received": "Request Received!",
+      "receivedBody": "Our team will call you at {phone} shortly.",
+      "title": "Talk to an Expert Now",
+      "body": "Skip the forms. Leave your number and we'll call you within 15 minutes to discuss your {category} case.",
+      "name": "Name",
+      "namePlaceholder": "Your full name",
+      "phone": "Phone Number",
+      "sending": "Sending...",
+      "submit": "Call Me Now",
+      "nameRequired": "Name is required",
+      "phoneRequired": "Valid phone number is required"
     }
   }
 }

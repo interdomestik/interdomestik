@@ -5,14 +5,14 @@
         "title": "Pasqyra e Shitjeve",
         "subtitle": "Ndiqni performancën dhe procesin tuaj të shitjes.",
         "stats": {
-          "leads_new": "Lead-e të reja",
+          "leads_new": "Kontakte të reja të mundshme",
           "leads_contacted": "Të kontaktuar",
           "deals_won": "Të fituara",
           "commission": "Komisione"
         }
       },
       "leads": {
-        "title": "Menaxhimi i Lead-eve",
+        "title": "Menaxhimi i Kontakteve të mundshme",
         "subtitle": "Menaxhoni dhe konvertoni anëtarët potencialë.",
         "table": {
           "name": "Emri",
@@ -32,16 +32,16 @@
       },
       "taskQueue": {
         "title": "Radha e detyrave",
-        "description": "Detyra të hapura CRM për lead-e që ju janë caktuar.",
+        "description": "Detyra të hapura CRM për kontakte të mundshme që ju janë caktuar.",
         "count": "{count, plural, =0 {0 detyra} one {# detyrë} other {# detyra}}",
         "countLabel": "{count, plural, =0 {Nuk ka detyra të dukshme} one {# detyrë e dukshme} other {# detyra të dukshme}}",
         "empty": "Nuk ka detyra CRM të dukshme.",
         "unknownLead": "Kontakt",
-        "openLead": "Hap lead-in",
+        "openLead": "Hap kontaktin e mundshëm",
         "dueWithDate": "Afati {bucket}: {date}",
         "completed": {
           "title": "Të përfunduara së fundmi",
-          "description": "Detyra CRM të përfunduara për lead-e që ju janë caktuar.",
+          "description": "Detyra CRM të përfunduara për kontakte të mundshme që ju janë caktuar.",
           "count": "{count, plural, =0 {0 detyra} one {# detyrë} other {# detyra}}",
           "countLabel": "{count, plural, =0 {Nuk ka detyra të përfunduara së fundmi} one {# detyrë e përfunduar së fundmi} other {# detyra të përfunduara së fundmi}}",
           "empty": "Nuk ka detyra CRM të përfunduara së fundmi.",

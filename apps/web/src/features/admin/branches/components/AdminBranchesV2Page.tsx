@@ -7,7 +7,11 @@ import { notFound, redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { CreateBranchDialog } from '@/app/[locale]/admin/branches/components/create-branch-dialog';
 
-export async function AdminBranchesV2Page({ locale }: { locale: string }) {
+export async function AdminBranchesV2Page({
+  locale,
+}: {
+  locale: string;
+}): Promise<React.JSX.Element> {
   setRequestLocale(locale);
 
   const session = await auth.api.getSession({
@@ -33,7 +37,7 @@ export async function AdminBranchesV2Page({ locale }: { locale: string }) {
     notFound();
   }
 
-  const t = await getTranslations('admin.branches');
+  const t = await getTranslations({ locale, namespace: 'admin.branches' });
   const result = await getBranchesWithKpis();
   const branches = result.success ? (result.data ?? []) : [];
 

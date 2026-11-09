@@ -4,6 +4,7 @@ import { ClaimTimeline } from './claim-timeline';
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
+  useLocale: () => 'sq',
   useTranslations: () => (key: string, params?: Record<string, unknown>) => {
     const translations: Record<string, string> = {
       nextSla: `Next action ${params?.target || ''}`,
@@ -70,5 +71,15 @@ describe('ClaimTimeline', () => {
     render(<ClaimTimeline status="verification" updatedAt={oldDate} now={now} />);
 
     expect(screen.getByText('At Risk')).toBeInTheDocument();
+  });
+  it('uses the Albanian pilot date for the last update', () => {
+    render(
+      <ClaimTimeline
+        status="submitted"
+        updatedAt={new Date(2026, 10, 8)}
+        now={new Date(2026, 10, 8, 1)}
+      />
+    );
+    expect(screen.getAllByText('Updated: 08.11.2026').length).toBeGreaterThan(0);
   });
 });

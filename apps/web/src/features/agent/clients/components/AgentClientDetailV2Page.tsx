@@ -16,7 +16,13 @@ import { MembershipCard } from '@/app/[locale]/(agent)/agent/clients/[id]/compon
 import { PreferencesCard } from '@/app/[locale]/(agent)/agent/clients/[id]/components/preferences-card';
 import { RecentClaimsCard } from '@/app/[locale]/(agent)/agent/clients/[id]/components/recent-claims-card';
 
-export async function AgentClientDetailV2Page({ id, locale }: { id: string; locale: string }) {
+export async function AgentClientDetailV2Page({
+  id,
+  locale,
+}: {
+  id: string;
+  locale: string;
+}): Promise<React.JSX.Element> {
   setRequestLocale(locale);
 
   let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
@@ -42,10 +48,10 @@ export async function AgentClientDetailV2Page({ id, locale }: { id: string; loca
     return notFound();
   }
 
-  const t = await getTranslations('agent-members.members.profile');
-  const tCommon = await getTranslations('common');
-  const tClaims = await getTranslations('claims');
-  const tAgent = await getTranslations('agent');
+  const t = await getTranslations({ locale, namespace: 'agent-members.members.profile' });
+  const tCommon = await getTranslations({ locale, namespace: 'common' });
+  const tClaims = await getTranslations({ locale, namespace: 'claims' });
+  const tAgent = await getTranslations({ locale, namespace: 'agent' });
 
   const result = await getAgentClientProfileCore({
     memberId: id,
@@ -59,7 +65,7 @@ export async function AgentClientDetailV2Page({ id, locale }: { id: string; loca
 
   const { member, membership, preferences, claimCounts: counts, recentClaims, activities } = result;
 
-  const translationProps = { t, tCommon, tClaims };
+  const translationProps = { t, tCommon, tClaims, locale };
 
   return (
     <section data-testid="agent-member-detail-ready" className="space-y-8">

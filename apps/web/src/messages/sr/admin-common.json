@@ -30,7 +30,7 @@
       }
     },
     "tenant_selector": {
-      "placeholder": "Organizacija"
+      "placeholder": "Subjekt"
     }
   }
 }

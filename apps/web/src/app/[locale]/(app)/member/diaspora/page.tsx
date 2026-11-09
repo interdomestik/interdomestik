@@ -54,7 +54,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
   const search = await searchParams;
   const selectedCountry = resolveQuickstartCountry(search?.country);
   const corridorContext = parseDiasporaCorridorContext(search ?? {});
-  const t = await getTranslations('diaspora');
+  const t = await getTranslations({ locale, namespace: 'diaspora' });
   const corridorCopy = t.raw('corridor') as DiasporaCorridorCopy;
   const packStatusCopy = t.raw('packStatus') as DiasporaPackStatusCopy;
   const countryContext = selectedCountry

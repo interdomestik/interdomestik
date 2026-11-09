@@ -35,10 +35,13 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function AgentClaimsPage({ params, searchParams }: Props) {
+export default async function AgentClaimsPage({
+  params,
+  searchParams,
+}: Props): Promise<React.JSX.Element> {
   const { locale } = await params;
   await searchParams;
-  const t = await getTranslations('agent');
+  const t = await getTranslations({ locale, namespace: 'agent' });
   const authorized = await getAuth();
   if (!authorized) redirect(`/${locale}/login`);
 

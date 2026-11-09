@@ -197,9 +197,9 @@
     "reporting": {
       "unknownSource": "Nepoznat izvor",
       "weightedPipeline": {
-        "title": "Ponderisani pipeline",
-        "description": "Otvorena vrednost pipeline-a po valuti.",
-        "empty": "Nema vrednosti pipeline-a u periodu izveštaja.",
+        "title": "Ponderisani prodajni tok",
+        "description": "Otvorena vrednost prodajnog toka po valuti.",
+        "empty": "Nema vrednosti prodajnog toka u periodu izveštaja.",
         "excludedRows": "{count, plural, one {# red je izuzet iz ovog pregleda} other {# redova je izuzeto iz ovog pregleda}}",
         "openDeals": "{count, plural, =0 {0 otvorenih dogovora} one {# otvoren dogovor} other {# otvorenih dogovora}}",
         "raw": "Bruto otvorena vrednost",
@@ -211,7 +211,7 @@
       },
       "sourceBreakdown": {
         "title": "Pregled po izvoru",
-        "description": "Kvalitet pipeline-a po izvoru potencijalnog klijenta.",
+        "description": "Kvalitet prodajnog toka po izvoru potencijalnog klijenta.",
         "empty": "Nema podataka o izvoru u periodu izveštaja.",
         "deals": "{count, plural, =0 {0 dogovora} one {# dogovor} other {# dogovora}}",
         "weighted": "Ponderisano",
@@ -226,9 +226,9 @@
       "charts": {
         "hiddenItems": "{count, plural, one {# dodatni red je sakriven iz rezimea grafikona} other {# dodatnih redova je sakriveno iz rezimea grafikona}}",
         "pipelineAmount": {
-          "title": "Grafikon iznosa pipeline-a",
-          "description": "Dopunsko poređenje ukupnog i ponderisanog iznosa pipeline-a. Tabela iznad je izvor istine.",
-          "summaryIntro": "Rezime grafikona iznosa pipeline-a",
+          "title": "Grafikon iznosa prodajnog toka",
+          "description": "Dopunsko poređenje ukupnog i ponderisanog iznosa prodajnog toka. Tabela iznad je izvor istine.",
+          "summaryIntro": "Rezime grafikona iznosa prodajnog toka",
           "total": "Ukupno",
           "weighted": "Ponderisano"
         }

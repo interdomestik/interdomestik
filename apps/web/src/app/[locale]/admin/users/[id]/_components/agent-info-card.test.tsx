@@ -14,7 +14,7 @@ describe('AgentInfoCard', () => {
       image: null,
     };
 
-    const jsx = await AgentInfoCard({ agent: mockAgent });
+    const jsx = await AgentInfoCard({ locale: 'en', agent: mockAgent });
     render(jsx);
 
     expect(screen.getByText('sections.agent')).toBeInTheDocument();
@@ -23,7 +23,7 @@ describe('AgentInfoCard', () => {
   });
 
   it('renders no agent label', async () => {
-    const jsx = await AgentInfoCard({ agent: null });
+    const jsx = await AgentInfoCard({ locale: 'en', agent: null });
     render(jsx);
 
     expect(screen.getByText('labels.no_agent')).toBeInTheDocument();

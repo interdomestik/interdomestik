@@ -38,7 +38,7 @@
       "staff": "Персонал",
       "user": "Член",
       "super_admin": "Супер администратор",
-      "tenant_admin": "Администратор на tenant",
+      "tenant_admin": "Администратор на субјект",
       "branch_manager": "Менаџер на филијала",
       "promoter": "Промотор"
     },
@@ -56,6 +56,13 @@
       "decline": "Само неопходни"
     },
     "companyName": "Interdomestik",
-    "tagline": "Тука кога ви требаме"
+    "tagline": "Тука кога ви требаме",
+    "interface": {
+      "statusSuccess": "Статусот е успешно ажуриран",
+      "statusError": "Статусот не беше ажуриран",
+      "expandAll": "Прикажи ги сите ({count})",
+      "searchMembers": "Барај членови",
+      "loadingPage": "Се вчитува страницата"
+    }
   }
 }

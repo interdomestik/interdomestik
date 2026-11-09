@@ -1,6 +1,6 @@
 import { Link } from '@/i18n/routing';
 import { getRoleLabel } from '@/lib/roles-i18n';
-import { formatDate } from '@/lib/utils/date';
+import { formatPilotDate } from '@/lib/utils/date';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
@@ -9,13 +9,20 @@ import { ArrowLeft, BadgeCheck, Mail } from 'lucide-react';
 import { AgentClientMembership, MemberRecord } from '../_core';
 
 interface MemberHeaderProps {
+  readonly locale: string;
   readonly member: MemberRecord;
   readonly membership: AgentClientMembership;
   readonly t: (key: string) => string;
   readonly tCommon: (key: string) => string;
 }
 
-export function MemberHeader({ member, membership, t, tCommon }: MemberHeaderProps) {
+export function MemberHeader({
+  member,
+  membership,
+  t,
+  tCommon,
+  locale,
+}: MemberHeaderProps): React.JSX.Element {
   const { status: membershipStatus, badgeClass: membershipBadgeClass } = membership;
 
   return (
@@ -71,7 +78,7 @@ export function MemberHeader({ member, membership, t, tCommon }: MemberHeaderPro
             </div>
             <div>
               <span className="font-medium text-foreground">{t('labels.joined')}:</span>{' '}
-              {formatDate(member.createdAt, tCommon('none'))}
+              {formatPilotDate(member.createdAt, locale, tCommon('none'))}
             </div>
           </div>
         </div>

@@ -1,10 +1,21 @@
 import { E2E_USERS } from '@interdomestik/database';
+import type { TestInfo } from '@playwright/test';
+
+import de from '../src/messages/de/auth.json';
+import en from '../src/messages/en/auth.json';
+import mk from '../src/messages/mk/auth.json';
+import sq from '../src/messages/sq/auth.json';
+import sr from '../src/messages/sr/auth.json';
 
 import { getTenantFromTestInfo } from './fixtures/auth.project';
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
 import { withAnonymousPage } from './utils/anonymous-context';
 import { gotoApp } from './utils/navigation';
+
+const AUTH_CATALOGS = { de, en, hr: sq, mk, sq, sr } as const;
+const recoveryCopy = (testInfo: TestInfo) =>
+  AUTH_CATALOGS[routes.getLocale(testInfo)].auth.passwordRecovery;
 
 test.describe('Post-E2 Public Entry Coverage', () => {
   test('covers the business membership entry page and server-side validation path', async ({
@@ -64,8 +75,9 @@ test.describe('Post-E2 Public Entry Coverage', () => {
         testInfo
       );
 
-      await expect(page.getByRole('heading', { name: 'Reset Password' })).toBeVisible();
-      await expect(page.getByRole('form', { name: 'Reset password form' })).toHaveAttribute(
+      const copy = recoveryCopy(testInfo);
+      await expect(page.getByRole('heading', { name: copy.resetTitle })).toBeVisible();
+      await expect(page.getByRole('form', { name: copy.formLabel })).toHaveAttribute(
         'data-hydrated',
         'true'
       );
@@ -74,10 +86,8 @@ test.describe('Post-E2 Public Entry Coverage', () => {
       await page.locator('button[type="submit"]').click();
 
       await expect(
-        page
-          .getByRole('form', { name: 'Reset password form' })
-          .locator('#reset-password-form-error')
-      ).toHaveText('Passwords do not match');
+        page.getByRole('form', { name: copy.formLabel }).locator('#reset-password-form-error')
+      ).toHaveText(copy.mismatch);
     });
   });
 });

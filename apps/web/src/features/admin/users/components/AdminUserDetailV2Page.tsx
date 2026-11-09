@@ -94,7 +94,7 @@ export async function AdminUserDetailV2Page({
 }: AdminUserDetailV2PageProps): Promise<React.JSX.Element> {
   setRequestLocale(locale);
 
-  const t = await getTranslations('admin.member_profile');
+  const t = await getTranslations({ locale, namespace: 'admin.member_profile' });
 
   const result = await getAdminUserProfileCore({
     userId: id,
@@ -153,6 +153,7 @@ export async function AdminUserDetailV2Page({
       </div>
 
       <UserProfileHeader
+        locale={locale}
         member={{
           ...member,
           emailVerified: member.emailVerified ? new Date() : null,
@@ -166,6 +167,7 @@ export async function AdminUserDetailV2Page({
 
       <div className="grid gap-6 lg:grid-cols-3">
         <MembershipInfoCard
+          locale={locale}
           membershipSource={membership.source}
           coverageEnd={membership.source === 'sponsor' ? membership.coverageEnd : null}
           providerStatus={
@@ -184,13 +186,13 @@ export async function AdminUserDetailV2Page({
           tenantOptions={tenantClassificationOptions}
           userId={member.id}
         />
-        <AgentInfoCard agent={member.agent} />
-        <PreferencesCard preferences={preferences ?? null} />
+        <AgentInfoCard locale={locale} agent={member.agent} />
+        <PreferencesCard locale={locale} preferences={preferences ?? null} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ClaimsStatsCard counts={counts} />
-        <RecentClaimsCard recentClaims={recentClaims} queryString={backQuery} />
+        <ClaimsStatsCard locale={locale} counts={counts} />
+        <RecentClaimsCard locale={locale} recentClaims={recentClaims} queryString={backQuery} />
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { vi } from 'vitest';
+import { expect, vi } from 'vitest';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { buildCommercialHandlingScopeSnapshot } from '@interdomestik/domain-claims/staff-claims/commercial-handling-scope';
 
@@ -105,11 +105,13 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn((namespace?: string) =>
+  getTranslations: vi.fn((namespace?: string | { locale: string; namespace?: string }) =>
     Promise.resolve((key: string) => {
       const locale = hoisted.locale;
+      const ns = typeof namespace === 'string' ? namespace : namespace?.namespace;
+      if (typeof namespace !== 'string') expect(namespace?.locale).toBe(hoisted.locale);
 
-      if (namespace === 'claims-tracking.status') {
+      if (ns === 'claims-tracking.status') {
         const statusTranslations: Record<string, Record<string, string>> = {
           en: {
             negotiation: 'Negotiation',

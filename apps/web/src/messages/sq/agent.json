@@ -3,12 +3,12 @@
     "title": "Hapësira e Agjentit",
     "crm": "Pasqyra CRM",
     "dashboard": "Paneli",
-    "leads": "Lead-et",
+    "leads": "Kontaktet e mundshme",
     "leads_list": {
-      "title": "Menaxhimi i Lead-ve",
-      "subtitle": "Krijo dhe konverto lead-et në anëtarë.",
-      "create": "Lead i Ri",
-      "createSuccess": "Lead u krijua me sukses",
+      "title": "Menaxhimi i Kontakteve të mundshme",
+      "subtitle": "Krijoni dhe shndërroni kontaktet e mundshme në anëtarë.",
+      "create": "Kontakt i ri i mundshëm",
+      "createSuccess": "Kontakti i mundshëm u krijua me sukses",
       "paymentSuccess": "Pagesa u inicua",
       "table": {
         "firstName": "Emri",
@@ -23,7 +23,7 @@
         "email": "E-mail",
         "phone": "Telefoni",
         "notes": "Shënime",
-        "submit": "Krijo Lead"
+        "submit": "Krijo Kontakt të mundshëm"
       }
     },
     "deals": "Marrëveshjet",
@@ -118,7 +118,7 @@
       },
       "referralLink": {
         "title": "Linku Juaj i Referimit",
-        "description": "Shpërndani këtë link për të fituar komisione nga anëtarësimet e reja.",
+        "description": "Shpërndani këtë lidhje për të fituar komisione nga anëtarësimet e reja.",
         "copied": "U kopjua!",
         "copyError": "Dështoi kopjimi i linkut",
         "loadError": "Dështoi ngarkimi i linkut"
@@ -132,23 +132,23 @@
       "noData": "Ende nuk ka të dhëna për renditje",
       "you": "Ti",
       "deals": "marrëveshje",
-      "yourRank": "Renditja jote"
+      "yourRank": "Renditja juaj"
     },
     "followUps": {
       "title": "Ndjekjet me afat",
-      "description": "Lead-et me ndjekje të hapur të planifikuar për tani ose më herët.",
+      "description": "Kontaktet e mundshme me ndjekje të hapur të planifikuar për tani ose më herët.",
       "dueCount": "{count, plural, =0 {0 me afat} one {# me afat} other {# me afat}}",
       "empty": "Nuk ka ndjekje me afat.",
       "unknownLead": "Klient potencial",
       "scheduledFor": "Planifikuar për {date}",
-      "openLead": "Hap lead-in"
+      "openLead": "Hap kontaktin e mundshëm"
     },
     "reporting": {
       "unknownSource": "Burim i panjohur",
       "weightedPipeline": {
-        "title": "Pipeline i ponderuar",
-        "description": "Vlera e hapur e pipeline-it sipas monedhës.",
-        "empty": "Nuk ka vlerë pipeline-i në periudhën e raportimit.",
+        "title": "Procesi i ponderuar",
+        "description": "Vlera e hapur e procesit sipas monedhës.",
+        "empty": "Nuk ka vlerë procesi në periudhën e raportimit.",
         "excludedRows": "{count, plural, one {# rresht u përjashtua nga kjo përmbledhje} other {# rreshta u përjashtuan nga kjo përmbledhje}}",
         "openDeals": "{count, plural, =0 {0 marrëveshje të hapura} one {# marrëveshje e hapur} other {# marrëveshje të hapura}}",
         "raw": "Vlera bruto e hapur",
@@ -160,7 +160,7 @@
       },
       "sourceBreakdown": {
         "title": "Ndarja sipas burimit",
-        "description": "Cilësia e pipeline-it sipas burimit të lead-it.",
+        "description": "Cilësia e procesit sipas burimit të kontaktit të mundshëm.",
         "empty": "Nuk ka të dhëna burimi në periudhën e raportimit.",
         "deals": "{count, plural, =0 {0 marrëveshje} one {# marrëveshje} other {# marrëveshje}}",
         "weighted": "E ponderuar",
@@ -175,9 +175,9 @@
       "charts": {
         "hiddenItems": "{count, plural, one {# rresht shtesë është fshehur nga përmbledhja e grafikut} other {# rreshta shtesë janë fshehur nga përmbledhja e grafikut}}",
         "pipelineAmount": {
-          "title": "Grafiku i shumës së pipeline-it",
-          "description": "Krahasim plotësues i shumës totale dhe të ponderuar të pipeline-it. Tabela sipër është burimi kryesor.",
-          "summaryIntro": "Përmbledhje e grafikut të shumës së pipeline-it",
+          "title": "Grafiku i shumës së procesit",
+          "description": "Krahasim plotësues i shumës totale dhe të ponderuar të procesit. Tabela sipër është burimi kryesor.",
+          "summaryIntro": "Përmbledhje e grafikut të shumës së procesit",
           "total": "Totali",
           "weighted": "E ponderuar"
         }
@@ -185,14 +185,14 @@
     },
     "dashboardV2": {
       "assignedBranch": "Dega e caktuar",
-      "addNewLead": "Shto lead të ri",
+      "addNewLead": "Shto kontakt të mundshëm të ri",
       "rapidPosSale": "Shitje e shpejtë POS",
       "myMemberDashboard": "Paneli im i anëtarit",
       "verifiedAgent": "Agjent i verifikuar",
       "activeSince": "Aktiv që nga",
       "monthlyPace": "Ritmi mujor",
       "paidThisMonth": "Paguar këtë muaj",
-      "pipelinePulse": "Pulsi i pipeline-it",
+      "pipelinePulse": "Pulsi i procesit",
       "clientBase": "Baza e klientëve",
       "active": "Aktive",
       "won": "Të fituara",
@@ -201,7 +201,7 @@
       "campaignDescription": "Fushata e gjuetisë",
       "rapidProspect": "Prospekt i Shpejtë",
       "rapidPosLabel": "POS i shpejtë",
-      "addLead": "Shto lead",
+      "addLead": "Shto kontakt të mundshëm",
       "quickSale": "Shitje e shpejtë",
       "earningsBoost": "Rritje e fitimeve",
       "expertise": "Ekspertiza",
@@ -209,7 +209,7 @@
       "yourClients": "Klientët tuaj",
       "clientsSignedUp": "Anëtarët që keni regjistruar ({count} gjithsej)",
       "noClientsYet": "Ende nuk keni klientë. Filloni të shisni anëtarësime!",
-      "addYourFirstLead": "Shtoni lead-in tuaj të parë",
+      "addYourFirstLead": "Shtoni kontaktin tuaj të parë të mundshëm",
       "startRapidPosSale": "Fillo shitjen e shpejtë POS",
       "viewAllClients": "Shih të gjithë klientët"
     },
@@ -253,8 +253,8 @@
       }
     },
     "leads_page": {
-      "backToLeads": "Kthehu te lead-et",
-      "detailTitleFallback": "Detajet e lead-it",
+      "backToLeads": "Kthehu te kontaktet e mundshme",
+      "detailTitleFallback": "Detajet e kontaktit të mundshëm",
       "sourceLabel": "Burimi",
       "emptyValue": "Nuk është dhënë",
       "detail": {
@@ -294,8 +294,8 @@
       },
       "followUp": {
         "title": "Ndjekja e radhës",
-        "empty": "Nuk ka ndjekje të hapur të planifikuar për këtë lead.",
-        "defaultSubject": "Ndiq lead-in",
+        "empty": "Nuk ka ndjekje të hapur të planifikuar për këtë kontakt të mundshëm.",
+        "defaultSubject": "Ndiq kontaktin e mundshëm",
         "scheduleNow": "Shto ndjekje",
         "dueNow": "Me afat tani",
         "scheduled": "E planifikuar",
@@ -309,10 +309,10 @@
       "switch_to_lite": "Kalo në Lite",
       "cards": {
         "leads": {
-          "title": "Lead-et (Pro)",
+          "title": "Kontaktet e mundshme (Pro)",
           "headline": "Menaxho të gjitha",
           "description": "Filtrim i avancuar, veprime në grup dhe eksporte.",
-          "action_text": "Hap Lead-et"
+          "action_text": "Hap Kontaktet e mundshme"
         },
         "claims": {
           "title": "Radha e kërkesave",
@@ -371,11 +371,11 @@
     },
     "leads_pro": {
       "create": {
-        "trigger": "Lead i ri",
-        "title": "Lead i ri",
+        "trigger": "Kontakt i ri i mundshëm",
+        "title": "Kontakt i ri i mundshëm",
         "description": "Regjistroni një person ose kompani që kërkoi të kontaktohet për anëtarësim.",
         "kind": {
-          "label": "Lloji i lead-it",
+          "label": "Lloji i kontaktit të mundshëm",
           "individual": "Individ",
           "company": "Kompani"
         },
@@ -392,34 +392,34 @@
         "notice": {
           "title": "Si i përdorim këto të dhëna",
           "body": "Interdomestik përdor emrin, numrin e telefonit dhe email-in, si dhe emrin e kompanisë dhe numrin e punonjësve nëse jepen, vetëm për ta kontaktuar këtë person rreth anëtarësimit në Interdomestik dhe për të përgatitur një ofertë. Nuk i shesim këto të dhëna dhe nuk i ndajmë për reklama. Nëse personi nuk bëhet anëtar, i fshijmë pas 12 muajsh. Personi mund të na kërkojë në çdo kohë të mos e kontaktojmë më, ose t'i shohë, korrigjojë apo fshijë të dhënat e tij, përmes agjentit ose kontaktit tonë për privatësinë.",
-          "company": "Ky lead është personi kontaktues i kompanisë dhe mbulon vetëm të dhënat e tij. Çdo punonjës vendos vetë nëse anëtarësohet.",
+          "company": "Ky kontakt i mundshëm është personi kontaktues i kompanisë dhe mbulon vetëm të dhënat e tij. Çdo punonjës vendos vetë nëse anëtarësohet.",
           "attestation": "Ia tregova ose ia lexova këtë njoftim personit dhe ai/ajo kërkoi të kontaktohet për anëtarësim."
         },
-        "submit": "Krijo lead-in",
+        "submit": "Krijo kontaktin e mundshëm",
         "submitting": "Duke krijuar…",
-        "success": "Lead-i u krijua",
+        "success": "Kontakti i mundshëm u krijua",
         "errors": {
-          "duplicate": "Ekziston tashmë një lead me këtë email. Duhet shqyrtuar para se të krijohet një i ri.",
-          "generic": "Lead-i nuk u krijua. Provoni përsëri."
+          "duplicate": "Ekziston tashmë një kontakt i mundshëm me këtë email. Duhet shqyrtuar para se të krijohet një i ri.",
+          "generic": "Kontakti i mundshëm nuk u krijua. Provoni përsëri."
         }
       },
       "back_to_members": "Kthehu te anëtarët",
-      "title": "Lead-et",
-      "subtitle": "Menaxho dhe gjurmo të gjithë lead-et e tu.",
-      "search_placeholder": "Kërko lead sipas emrit, email-it ose telefonit...",
-      "empty_title": "Nuk u gjetën lead-e",
-      "empty_subtitle": "Ndrysho filtrat ose kërkimin tënd.",
-      "empty_label": "Asnjë lead nuk përputhet me filtrat",
-      "details": "Detajet e lead-it",
+      "title": "Kontaktet e mundshme",
+      "subtitle": "Menaxhoni dhe gjurmoni të gjitha kontaktet tuaja të mundshme.",
+      "search_placeholder": "Kërko kontakt të mundshëm sipas emrit, email-it ose telefonit...",
+      "empty_title": "Nuk u gjetën kontakte të mundshme",
+      "empty_subtitle": "Ndryshoni filtrat ose kërkimin tuaj.",
+      "empty_label": "Asnjë kontakt i mundshëm nuk përputhet me filtrat",
+      "details": "Detajet e kontaktit të mundshëm",
       "tabs": {
-        "all": "Të gjithë lead-et",
+        "all": "Të gjitha kontaktet e mundshme",
         "new": "Të reja",
         "in_progress": "Në proces",
         "clients": "Klientë",
         "lost": "Humbur"
       },
       "columns": {
-        "lead": "Emri dhe email-i i lead-it",
+        "lead": "Emri dhe email-i i kontaktit të mundshëm",
         "status": "Statusi",
         "details": "Telefoni dhe dega",
         "meta": "Krijuar / kontakti i fundit"
@@ -458,21 +458,21 @@
         "empty": "Ende nuk ka ngjarje",
         "events": {
           "created": {
-            "title": "Lead-i u krijua",
+            "title": "Kontakti i mundshëm u krijua",
             "source_prefix": "Burimi:",
             "unknown_source": "I panjohur"
           },
           "converted": {
             "title": "I konvertuar",
-            "description": "Lead-i u konvertua në klient"
+            "description": "Kontakti i mundshëm u konvertua në klient"
           }
         }
       },
       "toasts": {
-        "converted": "Lead-i u konvertua me sukses",
-        "marked_contacted": "Lead-i u shënua si i kontaktuar",
+        "converted": "Kontakti i mundshëm u konvertua me sukses",
+        "marked_contacted": "Kontakti i mundshëm u shënua si i kontaktuar",
         "payment_requested": "Pagesa u kërkua",
-        "marked_lost": "Lead-i u shënua si i humbur",
+        "marked_lost": "Kontakti i mundshëm u shënua si i humbur",
         "action_failed": "Veprimi dështoi"
       }
     }

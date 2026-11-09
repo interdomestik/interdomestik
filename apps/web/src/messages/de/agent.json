@@ -2,8 +2,8 @@
   "agent": {
     "title": "Agenten-Arbeitsbereich",
     "crm": "CRM-Übersicht",
-    "dashboard": "Dashboard",
-    "leads": "Leads",
+    "dashboard": "Übersicht",
+    "leads": "Interessenten",
     "leads_list": {
       "title": "Lead-Verwaltung",
       "subtitle": "Leads anlegen und in Mitglieder umwandeln.",
@@ -26,7 +26,7 @@
         "submit": "Lead anlegen"
       }
     },
-    "deals": "Deals",
+    "deals": "Abschlüsse",
     "claims": "Fälle",
     "members": "Mitglieder",
     "claims_queue": "Fall-Warteschlange",
@@ -107,7 +107,7 @@
       "types": {
         "new_membership": "Neue Mitgliedschaft",
         "renewal": "Verlängerung",
-        "upgrade": "Upgrade",
+        "upgrade": "Tarifwechsel",
         "b2b": "B2B-Deal"
       },
       "status": {
@@ -139,7 +139,7 @@
       "description": "Leads mit einer offenen Nachfassaktion, die für jetzt oder früher geplant ist.",
       "dueCount": "{count, plural, =0 {0 fällig} one {# fällig} other {# fällig}}",
       "empty": "Keine fälligen Nachfassaktionen.",
-      "unknownLead": "Lead",
+      "unknownLead": "Interessent",
       "scheduledFor": "Geplant für {date}",
       "openLead": "Lead öffnen"
     },
@@ -282,7 +282,7 @@
         "createDealUnavailable": "Anlegen von Deals nicht verfügbar"
       },
       "deals": {
-        "title": "Deals",
+        "title": "Abschlüsse",
         "empty": "Noch keine Deals angelegt.",
         "membershipPlan": "Mitgliedschaftstarif"
       },
@@ -309,7 +309,7 @@
       "switch_to_lite": "Zu Lite wechseln",
       "cards": {
         "leads": {
-          "title": "Leads (Pro)",
+          "title": "Interessenten (Pro)",
           "headline": "Alle verwalten",
           "description": "Erweiterte Filter, Massenaktionen und Exporte.",
           "action_text": "Leads öffnen"
@@ -404,7 +404,7 @@
         }
       },
       "back_to_members": "Zurück zu den Mitgliedern",
-      "title": "Leads",
+      "title": "Interessenten",
       "subtitle": "Verwalten und verfolgen Sie alle Ihre Leads.",
       "search_placeholder": "Leads nach Name, E-Mail oder Telefon suchen...",
       "empty_title": "Keine Leads gefunden",

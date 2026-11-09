@@ -23,7 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from '@interdomestik/ui/components/table';
-import { useTranslations } from 'next-intl';
+import { formatPilotDate } from '@/lib/utils/date';
+import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -68,7 +69,8 @@ export function UsersTable({
   assignmentChoicesAvailable = true,
   showEmptyState = true,
   showContainer = true,
-}: UsersTableProps) {
+}: UsersTableProps): React.JSX.Element {
+  const locale = useLocale();
   const t = useTranslations('admin.users_table');
   const tCommon = useTranslations('common');
   const router = useRouter();
@@ -257,7 +259,7 @@ export function UsersTable({
               )}
             </TableCell>
             <TableCell className="text-sm text-muted-foreground">
-              {new Date(user.createdAt).toLocaleDateString()}
+              {formatPilotDate(user.createdAt, locale, '-')}
             </TableCell>
           </TableRow>
         ))}

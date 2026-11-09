@@ -42,7 +42,7 @@
       "super_admin": "Superadministrator",
       "tenant_admin": "Mandantenadministrator",
       "branch_manager": "Filialleitung",
-      "promoter": "Promoter"
+      "promoter": "Vermittler"
     },
     "errors": {
       "title": "Fehler",
@@ -56,6 +56,13 @@
       "details": "Mit einem Klick auf „Alle akzeptieren“ stimmen Sie der Verwendung von Cookies für Analysen und personalisierte Inhalte zu.",
       "accept": "Alle akzeptieren",
       "decline": "Nur notwendige"
+    },
+    "interface": {
+      "statusSuccess": "Der Status wurde erfolgreich aktualisiert",
+      "statusError": "Der Status konnte nicht aktualisiert werden",
+      "expandAll": "Alle anzeigen ({count})",
+      "searchMembers": "Mitglieder suchen",
+      "loadingPage": "Seite wird geladen"
     }
   }
 }

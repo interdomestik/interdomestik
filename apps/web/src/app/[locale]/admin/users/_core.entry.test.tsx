@@ -123,6 +123,7 @@ describe('AdminUsersPage', () => {
 
     render(
       await AdminUsersPage({
+        params: Promise.resolve({ locale: 'en' }),
         searchParams: Promise.resolve({ role: 'agent' }),
       })
     );
@@ -159,6 +160,7 @@ describe('AdminUsersPage', () => {
     listBranches.mockResolvedValue({ success: true, data: [] });
     render(
       await AdminUsersPage({
+        params: Promise.resolve({ locale: 'en' }),
         searchParams: Promise.resolve({ role: 'admin,staff', search: 'no-match' }),
       })
     );
@@ -180,6 +182,7 @@ describe('AdminUsersPage search critical path', () => {
       listBranches.mockResolvedValue({ success: true, data: [] });
       render(
         await AdminUsersPage({
+          params: Promise.resolve({ locale: 'en' }),
           searchParams: Promise.resolve({ role, search: 'Tracking', assignment: 'assigned' }),
         })
       );

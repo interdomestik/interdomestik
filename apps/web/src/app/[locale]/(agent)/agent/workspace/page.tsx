@@ -10,10 +10,15 @@ const ICON_MAP: Record<string, LucideIcon> = {
   'bar-chart': BarChart3,
 };
 
-export default async function AgentWorkspacePage() {
+export default async function AgentWorkspacePage({
+  params,
+}: Readonly<{
+  params: Promise<{ locale: string }>;
+}>): Promise<React.JSX.Element> {
+  const { locale } = await params;
   // Purity: Page fetches data/context, then delegates to core
   const data = getAgentWorkspaceNavCore({});
-  const t = await getTranslations('agent.workspace');
+  const t = await getTranslations({ locale, namespace: 'agent.workspace' });
 
   return (
     <div className="container py-6 space-y-8" data-testid="agent-pro-shell">

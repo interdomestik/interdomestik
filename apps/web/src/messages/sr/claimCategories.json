@@ -23,6 +23,20 @@
       "description": "Zahtevi za kašnjenje letova, otkazivanja i izgubljeni prtljag.",
       "examples": "npr., Naknada prema EU261 do 600 €"
     },
-    "quickSelectLabel": "Ili izaberite određeni tip zahteva:"
+    "quickSelectLabel": "Ili izaberite određeni tip zahteva:",
+    "callback": {
+      "trigger": "Zatraži hitan poziv",
+      "received": "Zahtev je primljen!",
+      "receivedBody": "Naš tim će vas uskoro pozvati na {phone}.",
+      "title": "Razgovarajte sa stručnjakom sada",
+      "body": "Preskočite obrasce. Ostavite broj i pozvaćemo vas u roku od 15 minuta da razgovaramo o vašem slučaju: {category}.",
+      "name": "Ime",
+      "namePlaceholder": "Vaše puno ime",
+      "phone": "Broj telefona",
+      "sending": "Slanje…",
+      "submit": "Pozovite me sada",
+      "nameRequired": "Ime je obavezno",
+      "phoneRequired": "Potreban je važeći broj telefona"
+    }
   }
 }

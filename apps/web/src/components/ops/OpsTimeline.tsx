@@ -1,5 +1,8 @@
 'use client';
 
+import { formatPilotDateTime } from '@/lib/utils/date';
+import { useLocale } from 'next-intl';
+
 import { Clock, User } from 'lucide-react';
 import { OpsEmptyState } from './OpsEmptyState';
 import { OPS_TEST_IDS } from './testids';
@@ -19,7 +22,8 @@ export function OpsTimeline({
   emptyLabel,
   emptySubtitle,
   formatTimestamp,
-}: OpsTimelineProps) {
+}: OpsTimelineProps): React.JSX.Element {
+  const locale = useLocale();
   return (
     <div className="space-y-3" data-testid={OPS_TEST_IDS.TIMELINE.ROOT}>
       <h4 className="font-medium flex items-center gap-2">
@@ -45,7 +49,7 @@ export function OpsTimeline({
                 <span>
                   {formatTimestamp
                     ? formatTimestamp(event.date)
-                    : new Date(event.date).toLocaleString()}
+                    : formatPilotDateTime(event.date, locale, '-')}
                 </span>
                 {event.actorName && (
                   <>

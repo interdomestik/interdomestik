@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NavigationFeedback } from './navigation-feedback';
 
+vi.mock('next-intl', () => ({ useTranslations: () => () => 'Duke ngarkuar faqen' }));
+
 const routeState = vi.hoisted(() => ({
   pathname: '/sq/member',
   search: '',
@@ -47,7 +49,7 @@ describe('NavigationFeedback', () => {
 
     fireEvent.click(screen.getByRole('link', { name: 'Claims' }));
 
-    expect(screen.getByTestId('portal-navigation-progress')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Duke ngarkuar faqen' })).toBeInTheDocument();
   });
 
   it('ignores links that do not trigger app navigation', () => {
@@ -105,7 +107,7 @@ describe('NavigationFeedback', () => {
     );
 
     fireEvent.click(screen.getByRole('link', { name: 'Cancelled' }));
-    expect(screen.getByTestId('portal-navigation-progress')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Duke ngarkuar faqen' })).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(2_499);
@@ -129,7 +131,7 @@ describe('NavigationFeedback', () => {
     );
 
     fireEvent.click(screen.getByRole('link', { name: 'Claims' }));
-    expect(screen.getByTestId('portal-navigation-progress')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Duke ngarkuar faqen' })).toBeInTheDocument();
 
     routeState.pathname = '/sq/member/claims';
     window.history.pushState({}, '', '/sq/member/claims');
@@ -139,7 +141,7 @@ describe('NavigationFeedback', () => {
       </NavigationFeedback>
     );
 
-    expect(screen.getByTestId('portal-navigation-progress')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Duke ngarkuar faqen' })).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(200);
@@ -157,7 +159,7 @@ describe('NavigationFeedback', () => {
     );
 
     fireEvent.click(screen.getByRole('link', { name: 'Claims' }));
-    expect(screen.getByTestId('portal-navigation-progress')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Duke ngarkuar faqen' })).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(10_000);

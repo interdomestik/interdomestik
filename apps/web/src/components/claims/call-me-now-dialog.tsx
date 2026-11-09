@@ -23,22 +23,24 @@ import {
 } from '@interdomestik/ui/components/form';
 import { Input } from '@interdomestik/ui/components/input';
 import { CheckCircle, Loader2, PhoneCall } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
-const formSchema = z.object({
-  name: z.string().min(2, 'Name is required'),
-  phone: z.string().min(6, 'Valid phone number is required'),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = { name: string; phone: string };
 
 interface CallMeNowDialogProps {
   category: string;
 }
 
-export function CallMeNowDialog({ category }: CallMeNowDialogProps) {
+export function CallMeNowDialog({ category }: Readonly<CallMeNowDialogProps>): React.JSX.Element {
+  const t = useTranslations('claimCategories.callback');
+  const categories = useTranslations('claims.category');
+  const formSchema = z.object({
+    name: z.string().min(2, t('nameRequired')),
+    phone: z.string().min(6, t('phoneRequired')),
+  });
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -94,7 +96,7 @@ export function CallMeNowDialog({ category }: CallMeNowDialogProps) {
           onClick={e => e.stopPropagation()} // Prevent card click
         >
           <PhoneCall className="h-4 w-4" />
-          Request Immediate Callback
+          {t('trigger')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
@@ -104,9 +106,9 @@ export function CallMeNowDialog({ category }: CallMeNowDialogProps) {
               <CheckCircle className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold">Request Received!</h3>
+              <h3 className="text-lg font-semibold">{t('received')}</h3>
               <p className="text-muted-foreground mt-1">
-                Our team will call you at {form.getValues().phone} shortly.
+                {t('receivedBody', { phone: form.getValues().phone })}
               </p>
             </div>
           </div>
@@ -114,10 +116,11 @@ export function CallMeNowDialog({ category }: CallMeNowDialogProps) {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <DialogHeader>
-                <DialogTitle>Talk to an Expert Now</DialogTitle>
+                <DialogTitle>{t('title')}</DialogTitle>
                 <DialogDescription>
-                  Skip the forms. Leave your number and we'll call you within 15 minutes to discuss
-                  your {category.replace('_', ' ')} case.
+                  {t('body', {
+                    category: categories.has(category) ? categories(category) : categories('other'),
+                  })}
                 </DialogDescription>
               </DialogHeader>
 
@@ -127,9 +130,9 @@ export function CallMeNowDialog({ category }: CallMeNowDialogProps) {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Name</FormLabel>
+                      <FormLabel>{t('name')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="John Doe" {...field} />
+                        <Input placeholder={t('namePlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -140,7 +143,7 @@ export function CallMeNowDialog({ category }: CallMeNowDialogProps) {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
+                      <FormLabel>{t('phone')}</FormLabel>
                       <FormControl>
                         <Input placeholder="049 123 456" type="tel" {...field} />
                       </FormControl>
@@ -155,10 +158,10 @@ export function CallMeNowDialog({ category }: CallMeNowDialogProps) {
                   {form.formState.isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
+                      {t('sending')}
                     </>
                   ) : (
-                    'Call Me Now'
+                    t('submit')
                   )}
                 </Button>
               </DialogFooter>

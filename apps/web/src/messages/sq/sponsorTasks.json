@@ -38,7 +38,7 @@
       "renewing_as_member": "Paddle tregon aktiv pa ndryshim të planifikuar"
     },
     "errors": {
-      "forbidden": "Vetëm stafi me organizatë dhe degë të vlefshme mund t’i përdorë këto detyra.",
+      "forbidden": "Vetëm stafi me një subjekt të vlefshëm dhe një degë të vlefshme mund t’i përdorë këto detyra.",
       "invalid": "Kontrolloni ID-të, datën deri kur është paguar dhe rezultatin e mbylljes.",
       "not_found": "Kjo detyrë nuk është më e disponueshme. Rifreskoni listën.",
       "conflict": "Gjendja e detyrës ndryshoi. Rifreskoni dhe shqyrtojeni.",

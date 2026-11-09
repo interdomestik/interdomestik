@@ -35,7 +35,7 @@ describe('RecentClaimsCard', () => {
   ];
 
   it('renders claims list', async () => {
-    const jsx = await RecentClaimsCard({ recentClaims: mockClaims });
+    const jsx = await RecentClaimsCard({ locale: 'en', recentClaims: mockClaims });
     render(jsx);
 
     expect(screen.getByText('sections.recent_claims')).toBeInTheDocument();
@@ -44,7 +44,7 @@ describe('RecentClaimsCard', () => {
   });
 
   it('renders empty state', async () => {
-    const jsx = await RecentClaimsCard({ recentClaims: [] });
+    const jsx = await RecentClaimsCard({ locale: 'en', recentClaims: [] });
     render(jsx);
 
     expect(screen.getByText('labels.no_claims')).toBeInTheDocument();

@@ -2,11 +2,12 @@ import { Badge } from '@interdomestik/ui/components/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { getRoleLabel } from '@/lib/roles-i18n';
 import { getTranslations } from 'next-intl/server';
-import { formatDate } from './utils';
+import { formatPilotDate } from '@/lib/utils/date';
 import type { AdminTenantOption } from '@/components/admin/admin-tenant-selector';
 import { TenantClassificationControls } from '@/features/admin/users/components/tenant-classification-controls';
 
 export async function MembershipInfoCard({
+  locale,
   subscription,
   membershipSource,
   coverageEnd = null,
@@ -21,6 +22,7 @@ export async function MembershipInfoCard({
   tenantOptions,
   userId,
 }: {
+  locale: string;
   membershipSource: 'sponsor' | 'subscription' | 'none';
   coverageEnd?: Date | null;
   providerStatus?: string | null;
@@ -41,8 +43,8 @@ export async function MembershipInfoCard({
   tenantOptions: AdminTenantOption[];
   userId: string;
 }): Promise<React.JSX.Element> {
-  const t = await getTranslations('admin.member_profile');
-  const tCommon = await getTranslations('common');
+  const t = await getTranslations({ locale, namespace: 'admin.member_profile' });
+  const tCommon = await getTranslations({ locale, namespace: 'common' });
 
   let cancellationStatus = tCommon('none');
   if (subscription) {
@@ -53,6 +55,7 @@ export async function MembershipInfoCard({
     subscription && isMembershipProfile
       ? getLifecycleDetail({
           status: membershipStatus,
+          locale,
           periodEnd: coverageEnd ?? subscription.currentPeriodEnd,
           gracePeriodEndsAt: subscription.gracePeriodEndsAt ?? null,
           fallback: tCommon('none'),
@@ -76,12 +79,14 @@ export async function MembershipInfoCard({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">{t('labels.period_start')}</span>
-              <span>{formatDate(subscription?.currentPeriodStart ?? null, tCommon('none'))}</span>
+              <span>
+                {formatPilotDate(subscription?.currentPeriodStart ?? null, locale, tCommon('none'))}
+              </span>
             </div>
             {coverageEnd ? (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">{t('labels.coverage_end')}</span>
-                <span>{formatDate(coverageEnd, tCommon('none'))}</span>
+                <span>{formatPilotDate(coverageEnd, locale, tCommon('none'))}</span>
               </div>
             ) : null}
             {providerStatus ? (
@@ -130,7 +135,7 @@ export async function MembershipInfoCard({
           <span className="text-muted-foreground">{t('labels.period_end')}</span>
           <span className="font-medium text-foreground">
             {isMembershipProfile
-              ? formatDate(subscription?.currentPeriodEnd ?? null, tCommon('none'))
+              ? formatPilotDate(subscription?.currentPeriodEnd ?? null, locale, tCommon('none'))
               : t('labels.not_applicable')}
           </span>
         </div>
@@ -163,6 +168,7 @@ export async function MembershipInfoCard({
 }
 
 function getLifecycleDetail(args: {
+  locale: string;
   status: string;
   periodEnd: Date | null;
   gracePeriodEndsAt: Date | null;
@@ -170,11 +176,17 @@ function getLifecycleDetail(args: {
   formatMessage: (key: 'active_in_grace' | 'scheduled_cancel', date: string) => string;
 }): string | null {
   if (args.status === 'active_in_grace') {
-    return args.formatMessage('active_in_grace', formatDate(args.gracePeriodEndsAt, args.fallback));
+    return args.formatMessage(
+      'active_in_grace',
+      formatPilotDate(args.gracePeriodEndsAt, args.locale, args.fallback)
+    );
   }
 
   if (args.status === 'scheduled_cancel') {
-    return args.formatMessage('scheduled_cancel', formatDate(args.periodEnd, args.fallback));
+    return args.formatMessage(
+      'scheduled_cancel',
+      formatPilotDate(args.periodEnd, args.locale, args.fallback)
+    );
   }
 
   return null;

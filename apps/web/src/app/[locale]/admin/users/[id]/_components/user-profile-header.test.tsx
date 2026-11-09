@@ -26,6 +26,7 @@ describe('UserProfileHeader', () => {
 
   it('renders the canonical member number instead of the raw user id', async () => {
     const jsx = await UserProfileHeader({
+      locale: 'en',
       member: mockMember,
       membershipStatus: 'active',
       membershipBadgeClass: 'bg-green',
@@ -44,6 +45,7 @@ describe('UserProfileHeader', () => {
 
   it('renders operator accounts with account id labelling', async () => {
     const jsx = await UserProfileHeader({
+      locale: 'en',
       member: {
         ...mockMember,
         id: 'golden_ks_agent_a1',
@@ -65,6 +67,7 @@ describe('UserProfileHeader', () => {
 
   it('renders member-number operators as registered members instead of unsubscribed', async () => {
     const jsx = await UserProfileHeader({
+      locale: 'en',
       member: {
         ...mockMember,
         role: 'agent',
@@ -84,6 +87,7 @@ describe('UserProfileHeader', () => {
 
   it('renders a pending classification badge when tenant review is still required', async () => {
     const jsx = await UserProfileHeader({
+      locale: 'en',
       member: {
         ...mockMember,
         tenantClassificationPending: true,

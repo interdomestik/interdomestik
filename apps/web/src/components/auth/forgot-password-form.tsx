@@ -16,8 +16,9 @@ import { ChevronLeft, Mail } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
-export function ForgotPasswordForm() {
+export function ForgotPasswordForm(): React.JSX.Element {
   const common = useTranslations('common');
+  const t = useTranslations('auth.passwordRecovery');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState(false);
@@ -43,14 +44,14 @@ export function ForgotPasswordForm() {
       });
 
       if (requestError) {
-        setError(requestError.message || 'Unable to request password reset');
+        setError(requestError.message || t('requestFailed'));
         return;
       }
 
       // Always show success to avoid account enumeration.
       setSuccess(true);
     } catch {
-      setError('An unexpected error occurred');
+      setError(t('unexpected'));
     } finally {
       setLoading(false);
     }
@@ -70,19 +71,19 @@ export function ForgotPasswordForm() {
             className="text-2xl font-bold tracking-tight"
             data-testid="forgot-password-success-title"
           >
-            Check your email
+            {t('checkEmail')}
           </CardTitle>
           <CardDescription
             className="text-muted-foreground"
             data-testid="forgot-password-success-body"
           >
-            If an account exists for that email, we've sent instructions to reset your password.
+            {t('requestSuccess')}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center">
           <Button asChild variant="link" className="text-primary">
             <Link href="/login" data-testid="forgot-password-return-to-login">
-              Return to login
+              {t('returnToLogin')}
             </Link>
           </Button>
         </CardContent>
@@ -93,10 +94,8 @@ export function ForgotPasswordForm() {
   return (
     <Card className="w-full max-w-md animate-fade-in shadow-xl border-none ring-1 ring-white/10 bg-white/5 backdrop-blur-lg">
       <CardHeader className="text-center space-y-1">
-        <CardTitle className="text-2xl font-bold tracking-tight">Forgot password?</CardTitle>
-        <CardDescription className="text-muted-foreground">
-          Enter your email address and we'll send you a link to reset your password.
-        </CardDescription>
+        <CardTitle className="text-2xl font-bold tracking-tight">{t('forgotTitle')}</CardTitle>
+        <CardDescription className="text-muted-foreground">{t('forgotBody')}</CardDescription>
       </CardHeader>
       <CardContent>
         <form className="space-y-4" onSubmit={onSubmit}>
@@ -106,7 +105,7 @@ export function ForgotPasswordForm() {
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
+            <Label htmlFor="email">{t('emailLabel')}</Label>
             <Input
               id="email"
               name="email"
@@ -123,13 +122,13 @@ export function ForgotPasswordForm() {
             size="lg"
             disabled={loading}
           >
-            {loading ? common('loading') : 'Send reset link'}
+            {loading ? common('loading') : t('sendLink')}
           </Button>
           <div className="text-center">
             <Button asChild variant="link" size="sm" className="text-muted-foreground">
               <Link href="/login" className="flex items-center gap-2">
                 <ChevronLeft className="h-4 w-4" />
-                Back to login
+                {t('back')}
               </Link>
             </Button>
           </div>
