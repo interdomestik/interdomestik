@@ -4,7 +4,7 @@ import { TENANTS } from './constants';
 import { buildInactiveBranchToSeed, seedInactiveBranch, seedTenantStates } from './tenant-states';
 import type { SeedGoldenContext } from './types';
 
-export function buildBranchesToSeed() {
+function buildExistingBranchesToSeed() {
   return [
     {
       id: 'mk_branch_a',
@@ -56,8 +56,11 @@ export function buildBranchesToSeed() {
       slug: 'pilot-prishtina-central',
       code: 'PILOT-PR',
     },
-    buildInactiveBranchToSeed(),
   ];
+}
+
+export function buildBranchesToSeed() {
+  return [...buildExistingBranchesToSeed(), buildInactiveBranchToSeed()];
 }
 
 export async function seedTenants({ db, schema, sql }: SeedGoldenContext) {
@@ -101,7 +104,7 @@ export async function seedBranches({ db, schema }: SeedGoldenContext) {
   console.log('🌿 Seeding Branches...');
   await db
     .insert(schema.branches)
-    .values(buildBranchesToSeed().filter(row => row.id !== buildInactiveBranchToSeed().id))
+    .values(buildExistingBranchesToSeed())
     .onConflictDoUpdate({
       target: schema.branches.id,
       set: { name: schema.branches.name, code: schema.branches.code },

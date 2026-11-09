@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { eq } from 'drizzle-orm';
 import { E2E_AGENT_LINK_LIFECYCLE_PAIR } from './e2e-agent-link-lifecycle-fixtures';
 import { compareExactSet } from './seed-assert-cash';
@@ -39,7 +40,11 @@ export async function collectAgentLinkLifecycleViolations(
     const row = history.find(found => found.id === checkpoint.id);
     const { metadata, ...fields } = checkpoint;
     compareRow(failures, checkpoint.id, row, fields);
-    compareRow(failures, `${checkpoint.id}.metadata`, row?.metadata, metadata);
+    if (!isDeepStrictEqual(row?.metadata, metadata)) {
+      failures.push(
+        `${checkpoint.id}.metadata: expected ${JSON.stringify(metadata)}, found ${JSON.stringify(row?.metadata)}`
+      );
+    }
   }
   return failures;
 }

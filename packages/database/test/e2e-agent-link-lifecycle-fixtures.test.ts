@@ -134,6 +134,17 @@ test('strict lifecycle assertion refuses each missing or drifted current/history
         const wrong = cleanRows();
         wrong[index][rowIndex].metadata = { ...(row.metadata as Row), [field]: 'drifted' };
         assert.ok((await violations(wrong)).length > 0, `${String(row.id)}.metadata.${field}`);
+        const missing = cleanRows();
+        delete (missing[index][rowIndex].metadata as Row)[field];
+        assert.ok(
+          (await violations(missing)).length > 0,
+          `${String(row.id)}.metadata.${field} missing`
+        );
+      }
+      if (row.metadata) {
+        const extra = cleanRows();
+        extra[index][rowIndex].metadata = { ...(row.metadata as Row), unexpected: null };
+        assert.ok((await violations(extra)).length > 0, `${String(row.id)}.metadata extra key`);
       }
     }
   }
