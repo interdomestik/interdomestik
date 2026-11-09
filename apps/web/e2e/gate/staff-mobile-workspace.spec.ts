@@ -1,14 +1,27 @@
+import { E2E_CASE_FIXTURES } from '@interdomestik/database';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
+import { getTenantFromTestInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
 
 test.use({ viewport: { width: 390, height: 844 } });
 
-async function dismissConsent(page: Page): Promise<void> {
-  const decline = page.getByTestId('cookie-consent-decline');
-  if (await decline.isVisible()) await decline.click();
+const WORKSPACE_SECTIONS = [
+  'staff-claim-handling',
+  'staff-claim-requests',
+  'staff-claim-documents',
+  'staff-claim-messages',
+  'staff-claim-context',
+  'staff-status-history',
+] as const;
+
+async function initializeConsent(page: Page): Promise<void> {
+  // Reuse the pre-navigation consent setup from public-header-overflow.spec.ts.
+  await page.addInitScript(() => {
+    localStorage.setItem('interdomestik_cookie_consent_v1', 'necessary');
+    document.cookie = 'cookie_consent=necessary; Path=/; SameSite=Lax';
+  });
 }
 
 async function expectReflow(page: Page): Promise<void> {
@@ -38,12 +51,10 @@ async function expectMoreFocusReturn(page: Page, staff: boolean): Promise<void> 
   await expect(more).toBeFocused();
 }
 
-test('staff queues and case stay inside the shared mobile shell', async ({
-  staffPage: page,
-}, info) => {
+test('staff queues stay inside the shared mobile shell', async ({ staffPage: page }, info) => {
   test.setTimeout(180_000);
+  await initializeConsent(page);
   await gotoApp(page, routes.staffClaims(info), info, { marker: 'staff-page-ready' });
-  await dismissConsent(page);
   for (const width of [360, 390, 430, 320]) {
     await page.setViewportSize({ width, height: 844 });
     const nav = page.getByTestId('role-shell-bottom-nav');
@@ -63,9 +74,19 @@ test('staff queues and case stay inside the shared mobile shell', async ({
     await expect(page.getByTestId('staff-claims-queue')).toBeVisible();
     await expectReflow(page);
   }
+});
 
-  // Existing seeded context only; this gate creates no claims, users or messages.
-  const { claimId } = await resolveSeededClaimContext(info);
+test('assigned staff case stays inside the shared mobile shell', async ({
+  staffPage: page,
+}, info) => {
+  test.setTimeout(120_000);
+  test.skip(
+    getTenantFromTestInfo(info) !== 'ks',
+    'Assigned seeded document fixture is maintained in KS; MK seeded cases are unassigned'
+  );
+  // Existing assigned fixture only; this gate creates no claims, users or messages.
+  const claimId = E2E_CASE_FIXTURES.KS_ANCHOR.id;
+  await initializeConsent(page);
   await gotoApp(page, routes.staffClaimDetail(claimId, info), info, {
     marker: 'staff-claim-detail-ready',
   });
@@ -75,12 +96,13 @@ test('staff queues and case stay inside the shared mobile shell', async ({
     await page.setViewportSize({ width, height: 844 });
     await expectReflow(page);
     const sectionNav = workspace.getByTestId('staff-claim-workspace-nav');
-    // Exercise every rendered destination, including documents when assignment permits them.
-    for (const link of await sectionNav.getByRole('link').all()) {
-      const href = await link.getAttribute('href');
-      expect(href).toMatch(/^#staff-/);
+    await expect(sectionNav.getByRole('link')).toHaveCount(WORKSPACE_SECTIONS.length);
+    for (const section of WORKSPACE_SECTIONS) {
+      const link = sectionNav.locator(`a[href="#${section}"]`);
+      await expect(link).toHaveCount(1);
       await link.click();
-      const target = workspace.locator(`[id="${href!.slice(1)}"]`);
+      const target = workspace.locator(`[id="${section}"]`);
+      await expect(target).toBeVisible();
       await expect
         .poll(() =>
           target.evaluate(element => {
@@ -97,6 +119,10 @@ test('staff queues and case stay inside the shared mobile shell', async ({
   // A reduced viewport models keyboard space; hardware keyboard behavior needs device proof.
   await page.setViewportSize({ width: 390, height: 400 });
   const note = workspace.locator('#claim-status-note');
+  const save = workspace.getByTestId('staff-update-claim-button');
+  // Enable Save with an unsaved synthetic note; never submit it.
+  await note.fill('M1.3 synthetic mobile visibility check (unsaved)');
+  await expect(save).toBeEnabled();
   await note.focus();
   await expect(note).toBeFocused();
   await expect(page.getByTestId('role-shell-bottom-nav')).toBeHidden();
@@ -107,8 +133,9 @@ test('staff queues and case stay inside the shared mobile shell', async ({
         .evaluate(element => getComputedStyle(element).position)
     )
     .toBe('static');
-  for (const control of [note, workspace.getByTestId('staff-update-claim-button')]) {
+  for (const control of [note, save]) {
     await control.scrollIntoViewIfNeeded();
+    await expect(control).toBeVisible();
     await expect
       .poll(() =>
         control.evaluate(element => {
@@ -119,6 +146,9 @@ test('staff queues and case stay inside the shared mobile shell', async ({
       )
       .toBe(true);
   }
+  await note.focus();
+  await page.keyboard.press('Tab');
+  await expect(save).toBeFocused();
   await expectReflow(page);
 });
 
@@ -126,8 +156,8 @@ test('branch-manager mobile detail retains read-only controls and permitted navi
   branchManagerPage: page,
 }, info) => {
   test.setTimeout(120_000);
+  await initializeConsent(page);
   await gotoApp(page, routes.staffClaims(info), info, { marker: 'staff-page-ready' });
-  await dismissConsent(page);
   await expectMoreFocusReturn(page, false);
   const permittedCases = page.getByTestId('staff-claims-view').filter({ visible: true });
   expect(await permittedCases.count()).toBeGreaterThan(0);
