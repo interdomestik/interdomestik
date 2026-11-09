@@ -11,6 +11,7 @@ import {
   registerMessageRlsFixture,
 } from './tenant-context.integration-fixture';
 import { asActor } from './message-rls-actors.test-support';
+import { E2E_USERS } from '../../../database/src/e2e-users';
 const memberAuthority = () =>
   mintTestTenantAuthority(homeTenantId, { userId: ids.member, role: 'member' });
 const suite = process.env.MESSAGE_RLS_INTEGRATION === '1' ? describe : describe.skip;
@@ -80,7 +81,7 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
       expect(result.messages?.map(message => message.id)).toEqual([ids.public]);
       expect(result.messages?.[0].sender).toMatchObject({
         id: ids.staff,
-        name: 'Synthetic Staff Sender',
+        name: E2E_USERS.KS_STAFF.name,
         role: 'staff',
       });
     }
