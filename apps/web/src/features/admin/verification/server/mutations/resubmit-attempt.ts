@@ -1,8 +1,7 @@
-import { ProtectedActionContext } from '@/lib/safe-action';
+import type { ProtectedActionContext } from '@/lib/safe-action';
 
-import { auditLog } from '@interdomestik/database/schema';
-import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
-import { and, eq } from 'drizzle-orm';
+import { auditLog, leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
+import { and, eq, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { resubmitCashSchema } from '../schemas';
@@ -41,9 +40,9 @@ export async function resubmitCashAttemptCore(
       throw new Error(`Cannot resubmit verification with status: ${attempt.status}`);
     }
 
-    // D. Update
+    // D. Compare-and-set: only the winner may write the resubmission audit.
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await tx
+    const resubmitted = await tx
       .update(leadPaymentAttempts)
       .set({
         status: 'pending',
@@ -54,7 +53,17 @@ export async function resubmitCashAttemptCore(
         // But status is now pending.
         // I'll keep it.
       })
-      .where(eq(leadPaymentAttempts.id, attemptId));
+      .where(
+        and(
+          eq(leadPaymentAttempts.id, attemptId),
+          eq(leadPaymentAttempts.tenantId, tenantId),
+          inArray(leadPaymentAttempts.status, ['needs_info', 'rejected'])
+        )
+      )
+      .returning({ id: leadPaymentAttempts.id });
+    if (resubmitted.length === 0) {
+      throw new Error('This payment attempt was just decided by someone else. Reload and retry.');
+    }
 
     // E. Audit
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
