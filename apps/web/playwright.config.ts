@@ -435,8 +435,8 @@ export default defineConfig({
         url: `${BASE_URL}/robots.txt`,
         reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
         timeout: 300 * 1000,
+        // Playwright inherits process.env; never list secrets here because JSON reports serialize env.
         env: {
-          ...process.env,
           NODE_ENV: 'production',
           PORT: String(PORT),
           HOSTNAME: BIND_HOST,
@@ -459,12 +459,6 @@ export default defineConfig({
           // Disable rate limiting completely by unsetting Upstash vars
           UPSTASH_REDIS_REST_URL: '',
           UPSTASH_REDIS_REST_TOKEN: '',
-          // Explicitly pass the secret for the standalone server
-          BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? '',
-          // Required for Paddle webhook signature validation tests.
-          ...(process.env.PADDLE_WEBHOOK_SECRET_KEY
-            ? { PADDLE_WEBHOOK_SECRET_KEY: process.env.PADDLE_WEBHOOK_SECRET_KEY }
-            : {}),
           ...restrictedServerEnv,
         },
       },
