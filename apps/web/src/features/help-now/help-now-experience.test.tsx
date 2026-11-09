@@ -95,12 +95,26 @@ describe('HelpNowExperience', () => {
 
     const file = new File(['local'], 'scene.jpg', { type: 'image/jpeg' });
     await user.upload(screen.getByTestId('help-now-shot-0'), file);
+    await user.upload(
+      screen.getByTestId('help-now-shot-1'),
+      new File(['second local photo'], 'other-scene.jpg', { type: 'image/jpeg' })
+    );
 
-    expect(screen.getByText(/scene.jpg/)).toBeInTheDocument();
+    expect(screen.getByText(/^scene\.jpg/)).toBeInTheDocument();
+    expect(screen.getByTestId('help-now-local-only')).toHaveTextContent('this device: 2');
     expect(localStorage.getItem('interdomestik.helpNow.evidenceBundle.v1')).toContain('scene.jpg');
 
     await user.click(screen.getByTestId('help-now-clear-bundle'));
     expect(localStorage.getItem('interdomestik.helpNow.evidenceBundle.v1')).toBeNull();
+    expect(screen.getByTestId('help-now-shot-0')).toHaveValue('');
+    expect(screen.getByTestId('help-now-shot-0')).toHaveProperty('files.length', 0);
+    expect(screen.getByTestId('help-now-shot-1')).toHaveValue('');
+    expect(screen.getByTestId('help-now-shot-1')).toHaveProperty('files.length', 0);
+
+    await user.upload(screen.getByTestId('help-now-shot-0'), file);
+    expect(screen.getByText(/scene.jpg/)).toBeInTheDocument();
+    expect(screen.getByTestId('help-now-local-only')).toHaveTextContent('this device: 1');
+    expect(localStorage.getItem('interdomestik.helpNow.evidenceBundle.v1')).toContain('scene.jpg');
   });
 
   it('keeps evidence UI responsive when storage writes fail', async () => {

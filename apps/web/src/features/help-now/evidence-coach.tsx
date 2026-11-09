@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   clearEvidenceItems,
   listEvidenceItems,
@@ -32,6 +32,7 @@ function formatCapturedAt(capturedAt: string, timeLocale: string): string {
 
 export function EvidenceCoach({ copy, onBundleChange }: EvidenceCoachProps) {
   const [items, setItems] = useState<EvidenceItem[]>([]);
+  const fileInputs = useRef<Array<HTMLInputElement | null>>([]);
 
   useEffect(() => {
     const currentItems = listEvidenceItems();
@@ -53,6 +54,9 @@ export function EvidenceCoach({ copy, onBundleChange }: EvidenceCoachProps) {
           data-testid="help-now-clear-bundle"
           onClick={() => {
             clearEvidenceItems();
+            for (const input of fileInputs.current) {
+              if (input) input.value = '';
+            }
             setItems([]);
             onBundleChange(0);
           }}
@@ -73,6 +77,9 @@ export function EvidenceCoach({ copy, onBundleChange }: EvidenceCoachProps) {
                   : copy.noFile}
               </span>
               <input
+                ref={input => {
+                  fileInputs.current[index] = input;
+                }}
                 className="mt-3 block w-full text-sm"
                 data-testid={`help-now-shot-${index}`}
                 type="file"
