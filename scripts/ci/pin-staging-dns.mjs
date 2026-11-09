@@ -16,24 +16,26 @@ const PROVIDERS = Object.freeze([
   'https://cloudflare-dns.com/dns-query',
   'https://dns.google/resolve',
 ]);
+// IANA special-purpose and non-global IPv4 ranges, as numeric octets plus prefix length.
+const NON_PUBLIC_RANGES = Object.freeze([
+  [[0, 0, 0, 0], 8],
+  [[10, 0, 0, 0], 8],
+  [[100, 64, 0, 0], 10],
+  [[127, 0, 0, 0], 8],
+  [[169, 254, 0, 0], 16],
+  [[172, 16, 0, 0], 12],
+  [[192, 0, 0, 0], 24],
+  [[192, 0, 2, 0], 24],
+  [[192, 88, 99, 0], 24],
+  [[192, 168, 0, 0], 16],
+  [[198, 18, 0, 0], 15],
+  [[198, 51, 100, 0], 24],
+  [[203, 0, 113, 0], 24],
+  [[224, 0, 0, 0], 3],
+]);
 const NON_PUBLIC = new BlockList();
-for (const [network, prefix] of [
-  ['0.0.0.0', 8],
-  ['10.0.0.0', 8],
-  ['100.64.0.0', 10],
-  ['127.0.0.0', 8],
-  ['169.254.0.0', 16],
-  ['172.16.0.0', 12],
-  ['192.0.0.0', 24],
-  ['192.0.2.0', 24],
-  ['192.88.99.0', 24],
-  ['192.168.0.0', 16],
-  ['198.18.0.0', 15],
-  ['198.51.100.0', 24],
-  ['203.0.113.0', 24],
-  ['224.0.0.0', 3],
-])
-  NON_PUBLIC.addSubnet(network, prefix, 'ipv4');
+for (const [octets, prefix] of NON_PUBLIC_RANGES)
+  NON_PUBLIC.addSubnet(octets.join('.'), prefix, 'ipv4');
 
 export function isPublicIpv4(address) {
   return typeof address === 'string' && isIPv4(address) && !NON_PUBLIC.check(address, 'ipv4');
@@ -122,7 +124,7 @@ export async function pinStagingHost(
     return { status: 'failed', reason };
   }
   try {
-    await writeImpl(renderHostsLine(address, host));
+    await Promise.resolve(writeImpl(renderHostsLine(address, host)));
     return { status: 'pinned', address };
   } catch {
     return { status: 'failed', reason: 'could not append the agreed address to /etc/hosts' };
