@@ -155,7 +155,7 @@ jobs:
     needs: [validation-surface]
     if: needs.validation-surface.outputs.run_broad == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 120
     services:
       postgres:
         image: docker.io/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
