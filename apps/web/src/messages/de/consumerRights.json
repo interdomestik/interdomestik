@@ -29,6 +29,9 @@
       }
     },
     "cta": "Schadensfall starten",
-    "learnMore": "Mehr erfahren"
+    "learnMore": "Mehr erfahren",
+    "assistance": {
+      "helpBody": "Wenn Sie glauben, dass Ihre Rechte verletzt wurden, können wir Ihnen helfen, einen Anspruch geltend zu machen."
+    }
   }
 }

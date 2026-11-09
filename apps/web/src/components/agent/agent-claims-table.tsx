@@ -5,7 +5,8 @@ import { Link } from '@/i18n/routing';
 import { fetchClaims, type ClaimsScope } from '@/lib/api/claims';
 import { Button } from '@interdomestik/ui';
 import { useQuery } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { formatPilotDate } from '@/lib/utils/date';
+import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 
 const PER_PAGE = 20;
@@ -31,7 +32,7 @@ function renderActionButtons({
         variant="ghost"
         className="text-slate-500 hover:text-primary hover:bg-primary/5 font-medium transition-colors"
       >
-        <Link href={`${detailBasePath}/${claimId}`}>View Status</Link>
+        <Link href={`${detailBasePath}/${claimId}`}>{t('actions.view_status')}</Link>
       </Button>
     );
   }
@@ -74,7 +75,8 @@ export function AgentClaimsTable({
   userRole?: string;
   scope?: ClaimsScope;
   detailBasePath?: string;
-}) {
+}): React.JSX.Element {
+  const locale = useLocale();
   const t = useTranslations('agent-claims.claims');
   const tCommon = useTranslations('common');
   const searchParams = useSearchParams();
@@ -160,7 +162,7 @@ export function AgentClaimsTable({
           {claim.claimAmount ? `${claim.claimAmount} ${claim.currency || 'EUR'}` : '-'}
         </span>,
         <span key="date" className="text-sm text-slate-500 font-medium">
-          {claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : '-'}
+          {claim.createdAt ? formatPilotDate(claim.createdAt, locale, '-') : '-'}
         </span>,
       ],
       actions: renderActionButtons({

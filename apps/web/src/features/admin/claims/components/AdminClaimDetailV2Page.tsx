@@ -18,7 +18,13 @@ import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { canViewAdminClaims, resolveClaimsVisibility } from '../server';
 
-export async function AdminClaimDetailV2Page({ id, locale }: { id: string; locale: string }) {
+export async function AdminClaimDetailV2Page({
+  id,
+  locale,
+}: {
+  id: string;
+  locale: string;
+}): Promise<React.JSX.Element> {
   setRequestLocale(locale);
 
   const session = await auth.api.getSession({ headers: await headers() });
@@ -108,6 +114,7 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
               <CardContent className="pt-6">
                 <Suspense fallback={<div className="h-20 animate-pulse bg-muted/50 rounded" />}>
                   <ClaimOpsTimelineSection
+                    locale={locale}
                     claimId={data.id}
                     authority={authority}
                     viewerRole="admin"

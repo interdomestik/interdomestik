@@ -5,6 +5,7 @@ import { useSiblingNavigationCancel } from '@/hooks/use-sibling-navigation-cance
 import { usePathname, useRouter } from '@/i18n/routing';
 import { Input } from '@interdomestik/ui';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 
 type AgentMembersSearchProps = {
@@ -14,7 +15,10 @@ type AgentMembersSearchProps = {
 // Agent members search on the shared responsive policy. The param rules are
 // unchanged: the trimmed term under 'q', every other param preserved, no page
 // reset, and a relative replace so typing never grows the back stack.
-export function AgentMembersSearch({ initialQuery = '' }: AgentMembersSearchProps) {
+export function AgentMembersSearch({
+  initialQuery = '',
+}: Readonly<AgentMembersSearchProps>): React.JSX.Element {
+  const t = useTranslations('common.interface');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -40,7 +44,7 @@ export function AgentMembersSearch({ initialQuery = '' }: AgentMembersSearchProp
       className="w-full border border-border bg-background px-3 py-2 text-sm sm:max-w-xs"
       data-testid="agent-members-search-input"
       disabled={pendingKind === 'filter'}
-      placeholder="Search members"
+      placeholder={t('searchMembers')}
       type="search"
       value={draft}
       onChange={event => editDraft(event.target.value)}

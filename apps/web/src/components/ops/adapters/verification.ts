@@ -20,7 +20,7 @@ export function toOpsTimelineEvents(events: VerificationTimelineEvent[]): OpsTim
     id: e.id,
     title: e.title,
     description: e.description,
-    date: new Date(e.date).toLocaleString(), // Simple formatting, can be enhanced
+    date: new Date(e.date).toISOString(), // OpsTimeline formats this instant with the page locale.
     actorName: e.actorName,
     tone: toOpsTimelineTone(e.type),
   }));

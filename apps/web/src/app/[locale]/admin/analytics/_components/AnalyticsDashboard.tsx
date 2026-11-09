@@ -5,13 +5,17 @@ import { getTranslations } from 'next-intl/server';
 import { AdminAnalyticsModel } from '../_core';
 
 interface AnalyticsDashboardProps {
+  locale: string;
   data: AdminAnalyticsModel;
 }
 
-export async function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
-  const t = await getTranslations('admin.analytics');
-  const tStatus = await getTranslations('claims.status');
-  const tCategory = await getTranslations('claims.category');
+export async function AnalyticsDashboard({
+  data,
+  locale,
+}: Readonly<AnalyticsDashboardProps>): Promise<React.JSX.Element> {
+  const t = await getTranslations({ locale, namespace: 'admin.analytics' });
+  const tStatus = await getTranslations({ locale, namespace: 'claims.status' });
+  const tCategory = await getTranslations({ locale, namespace: 'claims.category' });
 
   const { totals, statusDistribution, categoryDistribution, activeClaimants, successRate } = data;
 

@@ -7,8 +7,13 @@ import { getMyCommissionSummaryCore } from '@interdomestik/domain-membership-bil
 import { getAgentReferralLinkCore } from '@interdomestik/domain-referrals/referrals/get-agent-link';
 import { getTranslations } from 'next-intl/server';
 
-export default async function AgentCommissionsPage() {
-  const t = await getTranslations('agent.commissions');
+export default async function AgentCommissionsPage({
+  params,
+}: Readonly<{
+  params: Promise<{ locale: string }>;
+}>): Promise<React.JSX.Element> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'agent.commissions' });
   const { session, authority } = await getActionContext();
 
   const [commissionsResult, summaryResult, referralLinkResult] = await Promise.all([

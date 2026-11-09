@@ -115,10 +115,10 @@
       "rewardInfoCreditOnly": "Anëtarët fitojnë {reward} në kredit llogarie pasi aktivizohet anëtarësimi i parë i paguar.",
       "rewardInfoPayout": "Anëtarët fitojnë {reward} pasi aktivizohet anëtarësimi i parë i paguar. Pagesat zhbllokohen sapo krediti i disponueshëm të arrijë {threshold}.",
       "payoutEligible": "Bilanci gati për pagesë: {amount}",
-      "programDisabled": "Shpërblimet e referimit për anëtarë janë aktualisht të çaktivizuara për këtë tenant."
+      "programDisabled": "Shpërblimet e referimit për anëtarë janë aktualisht të çaktivizuara për këtë subjekt."
     },
     "diaspora_ribbon": {
-      "text": "🇩🇪🇨🇭 Për Diasporën: Ndihmë kur je jashtë vendit + udhëzime për avio/udhëtim + Green Card",
+      "text": "🇩🇪🇨🇭 Për Diasporën: Ndihmë kur jeni jashtë vendit + udhëzime për avio/udhëtim + Green Card",
       "cta": "Shiko paketën"
     },
     "home_grid": {
@@ -154,7 +154,7 @@
         "secondary": "Kontakto mbështetjen e anëtarit",
         "help_now_label": "Ndihmë tani",
         "pack_title": "Paketa e vendngjarjes së incidentit",
-        "pack_description": "Përdore këtë rend para se të fusësh të dhëna personale. Nuk krijon automatikisht kërkesë, CRM lead apo handoff për staf.",
+        "pack_description": "Përdoreni këtë rend para se të fusni të dhëna personale. Nuk krijon automatikisht kërkesë, kontakt të mundshëm CRM apo kalim te stafi.",
         "checklist_title": "Veprimet e para",
         "checklist": {
           "scene_safety": "Lëviz në vend të sigurt nëse mundesh, siguro pasagjerët dhe shmang rrezik të ri në vendngjarje.",
@@ -162,7 +162,7 @@
           "document_scene": "Bëj foto ose video të pozicioneve, targave, dëmit, kushteve të rrugës, shenjave dhe provave të dukshme para se gjërat të lëvizin.",
           "exchange_information": "Shkëmbe të dhënat e shoferit, automjetit, dëshmitarëve, autoriteteve dhe policës së disponueshme pa pranuar faj apo nënshkruar deklarata të paqarta.",
           "record_timeline": "Shëno kohën, vendin, drejtimin e lëvizjes, motin, praninë e policisë dhe çfarë ndodhi me fakte të thjeshta.",
-          "preserve_documents": "Mbaj së bashku raportet policore, shënimet mjekësore, faturat, dëftesat e tërheqjes, fotot dhe mesazhet për dosjen e anëtarit."
+          "preserve_documents": "Mbajini së bashku raportet policore, shënimet mjekësore, faturat, dëftesat e tërheqjes, fotot dhe mesazhet për dosjen e anëtarit."
         },
         "disclaimer_title": "Kufiri i zonës falas",
         "disclaimers": {
@@ -174,7 +174,7 @@
           "professional_review_required": "Shqyrtimi profesional kërkohet para veprimit për Professional Recovery."
         },
         "member_boundary_title": "Eskalimi kërkon pëlqim",
-        "member_boundary_body": "Nëse vazhdon në zonën e anëtarit, ti vendos çfarë të dorëzosh. Nga kjo faqe nuk krijohet rekord anëtari, kërkesë, CRM lead apo handoff pa veprim të qartë nga ti.",
+        "member_boundary_body": "Nëse vazhdoni në zonën e anëtarit, ju vendosni çfarë të dorëzoni. Nga kjo faqe nuk krijohet regjistrim anëtari, kërkesë, kontakt i mundshëm CRM apo kalim te stafi pa veprimin tuaj të qartë.",
         "pack_status_title": "Statusi i pack-ut",
         "zone_label": "Zona e shërbimit",
         "zones": {
@@ -186,7 +186,7 @@
         },
         "no_pii_value": "Këtu nuk kërkohen të dhëna personale, mjekësore apo të rastit.",
         "escalation_title": "Hapi i radhës i qartë",
-        "escalation_body": "Përdor raportimin e anëtarit kur je gati ta lidhësh incidentin me llogarinë tënde, ose kontakto mbështetjen nëse ke nevojë për ndihmë njerëzore për hapin e radhës."
+        "escalation_body": "Përdorni raportimin e anëtarit kur të jeni gati ta lidhni incidentin me llogarinë tuaj, ose kontaktoni mbështetjen nëse keni nevojë për ndihmë njerëzore për hapin e radhës."
       }
     },
     "protection_status": {
@@ -242,7 +242,7 @@
             "kicker": "Asistenca IDA",
             "title": "Bashkohu me asistencën IDA.",
             "highlight": "Dije hapin tjetër.",
-            "body": "Merr ndihmë të udhëzuar pas një aksidenti, mbaj dokumentet të organizuara dhe hap rast kur anëtarësia është aktive.",
+            "body": "Merrni ndihmë të udhëzuar pas një aksidenti, mbajini dokumentet të organizuara dhe hapni rast kur anëtarësia është aktive.",
             "valueLabel": "Anëtarësia",
             "value": "20 EUR/vit",
             "cta": "Aktivizo asistencën"
@@ -269,7 +269,7 @@
             "kicker": "Anëtar aktiv",
             "title": "Të duhet ndihmë tani?",
             "highlight": "Hap rastin e parë.",
-            "body": "Anëtarësia jote është aktive. Fillo rast kur faktet, fotot ose dokumentet duhet të ruhen në llogarinë tënde.",
+            "body": "Anëtarësia juaj është aktive. Filloni rast kur faktet, fotot ose dokumentet duhet të ruhen në llogarinë tuaj.",
             "valueLabel": "Statusi",
             "value": "Asistencë aktive",
             "cta": "Hap rastin e parë"
@@ -287,7 +287,7 @@
             "kicker": "Kërkohet veprim",
             "title": "Duhen dokumente.",
             "highlight": "Ngarkoji tani.",
-            "body": "Rasti ka nevojë për dokumentet e tua para se ekipi të vazhdojë shqyrtimin.",
+            "body": "Rasti ka nevojë për dokumentet tuaja para se ekipi të vazhdojë shqyrtimin.",
             "valueLabel": "Statusi",
             "value": "Mungojnë dokumente",
             "cta": "Hap dokumentet"
@@ -392,7 +392,7 @@
             "mobile": "Procedurë",
             "situation": "Dua hapat proceduralë",
             "title": "Udhëzues procedure",
-            "body": "Merr hapat proceduralë sipas shtetit, llojit të dëmit dhe dokumenteve."
+            "body": "Merrni hapat proceduralë sipas shtetit, llojit të dëmit dhe dokumenteve."
           },
           "recovery": {
             "mobile": "Ndjekje",
@@ -457,10 +457,10 @@
     "member": {
       "home": {
         "hero": {
-          "title": "Dosja jote. Hapat e saktë. Ndiq rastin deri në mbyllje.",
+          "title": "Dosja juaj. Hapat e saktë. Ndiqeni rastin deri në mbyllje.",
           "subtitle": "Kur ndodh aksidenti, mos improvizo: hap rastin, ngarko provat, ndiq statusin. Ne të udhëzojmë hap pas hapi.",
           "trust": {
-            "caseNumber": "Rasti yt merr numër unik",
+            "caseNumber": "Rasti juaj merr numër unik",
             "organizedFile": "Dokumentet ruhen në një dosje të organizuar",
             "nextStep": "Hapi i radhës shfaqet qartë"
           }
@@ -473,7 +473,7 @@
           "title": "Përfitimet kryesore",
           "abroad": {
             "title": "Aksident jashtë vendit (Green Card)",
-            "body": "Merr udhëzime sipas shtetit kur ke incident jashtë."
+            "body": "Merrni udhëzime sipas shtetit kur keni incident jashtë."
           },
           "diaspora": {
             "title": "Mbështetje për diasporën",
@@ -509,7 +509,7 @@
           "continue": "Vazhdo rastin",
           "start": "Raporto rastin",
           "next_step_label": "Rasti i fundit",
-          "empty": "Nuk ke rast aktiv për momentin. Raporto rastin kur të duhet mbështetje."
+          "empty": "Nuk keni rast aktiv për momentin. Raportoni rastin kur ju duhet mbështetje."
         },
         "center": {
           "title": "Qendra e anëtarit",
@@ -523,14 +523,14 @@
           "contact": "Kontakto mbështetjen"
         },
         "micro": {
-          "upload_success": "U ruajt në dosjen tënde. Asgjë s'humbet.",
+          "upload_success": "U ruajt në dosjen tuaj. Asgjë s'humbet.",
           "submit_success": "Rasti u pranua. Mund ta ndiqni nga paneli.",
           "submit_missing": "S'është i detyrueshëm, por e forcon dosjen.",
-          "error_safe": "Nuk u krye veprimi. Të dhënat e tua janë të sigurta. Provo përsëri."
+          "error_safe": "Nuk u krye veprimi. Të dhënat tuaja janë të sigurta. Provoni përsëri."
         },
         "promise": {
           "title": "Premtimi ynë",
-          "body": "Ne të ndihmojmë ta kuptosh problemin, ta dokumentosh rastin dhe ta ndjekësh procesin qartë. Nuk premtojmë fitore. Premtojmë organizim, transparencë dhe udhëzim që të mos mbetesh vetëm."
+          "body": "Ne ju ndihmojmë ta kuptoni problemin, ta dokumentoni rastin dhe ta ndiqni procesin qartë. Nuk premtojmë fitore. Premtojmë organizim, transparencë dhe udhëzim që të mos mbeteni vetëm."
         }
       }
     },

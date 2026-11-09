@@ -15,7 +15,7 @@ export async function BranchDashboardV2Page({
 }: {
   branchId: string;
   locale: string;
-}) {
+}): Promise<React.JSX.Element> {
   setRequestLocale(locale);
 
   const session = await auth.api.getSession({
@@ -50,7 +50,7 @@ export async function BranchDashboardV2Page({
     notFound();
   }
 
-  const t = await getTranslations('admin.branches');
+  const t = await getTranslations({ locale, namespace: 'admin.branches' });
 
   return (
     <div className="space-y-6">

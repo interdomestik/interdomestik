@@ -91,7 +91,7 @@ test.describe('Golden Flows: Functional Depth', () => {
 
       // Assert Operational Alerts
       await expect(adminPage.locator('body')).toContainText(/Rrezik Shkelje SLA/i);
-      await expect(adminPage.locator('body')).toContainText(/Cash në Pritje/i);
+      await expect(adminPage.locator('body')).toContainText(/Pagesa me para në dorë në pritje/i);
 
       // KS PACK GUARDS
       const membersKpiValue = adminPage

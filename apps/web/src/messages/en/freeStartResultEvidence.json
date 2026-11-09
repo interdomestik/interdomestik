@@ -31,7 +31,7 @@
             "description": "Keep a readable copy of the current registration."
           },
           "vehicle_driver_license": {
-            "name": "Driver licence",
+            "name": "Driver license",
             "description": "Keep a readable copy for the driver involved."
           },
           "property_photos": {

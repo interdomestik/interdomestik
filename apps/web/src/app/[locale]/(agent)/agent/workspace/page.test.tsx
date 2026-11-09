@@ -37,7 +37,7 @@ import AgentWorkspacePage from './page';
 
 describe('Agent workspace localization', () => {
   it('renders translated workspace copy instead of hardcoded English', async () => {
-    const tree = await AgentWorkspacePage();
+    const tree = await AgentWorkspacePage({ params: Promise.resolve({ locale: 'en' }) });
 
     render(tree);
 

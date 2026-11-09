@@ -1,5 +1,6 @@
 import { FileText, Plus, Shield } from 'lucide-react';
 import { headers } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 
 import {
@@ -21,13 +22,16 @@ interface MemberPoliciesV2PageProps {
   locale: string;
 }
 
-export async function MemberPoliciesV2Page({ locale }: MemberPoliciesV2PageProps) {
+export async function MemberPoliciesV2Page({
+  locale,
+}: Readonly<MemberPoliciesV2PageProps>): Promise<React.JSX.Element> {
   const authorized = await authorizeSessionTenant(await headers());
 
   if (!authorized) {
     redirect(`/${locale}/login`);
   }
 
+  const t = await getTranslations({ locale, namespace: 'membership.policies' });
   const { session, authority } = authorized;
   const policiesWithDocumentLinks = await getPoliciesWithDocumentLinksCore({
     authority,
@@ -38,15 +42,13 @@ export async function MemberPoliciesV2Page({ locale }: MemberPoliciesV2PageProps
     <div className="flex flex-col gap-8 p-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">My Policies</h1>
-          <p className="text-muted-foreground">
-            Manage your insurance documents and see AI insights.
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('body')}</p>
         </div>
         <Link href="/member/policies/upload">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Add Policy
+            {t('add')}
           </Button>
         </Link>
       </div>
@@ -56,13 +58,10 @@ export async function MemberPoliciesV2Page({ locale }: MemberPoliciesV2PageProps
           <div className="bg-primary/10 p-4 rounded-full mb-4">
             <Shield className="h-8 w-8 text-primary" />
           </div>
-          <h3 className="text-lg font-semibold">No policies uploaded yet</h3>
-          <p className="text-muted-foreground max-w-sm mt-2 mb-6">
-            Upload your insurance policy to unlock AI-powered insights, hidden perks, and advocacy
-            tools.
-          </p>
+          <h3 className="text-lg font-semibold">{t('emptyTitle')}</h3>
+          <p className="text-muted-foreground max-w-sm mt-2 mb-6">{t('emptyBody')}</p>
           <Link href="/member/policies/upload">
-            <Button variant="outline">Upload First Policy</Button>
+            <Button variant="outline">{t('uploadFirst')}</Button>
           </Link>
         </Card>
       ) : (
@@ -78,35 +77,35 @@ export async function MemberPoliciesV2Page({ locale }: MemberPoliciesV2PageProps
                     </div>
                     {analysis?.summary && (
                       <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-                        AI Analyzed
+                        {t('analyzed')}
                       </span>
                     )}
                   </div>
-                  <CardTitle className="mt-4">{policy.provider || 'Unknown Provider'}</CardTitle>
-                  <CardDescription>#{policy.policyNumber || 'No Number'}</CardDescription>
+                  <CardTitle className="mt-4">{policy.provider || t('unknownProvider')}</CardTitle>
+                  <CardDescription>#{policy.policyNumber || t('noNumber')}</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Coverage:</span>
+                    <span className="text-muted-foreground">{t('coverage')}</span>
                     <span className="font-semibold">
                       {analysis?.coverageAmount
                         ? `${analysis.coverageAmount} ${analysis?.currency || 'EUR'}`
-                        : 'N/A'}
+                        : t('unavailable')}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Deductible:</span>
+                    <span className="text-muted-foreground">{t('deductible')}</span>
                     <span className="text-red-500 font-medium">
                       {analysis?.deductible
                         ? `${analysis.deductible} ${analysis?.currency || 'EUR'}`
-                        : 'N/A'}
+                        : t('unavailable')}
                     </span>
                   </div>
 
                   {analysis?.hiddenPerks && analysis.hiddenPerks.length > 0 && (
                     <div className="pt-2 border-t mt-2">
                       <p className="text-xs font-semibold text-muted-foreground mb-2">
-                        HIDDEN PERKS
+                        {t('hiddenPerks')}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {analysis.hiddenPerks.slice(0, 2).map(perk => (
@@ -119,7 +118,7 @@ export async function MemberPoliciesV2Page({ locale }: MemberPoliciesV2PageProps
                         ))}
                         {analysis.hiddenPerks.length > 2 && (
                           <span className="text-xs text-muted-foreground px-2 py-1">
-                            +{analysis.hiddenPerks.length - 2} more
+                            {t('more', { count: analysis.hiddenPerks.length - 2 })}
                           </span>
                         )}
                       </div>
@@ -130,12 +129,12 @@ export async function MemberPoliciesV2Page({ locale }: MemberPoliciesV2PageProps
                     {documentDownloadHref ? (
                       <Button variant="outline" className="w-full text-xs" asChild>
                         <a href={documentDownloadHref} target="_blank" rel="noreferrer">
-                          View PDF
+                          {t('viewPdf')}
                         </a>
                       </Button>
                     ) : (
                       <Button variant="outline" className="w-full text-xs" disabled>
-                        View PDF
+                        {t('viewPdf')}
                       </Button>
                     )}
                   </div>

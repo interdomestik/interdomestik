@@ -114,7 +114,7 @@
       "evidence": "Dëshmi",
       "amount": "Shuma e Kërkuar",
       "files_attached": "{count} skedarë bashkangjitur",
-      "offline_title": "Nuk je i lidhur me internet",
+      "offline_title": "Nuk jeni të lidhur me internetin",
       "offline_description": "Rasti ruhet si draft, por dërgimi bëhet pasi të rikthehet lidhja."
     }
   }

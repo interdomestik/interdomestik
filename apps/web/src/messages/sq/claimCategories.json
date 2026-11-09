@@ -23,6 +23,20 @@
       "title": "Udhëtime & Fluturime",
       "description": "Vonesa fluturimesh, anulime dhe bagazhe të humbura.",
       "examples": "p.sh., Kompensim EU261 deri në €600"
+    },
+    "callback": {
+      "trigger": "Kërko telefonatë të menjëhershme",
+      "received": "Kërkesa u pranua!",
+      "receivedBody": "Ekipi ynë do t’ju telefonojë së shpejti në numrin {phone}.",
+      "title": "Flisni me një ekspert tani",
+      "body": "Shmangni formularët. Lini numrin tuaj dhe do t’ju telefonojmë brenda 15 minutash për të diskutuar rastin tuaj: {category}.",
+      "name": "Emri",
+      "namePlaceholder": "Emri juaj i plotë",
+      "phone": "Numri i telefonit",
+      "sending": "Duke dërguar…",
+      "submit": "Më telefononi tani",
+      "nameRequired": "Emri është i detyrueshëm",
+      "phoneRequired": "Kërkohet një numër telefoni i vlefshëm"
     }
   }
 }

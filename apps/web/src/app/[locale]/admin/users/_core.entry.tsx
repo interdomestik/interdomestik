@@ -12,6 +12,7 @@ import { notFound } from 'next/navigation';
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
 type Props = {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
@@ -19,7 +20,11 @@ function getAgentChoicesForRole(role: string) {
   return role === 'user' ? getAgents() : Promise.resolve({ success: true as const, data: [] });
 }
 
-export default async function AdminUsersPage({ searchParams }: Props) {
+export default async function AdminUsersPage({
+  params: routeParams,
+  searchParams,
+}: Readonly<Props>): Promise<React.JSX.Element> {
+  const { locale } = await routeParams;
   const params = await searchParams;
 
   const getFirst = (value: string | string[] | undefined) =>
@@ -73,8 +78,8 @@ export default async function AdminUsersPage({ searchParams }: Props) {
     console.error('Failed to load agents:', agentsResult.error);
   }
 
-  const t = await getTranslations('admin.users_page');
-  const tFilters = await getTranslations('admin.users_filters');
+  const t = await getTranslations({ locale, namespace: 'admin.users_page' });
+  const tFilters = await getTranslations({ locale, namespace: 'admin.users_filters' });
   let recoveryMessage: string | null = null;
   if (!usersResult.success) recoveryMessage = t('load_users_error');
   else if (!agentsResult.success) recoveryMessage = t('load_agent_choices_error');

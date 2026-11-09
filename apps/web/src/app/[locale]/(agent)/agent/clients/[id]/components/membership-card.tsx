@@ -1,16 +1,22 @@
-import { formatDate } from '@/lib/utils/date';
+import { formatPilotDate } from '@/lib/utils/date';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 
 import { AgentClientMembership } from '../_core';
 
 interface MembershipCardProps {
+  readonly locale: string;
   readonly membership: AgentClientMembership;
   readonly t: (key: string) => string;
   readonly tCommon: (key: string) => string;
 }
 
-export function MembershipCard({ membership, t, tCommon }: MembershipCardProps): React.JSX.Element {
+export function MembershipCard({
+  membership,
+  t,
+  tCommon,
+  locale,
+}: MembershipCardProps): React.JSX.Element {
   const { status: membershipStatus, badgeClass: membershipBadgeClass } = membership;
 
   const getCancelAtPeriodEndLabel = (): string => {
@@ -30,7 +36,7 @@ export function MembershipCard({ membership, t, tCommon }: MembershipCardProps):
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">{t('labels.period_start')}</span>
-          <span>{formatDate(membership.currentPeriodStart, tCommon('none'))}</span>
+          <span>{formatPilotDate(membership.currentPeriodStart, locale, tCommon('none'))}</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">{t('labels.status')}</span>
@@ -47,7 +53,7 @@ export function MembershipCard({ membership, t, tCommon }: MembershipCardProps):
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">{t('labels.period_end')}</span>
           <span className="font-medium text-foreground">
-            {formatDate(membership.currentPeriodEnd ?? null, tCommon('none'))}
+            {formatPilotDate(membership.currentPeriodEnd ?? null, locale, tCommon('none'))}
           </span>
         </div>
         <div className="flex items-center justify-between">

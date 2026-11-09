@@ -2,11 +2,11 @@
   "admin": {
     "branches": {
       "title": "Upravljanje filijalama",
-      "description": "Upravljajte filijalama vaše organizacije.",
+      "description": "Upravljajte filijalama vašeg subjekta.",
       "listTitle": "Filijale",
       "createButton": "Nova filijala",
       "createTitle": "Kreiraj novu filijalu",
-      "createDescription": "Dodajte novu filijalu vašoj organizaciji.",
+      "createDescription": "Dodajte novu filijalu vašem subjektu.",
       "editTitle": "Izmeni filijalu",
       "editDescription": "Ažurirajte detalje filijale.",
       "createSuccess": "Filijala uspešno kreirana.",
@@ -79,7 +79,7 @@
       },
       "create_branch": "Nova filijala",
       "create_branch_title": "Kreiraj novu filijalu",
-      "create_branch_description": "Dodaj novu filijalu svojoj organizaciji.",
+      "create_branch_description": "Dodajte novu filijalu svom subjektu.",
       "field_name": "Naziv filijale",
       "placeholder_name": "npr. Glavna filijala",
       "field_code": "Kod filijale",

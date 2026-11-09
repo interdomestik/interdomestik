@@ -123,7 +123,7 @@
       "counterpartyLabel": "Druga strana",
       "outcomeLabel": "Traženi ishod",
       "summaryLabel": "Sažetak",
-      "includesHeading": "Ovaj kostur ti već daje",
+      "includesHeading": "Ovaj pregled vam već nudi",
       "includes": {
         "summary": "Strukturiran sažetak intake-a koji možeš ponovo koristiti bez prepisivanja činjenica.",
         "timeline": "Jasan vremenski oslonac sa datumom, tipom problema i odgovornom stranom.",

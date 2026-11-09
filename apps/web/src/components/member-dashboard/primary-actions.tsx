@@ -7,7 +7,7 @@ export type PrimaryActionsProps = {
 };
 
 export async function PrimaryActions({ locale }: PrimaryActionsProps): Promise<ReactElement> {
-  const t = await getTranslations('dashboard.member_landing');
+  const t = await getTranslations({ locale, namespace: 'dashboard.member_landing' });
 
   return (
     <section data-testid="member-primary-actions" className="flex flex-wrap gap-3">

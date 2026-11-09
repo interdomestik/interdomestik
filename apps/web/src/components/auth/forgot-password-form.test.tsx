@@ -1,3 +1,7 @@
+import type { AbstractIntlMessages } from 'next-intl';
+import en from '@/messages/en/auth.json';
+import sq from '@/messages/sq/auth.json';
+import shared from '@/messages/en/common.json';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ForgotPasswordForm } from './forgot-password-form';
@@ -13,14 +17,14 @@ import { authClient } from '@/lib/auth-client';
 const mockRequestPasswordReset = vi.mocked(authClient.requestPasswordReset);
 
 // Mock next-intl
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
-    const translations: Record<string, string> = {
-      loading: 'Loading...',
-    };
-    return translations[key] || key;
-  },
-}));
+const language = vi.hoisted(() => ({ locale: 'en' }));
+vi.mock('next-intl', async () => {
+  const { createLocaleTranslationsMock } = await import('@/test/next-intl-locale-test-utils');
+  return createLocaleTranslationsMock(
+    language,
+    () => ({ ...shared, ...(language.locale === 'sq' ? sq : en) }) as AbstractIntlMessages
+  );
+});
 
 // Mock routing
 vi.mock('@/i18n/routing', () => ({
@@ -34,6 +38,7 @@ vi.mock('@/i18n/routing', () => ({
 describe('ForgotPasswordForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    language.locale = 'en';
     window.history.pushState({}, 'Forgot Password', '/en/forgot-password');
     mockRequestPasswordReset.mockResolvedValue({ error: null } as Awaited<
       ReturnType<typeof authClient.requestPasswordReset>
@@ -134,6 +139,22 @@ describe('ForgotPasswordForm', () => {
     // The loading state is very brief, so we check that the success state appears
     await waitFor(() => {
       expect(screen.getByTestId('forgot-password-success')).toBeInTheDocument();
+    });
+  });
+  it('localizes recovery instructions and keeps the route locale in the reset link', async () => {
+    language.locale = 'sq';
+    window.history.pushState({}, '', '/sq/forgot-password');
+    render(<ForgotPasswordForm />);
+    fireEvent.change(screen.getByLabelText('Adresa e email-it'), {
+      target: { value: 'test@example.com' },
+    });
+    fireEvent.click(screen.getByText('Dërgo lidhjen e rivendosjes'));
+    expect(await screen.findByTestId('forgot-password-success-title')).toHaveTextContent(
+      'Kontrolloni email-in tuaj'
+    );
+    expect(mockRequestPasswordReset).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      redirectTo: new URL('/sq/reset-password', window.location.origin).toString(),
     });
   });
 });

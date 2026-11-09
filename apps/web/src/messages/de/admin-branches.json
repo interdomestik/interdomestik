@@ -18,7 +18,7 @@
       "fields": {
         "name": "Name der Filiale",
         "code": "Filialcode",
-        "slug": "Slug",
+        "slug": "URL-Kennung",
         "status": "Status",
         "isActive": "Aktivstatus"
       },

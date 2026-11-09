@@ -10,7 +10,9 @@ type AdminAnalyticsPageProps = Readonly<{
   params: Promise<{ locale: string }>;
 }>;
 
-export default async function AdminAnalyticsPage({ params }: AdminAnalyticsPageProps) {
+export default async function AdminAnalyticsPage({
+  params,
+}: AdminAnalyticsPageProps): Promise<React.JSX.Element> {
   const { locale } = await params;
   setRequestLocale(locale);
 
@@ -46,5 +48,5 @@ export default async function AdminAnalyticsPage({ params }: AdminAnalyticsPageP
     throw err;
   }
 
-  return <AnalyticsDashboard data={data} />;
+  return <AnalyticsDashboard locale={locale} data={data} />;
 }

@@ -60,7 +60,7 @@
       ],
       "trustCues": [
         "Mbështetje Shqip / English",
-        "Hotline + WhatsApp",
+        "Linja telefonike + WhatsApp",
         "Fusha claim-first e publikuar"
       ]
     },
@@ -84,8 +84,8 @@
       "membershipBody": "Me anëtarësimin Interdomestik, e qartësoni situatën, i organizoni të dhënat e rastit dhe vazhdoni përpara pa e përballuar gjithçka vetëm.",
       "membershipLabel": "Shihni anëtarësimin vjetor",
       "memberEyebrow": "Hapësira e anëtarit",
-      "memberTitle": "Vazhdo nga aty ku e ke lënë.",
-      "memberSubtitle": "Hap hapësirën tënde për të parë rastet dhe hapin e ardhshëm, ose nis një rast të ri.",
+      "memberTitle": "Vazhdoni nga aty ku e keni lënë.",
+      "memberSubtitle": "Hapni hapësirën tuaj për të parë rastet dhe hapin e ardhshëm, ose nisni një rast të ri.",
       "memberPrimary": "Hap hapësirën time",
       "memberSecondary": "Nis një rast të ri"
     }

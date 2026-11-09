@@ -2,11 +2,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/comp
 import { getTranslations } from 'next-intl/server';
 
 export async function ClaimsStatsCard({
+  locale,
   counts,
 }: {
+  locale: string;
   counts: { total: number; open: number; resolved: number; rejected: number };
-}) {
-  const t = await getTranslations('admin.member_profile');
+}): Promise<React.JSX.Element> {
+  const t = await getTranslations({ locale, namespace: 'admin.member_profile' });
 
   return (
     <Card>

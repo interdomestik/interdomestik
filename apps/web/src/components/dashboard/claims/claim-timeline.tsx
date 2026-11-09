@@ -4,7 +4,8 @@ import { CLAIM_TIMELINE_PHASES } from '@/lib/claim-ui';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { CheckCircle2, Clock, XCircle, type LucideIcon } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { formatPilotDate } from '@/lib/utils/date';
+import { useLocale, useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 const SLA_TARGET_HOURS = 24;
@@ -51,7 +52,13 @@ function renderPhaseIcon({
   return <Icon className="h-4 w-4" />;
 }
 
-export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimelineProps) {
+export function ClaimTimeline({
+  status,
+  updatedAt,
+  history,
+  now,
+}: ClaimTimelineProps): React.JSX.Element {
+  const locale = useLocale();
   const t = useTranslations('timeline');
   const updatedAtDate = updatedAt instanceof Date ? updatedAt : new Date(updatedAt);
   const providedDate = now instanceof Date ? now : new Date(now ?? '');
@@ -162,13 +169,13 @@ export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimeline
                 {isCurrent && (
                   <span className="mt-1 flex items-center text-xs text-[hsl(var(--muted-foreground))]">
                     <Clock className="mr-1 h-3 w-3" />
-                    {t('updatedAt', { date: updatedAtDate.toLocaleDateString() })}
+                    {t('updatedAt', { date: formatPilotDate(updatedAtDate, locale, '-') })}
                   </span>
                 )}
                 {phaseReachedAt && isCompleted && (
                   <span className="mt-1 flex items-center text-xs text-[hsl(var(--muted-foreground))]">
                     <Clock className="mr-1 h-3 w-3" />
-                    {t('updatedAt', { date: phaseReachedAt.toLocaleDateString() })}
+                    {t('updatedAt', { date: formatPilotDate(phaseReachedAt, locale, '-') })}
                   </span>
                 )}
               </div>

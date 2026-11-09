@@ -1,6 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type { MouseEvent, ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -50,6 +51,7 @@ function shouldTrackAnchor(anchor: HTMLAnchorElement, currentUrl: URL): boolean 
 }
 
 export function NavigationFeedback({ children }: Readonly<{ children: ReactNode }>): ReactNode {
+  const t = useTranslations('common.interface');
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const search = useMemo(() => searchParams.toString(), [searchParams]);
@@ -158,14 +160,14 @@ export function NavigationFeedback({ children }: Readonly<{ children: ReactNode 
     <div onClickCapture={handleClick}>
       {isPending ? (
         <div
-          aria-label="Loading page"
+          aria-label={t('loadingPage')}
           aria-live="polite"
           className="fixed inset-x-0 top-0 z-[100] h-1 bg-primary/15"
           data-testid="portal-navigation-progress"
           role="status"
         >
           <div className="h-full w-1/3 animate-pulse rounded-r-full bg-primary shadow-[0_0_16px_rgba(14,116,144,0.45)]" />
-          <span className="sr-only">Loading page</span>
+          <span className="sr-only">{t('loadingPage')}</span>
         </div>
       ) : null}
       {children}

@@ -24,7 +24,7 @@ export async function PublicResponseBanner({
   locale,
   memberId,
   selectedClaim,
-}: Readonly<PublicResponseBannerProps>) {
+}: Readonly<PublicResponseBannerProps>): Promise<React.JSX.Element | null> {
   let response: Awaited<ReturnType<typeof getMemberLatestPublicResponse>>;
   try {
     response = await getMemberLatestPublicResponse({
@@ -42,8 +42,8 @@ export async function PublicResponseBanner({
     return null;
   }
 
-  const t = await getTranslations('help');
-  const format = await getFormatter();
+  const t = await getTranslations({ locale, namespace: 'help' });
+  const format = await getFormatter({ locale });
   const updatedAt = format.dateTime(new Date(response.publicResponseAt), {
     dateStyle: 'medium',
     timeStyle: 'short',

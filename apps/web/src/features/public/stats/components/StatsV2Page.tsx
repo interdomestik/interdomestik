@@ -2,9 +2,9 @@ import { CheckCircle, Clock, Shield, TrendingUp, Users } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { getPublicStatsCore } from '@/app/[locale]/stats/_core';
 
-export async function StatsV2Page({ locale }: { locale: string }) {
+export async function StatsV2Page({ locale }: { locale: string }): Promise<React.JSX.Element> {
   setRequestLocale(locale);
-  const t = await getTranslations('stats');
+  const t = await getTranslations({ locale, namespace: 'stats' });
 
   const stats = await getPublicStatsCore();
 

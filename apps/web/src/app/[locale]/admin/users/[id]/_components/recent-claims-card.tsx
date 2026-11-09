@@ -5,7 +5,7 @@ import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { getTranslations } from 'next-intl/server';
-import { formatDate } from './utils';
+import { formatPilotDate } from '@/lib/utils/date';
 
 interface RecentClaim {
   id: string;
@@ -17,15 +17,17 @@ interface RecentClaim {
 }
 
 export async function RecentClaimsCard({
+  locale,
   recentClaims,
   queryString,
 }: {
+  locale: string;
   recentClaims: RecentClaim[];
   queryString?: string;
-}) {
-  const t = await getTranslations('admin.member_profile');
-  const tClaims = await getTranslations('claims');
-  const tCommon = await getTranslations('common');
+}): Promise<React.JSX.Element> {
+  const t = await getTranslations({ locale, namespace: 'admin.member_profile' });
+  const tClaims = await getTranslations({ locale, namespace: 'claims' });
+  const tCommon = await getTranslations({ locale, namespace: 'common' });
 
   const withAdminContext = (href: string) => {
     if (!queryString) return href;
@@ -69,7 +71,9 @@ export async function RecentClaimsCard({
         variant={toOpsBadgeVariant(claim.status)}
         label={tClaims(`status.${claim.status}` as never)}
       />,
-      <span key="created">{formatDate(claim.createdAt || undefined, tCommon('none'))}</span>,
+      <span key="created">
+        {formatPilotDate(claim.createdAt || undefined, locale, tCommon('none'))}
+      </span>,
     ],
     actions: (
       <Button asChild size="sm" variant="outline">

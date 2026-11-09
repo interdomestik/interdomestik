@@ -52,7 +52,10 @@ describe('AdminLeadsPage', () => {
     });
     renderToStaticMarkup(view);
 
-    expect(hoisted.leadDuplicatesPageMock).toHaveBeenLastCalledWith({ state: expected }, undefined);
+    expect(hoisted.leadDuplicatesPageMock).toHaveBeenLastCalledWith(
+      { state: expected, locale: 'sq' },
+      undefined
+    );
     expect(hoisted.verificationOpsCenterPageMock).not.toHaveBeenCalled();
   });
 });

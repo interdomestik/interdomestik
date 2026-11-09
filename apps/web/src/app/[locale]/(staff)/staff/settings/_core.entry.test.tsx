@@ -11,7 +11,10 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('next/headers', () => ({ headers: vi.fn(async () => new Headers()) }));
 vi.mock('next/navigation', () => ({ redirect: hoisted.redirect }));
 vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn(async (namespace: string) => (key: string) => `${namespace}.${key}`),
+  getTranslations: vi.fn(
+    async (namespace: string | { locale: string; namespace: string }) => (key: string) =>
+      `${typeof namespace === 'string' ? namespace : namespace.namespace}.${key}`
+  ),
 }));
 vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: hoisted.getSession } } }));
 vi.mock('@/components/auth/profile-form', () => ({

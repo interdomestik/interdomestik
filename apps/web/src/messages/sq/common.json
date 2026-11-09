@@ -39,7 +39,7 @@
       "member": "Anëtar",
       "staff": "Staf",
       "super_admin": "Kryeadministrator",
-      "tenant_admin": "Administrator i tenant-it",
+      "tenant_admin": "Administrator i subjektit",
       "branch_manager": "Menaxher i filialit",
       "promoter": "Promotor",
       "user": "Anëtar"
@@ -56,6 +56,13 @@
       "details": "Duke klikuar 'Pranoji të Gjitha', ju pajtoheni me përdorimin tonë të cookies për analitikë dhe përmbajtje të personalizuar.",
       "accept": "Pranoji të Gjitha",
       "decline": "Vetëm të Domosdoshme"
+    },
+    "interface": {
+      "statusSuccess": "Statusi u përditësua me sukses",
+      "statusError": "Statusi nuk u përditësua",
+      "expandAll": "Shfaq të gjithë ({count})",
+      "searchMembers": "Kërko anëtarë",
+      "loadingPage": "Duke ngarkuar faqen"
     }
   }
 }

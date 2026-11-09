@@ -15,6 +15,7 @@ describe('UsersTable', () => {
     render(<UsersSections users={[mockUsers[1]]} agents={mockAgents} />);
     expect(screen.getAllByText('Select Agent')).toHaveLength(2);
     expect(screen.getAllByText('Agent Smith')).toHaveLength(2);
+    expect(screen.getAllByText('10.01.2024')).toHaveLength(2);
   });
 
   it.each(['staff', 'admin'])(

@@ -28,9 +28,14 @@ function LeadCell({
 export async function LeadDuplicateReviewPanel({
   rows,
   state,
-}: Readonly<{ rows: DuplicateReferralRow[]; state: DuplicateReviewState }>) {
-  const t = await getTranslations('admin.leads.duplicates');
-  const format = await getFormatter();
+  locale,
+}: Readonly<{
+  rows: DuplicateReferralRow[];
+  state: DuplicateReviewState;
+  locale: string;
+}>): Promise<React.JSX.Element> {
+  const t = await getTranslations({ locale, namespace: 'admin.leads.duplicates' });
+  const format = await getFormatter({ locale });
 
   return (
     <section data-testid="lead-duplicates-panel" className="space-y-4">

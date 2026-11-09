@@ -16,7 +16,7 @@
       "title": "What problem did you have with the flight or baggage?",
       "hint": "Choose the closest situation.",
       "delay": "The flight was delayed",
-      "cancellation": "The flight was cancelled or the schedule changed significantly",
+      "cancellation": "The flight was canceled or the schedule changed significantly",
       "denied": "I was denied boarding or the flight was overbooked",
       "connection": "I missed a connection or the flight was diverted",
       "baggage": "My baggage was delayed, lost or damaged",
@@ -57,7 +57,7 @@
         "notice_no": "Ask for the notice, reason and options in writing.",
         "notice_unsure": "Check your messages and ask for written clarification."
       },
-      "diasporaTitle": "Are you travelling between countries?",
+      "diasporaTitle": "Are you traveling between countries?",
       "diasporaBody": "The route, operating airline, booking and applicable rules need separate verification, regardless of citizenship or passport.",
       "reform": "EU rules are changing; the July 2026 changes do not apply yet. Check the current official source for your journey.",
       "distinctions": "Care, reimbursement and compensation are different questions; one does not prove another.",

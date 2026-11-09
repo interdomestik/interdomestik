@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -5,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const h = vi.hoisted(() => ({ load: vi.fn(), card: vi.fn() }));
 vi.mock('@/app/[locale]/admin/users/[id]/_core', () => ({ getAdminUserProfileCore: h.load }));
 vi.mock('next-intl/server', () => ({
-  getTranslations: async () => (key: string) => key,
+  getTranslations: vi.fn(async () => (key: string) => key),
   setRequestLocale: vi.fn(),
 }));
 vi.mock('next/navigation', () => ({
@@ -144,6 +145,10 @@ describe('admin membership projection', () => {
   it('preserves the not-found outcome before rendering any membership', async () => {
     h.load.mockResolvedValue({ kind: 'not_found' });
     await expect(loadPage()).rejects.toThrow('notFound');
+    expect(getTranslations).toHaveBeenCalledWith({
+      locale: 'en',
+      namespace: 'admin.member_profile',
+    });
     expect(h.card).not.toHaveBeenCalled();
   });
 });

@@ -14,7 +14,8 @@ import {
   TableRow,
 } from '@interdomestik/ui/components/table';
 import { ChevronDown } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { formatPilotDate } from '@/lib/utils/date';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 
 const membershipStatusStyles: Record<string, string> = {
@@ -81,7 +82,9 @@ function Section({ title, count, defaultOpen = true, children }: SectionProps) {
 }
 
 export function AgentUsersSections({ users }: Readonly<UsersSectionsProps>): React.JSX.Element {
+  const locale = useLocale();
   const t = useTranslations('agent-members.members.table');
+  const ui = useTranslations('common.interface');
   const [showAllNeedsAttention, setShowAllNeedsAttention] = useState(false);
   const [showAllMembers, setShowAllMembers] = useState(false);
 
@@ -115,9 +118,9 @@ export function AgentUsersSections({ users }: Readonly<UsersSectionsProps>): Rea
         <TableHeader>
           <TableRow>
             <TableHead>{t('headers.user')}</TableHead>
-            <TableHead>{t('headers.status') || 'Status'}</TableHead>
-            <TableHead>{t('headers.plan') || 'Plan'}</TableHead>
-            <TableHead>{t('headers.period_end') || 'Expires'}</TableHead>
+            <TableHead>{t('headers.status')}</TableHead>
+            <TableHead>{t('headers.plan')}</TableHead>
+            <TableHead>{t('headers.period_end')}</TableHead>
             <TableHead className="text-right">{t('headers.actions')}</TableHead>
           </TableRow>
         </TableHeader>
@@ -164,7 +167,7 @@ export function AgentUsersSections({ users }: Readonly<UsersSectionsProps>): Rea
               </TableCell>
               <TableCell className="text-sm font-medium">
                 {member.subscription?.currentPeriodEnd ? (
-                  new Date(member.subscription.currentPeriodEnd).toLocaleDateString()
+                  formatPilotDate(member.subscription.currentPeriodEnd, locale, '-')
                 ) : (
                   <span className="opacity-30">-</span>
                 )}
@@ -181,7 +184,7 @@ export function AgentUsersSections({ users }: Readonly<UsersSectionsProps>): Rea
       {isLimited && totalCount > DISPLAY_LIMIT && (
         <div className="flex justify-center pt-2">
           <Button variant="ghost" size="sm" onClick={onExpand} className="text-primary font-bold">
-            Expand All ({totalCount})
+            {ui('expandAll', { count: totalCount })}
           </Button>
         </div>
       )}

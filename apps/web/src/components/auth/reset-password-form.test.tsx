@@ -1,3 +1,7 @@
+import type { AbstractIntlMessages } from 'next-intl';
+import en from '@/messages/en/auth.json';
+import sq from '@/messages/sq/auth.json';
+import shared from '@/messages/en/common.json';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ResetPasswordForm } from './reset-password-form';
@@ -24,14 +28,14 @@ vi.mock('@/i18n/routing', () => ({
 }));
 
 // Mock next-intl
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
-    const translations: Record<string, string> = {
-      loading: 'Loading...',
-    };
-    return translations[key] || key;
-  },
-}));
+const language = vi.hoisted(() => ({ locale: 'en' }));
+vi.mock('next-intl', async () => {
+  const { createLocaleTranslationsMock } = await import('@/test/next-intl-locale-test-utils');
+  return createLocaleTranslationsMock(
+    language,
+    () => ({ ...shared, ...(language.locale === 'sq' ? sq : en) }) as AbstractIntlMessages
+  );
+});
 
 // Mock useSearchParams with a variable that can be changed
 let mockToken: string | null = 'valid-token';
@@ -52,6 +56,7 @@ vi.mock('sonner', () => ({
 describe('ResetPasswordForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    language.locale = 'en';
     mockToken = 'valid-token';
   });
 
@@ -160,5 +165,18 @@ describe('ResetPasswordForm', () => {
 
     const backLink = screen.getByText('Back to Login');
     expect(backLink.closest('a')).toHaveAttribute('href', '/login');
+  });
+  it('uses Albanian labels and validation instead of English fallbacks', async () => {
+    language.locale = 'sq';
+    render(<ResetPasswordForm />);
+    fireEvent.change(screen.getByLabelText('Fjalëkalimi i ri'), {
+      target: { value: 'newpassword123' },
+    });
+    fireEvent.change(screen.getByLabelText('Konfirmoni fjalëkalimin e ri'), {
+      target: { value: 'different' },
+    });
+    fireEvent.submit(screen.getByRole('form', { name: 'Formulari i rivendosjes së fjalëkalimit' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Fjalëkalimet nuk përputhen');
+    expect(mockResetPassword).not.toHaveBeenCalled();
   });
 });

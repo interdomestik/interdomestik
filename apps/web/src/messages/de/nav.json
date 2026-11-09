@@ -2,7 +2,7 @@
   "nav": {
     "home": "Startseite",
     "services": "Leistungen",
-    "dashboard": "Dashboard",
+    "dashboard": "Übersicht",
     "claims": "Schadensfälle",
     "trackClaims": "Schadensfälle der Kunden verfolgen",
     "newClaim": "Neuer Schadensfall",
@@ -23,7 +23,7 @@
     "agentWorkspace": "Agenten-Arbeitsbereich",
     "agentHub": "Agenten-Hub",
     "agentCrm": "CRM-Dashboard",
-    "agentLeads": "Leads",
+    "agentLeads": "Interessenten",
     "members": "Meine Mitglieder",
     "rapidPos": "Schnellkasse",
     "clients": "Kunden",

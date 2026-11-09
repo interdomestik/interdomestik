@@ -38,7 +38,7 @@
       "staff": "Osoblje",
       "user": "Član",
       "super_admin": "Glavni administrator",
-      "tenant_admin": "Administrator tenant-a",
+      "tenant_admin": "Administrator subjekta",
       "branch_manager": "Menadžer filijale",
       "promoter": "Promoter mreže"
     },
@@ -56,6 +56,13 @@
       "decline": "Samo neophodni"
     },
     "companyName": "Interdomestik",
-    "tagline": "Tu kada vam zatrebamo"
+    "tagline": "Tu kada vam zatrebamo",
+    "interface": {
+      "statusSuccess": "Status je uspešno ažuriran",
+      "statusError": "Status nije ažuriran",
+      "expandAll": "Prikaži sve ({count})",
+      "searchMembers": "Pretraži članove",
+      "loadingPage": "Učitavanje stranice"
+    }
   }
 }

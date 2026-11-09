@@ -22,6 +22,7 @@ vi.mock('next-intl', () => ({
       'rights.education.title': 'Right to Education',
       'rights.education.description': 'Access to programs and information.',
       cta: 'Start a Claim',
+      'assistance.helpBody': 'Ju ndihmojmë të paraqitni një kërkesë.',
     };
     return translations[key] || key;
   },
@@ -43,6 +44,7 @@ describe('RightsContent', () => {
       screen.getByText('Know your rights under the Law on Consumer Protection')
     ).toBeInTheDocument();
     expect(screen.getByText('Right to Safety')).toBeInTheDocument();
+    expect(screen.getByText('Ju ndihmojmë të paraqitni një kërkesë.')).toBeInTheDocument();
     expect(screen.getByText('Right to Information')).toBeInTheDocument();
     expect(screen.getAllByText('Start a Claim')).toHaveLength(2); // Title and Button
   });

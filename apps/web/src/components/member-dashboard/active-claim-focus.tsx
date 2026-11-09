@@ -26,9 +26,9 @@ export async function ActiveClaimFocus({
   locale,
 }: ActiveClaimFocusProps): Promise<ReactElement> {
   const [tDashboard, tClaimStatus, tClaimStage] = await Promise.all([
-    getTranslations('dashboard.member_landing'),
-    getTranslations('claims.status'),
-    getTranslations('claims.stage'),
+    getTranslations({ locale, namespace: 'dashboard.member_landing' }),
+    getTranslations({ locale, namespace: 'claims.status' }),
+    getTranslations({ locale, namespace: 'claims.stage' }),
   ]);
   const localizedStatus = (() => {
     try {

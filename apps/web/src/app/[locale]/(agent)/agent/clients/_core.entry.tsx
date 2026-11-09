@@ -8,13 +8,16 @@ type Props = {
   searchParams: Promise<{ search?: string }>;
 };
 
-export default async function AgentUsersPage({ params, searchParams }: Readonly<Props>) {
+export default async function AgentUsersPage({
+  params,
+  searchParams,
+}: Readonly<Props>): Promise<React.JSX.Element> {
   const { locale } = await params;
   setRequestLocale(locale);
 
   const query = await searchParams;
   const users = await getAgentUsers({ search: query.search });
-  const t = await getTranslations('agent-members.members.page');
+  const t = await getTranslations({ locale, namespace: 'agent-members.members.page' });
 
   return (
     <div className="space-y-6">
