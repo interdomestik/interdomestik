@@ -44,7 +44,7 @@ function message(caseKey: CaseKey, key: MessageKey) {
       : E2E_DISCOVERY_MESSAGE_READERS[caseKey];
   const deniedWriters = E2E_DISCOVERY_ACTORS.filter(
     actor =>
-      !readers.some(reader => reader === actor) ||
+      !(readers as readonly string[]).includes(actor) ||
       actor === 'KS_BRANCH_MANAGER' ||
       actor === 'MK_BRANCH_MANAGER'
   );

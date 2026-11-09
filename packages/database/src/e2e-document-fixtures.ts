@@ -43,7 +43,7 @@ export const E2E_DISCOVERY_DOCUMENT_ACCESS = Object.fromEntries(
     discoveryAccessIntent(readers, 'delete-document', [
       'AUDITOR',
       'GLOBAL_SUPPORT',
-      ...E2E_DISCOVERY_ACTORS.filter(actor => !readers.some(reader => reader === actor)),
+      ...E2E_DISCOVERY_ACTORS.filter(actor => !(readers as readonly string[]).includes(actor)),
     ]),
   ])
 ) as Record<E2EDiscoveryDocumentKey, ReturnType<typeof discoveryAccessIntent>>;
