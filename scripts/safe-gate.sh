@@ -16,8 +16,8 @@ echo "4. Migrating Database..."
 ./scripts/docker-run.sh pnpm db:migrate
 
 echo "5. Seeding Golden Data..."
-./scripts/docker-run.sh pnpm --filter @interdomestik/database seed:e2e -- --reset
-./scripts/docker-run.sh pnpm --filter @interdomestik/database seed:assert-e2e
+SEED_TARGET_CONFIRM="${SEED_TARGET_CONFIRM:-plan070:host.docker.internal}" ./scripts/docker-run.sh pnpm --filter @interdomestik/database seed:e2e -- --reset
+SEED_TARGET_CONFIRM="${SEED_TARGET_CONFIRM:-plan070:host.docker.internal}" ./scripts/docker-run.sh pnpm --filter @interdomestik/database seed:assert-e2e
 
 echo "6. Running Smoke Tests..."
 ./scripts/docker-run.sh pnpm test:smoke

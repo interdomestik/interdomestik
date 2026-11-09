@@ -124,7 +124,7 @@ export async function deliverPastDueEffects(
     );
     // db-access-guard: tenant-scoped -- reason: exact tenant/subscription/event delivery under the subscription row lock.
     const [delivery] = await tx.select().from(engagementEmailSends).where(scope).for('update');
-    if (!delivery || delivery.status === 'sent') return;
+    if (!delivery || ['sent', 'skipped'].includes(delivery.status)) return;
     if (delivery.status !== 'pending')
       throw new RetryablePaddleWebhookError('Past-due delivery requires reconciliation');
     const age = Date.now() - delivery.createdAt.getTime();
@@ -143,6 +143,14 @@ export async function deliverPastDueEffects(
     if (!deps.sendPreparedPastDueEmail)
       throw new RetryablePaddleWebhookError('Past-due email sender unavailable');
     const result = await deps.sendPreparedPastDueEmail(request, key);
+    if (!result.success && result.error === 'email_suppressed') {
+      // db-access-guard: tenant-scoped -- reason: records non-delivery for the exact locked tenant/event intent.
+      await tx
+        .update(engagementEmailSends)
+        .set({ status: 'skipped', error: result.error, providerMessageId: null, sentAt: null })
+        .where(scope);
+      return;
+    }
     if (!result.success || !result.id)
       throw new RetryablePaddleWebhookError('Past-due email delivery unconfirmed');
     // db-access-guard: tenant-scoped -- reason: acknowledges only the exact locked tenant/event email intent.

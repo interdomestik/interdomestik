@@ -168,4 +168,19 @@ describe('resendActivationInviteCore (ACQ-2b2)', () => {
     expect(JSON.stringify(log.mock.calls)).not.toContain('example.test');
     log.mockRestore();
   });
+  it('skips synthetic invites before resend audit or provider request', async () => {
+    queue([{ id: 'att-1' }], [{ ...unverified, email: 'member@example.invalid' }]);
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      expect(await resendActivationInviteCore(ctxFor('admin'), input)).toEqual({
+        success: true,
+        invite: 'skipped',
+      });
+      expect(hoisted.audits).toHaveLength(0);
+      expect(hoisted.sendMemberActivationInvite).not.toHaveBeenCalled();
+      expect(log).not.toHaveBeenCalled();
+    } finally {
+      log.mockRestore();
+    }
+  });
 });

@@ -40,8 +40,13 @@ describe('handleSubscriptionPastDue', () => {
     expect(hoisted.db.insert).not.toHaveBeenCalled();
   });
 
-  it('sends the payment failed email on the first dunning attempt', async () => {
-    const sendPaymentFailedEmail = vi.fn().mockResolvedValue(undefined);
+  it.each([
+    { success: true, id: 'mail-1' },
+    { success: false, suppressed: true, error: 'email_suppressed' },
+    undefined,
+  ])('only logs a confirmed first dunning delivery as sent (%j)', async delivery => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const sendPaymentFailedEmail = vi.fn().mockResolvedValue(delivery);
 
     hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
     mockUserOwner(hoisted, 'tenant_abc');
@@ -53,6 +58,11 @@ describe('handleSubscriptionPastDue', () => {
     });
 
     await handleSubscriptionPastDue(createPastDueSubscriptionEvent(), { sendPaymentFailedEmail });
+    const sent = log.mock.calls.some(([message]) =>
+      String(message).includes('Day 0 dunning email sent')
+    );
+    log.mockRestore();
+    expect(sent).toBe(delivery?.success === true);
 
     expect(sendPaymentFailedEmail).toHaveBeenCalledWith(
       'test@example.com',

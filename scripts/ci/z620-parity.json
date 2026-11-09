@@ -6,8 +6,8 @@
     ".github/workflows/security.yml": "4fb57012d21e9728ada15aee103fc8cbb35b048801353366b345498e6a97ff5b",
     ".github/workflows/e2e-pr.yml": "a9211fbf2c4d3fd63769d96c6894438abd90c8f1c3e2dfd8839e9b7d36f2b738",
     ".github/workflows/sonar-main-gate.yml": "1f041528aeba76428e7d47877387fd42e3aab32928507ca51ebeec06dcfe8b60",
-    ".github/workflows/pilot-gate.yml": "647e0f4fac369ef3e8272e4c69fda54dd3f430cc4ccb6860c337a2cb547b4fb6",
-    ".github/workflows/release-candidate.yml": "31e3de22ba702ebe20da1d1eb61ef87ecbdd8c8ee6704fb273f7369f852860ee",
+    ".github/workflows/pilot-gate.yml": "aadad7868014d5b1e5ba57b9d6571205aaa155aa47a898b78305dfb7d31daca9",
+    ".github/workflows/release-candidate.yml": "4e3717e403ca95788513e6edb10decded85f677edadf3e7b094e7d3abc17ad97",
     ".github/workflows/cd.yml": "53dcaeb63accf16af65584a9fd43902c7d84f00d7013e07d5a4217f17684f51b"
   },
   "workflows": {

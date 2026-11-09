@@ -71,6 +71,14 @@ export function createRepository() {
       row.providerMessageId = providerMessageId;
       return Promise.resolve(true);
     },
+    markSkipped(value, deliveryId, dedupeKey) {
+      const row = rows.get(dedupeKey);
+      if (row?.tenantId !== tenantOf(value) || row.id !== deliveryId || row.status !== 'pending')
+        return Promise.resolve(false);
+      row.status = 'skipped';
+      row.error = null;
+      return Promise.resolve(true);
+    },
     markError(value, deliveryId, dedupeKey, error) {
       const row = rows.get(dedupeKey);
       if (row?.tenantId !== tenantOf(value) || row.id !== deliveryId || row.status !== 'pending') {

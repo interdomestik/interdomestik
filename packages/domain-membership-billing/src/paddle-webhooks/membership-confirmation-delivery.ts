@@ -50,6 +50,11 @@ export type MembershipConfirmationDeliveryRepository = {
     dedupeKey: string,
     providerMessageId: string
   ) => Promise<boolean>;
+  markSkipped: (
+    authority: TenantAuthority,
+    deliveryId: string,
+    dedupeKey: string
+  ) => Promise<boolean>;
   markError: (
     authority: TenantAuthority,
     deliveryId: string,
@@ -131,6 +136,13 @@ export function createMembershipConfirmationDeliveryStore(
         return;
       }
       throw new Error('Membership confirmation delivery completion lost its claim');
+    },
+
+    async skip({ authority, deliveryId, idempotencyKey }) {
+      if (await repository.markSkipped(authority, deliveryId, idempotencyKey)) return;
+      const existing = await repository.find(authority, idempotencyKey);
+      if (existing?.id === deliveryId && existing.status === 'skipped') return;
+      throw new Error('Membership confirmation suppression lost its claim');
     },
 
     async fail({ authority, deliveryId, error, idempotencyKey }) {

@@ -25,7 +25,7 @@ vi.mock('@/lib/auth-client', () => ({
       data: {
         user: {
           name: 'Agent User',
-          email: 'agent.ks.a1@interdomestik.com',
+          email: 'agent.ks.a1@plan070.example.invalid',
           role: 'agent',
           image: null,
         },
@@ -158,7 +158,7 @@ describe('SidebarUserMenu', () => {
       <SidebarUserMenu
         user={{
           name: 'Provided User',
-          email: 'provided@interdomestik.com',
+          email: 'provided@plan070.example.invalid',
           role: 'agent',
           image: null,
         }}
@@ -173,7 +173,7 @@ describe('SidebarUserMenu', () => {
       data: {
         user: {
           name: 'Member User',
-          email: 'member.mk.1@interdomestik.com',
+          email: 'member.mk.1@plan070.example.invalid',
           role: 'member',
           image: null,
         },
@@ -193,7 +193,7 @@ describe('SidebarUserMenu', () => {
       data: {
         user: {
           name: 'Agent User',
-          email: 'agent.ks.a1@interdomestik.com',
+          email: 'agent.ks.a1@plan070.example.invalid',
           role: 'agent',
           image: null,
         },

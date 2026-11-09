@@ -1,8 +1,10 @@
+import { isEmailSuppressed } from '@interdomestik/domain-communications/email';
 import { requestPasswordResetOnboarding } from '@/app/api/webhooks/paddle/paddle-onboarding';
 import { coerceTenantId } from '@/lib/tenant/tenant-hosts';
 
 export type MemberActivationInviteResult =
-  { sent: true } | { sent: false; reason: 'unknown_tenant' | 'delivery_failed' };
+  | { sent: true }
+  | { sent: false; reason: 'unknown_tenant' | 'delivery_failed' | 'email_suppressed' };
 
 /**
  * Invites a converted member to set their password (owner decision B, ACQ-2b2). The recipient
@@ -19,6 +21,7 @@ export async function sendMemberActivationInvite(params: {
   // An unknown tenant never falls back to another tenant's host.
   const tenantId = coerceTenantId(params.tenantId);
   if (!tenantId) return { sent: false, reason: 'unknown_tenant' };
+  if (isEmailSuppressed(params.email, true)) return { sent: false, reason: 'email_suppressed' };
   try {
     await requestPasswordResetOnboarding({ email: params.email, tenantId });
     return { sent: true };

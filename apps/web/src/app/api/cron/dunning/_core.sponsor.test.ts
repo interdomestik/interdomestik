@@ -13,6 +13,8 @@ const h = vi.hoisted(() => ({
   where: vi.fn(),
   audit: vi.fn(),
   tenant: vi.fn(),
+  skipped: vi.fn(),
+  insert: vi.fn(),
 }));
 vi.mock('@interdomestik/database', async original => ({
   ...(await original<typeof import('@interdomestik/database')>()),
@@ -34,8 +36,13 @@ const ingress = {} as IngressCapability<'cron'>;
 const now = new Date('2026-11-08T12:00:00Z');
 const periodEnd = new Date('2026-11-20T12:00:00Z');
 const tx = {
-  query: { subscriptions: { findMany: h.page }, user: { findFirst: h.member } },
+  query: {
+    subscriptions: { findMany: h.page },
+    user: { findFirst: h.member },
+    engagementEmailSends: { findFirst: h.skipped },
+  },
   update: h.update,
+  insert: () => ({ values: h.insert }),
 };
 
 function subscription(day: 7 | 13) {
@@ -61,6 +68,8 @@ describe('dunning sponsor outlook at delivery', () => {
     );
     h.member.mockResolvedValue({ id: 'member-1', email: 'member@example.test', name: 'Member' });
     h.page.mockResolvedValue([]);
+    h.skipped.mockResolvedValue(null);
+    h.insert.mockReturnValue({ onConflictDoNothing: vi.fn().mockResolvedValue(undefined) });
     h.update.mockReturnValue({ set: () => ({ where: h.where }) });
     h.outlook.mockResolvedValue(new Map());
   });
@@ -147,5 +156,20 @@ describe('dunning sponsor outlook at delivery', () => {
     await runDunningCronCore({ ingress, now, headers: new Headers() });
     expect(h.outlook).not.toHaveBeenCalled();
     expect(h.reminder).not.toHaveBeenCalled();
+  });
+  it('does not count or acknowledge a suppressed reminder as sent', async () => {
+    h.page.mockResolvedValueOnce([subscription(7)]);
+    h.reminder.mockResolvedValue({ success: false, suppressed: true, error: 'email_suppressed' });
+    const result = await runDunningCronCore({ ingress, now, headers: new Headers() });
+    expect(result.stats).toMatchObject({ day7Sent: 0, errors: 0 });
+    expect(h.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'skipped', sentAt: null, providerMessageId: null })
+    );
+    expect(h.audit).not.toHaveBeenCalled();
+    h.skipped.mockResolvedValue({ id: 'skip-1' });
+    h.page.mockResolvedValueOnce([subscription(7)]);
+    await runDunningCronCore({ ingress, now, headers: new Headers() });
+    expect(h.reminder).toHaveBeenCalledTimes(1);
+    expect(h.update).not.toHaveBeenCalled();
   });
 });

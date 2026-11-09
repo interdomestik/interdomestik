@@ -1,3 +1,4 @@
+import { isEmailSuppressed, suppressedEmailResult } from './non-sending-email';
 import { getResendClient, getSenderAddress, sendEmail } from './email';
 import { renderPaymentFailedEmail } from './email-templates';
 import { createEmailTelemetry, sendViaResend, type EmailResult } from './sign-in-otp-email';
@@ -33,6 +34,7 @@ export async function sendPreparedPastDueEmail(
   request: ReturnType<typeof preparePastDueEmail>,
   idempotencyKey: string
 ): Promise<EmailResult> {
+  if (isEmailSuppressed(request.to)) return suppressedEmailResult;
   if (process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1')
     return { success: true, id: `mock:${idempotencyKey}` };
   const telemetry = createEmailTelemetry('content-free');

@@ -46,9 +46,9 @@ type PilotUserRecord = {
 
 const PILOT_TENANT_ID = 'tenant_ks';
 const PILOT_OPERATOR_EMAILS = {
-  agent: 'agent.ks.a1@interdomestik.com',
-  member: 'member.ks.a1@interdomestik.com',
-  staff: 'staff.ks.extra@interdomestik.com',
+  agent: 'agent.ks.a1@plan070.example.invalid',
+  member: 'member.ks.a1@plan070.example.invalid',
+  staff: 'staff.ks.extra@plan070.example.invalid',
 } as const;
 
 function fatal(message: string): never {

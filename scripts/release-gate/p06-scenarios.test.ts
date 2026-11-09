@@ -145,3 +145,19 @@ function markerCountFor(
   }
   return 0;
 }
+
+test('G08 group dashboard forbids the configured member address and never an empty phrase', () => {
+  const { buildFreeStartGroupPrivacyScenarios } = require('./commercial-checks.ts');
+  const ctx = { baseUrl: 'http://127.0.0.1:3000', locale: 'en' };
+  const forbidden = (credentials?: unknown) =>
+    buildFreeStartGroupPrivacyScenarios({ ...ctx, credentials }).find(
+      (scenario: { id: string }) => scenario.id === 'group_dashboard'
+    ).forbiddenPhrases;
+
+  assert.deepEqual(forbidden({ member: { email: 'member.ks.a1@interdomestik.com' } }), [
+    'KS A-Member 1',
+    'member.ks.a1@interdomestik.com',
+  ]);
+  assert.deepEqual(forbidden({ member: { email: '' } }), ['KS A-Member 1']);
+  assert.deepEqual(forbidden(), ['KS A-Member 1']);
+});

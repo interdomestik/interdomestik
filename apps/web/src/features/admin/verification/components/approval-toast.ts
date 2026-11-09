@@ -19,7 +19,12 @@ const RESEND_ERROR_TOASTS: Record<string, string> = {
 };
 
 /** The toast key for an activation-invite resend; unknown failures use the generic error. */
-export function resendInviteToastKey(result: { success: boolean; error?: string }): string {
+export function resendInviteToastKey(result: {
+  success: boolean;
+  error?: string;
+  invite?: string;
+}): string | null {
+  if (result.invite === 'skipped') return null;
   if (result.success) return 'toasts.resend_invite_success';
   return RESEND_ERROR_TOASTS[result.error ?? ''] ?? 'toasts.error';
 }
