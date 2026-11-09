@@ -1,3 +1,4 @@
+import { LocalizedPageSkeleton } from '@/components/ui/page-skeleton';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { ReactElement } from 'react';
 import { Suspense } from 'react';
@@ -92,12 +93,16 @@ describe('AgentWorkspaceClaimsPage', () => {
     hoisted.getAgentWorkspaceClaimsCoreMock.mockResolvedValue({ ok: true, claims: [] });
   });
 
-  it('reads request-specific auth behind a Suspense boundary with a busy status fallback', () => {
+  it('reads request-specific auth behind a Suspense boundary with the shared list fallback', () => {
     const boundary = renderBoundary();
 
     expect(boundary.type).toBe(Suspense);
-    expect(boundary.props.fallback.type).toBe('output');
-    expect(boundary.props.fallback.props['aria-busy']).toBe('true');
+    expect(boundary.props.fallback.type).toBe(LocalizedPageSkeleton);
+    expect(boundary.props.fallback.props).toEqual({
+      titleKey: 'agent.claimsPro.title',
+      variant: 'list',
+      testId: 'agent-workspace-claims-loading',
+    });
     expect(hoisted.getSessionMock).not.toHaveBeenCalled();
     expect(hoisted.headersMock).not.toHaveBeenCalled();
   });

@@ -1,5 +1,5 @@
-.shapes {
-  /* Keep the heading readable immediately; quick loads never flash placeholder shapes.
+.visual {
+  /* Delay the heading and shapes together; screen-reader feedback stays immediate.
      A single opacity step also avoids motion for reduced-motion users. */
   animation: reveal 1ms step-end 300ms both;
 }

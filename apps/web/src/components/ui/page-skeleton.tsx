@@ -11,6 +11,7 @@ type PageSkeletonProps = Readonly<{
   loadingLabel: string;
   variant: SkeletonVariant;
   testId?: string;
+  titleSize?: '2xl' | '3xl';
 }>;
 
 function Shape({ className }: Readonly<{ className: string }>): ReactElement {
@@ -85,17 +86,21 @@ export function PageSkeleton({
   loadingLabel,
   variant,
   testId,
+  titleSize = '2xl',
 }: PageSkeletonProps): ReactElement {
   const Shapes = VARIANT_SHAPES[variant];
+  const titleSizeClass = titleSize === '3xl' ? 'text-3xl' : 'text-2xl';
 
   return (
-    <div aria-busy="true" className="min-w-0 space-y-6" data-testid={testId}>
-      <h1 className="break-words text-3xl font-bold tracking-tight">{title}</h1>
+    <div aria-busy="true" className="min-w-0" data-testid={testId}>
       <output aria-live="polite" className="sr-only">
         {loadingLabel}
       </output>
-      <div aria-hidden="true" className={styles.shapes}>
-        <Shapes />
+      <div className={`space-y-6 ${styles.visual}`}>
+        <h1 className={`break-words font-bold tracking-tight ${titleSizeClass}`}>{title}</h1>
+        <div aria-hidden="true">
+          <Shapes />
+        </div>
       </div>
     </div>
   );
@@ -106,10 +111,12 @@ export function LocalizedPageSkeleton({
   titleKey,
   variant,
   testId,
+  titleSize,
 }: Readonly<{
   titleKey: string;
   variant: SkeletonVariant;
   testId?: string;
+  titleSize?: PageSkeletonProps['titleSize'];
 }>): ReactElement {
   const t = useTranslations();
 
@@ -119,6 +126,7 @@ export function LocalizedPageSkeleton({
       loadingLabel={t('common.loading')}
       variant={variant}
       testId={testId}
+      titleSize={titleSize}
     />
   );
 }

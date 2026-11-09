@@ -8,11 +8,12 @@ import mk from '@/messages/mk/common.json';
 import sq from '@/messages/sq/common.json';
 import sr from '@/messages/sr/common.json';
 import { LocalizedPageSkeleton, PageSkeleton } from './page-skeleton';
+import styles from './page-skeleton.module.css';
 
 vi.unmock('next-intl');
 
 describe.each(['list', 'detail', 'dashboard'] as const)('%s page skeleton', variant => {
-  it('keeps the real heading and polite status outside the hidden shapes', () => {
+  it('delays the complete visual fallback while keeping polite status present immediately', () => {
     const { container } = render(
       <PageSkeleton variant={variant} title={en.common.admin} loadingLabel={en.common.loading} />
     );
@@ -20,11 +21,16 @@ describe.each(['list', 'detail', 'dashboard'] as const)('%s page skeleton', vari
     const heading = screen.getByRole('heading', { level: 1, name: en.common.admin });
     const busy = heading.closest('[aria-busy="true"]');
     expect(busy).toBeInTheDocument();
+    const visual = heading.parentElement;
+    expect(visual).toHaveClass(styles.visual);
+    expect(heading).toHaveClass('text-2xl');
     const status = screen.getByRole('status');
     expect(status.tagName).toBe('OUTPUT');
     expect(status).toHaveAttribute('aria-live', 'polite');
     expect(status).toHaveTextContent(en.common.loading);
+    expect(status).toHaveClass('sr-only');
     expect(busy).toContainElement(status);
+    expect(visual).not.toContainElement(status);
     expect(heading.closest('[aria-hidden="true"]')).toBeNull();
     expect(status.closest('[aria-hidden="true"]')).toBeNull();
 
@@ -33,12 +39,23 @@ describe.each(['list', 'detail', 'dashboard'] as const)('%s page skeleton', vari
     for (const shape of shapes) {
       expect(shape).toHaveAttribute('aria-hidden', 'true');
       expect(shape).toHaveClass('motion-reduce:animate-none');
+      expect(visual).toContainElement(shape);
     }
     expect(container.querySelector('[data-testid*="page-ready"]')).toBeNull();
   });
 });
 
 describe('LocalizedPageSkeleton', () => {
+  it('matches pages with larger headings when requested', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <LocalizedPageSkeleton titleKey="common.admin" variant="list" titleSize="3xl" />
+      </NextIntlClientProvider>
+    );
+
+    expect(screen.getByRole('heading', { name: en.common.admin })).toHaveClass('text-3xl');
+  });
+
   it.each([
     ['sq', sq],
     ['en', en],

@@ -1,3 +1,4 @@
+import { LocalizedPageSkeleton } from '@/components/ui/page-skeleton';
 import { AgentClaimsProPage } from '@/features/agent/claims/components/AgentClaimsProPage';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 
@@ -36,14 +37,11 @@ export default function AgentWorkspaceClaimsPage(props: Readonly<Props>) {
   return (
     <Suspense
       fallback={
-        <output
-          aria-busy="true"
-          className="block space-y-6"
-          data-testid="agent-workspace-claims-loading"
-        >
-          <div aria-hidden="true" className="h-8 w-64 animate-pulse rounded bg-muted" />
-          <div aria-hidden="true" className="h-64 animate-pulse rounded bg-muted" />
-        </output>
+        <LocalizedPageSkeleton
+          titleKey="agent.claimsPro.title"
+          variant="list"
+          testId="agent-workspace-claims-loading"
+        />
       }
     >
       <AgentWorkspaceClaimsContent {...props} />
