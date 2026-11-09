@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { isWorkflowPermissionTightening } from './workflow-permission-tightening.mjs';
+import { isStagingDnsPinAddition } from './workflow-staging-dns-pin.mjs';
 
 import {
   FILE_CLASSES,
@@ -214,7 +215,9 @@ function evaluateGovernance(_root, entry, className, current, base) {
 function evaluateWorkflow(_root, entry, className, current, base) {
   const grew = base && workflowComplexity(current.text) > workflowComplexity(base.text);
   const violation =
-    grew && !isWorkflowPermissionTightening(base.text, current.text)
+    grew &&
+    !isWorkflowPermissionTightening(base.text, current.text) &&
+    !isStagingDnsPinAddition(entry.file, base.text, current.text)
       ? finding(entry, className, current, base, 'workflow-complexity-growth')
       : null;
   const advisory = base

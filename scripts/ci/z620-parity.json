@@ -8,7 +8,7 @@
     ".github/workflows/sonar-main-gate.yml": "1f041528aeba76428e7d47877387fd42e3aab32928507ca51ebeec06dcfe8b60",
     ".github/workflows/pilot-gate.yml": "647e0f4fac369ef3e8272e4c69fda54dd3f430cc4ccb6860c337a2cb547b4fb6",
     ".github/workflows/release-candidate.yml": "31e3de22ba702ebe20da1d1eb61ef87ecbdd8c8ee6704fb273f7369f852860ee",
-    ".github/workflows/cd.yml": "53dcaeb63accf16af65584a9fd43902c7d84f00d7013e07d5a4217f17684f51b"
+    ".github/workflows/cd.yml": "a04a58418257608f2b5479b42ebc68c88380b883590ce2f99de9bc5875735654"
   },
   "workflows": {
     ".github/workflows/staging-runtime-attestation-enrol.yml": {
