@@ -998,3 +998,9 @@ c4d7688629b2d928c8eec0e4f6fc41128ca18f6d:docs/release-gates/2026-02-11_productio
 870a868699a2abe4f97c0ca2572ba880a68bb4e0:.scannerwork/report-task.txt:generic-api-key:1
 bd55bf55949e45bbfb3fcf1c912b33d2593c95a9:.vscode/settings.json:generic-api-key:42
 d5d87c787ba34c5c22f2dca750c014035fa756b5:sonar-project.properties:generic-api-key:2
+
+# Locale catalog path/owner name pairs in PR #2017, not credentials; later commit uses a constant. (4 findings)
+533971f311a1a38dcc403e0bf7240b527336845c:scripts/modularity-guard-policy.mjs:generic-api-key:103
+533971f311a1a38dcc403e0bf7240b527336845c:scripts/modularity-guard-policy.mjs:generic-api-key:142
+533971f311a1a38dcc403e0bf7240b527336845c:scripts/modularity-guard-policy.mjs:generic-api-key:143
+533971f311a1a38dcc403e0bf7240b527336845c:scripts/modularity-guard-policy.mjs:generic-api-key:144
