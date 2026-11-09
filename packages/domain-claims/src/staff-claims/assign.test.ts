@@ -8,6 +8,7 @@ import { assignClaimCore } from './assign';
 describe('staff assignClaimCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.insert.mockReturnValue({ values: mocks.auditValues });
 
     mocks.select.mockReturnValue(mocks.selectChain);
     mocks.selectChain.from.mockReturnValue(mocks.selectChain);
@@ -78,16 +79,13 @@ describe('staff assignClaimCore', () => {
     });
     mocks.updateWhereChain.returning.mockResolvedValue([{ id: 'claim-1' }]);
 
-    const result = await assignClaimCore(
-      {
-        authority,
-        claimId: 'claim-1',
-        requestHeaders: new Headers(),
-        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-        staffId: 'staff-3',
-      },
-      { logAuditEvent: mocks.logAuditEvent }
-    );
+    const result = await assignClaimCore({
+      authority,
+      claimId: 'claim-1',
+      requestHeaders: new Headers(),
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      staffId: 'staff-3',
+    });
 
     expect(result).toEqual({ success: true });
     expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
@@ -99,7 +97,7 @@ describe('staff assignClaimCore', () => {
         staffId: 'staff-3',
       })
     );
-    expect(mocks.logAuditEvent).toHaveBeenCalledTimes(1);
+    expect(mocks.auditValues).toHaveBeenCalledTimes(1);
   });
 
   it('allows first self-assign in scope for branch staff', async () => {
@@ -108,20 +106,17 @@ describe('staff assignClaimCore', () => {
     ]);
     mocks.updateWhereChain.returning.mockResolvedValue([{ id: 'claim-1' }]);
 
-    const result = await assignClaimCore(
-      {
-        authority,
-        claimId: 'claim-1',
-        requestHeaders: new Headers(),
-        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-      },
-      { logAuditEvent: mocks.logAuditEvent }
-    );
+    const result = await assignClaimCore({
+      authority,
+      claimId: 'claim-1',
+      requestHeaders: new Headers(),
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
 
     expect(result).toEqual({ success: true });
     expect(mocks.userFindFirst).not.toHaveBeenCalled();
     expect(mocks.update).toHaveBeenCalledTimes(1);
-    expect(mocks.logAuditEvent).toHaveBeenCalledTimes(1);
+    expect(mocks.auditValues).toHaveBeenCalledTimes(1);
   });
 
   it('denies manual assignment when the selected staff member is out of scope', async () => {
@@ -143,4 +138,76 @@ describe('staff assignClaimCore', () => {
     });
     expect(mocks.update).not.toHaveBeenCalled();
   });
+
+  it.each([
+    [{ 'x-forwarded-for': ' 203.0.113.7, 10.0.0.1', 'x-real-ip': '198.51.100.2' }, '203.0.113.7'],
+    [{ 'x-forwarded-for': ' ', 'x-real-ip': '198.51.100.2' }, '198.51.100.2'],
+    [{}, undefined],
+  ])('preserves request metadata and writes exactly one audit', async (headers, ip) => {
+    mocks.selectChain.limit.mockResolvedValue([{ id: 'claim-1', staffId: null, branchId: null }]);
+    mocks.updateWhereChain.returning.mockResolvedValue([{ id: 'claim-1' }]);
+    const result = await assignClaimCore({
+      authority,
+      claimId: 'claim-1',
+      session: createSession({ userId: 'staff-1' }),
+      requestHeaders: new Headers({ ...headers, 'user-agent': 'Plan070 test' }),
+    });
+    expect(result).toEqual({ success: true });
+    expect(mocks.insert).toHaveBeenCalledExactlyOnceWith('audit_log');
+    expect(mocks.auditValues).toHaveBeenCalledExactlyOnceWith({
+      id: expect.any(String),
+      tenantId: 'tenant-1',
+      actorId: 'staff-1',
+      actorRole: 'staff',
+      action: 'claim.assigned',
+      entityType: 'claim',
+      entityId: 'claim-1',
+      metadata: { previousStaffId: null, newStaffId: 'staff-1', ip, userAgent: 'Plan070 test' },
+      createdAt: expect.any(Date),
+    });
+  });
+
+  it.each(['staff-1', null])(
+    'rolls back assignment to %s when the audit insert fails',
+    async staffId => {
+      const initial = { staffId: 'staff-2', assignedAt: new Date(0), assignedById: 'staff-2' };
+      let committed = initial;
+      let pending = initial;
+      mocks.selectChain.limit.mockResolvedValue([
+        { id: 'claim-1', ...initial, branchId: 'branch-1' },
+      ]);
+      mocks.updateWhereChain.returning.mockResolvedValue([{ id: 'claim-1' }]);
+      mocks.updateChain.set.mockImplementation(patch => {
+        pending = patch;
+        return mocks.updateSetChain;
+      });
+      const originalTransaction = vi.mocked(withTenantContext).getMockImplementation()!;
+      vi.mocked(withTenantContext).mockImplementation(async (_authority, action) => {
+        const result = await action({
+          select: mocks.select,
+          update: mocks.update,
+          insert: mocks.insert,
+        } as never);
+        committed = pending;
+        return result;
+      });
+      mocks.auditValues.mockRejectedValueOnce(new Error('audit insert failed'));
+      const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        const result = await assignClaimCore({
+          authority,
+          claimId: 'claim-1',
+          staffId,
+          session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+        });
+        expect(result).toEqual({ success: false, error: 'Failed to assign claim' });
+        expect(mocks.update).toHaveBeenCalledTimes(1);
+        expect(mocks.auditValues).toHaveBeenCalledTimes(1);
+        expect(committed).toBe(initial);
+      } finally {
+        log.mockRestore();
+        vi.mocked(withTenantContext).mockImplementation(originalTransaction);
+      }
+    }
+  );
 });

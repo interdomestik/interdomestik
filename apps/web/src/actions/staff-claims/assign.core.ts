@@ -2,7 +2,6 @@ import { assignClaimCore as assignClaimCoreDomain } from '@interdomestik/domain-
 
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
-import { logAuditEvent } from '@/lib/audit';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
@@ -22,7 +21,7 @@ export async function assignClaimCore(params: {
   requestHeaders?: Headers;
   staffId?: string | null;
 }) {
-  const result = await assignClaimCoreDomain(params, { logAuditEvent });
+  const result = await assignClaimCoreDomain(params);
 
   if (result.success) {
     revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);

@@ -19,7 +19,8 @@ const mocks: {
   isNull: Mock;
   lifecycleNotIn: Mock;
   ensureTenantId: Mock;
-  logAuditEvent: Mock;
+  insert: Mock;
+  auditValues: Mock;
   claims: {
     id: string;
     tenantId: string;
@@ -64,7 +65,8 @@ const mocks: {
     isNull: vi.fn(column => ({ column, op: 'isNull' })),
     lifecycleNotIn: vi.fn(statuses => ({ op: 'lifecycleNotIn', statuses })),
     ensureTenantId: vi.fn(() => 'tenant-1'),
-    logAuditEvent: vi.fn(),
+    insert: vi.fn(),
+    auditValues: vi.fn().mockResolvedValue(undefined),
     claims: {
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
@@ -91,6 +93,7 @@ vi.mock('@interdomestik/database', () => ({
     },
     select: mocks.select,
     update: mocks.update,
+    insert: mocks.insert,
   },
   withTenantContext: vi.fn(
     async (_ctx: unknown, cb: (tx: any) => unknown) =>
@@ -98,8 +101,10 @@ vi.mock('@interdomestik/database', () => ({
         query: { user: { findFirst: mocks.userFindFirst } },
         select: mocks.select,
         update: mocks.update,
+        insert: mocks.insert,
       })
   ),
+  auditLog: 'audit_log',
   claims: mocks.claims,
   eq: mocks.eq,
   and: mocks.and,

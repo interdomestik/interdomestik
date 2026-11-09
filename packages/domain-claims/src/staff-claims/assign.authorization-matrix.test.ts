@@ -48,22 +48,20 @@ function claimInScope(staffId: string | null) {
 }
 
 function assign(session: ReturnType<typeof createSession>, staffId?: string | null) {
-  return assignClaimCore(
-    { authority, claimId: 'claim-1', session, staffId },
-    { logAuditEvent: mocks.logAuditEvent }
-  );
+  return assignClaimCore({ authority, claimId: 'claim-1', session, staffId });
 }
 
 function expectNoEffects() {
   expect(mocks.select).not.toHaveBeenCalled();
   expect(mocks.userFindFirst).not.toHaveBeenCalled();
   expect(mocks.update).not.toHaveBeenCalled();
-  expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+  expect(mocks.auditValues).not.toHaveBeenCalled();
 }
 
 describe('staff assignClaimCore nine-role authorization matrix', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.insert.mockReturnValue({ values: mocks.auditValues });
     mocks.select.mockReturnValue(mocks.selectChain);
     mocks.selectChain.from.mockReturnValue(mocks.selectChain);
     mocks.selectChain.where.mockReturnValue(mocks.selectChain);
@@ -106,7 +104,7 @@ describe('staff assignClaimCore nine-role authorization matrix', () => {
       ),
       isNull('claims.staff_id')
     );
-    expect(mocks.logAuditEvent).toHaveBeenCalledTimes(1);
+    expect(mocks.auditValues).toHaveBeenCalledTimes(1);
   });
 
   it('keeps branchless staff on their own or unassigned claims', async () => {
@@ -132,6 +130,12 @@ describe('staff assignClaimCore nine-role authorization matrix', () => {
       assign(createSession({ userId: 'staff-1', branchId: 'branch-1' }), null)
     ).resolves.toEqual({ success: true });
     expect(mocks.userFindFirst).not.toHaveBeenCalled();
+    expect(mocks.auditValues).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        action: 'claim.unassigned',
+        metadata: { previousStaffId: 'staff-1', newStaffId: null },
+      })
+    );
     expect(mocks.updateChain.set).toHaveBeenCalledWith(
       expect.objectContaining({ staffId: null, assignedAt: null })
     );
@@ -144,6 +148,6 @@ describe('staff assignClaimCore nine-role authorization matrix', () => {
       assign(createSession({ userId: 'staff-1', branchId: 'branch-1' }), 'staff-2')
     ).resolves.toEqual({ success: false, error: 'Claim not found or access denied' });
     expect(mocks.update).not.toHaveBeenCalled();
-    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+    expect(mocks.auditValues).not.toHaveBeenCalled();
   });
 });
