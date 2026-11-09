@@ -39,6 +39,7 @@ type User = {
   createdAt: Date;
   unreadCount?: number;
   alertLink?: string | null;
+  membershipSource?: 'sponsor' | 'subscription' | 'none';
   subscription?: {
     status: string;
     planId: string | null;
@@ -79,7 +80,7 @@ function Section({ title, count, defaultOpen = true, children }: SectionProps) {
   );
 }
 
-export function AgentUsersSections({ users }: UsersSectionsProps) {
+export function AgentUsersSections({ users }: Readonly<UsersSectionsProps>): React.JSX.Element {
   const t = useTranslations('agent-members.members.table');
   const [showAllNeedsAttention, setShowAllNeedsAttention] = useState(false);
   const [showAllMembers, setShowAllMembers] = useState(false);
@@ -148,6 +149,11 @@ export function AgentUsersSections({ users }: UsersSectionsProps) {
                 >
                   {member.subscription?.status || 'none'}
                 </Badge>
+                {member.membershipSource ? (
+                  <span className="block text-xs text-muted-foreground">
+                    {t('headers.source')}: {t(`source.${member.membershipSource}`)}
+                  </span>
+                ) : null}
               </TableCell>
               <TableCell className="text-sm font-bold">
                 {member.subscription?.planId ? (

@@ -54,6 +54,7 @@ describe('handleSubscriptionPastDue', () => {
 
     hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
       id: 'mock_sub_existing',
+      provider: 'group_sponsor',
       tenantId: 'tenant_abc',
       userId: 'user_123',
       dunningAttemptCount: 0,
@@ -97,6 +98,7 @@ describe('handleSubscriptionPastDue', () => {
     expect(mockSet).toHaveBeenCalledWith(
       expect.objectContaining({
         providerSubscriptionId: 'sub_paddle_456',
+        provider: 'paddle',
         status: 'past_due',
       })
     );
@@ -140,6 +142,7 @@ describe('handleSubscriptionPastDue', () => {
 
     expect(insertedValues).toHaveBeenCalledWith(
       expect.objectContaining({
+        provider: 'paddle',
         planId: 'family',
         planKey: 'mk-family-plan',
       })

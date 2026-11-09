@@ -1,6 +1,7 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
+  resolveEffectiveMembership: vi.fn(),
   userFindFirst: vi.fn(),
   subscriptionsFindFirst: vi.fn(),
   prefsFindFirst: vi.fn(),
@@ -68,6 +69,9 @@ vi.mock('drizzle-orm', () => ({
     sql: { strings, values },
   })),
 }));
+vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
+  resolveEffectiveMembership: hoisted.resolveEffectiveMembership,
+}));
 vi.mock('@interdomestik/domain-agent', () => ({
   getAgentMemberDetail: hoisted.getAgentMemberDetail,
 }));
@@ -84,6 +88,15 @@ function createSelectChain(result: unknown) {
 
 describe('getAgentClientProfileCore', () => {
   const authority = mintTestTenantAuthority('tenant_ks');
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.resolveEffectiveMembership.mockImplementation(async () => {
+      const subscription = await hoisted.subscriptionsFindFirst();
+      return new Map([
+        ['m1', subscription ? { source: 'subscription', subscription } : { source: 'none' }],
+      ]);
+    });
+  });
 
   it('returns forbidden when viewer tenant context is missing', async () => {
     const res = await getAgentClientProfileCore({
@@ -93,6 +106,7 @@ describe('getAgentClientProfileCore', () => {
     });
 
     expect(res).toEqual({ kind: 'forbidden' });
+    expect(hoisted.resolveEffectiveMembership).not.toHaveBeenCalled();
     expect(hoisted.userFindFirst).not.toHaveBeenCalled();
   });
 
@@ -120,6 +134,7 @@ describe('getAgentClientProfileCore', () => {
     });
 
     expect(res).toEqual({ kind: 'forbidden' });
+    expect(hoisted.resolveEffectiveMembership).not.toHaveBeenCalled();
   });
 
   it('allows access when agent has no link but domain-agent assignment check succeeds', async () => {
@@ -159,6 +174,7 @@ describe('getAgentClientProfileCore', () => {
     });
 
     expect(res).toEqual({ kind: 'forbidden' });
+    expect(hoisted.resolveEffectiveMembership).not.toHaveBeenCalled();
   });
 
   it('denies access when domain-agent assignment check throws', async () => {
@@ -173,6 +189,7 @@ describe('getAgentClientProfileCore', () => {
     });
 
     expect(res).toEqual({ kind: 'forbidden' });
+    expect(hoisted.resolveEffectiveMembership).not.toHaveBeenCalled();
   });
 
   it('computes claim counts and normalizes membership status', async () => {

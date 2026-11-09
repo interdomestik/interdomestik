@@ -7,6 +7,7 @@ import {
   type TenantTransaction,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { resolveEffectiveMembership } from '@interdomestik/domain-membership-billing/sponsor-coverage';
 
 import {
   buildMatterAllowanceWindow,
@@ -139,23 +140,35 @@ export function getMatterAllowanceSubscriptionContextForUser(
 
 async function subscriptionContextForUser(
   scope: MatterAllowanceScope,
-  userId: string
+  userId: string,
+  now: Date = new Date()
 ): Promise<MatterAllowanceSubscriptionContext | null> {
+  const memberships = await resolveEffectiveMembership(scope.tx, scope.tenantId, [userId], now);
+  const membership = memberships.get(userId);
+  if (!membership || membership.source === 'none') return null;
+  if (membership.source === 'subscription') {
+    const {
+      id: subscriptionId,
+      currentPeriodEnd,
+      currentPeriodStart,
+      planId,
+    } = membership.subscription;
+    return { subscriptionId, currentPeriodEnd, currentPeriodStart, planId };
+  }
   const [subscription] = await scope.tx
-    .select({
-      id: subscriptions.id,
-      currentPeriodEnd: subscriptions.currentPeriodEnd,
-      currentPeriodStart: subscriptions.currentPeriodStart,
-      planId: subscriptions.planId,
-    })
+    .select({ id: subscriptions.id })
     .from(subscriptions)
     .where(withTenant(scope.tenantId, subscriptions.tenantId, eq(subscriptions.userId, userId)))
     .limit(1);
 
   if (!subscription) return null;
 
-  const { id: subscriptionId, ...context } = subscription;
-  return { subscriptionId, ...context };
+  return {
+    subscriptionId: subscription.id,
+    planId: membership.planId,
+    currentPeriodStart: membership.windowStart,
+    currentPeriodEnd: membership.windowEnd,
+  };
 }
 
 type AllowanceRequest = {
@@ -207,7 +220,7 @@ async function allowanceContextForUser(
   userId: string,
   request: AllowanceRequest
 ): Promise<MatterAllowanceContext | null> {
-  const subscription = await subscriptionContextForUser(scope, userId);
+  const subscription = await subscriptionContextForUser(scope, userId, request.now);
 
   if (!subscription) return null;
 

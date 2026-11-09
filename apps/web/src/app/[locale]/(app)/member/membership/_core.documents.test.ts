@@ -1,37 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const hoisted = vi.hoisted(() => ({
-  and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
-  eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-  findDocumentsMany: vi.fn(),
-  isNull: vi.fn((field: unknown) => ({ op: 'isNull', field })),
-}));
-
-vi.mock('@interdomestik/database', () => ({
-  and: hoisted.and,
-  withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
-    callback({
-      query: {
-        documents: {
-          findMany: hoisted.findDocumentsMany,
-        },
-        subscriptions: {
-          findMany: vi.fn(),
-        },
-      },
-    })
-  ),
-  eq: hoisted.eq,
-  isNull: hoisted.isNull,
-  subscriptions: {
-    tenantId: 'subscriptions.tenant_id',
-    userId: 'subscriptions.user_id',
-  },
-}));
-
-vi.mock('@/lib/entity-disclosure.core', () => ({
-  getSubscriptionEntityDisclosureCore: vi.fn(),
-}));
+import { getMembershipCoreMocks } from './membership-core-test-support';
+const hoisted = getMembershipCoreMocks();
 
 import { getMemberDocumentsCore } from './_core';
 

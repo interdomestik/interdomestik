@@ -1,0 +1,12 @@
+{
+  "sponsorOptOut": {
+    "title": "Largohuni nga programi i anëtarësimit të kompanisë",
+    "explanation": "Konfirmoni se dëshironi të largoheni nga programi i anëtarësimit të kompanisë suaj. Kjo përfundon vendet tuaja aktuale dhe të ardhshme nga kjo kompani. Asgjë tjetër në llogarinë tuaj nuk ndryshon. Një listë e mëvonshme nga kompania është një marrëveshje e re.",
+    "confirm": "Konfirmo largimin",
+    "pending": "Duke konfirmuar…",
+    "done": "Jeni larguar nga programi. Do të merrni një email konfirmimi.",
+    "invalid": "Kjo lidhje nuk është më e vlefshme.",
+    "error": "Nuk mundëm ta konfirmonim kërkesën tuaj. Provoni përsëri.",
+    "retry": "Provoni përsëri"
+  }
+}

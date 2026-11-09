@@ -1,3 +1,4 @@
+import { splitCsvLine } from '@/features/sponsors/csv-line.core';
 import { MAX_MEMBER_IMPORT_ROWS } from '@/lib/actions/agent/schemas';
 
 export type ParsedMemberImportRow = {
@@ -20,39 +21,6 @@ const FORBIDDEN_HEADERS = ['password'] as const;
 
 function normalizeHeader(header: string) {
   return header.trim().replace(/^\uFEFF/, '');
-}
-
-function splitCsvLine(line: string) {
-  const values: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-
-    if (char === '"') {
-      const nextChar = line[index + 1];
-      if (inQuotes && nextChar === '"') {
-        current += '"';
-        index += 1;
-        continue;
-      }
-
-      inQuotes = !inQuotes;
-      continue;
-    }
-
-    if (char === ',' && !inQuotes) {
-      values.push(current.trim());
-      current = '';
-      continue;
-    }
-
-    current += char;
-  }
-
-  values.push(current.trim());
-  return values;
 }
 
 export function parseMemberImportCsv(csv: string): ParsedMemberImportCsv {

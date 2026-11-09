@@ -8,6 +8,9 @@ import { TenantClassificationControls } from '@/features/admin/users/components/
 
 export async function MembershipInfoCard({
   subscription,
+  membershipSource,
+  coverageEnd = null,
+  providerStatus = null,
   membershipStatus,
   membershipBadgeClass,
   isMembershipProfile,
@@ -18,8 +21,12 @@ export async function MembershipInfoCard({
   tenantOptions,
   userId,
 }: {
+  membershipSource: 'sponsor' | 'subscription' | 'none';
+  coverageEnd?: Date | null;
+  providerStatus?: string | null;
   subscription: {
     planId: string;
+    currentPeriodStart?: Date | null;
     currentPeriodEnd: Date | null;
     cancelAtPeriodEnd: boolean;
     gracePeriodEndsAt?: Date | null;
@@ -33,7 +40,7 @@ export async function MembershipInfoCard({
   canReassignTenant: boolean;
   tenantOptions: AdminTenantOption[];
   userId: string;
-}) {
+}): Promise<React.JSX.Element> {
   const t = await getTranslations('admin.member_profile');
   const tCommon = await getTranslations('common');
 
@@ -46,7 +53,7 @@ export async function MembershipInfoCard({
     subscription && isMembershipProfile
       ? getLifecycleDetail({
           status: membershipStatus,
-          periodEnd: subscription.currentPeriodEnd,
+          periodEnd: coverageEnd ?? subscription.currentPeriodEnd,
           gracePeriodEndsAt: subscription.gracePeriodEndsAt ?? null,
           fallback: tCommon('none'),
           formatMessage: (key, date) => t(`status_context.${key}`, { date }),
@@ -61,6 +68,30 @@ export async function MembershipInfoCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
+        {isMembershipProfile ? (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">{t('labels.source')}</span>
+              <span>{t(`source.${membershipSource}`)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">{t('labels.period_start')}</span>
+              <span>{formatDate(subscription?.currentPeriodStart ?? null, tCommon('none'))}</span>
+            </div>
+            {coverageEnd ? (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t('labels.coverage_end')}</span>
+                <span>{formatDate(coverageEnd, tCommon('none'))}</span>
+              </div>
+            ) : null}
+            {providerStatus ? (
+              <div className="flex items-center justify-between" data-testid="provider-lifecycle">
+                <span className="text-muted-foreground">{t('labels.provider_lifecycle')}</span>
+                <span>{t(`provider_status.${providerStatus}`)}</span>
+              </div>
+            ) : null}
+          </>
+        ) : null}
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">
             {t(isMembershipProfile ? 'labels.status' : 'labels.account_type')}

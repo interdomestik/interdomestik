@@ -27,6 +27,7 @@ test('ACQ-2b1 migration is journaled after the consent migration', async () => {
     entries: { idx: number; tag: string }[];
   };
   const tags = journal.entries.map(entry => entry.tag);
-  assert.equal(tags.at(-1), '0098_user_email_lower_unique');
-  assert.equal(tags.at(-2), '0097_member_leads_consent');
+  const at = tags.indexOf('0098_user_email_lower_unique');
+  assert.ok(at > 0, 'the migration is journaled');
+  assert.equal(tags[at - 1], '0097_member_leads_consent');
 });

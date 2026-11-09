@@ -10,10 +10,12 @@ import { OtpCheckoutStep } from './otp-checkout-step';
 import { buildPricingPlans, findPlanById } from './plan-model';
 import { PricingPlanGrid } from './plan-grid';
 import { PrecheckoutConfirmation } from './precheckout-confirmation';
+import { SponsorCheckoutNotice } from './sponsor-checkout-notice';
 import { isSelfServePlanId, shouldOpenSelfServePrecheckout } from './pricing-decisions';
 import type { PlanId, PricingPlan, PricingTableProps } from './types';
 import { usePricingEmailOtp } from './use-pricing-email-otp';
 import { usePricingTableState } from './use-pricing-table-state';
+import { useSponsorCheckoutNotice } from './use-sponsor-checkout-notice';
 export function PricingTable({
   userId,
   email,
@@ -27,6 +29,8 @@ export function PricingTable({
   navigateTopLevel,
 }: PricingTableProps) {
   const reviewTrigger = useRef<HTMLButtonElement | null>(null);
+  const sponsorNoticeRef = useRef<HTMLOutputElement | null>(null);
+  const sponsor = useSponsorCheckoutNotice(userId);
   const [t, locale, router] = [useTranslations('pricing'), useLocale(), useRouter()];
   const priceIds = {
     standardYear: checkoutConfig?.priceIds.standardYear ?? FALLBACK_CHECKOUT_PRICE_IDS.standardYear,
@@ -73,7 +77,7 @@ export function PricingTable({
     otp.reset();
   };
   const handlePreCheckoutContinue = () => {
-    if (!preCheckoutPlan?.priceId || view.loading || isSessionPending) return;
+    if (!preCheckoutPlan?.priceId || view.loading || isSessionPending || sponsor.notice) return;
     if (!userId) {
       if (view.continueAnonymousPlan(preCheckoutPlan.id)) return;
       return setOtpStep(preCheckoutPlan.id);
@@ -82,6 +86,8 @@ export function PricingTable({
   };
   const handlePlanCtaClick = (plan: PricingPlan, trigger: HTMLButtonElement) => {
     if (view.loading || isSessionPending) return;
+    // A company-covered person is never sent to Paddle checkout (ACQ-3b §3.6.3).
+    if (sponsor.notice) return sponsorNoticeRef.current?.focus();
     reviewTrigger.current = trigger;
     CommercialFunnelEvents.pricingPlanCtaClicked(
       { tenantId: null, variant: 'hero_v1', locale },
@@ -110,6 +116,14 @@ export function PricingTable({
           {t('billedAnnually')}
         </Badge>
       </div>
+      {sponsor.notice ? (
+        <SponsorCheckoutNotice
+          ref={sponsorNoticeRef}
+          notice={sponsor.notice}
+          locale={locale}
+          t={t}
+        />
+      ) : null}
       <PricingPlanGrid
         plans={plans}
         selectedPlanId={view.selectedPlanId}

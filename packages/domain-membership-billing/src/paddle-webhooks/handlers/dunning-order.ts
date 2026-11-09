@@ -85,6 +85,7 @@ export async function persistOrderedPastDueSubscription<
       .update(subscriptions)
       .set({
         ...state.values,
+        provider: 'paddle',
         providerEventOccurredAt: args.order.occurredAt,
         providerEventId: args.order.providerEventId,
       })
@@ -105,6 +106,7 @@ export async function persistOrderedPastDueSubscription<
       newDunningCount: effects.newDunningCount,
       gracePeriodEnd: effects.gracePeriodEnd,
       request: effects.request,
+      coverageCopy: effects.coverageCopy,
     });
     return { kind: 'apply', state };
   });

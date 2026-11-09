@@ -39,6 +39,7 @@ const mocks = vi.hoisted(() => {
       userId: 'subscriptions.userId',
       status: 'subscriptions.status',
       agentId: 'subscriptions.agentId',
+      provider: 'subscriptions.provider',
     },
     user: {
       id: 'user.id',
@@ -91,6 +92,9 @@ vi.mock('./access', () => ({
 
 vi.mock('drizzle-orm', () => ({
   and: mocks.and,
+  isNull: (left: unknown) => ({ op: 'isNull', left }),
+  ne: (left: unknown, right: unknown) => ({ op: 'ne', left, right }),
+  or: (...parts: unknown[]) => ({ op: 'or', parts }),
 }));
 
 import { updateUserAgentCore } from './update-user-agent';
@@ -163,6 +167,13 @@ describe('updateUserAgentCore', () => {
             left: mocks.subscriptions.status,
             right: 'active',
           },
+          {
+            op: 'or',
+            parts: [
+              { op: 'isNull', left: mocks.subscriptions.provider },
+              { op: 'ne', left: mocks.subscriptions.provider, right: 'group_sponsor' },
+            ],
+          },
         ],
       })
     );
@@ -218,6 +229,13 @@ describe('updateUserAgentCore', () => {
               op: 'eq',
               left: mocks.subscriptions.status,
               right: 'active',
+            },
+            {
+              op: 'or',
+              parts: [
+                { op: 'isNull', left: mocks.subscriptions.provider },
+                { op: 'ne', left: mocks.subscriptions.provider, right: 'group_sponsor' },
+              ],
             },
           ],
         }),

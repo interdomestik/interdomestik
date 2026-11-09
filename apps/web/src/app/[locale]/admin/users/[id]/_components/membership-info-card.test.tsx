@@ -7,7 +7,8 @@ vi.mock('next-intl/server', () => ({
 }));
 
 vi.mock('./utils', () => ({
-  formatDate: () => '2025-12-22',
+  formatDate: (value: Date | null, fallback: string) =>
+    value?.toISOString().slice(0, 10) ?? fallback,
 }));
 
 vi.mock('@/features/admin/users/components/tenant-classification-controls', () => ({
@@ -29,6 +30,7 @@ describe('MembershipInfoCard', () => {
     };
 
     const jsx = await MembershipInfoCard({
+      membershipSource: 'subscription',
       subscription: mockSubscription,
       membershipStatus: 'active',
       membershipBadgeClass: 'bg-green',
@@ -51,6 +53,7 @@ describe('MembershipInfoCard', () => {
 
   it('renders grace-period lifecycle context for admin reporting', async () => {
     const jsx = await MembershipInfoCard({
+      membershipSource: 'subscription',
       subscription: {
         planId: 'Premium Plan',
         currentPeriodEnd: new Date('2026-12-22T00:00:00.000Z'),
@@ -80,6 +83,7 @@ describe('MembershipInfoCard', () => {
 
   it('renders scheduled-cancel lifecycle context for admin reporting', async () => {
     const jsx = await MembershipInfoCard({
+      membershipSource: 'subscription',
       subscription: {
         planId: 'Premium Plan',
         currentPeriodEnd: new Date('2026-12-22T00:00:00.000Z'),
@@ -109,6 +113,7 @@ describe('MembershipInfoCard', () => {
 
   it('renders empty state when no subscription', async () => {
     const jsx = await MembershipInfoCard({
+      membershipSource: 'none',
       subscription: null,
       membershipStatus: 'none',
       membershipBadgeClass: 'bg-gray',
@@ -128,6 +133,7 @@ describe('MembershipInfoCard', () => {
 
   it('renders operator account state instead of member subscription state', async () => {
     const jsx = await MembershipInfoCard({
+      membershipSource: 'none',
       subscription: null,
       membershipStatus: 'operator',
       membershipBadgeClass: 'bg-sky',
@@ -149,6 +155,7 @@ describe('MembershipInfoCard', () => {
 
   it('renders registered member state when member identity exists without billing subscription', async () => {
     const jsx = await MembershipInfoCard({
+      membershipSource: 'none',
       subscription: null,
       membershipStatus: 'registered',
       membershipBadgeClass: 'bg-blue',
@@ -170,6 +177,7 @@ describe('MembershipInfoCard', () => {
 
   it('renders tenant classification review state when pending', async () => {
     const jsx = await MembershipInfoCard({
+      membershipSource: 'none',
       subscription: null,
       membershipStatus: 'registered',
       membershipBadgeClass: 'bg-blue',
@@ -187,5 +195,36 @@ describe('MembershipInfoCard', () => {
     expect(screen.getByText('labels.tenant_review')).toBeInTheDocument();
     expect(screen.getByText('labels.tenant_review_pending')).toBeInTheDocument();
     expect(screen.getByText('tenant-controls:user-1:tenant_ks')).toBeInTheDocument();
+  });
+  it('separates sponsor window and coverage end from the Paddle lifecycle', async () => {
+    render(
+      await MembershipInfoCard({
+        membershipSource: 'sponsor',
+        coverageEnd: new Date('2028-01-01'),
+        providerStatus: 'canceled',
+        subscription: {
+          planId: 'sponsor-plan',
+          currentPeriodStart: new Date('2026-01-01'),
+          currentPeriodEnd: new Date('2027-01-01'),
+          cancelAtPeriodEnd: false,
+        },
+        membershipStatus: 'active',
+        membershipBadgeClass: '',
+        isMembershipProfile: true,
+        role: 'member',
+        currentTenantId: null,
+        canReassignTenant: false,
+        tenantOptions: [],
+        userId: 'member-1',
+      })
+    );
+    expect(screen.getByText('source.sponsor')).toBeInTheDocument();
+    expect(screen.getByText('sponsor-plan')).toBeInTheDocument();
+    expect(screen.getByText('2026-01-01')).toBeInTheDocument();
+    expect(screen.getByText('2027-01-01')).toBeInTheDocument();
+    expect(screen.getByText('2028-01-01')).toBeInTheDocument();
+    expect(screen.getByTestId('provider-lifecycle')).toHaveTextContent('labels.provider_lifecycle');
+    expect(screen.getByTestId('provider-lifecycle')).toHaveTextContent('provider_status.canceled');
+    expect(screen.getByTestId('membership-lifecycle-status')).toHaveTextContent('status.active');
   });
 });

@@ -69,9 +69,11 @@ export {
   resolveClaimTrackingTokenTenant,
   resolveNpsSurveyTokenTenant,
   resolveSharePackTenant,
+  resolveSponsorOptOutTenant,
   type ClaimTrackingTokenTenant,
   type NpsSurveyTokenTenant,
   type SharePackTenant,
+  type SponsorOptOutTenant,
 } from './public-token-tenant';
 export {
   authorizeInngestEventTenant,

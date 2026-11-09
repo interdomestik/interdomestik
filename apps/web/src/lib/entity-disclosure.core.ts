@@ -1,9 +1,15 @@
+import { and, eq, legalEntities } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { readTenantLegalMetadata } from '@interdomestik/database/tenant-directory';
 import type { InferSelectModel } from 'drizzle-orm';
 
 import type { subscriptions } from '@interdomestik/database';
 
-export type EntityDisclosureSource = 'tenant' | 'subscription';
+export type EntityDisclosureSource = 'tenant' | 'subscription' | 'sponsor';
 
 export type EntityDisclosureModel = {
   contractingCompany: string | null;
@@ -60,4 +66,21 @@ export async function getSubscriptionEntityDisclosureCore(
 function normalizeDisclosureValue(value: string | null | undefined): string | null {
   const normalized = value?.trim();
   return normalized || null;
+}
+
+export async function getSponsorEntityDisclosureCore(
+  authority: TenantAuthority,
+  legalEntityId: string
+): Promise<EntityDisclosureModel> {
+  const { tenantId } = readTenantAuthority(authority);
+  const entity = await withTenantAuthority(authority, tx =>
+    tx.query.legalEntities.findFirst({
+      where: and(eq(legalEntities.tenantId, tenantId), eq(legalEntities.id, legalEntityId)),
+    })
+  );
+  return buildEntityDisclosureModel({
+    contractingCompany: entity?.legalName,
+    governingLaw: entity?.governingLaw,
+    source: 'sponsor',
+  });
 }

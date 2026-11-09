@@ -41,7 +41,7 @@ export async function cancelSubscriptionCore(
     })
   );
 
-  if (!sub || sub.userId !== session.user.id) {
+  if (!sub || sub.userId !== session.user.id || sub.provider === 'group_sponsor') {
     return { error: 'Subscription not found or access denied', success: undefined };
   }
 

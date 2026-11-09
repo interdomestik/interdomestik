@@ -68,7 +68,9 @@
           "preferences_unset": "Podešavanja nisu postavljena",
           "no_claims": "Još nema zahteva",
           "unknown": "Nepoznato",
-          "not_set": "Nije postavljeno"
+          "not_set": "Nije postavljeno",
+          "source": "Izvor",
+          "period_start": "Početak perioda"
         },
         "status": {
           "active": "Aktivan",
@@ -90,6 +92,11 @@
           "open": "Otvoreni zahtevi",
           "resolved": "Rešeni",
           "rejected": "Odbijeni"
+        },
+        "source": {
+          "sponsor": "Sponzor",
+          "subscription": "Pretplata",
+          "none": "Nema"
         }
       },
       "filters": {
@@ -106,12 +113,18 @@
           "status": "Status članstva",
           "plan": "Plan članstva",
           "period_end": "Ističe",
-          "actions": "Radnje"
+          "actions": "Radnje",
+          "source": "Izvor"
         },
         "view_profile": "Pogledaj profil",
         "view_claims": "Pogledaj zahteve",
         "message_alert": "Nova poruka ({count})",
-        "no_users": "Članovi nisu pronađeni."
+        "no_users": "Članovi nisu pronađeni.",
+        "source": {
+          "sponsor": "Sponzor",
+          "subscription": "Pretplata",
+          "none": "Nema"
+        }
       }
     }
   }

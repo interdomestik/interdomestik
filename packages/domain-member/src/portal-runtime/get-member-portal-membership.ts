@@ -1,10 +1,14 @@
-import { subscriptions, withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import {
   getMembershipLifecycleBucket,
   membershipLifecycleGrantsAccess,
   type MembershipLifecycleBucket,
 } from '@interdomestik/domain-membership-billing';
-import { and, eq } from 'drizzle-orm';
+import { resolveEffectiveMembership } from '@interdomestik/domain-membership-billing/sponsor-coverage';
 
 export type { MembershipLifecycleBucket } from '@interdomestik/domain-membership-billing';
 
@@ -15,30 +19,27 @@ export type MemberPortalMembership = {
 };
 
 export async function getMemberPortalMembership(params: {
+  authority: TenantAuthority;
   memberId: string;
-  tenantId: string;
   now?: Date;
 }): Promise<MemberPortalMembership> {
-  const { memberId, tenantId } = params;
-  if (!tenantId) throw new Error('Missing tenant context');
+  const { authority, memberId } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
-  return withTenantContext({ tenantId, role: 'member' }, async tx => {
-    // db-access-guard: tenant-scoped -- reason: one read-only membership projection for one member
-    const subscription = await tx.query.subscriptions.findFirst({
-      columns: {
-        cancelAtPeriodEnd: true,
-        currentPeriodEnd: true,
-        gracePeriodEndsAt: true,
-        status: true,
-      },
-      where: and(eq(subscriptions.tenantId, tenantId), eq(subscriptions.userId, memberId)),
+  return withTenantAuthority(authority, async tx => {
+    const now = params.now ?? new Date();
+    const memberships = await resolveEffectiveMembership(tx, tenantId, [memberId], now);
+    const membership = memberships.get(memberId);
+    const subscription = membership?.source === 'subscription' ? membership.subscription : null;
+    const sponsor = membership?.source === 'sponsor' ? membership : null;
+    const bucket = getMembershipLifecycleBucket({
+      subscription: sponsor?.lifecycle ?? subscription,
+      now,
     });
-
-    const bucket = getMembershipLifecycleBucket({ subscription, now: params.now });
 
     return {
       bucket,
-      currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
+      currentPeriodEnd: sponsor?.windowEnd ?? subscription?.currentPeriodEnd ?? null,
       grantsNewCaseAccess: membershipLifecycleGrantsAccess(bucket),
     };
   });

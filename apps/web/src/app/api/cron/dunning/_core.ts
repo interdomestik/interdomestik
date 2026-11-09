@@ -3,6 +3,7 @@ import { sendPaymentFinalWarningEmail, sendPaymentReminderEmail } from '@/lib/em
 import { listScheduledTenantWork, subscriptions, user } from '@interdomestik/database';
 import type { IngressCapability } from '@interdomestik/database/ingress';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { readSponsorOutlook } from '@interdomestik/domain-membership-billing/sponsor-coverage';
 import { and, eq, gt } from 'drizzle-orm';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { forEachInOrder } from '@/lib/in-order';
@@ -30,48 +31,49 @@ export async function runDunningCronCore(args: {
     errors: 0,
   };
 
-  // Per-tenant cursor: each tenant's past-due subscriptions are paged under its own RLS context.
-  for (const { tenantId, authority } of await listScheduledTenantWork(ingress)) {
-    let afterId: string | null = null;
-
-    while (true) {
-      const conditions = [
-        eq(subscriptions.tenantId, tenantId),
-        eq(subscriptions.status, 'past_due'),
-        gt(subscriptions.gracePeriodEndsAt, now),
-      ];
-      if (afterId) {
-        conditions.push(gt(subscriptions.id, afterId));
-      }
-
-      const pastDueSubscriptions = await withTenantAuthority(authority, tx =>
-        tx.query.subscriptions.findMany({
-          where: and(...conditions),
-          orderBy: (subscriptions, { asc }) => [asc(subscriptions.id)],
-          limit: 200,
-        })
-      );
-
-      if (pastDueSubscriptions.length === 0) break;
-
-      stats.checked += pastDueSubscriptions.length;
-
-      await processBatch({
-        authority,
-        subscriptions: pastDueSubscriptions as (SubscriptionRecord & {
-          gracePeriodEndsAt: Date;
-          pastDueAt: Date;
-        })[],
-        now,
-        headers,
-        stats,
-      });
-
-      afterId = pastDueSubscriptions[pastDueSubscriptions.length - 1]?.id ?? afterId;
-    }
-  }
+  await forEachInOrder(await listScheduledTenantWork(ingress), async ({ tenantId, authority }) => {
+    await processTenantPage({ tenantId, authority, now, headers, stats, afterId: null });
+  });
 
   return { stats };
+}
+
+async function processTenantPage(params: {
+  tenantId: string;
+  authority: TenantAuthority;
+  now: Date;
+  headers: Headers;
+  stats: DunningCronStats;
+  afterId: string | null;
+}): Promise<void> {
+  const { tenantId, authority, now, headers, stats, afterId } = params;
+  const pastDueSubscriptions = await withTenantAuthority(authority, tx => {
+    const conditions = [
+      eq(subscriptions.tenantId, tenantId),
+      eq(subscriptions.status, 'past_due'),
+      gt(subscriptions.gracePeriodEndsAt, now),
+    ];
+    if (afterId) conditions.push(gt(subscriptions.id, afterId));
+    return tx.query.subscriptions.findMany({
+      where: and(...conditions),
+      orderBy: (subscriptions, { asc }) => [asc(subscriptions.id)],
+      limit: 200,
+    });
+  });
+  if (pastDueSubscriptions.length === 0) return;
+  stats.checked += pastDueSubscriptions.length;
+  await processBatch({
+    authority,
+    subscriptions: pastDueSubscriptions as (SubscriptionRecord & {
+      gracePeriodEndsAt: Date;
+      pastDueAt: Date;
+    })[],
+    now,
+    headers,
+    stats,
+  });
+  const nextId = pastDueSubscriptions[pastDueSubscriptions.length - 1]?.id;
+  if (nextId) await processTenantPage({ ...params, afterId: nextId });
 }
 
 async function processBatch(params: {
@@ -115,7 +117,17 @@ async function processDunningSubscription(params: {
 
   if (!userRecord?.email) return;
 
+  const outlooks = await withTenantAuthority(authority, tx =>
+    readSponsorOutlook(tx, sub.tenantId, [sub.userId], new Date())
+  );
+  const outlook = outlooks.get(sub.userId);
+  const accessContinues = Boolean(
+    outlook?.covering ||
+    (outlook?.nextStart && sub.currentPeriodEnd && outlook.nextStart <= sub.currentPeriodEnd)
+  );
+
   await sendDunningEmail({
+    accessContinues,
     email: userRecord.email,
     userName: userRecord.name,
     sub,
@@ -173,9 +185,11 @@ async function sendDunningEmail(params: {
   sub: SubscriptionRecord & { gracePeriodEndsAt: Date };
   daysRemaining: number;
   emailType: 'day7' | 'day13';
+  accessContinues: boolean;
 }) {
   const { email, userName, sub, daysRemaining, emailType } = params;
   const emailParams = {
+    accessContinues: params.accessContinues,
     memberName: userName || 'Member',
     planName: sub.planId || 'Membership',
     gracePeriodEndDate: sub.gracePeriodEndsAt.toLocaleDateString(),

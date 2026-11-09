@@ -83,7 +83,7 @@ test('every de catalog file has an explicit owner-registry entry', () => {
     assert.ok(catalogNames('de').includes(key.slice(3)), `${key} names no de catalog`);
     assert.ok(!keys.has(key.slice(3)), `${key} duplicates a locale-wide entry`);
   }
-  assert.equal(LOCALE_CATALOG_OWNER_KEYS.filter(entry => entry.startsWith('de/')).length, 50);
+  assert.equal(LOCALE_CATALOG_OWNER_KEYS.filter(entry => entry.startsWith('de/')).length, 48);
 });
 
 test('unknown de catalogs and unknown locales stay unowned', () => {

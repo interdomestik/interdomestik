@@ -60,6 +60,11 @@
         "body": "Die Hotline dient der dringenden Weiterleitung, Unterstützung und Hinweisen zum nächsten Schritt. Sie bedeutet keine sofortige rechtliche Prüfung, keine Annahme des Schadensfalls und keine Bearbeitung durch das Team."
       }
     },
+    "documents": {
+      "title": "Dokumente",
+      "empty": "Keine Dokumente",
+      "view": "Ansehen"
+    },
     "plan": {
       "title": "Aktueller Plan",
       "description": "Ihre Schutzstufe",
@@ -91,7 +96,7 @@
       "empty_list": "Keine Abonnements",
       "no_membership_title": "Schließen Sie Ihre Mitgliedschaft ab",
       "no_membership_body": "Sie haben noch keine aktive bezahlte Mitgliedschaft. Wählen Sie einen Plan, um zur Kasse zu gelangen und den Zugang zu Schadensfällen freizuschalten.",
-      "membership_not_active_title": "Der Schutz ist noch nicht aktiv",
+      "membership_not_active_title": "Diese Mitgliedschaft ist inaktiv",
       "membership_not_active_body": "Diese Mitgliedschaft ist noch nicht aktiv. Schließen Sie den Bezahlvorgang ab, um Schutz und Zugang zu Schadensfällen wiederherzustellen.",
       "complete_membership": "Mitgliedschaft abschließen",
       "choose_plan": "Plan wählen",
@@ -107,7 +112,9 @@
       "accepted_escalation_survives": "Für angenommene Erstattungsangelegenheiten gelten die fortbestehenden Eskalationsbedingungen auch nach der Kündigung der Mitgliedschaft.",
       "cooling_off_applies_separately": "Gesetzliche Widerrufsrechte werden nach den veröffentlichten Bedingungen separat geprüft.",
       "payment_update_preparing": "Ihr sicherer Link zur Aktualisierung der Zahlung wird vorbereitet…",
-      "payment_update_opening": "Die sichere Zahlungsseite wird geöffnet…"
+      "payment_update_opening": "Die sichere Zahlungsseite wird geöffnet…",
+      "renew": "Verlängern",
+      "cancel": "Kündigung beantragen"
     },
     "errors": {
       "action_failed": "Wir konnten diese Aktion zur Mitgliedschaft nicht abschließen. Bitte versuchen Sie es erneut.",
@@ -200,6 +207,17 @@
       "valid_thru": "Gültig bis",
       "emergency_hotline": "Notfall-Hotline",
       "back_to_dashboard": "Zurück zum Dashboard"
+    },
+    "sponsorCoverage": {
+      "covered_until": "Abgesichert bis {date}",
+      "leave": "Firmenprogramm verlassen",
+      "confirm_body": "Ihre Firmenmitgliedschaft endet jetzt. Danach können Sie eine individuelle Mitgliedschaft erwerben.",
+      "keep": "Mitgliedschaft behalten",
+      "confirm": "Austritt bestätigen",
+      "pending": "Austritt läuft…",
+      "success": "Sie haben das Firmenprogramm verlassen. Sie können jetzt eine individuelle Mitgliedschaft erwerben.",
+      "not_found": "Diese Firmenmitgliedschaft ist nicht mehr verfügbar. Laden Sie die Seite neu.",
+      "error": "Der Austritt ist fehlgeschlagen. Bitte versuchen Sie es erneut."
     }
   }
 }

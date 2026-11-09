@@ -3,13 +3,18 @@ import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matri
 import { getSessionSafe } from '@/components/shell/session';
 import { MembershipOpsPage } from '@/features/member/membership/components/MembershipOpsPage';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
-import { getMemberDocumentsCore, getMemberSubscriptionsCore } from './_core';
+import {
+  getMemberDocumentsCore,
+  getMemberLeavableSponsorEntryCore,
+  getMemberSubscriptionsCore,
+} from './_core';
 
 export default async function MembershipPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  const coverageMatrix = await getTranslations('coverageMatrix');
+  setRequestLocale(locale);
+  const coverageMatrix = await getTranslations({ locale, namespace: 'coverageMatrix' });
   const session = await getSessionSafe('MemberMembershipPage');
 
   if (!session) {
@@ -25,6 +30,11 @@ export default async function MembershipPage({ params }: { params: Promise<{ loc
     userId: session.user.id,
     tenantId,
   });
+  // With a subscription record the detail view carries the leave action itself.
+  const leaveEntryId =
+    subscriptions.length === 0
+      ? await getMemberLeavableSponsorEntryCore({ userId: session.user.id, tenantId })
+      : null;
 
   return (
     <div data-testid="membership-page-ready">
@@ -32,7 +42,11 @@ export default async function MembershipPage({ params }: { params: Promise<{ loc
         <CoverageMatrix
           {...buildCoverageMatrixProps(coverageMatrix, 'membership-coverage-matrix')}
         />
-        <MembershipOpsPage subscriptions={subscriptions} documents={documents} />
+        <MembershipOpsPage
+          subscriptions={subscriptions}
+          documents={documents}
+          leaveEntryId={leaveEntryId}
+        />
       </div>
     </div>
   );

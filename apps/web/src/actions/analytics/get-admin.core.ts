@@ -4,7 +4,7 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { getTenantMembershipLifecycleCounts } from '@interdomestik/domain-membership-billing';
-import { and, eq, gte, sql } from 'drizzle-orm';
+import { and, eq, gte, isNull, ne, or, sql } from 'drizzle-orm';
 
 import { isStaffOrAdmin } from '@/lib/roles.core';
 
@@ -64,7 +64,14 @@ export async function getAdminAnalyticsCore(params: {
               eq(subscriptions.planKey, membershipPlans.id)
             )
           )
-          .where(and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, tenantId)))
+          .where(
+            and(
+              eq(subscriptions.status, 'active'),
+              eq(subscriptions.tenantId, tenantId),
+              // Offline sponsor invoices are not provider MRR; retain legacy NULL providers.
+              or(isNull(subscriptions.provider), ne(subscriptions.provider, 'group_sponsor'))
+            )
+          )
     );
 
     let mrr = 0;
@@ -81,7 +88,9 @@ export async function getAdminAnalyticsCore(params: {
     const totalMembers = lifecycleCounts.total;
     const activeMembers = lifecycleCounts.accessActive;
     const canceledMembers = lifecycleCounts.canceled;
-    const churnRate = totalMembers > 0 ? (canceledMembers / totalMembers) * 100 : 0;
+    // Churn remains provider-lifecycle reporting; effective membership is a different population.
+    const providerTotal = lifecycleCounts.providerLifecycleTotal;
+    const churnRate = providerTotal > 0 ? (canceledMembers / providerTotal) * 100 : 0;
 
     const lookbackDate = new Date();
     lookbackDate.setDate(lookbackDate.getDate() - daysBack);

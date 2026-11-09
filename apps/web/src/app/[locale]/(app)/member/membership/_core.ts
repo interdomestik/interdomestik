@@ -1,5 +1,17 @@
-import { and, withTenantContext, eq, isNull, subscriptions } from '@interdomestik/database';
-import { attachMembershipEntityDisclosures, type SubscriptionRecord } from './_entity-disclosure';
+import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { resolveEffectiveMembership } from '@interdomestik/domain-membership-billing/sponsor-coverage';
+import { listLeavableSponsorEntries } from '@interdomestik/domain-membership-billing/sponsors/opt-out';
+import {
+  and,
+  eq,
+  isNull,
+  subscriptions,
+  membershipPlans,
+  type documents,
+} from '@interdomestik/database';
+import { attachMembershipEntityDisclosure, type SubscriptionRecord } from './_entity-disclosure';
 
 export type { SubscriptionRecord } from './_entity-disclosure';
 
@@ -35,17 +47,87 @@ export async function getMembershipPageModelCore(args: {
 export async function getMemberSubscriptionsCore(args: {
   userId: string;
   tenantId: string | null | undefined;
-}) {
-  const tenantId = args.tenantId;
-  if (!tenantId) return [];
-  return withTenantContext({ tenantId, role: 'member' }, async db => {
-    const records = await db.query.subscriptions.findMany({
+  now?: Date;
+}): Promise<SubscriptionRecord[]> {
+  if (!args.tenantId) return [];
+  const authority = await authorizeSessionUserTenant(args.userId);
+  if (!authority) return [];
+  const { tenantId } = readTenantAuthority(authority);
+  if (tenantId !== args.tenantId) return [];
+  return withTenantAuthority(authority, async tx => {
+    const resolved = await resolveEffectiveMembership(
+      tx,
+      tenantId,
+      [args.userId],
+      args.now ?? new Date()
+    );
+    const effective = resolved.get(args.userId);
+    const records = await tx.query.subscriptions.findMany({
       where: and(eq(subscriptions.userId, args.userId), eq(subscriptions.tenantId, tenantId)),
       with: { plan: true },
       orderBy: (table, { desc }) => [desc(table.createdAt)],
     });
-    return attachMembershipEntityDisclosures(records);
+    const row =
+      effective?.source === 'subscription'
+        ? records.find(record => record.id === effective.subscription.id)
+        : records[0];
+    if (!row) return [];
+    if (effective?.source === 'sponsor') {
+      const plan = await tx.query.membershipPlans.findFirst({
+        where: and(
+          eq(membershipPlans.tenantId, tenantId),
+          eq(membershipPlans.id, effective.planKey)
+        ),
+      });
+      const record = await attachMembershipEntityDisclosure(
+        {
+          ...row,
+          ...effective.lifecycle,
+          planId: effective.planId,
+          planKey: effective.planKey,
+          currentPeriodStart: effective.windowStart,
+          currentPeriodEnd: effective.windowEnd,
+          canceledAt: null,
+          plan: plan ?? null,
+        },
+        { authority, coverage: effective }
+      );
+      return [{ ...record, sponsorCoverage: effective }];
+    }
+    const record = await attachMembershipEntityDisclosure({
+      ...row,
+      ...(effective?.source === 'subscription'
+        ? effective.subscription
+        : { status: 'expired' as const }),
+    });
+    const [leaveEntryId] = await listLeavableSponsorEntries(
+      tx,
+      tenantId,
+      args.userId,
+      args.now ?? new Date()
+    );
+    return [leaveEntryId ? { ...record, sponsorLeaveEntryId: leaveEntryId } : record];
   });
+}
+
+/**
+ * A sponsorship the member may leave (§3.6), read on its own so an account bound to a pending or
+ * future entry is offered the leave action before any subscription row exists.
+ */
+export async function getMemberLeavableSponsorEntryCore(args: {
+  userId: string;
+  tenantId: string | null | undefined;
+  now?: Date;
+}): Promise<string | null> {
+  if (!args.tenantId) return null;
+  const authority = await authorizeSessionUserTenant(args.userId);
+  if (!authority) return null;
+  const { tenantId } = readTenantAuthority(authority);
+  if (tenantId !== args.tenantId) return null;
+  const [entryId] = await withTenantAuthority(authority, tx =>
+    listLeavableSponsorEntries(tx, tenantId, args.userId, args.now ?? new Date())
+  );
+  return entryId ?? null;
 }
 
 export function computeDunningState(args: {
@@ -94,14 +176,15 @@ type DunningSubscription = { status?: string | null; gracePeriodEndsAt?: Date | 
 export async function getMemberDocumentsCore(args: {
   userId: string;
   tenantId: string | null | undefined;
-}) {
+}): Promise<(typeof documents.$inferSelect)[]> {
   const tenantId = args.tenantId;
   if (!tenantId) {
     return [];
   }
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  return withTenantContext({ tenantId, role: 'member' }, db =>
+  const authority = await authorizeSessionUserTenant(args.userId);
+  if (!authority || readTenantAuthority(authority).tenantId !== tenantId) return [];
+  return withTenantAuthority(authority, db =>
     db.query.documents.findMany({
       where: (docs, { and: andFn, eq: eqFn }) =>
         andFn(

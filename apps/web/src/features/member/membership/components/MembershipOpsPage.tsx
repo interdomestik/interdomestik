@@ -13,14 +13,18 @@ import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
 import { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
+import { LeaveCompanyProgramme } from './leave-company-programme';
 import { DetailView } from './membership-detail-view';
 
 export function MembershipOpsPage({
   subscriptions,
   documents,
+  leaveEntryId = null,
 }: {
   subscriptions: SubscriptionRecord[];
   documents: DbDocument[];
+  /** A leavable sponsorship when no subscription record exists yet. */
+  leaveEntryId?: string | null;
 }) {
   const { selectedId, setSelectedId } = useOpsSelectionParam();
   const isDesktop = useMediaQuery('(min-width: 768px)');
@@ -88,6 +92,7 @@ export function MembershipOpsPage({
             >
               {t('ops.choose_plan')}
             </Link>
+            {leaveEntryId ? <LeaveCompanyProgramme entryId={leaveEntryId} t={t} /> : null}
           </CardContent>
         </Card>
       ) : (

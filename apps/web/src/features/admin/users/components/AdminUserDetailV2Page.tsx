@@ -91,7 +91,7 @@ export async function AdminUserDetailV2Page({
   actorRole,
   actorBranchId,
   tenantClassificationOptions,
-}: AdminUserDetailV2PageProps) {
+}: AdminUserDetailV2PageProps): Promise<React.JSX.Element> {
   setRequestLocale(locale);
 
   const t = await getTranslations('admin.member_profile');
@@ -106,11 +106,12 @@ export async function AdminUserDetailV2Page({
     return notFound();
   }
 
-  const { member, subscription, preferences, counts, recentClaims, membershipStatus } = result;
+  const { member, subscription, preferences, counts, recentClaims, membershipStatus, membership } =
+    result;
   // A found profile implies an authority; client components receive only its tenant id.
   const tenantId = authority ? readTenantAuthority(authority).tenantId : null;
   const hasMemberNumber = Boolean(member.memberNumber);
-  const hasSubscription = Boolean(subscription);
+  const hasSubscription = Boolean(subscription) || membership.source !== 'none';
   const isMembershipProfile = hasMemberNumber || hasSubscription;
   const canReassignTenant = actorRole === 'super_admin' && tenantClassificationOptions.length > 0;
   const effectiveProfileStatus = getEffectiveProfileStatus({
@@ -123,6 +124,23 @@ export async function AdminUserDetailV2Page({
   const backHref = buildAdminUsersBackHref(searchParams ?? {});
   const backQuery = backHref.split('?')[1] ?? '';
 
+  let effectiveSubscription = null;
+  if (membership.source === 'sponsor') {
+    effectiveSubscription = {
+      planId: membership.planId,
+      currentPeriodStart: membership.windowStart,
+      currentPeriodEnd: membership.windowEnd,
+      ...membership.lifecycle,
+    };
+  } else if (membership.source === 'subscription') {
+    effectiveSubscription = {
+      planId: membership.subscription.planId ?? 'none',
+      currentPeriodStart: membership.subscription.currentPeriodStart,
+      currentPeriodEnd: membership.subscription.currentPeriodEnd,
+      cancelAtPeriodEnd: membership.subscription.cancelAtPeriodEnd ?? false,
+      gracePeriodEndsAt: membership.subscription.gracePeriodEndsAt,
+    };
+  }
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -148,16 +166,14 @@ export async function AdminUserDetailV2Page({
 
       <div className="grid gap-6 lg:grid-cols-3">
         <MembershipInfoCard
-          subscription={
-            subscription
-              ? {
-                  planId: subscription.planId ?? 'none',
-                  currentPeriodEnd: subscription.currentPeriodEnd,
-                  cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? false,
-                  gracePeriodEndsAt: subscription.gracePeriodEndsAt,
-                }
+          membershipSource={membership.source}
+          coverageEnd={membership.source === 'sponsor' ? membership.coverageEnd : null}
+          providerStatus={
+            membership.source === 'sponsor' && subscription?.provider === 'paddle'
+              ? subscription.status
               : null
           }
+          subscription={effectiveSubscription}
           membershipStatus={effectiveProfileStatus}
           membershipBadgeClass={membershipBadgeClass}
           isMembershipProfile={isMembershipProfile}

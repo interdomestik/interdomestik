@@ -137,7 +137,11 @@
         "not_applicable": "Nuk zbatohet",
         "tenant_review": "Rishikimi i tenant-it",
         "tenant_review_pending": "Në pritje të shqyrtimit të mëvonshëm të të dhënave të anëtarit",
-        "tenant_review_confirmed": "Konfirmuar nga atribimi aktual i tenant-it"
+        "tenant_review_confirmed": "Konfirmuar nga atribimi aktual i tenant-it",
+        "source": "Burimi",
+        "period_start": "Fillimi i periudhës",
+        "coverage_end": "Fundi i mbulimit",
+        "provider_lifecycle": "Statusi te ofruesi Paddle"
       },
       "status": {
         "active": "Aktive",
@@ -180,6 +184,19 @@
         "select_tenant_first": "Së pari zgjidh një tenant",
         "no_reassign_options": "Nuk ka objektiva aktive për ricaktim.",
         "reassign_locked": "Vetëm super administratorët mund ta ricaktojnë një anëtar në një tenant tjetër."
+      },
+      "provider_status": {
+        "active": "Aktiv",
+        "past_due": "Pagesë e vonuar",
+        "paused": "Pezulluar përkohësisht",
+        "canceled": "Anuluar",
+        "trialing": "Në provë",
+        "expired": "Skaduar"
+      },
+      "source": {
+        "sponsor": "Sponsorizim",
+        "subscription": "Abonim",
+        "none": "Asnjë"
       }
     }
   }

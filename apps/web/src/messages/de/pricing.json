@@ -266,6 +266,10 @@
           "100+": "100+ Personen"
         }
       }
+    },
+    "sponsorNotice": {
+      "coveredUntil": "Ihre Mitgliedschaft über Ihr Unternehmen gilt bis {date}. Sie müssen keine Mitgliedschaft kaufen.",
+      "startsOn": "Ihre Mitgliedschaft über Ihr Unternehmen beginnt am {date}. Sie müssen keine Mitgliedschaft kaufen."
     }
   }
 }

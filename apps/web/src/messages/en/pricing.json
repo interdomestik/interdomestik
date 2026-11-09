@@ -266,6 +266,10 @@
           "100+": "100+ people"
         }
       }
+    },
+    "sponsorNotice": {
+      "coveredUntil": "Your company membership covers you until {date}. You don't need to buy a membership.",
+      "startsOn": "Your company membership starts on {date}. You don't need to buy a membership."
     }
   }
 }

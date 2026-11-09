@@ -93,6 +93,17 @@ describe('StaffSidebar', () => {
     expect(useSessionSpy).not.toHaveBeenCalled();
   });
 
+  it('shows sponsors to staff but not support', () => {
+    const view = render(<StaffSidebar user={{ role: 'staff' }} />);
+    expect(screen.getByRole('link', { name: 'sponsors' })).toHaveAttribute(
+      'href',
+      '/staff/sponsors'
+    );
+    view.unmount();
+    render(<StaffSidebar user={{ role: 'global_support' }} />);
+    expect(screen.queryByRole('link', { name: 'sponsors' })).not.toBeInTheDocument();
+  });
+
   it('does not render a redundant /staff overview link', () => {
     render(<StaffSidebar />);
 

@@ -4,11 +4,30 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getStaffSupportHandoffQueue } from './queue';
 
-function mockQueueRows(rows: unknown[]) {
+function mockQueueRows(rows: Record<string, unknown>[]) {
   const query = {
     from: vi.fn().mockReturnThis(),
     leftJoin: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue(rows),
+    limit: vi.fn().mockResolvedValue(
+      rows.map(row => ({
+        ...row,
+        handoff: row,
+        member: {
+          id: row.memberId,
+          name: row.memberName,
+          email: row.memberEmail,
+          memberNumber: row.memberNumber,
+        },
+        claim: row.claimId
+          ? {
+              id: row.claimId,
+              claimNumber: row.claimNumber,
+              title: row.claimTitle,
+              status: row.claimStatus,
+            }
+          : null,
+      }))
+    ),
     orderBy: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
   };
@@ -107,9 +126,11 @@ describe('getStaffSupportHandoffQueue', () => {
     ]);
     expect(mocks.db.select).toHaveBeenCalledWith(
       expect.objectContaining({
-        memberReplyAt: 'support_handoffs.member_reply_at',
-        memberReplyResponseVersion: 'support_handoffs.member_reply_response_version',
-        publicResponseVersion: 'support_handoffs.public_response_version',
+        handoff: expect.objectContaining({
+          memberReplyAt: 'support_handoffs.member_reply_at',
+          memberReplyResponseVersion: 'support_handoffs.member_reply_response_version',
+          publicResponseVersion: 'support_handoffs.public_response_version',
+        }),
       })
     );
     expect(query.limit).toHaveBeenCalledWith(30);

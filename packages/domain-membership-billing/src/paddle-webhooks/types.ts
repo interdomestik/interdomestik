@@ -22,6 +22,7 @@ export type PaddleWebhookAuditDeps = {
 export type SendPaymentFailedEmail = (
   to: string,
   params: {
+    accessContinues?: boolean;
     memberName: string;
     planName: string;
     gracePeriodDays: number;

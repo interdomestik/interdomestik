@@ -8,6 +8,7 @@ import {
 } from './paddle-webhooks/paddle-authority.test-support';
 
 const hoisted = vi.hoisted(() => ({
+  resolveMembership: vi.fn(),
   authorizePaddleTenant: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
@@ -48,6 +49,10 @@ vi.mock('@interdomestik/database', () => ({
   authorizePaddleTenant: hoisted.authorizePaddleTenant,
 }));
 
+vi.mock('./sponsor-coverage/resolve', () => ({
+  resolveEffectiveMembership: hoisted.resolveMembership,
+}));
+
 import {
   findPaddleSubscriptionByReference,
   getActiveSubscription,
@@ -62,6 +67,17 @@ describe('subscription claim eligibility', () => {
     vi.clearAllMocks();
     hoisted.authorizePaddleTenant.mockImplementation(authorizeTestPaddleOwner);
     hoisted.findSubscriptionFirst.mockResolvedValue(null);
+    hoisted.resolveMembership.mockImplementation(
+      async (_tx: unknown, _tenantId: string, userIds: string[]) => {
+        const subscription = await hoisted.findSubscriptionFirst();
+        return new Map(
+          userIds.map(id => [
+            id,
+            subscription ? { source: 'subscription', subscription } : { source: 'none' },
+          ])
+        );
+      }
+    );
   });
 
   it('treats trialing subscriptions as active membership', async () => {
@@ -82,7 +98,12 @@ describe('subscription claim eligibility', () => {
     for (const [context] of hoisted.withTenantContext.mock.calls) {
       expect(context).toBe(authority);
     }
-    expect(hoisted.eq).toHaveBeenCalledWith(hoisted.subscriptions.tenantId, 'tenant_ks');
+    expect(hoisted.resolveMembership).toHaveBeenCalledWith(
+      expect.any(Object),
+      'tenant_ks',
+      ['member-1'],
+      expect.any(Date)
+    );
   });
 
   it('treats past_due subscriptions inside grace as active membership', async () => {
@@ -187,7 +208,8 @@ describe('subscription claim eligibility', () => {
     expect(hoisted.resolvePaddleSubscriptionOwner).toHaveBeenCalledWith('sub_provider_123');
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
     expect(hoisted.withTenantContext).toHaveBeenCalledWith(lookup?.authority, expect.any(Function));
-    expect(readTenantAuthority(lookup!.authority).tenantId).toBe('tenant_ks');
+    if (!lookup) throw new Error('Expected subscription owner');
+    expect(readTenantAuthority(lookup.authority).tenantId).toBe('tenant_ks');
   });
 
   it('returns null without any tenant context when the provider reference has no unique owner', async () => {

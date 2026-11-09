@@ -60,6 +60,11 @@
         "body": "Linja shërben për orientim urgjent, mbështetje dhe hapin e radhës. Nuk do të thotë shqyrtim të menjëhershëm ligjor, pranim të rastit ose trajtim nga stafi."
       }
     },
+    "documents": {
+      "title": "Dokumentet",
+      "empty": "Nuk ka dokumente",
+      "view": "Shiko"
+    },
     "plan": {
       "title": "Plani Aktual",
       "description": "Niveli i mbrojtjes",
@@ -91,7 +96,7 @@
       "empty_list": "Nuk ka abonime",
       "no_membership_title": "Përfundo anëtarësinë",
       "no_membership_body": "Ende nuk keni një anëtarësi të paguar aktive. Zgjidhni një plan për të vazhduar në checkout dhe për të zhbllokuar qasjen te rastet.",
-      "membership_not_active_title": "Mbrojtja nuk është ende aktive",
+      "membership_not_active_title": "Ky anëtarësim është joaktiv",
       "membership_not_active_body": "Kjo anëtarësi nuk është ende aktive. Përfundoni checkout-in për të rikthyer mbrojtjen dhe qasjen te rastet.",
       "complete_membership": "Përfundo anëtarësinë",
       "choose_plan": "Zgjidh një plan",
@@ -107,7 +112,9 @@
       "accepted_escalation_survives": "Rastet e pranuara për rikuperim ruajnë kushtet mbijetuese të përshkallëzimit edhe pas anulimit të anëtarësisë.",
       "cooling_off_applies_separately": "Çdo e drejtë ligjore për tërheqje shqyrtohet veçmas sipas kushteve të publikuara.",
       "payment_update_preparing": "Po përgatisim lidhjen tuaj të sigurt për përditësimin e pagesës…",
-      "payment_update_opening": "Po hapim faqen e sigurt të pagesës…"
+      "payment_update_opening": "Po hapim faqen e sigurt të pagesës…",
+      "renew": "Rinovo",
+      "cancel": "Kërko anulim"
     },
     "errors": {
       "action_failed": "Nuk mundëm ta përfundojmë atë veprim të anëtarësisë. Ju lutem provoni përsëri.",
@@ -200,6 +207,17 @@
       "valid_thru": "E vlefshme deri",
       "emergency_hotline": "Linja Emergjente",
       "back_to_dashboard": "Kthehu në Panel"
+    },
+    "sponsorCoverage": {
+      "covered_until": "Mbuloheni deri më {date}",
+      "leave": "Largohu nga programi i kompanisë",
+      "confirm_body": "Anëtarësimi juaj i kompanisë përfundon tani. Pas largimit mund të blini një anëtarësim individual.",
+      "keep": "Mbaj anëtarësimin",
+      "confirm": "Konfirmo largimin",
+      "pending": "Duke u larguar…",
+      "success": "Jeni larguar nga programi i kompanisë. Tani mund të blini një anëtarësim individual.",
+      "not_found": "Ky anëtarësim i kompanisë nuk është më i disponueshëm. Rifreskoni faqen.",
+      "error": "Nuk mundëm t’ju largojmë nga programi. Provoni përsëri."
     }
   }
 }

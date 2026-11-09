@@ -1,0 +1,12 @@
+{
+  "sponsorOptOut": {
+    "title": "Napusti program članstva kompanije",
+    "explanation": "Potvrdite da želite da napustite program članstva kompanije. Time prestaje važenje vaših sadašnjih i budućih mesta u okviru ove kompanije. Ništa drugo na vašem nalogu se ne menja. Kasniji spisak kompanije predstavlja novi dogovor.",
+    "confirm": "Potvrdi napuštanje",
+    "pending": "Potvrđivanje…",
+    "done": "Napustili ste program. Sledi potvrdni imejl.",
+    "invalid": "Ovaj link više nije važeći.",
+    "error": "Nismo mogli da potvrdimo zahtev. Pokušajte ponovo.",
+    "retry": "Pokušaj ponovo"
+  }
+}
