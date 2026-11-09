@@ -1,1 +1,5 @@
-export { SponsorTasksLoading as default } from '@/features/sponsor-tasks/tasks-loading';
+import { LocalizedPageSkeleton } from '@/components/ui/page-skeleton';
+
+export default function Loading(): React.JSX.Element {
+  return <LocalizedPageSkeleton titleKey="sponsorTasks.title" variant="list" />;
+}

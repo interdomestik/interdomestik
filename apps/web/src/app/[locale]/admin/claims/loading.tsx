@@ -1,13 +1,5 @@
-import { SkeletonTable } from '@/components/ui/skeleton-loader';
+import { LocalizedPageSkeleton } from '@/components/ui/page-skeleton';
 
-export default function Loading() {
-  return (
-    <div className="space-y-8">
-      <div>
-        <div className="h-8 w-48 bg-muted animate-pulse rounded mb-2" />
-        <div className="h-4 w-96 bg-muted animate-pulse rounded" />
-      </div>
-      <SkeletonTable rows={10} />
-    </div>
-  );
+export default function Loading(): React.JSX.Element {
+  return <LocalizedPageSkeleton titleKey="admin.claims_page.title" variant="list" />;
 }

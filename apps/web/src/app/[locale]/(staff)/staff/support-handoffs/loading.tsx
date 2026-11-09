@@ -1,0 +1,7 @@
+import { LocalizedPageSkeleton } from '@/components/ui/page-skeleton';
+
+export default function Loading(): React.JSX.Element {
+  return (
+    <LocalizedPageSkeleton titleKey="agent-claims.claims.support_handoffs.title" variant="list" />
+  );
+}
