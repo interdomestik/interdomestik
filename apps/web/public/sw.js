@@ -9,7 +9,7 @@ const STATIC_ASSETS = new Map([
   ['/offline.css', 'text/css'],
 ]);
 const HELP_NOW_PUBLIC_ROUTE = /^\/(sq|en|sr|mk|de|hr)\/help-now\/?$/;
-// Mirror next/dist/client/components/app-router-headers: guarded by a parity test.
+// Mirror next/dist/client/components/app-router-headers: guarded by a behavioral parity test.
 const FLIGHT_HEADERS = [
   'rsc',
   'next-router-state-tree',
@@ -184,6 +184,7 @@ globalThis.addEventListener('activate', event => {
 });
 
 globalThis.addEventListener('message', event => {
+  if (event.origin !== globalThis.location.origin) return;
   if (!event.source?.url || new URL(event.source.url).origin !== globalThis.location.origin) return;
   if (event.data?.type === 'PURGE_LEGACY_CACHES') {
     event.waitUntil(purgeLegacyCaches());

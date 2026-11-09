@@ -1,5 +1,4 @@
-import vm from 'node:vm';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   ORIGIN,
   PACK,
@@ -10,10 +9,15 @@ import {
   workerHarness,
 } from './sw-test-utils';
 
+const HELP_NOW_PATH = '/en/help-now';
+const MEMBER_PATH = '/en/member';
+
 describe('PWA cache privacy policy', () => {
-  it('classifies protected, data, public pack and reviewed static requests', () => {
-    const h = workerHarness();
-    const classify = vm.runInContext('classifyRequest', h.context) as (request: Request) => string;
+  it('keeps protected and data requests network-only and public assets cache-readable', async () => {
+    const h = await workerHarness();
+    await h.message('CACHE_HELP_NOW_PACK');
+    h.fetch.mockRejectedValue(new Error('offline'));
+    h.caches.open.mockClear();
     for (const path of [
       '/member',
       '/agent/a',
@@ -26,30 +30,41 @@ describe('PWA cache privacy policy', () => {
       '/sr/admin',
       '/de/member',
       '/hr/admin',
-      '/en/help-now',
+      HELP_NOW_PATH,
       '/_next/data/build/a.json',
       '/_next/static/a.js',
       '/document.pdf',
       `${PACK}?signed=token`,
     ]) {
-      expect(classify(h.request(path)), path).toBe('network');
+      const response = await h.dispatch('fetch', { request: h.request(path) });
+      // A legacy HTML download is rejected before the ordinary network-only path.
+      expect(response?.status, path).toBe(path === HELP_NOW_PATH ? 0 : 503);
     }
-    expect(classify(h.request(PACK))).toBe('pack');
-    expect(classify(h.request('/offline.html'))).toBe('static');
-    expect(classify(h.request(PACK, { headers: { RSC: '1' } }))).toBe('network');
-    expect(classify(h.request(PACK, { headers: { Authorization: 'Bearer synthetic' } }))).toBe(
-      'network'
-    );
-    expect(classify(h.request(`https://mk.interdomestik.com${PACK}`))).toBe('network');
+    for (const request of [
+      h.request(PACK, { headers: { RSC: '1' } }),
+      h.request(PACK, { headers: { Authorization: 'Bearer synthetic' } }),
+      h.request(`https://mk.interdomestik.com${PACK}`),
+    ]) {
+      expect((await h.dispatch('fetch', { request }))?.status).toBe(503);
+    }
+    expect(h.caches.open).not.toHaveBeenCalled();
+    expect(h.caches.match).not.toHaveBeenCalled();
+    for (const [path, cache] of [
+      [PACK, PACK_CACHE],
+      ['/offline.html', STATIC_CACHE],
+    ]) {
+      expect((await h.dispatch('fetch', { request: h.request(path) }))?.status).toBe(200);
+      expect(h.caches.open).toHaveBeenLastCalledWith(cache);
+    }
   });
 
   it('never reads planted protected entries in any cache, even on navigation failure', async () => {
-    const h = workerHarness();
+    const h = await workerHarness();
     await Promise.all(
       ['legacy', PACK_CACHE, STATIC_CACHE].map(async name => {
         const cache = await h.caches.open(name);
         await Promise.all(
-          ['/en/member', '/api/data', '/sq/admin'].map(path =>
+          [MEMBER_PATH, '/api/data', '/sq/admin'].map(path =>
             cache.put(h.request(path), publicResponse(path, {}, 'PERSONAL RECORD'))
           )
         );
@@ -58,7 +73,7 @@ describe('PWA cache privacy policy', () => {
     h.caches.open.mockClear();
     h.fetch.mockRejectedValue(new Error('offline'));
     await Promise.all(
-      ['/en/member', '/sq/admin', '/api/data'].map(async path => {
+      [MEMBER_PATH, '/sq/admin', '/api/data'].map(async path => {
         const response = await h.dispatch('fetch', { request: h.navigate(path) });
         expect(response?.status).toBe(503);
         expect(await response?.text()).not.toContain('PERSONAL');
@@ -69,7 +84,7 @@ describe('PWA cache privacy policy', () => {
   });
 
   it('upgrades by deleting every cache outside the current allowlist', async () => {
-    const h = workerHarness();
+    const h = await workerHarness();
     await Promise.all(
       ['interdomestik-help-now-v1', 'unowned-legacy', PACK_CACHE, STATIC_CACHE].map(name =>
         h.caches.open(name)
@@ -80,7 +95,7 @@ describe('PWA cache privacy policy', () => {
   });
 
   it('downloads only reviewed public assets without credentials, headers or redirects', async () => {
-    const h = workerHarness();
+    const h = await workerHarness();
     await h.message('CACHE_HELP_NOW_PACK');
     expect(h.stores.get(PACK_CACHE)?.has(`${ORIGIN}${PACK}`)).toBe(true);
     for (const [request] of h.fetch.mock.calls) {
@@ -92,6 +107,20 @@ describe('PWA cache privacy policy', () => {
     }
   });
 
+  it('ignores a foreign message origin even with a same-origin source URL', async () => {
+    const h = await workerHarness();
+    const postMessage = vi.fn();
+    await h.dispatch('message', {
+      data: { type: 'CACHE_HELP_NOW_PACK' },
+      origin: 'https://foreign.example',
+      source: { url: `${ORIGIN}/en/help-now` },
+      ports: [{ postMessage }],
+    });
+    expect(h.caches.open).not.toHaveBeenCalled();
+    expect(h.fetch).not.toHaveBeenCalled();
+    expect(postMessage).not.toHaveBeenCalled();
+  });
+
   const unsafeHeaders: Record<string, string>[] = [
     { 'cache-control': 'private' },
     { 'cache-control': 'no-store' },
@@ -100,7 +129,7 @@ describe('PWA cache privacy policy', () => {
     { 'content-type': 'text/x-component' },
   ];
   it.each(unsafeHeaders)('rejects unsafe responses on writes and reads: %j', async headers => {
-    const h = workerHarness();
+    const h = await workerHarness();
     h.fetch.mockImplementation(request =>
       Promise.resolve(
         publicResponse(request.url, {
@@ -122,23 +151,23 @@ describe('PWA cache privacy policy', () => {
   });
 
   it('never caches runtime Help Now HTML, and distinguishes fresh versus downloaded offline packs', async () => {
-    const h = workerHarness();
+    const h = await workerHarness();
     h.fetch.mockRejectedValue(new Error('offline'));
-    let response = await h.dispatch('fetch', { request: h.navigate('/en/help-now') });
+    let response = await h.dispatch('fetch', { request: h.navigate(HELP_NOW_PATH) });
     expect(response?.status).toBe(503);
     h.fetch.mockImplementation(request => Promise.resolve(publicAssetResponse(request)));
     await h.message('CACHE_HELP_NOW_PACK');
     h.fetch.mockRejectedValue(new Error('offline'));
-    response = await h.dispatch('fetch', { request: h.navigate('/en/help-now') });
+    response = await h.dispatch('fetch', { request: h.navigate(HELP_NOW_PATH) });
     expect(response?.status).toBe(200);
-    expect([...h.stores.get(PACK_CACHE)!.keys()]).toEqual([`${ORIGIN}${PACK}`]);
+    expect([...(h.stores.get(PACK_CACHE)?.keys() ?? [])]).toEqual([`${ORIGIN}${PACK}`]);
   });
 
   it.each(['redirect', 'wrong-url', 'opaque'])('rejects %s public responses', async kind => {
-    const h = workerHarness();
+    const h = await workerHarness();
     h.fetch.mockImplementation(request => {
       const response = publicResponse(
-        kind === 'wrong-url' ? '/en/member' : request.url,
+        kind === 'wrong-url' ? MEMBER_PATH : request.url,
         Object.fromEntries(publicAssetResponse(request).headers)
       );
       if (kind !== 'wrong-url')
@@ -152,10 +181,10 @@ describe('PWA cache privacy policy', () => {
   });
 
   it('uses no Cache Storage for online workspace, API, RSC, signed URLs or mutations', async () => {
-    const h = workerHarness();
+    const h = await workerHarness();
     await Promise.all(
       [
-        h.navigate('/en/member'),
+        h.navigate(MEMBER_PATH),
         h.request('/api/data'),
         h.request('/en/help-now?_rsc=synthetic'),
         h.request('/document?signature=synthetic'),
@@ -171,7 +200,7 @@ describe('PWA cache privacy policy', () => {
   });
 
   it('does not fall back to a stale public pack after a live private response', async () => {
-    const h = workerHarness();
+    const h = await workerHarness();
     await h.message('CACHE_HELP_NOW_PACK');
     h.caches.open.mockClear();
     h.fetch.mockResolvedValue(publicResponse(PACK, { 'cache-control': 'private' }, 'network only'));

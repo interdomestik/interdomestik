@@ -13,7 +13,7 @@ describe('legacy tabs with a hardened worker', () => {
   it.each(['en', 'sq', 'mk', 'sr', 'de', 'hr', 'en/'])(
     'rejects the real origin/main writer for %s without retaining private entries',
     async locale => {
-      const h = workerHarness();
+      const h = await workerHarness();
       await h.dispatch('activate');
       const route = locale.endsWith('/') ? '/en/help-now/' : `/${locale}/help-now`;
       h.fetch.mockImplementation(request =>
@@ -23,7 +23,7 @@ describe('legacy tabs with a hardened worker', () => {
             : publicAssetResponse(request)
         )
       );
-      expect(await runLegacyDownload(h, route)).toBe('failed');
+      expect(await runLegacyDownload(h.caches, route)).toBe('failed');
       expect(h.stores.has(LEGACY_CACHE)).toBe(false);
       expect(h.stores.size).toBe(0);
       expect(h.fetch.mock.calls.some(([request]) => new URL(request.url).pathname === route)).toBe(
@@ -38,7 +38,7 @@ describe('legacy tabs with a hardened worker', () => {
   );
 
   it('schedules one deferred sweep for throttle-window navigation and messages', async () => {
-    const h = workerHarness();
+    const h = await workerHarness();
     await h.message('PURGE_LEGACY_CACHES');
     const legacy = await h.caches.open(LEGACY_CACHE);
     await legacy.put(h.request(PACK), publicResponse(PACK, {}, 'PRIVATE'));
@@ -51,6 +51,7 @@ describe('legacy tabs with a hardened worker', () => {
     const navigation = h.startDispatch('fetch', { request: h.navigate('/en/member') });
     const message = h.startDispatch('message', {
       data: { type: 'PURGE_LEGACY_CACHES' },
+      origin: ORIGIN,
       source: { url: ORIGIN },
     });
     expect((await navigation.response)?.status).toBe(503);

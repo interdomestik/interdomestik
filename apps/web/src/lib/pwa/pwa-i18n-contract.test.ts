@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import vm from 'node:vm';
 import {
   downloadedOfflineDocument,
   publicResponse,
@@ -9,10 +8,14 @@ import {
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import offlineTemplate from '../../../public/offline.html?raw';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const read = (file: string): string => fs.readFileSync(path.join(root, file), 'utf8');
 const locales = ['en', 'sq', 'mk', 'sr', 'de'];
+type OfflineWorkerGlobal = typeof globalThis & {
+  pwaOffline: { copy: Record<string, (string | string[])[]> };
+};
 
 function assertOfflineLocale(locale: string, html: string): void {
   const pwa = JSON.parse(read(`src/messages/${locale}/common.json`)).common.pwa;
@@ -34,12 +37,13 @@ function assertOfflineLocale(locale: string, html: string): void {
 }
 
 describe('pwa-i18n-contract', () => {
-  it('keeps the owned common catalogs in complete PWA locale parity', () => {
+  it('keeps the owned common catalogs in complete PWA locale parity', async () => {
     const registry = read('../../scripts/modularity-guard-policy.mjs');
     for (const locale of locales) {
       expect(registry).toContain(`['${locale}/common.json', 'locale-quality-pass-i18n-contract']`);
     }
-    const workerCopy = vm.runInContext('OFFLINE_COPY', workerHarness().context);
+    await workerHarness();
+    const workerCopy = (globalThis as OfflineWorkerGlobal).pwaOffline.copy;
     for (const locale of locales) {
       const copy = JSON.parse(read(`src/messages/${locale}/common.json`)).common.pwa;
       expect(new Set(Object.keys(copy))).toEqual(
@@ -74,7 +78,7 @@ describe('pwa-i18n-contract', () => {
     }
   });
   it('keeps one script-free offline template and removes generated HTML copies', () => {
-    const template = read('public/offline.html');
+    const template = offlineTemplate;
     for (const key of ['locale', 'heading', 'privacy', 'availability', 'checklist']) {
       expect(template).toContain('{{' + key + '}}');
     }
@@ -95,13 +99,14 @@ describe('pwa-i18n-contract', () => {
   });
   it('escapes inserted locale strings instead of creating markup', async () => {
     const { worker } = await downloadedOfflineDocument('sq');
-    const copy = vm.runInContext('OFFLINE_COPY', worker.context);
+    const copy = (globalThis as OfflineWorkerGlobal).pwaOffline.copy;
     const payload = '<img src=x onerror="alert(1)"> & \'';
     copy.sq[3] = payload;
     copy.sq[9] = [payload];
     const response = await worker.dispatch('fetch', { request: worker.navigate('/sq/help-now') });
-    const html = await response!.text();
-    const document = new DOMParser().parseFromString(html, 'text/html');
+    expect(response).toBeDefined();
+    const html = await response?.text();
+    const document = new DOMParser().parseFromString(html ?? '', 'text/html');
     expect(document.querySelector('h1')?.textContent).toBe(payload);
     expect(document.querySelector('li')?.textContent).toBe(payload);
     expect(document.title).toBe(payload + ' | Interdomestik');
@@ -121,7 +126,7 @@ describe('pwa-i18n-contract', () => {
     );
     const response = await worker.dispatch('fetch', { request: worker.navigate('/sq/help-now') });
     expect(response?.status).toBe(503);
-    const document = new DOMParser().parseFromString(await response!.text(), 'text/html');
+    const document = new DOMParser().parseFromString((await response?.text()) ?? '', 'text/html');
     expect(document.documentElement.lang).toBe('sq');
     expect(document.body.textContent).not.toContain('Old offline document');
   });

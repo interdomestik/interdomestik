@@ -1,52 +1,19 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import vm from 'node:vm';
-import { fileURLToPath } from 'node:url';
-import { vi } from 'vitest';
-import ts from 'typescript';
+import { onTestFinished, vi } from 'vitest';
+import offlineTemplate from '../../../public/offline.html?raw';
 
 export const ORIGIN = 'https://ks.interdomestik.com';
 export const PACK = '/help-now-packs/content-packs.v1.json';
 export const PACK_CACHE = 'interdomestik-help-now-v2';
 export const STATIC_CACHE = 'interdomestik-offline-v2';
 export const LEGACY_CACHE = 'interdomestik-help-now-v1';
-const publicRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../public');
-const source = fs.readFileSync(path.join(publicRoot, 'sw.js'), 'utf8');
-
-// Frozen from 3fd4220ef's offline.ts; runnable after origin/main advances or in shallow CI.
-const LEGACY_DOWNLOAD_SOURCE = String.raw`import { getTripModeDownloadAssets, HELP_NOW_CACHE_NAME } from './content-packs';
-
-export type OfflineSaveResult = 'saved' | 'unsupported' | 'failed';
-const HELP_NOW_PUBLIC_ROUTE = /^\/(sq|en|sr|mk|de|hr)\/help-now\/?$/;
-
-function hasServiceWorkerController(): boolean {
-  return globalThis.navigator?.serviceWorker?.controller != null;
-}
-
-function getCurrentHelpNowRoute(): string | null {
-  const pathname = globalThis.location?.pathname ?? '';
-  return HELP_NOW_PUBLIC_ROUTE.test(pathname) ? pathname : null;
-}
-
-export async function saveTripModePackForOffline(): Promise<OfflineSaveResult> {
-  if (globalThis.caches === undefined) return 'unsupported';
-  if (!hasServiceWorkerController()) return 'unsupported';
-  const route = getCurrentHelpNowRoute();
-  if (!route) return 'unsupported';
-
-  try {
-    const cache = await globalThis.caches.open(HELP_NOW_CACHE_NAME);
-    await cache.addAll([...getTripModeDownloadAssets(), route]);
-    return 'saved';
-  } catch {
-    return 'failed';
-  }
-}
-`;
+// Non-literal import specifiers let TypeScript load these classic scripts without exports.
+const OFFLINE_HELPER_MODULE = '../../../public/sw-offline.js';
+const WORKER_MODULE = '../../../public/sw.js';
 
 type WorkerEvent = {
   request?: Request;
   data?: { type: string };
+  origin?: string;
   source?: { url: string };
   ports?: { postMessage: ReturnType<typeof vi.fn> }[];
   respondWith?: (value: Promise<Response>) => void;
@@ -71,14 +38,11 @@ export function publicAssetResponse(request: Request): Response {
   if (request.url.endsWith('.json')) contentType = 'application/json';
   else if (request.url.endsWith('.css')) contentType = 'text/css';
   const pathname = new URL(request.url).pathname;
-  const body =
-    pathname === '/offline.html'
-      ? fs.readFileSync(path.join(publicRoot, 'offline.html'), 'utf8')
-      : 'public';
+  const body = pathname === '/offline.html' ? offlineTemplate : 'public';
   return publicResponse(request.url, { 'content-type': contentType }, body);
 }
 
-export function workerHarness() {
+export async function workerHarness() {
   let now = 0;
   const timers = new Set<{ at: number; callback: () => void }>();
   const setTimeout = vi.fn((callback: () => void, milliseconds: number) => {
@@ -103,8 +67,8 @@ export function workerHarness() {
     delete: vi.fn((name: string) => Promise.resolve(stores.delete(name))),
     match: vi.fn().mockResolvedValue(new Response('STALE PERSONAL RECORD')),
     open: vi.fn((name: string) => {
-      if (!stores.has(name)) stores.set(name, new Map());
-      const store = stores.get(name)!;
+      const store = stores.get(name) ?? new Map<string, Response>();
+      stores.set(name, store);
       const put = vi.fn((request: Request | string, response: Response) => {
         store.set(key(request), response.clone());
         return Promise.resolve();
@@ -117,8 +81,11 @@ export function workerHarness() {
           const responses = await Promise.all(
             requests.map(request => dispatch('fetch', { request }))
           );
-          if (responses.some(response => !response?.ok)) throw new TypeError('Cache.addAll failed');
-          await Promise.all(requests.map((request, index) => put(request, responses[index]!)));
+          const valid = responses.map(response => {
+            if (!response?.ok) throw new TypeError('Cache.addAll failed');
+            return response;
+          });
+          await Promise.all(valid.map((response, index) => put(requests[index], response)));
         },
         match: vi.fn((request: Request | string) =>
           Promise.resolve(store.get(key(request))?.clone())
@@ -127,31 +94,33 @@ export function workerHarness() {
     }),
   };
   const fetch = vi.fn((request: Request) => Promise.resolve(publicAssetResponse(request)));
-  const context = vm.createContext({
-    importScripts: (url: string) => {
-      if (url !== '/sw-offline.js') throw new Error('Unexpected worker dependency');
-      const helper = fs.readFileSync(path.join(publicRoot, 'sw-offline.js'), 'utf8');
-      vm.runInContext(helper, context);
-    },
-    URL,
-    Request,
-    Response,
-    Headers,
-    Date: { now: () => now },
-    setTimeout,
-    caches,
-    fetch,
-    location: { origin: ORIGIN },
-    clients: { claim: vi.fn() },
-    skipWaiting: vi.fn(),
-    addEventListener: (name: string, listener: (event: WorkerEvent) => void) =>
-      listeners.set(name, listener),
+  const clock = vi.spyOn(Date, 'now').mockImplementation(() => now);
+  onTestFinished(() => {
+    vi.unstubAllGlobals();
+    clock.mockRestore();
   });
-  vm.runInContext(source, context);
+  vi.stubGlobal('caches', caches);
+  vi.stubGlobal('fetch', fetch);
+  vi.stubGlobal('setTimeout', setTimeout);
+  vi.stubGlobal('location', { origin: ORIGIN });
+  vi.stubGlobal('clients', { claim: vi.fn() });
+  vi.stubGlobal('skipWaiting', vi.fn());
+  vi.stubGlobal('pwaOffline', undefined);
+  vi.stubGlobal('importScripts', (url: string) => {
+    if (url !== '/sw-offline.js') throw new Error('Unexpected worker dependency');
+  });
+  vi.stubGlobal('addEventListener', (name: string, listener: (event: WorkerEvent) => void) =>
+    listeners.set(name, listener)
+  );
+  vi.resetModules();
+  await import(OFFLINE_HELPER_MODULE);
+  await import(WORKER_MODULE);
   function startDispatch(name: string, event: WorkerEvent = {}) {
     const pending: Promise<unknown>[] = [];
     let response: Promise<Response> | undefined;
-    listeners.get(name)!({
+    const listener = listeners.get(name);
+    if (!listener) throw new Error('Missing worker listener: ' + name);
+    listener({
       ...event,
       waitUntil: promise => pending.push(promise),
       respondWith: promise => {
@@ -175,6 +144,7 @@ export function workerHarness() {
   const message = (type: string) =>
     dispatch('message', {
       data: { type },
+      origin: ORIGIN,
       source: { url: `${ORIGIN}/en/help-now` },
       ports: [{ postMessage: vi.fn() }],
     });
@@ -187,36 +157,30 @@ export function workerHarness() {
     request,
     navigate,
     message,
-    context,
     advance,
     setTimeout,
   };
 }
 
-export function runLegacyDownload(worker: ReturnType<typeof workerHarness>, pathname: string) {
-  const { outputText } = ts.transpileModule(LEGACY_DOWNLOAD_SOURCE, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS },
-  });
-  const exports: Record<string, unknown> = {};
-  vm.runInNewContext(outputText, {
-    exports,
-    require: (dependency: string) => {
-      if (dependency !== './content-packs') throw new Error('Unexpected legacy dependency');
-      // The base content-packs.ts exports this exact cache name and one-URL asset list.
-      return { HELP_NOW_CACHE_NAME: LEGACY_CACHE, getTripModeDownloadAssets: () => [PACK] };
-    },
-    caches: worker.caches,
-    navigator: { serviceWorker: { controller: {} } },
-    location: { pathname },
-  });
-  const save = exports.saveTripModePackForOffline as () => Promise<
-    'saved' | 'unsupported' | 'failed'
-  >;
-  return save();
+// Frozen from 3fd4220ef's offline.ts; runnable after origin/main advances or in shallow CI.
+// Controller is present; content-packs.ts supplied this exact v1 cache and one-URL asset list.
+export async function runLegacyDownload(
+  caches: Awaited<ReturnType<typeof workerHarness>>['caches'] | undefined,
+  pathname: string
+): Promise<'saved' | 'unsupported' | 'failed'> {
+  if (caches === undefined) return 'unsupported';
+  if (!/^\/(sq|en|sr|mk|de|hr)\/help-now\/?$/.test(pathname)) return 'unsupported';
+  try {
+    const cache = await caches.open(LEGACY_CACHE);
+    await cache.addAll([PACK, pathname]);
+    return 'saved';
+  } catch {
+    return 'failed';
+  }
 }
 
 export async function downloadedOfflineDocument(locale: string) {
-  const worker = workerHarness();
+  const worker = await workerHarness();
   await worker.message('CACHE_HELP_NOW_PACK');
   worker.fetch.mockRejectedValue(new Error('offline'));
   const response = await worker.dispatch('fetch', {

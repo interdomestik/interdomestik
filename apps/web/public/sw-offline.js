@@ -155,4 +155,8 @@ function offlineNotice(request) {
   );
 }
 
-globalThis.pwaOffline = { localizeDocument: localizeOfflineDocument, notice: offlineNotice };
+globalThis.pwaOffline = {
+  copy: OFFLINE_COPY,
+  localizeDocument: localizeOfflineDocument,
+  notice: offlineNotice,
+};
