@@ -13,7 +13,7 @@ export type SponsorActor = {
 };
 
 export type SponsorScope = {
-  /** The agent who owns the company lead, or who created the sponsor. */
+  /** The agent who owns the source company lead; null when that lead is missing. */
   ownerAgentId: string | null;
   branchId: string;
 };

@@ -12,12 +12,12 @@ export function ActionForm({
   children,
   target = {},
   disabledReason,
-}: {
+}: Readonly<{
   operation: SponsorOperation;
   children?: ReactNode;
   target?: Record<string, string>;
   disabledReason?: string;
-}): React.JSX.Element {
+}>): React.JSX.Element {
   const t = useTranslations('sponsors');
   const id = useId();
   const [state, action, pending] = useActionState<SponsorActionResult | null, FormData>(
@@ -37,6 +37,10 @@ export function ActionForm({
     },
     null
   );
+  let message = '';
+  if (state?.ok) message = state.counts ? t('uploadSummary', state.counts) : t('saved');
+  else if (state) message = t(`errors.${state.error}`);
+
   return (
     <form action={action} className="space-y-3 rounded-lg border p-4">
       {Object.entries(target).map(([name, value]) => (
@@ -54,14 +58,9 @@ export function ActionForm({
           {t(pending ? 'saving' : `actions.${operation}`)}
         </Button>
       </fieldset>
-      <div role="status" aria-live="polite">
-        {state &&
-          (state.ok
-            ? state.counts
-              ? t('uploadSummary', state.counts)
-              : t('saved')
-            : t(`errors.${state.error}`))}
-      </div>
+      <output className="block" aria-live="polite">
+        {message}
+      </output>
     </form>
   );
 }

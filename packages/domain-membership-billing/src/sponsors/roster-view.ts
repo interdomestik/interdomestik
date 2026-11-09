@@ -1,6 +1,7 @@
 import {
   and,
   eq,
+  memberLeads,
   sponsorRosterEntries,
   sponsors,
   sponsorTerms,
@@ -57,20 +58,20 @@ export type RosterView = {
 };
 
 /** Which sponsors a role may see; `null` means none at all. */
-type Visibility = { all: true } | { branchId: string } | { createdBy: string };
+type Visibility = { all: true } | { branchId: string } | { ownerAgentId: string };
 
 function visibleSponsors(actor: SponsorActor): Visibility | null {
   if (isSponsorStaff(actor)) return { all: true };
   if (actor.role === 'branch_manager' && actor.branchId) return { branchId: actor.branchId };
-  if (actor.role === 'agent' && actor.agentTier === 'office') return { createdBy: actor.userId };
+  if (actor.role === 'agent' && actor.agentTier === 'office') return { ownerAgentId: actor.userId };
   return null;
 }
 
-type SponsorRow = { id: string; legalName: string; branchId: string; createdBy: string };
+type SponsorRow = { id: string; legalName: string; branchId: string; ownerAgentId: string | null };
 
-const scopeOf = (row: SponsorRow) => ({ ownerAgentId: row.createdBy, branchId: row.branchId });
+const scopeOf = (row: SponsorRow) => ({ ownerAgentId: row.ownerAgentId, branchId: row.branchId });
 
-async function loadSponsors(
+function loadSponsors(
   tx: TenantTransaction,
   tenantId: string,
   visibility: Visibility
@@ -80,16 +81,21 @@ async function loadSponsors(
       id: sponsors.id,
       legalName: sponsors.legalName,
       branchId: sponsors.branchId,
-      createdBy: sponsors.createdBy,
+      ownerAgentId: memberLeads.agentId,
     })
     .from(sponsors)
+    .leftJoin(
+      memberLeads,
+      and(eq(memberLeads.tenantId, sponsors.tenantId), eq(memberLeads.id, sponsors.sourceLeadId))
+    )
     .where(
       and(
         eq(sponsors.tenantId, tenantId),
         'branchId' in visibility ? eq(sponsors.branchId, visibility.branchId) : undefined,
-        'createdBy' in visibility ? eq(sponsors.createdBy, visibility.createdBy) : undefined
+        'ownerAgentId' in visibility ? eq(memberLeads.agentId, visibility.ownerAgentId) : undefined
       )
-    );
+    )
+    .then(rows => rows);
 }
 
 /** The sponsors this actor may see (§3.4), newest term first; other roles see none. */
@@ -146,12 +152,16 @@ async function loadRoster(
       id: sponsors.id,
       legalName: sponsors.legalName,
       branchId: sponsors.branchId,
-      createdBy: sponsors.createdBy,
+      ownerAgentId: memberLeads.agentId,
     })
     .from(sponsorTerms)
     .innerJoin(
       sponsors,
       and(eq(sponsors.tenantId, sponsorTerms.tenantId), eq(sponsors.id, sponsorTerms.sponsorId))
+    )
+    .leftJoin(
+      memberLeads,
+      and(eq(memberLeads.tenantId, sponsors.tenantId), eq(memberLeads.id, sponsors.sourceLeadId))
     )
     .where(and(eq(sponsorTerms.tenantId, tenantId), eq(sponsorTerms.id, termId)));
   if (!sponsor) return null;

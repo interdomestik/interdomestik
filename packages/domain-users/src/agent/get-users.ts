@@ -112,19 +112,19 @@ export async function getAgentUsersCore(params: {
     return users.map(userRow => {
       const membership = memberships.get(userRow.id);
       const row = userRow.subscriptions[0];
-      const subscription =
-        membership?.source === 'subscription'
-          ? membership.subscription
-          : membership?.source === 'sponsor' && row
-            ? {
-                ...row,
-                ...membership.lifecycle,
-                planId: membership.planId,
-                planKey: membership.planKey,
-                currentPeriodStart: membership.windowStart,
-                currentPeriodEnd: membership.windowEnd,
-              }
-            : null;
+      let subscription: Subscription | null = null;
+      if (membership?.source === 'subscription') {
+        subscription = membership.subscription;
+      } else if (membership?.source === 'sponsor' && row) {
+        subscription = {
+          ...row,
+          ...membership.lifecycle,
+          planId: membership.planId,
+          planKey: membership.planKey,
+          currentPeriodStart: membership.windowStart,
+          currentPeriodEnd: membership.windowEnd,
+        };
+      }
       return {
         ...userRow,
         subscriptions: subscription ? [subscription] : [],

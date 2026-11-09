@@ -38,7 +38,7 @@ export function classifyProvisioning(facts: ProvisioningFacts): ProvisioningCase
   if (facts.role !== 'member') return 'not_eligible';
   const row = facts.subscription;
   // A group_sponsor row is the sponsor cache, not a Paddle row.
-  if (!row || row.provider !== 'paddle' || row.status === null) return 'immediate';
+  if (row?.provider !== 'paddle' || row.status === null) return 'immediate';
   if (CANNOT_RENEW.has(row.status)) return 'immediate';
   if (STAFF_REVIEW.has(row.status)) return 'paddle_review';
   return 'handover';

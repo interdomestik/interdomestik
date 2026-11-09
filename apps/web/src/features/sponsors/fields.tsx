@@ -12,14 +12,14 @@ export function Field({
   min,
   max,
   value,
-}: {
+}: Readonly<{
   name: string;
   type?: string;
   required?: boolean;
   min?: number | string;
   max?: number | string;
   value?: string | number;
-}): React.JSX.Element {
+}>): React.JSX.Element {
   const t = useTranslations('sponsors');
   const id = useId();
   return (
@@ -42,10 +42,10 @@ export function Field({
 export function Choice({
   name,
   options,
-}: {
+}: Readonly<{
   name: string;
   options: SponsorOption[];
-}): React.JSX.Element {
+}>): React.JSX.Element {
   const t = useTranslations('sponsors');
   const id = useId();
   return (
@@ -71,7 +71,7 @@ export function Choice({
   );
 }
 
-export function RevisionFields({ minimum = 1 }: { minimum?: number }): React.JSX.Element {
+export function RevisionFields({ minimum = 1 }: Readonly<{ minimum?: number }>): React.JSX.Element {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <Field name="seatCount" type="number" min={minimum} max={500} />

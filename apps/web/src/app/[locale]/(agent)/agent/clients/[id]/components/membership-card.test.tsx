@@ -14,7 +14,6 @@ describe('agent membership card', () => {
       const covered = source !== 'none';
       render(
         <MembershipCard
-          subscription={null}
           membership={{
             source,
             status: covered ? 'active' : 'none',

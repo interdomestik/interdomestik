@@ -1,4 +1,4 @@
-import { createHmac } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 
 /**
  * ACQ-3b roster secrets. One server secret, domain-separated by label, keys the email identity
@@ -23,9 +23,25 @@ export function readSponsorRosterSecret(env: NodeJS.ProcessEnv = process.env): s
 
 export function normalizeRosterEmail(email: string): string | null {
   const normalized = email.trim().toLowerCase();
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(normalized) && normalized.length <= 254
-    ? normalized
-    : null;
+  return normalized.length <= 254 && isRosterEmail(normalized) ? normalized : null;
+}
+
+/** Linear scan; a domain separator needs at least one character on each side. */
+export function isRosterEmail(value: string): boolean {
+  let at = -1;
+  let domainDot = false;
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value.charAt(index);
+    if (/\s/u.test(character)) return false;
+    if (character === '@') {
+      if (at !== -1 || index === 0) return false;
+      at = index;
+    }
+    if (character === '.' && at !== -1 && index > at + 1 && index < value.length - 1) {
+      domainDot = true;
+    }
+  }
+  return at !== -1 && domainDot;
 }
 
 const hmac = (secret: string, label: string, value: string): string =>
@@ -39,4 +55,4 @@ export const optOutToken = (secret: string, entryId: string): string =>
   hmac(secret, 'sponsor-roster-opt-out', entryId);
 
 export const optOutTokenHash = (token: string): string =>
-  createHmac('sha256', 'sponsor-roster-opt-out-hash').update(token).digest('base64url');
+  createHash('sha256').update('sponsor-roster-opt-out\u0000').update(token).digest('base64url');

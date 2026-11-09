@@ -10,9 +10,11 @@ export async function lockSponsorEntryIdentity(
   tx: TenantTransaction,
   emailHmac: string
 ): Promise<void> {
-  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`sponsor-entry:${emailHmac}`}))`);
+  const lockKey = `sponsor-entry:${emailHmac}`;
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${lockKey}))`);
 }
 
 export async function lockSponsorPerson(tx: TenantTransaction, userId: string): Promise<void> {
-  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`sponsor-user:${userId}`}))`);
+  const lockKey = `sponsor-user:${userId}`;
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${lockKey}))`);
 }

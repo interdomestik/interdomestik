@@ -4,7 +4,7 @@ import type { ReactElement } from 'react';
 
 export type SponsorTasksArea = 'staff' | 'admin';
 
-export function SponsorTasksLink({ area }: { area: SponsorTasksArea }): ReactElement {
+export function SponsorTasksLink({ area }: Readonly<{ area: SponsorTasksArea }>): ReactElement {
   const t = useTranslations('sponsorTasks');
   return (
     <Link

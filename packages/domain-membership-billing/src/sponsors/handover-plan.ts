@@ -69,7 +69,7 @@ export function planHandoverStep(
   transactions: readonly PaddleTransaction[],
   now: Date
 ): HandoverPlan {
-  const { intent, linked, attempts } = state;
+  const { intent, linked } = state;
   const plan: HandoverPlan = {
     charges: chargesAfterBoundary(intent, transactions),
     observedCancel: false,
@@ -104,6 +104,19 @@ export function planHandoverStep(
     }
   }
 
+  finalizePlan(plan, state, readBack, transactions, now, paidUntil);
+  return plan;
+}
+
+function finalizePlan(
+  plan: HandoverPlan,
+  state: HandoverState,
+  readBack: PaddleReadBack & Partial<Pick<HandoverSubscription, 'scheduledChange'>>,
+  transactions: readonly PaddleTransaction[],
+  now: Date,
+  paidUntil: Date | null
+): void {
+  const { intent, linked, attempts } = state;
   // A scheduled cancel is a staff task only when nothing wants it: the worker's own cancel for a
   // live linked entry is the intended outcome, not a task (§3.7 "Observed cancellation").
   if (ACTIVE.has(intent.state) && linked.some(entry => isLiveEntry(entry, now, paidUntil))) {
@@ -137,7 +150,6 @@ export function planHandoverStep(
     readBack.status === 'active' &&
     readBack.scheduledChange?.action === 'cancel' &&
     plan.dispatch === null;
-  return plan;
 }
 
 /** Observed cancellation, in every state (round 15, finding 2). */
@@ -201,7 +213,7 @@ function planLive(
     return;
   }
   if (finding.kind !== 'not_scheduled') return;
-  const nextBilledAt = readBack.nextBilledAt ? Date.parse(readBack.nextBilledAt) : NaN;
+  const nextBilledAt = readBack.nextBilledAt ? Date.parse(readBack.nextBilledAt) : Number.NaN;
   if (!Number.isFinite(nextBilledAt)) {
     // Missing provider timing cannot authorize a cancel; use the existing staff recovery path.
     plan.nextState = 'staff_review';

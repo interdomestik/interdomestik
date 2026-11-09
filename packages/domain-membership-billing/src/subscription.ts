@@ -40,12 +40,9 @@ export async function hasActiveMembership(
     const now = new Date();
     const memberships = await resolveEffectiveMembership(tx, tenantId, [userId], now);
     const membership = memberships.get(userId);
-    const subscription =
-      membership?.source === 'sponsor'
-        ? membership.lifecycle
-        : membership?.source === 'subscription'
-          ? membership.subscription
-          : null;
+    let subscription = null;
+    if (membership?.source === 'sponsor') subscription = membership.lifecycle;
+    else if (membership?.source === 'subscription') subscription = membership.subscription;
     return membershipLifecycleGrantsAccess(getMembershipLifecycleBucket({ subscription, now }));
   });
 }

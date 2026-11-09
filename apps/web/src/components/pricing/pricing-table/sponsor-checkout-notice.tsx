@@ -9,19 +9,18 @@ type Props = {
   t: (key: string, values?: Record<string, string>) => string;
 };
 
-export const SponsorCheckoutNotice = forwardRef<HTMLDivElement, Props>(
+export const SponsorCheckoutNotice = forwardRef<HTMLOutputElement, Props>(
   function SponsorCheckoutNotice({ notice, locale, t }, ref) {
     const date = formatPilotDate(notice.date, locale, '');
     return (
-      <div
+      <output
         ref={ref}
-        role="status"
         tabIndex={-1}
         data-testid="pricing-sponsor-notice"
-        className="mx-auto max-w-2xl rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm text-blue-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+        className="block mx-auto max-w-2xl rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm text-blue-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
       >
         {t(`sponsorNotice.${notice.key}`, { date })}
-      </div>
+      </output>
     );
   }
 );

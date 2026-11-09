@@ -10,13 +10,13 @@ import type { TaskActionResult } from './tasks.core';
 
 type Props = { kind: 'evidence' | 'close' | 'acknowledge'; id: string };
 
-export function TaskActionForm({ kind, id }: Props): ReactElement {
+export function TaskActionForm({ kind, id }: Readonly<Props>): ReactElement {
   const t = useTranslations('sponsorTasks');
   const router = useRouter();
   const formId = useId();
   const [pending, setPending] = useState(false);
   const [outcome, setOutcome] = useState<TaskActionResult | null>(null);
-  const result = useRef<HTMLParagraphElement>(null);
+  const result = useRef<HTMLOutputElement>(null);
   const submitting = useRef(false);
   useEffect(() => {
     if (outcome) result.current?.focus();
@@ -28,21 +28,23 @@ export function TaskActionForm({ kind, id }: Props): ReactElement {
     const form = new FormData(event.currentTarget);
     if (kind === 'evidence') {
       const value = form.get('paidUntilUtc');
-      form.set(
-        'paidUntil',
-        typeof value === 'string' ? `${value}${value.length === 16 ? ':00' : ''}Z` : ''
-      );
+      let paidUntil = '';
+      if (typeof value === 'string') {
+        const seconds = value.length === 16 ? ':00' : '';
+        paidUntil = `${value}${seconds}Z`;
+      }
+      form.set('paidUntil', paidUntil);
     }
     submitting.current = true;
     setPending(true);
     setOutcome(null);
     try {
-      const action =
-        kind === 'evidence'
-          ? recordEvidenceAction
-          : kind === 'close'
-            ? closeHandoverAction
-            : acknowledgeChargeAction;
+      const actions = {
+        evidence: recordEvidenceAction,
+        close: closeHandoverAction,
+        acknowledge: acknowledgeChargeAction,
+      };
+      const action = actions[kind];
       const response = await action(form);
       setOutcome(response);
     } catch {
@@ -51,6 +53,13 @@ export function TaskActionForm({ kind, id }: Props): ReactElement {
       setPending(false);
       submitting.current = false;
     }
+  }
+
+  let outcomeMessage = '';
+  if (outcome?.ok) outcomeMessage = t('saved');
+  else if (outcome) {
+    const key = outcome.error === 'conflict' ? `conflicts.${kind}` : `errors.${outcome.error}`;
+    outcomeMessage = t(key);
   }
 
   return (
@@ -108,23 +117,14 @@ export function TaskActionForm({ kind, id }: Props): ReactElement {
         {kind === 'acknowledge' && <p className="text-sm">{t('refundRule')}</p>}
         <Button type="submit">{t(pending ? 'saving' : `actions.${kind}`)}</Button>
       </fieldset>
-      <p
+      <output
         ref={result}
         tabIndex={-1}
-        role="status"
         aria-live="polite"
-        className="rounded focus-visible:outline focus-visible:outline-2"
+        className="block rounded focus-visible:outline focus-visible:outline-2"
       >
-        {outcome
-          ? t(
-              outcome.ok
-                ? 'saved'
-                : outcome.error === 'conflict'
-                  ? `conflicts.${kind}`
-                  : `errors.${outcome.error}`
-            )
-          : ''}
-      </p>
+        {outcomeMessage}
+      </output>
       {outcome?.ok && (
         <Button
           type="button"

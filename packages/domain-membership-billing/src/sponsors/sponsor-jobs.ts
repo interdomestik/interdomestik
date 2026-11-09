@@ -1,10 +1,15 @@
-import { hasTenantMemberCredential, issueTenantMemberNumber } from '@interdomestik/database';
+import {
+  and,
+  eq,
+  hasTenantMemberCredential,
+  issueTenantMemberNumber,
+  tenantSettings,
+} from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import { and, eq, tenantSettings } from '@interdomestik/database';
 
 import { type ProvisionOutcome, provisionEntry } from './provisioning';
 import { listProvisioningWork } from './provisioning-facts';

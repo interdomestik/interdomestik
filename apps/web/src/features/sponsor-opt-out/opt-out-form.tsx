@@ -4,7 +4,7 @@ import { Button } from '@interdomestik/ui/components/button';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 
-export function OptOutForm({ token }: { token: string }): ReactElement {
+export function OptOutForm({ token }: Readonly<{ token: string }>): ReactElement {
   const t = useTranslations('sponsorOptOut');
   const [status, setStatus] = useState<'idle' | 'pending' | 'done' | 'invalid' | 'error'>('idle');
   const result = useRef<HTMLParagraphElement>(null);

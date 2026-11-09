@@ -4,6 +4,7 @@ import {
   eq,
   inArray,
   isNull,
+  memberLeads,
   resolveSponsorOptOutTenant,
   sponsorMailOutbox,
   sponsorRosterEntries,
@@ -195,7 +196,7 @@ export async function markLeftCompany(
       .select({
         termId: sponsorTerms.id,
         branchId: sponsors.branchId,
-        createdBy: sponsors.createdBy,
+        ownerAgentId: memberLeads.agentId,
       })
       .from(sponsorRosterEntries)
       .innerJoin(
@@ -208,6 +209,10 @@ export async function markLeftCompany(
       .innerJoin(
         sponsors,
         and(eq(sponsors.tenantId, sponsorTerms.tenantId), eq(sponsors.id, sponsorTerms.sponsorId))
+      )
+      .leftJoin(
+        memberLeads,
+        and(eq(memberLeads.tenantId, sponsors.tenantId), eq(memberLeads.id, sponsors.sourceLeadId))
       )
       .where(
         and(eq(sponsorRosterEntries.tenantId, tenantId), eq(sponsorRosterEntries.id, input.entryId))
@@ -231,7 +236,7 @@ export async function markLeftCompany(
         )
       )
       .limit(1);
-    const scope = { ownerAgentId: row.createdBy, branchId: row.branchId };
+    const scope = { ownerAgentId: row.ownerAgentId, branchId: row.branchId };
     if (!canManageRoster(actor, scope, approved !== undefined)) {
       return { ok: false, error: 'forbidden' };
     }

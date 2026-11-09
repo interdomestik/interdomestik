@@ -71,41 +71,41 @@ export function hasPresentOrFutureCoverage(entries: readonly CoverageEntry[], no
   return [...deriveEntryIntervals(entries).values()].some(interval => interval.end > now);
 }
 
-/** §3.8: all facts are fresh durable reads; cached handover state is deliberately absent. */
-export function checkSponsorMail(
+function checkMembershipEndOffer(facts: SponsorMailFacts, now: Date): SponsorMailCheck {
+  if (!facts.userExists) return skip('user_missing');
+  if (hasPresentOrFutureCoverage(facts.entries, now)) return skip('coverage_remains');
+  if (facts.nonSponsorCovered) return skip('subscription_covers');
+  if (!facts.intentAddressed && (!facts.entry || entryEnd(facts.entry) > now)) {
+    return skip('coverage_not_ended');
+  }
+  return { send: true };
+}
+
+function checkRenewalNotice(facts: SponsorMailFacts): SponsorMailCheck {
+  const entry = facts.entry;
+  if (facts.entryRevoked || entry?.revokedAt) return skip('entry_revoked');
+  if (entry && hasContinuingSuccessor(entry, facts.entries)) return skip('successor_exists');
+  return { send: true };
+}
+
+function checkPendingHandover(
+  entry: CoverageEntry,
+  dispatchPeriodEndsAt: Date | null,
+  now: Date
+): SponsorMailCheck {
+  if (!dispatchPeriodEndsAt) return skip('dispatch_period_unknown');
+  return isLiveEntry(entry, now, dispatchPeriodEndsAt) ? { send: true } : skip('handover_not_live');
+}
+
+function checkBoundEntry(
   kind: SponsorMailKind,
   facts: SponsorMailFacts,
   now: Date
 ): SponsorMailCheck {
-  if (!facts.hasRecipient) return skip('recipient_missing');
-  if (kind === 'membership_end_offer') {
-    if (!facts.userExists) return skip('user_missing');
-    if (hasPresentOrFutureCoverage(facts.entries, now)) return skip('coverage_remains');
-    if (facts.nonSponsorCovered) return skip('subscription_covers');
-    if (!facts.intentAddressed && (!facts.entry || entryEnd(facts.entry) > now)) {
-      return skip('coverage_not_ended');
-    }
-    return { send: true };
-  }
-  if (!facts.entryExists) return skip('entry_missing');
-  if (kind === 'opt_out_confirmation') return { send: true };
-  if (kind === 'foreign_account' || kind === 'not_eligible') {
-    if (facts.optedOut) return skip('entry_opted_out');
-    return facts.termEffective ? { send: true } : skip('term_ineffective');
-  }
   const entry = facts.entry;
-  if (kind === 'renewal_notice') {
-    if (facts.entryRevoked || entry?.revokedAt) return skip('entry_revoked');
-    return entry && hasContinuingSuccessor(entry, facts.entries)
-      ? skip('successor_exists')
-      : { send: true };
-  }
   if (!entry || !facts.userId || !facts.userExists) return skip('entry_unbound');
   if (kind === 'handover_pending') {
-    if (!facts.dispatchPeriodEndsAt) return skip('dispatch_period_unknown');
-    return isLiveEntry(entry, now, facts.dispatchPeriodEndsAt)
-      ? { send: true }
-      : skip('handover_not_live');
+    return checkPendingHandover(entry, facts.dispatchPeriodEndsAt, now);
   }
   if (!isEligible(entry)) return skip('entry_ineligible');
   const interval = deriveEntryIntervals(facts.entries).get(entry.id);
@@ -114,4 +114,22 @@ export function checkSponsorMail(
   if (kind !== 'handover_confirmed' && now < interval.start) return skip('before_start');
   if (kind === 'activation' && facts.hasCredential) return skip('credential_exists');
   return { send: true };
+}
+
+/** §3.8: all facts are fresh durable reads; cached handover state is deliberately absent. */
+export function checkSponsorMail(
+  kind: SponsorMailKind,
+  facts: SponsorMailFacts,
+  now: Date
+): SponsorMailCheck {
+  if (!facts.hasRecipient) return skip('recipient_missing');
+  if (kind === 'membership_end_offer') return checkMembershipEndOffer(facts, now);
+  if (!facts.entryExists) return skip('entry_missing');
+  if (kind === 'opt_out_confirmation') return { send: true };
+  if (kind === 'foreign_account' || kind === 'not_eligible') {
+    if (facts.optedOut) return skip('entry_opted_out');
+    return facts.termEffective ? { send: true } : skip('term_ineffective');
+  }
+  if (kind === 'renewal_notice') return checkRenewalNotice(facts);
+  return checkBoundEntry(kind, facts, now);
 }

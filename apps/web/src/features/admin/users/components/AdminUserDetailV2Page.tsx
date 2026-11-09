@@ -124,6 +124,23 @@ export async function AdminUserDetailV2Page({
   const backHref = buildAdminUsersBackHref(searchParams ?? {});
   const backQuery = backHref.split('?')[1] ?? '';
 
+  let effectiveSubscription = null;
+  if (membership.source === 'sponsor') {
+    effectiveSubscription = {
+      planId: membership.planId,
+      currentPeriodStart: membership.windowStart,
+      currentPeriodEnd: membership.windowEnd,
+      ...membership.lifecycle,
+    };
+  } else if (membership.source === 'subscription') {
+    effectiveSubscription = {
+      planId: membership.subscription.planId ?? 'none',
+      currentPeriodStart: membership.subscription.currentPeriodStart,
+      currentPeriodEnd: membership.subscription.currentPeriodEnd,
+      cancelAtPeriodEnd: membership.subscription.cancelAtPeriodEnd ?? false,
+      gracePeriodEndsAt: membership.subscription.gracePeriodEndsAt,
+    };
+  }
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -156,24 +173,7 @@ export async function AdminUserDetailV2Page({
               ? subscription.status
               : null
           }
-          subscription={
-            membership.source === 'sponsor'
-              ? {
-                  planId: membership.planId,
-                  currentPeriodStart: membership.windowStart,
-                  currentPeriodEnd: membership.windowEnd,
-                  ...membership.lifecycle,
-                }
-              : membership.source === 'subscription'
-                ? {
-                    planId: membership.subscription.planId ?? 'none',
-                    currentPeriodStart: membership.subscription.currentPeriodStart,
-                    currentPeriodEnd: membership.subscription.currentPeriodEnd,
-                    cancelAtPeriodEnd: membership.subscription.cancelAtPeriodEnd ?? false,
-                    gracePeriodEndsAt: membership.subscription.gracePeriodEndsAt,
-                  }
-                : null
-          }
+          subscription={effectiveSubscription}
           membershipStatus={effectiveProfileStatus}
           membershipBadgeClass={membershipBadgeClass}
           isMembershipProfile={isMembershipProfile}

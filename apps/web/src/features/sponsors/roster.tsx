@@ -7,13 +7,36 @@ export async function SponsorRoster({
   roster,
   uploadEnabled,
   locale,
-}: {
+}: Readonly<{
   roster: RosterView;
   uploadEnabled: boolean;
   locale: string;
-}): Promise<React.JSX.Element> {
+}>): Promise<React.JSX.Element> {
   const t = await getTranslations({ locale, namespace: 'sponsors' });
   const target = { sponsorId: roster.sponsorId, termId: roster.term.termId };
+  let uploadControl: React.ReactNode;
+  if (!uploadEnabled) {
+    uploadControl = <output className="block">{t('uploadDark')}</output>;
+  } else if (!roster.term.effective) {
+    uploadControl = <p>{t('approvalRequired')}</p>;
+  } else {
+    uploadControl = (
+      <ActionForm operation="uploadRoster" target={target}>
+        <p>{t('csvHelp', { max: MAX_UPLOAD_ROWS })}</p>
+        <label className="block space-y-2">
+          <span>{t('fields.csv')}</span>
+          <input
+            className="block max-w-full"
+            type="file"
+            name="csv"
+            accept=".csv,text/csv"
+            required
+          />
+        </label>
+      </ActionForm>
+    );
+  }
+
   return (
     <section className="space-y-4">
       <h2 className="text-xl font-semibold">{t('roster')}</h2>
@@ -26,25 +49,7 @@ export async function SponsorRoster({
         ))}
       </ul>
       <p>{t('seatContinues')}</p>
-      {!uploadEnabled ? (
-        <p role="status">{t('uploadDark')}</p>
-      ) : !roster.term.effective ? (
-        <p>{t('approvalRequired')}</p>
-      ) : (
-        <ActionForm operation="uploadRoster" target={target}>
-          <p>{t('csvHelp', { max: MAX_UPLOAD_ROWS })}</p>
-          <label className="block space-y-2">
-            <span>{t('fields.csv')}</span>
-            <input
-              className="block max-w-full"
-              type="file"
-              name="csv"
-              accept=".csv,text/csv"
-              required
-            />
-          </label>
-        </ActionForm>
-      )}
+      {uploadControl}
       {roster.entries.length === 0 ? (
         <p>{t('emptyRoster')}</p>
       ) : (

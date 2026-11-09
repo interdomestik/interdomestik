@@ -2,6 +2,7 @@ import { auditLog, type TenantTransaction } from '@interdomestik/database';
 import { expect, vi } from 'vitest';
 
 import type { SponsorAuditEvent } from './audit';
+import { isRosterEmail } from './roster-crypto';
 
 type Row = Record<string, unknown>;
 type Write = { table: unknown; values: Row | Row[] };
@@ -25,7 +26,12 @@ export function auditTransaction(
   const updated = [...(options.updated ?? [])];
   const writes: Write[] = [];
   const query = (rows: Row[], write?: Write): object => {
-    const chain = {
+    const result = Promise.resolve().then(() => {
+      if (write?.table === auditLog && options.failAudit) throw new Error('audit unavailable');
+      if (write) writes.push(write);
+      return rows;
+    });
+    const chain = Object.assign(result, {
       from: vi.fn(() => chain),
       where: vi.fn(() => chain),
       innerJoin: vi.fn(() => chain),
@@ -35,27 +41,19 @@ export function auditTransaction(
       for: vi.fn(() => chain),
       onConflictDoNothing: vi.fn(() => chain),
       returning: vi.fn(() => chain),
-      then: (resolve: (value: Row[]) => unknown, reject: (error: Error) => unknown) => {
-        if (write?.table === auditLog && options.failAudit) {
-          return Promise.reject(new Error('audit unavailable')).then(resolve, reject);
-        }
-        if (write) writes.push(write);
-        return Promise.resolve(rows).then(resolve, reject);
-      },
-    };
+    });
     return chain;
   };
   const tx = {
     select: vi.fn(() => query(selects.shift() ?? [])),
     selectDistinct: vi.fn(() => query(selects.shift() ?? [])),
     insert: vi.fn((table: unknown) => ({
-      values: (values: Row | Row[]) =>
-        query(
-          table === auditLog
-            ? []
-            : (inserted.shift() ?? (Array.isArray(values) ? values : [values])),
-          { table, values }
-        ),
+      values: (values: Row | Row[]) => {
+        let rows: Row[] = [];
+        if (table !== auditLog)
+          rows = inserted.shift() ?? (Array.isArray(values) ? values : [values]);
+        return query(rows, { table, values });
+      },
     })),
     update: vi.fn((table: unknown) => ({
       set: (values: Row) => query(updated.shift() ?? [], { table, values }),
@@ -90,8 +88,19 @@ export function expectAudits(
   for (const event of db.audits()) {
     for (const value of Object.values(event.metadata as Row)) {
       if (typeof value !== 'string') continue;
-      expect(value).not.toMatch(/[^\s@]+@[^\s@]+\.[^\s@]+/u);
+      expect(containsEmail(value)).toBe(false);
       for (const personal of privateValues) expect(value).not.toContain(personal);
     }
   }
+}
+
+/** Check adjacent @-delimited segments too, retaining the former substring assertion. */
+function containsEmail(value: string): boolean {
+  return value.split(/\s+/u).some(word => {
+    const segments = word.split('@');
+    return segments.some((local, index) => {
+      const domain = segments[index + 1];
+      return domain !== undefined && isRosterEmail(`${local}@${domain}`);
+    });
+  });
 }

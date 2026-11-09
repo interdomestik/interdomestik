@@ -67,7 +67,8 @@ function renderLink({ label, url }: { label: string; url: string }): string {
 export function renderSponsorMail(input: SponsorMailInput): EmailTemplate {
   const copy = COPY[input.locale];
   const content = contentFor(input, copy);
-  const greeting = `${copy.greeting}${input.firstName === null ? '' : ` ${input.firstName}`},`;
+  const recipient = input.firstName === null ? '' : ` ${input.firstName}`;
+  const greeting = `${copy.greeting}${recipient},`;
   const support = `${copy.supportLabel}: ${input.supportEmail}`;
   const paragraphs = [greeting, ...content.paragraphs];
   const links = content.links ?? [];

@@ -80,7 +80,7 @@ function Section({ title, count, defaultOpen = true, children }: SectionProps) {
   );
 }
 
-export function AgentUsersSections({ users }: UsersSectionsProps): React.JSX.Element {
+export function AgentUsersSections({ users }: Readonly<UsersSectionsProps>): React.JSX.Element {
   const t = useTranslations('agent-members.members.table');
   const [showAllNeedsAttention, setShowAllNeedsAttention] = useState(false);
   const [showAllMembers, setShowAllMembers] = useState(false);

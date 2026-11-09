@@ -8,10 +8,10 @@ import { loadSponsorTasks } from './tasks.core';
 export async function SponsorTasksPage({
   area,
   params,
-}: {
+}: Readonly<{
   area: SponsorTasksArea;
   params: Promise<{ locale: string }>;
-}): Promise<ReactElement> {
+}>): Promise<ReactElement> {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'sponsorTasks' });

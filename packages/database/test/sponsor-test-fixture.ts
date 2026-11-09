@@ -195,12 +195,12 @@ export async function restricted<T>(
   s: Scope,
   fn: (tx: Tx) => Promise<T>
 ): Promise<T> {
-  // Deliberately disagree with access tenant: these policies must use access authority.
   return client.begin('isolation level read committed', async tx => {
     await tx.unsafe(`set local role ${quoteIdentifier(TEST_DB_ROLE)}`);
     await tx`set local row_security = on`;
     await tx`set local statement_timeout = '8s'`;
-    await tx`select set_config('app.current_tenant_id', ${`wrong_${s.tenant}`}, true),
+    const wrongTenant = `wrong_${s.tenant}`; // Policies must use access authority.
+    await tx`select set_config('app.current_tenant_id', ${wrongTenant}, true),
       set_config('app.current_access_tenant_id', ${s.tenant}, true)`;
     const [role] = await tx`select current_user as name, rolsuper, rolbypassrls
       from pg_roles where rolname = current_user`;

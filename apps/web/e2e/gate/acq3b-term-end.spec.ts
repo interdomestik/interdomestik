@@ -21,6 +21,7 @@ import { copy, loginPerson, visible } from './acq3b-ui.fixture';
 test('ACQ-3b contiguous renewal survives expiry; only an uncovered person gets one offer', async ({
   browser,
 }, info) => {
+  // This fixture is provisioned in one project only; other projects skip it.
   test.skip(
     info.project.name !== 'gate-ks-sq',
     'Tenant-wide jobs run once under the fixture lock.'

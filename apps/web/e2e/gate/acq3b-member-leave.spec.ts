@@ -19,6 +19,7 @@ test.describe('ACQ-3b member membership and leave', () => {
     test(`${locale}: sponsored facts, paid period and keyboard leave`, async ({
       browser,
     }, info) => {
+      // This fixture is provisioned in one project only; other projects skip it.
       test.skip(
         info.project.name !== 'gate-ks-sq',
         'One tenant host; language is varied explicitly.'

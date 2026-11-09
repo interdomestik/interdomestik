@@ -9,7 +9,7 @@ import {
   sponsorTermRevisions,
   sponsorTerms,
   sql,
-  user,
+  memberLeads,
 } from '@interdomestik/database';
 import {
   readTenantAuthority,
@@ -18,7 +18,7 @@ import {
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { nanoid } from 'nanoid';
 
-import { parseTimestamp } from '../sponsor-coverage/resolve';
+import { bindableUsers } from './roster-upload-binding';
 import { canManageRoster, type SponsorActor } from './access';
 import { writeSponsorAudit } from './audit';
 import {
@@ -97,7 +97,7 @@ export async function uploadRoster(
       .where(and(eq(sponsorTerms.tenantId, tenantId), eq(sponsorTerms.id, input.termId)));
     if (!term) return { ok: false, error: 'not_found' };
     const [sponsor] = await tx
-      .select({ branchId: sponsors.branchId, createdBy: sponsors.createdBy })
+      .select({ branchId: sponsors.branchId, sourceLeadId: sponsors.sourceLeadId })
       .from(sponsors)
       .where(and(eq(sponsors.tenantId, tenantId), eq(sponsors.id, term.sponsorId)))
       .for('update');
@@ -126,7 +126,11 @@ export async function uploadRoster(
       )
       .orderBy(desc(sponsorTermRevisions.revision))
       .limit(1);
-    const scope = { ownerAgentId: sponsor.createdBy, branchId: sponsor.branchId };
+    const [lead] = await tx
+      .select({ agentId: memberLeads.agentId })
+      .from(memberLeads)
+      .where(and(eq(memberLeads.tenantId, tenantId), eq(memberLeads.id, sponsor.sourceLeadId)));
+    const scope = { ownerAgentId: lead?.agentId ?? null, branchId: sponsor.branchId };
     if (!canManageRoster(actor, scope, effective !== undefined)) {
       return { ok: false, error: 'forbidden' };
     }
@@ -207,75 +211,4 @@ export async function uploadRoster(
       },
     };
   });
-}
-
-type Tx = Parameters<Parameters<typeof withTenantAuthority>[1]>[0];
-
-/** Address → user id for rows that may be bound at insert (a first filter only, §3.5). */
-async function bindableUsers(
-  tx: Tx,
-  tenantId: string,
-  term: { sponsorId: string; termStart: string; termEnd: string },
-  rows: readonly PreparedRow[]
-): Promise<Map<string, string>> {
-  if (rows.length === 0) return new Map();
-  const emails = rows.map(row => row.emailNormalized);
-  const matches = await tx
-    .select({ id: user.id, email: user.email })
-    .from(user)
-    .where(and(eq(user.tenantId, tenantId), inArray(sql`lower(btrim(${user.email}))`, emails)));
-  const byEmail = new Map<string, string[]>();
-  for (const match of matches) {
-    const key = match.email.trim().toLowerCase();
-    byEmail.set(key, [...(byEmail.get(key) ?? []), match.id]);
-  }
-  const unique = [...byEmail]
-    .filter(([, ids]) => ids.length === 1)
-    .map(([email, ids]) => ({ email, userId: ids[0] as string }));
-  if (unique.length === 0) return new Map();
-  const history = await tx
-    .select({
-      userId: sponsorRosterEntries.userId,
-      sponsorId: sponsorTerms.sponsorId,
-      termStart: sponsorTerms.termStart,
-      termEnd: sponsorTerms.termEnd,
-      terminatedEffectiveAt: sponsorTerms.terminatedEffectiveAt,
-      decision: sponsorRosterEntries.conflictDecision,
-      revokedAt: sponsorRosterEntries.revokedAt,
-    })
-    .from(sponsorRosterEntries)
-    .innerJoin(
-      sponsorTerms,
-      and(
-        eq(sponsorTerms.tenantId, sponsorRosterEntries.tenantId),
-        eq(sponsorTerms.id, sponsorRosterEntries.termId)
-      )
-    )
-    .where(
-      and(
-        eq(sponsorRosterEntries.tenantId, tenantId),
-        inArray(
-          sponsorRosterEntries.userId,
-          unique.map(item => item.userId)
-        )
-      )
-    );
-  const start = parseTimestamp(term.termStart);
-  const end = parseTimestamp(term.termEnd);
-  const eligible = new Set<string>();
-  const blocked = new Set<string>();
-  for (const row of history) {
-    if (!row.userId) continue;
-    const rowStart = parseTimestamp(row.termStart);
-    if (row.sponsorId === term.sponsorId && rowStart < start) eligible.add(row.userId);
-    if (row.sponsorId !== term.sponsorId && row.decision === 'accepted') {
-      const occupied = parseTimestamp(row.revokedAt ?? row.terminatedEffectiveAt ?? row.termEnd);
-      if (rowStart < end && start < occupied) blocked.add(row.userId);
-    }
-  }
-  return new Map(
-    unique
-      .filter(item => eligible.has(item.userId) && !blocked.has(item.userId))
-      .map(item => [item.email, item.userId])
-  );
 }

@@ -110,7 +110,7 @@ function startRule(
     if (previous.id === entry.id || previous.sponsorId !== entry.sponsorId) return false;
     if (effectiveEnd(previous).getTime() !== entry.termStart.getTime()) return false;
     const interval = intervals.get(previous.id);
-    return interval !== undefined && interval.end.getTime() === effectiveEnd(previous).getTime();
+    return interval?.end.getTime() === effectiveEnd(previous).getTime();
   });
   if (continued) return entry.termStart;
   return entry.handoverPaidUntil;

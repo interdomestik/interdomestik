@@ -151,9 +151,8 @@ export function recancellationTasks(
     grouped.set(row.intentId, group);
   }
   return [...grouped.values()].flatMap((group): SponsorStaffTask[] => {
-    const latest = group
-      .sort((a, b) => b.attemptNo - a.attemptNo)
-      .slice(0, HANDOVER_ESCALATION_ATTEMPTS);
+    group.sort((a, b) => b.attemptNo - a.attemptNo);
+    const latest = group.slice(0, HANDOVER_ESCALATION_ATTEMPTS);
     const newest = latest[0];
     if (!newest || latest.length < HANDOVER_ESCALATION_ATTEMPTS) return [];
     if (
@@ -213,9 +212,11 @@ export async function listSponsorStaffTasks(
     };
   });
   const tasks: SponsorStaffTask[] = [];
-  tasks.push(...intentTasks(read.intents, now));
-  tasks.push(...recancellationTasks(read.retries, read.confirmations));
-  tasks.push(...scheduledCancelTasks(read.scheduled, now));
+  tasks.push(
+    ...intentTasks(read.intents, now),
+    ...recancellationTasks(read.retries, read.confirmations),
+    ...scheduledCancelTasks(read.scheduled, now)
+  );
   for (const charge of read.charges) {
     tasks.push({
       kind: 'charge',

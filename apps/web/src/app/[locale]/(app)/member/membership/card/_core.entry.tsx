@@ -40,13 +40,17 @@ export default async function MemberCardPage({
         return resolved.get(session.user.id);
       })
     : null;
-  const cardSubscription = toMemberCardSubscription(
-    effective?.source === 'sponsor'
-      ? { ...effective.lifecycle, planId: effective.planId, currentPeriodEnd: effective.windowEnd }
-      : effective?.source === 'subscription'
-        ? effective.subscription
-        : null
-  );
+  let subscription = null;
+  if (effective?.source === 'sponsor') {
+    subscription = {
+      ...effective.lifecycle,
+      planId: effective.planId,
+      currentPeriodEnd: effective.windowEnd,
+    };
+  } else if (effective?.source === 'subscription') {
+    subscription = effective.subscription;
+  }
+  const cardSubscription = toMemberCardSubscription(subscription);
 
   if (!cardSubscription) {
     redirect(`/${locale}/member/membership`);

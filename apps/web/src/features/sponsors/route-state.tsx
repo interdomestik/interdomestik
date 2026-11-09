@@ -5,14 +5,10 @@ import { useTranslations } from 'next-intl';
 
 export function SponsorLoading(): React.JSX.Element {
   const t = useTranslations('sponsors');
-  return (
-    <p role="status" className="p-6">
-      {t('loading')}
-    </p>
-  );
+  return <output className="block p-6">{t('loading')}</output>;
 }
 
-export function SponsorError({ reset }: { reset: () => void }): React.JSX.Element {
+export function SponsorError({ reset }: Readonly<{ reset: () => void }>): React.JSX.Element {
   const t = useTranslations('sponsors');
   return (
     <div role="alert" className="p-6 space-y-3">

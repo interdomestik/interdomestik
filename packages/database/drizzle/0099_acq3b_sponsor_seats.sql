@@ -72,7 +72,7 @@ CREATE TABLE "sponsors" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "sponsors_tenant_id_id_uq" UNIQUE("tenant_id","id"),
-	CONSTRAINT "sponsors_legal_name_check" CHECK (btrim("sponsors"."legal_name") <> '')
+	CONSTRAINT "sponsors_legal_name_check" CHECK (length(btrim("sponsors"."legal_name")) > 0)
 );
 --> statement-breakpoint
 ALTER TABLE "sponsors" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -234,15 +234,29 @@ CREATE UNIQUE INDEX "sponsor_roster_entries_term_hmac_uq" ON "sponsor_roster_ent
 CREATE UNIQUE INDEX "sponsor_roster_entries_term_user_uq" ON "sponsor_roster_entries" USING btree ("term_id","user_id") WHERE "sponsor_roster_entries"."user_id" is not null;--> statement-breakpoint
 CREATE UNIQUE INDEX "sponsor_roster_entries_optout_token_uq" ON "sponsor_roster_entries" USING btree ("optout_token_hash");--> statement-breakpoint
 CREATE INDEX "sponsor_roster_entries_user_idx" ON "sponsor_roster_entries" USING btree ("tenant_id","user_id");--> statement-breakpoint
-CREATE POLICY "sponsor_revision_decisions_tenant_policy" ON "sponsor_revision_decisions" AS PERMISSIVE FOR ALL TO public USING ("sponsor_revision_decisions"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("sponsor_revision_decisions"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);--> statement-breakpoint
-CREATE POLICY "sponsor_term_revisions_tenant_policy" ON "sponsor_term_revisions" AS PERMISSIVE FOR ALL TO public USING ("sponsor_term_revisions"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("sponsor_term_revisions"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);--> statement-breakpoint
-CREATE POLICY "sponsor_terms_tenant_policy" ON "sponsor_terms" AS PERMISSIVE FOR ALL TO public USING ("sponsor_terms"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("sponsor_terms"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);--> statement-breakpoint
-CREATE POLICY "sponsors_tenant_policy" ON "sponsors" AS PERMISSIVE FOR ALL TO public USING ("sponsors"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("sponsors"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);--> statement-breakpoint
-CREATE POLICY "sponsor_handover_cancel_attempts_tenant_policy" ON "sponsor_handover_cancel_attempts" AS PERMISSIVE FOR ALL TO public USING ("sponsor_handover_cancel_attempts"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("sponsor_handover_cancel_attempts"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);--> statement-breakpoint
-CREATE POLICY "sponsor_handover_charges_tenant_policy" ON "sponsor_handover_charges" AS PERMISSIVE FOR ALL TO public USING ("sponsor_handover_charges"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("sponsor_handover_charges"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);--> statement-breakpoint
-CREATE POLICY "sponsor_handover_intents_tenant_policy" ON "sponsor_handover_intents" AS PERMISSIVE FOR ALL TO public USING ("sponsor_handover_intents"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("sponsor_handover_intents"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);--> statement-breakpoint
-CREATE POLICY "sponsor_mail_outbox_tenant_policy" ON "sponsor_mail_outbox" AS PERMISSIVE FOR ALL TO public USING ("sponsor_mail_outbox"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("sponsor_mail_outbox"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);--> statement-breakpoint
-CREATE POLICY "sponsor_roster_entries_tenant_policy" ON "sponsor_roster_entries" AS PERMISSIVE FOR ALL TO public USING ("sponsor_roster_entries"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("sponsor_roster_entries"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);--> statement-breakpoint
+DO $$
+DECLARE
+  table_name text;
+  tenant_expression text;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY[
+    'sponsor_revision_decisions',
+    'sponsor_term_revisions',
+    'sponsor_terms',
+    'sponsors',
+    'sponsor_handover_cancel_attempts',
+    'sponsor_handover_charges',
+    'sponsor_handover_intents',
+    'sponsor_mail_outbox',
+    'sponsor_roster_entries'
+  ] LOOP
+    tenant_expression := format('%I.%I = (select current_setting(%L, true))::text',
+      table_name, 'tenant_id', 'app.current_access_tenant_id');
+    EXECUTE format('CREATE POLICY %I ON %I AS PERMISSIVE FOR ALL TO public USING (%s) WITH CHECK (%s)',
+      table_name || '_tenant_policy', table_name, tenant_expression, tenant_expression);
+  END LOOP; END; $$;--> statement-breakpoint
+-- ACQ-3b §3.2–§3.3 (hand-written): forced RLS, non-overlapping terms and immutability triggers.
+ALTER TABLE "sponsors" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 -- ACQ-3b §3.2–§3.3 (hand-written): forced RLS, non-overlapping terms and immutability triggers.
 ALTER TABLE "sponsors" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "sponsor_terms" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -262,7 +276,7 @@ LANGUAGE plpgsql
 SET search_path = pg_catalog, public
 AS $$
 BEGIN
-  RAISE EXCEPTION '%: rows are immutable', TG_TABLE_NAME USING ERRCODE = 'check_violation';
+  RAISE check_violation USING MESSAGE = format('%s: rows are immutable', TG_TABLE_NAME);
 END;
 $$;
 --> statement-breakpoint
@@ -284,8 +298,7 @@ BEGIN
      OR (OLD.terminated_effective_at IS NOT NULL
          AND (NEW.terminated_effective_at, NEW.terminated_by, NEW.terminated_at)
              IS DISTINCT FROM (OLD.terminated_effective_at, OLD.terminated_by, OLD.terminated_at)) THEN
-    RAISE EXCEPTION 'sponsor_terms: only the termination columns may be set, once'
-      USING ERRCODE = 'check_violation';
+    RAISE check_violation USING MESSAGE = 'sponsor_terms: only the termination columns may be set, once';
   END IF;
   RETURN NEW;
 END;
@@ -314,8 +327,7 @@ BEGIN
      OR (OLD.canceled_confirmed_at IS NOT NULL AND NEW.canceled_confirmed_at IS DISTINCT FROM OLD.canceled_confirmed_at)
      OR (OLD.reconciliation_closed_at IS NOT NULL AND NEW.reconciliation_closed_at IS DISTINCT FROM OLD.reconciliation_closed_at)
      OR (OLD.state IN ('void', 'done', 'closed_by_staff') AND NEW.state <> OLD.state) THEN
-    RAISE EXCEPTION 'sponsor_handover_intents: immutable, set-once or terminal column changed'
-      USING ERRCODE = 'check_violation';
+    RAISE check_violation USING MESSAGE = 'sponsor_handover_intents: immutable, set-once or terminal column changed';
   END IF;
   RETURN NEW;
 END;
@@ -336,10 +348,9 @@ BEGIN
      (OLD.id, OLD.tenant_id, OLD.intent_id, OLD.attempt_no, OLD.dispatched_at,
       OLD.authorizing_entry_id, OLD.authorizing_term_id, OLD.authorizing_term_start,
       OLD.authorizing_end, OLD.boundary_at)
-     OR OLD.outcome <> 'unknown'
-     OR NEW.outcome = 'unknown' THEN
-    RAISE EXCEPTION 'sponsor_handover_cancel_attempts: only one move from unknown is allowed'
-      USING ERRCODE = 'check_violation';
+     OR OLD.resolved_at IS NOT NULL
+     OR NEW.outcome = OLD.outcome THEN
+    RAISE check_violation USING MESSAGE = 'sponsor_handover_cancel_attempts: only one move from unknown is allowed';
   END IF;
   RETURN NEW;
 END;
@@ -359,7 +370,7 @@ BEGIN
      (OLD.id, OLD.tenant_id, OLD.intent_id, OLD.provider_transaction_id,
       OLD.billing_period_starts_at, OLD.found_at)
      OR (OLD.staff_task_id IS NOT NULL AND NEW.staff_task_id IS DISTINCT FROM OLD.staff_task_id) THEN
-    RAISE EXCEPTION 'sponsor_handover_charges: append-only' USING ERRCODE = 'check_violation';
+    RAISE check_violation USING MESSAGE = 'sponsor_handover_charges: append-only';
   END IF;
   RETURN NEW;
 END;
@@ -392,8 +403,7 @@ BEGIN
      OR (NEW.last_name IS NOT NULL AND NEW.last_name IS DISTINCT FROM OLD.last_name)
      OR (NEW.email_normalized IS NOT NULL AND NEW.email_normalized IS DISTINCT FROM OLD.email_normalized)
      OR (NEW.email_hmac IS NOT NULL AND NEW.email_hmac IS DISTINCT FROM OLD.email_hmac) THEN
-    RAISE EXCEPTION 'sponsor_roster_entries: immutable, set-once or erased column changed'
-      USING ERRCODE = 'check_violation';
+    RAISE check_violation USING MESSAGE = 'sponsor_roster_entries: immutable, set-once or erased column changed';
   END IF;
   RETURN NEW;
 END;

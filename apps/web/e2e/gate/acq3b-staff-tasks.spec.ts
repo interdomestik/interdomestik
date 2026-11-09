@@ -17,6 +17,7 @@ test.describe('ACQ-3b staff tasks and accessible sponsor pages', () => {
     test(`${locale}: task navigation, handover review and creator refusal`, async ({
       browser,
     }, info) => {
+      // This fixture is provisioned in one project only; other projects skip it.
       test.skip(
         info.project.name !== 'gate-ks-sq',
         'Keep host-derived KS tenant while varying language.'

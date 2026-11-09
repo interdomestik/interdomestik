@@ -55,7 +55,10 @@ export const entryStartIdempotencyKey = (
   entryId: string,
   kind: EntryStartMail['kind'],
   resendDays?: number
-): string => `sponsor-entry:${entryId}:${kind}${resendDays ? `:resend-${resendDays}d` : ''}`;
+): string => {
+  const resend = resendDays ? `:resend-${resendDays}d` : '';
+  return `sponsor-entry:${entryId}:${kind}${resend}`;
+};
 
 /** Applies the plan inside the caller's person transaction (§3.5 locks already held). */
 export async function produceEntryStart(
@@ -89,20 +92,21 @@ export async function produceEntryStart(
       },
     ]);
   }
-  if (plan.mails.length === 0) return plan;
-  await tx
-    .insert(sponsorMailOutbox)
-    .values(
-      plan.mails.map(mail => ({
-        id: nanoid(),
-        tenantId: params.tenantId,
-        rosterEntryId: params.entryId,
-        kind: mail.kind,
-        idempotencyKey: entryStartIdempotencyKey(params.entryId, mail.kind, mail.resendDays),
-        ...(mail.notBefore ? { nextAttemptAt: mail.notBefore.toISOString() } : {}),
-      }))
-    )
-    .onConflictDoNothing({ target: sponsorMailOutbox.idempotencyKey });
+  if (plan.mails.length > 0) {
+    await tx
+      .insert(sponsorMailOutbox)
+      .values(
+        plan.mails.map(mail => ({
+          id: nanoid(),
+          tenantId: params.tenantId,
+          rosterEntryId: params.entryId,
+          kind: mail.kind,
+          idempotencyKey: entryStartIdempotencyKey(params.entryId, mail.kind, mail.resendDays),
+          ...(mail.notBefore ? { nextAttemptAt: mail.notBefore.toISOString() } : {}),
+        }))
+      )
+      .onConflictDoNothing({ target: sponsorMailOutbox.idempotencyKey });
+  }
   return plan;
 }
 

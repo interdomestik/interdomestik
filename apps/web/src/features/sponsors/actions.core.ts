@@ -66,32 +66,97 @@ export async function runSponsorAction(
   const { authority, actor } = context;
   const raw = Object.fromEntries(form);
   const now = new Date();
-  if (operation === 'createSponsor') {
-    const input = sponsorSchema.safeParse(raw);
-    if (!input.success) return invalid;
-    const leads = await companyLeads(context);
-    if (!leads.some(lead => lead.id === input.data.leadId)) return forbidden;
-    return createSponsor(authority, actor, input.data);
-  }
+  if (operation === 'createSponsor') return runCreateSponsor(context, raw);
   const sponsors = await listSponsorsForActor(authority, actor);
   const sponsor = sponsors.find(row => row.sponsorId === raw.sponsorId);
   if (!sponsor) return forbidden;
-  if (operation === 'createTerm') {
-    const input = termSchema.safeParse(raw);
-    const revision = revisionSchema.safeParse(raw);
-    if (!input.success || !revision.success) return invalid;
-    const options = await termOptions(context);
-    if (
-      !options.plans.some(plan => plan.id === input.data.planKey) ||
-      !options.entities.some(entity => entity.id === input.data.legalEntityId)
-    )
-      return invalid;
-    return createTerm(authority, actor, { ...input.data, revision: revision.data });
-  }
+  if (operation === 'createTerm') return runCreateTerm(context, raw);
   const target = targetSchema.safeParse(raw);
   if (!target.success) return invalid;
   const term = sponsor.terms.find(row => row.termId === target.data.termId);
   if (!term) return forbidden;
+  if (
+    operation === 'addRevision' ||
+    operation === 'decideRevision' ||
+    operation === 'terminateTerm'
+  ) {
+    return runTermAction(context, operation, raw, term, sponsor.terms, now);
+  }
+  if (!term.effective) return forbidden;
+  if (operation === 'uploadRoster') return runUploadRoster(context, term, form);
+  if (operation === 'markLeftCompany') return runMarkLeftCompany(context, raw, term, now);
+
+  return invalid;
+}
+
+async function runCreateSponsor(
+  context: SponsorContext,
+  raw: Record<string, FormDataEntryValue>
+): Promise<SponsorActionResult> {
+  const { authority, actor } = context;
+
+  const input = sponsorSchema.safeParse(raw);
+  if (!input.success) return invalid;
+  const leads = await companyLeads(context);
+  if (!leads.some(lead => lead.id === input.data.leadId)) return forbidden;
+  return createSponsor(authority, actor, input.data);
+}
+
+async function runCreateTerm(
+  context: SponsorContext,
+  raw: Record<string, FormDataEntryValue>
+): Promise<SponsorActionResult> {
+  const { authority, actor } = context;
+
+  const input = termSchema.safeParse(raw);
+  const revision = revisionSchema.safeParse(raw);
+  if (!input.success || !revision.success) return invalid;
+  const options = await termOptions(context);
+  if (
+    !options.plans.some(plan => plan.id === input.data.planKey) ||
+    !options.entities.some(entity => entity.id === input.data.legalEntityId)
+  )
+    return invalid;
+  return createTerm(authority, actor, { ...input.data, revision: revision.data });
+}
+
+async function runUploadRoster(
+  context: SponsorContext,
+  term: SponsorTermView,
+  form: FormData
+): Promise<SponsorActionResult> {
+  const { authority, actor } = context;
+
+  if (!(await sponsorUploadEnabled(context))) return { ok: false, error: 'dark' };
+  const file = form.get('csv');
+  if (!file || typeof file === 'string' || file.size > 1_000_000) return invalid;
+  const rows = parseSponsorCsv(await file.text());
+  if (!rows || rows.length === 0) return invalid;
+  const secret = readSponsorRosterSecret();
+  if (!prepareRosterRows(rows, secret)) return invalid;
+  const result = await uploadRoster(authority, actor, { termId: term.termId, rows, secret });
+  return result.ok
+    ? {
+        ok: true,
+        counts: {
+          inserted: result.value.inserted,
+          invalid: result.value.invalid,
+          duplicates: result.value.duplicates,
+          alreadyListed: result.value.alreadyListed,
+        },
+      }
+    : result;
+}
+
+async function runTermAction(
+  context: SponsorContext,
+  operation: SponsorOperation,
+  raw: Record<string, FormDataEntryValue>,
+  term: SponsorTermView,
+  terms: SponsorTermView[],
+  now: Date
+): Promise<SponsorActionResult> {
+  const { authority, actor } = context;
   if (operation === 'addRevision') {
     const revision = revisionSchema.safeParse(raw);
     if (!revision.success) return invalid;
@@ -106,61 +171,58 @@ export async function runSponsorAction(
       return { ok: false, error: 'conflict' };
     return decideRevision(authority, actor, input.data);
   }
-  if (operation === 'terminateTerm') {
-    const input = terminationSchema.safeParse(raw);
-    if (!input.success) return invalid;
-    if (!canDecideRevision(actor, term.createdBy)) return forbidden;
-    if (
-      term.terminatedEffectiveAt ||
-      !isValidTermination({
-        now,
-        effectiveAt: input.data.effectiveAt,
-        termStart: term.termStart,
-        termEnd: term.termEnd,
-        hasContiguousApprovedSuccessor: hasSuccessor(term, sponsor.terms),
-      })
-    )
-      return invalid;
-    return terminateTerm(authority, actor, {
-      termId: term.termId,
-      effectiveAt: input.data.effectiveAt,
-      now,
-    });
-  }
-  if (!term.effective) return forbidden;
-  if (operation === 'uploadRoster') {
-    if (!(await sponsorUploadEnabled(context))) return { ok: false, error: 'dark' };
-    const file = form.get('csv');
-    if (!file || typeof file === 'string' || file.size > 1_000_000) return invalid;
-    const rows = parseSponsorCsv(await file.text());
-    if (!rows || rows.length === 0) return invalid;
-    const secret = readSponsorRosterSecret();
-    if (!prepareRosterRows(rows, secret)) return invalid;
-    const result = await uploadRoster(authority, actor, { termId: term.termId, rows, secret });
-    return result.ok
-      ? {
-          ok: true,
-          counts: {
-            inserted: result.value.inserted,
-            invalid: result.value.invalid,
-            duplicates: result.value.duplicates,
-            alreadyListed: result.value.alreadyListed,
-          },
-        }
-      : result;
-  }
-  if (operation === 'markLeftCompany') {
-    const input = leftSchema.safeParse(raw);
-    if (!input.success) return invalid;
-    const roster = await readSponsorRoster(
-      authority,
-      actor,
-      { hasCredential: sponsorCredentialCheck(authority) },
-      { termId: term.termId, now }
-    );
-    if (!roster.ok || !roster.value.entries.some(row => row.entryId === input.data.entryId))
-      return forbidden;
-    return markLeftCompany(authority, actor, { entryId: input.data.entryId, now });
-  }
+  if (operation === 'terminateTerm') return runTermination(context, raw, term, terms, now);
+
   return invalid;
+}
+
+async function runTermination(
+  context: SponsorContext,
+  raw: Record<string, FormDataEntryValue>,
+  term: SponsorTermView,
+  terms: SponsorTermView[],
+  now: Date
+): Promise<SponsorActionResult> {
+  const { authority, actor } = context;
+
+  const input = terminationSchema.safeParse(raw);
+  if (!input.success) return invalid;
+  if (!canDecideRevision(actor, term.createdBy)) return forbidden;
+  if (
+    term.terminatedEffectiveAt ||
+    !isValidTermination({
+      now,
+      effectiveAt: input.data.effectiveAt,
+      termStart: term.termStart,
+      termEnd: term.termEnd,
+      hasContiguousApprovedSuccessor: hasSuccessor(term, terms),
+    })
+  )
+    return invalid;
+  return terminateTerm(authority, actor, {
+    termId: term.termId,
+    effectiveAt: input.data.effectiveAt,
+    now,
+  });
+}
+
+async function runMarkLeftCompany(
+  context: SponsorContext,
+  raw: Record<string, FormDataEntryValue>,
+  term: SponsorTermView,
+  now: Date
+): Promise<SponsorActionResult> {
+  const { authority, actor } = context;
+
+  const input = leftSchema.safeParse(raw);
+  if (!input.success) return invalid;
+  const roster = await readSponsorRoster(
+    authority,
+    actor,
+    { hasCredential: sponsorCredentialCheck(authority) },
+    { termId: term.termId, now }
+  );
+  if (!roster.ok || !roster.value.entries.some(row => row.entryId === input.data.entryId))
+    return forbidden;
+  return markLeftCompany(authority, actor, { entryId: input.data.entryId, now });
 }

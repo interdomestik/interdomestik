@@ -17,6 +17,7 @@ import type { AttemptOutcome } from '../sponsor-coverage/handover-evidence';
 import { SPONSOR_SYSTEM_ACTOR, writeSponsorAudit } from './audit';
 import type { HandoverState } from './handover-intent-read';
 import type { HandoverPlan } from './handover-plan';
+import { persistHandoverIntent } from './handover-intent-persist';
 import {
   recordHandoverScheduleConfirmation,
   recordScheduledHandoverTask,
@@ -43,10 +44,6 @@ export async function applyHandoverPlan(
 ): Promise<DispatchTicket | null> {
   const { tenantId, state, plan, now } = params;
   const { intent } = state;
-  const intentWhere = and(
-    eq(sponsorHandoverIntents.tenantId, tenantId),
-    eq(sponsorHandoverIntents.id, intent.id)
-  );
 
   if (plan.charges.length > 0) {
     await tx
@@ -97,22 +94,7 @@ export async function applyHandoverPlan(
   }
 
   const ticket = plan.dispatch ? await recordAttempt(tx, tenantId, state, plan, now) : null;
-  await tx
-    .update(sponsorHandoverIntents)
-    .set({
-      ...(plan.nextState ? { state: plan.nextState } : {}),
-      ...(plan.evidence
-        ? { paidUntil: plan.evidence.paidUntil, paidUntilEvidence: plan.evidence.transactionId }
-        : {}),
-      ...(plan.observedCancel ? { canceledConfirmedAt: iso(now) } : {}),
-      ...(intent.paidUntil || intent.dispatchPeriodEndsAt || ticket
-        ? { reconciledThrough: iso(now) }
-        : {}),
-      ...(plan.closeReconciliation ? { reconciliationClosedAt: iso(now) } : {}),
-      nextAttemptAt: iso(plan.nextRunAt),
-      updatedAt: iso(now),
-    })
-    .where(intentWhere);
+  await persistHandoverIntent(tx, tenantId, state, plan, now, ticket);
 
   if (plan.nextState && plan.nextState !== intent.state) {
     await writeSponsorAudit(tx, tenantId, [

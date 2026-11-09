@@ -147,14 +147,10 @@ export async function getAdminUserProfileCore(args: {
     const now = new Date();
     const memberships = await resolveEffectiveMembership(tx, tenantId, [member.id], now);
     const membership = memberships.get(member.id) ?? { source: 'none' as const };
-    const membershipStatus = getAdminUserMembershipStatus(
-      membership.source === 'sponsor'
-        ? membership.lifecycle
-        : membership.source === 'subscription'
-          ? membership.subscription
-          : null,
-      now
-    );
+    let membershipLifecycle = null;
+    if (membership.source === 'sponsor') membershipLifecycle = membership.lifecycle;
+    else if (membership.source === 'subscription') membershipLifecycle = membership.subscription;
+    const membershipStatus = getAdminUserMembershipStatus(membershipLifecycle, now);
 
     return {
       kind: 'ok',

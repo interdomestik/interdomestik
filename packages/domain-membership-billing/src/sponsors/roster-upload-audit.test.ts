@@ -23,9 +23,10 @@ const scope = [
       termEnd: '2028-01-01T00:00:00.000Z',
     },
   ],
-  [{ branchId: 'branch', createdBy: 'agent' }],
+  [{ branchId: 'branch', sourceLeadId: 'lead' }],
   [],
   [{ seatCount: 10 }],
+  [{ agentId: 'agent' }],
   [{ listed: 0 }],
 ];
 function use(db: ReturnType<typeof auditTransaction>): void {
@@ -114,7 +115,13 @@ describe('roster upload audit', () => {
   });
   it('does not audit a rejected upload over seat capacity', async () => {
     const db = auditTransaction({
-      selects: [...scope.slice(0, 3), [{ seatCount: 0 }], [{ listed: 0 }], []],
+      selects: [
+        ...scope.slice(0, 3),
+        [{ seatCount: 0 }],
+        [{ agentId: 'agent' }],
+        [{ listed: 0 }],
+        [],
+      ],
     });
     use(db);
     expect(await uploadRoster(authority, actor, { termId: 'term', secret, rows: [row] })).toEqual({
@@ -123,4 +130,17 @@ describe('roster upload audit', () => {
     });
     expectAudits(db, []);
   });
+  it.each(['agent', 'other-agent'])(
+    'authorizes upload from lead ownership for %s',
+    async userId => {
+      const db = auditTransaction({
+        selects: [...scope, [{ hmac: rosterEmailHmac(secret, row.email) }]],
+      });
+      use(db);
+      const office = { userId, role: 'agent', branchId: 'branch', agentTier: 'office' };
+      const result = await uploadRoster(authority, office, { termId: 'term', secret, rows: [row] });
+      if (userId === 'agent') expect(result.ok).toBe(true);
+      else expect(result).toEqual({ ok: false, error: 'forbidden' });
+    }
+  );
 });

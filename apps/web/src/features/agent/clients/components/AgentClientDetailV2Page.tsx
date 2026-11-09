@@ -58,7 +58,6 @@ export async function AgentClientDetailV2Page({ id, locale }: { id: string; loca
   }
 
   const { member, membership, preferences, claimCounts: counts, recentClaims, activities } = result;
-  const { subscription } = membership;
 
   const translationProps = { t, tCommon, tClaims };
 
@@ -67,7 +66,7 @@ export async function AgentClientDetailV2Page({ id, locale }: { id: string; loca
       <MemberHeader member={member} membership={membership} {...translationProps} />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <MembershipCard subscription={subscription} membership={membership} {...translationProps} />
+        <MembershipCard membership={membership} {...translationProps} />
         <AgentCard member={member} {...translationProps} />
         <PreferencesCard preferences={preferences} {...translationProps} />
       </div>

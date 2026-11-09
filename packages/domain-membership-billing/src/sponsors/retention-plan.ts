@@ -57,7 +57,7 @@ export type RetentionPlan = {
 /** Calendar months in UTC, clamped to the target month's last day; never mutates its input. */
 export function addMonths(date: Date, months: number): Date {
   if (!Number.isFinite(date.getTime()) || !Number.isInteger(months)) {
-    throw new Error('Invalid retention date or month count');
+    throw new TypeError('Invalid retention date or month count');
   }
   const result = new Date(date);
   const day = result.getUTCDate();

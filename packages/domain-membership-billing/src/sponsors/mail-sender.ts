@@ -11,7 +11,7 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-import { deriveEntryIntervals, entryEnd } from '../sponsor-coverage/evaluate';
+import { type CoverageEntry, deriveEntryIntervals, entryEnd } from '../sponsor-coverage/evaluate';
 import { parseTimestamp, readPersonCoverage } from '../sponsor-coverage/resolve';
 import { checkSponsorMail, type SponsorMailCheck } from './mail-checks';
 import type { SponsorMailInput } from './mail-input';
@@ -52,6 +52,50 @@ export type PreparedMail = {
   check: SponsorMailCheck;
 };
 
+async function readMailIntent(
+  tx: TenantTransaction,
+  tenantId: string,
+  intentId: string | null,
+  userId: string | null
+): Promise<{ id: string } | undefined> {
+  if (!intentId || !userId) return undefined;
+  const [intent] = await tx
+    .select({ id: sponsorHandoverIntents.id })
+    .from(sponsorHandoverIntents)
+    .where(
+      and(
+        eq(sponsorHandoverIntents.tenantId, tenantId),
+        eq(sponsorHandoverIntents.id, intentId),
+        eq(sponsorHandoverIntents.userId, userId)
+      )
+    );
+  return intent;
+}
+
+function hasActivationCredential(
+  kind: MailRow['kind'],
+  userId: string | null,
+  userExists: boolean,
+  deps: SponsorMailDeps
+): Promise<boolean> {
+  if (kind !== 'activation' || !userId || !userExists) return Promise.resolve(false);
+  return deps.hasCredential(userId);
+}
+
+function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === '/') end -= 1;
+  return value.slice(0, end);
+}
+
+function preparedMailEnd(
+  entry: CoverageEntry | null,
+  target: Awaited<ReturnType<typeof readEntryTarget>>
+): Date | null {
+  if (entry) return entryEnd(entry);
+  return target ? parseTimestamp(target.effectiveEnd) : null;
+}
+
 async function prepareMail(
   tx: TenantTransaction,
   tenantId: string,
@@ -72,19 +116,7 @@ async function prepareMail(
   const recipient = userId ? (account?.email ?? null) : (target?.entry.emailNormalized ?? null);
   const unbound =
     target && !userId ? await readProvisioningFacts(tx, tenantId, target.entry.id) : null;
-  const [intent] =
-    row.handoverIntentId && userId
-      ? await tx
-          .select({ id: sponsorHandoverIntents.id })
-          .from(sponsorHandoverIntents)
-          .where(
-            and(
-              eq(sponsorHandoverIntents.tenantId, tenantId),
-              eq(sponsorHandoverIntents.id, row.handoverIntentId),
-              eq(sponsorHandoverIntents.userId, userId)
-            )
-          )
-      : [];
+  const intent = await readMailIntent(tx, tenantId, row.handoverIntentId, userId);
   const entries = person?.entries ?? [];
   const interval = entry ? deriveEntryIntervals(entries).get(entry.id) : null;
   const check = checkSponsorMail(
@@ -103,10 +135,7 @@ async function prepareMail(
       dispatchPeriodEndsAt: target?.dispatchPeriodEndsAt
         ? parseTimestamp(target.dispatchPeriodEndsAt)
         : null,
-      hasCredential:
-        row.kind === 'activation' && !!userId && !!account
-          ? await deps.hasCredential(userId)
-          : false,
+      hasCredential: await hasActivationCredential(row.kind, userId, !!account, deps),
       nonSponsorCovered: nonSponsorGrantsAccess(person?.subscription ?? null, now),
     },
     now
@@ -119,7 +148,7 @@ async function prepareMail(
     companyName: target?.companyName ?? '',
     entityName: target?.entityName ?? target?.legalEntityId ?? '',
     start: interval?.start ?? null,
-    end: entry ? entryEnd(entry) : target ? parseTimestamp(target.effectiveEnd) : null,
+    end: preparedMailEnd(entry, target),
     check,
   };
 }
@@ -131,7 +160,7 @@ export function sponsorMailInput(mail: PreparedMail, deps: SponsorMailDeps): Spo
     supportEmail: deps.supportEmail,
     companyName: mail.companyName,
   };
-  const base = deps.appUrl.replace(/\/+$/u, '');
+  const base = trimTrailingSlashes(deps.appUrl);
   switch (mail.kind) {
     case 'sponsor_notice':
       if (!mail.entryId || !mail.start || !mail.end) throw new Error('mail_facts_missing');

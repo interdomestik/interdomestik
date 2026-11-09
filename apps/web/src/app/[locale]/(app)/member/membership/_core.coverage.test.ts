@@ -23,7 +23,7 @@ describe('effective membership workspace', () => {
     vi.clearAllMocks();
     h.authorize.mockResolvedValue(mintTestTenantAuthority('tenant-ks'));
     h.findSubscriptionMany.mockResolvedValue([row]);
-    h.findPlan.mockResolvedValue({ id: 'family', name: 'Family' });
+    h.findPlan.mockResolvedValue({ id: 'family-year', name: 'Family' });
   });
   it('source 1 overrides a canceled Paddle row with the sponsor plan, period and controller', async () => {
     h.resolve.mockResolvedValue(new Map([['member-1', coverage]]));
@@ -35,7 +35,16 @@ describe('effective membership workspace', () => {
       currentPeriodEnd: coverage.windowEnd,
       canceledAt: null,
       sponsorCoverage: coverage,
-      plan: { id: 'family', name: 'Family' },
+      plan: { id: 'family-year', name: 'Family' },
+    });
+    expect(h.findPlan).toHaveBeenCalledWith({
+      where: {
+        op: 'and',
+        args: [
+          { op: 'eq', left: 'plans.tenant_id', right: 'tenant-ks' },
+          { op: 'eq', left: 'plans.id', right: 'family-year' },
+        ],
+      },
     });
     expect(h.sponsorDisclosure).toHaveBeenCalledWith(expect.anything(), 'legal-company');
     expect(h.getSubscriptionEntityDisclosureCore).not.toHaveBeenCalled();

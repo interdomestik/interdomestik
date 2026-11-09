@@ -167,6 +167,21 @@ describe('mail delivery', () => {
     );
   });
 
+  it.each([
+    ['', '/en/pricing'],
+    ['/', '/en/pricing'],
+    ['///', '/en/pricing'],
+    ['https://tenant.example', 'https://tenant.example/en/pricing'],
+    ['https://tenant.example///', 'https://tenant.example/en/pricing'],
+    ['https://tenant.example/a//b/', 'https://tenant.example/a//b/en/pricing'],
+    ['https://tenant.example/\n', 'https://tenant.example/\n/en/pricing'],
+    ['https://tenant.example' + '/'.repeat(50_000), 'https://tenant.example/en/pricing'],
+  ])('preserves URL content while removing trailing slashes: %s', (appUrl, offerUrl) => {
+    expect(sponsorMailInput(mail({ kind: 'membership_end_offer' }), { ...deps(), appUrl })).toEqual(
+      expect.objectContaining({ offerUrl })
+    );
+  });
+
   it('uses only the auth activation helper and finishes after one success', async () => {
     const d = deps();
     expect(await deliverSponsorMail(mail({ kind: 'activation' }), d)).toEqual({ state: 'sent' });

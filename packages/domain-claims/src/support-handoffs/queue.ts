@@ -31,6 +31,8 @@ import type {
 import { buildOwnOrUnassignedStaffScope, buildStaffSupportHandoffQueueScope } from './queue-scope';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
+import { queueMembership } from './queue-membership';
+
 export { buildStaffSupportHandoffQueueScope } from './queue-scope';
 export type { SupportHandoffClaimLinkFilter } from './queue-scope';
 
@@ -121,14 +123,7 @@ export async function getStaffSupportHandoffQueue(
     const memberIds = [...new Set(rows.flatMap(row => (row.member ? [row.member.id] : [])))];
     const memberships = await resolveEffectiveMembership(tx, tenantId, memberIds, new Date());
     const effective = new Map(
-      [...memberships].map(([id, membership]) => [
-        id,
-        membership.source === 'sponsor'
-          ? { planKey: membership.planKey, ...membership.lifecycle }
-          : membership.source === 'subscription'
-            ? membership.subscription
-            : null,
-      ])
+      [...memberships].map(([id, membership]) => [id, queueMembership(membership)])
     );
     const planKeys = [
       ...new Set([...effective.values()].flatMap(row => (row?.planKey ? [row.planKey] : []))),

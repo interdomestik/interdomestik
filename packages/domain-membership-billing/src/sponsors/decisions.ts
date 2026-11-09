@@ -184,7 +184,7 @@ export async function terminateTerm(
       approved: approvedTerms.has(row.id),
     }));
     const self = sponsorTermRows.find(row => row.id === input.termId);
-    if (!self || self.terminatedEffectiveAt !== null) return { ok: false, error: 'conflict' };
+    if (self?.terminatedEffectiveAt !== null) return { ok: false, error: 'conflict' };
     const end = parseTimestamp(self.termEnd);
     const hasContiguousApprovedSuccessor = sponsorTermRows.some(row => {
       if (row.id === self.id || !row.approved) return false;

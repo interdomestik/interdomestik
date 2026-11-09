@@ -40,7 +40,9 @@ const hoisted = vi.hoisted(() => {
     dedupeKey: 'delivery.dedupeKey',
     templateKey: 'delivery.templateKey',
   };
-  type Delivery = Record<string, any>;
+  type Delivery = Record<string, unknown>;
+  type Condition =
+    { op: 'and'; conditions: Condition[] } | { op: 'eq' | 'inArray'; left: string; right: unknown };
   const store = {
     row: null as StoredRow | null,
     lock: Promise.resolve(),
@@ -63,11 +65,12 @@ const hoisted = vi.hoisted(() => {
     let staged: StoredRow | undefined;
     let audits = store.audits;
     let deliveries = store.deliveries;
-    const matches = (row: Delivery, condition: any): boolean =>
-      condition.op === 'and'
-        ? condition.conditions.every((item: any) => matches(row, item))
-        : row[condition.left.split('.').at(-1)] === condition.right;
-    function selectWhere(table: unknown, shape: Record<string, unknown>, condition: any) {
+    const matches = (row: Delivery, condition: Condition): boolean => {
+      if (condition.op === 'and') return condition.conditions.every(item => matches(row, item));
+      const key = condition.left.slice(condition.left.lastIndexOf('.') + 1);
+      return row[key] === condition.right;
+    };
+    function selectWhere(table: unknown, shape: Record<string, unknown>, condition: Condition) {
       if (table === engagementEmailSends) {
         return { for: async () => deliveries.filter(row => matches(row, condition)) };
       }
@@ -88,7 +91,7 @@ const hoisted = vi.hoisted(() => {
         return store.row ? [projectLockedSubscriptionOrder(store.row, shape.comparison)] : [];
       }
     }
-    function updateWhere(table: unknown, values: Partial<StoredRow>, condition: any) {
+    function updateWhere(table: unknown, values: Partial<StoredRow>, condition: Condition) {
       if (table === engagementEmailSends) {
         if (store.failAck) throw new Error('injected ack failure');
         deliveries = deliveries.map(row => (matches(row, condition) ? { ...row, ...values } : row));
@@ -176,8 +179,8 @@ vi.mock('@interdomestik/database/schema', () => ({
   engagementEmailSends: hoisted.engagementEmailSends,
 }));
 vi.mock('./dunning-sponsor', () => ({
-  readPastDueAccessContinues: async () => false,
-  pastDueAccessContinuesInTx: async () => false,
+  readPastDueAccessContinues: () => Promise.resolve(false),
+  pastDueAccessContinuesInTx: () => Promise.resolve(false),
 }));
 vi.mock('../../subscription', () => ({
   findPaddleSubscriptionByReference: hoisted.findPaddleSubscriptionByReference,

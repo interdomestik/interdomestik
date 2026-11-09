@@ -68,44 +68,7 @@ export async function getAgentClientProfileCore(args: {
     return { kind: 'not_found' };
   }
 
-  if (viewer.role === 'agent') {
-    const assignments = await withTenantAuthority(authority, tx =>
-      tx
-        .select()
-        .from(agentClients)
-        .where(
-          and(
-            eq(agentClients.tenantId, tenantId),
-            eq(agentClients.agentId, viewer.id),
-            eq(agentClients.memberId, member.id),
-            eq(agentClients.status, 'active')
-          )
-        )
-        .limit(1)
-    );
-
-    if (assignments.length === 0) {
-      // Auth widening (Phase C pilot):
-      // Allow if the member is assigned to the agent via domain-agent assignment rules.
-      // Do not re-implement assignment logic in web.
-      let assignment: unknown = null;
-      try {
-        assignment = await getAgentMemberDetail({
-          agentId: viewer.id,
-          authority,
-          memberId: member.id,
-        });
-      } catch {
-        // Defensive: domain-agent should return null for non-assigned, but never let a throw
-        // turn into a 500 from the shared loader.
-        assignment = null;
-      }
-
-      if (!assignment) {
-        return { kind: 'forbidden' };
-      }
-    }
-  }
+  if (!(await canViewMember(viewer, member, authority))) return { kind: 'forbidden' };
 
   const [memberships, preferences, claimSummary, activities] = await Promise.all([
     withTenantAuthority(authority, tx =>
@@ -200,3 +163,51 @@ export type PreferencesRecord = Awaited<
   ReturnType<typeof db.query.userNotificationPreferences.findFirst>
 >;
 export type MemberActivities = Awaited<ReturnType<typeof db.query.memberActivities.findMany>>;
+
+async function canViewMember(
+  viewer: { id: string; role?: string | null },
+  member: MemberRecord,
+  authority: TenantAuthority
+): Promise<boolean> {
+  const { tenantId } = readTenantAuthority(authority);
+  if (viewer.role === 'agent') {
+    const assignments = await withTenantAuthority(authority, tx =>
+      tx
+        .select()
+        .from(agentClients)
+        .where(
+          and(
+            eq(agentClients.tenantId, tenantId),
+            eq(agentClients.agentId, viewer.id),
+            eq(agentClients.memberId, member.id),
+            eq(agentClients.status, 'active')
+          )
+        )
+        .limit(1)
+    );
+
+    if (assignments.length === 0) {
+      // Auth widening (Phase C pilot):
+      // Allow if the member is assigned to the agent via domain-agent assignment rules.
+      // Do not re-implement assignment logic in web.
+      let assignment: unknown = null;
+      try {
+        assignment = await getAgentMemberDetail({
+          agentId: viewer.id,
+          authority,
+          memberId: member.id,
+        });
+      } catch {
+        // Defensive: domain-agent should return null for non-assigned, but never let a throw
+        // turn into a 500 from the shared loader.
+        assignment = null;
+      }
+
+      if (!assignment) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}

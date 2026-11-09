@@ -76,7 +76,7 @@ export async function getMemberSubscriptionsCore(args: {
       const plan = await tx.query.membershipPlans.findFirst({
         where: and(
           eq(membershipPlans.tenantId, tenantId),
-          eq(membershipPlans.id, effective.planId)
+          eq(membershipPlans.id, effective.planKey)
         ),
       });
       const record = await attachMembershipEntityDisclosure(

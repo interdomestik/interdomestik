@@ -128,7 +128,10 @@ describe('revocation audit', () => {
 describe('left company audit', () => {
   it.each([true, false])('audits only an actually changed mark: %s', async marked => {
     const db = auditTransaction({
-      selects: [[{ termId: 'term', branchId: 'branch', createdBy: 'agent' }], [{ id: 'decision' }]],
+      selects: [
+        [{ termId: 'term', branchId: 'branch', ownerAgentId: 'agent' }],
+        [{ id: 'decision' }],
+      ],
       updated: [marked ? [{ id: 'entry' }] : []],
     });
     use(db);

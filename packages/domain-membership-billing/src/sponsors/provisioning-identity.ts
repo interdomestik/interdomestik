@@ -124,26 +124,31 @@ async function lockBindingRows(
     .orderBy(asc(sponsorTerms.id))
     .for('share');
   const lockedTermIds = locked.map(term => term.id);
-  if (lockedTermIds.length === 0) return lockedTermIds;
-  await tx
-    .select({ id: sponsorRosterEntries.id })
-    .from(sponsorRosterEntries)
-    .where(and(rows, inArray(sponsorRosterEntries.termId, lockedTermIds)))
-    .orderBy(asc(sponsorRosterEntries.id))
-    .for('update');
+  if (lockedTermIds.length > 0) {
+    await tx
+      .select({ id: sponsorRosterEntries.id })
+      .from(sponsorRosterEntries)
+      .where(and(rows, inArray(sponsorRosterEntries.termId, lockedTermIds)))
+      .orderBy(asc(sponsorRosterEntries.id))
+      .for('update');
+  }
   return lockedTermIds;
 }
 
-async function visibleAccounts(
+function visibleAccounts(
   tx: TenantTransaction,
   tenantId: string,
   emailNormalized: string
 ): Promise<{ id: string }[]> {
-  return tx
-    .select({ id: user.id })
-    .from(user)
-    .where(and(eq(user.tenantId, tenantId), eq(sql`lower(btrim(${user.email}))`, emailNormalized)))
-    .limit(2);
+  return Promise.resolve(
+    tx
+      .select({ id: user.id })
+      .from(user)
+      .where(
+        and(eq(user.tenantId, tenantId), eq(sql`lower(btrim(${user.email}))`, emailNormalized))
+      )
+      .limit(2)
+  );
 }
 
 /**

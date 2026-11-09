@@ -29,7 +29,7 @@ export function PricingTable({
   navigateTopLevel,
 }: PricingTableProps) {
   const reviewTrigger = useRef<HTMLButtonElement | null>(null);
-  const sponsorNoticeRef = useRef<HTMLDivElement | null>(null);
+  const sponsorNoticeRef = useRef<HTMLOutputElement | null>(null);
   const sponsor = useSponsorCheckoutNotice(userId);
   const [t, locale, router] = [useTranslations('pricing'), useLocale(), useRouter()];
   const priceIds = {

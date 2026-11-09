@@ -19,6 +19,7 @@ import { actionForm, copy, loginPerson, rosterRow, tabTo, visible } from './acq3
 test('ACQ-3b office agent creates a contract; independent staff approves; CSV preserves privacy', async ({
   browser,
 }, info) => {
+  // This fixture is provisioned in one project only; other projects skip it.
   test.skip(
     info.project.name !== 'gate-ks-sq',
     'One canonical tenant run owns the uploaded employees.'

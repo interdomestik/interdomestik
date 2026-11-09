@@ -30,8 +30,7 @@ export async function authorizeSponsorTasks(): Promise<StaffContext | null> {
     const descriptor = readTenantAuthority(authority);
     const principal = descriptor.principal;
     if (
-      !principal ||
-      !principal.role ||
+      !principal?.role ||
       !HANDOVER_ROLES.has(principal.role) ||
       session.user.role !== principal.role ||
       principal.userId !== session.user.id ||

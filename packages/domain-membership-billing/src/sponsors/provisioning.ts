@@ -130,20 +130,9 @@ async function applyCase(tx: TenantTransaction, input: CaseInput): Promise<Provi
     })
     .from(subscriptions)
     .where(and(eq(subscriptions.tenantId, tenantId), eq(subscriptions.userId, userId)));
-  const kase = classifyProvisioning(
-    input.created
-      ? { kind: 'created' }
-      : person
-        ? {
-            kind: 'visible',
-            role: person.role,
-            subscription: row
-              ? { provider: row.provider, status: row.status as SubscriptionStatus }
-              : null,
-          }
-        : { kind: 'not_visible' }
-  );
-  const hasCredential = async () => (input.created ? false : input.hasCredential(userId));
+  const kase = provisioningCase(input.created, person, row);
+  const hasCredential = () =>
+    input.created ? Promise.resolve(false) : input.hasCredential(userId);
 
   if (
     input.started &&
@@ -166,37 +155,8 @@ async function applyCase(tx: TenantTransaction, input: CaseInput): Promise<Provi
     }
   }
 
-  if (kase === 'handover' || kase === 'paddle_review') {
-    if (!row) return 'skipped';
-    if (kase === 'paddle_review' && !input.started) return 'waiting';
-    const link = await linkHandoverIntent(tx, {
-      tenantId,
-      entryId,
-      userId,
-      subscription: row,
-      mode: kase,
-    });
-    if (link.kind === 'review' || kase === 'paddle_review') {
-      await review(tx, tenantId, entryId, 'paddle_state');
-      return 'staff_review';
-    }
-    if (link.kind === 'linked') {
-      await mark(tx, tenantId, entryId, 'awaiting_paid_end');
-      if (!link.paidUntil) return 'awaiting_paid_end';
-      return startOutcome(
-        await produceEntryStart(tx, {
-          tenantId,
-          entryId,
-          interval: { start: later(facts.termStart, link.paidUntil), end: facts.effectiveEnd },
-          handover: true,
-          hasCredential: await hasCredential(),
-        })
-      );
-    }
-    if (!input.started) return 'waiting';
-  } else if (!input.started) {
-    return 'waiting';
-  }
+  const handover = await applyHandoverCase(tx, input, kase, row);
+  if (handover !== null) return handover;
 
   if (kase === 'foreign') {
     await settle(tx, tenantId, entryId, 'foreign', 'foreign_account');
@@ -218,6 +178,69 @@ async function applyCase(tx: TenantTransaction, input: CaseInput): Promise<Provi
       hasCredential: await hasCredential(),
     })
   );
+}
+
+type ProvisionSubscription = {
+  id: string;
+  provider: string | null;
+  status: string | null;
+  providerSubscriptionId: string | null;
+};
+
+function provisioningCase(
+  created: boolean,
+  person: { role: string } | undefined,
+  row: ProvisionSubscription | undefined
+): ReturnType<typeof classifyProvisioning> {
+  if (created) return classifyProvisioning({ kind: 'created' });
+  if (!person) return classifyProvisioning({ kind: 'not_visible' });
+  return classifyProvisioning({
+    kind: 'visible',
+    role: person.role,
+    subscription: row ? { provider: row.provider, status: row.status as SubscriptionStatus } : null,
+  });
+}
+
+async function applyHandoverCase(
+  tx: TenantTransaction,
+  input: CaseInput,
+  kase: ReturnType<typeof classifyProvisioning>,
+  row: ProvisionSubscription | undefined
+): Promise<ProvisionOutcome | null> {
+  const { facts, userId } = input;
+  const { tenantId, entryId } = facts;
+  const hasCredential = () =>
+    input.created ? Promise.resolve(false) : input.hasCredential(userId);
+  if (kase !== 'handover' && kase !== 'paddle_review') return input.started ? null : 'waiting';
+  if (!row) return 'skipped';
+  if (kase === 'paddle_review' && !input.started) return 'waiting';
+  const link = await linkHandoverIntent(tx, {
+    tenantId,
+    entryId,
+    userId,
+    subscription: row,
+    mode: kase,
+  });
+  if (link.kind === 'review' || kase === 'paddle_review') {
+    await review(tx, tenantId, entryId, 'paddle_state');
+    return 'staff_review';
+  }
+  if (link.kind === 'linked') {
+    await mark(tx, tenantId, entryId, 'awaiting_paid_end');
+    if (!link.paidUntil) return 'awaiting_paid_end';
+    return startOutcome(
+      await produceEntryStart(tx, {
+        tenantId,
+        entryId,
+        interval: { start: later(facts.termStart, link.paidUntil), end: facts.effectiveEnd },
+        handover: true,
+        hasCredential: await hasCredential(),
+      })
+    );
+  }
+  if (!input.started) return 'waiting';
+
+  return null;
 }
 
 const startOutcome = (plan: { outcome: 'seated' | 'staff_review' }): ProvisionOutcome =>

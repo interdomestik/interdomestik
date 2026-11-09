@@ -2,10 +2,9 @@ import { formatDate } from '@/lib/utils/date';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 
-import { AgentClientMembership, SubscriptionRecord } from '../_core';
+import { AgentClientMembership } from '../_core';
 
 interface MembershipCardProps {
-  readonly subscription: SubscriptionRecord | null;
   readonly membership: AgentClientMembership;
   readonly t: (key: string) => string;
   readonly tCommon: (key: string) => string;

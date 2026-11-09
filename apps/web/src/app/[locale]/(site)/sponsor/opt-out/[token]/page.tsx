@@ -13,9 +13,9 @@ export const metadata: Metadata = {
 
 export default async function SponsorOptOutPage({
   params,
-}: {
+}: Readonly<{
   params: Promise<{ locale: string; token: string }>;
-}): Promise<ReactElement> {
+}>): Promise<ReactElement> {
   await connection();
   const { locale, token } = await params;
   setRequestLocale(locale);

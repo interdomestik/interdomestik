@@ -7,7 +7,7 @@ import type { ReactElement } from 'react';
 import { entryReason, groupSponsorTasks } from './group-tasks.core';
 import { TaskActionForm } from './task-action-form';
 
-function TaskDetails({ task }: { task: SponsorStaffTask }): ReactElement {
+function TaskDetails({ task }: Readonly<{ task: SponsorStaffTask }>): ReactElement {
   const t = useTranslations('sponsorTasks');
   const format = useFormatter();
   const date = (value: Date): string =>
@@ -65,11 +65,11 @@ function taskKey(task: SponsorStaffTask): string {
   return task.userId;
 }
 
-export function SponsorTaskList({ tasks }: { tasks: SponsorStaffTask[] }): ReactElement {
+export function SponsorTaskList({ tasks }: Readonly<{ tasks: SponsorStaffTask[] }>): ReactElement {
   const t = useTranslations('sponsorTasks');
   return (
     <div className="space-y-8">
-      {tasks.length === 0 && <p role="status">{t('empty')}</p>}
+      {tasks.length === 0 && <output className="block">{t('empty')}</output>}
       {groupSponsorTasks(tasks).map(group => (
         <section key={group.kind} aria-labelledby={`tasks-${group.kind}`} className="space-y-3">
           <h2 id={`tasks-${group.kind}`} className="text-xl font-semibold">

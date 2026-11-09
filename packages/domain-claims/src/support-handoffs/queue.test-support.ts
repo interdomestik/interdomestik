@@ -68,7 +68,7 @@ const mocks: {
   user: { email: string; id: string; memberNumber: string; name: string; tenantId: string };
   withTenant: Mock;
 } = vi.hoisted(() => ({
-  resolveMembership: vi.fn(async () => new Map()),
+  resolveMembership: vi.fn(() => Promise.resolve(new Map())),
   inArray: vi.fn((left, right) => ({ left, right })),
   and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
   branches: {

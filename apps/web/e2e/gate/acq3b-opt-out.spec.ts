@@ -15,6 +15,7 @@ test.describe('ACQ-3b public opt-out', () => {
     test(`${locale}: GET is inert; confirmation announces and focuses completion`, async ({
       browser,
     }, info) => {
+      // This fixture is provisioned in one project only; other projects skip it.
       test.skip(
         info.project.name !== 'gate-ks-sq',
         'One tenant host; four catalog-backed languages.'

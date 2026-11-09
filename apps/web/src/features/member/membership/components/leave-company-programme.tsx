@@ -38,7 +38,9 @@ export function LeaveCompanyProgramme({
     setStatus('');
     try {
       const result = await leaveCompanyProgramme({ entryId });
-      setStatus(result.ok ? 'success' : result.error === 'not_found' ? 'not_found' : 'error');
+      let nextStatus = 'success';
+      if (!result.ok) nextStatus = result.error === 'not_found' ? 'not_found' : 'error';
+      setStatus(nextStatus);
       if (result.ok) {
         router.refresh();
       }

@@ -180,7 +180,7 @@ async function seedPeople(f: SponsorFixture, password: string): Promise<void> {
         tenantId: f.tenantId,
         branchId: f.branchId,
         emailVerified: true,
-        role: p.id === f.agent.id ? ROLES.agent : p.id === f.staff.id ? ROLES.staff : ROLES.member,
+        role: fixtureRole(p.id, f),
         createdAt: f.now,
         updatedAt: f.now,
       }))
@@ -207,4 +207,9 @@ async function seedPeople(f: SponsorFixture, password: string): Promise<void> {
       updatedAt: f.now,
     })
   );
+}
+
+function fixtureRole(id: string, fixture: SponsorFixture): string {
+  if (id === fixture.agent.id) return ROLES.agent;
+  return id === fixture.staff.id ? ROLES.staff : ROLES.member;
 }

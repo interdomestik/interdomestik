@@ -15,18 +15,25 @@ export async function TermControls({
   terms,
   actor,
   locale,
-}: {
+}: Readonly<{
   sponsorId: string;
   term: SponsorTermView;
   terms: SponsorTermView[];
   actor: SponsorActor;
   locale: string;
-}): Promise<React.JSX.Element> {
+}>): Promise<React.JSX.Element> {
   const t = await getTranslations({ locale, namespace: 'sponsors' });
   const target = { sponsorId, termId: term.termId };
   const latest = term.revisions[0];
   const successor = hasSuccessor(term, terms);
   const earliest = new Date(Math.max(Date.now() + 86_400_000, term.termStart.getTime()));
+  let terminationDisabledReason: string | undefined;
+  if (!canDecideRevision(actor, term.createdBy))
+    terminationDisabledReason = t('creatorCannotDecide');
+  else if (term.terminatedEffectiveAt) terminationDisabledReason = t('terminated');
+  else if (successor) terminationDisabledReason = t('successorFirst');
+  else if (earliest > term.termEnd) terminationDisabledReason = t('terminationTooLate');
+
   return (
     <div className="space-y-4">
       <ActionForm
@@ -83,17 +90,7 @@ export async function TermControls({
         <ActionForm
           operation="terminateTerm"
           target={target}
-          disabledReason={
-            !canDecideRevision(actor, term.createdBy)
-              ? t('creatorCannotDecide')
-              : term.terminatedEffectiveAt
-                ? t('terminated')
-                : successor
-                  ? t('successorFirst')
-                  : earliest > term.termEnd
-                    ? t('terminationTooLate')
-                    : undefined
-          }
+          disabledReason={terminationDisabledReason}
         >
           <p>{t('terminationRules')}</p>
           <p>
