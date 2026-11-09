@@ -203,7 +203,7 @@ process.env.IDA_HOST = IDA_HOST;
 
 fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
 
-const restrictedServerEnv = configureE2eDatabaseEnv();
+const restrictedServerPrefix = configureE2eDatabaseEnv();
 
 const useExternalWebServer = process.env.PW_EXTERNAL_SERVER === '1';
 
@@ -428,15 +428,15 @@ export default defineConfig({
     : {
         // E2E runs against a production server (Next `start`) for artifact consistency.
         // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
-        command: `bash ${WEB_SERVER_SCRIPT}`,
+        command: `${restrictedServerPrefix}bash ${WEB_SERVER_SCRIPT}`,
         // Use a static readiness URL. DB correctness is enforced by gatekeeper before
         // Playwright starts; /api/health can report degraded states unrelated to
         // webserver boot and block test startup.
         url: `${BASE_URL}/robots.txt`,
         reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
         timeout: 300 * 1000,
+        // Playwright inherits process.env; never list secrets here because JSON reports serialize env.
         env: {
-          ...process.env,
           NODE_ENV: 'production',
           PORT: String(PORT),
           HOSTNAME: BIND_HOST,
@@ -459,13 +459,6 @@ export default defineConfig({
           // Disable rate limiting completely by unsetting Upstash vars
           UPSTASH_REDIS_REST_URL: '',
           UPSTASH_REDIS_REST_TOKEN: '',
-          // Explicitly pass the secret for the standalone server
-          BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? '',
-          // Required for Paddle webhook signature validation tests.
-          ...(process.env.PADDLE_WEBHOOK_SECRET_KEY
-            ? { PADDLE_WEBHOOK_SECRET_KEY: process.env.PADDLE_WEBHOOK_SECRET_KEY }
-            : {}),
-          ...restrictedServerEnv,
         },
       },
 });
