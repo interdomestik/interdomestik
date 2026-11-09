@@ -91,7 +91,7 @@ export function PageSkeleton({
   return (
     <div aria-busy="true" className="min-w-0 space-y-6" data-testid={testId}>
       <h1 className="break-words text-3xl font-bold tracking-tight">{title}</h1>
-      <output role="status" aria-live="polite" className="sr-only">
+      <output aria-live="polite" className="sr-only">
         {loadingLabel}
       </output>
       <div aria-hidden="true" className={styles.shapes}>
