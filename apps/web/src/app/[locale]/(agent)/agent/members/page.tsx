@@ -98,12 +98,10 @@ export default async function AgentMembersPage({
         ) : null}
 
         {members.length > 0 ? (
-          <div
+          <section
             data-testid="agent-members-list"
             className="max-w-full overflow-x-auto"
-            role="region"
             aria-label={t('members.cockpit.title')}
-            tabIndex={0}
           >
             <table className="w-full min-w-[36rem] text-sm">
               <thead>
@@ -159,7 +157,7 @@ export default async function AgentMembersPage({
                 ))}
               </tbody>
             </table>
-          </div>
+          </section>
         ) : null}
       </section>
     </div>

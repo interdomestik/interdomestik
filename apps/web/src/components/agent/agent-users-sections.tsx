@@ -114,10 +114,8 @@ export function AgentUsersSections({ users }: Readonly<UsersSectionsProps>): Rea
     totalCount: number
   ) => (
     <div className="min-w-0 space-y-4">
-      <div
-        role="region"
+      <section
         aria-label={t('headers.user')}
-        tabIndex={0}
         className="max-w-full overflow-x-auto [&>div]:overflow-visible"
       >
         <Table className="min-w-[40rem]">
@@ -191,7 +189,7 @@ export function AgentUsersSections({ users }: Readonly<UsersSectionsProps>): Rea
             ))}
           </TableBody>
         </Table>
-      </div>
+      </section>
       {isLimited && totalCount > DISPLAY_LIMIT && (
         <div className="flex justify-center pt-2">
           <Button variant="ghost" size="sm" onClick={onExpand} className="text-primary font-bold">

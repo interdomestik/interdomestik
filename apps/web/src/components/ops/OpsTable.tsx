@@ -65,6 +65,7 @@ export function OpsTable({
 }: Readonly<OpsTableProps>) {
   const isMobile = useIsMobile();
   const colCount = columns.length + (actionsHeader ? 1 : 0);
+  const ScrollContainer = scrollLabel ? 'section' : 'div';
   const containerClasses = ['rounded-md border bg-card/50 backdrop-blur-sm', containerClassName]
     .filter(Boolean)
     .join(' ');
@@ -79,11 +80,9 @@ export function OpsTable({
 
   return (
     <div className={containerClasses} data-testid={OPS_TEST_IDS.TABLE.ROOT}>
-      <div
+      <ScrollContainer
         className="max-w-full overflow-x-auto [&>div]:overflow-visible"
-        role={scrollLabel ? 'region' : undefined}
         aria-label={scrollLabel}
-        tabIndex={scrollLabel ? 0 : undefined}
       >
         <Table className="min-w-max">
           <TableHeader>
@@ -177,7 +176,7 @@ export function OpsTable({
             )}
           </TableBody>
         </Table>
-      </div>
+      </ScrollContainer>
     </div>
   );
 }
