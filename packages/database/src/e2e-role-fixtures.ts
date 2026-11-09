@@ -57,6 +57,7 @@ export const E2E_USER_IDS = {
   KS_MEMBER_NO_SUBSCRIPTION: 'golden_ks_lifecycle_no_subscription',
   KS_AGENT_CASH_STATES: 'golden_ks_d_agent_1',
   KS_MEMBER_CONVERTED_LEAD: 'golden_ks_cash_converted_member',
+  KS_MEMBER_LINK_LIFECYCLE: 'golden_ks_link_lifecycle_member',
   KS_STAFF_UNASSIGNED: 'golden_ks_staff_2',
   KS_AGENT_INACTIVE_LINK: 'golden_ks_b_agent_1',
   GLOBAL_SUPPORT: 'golden_global_support',
@@ -229,6 +230,12 @@ export const E2E_RELATIONSHIP_FIXTURES = {
     deniedActor: 'KS_ADMIN',
     caseId: E2E_CASE_FIXTURES.KS_ANCHOR.id,
     deniedCaseId: E2E_CASE_FIXTURES.MK_FOREIGN_TENANT.id,
+  },
+  CROSS_THIRD_TENANT: {
+    description: 'Pilot admin owns the pilot member scope; KS admin is outside this third tenant.',
+    allowedActor: 'PILOT_MK_ADMIN',
+    deniedActor: 'KS_ADMIN',
+    memberId: E2E_USER_IDS.PILOT_MK_MEMBER,
   },
   CROSS_BRANCH: {
     description: 'KS-A branch manager reads KS-A anchor case; KS-B case is another branch.',

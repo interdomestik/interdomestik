@@ -17,15 +17,7 @@ export function e2eEmail(local: string): string {
   return `${local}@${E2E_EMAIL_DOMAIN}`;
 }
 
-/**
- * Single source of truth for E2E user identities and expected DB states.
- * Keys (e.g., 'KS_ADMIN') are used in tests for login.
- * Values define the strict identity contract:
- * - email: Login credential
- * - dbRole: The exact role string expected in the database (and valid session)
- * - tenantId: The tenant this user belongs to
- * - testRole: Legacy role key sometimes used in tests (DEPRECATED: migrate to using the E2E_USERS key logic)
- */
+/** E2E login keys and their strict email, DB role, tenant and optional branch contracts. */
 export const E2E_USERS = {
   // SUPER ADMIN
   SUPER_ADMIN: {
@@ -284,6 +276,13 @@ export const E2E_USERS = {
   KS_MEMBER_CONVERTED_LEAD: {
     email: e2eEmail('member.ks.converted-lead'),
     name: 'KS Converted Lead Member',
+    dbRole: 'member',
+    tenantId: 'tenant_ks',
+    branchId: 'ks_branch_d',
+  },
+  KS_MEMBER_LINK_LIFECYCLE: {
+    email: e2eEmail('member.ks.link-lifecycle'),
+    name: 'KS Reactivated Client',
     dbRole: 'member',
     tenantId: 'tenant_ks',
     branchId: 'ks_branch_d',

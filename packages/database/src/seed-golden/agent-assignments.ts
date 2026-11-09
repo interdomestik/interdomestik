@@ -1,5 +1,6 @@
 import { goldenId } from '../seed-utils/seed-ids';
 import { TENANTS } from './constants';
+import { seedAgentLinkLifecycle } from './agent-link-lifecycle';
 import type { SeedGoldenContext } from './types';
 
 export type AgentAssignmentStatus = 'active' | 'inactive';
@@ -53,7 +54,8 @@ export function buildAgentAssignmentsToSeed(): AgentAssignmentSeed[] {
   ];
 }
 
-export async function seedAgentAssignments({ at, db, schema }: SeedGoldenContext) {
+export async function seedAgentAssignments(context: SeedGoldenContext) {
+  const { at, db, schema } = context;
   console.log('🤝 Linking Agents to Members...');
 
   for (const a of buildAgentAssignmentsToSeed()) {
@@ -70,4 +72,5 @@ export async function seedAgentAssignments({ at, db, schema }: SeedGoldenContext
       })
       .onConflictDoUpdate({ target: schema.agentClients.id, set: { status: a.status } });
   }
+  await seedAgentLinkLifecycle(context);
 }
