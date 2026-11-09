@@ -24,7 +24,8 @@ const CANARIES = {
   OTP_RATE_LIMIT_HMAC_SECRET: 'canary-otp-secret',
   GH_LOOKUP_TOKEN: 'canary-gh-token',
 };
-const SECRET_PARTS = Object.values(CANARIES).map(value => value.match(/canary-[\w-]+/u)[0]);
+const CANARY_PART = /canary-[\w-]+/u;
+const SECRET_PARTS = Object.values(CANARIES).map(value => CANARY_PART.exec(value)[0]);
 // Loads a config the way the JSON reporter receives it and prints only which canaries leaked.
 const PROBE = `
 const loaded = await import(process.argv[1]);
@@ -39,7 +40,8 @@ console.log('REPORT_PROBE ' + JSON.stringify({
 
 function probe(configPath) {
   const env = { ...process.env, ...CANARIES, REPORT_PROBE_SECRETS: JSON.stringify(SECRET_PARTS) };
-  delete env.PW_EXTERNAL_SERVER;
+  // An inherited value wins over .env files, so a local .env cannot switch to an external server.
+  env.PW_EXTERNAL_SERVER = '0';
   const run = spawnSync(
     process.execPath,
     ['--import', 'tsx', '--input-type=module', '-e', PROBE, configPath],
@@ -58,11 +60,12 @@ test('serialized Playwright config carries no lane credentials', () => {
     'sh',
     ['-c', `${result.command.split('bash ')[0]}printenv DATABASE_URL_RLS`],
     {
-      env: { ...process.env, E2E_SERVER_DATABASE_URL_RLS: RUNTIME_URL },
+      // Synthetic environment only, so a failure can never echo an inherited credential.
+      env: { PATH: process.env.PATH, E2E_SERVER_DATABASE_URL_RLS: RUNTIME_URL },
       encoding: 'utf8',
     }
   );
-  assert.equal(shell.stdout.trim(), RUNTIME_URL, 'server prefix must still pass the runtime role');
+  assert.ok(shell.stdout.trim() === RUNTIME_URL, 'server prefix must still pass the runtime role');
 });
 
 test('probe detects spread, wrapped and direct credential forms', t => {
