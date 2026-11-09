@@ -34,7 +34,7 @@ interface CallMeNowDialogProps {
   category: string;
 }
 
-export function CallMeNowDialog({ category }: CallMeNowDialogProps): React.JSX.Element {
+export function CallMeNowDialog({ category }: Readonly<CallMeNowDialogProps>): React.JSX.Element {
   const t = useTranslations('claimCategories.callback');
   const categories = useTranslations('claims.category');
   const formSchema = z.object({

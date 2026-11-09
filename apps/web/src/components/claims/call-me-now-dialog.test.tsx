@@ -1,21 +1,17 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AbstractIntlMessages } from 'next-intl';
 import en from '@/messages/en/claimCategories.json';
 import sq from '@/messages/sq/claimCategories.json';
 import shared from '@/messages/en/claims.json';
 const language = vi.hoisted(() => ({ locale: 'en' }));
 vi.mock('next-intl', async () => {
-  const { createTranslator } = await vi.importActual<typeof import('next-intl')>('next-intl');
-  return {
-    useTranslations: (namespace: string) =>
-      createTranslator({
-        locale: language.locale,
-        namespace,
-        messages: { ...shared, ...(language.locale === 'sq' ? sq : en) } as AbstractIntlMessages,
-      }),
-  };
+  const { createLocaleTranslationsMock } = await import('@/test/next-intl-locale-test-utils');
+  return createLocaleTranslationsMock(
+    language,
+    () => ({ ...shared, ...(language.locale === 'sq' ? sq : en) }) as AbstractIntlMessages
+  );
 });
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CallMeNowDialog } from './call-me-now-dialog';
 
 // Mock react-hook-form

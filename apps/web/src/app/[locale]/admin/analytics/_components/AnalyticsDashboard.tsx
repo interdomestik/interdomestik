@@ -12,7 +12,7 @@ interface AnalyticsDashboardProps {
 export async function AnalyticsDashboard({
   data,
   locale,
-}: AnalyticsDashboardProps): Promise<React.JSX.Element> {
+}: Readonly<AnalyticsDashboardProps>): Promise<React.JSX.Element> {
   const t = await getTranslations({ locale, namespace: 'admin.analytics' });
   const tStatus = await getTranslations({ locale, namespace: 'claims.status' });
   const tCategory = await getTranslations({ locale, namespace: 'claims.category' });

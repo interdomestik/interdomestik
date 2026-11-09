@@ -9,9 +9,9 @@ import { getTranslations } from 'next-intl/server';
 
 export default async function AgentCommissionsPage({
   params,
-}: {
+}: Readonly<{
   params: Promise<{ locale: string }>;
-}): Promise<React.JSX.Element> {
+}>): Promise<React.JSX.Element> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'agent.commissions' });
   const { session, authority } = await getActionContext();

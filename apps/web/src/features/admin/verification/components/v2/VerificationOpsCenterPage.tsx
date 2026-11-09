@@ -16,7 +16,7 @@ type Props = {
 export default async function VerificationOpsCenterPage({
   searchParams,
   locale,
-}: Props): Promise<React.JSX.Element> {
+}: Readonly<Props>): Promise<React.JSX.Element> {
   const t = await getTranslations({ locale, namespace: 'admin.leads' });
   const session = await auth.api.getSession({ headers: await headers() });
   const params = await searchParams;

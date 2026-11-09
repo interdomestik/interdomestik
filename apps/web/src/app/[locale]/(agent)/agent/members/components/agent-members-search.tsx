@@ -17,7 +17,7 @@ type AgentMembersSearchProps = {
 // reset, and a relative replace so typing never grows the back stack.
 export function AgentMembersSearch({
   initialQuery = '',
-}: AgentMembersSearchProps): React.JSX.Element {
+}: Readonly<AgentMembersSearchProps>): React.JSX.Element {
   const t = useTranslations('common.interface');
   const router = useRouter();
   const pathname = usePathname();

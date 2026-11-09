@@ -23,7 +23,7 @@ function getAgentChoicesForRole(role: string) {
 export default async function AdminUsersPage({
   params: routeParams,
   searchParams,
-}: Props): Promise<React.JSX.Element> {
+}: Readonly<Props>): Promise<React.JSX.Element> {
   const { locale } = await routeParams;
   const params = await searchParams;
 

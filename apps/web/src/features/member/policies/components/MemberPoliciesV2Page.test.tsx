@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import type { AbstractIntlMessages } from 'next-intl';
 import en from '@/messages/en/membership.json';
@@ -20,7 +21,6 @@ vi.mock('next-intl/server', async () => {
   };
 });
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   getPoliciesWithDocumentLinksCore: vi.fn(),

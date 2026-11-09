@@ -24,7 +24,7 @@ interface MemberPoliciesV2PageProps {
 
 export async function MemberPoliciesV2Page({
   locale,
-}: MemberPoliciesV2PageProps): Promise<React.JSX.Element> {
+}: Readonly<MemberPoliciesV2PageProps>): Promise<React.JSX.Element> {
   const authorized = await authorizeSessionTenant(await headers());
 
   if (!authorized) {

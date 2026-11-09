@@ -12,9 +12,9 @@ const ICON_MAP: Record<string, LucideIcon> = {
 
 export default async function AgentWorkspacePage({
   params,
-}: {
+}: Readonly<{
   params: Promise<{ locale: string }>;
-}): Promise<React.JSX.Element> {
+}>): Promise<React.JSX.Element> {
   const { locale } = await params;
   // Purity: Page fetches data/context, then delegates to core
   const data = getAgentWorkspaceNavCore({});
