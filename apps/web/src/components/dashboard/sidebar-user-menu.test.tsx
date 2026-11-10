@@ -97,6 +97,7 @@ vi.mock('lucide-react', () => ({
   Globe: () => <span />,
   Home: () => <span />,
   LogOut: () => <span />,
+  User: () => <span />,
 }));
 
 describe('SidebarUserMenu', () => {
@@ -206,5 +207,12 @@ describe('SidebarUserMenu', () => {
 
     expect(screen.getByText('Agjent')).toBeInTheDocument();
     expect(screen.queryByText(/^agent$/)).not.toBeInTheDocument();
+  });
+
+  it('renders the supplied profile destination without adding a default profile control', () => {
+    const { rerender } = render(<SidebarUserMenu profileHref="/admin/account" />);
+    expect(screen.getByRole('link', { name: 'profile' })).toHaveAttribute('href', '/admin/account');
+    rerender(<SidebarUserMenu />);
+    expect(screen.queryByRole('link', { name: 'profile' })).not.toBeInTheDocument();
   });
 });

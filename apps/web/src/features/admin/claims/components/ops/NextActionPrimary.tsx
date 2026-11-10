@@ -100,7 +100,7 @@ export function NextActionPrimary({
   };
 
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex min-w-0 flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
       <div className="flex flex-col gap-1">
         <h3 className="font-semibold text-base flex items-center gap-2">
           {t('title')}
@@ -115,7 +115,7 @@ export function NextActionPrimary({
         <p className="text-sm text-muted-foreground">{currentDesc}</p>
       </div>
 
-      <div className="flex items-center gap-2">{renderControl()}</div>
+      <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">{renderControl()}</div>
     </div>
   );
 }

@@ -23,7 +23,11 @@ interface ClaimsOperationalListProps {
 /**
  * ClaimsOperationalList — Renders list of OperationalCards (Phase 2.5)
  */
-export function ClaimsOperationalList({ claims, loading, error }: ClaimsOperationalListProps) {
+export function ClaimsOperationalList({
+  claims,
+  loading,
+  error,
+}: Readonly<ClaimsOperationalListProps>) {
   const router = useRouter();
   const tTable = useTranslations('admin.claims_page.table');
   const tCard = useTranslations('admin.claims_page.operational_card');
@@ -54,7 +58,7 @@ export function ClaimsOperationalList({ claims, loading, error }: ClaimsOperatio
           isUnassigned={claim.isUnassigned}
           status={claim.status}
         />
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <ClaimOriginBadges
             originType={claim.originType}
             originDisplayName={claim.originDisplayName}
@@ -96,6 +100,9 @@ export function ClaimsOperationalList({ claims, loading, error }: ClaimsOperatio
       emptyTitle={tTable('empty_state')}
     >
       <OpsTable
+        mobileCards
+        scrollLabel={tTable('headers.title')}
+        containerClassName="min-w-0 max-w-full"
         columns={columns}
         rows={rows}
         emptyLabel={tTable('empty_state')}

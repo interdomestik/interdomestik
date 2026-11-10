@@ -1,0 +1,57 @@
+.detail,
+.detail > div,
+.detail > div > div {
+  min-width: 0;
+}
+
+/* Only the shared shell owns sticky chrome. The case header stays in document flow. */
+.header > div {
+  position: static;
+  margin-inline: 0;
+  padding-inline: 0;
+}
+
+.header nav {
+  flex-wrap: wrap;
+}
+
+.header :is(div, span) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.header :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.header :is(a, button):focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  /* Presentation of metadata and handling controls only; no composer/thread selectors. */
+  .header :global(.inline-flex) {
+    height: auto;
+    flex-wrap: wrap;
+  }
+
+  .header :global(.whitespace-nowrap) {
+    white-space: normal;
+  }
+
+  .detail :global([data-workspace-controls]) :is(div, span) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .detail :global([data-workspace-controls]) :global(.whitespace-nowrap) {
+    white-space: normal;
+  }
+}
