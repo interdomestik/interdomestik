@@ -64,8 +64,18 @@ export const LEGACY_PINS = new Map([
 export const DRIVER_SPECIFIERS =
   /^(?:postgres|pg|pg-pool|drizzle-orm\/(?:postgres-js|node-postgres|pg-proxy|pglite|neon-http|neon-serverless|vercel-postgres|xata-http|aws-data-api\/pg))$/u;
 
+// Seed-only client installation before db.ts loads. Every import is restricted by rules-scan.mjs;
+// re-exports are forbidden, including from these callers. Tests use the existing TEST_SOURCE rule.
+export const SEED_TLS_MODULE = `${DB}/seed-target-tls.ts`;
+export const SEED_TLS_IMPORTERS = new Set([
+  `${DB}/seed-target-guard.ts`,
+  'scripts/pilot/import-pilot-database.ts',
+  'scripts/pilot/day1_multi_seeder.ts',
+]);
+
 export const DRIVER_MODULES = new Set([
   `${DB}/db.ts`,
+  SEED_TLS_MODULE,
   `${DB}/migrate.ts`,
   `${DB}/admin-connection-config.ts`,
   `${DB}/admin-connection-preflight.ts`,
