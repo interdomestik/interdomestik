@@ -1,13 +1,11 @@
 import { requireTenantAdminSession } from '@interdomestik/domain-users/admin/access';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
+import { StaffRoleShell } from '@/components/shell/staff-role-shell';
 import { toClientShellUser } from '@/components/shell/client-shell-user';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
-import { StaffSidebar } from '@/components/staff/staff-sidebar';
 import { BASE_NAMESPACES, STAFF_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { requireEffectivePortalAccessOrNotFound } from '@/server/auth/effective-portal-access';
-import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
@@ -15,10 +13,10 @@ export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 export default async function StaffLayout({
   children,
   params,
-}: {
+}: Readonly<{
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
-}) {
+}>) {
   const { locale } = await params;
   setRequestLocale(locale);
 
@@ -42,18 +40,9 @@ export default async function StaffLayout({
 
   return (
     <AuthenticatedShell locale={locale} messages={messages}>
-      <SidebarProvider defaultOpen={true}>
-        <StaffSidebar user={shellUser} />
-        <SidebarInset className="bg-mesh flex min-w-0 flex-col min-h-screen">
-          <DashboardHeader
-            user={shellUser}
-            adminAccess={adminAccess}
-            prefetchNotifications={false}
-            density="responsive-compact"
-          />
-          <main className="flex-1 p-3 sm:p-6 md:p-8 pt-6">{children}</main>
-        </SidebarInset>
-      </SidebarProvider>
+      <StaffRoleShell user={shellUser} adminAccess={adminAccess}>
+        {children}
+      </StaffRoleShell>
     </AuthenticatedShell>
   );
 }

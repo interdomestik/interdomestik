@@ -147,11 +147,11 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
           data-testid={hydrated ? 'diaspora-form-ready' : undefined}
           onSubmit={applyCorridor}
         >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-2 text-sm font-semibold text-slate-900">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
+            <label className="min-w-0 space-y-2 text-sm font-semibold text-slate-900">
               <span>{copy.origin}</span>
               <select
-                className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3"
+                className="min-h-11 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3"
                 onChange={event => setOrigin(event.target.value)}
                 required
                 value={origin}
@@ -164,10 +164,10 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
                 ))}
               </select>
             </label>
-            <label className="space-y-2 text-sm font-semibold text-slate-900">
+            <label className="min-w-0 space-y-2 text-sm font-semibold text-slate-900">
               <span>{copy.destination}</span>
               <select
-                className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3"
+                className="min-h-11 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3"
                 onChange={event => setDestination(event.target.value)}
                 required
                 value={destination}
@@ -192,7 +192,7 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
                 <label className="min-w-0 flex-1 space-y-2 text-sm font-semibold text-slate-900">
                   <span>{numbered(copy.transit, index + 1)}</span>
                   <select
-                    className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3"
+                    className="min-h-11 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3"
                     onChange={event => updateTransit(index, event.target.value)}
                     ref={node => {
                       transitRefs.current[index] = node;
@@ -220,18 +220,22 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
               </div>
             ))}
             <Button
+              className="h-auto min-h-10 max-w-full whitespace-normal"
               disabled={transit.length >= MAX_TRANSIT_COUNTRIES}
               onClick={addTransit}
               ref={addTransitRef}
               type="button"
               variant="outline"
             >
-              <Plus aria-hidden="true" className="mr-2 h-4 w-4" />
+              <Plus aria-hidden="true" className="mr-2 h-4 w-4 shrink-0" />
               {copy.addTransit}
             </Button>
           </fieldset>
 
-          <Button className="w-full sm:w-auto" type="submit">
+          <Button
+            className="h-auto min-h-10 w-full whitespace-normal [overflow-wrap:anywhere] sm:w-auto"
+            type="submit"
+          >
             {copy.apply}
           </Button>
         </form>

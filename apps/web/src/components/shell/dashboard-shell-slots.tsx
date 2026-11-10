@@ -9,7 +9,7 @@ import { useTranslations } from 'next-intl';
 import type { ClientShellUser } from './client-shell-user';
 
 /** Existing dashboard chrome; callers retain navigation and locale-context decisions. */
-export function useDashboardShellSlots(user: ClientShellUser) {
+export function useDashboardShellSlots(user: ClientShellUser, adminAccess = false) {
   const t = useTranslations('nav');
   return {
     brand: <SidebarBrand role={user.role} />,
@@ -24,7 +24,7 @@ export function useDashboardShellSlots(user: ClientShellUser) {
     ),
     account: (
       <fieldset aria-label={t('myAccount')} className="m-0 min-w-0 border-0 p-0">
-        <UserNav user={user} adminAccess={false} />
+        <UserNav user={user} adminAccess={adminAccess} />
       </fieldset>
     ),
   };

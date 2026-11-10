@@ -1,11 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 
 export type CoverageCellTone =
-  | 'included'
-  | 'escalation'
-  | 'referral'
-  | 'laterPhase'
-  | 'unavailable';
+  'included' | 'escalation' | 'referral' | 'laterPhase' | 'unavailable';
 
 export type CoverageCell = Readonly<{
   label: string;
@@ -41,7 +37,7 @@ const TONE_CLASS_NAMES: Record<CoverageCellTone, string> = {
 function CoverageCellBadge({ label, tone }: CoverageCell) {
   return (
     <span
-      className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] ${TONE_CLASS_NAMES[tone]}`}
+      className={`inline-flex min-w-0 max-w-full whitespace-normal [overflow-wrap:anywhere] rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] ${TONE_CLASS_NAMES[tone]}`}
     >
       {label}
     </span>
@@ -61,7 +57,7 @@ export function CoverageMatrix({
 }: CoverageMatrixProps) {
   return (
     <section
-      className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8"
+      className="min-w-0 [overflow-wrap:anywhere] rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8"
       data-testid={sectionTestId}
     >
       <div className="mx-auto max-w-4xl text-center">
@@ -109,9 +105,12 @@ export function CoverageMatrix({
         </table>
       </div>
 
-      <div className="mt-8 grid gap-4 md:hidden">
+      <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-4 md:hidden">
         {rows.map(row => (
-          <Card key={row.title} className="rounded-[1.75rem] border border-slate-200 shadow-none">
+          <Card
+            key={row.title}
+            className="min-w-0 rounded-[1.75rem] border border-slate-200 shadow-none"
+          >
             <CardHeader className="space-y-2">
               <CardTitle className="text-xl font-black text-slate-950">{row.title}</CardTitle>
               <p className="text-sm leading-6 text-slate-600">{row.description}</p>
@@ -120,9 +119,9 @@ export function CoverageMatrix({
               {row.cells.map((cell, index) => (
                 <div
                   key={`${row.title}-${columns[index]}`}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
+                  className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
                 >
-                  <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+                  <span className="min-w-0 max-w-full text-xs font-black uppercase tracking-[0.14em] text-slate-500">
                     {columns[index]}
                   </span>
                   <CoverageCellBadge {...cell} />
