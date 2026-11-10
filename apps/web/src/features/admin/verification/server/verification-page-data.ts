@@ -3,6 +3,7 @@ import { isStaffOrAdmin, ROLE_BRANCH_MANAGER } from '@/lib/roles.core';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getVerificationRequestsAction } from '../actions/verification';
+import { redactVerificationRequestsForRole } from './branch-manager-redaction';
 import type { CashVerificationRequestDTO, VerificationView } from './verification.core';
 
 export type VerificationPageData = Readonly<{
@@ -32,6 +33,9 @@ export async function loadVerificationPageData(
   }
 
   const result = await getVerificationRequestsAction({ view, query });
-  const leads = (result?.success ? result.data : []) as CashVerificationRequestDTO[];
+  const leads = redactVerificationRequestsForRole(
+    (result?.success ? result.data : []) as CashVerificationRequestDTO[],
+    session.user.role
+  );
   return { view, query, leads, viewerRole: session.user.role };
 }
