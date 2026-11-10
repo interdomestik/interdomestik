@@ -96,7 +96,7 @@ test('remote refuses cached fallback, weak values and environment drift', () => 
 });
 
 test('only loopback and confirmed ci-postgres retain default, missing and weak overrides', () => {
-  for (const host of ['localhost', '127.0.0.1', '[::1]', 'ci-postgres']) {
+  for (const host of ['localhost', '127.0.0.1', 'ci-postgres']) {
     const expected = host === 'ci-postgres' ? 'confirmed-non-local' : 'local';
     for (const E2E_PASSWORD of [DEFAULT_E2E_PASSWORD, undefined, 'x'.repeat(1)]) {
       assert.equal(
@@ -150,6 +150,29 @@ test('authorities the postgres driver resolves differently never borrow an exemp
         SEED_TARGET_CONFIRM: `plan070:${target}`,
         E2E_PASSWORD: strongOverride,
         [key]: `postgres://${authority}/db`,
+      };
+      assert.throws(() => assertSeedTargetAllowed(env, strongOverride), /refused: ambiguous$/);
+    }
+  }
+});
+
+test('encoded, multihost or IPv6 fallback hosts never borrow an exemption', () => {
+  // The driver uses PGHOST literally when the URL authority has no host.
+  const fallbacks = [
+    ['ci%2dpostgres', 'ci-postgres'],
+    ['%6cocalhost', 'localhost'],
+    ['ci-postgres,remote.example.net', 'ci-postgres'],
+    ['::1', '::1'],
+    [' localhost', 'localhost'],
+  ];
+  for (const [PGHOST, target] of fallbacks) {
+    for (const key of ['DATABASE_URL', 'DATABASE_URL_RLS']) {
+      const env = {
+        DATABASE_URL: 'postgres://fixture@ci-postgres/db',
+        PGUSER: 'fixture',
+        PGHOST,
+        SEED_TARGET_CONFIRM: `plan070:${target}`,
+        [key]: 'postgres:///db',
       };
       assert.throws(() => assertSeedTargetAllowed(env, strongOverride), /refused: ambiguous$/);
     }

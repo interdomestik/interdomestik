@@ -1,7 +1,9 @@
 import { DEFAULT_E2E_PASSWORD, E2E_PASSWORD } from './e2e-users';
 
 const PRODUCTION_PROJECT_REF = 'gunosplgrvnvrftudttr';
-const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1']);
+// postgres 3.4.9 uses host names literally and splits them on ',' and ':' (IPv6 unsupported).
+const NON_LITERAL_HOST = /[%,/\s:[\]@#\\]/;
 // postgres 3.4.9 parseOptions: these affect transport, not startup identity.
 const TRANSPORT_QUERY_KEYS = new Set([
   'ssl',
@@ -84,6 +86,11 @@ function rejectProduction(env: SeedEnvironment, urls: (URL | null)[]): void {
   if ([...markers, ...urlMarkers, ...authorities].some(production)) refuse('production');
 }
 
+function literalHost(value: string): string {
+  if (NON_LITERAL_HOST.test(value)) refuse('ambiguous');
+  return value.toLowerCase();
+}
+
 function hostRef(host: string): string | undefined {
   return /^(?:db\.)?([a-z]{20})\.supabase\.co$/.exec(host)?.[1];
 }
@@ -100,10 +107,14 @@ function unique(values: string[]): string | undefined {
 
 function databaseTarget(url: URL, env: SeedEnvironment): string {
   if (!['postgres:', 'postgresql:'].includes(url.protocol)) refuse('invalid');
-  const hosts = present([url.hostname, env.PGHOST, env.PGHOSTADDR]);
+  // Never decode hosts: the driver connects to the literal URL host, else PGHOST.
+  const hosts = [url.hostname, env.PGHOST, env.PGHOSTADDR]
+    .filter((value): value is string => Boolean(value))
+    .map(literalHost);
   const users = present([url.username, env.PGUSERNAME, env.PGUSER]);
   for (const [key, value] of url.searchParams) {
-    if (HOST_KEYS.has(key)) hosts.push(decode(value).toLowerCase());
+    // The driver sends query host keys as startup parameters, never as the connection host.
+    if (HOST_KEYS.has(key)) refuse('ambiguous');
     else if (USER_KEYS.has(key)) users.push(decode(value).toLowerCase());
     else if (!TRANSPORT_QUERY_KEYS.has(key)) refuse('ambiguous');
   }

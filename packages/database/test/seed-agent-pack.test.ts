@@ -58,6 +58,14 @@ test('agent credentials use cached E2E password and reject later environment dri
     };
     await assert.rejects(seedAgentPack(config), { message: 'Seed target refused: ambiguous' });
     assert.equal(writes.length, 0);
+    process.env = {
+      DATABASE_URL: 'postgres:///db',
+      PGUSER: 'fixture',
+      PGHOST: 'ci%2dpostgres',
+      SEED_TARGET_CONFIRM: 'plan070:ci-postgres',
+    };
+    await assert.rejects(seedAgentPack(config), { message: 'Seed target refused: ambiguous' });
+    assert.equal(writes.length, 0);
   } finally {
     process.env = previousEnv;
     hooks.deregister();

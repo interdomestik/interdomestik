@@ -11,12 +11,14 @@ const direct = (ref: string) => `postgresql://fixture:credential-CANARY@db.${ref
 const pooled = (ref: string) =>
   `postgresql://postgres.${ref}:credential-CANARY@aws-0-eu.pooler.supabase.com:6543/db`;
 test('loopback needs no confirmation; missing/malformed/non-postgres targets fail closed', () => {
-  for (const host of ['localhost', '127.0.0.1', '127.0.0.1:55438', '[::1]']) {
+  for (const host of ['localhost', '127.0.0.1', '127.0.0.1:55438']) {
     assert.equal(
       assertSeedTargetAllowed({ DATABASE_URL: `postgres://fixture@${host}/db` }),
       'local'
     );
   }
+  // postgres 3.4.9 splits hosts on ':', so bracketed IPv6 never reaches the parsed host.
+  assert.throws(() => assertSeedTargetAllowed({ DATABASE_URL: 'postgres://fixture@[::1]/db' }));
   for (const DATABASE_URL of [undefined, '', 'CANARY', 'https://localhost/db']) {
     assert.throws(() => assertSeedTargetAllowed({ DATABASE_URL }), /refused: invalid$/);
   }
