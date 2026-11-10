@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 import crypto from 'node:crypto';
-import { importPilotDatabase } from './import-pilot-database';
+import { closePilotDatabase, importPilotDatabase } from './import-pilot-database';
 
 const { claimLifecycleFieldsForStatus, db, claims, user } = await importPilotDatabase();
 const { eq } = await import('drizzle-orm');
@@ -51,7 +51,9 @@ async function main() {
 
 try {
   await main();
+  await closePilotDatabase();
 } catch (err) {
   console.error('[AgentClaim] Error:', err);
+  await closePilotDatabase();
   process.exit(1);
 }

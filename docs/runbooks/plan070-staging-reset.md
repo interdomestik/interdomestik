@@ -56,9 +56,15 @@ Never read `.env*` values, echo connection strings, or put credentials in receip
    In a protected operator shell, supply the verified staging `DATABASE_URL` without printing it.
    Require `SEED_TARGET_CONFIRM=plan070:xjyseqtfuxcuviiankhy` for this exact project.
    The token is public confirmation text, not authorization or a production override.
+   A confirmed non-local target connects only with verified TLS. Download the project's CA from
+   the Supabase dashboard (staging project → Project Settings → Database → SSL Configuration →
+   Download certificate) to a path outside the repository, and set `SEED_TARGET_SSL_ROOT_CERT`
+   to its absolute path. Every certificate in that file must be a CA; there is no fallback to
+   system CAs, and a missing or invalid file refuses the target.
    Run the reviewed commands only after the owner authorizes this destructive operation:
 
    ```sh
+   export SEED_TARGET_SSL_ROOT_CERT="$HOME/.config/interdomestik/supabase-staging-ca.crt"
    SEED_TARGET_CONFIRM=plan070:xjyseqtfuxcuviiankhy pnpm --filter @interdomestik/database seed:e2e -- --reset
    SEED_TARGET_CONFIRM=plan070:xjyseqtfuxcuviiankhy pnpm --filter @interdomestik/database seed:assert-e2e
    ```
