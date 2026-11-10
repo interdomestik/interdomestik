@@ -64,8 +64,26 @@ export const LEGACY_PINS = new Map([
 export const DRIVER_SPECIFIERS =
   /^(?:postgres|pg|pg-pool|drizzle-orm\/(?:postgres-js|node-postgres|pg-proxy|pglite|neon-http|neon-serverless|vercel-postgres|xata-http|aws-data-api\/pg))$/u;
 
+// Finite seed import closure: every incoming module edge is confined by rules-seed-tls.mjs.
+// Tests use TEST_SOURCE. scripts/pilot is outside the CLI's scanned roots (apps/web/src, packages),
+// so pilot importers are deliberately NOT claimed as enforced members of this boundary.
+export const SEED_TLS_MODULE = `${DB}/seed-target-tls.ts`;
+export const SEED_TLS_CLOSURE = new Set([
+  SEED_TLS_MODULE,
+  `${DB}/seed-target-guard.ts`,
+  `${DB}/seed.ts`,
+  `${DB}/seed-assert.ts`,
+  `${DB}/seed-full/index.ts`,
+  `${DB}/seed-golden/index.ts`,
+  `${DB}/seed-golden.ts`,
+  `${DB}/seed-workload/index.ts`,
+  `${DB}/seed-packs/agent-pack.ts`,
+  `${DB}/seed-packs/ks-workflow-pack.ts`,
+]);
+
 export const DRIVER_MODULES = new Set([
   `${DB}/db.ts`,
+  SEED_TLS_MODULE,
   `${DB}/migrate.ts`,
   `${DB}/admin-connection-config.ts`,
   `${DB}/admin-connection-preflight.ts`,
