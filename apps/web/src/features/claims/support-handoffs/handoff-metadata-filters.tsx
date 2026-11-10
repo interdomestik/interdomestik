@@ -11,13 +11,13 @@ export function HandoffMetadataFilters({
   groups,
   searchLabel,
   submitLabel,
-}: {
+}: Readonly<{
   locale: string;
   search: string;
   searchLabel: string;
   submitLabel: string;
   groups: HandoffFilterGroup[];
-}) {
+}>) {
   return (
     <form
       action={`/${locale}/staff/support-handoffs`}

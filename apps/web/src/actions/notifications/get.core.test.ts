@@ -43,7 +43,9 @@ describe('in-app BM notification reader boundary', () => {
         title: expect.stringMatching(/^trusted:/),
         content: expect.stringMatching(/^trusted:/),
       });
-      expect(Object.keys(result[0]).sort()).toEqual(Object.keys(row).sort());
+      expect(Object.keys(result[0]).sort((a, b) => a.localeCompare(b))).toEqual(
+        Object.keys(row).sort((a, b) => a.localeCompare(b))
+      );
       expect(result[0].id).toBe(row.id);
       expect(JSON.stringify(result)).not.toContain('SENTINEL');
       expect(row.title).toBe('TITLE-SENTINEL');

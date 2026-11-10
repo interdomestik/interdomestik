@@ -10,7 +10,7 @@ interface VerifierCellProps {
   viewerRole?: string | null;
 }
 
-export function VerifierCell({ request, viewerRole }: VerifierCellProps) {
+export function VerifierCell({ request, viewerRole }: Readonly<VerifierCellProps>) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">

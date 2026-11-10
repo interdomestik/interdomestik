@@ -13,14 +13,14 @@ export function HandoffMetadataPanel({
   locale,
   missing,
   statuses,
-}: {
+}: Readonly<{
   handoffId: string;
   labels: Record<'expand' | 'collapse' | 'loading' | 'unavailable' | 'failed' | 'retry', string>;
   fields: MetadataLabels;
   locale: string;
   missing: { timestamp: string; assignee: string; branch: string };
   statuses: Record<string, string>;
-}) {
+}>) {
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState<RestrictedRead<HandoffMetadata[]> | null>(null);
   const [pending, startTransition] = useTransition();
@@ -36,6 +36,12 @@ export function HandoffMetadataPanel({
     });
   }
   const row = result?.kind === 'ok' ? result.data[0] : null;
+  function statusMessage() {
+    if (pending) return labels.loading;
+    if (row) return null;
+    if (result?.kind === 'failed') return labels.failed;
+    return labels.unavailable;
+  }
   return (
     <div>
       <button
@@ -57,15 +63,9 @@ export function HandoffMetadataPanel({
           data-testid="staff-support-handoff-detail-panel"
           className="mt-3 space-y-3"
         >
-          <p role="status" aria-live="polite">
-            {pending
-              ? labels.loading
-              : row
-                ? null
-                : result?.kind === 'failed'
-                  ? labels.failed
-                  : labels.unavailable}
-          </p>
+          <output className="block" aria-live="polite">
+            {statusMessage()}
+          </output>
           {row && (
             <HandoffMetadataFields
               data={row}

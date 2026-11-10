@@ -58,16 +58,29 @@ test('BM handoff and event preview copy has five-locale owners and exact content
       't410-notification-acknowledgement-i18n-contract'
     );
     const handoffs = read(locale, 'messaging').messaging.branchManager.handoffs;
-    assert.deepEqual(Object.keys(handoffs).sort(), [...handoffKeys].sort());
+    assert.deepEqual(
+      Object.keys(handoffs).sort((a, b) => a.localeCompare(b)),
+      [...handoffKeys].sort((a, b) => a.localeCompare(b))
+    );
     for (const value of Object.values(handoffs))
       assert.ok(typeof value === 'string' && value.trim());
     const events = read(locale, 'notifications').notifications.branchManager;
-    assert.deepEqual(Object.keys(events).sort(), [...eventKeys].sort());
+    assert.deepEqual(
+      Object.keys(events).sort((a, b) => a.localeCompare(b)),
+      [...eventKeys].sort((a, b) => a.localeCompare(b))
+    );
     for (const event of Object.values(events)) {
-      assert.deepEqual(Object.keys(event).sort(), ['content', 'title']);
+      assert.deepEqual(
+        Object.keys(event).sort((a, b) => a.localeCompare(b)),
+        ['content', 'title']
+      );
       for (const value of Object.values(event)) {
         assert.ok(typeof value === 'string' && value.trim());
-        assert.doesNotMatch(value, /\{.*\}/u, 'Preview copy must never interpolate stored content');
+        assert.doesNotMatch(
+          value,
+          /\{[^{}\r\n\u2028\u2029]*\}/u,
+          'Preview copy must never interpolate stored content'
+        );
       }
     }
   }

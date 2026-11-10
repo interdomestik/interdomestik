@@ -10,6 +10,17 @@ export async function expectPreviewBoundaries(
   access: PreviewAccess,
   fixture: PreviewFixture
 ) {
+  await expectVerificationResponse(page, info, access, fixture);
+  await expectVerificationPage(page, info, access, fixture);
+  await expectHandoffBoundaries(page, info, access, fixture);
+}
+
+async function expectVerificationResponse(
+  page: Page,
+  info: TestInfo,
+  access: PreviewAccess,
+  fixture: PreviewFixture
+) {
   const { origin } = getProjectUrlInfo(info, null);
   const response = await page.request.get(`${origin}/api/verification/${fixture.attemptId}`, {
     maxRedirects: 0,
@@ -32,6 +43,14 @@ export async function expectPreviewBoundaries(
       expect(JSON.stringify(details)).toContain(fixture.verificationSentinels[1]);
     }
   }
+}
+
+async function expectVerificationPage(
+  page: Page,
+  info: TestInfo,
+  access: PreviewAccess,
+  fixture: PreviewFixture
+) {
   if (access.verification === 'redacted') {
     const payloads: Promise<string>[] = [];
     const observe = (res: Response) => {
@@ -50,14 +69,19 @@ export async function expectPreviewBoundaries(
         1
       );
       await expect(page.getByTestId('ops-drawer').filter({ visible: true })).toBeVisible();
-      for (const sentinel of fixture.verificationSentinels) {
-        await expect(page.locator('body')).not.toContainText(sentinel);
-        for (const body of await Promise.all(payloads)) expect(body).not.toContain(sentinel);
-      }
+      await expectHiddenSentinels(page, fixture.verificationSentinels, payloads);
     } finally {
       page.off('response', observe);
     }
   }
+}
+
+async function expectHandoffBoundaries(
+  page: Page,
+  info: TestInfo,
+  access: PreviewAccess,
+  fixture: PreviewFixture
+) {
   const search = access.handoffs === 'content' ? fixture.handoffSentinels[0] : fixture.handoffId;
   const path = `/staff/support-handoffs?status=all&search=${encodeURIComponent(search)}`;
   if (access.handoffs === 'denied') {
@@ -88,15 +112,12 @@ export async function expectPreviewBoundaries(
         row.getByTestId('staff-support-handoff-detail-panel').getByTestId('handoff-metadata-status')
       ).toBeVisible();
       await expect(toggle).toBeFocused();
-      for (const sentinel of fixture.handoffSentinels) {
-        expect(actionText).not.toContain(sentinel);
-        await expect(page.locator('body')).not.toContainText(sentinel);
-        for (const payload of await Promise.all(payloads)) expect(payload).not.toContain(sentinel);
-      }
+      for (const sentinel of fixture.handoffSentinels) expect(actionText).not.toContain(sentinel);
+      await expectHiddenSentinels(page, fixture.handoffSentinels, payloads);
       const metadata = handoffFlightResult(actionText) as {
         result: { data: Record<string, unknown>[] };
       };
-      expect(Object.keys(metadata.result.data[0]).sort()).toEqual(
+      expect(Object.keys(metadata.result.data[0]).sort((a, b) => a.localeCompare(b))).toEqual(
         [
           'id',
           'status',
@@ -113,46 +134,63 @@ export async function expectPreviewBoundaries(
           'publicResponseAt',
           'publicResponseCount',
           'memberReplyAt',
-        ].sort()
+        ].sort((a, b) => a.localeCompare(b))
       );
       const actionId = detailReply.request().headers()['next-action'];
-      for (const id of fixture.deniedHandoffIds) {
-        // Directly probe both queue and detail with each foreign scope; own-ID filtering proves neither.
-        const denied = await page.request.post(page.url(), {
-          data: JSON.stringify([id]),
-          headers: {
-            'Next-Action': actionId,
-            'Content-Type': 'text/plain;charset=UTF-8',
-            Accept: 'text/x-component',
-            Origin: origin,
-          },
-        });
-        expect(denied.status()).toBe(200);
-        expect(handoffFlightResult(await denied.text())).toEqual({
-          kind: 'metadata',
-          result: { kind: 'ok', data: [] },
-        });
-        await gotoApp(
-          page,
-          `/staff/support-handoffs?status=all&search=${encodeURIComponent(id)}`,
-          info,
-          { marker: 'staff-page-ready' }
-        );
-        await expect(page.getByTestId('staff-support-handoffs-empty')).toBeVisible();
-        await expect(page.getByTestId('staff-support-handoffs-row')).toHaveCount(0);
-      }
+      // The fixture owns one other-branch and one foreign-tenant handoff. Keep page navigation ordered.
+      expect(fixture.deniedHandoffIds).toHaveLength(2);
+      await expectDeniedHandoff(page, info, actionId, fixture.deniedHandoffIds[0]);
+      await expectDeniedHandoff(page, info, actionId, fixture.deniedHandoffIds[1]);
       await page.getByTestId('staff-support-handoffs-search-input').fill(fixture.contentSearch);
       await page.getByTestId('staff-support-handoffs-search-submit').click();
       await expect(page.getByTestId('staff-support-handoffs-empty')).toBeVisible();
       await expect(page.getByTestId('staff-support-handoffs-row')).toHaveCount(0);
     } else {
       await expect(row).toContainText(fixture.handoffSentinels[0]);
-      for (const sentinel of fixture.handoffSentinels.slice(1))
-        await expect(row).toContainText(sentinel);
+      await Promise.all(
+        fixture.handoffSentinels.slice(1).map(sentinel => expect(row).toContainText(sentinel))
+      );
     }
   } finally {
     page.off('response', observe);
   }
+}
+
+async function expectDeniedHandoff(page: Page, info: TestInfo, actionId: string, id: string) {
+  const { origin } = getProjectUrlInfo(info, null);
+  // Directly probe both queue and detail with each foreign scope; own-ID filtering proves neither.
+  const denied = await page.request.post(page.url(), {
+    data: JSON.stringify([id]),
+    headers: {
+      'Next-Action': actionId,
+      'Content-Type': 'text/plain;charset=UTF-8',
+      Accept: 'text/x-component',
+      Origin: origin,
+    },
+  });
+  expect(denied.status()).toBe(200);
+  expect(handoffFlightResult(await denied.text())).toEqual({
+    kind: 'metadata',
+    result: { kind: 'ok', data: [] },
+  });
+  await gotoApp(page, `/staff/support-handoffs?status=all&search=${encodeURIComponent(id)}`, info, {
+    marker: 'staff-page-ready',
+  });
+  await expect(page.getByTestId('staff-support-handoffs-empty')).toBeVisible();
+  await expect(page.getByTestId('staff-support-handoffs-row')).toHaveCount(0);
+}
+
+async function expectHiddenSentinels(
+  page: Page,
+  sentinels: readonly string[],
+  payloads: readonly Promise<string>[]
+) {
+  await Promise.all(
+    sentinels.map(async sentinel => {
+      await expect(page.locator('body')).not.toContainText(sentinel);
+      for (const body of await Promise.all(payloads)) expect(body).not.toContain(sentinel);
+    })
+  );
 }
 
 /** Resolve the actual action record; metadata results have no messaging success flag. */

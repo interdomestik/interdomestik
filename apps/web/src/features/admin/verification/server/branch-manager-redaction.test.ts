@@ -52,7 +52,9 @@ describe('D1 verification server payload redaction', () => {
     }
     expectNoDocumentContent(result);
     for (const event of result.timeline) expect(event.description).toBeUndefined();
-    expect(Object.keys(result).sort()).toEqual(Object.keys(verificationDetails).sort());
+    expect(Object.keys(result).sort((a, b) => a.localeCompare(b))).toEqual(
+      Object.keys(verificationDetails).sort((a, b) => a.localeCompare(b))
+    );
     expect(result.verificationNote).toBeNull();
     expect(JSON.stringify(verificationDetails)).toBe(before);
   });

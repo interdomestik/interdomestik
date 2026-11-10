@@ -34,7 +34,7 @@ describe('BM support handoff metadata boundary', () => {
       staffName: 'Assignee',
       branchName: 'Branch',
     });
-    expect(Object.keys(result.data[0]).sort()).toEqual(
+    expect(Object.keys(result.data[0]).sort((a, b) => a.localeCompare(b))).toEqual(
       [
         'id',
         'status',
@@ -51,7 +51,7 @@ describe('BM support handoff metadata boundary', () => {
         'publicResponseAt',
         'publicResponseCount',
         'memberReplyAt',
-      ].sort()
+      ].sort((a, b) => a.localeCompare(b))
     );
     expect(JSON.stringify(result)).not.toContain('SENTINEL');
     expect(state.selections[0]).toEqual(Object.keys(result.data[0]));

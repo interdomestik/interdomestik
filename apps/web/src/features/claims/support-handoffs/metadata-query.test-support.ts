@@ -63,7 +63,36 @@ function transaction() {
         }
         return true;
       }
-      const builder = {
+      function evaluate() {
+        state.queries.push(compile(predicate));
+        let rows: Joined[] = (state.rows[table] ?? []).map(row => ({ [table]: row }));
+        for (const join of joins)
+          rows = rows.flatMap(row => {
+            const matching = (state.rows[join.table] ?? [])
+              .map(candidate => ({ ...row, [join.table]: candidate }))
+              .filter(candidate => matches(join.on, candidate));
+            return matching.length ? matching : [{ ...row, [join.table]: {} }];
+          });
+        return rows
+          .filter(row => matches(predicate, row))
+          .slice(0, limit)
+          .map(row =>
+            Object.fromEntries(
+              Object.entries(selection).map(([key, column]) => [
+                key,
+                row[getTableName(column.table)]?.[column.name] ?? null,
+              ])
+            )
+          );
+      }
+      type QueryBuilder = Promise<Record<string, unknown>[]> & {
+        from(value: Parameters<typeof getTableName>[0]): QueryBuilder;
+        leftJoin(value: Parameters<typeof getTableName>[0], on: SQL): QueryBuilder;
+        where(value: SQL): QueryBuilder;
+        orderBy(): QueryBuilder;
+        limit(value: number): QueryBuilder;
+      };
+      const builder: QueryBuilder = Object.assign(Promise.resolve().then(evaluate), {
         from(value: Parameters<typeof getTableName>[0]) {
           table = getTableName(value);
           return builder;
@@ -84,31 +113,7 @@ function transaction() {
           limit = value;
           return builder;
         },
-        then(resolve: (rows: Record<string, unknown>[]) => unknown) {
-          state.queries.push(compile(predicate));
-          let rows: Joined[] = (state.rows[table] ?? []).map(row => ({ [table]: row }));
-          for (const join of joins)
-            rows = rows.flatMap(row => {
-              const matching = (state.rows[join.table] ?? [])
-                .map(candidate => ({ ...row, [join.table]: candidate }))
-                .filter(candidate => matches(join.on, candidate));
-              return matching.length ? matching : [{ ...row, [join.table]: {} }];
-            });
-          return resolve(
-            rows
-              .filter(row => matches(predicate, row))
-              .slice(0, limit)
-              .map(row =>
-                Object.fromEntries(
-                  Object.entries(selection).map(([key, column]) => [
-                    key,
-                    row[getTableName(column.table)]?.[column.name] ?? null,
-                  ])
-                )
-              )
-          );
-        },
-      };
+      });
       return builder;
     },
   };

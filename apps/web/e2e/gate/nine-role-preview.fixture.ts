@@ -6,7 +6,7 @@ import {
   supportHandoffs,
 } from '@interdomestik/database';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import type { MessageCaseKey } from './nine-role-message-access.cases';
 import { withClaimNoteSentinels } from './nine-role-message-notes.fixture';
@@ -56,8 +56,8 @@ export async function withPreviewSentinels<T>(
       index === 0 ? handoffId : `${prefix}-denied-${index}`
     );
     try {
-      for (const [index, relationship] of handoffScopes.entries()) {
-        await dbAdmin.insert(supportHandoffs).values({
+      await dbAdmin.insert(supportHandoffs).values(
+        handoffScopes.map((relationship, index) => ({
           id: handoffIds[index],
           tenantId: relationship.tenantId,
           branchId: relationship.branchId,
@@ -78,8 +78,8 @@ export async function withPreviewSentinels<T>(
           memberReplyResponseVersion: 1,
           reassignReason: handoffSentinels[4],
           closeReason: handoffSentinels[5],
-        });
-      }
+        }))
+      );
       await dbAdmin.insert(memberLeads).values({
         id: leadId,
         tenantId: scope.tenantId,
@@ -136,16 +136,18 @@ export async function withPreviewSentinels<T>(
       await dbAdmin
         .delete(memberLeads)
         .where(and(eq(memberLeads.tenantId, scope.tenantId), eq(memberLeads.id, leadId)));
-      for (const [index, relationship] of handoffScopes.entries()) {
-        await dbAdmin
-          .delete(supportHandoffs)
-          .where(
-            and(
-              eq(supportHandoffs.tenantId, relationship.tenantId),
-              eq(supportHandoffs.id, handoffIds[index])
+      await dbAdmin
+        .delete(supportHandoffs)
+        .where(
+          or(
+            ...handoffScopes.map((relationship, index) =>
+              and(
+                eq(supportHandoffs.tenantId, relationship.tenantId),
+                eq(supportHandoffs.id, handoffIds[index])
+              )
             )
-          );
-      }
+          )
+        );
     }
   });
 }

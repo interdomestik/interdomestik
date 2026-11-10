@@ -31,18 +31,21 @@ export async function expectManagerHandoffMetadata(
     const panel = row.getByTestId('staff-support-handoff-detail-panel');
     await expect(panel.getByTestId('handoff-metadata-status')).toBeVisible();
     await expect(panel.getByTestId('handoff-metadata-publicResponseCount')).toHaveText('2');
-    for (const testId of [
-      'staff-support-handoff-public-response-existing',
-      'staff-support-handoff-public-response-acknowledged',
-      'staff-support-handoff-public-response-form',
-      'staff-support-handoff-public-response-input',
-      'handoff-member-reply',
-      'staff-support-handoff-full-message',
-    ])
-      await expect(row.getByTestId(testId)).toHaveCount(0);
+    await Promise.all(
+      [
+        'staff-support-handoff-public-response-existing',
+        'staff-support-handoff-public-response-acknowledged',
+        'staff-support-handoff-public-response-form',
+        'staff-support-handoff-public-response-input',
+        'handoff-member-reply',
+        'staff-support-handoff-full-message',
+      ].map(testId => expect(row.getByTestId(testId)).toHaveCount(0))
+    );
     const bodies = await Promise.all(payloads);
+    await Promise.all(
+      content.map(sentinel => expect(page.locator('body')).not.toContainText(sentinel))
+    );
     for (const sentinel of content) {
-      await expect(page.locator('body')).not.toContainText(sentinel);
       for (const body of bodies) expect(body).not.toContain(sentinel);
     }
     // A content-only search must not find this handoff or reveal its existence.

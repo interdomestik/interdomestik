@@ -18,11 +18,11 @@ export async function BranchManagerHandoffs({
   authority,
   params,
   searchParams,
-}: {
+}: Readonly<{
   authority: TenantAuthority | null;
   params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+}>) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('agent-claims.claims.support_handoffs');
@@ -141,10 +141,10 @@ export async function BranchManagerHandoffs({
         className="space-y-4"
       >
         {result.kind !== 'ok' ? (
-          <p role="status">{c(result.kind)}</p>
+          <output className="block">{c(result.kind)}</output>
         ) : (
           <>
-            <p role="status">{c('handoffs.count', { count: result.data.length })}</p>
+            <output className="block">{c('handoffs.count', { count: result.data.length })}</output>
             {result.data.length === 0 && (
               <p data-testid="staff-support-handoffs-empty">{t('empty')}</p>
             )}
