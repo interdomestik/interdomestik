@@ -165,6 +165,26 @@ describe('GET /api/documents/[id]', () => {
     );
   });
 
+  it('denies branch managers before signing or document reads and records the denial', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'branch_manager', tenantId: 'tenant_mk' },
+    });
+    const response = await GET(new Request('http://localhost:3000/api/documents/doc-1'), {
+      params: Promise.resolve({ id: 'doc-1' }),
+    });
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: 'Forbidden' });
+    expect(hoisted.createSignedUrl).not.toHaveBeenCalled();
+    expect(hoisted.dbSelect).not.toHaveBeenCalled();
+    expect(hoisted.logAuditEvent).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        action: 'document.forbidden',
+        entityId: 'doc-1',
+        actorRole: 'branch_manager',
+      })
+    );
+  });
+
   it('fails closed without recording issuance when storage signing fails', async () => {
     mockAuthenticatedMember();
     mockLegacyDocumentAccess();

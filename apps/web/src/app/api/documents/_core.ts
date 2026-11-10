@@ -17,6 +17,7 @@ import {
   type SessionDTO,
 } from './document-access-model';
 import { readCrossGrantDocumentAccess, readLocalDocumentAccess } from './document-access-reads';
+import { deniesClaimDocumentContent } from './branch-manager-document-boundary';
 
 export {
   buildContentDispositionHeader,
@@ -131,6 +132,9 @@ export async function getDocumentAccessCore(args: {
   deps: DocumentAccessDeps;
 }): Promise<DocumentAccessResult> {
   const { authority, session, documentId, mode, disposition, deps } = args;
+  if (deniesClaimDocumentContent(session.user.role)) {
+    return { ok: false, code: 'FORBIDDEN', message: 'Forbidden' };
+  }
   const tenantId = ensureAccessTenantId(session);
   const userRole = (session.user.role as string | undefined) ?? undefined;
   const finalDisposition = getFinalDisposition(disposition);
