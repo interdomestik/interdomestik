@@ -41,8 +41,8 @@ jobs:
           expected_branch='main'
           # Immutable approved S2 source. Advancing it requires a separately reviewed revision of this file.
           # OWNER PIN: the reviewed commit that adds the S2 source; it must be reachable from origin.
-          source_commit='20f1272341180da41f214623b84d34e0e528dd97'
-          source_tree='e445a031ab36c7bbc1f560730d6a9ad5c5c92549'
+          source_commit='682790d20cd9b4096a592dde568dde9f20cd128a'
+          source_tree='2f116fcbfe1a3cac60655ace8799614a1d0ed159'
           # Owner-pinned trusted comparator; it must equal the pin inside the approved source.
           trusted_commit='a9e79c23f6c3d7a326774cee07b71054ee911793'
           trusted_tree='529031084338b3488c6e51413ede5cca79b77b82'
