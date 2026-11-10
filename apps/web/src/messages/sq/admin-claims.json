@@ -224,6 +224,7 @@
         "committed_refresh_pending": "Ndryshimi u ruajt. Rifreskoni faqen për të parë gjendjen më të fundit. Mos e përsërisni këtë veprim."
       },
       "evidence": {
+        "allocation_summary": "{count} dokumente · Plotësia e provave nuk është konfirmuar.",
         "title": "Evidenca",
         "upload_button": "Ngarko",
         "dialog_title": "Ngarko evidencë",

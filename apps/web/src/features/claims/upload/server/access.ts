@@ -6,6 +6,8 @@ import {
 import { and, eq } from 'drizzle-orm';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { isMemberUploadRole } from './member-upload-role';
+import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
+import { isAdmin } from '@/lib/roles.core';
 
 type ClaimScopeRecord = {
   branchId?: string | null;
@@ -14,8 +16,6 @@ type ClaimScopeRecord = {
 type MemberClaimOwnershipRecord = {
   id: string;
 };
-
-const FULL_TENANT_CLAIMS_ROLES = new Set(['admin', 'tenant_admin', 'super_admin']);
 
 export function canAccessClaimFromAdminUploadSurface(args: {
   branchId?: string | null;
@@ -27,16 +27,12 @@ export function canAccessClaimFromAdminUploadSurface(args: {
   const { claim, role, userId } = args;
   const branchId = args.branchId ?? null;
 
-  if (!role) {
+  if (!role || deniesClaimDocumentContent(role)) {
     return false;
   }
 
-  if (FULL_TENANT_CLAIMS_ROLES.has(role)) {
+  if (isAdmin(role)) {
     return true;
-  }
-
-  if (role === 'branch_manager') {
-    return branchId !== null && claim.branchId === branchId;
   }
 
   // Fail closed: a missing lifecycle is denied like a member draft.
@@ -62,6 +58,7 @@ export async function findAccessibleAdminUploadClaim(args: {
   authority: TenantAuthority;
   userId: string;
 }): Promise<(ClaimScopeRecord & { caseLifecycleState: string | null }) | null> {
+  if (deniesClaimDocumentContent(args.role)) return null;
   const { tenantId } = readTenantAuthority(args.authority);
   const claim = await withTenantAuthority(args.authority, tx =>
     tx.query.claims.findFirst({
