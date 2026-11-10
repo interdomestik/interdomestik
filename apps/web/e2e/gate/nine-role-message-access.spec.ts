@@ -105,6 +105,7 @@ async function expectManagerRefresh(
   ]);
   await expect(refresh).toHaveAttribute('aria-busy', 'false');
   await expect(refresh).toBeFocused();
+  await capture.settled();
   expect(capture.checkedPayloadCount, 'checked a new refresh payload').toBeGreaterThan(
     beforeRefresh
   );
@@ -127,6 +128,7 @@ async function expectManagerSurface(
     url.pathname.includes('/claims/') && url.pathname.split('/').includes(claimId);
   await withContentPayloadCapture(page, { matches: matchesClaim, sentinels }, async capture => {
     await gotoApp(page, path, info, { marker: managerMarker(surface, allowed) });
+    await capture.settled();
     expect(capture.checkedPayloadCount, 'checked a visit payload').toBeGreaterThan(0);
     const card = page.getByTestId('claim-message-summary').filter({ visible: true });
     if (!allowed) {
