@@ -27,6 +27,7 @@ vi.mock('@interdomestik/database', () => ({
     },
     select: vi.fn(() => mocks.selectChain),
   },
+  claims: { id: 'claims.id', tenantId: 'claims.tenant_id', userId: 'claims.user_id' },
   claimMessages: {
     id: 'messages.id',
     claimId: 'messages.claim_id',
@@ -56,6 +57,9 @@ vi.mock('@interdomestik/shared-auth', async importOriginal => ({
 }));
 
 vi.mock('drizzle-orm', () => ({
+  inArray: vi.fn(),
+  ne: vi.fn(),
+  isNull: vi.fn(),
   eq: mocks.eq,
   and: mocks.and,
   or: mocks.or,
@@ -128,7 +132,7 @@ describe('getMessagesForClaimCore', () => {
       claimId: 'claim-1',
     });
 
-    expect(result).toEqual({ success: true, messages: [] });
+    expect(result).toEqual({ success: true, messages: [], canAcknowledge: true });
     expect(mocks.withTenant).toHaveBeenLastCalledWith('tenant-1', 'messages.tenant_id', {
       op: 'and',
       conditions: [
@@ -197,7 +201,7 @@ describe('getMessagesForClaimCore', () => {
       claimId: 'claim-1',
     });
 
-    expect(result).toEqual({ success: true, messages: [] });
+    expect(result).toEqual({ success: true, messages: [], canAcknowledge: false });
     expect(mocks.selectChain.orderBy).toHaveBeenCalled();
   });
 });

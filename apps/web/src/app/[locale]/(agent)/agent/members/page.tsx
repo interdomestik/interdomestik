@@ -36,7 +36,7 @@ export default async function AgentMembersPage({
   });
 
   return (
-    <div className="min-w-0" data-testid="agent-dashboard-page">
+    <div data-testid="agent-dashboard-page">
       <section className="space-y-4" data-testid="agent-members-ready">
         <div className="space-y-3 rounded-lg border bg-card p-4">
           <div>
@@ -47,14 +47,14 @@ export default async function AgentMembersPage({
           <div className="flex flex-wrap items-center gap-2" data-testid="agent-primary-actions">
             <Link
               href="/agent/members"
-              className="inline-flex min-h-11 items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+              className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
               data-testid="agent-members-cta"
             >
               {t('members.cockpit.my_members_cta')}
             </Link>
             <Link
               href="/agent/claims"
-              className="inline-flex min-h-11 items-center rounded-md border px-3 py-2 text-sm font-medium"
+              className="inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium"
               data-testid="agent-claims-queue-cta"
             >
               {t('members.cockpit.claims_queue_cta')}
@@ -78,7 +78,7 @@ export default async function AgentMembersPage({
 
           <Link
             href="/agent/crm"
-            className="inline-flex min-h-11 w-fit items-center text-sm font-medium underline-offset-4 hover:underline"
+            className="inline-flex w-fit items-center text-sm font-medium underline-offset-4 hover:underline"
             data-testid="agent-support-link"
           >
             {t('members.cockpit.support_link')}
@@ -98,12 +98,8 @@ export default async function AgentMembersPage({
         ) : null}
 
         {members.length > 0 ? (
-          <section
-            data-testid="agent-members-list"
-            className="max-w-full overflow-x-auto"
-            aria-label={t('members.cockpit.title')}
-          >
-            <table className="w-full min-w-[36rem] text-sm">
+          <div data-testid="agent-members-list" className="overflow-x-auto">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground">
                   <th className="py-2">Member</th>
@@ -120,7 +116,7 @@ export default async function AgentMembersPage({
                       <Link
                         href={`/agent/members/${member.memberId}`}
                         data-testid="agent-member-link"
-                        className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline"
+                        className="font-medium underline-offset-4 hover:underline"
                       >
                         {member.name}
                       </Link>
@@ -143,7 +139,7 @@ export default async function AgentMembersPage({
                       <Link
                         href={`/agent/members/${member.memberId}`}
                         data-testid="agent-member-view-link"
-                        className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline"
+                        className="text-sm font-medium text-primary underline-offset-4 hover:underline"
                         aria-label={
                           member.memberNumber
                             ? `View member ${member.name} (membership ${member.memberNumber})`
@@ -157,7 +153,7 @@ export default async function AgentMembersPage({
                 ))}
               </tbody>
             </table>
-          </section>
+          </div>
         ) : null}
       </section>
     </div>

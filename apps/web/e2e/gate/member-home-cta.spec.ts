@@ -215,7 +215,10 @@ for (const width of [360, 390, 430]) {
       // The existing account menu's last item is Logout; inspect it without revoking shared state.
       const logoutRow = menu.getByRole('menuitem').last();
       await expect(logoutRow).toBeVisible();
-      expect((await logoutRow.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+      // The menu opens with a zoom-in-95 animation; measure the settled row.
+      await expect
+        .poll(async () => (await logoutRow.boundingBox())?.height ?? 0)
+        .toBeGreaterThanOrEqual(44);
       await expectNoDocumentOverflow(page);
       await page.keyboard.press('Escape');
       await expect(menu).toHaveCount(0);

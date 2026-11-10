@@ -5,9 +5,15 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { hasPermission, PERMISSIONS } from '@interdomestik/shared-auth';
 import { eq } from 'drizzle-orm';
 import type { AuditLogger, Session } from '../types';
-import { hasAgentClaimAccess, hasScopedStaffClaimAccess, isFullTenantClaimsRole } from './access';
+import {
+  hasAgentClaimAccess,
+  hasScopedStaffClaimAccess,
+  isFullTenantClaimsRole,
+  isMessageParticipant,
+} from './access';
 import { normalizeSelectedMessages } from './normalize';
 import { CLIENT_MESSAGE_ID_PATTERN } from './schemas';
 import { storeClaimMessage } from './store-message';
@@ -62,7 +68,7 @@ async function findMessageSendDenial(args: {
   const isStaff = isScopedStaff || isFullTenantClaimsRole(role);
   const isAgent = role === 'agent';
 
-  if (role === 'branch_manager') return 'Access denied';
+  if (!isMessageParticipant(role)) return 'Access denied';
   // Full-tenant roles can message any in-tenant claim: no check below denies them.
   if (isScopedStaff && !hasScopedStaffClaimAccess({ branchId, claim, userId })) {
     return 'Access denied';
@@ -81,7 +87,8 @@ async function findMessageSendDenial(args: {
     if (!canAccess) return 'Access denied: You can only message your assigned clients';
   }
 
-  if (args.isInternal && !isStaff) return 'Only staff can send internal messages';
+  if (args.isInternal && !hasPermission(role, PERMISSIONS['claims.update']))
+    return 'Only staff can send internal messages';
   return null;
 }
 

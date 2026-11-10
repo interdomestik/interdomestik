@@ -3,11 +3,16 @@ dotenv.config({ path: '.env.local' });
 
 import crypto from 'node:crypto';
 import { desc, eq } from 'drizzle-orm';
+import { importPilotDatabase } from './import-pilot-database';
 
-const { claimLifecycleFieldsForStatus, claimStatusFromLifecycleFields, db } =
-  await import('@interdomestik/database');
-const { claims, claimStageHistory } = await import('@interdomestik/database/schema/claims');
-const { user } = await import('@interdomestik/database/schema/auth');
+const {
+  claimLifecycleFieldsForStatus,
+  claimStatusFromLifecycleFields,
+  db,
+  claims,
+  claimStageHistory,
+  user,
+} = await importPilotDatabase();
 
 async function main() {
   console.log('[Triage] Connecting to Database...');

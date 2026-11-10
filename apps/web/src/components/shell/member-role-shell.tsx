@@ -47,7 +47,8 @@ export function MemberRoleShell({
         />
       }
     >
-      {children}
+      {/* Matches the previous member layout clip; per-page reflow follows separately. */}
+      <div className="min-w-0 overflow-x-hidden">{children}</div>
     </RoleShell>
   );
 }

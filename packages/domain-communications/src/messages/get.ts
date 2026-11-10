@@ -5,15 +5,18 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { hasPermission, PERMISSIONS } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import type { Session } from '../types';
 import {
   hasAgentClaimAccess,
   hasScopedClaimsReadAccess,
+  isMemberMessageRole,
   isFullTenantClaimsRole,
   isScopedClaimsReadRole,
 } from './access';
 import { normalizeSelectedMessages } from './normalize';
+import { canAcknowledgeClaim } from './acknowledgement';
 import type { MessageWithSender, SelectedMessageRow } from './types';
 
 /**
@@ -25,7 +28,12 @@ export async function getMessagesForClaimCore(params: {
   session: NonNullable<Session> | null;
   authority: TenantAuthority | null;
   claimId: string;
-}): Promise<{ success: boolean; messages?: MessageWithSender[]; error?: string }> {
+}): Promise<{
+  success: boolean;
+  messages?: MessageWithSender[];
+  canAcknowledge?: boolean;
+  error?: string;
+}> {
   const { session, authority, claimId } = params;
 
   try {
@@ -50,6 +58,10 @@ export async function getMessagesForClaimCore(params: {
 
       if (!claim) {
         return { success: false, error: 'Claim not found' };
+      }
+
+      if (!hasPermission(userRole, PERMISSIONS['claims.read']) && !isMemberMessageRole(userRole)) {
+        return { success: false, error: 'Access denied' };
       }
 
       if (isPrivilegedStaff) {
@@ -83,6 +95,14 @@ export async function getMessagesForClaimCore(params: {
         }
       }
 
+      const canAcknowledge = await canAcknowledgeClaim({
+        tx,
+        tenantId,
+        role: userRole,
+        userId,
+        branchId: actor.branchId,
+        claimId,
+      });
       const visibilityCondition = isStaff ? undefined : eq(claimMessages.isInternal, false);
       const messageCondition = visibilityCondition
         ? and(eq(claimMessages.claimId, claimId), visibilityCondition)
@@ -109,7 +129,7 @@ export async function getMessagesForClaimCore(params: {
         .where(withTenant(tenantId, claimMessages.tenantId, messageCondition))
         .orderBy(claimMessages.createdAt)) as unknown as SelectedMessageRow[];
 
-      return { success: true, messages: normalizeSelectedMessages(selected) };
+      return { success: true, messages: normalizeSelectedMessages(selected), canAcknowledge };
     });
   } catch (error) {
     console.error('Error fetching messages:', error);
