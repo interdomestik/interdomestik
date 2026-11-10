@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePathname, useRouter, useSearchParams } from './claims-filters.test-support';
 import { SEARCH_COMMIT_DELAY_MS } from '@/hooks/use-responsive-search';
@@ -32,6 +33,16 @@ describe('AdminClaimsFilters automatic search', () => {
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
+  });
+
+  it('serves the search box disabled and enables it once hydrated', () => {
+    // Typing into server HTML before hydration is lost, so the box must not accept input yet.
+    const serverHtml = document.createElement('div');
+    serverHtml.innerHTML = renderToString(<AdminClaimsFilters />);
+    expect(serverHtml.querySelector('[data-testid="claims-search-input"]')).toBeDisabled();
+
+    render(<AdminClaimsFilters />);
+    expect(searchInput()).toBeEnabled();
   });
 
   it('coalesces a typing burst into one trailing navigation at the shared delay', () => {
