@@ -1,8 +1,10 @@
-import { expect, type Page, type TestInfo, type Response } from '@playwright/test';
+import { expect, type Page, type TestInfo } from '@playwright/test';
 import { getProjectUrlInfo } from '../fixtures/auth.project';
 import { gotoApp } from '../utils/navigation';
+import { withContentPayloadCapture, type ContentPayloadCapture } from './content-payload-capture';
 import type { PreviewAccess } from './nine-role-message-access.cases';
 import type { PreviewFixture } from './nine-role-preview.fixture';
+import { expectHandoffContentSearchEmpty } from './support-handoff-metadata.test-support';
 
 export async function expectPreviewBoundaries(
   page: Page,
@@ -51,29 +53,27 @@ async function expectVerificationPage(
   access: PreviewAccess,
   fixture: PreviewFixture
 ) {
-  if (access.verification === 'redacted') {
-    const payloads: Promise<string>[] = [];
-    const observe = (res: Response) => {
-      if (res.url().includes('/admin/leads') || res.url().includes('/api/verification/'))
-        payloads.push(res.text());
-    };
-    page.on('response', observe);
-    try {
+  if (access.verification !== 'redacted') return;
+  const matches = (url: URL) =>
+    url.href.includes('/admin/leads') || url.href.includes('/api/verification/');
+  await withContentPayloadCapture(
+    page,
+    { matches, sentinels: fixture.verificationSentinels },
+    async capture => {
       await gotoApp(
         page,
         `/admin/leads?view=history&query=${encodeURIComponent(fixture.email)}&selected=${fixture.attemptId}`,
         info,
         { marker: 'verification-ops-page' }
       );
+      expect(capture.checkedPayloadCount, 'checked a visit payload').toBeGreaterThan(0);
       await expect(page.getByTestId('cash-verification-row').filter({ visible: true })).toHaveCount(
         1
       );
       await expect(page.getByTestId('ops-drawer').filter({ visible: true })).toBeVisible();
-      await expectHiddenSentinels(page, fixture.verificationSentinels, payloads);
-    } finally {
-      page.off('response', observe);
+      await expectHiddenSentinels(page, fixture.verificationSentinels);
     }
-  }
+  );
 }
 
 async function expectHandoffBoundaries(
@@ -84,36 +84,40 @@ async function expectHandoffBoundaries(
 ) {
   const search = access.handoffs === 'content' ? fixture.handoffSentinels[0] : fixture.handoffId;
   const path = `/staff/support-handoffs?status=all&search=${encodeURIComponent(search)}`;
-  if (access.handoffs === 'denied') {
-    await gotoApp(page, path, info, { marker: 'not-found-page' });
-    await expect(page.getByTestId('staff-support-handoffs-queue')).toHaveCount(0);
-    return;
-  }
-  const payloads: Promise<string>[] = [];
-  const observe = (res: Response) => {
-    if (res.url().includes('/staff/support-handoffs')) payloads.push(res.text());
-  };
-  page.on('response', observe);
-  try {
-    await gotoApp(page, path, info, { marker: 'staff-page-ready' });
+  const matches = (url: URL) => url.href.includes('/staff/support-handoffs');
+  // Content readers must still receive their sentinels; metadata and denied readers must not.
+  const sentinels = access.handoffs === 'content' ? [] : fixture.handoffSentinels;
+  await withContentPayloadCapture(page, { matches, sentinels }, async capture => {
+    const marker = access.handoffs === 'denied' ? 'not-found-page' : 'staff-page-ready';
+    await gotoApp(page, path, info, { marker });
+    expect(capture.checkedPayloadCount, 'checked a visit payload').toBeGreaterThan(0);
+    if (access.handoffs === 'denied') {
+      await expect(page.getByTestId('staff-support-handoffs-queue')).toHaveCount(0);
+      return;
+    }
     const row = page.getByTestId('staff-support-handoffs-row').filter({ visible: true });
     await expect(row).toHaveCount(1);
     const toggle = row.getByTestId('staff-support-handoff-detail-toggle');
     await toggle.focus();
-    const actionReply = page.waitForResponse(
-      res => res.request().method() === 'POST' && Boolean(res.request().headers()['next-action'])
-    );
-    await toggle.press('Enter');
-    const detailReply = await actionReply;
+    const beforeDetail = capture.checkedPayloadCount;
+    const [detailReply] = await Promise.all([
+      page.waitForResponse(
+        res => res.request().method() === 'POST' && Boolean(res.request().headers()['next-action'])
+      ),
+      toggle.press('Enter'),
+    ]);
     const actionText = await detailReply.text();
     await expect(row.getByTestId('staff-support-handoff-detail-panel')).toBeVisible();
+    expect(capture.checkedPayloadCount, 'checked a new detail payload').toBeGreaterThan(
+      beforeDetail
+    );
     if (access.handoffs === 'metadata') {
       await expect(
         row.getByTestId('staff-support-handoff-detail-panel').getByTestId('handoff-metadata-status')
       ).toBeVisible();
       await expect(toggle).toBeFocused();
       for (const sentinel of fixture.handoffSentinels) expect(actionText).not.toContain(sentinel);
-      await expectHiddenSentinels(page, fixture.handoffSentinels, payloads);
+      await expectHiddenSentinels(page, fixture.handoffSentinels);
       const metadata = handoffFlightResult(actionText) as {
         result: { data: Record<string, unknown>[] };
       };
@@ -139,24 +143,25 @@ async function expectHandoffBoundaries(
       const actionId = detailReply.request().headers()['next-action'];
       // The fixture owns one other-branch and one foreign-tenant handoff. Keep page navigation ordered.
       expect(fixture.deniedHandoffIds).toHaveLength(2);
-      await expectDeniedHandoff(page, info, actionId, fixture.deniedHandoffIds[0]);
-      await expectDeniedHandoff(page, info, actionId, fixture.deniedHandoffIds[1]);
-      await page.getByTestId('staff-support-handoffs-search-input').fill(fixture.contentSearch);
-      await page.getByTestId('staff-support-handoffs-search-submit').click();
-      await expect(page.getByTestId('staff-support-handoffs-empty')).toBeVisible();
-      await expect(page.getByTestId('staff-support-handoffs-row')).toHaveCount(0);
+      await expectDeniedHandoff(page, info, actionId, fixture.deniedHandoffIds[0], capture);
+      await expectDeniedHandoff(page, info, actionId, fixture.deniedHandoffIds[1], capture);
+      await expectHandoffContentSearchEmpty(page, fixture.contentSearch, capture);
     } else {
       await expect(row).toContainText(fixture.handoffSentinels[0]);
       await Promise.all(
         fixture.handoffSentinels.slice(1).map(sentinel => expect(row).toContainText(sentinel))
       );
     }
-  } finally {
-    page.off('response', observe);
-  }
+  });
 }
 
-async function expectDeniedHandoff(page: Page, info: TestInfo, actionId: string, id: string) {
+async function expectDeniedHandoff(
+  page: Page,
+  info: TestInfo,
+  actionId: string,
+  id: string,
+  capture: ContentPayloadCapture
+) {
   const { origin } = getProjectUrlInfo(info, null);
   // Directly probe both queue and detail with each foreign scope; own-ID filtering proves neither.
   const denied = await page.request.post(page.url(), {
@@ -173,23 +178,20 @@ async function expectDeniedHandoff(page: Page, info: TestInfo, actionId: string,
     kind: 'metadata',
     result: { kind: 'ok', data: [] },
   });
+  const beforeVisit = capture.checkedPayloadCount;
   await gotoApp(page, `/staff/support-handoffs?status=all&search=${encodeURIComponent(id)}`, info, {
     marker: 'staff-page-ready',
   });
   await expect(page.getByTestId('staff-support-handoffs-empty')).toBeVisible();
   await expect(page.getByTestId('staff-support-handoffs-row')).toHaveCount(0);
+  expect(capture.checkedPayloadCount, 'checked a new denied-scope visit payload').toBeGreaterThan(
+    beforeVisit
+  );
 }
 
-async function expectHiddenSentinels(
-  page: Page,
-  sentinels: readonly string[],
-  payloads: readonly Promise<string>[]
-) {
+async function expectHiddenSentinels(page: Page, sentinels: readonly string[]) {
   await Promise.all(
-    sentinels.map(async sentinel => {
-      await expect(page.locator('body')).not.toContainText(sentinel);
-      for (const body of await Promise.all(payloads)) expect(body).not.toContain(sentinel);
-    })
+    sentinels.map(sentinel => expect(page.locator('body')).not.toContainText(sentinel))
   );
 }
 
