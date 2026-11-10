@@ -17,7 +17,7 @@ function Detail({
   testId,
 }: Readonly<{ label: string; value: string; testId?: string }>) {
   return (
-    <div data-testid={testId}>
+    <div className="min-w-0 [overflow-wrap:anywhere]" data-testid={testId}>
       <span className="block text-muted-foreground">{label}</span>
       <span className="font-medium">{value}</span>
     </div>
@@ -29,7 +29,7 @@ export function LeadProfileDetails({ lead }: Readonly<{ lead: LeadProfile }>) {
   const t = useTranslations('agent.leads_pro.fields');
   const isCompany = lead.leadKind === 'company' || Boolean(lead.companyName);
   return (
-    <div className="grid grid-cols-2 gap-4 text-sm border-t pt-4">
+    <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-4 text-sm border-t pt-4">
       {isCompany && (
         <Detail label={t('company')} value={lead.companyName || '-'} testId="lead-detail-company" />
       )}

@@ -3,15 +3,21 @@ import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemberRoleShell } from './member-role-shell';
+import { AgentRoleShell } from './agent-role-shell';
+import { buildDashboardNavigationModel } from '@/hooks/use-dashboard-navigation';
 
 const state = vi.hoisted(() => ({
   pathname: '/member',
+  query: '',
   signOut: vi.fn(),
   logout: vi.fn(),
   useSession: vi.fn(),
   canAccessAdmin: vi.fn(),
 }));
 vi.mock('@interdomestik/ui/hooks/use-mobile', () => ({ useIsMobile: () => true }));
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(state.query),
+}));
 vi.mock('@/i18n/routing', () => ({
   Link: ({ prefetch: _prefetch, ...props }: ComponentProps<'a'> & { prefetch?: boolean }) => (
     <a {...props} />
@@ -49,6 +55,7 @@ const mount = () =>
 
 beforeEach(() => {
   state.pathname = '/member';
+  state.query = '';
   vi.clearAllMocks();
 });
 
@@ -140,4 +147,98 @@ describe('MemberRoleShell', () => {
       expect(state.logout).toHaveBeenCalledWith({ locale: 'sq', signOut: state.signOut })
     );
   });
+});
+
+describe('AgentRoleShell', () => {
+  it.each(['/agent/workspace/claims', '/agent/claims'])(
+    'retains the query only for the current destination %s',
+    async pathname => {
+      const user = userEvent.setup();
+      state.pathname = pathname;
+      state.query = 'claimId=A&tab=open';
+      const shell = () => (
+        <AgentRoleShell agentTier="pro" user={{ id: 'agent-1', role: 'agent', name: 'Agent' }}>
+          Case workspace
+        </AgentRoleShell>
+      );
+      const view = render(shell());
+      const bottom = screen.getByTestId('role-shell-bottom-nav');
+      const claimsHref =
+        pathname === '/agent/claims' ? `${pathname}?${state.query}` : '/agent/claims';
+      expect(within(bottom).getByRole('link', { name: 'trackClaims' })).toHaveAttribute(
+        'href',
+        claimsHref
+      );
+      await user.click(screen.getByRole('button', { name: 'more' }));
+      const dialog = screen.getByRole('dialog');
+      const workspaceHref =
+        pathname === '/agent/workspace/claims'
+          ? `${pathname}?${state.query}`
+          : '/agent/workspace/claims';
+      expect(within(dialog).getByRole('link', { name: 'claimsPro.title' })).toHaveAttribute(
+        'href',
+        workspaceHref
+      );
+      expect(within(dialog).getByRole('link', { name: 'rapidPos' })).toHaveAttribute(
+        'href',
+        '/agent/pos'
+      );
+      expect(within(dialog).getByRole('link', { name: 'workspace.title' })).toHaveAttribute(
+        'href',
+        '/agent/workspace'
+      );
+      // After leaving claims, returning through More uses the bare destination.
+      state.pathname = '/agent/workspace';
+      state.query = '';
+      view.rerender(shell());
+      expect(within(dialog).getByRole('link', { name: 'claimsPro.title' })).toHaveAttribute(
+        'href',
+        '/agent/workspace/claims'
+      );
+    }
+  );
+
+  it.each(['standard', 'pro', 'office'])(
+    'preserves %s navigation admission and account slots',
+    async tier => {
+      const user = userEvent.setup();
+      state.pathname = '/agent/workspace/claims';
+      render(
+        <AgentRoleShell agentTier={tier} user={{ id: 'agent-1', role: 'agent', name: 'Agent' }}>
+          <div data-testid="agent-content">Case workspace</div>
+        </AgentRoleShell>
+      );
+      const bottom = screen.getByTestId('role-shell-bottom-nav');
+      expect(
+        within(bottom)
+          .getAllByRole('link')
+          .map(link => link.getAttribute('href'))
+      ).toEqual(['/agent', '/agent/members', '/agent/claims']);
+      expect(screen.getByTestId('agent-content')).toHaveTextContent('Case workspace');
+      expect(await screen.findByTestId('user-nav')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'toggleSidebar' }));
+      const navigation = within(screen.getByRole('dialog')).getByRole('navigation');
+      const paths = within(navigation)
+        .getAllByRole('link')
+        .map(link => link.getAttribute('href'));
+      const previous = buildDashboardNavigationModel({
+        t: key => key,
+        role: 'agent',
+        agentTier: tier,
+        adminAccess: false,
+      }).agentItems.map(item => item.href);
+      expect(paths).toEqual([...previous, '/agent/workspace', '/agent/workspace/claims']);
+      expect(paths.includes('/agent/leads')).toBe(tier !== 'standard');
+      expect(paths.includes('/agent/sponsors')).toBe(tier === 'office');
+      expect(paths).toContain('/agent/pos');
+      expect(paths.every(path => !path?.includes('?'))).toBe(true);
+      expect(within(navigation).getByRole('link', { name: 'claimsPro.title' })).toHaveAttribute(
+        'aria-current',
+        'page'
+      );
+      expect(screen.getByTestId('sidebar-user-menu-button')).toBeInTheDocument();
+      expect(state.useSession).not.toHaveBeenCalled();
+      expect(state.canAccessAdmin).not.toHaveBeenCalled();
+    }
+  );
 });
