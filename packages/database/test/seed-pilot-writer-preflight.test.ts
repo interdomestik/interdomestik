@@ -11,14 +11,25 @@ import { registerHooks, stripTypeScriptTypes } from 'node:module';
 import postgres from 'postgres';
 
 const [entry, mode] = process.argv.slice(1);
-const target = mode === 'remote'
+const dotenvPassword = mode === 'dotenv-password';
+const refusedImportMode = mode.startsWith('rls:') || mode === 'production';
+const target = mode === 'remote' || dotenvPassword
   ? 'postgres://u:p@remote.example.net/db'
   : 'postgres://fixture@localhost:5432/approved_db';
 process.env = {
-  NODE_ENV: 'test',
+  NODE_ENV: mode === 'production' ? 'production' : 'test',
   NODE_TEST_CONTEXT: process.env.NODE_TEST_CONTEXT,
   DATABASE_URL: entry === 'day1_run3_lifecycle' ? target
     : 'postgres://fixture@localhost:5432/approved_db',
+  ...(mode.startsWith('rls:') ? { REQUIRE_RLS_INTEGRATION: mode.slice(4) } : {}),
+};
+const dotenvEnv = {
+  DATABASE_URL: target,
+  ...(dotenvPassword ? {
+    SEED_TARGET_CONFIRM: 'plan070:remote.example.net',
+    E2E_PASSWORD: ['x'.repeat(18), 'A', '1'].join(''),
+    REQUIRE_RLS_INTEGRATION: '0',
+  } : {}),
 };
 const counts = { evaluations: 0, drivers: 0, sockets: 0, reads: 0, writes: 0, dotenv: 0 };
 globalThis.pilotPreflightProbe = counts;
@@ -39,7 +50,7 @@ const databaseSource = [
 const databaseUrl = 'data:text/javascript,' + encodeURIComponent(databaseSource);
 const dotenvUrl = 'data:text/javascript,' + encodeURIComponent(
   'export default { config() { globalThis.pilotPreflightProbe.dotenv++;' +
-  'process.env.DATABASE_URL = ' + JSON.stringify(target) + '; } };'
+  'Object.assign(process.env, ' + JSON.stringify(dotenvEnv) + '); } };'
 );
 const pilot = new URL('./scripts/pilot/' + entry + '.ts', import.meta.url).href;
 const hooks = registerHooks({
@@ -101,11 +112,17 @@ try {
   delete globalThis.queryClientRls;
   await Promise.all(opened.map(client => client.end()));
 }
-assert.equal(refusal, 'Seed target refused: ' + (mode === 'remote' ? 'non-local-unconfirmed' : 'client-mismatch'));
-assert.equal(counts.evaluations, mode === 'remote' ? 0 : 1, 'database module evaluations');
-assert.equal(counts.drivers, mode === 'remote' ? 0 : 1, 'driver constructions');
+let expectedRefusal = 'Seed target refused: client-mismatch';
+if (mode === 'remote') expectedRefusal = 'Seed target refused: non-local-unconfirmed';
+if (refusedImportMode) expectedRefusal = 'Pilot writers refuse REQUIRE_RLS_INTEGRATION/production database imports';
+// Successful preflights reach the read sentinel; the fixture never executes real SQL.
+if (dotenvPassword) expectedRefusal = 'Unexpected database read';
+assert.equal(refusal, expectedRefusal);
+const expectedImports = mode === 'remote' || refusedImportMode ? 0 : 1;
+assert.equal(counts.evaluations, expectedImports, 'database module evaluations');
+assert.equal(counts.drivers, expectedImports, 'driver constructions');
 assert.equal(counts.sockets, 0, 'driver connections');
-assert.equal(counts.reads, 0, 'database reads');
+assert.equal(counts.reads, dotenvPassword ? 1 : 0, 'database reads');
 assert.equal(counts.writes, 0, 'database writes');
 assert.equal(counts.dotenv, entry === 'day1_run3_lifecycle' ? 0 : 1, 'dotenv precedes preflight');
 if (exitCode !== undefined) assert.equal(exitCode, 1);
@@ -117,8 +134,14 @@ for (const entry of [
   'day1_run3_lifecycle',
   'scenario_helpers',
 ]) {
-  for (const mode of ['remote', 'drift']) {
-    test(`${entry} refuses ${mode} before database access`, () => {
+  const modes = ['remote', 'drift', 'rls:1', 'rls:', 'rls:false', 'rls:01', 'production'];
+  if (entry !== 'day1_run3_lifecycle') modes.push('dotenv-password');
+  for (const mode of modes) {
+    const behavior =
+      mode === 'dotenv-password'
+        ? 'admits a confirmed remote target with a dotenv-only password'
+        : 'refuses ' + mode + ' before database access';
+    test(`${entry} ${behavior}`, () => {
       const result = spawnSync(
         process.execPath,
         ['--import', 'tsx', '--input-type=module', '--eval', probe, entry, mode],
