@@ -92,8 +92,8 @@ independent reviewer; missing evidence denies the exemption.
   Required hosted checks remain mandatory.
 - Every tier requires Sonar zero new issues, an independent review YES on H that also confirms the
   tier classification, and no unresolved Codex findings. Reviewer selection follows "Model And
-  Review Routing". The hosted-only exemption additionally requires that review from Astra. With
-  an alternative reviewer (for example on provider exhaustion), the PR takes the full local lane.
+  Review Routing", and the model and depth are chosen for the risk; Astra is not required for
+  LOW/MEDIUM work. If the tier classification stays ambiguous, the PR is HIGH.
 - HIGH and fallback candidates run full `pnpm pr:verify` plus `pnpm security:guard` LAST on
   frozen H, after hosted green and the review YES. Blockers invalidate the affected evidence.
 - Instruction-only work runs the applicable plan/contracts and protected checks without a local

@@ -412,7 +412,8 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
     last on the frozen head after hosted green and the independent review YES.
   - An allowlisted LOW/MEDIUM PR may rely on executed hosted evidence bound to its head and tested
     merge. That evidence needs zero flaky or retry-recovered results (setup included), a current
-    base, Sonar zero new issues and an Astra YES that confirms the tier.
+    base, Sonar zero new issues and an independent review YES that confirms the tier. The review
+    model is chosen for the risk, and Astra is reserved for HIGH or ambiguous work.
   - Phase one is manual; delivery-gate automation is a separate owner-approved CI change.
 - Instruction-only work runs the current plan/contracts relevant to its changed surface. Protected
   hosted checks remain separate trust evidence and are not replaced by local receipts.
