@@ -39,15 +39,15 @@ export async function MemberPoliciesV2Page({
   });
 
   return (
-    <div className="flex flex-col gap-8 p-8">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="flex min-w-0 flex-col gap-8 p-8 [overflow-wrap:anywhere]">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">{t('body')}</p>
         </div>
-        <Link href="/member/policies/upload">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
+        <Link className="min-w-0 max-w-full" href="/member/policies/upload">
+          <Button className="h-auto min-h-10 max-w-full whitespace-normal">
+            <Plus className="mr-2 h-4 w-4 shrink-0" />
             {t('add')}
           </Button>
         </Link>
@@ -60,18 +60,20 @@ export async function MemberPoliciesV2Page({
           </div>
           <h3 className="text-lg font-semibold">{t('emptyTitle')}</h3>
           <p className="text-muted-foreground max-w-sm mt-2 mb-6">{t('emptyBody')}</p>
-          <Link href="/member/policies/upload">
-            <Button variant="outline">{t('uploadFirst')}</Button>
+          <Link className="min-w-0 max-w-full" href="/member/policies/upload">
+            <Button variant="outline" className="h-auto min-h-10 max-w-full whitespace-normal">
+              {t('uploadFirst')}
+            </Button>
           </Link>
         </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-2 lg:grid-cols-3">
           {policiesWithDocumentLinks.map(({ policy, documentDownloadHref, resolvedAnalysis }) => {
             const analysis = resolvedAnalysis as PolicyAnalysis | null;
             return (
               <Card key={policy.id} className="overflow-hidden hover:shadow-md transition-shadow">
                 <CardHeader className="bg-muted/30 pb-4">
-                  <div className="flex justify-between items-start">
+                  <div className="flex flex-wrap justify-between items-start gap-2">
                     <div className="p-2 bg-background rounded border shadow-sm">
                       <FileText className="h-5 w-5 text-blue-600" />
                     </div>
@@ -85,7 +87,7 @@ export async function MemberPoliciesV2Page({
                   <CardDescription>#{policy.policyNumber || t('noNumber')}</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex flex-wrap justify-between gap-2 text-sm">
                     <span className="text-muted-foreground">{t('coverage')}</span>
                     <span className="font-semibold">
                       {analysis?.coverageAmount
@@ -93,7 +95,7 @@ export async function MemberPoliciesV2Page({
                         : t('unavailable')}
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex flex-wrap justify-between gap-2 text-sm">
                     <span className="text-muted-foreground">{t('deductible')}</span>
                     <span className="text-red-500 font-medium">
                       {analysis?.deductible
@@ -127,13 +129,21 @@ export async function MemberPoliciesV2Page({
 
                   <div className="pt-4 flex gap-2">
                     {documentDownloadHref ? (
-                      <Button variant="outline" className="w-full text-xs" asChild>
+                      <Button
+                        variant="outline"
+                        className="h-auto min-h-10 w-full whitespace-normal text-xs"
+                        asChild
+                      >
                         <a href={documentDownloadHref} target="_blank" rel="noreferrer">
                           {t('viewPdf')}
                         </a>
                       </Button>
                     ) : (
-                      <Button variant="outline" className="w-full text-xs" disabled>
+                      <Button
+                        variant="outline"
+                        className="h-auto min-h-10 w-full whitespace-normal text-xs"
+                        disabled
+                      >
                         {t('viewPdf')}
                       </Button>
                     )}

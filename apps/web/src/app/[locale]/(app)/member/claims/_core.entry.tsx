@@ -31,18 +31,18 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
   const t = await getTranslations({ locale, namespace: 'claims' });
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6 [overflow-wrap:anywhere]">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-3xl font-bold tracking-tight" data-testid="page-title">
             {t('title')}
           </h2>
           <p className="text-muted-foreground mt-1">{t('description')}</p>
         </div>
-        <Button asChild>
+        <Button asChild className="h-auto min-h-10 max-w-full whitespace-normal">
           <Link href="/member/claims/new" data-testid="create-claim-button">
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="mr-2 h-4 w-4 shrink-0" />
             {t('new')}
           </Link>
         </Button>

@@ -149,7 +149,7 @@ export function DormantPreview(props: Props) {
   return (
     <div
       data-testid="claim-draft-dormant-preview"
-      className="space-y-6 rounded-3xl border border-[#001a33]/15 bg-[#fffdf9] p-5 sm:p-7"
+      className="min-w-0 space-y-6 [overflow-wrap:anywhere] rounded-3xl border border-[#001a33]/15 bg-[#fffdf9] p-5 sm:p-7"
     >
       <div className="space-y-2">
         <h3
@@ -161,11 +161,13 @@ export function DormantPreview(props: Props) {
         </h3>
         <p className="text-[#526274]">{copy.previewBody}</p>
       </div>
-      <dl className="grid gap-3 sm:grid-cols-2">
+      <dl className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
         {facts.map(([label, value]) => (
-          <div key={label} className="rounded-xl border border-[#001a33]/10 bg-white p-3">
+          <div key={label} className="min-w-0 rounded-xl border border-[#001a33]/10 bg-white p-3">
             <dt className="text-xs font-bold uppercase tracking-wide text-[#526274]">{label}</dt>
-            <dd className="mt-1 whitespace-pre-wrap text-[#001a33]">{value}</dd>
+            <dd className="mt-1 whitespace-pre-wrap break-words text-[#001a33] [overflow-wrap:anywhere]">
+              {value}
+            </dd>
           </div>
         ))}
       </dl>
@@ -175,7 +177,7 @@ export function DormantPreview(props: Props) {
         </div>
       ) : null}
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="max-w-sm text-right">
+        <div className="min-w-0 max-w-full sm:max-w-sm text-right">
           {submitAction}
           {showTruth ? (
             <p id="claim-draft-submit-explanation" className="mt-2 text-sm text-[#526274]">
