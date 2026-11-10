@@ -1,4 +1,9 @@
 import { bindSeedTarget, type SeedDriverTarget } from './seed-target-binding';
+import {
+  closeSeedTlsClients,
+  hasInstalledSeedTlsClients,
+  installSeedTlsClients,
+} from './seed-target-tls';
 export { resetSeedTargetBindingForTests } from './seed-target-binding';
 import { DEFAULT_E2E_PASSWORD, E2E_PASSWORD } from './e2e-users';
 
@@ -220,8 +225,23 @@ export function assertSeedModeAllowed(
 
 /** Validate both sides of module evaluation, before returning any database capability. */
 export async function importSeedDatabase(): Promise<typeof import('./db')> {
-  assertSeedTargetAllowed(process.env);
-  const database = await import('./db');
-  assertSeedTargetAllowed(process.env);
-  return database;
+  try {
+    if (
+      assertSeedTargetAllowed(process.env) === 'confirmed-non-local' &&
+      !hasInstalledSeedTlsClients()
+    ) {
+      installSeedTlsClients(process.env);
+    }
+    const database = await import('./db');
+    assertSeedTargetAllowed(process.env);
+    return database;
+  } catch (error) {
+    await closeSeedTlsClients();
+    throw error;
+  }
+}
+
+/** Command entry points own cleanup; reusable golden/full/workload/packs share their lifetime. */
+export async function closeSeedTargetClients(): Promise<void> {
+  await closeSeedTlsClients();
 }

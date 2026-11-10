@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { checkServerIdentity, type ConnectionOptions } from 'node:tls';
 
 export type SeedDriverTarget = Readonly<{
   host: string;
@@ -7,7 +8,12 @@ export type SeedDriverTarget = Readonly<{
   database: string;
 }>;
 type ExpectedClients = Readonly<{ admin: SeedDriverTarget; rls: SeedDriverTarget }>;
-type Binding = ExpectedClients & Readonly<{ fingerprint: string }>;
+type Binding = ExpectedClients &
+  Readonly<{
+    fingerprint: string;
+    verifyTls: boolean;
+    rootCert: string | undefined;
+  }>;
 type SeedEnvironment = Readonly<Record<string, string | undefined>>;
 type BindingFacade = Readonly<{
   bind: (env: SeedEnvironment, expected: ExpectedClients) => void;
@@ -19,6 +25,7 @@ type DriverOptions = {
   user?: unknown;
   database?: unknown;
   connection?: unknown;
+  ssl?: unknown;
 };
 // db.ts supplies no startup overrides; postgres.js supplies application_name by default.
 // Explicit identity overrides are permitted only when the effective identity still matches.
@@ -34,6 +41,7 @@ const TARGET_INPUTS = [
   'PGUSERNAME',
   'PGDATABASE',
   'SEED_TARGET_CONFIRM',
+  'SEED_TARGET_SSL_ROOT_CERT',
 ] as const;
 const seedGlobal = globalThis as typeof globalThis & {
   [TARGET_BINDING]?: BindingFacade;
@@ -78,11 +86,33 @@ function matchesTarget(options: DriverOptions | undefined, expected: SeedDriverT
   );
 }
 
-function assertClientTarget(client: unknown, expected: SeedDriverTarget): void {
+function matchesTls(
+  options: DriverOptions | undefined,
+  expected: SeedDriverTarget,
+  rootCert: string | undefined
+): boolean {
+  const ssl = options?.ssl as ConnectionOptions | undefined;
+  return (
+    !!ssl &&
+    typeof ssl === 'object' &&
+    ssl.rejectUnauthorized === true &&
+    ssl.servername === expected.host &&
+    (ssl.checkServerIdentity === undefined || ssl.checkServerIdentity === checkServerIdentity) &&
+    !!rootCert &&
+    typeof ssl.ca === 'string' &&
+    !!ssl.ca.trim()
+  );
+}
+
+function assertClientTarget(client: unknown, expected: SeedDriverTarget, bound: Binding): void {
   if (client == null) return;
   try {
     const options = (client as { options?: DriverOptions }).options;
-    if (!matchesTarget(options, expected)) refuse('client-mismatch');
+    if (
+      !matchesTarget(options, expected) ||
+      (bound.verifyTls && !matchesTls(options, expected, bound.rootCert))
+    )
+      refuse('client-mismatch');
   } catch {
     // Unreadable options must never propagate driver errors or credentials.
     refuse('client-mismatch');
@@ -98,8 +128,8 @@ function createBindingFacade(): BindingFacade {
         .digest('hex');
       if (bound) {
         if (bound.fingerprint !== fingerprint) refuse('target-changed');
-        assertClientTarget(seedGlobal.queryClientAdmin, bound.admin);
-        assertClientTarget(seedGlobal.queryClientRls, bound.rls);
+        assertClientTarget(seedGlobal.queryClientAdmin, bound.admin, bound);
+        assertClientTarget(seedGlobal.queryClientRls, bound.rls, bound);
         return;
       }
       if (seedGlobal.queryClientAdmin != null || seedGlobal.queryClientRls != null) {
@@ -107,6 +137,10 @@ function createBindingFacade(): BindingFacade {
       }
       bound = Object.freeze({
         fingerprint,
+        verifyTls:
+          env.SEED_TARGET_CONFIRM !== undefined &&
+          !['localhost', '127.0.0.1', '::1', '[::1]'].includes(expected.admin.host),
+        rootCert: env.SEED_TARGET_SSL_ROOT_CERT,
         admin: Object.freeze(expected.admin),
         rls: Object.freeze(expected.rls),
       });

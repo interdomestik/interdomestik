@@ -1,8 +1,14 @@
-import { assertSeedTargetAllowed } from '../../packages/database/src/seed-target-guard';
+import {
+  assertSeedTargetAllowed,
+  closeSeedTargetClients,
+} from '../../packages/database/src/seed-target-guard';
+import { installSeedTlsClients } from '../../packages/database/src/seed-target-tls';
 import crypto from 'node:crypto';
 
 async function main() {
-  assertSeedTargetAllowed(process.env);
+  if (assertSeedTargetAllowed(process.env) === 'confirmed-non-local') {
+    installSeedTlsClients(process.env);
+  }
   const {
     claims,
     claimMessages,
@@ -155,7 +161,9 @@ async function main() {
 
 try {
   await main();
+  await closeSeedTargetClients();
 } catch (err) {
   console.error('[Seeder] Error:', err);
+  await closeSeedTargetClients();
   process.exit(1);
 }

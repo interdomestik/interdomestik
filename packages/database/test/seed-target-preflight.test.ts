@@ -24,7 +24,7 @@ test('runner and assertion preflight precede DB initialization', () => {
     if (file === 'seed.ts') {
       const envLoaded = source.indexOf('\nloadEnvFromRoot();');
       assert.ok(envLoaded > 0 && envLoaded < preflight);
-      assert.ok(source.indexOf('\n  main();') > preflight);
+      assert.ok(source.indexOf('\n  main().catch(') > preflight);
     }
   }
 });
@@ -64,7 +64,10 @@ test('pilot multi-seeder validates before importing the database package', () =>
     new URL('../../../scripts/pilot/day1_multi_seeder.ts', import.meta.url),
     'utf8'
   );
-  assert.match(source, /async function main\(\) \{\s*assertSeedTargetAllowed\(process.env\);/);
+  assert.match(
+    source,
+    /async function main\(\) \{\s*if \(assertSeedTargetAllowed\(process.env\) === 'confirmed-non-local'\)/
+  );
   const preflight = source.indexOf('assertSeedTargetAllowed(process.env)');
   assert.ok(preflight < source.indexOf("await import('@interdomestik/database')"));
   const imported = source.indexOf("await import('@interdomestik/database')");
@@ -73,7 +76,7 @@ test('pilot multi-seeder validates before importing the database package', () =>
   assert.doesNotMatch(source, /from ['"]@interdomestik\/database['"]/);
   assert.match(
     source,
-    /import \{ assertSeedTargetAllowed \} from ['"].*\/src\/seed-target-guard['"]/
+    /import \{[^}]*assertSeedTargetAllowed[^}]*\} from ['"].*\/src\/seed-target-guard['"]/
   );
   // The package entry stays free of seed code; the pilot imports the guard by path.
   assert.doesNotMatch(readSeed('index.ts'), /seed-target-guard/);

@@ -7,6 +7,7 @@ import {
   assertSeedModeAllowed,
   assertSeedTargetAllowed,
   importSeedDatabase,
+  closeSeedTargetClients,
 } from './seed-target-guard';
 import { seedFull } from './seed-full';
 import { seedGolden } from './seed-golden';
@@ -226,6 +227,7 @@ async function main() {
 
   if (!['e2e', 'golden', 'full', 'workload'].includes(mode)) {
     console.error(`❌ Unknown mode: '${mode}'. Supported: e2e, golden, full, workload`);
+    await closeSeedTargetClients();
     process.exit(1);
   }
   assertSeedModeAllowed(mode, targetClassification);
@@ -244,11 +246,13 @@ async function main() {
 
   if (action === 'skip') {
     console.log('⚠️  Skipping seed - data already exists. Use --reset to force.');
+    await closeSeedTargetClients();
     process.exit(0);
   }
 
   if (action === 'block') {
     console.error('❌ Seed blocked. Refusing to modify existing data without explicit reset.');
+    await closeSeedTargetClients();
     process.exit(1);
   }
 
@@ -286,14 +290,20 @@ async function main() {
     await writeSeedMeta(db, schema, receipt);
 
     console.log(`\n✅ Seed Complete [${mode}]`);
+    await closeSeedTargetClients();
     process.exit(0);
   } catch (error) {
     console.error(`\n❌ Seed Failed [${mode}]:`, error);
+    await closeSeedTargetClients();
     process.exit(1);
   }
 }
 
 // Auto-run if executed directly
 if (process.argv[1] === __filename) {
-  main();
+  main().catch(async error => {
+    console.error('Seed failed:', error);
+    await closeSeedTargetClients();
+    process.exit(1);
+  });
 }
