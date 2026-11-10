@@ -28,7 +28,6 @@ describe('resolveStaffClaimReader', () => {
     ['staff', 'ks_branch_a'],
     ['staff', null],
     ['branch_manager', 'ks_branch_a'],
-    ['branch_manager', null],
   ])('derives a %s reader with branch %s from the session principal', (role, branchId) => {
     readTenantAuthority.mockReturnValue(
       descriptor({ principal: { userId: 'actor-1', role, branchId, agentId: null } })
@@ -40,6 +39,18 @@ describe('resolveStaffClaimReader', () => {
       branchId,
     });
   });
+
+  it.each([null, '', '   '])(
+    'grants no detail or queue reader to a branchless manager (%s)',
+    branchId => {
+      readTenantAuthority.mockReturnValue(
+        descriptor({
+          principal: { userId: 'manager-1', role: 'branch_manager', branchId, agentId: null },
+        })
+      );
+      expect(resolveStaffClaimReader(AUTHORITY)).toBeNull();
+    }
+  );
 
   it.each(['member', 'agent', 'admin', 'tenant_admin', 'super_admin', 'auditor', null])(
     'grants no reader to role %s',

@@ -2,14 +2,14 @@ import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  mockCreateBranchCore,
+  mockCreateGuardedBranchCore,
   mockDelegateSuperAdminTenant,
   mockGrantUserRoleCore,
   mockListBranchesCore,
   mockListUserRolesCore,
   mockRevalidatePath,
   mockRevokeUserRoleCore,
-  mockUpdateBranchCore,
+  mockUpdateGuardedBranchCore,
 } from './admin-rbac.wrapper.test-support';
 import { auth } from '@/lib/auth';
 import {
@@ -130,12 +130,12 @@ describe('admin-rbac.core', () => {
       },
       {
         name: 'createBranch',
-        domain: mockCreateBranchCore,
+        domain: mockCreateGuardedBranchCore,
         invoke: (tenantId: string) => createBranch({ name: 'Branch 1', code: 'B1', tenantId }),
       },
       {
         name: 'updateBranch',
-        domain: mockUpdateBranchCore,
+        domain: mockUpdateGuardedBranchCore,
         invoke: (tenantId: string) =>
           updateBranch({
             branchId: BRANCH_ID,

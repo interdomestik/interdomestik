@@ -1,3 +1,8 @@
+import { lockBranchPolicy } from '@interdomestik/database/branch-policy-lock';
+import {
+  canActivateBranch,
+  SINGLE_BRANCH_LIMIT,
+} from '@interdomestik/domain-users/admin/branch-policy';
 import { db } from '@interdomestik/database/db';
 import { branches } from '@interdomestik/database/schema';
 import { eq } from 'drizzle-orm';
@@ -28,15 +33,22 @@ export async function handleE2EBranchOperation(params: E2EBranchParams) {
     const id = nanoid();
     const slug = code.toLowerCase();
 
-    await db.insert(branches).values({
-      id,
-      tenantId,
-      name,
-      code,
-      slug,
-      isActive: isActive ?? true,
+    // Keep the existing secret-authorized E2E connection; serialize its tenant's policy and write.
+    return db.transaction(async tx => {
+      await lockBranchPolicy(tx, tenantId);
+      if ((isActive ?? true) && !(await canActivateBranch(tx, tenantId))) {
+        return { success: false, ...SINGLE_BRANCH_LIMIT };
+      }
+      await tx.insert(branches).values({
+        id,
+        tenantId,
+        name,
+        code,
+        slug,
+        isActive: isActive ?? true,
+      });
+      return { success: true, id };
     });
-    return { success: true, id };
   }
 
   if (action === 'update') {

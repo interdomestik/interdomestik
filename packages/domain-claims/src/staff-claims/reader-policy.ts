@@ -30,6 +30,7 @@ export function resolveStaffClaimReader(authority: TenantAuthority): StaffClaimR
   const { tenantId, purpose, principal } = readTenantAuthority(authority);
   if (!READER_PURPOSES.has(purpose) || !principal) return null;
   if (!isStaffClaimReaderRole(principal.role)) return null;
+  if (principal.role === 'branch_manager' && !principal.branchId?.trim()) return null;
   return Object.freeze({
     tenantId,
     staffId: principal.userId,
