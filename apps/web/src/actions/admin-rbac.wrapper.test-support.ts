@@ -15,9 +15,9 @@ vi.mock('@interdomestik/domain-users/admin/rbac', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   listBranchesCore: (...args: any[]) => mockListBranchesCore(...args),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createBranchCore: (...args: any[]) => mockCreateBranchCore(...args),
+  createGuardedBranchCore: (...args: any[]) => mockCreateBranchCore(...args),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  updateBranchCore: (...args: any[]) => mockUpdateBranchCore(...args),
+  updateGuardedBranchCore: (...args: any[]) => mockUpdateBranchCore(...args),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   deleteBranchCore: (...args: any[]) => mockDeleteBranchCore(...args),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

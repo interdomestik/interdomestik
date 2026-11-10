@@ -1,7 +1,11 @@
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 
-import { buildScopedStaffClaimWhere, buildStaffClaimReadScope } from './scope';
+import {
+  buildScopedStaffClaimWhere,
+  buildStaffClaimReadScope,
+  resolveScopedStaffClaimAccess,
+} from './scope';
 
 const dialect = new PgDialect();
 const render = (where: ReturnType<typeof buildStaffClaimReadScope>) => {
@@ -10,6 +14,18 @@ const render = (where: ReturnType<typeof buildStaffClaimReadScope>) => {
 };
 
 describe('staff claim scope', () => {
+  it.each([null, '', '   '])(
+    'denies branchless manager detail and mutation scopes (%s)',
+    branchId => {
+      const args = resolveScopedStaffClaimAccess({
+        claimId: 'claim_1',
+        session: { user: { id: 'bm_1', role: 'branch_manager', tenantId: 'tenant_ks', branchId } },
+      });
+      const scope = render(buildScopedStaffClaimWhere(args));
+      expect(scope.sql).toContain('false');
+      expect(scope.params).toEqual(['tenant_ks']);
+    }
+  );
   it.each([
     ['branchless staff', null],
     ['branch-scoped staff', 'ks_branch_a'],

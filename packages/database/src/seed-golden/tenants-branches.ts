@@ -98,6 +98,33 @@ export async function seedTenants({ db, schema, sql }: SeedGoldenContext) {
       set: { name: schema.tenants.name, code: sql`excluded.code` },
     });
   await seedTenantStates({ db, schema });
+  // Golden tenants exercise the post-pilot multi-branch journeys, including pilot CRUD.
+  await db
+    .insert(schema.tenantSettings)
+    .values(buildMultiBranchSettingsToSeed())
+    .onConflictDoUpdate({
+      target: [
+        schema.tenantSettings.tenantId,
+        schema.tenantSettings.category,
+        schema.tenantSettings.key,
+      ],
+      set: {
+        tenantId: schema.tenantSettings.tenantId,
+        category: 'branches',
+        key: 'multi_branch',
+        value: { enabled: true },
+      },
+    });
+}
+
+export function buildMultiBranchSettingsToSeed() {
+  return [TENANTS.KS, TENANTS.MK, TENANTS.PILOT].map(tenantId => ({
+    id: `golden_multi_branch_${tenantId}`,
+    tenantId,
+    category: 'branches',
+    key: 'multi_branch',
+    value: { enabled: true },
+  }));
 }
 
 export async function seedBranches({ db, schema }: SeedGoldenContext) {

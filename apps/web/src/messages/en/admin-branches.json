@@ -10,6 +10,7 @@
       "editTitle": "Edit Branch",
       "editDescription": "Update branch details.",
       "createSuccess": "Branch created successfully.",
+      "single_branch_limit": "Only one active branch is allowed for this tenant. Deactivate the current branch before activating another.",
       "createError": "Failed to create branch.",
       "updateSuccess": "Branch updated successfully.",
       "updateError": "Failed to update branch.",

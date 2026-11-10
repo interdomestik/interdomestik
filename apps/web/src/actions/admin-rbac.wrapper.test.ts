@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { logAuditEvent } from '@/lib/audit';
 import {
   mockCreateBranchCore,
   mockDeleteBranchCore,
@@ -58,8 +59,6 @@ describe('admin-rbac.core', () => {
 
       const result = await createBranch(params);
 
-      // We only check the first argument (context/input object)
-      // The second argument is usually 'undefined' or not passed explicitly in wrapper calls unless it's for something specific
       expect(mockCreateBranchCore).toHaveBeenCalledWith(
         expect.objectContaining({
           session: expect.objectContaining({ user: expect.anything() }),
@@ -68,7 +67,7 @@ describe('admin-rbac.core', () => {
           name: 'Branch 1',
           code: 'B1',
         }),
-        expect.anything()
+        { logAuditEvent }
       );
       expect(result).toEqual({ success: true, data: mockResult });
     });
@@ -105,8 +104,8 @@ describe('admin-rbac.core', () => {
           branchId: MOCK_BRANCH_ID,
           name: 'Updated',
           isActive: true,
-          // code might be null or undefined depending on schema, assume matches input
-        })
+        }),
+        { logAuditEvent }
       );
       expect(result).toEqual({ success: true, data: mockResult });
     });
@@ -126,7 +125,8 @@ describe('admin-rbac.core', () => {
           name: 'Updated',
           code: 'KS-A-TMP',
           isActive: true,
-        })
+        }),
+        { logAuditEvent }
       );
       expect(result).toEqual({ success: true });
     });

@@ -49,14 +49,24 @@ describe('buildStaffSupportHandoffQueueScope', () => {
     expect(mocks.isNull).not.toHaveBeenCalledWith('support_handoffs.staff_id');
   });
 
-  it('falls back to own-or-unassigned filtering for branch managers without branch scope', () => {
-    buildScope({
-      branchId: null,
-      staffId: 'manager-1',
-      viewerRole: 'branch_manager',
-    });
+  it.each([null, '', '   '])('denies branch managers without branch scope (%s)', branchId => {
+    for (const assignment of ['all', 'mine', 'unassigned'] as const) {
+      buildScope({ assignment, branchId, staffId: 'manager-1', viewerRole: 'branch_manager' });
+      expect(mocks.withTenant).toHaveBeenLastCalledWith(
+        'tenant-1',
+        'support_handoffs.tenant_id',
+        expect.objectContaining({
+          conditions: expect.arrayContaining([
+            expect.objectContaining({ op: 'sql', strings: ['false'] }),
+          ]),
+        })
+      );
+    }
+  });
 
-    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.staff_id', 'manager-1');
+  it('retains own-or-unassigned behavior for staff without a branch', () => {
+    buildScope({ branchId: null, viewerRole: 'staff' });
+    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.staff_id', 'staff-1');
     expect(mocks.isNull).toHaveBeenCalledWith('support_handoffs.staff_id');
   });
 
