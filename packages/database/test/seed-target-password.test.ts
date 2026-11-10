@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { beforeEach } from 'node:test';
 import { DEFAULT_E2E_PASSWORD } from '../src/e2e-users';
-import { assertSeedModeAllowed, assertSeedTargetAllowed } from '../src/seed-target-guard';
+import {
+  assertSeedModeAllowed,
+  assertSeedTargetAllowed,
+  resetSeedTargetBindingForTests,
+} from '../src/seed-target-guard';
+
+beforeEach(resetSeedTargetBindingForTests);
 
 const staging = 's'.repeat(20);
 const pooler = 'aws-0-eu.pooler.supabase.com';
@@ -76,6 +82,7 @@ test('remote admits trimmed overrides with at least twenty characters and three 
   ];
   for (const E2E_PASSWORD of admittedOverrides) {
     for (const target of remoteTargets) {
+      resetSeedTargetBindingForTests();
       assert.equal(
         assertSeedTargetAllowed({ ...target, E2E_PASSWORD }, E2E_PASSWORD.trim()),
         'confirmed-non-local'
@@ -99,6 +106,7 @@ test('only loopback and confirmed ci-postgres retain default, missing and weak o
   for (const host of ['localhost', '127.0.0.1', 'ci-postgres']) {
     const expected = host === 'ci-postgres' ? 'confirmed-non-local' : 'local';
     for (const E2E_PASSWORD of [DEFAULT_E2E_PASSWORD, undefined, 'x'.repeat(1)]) {
+      resetSeedTargetBindingForTests();
       assert.equal(
         assertSeedTargetAllowed(
           {

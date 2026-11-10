@@ -1,4 +1,8 @@
-import { assertSeedModeAllowed, assertSeedTargetAllowed } from '../seed-target-guard';
+import {
+  assertSeedModeAllowed,
+  assertSeedTargetAllowed,
+  importSeedDatabase,
+} from '../seed-target-guard';
 /**
  * Contract:
  * - seed:golden is immutable and baseline-only
@@ -25,7 +29,7 @@ export async function seedWorkload(config: SeedConfig) {
   console.log('🚀 Starting Workload Seed...');
 
   // Dynamic imports to ensure ENV is loaded
-  const { db } = await import('../db');
+  const { db } = await importSeedDatabase();
   const schema = await import('../schema');
 
   // Runtime Assertion: Baseline
