@@ -12,6 +12,7 @@ import {
 } from './manifest.mjs';
 import { originKey } from './modules.mjs';
 import { byCodeUnit } from './rules-digest.mjs';
+import { checkSeedTlsModuleUse } from './rules-seed-tls.mjs';
 import { unitOf } from './syntax.mjs';
 
 const DECLARATION_FILE = /\.d\.[cm]?ts$/u;
@@ -31,7 +32,15 @@ export function scanFiles(ctx) {
     telemetry,
     violate,
   } = ctx;
-  const deps = { connectionControlUnits, covered, graph, isPrivilegedModule, isTest, legacyOps };
+  const deps = {
+    connectionControlUnits,
+    covered,
+    graph,
+    isPrivilegedModule,
+    isTest,
+    legacyOps,
+    seedTls: ctx.seedTls,
+  };
 
   for (const file of [...sources.keys()].sort(byCodeUnit)) {
     if (isTest(file) || DECLARATION_FILE.test(file)) continue;
@@ -117,6 +126,7 @@ function checkLegacyUse(scan, { reference, origin, form }, key) {
 
 // ---- syntax ----------------------------------------------------------------------------------
 function scanNode(scan, node) {
+  checkSeedTlsModuleUse(scan, node);
   checkReexport(scan, node);
   checkStaticImport(scan, node);
   if (ts.isCallExpression(node)) checkCall(scan, node);

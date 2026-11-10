@@ -1,0 +1,157 @@
+import ts from 'typescript';
+import { SEED_TLS_CLOSURE, TEST_SOURCE } from './manifest.mjs';
+import { analyzeScopes } from './scopes.mjs';
+import { computedSeedLoader } from './seed-tls-computed-loaders.mjs';
+import {
+  loaderMember,
+  opaqueGlobalLoaderUse,
+  opaqueExecutionReference,
+} from './seed-tls-global-loaders.mjs';
+export { loaderMember, opaqueGlobalLoaderUse } from './seed-tls-global-loaders.mjs';
+
+const graphs = new WeakMap();
+function cacheOf(graph) {
+  if (!graphs.has(graph)) graphs.set(graph, { edges: new Map(), reaches: new Map() });
+  return graphs.get(graph);
+}
+
+function isCollectedSource(graph, file) {
+  if (graph.isCollected) return graph.isCollected(file);
+  return file.startsWith('apps/web/src/') || file.startsWith('packages/');
+}
+
+/** All literal module edges, including type-only and side-effect edges. */
+export function moduleEdges(graph, file) {
+  const cache = cacheOf(graph).edges;
+  if (cache.has(file)) return cache.get(file);
+  const edges = new Map();
+  cache.set(file, edges);
+  const source = graph.sourceFileOf(file);
+  if (!source) return edges;
+  const { lookup, references } = analyzeScopes(source);
+  const referencesByNode = new Map(references.map(reference => [reference.node, reference]));
+  ts.forEachChild(source, function visit(node) {
+    const specifier = literalSpecifier(node, lookup);
+    // Collected sources retain their existing R-e/L1 policy. Every other file reached here
+    // (root entries, on-demand bridges, generated output such as packages/*/dist) refuses
+    // unresolved loader calls; membership, not a path prefix, decides.
+    if (!isCollectedSource(graph, file) && computedSeedLoader(node, referencesByNode)) {
+      edges.set(node, { specifier: null, targets: [], computed: true, opaque: true });
+    } else if (specifier !== null) {
+      // Node's URL spelling still loads the same file. Resolve both spellings through the
+      // existing resolver; do not modify its behavior for any other tenant-guard rule.
+      let normalized = specifier.startsWith('#')
+        ? '#' + specifier.slice(1).split(/[?#]/u)[0]
+        : specifier.split(/[?#]/u)[0];
+      try {
+        normalized = decodeURIComponent(normalized);
+      } catch {
+        /* fail closed below */
+      }
+      const unsupportedUrl =
+        /^(?!node:)[a-z][\d+.a-z-]*:/iu.test(normalized) ||
+        /^[/\\]/u.test(normalized) ||
+        /%/u.test(normalized);
+      const targets = [
+        ...new Set(
+          [specifier, normalized].flatMap(value => graph.resolveSpecifier(file, value).files)
+        ),
+      ];
+      edges.set(node, {
+        specifier,
+        targets,
+        unsupportedUrl,
+        opaque: ['module', 'node:module', 'process', 'node:process'].includes(normalized),
+      });
+    } else if (opaqueLoader(node, referencesByNode)) {
+      edges.set(node, { specifier: null, targets: [], opaque: true });
+    }
+    ts.forEachChild(node, visit);
+  });
+  return edges;
+}
+
+// Tests are not syntax-enforced, so an opaque loader in their reachable graph must taint them:
+// runtime re-exports cannot use an unknown target to claim that the seed closure is unreachable.
+function opaqueLoader(node, references) {
+  if (opaqueGlobalLoaderUse(node, references) || opaqueExecutionReference(node, references))
+    return true;
+  if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword)
+    return true;
+  if (
+    ts.isIdentifier(node) &&
+    node.text === 'require' &&
+    references.has(node) &&
+    !references.get(node).binding
+  ) {
+    const call = node.parent;
+    return (
+      !ts.isCallExpression(call) ||
+      call.expression !== node ||
+      call.questionDotToken ||
+      !call.arguments[0] ||
+      !ts.isStringLiteralLike(call.arguments[0])
+    );
+  }
+  return ['require', 'createRequire', '_load', 'getBuiltinModule'].includes(loaderMember(node));
+}
+
+function literalSpecifier(node, lookup) {
+  if (
+    (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+    node.moduleSpecifier &&
+    ts.isStringLiteral(node.moduleSpecifier)
+  )
+    return node.moduleSpecifier.text;
+  if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
+    const argument = node.moduleReference.expression;
+    return argument && ts.isStringLiteral(argument) ? argument.text : null;
+  }
+  if (
+    ts.isImportTypeNode(node) &&
+    ts.isLiteralTypeNode(node.argument) &&
+    ts.isStringLiteral(node.argument.literal)
+  )
+    return node.argument.literal.text;
+  if (!ts.isCallExpression(node)) return null;
+  const callee = node.expression;
+  const loader =
+    callee.kind === ts.SyntaxKind.ImportKeyword ||
+    (ts.isIdentifier(callee) && callee.text === 'require' && !lookup(callee));
+  const argument = node.arguments[0];
+  return loader && argument && ts.isStringLiteralLike(argument) ? argument.text : null;
+}
+
+/** Iterative, cycle-safe reachability, with conservative opaque-execution taint for tests. */
+export function reachesSeedClosure(graph, file, tainted = true) {
+  const cache = cacheOf(graph).reaches;
+  const rootKey = `${tainted}:${file}`;
+  if (cache.has(rootKey)) return cache.get(rootKey);
+  const pending = [[file, tainted]];
+  const seen = new Set();
+  while (pending.length) {
+    const [current, inherited] = pending.pop();
+    const opaqueMatters = inherited || TEST_SOURCE.test(current);
+    const key = `${opaqueMatters}:${current}`;
+    if (SEED_TLS_CLOSURE.has(current) || cache.get(key) === true) {
+      cache.set(rootKey, true);
+      return true;
+    }
+    if (seen.has(key) || cache.get(key) === false) continue;
+    seen.add(key);
+    for (const { targets, computed, opaque, unsupportedUrl } of moduleEdges(
+      graph,
+      current
+    ).values()) {
+      if (computed || (opaqueMatters && (opaque || unsupportedUrl))) {
+        cache.set(rootKey, true);
+        return true;
+      }
+      pending.push(...targets.map(target => [target, opaqueMatters]));
+    }
+  }
+  // The whole reachable subgraph was exhausted; these negatives are valid even in cycles.
+  for (const key of seen) cache.set(key, false);
+  cache.set(rootKey, false);
+  return false;
+}
