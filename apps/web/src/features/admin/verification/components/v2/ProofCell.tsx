@@ -3,14 +3,17 @@
 import { Button } from '@interdomestik/ui';
 import { FileText, HelpCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
 import { CashVerificationRequestDTO } from '../../server/types';
 
 interface ProofCellProps {
   request: CashVerificationRequestDTO;
+  viewerRole?: string | null;
 }
 
-export function ProofCell({ request }: ProofCellProps) {
+export function ProofCell({ request, viewerRole }: Readonly<ProofCellProps>) {
   const t = useTranslations('admin.leads');
+  if (deniesClaimDocumentContent(viewerRole)) return null;
 
   if (request.documentPath) {
     return (

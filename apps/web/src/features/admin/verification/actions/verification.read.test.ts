@@ -1,4 +1,15 @@
 import type { TenantTransaction } from '@interdomestik/database';
+import {
+  ROLE_ADMIN,
+  ROLE_BRANCH_MANAGER,
+  ROLE_STAFF,
+  ROLE_SUPER_ADMIN,
+  ROLE_TENANT_ADMIN,
+} from '@/lib/roles.core';
+import {
+  expectNoDocumentContent,
+  verificationRequest,
+} from '../server/branch-manager-redaction.test-fixtures';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -86,6 +97,39 @@ describe('getVerificationRequestsAction read admission', () => {
     });
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
+
+  it('redacts document content from the BM list action response', async () => {
+    hoisted.getSession.mockResolvedValue(sessionFor(ROLE_BRANCH_MANAGER, 'branch-1'));
+    createRecordingTx([[{ ...verificationRequest, memberEmailVerified: null }]]);
+
+    const result = await getVerificationRequestsAction({ view: 'queue' });
+
+    expect(result).toEqual({
+      success: true,
+      data: [
+        {
+          ...verificationRequest,
+          memberActivationPending: false,
+          documentId: null,
+          documentPath: null,
+        },
+      ],
+    });
+    expectNoDocumentContent(result);
+  });
+
+  it.each([ROLE_STAFF, ROLE_ADMIN, ROLE_TENANT_ADMIN, ROLE_SUPER_ADMIN])(
+    'preserves document content in the %s action payload',
+    async role => {
+      hoisted.getSession.mockResolvedValue(sessionFor(role, 'branch-1'));
+      createRecordingTx([[{ ...verificationRequest, memberEmailVerified: null }]]);
+
+      await expect(getVerificationRequestsAction({ view: 'queue' })).resolves.toEqual({
+        success: true,
+        data: [{ ...verificationRequest, memberActivationPending: false }],
+      });
+    }
+  );
 
   it.each(['admin', 'tenant_admin', 'super_admin'])(
     'reads %s tenant-wide in the actor transaction',

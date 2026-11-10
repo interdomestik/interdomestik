@@ -73,7 +73,7 @@ describe('admin claim evidence upload actions', () => {
     hoisted.validateConfirmedClaimUpload.mockResolvedValue({ success: true });
   });
 
-  it.each(['admin', 'super_admin', 'tenant_admin', 'branch_manager', 'staff'])(
+  it.each(['admin', 'super_admin', 'tenant_admin', 'staff'])(
     'preserves canonical %s role admission before claim scoping',
     async role => {
       hoisted.authGetSession.mockResolvedValue({
@@ -152,55 +152,73 @@ describe('admin claim evidence upload actions', () => {
     );
   });
 
-  it('denies confirm for branch managers outside claim branch scope', async () => {
-    hoisted.authGetSession.mockResolvedValueOnce({
-      user: {
-        id: 'branch-manager-1',
-        tenantId: 'tenant-1',
-        role: 'branch_manager',
-        branchId: 'branch-2',
-      },
-    });
-    hoisted.findAccessibleAdminUploadClaim.mockResolvedValueOnce(null);
+  it.each(['branch-1', 'branch-2'])(
+    'denies manager issue and confirm in %s before claim access',
+    async branchId => {
+      hoisted.authGetSession.mockResolvedValue({
+        user: {
+          id: 'branch-manager-1',
+          tenantId: 'tenant-1',
+          role: 'branch_manager',
+          branchId,
+        },
+      });
+      await expect(
+        generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)
+      ).resolves.toEqual({ success: false, error: 'Unauthorized', status: 401 });
 
-    await expect(
-      confirmAdminUpload({
-        claimId: 'claim-1',
-        storagePath: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
-        originalName: 'evidence.pdf',
-        mimeType: 'application/pdf',
-        fileSize: 1024,
-        fileId: 'file-id',
-        uploadIntentToken: 'upload-intent-token',
-        uploadedBucket: 'claim-evidence',
-      })
-    ).resolves.toEqual({ success: false, error: 'Claim not found', status: 404 });
+      await expect(
+        confirmAdminUpload({
+          claimId: 'claim-1',
+          storagePath: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
+          originalName: 'evidence.pdf',
+          mimeType: 'application/pdf',
+          fileSize: 1024,
+          fileId: 'file-id',
+          uploadIntentToken: 'upload-intent-token',
+          uploadedBucket: 'claim-evidence',
+        })
+      ).resolves.toEqual({ success: false, error: 'Unauthorized', status: 401 });
 
-    expect(hoisted.persistClaimDocumentAndQueueWorkflows).not.toHaveBeenCalled();
-  });
+      expect(hoisted.findAccessibleAdminUploadClaim).not.toHaveBeenCalled();
+      expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
+      expect(hoisted.validateConfirmedClaimUpload).not.toHaveBeenCalled();
+      expect(hoisted.persistClaimDocumentAndQueueWorkflows).not.toHaveBeenCalled();
+    }
+  );
 
-  it('revalidates admin and staff claim surfaces after confirming upload metadata', async () => {
-    await expect(
-      confirmAdminUpload({
-        claimId: 'claim-1',
-        storagePath: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
-        originalName: 'evidence.pdf',
-        mimeType: 'application/pdf',
-        fileSize: 1024,
-        fileId: 'file-id',
-        uploadIntentToken: 'upload-intent-token',
-        uploadedBucket: 'claim-evidence',
-      })
-    ).resolves.toEqual({ success: true });
+  it.each(['staff', 'admin', 'tenant_admin', 'super_admin'])(
+    'preserves %s confirmation and revalidation',
+    async role => {
+      hoisted.authGetSession.mockResolvedValue({
+        user: { id: 'actor-1', tenantId: 'tenant-1', role },
+      });
+      await expect(
+        confirmAdminUpload({
+          claimId: 'claim-1',
+          storagePath: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
+          originalName: 'evidence.pdf',
+          mimeType: 'application/pdf',
+          fileSize: 1024,
+          fileId: 'file-id',
+          uploadIntentToken: 'upload-intent-token',
+          uploadedBucket: 'claim-evidence',
+        })
+      ).resolves.toEqual({ success: true });
 
-    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/mk/admin/claims/claim-1');
-    expect(hoisted.persistClaimDocumentAndQueueWorkflows).toHaveBeenCalledWith(
-      expect.not.objectContaining({ aiExtractionConsent: expect.anything() })
-    );
-    expect(hoisted.persistClaimDocumentAndQueueWorkflows).toHaveBeenCalledWith(
-      expect.objectContaining({ authority: expect.any(Object), tenantId: 'tenant-1' })
-    );
-  });
+      expect(hoisted.revalidatePath).toHaveBeenCalledWith('/mk/admin/claims/claim-1');
+      expect(hoisted.persistClaimDocumentAndQueueWorkflows).toHaveBeenCalledWith(
+        expect.not.objectContaining({ aiExtractionConsent: expect.anything() })
+      );
+      expect(hoisted.persistClaimDocumentAndQueueWorkflows).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authority: expect.any(Object),
+          tenantId: 'tenant-1',
+          actorRole: role,
+        })
+      );
+    }
+  );
   it('returns a safe conflict without revalidation when persisted metadata differs', async () => {
     hoisted.persistClaimDocumentAndQueueWorkflows.mockRejectedValueOnce(
       new ClaimDocumentUploadConflictError()

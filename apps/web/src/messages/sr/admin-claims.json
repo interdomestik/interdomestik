@@ -236,6 +236,7 @@
         "unexpected_error": "Došlo je do neočekivane greške"
       },
       "evidence": {
+        "allocation_summary": "{count} dokumenata · Potpunost dokaza nije potvrđena.",
         "title": "Dokazi",
         "upload_button": "Otpremi",
         "dialog_title": "Otpremi dokaz",

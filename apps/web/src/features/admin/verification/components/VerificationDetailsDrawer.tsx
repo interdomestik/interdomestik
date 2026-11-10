@@ -19,6 +19,7 @@ interface VerificationDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onActionComplete: () => void;
+  viewerRole?: string | null;
 }
 
 export function VerificationDetailsDrawer({
@@ -26,6 +27,7 @@ export function VerificationDetailsDrawer({
   isOpen,
   onClose,
   onActionComplete,
+  viewerRole,
 }: VerificationDetailsDrawerProps) {
   const t = useTranslations('admin.leads');
   const [data, setData] = useState<CashVerificationDetailsDTO | null>(null);
@@ -123,7 +125,7 @@ export function VerificationDetailsDrawer({
         {data && (
           <>
             <VerificationSummary data={data} />
-            <VerificationDocuments documents={data.documents} />
+            <VerificationDocuments documents={data.documents} viewerRole={viewerRole} />
             <VerificationTimeline timeline={data.timeline} />
 
             {actions && (

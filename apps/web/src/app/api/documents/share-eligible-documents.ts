@@ -8,6 +8,7 @@ import {
   isScopedClaimReaderRole,
 } from './access-policy';
 import { hasAgentClaimDocumentScope } from './agent-document-scope';
+import { deniesClaimDocumentContent } from './branch-manager-document-boundary';
 
 type TenantTransaction = DatabaseModule.TenantTransaction;
 
@@ -39,6 +40,7 @@ export async function canShareAllDocuments(args: {
   tx: TenantTransaction;
 }): Promise<boolean> {
   const { actor, documentIds, tenantId, tx } = args;
+  if (deniesClaimDocumentContent(actor.role)) return false;
   if (documentIds.length === 0 || !actor.role || NON_SHARING_ROLES.has(actor.role)) return false;
 
   const rows = await tx

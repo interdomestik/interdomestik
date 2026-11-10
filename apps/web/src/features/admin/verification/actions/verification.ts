@@ -1,6 +1,7 @@
 'use server';
 
 import { runAuthenticatedAction } from '@/lib/safe-action';
+import { redactVerificationRequestsForRole } from '../server/branch-manager-redaction';
 import { withSessionStaffBranch } from '../server/queries/read-access';
 import {
   getVerificationRequests,
@@ -18,7 +19,8 @@ export async function getVerificationRequestsAction(params: {
   query?: string;
 }) {
   return runAuthenticatedAction(async ctx => {
-    return await getVerificationRequests(withSessionStaffBranch(ctx), params);
+    const requests = await getVerificationRequests(withSessionStaffBranch(ctx), params);
+    return redactVerificationRequestsForRole(requests, ctx.userRole);
   });
 }
 

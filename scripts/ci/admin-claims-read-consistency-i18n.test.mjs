@@ -14,6 +14,9 @@ test('claims read recovery catalogs have bounded ownership and complete localize
       assert.ok(copy[key].trim().length > 0);
     }
     assert.ok(copy.read_result.includes('{count}'));
+    assert.equal(typeof copy.evidence.allocation_summary, 'string');
+    assert.ok(copy.evidence.allocation_summary.trim().length > 0);
+    assert.ok(copy.evidence.allocation_summary.includes('{count}'));
   }
   assert.equal(structuredArtifactOwner('apps/web/src/messages/hr/admin-claims.json'), null);
   assert.equal(structuredArtifactOwner('apps/web/src/messages/en/admin.json'), null);

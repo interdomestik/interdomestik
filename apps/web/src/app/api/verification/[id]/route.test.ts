@@ -2,6 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { GET } from './route';
+import {
+  ROLE_ADMIN,
+  ROLE_BRANCH_MANAGER,
+  ROLE_STAFF,
+  ROLE_SUPER_ADMIN,
+  ROLE_TENANT_ADMIN,
+} from '@/lib/roles.core';
+import {
+  expectNoDocumentContent,
+  verificationDetails,
+} from '@/features/admin/verification/server/branch-manager-redaction.test-fixtures';
 
 const hoisted = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -79,6 +90,45 @@ describe('GET /api/verification/[id]', () => {
     await expectJson(response, 401, { error: 'Unauthorized' });
     expect(hoisted.getVerificationRequestDetails).not.toHaveBeenCalled();
   });
+
+  it('redacts all document content from the BM details JSON, including timeline IDs and names', async () => {
+    hoisted.getSession.mockResolvedValue(session({ role: ROLE_BRANCH_MANAGER }));
+    hoisted.getVerificationRequestDetails.mockResolvedValue(verificationDetails);
+
+    const response = await GET(verificationRequest(), routeParams());
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      id: 'attempt-1',
+      documentId: null,
+      documentPath: null,
+      documents: [],
+    });
+    expect(payload.timeline).toHaveLength(3);
+    expect(payload.timeline[0]).toMatchObject({ type: 'document_upload', title: 'Proof Uploaded' });
+    expect(payload.timeline[0]).not.toHaveProperty('description');
+    expect(payload.timeline[2]).not.toHaveProperty('description');
+    expect(payload.timeline[1].description).toBe('Please confirm payment');
+    expectNoDocumentContent(payload);
+    expect(hoisted.getVerificationRequestDetails.mock.calls[0][0].userRole).toBe(
+      ROLE_BRANCH_MANAGER
+    );
+    expect(verificationDetails.documents).toHaveLength(2);
+  });
+
+  it.each([ROLE_STAFF, ROLE_ADMIN, ROLE_TENANT_ADMIN, ROLE_SUPER_ADMIN])(
+    'preserves the complete %s details JSON',
+    async role => {
+      hoisted.getSession.mockResolvedValue(session({ role }));
+      hoisted.getVerificationRequestDetails.mockResolvedValue(verificationDetails);
+
+      const response = await GET(verificationRequest(), routeParams());
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe(JSON.stringify(verificationDetails));
+    }
+  );
 
   it('returns 401 when the session has no user payload', async () => {
     hoisted.getSession.mockResolvedValue({});
