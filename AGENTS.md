@@ -44,9 +44,10 @@ Use this file for repository-wide instructions. For reviews also follow `code_re
   routine promotion, qualification, closeout, status-only or bookkeeping-only PRs.
 - Keep one implementation owner. Give helpers disjoint ownership; preserve unrelated worktree
   changes and do not revert other contributors.
-- Use focused tests while editing. Runtime, security, CI/trust and other meaningful behavior changes
-  require `pnpm pr:verify` and `pnpm security:guard` before delivery. `pr:verify` includes E2E gate
-  evidence for the same source/configuration/environment; do not rerun it separately by habit.
+- Use focused tests while editing. HIGH-risk runtime, security, CI/trust and other meaningful
+  behavior changes require `pnpm pr:verify` and `pnpm security:guard` before delivery. `pr:verify`
+  includes E2E gate evidence for the same source/configuration/environment; do not rerun it
+  separately by habit. Risk tiers follow "Risk-Tiered Delivery Evidence" below.
 - Instruction-only changes run the current plan/contracts relevant to their surface. Protected
   hosted checks remain separate trust evidence.
 - `pnpm plan:audit` validates active authority. Retired manifest/projection/Lean validation and the
@@ -59,6 +60,44 @@ Use this file for repository-wide instructions. For reviews also follow `code_re
   annotations. Consolidate accepted corrections before one expensive final verification lane.
 - Passing checks authorize only the requested scope. Keep prepared, tested, merged, deployed and
   user-validated states distinct. Never auto-merge or deploy without explicit authority.
+
+## Risk-Tiered Delivery Evidence
+
+Owner-approved 2026-11-10. Phase one is enforced manually by the integration owner and the
+independent reviewer; missing evidence denies the exemption.
+
+- Consolidate corrections, focused checks and reviews before freezing final head H, its
+  configuration and environment.
+- Classify the complete base-to-H diff using trusted-base policy, including deletions and both
+  rename paths. HIGH and ambiguity take precedence.
+- LOW/MEDIUM candidates are `apps/web/src/components/**` client files with no new
+  server-action/database/auth dependencies and unchanged sensitive contracts; ordinary
+  locale-catalog edits; additive colocated unit tests; assertion-additive E2E specs; and
+  non-governance documentation.
+- Changes to auth, tenancy, routing, billing, consent/legal meaning, privacy, lifecycle or mutation
+  semantics are HIGH regardless of path or unchanged imports.
+- All unlisted paths, `packages/**`, `scripts/**`, `.github/**`, actions/APIs, configs,
+  manifests/locks, migrations, `apps/web/src/proxy.ts` and shared test infrastructure are HIGH.
+  Weakened tests never qualify.
+- A LOW/MEDIUM PR may omit the local lane only when all of these hold:
+  - Required checks are SUCCESS, and the CI unit/static/heavy-audit/RLS jobs, PR E2E Runner and
+    Pilot Gate Runner obligations actually executed.
+  - H, base B, tested merge M and the evidence run/attempt identities are recorded. B must equal
+    current main at merge; otherwise fresh evidence is obtained for a merge containing the new
+    main tip.
+  - The H-bound raw pr-gate/pr-smoke reports, summary hashes and setup logs show zero
+    errors/unexpected/flaky/retry-recovered results, the required coverage and only approved
+    skips.
+- Any missing, skipped, stale or uncertain required evidence, or any flake, denies the exemption.
+  Required hosted checks remain mandatory.
+- Every tier requires Sonar zero new issues, Astra YES on H including its tier classification, and
+  no unresolved Codex findings.
+- HIGH and fallback candidates run full `pnpm pr:verify` plus `pnpm security:guard` LAST on
+  frozen H, after hosted green and Astra YES. Blockers invalidate the affected evidence.
+- Instruction-only work runs the applicable plan/contracts and protected checks without a local
+  runtime lane, and still receives HIGH-level independent review when it changes delivery policy.
+- Enforcement automation in the delivery gate is a separate owner-approved CI change. Explicit
+  merge and deployment authorization is unchanged.
 
 ## Model And Review Routing
 
