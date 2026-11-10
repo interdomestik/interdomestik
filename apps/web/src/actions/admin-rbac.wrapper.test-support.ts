@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   mockRevokeUserRoleCore: vi.fn(),
   mockRevalidatePath: vi.fn(),
   mockDelegateSuperAdminTenant: vi.fn(),
+  mockLogAuditEvent: vi.fn(),
 }));
 
 vi.mock('@interdomestik/domain-users/admin/rbac', () => ({
@@ -30,7 +31,7 @@ vi.mock('@interdomestik/database', async importOriginal => ({
 }));
 vi.mock('./admin-users/context');
 vi.mock('@/lib/audit', () => ({
-  logAuditEvent: vi.fn(),
+  logAuditEvent: mocks.mockLogAuditEvent,
 }));
 vi.mock('@/lib/auth', () => ({
   auth: {
@@ -60,4 +61,5 @@ export const {
   mockRevokeUserRoleCore,
   mockRevalidatePath,
   mockDelegateSuperAdminTenant,
+  mockLogAuditEvent,
 } = mocks;

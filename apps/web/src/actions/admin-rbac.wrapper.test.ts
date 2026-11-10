@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { logAuditEvent } from '@/lib/audit';
 import {
   mockCreateGuardedBranchCore,
   mockDeleteBranchCore,
   mockListBranchesCore,
   mockListUserRolesCore,
+  mockLogAuditEvent,
   mockUpdateGuardedBranchCore,
 } from './admin-rbac.wrapper.test-support';
 import {
@@ -67,7 +67,7 @@ describe('admin-rbac.core', () => {
           name: 'Branch 1',
           code: 'B1',
         }),
-        { logAuditEvent }
+        { logAuditEvent: mockLogAuditEvent }
       );
       expect(result).toEqual(mockResult);
     });
@@ -105,7 +105,7 @@ describe('admin-rbac.core', () => {
           name: 'Updated',
           isActive: true,
         }),
-        { logAuditEvent }
+        { logAuditEvent: mockLogAuditEvent }
       );
       expect(result).toEqual(mockResult);
     });
@@ -126,7 +126,7 @@ describe('admin-rbac.core', () => {
           code: 'KS-A-TMP',
           isActive: true,
         }),
-        { logAuditEvent }
+        { logAuditEvent: mockLogAuditEvent }
       );
       expect(result).toEqual({ success: true });
     });
