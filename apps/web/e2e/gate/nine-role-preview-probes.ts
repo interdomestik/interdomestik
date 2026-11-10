@@ -1,4 +1,4 @@
-import { expect, type Page, type TestInfo } from '@playwright/test';
+import { expect, type Page, type Request, type TestInfo } from '@playwright/test';
 import { getProjectUrlInfo } from '../fixtures/auth.project';
 import { gotoApp } from '../utils/navigation';
 import { withContentPayloadCapture, type ContentPayloadCapture } from './content-payload-capture';
@@ -54,23 +54,42 @@ async function expectVerificationPage(
   fixture: PreviewFixture
 ) {
   if (access.verification !== 'redacted') return;
-  const matches = (url: URL) =>
-    url.href.includes('/admin/leads') || url.href.includes('/api/verification/');
+  const matches = (url: URL, request: Request) =>
+    (request.resourceType() === 'document' && url.pathname.endsWith('/admin/leads')) ||
+    (request.resourceType() === 'fetch' &&
+      request.method() === 'GET' &&
+      url.pathname === `/api/verification/${fixture.attemptId}`);
   await withContentPayloadCapture(
     page,
     { matches, sentinels: fixture.verificationSentinels },
     async capture => {
-      await gotoApp(
-        page,
-        `/admin/leads?view=history&query=${encodeURIComponent(fixture.email)}&selected=${fixture.attemptId}`,
-        info,
-        { marker: 'verification-ops-page' }
-      );
+      // The drawer's finite JSON fetch must finish before capture cleanup can leave the page.
+      const [details] = await Promise.all([
+        page.waitForResponse(
+          response =>
+            matches(new URL(response.url()), response.request()) &&
+            response.request().resourceType() === 'fetch'
+        ),
+        gotoApp(
+          page,
+          `/admin/leads?view=history&query=${encodeURIComponent(fixture.email)}&selected=${fixture.attemptId}`,
+          info,
+          { marker: 'verification-ops-page' }
+        ),
+      ]);
+      expect(details.status()).toBe(200);
+      await capture.settled();
       expect(capture.checkedPayloadCount, 'checked a visit payload').toBeGreaterThan(0);
       await expect(page.getByTestId('cash-verification-row').filter({ visible: true })).toHaveCount(
         1
       );
       await expect(page.getByTestId('ops-drawer').filter({ visible: true })).toBeVisible();
+      await expect(
+        page
+          .getByTestId('ops-drawer')
+          .filter({ visible: true })
+          .getByText(fixture.email, { exact: true })
+      ).toBeVisible();
       await expectHiddenSentinels(page, fixture.verificationSentinels);
     }
   );
@@ -84,13 +103,22 @@ async function expectHandoffBoundaries(
 ) {
   const search = access.handoffs === 'content' ? fixture.handoffSentinels[0] : fixture.handoffId;
   const path = `/staff/support-handoffs?status=all&search=${encodeURIComponent(search)}`;
-  const matches = (url: URL) => url.href.includes('/staff/support-handoffs');
+  // Capture documents and finite detail actions. Refresh Flight GET capture is a tracked follow-up;
+  // the router may abort those streams after applying them, so check their resulting DOM below.
+  const matches = (url: URL, request: Request) =>
+    url.pathname.endsWith('/staff/support-handoffs') &&
+    (request.resourceType() === 'document' ||
+      (request.resourceType() === 'fetch' &&
+        request.method() === 'POST' &&
+        Boolean(request.headers()['next-action'])));
   // Content readers must still receive their sentinels; metadata and denied readers must not.
   const sentinels = access.handoffs === 'content' ? [] : fixture.handoffSentinels;
   await withContentPayloadCapture(page, { matches, sentinels }, async capture => {
     const marker = access.handoffs === 'denied' ? 'not-found-page' : 'staff-page-ready';
     await gotoApp(page, path, info, { marker });
+    await capture.settled();
     expect(capture.checkedPayloadCount, 'checked a visit payload').toBeGreaterThan(0);
+    await expectHiddenSentinels(page, sentinels);
     if (access.handoffs === 'denied') {
       await expect(page.getByTestId('staff-support-handoffs-queue')).toHaveCount(0);
       return;
@@ -99,6 +127,7 @@ async function expectHandoffBoundaries(
     await expect(row).toHaveCount(1);
     const toggle = row.getByTestId('staff-support-handoff-detail-toggle');
     await toggle.focus();
+    await capture.settled();
     const beforeDetail = capture.checkedPayloadCount;
     const [detailReply] = await Promise.all([
       page.waitForResponse(
@@ -108,6 +137,7 @@ async function expectHandoffBoundaries(
     ]);
     const actionText = await detailReply.text();
     await expect(row.getByTestId('staff-support-handoff-detail-panel')).toBeVisible();
+    await capture.settled();
     expect(capture.checkedPayloadCount, 'checked a new detail payload').toBeGreaterThan(
       beforeDetail
     );
@@ -143,9 +173,15 @@ async function expectHandoffBoundaries(
       const actionId = detailReply.request().headers()['next-action'];
       // The fixture owns one other-branch and one foreign-tenant handoff. Keep page navigation ordered.
       expect(fixture.deniedHandoffIds).toHaveLength(2);
-      await expectDeniedHandoff(page, info, actionId, fixture.deniedHandoffIds[0], capture);
-      await expectDeniedHandoff(page, info, actionId, fixture.deniedHandoffIds[1], capture);
-      await expectHandoffContentSearchEmpty(page, fixture.contentSearch, capture);
+      for (const id of fixture.deniedHandoffIds) {
+        await expectDeniedHandoff(page, info, actionId, id, capture, fixture.handoffSentinels);
+      }
+      await expectHandoffContentSearchEmpty(
+        page,
+        fixture.contentSearch,
+        capture,
+        fixture.handoffSentinels
+      );
     } else {
       await expect(row).toContainText(fixture.handoffSentinels[0]);
       await Promise.all(
@@ -160,7 +196,8 @@ async function expectDeniedHandoff(
   info: TestInfo,
   actionId: string,
   id: string,
-  capture: ContentPayloadCapture
+  capture: ContentPayloadCapture,
+  sentinels: readonly string[]
 ) {
   const { origin } = getProjectUrlInfo(info, null);
   // Directly probe both queue and detail with each foreign scope; own-ID filtering proves neither.
@@ -178,15 +215,18 @@ async function expectDeniedHandoff(
     kind: 'metadata',
     result: { kind: 'ok', data: [] },
   });
+  await capture.settled();
   const beforeVisit = capture.checkedPayloadCount;
   await gotoApp(page, `/staff/support-handoffs?status=all&search=${encodeURIComponent(id)}`, info, {
     marker: 'staff-page-ready',
   });
   await expect(page.getByTestId('staff-support-handoffs-empty')).toBeVisible();
   await expect(page.getByTestId('staff-support-handoffs-row')).toHaveCount(0);
+  await capture.settled();
   expect(capture.checkedPayloadCount, 'checked a new denied-scope visit payload').toBeGreaterThan(
     beforeVisit
   );
+  await expectHiddenSentinels(page, sentinels);
 }
 
 async function expectHiddenSentinels(page: Page, sentinels: readonly string[]) {
