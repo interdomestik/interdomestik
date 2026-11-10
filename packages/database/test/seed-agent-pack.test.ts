@@ -1,4 +1,8 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { TEST_CA_PEM } from './seed-tls-ca.fixture';
 import { registerHooks } from 'node:module';
 import test from 'node:test';
 import { compareSync } from 'bcryptjs';
@@ -8,6 +12,9 @@ import { db as fixtureDb, writes } from './seed-agent-pack.fixture';
 test('agent credentials use cached E2E password and reject later environment drift', async t => {
   const strongOverride = ['x'.repeat(18), 'A', '1'].join('');
   const staging = 's'.repeat(20);
+  const directory = mkdtempSync(join(tmpdir(), 'seed-agent-tls-'));
+  const caPath = join(directory, 'ca.pem');
+  writeFileSync(caPath, TEST_CA_PEM);
   const previousEnv = process.env;
   const testEnv = { NODE_ENV: 'test' as const, NODE_TEST_CONTEXT: previousEnv.NODE_TEST_CONTEXT };
   const clients = globalThis as typeof globalThis & {
@@ -20,6 +27,7 @@ test('agent credentials use cached E2E password and reject later environment dri
     ...testEnv,
     DATABASE_URL: `postgres://fixture@db.${staging}.supabase.co/db`,
     SEED_TARGET_CONFIRM: `plan070:${staging}`,
+    SEED_TARGET_SSL_ROOT_CERT: caPath,
     E2E_PASSWORD: strongOverride,
   };
   const hooks = registerHooks({
@@ -54,18 +62,8 @@ test('agent credentials use cached E2E password and reject later environment dri
       assert.ok(compareSync(E2E_PASSWORD, row.password));
     }
 
-    // Model the global clients cached after the successful remote preflight.
-    const remoteClient = {
-      ...fixtureDb,
-      options: {
-        host: [`db.${staging}.supabase.co`],
-        port: [5432],
-        user: 'fixture',
-        database: 'db',
-      },
-    };
-    clients.queryClientAdmin = remoteClient;
-    clients.queryClientRls = remoteClient;
+    // Repeated seed steps retain the verified clients installed by the guarded import.
+    const remoteClient = clients.queryClientAdmin;
     await seedAgentPack(config);
     writes.length = 0;
     process.env.E2E_PASSWORD = strongOverride + '!';
@@ -116,6 +114,9 @@ test('agent credentials use cached E2E password and reject later environment dri
     });
     assert.equal(writes.length, 0);
   } finally {
+    const { closeSeedTargetClients } = await import('../src/seed-target-guard');
+    await closeSeedTargetClients();
+    rmSync(directory, { recursive: true, force: true });
     if (previousAdmin) Object.defineProperty(clients, 'queryClientAdmin', previousAdmin);
     else delete clients.queryClientAdmin;
     if (previousRls) Object.defineProperty(clients, 'queryClientRls', previousRls);

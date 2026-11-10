@@ -1,3 +1,4 @@
+import { closePilotDatabase } from './import-pilot-database';
 import {
   insertScenarioClaim,
   loadPilotScenarioContext,
@@ -130,7 +131,9 @@ async function main() {
 
 try {
   await main();
+  await closePilotDatabase();
 } catch (error) {
   console.error(error);
+  await closePilotDatabase();
   process.exit(1);
 }
