@@ -143,7 +143,8 @@ test.describe('Member pages reflow inside the role shell', () => {
     for (const locale of ['sq', 'de']) {
       const path = `${routes.member(locale)}/membership/success`;
       await gotoApp(page, path, info, { marker: 'success-page-ready' });
-      const success = page.getByTestId('success-page-ready');
+      // Scope to the mounted shell: streamed SSR chunks can briefly hold a hidden copy outside it.
+      const success = memberContent(page).getByTestId('success-page-ready');
       await expect(success.getByTestId('success-account-neutral')).toBeVisible();
       const recheck = success.locator('a[aria-describedby="membership-status-helper"]');
       await expect(recheck).toHaveCount(1);
