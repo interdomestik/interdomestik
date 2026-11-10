@@ -30,8 +30,14 @@ wherever that root command runs.
 The `RLS Integration Test` step in `.github/workflows/ci.yml` already calls
 `pnpm db:rls:test` after migration. Its job-local `DATABASE_URL` targets
 `127.0.0.1:5432/interdomestik_test`, which satisfies the runner's loopback and
-synthetic-database guards; no workflow edit is needed. `pnpm pr:verify` and Z620's
-`db-rls-required` gate call `pnpm db:rls:test:required`, which sets the integration
-and coverage requirements and delegates to the same root command through
-`scripts/run-with-default-db-url.mjs`. The workflow call and root command chain are
-asserted by `scripts/ci/ci-audit-rls-workflow-contracts.mjs`.
+synthetic-database guards; no workflow edit is needed. `pnpm pr:verify` calls
+`pnpm db:rls:test:required`, which sets the integration and coverage requirements and
+delegates to the same root command through `scripts/run-with-default-db-url.mjs`; its
+default `127.0.0.1:54322/postgres` and the isolated `127.0.0.1:55438/interdomestik_test`
+lane both satisfy the guard. The workflow call and root command chain are asserted by
+`scripts/ci/ci-audit-rls-workflow-contracts.mjs`.
+
+Known limitation: Z620's `db-rls-required` gate runs the same command against a
+task-owned `interdomestik_ci_*` database. This runner, like the existing communications
+RLS suite, refuses that name, so Z620 cannot pass this gate until its lane and these
+guards are reconciled. Z620 is not gate evidence; CI and the Mac `pr:verify` lane are.
