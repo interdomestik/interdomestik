@@ -7,9 +7,12 @@ import {
   fixture,
   homeTenantId,
   ids,
+  otherTenantId,
   registerMessageRlsFixture,
   session,
 } from './tenant-context.integration-fixture';
+import { asActor } from './message-rls-actors.test-support';
+import { expectMessageContextCleared, messageEffects } from './message-rls-effects.test-support';
 
 const suite = process.env.MESSAGE_RLS_INTEGRATION === '1' ? describe : describe.skip;
 const OVERLAPPED = 'Synthetic overlapped reply';
@@ -127,11 +130,13 @@ suite('keyed message send on a real NOBYPASSRLS connection', () => {
     }
   }, 15_000);
 
-  it('rolls back on injected failure after the actual insert and permits a clean same-key retry', async () => {
+  it('rolls back a failing SQL write and permits a clean same-key retry', async () => {
     const clientMessageId = randomUUID();
     const audit = vi.fn();
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
     let insertObserved = false;
+    let failureCode: string | undefined;
+    const before = await messageEffects();
     const store = storeMessage.storeClaimMessage;
     const failedStore = vi
       .spyOn(storeMessage, 'storeClaimMessage')
@@ -145,7 +150,23 @@ suite('keyed message send on a real NOBYPASSRLS connection', () => {
           .where(eq(claimMessages.id, keyedMessageId(homeTenantId, ids.member, clientMessageId)));
         expect(inserted).toHaveLength(1);
         insertObserved = true;
-        throw new Error('Injected failure after actual message insert');
+        // A second actual INSERT with the same primary key aborts the tenant transaction.
+        const failed = await tx
+          .insert(claimMessages)
+          .values({
+            id: inserted[0].id,
+            tenantId: homeTenantId,
+            claimId: ids.claim,
+            senderId: ids.member,
+            content: 'Duplicate SQL write',
+            isInternal: false,
+          })
+          .then(
+            () => null,
+            (error: unknown) => error as { code?: string; cause?: { code?: string } }
+          );
+        failureCode = failed?.cause?.code ?? failed?.code;
+        throw failed;
       });
     try {
       expect(await memberSend(OVERLAPPED, clientMessageId, audit)).toEqual({
@@ -155,8 +176,18 @@ suite('keyed message send on a real NOBYPASSRLS connection', () => {
       expect(logged).toHaveBeenCalled();
       expect(failedStore).toHaveBeenCalledTimes(1);
       expect(insertObserved).toBe(true);
+      expect(failureCode).toBe('23505');
       expect(await storedWithKey(clientMessageId)).toEqual([]);
       expect(audit).not.toHaveBeenCalled();
+      expect(await messageEffects()).toEqual(before);
+      await expectMessageContextCleared();
+      expect(
+        await fixture.get({
+          ...asActor(ids.member, 'member', otherTenantId),
+          claimId: ids.claim,
+        })
+      ).toEqual({ success: false, error: 'Claim not found' });
+      await expectMessageContextCleared();
     } finally {
       failedStore.mockRestore();
       logged.mockRestore();
@@ -167,6 +198,7 @@ suite('keyed message send on a real NOBYPASSRLS connection', () => {
     });
     expect(await storedWithKey(clientMessageId)).toHaveLength(1);
     expect(audit).toHaveBeenCalledTimes(1);
+    await expectMessageContextCleared();
   });
 
   it('replays the committed row when a same-key send waited on it', async () => {

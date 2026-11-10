@@ -26,6 +26,7 @@
     "db:push:local": "node scripts/database-command.mjs push-local",
     "db:rls:test": "pnpm --filter @interdomestik/database test:rls && pnpm --filter @interdomestik/domain-communications test:rls",
     "db:rls:test:required": "REQUIRE_RLS_INTEGRATION=1 REQUIRE_RLS_COVERAGE=1 node scripts/run-with-default-db-url.mjs pnpm db:rls:test",
+    "db:rls:test:staff-detail": "node scripts/run-staff-detail-rls.mjs",
     "db:studio": "pnpm --filter @interdomestik/database db:studio",
     "seed:e2e": "pnpm --filter @interdomestik/database seed:e2e",
     "seed:e2e:local": "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres pnpm seed:e2e",
