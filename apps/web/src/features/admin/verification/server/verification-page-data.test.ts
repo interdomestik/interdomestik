@@ -55,7 +55,9 @@ describe('D1 verification page-data boundary', () => {
       view: 'history',
       query: 'Test',
       viewerRole: ROLE_BRANCH_MANAGER,
-      leads: [{ ...verificationRequest, documentId: null, documentPath: null }],
+      leads: [
+        { ...verificationRequest, documentId: null, documentPath: null, verificationNote: null },
+      ],
     });
     expectNoDocumentContent(result);
     expect(mocks.getVerificationRequestsAction).toHaveBeenCalledWith({

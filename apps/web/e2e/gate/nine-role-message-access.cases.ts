@@ -1,4 +1,4 @@
-import { E2E_CASE_FIXTURES, type E2EUserKey } from '@interdomestik/database';
+import { E2E_CASE_FIXTURES, E2E_USERS, type E2EUserKey } from '@interdomestik/database';
 
 export type MessageCaseKey = keyof typeof E2E_CASE_FIXTURES;
 export type MessageActorCases = {
@@ -48,3 +48,32 @@ export const MK_MESSAGE_CASES: readonly MessageActorCases[] = [
   { actor: 'MK_MEMBER', allowed: ['MK_FOREIGN_TENANT'], internal: false },
   { actor: 'AUDITOR', allowed: [], internal: false },
 ];
+
+export type PreviewAccess = {
+  handoffs: 'metadata' | 'content' | 'denied';
+  verification: 'redacted' | 'content' | 'denied';
+  verificationStatus: 200 | 403 | 404;
+};
+const PREVIEW_ACCESS: Record<string, Omit<PreviewAccess, 'verificationStatus'>> = {
+  branch_manager: { handoffs: 'metadata', verification: 'redacted' },
+  staff: { handoffs: 'content', verification: 'content' },
+  tenant_admin: { handoffs: 'denied', verification: 'content' },
+  admin: { handoffs: 'denied', verification: 'content' },
+  super_admin: { handoffs: 'denied', verification: 'content' },
+  member: { handoffs: 'denied', verification: 'denied' },
+  agent: { handoffs: 'denied', verification: 'denied' },
+  global_support: { handoffs: 'denied', verification: 'denied' },
+  auditor: { handoffs: 'denied', verification: 'denied' },
+};
+export function previewAccessFor(actor: E2EUserKey): PreviewAccess {
+  const access = PREVIEW_ACCESS[E2E_USERS[actor].dbRole];
+  if (!access) throw new Error('Missing nine-role preview case');
+  // Branchless staff still retain their message-reader relationships above, but neither
+  // preview surface admits them: verification resolves an empty scope and handoffs deny.
+  const user = E2E_USERS[actor];
+  const branchId = 'branchId' in user ? user.branchId : null;
+  if ((user.dbRole === 'staff' || user.dbRole === 'branch_manager') && !branchId) {
+    return { handoffs: 'denied', verification: 'denied', verificationStatus: 404 };
+  }
+  return { ...access, verificationStatus: access.verification === 'denied' ? 403 : 200 };
+}

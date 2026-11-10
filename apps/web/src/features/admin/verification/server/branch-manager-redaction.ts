@@ -9,7 +9,12 @@ export function redactVerificationRequestsForRole(
 ): CashVerificationRequestDTO[] {
   if (!deniesClaimDocumentContent(role)) return requests;
 
-  return requests.map(request => ({ ...request, documentId: null, documentPath: null }));
+  return requests.map(request => ({
+    ...request,
+    documentId: null,
+    documentPath: null,
+    verificationNote: null,
+  }));
 }
 
 export function redactVerificationDetailsForRole(
@@ -23,15 +28,12 @@ export function redactVerificationDetailsForRole(
     documentId: null,
     documentPath: null,
     documents: [],
-    timeline: details.timeline.map((event, index) =>
-      event.type === 'document_upload'
-        ? {
-            ...event,
-            // Raw event IDs embed document IDs. Preserve only a neutral list key.
-            id: `document-upload-${index}`,
-            description: undefined,
-          }
-        : event
-    ),
+    verificationNote: null,
+    timeline: details.timeline.map((event, index) => ({
+      ...event,
+      // Raw upload IDs embed document IDs. Free-text descriptions are never BM metadata.
+      id: event.type === 'document_upload' ? `document-upload-${index}` : event.id,
+      description: undefined,
+    })),
   };
 }

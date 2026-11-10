@@ -24,6 +24,72 @@
       "statusChanged": "Status Changed",
       "newMessage": "New Message",
       "slaWarning": "SLA Warning"
+    },
+    "branchManager": {
+      "claimSubmitted": {
+        "title": "Claim submitted",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "claimAssigned": {
+        "title": "Claim assigned",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "statusChanged": {
+        "title": "Claim status updated",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "claimPackGenerated": {
+        "title": "Claim pack generated",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "claimPackUpgraded": {
+        "title": "Claim pack updated",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "documentRequested": {
+        "title": "Documents requested",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "triageComplete": {
+        "title": "Triage completed",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "escalationAccepted": {
+        "title": "Escalation accepted",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "escalationDeclined": {
+        "title": "Escalation declined",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "newMessage": {
+        "title": "New message",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "slaWarning": {
+        "title": "SLA warning",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "slaBreached": {
+        "title": "SLA overdue",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "membershipRenewal": {
+        "title": "Membership renewal",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "paymentVerificationUpdate": {
+        "title": "Verification updated",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "supportHandoffPublicResponse": {
+        "title": "Support request updated",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      },
+      "unknown": {
+        "title": "Notification",
+        "content": "An update is available. Message and note content is restricted for branch managers."
+      }
     }
   }
 }

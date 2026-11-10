@@ -5,6 +5,9 @@ import {
   E2E_USERS,
 } from '@interdomestik/database';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { withPreviewSentinels } from './nine-role-preview.fixture';
+import { expectPreviewBoundaries } from './nine-role-preview-probes';
+import { previewAccessFor } from './nine-role-message-access.cases';
 import { randomUUID } from 'node:crypto';
 import { getProjectUrlInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
@@ -181,6 +184,9 @@ function matrix(
           await page.goto('about:blank');
           await signInAs(page, info, row.actor, `10.0.73.${index + 1}`);
           await expectHistory(page, info, ids, row);
+          await withPreviewSentinels(key, fixture =>
+            expectPreviewBoundaries(page, info, previewAccessFor(row.actor), fixture)
+          );
           if (E2E_USERS[row.actor].dbRole === 'branch_manager') {
             if (!row.managerProbe) throw new Error('Missing manager probe scopes');
             await withClaimNoteSentinels(row.managerProbe, async fixtures => {
@@ -197,6 +203,20 @@ function matrix(
 test.describe('nine-role message access matrix', () => {
   matrix(isKsGateProject, KS_MESSAGE_CASES, 'KS_ANCHOR');
   matrix(isMkGateProject, MK_MESSAGE_CASES, 'MK_FOREIGN_TENANT');
+  test('preview admission distinguishes branchless staff from assigned staff', () => {
+    expect(previewAccessFor('KS_STAFF_UNASSIGNED')).toEqual({
+      handoffs: 'denied',
+      verification: 'denied',
+      verificationStatus: 404,
+    });
+    for (const actor of ['KS_STAFF', 'MK_STAFF'] as const) {
+      expect(previewAccessFor(actor)).toEqual({
+        handoffs: 'content',
+        verification: 'content',
+        verificationStatus: 200,
+      });
+    }
+  });
   test('covers all nine roles and treats KS_ADMIN as tenant_admin with full content', () => {
     expect(
       new Set([...KS_MESSAGE_CASES, ...MK_MESSAGE_CASES].map(row => E2E_USERS[row.actor].dbRole))

@@ -24,6 +24,72 @@
       "statusChanged": "Status geändert",
       "newMessage": "Neue Nachricht",
       "slaWarning": "SLA-Warnung"
+    },
+    "branchManager": {
+      "claimSubmitted": {
+        "title": "Anspruch eingereicht",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "claimAssigned": {
+        "title": "Anspruch zugewiesen",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "statusChanged": {
+        "title": "Anspruchsstatus aktualisiert",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "claimPackGenerated": {
+        "title": "Anspruchsunterlagen erstellt",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "claimPackUpgraded": {
+        "title": "Anspruchsunterlagen aktualisiert",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "documentRequested": {
+        "title": "Dokumente angefordert",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "triageComplete": {
+        "title": "Erstprüfung abgeschlossen",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "escalationAccepted": {
+        "title": "Eskalation angenommen",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "escalationDeclined": {
+        "title": "Eskalation abgelehnt",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "newMessage": {
+        "title": "Neue Nachricht",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "slaWarning": {
+        "title": "SLA-Warnung",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "slaBreached": {
+        "title": "SLA-Frist überschritten",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "membershipRenewal": {
+        "title": "Mitgliedschaft verlängern",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "paymentVerificationUpdate": {
+        "title": "Verifizierung aktualisiert",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "supportHandoffPublicResponse": {
+        "title": "Supportanfrage aktualisiert",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      },
+      "unknown": {
+        "title": "Benachrichtigung",
+        "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
+      }
     }
   }
 }

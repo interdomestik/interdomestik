@@ -56,7 +56,24 @@
       "failed": "Pregled nije mogao da se učita. Pokušajte ponovo.",
       "retry": "Osveži pregled",
       "loading": "Osvežavanje…",
-      "history": "Istorija statusa"
+      "history": "Istorija statusa",
+      "handoffs": {
+        "title": "Podaci o predaji",
+        "restriction": "Sadržaj poruka i beležaka je ograničen. Prikazuju se samo podaci o predaji.",
+        "search": "Pretražite ID predaje, zaduženu osobu ili filijalu",
+        "status": "Status",
+        "branch": "Filijala",
+        "assignee": "Zadužena osoba",
+        "createdAt": "Kreirano",
+        "updatedAt": "Ažurirano",
+        "acceptedAt": "Prihvaćeno",
+        "reassignedAt": "Preraspoređeno",
+        "closedAt": "Zatvoreno",
+        "publicResponseAt": "Poslednji odgovor osoblja",
+        "publicResponseCount": "Izmene odgovora osoblja",
+        "memberReplyAt": "Poslednji odgovor člana",
+        "count": "Prikazano predaja: {count}"
+      }
     }
   }
 }
