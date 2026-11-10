@@ -104,7 +104,7 @@ test('remote refuses cached fallback, weak values and environment drift', () => 
 
 test('only loopback and confirmed ci-postgres retain default, missing and weak overrides', () => {
   for (const host of ['localhost', '127.0.0.1', 'ci-postgres']) {
-    const expected = host === 'ci-postgres' ? 'confirmed-non-local' : 'local';
+    const expected = host === 'ci-postgres' ? 'confirmed-ci' : 'local';
     for (const E2E_PASSWORD of [DEFAULT_E2E_PASSWORD, undefined, 'x'.repeat(1)]) {
       resetSeedTargetBindingForTests();
       assert.equal(
@@ -128,7 +128,7 @@ test('ci-postgres exemption requires its exact confirmation and cannot be borrow
       DATABASE_URL: 'postgres://fixture@ci-postgres/db',
       SEED_TARGET_CONFIRM: 'plan070:ci-postgres',
     }),
-    'confirmed-non-local'
+    'confirmed-ci'
   );
   assert.throws(
     () =>
@@ -256,9 +256,12 @@ test('non-ASCII fallback hosts, empty RLS URLs and startup-only usernames are re
 test('full and workload modes run only on local targets', () => {
   for (const mode of ['full', 'workload']) {
     assert.doesNotThrow(() => assertSeedModeAllowed(mode, 'local'));
-    assert.throws(() => assertSeedModeAllowed(mode, 'confirmed-non-local'), /non-local-mode$/);
+    for (const classification of ['confirmed-ci', 'confirmed-non-local'] as const) {
+      assert.throws(() => assertSeedModeAllowed(mode, classification), /non-local-mode$/);
+    }
   }
   for (const mode of ['e2e', 'golden']) {
+    assert.doesNotThrow(() => assertSeedModeAllowed(mode, 'confirmed-ci'));
     assert.doesNotThrow(() => assertSeedModeAllowed(mode, 'confirmed-non-local'));
   }
 });

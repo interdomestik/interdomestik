@@ -1,3 +1,4 @@
+import { closePilotDatabase } from './import-pilot-database';
 import { and, eq } from 'drizzle-orm';
 
 import {
@@ -108,6 +109,7 @@ async function main() {
   );
   if (crossTenantClaims.length > 0) {
     console.log('❌ BOUNDARY FAIL: Cross-tenant rows are visible and require investigation.');
+    await closePilotDatabase();
     process.exit(1);
   }
   console.log('✅ BOUNDARY PASS: No cross-tenant rows were visible in this spot-check.');
@@ -130,6 +132,7 @@ async function main() {
     );
   } else {
     console.log('❌ BOUNDARY FAIL: Internal notes filter differential not observed.');
+    await closePilotDatabase();
     process.exit(1);
   }
 
@@ -141,7 +144,9 @@ async function main() {
 
 try {
   await main();
+  await closePilotDatabase();
 } catch (error) {
   console.error(error);
+  await closePilotDatabase();
   process.exit(1);
 }

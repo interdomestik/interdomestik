@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { importPilotDatabase } from './import-pilot-database';
+import { closePilotDatabase, importPilotDatabase } from './import-pilot-database';
 
 async function main() {
   const {
@@ -190,7 +190,9 @@ async function main() {
 
 try {
   await main();
+  await closePilotDatabase();
 } catch (err) {
   console.error('[Seeder Run3] Error:', err);
+  await closePilotDatabase();
   process.exit(1);
 }
