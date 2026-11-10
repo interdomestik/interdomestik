@@ -71,6 +71,8 @@ const INVENTORY = {
     'packages/database/src/seed-assert-cash.ts',
     'packages/database/src/seed-assert-lifecycle.ts',
     'packages/database/src/seed-utils/cleanup.ts',
+    // Operator audit: reads only subscription ids and branch references, never coverage or status.
+    'packages/database/src/scripts/pilot-branch-report.ts',
   ],
   'retired-none': [
     `${WEB}actions/subscription.core.ts`,

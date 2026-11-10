@@ -1,12 +1,13 @@
 import { and, claims, eq } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { isNull, or } from 'drizzle-orm';
+import { isNull, or, sql } from 'drizzle-orm';
 
 import { claimLifecycleStatusNotIn } from '../claims/lifecycle-read-sql';
 import type { ClaimsSession } from '../claims/types';
 
 type StaffClaimScopeArgs = {
+  role?: string;
   branchId?: string | null;
   claimId: string;
   tenantId: string;
@@ -22,6 +23,7 @@ export const STAFF_SCOPE_ACCESS_DENIED_ERROR = 'Claim not found or access denied
  */
 export function buildStaffClaimReadScope(args: Omit<StaffClaimScopeArgs, 'tenantId'>) {
   const submitted = claimLifecycleStatusNotIn(['draft']);
+  if (args.role === 'branch_manager' && !args.branchId?.trim()) return sql`false`;
   if (args.branchId == null) {
     return and(
       eq(claims.id, args.claimId),
@@ -42,6 +44,7 @@ export function resolveScopedStaffClaimAccess(params: {
   session: ClaimsSession;
 }): StaffClaimScopeArgs {
   return {
+    role: params.session.user.role ?? undefined,
     branchId: params.session.user.branchId ?? null,
     claimId: params.claimId,
     tenantId: ensureTenantId(params.session),

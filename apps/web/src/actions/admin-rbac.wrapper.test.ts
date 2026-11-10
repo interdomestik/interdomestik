@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  mockCreateBranchCore,
+  mockCreateGuardedBranchCore,
   mockDeleteBranchCore,
   mockListBranchesCore,
   mockListUserRolesCore,
-  mockUpdateBranchCore,
+  mockLogAuditEvent,
+  mockUpdateGuardedBranchCore,
 } from './admin-rbac.wrapper.test-support';
 import {
   createBranch,
@@ -53,14 +54,12 @@ describe('admin-rbac.core', () => {
   describe('createBranch', () => {
     it('should call domain function with correct params', async () => {
       const params = { name: 'Branch 1', code: 'B1' };
-      const mockResult = { branchId: 'new-id' };
-      mockCreateBranchCore.mockResolvedValue(mockResult);
+      const mockResult = { success: true, data: { branchId: 'new-id' } };
+      mockCreateGuardedBranchCore.mockResolvedValue(mockResult);
 
       const result = await createBranch(params);
 
-      // We only check the first argument (context/input object)
-      // The second argument is usually 'undefined' or not passed explicitly in wrapper calls unless it's for something specific
-      expect(mockCreateBranchCore).toHaveBeenCalledWith(
+      expect(mockCreateGuardedBranchCore).toHaveBeenCalledWith(
         expect.objectContaining({
           session: expect.objectContaining({ user: expect.anything() }),
           // The session producer's tenant capability reaches the domain function.
@@ -68,14 +67,14 @@ describe('admin-rbac.core', () => {
           name: 'Branch 1',
           code: 'B1',
         }),
-        expect.anything()
+        { logAuditEvent: mockLogAuditEvent }
       );
-      expect(result).toEqual({ success: true, data: mockResult });
+      expect(result).toEqual(mockResult);
     });
 
     it('returns domain branch-code conflicts without converting them to internal errors', async () => {
       const params = { name: 'Branch 1', code: 'KS-A' };
-      mockCreateBranchCore.mockResolvedValue({
+      mockCreateGuardedBranchCore.mockResolvedValue({
         error: 'Branch with this code already exists',
       });
 
@@ -93,22 +92,22 @@ describe('admin-rbac.core', () => {
         branchId: MOCK_BRANCH_ID,
         data: { name: 'Updated', isActive: true, code: undefined },
       };
-      const mockResult = { id: MOCK_BRANCH_ID, name: 'Updated' };
-      mockUpdateBranchCore.mockResolvedValue(mockResult);
+      const mockResult = { success: true };
+      mockUpdateGuardedBranchCore.mockResolvedValue(mockResult);
 
       const result = await updateBranch(params);
 
-      expect(mockUpdateBranchCore).toHaveBeenCalledWith(
+      expect(mockUpdateGuardedBranchCore).toHaveBeenCalledWith(
         expect.objectContaining({
           session: expect.objectContaining({ user: expect.anything() }),
           authority: expect.anything(),
           branchId: MOCK_BRANCH_ID,
           name: 'Updated',
           isActive: true,
-          // code might be null or undefined depending on schema, assume matches input
-        })
+        }),
+        { logAuditEvent: mockLogAuditEvent }
       );
-      expect(result).toEqual({ success: true, data: mockResult });
+      expect(result).toEqual(mockResult);
     });
 
     it('accepts seeded branch ids that are not UUIDs', async () => {
@@ -116,17 +115,18 @@ describe('admin-rbac.core', () => {
         branchId: 'ks_branch_a',
         data: { name: 'Updated', isActive: true, code: 'KS-A-TMP' },
       };
-      mockUpdateBranchCore.mockResolvedValue({ success: true });
+      mockUpdateGuardedBranchCore.mockResolvedValue({ success: true });
 
       const result = await updateBranch(params);
 
-      expect(mockUpdateBranchCore).toHaveBeenCalledWith(
+      expect(mockUpdateGuardedBranchCore).toHaveBeenCalledWith(
         expect.objectContaining({
           branchId: 'ks_branch_a',
           name: 'Updated',
           code: 'KS-A-TMP',
           isActive: true,
-        })
+        }),
+        { logAuditEvent: mockLogAuditEvent }
       );
       expect(result).toEqual({ success: true });
     });

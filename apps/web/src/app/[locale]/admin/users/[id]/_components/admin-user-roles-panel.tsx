@@ -77,6 +77,7 @@ export function AdminUserRolesPanel({
   const router = useRouter();
   const params = useParams<{ locale?: string | string[] }>();
   const t = useTranslations('admin.users_page.roles_panel');
+  const tBranches = useTranslations('admin.branches');
   const tCommon = useTranslations('common');
   const hasTenantContext = Boolean(tenantId);
   const locale = Array.isArray(params?.locale) ? params.locale[0] : params?.locale;
@@ -98,7 +99,6 @@ export function AdminUserRolesPanel({
   const requiresBranch = isBranchRequiredRole(effectiveRoleValue);
   const isBranchMissingForRole = requiresBranch && grantBranchId === TENANT_WIDE_BRANCH;
 
-  // Agents and branch managers always belong to one branch, so they get no tenant-wide choice.
   const branchOptions = useMemo(() => {
     if (requiresBranch) return branches;
     return [{ id: TENANT_WIDE_BRANCH, name: t('tenant_wide'), code: null }, ...branches];
@@ -220,13 +220,11 @@ export function AdminUserRolesPanel({
       setPendingRevokeRowId(null);
     }
   };
-
   const handleCreateBranch = async () => {
     if (!tenantId) {
       toast.error(t('toasts.tenant_required'));
       return;
     }
-
     const name = newBranchName.trim();
     if (!name) {
       toast.error(t('toasts.branch_name_required'));
@@ -242,7 +240,9 @@ export function AdminUserRolesPanel({
       });
 
       if ('error' in result) {
-        toast.error(result.error);
+        toast.error(
+          result.code === 'single_branch_limit' ? tBranches('single_branch_limit') : result.error
+        );
         return;
       }
 

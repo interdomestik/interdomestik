@@ -58,7 +58,8 @@ export function CreateBranchDialog() {
 
       if (!result.success) {
         toast.error(t('create_error'), {
-          description: result.error,
+          description:
+            result.code === 'single_branch_limit' ? t('single_branch_limit') : result.error,
         });
         return;
       }

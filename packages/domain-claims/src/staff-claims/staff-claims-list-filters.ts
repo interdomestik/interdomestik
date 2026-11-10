@@ -1,6 +1,6 @@
 import { claims, eq, ilike, inArray, user, type TenantTransaction } from '@interdomestik/database';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-import { isNull, or, type SQL } from 'drizzle-orm';
+import { isNull, or, sql, type SQL } from 'drizzle-orm';
 import { ACTIONABLE_CLAIM_STATUSES } from '../claims/constants';
 import {
   buildDiasporaOriginClaimIdsSubqueryIn,
@@ -46,12 +46,13 @@ export function buildStaffClaimsListConditions(params: {
   if (!reader) throw new Error('The tenant authority grants no staff claim reader');
   const { branchId, role, staffId } = reader;
   const conditions: SQL<unknown>[] = [claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES)];
+  if (role === 'branch_manager' && !branchId?.trim()) conditions.push(sql`false`);
 
   if (branchId != null) {
     conditions.push(eq(claims.branchId, branchId));
   }
 
-  const shouldUseFallback = role !== 'branch_manager' || branchId == null;
+  const shouldUseFallback = role !== 'branch_manager';
 
   if (params.assignment === 'mine') {
     conditions.push(eq(claims.staffId, staffId));

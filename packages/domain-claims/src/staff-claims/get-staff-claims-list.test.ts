@@ -49,7 +49,6 @@ function expectOwnOrUnassignedQueueScope(args: { staffId: string; tenantId: stri
 }
 describe('getStaffClaimsList', () => {
   beforeEach(() => resetStaffClaimsListMocks(mocks));
-
   it('reads nothing when the authority grants no staff claim reader', async () => {
     resolveStaffClaimReader.mockReturnValue(null);
 
@@ -60,7 +59,6 @@ describe('getStaffClaimsList', () => {
     expect(mocks.db.select).not.toHaveBeenCalled();
     expect(mocks.withTenant).not.toHaveBeenCalled();
   });
-
   it('returns branch claims for branch managers', async () => {
     mocks.claimChain.limit.mockResolvedValue([
       {
@@ -102,8 +100,7 @@ describe('getStaffClaimsList', () => {
     expect(result[0].memberNumber).toBe('M-0001');
     expect(result[0].isDiasporaOrigin).toBe(false);
   });
-
-  it('falls back when branch-manager branch is missing', async () => {
+  it('denies the queue when branch-manager branch is missing', async () => {
     mocks.claimChain.limit.mockResolvedValue([]);
 
     await getStaffClaimsList({
@@ -114,9 +111,12 @@ describe('getStaffClaimsList', () => {
       viewerRole: 'branch_manager',
     });
 
-    expectOwnOrUnassignedQueueScope({ staffId: 'staff-1', tenantId: 'tenant-ks' });
+    expect(mocks.claimChain.where).toHaveBeenCalledWith(
+      expect.objectContaining({
+        condition: expect.objectContaining({ conditions: expect.arrayContaining([{ op: 'sql' }]) }),
+      })
+    );
   });
-
   it('applies the diaspora subquery at the query boundary', async () => {
     mocks.db.select
       .mockReset()
