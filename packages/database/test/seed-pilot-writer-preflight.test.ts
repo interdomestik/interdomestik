@@ -6,7 +6,10 @@ import test from 'node:test';
 // isolates cached clients; the probe runs from the repository root.
 const probe = String.raw`
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { TEST_CA_PEM } from './packages/database/test/seed-tls-ca.fixture.ts';
 import { registerHooks, stripTypeScriptTypes } from 'node:module';
 import postgres from 'postgres';
 
@@ -23,10 +26,14 @@ process.env = {
     : 'postgres://fixture@localhost:5432/approved_db',
   ...(mode.startsWith('rls:') ? { REQUIRE_RLS_INTEGRATION: mode.slice(4) } : {}),
 };
+const directory = mkdtempSync(join(tmpdir(), 'pilot-tls-'));
+const caPath = join(directory, 'ca.pem');
+writeFileSync(caPath, TEST_CA_PEM);
 const dotenvEnv = {
   DATABASE_URL: target,
   ...(dotenvPassword ? {
     SEED_TARGET_CONFIRM: 'plan070:remote.example.net',
+    SEED_TARGET_SSL_ROOT_CERT: caPath,
     E2E_PASSWORD: ['x'.repeat(18), 'A', '1'].join(''),
     REQUIRE_RLS_INTEGRATION: '0',
   } : {}),
@@ -34,6 +41,12 @@ const dotenvEnv = {
 const counts = { evaluations: 0, drivers: 0, sockets: 0, reads: 0, writes: 0, dotenv: 0 };
 globalThis.pilotPreflightProbe = counts;
 const opened = [];
+globalThis.pilotTlsDriver = (url, options) => {
+  counts.drivers++;
+  const client = postgres(url, { ...options, socket() { counts.sockets++; throw new Error('Unexpected connection'); } });
+  opened.push(client);
+  return client;
+};
 const databaseSource = [
   'const counts = globalThis.pilotPreflightProbe;',
   'counts.evaluations++;',
@@ -55,11 +68,17 @@ const dotenvUrl = 'data:text/javascript,' + encodeURIComponent(
 const pilot = new URL('./scripts/pilot/' + entry + '.ts', import.meta.url).href;
 const hooks = registerHooks({
   resolve(specifier, context, nextResolve) {
+    if (specifier === 'postgres') return { url: 'pilot:driver', shortCircuit: true };
     if (specifier === 'dotenv') {
       return { url: dotenvUrl, shortCircuit: true };
     }
     // Schema subpaths also initialize database code and must stay behind preflight.
     if (specifier === '@interdomestik/database' || specifier.startsWith('@interdomestik/database/')) {
+      if (dotenvPassword) {
+        assert.equal(globalThis.queryClientAdmin.options.ssl.ca, TEST_CA_PEM);
+        assert.equal(globalThis.queryClientAdmin.options.ssl.rejectUnauthorized, true);
+        return { url: databaseUrl, shortCircuit: true };
+      }
       const approved = process.env.DATABASE_URL;
       if (mode === 'drift') {
         process.env.DATABASE_URL = approved + '?database=unapproved_db&user=other_role';
@@ -78,6 +97,7 @@ const hooks = registerHooks({
     return nextResolve(specifier, context);
   },
   load(url, context, nextLoad) {
+    if (url === 'pilot:driver') return { format: 'module', shortCircuit: true, source: 'export default globalThis.pilotTlsDriver;' };
     // Pilot entries use ESM/top-level await in a package without type: module.
     if (url === pilot) {
       return {
@@ -104,6 +124,9 @@ try {
     if (error.message !== 'Intercepted exit') refusal = error.message;
   }
 } finally {
+  const { closeSeedTargetClients } = await import('./packages/database/src/seed-target-guard.ts');
+  await closeSeedTargetClients();
+  rmSync(directory, { recursive: true, force: true });
   hooks.deregister();
   process.exit = originalExit;
   console.error = originalError;

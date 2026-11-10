@@ -96,7 +96,7 @@ test('non-local requires an exact target-bound token, including container DNS', 
       SEED_TARGET_CONFIRM: 'plan070:ci-postgres',
       E2E_PASSWORD: DEFAULT_E2E_PASSWORD,
     }),
-    'confirmed-non-local'
+    'confirmed-ci'
   );
   assert.throws(
     () =>

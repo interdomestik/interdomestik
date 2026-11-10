@@ -3,7 +3,7 @@ dotenv.config({ path: '.env.local' });
 
 import crypto from 'node:crypto';
 import { desc, eq } from 'drizzle-orm';
-import { importPilotDatabase } from './import-pilot-database';
+import { closePilotDatabase, importPilotDatabase } from './import-pilot-database';
 
 const {
   claimLifecycleFieldsForStatus,
@@ -81,7 +81,9 @@ async function main() {
 
 try {
   await main();
+  await closePilotDatabase();
 } catch (err) {
   console.error('[Triage] Error:', err);
+  await closePilotDatabase();
   process.exit(1);
 }
