@@ -29,7 +29,7 @@ describe('staff message read scope and staleness', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     receipt.mockResolvedValue({ success: true });
-    read.mockResolvedValue({ success: true, messages: [] });
+    read.mockResolvedValue({ success: true, canAcknowledge: true, messages: [] });
   });
 
   it('surfaces a failed server read without issuing a mount query', async () => {
@@ -84,6 +84,7 @@ describe('staff message read scope and staleness', () => {
     await act(async () => {
       second.resolve({
         success: true,
+        canAcknowledge: true,
         messages: [buildMessage({ id: 'msg-new', content: 'Newest reply' })],
       });
     });
@@ -94,6 +95,7 @@ describe('staff message read scope and staleness', () => {
     await act(async () => {
       first.resolve({
         success: true,
+        canAcknowledge: true,
         messages: [buildMessage({ id: 'msg-stale', content: 'Stale reply' })],
       });
     });
@@ -106,6 +108,7 @@ describe('staff message read scope and staleness', () => {
   it('never renders the previous claim history or draft while a new scope read is pending', async () => {
     read.mockResolvedValueOnce({
       success: true,
+      canAcknowledge: true,
       messages: [buildMessage({ content: 'Claim one history' })],
     });
     const pending = deferred<ReadResult>();
@@ -128,6 +131,7 @@ describe('staff message read scope and staleness', () => {
     await act(async () => {
       pending.resolve({
         success: true,
+        canAcknowledge: true,
         messages: [buildMessage({ id: 'msg-2', claimId: 'claim-2', content: 'Claim two history' })],
       });
     });
@@ -141,6 +145,7 @@ describe('staff message read scope and staleness', () => {
   ])('clears the loaded conversation when the %s scope changes', async (_label, nextUser) => {
     read.mockResolvedValueOnce({
       success: true,
+      canAcknowledge: true,
       messages: [buildMessage({ content: 'First scope history' })],
     });
     const pending = deferred<ReadResult>();
@@ -156,7 +161,7 @@ describe('staff message read scope and staleness', () => {
     expect(screen.queryByTestId('messaging-empty-state')).not.toBeInTheDocument();
 
     await act(async () => {
-      pending.resolve({ success: true, messages: [] });
+      pending.resolve({ success: true, canAcknowledge: true, messages: [] });
     });
 
     expect(screen.getByTestId('messaging-empty-state')).toBeInTheDocument();
@@ -173,6 +178,7 @@ describe('staff message read scope and staleness', () => {
     await act(async () => {
       pending.resolve({
         success: true,
+        canAcknowledge: true,
         messages: [buildMessage({ id: 'msg-late', content: 'Late reply' })],
       });
     });

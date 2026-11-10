@@ -15,6 +15,7 @@ import { sendMessageCore } from './messages/send';
 export async function getMessagesForClaim(claimId: string): Promise<{
   success: boolean;
   messages?: import('./messages/types').MessageWithSender[];
+  canAcknowledge?: boolean;
   error?: string;
 }> {
   const { session, authority } = await getActionContext();

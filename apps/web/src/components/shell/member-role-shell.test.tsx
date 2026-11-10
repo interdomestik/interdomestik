@@ -96,6 +96,9 @@ describe('MemberRoleShell', () => {
     expect(screen.getByTestId('member-dashboard-ready')).toHaveTextContent(
       'Unchanged portal slots'
     );
+    expect(
+      screen.getByTestId('member-dashboard-ready').closest('.overflow-x-hidden')
+    ).not.toBeNull();
     expect(await screen.findByTestId('user-nav')).toBeInTheDocument();
     expect(state.useSession).not.toHaveBeenCalled();
     expect(state.canAccessAdmin).not.toHaveBeenCalled();
