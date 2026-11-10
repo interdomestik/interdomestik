@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire, registerHooks } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkServerIdentity } from 'node:tls';
+import { checkServerIdentity, type ConnectionOptions } from 'node:tls';
 import postgres from 'postgres';
 import { TEST_CA_PEM, TEST_LEAF_PEM } from './seed-tls-ca.fixture';
 import { verifyPoolParity } from './seed-target-tls-parity.probe';
@@ -41,7 +41,8 @@ globals.seedTlsProbeDriver = (url: string, options: postgres.Options<{}>) => {
       sockets++;
       throw new Error('Unexpected socket');
     },
-  });
+    // The root type-check resolves postgres options without `socket`; the driver accepts it.
+  } as postgres.Options<{}>);
   const end = client.end;
   client.end = async (...args) => {
     ended.set(client, (ended.get(client) ?? 0) + 1);
@@ -91,7 +92,7 @@ const tls = existsSync(new URL('../src/seed-target-tls.ts', import.meta.url))
   : {};
 const refusal = { message: 'Seed target refused: non-local-tls' };
 const verify = (client: postgres.Sql) => {
-  const ssl = client.options.ssl;
+  const ssl = client.options.ssl as ConnectionOptions | undefined;
   assert.ok(ssl && typeof ssl === 'object');
   assert.equal(ssl.ca, TEST_CA_PEM);
   assert.equal(ssl.rejectUnauthorized, true);
