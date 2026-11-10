@@ -18,7 +18,7 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import { withContentPayloadCapture } from './content-payload-capture';
 import { isKsGateProject, isMkGateProject } from './gate-project-identity';
-import { requireSeededHost, signInAs } from './nine-role-actor';
+import { leaveActorPage, requireSeededHost, signInAs } from './nine-role-actor';
 import {
   withClaimNoteSentinels,
   type MessageSentinelClaim,
@@ -215,7 +215,7 @@ function matrix(
     await withMessagingFixture(page, info, async (_fixture, ids) => {
       for (const [index, row] of cases.entries()) {
         await test.step(row.actor, async () => {
-          await page.goto('about:blank');
+          await leaveActorPage(page);
           await signInAs(page, info, row.actor, `10.0.73.${index + 1}`);
           await expectHistory(page, info, ids, row);
           if (E2E_USERS[row.actor].dbRole === 'branch_manager') {
