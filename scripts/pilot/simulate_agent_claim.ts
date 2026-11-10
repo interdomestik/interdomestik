@@ -2,10 +2,9 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 import crypto from 'node:crypto';
+import { importPilotDatabase } from './import-pilot-database';
 
-const { claimLifecycleFieldsForStatus, db } = await import('@interdomestik/database');
-const { claims } = await import('@interdomestik/database/schema/claims');
-const { user } = await import('@interdomestik/database/schema/auth');
+const { claimLifecycleFieldsForStatus, db, claims, user } = await importPilotDatabase();
 const { eq } = await import('drizzle-orm');
 
 async function main() {
