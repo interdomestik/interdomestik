@@ -92,8 +92,6 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
   console.log('👥 Seeding Pack Users...');
   const PACK_PASSWORD = E2E_PASSWORD;
   const hashedPass = hashPassword(PACK_PASSWORD);
-  // Separate admin password for clarity or reuse
-  const ADMIN_PASS = hashPassword('AdminPassword123!');
 
   const ALBANIAN_NAMES = [
     'Arianit Gashi',
