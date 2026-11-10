@@ -91,7 +91,8 @@ test('assigned staff case stays inside the shared mobile shell', async ({
   await gotoApp(page, routes.staffClaimDetail(claimId, info), info, {
     marker: 'staff-claim-detail-ready',
   });
-  const workspace = page.getByTestId('staff-claim-detail-ready');
+  // Cached routes stay mounted but hidden, so only the visible workspace is the page under test.
+  const workspace = page.getByTestId('staff-claim-detail-ready').filter({ visible: true });
   await expect(workspace.getByTestId('messaging-panel')).toBeVisible();
   for (const width of [360, 390, 430, 320]) {
     await page.setViewportSize({ width, height: 844 });
@@ -163,7 +164,9 @@ test('branch-manager mobile detail retains read-only controls and permitted navi
   const permittedCases = page.getByTestId('staff-claims-view').filter({ visible: true });
   expect(await permittedCases.count()).toBeGreaterThan(0);
   await permittedCases.first().click();
-  await expect(page.getByTestId('staff-claim-detail-ready')).toBeVisible();
+  await expect(
+    page.getByTestId('staff-claim-detail-ready').filter({ visible: true })
+  ).toBeVisible();
 
   for (const width of [360, 390, 430, 320]) {
     await page.setViewportSize({ width, height: 844 });
@@ -182,7 +185,9 @@ test('branch-manager mobile detail retains read-only controls and permitted navi
     const sectionNav = page.getByTestId('staff-claim-workspace-nav');
     await expect(sectionNav.locator('a[href="#staff-claim-handling"]')).toHaveCount(0);
     await expect(sectionNav.locator('a[href="#staff-claim-messages"]')).toHaveCount(0);
-    await expect(page.getByTestId('staff-claim-detail-ready').locator('form')).toHaveCount(0);
+    await expect(
+      page.getByTestId('staff-claim-detail-ready').filter({ visible: true }).locator('form')
+    ).toHaveCount(0);
     await expectMoreFocusReturn(page, false);
     await expectReflow(page);
   }
