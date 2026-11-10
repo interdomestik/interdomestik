@@ -120,6 +120,17 @@ function databaseTarget(url: URL, env: SeedEnvironment): string {
   return ref ?? host;
 }
 
+// postgres 3.4.9 parseUrl takes the host after the FIRST '@' (decoded; ',' = multihost) while
+// WHATWG URL uses the last '@'. Refuse any authority the guard and the driver could read differently.
+function assertDriverAuthority(raw: string, url: URL): void {
+  if (/[#\\\s]/.test(raw)) refuse('ambiguous');
+  const authority = raw.slice(raw.indexOf('://') + 3).split(/[?/]/)[0];
+  const parts = authority.split('@');
+  const host = parts.at(-1) ?? '';
+  if (parts.length > 2 || /[,%]/.test(host)) refuse('ambiguous');
+  if (host.replace(/:\d*$/, '').toLowerCase() !== url.hostname.toLowerCase()) refuse('ambiguous');
+}
+
 function assertRemoteSeedPassword(env: SeedEnvironment, effectivePassword: string): void {
   if (
     !effectivePassword ||
@@ -146,6 +157,8 @@ export function assertSeedTargetAllowed(
   const advisory = [parse(env.SUPABASE_URL), parse(env.NEXT_PUBLIC_SUPABASE_URL)];
   rejectProduction(env, [database, rls, ...advisory]);
   if (!database || (env.DATABASE_URL_RLS && !rls)) refuse('invalid');
+  assertDriverAuthority(env.DATABASE_URL ?? '', database);
+  if (rls) assertDriverAuthority(env.DATABASE_URL_RLS ?? '', rls);
   const target = databaseTarget(database, env);
   const targets = [target];
   if (rls) targets.push(databaseTarget(rls, env));

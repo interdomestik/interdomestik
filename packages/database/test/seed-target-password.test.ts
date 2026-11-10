@@ -131,3 +131,27 @@ test('ci-postgres exemption requires its exact confirmation and cannot be borrow
     /refused: non-local-unconfirmed$/
   );
 });
+
+test('authorities the postgres driver resolves differently never borrow an exemption', () => {
+  // postgres 3.4.9 connects to the host after the first '@'; WHATWG URL reads the last one.
+  const mismatched = [
+    ['fixture@remote.example.net,ignored@ci-postgres', 'ci-postgres'],
+    ['fixture@remote.example.net,ignored@localhost', 'localhost'],
+    ['fixture@remote.example.net@ci-postgres', 'ci-postgres'],
+    ['fixture@ci-postgres,remote.example.net', 'ci-postgres'],
+    ['fixture@127.0.0.1,remote.example.net', '127.0.0.1'],
+    ['fixture@remote%2Eexample.net', 'remote.example.net'],
+    ['fixture@remote.example.net#@ci-postgres', 'ci-postgres'],
+  ];
+  for (const [authority, target] of mismatched) {
+    for (const key of ['DATABASE_URL', 'DATABASE_URL_RLS']) {
+      const env = {
+        DATABASE_URL: 'postgres://fixture@ci-postgres/db',
+        SEED_TARGET_CONFIRM: `plan070:${target}`,
+        E2E_PASSWORD: strongOverride,
+        [key]: `postgres://${authority}/db`,
+      };
+      assert.throws(() => assertSeedTargetAllowed(env, strongOverride), /refused: ambiguous$/);
+    }
+  }
+});

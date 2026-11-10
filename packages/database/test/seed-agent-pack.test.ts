@@ -50,6 +50,14 @@ test('agent credentials use cached E2E password and reject later environment dri
       message: 'Seed target refused: non-local-password',
     });
     assert.equal(writes.length, 0);
+
+    // The driver would connect to the first host; the guard must refuse before any write.
+    process.env = {
+      DATABASE_URL: 'postgres://fixture@remote.example.net,ignored@ci-postgres/db',
+      SEED_TARGET_CONFIRM: 'plan070:ci-postgres',
+    };
+    await assert.rejects(seedAgentPack(config), { message: 'Seed target refused: ambiguous' });
+    assert.equal(writes.length, 0);
   } finally {
     process.env = previousEnv;
     hooks.deregister();
