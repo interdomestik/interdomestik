@@ -55,6 +55,9 @@ vi.mock('@/features/admin/claims/components/ops/NextActionsCard', () => ({
     return <div data-testid="next-actions-card" />;
   },
 }));
+vi.mock('@/features/claims/communication/claim-message-summary', () => ({
+  ClaimMessageSummary: () => <section data-testid="claim-message-summary" />,
+}));
 vi.mock('@/components/messaging/messaging-panel', () => ({ MessagingPanel: () => null }));
 vi.mock('@/features/admin/claims/components/detail/ClaimOpsTimelineSection', () => ({
   ClaimOpsTimelineSection: () => null,
@@ -165,6 +168,7 @@ describe('AdminClaimDetailV2Page staff assignment data', () => {
     await renderPage();
 
     expect(lastCardProps()).toMatchObject({ allStaff: [], canAssign: false });
+    expect(screen.getByTestId('claim-message-summary')).toBeInTheDocument();
   });
 });
 

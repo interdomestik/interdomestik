@@ -41,6 +41,22 @@
       "retry": "Pokušaj ponovo da učitaš poruke",
       "statusError": "Poruke su prikazane, ali status čitanja nije ažuriran."
     },
-    "publicAudience": "Vidljivo članu i timu za slučaj."
+    "publicAudience": "Vidljivo članu i timu za slučaj.",
+    "branchManager": {
+      "title": "Pregled komunikacije o zahtevu",
+      "restriction": "Sadržaj poruka i beleški o zahtevu je ograničen za rukovodioce filijala.",
+      "count": "Sve poruke",
+      "lastMessageAt": "Poslednja poruka",
+      "awaitingReply": "Čeka se odgovor tima",
+      "yes": "Da",
+      "no": "Ne",
+      "noTimestamp": "Vreme nije dostupno",
+      "empty": "Još nema zapisa.",
+      "unavailable": "Ovaj pregled nije dostupan za ovaj zahtev.",
+      "failed": "Pregled nije mogao da se učita. Pokušajte ponovo.",
+      "retry": "Osveži pregled",
+      "loading": "Osvežavanje…",
+      "history": "Istorija statusa"
+    }
   }
 }

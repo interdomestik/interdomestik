@@ -41,6 +41,22 @@
       "retry": "Provo përsëri të ngarkosh mesazhet",
       "statusError": "Mesazhet shfaqen, por statusi i leximit nuk u përditësua."
     },
-    "publicAudience": "E dukshme për anëtarin dhe ekipin e rastit."
+    "publicAudience": "E dukshme për anëtarin dhe ekipin e rastit.",
+    "branchManager": {
+      "title": "Përmbledhje e komunikimit të rastit",
+      "restriction": "Përmbajtja e mesazheve dhe shënimeve të rastit është e kufizuar për menaxherët e degëve.",
+      "count": "Të gjitha mesazhet",
+      "lastMessageAt": "Mesazhi i fundit",
+      "awaitingReply": "Në pritje të përgjigjes së ekipit",
+      "yes": "Po",
+      "no": "Jo",
+      "noTimestamp": "Koha nuk është e disponueshme",
+      "empty": "Ende nuk ka regjistrime.",
+      "unavailable": "Kjo përmbledhje nuk është e disponueshme për këtë rast.",
+      "failed": "Përmbledhja nuk u ngarkua. Ju lutemi provoni përsëri.",
+      "retry": "Rifresko përmbledhjen",
+      "loading": "Duke rifreskuar…",
+      "history": "Historiku i statusit"
+    }
   }
 }

@@ -2,6 +2,11 @@ import { E2E_PASSWORD, E2E_USER_IDS, E2E_USERS, type E2EUserKey } from '@interdo
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { getProjectUrlInfo } from '../fixtures/auth.project';
 
+/** Leaves the previous actor's page before the next sign-in; about:blank is not an app route. */
+export async function leaveActorPage(page: Page): Promise<void> {
+  await page.goto('about:blank');
+}
+
 /** Signs a catalogue actor in on the project host and proves the session belongs to it. */
 export async function signInAs(page: Page, info: TestInfo, actor: E2EUserKey, ip: string) {
   const { origin } = getProjectUrlInfo(info, null);

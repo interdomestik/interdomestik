@@ -85,6 +85,16 @@ const hoisted = vi.hoisted(() => ({
 
 // Server translation seam: `getTranslations` has no request scope under vitest, so this reads the
 // real shipped catalogs for the locale the route set, including claim status copy.
+
+vi.mock('@/features/claims/communication/claim-message-summary', () => ({
+  ClaimMessageSummary: () => <section data-testid="claim-message-summary" />,
+}));
+vi.mock('@/features/claims/communication/branch-manager-status-history', () => ({
+  BranchManagerStatusHistory: () => (
+    <section id="staff-status-history" data-testid="staff-status-history" />
+  ),
+}));
+
 vi.mock('next-intl/server', async () => {
   const { messagesFor } = await import('./page-workspace-request-fixture');
   const read = (locale: string, path: readonly string[]): unknown =>
