@@ -15,7 +15,7 @@ export function LocalizedPageSkeleton({
   titleKey: string;
   variant: PageSkeletonProps['variant'];
   testId?: string;
-  titleSize?: PageSkeletonProps['titleSize'];
+  titleSize?: NonNullable<PageSkeletonProps['titleSize']>;
 }>): ReactElement {
   const t = useTranslations();
 
