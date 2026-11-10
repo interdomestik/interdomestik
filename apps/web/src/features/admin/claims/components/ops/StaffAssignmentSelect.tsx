@@ -38,7 +38,10 @@ export function StaffAssignmentSelect({
       <SelectTrigger
         aria-label={t('label')}
         aria-busy={isPending}
-        className={cn('h-9 w-auto min-w-[10rem] gap-2 text-sm', className)}
+        className={cn(
+          'h-auto min-h-11 w-full min-w-0 max-w-full gap-2 whitespace-normal text-sm sm:w-auto',
+          className
+        )}
       >
         <UserPlus className={cn('opacity-70', isCompact ? 'w-3 h-3' : 'w-4 h-4')} />
         <SelectValue placeholder={t('placeholder')} />

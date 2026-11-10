@@ -1,217 +1,65 @@
 'use client';
 
 import { ShellNavigation } from '@/components/shell/shell-navigation';
-import { Link, usePathname, useRouter } from '@/i18n/routing';
-import { authClient } from '@/lib/auth-client';
-import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
-import { getRoleLabel } from '@/lib/roles-i18n';
-import { resolveUserNavLinks } from '@/components/dashboard/user-nav-links';
+import { Link, usePathname } from '@/i18n/routing';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuPortal,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenuButton,
   SidebarRail,
 } from '@interdomestik/ui';
-import { Check, ChevronUp, Globe, Home, LogOut, Shield, User } from 'lucide-react';
-import { adminSidebarItems } from './admin-sidebar-items';
-import { useLocale, useTranslations } from 'next-intl';
+import { Shield } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
+import { AdminSidebarAccount } from './admin-sidebar-account';
 import { withAdminContext } from './admin-sidebar-context';
+import { useAdminSidebarNavigation, type AdminSidebarUser } from './admin-sidebar-navigation';
 
-interface AdminSidebarProps {
-  readonly className?: string;
-  readonly user: {
-    branchId?: string | null;
-    name: string;
-    email: string;
-    role: string;
-  };
+export function AdminSidebarBrand() {
+  const t = useTranslations('admin.sidebar');
+  const searchParams = useSearchParams();
+  return (
+    <SidebarHeader className="h-20 flex items-center justify-center border-b border-white/10">
+      <Link
+        href={withAdminContext('/admin/overview', searchParams)}
+        className="flex items-center gap-3 font-bold text-xl px-2 w-full group-data-[state=collapsed]:justify-center group hover:opacity-90 transition-opacity"
+      >
+        <div className="h-10 w-10 rounded-xl brand-gradient flex items-center justify-center text-white shadow-lg shadow-primary/25 transition-transform group-hover:scale-105 shrink-0">
+          <Shield className="h-6 w-6" />
+        </div>
+        <div className="flex flex-col group-data-[state=collapsed]:hidden animate-in fade-in duration-300">
+          <span className="leading-none bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 tracking-tight text-sm font-bold truncate">
+            {t('title')}
+          </span>
+          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-1 truncate">
+            {t('subtitle')}
+          </span>
+        </div>
+      </Link>
+    </SidebarHeader>
+  );
 }
 
-export function AdminSidebar({ className, user }: AdminSidebarProps) {
-  const t = useTranslations('admin.sidebar');
+export function AdminSidebar({
+  className,
+  user,
+}: Readonly<{ className?: string; user: AdminSidebarUser }>) {
   const tNav = useTranslations('nav');
-  const tCommon = useTranslations('common');
   const pathname = usePathname();
-  const router = useRouter();
-  const locale = useLocale();
-  const searchParams = useSearchParams();
-  const userRoleLabel = getRoleLabel(tCommon, user.role, user.role);
-  const applyAdminContext = (href: string) => withAdminContext(href, searchParams);
-  const roleParam = searchParams.get('role');
-  let peopleRole = 'members';
-  if (roleParam?.includes('agent')) {
-    peopleRole = 'agents';
-  } else if (roleParam?.includes('staff') || roleParam?.includes('admin')) {
-    peopleRole = 'staff';
-  }
-
-  const handleSignOut = async () => {
-    await signOutAndRedirectToLogin({
-      locale,
-      signOut: authClient.signOut,
-    });
-  };
-
-  // Retain the server-authorized user's existing role and branch rules here.
-  // ShellNavigation consumes this admitted list; it does not decide access.
-  // Query-sensitive people selection also remains owned by this consumer.
-  const sidebarItems = adminSidebarItems(user.role, user.branchId);
-
+  const items = useAdminSidebarNavigation(user);
   return (
-    <Sidebar
-      data-testid="admin-sidebar"
-      collapsible="icon"
-      className={`border-r border-white/10 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 ${className}`}
-    >
-      <SidebarHeader className="h-20 flex items-center justify-center border-b border-white/10">
-        <Link
-          href={applyAdminContext('/admin/overview')}
-          className="flex items-center gap-3 font-bold text-xl px-2 w-full group-data-[state=collapsed]:justify-center group hover:opacity-90 transition-opacity"
-        >
-          <div className="h-10 w-10 rounded-xl brand-gradient flex items-center justify-center text-white shadow-lg shadow-primary/25 transition-transform group-hover:scale-105 shrink-0">
-            <Shield className="h-6 w-6" />
-          </div>
-          <div className="flex flex-col group-data-[state=collapsed]:hidden animate-in fade-in duration-300">
-            <span className="leading-none bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 tracking-tight text-sm font-bold truncate">
-              {t('title')}
-            </span>
-            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-1 truncate">
-              {t('subtitle')}
-            </span>
-          </div>
-        </Link>
-      </SidebarHeader>
-
+    <Sidebar data-testid="admin-sidebar" collapsible="icon" className={className}>
+      <AdminSidebarBrand />
       <SidebarContent className="px-3 py-4 group-data-[state=collapsed]:px-0">
         <ShellNavigation
           label={tNav('menu')}
           pathname={pathname}
-          groups={[
-            {
-              id: 'admin',
-              items: sidebarItems.map(item => ({
-                href: applyAdminContext(item.href),
-                title: item.title === 'sponsors' ? tNav('sponsors') : t(item.title),
-                icon: item.icon,
-                prefetch: item.peopleKey === 'members' || item.peopleKey === 'agents' || undefined,
-                selected:
-                  item.peopleKey === undefined
-                    ? undefined
-                    : (pathname === '/admin/users' || pathname.startsWith('/admin/users/')) &&
-                      peopleRole === item.peopleKey,
-              })),
-            },
-          ]}
+          groups={[{ id: 'admin', items }]}
         />
       </SidebarContent>
-
       <SidebarFooter className="p-3 border-t border-white/10">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="w-full data-[state=open]:bg-muted/50 transition-all duration-300 rounded-xl"
-            >
-              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-primary/50 text-white flex items-center justify-center font-bold shadow-md shrink-0">
-                {user.name?.[0]?.toUpperCase() || 'A'}
-              </div>
-              <div className="flex flex-col overflow-hidden text-left flex-1 group-data-[state=collapsed]:hidden ml-2">
-                <span className="text-sm font-semibold truncate text-foreground">{user.name}</span>
-                <span className="text-xs text-muted-foreground truncate capitalize flex items-center gap-1">
-                  <div className="h-1 w-1 rounded-full bg-green-500" />
-                  {userRoleLabel}
-                </span>
-              </div>
-              <ChevronUp className="h-4 w-4 text-muted-foreground group-data-[state=collapsed]:hidden ml-auto" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56" side="top" sideOffset={8}>
-            <DropdownMenuLabel>{tNav('myAccount')}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link
-                href={resolveUserNavLinks(user.role, true).profileHref}
-                className="cursor-pointer"
-              >
-                <User className="mr-2 h-4 w-4" />
-                {tNav('profile')}
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="cursor-pointer">
-                <Globe className="mr-2 h-4 w-4" />
-                <span>{tNav('language')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem
-                    onClick={() => router.replace(pathname, { locale: 'en' })}
-                    className="cursor-pointer"
-                  >
-                    <span className="mr-2">🇬🇧</span> English
-                    {locale === 'en' && <Check className="ml-auto h-4 w-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => router.replace(pathname, { locale: 'sq' })}
-                    className="cursor-pointer"
-                  >
-                    <span className="mr-2">🇦🇱</span> Shqip
-                    {locale === 'sq' && <Check className="ml-auto h-4 w-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => router.replace(pathname, { locale: 'mk' })}
-                    className="cursor-pointer"
-                  >
-                    <span className="mr-2">🇲🇰</span> Македонски
-                    {locale === 'mk' && <Check className="ml-auto h-4 w-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => router.replace(pathname, { locale: 'sr' })}
-                    className="cursor-pointer"
-                  >
-                    <span className="mr-2">🇷🇸</span> Srpski
-                    {locale === 'sr' && <Check className="ml-auto h-4 w-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => router.replace(pathname, { locale: 'de' })}
-                    className="cursor-pointer"
-                  >
-                    <span className="mr-2">🇩🇪</span> Deutsch
-                    {locale === 'de' && <Check className="ml-auto h-4 w-4" />}
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/" className="cursor-pointer font-medium">
-                <Home className="mr-2 h-4 w-4" />
-                {tNav('backToWebsite')}
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleSignOut}
-              className="cursor-pointer text-red-500 focus:text-red-500 font-medium"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              {tNav('logout')}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <AdminSidebarAccount user={user} />
       </SidebarFooter>
       <SidebarRail title={tNav('toggleSidebar')} aria-label={tNav('toggleSidebar')} />
     </Sidebar>
