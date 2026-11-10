@@ -3,11 +3,6 @@
 import { Button } from '@interdomestik/ui/components/button';
 import { useTranslations } from 'next-intl';
 
-export function SponsorLoading(): React.JSX.Element {
-  const t = useTranslations('sponsors');
-  return <output className="block p-6">{t('loading')}</output>;
-}
-
 export function SponsorError({ reset }: Readonly<{ reset: () => void }>): React.JSX.Element {
   const t = useTranslations('sponsors');
   return (
