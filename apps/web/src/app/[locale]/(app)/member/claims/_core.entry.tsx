@@ -42,7 +42,7 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
         </div>
         <Button
           asChild
-          className="h-auto min-h-10 max-w-full whitespace-normal focus-visible:ring-inset focus-visible:ring-offset-0"
+          className="h-auto min-h-10 max-w-full whitespace-normal focus-visible:ring-inset focus-visible:ring-primary-foreground focus-visible:ring-offset-0"
         >
           <Link href="/member/claims/new" data-testid="create-claim-button">
             <Plus className="mr-2 h-4 w-4 shrink-0" />

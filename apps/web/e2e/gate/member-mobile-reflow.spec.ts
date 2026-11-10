@@ -1,5 +1,6 @@
 import type { Locator, Page, TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
+import { getTenantFromTestInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
 import { initializeConsent } from '../utils/consent';
 import { gotoApp } from '../utils/navigation';
@@ -126,6 +127,29 @@ test.describe('Member pages reflow inside the role shell', () => {
       expect(response?.status()).toBe(200);
       await expect(page).toHaveURL(url => url.pathname === href);
       await expectReflow(page, href);
+    }
+  });
+
+  test('the neutral membership success recheck fits narrow mobile viewports', async ({
+    loginAs,
+    page,
+  }, info) => {
+    // Only KS seeds member_empty, the neutral member that reaches the recheck without writes.
+    test.skip(getTenantFromTestInfo(info) !== 'ks', 'KS has the dedicated empty member fixture');
+    test.setTimeout(120_000);
+    await initializeConsent(page);
+    await loginAs('member_empty');
+    await page.setViewportSize({ width: 320, height: 800 });
+    for (const locale of ['sq', 'de']) {
+      const path = `${routes.member(locale)}/membership/success`;
+      await gotoApp(page, path, info, { marker: 'success-page-ready' });
+      const success = page.getByTestId('success-page-ready');
+      await expect(success.getByTestId('success-account-neutral')).toBeVisible();
+      const recheck = success.locator('a[aria-describedby="membership-status-helper"]');
+      await expect(recheck).toHaveCount(1);
+      await recheck.click();
+      await expect(success.getByRole('status')).toBeVisible();
+      await expectReflow(page, `${path} after recheck`);
     }
   });
 });
