@@ -102,3 +102,24 @@ test('R3 current web root files remain at zero violations', () => {
   );
   assert.deepEqual(repositoryFixture(files).violations, []);
 });
+
+// Generated output under collected roots is not in the collected source set, so neither the
+// existing R-e/L1 checks nor a directory prefix may exempt it (PR #2043 review, P2).
+for (const bridge of [
+  'packages/example/dist/bridge.js',
+  'packages/database/build/bridge.mjs',
+  'apps/web/src/.next/bridge.js',
+]) {
+  test(`R3 uncollected generated bridge ${bridge} refuses a computed import`, () => {
+    const depth = bridge.split('/').length - 1;
+    const target = `${'../'.repeat(depth)}packages/database/src/seed-target-tls.ts`;
+    const result = repositoryFixture(
+      {
+        [bridge]: `const target = '${target}'; import(target);`,
+        [APP]: `import '${'../'.repeat(APP.split('/').length - 1)}${bridge}';`,
+      },
+      ({ sources }) => assert.ok(!sources.has(bridge))
+    );
+    refused(result, APP);
+  });
+}
