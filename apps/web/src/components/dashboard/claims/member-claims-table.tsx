@@ -156,9 +156,12 @@ export function MemberClaimsTable() {
             {searchQuery || statusFilter ? t('empty.filtered') : t('empty.description')}
           </p>
           {!searchQuery && !statusFilter && (
-            <Button asChild>
+            <Button
+              asChild
+              className="h-auto min-h-10 max-w-full whitespace-normal [overflow-wrap:anywhere]"
+            >
               <Link href="/member/claims/new">
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-2 h-4 w-4 shrink-0" />
                 {t('empty.createFirst')}
               </Link>
             </Button>
@@ -170,11 +173,11 @@ export function MemberClaimsTable() {
 
   return (
     <div
-      className="space-y-4"
+      className="min-w-0 max-w-full space-y-4"
       data-testid="member-claims-table-region"
       aria-busy={isPageNavigationPending ? 'true' : 'false'}
     >
-      <div className="rounded-md border">
+      <div className="min-w-0 max-w-full rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -233,7 +236,7 @@ export function MemberClaimsTable() {
           {data.claims.length === 1 ? t('claim') : t('claimsPlural')}
         </p>
         {data.totalPages > 1 && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               asChild
               variant="outline"

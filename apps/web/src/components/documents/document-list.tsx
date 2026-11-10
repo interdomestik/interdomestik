@@ -16,7 +16,7 @@ type Props = {
   documents: Document[];
 };
 
-export function DocumentList({ documents }: Props) {
+export function DocumentList({ documents }: Readonly<Props>) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const t = useTranslations('documents');
 
@@ -72,38 +72,40 @@ export function DocumentList({ documents }: Props) {
       {documents.map(doc => (
         <div
           key={doc.id}
-          className="flex items-center justify-between p-3 border rounded-lg bg-card"
+          className="flex min-w-0 flex-wrap items-center justify-between gap-3 p-3 border rounded-lg bg-card"
         >
-          <div className="flex items-center gap-3">
-            <FileText className="h-4 w-4 text-primary" />
-            <div>
+          <div className="flex min-w-0 max-w-full items-center gap-3">
+            <FileText className="h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 [overflow-wrap:anywhere]">
               <p className="text-sm font-medium">{doc.name}</p>
               <p className="text-xs text-muted-foreground">
                 {formatSize(doc.fileSize)} · {doc.fileType}
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex min-w-0 max-w-full flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
+              className="h-auto min-h-9 max-w-full whitespace-normal [overflow-wrap:anywhere]"
               onClick={() => handleView(doc.id)}
               disabled={loadingId === doc.id}
             >
               {loadingId === doc.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
               ) : (
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4 shrink-0" />
               )}
               <span className="ml-1 hidden sm:inline">{t('actions.view')}</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
+              className="h-auto min-h-9 max-w-full whitespace-normal [overflow-wrap:anywhere]"
               onClick={() => handleDownload(doc.id, doc.name)}
               disabled={loadingId === doc.id}
             >
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4 shrink-0" />
               <span className="ml-1 hidden sm:inline">{t('actions.download')}</span>
             </Button>
           </div>

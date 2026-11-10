@@ -42,7 +42,7 @@ export function SuccessStatusActions(props: {
 
   return (
     <div className="mt-12 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+      <div className="flex flex-col flex-wrap gap-3 sm:flex-row sm:justify-center">
         {props.membershipActive ? (
           <>
             <Action href={`/${props.locale}/member`}>{props.copy.activeAccount}</Action>
@@ -92,7 +92,7 @@ function Action(props: {
       asChild
       size="lg"
       variant={props.variant}
-      className="min-h-[44px] rounded-2xl px-6 font-bold"
+      className="h-auto min-h-[44px] max-w-full whitespace-normal rounded-2xl px-6 py-2 font-bold [overflow-wrap:anywhere]"
     >
       <Link href={props.href} onClick={props.onClick} aria-describedby={props.describedBy}>
         {props.children}

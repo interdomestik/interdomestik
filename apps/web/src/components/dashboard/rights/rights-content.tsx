@@ -49,19 +49,19 @@ export function RightsContent(): React.JSX.Element {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6 [overflow-wrap:anywhere]">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground">{t('intro')}</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-2 lg:grid-cols-3">
         {rights.map(right => (
           <Card key={right.key} className="relative overflow-hidden">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <right.icon className={`h-5 w-5 ${right.color}`} />
-                <CardTitle className="text-lg">{t(`rights.${right.key}.title`)}</CardTitle>
+                <right.icon className={`h-5 w-5 shrink-0 ${right.color}`} />
+                <CardTitle className="min-w-0 text-lg">{t(`rights.${right.key}.title`)}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
@@ -76,13 +76,13 @@ export function RightsContent(): React.JSX.Element {
       <Card className="bg-primary/5 border-primary/20">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            <CardTitle>{t('cta')}</CardTitle>
+            <Shield className="h-6 w-6 shrink-0 text-primary" />
+            <CardTitle className="min-w-0">{t('cta')}</CardTitle>
           </div>
           <CardDescription>{t('assistance.helpBody')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button asChild size="lg">
+          <Button asChild size="lg" className="h-auto min-h-11 max-w-full whitespace-normal py-2">
             <Link href="/member/claims/new">{t('cta')}</Link>
           </Button>
         </CardContent>
