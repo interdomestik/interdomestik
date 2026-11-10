@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { OpsFiltersBar } from '@/components/ops';
 import { parseAdminDiasporaOriginFilter } from '@/features/admin/claims/lib/diaspora-origin-filter';
@@ -56,6 +56,13 @@ export function AdminClaimsFilters() {
 
   const tAdmin = useTranslations('admin.claims_page');
   const tCommon = useTranslations('common');
+
+  // The server HTML renders an enabled search box, but typing lands nowhere until React attaches its
+  // change handler. Keep the box disabled until this client component has mounted.
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const currentStatus = searchParams.get('status') || 'all';
   const currentAssignment = searchParams.get('assigned') || 'all';
@@ -166,7 +173,7 @@ export function AdminClaimsFilters() {
         searchPlaceholder={`${tCommon('search')}...`}
         searchInputTestId="claims-search-input"
         isPending={isNavigationPending}
-        searchDisabled={pendingKind === 'filter'}
+        searchDisabled={!isHydrated || pendingKind === 'filter'}
         rightActions={
           <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
             <div

@@ -45,6 +45,27 @@ function toClaimStatus(value: unknown): ClaimStatus {
   return CLAIM_STATUSES.includes(value as ClaimStatus) ? (value as ClaimStatus) : 'draft';
 }
 
+type PageSession = NonNullable<Parameters<typeof getMessagesForClaimCore>[0]['session']>;
+type PageAuthority = NonNullable<Awaited<ReturnType<typeof authorizeStaffClaimPage>>>;
+
+/** Staff-only reads; branch managers get empty, content-free defaults. */
+function loadStaffClaimReads(
+  session: PageSession,
+  authority: PageAuthority,
+  claimId: string,
+  restricted: boolean
+) {
+  const isStaff = session.user.role === 'staff';
+  const branchId = session.user.branchId ?? null;
+  return Promise.all([
+    restricted ? Promise.resolve([]) : getPublicStatusHistoryCore({ claimId, authority }),
+    isStaff ? getStaffAssignmentOptions({ branchId, authority }) : Promise.resolve([]),
+    isStaff
+      ? getMessagesForClaimCore({ session, authority, claimId })
+      : Promise.resolve({ success: true as const, messages: [], canAcknowledge: false }),
+  ]);
+}
+
 export default async function StaffClaimDetailsPage({
   params,
 }: Readonly<PageProps>): Promise<React.JSX.Element> {
@@ -69,22 +90,12 @@ export default async function StaffClaimDetailsPage({
   if (!detail) return notFound();
 
   const restricted = deniesClaimMessageContent(session.user.role);
-  const [statusHistory, assignmentOptions, initialMessagesResult] = await Promise.all([
-    restricted ? Promise.resolve([]) : getPublicStatusHistoryCore({ claimId: id, authority }),
-    session.user.role === 'staff'
-      ? getStaffAssignmentOptions({
-          branchId: session.user.branchId ?? null,
-          authority,
-        })
-      : Promise.resolve([]),
-    session.user.role === 'staff'
-      ? getMessagesForClaimCore({
-          session,
-          authority,
-          claimId: id,
-        })
-      : Promise.resolve({ success: true as const, messages: [], canAcknowledge: false }),
-  ]);
+  const [statusHistory, assignmentOptions, initialMessagesResult] = await loadStaffClaimReads(
+    session,
+    authority,
+    id,
+    restricted
+  );
 
   const currentAssigneeLabel = findAssigneeLabel(assignmentOptions, detail.claim.staffId);
   const initialMessages = readInitialMessages(initialMessagesResult);
