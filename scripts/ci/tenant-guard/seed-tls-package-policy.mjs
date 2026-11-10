@@ -48,16 +48,71 @@ function initialAliases(manifests, resolveSpecifier, config) {
     if (resolveSpecifier(pkg.file, pkg.name).files.some(file => SEED_TLS_CLOSURE.has(file)))
       aliases.add(pkg.name);
   }
-  for (const { pattern, targets } of rules) {
-    for (const target of targets) {
-      for (const file of closureSpellings) {
-        const value = capture(path.normalize(target), file);
-        if (value !== null)
-          aliases.add(target.includes('*') ? pattern.replaceAll('*', () => value) : pattern);
-      }
+  for (const { pattern, targets } of rules)
+    for (const target of targets) addInitialAliases(aliases, pattern, target);
+  return aliases;
+}
+
+function addInitialAliases(aliases, pattern, target) {
+  for (const file of closureSpellings) {
+    const value = capture(path.normalize(target), file);
+    if (value !== null)
+      aliases.add(target.includes('*') ? pattern.replaceAll('*', () => value) : pattern);
+  }
+}
+
+function mappingValues(target, pkg, publicAliases, privateAliases) {
+  if (target.startsWith('.')) return closureSpellings;
+  if (target.startsWith('#')) return privateAliases.get(pkg.file);
+  return publicAliases;
+}
+
+function aliasCapture(pattern, value) {
+  if (value.includes('*')) return patternsOverlap(pattern, value) ? '*' : null;
+  return capture(pattern, value);
+}
+
+function mappingCaptures(mapping, publicAliases, privateAliases, resolveSpecifier) {
+  const { pkg, target } = mapping;
+  const relative = target.startsWith('.');
+  const patterns = relative ? packageTargetPaths(pkg, target) : [target];
+  const values = mappingValues(target, pkg, publicAliases, privateAliases);
+  const captures = patterns
+    .flatMap(pattern => [...values].map(value => aliasCapture(pattern, value)))
+    .filter(value => value !== null);
+  if (
+    !target.includes('*') &&
+    resolveSpecifier(pkg.file, target).files.some(file => SEED_TLS_CLOSURE.has(file))
+  )
+    captures.push('');
+  return captures;
+}
+
+function propagateAliases(mapping, captures, publicAliases, privateAliases) {
+  const { pkg, field, key, target } = mapping;
+  let changed = false;
+  for (const value of captures) {
+    // A constant target leaves every key capture unconstrained; retain the pattern.
+    const alias = target.includes('*') ? key.replaceAll('*', () => value) : key;
+    const aliases = field === 'imports' ? privateAliases.get(pkg.file) : publicAliases;
+    if (field === 'exports' && !pkg.name) continue;
+    let name = alias;
+    if (field !== 'imports') name = pkg.name + (alias === '.' ? '' : alias.slice(1));
+    if (!aliases.has(name)) {
+      aliases.add(name);
+      changed = true;
     }
   }
-  return aliases;
+  return changed;
+}
+
+function checkAliasBounds(rounds, publicAliases, privateAliases) {
+  if (
+    rounds > 128 ||
+    publicAliases.size > 20000 ||
+    [...privateAliases.values()].reduce((sum, aliases) => sum + aliases.size, 0) > 20000
+  )
+    throw new Error('incomplete: seed package alias bound exceeded');
 }
 
 export function seedPackageViolations(manifests, resolveSpecifier, config = {}) {
@@ -70,54 +125,16 @@ export function seedPackageViolations(manifests, resolveSpecifier, config = {}) 
   let changed = true;
   let rounds = 0;
   while (changed) {
-    if (
-      ++rounds > 128 ||
-      publicAliases.size > 20000 ||
-      [...privateAliases.values()].reduce((sum, aliases) => sum + aliases.size, 0) > 20000
-    )
-      throw new Error('incomplete: seed package alias bound exceeded');
+    checkAliasBounds(++rounds, publicAliases, privateAliases);
     changed = false;
     for (const mapping of mappings) {
-      const { pkg, field, key, target } = mapping;
-      const relative = target.startsWith('.');
-      const patterns = relative ? packageTargetPaths(pkg, target) : [target];
-      const values = relative
-        ? closureSpellings
-        : target.startsWith('#')
-          ? privateAliases.get(pkg.file)
-          : publicAliases;
-      const captures = patterns
-        .flatMap(pattern =>
-          [...values].map(value =>
-            value.includes('*')
-              ? patternsOverlap(pattern, value)
-                ? '*'
-                : null
-              : capture(pattern, value)
-          )
-        )
-        .filter(value => value !== null);
-      if (
-        !target.includes('*') &&
-        resolveSpecifier(pkg.file, target).files.some(file => SEED_TLS_CLOSURE.has(file))
-      )
-        captures.push('');
+      const captures = mappingCaptures(mapping, publicAliases, privateAliases, resolveSpecifier);
       if (!captures.length) continue;
       refused.add(mapping);
-      for (const value of captures) {
-        // A constant target leaves every key capture unconstrained. Propagate the pattern
-        // conservatively, rather than silently choosing the empty capture.
-        const alias = target.includes('*') ? key.replaceAll('*', () => value) : key;
-        const aliases = field === 'imports' ? privateAliases.get(pkg.file) : publicAliases;
-        if (field === 'exports' && !pkg.name) continue;
-        const name = field === 'imports' ? alias : pkg.name + (alias === '.' ? '' : alias.slice(1));
-        if (!aliases.has(name)) {
-          aliases.add(name);
-          changed = true;
-        }
-      }
+      if (propagateAliases(mapping, captures, publicAliases, privateAliases)) changed = true;
     }
   }
+
   return [...refused].map(({ pkg, field, target }) => ({
     rule: 'R-a',
     file: pkg.file,

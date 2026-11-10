@@ -3,6 +3,7 @@ import path from 'node:path/posix';
 import test from 'node:test';
 import { KERNEL, run } from './tenant-guard-test-support.mjs';
 import * as manifest from './tenant-guard/manifest.mjs';
+import { byCodeUnit } from './tenant-guard/rules-digest.mjs';
 
 const TLS = 'packages/database/src/seed-target-tls.ts';
 const GUARD = 'packages/database/src/seed-target-guard.ts';
@@ -48,7 +49,7 @@ function refused(result, file) {
 }
 
 test('seed closure is the exact finite main importer set, with no unscanned pilot claims', () => {
-  assert.deepEqual([...manifest.SEED_TLS_CLOSURE].sort(), [...CLOSURE].sort());
+  assert.deepEqual([...manifest.SEED_TLS_CLOSURE].sort(byCodeUnit), [...CLOSURE].sort(byCodeUnit));
 });
 
 test('only the exact seed TLS module gains a driver admission', () => {

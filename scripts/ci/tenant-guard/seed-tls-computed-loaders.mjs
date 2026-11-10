@@ -49,47 +49,53 @@ function memberKind(base, member) {
   return kind;
 }
 
+function unboundKind(node) {
+  if (node.text === 'require') return REQUIRE;
+  if (node.text === 'module') return MODULE;
+  return ['globalThis', 'global'].includes(node.text) ? GLOBAL : 0;
+}
+
+function identifierKind(node, references, seen) {
+  const reference = references.get(node);
+  if (!reference) return 0;
+  const { binding } = reference;
+  if (!binding) return unboundKind(node);
+  if (binding.kind === 'import' && ['module', 'node:module'].includes(binding.specifier))
+    return binding.imported === 'createRequire' ? FACTORY : MODULE;
+  const declaration = binding.decl;
+  if (!ts.isVariableDeclaration(declaration)) return 0;
+  let base = loaderKind(declaration.initializer, references, new Set(seen));
+  for (const value of assignments(references).get(binding) ?? [])
+    base |= loaderKind(value, references, new Set(seen));
+  if (ts.isObjectBindingPattern(declaration.name)) {
+    const element = binding.id.parent;
+    return memberKind(base, (element.propertyName ?? element.name).text);
+  }
+  return base;
+}
+
+function callKind(node, references, seen) {
+  const kind = loaderKind(node.expression, references, seen);
+  let result = kind & FACTORY ? REQUIRE : 0;
+  if (
+    (kind & REQUIRE || node.expression.kind === ts.SyntaxKind.ImportKeyword) &&
+    node.arguments[0] &&
+    ts.isStringLiteralLike(node.arguments[0]) &&
+    ['module', 'node:module'].includes(node.arguments[0].text)
+  )
+    result |= MODULE;
+  return result;
+}
+
 // Follow lexical aliases only; a local function named require is not a Node loader.
 function loaderKind(node, references, seen = new Set()) {
   node = unwrap(node);
   if (!node || seen.has(node)) return 0;
   seen.add(node);
-  if (ts.isIdentifier(node)) {
-    const reference = references.get(node);
-    if (!reference) return 0;
-    const { binding } = reference;
-    if (!binding) {
-      if (node.text === 'require') return REQUIRE;
-      if (node.text === 'module') return MODULE;
-      return ['globalThis', 'global'].includes(node.text) ? GLOBAL : 0;
-    }
-    if (binding.kind === 'import' && ['module', 'node:module'].includes(binding.specifier))
-      return binding.imported === 'createRequire' ? FACTORY : MODULE;
-    const declaration = binding.decl;
-    if (!ts.isVariableDeclaration(declaration)) return 0;
-    let base = loaderKind(declaration.initializer, references, new Set(seen));
-    for (const value of assignments(references).get(binding) ?? [])
-      base |= loaderKind(value, references, new Set(seen));
-    if (ts.isObjectBindingPattern(declaration.name)) {
-      const element = binding.id.parent;
-      return memberKind(base, (element.propertyName ?? element.name).text);
-    }
-    return base;
-  }
+  if (ts.isIdentifier(node)) return identifierKind(node, references, seen);
   if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node))
     return memberKind(loaderKind(node.expression, references, seen), loaderMember(node));
-  if (ts.isCallExpression(node)) {
-    const kind = loaderKind(node.expression, references, seen);
-    let result = kind & FACTORY ? REQUIRE : 0;
-    if (
-      (kind & REQUIRE || node.expression.kind === ts.SyntaxKind.ImportKeyword) &&
-      node.arguments[0] &&
-      ts.isStringLiteralLike(node.arguments[0]) &&
-      ['module', 'node:module'].includes(node.arguments[0].text)
-    )
-      result |= MODULE;
-    return result;
-  }
+  if (ts.isCallExpression(node)) return callKind(node, references, seen);
   if (ts.isConditionalExpression(node))
     return (
       loaderKind(node.whenTrue, references, new Set(seen)) |

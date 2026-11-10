@@ -44,15 +44,15 @@ function symbolKey(node, references) {
   const initializer = unwrap(declaration.initializer);
   if (!initializer || !ts.isCallExpression(initializer)) return false;
   const callee = initializer.expression;
-  const symbol =
-    ts.isIdentifier(callee) && callee.text === 'Symbol'
-      ? callee
-      : ts.isPropertyAccessExpression(callee) &&
-          callee.name.text === 'for' &&
-          ts.isIdentifier(callee.expression) &&
-          callee.expression.text === 'Symbol'
-        ? callee.expression
-        : null;
+  let symbol = null;
+  if (ts.isIdentifier(callee) && callee.text === 'Symbol') symbol = callee;
+  else if (
+    ts.isPropertyAccessExpression(callee) &&
+    callee.name.text === 'for' &&
+    ts.isIdentifier(callee.expression) &&
+    callee.expression.text === 'Symbol'
+  )
+    symbol = callee.expression;
   return symbol !== null && !references.get(symbol)?.binding;
 }
 
