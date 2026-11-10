@@ -40,7 +40,10 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
           </h2>
           <p className="text-muted-foreground mt-1">{t('description')}</p>
         </div>
-        <Button asChild className="h-auto min-h-10 max-w-full whitespace-normal">
+        <Button
+          asChild
+          className="h-auto min-h-10 max-w-full whitespace-normal focus-visible:ring-inset focus-visible:ring-offset-0"
+        >
           <Link href="/member/claims/new" data-testid="create-claim-button">
             <Plus className="mr-2 h-4 w-4 shrink-0" />
             {t('new')}

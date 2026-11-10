@@ -79,7 +79,7 @@ export default async function HelpPage({ params, searchParams }: Props) {
           <CardContent className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-3">
             <Button
               variant="outline"
-              className="h-auto min-h-24 min-w-0 max-w-full flex-col gap-2 whitespace-normal"
+              className="h-auto min-h-24 min-w-0 max-w-full flex-col gap-2 whitespace-normal md:h-24"
               asChild
             >
               <a href="tel:+38349900600">
@@ -91,7 +91,7 @@ export default async function HelpPage({ params, searchParams }: Props) {
 
             <Button
               variant="outline"
-              className="h-auto min-h-24 min-w-0 max-w-full flex-col gap-2 whitespace-normal"
+              className="h-auto min-h-24 min-w-0 max-w-full flex-col gap-2 whitespace-normal md:h-24"
               asChild
             >
               <a href="mailto:info@interdomestik.com">
@@ -103,7 +103,7 @@ export default async function HelpPage({ params, searchParams }: Props) {
 
             <Button
               variant="outline"
-              className="h-auto min-h-24 min-w-0 max-w-full flex-col gap-2 whitespace-normal"
+              className="h-auto min-h-24 min-w-0 max-w-full flex-col gap-2 whitespace-normal md:h-24"
               asChild
             >
               <a href="https://wa.me/38349900600" target="_blank" rel="noopener noreferrer">
