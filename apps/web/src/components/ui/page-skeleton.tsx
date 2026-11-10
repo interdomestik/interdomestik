@@ -1,12 +1,11 @@
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
-import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 import styles from './page-skeleton.module.css';
 
 type SkeletonVariant = 'list' | 'detail' | 'dashboard';
 
-type PageSkeletonProps = Readonly<{
+export type PageSkeletonProps = Readonly<{
   title: string;
   loadingLabel: string;
   variant: SkeletonVariant;
@@ -103,30 +102,5 @@ export function PageSkeleton({
         </div>
       </div>
     </div>
-  );
-}
-
-/** Uses the enclosing role shell's locale, without reading route data. */
-export function LocalizedPageSkeleton({
-  titleKey,
-  variant,
-  testId,
-  titleSize,
-}: Readonly<{
-  titleKey: string;
-  variant: SkeletonVariant;
-  testId?: string;
-  titleSize?: PageSkeletonProps['titleSize'];
-}>): ReactElement {
-  const t = useTranslations();
-
-  return (
-    <PageSkeleton
-      title={t(titleKey)}
-      loadingLabel={t('common.loading')}
-      variant={variant}
-      testId={testId}
-      titleSize={titleSize}
-    />
   );
 }

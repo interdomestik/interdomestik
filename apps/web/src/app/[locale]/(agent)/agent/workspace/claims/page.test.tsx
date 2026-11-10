@@ -1,4 +1,4 @@
-import { LocalizedPageSkeleton } from '@/components/ui/page-skeleton';
+import { LocalizedPageSkeleton } from '@/components/ui/localized-page-skeleton';
 import enAgent from '@/messages/en/agent.json';
 import enCommon from '@/messages/en/common.json';
 import sqAgent from '@/messages/sq/agent.json';

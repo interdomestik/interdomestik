@@ -7,7 +7,8 @@ import en from '@/messages/en/common.json';
 import mk from '@/messages/mk/common.json';
 import sq from '@/messages/sq/common.json';
 import sr from '@/messages/sr/common.json';
-import { LocalizedPageSkeleton, PageSkeleton } from './page-skeleton';
+import { LocalizedPageSkeleton } from './localized-page-skeleton';
+import { PageSkeleton } from './page-skeleton';
 import styles from './page-skeleton.module.css';
 
 vi.unmock('next-intl');
@@ -49,6 +50,26 @@ describe.each(['list', 'detail', 'dashboard'] as const)('%s page skeleton', vari
 });
 
 describe('LocalizedPageSkeleton', () => {
+  it('follows the enclosing client provider when the locale changes', () => {
+    const { rerender } = render(
+      <NextIntlClientProvider locale="sq" messages={sq}>
+        <LocalizedPageSkeleton titleKey="common.admin" variant="list" testId="skeleton" />
+      </NextIntlClientProvider>
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent(sq.common.loading);
+    rerender(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <LocalizedPageSkeleton titleKey="common.admin" variant="list" testId="skeleton" />
+      </NextIntlClientProvider>
+    );
+
+    expect(screen.getByRole('heading', { name: en.common.admin })).toBeInTheDocument();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent(en.common.loading);
+    expect(screen.getByTestId('skeleton')).toContainElement(screen.getByRole('status'));
+  });
+
   it('matches pages with larger headings when requested', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>

@@ -1,4 +1,4 @@
-import { LocalizedPageSkeleton } from '@/components/ui/page-skeleton';
+import { LocalizedPageSkeleton } from '@/components/ui/localized-page-skeleton';
 import { AgentClaimsProPage } from '@/features/agent/claims/components/AgentClaimsProPage';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 
