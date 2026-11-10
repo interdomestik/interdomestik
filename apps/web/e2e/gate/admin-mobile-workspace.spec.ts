@@ -226,11 +226,11 @@ test('admin drawer, claims list and same-case detail reflow without covering con
   await composer.fill('');
 });
 
-test('branch-manager claim detail keeps messaging, evidence and handling read-only', async ({
+test('branch-manager claim detail shows only communication summaries and read-only controls', async ({
   branchManagerPage: page,
 }, info) => {
   test.setTimeout(120_000);
-  const { claim } = seededCase(info);
+  const { claim, thread } = seededCase(info);
   const locale = routes.getLocale(info) as keyof typeof catalogs;
   const copy = catalogs[locale].admin.claims_page;
   await initializeConsent(page);
@@ -244,12 +244,26 @@ test('branch-manager claim detail keeps messaging, evidence and handling read-on
     marker: 'admin-page-ready',
   });
   const detail = page.locator('[data-admin-claim-detail]').filter({ visible: true });
-  await expect(detail.getByTestId('messaging-panel')).toBeVisible();
+  const summary = detail.getByTestId('claim-message-summary');
+  const messageContents = Object.values(thread).flatMap(message =>
+    message ? [message.row.content] : []
+  );
   for (const width of widths) {
     await page.setViewportSize({ width, height: 844 });
-    for (const marker of ['message-input', 'send-message-button']) {
+    await expect(summary).toBeVisible();
+    await expect(summary.getByTestId('claim-message-summary-count')).toHaveText(/^\d+$/);
+    for (const content of messageContents) await expect(detail).not.toContainText(content);
+    for (const marker of ['messaging-panel', 'message-input', 'send-message-button']) {
       await expect(detail.getByTestId(marker)).toHaveCount(0);
     }
+    const refresh = summary.getByRole('button');
+    await expect(refresh).toHaveAccessibleName(/\S/);
+    await refresh.focus();
+    await expect(refresh).toBeFocused();
+    await expectEnabledAndUncovered(refresh);
+    const refreshBox = await refresh.boundingBox();
+    expect(refreshBox?.height).toBeGreaterThanOrEqual(24);
+    expect(refreshBox?.width).toBeGreaterThanOrEqual(24);
     await expect(detail.getByRole('combobox')).toHaveCount(0);
     await expect(detail.locator('form, input[type="file"]')).toHaveCount(0);
     await expect(detail.locator('[data-admin-claim-evidence]').getByRole('button')).toHaveCount(0);

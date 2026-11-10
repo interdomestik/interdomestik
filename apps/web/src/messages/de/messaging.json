@@ -41,6 +41,22 @@
       "retry": "Nachrichten erneut laden",
       "statusError": "Nachrichten werden angezeigt, aber ihr Lesestatus konnte nicht aktualisiert werden."
     },
-    "publicAudience": "Sichtbar für das Mitglied und das Fallteam."
+    "publicAudience": "Sichtbar für das Mitglied und das Fallteam.",
+    "branchManager": {
+      "title": "Kommunikationsübersicht zum Fall",
+      "restriction": "Inhalte von Nachrichten und Fallnotizen sind für Filialleitungen gesperrt.",
+      "count": "Alle Nachrichten",
+      "lastMessageAt": "Letzte Nachricht",
+      "awaitingReply": "Antwort des Teams ausstehend",
+      "yes": "Ja",
+      "no": "Nein",
+      "noTimestamp": "Kein Zeitstempel verfügbar",
+      "empty": "Noch keine Einträge.",
+      "unavailable": "Diese Übersicht ist für diesen Fall nicht verfügbar.",
+      "failed": "Die Übersicht konnte nicht geladen werden. Bitte erneut versuchen.",
+      "retry": "Übersicht aktualisieren",
+      "loading": "Wird aktualisiert…",
+      "history": "Statusverlauf"
+    }
   }
 }

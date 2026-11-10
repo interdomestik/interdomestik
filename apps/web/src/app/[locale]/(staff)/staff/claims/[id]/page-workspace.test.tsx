@@ -238,10 +238,9 @@ describe('staff case workspace hierarchy', () => {
     expect(screen.queryByTestId('staff-claim-messaging-panel')).not.toBeInTheDocument();
     expect(screen.getByTestId('staff-claim-detail-member')).toBeInTheDocument();
     expect(screen.getByTestId('staff-claim-detail-agent')).toBeInTheDocument();
-    expect(hoisted.getPublicStatusHistoryCoreMock).toHaveBeenCalledWith({
-      claimId: 'claim-1',
-      authority: hoisted.current.authority,
-    });
+    expect(hoisted.getPublicStatusHistoryCoreMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('claim-message-summary')).toBeInTheDocument();
+    expect(screen.queryByTestId('staff-claim-detail-note')).not.toBeInTheDocument();
   });
 
   it('preserves the authorized reads and their argument shape', async () => {
