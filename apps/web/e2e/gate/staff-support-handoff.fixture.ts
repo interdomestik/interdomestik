@@ -17,7 +17,7 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 export function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 export async function cleanupHandoffBySubject(subject: string): Promise<void> {

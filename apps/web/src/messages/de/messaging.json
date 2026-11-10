@@ -61,7 +61,7 @@
         "title": "Übergabedaten",
         "restriction": "Nachrichten- und Notizinhalte sind eingeschränkt. Es werden nur Übergabedaten angezeigt.",
         "search": "Nach Übergabe-ID, Zuständigkeit oder Filiale suchen",
-        "status": "Status",
+        "status": "Bearbeitungsstand",
         "branch": "Filiale",
         "assignee": "Zuständig",
         "createdAt": "Erstellt",

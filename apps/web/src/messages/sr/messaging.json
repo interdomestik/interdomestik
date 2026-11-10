@@ -61,7 +61,7 @@
         "title": "Podaci o predaji",
         "restriction": "Sadržaj poruka i beležaka je ograničen. Prikazuju se samo podaci o predaji.",
         "search": "Pretražite ID predaje, zaduženu osobu ili filijalu",
-        "status": "Status",
+        "status": "Stanje",
         "branch": "Filijala",
         "assignee": "Zadužena osoba",
         "createdAt": "Kreirano",

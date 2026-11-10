@@ -19,6 +19,15 @@ vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   ),
 }));
 
+function searchableText(value: unknown): string {
+  return typeof value === 'string' || typeof value === 'number' ? String(value).toLowerCase() : '';
+}
+
+function isGreater(left: unknown, right: unknown): boolean {
+  const [a, b] = [Number(left), Number(right)];
+  return !Number.isNaN(a) && !Number.isNaN(b) && a > b;
+}
+
 /** In-memory projection model; generated SQL is also asserted, no PostgreSQL/RLS proof. */
 function transaction() {
   return {
@@ -49,9 +58,7 @@ function transaction() {
               .slice(1, -1)
               .replace(/\\(.)/g, '$1')
               .toLowerCase();
-            return String(row[m[1]]?.[m[2]] ?? '')
-              .toLowerCase()
-              .includes(pattern);
+            return searchableText(row[m[1]]?.[m[2]]).includes(pattern);
           })
         )
           return false;
@@ -59,7 +66,7 @@ function transaction() {
           if ((row[m[1]]?.[m[2]] == null) === Boolean(m[3])) return false;
         }
         for (const m of sql.matchAll(/"([^"]+)"\."([^"]+)" > \$(\d+)/g)) {
-          if (!(Number(row[m[1]]?.[m[2]]) > Number(params[Number(m[3]) - 1]))) return false;
+          if (!isGreater(row[m[1]]?.[m[2]], params[Number(m[3]) - 1])) return false;
         }
         return true;
       }
