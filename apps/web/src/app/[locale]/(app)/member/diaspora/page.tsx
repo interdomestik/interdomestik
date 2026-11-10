@@ -108,7 +108,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
         copy={packStatusCopy}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[1.35fr_0.95fr]">
         {countryContext ? (
           <Card className="rounded-[2rem] border border-slate-200/80 bg-white">
             <CardHeader className="space-y-3">
@@ -236,14 +236,16 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
               <Button
                 asChild
                 size="lg"
-                className="w-full justify-between rounded-2xl bg-emerald-500 hover:bg-emerald-600"
+                className="h-auto min-h-11 w-full flex-wrap justify-between gap-x-3 gap-y-1 whitespace-normal rounded-2xl px-4 py-2 text-left sm:px-8 bg-emerald-500 hover:bg-emerald-600"
               >
                 <a href={contacts.telHref}>
-                  <span className="flex items-center gap-2">
-                    <Phone className="h-4 w-4" />
+                  <span className="flex min-w-0 items-center gap-2 break-words">
+                    <Phone className="h-4 w-4 shrink-0" />
                     {t('actions.support')}
                   </span>
-                  <span className="text-sm font-semibold">{contacts.phoneDisplay}</span>
+                  <span className="shrink-0 whitespace-nowrap text-sm font-semibold">
+                    {contacts.phoneDisplay}
+                  </span>
                 </a>
               </Button>
 
@@ -252,11 +254,11 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
                   asChild
                   size="lg"
                   variant="outline"
-                  className="w-full justify-between rounded-2xl border-slate-700 bg-transparent text-white hover:bg-slate-900"
+                  className="h-auto min-h-11 w-full flex-wrap justify-between gap-x-3 gap-y-1 whitespace-normal rounded-2xl px-4 py-2 text-left sm:px-8 border-slate-700 bg-transparent text-white hover:bg-slate-900"
                 >
                   <a href={contacts.whatsappHref} target="_blank" rel="noopener noreferrer">
                     <span>{t('actions.whatsapp')}</span>
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-4 w-4 shrink-0" />
                   </a>
                 </Button>
               ) : null}
@@ -266,11 +268,11 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
                   asChild
                   size="lg"
                   variant="secondary"
-                  className="w-full justify-between rounded-2xl"
+                  className="h-auto min-h-11 w-full flex-wrap justify-between gap-x-3 gap-y-1 whitespace-normal rounded-2xl px-4 py-2 text-left sm:px-8"
                 >
                   <Link href={buildClaimStartHref(countryContext.code)}>
                     <span>{t('actions.claim')}</span>
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-4 w-4 shrink-0" />
                   </Link>
                 </Button>
               ) : null}

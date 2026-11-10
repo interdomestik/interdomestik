@@ -66,7 +66,7 @@ describe('staff message read recovery', () => {
     'reaches a truthful empty conversation from %s only after a successful retry',
     async (_label, arrange) => {
       arrange();
-      read.mockResolvedValueOnce({ success: true, messages: [] });
+      read.mockResolvedValueOnce({ success: true, canAcknowledge: true, messages: [] });
 
       renderPanel(STAFF_PANEL);
 
@@ -84,6 +84,7 @@ describe('staff message read recovery', () => {
   it('keeps loaded history and the editable draft when a refresh fails', async () => {
     read.mockResolvedValueOnce({
       success: true,
+      canAcknowledge: true,
       messages: [buildMessage({ content: 'Policy document received' })],
     });
 
@@ -114,6 +115,7 @@ describe('staff message read recovery', () => {
   ])('separates %s read receipt from the retrieval outcome', async (_label, arrange) => {
     read.mockResolvedValue({
       success: true,
+      canAcknowledge: true,
       messages: [buildMessage({ content: 'Member reply' })],
     });
     arrange();
@@ -140,7 +142,7 @@ describe('staff message read recovery', () => {
     await waitFor(() => expect(panel).toHaveAttribute('aria-busy', 'true'));
 
     await act(async () => {
-      held.resolve({ success: true, messages: [] });
+      held.resolve({ success: true, canAcknowledge: true, messages: [] });
     });
 
     expect(panel).toHaveAttribute('aria-busy', 'false');
@@ -160,7 +162,7 @@ describe('staff message read recovery', () => {
   });
 
   it('preserves readOnly and internal-note composition', async () => {
-    read.mockResolvedValue({ success: true, messages: [] });
+    read.mockResolvedValue({ success: true, canAcknowledge: true, messages: [] });
 
     const { rerenderPanel } = renderPanel(STAFF_PANEL);
 

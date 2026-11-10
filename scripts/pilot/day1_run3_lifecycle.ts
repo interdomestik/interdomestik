@@ -1,18 +1,19 @@
-import {
-  claims,
-  claimMessages,
-  claimStageHistory,
-  notifications,
-  claimDocuments,
-  claimEscalationAgreements,
-  claimLifecycleFieldsForStatus,
-  db,
-  eq,
-  user,
-} from '@interdomestik/database';
 import crypto from 'node:crypto';
+import { importPilotDatabase } from './import-pilot-database';
 
 async function main() {
+  const {
+    claims,
+    claimMessages,
+    claimStageHistory,
+    notifications,
+    claimDocuments,
+    claimEscalationAgreements,
+    claimLifecycleFieldsForStatus,
+    db,
+    eq,
+    user,
+  } = await importPilotDatabase();
   console.log('[Seeder Run3] Connecting to Database...');
 
   const staffEmail = 'staff.ks.extra@plan070.example.invalid';

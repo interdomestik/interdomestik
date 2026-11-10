@@ -89,14 +89,14 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
             const docs = documentsByClaim[claim.id] ?? [];
             return (
               <Card key={claim.id} data-testid={`member-documents-claim-${claim.id}`}>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-base">
+                <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <CardTitle className="break-words text-base">
                       {claim.title || tDocs('claimFallback')}
                     </CardTitle>
                     <Badge variant="outline">{tDocs('filesCount', { count: docs.length })}</Badge>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <ClaimEvidenceUploadDialog
                       claimId={claim.id}
                       trigger={

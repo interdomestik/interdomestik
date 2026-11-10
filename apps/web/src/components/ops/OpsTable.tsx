@@ -66,6 +66,10 @@ export function OpsTable({
   const isMobile = useIsMobile();
   const colCount = columns.length + (actionsHeader ? 1 : 0);
   const ScrollContainer = scrollLabel ? 'section' : 'div';
+  // Only a labelled region takes over scrolling from the table's own wrapper.
+  const scrollClasses = scrollLabel
+    ? 'max-w-full overflow-x-auto [&>div]:overflow-visible'
+    : 'overflow-x-auto';
   const containerClasses = ['rounded-md border bg-card/50 backdrop-blur-sm', containerClassName]
     .filter(Boolean)
     .join(' ');
@@ -81,8 +85,9 @@ export function OpsTable({
   return (
     <div className={containerClasses} data-testid={OPS_TEST_IDS.TABLE.ROOT}>
       <ScrollContainer
-        className="max-w-full overflow-x-auto [&>div]:overflow-visible"
+        className={scrollClasses}
         aria-label={scrollLabel}
+        tabIndex={scrollLabel ? 0 : undefined}
       >
         <Table className="min-w-max">
           <TableHeader>

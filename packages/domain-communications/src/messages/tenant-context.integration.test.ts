@@ -11,6 +11,7 @@ import {
   registerMessageRlsFixture,
 } from './tenant-context.integration-fixture';
 import { asActor } from './message-rls-actors.test-support';
+import { registerRecipientBatchCases } from './message-recipient.test-support';
 import { E2E_USERS } from '../../../database/src/e2e-users';
 const memberAuthority = () =>
   mintTestTenantAuthority(homeTenantId, { userId: ids.member, role: 'member' });
@@ -67,6 +68,7 @@ describe('message fixture database safety', () => {
 
 suite('message operations on a real NOBYPASSRLS connection', () => {
   registerMessageRlsFixture();
+  registerRecipientBatchCases();
   it('loads the owned public thread and sender projection across repeated reads', async () => {
     const [unscoped] = await fixture.database.dbRls.execute(
       fixture.database.sql`select count(*)::int as count from claim where id=${ids.claim}`

@@ -1,4 +1,4 @@
-import { assertSeedTargetAllowed } from '../seed-target-guard';
+import { assertSeedTargetAllowed, importSeedDatabase } from '../seed-target-guard';
 import { cleanupByPrefixes } from '../seed-utils/cleanup';
 import { agentCapturedLead } from '../seed-utils/lead-consent';
 import { hashPassword } from '../seed-utils/hash-password';
@@ -14,7 +14,7 @@ const KS_PACK_RANDOM_SEED = 0x6b_73_20_26;
 export async function seedKsWorkflowPack(config: SeedConfig) {
   assertSeedTargetAllowed(process.env);
   console.log('🇽🇰 Seeding Kosovo Workflow Pack (Overlay)...');
-  const { db } = await import('../db');
+  const { db } = await importSeedDatabase();
   const schema = await import('../schema');
   const { at } = config;
   const random = createSeededRandom(KS_PACK_RANDOM_SEED);
@@ -92,8 +92,6 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
   console.log('👥 Seeding Pack Users...');
   const PACK_PASSWORD = E2E_PASSWORD;
   const hashedPass = hashPassword(PACK_PASSWORD);
-  // Separate admin password for clarity or reuse
-  const ADMIN_PASS = hashPassword('AdminPassword123!');
 
   const ALBANIAN_NAMES = [
     'Arianit Gashi',

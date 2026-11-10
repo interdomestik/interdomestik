@@ -1,5 +1,5 @@
 import { PgDialect } from 'drizzle-orm/pg-core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   buildAccessibleClaimIdsSubquery,
@@ -80,4 +80,20 @@ describe('scoped staff message access excludes member drafts', () => {
     for (const sql of rendered) expect(sql).toMatch(/"case_lifecycle_state" <> \$\d+/);
     expect(params.filter(value => value === 'draft')).toHaveLength(2);
   });
+
+  it.each(['auditor', 'unknown', 'branch_manager', null, undefined])(
+    'makes the denied %s subquery unsatisfiable, including for a claim named __forbidden__',
+    role => {
+      const where = vi.fn();
+      buildAccessibleClaimIdsSubquery({
+        role,
+        tenantId: 'tenant-1',
+        userId: 'owner-1',
+        tx: { select: () => ({ from: () => ({ where }) }) } as never,
+      });
+      const query = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
+      expect(query.sql).toMatch(/"id" <> .*"id"/);
+      expect(query.params).toEqual(['tenant-1']);
+    }
+  );
 });

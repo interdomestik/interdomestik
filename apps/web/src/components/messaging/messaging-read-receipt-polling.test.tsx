@@ -71,7 +71,7 @@ describe('staff message read receipts outliving the automatic poll', () => {
     vi.clearAllMocks();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
     receipt.mockResolvedValue({ success: true });
-    read.mockResolvedValue({ success: true, messages: [] });
+    read.mockResolvedValue({ success: true, canAcknowledge: true, messages: [] });
   });
 
   afterEach(() => {
@@ -82,6 +82,7 @@ describe('staff message read receipts outliving the automatic poll', () => {
   it('surfaces the failure of a receipt slower than several automatic poll ticks', async () => {
     read.mockResolvedValueOnce({
       success: true,
+      canAcknowledge: true,
       messages: [buildMessage({ id: 'msg-unread', content: 'Unread member reply' })],
     });
     const gate = gateReceipt();
@@ -119,6 +120,7 @@ describe('staff message read receipts outliving the automatic poll', () => {
   it('starts no duplicate retrieval or receipt while a receipt is outstanding', async () => {
     read.mockResolvedValueOnce({
       success: true,
+      canAcknowledge: true,
       messages: [buildMessage({ id: 'msg-unread', content: 'Unread member reply' })],
     });
     const gate = gateReceipt();
@@ -192,10 +194,12 @@ describe('staff message read receipts outliving the automatic poll', () => {
     read
       .mockResolvedValueOnce({
         success: true,
+        canAcknowledge: true,
         messages: [buildMessage({ id: 'msg-unread', content: 'Unread member reply' })],
       })
       .mockResolvedValueOnce({
         success: true,
+        canAcknowledge: true,
         messages: [
           buildMessage({
             id: 'msg-manual',
@@ -243,6 +247,7 @@ describe('staff message read receipts outliving the automatic poll', () => {
   it('drops an outstanding receipt on unmount and starts nothing further', async () => {
     read.mockResolvedValueOnce({
       success: true,
+      canAcknowledge: true,
       messages: [buildMessage({ id: 'msg-unread', content: 'Unread member reply' })],
     });
     const gate = gateReceipt();
