@@ -178,3 +178,38 @@ test('encoded, multihost or IPv6 fallback hosts never borrow an exemption', () =
     }
   }
 });
+
+test('the target is the host the driver connects to, never an ignored fallback', () => {
+  const confirm = (target: string) => ({
+    SEED_TARGET_CONFIRM: `plan070:${target}`,
+    PGUSER: 'fixture',
+  });
+  const cases: TargetEnvironment[] = [
+    { ...confirm('ci-postgres'), DATABASE_URL: 'postgres:///db', PGHOSTADDR: 'ci-postgres' },
+    {
+      ...confirm('ci-postgres'),
+      DATABASE_URL: 'postgres://fixture@ci-postgres/db',
+      DATABASE_URL_RLS: 'postgres:///db',
+    },
+    {
+      ...confirm('ci-postgres'),
+      DATABASE_URL: 'postgres:///db',
+      DATABASE_URL_RLS: 'postgres://fixture@ci-postgres/db',
+    },
+  ];
+  // String.replace patterns in the driver's host rewrite would change the connected host.
+  for (const pattern of ["$'", '$&', '$$', '$`']) {
+    for (const key of ['DATABASE_URL', 'DATABASE_URL_RLS']) {
+      const url = `postgres://fixture@remote.example.net${pattern}.invalid/db`;
+      cases.push({
+        ...confirm(`remote.example.net${pattern}.invalid`),
+        DATABASE_URL: 'postgres://fixture@remote.example.net/db',
+        E2E_PASSWORD: strongOverride,
+        [key]: url,
+      });
+    }
+  }
+  for (const env of cases) {
+    assert.throws(() => assertSeedTargetAllowed(env, strongOverride), /refused: ambiguous$/);
+  }
+});

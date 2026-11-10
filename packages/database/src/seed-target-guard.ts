@@ -3,7 +3,8 @@ import { DEFAULT_E2E_PASSWORD, E2E_PASSWORD } from './e2e-users';
 const PRODUCTION_PROJECT_REF = 'gunosplgrvnvrftudttr';
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1']);
 // postgres 3.4.9 uses host names literally and splits them on ',' and ':' (IPv6 unsupported).
-const NON_LITERAL_HOST = /[%,/\s:[\]@#\\]/;
+// '$' would act as a String.replace pattern inside its URL host rewrite.
+const NON_LITERAL_HOST = /[%,/\s:[\]@#\\$]/;
 // postgres 3.4.9 parseOptions: these affect transport, not startup identity.
 const TRANSPORT_QUERY_KEYS = new Set([
   'ssl',
@@ -107,8 +108,10 @@ function unique(values: string[]): string | undefined {
 
 function databaseTarget(url: URL, env: SeedEnvironment): string {
   if (!['postgres:', 'postgresql:'].includes(url.protocol)) refuse('invalid');
-  // Never decode hosts: the driver connects to the literal URL host, else PGHOST.
-  const hosts = [url.hostname, env.PGHOST, env.PGHOSTADDR]
+  // Never decode hosts. The driver connects to the literal URL host, else PGHOST, else localhost;
+  // it ignores PGHOSTADDR, which may therefore only agree with that host.
+  const driverHost = url.hostname || env.PGHOST || 'localhost';
+  const hosts = [driverHost, url.hostname, env.PGHOST, env.PGHOSTADDR]
     .filter((value): value is string => Boolean(value))
     .map(literalHost);
   const users = present([url.username, env.PGUSERNAME, env.PGUSER]);
@@ -138,7 +141,7 @@ function assertDriverAuthority(raw: string, url: URL): void {
   const authority = raw.slice(raw.indexOf('://') + 3).split(/[?/]/)[0];
   const parts = authority.split('@');
   const host = parts.at(-1) ?? '';
-  if (parts.length > 2 || /[,%]/.test(host)) refuse('ambiguous');
+  if (parts.length > 2 || /[,%$]/.test(host)) refuse('ambiguous');
   if (host.replace(/:\d*$/, '').toLowerCase() !== url.hostname.toLowerCase()) refuse('ambiguous');
 }
 
