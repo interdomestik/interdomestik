@@ -1,3 +1,5 @@
+import { bindSeedTarget, type SeedDriverTarget } from './seed-target-binding';
+export { resetSeedTargetBindingForTests } from './seed-target-binding';
 import { DEFAULT_E2E_PASSWORD, E2E_PASSWORD } from './e2e-users';
 
 const PRODUCTION_PROJECT_REF = 'gunosplgrvnvrftudttr';
@@ -5,7 +7,7 @@ const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1']);
 // postgres 3.4.9 uses host names literally, splits them on ',' and ':' (IPv6 unsupported) and
 // rewrites the URL host with String.replace ('$' patterns); Node applies IDNA before DNS lookup.
 // Only plain ASCII host names are therefore the same name for the guard and the connection.
-const LITERAL_HOST = /^[a-z0-9.-]+$/i;
+const LITERAL_HOST = /^[a-z\d.-]+$/i;
 // postgres 3.4.9 parseOptions: these affect transport, not startup identity.
 const TRANSPORT_QUERY_KEYS = new Set([
   'ssl',
@@ -139,6 +141,17 @@ function databaseTarget(url: URL, env: SeedEnvironment): string {
   return ref ?? host;
 }
 
+// Match postgres.js parseOptions: username is decoded once, database path stays encoded.
+function driverTarget(url: URL, env: SeedEnvironment): SeedDriverTarget {
+  const user = decode(url.username) || env.PGUSERNAME || env.PGUSER || '';
+  return {
+    host: literalHost(url.hostname || env.PGHOST || 'localhost'),
+    port: Number.parseInt(url.port || env.PGPORT || '5432'),
+    user: url.searchParams.getAll('user').at(-1) ?? user,
+    database: url.pathname.slice(1) || env.PGDATABASE || user,
+  };
+}
+
 // postgres 3.4.9 parseUrl takes the host after the FIRST '@' (decoded; ',' = multihost) while
 // WHATWG URL uses the last '@'. Refuse any authority the guard and the driver could read differently.
 function assertDriverAuthority(raw: string, url: URL): void {
@@ -166,7 +179,7 @@ function assertRemoteSeedPassword(env: SeedEnvironment, effectivePassword: strin
   }
 }
 
-/** Pure preflight; all refusals expose only a classification, never credentials. */
+/** Process-bound preflight; refusals expose only a classification, never credentials. */
 export function assertSeedTargetAllowed(
   env: SeedEnvironment,
   effectivePassword: string = E2E_PASSWORD
@@ -183,10 +196,15 @@ export function assertSeedTargetAllowed(
   const targets = [target];
   if (rls) targets.push(databaseTarget(rls, env));
   unique(targets);
-  if (LOOPBACK_HOSTS.has(target)) return 'local';
+  const expected = { admin: driverTarget(database, env), rls: driverTarget(rls ?? database, env) };
+  if (LOOPBACK_HOSTS.has(target)) {
+    bindSeedTarget(env, expected);
+    return 'local';
+  }
   if (env.SEED_TARGET_CONFIRM !== `plan070:${target}`) refuse('non-local-unconfirmed');
   // Only the exact, confirmed CI host retains the local fixture-password policy.
   if (target !== 'ci-postgres') assertRemoteSeedPassword(env, effectivePassword);
+  bindSeedTarget(env, expected);
   return 'confirmed-non-local';
 }
 
@@ -198,4 +216,12 @@ export function assertSeedModeAllowed(
   if (classification !== 'local' && mode !== 'e2e' && mode !== 'golden') {
     refuse('non-local-mode');
   }
+}
+
+/** Validate both sides of module evaluation, before returning any database capability. */
+export async function importSeedDatabase(): Promise<typeof import('./db')> {
+  assertSeedTargetAllowed(process.env);
+  const database = await import('./db');
+  assertSeedTargetAllowed(process.env);
+  return database;
 }
