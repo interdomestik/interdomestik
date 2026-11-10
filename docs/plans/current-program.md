@@ -409,7 +409,7 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 - Owner decision 2026-11-10: delivery evidence is risk-tiered, per AGENTS.md "Risk-Tiered Delivery
   Evidence".
   - A trusted-base diff classification fails closed to HIGH. HIGH keeps the full local lane, run
-    last on the frozen head after hosted green and Astra YES.
+    last on the frozen head after hosted green and the independent review YES.
   - An allowlisted LOW/MEDIUM PR may rely on executed hosted evidence bound to its head and tested
     merge. That evidence needs zero flaky or retry-recovered results (setup included), a current
     base, Sonar zero new issues and an Astra YES that confirms the tier.

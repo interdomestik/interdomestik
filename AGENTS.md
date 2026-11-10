@@ -90,10 +90,12 @@ independent reviewer; missing evidence denies the exemption.
     skips.
 - Any missing, skipped, stale or uncertain required evidence, or any flake, denies the exemption.
   Required hosted checks remain mandatory.
-- Every tier requires Sonar zero new issues, Astra YES on H including its tier classification, and
-  no unresolved Codex findings.
+- Every tier requires Sonar zero new issues, an independent review YES on H that also confirms the
+  tier classification, and no unresolved Codex findings. Reviewer selection follows "Model And
+  Review Routing". The hosted-only exemption additionally requires that review from Astra. With
+  an alternative reviewer (for example on provider exhaustion), the PR takes the full local lane.
 - HIGH and fallback candidates run full `pnpm pr:verify` plus `pnpm security:guard` LAST on
-  frozen H, after hosted green and Astra YES. Blockers invalidate the affected evidence.
+  frozen H, after hosted green and the review YES. Blockers invalidate the affected evidence.
 - Instruction-only work runs the applicable plan/contracts and protected checks without a local
   runtime lane, and still receives HIGH-level independent review when it changes delivery policy.
 - Enforcement automation in the delivery gate is a separate owner-approved CI change. Explicit
