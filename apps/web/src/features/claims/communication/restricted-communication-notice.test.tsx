@@ -15,14 +15,14 @@ describe('communication notice recovery and keyboard focus', () => {
     expect(screen.getByText('failed')).toBeInTheDocument();
     await user.tab();
     const button = screen.getByRole('button', { name: 'retry' });
-    expect(button).toBeFocused();
+    expect(button).toHaveFocus();
     await user.keyboard('{Enter}');
     expect(mocks.refresh).toHaveBeenCalledOnce();
     rerender(await RestrictedCommunicationNotice({ state: 'empty' }));
-    expect(button).toBeFocused();
+    expect(button).toHaveFocus();
     expect(screen.getByText('empty')).toBeInTheDocument();
     rerender(await RestrictedCommunicationNotice({}));
-    expect(button).toBeFocused();
+    expect(button).toHaveFocus();
     expect(screen.getByText('restriction')).toBeInTheDocument();
   });
   it('keeps unavailable and failed copy distinct', async () => {
