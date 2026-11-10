@@ -19,9 +19,9 @@ import {
   SidebarMenuItem,
 } from '@interdomestik/ui';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
-import { BarChart3, ChevronUp, FileText, Inbox, LogOut, Shield } from 'lucide-react';
-import { ROLES } from '@interdomestik/shared-auth';
+import { ChevronUp, LogOut, Shield } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { buildStaffNavigation } from './staff-navigation';
 
 type StaffSidebarUser = Readonly<{
   name?: string | null;
@@ -30,26 +30,36 @@ type StaffSidebarUser = Readonly<{
   role?: string | null;
 }>;
 
+export function StaffSidebarBrand() {
+  const tNav = useTranslations('nav');
+  const tClaims = useTranslations('agent-claims.claims');
+  return (
+    <SidebarHeader>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" asChild>
+            <Link href="/staff/claims">
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <Shield className="size-4" />
+              </div>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">{tNav('staffPortal')}</span>
+                <span className="truncate text-xs">{tClaims('claims_queue')}</span>
+              </div>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarHeader>
+  );
+}
+
 function StaffSidebarInner({ user }: Readonly<{ user: StaffSidebarUser | null | undefined }>) {
   const pathname = usePathname();
   const locale = useLocale();
   const tNav = useTranslations('nav');
   const tClaims = useTranslations('agent-claims.claims');
-
-  const navItems = [
-    { title: tClaims('claims_queue'), href: '/staff/claims', icon: FileText },
-    {
-      title: tClaims('support_handoffs.nav'),
-      href: '/staff/support-handoffs',
-      icon: Inbox,
-    },
-    ...(user?.role === ROLES.staff
-      ? [
-          { title: tNav('staffCrm'), href: '/staff/crm', icon: BarChart3 },
-          { title: tNav('sponsors'), href: '/staff/sponsors', icon: Inbox },
-        ]
-      : []),
-  ];
+  const navItems = buildStaffNavigation({ role: user?.role, tNav, tClaims });
 
   const handleSignOut = async () => {
     await signOutAndRedirectToLogin({
@@ -60,23 +70,7 @@ function StaffSidebarInner({ user }: Readonly<{ user: StaffSidebarUser | null | 
 
   return (
     <Sidebar variant="inset" collapsible="icon">
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/staff/claims">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Shield className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{tNav('staffPortal')}</span>
-                  <span className="truncate text-xs">{tClaims('claims_queue')}</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+      <StaffSidebarBrand />
 
       <SidebarContent>
         <ShellNavigation
