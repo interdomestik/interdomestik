@@ -160,7 +160,7 @@ test('admin drawer, claims list and same-case detail reflow without covering con
   ).toBeVisible();
   // The KS anchor is assigned; the MK catalogue case is unassigned. Keep the existing
   // assigned-staff evidence admission instead of turning this presentation gate into a grant.
-  const staffDocuments = staffPage.getByTestId('staff-claim-documents');
+  const staffDocuments = staffPage.getByTestId('staff-claim-documents').filter({ visible: true });
   if (claim.staffId) {
     await expect(staffDocuments.getByText(document.name, { exact: true })).toBeVisible();
   } else {
@@ -188,12 +188,25 @@ test('admin drawer, claims list and same-case detail reflow without covering con
     )
     .toBe('static');
   await expectEnabledAndUncovered(composer);
+  await expectUncovered(adminMessages.locator('p.whitespace-pre-wrap').last());
+  // Pointer down blurs the composer; the yielded chrome must hold until the gesture ends, or a
+  // returning sticky header can take the pointer up. Released off Send, so nothing is sent.
+  const header = page.locator('[data-role-shell-header]');
   const send = adminMessages.getByTestId('send-message-button');
+  await composer.focus();
+  await expectEnabledAndUncovered(send);
+  const sendBox = await send.boundingBox();
+  expect(sendBox).not.toBeNull();
+  await page.mouse.move(sendBox!.x + sendBox!.width / 2, sendBox!.y + sendBox!.height / 2);
+  await page.mouse.down();
+  expect(await header.evaluate(element => getComputedStyle(element).position)).toBe('static');
+  await page.mouse.move(2, 2);
+  await page.mouse.up();
+  await expect.poll(() => header.evaluate(e => getComputedStyle(e).position)).not.toBe('static');
+  // Keyboard focus restores the chrome; the focused control must stay unobscured.
   await send.focus();
   await expect(send).toBeFocused();
   await expectEnabledAndUncovered(send);
-  await expect(page.locator('[data-role-shell-header]')).toHaveCSS('position', 'static');
-  await expectUncovered(adminMessages.locator('p.whitespace-pre-wrap').last());
   const handling = detail.locator('[data-admin-claim-handling]');
   await expect(handling).toBeVisible();
   const handlingControls = await handling.locator('button').all();
