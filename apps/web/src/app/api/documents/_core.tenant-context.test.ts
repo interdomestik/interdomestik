@@ -15,6 +15,7 @@ import { sessionAuthority, tenantContextOf } from './document-access.test-suppor
 import { getDocumentAccessCore, type DocumentAccessDeps } from './_core';
 import { lookupCrossGrantDoc } from './cross-tenant-document-lookup';
 import { hasDurableCaseScopedDocumentGrant } from './durable-case-grants';
+import { claimRow, legacyDoc } from './document-access-tenant.test-support';
 
 type SelectChain = { leftJoin: () => SelectChain; where: () => Promise<unknown[]> };
 type Session = Parameters<typeof getDocumentAccessCore>[0]['session'];
@@ -59,31 +60,6 @@ function setupLocalReads(...results: unknown[][]) {
   for (const rows of results) txDb.select.mockReturnValueOnce(rowsWhileOpen(rows));
 }
 
-function legacyDoc(overrides: Record<string, unknown> = {}) {
-  return {
-    id: 'doc-1',
-    tenantId: 'tenant-a',
-    accessTenantId: 'tenant-a',
-    claimId: 'claim-1',
-    category: 'evidence',
-    bucket: 'claim-evidence',
-    filePath: 'pii/tenants/tenant-a/claims/claim-1/doc-1.pdf',
-    uploadedBy: 'member-1',
-    name: 'evidence.pdf',
-    fileType: 'application/pdf',
-    fileSize: 1024,
-    ...overrides,
-  };
-}
-
-const claimRow = {
-  claimOwnerId: 'member-1',
-  claimBranchId: 'branch-a',
-  claimCaseLifecycleState: 'submitted',
-  claimStaffId: 'staff-1',
-  claimAgentId: null,
-};
-
 function user(id: string, role: string): Session {
   return { user: { id, role, tenantId: 'tenant-a', branchId: 'branch-a' } };
 }
@@ -104,6 +80,51 @@ beforeEach(() => {
   tenantTx.released = 0;
   vi.mocked(hasDurableCaseScopedDocumentGrant).mockResolvedValue(false);
   vi.mocked(lookupCrossGrantDoc).mockResolvedValue(null);
+});
+
+describe('D1 branch-manager content veto', () => {
+  it.each([
+    { mode: 'signed_url' as const, disposition: 'attachment' as const },
+    { mode: 'download' as const, disposition: 'inline' as const },
+    { mode: 'download' as const, disposition: 'attachment' as const },
+  ])('denies $mode/$disposition before reads, grants or storage', async options => {
+    const session = user('member-1', 'branch_manager');
+    // Apparent owner, uploader, same-branch scope and durable grants cannot override D1.
+    session.user.caseScopedAccessGrants = [
+      {
+        accessTenantId: 'tenant-a',
+        actorId: 'member-1',
+        caseId: 'claim-1',
+        documentClasses: ['legal'],
+      },
+    ];
+    const doc = legacyDoc({ category: 'legal' });
+    setupLocalReads([], [{ doc, ...claimRow }]);
+    vi.mocked(hasDurableCaseScopedDocumentGrant).mockResolvedValue(true);
+    vi.mocked(lookupCrossGrantDoc).mockResolvedValue({
+      kind: 'legacy',
+      doc: doc as never,
+      homeTenantId: 'tenant-a',
+    });
+    for (const documentId of ['doc-1', 'arbitrary-missing-document']) {
+      await expect(
+        getDocumentAccessCore({
+          authority: sessionAuthority(session),
+          deps,
+          session,
+          documentId,
+          ...options,
+        })
+      ).resolves.toEqual({ ok: false, code: 'FORBIDDEN', message: 'Forbidden' });
+    }
+    expect(runner).not.toHaveBeenCalled();
+    expect(txDb.select).not.toHaveBeenCalled();
+    expect(baseDb.select).not.toHaveBeenCalled();
+    expect(hasDurableCaseScopedDocumentGrant).not.toHaveBeenCalled();
+    expect(lookupCrossGrantDoc).not.toHaveBeenCalled();
+    expect(deps.storage.createSignedUrl).not.toHaveBeenCalled();
+    expect(deps.storage.download).not.toHaveBeenCalled();
+  });
 });
 
 describe('getDocumentAccessCore normal-tenant transaction', () => {

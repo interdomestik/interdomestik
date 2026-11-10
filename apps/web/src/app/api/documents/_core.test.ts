@@ -14,7 +14,6 @@ import {
   safeFilename,
 } from './_core';
 
-// withTenantContext opens the local transaction (`mockDb`); the base client is the fallback.
 const mockDb = { select: vi.fn() };
 const mockBaseDb = { select: vi.fn() };
 const mockStorage = { createSignedUrl: vi.fn(), download: vi.fn() };
@@ -64,7 +63,6 @@ const polymorphicDocs = {
     tenantId: 't1',
   },
 };
-
 const legacyDoc = {
   id: 'doc1',
   claimId: 'claim-1',
@@ -72,7 +70,6 @@ const legacyDoc = {
   filePath: 'path',
   uploadedBy: 'other-user',
 };
-
 type SelectMockChain = {
   where: ReturnType<typeof vi.fn>;
   leftJoin?: ReturnType<typeof vi.fn>;
@@ -83,7 +80,6 @@ function createSelectMock(result: unknown[], isLegacy = false) {
   if (isLegacy) chain.leftJoin = vi.fn().mockReturnValue(chain);
   return { from: vi.fn().mockReturnValue(chain) };
 }
-
 function setupMocks(poly: unknown[] = [], legacy: unknown[] = []) {
   mockDb.select.mockReset().mockReturnValue(createSelectMock([], true));
   mockDb.select.mockReturnValueOnce(createSelectMock(poly));
@@ -91,7 +87,6 @@ function setupMocks(poly: unknown[] = [], legacy: unknown[] = []) {
   mockBaseDb.select.mockReset().mockReturnValue(createSelectMock([]));
 }
 
-/** Queues the agent's tenant row (branch A) and its active link to the claim owner. */
 function grantAgentScope() {
   mockDb.select.mockReturnValueOnce(createSelectMock([{ branchId: 'branch-a' }]));
   mockDb.select.mockReturnValueOnce(createSelectMock([{ id: 'link-1' }]));
@@ -292,9 +287,13 @@ describe('getDocumentAccessCore Hardening', () => {
       expect((await execAccess(session, 'doc-profile')).ok).toBe(true);
     });
 
-    it('allows branch manager access within branch', async () => {
+    it('denies branch manager document access within branch', async () => {
       setupMocks([polymorphicDocs.claim], [branchScopedClaimRow]);
-      expect((await execAccess(branchManagerSession, 'doc1')).ok).toBe(true);
+      expect(await execAccess(branchManagerSession, 'doc1')).toEqual({
+        ok: false,
+        code: 'FORBIDDEN',
+        message: 'Forbidden',
+      });
     });
   });
 });

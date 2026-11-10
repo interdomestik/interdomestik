@@ -35,6 +35,7 @@ async function expectDocumentAccess(
 
   const metadata = await request.get(base, { maxRedirects: 0 });
   const download = await request.get(`${base}/download`, { maxRedirects: 0 });
+  const preview = await request.get(`${base}/download?disposition=inline`, { maxRedirects: 0 });
 
   if (allowed) {
     expect(metadata.status(), label).toBe(200);
@@ -45,11 +46,15 @@ async function expectDocumentAccess(
     });
     expect(download.status(), label).toBe(200);
     expect((await download.body()).byteLength, label).toBeGreaterThan(0);
+    expect(preview.status(), label).toBe(200);
+    expect(preview.headers()['content-disposition'], label).toContain('inline');
+    expect((await preview.body()).byteLength, label).toBeGreaterThan(0);
     return;
   }
   expect(DENIAL_STATUSES, `${label} metadata ${metadata.status()}`).toContain(metadata.status());
   expect(await metadata.text(), label).not.toContain('/download');
   expect(DENIAL_STATUSES, `${label} download ${download.status()}`).toContain(download.status());
+  expect(DENIAL_STATUSES, `${label} preview ${preview.status()}`).toContain(preview.status());
 }
 
 function describeActors(project: (name: string) => boolean, cases: readonly DocumentActorCases[]) {

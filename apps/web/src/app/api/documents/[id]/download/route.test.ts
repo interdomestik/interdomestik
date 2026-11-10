@@ -181,6 +181,25 @@ describe('GET /api/documents/[id]/download', () => {
     );
   });
 
+  it.each(['', '?disposition=inline', '?disposition=attachment'])(
+    'denies branch managers before storage download (%s) and records the denial',
+    async query => {
+      signIn('user-1', 'branch_manager');
+      const response = await download('doc-1', query);
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual({ error: 'Forbidden' });
+      expect(hoisted.storageDownload).not.toHaveBeenCalled();
+      expect(hoisted.dbSelect).not.toHaveBeenCalled();
+      expect(hoisted.logAuditEvent).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          action: 'document.forbidden',
+          entityId: 'doc-1',
+          actorRole: 'branch_manager',
+        })
+      );
+    }
+  );
+
   it('denies staff who are not assigned to the claim', async () => {
     signIn('staff-other', 'staff');
     mockAssignedClaimDocument('staff-assigned');
