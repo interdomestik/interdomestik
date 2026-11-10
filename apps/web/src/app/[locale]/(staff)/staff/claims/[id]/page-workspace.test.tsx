@@ -62,7 +62,14 @@ describe('staff case workspace hierarchy', () => {
       'aria-label',
       claimText(locale, 'details.workspace.nav_label')
     );
-    expect(sectionLinks()).toEqual(STAFF_REGIONS);
+    expect(sectionLinks()).toEqual([
+      ...STAFF_REGIONS.slice(0, 2),
+      'staff-claim-documents',
+      ...STAFF_REGIONS.slice(2),
+    ]);
+    expect(document.getElementById('staff-claim-documents')).toBe(
+      screen.getByTestId('staff-claim-documents')
+    );
     expect(regionOrder()).toEqual(STAFF_REGIONS);
 
     // The route owns the section ids while the shipped panel markers stay unchanged, so both
@@ -201,6 +208,7 @@ describe('staff case workspace hierarchy', () => {
         .queryAllByRole('button')
         .filter(button => (button.textContent ?? '').includes(label));
       expect(controls.length > 0).toBe(allowed);
+      expect(sectionLinks().includes('staff-claim-documents')).toBe(allowed);
       // The recorded staff review duty is stated either way; only the control is permissioned.
       expect(requestsRegion().getByTestId('information-request-next-action')).toHaveTextContent(
         message(locale, REQUEST_DUTY_COPY.submitted.action)
