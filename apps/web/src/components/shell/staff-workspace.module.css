@@ -68,11 +68,11 @@
 @media (max-width: 767px) {
   /* Yield the chrome for editing, including while a mobile keyboard reduces the viewport.
      Only shell chrome changes; composer/thread internals retain their shared presentation.
-     Focus moving to another control of the same panel keeps the chrome yielded, so a restored
-     sticky header cannot cover that control between pointer down and up and swallow the tap. */
-  .workspace:has(
-      :is(input, textarea, select, [contenteditable='true']):focus,
-      :global([data-testid='messaging-panel']):focus-within
+     A pointer gesture that starts while editing holds the yielded chrome until its click
+     (use-chrome-yield-hold), so a restored sticky header cannot swallow the tap. */
+  .workspace:is(
+      [data-chrome-yield-hold],
+      :has(:is(input, textarea, select, [contenteditable='true']):focus)
     )
     :global([data-testid='role-shell'])
     > div
@@ -80,9 +80,9 @@
     position: static;
   }
 
-  .workspace:has(
-      :is(input, textarea, select, [contenteditable='true']):focus,
-      :global([data-testid='messaging-panel']):focus-within
+  .workspace:is(
+      [data-chrome-yield-hold],
+      :has(:is(input, textarea, select, [contenteditable='true']):focus)
     )
     :global([data-testid='role-shell-bottom-nav']) {
     display: none;

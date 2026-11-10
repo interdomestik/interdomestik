@@ -148,6 +148,18 @@ test('assigned staff case stays inside the shared mobile shell', async ({
       )
       .toBe(true);
   }
+  // Pointer down blurs the note; the yielded chrome must hold until the gesture ends, or a
+  // returning sticky header can take the pointer up. Released off Save, so nothing submits.
+  const header = page.locator('[data-testid="role-shell"] > div > header');
+  await note.focus();
+  const saveBox = await save.boundingBox();
+  expect(saveBox).not.toBeNull();
+  await page.mouse.move(saveBox!.x + saveBox!.width / 2, saveBox!.y + saveBox!.height / 2);
+  await page.mouse.down();
+  expect(await header.evaluate(element => getComputedStyle(element).position)).toBe('static');
+  await page.mouse.move(2, 2);
+  await page.mouse.up();
+  await expect.poll(() => header.evaluate(e => getComputedStyle(e).position)).not.toBe('static');
   await note.focus();
   await page.keyboard.press('Tab');
   await expect(save).toBeFocused();
