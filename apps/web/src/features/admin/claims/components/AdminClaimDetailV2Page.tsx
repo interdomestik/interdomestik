@@ -16,6 +16,7 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { canViewAdminClaims, resolveClaimsVisibility } from '../server';
+import styles from './admin-claims-workspace.module.css';
 
 export async function AdminClaimDetailV2Page({
   id,
@@ -59,14 +60,18 @@ export async function AdminClaimDetailV2Page({
   const nextActions = getNextActions(data, session.user.id);
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-      {/* Sticky Ops Header */}
-      <ClaimHeader claim={data} allStaff={staff} locale={locale} />
+    <div
+      data-admin-claim-detail=""
+      className={`flex min-w-0 flex-col gap-6 animate-in fade-in duration-500 ${styles.detail}`}
+    >
+      <div className={styles.header}>
+        <ClaimHeader claim={data} allStaff={staff} locale={locale} />
+      </div>
 
       {/* 3-Pane Cockpit Layout: 3 | 6 | 3 */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
         {/* LEFT PANE: Context (Claimant, Description, Branch) */}
-        <div className="col-span-1 md:col-span-12 lg:col-span-3 flex flex-col gap-6 sticky top-24">
+        <div className="col-span-1 md:col-span-12 lg:col-span-3 flex flex-col gap-6 lg:sticky lg:top-24">
           <ClaimantInfoCard
             memberName={data.memberName}
             memberEmail={data.memberEmail}
@@ -81,15 +86,17 @@ export async function AdminClaimDetailV2Page({
         {/* CENTER PANE: Action Workflow */}
         <div className="col-span-1 md:col-span-12 lg:col-span-6 flex flex-col gap-6">
           {/* 1. Next Actions (Primary) */}
-          <NextActionsCard
-            claim={data}
-            nextActions={nextActions}
-            locale={locale}
-            currentUserId={session.user.id}
-            allStaff={assignableStaff}
-            canAssign={canAssign}
-            readOnly={opsReadOnly}
-          />
+          <div data-admin-claim-handling="" data-workspace-controls="">
+            <NextActionsCard
+              claim={data}
+              nextActions={nextActions}
+              locale={locale}
+              currentUserId={session.user.id}
+              allStaff={assignableStaff}
+              canAssign={canAssign}
+              readOnly={opsReadOnly}
+            />
+          </div>
 
           {/* 2. Messaging (Communication) */}
           <MessagingPanel
@@ -123,7 +130,11 @@ export async function AdminClaimDetailV2Page({
         </div>
 
         {/* RIGHT PANE: Evidence & Docs */}
-        <div className="col-span-1 md:col-span-12 lg:col-span-3 flex flex-col gap-6 sticky top-24">
+        <div
+          className="col-span-1 md:col-span-12 lg:col-span-3 flex min-w-0 flex-col gap-6 lg:sticky lg:top-24"
+          data-admin-claim-evidence=""
+          data-workspace-controls=""
+        >
           {/* Use the new pure EvidencePanel with explicit mapping */}
           <EvidencePanel
             claimId={data.id}

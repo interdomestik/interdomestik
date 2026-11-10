@@ -43,7 +43,7 @@ export function AdminTenantSelector({
 
   return (
     <Select value={selectedTenantId ?? ''} onValueChange={handleTenantChange}>
-      <SelectTrigger className="h-9 w-[220px]">
+      <SelectTrigger className="h-auto min-h-11 w-full min-w-0 max-w-full whitespace-normal md:w-[220px]">
         <SelectValue placeholder={t('placeholder')} />
       </SelectTrigger>
       <SelectContent>

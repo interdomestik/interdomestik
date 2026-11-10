@@ -3,12 +3,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
-  getMessagesMock: vi.fn(async () => ({
-    common: { loading: 'Loading' },
-    admin: { title: 'Admin', sidebar: { title: 'Localized Admin Shell' } },
-  })),
-  getTranslationsMock: vi.fn(
-    async () => (key: string) => ({ title: 'Localized Admin Shell' })[key] ?? key
+  getMessagesMock: vi.fn(() =>
+    Promise.resolve({
+      common: { loading: 'Loading' },
+      admin: { title: 'Admin', sidebar: { title: 'Localized Admin Shell' } },
+    })
   ),
   setRequestLocaleMock: vi.fn(),
   session: {
@@ -17,11 +16,11 @@ const hoisted = vi.hoisted(() => ({
   authorizeSessionTenantMock: vi.fn(),
   listSuperAdminTenantOptionsMock: vi.fn(),
   tenantSelectorProps: [] as unknown[],
+  shellProps: [] as Record<string, unknown>[],
 }));
 
 vi.mock('next-intl/server', () => ({
   getMessages: hoisted.getMessagesMock,
-  getTranslations: hoisted.getTranslationsMock,
   setRequestLocale: hoisted.setRequestLocaleMock,
 }));
 
@@ -36,12 +35,12 @@ vi.mock('@/i18n/messages', () => ({
 }));
 
 vi.mock('@/components/shell/session', () => ({
-  getSessionSafe: vi.fn(async () => hoisted.session),
+  getSessionSafe: vi.fn(() => Promise.resolve(hoisted.session)),
   requireSessionOrRedirect: vi.fn((session: unknown) => session),
 }));
 
 vi.mock('@/server/auth/effective-portal-access', () => ({
-  requireEffectivePortalAccessOrNotFound: vi.fn(async () => undefined),
+  requireEffectivePortalAccessOrNotFound: vi.fn(() => Promise.resolve(undefined)),
 }));
 
 vi.mock('@/components/shell/authenticated-shell', () => ({
@@ -59,8 +58,16 @@ vi.mock('@/components/shell/navigation-feedback', () => ({
   NavigationFeedback: ({ children }: { children: ReactNode }) => children,
 }));
 
-vi.mock('@/components/admin/admin-sidebar', () => ({
-  AdminSidebar: () => null,
+vi.mock('@/components/shell/admin-role-shell', () => ({
+  AdminRoleShell: (props: Readonly<{ children: ReactNode; tenantSelector: ReactNode }>) => {
+    hoisted.shellProps.push(props);
+    return (
+      <>
+        {props.tenantSelector}
+        {props.children}
+      </>
+    );
+  },
 }));
 
 vi.mock('@/components/admin/admin-tenant-selector', () => ({
@@ -76,17 +83,6 @@ vi.mock('@/lib/tenant-authority.server', () => ({
 
 vi.mock('@interdomestik/database', () => ({
   listSuperAdminTenantOptions: hoisted.listSuperAdminTenantOptionsMock,
-}));
-
-vi.mock('@/components/dashboard/portal-surface-indicator', () => ({
-  PortalSurfaceIndicator: () => null,
-}));
-
-vi.mock('@interdomestik/ui', () => ({
-  Separator: () => null,
-  SidebarInset: ({ children }: { children: ReactNode }) => children,
-  SidebarProvider: ({ children }: { children: ReactNode; defaultOpen?: boolean }) => children,
-  SidebarTrigger: () => null,
 }));
 
 import AdminLayout from './_core.entry';
@@ -105,13 +101,19 @@ describe('AdminLayout i18n initialization', () => {
     );
   });
 
-  it('renders the localized admin shell title', async () => {
+  it('passes the existing user and content to the shared admin adapter', async () => {
+    hoisted.shellProps.length = 0;
     const view = await AdminLayout({
-      children: null,
+      children: <p>Existing page content</p>,
       params: Promise.resolve({ locale: 'mk' }),
     });
-
-    expect(renderToStaticMarkup(view)).toContain('Localized Admin Shell');
+    expect(renderToStaticMarkup(view)).toContain('Existing page content');
+    expect(hoisted.shellProps).toContainEqual(
+      expect.objectContaining({
+        user: expect.objectContaining({ role: 'admin', email: 'admin@example.com' }),
+        tenantSelector: null,
+      })
+    );
   });
 
   it('renders the admin readiness marker at the layout boundary', async () => {
@@ -144,6 +146,24 @@ describe('AdminLayout super-admin tenant selector', () => {
     expect(hoisted.listSuperAdminTenantOptionsMock.mock.calls[0][0]).toBe(authority);
     expect(hoisted.tenantSelectorProps).toContainEqual(
       expect.objectContaining({ tenants: options })
+    );
+  });
+
+  it('keeps branch-manager scope and omits the restricted tenant selector', async () => {
+    hoisted.session = {
+      user: { role: 'branch_manager', branchId: 'branch-a', email: 'bm@example.com', name: 'BM' },
+    };
+    hoisted.shellProps.length = 0;
+    hoisted.listSuperAdminTenantOptionsMock.mockClear();
+    renderToStaticMarkup(
+      await AdminLayout({ children: null, params: Promise.resolve({ locale: 'en' }) })
+    );
+    expect(hoisted.listSuperAdminTenantOptionsMock).not.toHaveBeenCalled();
+    expect(hoisted.shellProps).toContainEqual(
+      expect.objectContaining({
+        user: expect.objectContaining({ role: 'branch_manager', branchId: 'branch-a' }),
+        tenantSelector: null,
+      })
     );
   });
 

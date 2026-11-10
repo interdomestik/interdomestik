@@ -53,9 +53,12 @@ export function OpsStatusControl({
   const options = CLAIM_STATUSES.filter(s => s === currentStatus || allowedTransitions.includes(s));
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
       <Select value={currentStatus} onValueChange={handleStatusChange} disabled={isPending}>
-        <SelectTrigger className="w-[180px] h-9 text-xs capitalize">
+        <SelectTrigger
+          aria-label={tAdmin('placeholder')}
+          className="w-full min-w-0 max-w-full h-auto min-h-11 whitespace-normal sm:w-[180px] text-xs capitalize"
+        >
           <SelectValue placeholder={tAdmin('placeholder')} />
         </SelectTrigger>
         <SelectContent>

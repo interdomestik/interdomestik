@@ -90,6 +90,7 @@ export function RoleShellMobileNavigation({
         <nav
           aria-label={labels.navigation}
           data-testid="role-shell-bottom-nav"
+          data-role-shell-bottom-navigation=""
           className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] pt-1 backdrop-blur-xl md:hidden"
         >
           <div className="mx-auto flex max-w-lg items-stretch gap-1">

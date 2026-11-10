@@ -1,7 +1,6 @@
-import { AdminSidebar } from '@/components/admin/admin-sidebar';
+import { AdminRoleShell } from '@/components/shell/admin-role-shell';
 import type { AdminTenantOption } from '@/components/admin/admin-tenant-selector';
 import { AdminTenantSelector } from '@/components/admin/admin-tenant-selector';
-import { PortalSurfaceIndicator } from '@/components/dashboard/portal-surface-indicator';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
 import { NavigationFeedback } from '@/components/shell/navigation-feedback';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
@@ -9,8 +8,7 @@ import { ADMIN_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { requireEffectivePortalAccessOrNotFound } from '@/server/auth/effective-portal-access';
 import { listSuperAdminTenantOptions } from '@interdomestik/database';
-import { Separator, SidebarInset, SidebarProvider, SidebarTrigger } from '@interdomestik/ui';
-import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
+import { getMessages, setRequestLocale } from 'next-intl/server';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
@@ -25,16 +23,11 @@ export default async function AdminLayout({
   const session = await getSessionSafe('AdminLayout');
   const sessionNonNull = requireSessionOrRedirect(session, locale);
 
-  // Central Portal Guard
-  const role = sessionNonNull.user.role;
-
   // Strict Isolation: Only allow admin, super_admin, tenant_admin, and branch_manager
   const ALLOWED_ROLES = ['admin', 'super_admin', 'tenant_admin', 'branch_manager'] as const;
   await requireEffectivePortalAccessOrNotFound(sessionNonNull, ALLOWED_ROLES);
 
   setRequestLocale(locale);
-  const tSidebar = await getTranslations('admin.sidebar');
-  const tNav = await getTranslations('nav');
   const allMessages = await getMessages();
   const messages = {
     ...pickMessages(allMessages, BASE_NAMESPACES),
@@ -61,52 +54,24 @@ export default async function AdminLayout({
     <div data-testid="admin-page-ready">
       <AuthenticatedShell locale={locale} messages={messages} enableNavigationFeedback={false}>
         <NavigationFeedback>
-          <SidebarProvider defaultOpen={true}>
-            <AdminSidebar
-              user={{
-                branchId: sessionNonNull.user.branchId,
-                name: sessionNonNull.user.name || 'Admin',
-                email: sessionNonNull.user.email,
-                role: sessionNonNull.user.role,
-              }}
-            />
-            <SidebarInset className="bg-mesh flex min-w-0 flex-col min-h-screen">
-              <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md sticky top-0 z-30 px-6 transition-all">
-                <div className="flex items-center gap-2">
-                  <SidebarTrigger
-                    className="-ml-1"
-                    title={tNav('toggleSidebar')}
-                    aria-label={tNav('toggleSidebar')}
-                  />
-                  <Separator orientation="vertical" className="mr-2 h-4" />
-                </div>
-                <div className="flex-1 flex items-center justify-between">
-                  <h1 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                    {tSidebar('title')}
-                  </h1>
-                  <div className="flex items-center gap-3">
-                    <PortalSurfaceIndicator role={role} />
-                    {isSuperAdmin ? (
-                      <div className="flex items-center gap-2">
-                        <AdminTenantSelector
-                          tenants={tenantOptions}
-                          defaultTenantId={sessionNonNull.user.tenantId}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </header>
-              {/* SidebarInset renders as <main>, so use <div> here to avoid nested landmarks */}
-              <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                {/* Only a visible claims list drops this gutter; Next retains inactive pages with
-                    display:none, which must not alter other admin pages after navigation. */}
-                <div className="container mx-auto max-sm:has-[>[data-admin-claims-list]:not([style*='display:_none'])]:px-0">
-                  {children}
-                </div>
-              </div>
-            </SidebarInset>
-          </SidebarProvider>
+          <AdminRoleShell
+            user={{
+              branchId: sessionNonNull.user.branchId,
+              name: sessionNonNull.user.name || 'Admin',
+              email: sessionNonNull.user.email,
+              role: sessionNonNull.user.role,
+            }}
+            tenantSelector={
+              isSuperAdmin ? (
+                <AdminTenantSelector
+                  tenants={tenantOptions}
+                  defaultTenantId={sessionNonNull.user.tenantId}
+                />
+              ) : null
+            }
+          >
+            {children}
+          </AdminRoleShell>
         </NavigationFeedback>
       </AuthenticatedShell>
     </div>

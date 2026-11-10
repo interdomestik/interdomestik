@@ -24,7 +24,8 @@
     :global([data-testid='staff-support-handoffs-filters']),
     :global([data-testid='staff-support-handoffs-row']),
     :global([data-testid='staff-claim-detail-actions']),
-    :global([data-testid='staff-claim-requests'])
+    :global([data-testid='staff-claim-requests']),
+    :global([data-workspace-controls])
   )
   :is(button, a, input:not([type='hidden']), select, textarea) {
   min-width: 0;
@@ -39,7 +40,8 @@
     :global([data-testid='staff-support-handoffs-filters']),
     :global([data-testid='staff-support-handoffs-row']),
     :global([data-testid='staff-claim-detail-actions']),
-    :global([data-testid='staff-claim-requests'])
+    :global([data-testid='staff-claim-requests']),
+    :global([data-workspace-controls])
   )
   :is(button, a) {
   height: auto;
@@ -51,6 +53,11 @@
   min-width: 0;
   max-width: 100%;
   overflow-x: auto;
+}
+
+/* A labelled, focusable OpsTable region owns scrolling; its inner wrapper must not scroll too. */
+.content section[aria-label][tabindex='0'] > :has(> table) {
+  overflow: visible;
 }
 
 .content :global([data-testid='ops-document-row']) {
@@ -74,9 +81,7 @@
       [data-chrome-yield-hold],
       :has(:is(input, textarea, select, [contenteditable='true']):focus)
     )
-    :global([data-testid='role-shell'])
-    > div
-    > header {
+    :global([data-role-shell-header]) {
     position: static;
   }
 
@@ -84,7 +89,7 @@
       [data-chrome-yield-hold],
       :has(:is(input, textarea, select, [contenteditable='true']):focus)
     )
-    :global([data-testid='role-shell-bottom-nav']) {
+    :global([data-role-shell-bottom-navigation]) {
     display: none;
   }
 }

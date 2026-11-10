@@ -55,9 +55,12 @@ export function OpsAssignmentControl({
   const currentValue = currentStaffId || 'unassigned';
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
       <Select value={currentValue} onValueChange={handleAssign} disabled={isPending}>
-        <SelectTrigger className="w-[200px] h-9 text-xs">
+        <SelectTrigger
+          aria-label={tClaims('assignment.placeholder')}
+          className="w-full min-w-0 max-w-full h-auto min-h-11 whitespace-normal sm:w-[200px] text-xs"
+        >
           <SelectValue placeholder={tClaims('assignment.placeholder')} />
         </SelectTrigger>
         <SelectContent>
