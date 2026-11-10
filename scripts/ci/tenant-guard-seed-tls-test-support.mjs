@@ -17,7 +17,7 @@ export const packageJson = extra =>
 const trusted = new Map(Object.entries(KERNEL));
 const pins = pinsOf(trusted);
 
-export function repositoryFixture(files, inspect = () => {}, resolution, prepare = () => {}) {
+export function repositoryFixture(files, inspect, resolution, prepare) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'seed-tls-repo-'));
   try {
     for (const [file, text] of Object.entries({
@@ -29,7 +29,7 @@ export function repositoryFixture(files, inspect = () => {}, resolution, prepare
       fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
       fs.writeFileSync(path.join(root, file), text);
     }
-    prepare(root);
+    prepare?.(root);
     const sources = currentSources(root);
     const graph = createModuleGraph({
       sources,
@@ -44,7 +44,7 @@ export function repositoryFixture(files, inspect = () => {}, resolution, prepare
       appAliases: APP_ALIASES,
       resolution,
     });
-    inspect({ seedTls, sources, root });
+    inspect?.({ seedTls, sources, root });
     return evaluate({ sources, trusted, graph, seedTls, legacyPins: pins, contracts: [] });
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

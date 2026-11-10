@@ -7,8 +7,11 @@ import { exportTargets } from './package-exports.mjs';
 import { packageTargetPaths, unsupportedPackageTarget } from './seed-tls-package-targets.mjs';
 
 function capture(pattern, value) {
-  const parts = pattern.split('*').map(part => part.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'));
-  const regex = parts.length === 1 ? parts[0] : parts[0] + '(.*)' + parts.slice(1).join('\\1');
+  const parts = pattern
+    .split('*')
+    .map(part => part.replace(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`));
+  const regex =
+    parts.length === 1 ? parts[0] : parts[0] + '(.*)' + parts.slice(1).join(String.raw`\1`);
   const result = new RegExp(`^${regex}$`, 'u').exec(value);
   return result ? (result[1] ?? '') : null;
 }
