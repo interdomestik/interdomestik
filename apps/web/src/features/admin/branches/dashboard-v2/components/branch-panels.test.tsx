@@ -1,9 +1,12 @@
 import { render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import messages from '@/messages/en/admin-branches.json';
 import type { BranchDashboardV2Data } from '../server/branch-dashboard-v2-types';
 import { BranchDashboardV2 } from './BranchDashboardV2';
+
+// The global setup mocks next-intl without its provider; these tests render the real provider.
+vi.unmock('next-intl');
 
 const copy = messages.admin.branches;
 const longName = 'UnbrokenName'.repeat(40);
