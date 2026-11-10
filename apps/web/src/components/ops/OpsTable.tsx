@@ -84,7 +84,11 @@ export function OpsTable({
 
   return (
     <div className={containerClasses} data-testid={OPS_TEST_IDS.TABLE.ROOT}>
-      <ScrollContainer className={scrollClasses} aria-label={scrollLabel}>
+      <ScrollContainer
+        className={scrollClasses}
+        aria-label={scrollLabel}
+        tabIndex={scrollLabel ? 0 : undefined}
+      >
         <Table className="min-w-max">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-white/5">
