@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+
+const probe = fileURLToPath(new URL('./seed-target-tls.probe.ts', import.meta.url));
 
 for (const scenario of [
   'ordering',
@@ -28,11 +31,10 @@ for (const scenario of [
   'system',
 ]) {
   test(`seed TLS: ${scenario}`, () => {
-    const result = spawnSync(
-      process.execPath,
-      ['--import', 'tsx', 'packages/database/test/seed-target-tls.probe.ts', scenario],
-      { encoding: 'utf8', timeout: 30_000 }
-    );
+    const result = spawnSync(process.execPath, ['--import', 'tsx', probe, scenario], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    });
     assert.ifError(result.error);
     assert.equal(result.status, 0, result.stderr + result.stdout);
   });

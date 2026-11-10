@@ -245,3 +245,10 @@ export async function importSeedDatabase(): Promise<typeof import('./db')> {
 export async function closeSeedTargetClients(): Promise<void> {
   await closeSeedTlsClients();
 }
+
+/** Report an uncaught failure, close the clients this process installed, then exit. */
+export async function exitSeed(code: number, failure?: unknown): Promise<never> {
+  if (failure !== undefined) console.error('Seed failed:', failure);
+  await closeSeedTlsClients();
+  process.exit(code);
+}
