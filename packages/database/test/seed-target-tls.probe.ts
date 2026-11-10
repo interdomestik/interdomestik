@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { checkServerIdentity } from 'node:tls';
 import postgres from 'postgres';
-import { TEST_CA_PEM } from './seed-tls-ca.fixture';
+import { TEST_CA_PEM, TEST_LEAF_PEM } from './seed-tls-ca.fixture';
 import { verifyPoolParity } from './seed-target-tls-parity.probe';
 
 const require = createRequire(import.meta.url);
@@ -107,11 +107,14 @@ const failures: Record<string, string | undefined> = {
   'non-pem': 'private-content',
   corrupt: '-----BEGIN CERTIFICATE-----\nYWJj\n-----END CERTIFICATE-----',
   mixed: TEST_CA_PEM + 'private-content',
+  leaf: TEST_LEAF_PEM,
+  'ca-and-leaf': TEST_CA_PEM + TEST_LEAF_PEM,
   system: 'system',
 };
 async function verifyCaRefusal() {
   const value = failures[scenario];
-  if (['empty', 'non-pem', 'corrupt', 'mixed'].includes(scenario)) writeFileSync(caPath, value!);
+  if (['empty', 'non-pem', 'corrupt', 'mixed', 'leaf', 'ca-and-leaf'].includes(scenario))
+    writeFileSync(caPath, value!);
   else if (value === undefined) delete process.env.SEED_TARGET_SSL_ROOT_CERT;
   else process.env.SEED_TARGET_SSL_ROOT_CERT = value;
   await assert.rejects(guard.importSeedDatabase(), error => {

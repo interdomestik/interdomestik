@@ -44,7 +44,10 @@ function readCaBundle(path: string): string {
   ) {
     throw new Error('Invalid CA bundle');
   }
-  for (const certificate of certificates) new X509Certificate(certificate);
+  // Every certificate must be a CA: a leaf certificate is never a trust root here.
+  for (const certificate of certificates) {
+    if (!new X509Certificate(certificate).ca) throw new Error('Invalid CA bundle');
+  }
   return pem;
 }
 

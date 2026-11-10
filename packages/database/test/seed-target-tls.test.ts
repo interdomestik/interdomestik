@@ -28,6 +28,8 @@ for (const scenario of [
   'non-pem',
   'corrupt',
   'mixed',
+  'leaf',
+  'ca-and-leaf',
   'system',
 ]) {
   test(`seed TLS: ${scenario}`, () => {
