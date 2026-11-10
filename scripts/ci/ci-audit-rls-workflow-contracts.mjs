@@ -32,8 +32,9 @@ test('CI RLS integration requires both integration and coverage guards', () => {
   ).scripts;
   assert.equal(
     rootScripts['db:rls:test'],
-    'pnpm --filter @interdomestik/database test:rls && pnpm --filter @interdomestik/domain-communications test:rls'
+    'pnpm --filter @interdomestik/database test:rls && pnpm --filter @interdomestik/domain-communications test:rls && pnpm db:rls:test:staff-detail'
   );
+  assert.equal(rootScripts['db:rls:test:staff-detail'], 'node scripts/run-staff-detail-rls.mjs');
   // Each message suite grants its own role on shared catalog rows, so files run one at a time.
   assert.equal(
     domainScripts['test:rls'],
