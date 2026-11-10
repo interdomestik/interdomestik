@@ -4,9 +4,9 @@ import type { NoteFreeStatusEntry } from './get-note-free-claim-timeline';
 /** Status and time only: no invented actor attribution and no note-bearing props. */
 export async function NoteFreeStatusTimeline({
   entries,
-}: {
+}: Readonly<{
   entries: readonly NoteFreeStatusEntry[];
-}) {
+}>) {
   const t = await getTranslations('claims-tracking.status');
   const format = await getFormatter();
   return (

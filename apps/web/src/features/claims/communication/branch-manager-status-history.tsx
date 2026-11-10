@@ -7,10 +7,10 @@ import { RestrictedCommunicationNotice } from './restricted-communication-notice
 export async function BranchManagerStatusHistory({
   claimId,
   authority,
-}: {
+}: Readonly<{
   claimId: string;
   authority: TenantAuthority;
-}) {
+}>) {
   const result = await getNoteFreeClaimTimeline({
     claimId,
     authority,
@@ -18,6 +18,9 @@ export async function BranchManagerStatusHistory({
     excludeDraft: true,
   });
   const t = await getTranslations('messaging.branchManager');
+  let state: 'empty' | 'unavailable' | 'failed' | undefined;
+  if (result.kind !== 'ok') state = result.kind;
+  else if (result.data.length === 0) state = 'empty';
   return (
     <section
       id="staff-status-history"
@@ -26,9 +29,7 @@ export async function BranchManagerStatusHistory({
       data-testid="staff-status-history"
     >
       <h2 className="font-semibold">{t('history')}</h2>
-      <RestrictedCommunicationNotice
-        state={result.kind !== 'ok' ? result.kind : result.data.length === 0 ? 'empty' : undefined}
-      />
+      <RestrictedCommunicationNotice state={state} />
       {result.kind === 'ok' && <NoteFreeStatusTimeline entries={result.data} />}
     </section>
   );

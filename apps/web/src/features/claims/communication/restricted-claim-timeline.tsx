@@ -8,14 +8,15 @@ import { RestrictedCommunicationNotice } from './restricted-communication-notice
 /** Shared restricted rendering; each caller admits the trusted authority before reading. */
 export function RestrictedClaimTimeline({
   result,
-}: {
+}: Readonly<{
   result: RestrictedRead<NoteFreeStatusEntry[]>;
-}): React.JSX.Element {
+}>): React.JSX.Element {
+  let state: 'empty' | 'unavailable' | 'failed' | undefined;
+  if (result.kind !== 'ok') state = result.kind;
+  else if (result.data.length === 0) state = 'empty';
   return (
     <div className="space-y-3" data-testid="claim-note-free-timeline">
-      <RestrictedCommunicationNotice
-        state={result.kind !== 'ok' ? result.kind : result.data.length === 0 ? 'empty' : undefined}
-      />
+      <RestrictedCommunicationNotice state={state} />
       {result.kind === 'ok' && <NoteFreeStatusTimeline entries={result.data} />}
     </div>
   );

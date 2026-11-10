@@ -6,13 +6,16 @@ import { RestrictedCommunicationNotice } from './restricted-communication-notice
 export async function ClaimMessageSummary({
   claimId,
   authority,
-}: {
+}: Readonly<{
   claimId: string;
   authority: TenantAuthority;
-}) {
+}>) {
   const result = await getClaimMessageMetadata({ claimId, authority });
   const t = await getTranslations('messaging.branchManager');
   const format = await getFormatter();
+  let state: 'empty' | 'unavailable' | 'failed' | undefined;
+  if (result.kind !== 'ok') state = result.kind;
+  else if (result.data.count === 0) state = 'empty';
   return (
     <section
       className="min-w-0 space-y-3 rounded-lg border p-4"
@@ -20,9 +23,7 @@ export async function ClaimMessageSummary({
       data-testid="claim-message-summary"
     >
       <h2 className="font-semibold">{t('title')}</h2>
-      <RestrictedCommunicationNotice
-        state={result.kind !== 'ok' ? result.kind : result.data.count === 0 ? 'empty' : undefined}
-      />
+      <RestrictedCommunicationNotice state={state} />
       {result.kind === 'ok' && (
         <dl className="grid gap-3 sm:grid-cols-3">
           <div>
