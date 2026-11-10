@@ -1,17 +1,20 @@
-import {
-  claims,
-  claimMessages,
-  claimStageHistory,
-  notifications,
-  emailCampaignLogs,
-  claimLifecycleFieldsForStatus,
-  db,
-  eq,
-  user,
-} from '@interdomestik/database';
+import { assertSeedTargetAllowed } from '../../packages/database/src/seed-target-guard';
 import crypto from 'node:crypto';
 
 async function main() {
+  assertSeedTargetAllowed(process.env);
+  const {
+    claims,
+    claimMessages,
+    claimStageHistory,
+    notifications,
+    emailCampaignLogs,
+    claimLifecycleFieldsForStatus,
+    db,
+    eq,
+    user,
+  } = await import('@interdomestik/database');
+  assertSeedTargetAllowed(process.env);
   console.log('[Seeder] Connecting to Database...');
 
   const agentEmail = 'agent.ks.a1@plan070.example.invalid';

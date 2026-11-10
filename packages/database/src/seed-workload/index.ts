@@ -1,4 +1,8 @@
-import { assertSeedTargetAllowed } from '../seed-target-guard';
+import {
+  assertSeedModeAllowed,
+  assertSeedTargetAllowed,
+  importSeedDatabase,
+} from '../seed-target-guard';
 /**
  * Contract:
  * - seed:golden is immutable and baseline-only
@@ -21,11 +25,11 @@ async function assertNoGoldenMutation(db: any, initialCount?: number): Promise<n
 import type { SeedConfig } from '../seed-types';
 
 export async function seedWorkload(config: SeedConfig) {
-  assertSeedTargetAllowed(process.env);
+  assertSeedModeAllowed('workload', assertSeedTargetAllowed(process.env));
   console.log('🚀 Starting Workload Seed...');
 
   // Dynamic imports to ensure ENV is loaded
-  const { db } = await import('../db');
+  const { db } = await importSeedDatabase();
   const schema = await import('../schema');
 
   // Runtime Assertion: Baseline

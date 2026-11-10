@@ -67,7 +67,7 @@ export default async function IncidentGuidePage({
         </AlertDescription>
       </Alert>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Card data-testid="help-now-incident-scene-pack">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -126,13 +126,13 @@ export default async function IncidentGuidePage({
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">{helpNowT('escalation_body')}</p>
               <div className="flex flex-col gap-3">
-                <Button asChild>
+                <Button asChild className="h-auto min-h-10 whitespace-normal">
                   <Link href="/member/claims/new">
                     {helpNowT('primary')}
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
                   </Link>
                 </Button>
-                <Button asChild variant="outline">
+                <Button asChild variant="outline" className="h-auto min-h-10 whitespace-normal">
                   <Link href="/member/help">{helpNowT('secondary')}</Link>
                 </Button>
               </div>

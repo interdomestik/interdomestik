@@ -17,6 +17,7 @@ const receipt = vi.mocked(markMessagesAsRead);
 const PANEL = { claimId: 'claim-1', currentUser: STAFF_USER };
 const refreshedHistory = {
   success: true as const,
+  canAcknowledge: true,
   messages: [
     buildMessage({
       id: 'msg-fresh',
@@ -49,7 +50,7 @@ describe('automatic polling after explicit generation supersession', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
-    read.mockResolvedValue({ success: true, messages: [] });
+    read.mockResolvedValue({ success: true, canAcknowledge: true, messages: [] });
     receipt.mockResolvedValue({ success: true });
   });
   afterEach(() => {
@@ -111,6 +112,7 @@ describe('automatic polling after explicit generation supersession', () => {
       read
         .mockResolvedValueOnce({
           success: true,
+          canAcknowledge: true,
           messages: [buildMessage({ id: 'msg-old', content: 'Old history' })],
         })
         .mockReturnValueOnce(currentRead.promise);
