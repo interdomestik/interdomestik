@@ -1,3 +1,10 @@
+import { LocalizedPageSkeleton } from '@/components/ui/localized-page-skeleton';
+import enAgent from '@/messages/en/agent.json';
+import enCommon from '@/messages/en/common.json';
+import sqAgent from '@/messages/sq/agent.json';
+import sqCommon from '@/messages/sq/common.json';
+import { render, screen } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { ReactElement } from 'react';
 import { Suspense } from 'react';
@@ -14,6 +21,8 @@ const hoisted = vi.hoisted(() => ({
   getSessionMock: vi.fn(),
   getAgentWorkspaceClaimsCoreMock: vi.fn(),
 }));
+
+vi.unmock('next-intl');
 
 vi.mock('next/headers', () => ({
   headers: hoisted.headersMock,
@@ -92,15 +101,39 @@ describe('AgentWorkspaceClaimsPage', () => {
     hoisted.getAgentWorkspaceClaimsCoreMock.mockResolvedValue({ ok: true, claims: [] });
   });
 
-  it('reads request-specific auth behind a Suspense boundary with a busy status fallback', () => {
+  it('reads request-specific auth behind a Suspense boundary with the shared list fallback', () => {
     const boundary = renderBoundary();
 
     expect(boundary.type).toBe(Suspense);
-    expect(boundary.props.fallback.type).toBe('output');
-    expect(boundary.props.fallback.props['aria-busy']).toBe('true');
+    expect(boundary.props.fallback.type).toBe(LocalizedPageSkeleton);
+    expect(boundary.props.fallback.props).toEqual({
+      titleKey: 'agent.claimsPro.title',
+      variant: 'list',
+      testId: 'agent-workspace-claims-loading',
+    });
     expect(hoisted.getSessionMock).not.toHaveBeenCalled();
     expect(hoisted.headersMock).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['en', enAgent, enCommon],
+    ['sq', sqAgent, sqCommon],
+  ] as const)(
+    'renders the %s fallback with the real title and loading text',
+    (locale, agentCopy, commonCopy) => {
+      const { fallback } = renderBoundary().props;
+      render(
+        <NextIntlClientProvider locale={locale} messages={{ ...agentCopy, ...commonCopy }}>
+          {fallback}
+        </NextIntlClientProvider>
+      );
+
+      expect(
+        screen.getByRole('heading', { level: 1, name: agentCopy.agent.claimsPro.title })
+      ).toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent(commonCopy.common.loading);
+    }
+  );
 
   it('redirects unauthenticated users to the locale login path', async () => {
     hoisted.getSessionMock.mockResolvedValue(null);
