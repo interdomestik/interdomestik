@@ -10,6 +10,7 @@ import {
   loginFixture,
   messagingSnapshot,
   resetReceipts,
+  transportFor,
   withMessagingFixture,
   type ActionIds,
 } from './messaging-session-revocation.fixture';
@@ -22,7 +23,8 @@ async function expectAdmitted(
   page: Page,
   info: TestInfo,
   fixture: AgentMessageFixture,
-  ids: ActionIds
+  ids: ActionIds,
+  actorId: string
 ): Promise<void> {
   const messageIds = await resetReceipts(fixture);
   const read = await callMessaging(page, info, ids, 'history', fixture, messageIds);
@@ -32,8 +34,22 @@ async function expectAdmitted(
   );
   const before = await messagingSnapshot(fixture);
   expect((await callMessaging(page, info, ids, 'send', fixture, messageIds)).success).toBe(true);
+  const beforeReceipt = await messagingSnapshot(fixture);
+  const eligible = beforeReceipt.messages.find(
+    row =>
+      messageIds.includes(row.id) &&
+      row.tenantId === fixture.tenantId &&
+      row.senderId !== actorId &&
+      row.isInternal === false &&
+      row.readAt === null
+  );
+  expect(
+    eligible?.readAt,
+    'an eligible recipient row is unread immediately before receipt'
+  ).toBeNull();
   expect((await callMessaging(page, info, ids, 'receipt', fixture, messageIds)).success).toBe(true);
   const after = await messagingSnapshot(fixture);
+  expect(after.messages.find(row => row.id === eligible?.id)?.readAt).toBeInstanceOf(Date);
   expect(after.messages).toHaveLength(before.messages.length + 1);
   expect(after.audits).toHaveLength(before.audits.length + 1);
   expect(after.messages.some(row => messageIds.includes(row.id) && row.readAt !== null)).toBe(true);
@@ -64,19 +80,17 @@ test('revoked cookie cannot read, send or acknowledge messages and causes zero w
   page,
 }, info) => {
   await withMessagingFixture(page, info, async (fixture, ids) => {
-    await expectAdmitted(page, info, fixture, ids);
-    const captured = (await page.context().cookies()).filter(cookie =>
-      cookie.name.endsWith('session_token')
-    );
+    await expectAdmitted(page, info, fixture, ids, fixture.agentId);
+    const transport = transportFor(page, info);
+    const captured = transport.cookies().filter(cookie => cookie.name.endsWith('session_token'));
     expect(captured.length, 'captured a session cookie without serializing it').toBeGreaterThan(0);
-    expect((await authPost(page.request, info, 'sign-out', {})).ok()).toBe(true);
+    expect((await authPost(page, info, 'sign-out', {})).ok).toBe(true);
     await assertNoSessions(fixture.agentId);
     const messageIds = await resetReceipts(fixture);
     const before = await messagingSnapshot(fixture);
     // Each operation receives the original cookie even if the previous rejection cleared it.
     const replay = async (operation: 'history' | 'send' | 'receipt') => {
-      await page.context().clearCookies();
-      await page.context().addCookies(captured);
+      transport.replaceCookies(captured);
       const result = await callMessaging(page, info, ids, operation, fixture, messageIds);
       expect(result).toMatchObject({ success: false, error: 'Unauthorized' });
       expect(result.messages).toBeUndefined();
@@ -93,7 +107,7 @@ test('active agent link becomes inactive in the same session and denies messagin
   page,
 }, info) => {
   await withMessagingFixture(page, info, async (fixture, ids) => {
-    await expectAdmitted(page, info, fixture, ids);
+    await expectAdmitted(page, info, fixture, ids, fixture.agentId);
     const changed = await dbAdmin
       .update(agentClients)
       .set({ status: 'inactive' })
@@ -121,7 +135,7 @@ test('live claim branch change denies scoped staff while its member keeps admiss
       .set({ branchId: fixture.branchId })
       .where(eq(user.id, fixture.staffId));
     await loginFixture(page, info, fixture.staffEmail, fixture.staffId);
-    await expectAdmitted(page, info, fixture, ids);
+    await expectAdmitted(page, info, fixture, ids, fixture.staffId);
     const memberContext = await browser.newContext({
       baseURL: info.project.use.baseURL,
       extraHTTPHeaders: info.project.use.extraHTTPHeaders,
@@ -130,7 +144,7 @@ test('live claim branch change denies scoped staff while its member keeps admiss
     try {
       const memberPage = await memberContext.newPage();
       await loginFixture(memberPage, info, fixture.memberEmail, fixture.memberId);
-      await expectAdmitted(memberPage, info, fixture, ids);
+      await expectAdmitted(memberPage, info, fixture, ids, fixture.memberId);
       const changed = await dbAdmin
         .update(claims)
         .set({ branchId: null })
@@ -140,7 +154,7 @@ test('live claim branch change denies scoped staff while its member keeps admiss
       await assertSession(page, info, fixture.staffId);
       await expectScopeDenied(page, info, fixture, ids);
       await assertSession(memberPage, info, fixture.memberId);
-      await expectAdmitted(memberPage, info, fixture, ids);
+      await expectAdmitted(memberPage, info, fixture, ids, fixture.memberId);
     } finally {
       await memberContext.close();
     }

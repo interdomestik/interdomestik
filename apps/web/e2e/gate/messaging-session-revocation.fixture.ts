@@ -6,13 +6,7 @@ import {
   notifications,
   session,
 } from '@interdomestik/database';
-import {
-  expect,
-  type APIRequestContext,
-  type Page,
-  type Request,
-  type TestInfo,
-} from '@playwright/test';
+import { expect, type Page, type Request, type TestInfo } from '@playwright/test';
 import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { getProjectUrlInfo } from '../fixtures/auth.project';
@@ -23,43 +17,43 @@ import {
   type AgentMessageFixture,
 } from './agent-message-visibility.fixture';
 import { inSequence } from './in-sequence';
+import {
+  MessagingSessionTransport,
+  parseFlightResult,
+  type ActionResult,
+} from './messaging-session-transport';
 
 export type Operation = 'history' | 'send' | 'receipt';
 export type ActionIds = Record<Operation, string>;
-export interface ActionResult {
-  success: boolean;
-  error?: string;
-  canAcknowledge?: boolean;
-  messages?: { id: string; content: string }[];
-}
+const transports = new WeakMap<Page, MessagingSessionTransport>();
 
-async function privateRequest<T>(run: () => Promise<T>): Promise<T> {
-  try {
-    return await run();
-  } catch {
-    // Playwright transport errors can include Cookie headers in their call log.
-    throw new Error('Messaging fixture request failed; credential diagnostics suppressed');
+export function transportFor(page: Page, info: TestInfo): MessagingSessionTransport {
+  let transport = transports.get(page);
+  if (!transport) {
+    transport = new MessagingSessionTransport(
+      getProjectUrlInfo(info, null).origin,
+      info.project.use.extraHTTPHeaders
+    );
+    transports.set(page, transport);
   }
+  return transport;
 }
 
-export function authPost(request: APIRequestContext, info: TestInfo, path: string, data: object) {
-  const { origin } = getProjectUrlInfo(info, null);
-  return privateRequest(() =>
-    request.post(`${origin}/api/auth/${path}`, {
-      headers: { Origin: origin, ...info.project.use.extraHTTPHeaders },
-      data,
-    })
-  );
+export function authPost(page: Page, info: TestInfo, path: string, data: object) {
+  return transportFor(page, info).auth(path, data);
 }
 
 export async function loginFixture(page: Page, info: TestInfo, email: string, userId: string) {
   await page.context().clearCookies();
-  const response = await authPost(page.request, info, 'sign-in/email', {
+  const transport = transportFor(page, info);
+  transport.replaceCookies([]);
+  const response = await authPost(page, info, 'sign-in/email', {
     email,
     password: E2E_PASSWORD,
   });
-  expect(response.ok(), 'synthetic login succeeded').toBe(true);
-  expect((await response.json()).user.id).toBe(userId);
+  expect(response.ok, 'synthetic login succeeded').toBe(true);
+  expect(response.userId).toBe(userId);
+  await page.context().addCookies(transport.cookies());
 }
 
 function observeAction(ids: Partial<ActionIds>, claimId: string, request: Request): void {
@@ -108,27 +102,6 @@ async function captureActions(page: Page, info: TestInfo, fixture: AgentMessageF
   }
 }
 
-function parseResult(body: string): ActionResult {
-  for (const line of body.split('\n')) {
-    const separator = line.indexOf(':');
-    if (separator < 1) continue;
-    try {
-      const value: unknown = JSON.parse(line.slice(separator + 1));
-      if (
-        value &&
-        typeof value === 'object' &&
-        'success' in value &&
-        typeof value.success === 'boolean'
-      ) {
-        return value as ActionResult;
-      }
-    } catch {
-      // Flight also contains non-JSON model records. Never echo payloads or headers.
-    }
-  }
-  throw new Error('Messaging server action did not return a recognized result');
-}
-
 /** Public page avoids portal guards and auth-page redirects; action admission still runs. */
 export async function callMessaging(
   page: Page,
@@ -138,26 +111,21 @@ export async function callMessaging(
   fixture: AgentMessageFixture,
   messageIds: string[]
 ): Promise<ActionResult> {
-  const { origin } = getProjectUrlInfo(info, null);
   let args: unknown[] = [fixture.claimIds[0]];
   if (operation === 'send')
     args = [fixture.claimIds[0], `U3-2 probe ${randomUUID()}`, false, randomUUID()];
   if (operation === 'receipt') args = [messageIds];
-  const response = await privateRequest(() =>
-    page.request.post(`${origin}${routes.partners(info)}`, {
-      headers: {
-        ...info.project.use.extraHTTPHeaders,
-        Origin: origin,
-        'Next-Action': ids[operation],
-        'Content-Type': 'text/plain;charset=UTF-8',
-        Accept: 'text/x-component',
-      },
-      data: JSON.stringify(args),
-      maxRedirects: 0,
-    })
-  );
-  expect(response.status(), `${operation} action transport`).toBe(200);
-  return parseResult(await response.text());
+  const response = await transportFor(page, info).request(routes.partners(info), {
+    method: 'POST',
+    headers: {
+      'Next-Action': ids[operation],
+      'Content-Type': 'text/plain;charset=UTF-8',
+      Accept: 'text/x-component',
+    },
+    body: JSON.stringify(args),
+  });
+  expect(response.status, `${operation} action transport`).toBe(200);
+  return parseFlightResult(response);
 }
 
 export async function messagingSnapshot(fixture: AgentMessageFixture) {
@@ -190,10 +158,9 @@ export async function resetReceipts(fixture: AgentMessageFixture): Promise<strin
 }
 
 export async function assertSession(page: Page, info: TestInfo, userId: string): Promise<void> {
-  const { origin } = getProjectUrlInfo(info, null);
-  const response = await privateRequest(() => page.request.get(`${origin}/api/auth/get-session`));
-  expect(response.ok()).toBe(true);
-  expect((await response.json())?.user?.id).toBe(userId);
+  const response = await transportFor(page, info).auth('get-session');
+  expect(response.ok).toBe(true);
+  expect(response.userId).toBe(userId);
 }
 
 export async function assertNoSessions(userId: string): Promise<void> {
