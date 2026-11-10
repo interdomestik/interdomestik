@@ -132,9 +132,10 @@ export function MemberEvidenceDownloadButton({
   };
 
   return (
-    <div className="space-y-1">
+    <div className="min-w-0 max-w-full space-y-1 [overflow-wrap:anywhere]">
       <Button
         type="button"
+        className="h-auto min-h-9 max-w-full whitespace-normal"
         size="sm"
         variant="outline"
         aria-busy={state === 'preparing'}

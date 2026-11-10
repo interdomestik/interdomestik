@@ -20,12 +20,12 @@ export function SuccessSecondaryContent(props: {
 }) {
   return (
     <>
-      <div className="grid gap-8 md:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 md:grid-cols-2">
         {props.accountPanel}
         <Card data-testid="success-hotline" className="overflow-hidden border-primary shadow-xl">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Phone className="h-5 w-5 text-primary" aria-hidden="true" />
+              <Phone className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
               {props.copy.hotlineLabel}
             </CardTitle>
           </CardHeader>
@@ -63,7 +63,7 @@ export function SuccessSecondaryContent(props: {
           className="mt-16 rounded-3xl border bg-muted/30 p-6 sm:p-10"
         >
           <h2 className="mb-8 text-center text-2xl font-bold">{props.copy.benefitsTitle}</h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {props.copy.benefits.map((benefit, index) => (
               <div
                 key={benefit}

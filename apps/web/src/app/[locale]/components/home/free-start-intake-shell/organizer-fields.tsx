@@ -2,7 +2,7 @@ import { OUTCOME_IDS } from './constants';
 import type { DraftState, FreeStartCopy, IssueId, SetDraftField } from './types';
 
 const CONTROL_CLASS =
-  'min-h-12 w-full rounded-xl border border-[#001a33]/25 bg-white px-3 py-2 text-base text-[#001a33] outline-none transition placeholder:text-[#6d7a88] focus-visible:border-[#008f91] focus-visible:ring-3 focus-visible:ring-[#008f91]/25';
+  'min-h-12 w-full min-w-0 rounded-xl border border-[#001a33]/25 bg-white px-3 py-2 text-base text-[#001a33] outline-none transition placeholder:text-[#6d7a88] focus-visible:border-[#008f91] focus-visible:ring-3 focus-visible:ring-[#008f91]/25';
 
 type Props = Readonly<{
   draft: DraftState;
@@ -14,8 +14,8 @@ type Props = Readonly<{
 
 export function OrganizerFields({ draft, issueIds, selectedCategory, setDraftField, t }: Props) {
   return (
-    <div className="grid gap-5 sm:grid-cols-2">
-      <label className="space-y-2 text-base font-semibold text-[#001a33]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
+      <label className="min-w-0 space-y-2 text-base font-semibold text-[#001a33]">
         <span>{t('details.issueType')}</span>
         <select
           aria-label={t('details.issueType')}
@@ -33,7 +33,7 @@ export function OrganizerFields({ draft, issueIds, selectedCategory, setDraftFie
           ))}
         </select>
       </label>
-      <label className="space-y-2 text-base font-semibold text-[#001a33]">
+      <label className="min-w-0 space-y-2 text-base font-semibold text-[#001a33]">
         <span>{t('details.incidentDate')}</span>
         <input
           aria-label={t('details.incidentDate')}
@@ -43,7 +43,7 @@ export function OrganizerFields({ draft, issueIds, selectedCategory, setDraftFie
           className={CONTROL_CLASS}
         />
       </label>
-      <label className="space-y-2 text-base font-semibold text-[#001a33]">
+      <label className="min-w-0 space-y-2 text-base font-semibold text-[#001a33]">
         <span>{t('details.counterparty')}</span>
         <input
           aria-label={t('details.counterparty')}
@@ -54,7 +54,7 @@ export function OrganizerFields({ draft, issueIds, selectedCategory, setDraftFie
           className={CONTROL_CLASS}
         />
       </label>
-      <label className="space-y-2 text-base font-semibold text-[#001a33]">
+      <label className="min-w-0 space-y-2 text-base font-semibold text-[#001a33]">
         <span>{t('details.desiredOutcome')}</span>
         <select
           aria-label={t('details.desiredOutcome')}

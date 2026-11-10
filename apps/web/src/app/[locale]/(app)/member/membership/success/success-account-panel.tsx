@@ -40,7 +40,7 @@ export function SuccessAccountPanel(props: {
   return (
     <Card data-testid="success-card" className="border-2 shadow-lg">
       <CardHeader className="pb-4">
-        <CardTitle className="flex items-center justify-between text-lg">
+        <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-lg">
           {props.copy.cardLabel}
           <Badge variant="secondary">{props.copy.statusActive}</Badge>
         </CardTitle>
@@ -48,11 +48,11 @@ export function SuccessAccountPanel(props: {
       <CardContent className="p-0">
         <div className="px-6 pb-6 pt-2">
           <div className="relative aspect-[1.586/1] overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-6 text-white shadow-2xl forced-colors:border">
-            <div className="relative z-10 flex items-start justify-between">
+            <div className="relative z-10 flex flex-wrap items-start justify-between gap-2">
               <div className="text-sm font-bold uppercase tracking-widest opacity-80">
                 Asistenca
               </div>
-              <ShieldCheck className="h-8 w-8 text-primary" aria-hidden="true" />
+              <ShieldCheck className="h-8 w-8 shrink-0 text-primary" aria-hidden="true" />
             </div>
             <div className="relative z-10 mt-8">
               <div className="mb-1 text-xs opacity-50">{props.copy.cardIdPrefix}</div>
@@ -60,18 +60,26 @@ export function SuccessAccountPanel(props: {
                 {visibleMemberNumber}
               </div>
             </div>
-            <div className="relative z-10 mt-auto flex items-end justify-between">
-              <div className="text-xl font-bold">{props.memberName}</div>
+            <div className="relative z-10 mt-auto flex flex-wrap items-end justify-between gap-2">
+              <div className="min-w-0 text-xl font-bold [overflow-wrap:anywhere]">
+                {props.memberName}
+              </div>
               <div className="rounded-md bg-white p-1">
                 <QrCode className="h-8 w-8 text-black" aria-hidden="true" />
               </div>
             </div>
           </div>
-          <Button className="mt-6 h-12 w-full font-bold" variant="outline">
-            <Wallet className="mr-2 h-5 w-5" aria-hidden="true" />
+          <Button
+            className="mt-6 h-auto min-h-12 w-full whitespace-normal py-2 font-bold [overflow-wrap:anywhere]"
+            variant="outline"
+          >
+            <Wallet className="mr-2 h-5 w-5 shrink-0" aria-hidden="true" />
             {props.copy.wallet}
           </Button>
-          <PwaInstallButton label={props.copy.install} className="mt-3 font-bold" />
+          <PwaInstallButton
+            label={props.copy.install}
+            className="mt-3 h-auto min-h-12 whitespace-normal py-2 font-bold [overflow-wrap:anywhere]"
+          />
         </div>
       </CardContent>
     </Card>

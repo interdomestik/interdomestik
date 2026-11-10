@@ -14,7 +14,7 @@ export function MemberRecoveryDecisionCard({ decision, supportHref }: Props) {
   const t = useTranslations('claims.detail.recoveryDecision');
 
   return (
-    <Card data-testid="member-claim-recovery-decision">
+    <Card className="min-w-0 [overflow-wrap:anywhere]" data-testid="member-claim-recovery-decision">
       <CardHeader>
         <CardTitle>
           {decision.status === 'accepted' ? t('acceptedTitle') : t('declinedTitle')}
@@ -37,7 +37,12 @@ export function MemberRecoveryDecisionCard({ decision, supportHref }: Props) {
               <p className="text-xs font-medium uppercase text-muted-foreground">
                 {t('nextAction')}
               </p>
-              <Button asChild size="sm" variant="outline">
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="h-auto min-h-9 max-w-full whitespace-normal"
+              >
                 <Link href={supportHref} data-testid="member-recovery-decision-support-link">
                   {t('supportCta')}
                 </Link>
