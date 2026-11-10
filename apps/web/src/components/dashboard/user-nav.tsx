@@ -112,7 +112,7 @@ function UserNavInner({
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-56 [&_[role=menuitem]]:min-h-11" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user.name}</p>
@@ -153,7 +153,7 @@ function UserNavInner({
           )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+        <DropdownMenuItem onClick={handleSignOut} className="min-h-11 cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
           <span>{t('logout')}</span>
           <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>

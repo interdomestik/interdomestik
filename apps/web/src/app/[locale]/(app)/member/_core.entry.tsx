@@ -1,12 +1,10 @@
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
+import { MemberRoleShell } from '@/components/shell/member-role-shell';
 import { toClientShellUser } from '@/components/shell/client-shell-user';
 import { NavigationFeedback } from '@/components/shell/navigation-feedback';
 import { requireSessionOrRedirect } from '@/components/shell/session';
 import { APP_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { getCachedSession } from '@/lib/auth.server';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
-import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
@@ -51,13 +49,7 @@ export default async function DashboardLayout({
     <NextIntlClientProvider messages={messages} locale={locale}>
       <NavigationFeedback>
         <div data-testid="dashboard-page-ready">
-          <SidebarProvider defaultOpen={false}>
-            <DashboardSidebar user={shellUser} adminAccess={false} />
-            <SidebarInset className="bg-mesh flex min-h-screen w-screen max-w-[100svw] flex-col overflow-x-hidden md:w-auto">
-              <DashboardHeader user={shellUser} adminAccess={false} />
-              <main className="flex-1 p-0 md:p-8 md:pt-6">{children}</main>
-            </SidebarInset>
-          </SidebarProvider>
+          <MemberRoleShell user={shellUser}>{children}</MemberRoleShell>
         </div>
       </NavigationFeedback>
     </NextIntlClientProvider>
