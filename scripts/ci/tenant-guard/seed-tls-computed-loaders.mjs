@@ -55,27 +55,26 @@ function unboundKind(node) {
   return ['globalThis', 'global'].includes(node.text) ? GLOBAL : 0;
 }
 
-function identifierKind(node, references, seen) {
+// Non-recursive helpers only: every recursive step stays a direct loaderKind -> loaderKind call,
+// so the supported alias depth matches a single recursive function.
+function identifierLeaf(node, references) {
   const reference = references.get(node);
-  if (!reference) return 0;
+  if (!reference) return { kind: 0 };
   const { binding } = reference;
-  if (!binding) return unboundKind(node);
+  if (!binding) return { kind: unboundKind(node) };
   if (binding.kind === 'import' && ['module', 'node:module'].includes(binding.specifier))
-    return binding.imported === 'createRequire' ? FACTORY : MODULE;
+    return { kind: binding.imported === 'createRequire' ? FACTORY : MODULE };
   const declaration = binding.decl;
-  if (!ts.isVariableDeclaration(declaration)) return 0;
-  let base = loaderKind(declaration.initializer, references, new Set(seen));
-  for (const value of assignments(references).get(binding) ?? [])
-    base |= loaderKind(value, references, new Set(seen));
-  if (ts.isObjectBindingPattern(declaration.name)) {
-    const element = binding.id.parent;
-    return memberKind(base, (element.propertyName ?? element.name).text);
-  }
-  return base;
+  return ts.isVariableDeclaration(declaration) ? { binding, declaration } : { kind: 0 };
 }
 
-function callKind(node, references, seen) {
-  const kind = loaderKind(node.expression, references, seen);
+function bindingKind(binding, declaration, base) {
+  if (!ts.isObjectBindingPattern(declaration.name)) return base;
+  const element = binding.id.parent;
+  return memberKind(base, (element.propertyName ?? element.name).text);
+}
+
+function callResult(node, kind) {
   let result = kind & FACTORY ? REQUIRE : 0;
   if (
     (kind & REQUIRE || node.expression.kind === ts.SyntaxKind.ImportKeyword) &&
@@ -92,10 +91,18 @@ function loaderKind(node, references, seen = new Set()) {
   node = unwrap(node);
   if (!node || seen.has(node)) return 0;
   seen.add(node);
-  if (ts.isIdentifier(node)) return identifierKind(node, references, seen);
+  if (ts.isIdentifier(node)) {
+    const leaf = identifierLeaf(node, references);
+    if (!leaf.declaration) return leaf.kind;
+    let base = loaderKind(leaf.declaration.initializer, references, new Set(seen));
+    for (const value of assignments(references).get(leaf.binding) ?? [])
+      base |= loaderKind(value, references, new Set(seen));
+    return bindingKind(leaf.binding, leaf.declaration, base);
+  }
   if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node))
     return memberKind(loaderKind(node.expression, references, seen), loaderMember(node));
-  if (ts.isCallExpression(node)) return callKind(node, references, seen);
+  if (ts.isCallExpression(node))
+    return callResult(node, loaderKind(node.expression, references, seen));
   if (ts.isConditionalExpression(node))
     return (
       loaderKind(node.whenTrue, references, new Set(seen)) |
