@@ -17,6 +17,7 @@ import { installTargets } from './rules-targets.mjs';
 import { installTrust } from './rules-trust.mjs';
 import { propagate } from './rules-propagate.mjs';
 import { report } from './rules-report.mjs';
+import { scanSeedTlsEntries } from './rules-seed-tls.mjs';
 import { scanFiles } from './rules-scan.mjs';
 import { unitName, unitOf } from './syntax.mjs';
 
@@ -30,6 +31,7 @@ export function evaluate({
   sources,
   trusted,
   graph,
+  seedTls = null,
   contracts = CONTRACTS,
   legacyPins = LEGACY_PINS,
   stateContracts = STATE_CONTRACTS,
@@ -53,6 +55,7 @@ export function evaluate({
     accepted,
     contracts,
     graph,
+    seedTls,
     legacyPins,
     lifetimeRunners,
     sources,
@@ -73,6 +76,7 @@ export function evaluate({
   installCustody(ctx);
   installLifetime(ctx);
   scanFiles(ctx);
+  scanSeedTlsEntries(ctx);
   propagate(ctx);
   ctx.checkLifetime();
   return report(ctx);

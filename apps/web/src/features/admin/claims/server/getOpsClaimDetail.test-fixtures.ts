@@ -48,6 +48,7 @@ const hoisted = vi.hoisted(() => {
     and,
     matchesAccessTenant: vi.fn((_table: unknown, tenantId: string) => `access:${tenantId}`),
     getSession,
+    signDocument: vi.fn(),
     headersFn,
     ensureTenantId,
     withTenantContext,
@@ -60,6 +61,17 @@ vi.mock('@/lib/auth', () => ({
       getSession: hoisted.getSession,
     },
   },
+}));
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: async () => {
+    const session = await hoisted.getSession();
+    if (!session) return null;
+    const tenantId = hoisted.ensureTenantId(session);
+    return { session, authority: opsAuthority({ ...session.user, tenantId }) };
+  },
+}));
+vi.mock('@/lib/storage/service-role', () => ({
+  createTenantSignedDownloadUrl: hoisted.signDocument,
 }));
 
 vi.mock('next/headers', () => ({
@@ -232,6 +244,7 @@ export function readContexts(): Array<{ tenantId: string; role: string | null | 
 
 export function resetOpsClaimDetailMocks(): void {
   vi.clearAllMocks();
+  hoisted.signDocument.mockResolvedValue({ data: { signedUrl: 'signed-document-url' } });
   hoisted.getSession.mockResolvedValue({
     user: {
       id: 'admin-1',

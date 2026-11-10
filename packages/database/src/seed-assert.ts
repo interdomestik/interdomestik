@@ -1,4 +1,8 @@
-import { assertSeedTargetAllowed, importSeedDatabase } from './seed-target-guard';
+import {
+  assertSeedTargetAllowed,
+  closeSeedTargetClients,
+  importSeedDatabase,
+} from './seed-target-guard';
 import { config as loadEnv } from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -23,11 +27,16 @@ function loadEnvFromRoot() {
 loadEnvFromRoot();
 
 /** Prints each violation under its invariant label and stops the run, or confirms the catalogue. */
-function exitOnViolations(label: string, violations: readonly string[], passed: string): void {
+async function exitOnViolations(
+  label: string,
+  violations: readonly string[],
+  passed: string
+): Promise<void> {
   if (violations.length > 0) {
     for (const violation of violations) {
       console.error(`❌ ${label} invariant failed: ${violation}`);
     }
+    await closeSeedTargetClients();
     process.exit(1);
   }
   console.log(`✅ ${passed}`);
@@ -49,12 +58,14 @@ async function assertSeed() {
 
     if (result.length === 0) {
       console.error('❌ No seed metadata found. Database might be unseeded.');
+      await closeSeedTargetClients();
       process.exit(1);
     }
 
     const lastRun = result[0];
     if (lastRun.mode !== 'e2e') {
       console.error(`❌ Incorrect seed mode. Expected 'e2e', found '${lastRun.mode}'.`);
+      await closeSeedTargetClients();
       process.exit(1);
     }
 
@@ -73,6 +84,7 @@ async function assertSeed() {
 
     if (members.length === 0) {
       console.error('❌ Seed invariant failed: KS agent A1 has no assigned members.');
+      await closeSeedTargetClients();
       process.exit(1);
     }
 
@@ -91,6 +103,7 @@ async function assertSeed() {
 
     if (claims.length === 0) {
       console.error('❌ Seed invariant failed: KS agent A1 has no visible claims.');
+      await closeSeedTargetClients();
       process.exit(1);
     }
 
@@ -108,6 +121,7 @@ async function assertSeed() {
       console.error(
         `❌ Seed invariant failed: Expected ${docIds.length} share-pack documents, found ${docs.length}`
       );
+      await closeSeedTargetClients();
       process.exit(1);
     }
 
@@ -116,7 +130,7 @@ async function assertSeed() {
     console.log('🔍 Asserting nine-role matrix and named relationship fixtures...');
     const { collectRoleFixtureViolations } = await import('./seed-assert-role-fixtures');
     const roleFixtureViolations = await collectRoleFixtureViolations(db, schema);
-    exitOnViolations(
+    await exitOnViolations(
       'Role fixture',
       roleFixtureViolations,
       'Role matrix (9 roles) and relationship fixtures match the catalogue'
@@ -125,7 +139,7 @@ async function assertSeed() {
     console.log('🔍 Asserting branch membership rules...');
     const { collectBranchMembershipViolations } = await import('./seed-assert-branch-membership');
     const branchViolations = await collectBranchMembershipViolations(db);
-    exitOnViolations(
+    await exitOnViolations(
       'Branch membership',
       branchViolations,
       'Branch membership rules hold for every user, grant, claim and subscription'
@@ -134,7 +148,7 @@ async function assertSeed() {
     console.log('🔍 Asserting membership lifecycle fixtures...');
     const { collectLifecycleViolations } = await import('./seed-assert-lifecycle');
     const lifecycleViolations = await collectLifecycleViolations(db, schema);
-    exitOnViolations(
+    await exitOnViolations(
       'Membership lifecycle',
       lifecycleViolations,
       'Membership lifecycle states match the catalogue'
@@ -143,16 +157,24 @@ async function assertSeed() {
     console.log('🔍 Asserting cash verification state fixtures...');
     const { collectCashStateViolations } = await import('./seed-assert-cash');
     const cashViolations = await collectCashStateViolations(db, schema);
-    exitOnViolations('Cash state', cashViolations, 'Cash verification states match the catalogue');
+    await exitOnViolations(
+      'Cash state',
+      cashViolations,
+      'Cash verification states match the catalogue'
+    );
 
     console.log('🔍 Asserting named claim state fixtures...');
     const { collectClaimStateViolations } = await import('./seed-assert-claim-states');
     const claimStateViolations = await collectClaimStateViolations(db, schema);
-    exitOnViolations('Claim state', claimStateViolations, 'Named claim states match the catalogue');
+    await exitOnViolations(
+      'Claim state',
+      claimStateViolations,
+      'Named claim states match the catalogue'
+    );
 
     const { collectTenantStateViolations } = await import('./seed-assert-tenant-states');
     const tenantStateViolations = await collectTenantStateViolations(db, schema);
-    exitOnViolations(
+    await exitOnViolations(
       'Tenant state',
       tenantStateViolations,
       'Named tenant states match the catalogue'
@@ -161,25 +183,31 @@ async function assertSeed() {
     const { collectAgentLinkLifecycleViolations } =
       await import('./seed-assert-agent-link-lifecycle');
     const linkViolations = await collectAgentLinkLifecycleViolations(db, schema);
-    exitOnViolations(
+    await exitOnViolations(
       'Agent link lifecycle',
       linkViolations,
       'Agent link lifecycle matches the catalogue'
     );
     const { collectDiscoveryViolations } = await import('./seed-assert-discovery');
-    exitOnViolations(
+    await exitOnViolations(
       'Discovery',
       await collectDiscoveryViolations(db, schema),
       'Discovery documents, share packs, messages and notifications match the catalogue'
     );
+    await closeSeedTargetClients();
     process.exit(0);
   } catch (err: any) {
     // If table doesn't exist or query fails
     console.error('❌ Assertion failed:', err.message);
+    await closeSeedTargetClients();
     process.exit(1);
   }
 }
 
 if (process.argv[1] === __filename) {
-  assertSeed();
+  assertSeed().catch(async error => {
+    console.error('Seed assertion failed:', error);
+    await closeSeedTargetClients();
+    process.exit(1);
+  });
 }

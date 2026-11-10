@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { assertDocumentBoundaryAdmission } from './tenant-guard.c1-document-boundary.test-support.mjs';
 import { C1_ADMISSIONS } from './tenant-guard/c1-admissions.mjs';
 import { createModuleGraph } from './tenant-guard/modules.mjs';
 import { evaluate, sha256 } from './tenant-guard/rules.mjs';
@@ -263,6 +264,7 @@ test('a successor admission binds every file, unit owner and sink edge of its pr
   const pairs = [
     ['documents-read-restriction-2026-11', 'documents-staff-draft-denial-2026-11'],
     ['tx-lifetime-transition-2026-11', 'tx-lifetime-staff-draft-grants-2026-11'],
+    ['tx-lifetime-staff-draft-grants-2026-11', 'tx-lifetime-branch-manager-content-denial-2026-11'],
   ];
   for (const [before, after] of pairs) {
     const base = byId.get(before);
@@ -278,4 +280,8 @@ test('a successor admission binds every file, unit owner and sink edge of its pr
     }
     assert.ok(next.files.some((entry, index) => entry.sha256 !== base.files[index]?.sha256));
   }
+});
+
+test('D1 successor rejects partial bundles, helper drift and a missing helper unit', () => {
+  assertDocumentBoundaryAdmission(runAdmitted);
 });

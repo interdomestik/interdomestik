@@ -21,8 +21,10 @@ import {
 import { formatPilotDate } from '@/lib/utils/date';
 import { useLocale, useTranslations } from 'next-intl';
 import { CashVerificationRequestDTO } from '../server/types';
+import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
 
 interface VerificationTableProps {
+  viewerRole?: string | null;
   data: CashVerificationRequestDTO[];
   historyMode: boolean;
   onViewDetails: (id: string) => void;
@@ -36,9 +38,11 @@ export function VerificationTable({
   onViewDetails,
   onVerify,
   onAction,
+  viewerRole,
 }: VerificationTableProps): React.JSX.Element {
   const locale = useLocale();
   const t = useTranslations('admin.leads');
+  const hideProof = deniesClaimDocumentContent(viewerRole);
 
   const baseColumns = [
     { key: 'branch', header: t('table.branch') },
@@ -102,24 +106,25 @@ export function VerificationTable({
         </Tooltip>
       </TooltipProvider>,
       <div key="proof">
-        {req.documentPath ? (
-          <Button variant="ghost" size="sm" asChild className="h-8">
-            <a
-              href={`/api/documents/${req.documentId}/download`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <FileText className="w-4 h-4 mr-2 text-blue-600" />
-              <span className="text-blue-600 underline-offset-4 hover:underline">
-                {t('actions.view_proof')}
-              </span>
-            </a>
-          </Button>
-        ) : (
-          <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-yellow-50">
-            {t('labels.missing_proof')}
-          </Badge>
-        )}
+        {!hideProof &&
+          (req.documentPath ? (
+            <Button variant="ghost" size="sm" asChild className="h-8">
+              <a
+                href={`/api/documents/${req.documentId}/download`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FileText className="w-4 h-4 mr-2 text-blue-600" />
+                <span className="text-blue-600 underline-offset-4 hover:underline">
+                  {t('actions.view_proof')}
+                </span>
+              </a>
+            </Button>
+          ) : (
+            <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-yellow-50">
+              {t('labels.missing_proof')}
+            </Badge>
+          ))}
       </div>,
       <span key="amount" className="font-bold text-green-600">
         {(req.amount / 100).toLocaleString('de-DE', {

@@ -1,4 +1,5 @@
 import { getVerificationRequestDetails } from '@/features/admin/verification/server/verification.core';
+import { redactVerificationDetailsForRole } from '@/features/admin/verification/server/branch-manager-redaction';
 import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import { auth } from '@/lib/auth';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
@@ -53,8 +54,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       },
     },
     {
-      getVerificationDetailsFn: (_ctx, attemptId) =>
-        getVerificationRequestDetails(protectedContext, attemptId),
+      getVerificationDetailsFn: async (_ctx, attemptId) => {
+        const details = await getVerificationRequestDetails(protectedContext, attemptId);
+        return redactVerificationDetailsForRole(details, protectedContext.userRole);
+      },
     }
   );
 

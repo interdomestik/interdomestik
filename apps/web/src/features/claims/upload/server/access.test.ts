@@ -48,6 +48,7 @@ vi.mock('drizzle-orm', () => ({
 
 import {
   canAccessClaimFromAdminUploadSurface,
+  findAccessibleAdminUploadClaim,
   findOwnedMemberInformationRequest,
   findOwnedMemberUploadClaim,
 } from './access';
@@ -75,6 +76,31 @@ beforeEach(() => {
 });
 
 describe('canAccessClaimFromAdminUploadSurface', () => {
+  it('denies a manager before opening the admin upload tenant transaction', async () => {
+    await expect(
+      findAccessibleAdminUploadClaim({
+        authority,
+        branchId: 'branch-1',
+        claimId: 'claim-1',
+        role: 'branch_manager',
+        userId: 'manager-1',
+      })
+    ).resolves.toBeNull();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.findClaimFirst).not.toHaveBeenCalled();
+  });
+
+  it.each(['branch-1', 'branch-2', null])('denies manager uploads with branch %s', branchId => {
+    expect(
+      canAccessClaimFromAdminUploadSurface({
+        branchId,
+        claim: { branchId: 'branch-1', caseLifecycleState: 'submitted', staffId: 'manager-1' },
+        role: 'branch_manager',
+        userId: 'manager-1',
+      })
+    ).toBe(false);
+  });
+
   it('allows assigned staff even when the claim branch differs', () => {
     expect(
       canAccessClaimFromAdminUploadSurface({
@@ -192,16 +218,22 @@ describe('canAccessClaimFromAdminUploadSurface', () => {
     }
   );
 
-  it.each(['auditor', 'global_support', 'staff', 'admin', 'super_admin', null, 'unknown'])(
-    'gives a %s owner no member upload claim without reading it',
-    async role => {
-      await expect(
-        findOwnedMemberUploadClaim({ claimId: 'claim-1', authority, role, userId: 'member-1' })
-      ).resolves.toBeNull();
-      expect(hoisted.withTenantContext).not.toHaveBeenCalled();
-      expect(hoisted.findClaimFirst).not.toHaveBeenCalled();
-    }
-  );
+  it.each([
+    'auditor',
+    'global_support',
+    'staff',
+    'admin',
+    'super_admin',
+    'branch_manager',
+    null,
+    'unknown',
+  ])('gives a %s owner no member upload claim without reading it', async role => {
+    await expect(
+      findOwnedMemberUploadClaim({ claimId: 'claim-1', authority, role, userId: 'member-1' })
+    ).resolves.toBeNull();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.findClaimFirst).not.toHaveBeenCalled();
+  });
 
   it('returns null when the tenant-scoped ownership lookup finds no row', async () => {
     hoisted.findClaimFirst.mockResolvedValueOnce(undefined);

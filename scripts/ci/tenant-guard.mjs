@@ -13,6 +13,7 @@ import {
   trustedSources,
   workspacePackages,
 } from './tenant-guard/sources.mjs';
+import { createSeedTlsContext } from './tenant-guard/seed-tls-resolution.mjs';
 import { TRUSTED } from './tenant-guard/trusted.mjs';
 
 // Tenant guard S″: capability confinement over a finite privileged boundary, with legacy forms
@@ -46,7 +47,14 @@ const graph = createModuleGraph({
   appAliases: APP_ALIASES,
   resolution,
 });
-const result = evaluate({ sources, trusted, graph });
+const seedTls = createSeedTlsContext({
+  repoRoot,
+  sources,
+  graph,
+  resolution,
+  appAliases: APP_ALIASES,
+});
+const result = evaluate({ sources, trusted, graph, seedTls });
 result.violations.unshift(
   ...resolution.violations,
   ...workspaceGlobViolations(repoRoot),

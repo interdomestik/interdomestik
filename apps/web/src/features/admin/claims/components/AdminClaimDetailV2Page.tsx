@@ -8,7 +8,6 @@ import { ClaimantInfoCard } from '@/features/admin/claims/components/ops/Claiman
 import { EvidencePanel } from '@/features/admin/claims/components/ops/EvidencePanel';
 import { NextActionsCard } from '@/features/admin/claims/components/ops/NextActionsCard';
 import { getOpsClaimDetail } from '@/features/admin/claims/server/getOpsClaimDetail';
-import { auth } from '@/lib/auth';
 import { isAdmin } from '@/lib/roles';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { Card, CardContent } from '@interdomestik/ui/components/card';
@@ -28,12 +27,6 @@ export async function AdminClaimDetailV2Page({
 }): Promise<React.JSX.Element> {
   setRequestLocale(locale);
 
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return notFound();
-  const visibility = await resolveClaimsVisibility(session);
-  if (!visibility || !canViewAdminClaims(visibility)) return notFound();
-  if (visibility.role === 'branch_manager' && !visibility.branchId) return notFound();
-
   let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
   try {
     authorized = await authorizeSessionTenant(await headers());
@@ -41,7 +34,10 @@ export async function AdminClaimDetailV2Page({
     return notFound();
   }
   if (!authorized) return notFound();
-  const { authority } = authorized;
+  const { authority, session } = authorized;
+  const visibility = await resolveClaimsVisibility(session);
+  if (!visibility || !canViewAdminClaims(visibility)) return notFound();
+  if (visibility.role === 'branch_manager' && !visibility.branchId) return notFound();
   const result = await getOpsClaimDetail(id, authority);
   if (result.kind === 'not_found') return notFound();
 
@@ -142,6 +138,8 @@ export async function AdminClaimDetailV2Page({
           {/* Use the new pure EvidencePanel with explicit mapping */}
           <EvidencePanel
             claimId={data.id}
+            viewerRole={session.user.role}
+            documentSummary={data.documentSummary}
             readOnly={visibility.role === 'branch_manager'}
             docs={data.docs.map(d => ({
               id: d.id,

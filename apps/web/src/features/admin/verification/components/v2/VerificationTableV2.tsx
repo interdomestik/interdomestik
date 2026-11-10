@@ -11,6 +11,7 @@ import { VerificationStatusSpine } from './VerificationStatusSpine';
 import { VerifierCell } from './VerifierCell';
 
 interface VerificationTableV2Props {
+  viewerRole?: string | null;
   data: CashVerificationRequestDTO[];
   historyMode: boolean;
   onViewDetails: (id: string) => void;
@@ -26,6 +27,7 @@ export function VerificationTableV2({
   onAction,
   onVerify,
   onResendInvite,
+  viewerRole,
 }: VerificationTableV2Props) {
   const t = useTranslations('admin.leads');
 
@@ -67,7 +69,7 @@ export function VerificationTableV2({
       </div>,
       <BranchCell key={`${req.id}-branch`} request={req} />,
       <LeadCell key={`${req.id}-lead`} request={req} />,
-      <ProofCell key={`${req.id}-proof`} request={req} />,
+      <ProofCell key={`${req.id}-proof`} request={req} viewerRole={viewerRole} />,
       <AmountCell key={`${req.id}-amount`} request={req} />,
       ...(historyMode ? [<VerifierCell key={`${req.id}-verifier`} request={req} />] : []),
     ],

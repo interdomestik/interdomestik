@@ -1,6 +1,7 @@
 'use server';
 
 import { ClaimDocumentUploadConflictError } from '@/features/claims/upload/server/claim-document-upload-conflict';
+import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
 
 import { findAccessibleAdminUploadClaim } from '@/features/claims/upload/server/access';
 import {
@@ -16,10 +17,10 @@ import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import { ensureTenantId, isStaffOrHigher } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
-type AdminUploadRole = 'admin' | 'super_admin' | 'tenant_admin' | 'branch_manager' | 'staff';
+type AdminUploadRole = 'admin' | 'super_admin' | 'tenant_admin' | 'staff';
 
 function isAdminUploadRole(role: string | null | undefined): role is AdminUploadRole {
-  return isStaffOrHigher(role);
+  return !deniesClaimDocumentContent(role) && isStaffOrHigher(role);
 }
 
 type UploadContext =
