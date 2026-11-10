@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 
 import { inArray } from 'drizzle-orm';
+import { importPilotDatabase } from './import-pilot-database';
 
 dotenv.config({ path: '.env.local' });
 
@@ -88,10 +89,7 @@ export function selectPilotOperators(
 }
 
 export async function loadPilotScenarioContext() {
-  const { db } = await import('@interdomestik/database');
-  const { claims, claimStageHistory, claimMessages } =
-    await import('@interdomestik/database/schema/claims');
-  const { user } = await import('@interdomestik/database/schema/auth');
+  const { db, claims, claimStageHistory, claimMessages, user } = await importPilotDatabase();
 
   const pilotUsers = await db.query.user.findMany({
     where: inArray(user.email, [
