@@ -1,8 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mintTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-const mocks = vi.hoisted(() => ({ session: vi.fn(), authority: vi.fn(), core: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  session: vi.fn(),
+  cachedSession: vi.fn(),
+  freshSession: vi.fn(),
+  headers: vi.fn(),
+  core: vi.fn(),
+}));
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: mocks.session,
   requireSessionOrRedirect: (session: unknown) => {
@@ -10,7 +16,13 @@ vi.mock('@/components/shell/session', () => ({
     return session;
   },
 }));
-vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: mocks.authority }));
+vi.mock('@/lib/auth.server', () => ({ getCachedSession: mocks.cachedSession }));
+vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: mocks.freshSession } } }));
+vi.mock('@/lib/tenant-authority.server', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/lib/tenant-authority.server')>();
+  return { ...actual, authorizeSessionTenant: vi.fn(actual.authorizeSessionTenant) };
+});
+vi.mock('next/headers', () => ({ headers: mocks.headers }));
 vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('notFound');
@@ -25,59 +37,74 @@ vi.mock('@/features/claims/support-handoffs/branch-manager-handoffs', () => ({
   BranchManagerHandoffs: () => <div>BM metadata</div>,
 }));
 import { BranchManagerHandoffs } from '@/features/claims/support-handoffs/branch-manager-handoffs';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import Page from './page';
 
 const props = { params: Promise.resolve({ locale: 'en' }), searchParams: Promise.resolve({}) };
 const view = <div>HANDOFF-SUBJECT-SENTINEL HANDOFF-MESSAGE-SENTINEL</div>;
+const requestHeaders = new Headers({ cookie: 'better-auth.session_token=test-session' });
 
-function authorized(role: string, userId = 'viewer', tenantId = 'tenant-a') {
-  const authority = mintTenantAuthority({
-    tenantId,
-    purpose: 'session',
-    principal: { userId, role, branchId: 'branch-a', agentId: null },
-  });
-  return { session: { user: { id: userId, role, tenantId } }, authority };
+function session(role: string, userId = 'viewer', tenantId: string | null = 'tenant-a') {
+  return { user: { id: userId, role, tenantId, branchId: 'branch-a', agentId: null } };
+}
+
+function cacheSession(value: ReturnType<typeof session> | null) {
+  // Every no-header lookup receives the same request snapshot, including during core reads.
+  mocks.cachedSession.mockReturnValue(Promise.resolve(value));
+}
+
+function expectFreshCheck() {
+  expect(authorizeSessionTenant).toHaveBeenCalledTimes(2);
+  expect(authorizeSessionTenant).toHaveBeenNthCalledWith(1);
+  expect(authorizeSessionTenant).toHaveBeenNthCalledWith(2, requestHeaders);
+  expect(requestHeaders).toBeInstanceOf(Headers);
+  expect(mocks.cachedSession).toHaveBeenCalledExactlyOnceWith();
+  expect(mocks.headers).toHaveBeenCalledExactlyOnceWith();
+  expect(mocks.freshSession).toHaveBeenCalledExactlyOnceWith({ headers: requestHeaders });
 }
 
 beforeEach(() => {
-  vi.resetAllMocks();
+  vi.clearAllMocks();
+  for (const mock of Object.values(mocks)) mock.mockReset();
+  cacheSession(session('staff'));
+  mocks.freshSession.mockResolvedValue(session('staff'));
+  mocks.headers.mockResolvedValue(requestHeaders);
   mocks.core.mockResolvedValue(view);
 });
 
 describe('handoff page fresh-authority dispatch', () => {
-  it('uses fresh BM authority when the shell caches staff without calling the core', async () => {
+  it('uses BM authority when the shell caches staff without calling the core', async () => {
     mocks.session.mockResolvedValue({ user: { id: 'viewer', role: 'staff' } });
-    const current = authorized('branch_manager');
-    mocks.authority.mockResolvedValue(current);
+    cacheSession(session('branch_manager'));
     const element = await Page(props);
-    expect(element).toMatchObject({
-      type: BranchManagerHandoffs,
-      props: { authority: current.authority },
-    });
+    expect(element.type).toBe(BranchManagerHandoffs);
+    expect(readTenantAuthority(element.props.authority).principal?.role).toBe('branch_manager');
     expect(renderToStaticMarkup(element)).not.toContain('SENTINEL');
     expect(mocks.core).not.toHaveBeenCalled();
     expect(mocks.session).not.toHaveBeenCalled();
-    expect(mocks.authority).toHaveBeenCalledExactlyOnceWith();
+    expect(authorizeSessionTenant).toHaveBeenCalledExactlyOnceWith();
+    expect(mocks.freshSession).not.toHaveBeenCalled();
   });
 
-  it('discards rendered content when the second fresh read becomes BM', async () => {
-    const current = authorized('branch_manager');
-    mocks.authority.mockResolvedValueOnce(authorized('staff')).mockResolvedValueOnce(current);
-    const element = await Page(props);
-    expect(element).toMatchObject({
-      type: BranchManagerHandoffs,
-      props: { authority: current.authority },
+  it('discards rendered content when the uncached second read becomes BM', async () => {
+    // A repeated no-header authorization would still see staff after this role change.
+    mocks.core.mockImplementationOnce(() => {
+      mocks.freshSession.mockResolvedValue(session('branch_manager'));
+      return Promise.resolve(view);
     });
+    const element = await Page(props);
+    expect(element.type).toBe(BranchManagerHandoffs);
+    expect(readTenantAuthority(element.props.authority).principal?.role).toBe('branch_manager');
     const html = renderToStaticMarkup(element);
     expect(html).toContain('BM metadata');
     expect(html).not.toContain('HANDOFF-SUBJECT-SENTINEL');
     expect(html).not.toContain('HANDOFF-MESSAGE-SENTINEL');
     expect(mocks.core).toHaveBeenCalledExactlyOnceWith(props);
-    expect(mocks.authority).toHaveBeenCalledTimes(2);
+    expectFreshCheck();
     expect(mocks.core.mock.invocationCallOrder[0]).toBeGreaterThan(
-      mocks.authority.mock.invocationCallOrder[0]
+      vi.mocked(authorizeSessionTenant).mock.invocationCallOrder[0]
     );
-    expect(mocks.authority.mock.invocationCallOrder[1]).toBeGreaterThan(
+    expect(vi.mocked(authorizeSessionTenant).mock.invocationCallOrder[1]).toBeGreaterThan(
       mocks.core.mock.invocationCallOrder[0]
     );
   });
@@ -91,31 +118,60 @@ describe('handoff page fresh-authority dispatch', () => {
     'agent',
     'global_support',
     'auditor',
-  ])('returns exactly the original element for fresh %s on both reads', async role => {
+  ])('returns exactly the original element for %s on both reads', async role => {
     mocks.session.mockResolvedValue({ user: { id: 'viewer', role: 'branch_manager' } });
-    mocks.authority.mockResolvedValue(authorized(role));
+    cacheSession(session(role));
+    mocks.freshSession.mockResolvedValue(session(role));
     expect(await Page(props)).toBe(view);
     expect(mocks.core).toHaveBeenCalledExactlyOnceWith(props);
-    expect(mocks.authority).toHaveBeenCalledTimes(2);
+    expectFreshCheck();
     expect(mocks.session).not.toHaveBeenCalled();
   });
 
   it.each([
-    ['different user', authorized('staff', 'other-user')],
-    ['different tenant', authorized('staff', 'viewer', 'tenant-b')],
-    ['different user now BM', authorized('branch_manager', 'other-user')],
-    ['different tenant now BM', authorized('branch_manager', 'viewer', 'tenant-b')],
-    ['no session', null],
+    ['different user', session('staff', 'other-user')],
+    ['different tenant', session('staff', 'viewer', 'tenant-b')],
+    ['different user now BM', session('branch_manager', 'other-user')],
+    ['different tenant now BM', session('branch_manager', 'viewer', 'tenant-b')],
+    ['no session (revoked)', null],
   ])('returns notFound when the second read has %s', async (_label, current) => {
-    mocks.authority.mockResolvedValueOnce(authorized('staff')).mockResolvedValueOnce(current);
+    mocks.core.mockImplementationOnce(() => {
+      mocks.freshSession.mockResolvedValue(current);
+      return Promise.resolve(view);
+    });
     await expect(Page(props)).rejects.toThrow('notFound');
     expect(mocks.core).toHaveBeenCalledExactlyOnceWith(props);
-    expect(mocks.authority).toHaveBeenCalledTimes(2);
+    expectFreshCheck();
   });
 
-  it('does not enter either reader when fresh authentication is absent', async () => {
-    mocks.authority.mockResolvedValue(null);
+  it.each(['first', 'second'])('returns notFound for a tenantless %s check', async check => {
+    const tenantless = session('staff', 'viewer', null);
+    if (check === 'first') cacheSession(tenantless);
+    else mocks.freshSession.mockResolvedValue(tenantless);
+    await expect(Page(props)).rejects.toThrow('notFound');
+    if (check === 'first') {
+      expect(authorizeSessionTenant).toHaveBeenCalledExactlyOnceWith();
+      expect(mocks.core).not.toHaveBeenCalled();
+      expect(mocks.freshSession).not.toHaveBeenCalled();
+    } else {
+      expectFreshCheck();
+    }
+  });
+
+  it.each(['first', 'second'])('rethrows unrelated errors from the %s check', async check => {
+    const error = new Error('session store unavailable');
+    if (check === 'first') mocks.cachedSession.mockRejectedValue(error);
+    else mocks.freshSession.mockRejectedValue(error);
+    await expect(Page(props)).rejects.toBe(error);
+    if (check === 'first') expect(mocks.core).not.toHaveBeenCalled();
+    else expectFreshCheck();
+  });
+
+  it('does not enter either reader when authentication is absent', async () => {
+    cacheSession(null);
     await expect(Page(props)).rejects.toThrow('redirect:login');
+    expect(authorizeSessionTenant).toHaveBeenCalledExactlyOnceWith();
     expect(mocks.core).not.toHaveBeenCalled();
+    expect(mocks.freshSession).not.toHaveBeenCalled();
   });
 });
