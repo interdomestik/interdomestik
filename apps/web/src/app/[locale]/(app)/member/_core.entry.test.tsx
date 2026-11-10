@@ -4,8 +4,17 @@ import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { getTranslations } from 'next-intl/server';
 
-// prettier-ignore
-const h = vi.hoisted(() => ({ sidebar: vi.fn(() => null), header: vi.fn(() => null), session: vi.fn(async () => ({ user: { id: 'agent-1', role: 'agent' } })), required: vi.fn(value => value), redirect: vi.fn((url: string) => { throw new Error(`redirect:${url}`); }), messages: vi.fn(async () => ({})), pick: vi.fn(() => ({})), pass: ({ children }: { children: React.ReactNode }) => children }));
+const h = vi.hoisted(() => ({
+  shell: vi.fn(),
+  session: vi.fn(() => Promise.resolve({ user: { id: 'agent-1', role: 'agent' } })),
+  required: vi.fn(value => value),
+  redirect: vi.fn((url: string) => {
+    throw new Error(`redirect:${url}`);
+  }),
+  messages: vi.fn(() => Promise.resolve({})),
+  pick: vi.fn(() => ({})),
+  pass: ({ children }: { children: React.ReactNode }) => children,
+}));
 
 vi.mock('next/navigation', () => ({ redirect: h.redirect }));
 vi.mock('next-intl/server', () => ({
@@ -26,13 +35,13 @@ vi.mock('@/components/dashboard/claims/member-claims-table', () => ({
 }));
 vi.mock('@/components/shell/navigation-feedback', () => ({ NavigationFeedback: h.pass }));
 vi.mock('@/i18n/messages', () => ({ APP_NAMESPACES: [], pickMessages: h.pick }));
-vi.mock('@interdomestik/ui', () => ({
-  Button: h.pass,
-  SidebarInset: h.pass,
-  SidebarProvider: h.pass,
+vi.mock('@/components/shell/member-role-shell', () => ({
+  MemberRoleShell: ({ children, ...props }: { children: React.ReactNode }) => {
+    h.shell(props);
+    return children;
+  },
 }));
-vi.mock('@/components/dashboard/dashboard-header', () => ({ DashboardHeader: h.header }));
-vi.mock('@/components/dashboard/dashboard-sidebar', () => ({ DashboardSidebar: h.sidebar }));
+vi.mock('@interdomestik/ui', () => ({ Button: h.pass }));
 
 import DashboardLayout from './_core.entry';
 import ClaimsPage from './claims/_core.entry';
@@ -52,19 +61,18 @@ describe('MemberDashboard layout role handling', () => {
 
   it('renders agents through the unified member shell', async () => {
     const tree = await DashboardLayout({
-      children: <div />,
+      children: <div data-testid="member-dashboard-ready">Portal slots</div>,
       params: Promise.resolve({ locale: 'mk' }),
     });
     render(tree as React.ReactElement);
 
     expect(h.session).toHaveBeenCalledTimes(1);
-    expect(h.sidebar).toHaveBeenCalledWith(
-      expect.objectContaining({ user: expect.objectContaining({ role: 'member' }) }),
-      undefined
+    expect(h.shell).toHaveBeenCalledWith(
+      expect.objectContaining({ user: expect.objectContaining({ role: 'member' }) })
     );
-    expect(h.header).toHaveBeenCalledWith(
-      expect.objectContaining({ user: expect.objectContaining({ role: 'member' }) }),
-      undefined
+    expect(document.querySelector('[data-testid="dashboard-page-ready"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-testid="member-dashboard-ready"]')).toHaveTextContent(
+      'Portal slots'
     );
   });
 
