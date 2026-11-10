@@ -1,8 +1,8 @@
-import { assertSeedTargetAllowed } from '../seed-target-guard';
+import { assertSeedModeAllowed, assertSeedTargetAllowed } from '../seed-target-guard';
 import type { SeedConfig } from '../seed-types';
 
 export async function seedFull(config: SeedConfig) {
-  assertSeedTargetAllowed(process.env);
+  assertSeedModeAllowed('full', assertSeedTargetAllowed(process.env));
   console.log('🌱 Starting Full System Seed (Modular)...');
 
   try {

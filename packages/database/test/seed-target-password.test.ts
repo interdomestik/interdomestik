@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DEFAULT_E2E_PASSWORD } from '../src/e2e-users';
-import { assertSeedTargetAllowed } from '../src/seed-target-guard';
+import { assertSeedModeAllowed, assertSeedTargetAllowed } from '../src/seed-target-guard';
 
 const staging = 's'.repeat(20);
 const pooler = 'aws-0-eu.pooler.supabase.com';
@@ -213,3 +213,48 @@ test('the target is the host the driver connects to, never an ignored fallback',
     assert.throws(() => assertSeedTargetAllowed(env, strongOverride), /refused: ambiguous$/);
   }
 });
+
+test('non-ASCII fallback hosts, empty RLS URLs and startup-only usernames are refused', () => {
+  const production = 'gunosplgrvnvrftudttr';
+  const lookalikes = [
+    `db.ｇ${production.slice(1)}.supabase.co`,
+    `db.${production.slice(0, 4)}­${production.slice(4)}.supabase.co`,
+    `db.${production.slice(0, 4)}​${production.slice(4)}.supabase.co`,
+  ];
+  for (const PGHOST of lookalikes) {
+    const env = {
+      DATABASE_URL: 'postgres:///db',
+      PGUSER: 'fixture',
+      PGHOST,
+      SEED_TARGET_CONFIRM: `plan070:${PGHOST}`,
+      E2E_PASSWORD: strongOverride,
+    };
+    assert.throws(() => assertSeedTargetAllowed(env, strongOverride), /refused: ambiguous$/);
+  }
+  for (const DATABASE_URL of ['postgres://fixture@ci-postgres/db', local55438()]) {
+    const env = { DATABASE_URL, DATABASE_URL_RLS: '', SEED_TARGET_CONFIRM: 'plan070:ci-postgres' };
+    assert.throws(() => assertSeedTargetAllowed(env), /refused: invalid$/);
+  }
+  assert.throws(
+    () => assertSeedTargetAllowed({ DATABASE_URL: 'postgres:///db?username=fixture' }),
+    /refused: ambiguous$/
+  );
+  assert.equal(
+    assertSeedTargetAllowed({ DATABASE_URL: 'postgres:///db', PGUSER: 'fixture' }),
+    'local'
+  );
+});
+
+test('full and workload modes run only on local targets', () => {
+  for (const mode of ['full', 'workload']) {
+    assert.doesNotThrow(() => assertSeedModeAllowed(mode, 'local'));
+    assert.throws(() => assertSeedModeAllowed(mode, 'confirmed-non-local'), /non-local-mode$/);
+  }
+  for (const mode of ['e2e', 'golden']) {
+    assert.doesNotThrow(() => assertSeedModeAllowed(mode, 'confirmed-non-local'));
+  }
+});
+
+function local55438(): string {
+  return ['postgresql://fixture', '127.0.0.1:55438/interdomestik_test'].join('@');
+}

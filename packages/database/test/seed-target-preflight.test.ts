@@ -14,7 +14,9 @@ test('runner and assertion preflight precede DB initialization', () => {
     const source = readSeed(file);
     assert.match(
       source,
-      new RegExp(`async function ${entry}\\(\\) \\{\\s*assertSeedTargetAllowed\\(process.env\\);`)
+      new RegExp(
+        `async function ${entry}\\(\\) \\{\\s*(?:const targetClassification = )?assertSeedTargetAllowed\\(process.env\\);`
+      )
     );
     const preflight = source.indexOf('assertSeedTargetAllowed(process.env)');
     assert.ok(preflight < source.indexOf("await import('./db')"));
@@ -36,11 +38,19 @@ test('exported golden, full, workload and agent-pack entry points preflight firs
     ['seed-packs/ks-workflow-pack.ts', 'seedKsWorkflowPack'],
   ];
   for (const [file, entry] of entries) {
+    // full/workload hash fixed public passwords, so they also refuse every non-local target.
+    const mode = /seed-(full|workload)\//.exec(file)?.[1];
+    const call = mode
+      ? `assertSeedModeAllowed\\('${mode}', assertSeedTargetAllowed\\(process.env\\)\\);`
+      : 'assertSeedTargetAllowed\\(process.env\\);';
     assert.match(
       readSeed(file),
-      new RegExp(
-        `export async function ${entry}\\(config: SeedConfig\\) \\{\\s*assertSeedTargetAllowed\\(process.env\\);`
-      )
+      new RegExp(`export async function ${entry}\\(config: SeedConfig\\) \\{\\s*${call}`)
     );
   }
+  const runner = readSeed('seed.ts');
+  assert.ok(
+    runner.indexOf('assertSeedModeAllowed(mode, targetClassification)') <
+      runner.indexOf("await import('./db')")
+  );
 });

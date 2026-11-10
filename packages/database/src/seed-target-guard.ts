@@ -2,9 +2,10 @@ import { DEFAULT_E2E_PASSWORD, E2E_PASSWORD } from './e2e-users';
 
 const PRODUCTION_PROJECT_REF = 'gunosplgrvnvrftudttr';
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1']);
-// postgres 3.4.9 uses host names literally and splits them on ',' and ':' (IPv6 unsupported).
-// '$' would act as a String.replace pattern inside its URL host rewrite.
-const NON_LITERAL_HOST = /[%,/\s:[\]@#\\$]/;
+// postgres 3.4.9 uses host names literally, splits them on ',' and ':' (IPv6 unsupported) and
+// rewrites the URL host with String.replace ('$' patterns); Node applies IDNA before DNS lookup.
+// Only plain ASCII host names are therefore the same name for the guard and the connection.
+const LITERAL_HOST = /^[a-z0-9.-]+$/i;
 // postgres 3.4.9 parseOptions: these affect transport, not startup identity.
 const TRANSPORT_QUERY_KEYS = new Set([
   'ssl',
@@ -25,7 +26,7 @@ const TRANSPORT_QUERY_KEYS = new Set([
   'max',
 ]);
 const HOST_KEYS = new Set(['host', 'hostname', 'hostaddr']);
-const USER_KEYS = new Set(['user', 'username']);
+
 type SeedEnvironment = Readonly<Record<string, string | undefined>>;
 type SeedTargetClassification = 'local' | 'confirmed-non-local';
 
@@ -88,7 +89,7 @@ function rejectProduction(env: SeedEnvironment, urls: (URL | null)[]): void {
 }
 
 function literalHost(value: string): string {
-  if (NON_LITERAL_HOST.test(value)) refuse('ambiguous');
+  if (!LITERAL_HOST.test(value)) refuse('ambiguous');
   return value.toLowerCase();
 }
 
@@ -114,11 +115,15 @@ function databaseTarget(url: URL, env: SeedEnvironment): string {
   const hosts = [driverHost, url.hostname, env.PGHOST, env.PGHOSTADDR]
     .filter((value): value is string => Boolean(value))
     .map(literalHost);
-  const users = present([url.username, env.PGUSERNAME, env.PGUSER]);
+  // The driver decodes the URL username once and uses PGUSERNAME/PGUSER literally.
+  const users = [decode(url.username), env.PGUSERNAME, env.PGUSER]
+    .filter((value): value is string => Boolean(value))
+    .map(value => value.toLowerCase());
   for (const [key, value] of url.searchParams) {
     // The driver sends query host keys as startup parameters, never as the connection host.
     if (HOST_KEYS.has(key)) refuse('ambiguous');
-    else if (USER_KEYS.has(key)) users.push(decode(value).toLowerCase());
+    // URLSearchParams already decoded the value once; `username` is only a startup parameter.
+    else if (key === 'user') users.push(value.toLowerCase());
     else if (!TRANSPORT_QUERY_KEYS.has(key)) refuse('ambiguous');
   }
   // options/service/socket overrides have no safely resolved single target here.
@@ -170,7 +175,8 @@ export function assertSeedTargetAllowed(
   const rls = parse(env.DATABASE_URL_RLS);
   const advisory = [parse(env.SUPABASE_URL), parse(env.NEXT_PUBLIC_SUPABASE_URL)];
   rejectProduction(env, [database, rls, ...advisory]);
-  if (!database || (env.DATABASE_URL_RLS && !rls)) refuse('invalid');
+  // db.ts keeps a defined-but-empty RLS URL, which the driver resolves to localhost defaults.
+  if (!database || (env.DATABASE_URL_RLS !== undefined && !rls)) refuse('invalid');
   assertDriverAuthority(env.DATABASE_URL ?? '', database);
   if (rls) assertDriverAuthority(env.DATABASE_URL_RLS ?? '', rls);
   const target = databaseTarget(database, env);
@@ -182,4 +188,14 @@ export function assertSeedTargetAllowed(
   // Only the exact, confirmed CI host retains the local fixture-password policy.
   if (target !== 'ci-postgres') assertRemoteSeedPassword(env, effectivePassword);
   return 'confirmed-non-local';
+}
+
+/** full/workload hash fixed public fixture passwords, so they never run on a non-local target. */
+export function assertSeedModeAllowed(
+  mode: string,
+  classification: SeedTargetClassification
+): void {
+  if (classification !== 'local' && mode !== 'e2e' && mode !== 'golden') {
+    refuse('non-local-mode');
+  }
 }
