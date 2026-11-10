@@ -1,4 +1,4 @@
-import { assertSeedTargetAllowed } from '../seed-target-guard';
+import { assertSeedTargetAllowed, importSeedDatabase } from '../seed-target-guard';
 import { E2E_AGENT_PACK_USERS } from '../e2e-agent-pack-fixtures';
 import { E2E_PASSWORD } from '../e2e-users';
 import type { SeedConfig } from '../seed-types';
@@ -8,7 +8,7 @@ import { packId } from '../seed-utils/seed-ids';
 export async function seedAgentPack(config: SeedConfig) {
   assertSeedTargetAllowed(process.env);
   console.log('🕴️ Seeding Agent Pack...');
-  const { db } = await import('../db');
+  const { db } = await importSeedDatabase();
   // Import schema from root src/schema.ts re-export
   const schema = await import('../schema');
 

@@ -1,4 +1,4 @@
-import { assertSeedTargetAllowed } from './seed-target-guard';
+import { assertSeedTargetAllowed, importSeedDatabase } from './seed-target-guard';
 import { config as loadEnv } from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -35,7 +35,7 @@ function exitOnViolations(label: string, violations: readonly string[], passed: 
 
 async function assertSeed() {
   assertSeedTargetAllowed(process.env);
-  const { db } = await import('./db');
+  const { db } = await importSeedDatabase();
   const schema = await import('./schema');
   const { and, eq, inArray, ne, or } = await import('drizzle-orm');
   // We can use a raw query or import schema if needed, but raw is safer for a quick check.

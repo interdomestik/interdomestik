@@ -15,7 +15,7 @@ afterEach(() => {
   delete clients.queryClientRls;
 });
 
-test('runner and seeder preflights share a permanent slot with a hashed fingerprint', () => {
+test('runner and seeder preflights share a permanent frozen facade with private state', () => {
   assert.equal(assertSeedTargetAllowed(local), 'local');
   const descriptor = Object.getOwnPropertyDescriptor(globalThis, binding);
   assert.ok(descriptor);
@@ -23,7 +23,14 @@ test('runner and seeder preflights share a permanent slot with a hashed fingerpr
   assert.equal(descriptor.configurable, false);
   assert.equal(descriptor.writable, false);
   assert.equal(Reflect.deleteProperty(globalThis, binding), false);
-  assert.match(descriptor.value.binding.fingerprint, /^[a-f\d]{64}$/);
+  assert.ok(Object.isFrozen(descriptor.value));
+  assert.deepEqual(Object.keys(descriptor.value), ['bind', 'resetForTests']);
+  assert.equal(Reflect.set(descriptor.value, 'binding', undefined), false);
+  assert.equal(
+    Reflect.set(descriptor.value, 'bind', () => undefined),
+    false
+  );
+  assert.throws(() => assertSeedTargetAllowed({ ...local, PGPORT: '5433' }), /target-changed$/);
   clients.queryClientAdmin = { options: localOptions };
   try {
     assert.equal(assertSeedTargetAllowed({ ...local }), 'local');
@@ -72,17 +79,16 @@ for (const key of ['queryClientAdmin', 'queryClientRls'] as const) {
     Object.defineProperty(globalThis, key, { value: {}, configurable: true });
     try {
       assert.throws(() => assertSeedTargetAllowed(local), /refused: unbound-client$/);
-      assert.equal(Object.getOwnPropertyDescriptor(globalThis, binding)?.value.binding, undefined);
     } finally {
       if (descriptor) Object.defineProperty(globalThis, key, descriptor);
       else Reflect.deleteProperty(globalThis, key);
     }
+    assert.equal(assertSeedTargetAllowed({ ...local, PGPORT: '5433' }), 'local');
   });
 }
 
 test('a rejected target does not bind the process', () => {
   assert.throws(() => assertSeedTargetAllowed({}), /refused: invalid$/);
-  assert.equal(Object.getOwnPropertyDescriptor(globalThis, binding)?.value.binding, undefined);
   assert.equal(assertSeedTargetAllowed(local), 'local');
 });
 

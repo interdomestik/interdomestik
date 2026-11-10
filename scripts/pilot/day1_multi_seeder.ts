@@ -14,6 +14,7 @@ async function main() {
     eq,
     user,
   } = await import('@interdomestik/database');
+  assertSeedTargetAllowed(process.env);
   console.log('[Seeder] Connecting to Database...');
 
   const agentEmail = 'agent.ks.a1@plan070.example.invalid';

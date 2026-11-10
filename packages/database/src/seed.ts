@@ -3,7 +3,11 @@ import { config as loadEnv } from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { assertSeedModeAllowed, assertSeedTargetAllowed } from './seed-target-guard';
+import {
+  assertSeedModeAllowed,
+  assertSeedTargetAllowed,
+  importSeedDatabase,
+} from './seed-target-guard';
 import { seedFull } from './seed-full';
 import { seedGolden } from './seed-golden';
 import { seedAgentPack } from './seed-packs/agent-pack';
@@ -34,9 +38,7 @@ function loadEnvFromRoot() {
 // Force load .env
 loadEnvFromRoot();
 
-/**
- * Deterministic base time for seeding (ensures reproducible timestamps)
- */
+/** Deterministic base time for seeding (ensures reproducible timestamps). */
 const E2E_SEED_BASE_TIME = new Date('2026-01-01T00:00:00Z');
 
 interface SeedReceipt {
@@ -233,7 +235,7 @@ async function main() {
   logReceipt(receipt);
 
   // Dynamic imports after env is loaded
-  const { db } = await import('./db');
+  const { db } = await importSeedDatabase();
   const schema = await import('./schema');
 
   // Check if reset is needed

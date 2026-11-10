@@ -147,7 +147,7 @@ function driverTarget(url: URL, env: SeedEnvironment): SeedDriverTarget {
   return {
     host: literalHost(url.hostname || env.PGHOST || 'localhost'),
     port: Number.parseInt(url.port || env.PGPORT || '5432'),
-    user,
+    user: url.searchParams.getAll('user').at(-1) ?? user,
     database: url.pathname.slice(1) || env.PGDATABASE || user,
   };
 }
@@ -216,4 +216,12 @@ export function assertSeedModeAllowed(
   if (classification !== 'local' && mode !== 'e2e' && mode !== 'golden') {
     refuse('non-local-mode');
   }
+}
+
+/** Validate both sides of module evaluation, before returning any database capability. */
+export async function importSeedDatabase(): Promise<typeof import('./db')> {
+  assertSeedTargetAllowed(process.env);
+  const database = await import('./db');
+  assertSeedTargetAllowed(process.env);
+  return database;
 }

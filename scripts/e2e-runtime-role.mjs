@@ -10,7 +10,7 @@ import postgres from 'postgres';
 
 export const E2E_RUNTIME_ROLE = 'interdomestik_e2e_runtime';
 // Probe suites pass a suffixed role so their adversarial catalog edits never touch the lane role.
-const ROLE_PATTERN = /^interdomestik_e2e_runtime(?:_[a-z0-9]{1,24})?$/u;
+const ROLE_PATTERN = /^interdomestik_e2e_runtime(?:_[a-z\d]{1,24})?$/u;
 // Stable signed 64-bit key serializing role DDL across concurrent lanes on one database.
 const ROLE_DDL_LOCK_KEY = 930802;
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1']);
@@ -30,7 +30,7 @@ function assertDriverAuthority(value, url, label) {
   if (
     /[#\\\s]/u.test(value) ||
     parts.length > 2 ||
-    !/^[a-z0-9.-]+$/i.test(host) ||
+    !/^[a-z\d.-]+$/i.test(host) ||
     host.toLowerCase() !== url.hostname.toLowerCase()
   ) {
     throw new RuntimeRoleError(`${label} has an ambiguous database authority`);
@@ -52,7 +52,7 @@ function parseLoopbackUrl(value, label) {
     throw new RuntimeRoleError(`${label} must target a loopback host`);
   }
   if (url.search) throw new RuntimeRoleError(`${label} must not carry connection options`);
-  if (!/^\/[a-z][a-z0-9_]{0,62}$/u.test(url.pathname)) {
+  if (!/^\/[a-z][a-z\d_]{0,62}$/u.test(url.pathname)) {
     throw new RuntimeRoleError(`${label} must name a plain database`);
   }
   return url;
@@ -90,7 +90,7 @@ export function resolveE2eRuntimeUrl(adminUrl, configuredRuntimeUrl, role = E2E_
   if (decodeURIComponent(runtime.username) !== role) {
     throw new RuntimeRoleError(`E2E_SERVER_DATABASE_URL_RLS must connect as ${role}`);
   }
-  if (!/^[0-9A-Za-z_-]{16,}$/u.test(decodeURIComponent(runtime.password))) {
+  if (!/^[\dA-Za-z_-]{16,}$/u.test(decodeURIComponent(runtime.password))) {
     throw new RuntimeRoleError('E2E_SERVER_DATABASE_URL_RLS needs a hex or base64url password');
   }
   if (databaseTarget(runtime) !== databaseTarget(admin)) {
@@ -294,6 +294,6 @@ export async function provisionE2eRuntimeRole({
 /** Prints only messages we authored; driver errors are reduced to their SQLSTATE. */
 export function describeRuntimeRoleFailure(error) {
   if (error instanceof RuntimeRoleError) return error.message;
-  const code = typeof error?.code === 'string' && /^[0-9A-Z]{5}$/u.test(error.code);
+  const code = typeof error?.code === 'string' && /^[\dA-Z]{5}$/u.test(error.code);
   return `database error ${code ? error.code : 'unknown'}`;
 }
