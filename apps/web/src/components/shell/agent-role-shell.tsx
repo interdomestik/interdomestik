@@ -11,7 +11,7 @@ import type { ClientShellUser } from './client-shell-user';
 import { RoleShell } from './role-shell';
 import { useDashboardShellSlots } from './dashboard-shell-slots';
 
-const PRIMARY_PATHS = ['/agent', '/agent/members', '/agent/claims'];
+const PRIMARY_PATHS = new Set(['/agent', '/agent/members', '/agent/claims']);
 const CASE_QUERY_KEYS = ['claimId', 'selected'] as const;
 
 export function AgentRoleShell({
@@ -45,7 +45,7 @@ export function AgentRoleShell({
     if (item.href !== pathname || !query) return item;
     return { ...item, href: `${item.href}?${query}` };
   });
-  const primaryItems = items.filter(item => PRIMARY_PATHS.includes(item.href.split('?')[0]));
+  const primaryItems = items.filter(item => PRIMARY_PATHS.has(item.href.split('?')[0]));
 
   return (
     <RoleShell

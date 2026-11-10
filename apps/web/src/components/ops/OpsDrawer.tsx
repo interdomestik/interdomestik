@@ -2,7 +2,7 @@
 
 import { Button, Sheet, SheetContent, SheetHeader, SheetTitle } from '@interdomestik/ui';
 import { useIsMobile } from '@interdomestik/ui/hooks/use-mobile';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   canRestoreMobileSheetFocus,
   recordMobileSheetOpener,
@@ -38,7 +38,17 @@ export function OpsDrawer({
   selectionKey,
 }: Readonly<OpsDrawerProps>) {
   const isMobile = useIsMobile();
-  const inline = inlineOnMobile && isMobile;
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  // An open drawer keeps its presentation, so crossing the breakpoint cannot remount the
+  // children and drop unsent drafts; the choice is made once the viewport is known.
+  const [lockedInline, setLockedInline] = useState<boolean | null>(null);
+  if (!open || !hydrated) {
+    if (lockedInline !== null) setLockedInline(null);
+  } else if (lockedInline === null) {
+    setLockedInline(inlineOnMobile && isMobile);
+  }
+  const inline = lockedInline ?? (inlineOnMobile && isMobile);
   const opener = useRef<HTMLElement | null>(null);
   const pendingOpener = useRef<PendingSheetOpener | null>(null);
   const panel = useRef<HTMLElement | null>(null);
@@ -62,6 +72,18 @@ export function OpsDrawer({
     };
   }, [inline, open]);
 
+  // Bubble-phase document listener: nested React handlers can claim Escape first.
+  useEffect(() => {
+    if (!inline || !open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      if (target instanceof Node && panel.current?.contains(target)) onOpenChange(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [inline, open, onOpenChange]);
+
   if (inline) {
     if (!open) return null;
     return (
@@ -71,9 +93,6 @@ export function OpsDrawer({
         aria-label={title}
         data-testid={testId ?? OPS_TEST_IDS.DRAWER}
         className="min-w-0 scroll-mt-40 space-y-4 rounded-lg border bg-background p-3 [overflow-wrap:anywhere]"
-        onKeyDown={event => {
-          if (event.key === 'Escape' && !event.defaultPrevented) onOpenChange(false);
-        }}
       >
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
           <h2 className="min-w-0 text-lg font-semibold">{title}</h2>
