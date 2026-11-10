@@ -48,7 +48,7 @@ describe('BM handoff presentation and recovery', () => {
       retry.focus();
       await userEvent.setup().keyboard('{Enter}');
       expect(mocks.refresh).toHaveBeenCalledOnce();
-      expect(retry).toBeFocused();
+      expect(retry).toHaveFocus();
       expect(screen.getByTestId('staff-page-ready')).toBeInTheDocument();
     }
   );
@@ -71,12 +71,12 @@ describe('BM handoff presentation and recovery', () => {
     toggle.focus();
     await userEvent.setup().keyboard('{Enter}');
     expect(await screen.findByText('failed')).toBeInTheDocument();
-    expect(toggle).toBeFocused();
+    expect(toggle).toHaveFocus();
     const retries = screen.getAllByRole('button', { name: 'retry' });
     retries[0].focus();
     await userEvent.setup().keyboard('{Enter}');
     await waitFor(() => expect(screen.getAllByTestId('handoff-metadata-status')).toHaveLength(2));
-    expect(retries[0]).toBeFocused();
+    expect(retries[0]).toHaveFocus();
     expect(container.textContent).not.toContain('SENTINEL');
     expect(container.querySelector('textarea')).toBeNull();
     expect(screen.getByLabelText('handoffs.search')).toHaveAttribute('name', 'search');

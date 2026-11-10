@@ -1,7 +1,7 @@
 import { beforeEach, vi } from 'vitest';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
-export const mocks = vi.hoisted(() => ({
+const mocks = vi.hoisted(() => ({
   role: vi.fn(),
   persist: vi.fn(),
   translations: vi.fn(),
@@ -83,3 +83,5 @@ export function deferred<T>() {
   });
   return { promise, resolve };
 }
+
+export { mocks };

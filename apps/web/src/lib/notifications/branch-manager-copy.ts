@@ -1,5 +1,5 @@
 import { getTranslations } from 'next-intl/server';
-import { routing } from '@/i18n/routing';
+import { DEFAULT_LOCALE } from '@/i18n/locales';
 
 const eventKeys = {
   claim_submitted: 'claimSubmitted',
@@ -22,7 +22,7 @@ const eventKeys = {
 /** Only trusted event-type keys reach the catalog. Unknown stored types use neutral copy. */
 export async function getBranchManagerNotificationCopy(event: string, locale?: string) {
   const t = await getTranslations({
-    locale: locale ?? routing.defaultLocale,
+    locale: locale ?? DEFAULT_LOCALE,
     namespace: 'notifications.branchManager',
   });
   const key = Object.hasOwn(eventKeys, event)

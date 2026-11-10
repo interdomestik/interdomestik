@@ -86,6 +86,10 @@ vi.mock('@/lib/notifications', () => ({
   notifyNewMessage: vi.fn().mockResolvedValue({ success: true }),
 }));
 
+vi.mock('@/lib/notifications/recipient-role', () => ({
+  getNotificationRecipientRole: vi.fn().mockResolvedValue('member'),
+}));
+
 vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));

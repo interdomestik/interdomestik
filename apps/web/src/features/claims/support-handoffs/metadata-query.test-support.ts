@@ -2,7 +2,7 @@ import { getTableName, type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { vi } from 'vitest';
 
-export const state = vi.hoisted(() => ({
+const state = vi.hoisted(() => ({
   rows: {} as Record<string, Record<string, unknown>[]>,
   queries: [] as { sql: string; params: unknown[] }[],
   selections: [] as string[][],
@@ -157,3 +157,5 @@ export function resetMetadataModel() {
     ],
   };
 }
+
+export { state };
