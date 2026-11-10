@@ -45,6 +45,18 @@ async function share(actor: ShareActor, ids: string[], tx: never) {
 describe('canShareAllDocuments', () => {
   beforeEach(() => agentScope.mockReset());
 
+  it('denies a manager uploader and owner before any lookup or scope shortcut', async () => {
+    const { tx, select } = fakeTx(
+      [doc('d', 'claim', 'claim-1', 'bm-1')],
+      [claim({ ownerId: 'bm-1' })]
+    );
+    await expect(
+      share({ id: 'bm-1', role: 'branch_manager', branchId: 'branch-a' }, ['d'], tx)
+    ).resolves.toBe(false);
+    expect(select).not.toHaveBeenCalled();
+    expect(agentScope).not.toHaveBeenCalled();
+  });
+
   it.each(['auditor', 'global_support', null, undefined])(
     'gives a %s no share capability without reading documents',
     async role => {
@@ -107,7 +119,7 @@ describe('canShareAllDocuments', () => {
       'the branch manager',
       { id: 'bm-1', role: 'branch_manager', branchId: 'branch-a' },
       claim(),
-      true,
+      false,
     ],
     [
       'another branch manager',

@@ -20,11 +20,13 @@ import { resendInviteToastKey, verificationToastKey } from '../approval-toast';
 interface VerificationOpsCenterClientProps {
   initialData: CashVerificationRequestDTO[];
   initialParams: { view: 'queue' | 'history'; query: string };
+  viewerRole?: string | null;
 }
 
 export function VerificationOpsCenterClient({
   initialData,
   initialParams,
+  viewerRole,
 }: VerificationOpsCenterClientProps) {
   const t = useTranslations('admin.leads');
   const router = useRouter();
@@ -201,6 +203,7 @@ export function VerificationOpsCenterClient({
 
       {/* Table */}
       <VerificationTableV2
+        viewerRole={viewerRole}
         data={requests}
         historyMode={initialParams.view === 'history'}
         onViewDetails={handleSelect}
@@ -221,6 +224,7 @@ export function VerificationOpsCenterClient({
 
       {/* Details Drawer */}
       <VerificationDetailsDrawer
+        viewerRole={viewerRole}
         attemptId={selectedAttemptId}
         isOpen={!!selectedAttemptId}
         onClose={handleCloseDetails}

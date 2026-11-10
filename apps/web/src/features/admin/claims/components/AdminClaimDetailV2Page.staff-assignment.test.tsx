@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   resolveClaimsVisibility: vi.fn(),
   claimHeader: vi.fn<(props: HeaderProps) => void>(),
   nextActionsCard: vi.fn<(props: CardProps) => void>(),
+  evidencePanel: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
@@ -65,7 +66,10 @@ vi.mock('@/features/admin/claims/components/ops/ClaimantInfoCard', () => ({
   ClaimantInfoCard: () => null,
 }));
 vi.mock('@/features/admin/claims/components/ops/EvidencePanel', () => ({
-  EvidencePanel: () => null,
+  EvidencePanel: (props: unknown) => {
+    mocks.evidencePanel(props);
+    return null;
+  },
 }));
 
 import { AdminClaimDetailV2Page } from './AdminClaimDetailV2Page';
@@ -188,6 +192,9 @@ describe('AdminClaimDetailV2Page ops read-only forwarding', () => {
     await renderPage();
 
     expect(lastCardProps()).toMatchObject({ canAssign: false, readOnly: true });
+    expect(mocks.evidencePanel).toHaveBeenCalledWith(
+      expect.objectContaining({ viewerRole: 'branch_manager', readOnly: true })
+    );
   });
 
   it('renders no card for a branch manager without a branch', async () => {

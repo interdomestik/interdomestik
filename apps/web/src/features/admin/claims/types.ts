@@ -1,6 +1,7 @@
 // v2.0.2-admin-claims-ops — Admin Claims Operational Center
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { DiasporaOriginFilter } from '@interdomestik/domain-claims';
+import type { ClaimDocumentSummary } from './document-summary';
 
 // Re-export from policy for convenience
 export type { WaitingOn } from '@/features/claims/policy';
@@ -240,6 +241,7 @@ export type AdminClaimDocument = {
 export interface ClaimOpsDetail extends ClaimOperationalRow {
   description: string | null;
   docs: AdminClaimDocument[];
+  documentSummary?: ClaimDocumentSummary;
   claimNumber: string | null;
   // Visual fields for detail page
   companyName: string | null;

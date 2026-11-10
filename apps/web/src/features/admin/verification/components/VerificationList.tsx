@@ -16,9 +16,11 @@ import { VerificationTable } from './VerificationTable';
 export function VerificationList({
   initialLeads,
   initialParams,
+  viewerRole,
 }: {
   initialLeads: CashVerificationRequestDTO[];
   initialParams: { view: 'queue' | 'history'; query: string };
+  viewerRole?: string | null;
 }) {
   const t = useTranslations('admin.leads');
   const router = useRouter();
@@ -139,6 +141,7 @@ export function VerificationList({
 
           <TabsContent value="queue" className="mt-0">
             <VerificationTable
+              viewerRole={viewerRole}
               data={filteredRequests}
               historyMode={false}
               onViewDetails={setSelectedAttemptId}
@@ -148,6 +151,7 @@ export function VerificationList({
           </TabsContent>
           <TabsContent value="history" className="mt-0">
             <VerificationTable
+              viewerRole={viewerRole}
               data={filteredRequests}
               historyMode={true}
               onViewDetails={setSelectedAttemptId}
@@ -168,6 +172,7 @@ export function VerificationList({
       />
 
       <VerificationDetailsDrawer
+        viewerRole={viewerRole}
         attemptId={selectedAttemptId}
         isOpen={!!selectedAttemptId}
         onClose={() => setSelectedAttemptId(null)}

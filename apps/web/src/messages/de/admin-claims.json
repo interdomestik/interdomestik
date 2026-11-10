@@ -227,6 +227,7 @@
         "committed_refresh_pending": "Ihre Änderung wurde gespeichert. Aktualisieren Sie die Seite, um den neuesten Stand zu sehen. Wiederholen Sie diese Aktion nicht."
       },
       "evidence": {
+        "allocation_summary": "{count} Dokumente · Vollständigkeit der Nachweise nicht bestätigt.",
         "title": "Nachweise",
         "upload_button": "Hochladen",
         "dialog_title": "Nachweise hochladen",

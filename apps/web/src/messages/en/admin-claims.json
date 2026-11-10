@@ -218,6 +218,7 @@
         "committed_refresh_pending": "Your change was saved. Refresh the page to see the latest state. Do not repeat this action."
       },
       "evidence": {
+        "allocation_summary": "{count} documents · Evidence completeness not confirmed.",
         "title": "Evidence",
         "upload_button": "Upload",
         "dialog_title": "Upload evidence",

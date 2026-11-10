@@ -1,4 +1,5 @@
-import { auth } from '@/lib/auth';
+import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { createTenantSignedDownloadUrl } from '@/lib/storage/service-role';
 import { isExactIdaFrontDoorHost } from '@/lib/tenant/tenant-front-door';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
@@ -12,6 +13,7 @@ import {
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
+import { count } from 'drizzle-orm';
 import { matchesAccessTenant as mat } from '@/lib/db/access-tenant-predicate';
 import { mapClaimToOperationalRow, RawClaimRow } from '../mappers/mapClaimToOperationalRow';
 import { canViewAdminClaims, resolveClaimsVisibility } from './claimVisibility';
@@ -75,8 +77,9 @@ export async function getOpsClaimDetail(
 ): Promise<OpsClaimDetailResult> {
   // 0. Resolve tenant context from trusted host + session and fail closed.
   const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
-  if (!session) return { kind: 'not_found' };
+  const authorized = await authorizeSessionTenant(requestHeaders).catch(() => null);
+  if (!authorized) return { kind: 'not_found' };
+  const { session } = authorized;
   let sessionAccessTenantId: string;
   try {
     sessionAccessTenantId = ensureAccessTenantId(session);
@@ -94,7 +97,7 @@ export async function getOpsClaimDetail(
     return { kind: 'not_found' };
   }
 
-  const { claim, rawDocs } = await withTenantAuthority(authority, async tx => {
+  const { claim, rawDocs, documentSummary } = await withTenantAuthority(authority, async tx => {
     const claim = await tx.query.claims.findFirst({
       where: and(
         eq(claims.id, claimId),
@@ -108,6 +111,7 @@ export async function getOpsClaimDetail(
     if (!claim) {
       return {
         claim: null,
+        documentSummary: undefined,
         userData: null,
         agentData: null as { name: string } | null,
         rawDocs: [] as Array<{
@@ -120,6 +124,19 @@ export async function getOpsClaimDetail(
           filePath: string | null;
           bucket: string | null;
         }>,
+      };
+    }
+
+    if (deniesClaimDocumentContent(session.user.role)) {
+      const [summary] = await tx
+        .select({ count: count() })
+        .from(claimDocuments)
+        .where(and(eq(claimDocuments.claimId, claimId), mat(claimDocuments, tenantId)));
+      return {
+        claim,
+        rawDocs: [],
+        // No authoritative completeness signal is stored on this read surface.
+        documentSummary: { count: summary?.count ?? 0, evidenceComplete: null },
       };
     }
 
@@ -140,6 +157,7 @@ export async function getOpsClaimDetail(
     return {
       claim,
       rawDocs,
+      documentSummary: undefined,
     };
   });
 
@@ -224,6 +242,7 @@ export async function getOpsClaimDetail(
     ...opsRow,
     description: claim.description,
     docs,
+    ...(documentSummary ? { documentSummary } : {}),
     companyName: claim.companyName,
     claimAmount: claim.claimAmount ? String(claim.claimAmount) : null,
     currency: claim.currency,

@@ -1,6 +1,8 @@
 'use client';
 
 import { AdminClaimEvidenceUploadDialog } from '@/features/admin/claims/components/ops/AdminClaimEvidenceUploadDialog';
+import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
+import type { ClaimDocumentSummary } from '../../document-summary';
 import { UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -17,11 +19,29 @@ interface EvidencePanelProps {
   readonly claimId: string;
   readonly docs: EvidenceDoc[];
   readonly readOnly?: boolean;
+  readonly viewerRole?: string | null;
+  readonly documentSummary?: ClaimDocumentSummary;
 }
 
-export function EvidencePanel({ claimId, docs, readOnly = false }: EvidencePanelProps) {
+export function EvidencePanel({
+  claimId,
+  docs,
+  readOnly = false,
+  viewerRole,
+  documentSummary,
+}: EvidencePanelProps) {
   const t = useTranslations('admin.claims_page.evidence');
   const tCommon = useTranslations('common');
+  if (deniesClaimDocumentContent(viewerRole)) {
+    return (
+      <OpsDocumentsPanel
+        title={t('title')}
+        documents={[]}
+        emptyLabel={t('allocation_summary', { count: documentSummary?.count ?? 0 })}
+        viewLabel={tCommon('view')}
+      />
+    );
+  }
   const mappedDocs = docs.map(doc => ({
     id: doc.id,
     name: doc.name,
