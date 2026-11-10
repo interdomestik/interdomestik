@@ -41,6 +41,22 @@
       "retry": "Try loading messages again",
       "statusError": "Messages are shown, but their read status could not be updated."
     },
-    "publicAudience": "Visible to the member and the case team."
+    "publicAudience": "Visible to the member and the case team.",
+    "branchManager": {
+      "title": "Claim communication summary",
+      "restriction": "Message and claim note content is restricted for branch managers.",
+      "count": "All messages",
+      "lastMessageAt": "Last message",
+      "awaitingReply": "Awaiting team reply",
+      "yes": "Yes",
+      "no": "No",
+      "noTimestamp": "No timestamp available",
+      "empty": "No records yet.",
+      "unavailable": "This summary is unavailable for this claim.",
+      "failed": "The summary could not be loaded. Please retry.",
+      "retry": "Refresh summary",
+      "loading": "Refreshing…",
+      "history": "Status history"
+    }
   }
 }

@@ -1,3 +1,6 @@
+import { deniesClaimMessageContent } from '@/lib/branch-manager-message-boundary';
+import { ClaimMessageSummary } from '@/features/claims/communication/claim-message-summary';
+import { BranchManagerStatusHistory } from '@/features/claims/communication/branch-manager-status-history';
 import { getInformationRequests, getStaffClaimDetail } from '@interdomestik/domain-claims';
 import { ClaimInformationRequestForm } from '@/features/staff/claims/components/ClaimInformationRequestForm';
 import { ClaimInformationRequests } from '@/features/member/claims/components/ClaimInformationRequests';
@@ -53,12 +56,11 @@ export default async function StaffClaimDetailsPage({
   const tCommon = await getTranslations({ locale, namespace: 'common' });
 
   const session = requireSessionOrRedirect(await getSessionSafe('StaffClaimDetailsPage'), locale);
-  // Pilot policy: branch managers have read-only visibility; claim actions remain staff-only.
   if (session.user.role !== 'staff' && session.user.role !== 'branch_manager') {
     return notFound();
   }
 
-  // The readers derive actor, role and branch from this authority, so it must match this session.
+  // Bind these readers to the authenticated user's authority, including their exact role/branch.
   const authority = await authorizeStaffClaimPage(session.user);
   if (!authority) return notFound();
 
@@ -66,11 +68,9 @@ export default async function StaffClaimDetailsPage({
 
   if (!detail) return notFound();
 
+  const restricted = deniesClaimMessageContent(session.user.role);
   const [statusHistory, assignmentOptions, initialMessagesResult] = await Promise.all([
-    getPublicStatusHistoryCore({
-      claimId: id,
-      authority,
-    }),
+    restricted ? Promise.resolve([]) : getPublicStatusHistoryCore({ claimId: id, authority }),
     session.user.role === 'staff'
       ? getStaffAssignmentOptions({
           branchId: session.user.branchId ?? null,
@@ -96,20 +96,16 @@ export default async function StaffClaimDetailsPage({
 
   const isStaff = session.user.role === 'staff';
   const isAssignedStaff = isStaff && detail.claim.staffId === session.user.id;
-  // The server read above is the only message read on this route. A result that did not really
-  // succeed is reported as a recoverable read failure instead of being flattened into an empty
-  // conversation, and no extra query is issued for it.
+  // Failed staff reads remain recoverable failures; do not flatten them into empty conversations.
   const serverReadSucceeded =
     initialMessagesResult.success === true &&
     Array.isArray((initialMessagesResult as { messages?: unknown }).messages);
   const initialReadFailed = isStaff && !serverReadSucceeded;
-  // Ordinary case evidence for the currently assigned staff only. The reader re-checks the staff
-  // role and exact assignment inside the tenant transaction; failure stays distinct from empty.
+  // The document reader rechecks exact assignment inside its tenant transaction.
   const assignedDocuments = isAssignedStaff
     ? await getAssignedStaffClaimDocuments({ claimId: id, session, authority }).catch(() => null)
     : null;
-  // Phase derivation stays operative; only this route's generic verification copy is neutral so it
-  // never implies an outstanding member duty. The request card remains the source of real duties.
+  // The information-request card owns real member duties; generic phase copy stays neutral.
   const slaPhaseLabel = isVerificationGuidancePhase(claimStatus, slaPhase)
     ? tClaims('details.verification_guidance')
     : tClaims(`details.sla_phase.${slaPhase}`);
@@ -153,9 +149,6 @@ export default async function StaffClaimDetailsPage({
   });
 
   return (
-    // Workspace-scoped scroll margin: every fragment destination inside this route (including
-    // the context and history sections owned by their own components) clears the sticky shared
-    // header, which is taller when it wraps at 320 CSS px or with enlarged root text.
     <div
       className="min-w-0 space-y-6 [&_section]:scroll-mt-80 md:[&_section]:scroll-mt-20"
       data-testid="staff-claim-detail-ready"
@@ -179,6 +172,7 @@ export default async function StaffClaimDetailsPage({
         </section>
       ) : null}
 
+      {/* Commercial explanations and handling payloads are supplied only to staff. */}
       {isStaff ? (
         <section
           aria-labelledby={`${SECTION_HANDLING}-title`}
@@ -272,14 +266,21 @@ export default async function StaffClaimDetailsPage({
         title={tClaims('details.workspace.context')}
       />
 
-      <StaffStatusHistory
-        statusHistory={statusHistory}
-        locale={locale}
-        latestTitle={tClaims('details.staff_note.section_title')}
-        emptyLabel={tClaims('details.staff_note.empty')}
-        historyTitle={tClaims('details.staff_note.history_title')}
-        statusLabel={status => tStatus(toClaimStatus(status))}
-      />
+      {restricted ? (
+        <>
+          <ClaimMessageSummary claimId={id} authority={authority} />
+          <BranchManagerStatusHistory claimId={id} authority={authority} />
+        </>
+      ) : (
+        <StaffStatusHistory
+          statusHistory={statusHistory}
+          locale={locale}
+          latestTitle={tClaims('details.staff_note.section_title')}
+          emptyLabel={tClaims('details.staff_note.empty')}
+          historyTitle={tClaims('details.staff_note.history_title')}
+          statusLabel={status => tStatus(toClaimStatus(status))}
+        />
+      )}
     </div>
   );
 }

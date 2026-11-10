@@ -5,6 +5,7 @@ import { buildCommercialHandlingScopeSnapshot } from '@interdomestik/domain-clai
 
 const hoisted = vi.hoisted(() => ({
   locale: 'en',
+  claimActionPanelMock: vi.fn(),
   current: { session: null as unknown, authority: null as TenantAuthority | null },
   getInformationRequestsMock: vi.fn(() => Promise.resolve([])),
   getSessionMock: vi.fn(() =>
@@ -101,6 +102,15 @@ const hoisted = vi.hoisted(() => ({
         data-role={currentUser.role}
       />
     )
+  ),
+}));
+
+vi.mock('@/features/claims/communication/claim-message-summary', () => ({
+  ClaimMessageSummary: () => <section data-testid="claim-message-summary" />,
+}));
+vi.mock('@/features/claims/communication/branch-manager-status-history', () => ({
+  BranchManagerStatusHistory: () => (
+    <section id="staff-status-history" data-testid="staff-status-history" />
   ),
 }));
 
@@ -246,7 +256,10 @@ vi.mock('@/actions/messages/get.core', () => ({
 }));
 
 vi.mock('@/components/staff/claim-action-panel', () => ({
-  ClaimActionPanel: () => <div data-testid="staff-claim-action-panel" />,
+  ClaimActionPanel: (props: unknown) => {
+    hoisted.claimActionPanelMock(props);
+    return <div data-testid="staff-claim-action-panel" />;
+  },
 }));
 
 vi.mock('@/components/messaging/messaging-panel', () => ({

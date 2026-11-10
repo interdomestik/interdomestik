@@ -168,6 +168,10 @@ describe('StaffClaimDetailsPage', () => {
     await renderPage('en');
 
     expect(screen.getByTestId('staff-claim-readonly-notice')).toBeInTheDocument();
+    expect(hoisted.getPublicStatusHistoryCoreMock).not.toHaveBeenCalled();
+    expect(hoisted.claimActionPanelMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('claim-message-summary')).toBeInTheDocument();
+    expect(screen.queryByTestId('staff-claim-detail-note')).not.toBeInTheDocument();
     expect(screen.queryByTestId('staff-claim-messaging-panel')).not.toBeInTheDocument();
     expect(screen.queryByTestId('staff-claim-action-panel')).not.toBeInTheDocument();
     expect(screen.queryByTestId('staff-information-request-form')).not.toBeInTheDocument();
