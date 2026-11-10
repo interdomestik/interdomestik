@@ -160,7 +160,7 @@ function assertRemoteSeedPassword(env: SeedEnvironment, effectivePassword: strin
     refuse('non-local-password');
   }
   // Require three of lowercase, uppercase, digit and non-whitespace symbol.
-  const classes = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^a-zA-Z0-9\s]/];
+  const classes = [/[a-z]/, /[A-Z]/, /\d/, /[^a-zA-Z\d\s]/];
   if (classes.filter(pattern => pattern.test(effectivePassword)).length < 3) {
     refuse('non-local-password');
   }
