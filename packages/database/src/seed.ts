@@ -3,7 +3,7 @@ import { config as loadEnv } from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { assertSeedTargetAllowed } from './seed-target-guard';
+import { assertSeedModeAllowed, assertSeedTargetAllowed } from './seed-target-guard';
 import { seedFull } from './seed-full';
 import { seedGolden } from './seed-golden';
 import { seedAgentPack } from './seed-packs/agent-pack';
@@ -217,7 +217,7 @@ function resolveSeedBaseTime(mode: SeedMode): Date {
 }
 
 async function main() {
-  assertSeedTargetAllowed(process.env);
+  const targetClassification = assertSeedTargetAllowed(process.env);
   const args = process.argv.slice(2);
   const mode = (args.find(a => !a.startsWith('--')) || 'e2e') as SeedMode;
   const forceReset = args.includes('--reset');
@@ -226,6 +226,7 @@ async function main() {
     console.error(`❌ Unknown mode: '${mode}'. Supported: e2e, golden, full, workload`);
     process.exit(1);
   }
+  assertSeedModeAllowed(mode, targetClassification);
 
   const seedBaseTime = resolveSeedBaseTime(mode);
   const receipt = buildReceipt(mode, seedBaseTime);
