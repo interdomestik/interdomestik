@@ -124,7 +124,7 @@ export function ClaimInformationRequests({
             <CardHeader>
               <CardTitle>{t('title')}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 break-words">
+            <CardContent className="min-w-0 space-y-3 break-words [overflow-wrap:anywhere]">
               <p className="whitespace-pre-wrap font-medium">{request.requestedInformation}</p>
               <p className="whitespace-pre-wrap">{request.explanationForMember}</p>
               <dl className="space-y-2 text-sm">
@@ -190,13 +190,13 @@ export function ClaimInformationRequests({
                       key={evidence.documentId}
                       className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
                     >
-                      <div>
+                      <div className="min-w-0 max-w-full">
                         <p className="font-medium">{evidence.documentName}</p>
                         <p className="text-sm text-muted-foreground">
                           {evidence.acknowledgedAt ? t('acknowledged') : t('submitted')}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex max-w-full flex-wrap items-center gap-2">
                         {audience === 'member' ? (
                           <MemberEvidenceDownloadButton
                             documentId={evidence.documentId}
@@ -259,7 +259,11 @@ export function ClaimInformationRequests({
                       })
                     );
                   }}
-                  trigger={<Button type="button">{t('upload')}</Button>}
+                  trigger={
+                    <Button type="button" className="h-auto min-h-10 max-w-full whitespace-normal">
+                      {t('upload')}
+                    </Button>
+                  }
                 />
               ) : null}
             </CardContent>

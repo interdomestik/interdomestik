@@ -120,7 +120,7 @@ export function PublicResponseAcknowledgementForm({
           data-testid="member-support-handoff-public-response-acknowledged"
         >
           <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span>{currentAcknowledgedLabel}</span>
+          <span className="min-w-0 [overflow-wrap:anywhere]">{currentAcknowledgedLabel}</span>
         </div>
       ) : (
         <form
@@ -142,7 +142,7 @@ export function PublicResponseAcknowledgementForm({
             size="sm"
             variant="outline"
             disabled={pending}
-            className="border-emerald-300 bg-white text-emerald-900 hover:bg-emerald-100"
+            className="h-auto min-h-9 max-w-full whitespace-normal border-emerald-300 bg-white text-emerald-900 hover:bg-emerald-100"
             data-testid="member-support-handoff-public-response-ack-submit"
           >
             {pending ? labels.acknowledging : labels.acknowledge}

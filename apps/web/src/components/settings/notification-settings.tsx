@@ -94,8 +94,10 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-xl font-semibold">{t('notifications.title')}</CardTitle>
+            <Bell className="h-5 w-5 shrink-0 text-muted-foreground" />
+            <CardTitle className="min-w-0 text-xl font-semibold [overflow-wrap:anywhere]">
+              {t('notifications.title')}
+            </CardTitle>
           </div>
           <CardDescription>{t('notifications.description')}</CardDescription>
         </CardHeader>
@@ -115,8 +117,10 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Bell className="h-5 w-5 text-muted-foreground" />
-          <CardTitle className="text-xl font-semibold">{t('notifications.title')}</CardTitle>
+          <Bell className="h-5 w-5 shrink-0 text-muted-foreground" />
+          <CardTitle className="min-w-0 text-xl font-semibold [overflow-wrap:anywhere]">
+            {t('notifications.title')}
+          </CardTitle>
         </div>
         <CardDescription>{t('notifications.description')}</CardDescription>
       </CardHeader>
@@ -124,7 +128,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
         {/* Email Notifications */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Mail className="h-4 w-4 text-muted-foreground" />
+            <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
             <h4 className="text-sm font-medium">{t('notifications.email.title')}</h4>
           </div>
 
@@ -135,7 +139,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
                 checked={preferences.emailClaimUpdates}
                 onCheckedChange={() => handleToggle('emailClaimUpdates')}
               />
-              <div className="space-y-0.5">
+              <div className="min-w-0 space-y-0.5 [overflow-wrap:anywhere]">
                 <Label htmlFor="email-claim-updates" className="cursor-pointer">
                   {t('notifications.email.claimUpdates')}
                 </Label>
@@ -151,7 +155,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
                 checked={preferences.emailNewsletter}
                 onCheckedChange={() => handleToggle('emailNewsletter')}
               />
-              <div className="space-y-0.5">
+              <div className="min-w-0 space-y-0.5 [overflow-wrap:anywhere]">
                 <Label htmlFor="email-newsletter" className="cursor-pointer">
                   {t('notifications.email.newsletter')}
                 </Label>
@@ -167,7 +171,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
                 checked={preferences.emailMarketing}
                 onCheckedChange={() => handleToggle('emailMarketing')}
               />
-              <div className="space-y-0.5">
+              <div className="min-w-0 space-y-0.5 [overflow-wrap:anywhere]">
                 <Label htmlFor="email-marketing" className="cursor-pointer">
                   {t('notifications.email.marketing')}
                 </Label>
@@ -184,7 +188,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
         {/* Push Notifications */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Smartphone className="h-4 w-4 text-muted-foreground" />
+            <Smartphone className="h-4 w-4 shrink-0 text-muted-foreground" />
             <h4 className="text-sm font-medium">{t('notifications.push.title')}</h4>
           </div>
 
@@ -195,7 +199,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
                 checked={preferences.pushClaimUpdates}
                 onCheckedChange={() => handleToggle('pushClaimUpdates')}
               />
-              <div className="space-y-0.5">
+              <div className="min-w-0 space-y-0.5 [overflow-wrap:anywhere]">
                 <Label htmlFor="push-claim-updates" className="cursor-pointer">
                   {t('notifications.push.claimUpdates')}
                 </Label>
@@ -211,7 +215,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
                 checked={preferences.pushMessages}
                 onCheckedChange={() => handleToggle('pushMessages')}
               />
-              <div className="space-y-0.5">
+              <div className="min-w-0 space-y-0.5 [overflow-wrap:anywhere]">
                 <Label htmlFor="push-messages" className="cursor-pointer">
                   {t('notifications.push.messages')}
                 </Label>
@@ -228,7 +232,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
         {/* In-App Notifications */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
             <h4 className="text-sm font-medium">{t('notifications.inApp.title')}</h4>
           </div>
 
@@ -239,7 +243,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
                 checked={preferences.inAppAll}
                 onCheckedChange={() => handleToggle('inAppAll')}
               />
-              <div className="space-y-0.5">
+              <div className="min-w-0 space-y-0.5 [overflow-wrap:anywhere]">
                 <Label htmlFor="in-app-all" className="cursor-pointer">
                   {t('notifications.inApp.all')}
                 </Label>
@@ -250,11 +254,11 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
         </div>
 
         {/* Save Button */}
-        <div className="flex justify-end pt-4">
+        <div className="flex flex-wrap justify-end gap-2 pt-4">
           <Button
             onClick={handleSave}
             disabled={isPending}
-            className="shadow-lg hover:shadow-primary/25 transition-all duration-300"
+            className="h-auto min-h-10 max-w-full whitespace-normal shadow-lg hover:shadow-primary/25 transition-all duration-300"
           >
             {isPending ? t('notifications.saving') : t('notifications.save')}
           </Button>

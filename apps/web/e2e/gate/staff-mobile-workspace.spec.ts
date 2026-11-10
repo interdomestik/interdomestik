@@ -84,7 +84,8 @@ test('assigned staff case stays inside the shared mobile shell', async ({
   await gotoApp(page, routes.staffClaimDetail(claimId, info), info, {
     marker: 'staff-claim-detail-ready',
   });
-  const workspace = page.getByTestId('staff-claim-detail-ready');
+  // Cached routes stay mounted but hidden, so only the visible workspace is the page under test.
+  const workspace = page.getByTestId('staff-claim-detail-ready').filter({ visible: true });
   await expect(workspace.getByTestId('messaging-panel')).toBeVisible();
   for (const width of [360, 390, 430, 320]) {
     await page.setViewportSize({ width, height: 844 });
@@ -140,6 +141,18 @@ test('assigned staff case stays inside the shared mobile shell', async ({
       )
       .toBe(true);
   }
+  // Pointer down blurs the note; the yielded chrome must hold until the gesture ends, or a
+  // returning sticky header can take the pointer up. Released off Save, so nothing submits.
+  const header = page.locator('[data-testid="role-shell"] > div > header');
+  await note.focus();
+  const saveBox = await save.boundingBox();
+  expect(saveBox).not.toBeNull();
+  await page.mouse.move(saveBox!.x + saveBox!.width / 2, saveBox!.y + saveBox!.height / 2);
+  await page.mouse.down();
+  expect(await header.evaluate(element => getComputedStyle(element).position)).toBe('static');
+  await page.mouse.move(2, 2);
+  await page.mouse.up();
+  await expect.poll(() => header.evaluate(e => getComputedStyle(e).position)).not.toBe('static');
   await note.focus();
   await page.keyboard.press('Tab');
   await expect(save).toBeFocused();
@@ -156,7 +169,9 @@ test('branch-manager mobile detail retains read-only controls and permitted navi
   const permittedCases = page.getByTestId('staff-claims-view').filter({ visible: true });
   expect(await permittedCases.count()).toBeGreaterThan(0);
   await permittedCases.first().click();
-  await expect(page.getByTestId('staff-claim-detail-ready')).toBeVisible();
+  await expect(
+    page.getByTestId('staff-claim-detail-ready').filter({ visible: true })
+  ).toBeVisible();
 
   for (const width of [360, 390, 430, 320]) {
     await page.setViewportSize({ width, height: 844 });
@@ -175,7 +190,9 @@ test('branch-manager mobile detail retains read-only controls and permitted navi
     const sectionNav = page.getByTestId('staff-claim-workspace-nav');
     await expect(sectionNav.locator('a[href="#staff-claim-handling"]')).toHaveCount(0);
     await expect(sectionNav.locator('a[href="#staff-claim-messages"]')).toHaveCount(0);
-    await expect(page.getByTestId('staff-claim-detail-ready').locator('form')).toHaveCount(0);
+    await expect(
+      page.getByTestId('staff-claim-detail-ready').filter({ visible: true }).locator('form')
+    ).toHaveCount(0);
     await expectMoreFocusReturn(page, false);
     await expectReflow(page);
   }

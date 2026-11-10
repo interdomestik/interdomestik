@@ -29,15 +29,20 @@ export function MembershipCard({
       data-testid="member-membership-card-ready"
       className="min-h-[80vh] flex flex-col items-center justify-center p-4 py-8 animate-fade-in"
     >
-      <div className="w-full max-w-sm flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" asChild className="-ml-2">
+      <div className="w-full min-w-0 max-w-sm flex flex-col gap-6 [overflow-wrap:anywhere]">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="-ml-2 h-auto min-h-9 max-w-full whitespace-normal"
+          >
             <Link href={`/${locale}/member`}>
-              <ChevronLeft className="mr-2 h-4 w-4" />
+              <ChevronLeft className="mr-2 h-4 w-4 shrink-0" />
               {t('back_to_dashboard')}
             </Link>
           </Button>
-          <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
+          <span className="inline-flex max-w-full items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
             {subscription.planId.toUpperCase()}
           </span>
         </div>
@@ -52,7 +57,7 @@ export function MembershipCard({
             <div className="absolute top-0 left-0 right-0 h-2/3 bg-gradient-to-b from-white/10 to-transparent skew-y-[-12deg] origin-top-left -translate-y-4" />
             <div className="absolute -inset-2 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-30 group-hover:translate-x-full duration-1000 transition-transform" />
 
-            <div className="flex justify-between items-start relative z-10">
+            <div className="flex flex-wrap justify-between items-start gap-2 relative z-10">
               <div className="flex flex-col">
                 <span className="text-[10px] font-black tracking-[0.2em] opacity-60 uppercase mb-1">
                   Interdomestik
@@ -70,13 +75,13 @@ export function MembershipCard({
               <div className="text-[10px] font-bold opacity-40 uppercase tracking-widest mb-1.5">
                 {t('subtitle')}
               </div>
-              <div className="text-2xl font-mono tracking-[0.15em] font-medium drop-shadow-md">
+              <div className="break-words text-2xl font-mono tracking-[0.15em] font-medium drop-shadow-md">
                 {memberNumber}
               </div>
             </div>
 
-            <div className="mt-auto flex justify-between items-end relative z-10">
-              <div className="flex flex-col gap-0.5">
+            <div className="mt-auto flex flex-wrap justify-between items-end gap-2 relative z-10">
+              <div className="min-w-0 max-w-full flex flex-col gap-0.5">
                 <div className="text-[10px] font-bold opacity-40 uppercase tracking-widest">
                   Member
                 </div>
@@ -107,13 +112,17 @@ export function MembershipCard({
         <div className="flex flex-col gap-3 pt-2">
           <Button
             size="lg"
-            className="h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 shadow-xl shadow-slate-900/10"
+            className="h-auto min-h-14 whitespace-normal py-2 rounded-2xl bg-slate-900 hover:bg-slate-800 shadow-xl shadow-slate-900/10"
           >
-            <Wallet className="mr-3 h-5 w-5" />
+            <Wallet className="mr-3 h-5 w-5 shrink-0" />
             Add to Wallet
           </Button>
-          <Button variant="outline" size="lg" className="h-14 rounded-2xl border-2">
-            <Phone className="mr-3 h-5 w-5" />
+          <Button
+            variant="outline"
+            size="lg"
+            className="h-auto min-h-14 whitespace-normal py-2 rounded-2xl border-2"
+          >
+            <Phone className="mr-3 h-5 w-5 shrink-0" />
             {t('emergency_hotline')}
           </Button>
           <CommercialDisclaimerNotice
