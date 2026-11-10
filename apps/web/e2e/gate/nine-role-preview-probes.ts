@@ -173,9 +173,10 @@ async function expectHandoffBoundaries(
       const actionId = detailReply.request().headers()['next-action'];
       // The fixture owns one other-branch and one foreign-tenant handoff. Keep page navigation ordered.
       expect(fixture.deniedHandoffIds).toHaveLength(2);
-      for (const id of fixture.deniedHandoffIds) {
-        await expectDeniedHandoff(page, info, actionId, id, capture, fixture.handoffSentinels);
-      }
+      const [otherBranchId, foreignTenantId] = fixture.deniedHandoffIds;
+      const sentinels = fixture.handoffSentinels;
+      await expectDeniedHandoff(page, info, actionId, otherBranchId, capture, sentinels);
+      await expectDeniedHandoff(page, info, actionId, foreignTenantId, capture, sentinels);
       await expectHandoffContentSearchEmpty(
         page,
         fixture.contentSearch,
