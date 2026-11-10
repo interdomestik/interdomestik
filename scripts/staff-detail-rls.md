@@ -22,8 +22,22 @@ inert database URL before importing database code. Missing/unreachable databases
 unsafe roles, missing prerequisites and failed assertions exit nonzero; invocation
 through this script cannot take the ordinary unit suite's opt-out path.
 
-No CI wiring is included. The lead can append ` && pnpm db:rls:test:staff-detail`
-to the existing `run: pnpm db:rls:test` line in the `RLS Integration Test` step of
-`.github/workflows/ci.yml`. Its existing migrated test database supplies `DATABASE_URL`.
-That workflow line is also asserted by `scripts/ci/ci-audit-rls-workflow-contracts.mjs`;
-update the matching expected string in the same lead-owned change.
+Root `pnpm db:rls:test` runs the database and communications RLS suites, then this
+staff-detail proof, sequentially with `&&`; any failure fails the command. Under
+owner-approved D2 (2026-11-10, SRS v0.9 IDA-SEC-002/003), the proof is required
+wherever that root command runs.
+
+The `RLS Integration Test` step in `.github/workflows/ci.yml` already calls
+`pnpm db:rls:test` after migration. Its job-local `DATABASE_URL` targets
+`127.0.0.1:5432/interdomestik_test`, which satisfies the runner's loopback and
+synthetic-database guards; no workflow edit is needed. `pnpm pr:verify` calls
+`pnpm db:rls:test:required`, which sets the integration and coverage requirements and
+delegates to the same root command through `scripts/run-with-default-db-url.mjs`; its
+default `127.0.0.1:54322/postgres` and the isolated `127.0.0.1:55438/interdomestik_test`
+lane both satisfy the guard. The workflow call and root command chain are asserted by
+`scripts/ci/ci-audit-rls-workflow-contracts.mjs`.
+
+Known limitation: Z620's `db-rls-required` gate runs the same command against a
+task-owned `interdomestik_ci_*` database. This runner, like the existing communications
+RLS suite, refuses that name, so Z620 cannot pass this gate until its lane and these
+guards are reconciled. Z620 is not gate evidence; CI and the Mac `pr:verify` lane are.

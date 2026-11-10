@@ -48,7 +48,10 @@ export function SecureSaveOtp({ locale, onVerified, onVerifiedOwner, tenantId }:
   const emailError = otp.error === 'missingEmail' || otp.error === 'sendFailed';
 
   return (
-    <div className="mt-5 border-t border-[#001a33]/15 pt-5" data-testid="free-start-save-otp">
+    <div
+      className="mt-5 min-w-0 border-t border-[#001a33]/15 pt-5 [overflow-wrap:anywhere]"
+      data-testid="free-start-save-otp"
+    >
       <h4 className="text-lg font-bold text-[#001a33]">{copy.otp.heading}</h4>
       <p id="free-start-save-email-help" className="mt-2 text-sm leading-6 text-[#526274]">
         {copy.otp.body}
@@ -67,8 +70,8 @@ export function SecureSaveOtp({ locale, onVerified, onVerifiedOwner, tenantId }:
           {error}
         </p>
       ) : null}
-      <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
-        <label className="grid gap-2 text-sm font-semibold text-[#001a33]">
+      <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+        <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 text-sm font-semibold text-[#001a33]">
           {copy.otp.emailLabel}
           <input
             ref={otp.emailRef}
@@ -80,7 +83,7 @@ export function SecureSaveOtp({ locale, onVerified, onVerifiedOwner, tenantId }:
             disabled={otp.destinationLocked}
             value={otp.email}
             onChange={event => otp.setEmail(event.target.value)}
-            className="min-h-11 rounded-xl border border-[#001a33]/25 bg-white px-4 text-base outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
+            className="min-h-11 w-full min-w-0 rounded-xl border border-[#001a33]/25 bg-white px-4 text-base outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
           />
         </label>
         <button
@@ -94,8 +97,8 @@ export function SecureSaveOtp({ locale, onVerified, onVerifiedOwner, tenantId }:
         </button>
       </div>
       {otp.destinationLocked ? (
-        <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
-          <label className="grid gap-2 text-sm font-semibold text-[#001a33]">
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 text-sm font-semibold text-[#001a33]">
             {copy.otp.codeLabel}
             <input
               ref={otp.codeRef}
@@ -106,7 +109,7 @@ export function SecureSaveOtp({ locale, onVerified, onVerifiedOwner, tenantId }:
               aria-invalid={otp.error === 'verify' || undefined}
               value={otp.code}
               onChange={event => otp.setCode(event.target.value)}
-              className="min-h-11 scroll-mb-28 rounded-xl border border-[#001a33]/25 bg-white px-4 text-base tracking-[0.2em] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
+              className="min-h-11 w-full min-w-0 scroll-mb-28 rounded-xl border border-[#001a33]/25 bg-white px-4 text-base tracking-[0.2em] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
             />
           </label>
           <button

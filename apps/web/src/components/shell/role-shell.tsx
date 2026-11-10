@@ -25,6 +25,8 @@ type RoleShellProps = Readonly<{
   account: ReactNode;
   sidebarAccount: ReactNode;
   mobileNavigation?: 'bottom' | 'drawer';
+  /** Portal marker for the desktop sidebar; existing portal and security specs locate it by test id. */
+  sidebarTestId?: string;
 }>;
 
 function RoleShellHeaderTrigger({
@@ -59,13 +61,14 @@ function RoleShellDesktopSidebar({
   labels,
   brand,
   sidebarAccount,
+  sidebarTestId = 'role-shell-sidebar',
 }: RoleShellProps): ReactNode {
   const { isMobile } = useSidebar();
   if (isMobile) return null;
 
   return (
     <Sidebar collapsible="icon" className="shrink-0 border-r">
-      <div data-testid="role-shell-sidebar" className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div data-testid={sidebarTestId} className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="[&_a]:min-h-11 group-data-[state=collapsed]:[&_[data-sidebar=header]]:m-0 group-data-[state=collapsed]:[&_[data-sidebar=header]]:p-0">
           {brand}
         </div>

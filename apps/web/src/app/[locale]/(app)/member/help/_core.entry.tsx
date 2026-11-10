@@ -61,7 +61,7 @@ export default async function HelpPage({ params, searchParams }: Props) {
 
   return (
     <div
-      className="flex h-full max-w-4xl flex-col space-y-8 p-8 mx-auto"
+      className="flex h-full min-w-0 max-w-4xl flex-col space-y-8 p-8 mx-auto [overflow-wrap:anywhere]"
       data-testid="member-page-ready"
     >
       <div>
@@ -69,33 +69,45 @@ export default async function HelpPage({ params, searchParams }: Props) {
         <p className="text-muted-foreground mt-2">{t('description')}</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-2">
         {/* Direct Contact */}
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>{t('contact.title')}</CardTitle>
             <CardDescription>{t('contact.description')}</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
-            <Button variant="outline" className="h-24 flex-col gap-2" asChild>
+          <CardContent className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-3">
+            <Button
+              variant="outline"
+              className="h-auto min-h-24 min-w-0 max-w-full flex-col gap-2 whitespace-normal md:h-24"
+              asChild
+            >
               <a href="tel:+38349900600">
-                <Phone className="h-6 w-6" />
+                <Phone className="h-6 w-6 shrink-0" />
                 <span className="font-semibold text-lg">049 900 600</span>
                 <span className="text-xs text-muted-foreground">{t('contact.callUs')}</span>
               </a>
             </Button>
 
-            <Button variant="outline" className="h-24 flex-col gap-2" asChild>
+            <Button
+              variant="outline"
+              className="h-auto min-h-24 min-w-0 max-w-full flex-col gap-2 whitespace-normal md:h-24"
+              asChild
+            >
               <a href="mailto:info@interdomestik.com">
-                <Mail className="h-6 w-6" />
+                <Mail className="h-6 w-6 shrink-0" />
                 <span className="font-semibold text-lg">{t('contact.emailUs')}</span>
                 <span className="text-xs text-muted-foreground">info@interdomestik.com</span>
               </a>
             </Button>
 
-            <Button variant="outline" className="h-24 flex-col gap-2" asChild>
+            <Button
+              variant="outline"
+              className="h-auto min-h-24 min-w-0 max-w-full flex-col gap-2 whitespace-normal md:h-24"
+              asChild
+            >
               <a href="https://wa.me/38349900600" target="_blank" rel="noopener noreferrer">
-                <MessageSquare className="h-6 w-6 text-green-600" />
+                <MessageSquare className="h-6 w-6 shrink-0 text-green-600" />
                 <span className="font-semibold text-lg">WhatsApp</span>
                 <span className="text-xs text-muted-foreground">{t('contact.chatWithUs')}</span>
               </a>
@@ -208,7 +220,11 @@ export default async function HelpPage({ params, searchParams }: Props) {
             <CardTitle>{t('legal.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="link" className="px-0 h-auto" asChild>
+            <Button
+              variant="link"
+              className="h-auto min-w-0 max-w-full whitespace-normal px-0 text-left"
+              asChild
+            >
               <Link href="/member/rights">{t('legal.consumerRights')} &rarr;</Link>
             </Button>
             <div className="text-sm text-muted-foreground">{t('legal.consumerRightsDesc')}</div>

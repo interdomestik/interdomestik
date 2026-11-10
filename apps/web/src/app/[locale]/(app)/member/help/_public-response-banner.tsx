@@ -83,12 +83,12 @@ export async function PublicResponseBanner({
       data-testid="member-support-handoff-public-response"
     >
       <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
-      <div className="space-y-2">
+      <div className="min-w-0 flex-1 space-y-2 [overflow-wrap:anywhere]">
         <div className="text-xs font-semibold uppercase text-emerald-700">
           {t('publicResponse.title')}
         </div>
         <p
-          className="whitespace-pre-wrap leading-6"
+          className="whitespace-pre-wrap break-words leading-6"
           data-testid="member-support-handoff-public-response-text"
         >
           {response.publicResponse}

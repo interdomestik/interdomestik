@@ -68,7 +68,10 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
   }, {});
 
   return (
-    <div className="space-y-6" data-testid="member-documents-page-ready">
+    <div
+      className="min-w-0 space-y-6 [overflow-wrap:anywhere]"
+      data-testid="member-documents-page-ready"
+    >
       <div>
         <h2 className="text-2xl font-bold tracking-tight">{tDocs('title')}</h2>
         <p className="text-muted-foreground">{tDocs('subtitle')}</p>
@@ -78,7 +81,12 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
         <Card data-testid="member-documents-empty-state">
           <CardContent className="py-10 text-center space-y-4">
             <p className="text-muted-foreground">{tDocs('empty')}</p>
-            <Button asChild size="sm" data-testid="member-documents-create-claim">
+            <Button
+              asChild
+              size="sm"
+              className="h-auto min-h-9 max-w-full whitespace-normal"
+              data-testid="member-documents-create-claim"
+            >
               <Link href="/member/claims/new">{tDocs('createClaim')}</Link>
             </Button>
           </CardContent>
@@ -91,7 +99,7 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
               <Card key={claim.id} data-testid={`member-documents-claim-${claim.id}`}>
                 <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0 space-y-1">
-                    <CardTitle className="break-words text-base">
+                    <CardTitle className="break-words text-base [overflow-wrap:anywhere]">
                       {claim.title || tDocs('claimFallback')}
                     </CardTitle>
                     <Badge variant="outline">{tDocs('filesCount', { count: docs.length })}</Badge>
@@ -102,6 +110,7 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
                       trigger={
                         <Button
                           variant="outline"
+                          className="h-auto min-h-9 max-w-full whitespace-normal"
                           size="sm"
                           data-testid={`member-documents-upload-${claim.id}`}
                         >
@@ -109,7 +118,12 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
                         </Button>
                       }
                     />
-                    <Button asChild variant="outline" size="sm">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="h-auto min-h-9 max-w-full whitespace-normal"
+                    >
                       <Link href={`/member/claims/${claim.id}`}>{tDocs('viewClaim')}</Link>
                     </Button>
                   </div>

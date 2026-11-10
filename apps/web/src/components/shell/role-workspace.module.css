@@ -74,13 +74,21 @@
 
 @media (max-width: 767px) {
   /* Yield the chrome for editing, including while a mobile keyboard reduces the viewport.
-     Only shell chrome changes; composer/thread internals retain their shared presentation. */
-  .workspace:has(:is(input, textarea, select, [contenteditable='true']):focus, form:focus-within)
+     Only shell chrome changes; composer/thread internals retain their shared presentation.
+     A pointer gesture that starts while editing holds the yielded chrome until its click
+     (use-chrome-yield-hold), so a restored sticky header cannot swallow the tap. */
+  .workspace:is(
+      [data-chrome-yield-hold],
+      :has(:is(input, textarea, select, [contenteditable='true']):focus)
+    )
     :global([data-role-shell-header]) {
     position: static;
   }
 
-  .workspace:has(:is(input, textarea, select, [contenteditable='true']):focus, form:focus-within)
+  .workspace:is(
+      [data-chrome-yield-hold],
+      :has(:is(input, textarea, select, [contenteditable='true']):focus)
+    )
     :global([data-role-shell-bottom-navigation]) {
     display: none;
   }

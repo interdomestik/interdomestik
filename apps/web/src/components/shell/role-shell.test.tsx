@@ -102,6 +102,26 @@ describe('RoleShell', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('keeps a caller-provided desktop sidebar marker for portal-specific specs', () => {
+    state.mobile = false;
+    render(
+      <RoleShell
+        items={items}
+        pathname="/workspace"
+        labels={labels}
+        brand={<span>Brand</span>}
+        context={<span>Workspace</span>}
+        account={<button>Account</button>}
+        sidebarAccount={<button>Existing account control</button>}
+        sidebarTestId="admin-sidebar"
+      >
+        <h1>Existing portal content</h1>
+      </RoleShell>
+    );
+    expect(screen.getByTestId('admin-sidebar')).toBeInTheDocument();
+    expect(screen.queryByTestId('role-shell-sidebar')).not.toBeInTheDocument();
+  });
+
   it('renders caller navigation and content without inferring a role or routes', () => {
     render(shell('/workspace/cases/case-1'));
     const nav = screen.getByRole('navigation', { name: labels.navigation });

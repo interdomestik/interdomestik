@@ -39,6 +39,7 @@ function SubmitButton({ isHydrated, label }: { isHydrated: boolean; label: strin
   return (
     <Button
       type="submit"
+      className="h-auto min-h-10 max-w-full whitespace-normal"
       disabled={!isHydrated || pending}
       data-testid="member-support-handoff-submit"
     >
@@ -74,41 +75,41 @@ export function MemberSupportHandoffForm({
         value={sourceClaimId ? 'member_claim_detail' : 'member_help'}
       />
       {sourceClaimId ? <input type="hidden" name="sourceClaimId" value={sourceClaimId} /> : null}
-      <div className="space-y-2">
+      <div className="min-w-0 space-y-2">
         <label htmlFor="support-subject" className="text-sm font-medium">
           {labels.subject}
         </label>
         <input
           id="support-subject"
           name="subject"
-          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className="h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm"
           maxLength={120}
           required
           data-testid="member-support-handoff-subject"
         />
       </div>
-      <div className="space-y-2">
+      <div className="min-w-0 space-y-2">
         <label htmlFor="support-message" className="text-sm font-medium">
           {labels.message}
         </label>
         <textarea
           id="support-message"
           name="message"
-          className="min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className="min-h-[120px] w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm"
           maxLength={2000}
           required
           data-testid="member-support-handoff-message"
         />
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
+        <div className="min-w-0 space-y-2">
           <label htmlFor="support-contact-preference" className="text-sm font-medium">
             {labels.contactPreference}
           </label>
           <select
             id="support-contact-preference"
             name="contactPreference"
-            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm"
             defaultValue="staff_reply"
             data-testid="member-support-handoff-contact-preference"
           >
@@ -118,14 +119,14 @@ export function MemberSupportHandoffForm({
             <option value="whatsapp">{labels.contactPreferenceWhatsApp}</option>
           </select>
         </div>
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <label htmlFor="support-claim" className="text-sm font-medium">
             {labels.claim}
           </label>
           <select
             id="support-claim"
             name="claimId"
-            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm"
             defaultValue={selectedClaimId ?? ''}
             data-testid="member-support-handoff-claim"
           >

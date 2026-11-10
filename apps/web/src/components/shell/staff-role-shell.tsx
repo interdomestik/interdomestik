@@ -6,11 +6,12 @@ import { StaffSidebarBrand } from '@/components/staff/staff-sidebar';
 import { usePathname } from '@/i18n/routing';
 import { Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import type { ClientShellUser } from './client-shell-user';
 import { useDashboardShellSlots } from './dashboard-shell-slots';
 import { RoleShell } from './role-shell';
 import styles from './role-workspace.module.css';
+import { useChromeYieldHold } from './use-chrome-yield-hold';
 
 export function StaffRoleShell({
   children,
@@ -22,6 +23,8 @@ export function StaffRoleShell({
   const tBottom = useTranslations('dashboard.member_assistance.bottomNav');
   const tCommon = useTranslations('common');
   const pathname = usePathname();
+  const workspace = useRef<HTMLDivElement>(null);
+  useChromeYieldHold(workspace);
   const slots = useDashboardShellSlots(user, adminAccess);
   const destinations = buildStaffNavigation({ role: user.role, tNav, tClaims });
   const items = [
@@ -30,7 +33,7 @@ export function StaffRoleShell({
   ];
 
   return (
-    <div className={styles.workspace}>
+    <div ref={workspace} className={styles.workspace}>
       <RoleShell
         {...slots}
         brand={<StaffSidebarBrand />}

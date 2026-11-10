@@ -9,9 +9,10 @@ import {
 import { PortalSurfaceIndicator } from '@/components/dashboard/portal-surface-indicator';
 import { usePathname } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { RoleShell } from './role-shell';
 import styles from './role-workspace.module.css';
+import { useChromeYieldHold } from './use-chrome-yield-hold';
 
 /** Presentation adapter: the server layout and existing sidebar retain all admission decisions. */
 export function AdminRoleShell({
@@ -28,11 +29,14 @@ export function AdminRoleShell({
   const tCommon = useTranslations('common');
   const pathname = usePathname();
   const items = useAdminSidebarNavigation(user);
+  const workspace = useRef<HTMLDivElement>(null);
+  useChromeYieldHold(workspace);
 
   return (
-    <div className={styles.workspace}>
+    <div ref={workspace} className={styles.workspace}>
       <RoleShell
         mobileNavigation="drawer"
+        sidebarTestId="admin-sidebar"
         items={items}
         pathname={pathname}
         brand={<AdminSidebarBrand />}
