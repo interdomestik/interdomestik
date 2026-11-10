@@ -62,14 +62,21 @@ export async function getClaimMessageMetadata(args: {
           .orderBy(sql`${claimMessages.createdAt} desc nulls last`, desc(claimMessages.id));
         // Ignore agent/other senders. Match the staff-side reply admission in domain send/notify;
         // scoped readers include BM, whose communication-content veto excludes it from replies.
-        const latestRelevant = publicMessages.find(
-          message =>
-            message.createdAt &&
-            (message.senderId === claim.memberId ||
-              isFullTenantClaimsRole(message.senderRole) ||
-              (isScopedClaimsReadRole(message.senderRole) &&
-                !deniesClaimMessageContent(message.senderRole)))
+        const isStaffReply = (role: string | null): boolean =>
+          isFullTenantClaimsRole(role) ||
+          (isScopedClaimsReadRole(role) && !deniesClaimMessageContent(role));
+        const dated = publicMessages.filter(message => message.createdAt);
+        const latestMember = dated.find(message => message.senderId === claim.memberId);
+        const latestStaff = dated.find(
+          message => message.senderId !== claim.memberId && isStaffReply(message.senderRole)
         );
+        // Only a strictly later staff reply answers the member; equal timestamps stay awaiting.
+        const awaitingReply =
+          latestMember?.createdAt != null &&
+          !(
+            latestStaff?.createdAt != null &&
+            new Date(latestStaff.createdAt).getTime() > new Date(latestMember.createdAt).getTime()
+          );
         return {
           kind: 'ok',
           data: {
@@ -78,7 +85,7 @@ export async function getClaimMessageMetadata(args: {
               ? new Date(totals.lastMessageAt).toISOString()
               : null,
             // Undated legacy rows cannot establish a latest public member request.
-            awaitingReply: latestRelevant?.senderId === claim.memberId,
+            awaitingReply,
           },
         };
       }

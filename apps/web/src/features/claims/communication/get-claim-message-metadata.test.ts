@@ -111,10 +111,13 @@ describe('branch-manager message metadata projection', () => {
       data: { count: 2, lastMessageAt: null, awaitingReply: false },
     });
   });
-  it('breaks dated public-message ties by id', async () => {
+  it.each([
+    ['a', 'z'],
+    ['z', 'a'],
+  ])('keeps awaiting when a staff reply only ties the member time (staff id %s)', async (s, m) => {
     state.rows.claim_messages = [
-      message('a', 'staff', false, '2026-11-01T10:00:00Z'),
-      message('z', 'member', false, '2026-11-01T10:00:00Z'),
+      message(s, 'staff', false, '2026-11-01T10:00:00Z'),
+      message(m, 'member', false, '2026-11-01T10:00:00Z'),
     ];
     expect(await read()).toMatchObject({ data: { awaitingReply: true } });
   });
