@@ -11,27 +11,21 @@ async function findBranchConflict(
   input: BranchWrite,
   branchId?: string
 ) {
-  const checks = [
-    {
-      column: branches.slug,
-      value: input.slug,
-      error: 'Branch with this name (slug) already exists',
-    },
-    ...(input.code
-      ? [
-          {
-            column: branches.code,
-            value: input.code,
-            error: 'Branch with this code already exists',
-          },
-        ]
-      : []),
-  ];
-  for (const { column, value, error } of checks) {
-    const existing = await tx.query.branches.findFirst({
-      where: withTenant(tenantId, branches.tenantId, eq(column, value)),
-    });
-    if (existing && existing.id !== branchId) return { error };
+  // Direct column reads keep the tenant guard's withTenantAuthority read analysis intact.
+  const slugMatch = await tx.query.branches.findFirst({
+    where: withTenant(tenantId, branches.tenantId, eq(branches.slug, input.slug)),
+    columns: { id: true },
+  });
+  if (slugMatch && slugMatch.id !== branchId) {
+    return { error: 'Branch with this name (slug) already exists' };
+  }
+  if (!input.code) return null;
+  const codeMatch = await tx.query.branches.findFirst({
+    where: withTenant(tenantId, branches.tenantId, eq(branches.code, input.code)),
+    columns: { id: true },
+  });
+  if (codeMatch && codeMatch.id !== branchId) {
+    return { error: 'Branch with this code already exists' };
   }
   return null;
 }
