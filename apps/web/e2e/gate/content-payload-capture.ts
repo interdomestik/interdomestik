@@ -75,13 +75,12 @@ async function capturePayload(
   await deliverRoute(() => route.fulfill({ response }), true, url, state);
 }
 
-async function drainCaptures(pending: readonly Promise<void>[]): Promise<void> {
-  let observedCount: number;
-  do {
-    observedCount = pending.length;
-    // Array iteration also visits entries appended while an earlier task is awaited.
-    for (const task of pending) await task;
-  } while (pending.length !== observedCount);
+async function drainCaptures(pending: readonly Promise<void>[], settled = 0): Promise<void> {
+  if (settled === pending.length) return;
+  const observedCount = pending.length;
+  // Tracked tasks never reject; recurse to include handlers appended while this batch ran.
+  await Promise.all(pending.slice(settled));
+  await drainCaptures(pending, observedCount);
 }
 
 /** Inspect every matching HTML/Flight payload before delivery throughout a visit. */
