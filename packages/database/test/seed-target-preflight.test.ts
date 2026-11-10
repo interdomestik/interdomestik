@@ -15,7 +15,7 @@ test('runner and assertion preflight precede DB initialization', () => {
     assert.match(
       source,
       new RegExp(
-        `async function ${entry}\\(\\) \\{\\s*(?:const targetClassification = )?assertSeedTargetAllowed\\(process.env\\);`
+        String.raw`async function ${entry}\(\) \{\s*(?:const targetClassification = )?assertSeedTargetAllowed\(process.env\);`
       )
     );
     const preflight = source.indexOf('assertSeedTargetAllowed(process.env)');
@@ -41,11 +41,11 @@ test('exported golden, full, workload and agent-pack entry points preflight firs
     // full/workload hash fixed public passwords, so they also refuse every non-local target.
     const mode = /seed-(full|workload)\//.exec(file)?.[1];
     const call = mode
-      ? `assertSeedModeAllowed\\('${mode}', assertSeedTargetAllowed\\(process.env\\)\\);`
-      : 'assertSeedTargetAllowed\\(process.env\\);';
+      ? String.raw`assertSeedModeAllowed\('${mode}', assertSeedTargetAllowed\(process.env\)\);`
+      : String.raw`assertSeedTargetAllowed\(process.env\);`;
     assert.match(
       readSeed(file),
-      new RegExp(`export async function ${entry}\\(config: SeedConfig\\) \\{\\s*${call}`)
+      new RegExp(String.raw`export async function ${entry}\(config: SeedConfig\) \{\s*${call}`)
     );
   }
   for (const [file] of entries) {

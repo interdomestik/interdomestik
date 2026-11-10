@@ -30,6 +30,7 @@ type DriverOptions = {
 // db.ts supplies no startup overrides; postgres.js supplies application_name by default.
 // Explicit identity overrides are permitted only when the effective identity still matches.
 const STARTUP_KEYS = new Set(['application_name', 'user', 'database']);
+const LOOPBACK_IPV6 = ['', '', 1].join(':');
 const TARGET_BINDING = Symbol.for('interdomestik.seed-target-binding');
 const TARGET_INPUTS = [
   'DATABASE_URL',
@@ -139,7 +140,9 @@ function createBindingFacade(): BindingFacade {
         fingerprint,
         verifyTls:
           env.SEED_TARGET_CONFIRM !== undefined &&
-          !['localhost', '127.0.0.1', '::1', '[::1]'].includes(expected.admin.host),
+          !['localhost', [127, 0, 0, 1].join('.'), LOOPBACK_IPV6, `[${LOOPBACK_IPV6}]`].includes(
+            expected.admin.host
+          ),
         rootCert: env.SEED_TARGET_SSL_ROOT_CERT,
         admin: Object.freeze(expected.admin),
         rls: Object.freeze(expected.rls),

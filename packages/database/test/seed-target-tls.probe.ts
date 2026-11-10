@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { checkServerIdentity } from 'node:tls';
 import postgres from 'postgres';
 import { TEST_CA_PEM } from './seed-tls-ca.fixture';
+import { verifyPoolParity } from './seed-target-tls-parity.probe';
 
 const require = createRequire(import.meta.url);
 const scenario = process.argv[2];
@@ -72,14 +73,12 @@ const hooks = registerHooks({
     return next(specifier, context);
   },
   load(url, context, next) {
-    const source =
-      url === 'u3:driver'
-        ? 'module.exports = globalThis.seedTlsProbeDriver;'
-        : url === 'u3:lifetime'
-          ? 'exports.withTransactionLifetime = client => client;'
-          : url === 'u3:local-db'
-            ? 'module.exports = {};'
-            : undefined;
+    const sources = new Map([
+      ['u3:driver', 'module.exports = globalThis.seedTlsProbeDriver;'],
+      ['u3:lifetime', 'exports.withTransactionLifetime = client => client;'],
+      ['u3:local-db', 'module.exports = {};'],
+    ]);
+    const source = sources.get(url);
     return source === undefined
       ? next(url, context)
       : { format: 'commonjs', source, shortCircuit: true };
@@ -99,115 +98,73 @@ const verify = (client: postgres.Sql) => {
   assert.equal(ssl.servername, host);
   assert.equal(ssl.checkServerIdentity, checkServerIdentity);
 };
-async function run() {
-  if (scenario === 'ordering') process.env.DATABASE_URL = remote + '?sslmode=disable';
-  if (scenario === 'mixed-case-host')
-    process.env.DATABASE_URL = remote.replace(host, host.toUpperCase());
-  const failures: Record<string, string | undefined> = {
-    missing: undefined,
-    'empty-variable': '',
-    relative: 'private-relative.pem',
-    unreadable: caPath + '-absent',
-    empty: '',
-    'non-pem': 'private-content',
-    corrupt: '-----BEGIN CERTIFICATE-----\nYWJj\n-----END CERTIFICATE-----',
-    mixed: TEST_CA_PEM + 'private-content',
-    system: 'system',
+const failures: Record<string, string | undefined> = {
+  missing: undefined,
+  'empty-variable': '',
+  relative: 'private-relative.pem',
+  unreadable: caPath + '-absent',
+  empty: '',
+  'non-pem': 'private-content',
+  corrupt: '-----BEGIN CERTIFICATE-----\nYWJj\n-----END CERTIFICATE-----',
+  mixed: TEST_CA_PEM + 'private-content',
+  system: 'system',
+};
+async function verifyCaRefusal() {
+  const value = failures[scenario];
+  if (['empty', 'non-pem', 'corrupt', 'mixed'].includes(scenario)) writeFileSync(caPath, value!);
+  else if (value === undefined) delete process.env.SEED_TARGET_SSL_ROOT_CERT;
+  else process.env.SEED_TARGET_SSL_ROOT_CERT = value;
+  await assert.rejects(guard.importSeedDatabase(), error => {
+    assert.ok(error instanceof Error);
+    assert.equal(error.message, refusal.message);
+    assert.equal(error.cause, undefined);
+    return true;
+  });
+  assert.equal(constructions, 0);
+  assert.equal(evaluations, 0);
+}
+async function verifyExistingClients() {
+  guard.assertSeedTargetAllowed(process.env);
+  const sentinel = { untouched: true };
+  if (scenario !== 'existing-rls') globals.queryClientAdmin = sentinel;
+  if (scenario !== 'existing-admin') globals.queryClientRls = sentinel;
+  assert.equal(typeof tls.installSeedTlsClients, 'function');
+  assert.throws(() => tls.installSeedTlsClients(process.env), refusal);
+  assert.equal(constructions, 0);
+  await tls.closeSeedTlsClients();
+  if (scenario !== 'existing-rls') assert.equal(globals.queryClientAdmin, sentinel);
+  if (scenario !== 'existing-admin') assert.equal(globals.queryClientRls, sentinel);
+}
+async function verifyCachedMismatch() {
+  guard.assertSeedTargetAllowed(process.env);
+  globals.queryClientAdmin = {
+    options: {
+      host: [host],
+      port: [5432],
+      user: 'fixture',
+      database: 'db',
+      ssl: false,
+    },
   };
-  if (scenario in failures) {
-    const value = failures[scenario];
-    if (['empty', 'non-pem', 'corrupt', 'mixed'].includes(scenario)) writeFileSync(caPath, value!);
-    else if (value === undefined) delete process.env.SEED_TARGET_SSL_ROOT_CERT;
-    else process.env.SEED_TARGET_SSL_ROOT_CERT = value;
-    await assert.rejects(guard.importSeedDatabase(), error => {
-      assert.ok(error instanceof Error);
-      assert.equal(error.message, refusal.message);
-      assert.equal(error.cause, undefined);
-      return true;
-    });
-    assert.equal(constructions, 0);
-    assert.equal(evaluations, 0);
-    return;
-  }
-  if (scenario.startsWith('existing-')) {
-    guard.assertSeedTargetAllowed(process.env);
-    const sentinel = { untouched: true };
-    if (scenario !== 'existing-rls') globals.queryClientAdmin = sentinel;
-    if (scenario !== 'existing-admin') globals.queryClientRls = sentinel;
-    assert.equal(typeof tls.installSeedTlsClients, 'function');
-    assert.throws(() => tls.installSeedTlsClients(process.env), refusal);
-    assert.equal(constructions, 0);
-    await tls.closeSeedTlsClients();
-    if (scenario !== 'existing-rls') assert.equal(globals.queryClientAdmin, sentinel);
-    if (scenario !== 'existing-admin') assert.equal(globals.queryClientRls, sentinel);
-    return;
-  }
-  if (scenario === 'cached-mismatch') {
-    guard.assertSeedTargetAllowed(process.env);
-    globals.queryClientAdmin = {
-      options: {
-        host: [host],
-        port: [5432],
-        user: 'fixture',
-        database: 'db',
-        ssl: false,
-      },
-    };
-    await assert.rejects(guard.importSeedDatabase(), {
-      message: 'Seed target refused: client-mismatch',
-    });
-    assert.equal(constructions, 0);
-    return;
-  }
-  if (local) {
-    process.env.DATABASE_URL = 'postgres://fixture@localhost/db';
-    delete process.env.SEED_TARGET_SSL_ROOT_CERT;
-    checkingOrder = true;
-    await guard.importSeedDatabase();
-    assert.equal(constructions, 0);
-    assert.equal(globals.queryClientAdmin, undefined);
-    assert.equal(globals.queryClientRls, undefined);
-    guard.resetSeedTargetBindingForTests();
-    local = false;
-    process.env.DATABASE_URL = remote;
-    process.env.SEED_TARGET_SSL_ROOT_CERT = caPath;
-  }
-  if (scenario === 'parity') {
-    for (const value of [undefined, '7', '0', '-1', 'bad', '12tail', '1.9']) {
-      for (const key of [
-        'DB_MAX_CONNECTIONS',
-        'DB_IDLE_TIMEOUT',
-        'DB_CONNECT_TIMEOUT',
-        'DB_MAX_LIFETIME',
-      ]) {
-        if (value === undefined) delete process.env[key];
-        else process.env[key] = value;
-      }
-      delete process.env.SEED_TARGET_CONFIRM;
-      const dbPath = require.resolve('../src/db.ts');
-      delete require.cache[dbPath];
-      require(dbPath);
-      const ordinary = calls.at(-1)!;
-      delete globals.queryClientAdmin;
-      delete globals.queryClientRls;
-      process.env.SEED_TARGET_CONFIRM = `plan070:${host}`;
-      guard.resetSeedTargetBindingForTests();
-      guard.assertSeedTargetAllowed(process.env);
-      assert.equal(typeof tls.installSeedTlsClients, 'function');
-      tls.installSeedTlsClients(process.env);
-      const seeded = calls.at(-1)!;
-      verify(seeded.client);
-      assert.equal(seeded.url, ordinary.url);
-      const { ssl: _a, onnotice: a, ...expected } = ordinary.options;
-      const { ssl: _b, onnotice: b, ...actual } = seeded.options;
-      assert.deepEqual(actual, expected);
-      assert.equal(a!({} as any), undefined);
-      assert.equal(b!({} as any), undefined);
-      await tls.closeSeedTlsClients();
-      assert.equal(ended.get(seeded.client), 1);
-    }
-    return;
-  }
+  await assert.rejects(guard.importSeedDatabase(), {
+    message: 'Seed target refused: client-mismatch',
+  });
+  assert.equal(constructions, 0);
+}
+async function verifyLocalImport() {
+  process.env.DATABASE_URL = 'postgres://fixture@localhost/db';
+  delete process.env.SEED_TARGET_SSL_ROOT_CERT;
+  checkingOrder = true;
+  await guard.importSeedDatabase();
+  assert.equal(constructions, 0);
+  assert.equal(globals.queryClientAdmin, undefined);
+  assert.equal(globals.queryClientRls, undefined);
+  guard.resetSeedTargetBindingForTests();
+  local = false;
+  process.env.DATABASE_URL = remote;
+  process.env.SEED_TARGET_SSL_ROOT_CERT = caPath;
+}
+async function verifyRemoteImport() {
   if (
     [
       'separate-rls',
@@ -242,34 +199,51 @@ async function run() {
   assert.equal(constructions, process.env.DATABASE_URL_RLS ? 2 : 1);
   await guard.importSeedDatabase();
   assert.equal(globals.queryClientAdmin, admin);
-  if (scenario.startsWith('cleanup')) {
-    const replacement = {
-      end: () => {
-        throw new Error('Must not end foreign client');
-      },
-    };
-    if (scenario === 'cleanup-replaced') globals.queryClientAdmin = replacement;
-    assert.equal(typeof guard.closeSeedTargetClients, 'function');
-    if (scenario === 'cleanup-error')
-      await assert.rejects(guard.closeSeedTargetClients(), /Seed target cleanup failed/);
-    else await guard.closeSeedTargetClients();
-    assert.equal(
-      globals.queryClientAdmin,
-      scenario === 'cleanup-replaced' ? replacement : undefined
-    );
-    assert.equal(globals.queryClientRls, undefined);
-    assert.equal(ended.get(admin), 1);
-    assert.equal(ended.get(rls), 1);
-    await guard.closeSeedTargetClients();
-    assert.equal(ended.get(admin), 1);
+  if (scenario.startsWith('cleanup')) await verifyCleanup(admin, rls);
+}
+async function verifyCleanup(admin: postgres.Sql, rls: postgres.Sql) {
+  const replacement = {
+    end: () => {
+      throw new Error('Must not end foreign client');
+    },
+  };
+  if (scenario === 'cleanup-replaced') globals.queryClientAdmin = replacement;
+  assert.equal(typeof guard.closeSeedTargetClients, 'function');
+  if (scenario === 'cleanup-error')
+    await assert.rejects(guard.closeSeedTargetClients(), /Seed target cleanup failed/);
+  else await guard.closeSeedTargetClients();
+  assert.equal(globals.queryClientAdmin, scenario === 'cleanup-replaced' ? replacement : undefined);
+  assert.equal(globals.queryClientRls, undefined);
+  assert.equal(ended.get(admin), 1);
+  assert.equal(ended.get(rls), 1);
+  await guard.closeSeedTargetClients();
+  assert.equal(ended.get(admin), 1);
+}
+async function run() {
+  if (scenario === 'ordering') process.env.DATABASE_URL = remote + '?sslmode=disable';
+  if (scenario === 'mixed-case-host')
+    process.env.DATABASE_URL = remote.replace(host, host.toUpperCase());
+  if (scenario in failures) return verifyCaRefusal();
+  if (scenario.startsWith('existing-')) return verifyExistingClients();
+  if (scenario === 'cached-mismatch') return verifyCachedMismatch();
+  if (local) await verifyLocalImport();
+  if (scenario === 'parity') {
+    return verifyPoolParity({ require, host, globals, calls, ended, guard, tls, verify });
   }
+  await verifyRemoteImport();
 }
 run()
   .then(() => assert.equal(sockets, 0))
   .finally(async () => {
     hooks.deregister();
-    for (const { client } of calls)
-      if (!ended.has(client)) await client.end().catch(() => undefined);
+    // Each shutdown must settle before checking whether the next client was ended.
+    await calls.reduce(
+      (previous, { client }) =>
+        previous.then(() => {
+          if (!ended.has(client)) return client.end().catch(() => undefined);
+        }),
+      Promise.resolve()
+    );
     rmSync(directory, { recursive: true, force: true });
   })
   .catch(error => {

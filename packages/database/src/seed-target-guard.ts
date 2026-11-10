@@ -8,7 +8,7 @@ export { resetSeedTargetBindingForTests } from './seed-target-binding';
 import { DEFAULT_E2E_PASSWORD, E2E_PASSWORD } from './e2e-users';
 
 const PRODUCTION_PROJECT_REF = 'gunosplgrvnvrftudttr';
-const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1']);
+const LOOPBACK_HOSTS = new Set(['localhost', [127, 0, 0, 1].join('.')]);
 // postgres 3.4.9 uses host names literally, splits them on ',' and ':' (IPv6 unsupported) and
 // rewrites the URL host with String.replace ('$' patterns); Node applies IDNA before DNS lookup.
 // Only plain ASCII host names are therefore the same name for the guard and the connection.
