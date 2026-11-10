@@ -36,6 +36,7 @@ export function AdminRoleShell({
     <div ref={workspace} className={styles.workspace}>
       <RoleShell
         mobileNavigation="drawer"
+        sidebarTestId="admin-sidebar"
         items={items}
         pathname={pathname}
         brand={<AdminSidebarBrand />}
