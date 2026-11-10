@@ -1,4 +1,5 @@
-import { createHash } from 'node:crypto';
+import { bindSeedTarget, type SeedDriverTarget } from './seed-target-binding';
+export { resetSeedTargetBindingForTests } from './seed-target-binding';
 import { DEFAULT_E2E_PASSWORD, E2E_PASSWORD } from './e2e-users';
 
 const PRODUCTION_PROJECT_REF = 'gunosplgrvnvrftudttr';
@@ -6,7 +7,7 @@ const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1']);
 // postgres 3.4.9 uses host names literally, splits them on ',' and ':' (IPv6 unsupported) and
 // rewrites the URL host with String.replace ('$' patterns); Node applies IDNA before DNS lookup.
 // Only plain ASCII host names are therefore the same name for the guard and the connection.
-const LITERAL_HOST = /^[a-z0-9.-]+$/i;
+const LITERAL_HOST = /^[a-z\d.-]+$/i;
 // postgres 3.4.9 parseOptions: these affect transport, not startup identity.
 const TRANSPORT_QUERY_KEYS = new Set([
   'ssl',
@@ -30,42 +31,6 @@ const HOST_KEYS = new Set(['host', 'hostname', 'hostaddr']);
 
 type SeedEnvironment = Readonly<Record<string, string | undefined>>;
 type SeedTargetClassification = 'local' | 'confirmed-non-local';
-
-const TARGET_BINDING = Symbol.for('interdomestik.seed-target-binding');
-const TARGET_INPUTS = [
-  'DATABASE_URL',
-  'DATABASE_URL_RLS',
-  'PGHOST',
-  'PGHOSTADDR',
-  'PGPORT',
-  'PGUSER',
-  'PGUSERNAME',
-  'PGDATABASE',
-  'SEED_TARGET_CONFIRM',
-] as const;
-const seedGlobal = globalThis as typeof globalThis & {
-  [TARGET_BINDING]?: string;
-  queryClientAdmin?: unknown;
-  queryClientRls?: unknown;
-};
-
-function bindSeedTarget(env: SeedEnvironment): void {
-  const fingerprint = createHash('sha256')
-    .update(JSON.stringify(TARGET_INPUTS.map(key => env[key] ?? null)))
-    .digest('hex');
-  const bound = seedGlobal[TARGET_BINDING];
-  if (bound !== undefined) {
-    if (bound !== fingerprint) refuse('target-changed');
-    return;
-  }
-  if (seedGlobal.queryClientAdmin || seedGlobal.queryClientRls) refuse('unbound-client');
-  Object.defineProperty(seedGlobal, TARGET_BINDING, { value: fingerprint, configurable: true });
-}
-
-/** Test isolation only: never call from a seed runner or application code. */
-export function resetSeedTargetBindingForTests(): void {
-  delete seedGlobal[TARGET_BINDING];
-}
 
 function refuse(classification: string): never {
   throw new Error(`Seed target refused: ${classification}`);
@@ -176,6 +141,17 @@ function databaseTarget(url: URL, env: SeedEnvironment): string {
   return ref ?? host;
 }
 
+// Match postgres.js parseOptions: username is decoded once, database path stays encoded.
+function driverTarget(url: URL, env: SeedEnvironment): SeedDriverTarget {
+  const user = decode(url.username) || env.PGUSERNAME || env.PGUSER || '';
+  return {
+    host: literalHost(url.hostname || env.PGHOST || 'localhost'),
+    port: Number.parseInt(url.port || env.PGPORT || '5432'),
+    user,
+    database: url.pathname.slice(1) || env.PGDATABASE || user,
+  };
+}
+
 // postgres 3.4.9 parseUrl takes the host after the FIRST '@' (decoded; ',' = multihost) while
 // WHATWG URL uses the last '@'. Refuse any authority the guard and the driver could read differently.
 function assertDriverAuthority(raw: string, url: URL): void {
@@ -220,14 +196,15 @@ export function assertSeedTargetAllowed(
   const targets = [target];
   if (rls) targets.push(databaseTarget(rls, env));
   unique(targets);
+  const expected = { admin: driverTarget(database, env), rls: driverTarget(rls ?? database, env) };
   if (LOOPBACK_HOSTS.has(target)) {
-    bindSeedTarget(env);
+    bindSeedTarget(env, expected);
     return 'local';
   }
   if (env.SEED_TARGET_CONFIRM !== `plan070:${target}`) refuse('non-local-unconfirmed');
   // Only the exact, confirmed CI host retains the local fixture-password policy.
   if (target !== 'ci-postgres') assertRemoteSeedPassword(env, effectivePassword);
-  bindSeedTarget(env);
+  bindSeedTarget(env, expected);
   return 'confirmed-non-local';
 }
 

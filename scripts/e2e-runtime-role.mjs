@@ -13,7 +13,7 @@ export const E2E_RUNTIME_ROLE = 'interdomestik_e2e_runtime';
 const ROLE_PATTERN = /^interdomestik_e2e_runtime(?:_[a-z0-9]{1,24})?$/u;
 // Stable signed 64-bit key serializing role DDL across concurrent lanes on one database.
 const ROLE_DDL_LOCK_KEY = 930802;
-const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', 'n']);
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1']);
 const ROLE_FLAGS = 'LOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION';
 // PG <16 lets only superusers name SUPERUSER/BYPASSRLS/REPLICATION in ALTER ROLE (Supabase's admin
 // is not one); an existing role keeps them and assertRoleState fails closed if any is set.

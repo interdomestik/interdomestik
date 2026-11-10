@@ -43,7 +43,7 @@ test('derives one stable restricted credential per admin credential and cluster'
   const otherCluster = new URL(resolveE2eRuntimeUrl(ADMIN.replace(':5432/', ':54322/')));
   const otherAdmin = new URL(resolveE2eRuntimeUrl(ADMIN.replace(':postgres@', ':rotated@')));
   // Every loopback spelling names the same cluster (e2e-gate.sh uses localhost, lanes 127.0.0.1).
-  for (const host of ['localhost', 'LOCALHOST', 'n']) {
+  for (const host of ['localhost', 'LOCALHOST']) {
     const spelled = new URL(resolveE2eRuntimeUrl(ADMIN.replace('127.0.0.1', host)));
     assert.equal(spelled.password, first.password, host);
   }
@@ -151,7 +151,7 @@ test('the CLI fails closed with a sanitized message before touching a database',
 
 function isAuthorityRefusal(error) {
   assert.ok(error instanceof RuntimeRoleError);
-  assert.match(error.message, /database (authority|URL)/u);
+  assert.match(error.message, /(?:database (?:authority|URL)|loopback host)/u);
   assert.ok(!error.message.includes(PW));
   assert.ok(!error.message.includes('postgres://'));
   return true;
@@ -182,6 +182,15 @@ test('ambiguous admin and runtime authorities refuse before any driver construct
       'localhost/interdomestik_test\t',
       '[::1]/interdomestik_test',
     ].map(assertAuthorityRefused)
+  );
+  assert.equal(driver.connections, 0);
+});
+
+test('non-loopback admin and runtime targets refuse before any driver construction', async () => {
+  await Promise.all(
+    ['n', '[::1]', 'other-postgres', 'remote.example.net'].map(host =>
+      assertAuthorityRefused(`${host}/interdomestik_test`)
+    )
   );
   assert.equal(driver.connections, 0);
 });
