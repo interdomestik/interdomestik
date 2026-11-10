@@ -12,6 +12,14 @@ describe('getSelectedClaimId', () => {
     expect(getSelectedClaimId(params)).toBe('claim-2');
   });
 
+  it('restores selection from the same URL after refresh without mutating it', () => {
+    const query = 'claimId=claim-42&tab=open';
+    const params = new URLSearchParams(query);
+    expect(getSelectedClaimId(params)).toBe('claim-42');
+    expect(params.toString()).toBe(query);
+    expect(getSelectedClaimId(new URLSearchParams(params.toString()))).toBe('claim-42');
+  });
+
   it('returns null when no valid id is provided', () => {
     const params = new URLSearchParams();
     expect(getSelectedClaimId(params)).toBeNull();
