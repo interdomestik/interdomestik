@@ -80,18 +80,22 @@ export async function withPreviewSentinels<T>(
           closeReason: handoffSentinels[5],
         }))
       );
+      const agentId =
+        scope.tenantId === 'tenant_ks' ? E2E_USER_IDS.KS_AGENT : E2E_USER_IDS.MK_AGENT;
       await dbAdmin.insert(memberLeads).values({
         id: leadId,
         tenantId: scope.tenantId,
         branchId: scope.branchId,
-        agentId: scope.tenantId === 'tenant_ks' ? E2E_USER_IDS.KS_AGENT : E2E_USER_IDS.MK_AGENT,
+        agentId,
         firstName: prefix,
         lastName: 'Synthetic',
         email,
         phone: '+000000000',
         status: 'payment_pending',
-        consentNoticeVersion: 'pre-consent-legacy',
-        captureChannel: 'legacy',
+        consentNoticeVersion: 'e2e-agent-notice-v1',
+        consentCapturedAt: new Date(),
+        consentCapturedBy: agentId,
+        captureChannel: 'agent_assisted',
       });
       await dbAdmin.insert(leadPaymentAttempts).values({
         id: attemptId,
