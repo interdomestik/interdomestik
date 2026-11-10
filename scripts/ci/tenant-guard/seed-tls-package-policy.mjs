@@ -4,6 +4,7 @@ import path from 'node:path/posix';
 import { patternsOverlap } from './seed-tls-patterns.mjs';
 import { SEED_TLS_CLOSURE } from './manifest.mjs';
 import { exportTargets } from './package-exports.mjs';
+import { packageTargetPaths, unsupportedPackageTarget } from './seed-tls-package-targets.mjs';
 
 function capture(pattern, value) {
   const parts = pattern.split('*').map(part => part.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'));
@@ -65,7 +66,7 @@ export function seedPackageViolations(manifests, resolveSpecifier, config = {}) 
   );
   const publicAliases = initialAliases(manifests, resolveSpecifier, config);
   const privateAliases = new Map(manifests.map(pkg => [pkg.file, new Set()]));
-  const refused = new Set();
+  const refused = new Set(mappings.filter(({ target }) => unsupportedPackageTarget(target)));
   let changed = true;
   let rounds = 0;
   while (changed) {
@@ -79,19 +80,21 @@ export function seedPackageViolations(manifests, resolveSpecifier, config = {}) 
     for (const mapping of mappings) {
       const { pkg, field, key, target } = mapping;
       const relative = target.startsWith('.');
-      const pattern = relative ? path.normalize(path.join(pkg.dir, target)) : target;
+      const patterns = relative ? packageTargetPaths(pkg, target) : [target];
       const values = relative
         ? closureSpellings
         : target.startsWith('#')
           ? privateAliases.get(pkg.file)
           : publicAliases;
-      const captures = [...values]
-        .map(value =>
-          value.includes('*')
-            ? patternsOverlap(pattern, value)
-              ? '*'
-              : null
-            : capture(pattern, value)
+      const captures = patterns
+        .flatMap(pattern =>
+          [...values].map(value =>
+            value.includes('*')
+              ? patternsOverlap(pattern, value)
+                ? '*'
+                : null
+              : capture(pattern, value)
+          )
         )
         .filter(value => value !== null);
       if (
@@ -120,6 +123,8 @@ export function seedPackageViolations(manifests, resolveSpecifier, config = {}) 
     file: pkg.file,
     line: 1,
     unit: '<package>',
-    detail: `${field} mapping exposes seed-only closure ${target}`,
+    detail: unsupportedPackageTarget(target)
+      ? `${field} mapping has unsupported seed-only target ${target}`
+      : `${field} mapping exposes seed-only closure ${target}`,
   }));
 }

@@ -1,6 +1,7 @@
 import ts from 'typescript';
 import { SEED_TLS_CLOSURE, TEST_SOURCE } from './manifest.mjs';
 import { analyzeScopes } from './scopes.mjs';
+import { computedSeedLoader } from './seed-tls-computed-loaders.mjs';
 import {
   loaderMember,
   opaqueGlobalLoaderUse,
@@ -26,7 +27,15 @@ export function moduleEdges(graph, file) {
   const referencesByNode = new Map(references.map(reference => [reference.node, reference]));
   ts.forEachChild(source, function visit(node) {
     const specifier = literalSpecifier(node, lookup);
-    if (specifier !== null) {
+    // Collected roots retain their existing R-e/L1 policy. Only the seed-only extension
+    // (root entries and on-demand repository bridges) refuses unresolved loader calls here.
+    if (
+      !file.startsWith('apps/web/src/') &&
+      !file.startsWith('packages/') &&
+      computedSeedLoader(node, referencesByNode)
+    ) {
+      edges.set(node, { specifier: null, targets: [], computed: true, opaque: true });
+    } else if (specifier !== null) {
       // Node's URL spelling still loads the same file. Resolve both spellings through the
       // existing resolver; do not modify its behavior for any other tenant-guard rule.
       let normalized = specifier.startsWith('#')
@@ -128,8 +137,11 @@ export function reachesSeedClosure(graph, file, tainted = true) {
     }
     if (seen.has(key) || cache.get(key) === false) continue;
     seen.add(key);
-    for (const { targets, opaque, unsupportedUrl } of moduleEdges(graph, current).values()) {
-      if (opaqueMatters && (opaque || unsupportedUrl)) {
+    for (const { targets, computed, opaque, unsupportedUrl } of moduleEdges(
+      graph,
+      current
+    ).values()) {
+      if (computed || (opaqueMatters && (opaque || unsupportedUrl))) {
         cache.set(rootKey, true);
         return true;
       }

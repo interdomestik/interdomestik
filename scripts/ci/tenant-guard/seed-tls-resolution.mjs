@@ -4,6 +4,7 @@ import { exportTargets, packageCandidates } from './package-exports.mjs';
 import { parseSource } from './syntax.mjs';
 import { SOURCE } from './sources.mjs';
 import { seedRepository } from './seed-tls-repository.mjs';
+import { packageTargetPaths } from './seed-tls-package-targets.mjs';
 
 const EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'];
 function match(pattern, value) {
@@ -69,7 +70,7 @@ export function createSeedTlsContext({
     const bases = [];
     const files = [...graph.resolveSpecifier(from, specifier).files];
     const target = (pkg, value) => {
-      if (value.startsWith('.')) bases.push(path.join(pkg.dir, value));
+      if (value.startsWith('.')) bases.push(...packageTargetPaths(pkg, value));
       else files.push(...resolveSpecifier(pkg.file, value, next).files);
     };
     if (specifier.startsWith('.')) bases.push(path.join(path.dirname(from), specifier));

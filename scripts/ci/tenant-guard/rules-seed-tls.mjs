@@ -11,6 +11,7 @@ export function checkSeedTlsModuleUse(scan, node) {
   const edge = moduleEdges(graph, scan.file).get(node);
   if (!edge) return;
   const { specifier, targets } = edge;
+  if (edge.computed) scan.report(node, 'R-a', 'nonliteral loader may reach seed-only closure');
   if (edge.unsupportedUrl) {
     scan.report(node, 'R-a', `unsupported URL import may reach seed-only closure ${specifier}`);
   }
