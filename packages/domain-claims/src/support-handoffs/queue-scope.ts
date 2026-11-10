@@ -1,6 +1,6 @@
 import { and, claims, eq, ilike, or, supportHandoffs, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { gt, isNotNull, isNull, type SQL } from 'drizzle-orm';
+import { gt, isNotNull, isNull, sql, type SQL } from 'drizzle-orm';
 import type {
   SupportHandoffQueueAssignmentFilter,
   SupportHandoffQueueAttentionFilter,
@@ -59,9 +59,7 @@ function buildAssignmentCondition(args: {
     return isNull(supportHandoffs.staffId);
   }
 
-  const shouldUseOwnOrUnassignedFallback =
-    args.viewerRole !== 'branch_manager' ||
-    (args.viewerRole === 'branch_manager' && args.branchId == null);
+  const shouldUseOwnOrUnassignedFallback = args.viewerRole !== 'branch_manager';
 
   return shouldUseOwnOrUnassignedFallback
     ? buildOwnOrUnassignedStaffScope(args.staffId)
@@ -91,6 +89,9 @@ export function buildStaffSupportHandoffQueueScope(args: {
   viewerRole?: string | null;
 }) {
   const conditions: SQL<unknown>[] = [];
+  if (args.viewerRole === 'branch_manager' && !args.branchId?.trim()) {
+    conditions.push(sql`false`);
+  }
 
   if (args.attention !== 'needs_follow_up' && args.status && args.status !== 'all') {
     conditions.push(eq(supportHandoffs.status, args.status));

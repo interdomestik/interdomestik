@@ -458,11 +458,11 @@ ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: remaining
 S7 acceptance after delivered #1854 recovery and credited #1847/#1849 decline preview/recovery, #1845 exact fulfilment,
-#1842 assigned-staff queue, #1841 shared
-next action and #1814 request evidence round trip, with remaining S5/S6 gaps still open,
-S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
-platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
-keeps its priority lane when its direct dependencies are ready.
+#1842 assigned-staff queue, #1841 shared next action and #1814 request evidence round trip, with remaining S5/S6 gaps still open,
+S8 agent handoff, S9 assisted activation, S10 tenant_admin oversight, S11 tenant administration, S12 platform operations and S13 outcome/closure, then S14 whole-pilot rehearsal. H1 Help Now retains its ready-dependency priority lane.
+Plan070 owner decision (2026-11-10, “Po, pas pilotit”): the pilot has one active branch per tenant and no branch-manager accounts; S10 is reduced to tenant_admin oversight. The single-branch guard and read-only pre-launch check are in preparation; runtime proof remains pending.
+Multi-branch oversight is the post-pilot **Branches** feature: oversight queue, branch metrics including the `/admin/analytics` tenant-wide branch-manager leak, escalation (schema OK needed), and the full BM journey.
+Open owner decisions: BM claim assignment, transfers (S11), and DB branch RLS.
 
 Direct dependencies remain local to their consumers. PR #1836 proves bounded member document
 retrieval after #1814 upload and #1835 communication. PR #1815 proves bounded lifecycle/access

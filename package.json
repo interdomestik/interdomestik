@@ -184,6 +184,7 @@
     "release:gate:staging": "node scripts/run-with-dotenv.mjs pnpm -s release:gate:staging:raw",
     "pilot:check": "node scripts/run-with-dotenv.mjs bash scripts/pilot-verify.sh",
     "pilot:flow": "node scripts/run-with-dotenv.mjs bash scripts/pilot-verify.sh --print-ranked-flow",
+    "pilot:branches:check": "tsx scripts/pilot/branch-check.ts",
     "pilot:cadence:check": "tsx scripts/pilot-readiness-cadence.ts",
     "pilot:decision:record": "tsx scripts/pilot-decision-proof.ts",
     "pilot:evidence:record": "tsx scripts/pilot-daily-evidence.ts",

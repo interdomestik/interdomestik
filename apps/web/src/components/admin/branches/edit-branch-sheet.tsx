@@ -97,7 +97,11 @@ export function EditBranchSheet<TBranch extends EditableBranch>({
         onUpdate({ ...branch, ...data } as TBranch);
         onClose();
       } else {
-        toast.error('error' in result ? result.error : t('updateError'));
+        let message = 'error' in result ? result.error : t('updateError');
+        if ('code' in result && result.code === 'single_branch_limit') {
+          message = t('single_branch_limit');
+        }
+        toast.error(message);
       }
     } catch {
       toast.error(t('updateError'));

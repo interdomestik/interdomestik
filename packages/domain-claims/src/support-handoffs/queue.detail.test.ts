@@ -121,6 +121,24 @@ describe('getStaffSupportHandoffDetail', () => {
     expect(mocks.eq).not.toHaveBeenCalledWith('support_handoffs.staff_id', 'manager-1');
   });
 
+  // Deferred to the post-pilot Branches feature: queue.ts is baseline-listed and stays unchanged here.
+  // Its only production caller (apps/web/src/actions/support-handoffs/detail.ts) rejects branchless
+  // managers before calling it, and the pilot launch check rejects any branch-manager account.
+  it.todo('denies branchless managers in the detail reader before any query');
+
+  it('retains own-or-unassigned filtering for branchless ordinary staff', async () => {
+    mockSelectRows([]);
+    await getStaffSupportHandoffDetail({
+      authority,
+      branchId: null,
+      handoffId: 'handoff-1',
+      staffId: 'staff-1',
+      viewerRole: 'staff',
+    });
+    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.staff_id', 'staff-1');
+    expect(mocks.isNull).toHaveBeenCalledWith('support_handoffs.staff_id');
+  });
+
   it('returns null when the handoff is not visible in scope', async () => {
     mockSelectRows([]);
 

@@ -84,3 +84,19 @@ test('this contract owns the branch catalogs it repaired', () => {
   }
   assert.equal(structuredArtifactOwner('apps/web/src/messages/hr/admin-branches.json'), null);
 });
+
+test('single-branch limit copy is owned, present and consistent across the five branch catalogs', () => {
+  for (const locale of ['en', 'sq', 'mk', 'sr', 'de']) {
+    const catalog = JSON.parse(
+      fs.readFileSync(new URL(`${locale}/admin-branches.json`, MESSAGES_DIR), 'utf8')
+    );
+    const message = catalog.admin.branches.single_branch_limit;
+    assert.equal(typeof message, 'string', locale);
+    assert.ok(message.trim().length > 20, locale);
+    assert.equal(/[{}]/.test(message), false, 'no unbound ICU placeholders');
+    assert.equal(
+      structuredArtifactOwner(`apps/web/src/messages/${locale}/admin-branches.json`),
+      'locale-catalog-integrity-contract'
+    );
+  }
+});

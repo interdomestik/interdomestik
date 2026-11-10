@@ -10,6 +10,7 @@
       "editTitle": "Ndrysho Degën",
       "editDescription": "Përditëso detajet e degës.",
       "createSuccess": "Dega u krijua me sukses.",
+      "single_branch_limit": "Për këtë organizatë lejohet vetëm një degë aktive. Çaktivizoni degën aktuale para se të aktivizoni një tjetër.",
       "createError": "Dështoi krijimi i degës.",
       "updateSuccess": "Dega u përditësua me sukses.",
       "updateError": "Dështoi përditësimi i degës.",

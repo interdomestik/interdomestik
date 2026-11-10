@@ -5,13 +5,13 @@ import { runAuthenticatedAction, type ActionResult } from '@/lib/safe-action';
 import { requireEffectivePortalAccessOrUnauthorized } from '@/server/auth/effective-portal-access';
 
 import {
-  createBranchCore as createBranchDomain,
+  createGuardedBranchCore as createBranchDomain,
   deleteBranchCore as deleteBranchDomain,
   grantUserRoleCore as grantUserRoleDomain,
   listBranchesCore as listBranchesDomain,
   listUserRolesCore as listUserRolesDomain,
   revokeUserRoleCore as revokeUserRoleDomain,
-  updateBranchCore as updateBranchDomain,
+  updateGuardedBranchCore as updateBranchDomain,
 } from '@interdomestik/domain-users/admin/rbac';
 import { isBranchRequiredRole } from '@interdomestik/domain-users/admin/role-rules';
 import {
@@ -79,7 +79,7 @@ export async function createBranch(
         { requestedTenantId: resolvedTenantId }
       );
 
-      // Unpack data for domain function
+      // The pilot single-branch policy lives in the guarded writers.
       const result = await createBranchDomain(
         {
           session: session as unknown as UserSession,
@@ -95,6 +95,9 @@ export async function createBranch(
       );
 
       if ('error' in result) {
+        if ('code' in result && result.code === 'single_branch_limit') {
+          return { success: false as const, error: result.error, code: result.code };
+        }
         return { error: String(result.error) };
       }
       return result;
@@ -130,13 +133,20 @@ export async function updateBranch({
       );
 
       const { tenantId: clientTenantId, ...branchChanges } = validation.data;
-      const result = await updateBranchDomain({
-        session: session as unknown as UserSession,
-        authority: await resolveAdminActionAuthority(session, authority, clientTenantId),
-        ...branchChanges,
-      });
+      // The pilot single-branch policy lives in the guarded writers.
+      const result = await updateBranchDomain(
+        {
+          session: session as unknown as UserSession,
+          authority: await resolveAdminActionAuthority(session, authority, clientTenantId),
+          ...branchChanges,
+        },
+        { logAuditEvent }
+      );
 
       if ('error' in result) {
+        if ('code' in result && result.code === 'single_branch_limit') {
+          return { success: false as const, error: result.error, code: result.code };
+        }
         throw new Error(String(result.error));
       }
 

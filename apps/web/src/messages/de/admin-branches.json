@@ -10,6 +10,7 @@
       "editTitle": "Filiale bearbeiten",
       "editDescription": "Filialdaten aktualisieren.",
       "createSuccess": "Filiale erfolgreich angelegt.",
+      "single_branch_limit": "Für diese Organisation ist nur eine aktive Filiale erlaubt. Deaktivieren Sie die aktuelle Filiale, bevor Sie eine andere aktivieren.",
       "createError": "Filiale konnte nicht angelegt werden.",
       "updateSuccess": "Filiale erfolgreich aktualisiert.",
       "updateError": "Filiale konnte nicht aktualisiert werden.",
