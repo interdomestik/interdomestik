@@ -13,7 +13,7 @@ import styles from './page-skeleton.module.css';
 vi.unmock('next-intl');
 
 describe.each(['list', 'detail', 'dashboard'] as const)('%s page skeleton', variant => {
-  it('delays the complete visual fallback while keeping polite status present immediately', () => {
+  it('delays the visual fallback while keeping polite status immediately outside the busy subtree', () => {
     const { container } = render(
       <PageSkeleton variant={variant} title={en.common.admin} loadingLabel={en.common.loading} />
     );
@@ -23,13 +23,16 @@ describe.each(['list', 'detail', 'dashboard'] as const)('%s page skeleton', vari
     expect(busy).toBeInTheDocument();
     const visual = heading.parentElement;
     expect(visual).toHaveClass(styles.visual);
+    expect(busy).toBe(visual);
     expect(heading).toHaveClass('text-2xl');
     const status = screen.getByRole('status');
     expect(status.tagName).toBe('OUTPUT');
     expect(status).toHaveAttribute('aria-live', 'polite');
     expect(status).toHaveTextContent(en.common.loading);
     expect(status).toHaveClass('sr-only');
-    expect(busy).toContainElement(status);
+    expect(busy).not.toContainElement(status);
+    expect(status.closest('[aria-busy="true"]')).toBeNull();
+    expect(status.parentElement).toBe(visual?.parentElement);
     expect(visual).not.toContainElement(status);
     expect(heading.closest('[aria-hidden="true"]')).toBeNull();
     expect(status.closest('[aria-hidden="true"]')).toBeNull();
@@ -70,6 +73,8 @@ describe('LocalizedPageSkeleton', () => {
     );
 
     expect(screen.getByRole('heading', { name: messages.common.admin })).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent(messages.common.loading);
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent(messages.common.loading);
+    expect(status.closest('[aria-busy="true"]')).toBeNull();
   });
 });

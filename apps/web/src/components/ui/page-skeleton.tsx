@@ -92,11 +92,11 @@ export function PageSkeleton({
   const titleSizeClass = titleSize === '3xl' ? 'text-3xl' : 'text-2xl';
 
   return (
-    <div aria-busy="true" className="min-w-0" data-testid={testId}>
+    <div className="min-w-0" data-testid={testId}>
       <output aria-live="polite" className="sr-only">
         {loadingLabel}
       </output>
-      <div className={`space-y-6 ${styles.visual}`}>
+      <div aria-busy="true" className={`space-y-6 ${styles.visual}`}>
         <h1 className={`break-words font-bold tracking-tight ${titleSizeClass}`}>{title}</h1>
         <div aria-hidden="true">
           <Shapes />
