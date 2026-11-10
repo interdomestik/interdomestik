@@ -22,7 +22,7 @@ const roles: Admission[] = [
   { role: 'user', send: true, read: true, internal: false },
   { role: 'agent', send: true, read: true, internal: false },
   { role: 'staff', send: true, read: true, internal: true },
-  { role: 'branch_manager', send: false, read: true, internal: true },
+  { role: 'branch_manager', send: false, read: false, internal: false },
   { role: 'admin', send: true, read: true, internal: true },
   { role: 'tenant_admin', send: true, read: true, internal: true },
   { role: 'super_admin', send: true, read: true, internal: true },
@@ -138,7 +138,9 @@ describe('explicit messaging role admission', () => {
     async role => {
       actAs(role);
       const before = structuredClone(state.rows);
-      expect(await getMessagesForClaim(ids.claim)).toMatchObject({ success: true });
+      expect(await getMessagesForClaim(ids.claim)).toMatchObject({
+        success: role !== 'branch_manager',
+      });
       expect(await markMessagesAsRead(messageIds)).toEqual({
         success: false,
         error: 'Access denied',
@@ -154,7 +156,10 @@ describe('explicit messaging role admission', () => {
     expect(await getMessagesForClaim(ids.claim)).toMatchObject({ canAcknowledge: true });
     actAs('branch_manager');
     expect(state.session!.user.id).toBe(viewerId);
-    expect(await getMessagesForClaim(ids.claim)).toMatchObject({ canAcknowledge: false });
+    expect(await getMessagesForClaim(ids.claim)).toEqual({
+      success: false,
+      error: 'Access denied',
+    });
     actAs('staff');
     expect(await getMessagesForClaim(ids.claim)).toMatchObject({ canAcknowledge: true });
     noWriteEffects();
@@ -165,7 +170,10 @@ describe('explicit messaging role admission', () => {
     async participant => {
       state.rows.claimMessages[0].senderId = participant === 'staff' ? ids.member : ids.staff;
       actAs('branch_manager');
-      expect(await getMessagesForClaim(ids.claim)).toMatchObject({ canAcknowledge: false });
+      expect(await getMessagesForClaim(ids.claim)).toEqual({
+        success: false,
+        error: 'Access denied',
+      });
       actAs('global_support');
       expect(await getMessagesForClaim(ids.claim)).toMatchObject({ canAcknowledge: false });
       expect(state.rows.claimMessages.every(message => message.readAt === null)).toBe(true);

@@ -1,3 +1,5 @@
+import { deniesClaimMessageContent } from '@/lib/branch-manager-message-boundary';
+import { ClaimMessageSummary } from '@/features/claims/communication/claim-message-summary';
 import { getStaff } from '@/actions/admin-users';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { ClaimOpsTimelineSection } from '@/features/admin/claims/components/detail/ClaimOpsTimelineSection';
@@ -99,17 +101,20 @@ export async function AdminClaimDetailV2Page({
           </div>
 
           {/* 2. Messaging (Communication) */}
-          <MessagingPanel
-            claimId={data.id}
-            currentUser={{
-              id: session.user.id,
-              name: session.user.name,
-              image: session.user.image ?? null,
-              role: session.user.role || 'admin',
-            }}
-            isAgent={true}
-            readOnly={visibility.role === 'branch_manager'}
-          />
+          {deniesClaimMessageContent(session.user.role) ? (
+            <ClaimMessageSummary claimId={data.id} authority={authority} />
+          ) : (
+            <MessagingPanel
+              claimId={data.id}
+              currentUser={{
+                id: session.user.id,
+                name: session.user.name,
+                image: session.user.image ?? null,
+                role: session.user.role || 'admin',
+              }}
+              isAgent={true}
+            />
+          )}
 
           {/* 3. Timeline (Audit Trail) */}
           <div id="timeline-section">
