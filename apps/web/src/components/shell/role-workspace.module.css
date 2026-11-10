@@ -55,6 +55,11 @@
   overflow-x: auto;
 }
 
+/* A labelled, focusable OpsTable region owns scrolling; its inner wrapper must not scroll too. */
+.content section[aria-label][tabindex='0'] > :has(> table) {
+  overflow: visible;
+}
+
 .content :global([data-testid='ops-document-row']) {
   min-width: 0;
   flex-wrap: wrap;
