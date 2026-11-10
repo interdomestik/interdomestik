@@ -20,6 +20,9 @@ export function resolvePilotBranchTarget(databaseUrl: string | undefined, target
     throw new Error('Ambiguous database target');
   const host = url.hostname;
   const port = Number(url.port || 5432);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error('Invalid database port');
+  }
   const database = decodeURIComponent(url.pathname.slice(1));
   const expected = `${host}:${port}/${database}`;
   const local = ['localhost', '127.0.0.1'].includes(host);

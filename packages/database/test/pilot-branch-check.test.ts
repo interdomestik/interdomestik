@@ -18,11 +18,12 @@ test('audit is one parameterized SELECT scoped to explicit tenants across all re
   for (const table of ['"user"', 'claim', 'subscriptions', 'support_handoffs']) {
     assert.ok(query.sql.includes(`from ${table} `));
   }
-  assert.equal((query.sql.match(/join targets t on t.tenant_id =/g) ?? []).length, 5);
+  assert.equal((query.sql.match(/join targets t on t.tenant_id =/g) ?? []).length, 6);
   assert.match(query.sql, /s.tenant_id = t.tenant_id/);
   assert.match(query.sql, /s.category = 'branches' and s.key = 'multi_branch'/);
   assert.match(query.sql, /s.value -> 'enabled' = 'true'::jsonb/);
-  assert.match(query.sql, /not p.multi_branch and p.active_count <> 1/);
+  assert.match(query.sql, /from policy p where p.active_count <> 1/);
+  assert.doesNotMatch(query.sql, /not p.multi_branch/);
   assert.match(query.sql, /b.is_active = true/);
   assert.match(query.sql, /b.id = r.branch_id and b.tenant_id = r.tenant_id/);
   assert.match(query.sql, /where b.id is null/);
@@ -75,4 +76,33 @@ test('remote and production targets require exact credential-free confirmation',
   );
   assert.throws(() => parsePilotBranchArgs([], env));
   assert.throws(() => parsePilotBranchArgs(['--tenant', '--target'], env));
+});
+
+test('selected pilot tenants report opt-in and every manager, regardless of branch validity', () => {
+  const query = render();
+  assert.match(query.sql, /'multi_branch_opt_in', p.tenant_id from policy p where p.multi_branch/);
+  assert.match(
+    query.sql,
+    /select u.tenant_id, 'branch_manager_account', u.id\s+from "user" u join targets t on t.tenant_id = u.tenant_id\s+where u.role = 'branch_manager'\s+union all/
+  );
+});
+
+test('target rejects invalid ports before accepting an exact confirmation', () => {
+  for (const port of ['0', '-1', '65536', '1.5', 'abc']) {
+    assert.throws(() =>
+      resolvePilotBranchTarget(
+        `postgres://audit:secret@localhost:${port}/dev`,
+        `localhost:${port}/dev`
+      )
+    );
+  }
+  for (const port of [1, 5432, 65535]) {
+    assert.equal(
+      resolvePilotBranchTarget(
+        `postgres://audit:secret@localhost:${port}/dev`,
+        `localhost:${port}/dev`
+      ).port,
+      port
+    );
+  }
 });

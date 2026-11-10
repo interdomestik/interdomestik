@@ -56,13 +56,11 @@ export function CreateBranchDialog() {
         reset();
         // Ideally revalidatePath happens on server
       } else {
-        toast.error(
-          'code' in result && result.code === 'single_branch_limit'
-            ? t('single_branch_limit')
-            : 'error' in result
-              ? result.error
-              : t('createError')
-        );
+        let message = 'error' in result ? result.error : t('createError');
+        if ('code' in result && result.code === 'single_branch_limit') {
+          message = t('single_branch_limit');
+        }
+        toast.error(message);
       }
     } catch {
       toast.error(t('createError'));

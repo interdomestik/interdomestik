@@ -9,6 +9,7 @@
     "./types": "./src/types.ts",
     "./admin/access": "./src/admin/access.ts",
     "./admin/rbac": "./src/admin/rbac.ts",
+    "./admin/branch-policy": "./src/admin/branch-policy.ts",
     "./admin/get-users": "./src/admin/get-users.ts",
     "./admin/get-agents": "./src/admin/get-agents.ts",
     "./admin/get-staff": "./src/admin/get-staff.ts",

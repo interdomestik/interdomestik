@@ -1,31 +1,36 @@
 import { vi } from 'vitest';
 
-// Mock Domain Functions
-export const mockListBranchesCore = vi.fn();
-export const mockCreateBranchCore = vi.fn();
-export const mockUpdateBranchCore = vi.fn();
-export const mockDeleteBranchCore = vi.fn();
-export const mockListUserRolesCore = vi.fn();
-export const mockGrantUserRoleCore = vi.fn();
-export const mockRevokeUserRoleCore = vi.fn();
-export const mockRevalidatePath = vi.fn();
-export const mockDelegateSuperAdminTenant = vi.fn();
+// These are the guarded production exports, shared by all action wrapper tests.
+export const {
+  mockListBranchesCore,
+  mockCreateGuardedBranchCore,
+  mockUpdateGuardedBranchCore,
+  mockDeleteBranchCore,
+  mockListUserRolesCore,
+  mockGrantUserRoleCore,
+  mockRevokeUserRoleCore,
+  mockRevalidatePath,
+  mockDelegateSuperAdminTenant,
+} = vi.hoisted(() => ({
+  mockListBranchesCore: vi.fn(),
+  mockCreateGuardedBranchCore: vi.fn(),
+  mockUpdateGuardedBranchCore: vi.fn(),
+  mockDeleteBranchCore: vi.fn(),
+  mockListUserRolesCore: vi.fn(),
+  mockGrantUserRoleCore: vi.fn(),
+  mockRevokeUserRoleCore: vi.fn(),
+  mockRevalidatePath: vi.fn(),
+  mockDelegateSuperAdminTenant: vi.fn(),
+}));
 
 vi.mock('@interdomestik/domain-users/admin/rbac', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  listBranchesCore: (...args: any[]) => mockListBranchesCore(...args),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createGuardedBranchCore: (...args: any[]) => mockCreateBranchCore(...args),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  updateGuardedBranchCore: (...args: any[]) => mockUpdateBranchCore(...args),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  deleteBranchCore: (...args: any[]) => mockDeleteBranchCore(...args),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  listUserRolesCore: (...args: any[]) => mockListUserRolesCore(...args),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  grantUserRoleCore: (...args: any[]) => mockGrantUserRoleCore(...args),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  revokeUserRoleCore: (...args: any[]) => mockRevokeUserRoleCore(...args),
+  listBranchesCore: mockListBranchesCore,
+  createGuardedBranchCore: mockCreateGuardedBranchCore,
+  updateGuardedBranchCore: mockUpdateGuardedBranchCore,
+  deleteBranchCore: mockDeleteBranchCore,
+  listUserRolesCore: mockListUserRolesCore,
+  grantUserRoleCore: mockGrantUserRoleCore,
+  revokeUserRoleCore: mockRevokeUserRoleCore,
 }));
 
 vi.mock('@interdomestik/database', async importOriginal => ({

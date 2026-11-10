@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { mockCreateBranchCore, mockUpdateBranchCore } from './admin-rbac.wrapper.test-support';
+import {
+  mockCreateGuardedBranchCore,
+  mockUpdateGuardedBranchCore,
+} from './admin-rbac.wrapper.test-support';
 import { createBranch, updateBranch } from './admin-rbac.core';
 
 describe('branch policy action contract', () => {
@@ -8,8 +11,8 @@ describe('branch policy action contract', () => {
       error: 'Only one active branch is allowed for this tenant.',
       code: 'single_branch_limit',
     };
-    mockCreateBranchCore.mockResolvedValue(failure);
-    mockUpdateBranchCore.mockResolvedValue(failure);
+    mockCreateGuardedBranchCore.mockResolvedValue(failure);
+    mockUpdateGuardedBranchCore.mockResolvedValue(failure);
     expect(await createBranch({ name: 'Second' })).toEqual({ success: false, ...failure });
     expect(
       await updateBranch({ branchId: 'branch-2', data: { name: 'Second', isActive: true } })

@@ -33,52 +33,52 @@ export function fixture(rows: Branch[] = []) {
     predicates.push(where);
     const query = dialect.sqlToQuery(where);
     const [tenant, value] = query.params;
-    return rows.filter(
-      row =>
-        row.tenantId === tenant &&
-        (query.sql.includes('"is_active"')
-          ? row.isActive === value
-          : query.sql.includes('"slug"')
-            ? row.slug === value
-            : query.sql.includes('"code"')
-              ? row.code === value
-              : row.id === value)
-    );
+    return rows.filter(row => {
+      if (row.tenantId !== tenant) return false;
+      if (query.sql.includes('"is_active"')) return row.isActive === value;
+      if (query.sql.includes('"slug"')) return row.slug === value;
+      if (query.sql.includes('"code"')) return row.code === value;
+      return row.id === value;
+    });
   };
-  const lock = vi.fn(async (query: SQL) => {
+  const lock = vi.fn((query: SQL) => {
     predicates.push(query);
     events.push('lock');
-    return [];
+    return Promise.resolve([]);
   });
-  const values = vi.fn(async (row: Branch) => {
+  const values = vi.fn((row: Branch) => {
     events.push('insert');
     rows.push(row);
+    return Promise.resolve();
   });
   const update = vi.fn((patch: Partial<Branch>) => ({
-    where: async (where: SQL) => {
+    where: (where: SQL) => {
       events.push('update');
       for (const row of scopedRows(where)) Object.assign(row, patch);
+      return Promise.resolve();
     },
   }));
   const tx = {
     execute: lock,
     query: {
       tenantSettings: {
-        findFirst: vi.fn(async ({ where }: { where: SQL }) => {
+        findFirst: vi.fn(({ where }: { where: SQL }) => {
           events.push('setting');
           predicates.push(where);
           const [tenant, category, key] = dialect.sqlToQuery(where).params;
-          return settings.find(
-            row => row.tenantId === tenant && row.category === category && row.key === key
+          return Promise.resolve(
+            settings.find(
+              row => row.tenantId === tenant && row.category === category && row.key === key
+            )
           );
         }),
       },
       branches: {
-        findMany: vi.fn(async ({ where }: { where: SQL }) => {
+        findMany: vi.fn(({ where }: { where: SQL }) => {
           events.push('active');
-          return scopedRows(where);
+          return Promise.resolve(scopedRows(where));
         }),
-        findFirst: vi.fn(async ({ where }: { where: SQL }) => scopedRows(where)[0]),
+        findFirst: vi.fn(({ where }: { where: SQL }) => Promise.resolve(scopedRows(where)[0])),
       },
     },
     insert: () => ({ values }),

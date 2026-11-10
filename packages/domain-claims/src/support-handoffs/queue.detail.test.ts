@@ -121,6 +121,34 @@ describe('getStaffSupportHandoffDetail', () => {
     expect(mocks.eq).not.toHaveBeenCalledWith('support_handoffs.staff_id', 'manager-1');
   });
 
+  it.each([undefined, null, '', '   '])(
+    'denies branchless managers in the detail reader before any query (%s)',
+    async branchId => {
+      const detail = await getStaffSupportHandoffDetail({
+        authority,
+        branchId,
+        handoffId: 'handoff-1',
+        staffId: 'manager-1',
+        viewerRole: 'branch_manager',
+      });
+      expect(detail).toBeNull();
+      expect(mocks.db.select).not.toHaveBeenCalled();
+    }
+  );
+
+  it('retains own-or-unassigned filtering for branchless ordinary staff', async () => {
+    mockSelectRows([]);
+    await getStaffSupportHandoffDetail({
+      authority,
+      branchId: null,
+      handoffId: 'handoff-1',
+      staffId: 'staff-1',
+      viewerRole: 'staff',
+    });
+    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.staff_id', 'staff-1');
+    expect(mocks.isNull).toHaveBeenCalledWith('support_handoffs.staff_id');
+  });
+
   it('returns null when the handoff is not visible in scope', async () => {
     mockSelectRows([]);
 

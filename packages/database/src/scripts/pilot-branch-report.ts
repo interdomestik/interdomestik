@@ -44,7 +44,13 @@ export function pilotBranchReportQuery(tenantIds: readonly string[]): SQL {
       from support_handoffs h join targets t on t.tenant_id = h.tenant_id
     )
     select p.tenant_id, 'active_branch_count'::text as kind, p.tenant_id as id
-      from policy p where not p.multi_branch and p.active_count <> 1
+      from policy p where p.active_count <> 1
+    union all
+    select p.tenant_id, 'multi_branch_opt_in', p.tenant_id from policy p where p.multi_branch
+    union all
+    select u.tenant_id, 'branch_manager_account', u.id
+      from "user" u join targets t on t.tenant_id = u.tenant_id
+      where u.role = 'branch_manager'
     union all
     select r.tenant_id, r.kind, r.id from records r
       left join active_branches b on b.id = r.branch_id and b.tenant_id = r.tenant_id

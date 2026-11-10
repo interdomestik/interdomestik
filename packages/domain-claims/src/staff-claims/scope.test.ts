@@ -14,6 +14,14 @@ const render = (where: ReturnType<typeof buildStaffClaimReadScope>) => {
 };
 
 describe('staff claim scope', () => {
+  it('normalizes a null session role to the optional scope role', () => {
+    expect(
+      resolveScopedStaffClaimAccess({
+        claimId: 'claim_1',
+        session: { user: { id: 'staff_1', role: null, tenantId: 'tenant_ks' } },
+      })
+    ).toMatchObject({ role: undefined, branchId: null });
+  });
   it.each([null, '', '   '])(
     'denies branchless manager detail and mutation scopes (%s)',
     branchId => {

@@ -44,7 +44,7 @@ export function resolveScopedStaffClaimAccess(params: {
   session: ClaimsSession;
 }): StaffClaimScopeArgs {
   return {
-    role: params.session.user.role,
+    role: params.session.user.role ?? undefined,
     branchId: params.session.user.branchId ?? null,
     claimId: params.claimId,
     tenantId: ensureTenantId(params.session),
