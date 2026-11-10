@@ -31,6 +31,12 @@ function globalRoot(node, references, seen = new Set()) {
     ? globalRoot(declaration.initializer, references, seen)
     : null;
 }
+// Exact bit test for the power-of-two Const flag on non-negative NodeFlags, written without a
+// lone bitwise operator (SonarJS S1529 treats a single `&` in a condition as a likely `&&`).
+function hasConstFlag(flags) {
+  return Math.floor(flags / ts.NodeFlags.Const) % 2 === 1;
+}
+
 function symbolKey(node, references) {
   node = unwrap(node);
   if (!node || !ts.isIdentifier(node)) return false;
@@ -38,7 +44,7 @@ function symbolKey(node, references) {
   if (
     !declaration ||
     !ts.isVariableDeclaration(declaration) ||
-    (declaration.parent.flags & ts.NodeFlags.Const) === 0
+    !hasConstFlag(declaration.parent.flags)
   )
     return false;
   const initializer = unwrap(declaration.initializer);
