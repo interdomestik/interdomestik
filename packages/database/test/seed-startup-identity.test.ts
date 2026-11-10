@@ -42,6 +42,8 @@ const overrides = [
   'role=other_role',
   'search_path=other_schema',
   'client_encoding=SQL_ASCII',
+  'application_name=probe%00database%00other_db',
+  'application_name=probe%00user%00other_role',
 ];
 for (const key of ['queryClientAdmin', 'queryClientRls'] as const) {
   for (const [index, override] of overrides.entries()) {

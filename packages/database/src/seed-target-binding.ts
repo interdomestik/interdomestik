@@ -49,7 +49,14 @@ function startupIdentity(options: DriverOptions): { user: unknown; database: unk
   if (typeof connection !== 'object' || Array.isArray(connection)) return null;
   const startup = connection as Record<string, unknown>;
   if (Object.keys(startup).some(key => !STARTUP_KEYS.has(key))) return null;
+  // Startup values are NUL-terminated; an embedded NUL would inject further startup keys.
+  const values = [...Object.values(startup), options.user, options.database];
+  if (values.some(value => value !== undefined && !isStartupString(value))) return null;
   return { user: startup.user ?? options.user, database: startup.database ?? options.database };
+}
+
+function isStartupString(value: unknown): value is string {
+  return typeof value === 'string' && !value.includes('\0');
 }
 
 function matchesTarget(options: DriverOptions | undefined, expected: SeedDriverTarget): boolean {
