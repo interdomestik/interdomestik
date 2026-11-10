@@ -236,10 +236,10 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
               <Button
                 asChild
                 size="lg"
-                className="h-auto min-h-11 w-full justify-between gap-3 whitespace-normal rounded-2xl py-3 text-left bg-emerald-500 hover:bg-emerald-600"
+                className="h-auto min-h-11 w-full flex-wrap justify-between gap-x-3 gap-y-1 whitespace-normal rounded-2xl px-4 py-2 text-left sm:px-8 bg-emerald-500 hover:bg-emerald-600"
               >
                 <a href={contacts.telHref}>
-                  <span className="flex min-w-0 items-center gap-2">
+                  <span className="flex min-w-0 items-center gap-2 break-words">
                     <Phone className="h-4 w-4 shrink-0" />
                     {t('actions.support')}
                   </span>
@@ -254,7 +254,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
                   asChild
                   size="lg"
                   variant="outline"
-                  className="h-auto min-h-11 w-full justify-between gap-3 whitespace-normal rounded-2xl py-3 text-left border-slate-700 bg-transparent text-white hover:bg-slate-900"
+                  className="h-auto min-h-11 w-full flex-wrap justify-between gap-x-3 gap-y-1 whitespace-normal rounded-2xl px-4 py-2 text-left sm:px-8 border-slate-700 bg-transparent text-white hover:bg-slate-900"
                 >
                   <a href={contacts.whatsappHref} target="_blank" rel="noopener noreferrer">
                     <span>{t('actions.whatsapp')}</span>
@@ -268,7 +268,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
                   asChild
                   size="lg"
                   variant="secondary"
-                  className="h-auto min-h-11 w-full justify-between gap-3 whitespace-normal rounded-2xl py-3 text-left"
+                  className="h-auto min-h-11 w-full flex-wrap justify-between gap-x-3 gap-y-1 whitespace-normal rounded-2xl px-4 py-2 text-left sm:px-8"
                 >
                   <Link href={buildClaimStartHref(countryContext.code)}>
                     <span>{t('actions.claim')}</span>
