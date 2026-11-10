@@ -6,13 +6,7 @@ import { OpsFiltersBar, OpsFilterTab } from '@/components/ops/OpsFiltersBar';
 import { OpsQueryState } from '@/components/ops/OpsQueryState';
 import { OpsStatusBadge } from '@/components/ops/OpsStatusBadge';
 import { OpsTable } from '@/components/ops/OpsTable';
-import { OpsTimeline } from '@/components/ops/OpsTimeline';
-import {
-  getLeadActions,
-  toOpsStatus,
-  toOpsTimelineEvents,
-  type OpsActionConfig,
-} from '@/components/ops/adapters/leads';
+import { getLeadActions, toOpsStatus, type OpsActionConfig } from '@/components/ops/adapters/leads';
 import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
 import { Link } from '@/i18n/routing';
 import { CreateLeadDialog } from './CreateLeadDialog';
@@ -22,6 +16,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { convertLeadToClient, updateLeadStatus } from '../actions';
+import { AgentLeadTimeline, useAgentLeadRows, type AgentLeadPro } from './agent-lead-presentation';
 import { LeadProfileDetails } from './LeadProfileDetails';
 
 const LOCALIZED_STATUSES = new Set([
@@ -32,24 +27,6 @@ const LOCALIZED_STATUSES = new Set([
   'lost',
   'expired',
 ]);
-
-type AgentLeadPro = {
-  id: string;
-  firstName?: string | null;
-  lastName?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  source?: string | null;
-  status?: string | null;
-  branchId?: string | null;
-  branch?: { name?: string | null } | null;
-  leadKind?: string | null;
-  companyName?: string | null;
-  teamSize?: string | null;
-  notes?: string | null;
-  createdAt?: string | Date | null;
-  updatedAt?: string | Date | null;
-};
 
 export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>) {
   const t = useTranslations('agent.leads_pro');
@@ -69,12 +46,6 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
         return fallbackLabel;
     }
   };
-  const columns = [
-    { key: 'lead', header: t('columns.lead') },
-    { key: 'status', header: t('columns.status') },
-    { key: 'details', header: t('columns.details') },
-    { key: 'meta', header: t('columns.meta') },
-  ];
   const tabs: OpsFilterTab[] = [
     { id: 'all', label: t('tabs.all') },
     { id: 'new', label: t('tabs.new') },
@@ -86,13 +57,11 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
   const [isPending, startTransition] = useTransition();
   const [showSecondary, setShowSecondary] = useState(false);
 
-  // Local state for filters (in a real app, this might be URL params)
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const selectedLead = leads.find(l => l.id === selectedId);
 
-  // Fallback: If selected ID exists but lead not found, clear selection
   useEffect(() => {
     if (selectedId && leads.length > 0 && !leads.find(l => l.id === selectedId)) {
       clearSelectedId();
@@ -132,10 +101,8 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
     });
   };
 
-  // Get actions from policy
   const { primary, secondary } = getLeadActions(selectedLead);
 
-  // Map to OpsActionBar format (inject onClick and disabled state)
   const mapAction = (config: OpsActionConfig) => ({
     ...config,
     label: localizeActionLabel(config.id, config.label),
@@ -143,16 +110,13 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
     disabled: isPending || config.disabled,
   });
 
-  // Filter Logic
   const filteredLeads = leads.filter(lead => {
-    // 1. Tab Filter
     if (activeTab === 'new' && lead.status !== 'new') return false;
     if (activeTab === 'contacted' && !['contacted', 'payment_pending'].includes(lead.status ?? ''))
       return false;
     if (activeTab === 'converted' && lead.status !== 'converted') return false;
     if (activeTab === 'lost' && lead.status !== 'lost') return false;
 
-    // 2. Search Filter
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const matches =
@@ -166,51 +130,24 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
     return true;
   });
 
-  // Map leads to OpsTable rows
-  const tableRows = filteredLeads.map(lead => {
-    return {
-      id: lead.id,
-      cells: [
-        <div key="lead" className="flex flex-col py-1">
-          <span className="font-medium text-foreground">
-            {lead.firstName} {lead.lastName}
-          </span>
-          <span className="text-sm text-muted-foreground">{lead.email}</span>
-        </div>,
-        <div key="status">
-          <OpsStatusBadge {...toOpsStatus(lead.status)} label={localizeLeadStatus(lead.status)} />
-        </div>,
-        <div key="details" className="flex flex-col text-sm">
-          <span>{lead.phone || '-'}</span>
-          <span className="text-xs text-muted-foreground">
-            {lead.branch?.name || lead.branchId || ''}
-          </span>
-        </div>,
-        <div key="meta" className="flex flex-col text-sm text-muted-foreground">
-          <span>{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : '-'}</span>
-          <span className="text-xs">
-            {/* Abstracting "Last Touch" as updated at for now */}
-            {lead.updatedAt
-              ? `${t('fields.updated')} ${new Date(lead.updatedAt).toLocaleDateString()}`
-              : ''}
-          </span>
-        </div>,
-      ],
-      onClick: () => handleRowClick(lead.id),
-      testId: `lead-row-${lead.id}`,
-    };
-  });
+  const { columns, tableRows } = useAgentLeadRows(
+    filteredLeads,
+    handleRowClick,
+    localizeLeadStatus
+  );
 
   return (
-    <div className="h-full flex flex-col space-y-4 p-4" data-testid="agent-leads-pro">
-      {/* Header / Nav */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <div
+      className="min-w-0 flex flex-col space-y-4 [overflow-wrap:anywhere]"
+      data-testid="agent-leads-pro"
+    >
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           <Link href="/agent/members">
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="size-11 shrink-0"
               data-testid="agent-pro-back-button"
               aria-label={t('back_to_members')}
             >
@@ -226,7 +163,6 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
         <CreateLeadDialog />
       </div>
 
-      {/* Filters */}
       <OpsFiltersBar
         tabs={tabs}
         activeTab={activeTab}
@@ -237,13 +173,16 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
         searchInputTestId="leads-pro-search"
       />
 
-      <div className="flex-1 overflow-hidden border rounded-lg bg-card">
+      <div className="min-w-0 max-w-full flex-1 rounded-lg">
         <OpsQueryState
           isEmpty={filteredLeads.length === 0}
           emptyTitle={t('empty_title')}
           emptySubtitle={t('empty_subtitle')}
         >
           <OpsTable
+            mobileCards
+            scrollLabel={t('title')}
+            containerClassName="min-w-0 max-w-full"
             columns={columns}
             rows={tableRows}
             emptyLabel={t('empty_label')}
@@ -259,7 +198,7 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
       >
         {selectedLead && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">{t('fields.status')}</p>
                 <OpsStatusBadge
@@ -268,7 +207,6 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
                 />
               </div>
               <div className="text-right space-y-1">
-                {/* Reusing details view similar to OpsPage but can be expanded */}
                 <p className="text-sm font-medium text-muted-foreground">{t('fields.created')}</p>
                 <span className="text-sm" data-testid="lead-created-at">
                   {selectedLead.createdAt
@@ -289,15 +227,14 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
               </div>
             )}
 
-            {/* Standard Ops Actions (Flat list for Pro, or reuse guided? Reusing guided is safer for consistency) */}
             {primary && (
               <div className="border-t pt-4" data-testid="agent-lead-next-step">
                 <span className="block text-sm font-medium text-muted-foreground mb-3">
                   {t('fields.next_step')}
                 </span>
                 <OpsActionBar
-                  primary={!!primary ? mapAction(primary) : undefined}
-                  className="pt-0 border-0 mt-0"
+                  primary={mapAction(primary)}
+                  className="pt-0 border-0 mt-0 [&>div]:flex-wrap [&_button]:min-h-11 [&_button]:h-auto [&_button]:max-w-full [&_button]:whitespace-normal"
                   align="start"
                 />
               </div>
@@ -307,7 +244,7 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
               <div className="border-t pt-4">
                 <button
                   onClick={() => setShowSecondary(!showSecondary)}
-                  className="flex items-center justify-between w-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex min-h-11 items-center justify-between w-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {t('more_actions')}
                   {showSecondary ? (
@@ -320,7 +257,7 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
                   <div className="mt-4 animate-in slide-in-from-top-2 duration-200">
                     <OpsActionBar
                       secondary={secondary.map(mapAction)}
-                      className="pt-0 border-0 mt-0"
+                      className="pt-0 border-0 mt-0 [&>div]:flex-wrap [&_button]:min-h-11 [&_button]:h-auto [&_button]:max-w-full [&_button]:whitespace-normal"
                       align="start"
                     />
                   </div>
@@ -329,31 +266,7 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
             )}
 
             <div className="border-t pt-4">
-              <OpsTimeline
-                title={t('timeline.title')}
-                events={toOpsTimelineEvents(selectedLead).map(event => {
-                  if (event.id.endsWith('-created')) {
-                    return {
-                      ...event,
-                      title: t('timeline.events.created.title'),
-                      description: `${t('timeline.events.created.source_prefix')} ${
-                        selectedLead.source || t('timeline.events.created.unknown_source')
-                      }`,
-                    };
-                  }
-
-                  if (event.id.endsWith('-converted')) {
-                    return {
-                      ...event,
-                      title: t('timeline.events.converted.title'),
-                      description: t('timeline.events.converted.description'),
-                    };
-                  }
-
-                  return event;
-                })}
-                emptyLabel={t('timeline.empty')}
-              />
+              <AgentLeadTimeline lead={selectedLead} />
             </div>
           </div>
         )}

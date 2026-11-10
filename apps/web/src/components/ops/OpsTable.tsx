@@ -11,6 +11,8 @@ import {
 } from '@interdomestik/ui';
 import { RefreshCw } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useIsMobile } from '@interdomestik/ui/hooks/use-mobile';
+import { OpsTableCards } from './OpsTableCards';
 import { OpsEmptyState } from './OpsEmptyState';
 import { OpsLoadingState } from './OpsLoadingState';
 import { OPS_TEST_IDS } from './testids';
@@ -42,6 +44,8 @@ export interface OpsTableProps {
   actionsHeader?: ReactNode;
   rowTestId?: string;
   containerClassName?: string;
+  mobileCards?: boolean;
+  scrollLabel?: string;
 }
 
 export function OpsTable({
@@ -56,15 +60,35 @@ export function OpsTable({
   actionsHeader,
   rowTestId,
   containerClassName,
-}: OpsTableProps) {
+  mobileCards = false,
+  scrollLabel,
+}: Readonly<OpsTableProps>) {
+  const isMobile = useIsMobile();
   const colCount = columns.length + (actionsHeader ? 1 : 0);
+  const ScrollContainer = scrollLabel ? 'section' : 'div';
+  // Only a labelled region takes over scrolling from the table's own wrapper.
+  const scrollClasses = scrollLabel
+    ? 'max-w-full overflow-x-auto [&>div]:overflow-visible'
+    : 'overflow-x-auto';
   const containerClasses = ['rounded-md border bg-card/50 backdrop-blur-sm', containerClassName]
     .filter(Boolean)
     .join(' ');
 
+  if (mobileCards && isMobile && !loading && !error && rows.length > 0) {
+    return (
+      <div className="min-w-0" data-testid={OPS_TEST_IDS.TABLE.ROOT}>
+        <OpsTableCards columns={columns} rows={rows} rowTestId={rowTestId} />
+      </div>
+    );
+  }
+
   return (
     <div className={containerClasses} data-testid={OPS_TEST_IDS.TABLE.ROOT}>
-      <div className="overflow-x-auto">
+      <ScrollContainer
+        className={scrollClasses}
+        aria-label={scrollLabel}
+        tabIndex={scrollLabel ? 0 : undefined}
+      >
         <Table className="min-w-max">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-white/5">
@@ -128,7 +152,11 @@ export function OpsTable({
                   <TableRow
                     key={row.id}
                     className={rowClasses}
-                    onClick={handleClick}
+                    onClick={event => {
+                      if (!handleClick) return;
+                      event.currentTarget.focus();
+                      handleClick();
+                    }}
                     onKeyDown={handleKeyDown}
                     tabIndex={handleClick ? 0 : undefined}
                     data-testid={row.testId ?? rowTestId ?? OPS_TEST_IDS.TABLE.ROW}
@@ -153,7 +181,7 @@ export function OpsTable({
             )}
           </TableBody>
         </Table>
-      </div>
+      </ScrollContainer>
     </div>
   );
 }

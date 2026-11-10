@@ -65,7 +65,10 @@ export default async function AgentClaimsPage({
   const groups = result.data;
 
   return (
-    <div className="container py-8 space-y-8" data-testid="agent-claims-page">
+    <div
+      className="min-w-0 py-4 space-y-8 [overflow-wrap:anywhere]"
+      data-testid="agent-claims-page"
+    >
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">{t('claimsPage.title')}</h1>
       </div>
@@ -79,11 +82,11 @@ export default async function AgentClaimsPage({
           {groups.map(group => (
             <Card key={group.memberId} className="overflow-hidden">
               <CardHeader className="bg-muted/40 pb-4">
-                <div className="flex items-center gap-4">
+                <div className="flex min-w-0 items-center gap-4">
                   <Avatar>
                     <AvatarFallback>{getInitials(group.memberName)}</AvatarFallback>
                   </Avatar>
-                  <div>
+                  <div className="min-w-0">
                     <CardTitle className="text-lg">{group.memberName}</CardTitle>
                     <p className="text-sm text-muted-foreground">{group.memberEmail}</p>
                   </div>
@@ -96,10 +99,10 @@ export default async function AgentClaimsPage({
                       href={buildAgentWorkspaceClaimHref(claim.id)}
                       locale={locale}
                       key={claim.id}
-                      className="flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
+                      className="flex min-h-11 min-w-0 flex-wrap items-center justify-between gap-3 p-4 hover:bg-muted/20 transition-colors"
                       data-testid="agent-claim-row"
                     >
-                      <div className="space-y-1">
+                      <div className="min-w-0 space-y-1">
                         <p className="font-medium">{claim.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(claim.createdAt).toLocaleDateString(locale)}
