@@ -415,8 +415,8 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
     base, Sonar zero new issues and an independent review YES that confirms the tier. The review
     model is chosen for the risk, and Astra is reserved for HIGH or ambiguous work.
   - Phase one is manual; delivery-gate automation is a separate owner-approved CI change.
-- Instruction-only work runs the current plan/contracts relevant to its changed surface. Protected
-  hosted checks remain separate trust evidence and are not replaced by local receipts.
+- Instruction-only work runs the current plan/contracts relevant to its changed surface.
+  Protected hosted checks remain separate trust evidence and are not replaced by local receipts.
 - `pnpm plan:audit` validates the active plan/tracker model and current safety contract. It does not
   parse retired Lean authority or reconstruct historical artifacts. `pnpm plan:audit:legacy` and
   `pnpm test:harness-v2` remain available for explicit legacy work.
