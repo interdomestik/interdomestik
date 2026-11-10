@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { DEFAULT_E2E_PASSWORD, E2E_PASSWORD } from './e2e-users';
 
 const PRODUCTION_PROJECT_REF = 'gunosplgrvnvrftudttr';
@@ -29,6 +30,42 @@ const HOST_KEYS = new Set(['host', 'hostname', 'hostaddr']);
 
 type SeedEnvironment = Readonly<Record<string, string | undefined>>;
 type SeedTargetClassification = 'local' | 'confirmed-non-local';
+
+const TARGET_BINDING = Symbol.for('interdomestik.seed-target-binding');
+const TARGET_INPUTS = [
+  'DATABASE_URL',
+  'DATABASE_URL_RLS',
+  'PGHOST',
+  'PGHOSTADDR',
+  'PGPORT',
+  'PGUSER',
+  'PGUSERNAME',
+  'PGDATABASE',
+  'SEED_TARGET_CONFIRM',
+] as const;
+const seedGlobal = globalThis as typeof globalThis & {
+  [TARGET_BINDING]?: string;
+  queryClientAdmin?: unknown;
+  queryClientRls?: unknown;
+};
+
+function bindSeedTarget(env: SeedEnvironment): void {
+  const fingerprint = createHash('sha256')
+    .update(JSON.stringify(TARGET_INPUTS.map(key => env[key] ?? null)))
+    .digest('hex');
+  const bound = seedGlobal[TARGET_BINDING];
+  if (bound !== undefined) {
+    if (bound !== fingerprint) refuse('target-changed');
+    return;
+  }
+  if (seedGlobal.queryClientAdmin || seedGlobal.queryClientRls) refuse('unbound-client');
+  Object.defineProperty(seedGlobal, TARGET_BINDING, { value: fingerprint, configurable: true });
+}
+
+/** Test isolation only: never call from a seed runner or application code. */
+export function resetSeedTargetBindingForTests(): void {
+  delete seedGlobal[TARGET_BINDING];
+}
 
 function refuse(classification: string): never {
   throw new Error(`Seed target refused: ${classification}`);
@@ -166,7 +203,7 @@ function assertRemoteSeedPassword(env: SeedEnvironment, effectivePassword: strin
   }
 }
 
-/** Pure preflight; all refusals expose only a classification, never credentials. */
+/** Process-bound preflight; refusals expose only a classification, never credentials. */
 export function assertSeedTargetAllowed(
   env: SeedEnvironment,
   effectivePassword: string = E2E_PASSWORD
@@ -183,10 +220,14 @@ export function assertSeedTargetAllowed(
   const targets = [target];
   if (rls) targets.push(databaseTarget(rls, env));
   unique(targets);
-  if (LOOPBACK_HOSTS.has(target)) return 'local';
+  if (LOOPBACK_HOSTS.has(target)) {
+    bindSeedTarget(env);
+    return 'local';
+  }
   if (env.SEED_TARGET_CONFIRM !== `plan070:${target}`) refuse('non-local-unconfirmed');
   // Only the exact, confirmed CI host retains the local fixture-password policy.
   if (target !== 'ci-postgres') assertRemoteSeedPassword(env, effectivePassword);
+  bindSeedTarget(env);
   return 'confirmed-non-local';
 }
 

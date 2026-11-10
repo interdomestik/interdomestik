@@ -13,7 +13,7 @@ export const E2E_RUNTIME_ROLE = 'interdomestik_e2e_runtime';
 const ROLE_PATTERN = /^interdomestik_e2e_runtime(?:_[a-z0-9]{1,24})?$/u;
 // Stable signed 64-bit key serializing role DDL across concurrent lanes on one database.
 const ROLE_DDL_LOCK_KEY = 930802;
-const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', 'n']);
 const ROLE_FLAGS = 'LOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION';
 // PG <16 lets only superusers name SUPERUSER/BYPASSRLS/REPLICATION in ALTER ROLE (Supabase's admin
 // is not one); an existing role keeps them and assertRoleState fails closed if any is set.
@@ -22,6 +22,20 @@ const TENANT_GUCS = ['app.current_tenant_id', 'app.current_access_tenant_id', 'a
 
 /** Errors whose message is safe to print: they never carry SQL text or credentials. */
 export class RuntimeRoleError extends Error {}
+
+function assertDriverAuthority(value, url, label) {
+  const authority = value.slice(value.indexOf('://') + 3).split(/[?/]/)[0];
+  const parts = authority.split('@');
+  const host = parts.at(-1).split(':')[0];
+  if (
+    /[#\\\s]/u.test(value) ||
+    parts.length > 2 ||
+    !/^[a-z0-9.-]+$/i.test(host) ||
+    host.toLowerCase() !== url.hostname.toLowerCase()
+  ) {
+    throw new RuntimeRoleError(`${label} has an ambiguous database authority`);
+  }
+}
 
 function parseLoopbackUrl(value, label) {
   let url;
@@ -33,7 +47,8 @@ function parseLoopbackUrl(value, label) {
   if (!/^postgres(?:ql)?:$/u.test(url.protocol)) {
     throw new RuntimeRoleError(`${label} must be postgres`);
   }
-  if (!LOOPBACK_HOSTS.has(url.hostname)) {
+  assertDriverAuthority(value, url, label);
+  if (!LOOPBACK_HOSTS.has(url.hostname.toLowerCase())) {
     throw new RuntimeRoleError(`${label} must target a loopback host`);
   }
   if (url.search) throw new RuntimeRoleError(`${label} must not carry connection options`);
@@ -66,7 +81,7 @@ export function resolveE2eRuntimeUrl(adminUrl, configuredRuntimeUrl, role = E2E_
     runtime.username = role;
     runtime.password = createHmac('sha256', decodeURIComponent(admin.password))
       // Roles are cluster-wide and every accepted host is loopback: key on the port alone, so
-      // lanes using localhost, 127.0.0.1 or ::1 for one cluster never rotate each other.
+      // lanes using different loopback spellings for one cluster never rotate each other.
       .update(`${role}:v2:loopback:${admin.port || '5432'}`)
       .digest('hex');
     return runtime.toString();

@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import test from 'node:test';
+import test, { beforeEach } from 'node:test';
 import { DEFAULT_E2E_PASSWORD } from '../src/e2e-users';
-import { assertSeedTargetAllowed } from '../src/seed-target-guard';
+import { assertSeedTargetAllowed, resetSeedTargetBindingForTests } from '../src/seed-target-guard';
+beforeEach(resetSeedTargetBindingForTests);
+
 const production = 'gunosplgrvnvrftudttr';
 const staging = 'xjyseqtfuxcuviiankhy';
 const strongOverride = ['x'.repeat(18), 'A', '1'].join('');
@@ -12,6 +14,7 @@ const pooled = (ref: string) =>
   `postgresql://postgres.${ref}:credential-CANARY@aws-0-eu.pooler.supabase.com:6543/db`;
 test('loopback needs no confirmation; missing/malformed/non-postgres targets fail closed', () => {
   for (const host of ['localhost', '127.0.0.1', '127.0.0.1:55438']) {
+    resetSeedTargetBindingForTests();
     assert.equal(
       assertSeedTargetAllowed({ DATABASE_URL: `postgres://fixture@${host}/db` }),
       'local'
@@ -70,6 +73,7 @@ test('production cannot be enabled by reset flags, staging tokens or local marke
 
 test('non-local requires an exact target-bound token, including container DNS', () => {
   for (const DATABASE_URL of [direct(staging), pooled(staging)]) {
+    resetSeedTargetBindingForTests();
     assert.throws(() => assertSeedTargetAllowed({ DATABASE_URL }), /non-local-unconfirmed$/);
     assert.throws(
       () => assertSeedTargetAllowed({ DATABASE_URL, SEED_TARGET_CONFIRM: 'true' }),
@@ -83,6 +87,7 @@ test('non-local requires an exact target-bound token, including container DNS', 
       'confirmed-non-local'
     );
   }
+  resetSeedTargetBindingForTests();
   const DATABASE_URL = 'postgres://fixture@ci-postgres/test';
   assert.throws(() => assertSeedTargetAllowed({ DATABASE_URL }), /non-local-unconfirmed$/);
   assert.equal(
@@ -251,6 +256,7 @@ test('matching identity sources and explicit driver fallbacks resolve to one con
     'confirmed-non-local'
   );
   for (const key of ['PGUSER', 'PGUSERNAME']) {
+    resetSeedTargetBindingForTests();
     assert.equal(
       assertSeedTargetAllowed(
         {

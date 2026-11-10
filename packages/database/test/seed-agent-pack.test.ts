@@ -3,12 +3,18 @@ import { registerHooks } from 'node:module';
 import test from 'node:test';
 import { compareSync } from 'bcryptjs';
 import { createSeedConfig } from '../src/seed-types';
-import { writes } from './seed-agent-pack.fixture';
+import { db as fixtureDb, writes } from './seed-agent-pack.fixture';
 
 test('agent credentials use cached E2E password and reject later environment drift', async t => {
   const strongOverride = ['x'.repeat(18), 'A', '1'].join('');
   const staging = 's'.repeat(20);
   const previousEnv = process.env;
+  const clients = globalThis as typeof globalThis & {
+    queryClientAdmin?: unknown;
+    queryClientRls?: unknown;
+  };
+  const previousAdmin = Object.getOwnPropertyDescriptor(clients, 'queryClientAdmin');
+  const previousRls = Object.getOwnPropertyDescriptor(clients, 'queryClientRls');
   process.env = {
     NODE_ENV: 'test',
     DATABASE_URL: `postgres://fixture@db.${staging}.supabase.co/db`,
@@ -29,6 +35,7 @@ test('agent credentials use cached E2E password and reject later environment dri
   try {
     const { seedAgentPack } = await import('../src/seed-packs/agent-pack');
     const { E2E_PASSWORD } = await import('../src/e2e-users');
+    const { resetSeedTargetBindingForTests } = await import('../src/seed-target-guard');
     const { E2E_AGENT_PACK_USERS } = await import('../src/e2e-agent-pack-fixtures');
     const schema = await import('../src/schema');
     const config = createSeedConfig('e2e', new Date(0));
@@ -45,6 +52,9 @@ test('agent credentials use cached E2E password and reject later environment dri
       assert.ok(compareSync(E2E_PASSWORD, row.password));
     }
 
+    // Model the global clients cached after the successful remote preflight.
+    clients.queryClientAdmin = fixtureDb;
+    clients.queryClientRls = fixtureDb;
     writes.length = 0;
     process.env.E2E_PASSWORD = strongOverride + '!';
     await assert.rejects(seedAgentPack(config), {
@@ -69,7 +79,17 @@ test('agent credentials use cached E2E password and reject later environment dri
     };
     await assert.rejects(seedAgentPack(config), { message: 'Seed target refused: ambiguous' });
     assert.equal(writes.length, 0);
+    process.env = { NODE_ENV: 'test', DATABASE_URL: 'postgres://fixture@localhost/db' };
+    await assert.rejects(seedAgentPack(config), { message: 'Seed target refused: target-changed' });
+    assert.equal(writes.length, 0);
+    resetSeedTargetBindingForTests();
+    await assert.rejects(seedAgentPack(config), { message: 'Seed target refused: unbound-client' });
+    assert.equal(writes.length, 0);
   } finally {
+    if (previousAdmin) Object.defineProperty(clients, 'queryClientAdmin', previousAdmin);
+    else delete clients.queryClientAdmin;
+    if (previousRls) Object.defineProperty(clients, 'queryClientRls', previousRls);
+    else delete clients.queryClientRls;
     process.env = previousEnv;
     hooks.deregister();
   }

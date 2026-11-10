@@ -54,3 +54,20 @@ test('exported golden, full, workload and agent-pack entry points preflight firs
       runner.indexOf("await import('./db')")
   );
 });
+
+test('pilot multi-seeder validates before importing the database package', () => {
+  const source = readFileSync(
+    new URL('../../../scripts/pilot/day1_multi_seeder.ts', import.meta.url),
+    'utf8'
+  );
+  assert.match(source, /async function main\(\) \{\s*assertSeedTargetAllowed\(process.env\);/);
+  const preflight = source.indexOf('assertSeedTargetAllowed(process.env)');
+  assert.ok(preflight < source.indexOf("await import('@interdomestik/database')"));
+  assert.doesNotMatch(source, /from ['"]@interdomestik\/database['"]/);
+  assert.match(
+    source,
+    /import \{ assertSeedTargetAllowed \} from ['"].*\/src\/seed-target-guard['"]/
+  );
+  // The package entry stays free of seed code; the pilot imports the guard by path.
+  assert.doesNotMatch(readSeed('index.ts'), /seed-target-guard/);
+});

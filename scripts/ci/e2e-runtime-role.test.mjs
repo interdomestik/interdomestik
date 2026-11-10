@@ -1,15 +1,30 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import { registerHooks } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
-import {
+// No driver construction is permitted in this database-free suite.
+const driverStub =
+  'data:text/javascript,' +
+  encodeURIComponent(
+    'export let connections = 0; export default function () { connections++; throw Error("Unexpected connect"); }'
+  );
+const hooks = registerHooks({
+  resolve(specifier, context, nextResolve) {
+    return nextResolve(specifier === 'postgres' ? driverStub : specifier, context);
+  },
+});
+const {
+  RuntimeRoleError,
   assertE2eRuntimeTarget,
   describeRuntimeRoleFailure,
   E2E_RUNTIME_ROLE,
   provisionE2eRuntimeRole,
   resolveE2eRuntimeUrl,
-} from '../e2e-runtime-role.mjs';
+} = await import('../e2e-runtime-role.mjs');
+hooks.deregister();
+const driver = await import(driverStub);
 
 const ADMIN = 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test';
 const PW = 'f0'.repeat(16);
@@ -28,7 +43,7 @@ test('derives one stable restricted credential per admin credential and cluster'
   const otherCluster = new URL(resolveE2eRuntimeUrl(ADMIN.replace(':5432/', ':54322/')));
   const otherAdmin = new URL(resolveE2eRuntimeUrl(ADMIN.replace(':postgres@', ':rotated@')));
   // Every loopback spelling names the same cluster (e2e-gate.sh uses localhost, lanes 127.0.0.1).
-  for (const host of ['localhost', '[::1]']) {
+  for (const host of ['localhost', 'LOCALHOST', 'n']) {
     const spelled = new URL(resolveE2eRuntimeUrl(ADMIN.replace('127.0.0.1', host)));
     assert.equal(spelled.password, first.password, host);
   }
@@ -132,4 +147,41 @@ test('the CLI fails closed with a sanitized message before touching a database',
   assert.match(String(remote.stderr), /loopback/u);
   assert.doesNotMatch(String(remote.stderr), /secret/u);
   assert.equal(run({ E2E_DATABASE_URL: ADMIN }, '--check-target').status, 0);
+});
+
+function isAuthorityRefusal(error) {
+  assert.ok(error instanceof RuntimeRoleError);
+  assert.match(error.message, /database (authority|URL)/u);
+  assert.ok(!error.message.includes(PW));
+  assert.ok(!error.message.includes('postgres://'));
+  return true;
+}
+
+async function assertAuthorityRefused(suffix) {
+  const suspect = `postgres://${E2E_RUNTIME_ROLE}:${PW}@${suffix}`;
+  assert.throws(() => assertE2eRuntimeTarget(suspect), isAuthorityRefusal);
+  assert.throws(() => resolveE2eRuntimeUrl(suspect), isAuthorityRefusal);
+  assert.throws(() => resolveE2eRuntimeUrl(ADMIN, suspect), isAuthorityRefusal);
+  await assert.rejects(provisionE2eRuntimeRole({ adminUrl: suspect, env: {} }), isAuthorityRefusal);
+  await assert.rejects(
+    provisionE2eRuntimeRole({ adminUrl: ADMIN, runtimeUrl: suspect, env: {} }),
+    isAuthorityRefusal
+  );
+}
+
+test('ambiguous admin and runtime authorities refuse before any driver construction', async () => {
+  await Promise.all(
+    [
+      'remote.example.net,ignored@localhost/interdomestik_test',
+      'remote.example.net@localhost/interdomestik_test',
+      'localhost,remote.example.net/interdomestik_test',
+      '%6cocalhost/interdomestik_test',
+      "localhost$'/interdomestik_test",
+      'localhost/interdomestik_test#fragment',
+      'localhost/interdomestik_test\\extra',
+      'localhost/interdomestik_test\t',
+      '[::1]/interdomestik_test',
+    ].map(assertAuthorityRefused)
+  );
+  assert.equal(driver.connections, 0);
 });
