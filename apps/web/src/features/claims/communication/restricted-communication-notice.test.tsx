@@ -15,6 +15,9 @@ describe('communication notice recovery and keyboard focus', () => {
     expect(screen.getByText('failed')).toBeInTheDocument();
     await user.tab();
     const button = screen.getByRole('button', { name: 'retry' });
+    // Chromium drops live-region content from a button's accessible name, so the name must be plain text.
+    expect(button.querySelector('output, [role="status"]')).toBeNull();
+    expect(button).toHaveTextContent('retry');
     expect(button).toHaveFocus();
     await user.keyboard('{Enter}');
     expect(mocks.refresh).toHaveBeenCalledOnce();
