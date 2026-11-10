@@ -172,7 +172,8 @@ async function expectManagerSendDenied(
   info: TestInfo,
   ids: ActionIds,
   claimId: string,
-  internal: boolean
+  internal: boolean,
+  allowed: boolean
 ) {
   const result = await action(page, info, ids.send, [
     claimId,
@@ -180,7 +181,9 @@ async function expectManagerSendDenied(
     internal,
     randomUUID(),
   ]);
-  expect(result).toEqual({ success: false, error: 'Access denied' });
+  // Own-tenant claims are found and refused; a foreign-tenant claim is not disclosed at all.
+  const error = allowed ? 'Access denied' : 'Claim not found';
+  expect(result).toEqual({ success: false, error });
 }
 
 async function expectManager(
@@ -195,8 +198,8 @@ async function expectManager(
   expect(history.success).toBe(false);
   expect(history.messages).toBeUndefined();
   for (const sentinel of fixture.messages) expect(JSON.stringify(history)).not.toContain(sentinel);
-  await expectManagerSendDenied(page, info, ids, claimId, false);
-  await expectManagerSendDenied(page, info, ids, claimId, true);
+  await expectManagerSendDenied(page, info, ids, claimId, false, allowed);
+  await expectManagerSendDenied(page, info, ids, claimId, true, allowed);
   await expectManagerSurface(page, info, fixture, allowed, 'admin');
   await expectManagerSurface(page, info, fixture, allowed, 'staff');
 }
