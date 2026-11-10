@@ -10,6 +10,7 @@
     "./card": "./src/components/card.tsx",
     "./input": "./src/components/input.tsx",
     "./label": "./src/components/label.tsx",
+    "./popover": "./src/components/popover.tsx",
     "./badge": "./src/components/badge.tsx",
     "./alert": "./src/components/alert.tsx",
     "./avatar": "./src/components/avatar.tsx",
