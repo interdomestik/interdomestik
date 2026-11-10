@@ -48,7 +48,7 @@ export function moduleEdges(graph, file) {
       }
       const unsupportedUrl =
         /^(?!node:)[a-z][\d+.a-z-]*:/iu.test(normalized) ||
-        /^[\/\\]/u.test(normalized) ||
+        /^[/\\]/u.test(normalized) ||
         /%/u.test(normalized);
       const targets = [
         ...new Set(

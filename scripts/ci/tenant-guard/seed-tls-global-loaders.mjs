@@ -38,7 +38,7 @@ function symbolKey(node, references) {
   if (
     !declaration ||
     !ts.isVariableDeclaration(declaration) ||
-    !(declaration.parent.flags & ts.NodeFlags.Const)
+    (declaration.parent.flags & ts.NodeFlags.Const) === 0
   )
     return false;
   const initializer = unwrap(declaration.initializer);
