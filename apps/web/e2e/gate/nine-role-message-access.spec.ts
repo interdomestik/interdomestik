@@ -112,8 +112,9 @@ async function expectManagerRefresh(
   expect(refreshed.status()).toBe(200);
   await expect(refresh).toHaveAttribute('aria-busy', 'false');
   await expect(refresh).toBeFocused();
-  // The router may abort a refresh stream once it has applied it, so Chromium cannot always return
-  // that body. The document payload proves the same server render; the refreshed DOM is checked here.
+  // Scope: this checks the refreshed DOM only, not the refresh Flight body. The router can abort that
+  // stream after applying it, so Chromium cannot return its bytes; passive CDP stream capture of
+  // refresh payloads is a tracked follow-up. Document payloads are checked byte-for-byte above.
   await expectBodyOmitsSentinels(page, sentinels);
   await expect(card.getByTestId('claim-message-summary-count')).toHaveText(/^\d+$/);
 }
