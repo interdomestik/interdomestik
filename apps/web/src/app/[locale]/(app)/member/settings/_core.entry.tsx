@@ -66,7 +66,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
   ]);
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8 [overflow-wrap:anywhere]">
       {/* Page Header */}
       <div>
         <h2 className="text-2xl font-bold tracking-tight">{t('title')}</h2>
@@ -75,9 +75,9 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
 
       <Separator />
 
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-2">
         {/* Left Column - Profile & Security */}
-        <div className="space-y-8">
+        <div className="min-w-0 space-y-8 [overflow-wrap:anywhere]">
           {/* Profile Section */}
           <section id="profile">
             <h3 className="text-lg font-medium mb-4">{t('profile.sectionTitle')}</h3>
@@ -108,7 +108,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
         </div>
 
         {/* Right Column - Preferences */}
-        <div className="space-y-8">
+        <div className="min-w-0 space-y-8 [overflow-wrap:anywhere]">
           {/* Language Section */}
           <section>
             <h3 className="text-lg font-medium mb-4">{t('language.sectionTitle')}</h3>

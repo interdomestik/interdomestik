@@ -17,7 +17,6 @@ import { startTransition, useEffect, useEffectEvent, useState } from 'react';
 import { toast } from 'sonner';
 
 type WorkflowState = 'queued' | 'processing' | 'completed' | 'needs_review' | 'failed';
-
 type QueuedPolicyAnalysis = {
   policyId?: string;
   runId?: string;
@@ -32,16 +31,13 @@ type QueuedPolicyAnalysis = {
   errorCode?: string | null;
   errorMessage?: string | null;
 };
-
 type StatusPresentation = {
   title: string;
   description: string;
   className: string;
   icon: React.ReactNode;
 };
-
 type StatusTone = 'amber' | 'blue' | 'emerald' | 'red';
-
 type StaticStatusConfig = {
   title: string;
   description: string;
@@ -49,7 +45,6 @@ type StaticStatusConfig = {
   iconClassName: string;
   tone: StatusTone;
 };
-
 function isTerminalWorkflowState(state: WorkflowState | undefined) {
   return state === 'completed' || state === 'needs_review' || state === 'failed';
 }
@@ -112,7 +107,6 @@ function createStatusPresentation({
 
 function getStatusPresentation(run: QueuedPolicyAnalysis): StatusPresentation {
   const workflowState = run.workflowState ?? 'queued';
-
   if (workflowState === 'failed') {
     return {
       title: 'Analysis Failed',
@@ -123,7 +117,6 @@ function getStatusPresentation(run: QueuedPolicyAnalysis): StatusPresentation {
       icon: <AlertCircle className="h-5 w-5 text-red-600" />,
     };
   }
-
   return createStatusPresentation(STATIC_STATUS_CONFIG[workflowState]);
 }
 
@@ -132,35 +125,29 @@ export function PolicyUploadV2Page() {
   const [file, setFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [queuedRun, setQueuedRun] = useState<QueuedPolicyAnalysis | null>(null);
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       setFile(e.target.files[0]);
       setQueuedRun(null);
     }
   };
-
   const refreshQueuedRun = useEffectEvent(async (runId: string) => {
     if (isTerminalWorkflowState(queuedRun?.workflowState)) {
       return;
     }
-
     try {
       const res = await fetch(`/api/ai/runs/${runId}`, {
         method: 'GET',
       });
-
       if (!res.ok) {
         return;
       }
-
       const data = (await res.json()) as QueuedPolicyAnalysis;
       startTransition(() => {
         setQueuedRun(current => {
           if (current?.runId !== runId) {
             return current;
           }
-
           return {
             ...current,
             ...data,
@@ -171,7 +158,6 @@ export function PolicyUploadV2Page() {
       console.error('Failed to refresh queued run:', error);
     }
   });
-
   useEffect(() => {
     const runId = queuedRun?.runId;
     if (!runId) {
@@ -180,39 +166,31 @@ export function PolicyUploadV2Page() {
     if (isTerminalWorkflowState(queuedRun?.workflowState)) {
       return;
     }
-
     const refreshCurrentRun = () => {
       refreshQueuedRun(runId).catch(error => {
         console.error('Unexpected queued run refresh failure:', error);
       });
     };
-
     refreshCurrentRun();
     const intervalId = globalThis.setInterval(refreshCurrentRun, 3000);
-
     return () => {
       globalThis.clearInterval(intervalId);
     };
   }, [queuedRun?.runId, queuedRun?.workflowState, refreshQueuedRun]);
-
   const handleAnalyze = async () => {
     if (!file) return;
-
     setIsAnalyzing(true);
     const formData = new FormData();
     formData.append('file', file);
-
     try {
       const res = await fetch('/api/policies/analyze', {
         method: 'POST',
         body: formData,
       });
-
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Failed to analyze policy');
       }
-
       const data = await res.json();
       setQueuedRun(data);
       toast.success('Policy queued for AI analysis.');
@@ -224,11 +202,10 @@ export function PolicyUploadV2Page() {
       setIsAnalyzing(false);
     }
   };
-
   const statusPresentation = queuedRun ? getStatusPresentation(queuedRun) : null;
 
   return (
-    <div className="container max-w-2xl py-8 space-y-8">
+    <div className="container min-w-0 max-w-2xl py-8 space-y-8 [overflow-wrap:anywhere]">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">AI Policy Parser</h1>
         <p className="text-muted-foreground mt-2">
@@ -242,9 +219,10 @@ export function PolicyUploadV2Page() {
           <CardDescription>Supported formats: PDF, JPEG, PNG, WebP</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid w-full max-w-sm items-center gap-1.5">
+          <div className="grid w-full min-w-0 max-w-sm grid-cols-[minmax(0,1fr)] items-center gap-1.5">
             <Label htmlFor="policy">Policy File</Label>
             <Input
+              className="w-full min-w-0"
               id="policy"
               type="file"
               accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
@@ -253,15 +231,19 @@ export function PolicyUploadV2Page() {
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={handleAnalyze} disabled={!file || isAnalyzing}>
+            <Button
+              className="h-auto min-h-10 max-w-full whitespace-normal"
+              onClick={handleAnalyze}
+              disabled={!file || isAnalyzing}
+            >
               {isAnalyzing ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
                   Analyzing...
                 </>
               ) : (
                 <>
-                  <Upload className="mr-2 h-4 w-4" />
+                  <Upload className="mr-2 h-4 w-4 shrink-0" />
                   Analyze Policy
                 </>
               )}
@@ -273,7 +255,7 @@ export function PolicyUploadV2Page() {
       {queuedRun && statusPresentation && (
         <Card className={statusPresentation.className}>
           <CardHeader>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {statusPresentation.icon}
               <CardTitle>{statusPresentation.title}</CardTitle>
             </div>
@@ -300,7 +282,7 @@ export function PolicyUploadV2Page() {
             <div className="pt-4">
               <Button
                 variant="outline"
-                className="w-full"
+                className="h-auto min-h-10 w-full whitespace-normal"
                 onClick={() => {
                   setFile(null);
                   setQueuedRun(null);
