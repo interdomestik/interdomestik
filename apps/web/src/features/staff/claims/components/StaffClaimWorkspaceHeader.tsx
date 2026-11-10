@@ -29,7 +29,7 @@ export function StaffClaimWorkspaceHeader({
   return (
     <header className="space-y-4" data-testid="staff-claim-workspace-header">
       <Link
-        className="inline-block max-w-full break-words text-sm font-medium text-muted-foreground underline underline-offset-4 motion-safe:transition-colors hover:text-slate-900"
+        className="inline-flex min-h-11 max-w-full items-center break-words text-sm font-medium text-muted-foreground underline underline-offset-4 motion-safe:transition-colors hover:text-slate-900"
         data-testid="staff-claim-workspace-back"
         href={backHref}
       >
@@ -53,7 +53,7 @@ export function StaffClaimWorkspaceHeader({
             {sections.map(section => (
               <li className="max-w-full" key={section.id}>
                 <a
-                  className="inline-block max-w-full break-words rounded-md border bg-white px-3 py-2 text-sm font-medium text-slate-900 motion-safe:transition-colors hover:bg-slate-50"
+                  className="inline-flex min-h-11 max-w-full items-center break-words rounded-md border bg-white px-3 py-2 text-sm font-medium text-slate-900 motion-safe:transition-colors hover:bg-slate-50"
                   data-section={section.id}
                   data-testid="staff-claim-workspace-nav-link"
                   href={`#${section.id}`}

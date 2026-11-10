@@ -1,5 +1,6 @@
 import { OpsDocumentsPanel } from '@/components/ops';
 import type { getAssignedStaffClaimDocuments } from '@/features/staff/claims/server/get-assigned-claim-documents';
+import { SECTION_DOCUMENTS } from '@/features/staff/claims/components/staff-claim-workspace-view';
 
 type AssignedClaimDocumentList = Awaited<ReturnType<typeof getAssignedStaffClaimDocuments>>;
 
@@ -28,7 +29,11 @@ export function StaffClaimDocumentsSection({
 }: Readonly<StaffClaimDocumentsSectionProps>) {
   if (documents) {
     return (
-      <div data-testid="staff-claim-documents">
+      <div
+        id={SECTION_DOCUMENTS}
+        className="min-w-0 scroll-mt-80 md:scroll-mt-20"
+        data-testid="staff-claim-documents"
+      >
         <OpsDocumentsPanel
           title={title}
           headerLayout="wrap"
@@ -47,7 +52,11 @@ export function StaffClaimDocumentsSection({
 
   // The heading stays outside <output>, which only permits phrasing content.
   return (
-    <div data-testid="staff-claim-documents-error" className="space-y-2">
+    <div
+      id={SECTION_DOCUMENTS}
+      data-testid="staff-claim-documents-error"
+      className="min-w-0 scroll-mt-80 space-y-2 md:scroll-mt-20"
+    >
       <h3 className="font-medium">{title}</h3>
       <output className="block space-y-2">
         <span className="block">{errorLabel}</span>
