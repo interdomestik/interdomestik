@@ -4,7 +4,7 @@ import {
   E2E_RUNTIME_ROLES,
   E2E_USERS,
 } from '@interdomestik/database';
-import { expect, test, type Locator, type Page, type Route, type TestInfo } from '@playwright/test';
+import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { withPreviewSentinels } from './nine-role-preview.fixture';
 import { expectPreviewBoundaries } from './nine-role-preview-probes';
 import { previewAccessFor } from './nine-role-message-access.cases';
@@ -12,6 +12,7 @@ import { randomUUID } from 'node:crypto';
 import { getProjectUrlInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import { withContentPayloadCapture, type ContentPayloadCapture } from './content-payload-capture';
 import { isKsGateProject, isMkGateProject } from './gate-project-identity';
 import { requireSeededHost, signInAs } from './nine-role-actor';
 import {
@@ -79,12 +80,6 @@ function managerMarker(surface: 'admin' | 'staff', allowed: boolean): string {
   return surface === 'staff' ? 'staff-claim-detail-ready' : 'admin-page-ready';
 }
 
-function expectPayloadsOmitSentinels(payloads: readonly string[], sentinels: readonly string[]) {
-  for (const payload of payloads) {
-    for (const sentinel of sentinels) expect(payload).not.toContain(sentinel);
-  }
-}
-
 async function expectBodyOmitsSentinels(page: Page, sentinels: readonly string[]) {
   // These assertions only read the current page; navigation and refresh remain sequential.
   await Promise.all(
@@ -92,32 +87,17 @@ async function expectBodyOmitsSentinels(page: Page, sentinels: readonly string[]
   );
 }
 
-async function captureManagerPayload(
-  route: Route,
-  payloads: string[],
-  sentinels: readonly string[]
-) {
-  // Read before delivery: Chromium can discard an interrupted refresh response's body.
-  const response = await route.fetch({ maxRedirects: 0 });
-  const payload = await response.text();
-  expectPayloadsOmitSentinels([payload], sentinels);
-  payloads.push(payload);
-  // Preserve status, headers and HTML/Flight bytes, including redirects and notFound.
-  // Buffering changes chunk timing; these checks exercise completed rendering and focus.
-  await route.fulfill({ response });
-}
-
 async function expectManagerRefresh(
   page: Page,
   card: Locator,
   claimId: string,
-  payloads: readonly string[]
+  capture: ContentPayloadCapture
 ) {
   // The refresh control remains present across refreshed metadata, so keyboard focus survives.
   const refresh = card.getByRole('button');
   await refresh.focus();
   await expect(refresh).toBeFocused();
-  const beforeRefresh = payloads.length;
+  const beforeRefresh = capture.checkedPayloadCount;
   await Promise.all([
     page.waitForResponse(
       response =>
@@ -128,7 +108,9 @@ async function expectManagerRefresh(
   ]);
   await expect(refresh).toHaveAttribute('aria-busy', 'false');
   await expect(refresh).toBeFocused();
-  expect(payloads.length, 'checked a new refresh payload').toBeGreaterThan(beforeRefresh);
+  expect(capture.checkedPayloadCount, 'checked a new refresh payload').toBeGreaterThan(
+    beforeRefresh
+  );
 }
 
 async function expectManagerSurface(
@@ -144,25 +126,11 @@ async function expectManagerSurface(
       ? routes.staffClaimDetail(claimId, info)
       : `/admin/claims/${encodeURIComponent(claimId)}`;
   const sentinels = [...fixture.messages, ...fixture.notes];
-  const payloads: string[] = [];
-  const pending: Promise<void>[] = [];
-  const failures: unknown[] = [];
   const matchesClaim = (url: URL) =>
     url.pathname.includes('/claims/') && url.pathname.split('/').includes(claimId);
-  const capture = (route: Route) => {
-    const task = captureManagerPayload(route, payloads, sentinels).catch(async error => {
-      failures.push(error);
-      await route.abort().catch(abortError => {
-        failures.push(abortError);
-      });
-    });
-    pending.push(task);
-    return task;
-  };
-  await page.route(matchesClaim, capture);
-  try {
+  await withContentPayloadCapture(page, { matches: matchesClaim, sentinels }, async capture => {
     await gotoApp(page, path, info, { marker: managerMarker(surface, allowed) });
-    expect(payloads.length, 'checked a visit payload').toBeGreaterThan(0);
+    expect(capture.checkedPayloadCount, 'checked a visit payload').toBeGreaterThan(0);
     const card = page.getByTestId('claim-message-summary').filter({ visible: true });
     if (!allowed) {
       const notFound = page.getByTestId('not-found-page').filter({ visible: true });
@@ -185,13 +153,8 @@ async function expectManagerSurface(
     await expect(page.getByTestId('send-message-button')).toHaveCount(0);
     await expect(page.getByTestId('staff-claim-detail-note')).toHaveCount(0);
     await expectBodyOmitsSentinels(page, sentinels);
-    await expectManagerRefresh(page, card, claimId, payloads);
-  } finally {
-    await page.unroute(matchesClaim, capture);
-    // Drain only our handlers, including requests arriving during earlier captures.
-    for (let index = 0; index < pending.length; index++) await pending[index];
-    expect(failures, 'all claim response bodies were checked and fulfilled').toEqual([]);
-  }
+    await expectManagerRefresh(page, card, claimId, capture);
+  });
 }
 
 async function expectManagerSendDenied(
