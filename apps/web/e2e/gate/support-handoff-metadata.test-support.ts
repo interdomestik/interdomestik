@@ -50,12 +50,13 @@ export async function expectManagerHandoffMetadata(
     await expect(row.getByTestId('handoff-metadata-publicResponseCount')).toHaveText('2');
     const beforeDetail = capture.checkedPayloadCount;
     await openSupportHandoffDetail(row);
-    expect(capture.checkedPayloadCount, 'checked a new detail payload').toBeGreaterThan(
-      beforeDetail
-    );
     const panel = row.getByTestId('staff-support-handoff-detail-panel');
     await expect(panel.getByTestId('handoff-metadata-status')).toBeVisible();
     await expect(panel.getByTestId('handoff-metadata-publicResponseCount')).toHaveText('2');
+    // Returned metadata renders only after its checked response is delivered.
+    expect(capture.checkedPayloadCount, 'checked a new detail payload').toBeGreaterThan(
+      beforeDetail
+    );
     await Promise.all(
       [
         'staff-support-handoff-public-response-existing',
