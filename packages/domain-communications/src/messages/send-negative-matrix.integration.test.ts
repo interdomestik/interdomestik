@@ -245,10 +245,13 @@ suite('message send negative matrix on a real NOBYPASSRLS connection', () => {
         )?.readAt;
 
       const before = await messageEffects();
-      await fixture.markRead({
-        ...asActor(ids.member, 'member', otherTenantId),
-        messageIds: [unreadMessage],
-      });
+      // Deliberate contract: out-of-scope ids report success with zero updated rows.
+      expect(
+        await fixture.markRead({
+          ...asActor(ids.member, 'member', otherTenantId),
+          messageIds: [unreadMessage],
+        })
+      ).toEqual({ success: true });
       expect(await readAt()).toBeNull();
       expect(await messageEffects()).toEqual(before);
       await expectMessageContextCleared();
