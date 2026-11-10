@@ -21,7 +21,7 @@ const ALL_KS: readonly DocumentKey[] = [...KS_A, 'KS_OTHER_BRANCH'];
  * Current document read policy per representative actor of each of the nine roles, on its home
  * tenant host. Pilot-tenant actors are seeded on the pilot host only and are not covered here.
  * - tenant admins and global support read their home tenant (read-oriented support, ADR-09);
- * - branch managers read their branch;
+ * - branch managers have allocation authority only and read no document content (D1);
  * - staff read the cases assigned to them, including an assigned case in another branch;
  * - agents read attributed cases of active clients in their branch;
  * - members read the cases they own; auditors read none.
@@ -29,7 +29,7 @@ const ALL_KS: readonly DocumentKey[] = [...KS_A, 'KS_OTHER_BRANCH'];
 export const KS_DOCUMENT_CASES: readonly DocumentActorCases[] = [
   { actor: 'KS_ADMIN', allowed: ALL_KS },
   { actor: 'GLOBAL_SUPPORT', allowed: ALL_KS },
-  { actor: 'KS_BRANCH_MANAGER', allowed: KS_A },
+  { actor: 'KS_BRANCH_MANAGER', allowed: [] },
   { actor: 'KS_STAFF', allowed: ['KS_ANCHOR', 'KS_OTHER_MEMBER', 'KS_OTHER_BRANCH'] },
   { actor: 'KS_STAFF_UNASSIGNED', allowed: ['KS_PEER_STAFF'] },
   { actor: 'KS_AGENT', allowed: KS_A },
@@ -42,7 +42,7 @@ export const KS_DOCUMENT_CASES: readonly DocumentActorCases[] = [
 export const MK_DOCUMENT_CASES: readonly DocumentActorCases[] = [
   { actor: 'SUPER_ADMIN', allowed: ['MK_FOREIGN_TENANT'] },
   { actor: 'MK_ADMIN', allowed: ['MK_FOREIGN_TENANT'] },
-  { actor: 'MK_BRANCH_MANAGER', allowed: ['MK_FOREIGN_TENANT'] },
+  { actor: 'MK_BRANCH_MANAGER', allowed: [] },
   // The MK case is unassigned and unattributed, so MK staff and agents have no claim to it.
   { actor: 'MK_STAFF', allowed: [] },
   { actor: 'MK_AGENT', allowed: [] },
