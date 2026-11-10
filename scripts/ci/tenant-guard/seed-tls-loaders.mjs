@@ -1,5 +1,9 @@
 // Kernel code must not hide new module edges behind computed or indirect Node loaders.
 import ts from 'typescript';
+import { opaqueExecutionReference } from './seed-tls-global-loaders.mjs';
+import { CONTRACTS } from './contracts.mjs';
+import { sha256 } from './rules-digest.mjs';
+import { fingerprint, unitName, unitOf } from './syntax.mjs';
 import { loaderMember, moduleEdges, opaqueGlobalLoaderUse } from './seed-tls-import-graph.mjs';
 import { existingVerifierSite, isVerifierUnit, VERIFIER } from './seed-tls-loader-sites.mjs';
 
@@ -15,7 +19,7 @@ function referenceAt(scan, node) {
 
 export function checkDatabaseLoader(scan, node) {
   const refuse = () => scan.report(node, 'R-e', 'opaque or indirect database loader');
-  const edge = moduleEdges(scan.graph, scan.file).get(node);
+  const edge = moduleEdges(scan.seedTls?.graph ?? scan.graph, scan.file).get(node);
   // The exported verifier operations object contains the admitted computed loader. Runtime
   // may acquire only the existing checked entry functions, never that object or a namespace.
   if (edge?.targets.includes(VERIFIER)) {
@@ -55,6 +59,11 @@ export function checkDatabaseLoader(scan, node) {
   const reference = referenceAt(scan, node);
   if (!reference) return;
   if (opaqueGlobalLoaderUse(node, referencesByFact.get(scan.fact))) refuse();
+  if (
+    opaqueExecutionReference(node, referencesByFact.get(scan.fact)) &&
+    !existingSentryReference(scan, node)
+  )
+    refuse();
   const { binding } = reference;
   if (node.text === 'createRequire' && !existingVerifierSite(scan, node)) refuse();
   if (scan.file === VERIFIER) {
@@ -93,4 +102,28 @@ export function checkDatabaseLoader(scan, node) {
   }
   // db.ts#loadOptionalSentry's new Function is already checked by R-e and its exact source-bound
   // eval contract in contracts.mjs. No file-wide or additional eval exemption is introduced here.
+}
+
+function existingSentryReference(scan, node) {
+  // Read the existing contract without consuming it twice. The ordinary R-e check still
+  // enforces its count/unique-unit requirements; no verifier unit admits Function or eval.
+  if (
+    scan.file !== 'packages/database/src/db.ts' ||
+    node.text !== 'Function' ||
+    !ts.isNewExpression(node.parent) ||
+    node.parent.expression !== node
+  )
+    return false;
+  const unit = unitOf(node);
+  const name = unitName(unit, scan.sourceFile);
+  return (
+    name === 'loadOptionalSentry' &&
+    CONTRACTS.some(
+      contract =>
+        contract.file === scan.file &&
+        contract.unit === name &&
+        contract.kinds.eval === 1 &&
+        contract.sha256 === sha256(fingerprint(unit, scan.sourceFile))
+    )
+  );
 }

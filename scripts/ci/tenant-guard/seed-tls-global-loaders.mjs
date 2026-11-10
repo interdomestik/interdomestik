@@ -83,6 +83,9 @@ export function opaqueGlobalLoaderUse(node, references) {
     if (member)
       return [
         'valueOf',
+        'Function',
+        'constructor',
+        'eval',
         'require',
         'createRequire',
         'getBuiltinModule',
@@ -107,4 +110,15 @@ export function opaqueGlobalLoaderUse(node, references) {
   )
     return false;
   return true;
+}
+
+// Any reference can be aliased/carried/called indirectly; checking call syntax is insufficient.
+export function opaqueExecutionReference(node, references) {
+  const reference = references.get(node);
+  return (
+    ts.isIdentifier(node) &&
+    ['Function', 'eval'].includes(node.text) &&
+    reference !== undefined &&
+    !reference.binding
+  );
 }

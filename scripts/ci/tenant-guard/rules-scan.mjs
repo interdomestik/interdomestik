@@ -32,7 +32,15 @@ export function scanFiles(ctx) {
     telemetry,
     violate,
   } = ctx;
-  const deps = { connectionControlUnits, covered, graph, isPrivilegedModule, isTest, legacyOps };
+  const deps = {
+    connectionControlUnits,
+    covered,
+    graph,
+    isPrivilegedModule,
+    isTest,
+    legacyOps,
+    seedTls: ctx.seedTls,
+  };
 
   for (const file of [...sources.keys()].sort(byCodeUnit)) {
     if (isTest(file) || DECLARATION_FILE.test(file)) continue;

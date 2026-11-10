@@ -1,7 +1,11 @@
 import ts from 'typescript';
-import { SEED_TLS_CLOSURE } from './manifest.mjs';
+import { SEED_TLS_CLOSURE, TEST_SOURCE } from './manifest.mjs';
 import { analyzeScopes } from './scopes.mjs';
-import { loaderMember, opaqueGlobalLoaderUse } from './seed-tls-global-loaders.mjs';
+import {
+  loaderMember,
+  opaqueGlobalLoaderUse,
+  opaqueExecutionReference,
+} from './seed-tls-global-loaders.mjs';
 export { loaderMember, opaqueGlobalLoaderUse } from './seed-tls-global-loaders.mjs';
 
 const graphs = new WeakMap();
@@ -25,7 +29,9 @@ export function moduleEdges(graph, file) {
     if (specifier !== null) {
       // Node's URL spelling still loads the same file. Resolve both spellings through the
       // existing resolver; do not modify its behavior for any other tenant-guard rule.
-      let normalized = specifier.split(/[?#]/u)[0];
+      let normalized = specifier.startsWith('#')
+        ? '#' + specifier.slice(1).split(/[?#]/u)[0]
+        : specifier.split(/[?#]/u)[0];
       try {
         normalized = decodeURIComponent(normalized);
       } catch {
@@ -57,7 +63,8 @@ export function moduleEdges(graph, file) {
 // Tests are not syntax-enforced, so an opaque loader in their reachable graph must taint them:
 // runtime re-exports cannot use an unknown target to claim that the seed closure is unreachable.
 function opaqueLoader(node, references) {
-  if (opaqueGlobalLoaderUse(node, references)) return true;
+  if (opaqueGlobalLoaderUse(node, references) || opaqueExecutionReference(node, references))
+    return true;
   if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword)
     return true;
   if (
@@ -104,28 +111,33 @@ function literalSpecifier(node, lookup) {
   return loader && argument && ts.isStringLiteralLike(argument) ? argument.text : null;
 }
 
-/** Iterative reachability: cache only completed root searches, never partial cycle results. */
-export function reachesSeedClosure(graph, file) {
+/** Iterative, cycle-safe reachability, with conservative opaque-execution taint for tests. */
+export function reachesSeedClosure(graph, file, tainted = true) {
   const cache = cacheOf(graph).reaches;
-  if (cache.has(file)) return cache.get(file);
-  const pending = [file];
+  const rootKey = `${tainted}:${file}`;
+  if (cache.has(rootKey)) return cache.get(rootKey);
+  const pending = [[file, tainted]];
   const seen = new Set();
   while (pending.length) {
-    const current = pending.pop();
-    if (SEED_TLS_CLOSURE.has(current)) {
-      cache.set(file, true);
+    const [current, inherited] = pending.pop();
+    const opaqueMatters = inherited || TEST_SOURCE.test(current);
+    const key = `${opaqueMatters}:${current}`;
+    if (SEED_TLS_CLOSURE.has(current) || cache.get(key) === true) {
+      cache.set(rootKey, true);
       return true;
     }
-    if (seen.has(current)) continue;
-    seen.add(current);
+    if (seen.has(key) || cache.get(key) === false) continue;
+    seen.add(key);
     for (const { targets, opaque, unsupportedUrl } of moduleEdges(graph, current).values()) {
-      if (opaque || unsupportedUrl) {
-        cache.set(file, true);
+      if (opaqueMatters && (opaque || unsupportedUrl)) {
+        cache.set(rootKey, true);
         return true;
       }
-      pending.push(...targets);
+      pending.push(...targets.map(target => [target, opaqueMatters]));
     }
   }
-  cache.set(file, false);
+  // The whole reachable subgraph was exhausted; these negatives are valid even in cycles.
+  for (const key of seen) cache.set(key, false);
+  cache.set(rootKey, false);
   return false;
 }
