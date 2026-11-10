@@ -103,7 +103,8 @@ export function createSeedTlsContext({
     if (seen.size === 0) resolved.set(key, result);
     return result;
   }
-  const seedGraph = { ...graph, sourceFileOf, resolveSpecifier };
+  const isCollected = file => sources.has(file);
+  const seedGraph = { ...graph, sourceFileOf, resolveSpecifier, isCollected };
   const violations = seedPackageViolations(repository.manifests, resolveSpecifier, {
     ...resolution,
     appAliases,

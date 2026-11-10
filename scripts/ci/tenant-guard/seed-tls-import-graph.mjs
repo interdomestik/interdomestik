@@ -15,6 +15,11 @@ function cacheOf(graph) {
   return graphs.get(graph);
 }
 
+function isCollectedSource(graph, file) {
+  if (graph.isCollected) return graph.isCollected(file);
+  return file.startsWith('apps/web/src/') || file.startsWith('packages/');
+}
+
 /** All literal module edges, including type-only and side-effect edges. */
 export function moduleEdges(graph, file) {
   const cache = cacheOf(graph).edges;
@@ -27,13 +32,10 @@ export function moduleEdges(graph, file) {
   const referencesByNode = new Map(references.map(reference => [reference.node, reference]));
   ts.forEachChild(source, function visit(node) {
     const specifier = literalSpecifier(node, lookup);
-    // Collected roots retain their existing R-e/L1 policy. Only the seed-only extension
-    // (root entries and on-demand repository bridges) refuses unresolved loader calls here.
-    if (
-      !file.startsWith('apps/web/src/') &&
-      !file.startsWith('packages/') &&
-      computedSeedLoader(node, referencesByNode)
-    ) {
+    // Collected sources retain their existing R-e/L1 policy. Every other file reached here
+    // (root entries, on-demand bridges, generated output such as packages/*/dist) refuses
+    // unresolved loader calls; membership, not a path prefix, decides.
+    if (!isCollectedSource(graph, file) && computedSeedLoader(node, referencesByNode)) {
       edges.set(node, { specifier: null, targets: [], computed: true, opaque: true });
     } else if (specifier !== null) {
       // Node's URL spelling still loads the same file. Resolve both spellings through the
