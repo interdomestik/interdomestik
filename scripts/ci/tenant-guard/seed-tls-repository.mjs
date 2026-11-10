@@ -1,8 +1,10 @@
 // Repository access for seed confinement only; the C1 source set/resolver is unchanged.
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { SOURCE } from './sources.mjs';
 
+const GIT = '/usr/bin/git';
 const OMIT = new Set(['.git', 'node_modules']);
 const MAX_ENTRIES = 200000;
 const MAX_FILES = 20000;
@@ -29,7 +31,7 @@ export function seedRepository(repoRoot, sources) {
     texts.set(file, text);
     return text;
   }
-  // Scan every repository manifest, including non-workspace and generated directories.
+  // Without Git, scan every manifest, including non-workspace and generated directories.
   // Dependency installations and Git metadata are not repository package configuration.
   function walk(dir) {
     for (const item of fs.readdirSync(path.join(root, dir), { withFileTypes: true })) {
@@ -43,7 +45,22 @@ export function seedRepository(repoRoot, sources) {
       }
     }
   }
-  walk('');
+  // In a Git work tree, list every tracked or unignored manifest (what a commit can carry);
+  // ignored build output and nested worktrees are never package configuration. Without Git
+  // (fixtures), walk the whole directory.
+  const tracked = gitManifests(root);
+  if (tracked) {
+    for (const file of tracked) {
+      if (file.split('/').some(part => OMIT.has(part))) continue;
+      const text = read(file);
+      if (text === null) continue;
+      manifests.push({
+        ...JSON.parse(text),
+        dir: path.posix.dirname(file).replace(/^\.$/u, ''),
+        file,
+      });
+    }
+  } else walk('');
   // scripts/pilot is not a standalone scanned root. Runtime imports into it are followed
   // on demand, just like any other repository bridge; no pilot entrypoint claim is made.
   const runtimeEntries = fs.existsSync(path.join(root, 'apps/web'))
@@ -59,4 +76,32 @@ export function seedRepository(repoRoot, sources) {
         )
     : [];
   return { read, manifests, runtimeEntries };
+}
+
+function gitManifests(root) {
+  let top;
+  try {
+    top = execFileSync(GIT, ['rev-parse', '--show-toplevel'], {
+      cwd: root,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .toString('utf8')
+      .trim();
+  } catch {
+    return null;
+  }
+  if (fs.realpathSync(top) !== root) return null;
+  const args = [
+    'ls-files',
+    '-z',
+    '--cached',
+    '--others',
+    '--exclude-standard',
+    '--',
+    ':(glob)**/package.json',
+  ];
+  return execFileSync(GIT, args, { cwd: root, maxBuffer: 64 * 1024 * 1024 })
+    .toString('utf8')
+    .split('\0')
+    .filter(Boolean);
 }

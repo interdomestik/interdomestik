@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path/posix';
 import test from 'node:test';
 import {
@@ -108,4 +110,38 @@ test('R2 repository path escapes fail closed', () => {
     () => repositoryFixture({ [APP]: "import '../../../../escaped';" }),
     /seed path escape/u
   );
+});
+
+const ALIAS_PACKAGE = JSON.stringify({
+  name: 'review-alias',
+  exports: { './x': '../database/src/seed-target-tls.ts' },
+});
+function gitInit(ignored) {
+  return root => {
+    const git = args => execFileSync('/usr/bin/git', args, { cwd: root, stdio: 'ignore' });
+    git(['init', '-q']);
+    fs.writeFileSync(`${root}/.gitignore`, `${ignored}/\n`);
+    fs.mkdirSync(`${root}/${ignored}/linked`, { recursive: true });
+    fs.symlinkSync(root, `${root}/${ignored}/linked/loop`);
+  };
+}
+test('Git work trees skip ignored manifests and symlinks (nested worktrees, build output)', () => {
+  const ignored = '.claude/worktrees';
+  const result = repositoryFixture(
+    { [`${ignored}/copy/packages/alias/package.json`]: ALIAS_PACKAGE },
+    ({ seedTls }) => assert.ok(seedTls.violations.length === 0, JSON.stringify(seedTls.violations)),
+    undefined,
+    gitInit(ignored)
+  );
+  assert.deepEqual(result.violations, []);
+});
+test('Git work trees still read unignored untracked manifests', () => {
+  let seen;
+  repositoryFixture(
+    { 'packages/alias/package.json': ALIAS_PACKAGE },
+    ({ seedTls }) => (seen = seedTls),
+    undefined,
+    gitInit('build-output')
+  );
+  assert.ok(seen.violations.length > 0, 'alias manifest must be policed');
 });
