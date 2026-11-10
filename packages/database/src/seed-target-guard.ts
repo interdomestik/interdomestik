@@ -1,9 +1,16 @@
 import { bindSeedTarget, type SeedDriverTarget } from './seed-target-binding';
+import {
+  closeSeedTlsClients,
+  hasInstalledSeedTlsClients,
+  installSeedTlsClients,
+} from './seed-target-tls';
 export { resetSeedTargetBindingForTests } from './seed-target-binding';
 import { DEFAULT_E2E_PASSWORD, E2E_PASSWORD } from './e2e-users';
 
 const PRODUCTION_PROJECT_REF = 'gunosplgrvnvrftudttr';
-const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1']);
+const LOOPBACK_HOSTS = new Set(['localhost', [127, 0, 0, 1].join('.')]);
+// The plaintext local-parity Docker service; a hyphenated name can never be a Supabase ref.
+const CI_CONTAINER_HOST = 'ci-postgres';
 // postgres 3.4.9 uses host names literally, splits them on ',' and ':' (IPv6 unsupported) and
 // rewrites the URL host with String.replace ('$' patterns); Node applies IDNA before DNS lookup.
 // Only plain ASCII host names are therefore the same name for the guard and the connection.
@@ -30,7 +37,7 @@ const TRANSPORT_QUERY_KEYS = new Set([
 const HOST_KEYS = new Set(['host', 'hostname', 'hostaddr']);
 
 type SeedEnvironment = Readonly<Record<string, string | undefined>>;
-type SeedTargetClassification = 'local' | 'confirmed-non-local';
+type SeedTargetClassification = 'local' | 'confirmed-ci' | 'confirmed-non-local';
 
 function refuse(classification: string): never {
   throw new Error(`Seed target refused: ${classification}`);
@@ -198,13 +205,17 @@ export function assertSeedTargetAllowed(
   unique(targets);
   const expected = { admin: driverTarget(database, env), rls: driverTarget(rls ?? database, env) };
   if (LOOPBACK_HOSTS.has(target)) {
-    bindSeedTarget(env, expected);
+    bindSeedTarget(env, expected, false);
     return 'local';
   }
   if (env.SEED_TARGET_CONFIRM !== `plan070:${target}`) refuse('non-local-unconfirmed');
-  // Only the exact, confirmed CI host retains the local fixture-password policy.
-  if (target !== 'ci-postgres') assertRemoteSeedPassword(env, effectivePassword);
-  bindSeedTarget(env, expected);
+  // Only the exact, confirmed CI container keeps the local fixture-password and plaintext policy.
+  if (target === CI_CONTAINER_HOST) {
+    bindSeedTarget(env, expected, false);
+    return 'confirmed-ci';
+  }
+  assertRemoteSeedPassword(env, effectivePassword);
+  bindSeedTarget(env, expected, true);
   return 'confirmed-non-local';
 }
 
@@ -220,8 +231,30 @@ export function assertSeedModeAllowed(
 
 /** Validate both sides of module evaluation, before returning any database capability. */
 export async function importSeedDatabase(): Promise<typeof import('./db')> {
-  assertSeedTargetAllowed(process.env);
-  const database = await import('./db');
-  assertSeedTargetAllowed(process.env);
-  return database;
+  try {
+    if (
+      assertSeedTargetAllowed(process.env) === 'confirmed-non-local' &&
+      !hasInstalledSeedTlsClients()
+    ) {
+      installSeedTlsClients(process.env);
+    }
+    const database = await import('./db');
+    assertSeedTargetAllowed(process.env);
+    return database;
+  } catch (error) {
+    await closeSeedTlsClients();
+    throw error;
+  }
+}
+
+/** Command entry points own cleanup; reusable golden/full/workload/packs share their lifetime. */
+export async function closeSeedTargetClients(): Promise<void> {
+  await closeSeedTlsClients();
+}
+
+/** Report an uncaught failure, close the clients this process installed, then exit. */
+export async function exitSeed(code: number, failure?: unknown): Promise<never> {
+  if (failure !== undefined) console.error('Seed failed:', failure);
+  await closeSeedTlsClients();
+  process.exit(code);
 }
