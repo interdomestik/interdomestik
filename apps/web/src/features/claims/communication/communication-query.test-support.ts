@@ -3,7 +3,7 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { vi } from 'vitest';
 
-export const state = vi.hoisted(() => ({
+const state = vi.hoisted(() => ({
   descriptor: {
     tenantId: 'tenant-a',
     accessTenantId: 'tenant-a',
@@ -64,7 +64,8 @@ function transaction() {
         },
         leftJoin(value: Parameters<typeof getTableName>[0], on: SQL) {
           joins.push({ table: getTableName(value), on });
-          state.joins.push(new PgDialect().sqlToQuery(on));
+          const { sql: joinSql, params } = new PgDialect().sqlToQuery(on);
+          state.joins.push({ sql: joinSql, params });
           return builder;
         },
         where(value: SQL) {
@@ -196,3 +197,5 @@ export function message(id: string, sender: string, internal: boolean | null, ti
     sender_name: 'PRIVATE-SENDER-SENTINEL',
   };
 }
+
+export { state };
