@@ -1,5 +1,5 @@
 import { agentClients, claims, user, type TenantTransaction } from '@interdomestik/database';
-import { ROLES } from '@interdomestik/shared-auth';
+import { hasPermission, PERMISSIONS, ROLES } from '@interdomestik/shared-auth';
 import { and, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 
 type ClaimAccessRecord = {
@@ -19,6 +19,19 @@ export function isFullTenantClaimsRole(role: string | null | undefined): boolean
 
 export function isScopedClaimsReadRole(role: string | null | undefined): boolean {
   return role === ROLES.staff || role === ROLES.branch_manager;
+}
+
+// `user` is the legacy member role retained by the messaging/session adapters.
+export function isMemberMessageRole(role: string | null | undefined): boolean {
+  return role === ROLES.member || role === 'user';
+}
+
+export function isMessageParticipant(role: string | null | undefined): boolean {
+  return (
+    hasPermission(role, PERMISSIONS['claims.update']) ||
+    role === ROLES.agent ||
+    isMemberMessageRole(role)
+  );
 }
 
 export function hasScopedStaffClaimAccess(args: {
@@ -49,11 +62,14 @@ export function hasScopedClaimsReadAccess(args: {
     return branchId !== null && args.claim.branchId === branchId;
   }
 
-  return hasScopedStaffClaimAccess({
-    branchId: args.branchId,
-    claim: args.claim,
-    userId: args.userId,
-  });
+  return (
+    args.role === ROLES.staff &&
+    hasScopedStaffClaimAccess({
+      branchId: args.branchId,
+      claim: args.claim,
+      userId: args.userId,
+    })
+  );
 }
 
 function buildForbiddenClaimIdsSubquery(
@@ -63,7 +79,7 @@ function buildForbiddenClaimIdsSubquery(
   return database
     .select({ id: claims.id })
     .from(claims)
-    .where(and(eq(claims.tenantId, tenantId), eq(claims.id, '__forbidden__')));
+    .where(and(eq(claims.tenantId, tenantId), ne(claims.id, claims.id)));
 }
 
 function buildStaffScopedClaimFilter(args: {
@@ -192,6 +208,10 @@ export function buildAccessibleClaimIdsSubquery(args: {
           branchScope
         )
       );
+  }
+
+  if (!isMemberMessageRole(args.role) && !hasPermission(args.role, PERMISSIONS['claims.read'])) {
+    return buildForbiddenClaimIdsSubquery(args.tenantId, database);
   }
 
   return database

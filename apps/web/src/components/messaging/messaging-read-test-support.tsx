@@ -57,7 +57,7 @@ export function deferred<T>() {
 function wrap(props: PanelProps, locale: PanelLocale) {
   return (
     <NextIntlClientProvider locale={locale} messages={catalogs[locale]} timeZone="UTC">
-      <MessagingPanel {...props} />
+      <MessagingPanel initialCanAcknowledge={true} {...props} />
     </NextIntlClientProvider>
   );
 }

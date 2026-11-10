@@ -1,8 +1,12 @@
-import { assertSeedTargetAllowed } from '../seed-target-guard';
+import {
+  assertSeedModeAllowed,
+  assertSeedTargetAllowed,
+  importSeedDatabase,
+} from '../seed-target-guard';
 import type { SeedConfig } from '../seed-types';
 
 export async function seedFull(config: SeedConfig) {
-  assertSeedTargetAllowed(process.env);
+  assertSeedModeAllowed('full', assertSeedTargetAllowed(process.env));
   console.log('🌱 Starting Full System Seed (Modular)...');
 
   try {
@@ -14,6 +18,7 @@ export async function seedFull(config: SeedConfig) {
     const { seedClaimsAndFlows } = await import('./claims');
     const { seedBalkanFlows } = await import('./leads');
 
+    await importSeedDatabase();
     await cleanup();
     await seedTenantsAndBranches();
     await seedUsersAndAuth(config); // Includes creating members

@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-const enabled = process.env.S8_STAFF_DETAIL_DB_PROOF === '1';
+// Explicit runner: pnpm db:rls:test:staff-detail (scripts/staff-detail-rls.md).
+const enabled =
+  process.env.S8_STAFF_DETAIL_DB_PROOF === '1' || process.env.REQUIRE_RLS_INTEGRATION === '1';
 
 describe.skipIf(!enabled)('mounted staff detail with a restricted database role', () => {
   it('reads attributed history, denies other assignments and tenants, and clears tenant context', async () => {
@@ -13,10 +15,11 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
     expect(rlsUrl.hostname).toBe('127.0.0.1');
     expect(rlsUrl.username).not.toBe(adminUrl.username);
     expect(rlsUrl.pathname).toBe(adminUrl.pathname);
+    vi.stubEnv('DATABASE_URL', adminConnectionUrl);
     expect(process.env.DATABASE_URL).toBe(adminConnectionUrl);
     expect(process.env.DB_MAX_CONNECTIONS).toBe('1');
 
-    const { claimStageHistory, claims, dbAdmin, dbRls, inArray, sql, user } =
+    const { claimStageHistory, claims, dbAdmin, dbRls, inArray, sql, tenants, user } =
       await import('@interdomestik/database');
     const { withTenantAuthority } =
       await import('@interdomestik/database/tenant-authority-context');
@@ -30,6 +33,8 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
     const token = process.env.S8_STAFF_DETAIL_RUN_TOKEN!;
     expect(token).toMatch(/^[a-f0-9]{16}$/);
     const prefix = `s8-staff-detail-${token}`;
+    const homeTenantId = `${prefix}-ks`;
+    const otherTenantId = `${prefix}-mk`;
     const staffId = `${prefix}-staff`;
     const otherStaffId = `${prefix}-other-staff`;
     const memberId = `${prefix}-member`;
@@ -42,8 +47,8 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
     const foreignHistoryId = `${prefix}-foreign-history`;
     const now = new Date('2026-01-02T00:00:00.000Z');
     const userIds = [staffId, otherStaffId, memberId, foreignMemberId];
-    const staffKs = mintTestTenantAuthority('tenant_ks', { userId: staffId, role: 'staff' });
-    const staffMk = mintTestTenantAuthority('tenant_mk', { userId: staffId, role: 'staff' });
+    const staffKs = mintTestTenantAuthority(homeTenantId, { userId: staffId, role: 'staff' });
+    const staffMk = mintTestTenantAuthority(otherTenantId, { userId: staffId, role: 'staff' });
     const claimIds = [assignedClaimId, otherClaimId, foreignClaimId];
     const historyIds = [publicHistoryId, privateHistoryId, foreignHistoryId];
 
@@ -56,10 +61,24 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
       expect(posture[0]).toMatchObject({ bypass: false, superuser: false });
       expect(posture[0]?.role).toBe(rlsUrl.username);
 
+      await dbAdmin.insert(tenants).values([
+        {
+          id: homeTenantId,
+          name: 'Staff proof KS',
+          legalName: 'Staff proof KS',
+          countryCode: 'XK',
+        },
+        {
+          id: otherTenantId,
+          name: 'Staff proof MK',
+          legalName: 'Staff proof MK',
+          countryCode: 'MK',
+        },
+      ]);
       await dbAdmin.insert(user).values([
         {
           id: staffId,
-          tenantId: 'tenant_ks',
+          tenantId: homeTenantId,
           name: 'Fixture Staff',
           email: `${staffId}@example.test`,
           emailVerified: true,
@@ -69,7 +88,7 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
         },
         {
           id: otherStaffId,
-          tenantId: 'tenant_ks',
+          tenantId: homeTenantId,
           name: 'Fixture Other Staff',
           email: `${otherStaffId}@example.test`,
           emailVerified: true,
@@ -79,7 +98,7 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
         },
         {
           id: memberId,
-          tenantId: 'tenant_ks',
+          tenantId: homeTenantId,
           name: 'Fixture Member',
           email: `${memberId}@example.test`,
           emailVerified: true,
@@ -89,7 +108,7 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
         },
         {
           id: foreignMemberId,
-          tenantId: 'tenant_mk',
+          tenantId: otherTenantId,
           name: 'Foreign Fixture Member',
           email: `${foreignMemberId}@example.test`,
           emailVerified: true,
@@ -101,7 +120,7 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
       await dbAdmin.insert(claims).values([
         {
           id: assignedClaimId,
-          tenantId: 'tenant_ks',
+          tenantId: homeTenantId,
           userId: memberId,
           staffId,
           title: 'Assigned fixture',
@@ -112,7 +131,7 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
         },
         {
           id: otherClaimId,
-          tenantId: 'tenant_ks',
+          tenantId: homeTenantId,
           userId: memberId,
           staffId: otherStaffId,
           title: 'Other assignment fixture',
@@ -123,7 +142,7 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
         },
         {
           id: foreignClaimId,
-          tenantId: 'tenant_mk',
+          tenantId: otherTenantId,
           userId: foreignMemberId,
           staffId,
           title: 'Foreign fixture',
@@ -136,7 +155,7 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
       await dbAdmin.insert(claimStageHistory).values([
         {
           id: publicHistoryId,
-          tenantId: 'tenant_ks',
+          tenantId: homeTenantId,
           claimId: assignedClaimId,
           toStatus: 'submitted',
           changedById: otherStaffId,
@@ -147,7 +166,7 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
         },
         {
           id: privateHistoryId,
-          tenantId: 'tenant_ks',
+          tenantId: homeTenantId,
           claimId: assignedClaimId,
           toStatus: 'submitted',
           changedById: otherStaffId,
@@ -158,7 +177,7 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
         },
         {
           id: foreignHistoryId,
-          tenantId: 'tenant_mk',
+          tenantId: otherTenantId,
           claimId: foreignClaimId,
           toStatus: 'submitted',
           changedById: foreignMemberId,
@@ -238,6 +257,8 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
       await dbAdmin.delete(claimStageHistory).where(inArray(claimStageHistory.id, historyIds));
       await dbAdmin.delete(claims).where(inArray(claims.id, claimIds));
       await dbAdmin.delete(user).where(inArray(user.id, userIds));
+      await dbAdmin.delete(tenants).where(inArray(tenants.id, [homeTenantId, otherTenantId]));
+      vi.unstubAllEnvs();
     }
   });
 });

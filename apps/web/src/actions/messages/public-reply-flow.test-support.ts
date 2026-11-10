@@ -7,7 +7,7 @@ vi.mock('@/lib/auth', () => ({
   auth: { api: { getSession: async () => (await load()).state.session } },
 }));
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: () => Promise.resolve(null) }));
-vi.mock('@/lib/audit', () => ({ logAuditEvent: () => Promise.resolve(undefined) }));
+vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn(() => Promise.resolve(undefined)) }));
 vi.mock('drizzle-orm', async original => ({
   ...(await original<typeof import('drizzle-orm')>()),
   ...(await load()).operators,

@@ -4,15 +4,12 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { hasPermission, PERMISSIONS } from '@interdomestik/shared-auth';
 import { and, eq, inArray, isNull, ne } from 'drizzle-orm';
 
 import type { Session } from '../types';
-import {
-  buildAccessibleClaimIdsSubquery,
-  isFullTenantClaimsRole,
-  isScopedClaimsReadRole,
-  readAgentScope,
-} from './access';
+import { isMessageParticipant, readAgentScope } from './access';
+import { buildAcknowledgementClaimFilter } from './acknowledgement';
 
 function requireMessageScopeString(value: unknown): string {
   if (typeof value !== 'string') {
@@ -44,8 +41,10 @@ export async function markMessagesAsReadCore(params: {
     const actor = session.user;
     const { tenantId } = readTenantAuthority(authority);
     const userRole = requireMessageScopeString(actor.role || 'user');
-    const isPrivilegedStaff = isFullTenantClaimsRole(userRole);
-    const isStaff = isPrivilegedStaff || isScopedClaimsReadRole(userRole);
+    if (!isMessageParticipant(userRole)) {
+      return { success: false, error: 'Access denied' };
+    }
+    const isStaff = hasPermission(userRole, PERMISSIONS['claims.update']);
 
     return await withTenantAuthority(authority, async tx => {
       const agentUserId = userRole === 'agent' ? requireMessageScopeString(actor.id) : null;
@@ -63,19 +62,17 @@ export async function markMessagesAsReadCore(params: {
         isStaff ? undefined : eq(claimMessages.isInternal, false)
       );
 
-      const accessCondition = isPrivilegedStaff
-        ? undefined
-        : inArray(
-            claimMessages.claimId,
-            buildAccessibleClaimIdsSubquery({
-              branchId:
-                userRole === 'agent' ? (agentScope?.branchId ?? null) : (actor.branchId ?? null),
-              role: userRole,
-              tenantId,
-              tx,
-              userId: agentUserId ?? requireMessageScopeString(actor.id),
-            })
-          );
+      const accessCondition = buildAcknowledgementClaimFilter(
+        {
+          branchId:
+            userRole === 'agent' ? (agentScope?.branchId ?? null) : (actor.branchId ?? null),
+          role: userRole,
+          tenantId,
+          tx,
+          userId: agentUserId ?? requireMessageScopeString(actor.id),
+        },
+        'message'
+      );
 
       // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
       await tx

@@ -108,6 +108,21 @@ describe('StaffClaimDetailsPage', () => {
     );
   });
 
+  it.each([true, false])(
+    'passes server acknowledgement capability %s into the seed',
+    async canAcknowledge => {
+      hoisted.getMessagesForClaimCoreMock.mockResolvedValueOnce({
+        success: true,
+        messages: [],
+        canAcknowledge,
+      } as never);
+      await renderPage('en');
+      expect(hoisted.messagingPanelMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ initialCanAcknowledge: canAcknowledge, fetchOnMount: false })
+      );
+    }
+  );
+
   it('flags a failed staff message read from the existing server result', async () => {
     const callsBefore = hoisted.getMessagesForClaimCoreMock.mock.calls.length;
     hoisted.getMessagesForClaimCoreMock.mockResolvedValueOnce({

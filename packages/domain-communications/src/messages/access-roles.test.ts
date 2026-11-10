@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@interdomestik/database', () => ({ agentClients: {}, claims: {} }));
 
-import { isFullTenantClaimsRole, isScopedClaimsReadRole } from './access';
+import {
+  hasScopedClaimsReadAccess,
+  isFullTenantClaimsRole,
+  isScopedClaimsReadRole,
+} from './access';
 
 const roles = [
   { label: 'admin', role: 'admin', full: true, scoped: false },
@@ -12,6 +16,8 @@ const roles = [
   { label: 'branch_manager', role: 'branch_manager', full: false, scoped: true },
   { label: 'member', role: 'member', full: false, scoped: false },
   { label: 'agent', role: 'agent', full: false, scoped: false },
+  { label: 'auditor', role: 'auditor', full: false, scoped: false },
+  { label: 'global_support', role: 'global_support', full: false, scoped: false },
   { label: 'user', role: 'user', full: false, scoped: false },
   { label: 'empty', role: '', full: false, scoped: false },
   { label: 'null', role: null, full: false, scoped: false },
@@ -37,4 +43,18 @@ describe('message role admission', () => {
     }
     expect(actual).toEqual([false, false]);
   });
+
+  it.each(roles.filter(({ scoped }) => !scoped))(
+    'denies $label the scoped staff helper',
+    ({ role }) => {
+      expect(
+        hasScopedClaimsReadAccess({
+          role,
+          branchId: 'branch-1',
+          userId: 'owner-1',
+          claim: { userId: 'owner-1', branchId: 'branch-1', caseLifecycleState: 'submitted' },
+        })
+      ).toBe(false);
+    }
+  );
 });
