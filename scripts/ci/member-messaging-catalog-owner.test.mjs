@@ -30,7 +30,7 @@ test('branch-manager metadata copy has the exact allowlisted keys in all five ca
     'retry',
     'loading',
     'history',
-  ].sort();
+  ].sort((a, b) => a.localeCompare(b));
   for (const locale of ['en', 'sq', 'mk', 'sr', 'de']) {
     const catalog = JSON.parse(
       readFileSync(
@@ -39,7 +39,7 @@ test('branch-manager metadata copy has the exact allowlisted keys in all five ca
       )
     );
     const copy = catalog.messaging.branchManager;
-    assert.deepEqual(Object.keys(copy).sort(), keys);
+    assert.deepEqual(Object.keys(copy).sort((a, b) => a.localeCompare(b)), keys);
     for (const value of Object.values(copy)) assert.ok(typeof value === 'string' && value.trim());
     assert.notEqual(copy.empty, copy.unavailable);
     assert.notEqual(copy.failed, copy.unavailable);

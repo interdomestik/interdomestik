@@ -4,7 +4,14 @@ import {
   E2E_RUNTIME_ROLES,
   E2E_USERS,
 } from '@interdomestik/database';
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type Response,
+  type TestInfo,
+} from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { getProjectUrlInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
@@ -71,6 +78,119 @@ async function expectHistory(page: Page, info: TestInfo, ids: ActionIds, row: Me
   }
 }
 
+function managerMarker(surface: 'admin' | 'staff', allowed: boolean): string {
+  if (!allowed) return 'not-found-page';
+  return surface === 'staff' ? 'staff-claim-detail-ready' : 'admin-page-ready';
+}
+
+function expectPayloadsOmitSentinels(payloads: readonly string[], sentinels: readonly string[]) {
+  for (const payload of payloads) {
+    for (const sentinel of sentinels) expect(payload).not.toContain(sentinel);
+  }
+}
+
+async function expectBodyOmitsSentinels(page: Page, sentinels: readonly string[]) {
+  // These assertions only read the current page; navigation and refresh remain sequential.
+  await Promise.all(
+    sentinels.map(sentinel => expect(page.locator('body')).not.toContainText(sentinel))
+  );
+}
+
+async function expectManagerRefresh(
+  page: Page,
+  card: Locator,
+  claimId: string,
+  payloads: Promise<string>[],
+  sentinels: readonly string[]
+) {
+  // The refresh control remains present across refreshed metadata, so keyboard focus survives.
+  const refresh = card.getByRole('button');
+  await refresh.focus();
+  await expect(refresh).toBeFocused();
+  const refreshed = page.waitForResponse(
+    response =>
+      new URL(response.url()).pathname.includes(`/claims/${claimId}`) &&
+      response.request().headers()['rsc'] === '1'
+  );
+  await refresh.press('Enter');
+  await refreshed;
+  await expect(refresh).toHaveAttribute('aria-busy', 'false');
+  await expect(refresh).toBeFocused();
+  const renderedPayloads = await Promise.all(payloads);
+  expect(renderedPayloads.length).toBeGreaterThan(0);
+  expectPayloadsOmitSentinels(renderedPayloads, sentinels);
+}
+
+async function expectManagerSurface(
+  page: Page,
+  info: TestInfo,
+  fixture: MessageSentinelClaim,
+  allowed: boolean,
+  surface: 'admin' | 'staff'
+) {
+  const { claimId } = fixture;
+  const path =
+    surface === 'staff'
+      ? routes.staffClaimDetail(claimId, info)
+      : `/admin/claims/${encodeURIComponent(claimId)}`;
+  const payloads: Promise<string>[] = [];
+  const observe = (response: Response) => {
+    if (new URL(response.url()).pathname.includes(`/claims/${claimId}`)) {
+      payloads.push(response.text());
+    }
+  };
+  page.on('response', observe);
+  try {
+    await gotoApp(page, path, info, { marker: managerMarker(surface, allowed) });
+    const card = page.getByTestId('claim-message-summary').filter({ visible: true });
+    const sentinels = [...fixture.messages, ...fixture.notes];
+    if (!allowed) {
+      const notFound = page.getByTestId('not-found-page').filter({ visible: true });
+      await expect(notFound).toBeVisible();
+      await expect(notFound).not.toContainText('Something went wrong!');
+      await expect(card).toHaveCount(0);
+      await expect(page.locator('body')).not.toContainText(claimId);
+      const deniedPayloads = await Promise.all(payloads);
+      expect(deniedPayloads.length).toBeGreaterThan(0);
+      await expectBodyOmitsSentinels(page, sentinels);
+      expectPayloadsOmitSentinels(deniedPayloads, sentinels);
+      return;
+    }
+    await expect(card).toBeVisible();
+    await expect(card.getByTestId('claim-message-summary-count')).toHaveText(/^\d+$/);
+    await expect(card.getByTestId('claim-message-summary-count')).toHaveText(
+      String(fixture.messages.length)
+    );
+    await expect(card.getByTestId('claim-message-summary-last')).not.toBeEmpty();
+    await expect(card.getByTestId('claim-message-summary-awaiting')).not.toBeEmpty();
+    await expect(page.getByTestId('messaging-panel')).toHaveCount(0);
+    await expect(page.getByTestId('message-input')).toHaveCount(0);
+    await expect(page.getByTestId('send-message-button')).toHaveCount(0);
+    await expect(page.getByTestId('staff-claim-detail-note')).toHaveCount(0);
+    await expectBodyOmitsSentinels(page, sentinels);
+    expectPayloadsOmitSentinels(await Promise.all(payloads), sentinels);
+    await expectManagerRefresh(page, card, claimId, payloads, sentinels);
+  } finally {
+    page.off('response', observe);
+  }
+}
+
+async function expectManagerSendDenied(
+  page: Page,
+  info: TestInfo,
+  ids: ActionIds,
+  claimId: string,
+  internal: boolean
+) {
+  const result = await action(page, info, ids.send, [
+    claimId,
+    `D1c forbidden ${randomUUID()}`,
+    internal,
+    randomUUID(),
+  ]);
+  expect(result).toEqual({ success: false, error: 'Access denied' });
+}
+
 async function expectManager(
   page: Page,
   info: TestInfo,
@@ -83,88 +203,10 @@ async function expectManager(
   expect(history.success).toBe(false);
   expect(history.messages).toBeUndefined();
   for (const sentinel of fixture.messages) expect(JSON.stringify(history)).not.toContain(sentinel);
-  for (const internal of [false, true]) {
-    const result = await action(page, info, ids.send, [
-      claimId,
-      `D1c forbidden ${randomUUID()}`,
-      internal,
-      randomUUID(),
-    ]);
-    expect(result).toEqual({ success: false, error: 'Access denied' });
-  }
-  for (const surface of ['admin', 'staff'] as const) {
-    const path =
-      surface === 'staff'
-        ? routes.staffClaimDetail(claimId, info)
-        : `/admin/claims/${encodeURIComponent(claimId)}`;
-    const payloads: Promise<string>[] = [];
-    const observe = (response: import('@playwright/test').Response) => {
-      if (new URL(response.url()).pathname.includes(`/claims/${claimId}`)) {
-        payloads.push(response.text());
-      }
-    };
-    page.on('response', observe);
-    try {
-      await gotoApp(page, path, info, {
-        marker: !allowed
-          ? 'not-found-page'
-          : surface === 'staff'
-            ? 'staff-claim-detail-ready'
-            : 'admin-page-ready',
-      });
-      const card = page.getByTestId('claim-message-summary').filter({ visible: true });
-      const sentinels = [...fixture.messages, ...fixture.notes];
-      if (!allowed) {
-        const notFound = page.getByTestId('not-found-page').filter({ visible: true });
-        await expect(notFound).toBeVisible();
-        await expect(notFound).not.toContainText('Something went wrong!');
-        await expect(card).toHaveCount(0);
-        await expect(page.locator('body')).not.toContainText(claimId);
-        const deniedPayloads = await Promise.all(payloads);
-        expect(deniedPayloads.length).toBeGreaterThan(0);
-        for (const sentinel of sentinels) {
-          await expect(page.locator('body')).not.toContainText(sentinel);
-          for (const payload of deniedPayloads) expect(payload).not.toContain(sentinel);
-        }
-        continue;
-      }
-      await expect(card).toBeVisible();
-      await expect(card.getByTestId('claim-message-summary-count')).toHaveText(/^\d+$/);
-      await expect(card.getByTestId('claim-message-summary-count')).toHaveText(
-        String(fixture.messages.length)
-      );
-      await expect(card.getByTestId('claim-message-summary-last')).not.toBeEmpty();
-      await expect(card.getByTestId('claim-message-summary-awaiting')).not.toBeEmpty();
-      await expect(page.getByTestId('messaging-panel')).toHaveCount(0);
-      await expect(page.getByTestId('message-input')).toHaveCount(0);
-      await expect(page.getByTestId('send-message-button')).toHaveCount(0);
-      await expect(page.getByTestId('staff-claim-detail-note')).toHaveCount(0);
-      for (const sentinel of sentinels) {
-        await expect(page.locator('body')).not.toContainText(sentinel);
-        for (const payload of await Promise.all(payloads)) expect(payload).not.toContain(sentinel);
-      }
-      // The refresh control remains present across refreshed metadata, so keyboard focus survives.
-      const refresh = card.getByRole('button');
-      await refresh.focus();
-      await expect(refresh).toBeFocused();
-      const refreshed = page.waitForResponse(
-        response =>
-          new URL(response.url()).pathname.includes(`/claims/${claimId}`) &&
-          response.request().headers()['rsc'] === '1'
-      );
-      await refresh.press('Enter');
-      await refreshed;
-      await expect(refresh).toHaveAttribute('aria-busy', 'false');
-      await expect(refresh).toBeFocused();
-      const renderedPayloads = await Promise.all(payloads);
-      expect(renderedPayloads.length).toBeGreaterThan(0);
-      for (const payload of renderedPayloads) {
-        for (const sentinel of sentinels) expect(payload).not.toContain(sentinel);
-      }
-    } finally {
-      page.off('response', observe);
-    }
-  }
+  await expectManagerSendDenied(page, info, ids, claimId, false);
+  await expectManagerSendDenied(page, info, ids, claimId, true);
+  await expectManagerSurface(page, info, fixture, allowed, 'admin');
+  await expectManagerSurface(page, info, fixture, allowed, 'staff');
 }
 
 function matrix(

@@ -3,7 +3,10 @@
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 
-export function CommunicationRetry({ label, loading }: { label: string; loading: string }) {
+export function CommunicationRetry({
+  label,
+  loading,
+}: Readonly<{ label: string; loading: string }>) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   return (
@@ -16,9 +19,9 @@ export function CommunicationRetry({ label, loading }: { label: string; loading:
         if (!pending) startTransition(() => router.refresh());
       }}
     >
-      <span role="status" aria-live="polite">
+      <output aria-live="polite" aria-atomic="true">
         {pending ? loading : label}
-      </span>
+      </output>
     </button>
   );
 }

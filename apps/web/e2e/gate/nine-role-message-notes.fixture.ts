@@ -7,7 +7,7 @@ import {
   E2E_USER_IDS,
 } from '@interdomestik/database';
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import type { MessageCaseKey } from './nine-role-message-access.cases';
 
@@ -51,9 +51,8 @@ export async function withClaimNoteSentinels<T>(
     return { scope, claimId, messages, notes };
   });
   try {
-    for (const fixture of fixtures) {
-      const { scope, claimId } = fixture;
-      await dbAdmin.insert(claims).values({
+    await dbAdmin.insert(claims).values(
+      fixtures.map(({ scope, claimId }) => ({
         id: claimId,
         tenantId: scope.tenantId,
         accessTenantId: scope.tenantId,
@@ -66,10 +65,10 @@ export async function withClaimNoteSentinels<T>(
         category: 'vehicle',
         companyName: 'Synthetic communication fixture',
         ...claimLifecycleFieldsForStatus('verification'),
-      });
-      await dbAdmin.insert(claimMessages).values(fixture.messages);
-      await dbAdmin.insert(claimStageHistory).values(fixture.notes);
-    }
+      }))
+    );
+    await dbAdmin.insert(claimMessages).values(fixtures.flatMap(fixture => fixture.messages));
+    await dbAdmin.insert(claimStageHistory).values(fixtures.flatMap(fixture => fixture.notes));
     const probes = fixtures.map(fixture => ({
       claimId: fixture.claimId,
       messages: fixture.messages.map(row => row.content),
@@ -77,21 +76,36 @@ export async function withClaimNoteSentinels<T>(
     }));
     return await run({ own: probes[0], foreign: probes[1] });
   } finally {
-    for (const { scope, claimId } of fixtures) {
-      await dbAdmin
-        .delete(claimMessages)
-        .where(and(eq(claimMessages.tenantId, scope.tenantId), eq(claimMessages.claimId, claimId)));
-      await dbAdmin
-        .delete(claimStageHistory)
-        .where(
-          and(
-            eq(claimStageHistory.tenantId, scope.tenantId),
-            eq(claimStageHistory.claimId, claimId)
+    // Delete all owned children before their parents; retain each tenant/claim predicate pair.
+    await dbAdmin
+      .delete(claimMessages)
+      .where(
+        or(
+          ...fixtures.map(({ scope, claimId }) =>
+            and(eq(claimMessages.tenantId, scope.tenantId), eq(claimMessages.claimId, claimId))
           )
-        );
-      await dbAdmin
-        .delete(claims)
-        .where(and(eq(claims.tenantId, scope.tenantId), eq(claims.id, claimId)));
-    }
+        )
+      );
+    await dbAdmin
+      .delete(claimStageHistory)
+      .where(
+        or(
+          ...fixtures.map(({ scope, claimId }) =>
+            and(
+              eq(claimStageHistory.tenantId, scope.tenantId),
+              eq(claimStageHistory.claimId, claimId)
+            )
+          )
+        )
+      );
+    await dbAdmin
+      .delete(claims)
+      .where(
+        or(
+          ...fixtures.map(({ scope, claimId }) =>
+            and(eq(claims.tenantId, scope.tenantId), eq(claims.id, claimId))
+          )
+        )
+      );
   }
 }

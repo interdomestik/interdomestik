@@ -26,7 +26,11 @@ describe('branch-manager message metadata projection', () => {
       },
     });
     if (result.kind !== 'ok') throw new Error('Expected metadata');
-    expect(Object.keys(result.data).sort()).toEqual(['awaitingReply', 'count', 'lastMessageAt']);
+    expect(Object.keys(result.data).sort((a, b) => a.localeCompare(b))).toEqual([
+      'awaitingReply',
+      'count',
+      'lastMessageAt',
+    ]);
     expect(JSON.stringify(result)).not.toContain('SENTINEL');
     expect(state.selections).toEqual([
       ['memberId'],
