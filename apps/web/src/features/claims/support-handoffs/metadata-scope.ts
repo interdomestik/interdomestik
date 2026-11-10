@@ -55,7 +55,8 @@ export function handoffMetadataScope(
   const search = filters.search?.trim().replace(/\s+/g, ' ').slice(0, 80);
   if (search) {
     // Literal metadata search only: no subject, message, response, reason or claim narrative.
-    const pattern = `%${search.replace(/[\\%_]/g, String.raw`\$&`)}%`;
+    const escaped = search.replace(/[\\%_]/g, String.raw`\$&`);
+    const pattern = `%${escaped}%`;
     conditions.push(
       or(
         ilike(supportHandoffs.id, pattern),
