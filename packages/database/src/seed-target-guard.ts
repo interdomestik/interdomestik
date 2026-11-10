@@ -1,3 +1,5 @@
+import { DEFAULT_E2E_PASSWORD, E2E_PASSWORD } from './e2e-users';
+
 const PRODUCTION_PROJECT_REF = 'gunosplgrvnvrftudttr';
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 // postgres 3.4.9 parseOptions: these affect transport, not startup identity.
@@ -118,8 +120,27 @@ function databaseTarget(url: URL, env: SeedEnvironment): string {
   return ref ?? host;
 }
 
+function assertRemoteSeedPassword(env: SeedEnvironment, effectivePassword: string): void {
+  if (
+    !effectivePassword ||
+    effectivePassword === DEFAULT_E2E_PASSWORD ||
+    effectivePassword.length < 20 ||
+    env.E2E_PASSWORD?.trim() !== effectivePassword
+  ) {
+    refuse('non-local-password');
+  }
+  // Require three of lowercase, uppercase, digit and non-whitespace symbol.
+  const classes = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^a-zA-Z0-9\s]/];
+  if (classes.filter(pattern => pattern.test(effectivePassword)).length < 3) {
+    refuse('non-local-password');
+  }
+}
+
 /** Pure preflight; all refusals expose only a classification, never credentials. */
-export function assertSeedTargetAllowed(env: SeedEnvironment): SeedTargetClassification {
+export function assertSeedTargetAllowed(
+  env: SeedEnvironment,
+  effectivePassword: string = E2E_PASSWORD
+): SeedTargetClassification {
   const database = parse(env.DATABASE_URL);
   const rls = parse(env.DATABASE_URL_RLS);
   const advisory = [parse(env.SUPABASE_URL), parse(env.NEXT_PUBLIC_SUPABASE_URL)];
@@ -131,5 +152,7 @@ export function assertSeedTargetAllowed(env: SeedEnvironment): SeedTargetClassif
   unique(targets);
   if (LOOPBACK_HOSTS.has(target)) return 'local';
   if (env.SEED_TARGET_CONFIRM !== `plan070:${target}`) refuse('non-local-unconfirmed');
+  // Only the exact, confirmed CI host retains the local fixture-password policy.
+  if (target !== 'ci-postgres') assertRemoteSeedPassword(env, effectivePassword);
   return 'confirmed-non-local';
 }

@@ -1,5 +1,6 @@
 import { assertSeedTargetAllowed } from '../seed-target-guard';
 import { E2E_AGENT_PACK_USERS } from '../e2e-agent-pack-fixtures';
+import { E2E_PASSWORD } from '../e2e-users';
 import type { SeedConfig } from '../seed-types';
 import { hashPassword } from '../seed-utils/hash-password';
 import { packId } from '../seed-utils/seed-ids';
@@ -28,7 +29,7 @@ export async function seedAgentPack(config: SeedConfig) {
   // 1. Create Agent User
   const agentEmail = E2E_AGENT_PACK_USERS.AGENT.email;
   const agentUserId = E2E_AGENT_PACK_USERS.AGENT.id;
-  const agentPasswordHash = await hashPassword('password123');
+  const agentPasswordHash = hashPassword(E2E_PASSWORD);
 
   console.log(`Checking Agent: ${agentEmail}`);
 
@@ -82,7 +83,7 @@ export async function seedAgentPack(config: SeedConfig) {
 
   const seededClients: { id: string; subscriptionId: string | null }[] = [];
 
-  const genericPasswordHash = await hashPassword('password123');
+  const genericPasswordHash = hashPassword(E2E_PASSWORD);
 
   for (const [i, client] of CLIENTS.entries()) {
     const clientId = client.id;
