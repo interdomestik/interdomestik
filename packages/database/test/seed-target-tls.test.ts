@@ -10,6 +10,7 @@ for (const scenario of [
   'separate-rls',
   'mixed-case-host',
   'local',
+  'ci-container',
   'parity',
   'cleanup',
   'cleanup-replaced',

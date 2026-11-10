@@ -16,7 +16,7 @@ type Binding = ExpectedClients &
   }>;
 type SeedEnvironment = Readonly<Record<string, string | undefined>>;
 type BindingFacade = Readonly<{
-  bind: (env: SeedEnvironment, expected: ExpectedClients) => void;
+  bind: (env: SeedEnvironment, expected: ExpectedClients, verifyTls: boolean) => void;
   resetForTests: () => void;
 }>;
 type DriverOptions = {
@@ -30,7 +30,6 @@ type DriverOptions = {
 // db.ts supplies no startup overrides; postgres.js supplies application_name by default.
 // Explicit identity overrides are permitted only when the effective identity still matches.
 const STARTUP_KEYS = new Set(['application_name', 'user', 'database']);
-const LOOPBACK_IPV6 = ['', '', 1].join(':');
 const TARGET_BINDING = Symbol.for('interdomestik.seed-target-binding');
 const TARGET_INPUTS = [
   'DATABASE_URL',
@@ -123,7 +122,7 @@ function assertClientTarget(client: unknown, expected: SeedDriverTarget, bound: 
 function createBindingFacade(): BindingFacade {
   let bound: Binding | undefined;
   return Object.freeze({
-    bind(env: SeedEnvironment, expected: ExpectedClients): void {
+    bind(env: SeedEnvironment, expected: ExpectedClients, verifyTls: boolean): void {
       const fingerprint = createHash('sha256')
         .update(JSON.stringify(TARGET_INPUTS.map(key => env[key] ?? null)))
         .digest('hex');
@@ -138,11 +137,8 @@ function createBindingFacade(): BindingFacade {
       }
       bound = Object.freeze({
         fingerprint,
-        verifyTls:
-          env.SEED_TARGET_CONFIRM !== undefined &&
-          !['localhost', [127, 0, 0, 1].join('.'), LOOPBACK_IPV6, `[${LOOPBACK_IPV6}]`].includes(
-            expected.admin.host
-          ),
+        // The guard's target classification is the only source of the TLS requirement.
+        verifyTls,
         rootCert: env.SEED_TARGET_SSL_ROOT_CERT,
         admin: Object.freeze(expected.admin),
         rls: Object.freeze(expected.rls),

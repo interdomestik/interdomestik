@@ -167,6 +167,28 @@ async function verifyLocalImport() {
   process.env.DATABASE_URL = remote;
   process.env.SEED_TARGET_SSL_ROOT_CERT = caPath;
 }
+async function verifyCiContainer() {
+  // The confirmed local-parity Docker service stays plaintext: no CA, no preinstalled clients.
+  process.env.DATABASE_URL = 'postgres://fixture@ci-postgres/db';
+  process.env.SEED_TARGET_CONFIRM = 'plan070:ci-postgres';
+  delete process.env.SEED_TARGET_SSL_ROOT_CERT;
+  local = true;
+  checkingOrder = true;
+  await guard.importSeedDatabase();
+  assert.equal(constructions, 0);
+  const options = { host: ['ci-postgres'], port: [5432], user: 'fixture', database: 'db' };
+  globals.queryClientAdmin = { options: { ...options, ssl: false } };
+  assert.equal(guard.assertSeedTargetAllowed(process.env), 'confirmed-ci');
+  delete globals.queryClientAdmin;
+  // A confirmed look-alike host is remote and still requires verified TLS.
+  guard.resetSeedTargetBindingForTests();
+  local = false;
+  checkingOrder = false;
+  process.env.DATABASE_URL = 'postgres://fixture@ci-postgres.example.net/db';
+  process.env.SEED_TARGET_CONFIRM = 'plan070:ci-postgres.example.net';
+  await assert.rejects(guard.importSeedDatabase(), refusal);
+  assert.equal(constructions, 0);
+}
 async function verifyRemoteImport() {
   if (
     [
@@ -229,6 +251,7 @@ async function run() {
   if (scenario in failures) return verifyCaRefusal();
   if (scenario.startsWith('existing-')) return verifyExistingClients();
   if (scenario === 'cached-mismatch') return verifyCachedMismatch();
+  if (scenario === 'ci-container') return verifyCiContainer();
   if (local) await verifyLocalImport();
   if (scenario === 'parity') {
     return verifyPoolParity({ require, host, globals, calls, ended, guard, tls, verify });
