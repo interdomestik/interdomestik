@@ -234,6 +234,8 @@ export async function withIsolatedExpiry(
     const port = await freePort();
     const base = new URL(info.project.use.baseURL as string);
     base.port = String(port);
+    // ADR-12: the spare serves the loopback door; tenant hosts stay trusted request origins only.
+    const door = `http://127.0.0.1:${port}`;
     const env = {
       ...process.env,
       DATABASE_URL: selected.url,
@@ -243,8 +245,8 @@ export async function withIsolatedExpiry(
       PORT: String(port),
       PW_PORT: String(port),
       HOSTNAME: '127.0.0.1',
-      NEXT_PUBLIC_APP_URL: base.origin,
-      BETTER_AUTH_URL: base.origin,
+      NEXT_PUBLIC_APP_URL: door,
+      BETTER_AUTH_URL: door,
       BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:${port},http://localhost:${port},${base.origin}`,
       INTERDOMESTIK_AUTOMATED: '1',
       INTERDOMESTIK_LOCAL_E2E: '1',
