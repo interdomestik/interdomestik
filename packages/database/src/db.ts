@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
+import { isTransactionPooler } from './pooler-mode';
 import {
   RlsRolePostureTimeoutError,
   type RlsConnectionRoleAssertionResult,
@@ -40,6 +41,9 @@ function createQueryClient(databaseUrl: string, label: 'admin' | 'rls'): postgre
   const safeMax = isProduction && isVercelRuntime ? Math.min(configuredMax, 1) : configuredMax;
 
   return postgres(databaseUrl, {
+    ...(isTransactionPooler(databaseUrl, process.env.DB_TRANSACTION_POOLER)
+      ? { prepare: false }
+      : {}),
     max: safeMax,
     ssl: isProduction && !isLocalDatabaseUrl(databaseUrl) ? 'require' : false,
     idle_timeout: parseEnvInt(process.env.DB_IDLE_TIMEOUT, isProduction ? 10 : 20),
