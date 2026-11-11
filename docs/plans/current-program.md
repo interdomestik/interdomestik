@@ -403,11 +403,20 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 - One bounded protected PR carries scope, acceptance, implementation and required tests. Routine
   promotion, qualification, closeout, status-only and bookkeeping-only PRs are not required.
-- Focused feedback supports iteration. Runtime, security, CI/trust or other meaningful behavior
-  changes still require `pnpm pr:verify` and `pnpm security:guard`; `pr:verify` includes E2E gate
-  evidence for the same source, configuration and environment. Instruction-only work runs the
-  current plan/contracts relevant to its changed surface. Protected hosted checks remain separate
-  trust evidence and are not replaced by local receipts.
+- Focused feedback supports iteration. HIGH-risk runtime, security, CI/trust or other meaningful
+  behavior changes still require `pnpm pr:verify` and `pnpm security:guard`; `pr:verify` includes
+  E2E gate evidence for the same source, configuration and environment.
+- Owner decision 2026-11-10: delivery evidence is risk-tiered, per AGENTS.md "Risk-Tiered Delivery
+  Evidence".
+  - A trusted-base diff classification fails closed to HIGH. HIGH keeps the full local lane, run
+    last on the frozen head after hosted green and the independent review YES.
+  - An allowlisted LOW/MEDIUM PR may rely on executed hosted evidence bound to its head and tested
+    merge. That evidence needs zero flaky or retry-recovered results (setup included), a current
+    base, Sonar zero new issues and an independent review YES that confirms the tier. The review
+    model is chosen for the risk, and Astra is reserved for HIGH or ambiguous work.
+  - Phase one is manual; delivery-gate automation is a separate owner-approved CI change.
+- Instruction-only work runs the current plan/contracts relevant to its changed surface.
+  Protected hosted checks remain separate trust evidence and are not replaced by local receipts.
 - `pnpm plan:audit` validates the active plan/tracker model and current safety contract. It does not
   parse retired Lean authority or reconstruct historical artifacts. `pnpm plan:audit:legacy` and
   `pnpm test:harness-v2` remain available for explicit legacy work.
