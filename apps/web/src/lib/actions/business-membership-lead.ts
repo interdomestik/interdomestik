@@ -82,6 +82,15 @@ function serializeLeadNotes(args: {
   });
 }
 
+function invalidPayload(error: z.ZodError): SubmitBusinessMembershipLeadResult {
+  return {
+    success: false,
+    error: 'Validation failed',
+    code: 'INVALID_PAYLOAD',
+    issues: formatFieldErrors(error.flatten().fieldErrors),
+  };
+}
+
 function intakeUnavailable(): SubmitBusinessMembershipLeadResult {
   return {
     success: false,
@@ -129,14 +138,7 @@ export async function submitBusinessMembershipLeadCore(params: {
 
         const parsed = submitBusinessMembershipLeadSchema.safeParse(params.data);
 
-        if (!parsed.success) {
-          return {
-            success: false,
-            error: 'Validation failed',
-            code: 'INVALID_PAYLOAD',
-            issues: formatFieldErrors(parsed.error.flatten().fieldErrors),
-          };
-        }
+        if (!parsed.success) return invalidPayload(parsed.error);
 
         const owner = await resolveBusinessLeadOwner(authority);
 
@@ -182,6 +184,9 @@ export async function submitBusinessMembershipLeadCore(params: {
     });
   } catch (error) {
     if (error instanceof AnonymousLeadClassificationError) {
+      // Field errors stay visible first; the payload check is pure and writes nothing.
+      const parsed = submitBusinessMembershipLeadSchema.safeParse(params.data);
+      if (!parsed.success) return invalidPayload(parsed.error);
       return {
         success: false,
         error: 'Classification required',

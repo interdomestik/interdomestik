@@ -128,4 +128,15 @@ describe('business classification before effects', () => {
     ).toBe(true);
     expect(m.authorize).toHaveBeenCalledWith('pilot-mk');
   });
+  it('reports field errors before a missing classification without effects', async () => {
+    const result = await submitBusinessMembershipLeadCore({
+      requestHeaders: ambient,
+      data: { ...data, firstName: '', consent: false, classification: {} },
+    });
+    expect(result).toMatchObject({ success: false, code: 'INVALID_PAYLOAD' });
+    expect(result.success ? {} : result.issues).toHaveProperty('firstName');
+    expect(m.authorize).not.toHaveBeenCalled();
+    expect(m.reserve).not.toHaveBeenCalled();
+    expect(m.create).not.toHaveBeenCalled();
+  });
 });
