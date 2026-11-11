@@ -237,8 +237,8 @@ export async function withContentPayloadCapture<T>(
         return;
       }
       state.open.delete(request);
-      // Track exactly one task per matching response and handle rejection immediately.
-      track(
+      // Track exactly one task per matching response; the tracked task never rejects.
+      void track(
         request,
         capturePayload(response, () => response.text(), sentinels, state)
       );
