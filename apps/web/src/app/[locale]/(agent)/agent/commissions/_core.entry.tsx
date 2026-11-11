@@ -4,7 +4,7 @@ import { CommissionsList } from '@/components/agent/commissions-list';
 import { ReferralLinkCard } from '@/components/agent/referral-link-card';
 import { getMyCommissionsCore } from '@interdomestik/domain-membership-billing/commissions/get-my';
 import { getMyCommissionSummaryCore } from '@interdomestik/domain-membership-billing/commissions/summary';
-import { getAgentReferralLinkCore } from '@interdomestik/domain-referrals/referrals/get-agent-link';
+import { getAgentReferralLinkCore } from '@/actions/referrals/get-agent-link';
 import { getTranslations } from 'next-intl/server';
 
 export default async function AgentCommissionsPage({

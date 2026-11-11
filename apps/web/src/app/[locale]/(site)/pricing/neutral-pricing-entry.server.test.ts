@@ -6,36 +6,25 @@ import {
 } from './neutral-pricing-entry.server';
 
 describe('neutral pricing entry', () => {
-  it('C27 pins the locale path to canonical, configured or local IDA and rejects unsafe config', () => {
-    expect(buildNeutralPricingEntryUrl('sq', {})).toBe('https://ida.interdomestik.com/sq/pricing');
-    expect(buildNeutralPricingEntryUrl('en', { IDA_HOST: 'https://ida.example.test:8443' })).toBe(
-      'https://ida.example.test:8443/en/pricing'
-    );
-    for (const appOrigin of ['http://127.0.0.1:3000', 'http://ks.localhost:3000']) {
-      expect(buildNeutralPricingEntryUrl('sr', { NEXT_PUBLIC_APP_URL: appOrigin })).toBe(
-        'http://ida.localhost:3000/sr/pricing'
-      );
-    }
-    expect(
-      buildNeutralPricingEntryUrl('mk', {
-        IDA_HOST: 'ida.127.0.0.1.nip.io:3000',
-        HOST: 'evil.example',
-        X_FORWARDED_HOST: 'evil.example',
-      })
-    ).toBe('http://ida.127.0.0.1.nip.io:3000/mk/pricing');
-
-    for (const IDA_HOST of [
-      '//evil.example',
-      'javascript:alert(1)',
-      'http://example.com',
-      'https://user:secret@ida.example.test',
-      'https://ida.example.test/path',
-      'https://ida.example.test?next=https://evil.example',
-      'https://ida.example.test#fragment',
+  it('C27 pins every locale to the explicitly configured deployment door', () => {
+    for (const [environment, origin] of [
+      ['production', 'https://ida.interdomestik.com'],
+      ['staging', 'https://staging.interdomestik.com'],
+      ['local', 'http://ida.localhost:3310'],
+      ['local', 'https://ida.127.0.0.1.nip.io:3443'],
     ]) {
-      expect(() => buildNeutralPricingEntryUrl('sq', { IDA_HOST })).toThrow('invalid_ida_host');
+      const env = {
+        INTERDOMESTIK_DEPLOY_ENV: environment,
+        NEXT_PUBLIC_APP_URL: origin,
+        BETTER_AUTH_URL: origin,
+        IDA_HOST: new URL(origin!).host,
+      };
+      for (const locale of ['sq', 'en', 'sr', 'mk', 'de']) {
+        expect(buildNeutralPricingEntryUrl(locale, env)).toBe(`${origin}/${locale}/pricing`);
+      }
     }
-    expect(() => buildNeutralPricingEntryUrl('https://evil.example', {})).toThrow(
+    expect(() => buildNeutralPricingEntryUrl('sq', {})).toThrow();
+    expect(() => buildNeutralPricingEntryUrl('https://evil.test', {})).toThrow(
       'invalid_pricing_locale'
     );
   });

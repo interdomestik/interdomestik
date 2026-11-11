@@ -1,3 +1,4 @@
+import { stubDeploymentOrigin } from '@/lib/deployment-origin.test-support';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -43,6 +44,7 @@ describe('actions/referrals getAgentReferralLinkCore', () => {
   const authority = mintTestTenantAuthority('tenant_mk');
   beforeEach(() => {
     vi.clearAllMocks();
+    stubDeploymentOrigin();
   });
 
   afterEach(() => {
@@ -98,7 +100,7 @@ describe('actions/referrals getAgentReferralLinkCore', () => {
 
   it('does not fall back to localhost for production referral links', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('NEXT_PUBLIC_APP_URL', '');
+    stubDeploymentOrigin('production', 'https://ida.interdomestik.com');
 
     const result = await getAgentReferralLinkCore({
       session: {
@@ -109,7 +111,7 @@ describe('actions/referrals getAgentReferralLinkCore', () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.link).toBe('https://www.interdomestik.com?ref=EXISTING-CODE');
+      expect(result.data.link).toBe('https://ida.interdomestik.com?ref=EXISTING-CODE');
     }
   });
 });

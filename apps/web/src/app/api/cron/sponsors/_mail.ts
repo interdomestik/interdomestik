@@ -1,9 +1,6 @@
+import { getServerDeploymentOrigin } from '@/lib/deployment-origin.server';
 import { sendMemberActivationInvite } from '@/lib/member-activation-invite';
-import {
-  coerceTenantId,
-  preferredLocaleForTenant,
-  resolveTenantAppOrigin,
-} from '@/lib/tenant/tenant-hosts';
+import { coerceTenantId, preferredLocaleForTenant } from '@/lib/tenant/tenant-hosts';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { sendEmail } from '@interdomestik/domain-communications/email';
 import { renderSponsorMail } from '@interdomestik/domain-communications/sponsor-mail';
@@ -17,7 +14,7 @@ const DISPLAY_TIME_ZONE = 'Europe/Belgrade';
 
 /**
  * The tenant's dependencies for the ACQ-3b sponsor mail sender (§3.8). Returns null when the tenant
- * has no app origin of this deployment; the roster secret is required and throws when missing, so
+ * is unsupported. Deployment configuration and the roster secret must be valid, so
  * no opt-out link is ever built from an empty secret.
  */
 export function sponsorMailDeps(
@@ -32,7 +29,7 @@ export function sponsorMailDeps(
     secret: readSponsorRosterSecret(),
     locale,
     formatDate: date => dates.format(date),
-    appUrl: resolveTenantAppOrigin(tenant),
+    appUrl: getServerDeploymentOrigin(),
     supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() || DEFAULT_SUPPORT_EMAIL,
     hasCredential: sponsorCredentialCheck(authority),
     sendMail: async (to, input) => {

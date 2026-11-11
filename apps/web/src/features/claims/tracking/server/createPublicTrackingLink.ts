@@ -1,3 +1,4 @@
+import { getServerDeploymentOrigin } from '@/lib/deployment-origin.server';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -8,18 +9,6 @@ import crypto from 'crypto';
 import { and, eq, isNull, or } from 'drizzle-orm';
 import { buildClaimVisibilityWhere } from '../utils';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-
-// Helper to get base URL
-function getBaseUrl() {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-  if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL;
-  if (process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production') {
-    return 'https://www.interdomestik.com';
-  }
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'http://localhost:3000';
-}
 
 type CreatePublicTrackingLinkContext = {
   /** The request's session tenant authority; the tenant for every read and write comes from it. */
@@ -62,6 +51,8 @@ export async function createPublicTrackingLink(
         throw new Error('Claim not found or access denied');
       }
 
+      const baseUrl = getServerDeploymentOrigin();
+
       // 2. Generate Token
       const tokenBuffer = crypto.randomBytes(32);
       const token = tokenBuffer.toString('base64url');
@@ -103,7 +94,6 @@ export async function createPublicTrackingLink(
       );
 
       // 5. Return URL
-      const baseUrl = getBaseUrl();
       const url = `${baseUrl}/track/${token}`;
 
       return { url, expiresAt };

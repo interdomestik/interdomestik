@@ -69,7 +69,7 @@ vi.mock('@interdomestik/domain-membership-billing/commissions/summary', () => ({
   getMyCommissionSummaryCore: hoisted.getMyCommissionSummaryMock,
 }));
 
-vi.mock('@interdomestik/domain-referrals/referrals/get-agent-link', () => ({
+vi.mock('@/actions/referrals/get-agent-link', () => ({
   getAgentReferralLinkCore: hoisted.getAgentReferralLinkCoreMock,
 }));
 

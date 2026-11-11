@@ -1,4 +1,4 @@
-export { DEFAULT_APP_NAME, DEFAULT_APP_URL, buildEmailTemplate, joinUrl } from './base';
+export { DEFAULT_APP_NAME, getAppUrl, buildEmailTemplate, joinUrl } from './base';
 export type { EmailTemplate, TemplateOptions } from './types';
 
 export { renderPasswordResetEmail } from './auth';

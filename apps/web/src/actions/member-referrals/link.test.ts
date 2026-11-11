@@ -1,3 +1,4 @@
+import { stubDeploymentOrigin } from '@/lib/deployment-origin.test-support';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -41,15 +42,14 @@ import { getMemberReferralLinkCore } from './link';
 
 describe('getMemberReferralLinkCore', () => {
   const authority = mintTestTenantAuthority('tenant_mk');
-  const originalEnv = process.env.NEXT_PUBLIC_APP_URL;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NEXT_PUBLIC_APP_URL = 'https://example.test';
+    stubDeploymentOrigin();
   });
 
   afterEach(() => {
-    process.env.NEXT_PUBLIC_APP_URL = originalEnv;
+    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
 
@@ -66,7 +66,7 @@ describe('getMemberReferralLinkCore', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.code).toMatch(/^JANE-[A-Z0-9]{6}$/);
-      expect(result.data.link).toBe(`https://example.test?ref=${result.data.code}`);
+      expect(result.data.link).toBe(`https://staging.interdomestik.com?ref=${result.data.code}`);
       expect(result.data.whatsappShareUrl).toContain(encodeURIComponent(result.data.link));
     }
 

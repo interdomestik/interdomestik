@@ -1,48 +1,29 @@
-function getOriginOrNull(): string | null {
-  if (globalThis.window === undefined) return null;
+import { getClientDeploymentOrigin } from './deployment-origin.client';
 
-  try {
-    return globalThis.window.location.origin;
-  } catch {
-    return null;
+export function normalizePublicLink(link: string, _currentOrigin?: string | null): string {
+  if (!link) return link;
+  const origin = getClientDeploymentOrigin();
+  const source = new URL(link);
+  if (!['http:', 'https:'].includes(source.protocol) || source.username || source.password) {
+    throw new Error('Invalid public application link');
   }
-}
-
-export function normalizePublicLink(link: string, currentOrigin = getOriginOrNull()): string {
-  if (!link || !currentOrigin) return link;
-
-  try {
-    const parsedLink = new URL(link);
-    const parsedOrigin = new URL(currentOrigin);
-
-    parsedLink.protocol = parsedOrigin.protocol;
-    parsedLink.host = parsedOrigin.host;
-
-    return parsedLink.toString();
-  } catch {
-    return link;
-  }
+  return `${origin}${source.pathname}${source.search}${source.hash}`;
 }
 
 export function normalizeWhatsAppShareUrl(
   shareUrl: string,
-  currentOrigin = getOriginOrNull()
+  _currentOrigin?: string | null
 ): string {
-  if (!shareUrl || !currentOrigin) return shareUrl;
-
-  try {
-    const parsedShareUrl = new URL(shareUrl);
-    const rawText = parsedShareUrl.searchParams.get('text');
-    if (!rawText) return shareUrl;
-
-    parsedShareUrl.searchParams.set(
-      'text',
-      rawText.replaceAll(/https?:\/\/[^\s]+/g, candidate =>
-        normalizePublicLink(candidate, currentOrigin)
-      )
-    );
-    return parsedShareUrl.toString();
-  } catch {
-    return shareUrl;
+  if (!shareUrl) return shareUrl;
+  const wrapper = new URL(shareUrl);
+  if (wrapper.origin !== 'https://wa.me' || wrapper.username || wrapper.password) {
+    throw new Error('Invalid WhatsApp share link');
   }
+  const text = wrapper.searchParams.get('text');
+  if (!text) return shareUrl;
+  wrapper.searchParams.set(
+    'text',
+    text.replaceAll(/https?:\/\/[^\s]+/g, candidate => normalizePublicLink(candidate))
+  );
+  return wrapper.toString();
 }

@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { stubDeploymentOrigin } from '../../deployment-origin.test-support';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   renderPaymentFailedEmail,
   renderPaymentFinalWarningEmail,
@@ -17,6 +18,9 @@ const renderers = [
   renderPaymentReminderEmail,
   renderPaymentFinalWarningEmail,
 ];
+
+beforeEach(() => stubDeploymentOrigin());
+afterEach(() => vi.unstubAllEnvs());
 
 describe('dunning template variants', () => {
   it.each(renderers)('preserves the ordinary variant when the flag is absent or false', render => {

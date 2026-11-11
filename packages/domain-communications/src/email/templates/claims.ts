@@ -1,6 +1,7 @@
+import type { EmailTemplate } from './types';
 import { type ClaimStatus } from '@interdomestik/database/constants';
 
-import { buildEmailTemplate, DEFAULT_APP_URL, joinUrl } from './base';
+import { buildEmailTemplate, getAppUrl, joinUrl } from './base';
 
 const STATUS_LABELS = {
   draft: 'Draft',
@@ -22,8 +23,8 @@ export function renderClaimSubmittedEmail(params: {
   claimId: string;
   claimTitle: string;
   category: string;
-}) {
-  const claimUrl = joinUrl(DEFAULT_APP_URL, `/member/claims/${params.claimId}`);
+}): EmailTemplate {
+  const claimUrl = joinUrl(getAppUrl(), `/member/claims/${params.claimId}`);
   return buildEmailTemplate({
     title: 'We received your claim',
     intro: `Your claim "${params.claimTitle}" has been submitted successfully.`,
@@ -37,8 +38,8 @@ export function renderClaimAssignedEmail(params: {
   claimId: string;
   claimTitle: string;
   agentName: string;
-}) {
-  const claimUrl = joinUrl(DEFAULT_APP_URL, `/member/claims/${params.claimId}`);
+}): EmailTemplate {
+  const claimUrl = joinUrl(getAppUrl(), `/member/claims/${params.claimId}`);
   return buildEmailTemplate({
     title: 'A new claim was assigned to you',
     intro: `"${params.claimTitle}" is now assigned to ${params.agentName}.`,
@@ -53,8 +54,8 @@ export function renderStatusChangedEmail(params: {
   claimTitle: string;
   oldStatus: string;
   newStatus: string;
-}) {
-  const claimUrl = joinUrl(DEFAULT_APP_URL, `/member/claims/${params.claimId}`);
+}): EmailTemplate {
+  const claimUrl = joinUrl(getAppUrl(), `/member/claims/${params.claimId}`);
   return buildEmailTemplate({
     title: `Claim status updated to ${formatStatusLabel(params.newStatus)}`,
     intro: `Your claim "${params.claimTitle}" has moved from ${formatStatusLabel(

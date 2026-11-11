@@ -8,7 +8,7 @@ import { MatteAnchorCard } from '@/components/dashboard/matte-anchor-card';
 import { Link } from '@/i18n/routing';
 import { localizeSeededBranchName } from '@/lib/localize-seeded-branch-name';
 import { getMyCommissionSummaryCore } from '@interdomestik/domain-membership-billing/commissions/summary';
-import { getAgentReferralLinkCore } from '@interdomestik/domain-referrals/referrals/get-agent-link';
+import { getAgentReferralLinkCore } from '@/actions/referrals/get-agent-link';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import {
   Button,
@@ -32,7 +32,6 @@ export async function AgentDashboardV2Page({
   tier?: string;
 }) {
   setRequestLocale(locale);
-
   const t = await getTranslations('agent');
   const tToolkit = await getTranslations('agent-toolkit');
   const { session, authority } = await getActionContext();
@@ -40,11 +39,9 @@ export async function AgentDashboardV2Page({
   if (!session?.user || !authority) {
     redirect('/auth/login');
   }
-
   const agentId = session.user.id;
   // Fails closed for a session without a tenant; the reads take their tenant from the authority.
   ensureTenantId(session);
-
   const [stats, branch, referralLinkResult, leaderboardResult, summaryResult] = await Promise.all([
     readAgentDashboardV2Stats({ agentId, authority }),
     session.user.branchId
@@ -54,7 +51,6 @@ export async function AgentDashboardV2Page({
     getAgentLeaderboardCore({ session, authority, period: 'month' }),
     getMyCommissionSummaryCore({ session, authority }),
   ]);
-
   const summary = summaryResult.success ? summaryResult.data : null;
 
   const isPro = ['pro', 'office'].includes(tier);

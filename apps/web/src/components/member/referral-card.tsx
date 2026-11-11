@@ -107,7 +107,7 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
     if (!data?.link) return;
 
     try {
-      await navigator.clipboard.writeText(normalizePublicLink(data.link));
+      await navigator.clipboard.writeText(data.link);
       setIsCopied(true);
       toast.success(t('copied'));
       globalThis.setTimeout(() => setIsCopied(false), 2000);
@@ -118,11 +118,7 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
 
   const handleShare = () => {
     if (!data?.whatsappShareUrl) return;
-    globalThis.open(
-      normalizeWhatsAppShareUrl(data.whatsappShareUrl),
-      '_blank',
-      'noopener,noreferrer'
-    );
+    globalThis.open(data.whatsappShareUrl, '_blank', 'noopener,noreferrer');
   };
 
   if (isLoading) {

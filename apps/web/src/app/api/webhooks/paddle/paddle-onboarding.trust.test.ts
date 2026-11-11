@@ -1,3 +1,4 @@
+import { stubDeploymentOrigin } from '@/lib/deployment-origin.test-support';
 import { getAuthBaseURL, getTrustedOrigins } from '@/lib/auth/utils';
 import { resolveTenantEmailOrigins } from '@/lib/email-link-origins';
 import type { TenantId } from '@/lib/tenant/tenant-host-aliases';
@@ -37,7 +38,7 @@ const SHAPES: Shape[] = [
     env: {
       VERCEL: '1',
       VERCEL_ENV: 'production',
-      BETTER_AUTH_URL: 'https://www.interdomestik.com',
+      BETTER_AUTH_URL: 'https://ida.interdomestik.com',
     },
     tenants: ['tenant_ks', 'tenant_mk'],
   },
@@ -51,17 +52,17 @@ const SHAPES: Shape[] = [
     tenants: ['tenant_ks', 'tenant_mk', 'tenant_al', 'pilot-mk'],
   },
   {
-    label: 'a local E2E lane on loopback',
-    env: { PLAYWRIGHT: '1', BETTER_AUTH_URL: 'http://127.0.0.1:3310' },
+    label: 'a local door lane',
+    env: { PLAYWRIGHT: '1', BETTER_AUTH_URL: 'http://ida.localhost:3310' },
     tenants: ['tenant_ks', 'tenant_mk', 'tenant_al', 'pilot-mk'],
   },
   {
-    label: 'a local E2E lane with an explicit tenant host it trusts',
+    label: 'a local door with an extra trusted alias',
     env: {
       PLAYWRIGHT: '1',
-      BETTER_AUTH_URL: 'http://127.0.0.1:3310',
+      BETTER_AUTH_URL: 'http://ida.localhost:3310',
       KS_HOST: 'ks.127.0.0.1.nip.io:3310',
-      BETTER_AUTH_TRUSTED_ORIGINS: 'http://127.0.0.1:3310,http://ks.127.0.0.1.nip.io:3310',
+      BETTER_AUTH_TRUSTED_ORIGINS: 'http://ida.localhost:3310,http://ks.127.0.0.1.nip.io:3310',
     },
     tenants: ['tenant_ks'],
   },
@@ -82,6 +83,11 @@ describe('emailed reset links and the Better Auth configuration', () => {
   });
 
   it.each(SHAPES)('agree on $label', async ({ env, tenants }) => {
+    const origin = env.BETTER_AUTH_URL!;
+    stubDeploymentOrigin(
+      origin.startsWith('http:') ? 'local' : origin.includes('staging.') ? 'staging' : 'production',
+      origin
+    );
     for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
     const baseURL = getAuthBaseURL();
     const context = await betterAuth({
@@ -97,8 +103,9 @@ describe('emailed reset links and the Better Auth configuration', () => {
     }
   });
 
-  it('notices an explicit tenant host Better Auth was not told to trust', async () => {
-    vi.stubEnv('BETTER_AUTH_URL', 'http://127.0.0.1:3310');
+  it('keeps an untrusted alias outside the generated destination', async () => {
+    stubDeploymentOrigin('local', 'http://ida.localhost:3310');
+    vi.stubEnv('BETTER_AUTH_URL', 'http://ida.localhost:3310');
     vi.stubEnv('KS_HOST', 'ks.127.0.0.1.nip.io:3310');
     const context = await betterAuth({
       baseURL: getAuthBaseURL(),
@@ -106,6 +113,9 @@ describe('emailed reset links and the Better Auth configuration', () => {
       secret: 'ida-acq2b2-trust-contract-secret-at-least-32-bytes',
     }).$context;
 
-    expect(context.isTrustedOrigin(buildTenantPasswordResetRedirectUrl('tenant_ks'))).toBe(false);
+    expect(context.isTrustedOrigin(buildTenantPasswordResetRedirectUrl('tenant_ks'))).toBe(true);
+    expect(context.isTrustedOrigin('http://ks.127.0.0.1.nip.io:3310/sq/reset-password')).toBe(
+      false
+    );
   });
 });

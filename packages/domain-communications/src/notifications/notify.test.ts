@@ -1,5 +1,6 @@
+import { stubDeploymentOrigin } from '../deployment-origin.test-support';
 import { authority, mocks } from './notify.test-support';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sendEmail } from '../email';
 import {
   clearSupportHandoffPublicResponseNotifications,
@@ -10,9 +11,12 @@ import {
   sendNotification,
 } from './notify';
 
+afterEach(() => vi.unstubAllEnvs());
+
 describe('sendNotification', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    stubDeploymentOrigin();
     mocks.findFirst.mockReset();
     mocks.delete.mockReturnValue({ where: mocks.deleteWhere });
     mocks.deleteWhere.mockResolvedValue(undefined);

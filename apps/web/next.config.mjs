@@ -1,3 +1,4 @@
+import { captureDeploymentOriginSnapshot } from '@interdomestik/domain-communications/deployment-origin';
 import withBundleAnalyzer from '@next/bundle-analyzer';
 import { withSentryConfig } from '@sentry/nextjs';
 import { withAxiom } from 'next-axiom';
@@ -11,6 +12,7 @@ const bundleAnalyzer = withBundleAnalyzer({
 });
 
 validateSupabaseDeploymentSeparation(process.env);
+const deploymentOrigin = captureDeploymentOriginSnapshot(process.env);
 
 const buildCspNonceMode = process.env.CSP_NONCE_MODE ?? 'off';
 if (buildCspNonceMode !== 'off' && buildCspNonceMode !== 'report') {
@@ -29,6 +31,8 @@ const nextConfig = {
   cacheComponents: buildCspNonceMode === 'off',
   // Bind the artifact without replacing the security helper's runtime CSP_NONCE_MODE read.
   env: {
+    INTERDOMESTIK_BUILT_DEPLOY_ENV: deploymentOrigin.environment ?? '',
+    INTERDOMESTIK_BUILT_DEPLOY_ORIGIN: deploymentOrigin.origin ?? '',
     INTERDOMESTIK_BUILT_CSP_NONCE_MODE: buildCspNonceMode,
     INTERDOMESTIK_BUILD_COPYRIGHT_YEAR: String(new Date().getUTCFullYear()),
   },
