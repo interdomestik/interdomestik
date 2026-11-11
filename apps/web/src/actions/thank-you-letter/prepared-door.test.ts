@@ -59,7 +59,10 @@ it('delivers the actual serialized prepared thank-you with its current door and 
 });
 
 it('refuses the actual legacy prepared thank-you with zero provider calls', async () => {
-  const { source: _source, ...request } = prepareThankYouLetterCore(params);
+  const prepared = prepareThankYouLetterCore(params);
+  const request = Object.fromEntries(
+    Object.entries(prepared).filter(([key]) => key !== 'source')
+  ) as Omit<typeof prepared, 'source'>;
   await expect(sendPreparedThankYouLetterCore({ ...delivery, request })).rejects.toThrow(
     'email_source_required'
   );
