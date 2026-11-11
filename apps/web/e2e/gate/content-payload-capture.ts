@@ -2,6 +2,7 @@ import { expect, type Page, type Request, type Response } from '@playwright/test
 
 export interface ContentPayloadCapture {
   readonly checkedPayloadCount: number;
+  checkedPayload: (response: Response) => Promise<string>;
   settled: () => Promise<void>;
 }
 
@@ -50,7 +51,7 @@ async function capturePayload(
   response: Response,
   sentinels: readonly string[],
   state: CaptureState
-): Promise<void> {
+): Promise<string> {
   const status = response.status();
   if (status >= 300 && status < 400) {
     const location = response.headers()['location'] ?? '(no location)';
@@ -62,6 +63,7 @@ async function capturePayload(
     if (payload.includes(sentinel)) throw new Error(`forbidden sentinel: ${sentinel}`);
   }
   state.checkedPayloadCount++;
+  return payload;
 }
 
 async function drainCaptures(pending: readonly Promise<void>[], settled = 0): Promise<void> {
@@ -121,6 +123,7 @@ export async function withContentPayloadCapture<T>(
 ): Promise<T> {
   const state: CaptureState = { checkedPayloadCount: 0, failures: [], open: new Set() };
   const pending: Promise<void>[] = [];
+  const payloads = new WeakMap<Response, Promise<string>>();
   const isMatch = (request: Request) => matches(new URL(request.url()), request);
   const listeners: CaptureListeners = {
     onRequest: request => {
@@ -131,9 +134,14 @@ export async function withContentPayloadCapture<T>(
       if (!isMatch(request)) return;
       state.open.delete(request);
       // Track exactly one task per matching response and handle rejection immediately.
-      const task = capturePayload(response, sentinels, state).catch(error => {
-        state.failures.push(`${response.url()}: body check failed: ${errorMessage(error)}`);
-      });
+      const payload = capturePayload(response, sentinels, state);
+      payloads.set(response, payload);
+      const task = payload.then(
+        () => {},
+        error => {
+          state.failures.push(`${response.url()}: body check failed: ${errorMessage(error)}`);
+        }
+      );
       pending.push(task);
     },
     onFailed: request => {
@@ -147,6 +155,11 @@ export async function withContentPayloadCapture<T>(
     get checkedPayloadCount() {
       return state.checkedPayloadCount;
     },
+    checkedPayload: response => {
+      const payload = payloads.get(response);
+      if (!payload) throw new Error(`Response was not captured: ${response.url()}`);
+      return payload;
+    },
     // Response events precede body completion; callers drain before reading the count.
     settled: () => drainCaptures(pending),
   };
@@ -154,6 +167,8 @@ export async function withContentPayloadCapture<T>(
     await releaseCapture(page, listeners, pending, state);
     throw withCaptureFailures(error, state.failures);
   });
+  // A successful visit must preserve pending bodies before cleanup can abort their requests.
+  await drainCaptures(pending);
   await releaseCapture(page, listeners, pending, state);
   expect(state.failures, 'every matching response body was received and checked').toEqual([]);
   return result;

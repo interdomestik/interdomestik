@@ -129,13 +129,20 @@ async function expectHandoffBoundaries(
     await toggle.focus();
     await capture.settled();
     const beforeDetail = capture.checkedPayloadCount;
+    const detailUrl = page.url();
     const [detailReply] = await Promise.all([
       page.waitForResponse(
-        res => res.request().method() === 'POST' && Boolean(res.request().headers()['next-action'])
+        res =>
+          res.url() === detailUrl &&
+          res.request().resourceType() === 'fetch' &&
+          res.request().method() === 'POST' &&
+          Boolean(res.request().headers()['next-action']) &&
+          res.request().postData() === JSON.stringify([fixture.handoffId])
       ),
       toggle.press('Enter'),
     ]);
-    const actionText = await detailReply.text();
+    // Use the same received bytes already checked by capture, before any later navigation.
+    const actionText = await capture.checkedPayload(detailReply);
     await expect(row.getByTestId('staff-support-handoff-detail-panel')).toBeVisible();
     await capture.settled();
     expect(capture.checkedPayloadCount, 'checked a new detail payload').toBeGreaterThan(
@@ -149,8 +156,12 @@ async function expectHandoffBoundaries(
       for (const sentinel of fixture.handoffSentinels) expect(actionText).not.toContain(sentinel);
       await expectHiddenSentinels(page, fixture.handoffSentinels);
       const metadata = handoffFlightResult(actionText) as {
+        kind: string;
         result: { data: Record<string, unknown>[] };
       };
+      expect(metadata).toMatchObject({ kind: 'metadata', result: { kind: 'ok' } });
+      expect(metadata.result.data).toHaveLength(1);
+      expect(metadata.result.data[0].id).toBe(fixture.handoffId);
       expect(Object.keys(metadata.result.data[0]).sort((a, b) => a.localeCompare(b))).toEqual(
         [
           'id',
