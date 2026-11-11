@@ -20,6 +20,12 @@ export const test = base.extend<{ door: { page: Page; origin: string; locale: st
       storageState: { cookies: [], origins: [] },
       ignoreHTTPSErrors: true,
     });
+    // Cookie consent is a privacy preference, not tenant authority; seeding it keeps the
+    // banner from covering door controls while every authority input stays empty.
+    await context.addCookies([{ name: 'cookie_consent', value: 'accepted', url: origin }]);
+    await context.addInitScript(() => {
+      window.localStorage.setItem('interdomestik_cookie_consent_v1', 'accepted');
+    });
     try {
       const page = await context.newPage();
       await use({ page, origin, locale });
@@ -42,9 +48,30 @@ export async function loginAtDoor(
     baseURL: origin,
     marker: 'auth-ready',
   });
+  // Prove the client form is hydrated before typing, so React state owns the filled values.
+  // A pre-hydration click is a no-op, so retry the toggle until React handles it.
+  const password = page.getByTestId('login-password');
+  const visibility = password.locator('..').getByRole('button');
+  await expect(async () => {
+    if ((await password.getAttribute('type')) !== 'text') await visibility.click();
+    await expect(password).toHaveAttribute('type', 'text', { timeout: 1_000 });
+  }).toPass();
+  await visibility.click();
+  await expect(password).toHaveAttribute('type', 'password');
   await page.getByTestId('login-email').fill(E2E_USERS[actor].email);
-  await page.getByTestId('login-password').fill(E2E_PASSWORD);
-  await page.getByTestId('login-submit').click();
+  await password.fill(E2E_PASSWORD);
+  await expect(page.getByTestId('login-email')).toHaveValue(E2E_USERS[actor].email);
+  const [signIn] = await Promise.all([
+    page.waitForResponse(
+      res =>
+        new URL(res.url()).pathname === '/api/auth/sign-in/email' &&
+        res.request().method() === 'POST'
+    ),
+    page.getByTestId('login-submit').click(),
+  ]);
+  expect(signIn.status()).toBe(200);
+  // Let the form's post-login redirect settle so it cannot interrupt the caller's next navigation.
+  await page.waitForURL(url => !/\/login\/?$/.test(url.pathname), { waitUntil: 'load' });
   await expect
     .poll(async () => {
       const response = await page.request.get(`${origin}/api/auth/get-session`);
