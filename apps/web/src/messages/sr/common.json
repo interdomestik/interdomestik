@@ -83,7 +83,7 @@
       "unavailable": "Ova zemlja ili program nije dostupan. Pokušajte ponovo ili kontaktirajte podršku.",
       "submitError": "Zahtev nije poslat. Pokušajte ponovo.",
       "tenants": {
-        "tenant_ks": "Kosovo",
+        "tenant_ks": "Kosovo — standardna usluga",
         "tenant_mk": "Severna Makedonija — standardna usluga",
         "pilot-mk": "Severna Makedonija — pilot program"
       }

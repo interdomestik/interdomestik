@@ -52,7 +52,7 @@ export async function createDoorClaim(
   return claim;
 }
 
-export async function doorDocuments(claimId: string) {
+export function doorDocuments(claimId: string) {
   return db.query.claimDocuments.findMany({ where: eq(claimDocuments.claimId, claimId) });
 }
 
@@ -76,15 +76,16 @@ export async function assertDoorDocumentMetadata(
   await expect
     .poll(async () => (await doorDocuments(claim.id)).filter(row => row.name === name).length)
     .toBe(1);
-  const rows = (await doorDocuments(claim.id)).filter(row => row.name === name);
-  expect(rows[0]).toMatchObject({
+  const row = (await doorDocuments(claim.id)).find(document => document.name === name);
+  if (!row) throw new Error(`Door document ${name} was not persisted`);
+  expect(row).toMatchObject({
     tenantId: claim.tenantId,
     claimId: claim.id,
     uploadedBy: E2E_USER_IDS[actor],
     fileSize: bytes.length,
   });
-  expect(rows[0].filePath).toContain(`/tenants/${claim.tenantId}/claims/${claim.id}/`);
-  return rows[0];
+  expect(row.filePath).toContain(`/tenants/${claim.tenantId}/claims/${claim.id}/`);
+  return row;
 }
 
 export async function assertStoredDoorDocument(

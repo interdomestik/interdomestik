@@ -83,7 +83,7 @@
       "unavailable": "Ky vend ose program nuk është i disponueshëm. Provoni përsëri ose kontaktoni mbështetjen.",
       "submitError": "Kërkesa nuk u dërgua. Ju lutemi provoni përsëri.",
       "tenants": {
-        "tenant_ks": "Kosovë",
+        "tenant_ks": "Kosovë — shërbimi standard",
         "tenant_mk": "Maqedonia e Veriut — shërbimi standard",
         "pilot-mk": "Maqedonia e Veriut — programi pilot"
       }

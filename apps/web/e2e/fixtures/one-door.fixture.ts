@@ -64,7 +64,7 @@ export async function loginAtDoor(
   expect(new URL(page.url()).origin).toBe(origin);
 }
 
-export async function directDoorUpload(
+export function directDoorUpload(
   page: Page,
   origin: string,
   claimId: string,
