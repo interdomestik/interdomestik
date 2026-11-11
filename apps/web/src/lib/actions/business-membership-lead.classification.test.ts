@@ -80,11 +80,19 @@ describe('business classification before effects', () => {
       requestHeaders: ambient,
       data: { ...data, classification },
     });
-    expect(result.success).toBe(false);
+    expect(result.success ? '' : result.code).toMatch(/^CLASSIFICATION_/);
     expect(m.authorize).not.toHaveBeenCalled();
     expect(m.reserve).not.toHaveBeenCalled();
     expect(m.owner).not.toHaveBeenCalled();
     expect(m.create).not.toHaveBeenCalled();
+  });
+  it('keeps the classification code when the property is omitted from valid fields', async () => {
+    const result = await submitBusinessMembershipLeadCore({
+      requestHeaders: ambient,
+      data: data as Parameters<typeof submitBusinessMembershipLeadCore>[0]['data'],
+    });
+    expect(result).toMatchObject({ success: false, code: 'CLASSIFICATION_REQUIRED' });
+    expect(m.reserve).not.toHaveBeenCalled();
   });
   it('rechecks activity before reservation and handles a tenant deactivated after option loading', async () => {
     m.authorize.mockResolvedValueOnce(null);

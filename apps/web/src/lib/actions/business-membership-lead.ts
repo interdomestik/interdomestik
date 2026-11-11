@@ -33,6 +33,8 @@ const submitBusinessMembershipLeadSchema = z.object({
   classification: z.unknown(),
   consent: z.boolean().refine(value => value, 'Confirm that we may contact you'),
 });
+// Field-only check for a failed classification; classification keeps its own CLASSIFICATION_* code.
+const businessLeadFieldSchema = submitBusinessMembershipLeadSchema.omit({ classification: true });
 
 export type SubmitBusinessMembershipLeadInput = z.infer<typeof submitBusinessMembershipLeadSchema>;
 
@@ -185,8 +187,8 @@ export async function submitBusinessMembershipLeadCore(params: {
   } catch (error) {
     if (error instanceof AnonymousLeadClassificationError) {
       // Field errors stay visible first; the payload check is pure and writes nothing.
-      const parsed = submitBusinessMembershipLeadSchema.safeParse(params.data);
-      if (!parsed.success) return invalidPayload(parsed.error);
+      const fields = businessLeadFieldSchema.safeParse(params.data);
+      if (!fields.success) return invalidPayload(fields.error);
       return {
         success: false,
         error: 'Classification required',
