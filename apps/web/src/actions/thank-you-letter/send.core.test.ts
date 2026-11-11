@@ -111,12 +111,13 @@ describe('sendThankYouLetterCore', () => {
     });
   });
 
-  it('sends the exact persisted provider request without re-rendering it', async () => {
+  it('passes the complete persisted source to the shared delivery renderer', async () => {
     const request = {
       to: 'stored@example.test',
       subject: 'Stored subject',
       html: '<p>Stored body</p>',
       text: 'Stored body',
+      source: { version: 1, kind: 'thank-you', params: { dashboardUrl: '/mk/member' } },
     };
 
     await expect(
@@ -127,10 +128,8 @@ describe('sendThankYouLetterCore', () => {
         idempotencyKey: params.idempotencyKey,
       })
     ).resolves.toEqual({ success: true, id: 'email-1' });
-    expect(mocks.sendEmail).toHaveBeenCalledWith(
-      request.to,
-      { subject: request.subject, html: request.html, text: request.text },
-      { idempotencyKey: params.idempotencyKey }
-    );
+    expect(mocks.sendEmail).toHaveBeenCalledWith(request.to, request, {
+      idempotencyKey: params.idempotencyKey,
+    });
   });
 });

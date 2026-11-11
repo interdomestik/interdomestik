@@ -95,7 +95,7 @@ it('preserves URLs in cash-payment notes while validating its generated link slo
 });
 
 it.each(['html', 'text'] as const)(
-  'refuses a mismatched generated %s CTA before calling the provider',
+  're-renders a changed %s payload from its explicit source CTA',
   async part => {
     const template = renderNewMessageEmail({
       claimId: 'claim-1',
@@ -104,9 +104,9 @@ it.each(['html', 'text'] as const)(
       messagePreview: contentUrls[0],
     });
     template[part] = template[part].replace('/member/claims/claim-1', '/member/claims/other');
-    await expect(sendEmail('member@example.test', template)).rejects.toThrow(
-      'Inconsistent email CTA destinations'
-    );
-    expect(provider).not.toHaveBeenCalled();
+    await sendEmail('member@example.test', template);
+    expect(provider).toHaveBeenCalledOnce();
+    expect(provider.mock.calls[0][0][part]).toContain('/member/claims/claim-1');
+    expect(provider.mock.calls[0][0][part]).not.toContain('/member/claims/other');
   }
 );

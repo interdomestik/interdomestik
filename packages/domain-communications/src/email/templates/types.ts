@@ -4,6 +4,8 @@ export type EmailTemplate = {
   subject: string;
   html: string;
   text: string;
+  // Unknown at persisted boundaries; renderEmailDelivery validates the versioned source.
+  source?: unknown;
 };
 
 export type TemplateOptions = {

@@ -6,15 +6,24 @@ import {
   stubDeploymentOrigin,
 } from './deployment-origin.test-support';
 import baseline from './email/fixtures/stored-main.json';
+import { renderThankYouLetterEmail } from './email/thank-you-letter';
 import type { EmailTemplate } from './email-templates';
 
-const provider = vi.hoisted(() => ({ send: vi.fn(), smtp: vi.fn() }));
+const provider = vi.hoisted(() => ({ send: vi.fn(), smtp: vi.fn(), initialize: vi.fn() }));
 vi.mock('resend', () => ({
   Resend: class {
+    constructor() {
+      provider.initialize();
+    }
     emails = { send: provider.send };
   },
 }));
-vi.mock('nodemailer', () => ({ createTransport: () => ({ sendMail: provider.smtp }) }));
+vi.mock('nodemailer', () => ({
+  createTransport: () => {
+    provider.initialize();
+    return { sendMail: provider.smtp };
+  },
+}));
 
 beforeEach(() => {
   stubDeploymentOrigin('production', PRODUCTION_DOOR);
@@ -24,39 +33,77 @@ beforeEach(() => {
   vi.stubEnv('RESEND_API_KEY', 'test-key');
   provider.send.mockReset().mockResolvedValue({ data: { id: 'mail' }, error: null });
   provider.smtp.mockReset().mockResolvedValue({ messageId: 'mail' });
+  provider.initialize.mockClear();
 });
 afterEach(() => vi.unstubAllEnvs());
 
-function expectPayload(template: EmailTemplate, oldOrigin: string, idempotencyKey: string): void {
+function thankYou(locale: 'en' | 'sq' | 'mk' | 'sr' | 'de' = 'en'): EmailTemplate {
+  return renderThankYouLetterEmail({
+    locale,
+    memberName: 'Member',
+    memberNumber: 'MEM-1',
+    planName: 'Family',
+    planPrice: '20',
+    planInterval: 'year',
+    memberSince: '2026-01-01',
+    expiresAt: '2027-01-01',
+    providerReference: 'sub_1',
+    dashboardUrl: `/${locale}/member/membership?token=A%2B1#details`,
+  });
+}
+function expectPayload(template: EmailTemplate, idempotencyKey: string): void {
   expect(provider.send).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({
       subject: template.subject,
-      html: template.html.replaceAll(oldOrigin, PRODUCTION_DOOR),
-      text: template.text.replaceAll(oldOrigin, PRODUCTION_DOOR),
+      html: template.html.replaceAll(STAGING_DOOR, PRODUCTION_DOOR),
+      text: template.text.replaceAll(STAGING_DOOR, PRODUCTION_DOOR),
     }),
     { idempotencyKey }
   );
 }
+const sends = [
+  [
+    'dunning',
+    (template: EmailTemplate) =>
+      sendPreparedPastDueEmail(
+        {
+          from: 'support@example.test',
+          to: 'member@example.test',
+          ...template,
+        },
+        'stored-key'
+      ),
+  ],
+  [
+    'thank-you',
+    (template: EmailTemplate) =>
+      sendEmail('member@example.test', template, {
+        idempotencyKey: 'stored-key',
+      }),
+  ],
+] as const;
 
-describe('stored destinations are checked against the door at delivery time', () => {
-  // These complete payloads were rendered by origin/main, including its retained www default.
-  it('rebases the origin/main www dunning payload when replayed under the canonical door', async () => {
-    await sendPreparedPastDueEmail(Object.freeze(baseline.dunning), 'dunning-replay');
-    expectPayload(baseline.dunning, 'https://www.interdomestik.com', 'dunning-replay');
-    expect(baseline.dunning.text).toContain('https://www.interdomestik.com/member/membership');
+describe('stored destinations are checked as source data at delivery time', () => {
+  it('refuses origin/main rendered-only dunning instead of guessing its CTA', async () => {
+    await expect(
+      sendPreparedPastDueEmail(Object.freeze(baseline.dunning), 'dunning-replay')
+    ).rejects.toThrow('email_source_required');
+    expect(provider.send).not.toHaveBeenCalled();
+    expect(provider.initialize).not.toHaveBeenCalled();
   });
-
   it.each(baseline.thankYou)(
-    'rebases the stored $locale thank-you HTML and text without changing copy or tokens',
+    'refuses origin/main rendered-only $locale thank-you',
     async ({ template }) => {
-      await sendEmail('member@example.test', Object.freeze(template), {
-        idempotencyKey: 'confirmation-replay',
-      });
-      expectPayload(template, 'https://ks.interdomestik.com', 'confirmation-replay');
+      await expect(
+        sendEmail('member@example.test', Object.freeze(template), {
+          idempotencyKey: 'confirmation-replay',
+        })
+      ).rejects.toThrow('email_source_required');
+      expect(provider.send).not.toHaveBeenCalled();
+      expect(provider.initialize).not.toHaveBeenCalled();
     }
   );
-
-  it('uses current configuration when a staged dunning request is delivered after cutover', async () => {
+  it('rebases a serialized staged dunning source after cutover without changing the stored request', async () => {
     stubDeploymentOrigin();
     const request = preparePastDueEmail('member@example.test', {
       memberName: 'Member',
@@ -64,57 +111,66 @@ describe('stored destinations are checked against the door at delivery time', ()
       gracePeriodDays: 14,
       gracePeriodEndDate: '2026-12-01',
     });
+    const saved = JSON.stringify(request);
     stubDeploymentOrigin('production', PRODUCTION_DOOR);
-    await sendPreparedPastDueEmail(request, 'staging-replay');
-    expectPayload(request, STAGING_DOOR, 'staging-replay');
+    await sendPreparedPastDueEmail(Object.freeze(JSON.parse(saved)), 'staging-replay');
+    expectPayload(request, 'staging-replay');
+    expect(JSON.stringify(request)).toBe(saved);
   });
-
-  const deliveries = [
-    [
-      'dunning',
-      (template: EmailTemplate) =>
-        sendPreparedPastDueEmail({ ...baseline.dunning, ...template }, 'stored-key'),
-    ],
-    [
-      'thank-you',
-      (template: EmailTemplate) =>
-        sendEmail('member@example.test', template, { idempotencyKey: 'stored-key' }),
-    ],
-  ] as const;
-  const rejected = deliveries.flatMap(([family, send]) =>
-    ['html', 'text'].flatMap(part =>
-      ['resend', 'smtp'].map(transport => ({ family, send, part, transport }))
+  it.each(['sq', 'en', 'sr', 'mk', 'de'] as const)(
+    'rebases serialized %s thank-you source and preserves copy and tokens',
+    async locale => {
+      stubDeploymentOrigin();
+      const request = thankYou(locale);
+      stubDeploymentOrigin('production', PRODUCTION_DOOR);
+      await sendEmail('member@example.test', Object.freeze(JSON.parse(JSON.stringify(request))), {
+        idempotencyKey: 'confirmation-replay',
+      });
+      expectPayload(request, 'confirmation-replay');
+    }
+  );
+  const rejected = sends.flatMap(([family, send]) =>
+    ['resend', 'smtp'].flatMap(transport =>
+      [
+        'https://evil.test/steal',
+        'https://ida.interdomestik.com.evil.test/path',
+        'https://user@ida.interdomestik.com/path',
+        'https://ida.interdomestik.com:444/path',
+        'http://ida.interdomestik.com/path',
+      ].map(destination => ({ family, send, transport, destination }))
     )
   );
   it.each(rejected)(
-    '$family refuses a foreign origin in stored $part with zero $transport provider calls',
-    async ({ send, part, transport }) => {
+    '$family refuses structured $destination with zero $transport calls',
+    async ({ send, transport, destination }) => {
       vi.stubEnv('SMTP_HOST', transport === 'smtp' ? 'localhost' : '');
-      const template = { ...baseline.thankYou[0].template };
-      if (part === 'html')
-        template.html = template.html.replaceAll(
-          'https://ks.interdomestik.com',
-          'https://evil.test'
-        );
-      else
-        template.text = template.text.replaceAll(
-          'https://ks.interdomestik.com',
-          'https://evil.test'
-        );
-      await expect(send(template)).rejects.toThrow();
+      const request = thankYou();
+      const source = {
+        version: 1,
+        kind: 'thank-you',
+        params: {
+          ...(request.source as { params: object }).params,
+          dashboardUrl: destination,
+        },
+      };
+      await expect(send({ ...request, source })).rejects.toThrow(
+        'Invalid email application destination'
+      );
       expect(provider.send).not.toHaveBeenCalled();
       expect(provider.smtp).not.toHaveBeenCalled();
+      expect(provider.initialize).not.toHaveBeenCalled();
     }
   );
-
-  it('rebases stored destinations on the SMTP delivery path too', async () => {
+  it('rebases structured destinations on SMTP delivery too', async () => {
+    stubDeploymentOrigin();
+    const request = thankYou();
+    stubDeploymentOrigin('production', PRODUCTION_DOOR);
     vi.stubEnv('SMTP_HOST', 'localhost');
-    const template = baseline.thankYou[0].template;
-    await sendEmail('member@example.test', template);
+    await sendEmail('member@example.test', request);
     expect(provider.smtp).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
-        html: template.html.replaceAll('https://ks.interdomestik.com', PRODUCTION_DOOR),
-        text: template.text.replaceAll('https://ks.interdomestik.com', PRODUCTION_DOOR),
+        html: request.html.replaceAll(STAGING_DOOR, PRODUCTION_DOOR),
+        text: request.text.replaceAll(STAGING_DOOR, PRODUCTION_DOOR),
       })
     );
   });

@@ -8,6 +8,53 @@ afterEach(() => vi.restoreAllMocks());
 
 describe('ordered past-due effect recovery', () => {
   it.each([true, false])(
+    'retains structured source through persistence and covered=%s replay',
+    async covered => {
+      seed('active', T1, 'evt_old');
+      vi.spyOn(sponsorCoverage, 'readPastDueAccessContinues').mockResolvedValue(covered);
+      vi.spyOn(sponsorCoverage, 'pastDueAccessContinuesInTx').mockResolvedValue(covered);
+      vi.mocked(deps.preparePastDueEmail).mockImplementation((to, params) => ({
+        from: 'support@example.com',
+        to,
+        subject: 'Payment failed',
+        html: '<p>Due</p>',
+        text: 'Due',
+        source: {
+          version: 1,
+          kind: 'standard',
+          params: {
+            title: 'Payment failed',
+            intro: params.accessContinues ? 'Covered' : 'Uncovered',
+            ctaLabel: 'Open membership',
+            ctaUrl: 'https://staging.interdomestik.com/en/member',
+          },
+        },
+      }));
+      hoisted.store.crashAfterCommit = true;
+      await expect(handleSubscriptionPastDue(pastDue(T2, 'evt_source'), deps)).rejects.toThrow(
+        'injected post-commit crash'
+      );
+      // Replay reads the persisted JSON rather than the freshly prepared request.
+      await handleSubscriptionPastDue(pastDue(T2, 'evt_source'), deps);
+      expect(deps.sendPreparedPastDueEmail).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          source: {
+            version: 1,
+            kind: 'standard',
+            params: {
+              title: 'Payment failed',
+              intro: covered ? 'Covered' : 'Uncovered',
+              ctaLabel: 'Open membership',
+              ctaUrl: 'https://staging.interdomestik.com/en/member',
+            },
+          },
+        }),
+        expect.any(String)
+      );
+    }
+  );
+
+  it.each([true, false])(
     'refreshes coverage on delivery replay (access continues: %s)',
     async covered => {
       seed('active', T1, 'evt_old');

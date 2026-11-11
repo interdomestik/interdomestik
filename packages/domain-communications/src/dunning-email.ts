@@ -1,4 +1,5 @@
-import { resolveEmailDestinations } from './email/template-destinations';
+import { renderEmailDelivery } from './email/render-delivery';
+import type { EmailTemplate } from './email/templates/types';
 import { isEmailSuppressed, suppressedEmailResult } from './non-sending-email';
 import { getResendClient, getSenderAddress, sendEmail } from './email';
 import { renderPaymentFailedEmail } from './email-templates';
@@ -26,7 +27,7 @@ export async function sendPaymentFailedEmail(
 export function preparePastDueEmail(
   to: string,
   params: Parameters<typeof sendPaymentFailedEmail>[1]
-): { from: string; to: string; subject: string; html: string; text: string } {
+): EmailTemplate & { from: string; to: string } {
   return { from: getSenderAddress(), to, ...renderPaymentFailedEmail(params) };
 }
 
@@ -36,7 +37,7 @@ export async function sendPreparedPastDueEmail(
   idempotencyKey: string
 ): Promise<EmailResult> {
   if (isEmailSuppressed(request.to)) return suppressedEmailResult;
-  const delivery = resolveEmailDestinations(request);
+  const delivery = renderEmailDelivery(request);
   if (process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1')
     return { success: true, id: `mock:${idempotencyKey}` };
   const telemetry = createEmailTelemetry('content-free');

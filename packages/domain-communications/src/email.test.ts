@@ -1,4 +1,7 @@
 import { stubDeploymentOrigin } from './deployment-origin.test-support';
+import { buildEmailTemplate } from './email/templates/base';
+const applicationEmail = (title: string) =>
+  buildEmailTemplate({ title, intro: title, ctaLabel: 'Open', ctaUrl: '/member' });
 import { campaignSelectMock } from './campaign-query.test-support';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // prettier-ignore
@@ -69,11 +72,9 @@ describe('email delivery fallback', () => {
     const { sendEmail } = await import('./email');
 
     await expect(
-      sendEmail(
-        'member@example.com',
-        { subject: 'Membership confirmed', html: '<p>Confirmed</p>', text: 'Confirmed' },
-        { idempotencyKey: 'membership-confirmation:v1:tenant_mk:sub_provider_1' }
-      )
+      sendEmail('member@example.com', applicationEmail('Membership confirmed'), {
+        idempotencyKey: 'membership-confirmation:v1:tenant_mk:sub_provider_1',
+      })
     ).resolves.toEqual({ success: true, id: 'resend-message-id' });
 
     expect(m.resendSend).toHaveBeenCalledWith(
@@ -95,23 +96,31 @@ describe('email delivery fallback', () => {
       success: true,
       id: 'dunning-id',
     });
-    expect(m.resendSend).toHaveBeenCalledWith(expect.objectContaining(request), {
-      idempotencyKey: 'dunning-key',
-    });
+    expect(m.resendSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: request.from,
+        to: request.to,
+        subject: request.subject,
+        html: request.html,
+        text: request.text,
+      }),
+      {
+        idempotencyKey: 'dunning-key',
+      }
+    );
     expect(m.sendMail).not.toHaveBeenCalled();
   });
   it('fails recoverable dunning closed when only non-idempotent SMTP is configured', async () => {
     vi.stubEnv('RESEND_API_KEY', '');
-    const { sendPreparedPastDueEmail } = await import('./email');
+    const { preparePastDueEmail, sendPreparedPastDueEmail } = await import('./email');
     await expect(
       sendPreparedPastDueEmail(
-        {
-          from: 'a@example.com',
-          to: 'b@example.com',
-          subject: 'Due',
-          html: '<p>Due</p>',
-          text: 'Due',
-        },
+        preparePastDueEmail('b@example.com', {
+          memberName: 'Member',
+          planName: 'Family',
+          gracePeriodDays: 14,
+          gracePeriodEndDate: '2026-12-01',
+        }),
         'key'
       )
     ).resolves.toMatchObject({ success: false });
@@ -141,7 +150,7 @@ describe('email delivery fallback', () => {
       await sendEmail(
         'private@example.com',
         { subject: 'PRIVATE SUBJECT', html: '<p>654321</p>', text: '654321' },
-        { telemetryPolicy: 'content-free' }
+        { telemetryPolicy: 'content-free', templateType: 'sign-in-otp' }
       );
       const logs = JSON.stringify(spies.flatMap(spy => spy.mock.calls));
       expect(logs).toContain(provider === 'playwright' ? 'mock' : provider);
@@ -150,7 +159,10 @@ describe('email delivery fallback', () => {
       );
       if (provider === 'resend') {
         const message = { subject: '', html: '', text: '' };
-        const contentFree = { telemetryPolicy: 'content-free' } as const;
+        const contentFree = {
+          telemetryPolicy: 'content-free',
+          templateType: 'sign-in-otp',
+        } as const;
         for (const failure of [{ data: {}, error: null }, new Error('RAW_PROVIDER_FAILURE')]) {
           const response =
             failure instanceof Error ? Promise.reject(failure) : Promise.resolve(failure);
@@ -234,7 +246,7 @@ describe('email delivery fallback', () => {
     m.sendMail.mockResolvedValue({ messageId: 'default-message-id' });
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     const { sendEmail } = await import('./email');
-    await sendEmail('member@example.com', { subject: 'Default', html: '', text: '' });
+    await sendEmail('member@example.com', applicationEmail('Default'));
     expect(log).toHaveBeenCalledWith('[SMTP] Email sent to member@example.com: default-message-id');
   });
 });

@@ -75,5 +75,21 @@ export function buildEmailTemplate({
     subject: title,
     html,
     text: textParts.join('\n\n'),
+    ...(isAuthIssuedTemplate(templateType)
+      ? {}
+      : {
+          source: {
+            version: 1,
+            kind: 'standard',
+            params: {
+              title,
+              intro,
+              details: details?.slice(),
+              ctaLabel,
+              ctaUrl: destination,
+              footer: footer || `${DEFAULT_APP_NAME} Team`,
+            },
+          },
+        }),
   };
 }

@@ -1,4 +1,7 @@
 import { stubDeploymentOrigin } from './deployment-origin.test-support';
+import { buildEmailTemplate } from './email/templates/base';
+const fixtureEmail = () =>
+  buildEmailTemplate({ title: 'fixture', intro: 'fixture', ctaLabel: 'Open', ctaUrl: '/member' });
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { e2eEmail } from '../../database/src/e2e-users';
@@ -43,7 +46,7 @@ it.each(['', 'external.example.test', '127.0.0.1'])(
         'member@other.invalid',
         'Staff <STAFF@SYNTHETIC.INVALID>',
       ].map(async to => {
-        await expect(sendEmail(to, { subject: 'fixture', html: '', text: '' })).resolves.toEqual({
+        await expect(sendEmail(to, fixtureEmail())).resolves.toEqual({
           success: false,
           suppressed: true,
           error: 'email_suppressed',
@@ -147,7 +150,7 @@ it.each([
   vi.stubEnv('SMTP_HOST', '');
   transport.resendSend.mockResolvedValue({ data: { id: 'real-id' } });
   const { sendEmail } = await import('./email');
-  await expect(sendEmail(to, { subject: 'fixture', html: '', text: '' })).resolves.toEqual({
+  await expect(sendEmail(to, fixtureEmail())).resolves.toEqual({
     success: true,
     id: 'real-id',
   });
@@ -190,11 +193,10 @@ it('passes multiple remaining real mailboxes as separate provider recipients', a
   vi.stubEnv('SMTP_HOST', '');
   transport.resendSend.mockResolvedValue({ data: { id: 'real-id' } });
   const { sendEmail } = await import('./email');
-  await sendEmail(['one@example.com, member@other.invalid', 'Two <two@example.com>'], {
-    subject: 'fixture',
-    html: '',
-    text: '',
-  });
+  await sendEmail(
+    ['one@example.com, member@other.invalid', 'Two <two@example.com>'],
+    fixtureEmail()
+  );
   expect(transport.resendSend).toHaveBeenCalledWith(
     expect.objectContaining({ to: ['one@example.com', 'two@example.com'] }),
     undefined

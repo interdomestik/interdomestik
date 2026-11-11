@@ -91,5 +91,6 @@ export function renderSponsorMail(input: SponsorMailInput): EmailTemplate {
       ...links.map(link => `${link.label}: ${link.url}`),
       support,
     ].join('\n\n'),
+    source: { version: 1, kind: 'sponsor', params: { ...input } },
   };
 }

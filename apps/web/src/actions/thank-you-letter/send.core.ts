@@ -23,15 +23,7 @@ export async function sendPreparedThankYouLetterCore(
   if (params.idempotencyKey !== expectedIdempotencyKey) {
     return { success: false, error: 'Invalid confirmation idempotency key' };
   }
-  return sendEmail(
-    params.request.to,
-    {
-      subject: params.request.subject,
-      html: params.request.html,
-      text: params.request.text,
-    },
-    { idempotencyKey: params.idempotencyKey }
-  );
+  return sendEmail(params.request.to, params.request, { idempotencyKey: params.idempotencyKey });
 }
 
 export async function sendThankYouLetterCore(

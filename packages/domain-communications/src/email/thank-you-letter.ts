@@ -1,4 +1,5 @@
 import { resolveDoorDestination } from './door-destination';
+import type { EmailTemplate } from './templates/types';
 export type ConfirmationLocale = 'en' | 'sq' | 'mk' | 'sr' | 'de';
 
 type ThankYouLetterParams = {
@@ -143,7 +144,7 @@ function escapeHtml(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
-export function renderThankYouLetterEmail(params: ThankYouLetterParams) {
+export function renderThankYouLetterEmail(params: ThankYouLetterParams): EmailTemplate {
   const t = TRANSLATIONS[params.locale];
   const memberName = escapeHtml(params.memberName);
   const destination = resolveDoorDestination(params.dashboardUrl);
@@ -210,7 +211,12 @@ ${t.boundary}
 
 ${t.cta}: ${destination}`;
 
-  return { subject: t.subject, html, text };
+  return {
+    subject: t.subject,
+    html,
+    text,
+    source: { version: 1, kind: 'thank-you', params: { ...params, dashboardUrl: destination } },
+  };
 }
 
 export type { ThankYouLetterParams };

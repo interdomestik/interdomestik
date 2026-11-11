@@ -69,13 +69,17 @@ describe('auth-issued email destinations stay outside the application door', () 
     expect(provider.send.mock.calls[0][0].html).toContain(resetUrl.replaceAll('&', '&amp;'));
   });
 
-  it('sends untagged code-only content without resolving deployment configuration', async () => {
+  it('sends declared OTP code-only content without resolving deployment configuration', async () => {
     stubDeploymentOrigin('production', 'https://www.interdomestik.com');
-    await sendEmail('member@example.test', {
-      subject: 'Code',
-      html: '<p>123456</p>',
-      text: '123456',
-    });
+    await sendEmail(
+      'member@example.test',
+      {
+        subject: 'Code',
+        html: '<p>123456</p>',
+        text: '123456',
+      },
+      { templateType: 'sign-in-otp' }
+    );
     expect(provider.send).toHaveBeenCalledOnce();
   });
 });

@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { STAGING_DOOR, stubDeploymentOrigin } from '@/lib/deployment-origin.test-support';
 import { renderThankYouLetterEmail, type ThankYouLetterParams } from './thank-you-letter';
+
+beforeEach(() => stubDeploymentOrigin());
+afterEach(() => vi.unstubAllEnvs());
 
 describe('renderThankYouLetterEmail web boundary', () => {
   const params: ThankYouLetterParams = {
@@ -11,11 +15,11 @@ describe('renderThankYouLetterEmail web boundary', () => {
     memberSince: 'December 22, 2025',
     expiresAt: 'December 22, 2026',
     providerReference: 'sub_123',
-    dashboardUrl: 'https://ks.interdomestik.com/en/member/membership',
+    dashboardUrl: `${STAGING_DOOR}/en/member/membership`,
     locale: 'en',
   };
 
-  it('keeps the tenant-localized membership URL supplied by the delivery boundary', () => {
+  it('keeps the localized membership URL on the validated door supplied by the delivery boundary', () => {
     const result = renderThankYouLetterEmail(params);
 
     expect(result.subject).toBe('Membership confirmed');

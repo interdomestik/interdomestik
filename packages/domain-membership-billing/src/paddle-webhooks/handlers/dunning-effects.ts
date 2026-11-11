@@ -33,6 +33,7 @@ const requestSchema = z.object({
   subject: z.string().min(1),
   html: z.string().min(1),
   text: z.string().min(1),
+  source: z.unknown().optional(),
 });
 
 function effectKey(scope: PastDueEffectScope): string {

@@ -1,4 +1,5 @@
-import { resolveEmailDestinations } from './email/template-destinations';
+import { renderEmailDelivery } from './email/render-delivery';
+import type { EmailTemplate } from './email/templates/types';
 import type { AuthIssuedTemplateType } from './email/auth-issued-templates';
 import {
   isAutomatedEmail as isAutomated,
@@ -87,12 +88,12 @@ export function getSenderAddress() {
 }
 export async function sendEmail(
   recipients: EmailRecipients,
-  template: { subject: string; html: string; text: string },
+  template: EmailTemplate,
   options: EmailSendOptions & { templateType?: AuthIssuedTemplateType } = {}
 ): Promise<EmailResult> {
   const to = selectEmailRecipients(recipients, options.automatedCatcher);
   if (!to) return suppressedEmailResult;
-  const delivery = resolveEmailDestinations(template, options.templateType);
+  const delivery = renderEmailDelivery(template, options.templateType);
   const telemetry = createEmailTelemetry(options.telemetryPolicy);
   const provider = getEmailClient(telemetry, options);
   if (provider === 'rejected') return { success: false, error: 'Email provider not configured' };
@@ -113,7 +114,7 @@ export async function sendEmail(
         const info = await (provider.client as nodemailer.Transporter).sendMail({
           from: getSenderAddress(),
           to,
-          subject: template.subject,
+          subject: delivery.subject,
           html: delivery.html,
           text: delivery.text,
           attachments: options.attachments,

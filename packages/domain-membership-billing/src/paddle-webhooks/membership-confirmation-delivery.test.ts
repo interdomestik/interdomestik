@@ -15,6 +15,46 @@ import {
 } from './membership-confirmation-delivery';
 
 describe('membership confirmation delivery store', () => {
+  it('retains structured email source when a persisted confirmation is reclaimed', async () => {
+    const { repository, rows } = createRepository();
+    const store = createMembershipConfirmationDeliveryStore(repository, () => 'delivery_source');
+    const source = {
+      version: 1,
+      kind: 'thank-you',
+      params: {
+        memberName: 'Member One',
+        memberNumber: 'MEM-1',
+        planName: 'Family',
+        planPrice: '20',
+        planInterval: 'year',
+        memberSince: 'January 1, 2026',
+        expiresAt: 'January 1, 2027',
+        providerReference: snapshot.providerReference,
+        locale: 'en',
+        dashboardUrl: 'https://staging.interdomestik.com/en/member/membership',
+      },
+    };
+    await store.claim({
+      authority,
+      idempotencyKey,
+      snapshot: {
+        ...snapshot,
+        emailRequest: { ...snapshot.emailRequest, source },
+      },
+    });
+    await store.ready({
+      authority,
+      deliveryId: 'delivery_source',
+      idempotencyKey,
+      subscriptionId: snapshot.subscriptionId,
+    });
+    const row = rows.get(idempotencyKey)!;
+    row.metadata = JSON.parse(JSON.stringify(row.metadata));
+    await expect(
+      store.claimReadyRetry!({ authority, idempotencyKey, evidence: retryEvidence })
+    ).resolves.toMatchObject({ kind: 'claimed', snapshot: { emailRequest: { source } } });
+  });
+
   it('records one immutable snapshot and suppresses a delivered replay', async () => {
     const { repository, rows } = createRepository();
     const store = createMembershipConfirmationDeliveryStore(repository, () => 'delivery_123');
