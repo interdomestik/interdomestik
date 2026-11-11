@@ -23,7 +23,7 @@ for (const mode of ['restricted', 'permissive'] as const) {
         type: 'new_message',
       });
       expect(state.ambientReads).toEqual([]);
-      expect(state.scheduled).toEqual([{ commits: 2, notifications: 1 }]);
+      expect(state.scheduled).toEqual([{ commits: 3, notifications: 1 }]);
       expect(state.external).toHaveLength(1);
       expect(state.external[0]).toMatchObject({
         kind: 'delivery',

@@ -21,6 +21,7 @@ import {
 import { formatPilotDate } from '@/lib/utils/date';
 import { useLocale, useTranslations } from 'next-intl';
 import { CashVerificationRequestDTO } from '../server/types';
+import { deniesClaimMessageContent } from '@/lib/branch-manager-message-boundary';
 import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
 
 interface VerificationTableProps {
@@ -142,7 +143,7 @@ export function VerificationTable({
             <UserCheck className="w-3 h-3 text-muted-foreground" />
             <span className="text-sm">{req.verifierName || '-'}</span>
           </div>
-          {req.verificationNote && (
+          {!deniesClaimMessageContent(viewerRole) && req.verificationNote && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

@@ -86,6 +86,7 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['messaging.json', 'member-case-communication-i18n-contract'],
   ['agent-claims.json', 's4-missing-information-request-i18n-contract'],
   ['claims-tracking.json', 't210-member-timeline-i18n-contract'],
+  // Also owns D1c-2 trusted per-event notification and recipient preview copy.
   ['notifications.json', 't410-notification-acknowledgement-i18n-contract'],
   ['membership.json', 's6-member-payment-recovery-i18n-contract'],
   ['admin-leads.json', 'cash-approval-fulfillment-i18n-contract'],

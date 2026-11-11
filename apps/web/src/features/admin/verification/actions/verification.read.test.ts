@@ -19,7 +19,7 @@ const hoisted = vi.hoisted(() => ({
   resubmitCashAttemptCore: vi.fn(),
 }));
 
-vi.mock('next/headers', () => ({ headers: vi.fn(async () => new Headers()) }));
+vi.mock('next/headers', () => ({ headers: vi.fn(() => Promise.resolve(new Headers())) }));
 vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: hoisted.getSession } } }));
 vi.mock('@sentry/nextjs', () => ({
   setUser: vi.fn(),
@@ -52,7 +52,8 @@ import { getVerificationRequestsAction } from './verification';
 function createRecordingTx(results: unknown[][]) {
   const { tx, executed } = createRecordingTenantTransaction(results);
   hoisted.withTenantContext.mockImplementation(
-    async (_context: unknown, callback: (tx: TenantTransaction) => Promise<unknown>) => callback(tx)
+    (_context: unknown, callback: (tx: TenantTransaction) => Promise<unknown>) =>
+      Promise.resolve().then(() => callback(tx))
   );
   return { executed };
 }
@@ -112,6 +113,7 @@ describe('getVerificationRequestsAction read admission', () => {
           memberActivationPending: false,
           documentId: null,
           documentPath: null,
+          verificationNote: null,
         },
       ],
     });

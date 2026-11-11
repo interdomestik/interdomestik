@@ -1,3 +1,6 @@
+import { deniesClaimMessageContent } from '@/lib/branch-manager-message-boundary';
+import { getNotificationRecipientRole } from '@/lib/notifications/recipient-role';
+import { getBranchManagerNotificationCopy } from '@/lib/notifications/branch-manager-copy';
 import {
   deliverPublicReplyNotification,
   describePublicReplyFailure,
@@ -23,6 +26,15 @@ export async function notifyPublicReplyCore(params: {
   messageId: string;
   expectedRecipientId: string;
 }): Promise<void> {
+  const recipientRole = await getNotificationRecipientRole(
+    params.authority,
+    params.expectedRecipientId
+  ).catch(() => null);
+  if (!recipientRole) return;
+  const initialCopy = deniesClaimMessageContent(recipientRole)
+    ? await getBranchManagerNotificationCopy('new_message').catch(() => null)
+    : null;
+  if (deniesClaimMessageContent(recipientRole) && !initialCopy) return;
   const prepared = await preparePublicReplyNotification(params).catch((error: unknown) => {
     console.error('Failed to create message notification:', describePublicReplyFailure(error));
     return null;
@@ -33,7 +45,14 @@ export async function notifyPublicReplyCore(params: {
     return;
   }
 
-  const { plan } = prepared;
+  const plan = initialCopy
+    ? Object.freeze({
+        ...prepared.plan,
+        claim: Object.freeze({ id: prepared.plan.claim.id, title: initialCopy.title }),
+        senderName: initialCopy.title,
+        messageContent: initialCopy.content,
+      })
+    : prepared.plan;
   try {
     after(async () => {
       const subscriptions = await loadPublicReplyPushSubscriptions(plan).catch((error: unknown) => {
@@ -43,7 +62,27 @@ export async function notifyPublicReplyCore(params: {
         );
         return [];
       });
-      const deliveryPlan = Object.freeze({ ...plan, pushSubscriptions: subscriptions });
+      // Resolve role immediately before attaching external previews; failed lookup suppresses delivery.
+      const recipientRole = await getNotificationRecipientRole(
+        plan.authority,
+        plan.recipientId
+      ).catch(() => null);
+      if (!recipientRole) return;
+      const copy = deniesClaimMessageContent(recipientRole)
+        ? await getBranchManagerNotificationCopy('new_message').catch(() => null)
+        : null;
+      if (deniesClaimMessageContent(recipientRole) && !copy) return;
+      const deliveryPlan = Object.freeze({
+        ...plan,
+        ...(copy
+          ? {
+              claim: Object.freeze({ id: plan.claim.id, title: copy.title }),
+              senderName: copy.title,
+              messageContent: copy.content,
+            }
+          : {}),
+        pushSubscriptions: subscriptions,
+      });
       await deliverPublicReplyNotification(deliveryPlan, {
         removeExpiredSubscriptions: endpoints =>
           removeExpiredPublicReplySubscriptions(deliveryPlan, endpoints),

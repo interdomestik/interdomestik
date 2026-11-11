@@ -56,7 +56,24 @@
       "failed": "Die Übersicht konnte nicht geladen werden. Bitte erneut versuchen.",
       "retry": "Übersicht aktualisieren",
       "loading": "Wird aktualisiert…",
-      "history": "Statusverlauf"
+      "history": "Statusverlauf",
+      "handoffs": {
+        "title": "Übergabedaten",
+        "restriction": "Nachrichten- und Notizinhalte sind eingeschränkt. Es werden nur Übergabedaten angezeigt.",
+        "search": "Nach Übergabe-ID, Zuständigkeit oder Filiale suchen",
+        "status": "Bearbeitungsstand",
+        "branch": "Filiale",
+        "assignee": "Zuständig",
+        "createdAt": "Erstellt",
+        "updatedAt": "Aktualisiert",
+        "acceptedAt": "Angenommen",
+        "reassignedAt": "Neu zugewiesen",
+        "closedAt": "Geschlossen",
+        "publicResponseAt": "Letzte Antwort des Personals",
+        "publicResponseCount": "Überarbeitungen der Personalantwort",
+        "memberReplyAt": "Letzte Antwort des Mitglieds",
+        "count": "{count} Übergaben angezeigt"
+      }
     }
   }
 }
