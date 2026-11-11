@@ -174,9 +174,10 @@ jobs:
     steps:
       - { uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd } # v4
       - { uses: ./.github/actions/setup, with: { install-playwright: 'true' } }
-      # U2-e runtime attestation (observe mode) runs first on the immutable deployment, with an
-      # allowlisted environment; its receipt lands in EVIDENCE_DIR and is uploaded below. The
-      # release gate never sees the observer account, and its own exit status is preserved.
+      # U2-e runtime attestation (enforce mode: only PASS succeeds, else the alias rolls back) runs
+      # first on the immutable deployment, with an allowlisted environment; its receipt lands in
+      # EVIDENCE_DIR and is uploaded below. The release gate never sees the observer account, and
+      # its own exit status is preserved.
       - name: Run Staging Release Gate
         shell: bash
         env:
@@ -184,7 +185,7 @@ jobs:
           NODE_OPTIONS: '--import=${{ github.workspace }}/scripts/ci/cd-runner-preflight.mjs'
           VERCEL_AUTOMATION_BYPASS_SECRET: '${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}'
           EXPECTED_COMMIT_SHA: '${{ github.sha }}'
-          RUNTIME_ATTESTATION_MODE: observe
+          RUNTIME_ATTESTATION_MODE: enforce
           RUNTIME_ATTESTATION_HOSTNAME: '${{ needs.deploy-staging.outputs.hostname }}'
           RUNTIME_ATTESTATION_CANONICAL_HOST: staging.interdomestik.com
           RUNTIME_ATTESTATION_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging/runtime-attestation/receipt.json'

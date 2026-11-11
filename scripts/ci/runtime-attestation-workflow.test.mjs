@@ -34,9 +34,9 @@ test('U2-e: the collector observes the exact immutable staging deployment of thi
   assert.deepEqual(job.permissions, { contents: 'read' });
 });
 
-test('U2-e: observe mode is explicit and the receipt is published with the staging evidence', () => {
+test('U2-e: enforce mode is explicit and the receipt is published with the staging evidence', () => {
   assert.ok(MODES.includes(step.env.RUNTIME_ATTESTATION_MODE));
-  assert.equal(step.env.RUNTIME_ATTESTATION_MODE, 'observe');
+  assert.equal(step.env.RUNTIME_ATTESTATION_MODE, 'enforce');
   assert.equal(
     step.env.RUNTIME_ATTESTATION_RECEIPT_PATH,
     `${job.env.EVIDENCE_DIR}/runtime-attestation/receipt.json`
