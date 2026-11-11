@@ -72,14 +72,12 @@ async function capturePayload<T extends string | Buffer>(
   return payload;
 }
 
-async function drainCaptures(pending: readonly Promise<void>[]): Promise<void> {
-  let settled = 0;
-  while (settled < pending.length) {
-    const observedCount = pending.length;
-    // Tracked tasks never reject; include tasks appended while this batch ran.
-    await Promise.all(pending.slice(settled));
-    settled = observedCount;
-  }
+async function drainCaptures(pending: readonly Promise<void>[], settled = 0): Promise<void> {
+  if (settled === pending.length) return;
+  const observedCount = pending.length;
+  // Tracked tasks never reject; recurse to include tasks appended while this batch ran.
+  await Promise.all(pending.slice(settled));
+  await drainCaptures(pending, observedCount);
 }
 
 interface CaptureListeners {
