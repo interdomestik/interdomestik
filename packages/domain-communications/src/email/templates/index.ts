@@ -1,5 +1,5 @@
 export { DEFAULT_APP_NAME, getAppUrl, buildEmailTemplate, joinUrl } from './base';
-export { resolveDoorDestination } from '../door-destination';
+export { resolveDoorDestination, resolvePushDestination } from '../door-destination';
 export type { EmailTemplate, TemplateOptions } from './types';
 
 export { renderPasswordResetEmail } from './auth';

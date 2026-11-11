@@ -72,6 +72,10 @@ const STRUCTURED_OWNERS = [
     's7-helpnow-localized-copy-contract',
   ],
   [/^apps\/web\/public\/manifest\.json$/u, 'pwa-manifest-contract'],
+  [
+    /^packages\/domain-communications\/src\/email\/fixtures\/(?:auth-main|stored-main)\.json$/u,
+    'one-door-email-main-fixtures-contract',
+  ],
 ];
 // A constant keeps owner/path pairs such as auth.json clear of secret-scanner key heuristics.
 const PARITY_OWNER = 'i18n-keys-parity-contract';

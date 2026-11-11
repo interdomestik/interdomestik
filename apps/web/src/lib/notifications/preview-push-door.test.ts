@@ -24,19 +24,35 @@ const subscriptions = [
 ];
 const payload = { title: 'Message', body: 'Message', url: '/sq/member/claims/C?ref=A%2B1' };
 
-it('web preview push resolves its relative destination against the server door', async () => {
+it('web preview push preserves relative destinations without deployment configuration', async () => {
+  vi.stubEnv('NEXT_PUBLIC_APP_URL', undefined);
   await deliverPreviewPush(recipient, subscriptions, payload);
+  expect(JSON.parse(send.mock.calls[0][1]).url).toBe(payload.url);
+});
+it('web preview push validates absolute destinations against the server door', async () => {
+  await deliverPreviewPush(recipient, subscriptions, {
+    ...payload,
+    url: `${STAGING_DOOR}${payload.url}`,
+  });
   expect(JSON.parse(send.mock.calls[0][1]).url).toBe(`${STAGING_DOOR}${payload.url}`);
 });
-it('web preview push refuses foreign links with zero provider calls', async () => {
-  await expect(
-    deliverPreviewPush(recipient, subscriptions, { ...payload, url: 'https://evil.test/path' })
-  ).rejects.toThrow();
-  expect(send).not.toHaveBeenCalled();
-});
+it.each(['https://evil.test/path', '//evil.test/path', '/\\evil.test/path', 'javascript:alert(1)'])(
+  'web preview push refuses unsafe link %s with zero provider calls',
+  async url => {
+    await expect(
+      deliverPreviewPush(recipient, subscriptions, { ...payload, url })
+    ).rejects.toThrow();
+    expect(send).not.toHaveBeenCalled();
+  }
+);
 it('web preview push refuses invalid production config with zero provider calls', async () => {
   stubDeploymentOrigin('production', PRODUCTION_DOOR);
   vi.stubEnv('BETTER_AUTH_URL', 'https://www.interdomestik.com');
-  await expect(deliverPreviewPush(recipient, subscriptions, payload)).rejects.toThrow();
+  await expect(
+    deliverPreviewPush(recipient, subscriptions, {
+      ...payload,
+      url: `${PRODUCTION_DOOR}${payload.url}`,
+    })
+  ).rejects.toThrow('BETTER_AUTH_URL');
   expect(send).not.toHaveBeenCalled();
 });

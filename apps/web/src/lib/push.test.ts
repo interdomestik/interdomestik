@@ -1,5 +1,5 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('web-push', () => {
   const setVapidDetails = vi.fn();
@@ -90,9 +90,11 @@ describe('sendPushToUser', () => {
     vi.stubEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY', 'public');
     vi.stubEnv('VAPID_PRIVATE_KEY', 'private');
     vi.stubEnv('VAPID_SUBJECT', 'mailto:test@example.com');
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', undefined);
   });
+  afterEach(() => vi.unstubAllEnvs());
 
-  it('skips when no subscriptions', async () => {
+  it.each(['/x', 'https://evil.test/path'])('skips when no subscriptions for %s', async url => {
     const queue: unknown[] = [[{ pushClaimUpdates: true, pushMessages: true }], []];
     hoistedMocks.dbSelect.mockImplementation(() => ({
       from: () => ({
@@ -106,7 +108,7 @@ describe('sendPushToUser', () => {
       {
         title: 't',
         body: 'b',
-        url: '/x',
+        url,
       },
       { authority }
     );
@@ -118,9 +120,10 @@ describe('sendPushToUser', () => {
         reason: 'no_subscription',
       })
     );
+    expect(webPushMock.sendNotification).not.toHaveBeenCalled();
   });
 
-  it('respects preferences disabled', async () => {
+  it.each(['/x', 'https://evil.test/path'])('respects preferences disabled for %s', async url => {
     const queue: unknown[] = [
       [{ pushMessages: false, pushClaimUpdates: true }],
       [{ endpoint: 'e', p256dh: 'p', auth: 'a' }],
@@ -137,7 +140,7 @@ describe('sendPushToUser', () => {
       {
         title: 't',
         body: 'b',
-        url: '/x',
+        url,
       },
       { authority }
     );
@@ -179,6 +182,7 @@ describe('sendPushToUser', () => {
 
     expect(webPushMock.setVapidDetails).toHaveBeenCalled();
     expect(webPushMock.sendNotification).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(webPushMock.sendNotification.mock.calls[0][1]).url).toBe('/x');
     expect(result).toEqual(expect.objectContaining({ success: true, okCount: 2, failCount: 0 }));
     expect(hoistedMocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
   });

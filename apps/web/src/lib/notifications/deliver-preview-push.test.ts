@@ -19,6 +19,7 @@ beforeEach(() => {
   vi.stubEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY', 'public');
   vi.stubEnv('VAPID_PRIVATE_KEY', 'private');
   vi.stubEnv('VAPID_SUBJECT', 'mailto:synthetic@example.test');
+  vi.stubEnv('NEXT_PUBLIC_APP_URL', undefined);
   mocks.send.mockResolvedValue({});
 });
 afterEach(() => vi.unstubAllEnvs());

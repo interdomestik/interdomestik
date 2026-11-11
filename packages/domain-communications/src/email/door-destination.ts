@@ -11,6 +11,12 @@ export function resolveDoorDestination(link: string): string {
   return `${origin}${url.pathname}${url.search}${url.hash}`;
 }
 
+/** Push callers already build same-origin paths; only absolute links need a deployment origin. */
+export function resolvePushDestination(link: string): string {
+  if (link.startsWith('/') && !link.startsWith('//') && !/[\s\\]/u.test(link)) return link;
+  return resolveDoorDestination(link);
+}
+
 /** Legacy application destinations may be rebased; foreign origins must never be delivered. */
 export function rebaseApplicationDestination(link: string): string {
   const { origin } = resolveDeploymentOrigin();

@@ -1,5 +1,5 @@
 import webPush, { type PushSubscription } from 'web-push';
-import { resolveDoorDestination } from './email/door-destination';
+import { resolvePushDestination } from './email/door-destination';
 
 import {
   readTenantAuthority,
@@ -67,7 +67,6 @@ export async function sendPushToUser(
     return { success: false, skipped: true, reason: 'missing_tenant' as const };
   }
   const { tenantId: resolvedTenantId } = readTenantAuthority(authority);
-  const destination = resolveDoorDestination(payload.url);
 
   // Respect stored preferences
   const [prefs] = await withTenantAuthority(authority, tx =>
@@ -115,6 +114,7 @@ export async function sendPushToUser(
     return { success: false, skipped: true, reason: 'no_subscription' as const };
   }
 
+  const destination = resolvePushDestination(payload.url);
   webPush.setVapidDetails(vapid.subject, vapid.publicKey, vapid.privateKey);
 
   const body = JSON.stringify({
