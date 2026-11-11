@@ -1,7 +1,18 @@
 import { E2E_DOCUMENT_FIXTURES, E2E_RUNTIME_ROLES, E2E_USERS } from '@interdomestik/database';
-import { hasConfiguredSupabaseStorage } from '@/lib/storage/storage-credentials';
-import { expect, test, type APIRequestContext, type TestInfo } from '@playwright/test';
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type APIResponse,
+  type TestInfo,
+} from '@playwright/test';
 import { getProjectUrlInfo } from '../fixtures/auth.project';
+import {
+  catalogueDelivery,
+  LOCAL_CONFIGURED_STORAGE_SKIP,
+  readSignedObject,
+  requireUntracedSignedLane,
+} from './catalogue-delivery';
 import { isKsGateProject, isMkGateProject } from './gate-project-identity';
 import { requireSeededHost, signInAs } from './nine-role-actor';
 import {
@@ -10,17 +21,40 @@ import {
   MK_DOCUMENT_CASES,
   type DocumentActorCases,
 } from './nine-role-document-access.cases';
-
-/**
- * The catalogue documents are seeded as rows only, with no backing storage objects, so the matrix
- * proves access on the deterministic E2E storage (authenticated proxy delivery of its placeholder).
- * With configured Supabase storage the reads would sign URLs for absent objects instead.
- */
-const CONFIGURED_STORAGE_SKIP =
-  'Catalogue documents have no backing storage objects; the matrix runs on deterministic E2E storage';
+import { getRespectingRateLimit } from './rate-limit-aware-get';
 
 /** An authenticated denial; 401, redirects, rate limits and server errors prove nothing. */
 const DENIAL_STATUSES = [403, 404];
+
+type CatalogueDocument = (typeof E2E_DOCUMENT_FIXTURES)[(typeof DOCUMENT_KEYS)[number]];
+
+/** Metadata names the document and hands out the URL its delivery mode serves bytes from. */
+async function expectAllowedMetadata(
+  info: TestInfo,
+  metadata: APIResponse,
+  document: CatalogueDocument,
+  label: string
+) {
+  expect(metadata.status(), label).toBe(200);
+  const body = (await metadata.json()) as { url?: unknown; name?: unknown; delivery?: unknown };
+  expect(body.name, label).toBe(document.name);
+  if (catalogueDelivery() === 'authenticated-proxy') {
+    expect(body, label).toMatchObject({
+      url: `/api/documents/${encodeURIComponent(document.id)}/download`,
+      delivery: 'authenticated-proxy',
+    });
+    return;
+  }
+  // The signed URL is a live credential: booleans and numbers only, read outside Playwright.
+  const signed = typeof body.url === 'string' && URL.canParse(body.url) ? new URL(body.url) : null;
+  expect(body.delivery, `${label} delivery`).toBeUndefined();
+  expect(signed?.protocol === 'https:', `${label} signed URL is https`).toBe(true);
+  const signedPrefix = `/storage/v1/object/sign/${document.bucket}/`;
+  expect(signed?.pathname.startsWith(signedPrefix), `${label} signed object path`).toBe(true);
+  const stored = await readSignedObject(String(signed), `${label} signed URL bytes`);
+  expect(stored.status, `${label} signed URL bytes`).toBe(200);
+  expect(stored.byteLength, `${label} signed URL bytes`).toBeGreaterThan(0);
+}
 
 async function expectDocumentAccess(
   request: APIRequestContext,
@@ -32,18 +66,14 @@ async function expectDocumentAccess(
   const document = E2E_DOCUMENT_FIXTURES[key];
   const base = `${origin}/api/documents/${encodeURIComponent(document.id)}`;
   const label = `${key} ${allowed ? 'allowed' : 'denied'}`;
+  const read = (url: string) => getRespectingRateLimit(request, info, url, { maxRedirects: 0 });
 
-  const metadata = await request.get(base, { maxRedirects: 0 });
-  const download = await request.get(`${base}/download`, { maxRedirects: 0 });
-  const preview = await request.get(`${base}/download?disposition=inline`, { maxRedirects: 0 });
+  const metadata = await read(base);
+  const download = await read(`${base}/download`);
+  const preview = await read(`${base}/download?disposition=inline`);
 
   if (allowed) {
-    expect(metadata.status(), label).toBe(200);
-    expect(await metadata.json(), label).toMatchObject({
-      url: `/api/documents/${encodeURIComponent(document.id)}/download`,
-      name: document.name,
-      delivery: 'authenticated-proxy',
-    });
+    await expectAllowedMetadata(info, metadata, document, label);
     expect(download.status(), label).toBe(200);
     expect((await download.body()).byteLength, label).toBeGreaterThan(0);
     expect(preview.status(), label).toBe(200);
@@ -60,9 +90,11 @@ async function expectDocumentAccess(
 function describeActors(project: (name: string) => boolean, cases: readonly DocumentActorCases[]) {
   cases.forEach(({ actor, allowed }, index) => {
     test(`${actor} reads exactly its catalogue documents`, async ({ page }, info) => {
-      // Intentional: with configured storage the row-only catalogue has no objects to deliver.
-      test.skip(hasConfiguredSupabaseStorage(), CONFIGURED_STORAGE_SKIP);
+      // Intentional and local only: the external staging journey never takes this skip.
+      test.skip(catalogueDelivery() === 'unavailable', LOCAL_CONFIGURED_STORAGE_SKIP);
       requireSeededHost(info, project, 90_000);
+      // Before any request: a trace would record the signed URL in the metadata body.
+      requireUntracedSignedLane(info.project.use.trace);
       await signInAs(page, info, actor, `10.0.71.${index + 1}`);
       for (const key of DOCUMENT_KEYS) {
         await expectDocumentAccess(page.request, info, key, allowed.includes(key));
