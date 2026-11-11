@@ -9,7 +9,7 @@ import {
 import { Button } from '@interdomestik/ui';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { SUPPORT_HANDOFF_ATTENTION_RESOLVED_EVENT } from './support-handoff-attention-row';
 import type { DetailLabels } from './support-handoff-detail-labels';
 import {
@@ -41,12 +41,17 @@ export function SupportHandoffDetailPanel({
   locale,
   message,
 }: Props) {
+  const [isHydrated, setIsHydrated] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [detail, setDetail] = useState<SupportHandoffStaffDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isResponsePending, startResponseTransition] = useTransition();
   const router = useRouter();
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   function toggleDetail() {
     if (isOpen) {
@@ -89,7 +94,7 @@ export function SupportHandoffDetailPanel({
   }
 
   return (
-    <div className="md:col-span-6">
+    <div className="md:col-span-6" data-hydrated={isHydrated ? 'true' : 'false'}>
       <Button
         type="button"
         size="sm"

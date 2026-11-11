@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { renderToString } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 const mocks = vi.hoisted(() => ({ read: vi.fn(), detail: vi.fn(), refresh: vi.fn() }));
@@ -37,6 +38,17 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 describe('BM handoff presentation and recovery', () => {
+  it('marks the toggle container hydrated only after mount', async () => {
+    mocks.read.mockResolvedValue({ kind: 'ok', data: [row] });
+    const tree = await BranchManagerHandoffs(props);
+    expect(renderToString(tree)).toContain('data-hydrated="false"');
+    render(tree);
+    expect(screen.getByTestId('staff-support-handoff-detail-toggle').parentElement).toHaveAttribute(
+      'data-hydrated',
+      'true'
+    );
+    expect(mocks.detail).not.toHaveBeenCalled();
+  });
   it.each(['failed', 'unavailable'] as const)(
     'keeps %s explicit with a keyboard refresh',
     async kind => {
