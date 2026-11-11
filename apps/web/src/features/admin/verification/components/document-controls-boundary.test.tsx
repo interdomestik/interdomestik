@@ -48,6 +48,29 @@ describe('D1 verification document controls', () => {
     }
   );
 
+  it('hides legacy history note tooltips for BM even with unredacted inputs', () => {
+    const { container } = render(
+      <VerificationTable
+        data={[
+          {
+            ...request,
+            id: 'verification-1',
+            amount: 0,
+            currency: 'EUR',
+            verificationNote: 'NOTE-SENTINEL',
+          },
+        ]}
+        historyMode
+        viewerRole="branch_manager"
+        onViewDetails={vi.fn()}
+        onVerify={vi.fn()}
+        onAction={vi.fn()}
+      />
+    );
+    expect(container.textContent).not.toContain('NOTE-SENTINEL');
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
   it('hides proof open/download and drawer documents from a manager', () => {
     const { container } = render(
       <>

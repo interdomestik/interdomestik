@@ -109,7 +109,8 @@ describe('GET /api/verification/[id]', () => {
     expect(payload.timeline[0]).toMatchObject({ type: 'document_upload', title: 'Proof Uploaded' });
     expect(payload.timeline[0]).not.toHaveProperty('description');
     expect(payload.timeline[2]).not.toHaveProperty('description');
-    expect(payload.timeline[1].description).toBe('Please confirm payment');
+    expect(payload.timeline[1]).not.toHaveProperty('description');
+    expect(payload.verificationNote).toBeNull();
     expectNoDocumentContent(payload);
     expect(hoisted.getVerificationRequestDetails.mock.calls[0][0].userRole).toBe(
       ROLE_BRANCH_MANAGER

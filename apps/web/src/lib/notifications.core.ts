@@ -1,12 +1,15 @@
+export {
+  notifyNewMessage,
+  notifyDocumentRequested,
+  notifyPaymentVerificationUpdate,
+} from './notifications/content-notifications';
+
 import {
   clearSupportHandoffPublicResponseNotifications as clearSupportHandoffPublicResponseNotificationsDomain,
   notifyClaimAssigned as notifyClaimAssignedDomain,
   notifyClaimPackGenerated as notifyClaimPackGeneratedDomain,
   notifyClaimSubmitted as notifyClaimSubmittedDomain,
-  notifyDocumentRequested as notifyDocumentRequestedDomain,
   notifyMembershipRenewal as notifyMembershipRenewalDomain,
-  notifyNewMessage as notifyNewMessageDomain,
-  notifyPaymentVerificationUpdate as notifyPaymentVerificationUpdateDomain,
   notifyRecoveryDecision as notifyRecoveryDecisionDomain,
   notifySlaWarning as notifySlaWarningDomain,
   notifyStatusChanged as notifyStatusChangedDomain,
@@ -69,36 +72,6 @@ export function notifyStatusChanged(
   });
 }
 
-export function notifyNewMessage(
-  recipientId: string,
-  recipientEmail: string,
-  claim: { id: string; title: string },
-  senderName: string,
-  messagePreview: string,
-  options: TenantNotificationOptions
-) {
-  return notifyNewMessageDomain(recipientId, recipientEmail, claim, senderName, messagePreview, {
-    sendPushToUser,
-    authority: options.authority,
-  });
-}
-
-export function notifyPaymentVerificationUpdate(
-  agentId: string,
-  agentEmail: string,
-  props: {
-    leadName: string;
-    amount: number;
-    currency: string;
-    status: 'needs_info' | 'rejected';
-    note?: string;
-    link: string;
-  },
-  options: TenantNotificationOptions
-) {
-  return notifyPaymentVerificationUpdateDomain(agentId, agentEmail, props, options);
-}
-
 export function notifyClaimPackGenerated(
   userId: string,
   claimCategory: string,
@@ -137,16 +110,6 @@ export function notifyRecoveryDecision(
   options: TenantNotificationOptions
 ) {
   return notifyRecoveryDecisionDomain(userId, userEmail, claim, decisionType, options);
-}
-
-export function notifyDocumentRequested(
-  userId: string,
-  userEmail: string,
-  claim: { id: string; title: string },
-  requestSummary: string,
-  options: TenantNotificationOptions
-) {
-  return notifyDocumentRequestedDomain(userId, userEmail, claim, requestSummary, options);
 }
 
 export function notifyTriageComplete(

@@ -56,7 +56,24 @@
       "failed": "Përmbledhja nuk u ngarkua. Ju lutemi provoni përsëri.",
       "retry": "Rifresko përmbledhjen",
       "loading": "Duke rifreskuar…",
-      "history": "Historiku i statusit"
+      "history": "Historiku i statusit",
+      "handoffs": {
+        "title": "Të dhënat e dorëzimit",
+        "restriction": "Përmbajtja e mesazheve dhe shënimeve është e kufizuar. Shfaqen vetëm të dhënat e dorëzimit.",
+        "search": "Kërko sipas ID-së së dorëzimit, përgjegjësit ose degës",
+        "status": "Statusi",
+        "branch": "Dega",
+        "assignee": "Përgjegjësi",
+        "createdAt": "Krijuar",
+        "updatedAt": "Përditësuar",
+        "acceptedAt": "Pranuar",
+        "reassignedAt": "Ricaktuar",
+        "closedAt": "Mbyllur",
+        "publicResponseAt": "Përgjigjja e fundit e stafit",
+        "publicResponseCount": "Rishikimet e përgjigjes së stafit",
+        "memberReplyAt": "Përgjigjja e fundit e anëtarit",
+        "count": "Shfaqen {count} dorëzime"
+      }
     }
   }
 }

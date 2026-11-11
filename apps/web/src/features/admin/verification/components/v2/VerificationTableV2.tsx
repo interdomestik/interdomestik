@@ -71,7 +71,9 @@ export function VerificationTableV2({
       <LeadCell key={`${req.id}-lead`} request={req} />,
       <ProofCell key={`${req.id}-proof`} request={req} viewerRole={viewerRole} />,
       <AmountCell key={`${req.id}-amount`} request={req} />,
-      ...(historyMode ? [<VerifierCell key={`${req.id}-verifier`} request={req} />] : []),
+      ...(historyMode
+        ? [<VerifierCell key={`${req.id}-verifier`} request={req} viewerRole={viewerRole} />]
+        : []),
     ],
     actions: actionsFor(req),
   }));

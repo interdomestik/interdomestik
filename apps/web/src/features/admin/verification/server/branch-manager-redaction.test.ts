@@ -22,7 +22,9 @@ describe('D1 verification server payload redaction', () => {
     const before = JSON.stringify(requests);
     const result = redactVerificationRequestsForRole(requests, ROLE_BRANCH_MANAGER);
 
-    expect(result).toEqual([{ ...verificationRequest, documentId: null, documentPath: null }]);
+    expect(result).toEqual([
+      { ...verificationRequest, documentId: null, documentPath: null, verificationNote: null },
+    ]);
     expectNoDocumentContent(result);
     expect(JSON.stringify(requests)).toBe(before);
   });
@@ -49,11 +51,19 @@ describe('D1 verification server payload redaction', () => {
       expect(event.date).toEqual(new Date('2026-01-02T00:00:00Z'));
     }
     expectNoDocumentContent(result);
-    expect(result.timeline[1]).toBe(verificationDetails.timeline[1]);
+    for (const event of result.timeline) expect(event.description).toBeUndefined();
+    expect(Object.keys(result).sort((a, b) => a.localeCompare(b))).toEqual(
+      Object.keys(verificationDetails).sort((a, b) => a.localeCompare(b))
+    );
+    expect(result.verificationNote).toBeNull();
     expect(JSON.stringify(verificationDetails)).toBe(before);
   });
 
   it.each([
+    'member',
+    'agent',
+    'global_support',
+    'auditor',
     ROLE_STAFF,
     ROLE_ADMIN,
     ROLE_TENANT_ADMIN,
@@ -72,7 +82,12 @@ describe('D1 verification server payload redaction', () => {
 
   it('preserves empty lists, missing proof and not-found details', () => {
     expect(redactVerificationRequestsForRole([], ROLE_BRANCH_MANAGER)).toEqual([]);
-    const withoutProof = { ...verificationRequest, documentId: null, documentPath: null };
+    const withoutProof = {
+      ...verificationRequest,
+      documentId: null,
+      documentPath: null,
+      verificationNote: null,
+    };
     expect(redactVerificationRequestsForRole([withoutProof], ROLE_BRANCH_MANAGER)).toEqual([
       withoutProof,
     ]);

@@ -24,6 +24,72 @@
       "statusChanged": "Statusi Ndryshoi",
       "newMessage": "Mesazh i Ri",
       "slaWarning": "Paralajmërim SLA"
+    },
+    "branchManager": {
+      "claimSubmitted": {
+        "title": "Kërkesa u dërgua",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "claimAssigned": {
+        "title": "Kërkesa u caktua",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "statusChanged": {
+        "title": "Statusi i kërkesës u përditësua",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "claimPackGenerated": {
+        "title": "Dosja e kërkesës u krijua",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "claimPackUpgraded": {
+        "title": "Dosja e kërkesës u përditësua",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "documentRequested": {
+        "title": "Kërkohen dokumente",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "triageComplete": {
+        "title": "Vlerësimi përfundoi",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "escalationAccepted": {
+        "title": "Përshkallëzimi u pranua",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "escalationDeclined": {
+        "title": "Përshkallëzimi u refuzua",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "newMessage": {
+        "title": "Mesazh i ri",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "slaWarning": {
+        "title": "Paralajmërim SLA",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "slaBreached": {
+        "title": "Afati SLA ka kaluar",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "membershipRenewal": {
+        "title": "Rinovimi i anëtarësisë",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "paymentVerificationUpdate": {
+        "title": "Verifikimi u përditësua",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "supportHandoffPublicResponse": {
+        "title": "Kërkesa për mbështetje u përditësua",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      },
+      "unknown": {
+        "title": "Njoftim",
+        "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
+      }
     }
   }
 }

@@ -23,7 +23,7 @@ export const verificationDetails: CashVerificationDetailsDTO = {
   agentEmail: 'agent@example.test',
   documentId: 'private-document-1',
   documentPath: 'private-bucket/tenant/proof-private.pdf',
-  verificationNote: 'Check payment',
+  verificationNote: 'VERIFICATION-NOTE-SENTINEL',
   verifierName: null,
   documents: [
     {
@@ -51,7 +51,7 @@ export const verificationDetails: CashVerificationDetailsDTO = {
       id: 'log-1',
       type: 'action',
       title: 'Requested Info',
-      description: 'Please confirm payment',
+      description: 'ACTION-DESCRIPTION-SENTINEL',
       date: uploadedAt,
       actorName: 'Staff',
     },
@@ -71,6 +71,9 @@ export const verificationRequest = request;
 /** Inspect the serialized client payload as well as its known document fields. */
 export function expectNoDocumentContent(payload: unknown): void {
   const serialized = JSON.stringify(payload);
+  expect(serialized).not.toContain(verificationDetails.verificationNote!);
+  for (const event of timeline)
+    if (event.description) expect(serialized).not.toContain(event.description);
   for (const doc of documents) {
     expect(serialized).not.toContain(doc.id);
     expect(serialized).not.toContain(doc.name);

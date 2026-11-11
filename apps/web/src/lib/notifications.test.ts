@@ -4,6 +4,12 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 // Mock the environment variable
 vi.stubEnv('NOVU_API_KEY', 'test-api-key');
 
+vi.mock('@/lib/notifications/recipient-role', () => ({
+  getNotificationRecipientRole: vi.fn(() => Promise.resolve('member')),
+}));
+
+vi.mock('next/server', () => ({ after: vi.fn() }));
+
 // Mock dependencies
 vi.mock('@interdomestik/database', () => {
   const db = {
@@ -24,8 +30,8 @@ vi.mock('@interdomestik/database', () => {
   };
   return {
     db,
-    withTenantContext: async (_context: unknown, callback: (tx: unknown) => unknown) =>
-      callback(db),
+    withTenantContext: (_context: unknown, callback: (tx: unknown) => unknown) =>
+      Promise.resolve().then(() => callback(db)),
   };
 });
 

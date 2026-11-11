@@ -1,21 +1,23 @@
 'use client';
 
+import { deniesClaimMessageContent } from '@/lib/branch-manager-message-boundary';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@interdomestik/ui';
 import { MessageSquare, UserCheck } from 'lucide-react';
 import { CashVerificationRequestDTO } from '../../server/types';
 
 interface VerifierCellProps {
   request: CashVerificationRequestDTO;
+  viewerRole?: string | null;
 }
 
-export function VerifierCell({ request }: VerifierCellProps) {
+export function VerifierCell({ request, viewerRole }: Readonly<VerifierCellProps>) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">
         <UserCheck className="w-3 h-3 text-muted-foreground" />
         <span className="text-sm">{request.verifierName || '-'}</span>
       </div>
-      {request.verificationNote && (
+      {!deniesClaimMessageContent(viewerRole) && request.verificationNote && (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

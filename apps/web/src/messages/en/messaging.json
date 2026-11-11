@@ -56,7 +56,24 @@
       "failed": "The summary could not be loaded. Please retry.",
       "retry": "Refresh summary",
       "loading": "Refreshing…",
-      "history": "Status history"
+      "history": "Status history",
+      "handoffs": {
+        "title": "Handoff metadata",
+        "restriction": "Message and note content is restricted. Only handoff metadata is shown.",
+        "search": "Search handoff ID, assignee or branch",
+        "status": "Status",
+        "branch": "Branch",
+        "assignee": "Assignee",
+        "createdAt": "Created",
+        "updatedAt": "Updated",
+        "acceptedAt": "Accepted",
+        "reassignedAt": "Reassigned",
+        "closedAt": "Closed",
+        "publicResponseAt": "Last staff response",
+        "publicResponseCount": "Staff response revisions",
+        "memberReplyAt": "Last member reply",
+        "count": "{count} handoffs shown"
+      }
     }
   }
 }

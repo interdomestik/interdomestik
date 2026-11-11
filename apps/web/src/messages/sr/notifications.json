@@ -24,6 +24,72 @@
       "statusChanged": "Status je promenjen",
       "newMessage": "Nova poruka",
       "slaWarning": "SLA upozorenje"
+    },
+    "branchManager": {
+      "claimSubmitted": {
+        "title": "Zahtev je podnet",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "claimAssigned": {
+        "title": "Zahtev je dodeljen",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "statusChanged": {
+        "title": "Status zahteva je ažuriran",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "claimPackGenerated": {
+        "title": "Paket zahteva je kreiran",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "claimPackUpgraded": {
+        "title": "Paket zahteva je ažuriran",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "documentRequested": {
+        "title": "Dokumenti su zatraženi",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "triageComplete": {
+        "title": "Trijaža je završena",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "escalationAccepted": {
+        "title": "Eskalacija je prihvaćena",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "escalationDeclined": {
+        "title": "Eskalacija je odbijena",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "newMessage": {
+        "title": "Nova poruka",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "slaWarning": {
+        "title": "SLA upozorenje",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "slaBreached": {
+        "title": "SLA rok je istekao",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "membershipRenewal": {
+        "title": "Obnova članstva",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "paymentVerificationUpdate": {
+        "title": "Verifikacija je ažurirana",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "supportHandoffPublicResponse": {
+        "title": "Zahtev za podršku je ažuriran",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      },
+      "unknown": {
+        "title": "Obaveštenje",
+        "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
+      }
     }
   }
 }

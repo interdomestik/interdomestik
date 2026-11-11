@@ -13,6 +13,20 @@ test('member messaging catalogs have an exact five-locale owner', () => {
   assert.equal(structuredArtifactOwner('apps/web/src/messages/hr/messaging.json'), null);
 });
 
+function assertScalarCopy(copy, locale) {
+  for (const [key, value] of Object.entries(copy)) {
+    if (key === 'handoffs') continue;
+    assert.ok(typeof value === 'string' && value.trim(), `${locale}: ${key} must be nonempty text`);
+  }
+}
+
+test('only handoffs is exempt from scalar copy validation', () => {
+  assert.doesNotThrow(() => assertScalarCopy({ title: 'Title', handoffs: {} }, 'en'));
+  for (const invalid of [null, {}, [], '', '   ', 1, false, undefined]) {
+    assert.throws(() => assertScalarCopy({ title: invalid, handoffs: {} }, 'en'));
+  }
+});
+
 // D1c-1 shares the existing messaging.json LOCALE_CATALOG_OWNERS entry.
 test('branch-manager metadata copy has the exact allowlisted keys in all five catalogs', () => {
   const keys = [
@@ -30,6 +44,7 @@ test('branch-manager metadata copy has the exact allowlisted keys in all five ca
     'retry',
     'loading',
     'history',
+    'handoffs',
   ].sort((a, b) => a.localeCompare(b));
   for (const locale of ['en', 'sq', 'mk', 'sr', 'de']) {
     const catalog = JSON.parse(
@@ -40,7 +55,7 @@ test('branch-manager metadata copy has the exact allowlisted keys in all five ca
     );
     const copy = catalog.messaging.branchManager;
     assert.deepEqual(Object.keys(copy).sort((a, b) => a.localeCompare(b)), keys);
-    for (const value of Object.values(copy)) assert.ok(typeof value === 'string' && value.trim());
+    assertScalarCopy(copy, locale);
     assert.notEqual(copy.empty, copy.unavailable);
     assert.notEqual(copy.failed, copy.unavailable);
     assert.notEqual(copy.failed, copy.empty);
