@@ -1,3 +1,5 @@
+import type { AuthIssuedTemplateType } from '../auth-issued-templates';
+
 export type EmailTemplate = {
   subject: string;
   html: string;
@@ -5,6 +7,7 @@ export type EmailTemplate = {
 };
 
 export type TemplateOptions = {
+  templateType?: AuthIssuedTemplateType;
   title: string;
   intro: string;
   details?: string[];

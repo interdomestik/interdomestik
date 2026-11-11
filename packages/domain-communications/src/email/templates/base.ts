@@ -1,4 +1,5 @@
 import { resolveDoorDestination } from '../door-destination';
+import { isAuthIssuedTemplate } from '../auth-issued-templates';
 import { resolveDeploymentOrigin } from '../../deployment-origin.mjs';
 import type { EmailTemplate, TemplateOptions } from './types';
 
@@ -30,11 +31,12 @@ export function buildEmailTemplate({
   ctaLabel,
   ctaUrl,
   footer,
+  templateType,
 }: TemplateOptions): EmailTemplate {
   const safeTitle = escapeHtml(title);
   const safeIntro = escapeHtml(intro);
   const safeCtaLabel = escapeHtml(ctaLabel);
-  const destination = resolveDoorDestination(ctaUrl);
+  const destination = isAuthIssuedTemplate(templateType) ? ctaUrl : resolveDoorDestination(ctaUrl);
   const safeCtaUrl = escapeHtml(destination);
   const safeFooter = escapeHtml(footer || `${DEFAULT_APP_NAME} Team`);
 

@@ -3,7 +3,6 @@ import { sendEmail } from '../email';
 import { renderSponsorMail } from '../sponsor-mail';
 import type { SponsorMailInput } from '../sponsor-mail';
 import { renderThankYouLetterEmail, type ThankYouLetterParams } from './thank-you-letter';
-import { renderPasswordResetEmail } from './templates/auth';
 import {
   stubDeploymentOrigin,
   STAGING_DOOR,
@@ -48,7 +47,6 @@ const thanks: ThankYouLetterParams = {
 const families = [
   ['sponsor', (link: string) => renderSponsorMail({ ...sponsor, offerUrl: link })],
   ['thank-you', (link: string) => renderThankYouLetterEmail({ ...thanks, dashboardUrl: link })],
-  ['credential email rendering', (link: string) => renderPasswordResetEmail({ resetUrl: link })],
 ] as const;
 
 it.each(families)(

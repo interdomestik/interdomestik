@@ -1,4 +1,4 @@
-import { resolveDeploymentOrigin } from './deployment-origin.mjs';
+import { resolveEmailDestinations } from './email/template-destinations';
 import { isEmailSuppressed, suppressedEmailResult } from './non-sending-email';
 import { getResendClient, getSenderAddress, sendEmail } from './email';
 import { renderPaymentFailedEmail } from './email-templates';
@@ -36,13 +36,13 @@ export async function sendPreparedPastDueEmail(
   idempotencyKey: string
 ): Promise<EmailResult> {
   if (isEmailSuppressed(request.to)) return suppressedEmailResult;
-  resolveDeploymentOrigin();
+  const delivery = resolveEmailDestinations(request);
   if (process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1')
     return { success: true, id: `mock:${idempotencyKey}` };
   const telemetry = createEmailTelemetry('content-free');
   const client = getResendClient(telemetry);
   if (!client) return { success: false, error: 'Idempotent email provider unavailable' };
-  return sendViaResend(client, request.from, request.to, request, { idempotencyKey }, telemetry);
+  return sendViaResend(client, request.from, request.to, delivery, { idempotencyKey }, telemetry);
 }
 
 export const paddleDunningEmailDeps = {

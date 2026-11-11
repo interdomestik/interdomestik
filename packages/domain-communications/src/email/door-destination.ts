@@ -11,8 +11,8 @@ export function resolveDoorDestination(link: string): string {
   return `${origin}${url.pathname}${url.search}${url.hash}`;
 }
 
-/** Newsletter hero CTAs are application links; legacy country/deployment origins may be rebased. */
-export function resolveNewsletterDestination(link: string): string {
+/** Legacy application destinations may be rebased; foreign origins must never be delivered. */
+export function rebaseApplicationDestination(link: string): string {
   const { origin } = resolveDeploymentOrigin();
   const url = new URL(link, `${origin}/`);
   const applicationHosts = [
@@ -24,14 +24,13 @@ export function resolveNewsletterDestination(link: string): string {
     'pilot.interdomestik.com',
     'www.interdomestik.com',
   ];
-  if (
-    url.origin !== origin &&
-    (!applicationHosts.includes(url.hostname) || url.protocol !== 'https:')
-  ) {
-    throw new Error('Invalid newsletter application destination');
+  if (url.origin !== origin && !applicationHosts.some(host => url.origin === `https://${host}`)) {
+    throw new Error('Invalid email application destination');
   }
   if (url.username || url.password || /[\s\\]/u.test(link)) {
-    throw new Error('Invalid newsletter application destination');
+    throw new Error('Invalid email application destination');
   }
   return resolveDoorDestination(`${url.pathname}${url.search}${url.hash}`);
 }
+
+export { rebaseApplicationDestination as resolveNewsletterDestination };

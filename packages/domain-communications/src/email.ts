@@ -1,4 +1,5 @@
-import { resolveDeploymentOrigin } from './deployment-origin.mjs';
+import { resolveEmailDestinations } from './email/template-destinations';
+import type { AuthIssuedTemplateType } from './email/auth-issued-templates';
 import {
   isAutomatedEmail as isAutomated,
   selectEmailRecipients,
@@ -87,11 +88,11 @@ export function getSenderAddress() {
 export async function sendEmail(
   recipients: EmailRecipients,
   template: { subject: string; html: string; text: string },
-  options: EmailSendOptions = {}
+  options: EmailSendOptions & { templateType?: AuthIssuedTemplateType } = {}
 ): Promise<EmailResult> {
   const to = selectEmailRecipients(recipients, options.automatedCatcher);
   if (!to) return suppressedEmailResult;
-  resolveDeploymentOrigin();
+  const delivery = resolveEmailDestinations(template, options.templateType);
   const telemetry = createEmailTelemetry(options.telemetryPolicy);
   const provider = getEmailClient(telemetry, options);
   if (provider === 'rejected') return { success: false, error: 'Email provider not configured' };
@@ -113,8 +114,8 @@ export async function sendEmail(
           from: getSenderAddress(),
           to,
           subject: template.subject,
-          html: template.html,
-          text: template.text,
+          html: delivery.html,
+          text: delivery.text,
           attachments: options.attachments,
         });
         telemetry.sent('smtp', () => console.log(`[SMTP] Email sent to ${to}: ${info.messageId}`));
@@ -126,11 +127,11 @@ export async function sendEmail(
         telemetry.fallback('smtp', () =>
           console.warn('SMTP delivery failed, falling back to Resend:', smtpError)
         );
-        return sendViaResend(resend, getSenderAddress(), to, template, options, telemetry);
+        return sendViaResend(resend, getSenderAddress(), to, delivery, options, telemetry);
       }
     } else {
       const client = provider.client as Resend;
-      return sendViaResend(client, getSenderAddress(), to, template, options, telemetry);
+      return sendViaResend(client, getSenderAddress(), to, delivery, options, telemetry);
     }
   } catch (error) {
     telemetry.failed(provider.type === 'smtp' ? 'smtp' : 'resend', 'delivery', () =>
@@ -257,10 +258,12 @@ export async function sendMemberWelcomeEmail(
 
 // Credential links and codes: automated runs catch them on loopback; telemetry is content-free.
 const CREDENTIAL_EMAIL = { automatedCatcher: true, telemetryPolicy: 'content-free' } as const;
+const RESET_EMAIL = { ...CREDENTIAL_EMAIL, templateType: 'password-reset' } as const;
+const OTP_EMAIL = { ...CREDENTIAL_EMAIL, templateType: 'sign-in-otp' } as const;
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderPasswordResetEmail({ resetUrl }), CREDENTIAL_EMAIL);
+  return sendEmail(to, renderPasswordResetEmail({ resetUrl }), RESET_EMAIL);
 }
 
 export async function sendSignInOtpEmail(
@@ -269,7 +272,7 @@ export async function sendSignInOtpEmail(
   locale: SignInOtpLocale = 'en'
 ): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderSignInOtpEmail(otp, locale), CREDENTIAL_EMAIL);
+  return sendEmail(to, renderSignInOtpEmail(otp, locale), OTP_EMAIL);
 }
 
 export {

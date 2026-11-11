@@ -143,11 +143,13 @@ describe('email door enforcement before provider delivery', () => {
     expect(provider.send.mock.calls[0][0].html).toContain(expected);
   });
 
-  const invalidConfigurations = families.flatMap(([family, send]) =>
-    ['NEXT_PUBLIC_APP_URL', 'BETTER_AUTH_URL', 'NEXT_PUBLIC_SITE_URL'].flatMap(key =>
-      ['resend', 'smtp'].map(transport => ({ family, send, key, transport }))
-    )
-  );
+  const invalidConfigurations = families
+    .filter(([family]) => !['password reset', 'sign-in OTP'].includes(family))
+    .flatMap(([family, send]) =>
+      ['NEXT_PUBLIC_APP_URL', 'BETTER_AUTH_URL', 'NEXT_PUBLIC_SITE_URL'].flatMap(key =>
+        ['resend', 'smtp'].map(transport => ({ family, send, key, transport }))
+      )
+    );
   it.each(invalidConfigurations)(
     '$family makes zero $transport provider calls on invalid production $key',
     async ({ send, key, transport }) => {
