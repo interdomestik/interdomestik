@@ -287,4 +287,11 @@ describe('member portal request context', () => {
     h.neutral = false;
     expect((await getMemberPortalContext('sq')).canDraft).toBe(false);
   });
+
+  it('denies draft eligibility for malformed explicit access claims', async () => {
+    h.session.mockResolvedValueOnce({
+      user: { id: 'member-a', role: 'member', tenantId: 'tenant_mk', accessTenantId: '' },
+    });
+    expect((await getMemberPortalContext('sq')).canDraft).toBe(false);
+  });
 });

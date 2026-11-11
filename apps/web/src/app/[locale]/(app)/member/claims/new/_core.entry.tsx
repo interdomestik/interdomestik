@@ -4,6 +4,7 @@ import { getSessionSafe } from '@/components/shell/session';
 import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
 import { loadMessagesForNamespaces } from '@/i18n/messages';
 import { Link } from '@/i18n/routing';
+import { strictAccessTenantClaim } from '@/lib/auth/strict-access-tenant-claim';
 import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
 import { resolveSessionTenantConcepts } from '@/lib/tenant/tenant-session-context';
 import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
@@ -93,6 +94,7 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
   const hasAccess = authority ? await hasActiveMembership(session.user.id, authority) : false;
   const managerOnly =
     !hasAccess &&
+    strictAccessTenantClaim(session.user) !== null &&
     Object.getPrototypeOf(query) === Object.prototype &&
     Object.keys(query).length === 1 &&
     query.mode === 'drafts' &&

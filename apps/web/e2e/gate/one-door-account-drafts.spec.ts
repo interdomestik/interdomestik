@@ -113,10 +113,27 @@ test.describe('one-door account draft session scope', () => {
               ok: false,
               code: 'notFound',
             });
-            await gotoApp(door.page, `${path}#draft=${randomUUID()}`, info, {
+            const missingId = randomUUID();
+            await gotoApp(door.page, `${path}#draft=${missingId}`, info, {
               baseURL: door.origin,
               marker: 'new-claim-page-ready',
             });
+            // Fragment-only navigation preserves the hook; reload to process the new selection.
+            const [lookup] = await Promise.all([
+              door.page.waitForRequest(
+                request =>
+                  request.method() === 'POST' &&
+                  new URL(request.url()).pathname === `/${viewer.locale}/member/claims/new` &&
+                  Boolean(request.headers()['next-action']) &&
+                  (request.postData() ?? '').includes(missingId)
+              ),
+              door.page.reload(),
+            ]);
+            expect(lookup.postData()).toContain(missingId);
+            expect(lookup.postData()).not.toContain(draft.id);
+            await expect(
+              door.page.locator('[data-testid="new-claim-page-ready"]:visible').first()
+            ).toBeVisible();
             await expect(notice.getByRole('alert')).toHaveText(genericDenial);
             expect(await resumeFreeStartDraft(context, draft.id)).toEqual({ ok: true, draft });
             expect(await doorDraftRow(draft.id)).toEqual(before);

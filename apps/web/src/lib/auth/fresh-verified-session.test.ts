@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFreshVerifiedSession } from './fresh-verified-session';
+import { strictAccessTenantClaim } from './strict-access-tenant-claim';
 
 const provider = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: provider } } }));
@@ -16,6 +17,33 @@ const user = {
   tenantId: 'tenant_mk',
 };
 const denied = { ok: false, code: 'authRequired' };
+
+describe('strict access tenant claim', () => {
+  it.each(['tenant_ks', 'tenant_mk', 'pilot-mk'])(
+    'prefers valid explicit access %s',
+    accessTenantId => {
+      expect(strictAccessTenantClaim({ tenantId: 'tenant_ks', accessTenantId })).toBe(
+        accessTenantId
+      );
+      expect(provider).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([undefined, null])('uses tenantId for absent access %s', accessTenantId => {
+    expect(strictAccessTenantClaim({ tenantId: 'tenant_mk', accessTenantId })).toBe('tenant_mk');
+  });
+
+  it.each(['', '   ', 'unknown', ' tenant_mk', 1, false, {}, ['tenant_mk']])(
+    'denies malformed explicit access %j despite a valid tenantId',
+    accessTenantId => {
+      expect(strictAccessTenantClaim({ tenantId: 'tenant_mk', accessTenantId })).toBeNull();
+    }
+  );
+
+  it.each([undefined, null, '', 'unknown', 1])('denies invalid fallback %j', tenantId => {
+    expect(strictAccessTenantClaim({ tenantId })).toBeNull();
+  });
+});
 
 describe('fresh verified-session provider adapter', () => {
   beforeEach(() => {

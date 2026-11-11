@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { auth } from '@/lib/auth';
 import { coerceTenantId, type TenantId } from '@/lib/tenant/tenant-hosts';
+import { strictAccessTenantClaim } from './strict-access-tenant-claim';
 
 export type FreshVerifiedSession = {
   userId: string;
@@ -51,14 +52,9 @@ export async function readFreshVerifiedSession(
     const userId = nonBlank(user.id);
     const parsedEmail = z.string().trim().email().safeParse(user.email);
     const email = parsedEmail.success ? parsedEmail.data : null;
-    // A present malformed explicit access claim must not silently fall back to tenantId.
-    const access = user.accessTenantId;
     const tenant = user.tenantId;
-    if (access != null && (typeof access !== 'string' || !coerceTenantId(access))) return denied;
     if (tenant != null && (typeof tenant !== 'string' || !coerceTenantId(tenant))) return denied;
-    const accessTenantId =
-      coerceTenantId(access as string | null | undefined) ??
-      coerceTenantId(tenant as string | null | undefined);
+    const accessTenantId = strictAccessTenantClaim(user);
     if (!userId || !email || !accessTenantId) return denied;
     return {
       ok: true,

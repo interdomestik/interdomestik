@@ -7,6 +7,7 @@ import { type MemberPortalCopy } from '@/components/dashboard/member-portal-runt
 import { requireSessionOrRedirect } from '@/components/shell/session';
 import { LOCALES } from '@/i18n/locales';
 import { getCachedSession } from '@/lib/auth.server';
+import { strictAccessTenantClaim } from '@/lib/auth/strict-access-tenant-claim';
 import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
 import { resolveSessionTenantConcepts } from '@/lib/tenant/tenant-session-context';
 import { getMemberCaseSummaries, getMemberPortalMembership } from '@interdomestik/domain-member';
@@ -37,7 +38,7 @@ export const getMemberPortalContext = cache(async (requestedLocale: string) => {
   if (access.kind === 'forbidden' || actor !== 'member') notFound();
 
   // prettier-ignore
-  const draft = evaluateNeutralOtpHost(await headers()) && (role === 'member' || role === 'user');
+  const draft = strictAccessTenantClaim(session.user) !== null && evaluateNeutralOtpHost(await headers()) && (role === 'member' || role === 'user');
 
   // prettier-ignore
   const [t, dashboard] = await Promise.all([getTranslations({ locale, namespace: 'claims' }), getTranslations({ locale, namespace: 'dashboard' })]);

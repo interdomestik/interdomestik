@@ -183,4 +183,15 @@ describe('NewClaimPage dormant draft intake', () => {
     expect(h.member).not.toHaveBeenCalled();
     expect(h.intake).not.toHaveBeenCalled();
   });
+
+  it('denies manager-only rendering for a malformed explicit access claim', async () => {
+    h.session.mockResolvedValueOnce({
+      user: { id: 'member-1', role: 'member', tenantId: 'tenant_mk', accessTenantId: '' },
+    });
+    h.member.mockResolvedValueOnce(false);
+    render(await loadPage({ mode: 'drafts' }));
+    expect(screen.getByRole('link', { name: 'gate.view_plans' })).toBeInTheDocument();
+    expect(h.intake).not.toHaveBeenCalled();
+    expect(h.msg).not.toHaveBeenCalled();
+  });
 });
