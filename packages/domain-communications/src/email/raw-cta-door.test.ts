@@ -55,7 +55,7 @@ it.each(families)(
     const path = '/de/member?token=a%2Fb&ref=A%2B1#details';
     const template = render(path);
     expect(template.text).toContain(`${STAGING_DOOR}${path}`);
-    expect(template.html).toContain(`${STAGING_DOOR}${path.replace('&', '&amp;')}`);
+    expect(template.html).toContain(`${STAGING_DOOR}${path.replaceAll('&', '&amp;')}`);
     await expect(async () =>
       sendEmail('member@example.test', render(`https://evil.test${path}`))
     ).rejects.toThrow();

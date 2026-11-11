@@ -69,7 +69,7 @@ describe('email door enforcement before provider delivery', () => {
       },
     });
     expect(template.text).toContain(`${STAGING_DOOR}${path}`);
-    expect(template.html).toContain(`${STAGING_DOOR}${path.replace('&', '&amp;')}`);
+    expect(template.html).toContain(`${STAGING_DOOR}${path.replaceAll('&', '&amp;')}`);
     expect(() =>
       renderNewsletterEmail({
         month: 'May',

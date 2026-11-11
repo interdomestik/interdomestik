@@ -38,7 +38,7 @@ describe('lifecycle notification destinations', () => {
       expect.objectContaining({
         text: expect.stringContaining(`https://staging.interdomestik.com${path}`),
         html: expect.stringContaining(
-          `https://staging.interdomestik.com${path.replace('&', '&amp;')}`
+          `https://staging.interdomestik.com${path.replaceAll('&', '&amp;')}`
         ),
       })
     );
