@@ -25,8 +25,9 @@ function visitPayload(payload = 'metadata') {
     status: () => 200,
     text,
   } as unknown as Response;
-  const goto = vi.fn(async () => {
+  const goto = vi.fn(() => {
     navigated = true;
+    return Promise.resolve();
   });
   const page = Object.assign(events, { goto }) as unknown as Page;
   return {
@@ -45,9 +46,10 @@ function visitPayload(payload = 'metadata') {
 describe('content payload capture lifecycle', () => {
   it('finishes checking a pending body before successful cleanup navigates away', async () => {
     const visit = visitPayload();
-    await withContentPayloadCapture(visit.page, { matches: () => true, sentinels: [] }, async () =>
-      visit.receive()
-    );
+    await withContentPayloadCapture(visit.page, { matches: () => true, sentinels: [] }, () => {
+      visit.receive();
+      return Promise.resolve();
+    });
     expect(visit.text).toHaveBeenCalledOnce();
     expect(visit.goto).toHaveBeenCalledWith('about:blank');
     expect(visit.listenerCount()).toBe(0);
@@ -93,10 +95,11 @@ describe('content payload capture lifecycle', () => {
     await withContentPayloadCapture(
       visit.page,
       { matches: () => false, sentinels: [] },
-      async capture => {
+      capture => {
         visit.receive();
         expect(() => capture.checkedPayload(visit.response)).toThrow('Response was not captured');
         expect(capture.checkedPayloadCount).toBe(0);
+        return Promise.resolve();
       }
     );
     expect(visit.text).not.toHaveBeenCalled();
