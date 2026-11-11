@@ -37,11 +37,11 @@ describe('public destination links', () => {
     );
   });
 
-  it('fails closed without a valid compiled door and rejects unsafe application URLs', () => {
+  it('fails closed without a valid public door and rejects unsafe application URLs', () => {
     stubDeploymentOrigin();
     expect(() => normalizePublicLink('javascript:alert(1)')).toThrow();
     expect(() => normalizePublicLink('https://user:password@old.test/sq')).toThrow();
-    vi.stubEnv('INTERDOMESTIK_BUILT_DEPLOY_ORIGIN', undefined);
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', undefined);
     expect(() => normalizePublicLink('https://old.test/sq')).toThrow();
   });
 });

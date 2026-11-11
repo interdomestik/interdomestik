@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  assertDeploymentOriginMatchesBuild,
-  resolveDeploymentOrigin,
-  validateDeploymentOriginSnapshot,
-} from './deployment-origin.mjs';
+import { resolveDeploymentOrigin, resolvePublicDeploymentOrigin } from './deployment-origin.mjs';
 
 const PROD = 'https://ida.interdomestik.com';
 const STAGING = 'https://staging.interdomestik.com';
@@ -188,21 +184,27 @@ describe('deployment origin', () => {
     expect(() => resolveDeploymentOrigin({ ...config(), IDA_HOST: host })).toThrow();
   });
 
-  it('requires build and runtime identity and origin to agree', () => {
-    const snapshot = { environment: 'staging', origin: STAGING };
-    expect(assertDeploymentOriginMatchesBuild(config(), snapshot)).toEqual(snapshot);
-    expect(() =>
-      assertDeploymentOriginMatchesBuild(config('production', PROD), snapshot)
-    ).toThrow();
-    expect(() =>
-      assertDeploymentOriginMatchesBuild(config(), { environment: 'staging' })
-    ).toThrow();
-    expect(() =>
-      validateDeploymentOriginSnapshot({ environment: 'staging', origin: PROD })
-    ).toThrow();
-    expect(() => validateDeploymentOriginSnapshot({})).toThrow();
-    expect(() =>
-      validateDeploymentOriginSnapshot({ environment: 'staging', origin: `${STAGING}/` })
-    ).toThrow();
+  it.each([
+    ['production', PROD],
+    ['staging', STAGING],
+    ['local', 'http://127.0.0.1:3000'],
+    ['local', 'http://ida.localhost:3310'],
+    ['local', 'https://ida.127.0.0.1.nip.io:3443'],
+  ])('validates the public %s door without server inputs', (environment, origin) => {
+    expect(resolvePublicDeploymentOrigin(origin)).toEqual({ environment, origin });
+  });
+
+  it.each([
+    undefined,
+    'https://build.invalid',
+    'https://www.interdomestik.com',
+    'https://ks.interdomestik.com',
+    'http://192.168.1.2:3000',
+    'http://staging.interdomestik.com',
+    'https://ida.interdomestik.com:8443',
+    `${STAGING}/path`,
+    `${STAGING}/?token=secret`,
+  ])('refuses an invalid public destination %s', origin => {
+    expect(() => resolvePublicDeploymentOrigin(origin)).toThrow();
   });
 });

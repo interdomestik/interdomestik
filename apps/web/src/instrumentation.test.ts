@@ -19,15 +19,15 @@ afterEach(() => {
 });
 
 describe('deployment origin startup validation', () => {
-  it('accepts matching runtime and compiled configuration', async () => {
+  it('accepts valid runtime configuration', async () => {
     const { register } = await import('./instrumentation');
     expect(() => register()).not.toThrow();
   });
 
-  it('refuses a stale artifact at startup', async () => {
+  it('refuses invalid staging configuration at startup', async () => {
     const { register } = await import('./instrumentation');
     vi.stubEnv('NEXT_RUNTIME', undefined);
-    vi.stubEnv('INTERDOMESTIK_BUILT_DEPLOY_ORIGIN', 'https://ida.interdomestik.com');
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://ida.interdomestik.com');
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     expect(() => register()).toThrow();
     expect(log).toHaveBeenCalledOnce();
@@ -43,7 +43,7 @@ describe('deployment origin startup validation', () => {
     }
   );
 
-  it.each(['production_door', 'BETTER_AUTH_URL', 'build_runtime_mismatch'])(
+  it.each(['production_door', 'BETTER_AUTH_URL'])(
     'production starts with one structured error for %s and refuses destinations',
     async failure => {
       stubDeploymentOrigin('production', 'https://ida.interdomestik.com');
@@ -51,10 +51,6 @@ describe('deployment origin startup validation', () => {
         vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://www.interdomestik.com');
       if (failure === 'BETTER_AUTH_URL')
         vi.stubEnv('BETTER_AUTH_URL', 'https://www.interdomestik.com');
-      if (failure === 'build_runtime_mismatch') {
-        vi.stubEnv('INTERDOMESTIK_BUILT_DEPLOY_ENV', 'local');
-        vi.stubEnv('INTERDOMESTIK_BUILT_DEPLOY_ORIGIN', 'http://localhost:3000');
-      }
       const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
       const exit = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('unexpected exit');

@@ -33,9 +33,9 @@ describe('server destination adapters', () => {
     expect(getDefaultAppUrl()).toBe(STAGING_DOOR);
   });
 
-  it('rejects missing or stale configuration before referral effects', async () => {
+  it('rejects invalid runtime configuration before referral effects', async () => {
     stubDeploymentOrigin();
-    vi.stubEnv('INTERDOMESTIK_BUILT_DEPLOY_ORIGIN', 'https://ida.interdomestik.com');
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://ida.interdomestik.com');
     const params = { session: null, authority: null };
     await expect(getMemberReferralLinkCore(params)).rejects.toThrow();
     await expect(getAgentReferralLinkCore(params)).rejects.toThrow();

@@ -44,7 +44,6 @@ describe('email destination origins', () => {
       ['NEXT_PUBLIC_APP_URL', PRODUCTION_DOOR],
       ['IDA_HOST', undefined],
       ['KS_HOST', 'staging.interdomestik.com'],
-      ['INTERDOMESTIK_BUILT_DEPLOY_ORIGIN', PRODUCTION_DOOR],
     ]) {
       stubDeploymentOrigin();
       vi.stubEnv(key!, value);

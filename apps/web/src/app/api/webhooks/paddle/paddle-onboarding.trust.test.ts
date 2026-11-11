@@ -84,10 +84,10 @@ describe('emailed reset links and the Better Auth configuration', () => {
 
   it.each(SHAPES)('agree on $label', async ({ env, tenants }) => {
     const origin = env.BETTER_AUTH_URL!;
-    stubDeploymentOrigin(
-      origin.startsWith('http:') ? 'local' : origin.includes('staging.') ? 'staging' : 'production',
-      origin
-    );
+    let environment = 'production';
+    if (origin.startsWith('http:')) environment = 'local';
+    else if (origin.includes('staging.')) environment = 'staging';
+    stubDeploymentOrigin(environment, origin);
     for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
     const baseURL = getAuthBaseURL();
     const context = await betterAuth({

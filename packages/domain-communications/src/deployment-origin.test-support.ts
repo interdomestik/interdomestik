@@ -16,10 +16,10 @@ export function stubDeploymentOrigin(environment = 'staging', origin = STAGING_D
   ])
     vi.stubEnv(key, undefined);
   vi.stubEnv('INTERDOMESTIK_DEPLOY_ENV', undefined);
-  vi.stubEnv(
-    'VERCEL_ENV',
-    environment === 'local' ? undefined : environment === 'staging' ? 'preview' : 'production'
-  );
+  let vercelEnvironment: string | undefined;
+  if (environment === 'staging') vercelEnvironment = 'preview';
+  else if (environment !== 'local') vercelEnvironment = 'production';
+  vi.stubEnv('VERCEL_ENV', vercelEnvironment);
   vi.stubEnv('NEXT_PUBLIC_APP_URL', origin);
   vi.stubEnv('BETTER_AUTH_URL', `${origin}/api/auth`);
   vi.stubEnv('IDA_HOST', new URL(origin).host);

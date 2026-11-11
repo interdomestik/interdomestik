@@ -44,24 +44,17 @@ afterEach(() => vi.unstubAllEnvs());
 describe('next.config compatibility with existing lanes', () => {
   it.each([
     ...['ci.yml', 'e2e-pr', 'pilot-gate', 'nightly', 'release-candidate', 'multi-agent'].map(
-      lane => [lane, loopback, 'local', LOCAL] as const
+      lane => [lane, loopback] as const
     ),
-    ['Docker loopback', loopback, 'local', LOCAL],
+    ['Docker loopback', loopback],
     [
       'od17 canary',
       { NEXT_PUBLIC_APP_URL: 'https://build.invalid', BETTER_AUTH_URL: 'https://build.invalid' },
-      '',
-      '',
     ],
-    ['CD staging image actual Docker inputs', { INTERDOMESTIK_DEPLOY_ENV: 'staging' }, '', ''],
-    ['bare Docker build', {}, '', ''],
-    [
-      'non-Vercel staging URL without runtime auth/IDA',
-      { NEXT_PUBLIC_APP_URL: STAGING },
-      'staging',
-      STAGING,
-    ],
-    ['Vercel preview', preview, 'staging', STAGING],
+    ['CD staging image actual Docker inputs', { INTERDOMESTIK_DEPLOY_ENV: 'staging' }],
+    ['bare Docker build', {}],
+    ['non-Vercel staging URL without runtime auth/IDA', { NEXT_PUBLIC_APP_URL: STAGING }],
+    ['Vercel preview', preview],
     [
       'Vercel production before owner cutover',
       {
@@ -69,27 +62,23 @@ describe('next.config compatibility with existing lanes', () => {
         NEXT_PUBLIC_APP_URL: 'https://www.interdomestik.com',
         BETTER_AUTH_URL: 'https://www.interdomestik.com',
       },
-      '',
-      '',
     ],
     [
       'Vercel production canonical',
       { VERCEL_ENV: 'production', NEXT_PUBLIC_APP_URL: PRODUCTION, BETTER_AUTH_URL: PRODUCTION },
-      'production',
-      PRODUCTION,
     ],
-  ] satisfies ReadonlyArray<readonly [string, Readonly<Record<string, string>>, string, string]>)(
+  ] satisfies ReadonlyArray<readonly [string, Readonly<Record<string, string>>]>)(
     '%s loads configuration without a new required environment input',
-    async (_lane, env, environment, origin) => {
+    async (_lane, env) => {
       const variables: Readonly<Record<string, string>> = env;
       for (const [key, value] of Object.entries(variables)) vi.stubEnv(key, value);
       if (variables.VERCEL_ENV === 'production') {
         vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://prod-ref.supabase.co');
       }
       const { default: config } = await import('../next.config.mjs');
-      expect(config.env).toMatchObject({
-        INTERDOMESTIK_BUILT_DEPLOY_ENV: environment,
-        INTERDOMESTIK_BUILT_DEPLOY_ORIGIN: origin,
+      expect(config.env).toEqual({
+        INTERDOMESTIK_BUILT_CSP_NONCE_MODE: 'off',
+        INTERDOMESTIK_BUILD_COPYRIGHT_YEAR: expect.any(String),
       });
     }
   );

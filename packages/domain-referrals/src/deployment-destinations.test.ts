@@ -5,11 +5,13 @@ import { getAgentReferralLinkCore } from './referrals/get-agent-link';
 
 const mocks = vi.hoisted(() => ({ findFirst: vi.fn(), update: vi.fn() }));
 vi.mock('@interdomestik/database', () => ({
-  withTenantContext: async (_authority: unknown, run: (tx: unknown) => unknown) =>
-    run({
-      query: { user: { findFirst: mocks.findFirst } },
-      update: mocks.update,
-    }),
+  withTenantContext: (_authority: unknown, run: (tx: unknown) => unknown) =>
+    Promise.resolve(
+      run({
+        query: { user: { findFirst: mocks.findFirst } },
+        update: mocks.update,
+      })
+    ),
 }));
 vi.mock('@interdomestik/database/schema', () => ({ user: { id: 'id', tenantId: 'tenantId' } }));
 vi.mock('drizzle-orm', () => ({ eq: vi.fn(), and: vi.fn() }));

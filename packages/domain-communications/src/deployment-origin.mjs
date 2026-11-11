@@ -82,10 +82,9 @@ function validateVercelSignals(env, environment) {
   }
 }
 
-function validateHosts(env, environment, origin, requireIda = true) {
+function validateHosts(env, environment, origin) {
   const door = new URL(origin);
-  if (environment === 'staging' && requireIda && env.IDA_HOST !== 'staging.interdomestik.com')
-    refuse('IDA_HOST');
+  if (environment === 'staging' && env.IDA_HOST !== 'staging.interdomestik.com') refuse('IDA_HOST');
   // Local IDA_HOST belongs to routing; Playwright supplies it alongside a loopback app URL.
   if (environment !== 'local' && env.IDA_HOST !== undefined) {
     const configured = parseHost(env.IDA_HOST, 'IDA_HOST', door.protocol);
@@ -113,16 +112,11 @@ function validateHosts(env, environment, origin, requireIda = true) {
   }
 }
 
-function resolveConfiguration(env, build = false) {
+function resolveConfiguration(env) {
   const environment = inferEnvironment(env);
   validateVercelSignals(env, environment);
   const origin = validateDoor(environment, env.NEXT_PUBLIC_APP_URL);
-  // Non-Vercel image builds do not receive auth/IDA inputs. Runtime always requires them.
-  const requireRuntimeInputs = !build || Boolean(env.VERCEL_ENV);
-  if (
-    (requireRuntimeInputs || env.BETTER_AUTH_URL !== undefined) &&
-    parseUrl(env.BETTER_AUTH_URL, 'BETTER_AUTH_URL', true).origin !== origin
-  )
+  if (parseUrl(env.BETTER_AUTH_URL, 'BETTER_AUTH_URL', true).origin !== origin)
     refuse('BETTER_AUTH_URL');
   if (
     env.NEXT_PUBLIC_SITE_URL !== undefined &&
@@ -130,7 +124,7 @@ function resolveConfiguration(env, build = false) {
   ) {
     refuse('NEXT_PUBLIC_SITE_URL');
   }
-  validateHosts(env, environment, origin, requireRuntimeInputs);
+  validateHosts(env, environment, origin);
   return Object.freeze({ environment, origin });
 }
 
@@ -139,30 +133,11 @@ export function resolveDeploymentOrigin(env = process.env) {
   return resolveConfiguration(env);
 }
 
-/** Optional public snapshot: incomplete/placeholder builds must remain buildable. */
-export function captureDeploymentOriginSnapshot(env = process.env) {
-  try {
-    return resolveConfiguration(env, true);
-  } catch {
-    return Object.freeze({});
-  }
-}
-
-/** Validate only public values embedded by next.config; never include server config in clients. */
-export function validateDeploymentOriginSnapshot(snapshot) {
-  const environment = deploymentEnvironment(snapshot.environment);
-  const origin = validateDoor(environment, snapshot.origin);
-  if (origin !== snapshot.origin) refuse('build_origin');
-  return Object.freeze({ environment, origin });
-}
-
-/** Runtime configuration must match the artifact selected at build time. */
-export function assertDeploymentOriginMatchesBuild(env, snapshot) {
-  const runtime = resolveDeploymentOrigin(env);
-  if (!snapshot.environment && !snapshot.origin) return runtime;
-  const built = validateDeploymentOriginSnapshot(snapshot);
-  if (built.environment !== runtime.environment || built.origin !== runtime.origin) {
-    refuse('build_runtime_mismatch');
-  }
-  return runtime;
+/** Validate the existing public app URL without granting routing or server authority. */
+export function resolvePublicDeploymentOrigin(raw) {
+  const { origin } = parseUrl(raw, 'NEXT_PUBLIC_APP_URL');
+  let environment = 'local';
+  if (origin === PRODUCTION_ORIGIN) environment = 'production';
+  else if (origin === STAGING_ORIGIN) environment = 'staging';
+  return Object.freeze({ environment, origin: validateDoor(environment, raw) });
 }

@@ -1,9 +1,6 @@
-import { validateDeploymentOriginSnapshot } from '@interdomestik/domain-communications/deployment-origin';
+import { resolvePublicDeploymentOrigin } from '@interdomestik/domain-communications/deployment-origin';
 
-// Only these validated public values are embedded by next.config. Never read browser authority.
+// Next embeds this existing public input. Never read browser authority or server configuration.
 export function getClientDeploymentOrigin(): string {
-  return validateDeploymentOriginSnapshot({
-    environment: process.env.INTERDOMESTIK_BUILT_DEPLOY_ENV,
-    origin: process.env.INTERDOMESTIK_BUILT_DEPLOY_ORIGIN,
-  }).origin;
+  return resolvePublicDeploymentOrigin(process.env.NEXT_PUBLIC_APP_URL).origin;
 }
