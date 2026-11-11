@@ -1,55 +1,69 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
+import { createRequire, Module } from 'node:module';
 import test from 'node:test';
-import { runInNewContext } from 'node:vm';
-import ts from 'typescript';
 
-const dbFile = new URL('../src/db.ts', import.meta.url);
-const requireDb = createRequire(dbFile);
-const compiled = ts.transpileModule(readFileSync(dbFile, 'utf8'), {
-  compilerOptions: {
-    module: ts.ModuleKind.CommonJS,
-    target: ts.ScriptTarget.ES2022,
-    esModuleInterop: true,
-  },
-}).outputText;
+const requireDb = createRequire(import.meta.url);
+const dbPath = requireDb.resolve('../src/db.ts');
 const session = 'postgres://admin:pass@pooler.example:5432/app';
 const transaction = 'postgres://runtime:pass@pooler.example:6543/app';
 
-function clients(env: Record<string, string>, cached: Record<string, unknown> = {}) {
+async function clients(env: Record<string, string>, cached: Record<string, unknown> = {}) {
+  const originalEnv = process.env;
+  const originalCache = { ...requireDb.cache };
+  const globals = globalThis as unknown as Record<string, unknown>;
+  const clientKeys = ['queryClientAdmin', 'queryClientRls'];
+  const originalGlobals = clientKeys.map(key => Object.getOwnPropertyDescriptor(globals, key));
   const calls: { url: string; options: Record<string, unknown> }[] = [];
   const postgres = (url: string, options: Record<string, unknown>) => {
     calls.push({ url, options });
-    return async () => [
-      {
-        currentUser: 'runtime',
-        roleName: 'runtime',
-        roleBypassesRls: false,
-        roleIsSuperuser: false,
-      },
-    ];
+    return () =>
+      Promise.resolve([
+        {
+          currentUser: 'runtime',
+          roleName: 'runtime',
+          roleBypassesRls: false,
+          roleIsSuperuser: false,
+        },
+      ]);
   };
-  runInNewContext(compiled, {
-    exports: {},
-    global: cached,
-    process: { env: { NODE_ENV: 'test', ...env } },
-    console,
-    require: (name: string) => {
-      if (name === 'postgres') return postgres;
-      if (name === 'drizzle-orm/postgres-js') return { drizzle: (client: unknown) => client };
-      return requireDb(name);
-    },
-  });
-  return calls;
+  try {
+    process.env = { NODE_ENV: 'test', ...env };
+    for (const key of clientKeys) delete globals[key];
+    Object.assign(globals, cached);
+    for (const [name, exports] of [
+      ['postgres', postgres],
+      ['drizzle-orm/postgres-js', { drizzle: (client: unknown) => client }],
+    ] as const) {
+      const path = requireDb.resolve(name);
+      const stub = new Module(path);
+      stub.exports = exports;
+      stub.loaded = true;
+      requireDb.cache[path] = stub;
+    }
+    delete requireDb.cache[dbPath];
+    const db = requireDb(dbPath) as typeof import('../src/db');
+    await db.assertRlsConnectionRoleReady();
+    return calls;
+  } finally {
+    process.env = originalEnv;
+    clientKeys.forEach((key, index) => {
+      const descriptor = originalGlobals[index];
+      if (descriptor) Object.defineProperty(globals, key, descriptor);
+      else delete globals[key];
+    });
+    for (const path of Object.keys(requireDb.cache)) {
+      if (!Object.hasOwn(originalCache, path)) delete requireDb.cache[path];
+    }
+    Object.assign(requireDb.cache, originalCache);
+  }
 }
 
-test('each runtime client detects its own pooler port', () => {
+test('each runtime client detects its own pooler port', async () => {
   for (const [admin, rls] of [
     [session, transaction],
     [transaction, session],
   ]) {
-    const calls = clients({ DATABASE_URL: admin, DATABASE_URL_RLS: rls });
+    const calls = await clients({ DATABASE_URL: admin, DATABASE_URL_RLS: rls });
     assert.deepEqual(
       calls.map(call => call.url),
       [admin, rls]
@@ -68,8 +82,8 @@ test('each runtime client detects its own pooler port', () => {
   }
 });
 
-test('explicit environment override disables preparation for both runtime clients', () => {
-  const calls = clients({
+test('explicit environment override disables preparation for both runtime clients', async () => {
+  const calls = await clients({
     DATABASE_URL: session,
     DATABASE_URL_RLS: `${session}?rls`,
     DB_TRANSACTION_POOLER: '1',
@@ -78,19 +92,19 @@ test('explicit environment override disables preparation for both runtime client
   assert(calls.every(({ options }) => options.prepare === false));
 });
 
-test('local, missing-port and session URLs keep postgres preparation defaults', () => {
+test('local, missing-port and session URLs keep postgres preparation defaults', async () => {
   for (const url of [
     session,
     'postgres://postgres:postgres@localhost:54322/postgres',
     'postgres://admin:pass@pooler.example/app',
   ]) {
-    const calls = clients({ DATABASE_URL: url, DB_TRANSACTION_POOLER: '0' });
+    const calls = await clients({ DATABASE_URL: url, DB_TRANSACTION_POOLER: '0' });
     assert.equal(calls.length, 1, 'equal admin/RLS URLs reuse one client');
     assert.equal(Object.hasOwn(calls[0].options, 'prepare'), false);
   }
 });
 
-test('pooler mode preserves production options and existing global client reuse', () => {
+test('pooler mode preserves production options and existing global client reuse', async () => {
   const env = {
     NODE_ENV: 'production',
     VERCEL: '1',
@@ -101,18 +115,24 @@ test('pooler mode preserves production options and existing global client reuse'
     DB_CONNECT_TIMEOUT: '17',
     DB_MAX_LIFETIME: '1900',
   };
-  for (const { options } of clients(env)) {
+  for (const { options } of await clients(env)) {
     assert.equal(options.max, 1);
     assert.equal(options.ssl, 'require');
     assert.equal(options.idle_timeout, 13);
     assert.equal(options.connect_timeout, 17);
     assert.equal(options.max_lifetime, 1900);
   }
-  const cachedClient = async () => [
-    { currentUser: 'runtime', roleName: 'runtime', roleBypassesRls: false, roleIsSuperuser: false },
-  ];
+  const cachedClient = () =>
+    Promise.resolve([
+      {
+        currentUser: 'runtime',
+        roleName: 'runtime',
+        roleBypassesRls: false,
+        roleIsSuperuser: false,
+      },
+    ]);
   assert.equal(
-    clients(env, { queryClientAdmin: cachedClient, queryClientRls: cachedClient }).length,
+    (await clients(env, { queryClientAdmin: cachedClient, queryClientRls: cachedClient })).length,
     0
   );
 });
