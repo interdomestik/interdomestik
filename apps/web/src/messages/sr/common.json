@@ -74,6 +74,19 @@
       "expandAll": "Prikaži sve ({count})",
       "searchMembers": "Pretraži članove",
       "loadingPage": "Učitavanje stranice"
+    },
+    "anonymousLead": {
+      "label": "Zemlja / program usluge",
+      "placeholder": "Izaberite zemlju ili program",
+      "required": "Izaberite zemlju usluge ili koristite važeći link za rezervaciju.",
+      "conflict": "Vaš izbor se ne podudara sa linkom za rezervaciju. Otvorite odgovarajući link ili počnite ponovo.",
+      "unavailable": "Ova zemlja ili program nije dostupan. Pokušajte ponovo ili kontaktirajte podršku.",
+      "submitError": "Zahtev nije poslat. Pokušajte ponovo.",
+      "tenants": {
+        "tenant_ks": "Kosovo",
+        "tenant_mk": "Severna Makedonija — standardna usluga",
+        "pilot-mk": "Severna Makedonija — pilot program"
+      }
     }
   }
 }

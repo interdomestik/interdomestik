@@ -10,12 +10,13 @@ import {
   revalidatePathForAllLocales,
   validateConfirmedClaimUpload,
 } from '@/features/claims/upload/server/shared-upload';
-import { auth } from '@/lib/auth';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
-import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { authorizeSessionTenant, type AuthorizedSession } from '@/lib/tenant-authority.server';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
-import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import { ensureTenantId, isStaffOrHigher } from '@interdomestik/shared-auth';
+import { isStaffOrHigher } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
 type AdminUploadRole = 'admin' | 'super_admin' | 'tenant_admin' | 'staff';
 
@@ -26,7 +27,7 @@ function isAdminUploadRole(role: string | null | undefined): role is AdminUpload
 type UploadContext =
   | {
       success: true;
-      session: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
+      session: AuthorizedSession['session'];
       authority: TenantAuthority;
       tenantId: string;
       resolvedBucket: string;
@@ -63,31 +64,23 @@ export type ConfirmAdminUploadParams = {
 
 async function resolveAdminUploadContext(): Promise<UploadContext> {
   const requestHeaders = await headers();
-  const session = await auth.api.getSession({
-    headers: requestHeaders,
-  });
-
-  if (!session || !isAdminUploadRole(session.user.role)) {
+  let authorized: AuthorizedSession | null;
+  try {
+    authorized = await authorizeSessionTenant(requestHeaders);
+    if (!authorized || !isAdminUploadRole(authorized.session.user.role)) {
+      return { success: false, error: 'Unauthorized', status: 401 };
+    }
+    readTenantAuthority(authorized.authority);
+  } catch {
     return { success: false, error: 'Unauthorized', status: 401 };
   }
-
+  const { session, authority } = authorized;
+  const tenantId = readTenantAuthority(authority).tenantId;
   try {
-    const authorized = await authorizeSessionTenant(requestHeaders);
-    if (!authorized) {
-      return { success: false, error: 'Unauthorized', status: 401 };
-    }
-    const tenantId = ensureTenantId(session);
-    const requestHost = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
-    const hostTenantId = resolveTenantFromHost(requestHost);
-
-    if (!hostTenantId || hostTenantId !== tenantId) {
-      return { success: false, error: 'Unauthorized', status: 401 };
-    }
-
     return {
       success: true,
       session,
-      authority: authorized.authority,
+      authority,
       tenantId,
       resolvedBucket: resolveEvidenceBucketName(),
     };

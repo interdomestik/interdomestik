@@ -74,6 +74,19 @@
       "expandAll": "Expand All ({count})",
       "searchMembers": "Search members",
       "loadingPage": "Loading page"
+    },
+    "anonymousLead": {
+      "label": "Service country / programme",
+      "placeholder": "Choose a country or programme",
+      "required": "Choose a service country or use a valid booking link.",
+      "conflict": "Your choice conflicts with the booking link. Open the matching link or start again.",
+      "unavailable": "This country or programme is unavailable. Please try again or contact support.",
+      "submitError": "We could not send your request. Please try again.",
+      "tenants": {
+        "tenant_ks": "Kosovo",
+        "tenant_mk": "North Macedonia — standard service",
+        "pilot-mk": "North Macedonia — pilot programme"
+      }
     }
   }
 }

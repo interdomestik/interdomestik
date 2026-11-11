@@ -12,11 +12,9 @@ import {
   findOwnedMemberInformationRequest,
   findOwnedMemberUploadClaim,
 } from '@/features/claims/upload/server/access';
-import { auth } from '@/lib/auth';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 
-import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { authorizeSessionTenant, type AuthorizedSession } from '@/lib/tenant-authority.server';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -38,12 +36,10 @@ async function validateClaimAccess(params: {
   claimId: string;
   role: string | null | undefined;
   authority: TenantAuthority;
-  tenantId: string;
-  host: string;
   userId: string;
 }): Promise<ClaimAccess> {
-  const { claimId, role, authority, tenantId, host, userId } = params;
-  const isAdminSurface = isAdminUploadRole(role) && resolveTenantFromHost(host) === tenantId;
+  const { claimId, role, authority, userId } = params;
+  const isAdminSurface = isAdminUploadRole(role);
 
   if (isAdminSurface) {
     const claim = await findAccessibleAdminUploadClaim({
@@ -68,14 +64,14 @@ async function validateClaimAccess(params: {
 
 async function resolveTenantAuthority(
   requestHeaders: Headers
-): Promise<ResponseResult<{ authority: TenantAuthority; tenantId: string }>> {
+): Promise<ResponseResult<AuthorizedSession & { tenantId: string }>> {
   try {
     const authorized = await authorizeSessionTenant(requestHeaders);
     if (!authorized) return { success: false, response: jsonError('Unauthorized', 401) };
     return {
       success: true,
       data: {
-        authority: authorized.authority,
+        ...authorized,
         tenantId: readTenantAuthority(authorized.authority).tenantId,
       },
     };
@@ -115,33 +111,24 @@ function captureConfirmFailure(params: {
 }
 
 export async function POST(request: Request) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) {
-    return jsonError('Unauthorized', 401);
-  }
-
-  const form = await parseEvidenceUploadForm(request);
-  if (!form.success) return form.response;
-
   const tenant = await resolveTenantAuthority(request.headers);
   if (!tenant.success) return tenant.response;
+  const { session, authority, tenantId } = tenant.data;
+  const form = await parseEvidenceUploadForm(request);
+  if (!form.success) return form.response;
 
   const evidenceBucket = resolveEvidenceBucket();
   if (!evidenceBucket.success) return evidenceBucket.response;
 
   const { aiExtractionConsentGranted, category, claimId, file, informationRequestId, locale } =
     form.data;
-  const { authority, tenantId } = tenant.data;
   const bucket = evidenceBucket.data;
   const role = session.user.role ?? null;
-  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '';
   const claimAccess = await validateClaimAccess({
     branchId: session.user.branchId ?? null,
     claimId,
     role,
     authority,
-    tenantId,
-    host,
     userId: session.user.id,
   });
 

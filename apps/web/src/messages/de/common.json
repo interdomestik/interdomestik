@@ -74,6 +74,19 @@
       "expandAll": "Alle anzeigen ({count})",
       "searchMembers": "Mitglieder suchen",
       "loadingPage": "Seite wird geladen"
+    },
+    "anonymousLead": {
+      "label": "Land / Serviceprogramm",
+      "placeholder": "Land oder Programm wählen",
+      "required": "Wählen Sie ein Serviceland oder verwenden Sie einen gültigen Buchungslink.",
+      "conflict": "Ihre Auswahl stimmt nicht mit dem Buchungslink überein. Öffnen Sie den passenden Link oder beginnen Sie erneut.",
+      "unavailable": "Dieses Land oder Programm ist nicht verfügbar. Versuchen Sie es erneut oder kontaktieren Sie den Support.",
+      "submitError": "Ihre Anfrage konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+      "tenants": {
+        "tenant_ks": "Kosovo",
+        "tenant_mk": "Nordmazedonien — regulärer Service",
+        "pilot-mk": "Nordmazedonien — Pilotprogramm"
+      }
     }
   }
 }

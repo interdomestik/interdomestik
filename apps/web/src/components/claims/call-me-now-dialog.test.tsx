@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AbstractIntlMessages } from 'next-intl';
 import en from '@/messages/en/claimCategories.json';
+import enCommon from '@/messages/en/common.json';
+import sqCommon from '@/messages/sq/common.json';
 import sq from '@/messages/sq/claimCategories.json';
 import shared from '@/messages/en/claims.json';
 const language = vi.hoisted(() => ({ locale: 'en' }));
@@ -8,7 +10,12 @@ vi.mock('next-intl', async () => {
   const { createLocaleTranslationsMock } = await import('@/test/next-intl-locale-test-utils');
   return createLocaleTranslationsMock(
     language,
-    () => ({ ...shared, ...(language.locale === 'sq' ? sq : en) }) as AbstractIntlMessages
+    () =>
+      ({
+        ...shared,
+        ...(language.locale === 'sq' ? sqCommon : enCommon),
+        ...(language.locale === 'sq' ? sq : en),
+      }) as AbstractIntlMessages
   );
 });
 import { render, screen } from '@testing-library/react';
