@@ -141,8 +141,8 @@ async function expectHandoffBoundaries(
       ),
       toggle.press('Enter'),
     ]);
-    // Use the same received bytes already checked by capture, before any later navigation.
-    const actionText = await capture.checkedPayload(detailReply);
+    // Read the intercepted bytes checked for this original action, without CDP or replay.
+    const actionText = await capture.checkedPayload(detailReply.request());
     await expect(row.getByTestId('staff-support-handoff-detail-panel')).toBeVisible();
     await capture.settled();
     expect(capture.checkedPayloadCount, 'checked a new detail payload').toBeGreaterThan(
