@@ -16,6 +16,7 @@
 import { ACQ2C_CREDENTIAL_HARDENING } from './c1-admissions-auth.mjs';
 import { DE_LOCALE_ADDITION } from './c1-admissions-i18n.mjs';
 import { TX_LIFETIME_TRANSITION } from './c1-admissions-document-lifetime.mjs';
+import { DB_TRANSACTION_POOLER } from './c1-admissions-pooler.mjs';
 
 const deepFreeze = value => {
   if (value && typeof value === 'object') {
@@ -216,4 +217,5 @@ export const C1_ADMISSIONS = deepFreeze([
   },
   ACQ2C_CREDENTIAL_HARDENING,
   DE_LOCALE_ADDITION,
+  DB_TRANSACTION_POOLER,
 ]);
