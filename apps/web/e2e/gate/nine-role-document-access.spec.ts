@@ -7,7 +7,12 @@ import {
   type TestInfo,
 } from '@playwright/test';
 import { getProjectUrlInfo } from '../fixtures/auth.project';
-import { catalogueDelivery, LOCAL_CONFIGURED_STORAGE_SKIP } from './catalogue-delivery';
+import {
+  catalogueDelivery,
+  LOCAL_CONFIGURED_STORAGE_SKIP,
+  readSignedObject,
+  signedLaneTraceAllowed,
+} from './catalogue-delivery';
 import { isKsGateProject, isMkGateProject } from './gate-project-identity';
 import { requireSeededHost, signInAs } from './nine-role-actor';
 import {
@@ -25,7 +30,7 @@ type CatalogueDocument = (typeof E2E_DOCUMENT_FIXTURES)[(typeof DOCUMENT_KEYS)[n
 
 /** Metadata names the document and hands out the URL its delivery mode serves bytes from. */
 async function expectAllowedMetadata(
-  request: APIRequestContext,
+  info: TestInfo,
   metadata: APIResponse,
   document: CatalogueDocument,
   label: string
@@ -40,15 +45,18 @@ async function expectAllowedMetadata(
     });
     return;
   }
-  // Booleans only: a failure message must never print the signed URL's token.
+  // The signed URL is a live credential: booleans and numbers only, read outside Playwright.
+  expect(signedLaneTraceAllowed(info.project.use.trace), 'storage-signed lane runs untraced').toBe(
+    true
+  );
   const signed = typeof body.url === 'string' && URL.canParse(body.url) ? new URL(body.url) : null;
   expect(body.delivery, `${label} delivery`).toBeUndefined();
   expect(signed?.protocol === 'https:', `${label} signed URL is https`).toBe(true);
   const signedPrefix = `/storage/v1/object/sign/${document.bucket}/`;
   expect(signed?.pathname.startsWith(signedPrefix), `${label} signed object path`).toBe(true);
-  const stored = await request.get(String(signed), { maxRedirects: 0 });
-  expect(stored.status(), `${label} signed URL bytes`).toBe(200);
-  expect((await stored.body()).byteLength, `${label} signed URL bytes`).toBeGreaterThan(0);
+  const stored = await readSignedObject(String(signed), `${label} signed URL bytes`);
+  expect(stored.status, `${label} signed URL bytes`).toBe(200);
+  expect(stored.byteLength, `${label} signed URL bytes`).toBeGreaterThan(0);
 }
 
 async function expectDocumentAccess(
@@ -68,7 +76,7 @@ async function expectDocumentAccess(
   const preview = await read(`${base}/download?disposition=inline`);
 
   if (allowed) {
-    await expectAllowedMetadata(request, metadata, document, label);
+    await expectAllowedMetadata(info, metadata, document, label);
     expect(download.status(), label).toBe(200);
     expect((await download.body()).byteLength, label).toBeGreaterThan(0);
     expect(preview.status(), label).toBe(200);

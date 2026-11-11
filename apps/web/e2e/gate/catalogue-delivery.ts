@@ -16,3 +16,34 @@ export function catalogueDelivery(env: NodeJS.ProcessEnv = process.env): Catalog
 /** A local server with configured storage has no objects behind the row-only local seed. */
 export const LOCAL_CONFIGURED_STORAGE_SKIP =
   'Local catalogue documents have no backing storage objects; run on deterministic E2E storage';
+
+/** Status and size of a stored object; never the URL, its token or a transport error's text. */
+export type SignedObjectRead = { status: number; byteLength: number };
+
+/**
+ * Reads a signed storage URL outside Playwright's request instrumentation, which would keep the
+ * URL in step parameters and transport-error logs. A failure surfaces only the given label.
+ */
+export async function readSignedObject(
+  signedUrl: string,
+  label: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<SignedObjectRead> {
+  let response: Response;
+  try {
+    response = await fetchImpl(signedUrl, { redirect: 'manual', cache: 'no-store' });
+  } catch {
+    throw new Error(`${label}: signed object read failed before a response`);
+  }
+  const byteLength = response.ok ? (await response.arrayBuffer()).byteLength : 0;
+  return { status: response.status, byteLength };
+}
+
+/**
+ * The metadata response carries a live signed URL, so the storage-signed lane refuses any retained
+ * trace that would record that body.
+ */
+export function signedLaneTraceAllowed(trace: unknown): boolean {
+  const mode = typeof trace === 'string' ? trace : (trace as { mode?: unknown } | undefined)?.mode;
+  return mode === undefined || mode === 'off';
+}

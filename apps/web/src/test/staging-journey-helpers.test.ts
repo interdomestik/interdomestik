@@ -1,6 +1,10 @@
 import type { APIRequestContext, APIResponse, TestInfo } from '@playwright/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { catalogueDelivery } from '../../e2e/gate/catalogue-delivery';
+import {
+  catalogueDelivery,
+  readSignedObject,
+  signedLaneTraceAllowed,
+} from '../../e2e/gate/catalogue-delivery';
 import { getRespectingRateLimit, retryAfterSeconds } from '../../e2e/gate/rate-limit-aware-get';
 
 const configured: NodeJS.ProcessEnv = {
@@ -21,6 +25,45 @@ describe('catalogue document delivery', () => {
   it('marks local configured storage as unavailable for the row-only seed', () => {
     expect(catalogueDelivery(configured)).toBe('unavailable');
   });
+});
+
+const SIGNED = 'https://storage.example.invalid/storage/v1/object/sign/b/p.pdf?token=secret-token';
+
+describe('readSignedObject', () => {
+  it('reports status and size of the stored bytes without following redirects', async () => {
+    const fetchImpl = vi.fn(() => Promise.resolve(new Response(new Uint8Array(1024))));
+    await expect(readSignedObject(SIGNED, 'doc', fetchImpl)).resolves.toEqual({
+      status: 200,
+      byteLength: 1024,
+    });
+    expect(fetchImpl).toHaveBeenCalledWith(SIGNED, { redirect: 'manual', cache: 'no-store' });
+  });
+  it('reads no body from a failed answer', async () => {
+    const fetchImpl = vi.fn(() => Promise.resolve(new Response('missing', { status: 400 })));
+    await expect(readSignedObject(SIGNED, 'doc', fetchImpl)).resolves.toEqual({
+      status: 400,
+      byteLength: 0,
+    });
+  });
+  it('never surfaces the signed URL or its token from a transport failure', async () => {
+    const fetchImpl = vi.fn(() => Promise.reject(new TypeError(`fetch failed: ${SIGNED}`)));
+    const failure = await readSignedObject(SIGNED, 'doc', fetchImpl).catch((error: Error) => error);
+    expect(failure).toBeInstanceOf(Error);
+    expect(String(failure)).toBe('Error: doc: signed object read failed before a response');
+    expect(JSON.stringify(failure, Object.getOwnPropertyNames(failure))).not.toContain('token');
+  });
+});
+
+describe('signedLaneTraceAllowed', () => {
+  it.each([undefined, 'off', { mode: 'off' }])('allows untraced runs (%s)', trace => {
+    expect(signedLaneTraceAllowed(trace)).toBe(true);
+  });
+  it.each(['on', 'retain-on-failure', 'on-first-retry', { mode: 'on' }])(
+    'refuses retained traces (%s)',
+    trace => {
+      expect(signedLaneTraceAllowed(trace)).toBe(false);
+    }
+  );
 });
 
 describe('retryAfterSeconds', () => {
