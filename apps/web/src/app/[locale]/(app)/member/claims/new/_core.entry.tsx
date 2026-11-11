@@ -5,9 +5,8 @@ import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boun
 import { loadMessagesForNamespaces } from '@/i18n/messages';
 import { Link } from '@/i18n/routing';
 import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
-import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
+import { resolveSessionTenantConcepts } from '@/lib/tenant/tenant-session-context';
 import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { Button } from '@interdomestik/ui';
 import { ShieldAlert } from 'lucide-react';
 import { Metadata } from 'next';
@@ -87,7 +86,8 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
     redirect(`/${locale}/login`);
   }
 
-  const tenantId = ensureTenantId(session);
+  const { accessTenantId: tenantId } = resolveSessionTenantConcepts(session);
+  if (!tenantId) redirect(`/${locale}/login`);
   // Membership is read under the session's own authority; without one there is no access.
   const authority = await authorizeSessionUserTenant(session.user.id);
   const hasAccess = authority ? await hasActiveMembership(session.user.id, authority) : false;
@@ -97,8 +97,7 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
     Object.keys(query).length === 1 &&
     query.mode === 'drafts' &&
     evaluateNeutralOtpHost(await headers()) &&
-    (session.user.role === 'member' || session.user.role === 'user') &&
-    tenantId === resolveDefaultPublicTenantId();
+    (session.user.role === 'member' || session.user.role === 'user');
 
   if (!hasAccess && !managerOnly) {
     return (

@@ -8,11 +8,16 @@ function requestCase(
   return { name, headers, defaultTenant };
 }
 
-// Technical reservation partition only: every non-MK request (KS, AL, pilot, neutral or missing
-// host with a non-MK default) is projected onto the provisioned tenant_ks partition, so these
-// requests SHARE one partition. No AL-vs-KS host isolation is claimed and the projection grants
-// no tenant, access, legal, country or booking identity.
+// All hosts and defaults share KS bookkeeping, including historical MK entry points.
 export const REQUEST_CASES: readonly RequestCase[] = [
+  requestCase('MK host', { host: 'mk.interdomestik.com' }),
+  requestCase('neutral host with MK default', { host: 'ida.interdomestik.com' }, 'tenant_mk'),
+  requestCase('forwarded MK host and hostile hints', {
+    host: 'ks.interdomestik.com',
+    'x-forwarded-host': 'mk.interdomestik.com',
+    cookie: 'tenantId=tenant_mk',
+    'x-tenant-id': 'tenant_mk',
+  }),
   requestCase('KS host', { host: 'ks.interdomestik.com' }),
   requestCase('AL host', { host: 'al.interdomestik.com' }),
   requestCase('pilot host', { host: 'pilot.interdomestik.com' }),

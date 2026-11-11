@@ -1,3 +1,4 @@
+import { readFreshVerifiedSession } from '@/lib/auth/fresh-verified-session';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -73,12 +74,18 @@ function expectNoRepositoryCalls(deps: FreeStartDraftLifecycleDependencies) {
 }
 
 function resolveWithVerdict(emailVerified: unknown) {
-  const session = { user: { id: 'owner-a', role: 'member', emailVerified } };
+  const session = {
+    user: {
+      id: 'owner-a',
+      email: 'owner@example.test',
+      role: 'member',
+      tenantId: 'tenant_ks',
+      emailVerified,
+    },
+  };
   return resolveFreeStartDraftSession(headers, {
-    getSession: vi.fn().mockResolvedValue(session),
+    readSession: headers => readFreshVerifiedSession(headers, vi.fn().mockResolvedValue(session)),
     isAllowedHost: () => true,
-    resolveDefaultTenantId: () => 'tenant_ks',
-    resolveSessionAccessTenantId: () => 'tenant_ks',
   });
 }
 

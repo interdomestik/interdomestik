@@ -132,7 +132,6 @@ describe('NewClaimPage dormant draft intake', () => {
     ['case drift', { mode: 'Drafts' }, ...ok],
     ['whitespace', { mode: ' drafts' }, ...ok],
     ['other role', { mode: 'drafts' }, 'agent', 'tenant_ks', new Headers({ host: 'ida.localhost' })],
-    ['tenant mismatch', { mode: 'drafts' }, 'member', 'tenant_mk', new Headers({ host: 'ida.localhost' })],
     ['spoofed host', { mode: 'drafts' }, 'member', 'tenant_ks', new Headers({ host: 'ida.attacker.example' })],
     ['forwarded mismatch', { mode: 'drafts' }, 'member', 'tenant_ks', new Headers({ host: 'ida.localhost', 'x-forwarded-host': 'attacker.example' })],
   ])('fails closed for %s', async (_case, query, role, tenantId, requestHeaders) => {
@@ -156,6 +155,27 @@ describe('NewClaimPage dormant draft intake', () => {
     h.member.mockRejectedValueOnce(new Error('member unavailable'));
     await expect(loadPage({ mode: 'drafts' })).rejects.toThrow('member unavailable');
   });
+
+  it.each(['tenant_ks', 'tenant_mk', 'pilot-mk'])(
+    'admits unpaid %s owners using session access scope',
+    async tenantId => {
+      h.session.mockResolvedValueOnce({
+        user: { id: 'member-1', role: 'member', tenantId: 'tenant_ks', accessTenantId: tenantId },
+      });
+      h.member.mockResolvedValueOnce(false);
+      h.head.mockResolvedValueOnce(
+        new Headers({
+          host: 'ida.localhost',
+          cookie: 'tenantId=tenant_ks',
+          'x-tenant-id': 'tenant_ks',
+        })
+      );
+      render(await loadPage({ mode: 'drafts' }));
+      expect(h.intake).toHaveBeenCalledWith(
+        expect.objectContaining({ managerOnly: true, tenantId })
+      );
+    }
+  );
 
   it('reads no membership and grants no access without a session authority', async () => {
     h.authority.mockResolvedValueOnce(null);

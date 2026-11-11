@@ -8,7 +8,7 @@ import { requireSessionOrRedirect } from '@/components/shell/session';
 import { LOCALES } from '@/i18n/locales';
 import { getCachedSession } from '@/lib/auth.server';
 import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
-import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
+import { resolveSessionTenantConcepts } from '@/lib/tenant/tenant-session-context';
 import { getMemberCaseSummaries, getMemberPortalMembership } from '@interdomestik/domain-member';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -26,7 +26,8 @@ export const getMemberPortalContext = cache(async (requestedLocale: string) => {
   setRequestLocale(locale);
 
   const session = requireSessionOrRedirect(await getCachedSession(), locale);
-  const { id: memberId, role, tenantId } = session.user;
+  const { id: memberId, role } = session.user;
+  const { accessTenantId: tenantId } = resolveSessionTenantConcepts(session);
   if (!memberId || !role || !tenantId) notFound();
   const actor = resolveMemberActorRoleOnSession(role);
   if (!actor) notFound();
@@ -36,7 +37,7 @@ export const getMemberPortalContext = cache(async (requestedLocale: string) => {
   if (access.kind === 'forbidden' || actor !== 'member') notFound();
 
   // prettier-ignore
-  const draft = evaluateNeutralOtpHost(await headers()) && (role === 'member' || role === 'user') && tenantId === resolveDefaultPublicTenantId();
+  const draft = evaluateNeutralOtpHost(await headers()) && (role === 'member' || role === 'user');
 
   // prettier-ignore
   const [t, dashboard] = await Promise.all([getTranslations({ locale, namespace: 'claims' }), getTranslations({ locale, namespace: 'dashboard' })]);

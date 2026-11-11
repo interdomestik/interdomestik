@@ -2,7 +2,7 @@ import { createHmac, randomInt, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
 import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
-import { auth } from '@/lib/auth';
+import { readFreshVerifiedSession } from '@/lib/auth/fresh-verified-session';
 import { deliverRecoveryCode } from '@/lib/auth/different-email-recovery-email';
 import {
   activateCurrentProof,
@@ -13,12 +13,6 @@ import {
   reserveReplacementProof,
 } from '@/lib/auth/different-email-recovery-store';
 import { enforceOtpRateLimits, type OtpRateKind } from '@/lib/rate-limit-otp';
-import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
-import {
-  resolveSessionTenantConcepts,
-  type TenantSessionLike,
-} from '@/lib/tenant/tenant-session-context';
-
 type Context = { email: string; tenantId: string; userId: string };
 type Stage = 'current' | 'replacement';
 type InputResult =
@@ -37,17 +31,12 @@ const currentSchema = z.strictObject({ code: z.string().regex(/^\d{6}$/), email:
 const replacementSchema = z.strictObject({ code: z.string().regex(/^\d{6}$/) });
 const failure = (code: 'invalid' | 'unavailable' = 'unavailable') => ({ ok: false, code }) as const;
 
-// prettier-ignore
 async function resolveContext(headers: Headers): Promise<Context | null> {
   if (!evaluateNeutralOtpHost(headers)) return null;
-  try {
-    const session = await auth.api.getSession({ headers, query: { disableCookieCache: true, disableRefresh: true } });
-    const view = session as TenantSessionLike & { user?: { email?: unknown; id?: unknown } };
-    const userId = typeof view?.user?.id === 'string' ? view.user.id : null;
-    const email = typeof view?.user?.email === 'string' ? view.user.email.trim() : null;
-    const tenantId = resolveDefaultPublicTenantId(), accessTenantId = resolveSessionTenantConcepts(view).accessTenantId;
-    return userId && email && tenantId && accessTenantId === tenantId ? { email, tenantId, userId } : null;
-  } catch { return null; }
+  const result = await readFreshVerifiedSession(headers);
+  if (!result.ok) return null;
+  const { email, accessTenantId, userId } = result.session;
+  return { email, tenantId: accessTenantId, userId };
 }
 
 async function rate(args: RateArgs) {

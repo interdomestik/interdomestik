@@ -25,7 +25,7 @@ vi.mock('@sentry/nextjs', () => ({
   captureException: (...args: unknown[]) => mockCaptureException(...args),
 }));
 
-// The reservation scope carries the public-site authority of the host partition, never a raw id.
+// The reservation scope carries the public-site authority of the fixed KS partition, never a raw id.
 function tenantScope(tenantId: string) {
   return {
     kind: 'tenant',
@@ -36,7 +36,7 @@ function tenantScope(tenantId: string) {
   };
 }
 
-// Configuration read by the real tenant resolver; stubbed empty per test and restored after.
+// Ambient configuration must never select the reservation partition.
 const TENANT_HOST_ENV = [
   'DEFAULT_PUBLIC_TENANT_ID',
   'IDA_HOST',
@@ -73,28 +73,26 @@ function scopeCase(
   return { name, headers, tenantId, env };
 }
 
-// Expected values are the technical reservation partition only: tenant_mk stays separate and
-// every other resolved alias (KS, AL, pilot or an unrecognised default) shares tenant_ks.
-// The projection grants no tenant, access, legal, country or booking identity.
+// Every request shares the fixed KS technical partition; no business authority is granted.
 const SCOPE_CASES: readonly ScopeCase[] = [
   scopeCase('KS canonical host over default', { host: KS }, 'tenant_ks', 'tenant_al'),
   scopeCase('KS local alias with port', { host: 'ks.localhost:3000' }, 'tenant_ks'),
-  scopeCase('MK canonical host', { host: MK }, 'tenant_mk'),
-  scopeCase('MK nip.io alias', { host: 'mk.127.0.0.1.nip.io' }, 'tenant_mk'),
+  scopeCase('MK canonical host', { host: MK }, 'tenant_ks'),
+  scopeCase('MK nip.io alias', { host: 'mk.127.0.0.1.nip.io' }, 'tenant_ks'),
   scopeCase('AL canonical host over MK default', { host: AL }, 'tenant_ks', 'tenant_mk'),
   scopeCase('AL local alias with port', { host: 'al.localhost:3000' }, 'tenant_ks'),
   scopeCase('pilot canonical host over MK default', { host: PILOT }, 'tenant_ks', 'tenant_mk'),
   scopeCase('pilot local alias with port', { host: 'pilot.localhost:3000' }, 'tenant_ks'),
-  scopeCase('neutral host, configured default', { host: IDA }, 'tenant_mk', 'tenant_mk'),
+  scopeCase('neutral host, configured default', { host: IDA }, 'tenant_ks', 'tenant_mk'),
   scopeCase('neutral host, no configured default', { host: IDA }, 'tenant_ks'),
   scopeCase('neutral host, AL default', { host: IDA }, 'tenant_ks', 'tenant_al'),
   scopeCase('neutral host, pilot default', { host: IDA }, 'tenant_ks', 'pilot-mk'),
   scopeCase('missing host, configured default', {}, 'tenant_ks', 'tenant_al'),
-  scopeCase('missing host, MK default', {}, 'tenant_mk', 'tenant_mk'),
+  scopeCase('missing host, MK default', {}, 'tenant_ks', 'tenant_mk'),
   scopeCase('unknown host, configured default', { host: UNKNOWN }, 'tenant_ks', 'tenant_al'),
   scopeCase('unknown host, pilot default', { host: UNKNOWN }, 'tenant_ks', 'pilot-mk'),
   scopeCase('unknown host, unrecognised default', { host: UNKNOWN }, 'tenant_ks', 'tenant_x'),
-  scopeCase('forwarded host over host', { 'x-forwarded-host': MK, host: KS }, 'tenant_mk'),
+  scopeCase('forwarded host over host', { 'x-forwarded-host': MK, host: KS }, 'tenant_ks'),
   scopeCase('forwarded AL host over MK host', { 'x-forwarded-host': AL, host: MK }, 'tenant_ks'),
   scopeCase('forwarded pilot over MK host', { 'x-forwarded-host': PILOT, host: MK }, 'tenant_ks'),
   scopeCase(
@@ -104,9 +102,9 @@ const SCOPE_CASES: readonly ScopeCase[] = [
     'tenant_al'
   ),
   scopeCase(
-    'empty forwarded host uses the MK default, not the KS host',
+    'empty forwarded host and MK default cannot change KS bookkeeping',
     { 'x-forwarded-host': '', host: KS },
-    'tenant_mk',
+    'tenant_ks',
     'tenant_mk'
   ),
   scopeCase('hints ignored on unknown host', { ...HOSTILE_HINTS, host: UNKNOWN }, 'tenant_ks'),
@@ -162,7 +160,7 @@ describe('actions/free-start submitFreeStartIntakeCore', () => {
   });
 
   it.each(SCOPE_CASES)(
-    'partitions keyed reservations by request host only: $name',
+    'keeps reservations in KS despite ambient selectors: $name',
     async ({ headers, tenantId, env }) => {
       vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', env);
       mockRateLimit.mockResolvedValueOnce({ limited: false });
