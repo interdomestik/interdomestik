@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { stubDeploymentOrigin } from '../deployment-origin.test-support';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   renderThankYouLetterEmail,
   type ConfirmationLocale,
@@ -14,9 +15,12 @@ const baseParams: ThankYouLetterParams = {
   memberSince: 'September 25, 2026',
   expiresAt: 'September 25, 2027',
   providerReference: 'sub_provider_1',
-  dashboardUrl: 'https://ks.interdomestik.com/en/member/membership',
+  dashboardUrl: 'https://staging.interdomestik.com/en/member/membership',
   locale: 'en',
 };
+
+beforeEach(() => stubDeploymentOrigin());
+afterEach(() => vi.unstubAllEnvs());
 
 describe('provider-backed membership confirmation template', () => {
   it.each([

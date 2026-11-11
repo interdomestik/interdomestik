@@ -17,6 +17,19 @@ function config(environment = 'staging', origin = STAGING): Record<string, strin
 }
 
 describe('deployment origin', () => {
+  it.each(['mk', 'al', 'pilot'])(
+    'refuses KS_HOST collisions with retained %s aliases on any IPv4 nip.io address',
+    label => {
+      for (const ip of ['192.0.2.1', '10.20.30.40', '255.255.255.255', '0.0.0.0']) {
+        expect(() =>
+          resolveDeploymentOrigin({ ...config(), KS_HOST: `${label}.${ip}.nip.io:3000` })
+        ).toThrow('KS_HOST');
+      }
+      expect(resolveDeploymentOrigin({ ...config(), KS_HOST: 'ks.192.0.2.1.nip.io' }).origin).toBe(
+        STAGING
+      );
+    }
+  );
   it.each([
     ['production', PROD],
     ['staging', STAGING],

@@ -10,6 +10,21 @@ afterEach(() => {
 });
 
 describe('lifecycle notification destinations', () => {
+  it('accepts an absolute door destination and refuses foreign origins before dispatch', async () => {
+    stubDeploymentOrigin();
+    const props = {
+      title: 'Update',
+      intro: 'Update',
+      actionUrl: 'https://staging.interdomestik.com/sq/member?ref=A%2B1',
+    };
+    await sendLifecycleEmail('member@example.test', props);
+    expect(sendEmail).toHaveBeenCalledOnce();
+    vi.mocked(sendEmail).mockClear();
+    expect(() =>
+      sendLifecycleEmail('member@example.test', { ...props, actionUrl: 'https://evil.test/member' })
+    ).toThrow();
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
   it.each(['sq', 'en', 'sr', 'mk', 'de'])('preserves %s path, token and query', async locale => {
     stubDeploymentOrigin();
     const path = `/${locale}/member/claims/claim_A?token=t%2F1&tab=events`;

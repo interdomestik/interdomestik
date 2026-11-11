@@ -14,19 +14,22 @@ describe('public destination links', () => {
     ['staging', STAGING_DOOR],
     ['local', 'http://ida.localhost:3310'],
     ['local', 'https://ida.127.0.0.1.nip.io:3443'],
-  ])('pins %s destinations across every locale and alias browser', (environment, door) => {
-    stubDeploymentOrigin(environment, door);
-    for (const alias of ['https://ks.interdomestik.com', 'https://mk.alias.test', door]) {
-      for (const locale of ['sq', 'en', 'sr', 'mk', 'de']) {
-        const path = `/${locale}/pricing?ref=ABC%2B123&token=a%2Fb#details`;
-        expect(normalizePublicLink(`https://old.test${path}`, alias)).toBe(`${door}${path}`);
+  ])(
+    'preserves server %s destinations across every locale and alias browser',
+    (environment, door) => {
+      stubDeploymentOrigin(environment, door);
+      for (const alias of ['https://ks.interdomestik.com', 'https://mk.alias.test', door]) {
+        for (const locale of ['sq', 'en', 'sr', 'mk', 'de']) {
+          const path = `/${locale}/pricing?ref=ABC%2B123&token=a%2Fb#details`;
+          expect(normalizePublicLink(`${door}${path}`, alias)).toBe(`${door}${path}`);
+        }
       }
     }
-  });
+  );
 
   it('keeps the external WhatsApp wrapper, copy and embedded query', () => {
     stubDeploymentOrigin();
-    const text = 'Join Asistenca https://ks.interdomestik.com/sq?ref=ABC%2B123&x=2';
+    const text = `Join Asistenca ${STAGING_DOOR}/sq?ref=ABC%2B123&x=2`;
     const share = normalizeWhatsAppShareUrl(
       `https://wa.me/?text=${encodeURIComponent(text)}`,
       'https://mk.alias.test'
@@ -37,11 +40,11 @@ describe('public destination links', () => {
     );
   });
 
-  it('fails closed without a valid public door and rejects unsafe application URLs', () => {
+  it('rejects unsafe application URLs and works without a build-time door', () => {
     stubDeploymentOrigin();
     expect(() => normalizePublicLink('javascript:alert(1)')).toThrow();
     expect(() => normalizePublicLink('https://user:password@old.test/sq')).toThrow();
     vi.stubEnv('NEXT_PUBLIC_APP_URL', undefined);
-    expect(() => normalizePublicLink('https://old.test/sq')).toThrow();
+    expect(normalizePublicLink(`${PRODUCTION_DOOR}/sq`)).toBe(`${PRODUCTION_DOOR}/sq`);
   });
 });

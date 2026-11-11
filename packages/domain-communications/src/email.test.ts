@@ -1,3 +1,4 @@
+import { stubDeploymentOrigin } from './deployment-origin.test-support';
 import { campaignSelectMock } from './campaign-query.test-support';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // prettier-ignore
@@ -29,6 +30,7 @@ vi.mock('drizzle-orm', () => ({ inArray: m.inArray, and: m.and, eq: m.eq, or: m.
 vi.mock('nanoid', () => ({ nanoid: m.nanoid }));
 describe('email delivery fallback', () => {
   beforeEach(() => {
+    stubDeploymentOrigin();
     vi.clearAllMocks();
     vi.resetModules();
     vi.stubEnv('INTERDOMESTIK_AUTOMATED', '0');
@@ -54,7 +56,7 @@ describe('email delivery fallback', () => {
     const { sendPasswordResetEmail } = await import('./email');
     const result = await sendPasswordResetEmail(
       'member@example.com',
-      'https://app.interdomestik.com/reset-password?token=abc'
+      'https://staging.interdomestik.com/reset-password?token=abc'
     );
     expect(result).toEqual({ success: true, id: 'resend-message-id' });
     expect(m.sendMail).toHaveBeenCalledOnce();
@@ -199,7 +201,7 @@ describe('email delivery fallback', () => {
       automated({ E2E_SMTP_HOST: '127.0.0.1', E2E_SMTP_PORT: '2525' });
       expect(await send()).toEqual({ success: true, id: 'caught' });
       const { sendPasswordResetEmail: reset } = await import('./email');
-      expect(await reset('a@example.com', 'https://x.test/r')).toEqual({
+      expect(await reset('a@example.com', 'https://staging.interdomestik.com/r')).toEqual({
         success: true,
         id: 'caught',
       });
@@ -239,6 +241,7 @@ describe('email delivery fallback', () => {
 // prettier-ignore
 describe('campaign execution tenant-context writes', () => {
   beforeEach(() => {
+  stubDeploymentOrigin();
     vi.clearAllMocks(); m.findManyLogs.mockResolvedValue([]); m.nanoid.mockReturnValue('test-id-123');
     m.txInsert.mockReturnValue({ values: m.txValues }); m.txValues.mockResolvedValue(undefined);
     m.withTenantContext.mockImplementation(async (_context: unknown, action: (tx: unknown) => Promise<void>) => await action({ select: campaignSelectMock(m.findManyLogs), insert: m.txInsert, query: { emailCampaignLogs: { findMany: m.findManyLogs } } }));

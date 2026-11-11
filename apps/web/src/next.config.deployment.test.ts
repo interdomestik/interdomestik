@@ -46,7 +46,15 @@ describe('next.config compatibility with existing lanes', () => {
     ...['ci.yml', 'e2e-pr', 'pilot-gate', 'nightly', 'release-candidate', 'multi-agent'].map(
       lane => [lane, loopback] as const
     ),
-    ['Docker loopback', loopback],
+    [
+      'Docker gate runtime configuration',
+      {
+        NEXT_PUBLIC_APP_URL: 'http://127.0.0.1.nip.io:3000',
+        NEXT_PUBLIC_SITE_URL: 'http://127.0.0.1.nip.io:3000',
+        BETTER_AUTH_URL: 'http://127.0.0.1.nip.io:3000',
+        IDA_HOST: 'ida.127.0.0.1.nip.io:3000',
+      },
+    ],
     [
       'od17 canary',
       { NEXT_PUBLIC_APP_URL: 'https://build.invalid', BETTER_AUTH_URL: 'https://build.invalid' },

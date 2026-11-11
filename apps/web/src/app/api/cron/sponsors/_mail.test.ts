@@ -40,8 +40,8 @@ const input = {
   entityName: 'Controller',
   startDate: '1 January 2027',
   termEnd: '1 January 2028',
-  optOutUrl: 'https://tenant.example/sponsor/opt-out/token',
-  loginUrl: 'https://tenant.example/en/login',
+  optOutUrl: 'https://staging.interdomestik.com/sponsor/opt-out/token',
+  loginUrl: 'https://staging.interdomestik.com/en/login',
 } satisfies Parameters<NonNullable<ReturnType<typeof sponsorMailDeps>>['sendMail']>[1];
 
 afterEach(() => vi.unstubAllEnvs());
@@ -72,6 +72,14 @@ describe('sponsor mail adapter', () => {
       })
     );
     expect(h.activate).not.toHaveBeenCalled();
+  });
+
+  it('refuses a foreign raw sponsor link before any email dispatch', async () => {
+    const deps = sponsorMailDeps('tenant_ks', authority);
+    await expect(
+      deps?.sendMail('current@example.test', { ...input, loginUrl: 'https://evil.test/en/login' })
+    ).rejects.toThrow();
+    expect(h.sendEmail).not.toHaveBeenCalled();
   });
 
   it('returns only the stable error code when email delivery fails', async () => {

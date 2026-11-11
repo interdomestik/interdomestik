@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { stubDeploymentOrigin } from '../deployment-origin.test-support';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DE_COPY } from './copy-de';
 import { EN_COPY } from './copy-en';
 import { MK_COPY } from './copy-mk';
@@ -37,8 +38,8 @@ const NOTICE = {
   entityName: 'Example Country Entity',
   startDate: '01/12/2026',
   termEnd: '30/11/2027',
-  optOutUrl: 'https://example.test/leave?token=abc&lang=en',
-  loginUrl: 'https://example.test/login',
+  optOutUrl: 'https://staging.interdomestik.com/leave?token=abc&lang=en',
+  loginUrl: 'https://staging.interdomestik.com/login',
 };
 const FIXTURES = {
   sponsor_notice: NOTICE,
@@ -54,13 +55,16 @@ const FIXTURES = {
   membership_end_offer: {
     ...COMMON,
     kind: 'membership_end_offer',
-    offerUrl: 'https://example.test/offer',
+    offerUrl: 'https://staging.interdomestik.com/offer',
   },
   opt_out_confirmation: { ...COMPANY, kind: 'opt_out_confirmation' },
 } satisfies { [Kind in SponsorMailKind]: Extract<SponsorMailInput, { kind: Kind }> };
 const CASES = LOCALES.flatMap(locale =>
   Object.values(FIXTURES).map(input => ({ ...input, locale }))
 );
+
+beforeEach(() => stubDeploymentOrigin());
+afterEach(() => vi.unstubAllEnvs());
 
 describe('renderSponsorMail', () => {
   it('has exactly the eight specified kinds in every locale', () => {
@@ -111,7 +115,7 @@ describe('renderSponsorMail', () => {
 
   it.each(LOCALES)('%s escapes every other interpolated field and both link attributes', locale => {
     const value = '<script>&"\'';
-    const url = `https://example.test/path?value=${value}`;
+    const url = `https://staging.interdomestik.com/path?value=${encodeURIComponent(value).replaceAll("'", '%27')}`;
     const email = renderSponsorMail({
       ...NOTICE,
       locale,
@@ -126,31 +130,31 @@ describe('renderSponsorMail', () => {
     expect(email.html).toContain('&lt;script&gt;&amp;&quot;&#39;');
     expect(
       email.html.match(
-        /href="https:\/\/example\.test\/path\?value=&lt;script&gt;&amp;&quot;&#39;"/g
+        /href="https:\/\/staging\.interdomestik\.com\/path\?value=%3Cscript%3E%26%22%27"/g
       )
     ).toHaveLength(2);
     expect(email.text).toContain(url);
   });
 
-  it.each(['javascript:alert(1)', 'data:text/html,<script>alert(1)</script>', 'invalid-url'])(
-    'keeps an unsafe or invalid URL as text instead of an active link: %s',
-    offerUrl => {
-      const email = renderSponsorMail({ ...FIXTURES.membership_end_offer, offerUrl });
-      expect(email.html).not.toContain('<a ');
-      expect(email.html).not.toContain('<script>');
-      expect(email.text).toContain(offerUrl);
-    }
-  );
+  it.each([
+    'javascript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'https://evil.test/offer',
+  ])('refuses unsafe or foreign application destinations: %s', offerUrl => {
+    expect(() => renderSponsorMail({ ...FIXTURES.membership_end_offer, offerUrl })).toThrow();
+  });
 
   it('includes actionable opt-out, sign-in and individual-offer links', () => {
     const notice = renderSponsorMail(NOTICE);
-    expect(notice.html).toContain('href="https://example.test/leave?token=abc&amp;lang=en"');
+    expect(notice.html).toContain(
+      'href="https://staging.interdomestik.com/leave?token=abc&amp;lang=en"'
+    );
     expect(notice.html).toContain(`href="${NOTICE.loginUrl}"`);
     expect(notice.text).toContain(
       '"Leave the company program" on the membership page after signing in'
     );
     const offer = renderSponsorMail(FIXTURES.membership_end_offer);
-    expect(offer.html).toContain('href="https://example.test/offer"');
+    expect(offer.html).toContain('href="https://staging.interdomestik.com/offer"');
     expect(offer.text).not.toContain(COMPANY.companyName);
   });
 

@@ -1,4 +1,5 @@
 import type { EmailTemplate } from './types';
+import { resolveNewsletterDestination } from '../door-destination';
 import { buildEmailTemplate, DEFAULT_APP_NAME, getAppUrl, joinUrl } from './base';
 
 export function renderNpsSurveyEmail(params: { name: string; token: string }): EmailTemplate {
@@ -124,7 +125,7 @@ export function renderNewsletterEmail(params: {
     intro: params.hero.title,
     details: details,
     ctaLabel: params.hero.ctaLabel || 'Read More',
-    ctaUrl: params.hero.ctaUrl || dashboardUrl,
+    ctaUrl: params.hero.ctaUrl ? resolveNewsletterDestination(params.hero.ctaUrl) : dashboardUrl,
   });
 }
 

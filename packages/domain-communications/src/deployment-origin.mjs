@@ -1,7 +1,20 @@
+function isLocalNipIoAlias(host, label) {
+  const octet = String.raw`(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)`;
+  return new RegExp(String.raw`^${label}\.${octet}\.${octet}\.${octet}\.${octet}\.nip\.io$`).test(
+    host
+  );
+}
+
 // Destination configuration only. This module grants no routing, tenant or auth authority.
 const PRODUCTION_ORIGIN = 'https://ida.interdomestik.com';
 const STAGING_ORIGIN = 'https://staging.interdomestik.com';
-const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', 'ida.localhost', 'ida.127.0.0.1.nip.io']);
+const LOCAL_HOSTS = new Set([
+  '127.0.0.1',
+  '127.0.0.1.nip.io',
+  'localhost',
+  'ida.localhost',
+  'ida.127.0.0.1.nip.io',
+]);
 const DOOR_HOSTS = new Set([
   new URL(PRODUCTION_ORIGIN).hostname,
   new URL(STAGING_ORIGIN).hostname,
@@ -104,7 +117,10 @@ function validateHosts(env, environment, origin) {
     if (
       DOOR_HOSTS.has(hostname) ||
       hostname === door.hostname ||
-      (aliases.has(hostname) && aliases.get(hostname) !== key)
+      (aliases.has(hostname) && aliases.get(hostname) !== key) ||
+      ALIAS_LABELS.some(
+        (label, index) => ALIAS_KEYS[index] !== key && isLocalNipIoAlias(hostname, label)
+      )
     ) {
       refuse(key);
     }

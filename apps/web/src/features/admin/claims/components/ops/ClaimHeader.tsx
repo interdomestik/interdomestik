@@ -16,31 +16,17 @@ import { Link } from '@/i18n/routing';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 
-import type { NextActionsResult } from '../../components/detail/getNextActions';
-import type { ClaimOpsDetail } from '../../types';
 import { ClaimOriginBadges } from '../shared/ClaimOriginBadges';
 import { InfoPill } from '../shared/InfoPill';
 import { copyText } from './clipboard';
-import { buildAdminUserProfileHref } from './claim-header-links';
+import {
+  buildAdminUserProfileHref,
+  resolveRouteLocale,
+  type ClaimHeaderProps,
+} from './claim-header-links';
 import { formatClaimCreatedDate } from './claim-header-date';
 
-interface ClaimHeaderProps {
-  claim: ClaimOpsDetail;
-  nextActions: NextActionsResult;
-  allStaff: { id: string; name: string | null; email: string }[];
-  locale: string;
-}
-
-function resolveRouteLocale(pathname: string | null, fallbackLocale: string): string {
-  const routeLocale = pathname?.split('/')[1];
-  if (routeLocale && ['en', 'sq', 'mk', 'sr', 'de'].includes(routeLocale)) {
-    return routeLocale;
-  }
-
-  return fallbackLocale;
-}
-
-export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 'nextActions'>) {
+export function ClaimHeader({ claim, allStaff, locale, deploymentOrigin }: ClaimHeaderProps) {
   const tCategory = useTranslations('claims.category');
   const tBadge = useTranslations('admin.claims_page.next_actions.risk');
   const tSource = useTranslations('admin.claims_page.source');
@@ -78,7 +64,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
     toast.success(tHeader('copy_success', { label }));
   };
 
-  const domain = typeof window !== 'undefined' ? window.location.origin : '';
+  const domain = deploymentOrigin;
   const canonicalUrl = `${domain}/${activeLocale}/admin/claims/${claim.id}`;
   const resolverUrl = claim.claimNumber
     ? `${domain}/${activeLocale}/admin/claims/number/${claim.claimNumber}`

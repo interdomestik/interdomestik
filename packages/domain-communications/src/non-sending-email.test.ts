@@ -1,3 +1,4 @@
+import { stubDeploymentOrigin } from './deployment-origin.test-support';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { e2eEmail } from '../../database/src/e2e-users';
@@ -17,6 +18,7 @@ vi.mock('resend', () => ({
 }));
 
 beforeEach(() => {
+  stubDeploymentOrigin();
   vi.resetModules();
   vi.stubEnv('INTERDOMESTIK_AUTOMATED', '0');
   vi.stubEnv('PLAYWRIGHT', '0');

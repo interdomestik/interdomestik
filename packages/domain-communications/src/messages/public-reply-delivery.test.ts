@@ -1,5 +1,10 @@
+import {
+  stubDeploymentOrigin,
+  STAGING_DOOR,
+  PRODUCTION_DOOR,
+} from '../deployment-origin.test-support';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const email = vi.hoisted(() => vi.fn().mockResolvedValue({ success: true }));
 vi.mock('../email', () => ({ sendNewMessageEmail: email }));
 import {
@@ -30,8 +35,19 @@ const plan = (
   ],
   ...overrides,
 });
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  stubDeploymentOrigin();
+});
+afterEach(() => vi.unstubAllEnvs());
 describe('public reply delivery leaf with intercepted transports', () => {
+  it('makes zero push provider calls on invalid production configuration', async () => {
+    stubDeploymentOrigin('production', PRODUCTION_DOOR);
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://www.interdomestik.com');
+    const sendPush = vi.fn();
+    await deliverPublicReplyNotification(plan({ verifiedEmail: null }), { vapid, sendPush });
+    expect(sendPush).not.toHaveBeenCalled();
+  });
   it('uses the verified recipient and canonical claim URL with per-call VAPID options', async () => {
     const sendPush = vi.fn().mockResolvedValue(undefined);
     await deliverPublicReplyNotification(plan(), { vapid, sendPush });
@@ -43,7 +59,7 @@ describe('public reply delivery leaf with intercepted transports', () => {
     );
     expect(sendPush).toHaveBeenCalledTimes(1);
     expect(sendPush.mock.calls[0][0].endpoint).toBe('https://push.example.test/own');
-    expect(JSON.parse(sendPush.mock.calls[0][1]).url).toBe('/member/claims/claim-a');
+    expect(JSON.parse(sendPush.mock.calls[0][1]).url).toBe(`${STAGING_DOOR}/member/claims/claim-a`);
     expect(sendPush.mock.calls[0][2]).toEqual({ vapidDetails: vapid });
   });
   it('does not send email without verification or push without VAPID configuration', async () => {

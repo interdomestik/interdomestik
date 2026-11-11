@@ -5,7 +5,8 @@ import {
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { sendEmail } from '../email';
-import { buildEmailTemplate, joinUrl, getAppUrl } from '../email/templates';
+import { buildEmailTemplate } from '../email/templates';
+import { resolveDoorDestination } from '../email/door-destination';
 import type { NotificationEvent } from './notify-types';
 
 export function queryUserById(userId: string, authority: TenantAuthority) {
@@ -54,7 +55,7 @@ export function sendLifecycleEmail(
       intro: props.intro,
       details: props.details,
       ctaLabel: props.ctaLabel ?? 'Open Interdomestik',
-      ctaUrl: joinUrl(getAppUrl(), props.actionUrl),
+      ctaUrl: resolveDoorDestination(props.actionUrl),
     })
   );
 }

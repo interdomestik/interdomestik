@@ -1,6 +1,7 @@
 import webPush, { type PushSubscription, type RequestOptions } from 'web-push';
 
 import { sendNewMessageEmail } from '../email';
+import { resolveDoorDestination } from '../email/door-destination';
 import type { AuditLogger } from '../types';
 import type { PublicReplyNotificationPlan } from './public-reply-notification';
 
@@ -101,7 +102,7 @@ async function deliverPush(
     ((subscription: PushSubscription, body: string, options: RequestOptions) =>
       webPush.sendNotification(subscription, body, options));
   const title = 'New Message';
-  const url = `/member/claims/${plan.claim.id}`;
+  const url = resolveDoorDestination(`/member/claims/${plan.claim.id}`);
   const body = JSON.stringify({
     title,
     body: `${plan.senderName}: ${plan.messageContent.substring(0, 100)}`,

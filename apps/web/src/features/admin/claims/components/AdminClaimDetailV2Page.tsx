@@ -1,3 +1,4 @@
+import { getServerDeploymentOrigin } from '@/lib/deployment-origin.server';
 import { deniesClaimMessageContent } from '@/lib/branch-manager-message-boundary';
 import { ClaimMessageSummary } from '@/features/claims/communication/claim-message-summary';
 import { getStaff } from '@/actions/admin-users';
@@ -67,7 +68,12 @@ export async function AdminClaimDetailV2Page({
       className={`flex min-w-0 flex-col gap-6 animate-in fade-in duration-500 ${styles.detail}`}
     >
       <div className={styles.header}>
-        <ClaimHeader claim={data} allStaff={staff} locale={locale} />
+        <ClaimHeader
+          claim={data}
+          allStaff={staff}
+          locale={locale}
+          deploymentOrigin={getServerDeploymentOrigin()}
+        />
       </div>
 
       {/* 3-Pane Cockpit Layout: 3 | 6 | 3 */}

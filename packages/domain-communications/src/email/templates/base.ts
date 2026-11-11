@@ -1,3 +1,4 @@
+import { resolveDoorDestination } from '../door-destination';
 import { resolveDeploymentOrigin } from '../../deployment-origin.mjs';
 import type { EmailTemplate, TemplateOptions } from './types';
 
@@ -7,7 +8,7 @@ export function getAppUrl(): string {
   return resolveDeploymentOrigin().origin;
 }
 
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -33,7 +34,8 @@ export function buildEmailTemplate({
   const safeTitle = escapeHtml(title);
   const safeIntro = escapeHtml(intro);
   const safeCtaLabel = escapeHtml(ctaLabel);
-  const safeCtaUrl = escapeHtml(ctaUrl);
+  const destination = resolveDoorDestination(ctaUrl);
+  const safeCtaUrl = escapeHtml(destination);
   const safeFooter = escapeHtml(footer || `${DEFAULT_APP_NAME} Team`);
 
   const detailsHtml = (details || [])
@@ -65,7 +67,7 @@ export function buildEmailTemplate({
   if (details?.length) {
     textParts.push(details.join('\n'));
   }
-  textParts.push(`${ctaLabel}: ${ctaUrl}`, footer || `${DEFAULT_APP_NAME} Team`);
+  textParts.push(`${ctaLabel}: ${destination}`, footer || `${DEFAULT_APP_NAME} Team`);
 
   return {
     subject: title,

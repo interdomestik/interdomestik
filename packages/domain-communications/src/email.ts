@@ -1,3 +1,4 @@
+import { resolveDeploymentOrigin } from './deployment-origin.mjs';
 import {
   isAutomatedEmail as isAutomated,
   selectEmailRecipients,
@@ -7,23 +8,14 @@ import {
 import * as nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import {
-  renderCheckinEmail,
   renderClaimAssignedEmail,
   renderClaimSubmittedEmail,
-  renderEngagementDay30Email,
-  renderEngagementDay60Email,
-  renderEngagementDay90Email,
   renderMemberWelcomeEmail,
   renderNewMessageEmail,
-  renderNewsletterEmail,
-  renderNpsSurveyEmail,
-  renderOnboardingEmail,
   renderPasswordResetEmail,
   renderPaymentFinalWarningEmail,
   renderPaymentReminderEmail,
-  renderSeasonalEmail,
   renderStatusChangedEmail,
-  renderWelcomeEmail,
 } from './email-templates';
 import {
   createEmailTelemetry,
@@ -99,6 +91,7 @@ export async function sendEmail(
 ): Promise<EmailResult> {
   const to = selectEmailRecipients(recipients, options.automatedCatcher);
   if (!to) return suppressedEmailResult;
+  resolveDeploymentOrigin();
   const telemetry = createEmailTelemetry(options.telemetryPolicy);
   const provider = getEmailClient(telemetry, options);
   if (provider === 'rejected') return { success: false, error: 'Email provider not configured' };
@@ -279,103 +272,19 @@ export async function sendSignInOtpEmail(
   return sendEmail(to, renderSignInOtpEmail(otp, locale), CREDENTIAL_EMAIL);
 }
 
-// ============================================================================
-// PHASE 5: ENGAGEMENT & RETENTION EMAILS
-// ============================================================================
+export {
+  sendWelcomeEmail,
+  sendOnboardingEmail,
+  sendCheckinEmail,
+  sendEngagementDay30Email,
+  sendEngagementDay60Email,
+  sendEngagementDay90Email,
+  sendNewsletterEmail,
+  sendSeasonalEmail,
+  sendNpsSurveyEmail,
+} from './engagement-email';
 
-export async function sendWelcomeEmail(to: string, name: string): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderWelcomeEmail({ name }));
-}
-
-export async function sendOnboardingEmail(to: string, name: string): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderOnboardingEmail({ name }));
-}
-
-export async function sendCheckinEmail(to: string, name: string): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderCheckinEmail({ name }));
-}
-
-export async function sendEngagementDay30Email(to: string, name: string): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderEngagementDay30Email({ name }));
-}
-
-export async function sendEngagementDay60Email(to: string, name: string): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderEngagementDay60Email({ name }));
-}
-
-export async function sendEngagementDay90Email(to: string, name: string): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderEngagementDay90Email({ name }));
-}
-
-export async function sendNewsletterEmail(
-  to: string,
-  props: Parameters<typeof renderNewsletterEmail>[0]
-): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderNewsletterEmail(props));
-}
-
-export async function sendSeasonalEmail(
-  to: string,
-  props: Parameters<typeof renderSeasonalEmail>[0]
-): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderSeasonalEmail(props));
-}
-
-export async function sendNpsSurveyEmail(
-  to: string,
-  props: { name: string; token: string }
-): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderNpsSurveyEmail(props));
-}
-
-export async function sendPaymentVerificationEmail(
-  to: string,
-  props: {
-    leadName: string;
-    status: string; // 'needs_info' | 'rejected'
-    note?: string;
-    amount: number;
-    currency: string;
-    link: string;
-  }
-): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-
-  const subject = `Payment Verification Update: ${props.status === 'needs_info' ? 'Info Needed' : 'Rejected'}`;
-  const statusLabel = props.status === 'needs_info' ? 'Needs Information' : 'Rejected';
-
-  // MVP: Simple text/html construction without full template engine overhead
-  const html = `
-    <div style="font-family: sans-serif; padding: 20px;">
-      <h2>Payment Verification Update</h2>
-      <p>Hello,</p>
-      <p>The cash payment verification for <strong>${props.leadName}</strong> has been updated.</p>
-      
-      <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <p><strong>Status:</strong> ${statusLabel}</p>
-        <p><strong>Amount:</strong> ${(props.amount / 100).toFixed(2)} ${props.currency}</p>
-        ${props.note ? `<p><strong>Note:</strong> ${props.note}</p>` : ''}
-      </div>
-
-      <p><a href="${props.link}" style="display: inline-block; background: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View in Dashboard</a></p>
-    </div>
-  `;
-
-  return sendEmail(to, {
-    subject,
-    html,
-    text: `Payment Verification Update for ${props.leadName}. Status: ${statusLabel}. Note: ${props.note || 'None'}. Link: ${props.link}`,
-  });
-}
+export { sendPaymentVerificationEmail } from './payment-verification-email';
 
 export {
   sendPaymentFailedEmail,
