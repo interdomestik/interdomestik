@@ -11,6 +11,10 @@ import { resolveBusinessLeadOwner } from '@/lib/business-leads/resolve-business-
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { ActionError, ActionSuccess } from '@/lib/safe-action';
+import {
+  AnonymousLeadClassificationError,
+  readAnonymousLeadClassification,
+} from '@/lib/tenant/anonymous-lead-classification';
 import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
 
 // The intake form shows the `notice` copy (pricing catalogs, EN/SQ/MK/SR) above an unticked
@@ -26,8 +30,11 @@ const submitBusinessMembershipLeadSchema = z.object({
   teamSize: z.string().trim().min(1, 'Team size is required'),
   notes: z.string().trim().max(2000, 'Notes are too long').optional(),
   locale: z.string().trim().min(2).max(10).optional(),
+  classification: z.unknown(),
   consent: z.boolean().refine(value => value, 'Confirm that we may contact you'),
 });
+// Field-only check for a failed classification; classification keeps its own CLASSIFICATION_* code.
+const businessLeadFieldSchema = submitBusinessMembershipLeadSchema.omit({ classification: true });
 
 export type SubmitBusinessMembershipLeadInput = z.infer<typeof submitBusinessMembershipLeadSchema>;
 
@@ -77,6 +84,15 @@ function serializeLeadNotes(args: {
   });
 }
 
+function invalidPayload(error: z.ZodError): SubmitBusinessMembershipLeadResult {
+  return {
+    success: false,
+    error: 'Validation failed',
+    code: 'INVALID_PAYLOAD',
+    issues: formatFieldErrors(error.flatten().fieldErrors),
+  };
+}
+
 function intakeUnavailable(): SubmitBusinessMembershipLeadResult {
   return {
     success: false,
@@ -91,9 +107,9 @@ export async function submitBusinessMembershipLeadCore(params: {
   data: SubmitBusinessMembershipLeadInput;
 }): Promise<SubmitBusinessMembershipLeadResult> {
   try {
-    // Anonymous public intake: the lead belongs to the active tenant this host serves, resolved from
-    // the server request contract and never from the payload. An inactive tenant writes nothing.
-    const authority = await authorizePublicSiteTenant(await resolveTenantIdFromRequest());
+    // Classification and activity must pass before reserving an idempotency key or writing.
+    const tenantId = await resolveTenantIdFromRequest(params.data.classification);
+    const authority = await authorizePublicSiteTenant(tenantId);
     if (!authority) return intakeUnavailable();
 
     return await runCommercialActionWithIdempotency({
@@ -124,14 +140,7 @@ export async function submitBusinessMembershipLeadCore(params: {
 
         const parsed = submitBusinessMembershipLeadSchema.safeParse(params.data);
 
-        if (!parsed.success) {
-          return {
-            success: false,
-            error: 'Validation failed',
-            code: 'INVALID_PAYLOAD',
-            issues: formatFieldErrors(parsed.error.flatten().fieldErrors),
-          };
-        }
+        if (!parsed.success) return invalidPayload(parsed.error);
 
         const owner = await resolveBusinessLeadOwner(authority);
 
@@ -176,6 +185,16 @@ export async function submitBusinessMembershipLeadCore(params: {
       },
     });
   } catch (error) {
+    if (error instanceof AnonymousLeadClassificationError) {
+      // Field errors stay visible first; the payload check is pure and writes nothing.
+      const fields = businessLeadFieldSchema.safeParse(params.data);
+      if (!fields.success) return invalidPayload(fields.error);
+      return {
+        success: false,
+        error: 'Classification required',
+        code: `CLASSIFICATION_${error.issue.toUpperCase()}`,
+      };
+    }
     Sentry.captureException(error, {
       tags: {
         action: 'submitBusinessMembershipLead',
@@ -209,6 +228,7 @@ export async function submitBusinessMembershipLead(
       teamSize: readOptionalString(formData.get('teamSize')) ?? '',
       notes: readOptionalString(formData.get('notes')),
       locale: readOptionalString(formData.get('locale')),
+      classification: readAnonymousLeadClassification(formData),
       consent: formData.get('consent') === 'yes',
     },
   });

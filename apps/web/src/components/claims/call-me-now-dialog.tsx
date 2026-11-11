@@ -1,5 +1,15 @@
 'use client';
 
+import {
+  AnonymousLeadTenantField,
+  type AnonymousLeadTenantProps,
+} from '@/components/leads/anonymous-lead-tenant-field';
+import {
+  AnonymousLeadClassificationError,
+  type ClassificationIssue,
+  anonymousLeadClassificationSchema,
+  classifyAnonymousLead,
+} from '@/lib/tenant/anonymous-lead-classification';
 import { submitLead } from '@/actions/leads';
 import { analytics } from '@/lib/analytics';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,8 +44,16 @@ interface CallMeNowDialogProps {
   category: string;
 }
 
-export function CallMeNowDialog({ category }: Readonly<CallMeNowDialogProps>): React.JSX.Element {
+export function CallMeNowDialog({
+  category,
+  tenantOptions = [],
+  bookingHints = [],
+}: Readonly<CallMeNowDialogProps> & AnonymousLeadTenantProps): React.JSX.Element {
   const t = useTranslations('claimCategories.callback');
+  const leadCopy = useTranslations('common.anonymousLead');
+  const [choice, setChoice] = useState('');
+  const [submitError, setSubmitError] = useState<string>();
+  const [classificationIssue, setClassificationIssue] = useState<ClassificationIssue>();
   const categories = useTranslations('claims.category');
   const formSchema = z.object({
     name: z.string().min(2, t('nameRequired')),
@@ -53,11 +71,16 @@ export function CallMeNowDialog({ category }: Readonly<CallMeNowDialogProps>): R
   });
 
   const onSubmit = async (values: FormValues) => {
+    setSubmitError(undefined);
+    setClassificationIssue(undefined);
     try {
+      const classification = { choice: choice || undefined, bookingHints: [...bookingHints] };
+      classifyAnonymousLead(classification);
       const result = await submitLead({
         name: values.name,
         phone: values.phone,
         category: category,
+        classification: anonymousLeadClassificationSchema.parse(classification),
       });
 
       if (!result.success) throw new Error(result.error);
@@ -72,16 +95,24 @@ export function CallMeNowDialog({ category }: Readonly<CallMeNowDialogProps>): R
         setOpen(false);
         setSubmitted(false);
         form.reset();
+        setChoice('');
       }, 3000);
     } catch (error) {
       console.error('Submission error:', error);
-      // Optionally show toast error
+      if (error instanceof AnonymousLeadClassificationError) {
+        setClassificationIssue(error.issue);
+      } else {
+        setSubmitError(leadCopy('submitError'));
+      }
     }
   };
 
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
     if (isOpen) {
+      setChoice('');
+      setClassificationIssue(undefined);
+      setSubmitError(undefined);
       analytics.track('call_me_now_clicked', { category });
     }
   };
@@ -153,6 +184,14 @@ export function CallMeNowDialog({ category }: Readonly<CallMeNowDialogProps>): R
                 />
               </div>
 
+              <AnonymousLeadTenantField
+                tenantOptions={tenantOptions}
+                bookingHints={bookingHints}
+                disabled={form.formState.isSubmitting}
+                issue={classificationIssue}
+                onChoice={setChoice}
+              />
+              {submitError && <p role="alert">{submitError}</p>}
               <DialogFooter>
                 <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
                   {form.formState.isSubmitting ? (

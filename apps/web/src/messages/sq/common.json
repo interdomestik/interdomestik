@@ -74,6 +74,19 @@
       "expandAll": "Shfaq të gjithë ({count})",
       "searchMembers": "Kërko anëtarë",
       "loadingPage": "Duke ngarkuar faqen"
+    },
+    "anonymousLead": {
+      "label": "Vendi / programi i shërbimit",
+      "placeholder": "Zgjidhni vendin ose programin",
+      "required": "Zgjidhni vendin e shërbimit ose përdorni një lidhje rezervimi të vlefshme.",
+      "conflict": "Zgjedhja juaj nuk përputhet me lidhjen e rezervimit. Hapni lidhjen përkatëse ose filloni përsëri.",
+      "unavailable": "Ky vend ose program nuk është i disponueshëm. Provoni përsëri ose kontaktoni mbështetjen.",
+      "submitError": "Kërkesa nuk u dërgua. Ju lutemi provoni përsëri.",
+      "tenants": {
+        "tenant_ks": "Kosovë — shërbimi standard",
+        "tenant_mk": "Maqedonia e Veriut — shërbimi standard",
+        "pilot-mk": "Maqedonia e Veriut — programi pilot"
+      }
     }
   }
 }

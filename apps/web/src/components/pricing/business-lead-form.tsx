@@ -4,6 +4,11 @@ import {
   submitBusinessMembershipLead,
   type SubmitBusinessMembershipLeadResult,
 } from '@/lib/actions/business-membership-lead';
+import {
+  AnonymousLeadTenantField,
+  type AnonymousLeadTenantProps,
+} from '@/components/leads/anonymous-lead-tenant-field';
+import { classificationIssueFromCode } from '@/lib/tenant/anonymous-lead-classification';
 import { Button, Input, Label } from '@interdomestik/ui';
 import { Textarea } from '@interdomestik/ui/components/textarea';
 import { CheckCircle2, Loader2 } from 'lucide-react';
@@ -11,6 +16,8 @@ import { useTranslations } from 'next-intl';
 import { createContext, useActionState, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
+
+import { createIdempotencyKey, FieldError } from './business-lead-form-fields';
 
 const initialState: SubmitBusinessMembershipLeadResult | null = null;
 
@@ -27,24 +34,13 @@ export function BusinessLeadKeyProvider({
   );
 }
 
-function FieldError({ id, message }: Readonly<{ id: string; message?: string }>) {
-  return message ? (
-    <p id={id} className="text-sm font-medium text-red-600">
-      {message}
-    </p>
-  ) : null;
-}
-
-function createIdempotencyKey() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-
-  return `business-lead-${Date.now()}`;
-}
-
-export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
+export function BusinessLeadForm({
+  locale,
+  tenantOptions = [],
+  bookingHints = [],
+}: Readonly<{ locale: string }> & AnonymousLeadTenantProps) {
   const t = useTranslations('pricing.businessLead.form');
+  const leadCopy = useTranslations('common.anonymousLead');
   const initialKey = useContext(BusinessLeadKeyContext);
   const [serverState, formAction, pending] = useActionState(
     submitBusinessMembershipLead,
@@ -52,6 +48,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
   );
   const [idempotencyKey, setIdempotencyKey] = useState(initialKey);
   const formRef = useRef<HTMLFormElement>(null);
+  const allowResetRef = useRef(false);
   const lastToastSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -66,17 +63,23 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
         lastToastSignatureRef.current = signature;
       }
 
+      allowResetRef.current = true;
       formRef.current?.reset();
+      allowResetRef.current = false;
       setIdempotencyKey(createIdempotencyKey());
       return;
     }
 
     const signature = `error:${serverState.code ?? serverState.error}`;
     if (lastToastSignatureRef.current !== signature) {
-      toast.error(serverState.error);
+      toast.error(
+        classificationIssueFromCode(serverState.code)
+          ? leadCopy(classificationIssueFromCode(serverState.code)!)
+          : serverState.error
+      );
       lastToastSignatureRef.current = signature;
     }
-  }, [serverState, t]);
+  }, [serverState, t, leadCopy]);
 
   const fieldErrors = serverState?.success ? {} : (serverState?.issues ?? {});
   if (!idempotencyKey) throw new Error('Business lead form requires a request idempotency key');
@@ -103,13 +106,30 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
 
       {!serverState?.success && serverState?.error && serverState.code !== 'INVALID_PAYLOAD' && (
         <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          {serverState.error}
+          {classificationIssueFromCode(serverState.code)
+            ? leadCopy(classificationIssueFromCode(serverState.code)!)
+            : serverState.error}
         </div>
       )}
 
-      <form ref={formRef} action={formAction} className="mt-6 grid gap-5 md:grid-cols-2" noValidate>
+      <form
+        ref={formRef}
+        action={formAction}
+        className="mt-6 grid gap-5 md:grid-cols-2"
+        noValidate
+        onReset={event => {
+          if (!allowResetRef.current) event.preventDefault();
+        }}
+      >
         <input type="hidden" name="_idempotencyKey" value={idempotencyKey} />
         <input type="hidden" name="locale" value={locale} />
+        <AnonymousLeadTenantField
+          key={idempotencyKey}
+          tenantOptions={tenantOptions}
+          bookingHints={bookingHints}
+          disabled={pending}
+          issue={classificationIssueFromCode(serverState?.success ? undefined : serverState?.code)}
+        />
 
         <div className="space-y-2">
           <Label htmlFor="firstName">{t('fields.firstName')}</Label>

@@ -1,10 +1,9 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   getSession: vi.fn(),
-  ensureTenantId: vi.fn(),
   resolveEvidenceBucketName: vi.fn(),
-  resolveTenantFromHost: vi.fn(),
   findAccessibleAdminUploadClaim: vi.fn(),
   upload: vi.fn(),
   createAdminClient: vi.fn(),
@@ -18,18 +17,17 @@ const hoisted = vi.hoisted(() => ({
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
 }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: { api: { getSession: hoisted.getSession } },
-}));
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: hoisted.ensureTenantId,
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: () =>
+    hoisted
+      .getSession()
+      .then((session: { user: { tenantId: string } } | null) =>
+        session ? { session, authority: mintTestTenantAuthority(session.user.tenantId) } : null
+      ),
 }));
 vi.mock('@/lib/storage/evidence-bucket', () => ({
   DEFAULT_EVIDENCE_BUCKET: 'claim-evidence',
   resolveEvidenceBucketName: hoisted.resolveEvidenceBucketName,
-}));
-vi.mock('@/lib/tenant/tenant-hosts', () => ({
-  resolveTenantFromHost: hoisted.resolveTenantFromHost,
 }));
 vi.mock('@interdomestik/database', () => ({
   createAdminClient: hoisted.createAdminClient,
@@ -84,9 +82,7 @@ describe('POST /api/claims/evidence-upload', () => {
     hoisted.getSession.mockResolvedValue({
       user: { id: 'staff-1', role: 'staff', branchId: 'branch-1', tenantId: 'tenant-1' },
     });
-    hoisted.ensureTenantId.mockReturnValue('tenant-1');
     hoisted.resolveEvidenceBucketName.mockReturnValue('claim-evidence');
-    hoisted.resolveTenantFromHost.mockReturnValue('tenant-1');
     hoisted.findAccessibleAdminUploadClaim.mockResolvedValue({
       branchId: 'branch-1',
       staffId: 'staff-1',

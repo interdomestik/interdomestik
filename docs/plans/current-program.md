@@ -16,13 +16,13 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S8-AGENT-HANDOFF` / RC3.1 is selected by the owner's direct implementation instruction
-of 28 October. Deliver the approved architecture through bounded PRs, starting with
-the independent main-compatible guard prerequisite (G0), then the two-file M4 request
-parser, the coherent PostgreSQL driver primitive, proof preparation and the atomic M4
-assignment vertical. The approved small-PR plan SHA-256 is
-`bcd98bcbb27f619eece2be0eb6c68c367dccd28529efbb3891bd56c5283ddaf0`.
-The retained #1920 candidate is reference evidence, not a required giant merge unit.
+Owner-approved resequence (2026-11-11): finish #2055 (merged) → staging CD →
+`:6543` switch → redeploy → step-5 preflight → U3; then [One Entry Door](../architecture/adr-12-one-entry-door.md)
+is the primary focus, beginning with Step 2 dependencies and door proof. S8/RC3.1
+closure continues in parallel; its obligations and the approved small-PR plan SHA-256
+`bcd98bcbb27f619eece2be0eb6c68c367dccd28529efbb3891bd56c5283ddaf0` remain intact.
+Tier-gate, completion guard, dependency/Playwright bumps and `db.ts` global-client cleanup
+are paused unless required proof is blocked; auth env allowlist goes with step-5 if canonical-origin admission needs it. The retained #1920 candidate is reference evidence; no completion credit.
 
 G0 starts from protected main `18cd1a73b12f589c69934cba862092d857434013` and
 requires a separate reviewed G/W pair. Its main preflight passed, but the actual
@@ -62,7 +62,7 @@ completed work or a competing execution queue.
 
 ### Finite S7 closure boundary
 
-Historical owner steering on2026-10-10 recorded the sequence below. The current RC3.1 selection above supersedes its sequencing; preserve its unresolved obligations and source-bound evidence. New work joins it only when current evidence demonstrates a required-S7 correctness, security/data-integrity or mandatory delivery blocker. Other findings retain an explicit later-stage or optional disposition; material expansion requires an owner decision. Preserve completed source-bound credit and distinguish missing evidence from failure.
+Historical owner steering on2026-10-10 recorded the sequence below. The owner-approved resequence above supersedes its sequencing; preserve its unresolved obligations and source-bound evidence. New work joins it only when current evidence demonstrates a required-S7 correctness, security/data-integrity or mandatory delivery blocker. Other findings retain an explicit later-stage or optional disposition; material expansion requires an owner decision. Preserve completed source-bound credit and distinguish missing evidence from failure.
 
 | Order | Remaining work                                                             | Exit condition                                                                                                                                                                                                                                                                                 |
 | ----- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

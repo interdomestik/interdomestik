@@ -53,6 +53,7 @@ const validInput: SubmitBusinessMembershipLeadInput = {
   notes: 'Needs fleet and property protection.',
   locale: 'sq',
   consent: true,
+  classification: { choice: 'tenant_ks' },
 };
 
 describe('submitBusinessMembershipLeadCore', () => {
@@ -144,7 +145,7 @@ describe('submitBusinessMembershipLeadCore', () => {
     );
   });
 
-  it('mints the public-site authority for the host tenant, never from the payload', async () => {
+  it('mints the public-site authority for the classified tenant, ignoring an unrelated payload tenantId', async () => {
     await submitBusinessMembershipLeadCore({
       requestHeaders: new Headers(),
       data: { ...validInput, tenantId: 'tenant_mk' } as SubmitBusinessMembershipLeadInput,
@@ -154,7 +155,7 @@ describe('submitBusinessMembershipLeadCore', () => {
     expect(mockCreateLead.mock.calls[0]?.[0].authority).toBe(authority);
   });
 
-  it('writes nothing when the host tenant is not active', async () => {
+  it('writes nothing when the classified tenant is not active', async () => {
     mockAuthorizePublicSiteTenant.mockResolvedValueOnce(null);
 
     const result = await submitBusinessMembershipLeadCore({

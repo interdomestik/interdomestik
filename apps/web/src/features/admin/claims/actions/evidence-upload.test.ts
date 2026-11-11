@@ -1,10 +1,9 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   authGetSession: vi.fn(),
   headers: vi.fn(),
-  ensureTenantId: vi.fn(),
-  resolveTenantFromHost: vi.fn(),
   resolveEvidenceBucketName: vi.fn(),
   findAccessibleAdminUploadClaim: vi.fn(),
   revalidatePath: vi.fn(),
@@ -13,17 +12,15 @@ const hoisted = vi.hoisted(() => ({
   validateConfirmedClaimUpload: vi.fn(),
 }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: { api: { getSession: hoisted.authGetSession } },
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: () =>
+    hoisted
+      .authGetSession()
+      .then((session: { user: { tenantId: string } } | null) =>
+        session ? { session, authority: mintTestTenantAuthority(session.user.tenantId) } : null
+      ),
 }));
 vi.mock('next/headers', () => ({ headers: hoisted.headers }));
-vi.mock('@interdomestik/shared-auth', async importOriginal => ({
-  ...(await importOriginal<typeof import('@interdomestik/shared-auth')>()),
-  ensureTenantId: hoisted.ensureTenantId,
-}));
-vi.mock('@/lib/tenant/tenant-hosts', () => ({
-  resolveTenantFromHost: hoisted.resolveTenantFromHost,
-}));
 vi.mock('@/lib/storage/evidence-bucket', () => ({
   DEFAULT_EVIDENCE_BUCKET: 'claim-evidence',
   resolveEvidenceBucketName: hoisted.resolveEvidenceBucketName,
@@ -54,8 +51,6 @@ describe('admin claim evidence upload actions', () => {
     hoisted.authGetSession.mockResolvedValue({
       user: { id: 'admin-1', tenantId: 'tenant-1', role: 'admin' },
     });
-    hoisted.ensureTenantId.mockReturnValue('tenant-1');
-    hoisted.resolveTenantFromHost.mockReturnValue('tenant-1');
     hoisted.resolveEvidenceBucketName.mockReturnValue('claim-evidence');
     hoisted.findAccessibleAdminUploadClaim.mockResolvedValue({
       branchId: 'branch-1',
@@ -102,12 +97,12 @@ describe('admin claim evidence upload actions', () => {
     }
   );
 
-  it('rejects upload URL issuance when the admin host tenant drifts', async () => {
-    hoisted.resolveTenantFromHost.mockReturnValueOnce('tenant-2');
-
-    await expect(
-      generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)
-    ).resolves.toEqual({ success: false, error: 'Unauthorized', status: 401 });
+  it('accepts IDA with no tenant-bearing host and one session read', async () => {
+    hoisted.headers.mockResolvedValue(new Headers({ host: 'ida.localhost:3000' }));
+    expect(
+      (await generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)).success
+    ).toBe(true);
+    expect(hoisted.authGetSession).toHaveBeenCalledOnce();
   });
 
   it('rejects upload URL issuance for non-admin roles on the admin flow', async () => {

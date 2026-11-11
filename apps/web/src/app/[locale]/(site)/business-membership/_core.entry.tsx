@@ -1,11 +1,13 @@
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { BusinessLeadForm } from '@/components/pricing/business-lead-form';
+import { loadPublicOnboardingTenants } from '@/lib/tenant/public-onboarding-tenants.server';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 type BusinessMembershipPageProps = Readonly<{
   params: Promise<{ locale: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }>;
 
 export async function generateMetadata({ params }: BusinessMembershipPageProps): Promise<Metadata> {
@@ -18,10 +20,16 @@ export async function generateMetadata({ params }: BusinessMembershipPageProps):
   };
 }
 
-export default async function BusinessMembershipPage({ params }: BusinessMembershipPageProps) {
+export default async function BusinessMembershipPage({
+  params,
+  searchParams,
+}: BusinessMembershipPageProps) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'pricing' });
   const contacts = getSupportContacts({ locale });
+  const tenantOptions = await loadPublicOnboardingTenants();
+  const hint = (await searchParams)?.default_booking_tenant_id;
+  const bookingHints = typeof hint === 'string' ? [hint] : (hint ?? []);
 
   return (
     <main data-testid="business-membership-page-ready" className="container px-4 py-16 md:px-6">
@@ -51,7 +59,11 @@ export default async function BusinessMembershipPage({ params }: BusinessMembers
 
         <p className="mt-6 text-sm font-semibold text-slate-500">{t('businessLead.note')}</p>
 
-        <BusinessLeadForm locale={locale} />
+        <BusinessLeadForm
+          locale={locale}
+          tenantOptions={tenantOptions}
+          bookingHints={bookingHints}
+        />
 
         <div className="mt-8">
           <CommercialDisclaimerNotice

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -10,9 +10,8 @@ vi.mock('@/lib/actions/business-membership-lead', () => ({
   submitBusinessMembershipLead: submit,
 }));
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-}));
+const translate = vi.hoisted(() => (key: string) => key);
+vi.mock('next-intl', () => ({ useTranslations: () => translate }));
 
 describe('BusinessLeadForm', () => {
   it('includes the request key in HTML before hydration and enables submission', () => {
@@ -20,7 +19,7 @@ describe('BusinessLeadForm', () => {
       const container = document.createElement('div');
       container.innerHTML = renderToString(
         <BusinessLeadKeyProvider value={seed}>
-          <BusinessLeadForm locale="sq" />
+          <BusinessLeadForm locale="sq" tenantOptions={['tenant_ks', 'tenant_mk', 'pilot-mk']} />
         </BusinessLeadKeyProvider>
       );
       const form = container.querySelector('form')!;
@@ -37,19 +36,30 @@ describe('BusinessLeadForm', () => {
     submit.mockClear();
     const { container } = render(
       <BusinessLeadKeyProvider value="request-retry">
-        <BusinessLeadForm locale="sq" />
+        <BusinessLeadForm locale="sq" tenantOptions={['tenant_ks', 'tenant_mk', 'pilot-mk']} />
       </BusinessLeadKeyProvider>
     );
     const form = container.querySelector('form')!;
     const key = form.elements.namedItem('_idempotencyKey') as HTMLInputElement;
 
     expect(key.value).toBe('request-retry');
+    fireEvent.change(screen.getByRole('combobox', { name: 'label' }), {
+      target: { value: 'pilot-mk' },
+    });
+    submit.mockResolvedValueOnce({
+      success: false,
+      code: 'INTERNAL_SERVER_ERROR',
+      error: 'Try again',
+    } as never);
     fireEvent.submit(form);
     await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    expect(await screen.findByText('Try again')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'label' })).toHaveValue('pilot-mk');
     fireEvent.submit(form);
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(2));
     for (const call of submit.mock.calls) {
       expect(call[1].get('_idempotencyKey')).toBe('request-retry');
+      expect(call[1].get('onboardingTenant')).toBe('pilot-mk');
       expect(call[1].get('consent')).toBeNull();
     }
   });
@@ -63,7 +73,7 @@ describe('BusinessLeadForm', () => {
     } as never);
     const { container } = render(
       <BusinessLeadKeyProvider value="request-consent">
-        <BusinessLeadForm locale="sq" />
+        <BusinessLeadForm locale="sq" tenantOptions={['tenant_ks', 'tenant_mk', 'pilot-mk']} />
       </BusinessLeadKeyProvider>
     );
     fireEvent.submit(container.querySelector('form')!);
@@ -72,5 +82,29 @@ describe('BusinessLeadForm', () => {
       'business-lead-consent-error'
     );
     expect(screen.queryByText('Confirm that we may contact you')).toBeNull();
+  });
+  it('disables classification while pending and clears it only after successful submission', async () => {
+    let resolve!: (value: null) => void;
+    const promise = new Promise<null>(complete => {
+      resolve = complete;
+    });
+    submit.mockReturnValueOnce(promise);
+    const { container } = render(
+      <BusinessLeadKeyProvider value="success-key">
+        <BusinessLeadForm locale="sq" tenantOptions={['tenant_ks', 'tenant_mk', 'pilot-mk']} />
+      </BusinessLeadKeyProvider>
+    );
+    const select = screen.getByRole('combobox', { name: 'label' });
+    fireEvent.change(select, { target: { value: 'tenant_mk' } });
+    fireEvent.change(container.querySelector('[name="firstName"]')!, { target: { value: 'Test' } });
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(select).toBeDisabled());
+    await act(() => {
+      resolve({ success: true, data: { leadId: 'new-lead' } } as never);
+      return promise;
+    });
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'label' })).toHaveValue(''));
+    expect(container.querySelector('[name="firstName"]')).toHaveValue('');
+    expect(container.querySelector('[name="_idempotencyKey"]')).not.toHaveValue('success-key');
   });
 });

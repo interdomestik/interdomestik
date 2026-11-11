@@ -31,6 +31,21 @@ vi.mock('@interdomestik/database/schema', () => ({
 
 import { submitLead } from './leads';
 
+function submitMkChoiceLead() {
+  return submitLead({
+    name: 'John Doe',
+    phone: '+383491234567',
+    category: 'auto',
+    classification: { choice: 'tenant_mk' },
+  });
+}
+
+function expectScopedTo(result: { success: boolean }, tenantId: string): void {
+  expect(result.success).toBe(true);
+  expect(mocks.authorizePublicSiteTenant).toHaveBeenCalledExactlyOnceWith(tenantId);
+  expect(readTenantAuthority(mocks.withTenantContext.mock.calls[0]?.[0]).tenantId).toBe(tenantId);
+}
+
 describe('Leads Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,6 +67,7 @@ describe('Leads Actions', () => {
         name: 'A', // Too short - needs min 2 chars
         phone: '+383491234567',
         category: 'auto',
+        classification: { choice: 'tenant_mk' },
       });
 
       consoleErrorSpy.mockRestore();
@@ -67,6 +83,7 @@ describe('Leads Actions', () => {
         name: 'John Doe',
         phone: '123', // Too short - needs min 6 chars
         category: 'auto',
+        classification: { choice: 'tenant_mk' },
       });
 
       consoleErrorSpy.mockRestore();
@@ -79,6 +96,7 @@ describe('Leads Actions', () => {
       const result = await submitLead({
         name: 'John Doe',
         phone: '+383491234567',
+        classification: { choice: 'tenant_mk' },
         category: '', // Empty string fails validation
       });
 
@@ -91,17 +109,9 @@ describe('Leads Actions', () => {
     it('should successfully submit a valid lead', async () => {
       mocks.dbInsert.mockResolvedValue(undefined);
 
-      const result = await submitLead({
-        name: 'John Doe',
-        phone: '+383491234567',
-        category: 'auto',
-      });
+      const result = await submitMkChoiceLead();
 
-      expect(result.success).toBe(true);
-      expect(mocks.authorizePublicSiteTenant).toHaveBeenCalledExactlyOnceWith('tenant_mk');
-      expect(readTenantAuthority(mocks.withTenantContext.mock.calls[0]?.[0]).tenantId).toBe(
-        'tenant_mk'
-      );
+      expectScopedTo(result, 'tenant_mk');
       expect(mocks.dbInsert).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'John Doe',
@@ -112,33 +122,26 @@ describe('Leads Actions', () => {
       );
     });
 
-    it('takes the tenant from the request host, not the client payload', async () => {
+    it('uses the validated classification result for scoped ownership', async () => {
       mocks.resolveTenantIdFromRequest.mockResolvedValue('tenant_ks');
       mocks.dbInsert.mockResolvedValue(undefined);
 
-      const result = await submitLead({
-        name: 'John Doe',
-        phone: '+383491234567',
-        category: 'auto',
-      });
+      const result = await submitMkChoiceLead();
 
-      expect(result.success).toBe(true);
-      expect(mocks.authorizePublicSiteTenant).toHaveBeenCalledExactlyOnceWith('tenant_ks');
-      expect(readTenantAuthority(mocks.withTenantContext.mock.calls[0]?.[0]).tenantId).toBe(
-        'tenant_ks'
-      );
+      expectScopedTo(result, 'tenant_ks');
       expect(mocks.dbInsert).toHaveBeenCalledWith(
         expect.objectContaining({ tenantId: 'tenant_ks' })
       );
     });
 
-    it('writes nothing when the host tenant is not active', async () => {
+    it('writes nothing when the classified tenant is not active', async () => {
       mocks.authorizePublicSiteTenant.mockResolvedValueOnce(null);
 
       const result = await submitLead({
         name: 'John Doe',
         phone: '+383491234567',
         category: 'auto',
+        classification: { choice: 'tenant_mk' },
       });
 
       expect(result).toEqual({ success: false, error: 'Failed to submit request' });
@@ -152,6 +155,7 @@ describe('Leads Actions', () => {
         name: 'John Doe',
         phone: '+383491234567',
         category: 'auto',
+        classification: { choice: 'tenant_mk' },
         tenantId: 'tenant_ks',
       } as never);
 
@@ -171,6 +175,7 @@ describe('Leads Actions', () => {
         name: 'John Doe',
         phone: '+383491234567',
         category: 'auto',
+        classification: { choice: 'tenant_mk' },
       });
 
       consoleErrorSpy.mockRestore();
