@@ -37,7 +37,7 @@ for (const file of [DB, MODE]) {
   successor.set(
     file,
     readFileSync(
-      new URL(`./fixtures/pooler-transition/${path.basename(file)}.txt`, import.meta.url),
+      new URL(`./tests/fixtures/pooler-transition/${path.basename(file)}.txt`, import.meta.url),
       'utf8'
     )
   );
