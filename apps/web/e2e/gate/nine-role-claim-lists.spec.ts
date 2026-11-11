@@ -21,6 +21,7 @@ import {
 } from './nine-role-claim-lists.cases';
 import { expectListRow, expectOpsRow, expectSurfaceDenied } from './nine-role-claim-lists.surfaces';
 import { collectOpsPages, type OpsPage } from './nine-role-ops-pages';
+import { getRespectingRateLimit } from './rate-limit-aware-get';
 
 const OWNERSHIP = E2E_RELATIONSHIP_FIXTURES.MEMBER_OWNERSHIP;
 /** /api/claims serves fixed pages of this size. */
@@ -51,7 +52,7 @@ function describeLists(project: (name: string) => boolean, cases: readonly ListA
 async function readApi(page: Page, info: TestInfo, ip: string, query: Record<string, string>) {
   const url = new URL('/api/claims', getProjectUrlInfo(info, null).origin);
   for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
-  const response = await page.request.get(url.toString(), {
+  const response = await getRespectingRateLimit(page.request, info, url.toString(), {
     headers: { ...info.project.use.extraHTTPHeaders, 'x-forwarded-for': ip },
   });
   expect(response.status(), url.search).toBe(200);
