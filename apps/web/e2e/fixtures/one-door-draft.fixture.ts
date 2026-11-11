@@ -35,7 +35,8 @@ export function doorDraftContext(actor: E2EUserKey): FreeStartDraftContext {
 
 export async function withDoorDraft(
   actor: E2EUserKey,
-  run: (draft: FreeStartDraft, context: FreeStartDraftContext) => Promise<void>
+  run: (draft: FreeStartDraft, context: FreeStartDraftContext) => Promise<void>,
+  resumeStep: 'details' | 'preview' = 'details'
 ): Promise<void> {
   await requireDoorActor(actor);
   const context = doorDraftContext(actor);
@@ -46,7 +47,7 @@ export async function withDoorDraft(
     incidentDate: '2026-11-01',
     counterparty: 'Door fixture insurer',
     desiredOutcome: 'repair',
-    resumeStep: 'details',
+    resumeStep,
     summary: `Door draft ${randomUUID()}`,
   });
   if (!result.ok) throw new Error(`Door draft setup failed: ${result.code}`);
