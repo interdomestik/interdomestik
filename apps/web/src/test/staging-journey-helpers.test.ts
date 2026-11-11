@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   catalogueDelivery,
   readSignedObject,
+  requireUntracedSignedLane,
   signedLaneTraceAllowed,
 } from '../../e2e/gate/catalogue-delivery';
 import { getRespectingRateLimit, retryAfterSeconds } from '../../e2e/gate/rate-limit-aware-get';
@@ -64,6 +65,23 @@ describe('signedLaneTraceAllowed', () => {
       expect(signedLaneTraceAllowed(trace)).toBe(false);
     }
   );
+});
+
+describe('requireUntracedSignedLane', () => {
+  const external = { NODE_ENV: 'test', PW_EXTERNAL_SERVER: '1' } as NodeJS.ProcessEnv;
+  it('refuses a traced storage-signed lane before any request is made', () => {
+    const request = vi.fn();
+    const run = () => {
+      requireUntracedSignedLane('retain-on-failure', external);
+      request();
+    };
+    expect(run).toThrow('must run with trace off');
+    expect(request).not.toHaveBeenCalled();
+  });
+  it('admits an untraced storage-signed lane and any proxy lane', () => {
+    expect(() => requireUntracedSignedLane('off', external)).not.toThrow();
+    expect(() => requireUntracedSignedLane('on', { NODE_ENV: 'test' })).not.toThrow();
+  });
 });
 
 describe('retryAfterSeconds', () => {

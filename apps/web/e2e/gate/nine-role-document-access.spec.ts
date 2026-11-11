@@ -11,7 +11,7 @@ import {
   catalogueDelivery,
   LOCAL_CONFIGURED_STORAGE_SKIP,
   readSignedObject,
-  signedLaneTraceAllowed,
+  requireUntracedSignedLane,
 } from './catalogue-delivery';
 import { isKsGateProject, isMkGateProject } from './gate-project-identity';
 import { requireSeededHost, signInAs } from './nine-role-actor';
@@ -46,9 +46,6 @@ async function expectAllowedMetadata(
     return;
   }
   // The signed URL is a live credential: booleans and numbers only, read outside Playwright.
-  expect(signedLaneTraceAllowed(info.project.use.trace), 'storage-signed lane runs untraced').toBe(
-    true
-  );
   const signed = typeof body.url === 'string' && URL.canParse(body.url) ? new URL(body.url) : null;
   expect(body.delivery, `${label} delivery`).toBeUndefined();
   expect(signed?.protocol === 'https:', `${label} signed URL is https`).toBe(true);
@@ -96,6 +93,8 @@ function describeActors(project: (name: string) => boolean, cases: readonly Docu
       // Intentional and local only: the external staging journey never takes this skip.
       test.skip(catalogueDelivery() === 'unavailable', LOCAL_CONFIGURED_STORAGE_SKIP);
       requireSeededHost(info, project, 90_000);
+      // Before any request: a trace would record the signed URL in the metadata body.
+      requireUntracedSignedLane(info.project.use.trace);
       await signInAs(page, info, actor, `10.0.71.${index + 1}`);
       for (const key of DOCUMENT_KEYS) {
         await expectDocumentAccess(page.request, info, key, allowed.includes(key));

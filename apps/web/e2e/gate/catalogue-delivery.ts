@@ -40,10 +40,20 @@ export async function readSignedObject(
 }
 
 /**
- * The metadata response carries a live signed URL, so the storage-signed lane refuses any retained
- * trace that would record that body.
+ * The metadata response carries a live signed URL, and a trace records every response body as it
+ * arrives. The storage-signed lane therefore refuses a retained trace before its first request.
  */
 export function signedLaneTraceAllowed(trace: unknown): boolean {
   const mode = typeof trace === 'string' ? trace : (trace as { mode?: unknown } | undefined)?.mode;
   return mode === undefined || mode === 'off';
+}
+
+/** Call before any request of a document test; throws for a traced storage-signed lane. */
+export function requireUntracedSignedLane(
+  trace: unknown,
+  env: NodeJS.ProcessEnv = process.env
+): void {
+  if (catalogueDelivery(env) === 'storage-signed' && !signedLaneTraceAllowed(trace)) {
+    throw new Error('The storage-signed document lane must run with trace off');
+  }
 }
