@@ -17,9 +17,7 @@ import {
 import { expect } from '@playwright/test';
 import { requireDoorActor } from './one-door-data.fixture';
 
-export async function doorDraftRow(
-  id: string
-): Promise<typeof freeStartDrafts.$inferSelect | undefined> {
+export function doorDraftRow(id: string): Promise<typeof freeStartDrafts.$inferSelect | undefined> {
   return db.query.freeStartDrafts.findFirst({ where: eq(freeStartDrafts.id, id) });
 }
 
@@ -51,20 +49,34 @@ export async function withDoorDraft(
     summary: `Door draft ${randomUUID()}`,
   });
   if (!result.ok) throw new Error(`Door draft setup failed: ${result.code}`);
+  let runFailed = false;
+  let runError: unknown;
   try {
     await run(result.draft, context);
-  } finally {
-    const current = await resumeFreeStartDraft(context, result.draft.id);
-    if (!current.ok) throw new Error('Exact door draft disappeared before cleanup');
-    expect(
-      await deleteFreeStartDraft(context, {
-        id: current.draft.id,
-        expectedVersion: current.draft.version,
-      })
-    ).toMatchObject({ ok: true, id: result.draft.id });
-    expect(await resumeFreeStartDraft(context, result.draft.id)).toEqual({
-      ok: false,
-      code: 'notFound',
-    });
+  } catch (error) {
+    runFailed = true;
+    runError = error;
   }
+  const cleanup = cleanupDoorDraft(context, result.draft.id);
+  if (runFailed) {
+    // Keep the test's own failure visible; cleanup is still attempted.
+    await cleanup.catch(() => undefined);
+    throw runError;
+  }
+  await cleanup;
+}
+
+async function cleanupDoorDraft(context: FreeStartDraftContext, id: string): Promise<void> {
+  const current = await resumeFreeStartDraft(context, id);
+  if (!current.ok) throw new Error('Exact door draft disappeared before cleanup');
+  expect(
+    await deleteFreeStartDraft(context, {
+      id: current.draft.id,
+      expectedVersion: current.draft.version,
+    })
+  ).toMatchObject({ ok: true, id });
+  expect(await resumeFreeStartDraft(context, id)).toEqual({
+    ok: false,
+    code: 'notFound',
+  });
 }
