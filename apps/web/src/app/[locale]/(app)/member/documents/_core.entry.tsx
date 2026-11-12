@@ -72,7 +72,7 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
       className="min-w-0 space-y-6 [overflow-wrap:anywhere]"
       data-testid="member-documents-page-ready"
     >
-      <div>
+      <div className="px-4 md:px-0">
         <h2 className="text-2xl font-bold tracking-tight">{tDocs('title')}</h2>
         <p className="text-muted-foreground">{tDocs('subtitle')}</p>
       </div>

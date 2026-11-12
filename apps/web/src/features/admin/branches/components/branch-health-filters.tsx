@@ -43,13 +43,13 @@ export function BranchHealthFilters({ filters, onFilterChange }: BranchHealthFil
   ];
 
   const rightActions = (
-    <div className="flex items-center gap-3">
+    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-3">
       {/* Sort Select */}
       <Select
         value={filters.sortBy}
         onValueChange={val => updateFilter('sortBy', val as BranchFiltersState['sortBy'])}
       >
-        <SelectTrigger className="w-[180px] bg-background/50 border-white/10">
+        <SelectTrigger className="w-[180px] max-w-full bg-background/50 border-white/10">
           <SelectValue placeholder={t('sort_label')} />
         </SelectTrigger>
         <SelectContent>

@@ -7,9 +7,11 @@ import {
   Banknote,
   BarChart,
   Briefcase,
+  Building2,
   FileText,
   GitBranch,
   LayoutDashboard,
+  PieChart,
   Settings,
   Shield,
   Users,
@@ -53,7 +55,7 @@ export function adminSidebarItems(
     {
       title: 'sponsors',
       href: '/admin/sponsors',
-      icon: Briefcase,
+      icon: Building2,
       hidden:
         !([ROLES.super_admin, ROLES.tenant_admin, ROLES.admin] as string[]).includes(role) &&
         !(role === ROLES.branch_manager && branchId),
@@ -90,7 +92,7 @@ export function adminSidebarItems(
     {
       title: 'analytics',
       href: '/admin/analytics',
-      icon: BarChart,
+      icon: PieChart,
       hidden: !capabilities.canReadAnalytics,
     },
     {

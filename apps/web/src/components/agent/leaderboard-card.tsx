@@ -117,9 +117,9 @@ export function LeaderboardCard({
   };
 
   return (
-    <Card className="relative z-10">
+    <Card className="relative z-10 min-w-0">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Crown className="h-4 w-4 text-yellow-500" />
             {t('title')}

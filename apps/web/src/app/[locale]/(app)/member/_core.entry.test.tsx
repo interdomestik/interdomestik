@@ -47,6 +47,18 @@ import DashboardLayout from './_core.entry';
 import ClaimsPage from './claims/_core.entry';
 
 describe('MemberDashboard layout role handling', () => {
+  it('gives claims titles the mobile side gutter without doubling desktop padding', async () => {
+    const { container } = render(await ClaimsPage({ params: Promise.resolve({ locale: 'sq' }) }));
+    expect(container.querySelector('h2')?.parentElement?.parentElement).toHaveClass(
+      'px-4',
+      'md:px-0'
+    );
+  });
+
+  it('gives document titles the same responsive side gutter', () => {
+    const source = readFileSync(resolve(import.meta.dirname, 'documents/_core.entry.tsx'), 'utf8');
+    expect(source).toMatch(/<div className="px-4 md:px-0">\s*<h2/u);
+  });
   it.each(['en', 'sq', 'mk', 'sr', 'de'])('loads claims in %s', async locale => {
     await ClaimsPage({ params: Promise.resolve({ locale }) });
 

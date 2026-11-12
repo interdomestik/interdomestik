@@ -1,5 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import type { ReactNode } from 'react';
+import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -173,6 +174,15 @@ describe('AgentDashboardV2Page tenant boundary', () => {
         period: 'month',
       },
     });
+  });
+
+  it('uses a shrinkable single-column mobile grid and preserves the desktop spans', async () => {
+    const { container } = render(await AgentDashboardV2Page({ locale: 'mk', tier: 'pro' }));
+    const columns = container.querySelector('.lg\\:grid-cols-12');
+    expect(columns).toHaveClass('min-w-0', 'grid-cols-1');
+    expect(columns?.children[0]).toHaveClass('min-w-0', 'lg:col-span-8');
+    expect(columns?.children[1]).toHaveClass('min-w-0', 'lg:col-span-4');
+    expect(columns?.children[2]).toHaveClass('min-w-0', 'lg:col-span-12');
   });
 
   it('rejects missing tenant identity before loading dashboard stats', async () => {

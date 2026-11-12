@@ -79,7 +79,7 @@ function RoleShellDesktopSidebar({
             groups={[{ id: 'workspace', items }]}
           />
         </SidebarContent>
-        <SidebarFooter className="min-w-0 border-t [&_button]:min-h-11 [&_button]:min-w-11">
+        <SidebarFooter className="min-w-0 border-t group-data-[state=collapsed]:items-center [&_button]:min-h-11 [&_button]:min-w-11">
           {sidebarAccount}
         </SidebarFooter>
       </div>

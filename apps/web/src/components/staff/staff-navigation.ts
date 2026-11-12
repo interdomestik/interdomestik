@@ -1,6 +1,6 @@
 import type { ShellNavigationItem } from '@/components/shell/shell-navigation';
 import { ROLES } from '@interdomestik/shared-auth';
-import { BarChart3, FileText, Inbox } from 'lucide-react';
+import { BarChart3, Building2, FileText, Inbox } from 'lucide-react';
 
 /** The existing staff sidebar decisions, shared with the responsive shell adapter. */
 export function buildStaffNavigation({
@@ -20,6 +20,6 @@ export function buildStaffNavigation({
   return [
     ...queueItems,
     { title: tNav('staffCrm'), href: '/staff/crm', icon: BarChart3 },
-    { title: tNav('sponsors'), href: '/staff/sponsors', icon: Inbox },
+    { title: tNav('sponsors'), href: '/staff/sponsors', icon: Building2 },
   ];
 }

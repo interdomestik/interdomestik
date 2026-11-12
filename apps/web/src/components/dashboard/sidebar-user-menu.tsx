@@ -80,22 +80,23 @@ function SidebarUserMenuInner({
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="rounded-xl border border-slate-200 bg-white/80 transition-colors hover:bg-slate-50 data-[state=open]:bg-slate-100 data-[state=open]:text-slate-900"
+              aria-label={user.name || user.email || tCommon('roles.member')}
+              className="rounded-xl border border-slate-200 bg-white/80 transition-colors hover:bg-slate-50 data-[state=open]:bg-slate-100 data-[state=open]:text-slate-900 group-data-[state=collapsed]:mx-auto"
               data-testid="sidebar-user-menu-button"
             >
-              <Avatar className="h-8 w-8 rounded-lg bg-primary/10 text-primary">
+              <Avatar className="h-8 w-8 shrink-0 rounded-lg bg-primary/10 text-primary">
                 <AvatarImage src={user.image || ''} alt={user.name || ''} />
                 <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold">
                   {user.name?.[0]?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
+              <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[state=collapsed]:hidden">
                 <span className="truncate font-semibold">{user.name}</span>
                 <span className="truncate text-xs text-muted-foreground capitalize">
                   {getRoleLabel(tCommon, (user as { role?: string }).role, tCommon('roles.member'))}
                 </span>
               </div>
-              <ChevronUp className="ml-auto size-4 text-muted-foreground" />
+              <ChevronUp className="ml-auto size-4 text-muted-foreground group-data-[state=collapsed]:hidden" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
