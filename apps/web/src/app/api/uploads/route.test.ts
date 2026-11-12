@@ -128,7 +128,7 @@ describe('POST /api/uploads', () => {
     const data = await res.json();
 
     expect(res.status).toBe(415);
-    expect(data).toEqual({ error: 'evidence_unsupported' });
+    expect(data).toEqual({ error: 'File type not allowed' });
   });
 
   it('returns 413 when file is too large', async () => {
@@ -149,7 +149,7 @@ describe('POST /api/uploads', () => {
     const data = await res.json();
 
     expect(res.status).toBe(413);
-    expect(data).toEqual({ error: 'evidence_too_large' });
+    expect(data).toEqual({ error: 'File too large' });
   });
 
   it('returns 404 when claim does not exist', async () => {

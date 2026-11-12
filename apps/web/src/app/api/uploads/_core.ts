@@ -95,8 +95,11 @@ export async function createSignedUploadCore(args: {
 
   const validation = validateEvidenceFile(fileName, fileSize, fileType);
   if (!validation.success) {
+    // Public API contract (e2e/security/upload-cross-tenant.spec.ts): legacy error texts.
     if (validation.error === 'evidence_too_large')
-      return { ok: false, status: 413, error: 'evidence_too_large' };
+      return { ok: false, status: 413, error: 'File too large' };
+    if (validation.error === 'evidence_unsupported')
+      return { ok: false, status: 415, error: 'File type not allowed' };
     return { ok: false, status: 415, error: validation.error };
   }
   const mimeType = validation.format.mimeType;

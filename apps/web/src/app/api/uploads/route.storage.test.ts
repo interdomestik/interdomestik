@@ -217,7 +217,7 @@ describe('POST /api/uploads', () => {
     const data = await res.json();
 
     expect(res.status).toBe(415);
-    expect(data).toEqual({ error: 'evidence_unsupported' });
+    expect(data).toEqual({ error: 'File type not allowed' });
     expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
