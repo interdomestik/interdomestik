@@ -1,7 +1,8 @@
 import { LOCALES } from '@/i18n/locales';
 import { z } from 'zod';
-
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+import { validateEvidenceFile } from '@/features/claims/upload/evidence-file-policy';
+import { uploadErrorResponse } from './upload-error-response';
+import { MAX_DIRECT_FILE_BYTES, readUploadForm } from './read-upload-form';
 
 export type UploadCategory = 'evidence' | 'legal';
 export type EvidenceUploadForm = {
@@ -16,18 +17,19 @@ export type EvidenceUploadForm = {
 type ParseResult =
   { success: true; data: EvidenceUploadForm } | { success: false; response: Response };
 
-function invalidForm(status = 400): ParseResult {
+function invalidForm(): ParseResult {
   return {
     success: false,
-    response: Response.json(
-      { error: status === 413 ? 'File too large (max 50MB)' : 'Invalid form payload' },
-      { status }
-    ),
+    response: Response.json({ error: 'Invalid form payload' }, { status: 400 }),
   };
 }
 
 export async function parseEvidenceUploadForm(request: Request): Promise<ParseResult> {
-  const formData = await request.formData().catch(() => null);
+  const formData = await readUploadForm(request);
+  if (formData === 'too-large') {
+    const language = request.headers?.get('accept-language')?.split(/[-,;]/)[0] ?? 'en';
+    return { success: false, response: uploadErrorResponse('evidence_too_large', 413, language) };
+  }
   if (!formData) return invalidForm();
 
   const claimId = formData.get('claimId');
@@ -47,13 +49,18 @@ export async function parseEvidenceUploadForm(request: Request): Promise<ParseRe
     typeof locale !== 'string' ||
     !LOCALES.includes(locale as (typeof LOCALES)[number]) ||
     !(file instanceof File) ||
-    (informationRequestId && !informationRequestId.success) ||
-    file.size <= 0
+    (informationRequestId && !informationRequestId.success)
   ) {
     return invalidForm();
   }
 
-  if (file.size > MAX_FILE_SIZE_BYTES) return invalidForm(413);
+  if (file.size > MAX_DIRECT_FILE_BYTES) {
+    return { success: false, response: uploadErrorResponse('evidence_too_large', 413, locale) };
+  }
+  const validation = validateEvidenceFile(file.name, file.size, file.type);
+  if (!validation.success) {
+    return { success: false, response: uploadErrorResponse(validation.error, 400, locale) };
+  }
 
   return {
     success: true,

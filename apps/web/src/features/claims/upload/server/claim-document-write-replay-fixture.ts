@@ -117,7 +117,14 @@ const fake = vi.hoisted(() => {
     withTenantContext,
     tables: {
       auditLog: table('audit_log', []),
-      claimDocuments: table('claim_documents', ['id', 'tenantId', 'claimId', 'uploadedBy']),
+      claimDocuments: table('claim_documents', [
+        'id',
+        'tenantId',
+        'claimId',
+        'uploadedBy',
+        'filePath',
+        'bucket',
+      ]),
       claims: table('claims', ['id', 'tenantId', 'userId']),
       consents: table('claim_document_ai_extraction_consents', []),
       requestEvidence: table('claim_information_request_evidence', [

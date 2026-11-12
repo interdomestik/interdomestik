@@ -22,7 +22,7 @@ describe('member claim upload actions', () => {
   it('rejects invalid signed upload file sizes before storage URL creation', async () => {
     const result = await generateUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 0);
 
-    expect(result).toEqual({ success: false, error: 'Invalid file size', status: 400 });
+    expect(result).toEqual({ success: false, error: 'evidence_empty', status: 400 });
     expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
@@ -58,13 +58,13 @@ describe('member claim upload actions', () => {
 
     expect(result).toEqual({
       success: false,
-      error: 'Failed to generate upload URL: fetch failed',
+      error: 'evidence_upload_failed',
       status: 500,
     });
     expect(hoisted.createSignedUploadUrl).toHaveBeenCalledTimes(3);
   });
 
-  it('does not retry non-transient signed upload URL errors', async () => {
+  it('refuses unsupported formats before storage URL creation', async () => {
     hoisted.createSignedUploadUrl.mockResolvedValue({
       data: null,
       error: { message: 'mime type text/plain is not supported' },
@@ -74,10 +74,10 @@ describe('member claim upload actions', () => {
 
     expect(result).toEqual({
       success: false,
-      error: 'Failed to generate upload URL: mime type text/plain is not supported',
-      status: 500,
+      error: 'evidence_unsupported',
+      status: 400,
     });
-    expect(hoisted.createSignedUploadUrl).toHaveBeenCalledTimes(1);
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
   it('denies signed URL issuance for same-tenant claims owned by another member', async () => {

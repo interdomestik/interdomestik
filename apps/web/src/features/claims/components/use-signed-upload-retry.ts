@@ -1,6 +1,9 @@
 'use client';
 
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { isDuplicateStorageUploadError } from './storage-upload-error';
+import { validateEvidenceFile } from '../upload/evidence-file-policy';
+import { isTerminalEvidenceError } from '../upload/evidence-upload-error';
 import {
   resolveStorageUploadContentType,
   resolveUploadMimeType,
@@ -73,8 +76,18 @@ type SignedUploadRetryOptions = {
   uploadToStorage: SignedStorageUploader;
 };
 
-function storageFileFor(file: File, mimeType: string, contentType: string): File {
-  return contentType === mimeType
+type SignedUploadRetry = {
+  identityMatches: boolean;
+  acquire: () => symbol | null;
+  getPending: () => PendingSignedUpload | null;
+  pending: PendingSignedUpload | null;
+  release: (attempt: symbol) => void;
+  uploadSigned: (draft: SignedUploadDraft) => Promise<string>;
+  uploading: boolean;
+};
+
+function storageFileFor(file: File, contentType: string): File {
+  return file.type === contentType
     ? file
     : new File([file], file.name, { type: contentType, lastModified: file.lastModified });
 }
@@ -92,7 +105,7 @@ export function useSignedUploadRetry({
   locale,
   recoveryHref,
   uploadToStorage,
-}: SignedUploadRetryOptions) {
+}: SignedUploadRetryOptions): SignedUploadRetry {
   const identityRef = useRef({ claimId, informationRequestId });
   useLayoutEffect(() => {
     identityRef.current = { claimId, informationRequestId };
@@ -135,6 +148,8 @@ export function useSignedUploadRetry({
 
   const requestSignedTarget = async (draft: SignedUploadDraft): Promise<PendingSignedUpload> => {
     const { file } = draft;
+    const validation = validateEvidenceFile(file.name, file.size, file.type);
+    if (!validation.success) throw new SignedUploadRetryError(validation.error);
     const mimeType = resolveUploadMimeType(file);
     const storageContentType = resolveStorageUploadContentType(file);
     const result = informationRequestId
@@ -196,11 +211,17 @@ export function useSignedUploadRetry({
     if (current.stage === 'storage') {
       const { mimeType, storageContentType = mimeType } = current.confirmation;
       if (!current.target.deterministicE2E) {
-        await uploadToStorage(
-          current.target,
-          storageFileFor(current.file, mimeType, storageContentType),
-          storageContentType
-        );
+        try {
+          await uploadToStorage(
+            current.target,
+            storageFileFor(current.file, storageContentType),
+            storageContentType
+          );
+        } catch (error) {
+          // The request uses this exact frozen path/token. A lost successful response may
+          // become a duplicate on retry; confirmation still verifies the stored bytes.
+          if (!isDuplicateStorageUploadError(error)) throw error;
+        }
       }
       const confirming: PendingSignedUpload = { ...current, stage: 'confirm' };
       Object.freeze(confirming);
@@ -212,7 +233,10 @@ export function useSignedUploadRetry({
     assertCurrentIdentity(current.confirmation);
     const result = await confirmUpload(current.confirmation);
     assertCurrentIdentity(current.confirmation);
-    if (!result.success) throw new SignedUploadRetryError(result.error, result.status);
+    if (!result.success) {
+      if (isTerminalEvidenceError(result.error)) keepPending(null);
+      throw new SignedUploadRetryError(result.error, result.status);
+    }
     if (pendingRef.current === current) keepPending(null);
     return current.confirmation.fileId;
   };
