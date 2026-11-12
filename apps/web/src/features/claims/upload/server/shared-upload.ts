@@ -1,4 +1,5 @@
 import { validateEvidenceFile } from '../evidence-file-policy';
+import { refuseUnapprovedUpload } from './refuse-unapproved-upload';
 import { validateEvidenceContent } from './validate-evidence-content';
 import { validateStoredObject } from './stored-object-validation';
 export { validateStoredObject } from './stored-object-validation';
@@ -189,17 +190,8 @@ export async function createSignedUploadUrl(params: {
     tenantId,
   } = params;
 
-  const validation = validateEvidenceFile(fileName, fileSize, mimeType);
-  if (!validation.success) {
-    return {
-      success: false,
-      error: validation.error,
-      status: validation.error === 'evidence_too_large' ? 413 : 400,
-    };
-  }
-  if (validation.format.mimeType !== mimeType || (storageContentType ?? mimeType) !== mimeType) {
-    return { success: false, error: 'evidence_unsupported', status: 400 };
-  }
+  const refusal = refuseUnapprovedUpload({ fileName, fileSize, mimeType, storageContentType });
+  if (refusal) return refusal;
 
   const fileId = randomUUID();
   let path: string;

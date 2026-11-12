@@ -8,7 +8,6 @@ export async function readTenantObjectPrefix(args: TenantStorageTarget): Promise
   if (signed.error || !signed.data?.signedUrl) throw new Error('Evidence prefix unavailable');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
-  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
     const response = await fetch(signed.data.signedUrl, {
       headers: { Range: `bytes=0-${EVIDENCE_PREFIX_BYTES - 1}` },
@@ -23,21 +22,18 @@ export async function readTenantObjectPrefix(args: TenantStorageTarget): Promise
     if (length > EVIDENCE_PREFIX_BYTES || length > Number(range[2])) {
       throw new Error('Invalid evidence range');
     }
-    reader = response.body.getReader();
     const prefix = new Uint8Array(length);
     let offset = 0;
-    while (offset < length) {
-      const chunk = await reader.read();
-      if (chunk.done || chunk.value.byteLength > length - offset) {
-        throw new Error('Invalid evidence prefix');
-      }
-      prefix.set(chunk.value, offset);
-      offset += chunk.value.byteLength;
+    // Leaving the async iteration (return or throw) cancels the stream.
+    for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
+      if (chunk.byteLength > length - offset) throw new Error('Invalid evidence prefix');
+      prefix.set(chunk, offset);
+      offset += chunk.byteLength;
+      if (offset === length) return prefix;
     }
-    return prefix;
+    throw new Error('Invalid evidence prefix');
   } finally {
     controller.abort();
-    await reader?.cancel().catch(() => undefined);
     clearTimeout(timeout);
   }
 }

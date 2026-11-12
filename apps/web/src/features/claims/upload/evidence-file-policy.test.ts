@@ -134,6 +134,9 @@ describe('evidence signatures', () => {
     ['heic', bmff('mif1', 'heic')],
     ['mp4', bmff('isom', 'mp42')],
     ['mov', bmff('qt  ')],
+    ['mov', bytes('\0\0\0\x08wide\0\0\x10\0mdat')], // Legacy QuickTime: no ftyp atom.
+    ['mov', bytes('\0\0\x01\0moov')],
+    ['mov', bytes('\0\0\0\x01mdat')], // 64-bit extended atom size.
     ['m4a', bmff('M4A ')],
   ])('accepts the declared .%s signature', (ext, prefix) => {
     const format = resolveEvidenceFormat(`file.${ext}`)!;
@@ -159,6 +162,9 @@ describe('evidence signatures', () => {
     ['heic', bmff('avif')],
     ['mp4', bmff('heic')],
     ['mov', bmff('isom')],
+    ['mov', bytes('\0\0\0\x04moov')], // Atom size smaller than its own header.
+    ['mov', bytes('\0\0\0\x08trak')], // Not a top-level leading atom.
+    ['mp4', bytes('\0\0\0\x08moov')], // Legacy QuickTime leniency is .mov only.
     ['m4a', bmff('mp42')],
     ['mp4', bytes('\0\0\0\x08ftypisom')],
   ])('refuses spoofed or truncated .%s content', (ext, prefix) => {

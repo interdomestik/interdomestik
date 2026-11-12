@@ -26,7 +26,7 @@ describe('bounded storage prefix reads', () => {
         headers: { 'content-range': 'bytes 0-255/52428800' },
       })
     );
-    expect((await readTenantObjectPrefix(target)).length).toBe(256);
+    expect(await readTenantObjectPrefix(target)).toHaveLength(256);
     expect(m.sign).toHaveBeenCalledWith({ ...target, expiresInSeconds: 60 });
     expect(m.fetch).toHaveBeenCalledWith(
       'https://storage.test/signed',
@@ -78,6 +78,23 @@ describe('bounded storage prefix reads', () => {
       );
       await expect(readTenantObjectPrefix(target)).rejects.toThrow();
     }
+  });
+
+  it('assembles a prefix delivered in several chunks', async () => {
+    const chunks = [new Uint8Array(100).fill(1), new Uint8Array(156).fill(2)];
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        const next = chunks.shift();
+        if (next) controller.enqueue(next);
+        else controller.close();
+      },
+    });
+    m.fetch.mockResolvedValue(
+      new Response(body, { status: 206, headers: { 'content-range': 'bytes 0-255/1000' } })
+    );
+    const prefix = await readTenantObjectPrefix(target);
+    expect(prefix).toHaveLength(256);
+    expect([prefix[99], prefix[100]]).toEqual([1, 2]);
   });
 
   it('does not fetch when signing fails', async () => {

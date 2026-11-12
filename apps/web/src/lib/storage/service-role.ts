@@ -144,7 +144,7 @@ export async function listTenantObjectsForSingleFile(args: TenantStorageTarget) 
   });
 }
 
-export async function removeTenantObject(
+export function removeTenantObject(
   args: TenantStorageTarget
 ): Promise<{ error: { message: string } | null }> {
   assertTenantStoragePath(args);

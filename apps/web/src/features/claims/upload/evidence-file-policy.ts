@@ -120,7 +120,7 @@ function startsWith(bytes: Uint8Array, prefix: number[]): boolean {
 }
 
 function ascii(bytes: Uint8Array, offset: number, length: number): string {
-  return String.fromCharCode(...bytes.subarray(offset, offset + length));
+  return String.fromCodePoint(...bytes.subarray(offset, offset + length));
 }
 
 const BMFF_BRANDS = {
@@ -141,6 +141,16 @@ function bmffMatches(bytes: Uint8Array, signature: keyof typeof BMFF_BRANDS): bo
     if (brands.includes(ascii(bytes, offset, 4))) return true;
   }
   return false;
+}
+
+// QuickTime's file-type atom is optional: older movies start directly with a top-level atom.
+const QUICKTIME_LEADING_ATOMS = new Set(['moov', 'mdat', 'wide', 'free', 'skip', 'pnot']);
+
+function quickTimeLegacyMatches(bytes: Uint8Array): boolean {
+  if (bytes.length < 8 || !QUICKTIME_LEADING_ATOMS.has(ascii(bytes, 4, 4))) return false;
+  const size = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(0);
+  // 0 = atom runs to end of file, 1 = 64-bit extended size follows, otherwise at least a header.
+  return size === 0 || size === 1 || size >= 8;
 }
 
 /** Header verification only: container formats are not parsed or malware-scanned. */
@@ -173,6 +183,8 @@ export function evidenceSignatureMatches(entry: EvidenceFormat, bytes: Uint8Arra
       return startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3]);
     case 'ogg':
       return ascii(bytes, 0, 4) === 'OggS';
+    case 'mov':
+      return bmffMatches(bytes, 'mov') || quickTimeLegacyMatches(bytes);
     default:
       return bmffMatches(bytes, entry.signature);
   }
