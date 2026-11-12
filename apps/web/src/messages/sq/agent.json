@@ -367,7 +367,8 @@
         "other": "Tjetër"
       },
       "save": "Ruaj aktivitetin",
-      "success": "Aktiviteti u regjistrua"
+      "success": "Aktiviteti u regjistrua",
+      "error": "Aktiviteti nuk u ruajt. Provoni përsëri."
     },
     "leads_pro": {
       "create": {

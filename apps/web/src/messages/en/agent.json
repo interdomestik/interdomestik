@@ -367,7 +367,8 @@
         "other": "Other"
       },
       "save": "Save Activity",
-      "success": "Activity logged"
+      "success": "Activity logged",
+      "error": "The activity could not be saved. Please try again."
     },
     "leads_pro": {
       "create": {
