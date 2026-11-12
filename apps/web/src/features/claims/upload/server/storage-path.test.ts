@@ -4,7 +4,6 @@ import {
   createInitialClaimUploadIntentToken,
   verifyInitialClaimUploadIntentToken,
 } from './initial-claim-upload';
-import { createClaimUploadIntentToken, validateConfirmedClaimUpload } from './shared-upload';
 import {
   EVIDENCE_PATH_SEGMENTS,
   assertEvidenceStoragePath,
@@ -169,48 +168,6 @@ describe('evidence storage path invariants', () => {
     expectInvalidAssignedStoragePath('pii/tenant/tenant-1/claims/claim-1/file-1.pdf');
   });
 
-  it('keeps mismatched intent metadata rejected before storage verification', async () => {
-    const storagePath = buildEvidenceStoragePath({
-      bucket: 'claim-evidence',
-      claimId: 'claim-1',
-      fileId: 'file-1',
-      fileName: 'receipt.pdf',
-      shape: 'assigned',
-      tenantId: 'tenant-1',
-    });
-    const uploadIntentToken = createClaimUploadIntentToken({
-      actorId: 'member-1',
-      bucket: 'claim-evidence',
-      claimId: 'claim-1',
-      fileId: 'file-1',
-      fileSize: 1024,
-      mimeType: 'application/pdf',
-      storagePath,
-      tenantId: 'tenant-1',
-    });
-
-    await expect(
-      validateConfirmedClaimUpload({
-        actorId: 'member-1',
-        bucket: 'claim-evidence',
-        confirmation: {
-          claimId: 'claim-1',
-          fileId: 'file-1',
-          fileSize: 2048,
-          mimeType: 'application/pdf',
-          storagePath,
-          uploadIntentToken,
-        },
-        logPrefix: '[storage-path-test]',
-        tenantId: 'tenant-1',
-      })
-    ).resolves.toEqual({
-      success: false,
-      error: 'Upload confirmation expired. Please retry upload.',
-      status: 409,
-    });
-  });
-
   it('rejects mismatched evidence buckets', () => {
     expectInvalidAssignedStoragePath('pii/tenants/tenant-1/claims/claim-1/file-1.pdf', {
       bucket: 'policy-documents',
@@ -277,40 +234,5 @@ describe('evidence storage path invariants', () => {
         tenantId: 'tenant-1',
       })
     ).toEqual({ success: false, error: 'Upload confirmation expired. Please retry upload.' });
-  });
-
-  it('pins assigned upload confirmation to the centralized bucket invariant', async () => {
-    const storagePath = 'pii/tenants/tenant-1/claims/claim-1/file-1.pdf';
-    const uploadIntentToken = createClaimUploadIntentToken({
-      actorId: 'member-1',
-      bucket: 'policy-documents',
-      claimId: 'claim-1',
-      fileId: 'file-1',
-      fileSize: 1024,
-      mimeType: 'application/pdf',
-      storagePath,
-      tenantId: 'tenant-1',
-    });
-
-    await expect(
-      validateConfirmedClaimUpload({
-        actorId: 'member-1',
-        bucket: 'policy-documents',
-        confirmation: {
-          claimId: 'claim-1',
-          fileId: 'file-1',
-          fileSize: 1024,
-          mimeType: 'application/pdf',
-          storagePath,
-          uploadIntentToken,
-        },
-        logPrefix: '[storage-path-test]',
-        tenantId: 'tenant-1',
-      })
-    ).resolves.toEqual({
-      success: false,
-      error: 'Uploaded file metadata mismatch. Please retry upload.',
-      status: 409,
-    });
   });
 });

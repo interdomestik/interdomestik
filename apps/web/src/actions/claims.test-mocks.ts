@@ -34,8 +34,8 @@ vi.mock('@/lib/ai/claim-workflows', async () =>
   (await import('./claims.test-support')).aiClaimWorkflowsModuleMock()
 );
 vi.mock('@/lib/audit', async () => (await import('./claims.test-support')).auditModuleMock());
-vi.mock('@/features/claims/upload/server/initial-claim-upload', async () =>
-  (await import('./claims.test-support')).initialClaimUploadModuleMock()
+vi.mock('@/features/claims/upload/server/initial-claim-evidence-validation', async () =>
+  (await import('./claims.test-support')).initialClaimEvidenceValidationModuleMock()
 );
 
 beforeEach(() => {

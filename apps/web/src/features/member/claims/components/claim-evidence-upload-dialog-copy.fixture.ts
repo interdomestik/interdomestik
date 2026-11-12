@@ -1,3 +1,7 @@
+import enEvidence from '@/messages/en/evidence.json';
+import sqEvidence from '@/messages/sq/evidence.json';
+import srEvidence from '@/messages/sr/evidence.json';
+import mkEvidence from '@/messages/mk/evidence.json';
 import en from '@/messages/en/claims.json';
 import enCommon from '@/messages/en/common.json';
 import mk from '@/messages/mk/claims.json';
@@ -38,3 +42,28 @@ export const exactCopy = {
   mk: 'a5f00380bb5d6bc46e9d2e0200de3e9bc95ebf70533f2f0d7ecf2635f6b08e49',
   sr: '0e492c029956dac99611a186dda11e9761dcffa7ad19f2f2ed63581171731af6',
 } as const;
+
+export const evidenceCatalogs = { en: enEvidence, sq: sqEvidence, sr: srEvidence, mk: mkEvidence };
+
+export function evidenceDialogMessages(locale: SupportedLocale): Record<string, unknown> {
+  return { ...catalogs[locale], ...commonCatalogs[locale], ...evidenceCatalogs[locale] };
+}
+
+export function translateDialogMessage(
+  messages: Record<string, unknown>,
+  namespace: string,
+  key: string,
+  values?: Record<string, string | number>
+): string {
+  const value = `${namespace}.${key}`.split('.').reduce<unknown>((current, segment) => {
+    if (current && typeof current === 'object' && segment in current) {
+      return (current as Record<string, unknown>)[segment];
+    }
+    return undefined;
+  }, messages);
+  if (typeof value !== 'string') return `${namespace}.${key}`;
+  return Object.entries(values ?? {}).reduce(
+    (copy, [name, part]) => copy.replace(`{${name}}`, String(part)),
+    value
+  );
+}

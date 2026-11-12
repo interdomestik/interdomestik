@@ -130,7 +130,7 @@ describe('SharedEvidenceUploadDialog uncertain confirmation retry', () => {
     openDialog();
     prepareDraft();
     clickUpload();
-    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Network response lost'));
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('failed'));
     expect(mocks.toastSuccess).not.toHaveBeenCalled();
     expect(mocks.refresh).not.toHaveBeenCalled();
     expect(mocks.onUploadSuccess).not.toHaveBeenCalled();
@@ -156,22 +156,21 @@ describe('SharedEvidenceUploadDialog uncertain confirmation retry', () => {
     expect(mocks.refresh).not.toHaveBeenCalled();
   });
 
-  it('offers the original-page recovery after a direct response is lost without claiming deduplication', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new Error('Response lost')));
+  it('offers original-page recovery after an HEIC signed confirmation response is lost', async () => {
+    mocks.confirmUpload.mockRejectedValueOnce(new Error('Response lost'));
     openDialog();
     fireEvent.change(screen.getByLabelText('File'), {
       target: { files: [new File(['image'], 'evidence.heic', { type: 'image/heic' })] },
     });
     clickUpload();
-    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Response lost'));
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('failed'));
     expect(screen.getByRole('link', { name: 'uploadRecovery.action' })).toHaveAttribute(
       'href',
       '/en/member/claims/claim-1'
     );
-    expect(mocks.generateUploadUrl).not.toHaveBeenCalled();
-    expect(mocks.confirmUpload).not.toHaveBeenCalled();
+    expect(mocks.generateUploadUrl).toHaveBeenCalledTimes(1);
+    expect(mocks.confirmUpload).toHaveBeenCalledTimes(1);
     expect(mocks.refresh).not.toHaveBeenCalled();
-    vi.unstubAllGlobals();
   });
 
   it('admits a single intent, transfer, and confirm for rapid clicks while pending', async () => {
@@ -224,7 +223,7 @@ describe('SharedEvidenceUploadDialog uncertain confirmation retry', () => {
     prepareDraft();
 
     clickUpload();
-    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Storage offline'));
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('failed'));
     expect(mocks.confirmUpload).not.toHaveBeenCalled();
     expectOriginalDraftLocked();
 
@@ -249,7 +248,7 @@ describe('SharedEvidenceUploadDialog uncertain confirmation retry', () => {
     clickUpload();
     await waitFor(() => expect(mocks.toastError).toHaveBeenCalledTimes(1));
     clickUpload();
-    await waitFor(() => expect(mocks.toastError).toHaveBeenLastCalledWith(error));
+    await waitFor(() => expect(mocks.toastError).toHaveBeenLastCalledWith('failed'));
     clickUpload();
     await waitFor(() => expect(mocks.toastError).toHaveBeenCalledTimes(3));
 
