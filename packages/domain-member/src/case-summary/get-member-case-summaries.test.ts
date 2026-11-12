@@ -53,13 +53,6 @@ const row = (overrides: Record<string, unknown> = {}) => ({
 });
 
 describe('getMemberCaseSummaries', () => {
-  it('preserves the title needed to identify an unnumbered claim', async () => {
-    h.rows = [row({ reference: null, title: 'Property damage case' })];
-    const [summary] = await get();
-    expect(summary.title).toBe('Property damage case');
-    expect(h.select.mock.calls[0][0]).toHaveProperty('title', 'claim.title');
-  });
-
   beforeEach(() => {
     vi.clearAllMocks();
     h.rows = [];
@@ -70,6 +63,13 @@ describe('getMemberCaseSummaries', () => {
       return h.rows;
     });
     h.tenant.mockImplementation(async (_context, action) => action({ select: h.select }));
+  });
+
+  it('preserves the title needed to identify an unnumbered claim', async () => {
+    h.rows = [row({ reference: null, title: 'Property damage case' })];
+    const [summary] = await get();
+    expect(summary.title).toBe('Property damage case');
+    expect(h.select.mock.calls[0][0]).toHaveProperty('title', 'claim.title');
   });
 
   it('scopes one query and returns safe facts', async () => {

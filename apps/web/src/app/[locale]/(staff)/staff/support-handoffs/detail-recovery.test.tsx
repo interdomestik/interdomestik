@@ -4,6 +4,8 @@ import { mocks, renderPage } from './_core.entry.shared.test-support';
 import { applyDefaultMocks } from './_core.entry.test-support';
 
 describe('handoff detail recovery', () => {
+  beforeEach(() => applyDefaultMocks(mocks));
+
   it('ignores an older rejected read after a newer detail succeeds', async () => {
     let rejectFirst: (error: Error) => void = () => undefined;
     const first = new Promise<never>((_resolve, reject) => {
@@ -20,8 +22,6 @@ describe('handoff detail recovery', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByTestId('staff-support-handoff-full-message')).toBeVisible();
   });
-
-  beforeEach(() => applyDefaultMocks(mocks));
 
   it.each(['rejected', 'unavailable'])(
     'keeps the queue and retries a %s detail read',

@@ -201,15 +201,18 @@ describe('AgentDashboardV2Page tenant boundary', () => {
 
   it('uses the authority-bound member count instead of subscription referrals', async () => {
     const { readAgentDashboardV2Stats } = await import('./agent-dashboard-v2-reads');
-    const result = await readAgentDashboardV2Stats({
-      agentId: 'agent-1',
-      authority: sessionAuthority,
-    });
+    const authority = mintTestTenantAuthority('tenant-1', { userId: 'agent-1', role: 'agent' });
+    const result = await readAgentDashboardV2Stats({ agentId: 'agent-1', authority });
     expect(result.clientCount).toBe(3);
-    expect(hoisted.membersMock).toHaveBeenCalledWith({
-      agentId: 'agent-1',
-      authority: sessionAuthority,
-    });
+    expect(hoisted.membersMock).toHaveBeenCalledWith({ agentId: 'agent-1', authority });
+  });
+
+  it('keeps the dashboard count for a user admitted through an explicit agent grant', async () => {
+    const { readAgentDashboardV2Stats } = await import('./agent-dashboard-v2-reads');
+    const authority = mintTestTenantAuthority('tenant-1', { userId: 'agent-1', role: 'staff' });
+    const result = await readAgentDashboardV2Stats({ agentId: 'agent-1', authority });
+    expect(result.clientCount).toBe(5);
+    expect(hoisted.membersMock).not.toHaveBeenCalled();
   });
 
   it('passes tenant identity into the v2 stats core on the authorized path', async () => {
