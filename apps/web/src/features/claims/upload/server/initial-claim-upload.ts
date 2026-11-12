@@ -1,7 +1,5 @@
-import type { EvidenceFile } from '@interdomestik/domain-claims/validators/claims';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-import { validateStoredObject } from './shared-upload';
 import { assertEvidenceStoragePath } from './storage-path';
 
 const INITIAL_CLAIM_UPLOAD_INTENT_TTL_MS = 15 * 60 * 1000;
@@ -140,41 +138,4 @@ export function verifyInitialClaimUploadIntentToken(params: {
   }
 
   return { success: true };
-}
-
-export async function validateInitialClaimEvidenceUpload(params: {
-  actorId: string;
-  expectedBucket: string;
-  file: EvidenceFile;
-  tenantId: string;
-}): Promise<void> {
-  const { actorId, expectedBucket, file, tenantId } = params;
-
-  const intentResult = verifyInitialClaimUploadIntentToken({
-    actorId,
-    bucket: expectedBucket,
-    fileId: file.id,
-    fileSize: file.size,
-    intentToken: file.uploadIntentToken ?? '',
-    mimeType: file.type,
-    storagePath: file.path,
-    tenantId,
-  });
-
-  if (!intentResult.success) {
-    throw new Error(intentResult.error);
-  }
-
-  const storedObjectResult = await validateStoredObject({
-    bucket: expectedBucket,
-    fileSize: file.size,
-    logPrefix: '[claim-wizard-upload]',
-    mimeType: file.type,
-    storagePath: file.path,
-    tenantId,
-  });
-
-  if (!storedObjectResult.success) {
-    throw new Error(storedObjectResult.error);
-  }
 }

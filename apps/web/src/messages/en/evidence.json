@@ -4,7 +4,7 @@
     "subtitle": "Upload receipts, tickets, or photos.",
     "upload": {
       "cta": "Click to upload files",
-      "sub": "PDF, JPG, or PNG up to 10MB",
+      "sub": "PDF, JPEG (JPG/JPEG/JFIF), PNG, HEIC/HEIF, WEBP, DOC/DOCX, XLS/XLSX, EML/MSG, MP3/M4A/WAV, MP4/MOV. Up to 10 MB per document, image or audio file; 50 MB per video.",
       "secure": "Signed URL uploads · PII-tagged storage"
     },
     "tooltip": "Clear evidence increases your chance of success by 40%. Include any police reports or medical bills.",
@@ -30,7 +30,7 @@
       "default": ["Photos or screenshots", "Receipts/invoices", "Any official correspondence"]
     },
     "validation": {
-      "mime": "Only PDF, JPG, or PNG files are allowed.",
+      "mime": "Allowed formats: PDF, JPEG (JPG/JPEG/JFIF), PNG, HEIC/HEIF, WEBP, DOC/DOCX, XLS/XLSX, EML/MSG, MP3/M4A/WAV, MP4/MOV.",
       "size": "Files must be 10MB or smaller.",
       "count": "You can attach up to {count} files.",
       "prepare": "Failed to prepare upload. Please try again.",
@@ -44,6 +44,14 @@
     "privacyBadge": "PII-tagged files, signed URLs, encrypted in transit.",
     "slaTitle": "Response SLA",
     "slaCopy": "We respond in under 24h on new submissions.",
-    "consent": "By submitting, you agree to our Terms of Service and Privacy Policy."
+    "consent": "By submitting, you agree to our Terms of Service and Privacy Policy.",
+    "fileUpload": {
+      "help": "Allowed: {formats}. Up to 10 MB per document, image or audio file; 50 MB per video.",
+      "unsupported": "Unsupported format. Choose: {formats}.",
+      "tooLarge": "This file is too large. The limit for this format is {limit} MB.",
+      "empty": "This file is empty. Choose a file with content.",
+      "contentMismatch": "The file content does not match its format. Choose the original file and try again.",
+      "failed": "Upload failed. Please try again."
+    }
   }
 }

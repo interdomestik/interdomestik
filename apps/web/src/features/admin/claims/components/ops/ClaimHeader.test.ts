@@ -29,24 +29,37 @@ describe('resolveUploadMimeType', () => {
 });
 
 describe('resolveStorageUploadContentType', () => {
-  it('falls back to text/plain for storage-unsafe office containers', () => {
+  it('keeps the canonical Office MIME for signed storage uploads', () => {
     const file = new File(['dummy'], 'evidence.docx', { type: '' });
 
-    expect(resolveStorageUploadContentType(file)).toBe('text/plain');
+    expect(resolveStorageUploadContentType(file)).toBe(
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    );
   });
 
-  it('falls back to text/plain for text-like business evidence', () => {
-    const file = new File(['dummy'], 'thread.eml', { type: '' });
+  it.each([
+    ['eml', 'message/rfc822'],
+    ['msg', 'application/vnd.ms-outlook'],
+  ])('resolves the canonical .%s email MIME when the browser omits it', (ext, mimeType) => {
+    const file = new File(['dummy'], `thread.${ext}`, { type: '' });
 
-    expect(resolveStorageUploadContentType(file)).toBe('text/plain');
+    expect(resolveStorageUploadContentType(file)).toBe(mimeType);
+  });
+
+  it('refuses unsupported executable evidence without a fallback MIME', () => {
+    const file = new File(['dummy'], 'thread.exe', { type: '' });
+
+    expect(resolveStorageUploadContentType(file)).toBe('');
   });
 });
 
 describe('EVIDENCE_FILE_ACCEPT', () => {
-  it('covers the wider business evidence set for office docs and recordings', () => {
+  it('advertises only approved documents and recordings', () => {
     expect(EVIDENCE_FILE_ACCEPT).toContain('.xlsx');
     expect(EVIDENCE_FILE_ACCEPT).toContain('.mp4');
     expect(EVIDENCE_FILE_ACCEPT).toContain('.eml');
+    expect(EVIDENCE_FILE_ACCEPT).toContain('.msg');
+    expect(EVIDENCE_FILE_ACCEPT).not.toContain('.exe');
   });
 });
 
