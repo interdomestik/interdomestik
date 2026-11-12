@@ -78,7 +78,7 @@ function ClaimDraftIntakeBody({ draftAccount: initialAccount, copy, handoffConte
     issue: getSelectedIssueLabel(tFree, flow.selectedCategory, flow.draft.issueType),
     outcome: getSelectedOutcomeLabel(tFree, flow.draft.desiredOutcome),
   };
-  const saveBandProps = { lifecycle, locale, manageOnly: managerOnly || Boolean(draftAccount), neutralOtpHost, tenantId };
+  const saveBandProps = { lifecycle, locale, manageOnly: managerOnly, hideGuestSave: Boolean(draftAccount), neutralOtpHost, tenantId };
   if (continuation.blocked) {
     return (
       <section data-testid="claim-draft-intake" data-save-behavior={lifecycle.verified ? 'account-autosave' : 'explicit-only'} className="mx-auto max-w-5xl">

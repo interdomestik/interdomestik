@@ -2,13 +2,14 @@ import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it, vi } from 'vitest';
 import { LOCALES } from '@/i18n/locales';
+import { toRelativeTimeLocaleTag } from '@/lib/utils/relative-time';
 import { NotificationItem } from './notification-item';
 
 vi.unmock('next-intl');
 vi.mock('@/i18n/routing', () => ({ Link: 'a', useRouter: () => ({ push: vi.fn() }) }));
 
 describe('notification relative times', () => {
-  it.each(LOCALES)('uses next-intl relative-time text in %s', locale => {
+  it.each(LOCALES)('uses locale relative-time text in %s', locale => {
     render(
       <NextIntlClientProvider
         locale={locale}
@@ -36,8 +37,11 @@ describe('notification relative times', () => {
         />
       </NextIntlClientProvider>
     );
-    const expected = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(-11, 'minute');
+    const expected = new Intl.RelativeTimeFormat(toRelativeTimeLocaleTag(locale), {
+      numeric: 'auto',
+    }).format(-11, 'minute');
     expect(screen.getByText(expected)).toBeVisible();
     if (locale !== 'en') expect(screen.queryByText('11 minutes ago')).not.toBeInTheDocument();
+    if (locale === 'sr') expect(expected).not.toMatch(/[\u0400-\u04FF]/);
   });
 });

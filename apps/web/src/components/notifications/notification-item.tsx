@@ -1,5 +1,6 @@
 import { Button, cn, DropdownMenuItem } from '@interdomestik/ui';
-import { useFormatter, useNow } from 'next-intl';
+import { useLocale, useNow } from 'next-intl';
+import { formatRelativeTime } from '@/lib/utils/relative-time';
 import {
   AlertCircle,
   Bell,
@@ -68,7 +69,7 @@ export function NotificationItem({
   viewLabel,
 }: NotificationItemProps) {
   const router = useRouter();
-  const format = useFormatter();
+  const locale = useLocale();
   const now = useNow({ updateInterval: 60_000 });
   const isRead = notification.isRead;
   const actionUrl = notification.actionUrl;
@@ -126,7 +127,7 @@ export function NotificationItem({
         <p className="text-[11px] text-muted-foreground line-clamp-2">{notification.content}</p>
         <div className="flex items-center justify-between mt-1">
           <span className="text-[10px] text-muted-foreground/60 font-medium">
-            {format.relativeTime(new Date(notification.createdAt), now)}
+            {formatRelativeTime(new Date(notification.createdAt), now, locale)}
           </span>
           {actionHref && (
             <DropdownMenuItem

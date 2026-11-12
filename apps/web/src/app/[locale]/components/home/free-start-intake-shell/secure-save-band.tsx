@@ -23,12 +23,13 @@ export type SecureSavePresentation = Readonly<{
   saveAvailable: boolean;
 }>;
 // prettier-ignore
-type Props = Readonly<{ allowContinuation?: boolean; lifecycle: ReturnType<typeof useDraftLifecycle>; locale: string; manageOnly?: boolean; neutralOtpHost?: string | null; onVerifiedOwner?: (userId: string) => boolean; publicPresentation?: SecureSavePresentation; tenantId?: string | null }>;
+type Props = Readonly<{ allowContinuation?: boolean; hideGuestSave?: boolean; lifecycle: ReturnType<typeof useDraftLifecycle>; locale: string; manageOnly?: boolean; neutralOtpHost?: string | null; onVerifiedOwner?: (userId: string) => boolean; publicPresentation?: SecureSavePresentation; tenantId?: string | null }>;
 // prettier-ignore
 const resolveStatus = (lifecycle: ReturnType<typeof useDraftLifecycle>, locale: string, copy: ReturnType<typeof parseSecureSaveCopy>, reviewCopy: ReturnType<typeof parseSecureSaveReviewCopy>) => { const directStatus = lifecycle.state === 'unsupported' || lifecycle.state === 'invalid' || lifecycle.state === 'accountContext' ? reviewCopy[lifecycle.state] : copy.status[lifecycle.state]; return (directStatus ?? copy.status.error ?? '').replace('{date}', lifecycle.active ? formatPilotDateTime(lifecycle.active.updatedAt, locale, '') : ''); };
 
 export function SecureSaveBand({
   allowContinuation,
+  hideGuestSave,
   lifecycle,
   locale,
   manageOnly,
@@ -45,6 +46,8 @@ export function SecureSaveBand({
   const headingRef = useRef<HTMLHeadingElement>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
   const saveAvailable = publicPresentation?.saveAvailable !== false;
+  // Signed-in members keep draft management and "start another"; only the guest save prompt is hidden.
+  const guestSaveShown = saveAvailable && !hideGuestSave;
   const autoFocusHeading = publicPresentation?.autoFocusHeading ?? false;
   const onHeadingFocused = publicPresentation?.onHeadingFocused;
   // prettier-ignore
@@ -81,12 +84,12 @@ id="free-start-secure-save-heading"
 tabIndex={publicPresentation ? -1 : undefined}
 className="mt-2 text-2xl font-bold text-[#001a33] outline-none"
 >
-{saveAvailable && !lifecycle.verified ? copy.heading : copy.manage.open}
+{guestSaveShown && !lifecycle.verified ? copy.heading : copy.manage.open}
 </h3>
-{saveAvailable && !lifecycle.verified ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[#365265]">{copy.body}</p> : null}
+{guestSaveShown && !lifecycle.verified ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[#365265]">{copy.body}</p> : null}
 <p className="mt-2 max-w-3xl text-xs leading-5 text-[#526274]">{copy.privacy}</p>
 </div>
-<SecureSavePrimaryActions copy={copy} lifecycle={lifecycle} manageOnly={manageOnly} saveAvailable={saveAvailable} pending={pending} continuationReady={continuationReady} />
+<SecureSavePrimaryActions copy={copy} lifecycle={lifecycle} manageOnly={manageOnly} saveAvailable={guestSaveShown} pending={pending} continuationReady={continuationReady} />
 </div>
 <p
 ref={statusRef}
