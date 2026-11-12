@@ -1,10 +1,12 @@
-import { claims } from '@interdomestik/database';
+import { claims } from '@interdomestik/database/schema';
+import { hasAdminAnalyticsReadAccess } from '@/features/admin/access/admin-analytics-access.server';
+import { adminClaimsBranchCondition } from '@/features/admin/claims/server/claimVisibility';
 import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type AdminAnalyticsStatusDistributionItem = {
@@ -55,7 +57,11 @@ export function normalizeTotalsRow(row?: {
 export async function getAdminAnalyticsDataCore(
   authority: TenantAuthority
 ): Promise<AdminAnalyticsModel> {
-  const { tenantId } = readTenantAuthority(authority);
+  const { tenantId, principal } = readTenantAuthority(authority);
+  if (!principal || !(await hasAdminAnalyticsReadAccess(authority))) {
+    throw new Error('Unauthorized');
+  }
+  const claimScope = and(eq(claims.tenantId, tenantId), adminClaimsBranchCondition(principal));
 
   const [totalsResult] = await withTenantAuthority(authority, tx =>
     tx
@@ -65,7 +71,7 @@ export async function getAdminAnalyticsDataCore(
         count: sql<number>`COUNT(*)`,
       })
       .from(claims)
-      .where(eq(claims.tenantId, tenantId))
+      .where(claimScope)
   );
 
   const totals = normalizeTotalsRow(totalsResult);
@@ -78,7 +84,7 @@ export async function getAdminAnalyticsDataCore(
         count: sql<number>`COUNT(*)`,
       })
       .from(claims)
-      .where(eq(claims.tenantId, tenantId))
+      .where(claimScope)
       .groupBy(lifecycleStatus)
   );
 
@@ -89,7 +95,7 @@ export async function getAdminAnalyticsDataCore(
         count: sql<number>`COUNT(*)`,
       })
       .from(claims)
-      .where(eq(claims.tenantId, tenantId))
+      .where(claimScope)
       .groupBy(claims.category)
   );
 
@@ -99,7 +105,7 @@ export async function getAdminAnalyticsDataCore(
         count: sql<number>`COUNT(DISTINCT ${claims.userId})`,
       })
       .from(claims)
-      .where(eq(claims.tenantId, tenantId))
+      .where(claimScope)
   );
 
   const statusDistribution: AdminAnalyticsStatusDistributionItem[] = (
