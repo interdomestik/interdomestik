@@ -26,7 +26,10 @@
         "claim_number_link": "Linku i numrit të kërkesës",
         "canonical_url": "URL kanonike",
         "copy_failed": "Kopjimi i linkut dështoi",
-        "copy_success": "{label} u kopjua në kujtesën e fragmenteve"
+        "copy_success": "{label} u kopjua në kujtesën e fragmenteve",
+        "member_number": "Numri i anëtarit",
+        "member_link": "Lidhja e anëtarit",
+        "breadcrumb": "Rruga e navigimit"
       },
       "message_alert": "Mesazh i ri ({count})",
       "table": {

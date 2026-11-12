@@ -14,6 +14,7 @@ export const MESSAGE_NAMESPACES = [
   'admin-users',
   'agent',
   'agent-claims',
+  'agent-commissions',
   'agent-crm',
   'agent-members',
   'agent-toolkit',
@@ -94,6 +95,7 @@ export const HOME_NAMESPACES = [
 export const SITE_NAMESPACES = ['about', 'pricing', 'services', 'legal', 'entityDisclosure', 'sponsorOptOut'] as const;
 export const AUTH_NAMESPACES = ['auth'] as const;
 export const APP_NAMESPACES = [
+  'entityDisclosure',
   'common',
   'nav',
   'dashboard',
@@ -119,6 +121,7 @@ export const AGENT_NAMESPACES = [
   'nav',
   'dashboard',
   'agent',
+  'agent-commissions',
   'agent-claims',
   'agent-crm',
   'agent-members',
@@ -135,6 +138,7 @@ export const STAFF_NAMESPACES = [
   'nav',
   'dashboard',
   'agent',
+  'agent-commissions',
   'agent-claims',
   'claims',
   'claims-tracking',
@@ -162,6 +166,7 @@ export const ADMIN_NAMESPACES = [
   'admin-leads',
   'settings',
   'agent',
+  'agent-commissions',
   'agent-claims',
   'agent-crm',
   'agent-members',

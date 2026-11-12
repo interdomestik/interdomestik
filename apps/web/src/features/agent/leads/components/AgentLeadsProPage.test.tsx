@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 const updateLeadStatus = vi.fn();
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'sq',
   useTranslations: () => (key: string) => {
     const translations: Record<string, string> = {
       'columns.lead': 'Emri dhe email-i i lead-it',

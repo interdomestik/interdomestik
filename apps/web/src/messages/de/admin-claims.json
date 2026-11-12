@@ -23,7 +23,10 @@
         "claim_number_link": "Link zur Schadensnummer",
         "canonical_url": "Kanonische URL",
         "copy_failed": "Link konnte nicht kopiert werden",
-        "copy_success": "{label} in die Zwischenablage kopiert"
+        "copy_success": "{label} in die Zwischenablage kopiert",
+        "member_number": "Mitgliedsnummer",
+        "member_link": "Mitgliedslink",
+        "breadcrumb": "Navigationspfad"
       },
       "message_alert": "Neue Nachricht ({count})",
       "table": {

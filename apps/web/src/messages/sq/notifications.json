@@ -90,6 +90,59 @@
         "title": "Njoftim",
         "content": "Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve."
       }
+    },
+    "updateOn": "Përditësim për: {claim}",
+    "yourClaim": "rastin tuaj",
+    "updateBody": "Ka një përditësim të ri. Hapni njoftimin për hollësi.",
+    "events": {
+      "claimSubmitted": {
+        "title": "Kërkesa u dërgua"
+      },
+      "claimAssigned": {
+        "title": "Kërkesa u caktua"
+      },
+      "statusChanged": {
+        "title": "Statusi i kërkesës u përditësua"
+      },
+      "claimPackGenerated": {
+        "title": "Dosja e kërkesës u krijua"
+      },
+      "claimPackUpgraded": {
+        "title": "Dosja e kërkesës u përditësua"
+      },
+      "documentRequested": {
+        "title": "Kërkohen dokumente"
+      },
+      "triageComplete": {
+        "title": "Vlerësimi përfundoi"
+      },
+      "escalationAccepted": {
+        "title": "Përshkallëzimi u pranua"
+      },
+      "escalationDeclined": {
+        "title": "Përshkallëzimi u refuzua"
+      },
+      "newMessage": {
+        "title": "Mesazh i ri"
+      },
+      "slaWarning": {
+        "title": "Paralajmërim SLA"
+      },
+      "slaBreached": {
+        "title": "Afati SLA ka kaluar"
+      },
+      "membershipRenewal": {
+        "title": "Rinovimi i anëtarësisë"
+      },
+      "paymentVerificationUpdate": {
+        "title": "Verifikimi u përditësua"
+      },
+      "supportHandoffPublicResponse": {
+        "title": "Kërkesa për mbështetje u përditësua"
+      },
+      "unknown": {
+        "title": "Njoftim"
+      }
     }
   }
 }

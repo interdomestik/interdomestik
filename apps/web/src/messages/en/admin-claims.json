@@ -23,7 +23,10 @@
         "claim_number_link": "Claim number link",
         "canonical_url": "Canonical URL",
         "copy_failed": "Failed to copy link",
-        "copy_success": "{label} copied to clipboard"
+        "copy_success": "{label} copied to clipboard",
+        "member_number": "Member number",
+        "member_link": "Member link",
+        "breadcrumb": "Breadcrumb"
       },
       "message_alert": "New message ({count})",
       "table": {

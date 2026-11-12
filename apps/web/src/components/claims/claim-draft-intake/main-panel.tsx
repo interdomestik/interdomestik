@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { DormantPreview, type ClaimDraftCopy, type SavedDraftSubmitCopy } from './dormant-preview';
 
 // prettier-ignore
-type Props = Readonly<{ onContinuationRejected?: (receipt?: { id: string; version: number } | null) => void; prepareForContinuation?: () => Promise<import('@/app/[locale]/components/home/free-start-intake-shell/types').SavedDraft | null>; activeDraftId?: string | null; activeDraftVersion?: number | null; claimStart?: { confirmed: true; handoffContext: ClaimStartHandoffContext; incidentCountryCode: ClaimStartHandoffContext['country'] }; confirmationRequired?: boolean; confirmationRequiredCopy?: string; copy: ClaimDraftCopy; flow: ReturnType<typeof useOrganizerFlow>; hasUnsavedChanges?: boolean; issueIds: ReadonlyArray<IssueId>; labels: { category: string; issue: string; outcome: string }; managerOnly?: boolean; neutralOtpHost?: string | null; submitCopy: SavedDraftSubmitCopy; tFree: FreeStartCopy & { raw: (key: string) => unknown } }>;
+type Props = Readonly<{ signedIn?: boolean; onContinuationRejected?: (receipt?: { id: string; version: number } | null) => void; prepareForContinuation?: () => Promise<import('@/app/[locale]/components/home/free-start-intake-shell/types').SavedDraft | null>; activeDraftId?: string | null; activeDraftVersion?: number | null; claimStart?: { confirmed: true; handoffContext: ClaimStartHandoffContext; incidentCountryCode: ClaimStartHandoffContext['country'] }; confirmationRequired?: boolean; confirmationRequiredCopy?: string; copy: ClaimDraftCopy; flow: ReturnType<typeof useOrganizerFlow>; hasUnsavedChanges?: boolean; issueIds: ReadonlyArray<IssueId>; labels: { category: string; issue: string; outcome: string }; managerOnly?: boolean; neutralOtpHost?: string | null; submitCopy: SavedDraftSubmitCopy; tFree: FreeStartCopy & { raw: (key: string) => unknown } }>;
 
 const NEUTRAL_HOSTS = new Set(['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io']);
 const ACTION_CLASS =
@@ -32,14 +32,15 @@ export function ClaimDraftMainPanel(props: Props) {
     tFree.raw('secureSaveReviewCopy')
   ).accountContext;
   useEffect(() => setShowAccountContext(!isNeutralHost(neutralOtpHost)), [neutralOtpHost]);
-  const accountContextNotice = showAccountContext ? (
-    <output
-      data-testid="claim-draft-account-context"
-      className="block rounded-xl border border-amber-300 bg-amber-50 p-3 font-semibold text-amber-950"
-    >
-      {accountContext}
-    </output>
-  ) : null;
+  const accountContextNotice =
+    showAccountContext && !props.signedIn ? (
+      <output
+        data-testid="claim-draft-account-context"
+        className="block rounded-xl border border-amber-300 bg-amber-50 p-3 font-semibold text-amber-950"
+      >
+        {accountContext}
+      </output>
+    ) : null;
 
   if (flow.step === 'preview' || flow.step === 'complete') {
     return (

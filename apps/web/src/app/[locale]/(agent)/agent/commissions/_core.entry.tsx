@@ -45,9 +45,7 @@ export default async function AgentCommissionsPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-        <p className="text-muted-foreground">
-          Track commission earnings from memberships and renewals
-        </p>
+        <p className="text-muted-foreground">{t('description')}</p>
       </div>
 
       <ReferralLinkCard referralLinkResult={referralLinkResult} />

@@ -1,13 +1,18 @@
-import Link from 'next/link';
+import { BrandedNotFound } from '@/components/branded-not-found';
+import { getLocale, getTranslations } from 'next-intl/server';
 
-export default function NotFound() {
+export default async function NotFound(): Promise<React.JSX.Element> {
+  const locale = await getLocale();
+  const t = await getTranslations('common.notFound');
   return (
-    <div style={{ padding: '100px', textAlign: 'center' }} data-testid="not-found-page">
-      <h1 style={{ fontSize: '3rem' }}>404 (Locale)</h1>
-      <p>Faqja nuk u gjet / Page Not Found</p>
-      <Link href="/" style={{ color: 'blue', textDecoration: 'underline' }}>
-        Back to Home
-      </Link>
-    </div>
+    <BrandedNotFound
+      homeHref={`/${locale}`}
+      scope="locale"
+      copy={{
+        title: t('title'),
+        description: t('description'),
+        backHome: t('backHome'),
+      }}
+    />
   );
 }

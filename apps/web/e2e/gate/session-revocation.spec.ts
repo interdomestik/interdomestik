@@ -25,7 +25,8 @@ import { isKsGateProject } from './gate-project-identity';
 const ACTOR = 'KS_STAFF_UNASSIGNED' as const;
 const STAFF_READY = 'staff-page-ready';
 const LOGIN_READY = 'auth-ready';
-const NOT_FOUND_HEADING = '404 (Locale)';
+// Value of data-not-found-scope on app/[locale]/not-found.tsx; present in HTML and the streamed payload.
+const NOT_FOUND_MARKER = 'locale-not-found';
 const RENDER_ERROR = 'Something went wrong!';
 const ROTATED_PASSWORD = `${E2E_PASSWORD}-rotated`;
 const INVALID_CREDENTIALS = 'INVALID_EMAIL_OR_PASSWORD';
@@ -146,7 +147,7 @@ async function expectReplayRejected(browser: Browser, info: TestInfo, captured: 
       expect(response.headers().location).toMatch(/\/login(\?|$)/);
     } else {
       // The streamed locale not-found page (app/[locale]/not-found.tsx), not the error boundary.
-      expect(body).toContain(NOT_FOUND_HEADING);
+      expect(body).toContain(NOT_FOUND_MARKER);
       expect(body).not.toContain(RENDER_ERROR);
     }
   } finally {

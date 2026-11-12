@@ -125,6 +125,15 @@
           "subscription": "Abonim",
           "none": "Asnjë"
         }
+      },
+      "list": {
+        "noResults": "Nuk u gjetën rezultate.",
+        "memberNumber": "Numri i anëtarit",
+        "attention": "Vëmendje",
+        "view": "Shiko anëtarin",
+        "upToDate": "Të gjitha të përditësuara",
+        "viewMember": "Shiko anëtarin {name}",
+        "viewMemberNumber": "Shiko anëtarin {name} (anëtarësia {number})"
       }
     }
   }

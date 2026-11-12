@@ -125,6 +125,15 @@
           "subscription": "Претплата",
           "none": "Нема"
         }
+      },
+      "list": {
+        "noResults": "Нема резултати.",
+        "memberNumber": "Број на член",
+        "attention": "Внимание",
+        "view": "Прикажи член",
+        "upToDate": "Ажурирано",
+        "viewMember": "Прикажи член {name}",
+        "viewMemberNumber": "Прикажи член {name} (членство {number})"
       }
     }
   }

@@ -92,7 +92,7 @@ function SidebarUserMenuInner({
               </Avatar>
               <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[state=collapsed]:hidden">
                 <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs text-muted-foreground capitalize">
+                <span className="truncate text-xs text-muted-foreground">
                   {getRoleLabel(tCommon, (user as { role?: string }).role, tCommon('roles.member'))}
                 </span>
               </div>

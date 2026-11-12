@@ -27,6 +27,7 @@ vi.mock('next-intl/server', () => ({
 }));
 vi.mock('next-intl', () => ({
   useLocale: () => 'sq',
+  useNow: () => new Date('2026-11-12T12:00:00Z'),
   useTranslations: () => (key: string) => key,
 }));
 vi.mock('@/i18n/routing', () => ({

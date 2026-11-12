@@ -9,7 +9,35 @@ interface VerificationTimelineProps {
 
 export function VerificationTimeline({ timeline }: VerificationTimelineProps) {
   const t = useTranslations('admin.leads');
-  const events = toOpsTimelineEvents(timeline);
+  const events = toOpsTimelineEvents(timeline).map((event, index) => {
+    const source = timeline[index];
+    const actionKeys: Record<string, string> = {
+      Approved: 'approved',
+      Rejected: 'rejected',
+      'Requested Info': 'needsInfo',
+      Resubmitted: 'resubmitted',
+    };
+    let key: string;
+    switch (source.type) {
+      case 'created':
+        key = 'created';
+        break;
+      case 'document_upload':
+        key = 'documentUploaded';
+        break;
+      default:
+        key = actionKeys[source.title] ?? 'updated';
+    }
+    return {
+      ...event,
+      title: t(`events.${key}`),
+      description:
+        source.type === 'created'
+          ? t('events.cashRecorded', { name: source.actorName || t('events.unknownActor') })
+          : event.description,
+      actorName: source.actorName === 'Unknown' ? t('events.unknownActor') : event.actorName,
+    };
+  });
 
   return <OpsTimeline title={t('drawer.timeline')} events={events} emptyLabel={t('empty_state')} />;
 }

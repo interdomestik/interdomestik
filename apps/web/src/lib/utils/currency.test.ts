@@ -47,7 +47,7 @@ describe('formatClaimAmount', () => {
 
   it.each(['en', 'sq', 'mk', 'sr', 'de'])('uses the current supported locale %s', locale => {
     expect(formatClaimAmount('1200.50', 'EUR', locale)).toBe(
-      new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(1200.5)
+      locale === 'en' ? '€1,200.50' : '1.200,50\u00a0€'
     );
   });
 });

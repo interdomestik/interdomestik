@@ -1,5 +1,7 @@
 'use client';
 
+import { membershipStatusKey } from '@/lib/utils/membership-status';
+
 import { Link } from '@/i18n/routing';
 import { isMember } from '@/lib/roles';
 import { Button, cn } from '@interdomestik/ui';
@@ -85,6 +87,7 @@ export function AgentUsersSections({ users }: Readonly<UsersSectionsProps>): Rea
   const locale = useLocale();
   const t = useTranslations('agent-members.members.table');
   const ui = useTranslations('common.interface');
+  const tStatus = useTranslations('common.membershipStatus');
   const [showAllNeedsAttention, setShowAllNeedsAttention] = useState(false);
   const [showAllMembers, setShowAllMembers] = useState(false);
 
@@ -156,7 +159,7 @@ export function AgentUsersSections({ users }: Readonly<UsersSectionsProps>): Rea
                     )}
                     variant="outline"
                   >
-                    {member.subscription?.status || 'none'}
+                    {tStatus(membershipStatusKey(member.subscription?.status))}
                   </Badge>
                   {member.membershipSource ? (
                     <span className="block text-xs text-muted-foreground">

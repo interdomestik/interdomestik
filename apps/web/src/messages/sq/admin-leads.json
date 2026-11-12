@@ -66,7 +66,8 @@
       "drawer": {
         "title": "Detajet e Verifikimit",
         "documents": "Dokumentet",
-        "timeline": "Historiku i Ngjarjeve"
+        "timeline": "Historiku i Ngjarjeve",
+        "description": "Dokumentet dhe historiku i verifikimit të pagesës."
       },
       "labels": {
         "missing_proof": "Mungon Prova",
@@ -124,6 +125,17 @@
         "resolved_empty": "Ende nuk ka dublikata të zgjidhura.",
         "load_error": "Shqyrtimi i dublikatave nuk u ngarkua.",
         "retry": "Provo përsëri"
+      },
+      "events": {
+        "created": "Pagesa u regjistrua",
+        "documentUploaded": "Dëshmia u ngarkua",
+        "approved": "U miratua",
+        "rejected": "U refuzua",
+        "needsInfo": "U kërkuan të dhëna",
+        "resubmitted": "U ridorëzua",
+        "updated": "U përditësua",
+        "cashRecorded": "Pagesa me para të gatshme u regjistrua nga {name}",
+        "unknownActor": "I panjohur"
       }
     },
     "analytics": {

@@ -1,5 +1,6 @@
+import { formatClaimAmount } from '@/lib/utils/currency';
 import { Badge, Separator } from '@interdomestik/ui';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { CashVerificationDetailsDTO } from '../server/types';
 
 interface VerificationSummaryProps {
@@ -8,6 +9,7 @@ interface VerificationSummaryProps {
 
 export function VerificationSummary({ data }: VerificationSummaryProps) {
   const t = useTranslations('admin.leads');
+  const locale = useLocale();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -48,10 +50,7 @@ export function VerificationSummary({ data }: VerificationSummaryProps) {
         <div className="p-3 bg-muted/50 rounded-md">
           <span className="text-muted-foreground block text-xs uppercase">{t('table.amount')}</span>
           <span className="font-medium text-lg">
-            {(data.amount / 100).toLocaleString('de-DE', {
-              style: 'currency',
-              currency: data.currency,
-            })}
+            {formatClaimAmount(String(data.amount / 100), data.currency, locale) ?? '—'}
           </span>
         </div>
         <div className="p-3 bg-muted/50 rounded-md">

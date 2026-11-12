@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Badge } from '@interdomestik/ui';
 import { Link } from '@/i18n/routing';
-import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { getAgentMembersPageData } from './_core';
 import { AgentMembersSearch } from './components/agent-members-search';
 
@@ -17,14 +17,13 @@ export default async function AgentMembersPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'agent-members' });
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authorized = await authorizeSessionTenant(await headers());
 
-  if (!session) {
+  if (!authorized) {
     redirect(`/${locale}/login`);
   }
 
+  const { session, authority } = authorized;
   if (session.user.role !== 'agent') {
     notFound();
   }
@@ -32,7 +31,7 @@ export default async function AgentMembersPage({
   const resolvedSearchParams = await searchParams;
   const { attentionCount, members, openClaimsTotal, search } = await getAgentMembersPageData({
     searchParams: resolvedSearchParams,
-    session,
+    authority,
   });
 
   return (
@@ -90,11 +89,11 @@ export default async function AgentMembersPage({
         </div>
 
         {members.length === 0 && search ? (
-          <div data-testid="agent-members-no-results">No results found.</div>
+          <div data-testid="agent-members-no-results">{t('members.list.noResults')}</div>
         ) : null}
 
         {members.length === 0 && !search ? (
-          <div data-testid="agent-members-empty">No members assigned yet.</div>
+          <div data-testid="agent-members-empty">{t('members.panel.empty')}</div>
         ) : null}
 
         {members.length > 0 ? (
@@ -102,11 +101,11 @@ export default async function AgentMembersPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground">
-                  <th className="py-2">Member</th>
-                  <th className="py-2">Member number</th>
-                  <th className="py-2">Open claims</th>
-                  <th className="py-2">Attention</th>
-                  <th className="py-2">View</th>
+                  <th className="py-2">{t('members.table.headers.user')}</th>
+                  <th className="py-2">{t('members.list.memberNumber')}</th>
+                  <th className="py-2">{t('members.cockpit.open_claims_label')}</th>
+                  <th className="py-2">{t('members.list.attention')}</th>
+                  <th className="py-2">{t('members.list.view')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -131,8 +130,8 @@ export default async function AgentMembersPage({
                         data-testid="agent-member-attention-badge"
                       >
                         {member.attentionState === 'needs_attention'
-                          ? 'Needs attention'
-                          : 'Up to date'}
+                          ? t('members.table.sections.attention')
+                          : t('members.list.upToDate')}
                       </Badge>
                     </td>
                     <td className="py-3" data-testid="agent-member-view-cell">
@@ -142,11 +141,14 @@ export default async function AgentMembersPage({
                         className="text-sm font-medium text-primary underline-offset-4 hover:underline"
                         aria-label={
                           member.memberNumber
-                            ? `View member ${member.name} (membership ${member.memberNumber})`
-                            : `View member ${member.name}`
+                            ? t('members.list.viewMemberNumber', {
+                                name: member.name,
+                                number: member.memberNumber,
+                              })
+                            : t('members.list.viewMember', { name: member.name })
                         }
                       >
-                        View member
+                        {t('members.list.view')}
                       </Link>
                     </td>
                   </tr>
