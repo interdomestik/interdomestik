@@ -27,7 +27,7 @@ export function MemberClaimRow({
       <TableCell className="block min-w-0 p-0 font-semibold md:table-cell md:p-2 md:font-medium">
         <Link
           href={`/member/claims/${claim.id}`}
-          className="block break-words hover:underline underline-offset-4 md:max-w-[240px] md:truncate"
+          className="flex min-h-11 items-center break-words hover:underline underline-offset-4 md:block md:min-h-0 md:max-w-[240px] md:truncate"
           title={claim.title}
         >
           {claim.title}
