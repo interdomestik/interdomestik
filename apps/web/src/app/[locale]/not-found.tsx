@@ -7,6 +7,7 @@ export default async function NotFound(): Promise<React.JSX.Element> {
   return (
     <BrandedNotFound
       homeHref={`/${locale}`}
+      scope="locale"
       copy={{
         title: t('title'),
         description: t('description'),

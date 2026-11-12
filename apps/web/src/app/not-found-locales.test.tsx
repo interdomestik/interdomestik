@@ -24,6 +24,7 @@ describe('localized not-found page', () => {
     expect(html).toContain(state.t('title'));
     expect(html).toContain(state.t('backHome'));
     expect(html).toContain(`href="/${locale}"`);
+    expect(html).toContain('data-not-found-scope="locale-not-found"');
     expect(html).not.toMatch(/\(Locale\)|\(Root\)|Admin 404/);
   });
 });

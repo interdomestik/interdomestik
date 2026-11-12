@@ -7,7 +7,11 @@ export default function RootNotFound(): React.JSX.Element {
   return (
     <html lang={DEFAULT_LOCALE}>
       <body className="antialiased">
-        <BrandedNotFound homeHref={`/${DEFAULT_LOCALE}`} copy={messages.common.notFound} />
+        <BrandedNotFound
+          homeHref={`/${DEFAULT_LOCALE}`}
+          copy={messages.common.notFound}
+          scope="root"
+        />
       </body>
     </html>
   );
