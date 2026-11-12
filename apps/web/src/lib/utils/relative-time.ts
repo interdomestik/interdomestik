@@ -18,8 +18,9 @@ export function toRelativeTimeLocaleTag(locale: string): string {
 export function formatRelativeTime(date: Date, now: Date, locale: string): string {
   const seconds = Math.round((date.getTime() - now.getTime()) / 1000);
   const match = UNITS.find(([, size]) => Math.abs(seconds) >= size);
+  // 'always' keeps "1 day ago": 'auto' would call a 26-hour-old item "yesterday" across two calendar days.
   const formatter = new Intl.RelativeTimeFormat(toRelativeTimeLocaleTag(locale), {
-    numeric: 'auto',
+    numeric: 'always',
   });
   if (!match) return formatter.format(seconds, 'second');
   const [unit, size] = match;

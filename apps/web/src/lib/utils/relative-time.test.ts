@@ -23,4 +23,9 @@ describe('formatRelativeTime', () => {
     expect(formatRelativeTime(minutesAgo(3 * 24 * 60), NOW, 'en')).toBe('3 days ago');
     expect(formatRelativeTime(new Date(NOW.getTime() - 5_000), NOW, 'en')).toBe('5 seconds ago');
   });
+
+  it('never collapses a whole-day difference into calendar words', () => {
+    expect(formatRelativeTime(minutesAgo(26 * 60), NOW, 'en')).toBe('1 day ago');
+    expect(formatRelativeTime(minutesAgo(26 * 60), NOW, 'en')).not.toMatch(/yesterday/u);
+  });
 });
