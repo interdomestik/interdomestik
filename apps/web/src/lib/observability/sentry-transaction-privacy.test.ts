@@ -8,13 +8,27 @@ describe('SDK request transaction grouping', () => {
     ['GET /en/login', 'GET /en/login'],
     ['POST /api/auth/sign-in/email', 'POST /api/auth/sign-in/email'],
     ['GET /en/member/claims/alice?next=private#otp', 'GET /en/member/claims/:id'],
+    ['GET /en/member/claims/legal', 'GET /en/member/claims/:id'],
+    ['GET /en/member/claims/clients', 'GET /en/member/claims/:id'],
+    ['GET /en/member/benefits', 'GET /en/member/benefits'],
+    ['GET /en/admin/analytics', 'GET /en/admin/analytics'],
+    ['GET /api/health', 'GET /api/health'],
+    ['GET /en/member/claims/alice@example.test', 'GET /en/member/claims/:id'],
+    ['GET /en/member/claims/alice:private', 'GET /en/member/claims/:id'],
+    ['GET /en/member/claims/(alice)', 'GET /en/member/claims/:id'],
     ['POST /api/documents/42/download?token=private#secret', 'POST /api/documents/:id/download'],
     ['/en/login?next=private#otp', '/en/login'],
     [
       'https://example.test/en/member/claims/alice?secret=private#otp',
-      'https://example.test/en/member/claims/:id',
+      'https://[redacted-host]/en/member/claims/:id',
     ],
     ['Critical UI action', 'Critical UI action'],
+    ['GET /[locale]/admin/claims/[id]', 'GET /[locale]/admin/claims/[id]'],
+    ['/:id/member/settings', '/:id/member/settings'],
+    ['GET /en/member/:id', 'GET /en/member/:id'],
+    ['GET /api/:id', 'GET /api/:id'],
+    ['GET /[locale]/(app)/dashboard/[[...slug]]', 'GET /[locale]/(app)/dashboard/[[...slug]]'],
+    ['POST /api/auth/[...all]', 'POST /api/auth/[...all]'],
   ])('preserves fixed grouping and redacts dynamic data in %s', (input, expected) => {
     expect(scrubTransactionName(input)).toBe(expected);
     expect(
@@ -36,6 +50,19 @@ describe('SDK request transaction grouping', () => {
     'POST javascript:private',
     '',
     'middleware private',
+    'GET /[locale]/admin/claims/alice',
+    'GET /[locale]/admin/claims/legal',
+    'GET /[locale]/member/claims/clients',
+    'GET /[locale]/admin/claims/alice@example.test',
+    'GET /[locale]/admin/claims/123e4567-e89b-12d3-a456-426614174000',
+    'GET /[alice]/member/settings',
+    'GET /[locale]/(alice)/member',
+    'GET /[locale]/../member/settings',
+    'GET /[locale]/%2e%2e/member/settings',
+    'GET /[locale]/admin?token=private',
+    'GET /[locale]/admin#private',
+    '/:private/member/settings',
+    'GET /[locale]//admin',
   ])('fails closed for arbitrary or malformed label %s', input => {
     expect(scrubTransactionName(input)).toBe('[redacted]');
   });
@@ -44,6 +71,11 @@ describe('SDK request transaction grouping', () => {
     ['POST /api/auth/sign-in/email', 'POST /api/auth/sign-in/email'],
     ['GET /en/member/claims/alice?next=private#otp', 'GET /en/member/claims/:id'],
     ['POST /api/documents/42/download?token=private#secret', 'POST /api/documents/:id/download'],
+    ['GET /[locale]/admin/claims/[id]', 'GET /[locale]/admin/claims/[id]'],
+    ['/:id/member/settings', '/:id/member/settings'],
+    ['GET /en/member/benefits', 'GET /en/member/benefits'],
+    ['GET /en/admin/analytics', 'GET /en/admin/analytics'],
+    ['GET /api/health', 'GET /api/health'],
   ])(
     'preserves %s through the actual SDK root-span hook and transaction conversion',
     async (transaction, expected) => {
