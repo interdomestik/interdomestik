@@ -17,7 +17,6 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   return {
     locale,
-    now: new Date(),
     timeZone: PILOT_TIME_ZONE,
     messages: await loadAllMessages(locale, { strict }),
     onError: onIntlError,
