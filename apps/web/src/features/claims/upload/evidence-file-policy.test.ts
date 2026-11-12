@@ -1,3 +1,7 @@
+import {
+  webmFixture,
+  zipFixture,
+} from '../../../../../../packages/domain-claims/src/test/evidence-container-fixtures';
 import { describe, expect, it } from 'vitest';
 import {
   EVIDENCE_FILE_ACCEPT,
@@ -25,6 +29,8 @@ const FORMATS = [
   ],
   ['xls', 'application/vnd.ms-excel', 'document', 10],
   ['xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'document', 10],
+  ['eml', 'message/rfc822', 'document', 10],
+  ['msg', 'application/vnd.ms-outlook', 'document', 10],
   ['mp3', 'audio/mpeg', 'audio', 10],
   ['m4a', 'audio/mp4', 'audio', 10],
   ['wav', 'audio/wav', 'audio', 10],
@@ -61,8 +67,6 @@ describe('owner-approved claim evidence formats', () => {
     'bmp',
     'tif',
     'tiff',
-    'eml',
-    'msg',
     'avi',
     'rtf',
     'odt',
@@ -124,8 +128,8 @@ describe('evidence signatures', () => {
     ['wav', bytes('RIFF1234WAVE')],
     ['doc', bytes([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])],
     ['xls', bytes([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])],
-    ['docx', bytes([0x50, 0x4b, 3, 4])],
-    ['xlsx', bytes([0x50, 0x4b, 3, 4])],
+    ['docx', zipFixture(['[Content_Types].xml', 'word/document.xml'])],
+    ['xlsx', zipFixture(['[Content_Types].xml', 'xl/workbook.xml'])],
     ['mp3', bytes('ID3')],
     ['mp3', bytes([0xff, 0xfb])],
     ['mp3', bytes([0xff, 0xe3])],
@@ -140,7 +144,7 @@ describe('evidence signatures', () => {
     ['m4a', bmff('M4A ')],
   ])('accepts the declared .%s signature', (ext, prefix) => {
     const format = resolveEvidenceFormat(`file.${ext}`)!;
-    expect(evidenceSignatureMatches(format, prefix)).toBe(true);
+    expect(evidenceSignatureMatches(format, prefix, { bytes: prefix, offset: 0 })).toBe(true);
     expect(evidenceSignatureMatches(format, bytes('plain text renamed to a file'))).toBe(false);
     expect(evidenceSignatureMatches(format, bytes([]))).toBe(false);
   });
@@ -172,7 +176,7 @@ describe('evidence signatures', () => {
   });
 
   it.each([
-    ['webm', 'audio/webm', bytes([0x1a, 0x45, 0xdf, 0xa3])],
+    ['webm', 'audio/webm', webmFixture()],
     ['ogg', 'audio/ogg', bytes('OggS')],
     ['mp4', 'audio/mp4', bmff('M4A ')],
   ])('checks existing voice .%s signatures', (ext, type, prefix) => {

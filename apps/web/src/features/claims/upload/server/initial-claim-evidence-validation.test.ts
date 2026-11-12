@@ -1,3 +1,4 @@
+import { zipFixture } from '../../../../../../../packages/domain-claims/src/test/evidence-container-fixtures';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { validateInitialClaimEvidenceUpload } from './initial-claim-evidence-validation';
@@ -8,17 +9,16 @@ const m = vi.hoisted(() => ({
   list: vi.fn(),
   prefix: vi.fn(),
   remove: vi.fn(),
-  referenced: vi.fn(),
+  tail: vi.fn(),
 }));
 vi.mock('@/lib/storage/service-role', () => ({
   listTenantObjectsForSingleFile: m.list,
   removeTenantObject: m.remove,
   usesDeterministicE2EStorage: () => false,
 }));
-vi.mock('@/lib/storage/object-prefix', () => ({ readTenantObjectPrefix: m.prefix }));
-vi.mock('./persisted-evidence', async importOriginal => ({
-  ...(await importOriginal<typeof import('./persisted-evidence')>()),
-  hasPersistedEvidenceReference: m.referenced,
+vi.mock('@/lib/storage/object-prefix', () => ({
+  readTenantObjectPrefix: m.prefix,
+  readTenantObjectTail: m.tail,
 }));
 const authority = mintTestTenantAuthority('tenant-1');
 
@@ -66,7 +66,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv('CLAIM_UPLOAD_INTENT_SECRET', 'test-upload-intent-secret-value-123456');
   m.remove.mockResolvedValue({ error: null });
-  m.referenced.mockResolvedValue(false);
+  m.tail.mockResolvedValue({
+    bytes: zipFixture(['[Content_Types].xml', 'word/document.xml']),
+    offset: 0,
+  });
 });
 
 it.each([
@@ -75,7 +78,7 @@ it.each([
     'docx',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     100,
-    [0x50, 0x4b, 3, 4],
+    zipFixture(['[Content_Types].xml', 'word/document.xml']),
   ],
   [
     'mp4',
@@ -95,17 +98,17 @@ it.each([
   }
 );
 
-it('rejects and cleans up a spoofed initial PDF', async () => {
+it('rejects a spoofed initial PDF without deleting the private object', async () => {
   m.prefix.mockResolvedValue(new TextEncoder().encode('renamed text'));
   await expect(validateInitialClaimEvidenceUpload(evidence())).rejects.toThrow(
     'evidence_content_mismatch'
   );
-  expect(m.remove).toHaveBeenCalledOnce();
+  expect(m.remove).not.toHaveBeenCalled();
 });
 
-it('never deletes initial evidence referenced by a persisted document', async () => {
+it('never deletes initial evidence even if deletion would fail', async () => {
   m.prefix.mockResolvedValue(new TextEncoder().encode('renamed text'));
-  m.referenced.mockResolvedValue(true);
+  m.remove.mockRejectedValueOnce(new Error('must never delete'));
   await expect(validateInitialClaimEvidenceUpload(evidence())).rejects.toThrow(
     'evidence_content_mismatch'
   );

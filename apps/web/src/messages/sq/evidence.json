@@ -4,7 +4,7 @@
     "subtitle": "Ngarkoni fatura, bileta ose foto.",
     "upload": {
       "cta": "Klikoni për të ngarkuar skedarë",
-      "sub": "PDF, JPG ose PNG deri në 10MB",
+      "sub": "PDF, JPEG (JPG/JPEG/JFIF), PNG, HEIC/HEIF, WEBP, DOC/DOCX, XLS/XLSX, EML/MSG, MP3/M4A/WAV, MP4/MOV. Deri në 10 MB për dokument, imazh ose skedar audio; 50 MB për video.",
       "secure": "URL të nënshkruara · Ruajtje PII"
     },
     "tooltip": "Dëshmia e qartë rrit mundësinë tuaj për sukses me 40%. Përfshini çdo raport policie ose faturë mjekësore.",
@@ -30,7 +30,7 @@
       "default": ["Foto ose pamje ekrani", "Fatura/kupona", "Çdo korrespondencë zyrtare"]
     },
     "validation": {
-      "mime": "Lejohen vetëm PDF, JPG ose PNG.",
+      "mime": "Formatet e lejuara: PDF, JPEG (JPG/JPEG/JFIF), PNG, HEIC/HEIF, WEBP, DOC/DOCX, XLS/XLSX, EML/MSG, MP3/M4A/WAV, MP4/MOV.",
       "size": "Skedarët duhet të jenë 10MB ose më pak.",
       "count": "Mund të bashkëngjitni deri në {count} skedarë.",
       "prepare": "Dështoi përgatitja e ngarkimit. Provo sërish.",

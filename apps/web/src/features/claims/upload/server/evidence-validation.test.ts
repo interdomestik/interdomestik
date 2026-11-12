@@ -1,3 +1,4 @@
+import { zipFixture } from '../../../../../../../packages/domain-claims/src/test/evidence-container-fixtures';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildEvidenceStoragePath } from './storage-path';
@@ -7,19 +8,27 @@ import {
   validateConfirmedClaimUpload,
 } from './shared-upload';
 
-const m = vi.hoisted(() => ({ sign: vi.fn(), list: vi.fn(), prefix: vi.fn(), remove: vi.fn() }));
+const m = vi.hoisted(() => ({
+  sign: vi.fn(),
+  list: vi.fn(),
+  prefix: vi.fn(),
+  tail: vi.fn(),
+  remove: vi.fn(),
+}));
 vi.mock('@/lib/storage/service-role', () => ({
   createTenantSignedUploadUrl: m.sign,
   listTenantObjectsForSingleFile: m.list,
   removeTenantObject: m.remove,
   usesDeterministicE2EStorage: () => false,
 }));
-vi.mock('@/lib/storage/object-prefix', () => ({ readTenantObjectPrefix: m.prefix }));
+vi.mock('@/lib/storage/object-prefix', () => ({
+  readTenantObjectPrefix: m.prefix,
+  readTenantObjectTail: m.tail,
+}));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 
 vi.mock('./persisted-evidence', () => ({
   assertEvidenceTenantAuthority: vi.fn(),
-  hasPersistedEvidenceReference: vi.fn().mockResolvedValue(false),
 }));
 vi.mock('./claim-document-replay', () => ({
   isPersistedClaimDocumentReplay: vi.fn().mockResolvedValue(false),
@@ -175,35 +184,29 @@ describe('confirmation content and size validation', () => {
     expect(m.prefix).not.toHaveBeenCalled();
   });
 
-  it('removes spoofed content before returning a content error', async () => {
+  it('refuses spoofed content without deleting the private object', async () => {
     m.prefix.mockResolvedValue(new TextEncoder().encode('text renamed.pdf'));
     expect(
       await validateConfirmedClaimUpload({ ...context, confirmation: confirmation() })
     ).toEqual({ success: false, error: 'evidence_content_mismatch', status: 409 });
-    expect(m.remove).toHaveBeenCalledWith(
-      expect.objectContaining({
-        bucket: 'claim-evidence',
-        path: 'pii/tenants/tenant-1/claims/claim-1/file-1.pdf',
-        tenantId: 'tenant-1',
-        family: 'claims',
-      })
-    );
+    expect(m.remove).not.toHaveBeenCalled();
   });
 
-  it('fails closed if the prefix cannot be read or cleanup fails', async () => {
+  it('fails closed if the prefix cannot be read and never invokes cleanup', async () => {
     m.prefix.mockRejectedValueOnce(new Error('provider secret detail'));
     expect(
       await validateConfirmedClaimUpload({ ...context, confirmation: confirmation() })
     ).toMatchObject({ success: false, error: 'evidence_upload_failed' });
     expect(m.remove).not.toHaveBeenCalled();
     m.prefix.mockResolvedValue(new TextEncoder().encode('spoof'));
-    m.remove.mockResolvedValueOnce({ error: { message: 'provider secret detail' } });
+    m.remove.mockRejectedValueOnce(new Error('cleanup must never run'));
     expect(
       await validateConfirmedClaimUpload({ ...context, confirmation: confirmation() })
-    ).toMatchObject({ success: false, error: 'evidence_upload_failed' });
+    ).toMatchObject({ success: false, error: 'evidence_content_mismatch', status: 409 });
+    expect(m.remove).not.toHaveBeenCalled();
   });
 
-  it('preserves intent, tenant, stored MIME and actual size checks before content or deletion', async () => {
+  it('preserves intent, tenant, stored MIME and actual size checks before content validation', async () => {
     const original = confirmation();
     for (const change of [
       { uploadIntentToken: 'forged' },
@@ -226,3 +229,47 @@ describe('confirmation content and size validation', () => {
     expect(m.remove).not.toHaveBeenCalled();
   });
 });
+
+it.each([
+  [
+    'docx',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'word/document.xml',
+    'xl/workbook.xml',
+  ],
+  [
+    'xlsx',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'xl/workbook.xml',
+    'word/document.xml',
+  ],
+])(
+  'confirms OOXML .%s using bounded directory evidence and rejects cross-swaps',
+  async (ext, mime, part, otherPart) => {
+    const bytes = zipFixture(['[Content_Types].xml', part]);
+    m.prefix.mockResolvedValue(bytes.subarray(0, 256));
+    m.tail.mockResolvedValue({ bytes, offset: 0 });
+    m.list.mockResolvedValue({
+      data: [{ name: `file-1.${ext}`, metadata: { size: 1024, mimetype: mime } }],
+      error: null,
+    });
+    const args = { ...context, confirmation: confirmation(ext, mime) };
+    expect(await validateConfirmedClaimUpload(args)).toEqual({ success: true });
+    expect(m.tail).toHaveBeenCalledWith(
+      expect.objectContaining({ family: 'claims', tenantId: 'tenant-1' })
+    );
+    m.tail.mockResolvedValue({ bytes: zipFixture(['[Content_Types].xml', otherPart]), offset: 0 });
+    expect(await validateConfirmedClaimUpload(args)).toEqual({
+      success: false,
+      error: 'evidence_content_mismatch',
+      status: 409,
+    });
+    m.tail.mockRejectedValueOnce(new Error('range unavailable'));
+    expect(await validateConfirmedClaimUpload(args)).toEqual({
+      success: false,
+      error: 'evidence_upload_failed',
+      status: 500,
+    });
+    expect(m.remove).not.toHaveBeenCalled();
+  }
+);

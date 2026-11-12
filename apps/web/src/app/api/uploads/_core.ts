@@ -46,6 +46,43 @@ export type UploadRequest = z.infer<typeof uploadRequestSchema>;
 type InitialUploadIntentResult =
   { ok: true; intentToken: string } | { ok: false; result: UploadErr };
 
+async function resolveUploadTenantId(args: {
+  authority: TenantAuthority;
+  claimId?: string;
+  user: SessionUser;
+}): Promise<{ ok: true; tenantId: string } | { ok: false; result: UploadErr }> {
+  const { authority, claimId, user } = args;
+  const { tenantId } = readTenantAuthority(authority);
+  const role = user.role ?? '';
+  if (!claimId) {
+    return isMemberUploadRole(role) ? { ok: true, tenantId } : { ok: false, result: FORBIDDEN };
+  }
+  const access = await withTenantAuthority(authority, async tx => {
+    const claim = await tx.query.claims.findFirst({
+      where: and(eq(claims.id, claimId), matchesAccessTenant(claims, tenantId)),
+      columns: { id: true, tenantId: true, userId: true, agentId: true, branchId: true },
+    });
+    if (!claim) return null;
+    if (!isMemberUploadRole(role)) return { claim, allowed: false };
+    if (claim.userId === user.id) return { claim, allowed: true };
+    // An agent uploads to an attributed claim only within its active client and branch scope.
+    const allowed =
+      role === 'agent' &&
+      (await hasAgentClaimDocumentScope({
+        agentId: user.id,
+        claim: { agentId: claim.agentId, branchId: claim.branchId, ownerId: claim.userId },
+        db: tx,
+        tenantId,
+      }));
+    return { claim, allowed };
+  });
+  if (!access) {
+    return { ok: false, result: { ok: false, status: 404, error: 'Claim not found' } };
+  }
+  if (!access.allowed) return { ok: false, result: FORBIDDEN };
+  return { ok: true, tenantId: access.claim.tenantId };
+}
+
 export async function createSignedUploadCore(args: {
   session: Session;
   authority: TenantAuthority;
@@ -64,36 +101,9 @@ export async function createSignedUploadCore(args: {
   }
   const mimeType = validation.format.mimeType;
 
-  const { tenantId } = readTenantAuthority(authority);
-  const role = session.user.role ?? '';
-  let storageTenantId = tenantId;
-  if (claimId) {
-    const access = await withTenantAuthority(authority, async tx => {
-      const claim = await tx.query.claims.findFirst({
-        where: and(eq(claims.id, claimId), matchesAccessTenant(claims, tenantId)),
-        columns: { id: true, tenantId: true, userId: true, agentId: true, branchId: true },
-      });
-      if (!claim) return null;
-      if (!isMemberUploadRole(role)) return { claim, allowed: false };
-      if (claim.userId === session.user.id) return { claim, allowed: true };
-      // An agent uploads to an attributed claim only within its active client and branch scope.
-      const allowed =
-        role === 'agent' &&
-        (await hasAgentClaimDocumentScope({
-          agentId: session.user.id,
-          claim: { agentId: claim.agentId, branchId: claim.branchId, ownerId: claim.userId },
-          db: tx,
-          tenantId,
-        }));
-      return { claim, allowed };
-    });
-
-    if (!access) return { ok: false, status: 404, error: 'Claim not found' };
-    if (!access.allowed) return FORBIDDEN;
-    storageTenantId = access.claim.tenantId;
-  } else if (!isMemberUploadRole(role)) {
-    return FORBIDDEN;
-  }
+  const uploadTenant = await resolveUploadTenantId({ authority, claimId, user: session.user });
+  if (!uploadTenant.ok) return uploadTenant.result;
+  const storageTenantId = uploadTenant.tenantId;
 
   const generatedEvidenceId = nanoid();
   const evidenceId = /^[A-Za-z0-9]/.test(generatedEvidenceId)

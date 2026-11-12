@@ -86,7 +86,7 @@ it('never deletes mismatched bytes referenced by a persisted row', async () => {
   expect(m.remove).not.toHaveBeenCalled();
 });
 
-it('rechecks persistence after the prefix read before mismatch cleanup', async () => {
+it('preserves evidence persisted while a mismatched prefix read is in flight', async () => {
   m.prefix.mockImplementationOnce(async () => {
     await persistClaimDocumentMetadata(doc);
     return new Uint8Array([1, 2, 3]);
@@ -98,12 +98,13 @@ it('rechecks persistence after the prefix read before mismatch cleanup', async (
   expect(m.remove).not.toHaveBeenCalled();
 });
 
-it('fails closed on a tenant mismatch or an unreadable reference query', async () => {
+it('refuses mismatches even with unreadable references and fails closed on tenant mismatch', async () => {
   m.prefix.mockResolvedValue(new Uint8Array([1, 2, 3]));
   fake.state.faults.selectTable = 'claim_documents';
   expect(await validateEvidenceContent(context)).toMatchObject({
     success: false,
-    error: 'evidence_upload_failed',
+    error: 'evidence_content_mismatch',
+    status: 409,
   });
   fake.state.faults.selectTable = null;
   expect(
@@ -113,7 +114,7 @@ it('fails closed on a tenant mismatch or an unreadable reference query', async (
 });
 
 it.each([{ tenantId: 'tenant-2' }, { bucket: 'other-bucket' }, { filePath: 'another/path.pdf' }])(
-  'only protects references to the exact tenant, bucket and path: %j',
+  'never deletes mismatches regardless of unrelated references: %j',
   async changed => {
     fake.state.committed.claim_documents = [
       {
@@ -129,6 +130,44 @@ it.each([{ tenantId: 'tenant-2' }, { bucket: 'other-bucket' }, { filePath: 'anot
       success: false,
       error: 'evidence_content_mismatch',
     });
-    expect(m.remove).toHaveBeenCalledOnce();
+    expect(m.remove).not.toHaveBeenCalled();
+  }
+);
+
+it.each(['before re-upload', 'after persistence'])(
+  'preserves valid re-uploaded bytes when the second rejection finishes %s',
+  async timing => {
+    let object: Uint8Array | null = new Uint8Array([1, 2, 3]);
+    const invalidSnapshot = object;
+    let resumeSecond!: () => void;
+    const secondRead = new Promise<void>(resolve => {
+      resumeSecond = resolve;
+    });
+    m.prefix.mockImplementationOnce(() => Promise.resolve(invalidSnapshot));
+    m.prefix.mockImplementationOnce(() => secondRead.then(() => invalidSnapshot));
+    m.remove.mockImplementation(() => {
+      object = null;
+      return Promise.resolve({ error: null });
+    });
+
+    const first = validateEvidenceContent(context);
+    const second = validateEvidenceContent(context);
+    const mismatch = { success: false, error: 'evidence_content_mismatch', status: 409 };
+    expect(await first).toEqual(mismatch);
+    if (timing === 'before re-upload') {
+      resumeSecond();
+      expect(await second).toEqual(mismatch);
+    }
+    expect(fake.state.committed.claim_documents ?? []).toHaveLength(0);
+    // Model the still-valid token recreating the same path with valid bytes.
+    object = new TextEncoder().encode('%PDF-1.7');
+    m.prefix.mockImplementationOnce(() => Promise.resolve(object));
+    expect(await validateEvidenceContent(context)).toEqual({ success: true });
+    expect(await persistClaimDocumentMetadata(doc)).toBe(true);
+    resumeSecond();
+    expect(await second).toEqual(mismatch);
+    expect(m.remove).not.toHaveBeenCalled();
+    expect(object).toEqual(new TextEncoder().encode('%PDF-1.7'));
+    expect(fake.state.committed.claim_documents).toHaveLength(1);
   }
 );

@@ -19,6 +19,8 @@ SET file_size_limit = 52428800,
       'video/mp4',
       'video/quicktime',
       'audio/webm',
-      'audio/ogg'
+      'audio/ogg',
+      'message/rfc822',
+      'application/vnd.ms-outlook'
     ]::text[]
 WHERE id = 'claim-evidence';

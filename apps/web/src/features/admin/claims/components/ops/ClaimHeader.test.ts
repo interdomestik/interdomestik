@@ -37,8 +37,17 @@ describe('resolveStorageUploadContentType', () => {
     );
   });
 
-  it('refuses unsupported mail evidence without a fallback MIME', () => {
-    const file = new File(['dummy'], 'thread.eml', { type: '' });
+  it.each([
+    ['eml', 'message/rfc822'],
+    ['msg', 'application/vnd.ms-outlook'],
+  ])('resolves the canonical .%s email MIME when the browser omits it', (ext, mimeType) => {
+    const file = new File(['dummy'], `thread.${ext}`, { type: '' });
+
+    expect(resolveStorageUploadContentType(file)).toBe(mimeType);
+  });
+
+  it('refuses unsupported executable evidence without a fallback MIME', () => {
+    const file = new File(['dummy'], 'thread.exe', { type: '' });
 
     expect(resolveStorageUploadContentType(file)).toBe('');
   });
@@ -48,7 +57,9 @@ describe('EVIDENCE_FILE_ACCEPT', () => {
   it('advertises only approved documents and recordings', () => {
     expect(EVIDENCE_FILE_ACCEPT).toContain('.xlsx');
     expect(EVIDENCE_FILE_ACCEPT).toContain('.mp4');
-    expect(EVIDENCE_FILE_ACCEPT).not.toContain('.eml');
+    expect(EVIDENCE_FILE_ACCEPT).toContain('.eml');
+    expect(EVIDENCE_FILE_ACCEPT).toContain('.msg');
+    expect(EVIDENCE_FILE_ACCEPT).not.toContain('.exe');
   });
 });
 

@@ -1,3 +1,4 @@
+import { webmFixture } from '../../../../../packages/domain-claims/src/test/evidence-container-fixtures';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MAX_VOICE_NOTE_ACTION_BYTES } from './voice-note-policy';
 import { uploadVoiceNote } from './upload';
@@ -125,7 +126,7 @@ describe('uploadVoiceNote', () => {
   });
 
   it('stores voice notes on the initial claim upload intent path', async () => {
-    const bytes = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]);
+    const bytes = webmFixture();
     const file = {
       name: 'voice.webm',
       type: 'audio/webm',
@@ -164,7 +165,7 @@ describe('uploadVoiceNote', () => {
       error: 'Service unavailable',
     });
 
-    const bytes = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]);
+    const bytes = webmFixture();
     const file = {
       name: 'voice.webm',
       type: 'audio/webm',

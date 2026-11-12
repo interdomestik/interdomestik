@@ -4,7 +4,7 @@
     "subtitle": "Laden Sie Belege, Tickets oder Fotos hoch.",
     "upload": {
       "cta": "Klicken, um Dateien hochzuladen",
-      "sub": "PDF, JPG oder PNG bis 10 MB",
+      "sub": "PDF, JPEG (JPG/JPEG/JFIF), PNG, HEIC/HEIF, WEBP, DOC/DOCX, XLS/XLSX, EML/MSG, MP3/M4A/WAV, MP4/MOV. Bis zu 10 MB pro Dokument, Bild oder Audiodatei; 50 MB pro Video.",
       "secure": "Uploads über signierte URLs · Speicherung mit PII-Kennzeichnung"
     },
     "tooltip": "Klare Nachweise erhöhen Ihre Erfolgschancen um 40 %. Fügen Sie Polizeiberichte oder Arztrechnungen bei.",
@@ -34,7 +34,7 @@
       ]
     },
     "validation": {
-      "mime": "Nur PDF-, JPG- oder PNG-Dateien sind erlaubt.",
+      "mime": "Erlaubte Formate: PDF, JPEG (JPG/JPEG/JFIF), PNG, HEIC/HEIF, WEBP, DOC/DOCX, XLS/XLSX, EML/MSG, MP3/M4A/WAV, MP4/MOV.",
       "size": "Dateien dürfen höchstens 10 MB groß sein.",
       "count": "Sie können bis zu {count} Dateien anhängen.",
       "prepare": "Upload konnte nicht vorbereitet werden. Bitte versuchen Sie es erneut.",

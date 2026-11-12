@@ -6,7 +6,7 @@ import { createConfirmUploadParams } from './actions.test-fixtures';
 const m = getUploadActionMocks();
 
 describe('member document persistence after signature verification', () => {
-  it('deletes a renamed text file and writes no metadata, consent or workflow', async () => {
+  it('refuses a renamed text file without deleting it and writes no metadata, consent or workflow', async () => {
     m.readPrefix.mockResolvedValueOnce(new TextEncoder().encode('text renamed to PDF'));
     expect(
       await confirmUpload(createConfirmUploadParams({ aiExtractionConsentGranted: true }))
@@ -15,7 +15,7 @@ describe('member document persistence after signature verification', () => {
       error: 'evidence_content_mismatch',
       status: 409,
     });
-    expect(m.remove).toHaveBeenCalledWith(['pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf']);
+    expect(m.remove).not.toHaveBeenCalled();
     expect(m.insert).not.toHaveBeenCalled();
     expect(m.queueClaimDocumentAiWorkflows).not.toHaveBeenCalled();
     expect(m.revalidatePath).not.toHaveBeenCalled();

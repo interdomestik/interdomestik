@@ -1,3 +1,7 @@
+import { officePackageMatches, type EvidenceObjectTail } from './evidence-office-signature';
+import { webmSignatureMatches } from './evidence-webm-signature';
+export { EVIDENCE_TAIL_BYTES, type EvidenceObjectTail } from './evidence-office-signature';
+
 type EvidenceCategory = 'document' | 'image' | 'audio' | 'video';
 type Signature =
   | 'pdf'
@@ -7,7 +11,9 @@ type Signature =
   | 'heif'
   | 'webp'
   | 'ole'
-  | 'zip'
+  | 'mail'
+  | 'docx'
+  | 'xlsx'
   | 'mp3'
   | 'm4a'
   | 'wav'
@@ -42,6 +48,8 @@ function format(
 
 export const EVIDENCE_FORMATS: readonly EvidenceFormat[] = [
   format(['pdf'], 'application/pdf', 'document', 'pdf'),
+  format(['eml'], 'message/rfc822', 'document', 'mail'),
+  format(['msg'], 'application/vnd.ms-outlook', 'document', 'ole'),
   format(['jpg', 'jpeg', 'jfif'], 'image/jpeg', 'image', 'jpeg'),
   format(['png'], 'image/png', 'image', 'png'),
   format(['heic'], 'image/heic', 'image', 'heic'),
@@ -52,14 +60,14 @@ export const EVIDENCE_FORMATS: readonly EvidenceFormat[] = [
     ['docx'],
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'document',
-    'zip'
+    'docx'
   ),
   format(['xls'], 'application/vnd.ms-excel', 'document', 'ole'),
   format(
     ['xlsx'],
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'document',
-    'zip'
+    'xlsx'
   ),
   format(['mp3'], 'audio/mpeg', 'audio', 'mp3'),
   format(['m4a'], 'audio/mp4', 'audio', 'm4a'),
@@ -72,7 +80,7 @@ export const EVIDENCE_FORMATS: readonly EvidenceFormat[] = [
 ];
 
 export const EVIDENCE_FORMAT_LABEL =
-  'PDF, JPEG (JPG/JPEG/JFIF), PNG, HEIC/HEIF, WEBP, DOC/DOCX, XLS/XLSX, MP3/M4A/WAV, MP4/MOV';
+  'PDF, JPEG (JPG/JPEG/JFIF), PNG, HEIC/HEIF, WEBP, DOC/DOCX, XLS/XLSX, EML/MSG, MP3/M4A/WAV, MP4/MOV';
 export const EVIDENCE_FILE_ACCEPT = [
   ...new Set(
     EVIDENCE_FORMATS.flatMap(entry => [
@@ -123,6 +131,15 @@ function ascii(bytes: Uint8Array, offset: number, length: number): string {
   return String.fromCodePoint(...bytes.subarray(offset, offset + length));
 }
 
+function mailSignatureMatches(bytes: Uint8Array): boolean {
+  const prefix = bytes.subarray(0, EVIDENCE_PREFIX_BYTES);
+  if (prefix.includes(0)) return false;
+  const offset = startsWith(prefix, [0xef, 0xbb, 0xbf]) ? 3 : 0;
+  const firstLine = ascii(prefix, offset, prefix.length - offset).split(/[\r\n]/, 1)[0];
+  // RFC 5322 field-name: printable ASCII except colon, followed by the separator.
+  return firstLine.startsWith('From ') || /^[\x21-\x39\x3b-\x7e]+:/.test(firstLine);
+}
+
 const BMFF_BRANDS = {
   heic: ['heic', 'heix', 'hevc', 'hevx'],
   heif: ['mif1', 'msf1', 'heic', 'heix', 'hevc', 'hevx'],
@@ -153,8 +170,12 @@ function quickTimeLegacyMatches(bytes: Uint8Array): boolean {
   return size === 0 || size === 1 || size >= 8;
 }
 
-/** Header verification only: container formats are not parsed or malware-scanned. */
-export function evidenceSignatureMatches(entry: EvidenceFormat, bytes: Uint8Array): boolean {
+/** Bounded format identification only; no complete decoding or malware scanning. */
+export function evidenceSignatureMatches(
+  entry: EvidenceFormat,
+  bytes: Uint8Array,
+  tail?: EvidenceObjectTail
+): boolean {
   switch (entry.signature) {
     case 'pdf':
       return ascii(bytes, 0, 5) === '%PDF-';
@@ -168,8 +189,11 @@ export function evidenceSignatureMatches(entry: EvidenceFormat, bytes: Uint8Arra
       return ascii(bytes, 0, 4) === 'RIFF' && ascii(bytes, 8, 4) === 'WAVE';
     case 'ole':
       return startsWith(bytes, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
-    case 'zip':
-      return startsWith(bytes, [0x50, 0x4b, 0x03, 0x04]);
+    case 'mail':
+      return mailSignatureMatches(bytes);
+    case 'docx':
+    case 'xlsx':
+      return officePackageMatches(entry.signature, bytes, tail);
     case 'mp3':
       return (
         ascii(bytes, 0, 3) === 'ID3' ||
@@ -180,7 +204,7 @@ export function evidenceSignatureMatches(entry: EvidenceFormat, bytes: Uint8Arra
           (bytes[1] & 0x18) !== 0x08)
       );
     case 'webm':
-      return startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3]);
+      return webmSignatureMatches(bytes);
     case 'ogg':
       return ascii(bytes, 0, 4) === 'OggS';
     case 'mov':

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { readTenantObjectPrefix } from './object-prefix';
+import { readTenantObjectPrefix, readTenantObjectTail } from './object-prefix';
 
 const m = vi.hoisted(() => ({ sign: vi.fn(), fetch: vi.fn() }));
 vi.mock('./service-role', () => ({ createTenantSignedDownloadUrl: m.sign }));
@@ -15,6 +15,73 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.stubGlobal('fetch', m.fetch);
   m.sign.mockResolvedValue({ data: { signedUrl: 'https://storage.test/signed' }, error: null });
+});
+
+describe('bounded OOXML storage tail reads', () => {
+  it.each([100, 65536, 100000])('reads exactly the final min(64 KiB, %s) bytes', async total => {
+    const start = Math.max(0, total - 65536);
+    const bytes = new Uint8Array(total - start).fill(7);
+    m.fetch.mockResolvedValue(
+      new Response(bytes, {
+        status: 206,
+        headers: { 'content-range': `bytes ${start}-${total - 1}/${total}` },
+      })
+    );
+    expect(await readTenantObjectTail(target)).toEqual({ bytes, offset: start });
+    expect(m.sign).toHaveBeenCalledWith({ ...target, expiresInSeconds: 60 });
+    expect(m.fetch.mock.calls[0][1].headers).toEqual({ Range: 'bytes=-65536' });
+    expect(m.fetch.mock.calls[0][1].signal.aborted).toBe(true);
+  });
+
+  it.each([
+    [200, null],
+    [206, null],
+    [206, 'bytes 0-65536/65537'],
+    [206, 'bytes 0-255/100000'],
+    [206, 'bytes 34464-99998/100000'],
+    [206, 'bytes 34465-99999/100000'],
+    [206, 'bytes 0-9007199254740992/9007199254740993'],
+    [206, 'bytes 0-0/0'],
+  ])('refuses unbounded or incorrect suffix responses: %s / %s', async (status, range) => {
+    const read = vi.fn();
+    m.fetch.mockResolvedValue({
+      status,
+      headers: new Headers(range ? { 'content-range': range } : {}),
+      body: { getReader: read },
+    });
+    await expect(readTenantObjectTail(target)).rejects.toThrow();
+    expect(read).not.toHaveBeenCalled();
+    expect(m.fetch.mock.calls[0][1].signal.aborted).toBe(true);
+  });
+
+  it.each([10, 65537])('refuses a suffix body with incorrect length %s', async length => {
+    m.fetch.mockResolvedValue(
+      new Response(new Uint8Array(length), {
+        status: 206,
+        headers: { 'content-range': 'bytes 34464-99999/100000' },
+      })
+    );
+    await expect(readTenantObjectTail(target)).rejects.toThrow();
+  });
+
+  it('cancels the suffix stream as soon as the byte cap is exceeded', async () => {
+    const cancel = vi.fn();
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(65537));
+      },
+      cancel,
+    });
+    m.fetch.mockResolvedValue(
+      new Response(stream, {
+        status: 206,
+        headers: { 'content-range': 'bytes 34464-99999/100000' },
+      })
+    );
+    await expect(readTenantObjectTail(target)).rejects.toThrow();
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(stream.locked).toBe(false);
+  });
 });
 afterEach(() => vi.unstubAllGlobals());
 

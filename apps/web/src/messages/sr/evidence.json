@@ -4,7 +4,7 @@
     "subtitle": "Otpremite račune, karte ili fotografije.",
     "upload": {
       "cta": "Kliknite da otpremite fajlove",
-      "sub": "PDF, JPG ili PNG do 10MB",
+      "sub": "PDF, JPEG (JPG/JPEG/JFIF), PNG, HEIC/HEIF, WEBP, DOC/DOCX, XLS/XLSX, EML/MSG, MP3/M4A/WAV, MP4/MOV. Do 10 MB po dokumentu, slici ili audio datoteci; 50 MB po video snimku.",
       "secure": "Otpremanje preko potpisanog URL-a · Skladištenje označeno kao PII"
     },
     "tooltip": "Jasni dokazi povećavaju vašu šansu za uspeh za 40%. Uključite policijske izveštaje ili medicinske račune.",
@@ -30,7 +30,7 @@
       "default": ["Fotografije ili snimci ekrana", "Računi", "Službena prepiska"]
     },
     "validation": {
-      "mime": "Dozvoljeni su samo PDF, JPG ili PNG fajlovi.",
+      "mime": "Dozvoljeni formati: PDF, JPEG (JPG/JPEG/JFIF), PNG, HEIC/HEIF, WEBP, DOC/DOCX, XLS/XLSX, EML/MSG, MP3/M4A/WAV, MP4/MOV.",
       "size": "Fajlovi moraju biti 10MB ili manji.",
       "count": "Možete priložiti najviše {count} fajlova.",
       "prepare": "Priprema otpremanja nije uspela. Pokušajte ponovo.",

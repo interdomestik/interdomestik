@@ -17,6 +17,28 @@ describe('bounded legacy multipart body reader', () => {
     if (result.success) expect(result.data.file.name).toBe('evidence.pdf');
   });
 
+  it('accepts the one-door gate email as multipart evidence', async () => {
+    const data = new FormData();
+    data.set('claimId', 'claim-1');
+    data.set('category', 'evidence');
+    data.set('locale', 'en');
+    data.set(
+      'file',
+      new File(
+        ['From: synthetic@example.invalid\r\nSubject: One door\r\n\r\nSynthetic evidence.\r\n'],
+        'door.eml',
+        { type: 'message/rfc822' }
+      )
+    );
+    const result = await parseEvidenceUploadForm(
+      new Request('https://example.test/api/claims/evidence-upload', { method: 'POST', body: data })
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.file).toMatchObject({ name: 'door.eml', type: 'message/rfc822' });
+    }
+  });
+
   it('stops chunked bodies at the limit even without Content-Length', async () => {
     const cancel = vi.fn();
     const stream = new ReadableStream({
@@ -54,5 +76,27 @@ describe('bounded legacy multipart body reader', () => {
         })
       )
     ).toBeNull();
+  });
+
+  it('does not pull more chunks after exceeding the cap', async () => {
+    const cancel = vi.fn();
+    const pull = vi.fn((controller: ReadableStreamDefaultController<Uint8Array>) => {
+      controller.enqueue(new Uint8Array(MAX_DIRECT_FILE_BYTES));
+    });
+    const body = new ReadableStream({ pull, cancel }, { highWaterMark: 0 });
+    expect(await readUploadForm({ body, headers: new Headers() } as Request)).toBe('too-large');
+    expect(pull).toHaveBeenCalledTimes(2);
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(body.locked).toBe(false);
+  });
+
+  it('returns null and releases the stream lock on a read failure', async () => {
+    const body = new ReadableStream({
+      pull(controller) {
+        controller.error(new Error('read failed'));
+      },
+    });
+    expect(await readUploadForm({ body, headers: new Headers() } as Request)).toBeNull();
+    expect(body.locked).toBe(false);
   });
 });
