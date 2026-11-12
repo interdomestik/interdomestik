@@ -13,6 +13,7 @@ vi.mock('next-intl', () => ({
       shortcut: 'Press Ctrl+Enter to send',
       sent: 'Message sent',
       sendError: 'Failed to send message',
+      publicAudience: 'Visible to the member and the case team.',
     };
     return translations[key] || key;
   },
@@ -131,5 +132,23 @@ describe('MessageInput', () => {
 
     const sendButton = screen.getByTestId('send-message-button');
     expect(sendButton).toBeDisabled();
+  });
+
+  it('shows an internal-capable case-team writer the audience of the message being composed', () => {
+    render(<MessageInput onSendMessage={vi.fn()} allowInternal isAgent />);
+
+    expect(screen.getByTestId('messaging-public-audience')).toHaveTextContent(
+      'Visible to the member and the case team.'
+    );
+    fireEvent.click(screen.getByTestId('internal-note-toggle'));
+    expect(screen.queryByTestId('messaging-public-audience')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('internal-note-toggle'));
+    expect(screen.getByTestId('messaging-public-audience')).toBeInTheDocument();
+  });
+
+  it('leaves the audience notice to the panel when there is no internal toggle', () => {
+    render(<MessageInput onSendMessage={vi.fn()} isAgent />);
+
+    expect(screen.queryByTestId('messaging-public-audience')).not.toBeInTheDocument();
   });
 });
