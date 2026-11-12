@@ -1,9 +1,8 @@
 import { z } from 'zod';
 
-import { requireTenantAdminSession } from '@interdomestik/domain-users/admin/access';
-import type { UserSession } from '@interdomestik/domain-users/types';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
+import { canManagePlatformSettings } from '@/features/admin/access/admin-capabilities';
 import { logAuditEvent } from '@/lib/audit';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 
@@ -12,7 +11,7 @@ import type { Session } from './context';
 const adminSettingsSchema = z
   .object({
     appName: z.string().trim().min(1).max(100),
-    supportEmail: z.string().email(), // NOSONAR
+    supportEmail: z.email(),
     autoAssign: z.boolean(),
     defaultExpiry: z.number().int().min(1).max(365),
   })
@@ -28,7 +27,9 @@ export async function adminUpdateSettingsCore(params: {
 }): Promise<{ success: true } | { success: false; error: string }> {
   const { session, authority, data } = params;
 
-  await requireTenantAdminSession(session as unknown as UserSession | null, authority);
+  if (!session?.user || !canManagePlatformSettings(session.user.role)) {
+    throw new Error('Unauthorized');
+  }
 
   const parsed = adminSettingsSchema.safeParse(data);
   if (!parsed.success) {

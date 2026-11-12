@@ -51,7 +51,6 @@ vi.mock('@interdomestik/ui', async importOriginal => {
   };
 });
 
-// Mock authClient
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     useSession: vi.fn(),
@@ -92,6 +91,14 @@ vi.mock('next-intl', () => ({
     return translations[key] || key;
   },
 }));
+
+function signInAs(role: string, name: string | null, id: string, email: string): void {
+  mockUseSession.mockReturnValue({
+    data: { user: { id, name, email, image: null, role } },
+    isPending: false,
+    error: null,
+  } as unknown as ReturnType<typeof authClient.useSession>);
+}
 
 describe('UserNav', () => {
   const openMenuAndGetSettingsLink = async () => {
@@ -150,19 +157,7 @@ describe('UserNav', () => {
   });
 
   it('signs out with a localized hard redirect', async () => {
-    mockUseSession.mockReturnValue({
-      data: {
-        user: {
-          id: 'staff-1',
-          name: 'Staff User',
-          email: 'staff@example.com',
-          image: null,
-          role: 'staff',
-        },
-      },
-      isPending: false,
-      error: null,
-    } as unknown as ReturnType<typeof authClient.useSession>);
+    signInAs('staff', 'Staff User', 'staff-1', 'staff@example.com');
 
     render(<UserNav />);
 
@@ -191,19 +186,7 @@ describe('UserNav', () => {
   });
 
   it('renders user avatar with initial after mount', async () => {
-    mockUseSession.mockReturnValue({
-      data: {
-        user: {
-          id: 'user-1',
-          name: 'Test User',
-          email: 'test@example.com',
-          image: null,
-          role: 'user',
-        },
-      },
-      isPending: false,
-      error: null,
-    } as unknown as ReturnType<typeof authClient.useSession>);
+    signInAs('user', 'Test User', 'user-1', 'test@example.com');
 
     render(<UserNav />);
 
@@ -219,19 +202,7 @@ describe('UserNav', () => {
   });
 
   it('renders avatar button for authenticated user', async () => {
-    mockUseSession.mockReturnValue({
-      data: {
-        user: {
-          id: 'user-1',
-          name: 'Test User',
-          email: 'test@example.com',
-          image: null,
-          role: 'user',
-        },
-      },
-      isPending: false,
-      error: null,
-    } as unknown as ReturnType<typeof authClient.useSession>);
+    signInAs('user', 'Test User', 'user-1', 'test@example.com');
 
     render(<UserNav />);
 
@@ -243,19 +214,7 @@ describe('UserNav', () => {
   });
 
   it('displays user initial when no image', async () => {
-    mockUseSession.mockReturnValue({
-      data: {
-        user: {
-          id: 'user-1',
-          name: 'Alice User',
-          email: 'alice@example.com',
-          image: null,
-          role: 'user',
-        },
-      },
-      isPending: false,
-      error: null,
-    } as unknown as ReturnType<typeof authClient.useSession>);
+    signInAs('user', 'Alice User', 'user-1', 'alice@example.com');
 
     render(<UserNav />);
 
@@ -265,19 +224,7 @@ describe('UserNav', () => {
   });
 
   it('handles user with no name gracefully', async () => {
-    mockUseSession.mockReturnValue({
-      data: {
-        user: {
-          id: 'user-1',
-          name: null,
-          email: 'user@example.com',
-          image: null,
-          role: 'user',
-        },
-      },
-      isPending: false,
-      error: null,
-    } as unknown as ReturnType<typeof authClient.useSession>);
+    signInAs('user', null, 'user-1', 'user@example.com');
 
     render(<UserNav />);
 
@@ -287,19 +234,7 @@ describe('UserNav', () => {
   });
 
   it('renders dropdown trigger with correct attributes', async () => {
-    mockUseSession.mockReturnValue({
-      data: {
-        user: {
-          id: 'admin-1',
-          name: 'Admin User',
-          email: 'admin@example.com',
-          image: null,
-          role: 'admin',
-        },
-      },
-      isPending: false,
-      error: null,
-    } as unknown as ReturnType<typeof authClient.useSession>);
+    signInAs('admin', 'Admin User', 'admin-1', 'admin@example.com');
 
     render(<UserNav />);
 
@@ -310,19 +245,7 @@ describe('UserNav', () => {
   });
 
   it('routes Settings to member settings for member role', async () => {
-    mockUseSession.mockReturnValue({
-      data: {
-        user: {
-          id: 'member-1',
-          name: 'Member User',
-          email: 'member@example.com',
-          image: null,
-          role: 'member',
-        },
-      },
-      isPending: false,
-      error: null,
-    } as unknown as ReturnType<typeof authClient.useSession>);
+    signInAs('member', 'Member User', 'member-1', 'member@example.com');
 
     render(<UserNav />);
 
@@ -330,65 +253,47 @@ describe('UserNav', () => {
   });
 
   it('routes Settings to agent settings for agent role without admin access', async () => {
-    mockUseSession.mockReturnValue({
-      data: {
-        user: {
-          id: 'agent-1',
-          name: 'Agent User',
-          email: 'agent@example.com',
-          image: null,
-          role: 'agent',
-        },
-      },
-      isPending: false,
-      error: null,
-    } as unknown as ReturnType<typeof authClient.useSession>);
+    signInAs('agent', 'Agent User', 'agent-1', 'agent@example.com');
 
     render(<UserNav />);
 
     expect(await openMenuAndGetSettingsLink()).toHaveAttribute('href', '/agent/settings');
   });
 
-  it('routes Settings to admin settings when adminAccess is granted for agent role', async () => {
+  it('keeps agent Settings on the own account even with tenant admin access', async () => {
     mockCanAccessAdmin.mockResolvedValue(true);
-    mockUseSession.mockReturnValue({
-      data: {
-        user: {
-          id: 'agent-1',
-          name: 'Agent User',
-          email: 'agent@example.com',
-          image: null,
-          role: 'agent',
-        },
-      },
-      isPending: false,
-      error: null,
-    } as unknown as ReturnType<typeof authClient.useSession>);
+    signInAs('agent', 'Agent User', 'agent-1', 'agent@example.com');
 
     render(<UserNav />);
 
     await waitFor(async () => {
-      expect(await openMenuAndGetSettingsLink()).toHaveAttribute('href', '/admin/settings');
+      expect(await openMenuAndGetSettingsLink()).toHaveAttribute('href', '/agent/settings');
     });
   });
 
-  it('routes Settings to admin settings for admin role', async () => {
-    mockUseSession.mockReturnValue({
-      data: {
-        user: {
-          id: 'admin-1',
-          name: 'Admin User',
-          email: 'admin@example.com',
-          image: null,
-          role: 'admin',
-        },
-      },
-      isPending: false,
-      error: null,
-    } as unknown as ReturnType<typeof authClient.useSession>);
+  it('keeps admin Settings on the own account', async () => {
+    signInAs('admin', 'Admin User', 'admin-1', 'admin@example.com');
 
     render(<UserNav />);
 
-    expect(await openMenuAndGetSettingsLink()).toHaveAttribute('href', '/admin/settings');
+    expect(await openMenuAndGetSettingsLink()).toHaveAttribute('href', '/admin/account');
   });
+
+  it.each([
+    ['super_admin', '/admin/settings'],
+    ['tenant_admin', '/admin/account'],
+    ['branch_manager', '/staff/settings'],
+    ['staff', '/staff/settings'],
+  ])(
+    'routes %s Settings according to platform capability even with admin access',
+    async (role, href) => {
+      render(
+        <UserNav
+          user={{ id: 'u1', role, name: 'Operator', email: 'operator@example.com' }}
+          adminAccess
+        />
+      );
+      expect(await openMenuAndGetSettingsLink()).toHaveAttribute('href', href);
+    }
+  );
 });
