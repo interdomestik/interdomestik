@@ -183,16 +183,22 @@ export function StaffClaimsControls({
           placeholder={searchPlaceholder}
           data-testid="staff-claims-search-input"
         />
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Button
             disabled={Boolean(activePendingKind)}
+            className="shrink-0 !whitespace-nowrap [overflow-wrap:normal]"
             type="submit"
             data-testid="staff-claims-search-submit"
           >
             {searchLabel}
           </Button>
           {currentSearch && clearSearchHref ? (
-            <Button asChild type="button" variant="ghost">
+            <Button
+              asChild
+              type="button"
+              variant="ghost"
+              className="shrink-0 !whitespace-nowrap [overflow-wrap:normal]"
+            >
               <Link
                 href={clearSearchHref}
                 aria-disabled={activePendingKind ? 'true' : undefined}

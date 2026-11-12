@@ -38,14 +38,14 @@ export function MemberHeader({
 
       <div className="rounded-2xl border bg-muted/20 p-6">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <Avatar className="h-16 w-16">
+          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+            <Avatar className="h-16 w-16 shrink-0">
               <AvatarImage src={member.image || ''} />
               <AvatarFallback className="text-lg">
                 {member.name?.[0]?.toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
-            <div>
+            <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 data-testid="agent-member-detail-header" className="text-2xl font-semibold">
                   {member.name || t('labels.unknown')}
@@ -56,9 +56,9 @@ export function MemberHeader({
                 </Badge>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  {member.email}
+                <span className="inline-flex min-w-0 max-w-full items-center gap-2">
+                  <Mail className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0 [overflow-wrap:anywhere]">{member.email}</span>
                 </span>
                 <span className="inline-flex items-center gap-2">
                   <BadgeCheck className="h-4 w-4" />
