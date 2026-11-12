@@ -3,9 +3,11 @@
 import { Badge } from '@interdomestik/ui/components/badge';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { Shield } from 'lucide-react';
-import { useLocale, useNow } from 'next-intl';
+import { useLocale } from 'next-intl';
 import { formatPilotDate } from '@/lib/utils/date';
-import { ReactNode } from 'react';
+import { ReactNode, useSyncExternalStore } from 'react';
+
+const subscribeToNothing = (): (() => void) => () => undefined;
 
 interface AdminPageHeaderProps {
   title: string;
@@ -25,8 +27,12 @@ export function AdminPageHeader({
   headingId,
 }: AdminPageHeaderProps) {
   const locale = useLocale();
-  const today = useNow();
-  const formattedDate = formatPilotDate(today, locale, '');
+  // Read the clock only on the client: server and client renders may straddle midnight.
+  const formattedDate = useSyncExternalStore(
+    subscribeToNothing,
+    () => formatPilotDate(new Date(), locale, ''),
+    () => ''
+  );
 
   return (
     <div
@@ -51,7 +57,8 @@ export function AdminPageHeader({
           )}
         </div>
         <p className="text-muted-foreground font-medium">
-          {formattedDate} • {subtitle}
+          {formattedDate ? `${formattedDate} • ` : ''}
+          {subtitle}
         </p>
       </div>
 
