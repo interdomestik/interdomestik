@@ -21,6 +21,14 @@ function renderControls(href?: string) {
 }
 
 describe('StaffClaimsControls', () => {
+  beforeEach(() => {
+    resetNavigationHarness();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('keeps search and clear labels on one line while the input can shrink', () => {
     renderControls();
     const submit = screen.getByTestId('staff-claims-search-submit');
@@ -31,13 +39,6 @@ describe('StaffClaimsControls', () => {
     );
     expect(submit.parentElement).toHaveClass('shrink-0', 'flex-wrap');
     expect(screen.getByTestId('staff-claims-search-form')).toHaveClass('flex-col', 'md:flex-row');
-  });
-  beforeEach(() => {
-    resetNavigationHarness();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
   });
 
   it('submits trimmed search while preserving active staff claim filters', async () => {
