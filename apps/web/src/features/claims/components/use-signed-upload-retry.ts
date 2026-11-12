@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { isDuplicateStorageUploadError } from './storage-upload-error';
 import { validateEvidenceFile } from '../upload/evidence-file-policy';
 import { isTerminalEvidenceError } from '../upload/evidence-upload-error';
 import {
@@ -210,11 +211,17 @@ export function useSignedUploadRetry({
     if (current.stage === 'storage') {
       const { mimeType, storageContentType = mimeType } = current.confirmation;
       if (!current.target.deterministicE2E) {
-        await uploadToStorage(
-          current.target,
-          storageFileFor(current.file, storageContentType),
-          storageContentType
-        );
+        try {
+          await uploadToStorage(
+            current.target,
+            storageFileFor(current.file, storageContentType),
+            storageContentType
+          );
+        } catch (error) {
+          // The request uses this exact frozen path/token. A lost successful response may
+          // become a duplicate on retry; confirmation still verifies the stored bytes.
+          if (!isDuplicateStorageUploadError(error)) throw error;
+        }
       }
       const confirming: PendingSignedUpload = { ...current, stage: 'confirm' };
       Object.freeze(confirming);

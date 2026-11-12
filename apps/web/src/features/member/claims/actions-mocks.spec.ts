@@ -18,6 +18,7 @@ const hoisted = vi.hoisted(() => {
     storageFrom: vi.fn(),
     insertValues: vi.fn(),
     metadataClaimRows: vi.fn(),
+    metadataDocumentRows: vi.fn(),
     insert: vi.fn(),
     transaction: vi.fn(),
     withTenantContext: vi.fn(),
@@ -73,6 +74,7 @@ vi.mock('@interdomestik/database', () => ({
   eq: hoisted.eq,
   claims: { id: 'claim.id', tenantId: 'claim.tenant_id', userId: 'claim.userId' },
   claimDocuments: 'claim_documents',
+  claimInformationRequestEvidence: 'claim_information_request_evidence',
   claimDocumentAiExtractionConsents: 'claim_document_ai_extraction_consents',
 }));
 
@@ -144,10 +146,15 @@ beforeEach(() => {
   hoisted.withTenantContext.mockImplementation(async (_context, callback) =>
     callback({
       insert: hoisted.insert,
-      select: () => ({ from: () => ({ where: () => ({ for: hoisted.metadataClaimRows }) }) }),
+      select: () => ({
+        from: () => ({
+          where: () => ({ for: hoisted.metadataClaimRows, limit: hoisted.metadataDocumentRows }),
+        }),
+      }),
     })
   );
   hoisted.metadataClaimRows.mockResolvedValue([{ userId: 'member-1' }]);
+  hoisted.metadataDocumentRows.mockResolvedValue([]);
   hoisted.insertValues.mockImplementation(() => ({
     onConflictDoNothing: () => ({ returning: async () => [{ id: 'uuid-1' }] }),
     then: (resolve: (value: unknown) => unknown) => resolve(undefined),

@@ -61,7 +61,7 @@ export async function uploadEvidenceObject(params: {
     family: 'claims',
     path: params.storagePath,
     tenantId: params.tenantId,
-    upsert: true,
+    upsert: false,
   });
 
   if (uploadError) {

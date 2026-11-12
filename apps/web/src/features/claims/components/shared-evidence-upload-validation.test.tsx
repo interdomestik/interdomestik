@@ -170,7 +170,7 @@ describe('shared member/admin evidence validation and localized errors', () => {
       'signed/path',
       'token',
       expect.objectContaining({ type: mime }),
-      expect.objectContaining({ contentType: mime })
+      expect.objectContaining({ contentType: mime, upsert: false })
     );
     expect(mime).not.toBe('text/plain');
     expect(m.error).not.toHaveBeenCalled();
@@ -219,4 +219,20 @@ describe('shared member/admin evidence validation and localized errors', () => {
       expect(m.confirm).not.toHaveBeenCalled();
     }
   );
+});
+
+it('preserves a status-only duplicate from storage and confirms the same create-only target', async () => {
+  open();
+  choose('proof.pdf', 100);
+  m.transfer.mockResolvedValueOnce({ error: { statusCode: '409' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+  await waitFor(() => expect(m.confirm).toHaveBeenCalledOnce());
+  expect(m.transfer).toHaveBeenCalledWith(
+    'signed/path',
+    'token',
+    expect.any(File),
+    expect.objectContaining({ upsert: false })
+  );
+  expect(m.confirm).toHaveBeenCalledWith(expect.objectContaining({ storagePath: 'signed/path' }));
+  expect(m.error).not.toHaveBeenCalled();
 });

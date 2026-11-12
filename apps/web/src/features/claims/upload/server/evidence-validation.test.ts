@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildEvidenceStoragePath } from './storage-path';
 import {
@@ -16,8 +17,17 @@ vi.mock('@/lib/storage/service-role', () => ({
 vi.mock('@/lib/storage/object-prefix', () => ({ readTenantObjectPrefix: m.prefix }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 
+vi.mock('./persisted-evidence', () => ({
+  assertEvidenceTenantAuthority: vi.fn(),
+  hasPersistedEvidenceReference: vi.fn().mockResolvedValue(false),
+}));
+vi.mock('./claim-document-replay', () => ({
+  isPersistedClaimDocumentReplay: vi.fn().mockResolvedValue(false),
+}));
+
 const MB = 1024 * 1024;
 const context = {
+  authority: mintTestTenantAuthority('tenant-1'),
   actorId: 'member-1',
   bucket: 'claim-evidence',
   tenantId: 'tenant-1',
@@ -130,6 +140,7 @@ describe('signed evidence URL validation', () => {
       ).toMatchObject({ success: true });
     }
     expect(m.sign).toHaveBeenCalledTimes(2);
+    expect(m.sign).toHaveBeenCalledWith(expect.objectContaining({ upsert: false }));
   });
 });
 

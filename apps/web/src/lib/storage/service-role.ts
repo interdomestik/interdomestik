@@ -72,21 +72,28 @@ function createDeterministicE2EUploadSignature(args: TenantStorageTarget) {
   };
 }
 
+type TenantSignedUploadResult =
+  | {
+      data: { path: string; signedUrl: string; token: string; deterministicE2E?: true };
+      error: null;
+    }
+  | { data: null; error: { message: string } };
+
 export async function createTenantSignedUploadUrl(
   args: TenantStorageTarget & {
     allowDeterministicE2ESigning?: boolean;
     upsert?: boolean;
   }
-) {
+): Promise<TenantSignedUploadResult> {
   assertTenantStoragePath(args);
 
   if (args.allowDeterministicE2ESigning !== false && usesDeterministicE2EStorage()) {
     return createDeterministicE2EUploadSignature(args);
   }
 
-  return createAdminClient()
+  return await createAdminClient()
     .storage.from(args.bucket)
-    .createSignedUploadUrl(args.path, { upsert: args.upsert ?? true });
+    .createSignedUploadUrl(args.path, { upsert: args.family !== 'claims' && args.upsert === true });
 }
 
 export async function createTenantSignedDownloadUrl(

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MAX_VOICE_NOTE_ACTION_BYTES } from './voice-note-policy';
 import { uploadVoiceNote } from './upload';
 
 const hoisted = vi.hoisted(() => ({
@@ -91,8 +92,10 @@ describe('uploadVoiceNote', () => {
     );
   });
 
-  it('infers mp4 extension when content-type is missing', async () => {
-    const bytes = new Uint8Array(12);
+  it('validates m4a content when content-type is missing', async () => {
+    const bytes = new Uint8Array(16);
+    bytes[3] = 16;
+    bytes.set([0x4d, 0x34, 0x41, 0x20], 8);
     // ftyp at offset 4
     bytes[4] = 0x66;
     bytes[5] = 0x74;
@@ -100,7 +103,7 @@ describe('uploadVoiceNote', () => {
     bytes[7] = 0x70;
 
     const file = {
-      name: 'blob',
+      name: 'voice.m4a',
       type: '',
       size: bytes.length,
       arrayBuffer: async () => bytes.buffer,
@@ -112,7 +115,11 @@ describe('uploadVoiceNote', () => {
     const result = await uploadVoiceNote(formData);
 
     expect(result).toEqual(
-      expect.objectContaining({ success: true, path: expect.stringContaining('.mp4') })
+      expect.objectContaining({
+        success: true,
+        path: expect.stringContaining('.m4a'),
+        mimeType: 'audio/mp4',
+      })
     );
     expect(hoisted.upload).toHaveBeenCalled();
   });
@@ -173,6 +180,62 @@ describe('uploadVoiceNote', () => {
     expect(result).toEqual({
       success: false,
       error: 'Service unavailable. Please try again later.',
+    });
+    expect(hoisted.upload).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      name: 'voice.mp3',
+      type: 'audio/mpeg',
+      bytes: new Uint8Array([0, 1, 2]),
+      size: 3,
+      error: 'evidence_content_mismatch',
+    },
+    {
+      name: 'voice.txt',
+      type: 'audio/mpeg',
+      bytes: new Uint8Array([0x49, 0x44, 0x33]),
+      size: 3,
+      error: 'evidence_unsupported',
+    },
+    {
+      name: 'voice.mp3',
+      type: 'audio/mpeg',
+      bytes: new Uint8Array([0x49, 0x44, 0x33]),
+      size: 2 * 1024 * 1024 + 1,
+      error: 'evidence_too_large',
+    },
+  ])(
+    'rejects invalid retained voice upload: $error',
+    async ({ name, type, bytes, size, error }) => {
+      hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', tenantId: 'tenant_mk' } });
+      hoisted.rateLimit.mockResolvedValue({ limited: false });
+      const file = { name, type, size, arrayBuffer: () => Promise.resolve(bytes.buffer) } as File;
+      expect(await uploadVoiceNote({ get: () => file } as unknown as FormData)).toEqual({
+        success: false,
+        error,
+      });
+    }
+  );
+
+  it('accepts the capped voice payload and rejects the next byte before storage', async () => {
+    const bytes = new Uint8Array(MAX_VOICE_NOTE_ACTION_BYTES);
+    bytes.set([0x49, 0x44, 0x33]);
+    const file = {
+      name: 'voice.mp3',
+      type: 'audio/mpeg',
+      size: bytes.length,
+      arrayBuffer: () => Promise.resolve(bytes.buffer),
+    } as File;
+    const result = await uploadVoiceNote({ get: () => file } as unknown as FormData);
+    expect(result).toMatchObject({ success: true, mimeType: 'audio/mpeg' });
+    expect(MAX_VOICE_NOTE_ACTION_BYTES).toBeLessThan(2 * 1024 * 1024);
+    hoisted.upload.mockClear();
+    const oversized = { ...file, size: MAX_VOICE_NOTE_ACTION_BYTES + 1 };
+    expect(await uploadVoiceNote({ get: () => oversized } as unknown as FormData)).toEqual({
+      success: false,
+      error: 'evidence_too_large',
     });
     expect(hoisted.upload).not.toHaveBeenCalled();
   });

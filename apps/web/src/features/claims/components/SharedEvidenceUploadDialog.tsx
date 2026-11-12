@@ -81,11 +81,11 @@ export function SharedEvidenceUploadDialog({
       .from(target.bucket)
       .uploadToSignedUrl(target.path, target.token, uploadFile, {
         contentType,
-        upsert: true,
+        upsert: false,
         cacheControl: '3600',
       });
     if (uploadError) {
-      throw new Error(uploadError.message || messages.uploadFailed);
+      throw uploadError;
     }
   };
 

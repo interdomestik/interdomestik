@@ -128,7 +128,7 @@ describe('POST /api/uploads', () => {
     const data = await res.json();
 
     expect(res.status).toBe(415);
-    expect(data).toEqual({ error: 'File type not allowed' });
+    expect(data).toEqual({ error: 'evidence_unsupported' });
   });
 
   it('returns 413 when file is too large', async () => {
@@ -149,7 +149,7 @@ describe('POST /api/uploads', () => {
     const data = await res.json();
 
     expect(res.status).toBe(413);
-    expect(data).toEqual({ error: 'File too large' });
+    expect(data).toEqual({ error: 'evidence_too_large' });
   });
 
   it('returns 404 when claim does not exist', async () => {
@@ -220,5 +220,27 @@ describe('POST /api/uploads', () => {
     const res = await POST(req);
     expect(res.status).toBe(403);
     expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
+  });
+  it('accepts HEIC with an empty browser MIME and returns canonical storage metadata', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
+    const response = await POST(
+      new Request('http://localhost:3000/api/uploads', {
+        method: 'POST',
+        body: JSON.stringify({ fileName: 'proof.heic', fileType: '', fileSize: 100 }),
+      })
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      upload: {
+        mimeType: 'image/heic',
+        storageContentType: 'image/heic',
+        intentToken: expect.any(String),
+      },
+    });
+    expect(hoisted.createSignedUploadUrl).toHaveBeenCalledWith(expect.any(String), {
+      upsert: false,
+    });
   });
 });
