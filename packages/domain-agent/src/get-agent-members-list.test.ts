@@ -62,9 +62,6 @@ vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
   sql: mocks.sql,
   user: mocks.user,
-}));
-
-vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   withTenantAuthority: mocks.withTenantAuthority,
 }));
 
@@ -72,7 +69,18 @@ vi.mock('@interdomestik/domain-claims/claims/lifecycle-read-sql', () => ({
   claimLifecycleStatusIn: mocks.claimLifecycleStatusIn,
 }));
 
-import { getAgentMembersList } from './get-agent-members-list';
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: mocks.withTenantAuthority,
+}));
+import { getAgentMembersList as readMembers } from './get-agent-members-list';
+const getAgentMembersList = (params: Omit<Parameters<typeof readMembers>[0], 'authority'>) =>
+  readMembers({
+    ...params,
+    authority: mintTestTenantAuthority(params.tenantId, {
+      userId: params.agentId,
+      role: params.role,
+    }),
+  });
 
 describe('getAgentMembersList', () => {
   beforeEach(() => {
@@ -104,7 +112,8 @@ describe('getAgentMembersList', () => {
 
     const result = await getAgentMembersList({
       agentId: 'agent-1',
-      authority: mintTestTenantAuthority('tenant-1', { userId: 'agent-1', role: 'agent' }),
+      tenantId: 'tenant-1',
+      role: 'agent',
       query: 'Arb',
     });
 
@@ -135,7 +144,8 @@ describe('getAgentMembersList', () => {
 
     const result = await getAgentMembersList({
       agentId: 'agent-1',
-      authority: mintTestTenantAuthority('tenant-1', { userId: 'agent-1', role: 'agent' }),
+      tenantId: 'tenant-1',
+      role: 'agent',
       query: '000010',
     });
 
@@ -151,7 +161,8 @@ describe('getAgentMembersList', () => {
 
     const result = await getAgentMembersList({
       agentId: 'agent-2',
-      authority: mintTestTenantAuthority('tenant-2', { userId: 'agent-2', role: 'agent' }),
+      tenantId: 'tenant-2',
+      role: 'agent',
       query: 'zzz',
     });
 
@@ -163,7 +174,8 @@ describe('getAgentMembersList', () => {
 
     await getAgentMembersList({
       agentId: 'agent-3',
-      authority: mintTestTenantAuthority('tenant-3', { userId: 'agent-3', role: 'agent' }),
+      tenantId: 'tenant-3',
+      role: 'agent',
     });
 
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.tenantId, 'tenant-3');
@@ -172,10 +184,7 @@ describe('getAgentMembersList', () => {
   it('reads inside one tenant transaction as the verified agent, never the global handle', async () => {
     mocks.chain.limit.mockResolvedValue([]);
 
-    await getAgentMembersList({
-      agentId: 'agent-5',
-      authority: mintTestTenantAuthority('tenant-mk', { userId: 'agent-5', role: 'agent' }),
-    });
+    await getAgentMembersList({ agentId: 'agent-5', tenantId: 'tenant-mk', role: 'agent' });
 
     expect(mocks.withTenantAuthority).toHaveBeenCalledTimes(1);
     expect(readTenantAuthority(mocks.withTenantAuthority.mock.calls[0]?.[0])).toMatchObject({
@@ -191,10 +200,7 @@ describe('getAgentMembersList', () => {
     'rejects role %j before any transaction or query',
     async role => {
       await expect(
-        getAgentMembersList({
-          agentId: 'agent-6',
-          authority: mintTestTenantAuthority('tenant-mk', { userId: 'agent-6', role }),
-        })
+        getAgentMembersList({ agentId: 'agent-6', tenantId: 'tenant-mk', role })
       ).rejects.toThrow('Forbidden');
 
       expect(mocks.withTenantAuthority).not.toHaveBeenCalled();
@@ -208,7 +214,8 @@ describe('getAgentMembersList', () => {
 
     await getAgentMembersList({
       agentId: 'agent-4',
-      authority: mintTestTenantAuthority('tenant-4', { userId: 'agent-4', role: 'agent' }),
+      tenantId: 'tenant-4',
+      role: 'agent',
     });
 
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.agentId, 'agent-4');
@@ -253,17 +260,13 @@ describe('getAgentMembersList', () => {
 
     const esetResult = await getAgentMembersList({
       agentId: 'golden_pilot_mk_agent',
-      authority: mintTestTenantAuthority('pilot-mk', {
-        userId: 'golden_pilot_mk_agent',
-        role: 'agent',
-      }),
+      tenantId: 'pilot-mk',
+      role: 'agent',
     });
     const bekimResult = await getAgentMembersList({
       agentId: 'golden_pilot_mk_agent_2',
-      authority: mintTestTenantAuthority('pilot-mk', {
-        userId: 'golden_pilot_mk_agent_2',
-        role: 'agent',
-      }),
+      tenantId: 'pilot-mk',
+      role: 'agent',
     });
 
     expect(esetResult.members).toHaveLength(7);

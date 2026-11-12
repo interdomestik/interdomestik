@@ -51,7 +51,7 @@ async function expectRow(page: Page, info: TestInfo, row: AccessRow) {
     await gotoApp(page, claimPath(row, info), info, { marker: ALLOWED_MARKERS.agent });
     const selected = page.getByTestId('workspace-selected-claim-id');
     if (allowed) {
-      await expect(selected, label).toHaveText(caseId);
+      await expect(selected, label).toHaveAttribute('data-claim-id', caseId);
     } else {
       await expect(page.getByTestId('workspace-claim-not-accessible').first(), label).toBeVisible();
       await expect(selected, label).toHaveCount(0);

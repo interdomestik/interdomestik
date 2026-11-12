@@ -248,7 +248,8 @@
           "image": "Bild",
           "audio": "Audio",
           "document": "Dokument"
-        }
+        },
+        "file_unavailable": "Datei nicht verfügbar"
       },
       "timeline": {
         "title": "Aktivitätsverlauf",

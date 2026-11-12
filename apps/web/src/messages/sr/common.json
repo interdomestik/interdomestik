@@ -105,6 +105,12 @@
       "expired": "Isteklo",
       "pending": "Na čekanju",
       "unknown": "Nepoznato"
+    },
+    "portalError": {
+      "title": "Stranica nije mogla da se učita",
+      "description": "Došlo je do greške pri učitavanju. Pokušajte ponovo da osvežite ovu stranicu.",
+      "retry": "Pokušajte ponovo",
+      "home": "Povratak na početnu"
     }
   }
 }

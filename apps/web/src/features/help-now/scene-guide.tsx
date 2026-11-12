@@ -3,6 +3,7 @@
 import type { HelpNowCopy } from './copy';
 import { trackHelpNowEvent } from './analytics';
 import type { HelpNowCountry, HelpNowScenario } from './content-packs';
+import { getSceneChecklist } from './scene-checklist';
 import { HelpNowPanel } from './help-now-ui';
 
 type SceneGuideProps = Readonly<{
@@ -14,6 +15,14 @@ type SceneGuideProps = Readonly<{
 }>;
 
 export function SceneGuide({ copy, completed, country, scenario, onToggle }: SceneGuideProps) {
+  const prompts = {
+    car: copy.continueSafe,
+    injury: copy.injuryPrompt,
+    property: copy.propertyPrompt,
+    flight: copy.continueSafe,
+  };
+  const prompt = prompts[scenario];
+  const checklist = getSceneChecklist(copy, scenario, country);
   return (
     <section className="space-y-4" aria-labelledby="help-now-scene-title">
       <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-950">
@@ -22,9 +31,9 @@ export function SceneGuide({ copy, completed, country, scenario, onToggle }: Sce
         </h2>
       </div>
       <HelpNowPanel>
-        <p className="font-semibold text-slate-950">{copy.continueSafe}</p>
-        <ul className="mt-4 space-y-2">
-          {copy.checklist.map((item, index) => {
+        <p className="font-semibold text-slate-950">{prompt}</p>
+        <ul className="mt-4 space-y-2" aria-label={prompt}>
+          {checklist.map((item, index) => {
             const done = completed.includes(index);
             return (
               <li key={item}>

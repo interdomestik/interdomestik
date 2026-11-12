@@ -8,7 +8,7 @@ import { formatPilotDate } from '@/lib/utils/date';
 export type AgentProClaim = {
   id: string;
   title: string;
-  claimNumber: string;
+  claimNumber: string | null;
   status: string;
   createdAt: Date;
   updatedAt: Date;
@@ -45,7 +45,7 @@ export function useAgentClaimRows(claims: AgentProClaim[], onSelect: (id: string
       // Claim
       <div key="claim">
         <div className="font-medium flex items-center gap-2">
-          {claim.claimNumber}
+          {claim.claimNumber?.trim() || claim.title}
           {Boolean(claim.unreadCount && claim.unreadCount > 0) && (
             <span
               className="flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-destructive rounded-full"
@@ -58,16 +58,14 @@ export function useAgentClaimRows(claims: AgentProClaim[], onSelect: (id: string
         <div className="text-sm text-foreground/90 truncate w-48 font-medium" title={claim.title}>
           {claim.title}
         </div>
-        <div className="text-xs text-muted-foreground w-48 truncate">
-          {claim.lastMessage ? (
+        {claim.lastMessage ? (
+          <div className="text-xs text-muted-foreground w-48 truncate">
             <span className="text-foreground/80 font-medium">
               &quot;{claim.lastMessage.slice(0, 30)}
               {claim.lastMessage.length > 30 ? '...' : ''}&quot;
             </span>
-          ) : (
-            `ID: ${claim.id.slice(0, 8)}`
-          )}
-        </div>
+          </div>
+        ) : null}
       </div>,
       // Status
       <OpsStatusBadge

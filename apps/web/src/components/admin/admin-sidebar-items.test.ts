@@ -5,6 +5,15 @@ import { adminSidebarItems } from './admin-sidebar-items';
 const NO_ACCESS = { canAccessUsers: false, canReadAnalytics: false };
 
 describe('sponsor admin navigation', () => {
+  it('uses a distinct icon for every admitted destination', () => {
+    const icons = adminSidebarItems(ROLES.tenant_admin, null, {
+      canAccessUsers: true,
+      canReadAnalytics: true,
+    })
+      .filter(item => !item.hidden)
+      .map(item => item.icon);
+    expect(new Set(icons).size).toBe(icons.length);
+  });
   it.each([ROLES.admin, ROLES.tenant_admin, ROLES.super_admin, ROLES.branch_manager])(
     'admits %s',
     role => {

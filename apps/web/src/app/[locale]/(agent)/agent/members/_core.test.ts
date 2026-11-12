@@ -30,7 +30,8 @@ describe('getAgentMembersPageData', () => {
 
     expect(hoisted.getAgentMembersListReadModelMock).toHaveBeenCalledWith({
       agentId: 'agent-1',
-      authority,
+      tenantId: 'tenant-1',
+      role: 'agent',
       query: 'arta',
     });
     expect(data.attentionCount).toBe(1);
@@ -38,7 +39,7 @@ describe('getAgentMembersPageData', () => {
     expect(data.search).toBe('arta');
   });
 
-  it('forwards the same effective access-tenant capability without rebuilding it', async () => {
+  it('forwards the effective access tenant read from the session capability', async () => {
     const effectiveAuthority = mintTestTenantAuthority('tenant_mk', {
       accessTenantId: 'tenant_mk',
       userId: 'agent-1',
@@ -48,7 +49,8 @@ describe('getAgentMembersPageData', () => {
 
     expect(hoisted.getAgentMembersListReadModelMock).toHaveBeenCalledWith({
       agentId: 'agent-1',
-      authority: effectiveAuthority,
+      tenantId: 'tenant_mk',
+      role: 'agent',
       query: undefined,
     });
   });
@@ -62,7 +64,8 @@ describe('getAgentMembersPageData', () => {
 
     expect(hoisted.getAgentMembersListReadModelMock).toHaveBeenCalledWith({
       agentId: 'user-9',
-      authority: memberAuthority,
+      tenantId: 'tenant-1',
+      role: 'member',
       query: undefined,
     });
   });

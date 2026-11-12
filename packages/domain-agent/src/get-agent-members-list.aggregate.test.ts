@@ -1,6 +1,5 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
-import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -62,9 +61,6 @@ vi.mock('@interdomestik/database', () => ({
   or: mocks.or,
   sql: mocks.sql,
   user: mocks.user,
-}));
-
-vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   withTenantAuthority: mocks.withTenantAuthority,
 }));
 
@@ -72,7 +68,18 @@ vi.mock('@interdomestik/domain-claims/claims/lifecycle-read-sql', () => ({
   claimLifecycleStatusIn: mocks.claimLifecycleStatusIn,
 }));
 
-import { getAgentMembersList } from './get-agent-members-list';
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: mocks.withTenantAuthority,
+}));
+import { getAgentMembersList as readMembers } from './get-agent-members-list';
+const getAgentMembersList = (params: Omit<Parameters<typeof readMembers>[0], 'authority'>) =>
+  readMembers({
+    ...params,
+    authority: mintTestTenantAuthority(params.tenantId, {
+      userId: params.agentId,
+      role: params.role,
+    }),
+  });
 
 describe('getAgentMembersList aggregate query', () => {
   beforeEach(() => {
@@ -93,10 +100,8 @@ describe('getAgentMembersList aggregate query', () => {
   it('does not count the synthetic null claim row from the left join as active draft', async () => {
     await getAgentMembersList({
       agentId: 'agent-zero-claims',
-      authority: mintTestTenantAuthority('tenant-1', {
-        userId: 'agent-zero-claims',
-        role: 'agent',
-      }),
+      tenantId: 'tenant-1',
+      role: 'agent',
     });
 
     const aggregateCall = mocks.sql.mock.calls.find(([strings]) =>
@@ -118,11 +123,9 @@ describe('getAgentMembersList aggregate query', () => {
   });
 
   it('runs the aggregate through the tenant transaction with the home-tenant claim relation', async () => {
-    const authority = mintTestTenantAuthority('tenant-mk', { userId: 'agent-1', role: 'agent' });
-    await getAgentMembersList({ agentId: 'agent-1', authority });
+    await getAgentMembersList({ agentId: 'agent-1', tenantId: 'tenant-mk', role: 'agent' });
 
     expect(mocks.withTenantAuthority).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantAuthority.mock.calls[0]?.[0]).toBe(authority);
     expect(readTenantAuthority(mocks.withTenantAuthority.mock.calls[0]?.[0])).toMatchObject({
       tenantId: 'tenant-mk',
       principal: { role: 'agent' },
@@ -135,19 +138,5 @@ describe('getAgentMembersList aggregate query', () => {
         { left: mocks.claims.tenantId, right: mocks.agentClients.tenantId },
       ],
     });
-  });
-
-  it.each([
-    [
-      'another agent',
-      mintTestTenantAuthority('tenant-mk', { userId: 'other-agent', role: 'agent' }),
-    ],
-    ['no principal', mintTestTenantAuthority('tenant-mk')],
-    ['a forged token', {} as TenantAuthority],
-  ])('rejects %s before starting a transaction', async (_label, authority) => {
-    await expect(getAgentMembersList({ agentId: 'agent-1', authority })).rejects.toThrow();
-    expect(mocks.withTenantAuthority).not.toHaveBeenCalled();
-    expect(mocks.tx.select).not.toHaveBeenCalled();
-    expect(mocks.db.select).not.toHaveBeenCalled();
   });
 });

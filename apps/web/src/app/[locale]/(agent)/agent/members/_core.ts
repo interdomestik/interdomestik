@@ -15,15 +15,16 @@ export async function getAgentMembersPageData({
   searchParams?: AgentMembersSearchParams;
   authority: TenantAuthority;
 }) {
-  const { principal } = readTenantAuthority(authority);
+  const { tenantId, principal } = readTenantAuthority(authority);
   if (!principal) throw new Error('Forbidden: agent members list requires a session principal');
   const rawSearch = typeof searchParams?.q === 'string' ? searchParams.q : '';
   const search = rawSearch.trim() || undefined;
 
-  // The session capability carries the effective tenant and verified role to the transaction.
+  // The read model re-authorizes the session and must see the same tenant and verified role.
   const { members } = await getAgentMembersListReadModel({
     agentId: principal.userId,
-    authority,
+    tenantId,
+    role: principal.role,
     query: search,
   });
 

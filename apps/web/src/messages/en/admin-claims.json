@@ -248,7 +248,8 @@
           "image": "Image",
           "audio": "Audio",
           "document": "Document"
-        }
+        },
+        "file_unavailable": "File unavailable"
       },
       "timeline": {
         "title": "Activity Timeline",

@@ -105,6 +105,12 @@
       "expired": "E skaduar",
       "pending": "Në pritje",
       "unknown": "E panjohur"
+    },
+    "portalError": {
+      "title": "Faqja nuk mund të ngarkohej",
+      "description": "Ndodhi një gabim gjatë ngarkimit. Provoni përsëri për të rifreskuar këtë faqe.",
+      "retry": "Provo përsëri",
+      "home": "Kthehu në kryefaqe"
     }
   }
 }

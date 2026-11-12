@@ -251,7 +251,8 @@
           "image": "Imazh",
           "audio": "Regjistrim audio",
           "document": "Dokument"
-        }
+        },
+        "file_unavailable": "Skedari nuk është i disponueshëm"
       },
       "timeline": {
         "title": "Kronologjia",

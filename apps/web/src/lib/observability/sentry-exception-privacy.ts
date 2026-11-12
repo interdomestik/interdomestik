@@ -1,4 +1,5 @@
 import type { Event, EventHint, StackFrame } from '@sentry/nextjs';
+import { safeMechanismType, safeNextDigest, safeReactErrorCode } from './sentry-diagnostic-labels';
 import { safeExceptionType, safePostgresCode } from './sentry-error-labels';
 import { safeBuildStackFilename } from './sentry-stack-privacy';
 import { scrubStackFilename } from './sentry-url-privacy';
@@ -26,7 +27,7 @@ export function scrubSentryException(exception: Event['exception']): Event['exce
       value: 'Application failure',
       mechanism: value.mechanism
         ? {
-            type: 'generic',
+            type: safeMechanismType(value.mechanism.type),
             handled:
               typeof value.mechanism.handled === 'boolean' ? value.mechanism.handled : undefined,
           }
@@ -54,11 +55,20 @@ export function applyExceptionClassification(event: Event, hint?: EventHint): vo
   if (!exception) return;
   const type = safeExceptionType(exception.type);
   event.tags = { ...event.tags, error_type: type };
-  const code = type === 'PostgresError' ? postgresCode(hint?.originalException) : undefined;
+  const original = hint?.originalException;
+  const code = type === 'PostgresError' ? postgresCode(original) : undefined;
   if (code) {
     event.tags.postgres_code = code;
     event.fingerprint = ['{{ default }}', type, code];
   }
+  // Framework control flow and minified React failures group by their public code, not by text.
+  const nextDigest = safeNextDigest(original);
+  if (nextDigest) {
+    event.tags.next_digest = nextDigest;
+    event.fingerprint = ['{{ default }}', type, nextDigest];
+  }
+  const reactError = safeReactErrorCode(original);
+  if (reactError) event.tags.react_error = reactError;
 }
 
 /** Debug IDs link build artifacts to source maps; no other image metadata is exportable. */

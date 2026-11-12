@@ -105,6 +105,12 @@
       "expired": "Expired",
       "pending": "Pending",
       "unknown": "Unknown"
+    },
+    "portalError": {
+      "title": "This page could not be loaded",
+      "description": "Something went wrong while loading. Try again to refresh this page.",
+      "retry": "Try again",
+      "home": "Back to home"
     }
   }
 }
