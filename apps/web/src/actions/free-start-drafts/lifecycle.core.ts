@@ -8,7 +8,6 @@ import {
   type FreeStartDraftFacts,
 } from '@interdomestik/database/free-start-drafts';
 import { z } from 'zod';
-import { findConvertedDrafts } from './converted-drafts';
 
 import { freeStartDraftPayloadSchema } from '@/lib/validators/free-start-draft';
 
@@ -45,7 +44,6 @@ const listSchema = z.strictObject({
 
 export type FreeStartDraftLifecycleDependencies = {
   createDraft: typeof createFreeStartDraft;
-  findConvertedDrafts: typeof findConvertedDrafts;
   deleteDraft: typeof deleteFreeStartDraft;
   listDrafts: typeof listFreeStartDrafts;
   resolveSession: typeof resolveFreeStartDraftSession;
@@ -55,7 +53,6 @@ export type FreeStartDraftLifecycleDependencies = {
 
 const defaultDependencies: FreeStartDraftLifecycleDependencies = {
   createDraft: createFreeStartDraft,
-  findConvertedDrafts,
   deleteDraft: deleteFreeStartDraft,
   listDrafts: listFreeStartDrafts,
   resolveSession: resolveFreeStartDraftSession,
@@ -153,37 +150,6 @@ export async function createFreeStartDraftCore(
   );
 }
 
-const MAX_SKIPPED_DRAFT_PAGES = 10;
-type DraftContext = Parameters<FreeStartDraftLifecycleDependencies['listDrafts']>[0];
-type DraftCursor = z.infer<typeof cursorSchema> | null;
-
-/** Skips pages made only of converted drafts so older resumable drafts stay reachable. */
-async function listVisibleDrafts(
-  context: DraftContext,
-  pagination: { cursor?: DraftCursor },
-  requestHeaders: Headers,
-  dependencies: FreeStartDraftLifecycleDependencies,
-  pagesLeft: number
-) {
-  const listed = await dependencies.listDrafts(context, { ...pagination, limit: 20 });
-  const converted = await dependencies.findConvertedDrafts(
-    context,
-    listed.items.map(item => item.id),
-    requestHeaders
-  );
-  const items = listed.items.filter(item => !converted.has(item.id));
-  if (items.length > 0 || !listed.nextCursor || pagesLeft <= 1) {
-    return { items, nextCursor: listed.nextCursor };
-  }
-  return listVisibleDrafts(
-    context,
-    { cursor: listed.nextCursor },
-    requestHeaders,
-    dependencies,
-    pagesLeft - 1
-  );
-}
-
 export async function listFreeStartDraftsCore(
   requestHeaders: Headers,
   input: unknown,
@@ -195,21 +161,11 @@ export async function listFreeStartDraftsCore(
   return withFreshContext(
     requestHeaders,
     dependencies,
-    async context => {
-      const listed = await listVisibleDrafts(
-        context,
-        pagination,
-        requestHeaders,
-        dependencies,
-        MAX_SKIPPED_DRAFT_PAGES
-      );
-      return {
-        ok: true as const,
-        items: listed.items,
-        nextCursor: listed.nextCursor,
-        expectedContext: { ownerUserId: context.ownerUserId, tenantId: context.tenantId },
-      };
-    },
+    async context => ({
+      ok: true as const,
+      ...(await dependencies.listDrafts(context, { ...pagination, limit: 20 })),
+      expectedContext: { ownerUserId: context.ownerUserId, tenantId: context.tenantId },
+    }),
     expectedContext,
     'read'
   );
@@ -226,12 +182,6 @@ export async function resumeFreeStartDraftCore(
     requestHeaders,
     dependencies,
     async context => {
-      const converted = await dependencies.findConvertedDrafts(
-        context,
-        [parsed.data.id],
-        requestHeaders
-      );
-      if (converted.has(parsed.data.id)) return { ok: false, code: 'notFound' } as const;
       const result = await dependencies.resumeDraft(context, parsed.data.id);
       return result.ok
         ? {

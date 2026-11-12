@@ -39,7 +39,6 @@ function lifecycleDeps(
   overrides: Partial<FreeStartDraftLifecycleDependencies> = {}
 ): FreeStartDraftLifecycleDependencies {
   return {
-    findConvertedDrafts: vi.fn().mockResolvedValue(new Set<string>()),
     createDraft: vi.fn().mockResolvedValue({ ok: false, code: 'limitReached' }),
     deleteDraft: vi.fn().mockResolvedValue({ ok: false, code: 'notFound' }),
     listDrafts: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
