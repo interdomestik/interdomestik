@@ -209,7 +209,8 @@ function ScopedMessagingPanel({
         </Button>
       </CardHeader>
 
-      {isAgent ? (
+      {/* With the internal toggle the input owns the notice, so it follows the chosen audience. */}
+      {isAgent && !allowInternal ? (
         <p
           className="shrink-0 border-b px-4 py-2 text-xs text-muted-foreground"
           data-testid="messaging-public-audience"

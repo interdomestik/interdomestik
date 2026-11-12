@@ -147,6 +147,12 @@ export function MessageInput({
         </div>
       )}
 
+      {allowInternal && isAgent && !isInternal && (
+        <p className="text-xs text-muted-foreground" data-testid="messaging-public-audience">
+          {t('publicAudience')}
+        </p>
+      )}
+
       <p className="text-xs text-muted-foreground">{t('shortcut')}</p>
     </form>
   );

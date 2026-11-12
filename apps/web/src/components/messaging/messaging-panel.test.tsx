@@ -233,6 +233,20 @@ describe('MessagingPanel', () => {
     expect(screen.queryByTestId('messaging-public-audience')).not.toBeInTheDocument();
   });
 
+  it('hands the audience notice to the input when internal notes are allowed', () => {
+    render(
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'admin' }}
+        isAgent
+        allowInternal
+      />
+    );
+
+    // MessageInput is mocked here; message-input.test.tsx proves it renders the notice by audience.
+    expect(screen.queryByTestId('messaging-public-audience')).not.toBeInTheDocument();
+  });
+
   it('has refresh button', () => {
     render(
       <MessagingPanel
