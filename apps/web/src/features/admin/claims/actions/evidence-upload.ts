@@ -185,6 +185,7 @@ export async function confirmAdminUpload(
     }
 
     const validatedUpload = await validateConfirmedClaimUpload({
+      authority,
       actorId: session.user.id,
       bucket: resolvedBucket,
       confirmation: params,
@@ -195,6 +196,8 @@ export async function confirmAdminUpload(
     if (!validatedUpload.success) {
       return validatedUpload;
     }
+
+    if (validatedUpload.replayed) return { success: true };
 
     await persistClaimDocumentAndQueueWorkflows({
       category,

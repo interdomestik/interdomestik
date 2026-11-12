@@ -82,6 +82,8 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['diaspora.json', 's5d-diaspora-claim-start-i18n-contract'],
   ['dashboard.json', 't117b-member-portal-i18n-contract'],
   ['claims.json', 'member-evidence-upload-locale-contract'],
+  // Owns the claim evidence upload allowlist copy (formats, limits, refusals); de follows en.
+  ['en/evidence.json', 'claim-evidence-file-upload-i18n-contract'],
   // Owns member messaging and D1c branch-manager communication metadata copy in all five locales.
   ['messaging.json', 'member-case-communication-i18n-contract'],
   ['agent-claims.json', 's4-missing-information-request-i18n-contract'],
@@ -118,7 +120,8 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['de/consumerRights.json', 'locale-quality-pass-i18n-contract'],
   ['de/coverageMatrix.json', 'de-locale-catalog-contract'],
   ['de/documents.json', 'de-locale-catalog-contract'],
-  ['de/evidence.json', 'de-locale-catalog-contract'],
+  ['de/entityDisclosure.json', 'de-locale-catalog-contract'],
+  ['de/evidence.json', 'claim-evidence-file-upload-i18n-contract'],
   ['de/faq.json', 'de-locale-catalog-contract'],
   ['de/features.json', 'de-locale-catalog-contract'],
   ['de/flightJourney.json', 'locale-quality-pass-i18n-contract'],

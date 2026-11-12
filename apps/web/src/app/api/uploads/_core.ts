@@ -10,11 +10,12 @@ import { matchesAccessTenant } from '@/lib/db/access-tenant-predicate';
 import { DEFAULT_EVIDENCE_BUCKET } from '@/lib/storage/evidence-bucket';
 import { isMemberUploadRole } from '@/features/claims/upload/server/member-upload-role';
 import { createInitialClaimUploadIntentToken } from '@/features/claims/upload/server/initial-claim-upload';
-import type { UploadErr, UploadResult } from './upload-result';
 import {
-  assertEvidenceStoragePath,
-  buildEvidenceStoragePath,
-} from '@/features/claims/upload/server/storage-path';
+  EVIDENCE_FORMATS,
+  validateEvidenceFile,
+} from '@/features/claims/upload/evidence-file-policy';
+import { createEvidenceUploadPath } from './evidence-upload-path';
+import type { UploadErr, UploadResult } from './upload-result';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type SessionUser = {
@@ -24,13 +25,8 @@ type SessionUser = {
   tenantId?: string | null;
 };
 type Session = { user: SessionUser };
-export const ALLOWED_MIME_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'application/pdf',
-  'text/plain',
-] as const;
-export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+export const ALLOWED_MIME_TYPES = EVIDENCE_FORMATS.map(format => format.mimeType);
+export const MAX_FILE_SIZE_BYTES = EVIDENCE_FORMATS[0].maxBytes;
 export const DEFAULT_BUCKET = DEFAULT_EVIDENCE_BUCKET;
 export const DEFAULT_CLASSIFICATION = 'pii' as const;
 
@@ -40,7 +36,7 @@ const FORBIDDEN: UploadErr = { ok: false, status: 403, error: 'Forbidden' };
 
 export const uploadRequestSchema = z.object({
   fileName: z.string().min(1),
-  fileType: z.string().min(1),
+  fileType: z.string(),
   fileSize: z.number().positive(),
   claimId: z.string().optional(),
 });
@@ -50,7 +46,42 @@ export type UploadRequest = z.infer<typeof uploadRequestSchema>;
 type InitialUploadIntentResult =
   { ok: true; intentToken: string } | { ok: false; result: UploadErr };
 
-type EvidenceUploadPathResult = { ok: true; path: string } | { ok: false; result: UploadErr };
+async function resolveUploadTenantId(args: {
+  authority: TenantAuthority;
+  claimId?: string;
+  user: SessionUser;
+}): Promise<{ ok: true; tenantId: string } | { ok: false; result: UploadErr }> {
+  const { authority, claimId, user } = args;
+  const { tenantId } = readTenantAuthority(authority);
+  const role = user.role ?? '';
+  if (!claimId) {
+    return isMemberUploadRole(role) ? { ok: true, tenantId } : { ok: false, result: FORBIDDEN };
+  }
+  const access = await withTenantAuthority(authority, async tx => {
+    const claim = await tx.query.claims.findFirst({
+      where: and(eq(claims.id, claimId), matchesAccessTenant(claims, tenantId)),
+      columns: { id: true, tenantId: true, userId: true, agentId: true, branchId: true },
+    });
+    if (!claim) return null;
+    if (!isMemberUploadRole(role)) return { claim, allowed: false };
+    if (claim.userId === user.id) return { claim, allowed: true };
+    // An agent uploads to an attributed claim only within its active client and branch scope.
+    const allowed =
+      role === 'agent' &&
+      (await hasAgentClaimDocumentScope({
+        agentId: user.id,
+        claim: { agentId: claim.agentId, branchId: claim.branchId, ownerId: claim.userId },
+        db: tx,
+        tenantId,
+      }));
+    return { claim, allowed };
+  });
+  if (!access) {
+    return { ok: false, result: { ok: false, status: 404, error: 'Claim not found' } };
+  }
+  if (!access.allowed) return { ok: false, result: FORBIDDEN };
+  return { ok: true, tenantId: access.claim.tenantId };
+}
 
 export async function createSignedUploadCore(args: {
   session: Session;
@@ -62,42 +93,20 @@ export async function createSignedUploadCore(args: {
 
   const { fileName, fileType, fileSize, claimId } = input;
 
-  if (!ALLOWED_MIME_TYPES.includes(fileType as (typeof ALLOWED_MIME_TYPES)[number])) {
-    return { ok: false, status: 415, error: 'File type not allowed' };
+  const validation = validateEvidenceFile(fileName, fileSize, fileType);
+  if (!validation.success) {
+    // Public API contract (e2e/security/upload-cross-tenant.spec.ts): legacy error texts.
+    if (validation.error === 'evidence_too_large')
+      return { ok: false, status: 413, error: 'File too large' };
+    if (validation.error === 'evidence_unsupported')
+      return { ok: false, status: 415, error: 'File type not allowed' };
+    return { ok: false, status: 415, error: validation.error };
   }
+  const mimeType = validation.format.mimeType;
 
-  if (fileSize > MAX_FILE_SIZE_BYTES) return { ok: false, status: 413, error: 'File too large' };
-
-  const { tenantId } = readTenantAuthority(authority);
-  const role = session.user.role ?? '';
-  let storageTenantId = tenantId;
-  if (claimId) {
-    const access = await withTenantAuthority(authority, async tx => {
-      const claim = await tx.query.claims.findFirst({
-        where: and(eq(claims.id, claimId), matchesAccessTenant(claims, tenantId)),
-        columns: { id: true, tenantId: true, userId: true, agentId: true, branchId: true },
-      });
-      if (!claim) return null;
-      if (!isMemberUploadRole(role)) return { claim, allowed: false };
-      if (claim.userId === session.user.id) return { claim, allowed: true };
-      // An agent uploads to an attributed claim only within its active client and branch scope.
-      const allowed =
-        role === 'agent' &&
-        (await hasAgentClaimDocumentScope({
-          agentId: session.user.id,
-          claim: { agentId: claim.agentId, branchId: claim.branchId, ownerId: claim.userId },
-          db: tx,
-          tenantId,
-        }));
-      return { claim, allowed };
-    });
-
-    if (!access) return { ok: false, status: 404, error: 'Claim not found' };
-    if (!access.allowed) return FORBIDDEN;
-    storageTenantId = access.claim.tenantId;
-  } else if (!isMemberUploadRole(role)) {
-    return FORBIDDEN;
-  }
+  const uploadTenant = await resolveUploadTenantId({ authority, claimId, user: session.user });
+  if (!uploadTenant.ok) return uploadTenant.result;
+  const storageTenantId = uploadTenant.tenantId;
 
   const generatedEvidenceId = nanoid();
   const evidenceId = /^[A-Za-z0-9]/.test(generatedEvidenceId)
@@ -123,7 +132,7 @@ export async function createSignedUploadCore(args: {
       bucket,
       fileId: evidenceId,
       fileSize,
-      fileType,
+      fileType: mimeType,
       path,
       tenantId: storageTenantId,
     });
@@ -140,7 +149,7 @@ export async function createSignedUploadCore(args: {
     family: 'claims',
     path,
     tenantId: storageTenantId,
-    upsert: true,
+    upsert: false,
   });
 
   if (error || !data) {
@@ -166,90 +175,15 @@ export async function createSignedUploadCore(args: {
         signedUrl: data.signedUrl,
         bucket,
         expiresIn: 300,
+        mimeType,
+        storageContentType: mimeType,
         ...(intentToken ? { intentToken } : {}),
       },
       classification,
-      maxFileSize: MAX_FILE_SIZE_BYTES,
+      maxFileSize: validation.format.maxBytes,
       allowedMimeTypes: ALLOWED_MIME_TYPES,
     },
   };
-}
-
-function createEvidenceUploadPath(args: {
-  actorId: string;
-  bucket: string;
-  claimId?: string;
-  evidenceId: string;
-  fileName: string;
-  tenantId: string;
-}): EvidenceUploadPathResult {
-  const { actorId, bucket, claimId, evidenceId, fileName, tenantId } = args;
-
-  try {
-    return claimId
-      ? createAssignedEvidenceUploadPath({ bucket, claimId, evidenceId, fileName, tenantId })
-      : createInitialEvidenceUploadPath({ actorId, bucket, evidenceId, fileName, tenantId });
-  } catch {
-    return { ok: false, result: { ok: false, status: 400, error: 'Invalid file name' } };
-  }
-}
-
-function createAssignedEvidenceUploadPath(args: {
-  bucket: string;
-  claimId: string;
-  evidenceId: string;
-  fileName: string;
-  tenantId: string;
-}): { ok: true; path: string } {
-  const { bucket, claimId, evidenceId, fileName, tenantId } = args;
-  const path = buildEvidenceStoragePath({
-    bucket,
-    claimId,
-    fileId: evidenceId,
-    fileName,
-    shape: 'assigned',
-    tenantId,
-  });
-
-  assertEvidenceStoragePath({
-    bucket,
-    claimId,
-    fileId: evidenceId,
-    shape: 'assigned',
-    storagePath: path,
-    tenantId,
-  });
-
-  return { ok: true, path };
-}
-
-function createInitialEvidenceUploadPath(args: {
-  actorId: string;
-  bucket: string;
-  evidenceId: string;
-  fileName: string;
-  tenantId: string;
-}): { ok: true; path: string } {
-  const { actorId, bucket, evidenceId, fileName, tenantId } = args;
-  const path = buildEvidenceStoragePath({
-    actorId,
-    bucket,
-    fileId: evidenceId,
-    fileName,
-    shape: 'initial',
-    tenantId,
-  });
-
-  assertEvidenceStoragePath({
-    actorId,
-    bucket,
-    fileId: evidenceId,
-    shape: 'initial',
-    storagePath: path,
-    tenantId,
-  });
-
-  return { ok: true, path };
 }
 
 function createUnassignedUploadIntentToken(args: {
