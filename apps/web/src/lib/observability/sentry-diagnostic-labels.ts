@@ -14,7 +14,6 @@ const NEXT_DIGESTS = new Set([
 // Prefixed digests carry a status or a redirect target; only the fixed prefix (and a known HTTP
 // fallback status) is ever exported, never the target URL.
 const NEXT_HTTP_FALLBACK = /^NEXT_HTTP_ERROR_FALLBACK;(401|403|404)$/;
-const NEXT_REDIRECT = /^NEXT_REDIRECT;/;
 const REACT_MINIFIED = /^Minified React error #(\d{1,4});/;
 
 // Capture mechanisms of the installed @sentry/nextjs 10.x, node-core and browser SDKs.
@@ -53,7 +52,7 @@ export function safeNextDigest(original: unknown): string | undefined {
   if (NEXT_DIGESTS.has(digest)) return digest;
   const fallback = NEXT_HTTP_FALLBACK.exec(digest);
   if (fallback) return `NEXT_HTTP_ERROR_FALLBACK;${fallback[1]}`;
-  return NEXT_REDIRECT.test(digest) ? 'NEXT_REDIRECT' : undefined;
+  return digest.startsWith('NEXT_REDIRECT;') ? 'NEXT_REDIRECT' : undefined;
 }
 
 /** Production React replaces messages with a numeric code; the code alone is public. */
