@@ -105,10 +105,7 @@ export function ClaimInformationRequests({
     return (
       <InformationRequestReadRecovery failed={false}>
         <Card>
-          <CardHeader>
-            <CardTitle>{t('title')}</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground" data-testid="information-request-empty">
               {t('empty')}
             </p>

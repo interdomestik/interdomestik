@@ -82,7 +82,8 @@ it('shows a truthful named empty state without inventing a request', () => {
   expect(region).toHaveTextContent(copy.empty);
   const empty = screen.getByTestId('information-request-empty');
   expect(empty.closest('.rounded-xl.border')).toContainElement(empty);
-  expect(region.querySelector('h3')).toHaveTextContent(copy.title);
+  // The read-recovery gate asserts the region text is exactly the empty copy.
+  expect(region.textContent?.trim()).toBe(copy.empty);
   expect(region).not.toHaveFocus();
   expect(screen.queryByTestId('claim-information-request')).not.toBeInTheDocument();
   expect(screen.queryByTestId('claim-information-requests')).not.toBeInTheDocument();
