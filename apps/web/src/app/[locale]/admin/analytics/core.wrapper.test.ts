@@ -75,7 +75,7 @@ describe('admin analytics _core', () => {
         )
         .mockImplementationOnce((cb: (rows: { count: number }[]) => unknown) => cb([{ count: 1 }]));
 
-      const authority = mintTestTenantAuthority('tenant-1');
+      const authority = mintTestTenantAuthority('tenant-1', { userId: 'admin-1', role: 'admin' });
       const result = await getAdminAnalyticsDataCore(authority);
       expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
       expect(result.totals.count).toBe(2);
