@@ -1,3 +1,7 @@
+import { validateEvidenceFile } from '../evidence-file-policy';
+import { validateEvidenceContent } from './validate-evidence-content';
+import { validateStoredObject } from './stored-object-validation';
+export { validateStoredObject } from './stored-object-validation';
 import { LOCALES } from '@/i18n/locales';
 import { redactSignedUrlErrorDetails } from '@/lib/storage/signed-url-exposure';
 import { randomUUID } from 'crypto';
@@ -23,7 +27,6 @@ export {
 
 const SIGNED_UPLOAD_MAX_ATTEMPTS = 3;
 const SIGNED_UPLOAD_RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 250;
-const CLAIM_UPLOAD_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 const TRANSIENT_UPLOAD_ERROR_PATTERNS = [
   /fetch failed/i,
   /network/i,
@@ -53,6 +56,7 @@ export type SharedGenerateUploadUrlResult =
 export type ClaimUploadConfirmationInput = {
   claimId: string;
   fileId: string;
+  originalName?: string;
   fileSize: number;
   informationRequestId?: string;
   mimeType: string;
@@ -71,7 +75,7 @@ async function waitForSignedUploadRetry(attempt: number): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, delay));
 }
 
-export function revalidatePathForAllLocales(path: string) {
+export function revalidatePathForAllLocales(path: string): void {
   for (const locale of LOCALES) {
     revalidatePath(`/${locale}${path}`);
   }
@@ -85,91 +89,6 @@ export function sanitizeClaimUploadExtension(fileName: string): string {
       ?.toLowerCase()
       .replaceAll(/[^a-z0-9]/g, '') || 'bin';
   return ext.slice(0, 16) || 'bin';
-}
-
-function numberFromMetadata(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (typeof value === 'string') {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
-}
-
-function stringFromMetadata(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value : null;
-}
-
-function getObjectMetadataValue(metadata: Record<string, unknown>, keys: string[]): unknown {
-  for (const key of keys) {
-    if (metadata[key] !== undefined) return metadata[key];
-  }
-
-  return undefined;
-}
-
-export async function validateStoredObject(params: {
-  bucket: string;
-  fileSize: number;
-  logPrefix: string;
-  mimeType: string;
-  storagePath: string;
-  tenantId: string;
-}): Promise<ConfirmedUploadValidationResult> {
-  const { bucket, fileSize, logPrefix, mimeType, storagePath, tenantId } = params;
-  const lastSlashIndex = storagePath.lastIndexOf('/');
-  const fileName = storagePath.slice(lastSlashIndex + 1);
-
-  const { listTenantObjectsForSingleFile, usesDeterministicE2EStorage } =
-    await import('@/lib/storage/service-role');
-  if (usesDeterministicE2EStorage()) {
-    return { success: true };
-  }
-
-  const { data, error } = await listTenantObjectsForSingleFile({
-    bucket,
-    context: 'claim upload verification',
-    family: 'claims',
-    path: storagePath,
-    tenantId,
-  });
-
-  if (error) {
-    console.error(`${logPrefix} storage object verification failed`, {
-      bucket,
-      storagePath,
-      detail: error.message,
-    });
-    return { success: false, error: 'Failed to verify uploaded file', status: 500 };
-  }
-
-  const storedObject = data?.find(object => object.name === fileName);
-  if (!storedObject) {
-    return {
-      success: false,
-      error: 'Uploaded file was not found. Please retry upload.',
-      status: 409,
-    };
-  }
-
-  const metadata = (storedObject.metadata ?? {}) as Record<string, unknown>;
-  const storedSize = numberFromMetadata(
-    getObjectMetadataValue(metadata, ['size', 'contentLength', 'content_length'])
-  );
-  const storedMimeType = stringFromMetadata(
-    getObjectMetadataValue(metadata, ['mimetype', 'mimeType', 'contentType', 'content_type'])
-  );
-
-  if (storedSize !== fileSize || storedMimeType !== mimeType) {
-    return {
-      success: false,
-      error: 'Uploaded file metadata mismatch. Please retry upload.',
-      status: 409,
-    };
-  }
-
-  return { success: true };
 }
 
 export async function validateConfirmedClaimUpload(params: {
@@ -191,17 +110,28 @@ export async function validateConfirmedClaimUpload(params: {
     uploadIntentToken,
   } = confirmation;
 
-  if (
-    !Number.isSafeInteger(fileSize) ||
-    fileSize <= 0 ||
-    fileSize > CLAIM_UPLOAD_MAX_FILE_SIZE_BYTES ||
-    !expectedUploadPath({ bucket, claimId, fileId, storagePath, tenantId })
-  ) {
+  if (!expectedUploadPath({ bucket, claimId, fileId, storagePath, tenantId })) {
     return {
       success: false,
       error: 'Uploaded file metadata mismatch. Please retry upload.',
       status: 409,
     };
+  }
+
+  const validation = validateEvidenceFile(storagePath, fileSize, mimeType);
+  if (!validation.success) return { success: false, error: validation.error, status: 409 };
+  const namedFormat = validateEvidenceFile(
+    confirmation.originalName ?? storagePath,
+    fileSize,
+    mimeType
+  );
+  if (
+    !namedFormat.success ||
+    namedFormat.format.mimeType !== mimeType ||
+    validation.format.mimeType !== mimeType ||
+    (storageContentType ?? mimeType) !== mimeType
+  ) {
+    return { success: false, error: 'evidence_unsupported', status: 409 };
   }
 
   const intentResult = verifyClaimUploadIntentToken({
@@ -222,14 +152,16 @@ export async function validateConfirmedClaimUpload(params: {
     return intentResult;
   }
 
-  return validateStoredObject({
+  const stored = await validateStoredObject({
     bucket,
     fileSize,
     logPrefix,
-    mimeType: storageContentType ?? mimeType,
+    mimeType,
     storagePath,
     tenantId,
   });
+  if (!stored.success) return stored;
+  return validateEvidenceContent({ bucket, storagePath, tenantId, format: validation.format });
 }
 
 export async function createSignedUploadUrl(params: {
@@ -257,12 +189,16 @@ export async function createSignedUploadUrl(params: {
     tenantId,
   } = params;
 
-  if (!Number.isSafeInteger(fileSize) || fileSize <= 0) {
-    return { success: false, error: 'Invalid file size', status: 400 };
+  const validation = validateEvidenceFile(fileName, fileSize, mimeType);
+  if (!validation.success) {
+    return {
+      success: false,
+      error: validation.error,
+      status: validation.error === 'evidence_too_large' ? 413 : 400,
+    };
   }
-
-  if (fileSize > CLAIM_UPLOAD_MAX_FILE_SIZE_BYTES) {
-    return { success: false, error: 'File too large (max 50MB)', status: 413 };
+  if (validation.format.mimeType !== mimeType || (storageContentType ?? mimeType) !== mimeType) {
+    return { success: false, error: 'evidence_unsupported', status: 400 };
   }
 
   const fileId = randomUUID();
@@ -346,16 +282,16 @@ export async function createSignedUploadUrl(params: {
         continue;
       }
 
-      return { success: false, error: `Failed to generate upload URL: ${detail}`, status: 500 };
+      return { success: false, error: 'evidence_upload_failed', status: 500 };
     }
 
     return {
       success: false,
-      error: 'Failed to generate upload URL: Unknown storage error',
+      error: 'evidence_upload_failed',
       status: 500,
     };
   } catch (error) {
     console.error(`${logPrefix} generate upload URL error`, redactSignedUrlErrorDetails(error));
-    return { success: false, error: 'Unexpected error', status: 500 };
+    return { success: false, error: 'evidence_upload_failed', status: 500 };
   }
 }

@@ -13,6 +13,8 @@ const hoisted = vi.hoisted(() => {
     findOwnedMemberInformationRequest: vi.fn(),
     createSignedUploadUrl: vi.fn(),
     listStorageObjects: vi.fn(),
+    readPrefix: vi.fn(),
+    remove: vi.fn(),
     storageFrom: vi.fn(),
     insertValues: vi.fn(),
     metadataClaimRows: vi.fn(),
@@ -27,6 +29,8 @@ const hoisted = vi.hoisted(() => {
     eq,
   };
 });
+
+vi.mock('@/lib/storage/object-prefix', () => ({ readTenantObjectPrefix: hoisted.readPrefix }));
 
 vi.mock('@/lib/auth', () => ({
   auth: {
@@ -112,11 +116,14 @@ beforeEach(() => {
   hoisted.storageFrom.mockReturnValue({
     createSignedUploadUrl: hoisted.createSignedUploadUrl,
     list: hoisted.listStorageObjects,
+    remove: hoisted.remove,
   });
   hoisted.createSignedUploadUrl.mockResolvedValue({
     data: { signedUrl: 'https://signed.example.com/upload', token: 'upload-token-1' },
     error: null,
   });
+  hoisted.readPrefix.mockResolvedValue(new TextEncoder().encode('%PDF-1.7'));
+  hoisted.remove.mockResolvedValue({ error: null });
   hoisted.listStorageObjects.mockResolvedValue({
     data: [
       {

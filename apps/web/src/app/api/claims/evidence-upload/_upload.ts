@@ -65,7 +65,7 @@ export async function uploadEvidenceObject(params: {
   });
 
   if (uploadError) {
-    return jsonError(uploadError.message || 'Failed to upload evidence', 500);
+    return jsonError('evidence_upload_failed', 500);
   }
 
   return null;

@@ -48,6 +48,14 @@
     "privacyBadge": "Dateien mit PII-Kennzeichnung, signierte URLs, verschlüsselt bei der Übertragung.",
     "slaTitle": "Reaktions-SLA",
     "slaCopy": "Auf neue Einreichungen antworten wir in unter 24 Std.",
-    "consent": "Mit dem Absenden stimmen Sie unseren Nutzungsbedingungen und unserer Datenschutzerklärung zu."
+    "consent": "Mit dem Absenden stimmen Sie unseren Nutzungsbedingungen und unserer Datenschutzerklärung zu.",
+    "fileUpload": {
+      "help": "Erlaubt: {formats}. Bis zu 10 MB pro Dokument, Bild oder Audiodatei; 50 MB pro Video.",
+      "unsupported": "Nicht unterstütztes Format. Wählen Sie: {formats}.",
+      "tooLarge": "Diese Datei ist zu groß. Die Grenze für dieses Format beträgt {limit} MB.",
+      "empty": "Diese Datei ist leer. Wählen Sie eine Datei mit Inhalt.",
+      "contentMismatch": "Der Dateiinhalt stimmt nicht mit dem Format überein. Wählen Sie die Originaldatei und versuchen Sie es erneut.",
+      "failed": "Das Hochladen ist fehlgeschlagen. Bitte versuchen Sie es erneut."
+    }
   }
 }

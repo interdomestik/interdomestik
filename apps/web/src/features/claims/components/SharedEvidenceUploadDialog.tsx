@@ -25,9 +25,11 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
   EVIDENCE_FILE_ACCEPT,
-  resolveStorageUploadContentType,
-  resolveUploadMimeType,
-} from '@/features/admin/claims/components/ops/file-upload-meta';
+  EVIDENCE_FORMAT_LABEL,
+  resolveEvidenceFormat,
+  validateEvidenceFile,
+} from '../upload/evidence-file-policy';
+import { evidenceUploadErrorMessage } from '../upload/evidence-upload-error';
 import { AiExtractionConsentField } from './ai-extraction-consent-field';
 import type {
   EvidenceCategory,
@@ -40,15 +42,6 @@ import {
   SignedUploadIdentityChangedError,
 } from './use-signed-upload-retry';
 
-function uploadFailureMessage(
-  error: unknown,
-  identityChangedMessage: () => string,
-  fallback: string
-): string {
-  if (error instanceof SignedUploadIdentityChangedError) return identityChangedMessage();
-  return error instanceof Error ? error.message : fallback;
-}
-
 export function SharedEvidenceUploadDialog({
   categoryFieldId,
   claimId,
@@ -60,8 +53,9 @@ export function SharedEvidenceUploadDialog({
   messages,
   onUploadSuccess,
   trigger,
-}: SharedEvidenceUploadDialogProps) {
+}: SharedEvidenceUploadDialogProps): React.JSX.Element {
   const tClaims = useTranslations('claims');
+  const tUpload = useTranslations('evidence.fileUpload');
   const pathname = usePathname();
   const [lastFailure, setLastFailure] = useState(false);
   const [open, setOpen] = useState(false);
@@ -108,6 +102,7 @@ export function SharedEvidenceUploadDialog({
   // A pending signed upload pins its original file, category, and consent until it settles.
   const locked = uploading || pending !== null;
   const pendingFileId = `${fileFieldId}-pending-file`;
+  const helpId = `${fileFieldId}-help`;
 
   useEffect(() => {
     // Only the unsubmitted draft resets on close; a pending signed upload keeps its identity.
@@ -123,41 +118,24 @@ export function SharedEvidenceUploadDialog({
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selected = event.target.files?.[0] ?? null;
+    if (selected) {
+      const validation = validateEvidenceFile(selected.name, selected.size, selected.type);
+      if (!validation.success) {
+        setFile(null);
+        event.target.value = '';
+        setAiExtractionConsentGranted(false);
+        toast.error(
+          evidenceUploadErrorMessage(
+            validation.error,
+            tUpload,
+            'limitMB' in validation ? validation.limitMB : 10
+          )
+        );
+        return;
+      }
+    }
     setFile(selected);
     setAiExtractionConsentGranted(false);
-  };
-
-  const usesDirectUpload = (selectedFile: File) =>
-    !informationRequestId &&
-    resolveUploadMimeType(selectedFile) !== resolveStorageUploadContentType(selectedFile);
-
-  const handleDirectUpload = async (draft: SignedUploadDraft) => {
-    const formData = new FormData();
-    formData.append('claimId', claimId);
-    formData.append('category', draft.category);
-    formData.append('locale', locale);
-    formData.append('file', draft.file);
-    if (informationRequestId) {
-      formData.append('informationRequestId', informationRequestId);
-    }
-    formData.append('aiExtractionConsentGranted', String(draft.consentGranted));
-
-    const response = await fetch('/api/claims/evidence-upload', {
-      method: 'POST',
-      body: formData,
-    });
-    const body = (await response.json().catch(() => null)) as {
-      error?: string;
-      fileId?: string;
-    } | null;
-
-    if (!response.ok) {
-      throw new Error(body?.error || messages.uploadFailed);
-    }
-    if (!body?.fileId) {
-      throw new Error(messages.uploadFailed);
-    }
-    return body.fileId;
   };
 
   const handleUpload = async () => {
@@ -174,10 +152,7 @@ export function SharedEvidenceUploadDialog({
     if (!attempt) return;
     setLastFailure(false);
     try {
-      const documentId =
-        !pendingUpload && usesDirectUpload(draft.file)
-          ? await handleDirectUpload(draft)
-          : await signedUpload.uploadSigned(draft);
+      const documentId = await signedUpload.uploadSigned(draft);
       onUploadSuccess?.({
         documentId,
         documentName: draft.file.name,
@@ -190,11 +165,15 @@ export function SharedEvidenceUploadDialog({
       setLastFailure(true);
       console.error('Upload flow error', error);
       toast.error(
-        uploadFailureMessage(
-          error,
-          () => tClaims('uploadRecovery.identityChanged'),
-          messages.uploadFailed
-        )
+        error instanceof SignedUploadIdentityChangedError
+          ? tClaims('uploadRecovery.identityChanged')
+          : evidenceUploadErrorMessage(
+              error,
+              tUpload,
+              (resolveEvidenceFormat(draft.file.name, draft.file.type)?.maxBytes ??
+                10 * 1024 * 1024) /
+                (1024 * 1024)
+            )
       );
     } finally {
       signedUpload.release(attempt);
@@ -233,10 +212,13 @@ export function SharedEvidenceUploadDialog({
               id={fileFieldId}
               type="file"
               accept={EVIDENCE_FILE_ACCEPT}
-              aria-describedby={pending ? pendingFileId : undefined}
+              aria-describedby={pending ? `${helpId} ${pendingFileId}` : helpId}
               onChange={handleFileChange}
               disabled={locked}
             />
+            <p id={helpId} className="text-sm text-muted-foreground">
+              {tUpload('help', { formats: EVIDENCE_FORMAT_LABEL })}
+            </p>
             {pending ? (
               <p id={pendingFileId} className="text-sm text-muted-foreground">
                 {pending.file.name}

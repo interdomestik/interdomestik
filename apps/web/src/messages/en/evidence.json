@@ -44,6 +44,14 @@
     "privacyBadge": "PII-tagged files, signed URLs, encrypted in transit.",
     "slaTitle": "Response SLA",
     "slaCopy": "We respond in under 24h on new submissions.",
-    "consent": "By submitting, you agree to our Terms of Service and Privacy Policy."
+    "consent": "By submitting, you agree to our Terms of Service and Privacy Policy.",
+    "fileUpload": {
+      "help": "Allowed: {formats}. Up to 10 MB per document, image or audio file; 50 MB per video.",
+      "unsupported": "Unsupported format. Choose: {formats}.",
+      "tooLarge": "This file is too large. The limit for this format is {limit} MB.",
+      "empty": "This file is empty. Choose a file with content.",
+      "contentMismatch": "The file content does not match its format. Choose the original file and try again.",
+      "failed": "Upload failed. Please try again."
+    }
   }
 }

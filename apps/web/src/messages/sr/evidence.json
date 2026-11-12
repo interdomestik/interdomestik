@@ -44,6 +44,14 @@
     "privacyBadge": "Fajlovi označeni kao PII, potpisani URL-ovi, šifrovano u prenosu.",
     "slaTitle": "SLA odgovora",
     "slaCopy": "Odgovaramo za manje od 24h na nove prijave.",
-    "consent": "Slanjem se slažete sa našim Uslovima korišćenja i Politikom privatnosti."
+    "consent": "Slanjem se slažete sa našim Uslovima korišćenja i Politikom privatnosti.",
+    "fileUpload": {
+      "help": "Dozvoljeno: {formats}. Do 10 MB po dokumentu, slici ili audio datoteci; 50 MB po video snimku.",
+      "unsupported": "Nepodržan format. Izaberite: {formats}.",
+      "tooLarge": "Datoteka je prevelika. Ograničenje za ovaj format je {limit} MB.",
+      "empty": "Datoteka je prazna. Izaberite datoteku sa sadržajem.",
+      "contentMismatch": "Sadržaj datoteke ne odgovara njenom formatu. Izaberite originalnu datoteku i pokušajte ponovo.",
+      "failed": "Otpremanje nije uspelo. Pokušajte ponovo."
+    }
   }
 }

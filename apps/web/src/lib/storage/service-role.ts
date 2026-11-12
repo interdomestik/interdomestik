@@ -20,7 +20,7 @@ export const SIGNED_DOWNLOAD_TTL_SECONDS = SIGNED_DOWNLOAD_TTL_CAPS_SECONDS.defa
 export const VOICE_NOTE_PREVIEW_TTL_SECONDS = SIGNED_DOWNLOAD_TTL_CAPS_SECONDS.voiceNotePreview;
 export const SIGNED_UPLOAD_INTENT_TTL_SECONDS = 15 * 60;
 
-type TenantStorageTarget = {
+export type TenantStorageTarget = {
   bucket: string;
   context?: string;
   family: TenantStorageFamily;
@@ -142,4 +142,11 @@ export async function listTenantObjectsForSingleFile(args: TenantStorageTarget) 
     limit: 100,
     search: fileName,
   });
+}
+
+export async function removeTenantObject(
+  args: TenantStorageTarget
+): Promise<{ error: { message: string } | null }> {
+  assertTenantStoragePath(args);
+  return createAdminClient().storage.from(args.bucket).remove([args.path]);
 }
