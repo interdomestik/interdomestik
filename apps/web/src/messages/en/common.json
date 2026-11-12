@@ -87,6 +87,12 @@
         "tenant_mk": "North Macedonia — standard service",
         "pilot-mk": "North Macedonia — pilot programme"
       }
+    },
+    "portalError": {
+      "title": "This page could not be loaded",
+      "description": "Something went wrong while loading. Try again to refresh this page.",
+      "retry": "Try again",
+      "home": "Back to home"
     }
   }
 }

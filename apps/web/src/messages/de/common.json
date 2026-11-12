@@ -87,6 +87,12 @@
         "tenant_mk": "Nordmazedonien — regulärer Service",
         "pilot-mk": "Nordmazedonien — Pilotprogramm"
       }
+    },
+    "portalError": {
+      "title": "Diese Seite konnte nicht geladen werden",
+      "description": "Beim Laden ist ein Fehler aufgetreten. Versuchen Sie es erneut, um diese Seite zu aktualisieren.",
+      "retry": "Erneut versuchen",
+      "home": "Zur Startseite"
     }
   }
 }

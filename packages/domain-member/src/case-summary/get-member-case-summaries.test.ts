@@ -65,6 +65,13 @@ describe('getMemberCaseSummaries', () => {
     h.tenant.mockImplementation(async (_context, action) => action({ select: h.select }));
   });
 
+  it('preserves the title needed to identify an unnumbered claim', async () => {
+    h.rows = [row({ reference: null, title: 'Property damage case' })];
+    const [summary] = await get();
+    expect(summary.title).toBe('Property damage case');
+    expect(h.select.mock.calls[0][0]).toHaveProperty('title', 'claim.title');
+  });
+
   it('scopes one query and returns safe facts', async () => {
     h.rows = [row({ documentCount: 3 })];
     const result = await get('member-1', 'tenant-1');
@@ -76,7 +83,7 @@ describe('getMemberCaseSummaries', () => {
       )
     );
     expect(Object.keys(h.select.mock.calls[0][0])).toEqual(
-      'id category reference caseLifecycleState recoveryLifecycleState documentCount createdAt updatedAt'.split(
+      'id title category reference caseLifecycleState recoveryLifecycleState documentCount createdAt updatedAt'.split(
         ' '
       )
     );
@@ -84,7 +91,7 @@ describe('getMemberCaseSummaries', () => {
       expect.stringMatching(/coalesce\(.+\) desc nulls last/u),
       'claim.id',
     ]);
-    expect(Object.keys(result[0])).toHaveLength(7);
+    expect(Object.keys(result[0])).toHaveLength(8);
     expect([result[0].documentCount, result[0].nextStep, result[0].occurredAt]).toEqual([
       3,
       'team_review',
