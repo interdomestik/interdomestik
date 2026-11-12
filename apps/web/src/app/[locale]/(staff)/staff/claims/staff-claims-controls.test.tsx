@@ -21,6 +21,17 @@ function renderControls(href?: string) {
 }
 
 describe('StaffClaimsControls', () => {
+  it('keeps search and clear labels on one line while the input can shrink', () => {
+    renderControls();
+    const submit = screen.getByTestId('staff-claims-search-submit');
+    expect(submit).toHaveClass('shrink-0', '!whitespace-nowrap', '[overflow-wrap:normal]');
+    expect(screen.getByRole('link', { name: 'Clear' })).toHaveClass(
+      'shrink-0',
+      '!whitespace-nowrap'
+    );
+    expect(submit.parentElement).toHaveClass('shrink-0', 'flex-wrap');
+    expect(screen.getByTestId('staff-claims-search-form')).toHaveClass('flex-col', 'md:flex-row');
+  });
   beforeEach(() => {
     resetNavigationHarness();
   });

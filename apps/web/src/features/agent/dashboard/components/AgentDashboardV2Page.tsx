@@ -60,7 +60,7 @@ export async function AgentDashboardV2Page({
   const isPro = ['pro', 'office'].includes(tier);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="min-w-0 space-y-8 animate-in fade-in duration-500 [overflow-wrap:anywhere]">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
@@ -139,7 +139,6 @@ export async function AgentDashboardV2Page({
           </div>
         </Card>
 
-        {/* Right: Pipeline Pulse */}
         {/* Right: Pipeline Pulse (Pro) or Client Summary (Lite) */}
         <Card className="border-white/10 bg-slate-950/40 backdrop-blur-2xl">
           <CardHeader className="pb-2">
@@ -199,7 +198,6 @@ export async function AgentDashboardV2Page({
         </Card>
       </div>
 
-      {/* NEW: Diaspora Toolkit (The Final 4) */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <MatteAnchorCard
           label={tToolkit('campaign.title')}
@@ -235,14 +233,13 @@ export async function AgentDashboardV2Page({
         />
       </div>
 
-      {/* Preservation of existing features (relayouted) */}
-      <div className="grid gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-8 space-y-6">
+      <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="min-w-0 lg:col-span-8 space-y-6">
           {isPro && <PipelineChart data={stats} />}
           <LeaderboardCard initialResult={leaderboardResult} />
         </div>
 
-        <div className="lg:col-span-4 space-y-6">
+        <div className="min-w-0 lg:col-span-4 space-y-6">
           <ReferralLinkCard referralLinkResult={referralLinkResult} />
           <Card className="border-white/5 bg-slate-950/20">
             <CardHeader>
@@ -266,8 +263,7 @@ export async function AgentDashboardV2Page({
           </Card>
         </div>
 
-        {/* Your Clients */}
-        <div className="lg:col-span-12">
+        <div className="min-w-0 lg:col-span-12">
           <Card>
             <CardHeader>
               <CardTitle>{t('dashboardV2.yourClients')}</CardTitle>

@@ -104,9 +104,16 @@ export function ClaimInformationRequests({
   if (!displayRequests.length) {
     return (
       <InformationRequestReadRecovery failed={false}>
-        <p className="text-sm text-muted-foreground" data-testid="information-request-empty">
-          {t('empty')}
-        </p>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('title')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground" data-testid="information-request-empty">
+              {t('empty')}
+            </p>
+          </CardContent>
+        </Card>
       </InformationRequestReadRecovery>
     );
   }

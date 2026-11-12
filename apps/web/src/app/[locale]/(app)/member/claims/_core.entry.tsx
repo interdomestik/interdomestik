@@ -33,7 +33,7 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
   return (
     <div className="min-w-0 space-y-6 [overflow-wrap:anywhere]">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-0">
         <div className="min-w-0">
           <h2 className="text-3xl font-bold tracking-tight" data-testid="page-title">
             {t('title')}

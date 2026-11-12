@@ -166,6 +166,18 @@ describe('MemberClaimsTable', () => {
       expect(screen.getByText('Car Accident')).toBeInTheDocument();
       expect(screen.getByText('State Farm')).toBeInTheDocument();
     });
+    expect(screen.getByRole('table')).toHaveClass('block', 'md:table');
+    expect(screen.getByRole('table').querySelector('thead')).toHaveClass(
+      'sr-only',
+      'md:not-sr-only'
+    );
+    expect(screen.getByRole('table').querySelector('tbody')).toHaveClass(
+      'block',
+      'md:table-row-group'
+    );
+    const row = screen.getByRole('link', { name: 'Car Accident' }).closest('tr');
+    expect(row).toHaveClass('grid', 'p-4', 'md:table-row', 'md:p-0');
+    expect(row?.querySelectorAll('[data-label]')).toHaveLength(5);
   });
 
   it('renders table headers', async () => {

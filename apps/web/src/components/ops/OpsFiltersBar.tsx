@@ -46,7 +46,7 @@ export function OpsFiltersBar({
   searchDisabled = false,
 }: Readonly<OpsFiltersBarProps>) {
   const containerClasses = [
-    'flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg border border-white/5 bg-card/30 backdrop-blur-sm',
+    'flex min-w-0 flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-4 p-4 rounded-lg border border-white/5 bg-card/30 backdrop-blur-sm',
     className,
   ]
     .filter(Boolean)
