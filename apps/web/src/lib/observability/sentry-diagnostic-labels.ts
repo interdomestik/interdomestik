@@ -37,15 +37,18 @@ const MECHANISMS = new Set([
   'auto.core.linked_errors',
 ]);
 
-function readStringField(original: unknown, field: 'digest' | 'message'): string | undefined {
+// Only a short leading prefix is ever inspected; the rest of a long digest or message is ignored.
+const PREFIX_LENGTH = 64;
+
+function readPrefix(original: unknown, field: 'digest' | 'message'): string | undefined {
   if (!original || typeof original !== 'object' || !(field in original)) return undefined;
   const value = (original as Record<string, unknown>)[field];
-  return typeof value === 'string' && value.length <= 512 ? value : undefined;
+  return typeof value === 'string' ? value.slice(0, PREFIX_LENGTH) : undefined;
 }
 
 /** Next marks framework control flow with a digest; only reviewed spellings become a label. */
 export function safeNextDigest(original: unknown): string | undefined {
-  const digest = readStringField(original, 'digest');
+  const digest = readPrefix(original, 'digest');
   if (!digest) return undefined;
   if (NEXT_DIGESTS.has(digest)) return digest;
   const fallback = NEXT_HTTP_FALLBACK.exec(digest);
@@ -55,7 +58,7 @@ export function safeNextDigest(original: unknown): string | undefined {
 
 /** Production React replaces messages with a numeric code; the code alone is public. */
 export function safeReactErrorCode(original: unknown): string | undefined {
-  const message = readStringField(original, 'message');
+  const message = readPrefix(original, 'message');
   const match = message ? REACT_MINIFIED.exec(message) : null;
   return match ? match[1] : undefined;
 }

@@ -112,27 +112,12 @@ function isSafeBrowserChunk(segments: string[], filename: string): boolean {
   return isSafeBuildRoute('/' + segments.slice(1).join('/'));
 }
 
-// Framework runtime files (no app source) keep their package-relative path; the deployment prefix
-// before the last node_modules segment (home directories, /var/task) is always discarded.
-const RUNTIME_PACKAGE = /^(?:next|react|react-dom|scheduler|@sentry\/[a-z0-9-]{1,40})\//;
-
-function safeRuntimeModulePath(value: string): string | undefined {
-  const marker = '/node_modules/';
-  const index = value.lastIndexOf(marker);
-  if (index === -1) return undefined;
-  const tail = value.slice(index + marker.length);
-  if (tail.length > 256 || !RUNTIME_PACKAGE.test(tail) || !/^[\w@./-]+\.(?:js|mjs|cjs)$/.test(tail))
-    return undefined;
-  return `${marker}${tail}`;
-}
-
 /** Validate the original spelling before URL parsing can normalize traversal or encoding. */
 export function safeBuildStackFilename(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   if (NODE_MODULES.has(value)) return value;
   if (/[\\%\s?#]/.test(value) || /\/\.{1,2}(?:\/|$)/.test(value)) return undefined;
   if (value.startsWith('app:///')) return isSafeBuildPath(value.slice(6)) ? value : undefined;
-  if (value.startsWith('/')) return safeRuntimeModulePath(value);
   try {
     const url = parseTelemetryUrl(value);
     if (!['http:', 'https:'].includes(url.protocol)) return undefined;

@@ -2,7 +2,6 @@ import type { Event } from '@sentry/nextjs';
 import { describe, expect, it } from 'vitest';
 import { safeMechanismType, safeNextDigest, safeReactErrorCode } from './sentry-diagnostic-labels';
 import { scrubSentryEvent } from './sentry-privacy';
-import { scrubStackFilename } from './sentry-url-privacy';
 
 function errorWith(fields: Record<string, unknown>): Error {
   return Object.assign(new Error('raw private text'), fields);
@@ -73,6 +72,16 @@ describe('Sentry diagnostic labels', () => {
     expect(safeReactErrorCode(null)).toBeUndefined();
   });
 
+  it('labels long digests and messages from their bounded prefix only', () => {
+    const longRedirect = `NEXT_REDIRECT;push;/sq/member/claims/${'claim-private'.repeat(200)};307;`;
+    expect(safeNextDigest(errorWith({ digest: longRedirect }))).toBe('NEXT_REDIRECT');
+    const longReact = `Minified React error #31; visit https://react.dev/errors/31?args[]=${'private'.repeat(170)}`;
+    expect(longReact.length).toBeGreaterThan(1200);
+    const event = scrubbedException('generic', new Error(longReact));
+    expect(event?.tags?.react_error).toBe('31');
+    expect(JSON.stringify(event)).not.toContain('private');
+  });
+
   it('keeps reviewed capture mechanisms and collapses the rest to generic', () => {
     for (const type of [
       'auto.node.onunhandledrejection',
@@ -82,43 +91,5 @@ describe('Sentry diagnostic labels', () => {
       expect(safeMechanismType(type)).toBe(type);
     for (const type of ['custom', 'auto.function.nextjs.alice', undefined, 7])
       expect(safeMechanismType(type)).toBe('generic');
-  });
-});
-
-describe('Sentry runtime package frames', () => {
-  it.each([
-    [
-      '/var/task/apps/web/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js',
-      '/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js',
-    ],
-    [
-      '/Users/alice/dev/node_modules/.pnpm/next@16.4.1/node_modules/next/dist/server/request/params.js',
-      '/node_modules/next/dist/server/request/params.js',
-    ],
-    [
-      '/var/task/node_modules/@sentry/core/build/cjs/utils/handleCallbackErrors.js',
-      '/node_modules/@sentry/core/build/cjs/utils/handleCallbackErrors.js',
-    ],
-    [
-      '/node_modules/react-dom/cjs/react-dom-server.node.production.js',
-      '/node_modules/react-dom/cjs/react-dom-server.node.production.js',
-    ],
-  ])('keeps the package-relative path of %s', (filename, expected) => {
-    expect(scrubStackFilename(filename)).toBe(expected);
-    expect(scrubStackFilename(expected)).toBe(expected);
-  });
-
-  it.each([
-    '/var/task/apps/web/node_modules/private-pkg/index.js',
-    '/var/task/apps/web/src/app/[locale]/admin/users/[id]/page.tsx',
-    '/var/task/apps/web/node_modules/next/dist/../../../secret.js',
-    '/var/task/apps/web/node_modules/next/dist/data.json',
-    '/var/task/apps/web/node_modules/next/dist/alice smith.js',
-    '/Users/alice/node_modules/next/dist/server.js?token=x',
-  ])('does not keep the unreviewed path %s', filename => {
-    const scrubbed = scrubStackFilename(filename);
-    expect(scrubbed.startsWith('/node_modules/')).toBe(false);
-    for (const forbidden of ['alice', 'private-pkg', 'secret', 'token', 'var/task'])
-      expect(scrubbed).not.toContain(forbidden);
   });
 });
