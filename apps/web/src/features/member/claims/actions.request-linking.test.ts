@@ -33,6 +33,13 @@ vi.mock('@interdomestik/database', () => ({
   createAdminClient: () => ({ storage: { from: hoisted.storageFrom } }),
   db: { insert: hoisted.insert, transaction: hoisted.transaction },
   claimDocuments: 'claim_documents',
+  claimInformationRequestEvidence: 'claim_information_request_evidence',
+  withTenantContext: (_authority: unknown, callback: (tx: unknown) => unknown) =>
+    callback({
+      select: () => ({ from: () => ({ where: () => ({ limit: () => Promise.resolve([]) }) }) }),
+    }),
+  and: vi.fn(),
+  eq: vi.fn(),
   claimDocumentAiExtractionConsents: 'claim_document_ai_extraction_consents',
 }));
 vi.mock('@interdomestik/domain-claims/claims/ai-workflows', () => ({

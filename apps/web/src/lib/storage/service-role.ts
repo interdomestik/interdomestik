@@ -20,7 +20,7 @@ export const SIGNED_DOWNLOAD_TTL_SECONDS = SIGNED_DOWNLOAD_TTL_CAPS_SECONDS.defa
 export const VOICE_NOTE_PREVIEW_TTL_SECONDS = SIGNED_DOWNLOAD_TTL_CAPS_SECONDS.voiceNotePreview;
 export const SIGNED_UPLOAD_INTENT_TTL_SECONDS = 15 * 60;
 
-type TenantStorageTarget = {
+export type TenantStorageTarget = {
   bucket: string;
   context?: string;
   family: TenantStorageFamily;
@@ -72,21 +72,28 @@ function createDeterministicE2EUploadSignature(args: TenantStorageTarget) {
   };
 }
 
+type TenantSignedUploadResult =
+  | {
+      data: { path: string; signedUrl: string; token: string; deterministicE2E?: true };
+      error: null;
+    }
+  | { data: null; error: { message: string } };
+
 export async function createTenantSignedUploadUrl(
   args: TenantStorageTarget & {
     allowDeterministicE2ESigning?: boolean;
     upsert?: boolean;
   }
-) {
+): Promise<TenantSignedUploadResult> {
   assertTenantStoragePath(args);
 
   if (args.allowDeterministicE2ESigning !== false && usesDeterministicE2EStorage()) {
     return createDeterministicE2EUploadSignature(args);
   }
 
-  return createAdminClient()
+  return await createAdminClient()
     .storage.from(args.bucket)
-    .createSignedUploadUrl(args.path, { upsert: args.upsert ?? true });
+    .createSignedUploadUrl(args.path, { upsert: args.family !== 'claims' && args.upsert === true });
 }
 
 export async function createTenantSignedDownloadUrl(
@@ -142,4 +149,11 @@ export async function listTenantObjectsForSingleFile(args: TenantStorageTarget) 
     limit: 100,
     search: fileName,
   });
+}
+
+export function removeTenantObject(
+  args: TenantStorageTarget
+): Promise<{ error: { message: string } | null }> {
+  assertTenantStoragePath(args);
+  return createAdminClient().storage.from(args.bucket).remove([args.path]);
 }
