@@ -52,7 +52,9 @@ export function scrubTransactionName(value: string): string {
 }
 
 function scrubTransactionPath(path: string): string {
-  const hasPlaceholder = path.split('/').some(segment => /^[\[:]/.test(segment));
+  const hasPlaceholder = path
+    .split('/')
+    .some(segment => segment.startsWith('[') || segment.startsWith(':'));
   if (!hasPlaceholder) return scrubUrl(path);
   // Mixed patterns/values must match source route shapes, including dynamic positions.
   if (isSafeRoutePattern(path)) return path;
