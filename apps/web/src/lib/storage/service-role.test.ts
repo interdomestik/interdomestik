@@ -49,6 +49,14 @@ describe('service-role storage boundary', () => {
     vi.unstubAllEnvs();
   });
 
+  it('refuses claim-object replacement even if the signer caller requests upsert', async () => {
+    const { createTenantSignedUploadUrl } = await import('./service-role');
+    await createTenantSignedUploadUrl({ ...VALID_CLAIM_UPLOAD_TARGET, upsert: true });
+    expect(createSignedUploadUrl).toHaveBeenCalledWith(VALID_CLAIM_UPLOAD_TARGET.path, {
+      upsert: false,
+    });
+  });
+
   it('asserts tenant prefix before creating signed upload URLs', async () => {
     const { createTenantSignedUploadUrl } = await import('./service-role');
 
@@ -120,7 +128,7 @@ describe('service-role storage boundary', () => {
     });
     expect(storageFrom).toHaveBeenCalledWith('claim-evidence');
     expect(createSignedUploadUrl).toHaveBeenCalledWith(VALID_CLAIM_UPLOAD_TARGET.path, {
-      upsert: true,
+      upsert: false,
     });
   });
 
@@ -142,7 +150,7 @@ describe('service-role storage boundary', () => {
     expect(result.data?.token).toBe('jwt-token');
     expect(storageFrom).toHaveBeenCalledWith('claim-evidence');
     expect(createSignedUploadUrl).toHaveBeenCalledWith(VALID_CLAIM_UPLOAD_TARGET.path, {
-      upsert: true,
+      upsert: false,
     });
   });
 

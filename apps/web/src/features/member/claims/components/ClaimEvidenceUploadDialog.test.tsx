@@ -5,7 +5,9 @@ import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
 import { runSharedEvidenceUploadDialogTests } from '@/features/claims/components/shared-evidence-upload-dialog.test-helpers';
 import {
   catalogs,
-  commonCatalogs,
+  evidenceCatalogs,
+  evidenceDialogMessages,
+  translateDialogMessage,
   exactCopy,
   localizedCopy,
   type SupportedLocale,
@@ -29,7 +31,7 @@ function dialogElement(
   informationRequestId?: string
 ) {
   mocks.locale = locale;
-  mocks.messages = { ...catalogs[locale], ...commonCatalogs[locale] } as Record<string, unknown>;
+  mocks.messages = evidenceDialogMessages(locale);
   return (
     <ClaimEvidenceUploadDialog
       claimId="claim-1"
@@ -56,16 +58,8 @@ vi.mock('@/features/member/claims/actions', () => ({
 
 vi.mock('next-intl', () => ({
   useLocale: () => mocks.locale,
-  useTranslations: (namespace: string) => (key: string) => {
-    const path = `${namespace}.${key}`.split('.');
-    const value = path.reduce<unknown>((current, segment) => {
-      if (current && typeof current === 'object' && segment in current) {
-        return (current as Record<string, unknown>)[segment];
-      }
-      return undefined;
-    }, mocks.messages);
-    return typeof value === 'string' ? value : `${namespace}.${key}`;
-  },
+  useTranslations: (namespace: string) => (key: string, values?: Record<string, string | number>) =>
+    translateDialogMessage(mocks.messages, namespace, key, values),
 }));
 
 vi.mock('@interdomestik/database/client', () => ({
@@ -174,7 +168,7 @@ describe('ClaimEvidenceUploadDialog AI extraction consent', () => {
     });
   });
 
-  it('submits canonical direct-upload fields', async () => {
+  it('preserves consent and category for signed Office uploads', async () => {
     openDialog('sr');
     selectCategory(localizedCopy.sr.types.legal);
     const file = new File(['dummy'], 'evidence.docx', { type: '' });
@@ -184,15 +178,19 @@ describe('ClaimEvidenceUploadDialog AI extraction consent', () => {
     fireEvent.click(screen.getByLabelText(localizedCopy.sr.aiExtractionConsent));
     fireEvent.click(screen.getByRole('button', { name: localizedCopy.sr.uploadButton }));
 
-    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(1));
-    const request = mocks.fetch.mock.calls[0]?.[1] as { body: FormData };
-    expect(Object.fromEntries(request.body.entries())).toEqual({
-      aiExtractionConsentGranted: 'true',
-      category: 'legal',
-      claimId: 'claim-1',
-      file,
-      locale: 'sr',
-    });
+    await waitFor(() =>
+      expect(mocks.confirmUpload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aiExtractionConsentGranted: true,
+          category: 'legal',
+          claimId: 'claim-1',
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          aiExtractionConsentLocale: 'sr',
+          originalName: file.name,
+        })
+      )
+    );
+    expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
   it('keeps request-linked files above the server body limit on the signed upload path', async () => {
@@ -238,7 +236,7 @@ describe('ClaimEvidenceUploadDialog AI extraction consent', () => {
     expect(screen.getByLabelText(localizedCopy.sq.fileLabel)).toHaveValue('');
   });
 
-  it('keeps provider errors and localizes unknown failures', async () => {
+  it('localizes provider errors and unknown failures', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     openDialog('sq');
     fireEvent.change(screen.getByLabelText(localizedCopy.sq.fileLabel), {
@@ -246,20 +244,24 @@ describe('ClaimEvidenceUploadDialog AI extraction consent', () => {
     });
     mocks.uploadToSignedUrl.mockResolvedValueOnce({ error: { message: 'Provider is offline' } });
     fireEvent.click(screen.getByRole('button', { name: localizedCopy.sq.uploadButton }));
-    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Provider is offline'));
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith(evidenceCatalogs.sq.evidence.fileUpload.failed)
+    );
 
     mocks.toastError.mockClear();
     mocks.uploadToSignedUrl.mockRejectedValueOnce({ reason: 'opaque' });
     fireEvent.click(screen.getByRole('button', { name: localizedCopy.sq.uploadButton }));
     await waitFor(() =>
-      expect(mocks.toastError).toHaveBeenCalledWith(localizedCopy.sq.uploadFailed)
+      expect(mocks.toastError).toHaveBeenCalledWith(evidenceCatalogs.sq.evidence.fileUpload.failed)
     );
   });
 
-  it('passes server errors and renders localized pending state', async () => {
+  it('localizes server errors and renders pending state', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     let resolveResponse: ((value: unknown) => void) | undefined;
-    mocks.fetch.mockReturnValueOnce(new Promise(resolve => (resolveResponse = resolve)));
+    mocks.generateUploadUrl.mockReturnValueOnce(
+      new Promise(resolve => (resolveResponse = resolve))
+    );
     openDialog('en');
     fireEvent.change(screen.getByLabelText(localizedCopy.en.fileLabel), {
       target: { files: [new File(['one'], 'one.docx', { type: '' })] },
@@ -268,8 +270,10 @@ describe('ClaimEvidenceUploadDialog AI extraction consent', () => {
     expect(screen.getByRole('button', { name: localizedCopy.en.uploading })).toBeDisabled();
     expect(screen.getByRole('button', { name: localizedCopy.en.cancel })).toBeDisabled();
 
-    resolveResponse?.({ ok: false, json: async () => ({ error: 'Server rejected fixture' }) });
-    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Server rejected fixture'));
+    resolveResponse?.({ success: false, error: 'Server rejected fixture' });
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith(evidenceCatalogs.en.evidence.fileUpload.failed)
+    );
   });
 });
 
