@@ -120,7 +120,6 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['de/consumerRights.json', 'locale-quality-pass-i18n-contract'],
   ['de/coverageMatrix.json', 'de-locale-catalog-contract'],
   ['de/documents.json', 'de-locale-catalog-contract'],
-  ['de/entityDisclosure.json', 'de-locale-catalog-contract'],
   ['de/evidence.json', 'claim-evidence-file-upload-i18n-contract'],
   ['de/faq.json', 'de-locale-catalog-contract'],
   ['de/features.json', 'de-locale-catalog-contract'],
