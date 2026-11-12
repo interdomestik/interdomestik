@@ -254,7 +254,8 @@
           "image": "Slika",
           "audio": "Audio zapis",
           "document": "Dokument"
-        }
+        },
+        "file_unavailable": "Datoteka nije dostupna"
       },
       "timeline": {
         "title": "Vremenska linija aktivnosti",

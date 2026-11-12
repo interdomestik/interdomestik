@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  membersMock: vi.fn(),
   branchFindFirstMock: vi.fn(),
   ensureTenantIdMock: vi.fn(() => 'tenant-1'),
   getAgentLeaderboardCoreMock: vi.fn(),
@@ -17,6 +18,10 @@ const hoisted = vi.hoisted(() => ({
   setRequestLocaleMock: vi.fn(),
   statsCoreMock: vi.fn(),
   withTenantContextMock: vi.fn(),
+}));
+
+vi.mock('@interdomestik/domain-agent', () => ({
+  getAgentMemberCount: hoisted.membersMock,
 }));
 
 vi.mock('next/headers', () => ({
@@ -134,6 +139,7 @@ describe('AgentDashboardV2Page tenant boundary', () => {
         createdAt: new Date('2026-01-01T00:00:00.000Z'),
       },
     });
+    hoisted.membersMock.mockResolvedValue(3);
     hoisted.statsCoreMock.mockResolvedValue({
       newLeads: 1,
       contactedLeads: 2,
@@ -191,6 +197,19 @@ describe('AgentDashboardV2Page tenant boundary', () => {
     expect(hoisted.ensureTenantIdMock).toHaveBeenCalledWith(session);
     expect(hoisted.statsCoreMock).not.toHaveBeenCalled();
     expect(hoisted.branchFindFirstMock).not.toHaveBeenCalled();
+  });
+
+  it('uses the authority-bound member count instead of subscription referrals', async () => {
+    const { readAgentDashboardV2Stats } = await import('./agent-dashboard-v2-reads');
+    const result = await readAgentDashboardV2Stats({
+      agentId: 'agent-1',
+      authority: sessionAuthority,
+    });
+    expect(result.clientCount).toBe(3);
+    expect(hoisted.membersMock).toHaveBeenCalledWith({
+      agentId: 'agent-1',
+      authority: sessionAuthority,
+    });
   });
 
   it('passes tenant identity into the v2 stats core on the authorized path', async () => {

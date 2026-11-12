@@ -52,6 +52,11 @@ describe('useDashboardNavigation', () => {
     }
   });
 
+  it.each(['standard', 'pro', 'office'])('omits prototype POS for %s agents', agentTier => {
+    const model = buildDashboardNavigationModel({ t: key => key, role: 'agent', agentTier });
+    expect(model.agentItems.some(item => item.href === '/agent/pos')).toBe(false);
+  });
+
   it('does not check admin access before role is known', async () => {
     mockUseSession.mockReturnValue({
       data: null,

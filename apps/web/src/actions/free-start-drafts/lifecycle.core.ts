@@ -8,6 +8,7 @@ import {
   type FreeStartDraftFacts,
 } from '@interdomestik/database/free-start-drafts';
 import { z } from 'zod';
+import { findConvertedDrafts } from './converted-drafts';
 
 import { freeStartDraftPayloadSchema } from '@/lib/validators/free-start-draft';
 
@@ -44,6 +45,7 @@ const listSchema = z.strictObject({
 
 export type FreeStartDraftLifecycleDependencies = {
   createDraft: typeof createFreeStartDraft;
+  findConvertedDrafts: typeof findConvertedDrafts;
   deleteDraft: typeof deleteFreeStartDraft;
   listDrafts: typeof listFreeStartDrafts;
   resolveSession: typeof resolveFreeStartDraftSession;
@@ -53,6 +55,7 @@ export type FreeStartDraftLifecycleDependencies = {
 
 const defaultDependencies: FreeStartDraftLifecycleDependencies = {
   createDraft: createFreeStartDraft,
+  findConvertedDrafts,
   deleteDraft: deleteFreeStartDraft,
   listDrafts: listFreeStartDrafts,
   resolveSession: resolveFreeStartDraftSession,
@@ -161,11 +164,20 @@ export async function listFreeStartDraftsCore(
   return withFreshContext(
     requestHeaders,
     dependencies,
-    async context => ({
-      ok: true as const,
-      ...(await dependencies.listDrafts(context, { ...pagination, limit: 20 })),
-      expectedContext: { ownerUserId: context.ownerUserId, tenantId: context.tenantId },
-    }),
+    async context => {
+      const listed = await dependencies.listDrafts(context, { ...pagination, limit: 20 });
+      const converted = await dependencies.findConvertedDrafts(
+        context,
+        listed.items.map(item => item.id),
+        requestHeaders
+      );
+      return {
+        ok: true as const,
+        items: listed.items.filter(item => !converted.has(item.id)),
+        nextCursor: listed.nextCursor,
+        expectedContext: { ownerUserId: context.ownerUserId, tenantId: context.tenantId },
+      };
+    },
     expectedContext,
     'read'
   );
@@ -182,6 +194,12 @@ export async function resumeFreeStartDraftCore(
     requestHeaders,
     dependencies,
     async context => {
+      const converted = await dependencies.findConvertedDrafts(
+        context,
+        [parsed.data.id],
+        requestHeaders
+      );
+      if (converted.has(parsed.data.id)) return { ok: false, code: 'notFound' } as const;
       const result = await dependencies.resumeDraft(context, parsed.data.id);
       return result.ok
         ? {

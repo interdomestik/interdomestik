@@ -18,6 +18,7 @@ const expectedContext = { ownerUserId: context.ownerUserId, tenantId: context.te
 function setup(current: FreeStartDraftSessionContext = context, emailVerified = false) {
   const dependencies: FreeStartDraftLifecycleDependencies = {
     resolveSession: vi.fn().mockResolvedValue({ ok: true, context: current, emailVerified }),
+    findConvertedDrafts: vi.fn().mockResolvedValue(new Set<string>()),
     createDraft: vi.fn(),
     updateDraft: vi.fn(),
     deleteDraft: vi.fn(),

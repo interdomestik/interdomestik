@@ -186,7 +186,10 @@
             "label": "Prano shkeljen",
             "description": "Afati u shkel. Kërkohet shënim."
           },
-          "escalate": { "label": "Eskalo", "description": "Kërko vëmendjen e menaxherit." },
+          "escalate": {
+            "label": "Eskalo",
+            "description": "Kërko vëmendjen e menaxherit."
+          },
           "message_poke": {
             "label": "Regjistro kujtesë",
             "description": "Shto një kujtesë të brendshme në historikun e rastit."
@@ -195,7 +198,10 @@
             "label": "Shiko Bllokuesit",
             "description": "Kontrollo kronologjinë për probleme."
           },
-          "reopen": { "label": "Rihap Kërkesën", "description": "Kthe në vlerësim." },
+          "reopen": {
+            "label": "Rihap Kërkesën",
+            "description": "Kthe në vlerësim."
+          },
           "message_respond": {
             "label": "Shto shënim",
             "description": "Shto një shënim të brendshëm për përgjegjësin e caktuar."
@@ -242,7 +248,8 @@
           "image": "Imazh",
           "audio": "Regjistrim audio",
           "document": "Dokument"
-        }
+        },
+        "file_unavailable": "Skedari nuk është i disponueshëm"
       },
       "timeline": {
         "title": "Kronologjia",

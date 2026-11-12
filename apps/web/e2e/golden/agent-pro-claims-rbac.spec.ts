@@ -6,8 +6,16 @@ import { gotoApp } from '../utils/navigation';
 // Seeded claims of each tenant's signed-in agent (golden seed `buildClaimsToSeed`), and a claim of
 // the other tenant that the agent must never open.
 const LINKED_CLAIM = {
-  ks: { id: 'golden_ks_a_claim_01', title: 'KS-A SUBMITTED Claim 1' },
-  mk: { id: 'golden_mk_track_claim_001', title: 'MK Deterministic Claim' },
+  ks: {
+    id: 'golden_ks_a_claim_01',
+    title: 'KS-A SUBMITTED Claim 1',
+    reference: 'KS-A SUBMITTED Claim 1',
+  },
+  mk: {
+    id: 'golden_mk_track_claim_001',
+    title: 'MK Deterministic Claim',
+    reference: 'CLM-MK-2026-900001',
+  },
 } as const;
 const CROSS_TENANT_CLAIM_ID = { ks: 'golden_claim_mk_1', mk: 'golden_ks_b_claim_01' } as const;
 
@@ -29,7 +37,8 @@ test.describe('Agent Pro Claims RBAC (Golden)', () => {
     const linkedRow = table.getByTestId('claim-row').filter({ hasText: linked.title });
     await expect(linkedRow).toHaveCount(1);
     await linkedRow.click();
-    await expect(selectedClaimId).toHaveText(linked.id);
+    await expect(selectedClaimId).toHaveAttribute('data-claim-id', linked.id);
+    await expect(selectedClaimId).toHaveText(linked.reference);
 
     await page
       .getByTestId('action-message')
@@ -45,7 +54,8 @@ test.describe('Agent Pro Claims RBAC (Golden)', () => {
     await gotoApp(page, `${claimsUrl}?selected=${linked.id}`, testInfo, {
       marker: 'agent-claims-pro-page',
     });
-    await expect(selectedClaimId).toHaveText(linked.id);
+    await expect(selectedClaimId).toHaveAttribute('data-claim-id', linked.id);
+    await expect(selectedClaimId).toHaveText(linked.reference);
 
     // --- NEGATIVE CASE (cross-tenant claim) ---
     await gotoApp(page, `${claimsUrl}?selected=${CROSS_TENANT_CLAIM_ID[tenant]}`, testInfo, {

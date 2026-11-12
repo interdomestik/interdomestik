@@ -32,6 +32,7 @@ function dependencies(
   current: FreeStartDraftSessionContext = context
 ): FreeStartDraftLifecycleDependencies {
   return {
+    findConvertedDrafts: vi.fn().mockResolvedValue(new Set<string>()),
     createDraft: vi.fn().mockResolvedValue({ ok: false, code: 'limitReached' }),
     deleteDraft: vi.fn(),
     listDrafts: vi.fn(),

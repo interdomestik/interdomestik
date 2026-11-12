@@ -14,7 +14,6 @@ import {
   LayoutTemplate,
   Settings,
   ShieldCheck,
-  UserPlus,
   Users,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -92,8 +91,7 @@ export function buildDashboardNavigationModel(params: {
     agentItems.push(
       { title: t('agentHub'), href: '/agent', icon: Home },
       { title: t('members'), href: '/agent/members', icon: Users },
-      { title: t('trackClaims'), href: '/agent/claims', icon: FileText },
-      { title: t('rapidPos'), href: '/agent/pos', icon: UserPlus }
+      { title: t('trackClaims'), href: '/agent/claims', icon: FileText }
     );
 
     // Tier Gating: Leads only for Pro/Office

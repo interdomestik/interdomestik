@@ -20,7 +20,7 @@ import {
 vi.mock('@/i18n/routing', () => ({ Link: 'a' }));
 
 const summaries = JSON.parse(
-  '[{"caseKind":"accident","id":"claim-1","reference":"CLM-001","status":"submitted","documentCount":2,"nextStep":"team_review","occurredAt":"2026-08-29T10:00:00.000Z"},{"caseKind":"generic","id":"claim-2","reference":null,"status":"draft","documentCount":0,"nextStep":"member_action","occurredAt":null}]'
+  '[{"caseKind":"accident","id":"claim-1","reference":"CLM-001","status":"submitted","documentCount":2,"nextStep":"team_review","occurredAt":"2026-08-29T10:00:00.000Z"},{"caseKind":"generic","id":"claim-2","title":"Property damage case","reference":null,"status":"draft","documentCount":0,"nextStep":"member_action","occurredAt":null}]'
 ) as CaseSummary[];
 const buckets =
   'none active trialing active_in_grace grace_expired scheduled_cancel canceled'.split(
@@ -93,13 +93,18 @@ describe('Member portal', () => {
     render(await PortalCasesRegion({ copy, promise: Promise.resolve(summaries) }));
     expect(screen.getByRole('heading', { name: 'Case' })).toBeVisible();
     expect(screen.getByRole('article', { name: 'CLM-001' })).toHaveTextContent('Team review');
-    expect(screen.getByRole('article', { name: 'Reference unavailable 2' })).toHaveTextContent('0');
+    expect(screen.getByRole('article', { name: 'Property damage case' })).toHaveTextContent('0');
     expect(screen.queryByText('claim-1')).not.toBeInTheDocument();
     expect(screen.queryByText('member_action')).not.toBeInTheDocument();
   });
 
   it('maps one unambiguous detail link to each represented case', async () => {
-    const anotherMissingReference = { ...summaries[1]!, id: 'claim-3/../?&%#', reference: '   ' };
+    const anotherMissingReference = {
+      ...summaries[1]!,
+      id: 'claim-3/../?&%#',
+      reference: '   ',
+      title: 'Travel incident',
+    };
     render(
       await PortalCasesRegion({
         copy,
@@ -111,11 +116,11 @@ describe('Member portal', () => {
       'href',
       '/member/claims/claim-1'
     );
-    expect(screen.getByRole('link', { name: 'View case Reference unavailable 2' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'View case Property damage case' })).toHaveAttribute(
       'href',
       '/member/claims/claim-2'
     );
-    expect(screen.getByRole('link', { name: 'View case Reference unavailable 3' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'View case Travel incident' })).toHaveAttribute(
       'href',
       '/member/claims/claim-3%2F..%2F%3F%26%25%23'
     );
@@ -177,6 +182,7 @@ describe('Member portal', () => {
     view.rerender(await PortalUpdatesRegion({ copy, locale: 'en', promise: Promise.reject(new Error('no')) }));
     // prettier-ignore
     expect(screen.getByRole('alert', { name: 'Recent case updates' })).toHaveTextContent('Updates unavailable');
+    expect(screen.getByRole('link', { name: 'Try again' })).toHaveAttribute('href', '/member');
     view.rerender(<MemberPortalRegionBoundary copy={copy.regions.case} state="loading" />);
     expect(screen.getByText('Loading case')).not.toHaveAttribute('role', 'status');
   });

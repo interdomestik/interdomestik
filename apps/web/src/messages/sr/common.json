@@ -87,6 +87,12 @@
         "tenant_mk": "Severna Makedonija — standardna usluga",
         "pilot-mk": "Severna Makedonija — pilot program"
       }
+    },
+    "portalError": {
+      "title": "Stranica nije mogla da se učita",
+      "description": "Došlo je do greške pri učitavanju. Pokušajte ponovo da osvežite ovu stranicu.",
+      "retry": "Pokušajte ponovo",
+      "home": "Povratak na početnu"
     }
   }
 }
