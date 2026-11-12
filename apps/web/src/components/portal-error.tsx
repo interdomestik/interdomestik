@@ -9,9 +9,10 @@ export type PortalErrorProps = Readonly<{
   error: Error & { digest?: string };
   reset: () => void;
   retry?: () => void;
+  testId?: string;
 }>;
 
-export function PortalError({ error, reset, retry = reset }: PortalErrorProps) {
+export function PortalError({ error, reset, retry = reset, testId }: PortalErrorProps) {
   const locale = useLocale();
   const copy = getPortalErrorCopy(locale);
   useEffect(() => {
@@ -19,7 +20,7 @@ export function PortalError({ error, reset, retry = reset }: PortalErrorProps) {
   }, [error]);
 
   return (
-    <div role="alert" className="mx-auto max-w-lg space-y-4 p-6 text-center">
+    <div role="alert" className="mx-auto max-w-lg space-y-4 p-6 text-center" data-testid={testId}>
       <h1 className="text-2xl font-bold">{copy.title}</h1>
       <p className="text-muted-foreground">{copy.description}</p>
       <div className="flex flex-wrap justify-center gap-3">

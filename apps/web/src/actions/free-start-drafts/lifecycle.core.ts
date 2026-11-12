@@ -153,6 +153,37 @@ export async function createFreeStartDraftCore(
   );
 }
 
+const MAX_SKIPPED_DRAFT_PAGES = 10;
+type DraftContext = Parameters<FreeStartDraftLifecycleDependencies['listDrafts']>[0];
+type DraftCursor = z.infer<typeof cursorSchema> | null;
+
+/** Skips pages made only of converted drafts so older resumable drafts stay reachable. */
+async function listVisibleDrafts(
+  context: DraftContext,
+  pagination: { cursor?: DraftCursor },
+  requestHeaders: Headers,
+  dependencies: FreeStartDraftLifecycleDependencies,
+  pagesLeft: number
+) {
+  const listed = await dependencies.listDrafts(context, { ...pagination, limit: 20 });
+  const converted = await dependencies.findConvertedDrafts(
+    context,
+    listed.items.map(item => item.id),
+    requestHeaders
+  );
+  const items = listed.items.filter(item => !converted.has(item.id));
+  if (items.length > 0 || !listed.nextCursor || pagesLeft <= 1) {
+    return { items, nextCursor: listed.nextCursor };
+  }
+  return listVisibleDrafts(
+    context,
+    { cursor: listed.nextCursor },
+    requestHeaders,
+    dependencies,
+    pagesLeft - 1
+  );
+}
+
 export async function listFreeStartDraftsCore(
   requestHeaders: Headers,
   input: unknown,
@@ -165,15 +196,16 @@ export async function listFreeStartDraftsCore(
     requestHeaders,
     dependencies,
     async context => {
-      const listed = await dependencies.listDrafts(context, { ...pagination, limit: 20 });
-      const converted = await dependencies.findConvertedDrafts(
+      const listed = await listVisibleDrafts(
         context,
-        listed.items.map(item => item.id),
-        requestHeaders
+        pagination,
+        requestHeaders,
+        dependencies,
+        MAX_SKIPPED_DRAFT_PAGES
       );
       return {
         ok: true as const,
-        items: listed.items.filter(item => !converted.has(item.id)),
+        items: listed.items,
         nextCursor: listed.nextCursor,
         expectedContext: { ownerUserId: context.ownerUserId, tenantId: context.tenantId },
       };

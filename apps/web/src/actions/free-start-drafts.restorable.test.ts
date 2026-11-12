@@ -45,6 +45,29 @@ describe('restorable account drafts', () => {
     expect(await listFreeStartDraftsCore(headers, {}, deps)).toMatchObject({ ok: true, items: [] });
   });
 
+  it('skips a page of only converted drafts so older live drafts stay reachable', async () => {
+    const deps = dependencies();
+    const firstCursor = { id, updatedAt: '2026-11-12T10:00:00.000Z' };
+    const lastCursor = { id: otherId, updatedAt: '2026-11-11T10:00:00.000Z' };
+    deps.listDrafts
+      .mockResolvedValueOnce({ items: [draft(id)], nextCursor: firstCursor })
+      .mockResolvedValueOnce({ items: [draft(otherId)], nextCursor: lastCursor });
+    expect(await listFreeStartDraftsCore(headers, {}, deps)).toMatchObject({
+      ok: true,
+      items: [draft(otherId)],
+      nextCursor: lastCursor,
+    });
+    expect(deps.listDrafts).toHaveBeenNthCalledWith(2, context, { cursor: firstCursor, limit: 20 });
+  });
+
+  it('stops skipping after a bounded number of empty pages', async () => {
+    const deps = dependencies();
+    const cursor = { id, updatedAt: '2026-11-12T10:00:00.000Z' };
+    deps.listDrafts.mockResolvedValue({ items: [draft(id)], nextCursor: cursor });
+    expect(await listFreeStartDraftsCore(headers, {}, deps)).toMatchObject({ ok: true, items: [] });
+    expect(deps.listDrafts).toHaveBeenCalledTimes(10);
+  });
+
   it('rejects direct resume of a converted draft before the repository resume audit', async () => {
     const deps = dependencies();
     expect(await resumeFreeStartDraftCore(headers, { id, expectedContext }, deps)).toEqual({
