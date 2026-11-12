@@ -91,10 +91,11 @@ beforeEach(() => {
     },
   }));
 });
-it('hides the guest save story while preserving member autosave and draft management', async () => {
+it('hides the guest save story while keeping the account save button and draft management', async () => {
   render(view());
   await screen.findByTestId('account-draft-status');
-  expect(screen.queryByTestId('free-start-save-open')).not.toBeInTheDocument();
+  // The S3 gate journey saves a signed-in member's draft through this button.
+  expect(screen.getByTestId('free-start-save-open')).toBeVisible();
   expect(
     screen.queryByText((JSON.parse(enFree.freeStart.secureSave) as { body: string }).body)
   ).not.toBeInTheDocument();

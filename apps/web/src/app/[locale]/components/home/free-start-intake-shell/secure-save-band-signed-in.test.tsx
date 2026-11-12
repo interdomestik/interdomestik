@@ -39,7 +39,7 @@ function lifecycle(verified: boolean) {
 }
 
 describe('SecureSaveBand for a signed-in member', () => {
-  it('hides only the guest save prompt and keeps management and start-another', async () => {
+  it('hides only the guest prompt copy and keeps the account save, management and start-another', async () => {
     render(
       <SecureSaveBand
         hideGuestSave
@@ -50,7 +50,8 @@ describe('SecureSaveBand for a signed-in member', () => {
     );
     expect(await screen.findByTestId('free-start-start-another')).toBeVisible();
     expect(screen.getByTestId('free-start-manage-open')).toBeVisible();
-    expect(screen.queryByTestId('free-start-save-open')).not.toBeInTheDocument();
+    // For a signed-in member this button saves straight to the account (gate S3 journey).
+    expect(screen.getByTestId('free-start-save-open')).toBeVisible();
     expect(screen.queryByText('Guest secure save')).not.toBeInTheDocument();
     expect(screen.queryByText('Guest body')).not.toBeInTheDocument();
   });

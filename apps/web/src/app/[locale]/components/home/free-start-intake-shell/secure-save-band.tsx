@@ -46,7 +46,7 @@ export function SecureSaveBand({
   const headingRef = useRef<HTMLHeadingElement>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
   const saveAvailable = publicPresentation?.saveAvailable !== false;
-  // Signed-in members keep draft management and "start another"; only the guest save prompt is hidden.
+  // Signed-in members keep the account save button, management and "start another"; only the guest prompt copy is hidden.
   const guestSaveShown = saveAvailable && !hideGuestSave;
   const autoFocusHeading = publicPresentation?.autoFocusHeading ?? false;
   const onHeadingFocused = publicPresentation?.onHeadingFocused;
@@ -89,7 +89,7 @@ className="mt-2 text-2xl font-bold text-[#001a33] outline-none"
 {guestSaveShown && !lifecycle.verified ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[#365265]">{copy.body}</p> : null}
 <p className="mt-2 max-w-3xl text-xs leading-5 text-[#526274]">{copy.privacy}</p>
 </div>
-<SecureSavePrimaryActions copy={copy} lifecycle={lifecycle} manageOnly={manageOnly} saveAvailable={guestSaveShown} pending={pending} continuationReady={continuationReady} />
+<SecureSavePrimaryActions copy={copy} lifecycle={lifecycle} manageOnly={manageOnly} saveAvailable={saveAvailable} pending={pending} continuationReady={continuationReady} />
 </div>
 <p
 ref={statusRef}
