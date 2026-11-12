@@ -11,6 +11,7 @@ import {
 import { useTrackingLabelTranslator } from '@/features/claims/tracking/components/useTrackingLabelTranslator';
 import { Link } from '@/i18n/routing';
 import { formatPilotDateTime } from '@/lib/utils/date';
+import { MemberClaimFactsCard } from './member-claim-facts-card';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { LifeBuoy } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -261,24 +262,7 @@ export function MemberClaimDetailOpsPage({
             </Card>
           ) : null}
 
-          <Card data-testid="member-claim-case-details">
-            <CardHeader>
-              <CardTitle>{t('detail.caseDetails')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm">{claim.description}</p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="min-w-0">
-                  <span className="text-xs text-muted-foreground uppercase">
-                    {t('table.amount')}
-                  </span>
-                  <p className="font-medium break-words">
-                    {claim.amount} {claim.currency}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <MemberClaimFactsCard claim={claim} />
 
           <section
             id={MEMBER_CLAIM_DETAIL_SECTION_IDS.evidence}

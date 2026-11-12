@@ -6,6 +6,10 @@ import { NotificationItem } from './notification-item';
 import { deferred } from './notification-ui.test-support';
 
 const { push, searchNavigate } = vi.hoisted(() => ({ push: vi.fn(), searchNavigate: vi.fn() }));
+vi.mock('next-intl', async () => {
+  const { createNotificationTranslationsMock } = await import('./notification-ui.test-support');
+  return createNotificationTranslationsMock();
+});
 vi.mock('@/i18n/routing', () => ({ Link: 'a', useRouter: () => ({ push }) }));
 vi.mock('@interdomestik/ui', async () => {
   const { createNotificationUiMock } = await import('./notification-ui.test-support');

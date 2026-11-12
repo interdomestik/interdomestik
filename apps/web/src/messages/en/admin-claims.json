@@ -23,7 +23,10 @@
         "claim_number_link": "Claim number link",
         "canonical_url": "Canonical URL",
         "copy_failed": "Failed to copy link",
-        "copy_success": "{label} copied to clipboard"
+        "copy_success": "{label} copied to clipboard",
+        "member_number": "Member number",
+        "member_link": "Member link",
+        "breadcrumb": "Breadcrumb"
       },
       "message_alert": "New message ({count})",
       "table": {
@@ -179,8 +182,14 @@
             "label": "Advance Status",
             "description": "Move claim to next stage."
           },
-          "ack_sla": { "label": "Acknowledge Breach", "description": "SLA missed. Note required." },
-          "escalate": { "label": "Escalate", "description": "Request manager attention." },
+          "ack_sla": {
+            "label": "Acknowledge Breach",
+            "description": "SLA missed. Note required."
+          },
+          "escalate": {
+            "label": "Escalate",
+            "description": "Request manager attention."
+          },
           "message_poke": {
             "label": "Record reminder",
             "description": "Add an internal reminder to the case timeline."
@@ -189,7 +198,10 @@
             "label": "Review Blockers",
             "description": "Check timeline for issues."
           },
-          "reopen": { "label": "Reopen Claim", "description": "Move back to evaluation." },
+          "reopen": {
+            "label": "Reopen Claim",
+            "description": "Move back to evaluation."
+          },
           "message_respond": {
             "label": "Post Note",
             "description": "Add an internal note for the assigned owner."

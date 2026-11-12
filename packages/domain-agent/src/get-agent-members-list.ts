@@ -9,8 +9,12 @@ import {
   or,
   sql,
   user,
-  withTenantContext,
 } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { claimLifecycleStatusIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 
 const ACTIVE_STATUSES = [
@@ -41,17 +45,16 @@ export type AgentMembersListResult = {
 
 export async function getAgentMembersList(params: {
   agentId: string;
-  /** Verified effective access tenant of the agent session. */
-  tenantId: string;
-  /** Verified session role; only agents may read their member list. */
-  role: string | null;
+  /** Session capability for the agent's effective access tenant. */
+  authority: TenantAuthority;
   query?: string;
   limit?: number;
   cursor?: string | null;
 }): Promise<AgentMembersListResult> {
-  const { agentId, tenantId, role, limit = 50, query } = params;
+  const { agentId, authority, limit = 50, query } = params;
+  const { tenantId, principal } = readTenantAuthority(authority);
 
-  if (role !== 'agent') {
+  if (principal?.role !== 'agent' || principal.userId !== agentId) {
     throw new Error('Forbidden: agent members list requires the agent role');
   }
 
@@ -61,8 +64,8 @@ export async function getAgentMembersList(params: {
     ? or(ilike(user.name, `%${normalizedQuery}%`), ilike(user.memberNumber, `%${normalizedQuery}%`))
     : undefined;
 
-  const rows = await withTenantContext(
-    { tenantId, role },
+  const rows = await withTenantAuthority(
+    authority,
     async tx =>
       await tx
         .select({

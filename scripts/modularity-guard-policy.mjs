@@ -91,6 +91,9 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['membership.json', 's6-member-payment-recovery-i18n-contract'],
   ['admin-leads.json', 'cash-approval-fulfillment-i18n-contract'],
   ['agent.json', 'acq-1-lead-notice-i18n-contract'],
+  ['agent-commissions.json', 'qa-localization-i18n-contract'],
+  ['agent-toolkit.json', 'qa-localization-i18n-contract'],
+  ['entityDisclosure.json', 'qa-localization-i18n-contract'],
   ['pricing.json', 'acq-1-lead-notice-i18n-contract'],
   ['admin-branches.json', 'locale-catalog-integrity-contract'],
   ['agent-members.json', 'acq-3b-sponsor-i18n-contract'],
@@ -108,7 +111,6 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['de/admin-settings.json', 'de-locale-catalog-contract'],
   ['de/admin.json', 'de-locale-catalog-contract'],
   ['de/agent-crm.json', 'locale-quality-pass-i18n-contract'],
-  ['de/agent-toolkit.json', 'de-locale-catalog-contract'],
   ['de/auth.json', PARITY_OWNER],
   ['de/claimCategories.json', 'locale-quality-pass-i18n-contract'],
   ['de/commercialTerms.json', 'de-locale-catalog-contract'],
@@ -116,7 +118,6 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['de/consumerRights.json', 'locale-quality-pass-i18n-contract'],
   ['de/coverageMatrix.json', 'de-locale-catalog-contract'],
   ['de/documents.json', 'de-locale-catalog-contract'],
-  ['de/entityDisclosure.json', 'de-locale-catalog-contract'],
   ['de/evidence.json', 'de-locale-catalog-contract'],
   ['de/faq.json', 'de-locale-catalog-contract'],
   ['de/features.json', 'de-locale-catalog-contract'],
@@ -197,6 +198,11 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['sr/legal.json', 'locale-quality-pass-i18n-contract'],
   ['sr/settings.json', 'locale-quality-pass-i18n-contract'],
   ['sr/staff-crm.json', 'locale-quality-pass-i18n-contract'],
+  // Exact existing catalogs touched by the QA localization pass; no locale-wide exemption.
+  ['sq/commercialTerms.json', 'qa-localization-i18n-contract'],
+  ['sq/coverageMatrix.json', 'qa-localization-i18n-contract'],
+  ['sq/documents.json', 'qa-localization-i18n-contract'],
+  ['sq/servicesPage.json', 'qa-localization-i18n-contract'],
 ]);
 /** Registry keys: a bare filename applies to every locale; `<locale>/<file>` to that locale only. */
 export const LOCALE_CATALOG_OWNER_KEYS = Object.freeze([...LOCALE_CATALOG_OWNERS.keys()]);

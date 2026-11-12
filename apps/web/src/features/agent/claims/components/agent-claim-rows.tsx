@@ -2,7 +2,7 @@
 
 import { OpsStatusBadge, toOpsBadgeVariant } from '@/components/ops';
 import { useLocale, useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { formatPilotDate } from '@/lib/utils/date';
 
 // Define minimal Claim type for Pro table
 export type AgentProClaim = {
@@ -32,24 +32,6 @@ export function useAgentClaimRows(claims: AgentProClaim[], onSelect: (id: string
   const locale = useLocale();
   const t = useTranslations('agent');
   const tClaims = useTranslations('claims');
-  const formatDate = useMemo(
-    () =>
-      new Intl.DateTimeFormat(resolveDateLocale(locale), {
-        day: 'numeric',
-        month: 'numeric',
-        year: 'numeric',
-      }),
-    [locale]
-  );
-  const formatShortDate = useMemo(
-    () =>
-      new Intl.DateTimeFormat(resolveDateLocale(locale), {
-        day: 'numeric',
-        month: 'numeric',
-      }),
-    [locale]
-  );
-
   const columns = [
     { key: 'claim', header: t('claimsPro.columns.claim') },
     { key: 'status', header: t('claimsPro.columns.status') },
@@ -100,9 +82,9 @@ export function useAgentClaimRows(claims: AgentProClaim[], onSelect: (id: string
       </div>,
       // Meta
       <div key="meta" className="text-xs text-muted-foreground">
-        <div>{formatDate.format(new Date(claim.createdAt))}</div>
+        <div>{formatPilotDate(claim.createdAt, locale, '-')}</div>
         <div className="opacity-70">
-          {t('claimsPro.updatedPrefix')} {formatShortDate.format(new Date(claim.updatedAt))}
+          {t('claimsPro.updatedPrefix')} {formatPilotDate(claim.updatedAt, locale, '-')}
         </div>
       </div>,
     ],
@@ -111,19 +93,6 @@ export function useAgentClaimRows(claims: AgentProClaim[], onSelect: (id: string
   }));
 
   return { columns, rows };
-}
-
-function resolveDateLocale(locale: string): string {
-  switch (locale) {
-    case 'mk':
-      return 'mk-MK';
-    case 'sq':
-      return 'sq-AL';
-    case 'sr':
-      return 'sr-RS';
-    default:
-      return locale;
-  }
 }
 
 export function translateClaimStatus(

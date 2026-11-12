@@ -6,7 +6,7 @@
       "action": "Ursprüngliche Seite neu laden und Dokumente prüfen"
     },
     "title": "Meine Fälle",
-    "description": "Verwalten Sie Ihre Verbraucherbeschwerden und verfolgen Sie deren Status.",
+    "description": "Verwalten Sie Ihre Schadensfälle und verfolgen Sie deren Status.",
     "new": "Neuer Fall",
     "draftIntakeCopy": "{\"heading\":\"Bereiten Sie Ihren Fallentwurf vor\",\"supporting\":\"Speichern Sie die Fakten, die Sie jetzt haben, und kehren Sie später zurück.\",\"truth\":\"Nur ein Entwurf – dadurch wird kein Fall erstellt oder eingereicht, kein Fall zugewiesen, kein Team benachrichtigt und keine Prüfung gestartet.\",\"categoryHeading\":\"Wählen Sie, was passiert ist\",\"categoryBody\":\"Die Vorbereitung für Fahrzeug und Eigentum ist verfügbar. Personenschäden sind in diesem Entwurf nicht verfügbar.\",\"categoryContinue\":\"Weiter zu den Details\",\"unsupported\":\"In diesem Entwurf nicht verfügbar\",\"previewHeading\":\"Prüfen Sie Ihre vorbereiteten Fakten\",\"previewBody\":\"Speichern Sie ausdrücklich, wenn diese Fakten bereit sind.\",\"backToDetails\":\"Zurück zu den Details\",\"submitDisabled\":\"Fall einreichen – Voraussetzungen nicht erfüllt\",\"submitExplanation\":\"Für das Einreichen eines Falls sind eine aktive Mitgliedschaft und ein vollständiger, gespeicherter Entwurf ohne ungespeicherte Änderungen erforderlich. Das Speichern des Entwurfs reicht den Fall nicht ein.\",\"submitFirstSaveExplanation\":\"Speichern Sie zuerst diesen vollständigen Entwurf. Für das Einreichen ist außerdem eine aktive Mitgliedschaft erforderlich. Das Speichern des Entwurfs reicht den Fall nicht ein.\",\"submitIncompleteExplanation\":\"Vervollständigen Sie die erforderlichen Fakten des Entwurfs und speichern Sie ihn vor dem Einreichen. Eine aktive Mitgliedschaft ist weiterhin erforderlich, und das Speichern reicht den Fall nicht ein.\",\"submitMembershipExplanation\":\"Um einen Fall einzureichen, benötigen Sie eine aktive Mitgliedschaft. Sie können diesen gespeicherten Entwurf weiter verwalten; das Speichern reicht den Fall nicht ein.\",\"submitUnsavedExplanation\":\"Speichern Sie Ihre Änderungen vor dem Einreichen. Das Speichern von Änderungen reicht den Fall nicht ein.\",\"existingCaseSuccess\":\"Für diesen gespeicherten Entwurf gibt es bereits einen eingereichten Fall. Sie können ihn im Dashboard verfolgen. Wenn Sie den gespeicherten Entwurf später bearbeiten oder löschen, wird der Fall dadurch nicht geändert oder gelöscht.\"}",
     "empty": {
@@ -90,12 +90,7 @@
       "test": "Test",
       "other": "Sonstiges"
     },
-    "priority": {
-      "low": "Niedrig",
-      "normal": "Normal",
-      "high": "Hoch",
-      "urgent": "Dringend"
-    },
+    "priority": { "low": "Niedrig", "normal": "Normal", "high": "Hoch", "urgent": "Dringend" },
     "wizard": {
       "step1": "Kategorie",
       "step2": "Details",
@@ -151,10 +146,7 @@
       "cancelFailed": "Fall konnte nicht storniert werden"
     },
     "claimsPro": {
-      "actions": {
-        "uploadEvidence": "Nachweise hochladen",
-        "sendMessage": "Nachricht senden"
-      }
+      "actions": { "uploadEvidence": "Nachweise hochladen", "sendMessage": "Nachricht senden" }
     },
     "edit": {
       "title": "Entwurf bearbeiten",
@@ -210,10 +202,7 @@
         "failed": "Nachweis konnte nicht hochgeladen werden",
         "storage": "Speicherdienst nicht verfügbar",
         "aiConsent": "Ich stimme der KI-gestützten Dokumentenauswertung für diese hochgeladene Datei zu, um Fallfelder für die Prüfung durch Menschen vorzubereiten.",
-        "types": {
-          "evidence": "Nachweis",
-          "legal": "Rechtliches Dokument"
-        }
+        "types": { "evidence": "Nachweis", "legal": "Rechtliches Dokument" }
       },
       "continuity": {
         "backToWorkspace": "Zurück zum Mitgliederbereich",

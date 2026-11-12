@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -11,6 +12,7 @@ vi.mock('@interdomestik/domain-agent', () => ({
 import { getAgentMembersListReadModel } from './get-agent-members-read-model';
 
 describe('getAgentMembersListReadModel', () => {
+  const authority = mintTestTenantAuthority('tenant-1', { userId: 'agent-1', role: 'agent' });
   it('maps domain payload to read-model contract', async () => {
     mocks.getAgentMembersList.mockResolvedValue({
       members: [
@@ -28,15 +30,13 @@ describe('getAgentMembersListReadModel', () => {
 
     const result = await getAgentMembersListReadModel({
       agentId: 'agent-1',
-      tenantId: 'tenant-1',
-      role: 'agent',
+      authority,
       query: 'Arben',
     });
 
     expect(mocks.getAgentMembersList).toHaveBeenCalledWith({
       agentId: 'agent-1',
-      tenantId: 'tenant-1',
-      role: 'agent',
+      authority,
       query: 'Arben',
     });
     expect(result).toEqual({
@@ -57,8 +57,7 @@ describe('getAgentMembersListReadModel', () => {
 
     const result = await getAgentMembersListReadModel({
       agentId: 'agent-2',
-      tenantId: 'tenant-2',
-      role: 'agent',
+      authority,
     });
 
     expect(result).toEqual({ members: [] });
@@ -69,7 +68,10 @@ describe('getAgentMembersListReadModel', () => {
     mocks.getAgentMembersList.mockRejectedValueOnce(failure);
 
     await expect(
-      getAgentMembersListReadModel({ agentId: 'user-1', tenantId: 'tenant-1', role: 'member' })
+      getAgentMembersListReadModel({
+        agentId: 'user-1',
+        authority: mintTestTenantAuthority('tenant-1', { userId: 'user-1', role: 'member' }),
+      })
     ).rejects.toBe(failure);
   });
 });

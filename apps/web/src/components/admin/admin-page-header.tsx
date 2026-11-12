@@ -3,7 +3,8 @@
 import { Badge } from '@interdomestik/ui/components/badge';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { Shield } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import { useLocale, useNow } from 'next-intl';
+import { formatPilotDate } from '@/lib/utils/date';
 import { ReactNode } from 'react';
 
 interface AdminPageHeaderProps {
@@ -15,15 +16,6 @@ interface AdminPageHeaderProps {
   headingId?: string;
 }
 
-// Map app locale codes to Intl.DateTimeFormat locale codes
-const LOCALE_MAP: Record<string, string> = {
-  en: 'en-US',
-  sq: 'sq-AL',
-  mk: 'mk-MK',
-  sr: 'sr-Latn-RS',
-  de: 'de-DE',
-};
-
 export function AdminPageHeader({
   title,
   subtitle,
@@ -33,14 +25,8 @@ export function AdminPageHeader({
   headingId,
 }: AdminPageHeaderProps) {
   const locale = useLocale();
-  const intlLocale = LOCALE_MAP[locale] ?? 'en-US';
-
-  const today = new Date();
-  const formattedDate = new Intl.DateTimeFormat(intlLocale, {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(today);
+  const today = useNow();
+  const formattedDate = formatPilotDate(today, locale, '');
 
   return (
     <div
@@ -64,7 +50,7 @@ export function AdminPageHeader({
             </Badge>
           )}
         </div>
-        <p className="text-muted-foreground font-medium" suppressHydrationWarning>
+        <p className="text-muted-foreground font-medium">
           {formattedDate} • {subtitle}
         </p>
       </div>

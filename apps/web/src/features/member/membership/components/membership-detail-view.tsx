@@ -1,5 +1,7 @@
 'use client';
 
+import { membershipStatusKey } from '@/lib/utils/membership-status';
+
 import { LeaveCompanyProgramme } from './leave-company-programme';
 
 import { OpsActionBar, OpsDocumentsPanel, OpsStatusBadge, OpsTimeline } from '@/components/ops';
@@ -15,7 +17,7 @@ import {
 import { useRouter } from '@/i18n/routing';
 import { formatPilotDateTime } from '@/lib/utils/date';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { cancelSubscription, getPaymentUpdateUrl } from '@/actions/subscription.core';
 import { buildCancellationFeedbackMessage } from '@/features/member/membership/cancellation-feedback';
@@ -52,6 +54,7 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
   const cancellationKeyRef = useRef<string | null>(null);
   const router = useRouter();
   const locale = useLocale();
+  const tStatus = useTranslations('common.membershipStatus');
   const { primary: adapterPrimary, secondary } = getMembershipActions(subscription, t);
   const isPaddlePaymentUpdate =
     !subscription.sponsorCoverage &&
@@ -172,7 +175,10 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
             {subscription.plan?.name || subscription.planId}
-            <OpsStatusBadge {...toOpsStatus(subscription.status)} />
+            <OpsStatusBadge
+              {...toOpsStatus(subscription.status)}
+              label={tStatus(membershipStatusKey(subscription.status))}
+            />
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

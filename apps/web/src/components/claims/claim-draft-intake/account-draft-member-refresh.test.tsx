@@ -91,6 +91,16 @@ beforeEach(() => {
     },
   }));
 });
+it('hides the guest save story while preserving member autosave and draft management', async () => {
+  render(view());
+  await screen.findByTestId('account-draft-status');
+  expect(screen.queryByTestId('free-start-save-open')).not.toBeInTheDocument();
+  expect(
+    screen.queryByText((JSON.parse(enFree.freeStart.secureSave) as { body: string }).body)
+  ).not.toBeInTheDocument();
+  expect(screen.queryByTestId('claim-draft-account-context')).not.toBeInTheDocument();
+  expect(screen.getByTestId('free-start-manage-open')).toBeEnabled();
+});
 it.each([false, true])(
   'keeps B facts and context on a pending refresh (current B present=%s), then clears confirmed logout',
   async present => {

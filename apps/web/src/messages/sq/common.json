@@ -42,7 +42,8 @@
     },
     "notFound": {
       "title": "Faqja nuk u gjet",
-      "description": "Na vjen keq, nuk e gjetëm faqen që kërkuat."
+      "description": "Na vjen keq, nuk e gjetëm faqen që kërkuat.",
+      "backHome": "Kthehu në kryefaqe"
     },
     "roles": {
       "admin": "Administratori",
@@ -53,7 +54,9 @@
       "tenant_admin": "Administrator i subjektit",
       "branch_manager": "Menaxher i filialit",
       "promoter": "Promotor",
-      "user": "Anëtar"
+      "user": "Anëtar",
+      "auditor": "Kontrollues",
+      "global_support": "Mbështetje globale"
     },
     "errors": {
       "title": "Gabim",
@@ -87,6 +90,21 @@
         "tenant_mk": "Maqedonia e Veriut — shërbimi standard",
         "pilot-mk": "Maqedonia e Veriut — programi pilot"
       }
+    },
+    "toastRegion": "Njoftimet",
+    "membershipStatus": {
+      "active": "Aktive",
+      "past_due": "Pagesë e vonuar",
+      "paused": "E pezulluar",
+      "canceled": "E anuluar",
+      "none": "Pa anëtarësi",
+      "trialing": "Në provë",
+      "incomplete": "E papërfunduar",
+      "incomplete_expired": "E papërfunduar dhe e skaduar",
+      "unpaid": "E papaguar",
+      "expired": "E skaduar",
+      "pending": "Në pritje",
+      "unknown": "E panjohur"
     }
   }
 }

@@ -78,7 +78,7 @@ function ClaimDraftIntakeBody({ draftAccount: initialAccount, copy, handoffConte
     issue: getSelectedIssueLabel(tFree, flow.selectedCategory, flow.draft.issueType),
     outcome: getSelectedOutcomeLabel(tFree, flow.draft.desiredOutcome),
   };
-  const saveBandProps = { lifecycle, locale, manageOnly: managerOnly, neutralOtpHost, tenantId };
+  const saveBandProps = { lifecycle, locale, manageOnly: managerOnly || Boolean(draftAccount), neutralOtpHost, tenantId };
   if (continuation.blocked) {
     return (
       <section data-testid="claim-draft-intake" data-save-behavior={lifecycle.verified ? 'account-autosave' : 'explicit-only'} className="mx-auto max-w-5xl">
@@ -148,6 +148,7 @@ className="rounded-xl border border-rose-300 bg-rose-50 p-3 font-semibold text-r
 ) : null}
 {(!managerOnly || lifecycle.active || lifecycle.verified) ? (
 <ClaimDraftMainPanel
+signedIn={Boolean(draftAccount)}
 activeDraftId={lifecycle.active?.id}
 activeDraftVersion={lifecycle.active?.version}
 prepareForContinuation={lifecycle.prepareForContinuation}

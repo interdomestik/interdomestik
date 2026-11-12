@@ -7,7 +7,7 @@
     "hero": {
       "badge": "Fusha e nisjes",
       "title": "Së pari rastet e automjeteve, pronës dhe lëndimeve",
-      "subtitle": "Free Start dhe anëtarësia fillojnë me llojet e rasteve që mund t'i mbështesim tani. Rastet vetëm për udhëzim mbeten këshilluese, ndërsa rastet jashtë fushës drejtohen te hapi i duhur i radhës."
+      "subtitle": "Fillimi falas dhe anëtarësia fillojnë me llojet e rasteve që mund t'i mbështesim tani. Rastet vetëm për udhëzim mbeten këshilluese, ndërsa rastet jashtë fushës drejtohen te hapi i duhur i radhës."
     },
     "scope": {
       "eyebrow": "Kufijtë komercialë",
@@ -21,15 +21,15 @@
           "Raste dëmi në pronë",
           "Raste lëndimi personal me rrugë monetare rikuperimi"
         ],
-        "note": "Free Start mund të përgatisë pakon. Anëtarësia shton triage njerëzor dhe kontroll dokumentesh para çdo përshkallëzimi të pranuar."
+        "note": "Fillimi falas mund të përgatisë pakon. Anëtarësia shton triage njerëzor dhe kontroll dokumentesh para çdo përshkallëzimi të pranuar."
       },
       "guidance": {
         "title": "Vetëm udhëzim",
-        "description": "Këto kategori mund të marrin udhëzim ose kontroll dokumentesh, por nuk hyjnë në rikuperim me success-fee në nisje.",
+        "description": "Këto kategori mund të marrin udhëzim ose kontroll dokumentesh, por nuk hyjnë në rikuperim me tarifë suksesi në nisje.",
         "items": [
           "Mosmarrëveshje banesore pa rrugë direkte rikuperimi monetar",
-          "Mosmarrëveshje pune ose mbajtje page pa payout të qartë",
-          "Mosmarrëveshje për riparim ose ndërprerje kontrate pa payout direkt",
+          "Mosmarrëveshje pune ose mbajtje page pa pagesë të qartë",
+          "Mosmarrëveshje për riparim ose ndërprerje kontrate pa pagesë të drejtpërdrejtë",
           "Ankesa më të gjera konsumatore jashtë llojeve të rasteve të nisjes"
         ],
         "note": "Këto raste mbeten këshilluese. Mund të ndihmojmë me pakon dhe me një kontroll dokumentesh, pastaj të referojmë më tej kur rruga me partner është më e përshtatshme."
@@ -47,7 +47,7 @@
       },
       "boundary": {
         "title": "Kufijtë e referimit",
-        "body": "Rastet vetëm për udhëzim dhe ato jashtë fushës nuk kalojnë në trajtim me success-fee. Ato mbeten këshilluese, vetë-shërbyese, udhëzim në anëtarësi ose vetëm referim, varësisht nga rasti.",
+        "body": "Rastet vetëm për udhëzim dhe ato jashtë fushës nuk kalojnë në trajtim me tarifë suksesi. Ato mbeten këshilluese, vetë-shërbyese, udhëzim në anëtarësi ose vetëm referim, varësisht nga rasti.",
         "items": [
           "Veprimi me partner ligjor të jashtëm kërkon pëlqim të veçantë me shkrim pas pranimit të rastit.",
           "Kompensimi për vonesat e fluturimeve mbetet jashtë rrugës aktuale të nisjes dhe kthehet në një fazë të mëvonshme."
@@ -57,8 +57,8 @@
     "disclaimers": {
       "eyebrow": "Sqarime komerciale",
       "freeStart": {
-        "title": "Free Start është vetëm informues",
-        "body": "Free Start ju jep udhëzim informues, modele dhe mjete për hapat e radhës. Nuk nis shqyrtim njerëzor, këshillë ligjore ose rikuperim të drejtuar nga stafi."
+        "title": "Fillimi falas është vetëm informues",
+        "body": "Fillimi falas ju jep udhëzim informues, modele dhe mjete për hapat e radhës. Nuk nis shqyrtim njerëzor, këshillë ligjore ose rikuperim të drejtuar nga stafi."
       },
       "hotline": {
         "title": "Linja është për orientim dhe mbështetje",
@@ -68,12 +68,12 @@
     "categories": {
       "consultation": {
         "title": "Ndihma e përfshirë para rikuperimit të drejtuar nga stafi",
-        "subtitle": "Çfarë përfshijnë Free Start dhe anëtarësia në rrugën e nisjes",
+        "subtitle": "Çfarë përfshijnë Fillimi falas dhe anëtarësia në rrugën e nisjes",
         "services": [
           {
-            "title": "Pakoja Free Start",
-            "description": "Free Start ju jep kontrollin e pranueshmërisë, rezultatin e besueshmërisë, listën e provave, letrën e parë të ankesës, afatin kohor dhe dërgimin e pakos pa nisur shqyrtim njerëzor.",
-            "badge": "FREE START"
+            "title": "Pakoja Fillimi falas",
+            "description": "Fillimi falas ju jep kontrollin e pranueshmërisë, rezultatin e besueshmërisë, listën e provave, letrën e parë të ankesës, afatin kohor dhe dërgimin e pakos pa nisur shqyrtim njerëzor.",
+            "badge": "FILLIM FALAS"
           },
           {
             "title": "Triage në anëtarësi",
@@ -97,7 +97,7 @@
           },
           {
             "title": "Ndihmë dokumentesh për rastet vetëm udhëzuese",
-            "description": "Mosmarrëveshjet vetëm për udhëzim mund të marrin ende pako udhëzuese dhe kontroll dokumentesh, por mbeten jashtë rikuperimit me success-fee.",
+            "description": "Mosmarrëveshjet vetëm për udhëzim mund të marrin ende pako udhëzuese dhe kontroll dokumentesh, por mbeten jashtë rikuperimit me tarifë suksesi.",
             "badge": "UDHËZIM"
           }
         ]
@@ -129,7 +129,7 @@
           },
           {
             "title": "Kufiri për udhëzim dhe jashtë fushës",
-            "description": "Rastet vetëm për udhëzim dhe ato jashtë fushës nuk kalojnë në trajtim me success-fee. Ato mbeten këshilluese, vetë-shërbyese, udhëzim në anëtarësi ose vetëm referim, varësisht nga rasti.",
+            "description": "Rastet vetëm për udhëzim dhe ato jashtë fushës nuk kalojnë në trajtim me tarifë suksesi. Ato mbeten këshilluese, vetë-shërbyese, udhëzim në anëtarësi ose vetëm referim, varësisht nga rasti.",
             "badge": "VETËM REFERIM"
           }
         ]

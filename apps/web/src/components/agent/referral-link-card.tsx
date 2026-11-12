@@ -91,7 +91,7 @@ export function ReferralLinkCard({
             className="font-mono text-sm bg-muted/50"
             onClick={e => e.currentTarget.select()}
           />
-          <Button size="icon" variant="outline" onClick={handleCopy}>
+          <Button size="icon" variant="outline" onClick={handleCopy} aria-label={t('copy')}>
             {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>

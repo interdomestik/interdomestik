@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { getAgentMembersList } from '@interdomestik/domain-agent';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 export type AgentMembersListReadModel = {
   members: Array<{
@@ -14,8 +15,7 @@ export type AgentMembersListReadModel = {
 
 export async function getAgentMembersListReadModel(params: {
   agentId: string;
-  tenantId: string;
-  role: string | null;
+  authority: TenantAuthority;
   query?: string;
 }): Promise<AgentMembersListReadModel> {
   const { members } = await getAgentMembersList(params);

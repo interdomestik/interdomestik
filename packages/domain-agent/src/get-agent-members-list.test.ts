@@ -1,3 +1,5 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -44,7 +46,7 @@ const mocks = vi.hoisted(() => {
     // The global handle must never be used; reads go through the tenant transaction.
     db: { select: vi.fn() },
     tx: { select: vi.fn() },
-    withTenantContext: vi.fn(),
+    withTenantAuthority: vi.fn(),
   };
 });
 
@@ -60,7 +62,10 @@ vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
   sql: mocks.sql,
   user: mocks.user,
-  withTenantContext: mocks.withTenantContext,
+}));
+
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: mocks.withTenantAuthority,
 }));
 
 vi.mock('@interdomestik/domain-claims/claims/lifecycle-read-sql', () => ({
@@ -72,7 +77,7 @@ import { getAgentMembersList } from './get-agent-members-list';
 describe('getAgentMembersList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.withTenantContext.mockImplementation(
+    mocks.withTenantAuthority.mockImplementation(
       async (_context: unknown, callback: (tx: unknown) => Promise<unknown>) => callback(mocks.tx)
     );
     mocks.tx.select.mockReturnValue(mocks.chain);
@@ -99,8 +104,7 @@ describe('getAgentMembersList', () => {
 
     const result = await getAgentMembersList({
       agentId: 'agent-1',
-      tenantId: 'tenant-1',
-      role: 'agent',
+      authority: mintTestTenantAuthority('tenant-1', { userId: 'agent-1', role: 'agent' }),
       query: 'Arb',
     });
 
@@ -131,8 +135,7 @@ describe('getAgentMembersList', () => {
 
     const result = await getAgentMembersList({
       agentId: 'agent-1',
-      tenantId: 'tenant-1',
-      role: 'agent',
+      authority: mintTestTenantAuthority('tenant-1', { userId: 'agent-1', role: 'agent' }),
       query: '000010',
     });
 
@@ -148,8 +151,7 @@ describe('getAgentMembersList', () => {
 
     const result = await getAgentMembersList({
       agentId: 'agent-2',
-      tenantId: 'tenant-2',
-      role: 'agent',
+      authority: mintTestTenantAuthority('tenant-2', { userId: 'agent-2', role: 'agent' }),
       query: 'zzz',
     });
 
@@ -161,8 +163,7 @@ describe('getAgentMembersList', () => {
 
     await getAgentMembersList({
       agentId: 'agent-3',
-      tenantId: 'tenant-3',
-      role: 'agent',
+      authority: mintTestTenantAuthority('tenant-3', { userId: 'agent-3', role: 'agent' }),
     });
 
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.tenantId, 'tenant-3');
@@ -171,12 +172,15 @@ describe('getAgentMembersList', () => {
   it('reads inside one tenant transaction as the verified agent, never the global handle', async () => {
     mocks.chain.limit.mockResolvedValue([]);
 
-    await getAgentMembersList({ agentId: 'agent-5', tenantId: 'tenant-mk', role: 'agent' });
+    await getAgentMembersList({
+      agentId: 'agent-5',
+      authority: mintTestTenantAuthority('tenant-mk', { userId: 'agent-5', role: 'agent' }),
+    });
 
-    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toStrictEqual({
+    expect(mocks.withTenantAuthority).toHaveBeenCalledTimes(1);
+    expect(readTenantAuthority(mocks.withTenantAuthority.mock.calls[0]?.[0])).toMatchObject({
       tenantId: 'tenant-mk',
-      role: 'agent',
+      principal: { role: 'agent' },
     });
     expect(mocks.tx.select).toHaveBeenCalledTimes(1);
     expect(mocks.chain.limit).toHaveBeenCalledWith(50);
@@ -187,10 +191,13 @@ describe('getAgentMembersList', () => {
     'rejects role %j before any transaction or query',
     async role => {
       await expect(
-        getAgentMembersList({ agentId: 'agent-6', tenantId: 'tenant-mk', role })
+        getAgentMembersList({
+          agentId: 'agent-6',
+          authority: mintTestTenantAuthority('tenant-mk', { userId: 'agent-6', role }),
+        })
       ).rejects.toThrow('Forbidden');
 
-      expect(mocks.withTenantContext).not.toHaveBeenCalled();
+      expect(mocks.withTenantAuthority).not.toHaveBeenCalled();
       expect(mocks.tx.select).not.toHaveBeenCalled();
       expect(mocks.db.select).not.toHaveBeenCalled();
     }
@@ -201,8 +208,7 @@ describe('getAgentMembersList', () => {
 
     await getAgentMembersList({
       agentId: 'agent-4',
-      tenantId: 'tenant-4',
-      role: 'agent',
+      authority: mintTestTenantAuthority('tenant-4', { userId: 'agent-4', role: 'agent' }),
     });
 
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.agentId, 'agent-4');
@@ -247,13 +253,17 @@ describe('getAgentMembersList', () => {
 
     const esetResult = await getAgentMembersList({
       agentId: 'golden_pilot_mk_agent',
-      tenantId: 'pilot-mk',
-      role: 'agent',
+      authority: mintTestTenantAuthority('pilot-mk', {
+        userId: 'golden_pilot_mk_agent',
+        role: 'agent',
+      }),
     });
     const bekimResult = await getAgentMembersList({
       agentId: 'golden_pilot_mk_agent_2',
-      tenantId: 'pilot-mk',
-      role: 'agent',
+      authority: mintTestTenantAuthority('pilot-mk', {
+        userId: 'golden_pilot_mk_agent_2',
+        role: 'agent',
+      }),
     });
 
     expect(esetResult.members).toHaveLength(7);

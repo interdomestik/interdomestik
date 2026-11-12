@@ -35,7 +35,6 @@
       "total": "Total Claims",
       "new": "New (Submitted)",
       "verification": "In Verification",
-
       "closed": "Resolved / Rejected"
     },
     "pipeline": {

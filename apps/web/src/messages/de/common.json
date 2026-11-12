@@ -42,7 +42,8 @@
     },
     "notFound": {
       "title": "Seite nicht gefunden",
-      "description": "Leider konnten wir die gesuchte Seite nicht finden."
+      "description": "Leider konnten wir die gesuchte Seite nicht finden.",
+      "backHome": "Zur Startseite"
     },
     "roles": {
       "admin": "Administrator",
@@ -53,7 +54,9 @@
       "super_admin": "Superadministrator",
       "tenant_admin": "Mandantenadministrator",
       "branch_manager": "Filialleitung",
-      "promoter": "Vermittler"
+      "promoter": "Vermittler",
+      "auditor": "Prüfer",
+      "global_support": "Globaler Support"
     },
     "errors": {
       "title": "Fehler",
@@ -87,6 +90,21 @@
         "tenant_mk": "Nordmazedonien — regulärer Service",
         "pilot-mk": "Nordmazedonien — Pilotprogramm"
       }
+    },
+    "toastRegion": "Benachrichtigungen",
+    "membershipStatus": {
+      "active": "Aktiv",
+      "past_due": "Überfällig",
+      "paused": "Pausiert",
+      "canceled": "Gekündigt",
+      "none": "Keine Mitgliedschaft",
+      "trialing": "Probezeit",
+      "incomplete": "Unvollständig",
+      "incomplete_expired": "Unvollständig und abgelaufen",
+      "unpaid": "Unbezahlt",
+      "expired": "Abgelaufen",
+      "pending": "Ausstehend",
+      "unknown": "Unbekannt"
     }
   }
 }

@@ -20,11 +20,11 @@
       },
       "guidance": {
         "title": "Vetëm udhëzim",
-        "description": "Këto kategori mund të qëndrojnë brenda udhëzimit dhe kontrollit të dokumenteve në plan, por jo në përshkallëzim me success-fee.",
+        "description": "Këto kategori mund të qëndrojnë brenda udhëzimit dhe kontrollit të dokumenteve në plan, por jo në përshkallëzim me tarifë suksesi.",
         "items": [
           "Mosmarrëveshje banesore pa rrugë direkte rikuperimi monetar",
-          "Mosmarrëveshje pune ose mbajtje page pa payout të qartë",
-          "Mosmarrëveshje për riparim ose ndërprerje kontrate pa payout direkt",
+          "Mosmarrëveshje pune ose mbajtje page pa pagesë të qartë",
+          "Mosmarrëveshje për riparim ose ndërprerje kontrate pa pagesë të drejtpërdrejtë",
           "Ankesa më të gjera konsumatore jashtë llojeve të rasteve të nisjes"
         ],
         "note": "Këto raste mbeten këshilluese brenda planit dhe mund të referohen më tej kur është e nevojshme."
@@ -52,8 +52,8 @@
     "disclaimers": {
       "eyebrow": "Sqarime komerciale",
       "freeStart": {
-        "title": "Free Start është vetëm informues",
-        "body": "Free Start ju jep udhëzim informues, modele dhe mjete për hapat e radhës. Nuk nis shqyrtim njerëzor, këshillë ligjore ose rikuperim të drejtuar nga stafi."
+        "title": "Fillimi falas është vetëm informues",
+        "body": "Fillimi falas ju jep udhëzim informues, modele dhe mjete për hapat e radhës. Nuk nis shqyrtim njerëzor, këshillë ligjore ose rikuperim të drejtuar nga stafi."
       },
       "hotline": {
         "title": "Linja është për orientim dhe mbështetje",

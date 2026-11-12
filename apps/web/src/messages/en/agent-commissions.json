@@ -1,0 +1,10 @@
+{
+  "agent": {
+    "commissions": {
+      "description": "Track commission earnings from memberships and renewals.",
+      "referralLink": {
+        "copy": "Copy referral link"
+      }
+    }
+  }
+}

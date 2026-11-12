@@ -1,0 +1,10 @@
+{
+  "agent": {
+    "commissions": {
+      "description": "Ndiqni të ardhurat nga komisionet për anëtarësime dhe rinovime.",
+      "referralLink": {
+        "copy": "Kopjo lidhjen e referimit"
+      }
+    }
+  }
+}

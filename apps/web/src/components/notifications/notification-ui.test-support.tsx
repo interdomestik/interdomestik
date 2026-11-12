@@ -8,6 +8,8 @@ interface NotificationUiMockOptions {
 
 export function createNotificationTranslationsMock() {
   return {
+    useNow: () => new Date('2026-11-12T12:00:00Z'),
+    useFormatter: () => ({ relativeTime: () => '2 hours ago' }),
     useTranslations: createUseTranslationsMock(() => ({ ...notifications, ...common })),
   };
 }
