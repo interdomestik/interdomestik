@@ -15,6 +15,7 @@ const hoisted = vi.hoisted(() => ({
   },
   claimFindFirst: vi.fn(),
   context: vi.fn(),
+  readTenantLocaleMetadata: vi.fn(),
   timelineRows: vi.fn(),
   recoveryDecisionRows: vi.fn(),
   select: vi.fn(),
@@ -35,7 +36,7 @@ const hoisted = vi.hoisted(() => ({
   ),
 }));
 
-export function getMemberDetailMocks() {
+export function getMemberDetailMocks(): typeof hoisted {
   return hoisted;
 }
 
@@ -49,6 +50,10 @@ vi.mock('@interdomestik/domain-claims', () => ({
   resolveClaimLifecycleReadProjection: hoisted.resolveClaimLifecycleReadProjection,
   buildRecoveryDecisionSnapshot: hoisted.buildRecoveryDecisionSnapshot,
   toMemberSafeRecoveryDecision: hoisted.toMemberSafeRecoveryDecision,
+}));
+
+vi.mock('@interdomestik/database/tenant-directory', () => ({
+  readTenantLocaleMetadata: hoisted.readTenantLocaleMetadata,
 }));
 
 vi.mock('../utils', () => ({

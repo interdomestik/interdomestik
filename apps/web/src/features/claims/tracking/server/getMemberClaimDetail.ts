@@ -34,6 +34,7 @@ import {
 } from './member-recovery-timeline';
 import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { readTenantLocaleMetadata } from '@interdomestik/database/tenant-directory';
 
 export async function getMemberClaimDetail(
   session: ClaimsSession | null,
@@ -62,6 +63,8 @@ export async function getMemberClaimDetail(
         branchId,
       });
 
+      // Release the directory's admin connection before acquiring the tenant connection.
+      const tenant = await readTenantLocaleMetadata(tenantId);
       return withTenantAuthority(authority, async db => {
         const whereClause = and(eq(claims.id, claimId), visibilityCondition);
 
@@ -140,7 +143,8 @@ export async function getMemberClaimDetail(
             piiStatus,
           },
           authority,
-          db
+          db,
+          tenant
         );
         // Read status notes before the current decision, so a concurrent sensitive write
         // cannot add a note after the decision snapshot used to classify it.
