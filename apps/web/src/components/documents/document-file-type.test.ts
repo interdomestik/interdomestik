@@ -44,7 +44,7 @@ describe('documentFileKind', () => {
 
   it.each(['sq', 'en', 'sr', 'mk', 'de'])('labels every file kind in the %s catalog', locale => {
     const labels = catalogs[`../../messages/${locale}/common.json`].common.fileTypes;
-    expect(Object.keys(labels).sort()).toEqual([...KINDS].sort());
+    expect(Object.keys(labels)).toHaveLength(KINDS.length);
     for (const kind of KINDS) expect(labels[kind].trim()).not.toBe('');
   });
 });
