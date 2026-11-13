@@ -206,6 +206,18 @@ describe('NextActionsCard staff assignment', () => {
     }
   });
 
+  it('confirms without reloading when the user leaves before the save finishes', async () => {
+    let finish: (value: { success: true }) => void = () => undefined;
+    mocks.assignOwner.mockReturnValueOnce(new Promise(resolve => (finish = resolve)));
+    renderCard();
+    await choose('Assigned staff', SARA_OPTION);
+    cleanup(); // navigation unmounts the card while assignOwner is pending
+    finish({ success: true });
+    await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledTimes(1));
+    expect(mocks.reload).not.toHaveBeenCalled();
+    expect(globalThis.sessionStorage.length).toBe(0);
+  });
+
   it('keeps SLA acknowledgement primary and offers secondary staff selection', async () => {
     const user = userEvent.setup();
     renderCard({ claim: makeClaim({ hasSlaBreach: true }) });

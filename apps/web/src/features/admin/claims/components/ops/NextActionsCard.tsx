@@ -88,7 +88,7 @@ export function NextActionsCard({
     [tAssignment]
   );
   useAssignmentFlashToast(claim.id, showAssignmentSaved);
-  const reloadAfterAssignmentToast = useDeferredAssignmentReload(claim.id);
+  const assignmentReload = useDeferredAssignmentReload(claim.id);
 
   // Logic to hide card if there's truly nothing to show
   if (!primary && secondary.length === 0 && !claim.isStuck && !claim.hasSlaBreach) {
@@ -119,18 +119,24 @@ export function NextActionsCard({
 
   const handleAssign = (staffId: string, intent: AssignmentIntent) => {
     if (isPending || !canAssignHere) return;
+    const claimId = claim.id;
     startTransition(async () => {
       onAction?.(intent); // Ops tracking
       try {
-        const result = await assignOwner(claim.id, staffId, locale);
+        const result = await assignOwner(claimId, staffId, locale);
         if (result.success) {
+          // The user left this claim while saving: confirm without reloading the page they are on.
+          if (!assignmentReload.isCurrent(claimId)) {
+            showAssignmentSaved();
+            return;
+          }
           // The localized confirmation is shown after the reload. When the browser blocks session
           // storage it is shown now; the transition stays pending until the delayed reload.
-          if (rememberAssignmentFlash(claim.id)) {
+          if (rememberAssignmentFlash(claimId)) {
             globalThis.location.reload();
           } else {
             showAssignmentSaved();
-            await reloadAfterAssignmentToast();
+            await assignmentReload.reloadAfterToast(claimId);
           }
           return;
         }

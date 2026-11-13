@@ -45,7 +45,7 @@ describe('deferred assignment reload', () => {
       initialProps: { claimId: 'claim-1' },
     });
     const settled = vi.fn();
-    void hook.result.current().then(settled);
+    void hook.result.current.reloadAfterToast('claim-1').then(settled);
     return { hook, reload, settled };
   }
 
@@ -67,4 +67,19 @@ describe('deferred assignment reload', () => {
     expect(reload).not.toHaveBeenCalled();
     expect(settled).toHaveBeenCalledTimes(1);
   });
+
+  it.each(['unmount', 'claim change'])(
+    'never schedules a reload for a save that finishes after %s',
+    async trigger => {
+      const { hook, reload } = setup();
+      if (trigger === 'unmount') hook.unmount();
+      else hook.rerender({ claimId: 'claim-2' });
+      expect(hook.result.current.isCurrent('claim-1')).toBe(false);
+      const settled = vi.fn();
+      await hook.result.current.reloadAfterToast('claim-1').then(settled);
+      await vi.advanceTimersByTimeAsync(ASSIGNMENT_TOAST_READ_MS * 2);
+      expect(settled).toHaveBeenCalledTimes(1);
+      expect(reload).not.toHaveBeenCalled();
+    }
+  );
 });
