@@ -6,7 +6,7 @@ import {
 } from './getMemberClaimDetail-recovery.test-support';
 import { normalizeMemberTimelineMockRows } from './member-domain-event-timeline.test-support';
 const hoisted = getMemberDetailMocks();
-function configureSelectMocks() {
+function configureSelectMocks(): void {
   const ordered = { limit: () => hoisted.recoveryDecisionRows() };
   const filtered = { orderBy: () => ordered };
   const joined = { where: () => filtered };
@@ -14,7 +14,7 @@ function configureSelectMocks() {
   hoisted.select.mockReturnValueOnce({ from: () => source });
 }
 
-export function configureMemberDetailTest() {
+export function configureMemberDetailTest(): void {
   vi.clearAllMocks();
   hoisted.ensureClaimsAccess.mockReturnValue({
     tenantId: 'tenant-1',
@@ -25,6 +25,7 @@ export function configureMemberDetailTest() {
   hoisted.buildClaimVisibilityWhere.mockReturnValue({ visibility: 'member' });
   hoisted.getMatterAllowanceVisibility.mockResolvedValue(null);
   hoisted.getMemberVaultConsentDisplay.mockResolvedValue({ kind: 'hidden' });
+  hoisted.readTenantLocaleMetadata.mockResolvedValue({ code: 'KS', countryCode: 'XK' });
   hoisted.buildRecoveryDecisionSnapshot.mockImplementation(buildRecoveryDecisionSnapshotMock);
   hoisted.toMemberSafeRecoveryDecision.mockImplementation(toMemberSafeRecoveryDecisionMock);
   hoisted.deriveCaseCompanionNextStep.mockReturnValue(hoisted.caseCompanionNextStep);

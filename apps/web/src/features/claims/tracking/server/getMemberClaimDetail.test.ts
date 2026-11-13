@@ -286,7 +286,8 @@ describe('getMemberClaimDetail', () => {
         piiStatus: 'available',
       },
       memberDetailAuthority,
-      expect.objectContaining({ query: { claims: { findFirst: hoisted.claimFindFirst } } })
+      expect.objectContaining({ query: { claims: { findFirst: hoisted.claimFindFirst } } }),
+      { code: 'KS', countryCode: 'XK' }
     );
     expect(result?.vaultConsentDisplay).toEqual({ kind: 'ready', items: [] });
     const [, sentryOptions] = hoisted.withServerActionInstrumentation.mock.calls[0]!;

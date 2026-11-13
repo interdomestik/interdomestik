@@ -21,10 +21,13 @@ export interface GetMemberVaultConsentDisplayParams {
 export async function getMemberVaultConsentDisplay(
   params: GetMemberVaultConsentDisplayParams,
   authority: TenantAuthority,
-  database?: TenantTransaction | typeof db
+  database?: TenantTransaction | typeof db,
+  tenantMetadata?: TenantLocaleMetadata
 ): Promise<VaultConsentDisplay> {
   const { tenantId } = readTenantAuthority(authority);
-  const tenant = await readTenantLocaleMetadata(tenantId);
+  // Null is a completed lookup too: never retry the admin pool while holding a tenant tx.
+  const tenant =
+    tenantMetadata === undefined ? await readTenantLocaleMetadata(tenantId) : tenantMetadata;
   const gated = buildVaultConsentDisplay({
     tenantCode: tenant?.code ?? null,
     tenantCountryCode: tenant?.countryCode ?? null,

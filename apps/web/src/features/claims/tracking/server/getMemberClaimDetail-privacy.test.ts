@@ -90,6 +90,9 @@ vi.mock('./member-domain-event-timeline', () => ({
 vi.mock('./getMemberVaultConsentDisplay', () => ({
   getMemberVaultConsentDisplay: async () => ({ kind: 'hidden' }),
 }));
+vi.mock('@interdomestik/database/tenant-directory', () => ({
+  readTenantLocaleMetadata: async () => ({ code: 'KS', countryCode: 'XK' }),
+}));
 
 import { getMemberClaimDetail } from './getMemberClaimDetail';
 
