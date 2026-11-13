@@ -14,10 +14,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { routes } from '../routes';
 import { openDeviceDetails, openSaveArea } from './public-save-options.fixture';
 import { gotoApp } from '../utils/navigation';
-import {
-  S3_JOURNEY_INCIDENT_DATE,
-  s3JourneyDisplayDate,
-} from './member-staff-evidence-journey-cleanup.fixture';
+import { S3_JOURNEY_INCIDENT_DATE } from './member-staff-evidence-journey-cleanup.fixture';
 import { cleanupOtpJourney, redactOtpFailure } from './s5-new-account-otp-cleanup.fixture';
 import {
   OtpMail,
@@ -248,7 +245,7 @@ test.describe('S5 new-account email OTP secure save', () => {
         for (const fact of [
           'Vehicle damage',
           'Collision damage',
-          s3JourneyDisplayDate('en'),
+          S3_JOURNEY_INCIDENT_DATE,
           counterparty,
           'Repair or replacement costs',
           summary,
