@@ -54,7 +54,9 @@ describe('MemberClaimMatterAllowanceCard', () => {
 
     const card = screen.getByTestId('member-claim-matter-allowance');
     expect(card).not.toHaveTextContent('Përdorur këtë vit');
-    expect(card).toHaveTextContent('Pranuar për rikuperim');
-    expect(card).toHaveTextContent('Dorëzimi i një rasti nuk e përdor kuotën.');
+    expect(card).toHaveTextContent('Rikuperim i nisur');
+    expect(card).toHaveTextContent(
+      'Dorëzimi ose pranimi i rastit për shqyrtim nuk e përdor kuotën.'
+    );
   });
 });

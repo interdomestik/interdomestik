@@ -239,10 +239,10 @@
       },
       "matterAllowance": {
         "title": "Matter allowance",
-        "used": "Accepted for recovery",
+        "used": "Recovery started",
         "remaining": "Still available",
         "total": "Plan allowance",
-        "hint": "Only cases that staff accept for staff-led recovery during your current membership period count. Submitting a case does not use the allowance."
+        "hint": "A case counts when staff begin recovery work on it (negotiation or court) during your current membership period. Submitting a case or accepting it for review does not use the allowance."
       }
     },
     "timeline": {

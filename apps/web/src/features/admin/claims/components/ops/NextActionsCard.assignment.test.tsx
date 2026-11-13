@@ -186,6 +186,24 @@ describe('NextActionsCard staff assignment', () => {
     expect(mocks.toastSuccess).toHaveBeenCalledTimes(1);
   });
 
+  it('shows the confirmation before a delayed reload when session storage is blocked', async () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    try {
+      renderCard();
+      await choose('Assigned staff', SARA_OPTION);
+      await waitFor(() =>
+        expect(mocks.toastSuccess).toHaveBeenCalledWith('Claim assigned successfully')
+      );
+      expect(mocks.reload).not.toHaveBeenCalled();
+      await waitFor(() => expect(mocks.reload).toHaveBeenCalledTimes(1), { timeout: 4000 });
+      expect(mocks.toastSuccess).toHaveBeenCalledTimes(1);
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
   it('keeps SLA acknowledgement primary and offers secondary staff selection', async () => {
     const user = userEvent.setup();
     renderCard({ claim: makeClaim({ hasSlaBreach: true }) });

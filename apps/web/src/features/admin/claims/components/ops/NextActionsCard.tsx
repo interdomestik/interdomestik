@@ -16,7 +16,11 @@ import {
 } from '../../actions/ops-actions';
 import type { NextActionsResult } from '../../components/detail/getNextActions';
 import type { ClaimOpsDetail } from '../../types';
-import { rememberAssignmentFlash, useAssignmentFlashToast } from './assignment-flash';
+import {
+  ASSIGNMENT_TOAST_READ_MS,
+  rememberAssignmentFlash,
+  useAssignmentFlashToast,
+} from './assignment-flash';
 import { assignmentErrorToastKey } from './assignment-toast';
 import { NextActionBadges } from './NextActionBadges';
 import { NextActionPrimary } from './NextActionPrimary';
@@ -119,10 +123,14 @@ export function NextActionsCard({
       try {
         const result = await assignOwner(claim.id, staffId, locale);
         if (result.success) {
-          // The localized confirmation is shown after the reload; it is shown now only when the
-          // browser cannot carry it across (blocked session storage).
-          if (!rememberAssignmentFlash(claim.id)) showAssignmentSaved();
-          globalThis.location.reload();
+          // The localized confirmation is shown after the reload. When the browser blocks session
+          // storage it is shown now and the reload waits until it can be read.
+          if (rememberAssignmentFlash(claim.id)) {
+            globalThis.location.reload();
+          } else {
+            showAssignmentSaved();
+            globalThis.setTimeout(() => globalThis.location.reload(), ASSIGNMENT_TOAST_READ_MS);
+          }
           return;
         }
         const errorKey = assignmentErrorToastKey(result.error);

@@ -3,6 +3,8 @@ import { useEffect, useRef } from 'react';
 // A committed assignment reloads the page (the gate proof waits for that load), which would drop a
 // toast shown before it. The confirmation is therefore carried across the reload once, per tab.
 const ASSIGNMENT_FLASH_KEY = 'interdomestik:admin-claim-assignment-saved';
+/** How long the confirmation stays readable before the reload when it cannot be carried across. */
+export const ASSIGNMENT_TOAST_READ_MS = 2500;
 
 function readStorage(): Storage | null {
   try {

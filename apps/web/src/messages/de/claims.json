@@ -228,10 +228,10 @@
       },
       "matterAllowance": {
         "title": "Kontingent an Angelegenheiten",
-        "used": "Zur Durchsetzung angenommen",
+        "used": "Durchsetzung begonnen",
         "remaining": "Noch verfügbar",
         "total": "Kontingent des Tarifs",
-        "hint": "Es zählen nur Angelegenheiten, die Mitarbeitende im laufenden Mitgliedschaftszeitraum zur Durchsetzung annehmen. Das Einreichen einer Angelegenheit verbraucht kein Kontingent."
+        "hint": "Ein Fall zählt, sobald das Team im laufenden Mitgliedschaftszeitraum mit der Durchsetzung beginnt (Verhandlung oder Gericht). Das Einreichen eines Falls oder seine Annahme zur Prüfung verbraucht kein Kontingent."
       }
     },
     "timeline": {
