@@ -5,12 +5,6 @@ export class RetryablePaddleWebhookError extends Error {
   }
 }
 
-/**
- * Stored-error prefix of a schema-rejected receipt. Such a receipt failed before any handler
- * effect, so it is never subscription ordering evidence (see subscription-event-order.ts).
- */
-export const PADDLE_PAYLOAD_SCHEMA_ERROR_PREFIX = 'Invalid Paddle payload (';
-
 type PaddleSchemaIssue = { readonly path: readonly PropertyKey[]; readonly code: string };
 
 const MAX_REPORTED_SCHEMA_ISSUES = 10;
@@ -31,7 +25,7 @@ function describeSchemaIssues(issues: readonly PaddleSchemaIssue[]): string {
  */
 export class PaddleWebhookPayloadSchemaError extends RetryablePaddleWebhookError {
   constructor(entity: string, issues: readonly PaddleSchemaIssue[]) {
-    super(`${PADDLE_PAYLOAD_SCHEMA_ERROR_PREFIX}${entity}): ${describeSchemaIssues(issues)}`);
+    super(`Invalid Paddle ${entity} data: ${describeSchemaIssues(issues)}`);
     this.name = 'PaddleWebhookPayloadSchemaError';
   }
 }

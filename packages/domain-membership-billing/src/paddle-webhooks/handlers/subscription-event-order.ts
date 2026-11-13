@@ -9,7 +9,7 @@ import {
   type DomainEventTx,
 } from '@interdomestik/database';
 
-import { PADDLE_PAYLOAD_SCHEMA_ERROR_PREFIX, PaddleEventOrderingError } from '../errors';
+import { PaddleEventOrderingError } from '../errors';
 import { parsePaddleEventOccurredAt } from '../parse';
 
 /** Signed Paddle ordering evidence for one subscription lifecycle event. */
@@ -185,9 +185,6 @@ async function compareWithReceiptLedger(
         eq(webhookEvents.signatureValid, true),
         inArray(webhookEvents.eventType, SUBSCRIPTION_SNAPSHOT_EVENT_TYPES),
         sql`${webhookEvents.processingResult} is not null`,
-        // A schema-rejected receipt failed before any snapshot write; counting it would let an
-        // unparsed later event make the valid initial event stale until the schema is fixed.
-        sql`not (${webhookEvents.processingResult} = 'retryable_error' and starts_with(coalesce(${webhookEvents.error}, ''), ${PADDLE_PAYLOAD_SCHEMA_ERROR_PREFIX}))`,
         sql`${webhookEvents.payload} -> 'data' ->> 'id' = ${args.providerSubscriptionId}`,
         sql`${webhookEvents.eventId} is distinct from ${args.order.providerEventId}`
       )

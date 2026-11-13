@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  PADDLE_PAYLOAD_SCHEMA_ERROR_PREFIX,
-  PaddleWebhookPayloadSchemaError,
-  isRetryablePaddleWebhookError,
-} from './errors';
+import { PaddleWebhookPayloadSchemaError, isRetryablePaddleWebhookError } from './errors';
 import { buildRawTrialingSubscriptionCreatedData } from './paddle-null-fields.fixture';
 import { subscriptionEventDataSchema, transactionEventDataSchema } from './schemas';
 
@@ -71,10 +67,7 @@ describe('PaddleWebhookPayloadSchemaError', () => {
 
     expect(isRetryablePaddleWebhookError(error)).toBe(true);
     expect(error.name).toBe('PaddleWebhookPayloadSchemaError');
-    expect(error.message).toBe(
-      'Invalid Paddle payload (subscription): scheduled_change (invalid_type)'
-    );
-    expect(error.message.startsWith(PADDLE_PAYLOAD_SCHEMA_ERROR_PREFIX)).toBe(true);
+    expect(error.message).toBe('Invalid Paddle subscription data: scheduled_change (invalid_type)');
     expect(error.message).not.toContain('secret-value');
   });
 
@@ -86,9 +79,7 @@ describe('PaddleWebhookPayloadSchemaError', () => {
 
     const error = new PaddleWebhookPayloadSchemaError('transaction', issues);
 
-    expect(error.message).toMatch(
-      /^Invalid Paddle payload \(transaction\): \(root\) \(invalid_type\); /
-    );
+    expect(error.message).toMatch(/^Invalid Paddle transaction data: \(root\) \(invalid_type\); /);
     expect(error.message).toContain('items.9.price (invalid_type)');
     expect(error.message).not.toContain('items.10.price');
     expect(error.message).toMatch(/; \+2 more$/);
