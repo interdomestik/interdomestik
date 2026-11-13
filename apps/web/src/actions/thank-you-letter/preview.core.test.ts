@@ -1,14 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { STAGING_DOOR, stubDeploymentOrigin } from '@/lib/deployment-origin.test-support';
 import { previewThankYouLetterCore } from './preview.core';
 
 vi.mock('@/lib/tenant/tenant-hosts', () => ({
   coerceTenantId: (tenantId: string) => (tenantId === 'tenant_ks' ? tenantId : null),
 }));
-vi.mock('@/lib/email-link-origins', () => ({
-  resolveTenantEmailOrigins: (tenantId: string) => ({
-    appOrigin: `https://${tenantId}.example.test`,
-  }),
-}));
+
+beforeEach(() => stubDeploymentOrigin());
+afterEach(() => vi.unstubAllEnvs());
 
 const params = {
   memberName: 'Member One',
@@ -24,11 +23,11 @@ const params = {
 };
 
 describe('previewThankYouLetterCore', () => {
-  it('derives the dashboard link from the validated tenant', async () => {
+  it('derives the localized dashboard link from the validated door after tenant admission', async () => {
     const preview = await previewThankYouLetterCore(params);
 
-    expect(preview.html).toContain('https://tenant_ks.example.test/en/member/membership');
-    expect(preview.text).toContain('https://tenant_ks.example.test/en/member/membership');
+    expect(preview.html).toContain(`${STAGING_DOOR}/en/member/membership`);
+    expect(preview.text).toContain(`${STAGING_DOOR}/en/member/membership`);
   });
 
   it('fails closed instead of rendering a caller-supplied origin', async () => {

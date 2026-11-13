@@ -1,12 +1,13 @@
-import { buildEmailTemplate, DEFAULT_APP_URL, joinUrl } from './base';
+import type { EmailTemplate } from './types';
+import { buildEmailTemplate, getAppUrl, joinUrl } from './base';
 
 export function renderNewMessageEmail(params: {
   claimId: string;
   claimTitle: string;
   senderName: string;
   messagePreview: string;
-}) {
-  const claimUrl = joinUrl(DEFAULT_APP_URL, `/member/claims/${params.claimId}`);
+}): EmailTemplate {
+  const claimUrl = joinUrl(getAppUrl(), `/member/claims/${params.claimId}`);
   const preview = params.messagePreview.slice(0, 160);
   return buildEmailTemplate({
     title: 'New message on your claim',

@@ -3,7 +3,7 @@ import { sendNotification } from '@interdomestik/domain-communications/notificat
 import { sendEmail, sendNewMessageEmail, sendPaymentVerificationEmail } from '@/lib/email';
 import {
   buildEmailTemplate,
-  DEFAULT_APP_URL,
+  getAppUrl,
   joinUrl,
 } from '@interdomestik/domain-communications/email/templates';
 import { resolveRecipientPreview } from './recipient-preview';
@@ -134,7 +134,7 @@ export async function notifyDocumentRequested(
             intro: copy?.content ?? `Staff requested more documents for ${claim.title}.`,
             details: copy ? undefined : [requestSummary],
             ctaLabel: copy?.title ?? 'Open claim',
-            ctaUrl: joinUrl(DEFAULT_APP_URL, actionUrl),
+            ctaUrl: joinUrl(getAppUrl(), actionUrl),
           })
         ),
     });

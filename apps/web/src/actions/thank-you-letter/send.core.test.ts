@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { stubDeploymentOrigin } from '@/lib/deployment-origin.test-support';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   prepareThankYouLetterCore,
   sendPreparedThankYouLetterCore,
@@ -16,11 +17,6 @@ vi.mock('@/lib/tenant/tenant-hosts', () => ({
   coerceTenantId: (tenantId: string) =>
     ['tenant_ks', 'tenant_mk', 'tenant_al'].includes(tenantId) ? tenantId : null,
 }));
-vi.mock('@/lib/email-link-origins', () => ({
-  resolveTenantEmailOrigins: (tenantId: string) => ({
-    appOrigin: `https://${tenantId}.example.test`,
-  }),
-}));
 
 const params = {
   email: 'member@example.test',
@@ -37,8 +33,11 @@ const params = {
   idempotencyKey: 'membership-confirmation:v1:tenant_mk:sub_provider_1',
 };
 
+afterEach(() => vi.unstubAllEnvs());
+
 describe('sendThankYouLetterCore', () => {
   beforeEach(() => {
+    stubDeploymentOrigin();
     vi.clearAllMocks();
     mocks.sendEmail.mockResolvedValue({ success: true, id: 'email-1' });
   });
@@ -52,7 +51,7 @@ describe('sendThankYouLetterCore', () => {
       params.email,
       expect.objectContaining({
         subject: 'Членството е потврдено',
-        html: expect.stringContaining('https://tenant_mk.example.test/mk/member/membership'),
+        html: expect.stringContaining('https://staging.interdomestik.com/mk/member/membership'),
       }),
       { idempotencyKey: 'membership-confirmation:v1:tenant_mk:sub_provider_1' }
     );
@@ -75,7 +74,7 @@ describe('sendThankYouLetterCore', () => {
 
     expect(prepared.subject).toBe('Mitgliedschaft bestätigt');
     expect(prepared.html).toContain('<html lang="de">');
-    expect(prepared.text).toContain('https://tenant_ks.example.test/de/member/membership');
+    expect(prepared.text).toContain('https://staging.interdomestik.com/de/member/membership');
   });
 
   it('fails closed for an unsupported tenant', async () => {
@@ -112,12 +111,13 @@ describe('sendThankYouLetterCore', () => {
     });
   });
 
-  it('sends the exact persisted provider request without re-rendering it', async () => {
+  it('passes the complete persisted source to the shared delivery renderer', async () => {
     const request = {
       to: 'stored@example.test',
       subject: 'Stored subject',
       html: '<p>Stored body</p>',
       text: 'Stored body',
+      source: { version: 1, kind: 'thank-you', params: { dashboardUrl: '/mk/member' } },
     };
 
     await expect(
@@ -128,10 +128,8 @@ describe('sendThankYouLetterCore', () => {
         idempotencyKey: params.idempotencyKey,
       })
     ).resolves.toEqual({ success: true, id: 'email-1' });
-    expect(mocks.sendEmail).toHaveBeenCalledWith(
-      request.to,
-      { subject: request.subject, html: request.html, text: request.text },
-      { idempotencyKey: params.idempotencyKey }
-    );
+    expect(mocks.sendEmail).toHaveBeenCalledWith(request.to, request, {
+      idempotencyKey: params.idempotencyKey,
+    });
   });
 });

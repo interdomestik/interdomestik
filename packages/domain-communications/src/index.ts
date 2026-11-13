@@ -58,7 +58,7 @@ export type { ThankYouLetterParams } from './email/thank-you-letter';
 
 export {
   DEFAULT_APP_NAME,
-  DEFAULT_APP_URL,
+  getAppUrl,
   buildEmailTemplate,
   joinUrl,
   renderCheckinEmail,

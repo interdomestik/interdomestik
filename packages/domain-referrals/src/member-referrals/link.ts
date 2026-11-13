@@ -11,16 +11,8 @@ const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6);
 import type { ActionResult, MemberReferralLink, MemberReferralSession } from './types';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-function getPublicAppUrl() {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.NODE_ENV === 'production'
-      ? 'https://www.interdomestik.com'
-      : 'http://localhost:3000')
-  );
-}
-
 export async function getMemberReferralLinkCore(params: {
+  appOrigin: string;
   session: MemberReferralSession | null;
   authority: TenantAuthority | null;
 }): Promise<ActionResult<MemberReferralLink>> {
@@ -71,7 +63,7 @@ export async function getMemberReferralLinkCore(params: {
       );
     }
 
-    const baseUrl = getPublicAppUrl();
+    const baseUrl = params.appOrigin;
     const link = `${baseUrl}?ref=${code}`;
 
     const whatsappMessage = encodeURIComponent(

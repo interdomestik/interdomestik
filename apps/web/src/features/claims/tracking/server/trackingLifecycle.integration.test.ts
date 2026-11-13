@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { stubDeploymentOrigin } from '@/lib/deployment-origin.test-support';
 
 import { createTrackingDrizzleMock, trackingSchemaMock } from './tracking-test-mocks';
 import {
@@ -174,7 +175,7 @@ describe('tracking link lifecycle', () => {
   });
 
   it('invalidates prior links on regeneration and revokes legacy null-tenant rows', async () => {
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'http://localhost:3000');
+    stubDeploymentOrigin('local', 'http://localhost:3000');
 
     await expect(getPublicClaimStatus('old-live-token')).resolves.toEqual(
       expect.objectContaining({

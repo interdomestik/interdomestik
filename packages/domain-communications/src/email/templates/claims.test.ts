@@ -1,49 +1,24 @@
+import { stubDeploymentOrigin } from '../../deployment-origin.test-support';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { renderClaimSubmittedEmail } from './claims';
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe('claim email templates', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.resetModules();
-  });
-
-  it('uses NEXT_PUBLIC_APP_URL for claim detail links', async () => {
+  it('reads the deployment origin lazily at rendering time', () => {
+    stubDeploymentOrigin();
+    vi.stubEnv('IDA_HOST', 'staging.interdomestik.com');
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://staging.interdomestik.com');
+    vi.stubEnv('BETTER_AUTH_URL', 'https://staging.interdomestik.com/api/auth');
+    const template = renderClaimSubmittedEmail({
+      claimId: 'claim-1',
+      claimTitle: 'Vehicle',
+      category: 'Vehicle',
+    });
+    expect(template.text).toContain('https://staging.interdomestik.com/member/claims/claim-1');
     vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://www.interdomestik.com');
-    vi.stubEnv('BETTER_AUTH_URL', 'http://localhost:3000');
-    vi.resetModules();
-
-    const { renderClaimSubmittedEmail } = await import('./claims');
-
-    const template = renderClaimSubmittedEmail({
-      claimId: 'claim-1',
-      claimTitle: 'Vehicle claim',
-      category: 'Vehicle',
-    });
-
-    expect(template.text).toContain(
-      'View claim: https://www.interdomestik.com/member/claims/claim-1'
-    );
-    expect(template.html).toContain('href="https://www.interdomestik.com/member/claims/claim-1"');
-    expect(template.text).not.toContain('localhost');
-    expect(template.html).not.toContain('localhost');
-  });
-
-  it('does not fall back to localhost for production claim detail links', async () => {
-    vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('NEXT_PUBLIC_APP_URL', '');
-    vi.stubEnv('BETTER_AUTH_URL', '');
-    vi.resetModules();
-
-    const { renderClaimSubmittedEmail } = await import('./claims');
-
-    const template = renderClaimSubmittedEmail({
-      claimId: 'claim-1',
-      claimTitle: 'Vehicle claim',
-      category: 'Vehicle',
-    });
-
-    expect(template.text).toContain(
-      'View claim: https://www.interdomestik.com/member/claims/claim-1'
-    );
-    expect(template.html).not.toContain('localhost');
+    expect(() =>
+      renderClaimSubmittedEmail({ claimId: 'claim-1', claimTitle: 'Vehicle', category: 'Vehicle' })
+    ).toThrow();
   });
 });

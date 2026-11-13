@@ -58,6 +58,7 @@ describe('getMemberReferralLinkCore', () => {
     mocks.findFirst.mockResolvedValue({ referralCode: 'EXISTING-123', name: 'John Doe' });
 
     const result = await getMemberReferralLinkCore({
+      appOrigin: 'https://staging.interdomestik.com',
       session: { user: { id: 'u1', name: 'John Doe', role: 'user', tenantId: 'tenant_1' } } as any,
       authority,
     });
@@ -75,6 +76,7 @@ describe('getMemberReferralLinkCore', () => {
     mocks.nanoid.mockReturnValue('123456');
 
     const result = await getMemberReferralLinkCore({
+      appOrigin: 'https://staging.interdomestik.com',
       session: { user: { id: 'u1', name: 'John Doe', role: 'user', tenantId: 'tenant_1' } } as any,
       authority,
     });
@@ -87,7 +89,11 @@ describe('getMemberReferralLinkCore', () => {
   });
 
   it('handles unauthorized', async () => {
-    const result = await getMemberReferralLinkCore({ session: null, authority: null });
+    const result = await getMemberReferralLinkCore({
+      appOrigin: 'https://staging.interdomestik.com',
+      session: null,
+      authority: null,
+    });
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toBe('Unauthorized');
@@ -96,6 +102,7 @@ describe('getMemberReferralLinkCore', () => {
 
   it('handles missing tenant context', async () => {
     const result = await getMemberReferralLinkCore({
+      appOrigin: 'https://staging.interdomestik.com',
       session: { user: { id: 'u1', name: 'John Doe', role: 'user', tenantId: null } } as any,
       authority: null,
     });
@@ -105,19 +112,20 @@ describe('getMemberReferralLinkCore', () => {
     }
   });
 
-  it('does not fall back to localhost for production referral links', async () => {
+  it('uses only the injected deployment origin regardless of process environment', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('NEXT_PUBLIC_APP_URL', '');
     mocks.findFirst.mockResolvedValue({ referralCode: 'EXISTING-123', name: 'John Doe' });
 
     const result = await getMemberReferralLinkCore({
+      appOrigin: 'https://staging.interdomestik.com',
       session: { user: { id: 'u1', name: 'John Doe', role: 'user', tenantId: 'tenant_1' } } as any,
       authority,
     });
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.link).toBe('https://www.interdomestik.com?ref=EXISTING-123');
+      expect(result.data.link).toBe('https://staging.interdomestik.com?ref=EXISTING-123');
       expect(result.data.whatsappShareUrl).not.toContain('localhost');
     }
   });

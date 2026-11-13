@@ -4,6 +4,7 @@ import { buildEmailTemplate } from './base';
 // owner decision B), so the copy never claims the reader asked for it.
 export function renderPasswordResetEmail(params: { resetUrl: string }) {
   return buildEmailTemplate({
+    templateType: 'password-reset',
     title: 'Set your password',
     intro:
       'Use the button below to set a new password for your Interdomestik account. If your membership was just created, this is how you sign in for the first time.',

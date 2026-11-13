@@ -1,3 +1,4 @@
+import { stubDeploymentOrigin } from '@/lib/deployment-origin.test-support';
 import { EmailLinkOriginError } from '@/lib/email-link-origins';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { requestPasswordResetOnboarding } from './paddle-onboarding';
@@ -8,7 +9,7 @@ vi.mock('@/lib/auth', () => ({
   auth: { api: { requestPasswordReset: hoisted.requestPasswordReset } },
 }));
 
-const STAGING = 'https://staging.example.test';
+const STAGING = 'https://staging.interdomestik.com';
 
 async function expectRefused(reason: string, tenantId = 'tenant_ks'): Promise<void> {
   const failure = await requestPasswordResetOnboarding({
@@ -24,11 +25,7 @@ async function expectRefused(reason: string, tenantId = 'tenant_ks'): Promise<vo
 describe('requestPasswordResetOnboarding', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    for (const key of ['VERCEL_TARGET_ENV', 'INTERDOMESTIK_DEPLOY_ENV', 'NEXT_PUBLIC_APP_URL']) {
-      vi.stubEnv(key, '');
-    }
-    for (const key of ['KS_HOST', 'MK_HOST', 'AL_HOST', 'PILOT_HOST']) vi.stubEnv(key, '');
-    vi.stubEnv('VERCEL_ENV', 'preview');
+    stubDeploymentOrigin();
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('BETTER_AUTH_URL', STAGING);
   });
@@ -51,11 +48,11 @@ describe('requestPasswordResetOnboarding', () => {
 
   it('refuses a preview without its own auth origin', async () => {
     vi.stubEnv('BETTER_AUTH_URL', '');
-    await expectRefused('missing_auth_origin');
+    await expectRefused('invalid_deployment_origin');
   });
 
   it('refuses a preview configured with a production origin', async () => {
     vi.stubEnv('BETTER_AUTH_URL', 'https://www.interdomestik.com');
-    await expectRefused('production_origin_outside_production');
+    await expectRefused('invalid_deployment_origin');
   });
 });

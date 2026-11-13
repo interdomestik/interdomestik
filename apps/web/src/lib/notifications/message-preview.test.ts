@@ -1,3 +1,4 @@
+import { stubDeploymentOrigin } from '../deployment-origin.test-support';
 import { describe, expect, it } from 'vitest';
 import {
   authority,
@@ -107,7 +108,7 @@ describe('web notification wrapper email/push previews', () => {
       intro: `Staff requested more documents for ${claim.title}.`,
       details: ['REQUEST-SENTINEL'],
       ctaLabel: 'Open claim',
-      ctaUrl: 'https://example.test/member/claims/claim',
+      ctaUrl: 'https://staging.interdomestik.com/member/claims/claim',
     });
   });
   it('redacts note-bearing email fields for BM', async () => {
@@ -144,4 +145,21 @@ describe('web notification wrapper email/push previews', () => {
     expect(await notify()).toEqual({ success: false });
     expect(mocks.after).not.toHaveBeenCalled();
   });
+});
+
+it.each([
+  ['production', 'https://ida.interdomestik.com'],
+  ['staging', 'https://staging.interdomestik.com'],
+  ['local', 'http://ida.localhost:3310'],
+  ['local', 'https://ida.127.0.0.1.nip.io:3443'],
+])('pins web document notification CTAs to the %s door', async (environment, door) => {
+  stubDeploymentOrigin(environment, door);
+  const id = 'claim_A-42?token=t%2F1&tab=events';
+  await notifyDocumentRequested('recipient', '', { ...claim, id }, 'Request', { authority });
+  await deliver();
+  expect(mocks.template).toHaveBeenCalledWith(
+    expect.objectContaining({
+      ctaUrl: `${door}/member/claims/${id}`,
+    })
+  );
 });

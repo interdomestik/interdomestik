@@ -6,7 +6,7 @@ type Template = { html: string; subject: string; text: string };
 type Mailer = (
   to: string,
   template: Template,
-  options: { telemetryPolicy: 'content-free' }
+  options: { telemetryPolicy: 'content-free'; templateType: 'sign-in-otp' }
 ) => Promise<{ success: boolean }>;
 type Copy = Record<RecoveryStage, { body: string; subject: string }>;
 
@@ -87,6 +87,7 @@ export async function deliverRecoveryCode(
       renderRecoveryEmail(args.locale, args.stage, args.code),
       {
         telemetryPolicy: 'content-free',
+        templateType: 'sign-in-otp',
       }
     );
     return result.success;

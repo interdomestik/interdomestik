@@ -1,3 +1,4 @@
+import { stubDeploymentOrigin, STAGING_DOOR } from '@/lib/deployment-origin.test-support';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -74,15 +75,9 @@ import { createPublicTrackingLink } from './createPublicTrackingLink';
 
 describe('createPublicTrackingLink', () => {
   const authority = mintTestTenantAuthority('tenant-ks');
-  const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
-  const originalBetterAuthUrl = process.env.BETTER_AUTH_URL;
-  const originalVercelEnv = process.env.VERCEL_ENV;
-  const originalVercelUrl = process.env.VERCEL_URL;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NEXT_PUBLIC_SITE_URL = 'https://portal.example';
+    stubDeploymentOrigin();
 
     hoisted.buildClaimVisibilityWhere.mockReturnValue({ visibility: 'tenant-scope' });
     hoisted.hashDigest.mockReturnValue('hashed-token');
@@ -101,25 +96,7 @@ describe('createPublicTrackingLink', () => {
     hoisted.insert.mockReturnValue({ values: hoisted.insertValues });
   });
 
-  afterEach(() => {
-    if (originalSiteUrl === undefined) {
-      delete process.env.NEXT_PUBLIC_SITE_URL;
-    } else {
-      process.env.NEXT_PUBLIC_SITE_URL = originalSiteUrl;
-    }
-
-    if (originalAppUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
-    else process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
-
-    if (originalBetterAuthUrl === undefined) delete process.env.BETTER_AUTH_URL;
-    else process.env.BETTER_AUTH_URL = originalBetterAuthUrl;
-
-    if (originalVercelEnv === undefined) delete process.env.VERCEL_ENV;
-    else process.env.VERCEL_ENV = originalVercelEnv;
-
-    if (originalVercelUrl === undefined) delete process.env.VERCEL_URL;
-    else process.env.VERCEL_URL = originalVercelUrl;
-  });
+  afterEach(() => vi.unstubAllEnvs());
 
   it('revokes active same-tenant tokens and legacy null-tenant tokens before inserting a new token', async () => {
     hoisted.claimFindFirst.mockResolvedValueOnce({
@@ -186,7 +163,10 @@ describe('createPublicTrackingLink', () => {
         expiresAt: expect.any(Date),
       })
     );
-    expect(result.url).toMatch(/^https:\/\/portal\.example\/track\//);
+    expect(result.url).toBe(
+      `${STAGING_DOOR}/track/${Buffer.from('public-tracking-token-32-bytes!!').toString('base64url')}`
+    );
+    expect(result.expiresAt.getTime()).toBeGreaterThan(Date.now() + 6 * 24 * 60 * 60 * 1000);
   });
 
   it('throws when the claim is not visible in the caller tenant', async () => {
@@ -205,26 +185,43 @@ describe('createPublicTrackingLink', () => {
     expect(hoisted.insert).not.toHaveBeenCalled();
   });
 
-  it('does not fall back to localhost for production tracking links', async () => {
-    delete process.env.NEXT_PUBLIC_SITE_URL;
-    delete process.env.NEXT_PUBLIC_APP_URL;
-    delete process.env.BETTER_AUTH_URL;
-    delete process.env.VERCEL_URL;
-    process.env.VERCEL_ENV = 'production';
+  it('rejects invalid origins before revoking or inserting tokens', async () => {
+    hoisted.claimFindFirst.mockResolvedValue({ id: 'claim-1', tenantId: 'tenant-ks' });
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://ida.interdomestik.com');
+    await expect(
+      createPublicTrackingLink('claim-1', {
+        authority,
+        actorUserId: 'staff-1',
+        role: 'staff',
+        branchId: null,
+      })
+    ).rejects.toThrow();
+    expect(hoisted.randomBytes).not.toHaveBeenCalled();
+    expect(hoisted.update).not.toHaveBeenCalled();
+    expect(hoisted.insert).not.toHaveBeenCalled();
+  });
 
-    hoisted.claimFindFirst.mockResolvedValueOnce({
-      id: 'claim-1',
-      tenantId: 'tenant-ks',
-    });
-
-    const result = await createPublicTrackingLink('claim-1', {
-      authority,
-      actorUserId: 'staff-1',
-      role: 'staff',
-      branchId: null,
-    });
-
-    expect(result.url).toMatch(/^https:\/\/www\.interdomestik\.com\/track\//);
-    expect(result.url).not.toContain('localhost');
+  it.each([
+    ['production', 'https://ida.interdomestik.com'],
+    ['staging', STAGING_DOOR],
+    ['local', 'http://ida.localhost:3310'],
+    ['local', 'https://ida.127.0.0.1.nip.io:3443'],
+  ])('uses the %s tracking door across tenant authorities', async (environment, door) => {
+    stubDeploymentOrigin(environment, door);
+    for (const tenantId of ['tenant_ks', 'tenant_mk', 'tenant_al', 'pilot-mk']) {
+      hoisted.claimFindFirst.mockResolvedValue({ id: 'claim-1', tenantId });
+      const result = await createPublicTrackingLink('claim-1', {
+        authority: mintTestTenantAuthority(tenantId),
+        actorUserId: 'staff-1',
+        role: 'staff',
+        branchId: null,
+      });
+      expect(result.url).toBe(
+        `${door}/track/${Buffer.from('public-tracking-token-32-bytes!!').toString('base64url')}`
+      );
+      expect(hoisted.insertValues).toHaveBeenLastCalledWith(
+        expect.objectContaining({ tenantId, tokenHash: 'hashed-token' })
+      );
+    }
   });
 });

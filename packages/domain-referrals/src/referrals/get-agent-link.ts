@@ -9,16 +9,8 @@ import { nanoid } from 'nanoid';
 import type { ActionResult, ReferralLinkResult, ReferralSession } from './types';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-function buildReferralLink(code: string): string {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.NODE_ENV === 'production'
-      ? 'https://www.interdomestik.com'
-      : 'http://localhost:3000');
-  return `${baseUrl}?ref=${code}`;
-}
-
 export async function getAgentReferralLinkCore(params: {
+  appOrigin: string;
   session: ReferralSession | null;
   authority: TenantAuthority | null;
 }): Promise<ActionResult<ReferralLinkResult>> {
@@ -79,7 +71,7 @@ export async function getAgentReferralLinkCore(params: {
       success: true,
       data: {
         code,
-        link: buildReferralLink(code),
+        link: `${params.appOrigin}?ref=${code}`,
       },
       error: undefined,
       fieldErrors: undefined,

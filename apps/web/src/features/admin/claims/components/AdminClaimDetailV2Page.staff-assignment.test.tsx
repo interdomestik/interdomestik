@@ -1,9 +1,10 @@
+import { stubDeploymentOrigin, STAGING_DOOR } from '@/lib/deployment-origin.test-support';
 import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type StaffRow = Readonly<{ id: string; name: string | null; email: string; role: string }>;
 type CardProps = Readonly<{
@@ -11,7 +12,7 @@ type CardProps = Readonly<{
   canAssign?: boolean;
   readOnly?: boolean;
 }>;
-type HeaderProps = Readonly<{ allStaff: readonly StaffRow[] }>;
+type HeaderProps = Readonly<{ allStaff: readonly StaffRow[]; deploymentOrigin: string }>;
 
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -98,6 +99,7 @@ function signIn(role: string, branchId: string | null = null) {
 
 async function renderPage() {
   render(await AdminClaimDetailV2Page({ id: 'claim-1', locale: 'en' }));
+  expect(mocks.claimHeader.mock.lastCall?.[0].deploymentOrigin).toBe(STAGING_DOOR);
 }
 
 function lastCardProps(): CardProps {
@@ -106,7 +108,9 @@ function lastCardProps(): CardProps {
   return call[0];
 }
 
+afterEach(() => vi.unstubAllEnvs());
 beforeEach(() => {
+  stubDeploymentOrigin();
   vi.clearAllMocks();
   mocks.getOpsClaimDetail.mockResolvedValue({ kind: 'ok', data: { id: 'claim-1', docs: [] } });
 });

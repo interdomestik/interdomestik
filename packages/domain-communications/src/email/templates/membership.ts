@@ -1,7 +1,11 @@
-import { buildEmailTemplate, DEFAULT_APP_URL, joinUrl } from './base';
+import type { EmailTemplate } from './types';
+import { buildEmailTemplate, getAppUrl, joinUrl } from './base';
 
-export function renderMemberWelcomeEmail(params: { memberName: string; agentName: string }) {
-  const resetUrl = joinUrl(DEFAULT_APP_URL, '/auth/forgot-password');
+export function renderMemberWelcomeEmail(params: {
+  memberName: string;
+  agentName: string;
+}): EmailTemplate {
+  const resetUrl = joinUrl(getAppUrl(), '/auth/forgot-password');
   return buildEmailTemplate({
     title: 'Welcome to Interdomestik',
     intro: `Hi ${params.memberName}, your agent ${params.agentName} has successfully registered your membership.`,

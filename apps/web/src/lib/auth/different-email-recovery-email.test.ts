@@ -29,7 +29,7 @@ describe('IDA-UI03b content-free recovery email', () => {
         subject: expect.any(String),
         text: expect.stringContaining('123456'),
       }),
-      { telemetryPolicy: 'content-free' }
+      { telemetryPolicy: 'content-free', templateType: 'sign-in-otp' }
     );
   });
 

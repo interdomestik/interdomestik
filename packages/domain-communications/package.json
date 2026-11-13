@@ -5,6 +5,10 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
+    "./deployment-origin": {
+      "types": "./src/deployment-origin.d.mts",
+      "default": "./src/deployment-origin.mjs"
+    },
     ".": "./src/index.ts",
     "./types": "./src/types.ts",
     "./messages/types": "./src/messages/types.ts",

@@ -1,0 +1,51 @@
+{
+  "sourceMain": "7fc827a3ec151e910fc76d497448e9a6b7277d34",
+  "resetUrl": "https://ks.interdomestik.com/api/auth/reset-password/token_A%2Fb?callbackURL=%2Fsq%2Fmember&ref=ABC%2B1",
+  "reset": {
+    "subject": "Set your password",
+    "html": "<!doctype html>\n<html>\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  </head>\n  <body style=\"margin:0; padding:0; background:#f7f7f8; font-family: Arial, sans-serif; color:#111827;\">\n    <div style=\"max-width:600px; margin:0 auto; padding:32px 20px;\">\n      <div style=\"background:#ffffff; border-radius:16px; padding:28px; box-shadow:0 4px 20px rgba(15, 23, 42, 0.06);\">\n        <h1 style=\"margin:0 0 12px; font-size:22px; font-weight:700;\">Set your password</h1>\n        <p style=\"margin:0 0 18px; font-size:15px; line-height:1.6; color:#374151;\">Use the button below to set a new password for your Interdomestik account. If your membership was just created, this is how you sign in for the first time.</p>\n        <ul style=\"margin:0 0 20px; padding-left:18px; font-size:14px; color:#4b5563;\"><li style=\"margin: 4px 0;\">If you did not expect this email, you can safely ignore it; your password stays unchanged.</li><li style=\"margin: 4px 0;\">For security, this link expires in 1 hour.</li></ul>\n        <a href=\"https://ks.interdomestik.com/api/auth/reset-password/token_A%2Fb?callbackURL=%2Fsq%2Fmember&amp;ref=ABC%2B1\" style=\"display:inline-block; background:#0f766e; color:#ffffff; text-decoration:none; padding:12px 18px; border-radius:10px; font-size:14px; font-weight:600;\">\n          Set password\n        </a>\n      </div>\n      <p style=\"margin:16px 0 0; font-size:12px; color:#6b7280; text-align:center;\">Interdomestik Team</p>\n    </div>\n  </body>\n</html>",
+    "text": "Set your password\n\nUse the button below to set a new password for your Interdomestik account. If your membership was just created, this is how you sign in for the first time.\n\nIf you did not expect this email, you can safely ignore it; your password stays unchanged.\nFor security, this link expires in 1 hour.\n\nSet password: https://ks.interdomestik.com/api/auth/reset-password/token_A%2Fb?callbackURL=%2Fsq%2Fmember&ref=ABC%2B1\n\nInterdomestik Team"
+  },
+  "otp": [
+    {
+      "locale": "sq",
+      "template": {
+        "subject": "Kodi juaj për konfirmimin e email-it",
+        "html": "<div style=\"font-family: sans-serif; padding: 20px; color: #0f172a;\"><h2 style=\"margin: 0 0 16px;\">Kodi juaj për konfirmimin e email-it</h2><p style=\"margin: 0 0 16px;\">Përdoreni kodin me 6 shifra për të konfirmuar email-in dhe për të vazhduar. Vlen 5 minuta; vlen vetëm kodi më i ri. Nuk konfirmon pagesë, anëtarësi aktive, kërkesë për dëm apo rast të pranuar.</p><div style=\"font-size: 32px; font-weight: 700; letter-spacing: 0.24em; margin: 24px 0; color: #0f172a;\">123456</div></div>",
+        "text": "Përdoreni kodin me 6 shifra për të konfirmuar email-in dhe për të vazhduar. Vlen 5 minuta; vlen vetëm kodi më i ri. Nuk konfirmon pagesë, anëtarësi aktive, kërkesë për dëm apo rast të pranuar.\n\n123456"
+      }
+    },
+    {
+      "locale": "en",
+      "template": {
+        "subject": "Your email confirmation code",
+        "html": "<div style=\"font-family: sans-serif; padding: 20px; color: #0f172a;\"><h2 style=\"margin: 0 0 16px;\">Your email confirmation code</h2><p style=\"margin: 0 0 16px;\">Use the 6-digit code to confirm your email and continue. It expires in 5 minutes; only the newest code works. It does not confirm payment, active membership, a claim, or an accepted case.</p><div style=\"font-size: 32px; font-weight: 700; letter-spacing: 0.24em; margin: 24px 0; color: #0f172a;\">123456</div></div>",
+        "text": "Use the 6-digit code to confirm your email and continue. It expires in 5 minutes; only the newest code works. It does not confirm payment, active membership, a claim, or an accepted case.\n\n123456"
+      }
+    },
+    {
+      "locale": "sr",
+      "template": {
+        "subject": "Kod za potvrdu e-adrese",
+        "html": "<div style=\"font-family: sans-serif; padding: 20px; color: #0f172a;\"><h2 style=\"margin: 0 0 16px;\">Kod za potvrdu e-adrese</h2><p style=\"margin: 0 0 16px;\">Upotrebite kod od 6 cifara da potvrdite e-adresu i nastavite. Važi 5 minuta; važi samo najnoviji kod. Ne potvrđuje uplatu, aktivno članstvo, zahtev niti prihvaćen predmet.</p><div style=\"font-size: 32px; font-weight: 700; letter-spacing: 0.24em; margin: 24px 0; color: #0f172a;\">123456</div></div>",
+        "text": "Upotrebite kod od 6 cifara da potvrdite e-adresu i nastavite. Važi 5 minuta; važi samo najnoviji kod. Ne potvrđuje uplatu, aktivno članstvo, zahtev niti prihvaćen predmet.\n\n123456"
+      }
+    },
+    {
+      "locale": "mk",
+      "template": {
+        "subject": "Код за потврда на е-поштата",
+        "html": "<div style=\"font-family: sans-serif; padding: 20px; color: #0f172a;\"><h2 style=\"margin: 0 0 16px;\">Код за потврда на е-поштата</h2><p style=\"margin: 0 0 16px;\">Користете го 6-цифрениот код за да ја потврдите е-поштата и да продолжите. Важи 5 минути; важи само најновиот код. Не потврдува плаќање, активно членство, барање за надомест или прифатен случај.</p><div style=\"font-size: 32px; font-weight: 700; letter-spacing: 0.24em; margin: 24px 0; color: #0f172a;\">123456</div></div>",
+        "text": "Користете го 6-цифрениот код за да ја потврдите е-поштата и да продолжите. Важи 5 минути; важи само најновиот код. Не потврдува плаќање, активно членство, барање за надомест или прифатен случај.\n\n123456"
+      }
+    },
+    {
+      "locale": "de",
+      "template": {
+        "subject": "Ihr Code zur Bestätigung Ihrer E-Mail-Adresse",
+        "html": "<div style=\"font-family: sans-serif; padding: 20px; color: #0f172a;\"><h2 style=\"margin: 0 0 16px;\">Ihr Code zur Bestätigung Ihrer E-Mail-Adresse</h2><p style=\"margin: 0 0 16px;\">Verwenden Sie den 6-stelligen Code, um Ihre E-Mail-Adresse zu bestätigen und fortzufahren. Er ist 5 Minuten gültig; nur der neueste Code funktioniert. Er bestätigt weder eine Zahlung noch eine aktive Mitgliedschaft, einen Schadensfall oder einen angenommenen Fall.</p><div style=\"font-size: 32px; font-weight: 700; letter-spacing: 0.24em; margin: 24px 0; color: #0f172a;\">123456</div></div>",
+        "text": "Verwenden Sie den 6-stelligen Code, um Ihre E-Mail-Adresse zu bestätigen und fortzufahren. Er ist 5 Minuten gültig; nur der neueste Code funktioniert. Er bestätigt weder eine Zahlung noch eine aktive Mitgliedschaft, einen Schadensfall oder einen angenommenen Fall.\n\n123456"
+      }
+    }
+  ]
+}

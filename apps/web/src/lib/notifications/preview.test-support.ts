@@ -1,4 +1,5 @@
-import { beforeEach, vi } from 'vitest';
+import { stubDeploymentOrigin } from '../deployment-origin.test-support';
+import { afterEach, beforeEach, vi } from 'vitest';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 const mocks = vi.hoisted(() => ({
@@ -23,11 +24,15 @@ vi.mock('@/lib/email', () => ({
   sendPaymentVerificationEmail: mocks.verificationEmail,
   sendEmail: mocks.email,
 }));
-vi.mock('@interdomestik/domain-communications/email/templates', () => ({
-  buildEmailTemplate: mocks.template,
-  DEFAULT_APP_URL: 'https://example.test',
-  joinUrl: (base: string, path: string) => base + path,
-}));
+vi.mock('@interdomestik/domain-communications/email/templates', async importOriginal => {
+  const actual =
+    await importOriginal<typeof import('@interdomestik/domain-communications/email/templates')>();
+  return {
+    buildEmailTemplate: mocks.template,
+    getAppUrl: actual.getAppUrl,
+    joinUrl: actual.joinUrl,
+  };
+});
 vi.mock('@interdomestik/domain-communications/messages/send', () => ({
   describePublicReplyFailure: () => ({ name: 'Error' }),
 }));
@@ -53,6 +58,7 @@ export const subscription = { endpoint: 'https://push.example.test', p256dh: 'ke
 
 beforeEach(() => {
   vi.resetAllMocks();
+  stubDeploymentOrigin();
   mocks.role.mockResolvedValue('member');
   mocks.persist.mockResolvedValue({ success: true });
   mocks.translations.mockResolvedValue((key: string) => `trusted:${key}`);
@@ -60,6 +66,8 @@ beforeEach(() => {
   mocks.subscriptions.mockResolvedValue([subscription]);
   mocks.template.mockImplementation(value => value);
 });
+
+afterEach(() => vi.unstubAllEnvs());
 
 export function deliver() {
   const callback = mocks.after.mock.calls.at(-1)?.[0] as (() => Promise<void>) | undefined;

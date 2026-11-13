@@ -1,4 +1,5 @@
 import webPush from 'web-push';
+import { resolvePushDestination } from '@interdomestik/domain-communications/email/templates';
 import { logAuditEvent } from '@/lib/audit';
 import type { PushPayload } from '@/lib/push';
 import {
@@ -21,7 +22,8 @@ export async function deliverPreviewPush(
     privateKey,
     subject: process.env.VAPID_SUBJECT || 'mailto:support@interdomestik.com',
   };
-  const body = JSON.stringify(payload);
+  const destination = resolvePushDestination(payload.url);
+  const body = JSON.stringify({ ...payload, url: destination });
   const results = await Promise.all(
     subscriptions.map(async sub => {
       try {
@@ -62,7 +64,7 @@ export async function deliverPreviewPush(
       okCount,
       failCount: results.length - okCount,
       title: payload.title,
-      url: payload.url,
+      url: destination,
     },
   });
 }

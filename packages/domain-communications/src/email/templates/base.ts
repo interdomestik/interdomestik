@@ -1,19 +1,15 @@
+import { resolveDoorDestination } from '../door-destination';
+import { isAuthIssuedTemplate } from '../auth-issued-templates';
+import { resolveDeploymentOrigin } from '../../deployment-origin.mjs';
 import type { EmailTemplate, TemplateOptions } from './types';
 
-const PRODUCTION_APP_URL = 'https://www.interdomestik.com';
+export const DEFAULT_APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Interdomestik';
 
-function resolveDefaultAppUrl() {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.BETTER_AUTH_URL ||
-    (process.env.NODE_ENV === 'production' ? PRODUCTION_APP_URL : 'http://localhost:3000')
-  );
+export function getAppUrl(): string {
+  return resolveDeploymentOrigin().origin;
 }
 
-export const DEFAULT_APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Interdomestik';
-export const DEFAULT_APP_URL = resolveDefaultAppUrl();
-
-function escapeHtml(value: string) {
+export function escapeHtml(value: string): string {
   return value
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -22,7 +18,7 @@ function escapeHtml(value: string) {
     .replaceAll("'", '&#39;');
 }
 
-export function joinUrl(baseUrl: string, path: string) {
+export function joinUrl(baseUrl: string, path: string): string {
   const trimmedBase = baseUrl.replace(/\/$/, '');
   const trimmedPath = path.replace(/^\//, '');
   return `${trimmedBase}/${trimmedPath}`;
@@ -35,11 +31,13 @@ export function buildEmailTemplate({
   ctaLabel,
   ctaUrl,
   footer,
+  templateType,
 }: TemplateOptions): EmailTemplate {
   const safeTitle = escapeHtml(title);
   const safeIntro = escapeHtml(intro);
   const safeCtaLabel = escapeHtml(ctaLabel);
-  const safeCtaUrl = escapeHtml(ctaUrl);
+  const destination = isAuthIssuedTemplate(templateType) ? ctaUrl : resolveDoorDestination(ctaUrl);
+  const safeCtaUrl = escapeHtml(destination);
   const safeFooter = escapeHtml(footer || `${DEFAULT_APP_NAME} Team`);
 
   const detailsHtml = (details || [])
@@ -71,11 +69,27 @@ export function buildEmailTemplate({
   if (details?.length) {
     textParts.push(details.join('\n'));
   }
-  textParts.push(`${ctaLabel}: ${ctaUrl}`, footer || `${DEFAULT_APP_NAME} Team`);
+  textParts.push(`${ctaLabel}: ${destination}`, footer || `${DEFAULT_APP_NAME} Team`);
 
   return {
     subject: title,
     html,
     text: textParts.join('\n\n'),
+    ...(isAuthIssuedTemplate(templateType)
+      ? {}
+      : {
+          source: {
+            version: 1,
+            kind: 'standard',
+            params: {
+              title,
+              intro,
+              details: details?.slice(),
+              ctaLabel,
+              ctaUrl: destination,
+              footer: footer || `${DEFAULT_APP_NAME} Team`,
+            },
+          },
+        }),
   };
 }

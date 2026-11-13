@@ -24,6 +24,7 @@ export type PreparedThankYouLetter = {
   subject: string;
   html: string;
   text: string;
+  source?: unknown;
 };
 
 export type SendPreparedThankYouLetterParams = {

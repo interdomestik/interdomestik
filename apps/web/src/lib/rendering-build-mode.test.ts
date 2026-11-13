@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { stubDeploymentOrigin } from './deployment-origin.test-support';
 import { assertRenderingBuildMode } from './rendering-build-mode';
 
 vi.mock('@next/bundle-analyzer', () => ({ default: () => (config: unknown) => config }));
@@ -104,6 +105,8 @@ describe('Next rendering configuration', () => {
 });
 
 describe('instrumentation mode guard', () => {
+  beforeEach(() => stubDeploymentOrigin());
+
   it.each(['nodejs', 'edge'])('preserves matching %s initialization', async runtime => {
     vi.stubEnv('NEXT_RUNTIME', runtime);
     vi.stubEnv('INTERDOMESTIK_BUILT_CSP_NONCE_MODE', 'report');

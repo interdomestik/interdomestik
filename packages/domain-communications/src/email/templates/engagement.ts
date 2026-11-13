@@ -1,7 +1,9 @@
-import { buildEmailTemplate, DEFAULT_APP_NAME, DEFAULT_APP_URL, joinUrl } from './base';
+import type { EmailTemplate } from './types';
+import { resolveNewsletterDestination } from '../door-destination';
+import { buildEmailTemplate, DEFAULT_APP_NAME, getAppUrl, joinUrl } from './base';
 
-export function renderNpsSurveyEmail(params: { name: string; token: string }) {
-  const surveyUrl = joinUrl(DEFAULT_APP_URL, `/nps/${params.token}`);
+export function renderNpsSurveyEmail(params: { name: string; token: string }): EmailTemplate {
+  const surveyUrl = joinUrl(getAppUrl(), `/nps/${params.token}`);
   return buildEmailTemplate({
     title: 'Quick question: how are we doing?',
     intro: `Hi ${params.name}, on a scale from 0–10, how likely are you to recommend us to a friend?`,
@@ -12,8 +14,8 @@ export function renderNpsSurveyEmail(params: { name: string; token: string }) {
   });
 }
 
-export function renderWelcomeEmail(params: { name: string }) {
-  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/member');
+export function renderWelcomeEmail(params: { name: string }): EmailTemplate {
+  const dashboardUrl = joinUrl(getAppUrl(), '/member');
   return buildEmailTemplate({
     title: `Welcome to ${DEFAULT_APP_NAME}!`,
     intro: `Hi ${params.name}, we're glad to have you with us. Your membership is now active.`,
@@ -26,8 +28,8 @@ export function renderWelcomeEmail(params: { name: string }) {
   });
 }
 
-export function renderOnboardingEmail(params: { name: string }) {
-  const cardUrl = joinUrl(DEFAULT_APP_URL, '/member/membership/card');
+export function renderOnboardingEmail(params: { name: string }): EmailTemplate {
+  const cardUrl = joinUrl(getAppUrl(), '/member/membership/card');
   return buildEmailTemplate({
     title: 'Download your Digital Card',
     intro: `Hi ${params.name}, have you downloaded your digital membership card yet?`,
@@ -40,8 +42,8 @@ export function renderOnboardingEmail(params: { name: string }) {
   });
 }
 
-export function renderCheckinEmail(params: { name: string }) {
-  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/member');
+export function renderCheckinEmail(params: { name: string }): EmailTemplate {
+  const dashboardUrl = joinUrl(getAppUrl(), '/member');
   return buildEmailTemplate({
     title: 'How is everything going?',
     intro: `Hi ${params.name}, just checking in to see if you need any assistance.`,
@@ -51,8 +53,8 @@ export function renderCheckinEmail(params: { name: string }) {
   });
 }
 
-export function renderEngagementDay30Email(params: { name: string }) {
-  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/member');
+export function renderEngagementDay30Email(params: { name: string }): EmailTemplate {
+  const dashboardUrl = joinUrl(getAppUrl(), '/member');
   return buildEmailTemplate({
     title: '30 days protected — quick check-in',
     intro: `Hi ${params.name}, you’ve been protected for 30 days. Here’s what to do if something happens.`,
@@ -66,7 +68,7 @@ export function renderEngagementDay30Email(params: { name: string }) {
   });
 }
 
-export function renderEngagementDay60Email(params: { name: string }) {
+export function renderEngagementDay60Email(params: { name: string }): EmailTemplate {
   return buildEmailTemplate({
     title: '60 days in — maximize your benefits',
     intro: `Hi ${params.name}, a reminder: your membership isn’t only for claims — it’s for guidance.`,
@@ -76,12 +78,12 @@ export function renderEngagementDay60Email(params: { name: string }) {
       'Tell a family member where to find the hotline number.',
     ],
     ctaLabel: 'View my membership',
-    ctaUrl: joinUrl(DEFAULT_APP_URL, '/member/membership'),
+    ctaUrl: joinUrl(getAppUrl(), '/member/membership'),
   });
 }
 
-export function renderEngagementDay90Email(params: { name: string }) {
-  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/member');
+export function renderEngagementDay90Email(params: { name: string }): EmailTemplate {
+  const dashboardUrl = joinUrl(getAppUrl(), '/member');
   return buildEmailTemplate({
     title: '3 months protected — we’re here 24/7',
     intro: `Hi ${params.name}, you’ve been with us for 3 months. If you ever need help, start here.`,
@@ -100,8 +102,8 @@ export function renderNewsletterEmail(params: {
   hero: { title: string; imageUrl?: string; text: string; ctaLabel?: string; ctaUrl?: string };
   partner?: { name: string; discount: string; description: string; imageUrl?: string };
   tip?: { title: string; text: string };
-}) {
-  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/member');
+}): EmailTemplate {
+  const dashboardUrl = joinUrl(getAppUrl(), '/member');
 
   const details = [params.hero.text];
 
@@ -123,12 +125,15 @@ export function renderNewsletterEmail(params: {
     intro: params.hero.title,
     details: details,
     ctaLabel: params.hero.ctaLabel || 'Read More',
-    ctaUrl: params.hero.ctaUrl || dashboardUrl,
+    ctaUrl: params.hero.ctaUrl ? resolveNewsletterDestination(params.hero.ctaUrl) : dashboardUrl,
   });
 }
 
-export function renderSeasonalEmail(params: { season: 'winter' | 'summer'; name: string }) {
-  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/member');
+export function renderSeasonalEmail(params: {
+  season: 'winter' | 'summer';
+  name: string;
+}): EmailTemplate {
+  const dashboardUrl = joinUrl(getAppUrl(), '/member');
 
   if (params.season === 'winter') {
     return buildEmailTemplate({

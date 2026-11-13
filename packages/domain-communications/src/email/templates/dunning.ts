@@ -1,5 +1,5 @@
 import type { EmailTemplate } from './types';
-import { buildEmailTemplate, DEFAULT_APP_URL, joinUrl } from './base';
+import { buildEmailTemplate, getAppUrl, joinUrl } from './base';
 
 export function renderPaymentFailedEmail(params: {
   accessContinues?: boolean;
@@ -10,7 +10,7 @@ export function renderPaymentFailedEmail(params: {
   gracePeriodEndDate: string;
 }): EmailTemplate {
   if (params.accessContinues) return renderPaymentFacts(params);
-  const updatePaymentUrl = joinUrl(DEFAULT_APP_URL, '/member/membership');
+  const updatePaymentUrl = joinUrl(getAppUrl(), '/member/membership');
   return buildEmailTemplate({
     title: '⚠️ Payment Failed - Action Required',
     intro: `Hi ${params.memberName}, your payment for ${params.planName} was unsuccessful. Please update your payment method to continue enjoying your membership benefits.`,
@@ -34,7 +34,7 @@ export function renderPaymentReminderEmail(params: {
   gracePeriodEndDate: string;
 }): EmailTemplate {
   if (params.accessContinues) return renderPaymentFacts(params);
-  const updatePaymentUrl = joinUrl(DEFAULT_APP_URL, '/member/membership');
+  const updatePaymentUrl = joinUrl(getAppUrl(), '/member/membership');
   return buildEmailTemplate({
     title: `⏰ ${params.daysRemaining} Days Left to Update Payment`,
     intro: `Hi ${params.memberName}, this is a reminder that your payment for ${params.planName} is still pending. You have ${params.daysRemaining} days left to update your payment method before losing access.`,
@@ -57,7 +57,7 @@ export function renderPaymentFinalWarningEmail(params: {
   gracePeriodEndDate: string;
 }): EmailTemplate {
   if (params.accessContinues) return renderPaymentFacts(params);
-  const updatePaymentUrl = joinUrl(DEFAULT_APP_URL, '/member/membership');
+  const updatePaymentUrl = joinUrl(getAppUrl(), '/member/membership');
   return buildEmailTemplate({
     title: '🚨 FINAL WARNING: Membership Expires Tomorrow',
     intro: `Hi ${params.memberName}, your grace period for ${params.planName} ends TOMORROW. If payment is not updated, your membership will be suspended and you will lose access to all benefits.`,
@@ -148,7 +148,7 @@ function renderPaymentFacts(params: {
       ...(days === undefined ? [] : [`${copy.days}: ${days}`]),
     ],
     ctaLabel: copy.cta,
-    ctaUrl: joinUrl(DEFAULT_APP_URL, '/member/membership'),
+    ctaUrl: joinUrl(getAppUrl(), '/member/membership'),
     footer: copy.footer,
   });
 }

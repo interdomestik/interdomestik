@@ -36,6 +36,7 @@ export type PreparedPastDueEmail = {
   subject: string;
   html: string;
   text: string;
+  source?: unknown;
 };
 
 export type PastDueEmailDeps = {
@@ -54,6 +55,7 @@ export type PreparedMembershipConfirmationEmail = {
   subject: string;
   html: string;
   text: string;
+  source?: unknown;
 };
 
 export type PrepareThankYouLetter = (params: {

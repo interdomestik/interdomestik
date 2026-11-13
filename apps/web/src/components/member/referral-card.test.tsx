@@ -1,6 +1,7 @@
+import { stubDeploymentOrigin } from '@/lib/deployment-origin.test-support';
 import { getMemberReferralCardData } from '@/actions/member-referrals';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MockButton,
   MockCard,
@@ -16,16 +17,6 @@ import { ReferralCard } from './referral-card';
 
 vi.mock('@/actions/member-referrals', () => ({
   getMemberReferralCardData: vi.fn(),
-}));
-
-vi.mock('@/lib/public-links', () => ({
-  normalizePublicLink: (link: string) =>
-    link.replace('https://localhost:3000', 'https://pilot.127.0.0.1.nip.io:3000'),
-  normalizeWhatsAppShareUrl: (shareUrl: string) =>
-    shareUrl.replace(
-      'https%3A%2F%2Flocalhost%3A3000',
-      'https%3A%2F%2Fpilot.127.0.0.1.nip.io%3A3000'
-    ),
 }));
 
 vi.mock('@interdomestik/ui/components/button', () => ({
@@ -101,9 +92,12 @@ vi.mock('sonner', () => ({
   },
 }));
 
+afterEach(() => vi.unstubAllEnvs());
+
 describe('ReferralCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    stubDeploymentOrigin();
     Object.assign(navigator, {
       clipboard: {
         writeText: vi.fn().mockResolvedValue(undefined),
@@ -114,9 +108,9 @@ describe('ReferralCard', () => {
     vi.mocked(getMemberReferralCardData).mockResolvedValue({
       success: true,
       data: {
-        link: 'https://localhost:3000?ref=ABC123',
+        link: 'https://staging.interdomestik.com/?ref=ABC123',
         whatsappShareUrl:
-          'https://wa.me/?text=Join%20Asistenca%20with%20my%20referral%20link%20https%3A%2F%2Flocalhost%3A3000%3Fref%3DABC123',
+          'https://wa.me/?text=Join%20Asistenca%20with%20my%20referral%20link%20https%3A%2F%2Fstaging.interdomestik.com%2F%3Fref%3DABC123',
         stats: {
           totalReferred: 3,
           pendingRewards: 10,
@@ -146,7 +140,7 @@ describe('ReferralCard', () => {
 
     expect(await screen.findByText('Invite Friends & Earn')).toBeInTheDocument();
     expect(
-      screen.getByDisplayValue('https://pilot.127.0.0.1.nip.io:3000?ref=ABC123')
+      screen.getByDisplayValue('https://staging.interdomestik.com/?ref=ABC123')
     ).toBeInTheDocument();
     expect(screen.getByText('Friends Invited')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
@@ -162,20 +156,20 @@ describe('ReferralCard', () => {
 
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        'https://pilot.127.0.0.1.nip.io:3000?ref=ABC123'
+        'https://staging.interdomestik.com/?ref=ABC123'
       );
     });
     expect(toastSuccess).toHaveBeenCalledWith('Link copied!');
   });
 
-  it('normalizes the shared referral URL before opening WhatsApp share', async () => {
+  it('preserves the server referral URL before opening WhatsApp share', async () => {
     render(<ReferralCard />);
 
     const shareButton = await screen.findByRole('button', { name: 'Share referral link' });
     fireEvent.click(shareButton);
 
     expect(window.open).toHaveBeenCalledWith(
-      'https://wa.me/?text=Join%20Asistenca%20with%20my%20referral%20link%20https%3A%2F%2Fpilot.127.0.0.1.nip.io%3A3000%3Fref%3DABC123',
+      'https://wa.me/?text=Join%20Asistenca%20with%20my%20referral%20link%20https%3A%2F%2Fstaging.interdomestik.com%2F%3Fref%3DABC123',
       '_blank',
       'noopener,noreferrer'
     );
@@ -209,14 +203,14 @@ describe('ReferralCard', () => {
     expect(screen.queryByText('Failed to fetch referral stats')).not.toBeInTheDocument();
   });
 
-  it('normalizes the displayed agent referral link to the live origin', async () => {
+  it('displays the server-resolved agent referral link unchanged', () => {
     render(
       <ReferralLinkCard
         referralLinkResult={{
           success: true,
           data: {
             code: 'STEFAN-GMV1SU',
-            link: 'https://localhost:3000?ref=STEFAN-GMV1SU',
+            link: 'https://staging.interdomestik.com/?ref=STEFAN-GMV1SU',
           },
           error: undefined,
           fieldErrors: undefined,
@@ -225,18 +219,18 @@ describe('ReferralCard', () => {
     );
 
     expect(
-      screen.getByDisplayValue('https://pilot.127.0.0.1.nip.io:3000?ref=STEFAN-GMV1SU')
+      screen.getByDisplayValue('https://staging.interdomestik.com/?ref=STEFAN-GMV1SU')
     ).toBeInTheDocument();
   });
 
-  it('copies the normalized agent referral link instead of the localhost fallback', async () => {
+  it('copies the exact server-resolved agent referral link', async () => {
     render(
       <ReferralLinkCard
         referralLinkResult={{
           success: true,
           data: {
             code: 'STEFAN-GMV1SU',
-            link: 'https://localhost:3000?ref=STEFAN-GMV1SU',
+            link: 'https://staging.interdomestik.com/?ref=STEFAN-GMV1SU',
           },
           error: undefined,
           fieldErrors: undefined,
@@ -250,7 +244,7 @@ describe('ReferralCard', () => {
 
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        'https://pilot.127.0.0.1.nip.io:3000?ref=STEFAN-GMV1SU'
+        'https://staging.interdomestik.com/?ref=STEFAN-GMV1SU'
       );
     });
     expect(toastSuccess).toHaveBeenCalledWith('Link copied!');

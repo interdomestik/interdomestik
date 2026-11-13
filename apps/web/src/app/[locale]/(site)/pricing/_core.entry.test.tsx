@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectCoverageMatrix, getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 import { expectCommercialTerms } from '@/test/commercial-terms-test-utils';
 import { expectSuccessFeeCalculator } from '@/test/success-fee-calculator-test-utils';
+import { stubDeploymentOrigin, STAGING_DOOR } from '@/lib/deployment-origin.test-support';
 const hoisted = vi.hoisted(() => {
   const entityDisclosure = { contractingCompany: 'KS LLC', governingLaw: 'XK', unavailable: false };
 
@@ -70,12 +71,13 @@ import PricingPage from './_core.entry';
 describe('PricingPage server shell', () => {
   beforeEach(() => {
     process.env = { ...ORIGINAL_ENV };
-    process.env.IDA_HOST = 'https://ida.example.test';
+    stubDeploymentOrigin();
     delete process.env.BILLING_TEST_MODE;
     delete process.env.NEXT_PUBLIC_BILLING_TEST_MODE;
     vi.clearAllMocks();
   });
   afterEach(() => {
+    vi.unstubAllEnvs();
     process.env = { ...ORIGINAL_ENV };
   });
 
@@ -118,7 +120,7 @@ describe('PricingPage server shell', () => {
       }),
       entityDisclosure: hoisted.entityDisclosure,
       neutralEntryPlan: 'family',
-      neutralPricingEntryUrl: 'https://ida.example.test/sq/pricing',
+      neutralPricingEntryUrl: `${STAGING_DOOR}/sq/pricing`,
     });
     expect(hoisted.headersMock).not.toHaveBeenCalled();
     expect(hoisted.getSessionMock).not.toHaveBeenCalled();
@@ -145,6 +147,7 @@ describe('PricingPage server shell', () => {
   });
 
   it('keeps rendering the pricing shell during local sandbox builds when checkout config is unavailable', async () => {
+    stubDeploymentOrigin('local', 'http://localhost:3000');
     vi.stubEnv('NODE_ENV', 'production');
     process.env.NEXT_PUBLIC_PADDLE_ENV = 'sandbox';
     delete process.env.VERCEL_ENV;

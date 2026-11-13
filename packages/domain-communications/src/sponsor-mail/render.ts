@@ -1,3 +1,4 @@
+import { resolveDoorDestination } from '../email/door-destination';
 import type { EmailTemplate } from '../email/templates/types';
 import { DE_COPY } from './copy-de';
 import { EN_COPY } from './copy-en';
@@ -52,16 +53,7 @@ function escapeHtml(value: string): string {
 function renderLink({ label, url }: { label: string; url: string }): string {
   const safeLabel = escapeHtml(label);
   const safeUrl = escapeHtml(url);
-  // Escaping attributes does not make an executable URL scheme safe.
-  try {
-    const { protocol } = new URL(url);
-    if (protocol === 'https:' || protocol === 'http:') {
-      return `<p><a href="${safeUrl}">${safeLabel}</a></p>`;
-    }
-  } catch {
-    // Preserve invalid links as plain text so the caller's value is not lost.
-  }
-  return `<p>${safeLabel}: ${safeUrl}</p>`;
+  return `<p><a href="${safeUrl}">${safeLabel}</a></p>`;
 }
 
 export function renderSponsorMail(input: SponsorMailInput): EmailTemplate {
@@ -71,7 +63,10 @@ export function renderSponsorMail(input: SponsorMailInput): EmailTemplate {
   const greeting = `${copy.greeting}${recipient},`;
   const support = `${copy.supportLabel}: ${input.supportEmail}`;
   const paragraphs = [greeting, ...content.paragraphs];
-  const links = content.links ?? [];
+  const links = (content.links ?? []).map(link => ({
+    ...link,
+    url: resolveDoorDestination(link.url),
+  }));
 
   // The shared builder requires a single CTA; these messages need zero, one or two links.
   const html = `<!doctype html>
@@ -96,5 +91,6 @@ export function renderSponsorMail(input: SponsorMailInput): EmailTemplate {
       ...links.map(link => `${link.label}: ${link.url}`),
       support,
     ].join('\n\n'),
+    source: { version: 1, kind: 'sponsor', params: { ...input } },
   };
 }

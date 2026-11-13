@@ -47,6 +47,7 @@ export const snapshotSchema = z.object({
     subject: z.string().min(1),
     html: z.string().min(1),
     text: z.string().min(1),
+    source: z.unknown().optional(),
   }),
 });
 

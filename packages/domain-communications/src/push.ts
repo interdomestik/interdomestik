@@ -1,4 +1,5 @@
 import webPush, { type PushSubscription } from 'web-push';
+import { resolvePushDestination } from './email/door-destination';
 
 import {
   readTenantAuthority,
@@ -113,12 +114,13 @@ export async function sendPushToUser(
     return { success: false, skipped: true, reason: 'no_subscription' as const };
   }
 
+  const destination = resolvePushDestination(payload.url);
   webPush.setVapidDetails(vapid.subject, vapid.publicKey, vapid.privateKey);
 
   const body = JSON.stringify({
     title: payload.title,
     body: payload.body,
-    url: payload.url,
+    url: destination,
     icon: payload.icon,
     badge: payload.badge,
   });
