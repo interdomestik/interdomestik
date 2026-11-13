@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-const mocks = vi.hoisted(() => ({ role: 'branch_manager', content: vi.fn(), metadata: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  role: 'branch_manager',
+  content: vi.fn(),
+  metadata: vi.fn(),
+  assignments: vi.fn(),
+}));
 vi.mock('server-only', () => ({}));
 vi.mock('@interdomestik/database/tenant-authority', () => ({
   readTenantAuthority: () => ({ principal: { role: mocks.role } }),
@@ -10,6 +15,9 @@ vi.mock('next-intl/server', () => ({
   getTranslations: () => Promise.resolve((key: string) => key),
 }));
 vi.mock('@/features/claims/timeline', () => ({ getClaimTimeline: mocks.content }));
+vi.mock('@/features/admin/claims/server/get-claim-assignment-history', () => ({
+  getClaimAssignmentHistory: mocks.assignments,
+}));
 vi.mock('./get-note-free-claim-timeline', () => ({ getNoteFreeClaimTimeline: mocks.metadata }));
 vi.mock('./restricted-communication-notice', () => ({
   RestrictedCommunicationNotice: ({ state }: { state?: string }) => (
@@ -39,6 +47,7 @@ beforeEach(() => {
   mocks.role = 'branch_manager';
   mocks.metadata.mockResolvedValue({ kind: 'ok', data: [] });
   mocks.content.mockResolvedValue({ claimId: 'claim', entries: [] });
+  mocks.assignments.mockResolvedValue({ entries: [], truncated: false });
 });
 describe.each([ClaimTimelineSection, ClaimOpsTimelineSection])(
   'timeline trusted authority boundary',
@@ -51,6 +60,7 @@ describe.each([ClaimTimelineSection, ClaimOpsTimelineSection])(
         authority: params.authority,
       });
       expect(screen.getByText('status-metadata')).toBeInTheDocument();
+      expect(mocks.assignments).not.toHaveBeenCalled();
     });
     it('preserves non-BM reader inputs', async () => {
       mocks.role = 'tenant_admin';
@@ -71,3 +81,20 @@ describe.each([ClaimTimelineSection, ClaimOpsTimelineSection])(
     });
   }
 );
+
+describe('ops timeline assignment history boundary', () => {
+  it('reads assignment history for the admin presentation with the page authority', async () => {
+    mocks.role = 'tenant_admin';
+    render(await ClaimOpsTimelineSection(params));
+    expect(mocks.assignments).toHaveBeenCalledExactlyOnceWith({
+      claimId: 'claim',
+      authority: params.authority,
+    });
+  });
+  it('never reads assignment history for a member presentation', async () => {
+    mocks.role = 'tenant_admin';
+    render(await ClaimOpsTimelineSection({ ...params, viewerRole: 'member' }));
+    expect(mocks.content).toHaveBeenCalledOnce();
+    expect(mocks.assignments).not.toHaveBeenCalled();
+  });
+});

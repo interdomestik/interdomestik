@@ -252,7 +252,12 @@
       "actor_system": "Sistem",
       "actor_staff": "Osoblje",
       "actor_member": "Član",
-      "actor_admin": "Administrator"
+      "actor_admin": "Administrator",
+      "assignment_assigned": "Slučaj je dodeljen: {name}",
+      "assignment_assigned_unnamed": "Slučaj je dodeljen",
+      "assignment_removed": "Dodela je uklonjena",
+      "assignment_previous": "Ranije: {name}",
+      "assignment_truncated": "Prikazano je samo {count} najnovijih dodela."
     },
     "informationRequests": {
       "title": "Tražene informacije",

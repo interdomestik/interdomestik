@@ -252,7 +252,12 @@
       "actor_system": "Систем",
       "actor_staff": "Персонал",
       "actor_member": "Член",
-      "actor_admin": "Админ"
+      "actor_admin": "Админ",
+      "assignment_assigned": "Случајот е доделен на {name}",
+      "assignment_assigned_unnamed": "Случајот е доделен",
+      "assignment_removed": "Доделувањето е отстрането",
+      "assignment_previous": "Претходно: {name}",
+      "assignment_truncated": "Прикажани се само последните {count} доделувања."
     },
     "informationRequests": {
       "title": "Побарани информации",

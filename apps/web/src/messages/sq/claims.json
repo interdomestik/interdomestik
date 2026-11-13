@@ -252,7 +252,12 @@
       "actor_system": "Sistem",
       "actor_staff": "Staf",
       "actor_member": "Anëtar",
-      "actor_admin": "Admini"
+      "actor_admin": "Admini",
+      "assignment_assigned": "Rasti iu caktua {name}",
+      "assignment_assigned_unnamed": "Rasti u caktua",
+      "assignment_removed": "Caktimi u hoq",
+      "assignment_previous": "Më parë: {name}",
+      "assignment_truncated": "Shfaqen vetëm {count} caktimet më të fundit."
     },
     "informationRequests": {
       "title": "Informacion i kërkuar",
