@@ -40,6 +40,16 @@
     "pagination": {
       "pageOf": "Seite {page} von {total}"
     },
+    "fileTypes": {
+      "pdf": "PDF",
+      "word": "Word",
+      "excel": "Excel",
+      "image": "Bild",
+      "audio": "Audio",
+      "video": "Video",
+      "email": "E-Mail",
+      "file": "Datei"
+    },
     "notFound": {
       "title": "Seite nicht gefunden",
       "description": "Leider konnten wir die gesuchte Seite nicht finden.",

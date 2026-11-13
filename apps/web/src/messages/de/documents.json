@@ -9,16 +9,6 @@
     "viewClaim": "Schadensfall ansehen",
     "claimFallback": "Schadensfall",
     "emptyList": "Keine Dokumente angehängt.",
-    "fileTypes": {
-      "pdf": "PDF",
-      "word": "Word",
-      "excel": "Excel",
-      "image": "Bild",
-      "audio": "Audio",
-      "video": "Video",
-      "email": "E-Mail",
-      "file": "Datei"
-    },
     "actions": {
       "view": "Ansehen",
       "download": "Herunterladen"

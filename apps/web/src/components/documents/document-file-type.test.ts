@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { documentFileKind } from './document-file-type';
+import { documentFileKind, type DocumentFileKind } from './document-file-type';
+
+const catalogs = import.meta.glob<{ common: { fileTypes: Record<string, string> } }>(
+  '../../messages/*/common.json',
+  { eager: true, import: 'default' }
+);
+const KINDS: DocumentFileKind[] = [
+  'pdf',
+  'word',
+  'excel',
+  'image',
+  'audio',
+  'video',
+  'email',
+  'file',
+];
 
 describe('documentFileKind', () => {
   it.each([
@@ -26,4 +41,10 @@ describe('documentFileKind', () => {
       expect(documentFileKind(mimeType)).toBe('file');
     }
   );
+
+  it.each(['sq', 'en', 'sr', 'mk', 'de'])('labels every file kind in the %s catalog', locale => {
+    const labels = catalogs[`../../messages/${locale}/common.json`].common.fileTypes;
+    expect(Object.keys(labels).sort()).toEqual([...KINDS].sort());
+    for (const kind of KINDS) expect(labels[kind].trim()).not.toBe('');
+  });
 });

@@ -1,4 +1,4 @@
-/** Reader-facing file kinds; each one has a `documents.fileTypes.<kind>` label in every locale. */
+/** Reader-facing file kinds; each one has a `common.fileTypes.<kind>` label in every locale. */
 export type DocumentFileKind =
   'pdf' | 'word' | 'excel' | 'image' | 'audio' | 'video' | 'email' | 'file';
 

@@ -8,10 +8,10 @@ vi.mock('next-intl', () => ({
       'actions.view': 'View',
       'actions.download': 'Download',
       emptyList: 'No documents attached.',
-      'fileTypes.pdf': 'PDF',
-      'fileTypes.word': 'Word',
-      'fileTypes.email': 'Email',
-      'fileTypes.audio': 'Audio',
+      pdf: 'PDF',
+      word: 'Word',
+      email: 'Email',
+      audio: 'Audio',
     };
     return translations[key] ?? key;
   },

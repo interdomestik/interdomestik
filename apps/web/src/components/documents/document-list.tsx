@@ -24,6 +24,7 @@ type Props = {
 export function DocumentList({ documents }: Readonly<Props>) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const t = useTranslations('documents');
+  const tFileTypes = useTranslations('common.fileTypes');
 
   const handleView = async (docId: string) => {
     setLoadingId(docId);
@@ -86,7 +87,7 @@ export function DocumentList({ documents }: Readonly<Props>) {
                 {doc.name}
               </p>
               <p className="text-xs text-muted-foreground">
-                {formatSize(doc.fileSize)} · {t(`fileTypes.${documentFileKind(doc.fileType)}`)}
+                {formatSize(doc.fileSize)} · {tFileTypes(documentFileKind(doc.fileType))}
               </p>
             </div>
           </div>
