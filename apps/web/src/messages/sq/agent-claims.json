@@ -198,6 +198,7 @@
         "assignment": {
           "title": "Caktimi",
           "assign_claim": "Cakto rastin",
+          "choose_assignee": "Zgjidh përgjegjësin",
           "save": "Ruaj caktimin",
           "current_assignee": "Përgjegjësi aktual",
           "out_of_scope": "{name} (jashtë fushës)",

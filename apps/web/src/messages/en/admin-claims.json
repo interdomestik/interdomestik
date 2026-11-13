@@ -7,7 +7,12 @@
         "label": "Assigned staff",
         "placeholder": "Select staff",
         "unassigned": "Unassigned",
-        "success_message": "Claim assigned successfully"
+        "success_message": "Claim assigned successfully",
+        "errors": {
+          "target_denied": "This staff member cannot be assigned to this claim.",
+          "conflict": "This claim changed in the meantime. Reload the page and try again.",
+          "draft": "A draft claim cannot be assigned until the member submits it."
+        }
       },
       "sections": {
         "active": "Active",

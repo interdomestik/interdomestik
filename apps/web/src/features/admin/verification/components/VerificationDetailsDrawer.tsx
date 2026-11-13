@@ -13,6 +13,7 @@ import { VerificationDocuments } from './VerificationDocuments';
 import { VerificationSummary } from './VerificationSummary';
 import { VerificationTimeline } from './VerificationTimeline';
 import { verificationToastKey } from './approval-toast';
+import { fetchVerificationDetails } from './verification-details-fetch';
 
 interface VerificationDetailsDrawerProps {
   attemptId: string | null;
@@ -33,33 +34,50 @@ export function VerificationDetailsDrawer({
   const [data, setData] = useState<CashVerificationDetailsDTO | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [notFound, setNotFound] = useState(false);
   const [note, setNote] = useState('');
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [pendingDecision, setPendingDecision] = useState<'reject' | 'needs_info' | null>(null);
   const [actionPending, setActionPending] = useState(false);
 
   useEffect(() => {
-    if (isOpen && attemptId) {
-      setLoading(true);
-      setError(false);
-      fetch(`/api/verification/${attemptId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.error) throw new Error(data.error);
-          setData(data);
-        })
-        .catch(() => {
-          toast.error(t('toasts.error'));
-          setError(true);
-        })
-        .finally(() => setLoading(false));
-    } else {
+    if (!isOpen || !attemptId) {
       setData(null);
+      setLoading(false);
       setError(false);
+      setNotFound(false);
       setShowNoteInput(false);
       setPendingDecision(null);
       setNote('');
+      return undefined;
     }
+    let active = true;
+    setLoading(true);
+    setError(false);
+    setNotFound(false);
+    fetchVerificationDetails(attemptId).then(
+      result => {
+        if (!active) return;
+        setLoading(false);
+        if (result.kind === 'ok') {
+          setData(result.data);
+          return;
+        }
+        // An unknown id (stale or hand-edited link) is a calm not-found state, not a failure toast.
+        setNotFound(result.kind === 'not_found');
+        setError(result.kind === 'error');
+        if (result.kind === 'error') toast.error(t('toasts.error'));
+      },
+      () => {
+        if (!active) return;
+        setLoading(false);
+        setError(true);
+        toast.error(t('toasts.error'));
+      }
+    );
+    return () => {
+      active = false;
+    };
   }, [isOpen, attemptId, t]);
 
   const initiateAction = (decision: 'reject' | 'needs_info') => {
@@ -125,8 +143,12 @@ export function VerificationDetailsDrawer({
       <OpsQueryState
         loading={loading}
         error={error}
-        isEmpty={!data && !loading && !error}
-        loadingLabel="Loading details..."
+        isEmpty={notFound || (!data && !loading && !error)}
+        loadingLabel={t('drawer.loading')}
+        errorLabel={t('drawer.load_error')}
+        emptyTitle={t('drawer.not_found_title')}
+        emptySubtitle={t('drawer.not_found_description')}
+        emptyTestId="verification-details-not-found"
       >
         {data && (
           <>

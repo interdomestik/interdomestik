@@ -10,7 +10,12 @@
         "label": "Përgjegjësia e stafit",
         "placeholder": "Zgjidh përgjegjësin",
         "unassigned": "Pa përgjegjës",
-        "success_message": "Kërkesa u caktua me sukses"
+        "success_message": "Rasti u caktua me sukses",
+        "errors": {
+          "target_denied": "Ky anëtar i stafit nuk mund të caktohet për këtë rast.",
+          "conflict": "Rasti ndryshoi ndërkohë. Rifreskoni faqen dhe provoni përsëri.",
+          "draft": "Një rast në skicë nuk mund të caktohet para se anëtari ta dorëzojë."
+        }
       },
       "sections": {
         "active": "Në Proces",
