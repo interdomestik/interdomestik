@@ -6,3 +6,21 @@
  */
 export const SUPPORT_HANDOFF_QUEUE_GRID =
   'grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(11rem,1.2fr)_repeat(4,minmax(0,1fr))]';
+
+const QUEUE_COLUMNS = ['request', 'member', 'relationship', 'risk', 'owner'] as const;
+
+/** Column headings for the queue, laid out on the same grid as each row. */
+export function SupportHandoffQueueHeader({
+  t,
+}: Readonly<{ t: (key: string) => string }>): React.JSX.Element {
+  return (
+    <div
+      className={`${SUPPORT_HANDOFF_QUEUE_GRID} border-b px-4 py-3 text-sm font-medium text-muted-foreground`}
+    >
+      {QUEUE_COLUMNS.map(column => (
+        <span key={column}>{t(`table.${column}`)}</span>
+      ))}
+      <span className="text-right">{t('table.actions')}</span>
+    </div>
+  );
+}

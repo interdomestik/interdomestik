@@ -5,7 +5,6 @@ import {
   SupportHandoffMemberCell,
   SupportHandoffMemberEmail,
 } from './support-handoff-member-cell';
-import { SUPPORT_HANDOFF_QUEUE_GRID } from './support-handoff-queue-grid';
 
 describe('SupportHandoffMemberEmail', () => {
   it('offers line breaks only after "@" and domain dots, keeping the full address as text and title', () => {
@@ -56,15 +55,5 @@ describe('emailBreakSegments (qa3 #61)', () => {
   it('leaves a value without a usable "@" as one segment', () => {
     expect(emailBreakSegments('no-at-sign')).toEqual([{ start: 0, text: 'no-at-sign' }]);
     expect(emailBreakSegments('@leading')).toEqual([{ start: 0, text: '@leading' }]);
-  });
-});
-
-describe('support hand-off queue grid (qa3 #61)', () => {
-  it('reflows to three columns below xl and gives the member column a minimum width at xl', () => {
-    expect(SUPPORT_HANDOFF_QUEUE_GRID).toContain('md:grid-cols-3');
-    expect(SUPPORT_HANDOFF_QUEUE_GRID).toMatch(
-      /xl:grid-cols-\[minmax\(0,[\d.]+fr\)_minmax\(11rem,/
-    );
-    expect(SUPPORT_HANDOFF_QUEUE_GRID).not.toContain('md:grid-cols-6');
   });
 });

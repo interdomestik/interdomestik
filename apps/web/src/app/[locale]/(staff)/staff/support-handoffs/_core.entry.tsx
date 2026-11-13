@@ -37,7 +37,7 @@ import { SupportHandoffAttentionRow } from './support-handoff-attention-row';
 import { SupportHandoffClaimLink } from './support-handoff-claim-link';
 import { SupportHandoffDetailPanel } from './support-handoff-detail-panel';
 import { SupportHandoffMemberCell } from './support-handoff-member-cell';
-import { SUPPORT_HANDOFF_QUEUE_GRID } from './support-handoff-queue-grid';
+import { SupportHandoffQueueHeader } from './support-handoff-queue-grid';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
@@ -371,16 +371,7 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
         className="rounded-lg border bg-white shadow-sm"
         data-testid="staff-support-handoffs-queue"
       >
-        <div
-          className={`${SUPPORT_HANDOFF_QUEUE_GRID} border-b px-4 py-3 text-sm font-medium text-muted-foreground`}
-        >
-          <span>{t('table.request')}</span>
-          <span>{t('table.member')}</span>
-          <span>{t('table.relationship')}</span>
-          <span>{t('table.risk')}</span>
-          <span>{t('table.owner')}</span>
-          <span className="text-right">{t('table.actions')}</span>
-        </div>
+        <SupportHandoffQueueHeader t={t} />
         <div className="divide-y" data-testid="staff-support-handoffs-list">
           {queue.map(handoff => (
             <SupportHandoffAttentionRow
