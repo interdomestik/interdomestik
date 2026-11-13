@@ -9,6 +9,7 @@ import { createClaimSchema, type CreateClaimValues } from '@interdomestik/domain
 import { resumeFreeStartDraft, type FreeStartDraft } from '@interdomestik/database/free-start-drafts';
 import { z } from 'zod';
 import { readSavedDraftClaim, savedDraftClaimId } from './saved-draft-claim-identity';
+import { buildSavedDraftClaimText } from './saved-draft-claim-text';
 import { submitClaimCore } from './submit.core';
 
 const diasporaCountrySchema = z.enum(['DE', 'CH', 'AT', 'IT']);
@@ -32,7 +33,7 @@ function ownValue(record: Readonly<Record<string, string>>, key: string | null) 
 }
 
 // prettier-ignore
-function mapDraft(draft: FreeStartDraft, incidentCountryCode?: z.infer<typeof diasporaCountrySchema>): CreateClaimValues | null {
+async function mapDraft(draft: FreeStartDraft, incidentCountryCode?: z.infer<typeof diasporaCountrySchema>): Promise<CreateClaimValues | null> {
   const category = ownValue(CATEGORY, draft.category);
   const issue = ownValue(ISSUE, draft.issueType);
   const outcome = ownValue(OUTCOME, draft.desiredOutcome);
@@ -40,22 +41,19 @@ function mapDraft(draft: FreeStartDraft, incidentCountryCode?: z.infer<typeof di
   const summary = draft.summary.trim();
   if (!category || !issue || !outcome || counterparty.length < 2 || !summary) return null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.incidentDate)) return null;
+  const text = await buildSavedDraftClaimText(
+    { category: draft.category, issueType: draft.issueType, incidentDate: draft.incidentDate, counterparty, desiredOutcome: draft.desiredOutcome, summary },
+    { category, issue, outcome }
+  );
   const data = {
     category: draft.category,
     companyName: counterparty,
     currency: 'EUR',
-    description: [
-      `Category: ${category}`,
-      `Issue: ${issue}`,
-      `Incident date: ${draft.incidentDate}`,
-      `Counterparty: ${counterparty}`,
-      `Desired outcome: ${outcome}`,
-      `Summary: ${summary}`,
-    ].join('\n'),
+    description: text.description,
     files: [],
     incidentDate: draft.incidentDate,
     ...(incidentCountryCode ? { incidentCountryCode } : {}),
-    title: `${category}: ${issue}`,
+    title: text.title,
   };
   const parsed = createClaimSchema.safeParse(data);
   return parsed.success ? parsed.data : null;
@@ -115,7 +113,7 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
     // prettier-ignore
     if (existing.kind === 'invalid' || resumed.draft.version !== parsed.data.expectedVersion || resumed.draft.resumeStep !== 'preview') return unavailable();
     const claimStart = resumed.draft.category === 'vehicle' ? parsed.data.claimStart : undefined;
-    const data = mapDraft(resumed.draft, claimStart?.incidentCountryCode);
+    const data = await mapDraft(resumed.draft, claimStart?.incidentCountryCode);
     if (!data) return unavailable();
     const limit = await enforceRateLimitForAction({
       name: 'action:submit-claim',

@@ -7,7 +7,7 @@ describe('toIntlLocaleTag', () => {
     ['de', 'de-DE'],
     ['mk', 'mk-MK'],
     ['sq', 'sq-AL'],
-    ['sr', 'sr-RS'],
+    ['sr', 'sr-Latn-RS'],
     ['en', 'en-US'],
     ['hr', 'en-US'],
     ['constructor', 'en-US'],
