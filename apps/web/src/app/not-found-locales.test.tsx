@@ -32,9 +32,13 @@ describe('localized not-found page', () => {
     expect(html).not.toMatch(/\(Locale\)|\(Root\)|Admin 404/);
   });
 
-  it('never resolves the request locale on the server (qa3 #67)', () => {
-    const source = readFileSync(path.resolve(__dirname, '[locale]/not-found.tsx'), 'utf8');
-    expect(source.startsWith("'use client';")).toBe(true);
-    expect(source).not.toContain('next-intl/server');
+  it('keeps the boundary on the server and resolves the locale only on the client (qa3 #67)', () => {
+    const read = (file: string) => readFileSync(path.resolve(__dirname, file), 'utf8');
+    const boundary = read('[locale]/not-found.tsx');
+    const copy = read('[locale]/locale-not-found-copy.tsx');
+    expect(boundary).not.toMatch(/^'use client'/m);
+    expect(boundary).not.toMatch(/from 'next-intl/);
+    expect(copy.startsWith("'use client';")).toBe(true);
+    expect(copy).not.toContain('next-intl/server');
   });
 });
