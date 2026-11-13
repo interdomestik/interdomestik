@@ -30,6 +30,11 @@ vi.mock('@/components/shell/session', () => ({
 }));
 vi.mock('@/i18n/routing', () => ({ Link: h.pass, redirect: h.redirect }));
 vi.mock('@/components/dashboard/claims/claims-filters', () => ({ ClaimsFilters: () => null }));
+vi.mock('./claims/new-case-entry.server', () => ({
+  resolveMemberNewCaseEntry: vi.fn(() =>
+    Promise.resolve({ href: '/member/claims/new', kind: 'case' })
+  ),
+}));
 vi.mock('@/components/dashboard/claims/member-claims-table', () => ({
   MemberClaimsTable: () => null,
 }));

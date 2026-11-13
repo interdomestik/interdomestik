@@ -6,6 +6,7 @@ import { Button } from '@interdomestik/ui';
 import { Plus } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { withMemberActorRoleOnSession } from '../actor-role-on-session';
+import { resolveMemberNewCaseEntry } from './new-case-entry.server';
 
 const STATUS_CHIP_PHONE_TARGETS =
   '[&_button]:min-h-11 [&_button]:min-w-11 [&_button]:justify-center sm:[&_button]:min-h-0 sm:[&_button]:min-w-0';
@@ -31,7 +32,11 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
     return null;
   }
 
-  const t = await getTranslations({ locale, namespace: 'claims' });
+  const [t, newCase] = await Promise.all([
+    getTranslations({ locale, namespace: 'claims' }),
+    resolveMemberNewCaseEntry(session),
+  ]);
+  const newCaseLabel = newCase.kind === 'membership' ? t('gate.view_plans') : t('new');
 
   return (
     <div className="min-w-0 space-y-6 [overflow-wrap:anywhere]">
@@ -47,9 +52,9 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
           asChild
           className="h-auto min-h-10 max-w-full whitespace-normal focus-visible:ring-inset focus-visible:ring-primary-foreground focus-visible:ring-offset-0"
         >
-          <Link href="/member/claims/new" data-testid="create-claim-button">
+          <Link href={newCase.href} data-testid="create-claim-button">
             <Plus className="mr-2 h-4 w-4 shrink-0" />
-            {t('new')}
+            {newCaseLabel}
           </Link>
         </Button>
       </div>
@@ -61,7 +66,10 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
           <ClaimsFilters />
         </div>
 
-        <MemberClaimsTable />
+        <MemberClaimsTable
+          newCaseHref={newCase.href}
+          newCaseLabel={newCase.kind === 'membership' ? newCaseLabel : undefined}
+        />
       </div>
     </div>
   );

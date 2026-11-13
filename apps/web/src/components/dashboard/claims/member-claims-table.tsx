@@ -27,7 +27,17 @@ function isPrimaryNavigationClick(event: MouseEvent<HTMLAnchorElement>) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 }
 
-export function MemberClaimsTable() {
+type MemberClaimsTableProps = Readonly<{
+  /** Server-resolved entry matching the intake admission; defaults to the plain intake. */
+  newCaseHref?: string;
+  /** Replaces the "first case" label when the entry leads to the membership instead. */
+  newCaseLabel?: string;
+}>;
+
+export function MemberClaimsTable({
+  newCaseHref = '/member/claims/new',
+  newCaseLabel,
+}: MemberClaimsTableProps = {}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -157,9 +167,9 @@ export function MemberClaimsTable() {
               asChild
               className="h-auto min-h-10 max-w-full whitespace-normal [overflow-wrap:anywhere]"
             >
-              <Link href="/member/claims/new">
+              <Link href={newCaseHref}>
                 <Plus className="mr-2 h-4 w-4 shrink-0" />
-                {t('empty.createFirst')}
+                {newCaseLabel ?? t('empty.createFirst')}
               </Link>
             </Button>
           )}

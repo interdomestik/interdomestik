@@ -147,9 +147,21 @@ describe('MemberClaimsTable', () => {
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useQuery>);
 
-    render(<MemberClaimsTable />);
+    const { unmount } = render(<MemberClaimsTable />);
     expect(screen.getByText('No claims yet')).toBeInTheDocument();
     expect(screen.getByText('Start by creating your first claim')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Create First Claim' })).toHaveAttribute(
+      'href',
+      '/member/claims/new'
+    );
+    unmount();
+
+    // The server-resolved entry replaces the dead-end intake for members without access.
+    render(<MemberClaimsTable newCaseHref="/member/membership" newCaseLabel="View Plans" />);
+    expect(screen.getByRole('link', { name: 'View Plans' })).toHaveAttribute(
+      'href',
+      '/member/membership'
+    );
   });
 
   it('renders claims table with data', async () => {
