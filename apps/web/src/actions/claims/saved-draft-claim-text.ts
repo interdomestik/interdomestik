@@ -50,8 +50,9 @@ export async function buildSavedDraftClaimText(
     pick(`outcomes.${facts.desiredOutcome}`, english.outcome),
     facts.summary,
   ];
-  const description = FIELD_LABELS.map(
-    ([key, fallback], index) => `${pick(`preview.${key}`, fallback)}: ${values[index]}`
-  ).join('\n');
+  const description = FIELD_LABELS.map(([key, fallback], index) => {
+    const label = pick('preview.' + key, fallback);
+    return `${label}: ${values[index]}`;
+  }).join('\n');
   return { title: `${category}: ${issue}`, description };
 }

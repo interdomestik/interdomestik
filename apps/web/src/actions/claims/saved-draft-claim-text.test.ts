@@ -8,13 +8,18 @@ const catalogs = import.meta.glob('../../messages/*/freeStart.json', {
   import: 'default',
 });
 vi.mock('next-intl/server', () => ({
-  getLocale: async () => state.locale,
-  getTranslations: async () =>
-    createTranslator({
-      locale: state.locale,
-      messages: catalogs[`../../messages/${state.locale}/freeStart.json`] as Record<string, never>,
-      namespace: 'freeStart' as never,
-    }),
+  getLocale: () => Promise.resolve(state.locale),
+  getTranslations: () =>
+    Promise.resolve(
+      createTranslator({
+        locale: state.locale,
+        messages: catalogs[`../../messages/${state.locale}/freeStart.json`] as Record<
+          string,
+          never
+        >,
+        namespace: 'freeStart' as never,
+      })
+    ),
 }));
 
 import { buildSavedDraftClaimText } from './saved-draft-claim-text';

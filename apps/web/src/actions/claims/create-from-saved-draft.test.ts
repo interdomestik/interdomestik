@@ -3,16 +3,6 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 // prettier-ignore
 const h = vi.hoisted(() => { const limit = vi.fn(); const where = vi.fn(() => ({ limit })); const from = vi.fn(() => ({ where })); return { contexts: [] as unknown[], from, limit, rateLimit: vi.fn(), resolveSession: vi.fn(), resumeDraft: vi.fn(), runAuthenticated: vi.fn(), select: vi.fn(() => ({ from })), submit: vi.fn() }; });
-vi.unmock('next-intl');
-vi.mock('next-intl/server', async () => {
-  const { createTranslator } = await import('next-intl');
-  const messages = (await import('../../messages/en/freeStart.json')).default;
-  return {
-    getLocale: async () => 'en',
-    getTranslations: async () =>
-      createTranslator({ locale: 'en', messages, namespace: 'freeStart' }),
-  };
-});
 vi.mock('@/lib/safe-action', () => ({ runAuthenticatedAction: h.runAuthenticated }));
 vi.mock('@/actions/free-start-drafts/session.core', () => ({
   resolveFreeStartDraftSession: h.resolveSession,
@@ -36,6 +26,16 @@ vi.mock('@interdomestik/database', () => ({
 vi.mock('@interdomestik/database/claim-number', () => ({
   isValidClaimNumber: (value: string) => /^CLM-[A-Z0-9]{2,10}-\d{4}-\d{6}$/.test(value),
 }));
+vi.unmock('next-intl');
+vi.mock('next-intl/server', async () => {
+  const { createTranslator } = await import('next-intl');
+  const messages = (await import('../../messages/en/freeStart.json')).default;
+  return {
+    getLocale: () => Promise.resolve('en'),
+    getTranslations: () =>
+      Promise.resolve(createTranslator({ locale: 'en', messages, namespace: 'freeStart' })),
+  };
+});
 vi.mock('drizzle-orm', () => ({
   and: (...args: unknown[]) => args,
   eq: (left: unknown, right: unknown) => [left, right],
