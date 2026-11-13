@@ -1,4 +1,4 @@
-import { db, memberActivities, user } from '@interdomestik/database';
+import { agentClients, and, db, memberActivities, user } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -23,6 +23,29 @@ async function hasMemberActivitiesTable(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** Same ownership rule as the agent member read: legacy direct link or an active assignment. */
+async function agentOwnsMember(
+  authority: TenantAuthority,
+  agentId: string,
+  member: { id: string; agentId: string | null }
+): Promise<boolean> {
+  if (member.agentId === agentId) return true;
+  const { tenantId } = readTenantAuthority(authority);
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated session authority
+  const assignment = await withTenantAuthority(authority, tx =>
+    tx.query.agentClients.findFirst({
+      where: and(
+        eq(agentClients.tenantId, tenantId),
+        eq(agentClients.agentId, agentId),
+        eq(agentClients.memberId, member.id),
+        eq(agentClients.status, 'active')
+      ),
+      columns: { id: true },
+    })
+  );
+  return Boolean(assignment);
 }
 
 export async function logActivityCore(params: {
@@ -70,7 +93,10 @@ export async function logActivityCore(params: {
       return { success: false, error: 'Member access denied' };
     }
 
-    if (session.user.role === 'agent' && member.agentId !== session.user.id) {
+    if (
+      session.user.role === 'agent' &&
+      !(await agentOwnsMember(authority, session.user.id, member))
+    ) {
       return { success: false, error: 'Member access denied' };
     }
 
