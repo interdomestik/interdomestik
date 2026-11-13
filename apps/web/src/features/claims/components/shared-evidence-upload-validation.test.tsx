@@ -95,6 +95,17 @@ describe('shared member/admin evidence validation and localized errors', () => {
   );
 
   it.each(Object.entries(catalogs))(
+    'names the dialog close button in %s (qa3 #69)',
+    (locale, catalog) => {
+      open(locale as Locale);
+      expect(
+        screen.getByRole('button', { name: catalog.evidence.fileUpload.close })
+      ).toBeInTheDocument();
+      if (locale !== 'en') expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    }
+  );
+
+  it.each(Object.entries(catalogs))(
     'refuses invalid files before signing or transfer in %s',
     (locale, catalog) => {
       open(locale as Locale);

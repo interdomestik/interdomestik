@@ -46,6 +46,7 @@
     "slaCopy": "Përgjigjemi brenda 24h për kërkesat e reja.",
     "consent": "Duke dërguar, pranoni Kushtet e Shërbimit dhe Politikën e Privatësisë.",
     "fileUpload": {
+      "close": "Mbyll",
       "help": "Lejohen: {formats}. Deri në 10 MB për dokument, imazh ose skedar audio; 50 MB për video.",
       "unsupported": "Format i pambështetur. Zgjidhni: {formats}.",
       "tooLarge": "Skedari është shumë i madh. Kufiri për këtë format është {limit} MB.",

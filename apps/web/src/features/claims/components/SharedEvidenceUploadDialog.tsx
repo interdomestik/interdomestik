@@ -183,7 +183,7 @@ export function SharedEvidenceUploadDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" closeLabel={tUpload('close')}>
         <DialogHeader>
           <DialogTitle>{messages.dialogTitle}</DialogTitle>
           <DialogDescription>{messages.dialogDescription}</DialogDescription>
