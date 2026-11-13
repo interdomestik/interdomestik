@@ -36,6 +36,7 @@ import {
 import { SupportHandoffAttentionRow } from './support-handoff-attention-row';
 import { SupportHandoffClaimLink } from './support-handoff-claim-link';
 import { SupportHandoffDetailPanel } from './support-handoff-detail-panel';
+import { SupportHandoffMemberCell } from './support-handoff-member-cell';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
@@ -418,13 +419,10 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
                   noClaimLabel={t('table.no_claim')}
                 />
               </div>
-              <div>
-                <div className="font-medium text-slate-900">{handoff.member.name}</div>
-                <div className="text-xs text-muted-foreground">
-                  {handoff.member.memberNumber || t('table.no_member_number')}
-                </div>
-                <div className="text-xs text-muted-foreground">{handoff.member.email}</div>
-              </div>
+              <SupportHandoffMemberCell
+                member={handoff.member}
+                noMemberNumberLabel={t('table.no_member_number')}
+              />
               <div
                 className="space-y-1 text-xs text-muted-foreground"
                 data-testid="staff-support-handoff-relationship"
