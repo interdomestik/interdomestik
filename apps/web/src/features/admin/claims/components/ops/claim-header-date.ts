@@ -18,6 +18,7 @@ export function formatClaimCreatedDate(value: Date | string | null, locale: stri
   const [dateLocale, pattern] = Object.hasOwn(DATE_FNS_FORMATS, locale)
     ? DATE_FNS_FORMATS[locale]
     : [enUS, 'MMMM d, yyyy'];
-  // Noon UTC of the pilot day stays on the same calendar day in every host zone.
-  return format(new Date(`${dayKey}T12:00:00.000Z`), pattern, { locale: dateLocale });
+  // date-fns formats in the host zone, so build the pilot calendar day from local components.
+  const [year, month, day] = dayKey.split('-').map(Number);
+  return format(new Date(year, month - 1, day), pattern, { locale: dateLocale });
 }
