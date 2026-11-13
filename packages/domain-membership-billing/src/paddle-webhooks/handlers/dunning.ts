@@ -50,9 +50,6 @@ export async function handleSubscriptionPastDue(
     PastDueEmailDeps = {}
 ) {
   const sub = parsePastDueSubscription(params.data);
-  if (!sub) {
-    return;
-  }
   // Entity-scoped past_due is ordered like other lifecycle events; the legacy
   // unscoped route keeps its existing behavior.
   const order = resolveSubscriptionEventOrder({
