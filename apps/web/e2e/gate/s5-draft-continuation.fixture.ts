@@ -10,7 +10,7 @@ import en from '../../src/messages/en/claims.json';
 import sq from '../../src/messages/sq/claims.json';
 import mk from '../../src/messages/mk/claims.json';
 import sr from '../../src/messages/sr/claims.json';
-import { S3_JOURNEY_INCIDENT_DATE } from './member-staff-evidence-journey-cleanup.fixture';
+import { s3JourneyDisplayDate } from './member-staff-evidence-journey-cleanup.fixture';
 
 export async function expectNoDraftSideEffects(ownerId: string, email: string) {
   expect(await db.$count(subscriptions, eq(subscriptions.userId, ownerId))).toBe(0);
@@ -60,7 +60,7 @@ export async function continueSavedDraftWithoutMembership(
     ).toBeVisible();
     await expect(intake).toHaveCount(1);
     await expect(intake.getByTestId('claim-draft-dormant-preview')).toBeVisible();
-    for (const fact of [S3_JOURNEY_INCIDENT_DATE, args.counterparty, args.summary]) {
+    for (const fact of [s3JourneyDisplayDate(locale), args.counterparty, args.summary]) {
       await expect(intake.locator('dl')).toContainText(fact);
     }
     const disabled = intake.getByTestId('claim-draft-submit-disabled');

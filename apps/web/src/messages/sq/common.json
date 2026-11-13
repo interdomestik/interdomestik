@@ -40,6 +40,16 @@
     "pagination": {
       "pageOf": "Faqja {page} nga {total}"
     },
+    "fileTypes": {
+      "pdf": "Dokument PDF",
+      "word": "Dokument Word",
+      "excel": "Fletë Excel",
+      "image": "Imazh",
+      "audio": "Skedar zanor",
+      "video": "Skedar video",
+      "email": "Mesazh email-i",
+      "file": "Skedar"
+    },
     "notFound": {
       "title": "Faqja nuk u gjet",
       "description": "Na vjen keq, nuk e gjetëm faqen që kërkuat.",

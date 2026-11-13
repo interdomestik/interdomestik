@@ -50,6 +50,7 @@
     "slaCopy": "Auf neue Einreichungen antworten wir in unter 24 Std.",
     "consent": "Mit dem Absenden stimmen Sie unseren Nutzungsbedingungen und unserer Datenschutzerklärung zu.",
     "fileUpload": {
+      "close": "Schließen",
       "help": "Erlaubt: {formats}. Bis zu 10 MB pro Dokument, Bild oder Audiodatei; 50 MB pro Video.",
       "unsupported": "Nicht unterstütztes Format. Wählen Sie: {formats}.",
       "tooLarge": "Diese Datei ist zu groß. Die Grenze für dieses Format beträgt {limit} MB.",

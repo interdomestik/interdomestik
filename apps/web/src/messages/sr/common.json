@@ -38,6 +38,16 @@
     "pagination": {
       "pageOf": "Strana {page} od {total}"
     },
+    "fileTypes": {
+      "pdf": "PDF dokument",
+      "word": "Word dokument",
+      "excel": "Excel tabela",
+      "image": "Slika",
+      "audio": "Audio zapis",
+      "video": "Video zapis",
+      "email": "Imejl poruka",
+      "file": "Datoteka"
+    },
     "notFound": {
       "title": "Stranica nije pronađena",
       "description": "Žao nam je, nismo mogli da pronađemo stranicu koju ste tražili.",

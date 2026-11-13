@@ -1,6 +1,7 @@
 'use server';
 
 import { resolveFreeStartDraftSession } from '@/actions/free-start-drafts/session.core';
+import { ACTION_LOCALES, resolveActionLocale, type AppLocale } from '@/lib/i18n/action-locale';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import { runAuthenticatedAction } from '@/lib/safe-action';
 // prettier-ignore
@@ -16,7 +17,7 @@ const diasporaCountrySchema = z.enum(['DE', 'CH', 'AT', 'IT']);
 // prettier-ignore
 const claimStartSchema = z.object({ confirmed: z.literal(true), handoffContext: z.object({ source: z.literal('diaspora-green-card'), country: diasporaCountrySchema, incidentLocation: z.literal('abroad') }).strict(), incidentCountryCode: diasporaCountrySchema }).strict().refine(value => value.incidentCountryCode === value.handoffContext.country);
 // prettier-ignore
-const inputSchema = z.object({ id: z.string().uuid(), expectedVersion: z.number().int().positive(), claimStart: claimStartSchema.optional() }).strict();
+const inputSchema = z.object({ id: z.string().uuid(), expectedVersion: z.number().int().positive(), claimStart: claimStartSchema.optional(), locale: z.enum(ACTION_LOCALES).optional() }).strict();
 const lookupSchema = z.object({ id: z.string().uuid() }).strict();
 const CATEGORY = { vehicle: 'Vehicle', property: 'Property' } as const;
 // prettier-ignore
@@ -33,7 +34,7 @@ function ownValue(record: Readonly<Record<string, string>>, key: string | null) 
 }
 
 // prettier-ignore
-async function mapDraft(draft: FreeStartDraft, incidentCountryCode?: z.infer<typeof diasporaCountrySchema>): Promise<CreateClaimValues | null> {
+async function mapDraft(draft: FreeStartDraft, locale: AppLocale, incidentCountryCode?: z.infer<typeof diasporaCountrySchema>): Promise<CreateClaimValues | null> {
   const category = ownValue(CATEGORY, draft.category);
   const issue = ownValue(ISSUE, draft.issueType);
   const outcome = ownValue(OUTCOME, draft.desiredOutcome);
@@ -43,7 +44,8 @@ async function mapDraft(draft: FreeStartDraft, incidentCountryCode?: z.infer<typ
   if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.incidentDate)) return null;
   const text = await buildSavedDraftClaimText(
     { category: draft.category, issueType: draft.issueType, incidentDate: draft.incidentDate, counterparty, desiredOutcome: draft.desiredOutcome, summary },
-    { category, issue, outcome }
+    { category, issue, outcome },
+    locale
   );
   const data = {
     category: draft.category,
@@ -113,7 +115,8 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
     // prettier-ignore
     if (existing.kind === 'invalid' || resumed.draft.version !== parsed.data.expectedVersion || resumed.draft.resumeStep !== 'preview') return unavailable();
     const claimStart = resumed.draft.category === 'vehicle' ? parsed.data.claimStart : undefined;
-    const data = await mapDraft(resumed.draft, claimStart?.incidentCountryCode);
+    const locale = resolveActionLocale(parsed.data.locale, requestHeaders);
+    const data = await mapDraft(resumed.draft, locale, claimStart?.incidentCountryCode);
     if (!data) return unavailable();
     const limit = await enforceRateLimitForAction({
       name: 'action:submit-claim',

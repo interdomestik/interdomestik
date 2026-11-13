@@ -131,7 +131,8 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       for (const fact of [
         'Property damage',
         'Water damage',
-        '2026-03-01',
+        // Pilot date format of the en route (qa3 #70).
+        '03/01/2026',
         'C31 Building Insurer',
         'Repair or replacement costs',
         summary,

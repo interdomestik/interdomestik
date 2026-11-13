@@ -27,7 +27,8 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
   const { authority } = requireSessionOrRedirect(await authorizeSessionTenant(), locale);
   const { tenantId } = readTenantAuthority(authority);
 
-  const tDocs = await getTranslations('documents');
+  // Explicit locale: the page segment renders alongside the layouts that set the request locale.
+  const tDocs = await getTranslations({ locale, namespace: 'documents' });
 
   const userClaims = await withTenantAuthority(authority, tx =>
     tx

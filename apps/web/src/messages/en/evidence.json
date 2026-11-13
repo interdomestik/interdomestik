@@ -46,6 +46,7 @@
     "slaCopy": "We respond in under 24h on new submissions.",
     "consent": "By submitting, you agree to our Terms of Service and Privacy Policy.",
     "fileUpload": {
+      "close": "Close",
       "help": "Allowed: {formats}. Up to 10 MB per document, image or audio file; 50 MB per video.",
       "unsupported": "Unsupported format. Choose: {formats}.",
       "tooLarge": "This file is too large. The limit for this format is {limit} MB.",

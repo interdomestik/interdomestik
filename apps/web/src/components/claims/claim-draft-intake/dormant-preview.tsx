@@ -3,6 +3,7 @@ import type { DraftState, FreeStartCopy } from '@/app/[locale]/components/home/f
 import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
 import Link from 'next/link';
 import { savedDraftRecoveryHref } from '@/lib/saved-draft-deployment-recovery';
+import { formatPilotDate } from '@/lib/utils/date';
 import { useLocale } from 'next-intl';
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { isSavedDraftId, useSavedDraftClaim } from './use-saved-draft-claim';
@@ -77,7 +78,7 @@ export function DormantPreview(props: Props) {
   // prettier-ignore
   const { activeDraftId, activeDraftVersion, claimStart, confirmationRequired, confirmationRequiredCopy, copy, draft, headingRef, labels, managerOnly, submitCopy, tFree } = props, failureRef = useRef<HTMLParagraphElement>(null), successRef = useRef<HTMLOutputElement>(null), locale = useLocale();
   // prettier-ignore
-  const facts = [[tFree('preview.categoryLabel'), labels.category], [tFree('preview.issueLabel'), labels.issue], [tFree('preview.dateLabel'), draft.incidentDate], [tFree('preview.counterpartyLabel'), draft.counterparty], [tFree('preview.outcomeLabel'), labels.outcome], [tFree('preview.summaryLabel'), draft.summary]];
+  const facts = [[tFree('preview.categoryLabel'), labels.category], [tFree('preview.issueLabel'), labels.issue], [tFree('preview.dateLabel'), formatPilotDate(draft.incidentDate, locale, draft.incidentDate)], [tFree('preview.counterpartyLabel'), draft.counterparty], [tFree('preview.outcomeLabel'), labels.outcome], [tFree('preview.summaryLabel'), draft.summary]];
   const { eligible, unsaved, incomplete, firstSaveExplanation } = draftReadiness(props);
   // prettier-ignore
   const submitExplanation = selectSubmitExplanation(copy, Boolean(managerOnly), Boolean(confirmationRequired), confirmationRequiredCopy, incomplete, unsaved, firstSaveExplanation);

@@ -1,18 +1,13 @@
-import { BrandedNotFound } from '@/components/branded-not-found';
-import { getLocale, getTranslations } from 'next-intl/server';
+import { BrandedNotFoundFrame } from '@/components/branded-not-found';
+import { LocaleNotFoundCopy } from './locale-not-found-copy';
 
-export default async function NotFound(): Promise<React.JSX.Element> {
-  const locale = await getLocale();
-  const t = await getTranslations('common.notFound');
+// A server boundary, so the contractual markers (`not-found-page`, `locale-not-found`) are part of
+// the streamed response itself. It never calls next-intl server APIs: without a route locale they
+// fall back to the default and cache that request config (qa3 #67). Only the copy is a client child.
+export default function NotFound(): React.JSX.Element {
   return (
-    <BrandedNotFound
-      homeHref={`/${locale}`}
-      scope="locale"
-      copy={{
-        title: t('title'),
-        description: t('description'),
-        backHome: t('backHome'),
-      }}
-    />
+    <BrandedNotFoundFrame scope="locale">
+      <LocaleNotFoundCopy />
+    </BrandedNotFoundFrame>
   );
 }

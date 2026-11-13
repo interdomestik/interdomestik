@@ -6,11 +6,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/component
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@interdomestik/ui/components/tabs';
+import { formatEuro } from '@/lib/utils/currency';
 import { Crown, Medal, Trophy } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState } from 'react';
 
 type Period = 'week' | 'month' | 'all';
+
+const SKELETON_SLOTS = ['first', 'second', 'third', 'fourth', 'fifth'] as const;
 
 const RANK_ICONS = {
   1: <Trophy className="h-4 w-4 text-yellow-500" />,
@@ -30,6 +33,7 @@ export function LeaderboardCard({
   initialResult?: ActionResult<LeaderboardData>;
 }>) {
   const t = useTranslations('agent.leaderboard');
+  const locale = useLocale();
   const initialData = initialResult?.success ? initialResult.data : null;
   const hasInitialData = initialData !== null;
   const [period, setPeriod] = useState<Period>(initialData?.period ?? 'month');
@@ -66,8 +70,8 @@ export function LeaderboardCard({
 
   const renderContent = () => {
     if (isLoading) {
-      return [0, 1, 2, 3, 4].map(i => (
-        <Skeleton key={`${skeletonId}-${i}`} className="h-12 w-full" /> // NOSONAR
+      return SKELETON_SLOTS.map(slot => (
+        <Skeleton key={`${skeletonId}-${slot}`} className="h-12 w-full" />
       ));
     }
     if (entries.length === 0) {
@@ -110,7 +114,9 @@ export function LeaderboardCard({
 
         {/* Earnings */}
         <div className="text-right">
-          <p className="text-sm font-bold text-green-600">€{entry.totalEarned.toFixed(2)}</p>
+          <p className="text-sm font-bold text-green-600">
+            {formatEuro(entry.totalEarned, locale)}
+          </p>
         </div>
       </div>
     ));

@@ -56,7 +56,7 @@ export function SupportHandoffDetailPanel({
   }
 
   return (
-    <div className="md:col-span-6" data-hydrated={isHydrated ? 'true' : 'false'}>
+    <div className="col-span-full" data-hydrated={isHydrated ? 'true' : 'false'}>
       <Button
         type="button"
         size="sm"

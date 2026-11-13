@@ -27,7 +27,9 @@ async function expectPreservedFacts(intake: ReturnType<typeof visibleIntake>) {
   const reviewedFacts = intake.getByTestId('claim-draft-dormant-preview').locator('dd');
   await expect(reviewedFacts).toHaveCount(6);
   for (const index of [0, 1, 4]) await expect(reviewedFacts.nth(index)).not.toBeEmpty();
-  await expect(reviewedFacts.nth(2)).toHaveText(facts.date);
+  // Pilot date format of the route locale (qa3 #70): en 07/20/2026, every other locale 20.07.2026.
+  const routeLocale = new URL(intake.page().url()).pathname.split('/')[1];
+  await expect(reviewedFacts.nth(2)).toHaveText(routeLocale === 'en' ? '07/20/2026' : '20.07.2026');
   await expect(reviewedFacts.nth(3)).toHaveText(facts.counterparty);
   await expect(reviewedFacts.nth(5)).toHaveText(facts.summary);
 }

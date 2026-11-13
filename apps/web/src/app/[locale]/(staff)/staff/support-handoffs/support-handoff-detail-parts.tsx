@@ -2,6 +2,7 @@ import type {
   SupportHandoffContactPreference,
   SupportHandoffStaffDetail,
 } from '@interdomestik/domain-claims/support-handoffs/types';
+import { formatPilotDateTime } from '@/lib/utils/date';
 import { CheckCircle2, Clock3, Mail, MessageSquare, Phone, Smartphone } from 'lucide-react';
 import type { DetailLabels } from './support-handoff-detail-labels';
 
@@ -54,15 +55,9 @@ export function getSourceLabel(source: string, labels: DetailLabels) {
   return labels.sourceUnknown;
 }
 
+/** Pilot-zone "dd.MM.yyyy HH:mm" (en "MM/dd/yyyy HH:mm"), like the rest of the staff surface. */
 export function formatDateTime(value: string | null, locale: string, pendingLabel: string) {
-  if (!value) return pendingLabel;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return pendingLabel;
-  return date.toLocaleString(locale, {
-    dateStyle: 'medium',
-    timeZone: 'UTC',
-    timeStyle: 'short',
-  });
+  return formatPilotDateTime(value, locale, pendingLabel);
 }
 
 export function getCurrentCycleMemberReply(detail: SupportHandoffStaffDetail) {

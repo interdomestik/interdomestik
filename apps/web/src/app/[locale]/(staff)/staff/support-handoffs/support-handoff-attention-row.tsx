@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
+import { SUPPORT_HANDOFF_QUEUE_GRID } from './support-handoff-queue-grid';
 
 export const SUPPORT_HANDOFF_ATTENTION_RESOLVED_EVENT = 'support-handoff-attention-resolved';
 
@@ -44,7 +45,7 @@ export function SupportHandoffAttentionRow({ children, handoffId, isAttentionQue
 
   return (
     <div
-      className="grid grid-cols-1 items-start gap-4 px-4 py-4 text-sm md:grid-cols-6"
+      className={`${SUPPORT_HANDOFF_QUEUE_GRID} items-start px-4 py-4 text-sm`}
       data-testid="staff-support-handoffs-row"
     >
       {children}
