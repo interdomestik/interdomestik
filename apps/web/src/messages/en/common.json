@@ -42,7 +42,8 @@
     },
     "notFound": {
       "title": "Page not found",
-      "description": "Sorry, we could not find the page you were looking for."
+      "description": "Sorry, we could not find the page you were looking for.",
+      "backHome": "Back to Home"
     },
     "roles": {
       "admin": "Administrator",
@@ -53,7 +54,9 @@
       "super_admin": "Super administrator",
       "tenant_admin": "Tenant administrator",
       "branch_manager": "Branch manager",
-      "promoter": "Promoter"
+      "promoter": "Promoter",
+      "auditor": "Auditor",
+      "global_support": "Global support"
     },
     "errors": {
       "title": "Error",
@@ -87,6 +90,27 @@
         "tenant_mk": "North Macedonia — standard service",
         "pilot-mk": "North Macedonia — pilot programme"
       }
+    },
+    "toastRegion": "Notifications",
+    "membershipStatus": {
+      "active": "Active",
+      "past_due": "Past due",
+      "paused": "Paused",
+      "canceled": "Canceled",
+      "none": "Not subscribed",
+      "trialing": "Trial",
+      "incomplete": "Incomplete",
+      "incomplete_expired": "Incomplete and expired",
+      "unpaid": "Unpaid",
+      "expired": "Expired",
+      "pending": "Pending",
+      "unknown": "Unknown"
+    },
+    "portalError": {
+      "title": "This page could not be loaded",
+      "description": "Something went wrong while loading. Try again to refresh this page.",
+      "retry": "Try again",
+      "home": "Back to home"
     }
   }
 }

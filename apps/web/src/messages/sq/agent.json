@@ -367,7 +367,9 @@
         "other": "Tjetër"
       },
       "save": "Ruaj aktivitetin",
-      "success": "Aktiviteti u regjistrua"
+      "success": "Aktiviteti u regjistrua",
+      "error": "Aktiviteti nuk u ruajt. Provoni përsëri.",
+      "close": "Mbyll"
     },
     "leads_pro": {
       "create": {

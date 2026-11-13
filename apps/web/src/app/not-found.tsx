@@ -1,10 +1,17 @@
-export default function RootNotFound() {
+import '@interdomestik/ui/globals.css';
+import { BrandedNotFound } from '@/components/branded-not-found';
+import { DEFAULT_LOCALE } from '@/i18n/locales';
+import messages from '@/messages/sq/common.json';
+
+export default function RootNotFound(): React.JSX.Element {
   return (
-    <html suppressHydrationWarning>
-      <body className="antialiased" suppressHydrationWarning>
-        <div data-testid="not-found-page" className="flex items-center justify-center min-h-screen">
-          <h1>404 - Not Found (Root)</h1>
-        </div>
+    <html lang={DEFAULT_LOCALE}>
+      <body className="antialiased">
+        <BrandedNotFound
+          homeHref={`/${DEFAULT_LOCALE}`}
+          copy={messages.common.notFound}
+          scope="root"
+        />
       </body>
     </html>
   );

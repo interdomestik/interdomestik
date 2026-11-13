@@ -125,6 +125,15 @@
           "subscription": "Abonnement",
           "none": "Keine"
         }
+      },
+      "list": {
+        "noResults": "Keine Ergebnisse gefunden.",
+        "memberNumber": "Mitgliedsnummer",
+        "attention": "Handlungsbedarf",
+        "view": "Mitglied anzeigen",
+        "upToDate": "Aktuell",
+        "viewMember": "Mitglied {name} anzeigen",
+        "viewMemberNumber": "Mitglied {name} anzeigen (Mitgliedschaft {number})"
       }
     }
   }

@@ -2,6 +2,7 @@ import { getRequestConfig } from 'next-intl/server';
 import { getIntlMessageFallback, isStrictI18n, onIntlError } from './error-handling';
 import { loadAllMessages } from './messages';
 import { routing } from './routing';
+import { PILOT_TIME_ZONE } from '@/lib/utils/date';
 
 export default getRequestConfig(async ({ requestLocale }) => {
   // Get the locale from the request
@@ -16,6 +17,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   return {
     locale,
+    timeZone: PILOT_TIME_ZONE,
     messages: await loadAllMessages(locale, { strict }),
     onError: onIntlError,
     getMessageFallback: getIntlMessageFallback,

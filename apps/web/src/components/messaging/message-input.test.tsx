@@ -13,6 +13,8 @@ vi.mock('next-intl', () => ({
       shortcut: 'Press Ctrl+Enter to send',
       sent: 'Message sent',
       sendError: 'Failed to send message',
+      publicAudience: 'Visible to the member and the case team.',
+      'member.send': 'Send message',
     };
     return translations[key] || key;
   },
@@ -131,5 +133,58 @@ describe('MessageInput', () => {
 
     const sendButton = screen.getByTestId('send-message-button');
     expect(sendButton).toBeDisabled();
+  });
+
+  it('shows an internal-capable case-team writer the audience of the message being composed', () => {
+    render(<MessageInput onSendMessage={vi.fn()} allowInternal isAgent />);
+
+    expect(screen.getByTestId('messaging-public-audience')).toHaveTextContent(
+      'Visible to the member and the case team.'
+    );
+    fireEvent.click(screen.getByTestId('internal-note-toggle'));
+    expect(screen.queryByTestId('messaging-public-audience')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('internal-note-toggle'));
+    expect(screen.getByTestId('messaging-public-audience')).toBeInTheDocument();
+  });
+
+  it('names the icon-only send button and gives it a 44px phone target', () => {
+    render(<MessageInput onSendMessage={vi.fn()} />);
+
+    const send = screen.getByRole('button', { name: 'Send message' });
+    expect(send).toHaveAttribute('data-testid', 'send-message-button');
+    expect(send).toHaveClass('h-11', 'w-11', 'sm:h-10', 'sm:w-10');
+  });
+
+  it('gives the internal-note checkbox and its label a 44px hit area', () => {
+    render(<MessageInput onSendMessage={vi.fn()} allowInternal isAgent />);
+
+    expect(screen.getByTestId('internal-note-row')).toHaveClass('min-h-11', 'items-center');
+    expect(screen.getByTestId('internal-note-toggle')).toHaveClass('after:-inset-3.5');
+    expect(screen.getByText('Internal note (only visible to staff)')).toHaveClass(
+      'min-h-11',
+      'flex-1'
+    );
+    expect(
+      screen.getByRole('checkbox', { name: 'Internal note (only visible to staff)' })
+    ).toBeInTheDocument();
+  });
+
+  it('toggles the internal note exactly once from the label or the checkbox', () => {
+    render(<MessageInput onSendMessage={vi.fn()} allowInternal isAgent />);
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Internal note (only visible to staff)',
+    });
+
+    fireEvent.click(screen.getByText('Internal note (only visible to staff)'));
+    expect(checkbox).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(checkbox);
+    expect(checkbox).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByTestId('send-message-button')).toBeInTheDocument();
+  });
+
+  it('leaves the audience notice to the panel when there is no internal toggle', () => {
+    render(<MessageInput onSendMessage={vi.fn()} isAgent />);
+
+    expect(screen.queryByTestId('messaging-public-audience')).not.toBeInTheDocument();
   });
 });

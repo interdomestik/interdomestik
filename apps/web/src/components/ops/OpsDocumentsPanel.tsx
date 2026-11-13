@@ -11,6 +11,7 @@ interface OpsDocumentsPanelProps {
   documents: OpsDocument[];
   emptyLabel: string;
   viewLabel: string;
+  unavailableLabel?: string;
   headerActions?: ReactNode;
   className?: string;
   /**
@@ -25,6 +26,7 @@ export function OpsDocumentsPanel({
   documents,
   emptyLabel,
   viewLabel,
+  unavailableLabel,
   headerActions,
   className,
   headerLayout = 'inline',
@@ -61,6 +63,9 @@ export function OpsDocumentsPanel({
               <span className="truncate max-w-[200px]" title={doc.name}>
                 {doc.name}
               </span>
+              {!doc.url && unavailableLabel ? (
+                <span className="text-sm text-muted-foreground">{unavailableLabel}</span>
+              ) : null}
               {doc.url && (
                 <Button variant="ghost" size="sm" asChild className="h-7">
                   <a href={doc.url} target="_blank" rel="noopener noreferrer">

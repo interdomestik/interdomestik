@@ -3,7 +3,6 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { MemberClaimDetailOpsPage } from './MemberClaimDetailOpsPage';
-
 type MessagingMockProps = {
   allowInternal?: boolean;
   claimId: string;
@@ -211,16 +210,16 @@ describe('MemberClaimDetailOpsPage', () => {
     expectTestIdText([
       ['member-claim-current-state', 'Evaluation'],
       ['member-claim-latest-update', 'Verification'],
-      ['member-claim-latest-update-date', 'Apr 15, 2026, 12:30 PM'],
+      ['member-claim-latest-update-date', '04/15/2026 14:30'],
       ['member-claim-sla-status-phase', 'Response timer is running.'],
       ['member-claim-trust-sla-state', 'Response timer active'],
-      ['member-claim-trust-sla-latest', 'Apr 15, 2026, 12:30 PM'],
+      ['member-claim-trust-sla-latest', '04/15/2026 14:30'],
       ['member-claim-trust-sla-body', 'Your claim is in an active handling stage.'],
       ['member-claim-matter-allowance-used', '1'], ['member-claim-matter-allowance-remaining', '1'],
       ['member-claim-matter-allowance-total', '2'],
       ['member-claim-latest-update-note', 'Your case moved into specialist review.'],
     ]);
-    ['Flight ID 404 arrived more than four hours late.', '550.00 EUR',
+    ['Flight ID 404 arrived more than four hours late.', '€550.00',
       'Accepted for staff-led recovery', 'We accepted this matter for staff-led recovery.',
       'boarding-pass.pdf'].forEach(text => expect(screen.getByText(text)).toBeInTheDocument());
     const timeline = screen.getAllByTestId('ops-timeline-item');

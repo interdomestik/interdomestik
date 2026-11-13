@@ -1,3 +1,5 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -11,37 +13,20 @@ vi.mock('@/features/agent/members/server/get-agent-members-read-model', () => ({
 import { getAgentMembersPageData } from './_core';
 
 describe('getAgentMembersPageData', () => {
-  const agentSession = {
-    user: {
-      id: 'agent-1',
-      role: 'agent',
-      tenantId: 'tenant-1',
-    },
-  };
+  const authority = mintTestTenantAuthority('tenant-1', { userId: 'agent-1', role: 'agent' });
 
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.getAgentMembersListReadModelMock.mockResolvedValue({
       members: [
-        {
-          memberId: 'member-1',
-          attentionState: 'needs_attention',
-          openClaimsCount: 2,
-        },
-        {
-          memberId: 'member-2',
-          attentionState: 'up_to_date',
-          openClaimsCount: 1,
-        },
+        { memberId: 'member-1', attentionState: 'needs_attention', openClaimsCount: 2 },
+        { memberId: 'member-2', attentionState: 'up_to_date', openClaimsCount: 1 },
       ],
     });
   });
 
   it('loads members with trimmed search and summary counts', async () => {
-    const data = await getAgentMembersPageData({
-      searchParams: { q: '  arta  ' },
-      session: agentSession,
-    });
+    const data = await getAgentMembersPageData({ searchParams: { q: '  arta  ' }, authority });
 
     expect(hoisted.getAgentMembersListReadModelMock).toHaveBeenCalledWith({
       agentId: 'agent-1',
@@ -54,12 +39,13 @@ describe('getAgentMembersPageData', () => {
     expect(data.search).toBe('arta');
   });
 
-  it('forwards the effective access tenant when it diverges from the home tenant', async () => {
-    await getAgentMembersPageData({
-      session: {
-        user: { id: 'agent-1', role: 'agent', tenantId: 'tenant_ks', accessTenantId: 'tenant_mk' },
-      },
+  it('forwards the effective access tenant read from the session capability', async () => {
+    const effectiveAuthority = mintTestTenantAuthority('tenant_mk', {
+      accessTenantId: 'tenant_mk',
+      userId: 'agent-1',
+      role: 'agent',
     });
+    await getAgentMembersPageData({ authority: effectiveAuthority });
 
     expect(hoisted.getAgentMembersListReadModelMock).toHaveBeenCalledWith({
       agentId: 'agent-1',
@@ -69,21 +55,26 @@ describe('getAgentMembersPageData', () => {
     });
   });
 
-  it('forwards the actual session role instead of assuming agent', async () => {
-    await getAgentMembersPageData({
-      session: { user: { id: 'user-9', role: 'member', tenantId: 'tenant-1' } },
+  it('forwards the actual session principal instead of assuming an agent role', async () => {
+    const memberAuthority = mintTestTenantAuthority('tenant-1', {
+      userId: 'user-9',
+      role: 'member',
     });
+    await getAgentMembersPageData({ authority: memberAuthority });
 
-    expect(hoisted.getAgentMembersListReadModelMock).toHaveBeenCalledWith(
-      expect.objectContaining({ agentId: 'user-9', role: 'member' })
-    );
+    expect(hoisted.getAgentMembersListReadModelMock).toHaveBeenCalledWith({
+      agentId: 'user-9',
+      tenantId: 'tenant-1',
+      role: 'member',
+      query: undefined,
+    });
   });
 
-  it('fails before reading when the session has no tenant', async () => {
-    await expect(
-      getAgentMembersPageData({ session: { user: { id: 'agent-1', role: 'agent' } } })
-    ).rejects.toThrow();
-
-    expect(hoisted.getAgentMembersListReadModelMock).not.toHaveBeenCalled();
-  });
+  it.each([{} as TenantAuthority, mintTestTenantAuthority('tenant-1')])(
+    'fails before reading without a registered session principal',
+    async invalidAuthority => {
+      await expect(getAgentMembersPageData({ authority: invalidAuthority })).rejects.toThrow();
+      expect(hoisted.getAgentMembersListReadModelMock).not.toHaveBeenCalled();
+    }
+  );
 });

@@ -67,6 +67,7 @@ vi.mock('next-intl', () => ({
         loadError: 'Failed to load referral link',
         copied: 'Link copied!',
         copyError: 'Failed to copy link',
+        copy: 'Copy referral link',
       },
     };
 
@@ -237,7 +238,8 @@ describe('ReferralCard', () => {
       />
     );
 
-    const copyButton = await screen.findByRole('button');
+    const copyButton = await screen.findByRole('button', { name: 'Copy referral link' });
+    expect(copyButton).toHaveClass('h-11', 'w-11', 'shrink-0', 'sm:h-10', 'sm:w-10');
     fireEvent.click(copyButton);
 
     await waitFor(() => {

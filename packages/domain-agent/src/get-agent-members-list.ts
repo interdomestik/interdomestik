@@ -9,8 +9,13 @@ import {
   or,
   sql,
   user,
-  withTenantContext,
 } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { countDistinct } from 'drizzle-orm';
 import { claimLifecycleStatusIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 
 const ACTIVE_STATUSES = [
@@ -40,6 +45,7 @@ export type AgentMembersListResult = {
 };
 
 export async function getAgentMembersList(params: {
+  authority: TenantAuthority;
   agentId: string;
   /** Verified effective access tenant of the agent session. */
   tenantId: string;
@@ -49,11 +55,14 @@ export async function getAgentMembersList(params: {
   limit?: number;
   cursor?: string | null;
 }): Promise<AgentMembersListResult> {
-  const { agentId, tenantId, role, limit = 50, query } = params;
+  const { agentId, tenantId, role, authority, limit = 50, query } = params;
 
   if (role !== 'agent') {
     throw new Error('Forbidden: agent members list requires the agent role');
   }
+
+  const grantedTenant = memberTenant(authority, agentId);
+  if (grantedTenant !== tenantId) throw new Error('Forbidden: agent tenant changed');
 
   const normalizedQuery = query?.trim();
 
@@ -61,8 +70,8 @@ export async function getAgentMembersList(params: {
     ? or(ilike(user.name, `%${normalizedQuery}%`), ilike(user.memberNumber, `%${normalizedQuery}%`))
     : undefined;
 
-  const rows = await withTenantContext(
-    { tenantId, role },
+  const rows = await withTenantAuthority(
+    authority,
     async tx =>
       await tx
         .select({
@@ -80,15 +89,7 @@ export async function getAgentMembersList(params: {
           claims,
           and(eq(claims.userId, user.id), eq(claims.tenantId, agentClients.tenantId))
         )
-        .where(
-          and(
-            eq(agentClients.agentId, agentId),
-            eq(agentClients.tenantId, tenantId),
-            eq(agentClients.status, 'active'),
-            eq(user.role, 'member'),
-            ...(searchFilter ? [searchFilter] : [])
-          )
-        )
+        .where(and(...memberScope(agentId, tenantId), ...(searchFilter ? [searchFilter] : [])))
         .groupBy(
           agentClients.memberId,
           user.name,
@@ -123,4 +124,36 @@ export async function getAgentMembersList(params: {
   });
 
   return { members };
+}
+
+function memberTenant(authority: TenantAuthority, agentId: string): string {
+  const { tenantId, principal } = readTenantAuthority(authority);
+  if (principal?.userId !== agentId || principal.role !== 'agent')
+    throw new Error('Forbidden: agent member authority required');
+  return tenantId;
+}
+
+function memberScope(agentId: string, tenantId: string) {
+  return [
+    eq(agentClients.agentId, agentId),
+    eq(agentClients.tenantId, tenantId),
+    eq(agentClients.status, 'active'),
+    eq(user.role, 'member'),
+  ];
+}
+
+export async function getAgentMemberCount(params: {
+  authority: TenantAuthority;
+  agentId: string;
+}): Promise<number> {
+  const { authority, agentId } = params;
+  const tenantId = memberTenant(authority, agentId);
+  const [row] = await withTenantAuthority(authority, tx =>
+    tx
+      .select({ count: countDistinct(agentClients.memberId) })
+      .from(agentClients)
+      .innerJoin(user, eq(agentClients.memberId, user.id))
+      .where(and(...memberScope(agentId, tenantId)))
+  );
+  return Number(row?.count ?? 0);
 }

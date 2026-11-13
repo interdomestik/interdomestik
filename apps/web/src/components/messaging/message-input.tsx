@@ -108,17 +108,22 @@ export function MessageInput({
           }}
           onKeyDown={handleKeyDown}
           placeholder={t('placeholder')}
-          className="min-h-[80px] pr-12 resize-none"
+          className="min-h-[80px] pr-14 resize-none sm:pr-12"
           disabled={isSending}
         />
         <Button
           type="submit"
           size="icon"
-          className="absolute bottom-2 right-2"
+          className="absolute bottom-2 right-2 h-11 w-11 sm:h-10 sm:w-10"
           disabled={isSending || !content.trim()}
+          aria-label={t('member.send')}
           data-testid="send-message-button"
         >
-          {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {isSending ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Send className="h-4 w-4" aria-hidden="true" />
+          )}
         </Button>
       </div>
 
@@ -129,22 +134,30 @@ export function MessageInput({
       )}
 
       {allowInternal && (
-        <div className="flex min-w-0 items-start gap-2">
+        <div className="flex min-h-11 min-w-0 items-center gap-2" data-testid="internal-note-row">
+          {/* The pseudo-element widens the 16px box to a 44px hit area; the label fills the row. */}
           <Checkbox
             id="internal"
             data-testid="internal-note-toggle"
+            className="relative after:absolute after:-inset-3.5 after:content-['']"
             checked={isInternal}
             onCheckedChange={checked => setIsInternal(checked === true)}
             disabled={isSending}
           />
           <Label
             htmlFor="internal"
-            className="flex min-w-0 flex-wrap items-center gap-1 text-sm text-muted-foreground [overflow-wrap:anywhere]"
+            className="flex min-h-11 min-w-0 flex-1 cursor-pointer flex-wrap items-center gap-1 text-sm text-muted-foreground [overflow-wrap:anywhere]"
           >
             <Lock className="h-3 w-3 shrink-0" />
             {t('internalNoteLabel')}
           </Label>
         </div>
+      )}
+
+      {allowInternal && isAgent && !isInternal && (
+        <p className="text-xs text-muted-foreground" data-testid="messaging-public-audience">
+          {t('publicAudience')}
+        </p>
       )}
 
       <p className="text-xs text-muted-foreground">{t('shortcut')}</p>

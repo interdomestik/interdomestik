@@ -7,6 +7,8 @@ import { ReferralLinkCard } from '@/components/agent/referral-link-card';
 import { MatteAnchorCard } from '@/components/dashboard/matte-anchor-card';
 import { Link } from '@/i18n/routing';
 import { localizeSeededBranchName } from '@/lib/localize-seeded-branch-name';
+import { formatEuro } from '@/lib/utils/currency';
+import { formatPilotLongDate } from '@/lib/utils/date';
 import { getMyCommissionSummaryCore } from '@interdomestik/domain-membership-billing/commissions/summary';
 import { getAgentReferralLinkCore } from '@/actions/referrals/get-agent-link';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -56,18 +58,12 @@ export async function AgentDashboardV2Page({
   const isPro = ['pro', 'office'].includes(tier);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="min-w-0 space-y-8 animate-in fade-in duration-500 [overflow-wrap:anywhere]">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">
-            {t('dashboard')} —{' '}
-            {new Date().toLocaleDateString(locale, {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
+            {t('dashboard')} — {formatPilotLongDate(new Date(), locale)}
           </p>
           {branch && (
             <div className="mt-1 flex items-center gap-2">
@@ -124,7 +120,7 @@ export async function AgentDashboardV2Page({
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-6">
             <div className="text-5xl font-black tracking-tighter text-white tabular-nums drop-shadow-2xl">
-              €{summary ? ((summary.totalPaid ?? 0) / 100).toFixed(0) : '—'}
+              {summary ? formatEuro((summary.totalPaid ?? 0) / 100, locale, 0) : '—'}
             </div>
             <p className="text-[10px] font-medium text-white/40 mt-2 uppercase tracking-widest">
               {t('dashboardV2.paidThisMonth')}
@@ -135,7 +131,6 @@ export async function AgentDashboardV2Page({
           </div>
         </Card>
 
-        {/* Right: Pipeline Pulse */}
         {/* Right: Pipeline Pulse (Pro) or Client Summary (Lite) */}
         <Card className="border-white/10 bg-slate-950/40 backdrop-blur-2xl">
           <CardHeader className="pb-2">
@@ -195,7 +190,6 @@ export async function AgentDashboardV2Page({
         </Card>
       </div>
 
-      {/* NEW: Diaspora Toolkit (The Final 4) */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <MatteAnchorCard
           label={tToolkit('campaign.title')}
@@ -231,14 +225,13 @@ export async function AgentDashboardV2Page({
         />
       </div>
 
-      {/* Preservation of existing features (relayouted) */}
-      <div className="grid gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-8 space-y-6">
+      <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="min-w-0 lg:col-span-8 space-y-6">
           {isPro && <PipelineChart data={stats} />}
           <LeaderboardCard initialResult={leaderboardResult} />
         </div>
 
-        <div className="lg:col-span-4 space-y-6">
+        <div className="min-w-0 lg:col-span-4 space-y-6">
           <ReferralLinkCard referralLinkResult={referralLinkResult} />
           <Card className="border-white/5 bg-slate-950/20">
             <CardHeader>
@@ -249,21 +242,20 @@ export async function AgentDashboardV2Page({
               <div className="flex justify-between items-center" data-testid="commission-pending">
                 <span className="text-sm text-muted-foreground">{t('commissions.pending')}</span>
                 <span className="font-semibold">
-                  €{((summary?.totalPending ?? 0) / 100).toFixed(2)}
+                  {formatEuro((summary?.totalPending ?? 0) / 100, locale)}
                 </span>
               </div>
               <div className="flex justify-between items-center" data-testid="commission-approved">
                 <span className="text-sm text-muted-foreground">{t('commissions.approved')}</span>
                 <span className="font-semibold text-green-600">
-                  €{((summary?.totalApproved ?? 0) / 100).toFixed(2)}
+                  {formatEuro((summary?.totalApproved ?? 0) / 100, locale)}
                 </span>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Your Clients */}
-        <div className="lg:col-span-12">
+        <div className="min-w-0 lg:col-span-12">
           <Card>
             <CardHeader>
               <CardTitle>{t('dashboardV2.yourClients')}</CardTitle>

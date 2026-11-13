@@ -21,6 +21,7 @@ export type AccidentSummary = {
   caseKind: 'accident';
   id: string;
   reference: string | null;
+  title?: string;
   status: CaseLifecycleStatus;
   documentCount: number;
   nextStep: NextStepToken;

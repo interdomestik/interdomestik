@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatClaimAmount } from './currency';
+import { formatClaimAmount, formatEuro } from './currency';
 
 describe('formatClaimAmount', () => {
   it('formats a positive EUR amount with the given locale', () => {
@@ -47,7 +47,22 @@ describe('formatClaimAmount', () => {
 
   it.each(['en', 'sq', 'mk', 'sr', 'de'])('uses the current supported locale %s', locale => {
     expect(formatClaimAmount('1200.50', 'EUR', locale)).toBe(
-      new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(1200.5)
+      locale === 'en' ? '€1,200.50' : '1.200,50\u00a0€'
     );
+  });
+});
+
+describe('formatEuro', () => {
+  it.each([
+    ['sq', '50,00 €'],
+    ['sr', '50,00 €'],
+    ['de', '50,00 €'],
+    ['en', '€50.00'],
+  ])('formats %s euro amounts in the app number style', (locale, expected) => {
+    expect(formatEuro(50, locale).replaceAll('\u00a0', ' ')).toBe(expected);
+  });
+
+  it('supports whole-euro totals', () => {
+    expect(formatEuro(1200, 'sq', 0).replaceAll('\u00a0', ' ')).toBe('1.200 €');
   });
 });

@@ -1,3 +1,5 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -44,7 +46,7 @@ const mocks = vi.hoisted(() => {
     // The global handle must never be used; reads go through the tenant transaction.
     db: { select: vi.fn() },
     tx: { select: vi.fn() },
-    withTenantContext: vi.fn(),
+    withTenantAuthority: vi.fn(),
   };
 });
 
@@ -60,19 +62,30 @@ vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
   sql: mocks.sql,
   user: mocks.user,
-  withTenantContext: mocks.withTenantContext,
+  withTenantAuthority: mocks.withTenantAuthority,
 }));
 
 vi.mock('@interdomestik/domain-claims/claims/lifecycle-read-sql', () => ({
   claimLifecycleStatusIn: mocks.claimLifecycleStatusIn,
 }));
 
-import { getAgentMembersList } from './get-agent-members-list';
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: mocks.withTenantAuthority,
+}));
+import { getAgentMembersList as readMembers } from './get-agent-members-list';
+const getAgentMembersList = (params: Omit<Parameters<typeof readMembers>[0], 'authority'>) =>
+  readMembers({
+    ...params,
+    authority: mintTestTenantAuthority(params.tenantId, {
+      userId: params.agentId,
+      role: params.role,
+    }),
+  });
 
 describe('getAgentMembersList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.withTenantContext.mockImplementation(
+    mocks.withTenantAuthority.mockImplementation(
       async (_context: unknown, callback: (tx: unknown) => Promise<unknown>) => callback(mocks.tx)
     );
     mocks.tx.select.mockReturnValue(mocks.chain);
@@ -173,10 +186,10 @@ describe('getAgentMembersList', () => {
 
     await getAgentMembersList({ agentId: 'agent-5', tenantId: 'tenant-mk', role: 'agent' });
 
-    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toStrictEqual({
+    expect(mocks.withTenantAuthority).toHaveBeenCalledTimes(1);
+    expect(readTenantAuthority(mocks.withTenantAuthority.mock.calls[0]?.[0])).toMatchObject({
       tenantId: 'tenant-mk',
-      role: 'agent',
+      principal: { role: 'agent' },
     });
     expect(mocks.tx.select).toHaveBeenCalledTimes(1);
     expect(mocks.chain.limit).toHaveBeenCalledWith(50);
@@ -190,7 +203,7 @@ describe('getAgentMembersList', () => {
         getAgentMembersList({ agentId: 'agent-6', tenantId: 'tenant-mk', role })
       ).rejects.toThrow('Forbidden');
 
-      expect(mocks.withTenantContext).not.toHaveBeenCalled();
+      expect(mocks.withTenantAuthority).not.toHaveBeenCalled();
       expect(mocks.tx.select).not.toHaveBeenCalled();
       expect(mocks.db.select).not.toHaveBeenCalled();
     }

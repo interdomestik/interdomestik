@@ -158,7 +158,9 @@ test.describe('Admin User Flow', () => {
       if (isOnAdmin) {
         // If still on admin path, expect 404 UI
         await expect(
-          page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+          page.getByRole('heading', {
+            name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet|Stranica nije pronađena|Seite nicht gefunden/i,
+          })
         ).toBeVisible({ timeout: 5000 });
       } else {
         // Redirected away from admin (to /member) is valid denial

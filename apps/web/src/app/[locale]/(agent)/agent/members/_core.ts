@@ -1,34 +1,30 @@
 import { getAgentMembersListReadModel } from '@/features/agent/members/server/get-agent-members-read-model';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 
 type AgentMembersSearchParams = {
   q?: string;
 };
 
-type AgentMembersSession = {
-  user: {
-    id: string;
-    role?: string | null;
-    tenantId?: string | null;
-    accessTenantId?: string | null;
-  };
-};
-
 export async function getAgentMembersPageData({
   searchParams,
-  session,
+  authority,
 }: {
   searchParams?: AgentMembersSearchParams;
-  session: AgentMembersSession;
+  authority: TenantAuthority;
 }) {
+  const { tenantId, principal } = readTenantAuthority(authority);
+  if (!principal) throw new Error('Forbidden: agent members list requires a session principal');
   const rawSearch = typeof searchParams?.q === 'string' ? searchParams.q : '';
   const search = rawSearch.trim() || undefined;
 
-  // Effective access tenant and the actual verified role travel to the tenant transaction.
+  // The read model re-authorizes the session and must see the same tenant and verified role.
   const { members } = await getAgentMembersListReadModel({
-    agentId: session.user.id,
-    tenantId: ensureTenantId(session),
-    role: session.user.role ?? null,
+    agentId: principal.userId,
+    tenantId,
+    role: principal.role,
     query: search,
   });
 

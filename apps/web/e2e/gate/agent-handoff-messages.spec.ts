@@ -92,7 +92,10 @@ test('synthetic member message reaches assigned staff, whose public acknowledgem
         marker: 'agent-claims-pro-page',
       });
       const drawer = agentPage.locator('[data-testid="ops-drawer"]:visible');
-      await expect(drawer.getByTestId('workspace-selected-claim-id')).toHaveText(claimId);
+      await expect(drawer.getByTestId('workspace-selected-claim-id')).toHaveAttribute(
+        'data-claim-id',
+        claimId
+      );
       await drawer.getByTestId('action-message').click();
       const agentPanel = agentPage.getByTestId('messaging-panel');
       await expect(agentPanel).toContainText(memberText);

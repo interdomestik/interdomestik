@@ -61,11 +61,11 @@ export async function uploadEvidenceObject(params: {
     family: 'claims',
     path: params.storagePath,
     tenantId: params.tenantId,
-    upsert: true,
+    upsert: false,
   });
 
   if (uploadError) {
-    return jsonError(uploadError.message || 'Failed to upload evidence', 500);
+    return jsonError('evidence_upload_failed', 500);
   }
 
   return null;

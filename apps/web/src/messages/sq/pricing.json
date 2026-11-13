@@ -71,7 +71,7 @@
     "scope": {
       "eyebrow": "Fusha e nisjes",
       "title": "Çfarë trajtojmë tani, çfarë mbetet udhëzim dhe çfarë e referojmë",
-      "subtitle": "Interdomestik nis me një kontratë të fokusuar te rastet. Këta kufij tregojnë ku ndihmojnë Free Start dhe anëtarësia, ku mund të fillojë rikuperimi i drejtuar nga stafi dhe ku japim vetëm hapin e radhës.",
+      "subtitle": "Interdomestik nis me një kontratë të fokusuar te rastet. Këta kufij tregojnë ku ndihmojnë Fillimi falas dhe anëtarësia, ku mund të fillojë rikuperimi i drejtuar nga stafi dhe ku japim vetëm hapin e radhës.",
       "launch": {
         "title": "Trajtohet tani",
         "description": "Këto lloje rastesh hyjnë në rrugën e rikuperimit në nisje kur ekziston një rezultat i besueshëm monetar.",
@@ -80,15 +80,15 @@
           "Raste dëmi në pronë",
           "Raste lëndimi personal me rrugë monetare rikuperimi"
         ],
-        "note": "Free Start mund të përgatisë pakon. Anëtarësia shton triage njerëzor dhe kontroll dokumentesh para çdo përshkallëzimi të pranuar."
+        "note": "Fillimi falas mund të përgatisë pakon. Anëtarësia shton triage njerëzor dhe kontroll dokumentesh para çdo përshkallëzimi të pranuar."
       },
       "guidance": {
         "title": "Vetëm udhëzim",
-        "description": "Këto kategori mund të marrin udhëzim ose kontroll dokumentesh, por nuk hyjnë në rikuperim me success-fee në nisje.",
+        "description": "Këto kategori mund të marrin udhëzim ose kontroll dokumentesh, por nuk hyjnë në rikuperim me tarifë suksesi në nisje.",
         "items": [
           "Mosmarrëveshje banesore pa rrugë direkte rikuperimi monetar",
-          "Mosmarrëveshje pune ose mbajtje page pa payout të qartë",
-          "Mosmarrëveshje për riparim ose ndërprerje kontrate pa payout direkt",
+          "Mosmarrëveshje pune ose mbajtje page pa pagesë të qartë",
+          "Mosmarrëveshje për riparim ose ndërprerje kontrate pa pagesë të drejtpërdrejtë",
           "Ankesa më të gjera konsumatore jashtë llojeve të rasteve të nisjes"
         ],
         "note": "Këto raste mbeten këshilluese dhe referohen më tej kur një partner është më i përshtatshëm."
@@ -116,8 +116,8 @@
     "disclaimers": {
       "eyebrow": "Sqarime komerciale",
       "freeStart": {
-        "title": "Free Start është vetëm informues",
-        "body": "Free Start ju jep udhëzim informues, modele dhe mjete për hapat e radhës. Nuk nis shqyrtim njerëzor, këshillë ligjore ose rikuperim të drejtuar nga stafi."
+        "title": "Fillimi falas është vetëm informues",
+        "body": "Fillimi falas ju jep udhëzim informues, modele dhe mjete për hapat e radhës. Nuk nis shqyrtim njerëzor, këshillë ligjore ose rikuperim të drejtuar nga stafi."
       },
       "hotline": {
         "title": "Kontakto mbështetjen",

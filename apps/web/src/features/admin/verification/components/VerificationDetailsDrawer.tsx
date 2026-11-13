@@ -115,7 +115,13 @@ export function VerificationDetailsDrawer({
     : null;
 
   return (
-    <OpsDrawer open={isOpen} onOpenChange={open => !open && onClose()} title={t('drawer.title')}>
+    <OpsDrawer
+      open={isOpen}
+      onOpenChange={open => !open && onClose()}
+      title={t('drawer.title')}
+      descriptionText={t('drawer.description')}
+      closeLabel={t('actions.cancel')}
+    >
       <OpsQueryState
         loading={loading}
         error={error}

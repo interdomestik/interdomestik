@@ -1,11 +1,17 @@
 import { ROLES } from '@interdomestik/shared-auth';
 import {
+  canManagePlatformSettings,
+  type AdminNavigationCapabilities,
+} from '@/features/admin/access/admin-capabilities';
+import {
   Banknote,
   BarChart,
   Briefcase,
+  Building2,
   FileText,
   GitBranch,
   LayoutDashboard,
+  PieChart,
   Settings,
   Shield,
   Users,
@@ -19,7 +25,11 @@ type SidebarItem = {
   peopleKey?: string;
 };
 
-export function adminSidebarItems(role: string, branchId?: string | null): SidebarItem[] {
+export function adminSidebarItems(
+  role: string,
+  branchId: string | null | undefined,
+  capabilities: AdminNavigationCapabilities
+): SidebarItem[] {
   return [
     {
       title: 'dashboard',
@@ -45,7 +55,7 @@ export function adminSidebarItems(role: string, branchId?: string | null): Sideb
     {
       title: 'sponsors',
       href: '/admin/sponsors',
-      icon: Briefcase,
+      icon: Building2,
       hidden:
         !([ROLES.super_admin, ROLES.tenant_admin, ROLES.admin] as string[]).includes(role) &&
         !(role === ROLES.branch_manager && branchId),
@@ -63,29 +73,34 @@ export function adminSidebarItems(role: string, branchId?: string | null): Sideb
       href: '/admin/users',
       icon: Users,
       peopleKey: 'members',
+      hidden: !capabilities.canAccessUsers,
     },
     {
       title: 'agents',
       href: '/admin/users?role=agent',
       icon: Briefcase,
       peopleKey: 'agents',
+      hidden: !capabilities.canAccessUsers,
     },
     {
       title: 'staff',
       href: '/admin/users?role=admin,staff',
       icon: Shield,
       peopleKey: 'staff',
+      hidden: !capabilities.canAccessUsers,
     },
     {
       title: 'analytics',
       href: '/admin/analytics',
-      icon: BarChart,
+      icon: PieChart,
+      hidden: !capabilities.canReadAnalytics,
     },
     {
       title: 'settings',
       href: '/admin/settings',
       icon: Settings,
       peopleKey: undefined,
+      hidden: !canManagePlatformSettings(role),
     },
   ].filter(item => !item.hidden);
 }

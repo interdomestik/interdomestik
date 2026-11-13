@@ -1,5 +1,7 @@
 'use client';
 
+import { formatPilotDateTime } from '@/lib/utils/date';
+
 import { useTranslations } from 'next-intl';
 import { parseSecureSaveCopy, parseSecureSaveReviewCopy } from './types';
 import type { useDraftLifecycle } from './use-draft-lifecycle';
@@ -33,7 +35,7 @@ export function AccountDraftStatus({
   }
   const message = statusMessage.replace(
     '{date}',
-    lifecycle.active ? new Date(lifecycle.active.updatedAt).toLocaleString(locale) : ''
+    lifecycle.active ? formatPilotDateTime(lifecycle.active.updatedAt, locale, '') : ''
   );
   return (
     <div

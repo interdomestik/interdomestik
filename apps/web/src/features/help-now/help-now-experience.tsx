@@ -19,6 +19,7 @@ import { listEvidenceItems } from './evidence-store';
 import { trackHelpNowEvent } from './analytics';
 import { ClaimPackPreview } from './claim-pack-preview';
 import { EvidenceCoach } from './evidence-coach';
+import { getSceneChecklist } from './scene-checklist';
 import { SceneGuide } from './scene-guide';
 import { TripMode } from './trip-mode';
 
@@ -43,7 +44,9 @@ export function HelpNowExperience({ locale }: HelpNowExperienceProps) {
     ? createHelpNowIncidentScenePack({
         packId: 'mob-01-help-now-public-preview',
         sessionId: 'anonymous-help-now-public',
-        guidanceChecklist: copy.checklist.map((_, index) => `scene_${index}`),
+        guidanceChecklist: getSceneChecklist(copy, scenario, country).map(
+          (_, index) => `scene_${index}`
+        ),
         escalationRecommendation: 'member_zone',
         createdAt: '2026-07-04T00:00:00.000Z',
         country,
@@ -78,7 +81,10 @@ export function HelpNowExperience({ locale }: HelpNowExperienceProps) {
                   type="button"
                   disabled={isDisabled}
                   aria-pressed={isDisabled ? undefined : isSelected}
-                  onClick={() => setScenario(value)}
+                  onClick={() => {
+                    setScenario(value);
+                    setCompleted([]);
+                  }}
                   className={`flex min-h-20 items-center gap-4 rounded-lg border px-4 text-left text-lg font-semibold ${
                     isSelected
                       ? 'border-emerald-700 bg-emerald-50 text-emerald-950'
@@ -96,7 +102,10 @@ export function HelpNowExperience({ locale }: HelpNowExperienceProps) {
             <select
               className="mt-2 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
               value={country}
-              onChange={event => setCountry(event.currentTarget.value as HelpNowCountry)}
+              onChange={event => {
+                setCountry(event.currentTarget.value as HelpNowCountry);
+                setCompleted([]);
+              }}
             >
               {HELP_NOW_COUNTRY_PACKS.map(pack => (
                 <option key={pack.country} value={pack.country}>

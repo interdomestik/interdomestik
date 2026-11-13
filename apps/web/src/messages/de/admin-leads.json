@@ -66,7 +66,8 @@
       "drawer": {
         "title": "Details der Verifizierung",
         "documents": "Dokumente",
-        "timeline": "Ereignisverlauf"
+        "timeline": "Ereignisverlauf",
+        "description": "Dokumente und Verlauf der Zahlungsprüfung."
       },
       "labels": {
         "missing_proof": "Nachweis fehlt",
@@ -124,6 +125,17 @@
         "resolved_empty": "Noch keine erledigten Duplikate.",
         "load_error": "Die Duplikatprüfung konnte nicht geladen werden.",
         "retry": "Erneut versuchen"
+      },
+      "events": {
+        "created": "Zahlung erfasst",
+        "documentUploaded": "Nachweis hochgeladen",
+        "approved": "Genehmigt",
+        "rejected": "Abgelehnt",
+        "needsInfo": "Informationen angefordert",
+        "resubmitted": "Erneut eingereicht",
+        "updated": "Aktualisiert",
+        "cashRecorded": "Barzahlung erfasst von {name}",
+        "unknownActor": "Unbekannt"
       }
     },
     "analytics": {

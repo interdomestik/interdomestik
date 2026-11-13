@@ -48,7 +48,7 @@ vi.mock('@/lib/ai/claim-workflows', () => ({
     mockMarkClaimAiRunDispatchFailed(...args),
 }));
 
-vi.mock('@/features/claims/upload/server/initial-claim-upload', () => ({
+vi.mock('@/features/claims/upload/server/initial-claim-evidence-validation', () => ({
   validateInitialClaimEvidenceUpload: vi.fn().mockResolvedValue(undefined),
 }));
 

@@ -1,0 +1,10 @@
+{
+  "agent": {
+    "commissions": {
+      "description": "Verfolgen Sie Provisionen aus Mitgliedschaften und Verlängerungen.",
+      "referralLink": {
+        "copy": "Empfehlungslink kopieren"
+      }
+    }
+  }
+}

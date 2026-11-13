@@ -23,7 +23,10 @@
         "claim_number_link": "Link broja zahteva",
         "canonical_url": "Kanonski URL",
         "copy_failed": "Kopiranje linka nije uspelo",
-        "copy_success": "{label} je kopiran u ostavu"
+        "copy_success": "{label} je kopiran u ostavu",
+        "member_number": "Broj člana",
+        "member_link": "Link člana",
+        "breadcrumb": "Putanja navigacije"
       },
       "message_alert": "Nova poruka ({count})",
       "table": {
@@ -254,7 +257,8 @@
           "image": "Slika",
           "audio": "Audio zapis",
           "document": "Dokument"
-        }
+        },
+        "file_unavailable": "Datoteka nije dostupna"
       },
       "timeline": {
         "title": "Vremenska linija aktivnosti",

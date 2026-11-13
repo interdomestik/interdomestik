@@ -1,5 +1,7 @@
 'use client';
 
+import { formatPilotDate } from '@/lib/utils/date';
+
 import { useEffect, useRef } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -37,7 +39,7 @@ export function DeleteDraftConfirmation({ draft, onCancel, onConfirm }: Props) {
         {copy.delete.heading}
       </h5>
       <p id="free-start-delete-body" className="mt-2 text-sm leading-6 text-[#5c3a42]">
-        {copy.delete.body.replace('{date}', new Date(draft.updatedAt).toLocaleDateString(locale))}
+        {copy.delete.body.replace('{date}', formatPilotDate(draft.updatedAt, locale, ''))}
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
         <button

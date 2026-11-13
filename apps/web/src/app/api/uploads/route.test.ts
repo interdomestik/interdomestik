@@ -221,4 +221,26 @@ describe('POST /api/uploads', () => {
     expect(res.status).toBe(403);
     expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
+  it('accepts HEIC with an empty browser MIME and returns canonical storage metadata', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
+    const response = await POST(
+      new Request('http://localhost:3000/api/uploads', {
+        method: 'POST',
+        body: JSON.stringify({ fileName: 'proof.heic', fileType: '', fileSize: 100 }),
+      })
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      upload: {
+        mimeType: 'image/heic',
+        storageContentType: 'image/heic',
+        intentToken: expect.any(String),
+      },
+    });
+    expect(hoisted.createSignedUploadUrl).toHaveBeenCalledWith(expect.any(String), {
+      upsert: false,
+    });
+  });
 });

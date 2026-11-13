@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   claimHeader: vi.fn<(props: HeaderProps) => void>(),
   nextActionsCard: vi.fn<(props: CardProps) => void>(),
   evidencePanel: vi.fn(),
+  messagingPanel: vi.fn<(props: { allowInternal?: boolean }) => void>(),
 }));
 
 vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
@@ -59,7 +60,12 @@ vi.mock('@/features/admin/claims/components/ops/NextActionsCard', () => ({
 vi.mock('@/features/claims/communication/claim-message-summary', () => ({
   ClaimMessageSummary: () => <section data-testid="claim-message-summary" />,
 }));
-vi.mock('@/components/messaging/messaging-panel', () => ({ MessagingPanel: () => null }));
+vi.mock('@/components/messaging/messaging-panel', () => ({
+  MessagingPanel: (props: { allowInternal?: boolean }) => {
+    mocks.messagingPanel(props);
+    return null;
+  },
+}));
 vi.mock('@/features/admin/claims/components/detail/ClaimOpsTimelineSection', () => ({
   ClaimOpsTimelineSection: () => null,
 }));
@@ -225,4 +231,47 @@ describe('AdminClaimDetailV2Page ops read-only forwarding', () => {
       expect(lastCardProps()).toMatchObject({ canAssign: false, readOnly: true });
     }
   );
+});
+
+describe('AdminClaimDetailV2Page internal notes', () => {
+  it.each(['admin', 'tenant_admin', 'super_admin'])(
+    'offers %s the internal-note toggle',
+    async role => {
+      signIn(role);
+      mocks.getStaff.mockResolvedValue({ success: true, data: STAFF_READ });
+
+      await renderPage();
+
+      expect(mocks.messagingPanel).toHaveBeenLastCalledWith(
+        expect.objectContaining({ allowInternal: true })
+      );
+    }
+  );
+
+  it.each(['global_support', 'staff', 'agent', 'member'])(
+    'keeps %s on public messages only',
+    async role => {
+      signIn(role);
+      mocks.getStaff.mockResolvedValue({ success: true, data: STAFF_READ });
+
+      await renderPage();
+
+      expect(mocks.messagingPanel).toHaveBeenLastCalledWith(
+        expect.objectContaining({ allowInternal: false })
+      );
+    }
+  );
+
+  it('renders no messaging panel for a branch manager', async () => {
+    signIn('branch_manager', 'branch-1');
+    mocks.getStaff.mockResolvedValue({
+      success: false,
+      error: 'Unauthorized',
+      code: 'UNAUTHORIZED',
+    });
+
+    await renderPage();
+
+    expect(mocks.messagingPanel).not.toHaveBeenCalled();
+  });
 });

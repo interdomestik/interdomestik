@@ -84,15 +84,25 @@ export function ReferralLinkCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        <div className="flex gap-2">
+        <div className="flex min-w-0 gap-2">
           <Input
             value={normalizedLink}
             readOnly
             className="font-mono text-sm bg-muted/50"
             onClick={e => e.currentTarget.select()}
           />
-          <Button size="icon" variant="outline" onClick={handleCopy}>
-            {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          <Button
+            size="icon"
+            variant="outline"
+            className="h-11 w-11 shrink-0 sm:h-10 sm:w-10"
+            onClick={handleCopy}
+            aria-label={t('copy')}
+          >
+            {isCopied ? (
+              <Check className="h-4 w-4 text-green-500" aria-hidden="true" />
+            ) : (
+              <Copy className="h-4 w-4" aria-hidden="true" />
+            )}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">{t('description')}</p>

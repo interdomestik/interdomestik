@@ -1,8 +1,10 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import type { ReactNode } from 'react';
+import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  membersMock: vi.fn(),
   branchFindFirstMock: vi.fn(),
   ensureTenantIdMock: vi.fn(() => 'tenant-1'),
   getAgentLeaderboardCoreMock: vi.fn(),
@@ -17,6 +19,10 @@ const hoisted = vi.hoisted(() => ({
   setRequestLocaleMock: vi.fn(),
   statsCoreMock: vi.fn(),
   withTenantContextMock: vi.fn(),
+}));
+
+vi.mock('@interdomestik/domain-agent', () => ({
+  getAgentMemberCount: hoisted.membersMock,
 }));
 
 vi.mock('next/headers', () => ({
@@ -134,6 +140,7 @@ describe('AgentDashboardV2Page tenant boundary', () => {
         createdAt: new Date('2026-01-01T00:00:00.000Z'),
       },
     });
+    hoisted.membersMock.mockResolvedValue(3);
     hoisted.statsCoreMock.mockResolvedValue({
       newLeads: 1,
       contactedLeads: 2,
@@ -169,6 +176,15 @@ describe('AgentDashboardV2Page tenant boundary', () => {
     });
   });
 
+  it('uses a shrinkable single-column mobile grid and preserves the desktop spans', async () => {
+    const { container } = render(await AgentDashboardV2Page({ locale: 'mk', tier: 'pro' }));
+    const columns = container.querySelector('.lg\\:grid-cols-12');
+    expect(columns).toHaveClass('min-w-0', 'grid-cols-1');
+    expect(columns?.children[0]).toHaveClass('min-w-0', 'lg:col-span-8');
+    expect(columns?.children[1]).toHaveClass('min-w-0', 'lg:col-span-4');
+    expect(columns?.children[2]).toHaveClass('min-w-0', 'lg:col-span-12');
+  });
+
   it('rejects missing tenant identity before loading dashboard stats', async () => {
     const session = {
       user: {
@@ -191,6 +207,22 @@ describe('AgentDashboardV2Page tenant boundary', () => {
     expect(hoisted.ensureTenantIdMock).toHaveBeenCalledWith(session);
     expect(hoisted.statsCoreMock).not.toHaveBeenCalled();
     expect(hoisted.branchFindFirstMock).not.toHaveBeenCalled();
+  });
+
+  it('uses the authority-bound member count instead of subscription referrals', async () => {
+    const { readAgentDashboardV2Stats } = await import('./agent-dashboard-v2-reads');
+    const authority = mintTestTenantAuthority('tenant-1', { userId: 'agent-1', role: 'agent' });
+    const result = await readAgentDashboardV2Stats({ agentId: 'agent-1', authority });
+    expect(result.clientCount).toBe(3);
+    expect(hoisted.membersMock).toHaveBeenCalledWith({ agentId: 'agent-1', authority });
+  });
+
+  it('keeps the dashboard count for a user admitted through an explicit agent grant', async () => {
+    const { readAgentDashboardV2Stats } = await import('./agent-dashboard-v2-reads');
+    const authority = mintTestTenantAuthority('tenant-1', { userId: 'agent-1', role: 'staff' });
+    const result = await readAgentDashboardV2Stats({ agentId: 'agent-1', authority });
+    expect(result.clientCount).toBe(5);
+    expect(hoisted.membersMock).not.toHaveBeenCalled();
   });
 
   it('passes tenant identity into the v2 stats core on the authorized path', async () => {

@@ -23,7 +23,10 @@
         "claim_number_link": "Линк за број на барање",
         "canonical_url": "Канонски URL",
         "copy_failed": "Неуспешно копирање на линк",
-        "copy_success": "{label} е копиран во таблата со исечоци"
+        "copy_success": "{label} е копиран во таблата со исечоци",
+        "member_number": "Број на член",
+        "member_link": "Врска до членот",
+        "breadcrumb": "Патека за навигација"
       },
       "message_alert": "Нова порака ({count})",
       "table": {
@@ -245,7 +248,8 @@
           "image": "Слика",
           "audio": "Аудио",
           "document": "Документ"
-        }
+        },
+        "file_unavailable": "Датотеката не е достапна"
       },
       "timeline": {
         "title": "Временска линија",
