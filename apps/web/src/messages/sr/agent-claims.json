@@ -198,6 +198,7 @@
         "assignment": {
           "title": "Dodela",
           "assign_claim": "Dodeli zahtev",
+          "choose_assignee": "Izaberite zaduženu osobu",
           "save": "Sačuvaj dodelu",
           "current_assignee": "Trenutno zaduženi",
           "out_of_scope": "{name} (van opsega)",

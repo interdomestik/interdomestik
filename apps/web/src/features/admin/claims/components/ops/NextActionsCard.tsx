@@ -5,7 +5,7 @@ import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent } from '@interdomestik/ui/components/card';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
+import { useCallback, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { isCommittedRefreshPending } from '../../actions/ops-action-outcome';
 import {
@@ -16,6 +16,12 @@ import {
 } from '../../actions/ops-actions';
 import type { NextActionsResult } from '../../components/detail/getNextActions';
 import type { ClaimOpsDetail } from '../../types';
+import {
+  rememberAssignmentFlash,
+  useAssignmentFlashToast,
+  useDeferredAssignmentReload,
+} from './assignment-flash';
+import { assignmentErrorToastKey } from './assignment-toast';
 import { NextActionBadges } from './NextActionBadges';
 import { NextActionPrimary } from './NextActionPrimary';
 import { NextActionSecondary, type AssignmentIntent } from './NextActionSecondary';
@@ -76,6 +82,13 @@ export function NextActionsCard({
 
   const t = useTranslations('admin.claims_page.next_actions');
   const tOps = useTranslations('admin.claims_page.ops_center');
+  const tAssignment = useTranslations('admin.claims_page.assignment');
+  const showAssignmentSaved = useCallback(
+    () => toast.success(tAssignment('success_message')),
+    [tAssignment]
+  );
+  useAssignmentFlashToast(claim.id, showAssignmentSaved);
+  const assignmentReload = useDeferredAssignmentReload(claim.id);
 
   // Logic to hide card if there's truly nothing to show
   if (!primary && secondary.length === 0 && !claim.isStuck && !claim.hasSlaBreach) {
@@ -106,16 +119,29 @@ export function NextActionsCard({
 
   const handleAssign = (staffId: string, intent: AssignmentIntent) => {
     if (isPending || !canAssignHere) return;
+    const claimId = claim.id;
     startTransition(async () => {
       onAction?.(intent); // Ops tracking
       try {
-        const result = await assignOwner(claim.id, staffId, locale);
-        if (!result.success) {
-          toast.error(result.error || t('toast.failed'));
-        } else {
-          globalThis.location.reload();
-          toast.success(t('toast.completed'));
+        const result = await assignOwner(claimId, staffId, locale);
+        if (result.success) {
+          // The user left this claim while saving: confirm without reloading the page they are on.
+          if (!assignmentReload.isCurrent(claimId)) {
+            showAssignmentSaved();
+            return;
+          }
+          // The localized confirmation is shown after the reload. When the browser blocks session
+          // storage it is shown now; the transition stays pending until the delayed reload.
+          if (rememberAssignmentFlash(claimId)) {
+            globalThis.location.reload();
+          } else {
+            showAssignmentSaved();
+            await assignmentReload.reloadAfterToast(claimId);
+          }
+          return;
         }
+        const errorKey = assignmentErrorToastKey(result.error);
+        toast.error(errorKey ? tAssignment(errorKey) : t('toast.failed'));
       } catch {
         toast.error(t('toast.unexpected_error'));
       }

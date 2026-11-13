@@ -14,6 +14,9 @@ interface OpsQueryStateProps {
   emptyTitle?: string;
   emptySubtitle?: string;
   emptyAction?: ReactNode;
+  /** Localized error copy; the English defaults remain for callers that have not migrated. */
+  errorLabel?: string;
+  retryLabel?: string;
   children: ReactNode;
   loadingLabel?: string;
   loadingTestId?: string;
@@ -30,6 +33,8 @@ export function OpsQueryState({
   emptyTitle = 'No data found',
   emptySubtitle,
   emptyAction,
+  errorLabel = 'Failed to load data',
+  retryLabel = 'Try Again',
   children,
   loadingLabel,
   loadingTestId,
@@ -56,10 +61,10 @@ export function OpsQueryState({
           .join(' ')}
         data-testid={errorTestId}
       >
-        <span>Failed to load data</span>
+        <span>{errorLabel}</span>
         {onRetry && (
           <Button variant="outline" size="sm" onClick={onRetry} className="gap-2">
-            <RefreshCw className="w-4 h-4" /> Try Again
+            <RefreshCw className="w-4 h-4" /> {retryLabel}
           </Button>
         )}
       </div>

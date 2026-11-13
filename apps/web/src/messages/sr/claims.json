@@ -238,10 +238,11 @@
         "nextAction": "Očekivani sledeći korak"
       },
       "matterAllowance": {
-        "title": "Kvota predmeta",
-        "used": "Iskorišćeno ove godine",
-        "remaining": "Preostalo ove godine",
-        "total": "Kvota plana"
+        "title": "Kvota slučajeva",
+        "used": "Započeta naplata",
+        "remaining": "Još dostupno",
+        "total": "Kvota plana",
+        "hint": "Slučaj se računa kada osoblje započne rad na naplati (pregovori ili sud) tokom tekućeg perioda članstva. Podnošenje slučaja ili njegovo prihvatanje na razmatranje ne troši kvotu."
       }
     },
     "timeline": {

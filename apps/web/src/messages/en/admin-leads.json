@@ -67,7 +67,11 @@
         "title": "Verification Details",
         "documents": "Documents",
         "timeline": "Event Timeline",
-        "description": "Payment verification documents and event history."
+        "description": "Payment verification documents and event history.",
+        "loading": "Loading verification details…",
+        "load_error": "Could not load the verification details.",
+        "not_found_title": "Verification request not found",
+        "not_found_description": "It may already be resolved, or the link is no longer valid."
       },
       "labels": {
         "missing_proof": "Proof Missing",

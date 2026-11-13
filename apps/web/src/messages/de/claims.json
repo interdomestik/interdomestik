@@ -228,9 +228,10 @@
       },
       "matterAllowance": {
         "title": "Kontingent an Angelegenheiten",
-        "used": "In diesem Jahr genutzt",
-        "remaining": "In diesem Jahr verbleibend",
-        "total": "Kontingent des Tarifs"
+        "used": "Durchsetzung begonnen",
+        "remaining": "Noch verfügbar",
+        "total": "Kontingent des Tarifs",
+        "hint": "Ein Fall zählt, sobald das Team im laufenden Mitgliedschaftszeitraum mit der Durchsetzung beginnt (Verhandlung oder Gericht). Das Einreichen eines Falls oder seine Annahme zur Prüfung verbraucht kein Kontingent."
       }
     },
     "timeline": {

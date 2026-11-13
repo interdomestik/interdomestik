@@ -239,9 +239,10 @@
       },
       "matterAllowance": {
         "title": "Kuota e rasteve",
-        "used": "Përdorur këtë vit",
-        "remaining": "Mbeten këtë vit",
-        "total": "Kuota e planit"
+        "used": "Rikuperim i nisur",
+        "remaining": "Ende në dispozicion",
+        "total": "Kuota e planit",
+        "hint": "Një rast llogaritet kur stafi nis punën për rikuperim (negocim ose rrugë gjyqësore) gjatë periudhës aktuale të anëtarësimit. Dorëzimi ose pranimi i rastit për shqyrtim nuk e përdor kuotën."
       }
     },
     "timeline": {
