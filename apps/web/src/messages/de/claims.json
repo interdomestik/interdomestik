@@ -241,7 +241,11 @@
       "actor_system": "System",
       "actor_staff": "Mitarbeitende",
       "actor_member": "Mitglied",
-      "actor_admin": "Admin"
+      "actor_admin": "Admin",
+      "assignment_assigned": "Fall zugewiesen an {name}",
+      "assignment_assigned_unnamed": "Fall zugewiesen",
+      "assignment_removed": "Zuweisung entfernt",
+      "assignment_previous": "Zuvor: {name}"
     },
     "informationRequests": {
       "title": "Angeforderte Informationen",

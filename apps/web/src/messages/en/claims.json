@@ -252,7 +252,11 @@
       "actor_system": "System",
       "actor_staff": "Staff",
       "actor_member": "Member",
-      "actor_admin": "Admin"
+      "actor_admin": "Admin",
+      "assignment_assigned": "Case assigned to {name}",
+      "assignment_assigned_unnamed": "Case assigned",
+      "assignment_removed": "Assignment removed",
+      "assignment_previous": "Previously: {name}"
     },
     "informationRequests": {
       "title": "Information requested",

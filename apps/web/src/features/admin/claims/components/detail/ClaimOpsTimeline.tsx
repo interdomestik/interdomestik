@@ -3,11 +3,15 @@
 import { useLocale, useTranslations } from 'next-intl';
 
 import { OpsTimeline } from '@/components/ops';
+import type { AssignmentTimelineEntry } from '@/features/admin/claims/server/claim-assignment-history';
 import type { TimelineEntry } from '@/features/claims/timeline/types';
 import { formatPilotDateTime } from '@/lib/utils/date';
 
+import { buildClaimOpsTimelineEvents } from './claim-ops-timeline-events';
+
 interface ClaimOpsTimelineProps {
   entries: TimelineEntry[];
+  assignments?: readonly AssignmentTimelineEntry[];
   title: string;
   emptyLabel: string;
   showNotes?: boolean;
@@ -15,6 +19,7 @@ interface ClaimOpsTimelineProps {
 
 export function ClaimOpsTimeline({
   entries,
+  assignments = [],
   title,
   emptyLabel,
   showNotes = false,
@@ -23,17 +28,12 @@ export function ClaimOpsTimeline({
   const t = useTranslations('claims.timeline');
   const tStatus = useTranslations('claims.status');
 
-  const events = entries.map(entry => {
-    const fromLabel = entry.fromStatus ? tStatus(entry.fromStatus) : t('initial');
-    const toLabel = tStatus(entry.toStatus);
-    return {
-      id: entry.id,
-      title: `${fromLabel} → ${toLabel}`,
-      description: showNotes && entry.note ? entry.note : undefined,
-      date: entry.timestamp.toISOString(),
-      actorName: t(`actor_${entry.actorRole}`),
-    };
-  });
+  const events = buildClaimOpsTimelineEvents(
+    entries,
+    assignments,
+    { timeline: t, status: tStatus },
+    showNotes
+  );
 
   return (
     <OpsTimeline
