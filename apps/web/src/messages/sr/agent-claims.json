@@ -183,7 +183,7 @@
           "recovery_accepted": "Predmet naplate je prihvaćen",
           "recovery_declined": "Predmet naplate je odbijen",
           "status_updated": "Status zahteva je ažuriran",
-          "collection_saved": "Naplata success fee je sačuvana"
+          "collection_saved": "Naplata naknade za uspeh je sačuvana"
         },
         "error": {
           "title": "Greška",
@@ -263,7 +263,7 @@
           }
         },
         "success_fee": {
-          "title": "Naplata success fee",
+          "title": "Naplata naknade za uspeh",
           "description": "Zabeležite naplaćeni iznos i dozvolite da komercijalna pravila prvo razreše odbitak gde je dozvoljen, zatim sačuvani metod plaćanja, pa fakturu sa rokom od 7 dana.",
           "recovered_amount": "Naplaćeni iznos",
           "success_fee": "Naknada za uspeh",
@@ -273,10 +273,10 @@
           "resolved": "Razrešeno",
           "deduct_from_payout": "Odbiti od isplate?",
           "collection_path_placeholder": "Izaberi put naplate",
-          "save": "Sačuvaj naplatu success fee",
-          "empty": "Nijedan nalog za naplatu success fee nije zabeležen za ovaj zahtev.",
-          "empty_requires_save": "Put naplate success fee još nije zabeležen. Sačuvajte ga pre nego što ovaj prihvaćeni slučaj premestite u pregovore ili sud.",
-          "locked_without_agreement": "Prvo sačuvajte sporazum o eskalaciji da biste otključali naplatu success fee.",
+          "save": "Sačuvaj naplatu naknade za uspeh",
+          "empty": "Nijedan nalog za naplatu naknade za uspeh nije zabeležen za ovaj zahtev.",
+          "empty_requires_save": "Put naplate naknade za uspeh još nije zabeležen. Sačuvajte ga pre nego što ovaj prihvaćeni slučaj premestite u pregovore ili sud.",
+          "locked_without_agreement": "Prvo sačuvajte sporazum o eskalaciji da biste otključali naplatu naknade za uspeh.",
           "collection_method_options": {
             "deduction": "Odbij od isplate",
             "payment_method_charge": "Naplatite sačuvani metod plaćanja",
@@ -295,7 +295,7 @@
           "note_placeholder": "Razlog promene statusa...",
           "requires_recovery_decision": "Prihvatite predmet naplate iznad pre nego što slučaj premestite u pregovore ili sud.",
           "requires_escalation_agreement": "Sačuvajte prihvaćeni sporazum o eskalaciji pre nego što ovaj slučaj premestite u pregovore ili sud.",
-          "requires_collection_path": "Sačuvajte put naplate success fee pre nego što ovaj prihvaćeni slučaj premestite u pregovore ili sud.",
+          "requires_collection_path": "Sačuvajte put naplate naknade za uspeh pre nego što ovaj prihvaćeni slučaj premestite u pregovore ili sud.",
           "allowance_override_reason": "Razlog za prekoračenje kvote",
           "allowance_override_description": "Ako je član iscrpeo godišnju kvotu predmeta, ovde zabeležite interni razlog za prekoračenje ili unapredite pokriće pre nego što počne naplata koju vodi osoblje.",
           "allowance_override_placeholder": "Objasnite zašto naplata treba da počne uprkos iscrpljenoj kvoti...",

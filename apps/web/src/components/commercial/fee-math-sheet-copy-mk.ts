@@ -3,13 +3,13 @@ import type { FeeMathSheetCopy } from './fee-math-sheet-copy';
 export const MK_FEE_MATH_SHEET_COPY: FeeMathSheetCopy = {
   eyebrow: 'Третман на судски трошоци',
   title: 'Судските трошоци се договараат писмено пред судската постапка',
-  body: 'Ако нема наплата, нема success fee за Interdomestik. Надворешните судски трошоци не се ветуваат како секогаш нула; тие се контролираат со писмениот договор пред да настане трошокот.',
+  body: 'Ако нема наплата, нема надомест за успех за Interdomestik. Надворешните судски трошоци не се ветуваат како секогаш нула; тие се контролираат со писмениот договор пред да настане трошокот.',
   treatmentLabel: 'Потребен е писмен договор',
   rows: [
     {
       key: 'fees.lossPromise',
-      label: 'Без success fee кога нема наплата',
-      body: 'Ако нема наплата, нема success fee за Interdomestik.',
+      label: 'Без надомест за успех кога нема наплата',
+      body: 'Ако нема наплата, нема надомест за успех за Interdomestik.',
     },
     {
       key: 'fees.courtPathCosts',

@@ -71,7 +71,7 @@
     "scope": {
       "eyebrow": "Opseg lansiranja",
       "title": "Šta obrađujemo sada, šta ostaje smernica i šta upućujemo dalje",
-      "subtitle": "Interdomestik kreće sa ugovorom fokusiranim na zahteve. Ove granice pokazuju gde pomažu Free Start i članstvo, gde može da počne naplata vođena timom i gde dajemo samo sledeći korak.",
+      "subtitle": "Interdomestik kreće sa ugovorom fokusiranim na zahteve. Ove granice pokazuju gde pomažu Besplatni početak i članstvo, gde može da počne naplata vođena timom i gde dajemo samo sledeći korak.",
       "launch": {
         "title": "Obrađuje se sada",
         "description": "Ove vrste predmeta ulaze u početnu putanju naplate kada postoji verodostojan novčani ishod.",
@@ -80,11 +80,11 @@
           "Zahtevi za štetu na imovini",
           "Zahtevi za lične povrede sa novčanom putanjom naplate"
         ],
-        "note": "Free Start može da pripremi paket. Članstvo dodaje ljudski trijaž i proveru dokumenata pre svake prihvaćene eskalacije."
+        "note": "Besplatni početak može da pripremi paket. Članstvo dodaje ljudski trijaž i proveru dokumenata pre svake prihvaćene eskalacije."
       },
       "guidance": {
         "title": "Samo smernice",
-        "description": "Ove kategorije mogu da dobiju smernice ili proveru dokumenata, ali ne ulaze u naplatu sa success-fee pri lansiranju.",
+        "description": "Ove kategorije mogu da dobiju smernice ili proveru dokumenata, ali ne ulaze u naplatu sa naknadom za uspeh pri lansiranju.",
         "items": [
           "Stambeni sporovi bez direktne novčane putanje naplate",
           "Sporovi oko plata ili zaposlenja bez jasnog novčanog ishoda",
@@ -116,8 +116,8 @@
     "disclaimers": {
       "eyebrow": "Komercijalna pojašnjenja",
       "freeStart": {
-        "title": "Free Start je samo informativan",
-        "body": "Free Start vam daje informativne smernice, obrasce i alate za sledeći korak. Ne pokreće ljudski pregled, pravni savet ili naplatu koju vodi tim."
+        "title": "Besplatni početak je samo informativan",
+        "body": "Besplatni početak vam daje informativne smernice, obrasce i alate za sledeći korak. Ne pokreće ljudski pregled, pravni savet ili naplatu koju vodi tim."
       },
       "hotline": {
         "title": "Kontaktirajte podršku",
@@ -125,17 +125,17 @@
       }
     },
     "successFeeCalculator": {
-      "eyebrow": "Success-fee matematika",
-      "title": "Pogledajte success-fee računicu pre eskalacije",
-      "subtitle": "Koristite javni kalkulator da procenite naknadu na novac koji Interdomestik zaista naplati za vas. Ako nema naplate, nema success fee za Interdomestik; sudski troškovi i troškovi trećih strana ostaju odvojeni i traže pisani dogovor pre pravne akcije.",
+      "eyebrow": "Računica naknade za uspeh",
+      "title": "Pogledajte računicu naknade za uspeh pre eskalacije",
+      "subtitle": "Koristite javni kalkulator da procenite naknadu na novac koji Interdomestik zaista naplati za vas. Ako nema naplate, nema naknade za uspeh za Interdomestik; sudski troškovi i troškovi trećih strana ostaju odvojeni i traže pisani dogovor pre pravne akcije.",
       "calculator": {
         "title": "Javni kalkulator naknade",
-        "description": "Podrazumevana success fee ostaje 15% za Asistencu i 12% za Asistenca+ Family, uz minimum od EUR 25 za oba plana. Pravna akcija traži posebnu pisanu saglasnost i viši limit.",
+        "description": "Podrazumevana naknada za uspeh ostaje 15% za Asistencu i 12% za Asistenca+ Family, uz minimum od EUR 25 za oba plana. Pravna akcija traži posebnu pisanu saglasnost i viši limit.",
         "planLabel": "Plan članstva",
         "amountLabel": "Naplaćeni iznos (EUR)",
         "breakdown": {
           "recoveryAmount": "Naplaćeni iznos",
-          "feeRate": "Success-fee stopa",
+          "feeRate": "Stopa naknade za uspeh",
           "minimumFee": "Minimalna naknada",
           "feeAmount": "Procenjena naknada ako se novac naplati",
           "legalActionCap": "Limit pravne akcije nakon pisane saglasnosti",
@@ -164,11 +164,11 @@
       "examples": {
         "standard": {
           "title": "Primer standardnog plana",
-          "description": "Naplata od EUR 1,000 na Asistenci proizvodi success fee od EUR 150."
+          "description": "Naplata od EUR 1,000 na Asistenci proizvodi naknadu za uspeh od EUR 150."
         },
         "family": {
           "title": "Primer porodičnog plana",
-          "description": "Naplata od EUR 1,000 na Asistenca+ Family proizvodi success fee od EUR 120."
+          "description": "Naplata od EUR 1,000 na Asistenca+ Family proizvodi naknadu za uspeh od EUR 120."
         },
         "minimum": {
           "title": "Primer minimalne naknade",
@@ -181,7 +181,7 @@
       },
       "footer": {
         "title": "Šta limit zaista znači",
-        "body": "Viši limit od 25% ili 22% predstavlja gornju granicu za posebno odobrenu pravnu akciju, a ne podrazumevanu success fee. Interdomestik mora prikazati ovaj limit pre potpisivanja bilo kakvog sporazuma o pravnoj akciji."
+        "body": "Viši limit od 25% ili 22% predstavlja gornju granicu za posebno odobrenu pravnu akciju, a ne podrazumevanu naknadu za uspeh. Interdomestik mora prikazati ovaj limit pre potpisivanja bilo kakvog sporazuma o pravnoj akciji."
       }
     },
     "meta": {
