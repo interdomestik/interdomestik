@@ -368,7 +368,8 @@
       },
       "save": "Sačuvaj aktivnost",
       "success": "Aktivnost je zabeležena",
-      "error": "Aktivnost nije sačuvana. Pokušajte ponovo."
+      "error": "Aktivnost nije sačuvana. Pokušajte ponovo.",
+      "close": "Zatvori"
     },
     "leads_pro": {
       "create": {

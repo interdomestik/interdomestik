@@ -10,21 +10,22 @@ export function MemberClaimFactsCard({
 }>): React.JSX.Element {
   const t = useTranslations('claims');
   const locale = useLocale();
+  const amount = formatClaimAmount(claim.amount, claim.currency, locale);
   return (
     <Card data-testid="member-claim-case-details">
       <CardHeader>
         <CardTitle>{t('detail.caseDetails')}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm">{claim.description}</p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div className="min-w-0">
-            <span className="text-xs text-muted-foreground uppercase">{t('table.amount')}</span>
-            <p className="font-medium break-words">
-              {formatClaimAmount(claim.amount, claim.currency, locale) ?? '—'}
-            </p>
+        <p className="whitespace-pre-line text-sm">{claim.description}</p>
+        {amount ? (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="min-w-0">
+              <span className="text-xs text-muted-foreground uppercase">{t('table.amount')}</span>
+              <p className="font-medium break-words">{amount}</p>
+            </div>
           </div>
-        </div>
+        ) : null}
       </CardContent>
     </Card>
   );

@@ -7,6 +7,9 @@ import { Plus } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { withMemberActorRoleOnSession } from '../actor-role-on-session';
 
+const STATUS_CHIP_PHONE_TARGETS =
+  '[&_button]:min-h-11 [&_button]:min-w-11 [&_button]:justify-center sm:[&_button]:min-h-0 sm:[&_button]:min-w-0';
+
 export default async function ClaimsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -51,10 +54,15 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
         </Button>
       </div>
 
-      {/* Filters */}
-      <ClaimsFilters />
+      {/* Filters, phone cards and the result count share the title's 16px phone gutter. */}
+      <div className="space-y-6 px-4 md:px-0" data-testid="member-claims-body">
+        {/* Status chips get a 44px phone target; desktop keeps the compact chip. */}
+        <div className={STATUS_CHIP_PHONE_TARGETS} data-testid="member-claims-filters-targets">
+          <ClaimsFilters />
+        </div>
 
-      <MemberClaimsTable />
+        <MemberClaimsTable />
+      </div>
     </div>
   );
 }
