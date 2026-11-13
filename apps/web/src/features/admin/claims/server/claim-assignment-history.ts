@@ -5,6 +5,9 @@ export const ASSIGNED_AUDIT_ACTIONS = ['assign_owner', 'claim.assigned'] as cons
 export const UNASSIGNED_AUDIT_ACTIONS = ['unassign_owner', 'claim.unassigned'] as const;
 export const ASSIGNMENT_AUDIT_ACTIONS = [...ASSIGNED_AUDIT_ACTIONS, ...UNASSIGNED_AUDIT_ACTIONS];
 
+/** The history shows at most this many of the most recent assignment events. */
+export const ASSIGNMENT_HISTORY_LIMIT = 200;
+
 /** An existing assignment audit event, read-only. It never represents a status change. */
 export type AssignmentTimelineEntry = Readonly<{
   id: string;
@@ -15,6 +18,17 @@ export type AssignmentTimelineEntry = Readonly<{
   actorName: string | null;
   actorRole: TimelineActorRole;
 }>;
+
+/** The most recent assignment window, oldest first; truncated when older events were left out. */
+export type AssignmentHistory = Readonly<{
+  entries: AssignmentTimelineEntry[];
+  truncated: boolean;
+}>;
+
+export const EMPTY_ASSIGNMENT_HISTORY: AssignmentHistory = Object.freeze({
+  entries: [],
+  truncated: false,
+});
 
 export type RawAssignmentAuditRow = Readonly<{
   id: string;

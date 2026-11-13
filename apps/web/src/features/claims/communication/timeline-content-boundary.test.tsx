@@ -47,7 +47,7 @@ beforeEach(() => {
   mocks.role = 'branch_manager';
   mocks.metadata.mockResolvedValue({ kind: 'ok', data: [] });
   mocks.content.mockResolvedValue({ claimId: 'claim', entries: [] });
-  mocks.assignments.mockResolvedValue([]);
+  mocks.assignments.mockResolvedValue({ entries: [], truncated: false });
 });
 describe.each([ClaimTimelineSection, ClaimOpsTimelineSection])(
   'timeline trusted authority boundary',

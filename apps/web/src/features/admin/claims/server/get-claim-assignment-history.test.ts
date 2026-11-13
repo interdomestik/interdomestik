@@ -6,7 +6,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({
   principal: { userId: 'admin-1', role: 'tenant_admin' } as { userId: string; role: string } | null,
   results: [] as Record<string, unknown>[][],
-  queries: [] as { table: string; sql: string; params: unknown[]; limit?: number }[],
+  queries: [] as {
+    table: string;
+    sql: string;
+    params: unknown[];
+    limit?: number;
+    order?: string[];
+  }[],
   fail: false,
   authorityCalls: 0,
   captureException: vi.fn(),
@@ -29,7 +35,7 @@ vi.mock('@interdomestik/database/tenant-authority-context', () => ({
 type Builder = Promise<unknown> & {
   from(table: Parameters<typeof getTableName>[0]): Builder;
   where(predicate: SQL): Builder;
-  orderBy(): Builder;
+  orderBy(...values: SQL[]): Builder;
   limit(value: number): Builder;
 };
 
@@ -53,7 +59,10 @@ function transaction() {
           query.params = compiled.params;
           return builder;
         },
-        orderBy: () => builder,
+        orderBy(...values: SQL[]) {
+          query.order = values.map(value => new PgDialect().sqlToQuery(value).sql);
+          return builder;
+        },
         limit(value: number) {
           query.limit = value;
           return builder;
@@ -64,12 +73,11 @@ function transaction() {
   };
 }
 
-import {
-  ASSIGNMENT_HISTORY_LIMIT,
-  getClaimAssignmentHistory,
-} from './get-claim-assignment-history';
+import { ASSIGNMENT_HISTORY_LIMIT } from './claim-assignment-history';
+import { getClaimAssignmentHistory } from './get-claim-assignment-history';
 
 const at = new Date('2026-11-13T10:00:00Z');
+const EMPTY = { entries: [], truncated: false };
 const read = () => getClaimAssignmentHistory({ claimId: 'claim-1', authority });
 
 beforeEach(() => {
@@ -100,17 +108,20 @@ describe('getClaimAssignmentHistory', () => {
       ],
     ];
 
-    expect(await read()).toEqual([
-      {
-        id: 'assignment-a1',
-        kind: 'assigned',
-        timestamp: at,
-        toHandlerName: 'Drita Gashi',
-        fromHandlerName: null,
-        actorName: 'Arta Admin',
-        actorRole: 'admin',
-      },
-    ]);
+    expect(await read()).toEqual({
+      truncated: false,
+      entries: [
+        {
+          id: 'assignment-a1',
+          kind: 'assigned',
+          timestamp: at,
+          toHandlerName: 'Drita Gashi',
+          fromHandlerName: null,
+          actorName: 'Arta Admin',
+          actorRole: 'admin',
+        },
+      ],
+    });
 
     const [audit, people] = state.queries;
     expect(audit.table).toBe('audit_log');
@@ -125,7 +136,8 @@ describe('getClaimAssignmentHistory', () => {
       'claim.unassigned',
     ]);
     expect(audit.sql).toContain('"audit_log"."action" in');
-    expect(audit.limit).toBe(ASSIGNMENT_HISTORY_LIMIT);
+    expect(audit.limit).toBe(ASSIGNMENT_HISTORY_LIMIT + 1);
+    expect(audit.order).toEqual(['"audit_log"."created_at" desc', '"audit_log"."id" desc']);
     expect(people.table).toBe('user');
     expect(people.sql).toContain('"user"."tenant_id" = $1');
     expect(people.params).toEqual(['tenant-a', 'staff-1', 'admin-1']);
@@ -133,7 +145,7 @@ describe('getClaimAssignmentHistory', () => {
 
   it('skips the name read when no audit row names a user', async () => {
     state.results = [[]];
-    expect(await read()).toEqual([]);
+    expect(await read()).toEqual(EMPTY);
     expect(state.queries).toHaveLength(1);
   });
 
@@ -141,7 +153,7 @@ describe('getClaimAssignmentHistory', () => {
     'returns nothing for a %s principal without opening a transaction',
     async role => {
       state.principal = role ? { userId: 'u', role } : null;
-      expect(await read()).toEqual([]);
+      expect(await read()).toEqual(EMPTY);
       expect(state.authorityCalls).toBe(0);
     }
   );
@@ -156,12 +168,51 @@ describe('getClaimAssignmentHistory', () => {
   it('fails closed to no entries and reports the failure without leaking it', async () => {
     state.fail = true;
     const result = await read();
-    expect(result).toEqual([]);
+    expect(result).toEqual(EMPTY);
     expect(JSON.stringify(result)).not.toContain('SENTINEL');
     expect(state.captureException).toHaveBeenCalledTimes(1);
     expect(state.captureException.mock.calls[0][1]).toMatchObject({
       tags: { operation: 'getClaimAssignmentHistory' },
       extra: { claimId: 'claim-1', tenantId: 'tenant-a' },
     });
+  });
+
+  it('keeps the newest window oldest-first and flags older events as truncated', async () => {
+    // Newest first, as the query orders them: row 0 is the latest, the last row the oldest.
+    const newestFirst = Array.from({ length: ASSIGNMENT_HISTORY_LIMIT + 1 }, (_, index) => ({
+      id: `a${index}`,
+      action: 'assign_owner',
+      createdAt: new Date(Date.UTC(2026, 10, 13) - index * 60_000),
+      actorId: null,
+      actorRole: null,
+      metadata: { newStaffId: `staff-${index}` },
+    }));
+    state.results = [newestFirst, []];
+
+    const result = await read();
+
+    expect(result.truncated).toBe(true);
+    expect(result.entries).toHaveLength(ASSIGNMENT_HISTORY_LIMIT);
+    expect(result.entries[0].id).toBe(`assignment-a${ASSIGNMENT_HISTORY_LIMIT - 1}`);
+    expect(result.entries.at(-1)?.id).toBe('assignment-a0');
+    expect(result.entries.map(entry => entry.id)).not.toContain(
+      `assignment-a${ASSIGNMENT_HISTORY_LIMIT}`
+    );
+    expect(state.queries[1].params).not.toContain(`staff-${ASSIGNMENT_HISTORY_LIMIT}`);
+  });
+
+  it('does not flag a history that fits the window', async () => {
+    const rows = Array.from({ length: ASSIGNMENT_HISTORY_LIMIT }, (_, index) => ({
+      id: `a${index}`,
+      action: 'unassign_owner',
+      createdAt: new Date(Date.UTC(2026, 10, 13) - index * 60_000),
+      actorId: null,
+      actorRole: null,
+      metadata: {},
+    }));
+    state.results = [rows];
+    const result = await read();
+    expect(result.truncated).toBe(false);
+    expect(result.entries).toHaveLength(ASSIGNMENT_HISTORY_LIMIT);
   });
 });

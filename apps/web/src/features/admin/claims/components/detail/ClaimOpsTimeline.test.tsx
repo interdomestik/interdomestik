@@ -3,7 +3,10 @@ import { NextIntlClientProvider, type AbstractIntlMessages } from 'next-intl';
 import { describe, expect, it, vi } from 'vitest';
 
 import { OPS_TEST_IDS } from '@/components/ops/testids';
-import type { AssignmentTimelineEntry } from '@/features/admin/claims/server/claim-assignment-history';
+import {
+  ASSIGNMENT_HISTORY_LIMIT,
+  type AssignmentTimelineEntry,
+} from '@/features/admin/claims/server/claim-assignment-history';
 import type { TimelineEntry } from '@/features/claims/timeline/types';
 import { LOCALES } from '@/i18n/locales';
 
@@ -56,12 +59,17 @@ const assignments = [
   assignment('assignment-3', '2026-11-13T13:00:00Z', { toHandlerName: null }),
 ];
 
-function renderTimeline(locale: string, withAssignments = assignments) {
+const copyFor = (locale: string) =>
+  (messagesFor(locale) as { claims: { timeline: Record<string, string> } }).claims.timeline;
+const TRUNCATED_NOTE = 'claim-timeline-assignments-truncated';
+
+function renderTimeline(locale: string, withAssignments = assignments, truncated = false) {
   return render(
     <NextIntlClientProvider locale={locale} messages={messagesFor(locale)} timeZone="UTC">
       <ClaimOpsTimeline
         entries={entries}
         assignments={withAssignments}
+        assignmentsTruncated={truncated}
         title="History"
         emptyLabel="Empty"
       />
@@ -76,8 +84,7 @@ const titles = () =>
 
 describe('ClaimOpsTimeline assignment history', () => {
   it.each(LOCALES)('renders assignment events in %s copy, merged by time', locale => {
-    const copy = (messagesFor(locale) as { claims: { timeline: Record<string, string> } }).claims
-      .timeline;
+    const copy = copyFor(locale);
     renderTimeline(locale);
 
     const items = screen.getAllByTestId(OPS_TEST_IDS.TIMELINE.ITEM);
@@ -95,6 +102,18 @@ describe('ClaimOpsTimeline assignment history', () => {
     expect(within(items[1]).getByText('Arta Admin')).toBeInTheDocument();
     expect(within(items[3]).getByText(copy.actor_admin)).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/assignment_|\{name\}/);
+    expect(screen.queryByTestId(TRUNCATED_NOTE)).not.toBeInTheDocument();
+  });
+
+  it.each(LOCALES)('states the bound in %s copy when older assignments were left out', locale => {
+    renderTimeline(locale, assignments, true);
+    const note = screen.getByTestId(TRUNCATED_NOTE);
+    expect(note).toHaveTextContent(
+      copyFor(locale).assignment_truncated.replace('{count}', String(ASSIGNMENT_HISTORY_LIMIT))
+    );
+    // Outside the timeline root, so status and assignment items keep their selectors and count.
+    expect(screen.getByTestId(OPS_TEST_IDS.TIMELINE.ROOT)).not.toContainElement(note);
+    expect(screen.getAllByTestId(OPS_TEST_IDS.TIMELINE.ITEM)).toHaveLength(5);
   });
 
   it('keeps the status-only history unchanged without assignment events', () => {

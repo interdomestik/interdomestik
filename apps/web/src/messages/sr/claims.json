@@ -256,7 +256,8 @@
       "assignment_assigned": "Slučaj je dodeljen: {name}",
       "assignment_assigned_unnamed": "Slučaj je dodeljen",
       "assignment_removed": "Dodela je uklonjena",
-      "assignment_previous": "Ranije: {name}"
+      "assignment_previous": "Ranije: {name}",
+      "assignment_truncated": "Prikazano je samo {count} najnovijih dodela."
     },
     "informationRequests": {
       "title": "Tražene informacije",

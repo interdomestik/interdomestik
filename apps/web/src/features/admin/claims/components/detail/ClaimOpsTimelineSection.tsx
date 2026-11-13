@@ -7,6 +7,7 @@ import 'server-only';
 
 import { getNoteFreeClaimTimeline } from '@/features/claims/communication/get-note-free-claim-timeline';
 import { RestrictedClaimTimeline } from '@/features/claims/communication/restricted-claim-timeline';
+import { EMPTY_ASSIGNMENT_HISTORY } from '@/features/admin/claims/server/claim-assignment-history';
 import { getClaimAssignmentHistory } from '@/features/admin/claims/server/get-claim-assignment-history';
 import { getClaimTimeline, type TimelineViewerRole } from '@/features/claims/timeline';
 import { deniesClaimMessageContent } from '@/lib/branch-manager-message-boundary';
@@ -47,12 +48,13 @@ export async function ClaimOpsTimelineSection({
   // Sequential on purpose: one tenant transaction at a time per request connection.
   const assignments = showsAssignmentHistory(viewerRole)
     ? await getClaimAssignmentHistory({ claimId, authority })
-    : [];
+    : EMPTY_ASSIGNMENT_HISTORY;
 
   return (
     <ClaimOpsTimeline
       entries={timeline.entries}
-      assignments={assignments}
+      assignments={assignments.entries}
+      assignmentsTruncated={assignments.truncated}
       title={tTimeline('title')}
       emptyLabel={tTimeline('empty')}
       showNotes={showNotes && viewerRole !== 'member'}
