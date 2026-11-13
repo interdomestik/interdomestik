@@ -49,8 +49,11 @@ describe('VerificationDetailsDrawer load states', () => {
     expect(screen.queryByText('Failed to load data')).not.toBeInTheDocument();
   });
 
-  it('shows localized error copy and the error toast when loading fails', async () => {
-    mocks.fetchVerificationDetails.mockResolvedValue({ kind: 'error' });
+  it.each([
+    ['reports an error', () => mocks.fetchVerificationDetails.mockResolvedValue({ kind: 'error' })],
+    ['rejects', () => mocks.fetchVerificationDetails.mockRejectedValue(new Error('offline'))],
+  ])('shows localized error copy and the error toast when loading %s', async (_label, arrange) => {
+    arrange();
     renderDrawer();
 
     expect(await screen.findByText('admin.leads.drawer.load_error')).toBeInTheDocument();

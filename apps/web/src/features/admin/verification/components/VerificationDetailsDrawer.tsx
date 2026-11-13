@@ -55,18 +55,26 @@ export function VerificationDetailsDrawer({
     setLoading(true);
     setError(false);
     setNotFound(false);
-    fetchVerificationDetails(attemptId).then(result => {
-      if (!active) return;
-      setLoading(false);
-      if (result.kind === 'ok') {
-        setData(result.data);
-        return;
+    fetchVerificationDetails(attemptId).then(
+      result => {
+        if (!active) return;
+        setLoading(false);
+        if (result.kind === 'ok') {
+          setData(result.data);
+          return;
+        }
+        // An unknown id (stale or hand-edited link) is a calm not-found state, not a failure toast.
+        setNotFound(result.kind === 'not_found');
+        setError(result.kind === 'error');
+        if (result.kind === 'error') toast.error(t('toasts.error'));
+      },
+      () => {
+        if (!active) return;
+        setLoading(false);
+        setError(true);
+        toast.error(t('toasts.error'));
       }
-      // An unknown id (stale or hand-edited link) is a calm not-found state, not a failure toast.
-      setNotFound(result.kind === 'not_found');
-      setError(result.kind === 'error');
-      if (result.kind === 'error') toast.error(t('toasts.error'));
-    });
+    );
     return () => {
       active = false;
     };

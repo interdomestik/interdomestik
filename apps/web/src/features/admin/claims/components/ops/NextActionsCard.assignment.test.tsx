@@ -215,7 +215,7 @@ describe('NextActionsCard staff assignment', () => {
     finish({ success: true });
     await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledTimes(1));
     expect(mocks.reload).not.toHaveBeenCalled();
-    expect(globalThis.sessionStorage.length).toBe(0);
+    expect(globalThis.sessionStorage).toHaveLength(0);
   });
 
   it('keeps SLA acknowledgement primary and offers secondary staff selection', async () => {
