@@ -368,7 +368,8 @@
       },
       "save": "Save Activity",
       "success": "Activity logged",
-      "error": "The activity could not be saved. Please try again."
+      "error": "The activity could not be saved. Please try again.",
+      "close": "Close"
     },
     "leads_pro": {
       "create": {

@@ -7,6 +7,8 @@ import { ReferralLinkCard } from '@/components/agent/referral-link-card';
 import { MatteAnchorCard } from '@/components/dashboard/matte-anchor-card';
 import { Link } from '@/i18n/routing';
 import { localizeSeededBranchName } from '@/lib/localize-seeded-branch-name';
+import { formatEuro } from '@/lib/utils/currency';
+import { formatPilotLongDate } from '@/lib/utils/date';
 import { getMyCommissionSummaryCore } from '@interdomestik/domain-membership-billing/commissions/summary';
 import { getAgentReferralLinkCore } from '@interdomestik/domain-referrals/referrals/get-agent-link';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -65,13 +67,7 @@ export async function AgentDashboardV2Page({
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">
-            {t('dashboard')} —{' '}
-            {new Date().toLocaleDateString(locale, {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
+            {t('dashboard')} — {formatPilotLongDate(new Date(), locale)}
           </p>
           {branch && (
             <div className="mt-1 flex items-center gap-2">
@@ -128,7 +124,7 @@ export async function AgentDashboardV2Page({
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-6">
             <div className="text-5xl font-black tracking-tighter text-white tabular-nums drop-shadow-2xl">
-              €{summary ? ((summary.totalPaid ?? 0) / 100).toFixed(0) : '—'}
+              {summary ? formatEuro((summary.totalPaid ?? 0) / 100, locale, 0) : '—'}
             </div>
             <p className="text-[10px] font-medium text-white/40 mt-2 uppercase tracking-widest">
               {t('dashboardV2.paidThisMonth')}
@@ -250,13 +246,13 @@ export async function AgentDashboardV2Page({
               <div className="flex justify-between items-center" data-testid="commission-pending">
                 <span className="text-sm text-muted-foreground">{t('commissions.pending')}</span>
                 <span className="font-semibold">
-                  €{((summary?.totalPending ?? 0) / 100).toFixed(2)}
+                  {formatEuro((summary?.totalPending ?? 0) / 100, locale)}
                 </span>
               </div>
               <div className="flex justify-between items-center" data-testid="commission-approved">
                 <span className="text-sm text-muted-foreground">{t('commissions.approved')}</span>
                 <span className="font-semibold text-green-600">
-                  €{((summary?.totalApproved ?? 0) / 100).toFixed(2)}
+                  {formatEuro((summary?.totalApproved ?? 0) / 100, locale)}
                 </span>
               </div>
             </CardContent>

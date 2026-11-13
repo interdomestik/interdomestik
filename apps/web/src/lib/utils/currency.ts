@@ -18,3 +18,13 @@ export function formatClaimAmount(
     return null;
   }
 }
+
+/** Euro amount in the app's number style: en "€1,200.00", every other locale "1.200,00 €". */
+export function formatEuro(value: number, locale: string, fractionDigits = 2): string {
+  return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'de-DE', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value);
+}

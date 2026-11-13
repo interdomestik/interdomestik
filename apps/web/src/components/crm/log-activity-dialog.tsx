@@ -96,7 +96,7 @@ export function LogActivityDialog({ entityId, entityType = 'member' }: LogActivi
           {t('trigger')}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent closeLabel={t('close')}>
         <DialogHeader>
           <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>

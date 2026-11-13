@@ -75,4 +75,30 @@ describe('formatClaimCreatedDate', () => {
       'Dezember'
     );
   });
+
+  it.each([
+    ['sr', '12. decembar 2025.'],
+    ['sq', '12 Dhjetor 2025'],
+    ['de', '12. Dezember 2025'],
+    ['en', 'December 12, 2025'],
+  ])('formats %s claim dates day-first in the app script', (locale, expected) => {
+    expect(formatClaimCreatedDate('2025-12-12T10:00:00.000Z', locale)).toBe(expected);
+  });
+
+  it('keeps the pilot calendar day in every host time zone', () => {
+    const original = process.env.TZ;
+    try {
+      for (const zone of ['Pacific/Auckland', 'Pacific/Kiritimati', 'America/Los_Angeles', 'UTC']) {
+        process.env.TZ = zone;
+        expect(formatClaimCreatedDate('2025-12-12T10:00:00.000Z', 'sq')).toBe('12 Dhjetor 2025');
+      }
+    } finally {
+      process.env.TZ = original;
+    }
+  });
+
+  it('uses the pilot-zone calendar day and tolerates missing values', () => {
+    expect(formatClaimCreatedDate('2025-12-12T23:30:00.000Z', 'sq')).toBe('13 Dhjetor 2025');
+    expect(formatClaimCreatedDate(null, 'sq')).toBe('');
+  });
 });
