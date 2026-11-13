@@ -9,6 +9,16 @@
     "viewClaim": "Прегледај барање",
     "claimFallback": "Барање",
     "emptyList": "Нема прикачени документи.",
+    "fileTypes": {
+      "pdf": "PDF",
+      "word": "Word",
+      "excel": "Excel",
+      "image": "Слика",
+      "audio": "Аудио",
+      "video": "Видео",
+      "email": "Е-пошта",
+      "file": "Датотека"
+    },
     "actions": {
       "view": "Прегледај",
       "download": "Преземи"

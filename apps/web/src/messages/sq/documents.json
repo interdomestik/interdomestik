@@ -9,6 +9,16 @@
     "viewClaim": "Shiko kërkesën për dëmshpërblim",
     "claimFallback": "Kërkesë",
     "emptyList": "Nuk ka dokumente të bashkëngjitura.",
+    "fileTypes": {
+      "pdf": "PDF",
+      "word": "Word",
+      "excel": "Excel",
+      "image": "Imazh",
+      "audio": "Audio",
+      "video": "Video",
+      "email": "Email",
+      "file": "Skedar"
+    },
     "actions": {
       "view": "Shiko",
       "download": "Shkarko"

@@ -8,6 +8,10 @@ vi.mock('next-intl', () => ({
       'actions.view': 'View',
       'actions.download': 'Download',
       emptyList: 'No documents attached.',
+      'fileTypes.pdf': 'PDF',
+      'fileTypes.word': 'Word',
+      'fileTypes.email': 'Email',
+      'fileTypes.audio': 'Audio',
     };
     return translations[key] ?? key;
   },
@@ -38,5 +42,29 @@ describe('DocumentList', () => {
         'sm:min-w-0'
       );
     }
+  });
+
+  it('shows a readable file type instead of the raw MIME type (qa3 #68)', () => {
+    render(
+      <DocumentList
+        documents={[
+          ...documents,
+          {
+            id: 'doc-2',
+            name: 'contract.docx',
+            fileSize: 4096,
+            fileType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          },
+          { id: 'doc-3', name: 'thread.eml', fileSize: 577, fileType: 'message/rfc822' },
+          { id: 'doc-4', name: 'call.m4a', fileSize: 900, fileType: 'audio/mp4' },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('2.0 KB · PDF')).toBeInTheDocument();
+    expect(screen.getByText('4.0 KB · Word')).toBeInTheDocument();
+    expect(screen.getByText('577 B · Email')).toBeInTheDocument();
+    expect(screen.getByText('900 B · Audio')).toBeInTheDocument();
+    expect(screen.queryByText(/application\/|message\/rfc822|audio\/mp4/)).not.toBeInTheDocument();
   });
 });

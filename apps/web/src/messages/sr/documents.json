@@ -9,6 +9,16 @@
     "viewClaim": "Prikaži zahtev",
     "claimFallback": "Zahtev",
     "emptyList": "Nema priloženih dokumenata.",
+    "fileTypes": {
+      "pdf": "PDF",
+      "word": "Word",
+      "excel": "Excel",
+      "image": "Slika",
+      "audio": "Audio",
+      "video": "Video",
+      "email": "Imejl",
+      "file": "Datoteka"
+    },
     "actions": {
       "view": "Prikaži",
       "download": "Preuzmi"

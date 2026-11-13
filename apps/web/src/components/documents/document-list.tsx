@@ -4,6 +4,7 @@ import { Button } from '@interdomestik/ui/components/button';
 import { Download, Eye, FileText, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { documentFileKind } from './document-file-type';
 
 type Document = {
   id: string;
@@ -85,7 +86,7 @@ export function DocumentList({ documents }: Readonly<Props>) {
                 {doc.name}
               </p>
               <p className="text-xs text-muted-foreground">
-                {formatSize(doc.fileSize)} · {doc.fileType}
+                {formatSize(doc.fileSize)} · {t(`fileTypes.${documentFileKind(doc.fileType)}`)}
               </p>
             </div>
           </div>
