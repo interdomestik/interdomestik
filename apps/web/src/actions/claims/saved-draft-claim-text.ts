@@ -1,5 +1,6 @@
-import { getLocale, getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 
+import type { AppLocale } from '@/i18n/locales';
 import { formatPilotDate } from '@/lib/utils/date';
 
 type Translate = { (key: string): string; has(key: string): boolean };
@@ -30,14 +31,15 @@ const FIELD_LABELS = [
 ] as const;
 
 /**
- * Builds the stored claim title and description in the member's request locale, reusing the Free
- * Start option and preview labels the member saw while filling in the draft.
+ * Builds the stored claim title and description in the member's route locale, reusing the Free
+ * Start option and preview labels the member saw while filling in the draft. The locale is passed
+ * explicitly: an implicit `getLocale()` in a server action falls back to the default locale.
  */
 export async function buildSavedDraftClaimText(
   facts: SavedDraftClaimFacts,
-  english: SavedDraftEnglishOptions
+  english: SavedDraftEnglishOptions,
+  locale: AppLocale
 ): Promise<{ title: string; description: string }> {
-  const locale = await getLocale();
   const t = (await getTranslations({ locale, namespace: 'freeStart' })) as unknown as Translate;
   const pick = (key: string, fallback: string): string => (t.has(key) ? t(key) : fallback);
   const category = pick(`categories.${facts.category}.title`, english.category);

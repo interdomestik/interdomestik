@@ -1,6 +1,7 @@
 import { deniesClaimMessageContent } from '@/lib/branch-manager-message-boundary';
 import { getBranchManagerNotificationCopy } from '@/lib/notifications/branch-manager-copy';
-import { getLocale, getTranslations } from 'next-intl/server';
+import type { AppLocale } from '@/i18n/locales';
+import { getTranslations } from 'next-intl/server';
 import { getMemberClaimDetail } from '@/features/claims/tracking/server/getMemberClaimDetail';
 import {
   notificationClaimId,
@@ -15,12 +16,14 @@ export async function getNotificationsCore(params: {
   session: Session | null;
   authority: TenantAuthority | null;
   limit?: number;
+  /** Resolved by the caller: an implicit `getLocale()` in a server action is always the default. */
+  locale: AppLocale;
 }) {
   if (params.limit && (params.limit < 1 || params.limit > 100)) {
     throw new Error('Invalid limit');
   }
   const rows = await getNotificationsCoreDomain(params);
-  const locale = await getLocale();
+  const { locale } = params;
   if (!deniesClaimMessageContent(params.session?.user?.role)) {
     const t = await getTranslations({ locale, namespace: 'notifications' });
     const labels = new Map<string, Promise<string | null>>();

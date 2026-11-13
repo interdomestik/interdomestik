@@ -100,7 +100,11 @@ describe('explicit Submit after account autosave', () => {
     await act(async () => {
       finish({ id, version: 2 });
     });
-    expect(actions.submit).toHaveBeenCalledExactlyOnceWith({ id, expectedVersion: 2 });
+    expect(actions.submit).toHaveBeenCalledExactlyOnceWith({
+      id,
+      expectedVersion: 2,
+      locale: 'en',
+    });
     expect(release).toHaveBeenCalledOnce();
   });
   it('does not submit stale facts when current editor ownership or saving cannot settle', async () => {
@@ -145,7 +149,11 @@ describe('explicit Submit after account autosave', () => {
     act(() => hook.result.current.submit());
     await waitFor(() => expect(hook.result.current.claim).toEqual(claim));
     expect(hook.result.current.origin).toBe('user_submit');
-    expect(actions.submit).toHaveBeenCalledExactlyOnceWith({ id, expectedVersion: 1 });
+    expect(actions.submit).toHaveBeenCalledExactlyOnceWith({
+      id,
+      expectedVersion: 1,
+      locale: 'en',
+    });
     expect(actions.finish).toHaveBeenCalledExactlyOnceWith('success');
     expect(editor.terminal).toBe(false);
     for (const [summary, expectedVersion] of [
@@ -187,7 +195,11 @@ describe('explicit Submit after account autosave', () => {
       await waitFor(() => expect(hook.result.current.lookupStatus).toBe('not_found'));
       act(() => hook.result.current.submit());
       await waitFor(() =>
-        expect(actions.submit).toHaveBeenCalledExactlyOnceWith({ id, expectedVersion: 1 })
+        expect(actions.submit).toHaveBeenCalledExactlyOnceWith({
+          id,
+          expectedVersion: 1,
+          locale: 'en',
+        })
       );
       expect(editor.terminal).toBe(true);
       if (kind === 'dispose') commands.dispose();

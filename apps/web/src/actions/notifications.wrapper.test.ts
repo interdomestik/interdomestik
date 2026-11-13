@@ -50,6 +50,7 @@ describe('actions/notifications wrapper', () => {
       session: { user: { id: 'u1' } },
       authority,
       limit: 10,
+      locale: 'sq',
     });
     expect(markAsReadCore).toHaveBeenCalledWith({
       session: { user: { id: 'u1' } },
@@ -89,4 +90,27 @@ describe('actions/notifications wrapper', () => {
     await expect(markAsRead('n1')).resolves.toEqual({ success: false, error: 'Unauthorized' });
     await expect(markAllAsRead()).resolves.toEqual({ success: false, error: 'Unauthorized' });
   });
+
+  it.each([
+    ['en', '/sq/member', 'en'],
+    ['mk', null, 'mk'],
+    [undefined, '/en/member/notifications', 'en'],
+    ['hr', '/mk/member', 'mk'],
+  ])(
+    'renders notification copy for explicit %s / page %s in %s, not the default (qa3 #67)',
+    async (explicit, page, expected) => {
+      const { getAuthorizedActionContext } = await import('./notifications/context');
+      const { getNotificationsCore } = await import('./notifications/get');
+      (getNotificationsCore as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (getAuthorizedActionContext as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        session: { user: { id: 'u1' } },
+        authority: null,
+        requestHeaders: new Headers(page ? { referer: `https://ida.example${page}` } : {}),
+      });
+      await getNotifications(20, explicit);
+      expect(getNotificationsCore).toHaveBeenLastCalledWith(
+        expect.objectContaining({ locale: expected })
+      );
+    }
+  );
 });

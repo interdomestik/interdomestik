@@ -181,7 +181,7 @@ describe('ClaimDraftIntake', () => {
     await waitFor(() => expect(submit).toBeEnabled());
     await user.click(submit);
     // prettier-ignore
-    await waitFor(() => expect(claim.submit).toHaveBeenCalledWith({ id: savedDraft.id, expectedVersion: 1, claimStart }));
+    await waitFor(() => expect(claim.submit).toHaveBeenCalledWith({ id: savedDraft.id, expectedVersion: 1, claimStart, locale: 'en' }));
     const success = await screen.findByTestId('claim-created-success');
     expect(success).toHaveAttribute('data-claim-number', 'CLM-1');
     // prettier-ignore
@@ -239,6 +239,7 @@ describe('ClaimDraftIntake', () => {
       expect(claim.submit).toHaveBeenCalledExactlyOnceWith({
         id: savedDraft.id,
         expectedVersion: 1,
+        locale: 'en',
       })
     );
     expect(await screen.findByTestId('claim-created-success')).toHaveAttribute(

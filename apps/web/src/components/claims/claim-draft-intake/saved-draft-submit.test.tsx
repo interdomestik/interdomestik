@@ -105,7 +105,7 @@ describe('saved draft canonical submit', () => {
     expect(h.submit).toHaveBeenCalledTimes(1);
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute('aria-busy', 'true');
-    expect(h.submit).toHaveBeenCalledWith({ id, expectedVersion: 3 });
+    expect(h.submit).toHaveBeenCalledWith({ id, expectedVersion: 3, locale: 'en' });
     expect(h.monitor).toHaveBeenCalledExactlyOnceWith('saved_draft_submit');
     finish({ success: true, claimId: 'claim-1', claimNumber: 'CLM-KS-2026-000001' });
     expect(await screen.findByTestId('claim-created-success')).toHaveTextContent(
@@ -218,7 +218,7 @@ describe('saved draft canonical submit', () => {
       await waitFor(() => expect(submit).toBeEnabled());
       fireEvent.click(submit);
       await waitFor(() =>
-        expect(h.submit).toHaveBeenCalledExactlyOnceWith({ id, expectedVersion: 3 })
+        expect(h.submit).toHaveBeenCalledExactlyOnceWith({ id, expectedVersion: 3, locale: 'en' })
       );
       const removing = commands.remove(row);
       await waitFor(() =>

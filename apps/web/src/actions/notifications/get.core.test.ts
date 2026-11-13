@@ -9,7 +9,6 @@ vi.mock('@interdomestik/domain-communications/notifications/get', () => ({
   getNotificationsCore: mocks.read,
 }));
 vi.mock('next-intl/server', () => ({
-  getLocale: () => Promise.resolve('en'),
   getTranslations: () => Promise.resolve((key: string) => `trusted:${key}`),
 }));
 import { getNotificationsCore } from './get.core';
@@ -42,7 +41,11 @@ describe('in-app BM notification reader boundary', () => {
     'replaces %s title and body with trusted event copy and preserves metadata keys',
     async type => {
       mocks.read.mockResolvedValue([{ ...row, type }]);
-      const result = await getNotificationsCore({ authority, session: session('branch_manager') });
+      const result = await getNotificationsCore({
+        authority,
+        locale: 'en',
+        session: session('branch_manager'),
+      });
       expect(result[0]).toMatchObject({
         title: expect.stringMatching(/^trusted:/),
         content: expect.stringMatching(/^trusted:/),
@@ -67,7 +70,7 @@ describe('in-app BM notification reader boundary', () => {
   ])('localizes %s copy and preserves navigation/read metadata', async role => {
     const rows = [row];
     mocks.read.mockResolvedValue(rows);
-    const result = await getNotificationsCore({ authority, session: session(role) });
+    const result = await getNotificationsCore({ authority, locale: 'en', session: session(role) });
     expect(result[0]).toMatchObject({
       ...row,
       title: 'trusted:events.newMessage.title',
@@ -80,7 +83,11 @@ describe('in-app BM notification reader boundary', () => {
     async outcome => {
       if (outcome === 'failed') mocks.claim.mockRejectedValue(new Error('lookup failed'));
       else mocks.claim.mockResolvedValue(null);
-      const result = await getNotificationsCore({ authority, session: session('member') });
+      const result = await getNotificationsCore({
+        authority,
+        locale: 'en',
+        session: session('member'),
+      });
       expect(result[0]).toMatchObject({
         ...row,
         title: 'trusted:events.newMessage.title',
@@ -90,26 +97,26 @@ describe('in-app BM notification reader boundary', () => {
   );
   it('resolves each legacy thread once and avoids lookups for stored human titles or BM', async () => {
     mocks.read.mockResolvedValue([row, { ...row, id: 'second' }]);
-    await getNotificationsCore({ authority, session: session('member') });
+    await getNotificationsCore({ authority, locale: 'en', session: session('member') });
     expect(mocks.claim).toHaveBeenCalledOnce();
     mocks.claim.mockClear();
     mocks.read.mockResolvedValue([{ ...row, content: 'Update on: Car damage' }]);
-    await getNotificationsCore({ authority, session: session('member') });
-    await getNotificationsCore({ authority, session: session('branch_manager') });
+    await getNotificationsCore({ authority, locale: 'en', session: session('member') });
+    await getNotificationsCore({ authority, locale: 'en', session: session('branch_manager') });
     expect(mocks.claim).not.toHaveBeenCalled();
   });
   it('preserves empty and failed reads and validates limits before the domain reader', async () => {
     mocks.read.mockResolvedValue([]);
-    expect(await getNotificationsCore({ authority, session: session('branch_manager') })).toEqual(
-      []
-    );
+    expect(
+      await getNotificationsCore({ authority, locale: 'en', session: session('branch_manager') })
+    ).toEqual([]);
     mocks.read.mockRejectedValue(new Error('read failed'));
     await expect(
-      getNotificationsCore({ authority, session: session('branch_manager') })
+      getNotificationsCore({ authority, locale: 'en', session: session('branch_manager') })
     ).rejects.toThrow('read failed');
     mocks.read.mockClear();
     await expect(
-      getNotificationsCore({ authority, session: session('staff'), limit: 101 })
+      getNotificationsCore({ authority, locale: 'en', session: session('staff'), limit: 101 })
     ).rejects.toThrow('Invalid limit');
     expect(mocks.read).not.toHaveBeenCalled();
   });

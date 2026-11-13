@@ -29,11 +29,16 @@ vi.mock('@interdomestik/database/claim-number', () => ({
 vi.unmock('next-intl');
 vi.mock('next-intl/server', async () => {
   const { createTranslator } = await import('next-intl');
-  const messages = (await import('../../messages/en/freeStart.json')).default;
+  const catalogs: Record<string, Record<string, unknown>> = {
+    en: (await import('../../messages/en/freeStart.json')).default,
+    mk: (await import('../../messages/mk/freeStart.json')).default,
+  };
   return {
-    getLocale: () => Promise.resolve('en'),
-    getTranslations: () =>
-      Promise.resolve(createTranslator({ locale: 'en', messages, namespace: 'freeStart' })),
+    getLocale: () => Promise.reject(new Error('implicit getLocale() is not allowed in actions')),
+    getTranslations: ({ locale }: { locale: string }) =>
+      Promise.resolve(
+        createTranslator({ locale, messages: catalogs[locale] as never, namespace: 'freeStart' })
+      ),
   };
 });
 vi.mock('drizzle-orm', () => ({
@@ -50,6 +55,8 @@ const context = { accessTenantId: 'tenant_ks', actorRole: 'member', ownerUserId:
 // prettier-ignore
 const draft = { category: 'vehicle', clientRequestId: 'request-1', counterparty: 'Example Insurer', createdAt: '2026-08-08T00:00:00.000Z', desiredOutcome: 'repair', id: '63ffc31e-8c64-4758-995a-c57f40de7568', incidentDate: '2026-07-20', issueType: 'collision', resumeStep: 'preview', summary: 'The vehicle was damaged and needs a documented repair.', updatedAt: '2026-08-08T00:00:00.000Z', version: 3 };
 const input = { id: draft.id, expectedVersion: 3 };
+const fromPage = (path: string) =>
+  new Headers({ referer: `https://ida.example${path}/member/claims/new` });
 const confirmedClaimStart = {
   confirmed: true as const,
   handoffContext: {
@@ -68,7 +75,7 @@ describe('createClaimFromSavedDraft', () => {
     vi.clearAllMocks();
     h.contexts.length = 0;
     h.runAuthenticated.mockImplementation(async callback =>
-      callback({ session, authority, tenantId: 'tenant_ks', requestHeaders: new Headers() })
+      callback({ session, authority, tenantId: 'tenant_ks', requestHeaders: fromPage('/en') })
     );
     h.resolveSession.mockResolvedValue({ ok: true, context });
     h.resumeDraft.mockResolvedValue({ ok: true, draft });
@@ -201,5 +208,25 @@ describe('createClaimFromSavedDraft', () => {
     h.submit.mockResolvedValue({ ...success, claimId: 'other-claim' });
     await expect(createClaimFromSavedDraft(input)).resolves.toMatchObject({ success: false });
     expect(h.limit).toHaveBeenCalledTimes(4);
+  });
+  it('stores the claim text in the explicit route locale (qa3 #67)', async () => {
+    await createClaimFromSavedDraft({ ...input, locale: 'mk' });
+    expect(h.submit.mock.calls[0]![0].data).toMatchObject({
+      title: 'Штета на возило: Штета од судир',
+      description: expect.stringContaining('20.07.2026'),
+    });
+  });
+  it('uses the posting page locale when the caller sends none, never the default', async () => {
+    h.runAuthenticated.mockImplementation(async callback =>
+      callback({ session, authority, tenantId: 'tenant_ks', requestHeaders: fromPage('/mk') })
+    );
+    await createClaimFromSavedDraft(input);
+    expect(h.submit.mock.calls[0]![0].data.title).toBe('Штета на возило: Штета од судир');
+  });
+  it('rejects an unsupported locale as non-strict input', async () => {
+    await expect(createClaimFromSavedDraft({ ...input, locale: 'hr' })).resolves.toMatchObject({
+      success: false,
+    });
+    expect(h.submit).not.toHaveBeenCalled();
   });
 });

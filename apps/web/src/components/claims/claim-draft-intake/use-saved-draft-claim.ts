@@ -8,6 +8,7 @@ import { startCriticalAction } from '@/lib/observability/critical-action';
 import { isDraftContinuationCurrent } from '@/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-continuation';
 import { isOutdatedServerAction } from '@/lib/saved-draft-deployment-recovery';
 import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
+import { useLocale } from 'next-intl';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
 type Claim = { id: string; number: string };
@@ -39,6 +40,7 @@ export const isSavedDraftId = (value?: string | null) => Boolean(value && UUID.t
 export function useSavedDraftClaim(options: Options) {
   const { claimStart, draftId, draftVersion, eligible, failedCopy, unexpectedCopy, outdatedCopy } =
     options;
+  const locale = useLocale();
   const validId = isSavedDraftId(draftId);
   const identity = validId && draftVersion ? `${draftId!.toLowerCase()}:${draftVersion}` : null;
   const initialStatus: LookupStatus = identity ? 'checking' : 'idle';
@@ -118,6 +120,7 @@ export function useSavedDraftClaim(options: Options) {
           ...(claimStart ? { claimStart } : {}),
           id: settled.id,
           expectedVersion: settled.version,
+          locale,
         });
         if (result.success) {
           action.finish('success');
