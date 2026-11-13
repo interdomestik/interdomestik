@@ -71,7 +71,7 @@
     "scope": {
       "eyebrow": "Umfang zum Start",
       "title": "Was wir jetzt bearbeiten, was Beratung bleibt und was wir weiterleiten",
-      "subtitle": "Interdomestik startet mit einem Vertrag mit Fokus auf Schadensfälle. Diese Grenzen zeigen, wo Free Start und die Mitgliedschaft helfen können, wo eine vom Team geführte Erstattung beginnen kann und wo wir Sie nur zum richtigen nächsten Schritt weiterleiten.",
+      "subtitle": "Interdomestik startet mit einem Vertrag mit Fokus auf Schadensfälle. Diese Grenzen zeigen, wo der Kostenlose Start und die Mitgliedschaft helfen können, wo eine vom Team geführte Erstattung beginnen kann und wo wir Sie nur zum richtigen nächsten Schritt weiterleiten.",
       "launch": {
         "title": "Wird jetzt bearbeitet",
         "description": "Diese Schadensarten passen zum Erstattungsweg beim Start, wenn ein plausibles finanzielles Ergebnis möglich ist.",
@@ -80,7 +80,7 @@
           "Sachschäden",
           "Personenschäden mit einem Weg zur finanziellen Erstattung"
         ],
-        "note": "Free Start kann das Paket vorbereiten. Die Mitgliedschaft ergänzt eine Ersteinschätzung durch Menschen und eine Dokumentenprüfung vor jeder angenommenen Eskalation."
+        "note": "Der Kostenlose Start kann das Paket vorbereiten. Die Mitgliedschaft ergänzt eine Ersteinschätzung durch Menschen und eine Dokumentenprüfung vor jeder angenommenen Eskalation."
       },
       "guidance": {
         "title": "Nur Beratung",
@@ -116,8 +116,8 @@
     "disclaimers": {
       "eyebrow": "Geschäftliche Hinweise",
       "freeStart": {
-        "title": "Free Start dient nur der Information",
-        "body": "Free Start bietet Ihnen informative Hinweise, Vorlagen und Werkzeuge für den nächsten Schritt. Es startet weder eine Prüfung durch Menschen noch eine Rechtsberatung oder eine vom Team geführte Erstattung."
+        "title": "Der Kostenlose Start dient nur der Information",
+        "body": "Der Kostenlose Start bietet Ihnen informative Hinweise, Vorlagen und Werkzeuge für den nächsten Schritt. Er startet weder eine Prüfung durch Menschen noch eine Rechtsberatung oder eine vom Team geführte Erstattung."
       },
       "hotline": {
         "title": "Support kontaktieren",

@@ -20,7 +20,7 @@
       },
       "guidance": {
         "title": "Samo smernice",
-        "description": "Ove kategorije mogu da ostanu u članskim smernicama i proveri dokumenata, ali ne i u eskalaciji sa success-fee.",
+        "description": "Ove kategorije mogu da ostanu u članskim smernicama i proveri dokumenata, ali ne i u eskalaciji sa naknadom za uspeh.",
         "items": [
           "Stambeni sporovi bez direktne novčane putanje naplate",
           "Sporovi oko plata ili zaposlenja bez jasnog novčanog ishoda",
@@ -52,8 +52,8 @@
     "disclaimers": {
       "eyebrow": "Komercijalna pojašnjenja",
       "freeStart": {
-        "title": "Free Start je samo informativan",
-        "body": "Free Start vam daje informativne smernice, obrasce i alate za sledeći korak. Ne pokreće ljudski pregled, pravni savet ili naplatu koju vodi tim."
+        "title": "Besplatni početak je samo informativan",
+        "body": "Besplatni početak vam daje informativne smernice, obrasce i alate za sledeći korak. Ne pokreće ljudski pregled, pravni savet ili naplatu koju vodi tim."
       },
       "hotline": {
         "title": "Linija služi za usmeravanje i podršku",

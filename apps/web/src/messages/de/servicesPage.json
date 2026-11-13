@@ -7,7 +7,7 @@
     "hero": {
       "badge": "Schadensumfang zum Start",
       "title": "Zuerst Fahrzeug-, Sach- und Personenschäden",
-      "subtitle": "Free Start und die Mitgliedschaft beginnen mit den Schadensarten, die wir jetzt unterstützen können. Reine Beratungsfälle bleiben beratend, und Angelegenheiten außerhalb des Umfangs werden zum richtigen nächsten Schritt weitergeleitet."
+      "subtitle": "Der Kostenlose Start und die Mitgliedschaft beginnen mit den Schadensarten, die wir jetzt unterstützen können. Reine Beratungsfälle bleiben beratend, und Angelegenheiten außerhalb des Umfangs werden zum richtigen nächsten Schritt weitergeleitet."
     },
     "scope": {
       "eyebrow": "Geschäftliche Grenzen",
@@ -21,7 +21,7 @@
           "Sachschäden",
           "Personenschäden mit einem Weg zur finanziellen Erstattung"
         ],
-        "note": "Free Start kann das Paket vorbereiten. Die Mitgliedschaft ergänzt eine Ersteinschätzung durch Menschen und eine Dokumentenprüfung vor jeder angenommenen Eskalation."
+        "note": "Der Kostenlose Start kann das Paket vorbereiten. Die Mitgliedschaft ergänzt eine Ersteinschätzung durch Menschen und eine Dokumentenprüfung vor jeder angenommenen Eskalation."
       },
       "guidance": {
         "title": "Nur Beratung",
@@ -57,8 +57,8 @@
     "disclaimers": {
       "eyebrow": "Geschäftliche Hinweise",
       "freeStart": {
-        "title": "Free Start dient nur der Information",
-        "body": "Free Start bietet Ihnen informative Hinweise, Vorlagen und Werkzeuge für den nächsten Schritt. Es startet weder eine Prüfung durch Menschen noch eine Rechtsberatung oder eine vom Team geführte Erstattung."
+        "title": "Der Kostenlose Start dient nur der Information",
+        "body": "Der Kostenlose Start bietet Ihnen informative Hinweise, Vorlagen und Werkzeuge für den nächsten Schritt. Er startet weder eine Prüfung durch Menschen noch eine Rechtsberatung oder eine vom Team geführte Erstattung."
       },
       "hotline": {
         "title": "Die Hotline bedeutet Weiterleitung und Unterstützung",
@@ -68,12 +68,12 @@
     "categories": {
       "consultation": {
         "title": "Enthaltene Hilfe vor einer vom Team geführten Erstattung",
-        "subtitle": "Was Free Start und die Mitgliedschaft auf dem Startweg umfassen",
+        "subtitle": "Was der Kostenlose Start und die Mitgliedschaft auf dem Startweg umfassen",
         "services": [
           {
-            "title": "Free-Start-Schadenspaket",
-            "description": "Free Start bietet Ihnen die Prüfung der Voraussetzungen, eine Einschätzung, eine Checkliste für Nachweise, einen ersten Beschwerdebrief, einen Zeitplan und die Paketzustellung, ohne eine Prüfung durch Menschen zu starten.",
-            "badge": "FREE START"
+            "title": "Schadenspaket des Kostenlosen Starts",
+            "description": "Der Kostenlose Start bietet Ihnen die Prüfung der Voraussetzungen, eine Einschätzung, eine Checkliste für Nachweise, einen ersten Beschwerdebrief, einen Zeitplan und die Paketzustellung, ohne eine Prüfung durch Menschen zu starten.",
+            "badge": "KOSTENLOSER START"
           },
           {
             "title": "Ersteinschätzung in der Mitgliedschaft",

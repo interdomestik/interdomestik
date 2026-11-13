@@ -81,6 +81,8 @@ describe('FlightDisruptionJourney', () => {
       'noopener noreferrer'
     );
     expect(screen.getByText(/nuk është aktiv.*nuk u krijua asnjë rast/i)).toBeInTheDocument();
-    expect(screen.queryByText(/anëtarësim|Free Start|WhatsApp/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/anëtarësim|Free Start|Fillim\w* falas|WhatsApp/i)
+    ).not.toBeInTheDocument();
   });
 });

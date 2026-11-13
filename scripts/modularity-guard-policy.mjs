@@ -205,6 +205,22 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['sq/coverageMatrix.json', 'qa-localization-i18n-contract'],
   ['sq/documents.json', 'qa-localization-i18n-contract'],
   ['sq/servicesPage.json', 'qa-localization-i18n-contract'],
+  // Exact catalogs touched by the Free Start / success fee / opt-in terminology pass.
+  ['mk/commercialTerms.json', 'free-start-terminology-i18n-contract'],
+  ['mk/coverageMatrix.json', 'free-start-terminology-i18n-contract'],
+  ['mk/freeStartResult.json', 'free-start-terminology-i18n-contract'],
+  ['mk/injuryJourney.json', 'free-start-terminology-i18n-contract'],
+  ['mk/propertyJourney.json', 'free-start-terminology-i18n-contract'],
+  ['mk/servicesPage.json', 'free-start-terminology-i18n-contract'],
+  ['sq/freeStartResult.json', 'free-start-terminology-i18n-contract'],
+  ['sq/injuryJourney.json', 'free-start-terminology-i18n-contract'],
+  ['sq/propertyJourney.json', 'free-start-terminology-i18n-contract'],
+  ['sr/commercialTerms.json', 'free-start-terminology-i18n-contract'],
+  ['sr/coverageMatrix.json', 'free-start-terminology-i18n-contract'],
+  ['sr/freeStartResult.json', 'free-start-terminology-i18n-contract'],
+  ['sr/injuryJourney.json', 'free-start-terminology-i18n-contract'],
+  ['sr/propertyJourney.json', 'free-start-terminology-i18n-contract'],
+  ['sr/servicesPage.json', 'free-start-terminology-i18n-contract'],
 ]);
 /** Registry keys: a bare filename applies to every locale; `<locale>/<file>` to that locale only. */
 export const LOCALE_CATALOG_OWNER_KEYS = Object.freeze([...LOCALE_CATALOG_OWNERS.keys()]);

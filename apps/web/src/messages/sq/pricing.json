@@ -125,9 +125,9 @@
       }
     },
     "successFeeCalculator": {
-      "eyebrow": "Matematika e success fee",
-      "title": "Shihni llogaritjen e success fee para përshkallëzimit",
-      "subtitle": "Përdorni kalkulatorin publik për të vlerësuar tarifën mbi shumën që Interdomestik e rikuperon realisht për ju. Pa rikuperim nuk ka success fee për Interdomestik; shpenzimet gjyqësore dhe kostot e treta mbeten të ndara dhe kërkojnë marrëveshje me shkrim para veprimit ligjor.",
+      "eyebrow": "Matematika e tarifës së suksesit",
+      "title": "Shihni llogaritjen e tarifës së suksesit para përshkallëzimit",
+      "subtitle": "Përdorni kalkulatorin publik për të vlerësuar tarifën mbi shumën që Interdomestik e rikuperon realisht për ju. Pa rikuperim nuk ka tarifë suksesi për Interdomestik; shpenzimet gjyqësore dhe kostot e treta mbeten të ndara dhe kërkojnë marrëveshje me shkrim para veprimit ligjor.",
       "calculator": {
         "title": "Kalkulator publik i tarifës",
         "description": "Tarifa bazë mbetet 15% për Asistenca dhe 12% për Asistenca+ Family, të dyja me minimum EUR 25. Puna me veprim ligjor kërkon pëlqim të veçantë me shkrim dhe një tavan më të lartë.",
@@ -135,14 +135,14 @@
         "amountLabel": "Shuma e rikuperuar (EUR)",
         "breakdown": {
           "recoveryAmount": "Shuma e rikuperuar",
-          "feeRate": "Norma e success fee",
+          "feeRate": "Norma e tarifës së suksesit",
           "minimumFee": "Tarifa minimale",
           "feeAmount": "Tarifa e vlerësuar nëse rikuperohen para",
           "legalActionCap": "Tavani për veprim ligjor pas pëlqimit me shkrim",
           "minimumApplied": "A zbatohet minimumi",
           "minimumAppliedTrue": "Po",
           "minimumAppliedFalse": "Jo",
-          "noRecovery": "Pa rikuperim, pa success fee për Interdomestik"
+          "noRecovery": "Pa rikuperim, pa tarifë suksesi për Interdomestik"
         }
       },
       "plans": {
@@ -164,11 +164,11 @@
       "examples": {
         "standard": {
           "title": "Shembull i planit standard",
-          "description": "Një rikuperim prej EUR 1,000 me Asistenca prodhon një success fee prej EUR 150."
+          "description": "Një rikuperim prej EUR 1,000 me Asistenca prodhon një tarifë suksesi prej EUR 150."
         },
         "family": {
           "title": "Shembull i planit familjar",
-          "description": "Një rikuperim prej EUR 1,000 me Asistenca+ Family prodhon një success fee prej EUR 120."
+          "description": "Një rikuperim prej EUR 1,000 me Asistenca+ Family prodhon një tarifë suksesi prej EUR 120."
         },
         "minimum": {
           "title": "Shembull i tarifës minimale",
