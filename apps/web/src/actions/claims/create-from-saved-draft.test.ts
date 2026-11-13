@@ -37,7 +37,11 @@ vi.mock('next-intl/server', async () => {
     getLocale: () => Promise.reject(new Error('implicit getLocale() is not allowed in actions')),
     getTranslations: ({ locale }: { locale: string }) =>
       Promise.resolve(
-        createTranslator({ locale, messages: catalogs[locale] as never, namespace: 'freeStart' })
+        createTranslator({
+          locale,
+          messages: catalogs[locale] as never,
+          namespace: 'freeStart' as never,
+        })
       ),
   };
 });
