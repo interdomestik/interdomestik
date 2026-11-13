@@ -221,7 +221,7 @@ describe('createClaimFromSavedDraft', () => {
     });
   });
   it('uses the posting page locale when the caller sends none, never the default', async () => {
-    h.runAuthenticated.mockImplementation(async callback =>
+    h.runAuthenticated.mockImplementation(callback =>
       callback({ session, authority, tenantId: 'tenant_ks', requestHeaders: fromPage('/mk') })
     );
     await createClaimFromSavedDraft(input);
