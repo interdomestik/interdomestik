@@ -25,12 +25,17 @@ function sessionDeps(
   overrides: Partial<FreeStartDraftSessionDependencies> = {}
 ): FreeStartDraftSessionDependencies {
   return {
-    getSession: vi
-      .fn()
-      .mockResolvedValue({ user: { emailVerified: true, id: 'owner-1', role: 'member' } }),
+    readSession: vi.fn().mockResolvedValue({
+      ok: true,
+      session: {
+        userId: 'owner-1',
+        email: 'owner@example.test',
+        emailVerified: true,
+        actorRole: 'member',
+        accessTenantId: 'tenant_ks',
+      },
+    }),
     isAllowedHost: vi.fn().mockReturnValue(true),
-    resolveDefaultTenantId: vi.fn().mockReturnValue('tenant_ks'),
-    resolveSessionAccessTenantId: vi.fn().mockReturnValue('tenant_ks'),
     ...overrides,
   };
 }
@@ -50,45 +55,32 @@ function lifecycleDeps(
 }
 
 describe('free-start draft auth/action boundary C07-C12', () => {
-  it('C07 requires exactly one authoritative uncached fresh session', async () => {
-    const getSession = vi.fn().mockResolvedValue(null);
-    expect(await resolveFreeStartDraftSession(headers, sessionDeps({ getSession }))).toEqual({
+  it('C07 delegates to exactly one fresh session reader', async () => {
+    const readSession = vi.fn().mockResolvedValue({ ok: false, code: 'authRequired' });
+    expect(await resolveFreeStartDraftSession(headers, sessionDeps({ readSession }))).toEqual({
       ok: false,
       code: 'authRequired',
     });
-    expect(getSession).toHaveBeenCalledOnce();
-    expect(getSession).toHaveBeenCalledWith({
-      headers,
-      query: { disableCookieCache: true, disableRefresh: true },
+    expect(readSession).toHaveBeenCalledExactlyOnceWith(headers);
+  });
+
+  it('C08 denies a non-neutral host before reading session authority', async () => {
+    const readSession = vi.fn();
+    expect(
+      await resolveFreeStartDraftSession(
+        headers,
+        sessionDeps({ readSession, isAllowedHost: () => false })
+      )
+    ).toEqual({ ok: false, code: 'unavailable' });
+    expect(readSession).not.toHaveBeenCalled();
+  });
+
+  it('C09 fails closed when the adapter denies missing, malformed or revoked authority', async () => {
+    const readSession = vi.fn().mockResolvedValue({ ok: false, code: 'authRequired' });
+    expect(await resolveFreeStartDraftSession(headers, sessionDeps({ readSession }))).toEqual({
+      ok: false,
+      code: 'authRequired',
     });
-  });
-
-  it('C08 denies a non-neutral host before session or tenant lookup', async () => {
-    const getSession = vi.fn();
-    const resolveDefaultTenantId = vi.fn();
-    const result = await resolveFreeStartDraftSession(
-      headers,
-      sessionDeps({ getSession, isAllowedHost: () => false, resolveDefaultTenantId })
-    );
-    expect(result).toEqual({ ok: false, code: 'unavailable' });
-    expect(getSession).not.toHaveBeenCalled();
-    expect(resolveDefaultTenantId).not.toHaveBeenCalled();
-  });
-
-  it('C09 fails closed for missing, divergent, malformed or revoked session authority', async () => {
-    const cases = [
-      sessionDeps({ resolveSessionAccessTenantId: () => null }),
-      sessionDeps({ resolveSessionAccessTenantId: () => 'tenant_mk' }),
-      sessionDeps({ getSession: vi.fn().mockResolvedValue({ user: { id: ' ' } }) }),
-    ];
-    const results = await Promise.all(
-      cases.map(deps => resolveFreeStartDraftSession(headers, deps))
-    );
-    expect(results).toEqual([
-      { ok: false, code: 'authRequired' },
-      { ok: false, code: 'unavailableAccountContext' },
-      { ok: false, code: 'authRequired' },
-    ]);
   });
 
   it('C10 derives actor, access tenant and role only from fresh server state', async () => {

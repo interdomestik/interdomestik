@@ -4,7 +4,6 @@ import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idem
 import { authorizePublicSiteTenant } from '@interdomestik/database';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { ActionError, ActionSuccess } from '@/lib/safe-action';
-import { resolveTenantIdFromSources } from '@/lib/tenant/tenant-hosts';
 import {
   submitFreeStartIntakeSchema,
   type SubmitFreeStartIntakeInput,
@@ -26,34 +25,22 @@ function formatFieldErrors(fieldErrors: Record<string, string[] | undefined>) {
   );
 }
 
-/**
- * Technical reservation partition only. Mirrors the server tenant-request host contract
- * (`x-forwarded-host ?? host ?? ''`; an empty forwarded host does not fall back) and never
- * reads cookie, x-tenant-id, query or client country hints. It grants no access, legal,
- * booking, identity or membership authority.
- *
- * The resolved tenant is projected onto the canonical tenants provisioned by migration0008: tenant_mk stays tenant_mk and every other value, including tenant_ks, tenant_al,
- * pilot-mk or any future alias, shares the tenant_ks technical partition. This keeps the
- * reservation tenant FK satisfiable without probing tenants; it does not imply AL/pilot to KS
- * user, access, legal, country or booking identity.
- */
-function resolveReservationTenantId(requestHeaders: Headers): 'tenant_ks' | 'tenant_mk' {
-  const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
-  const tenantId = resolveTenantIdFromSources({ host }, { productionSensitive: true });
-  return tenantId === 'tenant_mk' ? 'tenant_mk' : 'tenant_ks';
-}
-
 export async function submitFreeStartIntakeCore(params: {
   idempotencyKey?: string;
   requestHeaders: Headers;
   data: SubmitFreeStartIntakeInput;
 }): Promise<SubmitFreeStartIntakeResult> {
   try {
-    // Anonymous public intake: the reservation partition's active tenant, never a payload value. An
-    // inactive partition yields no authority, which the idempotency scope refuses before any effect.
-    const authority = await authorizePublicSiteTenant(
-      resolveReservationTenantId(params.requestHeaders)
-    );
+    // ADR-12 §4: fixed KS technical bookkeeping only, with a null actor and no host input.
+    // Refuse an inactive partition before effects, including requests without a reservation key.
+    const authority = await authorizePublicSiteTenant('tenant_ks');
+    if (!authority) {
+      return {
+        success: false,
+        error: 'Commercial action idempotency requires a tenant scope.',
+        code: 'IDEMPOTENCY_TENANT_SCOPE_REQUIRED',
+      };
+    }
     return await runCommercialActionWithIdempotency({
       action: 'free-start.submit',
       scope: {

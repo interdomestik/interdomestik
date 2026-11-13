@@ -50,7 +50,6 @@ vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
 vi.mock('@/app/api/auth/[...all]/neutral-otp-boundary', () => ({
   evaluateNeutralOtpHost: () => h.neutral,
 }));
-vi.mock('@/lib/tenant/tenant-hosts', () => ({ resolveDefaultPublicTenantId: () => 'tenant_ks' }));
 vi.mock('next-intl/server', () => ({
   setRequestLocale: vi.fn(),
   getTranslations: async () =>
@@ -133,7 +132,8 @@ describe('member portal request context', () => {
     ['member', 'tenant_ks', true, true],
     ['user', 'tenant_ks', true, true],
     ['agent', 'tenant_ks', true, false],
-    ['member', 'tenant_mk', true, false],
+    ['member', 'tenant_mk', true, true],
+    ['member', 'pilot-mk', true, true],
     ['member', 'tenant_ks', false, false],
   ] as const)('limits draft access for %s in %s', async (role, tenantId, neutral, canDraft) => {
     h.neutral = neutral;
@@ -266,7 +266,7 @@ describe('member portal request context', () => {
     expect(next.caseTask).not.toBe(first.caseTask);
     expect(h.cases).toHaveBeenLastCalledWith(own('member-b'));
     expect(h.membership).toHaveBeenLastCalledWith(own('member-b'));
-    expect(next.canDraft).toBe(false);
+    expect(next.canDraft).toBe(true);
   });
 
   it.each([null, { user: { id: 'member-a', role: 'member', tenantId: null } }])(
@@ -285,6 +285,13 @@ describe('member portal request context', () => {
     expect((await getMemberPortalContext('sq')).canDraft).toBe(true);
     h.requests = new Map();
     h.neutral = false;
+    expect((await getMemberPortalContext('sq')).canDraft).toBe(false);
+  });
+
+  it('denies draft eligibility for malformed explicit access claims', async () => {
+    h.session.mockResolvedValueOnce({
+      user: { id: 'member-a', role: 'member', tenantId: 'tenant_mk', accessTenantId: '' },
+    });
     expect((await getMemberPortalContext('sq')).canDraft).toBe(false);
   });
 });
