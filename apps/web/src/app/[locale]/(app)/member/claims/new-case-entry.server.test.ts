@@ -74,11 +74,30 @@ describe('resolveMemberNewCaseEntry', () => {
     expect(h.hasActive).not.toHaveBeenCalled();
   });
 
-  it('falls back to the gated intake when the access check fails', async () => {
+  it('keeps the draft door for an eligible member when the access check fails', async () => {
     h.authorize.mockRejectedValue(new Error('db down'));
+    await expect(entryFor(MEMBER)).resolves.toEqual({
+      href: '/member/claims/new?mode=drafts',
+      kind: 'draft',
+    });
+    h.authorize.mockResolvedValue({ tenant: 'authority' });
+    h.hasActive.mockRejectedValue(new Error('db down'));
+    await expect(entryFor(MEMBER)).resolves.toMatchObject({ kind: 'draft' });
+  });
+
+  it('falls back to the gated intake when the access check fails for anyone else', async () => {
+    h.authorize.mockRejectedValue(new Error('db down'));
+    h.neutral.mockReturnValue(false);
     await expect(entryFor(MEMBER)).resolves.toEqual({
       href: '/member/claims/new',
       kind: 'case',
     });
+  });
+
+  it('treats an unreadable host as not draft-eligible', async () => {
+    h.neutral.mockImplementation(() => {
+      throw new Error('bad host');
+    });
+    await expect(entryFor(MEMBER)).resolves.toMatchObject({ kind: 'membership' });
   });
 });
