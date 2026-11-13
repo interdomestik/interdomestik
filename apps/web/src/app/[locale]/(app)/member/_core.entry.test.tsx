@@ -62,6 +62,13 @@ describe('MemberDashboard layout role handling', () => {
   it('gives the claims filters, phone cards and result count the same gutter', async () => {
     const { getByTestId } = render(await ClaimsPage({ params: Promise.resolve({ locale: 'sq' }) }));
     expect(getByTestId('member-claims-body')).toHaveClass('px-4', 'md:px-0');
+    // Status chips reach 44px on phones from the wrapper, so the guarded filter unit stays unchanged.
+    expect(getByTestId('member-claims-filters-targets')).toHaveClass(
+      '[&_button]:min-h-11',
+      '[&_button]:min-w-11',
+      'sm:[&_button]:min-h-0',
+      'sm:[&_button]:min-w-0'
+    );
   });
 
   it('gives document claim cards and the empty state the same responsive gutter', () => {
