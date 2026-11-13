@@ -198,6 +198,7 @@
         "assignment": {
           "title": "Доделување",
           "assign_claim": "Додели барање",
+          "choose_assignee": "Изберете одговорно лице",
           "save": "Зачувај доделување",
           "current_assignee": "Тековен одговорен",
           "out_of_scope": "{name} (надвор од опсег)",

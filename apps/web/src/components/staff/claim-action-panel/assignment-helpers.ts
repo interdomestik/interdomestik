@@ -16,20 +16,10 @@ export function hasAssignmentOption(
   return assignmentOptions.some(option => option.id === assigneeId);
 }
 
-export function getSelectedAssigneeId(args: {
-  assignmentOptions: ReadonlyArray<AssignmentOption>;
-  assigneeId: string | null;
-  staffId: string;
-}) {
-  if (args.assigneeId !== null) {
-    return args.assigneeId;
-  }
-
-  if (hasAssignmentOption(args.assignmentOptions, args.staffId)) {
-    return args.staffId;
-  }
-
-  return args.assignmentOptions[0]?.id ?? '';
+// An unassigned claim starts on the placeholder: preselecting anyone would contradict the
+// "unassigned" status shown next to the select and invite an accidental save.
+export function getSelectedAssigneeId(assigneeId: string | null): string {
+  return assigneeId ?? '';
 }
 
 export function getOutOfScopeAssigneeOption(args: {
@@ -49,6 +39,28 @@ export function getOutOfScopeAssigneeOption(args: {
     }),
     disabled: true,
   };
+}
+
+export const UNASSIGNED_PLACEHOLDER_OPTION_ID = '';
+
+export function getRenderedAssignmentOptions(args: {
+  assignmentOptions: ReadonlyArray<AssignmentOption>;
+  assigneeId: string | null;
+  currentAssigneeLabel?: string | null;
+  t: TranslateFn;
+}): ReadonlyArray<RenderedAssignmentOption> {
+  if (args.assigneeId === null) {
+    const placeholder: RenderedAssignmentOption = {
+      id: UNASSIGNED_PLACEHOLDER_OPTION_ID,
+      label: args.t('staff_actions.assignment.choose_assignee'),
+      disabled: true,
+    };
+    return [placeholder, ...args.assignmentOptions];
+  }
+  const outOfScopeAssigneeOption = getOutOfScopeAssigneeOption(args);
+  return outOfScopeAssigneeOption
+    ? [outOfScopeAssigneeOption, ...args.assignmentOptions]
+    : args.assignmentOptions;
 }
 
 export function getAssignmentSuccessDescription(args: {

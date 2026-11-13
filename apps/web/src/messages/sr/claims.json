@@ -239,9 +239,10 @@
       },
       "matterAllowance": {
         "title": "Kvota predmeta",
-        "used": "Iskorišćeno ove godine",
-        "remaining": "Preostalo ove godine",
-        "total": "Kvota plana"
+        "used": "Prihvaćeno za naplatu",
+        "remaining": "Još dostupno",
+        "total": "Kvota plana",
+        "hint": "Računaju se samo predmeti koje osoblje prihvati za naplatu tokom tekućeg perioda članstva. Podnošenje predmeta ne troši kvotu."
       }
     },
     "timeline": {

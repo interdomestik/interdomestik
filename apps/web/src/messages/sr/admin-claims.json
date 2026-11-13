@@ -7,7 +7,12 @@
         "label": "Dodeljeno osoblje",
         "placeholder": "Izaberi osoblje",
         "unassigned": "Nedodeljeno",
-        "success_message": "Zahtev je uspešno dodeljen"
+        "success_message": "Zahtev je uspešno dodeljen",
+        "errors": {
+          "target_denied": "Ovaj član osoblja ne može biti dodeljen ovom zahtevu.",
+          "conflict": "Zahtev je u međuvremenu izmenjen. Osvežite stranicu i pokušajte ponovo.",
+          "draft": "Nacrt zahteva ne može se dodeliti dok ga član ne podnese."
+        }
       },
       "sections": {
         "active": "Aktivni",

@@ -228,9 +228,10 @@
       },
       "matterAllowance": {
         "title": "Kontingent an Angelegenheiten",
-        "used": "In diesem Jahr genutzt",
-        "remaining": "In diesem Jahr verbleibend",
-        "total": "Kontingent des Tarifs"
+        "used": "Zur Durchsetzung angenommen",
+        "remaining": "Noch verfügbar",
+        "total": "Kontingent des Tarifs",
+        "hint": "Es zählen nur Angelegenheiten, die Mitarbeitende im laufenden Mitgliedschaftszeitraum zur Durchsetzung annehmen. Das Einreichen einer Angelegenheit verbraucht kein Kontingent."
       }
     },
     "timeline": {

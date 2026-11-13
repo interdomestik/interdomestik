@@ -313,6 +313,7 @@
         "assignment": {
           "title": "Zuweisung",
           "assign_claim": "Fall zuweisen",
+          "choose_assignee": "Zuständige Person auswählen",
           "save": "Zuweisung speichern",
           "current_assignee": "Aktuell zuständig",
           "out_of_scope": "{name} (außerhalb des Bereichs)",

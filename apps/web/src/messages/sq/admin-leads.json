@@ -67,7 +67,11 @@
         "title": "Detajet e Verifikimit",
         "documents": "Dokumentet",
         "timeline": "Historiku i Ngjarjeve",
-        "description": "Dokumentet dhe historiku i verifikimit të pagesës."
+        "description": "Dokumentet dhe historiku i verifikimit të pagesës.",
+        "loading": "Po ngarkohen detajet e verifikimit…",
+        "load_error": "Detajet e verifikimit nuk u ngarkuan.",
+        "not_found_title": "Kërkesa për verifikim nuk u gjet",
+        "not_found_description": "Mund të jetë zgjidhur tashmë ose lidhja nuk është më e vlefshme."
       },
       "labels": {
         "missing_proof": "Mungon Prova",

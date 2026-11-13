@@ -239,9 +239,10 @@
       },
       "matterAllowance": {
         "title": "Matter allowance",
-        "used": "Used this year",
-        "remaining": "Remaining this year",
-        "total": "Plan allowance"
+        "used": "Accepted for recovery",
+        "remaining": "Still available",
+        "total": "Plan allowance",
+        "hint": "Only cases that staff accept for staff-led recovery during your current membership period count. Submitting a case does not use the allowance."
       }
     },
     "timeline": {

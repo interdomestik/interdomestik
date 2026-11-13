@@ -5,7 +5,7 @@ import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent } from '@interdomestik/ui/components/card';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
+import { useCallback, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { isCommittedRefreshPending } from '../../actions/ops-action-outcome';
 import {
@@ -16,6 +16,8 @@ import {
 } from '../../actions/ops-actions';
 import type { NextActionsResult } from '../../components/detail/getNextActions';
 import type { ClaimOpsDetail } from '../../types';
+import { rememberAssignmentFlash, useAssignmentFlashToast } from './assignment-flash';
+import { assignmentErrorToastKey } from './assignment-toast';
 import { NextActionBadges } from './NextActionBadges';
 import { NextActionPrimary } from './NextActionPrimary';
 import { NextActionSecondary, type AssignmentIntent } from './NextActionSecondary';
@@ -76,6 +78,12 @@ export function NextActionsCard({
 
   const t = useTranslations('admin.claims_page.next_actions');
   const tOps = useTranslations('admin.claims_page.ops_center');
+  const tAssignment = useTranslations('admin.claims_page.assignment');
+  const showAssignmentSaved = useCallback(
+    () => toast.success(tAssignment('success_message')),
+    [tAssignment]
+  );
+  useAssignmentFlashToast(claim.id, showAssignmentSaved);
 
   // Logic to hide card if there's truly nothing to show
   if (!primary && secondary.length === 0 && !claim.isStuck && !claim.hasSlaBreach) {
@@ -110,12 +118,15 @@ export function NextActionsCard({
       onAction?.(intent); // Ops tracking
       try {
         const result = await assignOwner(claim.id, staffId, locale);
-        if (!result.success) {
-          toast.error(result.error || t('toast.failed'));
-        } else {
+        if (result.success) {
+          // The localized confirmation is shown after the reload; it is shown now only when the
+          // browser cannot carry it across (blocked session storage).
+          if (!rememberAssignmentFlash(claim.id)) showAssignmentSaved();
           globalThis.location.reload();
-          toast.success(t('toast.completed'));
+          return;
         }
+        const errorKey = assignmentErrorToastKey(result.error);
+        toast.error(errorKey ? tAssignment(errorKey) : t('toast.failed'));
       } catch {
         toast.error(t('toast.unexpected_error'));
       }

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,11 +10,15 @@ import { NextActionsCard } from './NextActionsCard';
 const mocks = vi.hoisted(() => ({
   assignOwner: vi.fn(),
   markSlaAcknowledged: vi.fn(),
+  reload: vi.fn(),
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
   messages: {
     'admin.claims_page.assignment.label': 'Assigned staff',
     'admin.claims_page.assignment.placeholder': 'Select staff',
+    'admin.claims_page.assignment.success_message': 'Claim assigned successfully',
+    'admin.claims_page.assignment.errors.target_denied':
+      'This staff member cannot take this claim.',
     'admin.claims_page.next_actions.actions.assign.label': 'Assign to Me',
     'admin.claims_page.next_actions.actions.reassign.label': 'Reassign',
     'admin.claims_page.next_actions.actions.ack_sla.label': 'Acknowledge Breach',
@@ -98,6 +102,8 @@ beforeAll(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  globalThis.sessionStorage.clear();
+  vi.stubGlobal('location', { href: 'http://localhost/', reload: mocks.reload });
   mocks.assignOwner.mockResolvedValue({ success: true });
   mocks.markSlaAcknowledged.mockResolvedValue({ success: true });
 });
@@ -113,7 +119,9 @@ describe('NextActionsCard staff assignment', () => {
 
     await choose('Assigned staff', SARA_OPTION);
 
-    await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledWith('Action completed'));
+    // The gate proof waits for the full reload; the confirmation is carried across it.
+    await waitFor(() => expect(mocks.reload).toHaveBeenCalledTimes(1));
+    expect(mocks.toastSuccess).not.toHaveBeenCalled();
     expect(mocks.assignOwner).toHaveBeenCalledTimes(1);
     expect(mocks.assignOwner).toHaveBeenCalledWith('claim-123', 'staff-2', 'en');
     expect(mocks.assignOwner).not.toHaveBeenCalledWith('claim-123', 'admin-1', 'en');
@@ -130,8 +138,9 @@ describe('NextActionsCard staff assignment', () => {
 
     settle({ success: false, error: 'Staff member not found or out of scope' });
     await waitFor(() =>
-      expect(mocks.toastError).toHaveBeenCalledWith('Staff member not found or out of scope')
+      expect(mocks.toastError).toHaveBeenCalledWith('This staff member cannot take this claim.')
     );
+    expect(mocks.reload).not.toHaveBeenCalled();
     await waitFor(() => expect(selector).toBeEnabled());
 
     await choose('Assigned staff', SARA_OPTION);
@@ -146,6 +155,35 @@ describe('NextActionsCard staff assignment', () => {
       expect(mocks.toastError).toHaveBeenCalledWith('An unexpected error occurred')
     );
     expect(mocks.toastSuccess).not.toHaveBeenCalled();
+  });
+
+  it('never shows unknown server text and falls back to the localized failure', async () => {
+    mocks.assignOwner.mockResolvedValueOnce({ success: false, error: 'Action failed. Retry.' });
+    renderCard();
+    await choose('Assigned staff', BEN_OPTION);
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Action failed'));
+    expect(mocks.reload).not.toHaveBeenCalled();
+  });
+
+  it('shows the localized confirmation once after the reload of the same claim', async () => {
+    renderCard();
+    await choose('Assigned staff', SARA_OPTION);
+    await waitFor(() => expect(mocks.reload).toHaveBeenCalledTimes(1));
+
+    cleanup(); // the reloaded page mounts the card again
+    renderCard({ claim: makeClaim({ id: 'claim-other' }) });
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(mocks.toastSuccess).not.toHaveBeenCalled();
+
+    cleanup();
+    renderCard();
+    await waitFor(() =>
+      expect(mocks.toastSuccess).toHaveBeenCalledWith('Claim assigned successfully')
+    );
+    cleanup();
+    renderCard();
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(mocks.toastSuccess).toHaveBeenCalledTimes(1);
   });
 
   it('keeps SLA acknowledgement primary and offers secondary staff selection', async () => {

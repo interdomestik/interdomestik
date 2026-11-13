@@ -67,7 +67,11 @@
         "title": "Details der Verifizierung",
         "documents": "Dokumente",
         "timeline": "Ereignisverlauf",
-        "description": "Dokumente und Verlauf der Zahlungsprüfung."
+        "description": "Dokumente und Verlauf der Zahlungsprüfung.",
+        "loading": "Verifizierungsdetails werden geladen…",
+        "load_error": "Die Verifizierungsdetails konnten nicht geladen werden.",
+        "not_found_title": "Verifizierungsanfrage nicht gefunden",
+        "not_found_description": "Sie wurde möglicherweise bereits erledigt oder der Link ist nicht mehr gültig."
       },
       "labels": {
         "missing_proof": "Nachweis fehlt",
