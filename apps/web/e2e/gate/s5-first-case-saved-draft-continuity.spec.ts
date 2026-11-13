@@ -10,6 +10,7 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import {
   S3_JOURNEY_INCIDENT_DATE,
+  s3JourneyDisplayDate,
   expectJourneyClean,
 } from './member-staff-evidence-journey-cleanup.fixture';
 import {
@@ -127,7 +128,7 @@ test.describe('S5 first-case saved-draft continuity', () => {
         for (const fact of [
           'Vehicle damage',
           'Collision damage',
-          S3_JOURNEY_INCIDENT_DATE,
+          s3JourneyDisplayDate('en'),
           journey.counterparty,
           'Repair or replacement costs',
           journey.summary,

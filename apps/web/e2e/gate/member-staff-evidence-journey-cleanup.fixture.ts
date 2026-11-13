@@ -25,6 +25,12 @@ import { expect } from '../fixtures/auth.fixture';
 export type S3JourneyIdentity = { counterparty: string; summary: string };
 export const S3_JOURNEY_INCIDENT_DATE = '2026-09-16';
 
+/** The journey incident date in the pilot date format of a route locale (qa3 #70). */
+export function s3JourneyDisplayDate(locale: string): string {
+  const [year, month, day] = S3_JOURNEY_INCIDENT_DATE.split('-');
+  return locale === 'en' ? `${month}/${day}/${year}` : `${day}.${month}.${year}`;
+}
+
 type FreeStartCatalog = (typeof en)['freeStart'];
 const CATALOGS: ReadonlyArray<readonly [string, FreeStartCatalog]> = [
   ['sq', sq.freeStart],
@@ -35,8 +41,7 @@ const CATALOGS: ReadonlyArray<readonly [string, FreeStartCatalog]> = [
 ];
 
 function localizedDescription(locale: string, text: FreeStartCatalog, journey: S3JourneyIdentity) {
-  const [year, month, day] = S3_JOURNEY_INCIDENT_DATE.split('-');
-  const date = locale === 'en' ? `${month}/${day}/${year}` : `${day}.${month}.${year}`;
+  const date = s3JourneyDisplayDate(locale);
   const labels = text.preview;
   return [
     `${labels.categoryLabel}: ${text.categories.vehicle.title}`,
