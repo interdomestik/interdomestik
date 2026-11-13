@@ -100,7 +100,7 @@ describe('ClaimsFilters', () => {
     render(<ClaimsFilters />);
 
     for (const chip of screen.getAllByRole('button')) {
-      expect(chip).toHaveClass('min-h-11', 'sm:min-h-0');
+      expect(chip).toHaveClass('min-h-11', 'min-w-11', 'sm:min-h-0', 'sm:min-w-0');
     }
   });
 

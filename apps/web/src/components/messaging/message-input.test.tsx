@@ -169,6 +169,19 @@ describe('MessageInput', () => {
     ).toBeInTheDocument();
   });
 
+  it('toggles the internal note exactly once from the label or the checkbox', () => {
+    render(<MessageInput onSendMessage={vi.fn()} allowInternal isAgent />);
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Internal note (only visible to staff)',
+    });
+
+    fireEvent.click(screen.getByText('Internal note (only visible to staff)'));
+    expect(checkbox).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(checkbox);
+    expect(checkbox).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByTestId('send-message-button')).toBeInTheDocument();
+  });
+
   it('leaves the audience notice to the panel when there is no internal toggle', () => {
     render(<MessageInput onSendMessage={vi.fn()} isAgent />);
 
