@@ -75,6 +75,16 @@ const STRUCTURED_OWNERS = [
 ];
 // A constant keeps owner/path pairs such as auth.json clear of secret-scanner key heuristics.
 const PARITY_OWNER = 'i18n-keys-parity-contract';
+const FREE_START_JOURNEY_CATALOGS = ['freeStartResult', 'injuryJourney', 'propertyJourney'];
+const FREE_START_PRICING_CATALOGS = ['commercialTerms', 'coverageMatrix', 'servicesPage'];
+
+/** `<locale>/<name>.json` registry entries for an owner; exact files only, never a whole locale. */
+function exactLocaleCatalogOwners(owner, namesByLocale) {
+  return Object.entries(namesByLocale).flatMap(([locale, names]) =>
+    names.map(name => [`${locale}/${name}.json`, owner])
+  );
+}
+
 const LOCALE_CATALOG_OWNERS = new Map([
   ['admin-users.json', 's7-admin-user-read-recovery-i18n-contract'],
   ['admin-claims.json', 's7-admin-claims-read-consistency-i18n-contract'],
@@ -205,6 +215,12 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['sq/coverageMatrix.json', 'qa-localization-i18n-contract'],
   ['sq/documents.json', 'qa-localization-i18n-contract'],
   ['sq/servicesPage.json', 'qa-localization-i18n-contract'],
+  // Exact catalogs touched by the Free Start / success fee / opt-in terminology pass.
+  ...exactLocaleCatalogOwners('free-start-terminology-i18n-contract', {
+    mk: [...FREE_START_JOURNEY_CATALOGS, ...FREE_START_PRICING_CATALOGS],
+    sq: FREE_START_JOURNEY_CATALOGS,
+    sr: [...FREE_START_JOURNEY_CATALOGS, ...FREE_START_PRICING_CATALOGS],
+  }),
 ]);
 /** Registry keys: a bare filename applies to every locale; `<locale>/<file>` to that locale only. */
 export const LOCALE_CATALOG_OWNER_KEYS = Object.freeze([...LOCALE_CATALOG_OWNERS.keys()]);
