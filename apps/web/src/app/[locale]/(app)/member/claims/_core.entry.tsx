@@ -51,10 +51,12 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
         </Button>
       </div>
 
-      {/* Filters */}
-      <ClaimsFilters />
+      {/* Filters, phone cards and the result count share the title's 16px phone gutter. */}
+      <div className="space-y-6 px-4 md:px-0" data-testid="member-claims-body">
+        <ClaimsFilters />
 
-      <MemberClaimsTable />
+        <MemberClaimsTable />
+      </div>
     </div>
   );
 }

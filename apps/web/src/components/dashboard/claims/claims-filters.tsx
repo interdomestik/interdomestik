@@ -73,7 +73,7 @@ export function ClaimsFilters() {
               data-testid={`member-claims-status-filter-${option.value}`}
               className={cn(
                 badgeVariants({ variant: isActive ? 'default' : 'outline' }),
-                'cursor-pointer hover:bg-primary/10 transition-colors disabled:pointer-events-none disabled:cursor-default disabled:opacity-70'
+                'min-h-11 cursor-pointer hover:bg-primary/10 transition-colors disabled:pointer-events-none disabled:cursor-default disabled:opacity-70 sm:min-h-0'
               )}
               onClick={() => handleStatusChange(option.value)}
             >

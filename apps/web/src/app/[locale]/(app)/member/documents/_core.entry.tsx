@@ -78,7 +78,7 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
       </div>
 
       {userClaims.length === 0 ? (
-        <Card data-testid="member-documents-empty-state">
+        <Card className="mx-4 md:mx-0" data-testid="member-documents-empty-state">
           <CardContent className="py-10 text-center space-y-4">
             <p className="text-muted-foreground">{tDocs('empty')}</p>
             <Button
@@ -92,7 +92,7 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 px-4 md:px-0">
           {userClaims.map(claim => {
             const docs = documentsByClaim[claim.id] ?? [];
             return (
@@ -110,7 +110,7 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
                       trigger={
                         <Button
                           variant="outline"
-                          className="h-auto min-h-9 max-w-full whitespace-normal"
+                          className="h-auto min-h-11 max-w-full whitespace-normal sm:min-h-9"
                           size="sm"
                           data-testid={`member-documents-upload-${claim.id}`}
                         >
@@ -122,7 +122,7 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
                       asChild
                       variant="outline"
                       size="sm"
-                      className="h-auto min-h-9 max-w-full whitespace-normal"
+                      className="h-auto min-h-11 max-w-full whitespace-normal sm:min-h-9"
                     >
                       <Link href={`/member/claims/${claim.id}`}>{tDocs('viewClaim')}</Link>
                     </Button>

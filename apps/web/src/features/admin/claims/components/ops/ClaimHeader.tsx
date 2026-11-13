@@ -24,6 +24,9 @@ import { copyText } from './clipboard';
 import { buildAdminUserProfileHref } from './claim-header-links';
 import { formatClaimCreatedDate } from './claim-header-date';
 
+// 44px copy targets on phones; the compact 24px icon buttons return from `sm` up.
+const COPY_TARGET = 'inline-flex size-11 items-center justify-center sm:inline-block sm:size-auto';
+
 interface ClaimHeaderProps {
   claim: ClaimOpsDetail;
   nextActions: NextActionsResult;
@@ -87,7 +90,10 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
   return (
     <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b pb-4 pt-2 -mx-4 px-4 sm:-mx-8 sm:px-8 mb-6 transition-all">
       <div className="flex flex-col gap-4">
-        <nav className="flex items-center gap-1.5 text-sm" aria-label={tHeader('breadcrumb')}>
+        <nav
+          className="flex flex-wrap items-center gap-1.5 text-sm"
+          aria-label={tHeader('breadcrumb')}
+        >
           <Link
             href={createBackUrl()}
             className="text-muted-foreground hover:text-foreground transition-colors"
@@ -119,7 +125,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
               <button
                 type="button"
                 onClick={() => copyToClipboard(resolverUrl, tHeader('claim_number_link'))}
-                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
+                className={`${COPY_TARGET} p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600`}
                 title={tHeader('copy_traceable_link')}
                 aria-label={tHeader('copy_traceable_link')}
               >
@@ -128,7 +134,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
               <button
                 type="button"
                 onClick={() => copyToClipboard(canonicalUrl, tHeader('canonical_url'))}
-                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
+                className={`${COPY_TARGET} p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600`}
                 title={tHeader('copy_canonical_link')}
                 aria-label={tHeader('copy_canonical_link')}
               >
@@ -151,7 +157,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                 <button
                   type="button"
                   onClick={() => copyToClipboard(claim.memberNumber!, tHeader('member_number'))}
-                  className="p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700"
+                  className={`${COPY_TARGET} p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700`}
                   title={tPage('copy_member_number')}
                   aria-label={tPage('copy_member_number')}
                 >
@@ -165,7 +171,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                       tHeader('member_link')
                     )
                   }
-                  className="p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700"
+                  className={`${COPY_TARGET} p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700`}
                   title={tPage('copy_member_link')}
                   aria-label={tPage('copy_member_link')}
                 >

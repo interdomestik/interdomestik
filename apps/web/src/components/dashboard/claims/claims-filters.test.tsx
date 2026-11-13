@@ -96,6 +96,14 @@ describe('ClaimsFilters', () => {
     expect(badges.length).toBe(9);
   });
 
+  it('gives every status chip a 44px phone target and keeps the compact desktop chip', () => {
+    render(<ClaimsFilters />);
+
+    for (const chip of screen.getAllByRole('button')) {
+      expect(chip).toHaveClass('min-h-11', 'sm:min-h-0');
+    }
+  });
+
   it('shows pending feedback and updates the url when search changes', () => {
     render(<ClaimsFilters />);
 

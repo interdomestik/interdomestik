@@ -59,6 +59,20 @@ describe('MemberDashboard layout role handling', () => {
     const source = readFileSync(resolve(import.meta.dirname, 'documents/_core.entry.tsx'), 'utf8');
     expect(source).toMatch(/<div className="px-4 md:px-0">\s*<h2/u);
   });
+  it('gives the claims filters, phone cards and result count the same gutter', async () => {
+    const { getByTestId } = render(await ClaimsPage({ params: Promise.resolve({ locale: 'sq' }) }));
+    expect(getByTestId('member-claims-body')).toHaveClass('px-4', 'md:px-0');
+  });
+
+  it('gives document claim cards and the empty state the same responsive gutter', () => {
+    const source = readFileSync(resolve(import.meta.dirname, 'documents/_core.entry.tsx'), 'utf8');
+    expect(source).toMatch(/<div className="space-y-4 px-4 md:px-0">\s*\{userClaims\.map/u);
+    expect(source).toContain(
+      '<Card className="mx-4 md:mx-0" data-testid="member-documents-empty-state">'
+    );
+    expect(source).toContain('min-h-11 max-w-full whitespace-normal sm:min-h-9');
+  });
+
   it.each(['en', 'sq', 'mk', 'sr', 'de'])('loads claims in %s', async locale => {
     await ClaimsPage({ params: Promise.resolve({ locale }) });
 
