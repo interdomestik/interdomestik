@@ -39,13 +39,13 @@
       "pageOf": "Strana {page} od {total}"
     },
     "fileTypes": {
-      "pdf": "PDF",
-      "word": "Word",
-      "excel": "Excel",
+      "pdf": "PDF dokument",
+      "word": "Word dokument",
+      "excel": "Excel tabela",
       "image": "Slika",
-      "audio": "Audio",
-      "video": "Video",
-      "email": "Imejl",
+      "audio": "Audio zapis",
+      "video": "Video zapis",
+      "email": "Imejl poruka",
       "file": "Datoteka"
     },
     "notFound": {

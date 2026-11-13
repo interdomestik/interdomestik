@@ -39,13 +39,13 @@
       "pageOf": "Страна {page} од {total}"
     },
     "fileTypes": {
-      "pdf": "PDF",
-      "word": "Word",
-      "excel": "Excel",
+      "pdf": "PDF документ",
+      "word": "Word документ",
+      "excel": "Excel табела",
       "image": "Слика",
-      "audio": "Аудио",
-      "video": "Видео",
-      "email": "Е-пошта",
+      "audio": "Аудио датотека",
+      "video": "Видео датотека",
+      "email": "Е-пошта порака",
       "file": "Датотека"
     },
     "notFound": {

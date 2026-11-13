@@ -41,13 +41,13 @@
       "pageOf": "Faqja {page} nga {total}"
     },
     "fileTypes": {
-      "pdf": "PDF",
-      "word": "Word",
-      "excel": "Excel",
+      "pdf": "Dokument PDF",
+      "word": "Dokument Word",
+      "excel": "Fletë Excel",
       "image": "Imazh",
-      "audio": "Audio",
-      "video": "Video",
-      "email": "Email",
+      "audio": "Skedar zanor",
+      "video": "Skedar video",
+      "email": "Mesazh email-i",
       "file": "Skedar"
     },
     "notFound": {

@@ -41,13 +41,13 @@
       "pageOf": "Page {page} of {total}"
     },
     "fileTypes": {
-      "pdf": "PDF",
-      "word": "Word",
-      "excel": "Excel",
+      "pdf": "PDF document",
+      "word": "Word document",
+      "excel": "Excel spreadsheet",
       "image": "Image",
-      "audio": "Audio",
-      "video": "Video",
-      "email": "Email",
+      "audio": "Audio file",
+      "video": "Video file",
+      "email": "Email message",
       "file": "File"
     },
     "notFound": {
