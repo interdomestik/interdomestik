@@ -1,12 +1,12 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DormantPreview } from './dormant-preview';
-const h = vi.hoisted(() => ({ lookup: vi.fn(), submit: vi.fn() }));
+const h = vi.hoisted(() => ({ locale: 'en', lookup: vi.fn(), submit: vi.fn() }));
 vi.mock('@/actions/claims/create-from-saved-draft', () => ({
   createClaimFromSavedDraft: h.submit,
   lookupSavedDraftClaim: h.lookup,
 }));
-vi.mock('next-intl', () => ({ useLocale: () => 'en' }));
+vi.mock('next-intl', () => ({ useLocale: () => h.locale }));
 const idA = '63ffc31e-8c64-4758-995a-c57f40de7568';
 const idB = 'a1ff9e4e-63f9-4fd3-9d79-965f7e5e401a';
 const claimA = { id: 'claim-a', number: 'CLM-KS-2026-000001' };
@@ -70,7 +70,25 @@ function deferred<T>() {
 }
 
 describe('saved draft existing claim re-entry', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    h.locale = 'en';
+  });
+
+  it.each([
+    ['en', '07/20/2026'],
+    ['sq', '20.07.2026'],
+    ['sr', '20.07.2026'],
+    ['mk', '20.07.2026'],
+    ['de', '20.07.2026'],
+  ])('shows the incident date in the %s pilot format, never ISO (qa3 #70)', (locale, shown) => {
+    h.locale = locale;
+    h.lookup.mockReturnValue(new Promise(() => undefined));
+    render(<DormantPreview {...baseProps} />);
+    const facts = screen.getByTestId('claim-draft-dormant-preview').querySelectorAll('dd');
+    expect(facts[2]).toHaveTextContent(shown);
+    expect(screen.queryByText('2026-07-20')).toBeNull();
+  });
 
   it('keeps eligible submit busy while checking, then restores the existing claim link', async () => {
     const lookup = deferred<{ claim: typeof claimA | null }>();

@@ -69,7 +69,8 @@ export async function assertSmokeSavedWithoutClaim(
   const facts = intake.getByTestId('claim-draft-dormant-preview').locator('dd');
   await expect(facts).toHaveCount(6);
   await Promise.all([0, 1, 4].map(index => expect(facts.nth(index)).not.toBeEmpty()));
-  await expect(facts.nth(2)).toHaveText('2026-07-20');
+  // The preview shows the pilot date format (qa3 #70): en 07/20/2026, every other locale 20.07.2026.
+  await expect(facts.nth(2)).toHaveText(/^(07\/20\/2026|20\.07\.2026)$/);
   await expect(facts.nth(3)).toHaveText('Test Company');
   await expect(facts.nth(5)).toHaveText(summary);
   await expect(intake.getByTestId('account-draft-status')).toHaveAttribute('data-state', 'saved');

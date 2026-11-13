@@ -27,7 +27,8 @@ async function expectPreservedFacts(intake: ReturnType<typeof visibleIntake>) {
   const reviewedFacts = intake.getByTestId('claim-draft-dormant-preview').locator('dd');
   await expect(reviewedFacts).toHaveCount(6);
   for (const index of [0, 1, 4]) await expect(reviewedFacts.nth(index)).not.toBeEmpty();
-  await expect(reviewedFacts.nth(2)).toHaveText(facts.date);
+  // The preview shows the pilot date format (qa3 #70): en 07/20/2026, every other locale 20.07.2026.
+  await expect(reviewedFacts.nth(2)).toHaveText(/^(07\/20\/2026|20\.07\.2026)$/);
   await expect(reviewedFacts.nth(3)).toHaveText(facts.counterparty);
   await expect(reviewedFacts.nth(5)).toHaveText(facts.summary);
 }

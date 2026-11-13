@@ -260,7 +260,7 @@ describe('ClaimDraftIntake', () => {
     ).toEqual([
       'categories.vehicle.title',
       'issues.vehicle.collision',
-      '2026-07-01',
+      '07/01/2026',
       'Insurer',
       'outcomes.repair',
       'Saved facts.',
