@@ -236,7 +236,7 @@ describe('subscription confirmation dispatch', () => {
         { delivery: TEST_PADDLE_DELIVERY, eventType: 'subscription.created', data },
         { logAuditEvent, sendThankYouLetter }
       )
-    ).rejects.toThrow('Invalid Paddle subscription data: scheduled_change (invalid_type)');
+    ).rejects.toThrow('Invalid Paddle payload (subscription): scheduled_change (invalid_type)');
     expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(sendThankYouLetter).not.toHaveBeenCalled();
   });
@@ -250,7 +250,7 @@ describe('subscription confirmation dispatch', () => {
         { delivery: TEST_PADDLE_DELIVERY, data: { id: 'txn_1' } },
         { logAuditEvent }
       )
-    ).rejects.toThrow('Invalid Paddle transaction data: status (invalid_type)');
+    ).rejects.toThrow('Invalid Paddle payload (transaction): status (invalid_type)');
     expect(hoisted.tx.update).not.toHaveBeenCalled();
     expect(logAuditEvent).not.toHaveBeenCalled();
   });

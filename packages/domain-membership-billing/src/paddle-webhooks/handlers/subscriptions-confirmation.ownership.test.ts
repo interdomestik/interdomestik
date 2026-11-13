@@ -94,7 +94,7 @@ describe('subscription confirmation dispatch', () => {
         },
         { logAuditEvent, sendThankYouLetter }
       )
-    ).rejects.toThrow('Invalid Paddle subscription data: status (invalid_type)');
+    ).rejects.toThrow('Invalid Paddle payload (subscription): status (invalid_type)');
 
     expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(logAuditEvent).not.toHaveBeenCalled();

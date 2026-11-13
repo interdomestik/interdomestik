@@ -34,11 +34,15 @@ vi.mock('@interdomestik/database', () => ({
     eventId: 'webhook_events.event_id',
     payload: 'webhook_events.payload',
     processingResult: 'webhook_events.processing_result',
+    error: 'webhook_events.error',
   },
 }));
 
 import { PaddleEventOrderingError } from '../errors';
-import { lockSubscriptionEventOrder } from './subscription-event-order';
+import {
+  decideInitialSubscriptionEventOrder,
+  lockSubscriptionEventOrder,
+} from './subscription-event-order';
 
 type LockedRow = {
   status: string;
@@ -232,6 +236,17 @@ describe('lockSubscriptionEventOrder', () => {
       expect(where).toContain('"sub_1"');
       expect(where).toContain('is distinct from ?');
       expect(where).toContain('"evt_incoming"');
+    });
+
+    it('never counts a schema-rejected receipt as ordering evidence for the first snapshot', async () => {
+      const { tx, calls } = scriptedTx({});
+
+      await expect(decideInitialSubscriptionEventOrder(tx, LOCK_ARGS)).resolves.toBe('apply');
+      const where = fragmentText(calls.ledgerWhere[0]);
+      expect(where).toContain("not (? = 'retryable_error' and starts_with(coalesce(?, ''), ?))");
+      expect(where).toContain(
+        '"webhook_events.processing_result","webhook_events.error","Invalid Paddle payload ("'
+      );
     });
 
     it('does not let an older event overwrite a newer pre-deployment snapshot', async () => {

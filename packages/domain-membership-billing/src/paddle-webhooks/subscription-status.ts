@@ -1,10 +1,5 @@
 export type InternalSubscriptionStatus =
-  | 'active'
-  | 'past_due'
-  | 'paused'
-  | 'canceled'
-  | 'trialing'
-  | 'expired';
+  'active' | 'past_due' | 'paused' | 'canceled' | 'trialing' | 'expired';
 
 export function mapPaddleStatus(status: string): InternalSubscriptionStatus {
   switch (status) {
