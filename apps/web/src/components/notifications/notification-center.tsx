@@ -2,7 +2,7 @@
 
 import { getNotifications, markAllAsRead, markAsRead } from '@/actions/notifications';
 import { DropdownMenu, DropdownMenuContent } from '@interdomestik/ui';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import {
   startTransition,
   useCallback,
@@ -53,7 +53,6 @@ interface LoadingState {
 export function NotificationCenter({ subscriberId, fetchOnMount = true }: NotificationCenterProps) {
   const t = useTranslations('notifications');
   const tCommon = useTranslations('common');
-  const locale = useLocale();
   const [snapshot, setSnapshot] = useState<NotificationSnapshot>({
     subscriberId,
     epoch: 0,
@@ -120,7 +119,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
       let failed = false;
       setLoadingState({ subscriberId: requestSubscriberId, active: true });
       try {
-        const data = (await getNotifications(20, locale)) as unknown as Notification[];
+        const data = (await getNotifications()) as unknown as Notification[];
         if (
           activeSubscriberRef.current === requestSubscriberId &&
           subscriberEpochRef.current === requestSubscriberEpoch &&
@@ -150,7 +149,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
         }
       }
     },
-    [locale, subscriberId]
+    [subscriberId]
   );
 
   useEffect(() => {
