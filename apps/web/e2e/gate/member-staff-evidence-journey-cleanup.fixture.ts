@@ -15,13 +15,45 @@ import {
   notifications,
 } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
+import de from '../../src/messages/de/freeStart.json';
+import en from '../../src/messages/en/freeStart.json';
+import mk from '../../src/messages/mk/freeStart.json';
+import sq from '../../src/messages/sq/freeStart.json';
+import sr from '../../src/messages/sr/freeStart.json';
 import { expect } from '../fixtures/auth.fixture';
 
 export type S3JourneyIdentity = { counterparty: string; summary: string };
 export const S3_JOURNEY_INCIDENT_DATE = '2026-09-16';
 
-export function exactClaimDescription(journey: S3JourneyIdentity): string {
+type FreeStartCatalog = (typeof en)['freeStart'];
+const CATALOGS: ReadonlyArray<readonly [string, FreeStartCatalog]> = [
+  ['sq', sq.freeStart],
+  ['en', en.freeStart],
+  ['sr', sr.freeStart],
+  ['mk', mk.freeStart],
+  ['de', de.freeStart],
+];
+
+function localizedDescription(locale: string, text: FreeStartCatalog, journey: S3JourneyIdentity) {
+  const [year, month, day] = S3_JOURNEY_INCIDENT_DATE.split('-');
+  const date = locale === 'en' ? `${month}/${day}/${year}` : `${day}.${month}.${year}`;
+  const labels = text.preview;
   return [
+    `${labels.categoryLabel}: ${text.categories.vehicle.title}`,
+    `${labels.issueLabel}: ${text.issues.vehicle.collision}`,
+    `${labels.dateLabel}: ${date}`,
+    `${labels.counterpartyLabel}: ${journey.counterparty}`,
+    `${labels.outcomeLabel}: ${text.outcomes.repair}`,
+    `${labels.summaryLabel}: ${journey.summary}`,
+  ].join('\n');
+}
+
+/**
+ * Exact stored descriptions of a journey claim: the text follows the submit locale, and the
+ * legacy English form keeps residue from older runs cleanable.
+ */
+export function exactClaimDescriptions(journey: S3JourneyIdentity): string[] {
+  const legacy = [
     'Category: Vehicle',
     'Issue: Collision',
     `Incident date: ${S3_JOURNEY_INCIDENT_DATE}`,
@@ -29,6 +61,7 @@ export function exactClaimDescription(journey: S3JourneyIdentity): string {
     'Desired outcome: Repair',
     `Summary: ${journey.summary}`,
   ].join('\n');
+  return [legacy, ...CATALOGS.map(([locale, text]) => localizedDescription(locale, text, journey))];
 }
 
 async function claimIdsForJourney(
@@ -38,7 +71,7 @@ async function claimIdsForJourney(
   const matches = await db.query.claims.findMany({
     where: and(
       eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-      eq(claims.description, exactClaimDescription(journey))
+      inArray(claims.description, exactClaimDescriptions(journey))
     ),
     columns: { id: true },
   });

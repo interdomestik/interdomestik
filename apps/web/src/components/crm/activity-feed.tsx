@@ -1,9 +1,10 @@
 'use client';
 
 import { Badge } from '@interdomestik/ui/components/badge';
-import { formatDistanceToNow } from 'date-fns';
 import { Calendar, Mail, MessageSquare, Phone, StickyNote } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+
+import { formatRelativeTime } from '@/lib/utils/relative-time';
 
 type Activity = {
   id: string;
@@ -21,11 +22,15 @@ interface ActivityFeedProps {
   readonly activities: Activity[];
 }
 
-function getRelativeOccurredAt(occurredAt: Date | string | null, unknownTimeLabel: string): string {
+function getRelativeOccurredAt(
+  occurredAt: Date | string | null,
+  unknownTimeLabel: string,
+  locale: string
+): string {
   if (!occurredAt) return unknownTimeLabel;
   const parsed = occurredAt instanceof Date ? occurredAt : new Date(occurredAt);
   if (Number.isNaN(parsed.getTime())) return unknownTimeLabel;
-  return formatDistanceToNow(parsed, { addSuffix: true });
+  return formatRelativeTime(parsed, new Date(), locale);
 }
 
 const getActivityIcon = (type: string) => {
@@ -59,6 +64,7 @@ const getActivityColor = (type: string) => {
 };
 
 export function ActivityFeed({ activities }: ActivityFeedProps) {
+  const locale = useLocale();
   const t = useTranslations('agent.activity_feed');
 
   if (!activities || activities.length === 0) {
@@ -101,7 +107,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
                   </Badge>
                 </div>
                 <time className="text-xs text-muted-foreground">
-                  {getRelativeOccurredAt(activity.occurredAt, t('unknown_time'))}
+                  {getRelativeOccurredAt(activity.occurredAt, t('unknown_time'), locale)}
                 </time>
               </div>
 

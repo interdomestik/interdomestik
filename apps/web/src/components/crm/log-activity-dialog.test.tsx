@@ -50,6 +50,13 @@ describe('LogActivityDialog', () => {
     );
   });
 
+  it('names the corner close button with the localized label', async () => {
+    render(<LogActivityDialog entityId="member-1" />);
+    fireEvent.click(screen.getByRole('button', { name: 't:trigger' }));
+    expect(await screen.findByRole('button', { name: 't:close' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+  });
+
   it('shows the localized error instead of the raw server text and keeps the dialog open', async () => {
     hoisted.logActivity.mockResolvedValue({ success: false, error: 'Member access denied' });
     await submitActivity();

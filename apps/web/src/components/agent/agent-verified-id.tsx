@@ -61,19 +61,20 @@ const DASHBOARD_MONTHS: Record<string, string[]> = {
     'nëntor',
     'dhjetor',
   ],
+  // Serbian copy is Latin script.
   sr: [
-    'јануар',
-    'фебруар',
-    'март',
-    'април',
-    'мај',
-    'јун',
-    'јул',
-    'август',
-    'септембар',
-    'октобар',
-    'новембар',
-    'децембар',
+    'januar',
+    'februar',
+    'mart',
+    'april',
+    'maj',
+    'jun',
+    'jul',
+    'avgust',
+    'septembar',
+    'oktobar',
+    'novembar',
+    'decembar',
   ],
   de: [
     'Januar',
@@ -98,7 +99,7 @@ function getDateLocale(locale: string): string {
     case 'mk':
       return 'mk-MK';
     case 'sr':
-      return 'sr-RS';
+      return 'sr-Latn-RS';
     default:
       return locale;
   }

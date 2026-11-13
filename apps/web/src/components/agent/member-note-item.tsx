@@ -8,9 +8,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@interdomestik/ui';
-import { format, formatDistanceToNow } from 'date-fns';
 import { Edit2, MoreVertical, Pin, PinOff, Trash2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+
+import { formatPilotDateTime } from '@/lib/utils/date';
+import { formatRelativeTime } from '@/lib/utils/relative-time';
 
 import { noteTypeColors, noteTypeIcons } from './member-notes-constants';
 
@@ -22,6 +24,7 @@ interface MemberNoteItemProps {
 }
 
 export function MemberNoteItem({ note, onEdit, onDelete, onTogglePin }: MemberNoteItemProps) {
+  const locale = useLocale();
   const t = useTranslations('agent.notes');
 
   return (
@@ -77,8 +80,8 @@ export function MemberNoteItem({ note, onEdit, onDelete, onTogglePin }: MemberNo
       <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
         <span>{note.authorName}</span>
         <span>•</span>
-        <span title={format(new Date(note.createdAt), 'PPpp')}>
-          {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true })}
+        <span title={formatPilotDateTime(note.createdAt, locale, '')}>
+          {formatRelativeTime(new Date(note.createdAt), new Date(), locale)}
         </span>
       </div>
     </div>
