@@ -1,10 +1,10 @@
 'use client';
 
-import { formatDistanceToNow } from 'date-fns';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { OpsTimeline } from '@/components/ops';
 import type { TimelineEntry } from '@/features/claims/timeline/types';
+import { formatPilotDateTime } from '@/lib/utils/date';
 
 interface ClaimOpsTimelineProps {
   entries: TimelineEntry[];
@@ -19,6 +19,7 @@ export function ClaimOpsTimeline({
   emptyLabel,
   showNotes = false,
 }: ClaimOpsTimelineProps) {
+  const locale = useLocale();
   const t = useTranslations('claims.timeline');
   const tStatus = useTranslations('claims.status');
 
@@ -39,7 +40,7 @@ export function ClaimOpsTimeline({
       title={title}
       events={events}
       emptyLabel={emptyLabel}
-      formatTimestamp={value => formatDistanceToNow(new Date(value), { addSuffix: true })}
+      formatTimestamp={value => formatPilotDateTime(value, locale, value)}
     />
   );
 }

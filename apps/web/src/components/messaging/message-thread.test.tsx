@@ -201,10 +201,9 @@ describe('MessageThread', () => {
     expect(timeElements.length).toBeGreaterThan(0);
   });
 
-  it('renders deterministic UTC date headers', () => {
+  it('renders pilot-zone date headers in the locale format', () => {
     renderThread({ messages: mockMessages, currentUser: memberViewer });
-
-    expect(screen.getByText('15/01/2024 UTC')).toBeInTheDocument();
+    expect(screen.getByText('01/15/2024')).toBeInTheDocument();
   });
 
   it('shows read indicator for own read messages', () => {

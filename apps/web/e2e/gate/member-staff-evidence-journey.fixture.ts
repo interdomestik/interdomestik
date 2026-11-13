@@ -15,7 +15,7 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import {
   S3_JOURNEY_INCIDENT_DATE,
-  exactClaimDescription,
+  exactClaimDescriptions,
   type S3JourneyIdentity,
 } from './member-staff-evidence-journey-cleanup.fixture';
 
@@ -216,7 +216,7 @@ export async function submitExactDraft(
         where: and(
           eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId),
           eq(claims.userId, draft.ownerUserId),
-          eq(claims.description, exactClaimDescription(journey))
+          inArray(claims.description, exactClaimDescriptions(journey))
         ),
         columns: { id: true },
       });

@@ -8,7 +8,7 @@ export function resolveDateLocale(locale: string): string {
     en: 'en-US',
     sq: 'sq-AL',
     de: 'de-DE',
-    sr: 'sr-RS',
+    sr: 'sr-Latn-RS',
     mk: 'mk-MK',
   };
   return locales[locale] ?? locale;
@@ -54,6 +54,36 @@ export function formatPilotDateTime(value: DateValue, locale: string, fallback: 
   if (!date) return fallback;
   const { hour, minute } = dateParts(date);
   return `${formatPilotDate(date, locale, fallback)} ${hour}:${minute}`;
+}
+
+/**
+ * Long date with weekday ("e premte, 13 nëntor 2026") for server-rendered pages, where the runtime
+ * has full ICU data; sr resolves to Latin script.
+ */
+export function formatPilotLongDate(value: Date, locale: string): string {
+  return value.toLocaleDateString(resolveDateLocale(locale), {
+    timeZone: PILOT_TIME_ZONE,
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+/** 24-hour "HH:mm" in the pilot zone. */
+export function formatPilotTime(value: DateValue, fallback: string): string {
+  const date = parseDate(value);
+  if (!date) return fallback;
+  const { hour, minute } = dateParts(date);
+  return `${hour}:${minute}`;
+}
+
+/** Calendar day "yyyy-MM-dd" in the pilot zone, for grouping items by the day users see. */
+export function pilotDateKey(value: DateValue): string {
+  const date = parseDate(value);
+  if (!date) return '';
+  const { day, month, year } = dateParts(date);
+  return `${year}-${month}-${day}`;
 }
 
 export function formatDate(value: DateValue, fallback: string): string {

@@ -1,25 +1,23 @@
-import { format } from 'date-fns';
-import { de, enUS, mk, sq, sr } from 'date-fns/locale';
+import { format, type Locale } from 'date-fns';
+import { de, enUS, mk, sq, srLatn } from 'date-fns/locale';
 
-function toDateFnsLocale(locale: string) {
-  switch (locale) {
-    case 'de':
-      return de;
-    case 'mk':
-      return mk;
-    case 'sq':
-      return sq;
-    case 'sr':
-      return sr;
-    default:
-      return enUS;
-  }
-}
+import { pilotDateKey } from '@/lib/utils/date';
 
+// Serbian copy is Latin script; day-first order everywhere except English.
+const DATE_FNS_FORMATS: Readonly<Record<string, readonly [Locale, string]>> = {
+  de: [de, 'd. MMMM yyyy'],
+  mk: [mk, 'd MMMM yyyy'],
+  sq: [sq, 'd MMMM yyyy'],
+  sr: [srLatn, 'd. MMMM yyyy.'],
+};
+
+/** Long claim creation date for the pilot-zone calendar day, independent of the host zone. */
 export function formatClaimCreatedDate(value: Date | string | null, locale: string): string {
-  if (!value) return '';
-
-  return format(new Date(value), 'MMMM d, yyyy', {
-    locale: toDateFnsLocale(locale),
-  });
+  const dayKey = pilotDateKey(value);
+  if (!dayKey) return '';
+  const [dateLocale, pattern] = Object.hasOwn(DATE_FNS_FORMATS, locale)
+    ? DATE_FNS_FORMATS[locale]
+    : [enUS, 'MMMM d, yyyy'];
+  // Noon UTC of the pilot day stays on the same calendar day in every host zone.
+  return format(new Date(`${dayKey}T12:00:00.000Z`), pattern, { locale: dateLocale });
 }

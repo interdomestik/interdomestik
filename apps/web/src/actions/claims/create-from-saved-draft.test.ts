@@ -3,6 +3,16 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 // prettier-ignore
 const h = vi.hoisted(() => { const limit = vi.fn(); const where = vi.fn(() => ({ limit })); const from = vi.fn(() => ({ where })); return { contexts: [] as unknown[], from, limit, rateLimit: vi.fn(), resolveSession: vi.fn(), resumeDraft: vi.fn(), runAuthenticated: vi.fn(), select: vi.fn(() => ({ from })), submit: vi.fn() }; });
+vi.unmock('next-intl');
+vi.mock('next-intl/server', async () => {
+  const { createTranslator } = await import('next-intl');
+  const messages = (await import('../../messages/en/freeStart.json')).default;
+  return {
+    getLocale: async () => 'en',
+    getTranslations: async () =>
+      createTranslator({ locale: 'en', messages, namespace: 'freeStart' }),
+  };
+});
 vi.mock('@/lib/safe-action', () => ({ runAuthenticatedAction: h.runAuthenticated }));
 vi.mock('@/actions/free-start-drafts/session.core', () => ({
   resolveFreeStartDraftSession: h.resolveSession,
@@ -91,10 +101,10 @@ describe('createClaimFromSavedDraft', () => {
           companyName: 'Example Insurer',
           currency: 'EUR',
           description:
-            'Category: Vehicle\nIssue: Collision\nIncident date: 2026-07-20\nCounterparty: Example Insurer\nDesired outcome: Repair\nSummary: The vehicle was damaged and needs a documented repair.',
+            'Claim type: Vehicle damage\nIssue: Collision damage\nIncident date: 07/20/2026\nCounterparty: Example Insurer\nRequested outcome: Repair or replacement costs\nSummary: The vehicle was damaged and needs a documented repair.',
           files: [],
           incidentDate: '2026-07-20',
-          title: 'Vehicle: Collision',
+          title: 'Vehicle damage: Collision damage',
         },
       })
     );
@@ -141,7 +151,7 @@ describe('createClaimFromSavedDraft', () => {
     await createClaimFromSavedDraft({ ...input, claimStart: confirmedClaimStart });
     const payload = h.submit.mock.calls[0]![0];
     // prettier-ignore
-    expect(payload).toMatchObject({ data: { category: 'property', description: expect.stringContaining('Desired outcome: Reimbursement'), title: 'Property: Water damage' }, handoffContext: undefined });
+    expect(payload).toMatchObject({ data: { category: 'property', description: expect.stringContaining('Requested outcome: Expense reimbursement'), title: 'Property damage: Water damage' }, handoffContext: undefined });
     expect(payload.data).not.toHaveProperty('incidentCountryCode');
   });
   // prettier-ignore

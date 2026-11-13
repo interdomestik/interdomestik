@@ -98,7 +98,7 @@ function getDateLocale(locale: string): string {
     case 'mk':
       return 'mk-MK';
     case 'sr':
-      return 'sr-RS';
+      return 'sr-Latn-RS';
     default:
       return locale;
   }
