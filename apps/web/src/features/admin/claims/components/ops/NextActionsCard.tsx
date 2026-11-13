@@ -17,9 +17,9 @@ import {
 import type { NextActionsResult } from '../../components/detail/getNextActions';
 import type { ClaimOpsDetail } from '../../types';
 import {
-  ASSIGNMENT_TOAST_READ_MS,
   rememberAssignmentFlash,
   useAssignmentFlashToast,
+  useDeferredAssignmentReload,
 } from './assignment-flash';
 import { assignmentErrorToastKey } from './assignment-toast';
 import { NextActionBadges } from './NextActionBadges';
@@ -88,6 +88,7 @@ export function NextActionsCard({
     [tAssignment]
   );
   useAssignmentFlashToast(claim.id, showAssignmentSaved);
+  const reloadAfterAssignmentToast = useDeferredAssignmentReload(claim.id);
 
   // Logic to hide card if there's truly nothing to show
   if (!primary && secondary.length === 0 && !claim.isStuck && !claim.hasSlaBreach) {
@@ -124,12 +125,12 @@ export function NextActionsCard({
         const result = await assignOwner(claim.id, staffId, locale);
         if (result.success) {
           // The localized confirmation is shown after the reload. When the browser blocks session
-          // storage it is shown now and the reload waits until it can be read.
+          // storage it is shown now; the transition stays pending until the delayed reload.
           if (rememberAssignmentFlash(claim.id)) {
             globalThis.location.reload();
           } else {
             showAssignmentSaved();
-            globalThis.setTimeout(() => globalThis.location.reload(), ASSIGNMENT_TOAST_READ_MS);
+            await reloadAfterAssignmentToast();
           }
           return;
         }

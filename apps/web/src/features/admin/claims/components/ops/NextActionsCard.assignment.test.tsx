@@ -197,6 +197,8 @@ describe('NextActionsCard staff assignment', () => {
         expect(mocks.toastSuccess).toHaveBeenCalledWith('Claim assigned successfully')
       );
       expect(mocks.reload).not.toHaveBeenCalled();
+      // Mutation controls stay locked while the reload waits.
+      expect(screen.getByTestId('ops-next-actions')).toHaveAttribute('aria-busy', 'true');
       await waitFor(() => expect(mocks.reload).toHaveBeenCalledTimes(1), { timeout: 4000 });
       expect(mocks.toastSuccess).toHaveBeenCalledTimes(1);
     } finally {

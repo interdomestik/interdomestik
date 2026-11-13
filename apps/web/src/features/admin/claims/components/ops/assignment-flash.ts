@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 // A committed assignment reloads the page (the gate proof waits for that load), which would drop a
 // toast shown before it. The confirmation is therefore carried across the reload once, per tab.
@@ -53,4 +53,32 @@ export function useAssignmentFlashToast(claimId: string, show: () => void): void
     }, 0);
     return () => globalThis.clearTimeout(timer);
   }, [claimId, show]);
+}
+
+/**
+ * Reloads the page once the shown confirmation could be read. The returned promise settles when the
+ * reload starts or is cancelled, so a transition awaiting it keeps the mutation controls locked for
+ * the whole wait. Unmounting or switching to another claim cancels the pending reload.
+ */
+export function useDeferredAssignmentReload(claimId: string): () => Promise<void> {
+  const cancelPending = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    const pending = cancelPending;
+    return () => pending.current?.();
+  }, [claimId]);
+  return useCallback(() => {
+    cancelPending.current?.();
+    return new Promise<void>(resolve => {
+      const timer = globalThis.setTimeout(() => {
+        cancelPending.current = null;
+        globalThis.location.reload();
+        resolve();
+      }, ASSIGNMENT_TOAST_READ_MS);
+      cancelPending.current = () => {
+        globalThis.clearTimeout(timer);
+        cancelPending.current = null;
+        resolve();
+      };
+    });
+  }, []);
 }

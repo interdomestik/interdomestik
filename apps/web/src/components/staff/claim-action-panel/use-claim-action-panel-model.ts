@@ -17,7 +17,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 
 import {
   getAssignmentLabel,
-  getRenderedAssignmentOptions,
+  getOutOfScopeAssigneeOption,
   getSelectedAssigneeId,
 } from './assignment-helpers';
 import { getDefaultDecisionNextStatus, RECOVERY_START_STATUSES } from './escalation-helpers';
@@ -82,7 +82,7 @@ export function useClaimActionPanelModel({
     successFeeCollection?.deductionAllowed ? 'allowed' : 'fallback'
   );
   const [selectedAssigneeId, setSelectedAssigneeId] = useState(() =>
-    getSelectedAssigneeId(assigneeId)
+    getSelectedAssigneeId({ assignmentOptions, assigneeId, staffId })
   );
   const router = useRouter();
   const recoveryDeclineReasonOptions = getRecoveryDeclineReasonOptions(t);
@@ -117,8 +117,8 @@ export function useClaimActionPanelModel({
   }, [commercialAgreement, currentStatus, recoveryDecision, successFeeCollection]);
 
   useEffect(() => {
-    setSelectedAssigneeId(getSelectedAssigneeId(assigneeId));
-  }, [assignmentOptions, assigneeId]);
+    setSelectedAssigneeId(getSelectedAssigneeId({ assignmentOptions, assigneeId, staffId }));
+  }, [assignmentOptions, assigneeId, staffId]);
 
   const resolvedRecoveryDecision = savedRecoveryDecision;
   const resolvedAgreement = savedAgreement ?? commercialAgreement;
@@ -177,12 +177,15 @@ export function useClaimActionPanelModel({
     isAssignedToMe,
     t,
   });
-  const renderedAssignmentOptions = getRenderedAssignmentOptions({
+  const outOfScopeAssigneeOption = getOutOfScopeAssigneeOption({
     assignmentOptions,
     assigneeId,
     currentAssigneeLabel,
     t,
   });
+  const renderedAssignmentOptions = outOfScopeAssigneeOption
+    ? [outOfScopeAssigneeOption, ...assignmentOptions]
+    : assignmentOptions;
   const renderedStatusOptions = claimStatusOptions.filter(
     option => option.value !== 'rejected' || currentStatus === 'rejected'
   );

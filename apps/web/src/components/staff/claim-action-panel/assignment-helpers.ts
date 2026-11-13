@@ -16,19 +16,36 @@ export function hasAssignmentOption(
   return assignmentOptions.some(option => option.id === assigneeId);
 }
 
+export const UNASSIGNED_PLACEHOLDER_OPTION_ID = '';
+
 // An unassigned claim starts on the placeholder: preselecting anyone would contradict the
 // "unassigned" status shown next to the select and invite an accidental save.
-export function getSelectedAssigneeId(assigneeId: string | null): string {
-  return assigneeId ?? '';
+export function getSelectedAssigneeId(args: {
+  assignmentOptions: ReadonlyArray<AssignmentOption>;
+  assigneeId: string | null;
+  staffId: string;
+}): string {
+  return args.assigneeId ?? UNASSIGNED_PLACEHOLDER_OPTION_ID;
 }
 
+/**
+ * The disabled option rendered before the assignable staff: the localized placeholder for an
+ * unassigned claim, or the current assignee when they are outside the assignable options.
+ */
 export function getOutOfScopeAssigneeOption(args: {
   assignmentOptions: ReadonlyArray<AssignmentOption>;
   assigneeId: string | null;
   currentAssigneeLabel?: string | null;
   t: TranslateFn;
 }): RenderedAssignmentOption | null {
-  if (args.assigneeId === null || hasAssignmentOption(args.assignmentOptions, args.assigneeId)) {
+  if (args.assigneeId === null) {
+    return {
+      id: UNASSIGNED_PLACEHOLDER_OPTION_ID,
+      label: args.t('staff_actions.assignment.choose_assignee'),
+      disabled: true,
+    };
+  }
+  if (hasAssignmentOption(args.assignmentOptions, args.assigneeId)) {
     return null;
   }
 
@@ -39,28 +56,6 @@ export function getOutOfScopeAssigneeOption(args: {
     }),
     disabled: true,
   };
-}
-
-export const UNASSIGNED_PLACEHOLDER_OPTION_ID = '';
-
-export function getRenderedAssignmentOptions(args: {
-  assignmentOptions: ReadonlyArray<AssignmentOption>;
-  assigneeId: string | null;
-  currentAssigneeLabel?: string | null;
-  t: TranslateFn;
-}): ReadonlyArray<RenderedAssignmentOption> {
-  if (args.assigneeId === null) {
-    const placeholder: RenderedAssignmentOption = {
-      id: UNASSIGNED_PLACEHOLDER_OPTION_ID,
-      label: args.t('staff_actions.assignment.choose_assignee'),
-      disabled: true,
-    };
-    return [placeholder, ...args.assignmentOptions];
-  }
-  const outOfScopeAssigneeOption = getOutOfScopeAssigneeOption(args);
-  return outOfScopeAssigneeOption
-    ? [outOfScopeAssigneeOption, ...args.assignmentOptions]
-    : args.assignmentOptions;
 }
 
 export function getAssignmentSuccessDescription(args: {
