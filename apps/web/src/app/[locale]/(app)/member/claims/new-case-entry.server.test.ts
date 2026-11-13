@@ -18,7 +18,9 @@ vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }
 
 import { resolveMemberNewCaseEntry } from './new-case-entry.server';
 
-const MEMBER = { id: 'member-1', role: 'member', tenantId: 'tenant_ks' } as const;
+type User = { id: string; role: string; tenantId?: string; accessTenantId?: string };
+const MEMBER: User = { id: 'member-1', role: 'member', tenantId: 'tenant_ks' };
+const entryFor = (user: User) => resolveMemberNewCaseEntry({ user });
 
 describe('resolveMemberNewCaseEntry', () => {
   beforeEach(() => {
@@ -30,14 +32,14 @@ describe('resolveMemberNewCaseEntry', () => {
 
   it('opens the case intake for a member with access', async () => {
     h.hasActive.mockResolvedValue(true);
-    await expect(resolveMemberNewCaseEntry(MEMBER)).resolves.toEqual({
+    await expect(entryFor(MEMBER)).resolves.toEqual({
       href: '/member/claims/new',
       kind: 'case',
     });
   });
 
   it.each(['member', 'user'])('opens the draft-only intake for an eligible %s', async role => {
-    await expect(resolveMemberNewCaseEntry({ ...MEMBER, role })).resolves.toEqual({
+    await expect(entryFor({ ...MEMBER, role })).resolves.toEqual({
       href: '/member/claims/new?mode=drafts',
       kind: 'draft',
     });
@@ -49,8 +51,18 @@ describe('resolveMemberNewCaseEntry', () => {
     ['an agent session', { neutral: true, user: { ...MEMBER, role: 'agent' } }],
   ])('sends the member to the membership on %s', async (_label, { neutral, user }) => {
     h.neutral.mockReturnValue(neutral);
-    await expect(resolveMemberNewCaseEntry(user)).resolves.toEqual({
+    await expect(entryFor(user)).resolves.toEqual({
       href: '/member/membership',
+      kind: 'membership',
+    });
+  });
+
+  it('uses the access tenant like the intake does', async () => {
+    const draft = { href: '/member/claims/new?mode=drafts', kind: 'draft' };
+    await expect(
+      entryFor({ ...MEMBER, tenantId: 'tenant_mk', accessTenantId: ' tenant_ks ' })
+    ).resolves.toEqual(draft);
+    await expect(entryFor({ ...MEMBER, accessTenantId: 'tenant_mk' })).resolves.toMatchObject({
       kind: 'membership',
     });
   });
@@ -58,13 +70,13 @@ describe('resolveMemberNewCaseEntry', () => {
   it('never reads membership without the session authority', async () => {
     h.authorize.mockResolvedValue(null);
     h.neutral.mockReturnValue(false);
-    await expect(resolveMemberNewCaseEntry(MEMBER)).resolves.toMatchObject({ kind: 'membership' });
+    await expect(entryFor(MEMBER)).resolves.toMatchObject({ kind: 'membership' });
     expect(h.hasActive).not.toHaveBeenCalled();
   });
 
   it('falls back to the gated intake when the access check fails', async () => {
     h.authorize.mockRejectedValue(new Error('db down'));
-    await expect(resolveMemberNewCaseEntry(MEMBER)).resolves.toEqual({
+    await expect(entryFor(MEMBER)).resolves.toEqual({
       href: '/member/claims/new',
       kind: 'case',
     });

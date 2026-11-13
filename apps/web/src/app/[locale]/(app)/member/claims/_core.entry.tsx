@@ -34,7 +34,7 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
 
   const [t, newCase] = await Promise.all([
     getTranslations({ locale, namespace: 'claims' }),
-    resolveMemberNewCaseEntry(session.user),
+    resolveMemberNewCaseEntry(session),
   ]);
   const newCaseLabel = newCase.kind === 'membership' ? t('gate.view_plans') : t('new');
 
