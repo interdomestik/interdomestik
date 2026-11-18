@@ -13,8 +13,12 @@ const checker = path.join(rootDir, 'scripts/release-evidence-check.mjs');
 const ARTIFACT_TEXT = 'signed test artifact\n';
 const ARTIFACT_SHA = createHash('sha256').update(ARTIFACT_TEXT).digest('hex');
 
-function run(args) {
-  return spawnSync(process.execPath, [checker, ...args], { cwd: rootDir, encoding: 'utf8' });
+function run(args, env = {}) {
+  return spawnSync(process.execPath, [checker, ...args], {
+    cwd: rootDir,
+    encoding: 'utf8',
+    env: { ...process.env, ...env },
+  });
 }
 
 function gateLines(id, overrides = {}) {
@@ -267,4 +271,24 @@ test('the published schema requires the hash-manifest fields and refuses the ret
   assert.equal(gate.signoff.additionalProperties, false);
   assert.equal('name' in gate.signoff.properties, false);
   assert.equal('path' in artifact.properties, false);
+});
+
+test('options pnpm took as its own configuration stop the check', () => {
+  withManifest(
+    () => ({}),
+    ({ manifest, evidenceRoot }) => {
+      for (const env of [
+        { npm_config_evidence_root: evidenceRoot },
+        { npm_config_evidence_root: '' },
+        { npm_config_manifest: manifest },
+      ]) {
+        const result = run(['--manifest', manifest], env);
+        assert.equal(result.status, 2, `${JSON.stringify(env)}: ${result.stdout}`);
+        assert.match(
+          result.stderr,
+          /FAIL invalid arguments: write --[a-z-]+ after the script name/
+        );
+      }
+    }
+  );
 });

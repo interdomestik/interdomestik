@@ -31,6 +31,13 @@ const FILE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 // Strict options: an unknown, repeated or valueless option (an unset shell variable, `--x=`) stops
 // the check, so a requested verification is never silently skipped.
 function readOptions(argv) {
+  // pnpm takes options written before the script name as its own configuration and passes them only
+  // as npm_config_* variables, so the check would run without them.
+  for (const name of ['manifest', 'evidence-root']) {
+    if (`npm_config_${name.replace('-', '_')}` in process.env) {
+      throw new Error(`invalid arguments: write --${name} after the script name`);
+    }
+  }
   let parsed;
   try {
     parsed = parseArgs({
