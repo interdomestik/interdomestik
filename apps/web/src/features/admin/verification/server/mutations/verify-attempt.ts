@@ -89,6 +89,12 @@ export async function verifyCashAttemptCore(
   const scope = resolveVerificationReadScope(withSessionStaffBranch(ctx));
   if (scope.kind === 'none') throw new Error('Payment attempt not found.');
 
+  // The notice reads the recipient through its own transaction, so it is sent only after this one
+  // commits: on a pool of one connection a nested read would wait on the connection this holds.
+  const pending: { notice: Parameters<typeof notifyPaymentVerificationUpdate> | null } = {
+    notice: null,
+  };
+
   const txResult = await withTenantAuthority(authority, async tx => {
     // A. Fetch
     const [result] = await tx
@@ -161,9 +167,9 @@ export async function verifyCashAttemptCore(
       createdAt: new Date(),
     });
 
-    // G. Notify
+    // G. Notify (after commit, below)
     if (newStatus === 'needs_info' || newStatus === 'rejected') {
-      await notifyPaymentVerificationUpdate(
+      pending.notice = [
         lead.agentId,
         agentEmail,
         {
@@ -174,8 +180,8 @@ export async function verifyCashAttemptCore(
           note: note || undefined,
           link: `/agent/leads`,
         },
-        { authority }
-      );
+        { authority },
+      ];
     }
 
     // H. Lead Status Update on Approval: the payment is verified ('paid'). Only the member
@@ -198,6 +204,15 @@ export async function verifyCashAttemptCore(
 
     return { success: true, status: newStatus, leadId: attempt.leadId, decision };
   });
+
+  if (pending.notice) {
+    try {
+      await notifyPaymentVerificationUpdate(...pending.notice);
+    } catch (err) {
+      // The decision is committed; a failed notice must not report it as failed.
+      console.error('Payment verification notice not sent', { attemptId, err });
+    }
+  }
 
   // I. Create Member User (outside tx for better retry semantics)
   if (txResult.decision === 'approve' && txResult.leadId) {

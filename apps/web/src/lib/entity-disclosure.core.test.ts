@@ -26,6 +26,7 @@ vi.mock('@interdomestik/database/tenant-authority-context', () => ({
 import {
   getSubscriptionEntityDisclosureCore,
   getSponsorEntityDisclosureCore,
+  readSponsorEntityDisclosure,
 } from './entity-disclosure.core';
 
 describe('entity disclosure core', () => {
@@ -95,5 +96,20 @@ describe('entity disclosure core', () => {
       unavailable: true,
       contractingCompany: null,
     });
+  });
+  it('reads the covering entity in the transaction it is given', async () => {
+    const findFirst = vi
+      .fn()
+      .mockResolvedValue({ legalName: 'Covering company', governingLaw: 'XK' });
+    const tx = { query: { legalEntities: { findFirst } } } as unknown as Parameters<
+      typeof readSponsorEntityDisclosure
+    >[0];
+
+    expect(await readSponsorEntityDisclosure(tx, 'tenant_ks', 'legal_covering')).toMatchObject({
+      contractingCompany: 'Covering company',
+      source: 'sponsor',
+    });
+    expect(findFirst).toHaveBeenCalledTimes(1);
+    expect(hoisted.findEntity).not.toHaveBeenCalled();
   });
 });
