@@ -111,8 +111,7 @@ function readManifest(filePath) {
       throw new Error(`manifest path must not be a symbolic link: ${filePath}`);
   }
   if (!fs.lstatSync(absolute).isFile()) throw new Error(`manifest must be a file: ${filePath}`);
-  // The core schema has no merge keys or timestamps: `<<` stays a literal key that the closed key
-  // sets refuse, so a merged mapping cannot carry a name past the checks.
+  // Core schema: no merge keys or timestamps; `<<` stays a literal key the closed sets refuse.
   const text = fs.readFileSync(absolute, 'utf8');
   return { text, data: yaml.load(text, { schema: yaml.CORE_SCHEMA }) };
 }
@@ -147,15 +146,20 @@ function sha256(filePath) {
   return hash.digest('hex');
 }
 
+function gateKeyErrors(gate) {
+  return [
+    ...Object.keys(gate)
+      .filter(field => !gateFields.has(field))
+      .map(field => `${field} is not accepted`),
+    ...requiredGateFields
+      .filter(field => gate[field] == null || gate[field] === '')
+      .map(field => `missing ${field}`),
+  ];
+}
+
 function validateGateShape(gate) {
   if (!isRecord(gate)) return ['gate entry is invalid'];
-  const errors = [];
-  for (const field of Object.keys(gate)) {
-    if (!gateFields.has(field)) errors.push(`${field} is not accepted`);
-  }
-  for (const field of requiredGateFields) {
-    if (gate[field] == null || gate[field] === '') errors.push(`missing ${field}`);
-  }
+  const errors = gateKeyErrors(gate);
   if (gate.id != null && !(typeof gate.id === 'string' && GATE_ID_PATTERN.test(gate.id))) {
     errors.push('id must be one of G01-G10');
   }

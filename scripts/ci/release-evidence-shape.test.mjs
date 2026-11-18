@@ -94,17 +94,19 @@ test('YAML merge keys are refused instead of resolved', () => {
   );
 });
 
-test('description, status and id take only the schema values', () => {
+test('description, owner, status and id take only the schema values', () => {
   failsWith(
     {
       G01: { description: '[first, second]' },
       G02: { status: 'SUPPLIED' },
       G03: { status: '[supplied]' },
+      G04: { owner: "''" },
     },
     [
       /G01: description must be text/,
       /G02: status=SUPPLIED is not one of/,
       /G03: status=supplied is not one of/,
+      /G04: missing owner/,
       /<unknown>: id must be one of G01-G10/,
       /G01: listed more than once/,
     ],
