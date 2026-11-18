@@ -102,6 +102,15 @@ function readOptions(argv) {
 function readManifest(filePath) {
   const absolute = path.resolve(rootDir, filePath);
   if (!fs.existsSync(absolute)) throw new Error(`manifest not found: ${filePath}`);
+  // A symbolic link is stored in Git as its target path, which could carry a name the checks never
+  // read; the manifest and every directory above it in the checkout must be real entries.
+  let current = rootDir;
+  for (const part of filePath.split('/')) {
+    current = path.join(current, part);
+    if (fs.lstatSync(current).isSymbolicLink())
+      throw new Error(`manifest path must not be a symbolic link: ${filePath}`);
+  }
+  if (!fs.lstatSync(absolute).isFile()) throw new Error(`manifest must be a file: ${filePath}`);
   // The core schema has no merge keys or timestamps: `<<` stays a literal key that the closed key
   // sets refuse, so a merged mapping cannot carry a name past the checks.
   const text = fs.readFileSync(absolute, 'utf8');
@@ -111,7 +120,8 @@ function readManifest(filePath) {
 function sourceErrors(text, data) {
   if (!text.startsWith(MANIFEST_HEADER))
     return ['manifest: must start with the fixed header comment'];
-  const canonical = yaml.dump(data, { schema: yaml.CORE_SCHEMA, lineWidth: -1 });
+  // noRefs: the canonical form never holds an anchor or alias, so a shared mapping fails too.
+  const canonical = yaml.dump(data, { schema: yaml.CORE_SCHEMA, lineWidth: -1, noRefs: true });
   if (text.slice(MANIFEST_HEADER.length) === canonical) return [];
   return ['manifest: must be in canonical form: no other comments, anchors, aliases or styles'];
 }
@@ -162,10 +172,6 @@ function validateGateShape(gate) {
   return errors;
 }
 
-function signerRefFor(gateId) {
-  return `T503-${gateId}-SIGNOFF`;
-}
-
 function validateSignoff(gate) {
   const errors = identifyingSignoffFields
     .filter(field => Object.hasOwn(gate.signoff ?? {}, field))
@@ -184,14 +190,10 @@ function validateSignoff(gate) {
     }
   }
   // The reference is derived from the gate, so it cannot hold a name.
+  const expectedRef = `T503-${gate.id}-SIGNOFF`;
   const signerRef = gate.signoff?.signer_ref;
-  if (
-    typeof signerRef === 'string' &&
-    !isPending(signerRef) &&
-    signerRef !== signerRefFor(gate.id)
-  ) {
-    errors.push(`${gate.id}: signoff.signer_ref must be ${signerRefFor(gate.id)}`);
-  }
+  if (typeof signerRef === 'string' && !isPending(signerRef) && signerRef !== expectedRef)
+    errors.push(`${gate.id}: signoff.signer_ref must be ${expectedRef}`);
   for (const field of requiredSignoffFields) {
     if (isPending(gate.signoff?.[field]))
       errors.push(`${gate.id}: signoff.${field} is missing or pending`);
@@ -270,10 +272,7 @@ const manifestErrors = isRecord(manifest)
       .filter(field => !manifestFields.has(field))
       .map(field => `manifest: ${field} is not accepted`)
   : ['manifest: must be a mapping with gates'];
-const expectedIds = Array.from(
-  { length: 10 },
-  (_, index) => `G${String(index + 1).padStart(2, '0')}`
-);
+const expectedIds = Array.from({ length: 10 }, (_, i) => `G${String(i + 1).padStart(2, '0')}`);
 const listedIds = gates.map(gate => gate?.id);
 const seenIds = new Set(listedIds);
 const errors = [
