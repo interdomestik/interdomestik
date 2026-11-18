@@ -141,6 +141,7 @@ describe('per-environment trusted auth hosts (SEC-11)', () => {
     ['production', 'https://staging.interdomestik.com'],
     ['production', 'https://interdomestik-abc123-ecohub.vercel.app'],
     ['production', 'https://ida.interdomestik.com,https://evil.example.test'],
+    ['production', 'https://ida.interdomestik.com/sq'],
     ['preview', 'https://ida.interdomestik.com'],
   ])(
     'a %s deployment refuses to configure auth when the trusted-origin variable names %s',

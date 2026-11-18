@@ -5,6 +5,13 @@ import {
   isHostedDeployment,
 } from './deployment-hosts';
 
+// Only trailing slashes are tolerated after an origin; a path, query or credential stays off-list.
+function withoutTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === '/') end -= 1;
+  return value.slice(0, end);
+}
+
 export function getTrustedOrigins(): string[] | undefined {
   const raw = process.env.BETTER_AUTH_TRUSTED_ORIGINS;
   const localProtocol = 'http';
@@ -21,7 +28,7 @@ export function getTrustedOrigins(): string[] | undefined {
   if (isHostedDeployment()) {
     const own = hostedAuthHosts().map(host => `https://${host}`);
     const allowed = filterHostedOrigins(origins);
-    const offList = origins.filter(origin => !allowed.includes(origin.replace(/\/+$/u, '')));
+    const offList = origins.filter(origin => !allowed.includes(withoutTrailingSlashes(origin)));
     if (offList.length > 0) {
       // Content-free: the rejected values may carry credentials or tokens and reach the logs.
       throw new Error(
