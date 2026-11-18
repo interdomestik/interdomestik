@@ -13,9 +13,9 @@ const checker = path.join(rootDir, 'scripts/release-evidence-check.mjs');
 const ARTIFACT_TEXT = 'signed test artifact\n';
 const ARTIFACT_SHA = createHash('sha256').update(ARTIFACT_TEXT).digest('hex');
 
-function run(args, env = {}) {
+function run(args, env = {}, cwd = rootDir) {
   return spawnSync(process.execPath, [checker, ...args], {
-    cwd: rootDir,
+    cwd,
     encoding: 'utf8',
     env: { ...process.env, ...env },
   });
@@ -45,10 +45,13 @@ function withManifest(gateOverrides, callback) {
     mkdirSync(evidenceRoot);
     for (const id of ids)
       writeFileSync(path.join(evidenceRoot, `${id}-evidence.pdf`), ARTIFACT_TEXT);
-    const manifest = path.join(dir, 'manifest.yaml');
+    mkdirSync(path.join(dir, 'docs/release'), { recursive: true });
     const gates = ids.map(id => gateLines(id, gateOverrides(id)));
-    writeFileSync(manifest, ['gates:', ...gates].join('\n'));
-    callback({ manifest, evidenceRoot });
+    writeFileSync(
+      path.join(dir, 'docs/release/production-evidence.yaml'),
+      ['gates:', ...gates].join('\n')
+    );
+    callback({ evidenceRoot, check: (args, env) => run(args, env, dir) });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -57,8 +60,8 @@ function withManifest(gateOverrides, callback) {
 test('release evidence check lists pending G-items', () => {
   withManifest(
     () => ({ status: 'pending' }),
-    ({ manifest }) => {
-      const result = run(['--manifest', manifest]);
+    ({ check }) => {
+      const result = check(['--manifest-only']);
       assert.equal(result.status, 1);
       assert.match(result.stderr, /G01: status=pending/);
       assert.match(result.stderr, /G10: status=pending/);
@@ -69,8 +72,8 @@ test('release evidence check lists pending G-items', () => {
 test('a complete hash manifest passes without an evidence root and says files are unverified', () => {
   withManifest(
     () => ({}),
-    ({ manifest }) => {
-      const result = run(['--manifest', manifest]);
+    ({ check }) => {
+      const result = check(['--manifest-only']);
       assert.equal(result.status, 0, result.stderr);
       assert.match(result.stdout, /PASS gates=10 files=not-verified/);
     }
@@ -80,8 +83,8 @@ test('a complete hash manifest passes without an evidence root and says files ar
 test('an evidence root verifies supplied and waived files against their hashes', () => {
   withManifest(
     id => (id === 'G04' ? { status: 'waived' } : {}),
-    ({ manifest, evidenceRoot }) => {
-      const result = run(['--manifest', manifest, '--evidence-root', evidenceRoot]);
+    ({ check, evidenceRoot }) => {
+      const result = check(['--evidence-root', evidenceRoot]);
       assert.equal(result.status, 0, result.stderr);
       assert.match(result.stdout, /PASS gates=10 files=verified/);
     }
@@ -91,10 +94,10 @@ test('an evidence root verifies supplied and waived files against their hashes',
 test('an evidence root refuses a changed or missing file', () => {
   withManifest(
     () => ({}),
-    ({ manifest, evidenceRoot }) => {
+    ({ check, evidenceRoot }) => {
       writeFileSync(path.join(evidenceRoot, 'G02-evidence.pdf'), 'changed\n');
       rmSync(path.join(evidenceRoot, 'G07-evidence.pdf'));
-      const result = run(['--manifest', manifest, '--evidence-root', evidenceRoot]);
+      const result = check(['--evidence-root', evidenceRoot]);
       assert.equal(result.status, 1);
       assert.match(result.stderr, /G02: sha256 mismatch for G02-evidence\.pdf/);
       assert.match(result.stderr, /G07: evidence file not found: G07-evidence\.pdf/);
@@ -105,13 +108,8 @@ test('an evidence root refuses a changed or missing file', () => {
 test('an evidence root that is not a directory stops the check', () => {
   withManifest(
     () => ({}),
-    ({ manifest, evidenceRoot }) => {
-      const result = run([
-        '--manifest',
-        manifest,
-        '--evidence-root',
-        path.join(evidenceRoot, 'none'),
-      ]);
+    ({ check, evidenceRoot }) => {
+      const result = check(['--evidence-root', path.join(evidenceRoot, 'none')]);
       assert.equal(result.status, 2);
       assert.match(result.stderr, /evidence root is not a directory/);
     }
@@ -121,8 +119,8 @@ test('an evidence root that is not a directory stops the check', () => {
 test('hashes must be 64 hex characters even without an evidence root', () => {
   withManifest(
     id => (id === 'G03' ? { artifact: ['file: G03-evidence.pdf', 'sha256: pending'] } : {}),
-    ({ manifest }) => {
-      const result = run(['--manifest', manifest]);
+    ({ check }) => {
+      const result = check(['--manifest-only']);
       assert.equal(result.status, 1);
       assert.match(
         result.stderr,
@@ -140,8 +138,8 @@ test('artifacts name a plain file in the store, never a repository path', () => 
   };
   withManifest(
     id => (cases[id] ? { artifact: cases[id] } : {}),
-    ({ manifest, evidenceRoot }) => {
-      const result = run(['--manifest', manifest, '--evidence-root', evidenceRoot]);
+    ({ check, evidenceRoot }) => {
+      const result = check(['--evidence-root', evidenceRoot]);
       assert.equal(result.status, 1);
       assert.match(result.stderr, /G01: artifact path is not accepted/);
       assert.match(result.stderr, /G02: artifact file must be a plain file name/);
@@ -158,8 +156,8 @@ test('signoff records an opaque signer reference and refuses names and emails', 
   };
   withManifest(
     id => (cases[id] ? { signoff: cases[id] } : {}),
-    ({ manifest }) => {
-      const result = run(['--manifest', manifest]);
+    ({ check }) => {
+      const result = check(['--manifest-only']);
       assert.equal(result.status, 1);
       assert.match(result.stderr, /G05: signoff\.name must not be recorded here/);
       assert.match(result.stderr, /G06: signoff\.email must not be recorded here/);
@@ -178,9 +176,9 @@ test('the repository manifest is a hash manifest without names or repository pat
       assert.deepEqual(Object.keys(artifact).sort(), ['file', 'sha256']);
     }
   }
-  const result = run([]);
+  const result = run(['--manifest-only']);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /PASS gates=10 files=not-verified/);
+  assert.match(result.stdout, /PASS gates=10 files=not-verified \(manifest only\)/);
 });
 
 test('the release evidence manifests have a registered modularity owner', () => {
@@ -197,20 +195,23 @@ test('the release evidence manifests have a registered modularity owner', () => 
 test('a malformed option stops the check instead of skipping file verification', () => {
   withManifest(
     () => ({}),
-    ({ manifest, evidenceRoot }) => {
+    ({ check, evidenceRoot }) => {
       for (const args of [
-        ['--manifest', manifest, '--evidence-root'],
-        ['--manifest', manifest, '--evidence-root', ''],
-        ['--manifest', manifest, '--evidence-root='],
-        ['--evidence-root', '--manifest', manifest],
-        ['--manifest'],
-        ['--manifest', manifest, '--evidence-root', evidenceRoot, '--evidence-root='],
-        ['--manifest', manifest, '--manifest', manifest],
-        ['--manifest', manifest, '--evidence-dir', evidenceRoot],
-        ['--manifest', manifest, evidenceRoot],
-        ['--manifest', manifest, '--', '--evidence-root', evidenceRoot],
+        [],
+        ['--manifest-only', '--evidence-root', evidenceRoot],
+        ['--evidence-root'],
+        ['--evidence-root', ''],
+        ['--evidence-root='],
+        ['--evidence-root', '--manifest-only'],
+        ['--evidence-root', evidenceRoot, '--evidence-root='],
+        ['--manifest-only', '--manifest-only'],
+        ['--manifest-only=yes'],
+        ['--manifest', 'docs/release/production-evidence.yaml', '--manifest-only'],
+        ['--evidence-dir', evidenceRoot],
+        [evidenceRoot],
+        ['--', '--evidence-root', evidenceRoot],
       ]) {
-        const result = run(args);
+        const result = check(args);
         assert.equal(result.status, 2, `${JSON.stringify(args)}: ${result.stdout}`);
         assert.match(result.stderr, /FAIL invalid arguments/);
         assert.doesNotMatch(result.stdout, /PASS/);
@@ -222,9 +223,9 @@ test('a malformed option stops the check instead of skipping file verification',
 test('the equals form of an option is honoured', () => {
   withManifest(
     () => ({}),
-    ({ manifest, evidenceRoot }) => {
+    ({ check, evidenceRoot }) => {
       rmSync(path.join(evidenceRoot, 'G06-evidence.pdf'));
-      const result = run([`--manifest=${manifest}`, `--evidence-root=${evidenceRoot}`]);
+      const result = check([`--evidence-root=${evidenceRoot}`]);
       assert.equal(result.status, 1);
       assert.match(result.stderr, /G06: evidence file not found: G06-evidence\.pdf/);
     }
@@ -234,12 +235,12 @@ test('the equals form of an option is honoured', () => {
 test('an evidence file that is a link is refused, even when its target matches the hash', () => {
   withManifest(
     () => ({}),
-    ({ manifest, evidenceRoot }) => {
+    ({ check, evidenceRoot }) => {
       const outside = path.join(path.dirname(evidenceRoot), 'outside.pdf');
       writeFileSync(outside, ARTIFACT_TEXT);
       rmSync(path.join(evidenceRoot, 'G04-evidence.pdf'));
       symlinkSync(outside, path.join(evidenceRoot, 'G04-evidence.pdf'));
-      const result = run(['--manifest', manifest, '--evidence-root', evidenceRoot]);
+      const result = check(['--evidence-root', evidenceRoot]);
       assert.equal(result.status, 1);
       assert.match(result.stderr, /G04: evidence file must be a regular file: G04-evidence\.pdf/);
     }
@@ -250,8 +251,8 @@ test('a hash must be a string, not a list holding one', () => {
   withManifest(
     id =>
       id === 'G09' ? { artifact: ['file: G09-evidence.pdf', `sha256: [${ARTIFACT_SHA}]`] } : {},
-    ({ manifest }) => {
-      const result = run(['--manifest', manifest]);
+    ({ check }) => {
+      const result = check(['--manifest-only']);
       assert.equal(result.status, 1);
       assert.match(
         result.stderr,
@@ -276,19 +277,24 @@ test('the published schema requires the hash-manifest fields and refuses the ret
 test('options pnpm took as its own configuration stop the check', () => {
   withManifest(
     () => ({}),
-    ({ manifest, evidenceRoot }) => {
-      for (const env of [
-        { npm_config_evidence_root: evidenceRoot },
-        { npm_config_evidence_root: '' },
-        { npm_config_manifest: manifest },
+    ({ check, evidenceRoot }) => {
+      // pnpm keeps the case and spelling of .npmrc keys; npm folds CLI names to lower case.
+      for (const key of [
+        'npm_config_evidence_root',
+        'npm_config_Evidence_Root',
+        'npm_config_evidenceRoot',
+        'npm_config_evidenceroot',
+        'NPM_CONFIG_EVIDENCE-ROOT',
+        'npm_config_Manifest',
+        'npm_config_manifest_only',
       ]) {
-        const result = run(['--manifest', manifest], env);
-        assert.equal(result.status, 2, `${JSON.stringify(env)}: ${result.stdout}`);
-        assert.match(
-          result.stderr,
-          /FAIL invalid arguments: write --[a-z-]+ after the script name/
-        );
+        for (const value of [evidenceRoot, '']) {
+          const result = check(['--manifest-only'], { [key]: value });
+          assert.equal(result.status, 2, `${key}=${value}: ${result.stdout}`);
+          assert.match(result.stderr, /FAIL invalid arguments: .* write options after the script/);
+        }
       }
+      assert.equal(check(['--manifest-only'], { npm_config_evidence: evidenceRoot }).status, 0);
     }
   );
 });

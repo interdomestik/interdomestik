@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 // Release evidence check. The manifest is a hash manifest: per gate it records the status, the
 // signoff role and date, an opaque signer reference and the SHA-256 of each evidence file. The
-// files and the signers' names are kept outside the repository; `--evidence-root <dir>` verifies
-// the files in that directory against the recorded hashes. The root and its parent directories
+// files and the signers' names are kept outside the repository. `--evidence-root <dir>`
+// (pnpm release:evidence:verify <dir>) verifies the files in that directory against the recorded
+// hashes; `--manifest-only` (pnpm release:evidence:check) checks the manifest alone. The manifest
+// is read from the repository in the working directory. The root and its parent directories
 // must stay trusted and unchanged while the check runs: each file is checked, then read by name.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -12,7 +14,7 @@ import { parseArgs } from 'node:util';
 import yaml from 'js-yaml';
 
 const rootDir = process.cwd();
-const defaultManifest = 'docs/release/production-evidence.yaml';
+const manifestFile = 'docs/release/production-evidence.yaml';
 const passingStatuses = new Set(['supplied', 'approved', 'verified', 'waived']);
 const passingStatusList = Array.from(passingStatuses).join(', ');
 const requiredGateFields = [
@@ -28,14 +30,18 @@ const identifyingSignoffFields = ['name', 'email'];
 const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
 const FILE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 
-// Strict options: an unknown, repeated or valueless option (an unset shell variable, `--x=`) stops
-// the check, so a requested verification is never silently skipped.
+// Exactly one mode: `--manifest-only` or `--evidence-root <dir>`. The package scripts name it
+// (release:evidence:check, release:evidence:verify), so an option pnpm drops leaves either no mode
+// or a valueless --evidence-root. An unknown, repeated or valueless option stops the check.
+const RESERVED_CONFIG = new Set(['manifest', 'manifestonly', 'evidenceroot']);
+
 function readOptions(argv) {
-  // pnpm takes options written before the script name as its own configuration and passes them only
-  // as npm_config_* variables, so the check would run without them.
-  for (const name of ['manifest', 'evidence-root']) {
-    if (`npm_config_${name.replace('-', '_')}` in process.env) {
-      throw new Error(`invalid arguments: write --${name} after the script name`);
+  // pnpm takes options written before the script name as its own configuration and exports them as
+  // npm_config_* variables in the spelling and case they were given, so compare normalised names.
+  for (const key of Object.keys(process.env)) {
+    const match = /^npm_config_(.+)$/iu.exec(key);
+    if (match && RESERVED_CONFIG.has(match[1].toLowerCase().replace(/[-_]/gu, ''))) {
+      throw new Error(`invalid arguments: ${key} is set; write options after the script name`);
     }
   }
   let parsed;
@@ -45,7 +51,7 @@ function readOptions(argv) {
       strict: true,
       allowPositionals: false,
       tokens: true,
-      options: { manifest: { type: 'string' }, 'evidence-root': { type: 'string' } },
+      options: { 'manifest-only': { type: 'boolean' }, 'evidence-root': { type: 'string' } },
     });
   } catch (error) {
     throw new Error(`invalid arguments: ${error.message}`);
@@ -55,7 +61,12 @@ function readOptions(argv) {
     if (token.kind !== 'option') continue;
     if (seen.has(token.name)) throw new Error(`invalid arguments: --${token.name} given twice`);
     seen.add(token.name);
-    if (!token.value) throw new Error(`invalid arguments: --${token.name} needs a value`);
+    if (token.name === 'evidence-root' && !token.value) {
+      throw new Error('invalid arguments: --evidence-root needs a value');
+    }
+  }
+  if (seen.size !== 1) {
+    throw new Error('invalid arguments: give either --manifest-only or --evidence-root <dir>');
   }
   return parsed.values;
 }
@@ -161,7 +172,7 @@ let manifest;
 let evidenceRoot;
 try {
   const options = readOptions(process.argv.slice(2));
-  manifest = readManifest(options.manifest ?? defaultManifest);
+  manifest = readManifest(manifestFile);
   evidenceRoot = readEvidenceRoot(options['evidence-root'] ?? null);
 } catch (error) {
   console.error(`[release-evidence] FAIL ${error.message}`);
@@ -184,5 +195,5 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-const files = evidenceRoot ? 'verified' : 'not-verified (no --evidence-root)';
+const files = evidenceRoot ? 'verified' : 'not-verified (manifest only)';
 console.log(`[release-evidence] PASS gates=${gates.length} files=${files}`);

@@ -61,11 +61,12 @@ partial fields shown in the example.
 Finally run:
 
 ```bash
-pnpm release:evidence:check --evidence-root <evidence-store>
+pnpm release:evidence:verify <evidence-store>
 ```
 
 The command must fail until every G01-G10 gate has a non-pending passing status,
-a valid signoff and a well-formed SHA-256 per file. With `--evidence-root` it
-also requires every file to exist in the store with a matching SHA-256; without
-it, the check reports the files as not verified. Run it on a private evidence
+a valid signoff and a well-formed SHA-256 per file, and every file exists in the
+store with a matching SHA-256. `pnpm release:evidence:check` checks the manifest
+alone and reports the files as not verified. Write options after the script
+name; options written before it are refused. Run it on a private evidence
 directory that nobody else can change while the check runs.

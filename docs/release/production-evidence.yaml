@@ -1,5 +1,5 @@
 # Release evidence hash manifest. The evidence files and the signers' names are kept outside
-# the repository; `pnpm release:evidence:check --evidence-root <dir>` verifies the files.
+# the repository; `pnpm release:evidence:verify <dir>` verifies the files.
 gates:
   - id: G01
     description: Signed HR roster file/version/hash signoff.
