@@ -37,30 +37,45 @@ mark any G01-G10 gate as complete, waived, approved, supplied, or verified.
 
 ## Intake Commands
 
-After a real artifact or signed waiver is placed under
-`docs/release/evidence/`, compute its hash:
+Evidence files and signers' names never enter the repository. Keep each real
+artifact or signed waiver in the private evidence store, outside the
+repository, and compute its hash there:
 
 ```bash
-shasum -a 256 docs/release/evidence/<artifact-file>
+shasum -a 256 <evidence-store>/<artifact-file>
 ```
 
 Then update only the matching gate in `docs/release/production-evidence.yaml`
 with:
 
 - `status: supplied`, `approved`, `verified`, or `waived`;
-- the matching `required_artifacts[*].path`;
+- the matching `required_artifacts[*].file` (the plain file name in the store,
+  starting with the gate id, for example `G04-`);
 - the matching `required_artifacts[*].sha256`;
-- signoff name, role, and signed date.
+- signoff `signer_ref` `T503-<gate id>-SIGNOFF` (the signoff record in the store
+  carries that reference; never a name or email), role, and signed date
+  (`YYYY-MM-DD`).
 
 Preserve the existing gate entry shape, including `id`, `description`, `owner`,
 and any unrelated artifacts. Do not replace a full gate entry with only the
 partial fields shown in the example.
 
+Keep the manifest in its canonical form: block style, two-space indents, values
+unquoted where YAML allows, and no comments, anchors or aliases below the fixed
+two-line header. Role, owner, description and file names are free text; the
+check cannot tell a name from a title, so the reviewer of the manifest diff
+confirms that they hold none.
+
 Finally run:
 
 ```bash
-pnpm release:evidence:check
+pnpm release:evidence:verify <evidence-store>
 ```
 
 The command must fail until every G01-G10 gate has a non-pending passing status,
-valid signoff, existing artifact path, and matching SHA-256.
+a valid signoff and a well-formed SHA-256 per file, and every file exists in the
+store with a matching SHA-256. `pnpm release:evidence:check` checks the manifest
+alone and never verifies files, whatever options it is given. Write options
+after the script name: pnpm takes options written before it as its own settings
+and may refuse or silently drop them. Run it on a private evidence directory
+that nobody else can change while the check runs.

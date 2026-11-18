@@ -41,6 +41,7 @@ export const CHECKED_TEXT_EXTENSIONS = new Set([
 ]);
 const PRODUCTION_EXTENSIONS = new Set('.cjs .css .js .jsx .mjs .sh .ts .tsx'.split(' '));
 const STRUCTURED_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.yml']);
+const RELEASE_EVIDENCE_OWNER = 'release-evidence-hash-manifest-contract';
 /** @type {ReadonlyArray<readonly [RegExp, string]>} */
 const STRUCTURED_OWNERS = [
   [/^\.github\/actions\/pr-feedback-setup\/action\.yml$/u, 'pr-feedback-refresh-contract'],
@@ -72,6 +73,8 @@ const STRUCTURED_OWNERS = [
     's7-helpnow-localized-copy-contract',
   ],
   [/^apps\/web\/public\/manifest\.json$/u, 'pwa-manifest-contract'],
+  [/^docs\/release\/production-evidence\.(?:yaml|schema\.json)$/u, RELEASE_EVIDENCE_OWNER],
+  [/^docs\/release\/t503-evidence-intake\/manifest-patch-example\.yaml$/u, RELEASE_EVIDENCE_OWNER],
 ];
 // A constant keeps owner/path pairs such as auth.json clear of secret-scanner key heuristics.
 const PARITY_OWNER = 'i18n-keys-parity-contract';
