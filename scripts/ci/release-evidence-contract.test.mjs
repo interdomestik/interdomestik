@@ -43,7 +43,11 @@ test('the release evidence manifests have a registered modularity owner', () => 
 
 test('the published schema requires the hash-manifest fields and refuses the retired ones', () => {
   const schemaPath = path.join(rootDir, 'docs/release/production-evidence.schema.json');
-  const gate = JSON.parse(readFileSync(schemaPath, 'utf8')).properties.gates.items.properties;
+  const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
+  assert.equal(schema.additionalProperties, false);
+  assert.equal(schema.properties.gates.items.additionalProperties, false);
+  const gate = schema.properties.gates.items.properties;
+  assert.equal(gate.signoff.properties.signed_at.pattern, '^\\d{4}-\\d{2}-\\d{2}$');
   const artifact = gate.required_artifacts.items;
   assert.deepEqual(artifact.required, ['file', 'sha256']);
   assert.equal(artifact.additionalProperties, false);

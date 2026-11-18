@@ -1,60 +1,8 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-
-const rootDir = fileURLToPath(new URL('../..', import.meta.url));
-const checker = path.join(rootDir, 'scripts/release-evidence-check.mjs');
-const ARTIFACT_TEXT = 'signed test artifact\n';
-const ARTIFACT_SHA = createHash('sha256').update(ARTIFACT_TEXT).digest('hex');
-
-function run(args, env = {}, cwd = rootDir) {
-  return spawnSync(process.execPath, [checker, ...args], {
-    cwd,
-    encoding: 'utf8',
-    env: { ...process.env, ...env },
-  });
-}
-
-function gateLines(id, overrides = {}) {
-  const artifact = overrides.artifact ?? [`file: ${id}-evidence.pdf`, `sha256: ${ARTIFACT_SHA}`];
-  const signoff =
-    overrides.signoff ?? `{ signer_ref: T503-${id}, role: release owner, signed_at: 2026-07-02 }`;
-  return [
-    `  - id: ${id}`,
-    `    description: test ${id}`,
-    '    owner: release owner',
-    `    status: ${overrides.status ?? 'supplied'}`,
-    '    required_artifacts:',
-    `      - ${artifact[0]}`,
-    ...artifact.slice(1).map(line => `        ${line}`),
-    `    signoff: ${signoff}`,
-  ].join('\n');
-}
-
-function withManifest(gateOverrides, callback) {
-  const dir = mkdtempSync(path.join(tmpdir(), 'release-evidence-'));
-  try {
-    const evidenceRoot = path.join(dir, 'store');
-    const ids = Array.from({ length: 10 }, (_, index) => `G${String(index + 1).padStart(2, '0')}`);
-    mkdirSync(evidenceRoot);
-    for (const id of ids)
-      writeFileSync(path.join(evidenceRoot, `${id}-evidence.pdf`), ARTIFACT_TEXT);
-    mkdirSync(path.join(dir, 'docs/release'), { recursive: true });
-    const gates = ids.map(id => gateLines(id, gateOverrides(id)));
-    writeFileSync(
-      path.join(dir, 'docs/release/production-evidence.yaml'),
-      ['gates:', ...gates].join('\n')
-    );
-    callback({ evidenceRoot, check: (args, env) => run(args, env, dir) });
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
+import { ARTIFACT_SHA, ARTIFACT_TEXT, withManifest } from './release-evidence-fixture.mjs';
 
 test('release evidence check lists pending G-items', () => {
   withManifest(
@@ -196,33 +144,6 @@ test('a malformed option stops the check instead of skipping file verification',
         assert.match(result.stderr, /FAIL invalid arguments/);
         assert.doesNotMatch(result.stdout, /PASS/);
       }
-    }
-  );
-});
-
-test('signoff and artifacts accept only the schema fields, and the signoff date is a date', () => {
-  const tail = 'signer_ref: T503-SIGNER, role: owner';
-  const cases = {
-    G01: { signoff: `{ ${tail}, signed_at: 2026-07-02, attestation: { name: Test Person } }` },
-    G02: {
-      artifact: ['file: G02-evidence.pdf', `sha256: ${ARTIFACT_SHA}`, 'metadata: { name: x }'],
-    },
-    G03: { signoff: `{ ${tail}, signed_at: { name: Test Person } }` },
-    G04: { signoff: `{ ${tail}, signed_at: [2026-07-02] }` },
-    G05: { signoff: `{ ${tail}, signed_at: false }` },
-    G06: { signoff: `{ ${tail}, signed_at: '2026-07-02' }` },
-  };
-  withManifest(
-    id => cases[id] ?? {},
-    ({ check }) => {
-      const result = check(['--manifest-only']);
-      assert.equal(result.status, 1);
-      assert.match(result.stderr, /G01: signoff\.attestation is not accepted/);
-      assert.match(result.stderr, /G02: artifact metadata is not accepted/);
-      for (const id of ['G03', 'G04', 'G05']) {
-        assert.match(result.stderr, new RegExp(`${id}: signoff\\.signed_at must be a date`));
-      }
-      assert.doesNotMatch(result.stderr, /G06:/);
     }
   );
 });

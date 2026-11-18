@@ -31,12 +31,22 @@ const textSignoffFields = ['signer_ref', 'role'];
 // The schema's closed key sets; name and email keep their own message.
 const knownSignoffFields = new Set([...requiredSignoffFields, ...identifyingSignoffFields]);
 const artifactFields = new Set(['file', 'sha256', 'path']);
+const manifestFields = new Set(['gates']);
+const gateFields = new Set(requiredGateFields);
+const textGateFields = ['description', 'owner'];
+const GATE_ID_PATTERN = /^G(?:0[1-9]|10)$/u;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
 
-// A YAML timestamp or a calendar date written as text.
+// A calendar date written YYYY-MM-DD; the core schema keeps it as text, so 2026-02-30 is refused
+// instead of rolling over.
 function isSignoffDate(value) {
-  if (value instanceof Date) return !Number.isNaN(value.getTime());
-  return typeof value === 'string' && DATE_PATTERN.test(value) && !Number.isNaN(Date.parse(value));
+  if (typeof value !== 'string' || !DATE_PATTERN.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function isRecord(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
 const FILE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u;
@@ -85,7 +95,9 @@ function readOptions(argv) {
 function readManifest(filePath) {
   const absolute = path.resolve(rootDir, filePath);
   if (!fs.existsSync(absolute)) throw new Error(`manifest not found: ${filePath}`);
-  return yaml.load(fs.readFileSync(absolute, 'utf8'));
+  // The core schema has no merge keys or timestamps: `<<` stays a literal key that the closed key
+  // sets refuse, so a merged mapping cannot carry a name past the checks.
+  return yaml.load(fs.readFileSync(absolute, 'utf8'), { schema: yaml.CORE_SCHEMA });
 }
 
 function readEvidenceRoot(value) {
@@ -110,9 +122,20 @@ function sha256(filePath) {
 }
 
 function validateGateShape(gate) {
+  if (!isRecord(gate)) return ['gate entry is invalid'];
   const errors = [];
+  for (const field of Object.keys(gate)) {
+    if (!gateFields.has(field)) errors.push(`${field} is not accepted`);
+  }
   for (const field of requiredGateFields) {
     if (gate[field] == null || gate[field] === '') errors.push(`missing ${field}`);
+  }
+  if (gate.id != null && !(typeof gate.id === 'string' && GATE_ID_PATTERN.test(gate.id))) {
+    errors.push('id must be one of G01-G10');
+  }
+  for (const field of textGateFields) {
+    if (gate[field] != null && typeof gate[field] !== 'string')
+      errors.push(`${field} must be text`);
   }
   if (!Array.isArray(gate.required_artifacts) || gate.required_artifacts.length === 0) {
     errors.push('required_artifacts must list at least one artifact');
@@ -125,7 +148,7 @@ function validateGateShape(gate) {
 
 function validateSignoff(gate) {
   const errors = identifyingSignoffFields
-    .filter(field => gate.signoff?.[field] != null)
+    .filter(field => Object.hasOwn(gate.signoff ?? {}, field))
     .map(field => `${gate.id}: signoff.${field} must not be recorded here; use signer_ref`);
   for (const field of Object.keys(gate.signoff ?? {})) {
     if (!knownSignoffFields.has(field)) errors.push(`${gate.id}: signoff.${field} is not accepted`);
@@ -149,7 +172,7 @@ function validateSignoff(gate) {
 
 function validateArtifact(gateId, artifact, evidenceRoot) {
   if (!artifact || typeof artifact !== 'object') return [`${gateId}: artifact entry is invalid`];
-  if (artifact.path != null) {
+  if (Object.hasOwn(artifact, 'path')) {
     return [`${gateId}: artifact path is not accepted; name the evidence file with file`];
   }
   const unknown = Object.keys(artifact).filter(field => !artifactFields.has(field));
@@ -180,12 +203,15 @@ function validateArtifact(gateId, artifact, evidenceRoot) {
   return errors;
 }
 
+function gateLabel(gate) {
+  return typeof gate?.id === 'string' && GATE_ID_PATTERN.test(gate.id) ? gate.id : '<unknown>';
+}
+
 function validateGate(gate, evidenceRoot) {
   const shapeErrors = validateGateShape(gate);
-  if (shapeErrors.length > 0)
-    return shapeErrors.map(error => `${gate.id || '<unknown>'}: ${error}`);
+  if (shapeErrors.length > 0) return shapeErrors.map(error => `${gateLabel(gate)}: ${error}`);
   const errors = [];
-  if (!passingStatuses.has(String(gate.status).toLowerCase())) {
+  if (!passingStatuses.has(gate.status)) {
     errors.push(`${gate.id}: status=${gate.status} is not one of ${passingStatusList}`);
   }
   errors.push(...validateSignoff(gate));
@@ -207,12 +233,24 @@ try {
 }
 
 const gates = Array.isArray(manifest?.gates) ? manifest.gates : [];
+const manifestErrors = isRecord(manifest)
+  ? Object.keys(manifest)
+      .filter(field => !manifestFields.has(field))
+      .map(field => `manifest: ${field} is not accepted`)
+  : ['manifest: must be a mapping with gates'];
 const expectedIds = Array.from(
   { length: 10 },
   (_, index) => `G${String(index + 1).padStart(2, '0')}`
 );
-const seenIds = new Set(gates.map(gate => gate.id));
-const errors = expectedIds.filter(id => !seenIds.has(id)).map(id => `${id}: missing from manifest`);
+const listedIds = gates.map(gate => gate?.id);
+const seenIds = new Set(listedIds);
+const errors = [
+  ...manifestErrors,
+  ...expectedIds.filter(id => !seenIds.has(id)).map(id => `${id}: missing from manifest`),
+  ...expectedIds
+    .filter(id => listedIds.indexOf(id) !== listedIds.lastIndexOf(id))
+    .map(id => `${id}: listed more than once`),
+];
 
 for (const gate of gates) errors.push(...validateGate(gate, evidenceRoot));
 
