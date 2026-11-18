@@ -2,11 +2,13 @@
 // Release evidence check. The manifest is a hash manifest: per gate it records the status, the
 // signoff role and date, an opaque signer reference and the SHA-256 of each evidence file. The
 // files and the signers' names are kept outside the repository; `--evidence-root <dir>` verifies
-// the files in that directory against the recorded hashes.
+// the files in that directory against the recorded hashes. The root and its parent directories
+// must stay trusted and unchanged while the check runs: each file is checked, then read by name.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { parseArgs } from 'node:util';
 import yaml from 'js-yaml';
 
 const rootDir = process.cwd();
@@ -26,13 +28,29 @@ const identifyingSignoffFields = ['name', 'email'];
 const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
 const FILE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 
-function argValue(name) {
-  const index = process.argv.indexOf(name);
-  if (index < 0) return null;
-  const value = process.argv[index + 1];
-  // A flag without a value (an unset shell variable) must not silently skip what it asked for.
-  if (!value || value.startsWith('--')) throw new Error(`${name} needs a value`);
-  return value;
+// Strict options: an unknown, repeated or valueless option (an unset shell variable, `--x=`) stops
+// the check, so a requested verification is never silently skipped.
+function readOptions(argv) {
+  let parsed;
+  try {
+    parsed = parseArgs({
+      args: argv,
+      strict: true,
+      allowPositionals: false,
+      tokens: true,
+      options: { manifest: { type: 'string' }, 'evidence-root': { type: 'string' } },
+    });
+  } catch (error) {
+    throw new Error(`invalid arguments: ${error.message}`);
+  }
+  const seen = new Set();
+  for (const token of parsed.tokens) {
+    if (token.kind !== 'option') continue;
+    if (seen.has(token.name)) throw new Error(`invalid arguments: --${token.name} given twice`);
+    seen.add(token.name);
+    if (!token.value) throw new Error(`invalid arguments: --${token.name} needs a value`);
+  }
+  return parsed.values;
 }
 
 function readManifest(filePath) {
@@ -135,8 +153,9 @@ function validateGate(gate, evidenceRoot) {
 let manifest;
 let evidenceRoot;
 try {
-  manifest = readManifest(argValue('--manifest') ?? defaultManifest);
-  evidenceRoot = readEvidenceRoot(argValue('--evidence-root'));
+  const options = readOptions(process.argv.slice(2));
+  manifest = readManifest(options.manifest ?? defaultManifest);
+  evidenceRoot = readEvidenceRoot(options['evidence-root'] ?? null);
 } catch (error) {
   console.error(`[release-evidence] FAIL ${error.message}`);
   process.exit(2);

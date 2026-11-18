@@ -190,20 +190,39 @@ test('the release evidence manifests have a registered modularity owner', () => 
   assert.equal(structuredArtifactOwner('docs/release/other-evidence.yaml'), null);
 });
 
-test('a flag without a value stops the check instead of skipping file verification', () => {
+test('a malformed option stops the check instead of skipping file verification', () => {
   withManifest(
     () => ({}),
-    ({ manifest }) => {
+    ({ manifest, evidenceRoot }) => {
       for (const args of [
         ['--manifest', manifest, '--evidence-root'],
         ['--manifest', manifest, '--evidence-root', ''],
+        ['--manifest', manifest, '--evidence-root='],
         ['--evidence-root', '--manifest', manifest],
         ['--manifest'],
+        ['--manifest', manifest, '--evidence-root', evidenceRoot, '--evidence-root='],
+        ['--manifest', manifest, '--manifest', manifest],
+        ['--manifest', manifest, '--evidence-dir', evidenceRoot],
+        ['--manifest', manifest, evidenceRoot],
+        ['--manifest', manifest, '--', '--evidence-root', evidenceRoot],
       ]) {
         const result = run(args);
         assert.equal(result.status, 2, `${JSON.stringify(args)}: ${result.stdout}`);
-        assert.match(result.stderr, /needs a value/);
+        assert.match(result.stderr, /FAIL invalid arguments/);
+        assert.doesNotMatch(result.stdout, /PASS/);
       }
+    }
+  );
+});
+
+test('the equals form of an option is honoured', () => {
+  withManifest(
+    () => ({}),
+    ({ manifest, evidenceRoot }) => {
+      rmSync(path.join(evidenceRoot, 'G06-evidence.pdf'));
+      const result = run([`--manifest=${manifest}`, `--evidence-root=${evidenceRoot}`]);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /G06: evidence file not found: G06-evidence\.pdf/);
     }
   );
 });

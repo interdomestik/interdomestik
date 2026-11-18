@@ -67,4 +67,5 @@ pnpm release:evidence:check --evidence-root <evidence-store>
 The command must fail until every G01-G10 gate has a non-pending passing status,
 a valid signoff and a well-formed SHA-256 per file. With `--evidence-root` it
 also requires every file to exist in the store with a matching SHA-256; without
-it, the check reports the files as not verified.
+it, the check reports the files as not verified. Run it on a private evidence
+directory that nobody else can change while the check runs.
