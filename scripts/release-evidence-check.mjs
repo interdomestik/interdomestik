@@ -28,7 +28,11 @@ const FILE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 
 function argValue(name) {
   const index = process.argv.indexOf(name);
-  return index >= 0 ? process.argv[index + 1] : null;
+  if (index < 0) return null;
+  const value = process.argv[index + 1];
+  // A flag without a value (an unset shell variable) must not silently skip what it asked for.
+  if (!value || value.startsWith('--')) throw new Error(`${name} needs a value`);
+  return value;
 }
 
 function readManifest(filePath) {
@@ -43,7 +47,7 @@ function readEvidenceRoot(value) {
   if (!fs.existsSync(absolute) || !fs.statSync(absolute).isDirectory()) {
     throw new Error(`evidence root is not a directory: ${value}`);
   }
-  return absolute;
+  return fs.realpathSync(absolute);
 }
 
 function isPending(value) {
@@ -89,7 +93,7 @@ function validateArtifact(gateId, artifact, evidenceRoot) {
     return [`${gateId}: artifact path is not accepted; name the evidence file with file`];
   }
   const file = typeof artifact.file === 'string' ? artifact.file : '';
-  const digest = String(artifact.sha256 ?? '').toLowerCase();
+  const digest = typeof artifact.sha256 === 'string' ? artifact.sha256.toLowerCase() : '';
   const errors = [];
   if (!FILE_NAME_PATTERN.test(file))
     errors.push(`${gateId}: artifact file must be a plain file name`);
@@ -97,8 +101,15 @@ function validateArtifact(gateId, artifact, evidenceRoot) {
     errors.push(`${gateId}: artifact ${file || '<unknown>'} sha256 must be 64 hex characters`);
   }
   if (errors.length > 0 || !evidenceRoot) return errors;
+  // The name has no separators and the root is canonical; a link could still read elsewhere.
   const absolute = path.join(evidenceRoot, file);
-  if (!fs.existsSync(absolute)) return [`${gateId}: evidence file not found: ${file}`];
+  let entry;
+  try {
+    entry = fs.lstatSync(absolute);
+  } catch {
+    return [`${gateId}: evidence file not found: ${file}`];
+  }
+  if (!entry.isFile()) return [`${gateId}: evidence file must be a regular file: ${file}`];
   const actual = sha256(absolute);
   if (actual !== digest) {
     errors.push(`${gateId}: sha256 mismatch for ${file} expected=${digest} actual=${actual}`);
@@ -121,11 +132,10 @@ function validateGate(gate, evidenceRoot) {
   return errors;
 }
 
-const manifestPath = argValue('--manifest') || defaultManifest;
 let manifest;
 let evidenceRoot;
 try {
-  manifest = readManifest(manifestPath);
+  manifest = readManifest(argValue('--manifest') ?? defaultManifest);
   evidenceRoot = readEvidenceRoot(argValue('--evidence-root'));
 } catch (error) {
   console.error(`[release-evidence] FAIL ${error.message}`);

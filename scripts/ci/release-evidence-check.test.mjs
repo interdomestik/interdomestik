@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -183,8 +183,69 @@ test('the release evidence manifests have a registered modularity owner', () => 
   for (const file of [
     'docs/release/production-evidence.yaml',
     'docs/release/t503-evidence-intake/manifest-patch-example.yaml',
+    'docs/release/production-evidence.schema.json',
   ]) {
     assert.equal(structuredArtifactOwner(file), 'release-evidence-hash-manifest-contract');
   }
   assert.equal(structuredArtifactOwner('docs/release/other-evidence.yaml'), null);
+});
+
+test('a flag without a value stops the check instead of skipping file verification', () => {
+  withManifest(
+    () => ({}),
+    ({ manifest }) => {
+      for (const args of [
+        ['--manifest', manifest, '--evidence-root'],
+        ['--manifest', manifest, '--evidence-root', ''],
+        ['--evidence-root', '--manifest', manifest],
+        ['--manifest'],
+      ]) {
+        const result = run(args);
+        assert.equal(result.status, 2, `${JSON.stringify(args)}: ${result.stdout}`);
+        assert.match(result.stderr, /needs a value/);
+      }
+    }
+  );
+});
+
+test('an evidence file that is a link is refused, even when its target matches the hash', () => {
+  withManifest(
+    () => ({}),
+    ({ manifest, evidenceRoot }) => {
+      const outside = path.join(path.dirname(evidenceRoot), 'outside.pdf');
+      writeFileSync(outside, ARTIFACT_TEXT);
+      rmSync(path.join(evidenceRoot, 'G04-evidence.pdf'));
+      symlinkSync(outside, path.join(evidenceRoot, 'G04-evidence.pdf'));
+      const result = run(['--manifest', manifest, '--evidence-root', evidenceRoot]);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /G04: evidence file must be a regular file: G04-evidence\.pdf/);
+    }
+  );
+});
+
+test('a hash must be a string, not a list holding one', () => {
+  withManifest(
+    id =>
+      id === 'G09' ? { artifact: ['file: G09-evidence.pdf', `sha256: [${ARTIFACT_SHA}]`] } : {},
+    ({ manifest }) => {
+      const result = run(['--manifest', manifest]);
+      assert.equal(result.status, 1);
+      assert.match(
+        result.stderr,
+        /G09: artifact G09-evidence\.pdf sha256 must be 64 hex characters/
+      );
+    }
+  );
+});
+
+test('the published schema requires the hash-manifest fields and refuses the retired ones', () => {
+  const schemaPath = path.join(rootDir, 'docs/release/production-evidence.schema.json');
+  const gate = JSON.parse(readFileSync(schemaPath, 'utf8')).properties.gates.items.properties;
+  const artifact = gate.required_artifacts.items;
+  assert.deepEqual(artifact.required, ['file', 'sha256']);
+  assert.equal(artifact.additionalProperties, false);
+  assert.deepEqual(gate.signoff.required, ['signer_ref', 'role', 'signed_at']);
+  assert.equal(gate.signoff.additionalProperties, false);
+  assert.equal('name' in gate.signoff.properties, false);
+  assert.equal('path' in artifact.properties, false);
 });

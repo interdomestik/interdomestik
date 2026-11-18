@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Interdomestik production evidence manifest",
+  "title": "Interdomestik production evidence hash manifest",
   "type": "object",
   "required": ["gates"],
   "properties": {
@@ -23,18 +23,20 @@
             "minItems": 1,
             "items": {
               "type": "object",
-              "required": ["path", "sha256"],
+              "required": ["file", "sha256"],
+              "additionalProperties": false,
               "properties": {
-                "path": { "type": "string" },
-                "sha256": { "type": "string" }
+                "file": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+                "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" }
               }
             }
           },
           "signoff": {
             "type": "object",
-            "required": ["name", "role", "signed_at"],
+            "required": ["signer_ref", "role", "signed_at"],
+            "additionalProperties": false,
             "properties": {
-              "name": { "type": "string" },
+              "signer_ref": { "type": "string", "minLength": 1 },
               "role": { "type": "string" },
               "signed_at": { "type": "string" }
             }
