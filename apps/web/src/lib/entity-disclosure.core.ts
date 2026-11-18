@@ -1,4 +1,4 @@
-import { and, eq, legalEntities } from '@interdomestik/database';
+import { and, eq, legalEntities, type TenantTransaction } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -73,11 +73,20 @@ export async function getSponsorEntityDisclosureCore(
   legalEntityId: string
 ): Promise<EntityDisclosureModel> {
   const { tenantId } = readTenantAuthority(authority);
-  const entity = await withTenantAuthority(authority, tx =>
-    tx.query.legalEntities.findFirst({
-      where: and(eq(legalEntities.tenantId, tenantId), eq(legalEntities.id, legalEntityId)),
-    })
+  return withTenantAuthority(authority, tx =>
+    readSponsorEntityDisclosure(tx, tenantId, legalEntityId)
   );
+}
+
+/** Reads inside the caller's transaction: a second transaction would need a second connection. */
+export async function readSponsorEntityDisclosure(
+  tx: TenantTransaction,
+  tenantId: string,
+  legalEntityId: string
+): Promise<EntityDisclosureModel> {
+  const entity = await tx.query.legalEntities.findFirst({
+    where: and(eq(legalEntities.tenantId, tenantId), eq(legalEntities.id, legalEntityId)),
+  });
   return buildEntityDisclosureModel({
     contractingCompany: entity?.legalName,
     governingLaw: entity?.governingLaw,

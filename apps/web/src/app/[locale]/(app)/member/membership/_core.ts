@@ -90,7 +90,7 @@ export async function getMemberSubscriptionsCore(args: {
           canceledAt: null,
           plan: plan ?? null,
         },
-        { authority, coverage: effective }
+        { tx, tenantId, coverage: effective }
       );
       return [{ ...record, sponsorCoverage: effective }];
     }
