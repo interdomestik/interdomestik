@@ -20,9 +20,9 @@ test('the repository manifest is a hash manifest without names or repository pat
   const gates = yaml.load(readFileSync(manifestPath, 'utf8')).gates;
   assert.equal(gates.length, 10);
   for (const gate of gates) {
-    assert.deepEqual(Object.keys(gate.signoff).sort(), ['role', 'signed_at', 'signer_ref']);
+    assert.deepEqual(Object.keys(gate.signoff), ['signer_ref', 'role', 'signed_at']);
     for (const artifact of gate.required_artifacts) {
-      assert.deepEqual(Object.keys(artifact).sort(), ['file', 'sha256']);
+      assert.deepEqual(Object.keys(artifact), ['file', 'sha256']);
     }
   }
   const result = run(['--manifest-only']);

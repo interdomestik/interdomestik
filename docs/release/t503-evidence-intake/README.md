@@ -49,14 +49,22 @@ Then update only the matching gate in `docs/release/production-evidence.yaml`
 with:
 
 - `status: supplied`, `approved`, `verified`, or `waived`;
-- the matching `required_artifacts[*].file` (the plain file name in the store);
+- the matching `required_artifacts[*].file` (the plain file name in the store,
+  starting with the gate id, for example `G04-`);
 - the matching `required_artifacts[*].sha256`;
-- signoff `signer_ref` (the reference of the signoff record in the store, never
-  a name or email), role, and signed date.
+- signoff `signer_ref` `T503-<gate id>-SIGNOFF` (the signoff record in the store
+  carries that reference; never a name or email), role, and signed date
+  (`YYYY-MM-DD`).
 
 Preserve the existing gate entry shape, including `id`, `description`, `owner`,
 and any unrelated artifacts. Do not replace a full gate entry with only the
 partial fields shown in the example.
+
+Keep the manifest in its canonical form: block style, two-space indents, values
+unquoted where YAML allows, and no comments, anchors or aliases below the fixed
+two-line header. Role, owner, description and file names are free text; the
+check cannot tell a name from a title, so the reviewer of the manifest diff
+confirms that they hold none.
 
 Finally run:
 

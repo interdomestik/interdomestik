@@ -35,6 +35,13 @@ const manifestFields = new Set(['gates']);
 const gateFields = new Set(requiredGateFields);
 const textGateFields = ['description', 'owner'];
 const GATE_ID_PATTERN = /^G(?:0[1-9]|10)$/u;
+// The only comment the manifest may carry. Below it the manifest must be exactly its canonical
+// dump, so no comment, anchor label, alias or quoting style can carry text past the checks.
+const MANIFEST_HEADER = [
+  "# Release evidence hash manifest. The evidence files and the signers' names are kept outside",
+  '# the repository; `pnpm release:evidence:verify <dir>` verifies the files.',
+  '',
+].join('\n');
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
 
 // A calendar date written YYYY-MM-DD; the core schema keeps it as text, so 2026-02-30 is refused
@@ -97,7 +104,16 @@ function readManifest(filePath) {
   if (!fs.existsSync(absolute)) throw new Error(`manifest not found: ${filePath}`);
   // The core schema has no merge keys or timestamps: `<<` stays a literal key that the closed key
   // sets refuse, so a merged mapping cannot carry a name past the checks.
-  return yaml.load(fs.readFileSync(absolute, 'utf8'), { schema: yaml.CORE_SCHEMA });
+  const text = fs.readFileSync(absolute, 'utf8');
+  return { text, data: yaml.load(text, { schema: yaml.CORE_SCHEMA }) };
+}
+
+function sourceErrors(text, data) {
+  if (!text.startsWith(MANIFEST_HEADER))
+    return ['manifest: must start with the fixed header comment'];
+  const canonical = yaml.dump(data, { schema: yaml.CORE_SCHEMA, lineWidth: -1 });
+  if (text.slice(MANIFEST_HEADER.length) === canonical) return [];
+  return ['manifest: must be in canonical form: no other comments, anchors, aliases or styles'];
 }
 
 function readEvidenceRoot(value) {
@@ -146,6 +162,10 @@ function validateGateShape(gate) {
   return errors;
 }
 
+function signerRefFor(gateId) {
+  return `T503-${gateId}-SIGNOFF`;
+}
+
 function validateSignoff(gate) {
   const errors = identifyingSignoffFields
     .filter(field => Object.hasOwn(gate.signoff ?? {}, field))
@@ -162,6 +182,15 @@ function validateSignoff(gate) {
     if (value != null && typeof value !== 'string') {
       errors.push(`${gate.id}: signoff.${field} must be text`);
     }
+  }
+  // The reference is derived from the gate, so it cannot hold a name.
+  const signerRef = gate.signoff?.signer_ref;
+  if (
+    typeof signerRef === 'string' &&
+    !isPending(signerRef) &&
+    signerRef !== signerRefFor(gate.id)
+  ) {
+    errors.push(`${gate.id}: signoff.signer_ref must be ${signerRefFor(gate.id)}`);
   }
   for (const field of requiredSignoffFields) {
     if (isPending(gate.signoff?.[field]))
@@ -183,6 +212,8 @@ function validateArtifact(gateId, artifact, evidenceRoot) {
   const errors = [];
   if (!FILE_NAME_PATTERN.test(file))
     errors.push(`${gateId}: artifact file must be a plain file name`);
+  else if (!file.startsWith(`${gateId}-`))
+    errors.push(`${gateId}: artifact file must start with ${gateId}-`);
   if (!SHA256_PATTERN.test(digest)) {
     errors.push(`${gateId}: artifact ${file || '<unknown>'} sha256 must be 64 hex characters`);
   }
@@ -222,10 +253,11 @@ function validateGate(gate, evidenceRoot) {
 }
 
 let manifest;
+let manifestText;
 let evidenceRoot;
 try {
   const options = readOptions(process.argv.slice(2));
-  manifest = readManifest(manifestFile);
+  ({ text: manifestText, data: manifest } = readManifest(manifestFile));
   evidenceRoot = readEvidenceRoot(options['evidence-root'] ?? null);
 } catch (error) {
   console.error(`[release-evidence] FAIL ${error.message}`);
@@ -245,6 +277,7 @@ const expectedIds = Array.from(
 const listedIds = gates.map(gate => gate?.id);
 const seenIds = new Set(listedIds);
 const errors = [
+  ...sourceErrors(manifestText, manifest),
   ...manifestErrors,
   ...expectedIds.filter(id => !seenIds.has(id)).map(id => `${id}: missing from manifest`),
   ...expectedIds

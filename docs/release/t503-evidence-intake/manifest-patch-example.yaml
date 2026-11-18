@@ -14,7 +14,7 @@ gates:
       - file: G04-bank-payment-proof-waiver.md
         sha256: REPLACE_WITH_ACTUAL_SHA256
     signoff:
-      signer_ref: REPLACE_WITH_SIGNOFF_RECORD_REFERENCE
+      signer_ref: T503-G04-SIGNOFF
       role: Finance owner / Release owner
       signed_at: 2026-07-02
 
@@ -24,7 +24,7 @@ gates:
       - file: G05-600-mkd-reconciliation-waiver.md
         sha256: REPLACE_WITH_ACTUAL_SHA256
     signoff:
-      signer_ref: REPLACE_WITH_SIGNOFF_RECORD_REFERENCE
+      signer_ref: T503-G05-SIGNOFF
       role: Finance owner / Release owner
       signed_at: 2026-07-02
 
@@ -34,7 +34,7 @@ gates:
       - file: G09-poa-consent-terms-waiver.md
         sha256: REPLACE_WITH_ACTUAL_SHA256
     signoff:
-      signer_ref: REPLACE_WITH_SIGNOFF_RECORD_REFERENCE
+      signer_ref: T503-G09-SIGNOFF
       role: Claims/legal owner / Release owner
       signed_at: 2026-07-02
 
@@ -44,6 +44,6 @@ gates:
       - file: G10-closure-evidence-waiver.md
         sha256: REPLACE_WITH_ACTUAL_SHA256
     signoff:
-      signer_ref: REPLACE_WITH_SIGNOFF_RECORD_REFERENCE
+      signer_ref: T503-G10-SIGNOFF
       role: Claims/finance owner / Release owner
       signed_at: 2026-07-02

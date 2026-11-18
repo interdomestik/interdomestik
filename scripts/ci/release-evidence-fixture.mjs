@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -24,26 +24,44 @@ function run(args, env, cwd) {
   });
 }
 
-// Overrides: artifact (lines), signoff (flow mapping), status, description, owner, extra (lines).
+// The checker accepts only this header comment above the canonical manifest body.
+const MANIFEST_HEADER = readFileSync(
+  path.join(rootDir, 'docs/release/production-evidence.yaml'),
+  'utf8'
+)
+  .split('\n')
+  .filter((line, index, lines) => lines.slice(0, index + 1).every(each => each.startsWith('#')));
+
+// Without overrides the lines are canonical. Overrides: artifact (lines), signoff (a flow mapping,
+// not canonical), status, description, owner, extra (lines).
 export function gateLines(id, overrides = {}) {
   const artifact = overrides.artifact ?? [`file: ${id}-evidence.pdf`, `sha256: ${ARTIFACT_SHA}`];
   const signoff =
-    overrides.signoff ?? `{ signer_ref: T503-${id}, role: release owner, signed_at: 2026-07-02 }`;
+    overrides.signoff ??
+    ['', `signer_ref: T503-${id}-SIGNOFF`, 'role: release owner', 'signed_at: 2026-07-02'].join(
+      '\n      '
+    );
+  const description = overrides.description ?? 'test ' + id;
   return [
     `  - id: ${id}`,
-    `    description: ${overrides.description ?? `test ${id}`}`,
+    `    description: ${description}`,
     `    owner: ${overrides.owner ?? 'release owner'}`,
     `    status: ${overrides.status ?? 'supplied'}`,
     '    required_artifacts:',
     `      - ${artifact[0]}`,
     ...artifact.slice(1).map(line => `        ${line}`),
-    `    signoff: ${signoff}`,
+    `    signoff:${overrides.signoff ? ' ' : ''}${signoff}`,
     ...(overrides.extra ?? []).map(line => `    ${line}`),
   ].join('\n');
 }
 
-// `header` lines precede `gates:`; `extraGates` are appended after the ten expected gates.
-export function withManifest(gateOverrides, callback, { header = [], extraGates = [] } = {}) {
+// `header` lines follow the fixed header comment and precede `gates:`; `extraGates` are appended
+// after the ten expected gates; `fixedHeader: false` leaves the header comment out.
+export function withManifest(
+  gateOverrides,
+  callback,
+  { header = [], extraGates = [], fixedHeader = true } = {}
+) {
   const dir = mkdtempSync(path.join(tmpdir(), 'release-evidence-'));
   try {
     const evidenceRoot = path.join(dir, 'store');
@@ -54,7 +72,14 @@ export function withManifest(gateOverrides, callback, { header = [], extraGates 
     const gates = GATE_IDS.map(id => gateLines(id, gateOverrides(id)));
     writeFileSync(
       path.join(dir, 'docs/release/production-evidence.yaml'),
-      [...header, 'gates:', ...gates, ...extraGates].join('\n')
+      [
+        ...(fixedHeader ? MANIFEST_HEADER : []),
+        ...header,
+        'gates:',
+        ...gates,
+        ...extraGates,
+        '',
+      ].join('\n')
     );
     callback({ evidenceRoot, check: (args, env = {}) => run(args, env, dir) });
   } finally {

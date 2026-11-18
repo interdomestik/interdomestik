@@ -17,17 +17,19 @@ function failsWith(cases, expected, options = {}) {
   );
 }
 
-const tail = 'signer_ref: T503-SIGNER, role: owner';
+const tail = id => `signer_ref: T503-${id}-SIGNOFF, role: owner`;
 
 test('signoff and artifacts accept only the schema fields, even when a field is empty', () => {
   failsWith(
     {
-      G01: { signoff: `{ ${tail}, signed_at: 2026-07-02, attestation: { name: Test Person } }` },
+      G01: {
+        signoff: `{ ${tail('G01')}, signed_at: 2026-07-02, attestation: { name: Test Person } }`,
+      },
       G02: {
         artifact: ['file: G02-evidence.pdf', `sha256: ${ARTIFACT_SHA}`, 'metadata: { name: x }'],
       },
-      G03: { signoff: `{ ${tail}, signed_at: 2026-07-02, name: null }` },
-      G04: { signoff: `{ ${tail}, signed_at: 2026-07-02, email: ~ }` },
+      G03: { signoff: `{ ${tail('G03')}, signed_at: 2026-07-02, name: null }` },
+      G04: { signoff: `{ ${tail('G04')}, signed_at: 2026-07-02, email: ~ }` },
       G05: { artifact: ['file: G05-evidence.pdf', `sha256: ${ARTIFACT_SHA}`, 'path: null'] },
     },
     [
@@ -42,15 +44,15 @@ test('signoff and artifacts accept only the schema fields, even when a field is 
 
 test('the signoff date is a real calendar date written YYYY-MM-DD', () => {
   const cases = {
-    G01: { signoff: `{ ${tail}, signed_at: { name: Test Person } }` },
-    G02: { signoff: `{ ${tail}, signed_at: [2026-07-02] }` },
-    G03: { signoff: `{ ${tail}, signed_at: false }` },
-    G04: { signoff: `{ ${tail}, signed_at: 2026-02-30 }` },
-    G05: { signoff: `{ ${tail}, signed_at: '2026-02-30' }` },
-    G06: { signoff: `{ ${tail}, signed_at: 2026-07-03T25:00:00Z }` },
-    G07: { signoff: `{ ${tail}, signed_at: 2026-07-03T10:00:00Z }` },
-    G08: { signoff: `{ ${tail}, signed_at: '2026-07-02' }` },
-    G09: { signoff: `{ ${tail}, signed_at: 2024-02-29 }` },
+    G01: { signoff: `{ ${tail('G01')}, signed_at: { name: Test Person } }` },
+    G02: { signoff: `{ ${tail('G02')}, signed_at: [2026-07-02] }` },
+    G03: { signoff: `{ ${tail('G03')}, signed_at: false }` },
+    G04: { signoff: `{ ${tail('G04')}, signed_at: 2026-02-30 }` },
+    G05: { signoff: `{ ${tail('G05')}, signed_at: '2026-02-30' }` },
+    G06: { signoff: `{ ${tail('G06')}, signed_at: 2026-07-03T25:00:00Z }` },
+    G07: { signoff: `{ ${tail('G07')}, signed_at: 2026-07-03T10:00:00Z }` },
+    G08: { signoff: `{ ${tail('G08')}, signed_at: '2026-07-02' }` },
+    G09: { signoff: `{ ${tail('G09')}, signed_at: 2024-02-29 }` },
   };
   withManifest(
     id => cases[id] ?? {},
@@ -84,7 +86,7 @@ test('YAML merge keys are refused instead of resolved', () => {
   failsWith(
     {
       G03: {
-        signoff: `{ <<: { signer_ref: { name: Test Person } }, ${tail}, signed_at: 2026-07-02 }`,
+        signoff: `{ <<: { signer_ref: { name: Test Person } }, ${tail('G03')}, signed_at: 2026-07-02 }`,
       },
       G04: { extra: ['<<: { notes: Test Person }'] },
     },
@@ -108,4 +110,30 @@ test('description, status and id take only the schema values', () => {
     ],
     { extraGates: [gateLines('G11'), gateLines('G01')] }
   );
+});
+
+test('signer references and file names are derived from their gate', () => {
+  failsWith(
+    {
+      G01: { signoff: '{ signer_ref: Test-Person, role: owner, signed_at: 2026-07-02 }' },
+      G02: { artifact: ['file: test-person.pdf', `sha256: ${ARTIFACT_SHA}`] },
+      G03: { artifact: ['file: G04-evidence.pdf', `sha256: ${ARTIFACT_SHA}`] },
+    },
+    [
+      /G01: signoff\.signer_ref must be T503-G01-SIGNOFF/,
+      /G02: artifact file must start with G02-/,
+      /G03: artifact file must start with G03-/,
+    ]
+  );
+});
+
+test('the manifest source carries only the fixed header comment and its canonical form', () => {
+  const canonical = /manifest: must be in canonical form/;
+  failsWith({ G05: { extra: ['# signed by Test Person'] } }, [canonical]);
+  failsWith({ G06: { description: '&test-person test G06' } }, [canonical]);
+  failsWith({ G07: { owner: "'release owner'" } }, [canonical]);
+  failsWith({}, [/manifest: must start with the fixed header comment/], {
+    fixedHeader: false,
+    header: ['# Test Person signed this manifest'],
+  });
 });
