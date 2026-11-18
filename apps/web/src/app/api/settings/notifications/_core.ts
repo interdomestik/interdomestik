@@ -25,6 +25,18 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   inAppAll: true,
 };
 
+// Only the six preference columns are ever written; identity and tenant columns come from the session.
+function pickNotificationPreferences(input: NotificationPreferences): NotificationPreferences {
+  return {
+    emailClaimUpdates: input.emailClaimUpdates,
+    emailMarketing: input.emailMarketing,
+    emailNewsletter: input.emailNewsletter,
+    pushClaimUpdates: input.pushClaimUpdates,
+    pushMessages: input.pushMessages,
+    inAppAll: input.inAppAll,
+  };
+}
+
 export async function getNotificationPreferencesCore(args: {
   userId: string;
   authority: TenantAuthority;
@@ -64,8 +76,9 @@ export async function upsertNotificationPreferencesCore(args: {
   authority: TenantAuthority;
   preferences: NotificationPreferences;
 }): Promise<void> {
-  const { userId, authority, preferences } = args;
+  const { userId, authority } = args;
   const { tenantId: resolvedTenantId } = readTenantAuthority(authority);
+  const preferences = pickNotificationPreferences(args.preferences);
 
   const [existing] = await withTenantAuthority(
     authority,
