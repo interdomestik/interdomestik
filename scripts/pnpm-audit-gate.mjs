@@ -128,8 +128,12 @@ function readAdvisory(advisory, index) {
   if (!isNonEmptyString(advisory.module_name)) {
     fail(`advisory ${id} has invalid module_name ${describe(advisory.module_name)}`);
   }
+  const npmId =
+    isNonEmptyString(advisory.id) || isNonNegativeInteger(advisory.id) ? String(advisory.id) : null;
   return {
     id,
+    npmId,
+    ghsaId: advisory.ghsaId ?? null,
     severity: advisory.severity,
     module: advisory.module_name,
     findings: advisory.findings,
@@ -139,6 +143,16 @@ function readAdvisory(advisory, index) {
 // Repeated records of one identity are allowed (all are scope-checked) only when consistent.
 function assertConsistentIdentities(advisories) {
   const seen = new Map();
+  // One npm advisory id must keep one identity: with and without a ghsaId it would count twice.
+  const ghsaByNpmId = new Map();
+  advisories.forEach(advisory => {
+    if (advisory.npmId === null) return;
+    const known = ghsaByNpmId.get(advisory.npmId);
+    if (known !== undefined && known !== advisory.ghsaId) {
+      fail(`advisory ${advisory.npmId} is reported with inconsistent ghsaId values`);
+    }
+    ghsaByNpmId.set(advisory.npmId, advisory.ghsaId);
+  });
   advisories.forEach(advisory => {
     const first = seen.get(advisory.id);
     if (!first) {
@@ -155,7 +169,13 @@ function assertConsistentIdentities(advisories) {
   return seen.size;
 }
 
-const VERSION_PATTERN = /^\S+$/u;
+// Canonical semantic versions only (no build metadata, no leading zeros, ASCII), so one
+// installed version has exactly one spelling.
+const IDENTIFIER = '(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)';
+const VERSION_PATTERN = new RegExp(
+  `^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-${IDENTIFIER}(?:\\.${IDENTIFIER})*)?$`,
+  'u'
+);
 
 // Distinct installed versions of one identity across all of its records (at least one).
 function identityUnits(id, records) {

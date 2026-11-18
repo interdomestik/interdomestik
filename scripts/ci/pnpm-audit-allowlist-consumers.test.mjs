@@ -7,87 +7,153 @@ import yaml from 'js-yaml';
 import { repoRoot } from './pnpm-audit-fixtures.mjs';
 
 // pnpm audit reports a shared install once, under the first path its walker visits, so a
-// path-scoped allowlist entry cannot see a new production consumer of the same install. This
-// test pins the production consumers of each allowlisted vulnerable install, read from the
-// lockfile: a new consumer fails here and needs a fresh reachability assessment.
+// path-scoped allowlist entry cannot see a new production route to the same install. This test
+// pins, from the lockfile, every production edge that leads to each allowlisted vulnerable
+// install: a new route or consumer fails here and needs a fresh reachability assessment.
 
 const lockfile = yaml.load(readFileSync(path.join(repoRoot, 'pnpm-lock.yaml'), 'utf8'));
 
-function packageName(key) {
-  const at = key.indexOf('@', key.startsWith('@') ? 1 : 0);
-  return key.slice(0, at);
+// pnpm v9 references: `<version>(peers)` names the dependency itself, `link:` a workspace
+// package (itself an importer, visited as a root), anything else the full target key (aliases).
+function targetKey(name, reference) {
+  const value = typeof reference === 'string' ? reference : reference?.version;
+  if (typeof value !== 'string' || value === '') throw new Error(`unreadable reference ${name}`);
+  if (value.startsWith('link:')) return null;
+  return /^\d/u.test(value) ? `${name}@${value}` : value;
 }
 
-function dependencyEntries(node) {
-  return Object.entries({ ...node?.dependencies, ...node?.optionalDependencies });
+function children(node) {
+  return Object.entries({ ...node?.dependencies, ...node?.optionalDependencies })
+    .map(([name, reference]) => targetKey(name, reference))
+    .filter(Boolean);
 }
 
-// Snapshot keys reachable through production and optional dependencies of every importer.
-function productionSnapshots(lock = lockfile) {
+// Production graph: importer and snapshot nodes, production and optional edges only.
+function productionEdges(lock) {
+  const edges = [];
   const seen = new Set();
-  const seenImporters = new Set();
   const queue = [];
-  const visitImporter = importer => {
-    if (seenImporters.has(importer)) return;
-    seenImporters.add(importer);
-    for (const [name, spec] of dependencyEntries(lock.importers[importer])) {
-      const version = typeof spec === 'string' ? spec : spec.version;
-      if (version.startsWith('link:')) {
-        visitImporter(path.posix.normalize(path.posix.join(importer, version.slice(5))));
-      } else {
-        queue.push(`${name}@${version}`);
-      }
-    }
-  };
-  Object.keys(lock.importers).forEach(visitImporter);
+  for (const [importer, node] of Object.entries(lock.importers)) {
+    for (const child of children(node)) edges.push([`importer:${importer}`, child]);
+  }
+  edges.forEach(([, child]) => queue.push(child));
   while (queue.length > 0) {
     const key = queue.pop();
     if (seen.has(key)) continue;
     seen.add(key);
-    for (const [name, version] of dependencyEntries(lock.snapshots[key])) {
-      if (!String(version).startsWith('link:')) queue.push(`${name}@${version}`);
+    if (!(key in lock.snapshots)) throw new Error(`unresolved production snapshot ${key}`);
+    for (const child of children(lock.snapshots[key])) {
+      edges.push([key, child]);
+      queue.push(child);
     }
   }
-  return seen;
+  return edges;
 }
 
-function productionConsumers(dependency, version, lock = lockfile) {
-  const consumers = new Set();
-  for (const key of productionSnapshots(lock)) {
-    const pinned = dependencyEntries(lock.snapshots[key]).some(
-      ([name, resolved]) => name === dependency && resolved === version
-    );
-    if (pinned) consumers.add(packageName(key));
+// Package identity without the peer suffix, which changes with unrelated peer upgrades.
+const withoutPeers = key => key.replace(/\(.*$/su, '');
+
+// Every production edge whose child is the target install or leads to it, as "parent > child".
+function edgesLeadingTo(target, lock = lockfile) {
+  const edges = productionEdges(lock);
+  const leads = new Set([target]);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const [parent, child] of edges) {
+      if (leads.has(child) && !leads.has(parent)) {
+        leads.add(parent);
+        grew = true;
+      }
+    }
   }
-  return [...consumers].sort();
+  const pinned = edges.filter(([, child]) => leads.has(child));
+  return [...new Set(pinned.map(edge => edge.map(withoutPeers).join(' > ')))].sort();
 }
 
-// GHSA-fc5q-39xc-vjpf, assessed 2026-11-18: the Sentry build-time rollup plugins
-// (plugin-commonjs, pluginutils, fdir), the vitest test peer of better-auth (vitest, tinyglobby,
-// vite, fdir) and the file watcher of next-intl (@parcel/watcher). None takes request input.
-test('the production consumers of allowlisted picomatch installs are the assessed ones', () => {
-  assert.deepEqual(productionConsumers('picomatch', '4.0.4'), [
-    '@parcel/watcher',
-    '@rollup/plugin-commonjs',
-    '@rollup/pluginutils',
-    'fdir',
-    'vitest',
+// GHSA-fc5q-39xc-vjpf, assessed 2026-11-18: the Sentry build-time rollup plugins, the vitest
+// test peer of better-auth and the next-intl file watcher. None takes request input.
+test('the production routes to allowlisted picomatch installs are the assessed ones', () => {
+  assert.deepEqual(edgesLeadingTo('picomatch@4.0.4'), [
+    '@parcel/watcher@2.5.6 > picomatch@4.0.4',
+    '@rollup/plugin-commonjs@28.0.1 > @rollup/pluginutils@5.4.0',
+    '@rollup/plugin-commonjs@28.0.1 > fdir@6.5.0',
+    '@rollup/plugin-commonjs@28.0.1 > picomatch@4.0.4',
+    '@rollup/pluginutils@5.4.0 > picomatch@4.0.4',
+    '@sentry/nextjs@10.75.2 > @rollup/plugin-commonjs@28.0.1',
+    '@vitest/coverage-v8@4.1.11 > vitest@4.1.11',
+    'better-auth@1.6.33 > vitest@4.1.11',
+    'fdir@6.5.0 > picomatch@4.0.4',
+    'importer:apps/web > @sentry/nextjs@10.75.2',
+    'importer:apps/web > better-auth@1.6.33',
+    'importer:apps/web > next-intl@4.14.5',
+    'next-intl@4.14.5 > @parcel/watcher@2.5.6',
+    'vitest@4.1.11 > @vitest/coverage-v8@4.1.11',
+    'vitest@4.1.11 > picomatch@4.0.4',
   ]);
-  assert.deepEqual(productionConsumers('picomatch', '4.0.7'), ['fdir', 'tinyglobby', 'vite']);
+  assert.deepEqual(edgesLeadingTo('picomatch@4.0.7'), [
+    '@vitest/coverage-v8@4.1.11 > vitest@4.1.11',
+    '@vitest/mocker@4.1.11 > vite@8.3.3',
+    'better-auth@1.6.33 > vitest@4.1.11',
+    'fdir@6.5.0 > picomatch@4.0.7',
+    'importer:apps/web > better-auth@1.6.33',
+    'tinyglobby@0.2.17 > fdir@6.5.0',
+    'tinyglobby@0.2.17 > picomatch@4.0.7',
+    'vite@8.3.3 > picomatch@4.0.7',
+    'vite@8.3.3 > tinyglobby@0.2.17',
+    'vitest@4.1.11 > @vitest/coverage-v8@4.1.11',
+    'vitest@4.1.11 > @vitest/mocker@4.1.11',
+    'vitest@4.1.11 > tinyglobby@0.2.17',
+  ]);
 });
 
-test('a new production consumer is detected, through links too, and dev-only consumers are not', () => {
-  const lock = {
-    importers: {
-      'apps/web': { dependencies: { '@scope/lib': { version: 'link:../../packages/lib' } } },
-      'packages/lib': { dependencies: { 'glob-user': { version: '1.0.0' } } },
-      tooling: { devDependencies: { 'dev-only': { version: '1.0.0' } } },
+const assessed = {
+  importers: { web: { dependencies: { tool: { version: '1.0.0' } } } },
+  snapshots: {
+    'tool@1.0.0': { dependencies: { fdir: '6.5.0(picomatch@4.0.4)' } },
+    'fdir@6.5.0(picomatch@4.0.4)': { dependencies: { picomatch: '4.0.4' } },
+    'picomatch@4.0.4': {},
+  },
+};
+const baseline = edgesLeadingTo('picomatch@4.0.4', assessed);
+
+function variant(change) {
+  const lock = structuredClone(assessed);
+  change(lock);
+  return edgesLeadingTo('picomatch@4.0.4', lock);
+}
+
+test('new routes, aliases and direct dependencies change the pinned edges', () => {
+  assert.deepEqual(baseline, [
+    'fdir@6.5.0 > picomatch@4.0.4',
+    'importer:web > tool@1.0.0',
+    'tool@1.0.0 > fdir@6.5.0',
+  ]);
+  const changes = {
+    'new root to an assessed install': lock => {
+      lock.importers.web.optionalDependencies = { other: { version: '2.0.0' } };
+      lock.snapshots['other@2.0.0'] = { dependencies: { fdir: '6.5.0(picomatch@4.0.4)' } };
     },
-    snapshots: {
-      'glob-user@1.0.0': { optionalDependencies: { picomatch: '4.0.4' } },
-      'dev-only@1.0.0': { dependencies: { picomatch: '4.0.4' } },
-      'picomatch@4.0.4': {},
+    'aliased parent': lock => {
+      lock.importers.web.dependencies.alias = { version: 'renamed@3.0.0' };
+      lock.snapshots['renamed@3.0.0'] = { dependencies: { fdir: '6.5.0(picomatch@4.0.4)' } };
+    },
+    'aliased picomatch': lock => {
+      lock.snapshots['tool@1.0.0'].dependencies.pm = 'picomatch@4.0.4';
+    },
+    'direct importer dependency': lock => {
+      lock.importers.web.dependencies.picomatch = { version: '4.0.4' };
     },
   };
-  assert.deepEqual(productionConsumers('picomatch', '4.0.4', lock), ['glob-user']);
+  for (const [name, change] of Object.entries(changes)) {
+    assert.notDeepEqual(variant(change), baseline, name);
+  }
+  const devOnly = variant(lock => {
+    lock.importers.web.devDependencies = { dev: { version: '1.0.0' } };
+    lock.snapshots['dev@1.0.0'] = { dependencies: { picomatch: '4.0.4' } };
+  });
+  assert.deepEqual(devOnly, baseline);
+  assert.throws(
+    () => variant(lock => delete lock.snapshots['fdir@6.5.0(picomatch@4.0.4)']),
+    /unresolved production snapshot fdir@6\.5\.0/u
+  );
 });
