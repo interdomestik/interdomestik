@@ -6,6 +6,7 @@ import {
   STAGING_AUTH_HOSTS,
   filterHostedOrigins,
   hostedAuthEnvironment,
+  hostedAuthHosts,
   hostedAuthOrigin,
 } from './deployment-hosts';
 import { getAuthBaseURL, getTrustedOrigins } from './utils';
@@ -72,6 +73,15 @@ describe('per-environment trusted auth hosts (SEC-11)', () => {
     for (const host of [...PRODUCTION_AUTH_HOSTS, ...STAGING_AUTH_HOSTS]) {
       expect(host).not.toMatch(/[*]|vercel\.app/u);
     }
+  });
+
+  it('hands each caller its own copy, so no caller can change the trusted list', () => {
+    for (const environment of ['production', 'staging'] as const) {
+      const hosts = hostedAuthHosts(environment) as string[];
+      hosts.push('attacker.example');
+      expect(hostedAuthHosts(environment)).not.toContain('attacker.example');
+    }
+    expect(PRODUCTION_AUTH_HOSTS).toEqual(['ida.interdomestik.com']);
   });
 
   it.each([

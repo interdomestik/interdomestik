@@ -5,13 +5,13 @@
  * (SEC-11). Anything that is not clearly a staging deployment gets the production list, which
  * names no foreign host.
  */
-export const PRODUCTION_AUTH_HOSTS: readonly string[] = Object.freeze(['ida.interdomestik.com']);
+export const PRODUCTION_AUTH_HOSTS: readonly string[] = ['ida.interdomestik.com'] as const;
 
-export const STAGING_AUTH_HOSTS: readonly string[] = Object.freeze([
+export const STAGING_AUTH_HOSTS: readonly string[] = [
   'staging.interdomestik.com',
   'ks.staging.interdomestik.com',
   'mk.staging.interdomestik.com',
-]);
+] as const;
 
 export type HostedAuthEnvironment = 'production' | 'staging';
 
@@ -28,7 +28,7 @@ export function hostedAuthEnvironment(): HostedAuthEnvironment {
 }
 
 export function hostedAuthHosts(environment = hostedAuthEnvironment()): readonly string[] {
-  return environment === 'staging' ? STAGING_AUTH_HOSTS : PRODUCTION_AUTH_HOSTS;
+  return environment === 'staging' ? [...STAGING_AUTH_HOSTS] : [...PRODUCTION_AUTH_HOSTS];
 }
 
 function httpsOriginOnList(raw: string | undefined, hosts: readonly string[]): string | null {
