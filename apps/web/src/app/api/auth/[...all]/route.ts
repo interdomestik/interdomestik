@@ -4,6 +4,7 @@ import { lookupUserTenantByEmail } from '@/lib/auth/tenant-lookup';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { appendAnonymousTenantAuditEvent } from '@interdomestik/database';
 import { toNextJsHandler } from 'better-auth/next-js';
+import { after } from 'next/server';
 import {
   enforcePostAuthRateLimit,
   parseAuthJsonBody,
@@ -12,8 +13,10 @@ import {
 } from './auth-route-utils';
 import { classifyNeutralOtpRequest, otpUnavailable } from './neutral-otp-boundary';
 import { handleNeutralOtpPost } from './neutral-otp-route';
+import { evaluatePasswordResetTarget, passwordResetTargetOrigins } from './password-reset-target';
 import {
   evaluateEmailSignInTenantGuard,
+  extractEmailFromSignInBody,
   getAuthRateLimitConfig,
   getAuthRateLimitKeySuffix,
   isEmailSignInUrl,
@@ -24,8 +27,8 @@ import { evaluateEmailSignUpTenantGuard, isEmailSignUpUrl } from './sign-up-tena
 
 // Anonymous request headers are attacker-controlled: bound them so an oversized value cannot push
 // a security event past the audit append's 2 KiB metadata cap and suppress it. Only printable ASCII
-// is kept, so each kept character serializes to at most two JSON bytes (2 × (64 + 512) plus the
-// fixed route and reason labels stays under the cap).
+// is kept, so each kept character serializes to at most two JSON bytes (2 × (64 + 512 + 256), with
+// the reset target bounded the same way, plus the fixed route and reason labels stays under the cap).
 function boundedHeaderValue(value: string | null | undefined, maxChars: number) {
   return value?.replace(/[^\x20-\x7e]/g, '?').slice(0, maxChars);
 }
@@ -33,6 +36,23 @@ function boundedHeaderValue(value: string | null | undefined, maxChars: number) 
 function anonymousRequestMetadata(headers: Headers): { ip?: string; userAgent?: string } {
   const { ip, userAgent } = extractRequestMetadata(headers);
   return { ip: boundedHeaderValue(ip, 64), userAgent: boundedHeaderValue(userAgent, 512) };
+}
+
+type ResetAuditEvent = Omit<Parameters<typeof appendAnonymousTenantAuditEvent>[0], 'tenantId'>;
+
+// A reset requested on the one door carries no tenant context; the account's own tenant records
+// it (SEC-11). The lookup and the append run after the response, so the response time does not
+// tell whether the address has an account.
+function recordResetForAccountTenant(email: string | null, event: ResetAuditEvent): void {
+  if (!email) return;
+  after(async () => {
+    try {
+      const tenantId = await lookupUserTenantByEmail(email);
+      if (tenantId) await appendAnonymousTenantAuditEvent({ ...event, tenantId });
+    } catch {
+      // Ignore audit failures
+    }
+  });
 }
 
 const handler = toNextJsHandler(auth);
@@ -145,15 +165,32 @@ export async function POST(req: Request) {
   }
   const audit = getPasswordResetAuditEventFromUrl(req.url);
   if (audit) {
+    const resetBody = await parseAuthJsonBody(req);
+    const resetTarget = evaluatePasswordResetTarget(
+      resetBody,
+      passwordResetTargetOrigins(req.url, req.headers)
+    );
+    if (!resetTarget.allowed) {
+      return Response.json(
+        { code: 'INVALID_REDIRECT', message: 'Invalid redirect target' },
+        { status: 400 }
+      );
+    }
+    const event = {
+      action: audit.action,
+      entityType: 'auth' as const,
+      metadata: {
+        ...audit.metadata,
+        redirectTarget: resetTarget.target,
+        ...anonymousRequestMetadata(req.headers),
+      },
+    };
     try {
       const tenantId = resolveTenantIdForPasswordResetAudit(req.url, req.headers);
       if (tenantId) {
-        await appendAnonymousTenantAuditEvent({
-          action: audit.action,
-          entityType: 'auth',
-          tenantId,
-          metadata: { ...audit.metadata, ...anonymousRequestMetadata(req.headers) },
-        });
+        await appendAnonymousTenantAuditEvent({ ...event, tenantId });
+      } else {
+        recordResetForAccountTenant(extractEmailFromSignInBody(resetBody), event);
       }
     } catch {
       // Ignore audit failures

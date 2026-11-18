@@ -1,3 +1,17 @@
+import {
+  filterHostedOrigins,
+  hostedAuthHosts,
+  hostedAuthOrigin,
+  isHostedDeployment,
+} from './deployment-hosts';
+
+// Only trailing slashes are tolerated after an origin; a path, query or credential stays off-list.
+function withoutTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === '/') end -= 1;
+  return value.slice(0, end);
+}
+
 export function getTrustedOrigins(): string[] | undefined {
   const raw = process.env.BETTER_AUTH_TRUSTED_ORIGINS;
   const localProtocol = 'http';
@@ -7,6 +21,22 @@ export function getTrustedOrigins(): string[] | undefined {
         .map(s => s.trim())
         .filter(Boolean)
     : [];
+
+  // A hosted deployment trusts its own environment's exact hosts and nothing else (SEC-11).
+  // Better Auth also appends BETTER_AUTH_TRUSTED_ORIGINS on its own, so an off-list entry cannot be
+  // filtered out here: the deployment refuses to configure auth until the variable is corrected.
+  if (isHostedDeployment()) {
+    const own = hostedAuthHosts().map(host => `https://${host}`);
+    const allowed = filterHostedOrigins(origins);
+    const offList = origins.filter(origin => !allowed.includes(withoutTrailingSlashes(origin)));
+    if (offList.length > 0) {
+      // Content-free: the rejected values may carry credentials or tokens and reach the logs.
+      throw new Error(
+        `BETTER_AUTH_TRUSTED_ORIGINS names ${offList.length} origin(s) this deployment does not trust`
+      );
+    }
+    return Array.from(new Set([...own, ...allowed]));
+  }
 
   // DX: Automatically trust nip.io subdomains in development or automated tests to fix multi-tenant login
   if (
@@ -33,18 +63,6 @@ export function getTrustedOrigins(): string[] | undefined {
   return origins;
 }
 
-const DYNAMIC_AUTH_ALLOWED_HOSTS = [
-  'interdomestik.com',
-  'www.interdomestik.com',
-  'app.interdomestik.com',
-  'ida.interdomestik.com',
-  'staging.interdomestik.com',
-  'ks.interdomestik.com',
-  'mk.interdomestik.com',
-  'interdomestik-web.vercel.app',
-  'interdomestik-*-ecohub.vercel.app',
-];
-
 type DynamicAuthBaseURL = {
   allowedHosts: string[];
   fallback: string;
@@ -54,13 +72,10 @@ type DynamicAuthBaseURL = {
 type AuthBaseURL = string | DynamicAuthBaseURL;
 
 export function getAuthBaseURL(): AuthBaseURL {
-  if (process.env.VERCEL === '1' || process.env.VERCEL_URL) {
+  if (isHostedDeployment()) {
     return {
-      allowedHosts: DYNAMIC_AUTH_ALLOWED_HOSTS,
-      fallback:
-        process.env.BETTER_AUTH_URL ||
-        process.env.NEXT_PUBLIC_APP_URL ||
-        'https://www.interdomestik.com',
+      allowedHosts: [...hostedAuthHosts()],
+      fallback: hostedAuthOrigin(),
       protocol: 'https' as const,
     };
   }
@@ -68,6 +83,6 @@ export function getAuthBaseURL(): AuthBaseURL {
   return (
     process.env.BETTER_AUTH_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    'https://www.interdomestik.com'
+    'https://ida.interdomestik.com'
   );
 }

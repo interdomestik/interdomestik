@@ -27,11 +27,12 @@ describe('authConfig', () => {
 
     const { authConfig: productionAuthConfig } = await import('./config');
 
-    expect(productionAuthConfig.baseURL).toBe('https://www.interdomestik.com');
+    expect(productionAuthConfig.baseURL).toBe('https://ida.interdomestik.com');
   });
 
-  it('allows known Vercel preview auth hosts with a canonical fallback', async () => {
+  it('gives a Vercel preview the exact staging hosts and no pattern', async () => {
     vi.stubEnv('VERCEL', '1');
+    vi.stubEnv('VERCEL_ENV', 'preview');
     vi.stubEnv('VERCEL_URL', 'interdomestik-3ig3hb7jl-ecohub.vercel.app');
     vi.stubEnv('BETTER_AUTH_URL', 'https://staging.interdomestik.com');
     vi.resetModules();
@@ -39,12 +40,11 @@ describe('authConfig', () => {
     const { authConfig: vercelAuthConfig } = await import('./config');
 
     expect(vercelAuthConfig.baseURL).toEqual({
-      allowedHosts: expect.arrayContaining([
-        'www.interdomestik.com',
-        'ida.interdomestik.com',
+      allowedHosts: [
         'staging.interdomestik.com',
-        'interdomestik-*-ecohub.vercel.app',
-      ]),
+        'ks.staging.interdomestik.com',
+        'mk.staging.interdomestik.com',
+      ],
       fallback: 'https://staging.interdomestik.com',
       protocol: 'https',
     });
