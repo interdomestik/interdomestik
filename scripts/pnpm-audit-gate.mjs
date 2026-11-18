@@ -19,10 +19,12 @@ import {
 //
 // Conservative gate policy (a deliberate choice, not a claimed pnpm invariant):
 // - For high and critical, the summary count must EQUAL the number of distinct
-//   advisory identities reported at that severity. pnpm counts metadata before
+//   findings reported at that severity. pnpm counts one per advisory identity and
+//   installed version, so a finding is (identity, finding version); an identity
+//   without versioned findings counts once. pnpm counts metadata before
 //   ignoreGhsas/ignoreCves and its counts can legitimately differ from the advisory
 //   details; such reports fail closed for manual review even when legitimate.
-// - Every advisory record is scope-checked. Distinct identities are used only for
+// - Every advisory record is scope-checked. Distinct findings are used only for
 //   count completeness, so repeated records can never pad a count.
 // - Duplicate identities with conflicting severity or module are invalid.
 
@@ -151,15 +153,30 @@ function assertConsistentIdentities(advisories) {
   return seen.size;
 }
 
+// Count units of one record: its finding versions, or the identity alone when it has none.
+// A version that is not a non-empty string fails closed rather than shrinking the count.
+function countUnits(advisory) {
+  const findings = Array.isArray(advisory.findings) ? advisory.findings : [];
+  const units = findings.map((finding, index) => {
+    const version = isPlainObject(finding) ? finding.version : undefined;
+    if (!isNonEmptyString(version)) {
+      fail(`advisory ${advisory.id} finding ${index + 1} has invalid version ${describe(version)}`);
+    }
+    return JSON.stringify([advisory.id, version]);
+  });
+  return units.length > 0 ? units : [JSON.stringify([advisory.id])];
+}
+
 function assertBlockingCountsComplete(counts, advisories) {
   BLOCKING_SEVERITIES.forEach(severity => {
     const distinct = new Set(
-      advisories.filter(advisory => advisory.severity === severity).map(advisory => advisory.id)
+      advisories.filter(advisory => advisory.severity === severity).flatMap(countUnits)
     ).size;
     if (counts[severity] !== distinct) {
       fail(
         `summary reports ${counts[severity]} ${severity} but ${distinct} distinct ${severity} ` +
-          'advisory identities; conservative completeness policy requires equality (manual review required)'
+          'findings (advisory identity and installed version); conservative completeness ' +
+          'policy requires equality (manual review required)'
       );
     }
   });

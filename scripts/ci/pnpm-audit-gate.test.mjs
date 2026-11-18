@@ -103,14 +103,17 @@ test('path-scoped allowlist entries pass only on exact, complete path matches', 
   assertPass(
     runGate(
       scopedGate,
-      pnpmReport([
-        advisory(1000011, 'critical', [PATH_A], {
-          findings: [
-            { version: '1.0.0', paths: [PATH_A] },
-            { version: '2.0.0', paths: [PATH_B] },
-          ],
-        }),
-      ])
+      pnpmReport(
+        [
+          advisory(1000011, 'critical', [PATH_A], {
+            findings: [
+              { version: '1.0.0', paths: [PATH_A] },
+              { version: '2.0.0', paths: [PATH_B] },
+            ],
+          }),
+        ],
+        { critical: 2 }
+      )
     )
   );
   assertPass(
@@ -173,6 +176,64 @@ test('malformed allowlist configuration fails closed', async t => {
     await t.test(name, () => assertBlocked(runGate(makeGate(allowlist), clean), /allowlist/));
   }
   assertPass(runGate(makeGate(undefined), clean));
+});
+
+test('blocking counts are complete per finding version, never per record', async t => {
+  const twoVersions = (extra = {}) =>
+    advisory(1000011, 'high', [PATH_A], {
+      findings: [
+        { version: '1.0.0', paths: [PATH_A] },
+        { version: '2.0.0', paths: [PATH_B] },
+      ],
+      ...extra,
+    });
+  for (const [encoding, input] of Object.entries(encodings([twoVersions()], { high: 2 }))) {
+    await t.test(`one count per installed version passes (${encoding})`, () =>
+      assertPass(runGate(scopedGate, input))
+    );
+  }
+  for (const [encoding, input] of Object.entries(
+    encodings([twoVersions(), twoVersions()], { high: 2 })
+  )) {
+    await t.test(`repeated records do not add versions (${encoding})`, () =>
+      assertPass(runGate(scopedGate, input))
+    );
+  }
+  for (const high of [1, 3]) {
+    await t.test(`a summary of ${high} for two versions blocks`, () =>
+      assertBlocked(runGate(scopedGate, pnpmReport([twoVersions()], { high })), COMPLETENESS)
+    );
+  }
+  const badVersions = { missing: undefined, empty: '', numeric: 2, object: {} };
+  for (const [name, version] of Object.entries(badVersions)) {
+    await t.test(`a ${name} finding version fails closed`, () =>
+      assertBlocked(
+        runGate(
+          scopedGate,
+          pnpmReport([twoVersions({ findings: [{ version, paths: [PATH_A] }] })], { high: 1 })
+        ),
+        /finding 1 has invalid version/
+      )
+    );
+  }
+});
+
+test('repository allowlist covers the picomatch build and test tooling paths only', () => {
+  const sentry = 'apps__web>@sentry/nextjs>@rollup/plugin-commonjs>picomatch';
+  const vitest = 'apps__web>better-auth>vitest>@vitest/mocker>vite>picomatch';
+  const picomatch = paths =>
+    advisory(1247710, 'high', [], {
+      module_name: 'picomatch',
+      findings: paths.map((entry, index) => ({ version: `4.0.${4 + index}`, paths: [entry] })),
+    });
+  assertPass(runGate(realGate, pnpmReport([picomatch([sentry, vitest])], { high: 2 })));
+  assertBlocked(
+    runGate(
+      realGate,
+      pnpmReport([picomatch([sentry, 'apps__web>micromatch>picomatch'])], { high: 2 })
+    ),
+    /path not allowlisted: apps__web>micromatch>picomatch/
+  );
 });
 
 test('repository allowlist loads and keeps its scoped entries scoped', () => {

@@ -25,6 +25,14 @@
       "id": "1243435",
       "path": "apps__web>better-auth",
       "reason": "GHSA-q84f-53jg-9ppm: not applicable, requires the deviceAuthorization() plugin. The app registers only emailOTP (apps/web/src/lib/auth/providers.ts plugins array; providers.test.ts pins plugins length 1). No 1.6.x fix exists; better-auth is held at ~1.6 because credential accountId stores the email. Owner-approved 2026-11-01; see BETTER-AUTH-APPLICABILITY.md."
+    },
+    {
+      "id": "1247710",
+      "paths": [
+        "apps__web>@sentry/nextjs>@rollup/plugin-commonjs>picomatch",
+        "apps__web>better-auth>vitest>@vitest/mocker>vite>picomatch"
+      ],
+      "reason": "GHSA-fc5q-39xc-vjpf (picomatch): not reachable from requests. Both installs are build or test tooling: @rollup/plugin-commonjs runs in the Sentry webpack loader at build time with fixed patterns from the Sentry and Next configuration, and the vite copy belongs to the vitest peer of better-auth, never loaded by the server. No request or user input reaches picomatch. No patched version exists. Owner-approved 2026-11-18 (assess, then allowlist)."
     }
   ]
 }
