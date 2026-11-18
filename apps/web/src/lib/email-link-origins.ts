@@ -1,3 +1,4 @@
+import { hostedAuthHosts, hostedAuthOrigin, isHostedDeployment } from '@/lib/auth/deployment-hosts';
 import { isKnownIdaFrontDoorHost } from '@/lib/tenant/tenant-front-door';
 import {
   canonicalHostForTenant,
@@ -41,7 +42,7 @@ const PRODUCTION_FRONT_DOOR_HOSTS: readonly string[] = [
   'ida.interdomestik.com',
 ];
 // Mirrors getAuthBaseURL(); used only by a verified production deployment.
-const PRODUCTION_AUTH_FALLBACK = 'https://www.interdomestik.com';
+const PRODUCTION_AUTH_FALLBACK = 'https://ida.interdomestik.com';
 const AUTH_BASE_PATHS = new Set(['/', '/api/auth', '/api/auth/']);
 const HOST_PATTERN = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::\d{1,5})?$/u;
 
@@ -76,6 +77,8 @@ function parseOrigin(raw: string, allowedPaths: ReadonlySet<string>): string | n
 }
 
 function resolveAuthOrigin(production: boolean): string {
+  // A hosted deployment issues links only from its own environment's exact hosts (SEC-11).
+  if (isHostedDeployment()) return hostedAuthOrigin();
   const raw =
     process.env.BETTER_AUTH_URL?.trim() ||
     process.env.NEXT_PUBLIC_APP_URL?.trim() ||
@@ -116,6 +119,9 @@ function explicitTenantOrigin(
     throw new EmailLinkOriginError('invalid_tenant_host');
   }
   const url = new URL(origin);
+  if (isHostedDeployment() && !hostedAuthHosts().includes(url.hostname)) {
+    throw new EmailLinkOriginError('invalid_tenant_host');
+  }
   if (!production && productionHosts().has(url.hostname)) {
     throw new EmailLinkOriginError('production_origin_outside_production');
   }
@@ -131,15 +137,14 @@ function explicitTenantOrigin(
 }
 
 /**
- * An explicit tenant host wins; a verified production deployment otherwise uses the tenant's
- * canonical host; every other deployment returns members to its own auth origin. Throws a
- * content-free EmailLinkOriginError instead of guessing.
+ * An explicit tenant host wins; otherwise every deployment, production included, returns members
+ * to its own auth origin: production trusts only its one door (SEC-11). Throws a content-free
+ * EmailLinkOriginError instead of guessing.
  */
 export function resolveTenantEmailOrigins(tenantId: TenantId): TenantEmailOrigins {
   const production = isProductionEmailDeployment();
   const authOrigin = resolveAuthOrigin(production);
   const explicit = explicitTenantOrigin(tenantId, authOrigin, production);
-  const appOrigin =
-    explicit ?? (production ? `https://${canonicalHostForTenant(tenantId)}` : authOrigin);
+  const appOrigin = explicit ?? authOrigin;
   return Object.freeze({ authOrigin, appOrigin });
 }

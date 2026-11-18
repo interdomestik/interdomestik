@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EmailLinkOriginError, resolveTenantEmailOrigins } from './email-link-origins';
 
 const CLEARED_KEYS = [
+  'VERCEL',
+  'VERCEL_URL',
   'VERCEL_ENV',
   'VERCEL_TARGET_ENV',
   'INTERDOMESTIK_DEPLOY_ENV',
@@ -39,17 +41,45 @@ describe('resolveTenantEmailOrigins', () => {
     vi.unstubAllEnvs();
   });
 
-  it('uses the canonical tenant host on a verified production deployment', () => {
-    stub({ VERCEL_ENV: 'production', BETTER_AUTH_URL: 'https://www.interdomestik.com' });
-    expect(resolveTenantEmailOrigins('tenant_ks')).toEqual({
-      authOrigin: 'https://www.interdomestik.com',
-      appOrigin: 'https://ks.interdomestik.com',
+  it('returns a hosted production member to the one door, whatever the configured URL', () => {
+    stub({
+      VERCEL: '1',
+      VERCEL_ENV: 'production',
+      BETTER_AUTH_URL: 'https://www.interdomestik.com',
     });
+    expect(resolveTenantEmailOrigins('tenant_ks')).toEqual({
+      authOrigin: 'https://ida.interdomestik.com',
+      appOrigin: 'https://ida.interdomestik.com',
+    });
+  });
+
+  it('returns a hosted staging member to the staging host or its listed tenant host', () => {
+    stub({
+      VERCEL: '1',
+      VERCEL_ENV: 'preview',
+      BETTER_AUTH_URL: 'https://staging.interdomestik.com',
+    });
+    expect(resolveTenantEmailOrigins('tenant_ks').appOrigin).toBe(
+      'https://staging.interdomestik.com'
+    );
+    stub({ KS_HOST: 'ks.staging.interdomestik.com' });
+    expect(resolveTenantEmailOrigins('tenant_ks').appOrigin).toBe(
+      'https://ks.staging.interdomestik.com'
+    );
+  });
+
+  it.each([
+    ['production', 'ks.interdomestik.com'],
+    ['production', 'interdomestik-abc-ecohub.vercel.app'],
+    ['preview', 'ks.example.test'],
+  ])('refuses a %s tenant host that the deployment does not trust: %s', (vercelEnv, host) => {
+    stub({ VERCEL: '1', VERCEL_ENV: vercelEnv, KS_HOST: host });
+    expect(refusal()).toBe('invalid_tenant_host');
   });
 
   it('keeps the production auth fallback only in production', () => {
     stub({ VERCEL_ENV: 'production' });
-    expect(resolveTenantEmailOrigins('tenant_mk').authOrigin).toBe('https://www.interdomestik.com');
+    expect(resolveTenantEmailOrigins('tenant_mk').authOrigin).toBe('https://ida.interdomestik.com');
     stub({ VERCEL_ENV: 'preview' });
     expect(refusal()).toBe('missing_auth_origin');
   });
@@ -72,7 +102,7 @@ describe('resolveTenantEmailOrigins', () => {
       INTERDOMESTIK_DEPLOY_ENV: 'production',
       BETTER_AUTH_URL: 'https://www.interdomestik.com',
     });
-    expect(resolveTenantEmailOrigins('tenant_ks').appOrigin).toBe('https://ks.interdomestik.com');
+    expect(resolveTenantEmailOrigins('tenant_ks').appOrigin).toBe('https://www.interdomestik.com');
     stub({ VERCEL_ENV: 'preview', BETTER_AUTH_URL: STAGING });
     expect(resolveTenantEmailOrigins('tenant_ks').appOrigin).toBe(STAGING);
   });

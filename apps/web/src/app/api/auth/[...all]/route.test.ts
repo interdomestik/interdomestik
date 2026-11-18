@@ -132,7 +132,7 @@ describe('POST /api/auth/[...all]', () => {
         action: 'auth.password_reset_requested',
         entityType: 'auth',
         tenantId: 'tenant_ks',
-        metadata: { route: '/api/auth/request-password-reset' },
+        metadata: { route: '/api/auth/request-password-reset', redirectTarget: null },
       })
     );
   });
