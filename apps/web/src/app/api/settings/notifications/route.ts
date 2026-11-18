@@ -1,14 +1,11 @@
 import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
+import { notificationPreferencesSchema } from '@interdomestik/domain-users/user-settings/types';
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { NextResponse } from 'next/server';
 
-import {
-  getNotificationPreferencesCore,
-  type NotificationPreferences,
-  upsertNotificationPreferencesCore,
-} from './_core';
+import { getNotificationPreferencesCore, upsertNotificationPreferencesCore } from './_core';
 
 export async function GET(request: Request) {
   const limited = await enforceRateLimit({
@@ -75,7 +72,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let body: NotificationPreferences;
+    let body: unknown;
 
     try {
       body = await request.json();
@@ -83,10 +80,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
+    const parsed = notificationPreferencesSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid preferences' }, { status: 400 });
+    }
+
     await upsertNotificationPreferencesCore({
       userId: session.user.id,
       authority: authorized.authority,
-      preferences: body,
+      preferences: parsed.data,
     });
 
     return NextResponse.json({ success: true });

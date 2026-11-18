@@ -134,4 +134,39 @@ describe('createCommissionCore', () => {
     );
     expect(db.insert).not.toHaveBeenCalled();
   });
+
+  it('stores the amount with two decimals, status pending and the ownership fields', async () => {
+    const values = vi.fn();
+    (db.select as any).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({ limit: vi.fn().mockReturnValue([]) }),
+      }),
+    });
+    (db.insert as any).mockReturnValue({ values });
+
+    const result = await createCommissionCore({
+      ...validData,
+      memberId: 'member-1',
+      amount: 12.3,
+      currency: 'EUR',
+      metadata: { source: 'test' },
+    });
+
+    expect(result).toEqual({ success: true, data: { id: 'new-comm-id' } });
+    expect(values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'new-comm-id',
+        agentId: 'agent-1',
+        memberId: 'member-1',
+        subscriptionId: 'sub-1',
+        type: 'new_membership',
+        status: 'pending',
+        amount: '12.30',
+        currency: 'EUR',
+        tenantId: 'tenant-1',
+        metadata: { source: 'test' },
+        earnedAt: expect.any(Date),
+      })
+    );
+  });
 });

@@ -46,7 +46,13 @@ describe('effective membership workspace', () => {
         ],
       },
     });
-    expect(h.sponsorDisclosure).toHaveBeenCalledWith(expect.anything(), 'legal-company');
+    expect(h.sponsorDisclosure).toHaveBeenCalledWith(
+      expect.anything(),
+      'tenant-ks',
+      'legal-company'
+    );
+    // The disclosure is read in the page's own transaction: a pool of one connection has no second.
+    expect(h.sponsorDisclosure.mock.calls[0][0]).toBe(h.resolve.mock.calls[0][0]);
     expect(h.getSubscriptionEntityDisclosureCore).not.toHaveBeenCalled();
     expect(h.resolve).toHaveBeenCalledWith(expect.anything(), 'tenant-ks', ['member-1'], args.now);
   });

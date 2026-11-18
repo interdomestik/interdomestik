@@ -10,6 +10,7 @@ import {
   notificationPostRequest,
   samplePreferences,
 } from './route.post.test-support';
+import { upsertNotificationPreferencesCore } from './_core';
 import { POST } from './route';
 
 const updatedPreferences = {
@@ -25,6 +26,18 @@ function signInTenantMember(): void {
   hoistedMocks.getSession.mockResolvedValue({
     user: { id: 'user-123', tenantId: 'tenant_mk' },
   });
+}
+
+function rawPostRequest(body: unknown): Request {
+  return new Request('http://localhost:3000/api/settings/notifications', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+function expectNoPreferenceWrite(): void {
+  expect(mockInsertChain.values).not.toHaveBeenCalled();
+  expect(mockUpdateChain.set).not.toHaveBeenCalled();
 }
 
 async function postAndRead(request: Request): Promise<{ response: Response; data: unknown }> {
@@ -140,5 +153,61 @@ describe('POST /api/settings/notifications', () => {
 
     expect(response.status).toBe(400);
     expect(data).toEqual({ error: 'Invalid JSON' });
+  });
+
+  it.each([
+    ['userId', { ...samplePreferences, userId: 'other-user' }],
+    ['tenantId', { ...samplePreferences, tenantId: 'other-tenant' }],
+    ['id', { ...samplePreferences, id: 'other-row' }],
+  ])('refuses a body that names %s and writes nothing', async (_key, body) => {
+    signInTenantMember();
+
+    const { response, data } = await postAndRead(rawPostRequest(body));
+
+    expect(response.status).toBe(400);
+    expect(data).toEqual({ error: 'Invalid preferences' });
+    expectNoPreferenceWrite();
+  });
+
+  it.each([
+    ['a missing preference', { ...samplePreferences, inAppAll: undefined }],
+    ['a non-boolean preference', { ...samplePreferences, emailMarketing: 'yes' }],
+    ['an array', [samplePreferences]],
+  ])('refuses %s and writes nothing', async (_label, body) => {
+    signInTenantMember();
+
+    const { response, data } = await postAndRead(rawPostRequest(body));
+
+    expect(response.status).toBe(400);
+    expect(data).toEqual({ error: 'Invalid preferences' });
+    expectNoPreferenceWrite();
+  });
+
+  it('writes only the six preference columns, with identity and tenant from the session', async () => {
+    signInTenantMember();
+    mockSelectChain.limit.mockReturnValue([]);
+    const authority = (
+      await import('@interdomestik/database/testing/tenant-authority')
+    ).mintTestTenantAuthority('tenant_mk');
+
+    await upsertNotificationPreferencesCore({
+      userId: 'user-123',
+      authority,
+      preferences: {
+        ...updatedPreferences,
+        userId: 'other-user',
+        tenantId: 'other-tenant',
+        id: 'other-row',
+      } as typeof updatedPreferences,
+    });
+
+    expect(mockInsertChain.values).toHaveBeenCalledWith({
+      id: 'test-id-123',
+      tenantId: 'tenant_mk',
+      userId: 'user-123',
+      ...updatedPreferences,
+      createdAt: expect.any(Date),
+      updatedAt: expect.any(Date),
+    });
   });
 });

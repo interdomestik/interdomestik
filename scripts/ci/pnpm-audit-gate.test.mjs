@@ -103,14 +103,17 @@ test('path-scoped allowlist entries pass only on exact, complete path matches', 
   assertPass(
     runGate(
       scopedGate,
-      pnpmReport([
-        advisory(1000011, 'critical', [PATH_A], {
-          findings: [
-            { version: '1.0.0', paths: [PATH_A] },
-            { version: '2.0.0', paths: [PATH_B] },
-          ],
-        }),
-      ])
+      pnpmReport(
+        [
+          advisory(1000011, 'critical', [PATH_A], {
+            findings: [
+              { version: '1.0.0', paths: [PATH_A] },
+              { version: '2.0.0', paths: [PATH_B] },
+            ],
+          }),
+        ],
+        { critical: 2 }
+      )
     )
   );
   assertPass(
@@ -130,9 +133,6 @@ test('path-scoped IDs never gain unconditional permission', async t => {
     'empty paths': advisory(1000010, 'high', []),
     'empty string path': advisory(1000010, 'high', ['']),
     'non-string path': advisory(1000010, 'high', [42]),
-    'one of multiple findings lacks paths': advisory(1000010, 'high', [PATH_A], {
-      findings: [{ version: '1.0.0', paths: [PATH_A] }, { version: '1.0.1' }],
-    }),
     'ghsaId scoped entry on wrong path': advisory(4000012, 'high', [PATH_B], {
       ghsaId: 'GHSA-scop-ed00-0012',
     }),
@@ -140,6 +140,12 @@ test('path-scoped IDs never gain unconditional permission', async t => {
   for (const [name, entry] of Object.entries(cases)) {
     await t.test(name, () => assertBlocked(runGate(scopedGate, pnpmReport([entry]))));
   }
+  await t.test('one of multiple findings lacks paths', () => {
+    const entry = advisory(1000010, 'high', [PATH_A], {
+      findings: [{ version: '1.0.0', paths: [PATH_A] }, { version: '1.0.1' }],
+    });
+    assertBlocked(runGate(scopedGate, pnpmReport([entry], { high: 2 })), /finding 2 has no paths/);
+  });
 });
 
 test('unconditional file entries and CLI arguments behave as before', () => {
