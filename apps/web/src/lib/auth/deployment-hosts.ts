@@ -5,9 +5,9 @@
  * (SEC-11). Anything that is not clearly a staging deployment gets the production list, which
  * names no foreign host.
  */
-export const PRODUCTION_AUTH_HOSTS: readonly string[] = ['ida.interdomestik.com'] as const;
+const PRODUCTION_AUTH_HOSTS: readonly string[] = ['ida.interdomestik.com'] as const;
 
-export const STAGING_AUTH_HOSTS: readonly string[] = [
+const STAGING_AUTH_HOSTS: readonly string[] = [
   'staging.interdomestik.com',
   'ks.staging.interdomestik.com',
   'mk.staging.interdomestik.com',

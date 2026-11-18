@@ -1,9 +1,8 @@
 import { betterAuth } from 'better-auth';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import * as deploymentHosts from './deployment-hosts';
 import {
-  PRODUCTION_AUTH_HOSTS,
-  STAGING_AUTH_HOSTS,
   filterHostedOrigins,
   hostedAuthEnvironment,
   hostedAuthHosts,
@@ -64,13 +63,13 @@ describe('per-environment trusted auth hosts (SEC-11)', () => {
   });
 
   it('names exact hosts only: the one door for production, three staging hosts for staging', () => {
-    expect(PRODUCTION_AUTH_HOSTS).toEqual(['ida.interdomestik.com']);
-    expect(STAGING_AUTH_HOSTS).toEqual([
+    expect(hostedAuthHosts('production')).toEqual(['ida.interdomestik.com']);
+    expect(hostedAuthHosts('staging')).toEqual([
       'staging.interdomestik.com',
       'ks.staging.interdomestik.com',
       'mk.staging.interdomestik.com',
     ]);
-    for (const host of [...PRODUCTION_AUTH_HOSTS, ...STAGING_AUTH_HOSTS]) {
+    for (const host of [...hostedAuthHosts('production'), ...hostedAuthHosts('staging')]) {
       expect(host).not.toMatch(/[*]|vercel\.app/u);
     }
   });
@@ -81,7 +80,15 @@ describe('per-environment trusted auth hosts (SEC-11)', () => {
       hosts.push('attacker.example');
       expect(hostedAuthHosts(environment)).not.toContain('attacker.example');
     }
-    expect(PRODUCTION_AUTH_HOSTS).toEqual(['ida.interdomestik.com']);
+    expect(hostedAuthHosts('production')).toEqual(['ida.interdomestik.com']);
+  });
+
+  it('exports no host list an importer could change', () => {
+    for (const [name, value] of Object.entries(deploymentHosts)) {
+      expect(Array.isArray(value) || (typeof value === 'object' && value !== null), name).toBe(
+        false
+      );
+    }
   });
 
   it.each([
@@ -189,7 +196,7 @@ describe('per-environment trusted auth hosts (SEC-11)', () => {
       BETTER_AUTH_URL: 'https://staging.interdomestik.com',
     });
 
-    for (const host of STAGING_AUTH_HOSTS) {
+    for (const host of hostedAuthHosts('staging')) {
       expect(context.isTrustedOrigin(`https://${host}/sq/reset-password`), host).toBe(true);
     }
     for (const foreign of FOREIGN_TO_STAGING) {
