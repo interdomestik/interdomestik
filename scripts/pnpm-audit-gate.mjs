@@ -19,10 +19,14 @@ import {
 //
 // Conservative gate policy (a deliberate choice, not a claimed pnpm invariant):
 // - For high and critical, the summary count must EQUAL the number of distinct
-//   advisory identities reported at that severity. pnpm counts metadata before
+//   findings reported at that severity. pnpm counts one per advisory identity and
+//   installed version, so a finding is (identity, finding version), taken across all
+//   records of the identity. An identity with no versioned findings counts once; one
+//   that mixes versioned and versionless records, or reports a malformed findings
+//   collection or version, fails closed. pnpm counts metadata before
 //   ignoreGhsas/ignoreCves and its counts can legitimately differ from the advisory
 //   details; such reports fail closed for manual review even when legitimate.
-// - Every advisory record is scope-checked. Distinct identities are used only for
+// - Every advisory record is scope-checked. Distinct findings are used only for
 //   count completeness, so repeated records can never pad a count.
 // - Duplicate identities with conflicting severity or module are invalid.
 
@@ -124,8 +128,12 @@ function readAdvisory(advisory, index) {
   if (!isNonEmptyString(advisory.module_name)) {
     fail(`advisory ${id} has invalid module_name ${describe(advisory.module_name)}`);
   }
+  const npmId =
+    isNonEmptyString(advisory.id) || isNonNegativeInteger(advisory.id) ? String(advisory.id) : null;
   return {
     id,
+    npmId,
+    ghsaId: advisory.ghsaId ?? null,
     severity: advisory.severity,
     module: advisory.module_name,
     findings: advisory.findings,
@@ -135,6 +143,16 @@ function readAdvisory(advisory, index) {
 // Repeated records of one identity are allowed (all are scope-checked) only when consistent.
 function assertConsistentIdentities(advisories) {
   const seen = new Map();
+  // One npm advisory id must keep one identity: with and without a ghsaId it would count twice.
+  const ghsaByNpmId = new Map();
+  advisories.forEach(advisory => {
+    if (advisory.npmId === null) return;
+    const known = ghsaByNpmId.get(advisory.npmId);
+    if (known !== undefined && known !== advisory.ghsaId) {
+      fail(`advisory ${advisory.npmId} is reported with inconsistent ghsaId values`);
+    }
+    ghsaByNpmId.set(advisory.npmId, advisory.ghsaId);
+  });
   advisories.forEach(advisory => {
     const first = seen.get(advisory.id);
     if (!first) {
@@ -151,15 +169,57 @@ function assertConsistentIdentities(advisories) {
   return seen.size;
 }
 
+// Canonical semantic versions only (no build metadata, no leading zeros, ASCII), so one
+// installed version has exactly one spelling.
+const IDENTIFIER = String.raw`(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)`;
+const VERSION_PATTERN = new RegExp(
+  String.raw`^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-${IDENTIFIER}(?:\.${IDENTIFIER})*)?$`,
+  'u'
+);
+
+// Distinct installed versions of one identity across all of its records (at least one).
+function identityUnits(id, records) {
+  const versions = new Set();
+  let versionless = false;
+  for (const { findings } of records) {
+    if (findings !== undefined && !Array.isArray(findings)) {
+      fail(`advisory ${id} has invalid findings ${describe(findings)}`);
+    }
+    if (!findings || findings.length === 0) {
+      versionless = true;
+      continue;
+    }
+    findings.forEach((finding, index) => {
+      const version = isPlainObject(finding) ? finding.version : undefined;
+      if (typeof version !== 'string' || !VERSION_PATTERN.test(version)) {
+        fail(`advisory ${id} finding ${index + 1} has invalid version ${describe(version)}`);
+      }
+      versions.add(version);
+    });
+  }
+  if (versionless && versions.size > 0) {
+    fail(`advisory ${id} mixes records with and without finding versions`);
+  }
+  return Math.max(versions.size, 1);
+}
+
 function assertBlockingCountsComplete(counts, advisories) {
   BLOCKING_SEVERITIES.forEach(severity => {
-    const distinct = new Set(
-      advisories.filter(advisory => advisory.severity === severity).map(advisory => advisory.id)
-    ).size;
+    const byIdentity = new Map();
+    advisories
+      .filter(advisory => advisory.severity === severity)
+      .forEach(advisory => {
+        byIdentity.set(advisory.id, [...(byIdentity.get(advisory.id) ?? []), advisory]);
+      });
+    let distinct = 0;
+    byIdentity.forEach((records, id) => {
+      distinct += identityUnits(id, records);
+    });
     if (counts[severity] !== distinct) {
       fail(
         `summary reports ${counts[severity]} ${severity} but ${distinct} distinct ${severity} ` +
-          'advisory identities; conservative completeness policy requires equality (manual review required)'
+          'findings (advisory identity and installed version); conservative completeness ' +
+          'policy requires equality (manual review required)'
       );
     }
   });
