@@ -13,36 +13,53 @@ import { repoRoot } from './pnpm-audit-fixtures.mjs';
 
 const lockfile = yaml.load(readFileSync(path.join(repoRoot, 'pnpm-lock.yaml'), 'utf8'));
 
-// pnpm v9 references: `<version>(peers)` names the dependency itself, `link:` a workspace
-// package (itself an importer, visited as a root), anything else the full target key (aliases).
-function targetKey(name, reference) {
+function referenceValue(name, reference) {
   const value = typeof reference === 'string' ? reference : reference?.version;
   if (typeof value !== 'string' || value === '') throw new Error(`unreadable reference ${name}`);
+  return value;
+}
+
+// pnpm 10's refToRelative for lockfile v9: `link:` is a workspace package (an importer), a
+// scoped or `name@…` reference is the full target key, anything else is prefixed with the name.
+function targetKey(name, value) {
   if (value.startsWith('link:')) return null;
-  return /^\d/u.test(value) ? `${name}@${value}` : value;
+  if (value[0] === '@') return value;
+  const at = value.indexOf('@');
+  if (at === -1) return `${name}@${value}`;
+  const colon = value.indexOf(':');
+  const bracket = value.indexOf('(');
+  if ((colon === -1 || at < colon) && (bracket === -1 || at < bracket)) return value;
+  return `${name}@${value}`;
 }
 
-function children(node) {
-  return Object.entries({ ...node?.dependencies, ...node?.optionalDependencies })
-    .map(([name, reference]) => targetKey(name, reference))
-    .filter(Boolean);
+function references(node) {
+  return Object.entries({ ...node?.dependencies, ...node?.optionalDependencies }).map(
+    ([name, reference]) => [name, referenceValue(name, reference)]
+  );
 }
 
-// Production graph: importer and snapshot nodes, production and optional edges only.
+// Production graph: importer and snapshot nodes, production and optional edges only. A
+// workspace link stays an edge between importers, so a new route through it is visible.
 function productionEdges(lock) {
   const edges = [];
   const seen = new Set();
   const queue = [];
   for (const [importer, node] of Object.entries(lock.importers)) {
-    for (const child of children(node)) edges.push([`importer:${importer}`, child]);
+    for (const [name, value] of references(node)) {
+      const linked = path.posix.normalize(path.posix.join(importer, value.slice(5)));
+      const child = targetKey(name, value) ?? `importer:${linked}`;
+      edges.push([`importer:${importer}`, child]);
+      if (!child.startsWith('importer:')) queue.push(child);
+    }
   }
-  edges.forEach(([, child]) => queue.push(child));
   while (queue.length > 0) {
     const key = queue.pop();
     if (seen.has(key)) continue;
     seen.add(key);
     if (!(key in lock.snapshots)) throw new Error(`unresolved production snapshot ${key}`);
-    for (const child of children(lock.snapshots[key])) {
+    for (const [name, value] of references(lock.snapshots[key])) {
+      const child = targetKey(name, value);
+      if (child === null) continue;
       edges.push([key, child]);
       queue.push(child);
     }
@@ -122,6 +139,38 @@ function variant(change) {
   return edgesLeadingTo('picomatch@4.0.4', lock);
 }
 
+test('references resolve as pnpm 10 resolves them', () => {
+  const lock = {
+    importers: {
+      web: {
+        dependencies: {
+          zip: { version: '7zip-bin@5.2.0' },
+          local: { version: 'file:vendor/local' },
+          scoped: { version: '@scope/pkg@1.0.0(peer@2.0.0)' },
+          plain: { version: '1.0.0(peer@2.0.0)' },
+        },
+      },
+    },
+    snapshots: {
+      '7zip-bin@5.2.0': { dependencies: { picomatch: '4.0.4' } },
+      'local@file:vendor/local': { dependencies: { picomatch: '4.0.4' } },
+      '@scope/pkg@1.0.0(peer@2.0.0)': { dependencies: { picomatch: '4.0.4' } },
+      'plain@1.0.0(peer@2.0.0)': { dependencies: { picomatch: '4.0.4' } },
+      'picomatch@4.0.4': {},
+    },
+  };
+  assert.deepEqual(edgesLeadingTo('picomatch@4.0.4', lock), [
+    '7zip-bin@5.2.0 > picomatch@4.0.4',
+    '@scope/pkg@1.0.0 > picomatch@4.0.4',
+    'importer:web > 7zip-bin@5.2.0',
+    'importer:web > @scope/pkg@1.0.0',
+    'importer:web > local@file:vendor/local',
+    'importer:web > plain@1.0.0',
+    'local@file:vendor/local > picomatch@4.0.4',
+    'plain@1.0.0 > picomatch@4.0.4',
+  ]);
+});
+
 test('new routes, aliases and direct dependencies change the pinned edges', () => {
   assert.deepEqual(baseline, [
     'fdir@6.5.0 > picomatch@4.0.4',
@@ -147,6 +196,15 @@ test('new routes, aliases and direct dependencies change the pinned edges', () =
   for (const [name, change] of Object.entries(changes)) {
     assert.notDeepEqual(variant(change), baseline, name);
   }
+  const linkedBase = variant(lock => {
+    lock.importers.lib = { dependencies: { tool: { version: '1.0.0' } } };
+  });
+  const linked = variant(lock => {
+    lock.importers.lib = { dependencies: { tool: { version: '1.0.0' } } };
+    lock.importers.web.dependencies.lib = { version: 'link:../lib' };
+  });
+  assert.ok(linked.includes('importer:web > importer:lib'), 'workspace link edge');
+  assert.notDeepEqual(linked, linkedBase, 'new workspace route');
   const devOnly = variant(lock => {
     lock.importers.web.devDependencies = { dev: { version: '1.0.0' } };
     lock.snapshots['dev@1.0.0'] = { dependencies: { picomatch: '4.0.4' } };
