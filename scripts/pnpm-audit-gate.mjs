@@ -20,8 +20,10 @@ import {
 // Conservative gate policy (a deliberate choice, not a claimed pnpm invariant):
 // - For high and critical, the summary count must EQUAL the number of distinct
 //   findings reported at that severity. pnpm counts one per advisory identity and
-//   installed version, so a finding is (identity, finding version); an identity
-//   without versioned findings counts once. pnpm counts metadata before
+//   installed version, so a finding is (identity, finding version), taken across all
+//   records of the identity. An identity with no versioned findings counts once; one
+//   that mixes versioned and versionless records, or reports a malformed findings
+//   collection or version, fails closed. pnpm counts metadata before
 //   ignoreGhsas/ignoreCves and its counts can legitimately differ from the advisory
 //   details; such reports fail closed for manual review even when legitimate.
 // - Every advisory record is scope-checked. Distinct findings are used only for
@@ -153,25 +155,46 @@ function assertConsistentIdentities(advisories) {
   return seen.size;
 }
 
-// Count units of one record: its finding versions, or the identity alone when it has none.
-// A version that is not a non-empty string fails closed rather than shrinking the count.
-function countUnits(advisory) {
-  const findings = Array.isArray(advisory.findings) ? advisory.findings : [];
-  const units = findings.map((finding, index) => {
-    const version = isPlainObject(finding) ? finding.version : undefined;
-    if (!isNonEmptyString(version)) {
-      fail(`advisory ${advisory.id} finding ${index + 1} has invalid version ${describe(version)}`);
+const VERSION_PATTERN = /^\S+$/u;
+
+// Distinct installed versions of one identity across all of its records (at least one).
+function identityUnits(id, records) {
+  const versions = new Set();
+  let versionless = false;
+  for (const { findings } of records) {
+    if (findings !== undefined && !Array.isArray(findings)) {
+      fail(`advisory ${id} has invalid findings ${describe(findings)}`);
     }
-    return JSON.stringify([advisory.id, version]);
-  });
-  return units.length > 0 ? units : [JSON.stringify([advisory.id])];
+    if (!findings || findings.length === 0) {
+      versionless = true;
+      continue;
+    }
+    findings.forEach((finding, index) => {
+      const version = isPlainObject(finding) ? finding.version : undefined;
+      if (typeof version !== 'string' || !VERSION_PATTERN.test(version)) {
+        fail(`advisory ${id} finding ${index + 1} has invalid version ${describe(version)}`);
+      }
+      versions.add(version);
+    });
+  }
+  if (versionless && versions.size > 0) {
+    fail(`advisory ${id} mixes records with and without finding versions`);
+  }
+  return Math.max(versions.size, 1);
 }
 
 function assertBlockingCountsComplete(counts, advisories) {
   BLOCKING_SEVERITIES.forEach(severity => {
-    const distinct = new Set(
-      advisories.filter(advisory => advisory.severity === severity).flatMap(countUnits)
-    ).size;
+    const byIdentity = new Map();
+    advisories
+      .filter(advisory => advisory.severity === severity)
+      .forEach(advisory => {
+        byIdentity.set(advisory.id, [...(byIdentity.get(advisory.id) ?? []), advisory]);
+      });
+    let distinct = 0;
+    byIdentity.forEach((records, id) => {
+      distinct += identityUnits(id, records);
+    });
     if (counts[severity] !== distinct) {
       fail(
         `summary reports ${counts[severity]} ${severity} but ${distinct} distinct ${severity} ` +

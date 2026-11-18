@@ -133,9 +133,6 @@ test('path-scoped IDs never gain unconditional permission', async t => {
     'empty paths': advisory(1000010, 'high', []),
     'empty string path': advisory(1000010, 'high', ['']),
     'non-string path': advisory(1000010, 'high', [42]),
-    'one of multiple findings lacks paths': advisory(1000010, 'high', [PATH_A], {
-      findings: [{ version: '1.0.0', paths: [PATH_A] }, { version: '1.0.1' }],
-    }),
     'ghsaId scoped entry on wrong path': advisory(4000012, 'high', [PATH_B], {
       ghsaId: 'GHSA-scop-ed00-0012',
     }),
@@ -143,6 +140,12 @@ test('path-scoped IDs never gain unconditional permission', async t => {
   for (const [name, entry] of Object.entries(cases)) {
     await t.test(name, () => assertBlocked(runGate(scopedGate, pnpmReport([entry]))));
   }
+  await t.test('one of multiple findings lacks paths', () => {
+    const entry = advisory(1000010, 'high', [PATH_A], {
+      findings: [{ version: '1.0.0', paths: [PATH_A] }, { version: '1.0.1' }],
+    });
+    assertBlocked(runGate(scopedGate, pnpmReport([entry], { high: 2 })), /finding 2 has no paths/);
+  });
 });
 
 test('unconditional file entries and CLI arguments behave as before', () => {
@@ -204,7 +207,14 @@ test('blocking counts are complete per finding version, never per record', async
       assertBlocked(runGate(scopedGate, pnpmReport([twoVersions()], { high })), COMPLETENESS)
     );
   }
-  const badVersions = { missing: undefined, empty: '', numeric: 2, object: {} };
+  const badVersions = {
+    missing: undefined,
+    empty: '',
+    numeric: 2,
+    object: {},
+    'space-padded': '1.0.0 ',
+    'inner space': '1.0 .0',
+  };
   for (const [name, version] of Object.entries(badVersions)) {
     await t.test(`a ${name} finding version fails closed`, () =>
       assertBlocked(
@@ -213,6 +223,35 @@ test('blocking counts are complete per finding version, never per record', async
           pnpmReport([twoVersions({ findings: [{ version, paths: [PATH_A] }] })], { high: 1 })
         ),
         /finding 1 has invalid version/
+      )
+    );
+  }
+});
+
+test('one identity cannot gain a count from a versionless or malformed record', async t => {
+  const versioned = advisory(1000001, 'high', [PATH_A]);
+  const versionless = advisory(1000001, 'high', [], { findings: [] });
+  for (const [encoding, input] of Object.entries(
+    encodings([versioned, versionless], { high: 2 })
+  )) {
+    await t.test(`unconditional entry, versioned + empty record (${encoding})`, () =>
+      assertBlocked(runGate(scopedGate, input), /mixes records with and without finding versions/)
+    );
+  }
+  await t.test('whitespace cannot split one version on an allowed path', () => {
+    const padded = advisory(1000010, 'high', [PATH_A], {
+      findings: [
+        { version: '1.0.0', paths: [PATH_A] },
+        { version: '1.0.0 ', paths: [PATH_A] },
+      ],
+    });
+    assertBlocked(runGate(scopedGate, pnpmReport([padded], { high: 2 })), /invalid version/);
+  });
+  for (const findings of [{}, 'none', null]) {
+    await t.test(`findings ${JSON.stringify(findings)} fails closed`, () =>
+      assertBlocked(
+        runGate(scopedGate, pnpmReport([advisory(1000001, 'high', [], { findings })])),
+        /invalid findings/
       )
     );
   }

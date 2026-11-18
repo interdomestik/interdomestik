@@ -32,7 +32,7 @@
         "apps__web>@sentry/nextjs>@rollup/plugin-commonjs>picomatch",
         "apps__web>better-auth>vitest>@vitest/mocker>vite>picomatch"
       ],
-      "reason": "GHSA-fc5q-39xc-vjpf (picomatch): not reachable from requests. Both installs are build or test tooling: @rollup/plugin-commonjs runs in the Sentry webpack loader at build time with fixed patterns from the Sentry and Next configuration, and the vite copy belongs to the vitest peer of better-auth, never loaded by the server. No request or user input reaches picomatch. No patched version exists. Owner-approved 2026-11-18 (assess, then allowlist)."
+      "reason": "GHSA-fc5q-39xc-vjpf (picomatch): not reachable from requests. The reported installs are build or test tooling: @rollup/plugin-commonjs runs in the Sentry webpack loader at build time with fixed patterns, and the vite copy belongs to the vitest peer of better-auth, used only by its test entry point. pnpm reports a shared install once; the same 4.0.4 install also serves @parcel/watcher under next-intl (ignore globs of its file watcher; the app configures no message extraction), also without request input. scripts/ci/pnpm-audit-allowlist-consumers.test.mjs pins the production consumers of both versions so a new one needs a fresh assessment. No patched version exists. Owner-approved 2026-11-18 (assess, then allowlist)."
     }
   ]
 }
