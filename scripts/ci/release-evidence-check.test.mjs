@@ -200,6 +200,33 @@ test('a malformed option stops the check instead of skipping file verification',
   );
 });
 
+test('signoff and artifacts accept only the schema fields, and the signoff date is a date', () => {
+  const tail = 'signer_ref: T503-SIGNER, role: owner';
+  const cases = {
+    G01: { signoff: `{ ${tail}, signed_at: 2026-07-02, attestation: { name: Test Person } }` },
+    G02: {
+      artifact: ['file: G02-evidence.pdf', `sha256: ${ARTIFACT_SHA}`, 'metadata: { name: x }'],
+    },
+    G03: { signoff: `{ ${tail}, signed_at: { name: Test Person } }` },
+    G04: { signoff: `{ ${tail}, signed_at: [2026-07-02] }` },
+    G05: { signoff: `{ ${tail}, signed_at: false }` },
+    G06: { signoff: `{ ${tail}, signed_at: '2026-07-02' }` },
+  };
+  withManifest(
+    id => cases[id] ?? {},
+    ({ check }) => {
+      const result = check(['--manifest-only']);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /G01: signoff\.attestation is not accepted/);
+      assert.match(result.stderr, /G02: artifact metadata is not accepted/);
+      for (const id of ['G03', 'G04', 'G05']) {
+        assert.match(result.stderr, new RegExp(`${id}: signoff\\.signed_at must be a date`));
+      }
+      assert.doesNotMatch(result.stderr, /G06:/);
+    }
+  );
+});
+
 test('the equals form of an option is honoured', () => {
   withManifest(
     () => ({}),

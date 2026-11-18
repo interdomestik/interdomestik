@@ -79,7 +79,7 @@ test('evidence settings from a user configuration file stop the check in any spe
       assertRefused(pnpm(['release:evidence:check'], { npm_config_userconfig: userconfig }), line);
     }
     // pnpm does not export an array setting; the store named after the script is still verified.
-    writeFileSync(userconfig, `evidence-root[]=${dir}\n`);
+    writeFileSync(userconfig, `evidence-root[]=${path.join(dir, 'not-a-store')}\n`);
     const named = pnpm(['release:evidence:verify', dir], { npm_config_userconfig: userconfig });
     assert.equal(named.status, 1, named.output);
     assert.match(named.output, /G01: evidence file not found: /);

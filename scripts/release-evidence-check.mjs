@@ -28,6 +28,16 @@ const requiredGateFields = [
 const requiredSignoffFields = ['signer_ref', 'role', 'signed_at'];
 const identifyingSignoffFields = ['name', 'email'];
 const textSignoffFields = ['signer_ref', 'role'];
+// The schema's closed key sets; name and email keep their own message.
+const knownSignoffFields = new Set([...requiredSignoffFields, ...identifyingSignoffFields]);
+const artifactFields = new Set(['file', 'sha256', 'path']);
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
+
+// A YAML timestamp or a calendar date written as text.
+function isSignoffDate(value) {
+  if (value instanceof Date) return !Number.isNaN(value.getTime());
+  return typeof value === 'string' && DATE_PATTERN.test(value) && !Number.isNaN(Date.parse(value));
+}
 const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
 const FILE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 
@@ -117,6 +127,13 @@ function validateSignoff(gate) {
   const errors = identifyingSignoffFields
     .filter(field => gate.signoff?.[field] != null)
     .map(field => `${gate.id}: signoff.${field} must not be recorded here; use signer_ref`);
+  for (const field of Object.keys(gate.signoff ?? {})) {
+    if (!knownSignoffFields.has(field)) errors.push(`${gate.id}: signoff.${field} is not accepted`);
+  }
+  const signedAt = gate.signoff?.signed_at;
+  if (!isPending(signedAt) && !isSignoffDate(signedAt)) {
+    errors.push(`${gate.id}: signoff.signed_at must be a date`);
+  }
   for (const field of textSignoffFields) {
     const value = gate.signoff?.[field];
     if (value != null && typeof value !== 'string') {
@@ -135,6 +152,9 @@ function validateArtifact(gateId, artifact, evidenceRoot) {
   if (artifact.path != null) {
     return [`${gateId}: artifact path is not accepted; name the evidence file with file`];
   }
+  const unknown = Object.keys(artifact).filter(field => !artifactFields.has(field));
+  if (unknown.length > 0)
+    return unknown.map(field => `${gateId}: artifact ${field} is not accepted`);
   const file = typeof artifact.file === 'string' ? artifact.file : '';
   const digest = typeof artifact.sha256 === 'string' ? artifact.sha256.toLowerCase() : '';
   const errors = [];
