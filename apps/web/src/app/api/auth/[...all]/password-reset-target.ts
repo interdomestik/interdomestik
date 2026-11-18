@@ -14,8 +14,11 @@ function hasUnsafeCharacters(value: string): boolean {
   return /[\u0000-\u001f\u007f\\]/u.test(value);
 }
 
+// The target is recorded in the reset audit event, whose metadata the append refuses above 2 KiB.
+// Like the request headers, it keeps only printable ASCII, so each kept character serializes to at
+// most two JSON bytes and an attacker-chosen target cannot push the event past the cap.
 function boundedTarget(value: string): string {
-  return value.slice(0, MAX_TARGET_CHARS);
+  return value.replace(/[^\x20-\x7e]/gu, '?').slice(0, MAX_TARGET_CHARS);
 }
 
 function originOf(value: string): string | null {

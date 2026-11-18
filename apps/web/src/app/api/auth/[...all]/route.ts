@@ -27,8 +27,8 @@ import { evaluateEmailSignUpTenantGuard, isEmailSignUpUrl } from './sign-up-tena
 
 // Anonymous request headers are attacker-controlled: bound them so an oversized value cannot push
 // a security event past the audit append's 2 KiB metadata cap and suppress it. Only printable ASCII
-// is kept, so each kept character serializes to at most two JSON bytes (2 × (64 + 512) plus the
-// fixed route and reason labels stays under the cap).
+// is kept, so each kept character serializes to at most two JSON bytes (2 × (64 + 512 + 256), with
+// the reset target bounded the same way, plus the fixed route and reason labels stays under the cap).
 function boundedHeaderValue(value: string | null | undefined, maxChars: number) {
   return value?.replace(/[^\x20-\x7e]/g, '?').slice(0, maxChars);
 }

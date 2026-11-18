@@ -140,6 +140,30 @@ describe('POST /api/auth/request-password-reset target on production (SEC-11)', 
     }
   );
 
+  it('keeps the worst-case record under the audit cap, so a crafted target cannot suppress it', async () => {
+    hoisted.lookupUserTenantByEmail.mockResolvedValue('tenant_ks');
+    const request = new Request('https://ida.interdomestik.com/api/auth/request-password-reset', {
+      method: 'POST',
+      headers: {
+        host: 'ida.interdomestik.com',
+        'content-type': 'application/json',
+        'user-agent': '"'.repeat(512),
+        'x-forwarded-for': '1'.repeat(64),
+      },
+      body: JSON.stringify({
+        email: 'member@example.test',
+        redirectTo: `/${'\ud800'.repeat(255)}`,
+      }),
+    });
+
+    expect((await POST(request)).status).toBe(200);
+    await runAfterCallbacks();
+
+    const [{ metadata }] = hoisted.appendAnonymousTenantAuditEvent.mock.calls[0];
+    expect(metadata.redirectTarget).toBe(`/${'?'.repeat(255)}`);
+    expect(Buffer.byteLength(JSON.stringify(metadata), 'utf8')).toBeLessThanOrEqual(2_048);
+  });
+
   it('records nothing when the address has no account', async () => {
     hoisted.lookupUserTenantByEmail.mockResolvedValue(null);
 
