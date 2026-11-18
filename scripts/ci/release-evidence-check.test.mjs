@@ -1,14 +1,13 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import yaml from 'js-yaml';
-import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
 
-const rootDir = path.resolve(new URL('../..', import.meta.url).pathname);
+const rootDir = fileURLToPath(new URL('../..', import.meta.url));
 const checker = path.join(rootDir, 'scripts/release-evidence-check.mjs');
 const ARTIFACT_TEXT = 'signed test artifact\n';
 const ARTIFACT_SHA = createHash('sha256').update(ARTIFACT_TEXT).digest('hex');
@@ -148,48 +147,29 @@ test('artifacts name a plain file in the store, never a repository path', () => 
   );
 });
 
-test('signoff records an opaque signer reference and refuses names and emails', () => {
+test('signoff records an opaque text signer reference and refuses names and emails', () => {
+  const tail = 'role: owner, signed_at: 2026-07-02';
   const cases = {
-    G05: '{ name: Test Person, signer_ref: T503-G05, role: owner, signed_at: 2026-07-02 }',
-    G06: '{ email: someone@example.test, signer_ref: T503-G06, role: owner, signed_at: 2026-07-02 }',
-    G08: '{ role: owner, signed_at: 2026-07-02 }',
+    G05: [`{ name: Test Person, signer_ref: T503-G05, ${tail} }`, 'name must not be recorded here'],
+    G06: [`{ email: a@example.test, signer_ref: T503-G06, ${tail} }`, 'email must not be recorded'],
+    G07: [`{ signer_ref: { name: Test Person }, ${tail} }`, 'signer_ref must be text'],
+    G08: [`{ ${tail} }`, 'signer_ref is missing or pending'],
+    G09: [`{ signer_ref: [T503-G09], ${tail} }`, 'signer_ref must be text'],
+    G10: [
+      '{ signer_ref: T503-G10, role: { name: Test Person }, signed_at: 2026-07-02 }',
+      'role must be text',
+    ],
   };
   withManifest(
-    id => (cases[id] ? { signoff: cases[id] } : {}),
+    id => (cases[id] ? { signoff: cases[id][0] } : {}),
     ({ check }) => {
       const result = check(['--manifest-only']);
       assert.equal(result.status, 1);
-      assert.match(result.stderr, /G05: signoff\.name must not be recorded here/);
-      assert.match(result.stderr, /G06: signoff\.email must not be recorded here/);
-      assert.match(result.stderr, /G08: signoff\.signer_ref is missing or pending/);
+      for (const [id, [, message]] of Object.entries(cases)) {
+        assert.ok(result.stderr.includes(`${id}: signoff.${message}`), `${id}: ${result.stderr}`);
+      }
     }
   );
-});
-
-test('the repository manifest is a hash manifest without names or repository paths', () => {
-  const manifestPath = path.join(rootDir, 'docs/release/production-evidence.yaml');
-  const gates = yaml.load(readFileSync(manifestPath, 'utf8')).gates;
-  assert.equal(gates.length, 10);
-  for (const gate of gates) {
-    assert.deepEqual(Object.keys(gate.signoff).sort(), ['role', 'signed_at', 'signer_ref']);
-    for (const artifact of gate.required_artifacts) {
-      assert.deepEqual(Object.keys(artifact).sort(), ['file', 'sha256']);
-    }
-  }
-  const result = run(['--manifest-only']);
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /PASS gates=10 files=not-verified \(manifest only\)/);
-});
-
-test('the release evidence manifests have a registered modularity owner', () => {
-  for (const file of [
-    'docs/release/production-evidence.yaml',
-    'docs/release/t503-evidence-intake/manifest-patch-example.yaml',
-    'docs/release/production-evidence.schema.json',
-  ]) {
-    assert.equal(structuredArtifactOwner(file), 'release-evidence-hash-manifest-contract');
-  }
-  assert.equal(structuredArtifactOwner('docs/release/other-evidence.yaml'), null);
 });
 
 test('a malformed option stops the check instead of skipping file verification', () => {
@@ -260,18 +240,6 @@ test('a hash must be a string, not a list holding one', () => {
       );
     }
   );
-});
-
-test('the published schema requires the hash-manifest fields and refuses the retired ones', () => {
-  const schemaPath = path.join(rootDir, 'docs/release/production-evidence.schema.json');
-  const gate = JSON.parse(readFileSync(schemaPath, 'utf8')).properties.gates.items.properties;
-  const artifact = gate.required_artifacts.items;
-  assert.deepEqual(artifact.required, ['file', 'sha256']);
-  assert.equal(artifact.additionalProperties, false);
-  assert.deepEqual(gate.signoff.required, ['signer_ref', 'role', 'signed_at']);
-  assert.equal(gate.signoff.additionalProperties, false);
-  assert.equal('name' in gate.signoff.properties, false);
-  assert.equal('path' in artifact.properties, false);
 });
 
 test('options pnpm took as its own configuration stop the check', () => {

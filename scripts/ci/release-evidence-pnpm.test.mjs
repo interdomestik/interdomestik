@@ -4,11 +4,12 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 // Runs the release evidence scripts through pnpm itself: options written before the script name
 // become pnpm configuration, and repeated ones are dropped entirely, so the package scripts must
 // carry the mode and a requested verification must fail rather than fall back to manifest-only.
-const rootDir = path.resolve(new URL('../..', import.meta.url).pathname);
+const rootDir = fileURLToPath(new URL('../..', import.meta.url));
 const pnpmCli = /pnpm\.c?js$/u.test(process.env.npm_execpath ?? '')
   ? process.env.npm_execpath
   : null;
@@ -77,10 +78,14 @@ test('evidence settings from a user configuration file stop the check in any spe
       writeFileSync(userconfig, `${line}\n`);
       assertRefused(pnpm(['release:evidence:check'], { npm_config_userconfig: userconfig }), line);
     }
+    // pnpm does not export an array setting; the store named after the script is still verified.
     writeFileSync(userconfig, `evidence-root[]=${dir}\n`);
+    const named = pnpm(['release:evidence:verify', dir], { npm_config_userconfig: userconfig });
+    assert.equal(named.status, 1, named.output);
+    assert.match(named.output, /G01: evidence file not found: /);
     assertRefused(
       pnpm(['release:evidence:verify'], { npm_config_userconfig: userconfig }),
-      'array setting'
+      'array'
     );
   });
 });

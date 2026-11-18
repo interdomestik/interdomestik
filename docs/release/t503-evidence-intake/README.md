@@ -67,6 +67,7 @@ pnpm release:evidence:verify <evidence-store>
 The command must fail until every G01-G10 gate has a non-pending passing status,
 a valid signoff and a well-formed SHA-256 per file, and every file exists in the
 store with a matching SHA-256. `pnpm release:evidence:check` checks the manifest
-alone and reports the files as not verified. Write options after the script
-name; options written before it are refused. Run it on a private evidence
-directory that nobody else can change while the check runs.
+alone and never verifies files, whatever options it is given. Write options
+after the script name: pnpm takes options written before it as its own settings
+and may refuse or silently drop them. Run it on a private evidence directory
+that nobody else can change while the check runs.

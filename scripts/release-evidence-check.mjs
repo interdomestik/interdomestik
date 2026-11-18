@@ -27,6 +27,7 @@ const requiredGateFields = [
 ];
 const requiredSignoffFields = ['signer_ref', 'role', 'signed_at'];
 const identifyingSignoffFields = ['name', 'email'];
+const textSignoffFields = ['signer_ref', 'role'];
 const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
 const FILE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 
@@ -116,6 +117,12 @@ function validateSignoff(gate) {
   const errors = identifyingSignoffFields
     .filter(field => gate.signoff?.[field] != null)
     .map(field => `${gate.id}: signoff.${field} must not be recorded here; use signer_ref`);
+  for (const field of textSignoffFields) {
+    const value = gate.signoff?.[field];
+    if (value != null && typeof value !== 'string') {
+      errors.push(`${gate.id}: signoff.${field} must be text`);
+    }
+  }
   for (const field of requiredSignoffFields) {
     if (isPending(gate.signoff?.[field]))
       errors.push(`${gate.id}: signoff.${field} is missing or pending`);
