@@ -38,20 +38,22 @@ function references(node) {
   );
 }
 
-// Production graph: importer and snapshot nodes, production and optional edges only. A
-// workspace link stays an edge between importers, so a new route through it is visible.
-function productionEdges(lock) {
-  const edges = [];
-  const seen = new Set();
-  const queue = [];
-  for (const [importer, node] of Object.entries(lock.importers)) {
-    for (const [name, value] of references(node)) {
+// Importer edges. A workspace link stays an edge between importers, so a new route through it
+// is visible.
+function importerEdges(lock) {
+  return Object.entries(lock.importers).flatMap(([importer, node]) =>
+    references(node).map(([name, value]) => {
       const linked = path.posix.normalize(path.posix.join(importer, value.slice(5)));
-      const child = targetKey(name, value) ?? `importer:${linked}`;
-      edges.push([`importer:${importer}`, child]);
-      if (!child.startsWith('importer:')) queue.push(child);
-    }
-  }
+      return [`importer:${importer}`, targetKey(name, value) ?? `importer:${linked}`];
+    })
+  );
+}
+
+// Production graph: importer and snapshot nodes, production and optional edges only.
+function productionEdges(lock) {
+  const edges = importerEdges(lock);
+  const seen = new Set();
+  const queue = edges.map(([, child]) => child).filter(child => !child.startsWith('importer:'));
   while (queue.length > 0) {
     const key = queue.pop();
     if (seen.has(key)) continue;
@@ -68,7 +70,13 @@ function productionEdges(lock) {
 }
 
 // Package identity without the peer suffix, which changes with unrelated peer upgrades.
-const withoutPeers = key => key.replace(/\(.*$/su, '');
+function withoutPeers(key) {
+  const bracket = key.indexOf('(');
+  return bracket === -1 ? key : key.slice(0, bracket);
+}
+
+// Code-unit order, as a bare sort() gives, written out.
+const byCodeUnit = (a, b) => Number(a > b) - Number(a < b);
 
 // Every production edge whose child is the target install or leads to it, as "parent > child".
 function edgesLeadingTo(target, lock = lockfile) {
@@ -84,7 +92,7 @@ function edgesLeadingTo(target, lock = lockfile) {
     }
   }
   const pinned = edges.filter(([, child]) => leads.has(child));
-  return [...new Set(pinned.map(edge => edge.map(withoutPeers).join(' > ')))].sort();
+  return [...new Set(pinned.map(edge => edge.map(withoutPeers).join(' > ')))].sort(byCodeUnit);
 }
 
 // GHSA-fc5q-39xc-vjpf, assessed 2026-11-18: the Sentry build-time rollup plugins, the vitest
