@@ -1,4 +1,10 @@
-import { and, eq, legalEntities, type TenantTransaction } from '@interdomestik/database';
+import {
+  and,
+  eq,
+  legalEntities,
+  type subscriptions,
+  type TenantTransaction,
+} from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -6,8 +12,6 @@ import {
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { readTenantLegalMetadata } from '@interdomestik/database/tenant-directory';
 import type { InferSelectModel } from 'drizzle-orm';
-
-import type { subscriptions } from '@interdomestik/database';
 
 export type EntityDisclosureSource = 'tenant' | 'subscription' | 'sponsor';
 
