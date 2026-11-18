@@ -37,20 +37,22 @@ mark any G01-G10 gate as complete, waived, approved, supplied, or verified.
 
 ## Intake Commands
 
-After a real artifact or signed waiver is placed under
-`docs/release/evidence/`, compute its hash:
+Evidence files and signers' names never enter the repository. Keep each real
+artifact or signed waiver in the private evidence store, outside the
+repository, and compute its hash there:
 
 ```bash
-shasum -a 256 docs/release/evidence/<artifact-file>
+shasum -a 256 <evidence-store>/<artifact-file>
 ```
 
 Then update only the matching gate in `docs/release/production-evidence.yaml`
 with:
 
 - `status: supplied`, `approved`, `verified`, or `waived`;
-- the matching `required_artifacts[*].path`;
+- the matching `required_artifacts[*].file` (the plain file name in the store);
 - the matching `required_artifacts[*].sha256`;
-- signoff name, role, and signed date.
+- signoff `signer_ref` (the reference of the signoff record in the store, never
+  a name or email), role, and signed date.
 
 Preserve the existing gate entry shape, including `id`, `description`, `owner`,
 and any unrelated artifacts. Do not replace a full gate entry with only the
@@ -59,8 +61,10 @@ partial fields shown in the example.
 Finally run:
 
 ```bash
-pnpm release:evidence:check
+pnpm release:evidence:check --evidence-root <evidence-store>
 ```
 
 The command must fail until every G01-G10 gate has a non-pending passing status,
-valid signoff, existing artifact path, and matching SHA-256.
+a valid signoff and a well-formed SHA-256 per file. With `--evidence-root` it
+also requires every file to exist in the store with a matching SHA-256; without
+it, the check reports the files as not verified.
