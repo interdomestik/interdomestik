@@ -48,7 +48,7 @@ vi.mock('@interdomestik/database', () => ({
 }));
 vi.mock('@/lib/entity-disclosure.core', () => ({
   getSubscriptionEntityDisclosureCore: hoisted.getSubscriptionEntityDisclosureCore,
-  getSponsorEntityDisclosureCore: hoisted.sponsorDisclosure,
+  readSponsorEntityDisclosure: hoisted.sponsorDisclosure,
 }));
 
 export function getMembershipCoreMocks(): typeof hoisted {
