@@ -1,6 +1,7 @@
 # Interdomestik development agent
 
-This Codex agent owns one bounded Interdomestik development task. Its editable
+This Codex agent reviews Claude Code's work and, when the lead assigns one, takes a
+bounded part of an Interdomestik development task (`AGENTS.md`, R-01). Its editable
 definition is `.codex/agents/interdomestik-developer.toml` (revision
 `2026-10-03-bounded-search-packets`). An optional personal installation at
 `~/.codex/agents/interdomestik-developer.toml` is a reusable copy; its existence alone
@@ -155,9 +156,9 @@ instead explicitly authorize protected merge and staging for the selected task;
 then the agent continues through exact-SHA staging proof and authorized cleanup.
 It must not infer that authority from this guide or another chat's delivery.
 
-Codex owns integration and uses the existing authorized Claude subscription route
-for bounded coding/fix assistance and risk-appropriate independent review. Follow
-the installed skill for current routes and disclosure limits. No paid fallback,
+Claude Code implements and owns integration; Codex reviews independently and takes a
+bounded part only when the lead assigns one (`AGENTS.md`, R-01 and R-02, which also
+set the routes). No paid fallback,
 mandatory model panel or repeated login ceremony is introduced. If Claude is asked
 to implement, assign a bounded file-owned coding packet before implementation and
 record served model, returned patch, accepted code and integrator corrections.
@@ -496,16 +497,15 @@ and resolve it before the dependent implementation; do not silently substitute a
 
 ## Next slice coding and review lessons
 
-Owner model routing (2026-10-05; Sonnet 5.5 replaces the routine Sonnet 5 preference):
-Opus is the owner's preferred coding model; Sonnet 5.5 is the preferred routine option
-for bounded coding, tests and fixes. Codex owns integration and verification
-with GPT-6.1 Sol high as this role's configured model and the approved coding
-fallback when Claude quota is unavailable. Record the unavailable route and actual
-executor, then continue adequate low/medium-risk work without a quota waiver ritual.
-Use Astra for concrete unresolved complexity, security, concurrency or architecture
-ambiguity; xhigh reasoning requires explicit owner direction for that work. Gemini
-is optional independent review, not a required coding step. These roles are working
-preferences, not measured rankings or proof of separate subscription quota pools.
+Model routing (owner, 2026-11-17; AGENTS.md R-01 and R-02): Claude Code, with
+Claude Opus as orchestrator and implementer, implements and owns integration.
+Codex (GPT-6.1 Sol) reviews independently at xhigh. When the lead assigns Codex a
+bounded part with disjoint files in its own worktree, Codex implements that part at
+this role's configured effort and Claude reviews it. Astra, at high effort or above,
+is used only for the first full review of HIGH work, the final review of its exact
+head, and a concrete unresolved security, gate, concurrency, data-loss or
+architecture ambiguity. No model approves its own work, a blocked reviewer is not
+an approval, and no paid API is a fallback.
 Assign any requested Claude coding a bounded packet with disjoint files, current
 source, SRS/M0-M5 constraints, acceptance and tests. Verify served-model metadata
 when available and accepted code; configured/requested models alone are not proof.

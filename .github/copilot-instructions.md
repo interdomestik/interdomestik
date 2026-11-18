@@ -1,59 +1,31 @@
 # Interdomestik repository instructions
 
+The rules for every agent and tool are in `AGENTS.md`. This file holds no rule of its own. Its headings are kept so that whoever looks for an old section finds where it went; `docs/engineering/RULES-MAPPING-PART4-REPOSITORY.md` maps every old line.
+
 ## Stack and layout
 
-- Use `pnpm` workspaces with Turborepo. Do not switch to `npm` or `yarn`.
-- The main app is `apps/web` (Next.js 16 App Router, React 19, strict TypeScript).
-- Shared code lives in `packages/domain-*`, `packages/database`, `packages/shared-auth`, `packages/ui`, and `packages/qa`.
-- Treat `apps/web/.next`, `coverage`, `playwright-report`, `tmp`, and `node_modules` as generated artifacts. Do not edit them directly.
+`AGENTS.md`, R-15 (the layers) and the `MODULE.md` of each package.
 
 ## Phase C pilot rules
 
-- `apps/web/src/proxy.ts` is the routing, access-control, and tenant-isolation authority. Do not change it or bypass its behavior unless the user explicitly asks.
-- Keep canonical routes stable: `/member`, `/agent`, `/staff`, and `/admin`.
-- Preserve existing `page-ready` and `*-page-ready` `data-testid` markers. E2E gates depend on them.
-- No architectural refactors of routing, auth, domains, or tenancy unless explicitly requested.
-- Stripe is not used in V3 pilot flows. Do not add Stripe-based flows or checks.
-- Do not update `README`, `AGENTS.md`, or architecture documentation unless asked.
+`AGENTS.md`, R-34, R-29 and R-18. The Phase C program is finished.
 
 ## Auth, tenancy, and data access
 
-- Better Auth is the sole identity and session system of record; Supabase PostgreSQL supplies persistence.
-- `@interdomestik/shared-auth` defines the enforced provider-agnostic application boundary.
-- Existing enforcement is partial. Keep provider clients/types in declared adapters and reviewed transitional exceptions; do not introduce new boundary escapes or bypass auth/session checks.
-- Follow `docs/architecture/amendments/2026-11-07-pd-r5-iam-v1.md`; wording adoption does not authorize runtime changes.
-- Validate sessions with shared-auth helpers such as `requireTenantSession` and `ensureTenantId`.
-- Keep tenant isolation explicit. Use `withTenant(...)` for tenant-scoped Drizzle queries.
+`AGENTS.md`, R-30 (identity), R-17 (tenant context), R-06 (proof on a real database) and R-16 (one owner per table).
 
 ## Code style and workflow
 
-- Follow the existing Prettier style: 2 spaces, semicolons, single quotes, trailing commas, and 100-character line width.
-- Keep imports grouped in this order: React/Next, external packages, workspace packages, then local files.
-- Prefer explicit types on public TypeScript APIs and use discriminated unions for result types when they improve clarity.
-- Prefer `rg` for repository searches when gathering context.
+`AGENTS.md`, R-36 (`pnpm`), R-20 (reuse) and R-22 (one unit per session).
 
 ## Quality bar
 
-- Prefer small, surgical diffs over broad rewrites.
-- Match existing local patterns before adding new abstractions, helpers, or dependencies.
-- Do not leave TODOs, placeholders, dead code, or speculative utilities in final output.
-- Reuse existing product language, route helpers, auth helpers, and translation patterns instead of inventing parallel ones.
-- When behavior changes, update the nearest relevant unit, integration, or E2E coverage in the same change.
+`AGENTS.md`, section 3 (Definition of Done).
 
 ## Review expectations
 
-- Lead with concrete findings that can change behavior, compliance, copy meaning, or test coverage. Keep descriptive recap secondary.
-- Ignore merge-sync noise such as rebase conflict resolution, `.github` instruction churn, or workflow-only updates unless they alter protected behavior or required checks.
-- For message catalog diffs, compare changed strings against the rest of the same locale before commenting. Flag glossary drift, orthography regressions, missing disclaimers, and over-promising language.
-- Call out broad locale-file rewrites when the change could have been surgical, because they hide small regressions and reduce review signal.
-- If no actionable findings remain, say so briefly instead of expanding the file-by-file summary.
+`AGENTS.md`, section 1 (R-01 and the paragraph on what a review is).
 
 ## Verification
 
-- Before claiming work is complete, run the commands that prove the claim.
-- Required PR gate commands are `pnpm pr:verify` and `pnpm security:guard`; the mandatory full `e2e:gate` is included in `pr:verify`.
-- For quick static-guard and case/recovery unit feedback, use `pnpm check:fast`; use
-  `pnpm check:static` for full formatting/lint/types and `pnpm test` for all web units.
-  `pnpm slice:e2e:pr` is the explicit build/DB/browser lane. A passing `pnpm pr:verify` already
-  contains full E2E evidence for the same candidate/environment; do not repeat that gate.
-- For deterministic host-routed verification, use `pnpm pr:verify:hosts`.
+`AGENTS.md`, section 3: local verification.
