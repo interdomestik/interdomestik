@@ -32,7 +32,7 @@ const reservation = await reserveE2ePort(stateRoot, `${database}:${process.pid}`
 let created = false;
 
 try {
-  createTaskDatabase(database);
+  await createTaskDatabase(database);
   created = true;
   execFileSync(Z620_EXECUTABLES.docker, [
     'exec',
@@ -49,6 +49,6 @@ try {
   ]);
   console.log(JSON.stringify({ status: 'pass', database, port: reservation.port }));
 } finally {
-  if (created) dropTaskDatabase(database);
+  if (created) await dropTaskDatabase(database);
   reservation.release();
 }

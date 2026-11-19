@@ -20,11 +20,11 @@ Declares the schema (46 schema files, 99 `pgTable` calls — MEASURED, `rg -c 'p
 - The database role of a tenant transaction comes only from deployment configuration, never from a caller — `src/tenant.ts:17,29`, with the identifier regex-validated (`src/rls-role-assertion.ts`, cited by `A/modules/tenancy.md:150`).
 - `withTenantAuthority` refuses anything that is not a registered authority token — `src/tenant-authority-context.ts:16`.
 - **Code inside a tenant transaction must use that transaction and never open a second one.** Each call opens its own transaction (`src/tenant.ts:23-47`) and on the hosting platform each pool holds one connection (`src/db.ts:40-41`), so a nested call cannot complete. `NOT ENFORCED` by any check; two pilot paths break it (DATA-13): `apps/web/src/app/[locale]/(app)/member/membership/_core.ts:57,82` calling `apps/web/src/lib/entity-disclosure.core.ts:76`, and `apps/web/src/features/admin/verification/server/mutations/verify-attempt.ts:92,166` calling `apps/web/src/lib/notifications/recipient-role.ts:18`.
-- A built database equals the declared schema — `NOT ENFORCED`. The migrator applies only the journal (`src/migrate.ts:34`); four `.sql` files are outside it, so a built database keeps `DEFAULT 'tenant_mk'` on the tenant column of **31** tables and lacks four declared indexes, among them `agent_commissions_tenant_subscription_type_uq` (DATA-14; `docs/engineering/DB-BASELINE.md:18,122-123`). Every CI database is built this way.
+- A built database equals the declared schema — checked by `test:journal-parity` (WP-04, CHK-12): a database built from the journal alone is compared with the snapshot rendered by PostgreSQL plus the registry of SQL-only objects (`scripts/ci/sql-managed-objects.json`), with the reviewed differences pinned in `test/journal-schema-parity.support.ts`. Not yet a CI step: adding it to the workflow is the owner's decision. The four `.sql` files that were outside the journal (DATA-14) are carried by the journaled `drizzle/0100_*.sql`, which refuses a pre-existing object that is not equivalent.
 - Role is one of a fixed set — `NOT ENFORCED` (`src/schema/auth.ts:19`, no CHECK/enum; `A/modules/data-layer.md:115`).
 - Claim amounts in a declared currency — `NOT ENFORCED` (`src/schema/claim-core.ts:53-54`; `A/modules/data-layer.md:125`).
 - The document access log is append-only — `NOT ENFORCED`, comment only (`src/schema/documents.ts:78-105`; `A/modules/data-layer.md:133`).
-- Migration order — `NOT ENFORCED` (DATA-02, `A/modules/data-layer.md:242`).
+- Migration order — enforced by `db:migrations:check-journal` (`scripts/check-drizzle-migration-journal.mjs`): every `.sql` file under `drizzle/` is journaled, and timestamps increase with the index except the one pinned historical inversion (DATA-02).
 - (Full list: `A/modules/data-layer.md:109-140`, 21 rows.)
 
 ## Tenant boundary
@@ -33,7 +33,7 @@ Tenant context enters only as a `TenantAuthority` token or a resolved `TenantCon
 
 ## Live and not live
 
-Live: the tenant pool and `withTenantAuthority`; the journal migrator; the seed-target guard (`src/seed-target-guard.ts:190,211` — refuses a non-local target without `SEED_TARGET_CONFIRM=plan070:<target>`, and so admits any confirmed remote target; it knows production by one constant, `:10` — DATA-04). Not live: a second migration runner, 23 files / 2,303 lines, wired to nothing (DATA-11, `src/migrate.ts` is the live one); `packages/database/migrations/` (7 files) referenced by nothing; `supabase/migrations/` for storage, applied by no workflow (`docs/engineering/DB-BASELINE.md:122`). No repository-visible step migrates any deployed database (DATA-03).
+Live: the tenant pool and `withTenantAuthority`; the journal migrator; the seed-target guard (`src/seed-target-guard.ts:210,217` — refuses a non-local target without `SEED_TARGET_CONFIRM=plan070:<target>`, and so admits any confirmed remote target; it knows production by one constant, `:10` — DATA-04); for destructive scripts, `assertDisposableTarget` (`:236`) admits only a loopback database or the confirmed CI container (WP-04, R-13). Not live: a second migration runner, 23 files / 2,303 lines, wired to nothing (DATA-11, `src/migrate.ts` is the live one); `supabase/migrations/` for storage, applied by no workflow (`docs/engineering/DB-BASELINE.md:122`). No repository-visible step migrates any deployed database (DATA-03).
 
 ## A new tenant table (added after the drill of R3)
 
@@ -41,7 +41,7 @@ Declare it in a schema file with its tenant column, its policy and `.enableRLS()
 
 ## Tests to run
 
-From `package.json:31-48`: `pnpm --filter @interdomestik/database test:unit`; `test:rls` (an explicit list of 24 test files at `:42`, the row-security and tenant-authority suite; the other 124 of the 148 files run in no workflow, TEST-03); `test:migration-runtime-role`; `type-check`; `seed:assert-e2e`. `test:rls` runs in CI (`.github/workflows/ci.yml:196`, `pnpm db:rls:test`, with `REQUIRE_RLS_INTEGRATION=1` and `REQUIRE_RLS_COVERAGE=1`) and `seed:assert-e2e` in the same job; no workflow step runs this package's `test:unit`, `test:migration-runtime-role` or `type-check` (the unit's search of the workflows, which agrees with TEST-03); `A/modules/data-layer.md:246` records that no workflow has a migration step (DATA-03).
+From `package.json:31-48`: `pnpm --filter @interdomestik/database test:unit`; `test:rls` (an explicit list of 24 test files at `:42`, the row-security and tenant-authority suite; the other 124 of the 148 files run in no workflow, TEST-03); `test:migration-runtime-role`; `test:journal-parity` (needs a disposable PostgreSQL 16 server); `type-check`; `seed:assert-e2e`. `test:rls` runs in CI (`.github/workflows/ci.yml:196`, `pnpm db:rls:test`, with `REQUIRE_RLS_INTEGRATION=1` and `REQUIRE_RLS_COVERAGE=1`) and `seed:assert-e2e` in the same job; no workflow step runs this package's `test:unit`, `test:migration-runtime-role` or `type-check` (the unit's search of the workflows, which agrees with TEST-03); `A/modules/data-layer.md:246` records that no workflow has a migration step (DATA-03).
 
 ## Do not reach into
 

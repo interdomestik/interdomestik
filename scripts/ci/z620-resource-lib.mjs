@@ -1,8 +1,6 @@
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
-import { Z620_EXECUTABLES } from './managed-executables.mjs';
 import { prepareManagedSubdirectory } from './managed-paths.mjs';
 import { safeId } from './z620-runner-lib.mjs';
 
@@ -29,32 +27,51 @@ export function assertTaskDatabase(name) {
   return name;
 }
 
-export function createTaskDatabase(name, container = 'supabase_db_interdomestik') {
-  execFileSync(Z620_EXECUTABLES.docker, [
-    'exec',
-    container,
-    'createdb',
-    '-U',
-    'postgres',
-    assertTaskDatabase(name),
-  ]);
+const serverUrl = (database, password) =>
+  `postgresql://postgres:${encodeURIComponent(password)}@127.0.0.1:54322/${database}`;
+
+// The Z620 container's server as the host sees it: a fixed loopback address and port, so the
+// operation reaches that server and no other, whatever the Docker context or the libpq settings.
+const ADMIN_DATABASE = 'postgres';
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost']);
+
+// WP-04 residual (R-13): a client of its own until the guarded factory is admitted; it refuses any
+// URL that does not target a loopback host before it constructs the driver.
+async function withTaskAdminClient(password, work) {
+  const url = new URL(serverUrl(ADMIN_DATABASE, password));
+  if (!LOOPBACK_HOSTS.has(url.hostname)) {
+    throw new Error('The task database admin client must target a loopback host');
+  }
+  const { default: postgres } = await import('postgres');
+  const sql = postgres(url.toString(), {
+    max: 1,
+    connect_timeout: 10,
+    debug: false,
+    onnotice: () => {},
+    connection: { application_name: 'interdomestik_z620_task_database' },
+  });
+  try {
+    return await work(sql);
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
 }
 
-export function dropTaskDatabase(name, container = 'supabase_db_interdomestik') {
-  execFileSync(Z620_EXECUTABLES.docker, [
-    'exec',
-    container,
-    'dropdb',
-    '--force',
-    '--if-exists',
-    '-U',
-    'postgres',
-    assertTaskDatabase(name),
-  ]);
+export async function createTaskDatabase(name, password = 'postgres') {
+  const database = assertTaskDatabase(name);
+  await withTaskAdminClient(password, sql => sql`create database ${sql(database)}`);
+}
+
+export async function dropTaskDatabase(name, password = 'postgres') {
+  const database = assertTaskDatabase(name);
+  await withTaskAdminClient(
+    password,
+    sql => sql`drop database if exists ${sql(database)} with (force)`
+  );
 }
 
 export function databaseUrl(name, password = 'postgres') {
-  return `postgresql://postgres:${encodeURIComponent(password)}@127.0.0.1:54322/${assertTaskDatabase(name)}`;
+  return serverUrl(assertTaskDatabase(name), password);
 }
 
 export function canListen(port, host = '127.0.0.1') {

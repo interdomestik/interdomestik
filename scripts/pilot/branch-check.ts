@@ -4,6 +4,7 @@ import {
   assertPilotAuditVisibility,
   formatPilotBranchReport,
   pilotBranchReportQuery,
+  runReadOnlyReport,
   type PilotBranchViolation,
 } from '../../packages/database/src/scripts/pilot-branch-report';
 import { parsePilotBranchArgs } from '../../packages/database/src/scripts/pilot-branch-target';
@@ -29,7 +30,7 @@ async function main(): Promise<void> {
       if (typeof value !== 'string') throw new Error('Invalid report parameter');
       return value;
     });
-    const rows = await client.unsafe<PilotBranchViolation[]>(query.sql, parameters);
+    const rows = await runReadOnlyReport<PilotBranchViolation>(client, query.sql, parameters);
     for (const line of formatPilotBranchReport(rows)) console.log(line);
     process.exitCode = rows.length ? 1 : 0;
   } finally {
