@@ -29,3 +29,22 @@ test('the versioned role points to a runnable preflight available in a fresh che
   assert.match(role, /^model = "gpt-6.1-sol"$/m);
   assert.match(role, /^model_reasoning_effort = "high"$/m);
 });
+
+test('the role and its guide defer to AGENTS.md and leave merging to the owner', () => {
+  const role = fs.readFileSync(
+    new URL('../../.codex/agents/interdomestik-developer.toml', import.meta.url),
+    'utf8'
+  );
+  const guide = fs.readFileSync(
+    new URL('../../docs/guides/interdomestik-development-agent.md', import.meta.url),
+    'utf8'
+  );
+  for (const text of [role, guide]) {
+    const flat = text.replace(/\s+/gu, ' ');
+    assert.match(flat, /wins/u);
+    assert.match(flat, /the owner merges and releases/iu);
+    assert.doesNotMatch(flat, /authorized protected merge/iu);
+    assert.doesNotMatch(flat, /current-tracker\.md govern/u);
+    assert.doesNotMatch(flat, /Canonical reconciliation is an owned delivery obligation/u);
+  }
+});

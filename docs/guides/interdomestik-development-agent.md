@@ -13,6 +13,13 @@ owner separately authorizes an application API task. Unavailable advisory Brain
 bootstrap/resolver state is a reported limitation, not a veto over work supported by
 verified current repository authority.
 
+`AGENTS.md` is the rule source and wins over any passage here or in the role
+definition that conflicts with it, including passages on program/tracker
+reconciliation, merging and deploying. Work comes only from the ordered packages of
+`docs/engineering/DIRECTION.md` or the owner's explicit request (R-29); the program,
+tracker and ledgers are history. No agent merges, deploys or force-pushes; the owner
+merges and releases (R-01, R-24).
+
 ## Load and invoke
 
 For current Codex clients, the project registers
@@ -84,25 +91,22 @@ select GPT-6.1 Sol with high reasoning in the client yourself.
 
 ## Owner's delivery lifecycle
 
-Current program/tracker and delivered behavior → bounded selection → fresh
+A DIRECTION.md package or the owner's explicit request (R-29) → bounded selection → fresh
 worktree from updated main → implementation and focused green checks →
 authorized PR candidate (full local proof pending) → current-head review and
 analysis complete → consolidated corrections and focused regressions → final
 source/environment freeze → required full local proof and hosted checks green →
-authorized protected merge →
-required Actions/staging proof on the merge SHA → completion receipt and canonical
-status reconciliation → safe worktree retirement → chat archival → next slice.
+owner merge →
+read-only Actions/staging proof on the merge SHA → completion recorded on the PR → safe worktree retirement → chat archival → next slice.
 
-This sequence is operating policy, not blanket permission to merge, deploy,
-archive chats or start new work. A complete lifecycle authorization persists for
+This sequence is operating policy. It gives no permission to merge or deploy,
+which the owner does, and none to archive chats or start new work. A complete lifecycle authorization persists for
 its named scope; the agent must not ask repeatedly for actions already covered.
 
-Record scope and acceptance before implementation, but mark delivered completion
-only after the required post-merge proof. Since that proof arrives after the
-product PR merged, put the receipt on the completed PR and carry program/tracker
-completion in the next authorized product PR/amendment. This respects the repo's
-no-status-only-PR rule. The handoff must name any pending canonical amendment and whether it is unapplied;
-never delete uncommitted tracker edits or write directly to protected main.
+Record scope and acceptance in the PR before implementation, and mark delivered
+completion on the merged PR only after the required post-merge proof (AGENTS.md
+R-28: no program, tracker or ledger edits, no bookkeeping-only PR). Never write
+directly to protected main.
 
 Before retirement preserve receipts, source, agent configuration, outstanding
 human acceptance and the next action. Use the existing handoff for model switches
@@ -151,10 +155,9 @@ SRS, mounted behavior and credited receipts before selecting it. Prove named-rol
 loading in that worktree using the personal installation. A successful prior pilot
 does not by itself prove fresh discovery; record selected definition hash, target
 root/head and configured model, and distinguish unavailable served-model metadata.
-The draft-only prompt below is a conservative rehearsal scope. An owner may
-instead explicitly authorize protected merge and staging for the selected task;
-then the agent continues through exact-SHA staging proof and authorized cleanup.
-It must not infer that authority from this guide or another chat's delivery.
+The draft-only prompt below is a conservative rehearsal scope. The owner merges
+(AGENTS.md R-01); after the merge the agent verifies exact-SHA staging proof
+read-only and performs authorized cleanup.
 
 Claude Code implements and owns integration; Codex reviews independently and takes a
 bounded part only when the lead assigns one (`AGENTS.md`, R-01 and R-02, which also
@@ -231,7 +234,7 @@ git diff --check
 
 For instruction-only changes, run plan:audit and relevant instruction contracts
 instead of the runtime lane. Hosted protected checks are a later step when an
-actual PR is authorized. Merge and deployment require explicit owner authority.
+actual PR is authorized. Merge and deployment are the owner's (AGENTS.md R-01).
 
 ## Executable launch preflight
 
@@ -409,42 +412,22 @@ product amendment. It is not published to main by updating the personal copy.
 
 ## Mandatory canonical reconciliation
 
-Canonical reconciliation is an owned delivery obligation, never an owner reminder.
-At intake, resolve and record the existing canonical overview's actual path from
-current repository authority alongside docs/plans/current-program.md and
-docs/plans/current-tracker.md. Do not invent a new overview or promote an
-advisory Wiki snapshot to repository authority. If its identity is ambiguous,
-report the missing reference while continuing the unambiguous reconciliation.
-After exact-merge Actions and staging pass, reconcile these surfaces together:
-current phase, selected increment, active queue/status, proof ledger, canonical
-overview and affected requirement-disposition references. Record the delivered
-scope, PR, merge SHA, exact-SHA staging run, remaining human acceptance and the
-next authorized priority; never infer that the entire journey is complete.
-Prepare the concrete amendment immediately while evidence and context are available.
-Publish through an existing authorized product PR/amendment when available;
-otherwise preserve a reviewable patch outside the retiring worktree and record
-its exact path, intended destination and pending-publication state in the existing
-receipt and handoff. No status-only PR, direct protected-main write or silent
-amendment of another owner's active branch is authorized by this instruction.
-An external receipt is evidence, not a substitute for canonical reconciliation.
-Keep technical delivery complete and canonical publication pending as distinct
-states. Never report documentation closure until the amendment is merged and
-read back from canonical main. Before any successor selection, recover and apply
-this pending amendment within authorized scope and reconcile delivered behavior;
-never repeat completed work because a stale tracker still says in_progress.
-Pending publication alone does not block otherwise authorized successor work,
-but the obligation must be carried into that work explicitly and retained through
-cleanup or chat archival. Verify preservation before retiring its only worktree.
+Delivery record (AGENTS.md R-28): the PR is the record of a change. Do not edit
+the program, tracker, ledgers or an overview for it, and open no status-only or
+bookkeeping-only PR. After the owner merges, add the exact merge SHA, the
+exact-SHA staging run and any remaining human acceptance to that PR. Keep
+technical delivery and human acceptance as distinct states, and never infer that
+the entire journey is complete.
 
 ## Present the next slice to Arben
 
 Successor selection is a proposal for Arben, not implementation authority.
-After reconciling delivered work and canonical state, identify one recommended
-next bounded slice from current program/tracker, canonical overview, requirement
-gaps and mounted behavior. Present it in the current parent chat for Arben's
+After verifying the merged work, identify one recommended next bounded slice
+from the ordered packages of docs/engineering/DIRECTION.md (AGENTS.md R-29),
+requirement gaps and mounted behavior. Present it in the current parent chat for Arben's
 explicit confirmation: user outcome, evidence for priority, delivered work it
-builds on, scope/exclusions, acceptance and tests, dependencies/risks and any
-pending canonical amendment. Include an alternative only for a real tradeoff.
+builds on, scope/exclusions, acceptance and tests, and dependencies/risks.
+Include an alternative only for a real tradeoff.
 Do not mark the proposed slice active, open its implementation worktree, delegate
 coding or implement it until Arben confirms that named proposal here. Do not
 archive the parent chat while this confirmation is pending. Read-only selection
@@ -456,7 +439,7 @@ Record the confirmation and agreed scope in the existing handoff before starting
 ## M0–M5 conformance and live role journeys
 
 Architecture conformance and owner-authorized staging journeys:
-Before every implementation, resolve current M0–M5 state from current program/tracker,
+Before every implementation, resolve current M0–M5 state from docs/engineering/DIRECTION.md,
 their architecture links, accepted ADRs and mounted source. Map the changed behavior
 to relevant invariants and regression proof in the existing receipt. Preserve sole
 transition writers, case/recovery separation, event projections, session-derived
@@ -487,7 +470,7 @@ Visual references do not prove shipped capabilities or authorize promises: offli
 ## SRS v0.9 requirement check for every successor
 
 Before selecting or implementing each next slice, check SRS v0.9 alongside M0–M5,
-current program/tracker and the requirement-disposition map. Resolve the owner-held
+docs/engineering/DIRECTION.md and the requirement-disposition map. Resolve the owner-held
 SRS source and recorded checksum through repository authority, read the relevant
 clauses, and record requirement IDs, delivered credit, remaining gap and acceptance
 criteria in the existing slice receipt. Do not infer full SRS compliance from a

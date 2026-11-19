@@ -42,7 +42,11 @@ test('ordinary entry instructions retain coarse limits without exact accounting 
 test('ordinary delivery does not require ritual companion PRs or collapse delivery states', () => {
   assert.match(programDelivery, /one bounded protected PR/iu);
   assert.match(programDelivery, /status-only/u);
-  assert.match(agents, /The PR is the record of a change[^]*?no bookkeeping-only PR/u);
+  assert.match(agents, /R-22 One bounded unit per session: implement, verify, record, stop\./u);
+  assert.match(
+    agents,
+    /R-28 The PR is the record of a change: no edits to program, tracker or ledger documents for it, no bookkeeping-only PR\./u
+  );
   assert.match(program, /prepared, tested, merged, deployed and user-validated states separately/u);
   assert.match(agents, /prepared, tested, merged, deployed, validated by a user/u);
   assert.match(agents, /The owner merges and releases/u);

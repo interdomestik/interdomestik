@@ -19,12 +19,16 @@ Start with the shared advisory Obsidian context required by the owner's instruct
 then read only Interdomestik among the project pages. Treat unavailable advisory context as
 a reported limitation, not a new delivery gate. Brain bootstrap/resolver failures
 do not veto work supported by verified current repository authority.
-Repository source, tests, accepted ADRs, docs/plans/current-program.md and docs/plans/current-tracker.md govern work.
+AGENTS.md is the rule source (R-03). Work comes only from the ordered packages of
+docs/engineering/DIRECTION.md or the owner's explicit request (R-29); the program,
+tracker and ledgers under docs/plans/ are history and never select work. Where any
+passage below conflicts with AGENTS.md (program/tracker reconciliation, canonical
+amendments, merging or deploying), AGENTS.md wins.
 Read current authority each task; never select work from a stale remembered phase.
 Do not create another tracker or invoke legacy Lean/slice runners implicitly.
 
 Before selecting or implementing each next slice, check SRS v0.9 alongside M0–M5,
-current program/tracker and the requirement-disposition map. Resolve the owner-held
+docs/engineering/DIRECTION.md and the requirement-disposition map. Resolve the owner-held
 SRS source and recorded checksum through repository authority, read the relevant
 clauses, and record requirement IDs, delivered credit, remaining gap and acceptance
 criteria in the existing slice receipt. Do not infer full SRS compliance from a
@@ -32,7 +36,7 @@ bounded implementation or treat planned M0–M5 behavior as shipped. If the sour
 unavailable or conflicts with accepted repo authority, state the precise limitation
 and resolve it before the dependent implementation; do not silently substitute a summary.
 
-When selection is authorized, reconcile current program/tracker, SRS, mounted
+When selection is authorized, reconcile DIRECTION.md, SRS, mounted
 behavior and delivered evidence before choosing one unfinished user outcome.
 A stale checkout or pending tracker row is not proof that work is missing.
 Start a successor from freshly fetched canonical main in an isolated worktree,
@@ -191,59 +195,38 @@ After providers finish and threads are resolved, refresh only the failed deliver
 gate when its source identity is unchanged, then run pr:review-ready. A source push
 requires current-head hosted evidence under the existing admission policy. Stop
 at a reviewable handoff only when readiness is established or a concrete blocker
-requires owner input; merge/deploy still require their own authority.
+requires owner input; merging and releasing stay with the owner.
 Ensure real integration regressions are selected by a required repository lane,
 not only by a manually supplied environment flag; prove selection and execution.
-Do not merge, deploy, mutate production, send external messages,
-or perform destructive cleanup without appropriate explicit authority. Continue
+Never merge, deploy or force-push: the owner merges and releases (AGENTS.md R-01,
+R-24). Do not mutate production, send external messages, or perform destructive
+cleanup without appropriate explicit authority. Continue
 authorized reversible work without repeatedly requesting the same permission.
 
-When the owner has explicitly authorized protected merge and staging, carry that
-scope through rather than stopping at green local tests. Confirm current-head
-protected checks, review resolution, applicable delivery gates and base identity;
-merge through normal protections. Follow the resulting exact merge SHA through
-staging health, canonical-host/build provenance and required release-gate tests.
-A healthy host on an older SHA is not successful delivery. Diagnose the exact
-failed step; retry only the supported affected job when evidence warrants it.
-Use manual dispatch only where already authorized and supported by repo policy.
+At a green, reviewed head, hand off to the owner with head, base, required checks,
+the R-01 review record and the tier; the owner merges. After the merge, verify the
+exact merge SHA read-only through staging health, canonical-host/build provenance
+and the required release-gate results, and report them. A healthy host on an older
+SHA is not successful delivery. Diagnose the exact failed step read-only and report
+it to the owner; no agent writes to staging (R-24).
 Staging authority never implies production authority. Preserve technical delivery
 and human staff/member acceptance as separate states; missing credentials are
 not permission to bypass login or claim user validation.
 
-Canonical reconciliation is an owned delivery obligation, never an owner reminder.
-At intake, resolve and record the existing canonical overview's actual path from
-current repository authority alongside docs/plans/current-program.md and
-docs/plans/current-tracker.md. Do not invent a new overview or promote an
-advisory Wiki snapshot to repository authority. If its identity is ambiguous,
-report the missing reference while continuing the unambiguous reconciliation.
-After exact-merge Actions and staging pass, reconcile these surfaces together:
-current phase, selected increment, active queue/status, proof ledger, canonical
-overview and affected requirement-disposition references. Record the delivered
-scope, PR, merge SHA, exact-SHA staging run, remaining human acceptance and the
-next authorized priority; never infer that the entire journey is complete.
-Prepare the concrete amendment immediately while evidence and context are available.
-Publish through an existing authorized product PR/amendment when available;
-otherwise preserve a reviewable patch outside the retiring worktree and record
-its exact path, intended destination and pending-publication state in the existing
-receipt and handoff. No status-only PR, direct protected-main write or silent
-amendment of another owner's active branch is authorized by this instruction.
-An external receipt is evidence, not a substitute for canonical reconciliation.
-Keep technical delivery complete and canonical publication pending as distinct
-states. Never report documentation closure until the amendment is merged and
-read back from canonical main. Before any successor selection, recover and apply
-this pending amendment within authorized scope and reconcile delivered behavior;
-never repeat completed work because a stale tracker still says in_progress.
-Pending publication alone does not block otherwise authorized successor work,
-but the obligation must be carried into that work explicitly and retained through
-cleanup or chat archival. Verify preservation before retiring its only worktree.
+Delivery record (AGENTS.md R-28): the PR is the record of a change. Do not edit
+the program, tracker, ledgers or an overview for it, and open no status-only or
+bookkeeping-only PR. After the owner merges, add the exact merge SHA, the
+exact-SHA staging run and any remaining human acceptance to that PR. Keep
+technical delivery and human acceptance as distinct states, and never infer that
+the entire journey is complete.
 
 Successor selection is a proposal for Arben, not implementation authority.
-After reconciling delivered work and canonical state, identify one recommended
-next bounded slice from current program/tracker, canonical overview, requirement
-gaps and mounted behavior. Present it in the current parent chat for Arben's
+After verifying the merged work, identify one recommended next bounded slice
+from the ordered packages of docs/engineering/DIRECTION.md (AGENTS.md R-29),
+requirement gaps and mounted behavior. Present it in the current parent chat for Arben's
 explicit confirmation: user outcome, evidence for priority, delivered work it
-builds on, scope/exclusions, acceptance and tests, dependencies/risks and any
-pending canonical amendment. Include an alternative only for a real tradeoff.
+builds on, scope/exclusions, acceptance and tests, and dependencies/risks.
+Include an alternative only for a real tradeoff.
 Do not mark the proposed slice active, open its implementation worktree, delegate
 coding or implement it until Arben confirms that named proposal here. Do not
 archive the parent chat while this confirmation is pending. Read-only selection
@@ -299,7 +282,7 @@ required; remaining limitations. Distinguish prepared, tested, merged, deployed
 and user-validated. Never claim a proposed workflow or a test listing was executed.
 
 Architecture conformance and owner-authorized staging journeys:
-Before every implementation, resolve current M0–M5 state from current program/tracker,
+Before every implementation, resolve current M0–M5 state from docs/engineering/DIRECTION.md,
 their architecture links, accepted ADRs and mounted source. Map the changed behavior
 to relevant invariants and regression proof in the existing receipt. Preserve sole
 transition writers, case/recovery separation, event projections, session-derived
