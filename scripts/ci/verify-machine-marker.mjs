@@ -8,6 +8,7 @@ export const MARKER_SCHEMA = 'interdomestik.verify-machine/1';
 export const REQUIRED_FORBIDDEN_PORTS = Object.freeze([3000, 54322]);
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', '::1', 'localhost']);
 const WRITABLE_BY_OTHERS = 0o022;
+const DEFAULT_FS = Object.freeze({ lstatSync, readFileSync });
 
 const KIND_CHECKS = {
   string: value => typeof value === 'string' && value.trim() !== '' && value.length <= 200,
@@ -88,7 +89,7 @@ function ownershipErrors(label, stat, expectFile) {
  * Reads the marker only when root owns it and its directory and neither is writable by
  * anyone else, so a process running as the developer cannot forge or edit it.
  */
-export function readTrustedMarker(markerPath = MARKER_PATH, fs = { lstatSync, readFileSync }) {
+export function readTrustedMarker(markerPath = MARKER_PATH, fs = DEFAULT_FS) {
   let fileStat;
   try {
     fileStat = fs.lstatSync(markerPath);

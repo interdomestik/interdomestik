@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
@@ -14,6 +15,7 @@ import {
   parsePlatformUuid,
   probeMachine,
   readCiPostgresDigest,
+  sentryTokenFiles,
 } from './verify-machine-probe.mjs';
 
 const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
@@ -85,8 +87,10 @@ test('Sentry upload credentials, low disk and a dirty tree each fail the gate', 
   const live = withEnv({ SENTRY_AUTH_TOKEN: 'set' });
   live.freeGib = { repository: 120, system: 19.9 };
   live.git = { ...live.git, clean: false };
+  live.sentryTokenFiles = ['apps/web/.env.local'];
   assert.deepEqual(compareMachine(fixtureMarker(), live), [
     'SENTRY_AUTH_TOKEN must be unset for gate evidence',
+    'apps/web/.env.local sets SENTRY_AUTH_TOKEN; gate runs never upload',
     'free disk on system is 19.9 GiB, below 20 GiB',
     'the working tree is not clean',
   ]);
@@ -97,15 +101,27 @@ test('the database container must run the pinned CI image on the recorded bindin
     'database container ida-mac-verify-pg was not found',
   ]);
   const live = fixtureLive({
-    database: { image: 'postgres:16', running: false, hostIp: '0.0.0.0', hostPort: '5432' },
+    database: { image: 'postgres:16', running: false, bindings: [] },
     ciPostgresDigest: `sha256:${'e'.repeat(64)}`,
   });
   assert.deepEqual(compareMachine(fixtureMarker(), live), [
     `database.image: marker postgres:16@${FIXTURE_DIGEST}, this run postgres:16`,
     'database container ida-mac-verify-pg is not running',
-    'database container is not published on 127.0.0.1',
-    'database container is not published on port 55438',
+    'database container is not published on 127.0.0.1:55438',
     'database.image digest differs from the CI postgres service image',
+  ]);
+  const extra = fixtureLive();
+  extra.database = {
+    ...extra.database,
+    bindings: [
+      ...extra.database.bindings,
+      { containerPort: '5432/tcp', hostIp: '0.0.0.0', hostPort: '55439' },
+      { containerPort: '8080/tcp', hostIp: '127.0.0.1', hostPort: '55438' },
+    ],
+  };
+  assert.deepEqual(compareMachine(fixtureMarker(), extra), [
+    'database container publishes 5432/tcp on 0.0.0.0:55439; only 5432/tcp on 127.0.0.1:55438 is allowed',
+    'database container publishes 8080/tcp on 127.0.0.1:55438; only 5432/tcp on 127.0.0.1:55438 is allowed',
   ]);
   assert.ok(
     compareMachine(fixtureMarker(), fixtureLive({ ciPostgresDigest: null })).includes(
@@ -117,15 +133,33 @@ test('the database container must run the pinned CI image on the recorded bindin
 test('probe parsers read ioreg, docker inspect and the CI workflow', () => {
   assert.equal(parsePlatformUuid('  "IOPlatformUUID" = "ABC-123"\n'), 'ABC-123');
   assert.equal(parsePlatformUuid(''), null);
-  const ports = JSON.stringify({ '5432/tcp': [{ HostIp: '127.0.0.1', HostPort: '55438' }] });
+  const ports = JSON.stringify({
+    '5432/tcp': [
+      { HostIp: '127.0.0.1', HostPort: '55438' },
+      { HostIp: '0.0.0.0', HostPort: '55439' },
+    ],
+    '9000/tcp': null,
+  });
   assert.deepEqual(parseContainer(`postgres:16@${FIXTURE_DIGEST}|true|${ports}`), {
     image: `postgres:16@${FIXTURE_DIGEST}`,
     running: true,
-    hostIp: '127.0.0.1',
-    hostPort: '55438',
+    bindings: [
+      { containerPort: '5432/tcp', hostIp: '127.0.0.1', hostPort: '55438' },
+      { containerPort: '5432/tcp', hostIp: '0.0.0.0', hostPort: '55439' },
+    ],
   });
   assert.equal(parseContainer(null), null);
-  assert.equal(parseContainer('img|false|not-json').hostPort, null);
+  assert.deepEqual(parseContainer('img|false|not-json').bindings, []);
+  const files = new Map([
+    [path.join('/r', 'apps/web/.env.local'), '# x\nexport SENTRY_AUTH_TOKEN="abc"\n'],
+    [path.join('/r', '.env'), 'SENTRY_AUTH_TOKEN=\nSENTRY_ORG=o\n'],
+    [path.join('/r', 'apps/web/.env'), 'SENTRY_AUTH_TOKEN= # unset\n'],
+  ]);
+  const read = file => {
+    if (!files.has(file)) throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+    return files.get(file);
+  };
+  assert.deepEqual(sentryTokenFiles('/r', read), ['apps/web/.env.local']);
   assert.match(readCiPostgresDigest(REPO_ROOT), /^sha256:[0-9a-f]{64}$/u);
   assert.equal(readCiPostgresDigest('/nonexistent-root'), null);
 });
@@ -158,6 +192,7 @@ test('the probe hashes the hardware id and keeps only the listed environment key
   assert.equal(live.container.engine, null);
   assert.equal(live.database, null);
   assert.deepEqual(live.freeGib, { repository: 30, system: 30 });
+  assert.deepEqual(live.sentryTokenFiles, []);
   assert.deepEqual(live.git, { head: 'c'.repeat(40), trackedClean: true, clean: false });
   assert.equal(live.env.PW_PORT, '3310');
   assert.ok(!Object.hasOwn(live.env, 'HOME'));

@@ -51,16 +51,25 @@ function environmentErrors(marker, env) {
   return errors;
 }
 
+function sentryFileErrors(files) {
+  return (files ?? []).map(file => `${file} sets SENTRY_AUTH_TOKEN; gate runs never upload`);
+}
+
 function databaseContainerErrors(marker, database, ciPostgresDigest) {
   const name = marker.database.container;
   if (!database) return [`database container ${name} was not found`];
   const errors = [...mismatch('database.image', marker.database.image, database.image)];
   if (!database.running) errors.push(`database container ${name} is not running`);
-  if (database.hostIp !== marker.database.host) {
-    errors.push(`database container is not published on ${marker.database.host}`);
-  }
-  if (database.hostPort !== String(marker.database.port)) {
-    errors.push(`database container is not published on port ${marker.database.port}`);
+  const expected = `${marker.database.host}:${marker.database.port}`;
+  if (database.bindings.length === 0)
+    errors.push(`database container is not published on ${expected}`);
+  for (const binding of database.bindings) {
+    const published = `${binding.hostIp}:${binding.hostPort}`;
+    if (binding.containerPort !== '5432/tcp' || published !== expected) {
+      errors.push(
+        `database container publishes ${binding.containerPort} on ${published}; only 5432/tcp on ${expected} is allowed`
+      );
+    }
   }
   if (!ciPostgresDigest) errors.push('the CI postgres image digest could not be read');
   else if (digestOf(marker.database.image) !== ciPostgresDigest) {
@@ -88,10 +97,11 @@ export function compareMachine(marker, live) {
     ),
     ...mismatch('container_runtime.engine', marker.container_runtime.engine, live.container.engine),
     ...databaseContainerErrors(marker, live.database, live.ciPostgresDigest),
-    ...environmentErrors(marker, live.env)
+    ...environmentErrors(marker, live.env),
+    ...sentryFileErrors(live.sentryTokenFiles)
   );
   for (const [volume, freeGib] of Object.entries(live.freeGib)) {
-    if (!(freeGib >= marker.min_free_gib)) {
+    if (!Number.isFinite(freeGib) || freeGib < marker.min_free_gib) {
       errors.push(`free disk on ${volume} is ${freeGib} GiB, below ${marker.min_free_gib} GiB`);
     }
   }

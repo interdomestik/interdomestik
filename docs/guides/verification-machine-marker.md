@@ -14,9 +14,9 @@ holds the machine's recorded configuration. Every other run is a pre-check.
     is malformed: the run stops.
   - Otherwise the live machine must match every recorded field: hardware id (as a sha256), arch,
     macOS version and build, Node, pnpm, container context and engine, the database container's
-    pinned image (equal to the CI postgres image) and its loopback binding, every database URL,
+    pinned image (equal to the CI postgres image) and every published binding (only 5432/tcp on the recorded loopback port), every database URL,
     `PW_PORT`, free disk on the repository volume and on `/`, a clean working tree, and no
-    `SENTRY_AUTH_TOKEN`. Ports 3000 and 54322 are always refused. Any difference stops the run.
+    `SENTRY_AUTH_TOKEN` in the environment or in the `.env` files the build and E2E server load. Ports 3000 and 54322 are always refused. Any difference stops the run.
 - `stamp` runs only after every other step passed. It checks that `HEAD`, the tracked files and the
   marker did not change, then writes the run record to `~/Library/Logs/interdomestik-verify/` and
   prints its mode, head, marker sha256 and record sha256 for the PR body. A `pending-*` file without

@@ -37,8 +37,7 @@ export function fixtureLive(overrides = {}) {
     database: {
       image: `postgres:16@${FIXTURE_DIGEST}`,
       running: true,
-      hostIp: '127.0.0.1',
-      hostPort: '55438',
+      bindings: [{ containerPort: '5432/tcp', hostIp: '127.0.0.1', hostPort: '55438' }],
     },
     ciPostgresDigest: FIXTURE_DIGEST,
     env: {
@@ -50,6 +49,7 @@ export function fixtureLive(overrides = {}) {
       PILOT_HOST: 'pilot.127.0.0.1.nip.io:3310',
       SENTRY_AUTH_TOKEN: '',
     },
+    sentryTokenFiles: [],
     freeGib: { repository: 120, system: 28 },
     git: { head: 'c'.repeat(40), clean: true, trackedClean: true },
     ...overrides,

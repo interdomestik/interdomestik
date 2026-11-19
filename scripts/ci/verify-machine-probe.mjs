@@ -34,21 +34,46 @@ export function parsePlatformUuid(ioregOutput) {
   return /"IOPlatformUUID"\s*=\s*"([^"]+)"/u.exec(ioregOutput ?? '')?.[1] ?? null;
 }
 
+/** Every host publication of every container port, so no extra binding can hide behind one. */
 export function parseContainer(inspectOutput) {
   if (!inspectOutput) return null;
   const [image, running, portsJson] = inspectOutput.split('|');
-  let binding = null;
+  let ports = null;
   try {
-    binding = JSON.parse(portsJson)?.['5432/tcp']?.[0] ?? null;
+    ports = JSON.parse(portsJson);
   } catch {
-    binding = null;
+    ports = null;
   }
-  return {
-    image,
-    running: running === 'true',
-    hostIp: binding?.HostIp ?? null,
-    hostPort: binding?.HostPort ?? null,
-  };
+  const bindings = Object.entries(ports ?? {}).flatMap(([containerPort, published]) =>
+    (published ?? []).map(binding => ({
+      containerPort,
+      hostIp: binding?.HostIp ?? null,
+      hostPort: binding?.HostPort ?? null,
+    }))
+  );
+  return { image, running: running === 'true', bindings };
+}
+
+const ENV_FILES = Object.freeze([
+  '.env',
+  '.env.local',
+  'apps/web/.env',
+  'apps/web/.env.local',
+  'apps/web/.env.production',
+  'apps/web/.env.production.local',
+]);
+
+/** The env files the build and the E2E server load that set a Sentry upload token. */
+export function sentryTokenFiles(repoRoot, read = readFileSync) {
+  return ENV_FILES.filter(file => {
+    let text;
+    try {
+      text = read(path.join(repoRoot, file), 'utf8');
+    } catch {
+      return false;
+    }
+    return /^[ \t]*(?:export[ \t]+)?SENTRY_AUTH_TOKEN[ \t]*=[ \t]*['"]?[^\s'"#]/mu.test(text);
+  });
 }
 
 export function readCiPostgresDigest(repoRoot, read = readFileSync) {
@@ -104,6 +129,7 @@ export function probeMachine({ repoRoot, marker, env, exec = runCommand, statfs 
     database: parseContainer(inspect),
     ciPostgresDigest: readCiPostgresDigest(repoRoot),
     env: Object.fromEntries(ENV_KEYS.map(key => [key, env[key] ?? ''])),
+    sentryTokenFiles: sentryTokenFiles(repoRoot),
     freeGib: { repository: freeGib(statfs, repoRoot), system: freeGib(statfs, '/') },
     git: gitState(repoRoot, exec),
   };
