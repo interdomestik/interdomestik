@@ -67,12 +67,22 @@ test('a Sentry upload token or an env-file override fails the gate; values stay 
   ]);
 });
 
-test('env-file scanning names each guarded key with a value, never the value', () => {
+test('env-file scanning names every assignment of a guarded key, never its value', () => {
   const files = new Map([
-    [path.join('/r', 'apps/web/.env.local'), '# x\nexport SENTRY_AUTH_TOKEN="abc"\n'],
     [path.join('/r', '.env'), 'SENTRY_AUTH_TOKEN=\nSENTRY_ORG=o\nOTHER=1\n'],
-    [path.join('/r', '.env.local'), 'E2E_DATABASE_URL=postgresql://x@127.0.0.1:54322/p\n'],
-    [path.join('/r', 'apps/web/.env'), 'SENTRY_AUTH_TOKEN= # unset\nKS_HOST=ks.local:3000\n'],
+    [
+      path.join('/r', '.env.local'),
+      [
+        'E2E_DATABASE_URL=postgresql://x@127.0.0.1:54322/p',
+        'KS_HOST=" ks.127.0.0.1.nip.io:3000"',
+        'MK_HOST: mk.127.0.0.1.nip.io:3000',
+      ].join('\n'),
+    ],
+    [
+      path.join('/r', 'apps/web/.env'),
+      '  export   PORT = 3000\n# KS_HOST=commented\nNOT_KS_HOST=1\nDATABASE_URL_RLSX=1\n',
+    ],
+    [path.join('/r', 'apps/web/.env.local'), '# x\nexport SENTRY_AUTH_TOKEN="abc"\n'],
   ]);
   const read = file => {
     if (!files.has(file)) throw Object.assign(new Error('missing'), { code: 'ENOENT' });
@@ -80,8 +90,11 @@ test('env-file scanning names each guarded key with a value, never the value', (
   };
   const overrides = envFileOverrides('/r', read);
   assert.deepEqual(overrides, [
+    { file: '.env', key: 'SENTRY_AUTH_TOKEN' },
     { file: '.env.local', key: 'E2E_DATABASE_URL' },
-    { file: 'apps/web/.env', key: 'KS_HOST' },
+    { file: '.env.local', key: 'KS_HOST' },
+    { file: '.env.local', key: 'MK_HOST' },
+    { file: 'apps/web/.env', key: 'PORT' },
     { file: 'apps/web/.env.local', key: 'SENTRY_AUTH_TOKEN' },
   ]);
   assert.ok(!JSON.stringify(overrides).includes('abc'));

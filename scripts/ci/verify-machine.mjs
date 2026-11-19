@@ -2,10 +2,12 @@
 // First and last step of `pnpm pr:verify` and `pnpm security:guard` (AGENTS.md R-04).
 // `begin` labels the run GATE-EVIDENCE only when the owner's root-owned marker matches this
 // machine; without a marker the run is a PRE-CHECK. `stamp` runs only after every step passed,
-// in the same shell as its `begin` (one pending record per shell process and lane).
+// in the same shell as its `begin` (one pending record per shell process and lane). Gate mode
+// also requires both steps to run inside the unchanged pnpm chain (verify-machine-chain.mjs).
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { chainErrors, defaultChainProbe } from './verify-machine-chain.mjs';
 import { compareMachine } from './verify-machine-compare.mjs';
 import { describeMachine } from './verify-machine-describe.mjs';
 import { gitState, probeMachine, runCommand } from './verify-machine-probe.mjs';
@@ -21,6 +23,7 @@ export function defaultDependencies() {
     platform: process.platform,
     cwd: process.cwd(),
     shellPid: process.ppid,
+    chain: defaultChainProbe(process.ppid),
     exec: runCommand,
     readMarker: readTrustedMarker,
     probe: probeMachine,
@@ -64,7 +67,7 @@ function begin(lane, deps, repoRoot, pendingPath) {
   if (deps.platform !== 'darwin') return fail(deps, ['a marker is present on a non-macOS host']);
   const { marker, sha256 } = markerResult;
   const live = deps.probe({ repoRoot, marker, env: deps.env, exec: deps.exec });
-  const problems = compareMachine(marker, live);
+  const problems = [...chainErrors(lane, { ...deps, repoRoot }), ...compareMachine(marker, live)];
   if (problems.length > 0) {
     return fail(deps, ['this run does not match the verification marker:', ...problems]);
   }
@@ -93,6 +96,7 @@ function stamp(lane, deps, repoRoot, pendingPath, directory) {
   }
   const problems = [];
   if (pending.mode === records.MODES.gate) {
+    problems.push(...chainErrors(lane, { ...deps, repoRoot }));
     if (markerResult.status !== 'trusted' || markerResult.sha256 !== pending.markerSha256) {
       problems.push('the verification marker changed during the run');
     } else {

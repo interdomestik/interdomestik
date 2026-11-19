@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
@@ -22,4 +23,29 @@ test('m4 gatekeeper force-cleans stale Supabase containers before retrying supab
     gatekeeperScript,
     /supabase stop --project-id interdomestik[\s\S]*supabase stop[\s\S]*cleanup_stale_supabase_containers[\s\S]*supabase start/
   );
+});
+
+test('m4 gatekeeper diagnostics never print database credentials', () => {
+  const gatekeeperScript = readRepoFile('scripts/m4-gatekeeper.sh');
+  const echoes = gatekeeperScript
+    .split('\n')
+    .filter(line => /echo .*\$\{?DATABASE_URL\b/u.test(line));
+  assert.ok(echoes.length >= 2);
+  for (const line of echoes) {
+    assert.match(line, /\$\(redact_database_url "\$\{DATABASE_URL\}"\)/u);
+  }
+  const redactor = /redact_database_url\(\) \{[\s\S]*?\n\}/u.exec(gatekeeperScript)[0];
+  const sentinel = 'SENTINEL-p@ss:word';
+  const output = execFileSync(
+    'bash',
+    [
+      '-c',
+      `${redactor}\nredact_database_url "$1"`,
+      'redact',
+      `postgresql://postgres:${sentinel}@127.0.0.1:55438/db`,
+    ],
+    { encoding: 'utf8' }
+  );
+  assert.equal(output, 'postgresql://postgres:***@127.0.0.1:55438/db');
+  assert.ok(!output.includes('SENTINEL'));
 });

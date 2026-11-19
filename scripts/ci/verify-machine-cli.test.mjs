@@ -1,61 +1,11 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
-import os from 'node:os';
+import { utimesSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { fixtureLive, fixtureMarker } from './verify-machine-fixtures.mjs';
-import * as records from './verify-machine-records.mjs';
+import { fixtureLive } from './verify-machine-fixtures.mjs';
+import { harness, MARKER_SHA, packageJson, trusted } from './verify-machine-harness.mjs';
 import { runVerifyMachine } from './verify-machine.mjs';
-
-const packageJson = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url)));
-const HEAD = 'c'.repeat(40);
-const MARKER_SHA = 'f'.repeat(64);
-
-function harness({ marker = { status: 'absent' }, live = fixtureLive(), env = {} } = {}) {
-  const directory = mkdtempSync(path.join(os.tmpdir(), 'verify-machine-'));
-  const output = { log: [], error: [] };
-  const state = { marker, live, git: { head: HEAD, clean: true, trackedClean: true } };
-  const deps = {
-    env,
-    platform: 'darwin',
-    cwd: '/repo',
-    shellPid: 4242,
-    exec: (command, args) => {
-      assert.deepEqual([command, ...args], ['git', 'rev-parse', '--show-toplevel']);
-      return '/repo';
-    },
-    readMarker: () => state.marker,
-    probe: () => state.live,
-    gitState: () => state.git,
-    records: { ...records, recordDirectory: () => directory },
-    now: () => '2026-11-19T10:00:00.000Z',
-    log: message => output.log.push(message),
-    error: message => output.error.push(message),
-  };
-  const files = () => readdirSync(directory).sort();
-  const readFinal = () =>
-    JSON.parse(
-      readFileSync(
-        path.join(
-          directory,
-          files().find(f => !f.startsWith('pending'))
-        ),
-        'utf8'
-      )
-    );
-  return {
-    directory,
-    deps,
-    state,
-    output,
-    files,
-    readFinal,
-    cleanup: () => rmSync(directory, { recursive: true }),
-  };
-}
-
-const trusted = (marker = fixtureMarker()) => ({ status: 'trusted', marker, sha256: MARKER_SHA });
 
 test('pr:verify and security:guard begin and end with the machine check', () => {
   for (const [script, lane] of [
@@ -83,7 +33,7 @@ test('without a marker the run is labelled a pre-check and still stamped', () =>
 });
 
 test('a matching machine is stamped as gate evidence with its recorded configuration', () => {
-  const h = harness({ marker: trusted() });
+  const h = harness({ marker: trusted(), env: { npm_lifecycle_event: 'security:guard' } });
   assert.equal(runVerifyMachine(['begin', 'security-guard'], h.deps), 0);
   assert.match(h.output.log[0], /GATE-EVIDENCE candidate/u);
   assert.equal(runVerifyMachine(['stamp', 'security-guard'], h.deps), 0);

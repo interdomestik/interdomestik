@@ -46,10 +46,8 @@ export function envFileOverrides(repoRoot, read = readFileSync) {
       continue;
     }
     for (const key of GUARDED_ENV_KEYS) {
-      const pattern = new RegExp(
-        `^[ \\t]*(?:export[ \\t]+)?${key}[ \\t]*=[ \\t]*['"]?[^\\s'"#]`,
-        'mu'
-      );
+      // Any assignment counts, whatever its value or quoting: dotenv accepts `=` and `:`.
+      const pattern = new RegExp(String.raw`^[ \t]*(?:export[ \t]+)?${key}[ \t]*[=:]`, 'mu');
       if (pattern.test(text)) overrides.push({ file, key });
     }
   }
@@ -87,6 +85,11 @@ function originErrors(key, raw, appPort) {
   return errors;
 }
 
+function appPortErrors(key, port, marker) {
+  if (marker.forbidden_ports.includes(port)) return [`${key} uses forbidden port ${port}`];
+  return port === marker.app_port ? [] : [`${key} is not ${marker.app_port}`];
+}
+
 /** The effective database, app and upload settings the gate steps will read. */
 export function environmentErrors(marker, env, overrides = []) {
   const forbidden = marker.forbidden_ports;
@@ -99,12 +102,9 @@ export function environmentErrors(marker, env, overrides = []) {
   for (const key of DATABASE_ENV_KEYS) {
     if (env[key]) errors.push(...databaseUrlErrors(key, env[key], marker.database, forbidden));
   }
+  if (!env.PW_PORT) errors.push(`PW_PORT must be set to ${marker.app_port}`);
   for (const key of ['PW_PORT', 'PORT']) {
-    const port = Number(env[key]);
-    if (!env[key]) {
-      if (key === 'PW_PORT') errors.push(`PW_PORT must be set to ${marker.app_port}`);
-    } else if (forbidden.includes(port)) errors.push(`${key} uses forbidden port ${port}`);
-    else if (port !== marker.app_port) errors.push(`${key} is not ${marker.app_port}`);
+    if (env[key]) errors.push(...appPortErrors(key, Number(env[key]), marker));
   }
   for (const key of [...HOST_ENV_KEYS, 'PLAYWRIGHT_BASE_URL']) {
     if (env[key]) errors.push(...originErrors(key, env[key], marker.app_port));

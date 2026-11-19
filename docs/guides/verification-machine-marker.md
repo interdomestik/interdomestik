@@ -28,6 +28,10 @@ holds the machine's recorded configuration. Every other run is a pre-check.
   record to `~/Library/Logs/interdomestik-verify/` and prints its mode, head, marker sha256 and
   record sha256 for the PR body. A `pending-*` file without a final record is a run that did not
   pass.
+- With a marker present, `begin` and `stamp` must run inside the unchanged `pnpm pr:verify` or
+  `pnpm security:guard` chain: their parent shell must be exactly `sh -c <committed script>`, so
+  `stamp` is reached only after every step before it exited 0. Running the steps by hand never
+  produces `GATE-EVIDENCE`.
 - Hosted runs (`GITHUB_ACTIONS=true`) skip the check: hosted checks are separate evidence.
 
 The check proves which machine and configuration a run used. It is not a cryptographic attestation:
