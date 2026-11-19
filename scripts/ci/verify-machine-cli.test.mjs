@@ -127,7 +127,7 @@ test('a pre-check whose final record fills the disk still passes; gate evidence 
     assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 0);
     h.deps.records = {
       ...h.deps.records,
-      writeRecord: () => {
+      publishRecord: () => {
         throw Object.assign(new Error('full'), { code: 'ENOSPC' });
       },
     };

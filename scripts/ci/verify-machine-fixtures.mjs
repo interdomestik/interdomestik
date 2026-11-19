@@ -39,6 +39,7 @@ export function fixtureLive(overrides = {}) {
       running: true,
       bindings: [{ containerPort: '5432/tcp', hostIp: '127.0.0.1', hostPort: '55438' }],
     },
+    databaseName: 'interdomestik_test',
     ciPostgresDigest: FIXTURE_DIGEST,
     env: {
       DATABASE_URL: url,

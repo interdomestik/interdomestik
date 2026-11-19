@@ -1,6 +1,12 @@
 // Prints a proposed marker for the owner to review and install with sudo. It never writes the
 // marker itself: only a root-owned file at MARKER_PATH counts.
-import { MARKER_PATH, MARKER_SCHEMA, validateMarker } from './verify-machine-marker.mjs';
+import {
+  MARKER_PATH,
+  MARKER_SCHEMA,
+  PLAIN_CONTAINER_NAME,
+  PLAIN_DATABASE_NAME,
+  validateMarker,
+} from './verify-machine-marker.mjs';
 
 const DEFAULTS = Object.freeze({
   container: 'ida-mac-verify-pg',
@@ -11,6 +17,16 @@ const DEFAULTS = Object.freeze({
   'min-free-gib': '20',
 });
 
+// The shape of each option's value, checked before anything is probed or printed.
+const OPTION_SHAPES = Object.freeze({
+  container: PLAIN_CONTAINER_NAME,
+  'db-host': /^[a-z0-9.-]+$/u,
+  'db-port': /^\d{1,5}$/u,
+  'db-name': PLAIN_DATABASE_NAME,
+  'app-port': /^\d{1,5}$/u,
+  'min-free-gib': /^\d{1,4}(?:\.\d)?$/u,
+});
+
 export function parseDescribeOptions(argv) {
   const options = { ...DEFAULTS };
   for (const argument of argv) {
@@ -18,7 +34,9 @@ export function parseDescribeOptions(argv) {
     if (!match || !Object.hasOwn(DEFAULTS, match[1])) return null;
     options[match[1]] = match[2];
   }
-  return options;
+  return Object.entries(OPTION_SHAPES).every(([key, shape]) => shape.test(options[key]))
+    ? options
+    : null;
 }
 
 export function describeMachine(argv, deps) {
@@ -51,6 +69,9 @@ export function describeMachine(argv, deps) {
   };
   const errors = validateMarker(marker);
   if (live.database && !live.database.running) errors.push(`${options.container} is not running`);
+  if (live.database?.running && live.databaseName !== database.name) {
+    errors.push(`database ${database.name} is not reachable in ${options.container}`);
+  }
   if (errors.length > 0) {
     for (const line of ['cannot describe this machine:', ...errors]) {
       deps.error(`[verify-machine] ${line}`);

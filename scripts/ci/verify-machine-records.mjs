@@ -1,4 +1,5 @@
 import {
+  linkSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -16,6 +17,7 @@ export const LANES = Object.freeze(['pr-verify', 'security-guard']);
 export const MODES = Object.freeze({ gate: 'GATE-EVIDENCE', preCheck: 'PRE-CHECK' });
 
 const DEFAULT_FS = {
+  linkSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -41,9 +43,9 @@ export function pendingRecordPath(directory, repoRoot, lane, shell) {
   return path.join(directory, `pending-${lane}-${scope}.json`);
 }
 
+/** One final record per run: its name carries the run ID that `begin` gave the run. */
 export function finalRecordPath(directory, record) {
-  const stamp = record.finishedAt.replaceAll(':', '').replaceAll('.', '');
-  return path.join(directory, `${stamp}-${record.lane}-${record.head.slice(0, 12)}.json`);
+  return path.join(directory, `${record.lane}-${record.head.slice(0, 12)}-${record.runId}.json`);
 }
 
 export function writeRecord(filePath, record, fs = DEFAULT_FS) {
@@ -53,6 +55,36 @@ export function writeRecord(filePath, record, fs = DEFAULT_FS) {
   fs.writeFileSync(temporary, text, { mode: 0o600 });
   fs.renameSync(temporary, filePath);
   return sha256Hex(text);
+}
+
+/**
+ * Publishes a final record exactly once: the link fails with EEXIST when the run already has one,
+ * so a repeated or concurrent stamp can never replace it.
+ */
+export function publishRecord(filePath, record, fs = DEFAULT_FS) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true, mode: 0o700 });
+  const text = `${JSON.stringify(record, null, 2)}\n`;
+  const temporary = `${filePath}.${process.pid}.tmp`;
+  fs.writeFileSync(temporary, text, { mode: 0o600 });
+  try {
+    fs.linkSync(temporary, filePath);
+  } finally {
+    fs.rmSync(temporary, { force: true });
+  }
+  return sha256Hex(text);
+}
+
+/** Whether this shell holds a pending record of the lane; reads files only, starts no command. */
+export function shellHasPending(directory, lane, shellPid, fs = DEFAULT_FS) {
+  let names;
+  try {
+    names = fs.readdirSync(directory);
+  } catch {
+    return false;
+  }
+  return names
+    .filter(name => name.startsWith(`pending-${lane}-`) && name.endsWith('.json'))
+    .some(name => readRecord(path.join(directory, name), fs)?.shellPid === shellPid);
 }
 
 export function readRecord(filePath, fs = DEFAULT_FS) {

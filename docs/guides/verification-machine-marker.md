@@ -19,7 +19,8 @@ attestation, and the full run log on the frozen head stays the evidence of which
 
 Known local difference: without a configured mailbox the OTP proof
 (`apps/web/e2e/gate/s5-new-account-otp-secure-save.spec.ts`) skips in the local gate. The required
-hosted PR E2E run provides that mailbox and proves it on every pull request.
+hosted PR E2E run provides that mailbox and proves it whenever hosted admission selects the full
+E2E run (a documentation-only pull request skips that run).
 
 ## What the check does
 
@@ -34,8 +35,9 @@ hosted PR E2E run provides that mailbox and proves it on every pull request.
     is read through the descriptor that was checked, never followed through a link.
   - Otherwise the live machine must match every recorded field: hardware id (as a sha256), arch,
     macOS version and build, Node, pnpm, container context and engine, the database container's
-    pinned image (equal to the CI postgres image) and every published binding (only `5432/tcp` on
-    the recorded loopback port), every database URL (exactly
+    pinned image (equal to the CI postgres image), every published binding (only `5432/tcp` on
+    the recorded loopback port) and the recorded database inside it (checked with `psql` in the
+    container, so no URL or password is used), every database URL (exactly
     `postgresql://[user[:password]@]host:port/database`, nothing more), `PW_PORT` and `PORT`
     (decimal), every Playwright tenant host (a bare `host:port`) and `PLAYWRIGHT_BASE_URL`
     (`http://host:port`) on the recorded port and a loopback host, free disk on the repository
@@ -61,10 +63,12 @@ hosted PR E2E run provides that mailbox and proves it on every pull request.
     a `PRE-CHECK`: the verifier then prints the names (never the values), starts no command and
     records nothing, so no tracing variable can print an environment. The marker is still checked
     first (its ACL listing runs with an empty environment), and an untrusted marker still stops the
-    run.
+    run. A `stamp` whose shell holds a `begin` record of the lane fails instead: a variable added
+    after `begin` would otherwise skip the `HEAD` check.
 - `stamp` runs only after every other step passed, in the same shell as its `begin`: the pending
   record is kept per shell process (PID and start time) and lane, so a later or concurrent
-  `stamp` cannot use it, even in a shell that reuses the PID. It
+  `stamp` cannot use it, even in a shell that reuses the PID. `begin` gives the run an ID, and the
+  final record is published once under that ID; a second `stamp` of the same run fails. It
   re-checks the marker, the live configuration, `HEAD` and the tracked files, then writes the run
   record to `~/Library/Logs/interdomestik-verify/` and prints its mode, head, marker sha256 and
   record sha256 for the PR body. A gate run that stopped matching during the run is recorded as a
@@ -138,7 +142,8 @@ sudo mv "/Library/Application Support/Interdomestik/verify-machine.candidate.jso
 ```
 
 `describe` accepts `--container=`, `--db-host=`, `--db-port=`, `--db-name=`, `--app-port=` and
-`--min-free-gib=`. After a macOS, Node, pnpm or container-runtime update every run is a PRE-CHECK
+`--min-free-gib=`, each with a plain value (names of letters, digits, `_`, `.` and `-`; decimal
+ports); any other value is refused before anything is probed. After a macOS, Node, pnpm or container-runtime update every run is a PRE-CHECK
 until the owner creates the marker again; that is intended, because the configuration is part of
 the evidence.
 

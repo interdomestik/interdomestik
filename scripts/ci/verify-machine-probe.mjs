@@ -112,6 +112,25 @@ export function probeMachine({
       engine: tryRun(exec, 'docker', ['version', '--format', '{{.Server.Version}}'], repoRoot),
     },
     database: parseContainer(inspect),
+    // Inside the container, over its local socket: no URL or password is involved.
+    databaseName:
+      tryRun(
+        exec,
+        'docker',
+        [
+          'exec',
+          marker.database.container,
+          'psql',
+          '--no-psqlrc',
+          '-U',
+          'postgres',
+          '-d',
+          marker.database.name,
+          '-tAc',
+          'select current_database()',
+        ],
+        repoRoot
+      )?.trim() ?? null,
     ciPostgresDigest: readCiPostgresDigest(repoRoot),
     // Absent keys stay absent: an empty value is a setting of its own.
     env: Object.fromEntries(

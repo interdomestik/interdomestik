@@ -23,6 +23,7 @@ export function harness({ marker = { status: 'absent' }, live = fixtureLive(), e
   const directory = mkdtempSync(path.join(os.tmpdir(), 'verify-machine-'));
   const output = { log: [], error: [] };
   const state = { marker, live, git: { head: HEAD, clean: true, trackedClean: true } };
+  let runs = 0;
   const deps = {
     env: { npm_lifecycle_event: 'pr:verify', ...env },
     platform: 'darwin',
@@ -47,6 +48,7 @@ export function harness({ marker = { status: 'absent' }, live = fixtureLive(), e
     gitState: () => state.git,
     records: { ...records, recordDirectory: () => directory },
     now: () => '2026-11-19T10:00:00.000Z',
+    newRunId: () => `run-${(runs += 1)}`,
     log: message => output.log.push(message),
     error: message => output.error.push(message),
   };

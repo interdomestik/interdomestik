@@ -6,6 +6,7 @@
 // only after every step passed, in the same shell as its `begin` (one pending record per shell
 // process and lane). Gate mode also requires both steps to run inside the unchanged pnpm chain
 // (verify-machine-chain.mjs).
+import { randomUUID } from 'node:crypto';
 import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -42,6 +43,7 @@ export function defaultDependencies() {
     realpath: realpathSync,
     records,
     now: () => new Date().toISOString(),
+    newRunId: () => randomUUID(),
     log: message => console.log(message),
     error: message => console.error(message),
   };
@@ -79,6 +81,8 @@ function preCheck(lane, deps, repoRoot, pendingPath, startedAt, reason, problems
     const git = deps.gitState(repoRoot, deps.exec);
     deps.records.writeRecord(pendingPath, {
       lane,
+      runId: deps.newRunId(),
+      shellPid: deps.shellPid,
       mode: records.MODES.preCheck,
       head: git.head,
       cleanTree: git.clean,
@@ -133,6 +137,8 @@ function begin(lane, deps, repoRoot, pendingPath) {
   }
   deps.records.writeRecord(pendingPath, {
     lane,
+    runId: deps.newRunId(),
+    shellPid: deps.shellPid,
     mode: records.MODES.gate,
     head: live.git.head,
     cleanTree: true,
@@ -169,12 +175,14 @@ function gateProblems(lane, deps, repoRoot, pending, markerResult) {
 }
 
 function writeFinalRecord(lane, deps, pending, pendingPath, directory) {
-  const record = { ...pending, finishedAt: deps.now(), result: 'passed' };
+  const runId = pending.runId ?? deps.newRunId();
+  const record = { ...pending, runId, finishedAt: deps.now(), result: 'passed' };
   const finalPath = deps.records.finalRecordPath(directory, record);
   let recordSha256;
   try {
-    recordSha256 = deps.records.writeRecord(finalPath, record);
+    recordSha256 = deps.records.publishRecord(finalPath, record);
   } catch (error) {
+    if (error?.code === 'EEXIST') return fail(deps, [`run ${runId} already has a final record`]);
     // A pre-check record is optional: a full disk must not fail a command that passed. Without
     // its record a gate run has no evidence, so the command fails.
     if (record.mode === records.MODES.gate) throw error;
@@ -248,11 +256,18 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
     return 0;
   }
   // Outside the closed gate environment no command starts, so none can print its environment.
+  // A stamp whose shell holds a begin record cannot check HEAD without one, so it fails.
+  const directory = deps.records.recordDirectory({ platform: deps.platform, env: deps.env });
   const unexpected = unexpectedEnvNames(deps.env);
   if (unexpected.length > 0) {
+    if (command === 'stamp' && deps.records.shellHasPending(directory, lane, deps.shellPid)) {
+      return fail(deps, [
+        `variables were added after begin (${nameList(unexpected)}); not stamped`,
+      ]);
+    }
     deps.log(
       `${PREFIX} PRE-CHECK lane=${lane}: variables a gate run does not take are set ` +
-        `(${nameList(unexpected)}); no command is started and nothing is recorded.`
+        `(${nameList(unexpected)}); only the marker was checked, nothing else ran or was recorded.`
     );
     return 0;
   }
@@ -263,7 +278,6 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
     deps.log(`${PREFIX} PRE-CHECK lane=${lane}: no git repository found; nothing is recorded.`);
     return 0;
   }
-  const directory = deps.records.recordDirectory({ platform: deps.platform, env: deps.env });
   const shell = shellIdentity(deps);
   const run = { ...deps, shellKnown: shell.known, readMarker: () => markerResult };
   const pendingPath = deps.records.pendingRecordPath(directory, repoRoot, lane, shell.id);

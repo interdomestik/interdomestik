@@ -8,11 +8,15 @@ function digestOf(image) {
   return /@(sha256:[0-9a-f]{64})$/u.exec(image ?? '')?.[1] ?? null;
 }
 
-function databaseContainerErrors(marker, database, ciPostgresDigest) {
+function databaseContainerErrors(marker, live) {
+  const { database, ciPostgresDigest } = live;
   const name = marker.database.container;
   if (!database) return [`database container ${name} was not found`];
   const errors = [...mismatch('database.image', marker.database.image, database.image)];
   if (!database.running) errors.push(`database container ${name} is not running`);
+  else if (live.databaseName !== marker.database.name) {
+    errors.push(`database ${marker.database.name} is not reachable in container ${name}`);
+  }
   const expected = `${marker.database.host}:${marker.database.port}`;
   if (database.bindings.length === 0)
     errors.push(`database container is not published on ${expected}`);
@@ -52,7 +56,7 @@ export function compareMachine(marker, live, { phase = 'begin' } = {}) {
       live.container.context
     ),
     ...mismatch('container_runtime.engine', marker.container_runtime.engine, live.container.engine),
-    ...databaseContainerErrors(marker, live.database, live.ciPostgresDigest),
+    ...databaseContainerErrors(marker, live),
     ...environmentErrors(marker, live.env, live.sources)
   );
   if (live.git.hiddenFromStatus !== 0) {
