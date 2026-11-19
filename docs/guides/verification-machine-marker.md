@@ -18,9 +18,10 @@ holds the machine's recorded configuration. Every other run is a pre-check.
   - Otherwise the live machine must match every recorded field: hardware id (as a sha256), arch,
     macOS version and build, Node, pnpm, container context and engine, the database container's
     pinned image (equal to the CI postgres image) and every published binding (only `5432/tcp` on
-    the recorded loopback port), every database URL (with an explicit port), `PW_PORT` and
-    `PORT`, every Playwright tenant host and `PLAYWRIGHT_BASE_URL` (recorded port, loopback host),
-    free disk on the repository volume and on `/`, and a clean working tree. `SENTRY_AUTH_TOKEN`
+    the recorded loopback port), every database URL (with an explicit port and no `?` options),
+    `PW_PORT` and `PORT`, every Playwright tenant host and `PLAYWRIGHT_BASE_URL` (recorded port,
+    loopback host), free disk on the repository volume and on `/`, and a clean working tree with
+    no file hidden from `git status` (`assume-unchanged` or `skip-worktree`). `SENTRY_AUTH_TOKEN`
     must be unset, and none of the checked settings may be set to an empty value, since some steps
     then fall back to a default. Ports 3000 and 54322 are always refused.
   - Any difference makes the run a `PRE-CHECK` (the owner, 2026-11-19): it prints every
@@ -29,11 +30,12 @@ holds the machine's recorded configuration. Every other run is a pre-check.
     server and package loaders read env files in different ways, so the checkout may hold no local
     `.env` or `.env.<suffix>` file at all, in any directory and any letter case (ignored or
     untracked; tracked examples are fine). Every variable whose name contains `DATABASE_URL` is
-    checked, and none of these may be set: `PG*` (libpq), `DOTENV_*`, `BASH_ENV`, `ENV`, or git's
-    repository, worktree and config overrides (`GIT_DIR`, `GIT_WORK_TREE`, `GIT_CONFIG*` and the
-    like). The checked repository must be the checkout that runs the lane.
+    checked, and none of these may be set: `PG*` (libpq), `DOTENV_*`, `BASH_ENV`, `ENV`, or any
+    `GIT_*` variable except the editor, pager, prompt, SSH and author/committer ones. The checked
+    repository must be the checkout that runs the lane.
 - `stamp` runs only after every other step passed, in the same shell as its `begin`: the pending
-  record is kept per shell process and lane, so a later or concurrent `stamp` cannot use it. It
+  record is kept per shell process (PID and start time) and lane, so a later or concurrent
+  `stamp` cannot use it, even in a shell that reuses the PID. It
   re-checks the marker, the live configuration, `HEAD` and the tracked files, then writes the run
   record to `~/Library/Logs/interdomestik-verify/` and prints its mode, head, marker sha256 and
   record sha256 for the PR body. A gate run that stopped matching during the run is recorded as a

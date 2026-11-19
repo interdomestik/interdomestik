@@ -13,6 +13,8 @@ export function runCommand(command, args, cwd) {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout: 60_000,
+    // The index listing grows with the repository (about 0.5 MB today).
+    maxBuffer: 64 * 1024 * 1024,
   }).trim();
 }
 
@@ -62,11 +64,18 @@ function freeGib(statfs, target) {
   return Math.floor((Number(stats.bavail) * Number(stats.bsize) * 10) / GIB) / 10;
 }
 
+// `git status` never reports an edit to an assume-unchanged (lowercase tag) or skip-worktree (S)
+// entry, and git can set the first bit by itself under core.ignoreStat.
+const HIDDEN_FROM_STATUS = /^(?:[a-z]|S) /u;
+
 export function gitState(repoRoot, exec = runCommand) {
   const head = exec('git', ['rev-parse', 'HEAD'], repoRoot);
   const tracked = exec('git', ['status', '--porcelain=v1', '--untracked-files=no'], repoRoot);
   const all = exec('git', ['status', '--porcelain=v1', '--untracked-files=all'], repoRoot);
-  return { head, trackedClean: tracked === '', clean: all === '' };
+  const hiddenFromStatus = exec('git', ['ls-files', '-v', '-z'], repoRoot)
+    .split('\0')
+    .filter(entry => HIDDEN_FROM_STATUS.test(entry)).length;
+  return { head, trackedClean: tracked === '', clean: all === '', hiddenFromStatus };
 }
 
 /** Collects the live configuration that the marker records. Only hashes leave the machine id. */

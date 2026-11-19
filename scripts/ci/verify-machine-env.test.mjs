@@ -30,6 +30,15 @@ test('the shared database port and the default fallback are refused', () => {
   assert.deepEqual(errorsFor({ DATABASE_URL: portless }), ['DATABASE_URL must name its port']);
 });
 
+test('a database URL may not carry options that drivers apply over its checked parts', () => {
+  const base = 'postgresql://u:p@127.0.0.1:55438/interdomestik_test';
+  for (const suffix of ['?database=postgres', '?host=db.example.test', '?port=54322', '#x']) {
+    assert.deepEqual(errorsFor({ DATABASE_URL: `${base}${suffix}` }), [
+      'DATABASE_URL must not carry connection options',
+    ]);
+  }
+});
+
 test('the app port and every Playwright origin must use the recorded port on loopback', () => {
   assert.deepEqual(errorsFor({ PW_PORT: '3000' }), ['PW_PORT uses forbidden port 3000']);
   assert.deepEqual(errorsFor({ PW_PORT: '' }), ['PW_PORT must be set to 3310']);
@@ -90,12 +99,24 @@ test('every env file outside git is found in any case, and only redirecting name
     '.envrc',
     'apps/web/.env.production.local',
     'tmp/.env',
+    // git would quote this name in line output; NUL-separated output lists it as is.
+    'tmp/café/.env',
     'notes/environment.md',
-  ].join('\n');
+    '',
+  ].join('\0');
   const exec = (command, args, cwd) => {
     assert.deepEqual(
       [command, ...args, cwd],
-      ['git', 'ls-files', '--others', '--', ':(glob,icase)**/.env', ':(glob,icase)**/.env.*', '/r']
+      [
+        'git',
+        'ls-files',
+        '-z',
+        '--others',
+        '--',
+        ':(glob,icase)**/.env',
+        ':(glob,icase)**/.env.*',
+        '/r',
+      ]
     );
     return listing;
   };
@@ -104,6 +125,7 @@ test('every env file outside git is found in any case, and only redirecting name
     '.ENV.LOCAL',
     'apps/web/.env.production.local',
     'tmp/.env',
+    'tmp/café/.env',
   ]);
   const env = {
     PGPORT: '1',
@@ -112,7 +134,12 @@ test('every env file outside git is found in any case, and only redirecting name
     ENV: '/y',
     GIT_WORK_TREE: '/other',
     GIT_CONFIG_COUNT: '1',
+    // Any other git variable counts, including ones added in later git versions.
+    GIT_LITERAL_PATHSPECS: '1',
+    GIT_EXEC_PATH: '/other',
     GIT_EDITOR: 'vim',
+    GIT_PAGER: 'less',
+    GIT_AUTHOR_NAME: 'n',
     ENVIRONMENT: 'dev',
     PATH: '/bin',
     NOT_PG: '1',
@@ -122,6 +149,8 @@ test('every env file outside git is found in any case, and only redirecting name
     'DOTENV_CONFIG_PATH',
     'ENV',
     'GIT_CONFIG_COUNT',
+    'GIT_EXEC_PATH',
+    'GIT_LITERAL_PATHSPECS',
     'GIT_WORK_TREE',
     'PGPORT',
   ]);

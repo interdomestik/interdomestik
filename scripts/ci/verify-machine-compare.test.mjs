@@ -62,6 +62,12 @@ test('low disk and a dirty tree fail at begin; stamp re-checks tracked files onl
   assert.deepEqual(compareMachine(fixtureMarker(), live, { phase: 'stamp' }), [
     'tracked files changed during the run',
   ]);
+  // An edit git status cannot see (assume-unchanged or skip-worktree) is never clean.
+  const hidden = fixtureLive({ git: { ...fixtureLive().git, hiddenFromStatus: 1 } });
+  const hiddenError =
+    'tracked files are hidden from git status (assume-unchanged or skip-worktree)';
+  assert.deepEqual(compareMachine(fixtureMarker(), hidden), [hiddenError]);
+  assert.deepEqual(compareMachine(fixtureMarker(), hidden, { phase: 'stamp' }), [hiddenError]);
   assert.ok(
     compareMachine(fixtureMarker(), fixtureLive({ freeGib: { repository: Number.NaN } })).includes(
       'free disk on repository is NaN GiB, below 20 GiB'
@@ -137,9 +143,11 @@ test('the probe hashes the hardware id and keeps only the guarded environment ke
     ['git rev-parse HEAD', 'c'.repeat(40)],
     ['git status --porcelain=v1 --untracked-files=no', ''],
     ['git status --porcelain=v1 --untracked-files=all', '?? new.txt'],
+    ['git ls-files -v -z', 'H package.json\0h README.md\0S docs/a.md\0H b.md\0'],
     [
-      'git ls-files --others -- :(glob,icase)**/.env :(glob,icase)**/.env.*',
-      '.env.local\ndocker/.env',
+      'git ls-files -z --others -- :(glob,icase)**/.env :(glob,icase)**/.env.*',
+      // A name git would quote in line output (tmp/café/.env) is listed as is.
+      '.env.local\0docker/.env\0tmp/café/.env\0',
     ],
   ]);
   const exec = (command, args) => {
@@ -156,6 +164,8 @@ test('the probe hashes the hardware id and keeps only the guarded environment ke
       HOME: '/Users/someone',
       PGPORT: '54322',
       DOTENV_CONFIG_OVERRIDE: 'true',
+      GIT_LITERAL_PATHSPECS: '1',
+      GIT_EDITOR: 'true',
     },
     exec,
     statfs: () => ({ bavail: 30n * 1024n, bsize: 1024n * 1024n }),
@@ -165,12 +175,17 @@ test('the probe hashes the hardware id and keeps only the guarded environment ke
   assert.equal(live.container.engine, null);
   assert.equal(live.database, null);
   assert.deepEqual(live.freeGib, { repository: 30, system: 30 });
-  assert.deepEqual(live.git, { head: 'c'.repeat(40), trackedClean: true, clean: false });
+  assert.deepEqual(live.git, {
+    head: 'c'.repeat(40),
+    trackedClean: true,
+    clean: false,
+    hiddenFromStatus: 2,
+  });
   assert.equal(live.env.KS_HOST, 'ks.127.0.0.1.nip.io:3310');
   assert.ok(!Object.hasOwn(live.env, 'HOME'));
   assert.deepEqual(live.sources, {
-    localFiles: ['.env.local', 'docker/.env'],
-    redirecting: ['DOTENV_CONFIG_OVERRIDE', 'PGPORT'],
+    localFiles: ['.env.local', 'docker/.env', 'tmp/café/.env'],
+    redirecting: ['DOTENV_CONFIG_OVERRIDE', 'GIT_LITERAL_PATHSPECS', 'PGPORT'],
   });
   assert.ok(!JSON.stringify(live.sources).includes('54322'));
 });

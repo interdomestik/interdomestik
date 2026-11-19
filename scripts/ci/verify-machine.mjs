@@ -26,6 +26,7 @@ export function defaultDependencies() {
     platform: process.platform,
     cwd: process.cwd(),
     shellPid: process.ppid,
+    shellStart: () => runCommand('ps', ['-o', 'lstart=', '-p', String(process.ppid)]),
     chain: defaultChainProbe(process.ppid),
     exec: runCommand,
     readMarker: readTrustedMarker,
@@ -47,6 +48,17 @@ function fail(deps, lines) {
 function logPreCheck(deps, reason, problems = []) {
   deps.log(`${PREFIX} PRE-CHECK: ${reason}; this run is not gate evidence.`);
   for (const problem of problems) deps.log(`${PREFIX}   - ${problem}`);
+}
+
+// The shell is its PID and its start time: a later shell that reuses the PID gets its own record
+// path, so it can never finish an older shell's record, even when removing that record fails.
+// Without a start time the chain check (which also reads `ps`) already refuses gate mode.
+function shellIdentity(deps) {
+  try {
+    return `${deps.shellPid}@${deps.shellStart().trim()}`;
+  } catch {
+    return `${deps.shellPid}@unknown`;
+  }
 }
 
 function preCheck(lane, deps, repoRoot, pendingPath, startedAt, reason, problems = []) {
@@ -217,7 +229,12 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
     return 0;
   }
   const directory = deps.records.recordDirectory({ platform: deps.platform, env: deps.env });
-  const pendingPath = deps.records.pendingRecordPath(directory, repoRoot, lane, deps.shellPid);
+  const pendingPath = deps.records.pendingRecordPath(
+    directory,
+    repoRoot,
+    lane,
+    shellIdentity(deps)
+  );
   if (command === 'begin') deps.records.pruneStalePending(directory, Date.parse(deps.now()));
   return command === 'begin'
     ? begin(lane, deps, repoRoot, pendingPath)

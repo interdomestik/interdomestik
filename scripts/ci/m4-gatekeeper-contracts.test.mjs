@@ -51,9 +51,16 @@ test('m4 gatekeeper diagnostics never print database credentials', () => {
     [`postgresql:/reader:${sentinel}@localhost:55438/db`, '(not a database URL)'],
     [`postgresql://127.0.0.1:55438/reader:${sentinel}@x`, 'postgresql://127.0.0.1:55438/(unnamed)'],
     [`https://u:${sentinel}@127.0.0.1:55438/db`, '(not a database URL)'],
+    // An encoded authority stays in the hostname of a PostgreSQL URL.
+    [
+      'postgresql://reader%3ASENTINEL%40localhost:55438/db',
+      'postgresql://(unprintable host):55438/db',
+    ],
+    ['postgresql://[::1]:55438/db', 'postgresql://[::1]:55438/db'],
   ];
   for (const [input, expected] of cases) {
     assert.equal(describeDatabaseUrl(input), expected);
+    assert.ok(!describeDatabaseUrl(input).includes('SENTINEL'), input);
   }
   const output = execFileSync(
     process.execPath,

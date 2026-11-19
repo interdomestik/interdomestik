@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 
 import { chainErrors } from './verify-machine-chain.mjs';
@@ -107,23 +109,29 @@ test('a genuine gate run ends with a line that starts with GATE-EVIDENCE', () =>
   h.cleanup();
 });
 
-test('a downgraded begin removes an older record of the same shell before anything else', () => {
-  const h = harness({ marker: trusted() });
+test('a reused PID never finishes an older shell gate record, even when cleanup fails', () => {
+  const h = harness({ marker: trusted(), env: { npm_lifecycle_event: 'security:guard' } });
   assert.equal(runVerifyMachine(['begin', 'security-guard'], h.deps), 0);
-  // The run is interrupted; a later shell with the same PID begins on a full disk.
+  const [candidate] = h.files();
+  const pendingMode = () =>
+    JSON.parse(readFileSync(path.join(h.directory, candidate), 'utf8')).mode;
+  assert.equal(pendingMode(), 'GATE-EVIDENCE');
+  // The run is interrupted. A later shell with the same PID begins on a full disk, while the log
+  // directory refuses both removal and writing.
+  h.state.shellStart = 'Thu Nov 19 11:00:00 2026\n';
   h.state.live = { ...h.state.live, freeGib: { repository: 1, system: 1 } };
-  const write = h.deps.records.writeRecord;
-  h.deps.records = {
-    ...h.deps.records,
-    writeRecord: () => {
-      throw Object.assign(new Error('full'), { code: 'ENOSPC' });
-    },
+  const failing = code => () => {
+    throw Object.assign(new Error(code), { code });
   };
+  const saved = h.deps.records;
+  h.deps.records = { ...saved, writeRecord: failing('ENOSPC'), removeRecord: failing('EACCES') };
   assert.equal(runVerifyMachine(['begin', 'security-guard'], h.deps), 0);
-  h.deps.records = { ...h.deps.records, writeRecord: write };
+  h.deps.records = saved;
   assert.equal(runVerifyMachine(['stamp', 'security-guard'], h.deps), 0);
-  assert.deepEqual(h.files(), []);
   assert.ok(!h.output.log.some(line => line.startsWith('GATE-EVIDENCE')));
+  // The older candidate stays for pruning; it is never finished.
+  assert.deepEqual(h.files(), [candidate]);
+  assert.equal(pendingMode(), 'GATE-EVIDENCE');
   h.cleanup();
 });
 

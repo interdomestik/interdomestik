@@ -27,10 +27,12 @@ const DATABASE_URL_NAME = /DATABASE_URL/u;
 // (macOS volumes are case-insensitive); `.envrc` is not one.
 const LOCAL_ENV_FILE = /(?:^|\/)\.env(?:\.[^/]*)?$/iu;
 // Variables that redirect a run past the checked settings: libpq (PG*), dotenv (DOTENV_*), the
-// startup file of every Bash child (BASH_ENV, ENV), and git's repository, worktree and config
-// overrides (which would point the probe at another checkout than the one running the lane).
-const REDIRECTING_ENV_NAME =
-  /^(?:PG|DOTENV_|BASH_ENV$|ENV$|GIT_(?:DIR|WORK_TREE|INDEX_FILE|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|COMMON_DIR|NAMESPACE|CEILING_DIRECTORIES|DISCOVERY_ACROSS_FILESYSTEM|CONFIG)(?:_|$))/u;
+// startup file of every Bash child (BASH_ENV, ENV), and every git variable (repository, worktree,
+// config, pathspec and index overrides change what the probe sees) except the few that only
+// choose an editor, pager, prompt, transport or identity.
+const REDIRECTING_ENV_NAME = /^(?:PG|DOTENV_|GIT_|BASH_ENV$|ENV$)/u;
+const HARMLESS_GIT_ENV_NAME =
+  /^GIT_(?:EDITOR|SEQUENCE_EDITOR|PAGER|TERMINAL_PROMPT|ASKPASS|SSH|SSH_COMMAND|SSH_VARIANT|(?:AUTHOR|COMMITTER)_(?:NAME|EMAIL|DATE)|MERGE_AUTOEDIT|OPTIONAL_LOCKS)$/u;
 
 /** The keys the gate reads from the environment: the guarded list plus every database URL. */
 export function checkedEnvKeys(env) {
@@ -46,18 +48,19 @@ const LOOPBACK_ORIGIN =
  * own way, so gate runs allow none at all rather than parse them.
  */
 export function localEnvFiles(repoRoot, exec) {
+  // NUL-separated: git quotes unusual names in line output, which would hide them from the filter.
   const listing = exec(
     'git',
-    ['ls-files', '--others', '--', ':(glob,icase)**/.env', ':(glob,icase)**/.env.*'],
+    ['ls-files', '-z', '--others', '--', ':(glob,icase)**/.env', ':(glob,icase)**/.env.*'],
     repoRoot
   );
-  return listing.split('\n').filter(file => LOCAL_ENV_FILE.test(file));
+  return listing.split('\0').filter(file => LOCAL_ENV_FILE.test(file));
 }
 
-/** Names (never values) of variables through which libpq or dotenv could redirect a run. */
+/** Names (never values) of variables through which libpq, dotenv, a shell or git redirect a run. */
 export function redirectingEnvNames(env) {
   return Object.keys(env)
-    .filter(name => REDIRECTING_ENV_NAME.test(name))
+    .filter(name => REDIRECTING_ENV_NAME.test(name) && !HARMLESS_GIT_ENV_NAME.test(name))
     .sort((a, b) => a.localeCompare(b));
 }
 
@@ -78,6 +81,8 @@ function databaseUrlErrors(key, raw, database, forbiddenPorts) {
   if (host !== database.host) errors.push(`${key} host is not ${database.host}`);
   if (port !== database.port) errors.push(`${key} port is not ${database.port}`);
   if (url.pathname !== `/${database.name}`) errors.push(`${key} database is not ${database.name}`);
+  // Drivers apply query options (`?database=`, `?host=`, `?port=`) over the parts checked above.
+  if (url.search || url.hash) errors.push(`${key} must not carry connection options`);
   return errors;
 }
 

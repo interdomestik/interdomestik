@@ -28,6 +28,7 @@ export function harness({ marker = { status: 'absent' }, live = fixtureLive(), e
     platform: 'darwin',
     cwd: '/repo',
     shellPid: 4242,
+    shellStart: () => state.shellStart ?? 'Thu Nov 19 10:00:00 2026\n',
     chain: {
       scripts: () => packageJson.scripts,
       parentCommand: () =>

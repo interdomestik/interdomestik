@@ -50,7 +50,7 @@ export function fixtureLive(overrides = {}) {
     },
     sources: { localFiles: [], redirecting: [] },
     freeGib: { repository: 120, system: 28 },
-    git: { head: 'c'.repeat(40), clean: true, trackedClean: true },
+    git: { head: 'c'.repeat(40), clean: true, trackedClean: true, hiddenFromStatus: 0 },
     ...overrides,
   };
 }

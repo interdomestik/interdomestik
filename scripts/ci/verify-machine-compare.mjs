@@ -55,6 +55,9 @@ export function compareMachine(marker, live, { phase = 'begin' } = {}) {
     ...databaseContainerErrors(marker, live.database, live.ciPostgresDigest),
     ...environmentErrors(marker, live.env, live.sources)
   );
+  if (live.git.hiddenFromStatus !== 0) {
+    errors.push('tracked files are hidden from git status (assume-unchanged or skip-worktree)');
+  }
   if (phase === 'stamp') {
     if (!live.git.trackedClean) errors.push('tracked files changed during the run');
     return errors;

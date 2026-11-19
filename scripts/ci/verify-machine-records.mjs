@@ -32,9 +32,12 @@ export function recordDirectory({ platform, env, home = os.homedir() }) {
   return path.join(env.XDG_STATE_HOME || path.join(home, '.local/state'), 'interdomestik-verify');
 }
 
-/** One pending record per shell process: `begin` and `stamp` are children of the same shell. */
-export function pendingRecordPath(directory, repoRoot, lane, shellPid) {
-  const scope = sha256Hex(`${repoRoot}\0${shellPid}`).slice(0, 16);
+/**
+ * One pending record per shell process (its PID and start time): `begin` and `stamp` are children
+ * of the same shell.
+ */
+export function pendingRecordPath(directory, repoRoot, lane, shell) {
+  const scope = sha256Hex(`${repoRoot}\0${shell}`).slice(0, 16);
   return path.join(directory, `pending-${lane}-${scope}.json`);
 }
 

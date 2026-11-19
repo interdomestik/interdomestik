@@ -11,6 +11,10 @@ import { pathToFileURL } from 'node:url';
 // move credentials into the path.
 const POSTGRES_AUTHORITY = /^postgres(?:ql)?:\/\/[^/]/iu;
 const DATABASE_NAME = /^\/[\w-]*$/u;
+// A plain DNS name, IPv4 address or bracketed IPv6 address: an encoded authority such as
+// `user%3Asecret%40host` stays in a PostgreSQL URL's hostname and must not be printed.
+const PLAIN_HOST =
+  /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*|\[[0-9a-f:.]+\])$/iu;
 
 /** Scheme, host, port and database name of a PostgreSQL URL; anything else is not described. */
 export function describeDatabaseUrl(raw) {
@@ -23,9 +27,10 @@ export function describeDatabaseUrl(raw) {
   if (!POSTGRES_AUTHORITY.test(raw.trim()) || url.hostname === '') {
     return '(not a database URL)';
   }
+  const host = PLAIN_HOST.test(url.hostname) ? url.hostname : '(unprintable host)';
   const port = url.port || '(no port)';
   const database = DATABASE_NAME.test(url.pathname) ? url.pathname : '/(unnamed)';
-  return `${url.protocol}//${url.hostname}:${port}${database}`;
+  return `${url.protocol}//${host}:${port}${database}`;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
