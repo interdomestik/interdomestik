@@ -101,8 +101,8 @@ branch protection or gate criteria to obtain a pass.
 Review the integrated diff and actionable current-head review comments/check
 annotations. High-risk auth, tenancy, schema/migration, billing, routing, CI/trust,
 concurrency, data-loss or cross-domain work
-requires independent review separate from implementation judgment. Escalate to
-Astra only for a concrete unresolved ambiguity; do not use paid API fallback.
+requires independent review separate from implementation judgment. Use Astra
+only as AGENTS.md R-02 states (routing below); do not use paid API fallback.
 If required independent review is unavailable, report that delivery limitation.
 
 Use focused tests/type checks while implementation and review are changing.
