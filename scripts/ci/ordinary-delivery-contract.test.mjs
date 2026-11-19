@@ -45,7 +45,7 @@ test('ordinary delivery does not require ritual companion PRs or collapse delive
   assert.match(agents, /R-22 One bounded unit per session: implement, verify, record, stop\./u);
   assert.match(
     agents,
-    /R-28 One bounded protected PR per change is its record: no program, tracker or ledger edits, no bookkeeping-only PR\./u
+    /R-28 One bounded protected PR per change holds its scope, acceptance, implementation and tests and is its record: no program, tracker or ledger edits, no bookkeeping-only PR\./u
   );
   assert.match(program, /prepared, tested, merged, deployed and user-validated states separately/u);
   assert.match(agents, /prepared, tested, merged, deployed, validated by a user/u);

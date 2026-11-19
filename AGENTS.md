@@ -18,7 +18,7 @@ E = enforced by the named check (`*`: not live yet; follow it); E~ = in part. A 
 - R-20 Before writing a helper, type, validator or query, search `REUSE-CATALOG.md` and the package exports. No second action result type or context, format helper, role predicate, page-size clamp or response type; parse a response body, never cast it. E~: CHK-20*.
 - R-21 List in the PR the paths the change may edit; give a reason for anything outside. A: CHK-21* reports.
 - R-22 One bounded unit per session: implement, verify, record, stop. A.
-- R-28 One bounded protected PR per change is its record: no program, tracker or ledger edits, no bookkeeping-only PR. A.
+- R-28 One bounded protected PR per change holds its scope, acceptance, implementation and tests and is its record: no program, tracker or ledger edits, no bookkeeping-only PR. A.
 - R-31 Never revert, delete, stash or clean up work you did not create; report it. A.
 
 ## 3. Definition of Done (R-04)

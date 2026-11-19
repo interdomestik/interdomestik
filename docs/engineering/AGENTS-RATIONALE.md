@@ -8,7 +8,7 @@ Run A, round R2 (2026-11-16): written in part R2a, rewritten in part R2b after t
 
 | Measure | Current `AGENTS.md` | Proposed `AGENTS.md` | Not longer? |
 |---|---:|---:|---|
-| Bytes | 11,437 | 12,810 | **no**: 1,373 bytes more, inside the limit that the owner raised three times (in the closing pass to at most 12,437; on 2026-11-18 in the delta fix round to at most 12,735 and in the final round to at most 12,833); measured as the commit hook leaves the file. At the end of R3: 11,431; at the end of the closing pass: 12,435; after the delta fix round: 12,733 |
+| Bytes | 11,437 | 12,865 | **no**: 1,428 bytes more, inside the limit that the owner raised four times (in the closing pass to at most 12,437; on 2026-11-18 in the delta fix round to at most 12,735 and in the final round to at most 12,833; on 2026-11-19 to at most 12,870, only for the full one-PR rule in R-28); measured as the commit hook leaves the file. At the end of R3: 11,431; at the end of the closing pass: 12,435; after the delta fix round: 12,733 |
 | Lines | 208 | 71 | yes |
 | Words | 1,511 | 2,004 | **no** (+33%; +32% after the delta fix round, +30% at the end of the closing pass, +19% at the end of R3): the current file holds code blocks and wrapped lines, the proposal holds sentences |
 | Tokens | `NOT MEASURED` | `NOT MEASURED` | bytes are the proxy used |

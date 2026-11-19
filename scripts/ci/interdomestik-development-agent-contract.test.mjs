@@ -66,17 +66,26 @@ test('the role and its guide defer to AGENTS.md and leave merging to the owner',
       'No agent merges, deploys or force-pushes; the owner merges and releases (R-01, R-24).'
     )
   );
+  // Contradicting grants or precedence must fail wherever an agent reads them.
+  const AGENT_GRANT =
+    /\b(?:agents?|you)\b(?:(?!\bowner\b)[^.]){0,40}?\b(?:may|can|will|should|must|is allowed to|are allowed to)\s+(?:also\s+)?(?:merge|deploy|release|force-push|write to staging|assign|submit|post)\b/iu;
+  const MERGE_THROUGH =
+    /(?<!\bowner\s(?:may\s|can\s|will\s|then\s)?)\bmerge\s(?:it\s|the PR\s)?through normal protections/iu;
+  const OLD_PRECEDENCE =
+    /\b(?:program|tracker|ledgers?)\b(?:(?!AGENTS\.md)[^.]){0,80}\b(?:wins|win|takes precedence|take precedence|governs?|prevails?)\b/iu;
+  const procedureFlat = flat(procedure);
+  for (const text of [roleFlat, guideFlat, procedureFlat]) {
+    assert.doesNotMatch(text, AGENT_GRANT);
+    assert.doesNotMatch(text, MERGE_THROUGH);
+    assert.doesNotMatch(text, OLD_PRECEDENCE);
+    assert.doesNotMatch(text, /authorized protected merge/iu);
+    assert.doesNotMatch(text, /AGENTS\.md (?:yields|gives way|loses)/iu);
+  }
   for (const text of [roleFlat, guideFlat]) {
     assert.ok(
       text.includes(
         'for observation only: normal UI login/logout, identity checks, reads and searches. No agent writes to staging (AGENTS.md R-24)'
       )
-    );
-    assert.doesNotMatch(text, /authorized protected merge/iu);
-    assert.doesNotMatch(text, /AGENTS\.md (?:yields|gives way|loses)/iu);
-    assert.doesNotMatch(
-      text,
-      /\b(?:agent|you) (?:may|can|is allowed to) (?:merge|deploy|release|write to staging)/iu
     );
     assert.doesNotMatch(text, /current-tracker\.md govern/u);
     assert.doesNotMatch(text, /Canonical reconciliation is an owned delivery obligation/u);
@@ -85,26 +94,16 @@ test('the role and its guide defer to AGENTS.md and leave merging to the owner',
       /move completed metrics and proof into the linked historical ledger/u
     );
     assert.doesNotMatch(text, /Paddle is the only/u);
-    assert.doesNotMatch(
-      text,
-      /\bagents? (?:may|can|are allowed to|is allowed to) (?:merge|deploy|release|force-push|write|assign|submit|update)/iu
-    );
-    assert.doesNotMatch(text, /\bmerge (?:it |the PR )?through normal protections/iu);
-    assert.doesNotMatch(
-      text,
-      /\b(?:program|tracker|ledgers?)\b(?:(?!AGENTS\.md)[^.]){0,80}\b(?:wins|win|takes precedence|take precedence|governs?|prevails?)\b/iu
-    );
   }
   assert.ok(
-    flat(procedure).includes(
+    procedureFlat.includes(
       'No agent writes to staging (`AGENTS.md`, R-24). The owner runs every write step'
     )
   );
-  for (const row of procedure.split('\n').filter(line => /^\| (?:5|6) /u.test(line))) {
-    assert.doesNotMatch(row, /\bagents? (?:may|can|runs?|performs?|writes?|assigns?|submits?)\b/iu);
+  // The write steps (5: admin assignment, 6: staff update) never name an agent.
+  const writeSteps = procedure.split('\n').filter(line => /^\|\s*(?:5|6)\s*\|/u.test(line));
+  assert.equal(writeSteps.length, 2);
+  for (const row of writeSteps) {
+    assert.doesNotMatch(row, /\bagents?\b/iu);
   }
-  assert.doesNotMatch(
-    flat(procedure),
-    /\bagents? (?:may|can|are allowed to|is allowed to) (?:write|assign|submit|update|merge|deploy)/iu
-  );
 });
