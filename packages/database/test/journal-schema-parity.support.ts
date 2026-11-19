@@ -23,8 +23,24 @@ export type ReviewedDrift = Readonly<{
 /** A drift value for a declared object that the journal does not build; only REVIEWED_DRIFT. */
 export const ABSENT = '<absent>';
 
-// Fact kinds that state an abnormal condition of a built object: nothing may expect them.
-const FORBIDDEN_REGISTRY_KINDS = new Set(['constraint-enforcement']);
+// The only fact kinds the registry may carry: SQL-only objects and their reviewed properties.
+// A kind that states an abnormal condition of a built object (an invalid index, a disabled
+// constraint) or any kind added later is refused until this list is reviewed.
+export const REGISTRY_KINDS: ReadonlySet<string> = new Set([
+  'check',
+  'exclusion',
+  'extension',
+  'fk',
+  'function',
+  'index',
+  'not-valid',
+  'policy',
+  'relation-options',
+  'rls',
+  'rls-force',
+  'trigger',
+  'view-definition',
+]);
 
 export type ParityProblem =
   | 'missing'
@@ -131,7 +147,7 @@ function expectedModel(
       differences.push({ key: entry.key, problem: 'registry-absent', expected: entry.value });
       continue;
     }
-    if (FORBIDDEN_REGISTRY_KINDS.has(entry.key.split(' ')[0])) {
+    if (!REGISTRY_KINDS.has(entry.key.split(' ')[0])) {
       differences.push({ key: entry.key, problem: 'registry-forbidden', actual: entry.value });
       continue;
     }

@@ -31,60 +31,83 @@ test('only the pinned owner operation may carry modules', () => {
   );
 });
 
-const probeScript = (body = 'sql`select 1`.then(() => sql.end())') =>
-  ["const postgres = require('postgres');", 'const sql = postgres(process.env.URL);', body].join(
-    '\n'
-  );
-const heredoc = script => `if node - <<'NODE'\n${script}\nNODE\nthen\n  return 0\nfi\n`;
+const m4 = readFileSync(join(root, 'scripts/m4-gatekeeper.sh'), 'utf8');
+const [, reviewed] = /<<'NODE'\n([\s\S]*?)\nNODE$/mu.exec(m4) ?? [];
 
-test('a probe runs only select 1 on the one client each embedded script opens', () => {
-  const probe = entry('probe');
-  assert.doesNotThrow(() => checkProbe(probe, heredoc(probeScript()) + heredoc(probeScript())));
-  for (const body of [
-    'sql`select 1`; sql`delete from claim`',
-    'sql.unsafe("drop table claim")',
-    'sql`select 1`; const other = postgres(process.env.URL); other`select 1`',
-    'sql`select 1`; sql("x")',
-    'sql`select 1`; sql.begin(async t => t`select 1`)',
-    'Promise.resolve(); // sql`select 1`',
-    'Promise.resolve(); /* sql`select 1` */',
-  ]) {
-    assert.throws(() => checkProbe(probe, heredoc(probeScript(body))), Error, body);
-  }
-  const outside = `${heredoc(probeScript())}node -e "require('postgres')"\n`;
-  assert.throws(() => checkProbe(probe, outside), /no driver outside the probes/u);
-  assert.throws(() => checkProbe(probe, 'echo nothing'), /probes/u);
-  const m4 = readFileSync(join(root, 'scripts/m4-gatekeeper.sh'), 'utf8');
+test('a probe body is the reviewed one, run as a condition, as often as pinned', () => {
+  const probe = entry('probe', { path: 'scripts/m4-gatekeeper.sh' });
   assert.equal([...m4.matchAll(/require\('postgres'\)/gu)].length, 2, 'both M4 connections');
   assert.doesNotThrow(() => checkProbe(probe, m4));
+  for (const body of [
+    reviewed.replace('select 1', 'delete from claim'),
+    // Readiness without a query: the query spelling only as an ordinary string.
+    reviewed.replace(/^sql`select 1`\.then/mu, "Promise.resolve('sql`select 1`').then"),
+    `${reviewed}\nsql.unsafe('drop table claim');`,
+    `${reviewed} `,
+  ]) {
+    assert.notEqual(body, reviewed);
+    const changed = m4.replace(reviewed, body);
+    assert.throws(() => checkProbe(probe, changed), /a reviewed probe body/u, body);
+  }
+  // Either probe removed, or run without its exit status deciding.
+  const [first, second] = [...m4.matchAll(/^.*<<'NODE'\n[\s\S]*?\nNODE\n.*$/gmu)].map(m => m[0]);
+  for (const removed of [first, second]) {
+    assert.throws(() => checkProbe(probe, m4.replace(removed, 'true')), /probes/u);
+  }
+  const unhooked = m4.replace(
+    first,
+    first.replace(/^(\s*)if node/u, '$1node').replace(/then$/u, '')
+  );
+  assert.throws(() => checkProbe(probe, unhooked), /each probe is a condition/u);
+  const outside = `${m4}node -e "require('postgres')"\n`;
+  assert.throws(() => checkProbe(probe, outside), /no driver outside the probes/u);
+  assert.throws(() => checkProbe(entry('probe'), m4), /not a pinned probe/u);
 });
 
-const exec = argv =>
-  `execFileSync(Z620_EXECUTABLES.docker, [\n  'exec',\n  container,\n  ${argv}\n]);`;
+const ENV = "'env', '-i', 'PATH=/usr/bin:/bin',";
+const exec = (argv, after = '') =>
+  `execFileSync(Z620_EXECUTABLES.docker, [\n  'exec',\n  container,\n  ${ENV} ${argv}\n]${after});`;
+const FIXED = "'-X', '-h', '/var/run/postgresql', '-p', '5432', '-U', 'postgres', '-d', name,";
+const psql = options => `'psql', ${FIXED} ${options} '-c', 'select 1',`;
 
 test('container-local runs only psql -c select 1 through docker exec', () => {
   const local = entry('container-local');
-  assert.doesNotThrow(() =>
-    checkContainerLocal(local, exec("'psql',\n  '-U',\n  'postgres',\n  '-c',\n  'select 1',"))
-  );
+  assert.doesNotThrow(() => checkContainerLocal(local, exec(psql("'-v', 'ON_ERROR_STOP=1',"))));
   for (const argv of [
     "'createdb',\n  '-U',\n  'postgres',\n  name,",
     "'dropdb',\n  '--force',\n  name,",
-    "'psql',\n  '-c',\n  'drop database x',",
-    "'psql',\n  '-f',\n  'dump.sql',",
-    "'psql',\n  '-c',\n  'select 1',\n  '-c',\n  'drop table claim',",
-    "'psql',\n  '--command=select 2',\n  '-c',\n  'select 1',",
-    "'psql',\n  '-d',\n  'a',\n  '-d',\n  'b',\n  '-c',\n  'select 1',",
-    "'psql',\n  ...extra,\n  '-c',\n  'select 1',",
-    "'psql',\n  '-U',\n  '-c',\n  'select 1',",
-    "'psql',\n  '-v',\n  'ON_ERROR_STOP=0',\n  '-c',\n  'select 1',",
-    "'psql',\n  '-c',\n  'select 1', '-o', '/tmp/x',",
+    `'psql', ${FIXED} '-c', 'drop database x',`,
+    `'psql', ${FIXED} '-f', 'dump.sql',`,
+    `${psql('')} '-c', 'drop table claim',`,
+    psql("'--command=select 2',"),
+    psql("'-d', 'a', '-d', 'b',"),
+    psql('...extra,'),
+    psql("'-v',"),
+    psql("'-v', 'ON_ERROR_STOP=0',"),
+    `${psql('')} '-o', '/tmp/x',`,
+    // Each required option missing or changed: a psqlrc may run, or the environment may choose.
+    ...[
+      "'-X',",
+      "'-h', '/var/run/postgresql',",
+      "'-p', '5432',",
+      "'-U', 'postgres',",
+      "'-d', name,",
+    ].map(option => `'psql', ${FIXED.replace(option, '')} '-c', 'select 1',`),
+    `'psql', ${FIXED.replace('/var/run/postgresql', 'db.example')} '-c', 'select 1',`,
   ]) {
     assert.throws(() => checkContainerLocal(local, exec(argv)), Error, argv);
   }
+  // Nothing may extend the list after its closing bracket, nor pass a second argument.
+  for (const after of [".concat(['-c', 'select 2'])", ', { shell: true }', '.slice(0)']) {
+    assert.throws(() => checkContainerLocal(local, exec(psql(''), after)), Error, after);
+  }
+  // Without env -i, or with an environment of the caller's, the container's PG* variables apply.
+  for (const env of ['', "'env', '-i', path,", "'env', 'PGHOSTADDR=10.0.0.1',"]) {
+    assert.throws(() => checkContainerLocal(local, exec(psql('')).replace(ENV, env)), Error, env);
+  }
   assert.throws(
     () => checkContainerLocal(local, "execFileSync('psql', ['-c', 'select 1'])"),
-    /through docker exec/u
+    /one docker call/u
   );
   const smoke = readFileSync(join(root, 'scripts/ci/z620-resource-smoke.mjs'), 'utf8');
   assert.doesNotThrow(() => checkContainerLocal(local, smoke));

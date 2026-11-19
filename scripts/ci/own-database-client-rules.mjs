@@ -100,59 +100,71 @@ function checkReadOnly(entry, source) {
   assert.equal(WRITE.test(source), false, entry.path);
 }
 
-// Every template literal of a script with the identifier that tags it ('' when untagged).
-function taggedTemplates(script) {
-  return [...script.matchAll(/`([^`]*)`/gu)].map(match => {
-    let end = match.index;
-    while (end > 0 && /\s/u.test(script[end - 1])) end -= 1;
-    let start = end;
-    while (start > 0 && /\w/u.test(script[start - 1])) start -= 1;
-    return [script.slice(start, end), match[1]];
-  });
-}
+// The reviewed probe bodies, pinned byte for byte (sha256 of the heredoc's text): open one client
+// on the given URL, run `select 1`, close it. Any other body, also one that only appears to query,
+// is refused until this table is reviewed.
+export const PINNED_PROBE_BODIES = new Set([
+  '32e877f3131046ec5898821b6d44b3cb7197a3e067bc052ae1415dfb6bcb24b8',
+]);
+// How many probes each probe script runs, each as the condition of an `if` or `until`, so that
+// its exit status decides; removing or unhooking one is a change to review.
+export const PINNED_PROBE_COUNTS = Object.freeze({ 'scripts/m4-gatekeeper.sh': 2 });
+const sha256 = text => createHash('sha256').update(text).digest('hex');
+const CONDITION_PROBE =
+  /^[ \t]*(?:if|until) node - <<'NODE'\n([\s\S]*?)\nNODE\n[ \t]*(?:then|do)$/gmu;
 
-// Each embedded script (a shell heredoc) that loads a driver opens one client and runs on it
-// only the literal `select 1`; nothing outside those scripts loads a driver or runs a command.
+// Each embedded script (a shell heredoc) that loads a driver is a pinned probe body run as a
+// condition; nothing outside those scripts loads a driver or runs a client command.
 export function checkProbe(entry, source) {
+  assert.ok(Object.hasOwn(PINNED_PROBE_COUNTS, entry.path), `${entry.path}: not a pinned probe`);
   const heredocs = [...source.matchAll(/<<-?'?(\w+)'?\n([\s\S]*?)\n[ \t]*\1$/gmu)];
   const drivers = heredocs.map(match => match[2]).filter(loadsDriver);
-  assert.ok(drivers.length > 0, `${entry.path}: probes`);
+  const conditions = [...source.matchAll(CONDITION_PROBE)].map(match => match[1]);
+  assert.equal(drivers.length, PINNED_PROBE_COUNTS[entry.path], `${entry.path}: probes`);
+  assert.deepEqual(conditions, drivers, `${entry.path}: each probe is a condition`);
   let outside = source;
   for (const match of heredocs) outside = outside.replace(match[0], '');
   assert.equal(loadsDriver(outside), false, `${entry.path}: no driver outside the probes`);
   assert.deepEqual(commands(source), [], `${entry.path}: runs no client command`);
   for (const script of drivers) {
-    // No comment, so that every query the checks below see is one the probe runs.
-    assert.doesNotMatch(script, /\/[/*]/u, `${entry.path}: no comment in a probe`);
-    const clients = [...script.matchAll(/\b(?:const|let|var)\s+(\w+)\s*=\s*postgres\s*\(/gu)];
-    assert.equal(clients.length, 1, `${entry.path}: one client per probe`);
-    assert.equal([...script.matchAll(/\bpostgres\s*\(/gu)].length, 1, entry.path);
-    const client = clients[0][1];
-    const queries = taggedTemplates(script);
-    assert.ok(queries.length > 0, `${entry.path}: the probe queries`);
-    assert.deepEqual(new Set(queries.map(String)), new Set([`${client},select 1`]), entry.path);
-    assert.doesNotMatch(script, /\.(?:unsafe|query|file|begin)\s*\(/u, entry.path);
-    assert.doesNotMatch(script, new RegExp(String.raw`\b${client}\s*\(`, 'u'), entry.path);
+    assert.ok(PINNED_PROBE_BODIES.has(sha256(script)), `${entry.path}: a reviewed probe body`);
   }
 }
 
-// The options a container-local psql may carry before its one command, each with its value: a
-// quoted literal, or (for -d) a bare identifier. Anything else in the argument list is refused.
+// The options a container-local psql carries before its one command: each once, with its value
+// (a quoted literal, or for -d a bare identifier). All but -v are required, so that no psqlrc runs
+// and the socket, port, user and database are the command's own. Anything else is refused.
 const PSQL_OPTIONS = Object.freeze({
+  "'-X'": null,
+  "'-h'": /^'\/var\/run\/postgresql'$/u,
+  "'-p'": /^'5432'$/u,
   "'-U'": /^'postgres'$/u,
   "'-d'": /^(?:[A-Za-z_]\w*|'[a-z_][a-z0-9_]*')$/u,
   "'-v'": /^'ON_ERROR_STOP=1'$/u,
 });
+const REQUIRED_PSQL_OPTIONS = ["'-X'", "'-h'", "'-p'", "'-U'", "'-d'"];
 
-// The argument list after psql, element by element: each must be a single-quoted literal without
-// a comma or quote, or a bare identifier, so that no element hides another.
-function psqlArguments(entry, source, index) {
-  const end = source.indexOf(']', index);
-  assert.ok(end > index, `${entry.path}: psql arguments end`);
-  const elements = source
-    .slice(index, end)
-    .split(',')
-    .map(element => element.trim());
+// The whole execFileSync call that holds the client command at `index`: its arguments must be
+// exactly the docker executable and one array literal, so nothing (concat, a spread, a second
+// argument) can add to the list after its closing bracket.
+const CALL = 'execFileSync';
+function dockerExecElements(entry, source, index) {
+  const start = source.lastIndexOf(`${CALL}(`, index);
+  assert.ok(start >= 0, `${entry.path}: runs only through execFileSync`);
+  let depth = 0;
+  let end = start + CALL.length;
+  do {
+    if (source[end] === '(') depth += 1;
+    if (source[end] === ')') depth -= 1;
+    end += 1;
+  } while (depth > 0 && end < source.length);
+  assert.ok(end > index, `${entry.path}: the command is inside the call`);
+  const call = /^execFileSync\(\s*Z620_EXECUTABLES\.docker,\s*\[([^[\]]*)\]([^)]*)\)$/u.exec(
+    source.slice(start, end)
+  );
+  const tail = call?.[2].replaceAll(/\s/gu, '');
+  assert.ok(tail === '' || tail === ',', `${entry.path}: one docker call with one literal array`);
+  const elements = call[1].split(',').map(element => element.trim());
   if (elements.at(-1) === '') elements.pop();
   for (const element of elements) {
     assert.match(element, /^(?:'[^',\\]*'|[A-Za-z_]\w*)$/u, `${entry.path}: plain ${element}`);
@@ -166,23 +178,34 @@ export function checkContainerLocal(entry, source) {
   assert.equal(loadsDriver(source), false, `${entry.path}: loads no driver`);
   assert.doesNotMatch(source, /\bDATABASE_URL\b(?!_)/u, `${entry.path}: reads no URL`);
   for (const match of commands(source)) {
-    const before = source.slice(Math.max(0, match.index - 200), match.index);
-    assert.match(
-      before,
-      /Z620_EXECUTABLES\.docker,\s*\[\s*'exec',\s*[\w'"]+,\s*'$/u,
-      `${entry.path}: ${match[0]} runs only inside a local container through docker exec`
-    );
     assert.equal(match[0], 'psql', `${entry.path}: ${match[0]} is not a read-only probe`);
-    const [command, ...rest] = psqlArguments(entry, source, match.index - 1);
+    const [exec, container, env, clear, path, command, ...rest] = dockerExecElements(
+      entry,
+      source,
+      match.index
+    );
+    assert.equal(exec, "'exec'", `${entry.path}: psql runs only inside a container`);
+    assert.match(container, /^'[\w.-]+'$|^[A-Za-z_]\w*$/u, entry.path);
+    // env -i drops every PG* variable of the container (PGHOSTADDR, PGSERVICE, PGOPTIONS, …).
+    assert.deepEqual([env, clear], ["'env'", "'-i'"], `${entry.path}: psql runs under env -i`);
+    assert.match(path, /^'PATH=[\w/.:-]+'$/u, `${entry.path}: with an explicit PATH only`);
     assert.equal(command, "'psql'", entry.path);
     assert.deepEqual(rest.slice(-2), ["'-c'", "'select 1'"], `${entry.path}: ends with select 1`);
-    const options = rest.slice(0, -2);
-    const names = options.filter((_, at) => at % 2 === 0);
-    assert.ok(options.length % 2 === 0 && new Set(names).size === names.length, entry.path);
-    names.forEach((option, at) => {
-      assert.ok(Object.hasOwn(PSQL_OPTIONS, option), `${entry.path}: option ${option}`);
-      assert.match(options[2 * at + 1], PSQL_OPTIONS[option], `${entry.path}: ${option} value`);
-    });
+    const seen = new Set();
+    for (let at = 0; at < rest.length - 2; at += 1) {
+      const option = rest[at];
+      assert.ok(
+        Object.hasOwn(PSQL_OPTIONS, option) && !seen.has(option),
+        `${entry.path}: ${option}`
+      );
+      seen.add(option);
+      if (PSQL_OPTIONS[option] === null) continue;
+      at += 1;
+      assert.match(rest[at] ?? '', PSQL_OPTIONS[option], `${entry.path}: ${option} value`);
+    }
+    for (const option of REQUIRED_PSQL_OPTIONS) {
+      assert.ok(seen.has(option), `${entry.path}: psql needs ${option}`);
+    }
   }
 }
 
@@ -196,7 +219,7 @@ export const PINNED_READ_PROBES = Object.freeze({
 export function checkPinnedReadProbe(entry, source) {
   assert.ok(Object.hasOwn(PINNED_READ_PROBES, entry.path), `${entry.path}: not a pinned probe`);
   assert.equal(
-    createHash('sha256').update(source).digest('hex'),
+    sha256(source),
     PINNED_READ_PROBES[entry.path],
     `${entry.path}: changed since its review`
   );

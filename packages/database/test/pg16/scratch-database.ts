@@ -10,8 +10,7 @@ export type ScratchClient = ReturnType<typeof postgres>;
 
 const OPTIONS = { max: 1, onnotice: () => {}, connect_timeout: 10 } as const;
 
-/** False (and the test skipped) without a server, unless the run requires one. */
-/** Why the suite must skip, or undefined when a disposable server is configured. */
+/** Why the suite must skip; undefined with a server; throws when the run requires one. */
 export function scratchServerMissing(requiredBy: string): string | undefined {
   if (process.env.DATABASE_URL) return undefined; // an admin URL of a loopback or CI-container server
   if (process.env[requiredBy] === '1')

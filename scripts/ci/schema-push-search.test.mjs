@@ -11,29 +11,98 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 // script and no workflow may push a schema, in a command line or as an argument array. The one
 // exemption is the exact push-local invocation of database-command.mjs, which runs supabase with
 // --local and refuses every target override.
-const QUOTE = String.raw`['"\x60]`;
-const ARRAY_GAP = String.raw`${QUOTE}\s*,\s*(?:\[\s*)?${QUOTE}`;
-// A tool name, also with a package version selector (supabase@2, drizzle-kit@0.30.0).
-const VERSION = String.raw`(?:@[^\s'"\x60]+)?`;
-// A command-line word, also shell-quoted or path-qualified: supabase, 'supabase@2', "db",
-// ./node_modules/.bin/supabase. Only a word, quote or path character may not run into it.
-const word = name => String.raw`(?<![\w@.-])${QUOTE}?${name}${QUOTE}?`;
-// An argument-array element, also path-qualified: 'drizzle-kit', '/usr/local/bin/supabase@2'.
-const element = name => String.raw`(?<=['"\x60/])${name}`;
-const DRIZZLE_KIT = `drizzle-kit${VERSION}`;
-const SUPABASE = `supabase${VERSION}`;
-const PUSH_FORMS = [
-  // Command lines, also through npx, pnpm exec or dlx: drizzle-kit push[:dialect], supabase db push.
-  String.raw`${word(DRIZZLE_KIT)}\s+${word('push')}`,
-  String.raw`${word(SUPABASE)}\s+${word('db')}\s+${word('push')}`,
-  // A package script named push or db:push, reached through a package manager or turbo, with any
-  // options (--filter x, -F x, -C dir, --silent) before it.
-  String.raw`\b(?:pnpm|npm|yarn|turbo)(?:\s+(?:run|exec|-[-\w]+(?:=\S+|\s+\S+)?))*\s+(?:\S+#)?(?:db:)?push\b(?!:local)`,
-  // Argument arrays: spawn('drizzle-kit', ['push']), [..., 'supabase@2', 'db', 'push'].
-  String.raw`${element(DRIZZLE_KIT)}${ARRAY_GAP}push${QUOTE}`,
-  String.raw`${element(SUPABASE)}${ARRAY_GAP}db${ARRAY_GAP}push${QUOTE}`,
-];
-const PUSH_COMMAND = new RegExp(PUSH_FORMS.join('|'), 'u');
+
+// A package script named push or db:push, reached through a package manager or turbo, with any
+// options (--filter x, -F x, -C dir, --silent) before it.
+const PACKAGE_PUSH =
+  /\b(?:pnpm|npm|yarn|turbo)(?:\s+(?:run|exec|-[-\w]+(?:=\S+|\s+\S+)?))*\s+(?:\S+#)?(?:db:)?push\b(?!:local)/u;
+const COMMAND_SEPARATORS = new Set([';', '&', '|', '(', ')', '{', '}', '\n']);
+
+// The simple commands of a text, as the shell or a child-process call sees them: a backslash
+// line continuation is removed, quotes are stripped, and commands end only at an unquoted,
+// unescaped separator. A ' or " quote also ends at a line end, so an unbalanced quote can split
+// more but never hide a later line. Array punctuation separates words, so an executable and its
+// argument array (spawnSync('drizzle-kit', ['push'])) are one command.
+function simpleCommands(text) {
+  const state = { commands: [], words: [], word: '', quote: null };
+  for (let at = 0; at < text.length; at += 1) {
+    if (text[at] === '\\' && at + 1 < text.length) {
+      at += 1;
+      if (text[at] !== '\n') state.word += text[at];
+    } else if (state.quote) readQuoted(state, text[at]);
+    else readUnquoted(state, text[at]);
+  }
+  endCommand(state);
+  return state.commands;
+}
+
+function readQuoted(state, char) {
+  if (char === '\n' && state.quote !== '`') {
+    state.quote = null;
+    endCommand(state);
+  } else if (char === state.quote) state.quote = null;
+  else state.word += char;
+}
+
+function readUnquoted(state, char) {
+  if (char === "'" || char === '"' || char === '`') state.quote = char;
+  else if (COMMAND_SEPARATORS.has(char)) endCommand(state);
+  else if (/[\s,[\]]/u.test(char)) endWord(state);
+  else state.word += char;
+}
+
+function endWord(state) {
+  if (state.word) state.words.push(state.word);
+  state.word = '';
+}
+
+function endCommand(state) {
+  endWord(state);
+  if (state.words.length > 0) state.commands.push(state.words);
+  state.words = [];
+}
+
+// A word names a tool by its basename without a version selector: ./node_modules/.bin/supabase,
+// 'supabase@2' and /usr/local/bin/drizzle-kit@0.30.0 all name their tool.
+const tool = word => word.slice(word.lastIndexOf('/') + 1).split('@')[0];
+
+// supabase … db … push, or drizzle-kit … push[:dialect], with any words (options and their
+// values) between them inside one simple command.
+function pushesSchema(words) {
+  const names = words.map(tool);
+  const supabase = names.indexOf('supabase');
+  const db = supabase < 0 ? -1 : names.indexOf('db', supabase + 1);
+  if (db >= 0 && names.indexOf('push', db + 1) > db) return true;
+  const kit = names.indexOf('drizzle-kit');
+  return kit >= 0 && names.slice(kit + 1).some(name => /^push(?::|$)/u.test(name));
+}
+
+// A folded YAML block scalar (run: >) is one command line: its lines are joined with spaces.
+const deeper = (next, indent) =>
+  next !== undefined && (next.trim() === '' || /^\s*/u.exec(next)[0].length > indent);
+function unfoldYaml(text) {
+  const lines = text.split('\n');
+  const out = [];
+  for (let at = 0; at < lines.length; at += 1) {
+    let line = lines[at];
+    const indent = /^\s*/u.exec(line)[0].length;
+    const folded = /:\s*>[-+]?\s*$/u.test(line);
+    while (folded && deeper(lines[at + 1], indent)) {
+      at += 1;
+      line += ` ${lines[at].trim()}`;
+    }
+    out.push(line);
+  }
+  return out.join('\n');
+}
+
+// A quoted word with spaces (bash -c '…', node -e "…") is read as commands of its own as well.
+const isPush = text =>
+  PACKAGE_PUSH.test(text) ||
+  simpleCommands(text).some(
+    words => pushesSchema(words) || words.some(word => /\s/u.test(word) && isPush(word))
+  );
+
 // The exemption, as it stands in database-command.mjs; it counts only once and only there.
 const PUSH_LOCAL = /'exec',\s*'supabase',\s*'db',\s*'push',\s*'--local',/gu;
 // drizzle-kit subcommands a package script may run: none of them reaches a database.
@@ -50,7 +119,7 @@ function trackedFiles(pattern) {
 
 function pushScripts(manifest) {
   return Object.entries(manifest.scripts ?? {})
-    .filter(([name, command]) => /(?:^|:)push$/u.test(name) || PUSH_COMMAND.test(command))
+    .filter(([name, command]) => /(?:^|:)push$/u.test(name) || isPush(command))
     .map(([name]) => name);
 }
 
@@ -88,7 +157,7 @@ function pushOffenders(files, read) {
       assert.equal(source.match(PUSH_LOCAL)?.length, 1, 'the one push-local invocation');
       source = source.replaceAll(PUSH_LOCAL, '');
     }
-    return PUSH_COMMAND.test(source);
+    return isPush(/\.ya?ml$/u.test(file) ? unfoldYaml(source) : source);
   });
 }
 
@@ -135,8 +204,18 @@ test('the push-command search refuses each removed form and admits only the loca
     '"/usr/local/bin/supabase" db push',
     "spawn('./node_modules/.bin/drizzle-kit', ['push'])",
     "execFileSync('/usr/local/bin/supabase@2', ['db', 'push'])",
+    // Shell forms: a line continuation, and options with values between the words.
+    './node_modules/.bin/supabase db \\\n  push',
+    'supabase \\\n  db push --linked',
+    'supabase --workdir . db push',
+    'drizzle-kit --config x push',
+    "spawnSync('supabase', ['--workdir', '.', 'db', 'push'])",
+    'echo "it is done"; supabase db push',
+    "echo it's\nsupabase db push",
+    "bash -c 'supabase db push'",
+    "node -e \"spawnSync('supabase', ['db', 'push'])\"",
   ]) {
-    assert.match(command, PUSH_COMMAND, command);
+    assert.ok(isPush(command), command);
   }
   for (const command of [
     'pnpm db:push:local',
@@ -147,14 +226,27 @@ test('the push-command search refuses each removed form and admits only the loca
     'npx drizzle-kit@0.30.0 generate',
     "pnpm dlx 'supabase@2' db pull",
     'git push supabase@host db',
+    'supabase db pull && git push',
+    'supabase db pull\ngit push',
   ]) {
-    assert.doesNotMatch(command, PUSH_COMMAND, command);
+    assert.ok(!isPush(command), command);
   }
   // A versioned push under an innocuous package-script name is still a push script.
   assert.deepEqual(pushScripts({ scripts: { sync: "pnpm dlx 'supabase@2' db push" } }), ['sync']);
   assert.deepEqual(pushScripts({ scripts: { sync: './node_modules/.bin/supabase db push' } }), [
     'sync',
   ]);
+  assert.deepEqual(
+    pushScripts({ scripts: { sync: './node_modules/.bin/supabase db \\\n push' } }),
+    ['sync']
+  );
+  // A folded YAML run command is one command line.
+  const folded =
+    'steps:\n  - run: >\n      supabase --workdir .\n      db push\n  - run: echo ok\n';
+  assert.deepEqual(
+    pushOffenders(['.github/workflows/x.yml'], () => folded),
+    ['.github/workflows/x.yml']
+  );
   assert.deepEqual(pushScripts({ scripts: { 'db:push': 'x', push: 'y', 'db:studio': 'z' } }), [
     'db:push',
     'push',

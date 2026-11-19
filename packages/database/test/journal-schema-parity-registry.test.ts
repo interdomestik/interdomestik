@@ -9,7 +9,12 @@ import {
   structuralFacts,
   twinStatements,
 } from './journal-schema-parity.declared';
-import { ABSENT, compareWithExpectedModel, type Registry } from './journal-schema-parity.support';
+import {
+  ABSENT,
+  compareWithExpectedModel,
+  type Registry,
+  REGISTRY_KINDS,
+} from './journal-schema-parity.support';
 
 // CHK-12, fourth part: what the registry may never admit, and the view namespace. Pure; the
 // comparison rules themselves are journal-schema-parity.test.ts.
@@ -23,6 +28,7 @@ const snapshot = JSON.parse(
 
 const key = (kind: string, ...parts: unknown[]) => factKey(kind, parts);
 const SQL_INDEX = key('index', 'public', 'claim_messages', 'idx_claim_messages_tenant_id');
+const UNIQUE_INDEX = 'agent_commissions_tenant_subscription_type_uq';
 
 test('a registry entry can never admit an absent object', () => {
   const entry = registry.objects.find(object => object.key === SQL_INDEX);
@@ -51,20 +57,25 @@ test('a registry entry can never admit an absent object', () => {
   );
 });
 
-test('the registry can never expect a disabled constraint', () => {
-  const disabled = key('constraint-enforcement', 'public', 'crm_routing_rules', 'fk');
-  const admitted = { objects: [{ key: disabled, value: 'D', migration: 'x' }] };
-  const built = new Map([[disabled, 'D']]);
-  assert.deepEqual(compareWithExpectedModel(new Map(), admitted, built, { drift: [] }), [
-    { key: disabled, problem: 'registry-forbidden', actual: 'D' },
-    { key: disabled, problem: 'unexplained', actual: 'D' },
-  ]);
+test('the registry can never expect a disabled constraint or an unusable index', () => {
+  for (const [abnormal, value] of [
+    [key('constraint-enforcement', 'public', 'crm_routing_rules', 'fk'), 'D'],
+    [key('invalid-index', 'public', 'agent_commissions', UNIQUE_INDEX), 'invalid'],
+    [key('a-later-kind', 'public', 'claim'), 'x'],
+  ]) {
+    const admitted = { objects: [{ key: abnormal, value, migration: 'x' }] };
+    const built = new Map([[abnormal, value]]);
+    assert.deepEqual(compareWithExpectedModel(new Map(), admitted, built, { drift: [] }), [
+      { key: abnormal, problem: 'registry-forbidden', actual: value },
+      { key: abnormal, problem: 'unexplained', actual: value },
+    ]);
+  }
 });
 
-test('the registry file holds no absence and no forbidden kind', () => {
+test('the registry file holds no absence and only the reviewed kinds', () => {
   for (const entry of registry.objects) {
     assert.notEqual(entry.value, ABSENT, entry.key);
-    assert.notEqual(entry.key.split(' ')[0], 'constraint-enforcement', entry.key);
+    assert.ok(REGISTRY_KINDS.has(entry.key.split(' ')[0]), entry.key);
   }
 });
 

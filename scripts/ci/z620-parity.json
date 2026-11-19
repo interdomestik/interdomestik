@@ -20,7 +20,7 @@
       "static": ["exact", "pnpm lint && pnpm type-check"],
       "unit": ["exact", "pnpm coverage:gate && pnpm test:release-gate"],
       "ai-eval": ["conditional", "pnpm ai:eval"],
-      "e2e-gate": ["equivalent", "pnpm e2e:gate"]
+      "e2e-gate": ["equivalent", "pnpm e2e:gate; hosted only: pnpm db:journal:parity (CHK-12)"]
     },
     ".github/workflows/security.yml": {
       "pnpm-audit": ["exact", "pnpm security:guard && pnpm audit --prod"]
