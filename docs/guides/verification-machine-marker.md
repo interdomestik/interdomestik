@@ -4,6 +4,23 @@
 dedicated macOS verification machine, recognised by a marker file outside the repository that
 holds the machine's recorded configuration. Every other run is a pre-check.
 
+## What `GATE-EVIDENCE` proves
+
+A `GATE-EVIDENCE` line and its record prove that the lane ran on the marked Mac, with the recorded
+toolchain, the isolated database and app port, from a clean committed tree, in the clean gate
+environment, inside the unchanged pnpm chain, and that every step of the chain passed.
+
+The check prevents mistakes: a run on the wrong machine, database or port (never 3000 or 54322), a
+dirty or moved tree, a failed step, a run labelled as another shell's or another lane's, and a run
+under an untrusted marker. It does not defend against someone who deliberately builds a misleading
+run, for example with crafted configuration files or edited test fixtures; the required hosted
+checks and the reviewer cover that, as for every other change. It is not a cryptographic
+attestation, and the full run log on the frozen head stays the evidence of which steps ran.
+
+Known local difference: without a configured mailbox the OTP proof
+(`apps/web/e2e/gate/s5-new-account-otp-secure-save.spec.ts`) skips in the local gate. The required
+hosted PR E2E run provides that mailbox and proves it on every pull request.
+
 ## What the check does
 
 `scripts/ci/verify-machine.mjs` is the first and the last step of both commands.
@@ -51,9 +68,11 @@ holds the machine's recorded configuration. Every other run is a pre-check.
   re-checks the marker, the live configuration, `HEAD` and the tracked files, then writes the run
   record to `~/Library/Logs/interdomestik-verify/` and prints its mode, head, marker sha256 and
   record sha256 for the PR body. A gate run that stopped matching during the run is recorded as a
-  `PRE-CHECK` with the reasons; a moved `HEAD` fails in either mode. A `pending-*` file without a
-  final record is a run that did not pass. Gate evidence is only the line that starts with
-  `GATE-EVIDENCE`.
+  `PRE-CHECK` with the reasons; a moved `HEAD` fails in either mode wherever `begin` recorded one
+  (a run outside the gate environment records nothing, so it has nothing to compare). The final
+  record decides the run: it is written before the pending file is removed, and a failed removal
+  only prints a warning. A `pending-*` file without a final record is a run that did not pass.
+  Gate evidence is only the line that starts with `GATE-EVIDENCE`.
 - With a marker present, `begin` and `stamp` must run inside the unchanged `pnpm pr:verify` or
   `pnpm security:guard` chain: their parent shell must be exactly `sh -c <committed script>`, so
   `stamp` is reached only after every step before it exited 0. Running the steps by hand never
@@ -62,7 +81,8 @@ holds the machine's recorded configuration. Every other run is a pre-check.
   and no `node_modules/.hooks` directory.
 - Both commands take no arguments. pnpm appends arguments to the last step of the chain, which is
   `stamp`, so `stamp` refuses them; run a step with its own arguments directly instead.
-- Hosted runs (`GITHUB_ACTIONS=true`) skip the check: hosted checks are separate evidence.
+- Hosted runs (`GITHUB_ACTIONS=true`) skip the check after the marker is found trusted or absent:
+  hosted checks are separate evidence, and the variable cannot skip an untrusted marker.
 - Without a marker, or without a git repository, the run is a pre-check and its record is
   best-effort: an unreadable repository or a full disk never fails a command that passed.
 
@@ -87,9 +107,6 @@ env -i HOME="$HOME" PATH="$PATH" USER="$USER" LOGNAME="$LOGNAME" SHELL="$SHELL" 
 
 A run from an ordinary shell, which carries many other variables, is a `PRE-CHECK` that says which
 names to leave out.
-
-The check proves which machine and configuration a run used. It is not a cryptographic attestation:
-the full run log on the frozen head stays the evidence of which steps ran.
 
 ## Creating the marker (owner only)
 

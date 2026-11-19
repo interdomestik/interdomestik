@@ -174,12 +174,19 @@ function writeFinalRecord(lane, deps, pending, pendingPath, directory) {
   let recordSha256;
   try {
     recordSha256 = deps.records.writeRecord(finalPath, record);
-    deps.records.removeRecord(pendingPath);
   } catch (error) {
-    // A pre-check record is optional: a full disk must not fail a command that passed.
+    // A pre-check record is optional: a full disk must not fail a command that passed. Without
+    // its record a gate run has no evidence, so the command fails.
     if (record.mode === records.MODES.gate) throw error;
     deps.error(`${PREFIX} pre-check record not written (${error?.code ?? 'error'}); continuing.`);
     return 0;
+  }
+  // The final record is the decision; removing the pending file is cleanup that cannot undo it. A
+  // pending file left behind cannot be finished again: its final record already exists.
+  try {
+    deps.records.removeRecord(pendingPath);
+  } catch (error) {
+    deps.error(`${PREFIX} pending record not removed (${error?.code ?? 'error'}); continuing.`);
   }
   // The evidence line starts with its mode, with no prefix: `GATE-EVIDENCE lane=…` or `PRE-CHECK …`.
   deps.log(
@@ -230,15 +237,15 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
       'pnpm --filter @interdomestik/web run e2e:smoke --retries=0',
     ]);
   }
-  if (deps.env.GITHUB_ACTIONS === 'true') {
-    deps.log(`${PREFIX} hosted run: the machine marker does not apply; hosted checks count apart.`);
-    return 0;
-  }
-  // An untrusted marker stops the run in either phase. Its check starts only `ls`, with an empty
-  // environment, so it runs in any shell.
+  // An untrusted marker stops the run in either phase, before anything else is honoured. Its check
+  // starts only `ls`, with an empty environment, so it runs in any shell.
   const markerResult = deps.readMarker();
   if (markerResult.status === 'invalid') {
     return fail(deps, ['the verification marker is not trusted:', ...markerResult.errors]);
+  }
+  if (deps.env.GITHUB_ACTIONS === 'true') {
+    deps.log(`${PREFIX} hosted run: the machine marker does not apply; hosted checks count apart.`);
+    return 0;
   }
   // Outside the closed gate environment no command starts, so none can print its environment.
   const unexpected = unexpectedEnvNames(deps.env);
