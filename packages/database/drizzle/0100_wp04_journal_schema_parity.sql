@@ -51,6 +51,7 @@ ALTER TABLE "public"."member_notes" ALTER COLUMN "tenant_id" DROP DEFAULT;--> st
 ALTER TABLE "public"."audit_log" ALTER COLUMN "tenant_id" DROP DEFAULT;--> statement-breakpoint
 DO $wp04$
 DECLARE
+  tenant_column CONSTANT text := 'tenant_id';
   wanted record;
   existing record;
   declared_definition text;
@@ -58,11 +59,11 @@ BEGIN
   FOR wanted IN
     SELECT * FROM (VALUES
       ('agent_commissions_tenant_subscription_type_uq', 'agent_commissions', true,
-        ARRAY['tenant_id', 'subscription_id', 'type']),
-      ('branches_tenant_code_uq', 'branches', true, ARRAY['tenant_id', 'code']),
+        ARRAY[tenant_column, 'subscription_id', 'type']),
+      ('branches_tenant_code_uq', 'branches', true, ARRAY[tenant_column, 'code']),
       ('idx_claims_user_created', 'claim', false, ARRAY['userId', 'createdAt']),
       ('idx_policies_user_tenant_created', 'policies', false,
-        ARRAY['user_id', 'tenant_id', 'created_at'])
+        ARRAY['user_id', tenant_column, 'created_at'])
     ) AS declared(index_name, table_name, is_unique, key_columns)
   LOOP
     -- PostgreSQL's own rendering after the name and table carries the method, key order,

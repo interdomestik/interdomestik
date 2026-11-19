@@ -7,13 +7,16 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ownerWorkflowProblems } from './own-database-client-workflow.mjs';
+
+export { ownerWorkflowProblems };
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 export const RULES_MODULE = 'scripts/ci/own-database-client-rules.mjs';
 
 // Script roots, package script folders, package roots, the repository root, and the
 // database-building test lane (pg16), which is in scope although its files are tests.
-const EXTENSIONS = String.raw`(?:[cm]?[jt]s|sh|bash|zsh|py)`;
+const EXTENSIONS = '(?:[cm]?[jt]s|sh|bash|zsh|py)';
 export const SCOPE = new RegExp(
   String.raw`^(?:(?:scripts|tools|ops|apps\/web\/scripts)\/.+|packages\/[^/]+\/(?:test\/pg16|src\/scripts)\/.+|packages\/[^/]+\/[^/]+|[^/]+)\.${EXTENSIONS}$`,
   'u'
@@ -39,8 +42,15 @@ const LOADS_DRIVER = new RegExp(
   'u'
 );
 // A write or schema statement.
-export const WRITE =
-  /\b(?:insert\s+into|delete\s+from|truncate|drop\s+(?:table|type|index|schema|policy|database|role|function|trigger|view)|alter\s+(?:table|role|type|database|policy|default|system)|create\s+(?:table|index|policy|role|database|function|trigger|extension|schema|view)|grant|revoke|copy\s+\S+\s+from|update\s+"?[a-z_.]+"?\s+set)\b/iu;
+const WRITES = [
+  /\b(?:insert\s+into|delete\s+from|truncate|grant|revoke)\b/iu,
+  /\bdrop\s+(?:table|type|index|schema|policy|database|role|function|trigger|view)\b/iu,
+  /\balter\s+(?:table|role|type|database|policy|default|system)\b/iu,
+  /\bcreate\s+(?:table|index|policy|role|database|function|trigger|extension|schema|view)\b/iu,
+  /\bcopy\s+\S+\s+from\b/iu,
+  /\bupdate\s+"?[a-z_.]+"?\s+set\b/iu,
+];
+export const WRITE = Object.freeze({ test: source => WRITES.some(write => write.test(source)) });
 
 // The one owner operation, pinned here so that the JSON cannot add another.
 export const OWNER_OPERATIONS = Object.freeze([
@@ -192,66 +202,6 @@ export function checkPinnedReadProbe(entry, source) {
   );
 }
 
-// The keys directly under a workflow's top-level `on:`.
-function workflowTriggers(workflow) {
-  const lines = workflow.split('\n');
-  const start = lines.findIndex(line => line.trimEnd() === 'on:');
-  if (start < 0) return [];
-  const triggers = [];
-  for (const line of lines.slice(start + 1)) {
-    const content = line.trim();
-    if (content === '' || content.startsWith('#')) continue;
-    if (!line.startsWith(' ')) break;
-    if (line.startsWith('  ') && line[2] !== ' ') triggers.push(content);
-  }
-  return triggers;
-}
-
-// The jobs of a workflow, each with its lines, from its two-space key to the next.
-function workflowJobs(workflow) {
-  const lines = workflow.split('\n');
-  const jobs = new Map();
-  let current;
-  for (const line of lines.slice(lines.findIndex(text => text.trimEnd() === 'jobs:') + 1)) {
-    if (/^\S/u.test(line)) break;
-    const key = /^ {2}([\w-]+):\s*$/u.exec(line);
-    if (key) jobs.set((current = key[1]), []);
-    else if (current) jobs.get(current).push(line);
-  }
-  return jobs;
-}
-
-const OWNER_JOB_CONDITION =
-  "    if: ${{ github.repository == 'interdomestik/interdomestik' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}";
-
-/** What is wrong with the owner workflow for `pinned`; empty means it keeps its promise. */
-export function ownerWorkflowProblems(workflow, pinned) {
-  const problems = [];
-  if (JSON.stringify(workflowTriggers(workflow)) !== '["workflow_dispatch:"]') {
-    problems.push('the trigger is not workflow_dispatch alone');
-  }
-  if (!workflow.includes(pinned.operation)) problems.push(`it does not name ${pinned.operation}`);
-  // A command line of its own: `run: node <path>`, or `node <path>` inside a run block; never text
-  // after another command or a comment.
-  const invocation = new RegExp(
-    String.raw`^\s*(?:-\s+)?(?:run:\s+)?node ${pinned.path.replaceAll('.', '\\.')}(?:\s|$)`,
-    'u'
-  );
-  const invoking = [...workflowJobs(workflow)].filter(([, lines]) =>
-    lines.some(line => invocation.test(line))
-  );
-  if (invoking.length !== 1 || invoking[0][0] !== pinned.job) {
-    return [...problems, `the operation is not invoked by job ${pinned.job} alone`];
-  }
-  const own = invoking[0][1].filter(line => /^ {4}\S/u.test(line) || /^ {6}name:/u.test(line));
-  if (!own.includes(OWNER_JOB_CONDITION)) problems.push('the job is not main-only and dispatched');
-  const environment = own.findIndex(line => line === '    environment:');
-  if (environment < 0 || own[environment + 1] !== '      name: staging') {
-    problems.push('the job does not run in the staging environment');
-  }
-  return problems;
-}
-
 function checkOwnerOperation(entry) {
   const pinned = OWNER_OPERATIONS.find(operation => operation.path === entry.path);
   assert.ok(pinned, `${entry.path}: not a pinned owner operation`);
@@ -278,23 +228,26 @@ function checkResidual(entry, source) {
 }
 
 // Each kind's promise, checked against the file itself.
-const KIND_CHECKS = Object.freeze({
-  launcher: checkNoClient,
-  contract: checkNoClient,
-  'read-only': checkReadOnly,
-  probe: checkProbe,
-  'container-local': checkContainerLocal,
-  'pinned-read-probe': checkPinnedReadProbe,
-  'owner-operation': checkOwnerOperation,
-  residual: checkResidual,
-});
+const KIND_CHECKS = new Map(
+  Object.entries({
+    launcher: checkNoClient,
+    contract: checkNoClient,
+    'read-only': checkReadOnly,
+    probe: checkProbe,
+    'container-local': checkContainerLocal,
+    'pinned-read-probe': checkPinnedReadProbe,
+    'owner-operation': checkOwnerOperation,
+    residual: checkResidual,
+  })
+);
 
 /** Applies the entry's kind to `source`; throws an assertion error when a promise is broken. */
 export function checkEntry(entry, source) {
-  assert.ok(Object.hasOwn(KIND_CHECKS, entry.kind), `${entry.path}: kind ${entry.kind}`);
+  const check = KIND_CHECKS.get(entry.kind);
+  assert.ok(check, `${entry.path}: kind ${entry.kind}`);
   assert.ok(entry.reason?.length >= 40, `${entry.path}: reason`);
   if (entry.kind !== 'owner-operation') {
     assert.equal(entry.modules, undefined, `${entry.path}: only the owner operation has modules`);
   }
-  KIND_CHECKS[entry.kind](entry, source);
+  check(entry, source);
 }

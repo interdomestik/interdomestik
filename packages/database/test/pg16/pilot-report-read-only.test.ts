@@ -4,13 +4,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { runReadOnlyReport } from '../../src/scripts/pilot-branch-report';
-import { scratchServerConfigured, withScratchDatabase } from './scratch-database';
+import { scratchServerMissing, withScratchDatabase } from './scratch-database';
 
 const errorCode = (error: unknown) =>
   error instanceof Error && 'code' in error ? String(error.code) : undefined;
 
 test('a report statement cannot write, change the transaction mode or chain a statement', async t => {
-  if (!scratchServerConfigured(t, 'REQUIRE_JOURNAL_SCHEMA_PARITY')) return;
+  const missing = scratchServerMissing('REQUIRE_JOURNAL_SCHEMA_PARITY');
+  if (missing) {
+    t.skip(missing);
+    return;
+  }
   await withScratchDatabase('wp04_report', async client => {
     await client.unsafe('create table report_rows (id int)');
     for (const [statement, code] of [

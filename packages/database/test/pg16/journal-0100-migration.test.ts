@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import {
   migrateJournal,
   type ScratchClient,
-  scratchServerConfigured,
+  scratchServerMissing,
   withScratchDatabase,
 } from './scratch-database';
 
@@ -144,7 +144,11 @@ const INCOMPATIBLE: readonly [string, string, RegExp][] = [
 ];
 
 test('0100 keeps equivalent objects and refuses incompatible ones without being recorded', async t => {
-  if (!scratchServerConfigured(t, 'REQUIRE_JOURNAL_SCHEMA_PARITY')) return;
+  const missing = scratchServerMissing('REQUIRE_JOURNAL_SCHEMA_PARITY');
+  if (missing) {
+    t.skip(missing);
+    return;
+  }
   const before0100 = journalThrough(t, BEFORE);
   const through0100 = journalThrough(t, TAG);
 

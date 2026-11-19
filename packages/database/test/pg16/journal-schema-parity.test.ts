@@ -27,7 +27,7 @@ import {
   type Registry,
   tenantDefaults,
 } from '../journal-schema-parity.support';
-import { migrateJournal, scratchServerConfigured, withScratchDatabase } from './scratch-database';
+import { migrateJournal, scratchServerMissing, withScratchDatabase } from './scratch-database';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const drizzleDir = path.resolve(here, '../../drizzle');
@@ -217,7 +217,11 @@ const MUTATIONS: readonly { name: string; sql: string[]; expect: [string, Parity
 ];
 
 test('a database built from the journal equals the declared schema plus the registry', async t => {
-  if (!scratchServerConfigured(t, 'REQUIRE_JOURNAL_SCHEMA_PARITY')) return;
+  const missing = scratchServerMissing('REQUIRE_JOURNAL_SCHEMA_PARITY');
+  if (missing) {
+    t.skip(missing);
+    return;
+  }
   await withScratchDatabase('journal_parity', async client => {
     await migrateJournal(client, drizzleDir);
     // The built facts are read before the twin exists; both reads use the same search_path.

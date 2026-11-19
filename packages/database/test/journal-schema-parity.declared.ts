@@ -9,7 +9,7 @@ type SnapshotColumn = {
   typeSchema?: string;
   primaryKey?: boolean;
   notNull?: boolean;
-  default?: unknown;
+  default?: string | number | boolean;
   identity?: unknown;
   generated?: unknown;
 };
@@ -128,7 +128,7 @@ function columnType(column: SnapshotColumn): string {
 
 function columnDefinition(column: SnapshotColumn, primaryKey: boolean): string {
   const notNull = column.notNull || column.primaryKey || primaryKey ? ' not null' : '';
-  const value = column.default === undefined ? '' : ` default ${String(column.default)}`;
+  const value = column.default === undefined ? '' : ` default ${column.default}`;
   return `${quoteIdentifier(column.name)} ${columnType(column)}${notNull}${value}`;
 }
 

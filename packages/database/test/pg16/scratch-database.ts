@@ -1,7 +1,6 @@
 // The pg16 lane's one way to a database: a scratch database on a disposable server (R-13), created
 // and dropped inside the admin client's lifetime, with the scratch client closed before the drop.
 import { randomBytes } from 'node:crypto';
-import type { TestContext } from 'node:test';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
@@ -12,12 +11,12 @@ export type ScratchClient = ReturnType<typeof postgres>;
 const OPTIONS = { max: 1, onnotice: () => {}, connect_timeout: 10 } as const;
 
 /** False (and the test skipped) without a server, unless the run requires one. */
-export function scratchServerConfigured(t: TestContext, requiredBy: string): boolean {
-  if (process.env.DATABASE_URL) return true; // an admin URL of a loopback or CI-container server
+/** Why the suite must skip, or undefined when a disposable server is configured. */
+export function scratchServerMissing(requiredBy: string): string | undefined {
+  if (process.env.DATABASE_URL) return undefined; // an admin URL of a loopback or CI-container server
   if (process.env[requiredBy] === '1')
     throw new Error(`DATABASE_URL is required when ${requiredBy}=1`);
-  t.skip('DATABASE_URL names no disposable server');
-  return false;
+  return 'DATABASE_URL names no disposable server';
 }
 
 export async function withScratchDatabase<T>(
