@@ -36,12 +36,16 @@ test('each recorded field is compared on its own, and the hardware id is never p
     [{ node: 'v24.98.0' }, 'node: marker v24.99.0, this run v24.98.0'],
     [{ pnpm: null }, 'pnpm: marker 10.99.0, this run none'],
     [
-      { container: { context: 'desktop-linux', engine: '99.0.0' } },
+      { container: { context: 'desktop-linux', localSocket: true, engine: '99.0.0' } },
       'container_runtime.context: marker orbstack, this run desktop-linux',
     ],
     [
-      { container: { context: 'orbstack', engine: '98.0.0' } },
+      { container: { context: 'orbstack', localSocket: true, engine: '98.0.0' } },
       'container_runtime.engine: marker 99.0.0, this run 98.0.0',
+    ],
+    [
+      { container: { context: 'orbstack', localSocket: false, engine: '99.0.0' } },
+      'the docker context does not use a local socket',
     ],
   ];
   for (const [override, message] of cases) {

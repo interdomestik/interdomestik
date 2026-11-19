@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statfsSync } from 'node:fs';
 import path from 'node:path';
 
+import { probeDocker } from './verify-machine-docker.mjs';
 import { checkedEnvKeys } from './verify-machine-env.mjs';
 import { unexpectedEnvNames } from './verify-machine-env-names.mjs';
 import { localEnvFiles } from './verify-machine-env-files.mjs';
@@ -8,6 +9,7 @@ import { runCommand } from './verify-machine-exec.mjs';
 import { sha256Hex } from './verify-machine-marker.mjs';
 
 export { childTraceEnabled, runCommand } from './verify-machine-exec.mjs';
+export { parseContainer } from './verify-machine-docker.mjs';
 
 const GIB = 1024 ** 3;
 
@@ -21,26 +23,6 @@ function tryRun(exec, command, args, cwd) {
 
 export function parsePlatformUuid(ioregOutput) {
   return /"IOPlatformUUID"\s*=\s*"([^"]+)"/u.exec(ioregOutput ?? '')?.[1] ?? null;
-}
-
-/** Every host publication of every container port, so no extra binding can hide behind one. */
-export function parseContainer(inspectOutput) {
-  if (!inspectOutput) return null;
-  const [image, running, portsJson] = inspectOutput.split('|');
-  let ports = null;
-  try {
-    ports = JSON.parse(portsJson);
-  } catch {
-    ports = null;
-  }
-  const bindings = Object.entries(ports ?? {}).flatMap(([containerPort, published]) =>
-    (published ?? []).map(binding => ({
-      containerPort,
-      hostIp: binding?.HostIp ?? null,
-      hostPort: binding?.HostPort ?? null,
-    }))
-  );
-  return { image, running: running === 'true', bindings };
 }
 
 export function readCiPostgresDigest(repoRoot, read = readFileSync) {
@@ -87,17 +69,7 @@ export function probeMachine({
   const uuid = parsePlatformUuid(
     tryRun(exec, 'ioreg', ['-rd1', '-c', 'IOPlatformExpertDevice'], repoRoot)
   );
-  const inspect = tryRun(
-    exec,
-    'docker',
-    [
-      'inspect',
-      '--format',
-      '{{.Config.Image}}|{{.State.Running}}|{{json .NetworkSettings.Ports}}',
-      marker.database.container,
-    ],
-    repoRoot
-  );
+  const docker = probeDocker(exec, marker.database.container, repoRoot);
   return {
     hardwareUuidSha256: uuid ? sha256Hex(uuid) : null,
     arch: process.arch,
@@ -107,30 +79,9 @@ export function probeMachine({
     },
     node: process.version,
     pnpm: tryRun(exec, 'pnpm', ['--version'], repoRoot),
-    container: {
-      context: tryRun(exec, 'docker', ['context', 'show'], repoRoot),
-      engine: tryRun(exec, 'docker', ['version', '--format', '{{.Server.Version}}'], repoRoot),
-    },
-    database: parseContainer(inspect),
-    // Inside the container, over its local socket: no URL or password is involved.
-    databaseName:
-      tryRun(
-        exec,
-        'docker',
-        [
-          'exec',
-          marker.database.container,
-          'psql',
-          '--no-psqlrc',
-          '-U',
-          'postgres',
-          '-d',
-          marker.database.name,
-          '-tAc',
-          'select current_database()',
-        ],
-        repoRoot
-      )?.trim() ?? null,
+    container: docker.container,
+    database: docker.database,
+    databaseNames: docker.databaseNames,
     ciPostgresDigest: readCiPostgresDigest(repoRoot),
     // Absent keys stay absent: an empty value is a setting of its own.
     env: Object.fromEntries(

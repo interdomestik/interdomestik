@@ -14,8 +14,9 @@ function databaseContainerErrors(marker, live) {
   if (!database) return [`database container ${name} was not found`];
   const errors = [...mismatch('database.image', marker.database.image, database.image)];
   if (!database.running) errors.push(`database container ${name} is not running`);
-  else if (live.databaseName !== marker.database.name) {
-    errors.push(`database ${marker.database.name} is not reachable in container ${name}`);
+  else if (!live.databaseNames) errors.push(`the database list of container ${name} is unreadable`);
+  else if (!live.databaseNames.includes(marker.database.name)) {
+    errors.push(`the recorded database is not in container ${name}`);
   }
   const expected = `${marker.database.host}:${marker.database.port}`;
   if (database.bindings.length === 0)
@@ -56,6 +57,7 @@ export function compareMachine(marker, live, { phase = 'begin' } = {}) {
       live.container.context
     ),
     ...mismatch('container_runtime.engine', marker.container_runtime.engine, live.container.engine),
+    ...(live.container.localSocket ? [] : ['the docker context does not use a local socket']),
     ...databaseContainerErrors(marker, live),
     ...environmentErrors(marker, live.env, live.sources)
   );

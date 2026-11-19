@@ -135,24 +135,26 @@ test('a reused PID never finishes an older shell gate record, even when cleanup 
   h.cleanup();
 });
 
-test('a shell whose start time cannot be read never yields gate evidence', () => {
+test('a shell whose start time cannot be read never yields a record', () => {
   const unreadable = () => {
     throw Object.assign(new Error('again'), { code: 'EAGAIN' });
   };
-  // At begin: the run is a pre-check that says why.
+  // At begin: the run is a pre-check that says why; its stamp cannot match the shell and fails.
   const atBegin = harness({ marker: trusted() });
   atBegin.deps.shellStart = unreadable;
   assert.equal(runVerifyMachine(['begin', 'pr-verify'], atBegin.deps), 0);
   assert.match(atBegin.output.log.join('\n'), /start time of this shell could not be read/u);
-  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], atBegin.deps), 0);
-  assert.equal(atBegin.readFinal().mode, 'PRE-CHECK');
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], atBegin.deps), 1);
+  assert.match(atBegin.output.error.join('\n'), /cannot be matched to this checkout/u);
+  assert.ok(atBegin.files().every(name => name.startsWith('pending-')));
   atBegin.cleanup();
-  // At stamp only: the gate candidate of the shell is out of reach, so nothing is finished.
+  // At stamp only: the gate candidate of the shell cannot be matched, so nothing is finished.
   const atStamp = harness({ marker: trusted() });
   assert.equal(runVerifyMachine(['begin', 'pr-verify'], atStamp.deps), 0);
   atStamp.deps.shellStart = () => '';
-  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], atStamp.deps), 0);
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], atStamp.deps), 1);
   assert.ok(!atStamp.output.log.some(line => line.startsWith('GATE-EVIDENCE')));
+  assert.ok(atStamp.files().every(name => name.startsWith('pending-')));
   atStamp.cleanup();
 });
 

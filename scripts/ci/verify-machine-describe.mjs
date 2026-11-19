@@ -68,9 +68,12 @@ export function describeMachine(argv, deps) {
     min_free_gib: Number(options['min-free-gib']),
   };
   const errors = validateMarker(marker);
-  if (live.database && !live.database.running) errors.push(`${options.container} is not running`);
-  if (live.database?.running && live.databaseName !== database.name) {
-    errors.push(`database ${database.name} is not reachable in ${options.container}`);
+  // Diagnostics name the option, never its value: a value typed in the wrong place stays unprinted.
+  if (!live.container.localSocket) errors.push('the docker context does not use a local socket');
+  else if (!live.database) errors.push('the --container value names no container');
+  else if (!live.database.running) errors.push('the --container value names a stopped container');
+  else if (!live.databaseNames?.includes(database.name)) {
+    errors.push('the --db-name value is not a database in the --container value');
   }
   if (errors.length > 0) {
     for (const line of ['cannot describe this machine:', ...errors]) {

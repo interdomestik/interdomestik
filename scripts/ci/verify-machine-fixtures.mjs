@@ -33,13 +33,13 @@ export function fixtureLive(overrides = {}) {
     os: { version: '99.1', build: '99Z901' },
     node: 'v24.99.0',
     pnpm: '10.99.0',
-    container: { context: 'orbstack', engine: '99.0.0' },
+    container: { context: 'orbstack', localSocket: true, engine: '99.0.0' },
     database: {
       image: `postgres:16@${FIXTURE_DIGEST}`,
       running: true,
       bindings: [{ containerPort: '5432/tcp', hostIp: '127.0.0.1', hostPort: '55438' }],
     },
-    databaseName: 'interdomestik_test',
+    databaseNames: ['interdomestik_test', 'postgres'],
     ciPostgresDigest: FIXTURE_DIGEST,
     env: {
       DATABASE_URL: url,

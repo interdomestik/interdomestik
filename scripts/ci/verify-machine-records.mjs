@@ -1,37 +1,30 @@
-import {
-  linkSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { linkSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
 import { sha256Hex } from './verify-machine-marker.mjs';
 
+export {
+  PENDING_VERSION,
+  pruneStalePending,
+  readShellStart,
+  shellPendingRecords,
+} from './verify-machine-pending.mjs';
+
 export const LANES = Object.freeze(['pr-verify', 'security-guard']);
 export const MODES = Object.freeze({ gate: 'GATE-EVIDENCE', preCheck: 'PRE-CHECK' });
 
-const DEFAULT_FS = {
-  linkSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-};
-const STALE_PENDING_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_FS = { linkSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync };
 
-/** Run records live outside the repository, in the developer's log directory. */
-export function recordDirectory({ platform, env, home = os.homedir() }) {
+/**
+ * Run records live outside the repository, in the account's log directory. The home directory
+ * comes from the account, never from HOME or XDG_STATE_HOME, so a changed variable cannot point
+ * `stamp` at another directory than its `begin`.
+ */
+export function recordDirectory({ platform, home = os.userInfo().homedir }) {
   if (platform === 'darwin') return path.join(home, 'Library/Logs/interdomestik-verify');
-  return path.join(env.XDG_STATE_HOME || path.join(home, '.local/state'), 'interdomestik-verify');
+  return path.join(home, '.local/state/interdomestik-verify');
 }
 
 /**
@@ -58,33 +51,29 @@ export function writeRecord(filePath, record, fs = DEFAULT_FS) {
 }
 
 /**
- * Publishes a final record exactly once: the link fails with EEXIST when the run already has one,
- * so a repeated or concurrent stamp can never replace it.
+ * Publishes a final record exactly once. The temporary file is new (`wx`, a unique name), and the
+ * link fails with EEXIST when the run already has a record, so a repeated or concurrent stamp can
+ * never replace or change it. The link's error wins over a failed cleanup; after a successful
+ * link, a failed cleanup is only reported.
  */
-export function publishRecord(filePath, record, fs = DEFAULT_FS) {
+export function publishRecord(filePath, record, warn = () => {}, fs = DEFAULT_FS) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true, mode: 0o700 });
   const text = `${JSON.stringify(record, null, 2)}\n`;
-  const temporary = `${filePath}.${process.pid}.tmp`;
-  fs.writeFileSync(temporary, text, { mode: 0o600 });
+  const temporary = `${filePath}.${randomUUID()}.tmp`;
+  fs.writeFileSync(temporary, text, { mode: 0o600, flag: 'wx' });
+  let linkError = null;
   try {
     fs.linkSync(temporary, filePath);
-  } finally {
-    fs.rmSync(temporary, { force: true });
+  } catch (error) {
+    linkError = error;
   }
-  return sha256Hex(text);
-}
-
-/** Whether this shell holds a pending record of the lane; reads files only, starts no command. */
-export function shellHasPending(directory, lane, shellPid, fs = DEFAULT_FS) {
-  let names;
   try {
-    names = fs.readdirSync(directory);
-  } catch {
-    return false;
+    fs.rmSync(temporary, { force: true });
+  } catch (error) {
+    if (!linkError) warn(error);
   }
-  return names
-    .filter(name => name.startsWith(`pending-${lane}-`) && name.endsWith('.json'))
-    .some(name => readRecord(path.join(directory, name), fs)?.shellPid === shellPid);
+  if (linkError) throw linkError;
+  return sha256Hex(text);
 }
 
 export function readRecord(filePath, fs = DEFAULT_FS) {
@@ -97,24 +86,6 @@ export function readRecord(filePath, fs = DEFAULT_FS) {
 
 export function removeRecord(filePath, fs = DEFAULT_FS) {
   fs.rmSync(filePath, { force: true });
-}
-
-/** Removes pending records of runs that never reached their stamp a day ago or more. */
-export function pruneStalePending(directory, nowMs, fs = DEFAULT_FS) {
-  let names;
-  try {
-    names = fs.readdirSync(directory);
-  } catch {
-    return;
-  }
-  for (const name of names.filter(entry => /^pending-.+\.json$/u.test(entry))) {
-    const filePath = path.join(directory, name);
-    try {
-      if (nowMs - fs.statSync(filePath).mtimeMs >= STALE_PENDING_MS) removeRecord(filePath, fs);
-    } catch {
-      // Another run may have removed it; pruning is best effort.
-    }
-  }
 }
 
 /** The recorded configuration: versions, ports and the image, never URLs or credentials. */

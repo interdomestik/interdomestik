@@ -4,6 +4,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'n
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { compareMachine } from './verify-machine-compare.mjs';
 import { parseDescribeOptions } from './verify-machine-describe.mjs';
@@ -14,7 +15,7 @@ import { probeMachine } from './verify-machine-probe.mjs';
 import { publishRecord } from './verify-machine-records.mjs';
 import { runVerifyMachine } from './verify-machine.mjs';
 
-const REPO_ROOT = new URL('../..', import.meta.url).pathname;
+const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 test('describe refuses option values that are not plain before probing anything', () => {
   assert.ok(parseDescribeOptions([]));
@@ -43,23 +44,34 @@ test('a marker with a connection URL as its database or container name is refuse
   assert.deepEqual(validateMarker(fixtureMarker()), []);
 });
 
-test('the recorded database is checked inside its container, never through a URL', () => {
+test('the recorded database is listed inside its container; no operator value reaches argv', () => {
   const calls = [];
   const exec = (command, args) => {
-    calls.push([command, ...args].join(' '));
-    return args[0] === 'exec' ? 'interdomestik_test\n' : '';
+    calls.push([command, ...args]);
+    if (command !== 'docker') return '';
+    const joined = args.join(' ');
+    if (joined === 'context show') return 'orbstack';
+    if (joined.startsWith('context inspect')) return '"unix:///var/run/fixture.sock"';
+    if (args.includes('ps')) return `${'a'.repeat(64)}\tida-mac-verify-pg,alias`;
+    if (args.includes('inspect')) return `postgres:16@x|true|{}`;
+    if (args.includes('exec')) return '["interdomestik_test","postgres"]';
+    return '';
   };
   const live = probeMachine({ repoRoot: REPO_ROOT, marker: fixtureMarker(), env: {}, exec });
-  assert.equal(live.databaseName, 'interdomestik_test');
-  const psql = calls.find(call => call.includes('psql'));
-  assert.match(psql, /^docker exec ida-mac-verify-pg psql --no-psqlrc .* -d interdomestik_test /u);
-  assert.doesNotMatch(psql, /postgres(?:ql)?:\/\//u);
+  assert.deepEqual(live.databaseNames, ['interdomestik_test', 'postgres']);
+  assert.equal(live.container.localSocket, true);
+  const docker = calls.filter(([command]) => command === 'docker').map(([, ...args]) => args);
+  for (const args of docker.filter(args => !args[0].startsWith('context'))) {
+    assert.deepEqual(args.slice(0, 2), ['--host', 'unix:///var/run/fixture.sock']);
+  }
+  const later = docker.filter(args => args[0] === '--host').flat();
+  assert.ok(!later.includes('ida-mac-verify-pg'), 'the container is addressed by its ID');
+  assert.ok(!later.includes('interdomestik_test'), 'the database name is compared in JavaScript');
 
-  for (const databaseName of [null, 'postgres']) {
-    const errors = compareMachine(fixtureMarker(), { ...fixtureLive(), databaseName });
-    assert.deepEqual(errors, [
-      'database interdomestik_test is not reachable in container ida-mac-verify-pg',
-    ]);
+  for (const databaseNames of [null, ['postgres']]) {
+    const errors = compareMachine(fixtureMarker(), { ...fixtureLive(), databaseNames });
+    assert.match(errors.join('\n'), /database list .* unreadable|recorded database is not in/u);
+    assert.ok(!errors.join('\n').includes('interdomestik_test'));
   }
 });
 
@@ -91,7 +103,7 @@ test('a variable added after begin fails the stamp of that shell', () => {
   h.state.git.head = 'd'.repeat(40);
   h.deps.env = { ...h.deps.env, NODE_OPTIONS: '--trace-warnings' };
   assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 1);
-  assert.match(h.output.error.join('\n'), /added after begin \(NODE_OPTIONS\); not stamped/u);
+  assert.match(h.output.error.join('\n'), /cannot be checked with NODE_OPTIONS set/u);
   assert.ok(!h.output.log.some(line => line.startsWith('GATE-EVIDENCE')));
 
   // Another shell without a begin record of the lane stays a pre-check that records nothing.
@@ -99,7 +111,7 @@ test('a variable added after begin fails the stamp of that shell', () => {
   assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 0);
   assert.match(
     h.output.log.at(-1),
-    /only the marker was checked, nothing else ran or was recorded/u
+    /only the marker ACL check and the shell start-time lookup may have run/u
   );
   h.cleanup();
 });

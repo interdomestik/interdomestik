@@ -34,10 +34,13 @@ E2E run (a documentation-only pull request skips that run).
     as `writesecurity` that a write check does not show; deny-only entries are accepted). The file
     is read through the descriptor that was checked, never followed through a link.
   - Otherwise the live machine must match every recorded field: hardware id (as a sha256), arch,
-    macOS version and build, Node, pnpm, container context and engine, the database container's
-    pinned image (equal to the CI postgres image), every published binding (only `5432/tcp` on
-    the recorded loopback port) and the recorded database inside it (checked with `psql` in the
-    container, so no URL or password is used), every database URL (exactly
+    macOS version and build, Node, pnpm, container context and engine (the context must use a
+    local `unix://` socket, which every later Docker call is pinned to), the database container
+    (found by its exact name in Docker's own listing, then addressed by its ID) with its pinned
+    image (equal to the CI postgres image), every published binding (only `5432/tcp` on the
+    recorded loopback port) and the recorded database inside it (one fixed `psql` query on the
+    container's own socket with an empty environment lists the databases; no URL, password or
+    operator value reaches its arguments), every database URL (exactly
     `postgresql://[user[:password]@]host:port/database`, nothing more), `PW_PORT` and `PORT`
     (decimal), every Playwright tenant host (a bare `host:port`) and `PLAYWRIGHT_BASE_URL`
     (`http://host:port`) on the recorded port and a loopback host, free disk on the repository
@@ -60,17 +63,25 @@ E2E run (a documentation-only pull request skips that run).
     isolation settings (`PLAYWRIGHT_BROWSERS_PATH` as an absolute path,
     `INTERDOMESTIK_TASK_OWNS_PORT=1`, `SKIP_DOCKER_DOCTOR=1`, `HOSTNAME=127.0.0.1`). Any other
     variable, such as `NODE_OPTIONS`, `NODE_DEBUG`, `GIT_*`, `PG*` or a test override, makes the run
-    a `PRE-CHECK`: the verifier then prints the names (never the values), starts no command and
-    records nothing, so no tracing variable can print an environment. The marker is still checked
-    first (its ACL listing runs with an empty environment), and an untrusted marker still stops the
-    run. A `stamp` whose shell holds a `begin` record of the lane fails instead: a variable added
-    after `begin` would otherwise skip the `HEAD` check.
+    a `PRE-CHECK`: the verifier then prints the names (never the values) and records nothing. The
+    only child commands it may start are the marker's ACL check and, for `stamp`, the shell
+    start-time lookup, both with an empty environment, so no tracing variable can print one. An
+    untrusted marker still stops the run. A `stamp` whose shell holds a `begin` record of the lane
+    fails instead: a variable added after `begin` would otherwise skip the `HEAD` check.
 - `stamp` runs only after every other step passed, in the same shell as its `begin`: the pending
   record is kept per shell process (PID and start time) and lane, so a later or concurrent
-  `stamp` cannot use it, even in a shell that reuses the PID. `begin` gives the run an ID, and the
-  final record is published once under that ID; a second `stamp` of the same run fails. It
-  re-checks the marker, the live configuration, `HEAD` and the tracked files, then writes the run
-  record to `~/Library/Logs/interdomestik-verify/` and prints its mode, head, marker sha256 and
+  `stamp` cannot use it, even in a shell that reuses the PID. `stamp` finds its run only by
+  looking up this shell's pending records of the lane; it publishes only when there is exactly one,
+  with both start times known, at this checkout's path. Any other match (another checkout, two
+  records, an unknown start time, a record from an older verifier) fails it, and so does an
+  unreadable record directory. `begin` gives the run an ID, and the final record is published once
+  under that ID: a repeated `stamp` after a normal cleanup finds no begin record and is a
+  pre-check that records nothing (exit 0); while the pending record survives it fails with
+  "already has a final record" (exit 1); either way the run has one final record. `HEAD` must be
+  readable and equal to the recorded one. It re-checks the marker, the live configuration, `HEAD`
+  and the tracked files, then writes the run record to the account's
+  `~/Library/Logs/interdomestik-verify/` (taken from the account, never from `HOME`) and prints its
+  mode, head, marker sha256 and
   record sha256 for the PR body. A gate run that stopped matching during the run is recorded as a
   `PRE-CHECK` with the reasons; a moved `HEAD` fails in either mode wherever `begin` recorded one
   (a run outside the gate environment records nothing, so it has nothing to compare). The final
@@ -86,7 +97,12 @@ E2E run (a documentation-only pull request skips that run).
 - Both commands take no arguments. pnpm appends arguments to the last step of the chain, which is
   `stamp`, so `stamp` refuses them; run a step with its own arguments directly instead.
 - Hosted runs (`GITHUB_ACTIONS=true`) skip the check after the marker is found trusted or absent:
-  hosted checks are separate evidence, and the variable cannot skip an untrusted marker.
+  hosted checks are separate evidence, and the variable cannot skip an untrusted marker. A `stamp`
+  whose shell holds a `begin` record of the lane fails instead of taking this shortcut.
+- A pending record older than a day is pruned only when its shell has ended. After updating the
+  verifier, rerun any run that was interrupted: a record from an older verifier is never
+  published.
+- The verifier does not run under the Node permission model (`--permission`).
 - Without a marker, or without a git repository, the run is a pre-check and its record is
   best-effort: an unreadable repository or a full disk never fails a command that passed.
 
@@ -142,10 +158,13 @@ sudo mv "/Library/Application Support/Interdomestik/verify-machine.candidate.jso
 ```
 
 `describe` accepts `--container=`, `--db-host=`, `--db-port=`, `--db-name=`, `--app-port=` and
-`--min-free-gib=`, each with a plain value (names of letters, digits, `_`, `.` and `-`; decimal
-ports); any other value is refused before anything is probed. After a macOS, Node, pnpm or container-runtime update every run is a PRE-CHECK
+`--min-free-gib=`, each with a plain value, and refuses any other value before anything is probed:
+a database name is a letter or `_` followed by up to 62 letters, digits, `_` or `-`; a container
+name is a letter or digit followed by up to 127 letters, digits, `_`, `.` or `-`; ports are
+decimal. Its diagnostics name the option, never the value. After a macOS, Node, pnpm or container-runtime update every run is a PRE-CHECK
 until the owner creates the marker again; that is intended, because the configuration is part of
 the evidence.
 
 Do not run a lane with `NODE_DEBUG` set: pnpm then prints the environment of the commands it
-starts, credentials included. The verifier itself starts no command while it is set.
+starts, credentials included. While it is set, the only child commands the verifier may start are
+the marker's ACL check and the shell start-time lookup, both with an empty environment.
