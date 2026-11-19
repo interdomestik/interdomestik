@@ -39,12 +39,56 @@ test('the role and its guide defer to AGENTS.md and leave merging to the owner',
     new URL('../../docs/guides/interdomestik-development-agent.md', import.meta.url),
     'utf8'
   );
-  for (const text of [role, guide]) {
-    const flat = text.replace(/\s+/gu, ' ');
-    assert.match(flat, /wins/u);
-    assert.match(flat, /the owner merges and releases/iu);
-    assert.doesNotMatch(flat, /authorized protected merge/iu);
-    assert.doesNotMatch(flat, /current-tracker\.md govern/u);
-    assert.doesNotMatch(flat, /Canonical reconciliation is an owned delivery obligation/u);
+  const procedure = fs.readFileSync(
+    new URL('../../docs/guides/staging-staff-member-admin-acceptance.md', import.meta.url),
+    'utf8'
+  );
+  const flat = text => text.replace(/\s+/gu, ' ');
+  const roleFlat = flat(role);
+  const guideFlat = flat(guide);
+  assert.ok(
+    roleFlat.includes(
+      'Where any passage below conflicts with AGENTS.md (program/tracker reconciliation, canonical amendments, merging or deploying), AGENTS.md wins.'
+    )
+  );
+  assert.ok(
+    roleFlat.includes(
+      'Never merge, deploy or force-push: the owner merges and releases (AGENTS.md R-01, R-24).'
+    )
+  );
+  assert.ok(
+    guideFlat.includes(
+      '`AGENTS.md` is the rule source and wins over any passage here or in the role definition that conflicts with it'
+    )
+  );
+  assert.ok(
+    guideFlat.includes(
+      'No agent merges, deploys or force-pushes; the owner merges and releases (R-01, R-24).'
+    )
+  );
+  for (const text of [roleFlat, guideFlat]) {
+    assert.ok(
+      text.includes(
+        'for observation only: normal UI login/logout, identity checks, reads and searches. No agent writes to staging (AGENTS.md R-24)'
+      )
+    );
+    assert.doesNotMatch(text, /authorized protected merge/iu);
+    assert.doesNotMatch(text, /AGENTS\.md (?:yields|gives way|loses)/iu);
+    assert.doesNotMatch(
+      text,
+      /\b(?:agent|you) (?:may|can|is allowed to) (?:merge|deploy|release|write to staging)/iu
+    );
+    assert.doesNotMatch(text, /current-tracker\.md govern/u);
+    assert.doesNotMatch(text, /Canonical reconciliation is an owned delivery obligation/u);
+    assert.doesNotMatch(
+      text,
+      /move completed metrics and proof into the linked historical ledger/u
+    );
+    assert.doesNotMatch(text, /Paddle is the only/u);
   }
+  assert.ok(
+    flat(procedure).includes(
+      'No agent writes to staging (`AGENTS.md`, R-24). The owner runs every write step'
+    )
+  );
 });

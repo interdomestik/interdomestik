@@ -4,6 +4,7 @@ Scope: S7-LIVE-STAFF-MEMBER-ACCEPTANCE. Prepared 2026-10-01; this document is a 
 
 ## Setup and authority
 
+- An agent runs only the observation parts of this procedure: login/logout, identity checks, reads, searches and timings. No agent writes to staging (`AGENTS.md`, R-24). The owner runs every write step, including the admin assignment in step 5 and the update and note in step 6; the agent records each as owner-run or blocked.
 - Read current-program.md, current-tracker.md, the linked architecture program/tracker and relevant accepted ADRs. Resolve actual shipped M0–M5 state from current source and gates; never treat a planned milestone as implemented.
 - Use https://staging.interdomestik.com only. Owner-authorized synthetic accounts: member.ks.a2@interdomestik.com, staff.ks@interdomestik.com and admin.ks@interdomestik.com. Confirm each account's displayed identity and role after normal UI login.
 - Local credentials: /Users/arbenlila/.codex/private/interdomestik-staging-accounts.json. Owner fills sharedPassword once. Read as JSON data, never source as shell code. Do not echo password, capture it in screenshots, copy it into Git, receipts, prompts for external reviewers, or browser storage exports.
