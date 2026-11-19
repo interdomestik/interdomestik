@@ -1,12 +1,8 @@
 #!/usr/bin/env node
-// Provisions the restricted LOGIN runtime role the E2E web server connects as (Plan070 U2-a).
-// Fixtures keep the admin URL; only the app's DATABASE_URL_RLS uses this role, so every
-// tenant-scoped query in the gate runs under real RLS instead of a BYPASSRLS superuser.
-// The password is derived from the admin credential and cluster, so every process that can reach
-// the cluster as admin (gate, smoke, state setup, lanes on other databases) agrees on it without
-// exporting a secret, and re-provisioning never rotates it under a running server.
+// Provisions the restricted LOGIN runtime role the E2E web server connects as (Plan070 U2-a): only
+// the app's DATABASE_URL_RLS uses it, so tenant-scoped gate queries run under real RLS. Its password
+// is derived from the admin credential and cluster, so every admin-capable process agrees on it.
 import { createHmac } from 'node:crypto';
-import postgres from 'postgres';
 
 export const E2E_RUNTIME_ROLE = 'interdomestik_e2e_runtime';
 // Probe suites pass a suffixed role so their adversarial catalog edits never touch the lane role.
@@ -58,9 +54,13 @@ function parseLoopbackUrl(value, label) {
   return url;
 }
 
-function databaseTarget(url) {
-  return `loopback:${url.port || '5432'}${url.pathname}`;
+// The port the driver uses (PGPORT for a portless URL, read as a number): 05432 is 5432.
+function effectivePort(url) {
+  const port = url.port || process.env.PGPORT || '5432';
+  if (/^\d+$/u.test(port) && port > 0 && port < 65536) return port.replace(/^0+/u, '');
+  throw new RuntimeRoleError('PGPORT must be a port number');
 }
+const databaseTarget = url => `loopback:${effectivePort(url)}${url.pathname}`;
 
 function assertRoleName(role) {
   if (!ROLE_PATTERN.test(role)) throw new RuntimeRoleError('unsupported E2E runtime role name');
@@ -80,9 +80,8 @@ export function resolveE2eRuntimeUrl(adminUrl, configuredRuntimeUrl, role = E2E_
     const runtime = new URL(admin);
     runtime.username = role;
     runtime.password = createHmac('sha256', decodeURIComponent(admin.password))
-      // Roles are cluster-wide and every accepted host is loopback: key on the port alone, so
-      // lanes using different loopback spellings for one cluster never rotate each other.
-      .update(`${role}:v2:loopback:${admin.port || '5432'}`)
+      // Roles are cluster-wide and hosts loopback: key on the port, so spellings never rotate it.
+      .update(`${role}:v2:loopback:${effectivePort(admin)}`)
       .digest('hex');
     return runtime.toString();
   }
@@ -99,16 +98,15 @@ export function resolveE2eRuntimeUrl(adminUrl, configuredRuntimeUrl, role = E2E_
   return runtime.toString();
 }
 
-function connect(url, applicationName) {
-  // debug stays off even if PGDEBUG is set: driver debug output would carry the role DDL.
-  return postgres(url, {
-    max: 1,
-    connect_timeout: 10,
-    debug: false,
-    onnotice: () => {},
-    connection: { application_name: applicationName },
-  });
-}
+// R-13: every client comes from the guarded factory (loopback or the confirmed CI container, judged
+// with this process's PG* environment, before a driver exists); tsx loads it once, on first use.
+let factory;
+const loadFactory = () =>
+  (factory ??= import('tsx/cjs/api').then(api =>
+    api.require('../packages/database/src/disposable-client.ts', import.meta.url)
+  ));
+export const openGuardedClient = async (url, applicationName) =>
+  (await loadFactory()).openDisposableClient(url, { applicationName });
 
 async function provisionRole(sql, role, password) {
   await sql.begin(async tx => {
@@ -231,7 +229,7 @@ async function assertRolePosture(sql, role) {
 
 async function assertRuntimeSession(runtimeUrl, role) {
   const expectedDatabase = new URL(runtimeUrl).pathname.slice(1);
-  const sql = connect(runtimeUrl, 'interdomestik_e2e_runtime_probe');
+  const sql = await openGuardedClient(runtimeUrl, 'interdomestik_e2e_runtime_probe');
   try {
     // Database- and role-level defaults apply at login, so a preset tenant GUC is caught here.
     const [session] = await sql`
@@ -280,7 +278,10 @@ export async function provisionE2eRuntimeRole({
   }
   const resolved = resolveE2eRuntimeUrl(adminUrl, runtimeUrl, role);
   const password = decodeURIComponent(new URL(resolved).password);
-  const sql = connect(adminUrl, 'interdomestik_e2e_runtime_provision');
+  // The runtime URL is opened only after the role DDL commits: both pass the factory's check first.
+  const { assertDisposableUrl } = await loadFactory();
+  [adminUrl, resolved].forEach(url => assertDisposableUrl(url));
+  const sql = await openGuardedClient(adminUrl, 'interdomestik_e2e_runtime_provision');
   try {
     await provisionRoleWithRetry(sql, role, password);
     await assertRolePosture(sql, role);

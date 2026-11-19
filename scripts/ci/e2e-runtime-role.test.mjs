@@ -4,15 +4,15 @@ import test from 'node:test';
 import { registerHooks } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
-// No driver construction is permitted in this database-free suite.
+// No client is permitted in this database-free suite: the guarded factory's loader is stubbed.
 const driverStub =
   'data:text/javascript,' +
   encodeURIComponent(
-    'export let connections = 0; export default function () { connections++; throw Error("Unexpected connect"); }'
+    'export let connections = 0; export function require() { connections++; throw Error("Unexpected connect"); }'
   );
-const hooks = registerHooks({
+registerHooks({
   resolve(specifier, context, nextResolve) {
-    return nextResolve(specifier === 'postgres' ? driverStub : specifier, context);
+    return nextResolve(specifier === 'tsx/cjs/api' ? driverStub : specifier, context);
   },
 });
 const {
@@ -23,7 +23,7 @@ const {
   provisionE2eRuntimeRole,
   resolveE2eRuntimeUrl,
 } = await import('../e2e-runtime-role.mjs');
-hooks.deregister();
+// The loader is imported on first use, so the stub stays registered for the whole suite.
 const driver = await import(driverStub);
 
 const ADMIN = 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test';
@@ -70,6 +70,27 @@ test('refuses to run when DB_RLS_ROLE would make tenant transactions switch role
 test('accepts a configured runtime URL for the same loopback database', () => {
   const runtime = `postgresql://${E2E_RUNTIME_ROLE}:${'a1'.repeat(12)}@127.0.0.1:5432/interdomestik_test`;
   assert.equal(resolveE2eRuntimeUrl(ADMIN, runtime), runtime);
+});
+
+test('compares databases on the port the driver uses, PGPORT included', () => {
+  const portless = ADMIN.replace(':5432/', '/');
+  const runtime = new URL(resolveE2eRuntimeUrl(ADMIN));
+  const saved = process.env.PGPORT;
+  process.env.PGPORT = '55432';
+  try {
+    // The driver sends the port-less admin URL to 55432; a runtime URL on 5432 is another cluster.
+    assert.throws(
+      () => resolveE2eRuntimeUrl(portless, runtime.toString()),
+      /must target the admin URL database/u
+    );
+    // The derived credential is keyed on the port the driver will use.
+    const derived = new URL(resolveE2eRuntimeUrl(portless)).password;
+    const explicit = new URL(resolveE2eRuntimeUrl(ADMIN.replace(':5432/', ':55432/'))).password;
+    assert.equal(derived, explicit);
+  } finally {
+    if (saved === undefined) delete process.env.PGPORT;
+    else process.env.PGPORT = saved;
+  }
 });
 
 test('refuses runtime URLs that could reach another role, database or host', () => {

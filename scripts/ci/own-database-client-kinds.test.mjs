@@ -3,8 +3,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
+  checkClientAdapter,
   checkContainerLocal,
   checkEntry,
+  checkGuarded,
   checkPinnedReadProbe,
   checkProbe,
   OWNER_OPERATIONS,
@@ -25,10 +27,7 @@ test('only the pinned owner operation may carry modules', () => {
     /only the owner operation has modules/u
   );
   assert.throws(() => checkEntry(entry('unknown'), source), /kind unknown/u);
-  assert.throws(
-    () => checkEntry(entry('residual'), "throw new Error('must target a loopback host')"),
-    /follow-up/u
-  );
+  assert.throws(() => checkEntry(entry('residual'), source), /kind residual/u);
 });
 
 const m4 = readFileSync(join(root, 'scripts/m4-gatekeeper.sh'), 'utf8');
@@ -161,4 +160,29 @@ test('the owner operation runs only in its own main-only, staging job', () => {
       `the operation is not invoked by job ${pinned.job} alone`,
     ]);
   }
+});
+
+test('a client adapter is the reviewed text: a second Drizzle call on another value is refused', () => {
+  const path = 'packages/database/test/pg16/journal-migrator.ts';
+  const kind = entry('client-adapter', { path });
+  const real = readFileSync(join(root, path), 'utf8');
+  assert.doesNotThrow(() => checkClientAdapter(kind, real));
+  const overload = `${real}\nexport const open = (client: string) => drizzle(client);\n`;
+  assert.throws(() => checkClientAdapter(kind, overload), /changed since its review/u);
+  assert.throws(() => checkClientAdapter(entry('client-adapter'), real), /not a pinned adapter/u);
+});
+
+test('a guarded script opens clients only through the factory', () => {
+  const kind = entry('guarded');
+  const guarded =
+    "import { openGuardedClient } from '../e2e-runtime-role.mjs';\nawait openGuardedClient(url, 'x');";
+  assert.doesNotThrow(() => checkGuarded(kind, guarded));
+  assert.throws(
+    () => checkGuarded(kind, `${guarded}\nconst { default: postgres } = await import('postgres');`),
+    /loads no driver/u
+  );
+  assert.throws(
+    () => checkGuarded(kind, "await openGuardedClient(url, 'x');"),
+    /imports the guarded factory/u
+  );
 });
