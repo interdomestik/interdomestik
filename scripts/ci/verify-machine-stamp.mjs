@@ -115,7 +115,8 @@ function exceptionalStamp(lane, deps, matches, exceptional) {
   }
   deps.log(
     hosted
-      ? `${PREFIX} hosted run: the machine marker does not apply; hosted checks count apart.`
+      ? `${PREFIX} hosted run: the machine marker does not apply; hosted checks count apart; ` +
+          `${ONLY_ISOLATED_CHILDREN}.`
       : `${PREFIX} PRE-CHECK lane=${lane}: variables a gate run does not take are set ` +
           `(${reason}); ${ONLY_ISOLATED_CHILDREN}.`
   );

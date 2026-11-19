@@ -168,7 +168,10 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
   const run = { ...deps, readMarker: () => markerResult };
   if (command === 'stamp') return stampRun(lane, run, shellIdentity(deps), exceptional);
   if (hosted) {
-    deps.log(`${PREFIX} hosted run: the machine marker does not apply; hosted checks count apart.`);
+    deps.log(
+      `${PREFIX} hosted run: the machine marker does not apply; hosted checks count apart; ` +
+        `${ONLY_ISOLATED_CHILDREN}.`
+    );
     return 0;
   }
   if (exceptional) {

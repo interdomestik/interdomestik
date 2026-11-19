@@ -97,14 +97,19 @@ E2E run (a documentation-only pull request skips that run).
 - Both commands take no arguments. pnpm appends arguments to the last step of the chain, which is
   `stamp`, so `stamp` refuses them; run a step with its own arguments directly instead.
 - Hosted runs (`GITHUB_ACTIONS=true`) skip the check after the marker is found trusted or absent:
-  hosted checks are separate evidence, and the variable cannot skip an untrusted marker. A `stamp`
-  whose shell holds a `begin` record of the lane fails instead of taking this shortcut.
+  hosted checks are separate evidence, and the variable cannot skip an untrusted marker. As
+  outside the clean environment, the only child commands the verifier may start are the marker's
+  ACL check and, for `stamp`, the shell start-time lookup, both with an empty environment, and
+  nothing is recorded. A `stamp` whose shell holds a `begin` record of the lane fails instead of
+  taking this shortcut.
 - A pending record older than a day is pruned only when its shell has ended. After updating the
   verifier, rerun any run that was interrupted: a record from an older verifier is never
   published.
 - The verifier does not run under the Node permission model (`--permission`).
 - Without a marker, or without a git repository, the run is a pre-check and its record is
-  best-effort: an unreadable repository or a full disk never fails a command that passed.
+  best-effort: a full disk never fails a command that passed, and neither does a missing
+  repository when this shell began no run of the lane. A `stamp` whose shell holds a `begin`
+  record fails when the repository is gone or `HEAD` cannot be read.
 
 ## Running the lanes on the marked Mac
 
@@ -167,4 +172,5 @@ the evidence.
 
 Do not run a lane with `NODE_DEBUG` set: pnpm then prints the environment of the commands it
 starts, credentials included. While it is set, the only child commands the verifier may start are
-the marker's ACL check and the shell start-time lookup, both with an empty environment.
+the marker's ACL check and the shell start-time lookup, both with an empty environment, and
+nothing is recorded.

@@ -55,7 +55,17 @@ test('Docker is probed through one local socket, the container by its exact name
     parseLocalEndpoint('"unix:///Users/x/.orbstack/run/docker.sock"'),
     'unix:///Users/x/.orbstack/run/docker.sock'
   );
-  for (const remote of ['"ssh://host"', '"tcp://10.0.0.2:2376"', '"unix://"', 'null', 'oops']) {
+  const spaced = 'unix:///Users/x/Library/Application Support/runtime/docker.sock';
+  assert.equal(parseLocalEndpoint(JSON.stringify(spaced)), spaced);
+  for (const remote of [
+    '"ssh://host"',
+    '"tcp://10.0.0.2:2376"',
+    '"unix://"',
+    '"unix:///"',
+    JSON.stringify('unix:///a\nb'),
+    'null',
+    'oops',
+  ]) {
     assert.equal(parseLocalEndpoint(remote), null, remote);
   }
   const id = 'b'.repeat(64);

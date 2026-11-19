@@ -5,7 +5,9 @@
 
 // The context's endpoint must be a local Unix socket; it is passed to every later Docker call so
 // that another terminal switching the context cannot redirect the probes.
-const LOCAL_SOCKET = /^unix:\/\/\/\S+$/u;
+// A non-empty absolute path; spaces are allowed (for example under `Application Support`), line
+// breaks and NUL are not. The endpoint is always passed as one argument.
+const LOCAL_SOCKET = /^unix:\/\/\/[^\0\n\r]+$/u;
 
 // `env -i` drops every PG* variable the container defines; the socket directory and port are the
 // container's own. The PATH covers the Debian and Alpine variants of the postgres image.
