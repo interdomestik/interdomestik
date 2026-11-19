@@ -13,12 +13,13 @@ import { pathToFileURL } from 'node:url';
 import { chainErrors, defaultChainProbe, LANE_SCRIPTS } from './verify-machine-chain.mjs';
 import { compareMachine } from './verify-machine-compare.mjs';
 import { describeMachine } from './verify-machine-describe.mjs';
-import { gitState, probeMachine, runCommand } from './verify-machine-probe.mjs';
+import { childTraceEnabled, gitState, probeMachine, runCommand } from './verify-machine-probe.mjs';
 import * as records from './verify-machine-records.mjs';
 import { readTrustedMarker } from './verify-machine-trust.mjs';
 
 const PREFIX = '[verify-machine]';
 const USAGE = 'usage: verify-machine.mjs begin|stamp <pr-verify|security-guard> | describe';
+const TRACE_WARNING = 'NODE_DEBUG is set and would print the environment of every command started';
 
 export function defaultDependencies() {
   return {
@@ -212,7 +213,10 @@ function stamp(lane, deps, repoRoot, pendingPath, directory) {
 
 export function runVerifyMachine(argv, deps = defaultDependencies()) {
   const [command, lane] = argv;
-  if (command === 'describe') return describeMachine(argv.slice(1), deps);
+  if (command === 'describe') {
+    if (childTraceEnabled(deps.env)) return fail(deps, [TRACE_WARNING]);
+    return describeMachine(argv.slice(1), deps);
+  }
   if (!['begin', 'stamp'].includes(command) || !records.LANES.includes(lane)) {
     return fail(deps, [USAGE]);
   }
@@ -226,6 +230,10 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
   }
   if (deps.env.GITHUB_ACTIONS === 'true') {
     deps.log(`${PREFIX} hosted run: the machine marker does not apply; hosted checks count apart.`);
+    return 0;
+  }
+  if (childTraceEnabled(deps.env)) {
+    deps.log(`${PREFIX} PRE-CHECK lane=${lane}: ${TRACE_WARNING}; nothing is checked or recorded.`);
     return 0;
   }
   let repoRoot;

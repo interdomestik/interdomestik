@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import {
   accessSync,
   closeSync,
@@ -10,7 +9,7 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 
-import { probeEnvironment } from './verify-machine-exec.mjs';
+import { runCommand } from './verify-machine-exec.mjs';
 import { MARKER_PATH, sha256Hex, validateMarker } from './verify-machine-marker.mjs';
 
 const WRITABLE_BY_OTHERS = 0o022;
@@ -18,12 +17,7 @@ const WRITABLE_BY_OTHERS = 0o022;
 const ACL_ENTRY = /^\s*\d+: /u;
 
 function listAclEntries(target) {
-  const listing = execFileSync('/bin/ls', ['-lde', target], {
-    env: probeEnvironment(),
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'ignore'],
-  });
-  return listing
+  return runCommand('/bin/ls', ['-lde', target])
     .split('\n')
     .slice(1)
     .filter(line => ACL_ENTRY.test(line));

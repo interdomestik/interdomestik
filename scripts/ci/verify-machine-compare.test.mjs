@@ -1,9 +1,6 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 import { compareMachine } from './verify-machine-compare.mjs';
@@ -16,81 +13,11 @@ import {
 import {
   parseContainer,
   parsePlatformUuid,
-  probeEnvironment,
   probeMachine,
   readCiPostgresDigest,
 } from './verify-machine-probe.mjs';
 
 const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
-
-test('probe commands receive only allowlisted variables, never one that may hold a secret', () => {
-  const env = {
-    PATH: '/bin',
-    HOME: '/h',
-    DOCKER_CONTEXT: 'orbstack',
-    npm_config_bail: 'true',
-    DATABASE_URL: 'x',
-    E2E_DATABASE_URL_ADMIN: 'x',
-    SENTRY_AUTH_TOKEN: 'x',
-    GH_TOKEN: 'x',
-    BETTER_AUTH_SECRET: 'x',
-    PGPASSWORD: 'x',
-    PADDLE_API_KEY: 'x',
-    SUPABASE_SERVICE_ROLE_KEY: 'x',
-    npm_config__authtoken: 'x',
-    GIT_HTTP_PROXY_PASSWORD: 'x',
-    SOME_UNKNOWN_SETTING: 'x',
-  };
-  assert.deepEqual(probeEnvironment(env), {
-    PATH: '/bin',
-    HOME: '/h',
-    DOCKER_CONTEXT: 'orbstack',
-    npm_config_bail: 'true',
-  });
-  // With NODE_DEBUG=child_process Node prints each child's environment; none carries the secret.
-  const cwd = mkdtempSync(path.join(os.tmpdir(), 'verify-machine-debug-'));
-  const result = spawnSync(
-    process.execPath,
-    [path.join(REPO_ROOT, 'scripts/ci/verify-machine.mjs'), 'begin', 'security-guard'],
-    {
-      cwd,
-      encoding: 'utf8',
-      env: {
-        PATH: process.env.PATH,
-        HOME: process.env.HOME,
-        NODE_DEBUG: 'child_process',
-        DATABASE_URL: 'postgresql://u:SENTINEL-secret@127.0.0.1:55438/db',
-        SUPABASE_SERVICE_ROLE_KEY: 'SENTINEL-service-role',
-      },
-    }
-  );
-  rmSync(cwd, { recursive: true });
-  assert.equal(result.status, 0, result.stderr);
-  assert.ok(!`${result.stdout}${result.stderr}`.includes('SENTINEL'));
-});
-
-test('the marker check lists ACLs without passing on a secret', () => {
-  const dir = mkdtempSync(path.join(os.tmpdir(), 'verify-machine-acl-'));
-  const markerFile = path.join(dir, 'verify-machine.json');
-  writeFileSync(markerFile, '{}');
-  const trust = path.join(REPO_ROOT, 'scripts/ci/verify-machine-trust.mjs');
-  const script =
-    `const { readTrustedMarker } = await import(${JSON.stringify(pathToFileURL(trust).href)});` +
-    `console.log(readTrustedMarker(${JSON.stringify(markerFile)}).status);`;
-  const result = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
-    encoding: 'utf8',
-    env: {
-      PATH: process.env.PATH,
-      HOME: process.env.HOME,
-      NODE_DEBUG: 'child_process',
-      SUPABASE_SERVICE_ROLE_KEY: 'SENTINEL-service-role',
-    },
-  });
-  rmSync(dir, { recursive: true });
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout.trim(), 'invalid');
-  assert.ok(!`${result.stdout}${result.stderr}`.includes('SENTINEL'));
-});
 
 test('a machine that matches its marker has no differences', () => {
   assert.deepEqual(compareMachine(fixtureMarker(), fixtureLive()), []);

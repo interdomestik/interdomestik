@@ -45,11 +45,16 @@ const LOOPBACK_ORIGIN =
 const STRICT_DATABASE_URL =
   /^postgres(?:ql)?:\/\/(?:((?:[\w.~-]|%[0-9A-Fa-f]{2})*(?::(?:[\w.~-]|%[0-9A-Fa-f]{2})*)?)@)?([a-z0-9.-]+):(\d{1,5})\/([\w-]+)$/u;
 
-// Percent-encoded user information must decode to valid UTF-8, or a driver throws on it.
-function decodable(userinfo = '') {
+// Percent-encoded user information must decode to valid UTF-8 (or a driver throws on it) with no
+// control character (libpq refuses `%00`, and drivers treat line breaks differently).
+function isControl(character) {
+  const code = character.codePointAt(0);
+  return code < 0x20 || code === 0x7f;
+}
+
+function plainUserinfo(userinfo = '') {
   try {
-    userinfo.split(':').forEach(part => decodeURIComponent(part));
-    return true;
+    return userinfo.split(':').every(part => ![...decodeURIComponent(part)].some(isControl));
   } catch {
     return false;
   }
@@ -69,7 +74,7 @@ export function redirectingEnvNames(env) {
 
 function databaseUrlErrors(key, raw, database, forbiddenPorts) {
   const match = STRICT_DATABASE_URL.exec(raw);
-  if (!match || !decodable(match[1])) {
+  if (!match || !plainUserinfo(match[1])) {
     return [`${key} must be postgresql://[user[:password]@]host:port/database and nothing else`];
   }
   const [, , host, rawPort, name] = match;

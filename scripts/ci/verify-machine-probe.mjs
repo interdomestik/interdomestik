@@ -6,7 +6,7 @@ import { localEnvFiles } from './verify-machine-env-files.mjs';
 import { runCommand } from './verify-machine-exec.mjs';
 import { sha256Hex } from './verify-machine-marker.mjs';
 
-export { probeEnvironment, runCommand } from './verify-machine-exec.mjs';
+export { childTraceEnabled, runCommand } from './verify-machine-exec.mjs';
 
 const GIB = 1024 ** 3;
 

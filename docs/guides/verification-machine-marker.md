@@ -102,3 +102,7 @@ sudo mv "/Library/Application Support/Interdomestik/verify-machine.candidate.jso
 `--min-free-gib=`. After a macOS, Node, pnpm or container-runtime update every run is a PRE-CHECK
 until the owner creates the marker again; that is intended, because the configuration is part of
 the evidence.
+
+Do not run a lane with `NODE_DEBUG` set: Node and pnpm then print the environment of every command
+they start, credentials included. The verifier starts no command while it is set, so such a run is
+a PRE-CHECK with nothing checked or recorded.
