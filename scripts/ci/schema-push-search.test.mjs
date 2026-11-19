@@ -12,10 +12,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 // exemption is the exact push-local invocation of database-command.mjs, which runs supabase with
 // --local and refuses every target override.
 
-// A package script named push or db:push, reached through a package manager or turbo, with any
-// options (--filter x, -F x, -C dir, --silent) before it.
-const PACKAGE_PUSH =
-  /\b(?:pnpm|npm|yarn|turbo)(?:\s+(?:run|exec|-[-\w]+(?:=\S+|\s+\S+)?))*\s+(?:\S+#)?(?:db:)?push\b(?!:local)/u;
+const PACKAGE_RUNNERS = new Set(['pnpm', 'npm', 'yarn', 'turbo']);
 const COMMAND_SEPARATORS = new Set([';', '&', '|', '(', ')', '{', '}', '\n']);
 
 // The simple commands of a text, as the shell or a child-process call sees them: a backslash
@@ -74,7 +71,11 @@ function pushesSchema(words) {
   const db = supabase < 0 ? -1 : names.indexOf('db', supabase + 1);
   if (db >= 0 && names.indexOf('push', db + 1) > db) return true;
   const kit = names.indexOf('drizzle-kit');
-  return kit >= 0 && names.slice(kit + 1).some(name => /^push(?::|$)/u.test(name));
+  if (kit >= 0 && names.slice(kit + 1).some(name => /^push(?::|$)/u.test(name))) return true;
+  // A package script named push or db:push (also pkg#push), reached through a package manager or
+  // turbo with any options before it; db:push:local is another name.
+  const runner = names.findIndex(name => PACKAGE_RUNNERS.has(name));
+  return runner >= 0 && words.slice(runner + 1).some(word => /^(?:\S+#)?(?:db:)?push$/u.test(word));
 }
 
 // A folded YAML block scalar (run: >) is one command line: its lines are joined with spaces.
@@ -98,7 +99,6 @@ function unfoldYaml(text) {
 
 // A quoted word with spaces (bash -c '…', node -e "…") is read as commands of its own as well.
 const isPush = text =>
-  PACKAGE_PUSH.test(text) ||
   simpleCommands(text).some(
     words => pushesSchema(words) || words.some(word => /\s/u.test(word) && isPush(word))
   );
