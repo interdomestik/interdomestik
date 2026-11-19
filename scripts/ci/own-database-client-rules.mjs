@@ -106,22 +106,56 @@ function checkReadOnly(entry, source) {
 export const PINNED_PROBE_BODIES = new Set([
   '32e877f3131046ec5898821b6d44b3cb7197a3e067bc052ae1415dfb6bcb24b8',
 ]);
-// How many probes each probe script runs, each as the condition of an `if` or `until`, so that
-// its exit status decides; removing or unhooking one is a change to review.
-export const PINNED_PROBE_COUNTS = Object.freeze({ 'scripts/m4-gatekeeper.sh': 2 });
+// The shell construct around each probe, in order: its keyword, and the sha256 of the whole
+// construct from the keyword line to its closing fi or done. M4 checks once with `if`, then waits
+// with the `until` retry loop; a rewrite of either (an `if` for the loop, a loop that no longer
+// retries) is a change to review.
+export const PINNED_PROBE_CONSTRUCTS = Object.freeze({
+  'scripts/m4-gatekeeper.sh': Object.freeze([
+    Object.freeze(['if', '2a113bda6b2d83e304b92531050dcc016e37995149a9443876ea5eee63a78252']),
+    Object.freeze(['until', '6020aeb56751244ccafee23d9c4eda779a240fc6e9aba3f6047aabd09ff63cf6']),
+  ]),
+});
 const sha256 = text => createHash('sha256').update(text).digest('hex');
-const CONDITION_PROBE =
-  /^[ \t]*(?:if|until) node - <<'NODE'\n([\s\S]*?)\nNODE\n[ \t]*(?:then|do)$/gmu;
+const CLOSER = Object.freeze({ if: ['then', 'fi'], until: ['do', 'done'] });
 
-// Each embedded script (a shell heredoc) that loads a driver is a pinned probe body run as a
-// condition; nothing outside those scripts loads a driver or runs a client command.
+// Each `if|until node - <<'NODE'` construct, read line by line: the heredoc body, then the
+// keyword's own `then`/`do` at the same indent, then the first `fi`/`done` at that indent.
+export function probeConstructs(source) {
+  const lines = source.split('\n');
+  const found = [];
+  for (let at = 0; at < lines.length; at += 1) {
+    const head = /^([ \t]*)(if|until|while) node - <<'NODE'$/u.exec(lines[at]);
+    if (!head) continue;
+    const [, indent, keyword] = head;
+    const [open, close] = CLOSER[keyword] ?? [];
+    const bodyEnd = lines.indexOf('NODE', at + 1);
+    const last = bodyEnd < 0 ? -1 : lines.indexOf(`${indent}${close}`, bodyEnd + 1);
+    const opened = bodyEnd >= 0 && lines[bodyEnd + 1] === `${indent}${open}`;
+    found.push({
+      keyword,
+      body: bodyEnd < 0 ? '' : lines.slice(at + 1, bodyEnd).join('\n'),
+      text: opened && last > bodyEnd ? lines.slice(at, last + 1).join('\n') : '',
+    });
+  }
+  return found;
+}
+
+// Each embedded script (a shell heredoc) that loads a driver is a pinned probe body run as the
+// condition of its pinned construct; nothing outside those scripts loads a driver or runs a client
+// command.
 export function checkProbe(entry, source) {
-  assert.ok(Object.hasOwn(PINNED_PROBE_COUNTS, entry.path), `${entry.path}: not a pinned probe`);
+  const pinned = PINNED_PROBE_CONSTRUCTS[entry.path];
+  assert.ok(pinned, `${entry.path}: not a pinned probe`);
   const heredocs = [...source.matchAll(/<<-?'?(\w+)'?\n([\s\S]*?)\n[ \t]*\1$/gmu)];
   const drivers = heredocs.map(match => match[2]).filter(loadsDriver);
-  const conditions = [...source.matchAll(CONDITION_PROBE)].map(match => match[1]);
-  assert.equal(drivers.length, PINNED_PROBE_COUNTS[entry.path], `${entry.path}: probes`);
-  assert.deepEqual(conditions, drivers, `${entry.path}: each probe is a condition`);
+  const constructs = probeConstructs(source);
+  assert.equal(drivers.length, pinned.length, `${entry.path}: probes`);
+  assert.deepEqual(
+    constructs.map(construct => construct.body),
+    drivers,
+    `${entry.path}: each probe is a condition`
+  );
   let outside = source;
   for (const match of heredocs) outside = outside.replace(match[0], '');
   assert.equal(loadsDriver(outside), false, `${entry.path}: no driver outside the probes`);
@@ -129,84 +163,18 @@ export function checkProbe(entry, source) {
   for (const script of drivers) {
     assert.ok(PINNED_PROBE_BODIES.has(sha256(script)), `${entry.path}: a reviewed probe body`);
   }
-}
-
-// The options a container-local psql carries before its one command: each once, with its value
-// (a quoted literal, or for -d a bare identifier). All but -v are required, so that no psqlrc runs
-// and the socket, port, user and database are the command's own. Anything else is refused.
-const PSQL_OPTIONS = Object.freeze({
-  "'-X'": null,
-  "'-h'": /^'\/var\/run\/postgresql'$/u,
-  "'-p'": /^'5432'$/u,
-  "'-U'": /^'postgres'$/u,
-  "'-d'": /^(?:[A-Za-z_]\w*|'[a-z_][a-z0-9_]*')$/u,
-  "'-v'": /^'ON_ERROR_STOP=1'$/u,
-});
-const REQUIRED_PSQL_OPTIONS = ["'-X'", "'-h'", "'-p'", "'-U'", "'-d'"];
-
-// The whole execFileSync call that holds the client command at `index`: its arguments must be
-// exactly the docker executable and one array literal, so nothing (concat, a spread, a second
-// argument) can add to the list after its closing bracket.
-const CALL = 'execFileSync';
-function dockerExecElements(entry, source, index) {
-  const start = source.lastIndexOf(`${CALL}(`, index);
-  assert.ok(start >= 0, `${entry.path}: runs only through execFileSync`);
-  let depth = 0;
-  let end = start + CALL.length;
-  do {
-    if (source[end] === '(') depth += 1;
-    if (source[end] === ')') depth -= 1;
-    end += 1;
-  } while (depth > 0 && end < source.length);
-  assert.ok(end > index, `${entry.path}: the command is inside the call`);
-  const call = /^execFileSync\(\s*Z620_EXECUTABLES\.docker,\s*\[([^[\]]*)\]([^)]*)\)$/u.exec(
-    source.slice(start, end)
+  assert.deepEqual(
+    constructs.map(construct => [construct.keyword, sha256(construct.text)]),
+    pinned.map(([keyword, digest]) => [keyword, digest]),
+    `${entry.path}: each probe stands in its reviewed if or until construct`
   );
-  const tail = call?.[2].replaceAll(/\s/gu, '');
-  assert.ok(tail === '' || tail === ',', `${entry.path}: one docker call with one literal array`);
-  const elements = call[1].split(',').map(element => element.trim());
-  if (elements.at(-1) === '') elements.pop();
-  for (const element of elements) {
-    assert.match(element, /^(?:'[^',\\]*'|[A-Za-z_]\w*)$/u, `${entry.path}: plain ${element}`);
-  }
-  return elements;
 }
 
-// Inside a local container through docker exec, and only a read-only probe: psql with the options
-// above and, last and once, -c 'select 1'.
+// Inside a local container through docker exec, for status only: no driver, no database URL and
+// no client command (pg_isready is not one).
 export function checkContainerLocal(entry, source) {
-  assert.equal(loadsDriver(source), false, `${entry.path}: loads no driver`);
+  checkNoClient(entry, source);
   assert.doesNotMatch(source, /\bDATABASE_URL\b(?!_)/u, `${entry.path}: reads no URL`);
-  for (const match of commands(source)) {
-    assert.equal(match[0], 'psql', `${entry.path}: ${match[0]} is not a read-only probe`);
-    const [exec, container, env, clear, path, command, ...rest] = dockerExecElements(
-      entry,
-      source,
-      match.index
-    );
-    assert.equal(exec, "'exec'", `${entry.path}: psql runs only inside a container`);
-    assert.match(container, /^'[\w.-]+'$|^[A-Za-z_]\w*$/u, entry.path);
-    // env -i drops every PG* variable of the container (PGHOSTADDR, PGSERVICE, PGOPTIONS, …).
-    assert.deepEqual([env, clear], ["'env'", "'-i'"], `${entry.path}: psql runs under env -i`);
-    assert.match(path, /^'PATH=[\w/.:-]+'$/u, `${entry.path}: with an explicit PATH only`);
-    assert.equal(command, "'psql'", entry.path);
-    assert.deepEqual(rest.slice(-2), ["'-c'", "'select 1'"], `${entry.path}: ends with select 1`);
-    const seen = new Set();
-    for (let at = 0; at < rest.length - 2; at += 1) {
-      const option = rest[at];
-      assert.ok(
-        Object.hasOwn(PSQL_OPTIONS, option) && !seen.has(option),
-        `${entry.path}: ${option}`
-      );
-      seen.add(option);
-      if (PSQL_OPTIONS[option] === null) continue;
-      at += 1;
-      assert.match(rest[at] ?? '', PSQL_OPTIONS[option], `${entry.path}: ${option} value`);
-    }
-    for (const option of REQUIRED_PSQL_OPTIONS) {
-      assert.ok(seen.has(option), `${entry.path}: psql needs ${option}`);
-    }
-  }
 }
 
 // Probes pinned byte for byte, so any change needs a new review of this table. The verification

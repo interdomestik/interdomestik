@@ -25,6 +25,7 @@ Declares the schema (46 schema files, 99 `pgTable` calls — MEASURED, `rg -c 'p
 - Claim amounts in a declared currency — `NOT ENFORCED` (`src/schema/claim-core.ts:53-54`; `A/modules/data-layer.md:125`).
 - The document access log is append-only — `NOT ENFORCED`, comment only (`src/schema/documents.ts:78-105`; `A/modules/data-layer.md:133`).
 - Migration order — enforced by `db:migrations:check-journal` (`scripts/check-drizzle-migration-journal.mjs`): every `.sql` file under `drizzle/` is journaled, and timestamps increase with the index except the one pinned historical inversion (DATA-02).
+- No schema push outside the journal — enforced by `scripts/ci/schema-push-search.test.mjs` (CHK-12), in two parts. Package scripts and shell scripts are read as the shell reads them, and no command in them may push a schema (`supabase … db … push`, `drizzle-kit … push`, a package script named `push` or `db:push`). Node and TypeScript scripts and workflow files are not parsed for argument arrays or folded YAML; every mention of `supabase` or `drizzle-kit` in them is counted against a reviewed inventory instead, and `scripts/database-command.mjs` (the one `push-local` invocation, `--local` only) is pinned byte for byte. A database client in those files is CHK-13's inventory (`scripts/ci/own-database-client-scripts.json`).
 - (Full list: `A/modules/data-layer.md:109-140`, 21 rows.)
 
 ## Tenant boundary

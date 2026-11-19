@@ -1,5 +1,5 @@
 {
-  "about": "CHK-13 (R-13): the reviewed inventory of script files that name a database client: a driver specifier in any form, a client command (psql, pg_dump, pg_dumpall, pg_restore, pgcli, createdb, dropdb), or DATABASE_URL. Each has a kind that scripts/ci/own-database-client.test.mjs enforces: launcher and contract construct no client and run no client command; read-only runs its statement through runReadOnlyReport; probe runs only select 1; container-local runs only the read-only probe psql -c 'select 1' inside a local container through docker exec; pinned-read-probe is a reviewed read probe pinned byte for byte by its hash in the rules module; owner-operation is the one pinned owner operation, and only its pinned modules stand under another entry; residual is a disposable-database writer that has not yet moved behind the guarded client. Every other destructive script takes its client from the guarded import behind assertDisposableTarget.",
+  "about": "CHK-13 (R-13): the reviewed inventory of script files that name a database client: a driver specifier in any form, a client command (psql, pg_dump, pg_dumpall, pg_restore, pgcli, createdb, dropdb), or DATABASE_URL. Each has a kind that scripts/ci/own-database-client.test.mjs enforces: launcher and contract construct no client and run no client command; read-only runs its statement through runReadOnlyReport; probe runs only its pinned select 1 body, as the condition of its pinned if or until construct; container-local uses docker exec on a local container for status only and runs no client command; pinned-read-probe is a reviewed read probe pinned byte for byte by its hash in the rules module; owner-operation is the one pinned owner operation, and only its pinned modules stand under another entry; residual is a disposable-database writer that has not yet moved behind the guarded client. Every other destructive script takes its client from the guarded import behind assertDisposableTarget.",
   "scripts": [
     {
       "path": "packages/database/drizzle.config.ts",
@@ -100,11 +100,6 @@
       "path": "scripts/ci/z620-resource-run.mjs",
       "kind": "launcher",
       "reason": "Z620 lane runner: hands the loopback task database URL to the lane it starts; constructs no client."
-    },
-    {
-      "path": "scripts/ci/z620-resource-smoke.mjs",
-      "kind": "container-local",
-      "reason": "Z620 smoke: runs psql -c 'select 1' on the task database inside the local Supabase container through docker exec; the task database itself is created and dropped by z620-resource-lib.mjs."
     },
     {
       "path": "scripts/ci/z620-runner.mjs",

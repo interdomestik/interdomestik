@@ -64,53 +64,47 @@ test('a probe body is the reviewed one, run as a condition, as often as pinned',
   assert.throws(() => checkProbe(entry('probe'), m4), /not a pinned probe/u);
 });
 
-const ENV = "'env', '-i', 'PATH=/usr/bin:/bin',";
-const exec = (argv, after = '') =>
-  `execFileSync(Z620_EXECUTABLES.docker, [\n  'exec',\n  container,\n  ${ENV} ${argv}\n]${after});`;
-const FIXED = "'-X', '-h', '/var/run/postgresql', '-p', '5432', '-U', 'postgres', '-d', name,";
-const psql = options => `'psql', ${FIXED} ${options} '-c', 'select 1',`;
-
-test('container-local runs only psql -c select 1 through docker exec', () => {
-  const local = entry('container-local');
-  assert.doesNotThrow(() => checkContainerLocal(local, exec(psql("'-v', 'ON_ERROR_STOP=1',"))));
-  for (const argv of [
-    "'createdb',\n  '-U',\n  'postgres',\n  name,",
-    "'dropdb',\n  '--force',\n  name,",
-    `'psql', ${FIXED} '-c', 'drop database x',`,
-    `'psql', ${FIXED} '-f', 'dump.sql',`,
-    `${psql('')} '-c', 'drop table claim',`,
-    psql("'--command=select 2',"),
-    psql("'-d', 'a', '-d', 'b',"),
-    psql('...extra,'),
-    psql("'-v',"),
-    psql("'-v', 'ON_ERROR_STOP=0',"),
-    `${psql('')} '-o', '/tmp/x',`,
-    // Each required option missing or changed: a psqlrc may run, or the environment may choose.
-    ...[
-      "'-X',",
-      "'-h', '/var/run/postgresql',",
-      "'-p', '5432',",
-      "'-U', 'postgres',",
-      "'-d', name,",
-    ].map(option => `'psql', ${FIXED.replace(option, '')} '-c', 'select 1',`),
-    `'psql', ${FIXED.replace('/var/run/postgresql', 'db.example')} '-c', 'select 1',`,
+test('the readiness probe stays the until retry loop, after the one if check', () => {
+  const probe = entry('probe', { path: 'scripts/m4-gatekeeper.sh' });
+  const loop = /^([ \t]*)until node - <<'NODE'\n[\s\S]*?\n\1done$/mu.exec(m4)?.[0];
+  assert.ok(loop, 'the reviewed until loop');
+  const check = /^([ \t]*)if node - <<'NODE'\n[\s\S]*?\n\1fi$/mu.exec(m4)?.[0];
+  for (const changed of [
+    // The loop rewritten as a single check: same bodies, same count, no retry.
+    m4.replace(
+      loop,
+      loop
+        .replace(/^([ \t]*)until node/u, '$1if node')
+        .replace(/^([ \t]*)do$/mu, '$1then')
+        .replace(/^([ \t]*)done$/mu, '$1fi')
+    ),
+    // A loop that no longer waits or gives up, or another loop keyword.
+    m4.replace(loop, loop.replace(/^[ \t]*sleep 1\n/mu, '')),
+    m4.replace(loop, loop.replace('MAX_ATTEMPTS ]', 'MAX_ATTEMPTS + 1000 ]')),
+    m4.replace(loop, loop.replace(/^([ \t]*)until node/u, '$1while ! node')),
+    // The two constructs swapped.
+    m4.replace(check, '__CHECK__').replace(loop, check).replace('__CHECK__', loop),
   ]) {
-    assert.throws(() => checkContainerLocal(local, exec(argv)), Error, argv);
+    assert.notEqual(changed, m4);
+    assert.throws(() => checkProbe(probe, changed), Error, changed.slice(0, 80));
   }
-  // Nothing may extend the list after its closing bracket, nor pass a second argument.
-  for (const after of [".concat(['-c', 'select 2'])", ', { shell: true }', '.slice(0)']) {
-    assert.throws(() => checkContainerLocal(local, exec(psql(''), after)), Error, after);
+});
+
+test('container-local runs no client command, loads no driver and reads no URL', () => {
+  const local = entry('container-local');
+  const status = "execFileSync(Z620_EXECUTABLES.docker, ['exec', container, 'pg_isready', '-q']);";
+  assert.doesNotThrow(() => checkContainerLocal(local, status));
+  for (const source of [
+    "execFileSync(Z620_EXECUTABLES.docker, ['exec', container, 'psql', '-c', 'select 1']);",
+    "execFileSync(Z620_EXECUTABLES.docker, ['exec', container, 'createdb', name]);",
+    "import postgres from 'postgres';",
+    'const url = process.env.DATABASE_URL;',
+    "const sql = 'drop table claim';",
+  ]) {
+    assert.throws(() => checkContainerLocal(local, `${status}\n${source}`), Error, source);
   }
-  // Without env -i, or with an environment of the caller's, the container's PG* variables apply.
-  for (const env of ['', "'env', '-i', path,", "'env', 'PGHOSTADDR=10.0.0.1',"]) {
-    assert.throws(() => checkContainerLocal(local, exec(psql('')).replace(ENV, env)), Error, env);
-  }
-  assert.throws(
-    () => checkContainerLocal(local, "execFileSync('psql', ['-c', 'select 1'])"),
-    /one docker call/u
-  );
-  const smoke = readFileSync(join(root, 'scripts/ci/z620-resource-smoke.mjs'), 'utf8');
-  assert.doesNotThrow(() => checkContainerLocal(local, smoke));
+  const runner = readFileSync(join(root, 'scripts/ci/z620-runner.mjs'), 'utf8');
+  assert.doesNotThrow(() => checkContainerLocal(local, runner));
 });
 
 test('a pinned read probe is refused once its bytes change', () => {

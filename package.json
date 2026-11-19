@@ -124,7 +124,6 @@
     "ci:z620:gates": "node scripts/ci/z620-gate-run.mjs",
     "ci:z620:p4-benchmark": "node scripts/ci/z620-p4-benchmark.mjs",
     "ci:z620:resource-run": "node scripts/ci/z620-resource-run.mjs",
-    "ci:z620:resource-smoke": "node scripts/ci/z620-resource-smoke.mjs",
     "ci:z620:sentry-sourcemaps": "node scripts/ci/z620-sentry-sourcemaps.mjs",
     "ci:z620:sonar-preflight": "node scripts/ci/z620-sonar-preflight.mjs",
     "ci:mac-fallback:preflight": "node scripts/ci/mac-fallback-preflight.mjs",
