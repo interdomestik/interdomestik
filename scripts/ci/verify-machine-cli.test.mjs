@@ -113,6 +113,29 @@ test('a pre-check whose record cannot be written still runs', () => {
   h.cleanup();
 });
 
+test('a pre-check whose final record fills the disk still passes; gate evidence does not', () => {
+  for (const [marker, expected] of [
+    [undefined, 0],
+    [trusted(), 'throws'],
+  ]) {
+    const h = harness({ marker });
+    assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 0);
+    h.deps.records = {
+      ...h.deps.records,
+      writeRecord: () => {
+        throw Object.assign(new Error('full'), { code: 'ENOSPC' });
+      },
+    };
+    if (expected === 'throws') {
+      assert.throws(() => runVerifyMachine(['stamp', 'pr-verify'], h.deps), /full/u);
+    } else {
+      assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 0);
+      assert.match(h.output.error[0], /pre-check record not written \(ENOSPC\); continuing/u);
+    }
+    h.cleanup();
+  }
+});
+
 test('stamp re-checks the live machine, HEAD, tracked files and the marker', () => {
   const live = fixtureLive();
   const cases = [

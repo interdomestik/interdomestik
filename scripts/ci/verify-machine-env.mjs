@@ -35,7 +35,7 @@ export const ENV_FILES = Object.freeze([
 const LOOPBACK_ORIGIN =
   /^(?:127\.0\.0\.1|localhost|\[::1\]|(?:[a-z0-9-]+\.)*127\.0\.0\.1\.nip\.io|(?:[a-z0-9-]+\.)*localhost)$/u;
 
-/** Each guarded key that an env file sets to a non-empty value; values are never returned. */
+/** Each guarded key that an env file assigns, whatever its value; values are never returned. */
 export function envFileOverrides(repoRoot, read = readFileSync) {
   const overrides = [];
   for (const file of ENV_FILES) {
@@ -46,8 +46,9 @@ export function envFileOverrides(repoRoot, read = readFileSync) {
       continue;
     }
     for (const key of GUARDED_ENV_KEYS) {
-      // Any assignment counts, whatever its value or quoting: dotenv accepts `=` and `:`.
-      const pattern = new RegExp(String.raw`^[ \t]*(?:export[ \t]+)?${key}[ \t]*[=:]`, 'mu');
+      // Any assignment counts, whatever its value or quoting: dotenv accepts `=` and `:`, and
+      // the loaders trim the key, so leading Unicode whitespace and a byte-order mark count too.
+      const pattern = new RegExp(String.raw`^[^\S\n]*(?:export[^\S\n]+)?${key}[^\S\n]*[=:]`, 'mu');
       if (pattern.test(text)) overrides.push({ file, key });
     }
   }
@@ -90,12 +91,23 @@ function appPortErrors(key, port, marker) {
   return port === marker.app_port ? [] : [`${key} is not ${marker.app_port}`];
 }
 
+// Keys whose emptiness the required checks already report, and a token that may be blank.
+const EMPTY_ALLOWED = new Set(['DATABASE_URL', 'PW_PORT', 'SENTRY_AUTH_TOKEN']);
+
+/** A set-but-empty key is not absent: some steps keep it, others fall back to a default. */
+function emptyValueErrors(env) {
+  return GUARDED_ENV_KEYS.filter(key => env[key] === '' && !EMPTY_ALLOWED.has(key)).map(
+    key => `${key} is set but empty; unset it or give it the marker's value`
+  );
+}
+
 /** The effective database, app and upload settings the gate steps will read. */
 export function environmentErrors(marker, env, overrides = []) {
   const forbidden = marker.forbidden_ports;
   const errors = overrides.map(
     ({ file, key }) => `${file} sets ${key}; gate runs take it only from the checked environment`
   );
+  errors.push(...emptyValueErrors(env));
   if (!env.DATABASE_URL) {
     errors.push('DATABASE_URL must be set; the default fallback is the shared database on 54322');
   }

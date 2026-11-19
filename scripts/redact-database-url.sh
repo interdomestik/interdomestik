@@ -1,10 +1,6 @@
 #!/bin/bash
-# Prints a database URL with its password masked, for diagnostics that must never show credentials.
+# Reads a database URL on stdin and prints it with its password masked, for diagnostics that
+# must never show credentials. The URL arrives on stdin so it never appears in a process's argv.
 set -euo pipefail
 
-redact() {
-  local url="$1"
-  printf '%s' "${url}" | sed -E 's#(://[^:/@]*):[^/]*@#\1:***@#'
-}
-
-redact "${1:-}"
+sed -E 's#(://[^:/@]*):[^/]*@#\1:***@#'

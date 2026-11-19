@@ -58,6 +58,14 @@ test('the app port and every Playwright origin must use the recorded port on loo
   );
 });
 
+test('a set-but-empty key fails the gate, because the E2E lane would fall back to 54322', () => {
+  assert.deepEqual(errorsFor({ E2E_DATABASE_URL: '', KS_HOST: '' }), [
+    "E2E_DATABASE_URL is set but empty; unset it or give it the marker's value",
+    "KS_HOST is set but empty; unset it or give it the marker's value",
+  ]);
+  assert.deepEqual(errorsFor({ SENTRY_AUTH_TOKEN: '' }), []);
+});
+
 test('a Sentry upload token or an env-file override fails the gate; values stay unprinted', () => {
   assert.deepEqual(errorsFor({ SENTRY_AUTH_TOKEN: 'set' }), [
     'SENTRY_AUTH_TOKEN must be unset for gate evidence',
@@ -83,6 +91,7 @@ test('env-file scanning names every assignment of a guarded key, never its value
       '  export   PORT = 3000\n# KS_HOST=commented\nNOT_KS_HOST=1\nDATABASE_URL_RLSX=1\n',
     ],
     [path.join('/r', 'apps/web/.env.local'), '# x\nexport SENTRY_AUTH_TOKEN="abc"\n'],
+    [path.join('/r', 'apps/web/.env.production'), '\uFEFFKS_HOST=a\n\u00A0AL_HOST\u2003=b\n'],
   ]);
   const read = file => {
     if (!files.has(file)) throw Object.assign(new Error('missing'), { code: 'ENOENT' });
@@ -96,6 +105,8 @@ test('env-file scanning names every assignment of a guarded key, never its value
     { file: '.env.local', key: 'MK_HOST' },
     { file: 'apps/web/.env', key: 'PORT' },
     { file: 'apps/web/.env.local', key: 'SENTRY_AUTH_TOKEN' },
+    { file: 'apps/web/.env.production', key: 'KS_HOST' },
+    { file: 'apps/web/.env.production', key: 'AL_HOST' },
   ]);
   assert.ok(!JSON.stringify(overrides).includes('abc'));
 });

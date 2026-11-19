@@ -47,7 +47,6 @@ export function fixtureLive(overrides = {}) {
       E2E_DATABASE_URL_RLS: url,
       PW_PORT: '3310',
       PILOT_HOST: 'pilot.127.0.0.1.nip.io:3310',
-      SENTRY_AUTH_TOKEN: '',
     },
     envFileOverrides: [],
     freeGib: { repository: 120, system: 28 },

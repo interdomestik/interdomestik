@@ -115,8 +115,16 @@ function stamp(lane, deps, repoRoot, pendingPath, directory) {
   if (problems.length > 0) return fail(deps, problems);
   const record = { ...pending, finishedAt: deps.now(), result: 'passed' };
   const finalPath = deps.records.finalRecordPath(directory, record);
-  const recordSha256 = deps.records.writeRecord(finalPath, record);
-  deps.records.removeRecord(pendingPath);
+  let recordSha256;
+  try {
+    recordSha256 = deps.records.writeRecord(finalPath, record);
+    deps.records.removeRecord(pendingPath);
+  } catch (error) {
+    // A pre-check record is optional: a full disk must not fail a command that passed.
+    if (record.mode === records.MODES.gate) throw error;
+    deps.error(`${PREFIX} pre-check record not written (${error?.code ?? 'error'}); continuing.`);
+    return 0;
+  }
   deps.log(
     `${PREFIX} ${record.mode} lane=${lane} head=${record.head} ` +
       `marker=${record.markerSha256 ?? 'none'} record=${finalPath} record_sha256=${recordSha256}`

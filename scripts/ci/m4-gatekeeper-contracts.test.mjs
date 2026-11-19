@@ -32,20 +32,19 @@ test('m4 gatekeeper diagnostics never print database credentials', () => {
     .filter(line => /echo .*\$\{?DATABASE_URL\b/u.test(line));
   assert.ok(echoes.length >= 2);
   for (const line of echoes) {
-    assert.match(
-      line,
-      /\$\(bash "\$\{SCRIPT_DIR\}\/redact-database-url\.sh" "\$\{DATABASE_URL\}"\)/u
+    // The URL reaches the redactor on stdin from a builtin, never in a process argv.
+    assert.ok(
+      line.includes(
+        `$(printf '%s' "\${DATABASE_URL}" | bash "\${SCRIPT_DIR}/redact-database-url.sh")`
+      ),
+      line
     );
   }
   const sentinel = 'SENTINEL-p@ss:word';
-  const output = execFileSync(
-    '/bin/bash',
-    [
-      path.join(rootDir, 'scripts/redact-database-url.sh'),
-      `postgresql://postgres:${sentinel}@127.0.0.1:55438/db`,
-    ],
-    { encoding: 'utf8' }
-  );
+  const output = execFileSync('/bin/bash', [path.join(rootDir, 'scripts/redact-database-url.sh')], {
+    encoding: 'utf8',
+    input: `postgresql://postgres:${sentinel}@127.0.0.1:55438/db`,
+  });
   assert.equal(output, 'postgresql://postgres:***@127.0.0.1:55438/db');
   assert.ok(!output.includes('SENTINEL'));
 });

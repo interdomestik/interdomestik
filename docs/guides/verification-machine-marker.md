@@ -11,17 +11,19 @@ holds the machine's recorded configuration. Every other run is a pre-check.
 - `begin` reads `/Library/Application Support/Interdomestik/verify-machine.json`.
   - No file: the run is labelled `PRE-CHECK` and continues, even when no record can be written.
   - The run stops when the file is not a single-link regular file, or when the file or any
-    directory above it is not owned by root, is writable by group or others, or is writable by the
-    current user (which also covers macOS ACLs). The file is read through the descriptor that was
-    checked, never followed through a link.
+    directory above it is not owned by root, is writable by group or others, is writable by the
+    current user, or carries a macOS ACL entry that allows anything (an ACL can grant rights such
+    as `writesecurity` that a write check does not show; deny-only entries are accepted). The file
+    is read through the descriptor that was checked, never followed through a link.
   - Otherwise the live machine must match every recorded field: hardware id (as a sha256), arch,
     macOS version and build, Node, pnpm, container context and engine, the database container's
     pinned image (equal to the CI postgres image) and every published binding (only `5432/tcp` on
     the recorded loopback port), every database URL, `PW_PORT` and `PORT`, every Playwright tenant
     host and `PLAYWRIGHT_BASE_URL` (recorded port, loopback host), free disk on the repository
     volume and on `/`, and a clean working tree. `SENTRY_AUTH_TOKEN` must be unset. None of these
-    settings may come from the `.env` files that the gatekeeper, the build or the E2E server load.
-    Ports 3000 and 54322 are always refused. Any difference stops the run.
+    settings may come from the `.env` files that the gatekeeper, the build or the E2E server load,
+    and none may be set to an empty value, since some steps then fall back to a default. Ports
+    3000 and 54322 are always refused. Any difference stops the run.
 - `stamp` runs only after every other step passed, in the same shell as its `begin`: the pending
   record is kept per shell process and lane, so a later or concurrent `stamp` cannot use it. It
   re-checks the marker, the live configuration, `HEAD` and the tracked files, then writes the run
@@ -31,7 +33,9 @@ holds the machine's recorded configuration. Every other run is a pre-check.
 - With a marker present, `begin` and `stamp` must run inside the unchanged `pnpm pr:verify` or
   `pnpm security:guard` chain: their parent shell must be exactly `sh -c <committed script>`, so
   `stamp` is reached only after every step before it exited 0. Running the steps by hand never
-  produces `GATE-EVIDENCE`.
+  produces `GATE-EVIDENCE`. pnpm's `bail` setting must stay on (with `bail=false` a failing nested
+  workspace run exits 0), and no lifecycle hook may run after `stamp`: no `post<script>` script
+  and no `node_modules/.hooks` directory.
 - Hosted runs (`GITHUB_ACTIONS=true`) skip the check: hosted checks are separate evidence.
 
 The check proves which machine and configuration a run used. It is not a cryptographic attestation:

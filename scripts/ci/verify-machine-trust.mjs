@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import {
   accessSync,
   closeSync,
@@ -12,8 +13,23 @@ import path from 'node:path';
 import { MARKER_PATH, sha256Hex, validateMarker } from './verify-machine-marker.mjs';
 
 const WRITABLE_BY_OTHERS = 0o022;
+// macOS ACL entries, one per line after the listing line of `ls -lde`.
+const ACL_ENTRY = /^\s*\d+: /u;
+
+function listAclEntries(target) {
+  const listing = execFileSync('/bin/ls', ['-lde', target], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  return listing
+    .split('\n')
+    .slice(1)
+    .filter(line => ACL_ENTRY.test(line));
+}
+
 const DEFAULT_FS = Object.freeze({
   accessSync,
+  aclEntries: listAclEntries,
   closeSync,
   fstatSync,
   lstatSync,
@@ -30,7 +46,23 @@ function writableByThisProcess(fs, target) {
   }
 }
 
-/** Mode bits, owner, type, and effective write access, which also covers macOS ACLs. */
+/**
+ * An ACL can grant rights that write access does not show, such as changing the protections
+ * (`writesecurity`) or deleting a child. Deny entries only take rights away, so only allows fail.
+ */
+function aclErrors(fs, label, target) {
+  let entries;
+  try {
+    entries = fs.aclEntries(target);
+  } catch {
+    return [`${label} ACL cannot be read`];
+  }
+  return entries.some(entry => /\ballow\b/u.test(entry))
+    ? [`${label} has an ACL entry that grants access`]
+    : [];
+}
+
+/** Mode bits, owner, type, effective write access and ACL grants. */
 function protectionErrors(fs, label, target, stat, expectFile) {
   const errors = [];
   if (expectFile ? !stat.isFile() : !stat.isDirectory()) {
@@ -41,6 +73,7 @@ function protectionErrors(fs, label, target, stat, expectFile) {
     errors.push(`${label} must not be writable by group or others`);
   }
   if (writableByThisProcess(fs, target)) errors.push(`${label} is writable by this user`);
+  errors.push(...aclErrors(fs, label, target));
   return errors;
 }
 
@@ -65,7 +98,8 @@ function readPinned(fs, markerPath, linkStat) {
 
 /**
  * Reads the marker only when root owns it and every directory above it, none of them is
- * writable by group, others or this user, and the opened file is the one that was checked.
+ * writable by group, others or this user or carries an ACL grant, and the opened file is the
+ * one that was checked.
  */
 export function readTrustedMarker(markerPath = MARKER_PATH, fs = DEFAULT_FS) {
   let linkStat;

@@ -20,6 +20,19 @@ test('gate mode begins and stamps only inside the unchanged pnpm chain of its la
       'gate evidence comes only from `pnpm pr:verify`',
     ],
     [h => (h.deps.chain.scripts = throwing), 'the pr:verify chain could not be read'],
+    [h => (h.deps.chain.bail = throwing), 'the pr:verify chain could not be read'],
+    [
+      h => (h.state.bail = 'false\n'),
+      'pnpm bail must stay on, so a failing nested run fails the chain',
+    ],
+    [
+      h => (h.state.hooksDirectory = true),
+      'node_modules/.hooks holds lifecycle hooks that could run after the stamp',
+    ],
+    [
+      h => (h.deps.chain.scripts = () => ({ ...packageJson.scripts, 'postpr:verify': 'true' })),
+      'a postpr:verify script would run after the stamp',
+    ],
   ];
   for (const [change, message] of cases) {
     const atBegin = harness({ marker: trusted() });
@@ -66,7 +79,12 @@ test('the chain check compares the parent shell with the committed script exactl
     chainErrors('security-guard', {
       env,
       repoRoot: '/r',
-      chain: { scripts: () => packageJson.scripts, parentCommand: () => parent },
+      chain: {
+        scripts: () => packageJson.scripts,
+        parentCommand: () => parent,
+        bail: () => 'true',
+        hooksDirectory: () => false,
+      },
     });
   assert.deepEqual(check(`sh -c ${script}\n`), []);
   assert.deepEqual(check(`bash -c ${script}`), [

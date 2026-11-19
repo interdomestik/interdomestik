@@ -100,7 +100,10 @@ export function probeMachine({ repoRoot, marker, env, exec = runCommand, statfs 
     },
     database: parseContainer(inspect),
     ciPostgresDigest: readCiPostgresDigest(repoRoot),
-    env: Object.fromEntries(GUARDED_ENV_KEYS.map(key => [key, env[key] ?? ''])),
+    // Absent keys stay absent: an empty value is a setting of its own.
+    env: Object.fromEntries(
+      GUARDED_ENV_KEYS.filter(key => env[key] !== undefined).map(key => [key, env[key]])
+    ),
     envFileOverrides: envFileOverrides(repoRoot),
     freeGib: { repository: freeGib(statfs, repoRoot), system: freeGib(statfs, '/') },
     git: gitState(repoRoot, exec),

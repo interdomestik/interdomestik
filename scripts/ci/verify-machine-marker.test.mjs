@@ -28,7 +28,15 @@ function stat({ uid = 0, mode = 0o644, kind = 'file', nlink = 1, ino = 11 } = {}
 
 const dir = options => stat({ kind: 'dir', mode: 0o755, ...options });
 
-function fakeFs({ fileStat = stat(), dirs = {}, writable = [], opened, text, readError } = {}) {
+function fakeFs({
+  fileStat = stat(),
+  dirs = {},
+  writable = [],
+  acls = {},
+  opened,
+  text,
+  readError,
+} = {}) {
   const bytes = Buffer.from(text ?? JSON.stringify(fixtureMarker()));
   return {
     bytes,
@@ -42,6 +50,10 @@ function fakeFs({ fileStat = stat(), dirs = {}, writable = [], opened, text, rea
     },
     accessSync(target) {
       if (!writable.includes(target)) throw Object.assign(new Error('no'), { code: 'EACCES' });
+    },
+    aclEntries(target) {
+      if (acls[target] instanceof Error) throw acls[target];
+      return acls[target] ?? [];
     },
     openSync(target, flags) {
       assert.equal(target, MARKER);
@@ -103,6 +115,11 @@ test('no marker file means a pre-check, not an error', () => {
   assert.deepEqual(readTrustedMarker(MARKER, fakeFs({ fileStat: null })), { status: 'absent' });
 });
 
+test('a deny-only ACL takes rights away and keeps the marker trusted', () => {
+  const acls = { '/Library': [' 0: group:everyone deny delete'] };
+  assert.equal(readTrustedMarker(MARKER, fakeFs({ acls })).status, 'trusted');
+});
+
 test('a protected marker is trusted and hashed from the checked descriptor', () => {
   const fs = fakeFs();
   const result = readTrustedMarker(MARKER, fs);
@@ -134,6 +151,15 @@ test('a marker the developer could write or swap is refused, never downgraded', 
     ],
     [{ writable: [parent] }, `directory ${parent} is writable by this user`],
     [{ opened: stat({ ino: 12 }) }, 'marker changed while it was checked'],
+    [
+      { acls: { [MARKER]: [' 0: user:developer allow writesecurity'] } },
+      'marker file has an ACL entry that grants access',
+    ],
+    [
+      { acls: { [parent]: [' 0: group:staff allow add_file,delete_child'] } },
+      `directory ${parent} has an ACL entry that grants access`,
+    ],
+    [{ acls: { '/': new Error('ls failed') } }, 'directory / ACL cannot be read'],
   ];
   for (const [options, message] of cases) {
     const result = readTrustedMarker(MARKER, fakeFs(options));

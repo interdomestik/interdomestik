@@ -32,6 +32,8 @@ export function harness({ marker = { status: 'absent' }, live = fixtureLive(), e
       scripts: () => packageJson.scripts,
       parentCommand: () =>
         state.parent ?? `sh -c ${packageJson.scripts[deps.env.npm_lifecycle_event]}\n`,
+      bail: () => state.bail ?? 'undefined\n',
+      hooksDirectory: () => state.hooksDirectory ?? false,
     },
     exec: (command, args) => {
       assert.deepEqual([command, ...args], ['git', 'rev-parse', '--show-toplevel']);
