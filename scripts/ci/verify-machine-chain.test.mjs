@@ -98,3 +98,42 @@ test('the chain check compares the parent shell with the committed script exactl
     'this step is not running inside the unchanged security:guard chain',
   ]);
 });
+
+test('a genuine gate run ends with a line that starts with GATE-EVIDENCE', () => {
+  const h = harness({ marker: trusted() });
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 0);
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 0);
+  assert.ok(h.output.log.at(-1).startsWith('GATE-EVIDENCE lane=pr-verify head='));
+  h.cleanup();
+});
+
+test('a downgraded begin removes an older record of the same shell before anything else', () => {
+  const h = harness({ marker: trusted() });
+  assert.equal(runVerifyMachine(['begin', 'security-guard'], h.deps), 0);
+  // The run is interrupted; a later shell with the same PID begins on a full disk.
+  h.state.live = { ...h.state.live, freeGib: { repository: 1, system: 1 } };
+  const write = h.deps.records.writeRecord;
+  h.deps.records = {
+    ...h.deps.records,
+    writeRecord: () => {
+      throw Object.assign(new Error('full'), { code: 'ENOSPC' });
+    },
+  };
+  assert.equal(runVerifyMachine(['begin', 'security-guard'], h.deps), 0);
+  h.deps.records = { ...h.deps.records, writeRecord: write };
+  assert.equal(runVerifyMachine(['stamp', 'security-guard'], h.deps), 0);
+  assert.deepEqual(h.files(), []);
+  assert.ok(!h.output.log.some(line => line.startsWith('GATE-EVIDENCE')));
+  h.cleanup();
+});
+
+test('a lane whose checks would inspect another checkout is a pre-check', () => {
+  const h = harness({ marker: trusted() });
+  // GIT_WORK_TREE or a config override makes git report a toplevel other than the lane's cwd.
+  h.deps.cwd = '/checkout-running-the-lane';
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 0);
+  assert.match(h.output.log.join('\n'), /not the checkout running the lane/u);
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 0);
+  assert.equal(h.readFinal().mode, 'PRE-CHECK');
+  h.cleanup();
+});

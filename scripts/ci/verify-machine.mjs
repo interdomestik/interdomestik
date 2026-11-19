@@ -6,6 +6,7 @@
 // only after every step passed, in the same shell as its `begin` (one pending record per shell
 // process and lane). Gate mode also requires both steps to run inside the unchanged pnpm chain
 // (verify-machine-chain.mjs).
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -30,6 +31,7 @@ export function defaultDependencies() {
     readMarker: readTrustedMarker,
     probe: probeMachine,
     gitState,
+    realpath: realpathSync,
     records,
     now: () => new Date().toISOString(),
     log: message => console.log(message),
@@ -50,6 +52,9 @@ function logPreCheck(deps, reason, problems = []) {
 function preCheck(lane, deps, repoRoot, pendingPath, startedAt, reason, problems = []) {
   logPreCheck(deps, reason, problems);
   try {
+    // An older record of this shell and lane (an interrupted run, or a reused PID) must never be
+    // finished by this run, even when the new record cannot be written.
+    deps.records.removeRecord(pendingPath);
     const git = deps.gitState(repoRoot, deps.exec);
     deps.records.writeRecord(pendingPath, {
       lane,
@@ -75,6 +80,16 @@ function probeLive(deps, repoRoot, marker) {
   }
 }
 
+// The lane runs in its package root; git settings must not point the checks at another checkout.
+function rootErrors(deps, repoRoot) {
+  try {
+    if (deps.realpath(repoRoot) === deps.realpath(deps.cwd)) return [];
+  } catch {
+    return ['the repository root could not be resolved'];
+  }
+  return ['the checked repository is not the checkout running the lane'];
+}
+
 function begin(lane, deps, repoRoot, pendingPath) {
   const markerResult = deps.readMarker();
   const startedAt = deps.now();
@@ -88,7 +103,11 @@ function begin(lane, deps, repoRoot, pendingPath) {
   const { marker, sha256 } = markerResult;
   const live = probeLive(deps, repoRoot, marker);
   if (!live) return downgrade('this machine could not be probed');
-  const problems = [...chainErrors(lane, { ...deps, repoRoot }), ...compareMachine(marker, live)];
+  const problems = [
+    ...rootErrors(deps, repoRoot),
+    ...chainErrors(lane, { ...deps, repoRoot }),
+    ...compareMachine(marker, live),
+  ];
   if (problems.length > 0) {
     return downgrade('this run does not match the verification marker', problems);
   }
@@ -109,7 +128,8 @@ function begin(lane, deps, repoRoot, pendingPath) {
 function headProblems(deps, repoRoot, pending) {
   let head;
   try {
-    head = deps.gitState(repoRoot, deps.exec).head;
+    // HEAD alone: a failing `git status` must not hide a moved HEAD.
+    head = deps.exec('git', ['rev-parse', 'HEAD'], repoRoot);
   } catch {
     return [];
   }
@@ -118,7 +138,7 @@ function headProblems(deps, repoRoot, pending) {
 
 function gateProblems(lane, deps, repoRoot, pending) {
   const markerResult = deps.readMarker();
-  const problems = chainErrors(lane, { ...deps, repoRoot });
+  const problems = [...rootErrors(deps, repoRoot), ...chainErrors(lane, { ...deps, repoRoot })];
   if (markerResult.status !== 'trusted' || markerResult.sha256 !== pending.markerSha256) {
     return [...problems, 'the verification marker changed during the run'];
   }
@@ -142,8 +162,9 @@ function writeFinalRecord(lane, deps, pending, pendingPath, directory) {
     deps.error(`${PREFIX} pre-check record not written (${error?.code ?? 'error'}); continuing.`);
     return 0;
   }
+  // The evidence line starts with its mode, with no prefix: `GATE-EVIDENCE lane=…` or `PRE-CHECK …`.
   deps.log(
-    `${PREFIX} ${record.mode} lane=${lane} head=${record.head} ` +
+    `${record.mode} lane=${lane} head=${record.head} ` +
       `marker=${record.markerSha256 ?? 'none'} record=${finalPath} record_sha256=${recordSha256}`
   );
   return 0;

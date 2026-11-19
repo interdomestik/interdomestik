@@ -36,9 +36,11 @@ export function harness({ marker = { status: 'absent' }, live = fixtureLive(), e
       hooksDirectory: () => state.hooksDirectory ?? false,
     },
     exec: (command, args) => {
+      if (args.join(' ') === 'rev-parse HEAD') return state.git.head;
       assert.deepEqual([command, ...args], ['git', 'rev-parse', '--show-toplevel']);
       return '/repo';
     },
+    realpath: target => target,
     readMarker: () => state.marker,
     probe: () => state.live,
     gitState: () => state.git,

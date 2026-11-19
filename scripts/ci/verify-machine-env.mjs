@@ -20,20 +20,37 @@ export const GUARDED_ENV_KEYS = Object.freeze([
   'PLAYWRIGHT_BASE_URL',
   'SENTRY_AUTH_TOKEN',
 ]);
-// A local env file is any file outside git named `.env` or `.env.<suffix>`; `.envrc` is not one.
-const LOCAL_ENV_FILE = /(?:^|\/)\.env(?:\.[^/]*)?$/u;
-// libpq reads PG* (PGHOST, PGPORT, PGOPTIONS, PGSERVICE ...) and dotenv reads DOTENV_CONFIG_*.
-const REDIRECTING_ENV_NAME = /^(?:PG|DOTENV_)/u;
+// Every variable that names a database URL is checked, not only the four above: the E2E server,
+// admin and contract helpers read their own (E2E_SERVER_DATABASE_URL_RLS, E2E_DATABASE_URL_ADMIN).
+const DATABASE_URL_NAME = /DATABASE_URL/u;
+// A local env file is any file outside git named `.env` or `.env.<suffix>`, in any letter case
+// (macOS volumes are case-insensitive); `.envrc` is not one.
+const LOCAL_ENV_FILE = /(?:^|\/)\.env(?:\.[^/]*)?$/iu;
+// Variables that redirect a run past the checked settings: libpq (PG*), dotenv (DOTENV_*), the
+// startup file of every Bash child (BASH_ENV, ENV), and git's repository, worktree and config
+// overrides (which would point the probe at another checkout than the one running the lane).
+const REDIRECTING_ENV_NAME =
+  /^(?:PG|DOTENV_|BASH_ENV$|ENV$|GIT_(?:DIR|WORK_TREE|INDEX_FILE|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|COMMON_DIR|NAMESPACE|CEILING_DIRECTORIES|DISCOVERY_ACROSS_FILESYSTEM|CONFIG)(?:_|$))/u;
+
+/** The keys the gate reads from the environment: the guarded list plus every database URL. */
+export function checkedEnvKeys(env) {
+  const databaseKeys = Object.keys(env).filter(key => DATABASE_URL_NAME.test(key));
+  return [...new Set([...GUARDED_ENV_KEYS, ...databaseKeys])];
+}
 const LOOPBACK_ORIGIN =
   /^(?:127\.0\.0\.1|localhost|\[::1\]|(?:[a-z0-9-]+\.)*127\.0\.0\.1\.nip\.io|(?:[a-z0-9-]+\.)*localhost)$/u;
 
 /**
- * Every local env file in the checkout, ignored or untracked. The gatekeeper, the build, the E2E
- * server and package loaders each read env files their own way, so gate runs allow none at all
- * rather than parse them. Ignored directories are listed whole, never descended into.
+ * Every local env file in the checkout, ignored or untracked, in every directory and any letter
+ * case. The gatekeeper, the build, the E2E server and package loaders each read env files their
+ * own way, so gate runs allow none at all rather than parse them.
  */
 export function localEnvFiles(repoRoot, exec) {
-  const listing = exec('git', ['ls-files', '--others', '--directory'], repoRoot);
+  const listing = exec(
+    'git',
+    ['ls-files', '--others', '--', ':(glob,icase)**/.env', ':(glob,icase)**/.env.*'],
+    repoRoot
+  );
   return listing.split('\n').filter(file => LOCAL_ENV_FILE.test(file));
 }
 
@@ -87,9 +104,9 @@ const EMPTY_ALLOWED = new Set(['DATABASE_URL', 'PW_PORT', 'SENTRY_AUTH_TOKEN']);
 
 /** A set-but-empty key is not absent: some steps keep it, others fall back to a default. */
 function emptyValueErrors(env) {
-  return GUARDED_ENV_KEYS.filter(key => env[key] === '' && !EMPTY_ALLOWED.has(key)).map(
-    key => `${key} is set but empty; unset it or give it the marker's value`
-  );
+  return checkedEnvKeys(env)
+    .filter(key => env[key] === '' && !EMPTY_ALLOWED.has(key))
+    .map(key => `${key} is set but empty; unset it or give it the marker's value`);
 }
 
 function sourceErrors({ localFiles = [], redirecting = [] }) {
@@ -97,7 +114,9 @@ function sourceErrors({ localFiles = [], redirecting = [] }) {
     ...localFiles.map(
       file => `${file} exists; gate runs take settings only from the checked environment`
     ),
-    ...redirecting.map(name => `${name} is set; libpq and dotenv settings can redirect the run`),
+    ...redirecting.map(
+      name => `${name} is set; it can redirect the run (libpq, dotenv, shell startup or git)`
+    ),
   ];
 }
 
@@ -108,7 +127,7 @@ export function environmentErrors(marker, env, sources = {}) {
   if (!env.DATABASE_URL) {
     errors.push('DATABASE_URL must be set; the default fallback is the shared database on 54322');
   }
-  for (const key of DATABASE_ENV_KEYS) {
+  for (const key of checkedEnvKeys(env).filter(name => DATABASE_URL_NAME.test(name))) {
     if (env[key]) errors.push(...databaseUrlErrors(key, env[key], marker.database, forbidden));
   }
   if (!env.PW_PORT) errors.push(`PW_PORT must be set to ${marker.app_port}`);

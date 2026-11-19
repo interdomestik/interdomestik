@@ -79,31 +79,62 @@ test('local env files and libpq or dotenv variables fail the gate; values stay u
   assert.deepEqual(errorsFor({}, sources), [
     '.env.local exists; gate runs take settings only from the checked environment',
     'packages/database/.env exists; gate runs take settings only from the checked environment',
-    'PGPORT is set; libpq and dotenv settings can redirect the run',
+    'PGPORT is set; it can redirect the run (libpq, dotenv, shell startup or git)',
   ]);
 });
 
-test('every env file outside git is found, and only libpq and dotenv names are reported', () => {
+test('every env file outside git is found in any case, and only redirecting names are reported', () => {
   const listing = [
-    'node_modules/',
     '.env',
-    '.env.local',
+    '.ENV.LOCAL',
     '.envrc',
     'apps/web/.env.production.local',
-    'packages/database/.env',
-    'apps/web/.next/',
+    'tmp/.env',
     'notes/environment.md',
   ].join('\n');
   const exec = (command, args, cwd) => {
-    assert.deepEqual([command, ...args, cwd], ['git', 'ls-files', '--others', '--directory', '/r']);
+    assert.deepEqual(
+      [command, ...args, cwd],
+      ['git', 'ls-files', '--others', '--', ':(glob,icase)**/.env', ':(glob,icase)**/.env.*', '/r']
+    );
     return listing;
   };
   assert.deepEqual(localEnvFiles('/r', exec), [
     '.env',
-    '.env.local',
+    '.ENV.LOCAL',
     'apps/web/.env.production.local',
-    'packages/database/.env',
+    'tmp/.env',
   ]);
-  const env = { PGPORT: '1', PGOPTIONS: 'x', DOTENV_CONFIG_PATH: 'p', PATH: '/bin', NOT_PG: '1' };
-  assert.deepEqual(redirectingEnvNames(env), ['DOTENV_CONFIG_PATH', 'PGOPTIONS', 'PGPORT']);
+  const env = {
+    PGPORT: '1',
+    DOTENV_CONFIG_PATH: 'p',
+    BASH_ENV: '/x',
+    ENV: '/y',
+    GIT_WORK_TREE: '/other',
+    GIT_CONFIG_COUNT: '1',
+    GIT_EDITOR: 'vim',
+    ENVIRONMENT: 'dev',
+    PATH: '/bin',
+    NOT_PG: '1',
+  };
+  assert.deepEqual(redirectingEnvNames(env), [
+    'BASH_ENV',
+    'DOTENV_CONFIG_PATH',
+    'ENV',
+    'GIT_CONFIG_COUNT',
+    'GIT_WORK_TREE',
+    'PGPORT',
+  ]);
+});
+
+test('every variable that names a database URL is checked, not only the four listed', () => {
+  const shared = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+  assert.deepEqual(errorsFor({ E2E_SERVER_DATABASE_URL_RLS: shared }), [
+    'E2E_SERVER_DATABASE_URL_RLS uses forbidden port 54322',
+    'E2E_SERVER_DATABASE_URL_RLS port is not 55438',
+    'E2E_SERVER_DATABASE_URL_RLS database is not interdomestik_test',
+  ]);
+  assert.deepEqual(errorsFor({ E2E_DATABASE_URL_ADMIN: '' }), [
+    "E2E_DATABASE_URL_ADMIN is set but empty; unset it or give it the marker's value",
+  ]);
 });

@@ -47,7 +47,10 @@ test('m4 gatekeeper diagnostics never print database credentials', () => {
     [`postgresql://postgres:${sentinel}@127.0.0.1:55438/db`, 'postgresql://127.0.0.1:55438/db'],
     [`postgresql://127.0.0.1:5432/db?password=${sentinel}`, 'postgresql://127.0.0.1:5432/db'],
     [`postgresql://u:${sentinel}@host/db`, 'postgresql://host:(no port)/db'],
-    [`not a url ${sentinel}`, '(not a URL)'],
+    [`not a url ${sentinel}`, '(not a database URL)'],
+    [`postgresql:/reader:${sentinel}@localhost:55438/db`, '(not a database URL)'],
+    [`postgresql://127.0.0.1:55438/reader:${sentinel}@x`, 'postgresql://127.0.0.1:55438/(unnamed)'],
+    [`https://u:${sentinel}@127.0.0.1:55438/db`, '(not a database URL)'],
   ];
   for (const [input, expected] of cases) {
     assert.equal(describeDatabaseUrl(input), expected);

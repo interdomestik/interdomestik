@@ -137,7 +137,10 @@ test('the probe hashes the hardware id and keeps only the guarded environment ke
     ['git rev-parse HEAD', 'c'.repeat(40)],
     ['git status --porcelain=v1 --untracked-files=no', ''],
     ['git status --porcelain=v1 --untracked-files=all', '?? new.txt'],
-    ['git ls-files --others --directory', 'node_modules/\n.env.local\n.envrc\ndocker/.env'],
+    [
+      'git ls-files --others -- :(glob,icase)**/.env :(glob,icase)**/.env.*',
+      '.env.local\ndocker/.env',
+    ],
   ]);
   const exec = (command, args) => {
     const key = command === 'ioreg' ? 'ioreg' : [command, ...args].join(' ');

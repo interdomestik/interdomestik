@@ -27,8 +27,11 @@ holds the machine's recorded configuration. Every other run is a pre-check.
     difference and continues, and it is never gate evidence. Only an untrusted marker stops it.
   - Every setting comes from the checked environment only. The gatekeeper, the build, the E2E
     server and package loaders read env files in different ways, so the checkout may hold no local
-    `.env` or `.env.<suffix>` file at all (ignored or untracked; tracked examples are fine), and no
-    `PG*` (libpq) or `DOTENV_*` variable may be set.
+    `.env` or `.env.<suffix>` file at all, in any directory and any letter case (ignored or
+    untracked; tracked examples are fine). Every variable whose name contains `DATABASE_URL` is
+    checked, and none of these may be set: `PG*` (libpq), `DOTENV_*`, `BASH_ENV`, `ENV`, or git's
+    repository, worktree and config overrides (`GIT_DIR`, `GIT_WORK_TREE`, `GIT_CONFIG*` and the
+    like). The checked repository must be the checkout that runs the lane.
 - `stamp` runs only after every other step passed, in the same shell as its `begin`: the pending
   record is kept per shell process and lane, so a later or concurrent `stamp` cannot use it. It
   re-checks the marker, the live configuration, `HEAD` and the tracked files, then writes the run
