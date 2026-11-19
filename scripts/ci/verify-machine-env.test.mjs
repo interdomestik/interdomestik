@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { environmentErrors, localEnvFiles, redirectingEnvNames } from './verify-machine-env.mjs';
+import { environmentErrors, redirectingEnvNames } from './verify-machine-env.mjs';
 import { fixtureLive, fixtureMarker } from './verify-machine-fixtures.mjs';
 
 function errorsFor(env, sources = {}) {
   return environmentErrors(fixtureMarker(), { ...fixtureLive().env, ...env }, sources);
 }
+const URL_FORM = 'must be postgresql://[user[:password]@]host:port/database and nothing else';
 
 test('the checked environment of the fixture passes', () => {
   assert.deepEqual(errorsFor({}), []);
@@ -22,21 +23,39 @@ test('the shared database port and the default fallback are refused', () => {
   assert.deepEqual(errorsFor({ DATABASE_URL: '' }), [
     'DATABASE_URL must be set; the default fallback is the shared database on 54322',
   ]);
-  assert.deepEqual(errorsFor({ DATABASE_URL_RLS: 'nope' }), ['DATABASE_URL_RLS is not a URL']);
+  assert.deepEqual(errorsFor({ DATABASE_URL_RLS: 'nope' }), [`DATABASE_URL_RLS ${URL_FORM}`]);
   const remote = 'postgresql://u:p@db.example.test:55438/interdomestik_test';
   assert.deepEqual(errorsFor({ DATABASE_URL: remote }), ['DATABASE_URL host is not 127.0.0.1']);
   // Without a port the driver would take PGPORT or its default instead of the marker's port.
   const portless = 'postgresql://u:p@127.0.0.1/interdomestik_test';
-  assert.deepEqual(errorsFor({ DATABASE_URL: portless }), ['DATABASE_URL must name its port']);
+  assert.deepEqual(errorsFor({ DATABASE_URL: portless }), [`DATABASE_URL ${URL_FORM}`]);
 });
 
-test('a database URL may not carry options that drivers apply over its checked parts', () => {
+test('a database URL drivers could read differently from the check is refused', () => {
   const base = 'postgresql://u:p@127.0.0.1:55438/interdomestik_test';
-  for (const suffix of ['?database=postgres', '?host=db.example.test', '?port=54322', '#x']) {
-    assert.deepEqual(errorsFor({ DATABASE_URL: `${base}${suffix}` }), [
-      'DATABASE_URL must not carry connection options',
-    ]);
+  const ambiguous = [
+    // Options and fragments, empty ones included, which drivers apply over the checked parts.
+    `${base}?database=postgres`,
+    `${base}?port=54322`,
+    `${base}?`,
+    `${base}#`,
+    `${base}#x`,
+    // Several `@` (one driver reads localhost:54322), several hosts, encoded or extra text.
+    'postgresql://u:p@localhost:54322@127.0.0.1:55438/interdomestik_test',
+    'postgresql://u:p@127.0.0.1:55438,localhost:54322/interdomestik_test',
+    'postgresql://u:p@%31%32%37.0.0.1:55438/interdomestik_test',
+    `${base}\\extra`,
+    `${base}\t`,
+    'postgresql://u:p@127.0.0.1:55438/interdomestik_test/extra',
+    'postgresql://u:p@127.0.0.1:0x1d5e/interdomestik_test',
+  ];
+  for (const raw of ambiguous) {
+    assert.deepEqual(errorsFor({ DATABASE_URL: raw }), [`DATABASE_URL ${URL_FORM}`], raw);
   }
+  assert.deepEqual(
+    errorsFor({ DATABASE_URL: 'postgres://127.0.0.1:55438/interdomestik_test' }),
+    []
+  );
 });
 
 test('the app port and every Playwright origin must use the recorded port on loopback', () => {
@@ -69,6 +88,24 @@ test('the app port and every Playwright origin must use the recorded port on loo
   );
 });
 
+test('ports and hosts must have the exact form Playwright reads', () => {
+  // Playwright builds `http://<tenant host>/<locale>`; a scheme there becomes host `http`.
+  assert.deepEqual(errorsFor({ KS_HOST: 'http://127.0.0.1:3310' }), [
+    'KS_HOST must be a bare host:port',
+  ]);
+  assert.deepEqual(errorsFor({ AL_HOST: 'al.localhost:3310/x' }), [
+    'AL_HOST must be a bare host:port',
+  ]);
+  assert.deepEqual(errorsFor({ PLAYWRIGHT_BASE_URL: 'http://127.0.0.1:3310/x' }), [
+    'PLAYWRIGHT_BASE_URL must be http://host:port',
+  ]);
+  // Playwright accepts only decimal digits for the port.
+  for (const port of ['3.31e3', '0x0cee', ' 3310', '3310 ']) {
+    assert.deepEqual(errorsFor({ PW_PORT: port }), ['PW_PORT must be a decimal port'], port);
+  }
+  assert.deepEqual(errorsFor({ PORT: '3310.0' }), ['PORT must be a decimal port']);
+});
+
 test('a set-but-empty key fails the gate, because the E2E lane would fall back to 54322', () => {
   assert.deepEqual(errorsFor({ E2E_DATABASE_URL: '', KS_HOST: '' }), [
     "E2E_DATABASE_URL is set but empty; unset it or give it the marker's value",
@@ -84,49 +121,20 @@ test('a Sentry upload token fails the gate', () => {
 });
 
 test('local env files and libpq or dotenv variables fail the gate; values stay unprinted', () => {
-  const sources = { localFiles: ['.env.local', 'packages/database/.env'], redirecting: ['PGPORT'] };
+  const sources = {
+    localFiles: ['.env.local', 'packages/database/.env'],
+    unsearched: ['tmp/locked'],
+    redirecting: ['PGPORT'],
+  };
   assert.deepEqual(errorsFor({}, sources), [
     '.env.local exists; gate runs take settings only from the checked environment',
     'packages/database/.env exists; gate runs take settings only from the checked environment',
+    'tmp/locked could not be searched for env files',
     'PGPORT is set; it can redirect the run (libpq, dotenv, shell startup or git)',
   ]);
 });
 
-test('every env file outside git is found in any case, and only redirecting names are reported', () => {
-  const listing = [
-    '.env',
-    '.ENV.LOCAL',
-    '.envrc',
-    'apps/web/.env.production.local',
-    'tmp/.env',
-    // git would quote this name in line output; NUL-separated output lists it as is.
-    'tmp/café/.env',
-    'notes/environment.md',
-    '',
-  ].join('\0');
-  const exec = (command, args, cwd) => {
-    assert.deepEqual(
-      [command, ...args, cwd],
-      [
-        'git',
-        'ls-files',
-        '-z',
-        '--others',
-        '--',
-        ':(glob,icase)**/.env',
-        ':(glob,icase)**/.env.*',
-        '/r',
-      ]
-    );
-    return listing;
-  };
-  assert.deepEqual(localEnvFiles('/r', exec), [
-    '.env',
-    '.ENV.LOCAL',
-    'apps/web/.env.production.local',
-    'tmp/.env',
-    'tmp/café/.env',
-  ]);
+test('only variables that can redirect a run are reported, by name', () => {
   const env = {
     PGPORT: '1',
     DOTENV_CONFIG_PATH: 'p',

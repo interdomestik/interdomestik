@@ -23,9 +23,6 @@ export const GUARDED_ENV_KEYS = Object.freeze([
 // Every variable that names a database URL is checked, not only the four above: the E2E server,
 // admin and contract helpers read their own (E2E_SERVER_DATABASE_URL_RLS, E2E_DATABASE_URL_ADMIN).
 const DATABASE_URL_NAME = /DATABASE_URL/u;
-// A local env file is any file outside git named `.env` or `.env.<suffix>`, in any letter case
-// (macOS volumes are case-insensitive); `.envrc` is not one.
-const LOCAL_ENV_FILE = /(?:^|\/)\.env(?:\.[^/]*)?$/iu;
 // Variables that redirect a run past the checked settings: libpq (PG*), dotenv (DOTENV_*), the
 // startup file of every Bash child (BASH_ENV, ENV), and every git variable (repository, worktree,
 // config, pathspec and index overrides change what the probe sees) except the few that only
@@ -41,21 +38,16 @@ export function checkedEnvKeys(env) {
 }
 const LOOPBACK_ORIGIN =
   /^(?:127\.0\.0\.1|localhost|\[::1\]|(?:[a-z0-9-]+\.)*127\.0\.0\.1\.nip\.io|(?:[a-z0-9-]+\.)*localhost)$/u;
-
-/**
- * Every local env file in the checkout, ignored or untracked, in every directory and any letter
- * case. The gatekeeper, the build, the E2E server and package loaders each read env files their
- * own way, so gate runs allow none at all rather than parse them.
- */
-export function localEnvFiles(repoRoot, exec) {
-  // NUL-separated: git quotes unusual names in line output, which would hide them from the filter.
-  const listing = exec(
-    'git',
-    ['ls-files', '-z', '--others', '--', ':(glob,icase)**/.env', ':(glob,icase)**/.env.*'],
-    repoRoot
-  );
-  return listing.split('\0').filter(file => LOCAL_ENV_FILE.test(file));
-}
+// One plain authority: an optional user[:password] without `@`, one host, an explicit decimal
+// port, one plain database name and nothing after it. Drivers disagree on anything looser
+// (several `@`, several hosts, `?options`, `#`), so such a URL could reach a port never checked.
+const STRICT_DATABASE_URL =
+  /^postgres(?:ql)?:\/\/(?:[^@/?#\s\\]*@)?(\[[0-9a-f:]+\]|[a-z0-9.-]+):(\d{1,5})\/([\w-]+)$/iu;
+// Playwright builds `http://<value>/<locale>` from a tenant host, so it must be a bare host:port.
+const TENANT_HOST = /^(\[::1\]|[a-z0-9.-]+):(\d{1,5})$/iu;
+const BASE_URL = /^http:\/\/(\[::1\]|[a-z0-9.-]+):(\d{1,5})\/?$/iu;
+// Playwright accepts only decimal digits for PW_PORT and PORT.
+const DECIMAL_PORT = /^\d{1,5}$/u;
 
 /** Names (never values) of variables through which libpq, dotenv, a shell or git redirect a run. */
 export function redirectingEnvNames(env) {
@@ -65,41 +57,37 @@ export function redirectingEnvNames(env) {
 }
 
 function databaseUrlErrors(key, raw, database, forbiddenPorts) {
-  let url;
-  try {
-    url = new URL(raw);
-  } catch {
-    return [`${key} is not a URL`];
+  const match = STRICT_DATABASE_URL.exec(raw);
+  if (!match) {
+    return [`${key} must be postgresql://[user[:password]@]host:port/database and nothing else`];
   }
+  const [, rawHost, rawPort, name] = match;
   const errors = [];
-  if (!['postgres:', 'postgresql:'].includes(url.protocol)) errors.push(`${key} is not postgres`);
-  // An explicit port only: without one, drivers fall back to PGPORT or their own default.
-  if (!url.port) return [...errors, `${key} must name its port`];
-  const port = Number(url.port);
+  const port = Number(rawPort);
   if (forbiddenPorts.includes(port)) errors.push(`${key} uses forbidden port ${port}`);
-  const host = url.hostname.replace(/^\[(.*)\]$/u, '$1');
+  const host = rawHost.replace(/^\[(.*)\]$/u, '$1');
   if (host !== database.host) errors.push(`${key} host is not ${database.host}`);
   if (port !== database.port) errors.push(`${key} port is not ${database.port}`);
-  if (url.pathname !== `/${database.name}`) errors.push(`${key} database is not ${database.name}`);
-  // Drivers apply query options (`?database=`, `?host=`, `?port=`) over the parts checked above.
-  if (url.search || url.hash) errors.push(`${key} must not carry connection options`);
+  if (name !== database.name) errors.push(`${key} database is not ${database.name}`);
   return errors;
 }
 
 function originErrors(key, raw, appPort) {
-  let url;
-  try {
-    url = new URL(raw.includes('://') ? raw : `http://${raw}`);
-  } catch {
-    return [`${key} is not a host:port`];
+  const match = (key === 'PLAYWRIGHT_BASE_URL' ? BASE_URL : TENANT_HOST).exec(raw);
+  if (!match) {
+    const form = key === 'PLAYWRIGHT_BASE_URL' ? 'http://host:port' : 'a bare host:port';
+    return [`${key} must be ${form}`];
   }
+  const [, host, port] = match;
   const errors = [];
-  if (Number(url.port) !== appPort) errors.push(`${key} does not use port ${appPort}`);
-  if (!LOOPBACK_ORIGIN.test(url.hostname)) errors.push(`${key} is not a loopback host`);
+  if (Number(port) !== appPort) errors.push(`${key} does not use port ${appPort}`);
+  if (!LOOPBACK_ORIGIN.test(host.toLowerCase())) errors.push(`${key} is not a loopback host`);
   return errors;
 }
 
-function appPortErrors(key, port, marker) {
+function appPortErrors(key, raw, marker) {
+  if (!DECIMAL_PORT.test(raw)) return [`${key} must be a decimal port`];
+  const port = Number(raw);
   if (marker.forbidden_ports.includes(port)) return [`${key} uses forbidden port ${port}`];
   return port === marker.app_port ? [] : [`${key} is not ${marker.app_port}`];
 }
@@ -114,11 +102,12 @@ function emptyValueErrors(env) {
     .map(key => `${key} is set but empty; unset it or give it the marker's value`);
 }
 
-function sourceErrors({ localFiles = [], redirecting = [] }) {
+function sourceErrors({ localFiles = [], unsearched = [], redirecting = [] }) {
   return [
     ...localFiles.map(
       file => `${file} exists; gate runs take settings only from the checked environment`
     ),
+    ...unsearched.map(directory => `${directory} could not be searched for env files`),
     ...redirecting.map(
       name => `${name} is set; it can redirect the run (libpq, dotenv, shell startup or git)`
     ),
@@ -137,7 +126,7 @@ export function environmentErrors(marker, env, sources = {}) {
   }
   if (!env.PW_PORT) errors.push(`PW_PORT must be set to ${marker.app_port}`);
   for (const key of ['PW_PORT', 'PORT']) {
-    if (env[key]) errors.push(...appPortErrors(key, Number(env[key]), marker));
+    if (env[key]) errors.push(...appPortErrors(key, env[key], marker));
   }
   for (const key of [...HOST_ENV_KEYS, 'PLAYWRIGHT_BASE_URL']) {
     if (env[key]) errors.push(...originErrors(key, env[key], marker.app_port));

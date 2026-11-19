@@ -1,15 +1,26 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, statfsSync } from 'node:fs';
+import { readdirSync, readFileSync, statfsSync } from 'node:fs';
 import path from 'node:path';
 
-import { checkedEnvKeys, localEnvFiles, redirectingEnvNames } from './verify-machine-env.mjs';
+import { checkedEnvKeys, redirectingEnvNames } from './verify-machine-env.mjs';
+import { localEnvFiles } from './verify-machine-env-files.mjs';
 import { sha256Hex } from './verify-machine-marker.mjs';
 
 const GIB = 1024 ** 3;
+// Probes never need a credential, and a diagnostic such as NODE_DEBUG=child_process prints the
+// environment a child receives.
+const SECRET_ENV_NAME =
+  /DATABASE_URL|TOKEN|SECRET|PASSWORD|PASSWD|API_KEY|PRIVATE_KEY|CREDENTIAL/iu;
+
+/** The environment for probe commands: everything except variables that may hold a secret. */
+export function probeEnvironment(env = process.env) {
+  return Object.fromEntries(Object.entries(env).filter(([name]) => !SECRET_ENV_NAME.test(name)));
+}
 
 export function runCommand(command, args, cwd) {
   return execFileSync(command, args, {
     cwd,
+    env: probeEnvironment(),
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout: 60_000,
@@ -68,10 +79,13 @@ function freeGib(statfs, target) {
 // entry, and git can set the first bit by itself under core.ignoreStat.
 const HIDDEN_FROM_STATUS = /^(?:[a-z]|S) /u;
 
+// A lost executable bit is a change even where the checkout sets core.fileMode=false.
+const STATUS = ['-c', 'core.fileMode=true', 'status', '--porcelain=v1'];
+
 export function gitState(repoRoot, exec = runCommand) {
   const head = exec('git', ['rev-parse', 'HEAD'], repoRoot);
-  const tracked = exec('git', ['status', '--porcelain=v1', '--untracked-files=no'], repoRoot);
-  const all = exec('git', ['status', '--porcelain=v1', '--untracked-files=all'], repoRoot);
+  const tracked = exec('git', [...STATUS, '--untracked-files=no'], repoRoot);
+  const all = exec('git', [...STATUS, '--untracked-files=all'], repoRoot);
   const hiddenFromStatus = exec('git', ['ls-files', '-v', '-z'], repoRoot)
     .split('\0')
     .filter(entry => HIDDEN_FROM_STATUS.test(entry)).length;
@@ -79,7 +93,15 @@ export function gitState(repoRoot, exec = runCommand) {
 }
 
 /** Collects the live configuration that the marker records. Only hashes leave the machine id. */
-export function probeMachine({ repoRoot, marker, env, exec = runCommand, statfs = statfsSync }) {
+export function probeMachine({
+  repoRoot,
+  marker,
+  env,
+  exec = runCommand,
+  statfs = statfsSync,
+  readdir = readdirSync,
+}) {
+  const envFiles = localEnvFiles(repoRoot, exec, readdir);
   const uuid = parsePlatformUuid(
     tryRun(exec, 'ioreg', ['-rd1', '-c', 'IOPlatformExpertDevice'], repoRoot)
   );
@@ -116,7 +138,8 @@ export function probeMachine({ repoRoot, marker, env, exec = runCommand, statfs 
         .map(key => [key, env[key]])
     ),
     sources: {
-      localFiles: localEnvFiles(repoRoot, exec),
+      localFiles: envFiles.files,
+      unsearched: envFiles.unsearched,
       redirecting: redirectingEnvNames(env),
     },
     freeGib: { repository: freeGib(statfs, repoRoot), system: freeGib(statfs, '/') },

@@ -1,4 +1,8 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
@@ -12,11 +16,53 @@ import {
 import {
   parseContainer,
   parsePlatformUuid,
+  probeEnvironment,
   probeMachine,
   readCiPostgresDigest,
 } from './verify-machine-probe.mjs';
 
 const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
+
+test('probe commands never receive a variable that may hold a secret', () => {
+  const env = {
+    PATH: '/bin',
+    HOME: '/h',
+    DOCKER_CONTEXT: 'orbstack',
+    npm_config_bail: 'true',
+    DATABASE_URL: 'x',
+    E2E_DATABASE_URL_ADMIN: 'x',
+    SENTRY_AUTH_TOKEN: 'x',
+    GH_TOKEN: 'x',
+    BETTER_AUTH_SECRET: 'x',
+    PGPASSWORD: 'x',
+    PADDLE_API_KEY: 'x',
+  };
+  assert.deepEqual(probeEnvironment(env), {
+    PATH: '/bin',
+    HOME: '/h',
+    DOCKER_CONTEXT: 'orbstack',
+    npm_config_bail: 'true',
+  });
+  // With NODE_DEBUG=child_process Node prints each child's environment; none carries the secret.
+  const cwd = mkdtempSync(path.join(os.tmpdir(), 'verify-machine-debug-'));
+  const result = spawnSync(
+    process.execPath,
+    [path.join(REPO_ROOT, 'scripts/ci/verify-machine.mjs'), 'begin', 'security-guard'],
+    {
+      cwd,
+      encoding: 'utf8',
+      env: {
+        PATH: process.env.PATH,
+        HOME: process.env.HOME,
+        NODE_DEBUG: 'child_process',
+        DATABASE_URL: 'postgresql://u:SENTINEL-secret@127.0.0.1:55438/db',
+      },
+    }
+  );
+  rmSync(cwd, { recursive: true });
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(!`${result.stdout}${result.stderr}`.includes('SENTINEL'));
+});
 
 test('a machine that matches its marker has no differences', () => {
   assert.deepEqual(compareMachine(fixtureMarker(), fixtureLive()), []);
@@ -141,20 +187,23 @@ test('the probe hashes the hardware id and keeps only the guarded environment ke
     ['pnpm --version', '10.99.0'],
     ['docker context show', 'orbstack'],
     ['git rev-parse HEAD', 'c'.repeat(40)],
-    ['git status --porcelain=v1 --untracked-files=no', ''],
-    ['git status --porcelain=v1 --untracked-files=all', '?? new.txt'],
+    // core.fileMode=true: a lost executable bit counts even where the checkout ignores modes.
+    ['git -c core.fileMode=true status --porcelain=v1 --untracked-files=no', ''],
+    ['git -c core.fileMode=true status --porcelain=v1 --untracked-files=all', '?? new.txt'],
     ['git ls-files -v -z', 'H package.json\0h README.md\0S docs/a.md\0H b.md\0'],
-    [
-      'git ls-files -z --others -- :(glob,icase)**/.env :(glob,icase)**/.env.*',
-      // A name git would quote in line output (tmp/café/.env) is listed as is.
-      '.env.local\0docker/.env\0tmp/café/.env\0',
-    ],
+    ['git ls-files -z -- :(glob,icase)**/.env :(glob,icase)**/.env.*', '.env.example\0'],
   ]);
   const exec = (command, args) => {
     const key = command === 'ioreg' ? 'ioreg' : [command, ...args].join(' ');
     if (!outputs.has(key)) throw new Error(`unavailable: ${key}`);
     return outputs.get(key);
   };
+  const entry = (name, directory = false) => ({ name, isDirectory: () => directory });
+  const disk = new Map([
+    ['', [entry('.env.local'), entry('.env.example'), entry('docker', true)]],
+    ['docker', [entry('.env')]],
+  ]);
+  const readdir = directory => disk.get(path.relative(REPO_ROOT, directory)) ?? [];
   const live = probeMachine({
     repoRoot: REPO_ROOT,
     marker: fixtureMarker(),
@@ -169,6 +218,7 @@ test('the probe hashes the hardware id and keeps only the guarded environment ke
     },
     exec,
     statfs: () => ({ bavail: 30n * 1024n, bsize: 1024n * 1024n }),
+    readdir,
   });
   assert.equal(live.hardwareUuidSha256.length, 64);
   assert.ok(!JSON.stringify(live).includes('UUID-1'));
@@ -184,7 +234,8 @@ test('the probe hashes the hardware id and keeps only the guarded environment ke
   assert.equal(live.env.KS_HOST, 'ks.127.0.0.1.nip.io:3310');
   assert.ok(!Object.hasOwn(live.env, 'HOME'));
   assert.deepEqual(live.sources, {
-    localFiles: ['.env.local', 'docker/.env', 'tmp/café/.env'],
+    localFiles: ['.env.local', 'docker/.env'],
+    unsearched: [],
     redirecting: ['DOTENV_CONFIG_OVERRIDE', 'GIT_LITERAL_PATHSPECS', 'PGPORT'],
   });
   assert.ok(!JSON.stringify(live.sources).includes('54322'));

@@ -52,13 +52,15 @@ function logPreCheck(deps, reason, problems = []) {
 
 // The shell is its PID and its start time: a later shell that reuses the PID gets its own record
 // path, so it can never finish an older shell's record, even when removing that record fails.
-// Without a start time the chain check (which also reads `ps`) already refuses gate mode.
+// Without a start time the run is a pre-check (see rootErrors).
 function shellIdentity(deps) {
+  let start = '';
   try {
-    return `${deps.shellPid}@${deps.shellStart().trim()}`;
+    start = deps.shellStart().trim();
   } catch {
-    return `${deps.shellPid}@unknown`;
+    start = '';
   }
+  return { id: `${deps.shellPid}@${start || 'unknown'}`, known: start !== '' };
 }
 
 function preCheck(lane, deps, repoRoot, pendingPath, startedAt, reason, problems = []) {
@@ -93,13 +95,15 @@ function probeLive(deps, repoRoot, marker) {
 }
 
 // The lane runs in its package root; git settings must not point the checks at another checkout.
+// Its records are bound to its shell, which needs a known start time.
 function rootErrors(deps, repoRoot) {
+  const errors = deps.shellKnown ? [] : ['the start time of this shell could not be read'];
   try {
-    if (deps.realpath(repoRoot) === deps.realpath(deps.cwd)) return [];
+    if (deps.realpath(repoRoot) === deps.realpath(deps.cwd)) return errors;
   } catch {
-    return ['the repository root could not be resolved'];
+    return [...errors, 'the repository root could not be resolved'];
   }
-  return ['the checked repository is not the checkout running the lane'];
+  return [...errors, 'the checked repository is not the checkout running the lane'];
 }
 
 function begin(lane, deps, repoRoot, pendingPath) {
@@ -229,16 +233,13 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
     return 0;
   }
   const directory = deps.records.recordDirectory({ platform: deps.platform, env: deps.env });
-  const pendingPath = deps.records.pendingRecordPath(
-    directory,
-    repoRoot,
-    lane,
-    shellIdentity(deps)
-  );
+  const shell = shellIdentity(deps);
+  const run = { ...deps, shellKnown: shell.known };
+  const pendingPath = deps.records.pendingRecordPath(directory, repoRoot, lane, shell.id);
   if (command === 'begin') deps.records.pruneStalePending(directory, Date.parse(deps.now()));
   return command === 'begin'
-    ? begin(lane, deps, repoRoot, pendingPath)
-    : stamp(lane, deps, repoRoot, pendingPath, directory);
+    ? begin(lane, run, repoRoot, pendingPath)
+    : stamp(lane, run, repoRoot, pendingPath, directory);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

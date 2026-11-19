@@ -135,6 +135,27 @@ test('a reused PID never finishes an older shell gate record, even when cleanup 
   h.cleanup();
 });
 
+test('a shell whose start time cannot be read never yields gate evidence', () => {
+  const unreadable = () => {
+    throw Object.assign(new Error('again'), { code: 'EAGAIN' });
+  };
+  // At begin: the run is a pre-check that says why.
+  const atBegin = harness({ marker: trusted() });
+  atBegin.deps.shellStart = unreadable;
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], atBegin.deps), 0);
+  assert.match(atBegin.output.log.join('\n'), /start time of this shell could not be read/u);
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], atBegin.deps), 0);
+  assert.equal(atBegin.readFinal().mode, 'PRE-CHECK');
+  atBegin.cleanup();
+  // At stamp only: the gate candidate of the shell is out of reach, so nothing is finished.
+  const atStamp = harness({ marker: trusted() });
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], atStamp.deps), 0);
+  atStamp.deps.shellStart = () => '';
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], atStamp.deps), 0);
+  assert.ok(!atStamp.output.log.some(line => line.startsWith('GATE-EVIDENCE')));
+  atStamp.cleanup();
+});
+
 test('a lane whose checks would inspect another checkout is a pre-check', () => {
   const h = harness({ marker: trusted() });
   // GIT_WORK_TREE or a config override makes git report a toplevel other than the lane's cwd.

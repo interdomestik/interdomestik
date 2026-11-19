@@ -18,18 +18,21 @@ holds the machine's recorded configuration. Every other run is a pre-check.
   - Otherwise the live machine must match every recorded field: hardware id (as a sha256), arch,
     macOS version and build, Node, pnpm, container context and engine, the database container's
     pinned image (equal to the CI postgres image) and every published binding (only `5432/tcp` on
-    the recorded loopback port), every database URL (with an explicit port and no `?` options),
-    `PW_PORT` and `PORT`, every Playwright tenant host and `PLAYWRIGHT_BASE_URL` (recorded port,
-    loopback host), free disk on the repository volume and on `/`, and a clean working tree with
-    no file hidden from `git status` (`assume-unchanged` or `skip-worktree`). `SENTRY_AUTH_TOKEN`
+    the recorded loopback port), every database URL (exactly
+    `postgresql://[user[:password]@]host:port/database`, nothing more), `PW_PORT` and `PORT`
+    (decimal), every Playwright tenant host (a bare `host:port`) and `PLAYWRIGHT_BASE_URL`
+    (`http://host:port`) on the recorded port and a loopback host, free disk on the repository
+    volume and on `/`, and a clean working tree, executable bits included, with no file hidden from
+    `git status` (`assume-unchanged` or `skip-worktree`). `SENTRY_AUTH_TOKEN`
     must be unset, and none of the checked settings may be set to an empty value, since some steps
     then fall back to a default. Ports 3000 and 54322 are always refused.
   - Any difference makes the run a `PRE-CHECK` (the owner, 2026-11-19): it prints every
     difference and continues, and it is never gate evidence. Only an untrusted marker stops it.
   - Every setting comes from the checked environment only. The gatekeeper, the build, the E2E
     server and package loaders read env files in different ways, so the checkout may hold no local
-    `.env` or `.env.<suffix>` file at all, in any directory and any letter case (ignored or
-    untracked; tracked examples are fine). Every variable whose name contains `DATABASE_URL` is
+    `.env` or `.env.<suffix>` file at all, in any directory (nested checkouts and build output
+    included; only `.git` and `node_modules` are skipped) and any letter case. Tracked examples are
+    fine. The files on disk are searched, since git cannot list them all. Every variable whose name contains `DATABASE_URL` is
     checked, and none of these may be set: `PG*` (libpq), `DOTENV_*`, `BASH_ENV`, `ENV`, or any
     `GIT_*` variable except the editor, pager, prompt, SSH and author/committer ones. The checked
     repository must be the checkout that runs the lane.
