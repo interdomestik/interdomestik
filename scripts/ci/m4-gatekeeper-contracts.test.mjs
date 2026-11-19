@@ -57,6 +57,9 @@ test('m4 gatekeeper diagnostics never print database credentials', () => {
       'postgresql://(unprintable host):55438/db',
     ],
     ['postgresql://[::1]:55438/db', 'postgresql://[::1]:55438/db'],
+    // A DNS name is checked label by label: a dotted name passes, a label ending in `-` does not.
+    ['postgresql://db.example.test:55438/db', 'postgresql://db.example.test:55438/db'],
+    ['postgresql://a-.example:55438/db', 'postgresql://(unprintable host):55438/db'],
   ];
   for (const [input, expected] of cases) {
     assert.equal(describeDatabaseUrl(input), expected);

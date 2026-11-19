@@ -48,7 +48,10 @@ export function harness({ marker = { status: 'absent' }, live = fixtureLive(), e
     gitState: () => state.git,
     records: { ...records, recordDirectory: () => directory },
     now: () => '2026-11-19T10:00:00.000Z',
-    newRunId: () => `run-${(runs += 1)}`,
+    newRunId: () => {
+      runs += 1;
+      return `run-${runs}`;
+    },
     log: message => output.log.push(message),
     error: message => output.error.push(message),
   };

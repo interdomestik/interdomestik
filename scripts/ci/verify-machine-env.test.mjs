@@ -58,6 +58,12 @@ test('a database URL drivers could read differently from the check is refused', 
     'postgresql://u%7F:p@127.0.0.1:55438/interdomestik_test',
     'postgresql://u,v:p@127.0.0.1:55438/interdomestik_test',
     'postgresql://u:p;x@127.0.0.1:55438/interdomestik_test',
+    // A second `:`, a `/`, a space or a `?` in the user information (the frame admits any
+    // character but `@` there; the part check refuses these).
+    'postgresql://u:p:q@127.0.0.1:55438/interdomestik_test',
+    'postgresql://u/x:p@127.0.0.1:55438/interdomestik_test',
+    'postgresql://u x:p@127.0.0.1:55438/interdomestik_test',
+    'postgresql://u:p?x@127.0.0.1:55438/interdomestik_test',
     'PostgreSQL://u:p@127.0.0.1:55438/interdomestik_test',
     'postgresql://u:p@[::1]:55438/interdomestik_test',
     'postgresql://u:p@LOCALHOST:55438/interdomestik_test',
@@ -115,7 +121,7 @@ test('ports and hosts must have the exact form Playwright reads', () => {
     'AL_HOST must be a bare host:port',
   ]);
   assert.deepEqual(errorsFor({ PLAYWRIGHT_BASE_URL: 'http://127.0.0.1:3310/x' }), [
-    'PLAYWRIGHT_BASE_URL must be http://host:port',
+    'PLAYWRIGHT_BASE_URL must be an http origin host:port',
   ]);
   // Playwright accepts only decimal digits for the port.
   for (const port of ['3.31e3', '0x0cee', ' 3310', '3310 ']) {

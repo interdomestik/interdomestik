@@ -43,8 +43,10 @@ const LOOPBACK_ORIGIN =
 // optional user[:password] of plain or percent-encoded characters, one lowercase host name (no
 // IPv6 literal), an explicit decimal port, one plain database name and nothing after it. Anything
 // looser (several `@` or hosts, `?options`, `#`, a stray `%`) is read differently by some driver.
-const STRICT_DATABASE_URL =
-  /^postgres(?:ql)?:\/\/(?:((?:[\w.~-]|%[0-9A-Fa-f]{2})*(?::(?:[\w.~-]|%[0-9A-Fa-f]{2})*)?)@)?([a-z0-9.-]+):(\d{1,5})\/([\w-]+)$/u;
+// The frame admits any userinfo without `@`; `plainUserinfo` then admits only plain or
+// percent-encoded parts, at most one `:`, and no control character once decoded.
+const STRICT_DATABASE_URL = /^postgres(?:ql)?:\/\/(?:([^@]*)@)?([a-z0-9.-]+):(\d{1,5})\/([\w-]+)$/u;
+const USERINFO_PART = /^(?:[\w.~-]|%[0-9A-Fa-f]{2})*$/u;
 
 // Percent-encoded user information must decode to valid UTF-8 (or a driver throws on it) with no
 // control character (libpq refuses `%00`, and drivers treat line breaks differently).
@@ -54,8 +56,10 @@ function isControl(character) {
 }
 
 function plainUserinfo(userinfo = '') {
+  const parts = userinfo.split(':');
+  if (parts.length > 2 || !parts.every(part => USERINFO_PART.test(part))) return false;
   try {
-    return userinfo.split(':').every(part => ![...decodeURIComponent(part)].some(isControl));
+    return parts.every(part => ![...decodeURIComponent(part)].some(isControl));
   } catch {
     return false;
   }
@@ -84,7 +88,7 @@ function databaseUrlErrors(key, raw, database, forbiddenPorts) {
 function originErrors(key, raw, appPort) {
   const match = (key === 'PLAYWRIGHT_BASE_URL' ? BASE_URL : TENANT_HOST).exec(raw);
   if (!match) {
-    const form = key === 'PLAYWRIGHT_BASE_URL' ? 'http://host:port' : 'a bare host:port';
+    const form = key === 'PLAYWRIGHT_BASE_URL' ? 'an http origin host:port' : 'a bare host:port';
     return [`${key} must be ${form}`];
   }
   const [, host, port] = match;
