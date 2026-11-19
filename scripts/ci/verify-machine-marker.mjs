@@ -4,7 +4,8 @@ import { createHash } from 'node:crypto';
 export const MARKER_PATH = '/Library/Application Support/Interdomestik/verify-machine.json';
 export const MARKER_SCHEMA = 'interdomestik.verify-machine/1';
 export const REQUIRED_FORBIDDEN_PORTS = Object.freeze([3000, 54322]);
-const LOOPBACK_HOSTS = new Set(['127.0.0.1', '::1', 'localhost']);
+// IPv6 literals are left out: the installed postgres driver reads `[::1]` as host `[`.
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost']);
 
 const KIND_CHECKS = {
   string: value => typeof value === 'string' && value.trim() !== '' && value.length <= 200,

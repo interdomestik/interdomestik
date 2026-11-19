@@ -6,8 +6,11 @@ import { readdirSync } from 'node:fs';
 import path from 'node:path';
 
 // `.env` or `.env.<suffix>` in any letter case (macOS volumes are case-insensitive); `.envrc` is
-// not one.
-const LOCAL_ENV_NAME = /^\.env(?:\..*)?$/iu;
+// not one. A plain comparison, so a name with a line break or any other character still counts.
+function isLocalEnvName(name) {
+  const lower = name.toLowerCase();
+  return lower === '.env' || lower.startsWith('.env.');
+}
 // Git data and installed packages: no lane runs from inside them.
 const SKIPPED_DIRECTORIES = new Set(['.git', 'node_modules']);
 const TRACKED_PATHSPECS = [':(glob,icase)**/.env', ':(glob,icase)**/.env.*'];
@@ -19,7 +22,7 @@ function classify(relative, entries, pending, found) {
     // Links are not followed; a link named like an env file still counts.
     if (entry.isDirectory()) {
       if (!SKIPPED_DIRECTORIES.has(entry.name)) pending.push(entryPath);
-    } else if (LOCAL_ENV_NAME.test(entry.name)) {
+    } else if (isLocalEnvName(entry.name)) {
       found.push(entryPath);
     }
   }

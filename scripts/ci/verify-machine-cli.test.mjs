@@ -185,6 +185,22 @@ test('stamp re-checks the live machine, HEAD, tracked files and the marker', () 
   assert.equal(runVerifyMachine(['stamp', 'pr-verify'], preCheckHead.deps), 1);
   preCheckHead.cleanup();
 });
+
+test('a marker that became untrusted during the run stops the stamp in either mode', () => {
+  for (const marker of [trusted(), undefined]) {
+    const h = harness(marker ? { marker } : {});
+    assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 0);
+    h.state.marker = { status: 'invalid', errors: ['marker file must be owned by root'] };
+    assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 1);
+    assert.match(h.output.error.join('\n'), /not trusted[\s\S]*owned by root/u);
+    assert.ok(
+      h.files().every(f => f.startsWith('pending')),
+      'no final record'
+    );
+    h.cleanup();
+  }
+});
+
 test('begin prunes pending records older than a day and keeps recent ones', () => {
   const h = harness();
   const old = path.join(h.directory, 'pending-pr-verify-old.json');

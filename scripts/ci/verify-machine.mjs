@@ -152,8 +152,7 @@ function headProblems(deps, repoRoot, pending) {
   return head === pending.head ? [] : ['HEAD changed during the run'];
 }
 
-function gateProblems(lane, deps, repoRoot, pending) {
-  const markerResult = deps.readMarker();
+function gateProblems(lane, deps, repoRoot, pending, markerResult) {
   const problems = [...rootErrors(deps, repoRoot), ...chainErrors(lane, { ...deps, repoRoot })];
   if (markerResult.status !== 'trusted' || markerResult.sha256 !== pending.markerSha256) {
     return [...problems, 'the verification marker changed during the run'];
@@ -187,6 +186,11 @@ function writeFinalRecord(lane, deps, pending, pendingPath, directory) {
 }
 
 function stamp(lane, deps, repoRoot, pendingPath, directory) {
+  // An untrusted marker stops the run in either mode, as it does at begin.
+  const markerResult = deps.readMarker();
+  if (markerResult.status === 'invalid') {
+    return fail(deps, ['the verification marker is not trusted:', ...markerResult.errors]);
+  }
   const pending = deps.records.readRecord(pendingPath);
   if (!pending || pending.lane !== lane) {
     deps.log(`${PREFIX} PRE-CHECK lane=${lane}: no begin record in this shell; nothing recorded.`);
@@ -197,7 +201,7 @@ function stamp(lane, deps, repoRoot, pendingPath, directory) {
   if (pending.mode !== records.MODES.gate) {
     return writeFinalRecord(lane, deps, pending, pendingPath, directory);
   }
-  const problems = gateProblems(lane, deps, repoRoot, pending);
+  const problems = gateProblems(lane, deps, repoRoot, pending, markerResult);
   if (problems.length === 0) return writeFinalRecord(lane, deps, pending, pendingPath, directory);
   if (problems.includes('HEAD changed during the run')) return fail(deps, problems);
   logPreCheck(deps, 'the run stopped matching the verification marker', problems);

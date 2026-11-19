@@ -48,12 +48,26 @@ test('a database URL drivers could read differently from the check is refused', 
     `${base}\t`,
     'postgresql://u:p@127.0.0.1:55438/interdomestik_test/extra',
     'postgresql://u:p@127.0.0.1:0x1d5e/interdomestik_test',
+    // A stray `%`, an undecodable escape, a comma or other reserved character in the user
+    // information, an upper-case scheme and an IPv6 literal: drivers disagree on each.
+    'postgresql://u:50%@127.0.0.1:55438/interdomestik_test',
+    'postgresql://u:%C3@127.0.0.1:55438/interdomestik_test',
+    'postgresql://u,v:p@127.0.0.1:55438/interdomestik_test',
+    'postgresql://u:p;x@127.0.0.1:55438/interdomestik_test',
+    'PostgreSQL://u:p@127.0.0.1:55438/interdomestik_test',
+    'postgresql://u:p@[::1]:55438/interdomestik_test',
+    'postgresql://u:p@LOCALHOST:55438/interdomestik_test',
   ];
   for (const raw of ambiguous) {
     assert.deepEqual(errorsFor({ DATABASE_URL: raw }), [`DATABASE_URL ${URL_FORM}`], raw);
   }
   assert.deepEqual(
     errorsFor({ DATABASE_URL: 'postgres://127.0.0.1:55438/interdomestik_test' }),
+    []
+  );
+  // A percent-encoded password that decodes cleanly is fine.
+  assert.deepEqual(
+    errorsFor({ DATABASE_URL: 'postgresql://u:p%40ss@127.0.0.1:55438/interdomestik_test' }),
     []
   );
 });

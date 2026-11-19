@@ -1,33 +1,14 @@
-import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync, statfsSync } from 'node:fs';
 import path from 'node:path';
 
 import { checkedEnvKeys, redirectingEnvNames } from './verify-machine-env.mjs';
 import { localEnvFiles } from './verify-machine-env-files.mjs';
+import { runCommand } from './verify-machine-exec.mjs';
 import { sha256Hex } from './verify-machine-marker.mjs';
 
+export { probeEnvironment, runCommand } from './verify-machine-exec.mjs';
+
 const GIB = 1024 ** 3;
-// Probes never need a credential, and a diagnostic such as NODE_DEBUG=child_process prints the
-// environment a child receives.
-const SECRET_ENV_NAME =
-  /DATABASE_URL|TOKEN|SECRET|PASSWORD|PASSWD|API_KEY|PRIVATE_KEY|CREDENTIAL/iu;
-
-/** The environment for probe commands: everything except variables that may hold a secret. */
-export function probeEnvironment(env = process.env) {
-  return Object.fromEntries(Object.entries(env).filter(([name]) => !SECRET_ENV_NAME.test(name)));
-}
-
-export function runCommand(command, args, cwd) {
-  return execFileSync(command, args, {
-    cwd,
-    env: probeEnvironment(),
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: 60_000,
-    // The index listing grows with the repository (about 0.5 MB today).
-    maxBuffer: 64 * 1024 * 1024,
-  }).trim();
-}
 
 function tryRun(exec, command, args, cwd) {
   try {

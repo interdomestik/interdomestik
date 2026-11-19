@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
 
 import { compareMachine } from './verify-machine-compare.mjs';
@@ -23,7 +23,7 @@ import {
 
 const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
-test('probe commands never receive a variable that may hold a secret', () => {
+test('probe commands receive only allowlisted variables, never one that may hold a secret', () => {
   const env = {
     PATH: '/bin',
     HOME: '/h',
@@ -36,6 +36,10 @@ test('probe commands never receive a variable that may hold a secret', () => {
     BETTER_AUTH_SECRET: 'x',
     PGPASSWORD: 'x',
     PADDLE_API_KEY: 'x',
+    SUPABASE_SERVICE_ROLE_KEY: 'x',
+    npm_config__authtoken: 'x',
+    GIT_HTTP_PROXY_PASSWORD: 'x',
+    SOME_UNKNOWN_SETTING: 'x',
   };
   assert.deepEqual(probeEnvironment(env), {
     PATH: '/bin',
@@ -56,11 +60,35 @@ test('probe commands never receive a variable that may hold a secret', () => {
         HOME: process.env.HOME,
         NODE_DEBUG: 'child_process',
         DATABASE_URL: 'postgresql://u:SENTINEL-secret@127.0.0.1:55438/db',
+        SUPABASE_SERVICE_ROLE_KEY: 'SENTINEL-service-role',
       },
     }
   );
   rmSync(cwd, { recursive: true });
   assert.equal(result.status, 0, result.stderr);
+  assert.ok(!`${result.stdout}${result.stderr}`.includes('SENTINEL'));
+});
+
+test('the marker check lists ACLs without passing on a secret', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'verify-machine-acl-'));
+  const markerFile = path.join(dir, 'verify-machine.json');
+  writeFileSync(markerFile, '{}');
+  const trust = path.join(REPO_ROOT, 'scripts/ci/verify-machine-trust.mjs');
+  const script =
+    `const { readTrustedMarker } = await import(${JSON.stringify(pathToFileURL(trust).href)});` +
+    `console.log(readTrustedMarker(${JSON.stringify(markerFile)}).status);`;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+    encoding: 'utf8',
+    env: {
+      PATH: process.env.PATH,
+      HOME: process.env.HOME,
+      NODE_DEBUG: 'child_process',
+      SUPABASE_SERVICE_ROLE_KEY: 'SENTINEL-service-role',
+    },
+  });
+  rmSync(dir, { recursive: true });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), 'invalid');
   assert.ok(!`${result.stdout}${result.stderr}`.includes('SENTINEL'));
 });
 

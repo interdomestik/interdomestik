@@ -99,6 +99,6 @@ sudo mv "/Library/Application Support/Interdomestik/verify-machine.candidate.jso
 ```
 
 `describe` accepts `--container=`, `--db-host=`, `--db-port=`, `--db-name=`, `--app-port=` and
-`--min-free-gib=`. After a macOS, Node, pnpm or container-runtime update the check fails until the
-owner creates the marker again; that is intended, because the configuration is part of the
-evidence.
+`--min-free-gib=`. After a macOS, Node, pnpm or container-runtime update every run is a PRE-CHECK
+until the owner creates the marker again; that is intended, because the configuration is part of
+the evidence.

@@ -23,6 +23,7 @@ test('env files are found on disk in every directory, any case, inside nested ch
     '.env.example',
     'apps/web/.env.production.local',
     'tmp/café/.env',
+    '.env.\nhidden',
     // A nested checkout is one opaque entry for git; its files are still on disk.
     'tmp/secondary/.git',
     'tmp/secondary/.env',
@@ -43,6 +44,7 @@ test('env files are found on disk in every directory, any case, inside nested ch
   assert.deepEqual(localEnvFiles(root, exec), {
     files: [
       '.env',
+      '.env.\nhidden',
       '.ENV.LOCAL',
       'apps/.env.linked',
       'apps/web/.env.production.local',

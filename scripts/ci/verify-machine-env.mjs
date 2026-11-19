@@ -38,11 +38,22 @@ export function checkedEnvKeys(env) {
 }
 const LOOPBACK_ORIGIN =
   /^(?:127\.0\.0\.1|localhost|\[::1\]|(?:[a-z0-9-]+\.)*127\.0\.0\.1\.nip\.io|(?:[a-z0-9-]+\.)*localhost)$/u;
-// One plain authority: an optional user[:password] without `@`, one host, an explicit decimal
-// port, one plain database name and nothing after it. Drivers disagree on anything looser
-// (several `@`, several hosts, `?options`, `#`), so such a URL could reach a port never checked.
+// One form that the installed driver and libpq both read the same way: a lowercase scheme, an
+// optional user[:password] of plain or percent-encoded characters, one lowercase host name (no
+// IPv6 literal), an explicit decimal port, one plain database name and nothing after it. Anything
+// looser (several `@` or hosts, `?options`, `#`, a stray `%`) is read differently by some driver.
 const STRICT_DATABASE_URL =
-  /^postgres(?:ql)?:\/\/(?:[^@/?#\s\\]*@)?(\[[0-9a-f:]+\]|[a-z0-9.-]+):(\d{1,5})\/([\w-]+)$/iu;
+  /^postgres(?:ql)?:\/\/(?:((?:[\w.~-]|%[0-9A-Fa-f]{2})*(?::(?:[\w.~-]|%[0-9A-Fa-f]{2})*)?)@)?([a-z0-9.-]+):(\d{1,5})\/([\w-]+)$/u;
+
+// Percent-encoded user information must decode to valid UTF-8, or a driver throws on it.
+function decodable(userinfo = '') {
+  try {
+    userinfo.split(':').forEach(part => decodeURIComponent(part));
+    return true;
+  } catch {
+    return false;
+  }
+}
 // Playwright builds `http://<value>/<locale>` from a tenant host, so it must be a bare host:port.
 const TENANT_HOST = /^(\[::1\]|[a-z0-9.-]+):(\d{1,5})$/iu;
 const BASE_URL = /^http:\/\/(\[::1\]|[a-z0-9.-]+):(\d{1,5})\/?$/iu;
@@ -58,14 +69,13 @@ export function redirectingEnvNames(env) {
 
 function databaseUrlErrors(key, raw, database, forbiddenPorts) {
   const match = STRICT_DATABASE_URL.exec(raw);
-  if (!match) {
+  if (!match || !decodable(match[1])) {
     return [`${key} must be postgresql://[user[:password]@]host:port/database and nothing else`];
   }
-  const [, rawHost, rawPort, name] = match;
+  const [, , host, rawPort, name] = match;
   const errors = [];
   const port = Number(rawPort);
   if (forbiddenPorts.includes(port)) errors.push(`${key} uses forbidden port ${port}`);
-  const host = rawHost.replace(/^\[(.*)\]$/u, '$1');
   if (host !== database.host) errors.push(`${key} host is not ${database.host}`);
   if (port !== database.port) errors.push(`${key} port is not ${database.port}`);
   if (name !== database.name) errors.push(`${key} database is not ${database.name}`);
