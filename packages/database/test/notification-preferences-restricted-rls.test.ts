@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { inspect } from 'node:util';
 
 import { eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 
 import { user, userNotificationPreferences as prefs } from '../src/schema';
 import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
+import { grantRlsTestRole } from './rls-test-grants';
 import {
   KS_TENANT_ID,
   MK_TENANT_ID,
@@ -37,9 +39,11 @@ test('the restricted role saves notification preferences for the authority princ
     return rows[0];
   };
 
+  const failures: unknown[] = [];
   try {
+    await grantRlsTestRole(adminDb, ['user_notification_preferences']);
     await adminDb.execute(
-      sql.raw(`grant select, insert, update on table "user_notification_preferences" to ${role}`)
+      sql.raw(`grant insert, update on table "user_notification_preferences" to ${role}`)
     );
     const [
       { updateNotificationPreferencesCore },
@@ -133,17 +137,24 @@ test('the restricted role saves notification preferences for the authority princ
     const beforeRefusal = await readRows(allUserIds);
     assert.deepEqual(await save(initial, peerAuthority), { success: false, error: 'Unauthorized' });
     assert.deepEqual(await readRows(allUserIds), beforeRefusal);
+  } catch (error) {
+    failures.push(error);
   } finally {
-    try {
-      // Preferences cascade on user deletion. The session owns the other two users.
-      await adminDb.delete(user).where(eq(user.id, peerId));
-      await adminDb.execute(
-        sql.raw(
-          `revoke select, insert, update on table "user_notification_preferences" from ${role}`
-        )
-      );
-    } finally {
-      await session.close();
+    for (const cleanup of [
+      () => adminDb.delete(prefs).where(eq(prefs.userId, peerId)),
+      () => adminDb.delete(user).where(eq(user.id, peerId)),
+      () => session.close(),
+    ]) {
+      try {
+        await cleanup();
+      } catch (error) {
+        failures.push(error);
+      }
     }
   }
+
+  for (const error of failures.slice(1)) {
+    t.diagnostic(`Additional cleanup failure: ${inspect(error)}`);
+  }
+  if (failures.length > 0) throw failures[0];
 });
