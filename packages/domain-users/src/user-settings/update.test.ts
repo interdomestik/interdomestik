@@ -6,17 +6,23 @@ import { notificationPreferencesSchema } from './types';
 import { updateNotificationPreferencesCore } from './update';
 
 // Mock dependencies
-const { limit, values, set } = vi.hoisted(() => ({
-  limit: vi.fn((): { id: string }[] => []),
-  values: vi.fn(),
-  set: vi.fn(() => ({ where: vi.fn() })),
-}));
+const { limit, lookupWhere, values, set, updateWhere } = vi.hoisted(() => {
+  const limit = vi.fn((): { id: string }[] => []);
+  const updateWhere = vi.fn();
+  return {
+    limit,
+    lookupWhere: vi.fn(() => ({ limit })),
+    values: vi.fn(),
+    set: vi.fn((_payload: unknown) => ({ where: updateWhere })),
+    updateWhere,
+  };
+});
 
 vi.mock('@interdomestik/database', () => {
   const db = {
     select: vi.fn(() => ({
       from: vi.fn(() => ({
-        where: vi.fn(() => ({ limit })),
+        where: lookupWhere,
       })),
     })),
     insert: vi.fn(() => ({ values })),
@@ -29,7 +35,7 @@ vi.mock('@interdomestik/database', () => {
 });
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: vi.fn((_tenantId, _col, condition) => condition),
+  withTenant: vi.fn((tenantId, column, condition) => ({ tenantId, column, condition })),
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -111,6 +117,7 @@ describe('updateNotificationPreferencesCore', () => {
   });
 
   it.each([
+    ['an unregistered authority', {} as typeof authority],
     ['a different principal', mintTestTenantAuthority('tenant-1', { userId: 'user-2' })],
     ['a null principal', mintTestTenantAuthority('tenant-1')],
   ] as const)('returns Unauthorized without database access for %s', async (_, deniedAuthority) => {
@@ -215,13 +222,9 @@ describe('updateNotificationPreferencesCore', () => {
     { operation: 'update', rows: [{ id: 'existing-id' }], write: set, insertFields: {} },
   ])(
     'uses the authority identity for an $operation even if parsed data contains row fields',
-    async ({ rows, write, insertFields }) => {
+    async ({ operation, rows, write, insertFields }) => {
       const session = { user: { ...mockSession.user } };
-      limit.mockImplementationOnce(() => {
-        // Make a later read of the mutable session distinguishable from the bound principal.
-        session.user.id = 'changed-after-lookup';
-        return rows;
-      });
+      limit.mockReturnValueOnce(rows);
       // Exercise the write independently of the strict schema's current rejection of these keys.
       const data = {
         ...validPreferences,
@@ -230,10 +233,12 @@ describe('updateNotificationPreferencesCore', () => {
         userId: 'input-user',
         createdAt: 'input-created',
         updatedAt: 'input-updated',
+        extraColumn: 'x',
       };
-      vi.spyOn(notificationPreferencesSchema, 'safeParse').mockReturnValueOnce({
-        success: true,
-        data,
+      vi.spyOn(notificationPreferencesSchema, 'safeParse').mockImplementationOnce(() => {
+        // The session matched at authorization time. Both queries must use the bound principal.
+        session.user.id = 'changed-before-lookup';
+        return { success: true, data };
       });
 
       const result = await updateNotificationPreferencesCore({
@@ -243,11 +248,22 @@ describe('updateNotificationPreferencesCore', () => {
       });
 
       expect(result).toEqual({ success: true });
-      expect(withTenant).toHaveBeenLastCalledWith('authority-tenant', 'tenantId', {
+      const userCondition = {
         type: 'eq',
         a: 'userId',
         b: 'user-1',
-      });
+      };
+      const predicate = {
+        tenantId: 'authority-tenant',
+        column: 'tenantId',
+        condition: userCondition,
+      };
+      expect(lookupWhere).toHaveBeenCalledWith(predicate);
+      if (operation === 'update') {
+        expect(updateWhere).toHaveBeenCalledWith(predicate);
+      }
+      expect(withTenant).toHaveBeenLastCalledWith('authority-tenant', 'tenantId', userCondition);
+      expect(write.mock.lastCall?.[0]).not.toHaveProperty('extraColumn');
       expect(write).toHaveBeenCalledWith({
         ...validPreferences,
         ...insertFields,
