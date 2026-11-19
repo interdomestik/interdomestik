@@ -127,6 +127,20 @@ describe('updateNotificationPreferencesCore', () => {
     expect(db.update).not.toHaveBeenCalled();
   });
 
+  it('returns Unauthorized without database access when the session user ID and principal are missing', async () => {
+    const result = await updateNotificationPreferencesCore({
+      session: { user: { role: 'member', tenantId: 'tenant-1' } } as typeof mockSession,
+      authority: mintTestTenantAuthority('tenant-1'),
+      preferences: validPreferences,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    expect(withTenantContext).not.toHaveBeenCalled();
+    expect(db.select).not.toHaveBeenCalled();
+    expect(db.insert).not.toHaveBeenCalled();
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
   it('rejects unknown keys in preferences (strict validation)', async () => {
     const invalidPreferences = {
       ...validPreferences,

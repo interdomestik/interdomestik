@@ -30,10 +30,10 @@ export async function updateNotificationPreferencesCore(params: {
     return { success: false, error: 'Unauthorized' };
   }
   const { tenantId, principal } = descriptor;
-  if (!principal || principal.userId !== session.user.id) {
+  const userId = principal?.userId;
+  if (!userId || userId !== session.user.id) {
     return { success: false, error: 'Unauthorized' };
   }
-  const { userId } = principal;
 
   // Validate input with Zod (strict schema rejects unknown keys)
   const parsed = notificationPreferencesSchema.safeParse(rawPreferences);
