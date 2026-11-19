@@ -1,7 +1,6 @@
 # Interdomestik V2 - Asistenca Membership Roadmap
 
-Full implementation plan: `.agent/tasks/implementation_membership_model.md`
-Multi-tenant vNext plan: `.agent/tasks/implementation_multitenant_vnext.md`
+The order of work is in `docs/engineering/DIRECTION.md`. The two earlier plans that this file named, `.agent/tasks/implementation_membership_model.md` and `.agent/tasks/implementation_multitenant_vnext.md`, were removed with the adoption of the rules of 2026-11 and remain in the history of the repository.
 
 ## Vision
 

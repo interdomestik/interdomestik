@@ -1,91 +1,27 @@
 # 🤖 System Instructions for Gemini (Interdomestik V3 – Phase C Pilot)
 
-You are an expert coding agent working on the **Interdomestik V3 Monorepo**.
-This project is in **Phase C (Pilot Delivery)**.
-
-Your role is to deliver **pilot-complete features** with **zero architectural drift**.
-
----
+The rules for every agent and tool are in `AGENTS.md`. This file holds no rule of its own. Its headings are kept so that whoever looks for an old section finds where it went; `docs/engineering/RULES-MAPPING-PART4-REPOSITORY.md` maps every old line.
 
 ## ⛔ CRITICAL INVARIANTS (NON-NEGOTIABLE)
 
-1. **Routing Authority**
-   - `apps/web/src/proxy.ts` is the **sole source of truth** for routing, access control, and tenant isolation.
-   - Middleware may exist but is **not authoritative**.
-   - Do **NOT** move logic out of `proxy.ts` or duplicate it elsewhere.
-   - Treat `apps/web/src/proxy.ts` as **READ-ONLY** unless a task explicitly authorizes changes.
-
-2. **Canonical Routes (IMMUTABLE CONTRACTS)**
-   - `/member`
-   - `/agent`
-   - `/staff`
-   - `/admin`
-     These routes must **never** be renamed, bypassed, shadowed, or conditionally rerouted.
-
-3. **Identity Ownership And Provider Boundary**
-   - **Identity and sessions**: Better Auth is the sole system of record
-   - **Persistence**: Supabase PostgreSQL, not a second identity/session authority
-   - **Boundary**: `@interdomestik/shared-auth` defines the enforced provider-agnostic contract
-
-   Rules:
-   - Confine provider clients/types to declared adapters and explicitly reviewed transitional exceptions
-   - Existing enforcement is partial; do not introduce new boundary escapes or bypass authentication
-   - Follow `docs/architecture/amendments/2026-11-07-pd-r5-iam-v1.md`; wording adoption does not authorize runtime changes
-
-4. **Payments**
-   - **Stripe is legacy and forbidden** in V3 pilot flows
-   - Use **Paddle** or mocks only
-
-5. **No Architectural Refactors**
-   - Do not “clean up”, “modernize”, “simplify”, or “optimize” architecture
-   - Make **minimum viable, localized changes only**
-   - Refactors require explicit instruction
-
-6. **Documentation Lock**
-   - Do **NOT** modify:
-     - `README.md`
-     - `AGENTS.md`
-     - `docs/ARCHITECTURE.md`
-   - Unless explicitly instructed
-
----
+`AGENTS.md`, section 5: R-34 (the proxy and the canonical routes), R-30 (identity), R-18 (payments), R-29 (no refactor that nobody asked for); tier T6 for instruction and architecture documents.
 
 ## 🛠️ MANDATORY WORKFLOWS
 
+`AGENTS.md`, section 3 (Definition of Done).
+
 ### 1. Verification (Required)
 
-Before confirming any task as complete, you must run:
-
-```bash
-pnpm pr:verify && pnpm security:guard
-```
+`AGENTS.md`, section 3: local verification, once, last, on the final head.
 
 ### 2. E2E Contracts
 
-Features are only complete with full E2E gate evidence. A successful `pnpm pr:verify`
-already supplies it for the same source, configuration, and environment; do not repeat it.
-For a standalone gate when that evidence is not available:
-
-```bash
-pnpm e2e:gate
-```
-
-_Respect `data-testid="*-page-ready"` markers. They are quality gates._
+`AGENTS.md`, R-14 (tests) and R-34 (the `page-ready` markers).
 
 ## 📂 Project Structure Map
 
-- **Routing/Proxy**: `apps/web/src/proxy.ts` (**READ ONLY** unless authorized)
-- **Domain Logic**: `packages/domain-*`
-- **UI Components**: `packages/ui` or `apps/web/src/components`
-- **Database**: `pnpm db:generate` generates Drizzle SQL migrations; `pnpm db:push:local` applies
-  separate Supabase migrations to the local stack only. Generation does not apply changes.
+`AGENTS.md`, R-15 (the layers); the `MODULE.md` of each package; R-12 for migrations.
 
 ## 📝 Coding Style
 
-- **Strict TypeScript**: No `any`. Use Zod for validation.
-- **Server Actions**: Prefer Server Actions for mutations.
-- **Client Components**: Use `'use client'` only at leaf nodes.
-
----
-
-**Your Goal**: Deliver working Pilot features with **zero architectural drift**.
+`AGENTS.md`, R-05 (the action wrapper and the input schema) and R-20 (`docs/engineering/REUSE-CATALOG.md`).

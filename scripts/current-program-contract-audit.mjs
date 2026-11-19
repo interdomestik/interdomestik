@@ -35,6 +35,47 @@ const AUTHORITY_BOUNDARIES = [
   ],
   [/apps\/web\/package\.json/u, 'manifest version authority'],
 ];
+// AGENTS.md states the same boundaries in the words of its own rules (R-34, R-30, R-35, R-17, R-06, R-18, R-04, R-03).
+// Every pattern of the list above has its counterpart here, in the words of the rule that carries the boundary;
+// the billing pattern alone is replaced, by the owner's decision of 2026-11-15 that the provider is open.
+const AGENTS_BOUNDARIES = [
+  [
+    /apps\/web\/src\/proxy\.ts[^]*?change it only with owner approval/u,
+    'read-only proxy authority',
+  ],
+  [
+    /Never rename or bypass `\/member`, `\/agent`, `\/staff`, `\/admin`/u,
+    'protected canonical routes',
+  ],
+  [/keep the `page-ready` markers/u, 'contractual clarity markers'],
+  [
+    /Identity and sessions: Better Auth only, through `@interdomestik\/shared-auth`; provider clients and types stay in adapters/u,
+    'identity ownership and provider boundary',
+  ],
+  [/Never bypass authentication, even in development/u, 'no auth bypass'],
+  [
+    /Never weaken a tenant, row-level-security \(RLS\), document, privacy or data-integrity protection: all are mandatory/u,
+    'mandatory tenant/RLS boundary',
+  ],
+  [
+    /Tenant context comes only from the session through `withTenantAuthority`/u,
+    'session-derived tenant context',
+  ],
+  [
+    /Prove a tenant, role or row-policy rule on a real database under the restricted role/u,
+    'tenant rules proven on a real database',
+  ],
+  [/Payments only through the provider-neutral port/u, 'provider-neutral payment boundary'],
+  [/pnpm pr:verify[^]*?pnpm security:guard/u, 'required local verification'],
+  [
+    /owner approval for required checks, rulesets, `README\.md`, instruction and architecture files/u,
+    'owner-only governance document changes',
+  ],
+  [
+    /No active instruction file may [^.]*?or repeat a fact the repository holds/u,
+    'manifest version authority',
+  ],
+];
 
 function parseArgs(argv) {
   const args = [...argv];
@@ -106,7 +147,8 @@ function validateHeadings(program, tracker, errors) {
 
 function validateActiveAuthority(activeAuthority, errors) {
   for (const [text, file] of activeAuthority) {
-    for (const [pattern, label] of AUTHORITY_BOUNDARIES) {
+    const boundaries = file === FILES.agents ? AGENTS_BOUNDARIES : AUTHORITY_BOUNDARIES;
+    for (const [pattern, label] of boundaries) {
       requireMatch(text, pattern, file, label, errors);
     }
     if (/\b(?:Next\.js|React|Tailwind(?: CSS)?|next-intl)\s+v?\d+(?:\.\d+)*\b/iu.test(text)) {

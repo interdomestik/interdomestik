@@ -89,8 +89,8 @@ test('rejects a weakened boundary even when the other authority file remains cor
   writeFileSync(
     agentsPath,
     readFileSync(agentsPath, 'utf8').replace(
-      'read-only unless the owner explicitly authorizes a justified change',
-      'the routing implementation'
+      'change it only with owner approval',
+      'change it when needed'
     )
   );
   const result = run(root);
@@ -193,8 +193,45 @@ const identityMutations = [
   ],
 ];
 
-for (const repoPath of ['AGENTS.md', 'docs/plans/current-program.md']) {
-  for (const [label, mutate] of identityMutations) {
+// AGENTS.md states the identity boundary in the words of its rule R-30; the program document keeps its own.
+const agentsIdentityMutations = [
+  ['a different owner', text => text.replace('Better Auth only', 'Supabase Auth only')],
+  ['non-exclusive ownership', text => text.replace('Better Auth only,', 'Better Auth,')],
+  [
+    'identity without session ownership',
+    text => text.replace('Identity and sessions:', 'Identity:'),
+  ],
+  [
+    'a missing shared-auth boundary',
+    text => text.replace('@interdomestik/shared-auth', '@interdomestik/legacy-auth'),
+  ],
+  [
+    'unenforced provider separation',
+    text =>
+      text.replace(
+        'provider clients and types stay in adapters',
+        'provider clients and types should stay in adapters'
+      ),
+  ],
+  [
+    'provider-specific coupling',
+    text =>
+      text.replace(
+        'provider clients and types stay in adapters',
+        'provider clients and types are used where needed'
+      ),
+  ],
+];
+const authBypassMutations = {
+  'AGENTS.md': text => text.replace('Never bypass authentication', 'Bypass authentication'),
+  'docs/plans/current-program.md': text => text.replace('never be bypassed', 'be bypassed'),
+};
+
+for (const [repoPath, mutations] of [
+  ['AGENTS.md', agentsIdentityMutations],
+  ['docs/plans/current-program.md', identityMutations],
+]) {
+  for (const [label, mutate] of mutations) {
     test(`rejects ${label} in ${repoPath} independently`, () => {
       const root = fixture();
       const target = join(root, repoPath);
@@ -214,11 +251,40 @@ for (const repoPath of ['AGENTS.md', 'docs/plans/current-program.md']) {
     const root = fixture();
     const target = join(root, repoPath);
     const original = readFileSync(target, 'utf8');
-    const altered = original.replace('never be bypassed', 'be bypassed');
+    const altered = authBypassMutations[repoPath](original);
     assert.notEqual(altered, original, 'fixture mutation must change the authority');
     writeFileSync(target, altered);
     const result = run(root);
     assert.equal(result.status, 1);
     assert.ok(result.stderr.includes(`${repoPath}: missing no auth bypass`));
+  });
+}
+
+// The two boundaries of the old AGENTS.md that have no mutation above: row-level security among the mandatory
+// protections (R-35) and README.md among the files that need the owner's approval (R-04, tier T6).
+for (const [label, from, to, boundary] of [
+  [
+    'mandatory row-level security',
+    'a tenant, row-level-security (RLS), document',
+    'a document',
+    'mandatory tenant/RLS boundary',
+  ],
+  [
+    'README.md under owner approval',
+    'rulesets, `README.md`, instruction',
+    'rulesets, instruction',
+    'owner-only governance document changes',
+  ],
+]) {
+  test(`rejects AGENTS.md without ${label}`, () => {
+    const root = fixture();
+    const target = join(root, 'AGENTS.md');
+    const original = readFileSync(target, 'utf8');
+    const altered = original.replace(from, to);
+    assert.notEqual(altered, original, 'fixture mutation must change the authority');
+    writeFileSync(target, altered);
+    const result = run(root);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes(`AGENTS.md: missing ${boundary}`));
   });
 }
