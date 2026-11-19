@@ -227,27 +227,34 @@ function checkResidual(entry, source) {
   );
 }
 
-// Each kind's promise, checked against the file itself.
-const KIND_CHECKS = new Map(
-  Object.entries({
-    launcher: checkNoClient,
-    contract: checkNoClient,
-    'read-only': checkReadOnly,
-    probe: checkProbe,
-    'container-local': checkContainerLocal,
-    'pinned-read-probe': checkPinnedReadProbe,
-    'owner-operation': checkOwnerOperation,
-    residual: checkResidual,
-  })
-);
+// Each kind's promise, checked against the file itself; an unknown kind is refused.
+function checkKind(entry, source) {
+  switch (entry.kind) {
+    case 'launcher':
+    case 'contract':
+      return checkNoClient(entry, source);
+    case 'read-only':
+      return checkReadOnly(entry, source);
+    case 'probe':
+      return checkProbe(entry, source);
+    case 'container-local':
+      return checkContainerLocal(entry, source);
+    case 'pinned-read-probe':
+      return checkPinnedReadProbe(entry, source);
+    case 'owner-operation':
+      return checkOwnerOperation(entry);
+    case 'residual':
+      return checkResidual(entry, source);
+    default:
+      return assert.fail(`${entry.path}: kind ${entry.kind}`);
+  }
+}
 
 /** Applies the entry's kind to `source`; throws an assertion error when a promise is broken. */
 export function checkEntry(entry, source) {
-  const check = KIND_CHECKS.get(entry.kind);
-  assert.ok(check, `${entry.path}: kind ${entry.kind}`);
   assert.ok(entry.reason?.length >= 40, `${entry.path}: reason`);
   if (entry.kind !== 'owner-operation') {
     assert.equal(entry.modules, undefined, `${entry.path}: only the owner operation has modules`);
   }
-  check(entry, source);
+  checkKind(entry, source);
 }
