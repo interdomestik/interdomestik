@@ -1,6 +1,7 @@
 import {
   readTenantAuthority,
   type TenantAuthority,
+  type TenantAuthorityDescriptor,
 } from '@interdomestik/database/tenant-authority';
 import { userNotificationPreferences } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
@@ -22,6 +23,18 @@ export async function updateNotificationPreferencesCore(params: {
     return { success: false, error: 'Unauthorized' };
   }
 
+  let descriptor: TenantAuthorityDescriptor;
+  try {
+    descriptor = readTenantAuthority(authority);
+  } catch {
+    return { success: false, error: 'Unauthorized' };
+  }
+  const { tenantId, principal } = descriptor;
+  if (!principal || principal.userId !== session.user.id) {
+    return { success: false, error: 'Unauthorized' };
+  }
+  const { userId } = principal;
+
   // Validate input with Zod (strict schema rejects unknown keys)
   const parsed = notificationPreferencesSchema.safeParse(rawPreferences);
   if (!parsed.success) {
@@ -30,14 +43,14 @@ export async function updateNotificationPreferencesCore(params: {
       error: `Validation failed: ${parsed.error.issues[0]?.message ?? 'Invalid input'}`,
     };
   }
-  const preferences: NotificationPreferences = parsed.data;
-
-  let tenantId: string;
-  try {
-    tenantId = readTenantAuthority(authority).tenantId;
-  } catch {
-    return { success: false, error: 'Unauthorized' };
-  }
+  const preferences: NotificationPreferences = {
+    emailClaimUpdates: parsed.data.emailClaimUpdates,
+    emailMarketing: parsed.data.emailMarketing,
+    emailNewsletter: parsed.data.emailNewsletter,
+    pushClaimUpdates: parsed.data.pushClaimUpdates,
+    pushMessages: parsed.data.pushMessages,
+    inAppAll: parsed.data.inAppAll,
+  };
 
   try {
     const [existing] = await withTenantAuthority(
@@ -50,7 +63,7 @@ export async function updateNotificationPreferencesCore(params: {
             withTenant(
               tenantId,
               userNotificationPreferences.tenantId,
-              eq(userNotificationPreferences.userId, session.user.id)
+              eq(userNotificationPreferences.userId, userId)
             )
           )
           .limit(1)
@@ -64,26 +77,28 @@ export async function updateNotificationPreferencesCore(params: {
             .update(userNotificationPreferences)
             .set({
               ...preferences,
+              tenantId,
+              userId,
               updatedAt: new Date(),
             })
             .where(
               withTenant(
                 tenantId,
                 userNotificationPreferences.tenantId,
-                eq(userNotificationPreferences.userId, session.user.id)
+                eq(userNotificationPreferences.userId, userId)
               )
             )
       );
     } else {
-      // db-access-guard: tenant-scoped -- reason: tenantId from validated session before preference insert
+      // db-access-guard: tenant-scoped -- reason: tenant and user IDs come from the validated authority
       await withTenantAuthority(
         authority,
         async tx =>
           await tx.insert(userNotificationPreferences).values({
+            ...preferences,
             id: nanoid(),
             tenantId,
-            userId: session.user.id,
-            ...preferences,
+            userId,
             createdAt: new Date(),
             updatedAt: new Date(),
           })
