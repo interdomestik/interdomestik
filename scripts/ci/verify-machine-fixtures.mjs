@@ -1,0 +1,57 @@
+// Test fixtures for the verification-machine marker; no real machine data.
+export const FIXTURE_DIGEST = `sha256:${'a'.repeat(64)}`;
+export const FIXTURE_HARDWARE_SHA256 = 'b'.repeat(64);
+
+export function fixtureMarker(overrides = {}) {
+  return {
+    schema: 'interdomestik.verify-machine/1',
+    created_at: '2026-11-19T10:00:00.000Z',
+    machine: { hardware_uuid_sha256: FIXTURE_HARDWARE_SHA256, arch: 'arm64' },
+    os: { version: '27.2.1', build: '26B131' },
+    node: 'v24.15.0',
+    pnpm: '10.28.2',
+    container_runtime: { context: 'orbstack', engine: '29.8.2' },
+    database: {
+      image: `postgres:16@${FIXTURE_DIGEST}`,
+      container: 'ida-mac-verify-pg',
+      host: '127.0.0.1',
+      port: 55438,
+      name: 'interdomestik_test',
+    },
+    app_port: 3310,
+    forbidden_ports: [3000, 54322],
+    min_free_gib: 20,
+    ...overrides,
+  };
+}
+
+export function fixtureLive(overrides = {}) {
+  const url = 'postgresql://postgres:postgres@127.0.0.1:55438/interdomestik_test';
+  return {
+    hardwareUuidSha256: FIXTURE_HARDWARE_SHA256,
+    arch: 'arm64',
+    os: { version: '27.2.1', build: '26B131' },
+    node: 'v24.15.0',
+    pnpm: '10.28.2',
+    container: { context: 'orbstack', engine: '29.8.2' },
+    database: {
+      image: `postgres:16@${FIXTURE_DIGEST}`,
+      running: true,
+      hostIp: '127.0.0.1',
+      hostPort: '55438',
+    },
+    ciPostgresDigest: FIXTURE_DIGEST,
+    env: {
+      DATABASE_URL: url,
+      DATABASE_URL_RLS: url,
+      E2E_DATABASE_URL: url,
+      E2E_DATABASE_URL_RLS: url,
+      PW_PORT: '3310',
+      PILOT_HOST: 'pilot.127.0.0.1.nip.io:3310',
+      SENTRY_AUTH_TOKEN: '',
+    },
+    freeGib: { repository: 120, system: 28 },
+    git: { head: 'c'.repeat(40), clean: true, trackedClean: true },
+    ...overrides,
+  };
+}
