@@ -3,6 +3,15 @@ import test from 'node:test';
 
 import { byCodeUnit } from './server-mutation/ast.mjs';
 import {
+  F,
+  ROUTE,
+  TEST,
+  TITLE,
+  forecastEntry,
+  routeProblems,
+  withForecast,
+} from './fixtures/server-mutation-check/forecast.mjs';
+import {
   fixtureCase,
   ids,
   pageEntry,
@@ -10,31 +19,6 @@ import {
   runCheck,
   tree,
 } from './fixtures/server-mutation-check/harness.mjs';
-
-const F = 'apps/web/src/app/api/cron/crm/forecast-snapshots';
-const TITLE = 'returns 401 and performs no scheduler work when unauthorized';
-const forecast = fixtureCase('forecast');
-const ROUTE = forecast[`${F}/route.ts`];
-const TEST = forecast[`${F}/route.test.ts`];
-const forecastEntry = (extra = {}) => ({
-  id: 'cron-forecast',
-  kind: 'route',
-  module: `${F}/route.ts`,
-  method: 'GET',
-  authentication: 'secret-header',
-  effect: 'runCrmForecastSnapshotSchedulerCore',
-  deniedTest: { path: `${F}/route.test.ts`, title: TITLE },
-  writes: true,
-  closedBy: null,
-  source: 'fixture',
-  ...extra,
-});
-const routeProblems = (root, entries) =>
-  ids(runCheck('CHK-26', root, registryOf(entries)))
-    .filter(id => id.includes('#route:'))
-    .map(id => id.split('#route:')[1]);
-const withForecast = (t, route = ROUTE, testText = TEST, more = {}) =>
-  tree(t, { [`${F}/route.ts`]: route, [`${F}/route.test.ts`]: testText, ...more });
 
 test('CHK-26: the forecast route and its denied test pass, with only the open-closure item', t => {
   const root = withForecast(t);

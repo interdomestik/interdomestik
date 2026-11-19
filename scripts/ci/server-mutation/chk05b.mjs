@@ -1,5 +1,5 @@
 // CHK-05b (design §6.4, as r2): a response body is parsed, never cast. Reports a type assertion to
-// anything but `unknown` whose operand (through parentheses, await, `.catch(...)`, `as unknown` and
+// anything but `unknown` whose operand (through parentheses, await, `.catch(...)`, inner assertions and
 // const bindings) is a `.json()` call. Non-test source.
 import ts from 'typescript';
 
@@ -18,7 +18,8 @@ function stripToSource(expression, depth = 0) {
       ts.isNonNullExpression(node)
     )
       node = node.expression;
-    else if (isAssertion(node) && isUnknown(node)) node = node.expression;
+    // Any inner assertion: `x as any as T` and `x as unknown as T` are one cast of `x`.
+    else if (isAssertion(node)) node = node.expression;
     else if (
       ts.isCallExpression(node) &&
       ts.isPropertyAccessExpression(node.expression) &&
@@ -33,6 +34,13 @@ function stripToSource(expression, depth = 0) {
       return stripToSource(binding.decl.initializer, depth + 1);
   }
   return node;
+}
+
+// The assertion directly around this one, through parentheses.
+function enclosingAssertion(node) {
+  let parent = node.parent;
+  while (parent && ts.isParenthesizedExpression(parent)) parent = parent.parent;
+  return parent && isAssertion(parent) ? parent : null;
 }
 
 const isJsonCall = node =>
@@ -54,7 +62,8 @@ export const CHK05B = {
       parse(file).forEachChild(function visit(node) {
         node.forEachChild(visit);
         if (!isAssertion(node) || isUnknown(node)) return;
-        if (isAssertion(node.parent) && !isUnknown(node.parent)) return; // judged at the outer assertion
+        const outer = enclosingAssertion(node);
+        if (outer && !isUnknown(outer)) return; // judged at the outer assertion
         units += 1;
         if (!isJsonCall(stripToSource(node.expression))) return;
         findings.push({

@@ -8,6 +8,11 @@ import { requireTenantAdminSession } from './access';
 import { resolveTenantAuthority, resolveTenantId } from './utils';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
+const isUnauthorizedRefusal = (error: unknown): boolean =>
+  error instanceof Error &&
+  error.name === 'UnauthorizedError' &&
+  (error as { code?: unknown }).code === 'UNAUTHORIZED';
+
 export type TenantClassificationResolutionMode = 'confirm_current' | 'reassign';
 
 export type ResolveTenantClassificationResult = {
@@ -74,7 +79,8 @@ async function validateResolutionInput(params: {
       },
     };
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
+    // Only the typed refusal of the authority helpers; any other failure is unexpected and rethrown.
+    if (isUnauthorizedRefusal(error)) {
       return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
     }
     throw error;

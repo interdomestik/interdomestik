@@ -134,7 +134,7 @@ function libraryProblem(target, fn) {
 // directly (imported from a repository module); the ordering rule is judged in that function.
 function authenticatedFunction({ root, file, fn, names, parse }) {
   const own = callsIn(fn.body).find(call => names.includes(calleeName(call)));
-  if (own) return { fn, file, auth: own };
+  if (own) return { fn, file, auth: own, via: null };
   const imports = importsOf(fn.getSourceFile());
   for (const call of callsIn(fn.body)) {
     const imported = ts.isIdentifier(call.expression) && imports.get(call.expression.text);
@@ -143,7 +143,7 @@ function authenticatedFunction({ root, file, fn, names, parse }) {
       coreFile &&
       methodFunction({ decl: topLevelDeclarations(parse(coreFile)).get(imported.imported) });
     const auth = core && callsIn(core.body).find(inner => names.includes(calleeName(inner)));
-    if (auth) return { fn: core, file: coreFile, auth };
+    if (auth) return { fn: core, file: coreFile, auth, via: call };
   }
   return null;
 }
@@ -165,12 +165,10 @@ export function routeProblem({ root, entry, target, parse }) {
   }
   const effect = effectModule(root, found.file, found.fn, entry.effect);
   const calls = callsIn(found.fn.body);
-  const stray = calls.find(
-    call =>
-      call.getEnd() <= found.auth.getStart() &&
-      !LIMITER_RE.test(calleeName(call) ?? '') &&
-      !REQUEST_READ_RE.test(textOf(call.expression))
-  );
+  // Before the authenticator only the limiter and request reads; with a direct core, the same holds
+  // for the method's own calls before it delegates.
+  const stray =
+    strayBefore(calls, found.auth) ?? (found.via && strayBefore(callsIn(method.body), found.via));
   if (stray) return done(`call before the authenticator: ${textOf(stray.expression)}`, effect);
   const first = calls.find(
     call => call.getStart() > found.auth.getEnd() && calleeName(call) === entry.effect
@@ -181,13 +179,51 @@ export function routeProblem({ root, entry, target, parse }) {
   return done(null, effect);
 }
 
+const strayBefore = (calls, limit) =>
+  calls.find(
+    call =>
+      call.getEnd() <= limit.getStart() &&
+      !LIMITER_RE.test(calleeName(call) ?? '') &&
+      !REQUEST_READ_RE.test(textOf(call.expression))
+  );
+
+function bindingNames(name) {
+  if (ts.isIdentifier(name)) return [name.text];
+  return (name.elements ?? []).flatMap(element =>
+    ts.isOmittedExpression(element) ? [] : bindingNames(element.name)
+  );
+}
+
+// Names bound to the authenticator's result: `const ingress = await authorize(...)` or a pattern.
+function resultNames(auth) {
+  let node = auth;
+  while (ts.isAwaitExpression(node.parent) || ts.isParenthesizedExpression(node.parent))
+    node = node.parent;
+  const decl = node.parent;
+  return ts.isVariableDeclaration(decl) && decl.initializer === node
+    ? new Set(bindingNames(decl.name))
+    : new Set();
+}
+
+// The condition tests the authenticator's result: it contains the call or a name bound to it.
+function testsResult(condition, auth, names) {
+  let hit = condition === auth;
+  condition.forEachChild(function visit(node) {
+    if (node === auth || (ts.isIdentifier(node) && names.has(node.text))) hit = true;
+    node.forEachChild(visit);
+  });
+  return hit;
+}
+
+// An `if` on the authenticator's result, with a `return` on its branch, before the first effect.
 function denialReturnBetween(body, auth, effect) {
+  const names = resultNames(auth);
   let found = false;
   body.forEachChild(function visit(node) {
     if (
       ts.isIfStatement(node) &&
-      node.getStart() >= auth.getEnd() &&
-      node.getEnd() <= effect.getStart()
+      node.getEnd() <= effect.getStart() &&
+      testsResult(node.expression, auth, names)
     ) {
       node.thenStatement.forEachChild(function inner(child) {
         if (ts.isReturnStatement(child)) found = true;

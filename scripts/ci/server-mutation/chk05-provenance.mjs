@@ -3,10 +3,25 @@
 // first parameter of a wrapper handler; member paths and const aliases of those. Nothing else.
 import ts from 'typescript';
 
-import { textOf, unwrap } from './ast.mjs';
+import { importsOf, resolveModule, textOf, unwrap } from './ast.mjs';
 import { memberSchema, openReasons, rootProblem } from './chk05-schema.mjs';
 
 const FACTORIES = new Set(['defineAction', 'defineFormAction']);
+const WRAPPER_MODULE = 'apps/web/src/lib/safe-action.ts';
+
+// The callee is the wrapper's factory, imported from the wrapper module (not a same-named helper).
+function isWrapperFactory(call, ctx) {
+  if (!ts.isIdentifier(call.expression)) return false;
+  const imported = importsOf(call.getSourceFile()).get(call.expression.text);
+  return (
+    Boolean(imported) &&
+    FACTORIES.has(imported.imported) &&
+    resolveModule(ctx.root, ctx.file, imported.specifier) === WRAPPER_MODULE
+  );
+}
+
+const hasInputSchema = object =>
+  object.properties.some(p => ts.isPropertyAssignment(p) && p.name.getText() === 'input');
 const PARSE = new Set(['parse', 'parseAsync']);
 const SAFE_PARSE = new Set(['safeParse', 'safeParseAsync']);
 
@@ -56,7 +71,7 @@ export function lookup(identifier) {
   return null;
 }
 
-function isHandlerParameter(fn, index) {
+function isHandlerParameter(fn, index, ctx) {
   if (index !== 0) return false;
   const holder = fn.parent;
   const isHandler =
@@ -70,8 +85,8 @@ function isHandlerParameter(fn, index) {
     isHandler &&
     Boolean(call) &&
     ts.isCallExpression(call) &&
-    ts.isIdentifier(call.expression) &&
-    FACTORIES.has(call.expression.text)
+    isWrapperFactory(call, ctx) &&
+    hasInputSchema(object)
   );
 }
 
@@ -146,7 +161,7 @@ function callProblem(value, ctx, path) {
 function identifierProblem(value, ctx, path, depth) {
   const binding = lookup(value);
   if (binding?.kind === 'param')
-    return isHandlerParameter(binding.fn, binding.index) ? null : `parameter ${value.text}`;
+    return isHandlerParameter(binding.fn, binding.index, ctx) ? null : `parameter ${value.text}`;
   if (binding?.kind !== 'const' || !binding.decl.initializer) return `unbound ${value.text}`;
   const nextPath = binding.key ? [binding.key, ...path] : path;
   return provenanceProblem(binding.decl.initializer, ctx, nextPath, depth + 1);

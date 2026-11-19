@@ -58,6 +58,22 @@ describe('extractSubject reads the raw input, never the parsed one', () => {
     expect(form({ claimId: 'c-1' })).toEqual({ type: 'claim', id: 'unknown' });
   });
 
+  it('never runs an accessor or a proxy trap of the input: the target is unknown', () => {
+    const getter = vi.fn(() => 'claim_1');
+    const accessor = Object.defineProperty({}, 'claimId', { get: getter, enumerable: true });
+    const throwing = new Proxy(
+      {},
+      {
+        getOwnPropertyDescriptor: () => {
+          throw new Error('trap');
+        },
+      }
+    );
+    expect(object(accessor)).toEqual({ type: 'claim', id: 'unknown' });
+    expect(getter).not.toHaveBeenCalled();
+    expect(object(throwing)).toEqual({ type: 'claim', id: 'unknown' });
+  });
+
   it('self names the actor and none names nothing', () => {
     expect(extractSubject({ type: 'self' }, {}, { form: false, actorId: 'u-1' })).toEqual({
       type: 'self',

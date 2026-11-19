@@ -127,6 +127,23 @@ describe('resolveTenantClassificationCore', () => {
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
 
+    it('rethrows a failed delegation lookup instead of reporting it as a refusal', async () => {
+      // Untyped, whatever its text: only the typed UnauthorizedError is a refusal (design §4).
+      const failure = new Error('Unauthorized');
+      mocks.delegateSuperAdminTenant.mockRejectedValueOnce(failure);
+
+      await expect(
+        resolveTenantClassificationCore({
+          session: superAdminSession,
+          authority: superAuthority,
+          userId: 'member-1',
+          currentTenantId: 'tenant_mk',
+          targetTenantId: 'tenant_mk',
+        })
+      ).rejects.toBe(failure);
+      expect(mocks.withTenantContext).not.toHaveBeenCalled();
+    });
+
     it('rejects a request without a session authority before any tenant read', async () => {
       const result = await resolveTenantClassificationCore({
         session: adminSession,

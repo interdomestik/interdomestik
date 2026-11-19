@@ -8,14 +8,13 @@ import { ScanError } from './ast.mjs';
 
 // Fixed paths, as the other repository scripts use; never a binary found on PATH.
 const GIT = '/usr/bin/git';
-const TAR = '/usr/bin/tar';
 const SHA_RE = /^[0-9a-f]{7,64}$/u;
 
 function git(repo, args, options = {}) {
   const result = spawnSync(GIT, ['-C', repo, ...args], {
     encoding: options.encoding ?? 'utf8',
     maxBuffer: 256 * 1024 * 1024,
-    env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0', ...options.env },
   });
   return { ok: result.status === 0, stdout: result.stdout, stderr: String(result.stderr ?? '') };
 }
@@ -47,14 +46,22 @@ export function showAt(repo, sha, file) {
   return result.stdout;
 }
 
-// Extracts a revision into a fresh temporary directory; the caller removes it.
+// Writes every file of a revision into a fresh temporary directory; the caller removes it.
+// Through a private index and checkout-index, not `git archive`: an archive honours the
+// revision's own `export-ignore` attributes and could leave committed sources unscanned.
 export function extractRevision(repo, sha) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'server-mutation-head-'));
-  const tar = path.join(dir, '.head.tar');
-  const archive = git(repo, ['archive', '--format=tar', '-o', tar, sha]);
-  if (!archive.ok) throw new ScanError(`cannot archive ${sha}`);
-  const unpack = spawnSync(TAR, ['-xf', tar, '-C', dir]);
-  fs.rmSync(tar, { force: true });
-  if (unpack.status !== 0) throw new ScanError(`cannot unpack ${sha}`);
+  const indexDir = fs.mkdtempSync(path.join(os.tmpdir(), 'server-mutation-index-'));
+  const env = { GIT_INDEX_FILE: path.join(indexDir, 'index') };
+  try {
+    if (!git(repo, ['read-tree', sha], { env }).ok) throw new ScanError(`cannot read ${sha}`);
+    const out = git(repo, ['checkout-index', '--all', '--force', `--prefix=${dir}/`], { env });
+    if (!out.ok) throw new ScanError(`cannot write the files of ${sha}`);
+  } catch (error) {
+    fs.rmSync(dir, { recursive: true, force: true });
+    throw error;
+  } finally {
+    fs.rmSync(indexDir, { recursive: true, force: true });
+  }
   return dir;
 }

@@ -106,14 +106,38 @@ function expectations(body) {
   return out;
 }
 
-const assertsStatus = (list, allowed) =>
+// A status assertion on the response of the invoked method: `res.status` where `res` is bound to a
+// call of it, or `(await METHOD(...)).status`.
+const assertsStatus = (list, allowed, subjects) =>
   list.some(
     e =>
       !e.negated &&
       ['toBe', 'toEqual', 'toStrictEqual'].includes(e.matcher) &&
       allowed.has(e.args[0] ?? '') &&
-      /status$/u.test(e.subject)
+      subjects(e.subject)
   );
+
+function methodResponses(body, local) {
+  const names = new Set();
+  const inline = new Set();
+  body.forEachChild(function visit(node) {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === local
+    ) {
+      let outer = node;
+      while (ts.isAwaitExpression(outer.parent) || ts.isParenthesizedExpression(outer.parent))
+        outer = outer.parent;
+      if (ts.isVariableDeclaration(outer.parent) && ts.isIdentifier(outer.parent.name))
+        names.add(`${outer.parent.name.text}.status`);
+      if (ts.isPropertyAccessExpression(outer.parent) && outer.parent.name.text === 'status')
+        inline.add(textOf(outer.parent));
+    }
+    node.forEachChild(visit);
+  });
+  return subject => names.has(subject) || inline.has(subject);
+}
 
 const assertsZeroCalls = (list, mocks) =>
   list.some(
@@ -152,9 +176,11 @@ export function deniedTestProblem({ root, entry, parse, effect }) {
   });
   if (!calls) return 'denied test does not call that method';
   const list = expectations(body);
+  const responses = methodResponses(body, local);
   if (entry.authentication === 'closed-410')
-    return assertsStatus(list, new Set(['410'])) ? null : 'no 410 assertion';
-  if (!assertsStatus(list, DENIAL_STATUSES)) return 'no 401/403/404 status assertion';
+    return assertsStatus(list, new Set(['410']), responses) ? null : 'no 410 assertion';
+  if (!assertsStatus(list, DENIAL_STATUSES, responses))
+    return "no 401/403/404 status assertion on that method's response";
   if (!effect) return 'effect import not resolvable';
   return assertsZeroCalls(list, effectMockTexts(root, sf, testPath, effect))
     ? null

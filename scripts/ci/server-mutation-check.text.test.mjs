@@ -11,13 +11,17 @@ test('CHK-05b: a cast .json() body is reported through await, parentheses, catch
 export async function a(r: Response) { return (await r.json()) as Body; }
 export async function b(r: Response) { const raw = await r.json().catch(() => null); return raw as Body; }
 export async function c(r: Response) { return (await r.json()) as unknown as Body; }
-export async function d(r: Response) { return <Body>(await r.json()); }`;
+export async function d(r: Response) { return <Body>(await r.json()); }
+export async function e(r: Response) { return (await r.json()) as any as Body; }
+export async function f(r: Response) { return <Body>(<any>(await r.json())); }`;
   const result = runCheck('CHK-05b', tree(t, { [M]: body }));
   assert.deepEqual(result.findings.map(f => f.id.split('#')[1]).sort(byCodeUnit), [
     'a',
     'b',
     'c',
     'd',
+    'e',
+    'f',
   ]);
 });
 

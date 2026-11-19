@@ -15,6 +15,20 @@ import {
 // written under the caller's own authority (design §5.2). Proved here on the real database under
 // the restricted role: the caller's tenant writes its row, cannot write one for another tenant,
 // and another tenant cannot read it.
+
+type PgFailure = { code?: unknown; message?: unknown; cause?: unknown };
+
+// The row policy itself refused the write (SQLSTATE 42501, row-level security), not a connection,
+// constraint or any other failure.
+function rowPolicyRejection(error: unknown): boolean {
+  for (let current = error as PgFailure | undefined; current;) {
+    if (current.code === '42501' && /row-level security/iu.test(String(current.message)))
+      return true;
+    current = current.cause as PgFailure | undefined;
+  }
+  return false;
+}
+
 test(
   'a refusal row stays inside the caller tenant under the restricted role',
   { timeout: 30_000 },
@@ -64,7 +78,8 @@ test(
         await assert.rejects(
           withTenantAuthority(callerA, tx =>
             tx.insert(auditLog).values(refusalRow(fixture.newId('refusal_b'), MK_TENANT_ID))
-          )
+          ),
+          rowPolicyRejection
         );
         const rows = await adminDb.select().from(auditLog).where(byOperation);
         assert.deepEqual(

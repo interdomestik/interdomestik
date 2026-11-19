@@ -15,11 +15,20 @@ import { UNAUTH_TEXT } from './unauth-text.mjs';
 export const CHECKS = Object.freeze([CHK04, CHK05, CHK05B, CHK26, UNAUTH_TEXT]);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-// sha256 over the check's predicate sources (this scanner's own files) and its baseline settings.
+// Files every check's result passes through: evaluation, ratchet, git access, output and the CLI.
+export const SHARED_SOURCES = Object.freeze([
+  'evaluate.mjs',
+  'baseline.mjs',
+  'git.mjs',
+  'output.mjs',
+  '../server-mutation-check.mjs',
+]);
+
+// sha256 over the check's predicate sources, the shared evaluation (this scanner's own files) and
+// the check's baseline settings.
 export function predicateDigest(check, settings, dir = HERE) {
-  const parts = check.sources.map(
-    name => `${name}\n${fs.readFileSync(path.join(dir, name), 'utf8')}`
-  );
+  const names = [...new Set([...check.sources, ...SHARED_SOURCES])];
+  const parts = names.map(name => `${name}\n${fs.readFileSync(path.join(dir, name), 'utf8')}`);
   const config = JSON.stringify({
     unit: settings.unit,
     predicate: settings.predicate,

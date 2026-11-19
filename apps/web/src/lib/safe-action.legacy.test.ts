@@ -15,7 +15,7 @@ vi.mock('@sentry/nextjs', () => ({
 vi.mock('next/navigation', async importOriginal => importOriginal());
 
 import { notFound } from 'next/navigation';
-import { runAuthenticatedAction } from './safe-action';
+import { actionFailure, runAuthenticatedAction } from './safe-action';
 
 function thrown(error: unknown) {
   // The wrapper awaits the handler inside its try, so a synchronous throw takes the same path.
@@ -111,6 +111,47 @@ describe('runAuthenticatedAction (legacy) classification, design §4', () => {
       control = error;
     }
     await expect(thrown(new Error('wrapped', { cause: control }))).rejects.toBeDefined();
+  });
+
+  it.each([
+    ['the forbidden() fallback', 'NEXT_HTTP_ERROR_FALLBACK;403'],
+    ['the unauthorized() fallback', 'NEXT_HTTP_ERROR_FALLBACK;401'],
+    ['a client-rendering bailout', 'BAILOUT_TO_CLIENT_SIDE_RENDERING'],
+    ['a dynamic-usage rendering error', 'DYNAMIC_SERVER_USAGE'],
+  ])('rethrows %s without capture or record', async (_label, digest) => {
+    const control = Object.assign(new Error(digest), { digest });
+    await expect(thrown(control)).rejects.toBe(control);
+    expect(mocks.capture).not.toHaveBeenCalled();
+    expect(mocks.write).not.toHaveBeenCalled();
+  });
+
+  it('a MissingTenantError name without its code is an internal failure', async () => {
+    mocks.authorize.mockRejectedValueOnce(
+      Object.assign(new Error('lookup failed'), { name: 'MissingTenantError' })
+    );
+    expect(await runAuthenticatedAction(() => Promise.resolve('never'))).toMatchObject({
+      code: 'INTERNAL_SERVER_ERROR',
+    });
+    expect(mocks.capture).toHaveBeenCalledTimes(1);
+  });
+
+  it('a returned branded refusal is recorded once and stays concealed', async () => {
+    const concealed = actionFailure('FORBIDDEN', 'row belongs elsewhere', { conceal: 'NOT_FOUND' });
+    expect(await runAuthenticatedAction(() => Promise.resolve(concealed))).toEqual({
+      success: false,
+      error: 'Not found',
+      code: 'NOT_FOUND',
+    });
+    expect(mocks.write).toHaveBeenCalledTimes(1);
+    expect(mocks.write).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: expect.objectContaining({ code: 'FORBIDDEN' }) })
+    );
+  });
+
+  it('records a passed-through { error, code } refusal without a success key', async () => {
+    const passed = { error: 'Nope', code: 'UNAUTHORIZED' };
+    expect(await runAuthenticatedAction(() => Promise.resolve(passed))).toBe(passed);
+    expect(mocks.write).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the duck-typed pass-through and records a passed-through refusal', async () => {

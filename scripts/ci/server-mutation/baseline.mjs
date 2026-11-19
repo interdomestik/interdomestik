@@ -75,9 +75,15 @@ export function parseBaseline(text, label, checks) {
 const exceptionKey = e => `${e.check}\u0000${e.item}\u0000${e.kind}`;
 
 // Exceptions count only when this change adds them; an exception already in the base is spent.
+// A multiset: each fresh exception admits exactly one occurrence.
 function freshExceptions(base, head) {
-  const spent = new Set((base?.exceptions ?? []).map(exceptionKey));
-  return new Set(head.exceptions.map(exceptionKey).filter(key => !spent.has(key)));
+  const keys = multisetMinus(
+    head.exceptions.map(exceptionKey),
+    (base?.exceptions ?? []).map(exceptionKey)
+  );
+  const counts = new Map();
+  for (const key of keys) counts.set(key, (counts.get(key) ?? 0) + 1);
+  return counts;
 }
 
 export function multisetMinus(left, right) {
@@ -98,8 +104,14 @@ const coverageValues = value => (isCount(value) ? { '*': value } : value);
 export function tamperFindings(id, base, head) {
   if (!base) return [];
   const fresh = freshExceptions(base, head);
-  const allowed = (item, ...kinds) =>
-    kinds.some(kind => fresh.has(exceptionKey({ check: id, item, kind })));
+  // Consumes one fresh exception of the first matching kind, so it admits one occurrence only.
+  const allowed = (item, ...kinds) => {
+    const key = kinds
+      .map(kind => exceptionKey({ check: id, item, kind }))
+      .find(candidate => fresh.get(candidate) > 0);
+    if (key) fresh.set(key, fresh.get(key) - 1);
+    return Boolean(key);
+  };
   const baseCheck = base.checks[id];
   const headCheck = head.checks[id];
   if (!baseCheck) return [];

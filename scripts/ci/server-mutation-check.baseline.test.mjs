@@ -103,6 +103,18 @@ test('tamper: an exception already in the base is spent and admits nothing new',
   assert.deepEqual(tamperFindings('CHK-04', base, head), ['CHK-04#added:b']);
 });
 
+test('tamper: one exception admits one occurrence of a multiset item, not two', () => {
+  const base = parse(withItems('UNAUTH-TEXT', ['a']));
+  const twice = withItems('UNAUTH-TEXT', ['a', 'b', 'b']);
+  const once = parse({ ...twice, exceptions: [exception('UNAUTH-TEXT', 'b', 'added')] });
+  assert.deepEqual(tamperFindings('UNAUTH-TEXT', base, once), ['UNAUTH-TEXT#added:b']);
+  const both = parse({
+    ...twice,
+    exceptions: [exception('UNAUTH-TEXT', 'b', 'added'), exception('UNAUTH-TEXT', 'b', 'added')],
+  });
+  assert.deepEqual(tamperFindings('UNAUTH-TEXT', base, both), []);
+});
+
 test('tamper: shrinking items, raising coverage and the bootstrap (no base) are clean', () => {
   const base = parse(withItems('CHK-04', ['a', 'b'], { coverageMin: 3 }));
   assert.deepEqual(

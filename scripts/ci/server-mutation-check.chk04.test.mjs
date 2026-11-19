@@ -144,3 +144,22 @@ test('CHK-04 reports any importer of runPublicIntake except its own test', t => 
   assert.ok(found.includes(`${A}/intake.ts#imports-runPublicIntake`));
   assert.ok(!found.some(id => id.includes('safe-action.public.test.ts')));
 });
+
+test('CHK-04 reports dynamic imports and requires of the public intake module (Astra r1 B09)', t => {
+  const root = tree(t, {
+    'apps/web/src/lib/safe-action.public.ts': 'export async function runPublicIntake() {}\n',
+    [`${A}/lazy.ts`]:
+      "export async function f() {\n  const m = await import('@/lib/safe-action.public');\n  return m;\n}\n",
+    [`${A}/cjs.js`]: "const m = require('../lib/safe-action.public');\nmodule.exports = m;\n",
+    [`${A}/unrelated.ts`]: "export async function g() {\n  return import('@/lib/other');\n}\n",
+  });
+  const found = ids(runCheck('CHK-04', root));
+  assert.ok(found.includes(`${A}/lazy.ts#imports-runPublicIntake`), found.join('\n'));
+  assert.ok(found.includes(`${A}/cjs.js#imports-runPublicIntake`), found.join('\n'));
+  assert.ok(!found.some(id => id.includes('unrelated.ts')));
+});
+
+test('CHK-04 counts a JavaScript use-server module', t => {
+  const root = tree(t, { [`${A}/legacy.js`]: "'use server';\nexport async function act() {}\n" });
+  assert.ok(ids(runCheck('CHK-04', root)).includes(`${A}/legacy.js#act`));
+});

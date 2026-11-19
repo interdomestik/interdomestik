@@ -11,9 +11,19 @@ import { routeProblem } from './chk26-routes.mjs';
 import { deniedTestProblem } from './chk26-tests.mjs';
 import { collectUnits } from './units.mjs';
 
-// The four portal path segments of R-34 (route segments, not roles).
+// The four portal path segments of R-34 (route segments, not roles). As the proxy decides it: the
+// first URL segment after the locale; route groups `(x)` and parallel slots `@x` are not URL segments.
 const PORTAL_SEGMENT = /^(?:member|agent|staff|admin)$/u;
-const isPortalPage = page => page.split('/').some(segment => PORTAL_SEGMENT.test(segment));
+const APP_DIR = 'apps/web/src/app/';
+function isPortalPage(page) {
+  const segments = page
+    .slice(page.startsWith(APP_DIR) ? APP_DIR.length : 0)
+    .split('/')
+    .slice(0, -1)
+    .filter(segment => !/^\(.*\)$/u.test(segment) && !segment.startsWith('@'));
+  const topLevel = segments[0] === '[locale]' ? segments[1] : segments[0];
+  return PORTAL_SEGMENT.test(topLevel ?? '');
+}
 
 function bindingOf(entry) {
   if (entry.kind === 'server-action') return `${entry.module}#${entry.export}`;
@@ -24,7 +34,7 @@ function bindingOf(entry) {
 
 function pagesOutsidePortals(root) {
   return listSourceFiles(root, ['apps/web/src/app']).filter(
-    file => file.endsWith('/page.tsx') && !isPortalPage(file.slice('apps/web/src/app/'.length))
+    file => file.endsWith('/page.tsx') && !isPortalPage(file)
   );
 }
 
@@ -76,6 +86,24 @@ function actionFindings(root, registry, units, add) {
   }
 }
 
+// A server action the trusted base registered must stay registered while it is still exported:
+// dropping its row is not a closure (WP-10 closes entries; part 1 never does).
+function deregisteredFindings(baseRegistry, registry, units, add) {
+  if (!baseRegistry) return;
+  const isAction = e => e.kind === 'server-action';
+  const bindingsOf = e => [bindingOf(e), ...(e.aliases ?? [])];
+  const exports = new Set(units.actions.map(unit => `${unit.file}#${unit.name}`));
+  const bound = new Set(registry.entries.filter(isAction).flatMap(bindingsOf));
+  for (const entry of baseRegistry.entries.filter(isAction))
+    for (const binding of bindingsOf(entry))
+      if (exports.has(binding) && !bound.has(binding))
+        add(
+          `${entry.id}@${binding}#deregistered`,
+          'registered in the base and still exported, but no longer registered',
+          entry.module
+        );
+}
+
 function pageFindings(root, registry, add) {
   const pages = pagesOutsidePortals(root);
   const listed = new Set(registry.entries.filter(e => e.kind === 'page').map(e => e.page));
@@ -123,6 +151,7 @@ export const CHK26 = {
     const add = (id, message, file = null) => findings.push({ id, file, message });
     claimFindings(registry, add);
     actionFindings(root, registry, units, add);
+    deregisteredFindings(ctx.baseRegistry ?? null, registry, units, add);
     for (const entry of registry.entries.filter(e => e.kind === 'route'))
       for (const problem of routeFindings(ctx, entry, units))
         add(`${entry.id}@${bindingOf(entry)}#route:${problem}`, problem, entry.module);

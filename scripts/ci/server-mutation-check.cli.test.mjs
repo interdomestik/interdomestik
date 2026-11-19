@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
@@ -16,12 +17,15 @@ import {
   runCli,
   tempDir,
   REPO_ROOT,
+  SCANNER,
 } from './fixtures/server-mutation-check/harness.mjs';
 
 const PAGE = 'apps/web/src/app/page.tsx';
 const REGISTRY = 'apps/web/src/lib/public-entry-points.json';
 const BASELINE = 'scripts/ci/server-mutation-baseline.json';
 const SCRIPT = 'scripts/ci/server-mutation-check.mjs';
+const SCRIPT_NAME = 'server-mutation-check.mjs';
+const CHECKS_DIR = 'scripts/ci/server-mutation';
 const PAGE_ITEM = `page-home@${PAGE}#no-closure`;
 const cleanBaseline = (overrides = {}) =>
   baselineOf({ 'CHK-26': { exhausted: undefined, items: [PAGE_ITEM] }, ...overrides });
@@ -33,6 +37,11 @@ const tree = (baseline, extra = {}) => ({
   ...(baseline ? { [BASELINE]: json(baseline) } : {}),
   ...extra,
 });
+
+function withoutCheck(baseline, id) {
+  const checks = Object.fromEntries(Object.entries(baseline.checks).filter(([key]) => key !== id));
+  return { ...baseline, checks };
+}
 
 function scenario(t, base, head) {
   const repo = initRepo(tempDir(t, 'smc-git-'));
@@ -86,6 +95,59 @@ test('head baseline: missing, unparseable or valid-but-empty exits 2', t => {
     const { repo, baseSha } = scenario(t, tree(cleanBaseline()), head);
     assert.equal(runCli(repo, ['--base', baseSha]).code, 2, String(broken));
   }
+});
+
+test('base baseline: valid-but-empty, or missing a check its own scanner ran, exits 2', t => {
+  const empty = json({ version: 1, takenAt: 'x', checks: {}, exceptions: [] });
+  const emptyBase = scenario(t, tree(null, { [BASELINE]: empty }), tree(cleanBaseline()));
+  assert.equal(runCli(emptyBase.repo, ['--base', emptyBase.baseSha]).code, 2);
+  const partial = withoutCheck(cleanBaseline(), 'CHK-05b');
+  const ran = { [`${CHECKS_DIR}/chk05b.mjs`]: "export const CHK05B = { id: 'CHK-05b' };\n" };
+  const withScanner = scenario(t, tree(partial, ran), tree(cleanBaseline()));
+  const { code, report } = runCli(withScanner.repo, ['--base', withScanner.baseSha]);
+  assert.equal(code, 2);
+  assert.match(report.errors[0], /base baseline has no CHK-05b/u);
+  // A check the base scanner never ran is new in this head: accepted.
+  const newCheck = scenario(t, tree(partial), tree(cleanBaseline()));
+  assert.equal(runCli(newCheck.repo, ['--base', newCheck.baseSha]).code, 0);
+});
+
+test('removing an enforcing check from the head is judged as tamper, not as a broken head', t => {
+  const enforcing = cleanBaseline({ 'CHK-05b': { mode: 'fail' } });
+  const removal = withoutCheck(enforcing, 'CHK-05b');
+  const plain = scenario(t, tree(enforcing), tree(removal));
+  const refused = runCli(plain.repo, ['--base', plain.baseSha]);
+  assert.equal(refused.code, 1);
+  assert.deepEqual(refused.report.checks['CHK-05b'].tamper, ['CHK-05b#removed-check']);
+  const approved = {
+    ...removal,
+    exceptions: [
+      {
+        check: 'CHK-05b',
+        item: '#check',
+        kind: 'downgrade',
+        approvedBy: 'owner',
+        ref: 'r',
+        date: '2026-11-19',
+      },
+    ],
+  };
+  const owned = scenario(t, tree(enforcing), tree(approved));
+  assert.equal(runCli(owned.repo, ['--base', owned.baseSha]).code, 0);
+});
+
+test('a report that cannot be written exits 2, never 0 or 1', t => {
+  const { repo, baseSha } = scenario(t, tree(cleanBaseline()), tree(cleanBaseline()));
+  const result = spawnSync(
+    process.execPath,
+    [SCANNER, '--base', baseSha, '--report', `${PAGE}/r.json`],
+    {
+      cwd: repo,
+      encoding: 'utf8',
+    }
+  );
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /report not written/u);
 });
 
 test('a broken registry: advisory 2; enforcing or --check limited to CHK-05b on a clean scan 0 (r8 B18)', t => {
@@ -171,17 +233,41 @@ test('B22: every check records base, head and the predicate digest; --head scans
   );
 });
 
+test('--head scans every committed file, also one marked export-ignore (Astra r1 B09)', t => {
+  const hidden = 'packages/p/src/hidden.ts';
+  const { repo, baseSha, headSha } = scenario(
+    t,
+    tree(cleanBaseline()),
+    tree(cleanBaseline(), {
+      '.gitattributes': `${hidden} export-ignore\n`,
+      [hidden]: "export function f() { throw new Error('Unauthorized'); }\n",
+    })
+  );
+  const { report } = runCli(repo, ['--base', baseSha, '--head', headSha]);
+  assert.equal(report.checks['UNAUTH-TEXT'].total, 1);
+});
+
 test("B22: the digest follows a check's own predicate source and settings, not another check's", t => {
-  const dir = tempDir(t, 'smc-src-');
+  const dir = path.join(tempDir(t, 'smc-src-'), 'server-mutation');
   const source = path.join(REPO_ROOT, 'scripts/ci/server-mutation');
+  fs.mkdirSync(dir);
   for (const name of fs.readdirSync(source))
     fs.copyFileSync(path.join(source, name), path.join(dir, name));
+  fs.copyFileSync(
+    path.join(source, '../server-mutation-check.mjs'),
+    path.join(dir, '..', SCRIPT_NAME)
+  );
   const [chk04, chk05b] = ['CHK-04', 'CHK-05b'].map(id => CHECKS.find(c => c.id === id));
   const settings = cleanBaseline().checks['CHK-05b'];
   const before = [predicateDigest(chk04, settings, dir), predicateDigest(chk05b, settings, dir)];
   fs.appendFileSync(path.join(dir, 'chk05b.mjs'), '\n// predicate edit\n');
   assert.equal(predicateDigest(chk04, settings, dir), before[0]);
   assert.notEqual(predicateDigest(chk05b, settings, dir), before[1]);
+  // The shared evaluation is part of every check's predicate (Astra r1 B11).
+  const shared = before.map((_, i) => predicateDigest([chk04, chk05b][i], settings, dir));
+  fs.appendFileSync(path.join(dir, 'evaluate.mjs'), '\n// evaluation edit\n');
+  assert.notEqual(predicateDigest(chk04, settings, dir), shared[0]);
+  assert.notEqual(predicateDigest(chk05b, settings, dir), shared[1]);
   for (const key of ['unit', 'predicate', 'coverageMin'])
     assert.notEqual(
       predicateDigest(chk04, { ...settings, [key]: key === 'coverageMin' ? 1 : 'changed' }, dir),

@@ -29,7 +29,9 @@ function readRawValue(rawInput: unknown, from: string, form: boolean): unknown {
     return values.length === 1 ? values[0] : undefined;
   }
   if (typeof rawInput !== 'object' || rawInput === null) return undefined;
-  return Object.hasOwn(rawInput, from) ? (rawInput as Record<string, unknown>)[from] : undefined;
+  // An own data property only: reading an accessor would run caller-supplied code.
+  const descriptor = Object.getOwnPropertyDescriptor(rawInput, from);
+  return descriptor && 'value' in descriptor ? descriptor.value : undefined;
 }
 
 /**
@@ -43,7 +45,12 @@ export function extractSubject(
 ): RecordedSubject {
   if (subject.type === 'none') return { type: 'none' };
   if (subject.type === 'self') return { type: 'self', id: options.actorId };
-  const value = readRawValue(rawInput, subject.from, options.form);
+  let value: unknown;
+  try {
+    value = readRawValue(rawInput, subject.from, options.form);
+  } catch {
+    value = undefined; // a proxy or form object that throws on reading: the target is unknown
+  }
   return {
     type: subject.type,
     id: typeof value === 'string' && OPAQUE_ID.test(value) ? value : 'unknown',

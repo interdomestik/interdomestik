@@ -95,26 +95,38 @@ function routeRegistered(registry, unit, parse) {
   });
 }
 
+// A static import or re-export naming runPublicIntake (or `*`), or any dynamic import or require of
+// the module: a dynamic import yields the whole module.
+function importsPublicIntake(root, file, node) {
+  const spec = node.moduleSpecifier?.text;
+  if (spec) {
+    const named = /runPublicIntake|\*/u.test(node.getText());
+    return named && resolveModule(root, file, spec) === PUBLIC_MODULE;
+  }
+  if (!ts.isCallExpression(node)) return false;
+  const dynamic =
+    node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+    (ts.isIdentifier(node.expression) && node.expression.text === 'require');
+  const [arg] = node.arguments;
+  if (!dynamic || !arg || !ts.isStringLiteralLike(arg)) return false;
+  return resolveModule(root, file, arg.text) === PUBLIC_MODULE;
+}
+
 function publicIntakeImporters(root, files, parse) {
   const out = [];
   for (const file of files) {
     if (!file.startsWith('apps/web/src/') || file === PUBLIC_MODULE || file === PUBLIC_TEST)
       continue;
-    const sf = parse(file);
-    for (const statement of sf.statements) {
-      const spec = statement.moduleSpecifier?.text;
-      if (
-        spec &&
-        resolveModule(root, file, spec) === PUBLIC_MODULE &&
-        /runPublicIntake|\*/u.test(statement.getText())
-      )
+    parse(file).forEachChild(function visit(node) {
+      if (importsPublicIntake(root, file, node))
         out.push({
           id: `${file}#imports-runPublicIntake`,
           file,
-          line: lineOf(statement),
+          line: lineOf(node),
           message: 'imports runPublicIntake',
         });
-    }
+      node.forEachChild(visit);
+    });
   }
   return out;
 }

@@ -418,11 +418,12 @@
       "mode": "report",
       "unit": "type assertions in non-test source",
       "predicate": "no assertion other than unknown on a .json() body",
-      "coverageMin": 1381,
+      "coverageMin": 1382,
       "items": [
         "apps/web/src/app/[locale]/(site)/nps/[token]/survey-form.tsx#onSubmit#c995ca310e43",
         "apps/web/src/app/api/ai/reviews/[id]/route.ts#POST#badaab86d040",
         "apps/web/src/app/api/auth/[...all]/neutral-otp-route.ts#parseVerifyData#98c117f9fdbb",
+        "apps/web/src/features/admin/verification/components/verification-details-fetch.ts#fetchVerificationDetails#c42a45b6914a",
         "apps/web/src/features/admin/verification/components/verification-details-fetch.ts#fetchVerificationDetails#df661466eb27",
         "apps/web/src/features/member/policies/components/PolicyUploadV2Page.tsx#PolicyUploadV2Page#2855a7601aa4"
       ]
@@ -496,10 +497,13 @@
         "page-stats@apps/web/src/app/[locale]/stats/page.tsx#no-closure",
         "page-track-token@apps/web/src/app/track/[token]/page.tsx#no-closure",
         "public-nps-status@apps/web/src/app/api/public/nps/route.ts#GET#no-closure",
+        "public-nps-status@apps/web/src/app/api/public/nps/route.ts#GET#route:call before the authenticator: URL",
         "public-nps-status@apps/web/src/app/api/public/nps/route.ts#GET#route:no zero-call assertion on the effect mock",
         "public-nps-submit@apps/web/src/app/api/public/nps/route.ts#POST#no-closure",
+        "public-nps-submit@apps/web/src/app/api/public/nps/route.ts#POST#route:call before the authenticator: request.json",
         "public-nps-submit@apps/web/src/app/api/public/nps/route.ts#POST#route:denied test does not call that method",
         "public-sponsor-opt-out@apps/web/src/app/api/public/sponsor-opt-out/route.ts#POST#no-closure",
+        "public-sponsor-opt-out@apps/web/src/app/api/public/sponsor-opt-out/route.ts#POST#route:call before the authenticator: result",
         "public-sponsor-opt-out@apps/web/src/app/api/public/sponsor-opt-out/route.ts#POST#route:denied test does not call that method",
         "share-pack-read@apps/web/src/app/api/share-pack/route.ts#GET#no-closure",
         "share-pack-read@apps/web/src/app/api/share-pack/route.ts#GET#route:authenticator not called in the method or its direct core",
@@ -511,7 +515,7 @@
       "mode": "report",
       "unit": "new Error(...) in non-test server source",
       "predicate": "literal containing 'unauthorized' (case-insensitive) unless the next statement assigns a REFUSAL_CODES literal to the binding's code",
-      "coverageMin": 402,
+      "coverageMin": 405,
       "items": [
         "packages/domain-activities/src/get-lead.ts#getLeadActivitiesCore#fb9b8b0ee2b6",
         "packages/domain-activities/src/get-lead.ts#getLeadActivitiesCore#fb9b8b0ee2b6",

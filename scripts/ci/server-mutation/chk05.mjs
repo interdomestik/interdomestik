@@ -195,6 +195,14 @@ function spreadProblems(property, ctx, identitySeen) {
   return problems;
 }
 
+// The key a property name denotes: `tenantId`, 'tenantId' and ['tenantId'] are the same key.
+function propertyKey(name) {
+  if (!name) return '?';
+  const literal = ts.isComputedPropertyName(name) ? unwrap(name.expression) : name;
+  if (ts.isIdentifier(literal) && !ts.isComputedPropertyName(name)) return literal.text;
+  return ts.isStringLiteralLike(literal) || ts.isNumericLiteral(literal) ? literal.text : '?';
+}
+
 function analyseObject(object, ctx, keys) {
   const problems = [];
   const lines = [];
@@ -204,7 +212,8 @@ function analyseObject(object, ctx, keys) {
     if (!ts.isSpreadAssignment(property)) {
       const key = property.name?.getText() ?? '?';
       order.push(key);
-      if (keys.has(key) && !identitySeen) identitySeen = key;
+      const name = propertyKey(property.name);
+      if (keys.has(name) && !identitySeen) identitySeen = name;
       continue;
     }
     order.push(`...${textOf(property.expression)}`);

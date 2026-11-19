@@ -7,7 +7,7 @@ import {
   runProtected,
   type Operation,
 } from './safe-action.core';
-import { type ActionFailure } from './safe-action.failure';
+import { isActionFailure, type ActionFailure } from './safe-action.failure';
 import { recordRefusal, type RefusalActor } from './safe-action.refusal';
 import { ActionDefinitionError, arrayFieldKeys, assertAcceptedSchema } from './safe-action.schema';
 import {
@@ -134,14 +134,18 @@ export async function runAuthenticatedAction<T>(
       outcome = auth.failure;
     } else {
       const data = await handler(auth.ctx);
-      if (isPassThrough(data)) {
-        if (data.success === false && isRefusalCode(data.code)) {
+      // A branded failure takes the one finalize path (recorded once, concealment applied).
+      if (isActionFailure(data)) {
+        outcome = data;
+      } else if (isPassThrough(data)) {
+        if (data.success !== true && isRefusalCode(data.code)) {
           const refusal = { operation: 'legacy', basis: 'legacy', code: data.code };
           await recordRefusal({ ...refusal, subject: { type: 'unknown' } }, actor);
         }
         return data as ActionSuccess<T> | ActionError;
+      } else {
+        outcome = data;
       }
-      outcome = data;
     }
   } catch (error) {
     outcome = failureOfThrown(error, LEGACY.name);

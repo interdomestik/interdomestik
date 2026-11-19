@@ -1,14 +1,28 @@
+// The public-entry registry's modularity owner (design §8.1.2): fixtures only, never the shipped
+// registry, so a formatting edit of the real file is judged by the advisory scanner, not here.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
 import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
-import { REGISTRY_PATH, parseRegistry } from './server-mutation/registry.mjs';
-import { REPO_ROOT } from './fixtures/server-mutation-check/harness.mjs';
+import { REGISTRY_PATH, loadRegistry, parseRegistry } from './server-mutation/registry.mjs';
+import {
+  json,
+  pageEntry,
+  registryOf,
+  tempDir,
+  writeTree,
+} from './fixtures/server-mutation-check/harness.mjs';
 
 const OWNER = 'public-entry-registry-contract';
 const canonical = text => text === `${JSON.stringify(JSON.parse(text), null, 2)}\n`;
+const FIXTURE = registryOf([pageEntry('page-home', 'apps/web/src/app/page.tsx')]);
+
+function fixtureAt(t, text) {
+  const root = writeTree(tempDir(t, 'registry-'), { [REGISTRY_PATH]: text });
+  return { root, text: fs.readFileSync(path.join(root, REGISTRY_PATH), 'utf8') };
+}
 
 test('the public-entry registry has one exact modularity owner', () => {
   for (const spelling of [REGISTRY_PATH, `/${REGISTRY_PATH}`, REGISTRY_PATH.replaceAll('/', '\\')])
@@ -25,29 +39,25 @@ test('the public-entry registry has one exact modularity owner', () => {
   );
 });
 
-test('the registry at the owned path parses under the scanner schema and is canonical JSON', () => {
-  const text = fs.readFileSync(path.join(REPO_ROOT, REGISTRY_PATH), 'utf8');
-  const registry = parseRegistry(text);
-  assert.ok(registry.entries.length > 0);
+test('a canonical fixture at the registry path parses and is canonical', t => {
+  const { root, text } = fixtureAt(t, json(FIXTURE));
+  assert.equal(structuredArtifactOwner(REGISTRY_PATH), OWNER);
   assert.ok(canonical(text), 'two-space JSON with a final newline');
+  assert.equal(loadRegistry(root).entries.length, 1);
 });
 
-test('the registry contract refuses a non-canonical or schema-breaking copy', () => {
-  const text = fs.readFileSync(path.join(REPO_ROOT, REGISTRY_PATH), 'utf8');
-  const parsed = JSON.parse(text);
-  assert.throws(() => parseRegistry(JSON.stringify({ ...parsed, entries: [] })), /no entries/u);
-  const [first] = parsed.entries;
-  assert.throws(
-    () =>
-      parseRegistry(
-        JSON.stringify({ ...parsed, entries: [{ ...first, closedBy: { setting: 'x' } }] })
-      ),
-    /closedBy must be null/u
-  );
-  assert.equal(canonical(JSON.stringify(parsed)), false, 'a minified copy is not canonical');
-  assert.equal(
-    canonical(text.trimEnd()),
-    false,
-    'a copy without the final newline is not canonical'
-  );
+test('non-canonical fixtures at the registry path are refused', t => {
+  for (const variant of [JSON.stringify(FIXTURE), json(FIXTURE).trimEnd()]) {
+    const { text } = fixtureAt(t, variant);
+    assert.equal(canonical(text), false, JSON.stringify(variant.slice(-12)));
+    assert.ok(parseRegistry(text), 'formatting alone does not break the schema');
+  }
+});
+
+test('schema-breaking fixtures are refused by the scanner schema', () => {
+  assert.throws(() => parseRegistry(JSON.stringify({ ...FIXTURE, entries: [] })), /no entries/u);
+  const [first] = FIXTURE.entries;
+  const closed = { ...FIXTURE, entries: [{ ...first, closedBy: { setting: 'x' } }] };
+  assert.throws(() => parseRegistry(JSON.stringify(closed)), /closedBy must be null/u);
+  assert.throws(() => parseRegistry('{'), Error);
 });

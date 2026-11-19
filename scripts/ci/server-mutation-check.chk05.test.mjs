@@ -42,7 +42,8 @@ test('CHK-05: parsed input through a strict schema passes (parse, guarded safePa
   const body = `const S = z.strictObject({ name: z.string().trim().refine(v => v.length > 0), tags: z.array(z.enum(['a'])) });
 export async function a(raw: unknown) { const v = S.parse(raw); await db.insert(things).values({ ...v, tenantId: 't' }); }
 export async function b(raw: unknown) { const r = S.safeParse(raw); if (!r.success) return; await db.update(things).set({ ...r.data }); }
-export const c = defineAction({ handler: async (input) => db.insert(things).values({ ...input }) });
+import { defineAction } from '@/lib/safe-action';
+export const c = defineAction({ input: S, handler: async (input) => db.insert(things).values({ ...input }) });
 export async function d(raw: unknown) { const v = z.object({ n: z.string() }).strict().parse(raw); await db.insert(things).values(v); }`;
   assert.deepEqual(findingsOf(t, body), []);
 });
@@ -71,6 +72,31 @@ test('CHK-05: each unparsed or open form is refused', t => {
   assert.match(messages(t, cases.unguarded), /p\.data without a preceding success guard/u);
   assert.match(messages(t, cases.unknownMember), /spread path: z\.unknown/u);
   assert.match(messages(t, cases.overwrite), /parse schema adds overwrite/u);
+});
+
+test('CHK-05: a handler parameter has provenance only from the imported wrapper factory', t => {
+  const handler =
+    'export const c = defineAction({ input: S, handler: async (input) => db.insert(things).values({ ...input }) });';
+  const S = 'const S = z.strictObject({ a: z.string() });\n';
+  const local = `${S}const defineAction = (d: any) => d;\n${handler}`;
+  assert.match(messages(t, local), /parameter input/u);
+  const otherModule = `${S}import { defineAction } from './helpers';\n${handler}`;
+  assert.match(messages(t, otherModule), /parameter input/u);
+  const noInput = `import { defineAction } from '@/lib/safe-action';\n${handler.replace('input: S, ', '')}`;
+  assert.match(messages(t, noInput), /parameter input/u);
+});
+
+test('CHK-05: a quoted or computed identity key counts as the identity key', t => {
+  const S = 'const S = z.strictObject({ a: z.string() });\n';
+  for (const key of ["'tenantId'", '"tenantId"', "['tenantId']"])
+    assert.match(
+      messages(
+        t,
+        `${S}export async function f(r: unknown) { await db.insert(things).values({ ${key}: 't', ...S.parse(r) }); }`
+      ),
+      /spread after identity key tenantId/u,
+      key
+    );
 });
 
 test('CHK-05: no spread may follow an identity key (tenant keys and owner columns)', t => {

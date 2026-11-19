@@ -15,10 +15,16 @@ import { ScanError, createParser, listSourceFiles, scanRoots } from './server-mu
 import { BASELINE_PATH, parseBaseline } from './server-mutation/baseline.mjs';
 import { CHECKS, evaluateCheck, exitCode, selectChecks } from './server-mutation/evaluate.mjs';
 import { ensureCommit, extractRevision, headSha, showAt } from './server-mutation/git.mjs';
-import { loadRegistry } from './server-mutation/registry.mjs';
+import { REGISTRY_PATH, loadRegistry, parseRegistry } from './server-mutation/registry.mjs';
 import { annotate, writeReport } from './server-mutation/output.mjs';
 
 const SCRIPT_PATH = 'scripts/ci/server-mutation-check.mjs';
+const CHECKS_DIR = 'scripts/ci/server-mutation';
+
+const baseRanCheck = (repo, baseSha, check) =>
+  check.sources.some(name =>
+    (showAt(repo, baseSha, `${CHECKS_DIR}/${name}`) ?? '').includes(`id: '${check.id}'`)
+  );
 const DEFAULT_REPORT = 'tmp/server-mutation-check/report.json';
 const FLAGS = new Set(['--enforcing', '--advisory']);
 const OPTIONS = new Set(['--base', '--head', '--check', '--report', '--repo']);
@@ -35,6 +41,17 @@ export function parseArgs(argv) {
   if (!args.base) throw new ScanError('--base <sha> is required');
   if (args.check && args.enforcing) throw new ScanError('--check and --enforcing are exclusive');
   return args;
+}
+
+// The registry of the trusted base, or null when the base has none (before part 1).
+function baseRegistryAt(repo, baseSha) {
+  const text = showAt(repo, baseSha, REGISTRY_PATH);
+  if (text === null) return null;
+  try {
+    return parseRegistry(text);
+  } catch (error) {
+    throw new ScanError(`base registry: ${error.message}`);
+  }
 }
 
 function invocationOf(args) {
@@ -56,10 +73,21 @@ function readBaselines(repo, root, baseSha) {
     'head',
     CHECKS
   );
-  // Valid but empty is not a baseline: the head must name every check this scanner runs.
-  for (const check of CHECKS)
-    if (!head.checks[check.id]) throw new ScanError(`head baseline has no ${check.id}`);
+  // Valid but empty is never a baseline, on either side.
+  if (base && !Object.keys(base.checks).length) throw new ScanError('base baseline names no check');
+  if (!Object.keys(head.checks).length) throw new ScanError('head baseline names no check');
+  for (const check of CHECKS) assertNamed(repo, baseSha, check, base, head);
   return { base, head, bootstrap: base === null };
+}
+
+// Valid but empty is not a baseline. The base names every check its own scanner ran (a check new in
+// this head is absent from the base scanner's evaluation); the head names every check unless the
+// base has it, in which case the removal is judged as tamper against the base.
+function assertNamed(repo, baseSha, check, base, head) {
+  const { id } = check;
+  if (base && !base.checks[id] && baseRanCheck(repo, baseSha, check))
+    throw new ScanError(`base baseline has no ${id}`);
+  if (!head.checks[id] && !base?.checks[id]) throw new ScanError(`head baseline has no ${id}`);
 }
 
 export function run(argv, cwd = process.cwd()) {
@@ -93,7 +121,10 @@ export function run(argv, cwd = process.cwd()) {
       parse: createParser(root),
       registry: null,
     };
-    if (selected.some(check => check.needsRegistry)) ctx.registry = loadRegistry(root);
+    if (selected.some(check => check.needsRegistry)) {
+      ctx.registry = loadRegistry(root);
+      ctx.baseRegistry = baseRegistryAt(repo, report.base);
+    }
     for (const check of selected)
       results.push(evaluateCheck(check, ctx, base, head, { base: report.base, head: report.head }));
   } catch (error) {
@@ -110,8 +141,14 @@ export function run(argv, cwd = process.cwd()) {
     const { findings, ...summary } = result;
     report.checks[result.id] = { ...summary, findingCount: findings.length };
   }
-  writeReport(path.resolve(cwd, args.report ?? DEFAULT_REPORT), report, results);
-  annotate(report, results);
+  try {
+    writeReport(path.resolve(cwd, args.report ?? DEFAULT_REPORT), report, results);
+    annotate(report, results);
+  } catch (error) {
+    // A scan whose report cannot be written is not a completed scan.
+    process.stderr.write(`server-mutation: report not written: ${error?.message ?? error}\n`);
+    return 2;
+  }
   return code;
 }
 

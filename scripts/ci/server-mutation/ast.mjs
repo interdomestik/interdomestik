@@ -15,7 +15,8 @@ export class ScanError extends Error {
 export const sha256 = text => createHash('sha256').update(text).digest('hex');
 export const shortHash = text => sha256(text).slice(0, 12);
 const SKIP_DIRS = new Set(['node_modules', '.next', 'dist', '.turbo', 'coverage']);
-const SOURCE_RE = /\.(ts|tsx|mts|cts)$/u;
+// TypeScript and JavaScript sources alike: a server action can be written in either.
+const SOURCE_RE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/u;
 
 // The default sort order (UTF-16 code units), written out.
 export const byCodeUnit = (a, b) => Number(a > b) - Number(a < b);
@@ -50,6 +51,12 @@ const TEST_RE =
   /(\.test\.|\.spec\.|test-support|test-helpers|\.fixtures?\.|\/test\/|\/tests\/|\/__tests__\/|\/testing\/|\/fixtures\/)/u;
 export const isTestFile = rel => TEST_RE.test(rel);
 
+function scriptKind(rel) {
+  if (rel.endsWith('.tsx')) return ts.ScriptKind.TSX;
+  if (rel.endsWith('.jsx')) return ts.ScriptKind.JSX;
+  return /\.[mc]?js$/u.test(rel) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
+}
+
 export function createParser(root) {
   const cache = new Map();
   return function parse(rel) {
@@ -57,7 +64,7 @@ export function createParser(root) {
     const abs = path.join(root, rel);
     if (!fs.existsSync(abs)) return null;
     const text = fs.readFileSync(abs, 'utf8');
-    const kind = rel.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+    const kind = scriptKind(rel);
     const sf = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, kind);
     if (sf.parseDiagnostics?.length) {
       const first = sf.parseDiagnostics[0];

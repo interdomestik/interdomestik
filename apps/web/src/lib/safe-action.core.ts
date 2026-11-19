@@ -2,6 +2,7 @@ import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import * as Sentry from '@sentry/nextjs';
 import { headers as nextHeaders } from 'next/headers';
+import { unstable_rethrow } from 'next/navigation';
 import type { z } from 'zod';
 
 import { assertSessionContext, checkBasis } from './safe-action.basis';
@@ -38,7 +39,10 @@ export async function authenticate(): Promise<Authenticated> {
   try {
     authorized = await authorizeSessionTenant(requestHeaders);
   } catch (error) {
-    if ((error as { name?: unknown } | null)?.name !== 'MissingTenantError') throw error;
+    unstable_rethrow(error);
+    const thrown = (error ?? {}) as { name?: unknown; code?: unknown };
+    // The same rule as the classifier: our class name AND its refusal code, never one alone.
+    if (thrown.name !== 'MissingTenantError' || thrown.code !== 'MISSING_TENANT') throw error;
     return { kind: 'refused', failure: actionFailure('MISSING_TENANT'), actor: null };
   }
   if (!authorized) return { kind: 'refused', failure: actionFailure('UNAUTHORIZED'), actor: null };

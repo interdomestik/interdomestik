@@ -19,6 +19,14 @@ type ZodDef = {
 
 const SCALAR_TYPES = new Set(['string', 'number', 'boolean', 'bigint', 'date', 'enum', 'literal']);
 const WRAPPER_TYPES = new Set(['optional', 'nullable', 'readonly']);
+// Checks that run caller code on the value (refine, superRefine, check) or replace it (overwrite).
+// Size checks (min/max/length) on arrays stay accepted; scalar normalizers such as trim are scalar.
+const CODE_CHECKS = new Set(['custom', 'overwrite']);
+
+const checkKinds = (def: ZodDef): string[] =>
+  (def.checks ?? []).map(
+    check => (check as { _zod?: { def?: { check?: string } } })._zod?.def?.check ?? 'unknown'
+  );
 
 export class ActionDefinitionError extends Error {
   constructor(operation: string, detail: string) {
@@ -71,6 +79,9 @@ function walk(schema: z.ZodType, path: string, ctx: WalkContext): void {
     if (!ctx.form) refuse(ctx, path, 'z.file() is accepted in form actions only');
     return;
   }
+  const codeCheck = checkKinds(def).find(kind => CODE_CHECKS.has(kind) || kind === 'unknown');
+  if (codeCheck)
+    refuse(ctx, path, `a ${codeCheck} check on a ${type} belongs in the owning command`);
   if (WRAPPER_TYPES.has(type) && def.innerType) return walk(def.innerType, path, ctx);
   if (type === 'array' && def.element) return walk(def.element, `${path}[]`, ctx);
   if (type === 'tuple') {
