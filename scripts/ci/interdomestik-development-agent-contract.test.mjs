@@ -69,6 +69,11 @@ test('the role and its guide defer to AGENTS.md and leave merging to the owner',
   // Contradicting grants or precedence must fail wherever an agent reads them.
   const AGENT_GRANT =
     /\b(?:agents?|you)\b(?:(?!\bowner\b)[^.]){0,40}?\b(?:may|can|will|should|must|is allowed to|are allowed to)\s+(?:also\s+)?(?:merge|deploy|release|force-push|write to staging|assign|submit|post)\b/iu;
+  // Any agent grant to change staging data, in either word order.
+  const STAGING_WRITE = [
+    /\b(?:agents?|you)\b(?:(?!\bowner\b)[^.]){0,40}?\b(?:may|can|will|should|must|is allowed to|are allowed to)\s+(?:also\s+)?(?:write|update|change|create|delete|edit|modify|insert|seed|reset|post|submit)\b[^.]{0,60}\bstaging\b/iu,
+    /\bstaging\b[^.]{0,60}\b(?:agents?|you)\b(?:(?!\bowner\b)[^.]){0,40}?\b(?:may|can|will|should|must|is allowed to|are allowed to)\s+(?:also\s+)?(?:write|update|change|create|delete|edit|modify|insert|seed|reset|post|submit)\b/iu,
+  ];
   const MERGE_THROUGH =
     /(?<!\bowner\s(?:may\s|can\s|will\s|then\s)?)\bmerge\s(?:it\s|the PR\s)?through normal protections/iu;
   const OLD_PRECEDENCE =
@@ -76,6 +81,7 @@ test('the role and its guide defer to AGENTS.md and leave merging to the owner',
   const procedureFlat = flat(procedure);
   for (const text of [roleFlat, guideFlat, procedureFlat]) {
     assert.doesNotMatch(text, AGENT_GRANT);
+    for (const pattern of STAGING_WRITE) assert.doesNotMatch(text, pattern);
     assert.doesNotMatch(text, MERGE_THROUGH);
     assert.doesNotMatch(text, OLD_PRECEDENCE);
     assert.doesNotMatch(text, /authorized protected merge/iu);
