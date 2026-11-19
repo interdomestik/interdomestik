@@ -48,7 +48,7 @@ export function fixtureLive(overrides = {}) {
       PW_PORT: '3310',
       PILOT_HOST: 'pilot.127.0.0.1.nip.io:3310',
     },
-    sources: { localFiles: [], redirecting: [] },
+    sources: { localFiles: [], unexpected: [] },
     freeGib: { repository: 120, system: 28 },
     git: { head: 'c'.repeat(40), clean: true, trackedClean: true, hiddenFromStatus: 0 },
     ...overrides,

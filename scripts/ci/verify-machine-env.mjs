@@ -20,21 +20,22 @@ export const GUARDED_ENV_KEYS = Object.freeze([
   'PLAYWRIGHT_BASE_URL',
   'SENTRY_AUTH_TOKEN',
 ]);
+// Settings of the Mac verify isolation besides the guarded ones; their values are checked too.
+export const ISOLATION_ENV_KEYS = Object.freeze([
+  'PLAYWRIGHT_BROWSERS_PATH',
+  'INTERDOMESTIK_TASK_OWNS_PORT',
+  'SKIP_DOCKER_DOCTOR',
+  // The E2E server's bind host.
+  'HOSTNAME',
+]);
 // Every variable that names a database URL is checked, not only the four above: the E2E server,
 // admin and contract helpers read their own (E2E_SERVER_DATABASE_URL_RLS, E2E_DATABASE_URL_ADMIN).
 const DATABASE_URL_NAME = /DATABASE_URL/u;
-// Variables that redirect a run past the checked settings: libpq (PG*), dotenv (DOTENV_*), the
-// startup file of every Bash child (BASH_ENV, ENV), and every git variable (repository, worktree,
-// config, pathspec and index overrides change what the probe sees) except the few that only
-// choose an editor, pager, prompt, transport or identity.
-const REDIRECTING_ENV_NAME = /^(?:PG|DOTENV_|GIT_|BASH_ENV$|ENV$)/u;
-const HARMLESS_GIT_ENV_NAME =
-  /^GIT_(?:EDITOR|SEQUENCE_EDITOR|PAGER|TERMINAL_PROMPT|ASKPASS|SSH|SSH_COMMAND|SSH_VARIANT|(?:AUTHOR|COMMITTER)_(?:NAME|EMAIL|DATE)|MERGE_AUTOEDIT|OPTIONAL_LOCKS)$/u;
 
 /** The keys the gate reads from the environment: the guarded list plus every database URL. */
 export function checkedEnvKeys(env) {
   const databaseKeys = Object.keys(env).filter(key => DATABASE_URL_NAME.test(key));
-  return [...new Set([...GUARDED_ENV_KEYS, ...databaseKeys])];
+  return [...new Set([...GUARDED_ENV_KEYS, ...ISOLATION_ENV_KEYS, ...databaseKeys])];
 }
 const LOOPBACK_ORIGIN =
   /^(?:127\.0\.0\.1|localhost|\[::1\]|(?:[a-z0-9-]+\.)*127\.0\.0\.1\.nip\.io|(?:[a-z0-9-]+\.)*localhost)$/u;
@@ -64,13 +65,6 @@ const TENANT_HOST = /^(\[::1\]|[a-z0-9.-]+):(\d{1,5})$/iu;
 const BASE_URL = /^http:\/\/(\[::1\]|[a-z0-9.-]+):(\d{1,5})\/?$/iu;
 // Playwright accepts only decimal digits for PW_PORT and PORT.
 const DECIMAL_PORT = /^\d{1,5}$/u;
-
-/** Names (never values) of variables through which libpq, dotenv, a shell or git redirect a run. */
-export function redirectingEnvNames(env) {
-  return Object.keys(env)
-    .filter(name => REDIRECTING_ENV_NAME.test(name) && !HARMLESS_GIT_ENV_NAME.test(name))
-    .sort((a, b) => a.localeCompare(b));
-}
 
 function databaseUrlErrors(key, raw, database, forbiddenPorts) {
   const match = STRICT_DATABASE_URL.exec(raw);
@@ -117,16 +111,27 @@ function emptyValueErrors(env) {
     .map(key => `${key} is set but empty; unset it or give it the marker's value`);
 }
 
-function sourceErrors({ localFiles = [], unsearched = [], redirecting = [] }) {
+function sourceErrors({ localFiles = [], unsearched = [], unexpected = [] }) {
   return [
     ...localFiles.map(
       file => `${file} exists; gate runs take settings only from the checked environment`
     ),
     ...unsearched.map(directory => `${directory} could not be searched for env files`),
-    ...redirecting.map(
-      name => `${name} is set; it can redirect the run (libpq, dotenv, shell startup or git)`
-    ),
+    ...unexpected.map(name => `${name} is set; a gate run takes only the documented variables`),
   ];
+}
+
+function isolationErrors(env) {
+  const errors = ['INTERDOMESTIK_TASK_OWNS_PORT', 'SKIP_DOCKER_DOCTOR']
+    .filter(key => env[key] && env[key] !== '1')
+    .map(key => `${key} must be 1 when set`);
+  const browsers = env.PLAYWRIGHT_BROWSERS_PATH;
+  if (browsers && (!browsers.startsWith('/') || [...browsers].some(isControl))) {
+    errors.push('PLAYWRIGHT_BROWSERS_PATH must be an absolute path');
+  }
+  if (env.HOSTNAME && env.HOSTNAME !== '127.0.0.1')
+    errors.push('HOSTNAME must be 127.0.0.1 when set');
+  return errors;
 }
 
 /** The effective database, app and upload settings the gate steps will read. */
@@ -147,5 +152,6 @@ export function environmentErrors(marker, env, sources = {}) {
     if (env[key]) errors.push(...originErrors(key, env[key], marker.app_port));
   }
   if (env.SENTRY_AUTH_TOKEN) errors.push('SENTRY_AUTH_TOKEN must be unset for gate evidence');
+  errors.push(...isolationErrors(env));
   return errors;
 }

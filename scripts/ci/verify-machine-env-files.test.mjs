@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { envFilesOnDisk, localEnvFiles } from './verify-machine-env-files.mjs';
+import { localEnvFiles } from './verify-machine-env-files.mjs';
 
 function tree(files) {
   const root = mkdtempSync(path.join(os.tmpdir(), 'verify-machine-env-files-'));
@@ -15,12 +15,15 @@ function tree(files) {
   return root;
 }
 
-test('env files are found on disk in every directory, any case, inside nested checkouts', () => {
+test('env files are found on disk in every directory, any case, tracked or not', () => {
   const root = tree([
     '.env',
     '.ENV.LOCAL',
     '.envrc',
     '.env.example',
+    'docker/.ENV.EXAMPLE',
+    // A committed `.env.local` is loaded like an untracked one.
+    'config/.env.local',
     'apps/web/.env.production.local',
     'tmp/café/.env',
     '.env.\nhidden',
@@ -33,15 +36,7 @@ test('env files are found on disk in every directory, any case, inside nested ch
     '.git/.env',
   ]);
   symlinkSync('/nonexistent', path.join(root, 'apps/.env.linked'));
-  const tracked = ['.env.example', ''].join('\0');
-  const exec = (command, args, cwd) => {
-    assert.deepEqual(
-      [command, ...args, cwd],
-      ['git', 'ls-files', '-z', '--', ':(glob,icase)**/.env', ':(glob,icase)**/.env.*', root]
-    );
-    return tracked;
-  };
-  assert.deepEqual(localEnvFiles(root, exec), {
+  assert.deepEqual(localEnvFiles(root), {
     files: [
       '.env',
       '.env.\nhidden',
@@ -49,6 +44,7 @@ test('env files are found on disk in every directory, any case, inside nested ch
       'apps/.env.linked',
       'apps/web/.env.production.local',
       'apps/web/.next/standalone/apps/web/.env',
+      'config/.env.local',
       'tmp/café/.env',
       'tmp/secondary/.env',
     ],
@@ -61,7 +57,7 @@ test('a directory that cannot be read is reported, never skipped silently', () =
   const root = tree(['tmp/locked/.env']);
   chmodSync(path.join(root, 'tmp/locked'), 0o000);
   try {
-    const result = envFilesOnDisk(root);
+    const result = localEnvFiles(root);
     if (process.getuid?.() === 0) return; // root reads every directory
     assert.deepEqual(result, { files: [], unsearched: ['tmp/locked'] });
   } finally {

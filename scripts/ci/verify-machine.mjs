@@ -13,13 +13,19 @@ import { pathToFileURL } from 'node:url';
 import { chainErrors, defaultChainProbe, LANE_SCRIPTS } from './verify-machine-chain.mjs';
 import { compareMachine } from './verify-machine-compare.mjs';
 import { describeMachine } from './verify-machine-describe.mjs';
-import { childTraceEnabled, gitState, probeMachine, runCommand } from './verify-machine-probe.mjs';
+import { unexpectedEnvNames } from './verify-machine-env-names.mjs';
+import { gitState, probeMachine, runCommand } from './verify-machine-probe.mjs';
 import * as records from './verify-machine-records.mjs';
 import { readTrustedMarker } from './verify-machine-trust.mjs';
 
 const PREFIX = '[verify-machine]';
 const USAGE = 'usage: verify-machine.mjs begin|stamp <pr-verify|security-guard> | describe';
-const TRACE_WARNING = 'NODE_DEBUG is set and would print the environment of every command started';
+
+// Names only, never values; a long list is cut after the first eight.
+function nameList(names) {
+  const shown = names.slice(0, 8).join(', ');
+  return names.length > 8 ? `${shown} and ${names.length - 8} more` : shown;
+}
 
 export function defaultDependencies() {
   return {
@@ -110,9 +116,6 @@ function rootErrors(deps, repoRoot) {
 function begin(lane, deps, repoRoot, pendingPath) {
   const markerResult = deps.readMarker();
   const startedAt = deps.now();
-  if (markerResult.status === 'invalid') {
-    return fail(deps, ['the verification marker is not trusted:', ...markerResult.errors]);
-  }
   const downgrade = (reason, problems) =>
     preCheck(lane, deps, repoRoot, pendingPath, startedAt, reason, problems);
   if (markerResult.status === 'absent') return downgrade('no verification-machine marker');
@@ -187,11 +190,7 @@ function writeFinalRecord(lane, deps, pending, pendingPath, directory) {
 }
 
 function stamp(lane, deps, repoRoot, pendingPath, directory) {
-  // An untrusted marker stops the run in either mode, as it does at begin.
   const markerResult = deps.readMarker();
-  if (markerResult.status === 'invalid') {
-    return fail(deps, ['the verification marker is not trusted:', ...markerResult.errors]);
-  }
   const pending = deps.records.readRecord(pendingPath);
   if (!pending || pending.lane !== lane) {
     deps.log(`${PREFIX} PRE-CHECK lane=${lane}: no begin record in this shell; nothing recorded.`);
@@ -214,8 +213,11 @@ function stamp(lane, deps, repoRoot, pendingPath, directory) {
 export function runVerifyMachine(argv, deps = defaultDependencies()) {
   const [command, lane] = argv;
   if (command === 'describe') {
-    if (childTraceEnabled(deps.env)) return fail(deps, [TRACE_WARNING]);
-    return describeMachine(argv.slice(1), deps);
+    const unexpected = unexpectedEnvNames(deps.env);
+    if (unexpected.length === 0) return describeMachine(argv.slice(1), deps);
+    return fail(deps, [
+      `describe runs only in the gate environment; unset ${nameList(unexpected)}`,
+    ]);
   }
   if (!['begin', 'stamp'].includes(command) || !records.LANES.includes(lane)) {
     return fail(deps, [USAGE]);
@@ -232,21 +234,31 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
     deps.log(`${PREFIX} hosted run: the machine marker does not apply; hosted checks count apart.`);
     return 0;
   }
-  if (childTraceEnabled(deps.env)) {
-    deps.log(`${PREFIX} PRE-CHECK lane=${lane}: ${TRACE_WARNING}; nothing is checked or recorded.`);
+  // An untrusted marker stops the run in either phase. Its check starts only `ls`, with an empty
+  // environment, so it runs in any shell.
+  const markerResult = deps.readMarker();
+  if (markerResult.status === 'invalid') {
+    return fail(deps, ['the verification marker is not trusted:', ...markerResult.errors]);
+  }
+  // Outside the closed gate environment no command starts, so none can print its environment.
+  const unexpected = unexpectedEnvNames(deps.env);
+  if (unexpected.length > 0) {
+    deps.log(
+      `${PREFIX} PRE-CHECK lane=${lane}: variables a gate run does not take are set ` +
+        `(${nameList(unexpected)}); no command is started and nothing is recorded.`
+    );
     return 0;
   }
   let repoRoot;
   try {
     repoRoot = deps.exec('git', ['rev-parse', '--show-toplevel'], deps.cwd);
   } catch {
-    if (deps.readMarker().status === 'invalid') return fail(deps, ['no git repository found']);
     deps.log(`${PREFIX} PRE-CHECK lane=${lane}: no git repository found; nothing is recorded.`);
     return 0;
   }
   const directory = deps.records.recordDirectory({ platform: deps.platform, env: deps.env });
   const shell = shellIdentity(deps);
-  const run = { ...deps, shellKnown: shell.known };
+  const run = { ...deps, shellKnown: shell.known, readMarker: () => markerResult };
   const pendingPath = deps.records.pendingRecordPath(directory, repoRoot, lane, shell.id);
   if (command === 'begin') deps.records.pruneStalePending(directory, Date.parse(deps.now()));
   return command === 'begin'
@@ -255,5 +267,11 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
-  process.exitCode = runVerifyMachine(process.argv.slice(2));
+  try {
+    process.exitCode = runVerifyMachine(process.argv.slice(2));
+  } catch (error) {
+    // A fixed diagnostic: an error message can carry a command's output or environment.
+    console.error(`${PREFIX} stopped (${error?.code ?? error?.name ?? 'error'}).`);
+    process.exitCode = 1;
+  }
 }

@@ -1,7 +1,8 @@
 import { readdirSync, readFileSync, statfsSync } from 'node:fs';
 import path from 'node:path';
 
-import { checkedEnvKeys, redirectingEnvNames } from './verify-machine-env.mjs';
+import { checkedEnvKeys } from './verify-machine-env.mjs';
+import { unexpectedEnvNames } from './verify-machine-env-names.mjs';
 import { localEnvFiles } from './verify-machine-env-files.mjs';
 import { runCommand } from './verify-machine-exec.mjs';
 import { sha256Hex } from './verify-machine-marker.mjs';
@@ -82,7 +83,7 @@ export function probeMachine({
   statfs = statfsSync,
   readdir = readdirSync,
 }) {
-  const envFiles = localEnvFiles(repoRoot, exec, readdir);
+  const envFiles = localEnvFiles(repoRoot, readdir);
   const uuid = parsePlatformUuid(
     tryRun(exec, 'ioreg', ['-rd1', '-c', 'IOPlatformExpertDevice'], repoRoot)
   );
@@ -121,7 +122,7 @@ export function probeMachine({
     sources: {
       localFiles: envFiles.files,
       unsearched: envFiles.unsearched,
-      redirecting: redirectingEnvNames(env),
+      unexpected: unexpectedEnvNames(env),
     },
     freeGib: { repository: freeGib(statfs, repoRoot), system: freeGib(statfs, '/') },
     git: gitState(repoRoot, exec),

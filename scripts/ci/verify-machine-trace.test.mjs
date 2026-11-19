@@ -1,5 +1,5 @@
-// The verifier's commands and Node's NODE_DEBUG diagnostics: commands see the lane environment
-// unchanged, and while NODE_DEBUG is set no command starts, so no credential is printed.
+// The verifier's commands and diagnostics: commands see the lane environment unchanged; outside
+// the closed gate environment no command starts, so no tracing variable can print a credential.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -27,6 +27,7 @@ test('verifier commands see the lane environment unchanged', () => {
     NPM_CONFIG_BAIL: 'false',
     npm_config_bail: '',
     DOCKER_TLS_VERIFY: '1',
+    DOCKER_CERT_PATH: '/nonexistent-certs',
     GIT_CONFIG_COUNT: '1',
     GIT_CONFIG_KEY_0: 'color.ui',
     GIT_CONFIG_VALUE_0: 'false',
@@ -41,48 +42,51 @@ test('verifier commands see the lane environment unchanged', () => {
   for (const [name, value] of Object.entries(lane)) assert.ok(seen.includes(`${name}=${value}`));
 });
 
-test('with NODE_DEBUG set the verifier starts no command and prints no secret', () => {
+test('tracing variables never make the verifier print a credential', () => {
   const secrets = {
-    NODE_DEBUG: 'child_process',
     DATABASE_URL: 'postgresql://u:SENTINEL-secret@127.0.0.1:55438/db',
     SUPABASE_SERVICE_ROLE_KEY: 'SENTINEL-service-role',
     npm_config_https_proxy: 'http://u:SENTINEL-proxy@proxy.example.test:8080',
   };
+  const tracing = [
+    { NODE_DEBUG: 'child_process' },
+    { GIT_TRACE2_EVENT: '1', GIT_TRACE2_ENV_VARS: 'SUPABASE_SERVICE_ROLE_KEY' },
+    { NODE_OPTIONS: '--report-uncaught-exception --report-filename=stderr' },
+  ];
   const cwd = mkdtempSync(path.join(os.tmpdir(), 'verify-machine-debug-'));
-  const cli = spawnSync(
-    process.execPath,
-    [path.join(REPO_ROOT, 'scripts/ci/verify-machine.mjs'), 'begin', 'security-guard'],
-    { cwd, encoding: 'utf8', env: { PATH: process.env.PATH, HOME: process.env.HOME, ...secrets } }
-  );
-  assert.equal(cli.status, 0, cli.stderr);
-  assert.match(cli.stdout, /PRE-CHECK lane=security-guard: NODE_DEBUG is set/u);
-  // The marker check needs `ls` for ACLs, so under NODE_DEBUG it reports the marker untrusted.
   const markerFile = path.join(cwd, 'verify-machine.json');
   writeFileSync(markerFile, '{}');
-  const trust = runChild(
-    `const { readTrustedMarker } = await import(${moduleUrl('scripts/ci/verify-machine-trust.mjs')});` +
-      `console.log(readTrustedMarker(${JSON.stringify(markerFile)}).status);`,
-    secrets
-  );
-  rmSync(cwd, { recursive: true });
-  assert.equal(trust.status, 0, trust.stderr);
-  assert.equal(trust.stdout.trim(), 'invalid');
-  for (const output of [cli, trust]) {
-    assert.ok(!`${output.stdout}${output.stderr}`.includes('SENTINEL'));
-    assert.ok(!output.stderr.includes('CHILD_PROCESS'), 'no command was started');
+  const script = path.join(REPO_ROOT, 'scripts/ci/verify-machine.mjs');
+  for (const trace of tracing) {
+    const env = { PATH: process.env.PATH, HOME: process.env.HOME, ...secrets, ...trace };
+    for (const argv of [['begin', 'security-guard'], ['describe']]) {
+      const cli = spawnSync(process.execPath, [script, ...argv], { cwd, encoding: 'utf8', env });
+      assert.ok(!`${cli.stdout}${cli.stderr}`.includes('SENTINEL'), JSON.stringify(trace));
+    }
+    // The marker check lists ACLs with an empty environment.
+    const trust = runChild(
+      `const { readTrustedMarker } = await import(${moduleUrl('scripts/ci/verify-machine-trust.mjs')});` +
+        `console.log(readTrustedMarker(${JSON.stringify(markerFile)}).status);`,
+      { ...secrets, ...trace }
+    );
+    assert.equal(trust.stdout.trim(), 'invalid');
+    assert.ok(!`${trust.stdout}${trust.stderr}`.includes('SENTINEL'), JSON.stringify(trace));
   }
+  rmSync(cwd, { recursive: true });
 });
 
-test('with NODE_DEBUG set the run is a pre-check that starts no command', () => {
-  const h = harness({ marker: trusted(), env: { NODE_DEBUG: 'child_process' } });
+test('outside the gate environment the run is a pre-check that starts no command', () => {
+  const h = harness({ marker: trusted(), env: { NODE_OPTIONS: '--test-name-pattern=x' } });
   h.deps.exec = () => assert.fail('no command may start');
-  h.deps.readMarker = () => assert.fail('the marker check starts a command');
   for (const command of ['begin', 'stamp']) {
     assert.equal(runVerifyMachine([command, 'pr-verify'], h.deps), 0);
   }
-  assert.match(h.output.log.join('\n'), /PRE-CHECK lane=pr-verify: NODE_DEBUG is set/u);
+  assert.match(h.output.log.join('\n'), /PRE-CHECK lane=pr-verify: .*\(NODE_OPTIONS\)/u);
   assert.deepEqual(h.files(), []);
   assert.equal(runVerifyMachine(['describe'], h.deps), 1);
-  assert.match(h.output.error.join('\n'), /NODE_DEBUG is set/u);
+  assert.match(h.output.error.join('\n'), /describe runs only in the gate environment/u);
+  // An untrusted marker still stops the run.
+  h.state.marker = { status: 'invalid', errors: ['marker file must be owned by root'] };
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 1);
   h.cleanup();
 });

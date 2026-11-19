@@ -146,7 +146,6 @@ test('the probe hashes the hardware id and keeps only the guarded environment ke
     ['git -c core.fileMode=true status --porcelain=v1 --untracked-files=no', ''],
     ['git -c core.fileMode=true status --porcelain=v1 --untracked-files=all', '?? new.txt'],
     ['git ls-files -v -z', 'H package.json\0h README.md\0S docs/a.md\0H b.md\0'],
-    ['git ls-files -z -- :(glob,icase)**/.env :(glob,icase)**/.env.*', '.env.example\0'],
   ]);
   const exec = (command, args) => {
     const key = command === 'ioreg' ? 'ioreg' : [command, ...args].join(' ');
@@ -191,7 +190,7 @@ test('the probe hashes the hardware id and keeps only the guarded environment ke
   assert.deepEqual(live.sources, {
     localFiles: ['.env.local', 'docker/.env'],
     unsearched: [],
-    redirecting: ['DOTENV_CONFIG_OVERRIDE', 'GIT_LITERAL_PATHSPECS', 'PGPORT'],
+    unexpected: ['DOTENV_CONFIG_OVERRIDE', 'GIT_EDITOR', 'GIT_LITERAL_PATHSPECS', 'PGPORT'],
   });
   assert.ok(!JSON.stringify(live.sources).includes('54322'));
 });

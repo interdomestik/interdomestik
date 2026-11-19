@@ -31,11 +31,20 @@ holds the machine's recorded configuration. Every other run is a pre-check.
   - Every setting comes from the checked environment only. The gatekeeper, the build, the E2E
     server and package loaders read env files in different ways, so the checkout may hold no local
     `.env` or `.env.<suffix>` file at all, in any directory (nested checkouts and build output
-    included; only `.git` and `node_modules` are skipped) and any letter case. Tracked examples are
-    fine. The files on disk are searched, since git cannot list them all. Every variable whose name contains `DATABASE_URL` is
-    checked, and none of these may be set: `PG*` (libpq), `DOTENV_*`, `BASH_ENV`, `ENV`, or any
-    `GIT_*` variable except the editor, pager, prompt, SSH and author/committer ones. The checked
-    repository must be the checkout that runs the lane.
+    included; only `.git` and `node_modules` are skipped) and any letter case, tracked or not. Only
+    `.env.example` files, which no loader reads, are fine. The files on disk are searched, since
+    git cannot list them all. Every variable whose name contains `DATABASE_URL` is checked. The
+    checked repository must be the checkout that runs the lane.
+  - The environment is a closed list (`scripts/ci/verify-machine-env-names.mjs`): the login basics
+    (`HOME`, `PATH`, `USER`, `LOGNAME`, `SHELL`, `TMPDIR`, `LANG`, `TERM` and what the shell adds),
+    the names pnpm adds to a lifecycle script, the checked gate settings and the Mac verify
+    isolation settings (`PLAYWRIGHT_BROWSERS_PATH` as an absolute path,
+    `INTERDOMESTIK_TASK_OWNS_PORT=1`, `SKIP_DOCKER_DOCTOR=1`, `HOSTNAME=127.0.0.1`). Any other
+    variable, such as `NODE_OPTIONS`, `NODE_DEBUG`, `GIT_*`, `PG*` or a test override, makes the run
+    a `PRE-CHECK`: the verifier then prints the names (never the values), starts no command and
+    records nothing, so no tracing variable can print an environment. The marker is still checked
+    first (its ACL listing runs with an empty environment), and an untrusted marker still stops the
+    run.
 - `stamp` runs only after every other step passed, in the same shell as its `begin`: the pending
   record is kept per shell process (PID and start time) and lane, so a later or concurrent
   `stamp` cannot use it, even in a shell that reuses the PID. It
@@ -63,8 +72,21 @@ Once the marker is installed, every run on that Mac is checked against it, in ev
 runs in the main checkout, on an uncommitted tree or through the QA MCP tools (which build their
 environment from each worktree's own env files) do not match, so they are pre-checks, as before.
 For gate evidence, run the lanes from a terminal in a dedicated verify worktree that has no local
-`.env` files, after sourcing the Mac verify isolation script (the `ida-mac-verify-pg` container on
-`127.0.0.1:55438`, `PW_PORT=3310`), and check that the last line starts with `GATE-EVIDENCE`.
+`.env` files, with the `ida-mac-verify-pg` container running on `127.0.0.1:55438`, in a clean
+environment that holds only the login basics and the gate settings, and check that the last line
+starts with `GATE-EVIDENCE`:
+
+```bash
+DB=postgresql://postgres:postgres@127.0.0.1:55438/interdomestik_test
+env -i HOME="$HOME" PATH="$PATH" USER="$USER" LOGNAME="$LOGNAME" SHELL="$SHELL" TMPDIR="$TMPDIR" \
+  LANG="$LANG" TERM="$TERM" DATABASE_URL="$DB" DATABASE_URL_RLS="$DB" E2E_DATABASE_URL="$DB" \
+  E2E_DATABASE_URL_RLS="$DB" PW_PORT=3310 PILOT_HOST=pilot.127.0.0.1.nip.io:3310 \
+  INTERDOMESTIK_TASK_OWNS_PORT=1 SKIP_DOCKER_DOCTOR=1 HOSTNAME=127.0.0.1 \
+  PLAYWRIGHT_BROWSERS_PATH="$HOME/development/rc31-scratch/.pw-browsers" pnpm pr:verify
+```
+
+A run from an ordinary shell, which carries many other variables, is a `PRE-CHECK` that says which
+names to leave out.
 
 The check proves which machine and configuration a run used. It is not a cryptographic attestation:
 the full run log on the frozen head stays the evidence of which steps ran.
@@ -81,7 +103,7 @@ sudo install -d -o root -g wheel -m 755 "/Library/Application Support/Interdomes
 ```
 
 ```bash
-node scripts/ci/verify-machine.mjs describe | sudo tee "/Library/Application Support/Interdomestik/verify-machine.candidate.json" > /dev/null
+env -i HOME="$HOME" PATH="$PATH" node scripts/ci/verify-machine.mjs describe | sudo tee "/Library/Application Support/Interdomestik/verify-machine.candidate.json" > /dev/null
 ```
 
 After reviewing `sudo cat` of that candidate, the owner activates the same bytes:
@@ -103,6 +125,5 @@ sudo mv "/Library/Application Support/Interdomestik/verify-machine.candidate.jso
 until the owner creates the marker again; that is intended, because the configuration is part of
 the evidence.
 
-Do not run a lane with `NODE_DEBUG` set: Node and pnpm then print the environment of every command
-they start, credentials included. The verifier starts no command while it is set, so such a run is
-a PRE-CHECK with nothing checked or recorded.
+Do not run a lane with `NODE_DEBUG` set: pnpm then prints the environment of the commands it
+starts, credentials included. The verifier itself starts no command while it is set.

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { environmentErrors, redirectingEnvNames } from './verify-machine-env.mjs';
+import { environmentErrors } from './verify-machine-env.mjs';
+import { unexpectedEnvNames } from './verify-machine-env-names.mjs';
 import { fixtureLive, fixtureMarker } from './verify-machine-fixtures.mjs';
 
 function errorsFor(env, sources = {}) {
@@ -137,48 +138,64 @@ test('a Sentry upload token fails the gate', () => {
   ]);
 });
 
-test('local env files and libpq or dotenv variables fail the gate; values stay unprinted', () => {
+test('local env files and variables outside the gate list fail the gate, by name only', () => {
   const sources = {
     localFiles: ['.env.local', 'packages/database/.env'],
     unsearched: ['tmp/locked'],
-    redirecting: ['PGPORT'],
+    unexpected: ['PGPORT'],
   };
   assert.deepEqual(errorsFor({}, sources), [
     '.env.local exists; gate runs take settings only from the checked environment',
     'packages/database/.env exists; gate runs take settings only from the checked environment',
     'tmp/locked could not be searched for env files',
-    'PGPORT is set; it can redirect the run (libpq, dotenv, shell startup or git)',
+    'PGPORT is set; a gate run takes only the documented variables',
   ]);
 });
 
-test('only variables that can redirect a run are reported, by name', () => {
+test('a gate run takes only the documented variables; every other name is reported', () => {
   const env = {
-    PGPORT: '1',
-    DOTENV_CONFIG_PATH: 'p',
-    BASH_ENV: '/x',
-    ENV: '/y',
-    GIT_WORK_TREE: '/other',
-    GIT_CONFIG_COUNT: '1',
-    // Any other git variable counts, including ones added in later git versions.
-    GIT_LITERAL_PATHSPECS: '1',
-    GIT_EXEC_PATH: '/other',
-    GIT_EDITOR: 'vim',
-    GIT_PAGER: 'less',
-    GIT_AUTHOR_NAME: 'n',
-    ENVIRONMENT: 'dev',
+    // Login basics, what pnpm adds to a script, the gate settings and the isolation settings.
+    HOME: '/h',
     PATH: '/bin',
-    NOT_PG: '1',
+    npm_lifecycle_event: 'pr:verify',
+    npm_config_user_agent: 'pnpm',
+    DATABASE_URL: 'x',
+    PW_PORT: '3310',
+    PLAYWRIGHT_BROWSERS_PATH: '/b',
+    // Anything else, including names no list of dangerous variables would think of.
+    NODE_OPTIONS: '--test-name-pattern=x',
+    GIT_TRACE2_EVENT: '1',
+    IDA_RECOVERY_ORIGIN: 'http://ida.localhost:3000',
+    E2E_SERVER_DATABASE_URL_RLS: 'x',
+    PGPORT: '1',
+    SENTRY_AUTH_TOKEN: '',
+    npm_config_bail: 'false',
   };
-  assert.deepEqual(redirectingEnvNames(env), [
-    'BASH_ENV',
-    'DOTENV_CONFIG_PATH',
-    'ENV',
-    'GIT_CONFIG_COUNT',
-    'GIT_EXEC_PATH',
-    'GIT_LITERAL_PATHSPECS',
-    'GIT_WORK_TREE',
+  assert.deepEqual(unexpectedEnvNames(env), [
+    'E2E_SERVER_DATABASE_URL_RLS',
+    'GIT_TRACE2_EVENT',
+    'IDA_RECOVERY_ORIGIN',
+    'NODE_OPTIONS',
+    'npm_config_bail',
     'PGPORT',
+    'SENTRY_AUTH_TOKEN',
   ]);
+});
+
+test('the isolation settings take only their documented values', () => {
+  assert.deepEqual(errorsFor({ SKIP_DOCKER_DOCTOR: '1', INTERDOMESTIK_TASK_OWNS_PORT: '1' }), []);
+  assert.deepEqual(errorsFor({ SKIP_DOCKER_DOCTOR: 'yes' }), [
+    'SKIP_DOCKER_DOCTOR must be 1 when set',
+  ]);
+  assert.deepEqual(errorsFor({ PLAYWRIGHT_BROWSERS_PATH: '/Users/x/.pw-browsers' }), []);
+  assert.deepEqual(errorsFor({ PLAYWRIGHT_BROWSERS_PATH: 'relative' }), [
+    'PLAYWRIGHT_BROWSERS_PATH must be an absolute path',
+  ]);
+  assert.deepEqual(errorsFor({ PLAYWRIGHT_BROWSERS_PATH: '' }), [
+    "PLAYWRIGHT_BROWSERS_PATH is set but empty; unset it or give it the marker's value",
+  ]);
+  assert.deepEqual(errorsFor({ HOSTNAME: '127.0.0.1' }), []);
+  assert.deepEqual(errorsFor({ HOSTNAME: '0.0.0.0' }), ['HOSTNAME must be 127.0.0.1 when set']);
 });
 
 test('every variable that names a database URL is checked, not only the four listed', () => {
