@@ -51,9 +51,11 @@ describe('safe-action types', () => {
       basis: { kind: 'role', roles: STAFF_ONLY },
       input,
       subject: { type: 'claim', from: 'claimId' },
-      handler: async (value, ctx) => {
+      handler: (value, ctx) => {
         expectTypeOf(ctx).toEqualTypeOf<ProtectedActionContext>();
-        return value.claimId === 'x' ? actionFailure('FORBIDDEN') : (value.count ?? 0);
+        return Promise.resolve(
+          value.claimId === 'x' ? actionFailure('FORBIDDEN') : (value.count ?? 0)
+        );
       },
     });
     expectTypeOf(action).toEqualTypeOf<Defined<number>>();

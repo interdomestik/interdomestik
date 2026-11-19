@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { byCodeUnit } from './server-mutation/ast.mjs';
 import {
   coverageShortfall,
   parseBaseline,
@@ -74,7 +75,7 @@ test('tamper: added, replaced, downgrade, count and removed check need a fresh o
     coverageMin: 4,
     unit: 'other',
   });
-  assert.deepEqual(tamperFindings('CHK-04', base, parse(changed)).sort(), [
+  assert.deepEqual(tamperFindings('CHK-04', base, parse(changed)).sort(byCodeUnit), [
     'CHK-04#added:b',
     'CHK-04#changed-unit',
     'CHK-04#downgrade',

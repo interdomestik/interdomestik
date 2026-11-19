@@ -80,7 +80,7 @@ export const publicDefinitions = (root, actions) =>
 
 function publicBinding(registry, unit, entry, name) {
   const row = registry.entries.find(candidate => candidate.id === entry);
-  if (!row || row.kind !== 'server-action' || row.operation !== name) return false;
+  if (row?.kind !== 'server-action' || row.operation !== name) return false;
   const binding = `${unit.file}#${unit.name}`;
   return `${row.module}#${row.export}` === binding || (row.aliases ?? []).includes(binding);
 }

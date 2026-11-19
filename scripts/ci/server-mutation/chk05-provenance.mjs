@@ -10,35 +10,48 @@ const FACTORIES = new Set(['defineAction', 'defineFormAction']);
 const PARSE = new Set(['parse', 'parseAsync']);
 const SAFE_PARSE = new Set(['safeParse', 'safeParseAsync']);
 
+function parameterBinding(scope, name) {
+  if (!ts.isFunctionLike(scope)) return null;
+  const index = scope.parameters.findIndex(p => ts.isIdentifier(p.name) && p.name.text === name);
+  return index >= 0 ? { kind: 'param', fn: scope, index } : null;
+}
+
+const isNamedElement = (element, name) =>
+  ts.isIdentifier(element.name) && element.name.text === name && !element.dotDotDotToken;
+
+// undefined: the declaration does not bind the name; null: it binds it, but not as a const.
+function declarationBinding(decl, name, isConst) {
+  if (ts.isIdentifier(decl.name) && decl.name.text === name)
+    return isConst ? { kind: 'const', decl } : null;
+  if (!ts.isObjectBindingPattern(decl.name)) return undefined;
+  const element = decl.name.elements.find(candidate => isNamedElement(candidate, name));
+  if (!element) return undefined;
+  return isConst
+    ? { kind: 'const', decl, key: (element.propertyName ?? element.name).getText() }
+    : null;
+}
+
+function statementsBinding(scope, name) {
+  const statements = ts.isBlock(scope) || ts.isSourceFile(scope) ? scope.statements : [];
+  for (const statement of statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    const isConst = Boolean(statement.declarationList.flags & ts.NodeFlags.Const);
+    for (const decl of statement.declarationList.declarations) {
+      const binding = declarationBinding(decl, name, isConst);
+      if (binding !== undefined) return binding;
+    }
+  }
+  return undefined;
+}
+
 // The nearest binding of an identifier: a const declaration (maybe destructured) or a parameter.
 export function lookup(identifier) {
   const name = identifier.text;
   for (let scope = identifier.parent; scope; scope = scope.parent) {
-    if (ts.isFunctionLike(scope)) {
-      const index = scope.parameters.findIndex(
-        p => ts.isIdentifier(p.name) && p.name.text === name
-      );
-      if (index >= 0) return { kind: 'param', fn: scope, index };
-    }
-    const statements = ts.isBlock(scope) || ts.isSourceFile(scope) ? scope.statements : null;
-    for (const statement of statements ?? []) {
-      if (!ts.isVariableStatement(statement)) continue;
-      const isConst = Boolean(statement.declarationList.flags & ts.NodeFlags.Const);
-      for (const decl of statement.declarationList.declarations) {
-        if (ts.isIdentifier(decl.name) && decl.name.text === name)
-          return isConst ? { kind: 'const', decl } : null;
-        if (ts.isObjectBindingPattern(decl.name))
-          for (const element of decl.name.elements)
-            if (
-              ts.isIdentifier(element.name) &&
-              element.name.text === name &&
-              !element.dotDotDotToken
-            )
-              return isConst
-                ? { kind: 'const', decl, key: (element.propertyName ?? element.name).getText() }
-                : null;
-      }
-    }
+    const parameter = parameterBinding(scope, name);
+    if (parameter) return parameter;
+    const binding = statementsBinding(scope, name);
+    if (binding !== undefined) return binding;
   }
   return null;
 }
@@ -101,43 +114,52 @@ function schemaVerdict(schemaNode, path, ctx) {
   return open.length ? `spread path: ${[...new Set(open)].join(', ')}` : null;
 }
 
+function safeParseCall(identifier) {
+  const binding = lookup(identifier);
+  const init = binding?.kind === 'const' && !binding.key && unwrap(binding.decl.initializer);
+  const isSafeParse =
+    init &&
+    ts.isCallExpression(init) &&
+    ts.isPropertyAccessExpression(init.expression) &&
+    SAFE_PARSE.has(init.expression.name.text);
+  return isSafeParse ? init : null;
+}
+
+function memberProblem(value, ctx, path, depth) {
+  const base = unwrap(value.expression);
+  const init = value.name.text === 'data' && ts.isIdentifier(base) ? safeParseCall(base) : null;
+  if (init) {
+    if (!guarded(value, base.text)) return `${base.text}.data without a preceding success guard`;
+    return schemaVerdict(init.expression.expression, path, ctx);
+  }
+  return provenanceProblem(value.expression, ctx, [value.name.text, ...path], depth + 1);
+}
+
+function callProblem(value, ctx, path) {
+  const method = value.expression.name.text;
+  const receiver = unwrap(value.expression.expression);
+  if (PARSE.has(method) && !(ts.isIdentifier(receiver) && receiver.text === 'JSON'))
+    return schemaVerdict(receiver, path, ctx);
+  return `call ${textOf(value.expression)} is not a parse`;
+}
+
+function identifierProblem(value, ctx, path, depth) {
+  const binding = lookup(value);
+  if (binding?.kind === 'param')
+    return isHandlerParameter(binding.fn, binding.index) ? null : `parameter ${value.text}`;
+  if (binding?.kind !== 'const' || !binding.decl.initializer) return `unbound ${value.text}`;
+  const nextPath = binding.key ? [binding.key, ...path] : path;
+  return provenanceProblem(binding.decl.initializer, ctx, nextPath, depth + 1);
+}
+
 // null when the expression carries parsed provenance, else the reason it does not.
 export function provenanceProblem(expression, ctx, path = [], depth = 0) {
   if (depth > 16) return 'provenance chain too long';
   const value = unwrap(expression);
   if (!value) return 'no value';
-  if (ts.isPropertyAccessExpression(value)) {
-    const base = unwrap(value.expression);
-    if (value.name.text === 'data' && ts.isIdentifier(base)) {
-      const binding = lookup(base);
-      const init = binding?.kind === 'const' && !binding.key && unwrap(binding.decl.initializer);
-      if (
-        init &&
-        ts.isCallExpression(init) &&
-        ts.isPropertyAccessExpression(init.expression) &&
-        SAFE_PARSE.has(init.expression.name.text)
-      ) {
-        if (!guarded(value, base.text))
-          return `${base.text}.data without a preceding success guard`;
-        return schemaVerdict(init.expression.expression, path, ctx);
-      }
-    }
-    return provenanceProblem(value.expression, ctx, [value.name.text, ...path], depth + 1);
-  }
-  if (ts.isCallExpression(value) && ts.isPropertyAccessExpression(value.expression)) {
-    const method = value.expression.name.text;
-    const receiver = unwrap(value.expression.expression);
-    if (PARSE.has(method) && !(ts.isIdentifier(receiver) && receiver.text === 'JSON'))
-      return schemaVerdict(receiver, path, ctx);
-    return `call ${textOf(value.expression)} is not a parse`;
-  }
-  if (ts.isIdentifier(value)) {
-    const binding = lookup(value);
-    if (binding?.kind === 'param')
-      return isHandlerParameter(binding.fn, binding.index) ? null : `parameter ${value.text}`;
-    if (binding?.kind !== 'const' || !binding.decl.initializer) return `unbound ${value.text}`;
-    const nextPath = binding.key ? [binding.key, ...path] : path;
-    return provenanceProblem(binding.decl.initializer, ctx, nextPath, depth + 1);
-  }
+  if (ts.isPropertyAccessExpression(value)) return memberProblem(value, ctx, path, depth);
+  if (ts.isCallExpression(value) && ts.isPropertyAccessExpression(value.expression))
+    return callProblem(value, ctx, path);
+  if (ts.isIdentifier(value)) return identifierProblem(value, ctx, path, depth);
   return `expression ${textOf(value).slice(0, 40)} has no provenance`;
 }

@@ -104,7 +104,7 @@ export function pageEntry(id, page) {
 }
 
 export function git(root, ...args) {
-  return execFileSync('git', ['-C', root, ...args], {
+  return execFileSync('/usr/bin/git', ['-C', root, ...args], {
     encoding: 'utf8',
     env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
   }).trim();

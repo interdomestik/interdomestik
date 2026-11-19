@@ -31,12 +31,11 @@ export function refusalCodes(root) {
   return new Set(codes);
 }
 
-const literalText = node =>
-  node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))
-    ? node.text
-    : ts.isTemplateExpression(node ?? {})
-      ? node.getText()
-      : null;
+function literalText(node) {
+  if (!node) return null;
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+  return ts.isTemplateExpression(node) ? node.getText() : null;
+}
 
 function exempt(newError, codes) {
   const decl = newError.parent;

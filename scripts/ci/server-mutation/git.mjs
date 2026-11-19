@@ -6,10 +6,13 @@ import path from 'node:path';
 
 import { ScanError } from './ast.mjs';
 
+// Fixed paths, as the other repository scripts use; never a binary found on PATH.
+const GIT = '/usr/bin/git';
+const TAR = '/usr/bin/tar';
 const SHA_RE = /^[0-9a-f]{7,64}$/u;
 
 function git(repo, args, options = {}) {
-  const result = spawnSync('git', ['-C', repo, ...args], {
+  const result = spawnSync(GIT, ['-C', repo, ...args], {
     encoding: options.encoding ?? 'utf8',
     maxBuffer: 256 * 1024 * 1024,
     env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
@@ -50,7 +53,7 @@ export function extractRevision(repo, sha) {
   const tar = path.join(dir, '.head.tar');
   const archive = git(repo, ['archive', '--format=tar', '-o', tar, sha]);
   if (!archive.ok) throw new ScanError(`cannot archive ${sha}`);
-  const unpack = spawnSync('tar', ['-xf', tar, '-C', dir]);
+  const unpack = spawnSync(TAR, ['-xf', tar, '-C', dir]);
   fs.rmSync(tar, { force: true });
   if (unpack.status !== 0) throw new ScanError(`cannot unpack ${sha}`);
   return dir;

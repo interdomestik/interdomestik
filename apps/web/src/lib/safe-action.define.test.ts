@@ -5,7 +5,7 @@ import { ROLE_ADMIN } from './roles.core';
 import { ActionDefinitionError, defineAction, defineFormAction } from './safe-action';
 
 const ADMIN_ONLY = [ROLE_ADMIN] as const;
-const handler = async () => 'ok';
+const handler = () => Promise.resolve('ok');
 
 function define(input: z.ZodType, extra: Record<string, unknown> = {}) {
   return () =>

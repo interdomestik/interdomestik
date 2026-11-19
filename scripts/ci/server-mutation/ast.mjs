@@ -17,6 +17,9 @@ export const shortHash = text => sha256(text).slice(0, 12);
 const SKIP_DIRS = new Set(['node_modules', '.next', 'dist', '.turbo', 'coverage']);
 const SOURCE_RE = /\.(ts|tsx|mts|cts)$/u;
 
+// The default sort order (UTF-16 code units), written out.
+export const byCodeUnit = (a, b) => Number(a > b) - Number(a < b);
+
 export function listSourceFiles(root, prefixes) {
   const out = [];
   const walk = rel => {
@@ -30,14 +33,14 @@ export function listSourceFiles(root, prefixes) {
     }
   };
   for (const prefix of prefixes) walk(prefix);
-  return out.sort();
+  return out.sort(byCodeUnit);
 }
 
 export function scanRoots(root) {
   const roots = ['apps/web/src'];
   const packages = path.join(root, 'packages');
   if (fs.existsSync(packages))
-    for (const name of fs.readdirSync(packages).sort())
+    for (const name of fs.readdirSync(packages).sort(byCodeUnit))
       if (fs.existsSync(path.join(packages, name, 'src'))) roots.push(`packages/${name}/src`);
   return roots;
 }
@@ -128,25 +131,29 @@ export function resolveModule(root, fromRel, specifier) {
   );
 }
 
+function bindingsOf(clause, specifier) {
+  const entries = [];
+  if (clause.name) entries.push([clause.name.text, { specifier, imported: 'default' }]);
+  const bindings = clause.namedBindings;
+  if (bindings && ts.isNamespaceImport(bindings))
+    entries.push([bindings.name.text, { specifier, imported: '*' }]);
+  if (bindings && ts.isNamedImports(bindings))
+    for (const element of bindings.elements.filter(e => !e.isTypeOnly))
+      entries.push([
+        element.name.text,
+        { specifier, imported: (element.propertyName ?? element.name).text },
+      ]);
+  return entries;
+}
+
 // Local import bindings of a file: local name -> { specifier, imported } (imported 'default' / '*').
 export function importsOf(sf) {
   const map = new Map();
   for (const statement of sf.statements) {
-    if (!ts.isImportDeclaration(statement) || !statement.importClause) continue;
-    if (statement.importClause.isTypeOnly) continue;
-    const specifier = statement.moduleSpecifier.text;
-    const clause = statement.importClause;
-    if (clause.name) map.set(clause.name.text, { specifier, imported: 'default' });
-    const bindings = clause.namedBindings;
-    if (bindings && ts.isNamespaceImport(bindings))
-      map.set(bindings.name.text, { specifier, imported: '*' });
-    if (bindings && ts.isNamedImports(bindings))
-      for (const element of bindings.elements)
-        if (!element.isTypeOnly)
-          map.set(element.name.text, {
-            specifier,
-            imported: (element.propertyName ?? element.name).text,
-          });
+    const clause = ts.isImportDeclaration(statement) && statement.importClause;
+    if (!clause || clause.isTypeOnly) continue;
+    for (const [name, binding] of bindingsOf(clause, statement.moduleSpecifier.text))
+      map.set(name, binding);
   }
   return map;
 }

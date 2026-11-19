@@ -32,7 +32,7 @@ const registry: PublicRegistry = {
 };
 
 function deps(result: Awaited<ReturnType<Parameters<typeof runPublicIntake>[1]['rateLimit']>>) {
-  return { rateLimit: vi.fn(async () => result), headers: new Headers() };
+  return { rateLimit: vi.fn(() => Promise.resolve(result)), headers: new Headers() };
 }
 
 describe('runPublicIntake', () => {

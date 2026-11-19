@@ -5,6 +5,7 @@ import test from 'node:test';
 
 import yaml from 'js-yaml';
 
+import { byCodeUnit } from './server-mutation/ast.mjs';
 import { REPO_ROOT } from './fixtures/server-mutation-check/harness.mjs';
 
 const WORKFLOW = '.github/workflows/server-mutation-report.yml';
@@ -15,7 +16,7 @@ const stepsOf = () => workflow().jobs['server-mutation-report'].steps;
 test('advisory workflow: non-draft pull requests and pushes to main, read-only, no secrets or remote cache', () => {
   const source = read(WORKFLOW);
   const wf = workflow();
-  assert.deepEqual(Object.keys(wf.on).sort(), ['pull_request', 'push']);
+  assert.deepEqual(Object.keys(wf.on).sort(byCodeUnit), ['pull_request', 'push']);
   assert.deepEqual(wf.on.pull_request.types, [
     'opened',
     'synchronize',

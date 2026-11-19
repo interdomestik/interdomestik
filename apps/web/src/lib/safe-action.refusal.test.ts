@@ -78,8 +78,8 @@ describe('the refusal record on a failing write', () => {
     });
     mocks.values.mockRejectedValue(failure);
     mocks.withTenantAuthority.mockImplementation(
-      async (_authority: unknown, run: (tx: unknown) => unknown) =>
-        run({ insert: () => ({ values: mocks.values }) })
+      (_authority: unknown, run: (tx: unknown) => unknown) =>
+        Promise.resolve(run({ insert: () => ({ values: mocks.values }) }))
     );
   });
 
@@ -90,7 +90,7 @@ describe('the refusal record on a failing write', () => {
       basis: { kind: 'role', roles: STAFF_ONLY },
       input: z.strictObject({ claimId: z.string() }),
       subject: { type: 'claim', from: 'claimId' },
-      handler: async () => 'never',
+      handler: () => Promise.resolve('never'),
     });
 
     const result = await action({ claimId: 'c-7' });
@@ -120,7 +120,7 @@ describe('the refusal record on a failing write', () => {
       basis: { kind: 'role', roles: STAFF_ONLY },
       input: z.strictObject({ claimId: z.string() }),
       subject: { type: 'claim', from: 'claimId' },
-      handler: async () => 'never',
+      handler: () => Promise.resolve('never'),
     });
     const formData = new FormData();
     formData.append('claimId', 'c-8');

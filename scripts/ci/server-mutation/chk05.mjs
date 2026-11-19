@@ -188,26 +188,62 @@ function structuralPath(call) {
   return { path: parts.join('/') || 'body', ambiguous };
 }
 
+function spreadProblems(property, ctx, identitySeen) {
+  const problems = identitySeen ? [`spread after identity key ${identitySeen}`] : [];
+  const problem = provenanceProblem(property.expression, ctx);
+  if (problem) problems.push(`spread ${textOf(property.expression).slice(0, 40)}: ${problem}`);
+  return problems;
+}
+
 function analyseObject(object, ctx, keys) {
   const problems = [];
   const lines = [];
   const order = [];
   let identitySeen = null;
   for (const property of object.properties) {
-    if (ts.isSpreadAssignment(property)) {
-      order.push(`...${textOf(property.expression)}`);
-      const before = problems.length;
-      if (identitySeen) problems.push(`spread after identity key ${identitySeen}`);
-      const problem = provenanceProblem(property.expression, ctx);
-      if (problem) problems.push(`spread ${textOf(property.expression).slice(0, 40)}: ${problem}`);
-      if (problems.length > before) lines.push(lineOf(property));
-    } else {
+    if (!ts.isSpreadAssignment(property)) {
       const key = property.name?.getText() ?? '?';
       order.push(key);
       if (keys.has(key) && !identitySeen) identitySeen = key;
+      continue;
     }
+    order.push(`...${textOf(property.expression)}`);
+    const found = spreadProblems(property, ctx, identitySeen);
+    problems.push(...found);
+    if (found.length) lines.push(lineOf(property));
   }
   return { problems, order, lines };
+}
+
+// The finding of one write, or null when every value has parsed provenance.
+function writeFinding(node, write, ctx, keys) {
+  const { objects = [], unresolved = [] } = resolveObjects(write.arg);
+  const problems = [];
+  const lines = [];
+  for (const value of unresolved) {
+    const problem = provenanceProblem(value, ctx);
+    if (!problem) continue;
+    problems.push(`write value ${textOf(value).slice(0, 40)}: ${problem}`);
+    lines.push(lineOf(value));
+  }
+  const order = [];
+  for (const object of objects) {
+    const result = analyseObject(object, ctx, keys);
+    problems.push(...result.problems);
+    lines.push(...result.lines);
+    order.push(result.order.join(','));
+  }
+  if (!problems.length) return null;
+  const { path: where, ambiguous } = structuralPath(node);
+  const content = shortHash([...order, ...unresolved.map(textOf)].join('|'));
+  const id = `${ctx.file}#${functionName(node)}#${where}#${write.op}(${write.table})#${content}`;
+  return {
+    id: ambiguous ? `ambiguous:${id}` : id,
+    file: ctx.file,
+    line: Math.min(...lines),
+    message: problems.join('; '),
+    ambiguous,
+  };
 }
 
 export const CHK05 = {
@@ -230,33 +266,8 @@ export const CHK05 = {
         const write = ts.isCallExpression(node) && writeOf(node);
         if (!write) return;
         units += 1;
-        const { objects = [], unresolved = [] } = resolveObjects(write.arg);
-        const problems = [];
-        const lines = [];
-        for (const value of unresolved) {
-          const problem = provenanceProblem(value, ctx);
-          if (problem) problems.push(`write value ${textOf(value).slice(0, 40)}: ${problem}`);
-          if (problem) lines.push(lineOf(value));
-        }
-        const order = [];
-        for (const object of objects) {
-          const result = analyseObject(object, ctx, keys);
-          problems.push(...result.problems);
-          lines.push(...result.lines);
-          order.push(result.order.join(','));
-        }
-        if (!problems.length) return;
-        const { path: where, ambiguous } = structuralPath(node);
-        const content = shortHash([...order, ...unresolved.map(textOf)].join('|'));
-        const id = `${file}#${functionName(node)}#${where}#${write.op}(${write.table})#${content}`;
-        const line = Math.min(...lines);
-        findings.push({
-          id: ambiguous ? `ambiguous:${id}` : id,
-          file,
-          line,
-          message: problems.join('; '),
-          ambiguous,
-        });
+        const finding = writeFinding(node, write, ctx, keys);
+        if (finding) findings.push(finding);
       });
     }
     return { units, findings };

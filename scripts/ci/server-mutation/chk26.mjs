@@ -43,6 +43,66 @@ function routeFindings(ctx, entry, units) {
   return [problem, testProblem].filter(Boolean);
 }
 
+function claimFindings(registry, add) {
+  const bindings = new Map();
+  for (const entry of registry.entries) {
+    const binding = bindingOf(entry);
+    add(
+      `${entry.id}@${binding}#no-closure`,
+      'open public entry (closure designed with WP-10)',
+      entry.module ?? entry.page
+    );
+    if (bindings.has(binding))
+      add(`${entry.id}@${binding}#second-claimant`, `also claimed by ${bindings.get(binding)}`);
+    else bindings.set(binding, entry.id);
+  }
+}
+
+function actionFindings(root, registry, units, add) {
+  const actions = registry.entries.filter(e => e.kind === 'server-action');
+  const exports = new Set(units.actions.map(unit => `${unit.file}#${unit.name}`));
+  for (const entry of actions)
+    for (const binding of [bindingOf(entry), ...(entry.aliases ?? [])])
+      if (!exports.has(binding))
+        add(`${entry.id}@${binding}#missing-binding`, 'no such server action export');
+  for (const def of publicDefinitions(root, units.actions)) {
+    const claimants = actions.filter(e => e.operation === def.name);
+    if (claimants.length !== 1)
+      add(
+        `${def.unit.id}#public-unbound`,
+        `${claimants.length} registry entries claim ${def.name}`,
+        def.unit.file
+      );
+  }
+}
+
+function pageFindings(root, registry, add) {
+  const pages = pagesOutsidePortals(root);
+  const listed = new Set(registry.entries.filter(e => e.kind === 'page').map(e => e.page));
+  for (const page of pages.filter(p => !listed.has(p)))
+    add(`page-unlisted@${page}`, 'page outside the portals is not registered', page);
+  for (const page of listed)
+    if (!fs.existsSync(path.join(root, page)) || isPortalPage(page))
+      add(`page-missing@${page}`, 'registered page does not exist outside the portals');
+  return pages;
+}
+
+function authFindings(ctx, registry, add) {
+  const mechanisms = detectAuthMechanisms(ctx);
+  const registered = new Set(
+    registry.entries.filter(e => e.kind === 'auth-mechanism').map(authBinding)
+  );
+  for (const found of mechanisms)
+    if (found.unclassified || !registered.has(found.binding))
+      add(`auth-unlisted@${found.binding}`, 'identity mechanism is not registered', found.file);
+  const detected = new Set(mechanisms.map(found => found.binding));
+  for (const binding of registered)
+    if (!detected.has(binding)) add(`auth-missing@${binding}`, 'registered mechanism not found');
+  return mechanisms;
+}
+
+const countOf = (registry, kind) => registry.entries.filter(e => e.kind === kind).length;
+
 export const CHK26 = {
   id: 'CHK-26',
   sources: [
@@ -61,64 +121,19 @@ export const CHK26 = {
     const units = collectUnits({ root, files, parse });
     const findings = [];
     const add = (id, message, file = null) => findings.push({ id, file, message });
-    const bindings = new Map();
-    for (const entry of registry.entries) {
-      const binding = bindingOf(entry);
-      add(
-        `${entry.id}@${binding}#no-closure`,
-        'open public entry (closure designed with WP-10)',
-        entry.module ?? entry.page
-      );
-      if (bindings.has(binding))
-        add(`${entry.id}@${binding}#second-claimant`, `also claimed by ${bindings.get(binding)}`);
-      else bindings.set(binding, entry.id);
-    }
-    const exports = new Set(units.actions.map(unit => `${unit.file}#${unit.name}`));
-    for (const entry of registry.entries.filter(e => e.kind === 'server-action'))
-      for (const binding of [bindingOf(entry), ...(entry.aliases ?? [])])
-        if (!exports.has(binding))
-          add(`${entry.id}@${binding}#missing-binding`, 'no such server action export');
-    for (const def of publicDefinitions(root, units.actions)) {
-      const claimants = registry.entries.filter(
-        e => e.kind === 'server-action' && e.operation === def.name
-      );
-      if (claimants.length !== 1)
-        add(
-          `${def.unit.id}#public-unbound`,
-          `${claimants.length} registry entries claim ${def.name}`,
-          def.unit.file
-        );
-    }
+    claimFindings(registry, add);
+    actionFindings(root, registry, units, add);
     for (const entry of registry.entries.filter(e => e.kind === 'route'))
       for (const problem of routeFindings(ctx, entry, units))
         add(`${entry.id}@${bindingOf(entry)}#route:${problem}`, problem, entry.module);
-    const pages = pagesOutsidePortals(root);
-    const listed = new Set(registry.entries.filter(e => e.kind === 'page').map(e => e.page));
-    for (const page of pages)
-      if (!listed.has(page))
-        add(`page-unlisted@${page}`, 'page outside the portals is not registered', page);
-    for (const page of listed)
-      if (!fs.existsSync(path.join(root, page)) || isPortalPage(page))
-        add(`page-missing@${page}`, 'registered page does not exist outside the portals');
-    const mechanisms = detectAuthMechanisms({ root, files, parse });
-    const registered = new Set(
-      registry.entries.filter(e => e.kind === 'auth-mechanism').map(authBinding)
-    );
-    for (const found of mechanisms)
-      if (found.unclassified || !registered.has(found.binding))
-        add(`auth-unlisted@${found.binding}`, 'identity mechanism is not registered', found.file);
-    const detected = new Set(mechanisms.map(found => found.binding));
-    for (const binding of registered)
-      if (!detected.has(binding)) add(`auth-missing@${binding}`, 'registered mechanism not found');
+    const pages = pageFindings(root, registry, add);
+    const mechanisms = authFindings({ root, files, parse }, registry, add);
     const counts = {
-      'server-action': 0,
-      route: 0,
+      'server-action': countOf(registry, 'server-action'),
+      route: countOf(registry, 'route'),
       page: pages.length,
       'auth-mechanism': mechanisms.length,
     };
-    for (const entry of registry.entries)
-      if (entry.kind in counts && entry.kind !== 'page' && entry.kind !== 'auth-mechanism')
-        counts[entry.kind] += 1;
     return { units: counts, findings };
   },
 };

@@ -83,7 +83,7 @@ function isStatus410(node) {
 // `return new Response(<lit>, { status: 410 })`, and no parameter is read.
 export function closed410Problem(fn) {
   const statements = ts.isBlock(fn.body) ? fn.body.statements : null;
-  if (!statements || statements.length !== 1 || !ts.isReturnStatement(statements[0]))
+  if (statements?.length !== 1 || !ts.isReturnStatement(statements[0]))
     return 'closed-410 body is not exactly one return';
   const value = unwrap(statements[0].expression);
   const isJson = ts.isCallExpression(value) && textOf(value.expression) === 'NextResponse.json';

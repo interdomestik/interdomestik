@@ -51,7 +51,7 @@ describe('defineAction at run time', () => {
   });
 
   it('runs the handler with the parsed input and wraps its value', async () => {
-    const handler = vi.fn(async (input: { claimId: string }) => `seen ${input.claimId}`);
+    const handler = vi.fn((input: { claimId: string }) => Promise.resolve(`seen ${input.claimId}`));
     const result = await staffAction(handler)({ claimId: 'c-1', note: 'ok' });
     expect(result).toEqual({ success: true, data: 'seen c-1' });
     expect(mocks.write).not.toHaveBeenCalled();
@@ -78,7 +78,7 @@ describe('defineAction at run time', () => {
     ['denies a session without a role', { ...STAFF_A, role: null }, false],
   ])('role basis %s', async (_label, user, allowed) => {
     mocks.authorize.mockResolvedValue(authorizedSession(user));
-    const handler = vi.fn(async () => 'done');
+    const handler = vi.fn(() => Promise.resolve('done'));
     const result = await staffAction(handler)({ claimId: 'c-9', note: '' });
     expect(result.success).toBe(allowed);
     expect(handler).toHaveBeenCalledTimes(allowed ? 1 : 0);
@@ -132,7 +132,7 @@ describe('defineAction at run time', () => {
   });
 
   it('refuses invalid input with issue codes only, before the handler', async () => {
-    const handler = vi.fn(async () => 'x');
+    const handler = vi.fn(() => Promise.resolve('x'));
     const result = await staffAction(handler)({ claimId: '', note: 'far too long', extra: 1 });
     expect(result).toEqual({
       success: false,

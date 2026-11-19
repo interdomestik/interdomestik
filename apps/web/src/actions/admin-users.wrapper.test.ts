@@ -48,8 +48,8 @@ vi.mock('@/lib/auth', () => ({
 
 // The refusal record of the wrapper; no database in this unit test.
 vi.mock('@/lib/audit.core', () => ({
-  writeAuditEvent: vi.fn(async () => ({ ok: true })),
-  logAuditEvent: vi.fn(async () => undefined),
+  writeAuditEvent: vi.fn(() => Promise.resolve({ ok: true })),
+  logAuditEvent: vi.fn(() => Promise.resolve(undefined)),
 }));
 
 vi.mock('@/server/auth/effective-portal-access', () => ({

@@ -104,6 +104,16 @@ export function tamperFindings(id, base, head) {
   const headCheck = head.checks[id];
   if (!baseCheck) return [];
   if (!headCheck) return allowed('#check', 'downgrade') ? [] : [`${id}#removed-check`];
+  return [
+    ...stateFindings(id, baseCheck, headCheck, allowed),
+    ...multisetMinus(headCheck.items, baseCheck.items)
+      .filter(item => !allowed(item, 'added', 'replaced'))
+      .map(item => `${id}#added:${item}`),
+  ];
+}
+
+// Findings on a check's mode, digests, coverage floor and exhaustion, in that order.
+function stateFindings(id, baseCheck, headCheck, allowed) {
   const out = [];
   if (baseCheck.mode === 'fail' && headCheck.mode !== 'fail' && !allowed('#mode', 'downgrade'))
     out.push(`${id}#downgrade`);
@@ -114,14 +124,8 @@ export function tamperFindings(id, base, head) {
   const after = coverageValues(headCheck.coverageMin);
   const lowered = Object.keys(before).some(kind => !(after[kind] >= before[kind]));
   if (lowered && !allowed('#coverageMin', 'count')) out.push(`${id}#lowered-coverageMin`);
-  if (
-    baseCheck.exhausted === true &&
-    headCheck.exhausted !== true &&
-    !allowed('#exhausted', 'downgrade')
-  )
-    out.push(`${id}#reopened`);
-  for (const item of multisetMinus(headCheck.items, baseCheck.items))
-    if (!allowed(item, 'added', 'replaced')) out.push(`${id}#added:${item}`);
+  const reopened = baseCheck.exhausted === true && headCheck.exhausted !== true;
+  if (reopened && !allowed('#exhausted', 'downgrade')) out.push(`${id}#reopened`);
   return out;
 }
 

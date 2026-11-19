@@ -10,21 +10,24 @@ const OWNER_TABLES = new Set(['user', 'tenants']);
 
 let ownerKeys: ReadonlySet<string> | null = null;
 
+type ForeignKey = ReturnType<typeof getTableConfig>['foreignKeys'][number];
+
+// The local columns of a foreign key that references `user.id` or `tenants.id`, else none.
+function ownerReferenceColumns(foreignKey: ForeignKey): readonly unknown[] {
+  const reference = foreignKey.reference();
+  const target = getTableConfig(reference.foreignTable).name;
+  const pointsAtId =
+    reference.foreignColumns.length === 1 && reference.foreignColumns[0]?.name === 'id';
+  return OWNER_TABLES.has(target) && pointsAtId ? reference.columns : [];
+}
+
 function collectOwnerKeys(): ReadonlySet<string> {
   const keys = new Set<string>(TENANT_IDENTITY_KEYS);
   for (const table of Object.values(schema)) {
     if (!is(table, PgTable)) continue;
     const columns = Object.entries(getTableColumns(table));
-    for (const foreignKey of getTableConfig(table).foreignKeys) {
-      const reference = foreignKey.reference();
-      const target = getTableConfig(reference.foreignTable).name;
-      const pointsAtId =
-        reference.foreignColumns.length === 1 && reference.foreignColumns[0]?.name === 'id';
-      if (!OWNER_TABLES.has(target) || !pointsAtId) continue;
-      for (const column of reference.columns) {
-        for (const [key, candidate] of columns) if (candidate === column) keys.add(key);
-      }
-    }
+    const owned = new Set(getTableConfig(table).foreignKeys.flatMap(ownerReferenceColumns));
+    for (const [key, candidate] of columns) if (owned.has(candidate)) keys.add(key);
   }
   return keys;
 }

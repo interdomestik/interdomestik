@@ -37,6 +37,11 @@ export function parseArgs(argv) {
   return args;
 }
 
+function invocationOf(args) {
+  if (args.check) return `check:${args.check}`;
+  return args.enforcing ? 'enforcing' : 'advisory';
+}
+
 function readBaselines(repo, root, baseSha) {
   const baseText = showAt(repo, baseSha, BASELINE_PATH);
   let base = null;
@@ -73,11 +78,7 @@ export function run(argv, cwd = process.cwd()) {
   const results = [];
   try {
     args = parseArgs(argv);
-    report.invocation = args.check
-      ? `check:${args.check}`
-      : args.enforcing
-        ? 'enforcing'
-        : 'advisory';
+    report.invocation = invocationOf(args);
     const repo = path.resolve(cwd, args.repo ?? '.');
     report.base = ensureCommit(repo, args.base, 'base');
     report.head = args.head ? ensureCommit(repo, args.head, 'head') : headSha(repo);

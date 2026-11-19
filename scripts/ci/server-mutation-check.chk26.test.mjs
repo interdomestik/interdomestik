@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { byCodeUnit } from './server-mutation/ast.mjs';
 import {
   fixtureCase,
   ids,
@@ -231,7 +232,7 @@ test('CHK-26: identity mechanisms are detected through conditional spreads and r
   const found = ids(runCheck('CHK-26', root, registryOf(entries))).filter(
     id => !id.endsWith('#no-closure')
   );
-  assert.deepEqual(found.sort(), [
+  assert.deepEqual(found.sort(byCodeUnit), [
     `auth-missing@${P}#build#plugin(better-auth/plugins#twoFactor)`,
     `auth-unlisted@${P}#build#plugin(better-auth/plugins#magicLink)`,
   ]);

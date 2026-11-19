@@ -14,8 +14,32 @@ import {
   resolveModule,
   shortHash,
   topLevelDeclarations,
+  byCodeUnit,
 } from './ast.mjs';
 import { ROUTE_METHODS } from './registry.mjs';
+
+function addExportDeclaration(statement, named, stars) {
+  if (statement.isTypeOnly) return;
+  const from = statement.moduleSpecifier?.text;
+  if (!statement.exportClause) {
+    if (from) stars.push(from);
+    return;
+  }
+  if (!ts.isNamedExports(statement.exportClause)) return;
+  for (const element of statement.exportClause.elements.filter(e => !e.isTypeOnly)) {
+    const local = (element.propertyName ?? element.name).text;
+    named.set(element.name.text, from ? { from, name: local } : { local });
+  }
+}
+
+function addExportedDeclaration(statement, named, decls) {
+  if (ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement)) return;
+  if (hasDefaultModifier(statement)) named.set('default', { decl: statement });
+  else if (ts.isVariableStatement(statement)) {
+    for (const [name, decl] of decls)
+      if (decl.parent?.parent === statement) named.set(name, { decl });
+  } else if (statement.name) named.set(statement.name.text, { decl: statement });
+}
 
 // Export table of one module: name -> { local } | { from, name } | { decl }, plus `export *` sources.
 function exportTable(sf) {
@@ -23,29 +47,10 @@ function exportTable(sf) {
   const stars = [];
   const decls = topLevelDeclarations(sf);
   for (const statement of sf.statements) {
-    if (ts.isExportDeclaration(statement)) {
-      if (statement.isTypeOnly) continue;
-      const from = statement.moduleSpecifier?.text;
-      if (!statement.exportClause) {
-        if (from) stars.push(from);
-        continue;
-      }
-      if (!ts.isNamedExports(statement.exportClause)) continue;
-      for (const element of statement.exportClause.elements) {
-        if (element.isTypeOnly) continue;
-        const local = (element.propertyName ?? element.name).text;
-        named.set(element.name.text, from ? { from, name: local } : { local });
-      }
-    } else if (ts.isExportAssignment(statement) && !statement.isExportEquals) {
+    if (ts.isExportDeclaration(statement)) addExportDeclaration(statement, named, stars);
+    else if (ts.isExportAssignment(statement) && !statement.isExportEquals)
       named.set('default', { decl: statement });
-    } else if (hasExportModifier(statement)) {
-      if (ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement)) continue;
-      if (hasDefaultModifier(statement)) named.set('default', { decl: statement });
-      else if (ts.isVariableStatement(statement)) {
-        for (const [name, decl] of decls)
-          if (decl.parent?.parent === statement) named.set(name, { decl });
-      } else if (statement.name) named.set(statement.name.text, { decl: statement });
-    }
+    else if (hasExportModifier(statement)) addExportedDeclaration(statement, named, decls);
   }
   return { named, stars, decls };
 }
@@ -100,12 +105,50 @@ export function createExportResolver(root, parse) {
       const target = resolveModule(root, file, star);
       if (target) for (const name of names(target, seen)) if (name !== 'default') out.add(name);
     }
-    return [...out].sort();
+    return [...out].sort(byCodeUnit);
   }
   return { resolve, names, table };
 }
 
 const isRouteFile = file => /^apps\/web\/src\/app\/.*\/route\.ts$/u.test(file);
+
+function actionUnits(resolver, file) {
+  return resolver
+    .names(file)
+    .map(name => ({ id: `${file}#${name}`, file, name, target: resolver.resolve(file, name) }))
+    .filter(unit => !(unit.target?.decl && isTypeDeclaration(unit.target.decl)));
+}
+
+function routeUnits(resolver, file) {
+  return ROUTE_METHODS.filter(
+    method => resolver.table(file).named.has(method) || resolver.resolve(file, method)
+  ).map(method => ({
+    id: `${file}#${method}`,
+    file,
+    method,
+    target: resolver.resolve(file, method),
+  }));
+}
+
+const isInlineServerFunction = node =>
+  ts.isFunctionLike(node) &&
+  node.body &&
+  ts.isBlock(node.body) &&
+  directiveOf(node.body).includes('use server');
+
+function inlineUnits(sf, file) {
+  const out = [];
+  sf.forEachChild(function visit(node) {
+    if (isInlineServerFunction(node))
+      out.push({
+        id: `${file}#${functionName(node)}#${shortHash(node.body.getText())}`,
+        file,
+        node,
+      });
+    node.forEachChild(visit);
+  });
+  return out;
+}
 
 export function collectUnits({ root, files, parse }) {
   const resolver = createExportResolver(root, parse);
@@ -115,35 +158,9 @@ export function collectUnits({ root, files, parse }) {
   for (const file of files) {
     if (!file.startsWith('apps/web/src/') || isTestFile(file)) continue;
     const sf = parse(file);
-    if (isUseServerModule(sf))
-      for (const name of resolver.names(file)) {
-        const target = resolver.resolve(file, name);
-        if (target?.decl && isTypeDeclaration(target.decl)) continue;
-        actions.push({ id: `${file}#${name}`, file, name, target });
-      }
-    if (isRouteFile(file))
-      for (const method of ROUTE_METHODS)
-        if (resolver.table(file).named.has(method) || resolver.resolve(file, method))
-          routes.push({
-            id: `${file}#${method}`,
-            file,
-            method,
-            target: resolver.resolve(file, method),
-          });
-    sf.forEachChild(function visit(node) {
-      if (
-        ts.isFunctionLike(node) &&
-        node.body &&
-        ts.isBlock(node.body) &&
-        directiveOf(node.body).includes('use server')
-      )
-        inline.push({
-          id: `${file}#${functionName(node)}#${shortHash(node.body.getText())}`,
-          file,
-          node,
-        });
-      node.forEachChild(visit);
-    });
+    if (isUseServerModule(sf)) actions.push(...actionUnits(resolver, file));
+    if (isRouteFile(file)) routes.push(...routeUnits(resolver, file));
+    inline.push(...inlineUnits(sf, file));
   }
   return { actions, inline, routes, resolver };
 }

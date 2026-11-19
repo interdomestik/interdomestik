@@ -52,7 +52,7 @@ export function chainOf(expression) {
       return {
         factory: node.expression.name.text,
         args: node.arguments,
-        methods: methods.reverse(),
+        methods: methods.toReversed(),
       };
     // Namespaced factories: z.iso.datetime(), z.coerce.number().
     if (
@@ -63,12 +63,12 @@ export function chainOf(expression) {
       return {
         factory: `${receiver.name.text}.${node.expression.name.text}`,
         args: node.arguments,
-        methods: methods.reverse(),
+        methods: methods.toReversed(),
       };
     methods.push({ name: node.expression.name.text, args: node.arguments });
     node = receiver;
   }
-  return { factory: null, reference: node, methods: methods.reverse() };
+  return { factory: null, reference: node, methods: methods.toReversed() };
 }
 
 const isStrictObjectChain = chain =>
@@ -76,22 +76,29 @@ const isStrictObjectChain = chain =>
     (chain.factory === 'object' && chain.methods.some(m => m.name === 'strict'))) &&
   !chain.methods.some(m => LOOSE_METHODS.has(m.name));
 
+function localConst(identifier) {
+  for (let scope = identifier.parent; scope; scope = scope.parent) {
+    const statements = ts.isBlock(scope) || ts.isSourceFile(scope) ? scope.statements : [];
+    for (const statement of statements) {
+      const isConst =
+        ts.isVariableStatement(statement) &&
+        Boolean(statement.declarationList.flags & ts.NodeFlags.Const);
+      const decl =
+        isConst &&
+        statement.declarationList.declarations.find(
+          d => ts.isIdentifier(d.name) && d.name.text === identifier.text
+        );
+      if (decl) return decl;
+    }
+  }
+  return null;
+}
+
 // Resolves a schema identifier to its `const` initializer (same file or a repository import).
 export function createSchemaResolver(root, parse, exportResolver) {
   return function resolveSchema(identifier, file) {
-    for (let scope = identifier.parent; scope; scope = scope.parent) {
-      const statements = ts.isBlock(scope) || ts.isSourceFile(scope) ? scope.statements : null;
-      for (const statement of statements ?? []) {
-        if (
-          !ts.isVariableStatement(statement) ||
-          !(statement.declarationList.flags & ts.NodeFlags.Const)
-        )
-          continue;
-        for (const decl of statement.declarationList.declarations)
-          if (ts.isIdentifier(decl.name) && decl.name.text === identifier.text)
-            return { file, init: decl.initializer };
-      }
-    }
+    const local = localConst(identifier);
+    if (local) return { file, init: local.initializer };
     const imported = importsOf(identifier.getSourceFile()).get(identifier.text);
     const target = imported && resolveModule(root, file, imported.specifier);
     const hit = target && exportResolver.resolve(target, imported.imported);
@@ -102,45 +109,47 @@ export function createSchemaResolver(root, parse, exportResolver) {
   };
 }
 
+function resolvedReasons(identifier, file, resolveSchema, depth) {
+  const hit = resolveSchema(identifier, file);
+  return hit
+    ? openReasons(hit.init, hit.file, resolveSchema, depth + 1)
+    : [`unresolved schema ${identifier.text}`];
+}
+
+// A reference may only be wrapped; any other method could extend or reshape what it names.
+function referenceReasons(chain, file, resolveSchema, depth) {
+  const wrappedReference =
+    chain.reference &&
+    ts.isIdentifier(chain.reference) &&
+    chain.methods.every(m => WRAPPERS.has(m.name));
+  return wrappedReference
+    ? resolvedReasons(chain.reference, file, resolveSchema, depth)
+    : ['schema is not a Zod chain'];
+}
+
+function objectReasons(chain, file, resolveSchema, depth) {
+  if (!isStrictObjectChain(chain)) return ['non-strict object'];
+  const changing = chain.methods.find(m => SHAPE_CHANGING.has(m.name));
+  if (changing) return [`object-level ${changing.name}`];
+  const shape = unwrap(chain.args[0]);
+  if (!shape || !ts.isObjectLiteralExpression(shape)) return ['object shape is not a literal'];
+  return shape.properties.flatMap(p =>
+    ts.isPropertyAssignment(p)
+      ? openReasons(p.initializer, file, resolveSchema, depth + 1)
+      : ['shape member is not a plain property']
+  );
+}
+
 // Every reason the schema subtree is not closed; empty when it is.
 export function openReasons(expression, file, resolveSchema, depth = 0) {
   if (depth > 12) return ['schema too deep to resolve'];
   const value = unwrap(expression);
-  if (value && ts.isIdentifier(value)) {
-    const hit = resolveSchema(value, file);
-    return hit
-      ? openReasons(hit.init, hit.file, resolveSchema, depth + 1)
-      : [`unresolved schema ${value.text}`];
-  }
+  if (value && ts.isIdentifier(value)) return resolvedReasons(value, file, resolveSchema, depth);
   const chain = chainOf(value);
-  if (!chain.factory) {
-    // A reference may only be wrapped; any other method could extend or reshape what it names.
-    if (
-      chain.reference &&
-      ts.isIdentifier(chain.reference) &&
-      chain.methods.every(m => WRAPPERS.has(m.name))
-    ) {
-      const hit = resolveSchema(chain.reference, file);
-      return hit
-        ? openReasons(hit.init, hit.file, resolveSchema, depth + 1)
-        : [`unresolved schema ${chain.reference.text}`];
-    }
-    return ['schema is not a Zod chain'];
-  }
+  if (!chain.factory) return referenceReasons(chain, file, resolveSchema, depth);
   if (OPEN_FACTORIES.has(chain.factory)) return [`z.${chain.factory}`];
   if (chain.methods.some(m => LOOSE_METHODS.has(m.name))) return ['loose object'];
-  if (OBJECT_FACTORIES.has(chain.factory)) {
-    if (!isStrictObjectChain(chain)) return ['non-strict object'];
-    const changing = chain.methods.find(m => SHAPE_CHANGING.has(m.name));
-    if (changing) return [`object-level ${changing.name}`];
-    const shape = unwrap(chain.args[0]);
-    if (!shape || !ts.isObjectLiteralExpression(shape)) return ['object shape is not a literal'];
-    return shape.properties.flatMap(p =>
-      ts.isPropertyAssignment(p)
-        ? openReasons(p.initializer, file, resolveSchema, depth + 1)
-        : ['shape member is not a plain property']
-    );
-  }
+  if (OBJECT_FACTORIES.has(chain.factory)) return objectReasons(chain, file, resolveSchema, depth);
   if (chain.methods.some(m => m.name === 'pipe' || m.name === 'transform'))
     return [`scalar ${chain.factory} changes shape`];
   if (!SCHEMA_ARG_FACTORIES.has(chain.factory)) return [];

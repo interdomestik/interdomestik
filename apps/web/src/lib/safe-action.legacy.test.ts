@@ -18,7 +18,8 @@ import { notFound } from 'next/navigation';
 import { runAuthenticatedAction } from './safe-action';
 
 function thrown(error: unknown) {
-  return runAuthenticatedAction(async () => {
+  // The wrapper awaits the handler inside its try, so a synchronous throw takes the same path.
+  return runAuthenticatedAction(() => {
     throw error;
   });
 }
@@ -97,7 +98,7 @@ describe('runAuthenticatedAction (legacy) classification, design §4', () => {
   });
 
   it('rethrows notFound and a bare NEXT_REDIRECT', async () => {
-    await expect(runAuthenticatedAction(async () => notFound())).rejects.toThrow();
+    await expect(runAuthenticatedAction(() => Promise.resolve(notFound()))).rejects.toThrow();
     await expect(thrown(new Error('NEXT_REDIRECT'))).rejects.toThrow('NEXT_REDIRECT');
     expect(mocks.capture).not.toHaveBeenCalled();
   });
@@ -114,10 +115,10 @@ describe('runAuthenticatedAction (legacy) classification, design §4', () => {
 
   it('keeps the duck-typed pass-through and records a passed-through refusal', async () => {
     const passed = { success: false, error: 'Nope', code: 'FORBIDDEN' };
-    expect(await runAuthenticatedAction(async () => passed)).toBe(passed);
+    expect(await runAuthenticatedAction(() => Promise.resolve(passed))).toBe(passed);
     expect(mocks.write).toHaveBeenCalledTimes(1);
     const ok = { success: true, data: 1 };
-    expect(await runAuthenticatedAction(async () => ok)).toBe(ok);
+    expect(await runAuthenticatedAction(() => Promise.resolve(ok))).toBe(ok);
     expect(mocks.write).toHaveBeenCalledTimes(1);
   });
 });

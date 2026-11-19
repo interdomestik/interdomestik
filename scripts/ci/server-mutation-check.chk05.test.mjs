@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { byCodeUnit } from './server-mutation/ast.mjs';
 import { ratchet } from './server-mutation/baseline.mjs';
 import { fixtureCase, ids, runCheck, tree } from './fixtures/server-mutation-check/harness.mjs';
 
@@ -31,7 +32,7 @@ test('CHK-05: the notification-settings path before a34986463 fails at both help
   const routeUnits = ids(runCheck('CHK-04', root)).filter(id =>
     id.startsWith('apps/web/src/app/api/settings/notifications/route.ts#')
   );
-  assert.deepEqual(routeUnits.sort(), [
+  assert.deepEqual(routeUnits.sort(byCodeUnit), [
     'apps/web/src/app/api/settings/notifications/route.ts#GET',
     'apps/web/src/app/api/settings/notifications/route.ts#POST',
   ]);
@@ -113,10 +114,10 @@ test('CHK-05 ids: a violation moved between branches is one fixed and one new (r
 });
 
 test('CHK-05 ids: an unrelated guard or a removed sibling branch leaves ids unchanged (r5 B8)', t => {
-  const base = ids(runCheck('CHK-05', tree(t, { [M]: HEAD + branchy(true) }))).sort();
+  const base = ids(runCheck('CHK-05', tree(t, { [M]: HEAD + branchy(true) }))).sort(byCodeUnit);
   const guarded = ids(
     runCheck('CHK-05', tree(t, { [M]: HEAD + branchy(true, 'if (!b) return;\n  ') }))
-  ).sort();
+  ).sort(byCodeUnit);
   assert.deepEqual(guarded, base);
   const fewer =
     HEAD + branchy(true).replace('  if (!a) { await db.update(things).set({ ...b }); }\n', '');

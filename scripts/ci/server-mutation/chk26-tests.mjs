@@ -51,31 +51,36 @@ function returnedObject(factory) {
   return value && ts.isObjectLiteralExpression(value) ? value : null;
 }
 
+const resolvedSpecifier = (root, testPath, specifier) =>
+  resolveModule(root, testPath, specifier) ?? specifier;
+
+// Texts the factory of one `vi.mock(...)` call gives the effect's export, if it mocks its module.
+function mockFactoryTexts(root, testPath, node, effect) {
+  const [spec, factory] = node.arguments;
+  if (!spec || !ts.isStringLiteral(spec) || !factory) return [];
+  if (resolvedSpecifier(root, testPath, spec.text) !== effect.module) return [];
+  const texts = [];
+  for (const property of returnedObject(factory)?.properties ?? []) {
+    if (ts.isPropertyAssignment(property) && property.name.getText() === effect.imported)
+      texts.push(textOf(property.initializer));
+    if (ts.isShorthandPropertyAssignment(property) && property.name.text === effect.imported)
+      texts.push(property.name.text);
+  }
+  return texts;
+}
+
 // The texts that denote the effect's mock in the test file.
 function effectMockTexts(root, sf, testPath, effect) {
   const out = new Set();
   sf.forEachChild(function visit(node) {
-    if (ts.isCallExpression(node) && textOf(node.expression) === 'vi.mock') {
-      const spec = node.arguments[0];
-      const resolved =
-        spec && ts.isStringLiteral(spec)
-          ? (resolveModule(root, testPath, spec.text) ?? spec.text)
-          : null;
-      const object =
-        resolved === effect.module && node.arguments[1] && returnedObject(node.arguments[1]);
-      for (const property of object?.properties ?? []) {
-        if (ts.isPropertyAssignment(property) && property.name.getText() === effect.imported)
-          out.add(textOf(property.initializer));
-        if (ts.isShorthandPropertyAssignment(property) && property.name.text === effect.imported)
-          out.add(property.name.text);
-      }
-    }
+    if (ts.isCallExpression(node) && textOf(node.expression) === 'vi.mock')
+      for (const text of mockFactoryTexts(root, testPath, node, effect)) out.add(text);
     node.forEachChild(visit);
   });
   for (const [local, imported] of importsOf(sf))
     if (
       imported.imported === effect.imported &&
-      (resolveModule(root, testPath, imported.specifier) ?? imported.specifier) === effect.module
+      resolvedSpecifier(root, testPath, imported.specifier) === effect.module
     )
       out.add(local);
   return out;

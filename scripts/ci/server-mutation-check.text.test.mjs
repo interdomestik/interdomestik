@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { byCodeUnit } from './server-mutation/ast.mjs';
 import { runCheck, tree } from './fixtures/server-mutation-check/harness.mjs';
 
 const M = 'packages/domain-x/src/text.ts';
@@ -12,7 +13,12 @@ export async function b(r: Response) { const raw = await r.json().catch(() => nu
 export async function c(r: Response) { return (await r.json()) as unknown as Body; }
 export async function d(r: Response) { return <Body>(await r.json()); }`;
   const result = runCheck('CHK-05b', tree(t, { [M]: body }));
-  assert.deepEqual(result.findings.map(f => f.id.split('#')[1]).sort(), ['a', 'b', 'c', 'd']);
+  assert.deepEqual(result.findings.map(f => f.id.split('#')[1]).sort(byCodeUnit), [
+    'a',
+    'b',
+    'c',
+    'd',
+  ]);
 });
 
 test('CHK-05b: a parse, an unknown assertion and a non-json cast pass; tests are not scanned', t => {
@@ -31,7 +37,7 @@ test('UNAUTH-TEXT: an Error carrying unauthorized text is reported, case-insensi
   const body =
     "export function a() { throw new Error('Unauthorized'); }\nexport function b() { throw new Error(`UNAUTHORIZED: ${1}`); }\nexport function c() { throw new Error('not unauthorised spelling'); }";
   const result = runCheck('UNAUTH-TEXT', tree(t, { [M]: body }));
-  assert.deepEqual(result.findings.map(f => f.id.split('#')[1]).sort(), ['a', 'b']);
+  assert.deepEqual(result.findings.map(f => f.id.split('#')[1]).sort(byCodeUnit), ['a', 'b']);
 });
 
 test('UNAUTH-TEXT: exempt only when the next statement assigns a refusal code literal to the binding', t => {
@@ -40,7 +46,7 @@ export function wrongCode() { const e = new Error('Unauthorized'); (e as any).co
 export function laterCode() { const e = new Error('Unauthorized'); log(); (e as any).code = 'FORBIDDEN'; throw e; }
 export function otherBinding() { const e = new Error('Unauthorized'); const f = e; (f as any).code = 'FORBIDDEN'; throw e; }`;
   const result = runCheck('UNAUTH-TEXT', tree(t, { [M]: body }));
-  assert.deepEqual(result.findings.map(f => f.id.split('#')[1]).sort(), [
+  assert.deepEqual(result.findings.map(f => f.id.split('#')[1]).sort(byCodeUnit), [
     'laterCode',
     'otherBinding',
     'wrongCode',
@@ -59,7 +65,7 @@ test('UNAUTH-TEXT: dynamic rethrows form a separate report-only list; client mod
   });
   const result = runCheck('UNAUTH-TEXT', root);
   assert.deepEqual(result.findings, []);
-  assert.deepEqual(result.reportOnly.map(f => f.id.split('#')[1]).sort(), ['a', 'b']);
+  assert.deepEqual(result.reportOnly.map(f => f.id.split('#')[1]).sort(byCodeUnit), ['a', 'b']);
 });
 
 test('UNAUTH-TEXT: missing REFUSAL_CODES in the wrapper types is a scanner error', t => {

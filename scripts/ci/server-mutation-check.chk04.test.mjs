@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { byCodeUnit } from './server-mutation/ast.mjs';
 import { ids, registryOf, runCheck, tree } from './fixtures/server-mutation-check/harness.mjs';
 
 const A = 'apps/web/src/actions';
@@ -18,7 +19,7 @@ test('CHK-04 units: value exports followed through re-exports and export *, type
   const result = runCheck('CHK-04', root);
   // impl#good, index#renamed (resolves to the compliant definition), index#fromStar, index#plain.
   assert.deepEqual(result.units, { export: 4, route: 0 });
-  assert.deepEqual(ids(result).sort(), [`${A}/index.ts#fromStar`, `${A}/index.ts#plain`]);
+  assert.deepEqual(ids(result).sort(byCodeUnit), [`${A}/index.ts#fromStar`, `${A}/index.ts#plain`]);
 });
 
 test('CHK-04: a spread, a computed key or a duplicate key in the definition is a violation (r4 B2)', t => {
@@ -40,7 +41,7 @@ test('CHK-04: missing subject, non-literal name, non-literal kind and a non-wrap
   });
   const found = ids(runCheck('CHK-04', root))
     .map(id => id.split('#')[1])
-    .sort();
+    .sort(byCodeUnit);
   assert.deepEqual(found, ['dynamicKind', 'dynamicName', 'mutable', 'noSubject', 'notWrapper']);
 });
 
@@ -58,7 +59,7 @@ test('CHK-04: a name used twice repo-wide flags both definitions', t => {
     [`${A}/one.ts`]: `${IMPORT}export const first = ${def('same.name')};\n`,
     [`${A}/two.ts`]: `${IMPORT}export const second = ${def('same.name')};\n`,
   });
-  assert.deepEqual(ids(runCheck('CHK-04', root)).sort(), [
+  assert.deepEqual(ids(runCheck('CHK-04', root)).sort(byCodeUnit), [
     `${A}/one.ts#first`,
     `${A}/two.ts#second`,
   ]);
@@ -84,7 +85,7 @@ test('CHK-04: a public definition passes only when the registry binds it; a list
   };
   assert.deepEqual(ids(runCheck('CHK-04', root, registryOf([entry]))), [`${A}/rogue.ts#rogue`]);
   const withoutAlias = { ...entry, aliases: [] };
-  assert.deepEqual(ids(runCheck('CHK-04', root, registryOf([withoutAlias]))).sort(), [
+  assert.deepEqual(ids(runCheck('CHK-04', root, registryOf([withoutAlias]))).sort(byCodeUnit), [
     `${A}/pub.ts#intakeAlias`,
     `${A}/rogue.ts#rogue`,
   ]);
@@ -124,7 +125,7 @@ test('CHK-04: every exported route method is a unit; a registered one with its d
   assert.deepEqual(
     ids(registered)
       .map(id => id.split('#')[1])
-      .sort(),
+      .sort(byCodeUnit),
     ['DELETE', 'GET', 'PATCH', 'PUT']
   );
   const missingTitle = ids(runCheck('CHK-04', root, registryOf([route('no such title')])));
