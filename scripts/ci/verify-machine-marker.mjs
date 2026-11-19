@@ -1,14 +1,10 @@
 import { createHash } from 'node:crypto';
-import { lstatSync, readFileSync } from 'node:fs';
-import path from 'node:path';
 
 // The owner creates this file with sudo; agents never create or edit it (AGENTS.md R-04).
 export const MARKER_PATH = '/Library/Application Support/Interdomestik/verify-machine.json';
 export const MARKER_SCHEMA = 'interdomestik.verify-machine/1';
 export const REQUIRED_FORBIDDEN_PORTS = Object.freeze([3000, 54322]);
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', '::1', 'localhost']);
-const WRITABLE_BY_OTHERS = 0o022;
-const DEFAULT_FS = Object.freeze({ lstatSync, readFileSync });
 
 const KIND_CHECKS = {
   string: value => typeof value === 'string' && value.trim() !== '' && value.length <= 200,
@@ -71,51 +67,4 @@ export function validateMarker(marker) {
     errors.push('database.image must be pinned by digest');
   }
   return errors;
-}
-
-function ownershipErrors(label, stat, expectFile) {
-  const errors = [];
-  if (expectFile ? !stat.isFile() : !stat.isDirectory()) {
-    errors.push(`${label} must be a ${expectFile ? 'regular file' : 'directory'}, not a link`);
-  }
-  if (stat.uid !== 0) errors.push(`${label} must be owned by root`);
-  if ((stat.mode & WRITABLE_BY_OTHERS) !== 0) {
-    errors.push(`${label} must not be writable by group or others`);
-  }
-  return errors;
-}
-
-/**
- * Reads the marker only when root owns it and its directory and neither is writable by
- * anyone else, so a process running as the developer cannot forge or edit it.
- */
-export function readTrustedMarker(markerPath = MARKER_PATH, fs = DEFAULT_FS) {
-  let fileStat;
-  try {
-    fileStat = fs.lstatSync(markerPath);
-  } catch (error) {
-    if (error?.code === 'ENOENT') return { status: 'absent' };
-    return { status: 'invalid', errors: [`marker cannot be read (${error?.code ?? 'error'})`] };
-  }
-  let dirStat;
-  try {
-    dirStat = fs.lstatSync(path.dirname(markerPath));
-  } catch (error) {
-    return { status: 'invalid', errors: [`marker directory cannot be read (${error?.code})`] };
-  }
-  const errors = [
-    ...ownershipErrors('marker file', fileStat, true),
-    ...ownershipErrors('marker directory', dirStat, false),
-  ];
-  if (errors.length > 0) return { status: 'invalid', errors };
-  const bytes = fs.readFileSync(markerPath);
-  let marker;
-  try {
-    marker = JSON.parse(bytes.toString('utf8'));
-  } catch {
-    return { status: 'invalid', errors: ['marker is not valid JSON'] };
-  }
-  const shapeProblems = validateMarker(marker);
-  if (shapeProblems.length > 0) return { status: 'invalid', errors: shapeProblems };
-  return { status: 'trusted', marker, sha256: sha256Hex(bytes) };
 }

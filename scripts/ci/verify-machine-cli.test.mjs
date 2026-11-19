@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -20,6 +20,7 @@ function harness({ marker = { status: 'absent' }, live = fixtureLive(), env = {}
     env,
     platform: 'darwin',
     cwd: '/repo',
+    shellPid: 4242,
     exec: (command, args) => {
       assert.deepEqual([command, ...args], ['git', 'rev-parse', '--show-toplevel']);
       return '/repo';
@@ -44,6 +45,7 @@ function harness({ marker = { status: 'absent' }, live = fixtureLive(), env = {}
       )
     );
   return {
+    directory,
     deps,
     state,
     output,
@@ -113,13 +115,64 @@ test('an untrusted marker or a mismatching machine fails before any step runs', 
   linux.cleanup();
 });
 
-test('stamp refuses a missing begin, a moved HEAD, edited files or a changed marker', () => {
-  const missing = harness();
+test('a stamp without its begin in the same shell is never gate evidence', () => {
+  const missing = harness({ marker: trusted() });
   assert.equal(runVerifyMachine(['stamp', 'pr-verify'], missing.deps), 1);
+  assert.match(missing.output.error.join('\n'), /no begin record for pr-verify in this shell/u);
   missing.cleanup();
+  const failedEarlier = harness({ marker: trusted() });
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], failedEarlier.deps), 0);
+  failedEarlier.deps.shellPid = 5151;
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], failedEarlier.deps), 1);
+  assert.ok(
+    failedEarlier.files().every(f => f.startsWith('pending')),
+    'no final record'
+  );
+  failedEarlier.cleanup();
+  const preCheck = harness();
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], preCheck.deps), 0);
+  assert.match(preCheck.output.log[0], /PRE-CHECK lane=pr-verify: no begin record/u);
+  assert.deepEqual(preCheck.files(), []);
+  preCheck.cleanup();
+});
+
+test('concurrent shells keep their own pending records', () => {
+  const h = harness({ marker: trusted() });
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 0);
+  h.deps.shellPid = 5151;
+  h.state.marker = { status: 'absent' };
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 0);
+  assert.equal(h.files().length, 2);
+  h.deps.shellPid = 4242;
+  h.state.marker = trusted();
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 0);
+  assert.equal(h.readFinal().mode, 'GATE-EVIDENCE');
+  h.cleanup();
+});
+
+test('a pre-check whose record cannot be written still runs', () => {
+  const h = harness();
+  h.deps.records = {
+    ...h.deps.records,
+    writeRecord: () => {
+      throw Object.assign(new Error('read-only'), { code: 'EROFS' });
+    },
+  };
+  assert.equal(runVerifyMachine(['begin', 'security-guard'], h.deps), 0);
+  assert.match(h.output.error[0], /pre-check record not written \(EROFS\); continuing/u);
+  h.cleanup();
+});
+
+test('stamp re-checks the live machine, HEAD, tracked files and the marker', () => {
+  const live = fixtureLive();
   const cases = [
-    [s => (s.git = { ...s.git, head: 'd'.repeat(40) }), /HEAD changed/u],
-    [s => (s.git = { ...s.git, trackedClean: false }), /tracked files changed/u],
+    [s => (s.live = { ...live, git: { ...live.git, head: 'd'.repeat(40) } }), /HEAD changed/u],
+    [
+      s => (s.live = { ...live, git: { ...live.git, trackedClean: false } }),
+      /tracked files changed/u,
+    ],
+    [s => (s.live = { ...live, database: { ...live.database, running: false } }), /not running/u],
+    [s => (s.live = { ...live, env: { ...live.env, PW_PORT: '3000' } }), /forbidden port 3000/u],
     [s => (s.marker = { ...trusted(), sha256: '0'.repeat(64) }), /marker changed/u],
     [s => (s.marker = { status: 'absent' }), /marker changed/u],
   ];
@@ -135,10 +188,34 @@ test('stamp refuses a missing begin, a moved HEAD, edited files or a changed mar
     );
     h.cleanup();
   }
-  const otherLane = harness();
+  const otherLane = harness({ marker: trusted() });
   assert.equal(runVerifyMachine(['begin', 'pr-verify'], otherLane.deps), 0);
   assert.equal(runVerifyMachine(['stamp', 'security-guard'], otherLane.deps), 1);
   otherLane.cleanup();
+  const preCheckHead = harness();
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], preCheckHead.deps), 0);
+  preCheckHead.state.git = { ...preCheckHead.state.git, head: 'd'.repeat(40) };
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], preCheckHead.deps), 1);
+  preCheckHead.cleanup();
+});
+
+test('begin prunes pending records older than a day and keeps recent ones', () => {
+  const h = harness();
+  const old = path.join(h.directory, 'pending-pr-verify-old.json');
+  const recent = path.join(h.directory, 'pending-pr-verify-recent.json');
+  writeFileSync(old, '{}');
+  writeFileSync(recent, '{}');
+  const dayAgo = (Date.parse('2026-11-19T10:00:00.000Z') - 24 * 60 * 60 * 1000) / 1000;
+  utimesSync(old, dayAgo, dayAgo);
+  utimesSync(
+    recent,
+    Date.parse('2026-11-19T09:00:00.000Z') / 1000,
+    Date.parse('2026-11-19T09:00:00.000Z') / 1000
+  );
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 0);
+  assert.ok(!h.files().includes('pending-pr-verify-old.json'));
+  assert.ok(h.files().includes('pending-pr-verify-recent.json'));
+  h.cleanup();
 });
 
 test('hosted runs and bad arguments are handled without records', () => {

@@ -1,4 +1,12 @@
-import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -7,7 +15,16 @@ import { sha256Hex } from './verify-machine-marker.mjs';
 export const LANES = Object.freeze(['pr-verify', 'security-guard']);
 export const MODES = Object.freeze({ gate: 'GATE-EVIDENCE', preCheck: 'PRE-CHECK' });
 
-const DEFAULT_FS = { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync };
+const DEFAULT_FS = {
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+};
+const STALE_PENDING_MS = 24 * 60 * 60 * 1000;
 
 /** Run records live outside the repository, in the developer's log directory. */
 export function recordDirectory({ platform, env, home = os.homedir() }) {
@@ -15,8 +32,10 @@ export function recordDirectory({ platform, env, home = os.homedir() }) {
   return path.join(env.XDG_STATE_HOME || path.join(home, '.local/state'), 'interdomestik-verify');
 }
 
-export function pendingRecordPath(directory, repoRoot, lane) {
-  return path.join(directory, `pending-${lane}-${sha256Hex(repoRoot).slice(0, 16)}.json`);
+/** One pending record per shell process: `begin` and `stamp` are children of the same shell. */
+export function pendingRecordPath(directory, repoRoot, lane, shellPid) {
+  const scope = sha256Hex(`${repoRoot}\0${shellPid}`).slice(0, 16);
+  return path.join(directory, `pending-${lane}-${scope}.json`);
 }
 
 export function finalRecordPath(directory, record) {
@@ -43,6 +62,24 @@ export function readRecord(filePath, fs = DEFAULT_FS) {
 
 export function removeRecord(filePath, fs = DEFAULT_FS) {
   fs.rmSync(filePath, { force: true });
+}
+
+/** Removes pending records of runs that never reached their stamp a day ago or more. */
+export function pruneStalePending(directory, nowMs, fs = DEFAULT_FS) {
+  let names;
+  try {
+    names = fs.readdirSync(directory);
+  } catch {
+    return;
+  }
+  for (const name of names.filter(entry => /^pending-.+\.json$/u.test(entry))) {
+    const filePath = path.join(directory, name);
+    try {
+      if (nowMs - fs.statSync(filePath).mtimeMs >= STALE_PENDING_MS) removeRecord(filePath, fs);
+    } catch {
+      // Another run may have removed it; pruning is best effort.
+    }
+  }
 }
 
 /** The recorded configuration: versions, ports and the image, never URLs or credentials. */

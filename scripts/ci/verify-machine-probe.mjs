@@ -2,15 +2,9 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, statfsSync } from 'node:fs';
 import path from 'node:path';
 
-import { DATABASE_ENV_KEYS } from './verify-machine-compare.mjs';
+import { envFileOverrides, GUARDED_ENV_KEYS } from './verify-machine-env.mjs';
 import { sha256Hex } from './verify-machine-marker.mjs';
 
-const ENV_KEYS = Object.freeze([
-  ...DATABASE_ENV_KEYS,
-  'PW_PORT',
-  'PILOT_HOST',
-  'SENTRY_AUTH_TOKEN',
-]);
 const GIB = 1024 ** 3;
 
 export function runCommand(command, args, cwd) {
@@ -52,28 +46,6 @@ export function parseContainer(inspectOutput) {
     }))
   );
   return { image, running: running === 'true', bindings };
-}
-
-const ENV_FILES = Object.freeze([
-  '.env',
-  '.env.local',
-  'apps/web/.env',
-  'apps/web/.env.local',
-  'apps/web/.env.production',
-  'apps/web/.env.production.local',
-]);
-
-/** The env files the build and the E2E server load that set a Sentry upload token. */
-export function sentryTokenFiles(repoRoot, read = readFileSync) {
-  return ENV_FILES.filter(file => {
-    let text;
-    try {
-      text = read(path.join(repoRoot, file), 'utf8');
-    } catch {
-      return false;
-    }
-    return /^[ \t]*(?:export[ \t]+)?SENTRY_AUTH_TOKEN[ \t]*=[ \t]*['"]?[^\s'"#]/mu.test(text);
-  });
 }
 
 export function readCiPostgresDigest(repoRoot, read = readFileSync) {
@@ -128,8 +100,8 @@ export function probeMachine({ repoRoot, marker, env, exec = runCommand, statfs 
     },
     database: parseContainer(inspect),
     ciPostgresDigest: readCiPostgresDigest(repoRoot),
-    env: Object.fromEntries(ENV_KEYS.map(key => [key, env[key] ?? ''])),
-    sentryTokenFiles: sentryTokenFiles(repoRoot),
+    env: Object.fromEntries(GUARDED_ENV_KEYS.map(key => [key, env[key] ?? ''])),
+    envFileOverrides: envFileOverrides(repoRoot),
     freeGib: { repository: freeGib(statfs, repoRoot), system: freeGib(statfs, '/') },
     git: gitState(repoRoot, exec),
   };

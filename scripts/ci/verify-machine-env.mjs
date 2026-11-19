@@ -1,0 +1,114 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
+export const DATABASE_ENV_KEYS = Object.freeze([
+  'DATABASE_URL',
+  'DATABASE_URL_RLS',
+  'E2E_DATABASE_URL',
+  'E2E_DATABASE_URL_RLS',
+]);
+// Tenant hosts and the base URL the Playwright projects build their origins from.
+export const HOST_ENV_KEYS = Object.freeze([
+  'KS_HOST',
+  'MK_HOST',
+  'AL_HOST',
+  'PILOT_HOST',
+  'IDA_HOST',
+]);
+export const GUARDED_ENV_KEYS = Object.freeze([
+  ...DATABASE_ENV_KEYS,
+  ...HOST_ENV_KEYS,
+  'PW_PORT',
+  'PORT',
+  'PLAYWRIGHT_BASE_URL',
+  'SENTRY_AUTH_TOKEN',
+]);
+// The env files the gatekeeper sources and the E2E web server and the build load.
+export const ENV_FILES = Object.freeze([
+  '.env',
+  '.env.local',
+  'apps/web/.env',
+  'apps/web/.env.local',
+  'apps/web/.env.production',
+  'apps/web/.env.production.local',
+]);
+const LOOPBACK_ORIGIN =
+  /^(?:127\.0\.0\.1|localhost|\[::1\]|(?:[a-z0-9-]+\.)*127\.0\.0\.1\.nip\.io|(?:[a-z0-9-]+\.)*localhost)$/u;
+
+/** Each guarded key that an env file sets to a non-empty value; values are never returned. */
+export function envFileOverrides(repoRoot, read = readFileSync) {
+  const overrides = [];
+  for (const file of ENV_FILES) {
+    let text;
+    try {
+      text = read(path.join(repoRoot, file), 'utf8');
+    } catch {
+      continue;
+    }
+    for (const key of GUARDED_ENV_KEYS) {
+      const pattern = new RegExp(
+        `^[ \\t]*(?:export[ \\t]+)?${key}[ \\t]*=[ \\t]*['"]?[^\\s'"#]`,
+        'mu'
+      );
+      if (pattern.test(text)) overrides.push({ file, key });
+    }
+  }
+  return overrides;
+}
+
+function databaseUrlErrors(key, raw, database, forbiddenPorts) {
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    return [`${key} is not a URL`];
+  }
+  const errors = [];
+  const port = Number(url.port || 5432);
+  if (!['postgres:', 'postgresql:'].includes(url.protocol)) errors.push(`${key} is not postgres`);
+  if (forbiddenPorts.includes(port)) errors.push(`${key} uses forbidden port ${port}`);
+  const host = url.hostname.replace(/^\[(.*)\]$/u, '$1');
+  if (host !== database.host) errors.push(`${key} host is not ${database.host}`);
+  if (port !== database.port) errors.push(`${key} port is not ${database.port}`);
+  if (url.pathname !== `/${database.name}`) errors.push(`${key} database is not ${database.name}`);
+  return errors;
+}
+
+function originErrors(key, raw, appPort) {
+  let url;
+  try {
+    url = new URL(raw.includes('://') ? raw : `http://${raw}`);
+  } catch {
+    return [`${key} is not a host:port`];
+  }
+  const errors = [];
+  if (Number(url.port) !== appPort) errors.push(`${key} does not use port ${appPort}`);
+  if (!LOOPBACK_ORIGIN.test(url.hostname)) errors.push(`${key} is not a loopback host`);
+  return errors;
+}
+
+/** The effective database, app and upload settings the gate steps will read. */
+export function environmentErrors(marker, env, overrides = []) {
+  const forbidden = marker.forbidden_ports;
+  const errors = overrides.map(
+    ({ file, key }) => `${file} sets ${key}; gate runs take it only from the checked environment`
+  );
+  if (!env.DATABASE_URL) {
+    errors.push('DATABASE_URL must be set; the default fallback is the shared database on 54322');
+  }
+  for (const key of DATABASE_ENV_KEYS) {
+    if (env[key]) errors.push(...databaseUrlErrors(key, env[key], marker.database, forbidden));
+  }
+  for (const key of ['PW_PORT', 'PORT']) {
+    const port = Number(env[key]);
+    if (!env[key]) {
+      if (key === 'PW_PORT') errors.push(`PW_PORT must be set to ${marker.app_port}`);
+    } else if (forbidden.includes(port)) errors.push(`${key} uses forbidden port ${port}`);
+    else if (port !== marker.app_port) errors.push(`${key} is not ${marker.app_port}`);
+  }
+  for (const key of [...HOST_ENV_KEYS, 'PLAYWRIGHT_BASE_URL']) {
+    if (env[key]) errors.push(...originErrors(key, env[key], marker.app_port));
+  }
+  if (env.SENTRY_AUTH_TOKEN) errors.push('SENTRY_AUTH_TOKEN must be unset for gate evidence');
+  return errors;
+}

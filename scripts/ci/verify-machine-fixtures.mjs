@@ -1,4 +1,4 @@
-// Test fixtures for the verification-machine marker; no real machine data.
+// Test fixtures for the verification-machine marker: visibly synthetic, no real machine data.
 export const FIXTURE_DIGEST = `sha256:${'a'.repeat(64)}`;
 export const FIXTURE_HARDWARE_SHA256 = 'b'.repeat(64);
 
@@ -7,10 +7,10 @@ export function fixtureMarker(overrides = {}) {
     schema: 'interdomestik.verify-machine/1',
     created_at: '2026-11-19T10:00:00.000Z',
     machine: { hardware_uuid_sha256: FIXTURE_HARDWARE_SHA256, arch: 'arm64' },
-    os: { version: '27.2.1', build: '26B131' },
-    node: 'v24.15.0',
-    pnpm: '10.28.2',
-    container_runtime: { context: 'orbstack', engine: '29.8.2' },
+    os: { version: '99.1', build: '99Z901' },
+    node: 'v24.99.0',
+    pnpm: '10.99.0',
+    container_runtime: { context: 'orbstack', engine: '99.0.0' },
     database: {
       image: `postgres:16@${FIXTURE_DIGEST}`,
       container: 'ida-mac-verify-pg',
@@ -30,10 +30,10 @@ export function fixtureLive(overrides = {}) {
   return {
     hardwareUuidSha256: FIXTURE_HARDWARE_SHA256,
     arch: 'arm64',
-    os: { version: '27.2.1', build: '26B131' },
-    node: 'v24.15.0',
-    pnpm: '10.28.2',
-    container: { context: 'orbstack', engine: '29.8.2' },
+    os: { version: '99.1', build: '99Z901' },
+    node: 'v24.99.0',
+    pnpm: '10.99.0',
+    container: { context: 'orbstack', engine: '99.0.0' },
     database: {
       image: `postgres:16@${FIXTURE_DIGEST}`,
       running: true,
@@ -49,7 +49,7 @@ export function fixtureLive(overrides = {}) {
       PILOT_HOST: 'pilot.127.0.0.1.nip.io:3310',
       SENTRY_AUTH_TOKEN: '',
     },
-    sentryTokenFiles: [],
+    envFileOverrides: [],
     freeGib: { repository: 120, system: 28 },
     git: { head: 'c'.repeat(40), clean: true, trackedClean: true },
     ...overrides,
