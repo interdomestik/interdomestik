@@ -5,6 +5,8 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { describeDatabaseUrl } from '../redact-database-url.mjs';
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
 
@@ -35,16 +37,29 @@ test('m4 gatekeeper diagnostics never print database credentials', () => {
     // The URL reaches the redactor on stdin from a builtin, never in a process argv.
     assert.ok(
       line.includes(
-        `$(printf '%s' "\${DATABASE_URL}" | bash "\${SCRIPT_DIR}/redact-database-url.sh")`
+        `$(printf '%s' "\${DATABASE_URL}" | node "\${SCRIPT_DIR}/redact-database-url.mjs")`
       ),
       line
     );
   }
   const sentinel = 'SENTINEL-p@ss:word';
-  const output = execFileSync('/bin/bash', [path.join(rootDir, 'scripts/redact-database-url.sh')], {
-    encoding: 'utf8',
-    input: `postgresql://postgres:${sentinel}@127.0.0.1:55438/db`,
-  });
-  assert.equal(output, 'postgresql://postgres:***@127.0.0.1:55438/db');
+  const cases = [
+    [`postgresql://postgres:${sentinel}@127.0.0.1:55438/db`, 'postgresql://127.0.0.1:55438/db'],
+    [`postgresql://127.0.0.1:5432/db?password=${sentinel}`, 'postgresql://127.0.0.1:5432/db'],
+    [`postgresql://u:${sentinel}@host/db`, 'postgresql://host:(no port)/db'],
+    [`not a url ${sentinel}`, '(not a URL)'],
+  ];
+  for (const [input, expected] of cases) {
+    assert.equal(describeDatabaseUrl(input), expected);
+  }
+  const output = execFileSync(
+    process.execPath,
+    [path.join(rootDir, 'scripts/redact-database-url.mjs')],
+    {
+      encoding: 'utf8',
+      input: cases[0][0],
+    }
+  );
+  assert.equal(output, cases[0][1]);
   assert.ok(!output.includes('SENTINEL'));
 });

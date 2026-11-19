@@ -53,7 +53,7 @@ export function compareMachine(marker, live, { phase = 'begin' } = {}) {
     ),
     ...mismatch('container_runtime.engine', marker.container_runtime.engine, live.container.engine),
     ...databaseContainerErrors(marker, live.database, live.ciPostgresDigest),
-    ...environmentErrors(marker, live.env, live.envFileOverrides)
+    ...environmentErrors(marker, live.env, live.sources)
   );
   if (phase === 'stamp') {
     if (!live.git.trackedClean) errors.push('tracked files changed during the run');

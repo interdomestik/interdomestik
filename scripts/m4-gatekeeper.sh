@@ -58,7 +58,7 @@ else
     echo "ℹ️  [Gatekeeper] Ignoring env-file DATABASE_URL for Playwright gate parity"
   fi
   export DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-  echo "⚠️  [Gatekeeper] Using local default DATABASE_URL=$(printf '%s' "${DATABASE_URL}" | bash "${SCRIPT_DIR}/redact-database-url.sh")"
+  echo "⚠️  [Gatekeeper] Using local default DATABASE_URL=$(printf '%s' "${DATABASE_URL}" | node "${SCRIPT_DIR}/redact-database-url.mjs")"
 fi
 
 # Plan070 U2-a: the web server will log in as the restricted runtime role, which is only
@@ -213,7 +213,7 @@ NODE
     ATTEMPT=$((ATTEMPT+1))
     if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
       echo "❌ [Gatekeeper] Postgres unavailable after ${MAX_ATTEMPTS} attempts."
-      echo "   DATABASE_URL=$(printf '%s' "${DATABASE_URL}" | bash "${SCRIPT_DIR}/redact-database-url.sh")"
+      echo "   DATABASE_URL=$(printf '%s' "${DATABASE_URL}" | node "${SCRIPT_DIR}/redact-database-url.mjs")"
       echo "   Tip: run 'pnpm --filter @interdomestik/database exec supabase start'"
       exit 1
     fi

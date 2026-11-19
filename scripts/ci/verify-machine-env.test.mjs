@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict';
-import path from 'node:path';
 import test from 'node:test';
 
-import { envFileOverrides, environmentErrors } from './verify-machine-env.mjs';
+import { environmentErrors, localEnvFiles, redirectingEnvNames } from './verify-machine-env.mjs';
 import { fixtureLive, fixtureMarker } from './verify-machine-fixtures.mjs';
 
-function errorsFor(env, overrides = []) {
-  return environmentErrors(fixtureMarker(), { ...fixtureLive().env, ...env }, overrides);
+function errorsFor(env, sources = {}) {
+  return environmentErrors(fixtureMarker(), { ...fixtureLive().env, ...env }, sources);
 }
 
 test('the checked environment of the fixture passes', () => {
@@ -26,6 +25,9 @@ test('the shared database port and the default fallback are refused', () => {
   assert.deepEqual(errorsFor({ DATABASE_URL_RLS: 'nope' }), ['DATABASE_URL_RLS is not a URL']);
   const remote = 'postgresql://u:p@db.example.test:55438/interdomestik_test';
   assert.deepEqual(errorsFor({ DATABASE_URL: remote }), ['DATABASE_URL host is not 127.0.0.1']);
+  // Without a port the driver would take PGPORT or its default instead of the marker's port.
+  const portless = 'postgresql://u:p@127.0.0.1/interdomestik_test';
+  assert.deepEqual(errorsFor({ DATABASE_URL: portless }), ['DATABASE_URL must name its port']);
 });
 
 test('the app port and every Playwright origin must use the recorded port on loopback', () => {
@@ -66,47 +68,42 @@ test('a set-but-empty key fails the gate, because the E2E lane would fall back t
   assert.deepEqual(errorsFor({ SENTRY_AUTH_TOKEN: '' }), []);
 });
 
-test('a Sentry upload token or an env-file override fails the gate; values stay unprinted', () => {
+test('a Sentry upload token fails the gate', () => {
   assert.deepEqual(errorsFor({ SENTRY_AUTH_TOKEN: 'set' }), [
     'SENTRY_AUTH_TOKEN must be unset for gate evidence',
   ]);
-  assert.deepEqual(errorsFor({}, [{ file: '.env.local', key: 'E2E_DATABASE_URL' }]), [
-    '.env.local sets E2E_DATABASE_URL; gate runs take it only from the checked environment',
+});
+
+test('local env files and libpq or dotenv variables fail the gate; values stay unprinted', () => {
+  const sources = { localFiles: ['.env.local', 'packages/database/.env'], redirecting: ['PGPORT'] };
+  assert.deepEqual(errorsFor({}, sources), [
+    '.env.local exists; gate runs take settings only from the checked environment',
+    'packages/database/.env exists; gate runs take settings only from the checked environment',
+    'PGPORT is set; libpq and dotenv settings can redirect the run',
   ]);
 });
 
-test('env-file scanning names every assignment of a guarded key, never its value', () => {
-  const files = new Map([
-    [path.join('/r', '.env'), 'SENTRY_AUTH_TOKEN=\nSENTRY_ORG=o\nOTHER=1\n'],
-    [
-      path.join('/r', '.env.local'),
-      [
-        'E2E_DATABASE_URL=postgresql://x@127.0.0.1:54322/p',
-        'KS_HOST=" ks.127.0.0.1.nip.io:3000"',
-        'MK_HOST: mk.127.0.0.1.nip.io:3000',
-      ].join('\n'),
-    ],
-    [
-      path.join('/r', 'apps/web/.env'),
-      '  export   PORT = 3000\n# KS_HOST=commented\nNOT_KS_HOST=1\nDATABASE_URL_RLSX=1\n',
-    ],
-    [path.join('/r', 'apps/web/.env.local'), '# x\nexport SENTRY_AUTH_TOKEN="abc"\n'],
-    [path.join('/r', 'apps/web/.env.production'), '\uFEFFKS_HOST=a\n\u00A0AL_HOST\u2003=b\n'],
-  ]);
-  const read = file => {
-    if (!files.has(file)) throw Object.assign(new Error('missing'), { code: 'ENOENT' });
-    return files.get(file);
+test('every env file outside git is found, and only libpq and dotenv names are reported', () => {
+  const listing = [
+    'node_modules/',
+    '.env',
+    '.env.local',
+    '.envrc',
+    'apps/web/.env.production.local',
+    'packages/database/.env',
+    'apps/web/.next/',
+    'notes/environment.md',
+  ].join('\n');
+  const exec = (command, args, cwd) => {
+    assert.deepEqual([command, ...args, cwd], ['git', 'ls-files', '--others', '--directory', '/r']);
+    return listing;
   };
-  const overrides = envFileOverrides('/r', read);
-  assert.deepEqual(overrides, [
-    { file: '.env', key: 'SENTRY_AUTH_TOKEN' },
-    { file: '.env.local', key: 'E2E_DATABASE_URL' },
-    { file: '.env.local', key: 'KS_HOST' },
-    { file: '.env.local', key: 'MK_HOST' },
-    { file: 'apps/web/.env', key: 'PORT' },
-    { file: 'apps/web/.env.local', key: 'SENTRY_AUTH_TOKEN' },
-    { file: 'apps/web/.env.production', key: 'KS_HOST' },
-    { file: 'apps/web/.env.production', key: 'AL_HOST' },
+  assert.deepEqual(localEnvFiles('/r', exec), [
+    '.env',
+    '.env.local',
+    'apps/web/.env.production.local',
+    'packages/database/.env',
   ]);
-  assert.ok(!JSON.stringify(overrides).includes('abc'));
+  const env = { PGPORT: '1', PGOPTIONS: 'x', DOTENV_CONFIG_PATH: 'p', PATH: '/bin', NOT_PG: '1' };
+  assert.deepEqual(redirectingEnvNames(env), ['DOTENV_CONFIG_PATH', 'PGOPTIONS', 'PGPORT']);
 });

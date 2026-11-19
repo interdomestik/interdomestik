@@ -137,6 +137,7 @@ test('the probe hashes the hardware id and keeps only the guarded environment ke
     ['git rev-parse HEAD', 'c'.repeat(40)],
     ['git status --porcelain=v1 --untracked-files=no', ''],
     ['git status --porcelain=v1 --untracked-files=all', '?? new.txt'],
+    ['git ls-files --others --directory', 'node_modules/\n.env.local\n.envrc\ndocker/.env'],
   ]);
   const exec = (command, args) => {
     const key = command === 'ioreg' ? 'ioreg' : [command, ...args].join(' ');
@@ -146,7 +147,13 @@ test('the probe hashes the hardware id and keeps only the guarded environment ke
   const live = probeMachine({
     repoRoot: REPO_ROOT,
     marker: fixtureMarker(),
-    env: { PW_PORT: '3310', KS_HOST: 'ks.127.0.0.1.nip.io:3310', HOME: '/Users/someone' },
+    env: {
+      PW_PORT: '3310',
+      KS_HOST: 'ks.127.0.0.1.nip.io:3310',
+      HOME: '/Users/someone',
+      PGPORT: '54322',
+      DOTENV_CONFIG_OVERRIDE: 'true',
+    },
     exec,
     statfs: () => ({ bavail: 30n * 1024n, bsize: 1024n * 1024n }),
   });
@@ -158,5 +165,9 @@ test('the probe hashes the hardware id and keeps only the guarded environment ke
   assert.deepEqual(live.git, { head: 'c'.repeat(40), trackedClean: true, clean: false });
   assert.equal(live.env.KS_HOST, 'ks.127.0.0.1.nip.io:3310');
   assert.ok(!Object.hasOwn(live.env, 'HOME'));
-  assert.ok(Array.isArray(live.envFileOverrides));
+  assert.deepEqual(live.sources, {
+    localFiles: ['.env.local', 'docker/.env'],
+    redirecting: ['DOTENV_CONFIG_OVERRIDE', 'PGPORT'],
+  });
+  assert.ok(!JSON.stringify(live.sources).includes('54322'));
 });

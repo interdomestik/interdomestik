@@ -224,3 +224,34 @@ test('describe prints a valid proposed marker and never writes one', () => {
   assert.equal(runVerifyMachine(['describe'], h.deps), 1);
   h.cleanup();
 });
+
+test('arguments appended to the lane fail with a pointer to the step that takes them', () => {
+  const h = harness({ env: { GITHUB_ACTIONS: 'true' } });
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify', '--retries=0'], h.deps), 1);
+  assert.match(h.output.error[0], /pnpm pr:verify takes no arguments/u);
+  assert.match(h.output.error.join('\n'), /e2e:smoke --retries=0/u);
+  h.cleanup();
+});
+
+test('without a repository a pre-check still passes; a marked machine refuses', () => {
+  const noRepository = () => {
+    throw new Error('not a repository');
+  };
+  for (const [marker, expected] of [
+    [undefined, 0],
+    [trusted(), 1],
+  ]) {
+    const h = harness({ marker });
+    h.deps.exec = noRepository;
+    assert.equal(runVerifyMachine(['begin', 'security-guard'], h.deps), expected);
+    assert.equal(runVerifyMachine(['stamp', 'security-guard'], h.deps), expected);
+    assert.deepEqual(h.files(), []);
+    h.cleanup();
+  }
+  const h = harness();
+  assert.equal(runVerifyMachine(['begin', 'security-guard'], h.deps), 0);
+  h.deps.gitState = noRepository;
+  assert.equal(runVerifyMachine(['stamp', 'security-guard'], h.deps), 0);
+  assert.equal(h.readFinal().mode, 'PRE-CHECK');
+  h.cleanup();
+});

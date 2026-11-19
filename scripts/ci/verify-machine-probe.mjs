@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, statfsSync } from 'node:fs';
 import path from 'node:path';
 
-import { envFileOverrides, GUARDED_ENV_KEYS } from './verify-machine-env.mjs';
+import { GUARDED_ENV_KEYS, localEnvFiles, redirectingEnvNames } from './verify-machine-env.mjs';
 import { sha256Hex } from './verify-machine-marker.mjs';
 
 const GIB = 1024 ** 3;
@@ -104,7 +104,10 @@ export function probeMachine({ repoRoot, marker, env, exec = runCommand, statfs 
     env: Object.fromEntries(
       GUARDED_ENV_KEYS.filter(key => env[key] !== undefined).map(key => [key, env[key]])
     ),
-    envFileOverrides: envFileOverrides(repoRoot),
+    sources: {
+      localFiles: localEnvFiles(repoRoot, exec),
+      redirecting: redirectingEnvNames(env),
+    },
     freeGib: { repository: freeGib(statfs, repoRoot), system: freeGib(statfs, '/') },
     git: gitState(repoRoot, exec),
   };

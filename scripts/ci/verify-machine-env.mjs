@@ -1,6 +1,3 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-
 export const DATABASE_ENV_KEYS = Object.freeze([
   'DATABASE_URL',
   'DATABASE_URL_RLS',
@@ -23,36 +20,28 @@ export const GUARDED_ENV_KEYS = Object.freeze([
   'PLAYWRIGHT_BASE_URL',
   'SENTRY_AUTH_TOKEN',
 ]);
-// The env files the gatekeeper sources and the E2E web server and the build load.
-export const ENV_FILES = Object.freeze([
-  '.env',
-  '.env.local',
-  'apps/web/.env',
-  'apps/web/.env.local',
-  'apps/web/.env.production',
-  'apps/web/.env.production.local',
-]);
+// A local env file is any file outside git named `.env` or `.env.<suffix>`; `.envrc` is not one.
+const LOCAL_ENV_FILE = /(?:^|\/)\.env(?:\.[^/]*)?$/u;
+// libpq reads PG* (PGHOST, PGPORT, PGOPTIONS, PGSERVICE ...) and dotenv reads DOTENV_CONFIG_*.
+const REDIRECTING_ENV_NAME = /^(?:PG|DOTENV_)/u;
 const LOOPBACK_ORIGIN =
   /^(?:127\.0\.0\.1|localhost|\[::1\]|(?:[a-z0-9-]+\.)*127\.0\.0\.1\.nip\.io|(?:[a-z0-9-]+\.)*localhost)$/u;
 
-/** Each guarded key that an env file assigns, whatever its value; values are never returned. */
-export function envFileOverrides(repoRoot, read = readFileSync) {
-  const overrides = [];
-  for (const file of ENV_FILES) {
-    let text;
-    try {
-      text = read(path.join(repoRoot, file), 'utf8');
-    } catch {
-      continue;
-    }
-    for (const key of GUARDED_ENV_KEYS) {
-      // Any assignment counts, whatever its value or quoting: dotenv accepts `=` and `:`, and
-      // the loaders trim the key, so leading Unicode whitespace and a byte-order mark count too.
-      const pattern = new RegExp(String.raw`^[^\S\n]*(?:export[^\S\n]+)?${key}[^\S\n]*[=:]`, 'mu');
-      if (pattern.test(text)) overrides.push({ file, key });
-    }
-  }
-  return overrides;
+/**
+ * Every local env file in the checkout, ignored or untracked. The gatekeeper, the build, the E2E
+ * server and package loaders each read env files their own way, so gate runs allow none at all
+ * rather than parse them. Ignored directories are listed whole, never descended into.
+ */
+export function localEnvFiles(repoRoot, exec) {
+  const listing = exec('git', ['ls-files', '--others', '--directory'], repoRoot);
+  return listing.split('\n').filter(file => LOCAL_ENV_FILE.test(file));
+}
+
+/** Names (never values) of variables through which libpq or dotenv could redirect a run. */
+export function redirectingEnvNames(env) {
+  return Object.keys(env)
+    .filter(name => REDIRECTING_ENV_NAME.test(name))
+    .sort((a, b) => a.localeCompare(b));
 }
 
 function databaseUrlErrors(key, raw, database, forbiddenPorts) {
@@ -63,8 +52,10 @@ function databaseUrlErrors(key, raw, database, forbiddenPorts) {
     return [`${key} is not a URL`];
   }
   const errors = [];
-  const port = Number(url.port || 5432);
   if (!['postgres:', 'postgresql:'].includes(url.protocol)) errors.push(`${key} is not postgres`);
+  // An explicit port only: without one, drivers fall back to PGPORT or their own default.
+  if (!url.port) return [...errors, `${key} must name its port`];
+  const port = Number(url.port);
   if (forbiddenPorts.includes(port)) errors.push(`${key} uses forbidden port ${port}`);
   const host = url.hostname.replace(/^\[(.*)\]$/u, '$1');
   if (host !== database.host) errors.push(`${key} host is not ${database.host}`);
@@ -101,13 +92,19 @@ function emptyValueErrors(env) {
   );
 }
 
+function sourceErrors({ localFiles = [], redirecting = [] }) {
+  return [
+    ...localFiles.map(
+      file => `${file} exists; gate runs take settings only from the checked environment`
+    ),
+    ...redirecting.map(name => `${name} is set; libpq and dotenv settings can redirect the run`),
+  ];
+}
+
 /** The effective database, app and upload settings the gate steps will read. */
-export function environmentErrors(marker, env, overrides = []) {
+export function environmentErrors(marker, env, sources = {}) {
   const forbidden = marker.forbidden_ports;
-  const errors = overrides.map(
-    ({ file, key }) => `${file} sets ${key}; gate runs take it only from the checked environment`
-  );
-  errors.push(...emptyValueErrors(env));
+  const errors = [...sourceErrors(sources), ...emptyValueErrors(env)];
   if (!env.DATABASE_URL) {
     errors.push('DATABASE_URL must be set; the default fallback is the shared database on 54322');
   }

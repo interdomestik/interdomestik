@@ -18,12 +18,16 @@ holds the machine's recorded configuration. Every other run is a pre-check.
   - Otherwise the live machine must match every recorded field: hardware id (as a sha256), arch,
     macOS version and build, Node, pnpm, container context and engine, the database container's
     pinned image (equal to the CI postgres image) and every published binding (only `5432/tcp` on
-    the recorded loopback port), every database URL, `PW_PORT` and `PORT`, every Playwright tenant
-    host and `PLAYWRIGHT_BASE_URL` (recorded port, loopback host), free disk on the repository
-    volume and on `/`, and a clean working tree. `SENTRY_AUTH_TOKEN` must be unset. None of these
-    settings may come from the `.env` files that the gatekeeper, the build or the E2E server load,
-    and none may be set to an empty value, since some steps then fall back to a default. Ports
-    3000 and 54322 are always refused. Any difference stops the run.
+    the recorded loopback port), every database URL (with an explicit port), `PW_PORT` and
+    `PORT`, every Playwright tenant host and `PLAYWRIGHT_BASE_URL` (recorded port, loopback host),
+    free disk on the repository volume and on `/`, and a clean working tree. `SENTRY_AUTH_TOKEN`
+    must be unset, and none of the checked settings may be set to an empty value, since some steps
+    then fall back to a default. Ports 3000 and 54322 are always refused. Any difference stops the
+    run.
+  - Every setting comes from the checked environment only. The gatekeeper, the build, the E2E
+    server and package loaders read env files in different ways, so the checkout may hold no local
+    `.env` or `.env.<suffix>` file at all (ignored or untracked; tracked examples are fine), and no
+    `PG*` (libpq) or `DOTENV_*` variable may be set.
 - `stamp` runs only after every other step passed, in the same shell as its `begin`: the pending
   record is kept per shell process and lane, so a later or concurrent `stamp` cannot use it. It
   re-checks the marker, the live configuration, `HEAD` and the tracked files, then writes the run
@@ -36,7 +40,20 @@ holds the machine's recorded configuration. Every other run is a pre-check.
   produces `GATE-EVIDENCE`. pnpm's `bail` setting must stay on (with `bail=false` a failing nested
   workspace run exits 0), and no lifecycle hook may run after `stamp`: no `post<script>` script
   and no `node_modules/.hooks` directory.
+- Both commands take no arguments. pnpm appends arguments to the last step of the chain, which is
+  `stamp`, so `stamp` refuses them; run a step with its own arguments directly instead.
 - Hosted runs (`GITHUB_ACTIONS=true`) skip the check: hosted checks are separate evidence.
+- Without a marker, or without a git repository, the run is a pre-check and its record is
+  best-effort: an unreadable repository or a full disk never fails a command that passed.
+
+## Running the lanes on the marked Mac
+
+Once the marker is installed, every `pnpm pr:verify` and `pnpm security:guard` on that Mac must
+match it, in every checkout. Run them from a terminal in a dedicated verify worktree that has no
+local `.env` files, after sourcing the Mac verify isolation script (the `ida-mac-verify-pg`
+container on `127.0.0.1:55438`, `PW_PORT=3310`). The QA MCP `pr_verify` and `security_guard` tools
+build their environment from each worktree's own env files, so on the marked Mac they stop with a
+marker mismatch rather than produce evidence; use them as pre-checks on other machines.
 
 The check proves which machine and configuration a run used. It is not a cryptographic attestation:
 the full run log on the frozen head stays the evidence of which steps ran.
