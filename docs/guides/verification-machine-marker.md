@@ -22,8 +22,9 @@ holds the machine's recorded configuration. Every other run is a pre-check.
     `PORT`, every Playwright tenant host and `PLAYWRIGHT_BASE_URL` (recorded port, loopback host),
     free disk on the repository volume and on `/`, and a clean working tree. `SENTRY_AUTH_TOKEN`
     must be unset, and none of the checked settings may be set to an empty value, since some steps
-    then fall back to a default. Ports 3000 and 54322 are always refused. Any difference stops the
-    run.
+    then fall back to a default. Ports 3000 and 54322 are always refused.
+  - Any difference makes the run a `PRE-CHECK` (the owner, 2026-11-19): it prints every
+    difference and continues, and it is never gate evidence. Only an untrusted marker stops it.
   - Every setting comes from the checked environment only. The gatekeeper, the build, the E2E
     server and package loaders read env files in different ways, so the checkout may hold no local
     `.env` or `.env.<suffix>` file at all (ignored or untracked; tracked examples are fine), and no
@@ -32,8 +33,10 @@ holds the machine's recorded configuration. Every other run is a pre-check.
   record is kept per shell process and lane, so a later or concurrent `stamp` cannot use it. It
   re-checks the marker, the live configuration, `HEAD` and the tracked files, then writes the run
   record to `~/Library/Logs/interdomestik-verify/` and prints its mode, head, marker sha256 and
-  record sha256 for the PR body. A `pending-*` file without a final record is a run that did not
-  pass.
+  record sha256 for the PR body. A gate run that stopped matching during the run is recorded as a
+  `PRE-CHECK` with the reasons; a moved `HEAD` fails in either mode. A `pending-*` file without a
+  final record is a run that did not pass. Gate evidence is only the line that starts with
+  `GATE-EVIDENCE`.
 - With a marker present, `begin` and `stamp` must run inside the unchanged `pnpm pr:verify` or
   `pnpm security:guard` chain: their parent shell must be exactly `sh -c <committed script>`, so
   `stamp` is reached only after every step before it exited 0. Running the steps by hand never
@@ -48,12 +51,12 @@ holds the machine's recorded configuration. Every other run is a pre-check.
 
 ## Running the lanes on the marked Mac
 
-Once the marker is installed, every `pnpm pr:verify` and `pnpm security:guard` on that Mac must
-match it, in every checkout. Run them from a terminal in a dedicated verify worktree that has no
-local `.env` files, after sourcing the Mac verify isolation script (the `ida-mac-verify-pg`
-container on `127.0.0.1:55438`, `PW_PORT=3310`). The QA MCP `pr_verify` and `security_guard` tools
-build their environment from each worktree's own env files, so on the marked Mac they stop with a
-marker mismatch rather than produce evidence; use them as pre-checks on other machines.
+Once the marker is installed, every run on that Mac is checked against it, in every checkout. Daily
+runs in the main checkout, on an uncommitted tree or through the QA MCP tools (which build their
+environment from each worktree's own env files) do not match, so they are pre-checks, as before.
+For gate evidence, run the lanes from a terminal in a dedicated verify worktree that has no local
+`.env` files, after sourcing the Mac verify isolation script (the `ida-mac-verify-pg` container on
+`127.0.0.1:55438`, `PW_PORT=3310`), and check that the last line starts with `GATE-EVIDENCE`.
 
 The check proves which machine and configuration a run used. It is not a cryptographic attestation:
 the full run log on the frozen head stays the evidence of which steps ran.

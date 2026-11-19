@@ -35,21 +35,24 @@ test('gate mode begins and stamps only inside the unchanged pnpm chain of its la
     ],
   ];
   for (const [change, message] of cases) {
+    // At begin the run is downgraded and says why; it is never gate evidence.
     const atBegin = harness({ marker: trusted() });
     change(atBegin);
-    assert.equal(runVerifyMachine(['begin', 'pr-verify'], atBegin.deps), 1, message);
-    assert.ok(atBegin.output.error.join('\n').includes(message), message);
-    assert.deepEqual(atBegin.files(), []);
+    assert.equal(runVerifyMachine(['begin', 'pr-verify'], atBegin.deps), 0, message);
+    assert.ok(atBegin.output.log.join('\n').includes(message), message);
+    assert.match(atBegin.output.log[0], /PRE-CHECK: this run does not match/u);
+    assert.equal(runVerifyMachine(['stamp', 'pr-verify'], atBegin.deps), 0, message);
+    assert.equal(atBegin.readFinal().mode, 'PRE-CHECK', message);
     atBegin.cleanup();
+    // A gate run that stops matching before its stamp is recorded as a pre-check.
     const atStamp = harness({ marker: trusted() });
     assert.equal(runVerifyMachine(['begin', 'pr-verify'], atStamp.deps), 0);
     change(atStamp);
-    assert.equal(runVerifyMachine(['stamp', 'pr-verify'], atStamp.deps), 1, message);
-    assert.ok(atStamp.output.error.join('\n').includes(message), message);
-    assert.ok(
-      atStamp.files().every(name => name.startsWith('pending')),
-      'no final record'
-    );
+    assert.equal(runVerifyMachine(['stamp', 'pr-verify'], atStamp.deps), 0, message);
+    const record = atStamp.readFinal();
+    assert.equal(record.mode, 'PRE-CHECK', message);
+    assert.ok(record.reasons.includes(message), message);
+    assert.ok(!Object.hasOwn(record, 'markerSha256'), message);
     atStamp.cleanup();
   }
 });
@@ -57,9 +60,10 @@ test('gate mode begins and stamps only inside the unchanged pnpm chain of its la
 test('a manual begin, a failed step and a manual stamp never yield gate evidence', () => {
   const h = harness({ marker: trusted(), env: { npm_lifecycle_event: '' } });
   h.state.parent = '-zsh';
-  assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 1);
-  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 1);
-  assert.deepEqual(h.files(), []);
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 0);
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 0);
+  assert.equal(h.readFinal().mode, 'PRE-CHECK');
+  assert.ok(!h.output.log.join('\n').includes('GATE-EVIDENCE'));
   h.cleanup();
 });
 

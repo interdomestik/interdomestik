@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // First and last step of `pnpm pr:verify` and `pnpm security:guard` (AGENTS.md R-04).
 // `begin` labels the run GATE-EVIDENCE only when the owner's root-owned marker matches this
-// machine; without a marker the run is a PRE-CHECK. `stamp` runs only after every step passed,
-// in the same shell as its `begin` (one pending record per shell process and lane). Gate mode
-// also requires both steps to run inside the unchanged pnpm chain (verify-machine-chain.mjs).
+// machine; otherwise the run is a PRE-CHECK that prints why (owner 2026-11-19: a run that does
+// not match is downgraded, not stopped). An untrusted marker still stops the run. `stamp` runs
+// only after every step passed, in the same shell as its `begin` (one pending record per shell
+// process and lane). Gate mode also requires both steps to run inside the unchanged pnpm chain
+// (verify-machine-chain.mjs).
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -40,36 +42,55 @@ function fail(deps, lines) {
   return 1;
 }
 
+function logPreCheck(deps, reason, problems = []) {
+  deps.log(`${PREFIX} PRE-CHECK: ${reason}; this run is not gate evidence.`);
+  for (const problem of problems) deps.log(`${PREFIX}   - ${problem}`);
+}
+
+function preCheck(lane, deps, repoRoot, pendingPath, startedAt, reason, problems = []) {
+  logPreCheck(deps, reason, problems);
+  try {
+    const git = deps.gitState(repoRoot, deps.exec);
+    deps.records.writeRecord(pendingPath, {
+      lane,
+      mode: records.MODES.preCheck,
+      head: git.head,
+      cleanTree: git.clean,
+      startedAt,
+      platform: deps.platform,
+      node: process.version,
+      reasons: problems,
+    });
+  } catch (error) {
+    deps.error(`${PREFIX} pre-check record not written (${error?.code ?? 'error'}); continuing.`);
+  }
+  return 0;
+}
+
+function probeLive(deps, repoRoot, marker) {
+  try {
+    return deps.probe({ repoRoot, marker, env: deps.env, exec: deps.exec });
+  } catch {
+    return null;
+  }
+}
+
 function begin(lane, deps, repoRoot, pendingPath) {
   const markerResult = deps.readMarker();
   const startedAt = deps.now();
   if (markerResult.status === 'invalid') {
     return fail(deps, ['the verification marker is not trusted:', ...markerResult.errors]);
   }
-  if (markerResult.status === 'absent') {
-    deps.log(`${PREFIX} PRE-CHECK: no verification-machine marker; this run is not gate evidence.`);
-    try {
-      const git = deps.gitState(repoRoot, deps.exec);
-      deps.records.writeRecord(pendingPath, {
-        lane,
-        mode: records.MODES.preCheck,
-        head: git.head,
-        cleanTree: git.clean,
-        startedAt,
-        platform: deps.platform,
-        node: process.version,
-      });
-    } catch (error) {
-      deps.error(`${PREFIX} pre-check record not written (${error?.code ?? 'error'}); continuing.`);
-    }
-    return 0;
-  }
-  if (deps.platform !== 'darwin') return fail(deps, ['a marker is present on a non-macOS host']);
+  const downgrade = (reason, problems) =>
+    preCheck(lane, deps, repoRoot, pendingPath, startedAt, reason, problems);
+  if (markerResult.status === 'absent') return downgrade('no verification-machine marker');
+  if (deps.platform !== 'darwin') return downgrade('a marker is present on a non-macOS host');
   const { marker, sha256 } = markerResult;
-  const live = deps.probe({ repoRoot, marker, env: deps.env, exec: deps.exec });
+  const live = probeLive(deps, repoRoot, marker);
+  if (!live) return downgrade('this machine could not be probed');
   const problems = [...chainErrors(lane, { ...deps, repoRoot }), ...compareMachine(marker, live)];
   if (problems.length > 0) {
-    return fail(deps, ['this run does not match the verification marker:', ...problems]);
+    return downgrade('this run does not match the verification marker', problems);
   }
   deps.records.writeRecord(pendingPath, {
     lane,
@@ -84,8 +105,8 @@ function begin(lane, deps, repoRoot, pendingPath) {
   return 0;
 }
 
-// A pre-check only notes HEAD; an unreadable repository must not fail a command that passed.
-function preCheckProblems(deps, repoRoot, pending) {
+// HEAD must not move in either mode; an unreadable repository leaves it to the gate re-check.
+function headProblems(deps, repoRoot, pending) {
   let head;
   try {
     head = deps.gitState(repoRoot, deps.exec).head;
@@ -95,17 +116,14 @@ function preCheckProblems(deps, repoRoot, pending) {
   return head === pending.head ? [] : ['HEAD changed during the run'];
 }
 
-function gateProblems(lane, deps, repoRoot, pending, markerResult) {
+function gateProblems(lane, deps, repoRoot, pending) {
+  const markerResult = deps.readMarker();
   const problems = chainErrors(lane, { ...deps, repoRoot });
   if (markerResult.status !== 'trusted' || markerResult.sha256 !== pending.markerSha256) {
     return [...problems, 'the verification marker changed during the run'];
   }
-  const live = deps.probe({
-    repoRoot,
-    marker: markerResult.marker,
-    env: deps.env,
-    exec: deps.exec,
-  });
+  const live = probeLive(deps, repoRoot, markerResult.marker);
+  if (!live) return [...problems, 'this machine could not be probed'];
   problems.push(...compareMachine(markerResult.marker, live, { phase: 'stamp' }));
   if (live.git.head !== pending.head) problems.push('HEAD changed during the run');
   return problems;
@@ -133,20 +151,22 @@ function writeFinalRecord(lane, deps, pending, pendingPath, directory) {
 
 function stamp(lane, deps, repoRoot, pendingPath, directory) {
   const pending = deps.records.readRecord(pendingPath);
-  const markerResult = deps.readMarker();
   if (!pending || pending.lane !== lane) {
-    if (markerResult.status === 'absent') {
-      deps.log(`${PREFIX} PRE-CHECK lane=${lane}: no begin record; nothing is recorded.`);
-      return 0;
-    }
-    return fail(deps, [`no begin record for ${lane} in this shell; run the whole command again`]);
+    deps.log(`${PREFIX} PRE-CHECK lane=${lane}: no begin record in this shell; nothing recorded.`);
+    return 0;
   }
-  const problems =
-    pending.mode === records.MODES.gate
-      ? gateProblems(lane, deps, repoRoot, pending, markerResult)
-      : preCheckProblems(deps, repoRoot, pending);
-  if (problems.length > 0) return fail(deps, problems);
-  return writeFinalRecord(lane, deps, pending, pendingPath, directory);
+  const moved = headProblems(deps, repoRoot, pending);
+  if (moved.length > 0) return fail(deps, moved);
+  if (pending.mode !== records.MODES.gate) {
+    return writeFinalRecord(lane, deps, pending, pendingPath, directory);
+  }
+  const problems = gateProblems(lane, deps, repoRoot, pending);
+  if (problems.length === 0) return writeFinalRecord(lane, deps, pending, pendingPath, directory);
+  if (problems.includes('HEAD changed during the run')) return fail(deps, problems);
+  logPreCheck(deps, 'the run stopped matching the verification marker', problems);
+  const { markerSha256, configuration, ...unmarked } = pending;
+  const downgraded = { ...unmarked, mode: records.MODES.preCheck, reasons: problems };
+  return writeFinalRecord(lane, deps, downgraded, pendingPath, directory);
 }
 
 export function runVerifyMachine(argv, deps = defaultDependencies()) {
@@ -171,7 +191,7 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
   try {
     repoRoot = deps.exec('git', ['rev-parse', '--show-toplevel'], deps.cwd);
   } catch {
-    if (deps.readMarker().status !== 'absent') return fail(deps, ['no git repository found']);
+    if (deps.readMarker().status === 'invalid') return fail(deps, ['no git repository found']);
     deps.log(`${PREFIX} PRE-CHECK lane=${lane}: no git repository found; nothing is recorded.`);
     return 0;
   }

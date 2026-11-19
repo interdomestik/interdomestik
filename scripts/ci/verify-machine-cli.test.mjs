@@ -46,7 +46,7 @@ test('a matching machine is stamped as gate evidence with its recorded configura
   h.cleanup();
 });
 
-test('an untrusted marker or a mismatching machine fails before any step runs', () => {
+test('an untrusted marker stops the run; a mismatching or non-macOS machine is a pre-check', () => {
   const invalid = harness({
     marker: { status: 'invalid', errors: ['marker file must be owned by root'] },
   });
@@ -56,36 +56,41 @@ test('an untrusted marker or a mismatching machine fails before any step runs', 
   invalid.cleanup();
   const live = fixtureLive({ env: { ...fixtureLive().env, PW_PORT: '3000' } });
   const mismatch = harness({ marker: trusted(), live });
-  assert.equal(runVerifyMachine(['begin', 'pr-verify'], mismatch.deps), 1);
-  assert.match(mismatch.output.error.join('\n'), /PW_PORT uses forbidden port 3000/u);
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], mismatch.deps), 0);
+  assert.match(mismatch.output.log.join('\n'), /PW_PORT uses forbidden port 3000/u);
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], mismatch.deps), 0);
+  assert.equal(mismatch.readFinal().mode, 'PRE-CHECK');
+  assert.deepEqual(mismatch.readFinal().reasons, ['PW_PORT uses forbidden port 3000']);
   mismatch.cleanup();
   const linux = harness({ marker: trusted() });
   linux.deps.platform = 'linux';
-  assert.equal(runVerifyMachine(['begin', 'pr-verify'], linux.deps), 1);
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], linux.deps), 0);
+  assert.match(linux.output.log[0], /PRE-CHECK: a marker is present on a non-macOS host/u);
   linux.cleanup();
+  const unprobed = harness({ marker: trusted() });
+  unprobed.deps.probe = () => {
+    throw new Error('docker unavailable');
+  };
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], unprobed.deps), 0);
+  assert.match(unprobed.output.log[0], /PRE-CHECK: this machine could not be probed/u);
+  unprobed.cleanup();
 });
-
 test('a stamp without its begin in the same shell is never gate evidence', () => {
   const missing = harness({ marker: trusted() });
-  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], missing.deps), 1);
-  assert.match(missing.output.error.join('\n'), /no begin record for pr-verify in this shell/u);
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], missing.deps), 0);
+  assert.match(missing.output.log.join('\n'), /no begin record in this shell; nothing recorded/u);
+  assert.deepEqual(missing.files(), []);
   missing.cleanup();
   const failedEarlier = harness({ marker: trusted() });
   assert.equal(runVerifyMachine(['begin', 'pr-verify'], failedEarlier.deps), 0);
   failedEarlier.deps.shellPid = 5151;
-  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], failedEarlier.deps), 1);
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], failedEarlier.deps), 0);
   assert.ok(
     failedEarlier.files().every(f => f.startsWith('pending')),
     'no final record'
   );
   failedEarlier.cleanup();
-  const preCheck = harness();
-  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], preCheck.deps), 0);
-  assert.match(preCheck.output.log[0], /PRE-CHECK lane=pr-verify: no begin record/u);
-  assert.deepEqual(preCheck.files(), []);
-  preCheck.cleanup();
 });
-
 test('concurrent shells keep their own pending records', () => {
   const h = harness({ marker: trusted() });
   assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 0);
@@ -138,12 +143,18 @@ test('a pre-check whose final record fills the disk still passes; gate evidence 
 
 test('stamp re-checks the live machine, HEAD, tracked files and the marker', () => {
   const live = fixtureLive();
+  const headMoved = harness({ marker: trusted() });
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], headMoved.deps), 0);
+  headMoved.state.live = { ...live, git: { ...live.git, head: 'd'.repeat(40) } };
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], headMoved.deps), 1);
+  assert.match(headMoved.output.error.join('\n'), /HEAD changed/u);
+  assert.ok(
+    headMoved.files().every(f => f.startsWith('pending')),
+    'no final record'
+  );
+  headMoved.cleanup();
   const cases = [
-    [s => (s.live = { ...live, git: { ...live.git, head: 'd'.repeat(40) } }), /HEAD changed/u],
-    [
-      s => (s.live = { ...live, git: { ...live.git, trackedClean: false } }),
-      /tracked files changed/u,
-    ],
+    [s => (s.live = { ...live, git: { ...live.git, trackedClean: false } }), /tracked files/u],
     [s => (s.live = { ...live, database: { ...live.database, running: false } }), /not running/u],
     [s => (s.live = { ...live, env: { ...live.env, PW_PORT: '3000' } }), /forbidden port 3000/u],
     [s => (s.marker = { ...trusted(), sha256: '0'.repeat(64) }), /marker changed/u],
@@ -153,17 +164,20 @@ test('stamp re-checks the live machine, HEAD, tracked files and the marker', () 
     const h = harness({ marker: trusted() });
     assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 0);
     change(h.state);
-    assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 1);
-    assert.match(h.output.error.join('\n'), message);
-    assert.ok(
-      h.files().every(f => f.startsWith('pending')),
-      'no final record'
-    );
+    assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 0);
+    assert.match(h.output.log.join('\n'), /PRE-CHECK: the run stopped matching/u);
+    const record = h.readFinal();
+    assert.equal(record.mode, 'PRE-CHECK');
+    assert.match(record.reasons.join('\n'), message);
     h.cleanup();
   }
   const otherLane = harness({ marker: trusted() });
   assert.equal(runVerifyMachine(['begin', 'pr-verify'], otherLane.deps), 0);
-  assert.equal(runVerifyMachine(['stamp', 'security-guard'], otherLane.deps), 1);
+  assert.equal(runVerifyMachine(['stamp', 'security-guard'], otherLane.deps), 0);
+  assert.ok(
+    otherLane.files().every(f => f.startsWith('pending')),
+    'no final record'
+  );
   otherLane.cleanup();
   const preCheckHead = harness();
   assert.equal(runVerifyMachine(['begin', 'pr-verify'], preCheckHead.deps), 0);
@@ -171,7 +185,6 @@ test('stamp re-checks the live machine, HEAD, tracked files and the marker', () 
   assert.equal(runVerifyMachine(['stamp', 'pr-verify'], preCheckHead.deps), 1);
   preCheckHead.cleanup();
 });
-
 test('begin prunes pending records older than a day and keeps recent ones', () => {
   const h = harness();
   const old = path.join(h.directory, 'pending-pr-verify-old.json');
@@ -233,13 +246,14 @@ test('arguments appended to the lane fail with a pointer to the step that takes 
   h.cleanup();
 });
 
-test('without a repository a pre-check still passes; a marked machine refuses', () => {
+test('without a repository the run is a pre-check; an untrusted marker refuses', () => {
   const noRepository = () => {
     throw new Error('not a repository');
   };
   for (const [marker, expected] of [
     [undefined, 0],
-    [trusted(), 1],
+    [trusted(), 0],
+    [{ status: 'invalid', errors: ['marker file must be owned by root'] }, 1],
   ]) {
     const h = harness({ marker });
     h.deps.exec = noRepository;
