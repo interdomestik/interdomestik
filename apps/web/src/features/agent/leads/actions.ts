@@ -6,6 +6,7 @@ import { memberLeads } from '@interdomestik/database';
 import { ROLES } from '@interdomestik/shared-auth';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 type LeadStatus = typeof memberLeads.$inferInsert.status;
 
@@ -32,7 +33,7 @@ async function resolveAgentLeadScope(leadId: string): Promise<AgentLeadScope> {
   const authorized = await authorizeSessionTenant(await headers());
 
   if (!authorized) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   const { session, authority } = authorized;

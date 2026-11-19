@@ -46,6 +46,12 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
+// The refusal record of the wrapper; no database in this unit test.
+vi.mock('@/lib/audit.core', () => ({
+  writeAuditEvent: vi.fn(async () => ({ ok: true })),
+  logAuditEvent: vi.fn(async () => undefined),
+}));
+
 vi.mock('@/server/auth/effective-portal-access', () => ({
   requireEffectivePortalAccessOrUnauthorized: vi.fn(async () => undefined),
 }));
@@ -132,6 +138,28 @@ describe('admin-users action wrappers', () => {
       nextTenantId: null,
     });
     expect(result).toEqual({ success: true });
+  });
+
+  it('resolveTenantClassification keeps a coded domain refusal UNAUTHORIZED, by code not text', async () => {
+    mocks.resolveTenantClassificationCore.mockResolvedValue({
+      error: 'Unauthorized',
+      code: 'UNAUTHORIZED',
+    });
+    const result = await actions.resolveTenantClassification({
+      userId: 'user-1',
+      currentTenantId: 'tenant_other',
+    });
+    expect(result).toEqual({ success: false, code: 'UNAUTHORIZED', error: 'Unauthorized' });
+  });
+
+  it('resolveTenantClassification treats an uncoded domain error as an internal failure', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mocks.resolveTenantClassificationCore.mockResolvedValue({ error: 'Unauthorized' });
+    const result = await actions.resolveTenantClassification({
+      userId: 'user-1',
+      currentTenantId: 'tenant_ks',
+    });
+    expect(result).toMatchObject({ success: false, code: 'INTERNAL_SERVER_ERROR' });
   });
 
   it('getAgents delegates to core', async () => {

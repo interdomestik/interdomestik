@@ -18,6 +18,7 @@ import { and, type SQL } from 'drizzle-orm';
 
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { UserSession } from '../types';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 type Filters = {
   search?: string;
@@ -43,7 +44,7 @@ export async function getAgentUsersCore(params: {
   const { authority, session, filters } = params;
 
   if (!session || (session.user.role !== 'agent' && session.user.role !== 'admin')) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   const { tenantId, principal } = readTenantAuthority(authority);
@@ -53,7 +54,7 @@ export async function getAgentUsersCore(params: {
     principal?.userId !== session.user.id ||
     principal.role !== role
   ) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   // Every read runs in one tenant transaction carrying the actual verified session role.

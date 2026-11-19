@@ -1,192 +1,150 @@
-import type { auth } from '@/lib/auth';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import type { z } from 'zod';
+
 import {
-  isStaffOrAdmin,
-  ROLE_AGENT,
-  ROLE_BRANCH_MANAGER,
-  ROLE_TENANT_ADMIN,
-} from '@/lib/roles.core';
-import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
-import * as Sentry from '@sentry/nextjs';
-import { headers as nextHeaders } from 'next/headers';
+  authenticate,
+  failureOfThrown,
+  finalize,
+  runProtected,
+  type Operation,
+} from './safe-action.core';
+import { type ActionFailure } from './safe-action.failure';
+import { recordRefusal, type RefusalActor } from './safe-action.refusal';
+import { ActionDefinitionError, arrayFieldKeys, assertAcceptedSchema } from './safe-action.schema';
+import {
+  isRefusalCode,
+  SUBJECT_TYPES,
+  type ActionBasis,
+  type ActionError,
+  type ActionResult,
+  type ActionSubject,
+  type ActionSuccess,
+  type CtxFor,
+  type ProtectedActionContext,
+} from './safe-action.types';
 
-export type ActionError = {
-  success: false;
-  error: string;
-  code?: string;
-  issues?: Record<string, string>;
+export { actionFailure, isActionFailure } from './safe-action.failure';
+export type { ActionFailure, ActionFailureOptions } from './safe-action.failure';
+export { ActionDefinitionError } from './safe-action.schema';
+export { REFUSAL_CODES, SUBJECT_TYPES } from './safe-action.types';
+export type {
+  ActionBasis,
+  ActionError,
+  ActionResult,
+  ActionSubject,
+  ActionSuccess,
+  CtxFor,
+  PortalRole,
+  ProtectedActionContext,
+  PublicActionContext,
+  RefusalCode,
+  SubjectType,
+} from './safe-action.types';
+
+export type ActionDefinition<B extends ActionBasis, S extends z.ZodType, T> = {
+  /** Stable operation id, unique repo-wide; the refusal record names it. */
+  name: string;
+  basis: B;
+  input: S;
+  subject: ActionSubject;
+  handler: (input: z.output<S>, ctx: CtxFor<B>) => Promise<T | ActionFailure>;
 };
 
-export type ActionSuccess<T> = {
-  success: true;
-  data?: T;
-};
+const OPERATION_NAME = /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/;
+const PUBLIC_CLOSED =
+  'public intake opens with the PR that makes CHK-04 and CHK-26 fail (design §1.3)';
 
-export type ActionResult<T> = Promise<ActionSuccess<T> | ActionError>;
-
-type SessionData = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
-
-export type ProtectedActionContext = {
-  session: SessionData;
-  /** Tenant capability for withTenantContext, minted from this request's session. */
-  authority: TenantAuthority;
-  tenantId: string;
-  requestHeaders: Headers;
-  userRole: string;
-  scope: {
-    branchId: string | null;
-    actorAgentId: string | null;
-    attributedAgentId: string | null;
-  };
-};
-
-/**
- * Validates session state against RBAC invariants.
- * Throws errors with codes to be caught by the wrapper.
- */
-/**
- * Validates session state against RBAC invariants.
- * Throws errors with codes to be caught by the wrapper.
- */
-function assertSessionContext(session: SessionData): ProtectedActionContext['scope'] {
-  const { role, branchId: rawBranchId, id: userId, agentId: rawAgentId } = session.user;
-  const branchId = rawBranchId || null;
-  const attributedAgentId = rawAgentId || null;
-
-  validateBranchManagerInvariant(role, branchId);
-
-  const actorAgentId = getActorAgentId(role, userId);
-
-  if (isStaffOrAdmin(role) || role === ROLE_TENANT_ADMIN) {
-    return { branchId: null, actorAgentId: null, attributedAgentId: null };
+function assertDefinition(def: ActionDefinition<ActionBasis, z.ZodType, unknown>, form: boolean) {
+  const name = typeof def.name === 'string' && OPERATION_NAME.test(def.name) ? def.name : null;
+  if (!name || name === 'legacy') throw new ActionDefinitionError(String(def.name), 'invalid name');
+  const basis = def.basis as { kind?: unknown; roles?: unknown };
+  if (basis?.kind === 'public') throw new ActionDefinitionError(name, PUBLIC_CLOSED);
+  const rolesValid =
+    Array.isArray(basis?.roles) &&
+    basis.roles.length > 0 &&
+    basis.roles.every(role => typeof role === 'string');
+  if (!(basis?.kind === 'self' || (basis?.kind === 'role' && rolesValid))) {
+    throw new ActionDefinitionError(
+      name,
+      'basis must be { kind: "role", roles: [...] } or { kind: "self" }'
+    );
   }
-
-  return { branchId, actorAgentId, attributedAgentId };
+  const subject = def.subject as { type?: unknown; from?: unknown };
+  const named = (SUBJECT_TYPES as readonly unknown[]).includes(subject?.type);
+  if (!(
+    subject?.type === 'self' ||
+    subject?.type === 'none' ||
+    (named && typeof subject.from === 'string')
+  )) {
+    throw new ActionDefinitionError(
+      name,
+      'subject must be { type, from }, { type: "self" } or { type: "none" }'
+    );
+  }
+  if (typeof def.handler !== 'function') throw new ActionDefinitionError(name, 'handler missing');
+  assertAcceptedSchema(def.input, {
+    operation: name,
+    basisKind: basis.kind,
+    form,
+    subjectFrom: typeof subject.from === 'string' ? subject.from : null,
+  });
 }
 
-function validateBranchManagerInvariant(role: string, branchId: string | null) {
-  if (role === ROLE_BRANCH_MANAGER && !branchId) {
-    const error = new Error('Security Violation: Branch Manager has no active branch context.');
-    (error as Error & { code?: string }).code = 'FORBIDDEN_NO_BRANCH';
-    throw error;
-  }
+type Protected<S extends z.ZodType, T> = Parameters<typeof runProtected<S, T>>[0];
+
+/** A server action with a declared basis, a strict input schema and one result type (R-05). */
+export function defineAction<const B extends ActionBasis, S extends z.ZodType, T>(
+  def: ActionDefinition<B, S, T>
+): (input: unknown) => ActionResult<T> {
+  assertDefinition(def as ActionDefinition<ActionBasis, z.ZodType, unknown>, false);
+  const protectedDef = def as unknown as Protected<S, T>;
+  return async (input: unknown) => runProtected(protectedDef, input, null);
 }
 
-function getActorAgentId(role: string, userId: string): string | null {
-  const actorAgentId = role === ROLE_AGENT ? userId : null;
-  if (role === ROLE_AGENT && !actorAgentId) {
-    const error = new Error('Security Violation: Agent context missing.');
-    (error as Error & { code?: string }).code = 'FORBIDDEN_NO_AGENT';
-    throw error;
-  }
-  return actorAgentId;
+/** The form variant: `(prevState, formData)`, for `useActionState` and `<form action>`. */
+export function defineFormAction<const B extends ActionBasis, S extends z.ZodType, T>(
+  def: ActionDefinition<B, S, T>
+): (prevState: unknown, formData: FormData) => ActionResult<T> {
+  assertDefinition(def as ActionDefinition<ActionBasis, z.ZodType, unknown>, true);
+  const protectedDef = def as unknown as Protected<S, T>;
+  const form = { arrayKeys: arrayFieldKeys(def.input) };
+  return async (_prevState: unknown, formData: FormData) =>
+    runProtected(protectedDef, formData, form);
+}
+
+const LEGACY: Operation = { name: 'legacy', basis: { kind: 'legacy' }, subject: null, form: false };
+
+function isPassThrough(data: unknown): data is ActionSuccess<unknown> | ActionError {
+  return !!data && typeof data === 'object' && ('success' in data || 'error' in data);
 }
 
 /**
- * Wraps a server action logic block with standardized Authentication and Tenancy checks.
- *
- * @param handler The business logic to execute if auth/tenancy checks pass.
+ * @deprecated Build new actions with `defineAction` / `defineFormAction` (R-05). Kept for the
+ * unmigrated actions; it shares authentication, the classifier and the refusal record (operation
+ * `legacy`, subject unknown) and keeps its duck-typed pass-through of handler results.
  */
 export async function runAuthenticatedAction<T>(
   handler: (ctx: ProtectedActionContext) => Promise<T>
 ): ActionResult<T> {
+  let actor: RefusalActor | null = null;
+  let outcome: T | ActionFailure;
   try {
-    const requestHeaders = await nextHeaders();
-
-    // This throws if tenant is missing, enforcing safety
-    let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
-    try {
-      authorized = await authorizeSessionTenant(requestHeaders);
-    } catch (error) {
-      if ((error as { name?: unknown } | null)?.name !== 'MissingTenantError') throw error;
-      console.error('[SafeAction] Missing Tenant Context:', error);
-      return { success: false, error: 'Missing tenant context', code: 'MISSING_TENANT' };
-    }
-
-    if (!authorized) {
-      return { success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' };
-    }
-    const { session, authority } = authorized;
-    const tenantId = readTenantAuthority(authority).tenantId;
-
-    // Set Sentry Context
-    Sentry.setUser({
-      id: session.user.id,
-      email: session.user.email,
-      username: session.user.name,
-    });
-
-    Sentry.setTag('tenantId', tenantId);
-    if (session.user.role) Sentry.setTag('userRole', session.user.role);
-    if (session.user.branchId) Sentry.setTag('branchId', session.user.branchId);
-
-    // Enforce RBAC Invariants
-    let scope;
-    try {
-      scope = assertSessionContext(session);
-    } catch (e: unknown) {
-      // Catch validation errors from logic above
-      const error = e as { code?: string; message: string };
-      if (error.code?.startsWith('FORBIDDEN')) {
-        return { success: false, error: error.message, code: error.code };
+    const auth = await authenticate();
+    actor = auth.actor;
+    if (auth.kind === 'refused') {
+      outcome = auth.failure;
+    } else {
+      const data = await handler(auth.ctx);
+      if (isPassThrough(data)) {
+        if (data.success === false && isRefusalCode(data.code)) {
+          const refusal = { operation: 'legacy', basis: 'legacy', code: data.code };
+          await recordRefusal({ ...refusal, subject: { type: 'unknown' } }, actor);
+        }
+        return data as ActionSuccess<T> | ActionError;
       }
-      throw e;
+      outcome = data;
     }
-
-    const data = await handler({
-      session,
-      authority,
-      tenantId,
-      requestHeaders,
-      userRole: session.user.role,
-      scope,
-    });
-
-    // If the handler returns a result object (success/error), return it directly
-    // Otherwise wrap it in success.
-    if (data && typeof data === 'object' && ('success' in data || 'error' in data)) {
-      return data as ActionSuccess<T> | ActionError;
-    }
-
-    return { success: true, data };
   } catch (error) {
-    // Handle Unauthorized/Forbidden errors generically (robust against instance mismatch)
-    const errorObj = (error && typeof error === 'object' ? error : {}) as Record<string, unknown>;
-    const code = typeof errorObj.code === 'string' ? errorObj.code : undefined;
-    const name = typeof errorObj.name === 'string' ? errorObj.name : undefined;
-    const message = typeof errorObj.message === 'string' ? errorObj.message : 'Unknown error';
-
-    // 1. Explicit UNAUTHORIZED / FORBIDDEN codes
-    if (code === 'UNAUTHORIZED' || code?.startsWith('FORBIDDEN')) {
-      return { success: false, error: message, code: code };
-    }
-
-    // 2. Known Error Classes OR Generic Messages (Widen for safety)
-    if (
-      name === 'UnauthorizedError' ||
-      name === 'AccessDeniedError' ||
-      message.toLowerCase().includes('unauthorized')
-    ) {
-      return { success: false, error: message || 'Unauthorized', code: 'UNAUTHORIZED' };
-    }
-
-    if (name === 'MissingTenantError') {
-      return { success: false, error: 'Missing tenant context', code: 'MISSING_TENANT' };
-    }
-
-    // 3. Digest check (Next.js redirects are thrown errors, we must rethrow them)
-    if (
-      message === 'NEXT_REDIRECT' ||
-      (typeof errorObj.digest === 'string' && errorObj.digest.startsWith('NEXT_REDIRECT'))
-    ) {
-      throw error;
-    }
-
-    // 4. Capture unexpected errors to Sentry but return generic 500 to client
-    Sentry.captureException(error);
-    console.error('[SafeAction] Unexpected failure:', error);
-
-    return { success: false, error: 'Internal Server Error', code: 'INTERNAL_SERVER_ERROR' };
+    outcome = failureOfThrown(error, LEGACY.name);
   }
+  return finalize<T>(LEGACY, undefined, outcome, actor);
 }

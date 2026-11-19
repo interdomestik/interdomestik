@@ -11,6 +11,7 @@ import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 /**
  * DEVELOPMENT/E2E ONLY: Mock subscription activation.
@@ -18,13 +19,13 @@ import { withTenantAuthority } from '@interdomestik/database/tenant-authority-co
  */
 export async function mockActivateSubscription(planId: string, priceId: string) {
   if (!isBillingTestActivationEnabled()) {
-    throw new Error('Unauthorized: Billing test mode not enabled');
+    throw new UnauthorizedError('Unauthorized: Billing test mode not enabled');
   }
 
   const authorized = await authorizeSessionTenant(await headers());
 
   if (!authorized) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   const { session, authority } = authorized;

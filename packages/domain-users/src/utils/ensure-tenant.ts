@@ -1,3 +1,5 @@
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
+
 /**
  * Utility to ensure a valid tenant ID is present in a session.
  * Use this for all session-based code paths to enforce multi-tenant data isolation.
@@ -20,10 +22,10 @@ type SessionWithTenant = {
  */
 export function ensureTenantId(session: SessionWithTenant): string {
   if (!session) {
-    throw new Error('Unauthorized: No active session');
+    throw new UnauthorizedError('Unauthorized: No active session');
   }
   if (!session.user) {
-    throw new Error('Unauthorized: No user in session');
+    throw new UnauthorizedError('Unauthorized: No user in session');
   }
   const tenantId = session.user.tenantId;
   if (!tenantId) {

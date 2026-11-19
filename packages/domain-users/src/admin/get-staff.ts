@@ -9,13 +9,14 @@ import { ROLES } from '@interdomestik/shared-auth';
 import type { UserSession } from '../types';
 import { requireTenantAdminSession } from './access';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export async function getStaffCore(params: {
   session: UserSession | null;
   authority: TenantAuthority | null;
 }) {
   await requireTenantAdminSession(params.session);
-  if (!params.authority) throw new Error('Unauthorized');
+  if (!params.authority) throw new UnauthorizedError('Unauthorized');
   const authority = params.authority;
 
   const { tenantId } = readTenantAuthority(authority);

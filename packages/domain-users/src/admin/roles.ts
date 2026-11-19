@@ -18,6 +18,7 @@ import {
 } from './role-rules';
 import { lockRoleMutationTarget } from './role-target';
 import { resolveTenantAuthority } from './utils';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export async function listUserRolesCore(params: {
   session: UserSession | null;
@@ -25,7 +26,7 @@ export async function listUserRolesCore(params: {
   userId?: string;
 }) {
   const session = params.session;
-  if (!session) throw new Error('Unauthorized');
+  if (!session) throw new UnauthorizedError('Unauthorized');
   requirePermission(session, PERMISSIONS['roles.manage'], hasPermission);
   const authority = await resolveTenantAuthority(session, params.authority);
   const { tenantId } = readTenantAuthority(authority);

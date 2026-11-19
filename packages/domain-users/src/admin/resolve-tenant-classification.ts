@@ -47,13 +47,13 @@ async function validateResolutionInput(params: {
     }
 
     if (adminSession.user.role !== 'super_admin' && normalizedCurrentTenantId !== sessionTenantId) {
-      return { error: 'Unauthorized' };
+      return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
     }
 
     const nextTenantId = resolveTenantId(adminSession, targetTenantId ?? null);
     // Moving a user between tenants is a platform action: only super_admin may reassign.
     if (nextTenantId !== normalizedCurrentTenantId && adminSession.user.role !== 'super_admin') {
-      return { error: 'Unauthorized' };
+      return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
     }
 
     // The session authority for the caller's own tenant; a super_admin naming another (active)
@@ -75,7 +75,7 @@ async function validateResolutionInput(params: {
     };
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return { error: 'Unauthorized' };
+      return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
     }
     throw error;
   }

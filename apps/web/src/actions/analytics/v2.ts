@@ -7,12 +7,13 @@ import {
   getSuperAdminKPIs,
   getTenantAdminKPIs,
 } from '@interdomestik/domain-analytics';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 // 1. Super Admin Dashboard Action
 export async function getSuperAdminKPIsAction() {
   return runAuthenticatedAction(async ({ userRole, authority }) => {
     if (!isSuperAdmin(userRole)) {
-      throw new Error('Unauthorized: Super Admin access required');
+      throw new UnauthorizedError('Unauthorized: Super Admin access required');
     }
     return await getSuperAdminKPIs(authority);
   });
@@ -25,7 +26,7 @@ export async function getTenantAdminKPIsAction() {
     const hasAccess = isSuperAdmin(userRole) || isTenantAdmin(userRole) || userRole === 'staff';
 
     if (!hasAccess) {
-      throw new Error('Unauthorized: Tenant Admin or Staff access required');
+      throw new UnauthorizedError('Unauthorized: Tenant Admin or Staff access required');
     }
 
     return await getTenantAdminKPIs(authority);
@@ -50,7 +51,7 @@ export async function getBranchKPIsAction(branchId: string) {
     }
 
     if (!allowed) {
-      throw new Error('Unauthorized: You do not have access to this branch.');
+      throw new UnauthorizedError('Unauthorized: You do not have access to this branch.');
     }
 
     return await getBranchKPIs(authority, branchId);

@@ -7,12 +7,13 @@ import {
   getClaimLoadForecast,
 } from '@interdomestik/domain-analytics';
 import { isSuperAdmin, isTenantAdmin } from '@interdomestik/shared-auth'; // Trying shared-auth again, or fallback to roles.core if needed
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 // 1. Super Admin: Global Forecast
 export async function getClaimLoadForecastAction() {
   return runAuthenticatedAction(async ({ userRole, authority }) => {
     if (!isSuperAdmin(userRole)) {
-      throw new Error('Unauthorized');
+      throw new UnauthorizedError('Unauthorized');
     }
     return await getClaimLoadForecast(authority);
   });
@@ -26,7 +27,7 @@ export async function getBranchStressAction(branchId: string) {
     // Let's stick to Tenant Admin / Staff for V3 dashboards per requirements.
 
     if (!isSuperAdmin(userRole) && !isTenantAdmin(userRole) && userRole !== 'staff') {
-      throw new Error('Unauthorized');
+      throw new UnauthorizedError('Unauthorized');
     }
 
     // Note: In real app we check if branchId belongs to tenantId,
@@ -39,7 +40,7 @@ export async function getBranchStressAction(branchId: string) {
 export async function getAgentCapacityAction(agentId: string) {
   return runAuthenticatedAction(async ({ userRole, authority }) => {
     if (!isSuperAdmin(userRole) && !isTenantAdmin(userRole) && userRole !== 'staff') {
-      throw new Error('Unauthorized');
+      throw new UnauthorizedError('Unauthorized');
     }
     // Bound to the session tenant: an agent outside it contributes no rows.
     return await getAgentCapacitySignal(authority, agentId);

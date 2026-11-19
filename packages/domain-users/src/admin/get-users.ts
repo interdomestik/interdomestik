@@ -19,6 +19,7 @@ import { isNull, type SQL } from 'drizzle-orm';
 import type { UserSession } from '../types';
 import { requireTenantAdminSession } from './access';
 import { buildUserConditions, type GetUsersFilters } from './user-filters';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export type { GetUsersFilters } from './user-filters';
 
@@ -34,7 +35,7 @@ export async function getUsersCore(params: {
   // Rows are read under the session authority; a scope naming any other tenant fails closed.
   const { tenantId } = readTenantAuthority(authority);
   if (scope.tenantId !== tenantId) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   // Build filter conditions

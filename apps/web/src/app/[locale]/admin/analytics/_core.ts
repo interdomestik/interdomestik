@@ -8,6 +8,7 @@ import {
 import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, eq, sql } from 'drizzle-orm';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export type AdminAnalyticsStatusDistributionItem = {
   status: string | null;
@@ -59,7 +60,7 @@ export async function getAdminAnalyticsDataCore(
 ): Promise<AdminAnalyticsModel> {
   const { tenantId, principal } = readTenantAuthority(authority);
   if (!principal || !(await hasAdminAnalyticsReadAccess(authority))) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
   const claimScope = and(eq(claims.tenantId, tenantId), adminClaimsBranchCondition(principal));
 

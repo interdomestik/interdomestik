@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { getUsersCore } from './admin-users/get-users';
 import { resolveTenantClassificationCore } from './admin-users/resolve-tenant-classification.core';
 import { updateUserAgentCore } from './admin-users/update-user-agent.core';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 const getUsersFiltersSchema = z
   .object({
@@ -57,6 +58,8 @@ export async function resolveTenantClassification(params: {
     });
 
     if ('error' in result) {
+      // A refusal carries its code end to end; the wrapper classifies by code, never by text.
+      if (result.code === 'UNAUTHORIZED') throw new UnauthorizedError(String(result.error));
       throw new Error(String(result.error));
     }
   });

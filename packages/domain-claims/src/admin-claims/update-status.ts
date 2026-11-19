@@ -11,6 +11,7 @@ import { activateClaimStatusAuditProjection } from '../claims/audit-projection';
 import { resolveClaimLifecycleCommandProjection } from '../claims/lifecycle-read-model';
 import { transitionClaimStatus, type TransitionClaimStatusResult } from '../claims/transition';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 const validStatuses: readonly ClaimStatus[] = CLAIM_STATUSES;
 
@@ -78,7 +79,7 @@ export async function updateClaimStatusCore(
   const isAdminRole = role === 'admin' || role === 'tenant_admin' || role === 'super_admin';
 
   if (!session || !authority || !isAdminRole) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   if (!validStatuses.includes(newStatus)) {

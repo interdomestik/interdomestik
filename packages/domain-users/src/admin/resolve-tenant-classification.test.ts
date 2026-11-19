@@ -123,7 +123,7 @@ describe('resolveTenantClassificationCore', () => {
         targetTenantId: 'tenant_gone',
       });
 
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
 
@@ -135,7 +135,7 @@ describe('resolveTenantClassificationCore', () => {
         currentTenantId: 'tenant_ks',
       });
 
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
   });
@@ -175,7 +175,7 @@ describe('resolveTenantClassificationCore', () => {
         currentTenantId: 'tenant_ks',
       });
 
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
 
@@ -188,7 +188,7 @@ describe('resolveTenantClassificationCore', () => {
         targetTenantId: 'tenant_mk',
       });
 
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
   });
@@ -202,7 +202,7 @@ describe('resolveTenantClassificationCore', () => {
         currentTenantId: 'tenant_mk',
       });
 
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
 

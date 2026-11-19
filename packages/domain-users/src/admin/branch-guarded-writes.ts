@@ -10,6 +10,7 @@ import { branchSlugFromName } from './branch-slug';
 import { createBranchInTransaction, updateBranchInTransaction } from './branch-writes';
 import type { createBranchCore, updateBranchCore } from './branches';
 import { resolveTenantAuthority } from './utils';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 type CreateParams = Parameters<typeof createBranchCore>[0];
 type UpdateParams = Parameters<typeof updateBranchCore>[0];
@@ -26,7 +27,7 @@ async function prepareBranchWrite(
   params: CreateParams,
   mode: 'create' | 'update'
 ): Promise<PreparedWrite | { error: string }> {
-  if (!params.session) throw new Error('Unauthorized');
+  if (!params.session) throw new UnauthorizedError('Unauthorized');
   requirePermission(params.session, PERMISSIONS['branches.manage'], hasPermission);
   const authority = await resolveTenantAuthority(params.session, params.authority);
   const { tenantId } = readTenantAuthority(authority);

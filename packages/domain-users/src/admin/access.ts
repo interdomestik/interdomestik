@@ -9,6 +9,7 @@ import { isNull } from 'drizzle-orm';
 
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { UserSession } from '../types';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 const GLOBAL_SUPER_ADMIN_ROLE = 'super_admin' as const;
 
@@ -53,7 +54,7 @@ async function hasTenantRole(params: {
 
 export function requireAdminSession(session: UserSession | null): UserSession {
   if (session?.user?.role !== 'admin') {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   return session;
@@ -71,7 +72,7 @@ export async function requireTenantAdminSession(
   authority?: TenantAuthority | null
 ): Promise<UserSession> {
   if (!session?.user) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   // Technical super admins retain admin-portal operations, but do not inherit tenant RBAC grants.
@@ -100,7 +101,7 @@ export async function requireTenantAdminSession(
     }
   }
 
-  throw new Error('Unauthorized');
+  throw new UnauthorizedError('Unauthorized');
 }
 
 /**
@@ -113,13 +114,13 @@ export async function requireTenantAdminOrBranchManagerSession(
   authority?: TenantAuthority | null
 ): Promise<UserSession> {
   if (!session?.user) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   // If the primary role is explicitly branch_manager, allow.
   if (session.user.role === 'branch_manager') {
     if (!session.user.branchId) {
-      throw new Error('Unauthorized');
+      throw new UnauthorizedError('Unauthorized');
     }
     ensureTenantId(session);
     return session;

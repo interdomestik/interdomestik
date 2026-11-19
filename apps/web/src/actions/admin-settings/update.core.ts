@@ -7,6 +7,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 
 import type { Session } from './context';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 const adminSettingsSchema = z
   .object({
@@ -28,7 +29,7 @@ export async function adminUpdateSettingsCore(params: {
   const { session, authority, data } = params;
 
   if (!session?.user || !canManagePlatformSettings(session.user.role)) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   const parsed = adminSettingsSchema.safeParse(data);

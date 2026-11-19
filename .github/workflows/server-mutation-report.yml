@@ -1,0 +1,81 @@
+# Advisory report of the server mutation checks (WP-02 part 1, design §7). Not a required check and not a
+# delivery prerequisite: it absorbs every scanner exit, uploads the report and records the exit and the upload
+# outcome. A head whose scanner status is error or whose upload did not succeed is marked "replay needed".
+# Each check moves into ci.yml `static` only by its own owner-approved flip PR.
+name: Server Mutation Report
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-mutation-report-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  server-mutation-report:
+    name: Server mutation report (advisory)
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Server mutation checks
+        id: scan
+        continue-on-error: true
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set +e
+          node scripts/ci/server-mutation-check.mjs --base "${BASE_SHA}" --head "${HEAD_SHA}"
+          code=$?
+          echo "exit=${code}" >> "${GITHUB_OUTPUT}"
+          exit "${code}"
+
+      - name: Upload report
+        id: upload
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: server-mutation-report-${{ github.event.pull_request.head.sha || github.sha }}
+          path: tmp/server-mutation-check/report.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Record outcome
+        if: always()
+        shell: bash
+        env:
+          SCAN_EXIT: ${{ steps.scan.outputs.exit }}
+          UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          verdict='counts toward the trial'
+          if [[ "${SCAN_EXIT:-}" != 0 && "${SCAN_EXIT:-}" != 1 ]] || [[ "${UPLOAD_OUTCOME}" != success ]]; then
+            verdict='replay needed'
+          fi
+          {
+            echo "### Server mutation report (advisory)"
+            echo "- head: \`${HEAD_SHA}\`"
+            echo "- scanner exit: \`${SCAN_EXIT:-not recorded}\`"
+            echo "- upload outcome: \`${UPLOAD_OUTCOME}\`"
+            echo "- trial: ${verdict}"
+          } >> "${GITHUB_STEP_SUMMARY}"

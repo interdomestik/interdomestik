@@ -17,6 +17,7 @@ const hoisted = vi.hoisted(() => ({
   withTenantContext: vi.fn(),
   verifyCashAttemptCore: vi.fn(),
   resubmitCashAttemptCore: vi.fn(),
+  auditLog: { table: 'audit_log' },
 }));
 
 vi.mock('next/headers', () => ({ headers: vi.fn(() => Promise.resolve(new Headers())) }));
@@ -26,7 +27,10 @@ vi.mock('@sentry/nextjs', () => ({
   setTag: vi.fn(),
   captureException: vi.fn(),
 }));
-vi.mock('@interdomestik/database', () => ({ withTenantContext: hoisted.withTenantContext }));
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: hoisted.withTenantContext,
+  auditLog: hoisted.auditLog,
+}));
 
 // Real reader; writers are inert spies that must never run for reads.
 vi.mock('../server/verification.core', async () => {
@@ -56,6 +60,30 @@ function createRecordingTx(results: unknown[][]) {
       Promise.resolve().then(() => callback(tx))
   );
   return { executed };
+}
+
+// A refusal runs no read: its only transaction is the wrapper's one `action.refused` audit insert.
+function expectRefusalRecordOnly(code: string) {
+  const select = vi.fn();
+  const values = vi.fn(() => Promise.resolve());
+  const insert = vi.fn(() => ({ values }));
+  hoisted.withTenantContext.mockImplementation(
+    (_context: unknown, callback: (tx: TenantTransaction) => Promise<unknown>) =>
+      Promise.resolve().then(() => callback({ select, insert } as unknown as TenantTransaction))
+  );
+  return () => {
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(select).not.toHaveBeenCalled();
+    expect(insert).toHaveBeenCalledExactlyOnceWith(hoisted.auditLog);
+    expect(values).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        tenantId: 'tenant-ks',
+        action: 'action.refused',
+        entityId: 'legacy',
+        metadata: expect.objectContaining({ code }),
+      })
+    );
+  };
 }
 
 // The read runs in a transaction minted for the session's tenant and role.
@@ -172,24 +200,26 @@ describe('getVerificationRequestsAction read admission', () => {
 
   it('keeps the wrapper FORBIDDEN_NO_BRANCH for a branchless branch manager', async () => {
     hoisted.getSession.mockResolvedValue(sessionFor('branch_manager', null));
+    const verifyRecord = expectRefusalRecordOnly('FORBIDDEN_NO_BRANCH');
 
     await expect(getVerificationRequestsAction({ view: 'queue' })).resolves.toMatchObject({
       success: false,
       code: 'FORBIDDEN_NO_BRANCH',
     });
-    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    verifyRecord();
   });
 
   it.each(['member', 'agent', 'global_support', 'auditor', 'unknown', undefined])(
     'returns FORBIDDEN for role %j instead of an empty success',
     async role => {
       hoisted.getSession.mockResolvedValue(sessionFor(role, 'branch-1'));
+      const verifyRecord = expectRefusalRecordOnly('FORBIDDEN');
 
       await expect(getVerificationRequestsAction({ view: 'queue' })).resolves.toMatchObject({
         success: false,
         code: 'FORBIDDEN',
       });
-      expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+      verifyRecord();
     }
   );
 });

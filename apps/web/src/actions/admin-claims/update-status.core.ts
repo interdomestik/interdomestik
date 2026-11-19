@@ -21,6 +21,7 @@ import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import { claimStatusSchema } from '@interdomestik/domain-claims/validators/claims';
 import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 // ...
 
@@ -34,7 +35,7 @@ export async function updateClaimStatusCore(params: {
 
   // Check for authentication and valid session
   if (!session?.user?.id || !session?.user?.tenantId || !authority) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   // Manual RBAC check: Must be Tenant Admin OR Staff with permission
