@@ -7,10 +7,8 @@ import test from 'node:test';
 import { CHECKS, predicateDigest } from './server-mutation/evaluate.mjs';
 import {
   BASE_FILES,
-  baselineOf,
   commit,
   git,
-  initRepo,
   json,
   pageEntry,
   registryOf,
@@ -19,36 +17,20 @@ import {
   REPO_ROOT,
   SCANNER,
 } from './fixtures/server-mutation-check/harness.mjs';
+import {
+  BASELINE,
+  CHECKS_DIR,
+  PAGE,
+  PAGE_ITEM,
+  REGISTRY,
+  cleanBaseline,
+  removalException,
+  scenario,
+  tree,
+  withoutCheck,
+} from './fixtures/server-mutation-check/cli-tree.mjs';
 
-const PAGE = 'apps/web/src/app/page.tsx';
-const REGISTRY = 'apps/web/src/lib/public-entry-points.json';
-const BASELINE = 'scripts/ci/server-mutation-baseline.json';
-const SCRIPT = 'scripts/ci/server-mutation-check.mjs';
 const SCRIPT_NAME = 'server-mutation-check.mjs';
-const CHECKS_DIR = 'scripts/ci/server-mutation';
-const PAGE_ITEM = `page-home@${PAGE}#no-closure`;
-const cleanBaseline = (overrides = {}) =>
-  baselineOf({ 'CHK-26': { exhausted: undefined, items: [PAGE_ITEM] }, ...overrides });
-const tree = (baseline, extra = {}) => ({
-  ...BASE_FILES,
-  [PAGE]: 'export default function Page() { return null; }\n',
-  [REGISTRY]: json(registryOf([pageEntry('page-home', PAGE)])),
-  [SCRIPT]: '// placeholder: the base carries the scanner\n',
-  ...(baseline ? { [BASELINE]: json(baseline) } : {}),
-  ...extra,
-});
-
-function withoutCheck(baseline, id) {
-  const checks = Object.fromEntries(Object.entries(baseline.checks).filter(([key]) => key !== id));
-  return { ...baseline, checks };
-}
-
-function scenario(t, base, head) {
-  const repo = initRepo(tempDir(t, 'smc-git-'));
-  const baseSha = commit(repo, base, 'base');
-  const headSha = commit(repo, head, 'head');
-  return { repo, baseSha, headSha };
-}
 
 test('bootstrap: a base without baseline and scanner is accepted and lists everything', t => {
   const { repo, baseSha } = scenario(
@@ -119,19 +101,7 @@ test('removing an enforcing check from the head is judged as tamper, not as a br
   const refused = runCli(plain.repo, ['--base', plain.baseSha]);
   assert.equal(refused.code, 1);
   assert.deepEqual(refused.report.checks['CHK-05b'].tamper, ['CHK-05b#removed-check']);
-  const approved = {
-    ...removal,
-    exceptions: [
-      {
-        check: 'CHK-05b',
-        item: '#check',
-        kind: 'downgrade',
-        approvedBy: 'owner',
-        ref: 'r',
-        date: '2026-11-19',
-      },
-    ],
-  };
+  const approved = { ...removal, exceptions: [removalException('CHK-05b')] };
   const owned = scenario(t, tree(enforcing), tree(approved));
   assert.equal(runCli(owned.repo, ['--base', owned.baseSha]).code, 0);
 });

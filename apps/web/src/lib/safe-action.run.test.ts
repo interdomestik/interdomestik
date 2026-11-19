@@ -144,6 +144,53 @@ describe('defineAction at run time', () => {
     expect(mocks.write).not.toHaveBeenCalled();
   });
 
+  it('names an invalid field even when its name is an Object.prototype member (r2 B13)', async () => {
+    const action = defineAction({
+      name: 'fields.inherited',
+      basis: { kind: 'role', roles: STAFF_ONLY },
+      input: z.strictObject({ constructor: z.string(), toString: z.string().min(2) }),
+      subject: { type: 'none' },
+      handler: () => Promise.resolve('x'),
+    });
+    const result = await action({ constructor: 1, toString: 'a' });
+    expect(result).toMatchObject({
+      code: 'VALIDATION_ERROR',
+      issues: { constructor: 'invalid_type', toString: 'too_small' },
+    });
+  });
+
+  it('never hands the handler a scalar an overwrite turned into an object (r2 B03)', async () => {
+    const handler = vi.fn(() => Promise.resolve('x'));
+    const smuggle = (value: string) => ({ value, userId: 'other' }) as unknown as string;
+    const action = defineAction({
+      name: 'profile.self',
+      basis: { kind: 'self' },
+      input: z.strictObject({
+        name: z.string().trim().overwrite(smuggle),
+        city: z.string().trim(),
+      }),
+      subject: { type: 'self' },
+      handler,
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const result = await action({ name: ' Ana ', city: ' X ' });
+    expect(result).toMatchObject({ success: false, code: 'INTERNAL_SERVER_ERROR' });
+    expect(handler).not.toHaveBeenCalled();
+    expect(mocks.capture).toHaveBeenCalledTimes(1);
+  });
+
+  it('still hands trimmed scalars to the handler', async () => {
+    const handler = vi.fn((input: { note: string }) => Promise.resolve(input.note));
+    const action = defineAction({
+      name: 'note.trim',
+      basis: { kind: 'role', roles: STAFF_ONLY },
+      input: z.strictObject({ note: z.string().trim().toLowerCase(), tags: z.array(z.string()) }),
+      subject: { type: 'none' },
+      handler,
+    });
+    expect(await action({ note: '  Hi ', tags: ['a'] })).toEqual({ success: true, data: 'hi' });
+  });
+
   it('records a returned refusal once and returns it', async () => {
     const result = await staffAction(async () => actionFailure('FORBIDDEN', 'Not your claim'))({
       claimId: 'c-2',

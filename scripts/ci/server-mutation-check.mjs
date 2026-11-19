@@ -12,8 +12,15 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { ScanError, createParser, listSourceFiles, scanRoots } from './server-mutation/ast.mjs';
-import { BASELINE_PATH, parseBaseline } from './server-mutation/baseline.mjs';
-import { CHECKS, evaluateCheck, exitCode, selectChecks } from './server-mutation/evaluate.mjs';
+import { BASELINE_PATH, parseBaseline, removalRecorded } from './server-mutation/baseline.mjs';
+import {
+  CHECKS,
+  evaluateCheck,
+  evaluateRetired,
+  exitCode,
+  selectChecks,
+  selectRetired,
+} from './server-mutation/evaluate.mjs';
 import { ensureCommit, extractRevision, headSha, showAt } from './server-mutation/git.mjs';
 import { REGISTRY_PATH, loadRegistry, parseRegistry } from './server-mutation/registry.mjs';
 import { annotate, writeReport } from './server-mutation/output.mjs';
@@ -66,7 +73,7 @@ function readBaselines(repo, root, baseSha) {
     // Bootstrap: accepted only while the base has neither the baseline nor this scanner.
     if (showAt(repo, baseSha, SCRIPT_PATH) !== null)
       throw new ScanError('base has the scanner but no baseline');
-  } else base = parseBaseline(baseText, 'base', CHECKS);
+  } else base = parseBaseline(baseText, 'base', CHECKS, { retired: true });
   const headFile = path.join(root, BASELINE_PATH);
   const head = parseBaseline(
     fs.existsSync(headFile) ? fs.readFileSync(headFile, 'utf8') : '',
@@ -81,13 +88,18 @@ function readBaselines(repo, root, baseSha) {
 }
 
 // Valid but empty is not a baseline. The base names every check its own scanner ran (a check new in
-// this head is absent from the base scanner's evaluation); the head names every check unless the
-// base has it, in which case the removal is judged as tamper against the base.
+// this head is absent from the base scanner's evaluation) unless the base records the owner's removal
+// of it; the head names every check unless the base has it (the removal is then judged as tamper
+// against the base) or the base records its removal, a record the head must keep (Astra r2 B10).
 function assertNamed(repo, baseSha, check, base, head) {
   const { id } = check;
-  if (base && !base.checks[id] && baseRanCheck(repo, baseSha, check))
+  const removed = removalRecorded(base, id);
+  if (base && !base.checks[id] && !removed && baseRanCheck(repo, baseSha, check))
     throw new ScanError(`base baseline has no ${id}`);
-  if (!head.checks[id] && !base?.checks[id]) throw new ScanError(`head baseline has no ${id}`);
+  if (head.checks[id] || base?.checks[id]) return;
+  if (!removed) throw new ScanError(`head baseline has no ${id}`);
+  if (!removalRecorded(head, id))
+    throw new ScanError(`head baseline drops the recorded removal of ${id}`);
 }
 
 export function run(argv, cwd = process.cwd()) {
@@ -125,8 +137,9 @@ export function run(argv, cwd = process.cwd()) {
       ctx.registry = loadRegistry(root);
       ctx.baseRegistry = baseRegistryAt(repo, report.base);
     }
-    for (const check of selected)
-      results.push(evaluateCheck(check, ctx, base, head, { base: report.base, head: report.head }));
+    const shas = { base: report.base, head: report.head };
+    for (const check of selected) results.push(evaluateCheck(check, ctx, base, head, shas));
+    for (const id of selectRetired(args, base)) results.push(evaluateRetired(id, base, head, shas));
   } catch (error) {
     report.errors.push(
       error instanceof ScanError ? error.message : `scanner failure: ${error?.stack ?? error}`

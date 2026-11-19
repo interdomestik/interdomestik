@@ -118,6 +118,8 @@ describe('runAuthenticatedAction (legacy) classification, design §4', () => {
     ['the unauthorized() fallback', 'NEXT_HTTP_ERROR_FALLBACK;401'],
     ['a client-rendering bailout', 'BAILOUT_TO_CLIENT_SIDE_RENDERING'],
     ['a dynamic-usage rendering error', 'DYNAMIC_SERVER_USAGE'],
+    ['a hanging-promise rejection (r2 H04)', 'HANGING_PROMISE_REJECTION'],
+    ['a prerender interruption (r2 H04)', 'NEXT_PRERENDER_INTERRUPTED'],
   ])('rethrows %s without capture or record', async (_label, digest) => {
     const control = Object.assign(new Error(digest), { digest });
     await expect(thrown(control)).rejects.toBe(control);

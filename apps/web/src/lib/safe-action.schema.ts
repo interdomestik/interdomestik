@@ -137,7 +137,15 @@ export function issuesOf(error: z.ZodError): Record<string, string> {
   const issues: Record<string, string> = {};
   for (const issue of error.issues) {
     const key = issue.path.map(String).join('.') || '_root';
-    issues[key] ??= issue.code;
+    // Own keys only: a field named like an Object.prototype member is still recorded (r2 B13).
+    if (!Object.hasOwn(issues, key)) {
+      Object.defineProperty(issues, key, {
+        value: issue.code,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    }
   }
   return issues;
 }

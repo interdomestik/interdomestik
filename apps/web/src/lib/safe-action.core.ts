@@ -14,6 +14,7 @@ import {
   type ActionFailure,
 } from './safe-action.failure';
 import { formDataToInput } from './safe-action.form';
+import { assertParsedShape } from './safe-action.output';
 import { extractSubject, recordRefusal, type RefusalActor } from './safe-action.refusal';
 import { issuesOf } from './safe-action.schema';
 import {
@@ -143,6 +144,7 @@ async function afterAuthentication<S extends z.ZodType, T>(
   if (!parsed.success) {
     return actionFailure('VALIDATION_ERROR', undefined, { issues: issuesOf(parsed.error) });
   }
+  assertParsedShape(def.input, parsed.data, def.name);
   return def.handler(parsed.data, ctx);
 }
 

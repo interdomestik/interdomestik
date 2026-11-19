@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { ScanError, sha256 } from './ast.mjs';
+import { ScanError, byCodeUnit, sha256 } from './ast.mjs';
 import { coverageShortfall, ratchet, tamperFindings } from './baseline.mjs';
 import { CHK04 } from './chk04.mjs';
 import { CHK05 } from './chk05.mjs';
@@ -24,6 +24,12 @@ export const SHARED_SOURCES = Object.freeze([
   '../server-mutation-check.mjs',
 ]);
 
+// Equal settings hash equally whatever the member order of a per-kind coverage map (Astra r2 B11).
+const canonicalCoverage = value =>
+  value !== null && typeof value === 'object'
+    ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => byCodeUnit(a, b)))
+    : value;
+
 // sha256 over the check's predicate sources, the shared evaluation (this scanner's own files) and
 // the check's baseline settings.
 export function predicateDigest(check, settings, dir = HERE) {
@@ -32,7 +38,7 @@ export function predicateDigest(check, settings, dir = HERE) {
   const config = JSON.stringify({
     unit: settings.unit,
     predicate: settings.predicate,
-    coverageMin: settings.coverageMin,
+    coverageMin: canonicalCoverage(settings.coverageMin),
   });
   return sha256(`${parts.join('\n\u0000\n')}\n\u0000\n${config}`);
 }
@@ -49,6 +55,34 @@ export function selectChecks({ check, enforcing }, base, head) {
   if (enforcing)
     return CHECKS.filter(candidate => isFail(base, candidate.id) || isFail(head, candidate.id));
   return [...CHECKS];
+}
+
+// Checks the trusted base names but this scanner no longer has: evaluated unless one check is
+// selected, and in the enforcing invocation only when the base enforces them.
+export function selectRetired({ check, enforcing }, base) {
+  if (check || !base) return [];
+  return Object.keys(base.checks)
+    .filter(id => !CHECKS.some(candidate => candidate.id === id))
+    .filter(id => !enforcing || isFail(base, id));
+}
+
+// A retired check can only be removed: the head cannot name it, so the removal is judged against the
+// base and needs the owner's fresh `#check` exception like any other removal.
+export function evaluateRetired(id, base, head, shas) {
+  return {
+    id,
+    ...shas,
+    digest: null,
+    retired: true,
+    mode: { base: base.checks[id].mode, head: null },
+    enforcing: isFail(base, id),
+    units: 0,
+    total: 0,
+    new: [],
+    fixed: [],
+    tamper: tamperFindings(id, base, head),
+    findings: [],
+  };
 }
 
 export function evaluateCheck(check, ctx, base, head, shas) {

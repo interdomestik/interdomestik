@@ -182,11 +182,20 @@ export function rootProblem(expression, file, resolveSchema) {
   return extra ? `parse schema adds ${extra.name}` : null;
 }
 
-// Schema expression of a member path inside a strict object schema, or null.
+// Why an intermediate object on a spread path is not closed, or null (§6.3, Astra r2 B12).
+function intermediateProblem(chain, where) {
+  if (!isStrictObjectChain(chain)) return `non-strict object at ${where}`;
+  const changing = chain.methods.find(m => SHAPE_CHANGING.has(m.name));
+  return changing ? `object-level ${changing.name} at ${where}` : null;
+}
+
+// Schema expression of a member path inside a strict object schema, `{ problem }` when an object
+// between the root and the member is not closed, or null when the path cannot be resolved. The root
+// itself is judged by rootProblem.
 export function memberSchema(expression, file, path, resolveSchema) {
   let value = unwrap(expression);
   let at = file;
-  for (const key of path) {
+  for (const [index, key] of path.entries()) {
     for (let hops = 0; value && ts.isIdentifier(value) && hops < 6; hops += 1) {
       const hit = resolveSchema(value, at);
       if (!hit) return null;
@@ -195,6 +204,8 @@ export function memberSchema(expression, file, path, resolveSchema) {
     }
     const chain = chainOf(value);
     if (!OBJECT_FACTORIES.has(chain.factory)) return null;
+    const problem = index > 0 && intermediateProblem(chain, path.slice(0, index).join('.'));
+    if (problem) return { problem };
     const shape = unwrap(chain.args[0]);
     const member =
       shape &&

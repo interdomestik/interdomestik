@@ -161,3 +161,16 @@ test('CHK-05 ids: two sibling constructs with one identity make the write ambigu
   assert.equal(finding.ambiguous, true);
   assert.match(finding.id, /^ambiguous:/u);
 });
+
+test('CHK-05: every object along a spread path is closed, intermediate ones too (Astra r2 B12)', t => {
+  const DETAIL = 'z.strictObject({ a: z.string() })';
+  const spread = group =>
+    `const S = z.strictObject({ group: ${group} });\nexport async function f(r: unknown) { const v = S.parse(r); await db.insert(things).values({ ...v.group.detail }); }`;
+  assert.deepEqual(findingsOf(t, spread(`z.strictObject({ detail: ${DETAIL} })`)), []);
+  const overwrite = `z.strictObject({ detail: ${DETAIL} }).overwrite(g => ({ ...g, detail: { ...g.detail, ownerId: 'x' } }))`;
+  assert.match(messages(t, spread(overwrite)), /spread path: object-level overwrite at group/u);
+  assert.match(
+    messages(t, spread(`z.object({ detail: ${DETAIL} })`)),
+    /non-strict object at group/u
+  );
+});

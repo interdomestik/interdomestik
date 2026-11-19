@@ -47,7 +47,9 @@ function validateException(entry, index) {
 }
 
 // Parses and validates a baseline text; `checks` lists the check definitions this scanner knows.
-export function parseBaseline(text, label, checks) {
+// `retired: true` (the trusted base only) admits a check this scanner no longer has, so its removal
+// is judged as tamper against the base instead of failing the parse (Astra r2 B10).
+export function parseBaseline(text, label, checks, { retired = false } = {}) {
   if (typeof text !== 'string' || !text.trim())
     throw new ScanError(`${label} baseline is missing or empty`);
   let data;
@@ -65,14 +67,23 @@ export function parseBaseline(text, label, checks) {
     throw new ScanError(`${label} baseline has no exceptions list`);
   const known = new Map(checks.map(check => [check.id, check]));
   for (const [id, check] of Object.entries(data.checks)) {
-    if (!known.has(id)) throw new ScanError(`${label} baseline names an unknown check ${id}`);
-    validateCheck(`${label}:${id}`, check, known.get(id).multiset === true);
+    if (!known.has(id) && !retired)
+      throw new ScanError(`${label} baseline names an unknown check ${id}`);
+    // A retired check's item kind is no longer known: its items are compared as a multiset.
+    const multiset = known.has(id) ? known.get(id).multiset === true : true;
+    validateCheck(`${label}:${id}`, check, multiset);
   }
   data.exceptions.forEach(validateException);
   return data;
 }
 
 const exceptionKey = e => `${e.check}\u0000${e.item}\u0000${e.kind}`;
+
+// The owner's approval of a check's removal, as kept in a baseline's exceptions.
+export const removalRecorded = (baseline, id) =>
+  (baseline?.exceptions ?? []).some(
+    e => e.check === id && e.item === '#check' && e.kind === 'downgrade'
+  );
 
 // Exceptions count only when this change adds them; an exception already in the base is spent.
 // A multiset: each fresh exception admits exactly one occurrence.

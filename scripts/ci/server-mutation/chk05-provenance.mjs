@@ -124,6 +124,7 @@ function schemaVerdict(schemaNode, path, ctx) {
     }
     target = base && memberSchema(base, at, path, ctx.resolveSchema);
     if (!target) return 'spread member not found in the schema';
+    if (target.problem) return `spread path: ${target.problem}`;
   }
   const open = openReasons(target.expression, target.file, ctx.resolveSchema);
   return open.length ? `spread path: ${[...new Set(open)].join(', ')}` : null;
