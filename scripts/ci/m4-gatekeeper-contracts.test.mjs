@@ -32,16 +32,16 @@ test('m4 gatekeeper diagnostics never print database credentials', () => {
     .filter(line => /echo .*\$\{?DATABASE_URL\b/u.test(line));
   assert.ok(echoes.length >= 2);
   for (const line of echoes) {
-    assert.match(line, /\$\(redact_database_url "\$\{DATABASE_URL\}"\)/u);
+    assert.match(
+      line,
+      /\$\(bash "\$\{SCRIPT_DIR\}\/redact-database-url\.sh" "\$\{DATABASE_URL\}"\)/u
+    );
   }
-  const redactor = /redact_database_url\(\) \{[\s\S]*?\n\}/u.exec(gatekeeperScript)[0];
   const sentinel = 'SENTINEL-p@ss:word';
   const output = execFileSync(
-    'bash',
+    '/bin/bash',
     [
-      '-c',
-      `${redactor}\nredact_database_url "$1"`,
-      'redact',
+      path.join(rootDir, 'scripts/redact-database-url.sh'),
       `postgresql://postgres:${sentinel}@127.0.0.1:55438/db`,
     ],
     { encoding: 'utf8' }

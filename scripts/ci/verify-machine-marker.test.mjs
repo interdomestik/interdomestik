@@ -66,12 +66,15 @@ test('missing, unknown and malformed fields are each named', () => {
   const marker = fixtureMarker({ extra: true, node: '' });
   delete marker.pnpm;
   marker.database = { ...marker.database, port: 0 };
-  assert.deepEqual(validateMarker(marker).sort(), [
-    'invalid field database.port',
-    'invalid field node',
-    'missing field pnpm',
-    'unknown field extra',
-  ]);
+  assert.deepEqual(
+    validateMarker(marker).sort((a, b) => a.localeCompare(b)),
+    [
+      'invalid field database.port',
+      'invalid field node',
+      'missing field pnpm',
+      'unknown field extra',
+    ]
+  );
   assert.deepEqual(validateMarker([]), ['marker must be an object']);
   assert.deepEqual(validateMarker(fixtureMarker({ machine: { arch: 'arm64' } })), [
     'missing field machine.hardware_uuid_sha256',
