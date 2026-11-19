@@ -4,10 +4,10 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, lstat, writeFile, realpath } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { drizzle } from 'drizzle-orm/postgres-js';
+import { freePort } from './isolated-port';
 import { withFreshPage } from './login-handoff-page';
 
 export type OwnedExpiryFixture = {
@@ -197,20 +197,6 @@ async function awaitOwnedRuntime(child: ChildProcess, port: number) {
     if (timer) clearTimeout(timer);
     tail = '';
   }
-}
-
-async function freePort() {
-  const server = createServer();
-  await new Promise<void>((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(0, '127.0.0.1', resolve);
-  });
-  const address = server.address();
-  if (!address || typeof address === 'string') throw new Error('isolated expiry port missing');
-  await new Promise<void>((resolve, reject) =>
-    server.close(error => (error ? reject(error) : resolve()))
-  );
-  return address.port; // Binding race fails startup; teardown never targets another listener.
 }
 
 export async function withIsolatedExpiry(
