@@ -85,10 +85,26 @@ test('the role and its guide defer to AGENTS.md and leave merging to the owner',
       /move completed metrics and proof into the linked historical ledger/u
     );
     assert.doesNotMatch(text, /Paddle is the only/u);
+    assert.doesNotMatch(
+      text,
+      /\bagents? (?:may|can|are allowed to|is allowed to) (?:merge|deploy|release|force-push|write|assign|submit|update)/iu
+    );
+    assert.doesNotMatch(text, /\bmerge (?:it |the PR )?through normal protections/iu);
+    assert.doesNotMatch(
+      text,
+      /\b(?:program|tracker|ledgers?)\b(?:(?!AGENTS\.md)[^.]){0,80}\b(?:wins|win|takes precedence|take precedence|governs?|prevails?)\b/iu
+    );
   }
   assert.ok(
     flat(procedure).includes(
       'No agent writes to staging (`AGENTS.md`, R-24). The owner runs every write step'
     )
+  );
+  for (const row of procedure.split('\n').filter(line => /^\| (?:5|6) /u.test(line))) {
+    assert.doesNotMatch(row, /\bagents? (?:may|can|runs?|performs?|writes?|assigns?|submits?)\b/iu);
+  }
+  assert.doesNotMatch(
+    flat(procedure),
+    /\bagents? (?:may|can|are allowed to|is allowed to) (?:write|assign|submit|update|merge|deploy)/iu
   );
 });
