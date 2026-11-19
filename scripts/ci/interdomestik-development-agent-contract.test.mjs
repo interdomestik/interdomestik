@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import test from 'node:test';
 import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
@@ -213,6 +214,26 @@ test('every agent authority sentence in the role, guide and staging procedure is
       authorityUnits(text).sort(),
       APPROVED_AUTHORITY_UNITS[key],
       `${file}: an agent authority sentence was added, changed or removed; review it and update the approved list`
+    );
+  }
+});
+
+// Complete-text pin. A word list cannot foresee every wording of a grant, so each authority file is pinned
+// as a whole: any edit fails here until it has been reviewed for agent authority (AGENTS.md R-01, R-24) and
+// the new hash is recorded in a reviewed edit of this test.
+const PINNED_AUTHORITY_SHA256 = {
+  role: 'cb5934ee542070ee15c57544b3f674bca9fc2f2890afd9df6ff04e46f81e5d5d',
+  guide: '1755ff767aca96c634358da763badf7bf33b4ae5c9d6a4919b03b2dc8bb473bf',
+  procedure: 'e1f3502eb83ee054935cda9d1df34a8680c8bba8e16e3abb46eec4c09ea053ed',
+};
+
+test('the role, guide and staging procedure are pinned to their reviewed text', () => {
+  for (const [key, file] of Object.entries(AUTHORITY_SOURCES)) {
+    const bytes = fs.readFileSync(new URL(`../../${file}`, import.meta.url));
+    assert.equal(
+      crypto.createHash('sha256').update(bytes).digest('hex'),
+      PINNED_AUTHORITY_SHA256[key],
+      `${file} changed: review it for agent authority, then record its new sha256 here`
     );
   }
 });
