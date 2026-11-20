@@ -1,5 +1,14 @@
 // Import edges and their resolution for the screen-contract rules (WP-05 design §2, §2.2).
 // Syntax only: nothing here imports or runs the scanned code.
+//
+// Named limits (the repository has none of these today; a new one can resolve another file than
+// TypeScript does):
+// - a relative `./x.js` where both `x.js` and `x.ts` exist: TypeScript takes `x.ts`, this resolver
+//   the literal `x.js`;
+// - an `@/*` mapping whose pattern has a `..` segment after the `*` (`src/*/../shared`): it is
+//   normalized before the `*` is substituted;
+// - `.d.json.ts` and other `.d.<ext>.ts` declarations, `types@<version>` conditions,
+//   `typesVersions` and a directory's own `package.json`.
 import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';

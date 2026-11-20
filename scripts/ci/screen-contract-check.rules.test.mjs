@@ -443,7 +443,7 @@ test('F7: @/x.js names x.ts before x.js, as TypeScript does (CHK-15a)', async t 
 // Not modelled (a recorded limit): `.d.json.ts`, `.d<ext>.ts` declaration files for other
 // extensions, `typesVersions`, a directory's own package.json.
 const ALIAS_FILES = ['save.ts', 'save.tsx', 'save.js', 'save.d.ts', 'save/index.ts'];
-const ALIAS_SPECS = ['save.js', 'save', 'save.ts'];
+const ALIAS_SPECS = ['save.js', 'save', 'save.ts', 'save.jsx'];
 const subsetsOf = list =>
   list.reduce((sets, item) => [...sets, ...sets.map(set => [...set, item])], [[]]).slice(1);
 const COMPILER_OPTIONS = '"moduleResolution": "bundler", "module": "esnext", "allowJs": true';
@@ -466,7 +466,8 @@ test(`F7: the @/ alias resolves TypeScript's file for every specifier extension 
     [`${W}/lib/dual.js`]: 'export const d = 1;\n',
     [`${W}/dual.ts`]: 'export const d = 1;\n',
     'tsconfig.json': `{ "compilerOptions": { ${COMPILER_OPTIONS}, "baseUrl": ".", "paths": { "@/*": ["apps/web/src/lib/*", "apps/web/src/*", "apps/web/src/fallback.ts"] } } }\n`,
-    'apps/web/tsconfig.json': `{ "compilerOptions": { ${COMPILER_OPTIONS}, "paths": { "@/*": ["./src/*", "./src"] } } }\n`,
+    // No fallback here (r4 hardening): an unresolved lookup must come back unresolved.
+    'apps/web/tsconfig.json': `{ "compilerOptions": { ${COMPILER_OPTIONS}, "paths": { "@/*": ["./src/*"] } } }\n`,
   };
   const specifiers = ['@/dual', '@/absent'];
   subsetsOf(ALIAS_FILES).forEach((set, index) => {
@@ -487,5 +488,7 @@ test(`F7: the @/ alias resolves TypeScript's file for every specifier extension 
       assert.equal(resolver.resolveFile(fromRel, specifier), expected, `${fromRel} ${specifier}`);
     }
   }
-  assert.equal(resolved, callers.length * specifiers.length);
+  // The root caller's fixed-file fallback resolves every lookup; the web caller's has none.
+  assert.ok(resolved > specifiers.length, String(resolved));
+  assert.ok(resolved < callers.length * specifiers.length, String(resolved));
 });

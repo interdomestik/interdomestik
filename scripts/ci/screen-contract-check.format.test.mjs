@@ -62,8 +62,8 @@ test('H4: each display position of toFixed is flagged on its own line; payloads 
 });
 
 // Finding 11 (r3): the rendered operand of `&&` is a display position; its left operand is only a
-// condition. Both operands of `??` and `||` can render.
-test('F11: the right operand of && and either operand of ?? and || is a display position', async t => {
+// condition. Both operands of `??` and `||` can render (r4 hardening: each side of each operator).
+test('F11: the right operand of && and both operands of ?? and of || are display positions', async t => {
   const file = `${W}/app/logical/page.tsx`;
   const root = tree(t, {
     [file]: [
@@ -74,12 +74,14 @@ test('F11: the right operand of && and either operand of ?? and || is a display 
       '    {n.toFixed(2) && x}',
       '    {a ?? n.toFixed(2)}',
       "    {n.toFixed(2) || '-'}",
+      '    {n.toFixed(2) ?? a}',
+      '    {x || n.toFixed(2)}',
       '  </div>);',
       '}',
     ].join('\n'),
   });
   const result = await lint(root);
-  assert.deepEqual(linesOf(result, 'CHK-09', `CHK-09|${file}|toFixed`), [3, 4, 6, 7]);
+  assert.deepEqual(linesOf(result, 'CHK-09', `CHK-09|${file}|toFixed`), [3, 4, 6, 7, 8, 9]);
 });
 
 test('H5: a hidden input in braces is not a control', async t => {
