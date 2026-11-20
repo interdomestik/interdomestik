@@ -86,6 +86,11 @@ function enumOptions(schema: z.ZodType): readonly unknown[] {
 const NO = Symbol('nonconforming');
 type Copy = unknown;
 
+// A copy is frozen exactly when its parsed source is: zod freezes the output of a `readonly` branch,
+// and the copy follows zod's output, not the union branch the copy walked (B22).
+const likeSource = (copy: object, source: object): object =>
+  Object.isFrozen(source) ? Object.freeze(copy) : copy;
+
 const own = (value: object, key: string): unknown => (value as Record<string, unknown>)[key];
 
 function copyObject(def: Def, value: unknown): Copy {
@@ -102,7 +107,7 @@ function copyObject(def: Def, value: unknown): Copy {
     if (item === NO) return NO;
     if (present) copy[key] = item;
   }
-  return copy;
+  return likeSource(copy, value);
 }
 
 function copyArray(element: z.ZodType, value: unknown): Copy {
@@ -113,7 +118,7 @@ function copyArray(element: z.ZodType, value: unknown): Copy {
     if (next === NO) return NO;
     copy.push(next);
   }
-  return copy;
+  return likeSource(copy, value);
 }
 
 // Items past the end are absent: only an optional item may be absent.
@@ -126,7 +131,7 @@ function copyTuple(def: Def, value: unknown): Copy {
     if (next === NO) return NO;
     if (index < value.length) copy.push(next);
   }
-  return copy;
+  return likeSource(copy, value);
 }
 
 function copyUnion(def: Def, value: unknown): Copy {
@@ -146,10 +151,8 @@ function copyOf(schema: z.ZodType, value: unknown): Copy {
       return value === undefined ? value : copyOf(def.innerType as z.ZodType, value);
     case 'nullable':
       return value === null ? value : copyOf(def.innerType as z.ZodType, value);
-    case 'readonly': {
-      const copy = copyOf(def.innerType as z.ZodType, value);
-      return copy !== NO && typeof copy === 'object' && copy !== null ? Object.freeze(copy) : copy;
-    }
+    case 'readonly':
+      return copyOf(def.innerType as z.ZodType, value);
     case 'object':
       return copyObject(def, value);
     case 'array':

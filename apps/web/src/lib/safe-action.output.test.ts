@@ -148,6 +148,35 @@ describe('the handler receives a fresh copy with only the declared keys (r5 B20)
   });
 });
 
+describe('the copy is frozen exactly where zod froze the parsed value (B22)', () => {
+  it('an array union whose readonly branch zod chose after a length check failed', () => {
+    const schema = z.strictObject({
+      v: z.union([z.array(z.string()).min(3), z.array(z.string()).readonly()]),
+    });
+    const parsed = schema.parse({ v: ['a'] });
+    expect(Object.isFrozen(parsed.v)).toBe(true);
+    const copy = exact(schema, parsed) as { v: string[] };
+    expect(Object.isFrozen(copy.v)).toBe(true);
+    const long = exact(schema, schema.parse({ v: ['a', 'b', 'c'] })) as { v: string[] };
+    expect(Object.isFrozen(long.v)).toBe(false);
+  });
+
+  it('an object union whose readonly branch zod chose after a length check failed', () => {
+    const schema = z.strictObject({
+      v: z.union([
+        z.strictObject({ a: z.string().min(5) }),
+        z.strictObject({ a: z.string() }).readonly(),
+      ]),
+    });
+    const parsed = schema.parse({ v: { a: 'x' } });
+    expect(Object.isFrozen(parsed.v)).toBe(true);
+    const copy = exact(schema, parsed) as { v: object };
+    expect(Object.isFrozen(copy.v)).toBe(true);
+    const long = exact(schema, schema.parse({ v: { a: 'xxxxx' } })) as { v: object };
+    expect(Object.isFrozen(long.v)).toBe(false);
+  });
+});
+
 describe('a form file is exactly a File (r5 B19)', () => {
   const form = z.strictObject({ file: z.file() });
 
