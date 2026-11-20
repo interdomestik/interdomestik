@@ -52,6 +52,18 @@ export async function preAdoptionBase(baseRoot, baseSha) {
 const unitsOf = lintOrResults =>
   Object.fromEntries(Object.entries(lintOrResults).map(([id, r]) => [id, r.units ?? {}]));
 
+// The unit-kind decreases of one check: every one, and an emptied kind on its own line.
+function unitLines(id, before, after) {
+  const lines = [];
+  for (const [kind, n] of Object.entries(before)) {
+    const now = after?.[kind] > 0 ? after[kind] : 0;
+    if (now >= n) continue;
+    lines.push(`${id}: unit decrease ${kind} ${n} -> ${now}`);
+    if (now === 0) lines.push(`${id}: kind empty ${kind} (${n} -> 0)`);
+  }
+  return lines;
+}
+
 // The adjudication lines of a pre-adoption pair: inventory and every unit-kind decrease.
 export function adjudication(baseLint, results) {
   const lines = [];
@@ -60,12 +72,7 @@ export function adjudication(baseLint, results) {
     if (!before) continue;
     if (result.files < before.files)
       lines.push(`${result.id}: inventory decrease ${before.files} -> ${result.files}`);
-    for (const [kind, n] of Object.entries(before.units)) {
-      const now = result.units?.[kind] > 0 ? result.units[kind] : 0;
-      if (now >= n) continue;
-      lines.push(`${result.id}: unit decrease ${kind} ${n} -> ${now}`);
-      if (n > 0 && now === 0) lines.push(`${result.id}: kind empty ${kind} (${n} -> 0)`);
-    }
+    lines.push(...unitLines(result.id, before.units, result.units));
   }
   return lines;
 }

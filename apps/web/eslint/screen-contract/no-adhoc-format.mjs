@@ -135,25 +135,29 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
     return null;
   }
 
+  // A call of a formatter bound earlier in the file: date-fns functions or namespaces, next-intl
+  // formatters or their destructured methods.
+  function boundFormat(callee, method) {
+    const name = nameOf(callee);
+    if (name && dateFnsFunctions.has(name)) return `date-fns.${dateFnsFunctions.get(name)}`;
+    if (name && formatterMethods.has(name)) return `next-intl.${formatterMethods.get(name)}`;
+    if (!method) return null;
+    const object = nameOf(callee.object);
+    if (isFormatName(method) && dateFnsNamespaces.has(object)) return `date-fns.${method}`;
+    if (NEXT_INTL_FORMAT.has(method) && formatters.has(object)) return `next-intl.${method}`;
+    return null;
+  }
+
   function checkCall(node) {
     units.add('call');
     const { callee } = node;
     const method = propertyOf(callee);
     if (method && TO_LOCALE.has(method)) return flag(node, method);
-    const direct = directFormat(callee, method);
-    if (direct) return flag(node, direct);
     if (method && TO_DIGITS.has(method)) return inDisplayPosition(node) && flag(node, method);
     if (method && INTL.has(method) && isIntlObject(callee.object))
       return flag(node, `Intl.${method}`);
-    if (nameOf(callee) && dateFnsFunctions.has(callee.name))
-      return flag(node, `date-fns.${dateFnsFunctions.get(callee.name)}`);
-    if (method && isFormatName(method) && dateFnsNamespaces.has(nameOf(callee.object)))
-      return flag(node, `date-fns.${method}`);
-    if (method && NEXT_INTL_FORMAT.has(method) && formatters.has(nameOf(callee.object)))
-      return flag(node, `next-intl.${method}`);
-    if (nameOf(callee) && formatterMethods.has(callee.name))
-      return flag(node, `next-intl.${formatterMethods.get(callee.name)}`);
-    return undefined;
+    const formatted = directFormat(callee, method) ?? boundFormat(callee, method);
+    return formatted ? flag(node, formatted) : undefined;
   }
 
   function bindDateFnsImport(spec, subpath) {

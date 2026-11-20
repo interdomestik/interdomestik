@@ -8,6 +8,7 @@ import { byCodeUnit } from './server-mutation/ast.mjs';
 import { parseBaseline } from './server-mutation/baseline.mjs';
 import { CHECKS } from './screen-contract/evaluate.mjs';
 import { synthesizedBaseline } from './screen-contract/replay.mjs';
+import { scan } from './fixtures/screen-contract-check/cli-fixtures.mjs';
 import { SCANNER, commit, git, repo, tempDir } from './fixtures/screen-contract-check/harness.mjs';
 
 const W = 'apps/web/src';
@@ -55,19 +56,6 @@ const INPUTS = {
 const DB_PAGE = `${W}/app/legacy/page.tsx`;
 const DB_IMPORT = "import { db } from '@interdomestik/database';\nexport default () => db;\n";
 const LEGACY = `CHK-15c|${DB_PAGE}|@interdomestik/database`;
-
-function scan(t, root, args) {
-  const report = path.join(tempDir(t, 'scc-report-'), 'report.json');
-  const result = spawnSync(
-    process.execPath,
-    [SCANNER, '--repo', root, '--report', report, ...args],
-    {
-      encoding: 'utf8',
-    }
-  );
-  const body = fs.existsSync(report) ? JSON.parse(fs.readFileSync(report, 'utf8')) : null;
-  return { code: result.status, report: body, stdout: result.stdout, stderr: result.stderr };
-}
 
 // A repository whose base is adopted (scanner-free fixture baseline) and a head commit on top.
 function adopted(t, baseItems = { 'CHK-15c': [LEGACY] }, baseFiles = { [DB_PAGE]: DB_IMPORT }) {
