@@ -110,7 +110,8 @@ export function createExportResolver(root, parse) {
   return { resolve, names, table };
 }
 
-const isRouteFile = file => /^apps\/web\/src\/app\/.*\/route\.ts$/u.test(file);
+// Any route.ts under the app directory, the app root's own included (Astra r9 B33).
+const isRouteFile = file => /^apps\/web\/src\/app\/(?:.*\/)?route\.ts$/u.test(file);
 
 function actionUnits(resolver, file) {
   return resolver

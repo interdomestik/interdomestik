@@ -163,3 +163,11 @@ test('CHK-04 counts a JavaScript use-server module', t => {
   const root = tree(t, { [`${A}/legacy.js`]: "'use server';\nexport async function act() {}\n" });
   assert.ok(ids(runCheck('CHK-04', root)).includes(`${A}/legacy.js#act`));
 });
+
+test('CHK-04: a route at the app root is a route unit (Astra r9 B33)', t => {
+  const R = 'apps/web/src/app/route.ts';
+  const root = tree(t, { [R]: 'export async function POST() { return new Response(null); }\n' });
+  const result = runCheck('CHK-04', root);
+  assert.deepEqual(result.units, { export: 0, route: 1 });
+  assert.deepEqual(ids(result), [`${R}#POST`]);
+});

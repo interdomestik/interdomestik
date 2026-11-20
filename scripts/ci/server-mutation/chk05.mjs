@@ -55,6 +55,9 @@ function chainCalls(call) {
 }
 
 // Drizzle writes: .values(arg) / .set(arg) after .insert( / .update(, and onConflictDoUpdate({ set }).
+// An upsert config is read only as an inline object literal whose members are plain: its `set` key
+// matched by name, quoted or not; any other config is a write with an unresolved config, never
+// followed through bindings (Astra r9 B32).
 function writeOf(call) {
   if (!ts.isPropertyAccessExpression(call.expression)) return null;
   const method = call.expression.name.text;
@@ -66,20 +69,22 @@ function writeOf(call) {
     return { op: 'insert', table, arg: call.arguments[0] };
   if (method === 'set' && root.name === 'update')
     return { op: 'update', table, arg: call.arguments[0] };
-  if (method === 'onConflictDoUpdate') {
-    const config = unwrap(call.arguments[0]);
-    const set =
-      config &&
-      ts.isObjectLiteralExpression(config) &&
-      config.properties.find(p => p.name?.getText() === 'set');
-    if (set)
-      return {
-        op: 'upsert',
-        table,
-        arg: ts.isPropertyAssignment(set) ? set.initializer : set.name,
-      };
-  }
+  if (method === 'onConflictDoUpdate') return upsertOf(call, table);
   return null;
+}
+
+const PLAIN_MEMBER = p => ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p);
+
+function upsertOf(call, table) {
+  const config = unwrap(call.arguments[0]);
+  const members = config && ts.isObjectLiteralExpression(config) ? config.properties : null;
+  const keys = members?.every(PLAIN_MEMBER) ? members.map(p => propertyKey(p.name)) : ['?'];
+  // A computed key may be `set`; a second `set` replaces the first at run time.
+  if (keys.includes('?') || keys.filter(key => key === 'set').length > 1)
+    return { op: 'upsert', table, arg: config ?? call, configProblem: true };
+  const set = members.find(p => propertyKey(p.name) === 'set');
+  if (!set) return null;
+  return { op: 'upsert', table, arg: ts.isPropertyAssignment(set) ? set.initializer : set.name };
 }
 
 // Follows identifiers through const bindings to object literals; arrays give every element.
@@ -224,13 +229,17 @@ function analyseObject(object, ctx, keys) {
   return { problems, order, lines };
 }
 
-// The finding of one write, or null when every value has parsed provenance.
+// The finding of one write, or null when every value has parsed provenance. An upsert config that
+// is not an inline literal of plain members is one unresolved value, never followed (r9 B32).
+const CONFIG_PROBLEM = 'onConflictDoUpdate config is not an inline object literal';
 function writeFinding(node, write, ctx, keys) {
-  const { objects = [], unresolved = [] } = resolveObjects(write.arg);
+  const { objects = [], unresolved = [] } = write.configProblem
+    ? { unresolved: [write.arg] }
+    : resolveObjects(write.arg);
   const problems = [];
   const lines = [];
   for (const value of unresolved) {
-    const problem = provenanceProblem(value, ctx);
+    const problem = write.configProblem ? CONFIG_PROBLEM : provenanceProblem(value, ctx);
     if (!problem) continue;
     problems.push(`write value ${textOf(value).slice(0, 40)}: ${problem}`);
     lines.push(lineOf(value));

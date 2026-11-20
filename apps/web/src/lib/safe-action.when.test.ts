@@ -89,3 +89,31 @@ describe('definition: a check of an empty or non-string kind (r8 B30)', () => {
     expect(define(z.strictObject({ pair: tuple }))).toThrow(/at pair: a unknown check on a tuple/);
   });
 });
+
+// Lead decision on Astra r9 B28 (design addendum 8): a check whose definition holds a zod schema
+// (`z.property`) parses that schema with its own checks and `when` callbacks, which the walk never
+// reaches; it is refused on any node, with or without a custom `when`.
+describe('definition: no check that holds a schema (addendum 8, r9 B28)', () => {
+  const lengthCheck = () => z.property('length', z.number());
+  it.each([
+    ['on a string', z.strictObject({ note: z.string().check(lengthCheck()) }), 'note'],
+    [
+      'inside an array of strict objects',
+      z.strictObject({ rows: z.array(z.strictObject({ name: z.string().check(lengthCheck()) })) }),
+      'rows[].name',
+    ],
+    [
+      'on a wrapper around a scalar',
+      z.strictObject({
+        note: z
+          .string()
+          .optional()
+          .check(lengthCheck() as never),
+      }),
+      'note',
+    ],
+  ])('refuses a property check %s', (_label, schema, path) => {
+    expect(define(schema)).toThrow(ActionDefinitionError);
+    expect(define(schema)).toThrow(`at ${path}: a property check that holds a schema`);
+  });
+});

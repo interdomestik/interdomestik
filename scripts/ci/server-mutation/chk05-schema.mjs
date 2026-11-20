@@ -32,6 +32,20 @@ const SCHEMA_ARG_FACTORIES = new Set([
   'nullish',
   'readonly',
 ]);
+// Scalar factories (zod 4), closed: they parse one value and hold no member. Any factory that is not
+// open, an object, a schema-argument factory or listed here is unrecognised, and so open (Astra r9 B31).
+const SCALAR_FACTORIES = new Set(
+  [
+    'string number boolean bigint date symbol null undefined void never nan literal enum',
+    'nativeEnum templateLiteral keyof file stringbool email guid uuid uuidv4 uuidv6 uuidv7',
+    'url httpUrl emoji nanoid cuid cuid2 ulid xid ksuid ipv4 ipv6 mac cidrv4 cidrv6 base64',
+    'base64url e164 jwt hostname hex hash creditCard iban currencyCode int int32 uint32',
+    'float32 float64 int64 uint64 iso.datetime iso.date iso.time iso.duration coerce.string',
+    'coerce.number coerce.boolean coerce.bigint coerce.date',
+  ]
+    .join(' ')
+    .split(' ')
+);
 const WRAPPERS = new Set(['optional', 'nullable', 'nullish', 'readonly', 'describe', 'meta']);
 // The only methods an object on a spread path may carry: none of them adds, replaces or drops a
 // member or runs caller code. Anything else (extend, merge, pick, partial, refine...) is open.
@@ -148,7 +162,8 @@ export function openReasons(expression, file, resolveSchema, depth = 0) {
   if (OBJECT_FACTORIES.has(chain.factory)) return objectReasons(chain, file, resolveSchema, depth);
   if (chain.methods.some(m => m.name === 'pipe' || m.name === 'transform'))
     return [`scalar ${chain.factory} changes shape`];
-  if (!SCHEMA_ARG_FACTORIES.has(chain.factory)) return [];
+  if (!SCHEMA_ARG_FACTORIES.has(chain.factory))
+    return SCALAR_FACTORIES.has(chain.factory) ? [] : [`unrecognised factory z.${chain.factory}`];
   return chain.args
     .flatMap(schemaArgs)
     .flatMap(arg => openReasons(arg, file, resolveSchema, depth + 1));

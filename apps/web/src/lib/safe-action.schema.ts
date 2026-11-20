@@ -7,8 +7,8 @@ import { ownerColumnKeys, TENANT_IDENTITY_KEYS } from './safe-action.owner-keys'
 // scalar, wrapper, array, tuple, union and (in a form) file nodes. A node that can widen, default or
 // pipe into another shape is refused. So is any check on an object, wrapper, array, tuple or union,
 // except an array's size and the checks of a wrapper around a scalar, and so is any check, anywhere,
-// with a `when` callback other than zod's own (SEC-02: nothing may add an undeclared key; addenda 6
-// and 7). Checks on scalar and file nodes are otherwise not judged in part 1: a check that rewrites
+// with a `when` callback other than zod's own or whose definition holds a schema (SEC-02: nothing may
+// add an undeclared key; addenda 6 to 8). Checks on scalar and file nodes are otherwise not judged in part 1: a check that rewrites
 // a scalar, and a coercion, reach the handler as zod returns them, until the runtime input guard of
 // WP-02 part 1b.
 type ZodDef = {
@@ -59,6 +59,23 @@ const hasCustomWhen = (check: unknown): boolean => {
   return when !== undefined && when !== DEFAULT_WHEN.get(checkKind(check));
 };
 
+// A check whose definition holds a zod schema (`z.property`) parses that schema, with its own checks
+// and `when` callbacks, where the walk never reaches it; any own definition value that carries `_zod`
+// counts, and so does an accessor, whose value is not read (Astra r9 B28, addendum 8).
+const carriesSchema = (value: unknown): boolean =>
+  (typeof value === 'object' || typeof value === 'function') && value !== null && '_zod' in value;
+const holdsSchema = (check: unknown): boolean => {
+  const def = internals(check)?.def;
+  if (typeof def !== 'object' || def === null) return false;
+  return Reflect.ownKeys(def).some(key => {
+    const own = Reflect.getOwnPropertyDescriptor(def, key);
+    return (
+      own !== undefined &&
+      (own.get !== undefined || own.set !== undefined || carriesSchema(own.value))
+    );
+  });
+};
+
 // The checks a container may carry: an array's size, recognised by its kind and zod's own class
 // trait, which cannot change a value (its `when` is judged first, for every check).
 const ARRAY_SIZE_TRAITS: ReadonlyMap<string, string> = new Map([
@@ -106,9 +123,10 @@ function containerCheck(def: ZodDef): string | undefined {
   return refused === undefined ? undefined : checkKind(refused);
 }
 
-// Refuses a check with a custom `when` on this node: its own checks, and the node itself when it is
-// also a check (`z.email()` as a field). Called for every node the walk reaches (addendum 7).
-function assertDefaultWhen(schema: z.ZodType, def: ZodDef, path: string, ctx: WalkContext): void {
+// Refuses a check with a custom `when`, or one that holds a schema, on this node: its own checks, and
+// the node itself when it is also a check (`z.email()` as a field). Called for every node the walk
+// reaches (addenda 7 and 8).
+function assertNodeChecks(schema: z.ZodType, def: ZodDef, path: string, ctx: WalkContext): void {
   const checks = def.check === undefined ? (def.checks ?? []) : [schema, ...(def.checks ?? [])];
   if (checks.some(hasCustomWhen)) {
     refuse(
@@ -116,6 +134,10 @@ function assertDefaultWhen(schema: z.ZodType, def: ZodDef, path: string, ctx: Wa
       path,
       `a check with a custom when callback (it receives the writable payload) on a ${def.type}`
     );
+  }
+  const holding = checks.find(holdsSchema);
+  if (holding !== undefined) {
+    refuse(ctx, path, `a ${checkKind(holding)} check that holds a schema on a ${def.type}`);
   }
 }
 
@@ -137,7 +159,7 @@ function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
       'object-level refine/check/superRefine/overwrite belongs in the owning command'
     );
   }
-  if (def.catchall) assertDefaultWhen(def.catchall, defOf(def.catchall), `${path}{catchall}`, ctx);
+  if (def.catchall) assertNodeChecks(def.catchall, defOf(def.catchall), `${path}{catchall}`, ctx);
   for (const [key, child] of Object.entries(def.shape ?? {})) {
     const childPath = path ? `${path}.${key}` : key;
     if (ctx.identityKeys.has(key)) refuse(ctx, childPath, 'identity keys come from server context');
@@ -148,7 +170,7 @@ function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
 function walk(schema: z.ZodType, path: string, ctx: WalkContext): void {
   const def = defOf(schema);
   const { type } = def;
-  assertDefaultWhen(schema, def, path, ctx);
+  assertNodeChecks(schema, def, path, ctx);
   if (type === 'object') return walkObject(def, path, ctx);
   if (SCALAR_TYPES.has(type)) return;
   if (type === 'file') {

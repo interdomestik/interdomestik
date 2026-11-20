@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 
-import { PORTAL_ROLES } from './roles.core';
+import { ROLES } from '@interdomestik/shared-auth';
 import {
   authenticate,
   failureOfThrown,
@@ -56,6 +56,8 @@ const OPERATION_NAME = /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/;
 const PUBLIC_CLOSED =
   'public intake opens with the PR that makes CHK-04 and CHK-26 fail (design §1.3)';
 
+// shared-auth's role catalogue, read once (R-20: no second role list; R-30: roles come from it).
+const ROLE_CATALOGUE: ReadonlySet<unknown> = new Set<unknown>(Object.values(ROLES));
 const BASIS_SHAPE = 'basis must be { kind: "role", roles: [...] } or { kind: "self" }';
 const SUBJECT_SHAPE = 'subject must be { type, from }, { type: "self" } or { type: "none" }';
 
@@ -72,8 +74,9 @@ function readBasis(name: string, value: unknown): ActionBasis {
   if (copy.length === 0 || !copy.every(role => typeof role === 'string')) {
     throw new ActionDefinitionError(name, BASIS_SHAPE);
   }
-  // A basis names catalogue roles only, never `user` or any other string (Astra r8 B29).
-  const stray = copy.find(role => !(PORTAL_ROLES as readonly unknown[]).includes(role));
+  // A basis names roles of shared-auth's catalogue only, never `user`, `promoter` or any other
+  // string (Astra r8 B29, lead finding on B29).
+  const stray = copy.find(role => !ROLE_CATALOGUE.has(role));
   if (stray !== undefined) {
     throw new ActionDefinitionError(
       name,

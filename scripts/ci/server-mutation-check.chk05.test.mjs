@@ -191,3 +191,45 @@ test('CHK-05: an object method outside the allowlist opens the spread path, e.g.
     'z.strictObject({ detail: z.strictObject({ a: z.string() }) }).strict().describe("g")';
   assert.deepEqual(findingsOf(t, spread(kept)), []);
 });
+
+test('CHK-05: an unrecognised Zod factory on a spread path is open (Astra r9 B31)', t => {
+  const spread = member =>
+    `const S = z.strictObject({ meta: ${member} });\nexport async function f(r: unknown) { await db.insert(things).values({ ...S.parse(r) }); }`;
+  assert.match(
+    messages(t, spread("z.partialRecord(z.enum(['a']), z.string())")),
+    /spread path: unrecognised factory z\.partialRecord/u
+  );
+  assert.match(messages(t, spread('z.json()')), /spread path: unrecognised factory z\.json/u);
+  const closed = [
+    'z.string()',
+    "z.enum(['a'])",
+    'z.email()',
+    'z.iso.datetime()',
+    'z.coerce.number()',
+    "z.literal('a')",
+    'z.array(z.uuid())',
+  ];
+  for (const member of closed) assert.deepEqual(findingsOf(t, spread(member)), [], member);
+});
+
+test('CHK-05: an upsert set under a quoted key, or a config that is not an inline literal, is a finding (Astra r9 B32)', t => {
+  const quoted =
+    "export async function f(b: object) { await db.insert(things).values({ a: 1 }).onConflictDoUpdate({ target: things.id, 'set': { ...b } }); }";
+  const [q] = findingsOf(t, quoted);
+  assert.match(q.id, /#upsert\(things\)#/u);
+  assert.match(q.message, /parameter b/u);
+  const viaConst =
+    'export async function f(b: object) { const cfg = { target: things.id, set: { ...b } }; await db.insert(things).values({ a: 1 }).onConflictDoUpdate(cfg); }';
+  const [c] = findingsOf(t, viaConst);
+  assert.match(c.id, /#upsert\(things\)#/u);
+  assert.match(c.message, /onConflictDoUpdate config is not an inline object literal/u);
+  const spreadConfig =
+    'export async function f(cfg: object) { await db.insert(things).values({ a: 1 }).onConflictDoUpdate({ target: things.id, ...cfg }); }';
+  assert.match(
+    messages(t, spreadConfig),
+    /onConflictDoUpdate config is not an inline object literal/u
+  );
+  const twice =
+    'export async function f(b: object) { await db.insert(things).values({ a: 1 }).onConflictDoUpdate({ target: things.id, set: { a: 1 }, set: { ...b } }); }';
+  assert.match(messages(t, twice), /onConflictDoUpdate config is not an inline object literal/u);
+});

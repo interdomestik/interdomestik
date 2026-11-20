@@ -1,5 +1,5 @@
 import type { auth } from '@/lib/auth';
-import type { PORTAL_ROLES } from '@/lib/roles.core';
+import type { Role } from '@interdomestik/shared-auth';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 // The canonical result of every server action (R-20: one result type).
@@ -38,8 +38,8 @@ export type ProtectedActionContext = {
 
 export type PublicActionContext = { requestHeaders: Headers };
 
-/** A role of the catalogue (`PORTAL_ROLES`, roles.core.ts): the one source of role names. */
-export type PortalRole = (typeof PORTAL_ROLES)[number];
+/** A role of the catalogue: shared-auth's `ROLES`, the one source of role names (R-20, R-30). */
+export type PortalRole = Role;
 
 /** The declared authorization basis of an action (R-05). */
 export type ActionBasis =

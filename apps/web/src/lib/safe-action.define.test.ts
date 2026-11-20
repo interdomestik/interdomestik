@@ -52,7 +52,7 @@ describe('definition: name, basis, subject', () => {
     expect(define(z.strictObject({ id: z.string() }), extra)).toThrow(ActionDefinitionError);
   });
 
-  it.each(['user', 'nobody'])(
+  it.each(['user', 'promoter', 'nobody'])(
     'refuses the role %s, which is not in the catalogue (r8 B29)',
     role => {
       const basis = { basis: { kind: 'role', roles: [role] } };

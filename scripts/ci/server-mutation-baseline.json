@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "takenAt": "2026-11-19 at base 2c91b274d",
+  "takenAt": "2026-11-20 at base 2c91b274d",
   "checks": {
     "CHK-04": {
       "mode": "report",
-      "unit": "value exports of 'use server' modules (re-exports followed), inline 'use server' functions, the seven HTTP methods of app route.ts",
+      "unit": "value exports of 'use server' modules (re-exports followed), inline 'use server' functions, the seven HTTP methods of app route.ts, the app root's included",
       "predicate": "literal defineAction/defineFormAction definition from @/lib/safe-action (no spread, computed or duplicate key; literal name, basis.kind, subject.type); route method registered with an existing denied test; no runPublicIntake importer outside its test",
       "coverageMin": {
         "export": 207,
@@ -288,7 +288,7 @@
     "CHK-05": {
       "mode": "report",
       "unit": "Drizzle .values/.set after .insert/.update and onConflictDoUpdate set, non-test source",
-      "predicate": "every spread and unresolved write value has parsed provenance through a strict schema closed along the spread path; no spread after an identity key; ids by structural path with ambiguity",
+      "predicate": "every spread and unresolved write value has parsed provenance through a strict schema closed along the spread path; no spread after an identity key; an unrecognised Zod factory is open; an upsert config that is not an inline literal of plain members is unresolved; ids by structural path with ambiguity",
       "coverageMin": 397,
       "items": [
         "apps/web/src/actions/billing-test.ts#mockActivateSubscription#cb(d972b8adebeb)#1#insert(subscriptions)#4047ac6610bd",
@@ -418,7 +418,7 @@
       "mode": "report",
       "unit": "type assertions in non-test source",
       "predicate": "no assertion other than unknown on a .json() body",
-      "coverageMin": 1382,
+      "coverageMin": 1385,
       "items": [
         "apps/web/src/app/[locale]/(site)/nps/[token]/survey-form.tsx#onSubmit#c995ca310e43",
         "apps/web/src/app/api/ai/reviews/[id]/route.ts#POST#badaab86d040",
