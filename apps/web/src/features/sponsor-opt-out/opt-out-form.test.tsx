@@ -18,7 +18,7 @@ describe('opt-out confirmation', () => {
     await user.tab();
     expect(screen.getByRole('button')).toHaveFocus();
     await user.keyboard('{Enter}');
-    expect(await screen.findByText('done')).toHaveFocus();
+    await waitFor(() => expect(screen.getByText('done')).toHaveFocus());
     expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
@@ -36,7 +36,7 @@ describe('opt-out confirmation', () => {
     fetchMock.mockResolvedValue({ ok: false, status: 400, json: async () => ({ ok: false }) });
     render(<OptOutForm token="token" />);
     fireEvent.click(screen.getByRole('button'));
-    expect(await screen.findByText('invalid')).toHaveFocus();
+    await waitFor(() => expect(screen.getByText('invalid')).toHaveFocus());
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
@@ -50,7 +50,7 @@ describe('opt-out confirmation', () => {
     );
     render(<OptOutForm token="token" />);
     fireEvent.click(screen.getByRole('button'));
-    expect(await screen.findByText('error')).toHaveFocus();
+    await waitFor(() => expect(screen.getByText('error')).toHaveFocus());
     fireEvent.click(screen.getByRole('button', { name: 'retry' }));
     expect(screen.getByRole('button')).toBeDisabled();
     fireEvent.click(screen.getByRole('button'));
