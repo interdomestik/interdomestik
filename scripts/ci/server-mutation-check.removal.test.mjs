@@ -129,3 +129,35 @@ test('a live head that keeps a deleted check, or names any unknown check, exits 
     }
   }
 });
+
+test('a scoped replay judges only its own exceptions (r5 B15)', t => {
+  const stray = { ...removalException('CHK-26'), kind: 'bogus' };
+  const withStray = { ...cleanBaseline(), exceptions: [stray] };
+  for (const [base, head] of [
+    [cleanBaseline(), withStray],
+    [withStray, withStray],
+  ]) {
+    const { repo, baseSha } = scenario(t, tree(base), tree(head));
+    const scoped = runCli(repo, ['--base', baseSha, '--check', 'CHK-05b']);
+    assert.equal(scoped.code, 0, JSON.stringify(scoped.report.errors));
+    assert.equal(typeof scoped.report.checks['CHK-05b'].digest, 'string');
+    assert.equal(runCli(repo, ['--base', baseSha]).code, 2);
+  }
+  const own = {
+    ...cleanBaseline(),
+    exceptions: [{ ...removalException('CHK-05b'), kind: 'bogus' }],
+  };
+  const mine = scenario(t, tree(cleanBaseline()), tree(own));
+  const refused = runCli(mine.repo, ['--base', mine.baseSha, '--check', 'CHK-05b']);
+  assert.equal(refused.code, 2);
+  assert.match(refused.report.errors[0], /exception 0 has an unknown kind/u);
+});
+
+test('an empty option value is an argument error, never an unscoped run (r5 B21)', t => {
+  const { repo, baseSha } = scenario(t, tree(cleanBaseline()), tree(cleanBaseline()));
+  for (const option of ['--check', '--head', '--report', '--repo']) {
+    const run = runCli(repo, ['--base', baseSha, option, '']);
+    assert.equal(run.code, 2, option);
+  }
+  assert.equal(runCli(repo, ['--base', '']).code, 2);
+});

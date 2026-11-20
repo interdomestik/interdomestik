@@ -53,8 +53,8 @@ const ownMap = value => Object.assign(Object.create(null), value);
 // Design addendum 3 (replay contract, owner after Astra r4 B15/B18):
 // - `trustedBase` admits a check this scanner no longer has, so its removal is judged as tamper
 //   against the base (Astra r2 B10); a head never names one.
-// - `only` (a scoped replay, `--check <id>`) keeps and validates that check's entry alone and ignores
-//   every other entry, known or unknown.
+// - `only` (a scoped replay, `--check <id>`) keeps and validates that check's entry and exceptions
+//   alone and ignores every other entry, known or unknown.
 // Check and coverage maps come back without a prototype.
 export function parseBaseline(text, label, checks, { trustedBase = false, only = null } = {}) {
   if (typeof text !== 'string' || !text.trim())
@@ -73,6 +73,10 @@ export function parseBaseline(text, label, checks, { trustedBase = false, only =
   if (!Array.isArray(data.exceptions))
     throw new ScanError(`${label} baseline has no exceptions list`);
   data.checks = keptChecks(data.checks, label, checks, { trustedBase, only });
+  // A scoped replay keeps that check's exceptions only, so another check's entry cannot block it
+  // (Astra r5 B15); a malformed exception of the scoped check is still an error.
+  if (only !== null)
+    data.exceptions = data.exceptions.filter(entry => isPlainObject(entry) && entry.check === only);
   data.exceptions.forEach(validateException);
   return data;
 }

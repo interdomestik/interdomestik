@@ -2,11 +2,12 @@ import type { z } from 'zod';
 
 import { ActionDefinitionError } from './safe-action.schema';
 
-// The parsed value a handler receives must have exactly the declared shape (Astra r2 B03, r3 B03 and
-// B14). The definition walk accepts scalar normalizers (trim, toLowerCase), which zod 4 builds as
-// `overwrite` closures indistinguishable from caller code; an overwrite could return another type or
-// an object carrying undeclared keys. This walk runs after every successful parse, before the
-// handler, and reads own properties only.
+// The value a handler receives: a fresh copy of the parsed value with exactly the declared shape
+// (Astra r2 B03, r3 B03 and B14, r5 B19 and B20). The definition walk accepts only checks that cannot
+// change a value, plus the named normalisers; this walk runs after every successful parse, before the
+// handler, as the second line. It reads own properties only, and the copy it returns holds only the
+// declared keys present in the parsed value, in objects without a prototype, so an omitted optional
+// key named like an Object.prototype member reads as undefined.
 type Def = {
   type: string;
   shape?: Record<string, z.ZodType>;
@@ -26,16 +27,27 @@ const PRIMITIVE: Readonly<Record<string, string>> = Object.freeze({
   bigint: 'bigint',
 });
 
-const ownValue = (value: object, key: string): unknown =>
-  Object.hasOwn(value, key) ? (value as Record<string, unknown>)[key] : undefined;
-
-// An instance of exactly one of `protos` with no own string-named property (a Date, a File, a Blob).
-// The runtime's own symbol-keyed internals (Node's File carries several) are not input keys.
-const isBare = (value: unknown, ...protos: object[]) =>
+// An instance of exactly `proto` with no own string-named property.
+const isBare = (value: unknown, proto: object) =>
   typeof value === 'object' &&
   value !== null &&
-  protos.includes(Object.getPrototypeOf(value)) &&
+  Object.getPrototypeOf(value) === proto &&
   Object.getOwnPropertyNames(value).length === 0;
+
+// The own keys of a real File in this runtime (Node's File carries symbol-keyed internals).
+let fileKeys: ReadonlySet<PropertyKey> | null = null;
+const realFileKeys = (): ReadonlySet<PropertyKey> =>
+  (fileKeys ??= new Set(Reflect.ownKeys(new File([], 'x'))));
+
+// A File as zod's z.file() accepts it, with exactly a real File's own keys: no added key of any
+// kind, string or symbol, and never a plain Blob (r5 B19).
+function isRealFile(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) return false;
+  if (Object.getPrototypeOf(value) !== File.prototype) return false;
+  const keys = Reflect.ownKeys(value);
+  const expected = realFileKeys();
+  return keys.length === expected.size && keys.every(key => expected.has(key));
+}
 
 // A real, valid Date: exact prototype, no own string-named key, the Date tag, and `getTime` (which
 // throws on anything without a Date's internal time value, whatever its tag says) (r4 B03).
@@ -70,59 +82,109 @@ function enumOptions(schema: z.ZodType): readonly unknown[] {
   return Array.isArray(options) ? options : [];
 }
 
-function objectConforms(def: Def, value: unknown): boolean {
-  if (value === null || typeof value !== 'object') return false;
+// Marks a value that does not conform; never a parsed value.
+const NO = Symbol('nonconforming');
+type Copy = unknown;
+
+const own = (value: object, key: string): unknown => (value as Record<string, unknown>)[key];
+
+function copyObject(def: Def, value: unknown): Copy {
+  if (value === null || typeof value !== 'object') return NO;
   const proto = Object.getPrototypeOf(value);
-  if (proto !== Object.prototype && proto !== null) return false;
+  if (proto !== Object.prototype && proto !== null) return NO;
   const shape = def.shape ?? {};
   if (Reflect.ownKeys(value).some(key => typeof key !== 'string' || !Object.hasOwn(shape, key)))
-    return false;
-  return Object.entries(shape).every(([key, child]) => conforms(child, ownValue(value, key)));
+    return NO;
+  const copy: Record<string, unknown> = Object.create(null);
+  for (const [key, child] of Object.entries(shape)) {
+    const present = Object.hasOwn(value, key);
+    const item = copyOf(child, present ? own(value, key) : undefined);
+    if (item === NO) return NO;
+    if (present) copy[key] = item;
+  }
+  return copy;
+}
+
+function copyArray(element: z.ZodType, value: unknown): Copy {
+  if (!isPlainArray(value)) return NO;
+  const copy: unknown[] = [];
+  for (const item of value) {
+    const next = copyOf(element, item);
+    if (next === NO) return NO;
+    copy.push(next);
+  }
+  return copy;
 }
 
 // Items past the end are absent: only an optional item may be absent.
-function tupleConforms(def: Def, value: unknown): boolean {
+function copyTuple(def: Def, value: unknown): Copy {
   const items = def.items ?? [];
-  if (!isPlainArray(value) || value.length > items.length) return false;
-  return items.every((item, index) => conforms(item, value[index]));
+  if (!isPlainArray(value) || value.length > items.length) return NO;
+  const copy: unknown[] = [];
+  for (const [index, item] of items.entries()) {
+    const next = copyOf(item, index < value.length ? value[index] : undefined);
+    if (next === NO) return NO;
+    if (index < value.length) copy.push(next);
+  }
+  return copy;
 }
 
-function conforms(schema: z.ZodType, value: unknown): boolean {
+function copyUnion(def: Def, value: unknown): Copy {
+  for (const option of def.options ?? []) {
+    const copy = copyOf(option, value);
+    if (copy !== NO) return copy;
+  }
+  return NO;
+}
+
+const scalar = (ok: boolean, value: unknown): Copy => (ok ? value : NO);
+
+function copyOf(schema: z.ZodType, value: unknown): Copy {
   const def = defOf(schema);
   switch (def.type) {
     case 'optional':
-      return value === undefined || conforms(def.innerType as z.ZodType, value);
+      return value === undefined ? value : copyOf(def.innerType as z.ZodType, value);
     case 'nullable':
-      return value === null || conforms(def.innerType as z.ZodType, value);
-    case 'readonly':
-      return conforms(def.innerType as z.ZodType, value);
+      return value === null ? value : copyOf(def.innerType as z.ZodType, value);
+    case 'readonly': {
+      const copy = copyOf(def.innerType as z.ZodType, value);
+      return copy !== NO && typeof copy === 'object' && copy !== null ? Object.freeze(copy) : copy;
+    }
     case 'object':
-      return objectConforms(def, value);
+      return copyObject(def, value);
     case 'array':
-      return isPlainArray(value) && value.every(item => conforms(def.element as z.ZodType, item));
+      return copyArray(def.element as z.ZodType, value);
     case 'tuple':
-      return tupleConforms(def, value);
+      return copyTuple(def, value);
     case 'union':
-      return (def.options ?? []).some(option => conforms(option, value));
+      return copyUnion(def, value);
     case 'date':
-      return isRealDate(value);
+      return scalar(isRealDate(value), value);
     case 'file':
-      return isBare(value, File.prototype, Blob.prototype);
+      return scalar(isRealFile(value), value);
     case 'enum':
-      return enumOptions(schema).includes(value);
+      return scalar(enumOptions(schema).includes(value), value);
     case 'literal':
-      return (def.values ?? []).includes(value);
+      return scalar((def.values ?? []).includes(value), value);
     default:
-      return Object.hasOwn(PRIMITIVE, def.type) && typeof value === PRIMITIVE[def.type];
+      return scalar(
+        Object.hasOwn(PRIMITIVE, def.type) && typeof value === PRIMITIVE[def.type],
+        value
+      );
   }
 }
 
-/** Throws unless `value` has exactly the shape the accepted schema declares. */
-export function assertParsedShape(schema: z.ZodType, value: unknown, operation: string): void {
-  if (!conforms(schema, value)) {
+/**
+ * The value the handler receives: a fresh copy of `value` with exactly the declared shape. Throws
+ * when the parsed value does not conform.
+ */
+export function exactParsedInput(schema: z.ZodType, value: unknown, operation: string): unknown {
+  const copy = copyOf(schema, value);
+  if (copy === NO) {
     throw new ActionDefinitionError(
       operation,
-      'the parsed input does not have the declared shape (a scalar overwrite returned another value)'
+      'the parsed input does not have the declared shape (a check changed the value)'
     );
   }
+  return copy;
 }

@@ -187,6 +187,24 @@ describe('defineAction at run time', () => {
     expect(await action({ note: '  Hi ', tags: ['a'] })).toEqual({ success: true, data: 'hi' });
   });
 
+  it('hands the handler a copy without the omitted keys, even ones named like Object members (r5 B20)', async () => {
+    const seen: unknown[] = [];
+    const action = defineAction({
+      name: 'profile.update',
+      basis: { kind: 'role', roles: STAFF_ONLY },
+      input: z.strictObject({ toString: z.string().optional(), name: z.string() }),
+      subject: { type: 'none' },
+      handler: input => {
+        seen.push(input);
+        return Promise.resolve(typeof input.toString);
+      },
+    });
+    const input = Object.assign(Object.create(null), { name: 'n' });
+    expect(await action(input)).toEqual({ success: true, data: 'undefined' });
+    expect(Object.getPrototypeOf(seen[0])).toBeNull();
+    expect(Object.keys(seen[0] as object)).toEqual(['name']);
+  });
+
   it('records a returned refusal once and returns it', async () => {
     const result = await staffAction(async () => actionFailure('FORBIDDEN', 'Not your claim'))({
       claimId: 'c-2',

@@ -1,13 +1,15 @@
-import { ZodCustom, type z } from 'zod';
+import type { z } from 'zod';
 
-import { isActionNormalizer } from './safe-action.normalizers';
+import { type CheckContext, checkProblem, kindOf } from './safe-action.checks';
 import { ownerColumnKeys, TENANT_IDENTITY_KEYS } from './safe-action.owner-keys';
 
 // The accepted forms of an action's input schema, walked over the zod 4 definition at definition
 // time (design §1.4). Anything that can widen, default, coerce into another shape or run custom code
-// on an object is refused, so the handler receives exactly the declared keys.
+// on an object is refused, so the handler receives exactly the declared keys. Every check on every
+// node is judged against the allow-list of `safe-action.checks.ts` (design addendum 4).
 type ZodDef = {
   type: string;
+  check?: string;
   shape?: Record<string, z.ZodType>;
   catchall?: z.ZodType;
   checks?: unknown[];
@@ -20,26 +22,6 @@ type ZodDef = {
 
 const SCALAR_TYPES = new Set(['string', 'number', 'boolean', 'bigint', 'date', 'enum', 'literal']);
 const WRAPPER_TYPES = new Set(['optional', 'nullable', 'readonly']);
-// Checks that run caller code on the value (refine, superRefine, check) or replace it (overwrite).
-// Size checks (min/max/length) on arrays stay accepted.
-const CODE_CHECKS = new Set(['custom', 'overwrite']);
-
-const kindOf = (check: unknown): string =>
-  (check as { _zod?: { def?: { check?: string } } })._zod?.def?.check ?? 'unknown';
-const checkKinds = (def: ZodDef): string[] => (def.checks ?? []).map(kindOf);
-
-// Why a check may not sit on a scalar (or on a wrapper around one), or null (design addendum 3).
-// zod's validating checks and `refine` (a ZodCustom that receives the value only) never write the
-// value; an `overwrite` does, and so can a superRefine or check callback through its payload. The
-// wrapper's named normalisers are the only value-changing checks accepted.
-function scalarCheckProblem(check: unknown): string | null {
-  if (isActionNormalizer(check)) return null;
-  const kind = kindOf(check);
-  if (kind === 'overwrite') return 'an overwrite (only actionNormalizers may change a scalar)';
-  if (kind === 'custom' && !(check instanceof ZodCustom))
-    return 'a superRefine or check callback (it can rewrite the value; use refine)';
-  return kind === 'unknown' ? 'a check of unreadable kind' : null;
-}
 
 export class ActionDefinitionError extends Error {
   constructor(operation: string, detail: string) {
@@ -58,10 +40,16 @@ function defOf(schema: z.ZodType): ZodDef {
   return (schema as unknown as { _zod: { def: ZodDef } })._zod.def;
 }
 
-function wrapsScalar(def: ZodDef): boolean {
+// The allow-list context of a node's checks: a wrapper takes its scalar's context; a wrapper around
+// anything else accepts no check.
+function checkContext(def: ZodDef): CheckContext {
   let inner = def;
   while (WRAPPER_TYPES.has(inner.type) && inner.innerType) inner = defOf(inner.innerType);
-  return inner !== def && SCALAR_TYPES.has(inner.type);
+  if (inner.type === 'date') return 'date';
+  if (SCALAR_TYPES.has(inner.type)) return 'value';
+  if (inner !== def) return 'none';
+  if (def.type === 'file') return 'file';
+  return def.type === 'array' ? 'array' : 'none';
 }
 
 function refuse(ctx: WalkContext, path: string, reason: string): never {
@@ -89,11 +77,16 @@ function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
   }
 }
 
-// Judges the checks on a scalar or on a wrapper around one (design addendum 3).
-function judgeScalarChecks(def: ZodDef, path: string, ctx: WalkContext): void {
-  for (const check of def.checks ?? []) {
-    const problem = scalarCheckProblem(check);
-    if (problem) refuse(ctx, path, `${problem} on a ${def.type}`);
+// Judges every check of a node, and the node itself when it is also a check (`z.email()`,
+// `z.url()`, `z.int()`), against the allow-list for its context (design addendum 4).
+function judgeChecks(schema: z.ZodType, def: ZodDef, path: string, ctx: WalkContext): void {
+  const context = checkContext(def);
+  const checks = def.check === undefined ? (def.checks ?? []) : [schema, ...(def.checks ?? [])];
+  for (const check of checks) {
+    const problem = checkProblem(check, context);
+    if (!problem) continue;
+    if (context === 'value' || context === 'date') refuse(ctx, path, `${problem} on a ${def.type}`);
+    refuse(ctx, path, `a ${kindOf(check)} check on a ${def.type} belongs in the owning command`);
   }
 }
 
@@ -101,19 +94,12 @@ function walk(schema: z.ZodType, path: string, ctx: WalkContext): void {
   const def = defOf(schema);
   const { type } = def;
   if (type === 'object') return walkObject(def, path, ctx);
-  if (SCALAR_TYPES.has(type)) return judgeScalarChecks(def, path, ctx);
-  if (wrapsScalar(def)) judgeScalarChecks(def, path, ctx);
+  judgeChecks(schema, def, path, ctx);
+  if (SCALAR_TYPES.has(type)) return;
   if (type === 'file') {
     if (!ctx.form) refuse(ctx, path, 'z.file() is accepted in form actions only');
     return;
   }
-  // A wrapper around a scalar holds a scalar or null/undefined: its checks were judged above as
-  // scalar checks (r3 B16).
-  const codeCheck = wrapsScalar(def)
-    ? undefined
-    : checkKinds(def).find(kind => CODE_CHECKS.has(kind) || kind === 'unknown');
-  if (codeCheck)
-    refuse(ctx, path, `a ${codeCheck} check on a ${type} belongs in the owning command`);
   walkContainer(def, path, ctx);
 }
 

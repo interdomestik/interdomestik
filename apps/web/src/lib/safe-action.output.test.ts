@@ -1,11 +1,12 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { assertParsedShape } from './safe-action.output';
+import { exactParsedInput } from './safe-action.output';
 
-const accepts = (schema: z.ZodType, input: unknown) => () =>
-  assertParsedShape(schema, schema.parse(input), 'op');
-const refuses = (schema: z.ZodType, value: unknown) => () => assertParsedShape(schema, value, 'op');
+const exact = (schema: z.ZodType, value: unknown) => exactParsedInput(schema, value, 'op');
+const accepts = (schema: z.ZodType, input: unknown) => () => exact(schema, schema.parse(input));
+const refuses = (schema: z.ZodType, value: unknown) => () => exact(schema, value);
 
 describe('the parsed value has exactly the declared shape (r3 B03)', () => {
   it('an enum or literal value must be one of the declared values', () => {
@@ -82,9 +83,17 @@ describe('the shape check accepts every value zod can legitimately produce (r3 B
       constructor: z.number().optional(),
       note: z.string().optional(),
     });
-    // zod reads an inherited value for a plain `{}`; a null-prototype input omits the keys.
-    expect(accepts(schema, Object.create(null))).not.toThrow();
-    expect(() => assertParsedShape(schema, {}, 'op')).not.toThrow();
+    // zod reads the inherited member of a plain input, so it refuses a plain `{}`. A null-prototype
+    // input parses, and zod's output is a plain object whose `toString` is inherited (r5 B20): the
+    // copy the handler receives has neither a prototype nor the omitted keys.
+    expect(schema.safeParse({}).success).toBe(false);
+    const parsed = schema.parse(Object.create(null));
+    expect(typeof parsed.toString).toBe('function');
+    const copy = exact(schema, parsed) as Record<string, unknown>;
+    expect(Object.getPrototypeOf(copy)).toBeNull();
+    expect(Reflect.ownKeys(copy)).toEqual([]);
+    expect(copy.toString).toBeUndefined();
+    expect(copy.constructor).toBeUndefined();
     expect(accepts(schema, { toString: 's', constructor: 1 })).not.toThrow();
   });
 
@@ -98,7 +107,7 @@ describe('the shape check accepts every value zod can legitimately produce (r3 B
 
   it('normalized scalars, nullable and readonly values, unions and literal null', () => {
     const schema = z.strictObject({
-      name: z.string().trim().toLowerCase(),
+      name: z.string().max(9),
       when: z.date().nullable().readonly(),
       choice: z.union([z.literal('x'), z.strictObject({ y: z.boolean() })]),
       none: z.literal(null),
@@ -107,5 +116,54 @@ describe('the shape check accepts every value zod can legitimately produce (r3 B
     const input = { name: ' A ', when: null, choice: { y: true }, none: null, count: 2 };
     expect(accepts(schema, input)).not.toThrow();
     expect(accepts(schema, { ...input, when: new Date(1), choice: 'x' })).not.toThrow();
+  });
+});
+
+describe('the handler receives a fresh copy with only the declared keys (r5 B20)', () => {
+  it('at every depth, without a prototype, keeping only the keys present', () => {
+    const schema = z.strictObject({
+      profile: z.strictObject({ toString: z.string().optional(), name: z.string() }).optional(),
+      tags: z.array(z.strictObject({ constructor: z.number().optional() })),
+      fixed: z.strictObject({ a: z.string() }).readonly(),
+    });
+    const input = Object.assign(Object.create(null), {
+      profile: Object.assign(Object.create(null), { name: 'n' }),
+      tags: [Object.create(null)],
+      fixed: { a: 'x' },
+    });
+    const parsed = schema.parse(input);
+    const copy = exact(schema, parsed) as {
+      profile: Record<string, unknown>;
+      tags: Record<string, unknown>[];
+      fixed: Record<string, unknown>;
+    };
+    expect(copy).not.toBe(parsed);
+    expect(copy.profile).not.toBe(parsed.profile);
+    expect(copy.profile.toString).toBeUndefined();
+    expect(Object.keys(copy.profile)).toEqual(['name']);
+    expect(copy.tags[0]?.constructor).toBeUndefined();
+    expect(Object.getPrototypeOf(copy.fixed)).toBeNull();
+    expect(Object.isFrozen(copy.fixed)).toBe(true);
+    expect(exact(z.strictObject({ s: z.string() }), { s: 'v' })).toEqual({ s: 'v' });
+  });
+});
+
+describe('a form file is exactly a File (r5 B19)', () => {
+  const form = z.strictObject({ file: z.file() });
+
+  it('a File, also one parsed from a multipart body, is accepted', async () => {
+    const body = new FormData();
+    body.append('f', new Blob(['abc'], { type: 'text/plain' }), 'a.txt');
+    const upload = (await new Request('http://l/', { method: 'POST', body }).formData()).get('f');
+    expect(accepts(form, { file: upload })).not.toThrow();
+    expect(accepts(form, { file: new File(['x'], 'x.txt') })).not.toThrow();
+  });
+
+  it('a Blob, or a File carrying an added key of any kind, is refused', () => {
+    expect(refuses(form, { file: new Blob(['x']) })).toThrow(/declared shape/);
+    const tagged = Object.assign(new File(['x'], 'x.txt'), { [Symbol('owner')]: 'other' });
+    expect(refuses(form, { file: tagged })).toThrow(/declared shape/);
+    const named = Object.assign(new File(['x'], 'x.txt'), { userId: 'other' });
+    expect(refuses(form, { file: named })).toThrow(/declared shape/);
   });
 });

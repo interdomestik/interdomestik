@@ -75,6 +75,10 @@ describe('definition: name, basis, subject', () => {
 });
 
 const inner = z.strictObject({ name: z.string() });
+const firstCheck = (schema: z.ZodType) =>
+  (schema._zod.def as unknown as { checks: Parameters<z.ZodString['check']> }).checks[0];
+// zod's checks take a `when` at run time that their parameter types do not list.
+const WITH_WHEN = { when: () => true } as never;
 
 describe('definition: accepted schema forms', () => {
   it('accepts the catalogue form: a strict object with scalar refinements and normalizers', () => {
@@ -185,6 +189,48 @@ describe('definition: accepted schema forms', () => {
     expect(define(z.strictObject({ field }))).toThrow(/field: .*(overwrite|callback)/);
   });
 
+  // Addendum 4 (owner, after Astra r5 B03): every check is judged against an allow-list of kinds
+  // that cannot change a value; anything else, and any `when` but zod's default, is refused.
+  it.each([
+    ['a normalising URL check', z.string().check(z.url({ normalize: true }))],
+    [
+      'a URL check under another format name',
+      z.string().check(z.url({ format: 'email' } as never)),
+    ],
+    ['a URL field', z.url()],
+    ['a refine with a when callback', z.string().refine(() => true, WITH_WHEN)],
+    ['a length check with a when callback', z.string().min(1, WITH_WHEN)],
+    ['a refine on a date', z.date().refine(() => true)],
+    ['an array length check with a when callback', z.array(z.string()).min(1, WITH_WHEN)],
+    ['a MIME check outside a file', z.string().check(firstCheck(z.file().mime(['text/plain'])))],
+  ])('refuses %s (addendum 4)', (_label, field) => {
+    expect(define(z.strictObject({ field }))).toThrow(/input schema refused at field: /);
+  });
+
+  it('accepts the value-preserving checks on the allow-list (addendum 4)', () => {
+    const allowed = z.strictObject({
+      email: z.email(),
+      text: z
+        .string()
+        .min(1)
+        .max(9)
+        .regex(/^[a-z]+$/u)
+        .includes('a')
+        .startsWith('a')
+        .endsWith('z')
+        .lowercase(),
+      id: z.string().uuid(),
+      at: z.iso.datetime(),
+      count: z.number().gt(0).lt(9).multipleOf(1),
+      whole: z.int(),
+      big: z.bigint().gt(0n),
+      when: z.date().min(new Date(0)).max(new Date(1)),
+      list: z.array(z.string()).min(1).max(3),
+      fixed: z.array(z.string()).length(2),
+    });
+    expect(define(allowed)).not.toThrow();
+  });
+
   it('the named normalisers cannot be replaced', () => {
     const trim = actionNormalizers.trim as unknown as { _zod: { def: { tx: unknown } } };
     expect(Object.isFrozen(actionNormalizers)).toBe(true);
@@ -229,12 +275,30 @@ describe('definition: accepted schema forms', () => {
     expect(define(input)).not.toThrow();
   });
 
+  // Addendum 4 (owner, after Astra r5 B19): a form file carries size and MIME checks only.
+  it.each([
+    ['an overwrite', z.file().overwrite(file => file)],
+    ['a refine', z.file().refine(() => true)],
+    ['a check callback', z.file().check(() => undefined)],
+    ['a size check with a when callback', z.file().max(9, WITH_WHEN)],
+  ])('refuses %s on a form file (r5 B19)', (_label, file) => {
+    expect(() =>
+      defineFormAction({
+        name: 'upload.op',
+        basis: { kind: 'role', roles: ADMIN_ONLY },
+        input: z.strictObject({ file }),
+        subject: { type: 'none' },
+        handler,
+      })
+    ).toThrow(/input schema refused at file: /);
+  });
+
   it('accepts a file field in a form action', () => {
     expect(() =>
       defineFormAction({
         name: 'upload.op',
         basis: { kind: 'role', roles: ADMIN_ONLY },
-        input: z.strictObject({ file: z.file() }),
+        input: z.strictObject({ file: z.file().min(1).max(9).mime(['text/plain']) }),
         subject: { type: 'none' },
         handler,
       })

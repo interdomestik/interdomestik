@@ -14,7 +14,7 @@ import {
   type ActionFailure,
 } from './safe-action.failure';
 import { formDataToInput } from './safe-action.form';
-import { assertParsedShape } from './safe-action.output';
+import { exactParsedInput } from './safe-action.output';
 import { extractSubject, recordRefusal, type RefusalActor } from './safe-action.refusal';
 import { issuesOf } from './safe-action.schema';
 import {
@@ -144,8 +144,9 @@ async function afterAuthentication<S extends z.ZodType, T>(
   if (!parsed.success) {
     return actionFailure('VALIDATION_ERROR', undefined, { issues: issuesOf(parsed.error) });
   }
-  assertParsedShape(def.input, parsed.data, def.name);
-  return def.handler(parsed.data, ctx);
+  // The handler gets a fresh copy holding only the declared keys (Astra r5 B20).
+  const exact = exactParsedInput(def.input, parsed.data, def.name) as typeof parsed.data;
+  return def.handler(exact, ctx);
 }
 
 /** role / self: authenticate → session invariants → basis → parse → handler → finalize. */
