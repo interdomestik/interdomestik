@@ -418,7 +418,7 @@
       "mode": "report",
       "unit": "type assertions in non-test source",
       "predicate": "no assertion other than unknown on a .json() body",
-      "coverageMin": 1385,
+      "coverageMin": 1386,
       "items": [
         "apps/web/src/app/[locale]/(site)/nps/[token]/survey-form.tsx#onSubmit#c995ca310e43",
         "apps/web/src/app/api/ai/reviews/[id]/route.ts#POST#badaab86d040",
@@ -515,7 +515,7 @@
       "mode": "report",
       "unit": "new Error(...) in non-test server source",
       "predicate": "literal containing 'unauthorized' (case-insensitive) unless the next statement assigns a REFUSAL_CODES literal to the binding's code",
-      "coverageMin": 405,
+      "coverageMin": 406,
       "items": [
         "packages/domain-activities/src/get-lead.ts#getLeadActivitiesCore#fb9b8b0ee2b6",
         "packages/domain-activities/src/get-lead.ts#getLeadActivitiesCore#fb9b8b0ee2b6",
