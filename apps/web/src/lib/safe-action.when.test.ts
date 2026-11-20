@@ -205,7 +205,7 @@ describe('definition: a recursive schema (r11 B38)', () => {
 // Astra r12 B39-B41: the walk is bounded in depth and in nodes visited, so a schema that is too
 // deep, too large through reuse, or rebuilt on each read is refused with a definition error.
 describe('definition: a bounded walk (r12 B39, B40, B41)', () => {
-  const tooLarge = /a schema deeper than 32 levels or larger than 5000 nodes/;
+  const tooLarge = /a schema deeper than 32 levels or past 5000 units of walk work/;
 
   it('refuses a schema reused at sibling keys on every level (B39), without walking it all', () => {
     let node: z.ZodType = z.strictObject({ v: z.string() });
@@ -238,5 +238,61 @@ describe('definition: a bounded walk (r12 B39, B40, B41)', () => {
     let nested: z.ZodType = z.strictObject({ v: z.string() });
     for (let level = 0; level < 19; level += 1) nested = z.strictObject({ n: nested });
     expect(define(z.strictObject({ nested }))).not.toThrow();
+  });
+});
+
+// Astra r13 B42-B45: the bounds cover the walk's own work. Shape fields are read one at a time
+// under the budget and a stack exhausted while reading them is a definition error (B42); every
+// check scanned and every catchall inspected counts against the node budget (B43, B44); and the
+// scalar-wrapper test follows at most the depth bound (B45).
+describe('definition: the bounds cover all of the walk (r13 B42-B45)', () => {
+  const tooLarge = /a schema deeper than 32 levels or past 5000 units of walk work/;
+
+  it('refuses a shape whose field getters exhaust the stack, as a definition error (B42)', () => {
+    let previous = z.strictObject({ value: z.string() });
+    for (let level = 0; level < 20000; level += 1) {
+      const inner = previous;
+      previous = z.strictObject({
+        get value() {
+          return inner.shape.value;
+        },
+      });
+    }
+    expect(define(z.strictObject({ chain: previous }))).toThrow(ActionDefinitionError);
+  });
+
+  it('counts the checks it scans: one field schema with many checks, shared by siblings (B43)', () => {
+    let shared = z.string();
+    for (let check = 0; check < 100; check += 1) shared = shared.min(1);
+    const fields = Object.fromEntries(Array.from({ length: 100 }, (_, i) => [`f${i}`, shared]));
+    expect(define(z.strictObject(fields))).toThrow(tooLarge);
+  });
+
+  it('counts the catchalls it inspects (B44)', () => {
+    const empty = z.strictObject({});
+    const fields = Object.fromEntries(Array.from({ length: 2600 }, (_, i) => [`f${i}`, empty]));
+    expect(define(z.strictObject(fields))).toThrow(tooLarge);
+  });
+
+  it('follows a wrapper chain no further than the depth bound (B45)', () => {
+    let wrapped: z.ZodType = z.string();
+    const chain: z.ZodType[] = [];
+    for (let level = 0; level < 200; level += 1) {
+      wrapped = wrapped.optional();
+      chain.push(wrapped);
+    }
+    // Instrument the 100th wrapper from the inside: its inner type is never read when the walk
+    // refuses at depth 33 and the scalar-wrapper test stops at the depth bound.
+    const deepDef = chain[99]._zod.def as unknown as Record<string, unknown>;
+    const inner = deepDef.innerType;
+    let reads = 0;
+    Object.defineProperty(deepDef, 'innerType', {
+      get: () => {
+        reads += 1;
+        return inner;
+      },
+    });
+    expect(define(z.strictObject({ wrapped }))).toThrow(tooLarge);
+    expect(reads).toBe(0);
   });
 });

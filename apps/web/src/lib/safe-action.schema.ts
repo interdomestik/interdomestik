@@ -12,7 +12,7 @@ import { ownerColumnKeys, TENANT_IDENTITY_KEYS } from './safe-action.owner-keys'
 
 // An action's input schema, walked over its zod 4 definition (design §1.4, addenda 6 to 10): strict
 // objects only, no identity key, scalar, wrapper, array, tuple, union and (in a form) file nodes, no
-// node that widens, defaults or pipes; a bounded walk (no recursion, depth 32, 5000 nodes). Refused anywhere: a check on a container but
+// node that widens, defaults or pipes; a bounded walk (no recursion, depth 32, 5000 units of work). Refused anywhere: a check on a container but
 // an array's size or a scalar wrapper's checks; a check with a custom `when`, holding a schema, or
 // with an accessor or another prototype (read from descriptors, unread). Scope: schemas built through
 // zod's public API. Scalar-rewriting checks and coercions reach the handler until WP-02 part 1b.
@@ -53,9 +53,12 @@ function defOf(schema: z.ZodType): ZodDef {
 }
 
 // A wrapper around a scalar holds a scalar or null/undefined: its checks are scalar checks (r3 B16).
+// It follows the chain no further than the walk's depth bound (r13 B45).
 function wrapsScalar(def: ZodDef): boolean {
   let inner = def;
-  while (WRAPPER_TYPES.has(inner.type) && inner.innerType) inner = defOf(inner.innerType);
+  for (let hop = 0; hop < MAX_DEPTH && WRAPPER_TYPES.has(inner.type) && inner.innerType; hop += 1) {
+    inner = defOf(inner.innerType);
+  }
   return inner !== def && SCALAR_TYPES.has(inner.type);
 }
 
@@ -77,6 +80,7 @@ function assertNodeChecks(schema: z.ZodType, def: ZodDef, path: string, ctx: Wal
   }
   const own: unknown[] = listed ?? [];
   const checks = ownValue(def, 'check') === undefined ? own : [schema, ...own];
+  spend(ctx, path, checks.length);
   if (checks.some(check => checkDef(check) === null)) {
     refuse(
       ctx,
@@ -97,6 +101,16 @@ function assertNodeChecks(schema: z.ZodType, def: ZodDef, path: string, ctx: Wal
   }
 }
 
+// The walk is bounded in depth and in work: every node visited, catchall inspected and check
+// scanned counts against one budget, far beyond any input form (r12 B39-B41, r13 B43-B44).
+const MAX_DEPTH = 32;
+const MAX_NODES = 5000;
+const TOO_LARGE = `a schema deeper than ${MAX_DEPTH} levels or past ${MAX_NODES} units of walk work`;
+function spend(ctx: WalkContext, path: string, units: number): void {
+  ctx.visits += units;
+  if (ctx.visits > MAX_NODES) refuse(ctx, path, TOO_LARGE);
+}
+
 function refuse(ctx: WalkContext, path: string, reason: string): never {
   throw new ActionDefinitionError(
     ctx.operation,
@@ -115,25 +129,24 @@ function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
       'object-level refine/check/superRefine/overwrite belongs in the owning command'
     );
   }
-  if (def.catchall) assertNodeChecks(def.catchall, defOf(def.catchall), `${path}{catchall}`, ctx);
-  for (const [key, child] of Object.entries(def.shape ?? {})) {
+  if (def.catchall) {
+    spend(ctx, `${path}{catchall}`, 1);
+    assertNodeChecks(def.catchall, defOf(def.catchall), `${path}{catchall}`, ctx);
+  }
+  // One field at a time, under the budget: reading a field runs its getter (r13 B42).
+  const shape = def.shape ?? {};
+  for (const key of Object.keys(shape)) {
     const childPath = path ? `${path}.${key}` : key;
     if (ctx.identityKeys.has(key)) refuse(ctx, childPath, 'identity keys come from server context');
-    walk(child, childPath, ctx);
+    walk(shape[key], childPath, ctx);
   }
 }
 
-// A schema met again on its own path refers to itself (zod's getter form): refused (r11 B38). The
-// walk is bounded in depth and in nodes visited, far beyond any input form, so a schema reused at
-// every level, nested past the stack or rebuilt on each read is refused, not walked (r12 B39-B41).
-const MAX_DEPTH = 32;
-const MAX_NODES = 5000;
+// A schema met again on its own path refers to itself (zod's getter form): refused (r11 B38).
 function walk(schema: z.ZodType, path: string, ctx: WalkContext): void {
   if (ctx.onPath.has(schema)) refuse(ctx, path, 'a recursive schema (it refers to itself)');
-  ctx.visits += 1;
-  if (ctx.onPath.size >= MAX_DEPTH || ctx.visits > MAX_NODES) {
-    refuse(ctx, path, `a schema deeper than ${MAX_DEPTH} levels or larger than ${MAX_NODES} nodes`);
-  }
+  if (ctx.onPath.size >= MAX_DEPTH) refuse(ctx, path, TOO_LARGE);
+  spend(ctx, path, 1);
   ctx.onPath.add(schema);
   walkNode(schema, path, ctx);
   ctx.onPath.delete(schema);
@@ -191,7 +204,14 @@ export function assertAcceptedSchema(schema: z.ZodType, options: SchemaCheckOpti
   };
   const root = defOf(schema);
   if (root.type !== 'object') refuse(ctx, '', 'the root must be a strict object');
-  walk(schema, '', ctx);
+  try {
+    walk(schema, '', ctx);
+  } catch (error) {
+    // A stack exhausted inside a field getter, before the bounds see it, is a refusal (r13 B42).
+    if (error instanceof RangeError)
+      refuse(ctx, '', `a schema that cannot be read (${error.message})`);
+    throw error;
+  }
   if (options.form) assertFormFields(schema, ctx);
   if (options.subjectFrom !== null && !Object.hasOwn(root.shape ?? {}, options.subjectFrom)) {
     throw new ActionDefinitionError(
