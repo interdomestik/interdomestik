@@ -1,11 +1,14 @@
 // A11Y, local rule (R-23g; design §2, H6, O2): a form control has a label. Scope, as tested: a
-// native `input` (not hidden, submit, button, reset or image), `textarea` or `select`, and the
-// shared `Input`, `Checkbox` and `Textarea` components; a control with spread props is skipped and
-// counted (the label may arrive in the spread); any other component is not checked.
+// native `input` or shared `Input` (not hidden, submit, button, reset or image), a `textarea` or
+// `select`, and the shared `Checkbox` and `Textarea` components; a control with spread props is
+// skipped and counted (the label may arrive in the spread); any other component is not checked.
 import { fileOf, report, rule, unitCounter } from './common.mjs';
 
 const CONTROLS = new Set(['input', 'textarea', 'select', 'Input', 'Checkbox', 'Textarea']);
 const UNLABELLED_INPUT_TYPES = new Set(['hidden', 'submit', 'button', 'reset', 'image']);
+// The elements whose `type` reaches a native input: the tag itself and the shared `Input`, which
+// the config maps to `input` and which forwards `type` to it (code-r2).
+const TYPED_INPUTS = new Set(['input', 'Input']);
 const LABELS = new Set(['label', 'Label']);
 const RULE_ID = 'screen-contract/labelled-control';
 
@@ -68,7 +71,7 @@ export default rule('A form control has a label (A11Y)', context => {
       }
       if (!CONTROLS.has(name)) return;
       const type = literalValue(attribute(node, 'type'));
-      if (name === 'input' && UNLABELLED_INPUT_TYPES.has(type)) return;
+      if (TYPED_INPUTS.has(name) && UNLABELLED_INPUT_TYPES.has(type)) return;
       if (node.attributes.some(a => a.type === 'JSXSpreadAttribute')) {
         units.add('skipped-spread');
         return;

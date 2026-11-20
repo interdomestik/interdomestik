@@ -43,7 +43,9 @@ test('H4: each display position of toFixed is flagged on its own line; payloads 
       "  const tr = useTranslations('x');",
       '  const payload = `amount=${n.toFixed(2)}`;',
       '  const body = JSON.stringify({ amount: n.toFixed(2) });',
-      '  return (<div title={`${n.toFixed(2)} EUR`} data-raw={n.toFixed(2)}>',
+      '  return (<div',
+      '    title={`${n.toFixed(2)} EUR`}',
+      '    data-raw={n.toFixed(2)}>',
       '    <span>{"€ " + n.toFixed(2)}</span>',
       "    {cond ? n.toFixed(1) : '-'}",
       "    {tr('x', { v: n.toFixed(2) })}",
@@ -54,7 +56,9 @@ test('H4: each display position of toFixed is flagged on its own line; payloads 
     ].join('\n'),
   });
   const result = await lint(root);
-  assert.deepEqual(linesOf(result, 'CHK-09', `CHK-09|${file}|toFixed`), [6, 7, 8, 9]);
+  // The title (7) and the data attribute (8) sit on lines of their own (code-r2): swapping which
+  // of the two is a display position changes the asserted list.
+  assert.deepEqual(linesOf(result, 'CHK-09', `CHK-09|${file}|toFixed`), [7, 9, 10, 11]);
 });
 
 test('H5: a hidden input in braces is not a control', async t => {
@@ -67,6 +71,24 @@ test('H5: a hidden input in braces is not a control', async t => {
   assert.deepEqual(
     ids(result, 'A11Y').filter(id => id.includes('labelled-control')),
     []
+  );
+});
+
+test('code-r2: a hidden shared Input is not a control; a visible one still is', async t => {
+  const file = `${W}/app/hidden-input/page.tsx`;
+  const root = tree(t, {
+    [file]: [
+      "import { Input } from '@interdomestik/ui';",
+      'export default () => (<form>',
+      '  <Input type="hidden" name="x" />',
+      '  <Input type="text" name="y" />',
+      '</form>);',
+    ].join('\n'),
+  });
+  const result = await lint(root);
+  assert.deepEqual(
+    linesOf(result, 'A11Y', `A11Y|${file}|screen-contract/labelled-control|Input`),
+    [4]
   );
 });
 
