@@ -45,6 +45,16 @@ test('CHK-04: missing subject, non-literal name, non-literal kind and a non-wrap
   assert.deepEqual(found, ['dynamicKind', 'dynamicName', 'mutable', 'noSubject', 'notWrapper']);
 });
 
+test('CHK-04: only a const declaration holds a definition; let, var, using and await using do not', t => {
+  const root = tree(t, {
+    [`${A}/c.ts`]: `${IMPORT}export const kept = ${def('c.const')};\nexport let viaLet = ${def('c.let')};\nexport var viaVar = ${def('c.var')};\nusing viaUsing = ${def('c.using')};\nawait using viaAwaitUsing = ${def('c.await')};\nexport { viaUsing, viaAwaitUsing };\n`,
+  });
+  const found = ids(runCheck('CHK-04', root))
+    .map(id => id.split('#')[1])
+    .sort(byCodeUnit);
+  assert.deepEqual(found, ['viaAwaitUsing', 'viaLet', 'viaUsing', 'viaVar']);
+});
+
 test('CHK-04: a compliant definition passes; a definition outside a use-server module does not', t => {
   const root = tree(t, {
     [`${A}/ok.ts`]: `${IMPORT}export const ok = ${def('ok.one')};\n`,

@@ -32,7 +32,7 @@ export function literalProperties(node) {
 function definitionCall(root, target) {
   const decl = target?.decl;
   if (!decl || !ts.isVariableDeclaration(decl) || !ts.isIdentifier(decl.name)) return null;
-  if ((decl.parent.flags & ts.NodeFlags.Const) === 0) return null;
+  if (!ts.isVarConst(decl)) return null;
   const call = unwrap(decl.initializer);
   if (!call || !ts.isCallExpression(call) || !ts.isIdentifier(call.expression)) return null;
   const sf = decl.getSourceFile();
