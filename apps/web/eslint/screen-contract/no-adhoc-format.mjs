@@ -33,6 +33,16 @@ const requiredModule = init => {
     : null;
 };
 
+// The date-fns module a direct load names: `require('date-fns')`, `await import('date-fns/format')`.
+function loadedDateFns(node) {
+  const load = unwrapAwait(node);
+  let source = null;
+  if (load?.type === 'CallExpression' && nameOf(load.callee) === 'require')
+    source = literalOf(load.arguments[0]);
+  else if (load?.type === 'ImportExpression') source = literalOf(load.source);
+  return source === null ? null : DATE_FNS_RE.exec(source);
+}
+
 function isIntlObject(node) {
   if (nameOf(node) === 'Intl') return true;
   return propertyOf(node) === 'Intl' && ['globalThis', 'window'].includes(nameOf(node.object));
@@ -107,11 +117,31 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
     if (name && isFormatName(name)) dateFnsFunctions.set(local, name);
   }
 
+  // A format call on a load that is not bound first (r1 H4): `require('date-fns').format(…)`,
+  // `require('date-fns/format')(…)`, `useFormatter().number(…)`.
+  function directFormat(callee, method) {
+    if (method && isFormatName(method) && loadedDateFns(callee.object)) return `date-fns.${method}`;
+    const subpath = loadedDateFns(callee)?.[1];
+    const name = subpath?.split('/').pop();
+    if (name && isFormatName(name)) return `date-fns.${name}`;
+    const factory = unwrapAwait(callee.object);
+    if (
+      method &&
+      NEXT_INTL_FORMAT.has(method) &&
+      factory?.type === 'CallExpression' &&
+      formatterFactories.has(nameOf(factory.callee))
+    )
+      return `next-intl.${method}`;
+    return null;
+  }
+
   function checkCall(node) {
     units.add('call');
     const { callee } = node;
     const method = propertyOf(callee);
     if (method && TO_LOCALE.has(method)) return flag(node, method);
+    const direct = directFormat(callee, method);
+    if (direct) return flag(node, direct);
     if (method && TO_DIGITS.has(method)) return inDisplayPosition(node) && flag(node, method);
     if (method && INTL.has(method) && isIntlObject(callee.object))
       return flag(node, `Intl.${method}`);

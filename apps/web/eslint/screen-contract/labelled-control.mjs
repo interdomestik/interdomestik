@@ -13,18 +13,37 @@ const elementName = opening => (opening.name.type === 'JSXIdentifier' ? opening.
 const attribute = (opening, name) =>
   opening.attributes.find(a => a.type === 'JSXAttribute' && a.name?.name === name) ?? null;
 
-// A comparable form of an attribute value: a literal string, or the source of a plain identifier.
-function valueKey(attr, sourceCode) {
+// The literal string of an attribute value (`"x"`, `{"x"}`, `{`x`}`), or null.
+function literalValue(attr) {
   const value = attr?.value;
   if (!value) return null;
-  if (value.type === 'Literal' && typeof value.value === 'string') return `"${value.value}"`;
+  if (value.type === 'Literal' && typeof value.value === 'string') return value.value;
   const expression = value.type === 'JSXExpressionContainer' ? value.expression : null;
   if (expression?.type === 'Literal' && typeof expression.value === 'string')
-    return `"${expression.value}"`;
+    return expression.value;
   if (expression?.type === 'TemplateLiteral' && expression.expressions.length === 0)
-    return `"${expression.quasis[0].value.cooked}"`;
-  if (expression?.type === 'Identifier') return `{${sourceCode.getText(expression)}}`;
+    return expression.quasis[0].value.cooked;
   return null;
+}
+
+// The variable an identifier names, through the scope chain, or null when it is not declared.
+function variableOf(sourceCode, identifier) {
+  for (let scope = sourceCode.getScope(identifier); scope; scope = scope.upper) {
+    const variable = scope.set.get(identifier.name);
+    if (variable) return variable;
+  }
+  return null;
+}
+
+// A comparable form of an attribute value: a literal string, or the one variable an identifier
+// names (r1 H5: two `fieldId` variables of different components are different targets).
+function valueKey(attr, sourceCode) {
+  const literal = literalValue(attr);
+  if (literal !== null) return `"${literal}"`;
+  const expression = attr?.value?.type === 'JSXExpressionContainer' ? attr.value.expression : null;
+  if (expression?.type !== 'Identifier') return null;
+  const definition = variableOf(sourceCode, expression)?.defs[0]?.name;
+  return definition ? `{${expression.name}@${definition.range[0]}}` : `{${expression.name}}`;
 }
 
 function insideLabel(node) {
@@ -48,9 +67,8 @@ export default rule('A form control has a label (A11Y)', context => {
         if (target) labelTargets.add(target);
       }
       if (!CONTROLS.has(name)) return;
-      const type = attribute(node, 'type')?.value;
-      if (name === 'input' && type?.type === 'Literal' && UNLABELLED_INPUT_TYPES.has(type.value))
-        return;
+      const type = literalValue(attribute(node, 'type'));
+      if (name === 'input' && UNLABELLED_INPUT_TYPES.has(type)) return;
       if (node.attributes.some(a => a.type === 'JSXSpreadAttribute')) {
         units.add('skipped-spread');
         return;
