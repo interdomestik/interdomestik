@@ -189,16 +189,19 @@ test('function cases 2, 7: an expected file the config ignores is the ignored di
 
 test('function case 8: a check rule not at error for an expected file is the reconciliation diagnostic', async t => {
   const root = twoScreens(t);
-  for (const name of ['screen-contract/no-database-import', 'jsx-a11y/alt-text']) {
-    const configFile = variantConfig(
-      t,
-      `export default [...config, { files: ['${W}/app/ok/**'], rules: { '${name}': 'warn' } }];`
-    );
-    await rejectsWith(
-      lintTree(root, linted(root), { configFile }),
-      `${name} is not enabled at error for ${OK_PAGE}`
-    );
-  }
+  const names = ['screen-contract/no-database-import', 'jsx-a11y/alt-text'];
+  await Promise.all(
+    names.map(name => {
+      const configFile = variantConfig(
+        t,
+        `export default [...config, { files: ['${W}/app/ok/**'], rules: { '${name}': 'warn' } }];`
+      );
+      return rejectsWith(
+        lintTree(root, linted(root), { configFile }),
+        `${name} is not enabled at error for ${OK_PAGE}`
+      );
+    })
+  );
 });
 
 // --- 3. CHK-22 formAction ---------------------------------------------------------------------

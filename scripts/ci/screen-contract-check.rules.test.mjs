@@ -379,12 +379,15 @@ test('CHK-15a: every @/* mapping is tried in order, the first existing file wins
 });
 
 test('CHK-15a: an @/* mapping entry that is not a string with one * is an input error (§5)', async t => {
-  for (const mapping of ['[]', '["apps/web/src/*", 3]', '["apps/web/src/*", "apps/web/src"]']) {
-    const config = `{ "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ${mapping} } } }`;
-    await assert.rejects(
-      lint(tree(t, { 'tsconfig.json': config })),
-      /tsconfig\.json has no usable @\/\* mapping/u,
-      mapping
-    );
-  }
+  const mappings = ['[]', '["apps/web/src/*", 3]', '["apps/web/src/*", "apps/web/src"]'];
+  await Promise.all(
+    mappings.map(mapping => {
+      const config = `{ "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ${mapping} } } }`;
+      return assert.rejects(
+        lint(tree(t, { 'tsconfig.json': config })),
+        /tsconfig\.json has no usable @\/\* mapping/u,
+        mapping
+      );
+    })
+  );
 });

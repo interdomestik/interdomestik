@@ -603,8 +603,8 @@ test('CHK-22: the recognised invoking wrappers and a direct call credit the subm
     ['', '  function onSubmit() { queueMicrotask(() => saveTerms()); }'],
     ['', '  function onSubmit() { (async () => { await saveTerms(); })(); }'],
   ];
-  for (const [imports, body] of cases)
-    assert.deepEqual(await judgeHandler(t, imports, body), [], body);
+  const judged = await Promise.all(cases.map(([imports, body]) => judgeHandler(t, imports, body)));
+  judged.forEach((found, index) => assert.deepEqual(found, [], cases[index][1]));
   assert.deepEqual(
     await judgeHandler(
       t,
