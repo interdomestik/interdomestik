@@ -16,6 +16,7 @@ const pkg = (name, exportsMap) => JSON.stringify({ name, private: true, exports:
 
 // The minimum every tree needs: the web tsconfig with its `@/` mapping and a few packages.
 export const BASE_FILES = Object.freeze({
+  'scripts/ci/screen-contract/consent-registry.json': '{ "version": 1, "entries": [] }\n',
   'apps/web/tsconfig.json':
     '{\n  // comment\n  "compilerOptions": { "paths": { "@/*": ["./src/*"] } },\n}\n',
   'packages/database/package.json': pkg('@interdomestik/database', {

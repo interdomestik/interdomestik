@@ -450,6 +450,7 @@ test('replay: a synthesized zero-item baseline passes the unchanged WP-02 parser
 test('replay: a pre-adoption pair completes; a deletion and an emptied kind are adjudicated (B17)', t => {
   const page = `${W}/app/legacy/page.tsx`;
   const root = repo(t, {
+    [REG]: null, // pre-adoption: no registry yet
     'apps/web/vitest.config.ts': INPUTS['apps/web/vitest.config.ts'],
     'apps/web/playwright.config.ts': INPUTS['apps/web/playwright.config.ts'],
     [page]: "const x = require('./helper');\nexport default () => x;\n",
