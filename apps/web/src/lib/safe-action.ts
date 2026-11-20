@@ -19,13 +19,14 @@ import {
   type ActionSubject,
   type ActionSuccess,
   type CtxFor,
+  type PortalRole,
   type ProtectedActionContext,
+  type SubjectType,
 } from './safe-action.types';
 
 export { actionFailure, isActionFailure } from './safe-action.failure';
 export type { ActionFailure, ActionFailureOptions } from './safe-action.failure';
 export { ActionDefinitionError } from './safe-action.schema';
-export { actionNormalizers } from './safe-action.normalizers';
 export { REFUSAL_CODES, SUBJECT_TYPES } from './safe-action.types';
 export type {
   ActionBasis,
@@ -54,77 +55,60 @@ const OPERATION_NAME = /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/;
 const PUBLIC_CLOSED =
   'public intake opens with the PR that makes CHK-04 and CHK-26 fail (design §1.3)';
 
-function assertDefinition(def: ActionDefinition<ActionBasis, z.ZodType, unknown>, form: boolean) {
-  const name = typeof def.name === 'string' && OPERATION_NAME.test(def.name) ? def.name : null;
-  if (!name || name === 'legacy') throw new ActionDefinitionError(String(def.name), 'invalid name');
-  const basis = def.basis as { kind?: unknown; roles?: unknown };
-  if (basis?.kind === 'public') throw new ActionDefinitionError(name, PUBLIC_CLOSED);
-  const rolesValid =
-    Array.isArray(basis?.roles) &&
-    basis.roles.length > 0 &&
-    basis.roles.every(role => typeof role === 'string');
-  if (!(basis?.kind === 'self' || (basis?.kind === 'role' && rolesValid))) {
-    throw new ActionDefinitionError(
-      name,
-      'basis must be { kind: "role", roles: [...] } or { kind: "self" }'
-    );
+const BASIS_SHAPE = 'basis must be { kind: "role", roles: [...] } or { kind: "self" }';
+const SUBJECT_SHAPE = 'subject must be { type, from }, { type: "self" } or { type: "none" }';
+
+type AnyDefinition = ActionDefinition<ActionBasis, z.ZodType, unknown>;
+
+// The basis as a fresh frozen record built from its validated fields, each read once, whatever
+// object or realm the caller's basis came from: changing the caller's basis or its roles array
+// after definition changes nothing (Astra r6 and r7 B23).
+function readBasis(name: string, value: unknown): ActionBasis {
+  const { kind, roles } = (value ?? {}) as { kind?: unknown; roles?: unknown };
+  if (kind === 'public') throw new ActionDefinitionError(name, PUBLIC_CLOSED);
+  if (kind === 'self') return Object.freeze({ kind: 'self' });
+  const copy: unknown[] = kind === 'role' && Array.isArray(roles) ? Array.from(roles) : [];
+  if (copy.length === 0 || !copy.every(role => typeof role === 'string')) {
+    throw new ActionDefinitionError(name, BASIS_SHAPE);
   }
-  const subject = def.subject as { type?: unknown; from?: unknown };
-  const named = (SUBJECT_TYPES as readonly unknown[]).includes(subject?.type);
-  if (!(
-    subject?.type === 'self' ||
-    subject?.type === 'none' ||
-    (named && typeof subject.from === 'string')
-  )) {
-    throw new ActionDefinitionError(
-      name,
-      'subject must be { type, from }, { type: "self" } or { type: "none" }'
-    );
+  return Object.freeze({ kind: 'role', roles: Object.freeze(copy as PortalRole[]) });
+}
+
+// The subject as a fresh frozen record built from its validated fields, each read once.
+function readSubject(name: string, value: unknown): ActionSubject {
+  const { type, from } = (value ?? {}) as { type?: unknown; from?: unknown };
+  if (type === 'self' || type === 'none') return Object.freeze({ type });
+  if ((SUBJECT_TYPES as readonly unknown[]).includes(type) && typeof from === 'string') {
+    return Object.freeze({ type: type as SubjectType, from });
   }
-  if (typeof def.handler !== 'function') throw new ActionDefinitionError(name, 'handler missing');
-  assertAcceptedSchema(def.input, {
+  throw new ActionDefinitionError(name, SUBJECT_SHAPE);
+}
+
+// Reads each field of a definition once, validates what it read and returns a frozen definition
+// built from those values only; the action never reads the caller's objects again (B23).
+function readDefinition(definition: AnyDefinition, form: boolean): AnyDefinition {
+  const { name: rawName, basis: rawBasis, input, subject: rawSubject, handler } = definition;
+  const name = typeof rawName === 'string' && OPERATION_NAME.test(rawName) ? rawName : null;
+  if (!name || name === 'legacy') throw new ActionDefinitionError(String(rawName), 'invalid name');
+  const basis = readBasis(name, rawBasis);
+  const subject = readSubject(name, rawSubject);
+  if (typeof handler !== 'function') throw new ActionDefinitionError(name, 'handler missing');
+  assertAcceptedSchema(input, {
     operation: name,
     basisKind: basis.kind,
     form,
-    subjectFrom: typeof subject.from === 'string' ? subject.from : null,
+    subjectFrom: 'from' in subject ? subject.from : null,
   });
+  return Object.freeze({ name, basis, input, subject, handler });
 }
 
 type Protected<S extends z.ZodType, T> = Parameters<typeof runProtected<S, T>>[0];
-
-// A frozen copy of a definition's plain data (objects and arrays, depth first); functions and zod
-// schemas are kept by reference. The action reads only this snapshot, so changing the caller's
-// definition object after definition changes nothing (Astra r6 B23).
-function snapshot<V>(value: V): V {
-  if (Array.isArray(value)) return Object.freeze(value.map(snapshot)) as V;
-  if (value === null || typeof value !== 'object') return value;
-  const proto = Object.getPrototypeOf(value);
-  if (proto !== Object.prototype && proto !== null) return value;
-  const copy: Record<string, unknown> = {};
-  for (const [key, item] of Object.entries(value)) copy[key] = snapshot(item);
-  return Object.freeze(copy) as V;
-}
-
-// The five fields of a definition, each read once, whatever object carries them.
-function snapshotDefinition<
-  D extends { name: unknown; basis: unknown; input: unknown; subject: unknown; handler: unknown },
->(definition: D): D {
-  const { name, basis, input, subject, handler } = definition;
-  return Object.freeze({
-    name,
-    basis: snapshot(basis),
-    input,
-    subject: snapshot(subject),
-    handler,
-  }) as unknown as D;
-}
 
 /** A server action with a declared basis, a strict input schema and one result type (R-05). */
 export function defineAction<const B extends ActionBasis, S extends z.ZodType, T>(
   definition: ActionDefinition<B, S, T>
 ): (input: unknown) => ActionResult<T> {
-  const def = snapshotDefinition(definition);
-  assertDefinition(def as ActionDefinition<ActionBasis, z.ZodType, unknown>, false);
+  const def = readDefinition(definition as unknown as AnyDefinition, false);
   const protectedDef = def as unknown as Protected<S, T>;
   return async (input: unknown) => runProtected(protectedDef, input, null);
 }
@@ -133,8 +117,7 @@ export function defineAction<const B extends ActionBasis, S extends z.ZodType, T
 export function defineFormAction<const B extends ActionBasis, S extends z.ZodType, T>(
   definition: ActionDefinition<B, S, T>
 ): (prevState: unknown, formData: FormData) => ActionResult<T> {
-  const def = snapshotDefinition(definition);
-  assertDefinition(def as ActionDefinition<ActionBasis, z.ZodType, unknown>, true);
+  const def = readDefinition(definition as unknown as AnyDefinition, true);
   const protectedDef = def as unknown as Protected<S, T>;
   const form = { arrayKeys: arrayFieldKeys(def.input) };
   return async (_prevState: unknown, formData: FormData) =>

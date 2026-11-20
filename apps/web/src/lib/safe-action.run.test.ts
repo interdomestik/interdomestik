@@ -1,4 +1,5 @@
 import { MissingTenantError, UnauthorizedError } from '@interdomestik/shared-auth/errors';
+import { runInNewContext } from 'node:vm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -26,7 +27,7 @@ vi.mock('next/navigation', async importOriginal => importOriginal());
 
 import { notFound, redirect } from 'next/navigation';
 import { ROLE_STAFF } from './roles.core';
-import { actionFailure, actionNormalizers, defineAction } from './safe-action';
+import { actionFailure, defineAction } from './safe-action';
 import { issuesOf } from './safe-action.schema';
 
 const STAFF_ONLY = [ROLE_STAFF] as const;
@@ -146,7 +147,7 @@ describe('defineAction at run time', () => {
   });
 
   it('names an invalid field even when its name is an Object.prototype member (r2 B13)', () => {
-    // Such names are refused at definition (r6 B20); the issue map stays own-key safe on its own.
+    // The issue map holds own keys only, whatever the field is named.
     const schema = z.strictObject({ constructor: z.string(), toString: z.string().min(2) });
     const parsed = schema.safeParse({ constructor: 1, toString: 'a' });
     expect(parsed.success).toBe(false);
@@ -154,34 +155,6 @@ describe('defineAction at run time', () => {
       constructor: 'invalid_type',
       toString: 'too_small',
     });
-  });
-
-  it('refuses at definition a scalar overwrite that could hand the handler an object (B03)', () => {
-    const smuggle = (value: string) => ({ value, userId: 'other' }) as unknown as string;
-    expect(() =>
-      defineAction({
-        name: 'profile.self',
-        basis: { kind: 'self' },
-        input: z.strictObject({ name: z.string().overwrite(smuggle) }),
-        subject: { type: 'self' },
-        handler: () => Promise.resolve('x'),
-      })
-    ).toThrow(/name: an overwrite/);
-  });
-
-  it('still hands trimmed scalars to the handler', async () => {
-    const handler = vi.fn((input: { note: string }) => Promise.resolve(input.note));
-    const action = defineAction({
-      name: 'note.trim',
-      basis: { kind: 'role', roles: STAFF_ONLY },
-      input: z.strictObject({
-        note: z.string().check(actionNormalizers.trim, actionNormalizers.toLowerCase),
-        tags: z.array(z.string()),
-      }),
-      subject: { type: 'none' },
-      handler,
-    });
-    expect(await action({ note: '  Hi ', tags: ['a'] })).toEqual({ success: true, data: 'hi' });
   });
 
   it('returns input data the client transport can serialise: plain at every depth (r6 B24)', async () => {
@@ -212,7 +185,7 @@ describe('defineAction at run time', () => {
     expect(plain((result as { data: unknown }).data)).toBe(true);
   });
 
-  it('reads a snapshot of its definition: changing the definition later changes nothing (r6 B23)', async () => {
+  it('reads a snapshot of its definition: changing the definition later changes nothing (r6 B23, r7 H05)', async () => {
     const seen: string[] = [];
     const definition = {
       name: 'note.snapshot',
@@ -230,6 +203,44 @@ describe('defineAction at run time', () => {
     definition.handler = () => Promise.resolve('replaced');
     expect(await action({ note: ' x ' })).toEqual({ success: true, data: 'ok' });
     expect(seen).toEqual([' x ']);
+    mocks.authorize.mockResolvedValue(authorizedSession(MEMBER_A));
+    expect(await action({ note: 'y' })).toEqual({
+      success: false,
+      code: 'FORBIDDEN',
+      error: 'Forbidden',
+    });
+    expect(seen).toEqual([' x ']);
+  });
+
+  it.each([
+    [
+      'a class instance',
+      () =>
+        new (class {
+          kind = 'role';
+          roles = [ROLE_STAFF];
+        })(),
+    ],
+    [
+      'a plain object of another realm',
+      () => runInNewContext(`({ kind: 'role', roles: [${JSON.stringify(ROLE_STAFF)}] })`),
+    ],
+  ])('keeps its own copy of the roles when the basis is %s (r7 B23)', async (_label, make) => {
+    const basis = make() as { kind: string; roles: string[] };
+    const action = defineAction({
+      name: 'note.roles',
+      basis,
+      input: z.strictObject({ note: z.string() }),
+      subject: { type: 'none' },
+      handler: () => Promise.resolve('ok'),
+    } as never);
+    basis.roles.push('member');
+    mocks.authorize.mockResolvedValue(authorizedSession(MEMBER_A));
+    expect(await action({ note: 'x' })).toEqual({
+      success: false,
+      code: 'FORBIDDEN',
+      error: 'Forbidden',
+    });
   });
 
   it('records a returned refusal once and returns it', async () => {

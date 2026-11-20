@@ -1,15 +1,15 @@
 import type { z } from 'zod';
 
-import { type CheckContext, checkProblem, kindOf } from './safe-action.checks';
 import { ownerColumnKeys, TENANT_IDENTITY_KEYS } from './safe-action.owner-keys';
 
 // The accepted forms of an action's input schema, walked over the zod 4 definition at definition
-// time (design §1.4). Anything that can widen, default, coerce into another shape or run custom code
-// on an object is refused, so the handler receives exactly the declared keys. Every check on every
-// node is judged against the allow-list of `safe-action.checks.ts` (design addendum 4).
+// time (design §1.4): a strict object root, strict objects at every depth, no identity key, and only
+// scalar, wrapper, array, tuple, union and (in a form) file nodes. A node that can widen, default or
+// pipe into another shape is refused, and so is a check on an object. Checks on other nodes are not
+// judged in part 1: a check that rewrites a value, and a coercion, reach the handler as zod returns
+// them (design addendum 6; the runtime input guard is WP-02 part 1b).
 type ZodDef = {
   type: string;
-  check?: string;
   shape?: Record<string, z.ZodType>;
   catchall?: z.ZodType;
   checks?: unknown[];
@@ -22,9 +22,6 @@ type ZodDef = {
 
 const SCALAR_TYPES = new Set(['string', 'number', 'boolean', 'bigint', 'date', 'enum', 'literal']);
 const WRAPPER_TYPES = new Set(['optional', 'nullable', 'readonly']);
-// Names zod would read from Object.prototype when a plain input omits them, so an inherited member
-// could pass for input (Astra r5 B20, r6 B20/B24). Derived from the runtime, never a hand list.
-const PROTOTYPE_KEYS: ReadonlySet<string> = new Set(Object.getOwnPropertyNames(Object.prototype));
 
 export class ActionDefinitionError extends Error {
   constructor(operation: string, detail: string) {
@@ -41,18 +38,6 @@ type WalkContext = {
 
 function defOf(schema: z.ZodType): ZodDef {
   return (schema as unknown as { _zod: { def: ZodDef } })._zod.def;
-}
-
-// The allow-list context of a node's checks: a wrapper takes its scalar's context; a wrapper around
-// anything else accepts no check.
-function checkContext(def: ZodDef): CheckContext {
-  let inner = def;
-  while (WRAPPER_TYPES.has(inner.type) && inner.innerType) inner = defOf(inner.innerType);
-  if (inner.type === 'date') return 'date';
-  if (SCALAR_TYPES.has(inner.type)) return 'value';
-  if (inner !== def) return 'none';
-  if (def.type === 'file') return 'file';
-  return def.type === 'array' ? 'array' : 'none';
 }
 
 function refuse(ctx: WalkContext, path: string, reason: string): never {
@@ -76,22 +61,7 @@ function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
   for (const [key, child] of Object.entries(def.shape ?? {})) {
     const childPath = path ? `${path}.${key}` : key;
     if (ctx.identityKeys.has(key)) refuse(ctx, childPath, 'identity keys come from server context');
-    if (PROTOTYPE_KEYS.has(key))
-      refuse(ctx, childPath, 'a key named like an Object.prototype member');
     walk(child, childPath, ctx);
-  }
-}
-
-// Judges every check of a node, and the node itself when it is also a check (`z.email()`,
-// `z.url()`, `z.int()`), against the allow-list for its context (design addendum 4).
-function judgeChecks(schema: z.ZodType, def: ZodDef, path: string, ctx: WalkContext): void {
-  const context = checkContext(def);
-  const checks = def.check === undefined ? (def.checks ?? []) : [schema, ...(def.checks ?? [])];
-  for (const check of checks) {
-    const problem = checkProblem(check, context);
-    if (!problem) continue;
-    if (context === 'value' || context === 'date') refuse(ctx, path, `${problem} on a ${def.type}`);
-    refuse(ctx, path, `a ${kindOf(check)} check on a ${def.type} belongs in the owning command`);
   }
 }
 
@@ -99,7 +69,6 @@ function walk(schema: z.ZodType, path: string, ctx: WalkContext): void {
   const def = defOf(schema);
   const { type } = def;
   if (type === 'object') return walkObject(def, path, ctx);
-  judgeChecks(schema, def, path, ctx);
   if (SCALAR_TYPES.has(type)) return;
   if (type === 'file') {
     if (!ctx.form) refuse(ctx, path, 'z.file() is accepted in form actions only');

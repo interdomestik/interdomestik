@@ -2,12 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { ROLE_ADMIN } from './roles.core';
-import {
-  ActionDefinitionError,
-  actionNormalizers,
-  defineAction,
-  defineFormAction,
-} from './safe-action';
+import { ActionDefinitionError, defineAction, defineFormAction } from './safe-action';
 
 const ADMIN_ONLY = [ROLE_ADMIN] as const;
 const handler = () => Promise.resolve('ok');
@@ -74,16 +69,15 @@ describe('definition: name, basis, subject', () => {
   });
 });
 
-const inner = z.strictObject({ name: z.string() });
-
 describe('definition: accepted schema forms', () => {
   it('accepts the catalogue form: a strict object with scalar refinements and normalizers', () => {
     const catalogue = z
       .object({
-        claimId: z.string().check(actionNormalizers.trim).min(1),
+        claimId: z.string().trim().min(1),
         message: z
           .string()
-          .check(actionNormalizers.trim, actionNormalizers.toLowerCase)
+          .trim()
+          .toLowerCase()
           .max(2000)
           .refine(value => value.length > 0),
         kind: z.enum(['a', 'b']),
@@ -123,61 +117,8 @@ describe('definition: accepted schema forms', () => {
     ['a tuple with rest', z.strictObject({ a: z.tuple([z.string()]).rest(z.number()) })],
     ['a loose object at depth 2', z.strictObject({ a: z.object({ b: z.string() }) })],
     ['a file outside a form', z.strictObject({ a: z.file() })],
-    [
-      'an overwrite on an optional object',
-      z.strictObject({ a: inner.optional().overwrite(v => v) }),
-    ],
-    ['a refine on a nullable object', z.strictObject({ a: inner.nullable().refine(() => true) })],
-    ['an overwrite on an array', z.strictObject({ a: z.array(inner).overwrite(v => v) })],
-    ['a check on a union', z.strictObject({ a: z.union([inner, z.string()]).check(() => {}) })],
-    ['a superRefine on a tuple', z.strictObject({ a: z.tuple([inner]).superRefine(() => {}) })],
   ])('refuses %s', (_label, schema) => {
     expect(define(schema)).toThrow(ActionDefinitionError);
-  });
-
-  it('accepts a scalar refinement on an optional, nullable or readonly scalar (r3 B16)', () => {
-    const scalarChecks = z.strictObject({
-      a: z
-        .string()
-        .optional()
-        .refine(v => v !== ''),
-      b: z
-        .number()
-        .nullable()
-        .refine(v => v !== 0),
-      c: z.string().check(actionNormalizers.trim).optional().readonly(),
-      d: z
-        .enum(['x', 'y'])
-        .optional()
-        .nullable()
-        .refine(() => true),
-      e: z.string().optional().check(actionNormalizers.normalizeNFC),
-    });
-    expect(define(scalarChecks)).not.toThrow();
-  });
-
-  it('still refuses a code check on an optional object or array', () => {
-    expect(define(z.strictObject({ a: inner.optional().refine(() => true) }))).toThrow(
-      /a: a custom check on a optional/
-    );
-    expect(
-      define(
-        z.strictObject({
-          a: z
-            .array(z.string())
-            .nullable()
-            .check(() => {}),
-        })
-      )
-    ).toThrow(ActionDefinitionError);
-  });
-
-  it('refuses an overwrite that adds an owner key after the inner object parsed', () => {
-    // The inner strict object passes; the wrapper's overwrite would hand the handler a userId.
-    const smuggled = z.strictObject({
-      profile: inner.optional().overwrite(value => ({ ...value, userId: 'other' }) as typeof value),
-    });
-    expect(define(smuggled, { basis: { kind: 'self' } })).toThrow(/profile: a overwrite check/);
   });
 
   it('refuses a tenant identity key at depth 2 for every basis', () => {
