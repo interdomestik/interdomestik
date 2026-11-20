@@ -16,7 +16,6 @@ export const CONFIG_PATH = 'apps/web/eslint.screen-contract.config.mjs';
 const WEB_REQUIRE = createRequire(path.join(SCANNER_ROOT, 'apps/web/package.json'));
 // The scanner lints an extracted revision, which holds tracked files only; a tracked directory is
 // source whatever its name (a route under `app/coverage/` is a screen). Only these two never are.
-const SKIP_DIRS = new Set(['node_modules', '.git']);
 const SOURCE_RE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/u;
 const KEY_RE = /^⟦([^⟧]+)⟧ /u;
 
@@ -47,7 +46,6 @@ export function linted(root) {
     const abs = path.join(root, rel);
     if (!fs.existsSync(abs)) return;
     for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
-      if (SKIP_DIRS.has(entry.name)) continue;
       const child = `${rel}/${entry.name}`;
       if (entry.isDirectory()) walk(child);
       else if (SOURCE_RE.test(entry.name)) {
@@ -205,12 +203,20 @@ const fileConfigs = (eslint, root, files) =>
     })
   );
 
-// Each check needs at least one expected file (design §5, code-r2): a tree without screens must
-// not give a screen check a clean result over nothing.
-function assertEveryCheckHasFiles(out) {
-  const empty = Object.keys(out).filter(id => out[id].files === 0);
-  if (empty.length) throw new ScanError(`no expected file for ${empty.join(', ')}`);
+// The files a check's rule examines: the expected files, except CHK-15a, whose rule examines only
+// layer-2, -3 and -4 sources (its `source:<layer>` units), not every classified file (r3 B9).
+function eligibleFiles(id, result) {
+  if (id !== 'CHK-15a') return result.files;
+  return Object.entries(result.units)
+    .filter(([kind]) => kind.startsWith('source:'))
+    .reduce((sum, [, n]) => sum + n, 0);
 }
+
+// The checks with no file to examine (design §5, code-r2): a tree without screens must not give a
+// screen check a clean result over nothing. Production refuses them; a historical replay pair
+// records them for adjudication (§7, r3 B9).
+export const emptyChecks = lint =>
+  Object.keys(lint).filter(id => eligibleFiles(id, lint[id]) === 0);
 
 // Runs the lint over `files` of `root` and returns { items, units } per check id. The English
 // catalogue is a required input of every run, loaded and validated before the lint (code-r2), not
@@ -255,7 +261,6 @@ export async function lintTree(root, files, { configFile } = {}) {
   });
   if (byFile.size !== files.length)
     throw new ScanError('the lint results name files that were not expected');
-  assertEveryCheckHasFiles(out);
   for (const result of out.A11Y ? [out.A11Y] : []) result.units.file = result.files;
   return out;
 }

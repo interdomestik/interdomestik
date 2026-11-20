@@ -28,7 +28,7 @@ import {
   selectRetired,
   toolVersions,
 } from './screen-contract/evaluate.mjs';
-import { EXPECTS, lintTree, linted } from './screen-contract/lint.mjs';
+import { EXPECTS, emptyChecks, lintTree, linted } from './screen-contract/lint.mjs';
 import {
   REGISTRY_PATH,
   parseRegistry,
@@ -262,6 +262,10 @@ async function scan(args, repo, report) {
     const inputs = readTrustedInputs(repo, root, report.base, pre?.root ?? null);
     const files = linted(root);
     const lint = await lintTree(root, files);
+    // A check with nothing to examine is an input error, except on the head of a historical
+    // (pre-adoption) replay pair, where it is recorded for adjudication (§7, r3 B9).
+    const empty = emptyChecks(lint);
+    if (empty.length && !pre) throw new ScanError(`no expected file for ${empty.join(', ')}`);
     const results = judge(args, repo, root, report, {
       base,
       head,
@@ -277,6 +281,7 @@ async function scan(args, repo, report) {
         synthesized: replay.synthesized,
         baseLint: pre?.lint ?? null,
         results,
+        empty,
         versions: toolVersions(),
       });
     return results;

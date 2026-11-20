@@ -8,6 +8,12 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { CHECKS } from './screen-contract/evaluate.mjs';
+import { SCANNER_ROOT } from './screen-contract/lint.mjs';
+import {
+  candidateBaseline,
+  replaySummary,
+  synthesizedBaseline,
+} from './screen-contract/replay.mjs';
 import { SCANNER, commit, git, repo, tempDir } from './fixtures/screen-contract-check/harness.mjs';
 
 const W = 'apps/web/src';
@@ -190,6 +196,9 @@ test('r2 B1: a base with the scanner and no baseline fails in replay as in produ
   const { code, report } = run(t, root, ['--replay', '--base', base, '--head', head]);
   assert.equal(code, 2);
   assert.match(report.errors.join('\n'), /base has the scanner but no baseline/u);
+  // Production fails the same pair: a base with the scanner and no baseline is no bootstrap.
+  const production = run(t, root, ['--base', base, '--head', head]);
+  assert.equal(production.code, 2, JSON.stringify(production.report?.errors));
 });
 
 test('r2 hardening: a pre-adoption replay records the candidate revision, settings and floor shortfalls', t => {
@@ -198,8 +207,49 @@ test('r2 hardening: a pre-adoption replay records the candidate revision, settin
   const head = commit(root, { [`${W}/app/ok2/page.tsx`]: 'export default () => null;\n' });
   const { code, report } = run(t, root, ['--replay', '--base', base, '--head', head]);
   assert.equal(code, 0, JSON.stringify(report.errors));
-  assert.match(report.replay.candidate.revision, /^[0-9a-f]{40}$/u);
-  assert.match(report.replay.candidate.settings['CHK-15c'].unit, /import edges of screen files/u);
-  // Two screens are far below the adoption floor: recorded, not enforced.
-  assert.ok(report.replay.adoptionShortfall['CHK-15c'].head.length > 0);
+  // The candidate is the scanner's own checkout: its exact revision and every check's settings.
+  assert.equal(report.replay.candidate.revision, git(SCANNER_ROOT, 'rev-parse', 'HEAD'));
+  const candidate = candidateBaseline();
+  for (const { id } of CHECKS) {
+    const { mode, unit, predicate, coverageMin } = candidate.checks[id];
+    assert.deepEqual(report.replay.candidate.settings[id], { mode, unit, predicate, coverageMin });
+  }
+  // Both sides are far below the adoption floor: each side's shortfall is recorded, not enforced.
+  const shortfall = report.replay.adoptionShortfall['CHK-15c'];
+  assert.ok(shortfall.base.length > 0, JSON.stringify(shortfall));
+  assert.ok(shortfall.head.length > 0, JSON.stringify(shortfall));
+});
+
+test('r3 B8: a synthesized baseline carries the candidate mode', () => {
+  const lint = Object.fromEntries(CHECKS.map(({ id }) => [id, { items: [] }]));
+  const candidate = { checks: { 'CHK-15c': { mode: 'fail', unit: 'u', predicate: 'p' } } };
+  const baseline = synthesizedBaseline('a'.repeat(40), lint, candidate);
+  assert.equal(baseline.checks['CHK-15c'].mode, 'fail');
+  assert.equal(baseline.checks['CHK-09'].mode, 'report');
+});
+
+test('r3 B8: a replay without its candidate baseline or revision is not complete', t => {
+  const args = { takenAt: 'x', synthesized: {}, baseLint: null, results: [], versions: {} };
+  const bare = tempDir(t, 'scc-candidate-');
+  assert.throws(() => replaySummary(args, bare), /candidate scanner checkout has no baseline/u);
+  fs.mkdirSync(path.join(bare, path.dirname(BASELINE)), { recursive: true });
+  fs.writeFileSync(path.join(bare, BASELINE), baselineOf());
+  assert.throws(() => replaySummary(args, bare), /candidate scanner revision cannot be read/u);
+});
+
+test('r3 B9: a historical pair whose head deletes its last screen completes, adjudicated', t => {
+  const page = `${W}/app/only/page.tsx`;
+  const root = repo(t, { ...LANES, [page]: 'export default () => null;\n' });
+  const base = git(root, 'rev-parse', 'HEAD');
+  const head = commit(root, { [page]: null });
+  // (Production refuses such a pair earlier: it has no baseline. The production side of an empty
+  // check is the inputs test 'a tree with no screen file is an input error'.)
+  const { code, report } = run(t, root, ['--replay', '--base', base, '--head', head]);
+  assert.equal(code, 0, JSON.stringify(report.errors));
+  assert.equal(report.replay.complete, true);
+  const lines = report.replay.adjudicate;
+  assert.ok(lines.includes('CHK-15c: inventory decrease 1 -> 0'), JSON.stringify(lines));
+  assert.ok(
+    lines.includes('CHK-15c: no file to examine on the head (historical pair; adjudicate)')
+  );
 });

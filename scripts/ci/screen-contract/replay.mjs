@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { ScanError } from '../server-mutation/ast.mjs';
 import { coverageShortfall } from '../server-mutation/baseline.mjs';
 import { BASELINE_PATH, CHECKS } from './evaluate.mjs';
 import { SCANNER_ROOT, lintTree, linted } from './lint.mjs';
@@ -56,7 +57,7 @@ export function synthesizedBaseline(baseSha, baseLint, candidate = null) {
     const items = baseLint[id].items.map(item => item.id);
     const settings = candidate?.checks?.[id];
     checks[id] = {
-      mode: 'report',
+      mode: settings?.mode ?? 'report',
       unit: settings?.unit ?? 'replay',
       predicate: settings?.predicate ?? 'replay',
       coverageMin: 0,
@@ -116,9 +117,16 @@ export function adjudication(baseLint, results) {
   return lines;
 }
 
-// The replay summary of a judged pair.
-export function replaySummary({ takenAt, synthesized, baseLint, results, versions }) {
-  const candidate = candidateBaseline();
+// The replay summary of a judged pair. A replay without its candidate's baseline or revision has
+// no provenance and is not complete: it is a scanner error (r3 B8).
+export function replaySummary(
+  { takenAt, synthesized, baseLint, results, versions, empty = [] },
+  candidateRoot = SCANNER_ROOT
+) {
+  const candidate = candidateBaseline(candidateRoot);
+  const revision = candidateRevision(candidateRoot);
+  if (!candidate) throw new ScanError('replay: the candidate scanner checkout has no baseline');
+  if (!revision) throw new ScanError('replay: the candidate scanner revision cannot be read');
   const settings = Object.fromEntries(
     Object.entries(candidate?.checks ?? {}).map(([id, c]) => [
       id,
@@ -127,7 +135,7 @@ export function replaySummary({ takenAt, synthesized, baseLint, results, version
   );
   return {
     takenAt,
-    candidate: { revision: candidateRevision(), settings },
+    candidate: { revision, settings },
     adoptionShortfall: baseLint ? adoptionShortfalls(candidate, baseLint, results) : {},
     synthesized,
     units: {
@@ -135,7 +143,10 @@ export function replaySummary({ takenAt, synthesized, baseLint, results, version
       head: Object.fromEntries(results.map(r => [r.id, r.units ?? {}])),
     },
     versions,
-    adjudicate: baseLint ? adjudication(baseLint, results) : [],
+    adjudicate: [
+      ...(baseLint ? adjudication(baseLint, results) : []),
+      ...empty.map(id => `${id}: no file to examine on the head (historical pair; adjudicate)`),
+    ],
     wouldRefuse: results
       .filter(r => r.new.length || r.fixed.length || r.tamper.length)
       .map(r => r.id),

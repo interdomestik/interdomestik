@@ -320,3 +320,70 @@ test('CLI case 9: a catalogue-only change that makes a label mention terms redis
   const checks = okRun(scan(t, root, ['--base', base, '--head', head]));
   assert.deepEqual(checks['CHK-22'].new, [`CHK-22|${PREFS}|unregistered|Checkbox:n3`]);
 });
+
+// --- r3 B10: reachable §5 cases at the CLI ---------------------------------------------------
+
+// A tracked source under a node_modules directory is in the inventory, and ESLint ignores it: the
+// run is a scanner error naming the file, in production and in replay, never a silent skip.
+for (const rel of ['packages/node_modules/src/sample.ts', `${W}/node_modules/x/page.tsx`])
+  test(`r3 B10: a tracked ${rel} is the ignored-file error at the CLI`, t => {
+    const message = `${rel} is ignored by the screen-contract config`;
+    const production = judgeHead(t, { [rel]: 'export const x = 1;\n' });
+    assert.equal(production.code, 2);
+    assert.deepEqual(production.report.errors, [message]);
+    const replay = scan(t, production.root, [
+      '--replay',
+      '--base',
+      production.base,
+      '--head',
+      production.head,
+    ]);
+    assert.equal(replay.code, 2);
+    assert.deepEqual(replay.report.errors, [message]);
+  });
+
+test('r3 B10: CHK-15a sees a layer-2 file whose prologue is use strict then use server', t => {
+  const action = `${W}/features/g/actions.ts`;
+  const checks = okRun(
+    judgeHead(t, {
+      [`${W}/components/view.tsx`]: 'export const View = () => null;\n',
+      [action]:
+        "'use strict';\n'use server';\nimport { View } from '@/components/view';\nexport async function g() { return View; }\n",
+    })
+  );
+  assert.deepEqual(checks['CHK-15a'].new, [`CHK-15a|${action}|@/components/view`]);
+});
+
+test('r3 B10: two forms in one file listing one use are shared-use at the CLI', t => {
+  const forms = `${W}/app/forms/page.tsx`;
+  const entry = entryOf({
+    id: 'terms',
+    file: forms,
+    control: 'terms',
+    useId: 'a',
+    useFile: forms,
+    action: 'saveTerms',
+    testFile: `${W}/app/forms/terms.test.ts`,
+  });
+  const form = `<form action={saveTerms} data-consent-use="terms:a">${CONTROL}</form>`;
+  const checks = okRun(
+    judgeHead(t, {
+      ...registryFiles([entry]),
+      [forms]: `import { saveTerms } from '@/actions/consent';\nexport function A() { return ${form}; }\nexport default function B() { return ${form}; }\n`,
+    })
+  );
+  assert.deepEqual(checks['CHK-22'].new, [`CHK-22|${forms}|shared-use|terms:a`]);
+});
+
+// --- r3 B9: the per-check inventory counts what each rule examines -----------------------------
+
+test('r3 B9: a tree whose only sources are screens has no CHK-15a source, an input error', t => {
+  // Every layer-2, -3 and -4 source of the fixture removed; screens and shared UI remain.
+  const production = judgeHead(t, {
+    'packages/domain-claims/src/index.ts': null,
+    'packages/database/src/index.ts': null,
+    'packages/database/src/schema/index.ts': null,
+  });
+  assert.equal(production.code, 2);
+  assert.deepEqual(production.report.errors, ['no expected file for CHK-15a']);
+});
