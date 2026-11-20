@@ -143,9 +143,9 @@ function isPassThrough(data: unknown): data is ActionSuccess<unknown> | ActionEr
 }
 
 /**
- * @deprecated Build new actions with `defineAction` / `defineFormAction` (R-05). Kept for the
- * unmigrated actions; it shares authentication, the classifier and the refusal record (operation
- * `legacy`, subject unknown) and keeps its duck-typed pass-through of handler results.
+ * Legacy: build new actions with `defineAction` / `defineFormAction` (R-05). Kept for the unmigrated
+ * actions, which CHK-04's baseline records; it shares authentication, the classifier and the refusal
+ * record (operation `legacy`, subject unknown) and keeps its duck-typed pass-through of results.
  */
 export async function runAuthenticatedAction<T>(
   handler: (ctx: ProtectedActionContext) => Promise<T>
