@@ -1,7 +1,12 @@
-# Advisory report of the screen-contract checks (WP-05 design §3, §7). Not a required check and not a
+# Advisory report of the screen-contract checks (WP-05 design §3, §6, §7). Not a required check and not a
 # delivery prerequisite: it absorbs every scanner exit, uploads the report and records the exit and the upload
 # outcome. A head whose scanner status is error or whose upload did not succeed is marked "replay needed".
 # Each check moves into ci.yml `static` only by its own owner-approved flip PR.
+#
+# Trust (code review r1 B1): the scanner, the setup action and the dependencies come from the trusted base
+# checkout; the head is only data, fetched by sha and extracted by the scanner. A base without the scanner
+# (the bootstrap PR) reports "no trusted scanner" and runs nothing. Under pull_request the head can still edit
+# this file, so it is not tamper-proof: a flip to required pins the workflow in the org ruleset (design §6).
 name: Screen Contract Report
 
 on:
@@ -24,18 +29,38 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - name: Checkout
+      - name: Checkout the trusted base
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Trusted scanner present
+        id: trusted
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f scripts/ci/screen-contract-check.mjs ]]; then present=true; else present=false; fi
+          echo "present=${present}" >> "${GITHUB_OUTPUT}"
+
       - name: Setup
+        if: steps.trusted.outputs.present == 'true'
         uses: ./.github/actions/setup
+
+      - name: Fetch the head as data
+        id: fetch
+        if: steps.trusted.outputs.present == 'true'
+        shell: bash
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "${HEAD_SHA}"
 
       - name: Screen contract checks
         id: scan
+        if: steps.trusted.outputs.present == 'true'
         continue-on-error: true
         shell: bash
         env:
@@ -47,6 +72,19 @@ jobs:
           code=$?
           echo "exit=${code}" >> "${GITHUB_OUTPUT}"
           exit "${code}"
+
+      - name: Bootstrap report
+        id: bootstrap
+        if: steps.trusted.outputs.present != 'true'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p tmp/screen-contract-check
+          printf '{"version":1,"status":"no trusted scanner","base":"%s","head":"%s"}\n' \
+            "${BASE_SHA}" "${HEAD_SHA}" > tmp/screen-contract-check/report.json
 
       - name: Upload report
         id: upload
@@ -65,16 +103,20 @@ jobs:
         env:
           SCAN_EXIT: ${{ steps.scan.outputs.exit }}
           UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+          TRUSTED: ${{ steps.trusted.outputs.present }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           verdict='counts toward the trial'
-          if [[ "${SCAN_EXIT:-}" != 0 && "${SCAN_EXIT:-}" != 1 ]] || [[ "${UPLOAD_OUTCOME}" != success ]]; then
+          if [[ "${TRUSTED:-}" != true ]]; then
+            verdict='no trusted scanner (bootstrap): nothing ran'
+          elif [[ "${SCAN_EXIT:-}" != 0 && "${SCAN_EXIT:-}" != 1 ]] || [[ "${UPLOAD_OUTCOME}" != success ]]; then
             verdict='replay needed'
           fi
           {
             echo "### Screen contract report (advisory)"
             echo "- head: \`${HEAD_SHA}\`"
+            echo "- trusted scanner at base: \`${TRUSTED:-not recorded}\`"
             echo "- scanner exit: \`${SCAN_EXIT:-not recorded}\`"
             echo "- upload outcome: \`${UPLOAD_OUTCOME}\`"
             echo "- trial: ${verdict}"
