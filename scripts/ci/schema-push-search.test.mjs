@@ -5,18 +5,21 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { isDeepStrictEqual } from 'node:util';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
-// CHK-12 (R-12): a schema change travels one road, the journal. Two searches enforce it:
+// CHK-12 (R-12): a schema change travels one road, the journal. This is a mistake-prevention
+// check: it catches an accidental schema-push invocation, and does not claim to stop a deliberately
+// disguised one (shell expansions, redirections, inline interpreters, test bodies; see the PR's
+// "Known limits of CHK-12"). Enforcement rests on the journal parity check, migration 0100,
+// CHK-13's disposable-target guard and the removed push/db:push scripts. Two parts:
 // - Shell text (package scripts and shell scripts) is read as the shell reads it, and no simple
 //   command may push a schema.
-// - Node and TypeScript scripts and workflow files are not parsed: a child-process argument array
-//   or a folded YAML scalar has too many spellings for a text search. Instead, every mention of a
-//   push tool (supabase, drizzle-kit) there is counted against a reviewed inventory, so a new
-//   invocation in any spelling is a change to review. database-command.mjs, whose push-local
-//   invocation runs supabase with --local and refuses every target override, is pinned byte for
-//   byte. Database clients in those files are CHK-13's inventory (own-database-client.test.mjs).
+// - In Node, TypeScript and workflow files every mention of a push tool (supabase, drizzle-kit) is
+//   pinned by the sha256 of its line in schema-push-mentions.json, so a new mention or a changed
+//   mentioning line needs a review; database-command.mjs (the one push-local invocation, --local
+//   only) is pinned byte for byte. Database clients in those files are CHK-13's inventory.
 
 const PACKAGE_RUNNERS = new Set(['pnpm', 'npm', 'yarn', 'turbo']);
 const COMMAND_SEPARATORS = new Set([';', '&', '|', '(', ')', '{', '}', '\n']);
@@ -88,24 +91,17 @@ const isPush = text =>
     words => pushesSchema(words) || words.some(word => /\s/u.test(word) && isPush(word))
   );
 
-// The reviewed mentions of a push tool in Node, TypeScript and workflow files, by count; a file
-// not listed has none. A mention is the tool's name as a word of its own (not a host such as
-// x.supabase.co, a package such as @supabase/supabase-js, nor supabase-url).
+// A mention is the tool's name as a word of its own (not a host such as x.supabase.co, a package
+// such as @supabase/supabase-js, nor supabase-url).
 const TOOL_MENTION = /(?<![\w.@-])(?:supabase|drizzle-kit)(?![\w-])/gu;
-const REVIEWED_MENTIONS = Object.freeze({
-  'packages/database/drizzle.config.ts': 1, // its config type, imported from drizzle-kit
-  'scripts/abuse_test_rls.js': 2, // a client variable named supabase
-  'scripts/ci/pr-gate-policy-lib.mjs': 1, // the supabase/ path prefix
-  'scripts/ci/setup-private-node-cache.mjs': 1, // reads drizzle-kit's help text
-  'scripts/database-command.mjs': 1, // the push-local invocation, pinned below
-  'scripts/lean-current-authority-policy.mjs': 1, // the supabase/ path prefix
-  'scripts/release-gate/config.ts': 1, // an error-text pattern
-  'scripts/release-gate/product-checks.ts': 1, // an error-text pattern
-});
-const PINNED = Object.freeze({
-  'scripts/database-command.mjs':
-    '6d218f7a00a8286749a8d21170a318dec10247efd8baabe269314a9d39894e6f',
-});
+const INVENTORY = JSON.parse(
+  readFileSync(join(root, 'scripts/ci/schema-push-mentions.json'), 'utf8')
+);
+const REVIEWED = new Map(INVENTORY.mentions.map(entry => [entry.path, entry.lines]));
+const sha256 = text => createHash('sha256').update(text).digest('hex');
+// The sha256 of the line of each mention, in order.
+const mentionLines = source =>
+  source.split('\n').flatMap(line => [...line.matchAll(TOOL_MENTION)].map(() => sha256(line)));
 // drizzle-kit subcommands a package script may run: none of them reaches a database.
 const DRIZZLE_KIT_OFFLINE = new Set(['generate', 'check', 'export']);
 
@@ -154,18 +150,15 @@ const TEST_FILE = /\.(?:test|spec)\.[cm]?[jt]s$/u;
 
 const shellOffenders = (files, read) => files.filter(file => isPush(read(file)));
 
-// Each Node, TypeScript or workflow file whose push-tool mentions differ from the reviewed count,
-// and each pinned file whose bytes changed.
-function mentionOffenders(files, read) {
-  return files.filter(file => {
+// Each Node, TypeScript or workflow file whose mentioning lines differ from the reviewed ones, and
+// each pinned file whose bytes changed.
+const mentionOffenders = (files, read) =>
+  files.filter(file => {
     const source = read(file);
-    if (Object.hasOwn(PINNED, file)) {
-      const digest = createHash('sha256').update(source).digest('hex');
-      if (digest !== PINNED[file]) return true;
-    }
-    return [...source.matchAll(TOOL_MENTION)].length !== (REVIEWED_MENTIONS[file] ?? 0);
+    const pinned = INVENTORY.pinnedFiles[file];
+    if (pinned && sha256(source) !== pinned) return true;
+    return !isDeepStrictEqual(mentionLines(source), REVIEWED.get(file) ?? []);
   });
-}
 
 test('no shell script pushes a schema; node and workflow files keep their reviewed mentions', () => {
   const files = trackedFiles(/./u).filter(file => !TEST_FILE.test(file));
@@ -176,7 +169,9 @@ test('no shell script pushes a schema; node and workflow files keep their review
   const read = file => readFileSync(join(root, file), 'utf8');
   assert.ok(shell.includes('scripts/m4-gatekeeper.sh'), 'shell scripts are scanned');
   assert.deepEqual(shellOffenders(shell, read), []);
-  for (const file of Object.keys(REVIEWED_MENTIONS)) assert.ok(other.includes(file), file);
+  for (const { path, reason } of INVENTORY.mentions) {
+    assert.ok(other.includes(path) && reason.length >= 30, path);
+  }
   assert.ok(other.includes('.github/workflows/ci.yml'), 'workflows are counted');
   assert.deepEqual(mentionOffenders(other, read), []);
 });
@@ -261,7 +256,7 @@ test('the push-command search refuses each removed form and admits only the loca
   );
 });
 
-test('a node or workflow mention of a push tool beyond the reviewed count is refused', () => {
+test('a new or changed mention of a push tool in a node or workflow file is refused', () => {
   const sources = {
     // Spellings the shell search does not read: a multiline argument array, a folded YAML scalar
     // with a comment on its header, an inline workflow script, a path with a version.
@@ -275,6 +270,11 @@ test('a node or workflow mention of a push tool beyond the reviewed count is ref
     // Not a mention: a host, a package, an input name, an environment variable.
     'scripts/hosts.mjs':
       "'db.x.supabase.co'; '@supabase/supabase-js'; 'supabase-url'; SUPABASE_URL",
+    // A reviewed mentioning line changed in place, with the count kept (round 6).
+    'scripts/ci/setup-private-node-cache.mjs': readFileSync(
+      join(root, 'scripts/ci/setup-private-node-cache.mjs'),
+      'utf8'
+    ).replace("!help.stdout.includes('drizzle-kit generate')", "!exec('drizzle-kit push --force')"),
     // One more than reviewed.
     'scripts/release-gate/config.ts': "/supabase/i; spawnSync('supabase', ['db', 'push'])",
   };
@@ -285,6 +285,7 @@ test('a node or workflow mention of a push tool beyond the reviewed count is ref
       '.github/workflows/x.yml',
       '.github/workflows/y.yml',
       'scripts/path.mjs',
+      'scripts/ci/setup-private-node-cache.mjs',
       'scripts/release-gate/config.ts',
     ]
   );
@@ -292,7 +293,7 @@ test('a node or workflow mention of a push tool beyond the reviewed count is ref
   const source = readFileSync(join(root, pinned), 'utf8');
   const offenders = text => mentionOffenders([pinned], () => text);
   assert.deepEqual(offenders(source), []);
-  // A changed pinned file, even with the same mention count: a linked push, or one byte.
+  // A changed pinned file, even with its mentioning line kept: a linked push, or one byte.
   assert.deepEqual(offenders(source.replace("'--local'", "'--linked'")), [pinned]);
   assert.deepEqual(offenders(`${source} `), [pinned]);
 });

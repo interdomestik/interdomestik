@@ -106,21 +106,24 @@ function checkReadOnly(entry, source) {
 export const PINNED_PROBE_BODIES = new Set([
   '32e877f3131046ec5898821b6d44b3cb7197a3e067bc052ae1415dfb6bcb24b8',
 ]);
-// The shell construct around each probe, in order: its keyword, and the sha256 of the whole
-// construct from the keyword line to its closing fi or done. M4 checks once with `if`, then waits
-// with the `until` retry loop; a rewrite of either (an `if` for the loop, a loop that no longer
-// retries) is a change to review.
+// The shell construct around each probe, in order: its keyword, and the sha256 of its text from
+// the header of the enclosing function (so its settings before the probe, such as the retry limit,
+// are covered) to the construct's closing fi or done. M4 checks once with `if`, then waits with the
+// `until` retry loop; a rewrite of either (an `if` for the loop, a loop that no longer retries or
+// gives up at another limit) is a change to review.
 export const PINNED_PROBE_CONSTRUCTS = Object.freeze({
   'scripts/m4-gatekeeper.sh': Object.freeze([
-    Object.freeze(['if', '2a113bda6b2d83e304b92531050dcc016e37995149a9443876ea5eee63a78252']),
-    Object.freeze(['until', '6020aeb56751244ccafee23d9c4eda779a240fc6e9aba3f6047aabd09ff63cf6']),
+    Object.freeze(['if', '94846577068ebb19633a1a3cefb8afb367781496cc2c13714158d22c472c1e14']),
+    Object.freeze(['until', '63dba2366149cbe9eff03618649a918cc3a8051962b1f5df0a3ae378ed7dfccf']),
   ]),
 });
 const sha256 = text => createHash('sha256').update(text).digest('hex');
+const FUNCTION = /^[A-Za-z_][\w-]*\(\) \{$/u;
 const CLOSER = Object.freeze({ if: ['then', 'fi'], until: ['do', 'done'] });
 
 // Each `if|until node - <<'NODE'` construct, read line by line: the heredoc body, then the
-// keyword's own `then`/`do` at the same indent, then the first `fi`/`done` at that indent.
+// keyword's own `then`/`do` at the same indent, then the first `fi`/`done` at that indent. Its text
+// starts at the nearest function header above it (`name() {` at column 0).
 export function probeConstructs(source) {
   const lines = source.split('\n');
   const found = [];
@@ -132,10 +135,11 @@ export function probeConstructs(source) {
     const bodyEnd = lines.indexOf('NODE', at + 1);
     const last = bodyEnd < 0 ? -1 : lines.indexOf(`${indent}${close}`, bodyEnd + 1);
     const opened = bodyEnd >= 0 && lines[bodyEnd + 1] === `${indent}${open}`;
+    const header = lines.findLastIndex((line, index) => index < at && FUNCTION.test(line));
     found.push({
       keyword,
       body: bodyEnd < 0 ? '' : lines.slice(at + 1, bodyEnd).join('\n'),
-      text: opened && last > bodyEnd ? lines.slice(at, last + 1).join('\n') : '',
+      text: opened && last > bodyEnd && header >= 0 ? lines.slice(header, last + 1).join('\n') : '',
     });
   }
   return found;

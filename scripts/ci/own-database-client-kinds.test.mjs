@@ -81,6 +81,9 @@ test('the readiness probe stays the until retry loop, after the one if check', (
     // A loop that no longer waits or gives up, or another loop keyword.
     m4.replace(loop, loop.replace(/^[ \t]*sleep 1\n/mu, '')),
     m4.replace(loop, loop.replace('MAX_ATTEMPTS ]', 'MAX_ATTEMPTS + 1000 ]')),
+    // The retry limit, set before the loop in the same function (round 6), or the attempt counter.
+    m4.replace('local MAX_ATTEMPTS=60', 'local MAX_ATTEMPTS=1'),
+    m4.replace('local ATTEMPT=0', 'local ATTEMPT=59'),
     m4.replace(loop, loop.replace(/^([ \t]*)until node/u, '$1while ! node')),
     // The two constructs swapped.
     m4.replace(check, '__CHECK__').replace(loop, check).replace('__CHECK__', loop),
