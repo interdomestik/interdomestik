@@ -57,9 +57,10 @@ export function pairTransfers(base, head) {
 export const REBUILT_PATH = 'scripts/ci/screen-contract/rebuilt-screens.json';
 
 // A canonical repository path of a source file under a linted root: no `.`/`..` or empty segment,
-// no backslash, and one of the linted source extensions (r1 B9).
+// no backslash, no `|` (it separates the fields of an item key, r2 B9), and one of the linted
+// source extensions (r1 B9).
 const CANONICAL_RE =
-  /^(?:apps\/web\/src|packages\/[\w.-]+\/src)(?:\/[^/\\]+)+\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/u;
+  /^(?:apps\/web\/src|packages\/[\w.-]+\/src)(?:\/[^/\\|]+)+\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/u;
 const isCanonical = file =>
   CANONICAL_RE.test(file) && !file.split('/').some(part => part === '.' || part === '..');
 

@@ -37,7 +37,7 @@ import {
   registryTamper,
   testEvidence,
 } from './screen-contract/registry.mjs';
-import { readInside } from './screen-contract/paths.mjs';
+import { assertNoLinks, readInside } from './screen-contract/paths.mjs';
 import { preAdoptionBase, replaySummary, synthesizeInputs } from './screen-contract/replay.mjs';
 import { roleOf } from './screen-contract/roles.mjs';
 import {
@@ -192,12 +192,21 @@ function chk22Extra(root, files, inputs, base, head) {
 
 // A replay of a pair that predates adoption (neither side has the baseline) synthesizes the base
 // (design §7); any other pair is judged exactly as production judges it.
+// Adoption is decided before anything is written (r2 B1): an adopted pair (either side has the
+// baseline) is judged exactly as production judges it, with nothing synthesized; a base that has
+// the scanner but no baseline is the production error. Only a pair that predates adoption gets
+// synthesized inputs on both sides.
 async function replayBase(repo, report, root, cleanup) {
-  const replay = { synthesized: { base: [], head: synthesizeInputs(root) }, pre: null };
-  if (showAt(repo, report.base, BASELINE_PATH) !== null || readInside(root, BASELINE_PATH) !== null)
-    return replay;
+  const replay = { synthesized: { base: [], head: [] }, pre: null };
+  const adopted =
+    showAt(repo, report.base, BASELINE_PATH) !== null || readInside(root, BASELINE_PATH) !== null;
+  if (adopted) return replay;
+  if (showAt(repo, report.base, SCRIPT_PATH) !== null)
+    throw new ScanError('base has the scanner but no baseline');
+  replay.synthesized.head = synthesizeInputs(root);
   const baseRoot = extractRevision(repo, report.base);
   cleanup.push(baseRoot);
+  assertNoLinks(baseRoot);
   replay.pre = { ...(await preAdoptionBase(baseRoot, report.base)), root: baseRoot };
   replay.synthesized.base = replay.pre.synthesized;
   return replay;
@@ -242,6 +251,7 @@ async function scan(args, repo, report) {
   const root = extractRevision(repo, report.head);
   const cleanup = [root];
   try {
+    assertNoLinks(root);
     const replay = args.replay ? await replayBase(repo, report, root, cleanup) : null;
     const pre = replay?.pre ?? null;
     const scope = args.check ? selectChecks(args, null, null)[0] : null;

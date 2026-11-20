@@ -39,3 +39,18 @@ export function writeInside(root, rel, text) {
   confined(root, rel);
   fs.writeFileSync(abs, text, { flag: 'wx' });
 }
+
+// An extracted revision holds no symbolic link at all (r2 B3): the repository tracks none, and one
+// would let a read (a catalogue, a manifest, a tsconfig, a source ESLint lints) leave the tree, so
+// the same two revisions could give different verdicts on different runners.
+export function assertNoLinks(root) {
+  const pending = [''];
+  while (pending.length) {
+    const rel = pending.pop();
+    for (const entry of fs.readdirSync(path.join(root, rel), { withFileTypes: true })) {
+      const child = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isSymbolicLink()) throw new ScanError(`${child} is a symbolic link`);
+      if (entry.isDirectory()) pending.push(child);
+    }
+  }
+}

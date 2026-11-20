@@ -4,8 +4,13 @@
 // "replay:<sha>") that WP-02's unchanged parser must accept and that the head is judged against,
 // and a missing registry or rebuilt list is written as empty. Every synthesized input is recorded.
 // For such a pair the floor is completeness; every unit decrease is recorded for adjudication.
-import { CHECKS } from './evaluate.mjs';
-import { lintTree, linted } from './lint.mjs';
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+
+import { coverageShortfall } from '../server-mutation/baseline.mjs';
+import { BASELINE_PATH, CHECKS } from './evaluate.mjs';
+import { SCANNER_ROOT, lintTree, linted } from './lint.mjs';
 import { writeInside, readInside } from './paths.mjs';
 import { REGISTRY_PATH } from './registry.mjs';
 import { REBUILT_PATH } from './transfer.mjs';
@@ -26,14 +31,32 @@ export function synthesizeInputs(root) {
   return out;
 }
 
-export function synthesizedBaseline(baseSha, baseLint) {
+// The candidate's own baseline, from the scanner's checkout: its settings label a synthesized
+// baseline and its floors are what an adoption would require (r2 hardening).
+export function candidateBaseline(root = SCANNER_ROOT) {
+  const file = path.join(root, BASELINE_PATH);
+  return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
+}
+
+// The commit the candidate scanner runs from, or null outside a git checkout.
+export function candidateRevision(root = SCANNER_ROOT) {
+  try {
+    return execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  } catch {
+    return null;
+  }
+}
+
+// The candidate's settings label the synthesized baseline; its floor is completeness only (§7).
+export function synthesizedBaseline(baseSha, baseLint, candidate = null) {
   const checks = {};
   for (const { id, multiset } of CHECKS) {
     const items = baseLint[id].items.map(item => item.id);
+    const settings = candidate?.checks?.[id];
     checks[id] = {
       mode: 'report',
-      unit: 'replay',
-      predicate: 'replay',
+      unit: settings?.unit ?? 'replay',
+      predicate: settings?.predicate ?? 'replay',
       coverageMin: 0,
       items: multiset ? items : [...new Set(items)],
       exhausted: true,
@@ -46,7 +69,21 @@ export function synthesizedBaseline(baseSha, baseLint) {
 export async function preAdoptionBase(baseRoot, baseSha) {
   const synthesized = synthesizeInputs(baseRoot);
   const lint = await lintTree(baseRoot, linted(baseRoot));
-  return { synthesized, lint, baseline: synthesizedBaseline(baseSha, lint) };
+  return { synthesized, lint, baseline: synthesizedBaseline(baseSha, lint, candidateBaseline()) };
+}
+
+// What the candidate's adoption floors would say about each side of a pre-adoption pair: recorded
+// for adjudication, never enforced (§7).
+function adoptionShortfalls(candidate, baseLint, results) {
+  const out = {};
+  for (const result of results) {
+    const floor = candidate?.checks?.[result.id]?.coverageMin;
+    if (floor === undefined) continue;
+    const base = baseLint?.[result.id] ? coverageShortfall(baseLint[result.id].units, floor) : [];
+    const head = coverageShortfall(result.units ?? {}, floor);
+    if (base.length || head.length) out[result.id] = { base, head };
+  }
+  return out;
 }
 
 const unitsOf = lintOrResults =>
@@ -79,8 +116,17 @@ export function adjudication(baseLint, results) {
 
 // The replay summary of a judged pair.
 export function replaySummary({ takenAt, synthesized, baseLint, results, versions }) {
+  const candidate = candidateBaseline();
+  const settings = Object.fromEntries(
+    Object.entries(candidate?.checks ?? {}).map(([id, c]) => [
+      id,
+      { mode: c.mode, unit: c.unit, predicate: c.predicate, coverageMin: c.coverageMin },
+    ])
+  );
   return {
     takenAt,
+    candidate: { revision: candidateRevision(), settings },
+    adoptionShortfall: baseLint ? adoptionShortfalls(candidate, baseLint, results) : {},
     synthesized,
     units: {
       base: baseLint ? unitsOf(baseLint) : null,

@@ -18,7 +18,7 @@ const LANES = {
   'apps/web/vitest.config.ts':
     "export default { test: { include: ['src/**/*.test.{ts,tsx}'] } };\n",
   'apps/web/playwright.config.ts':
-    "const GATE_DEFAULT_MATCH = ['gate/**/*.spec.ts'];\nexport default { testDir: './e2e' };\n",
+    "const GATE_DEFAULT_MATCH = ['gate/**/*.spec.ts'];\nconst GATE_KS = [...GATE_DEFAULT_MATCH, 'security/a.spec.ts'];\nexport default defineConfig({ testDir: './e2e', projects: [{ name: 'gate-ks-sq', testMatch: GATE_KS }, { name: 'gate-mk-contract', testMatch: GATE_DEFAULT_MATCH }, { name: 'visual', testMatch: ['visual/**/*.spec.ts'] }] });\n",
 };
 const DB_PAGE = `${W}/app/legacy/page.tsx`;
 const DB_IMPORT = "import { db } from '@interdomestik/database';\nexport default () => db;\n";
@@ -124,7 +124,10 @@ test('B2: an adopted pair whose head registry use names a missing test is an err
   });
   const { code, report } = replayOf(t, pair);
   assert.equal(code, 2);
-  assert.ok(report.errors.length > 0);
+  assert.match(
+    report.errors.join('\n'),
+    /terms:u1 test apps\/web\/src\/app\/ok\/page\.test\.tsx is missing/u
+  );
   assert.equal(report.replay?.complete ?? false, false);
 });
 
@@ -164,4 +167,39 @@ test('B11: replay refuses an input directory that is a committed symlink and wri
   assert.deepEqual(fs.readdirSync(outside), []);
   assert.equal(code, 2);
   assert.match(report.errors.join('\n'), /symbolic link/u);
+});
+
+test('r2 B1: an adopted head that deletes its rebuilt list fails in replay as in production', t => {
+  const pair = adoptedPair(t, baselineOf({ 'CHK-15c': [LEGACY] }), { [REBUILT]: null });
+  const production = run(t, pair.root, ['--base', pair.base, '--head', pair.head]);
+  assert.equal(production.code, 2);
+  const { code, report } = replayOf(t, pair);
+  assert.equal(code, 2);
+  assert.match(report.errors.join('\n'), /rebuilt-screens list is missing or empty/u);
+  assert.equal(report.replay?.complete ?? false, false);
+});
+
+test('r2 B1: a base with the scanner and no baseline fails in replay as in production', t => {
+  const root = repo(t, {
+    ...LANES,
+    'scripts/ci/screen-contract-check.mjs': '// scanner present\n',
+    [`${W}/app/ok/page.tsx`]: 'export default () => null;\n',
+  });
+  const base = git(root, 'rev-parse', 'HEAD');
+  const head = commit(root, { [`${W}/app/ok2/page.tsx`]: 'export default () => null;\n' });
+  const { code, report } = run(t, root, ['--replay', '--base', base, '--head', head]);
+  assert.equal(code, 2);
+  assert.match(report.errors.join('\n'), /base has the scanner but no baseline/u);
+});
+
+test('r2 hardening: a pre-adoption replay records the candidate revision, settings and floor shortfalls', t => {
+  const root = repo(t, { ...LANES, [`${W}/app/ok/page.tsx`]: 'export default () => null;\n' });
+  const base = git(root, 'rev-parse', 'HEAD');
+  const head = commit(root, { [`${W}/app/ok2/page.tsx`]: 'export default () => null;\n' });
+  const { code, report } = run(t, root, ['--replay', '--base', base, '--head', head]);
+  assert.equal(code, 0, JSON.stringify(report.errors));
+  assert.match(report.replay.candidate.revision, /^[0-9a-f]{40}$/u);
+  assert.match(report.replay.candidate.settings['CHK-15c'].unit, /import edges of screen files/u);
+  // Two screens are far below the adoption floor: recorded, not enforced.
+  assert.ok(report.replay.adoptionShortfall['CHK-15c'].head.length > 0);
 });

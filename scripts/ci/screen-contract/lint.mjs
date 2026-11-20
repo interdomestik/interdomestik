@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
+import { catalogueFor } from './catalogue.mjs';
 import { roleOf } from './roles.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -204,9 +205,19 @@ const fileConfigs = (eslint, root, files) =>
     })
   );
 
-// Runs the lint over `files` of `root` and returns { items, units } per check id.
+// Each check needs at least one expected file (design §5, code-r2): a tree without screens must
+// not give a screen check a clean result over nothing.
+function assertEveryCheckHasFiles(out) {
+  const empty = Object.keys(out).filter(id => out[id].files === 0);
+  if (empty.length) throw new ScanError(`no expected file for ${empty.join(', ')}`);
+}
+
+// Runs the lint over `files` of `root` and returns { items, units } per check id. The English
+// catalogue is a required input of every run, loaded and validated before the lint (code-r2), not
+// only when a control with a label is reached.
 export async function lintTree(root, files, { configFile } = {}) {
   if (!files.length) throw new ScanError('the expected file list is empty');
+  catalogueFor(root);
   const config = configFile ?? path.join(SCANNER_ROOT, CONFIG_PATH);
   const sets = await ruleSets(config);
   const ESLint = await loadEslint();
@@ -244,6 +255,7 @@ export async function lintTree(root, files, { configFile } = {}) {
   });
   if (byFile.size !== files.length)
     throw new ScanError('the lint results name files that were not expected');
+  assertEveryCheckHasFiles(out);
   for (const result of out.A11Y ? [out.A11Y] : []) result.units.file = result.files;
   return out;
 }

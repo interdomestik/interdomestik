@@ -10,6 +10,14 @@ import { ScanError } from './server-mutation/ast.mjs';
 import { catalogueFor, messageText } from './screen-contract/catalogue.mjs';
 import { CONFIG_PATH, SCANNER_ROOT, linted, ruleSets } from './screen-contract/lint.mjs';
 import { ids, lint, tempDir, tree, writeTree } from './fixtures/screen-contract-check/harness.mjs';
+import {
+  DB_PAGE,
+  LEGACY,
+  W,
+  adopted,
+  baselineOf,
+  scan,
+} from './fixtures/screen-contract-check/cli-fixtures.mjs';
 
 const DB_IMPORT = "import { db } from '@interdomestik/database';\nexport default () => db;\n";
 
@@ -94,4 +102,36 @@ test('B11: catalogue keys named __proto__ or constructor do not reach shared obj
   assert.equal(messageText(catalogue, '__proto__.polluted'), 'yes');
   assert.equal(messageText(catalogue, 'toString'), null);
   assert.equal(messageText(catalogue, 'x.hasOwnProperty'), null);
+});
+
+// Required inputs validated at the CLI boundary (code-r2), whatever the tree holds.
+test('code-r2: a tree with no screen file is an input error, not a clean screen check', t => {
+  const { root, base } = adopted(t, baselineOf({}), {
+    [`${W}/app/ok/page.tsx`]: null,
+    [DB_PAGE]: null,
+  });
+  const { code, report } = scan(t, root, ['--base', base]);
+  assert.equal(code, 2);
+  assert.match(report.errors.join('\n'), /no expected file for CHK-15c, CHK-09, A11Y/u);
+});
+
+test('code-r2: a malformed English catalogue is an error in a tree with no labelled control', t => {
+  const { root, base } = adopted(t, baselineOf({ 'CHK-15c': [LEGACY] }), {
+    [`${W}/messages/en/common.json`]: '{ "common": ',
+  });
+  const { code, report } = scan(t, root, ['--base', base]);
+  assert.equal(code, 2);
+  assert.match(
+    report.errors.join('\n'),
+    /apps\/web\/src\/messages\/en\/common\.json is not valid JSON/u
+  );
+});
+
+test('code-r2: a missing English catalogue is an error in a tree with no labelled control', t => {
+  const { root, base } = adopted(t, baselineOf({ 'CHK-15c': [LEGACY] }), {
+    [`${W}/messages/en/common.json`]: null,
+  });
+  const { code, report } = scan(t, root, ['--base', base]);
+  assert.equal(code, 2);
+  assert.match(report.errors.join('\n'), /apps\/web\/src\/messages\/en is missing/u);
 });

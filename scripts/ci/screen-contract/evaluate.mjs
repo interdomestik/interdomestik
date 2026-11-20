@@ -51,9 +51,15 @@ export function toolVersions(root = SCANNER_ROOT) {
   out['enhanced-resolve'] = top('enhanced-resolve/package.json').version;
   // A transitive dependency can change a rule's behaviour without a recorded version changing
   // (the minimatch override of this PR is one): the scanner checkout's lockfile enters too (r1 H6).
-  const lock = path.join(root, 'pnpm-lock.yaml');
-  out.lockfile = fs.existsSync(lock) ? sha256(fs.readFileSync(lock, 'utf8')) : null;
+  out.lockfile = lockfileDigest(root);
   return out;
+}
+
+// The sha256 of the scanner checkout's lockfile; a checkout without one is an error (code-r2).
+export function lockfileDigest(root) {
+  const lock = path.join(root, 'pnpm-lock.yaml');
+  if (!fs.existsSync(lock)) throw new ScanError('the scanner checkout pnpm-lock.yaml is missing');
+  return sha256(fs.readFileSync(lock, 'utf8'));
 }
 
 const canonical = value =>
