@@ -65,3 +65,42 @@ test('the digest is the same for equal settings in another member order', () => 
   const changed = { ...settings, coverageMin: { page: 18, route: 16 } };
   assert.notEqual(predicateDigest(chk26, changed), predicateDigest(chk26, settings));
 });
+
+// A check the base enforced once, removed with the owner's record, then retired from the scanner:
+// `CHK-00` stands for it, since the fixture scanner never had it.
+const retiredBase = () => {
+  const base = cleanBaseline();
+  base.checks['CHK-00'] = { ...enforcing().checks['CHK-05b'], items: ['x'], exhausted: undefined };
+  return base;
+};
+
+test('the removal record of a retired check must be kept as well (Astra r3 B10)', t => {
+  const removedRetired = { ...cleanBaseline(), exceptions: [removalException('CHK-00')] };
+  const { repo, headSha: removalSha } = scenario(t, tree(retiredBase()), tree(removedRetired));
+  const kept = commit(repo, { 'packages/p/src/later.ts': 'export const x = 1;\n' }, 'later');
+  assert.equal(runCli(repo, ['--base', removalSha, '--head', kept]).code, 0);
+  const dropped = commit(repo, { [BASELINE]: json(cleanBaseline()) }, 'drop');
+  for (const extra of [[], ['--enforcing']]) {
+    const refused = runCli(repo, ['--base', removalSha, '--head', dropped, ...extra]);
+    assert.equal(refused.code, 2, extra.join(' '));
+    assert.match(refused.report.errors[0], /drops the recorded removal of CHK-00/u);
+  }
+});
+
+test('a historical head may name a check retired since, when its base names it too (Astra r3 B15)', t => {
+  const { repo, baseSha, headSha } = scenario(t, tree(retiredBase()), tree(retiredBase()));
+  const scoped = runCli(repo, ['--base', baseSha, '--head', headSha, '--check', 'CHK-05b']);
+  assert.equal(scoped.code, 0, JSON.stringify(scoped.report.errors));
+  assert.equal(
+    scoped.report.checks['CHK-05b'].digest,
+    predicateDigest(
+      CHECKS.find(c => c.id === 'CHK-05b'),
+      retiredBase().checks['CHK-05b']
+    )
+  );
+  // The round-3 rule still holds: a head cannot introduce a check this scanner does not know.
+  const unknown = scenario(t, tree(cleanBaseline()), tree(retiredBase()));
+  const refused = runCli(unknown.repo, ['--base', unknown.baseSha]);
+  assert.equal(refused.code, 2);
+  assert.match(refused.report.errors[0], /head baseline names an unknown check CHK-00/u);
+});

@@ -35,7 +35,8 @@ const DEFAULT_MESSAGES: Readonly<Record<string, string>> = Object.freeze({
 });
 
 export function defaultFailureMessage(code: string): string {
-  return DEFAULT_MESSAGES[code] ?? 'Request failed';
+  // Own keys only: a code named like an Object.prototype member gets the fallback (r3 B17).
+  return Object.hasOwn(DEFAULT_MESSAGES, code) ? DEFAULT_MESSAGES[code] : 'Request failed';
 }
 
 export function actionFailure(

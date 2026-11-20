@@ -174,3 +174,20 @@ test('CHK-05: every object along a spread path is closed, intermediate ones too 
     /non-strict object at group/u
   );
 });
+
+test('CHK-05: an object method outside the allowlist opens the spread path, e.g. extend (Astra r3 B12)', t => {
+  const LOOSE = 'z.object({ a: z.string(), ownerId: z.string() })';
+  const spread = (group, path = 'group.detail') =>
+    `const S = z.strictObject({ group: ${group} });\nexport async function f(r: unknown) { const v = S.parse(r); await db.insert(things).values({ ...v.${path} }); }`;
+  const extended = `z.strictObject({ detail: z.strictObject({ a: z.string() }) }).extend({ detail: ${LOOSE} })`;
+  assert.match(messages(t, spread(extended)), /spread path: object-level extend at group/u);
+  for (const method of ['merge(Other)', 'safeExtend({})', 'partial()', 'pick({ a: true })'])
+    assert.match(
+      messages(t, spread(`z.strictObject({ a: z.string() }).${method}`, 'group')),
+      /spread path: object-level (merge|safeExtend|partial|pick)/u,
+      method
+    );
+  const kept =
+    'z.strictObject({ detail: z.strictObject({ a: z.string() }) }).strict().describe("g")';
+  assert.deepEqual(findingsOf(t, spread(kept)), []);
+});

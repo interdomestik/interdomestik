@@ -45,6 +45,12 @@ function defOf(schema: z.ZodType): ZodDef {
   return (schema as unknown as { _zod: { def: ZodDef } })._zod.def;
 }
 
+function wrapsScalar(def: ZodDef): boolean {
+  let inner = def;
+  while (WRAPPER_TYPES.has(inner.type) && inner.innerType) inner = defOf(inner.innerType);
+  return inner !== def && SCALAR_TYPES.has(inner.type);
+}
+
 function refuse(ctx: WalkContext, path: string, reason: string): never {
   throw new ActionDefinitionError(
     ctx.operation,
@@ -79,7 +85,10 @@ function walk(schema: z.ZodType, path: string, ctx: WalkContext): void {
     if (!ctx.form) refuse(ctx, path, 'z.file() is accepted in form actions only');
     return;
   }
-  const codeCheck = checkKinds(def).find(kind => CODE_CHECKS.has(kind) || kind === 'unknown');
+  // A wrapper around a scalar holds a scalar or null/undefined: its checks are scalar checks (r3 B16).
+  const codeCheck = wrapsScalar(def)
+    ? undefined
+    : checkKinds(def).find(kind => CODE_CHECKS.has(kind) || kind === 'unknown');
   if (codeCheck)
     refuse(ctx, path, `a ${codeCheck} check on a ${type} belongs in the owning command`);
   if (WRAPPER_TYPES.has(type) && def.innerType) return walk(def.innerType, path, ctx);

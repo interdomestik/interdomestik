@@ -20,14 +20,6 @@ const OPEN_FACTORIES = new Set([
   'intersection',
 ]);
 const LOOSE_METHODS = new Set(['passthrough', 'loose', 'catchall', 'nonstrict']);
-const SHAPE_CHANGING = new Set([
-  'transform',
-  'overwrite',
-  'check',
-  'superRefine',
-  'pipe',
-  'refine',
-]);
 const ROOT_METHODS = new Set(['strict', 'describe', 'meta', 'readonly']);
 const OBJECT_FACTORIES = new Set(['object', 'strictObject']);
 const SCHEMA_ARG_FACTORIES = new Set([
@@ -41,6 +33,10 @@ const SCHEMA_ARG_FACTORIES = new Set([
   'readonly',
 ]);
 const WRAPPERS = new Set(['optional', 'nullable', 'nullish', 'readonly', 'describe', 'meta']);
+// The only methods an object on a spread path may carry: none of them adds, replaces or drops a
+// member or runs caller code. Anything else (extend, merge, pick, partial, refine...) is open.
+const OBJECT_METHODS = new Set([...ROOT_METHODS, ...WRAPPERS]);
+const openMethod = chain => chain.methods.find(m => !OBJECT_METHODS.has(m.name));
 
 // Method chain of a Zod expression, from the root factory call outwards.
 export function chainOf(expression) {
@@ -129,7 +125,7 @@ function referenceReasons(chain, file, resolveSchema, depth) {
 
 function objectReasons(chain, file, resolveSchema, depth) {
   if (!isStrictObjectChain(chain)) return ['non-strict object'];
-  const changing = chain.methods.find(m => SHAPE_CHANGING.has(m.name));
+  const changing = openMethod(chain);
   if (changing) return [`object-level ${changing.name}`];
   const shape = unwrap(chain.args[0]);
   if (!shape || !ts.isObjectLiteralExpression(shape)) return ['object shape is not a literal'];
@@ -185,7 +181,7 @@ export function rootProblem(expression, file, resolveSchema) {
 // Why an intermediate object on a spread path is not closed, or null (§6.3, Astra r2 B12).
 function intermediateProblem(chain, where) {
   if (!isStrictObjectChain(chain)) return `non-strict object at ${where}`;
-  const changing = chain.methods.find(m => SHAPE_CHANGING.has(m.name));
+  const changing = openMethod(chain);
   return changing ? `object-level ${changing.name} at ${where}` : null;
 }
 

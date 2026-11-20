@@ -12,7 +12,12 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { ScanError, createParser, listSourceFiles, scanRoots } from './server-mutation/ast.mjs';
-import { BASELINE_PATH, parseBaseline, removalRecorded } from './server-mutation/baseline.mjs';
+import {
+  BASELINE_PATH,
+  parseBaseline,
+  removalRecorded,
+  removedChecks,
+} from './server-mutation/baseline.mjs';
 import {
   CHECKS,
   evaluateCheck,
@@ -73,33 +78,41 @@ function readBaselines(repo, root, baseSha) {
     // Bootstrap: accepted only while the base has neither the baseline nor this scanner.
     if (showAt(repo, baseSha, SCRIPT_PATH) !== null)
       throw new ScanError('base has the scanner but no baseline');
-  } else base = parseBaseline(baseText, 'base', CHECKS, { retired: true });
+  } else base = parseBaseline(baseText, 'base', CHECKS, { retired: () => true });
   const headFile = path.join(root, BASELINE_PATH);
   const head = parseBaseline(
     fs.existsSync(headFile) ? fs.readFileSync(headFile, 'utf8') : '',
     'head',
-    CHECKS
+    CHECKS,
+    { retired: id => Boolean(base?.checks[id]) }
   );
   // Valid but empty is never a baseline, on either side.
   if (base && !Object.keys(base.checks).length) throw new ScanError('base baseline names no check');
   if (!Object.keys(head.checks).length) throw new ScanError('head baseline names no check');
   for (const check of CHECKS) assertNamed(repo, baseSha, check, base, head);
+  assertRemovalsKept(base, head);
   return { base, head, bootstrap: base === null };
 }
 
 // Valid but empty is not a baseline. The base names every check its own scanner ran (a check new in
 // this head is absent from the base scanner's evaluation) unless the base records the owner's removal
 // of it; the head names every check unless the base has it (the removal is then judged as tamper
-// against the base) or the base records its removal, a record the head must keep (Astra r2 B10).
+// against the base) or the base records its removal (Astra r2 B10).
 function assertNamed(repo, baseSha, check, base, head) {
   const { id } = check;
   const removed = removalRecorded(base, id);
   if (base && !base.checks[id] && !removed && baseRanCheck(repo, baseSha, check))
     throw new ScanError(`base baseline has no ${id}`);
-  if (head.checks[id] || base?.checks[id]) return;
-  if (!removed) throw new ScanError(`head baseline has no ${id}`);
-  if (!removalRecorded(head, id))
-    throw new ScanError(`head baseline drops the recorded removal of ${id}`);
+  if (!head.checks[id] && !base?.checks[id] && !removed)
+    throw new ScanError(`head baseline has no ${id}`);
+}
+
+// Every removal the base records stays recorded while the check is absent from both sides, whether
+// or not this scanner still has the check (Astra r2 B10, r3 B10).
+function assertRemovalsKept(base, head) {
+  for (const id of removedChecks(base))
+    if (!base.checks[id] && !head.checks[id] && !removalRecorded(head, id))
+      throw new ScanError(`head baseline drops the recorded removal of ${id}`);
 }
 
 export function run(argv, cwd = process.cwd()) {

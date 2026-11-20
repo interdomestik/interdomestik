@@ -130,6 +130,47 @@ describe('definition: accepted schema forms', () => {
     expect(define(schema)).toThrow(ActionDefinitionError);
   });
 
+  it('accepts a scalar refinement on an optional, nullable or readonly scalar (r3 B16)', () => {
+    const scalarChecks = z.strictObject({
+      a: z
+        .string()
+        .optional()
+        .refine(v => v !== ''),
+      b: z
+        .number()
+        .nullable()
+        .check(() => undefined),
+      c: z
+        .string()
+        .trim()
+        .optional()
+        .readonly()
+        .overwrite(v => v),
+      d: z
+        .enum(['x', 'y'])
+        .optional()
+        .nullable()
+        .superRefine(() => undefined),
+    });
+    expect(define(scalarChecks)).not.toThrow();
+  });
+
+  it('still refuses a code check on an optional object or array', () => {
+    expect(define(z.strictObject({ a: inner.optional().refine(() => true) }))).toThrow(
+      /a: a custom check on a optional/
+    );
+    expect(
+      define(
+        z.strictObject({
+          a: z
+            .array(z.string())
+            .nullable()
+            .check(() => {}),
+        })
+      )
+    ).toThrow(ActionDefinitionError);
+  });
+
   it('refuses an overwrite that adds an owner key after the inner object parsed', () => {
     // The inner strict object passes; the wrapper's overwrite would hand the handler a userId.
     const smuggled = z.strictObject({
