@@ -1,16 +1,19 @@
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import { ownerColumnKeys, TENANT_IDENTITY_KEYS } from './safe-action.owner-keys';
 
 // The accepted forms of an action's input schema, walked over the zod 4 definition at definition
 // time (design §1.4): a strict object root, strict objects at every depth, no identity key, and only
 // scalar, wrapper, array, tuple, union and (in a form) file nodes. A node that can widen, default or
-// pipe into another shape is refused, and so is any check on an object, wrapper, array, tuple or
-// union other than an array's size (SEC-02: nothing may add an undeclared key). Checks on scalar and
-// file nodes are not judged in part 1: a check that rewrites a scalar, and a coercion, reach the
-// handler as zod returns them (design addendum 6; the runtime input guard is WP-02 part 1b).
+// pipe into another shape is refused. So is any check on an object, wrapper, array, tuple or union,
+// except an array's size and the checks of a wrapper around a scalar, and so is any check, anywhere,
+// with a `when` callback other than zod's own (SEC-02: nothing may add an undeclared key; addenda 6
+// and 7). Checks on scalar and file nodes are otherwise not judged in part 1: a check that rewrites
+// a scalar, and a coercion, reach the handler as zod returns them, until the runtime input guard of
+// WP-02 part 1b.
 type ZodDef = {
   type: string;
+  check?: unknown;
   shape?: Record<string, z.ZodType>;
   catchall?: z.ZodType;
   checks?: unknown[];
@@ -24,8 +27,49 @@ type ZodDef = {
 const SCALAR_TYPES = new Set(['string', 'number', 'boolean', 'bigint', 'date', 'enum', 'literal']);
 const WRAPPER_TYPES = new Set(['optional', 'nullable', 'readonly']);
 const CONTAINER_TYPES = new Set([...WRAPPER_TYPES, 'array', 'tuple', 'union']);
-// The checks a container may carry: an array's size, which cannot change a value (zod check kinds).
-const ARRAY_SIZE_CHECKS = new Set(['min_length', 'max_length', 'length_equals']);
+
+type CheckInternals = {
+  _zod?: { def?: { check?: unknown; when?: unknown }; traits?: { has(name: string): boolean } };
+};
+const internals = (check: unknown) => (check as CheckInternals | null)?._zod;
+const firstCheck = (schema: z.ZodType): unknown =>
+  (schema._zod.def as { checks?: unknown[] }).checks?.[0];
+
+// A check's zod kind; an empty or non-string kind is unknown (Astra r8 B30).
+const checkKind = (check: unknown): string => {
+  const kind = internals(check)?.def?.check;
+  return typeof kind === 'string' && kind !== '' ? kind : 'unknown';
+};
+
+// zod gives its length and size checks a default `when` (run only on a value that has a length or
+// a size), captured once from zod itself as addendum 4 did. Any other `when` is a developer callback
+// that receives the writable parse payload and can change any value it reaches (Astra r8 B28).
+const LENGTH_WHEN = internals(firstCheck(z.array(z.string()).min(1)))?.def?.when;
+const SIZE_WHEN = internals(firstCheck(z.file().min(1)))?.def?.when;
+const DEFAULT_WHEN: ReadonlyMap<string, unknown> = new Map([
+  ['min_length', LENGTH_WHEN],
+  ['max_length', LENGTH_WHEN],
+  ['length_equals', LENGTH_WHEN],
+  ['min_size', SIZE_WHEN],
+  ['max_size', SIZE_WHEN],
+  ['size_equals', SIZE_WHEN],
+]);
+const hasCustomWhen = (check: unknown): boolean => {
+  const when = internals(check)?.def?.when;
+  return when !== undefined && when !== DEFAULT_WHEN.get(checkKind(check));
+};
+
+// The checks a container may carry: an array's size, recognised by its kind and zod's own class
+// trait, which cannot change a value (its `when` is judged first, for every check).
+const ARRAY_SIZE_TRAITS: ReadonlyMap<string, string> = new Map([
+  ['min_length', '$ZodCheckMinLength'],
+  ['max_length', '$ZodCheckMaxLength'],
+  ['length_equals', '$ZodCheckLengthEquals'],
+]);
+const isArraySizeCheck = (check: unknown): boolean => {
+  const trait = ARRAY_SIZE_TRAITS.get(checkKind(check));
+  return trait !== undefined && internals(check)?.traits?.has(trait) === true;
+};
 
 export class ActionDefinitionError extends Error {
   constructor(operation: string, detail: string) {
@@ -51,17 +95,28 @@ function wrapsScalar(def: ZodDef): boolean {
   return inner !== def && SCALAR_TYPES.has(inner.type);
 }
 
-const checkKind = (check: unknown): string =>
-  (check as { _zod?: { def?: { check?: string } } })._zod?.def?.check ?? 'unknown';
-
 // The first check a container node may not carry (r1, kept in part 1 by the lead, addendum 6): any
 // check on a wrapper, array, tuple or union can replace what it holds, an object included, and so
 // add a key the strict object did not declare, an identity key included (SEC-02). Only an array's
 // size is accepted; a wrapper around a scalar is judged as a scalar.
 function containerCheck(def: ZodDef): string | undefined {
   if (wrapsScalar(def)) return undefined;
-  const accepted = def.type === 'array' ? ARRAY_SIZE_CHECKS : new Set<string>();
-  return (def.checks ?? []).map(checkKind).find(kind => !accepted.has(kind));
+  const accepted = (check: unknown) => def.type === 'array' && isArraySizeCheck(check);
+  const refused = (def.checks ?? []).find(check => !accepted(check));
+  return refused === undefined ? undefined : checkKind(refused);
+}
+
+// Refuses a check with a custom `when` on this node: its own checks, and the node itself when it is
+// also a check (`z.email()` as a field). Called for every node the walk reaches (addendum 7).
+function assertDefaultWhen(schema: z.ZodType, def: ZodDef, path: string, ctx: WalkContext): void {
+  const checks = def.check === undefined ? (def.checks ?? []) : [schema, ...(def.checks ?? [])];
+  if (checks.some(hasCustomWhen)) {
+    refuse(
+      ctx,
+      path,
+      `a check with a custom when callback (it receives the writable payload) on a ${def.type}`
+    );
+  }
 }
 
 function refuse(ctx: WalkContext, path: string, reason: string): never {
@@ -82,6 +137,7 @@ function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
       'object-level refine/check/superRefine/overwrite belongs in the owning command'
     );
   }
+  if (def.catchall) assertDefaultWhen(def.catchall, defOf(def.catchall), `${path}{catchall}`, ctx);
   for (const [key, child] of Object.entries(def.shape ?? {})) {
     const childPath = path ? `${path}.${key}` : key;
     if (ctx.identityKeys.has(key)) refuse(ctx, childPath, 'identity keys come from server context');
@@ -92,6 +148,7 @@ function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
 function walk(schema: z.ZodType, path: string, ctx: WalkContext): void {
   const def = defOf(schema);
   const { type } = def;
+  assertDefaultWhen(schema, def, path, ctx);
   if (type === 'object') return walkObject(def, path, ctx);
   if (SCALAR_TYPES.has(type)) return;
   if (type === 'file') {
@@ -99,7 +156,9 @@ function walk(schema: z.ZodType, path: string, ctx: WalkContext): void {
     return;
   }
   const check = CONTAINER_TYPES.has(type) ? containerCheck(def) : undefined;
-  if (check) refuse(ctx, path, `a ${check} check on a ${type} belongs in the owning command`);
+  if (check !== undefined) {
+    refuse(ctx, path, `a ${check} check on a ${type} belongs in the owning command`);
+  }
   walkContainer(def, path, ctx);
 }
 

@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 
+import { PORTAL_ROLES } from './roles.core';
 import {
   authenticate,
   failureOfThrown,
@@ -70,6 +71,14 @@ function readBasis(name: string, value: unknown): ActionBasis {
   const copy: unknown[] = kind === 'role' && Array.isArray(roles) ? Array.from(roles) : [];
   if (copy.length === 0 || !copy.every(role => typeof role === 'string')) {
     throw new ActionDefinitionError(name, BASIS_SHAPE);
+  }
+  // A basis names catalogue roles only, never `user` or any other string (Astra r8 B29).
+  const stray = copy.find(role => !(PORTAL_ROLES as readonly unknown[]).includes(role));
+  if (stray !== undefined) {
+    throw new ActionDefinitionError(
+      name,
+      `basis role "${String(stray)}" is not in the role catalogue`
+    );
   }
   return Object.freeze({ kind: 'role', roles: Object.freeze(copy as PortalRole[]) });
 }

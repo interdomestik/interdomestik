@@ -52,6 +52,16 @@ describe('definition: name, basis, subject', () => {
     expect(define(z.strictObject({ id: z.string() }), extra)).toThrow(ActionDefinitionError);
   });
 
+  it.each(['user', 'nobody'])(
+    'refuses the role %s, which is not in the catalogue (r8 B29)',
+    role => {
+      const basis = { basis: { kind: 'role', roles: [role] } };
+      expect(define(z.strictObject({ id: z.string() }), basis)).toThrow(
+        `basis role "${role}" is not in the role catalogue`
+      );
+    }
+  );
+
   it('accepts the self basis and the self subject', () => {
     const action = defineAction({
       name: 'self.op',

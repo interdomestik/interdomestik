@@ -1,16 +1,5 @@
 import type { auth } from '@/lib/auth';
-import type {
-  ROLE_ADMIN,
-  ROLE_AGENT,
-  ROLE_AUDITOR,
-  ROLE_BRANCH_MANAGER,
-  ROLE_GLOBAL_SUPPORT,
-  ROLE_MEMBER,
-  ROLE_PROMOTER,
-  ROLE_STAFF,
-  ROLE_SUPER_ADMIN,
-  ROLE_TENANT_ADMIN,
-} from '@/lib/roles.core';
+import type { PORTAL_ROLES } from '@/lib/roles.core';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 // The canonical result of every server action (R-20: one result type).
@@ -49,17 +38,8 @@ export type ProtectedActionContext = {
 
 export type PublicActionContext = { requestHeaders: Headers };
 
-export type PortalRole =
-  | typeof ROLE_SUPER_ADMIN
-  | typeof ROLE_ADMIN
-  | typeof ROLE_TENANT_ADMIN
-  | typeof ROLE_GLOBAL_SUPPORT
-  | typeof ROLE_AUDITOR
-  | typeof ROLE_STAFF
-  | typeof ROLE_BRANCH_MANAGER
-  | typeof ROLE_AGENT
-  | typeof ROLE_PROMOTER
-  | typeof ROLE_MEMBER;
+/** A role of the catalogue (`PORTAL_ROLES`, roles.core.ts): the one source of role names. */
+export type PortalRole = (typeof PORTAL_ROLES)[number];
 
 /** The declared authorization basis of an action (R-05). */
 export type ActionBasis =

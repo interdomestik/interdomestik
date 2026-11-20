@@ -11,6 +11,20 @@ export const ROLE_AGENT = 'agent' as const;
 export const ROLE_PROMOTER = 'promoter' as const;
 export const ROLE_MEMBER = 'member' as const;
 
+/** The role catalogue: every role a session, a portal or an action basis may name. */
+export const PORTAL_ROLES = Object.freeze([
+  ROLE_SUPER_ADMIN,
+  ROLE_ADMIN,
+  ROLE_TENANT_ADMIN,
+  ROLE_GLOBAL_SUPPORT,
+  ROLE_AUDITOR,
+  ROLE_STAFF,
+  ROLE_BRANCH_MANAGER,
+  ROLE_AGENT,
+  ROLE_PROMOTER,
+  ROLE_MEMBER,
+] as const);
+
 export function isMember(role: RoleLike): boolean {
   return role === 'user' || role === ROLE_MEMBER || role === ROLE_AGENT;
 }
