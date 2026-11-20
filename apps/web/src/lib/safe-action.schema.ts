@@ -2,17 +2,12 @@ import { z } from 'zod';
 
 import { ownerColumnKeys, TENANT_IDENTITY_KEYS } from './safe-action.owner-keys';
 
-// The accepted forms of an action's input schema, walked over the zod 4 definition at definition
-// time (design §1.4): a strict object root, strict objects at every depth, no identity key, and only
-// scalar, wrapper, array, tuple, union and (in a form) file nodes. A node that can widen, default or
-// pipe into another shape is refused. So is any check on an object, wrapper, array, tuple or union,
-// except an array's size and the checks of a wrapper around a scalar, and so is any check, anywhere,
-// with a `when` callback other than zod's own or whose definition holds a schema (SEC-02: nothing may
-// add an undeclared key; addenda 6 to 9). A check's definition is read from its descriptors: one with
-// an accessor or another prototype is refused unread. The walk judges schemas built through zod's
-// public API; other internals of a hand-built schema or check object are not judged. Checks on scalar
-// and file nodes are otherwise not judged in part 1: a check that rewrites a scalar, and a coercion,
-// reach the handler as zod returns them, until the runtime input guard of WP-02 part 1b.
+// An action's input schema, walked over its zod 4 definition (design §1.4, addenda 6 to 10): strict
+// objects only, no identity key, scalar, wrapper, array, tuple, union and (in a form) file nodes, no
+// node that widens, defaults or pipes, and no recursion. Refused anywhere: a check on a container but
+// an array's size or a scalar wrapper's checks; a check with a custom `when`, holding a schema, or
+// with an accessor or another prototype (read from descriptors, unread). Scope: schemas built through
+// zod's public API. Scalar-rewriting checks and coercions reach the handler until WP-02 part 1b.
 type ZodDef = {
   type: string;
   check?: unknown;
@@ -30,8 +25,7 @@ const SCALAR_TYPES = new Set(['string', 'number', 'boolean', 'bigint', 'date', '
 const WRAPPER_TYPES = new Set(['optional', 'nullable', 'readonly']);
 const CONTAINER_TYPES = new Set([...WRAPPER_TYPES, 'array', 'tuple', 'union']);
 
-// An own property, read from its descriptor: an accessor (no `value`, even with get and set both
-// undefined) is never called and reads as ACCESSOR (Astra r10 B28, addendum 9).
+// An own property from its descriptor; an accessor (no `value`) is never called (r10 B28).
 const ACCESSOR = Symbol('accessor');
 function ownValue(holder: unknown, key: PropertyKey): unknown {
   if ((typeof holder !== 'object' && typeof holder !== 'function') || holder === null) {
@@ -63,9 +57,8 @@ const checkKind = (check: unknown): string => {
   return typeof kind === 'string' && kind !== '' ? kind : 'unknown';
 };
 
-// zod gives its length and size checks a default `when` (run only on a value that has a length or
-// a size), captured once from zod itself as addendum 4 did. Any other `when` is a developer callback
-// that receives the writable parse payload and can change any value it reaches (Astra r8 B28).
+// zod's default `when` of its length and size checks, captured once (addendum 4); any other `when`
+// receives the writable parse payload and can change any value it reaches (Astra r8 B28).
 const LENGTH_WHEN = ownValue(checkDef(firstCheck(z.array(z.string()).min(1))), 'when');
 const SIZE_WHEN = ownValue(checkDef(firstCheck(z.file().min(1))), 'when');
 const DEFAULT_WHEN: ReadonlyMap<string, unknown> = new Map([
@@ -113,6 +106,7 @@ type WalkContext = {
   operation: string;
   form: boolean;
   identityKeys: ReadonlySet<string>;
+  onPath: Set<z.ZodType>;
 };
 
 function defOf(schema: z.ZodType): ZodDef {
@@ -126,10 +120,8 @@ function wrapsScalar(def: ZodDef): boolean {
   return inner !== def && SCALAR_TYPES.has(inner.type);
 }
 
-// The first check a container node may not carry (r1, kept in part 1 by the lead, addendum 6): any
-// check on a wrapper, array, tuple or union can replace what it holds, an object included, and so
-// add a key the strict object did not declare, an identity key included (SEC-02). Only an array's
-// size is accepted; a wrapper around a scalar is judged as a scalar.
+// The first check a container may not carry (addendum 6): it could replace what it holds and add an
+// undeclared key (SEC-02). An array's size is accepted; a scalar wrapper is judged as a scalar.
 function containerCheck(def: ZodDef): string | undefined {
   if (wrapsScalar(def)) return undefined;
   const accepted = (check: unknown) => def.type === 'array' && isArraySizeCheck(check);
@@ -192,7 +184,15 @@ function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
   }
 }
 
+// A schema met again on its own path refers to itself (zod's getter form): refused (r11 B38).
 function walk(schema: z.ZodType, path: string, ctx: WalkContext): void {
+  if (ctx.onPath.has(schema)) refuse(ctx, path, 'a recursive schema (it refers to itself)');
+  ctx.onPath.add(schema);
+  walkNode(schema, path, ctx);
+  ctx.onPath.delete(schema);
+}
+
+function walkNode(schema: z.ZodType, path: string, ctx: WalkContext): void {
   const def = defOf(schema);
   const { type } = def;
   assertNodeChecks(schema, def, path, ctx);
@@ -239,6 +239,7 @@ export function assertAcceptedSchema(schema: z.ZodType, options: SchemaCheckOpti
     operation: options.operation,
     form: options.form,
     identityKeys: options.basisKind === 'self' ? ownerColumnKeys() : TENANT_IDENTITY_KEYS,
+    onPath: new Set(),
   };
   const root = defOf(schema);
   if (root.type !== 'object') refuse(ctx, '', 'the root must be a strict object');
