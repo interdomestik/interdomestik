@@ -17,9 +17,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 // - Shell text (package scripts and shell scripts) is read as the shell reads it, and no simple
 //   command may push a schema.
 // - In Node, TypeScript and workflow files every mention of a push tool (supabase, drizzle-kit) is
-//   pinned by the sha256 of its line in schema-push-mentions.json, so a new mention or a changed
-//   mentioning line needs a review; database-command.mjs (the one push-local invocation, --local
-//   only) is pinned byte for byte. Database clients in those files are CHK-13's inventory.
+//   pinned by its line's sha256 (schema-push-mentions.json); database-command.mjs (the one --local
+//   push) is pinned byte for byte. CHK-13 inventories database clients in scripts and pg16 tests,
+//   not in workflow YAML or packages/*/scripts/ (counted here); those clients are in neither.
 
 const PACKAGE_RUNNERS = new Set(['pnpm', 'npm', 'yarn', 'turbo']);
 const COMMAND_SEPARATORS = new Set([';', '&', '|', '(', ')', '{', '}', '\n']);
