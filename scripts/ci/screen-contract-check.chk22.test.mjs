@@ -4,7 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { ids, lint, tempDir, tree, writeTree } from './fixtures/screen-contract-check/harness.mjs';
-import { originOf } from './screen-contract/origins.mjs';
+import { originIn, originOf } from './screen-contract/origins.mjs';
 
 const W = 'apps/web/src';
 const REG = 'scripts/ci/screen-contract/consent-registry.json';
@@ -652,4 +652,146 @@ test('CHK-22 discovery: a translator resolves in the label scope, not by its nam
     })
   );
   assert.deepEqual(await chk22(root), [`CHK-22|${file}|unregistered|Checkbox:a1`]);
+});
+
+test('CHK-22 origins: a path leaving the tree, an absolute path or a link is refused; a missing file is not an empty one (r3 F1)', t => {
+  const outer = tempDir(t);
+  const root = writeTree(path.join(outer, 'tree'), {
+    'm/empty.ts': '',
+    'm/has.ts': 'export const X = 1;\n',
+  });
+  writeTree(outer, { 'outside.ts': 'export const X = 1;\n' });
+  fs.symlinkSync(path.join(outer, 'outside.ts'), path.join(root, 'm/link.ts'));
+  const resolver = relativeResolver(root);
+  assert.throws(
+    () => originIn(resolver, '../outside.ts', 'X'),
+    /not a plain path inside the tree/u
+  );
+  assert.throws(
+    () => originIn(resolver, path.join(outer, 'outside.ts'), 'X'),
+    /not a plain path inside the tree/u
+  );
+  assert.throws(
+    () => originIn(resolver, 'm/link.ts', 'X'),
+    /m\/link\.ts: link\.ts is a symbolic link/u
+  );
+  assert.deepEqual(originIn(resolver, 'm/gone.ts', 'X'), {
+    file: 'm/gone.ts',
+    name: 'X',
+    unresolved: true,
+    missing: true,
+  });
+  assert.equal(originIn(resolver, 'm/empty.ts', 'X'), null);
+  assert.deepEqual(originIn(resolver, 'm/has.ts', 'X'), {
+    file: 'm/has.ts',
+    name: 'X',
+    local: 'X',
+  });
+});
+
+const LOCAL = `${W}/lib/local.ts`;
+const LOCAL_FILE = {
+  [LOCAL]: 'export async function saveLocally() {}\nexport const helpers = { save() {} };\n',
+};
+
+test('CHK-22: an action or formAction is credited only when it is a layer-2 export (r3 F5)', async t => {
+  const localUse = { ...use('signup', PAGE), submission: `${LOCAL}#saveLocally` };
+  const action = tree(
+    t,
+    base({
+      ...LOCAL_FILE,
+      [REG]: registry([consent('terms', PAGE, 'terms', [localUse])]),
+      [PAGE]: `import { saveLocally } from '@/lib/local';\nexport default function P() { return <form action={saveLocally} data-consent-use="terms:signup">${CONTROL}</form>; }\n`,
+    })
+  );
+  assert.deepEqual(await chk22(action), UNRESOLVED);
+  const formAction = tree(
+    t,
+    base({
+      ...LOCAL_FILE,
+      [REG]: signupReg(),
+      [PAGE]: `${head}import { saveLocally } from '@/lib/local';\nexport default function P() { return <form action={saveTerms} data-consent-use="terms:signup">${CONTROL}<button formAction={saveLocally}>x</button></form>; }\n`,
+    })
+  );
+  assert.deepEqual(await chk22(formAction), UNRESOLVED);
+});
+
+const NS_IMPORTS =
+  "import * as actions from '@/actions/consent';\nimport * as local from '@/lib/local';\nimport { helpers } from '@/lib/local';\n";
+const judgeNs = async (t, body) =>
+  chk22(
+    tree(t, base({ ...LOCAL_FILE, [REG]: signupReg(), [PAGE]: handlerPage(NS_IMPORTS, body) }))
+  );
+
+test('CHK-22: a handler reaching two submissions is not reduced to one (r3 F5)', async t => {
+  const mismatch = [`CHK-22|${PAGE}|submission-mismatch|terms:signup`];
+  const cases = [
+    ['  function onSubmit(e) { if (e.x) saveTerms(); else actions.saveDraft(); }', mismatch],
+    ['  function onSubmit(e) { if (e.x) saveTerms(); else saveDraft(); }', mismatch],
+    ['  function onSubmit() { actions.saveTerms(); }', []],
+    ['  function onSubmit() { saveTerms(); local.saveLocally(); }', []],
+    ['  function onSubmit(e) { saveTerms(); actions[e.k](); }', UNRESOLVED],
+    ['  function onSubmit() { saveTerms(); actions.notExported(); }', UNRESOLVED],
+    ['  function onSubmit() { saveTerms(); helpers.save(); }', UNRESOLVED],
+  ];
+  const judged = await Promise.all(cases.map(([body]) => judgeNs(t, body)));
+  judged.forEach((found, index) => assert.deepEqual(found, cases[index][1], cases[index][0]));
+});
+
+test('CHK-22: a render through a namespace import is found; an unresolvable one is a scanner error (r3 F6)', async t => {
+  const forms = `${W}/app/forms.tsx`;
+  const files = body =>
+    base({
+      ...SHARED_FILES,
+      [REG]: registry([
+        consent('terms', SHARED, 'terms', [use('a', forms)], { exportName: 'ConsentBox' }),
+      ]),
+      [forms]: `${head}import * as UI from '@interdomestik/ui';\nimport * as Radix from '@radix-ui/react-checkbox';\n${body}`,
+    });
+  const twoForms =
+    'export function A() { return <form action={saveTerms} data-consent-use="terms:a"><UI.ConsentBox /><Radix.Root /></form>; }\nexport function B() { return <form action={saveTerms}><UI.ConsentBox /></form>; }\n';
+  assert.deepEqual(await chk22(tree(t, files(twoForms))), [
+    `CHK-22|${forms}|unmatched-boundary|terms@B`,
+  ]);
+  const component = element => `export function C() { return <div>${element}</div>; }\n`;
+  await assert.rejects(
+    lint(tree(t, files(component('<UI.Missing />')))),
+    /<UI\.Missing> cannot be resolved to a component/u
+  );
+  await assert.rejects(
+    lint(tree(t, files(component('<UI.ConsentBox.Inner />')))),
+    /<UI\.ConsentBox\.Inner> cannot be resolved to a component/u
+  );
+});
+
+test('CHK-22 discovery: the shared Input with a choice type is a control (r3 F6)', async t => {
+  const file = `${W}/components/d.tsx`;
+  const root = tree(
+    t,
+    base({
+      [REG]: registry([]),
+      [file]:
+        'import { Input } from \'@interdomestik/ui\';\nexport function D() { return <div><Input type="checkbox" name="terms" /><Input type="text" name="terms" /></div>; }\n',
+    })
+  );
+  assert.deepEqual(await chk22(root), [`CHK-22|${file}|unregistered|Input:terms`]);
+});
+
+test('CHK-22: the named handler limits stay unresolved-submission (r3 hardening)', async t => {
+  const hookForm = `${head}import { useForm } from 'react-hook-form';\nexport default function P() {\n  const { handleSubmit } = useForm();\n  return <form onSubmit={handleSubmit(async v => saveTerms(v))} data-consent-use="terms:signup">${CONTROL}</form>;\n}\n`;
+  const cases = [
+    [
+      "import { startTransition } from 'react';\n",
+      '  async function run() { await saveTerms(); }\n  function onSubmit() { startTransition(run); }',
+    ],
+    [
+      "import { useMemo } from 'react';\n",
+      '  const onSubmit = useMemo(() => async () => { await saveTerms(); }, []);',
+    ],
+  ];
+  const judged = await Promise.all([
+    chk22(tree(t, base({ [REG]: signupReg(), [PAGE]: hookForm }))),
+    ...cases.map(([imports, body]) => judgeHandler(t, imports, body)),
+  ]);
+  judged.forEach(found => assert.deepEqual(found, UNRESOLVED));
 });

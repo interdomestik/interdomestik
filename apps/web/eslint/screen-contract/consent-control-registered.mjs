@@ -2,12 +2,10 @@
 // boundary, and the boundary invokes the registered submission (WP-05 design §2.1; B3, B11, B16,
 // B20, and the post-r5 formAction rule). Names are resolved lexically through ESLint's scope
 // analysis, never by spelling across the file (code-r1 B7).
-import fs from 'node:fs';
-import path from 'node:path';
-
 import { ScanError } from '../../../../scripts/ci/server-mutation/ast.mjs';
 import { catalogueFor, messageText } from '../../../../scripts/ci/screen-contract/catalogue.mjs';
 import { originIn, originOf } from '../../../../scripts/ci/screen-contract/origins.mjs';
+import { readInside } from '../../../../scripts/ci/screen-contract/paths.mjs';
 import { registryFor } from '../../../../scripts/ci/screen-contract/registry.mjs';
 import { layerOf } from '../../../../scripts/ci/screen-contract/roles.mjs';
 import { kindOfSpecifier } from '../../../../scripts/ci/screen-contract/specifiers.mjs';
@@ -23,8 +21,9 @@ const FORMS = new Set(['form', 'Form']);
 const LABELS = new Set(['label', 'Label']);
 const FUNCTIONS = new Set(['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression']);
 const TRANSLATOR_FACTORIES = new Set(['useTranslations', 'getTranslations']);
-// Elements whose `formAction` submits the form, by the element they render, and the `type`
-// values that submit (an absent type submits for a button only). The UI map of the config.
+// The native element a name renders (the UI map of the config; the shared `Input` forwards `type`):
+// whose `formAction` submits the form, and the `type` values that submit (an absent type submits
+// for a button only), and which `input`s are choice controls (r3 F6).
 const SUBMIT_ELEMENTS = new Map([
   ['button', 'button'],
   ['Button', 'button'],
@@ -33,6 +32,9 @@ const SUBMIT_ELEMENTS = new Map([
 ]);
 const SUBMIT_TYPES = { button: new Set(['submit']), input: new Set(['submit', 'image']) };
 const SKIP = Symbol('skip');
+// A call or reference bound to a module of this tree that cannot be followed to its export: it
+// could be a submission, so the submission is unresolved (r3 F5).
+const UNKNOWN = Symbol('unknown');
 // The calls that run the function they receive first, now (code-r2 B6): React's `startTransition`
 // (imported or as `React.startTransition`), the start function of `const [, start] =
 // useTransition()`, and the global `queueMicrotask`. A function passed to any other call is only
@@ -63,6 +65,12 @@ function literalAttribute(opening, name) {
     return expression.quasis[0].value.cooked;
   return null;
 }
+
+// The dotted text of a JSX element name.
+const jsxName = node =>
+  node.type === 'JSXMemberExpression'
+    ? [jsxName(node.object), node.property.name].join('.')
+    : (node.name ?? '?');
 
 const expressionOf = attribute =>
   attribute?.value?.type === 'JSXExpressionContainer' ? attribute.value.expression : null;
@@ -103,7 +111,9 @@ function translatorNamespace(arg) {
 function isControl(opening) {
   const name = elementName(opening);
   if (CONTROL_COMPONENTS.has(name)) return true;
-  return name === 'input' && CHOICE_TYPES.has(literalAttribute(opening, 'type'));
+  return (
+    SUBMIT_ELEMENTS.get(name) === 'input' && CHOICE_TYPES.has(literalAttribute(opening, 'type'))
+  );
 }
 
 // A button or input whose `formAction` submits: a dynamic `type` counts (fail closed).
@@ -400,16 +410,39 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
     return words.some(word => VOCABULARY_RE.test(word));
   }
 
-  // The origin of an identifier lexically bound to a non-external import, or null.
-  function submissionOfIdentifier(node) {
-    const binding = importOf(node);
+  // The import of this tree a reference names, as { specifier, imported }: an identifier bound to
+  // a named or default import, or `ns.name` of a namespace import (r3 F5). UNKNOWN for any other
+  // reference rooted in such an import (a computed or deeper member, a member of a named import);
+  // null when it is not rooted in one (a local, a prop, an external module).
+  function treeImportOf(node) {
+    let rootNode = node;
+    while (rootNode.type === 'MemberExpression') rootNode = rootNode.object;
+    const binding = rootNode.type === 'Identifier' ? importOf(rootNode) : null;
     if (!binding || kindOfSpecifier(binding.specifier) === 'external') return null;
-    const origin = originOf(resolverOf(context), rel, binding.specifier, binding.imported);
-    return origin.external || origin.unresolved ? null : origin;
+    if (node === rootNode) return binding.imported === '*' ? UNKNOWN : binding;
+    const direct =
+      node.object === rootNode &&
+      !node.computed &&
+      node.property.type === 'Identifier' &&
+      binding.imported === '*';
+    return direct ? { specifier: binding.specifier, imported: node.property.name } : UNKNOWN;
   }
 
-  const isServerOrigin = origin =>
-    layerOf(origin.file, fs.readFileSync(path.join(root, origin.file), 'utf8')) === 2;
+  function isServerOrigin(origin) {
+    const text = readInside(root, origin.file);
+    return text !== null && layerOf(origin.file, text) === 2;
+  }
+
+  // What a reference is as a submission: `file#export` of a layer-2 export, UNKNOWN when it is
+  // bound to this tree but cannot be resolved, or null when it is no submission (an external or
+  // client export, a local, a prop).
+  function submissionOf(node) {
+    const target = treeImportOf(node);
+    if (target === null || target === UNKNOWN) return target;
+    const origin = originOf(resolverOf(context), rel, target.specifier, target.imported);
+    if (origin.external || origin.unresolved) return UNKNOWN;
+    return isServerOrigin(origin) ? `${origin.file}#${origin.name}` : null;
+  }
 
   // Visits one node of a running function: a nested function counts only when it runs in place
   // (an IIFE, `startTransition(async () => …)`; code-r2 B6); a call of a function declared inside
@@ -448,21 +481,25 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
     return identityArgument(expression);
   }
 
-  // The one submission a handler calls: an import of a layer-2 module, followed one level by name.
+  // Every distinct submission a handler calls (r3 F5: never reduced to one, so a second one is a
+  // submission-mismatch), or null when it calls none, or a call bound to this tree cannot be
+  // resolved (an unresolved-submission, as for any submission the lint cannot follow).
   function submissionOfHandler(expression) {
     const handler = handlerRoot(expression);
     if (!handler) return null;
     const found = new Set();
     for (const call of invokedCalls(handler)) {
-      const origin = call.callee.type === 'Identifier' ? submissionOfIdentifier(call.callee) : null;
-      if (origin && isServerOrigin(origin)) found.add(`${origin.file}#${origin.name}`);
+      const submission = submissionOf(call.callee);
+      if (submission === UNKNOWN) return null;
+      if (submission) found.add(submission);
     }
-    return found.size === 1 ? [...found][0] : null;
+    return found.size ? [...found] : null;
   }
 
+  // The submission an `action` or `formAction` names, with the layer-2 check of a handler (r3 F5).
   function actionSubmission(expression) {
-    const origin = expression?.type === 'Identifier' ? submissionOfIdentifier(expression) : null;
-    return origin ? `${origin.file}#${origin.name}` : null;
+    const submission = expression ? submissionOf(expression) : null;
+    return typeof submission === 'string' ? submission : null;
   }
 
   // The submissions of every submit-capable `formAction` inside the form, or null when one cannot
@@ -490,7 +527,7 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
     if (!action && !onSubmit) return null;
     const out = [];
     if (action) out.push(actionSubmission(expressionOf(action)));
-    if (onSubmit) out.push(submissionOfHandler(expressionOf(onSubmit)));
+    if (onSubmit) out.push(...(submissionOfHandler(expressionOf(onSubmit)) ?? [null]));
     const formActions = formActionSubmissions(boundary);
     return formActions && !out.includes(null) ? [...out, ...formActions] : null;
   }
@@ -498,10 +535,7 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
   function handlerSubmissions(opening) {
     for (const name of ['onCheckedChange', 'onChange']) {
       const handler = expressionOf(attributeOf(opening, name));
-      if (handler) {
-        const resolved = submissionOfHandler(handler);
-        return resolved ? [resolved] : null;
-      }
+      if (handler) return submissionOfHandler(handler);
     }
     return null;
   }
@@ -515,6 +549,7 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
   // (`sameFile`); null otherwise.
   function originOfElement(element) {
     const nameNode = element.openingElement.name;
+    if (nameNode.type === 'JSXMemberExpression') return originOfMember(nameNode);
     if (nameNode.type !== 'JSXIdentifier' || !/^[A-Z]/u.test(nameNode.name)) return null;
     const binding = importOf(nameNode);
     if (binding) {
@@ -524,6 +559,25 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
     const declaration = localDeclarationOf(nameNode);
     if (!declaration || ![...fileExports.values()].includes(declaration)) return null;
     return { file: rel, name: nameNode.name, local: nameNode.name, sameFile: true };
+  }
+
+  // `<Ns.Component />` with `Ns` a namespace import of this tree: the export it names (r3 F6). A
+  // deeper member of such a namespace (`<Ns.A.B />`), or a name it does not export, could be a
+  // registered component and is a scanner error (fail closed). A member of a named or default
+  // import (`<Ctx.Provider />`), a local, a prop or an external module is a property of a value,
+  // which origins do not follow: the limit of an identifier bound to a prop.
+  function originOfMember(member) {
+    let rootNode = member;
+    while (rootNode.type === 'JSXMemberExpression') rootNode = rootNode.object;
+    const binding = rootNode.type === 'JSXIdentifier' ? importOf(rootNode) : null;
+    if (binding?.imported !== '*' || kindOfSpecifier(binding.specifier) === 'external') return null;
+    const direct = member.object === rootNode;
+    const origin = direct
+      ? originOf(resolverOf(context), rel, binding.specifier, member.property.name)
+      : null;
+    if (!origin || origin.external || origin.unresolved)
+      throw new ScanError(`${rel}: <${jsxName(member)}> cannot be resolved to a component`);
+    return origin;
   }
 
   // The declaration a registry target `{ file, exportName }` names, as an origin, or null.
