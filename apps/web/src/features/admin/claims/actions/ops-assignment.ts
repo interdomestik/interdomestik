@@ -8,10 +8,19 @@ import {
   type OpsActionResponse,
 } from './action-helpers';
 
+import {
+  ASSIGNMENT_CONFLICT_ERROR,
+  ASSIGNMENT_DRAFT_ERROR,
+  ASSIGNMENT_TARGET_DENIED_ERROR,
+} from './ops-assignment-errors';
+
+export {
+  ASSIGNMENT_CONFLICT_ERROR,
+  ASSIGNMENT_DRAFT_ERROR,
+  ASSIGNMENT_TARGET_DENIED_ERROR,
+} from './ops-assignment-errors';
+
 export const ASSIGNMENT_TARGET_ROLE = 'staff';
-export const ASSIGNMENT_TARGET_DENIED_ERROR = 'Staff member not found or out of scope';
-export const ASSIGNMENT_CONFLICT_ERROR = 'Claim changed. Reload and try again.';
-export const ASSIGNMENT_DRAFT_ERROR = 'A draft claim cannot be assigned before it is submitted.';
 
 export type AssignClaimOwnerParams = {
   actorId: string;

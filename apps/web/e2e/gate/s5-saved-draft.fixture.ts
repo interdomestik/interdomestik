@@ -20,7 +20,7 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import {
   cleanupJourney,
-  exactClaimDescription,
+  exactClaimDescriptions,
   type S3JourneyIdentity,
 } from './member-staff-evidence-journey-cleanup.fixture';
 
@@ -113,7 +113,7 @@ export function journeyClaims(journey: S3JourneyIdentity) {
     columns: { id: true, userId: true },
     where: and(
       eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-      eq(claims.description, exactClaimDescription(journey))
+      inArray(claims.description, exactClaimDescriptions(journey))
     ),
   });
 }

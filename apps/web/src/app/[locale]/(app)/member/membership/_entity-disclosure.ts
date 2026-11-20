@@ -1,6 +1,5 @@
-import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { SponsorCoverage } from '@interdomestik/domain-membership-billing/sponsor-coverage';
-import { membershipPlans, subscriptions } from '@interdomestik/database';
+import { membershipPlans, subscriptions, type TenantTransaction } from '@interdomestik/database';
 import {
   toMembershipWorkspacePlan,
   type MembershipWorkspacePlan,
@@ -9,7 +8,7 @@ import type { InferSelectModel } from 'drizzle-orm';
 
 import {
   getSubscriptionEntityDisclosureCore,
-  getSponsorEntityDisclosureCore,
+  readSponsorEntityDisclosure,
   type EntityDisclosureModel,
 } from '@/lib/entity-disclosure.core';
 
@@ -27,12 +26,16 @@ export type SubscriptionRecord = Omit<SubscriptionWithPlan, 'plan'> & {
 
 export async function attachMembershipEntityDisclosure(
   subscription: SubscriptionWithPlan,
-  sponsor?: { authority: TenantAuthority; coverage: SponsorCoverage }
+  sponsor?: { tx: TenantTransaction; tenantId: string; coverage: SponsorCoverage }
 ): Promise<SubscriptionRecord> {
   return toSubscriptionRecord(
     subscription,
     sponsor
-      ? await getSponsorEntityDisclosureCore(sponsor.authority, sponsor.coverage.legalEntityId)
+      ? await readSponsorEntityDisclosure(
+          sponsor.tx,
+          sponsor.tenantId,
+          sponsor.coverage.legalEntityId
+        )
       : await getSubscriptionEntityDisclosureCore(subscription)
   );
 }

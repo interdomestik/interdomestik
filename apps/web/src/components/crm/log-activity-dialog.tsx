@@ -30,6 +30,7 @@ import {
 } from '@interdomestik/ui/components/select';
 import { Textarea } from '@interdomestik/ui/components/textarea';
 import { Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
@@ -49,6 +50,7 @@ interface LogActivityDialogProps {
 
 export function LogActivityDialog({ entityId, entityType = 'member' }: LogActivityDialogProps) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   const t = useTranslations('agent.activity_dialog');
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -75,13 +77,15 @@ export function LogActivityDialog({ entityId, entityType = 'member' }: LogActivi
       });
     }
 
-    if (result && 'error' in result) {
-      toast.error(result.error);
-    } else {
-      toast.success(t('success'));
-      setOpen(false);
-      form.reset();
+    // Server actions keep `error: undefined` on success, so the outcome is read from `success`.
+    if (!result?.success) {
+      toast.error(t('error'));
+      return;
     }
+    toast.success(t('success'));
+    setOpen(false);
+    form.reset();
+    router.refresh();
   }
 
   return (
@@ -92,7 +96,7 @@ export function LogActivityDialog({ entityId, entityType = 'member' }: LogActivi
           {t('trigger')}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent closeLabel={t('close')}>
         <DialogHeader>
           <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>

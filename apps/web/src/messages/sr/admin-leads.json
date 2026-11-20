@@ -66,7 +66,12 @@
       "drawer": {
         "title": "Detalji verifikacije",
         "documents": "Dokumenta",
-        "timeline": "Tok događaja"
+        "timeline": "Tok događaja",
+        "description": "Dokumenti i istorija verifikacije uplate.",
+        "loading": "Učitavanje detalja verifikacije…",
+        "load_error": "Detalji verifikacije nisu mogli da se učitaju.",
+        "not_found_title": "Zahtev za verifikaciju nije pronađen",
+        "not_found_description": "Možda je već rešen ili link više nije važeći."
       },
       "labels": {
         "missing_proof": "Nedostaje dokaz",
@@ -124,6 +129,17 @@
         "resolved_empty": "Još nema rešenih duplikata.",
         "load_error": "Pregled duplikata nije moguće učitati.",
         "retry": "Pokušaj ponovo"
+      },
+      "events": {
+        "created": "Uplata evidentirana",
+        "documentUploaded": "Dokaz otpremljen",
+        "approved": "Odobreno",
+        "rejected": "Odbijeno",
+        "needsInfo": "Zatražene informacije",
+        "resubmitted": "Ponovo poslato",
+        "updated": "Ažurirano",
+        "cashRecorded": "Gotovinsku uplatu evidentirao/la {name}",
+        "unknownActor": "Nepoznato"
       }
     },
     "analytics": {

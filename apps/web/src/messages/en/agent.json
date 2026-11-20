@@ -35,7 +35,6 @@
       "total": "Total Claims",
       "new": "New (Submitted)",
       "verification": "In Verification",
-
       "closed": "Resolved / Rejected"
     },
     "pipeline": {
@@ -368,7 +367,9 @@
         "other": "Other"
       },
       "save": "Save Activity",
-      "success": "Activity logged"
+      "success": "Activity logged",
+      "error": "The activity could not be saved. Please try again.",
+      "close": "Close"
     },
     "leads_pro": {
       "create": {

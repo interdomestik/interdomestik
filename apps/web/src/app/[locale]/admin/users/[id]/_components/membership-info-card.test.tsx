@@ -223,9 +223,9 @@ describe('MembershipInfoCard', () => {
     );
     expect(screen.getByText('source.sponsor')).toBeInTheDocument();
     expect(screen.getByText('sponsor-plan')).toBeInTheDocument();
-    expect(screen.getByText('Jan 1, 2026')).toBeInTheDocument();
-    expect(screen.getByText('Jan 1, 2027')).toBeInTheDocument();
-    expect(screen.getByText('Jan 1, 2028')).toBeInTheDocument();
+    expect(screen.getByText('01/01/2026')).toBeInTheDocument();
+    expect(screen.getByText('01/01/2027')).toBeInTheDocument();
+    expect(screen.getByText('01/01/2028')).toBeInTheDocument();
     expect(screen.getByTestId('provider-lifecycle')).toHaveTextContent('labels.provider_lifecycle');
     expect(screen.getByTestId('provider-lifecycle')).toHaveTextContent('provider_status.canceled');
     expect(screen.getByTestId('membership-lifecycle-status')).toHaveTextContent('status.active');

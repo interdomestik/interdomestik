@@ -65,5 +65,6 @@
     "Vehicle documents",
     "Family contact",
     "Offline pack"
-  ]
+  ],
+  "countryChecklist": "For an incident in {country}, confirm local reporting steps with the local authorities or your insurer."
 }

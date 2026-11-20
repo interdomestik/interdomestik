@@ -1,4 +1,6 @@
 import 'server-only';
+import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 
 import { getAgentMembersList } from '@interdomestik/domain-agent';
 
@@ -18,7 +20,12 @@ export async function getAgentMembersListReadModel(params: {
   role: string | null;
   query?: string;
 }): Promise<AgentMembersListReadModel> {
-  const { members } = await getAgentMembersList(params);
+  const authority = await authorizeSessionUserTenant(params.agentId);
+  if (!authority) throw new Error('Forbidden: agent session required');
+  const { tenantId, principal } = readTenantAuthority(authority);
+  if (tenantId !== params.tenantId || principal?.role !== params.role)
+    throw new Error('Forbidden: agent account changed');
+  const { members } = await getAgentMembersList({ ...params, authority });
 
   return {
     members: members.map(member => ({

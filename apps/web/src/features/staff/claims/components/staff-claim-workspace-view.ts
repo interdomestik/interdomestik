@@ -1,3 +1,4 @@
+import { formatPilotDate } from '@/lib/utils/date';
 import type { StaffClaimContextGroup } from './StaffClaimContext';
 import type { StaffClaimSectionLink } from './StaffClaimWorkspaceHeader';
 
@@ -53,7 +54,7 @@ function toDate(value: unknown): Date | null {
 export function formatClaimDate(value: unknown, locale: string): string {
   if (!value) return '-';
   const date = toDate(value);
-  return date ? date.toLocaleDateString(locale) : '-';
+  return date ? formatPilotDate(date, locale, '-') : '-';
 }
 
 export function findAssigneeLabel(

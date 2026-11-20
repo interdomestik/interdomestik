@@ -16,7 +16,7 @@ export function VerificationActions({
   onViewDetails,
   onVerify,
   onAction,
-}: VerificationActionsProps) {
+}: Readonly<VerificationActionsProps>) {
   const t = useTranslations('admin.leads.actions');
 
   return (
@@ -28,9 +28,10 @@ export function VerificationActions({
         onClick={() => onViewDetails(id)}
         data-testid="verification-details-button"
         title={t('details')}
+        aria-label={t('details')}
         className="h-8 w-8"
       >
-        <Eye className="w-4 h-4 text-muted-foreground" />
+        <Eye className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
       </Button>
 
       <div className="h-4 w-px bg-border mx-1" />
@@ -42,8 +43,9 @@ export function VerificationActions({
         onClick={() => onVerify(id)}
         data-testid="cash-approve"
         title={t('approve')}
+        aria-label={t('approve')}
       >
-        <Check className="w-4 h-4" />
+        <Check className="w-4 h-4" aria-hidden="true" />
       </Button>
       <Button
         size="sm"
@@ -52,8 +54,9 @@ export function VerificationActions({
         onClick={() => onAction(id, 'needs_info')}
         data-testid="cash-needs-info"
         title={t('needs_info')}
+        aria-label={t('needs_info')}
       >
-        <HelpCircle className="w-4 h-4" />
+        <HelpCircle className="w-4 h-4" aria-hidden="true" />
       </Button>
       <Button
         size="sm"
@@ -62,8 +65,9 @@ export function VerificationActions({
         onClick={() => onAction(id, 'reject')}
         data-testid="cash-reject"
         title={t('reject')}
+        aria-label={t('reject')}
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4" aria-hidden="true" />
       </Button>
     </div>
   );

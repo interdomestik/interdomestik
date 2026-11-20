@@ -16,7 +16,7 @@
       "disabledBody": "Puna juaj mbetet në këtë faqe, përveç nëse zgjidhni ruajtjen e sigurt. Asgjë nuk po shkruhet në këtë shfletues për rikthim.",
       "enableLater": "Aktivizo rikthimin në shfletues"
     },
-    "secureSaveReviewCopy": "{\"unsupported\":\"Ruajtja e sigurt ofrohet vetëm për Automjet ose Pronë. Hollësitë për lëndime personale nuk ruhen këtu.\",\"invalid\":\"Kontrolloni fushat e mbështetura dhe hiqni hollësitë mjekësore para se të ruani. Asgjë e re nuk u ruajt.\",\"accountContext\":\"Ruajtja e sigurt nuk është e disponueshme për këtë kontekst llogarie. Faktet tuaja në këtë faqe mbeten të përdorshme, por asgjë e re nuk u ruajt.\",\"noRecovery\":\"Kjo përmbledhje mbetet e përkohshme në këtë faqe: asgjë nuk ruhet automatikisht. Një ruajtje e sigurt e suksesshme dhe e zgjedhur prej jush ruan vetëm faktet e mbështetura, përfshirë përmbledhjen e kufizuar, derisa ta fshini draftin. Rezultati i gjeneruar mbetet i përkohshëm dhe nuk ruhet, dhe nuk hapet asnjë rast. Free Start ju ndihmon të organizoni informacionin tuaj: nuk krijon përfaqësim ligjor, nuk pranon kërkesë, nuk dërgon asgjë te siguruesi dhe nuk jep këshillë profesionale.\"}",
+    "secureSaveReviewCopy": "{\"unsupported\":\"Ruajtja e sigurt ofrohet vetëm për Automjet ose Pronë. Hollësitë për lëndime personale nuk ruhen këtu.\",\"invalid\":\"Kontrolloni fushat e mbështetura dhe hiqni hollësitë mjekësore para se të ruani. Asgjë e re nuk u ruajt.\",\"accountContext\":\"Ruajtja e sigurt nuk është e disponueshme për këtë kontekst llogarie. Faktet tuaja në këtë faqe mbeten të përdorshme, por asgjë e re nuk u ruajt.\",\"noRecovery\":\"Kjo përmbledhje mbetet e përkohshme në këtë faqe: asgjë nuk ruhet automatikisht. Një ruajtje e sigurt e suksesshme dhe e zgjedhur prej jush ruan vetëm faktet e mbështetura, përfshirë përmbledhjen e kufizuar, derisa ta fshini draftin. Rezultati i gjeneruar mbetet i përkohshëm dhe nuk ruhet, dhe nuk hapet asnjë rast. Fillimi falas ju ndihmon të organizoni informacionin tuaj: nuk krijon përfaqësim ligjor, nuk pranon kërkesë, nuk dërgon asgjë te siguruesi dhe nuk jep këshillë profesionale.\"}",
     "secureSave": "{\"eyebrow\":\"Ruajtje e sigurt\",\"heading\":\"Ruaji këto fakte dhe kthehu më vonë\",\"body\":\"Pa llogari të verifikuar, ruajtja mbetet opsionale. Verifikoni emailin një herë për të krijuar ose hapur llogarinë dhe për t’i ruajtur faktet. Llogaritë e verifikuara ruajnë automatikisht faktet e mbështetura.\",\"privacy\":\"Ruhen vetëm fushat e automjetit dhe pronës dhe përmbledhja e kufizuar. Mos përfshini hollësi mjekësore; termat e numëruar me rrezik të lartë kontrollohen, por nuk ruhet fushë shëndeti apo dokument. Nuk krijohet kërkesë, rast, pagesë, anëtarësi apo vendim mbulimi. Faktet e draftit me email të verifikuar mbeten derisa ta fshini përfundimisht atë draft në server. Një kopje e veçantë rikthimi në shfletues mund të mbetet derisa ta hidhni ose ta heqë një ruajtje e sigurt përputhëse.\",\"recovery\":{\"eyebrow\":\"Ruajtur në këtë shfletues\",\"heading\":\"Shënimet e lejuara mund të rikthehen këtu për 30 ditë\",\"body\":\"Faktet për automjetin dhe pronën ruhen automatikisht vetëm në këtë shfletues. Kjo nuk është ruajtje e sigurt, llogari, kërkesë apo ruajtje ndërmjet pajisjeve.\",\"privateDevice\":\"Përdorni pajisje private. Një person tjetër me këtë profil shfletuesi mund t’i shohë shënimet; shfletimi privat, pastrimi i të dhënave ose politika e shfletuesit mund t’i heqë.\",\"offerHeading\":\"Të vazhdosh shënimet nga ky shfletues?\",\"offerBody\":\"Gjetëm shënime të lejuara të ruajtura në këtë shfletues. Zgjidhni t’i vazhdoni ose t’i hidhni nga kjo pajisje.\",\"continue\":\"Vazhdo me këto shënime\",\"discard\":\"Hidhi nga kjo pajisje\",\"status\":{\"saved\":\"Shënimet e lejuara ruhen në këtë shfletues deri në 30 ditë.\",\"conflict\":\"U gjet një kopje më e re në shfletues. Rishikojeni para se të vazhdoni.\",\"unavailable\":\"Rikthimi në shfletues nuk është i disponueshëm. Faqja mbetet e përdorshme, por nuk premtohet ruajtje në pajisje.\",\"retained\":\"Ndryshimi i tanishëm nuk është ruajtur. Kopja e fundit e lejuar në shfletues mbetet në këtë pajisje derisa ta hidhni ose t’i ruani në mënyrë të sigurt faktet përputhëse.\",\"discarded\":\"Kopja e rikthimit në shfletues u hodh.\",\"secure\":\"Ruajtja e sigurt përfundoi. Kopja më e dobët në shfletues u hoq.\"}},\"save\":\"Ruaj në mënyrë të sigurt\",\"saveChanges\":\"Ruaj ndryshimet\",\"startAnother\":\"Fillo një draft tjetër\",\"status\":{\"idle\":\"Kur rikthimi në shfletues është aktiv, statusi i tij shfaqet më sipër. Nuk ka ndodhur ruajtje e sigurt ose ndërmjet pajisjeve.\",\"saving\":\"Po ruhet në mënyrë të sigurt…\",\"saved\":\"U ruajt me sukses. Ruajtja e fundit e suksesshme: {date}.\",\"dirty\":\"Keni ndryshime që nuk janë ruajtur ende.\",\"loading\":\"Po ngarkohen draftet e ruajtura…\",\"conflict\":\"Ky draft ka ndryshuar në një sesion tjetër. Hapni versionin më të fundit para se të ruani përsëri.\",\"limit\":\"Keni arritur kufirin prej 200 draftesh. Fshini një draft para se të ruani një tjetër.\",\"error\":\"Ruajtja nuk u konfirmua. Mbajini shënimet këtu dhe provoni përsëri; një ruajtje e mëparshme mund të ekzistojë.\",\"deleted\":\"Drafti me email të verifikuar u fshi përfundimisht. Një kopje e veçantë rikthimi në shfletues, nëse ekziston, mbetet e pandryshuar.\"},\"otp\":{\"heading\":\"Verifiko emailin\",\"body\":\"Emailin e verifikuar e përdorim vetëm për të mbrojtur ruajtjen dhe rikthimin. Përdorni të njëjtin email në pajisjen tjetër.\",\"emailLabel\":\"Adresa e emailit\",\"codeLabel\":\"Kodi i verifikimit\",\"send\":\"Dërgo kodin\",\"sending\":\"Po dërgohet…\",\"sent\":\"Kodi u dërgua te {email}.\",\"verify\":\"Verifiko dhe vazhdo\",\"verifying\":\"Po verifikohet…\",\"changeEmail\":\"Përdor email tjetër\",\"errors\":{\"missingEmail\":\"Shkruaj adresën e emailit.\",\"sendFailed\":\"Kodi nuk u dërgua. Provo përsëri.\",\"verify\":\"Kodi nuk u verifikua. Kontrolloje dhe provo përsëri.\",\"accountStop\":\"Verifikimi përfundoi, por ruajtja nuk vazhdoi. Provoni përsëri pa kërkuar kod të ri.\"}},\"manage\":{\"open\":\"Rikthe ose menaxho\",\"heading\":\"Draftet e ruajtura\",\"loading\":\"Po ngarkohen draftet…\",\"emptyHeading\":\"Ende nuk ka drafte të ruajtura\",\"emptyBody\":\"Plotëso faktet e automjetit ose pronës, pastaj zgjidh ruajtjen e sigurt.\",\"ready\":\"Gati për rishikim\",\"inProgress\":\"Në vazhdim\",\"resume\":\"Rikthe\",\"delete\":\"Fshi\",\"loadMore\":\"Shfaq më shumë\",\"differentEmailRecovery\":{\"body\":\"Verifikoni të dy kutitë postare para ndryshimit të email-it të hyrjes. Asnjë draft, kërkesë apo anëtarësi nuk transferohet.\",\"close\":\"Anulo\",\"codeLabel\":\"Kodi i verifikimit\",\"complete\":\"Email-i u ndryshua. Draftet e ruajtura mbeten me të njëjtën llogari.\",\"confirm\":\"Konfirmo email-in e ri\",\"currentBody\":\"Shkruani kodin e dërguar në kutinë postare origjinale dhe email-in e ri.\",\"currentHeading\":\"Verifiko email-in origjinal\",\"emailLabel\":\"Email-i i ri\",\"error\":\"Rikuperimi nuk është i disponueshëm. Asgjë nuk ndryshoi.\",\"heading\":\"Përdor një email tjetër\",\"open\":\"Përdor një email tjetër\",\"pending\":\"Duke kontrolluar…\",\"replacementBody\":\"Shkruani kodin e dërguar në kutinë postare të re.\",\"replacementHeading\":\"Verifiko email-in e ri\",\"start\":\"Dërgo kodin në email-in origjinal\",\"submitCurrent\":\"Verifiko dhe dërgo kodin e ri\"}},\"delete\":{\"heading\":\"Ta fshish përfundimisht këtë draft me email të verifikuar?\",\"body\":\"Drafti me email të verifikuar, i ruajtur më {date}, hiqet menjëherë dhe nuk mund të rikthehet. Kjo nuk hedh një kopje të veçantë rikthimi në shfletues.\",\"confirm\":\"Fshi përfundimisht\",\"cancel\":\"Mbaje draftin\"},\"continuation\":{\"label\":\"Vazhdoni me këtë draft të ruajtur\",\"body\":\"Shqyrtojeni këtë draft të ruajtur në llogarinë tuaj. Dorëzimi i kërkesës kërkon anëtarësi aktive dhe konfirmim të veçantë. Vazhdimi nuk dorëzon kërkesë dhe nuk nis pagesë.\",\"loading\":\"Duke ngarkuar draftin tuaj të ruajtur…\",\"failed\":\"Ky draft i ruajtur nuk mund të hapej. Provoni përsëri ose kthehuni te draftet tuaja të ruajtura. Asgjë nuk u dorëzua.\",\"retry\":\"Provoni përsëri\",\"back\":\"Kthehuni te draftet e ruajtura\"}}",
     "selectedSituation": {
       "label": "Po vazhdoni për:",
@@ -47,8 +47,8 @@
     },
     "trustBoundary": {
       "heading": "Rezultati i gjeneruar mbetet i përkohshëm",
-      "body": "Faktet e lejuara për automjetin ose pronën mund të rikthehen automatikisht vetëm në këtë shfletues për 30 ditë. Një ruajtje e sigurt, e suksesshme dhe e zgjedhur ruan faktet e mbështetura për rikthim me email të verifikuar ndërmjet sesioneve ose pajisjeve. Rezultati i gjeneruar mbetet i përkohshëm dhe nuk ruhet, dhe nuk hapet asnjë rast. Free Start ju ndihmon të organizoni informacionin tuaj: nuk krijon përfaqësim ligjor, nuk pranon kërkesë, nuk dërgon asgjë te siguruesi dhe nuk jep këshillë profesionale.",
-      "short": "Free Start vetëm organizon informacionin tuaj: nuk hapet asnjë rast, nuk dërgohet asgjë te siguruesi dhe kjo nuk është përfaqësim ligjor ose këshillë profesionale."
+      "body": "Faktet e lejuara për automjetin ose pronën mund të rikthehen automatikisht vetëm në këtë shfletues për 30 ditë. Një ruajtje e sigurt, e suksesshme dhe e zgjedhur ruan faktet e mbështetura për rikthim me email të verifikuar ndërmjet sesioneve ose pajisjeve. Rezultati i gjeneruar mbetet i përkohshëm dhe nuk ruhet, dhe nuk hapet asnjë rast. Fillimi falas ju ndihmon të organizoni informacionin tuaj: nuk krijon përfaqësim ligjor, nuk pranon kërkesë, nuk dërgon asgjë te siguruesi dhe nuk jep këshillë profesionale.",
+      "short": "Fillimi falas vetëm organizon informacionin tuaj: nuk hapet asnjë rast, nuk dërgohet asgjë te siguruesi dhe kjo nuk është përfaqësim ligjor ose këshillë profesionale."
     },
     "steps": {
       "choose": "Zgjidh llojin e rastit",
@@ -115,7 +115,7 @@
       "written_response": "Përgjigje formale me shkrim"
     },
     "preview": {
-      "heading": "Rishiko skeletin e paketës Free Start.",
+      "heading": "Rishiko skeletin e paketës së Fillimit falas.",
       "body": "Ky skelet i mban bashkë faktet e mbledhura para udhëzimit më të thellë, kërkesave për prova ose përshkallëzimit te stafi.",
       "categoryLabel": "Lloji i rastit",
       "issueLabel": "Problemi",
@@ -134,7 +134,7 @@
       "finish": "Krijoni përmbledhjen time"
     },
     "completion": {
-      "badge": "Free Start u përfundua",
+      "badge": "Fillimi falas u përfundua",
       "heading": "Hapi fillestar u përfundua.",
       "body": "Përmbledhja juaj e përkohshme është gati. Nuk është ruajtur dhe nuk është hapur asnjë rast.",
       "confidence": {
@@ -196,7 +196,7 @@
         "badge": "Dëshmitë që duhen mbledhur",
         "placeholder": {
           "heading": "Zgjidh llojin e rastit për të parë dëshmitë më të forta për paketën e parë.",
-          "body": "Free Start mbetet i lehtë, por fotot, raportet dhe provat e kostos e bëjnë rishikimin e mëvonshëm më të shpejtë."
+          "body": "Fillimi falas mbetet i lehtë, por fotot, raportet dhe provat e kostos e bëjnë rishikimin e mëvonshëm më të shpejtë."
         },
         "vehicle": {
           "heading": "Rastet e automjetit ecin më shpejt me prova nga vendi, siguruesi dhe riparimi.",
@@ -229,17 +229,17 @@
       "privacy": {
         "badge": "Privatësi si parazgjedhje",
         "heading": "Mblidh së pari, ndaj më vonë.",
-        "body": "Nuk keni nevojë të ngarkoni dokumente në Free Start. Filloni me faktet minimale dhe ndani dëshmitë më vonë vetëm nëse dëshironi rishikim nga ekipi përmes anëtarësimit ose ndjekje nga linja telefonike."
+        "body": "Nuk keni nevojë të ngarkoni dokumente në Fillimin falas. Filloni me faktet minimale dhe ndani dëshmitë më vonë vetëm nëse dëshironi rishikim nga ekipi përmes anëtarësimit ose ndjekje nga linja telefonike."
       },
       "triage": {
         "badge": "Koha e rishikimit nga ekipi",
         "heading": "Anëtarësimi e nis orën e rishikimit.",
-        "body": "Anëtarët e Asistenca marrin përgjigje nga ekipi brenda 24 orëve të punës pasi të mbërrijë një paketë e plotë kërkese. Nëse mungon diçka, ta kërkojmë brenda të njëjtit afat. Free Start mbetet informues dhe linja telefonike mbetet vetëm për drejtim."
+        "body": "Anëtarët e Asistenca marrin përgjigje nga ekipi brenda 24 orëve të punës pasi të mbërrijë një paketë e plotë kërkese. Nëse mungon diçka, ta kërkojmë brenda të njëjtit afat. Fillimi falas mbetet informues dhe linja telefonike mbetet vetëm për drejtim."
       }
     },
     "validation": {
       "chooseCategory": "Zgjidhni automjet, pronë ose lëndim para se të vazhdoni.",
-      "completeIntake": "Plotëso çdo fushë me të dhënat kryesore para se të shohësh paketën Free Start."
+      "completeIntake": "Plotëso çdo fushë me të dhënat kryesore para se të shohësh paketën e Fillimit falas."
     },
     "accountDraft": {
       "body": "Faktet e mbështetura ruhen automatikisht në këtë llogari të verifikuar, edhe pa anëtarësim me pagesë. Ruajtja nuk e dorëzon kërkesën.",

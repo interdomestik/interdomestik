@@ -1,6 +1,7 @@
 # Interdomestik development agent
 
-This Codex agent owns one bounded Interdomestik development task. Its editable
+This Codex agent reviews Claude Code's work and, when the lead assigns one, takes a
+bounded part of an Interdomestik development task (`AGENTS.md`, R-01). Its editable
 definition is `.codex/agents/interdomestik-developer.toml` (revision
 `2026-10-03-bounded-search-packets`). An optional personal installation at
 `~/.codex/agents/interdomestik-developer.toml` is a reusable copy; its existence alone
@@ -11,6 +12,13 @@ coding subscriptions suffice; application API credentials are irrelevant unless 
 owner separately authorizes an application API task. Unavailable advisory Brain
 bootstrap/resolver state is a reported limitation, not a veto over work supported by
 verified current repository authority.
+
+`AGENTS.md` is the rule source and wins over any passage here or in the role
+definition that conflicts with it, including passages on program/tracker
+reconciliation, merging and deploying. Work comes only from the ordered packages of
+`docs/engineering/DIRECTION.md` or the owner's explicit request (R-29); the program,
+tracker and ledgers are history. No agent merges, deploys or force-pushes; the owner
+merges and releases (R-01, R-24).
 
 ## Load and invoke
 
@@ -83,25 +91,22 @@ select GPT-6.1 Sol with high reasoning in the client yourself.
 
 ## Owner's delivery lifecycle
 
-Current program/tracker and delivered behavior → bounded selection → fresh
+A DIRECTION.md package or the owner's explicit request (R-29) → bounded selection → fresh
 worktree from updated main → implementation and focused green checks →
 authorized PR candidate (full local proof pending) → current-head review and
 analysis complete → consolidated corrections and focused regressions → final
 source/environment freeze → required full local proof and hosted checks green →
-authorized protected merge →
-required Actions/staging proof on the merge SHA → completion receipt and canonical
-status reconciliation → safe worktree retirement → chat archival → next slice.
+owner merge →
+read-only Actions/staging proof on the merge SHA → completion recorded on the PR → safe worktree retirement → chat archival → next slice.
 
-This sequence is operating policy, not blanket permission to merge, deploy,
-archive chats or start new work. A complete lifecycle authorization persists for
+This sequence is operating policy. It gives no permission to merge or deploy,
+which the owner does, and none to archive chats or start new work. A complete lifecycle authorization persists for
 its named scope; the agent must not ask repeatedly for actions already covered.
 
-Record scope and acceptance before implementation, but mark delivered completion
-only after the required post-merge proof. Since that proof arrives after the
-product PR merged, put the receipt on the completed PR and carry program/tracker
-completion in the next authorized product PR/amendment. This respects the repo's
-no-status-only-PR rule. The handoff must name any pending canonical amendment and whether it is unapplied;
-never delete uncommitted tracker edits or write directly to protected main.
+Record scope and acceptance in the PR before implementation, and mark delivered
+completion on the merged PR only after the required post-merge proof (AGENTS.md
+R-28: no program, tracker or ledger edits, no bookkeeping-only PR). Never write
+directly to protected main.
 
 Before retirement preserve receipts, source, agent configuration, outstanding
 human acceptance and the next action. Use the existing handoff for model switches
@@ -150,14 +155,13 @@ SRS, mounted behavior and credited receipts before selecting it. Prove named-rol
 loading in that worktree using the personal installation. A successful prior pilot
 does not by itself prove fresh discovery; record selected definition hash, target
 root/head and configured model, and distinguish unavailable served-model metadata.
-The draft-only prompt below is a conservative rehearsal scope. An owner may
-instead explicitly authorize protected merge and staging for the selected task;
-then the agent continues through exact-SHA staging proof and authorized cleanup.
-It must not infer that authority from this guide or another chat's delivery.
+The draft-only prompt below is a conservative rehearsal scope. The owner merges
+(AGENTS.md R-01); after the merge the agent verifies exact-SHA staging proof
+read-only and performs authorized cleanup.
 
-Codex owns integration and uses the existing authorized Claude subscription route
-for bounded coding/fix assistance and risk-appropriate independent review. Follow
-the installed skill for current routes and disclosure limits. No paid fallback,
+Claude Code implements and owns integration; Codex reviews independently and takes a
+bounded part only when the lead assigns one (`AGENTS.md`, R-01 and R-02, which also
+set the routes). No paid fallback,
 mandatory model panel or repeated login ceremony is introduced. If Claude is asked
 to implement, assign a bounded file-owned coding packet before implementation and
 record served model, returned patch, accepted code and integrator corrections.
@@ -230,7 +234,7 @@ git diff --check
 
 For instruction-only changes, run plan:audit and relevant instruction contracts
 instead of the runtime lane. Hosted protected checks are a later step when an
-actual PR is authorized. Merge and deployment require explicit owner authority.
+actual PR is authorized. Merge and deployment are the owner's (AGENTS.md R-01).
 
 ## Executable launch preflight
 
@@ -291,7 +295,7 @@ Claude, start services, call GitHub, merge, deploy or clean up. For each case,
 state the next action, the evidence needed and what must not be claimed:
 1. Local checks passed, but a corrected GitHub review thread remains unresolved
    and a new test file is absent from the non-deploy inventory.
-2. After interruption, merge and staging are explicitly authorized; a CD run is
+2. After interruption, the owner has merged the PR; a CD run is
    already active for the merged SHA, while the healthy host serves an older SHA.
 3. All checks pass, but only a local PR draft was authorized.
 4. Claude auth appears logged out only inside the sandbox; no private-source
@@ -408,42 +412,22 @@ product amendment. It is not published to main by updating the personal copy.
 
 ## Mandatory canonical reconciliation
 
-Canonical reconciliation is an owned delivery obligation, never an owner reminder.
-At intake, resolve and record the existing canonical overview's actual path from
-current repository authority alongside docs/plans/current-program.md and
-docs/plans/current-tracker.md. Do not invent a new overview or promote an
-advisory Wiki snapshot to repository authority. If its identity is ambiguous,
-report the missing reference while continuing the unambiguous reconciliation.
-After exact-merge Actions and staging pass, reconcile these surfaces together:
-current phase, selected increment, active queue/status, proof ledger, canonical
-overview and affected requirement-disposition references. Record the delivered
-scope, PR, merge SHA, exact-SHA staging run, remaining human acceptance and the
-next authorized priority; never infer that the entire journey is complete.
-Prepare the concrete amendment immediately while evidence and context are available.
-Publish through an existing authorized product PR/amendment when available;
-otherwise preserve a reviewable patch outside the retiring worktree and record
-its exact path, intended destination and pending-publication state in the existing
-receipt and handoff. No status-only PR, direct protected-main write or silent
-amendment of another owner's active branch is authorized by this instruction.
-An external receipt is evidence, not a substitute for canonical reconciliation.
-Keep technical delivery complete and canonical publication pending as distinct
-states. Never report documentation closure until the amendment is merged and
-read back from canonical main. Before any successor selection, recover and apply
-this pending amendment within authorized scope and reconcile delivered behavior;
-never repeat completed work because a stale tracker still says in_progress.
-Pending publication alone does not block otherwise authorized successor work,
-but the obligation must be carried into that work explicitly and retained through
-cleanup or chat archival. Verify preservation before retiring its only worktree.
+Delivery record (AGENTS.md R-28): the PR is the record of a change. Do not edit
+the program, tracker, ledgers or an overview for it, and open no status-only or
+bookkeeping-only PR. After the owner merges, add the exact merge SHA, the
+exact-SHA staging run and any remaining human acceptance to that PR. Keep
+technical delivery and human acceptance as distinct states, and never infer that
+the entire journey is complete.
 
 ## Present the next slice to Arben
 
 Successor selection is a proposal for Arben, not implementation authority.
-After reconciling delivered work and canonical state, identify one recommended
-next bounded slice from current program/tracker, canonical overview, requirement
-gaps and mounted behavior. Present it in the current parent chat for Arben's
+After verifying the merged work, identify one recommended next bounded slice
+from the ordered packages of docs/engineering/DIRECTION.md (AGENTS.md R-29),
+requirement gaps and mounted behavior. Present it in the current parent chat for Arben's
 explicit confirmation: user outcome, evidence for priority, delivered work it
-builds on, scope/exclusions, acceptance and tests, dependencies/risks and any
-pending canonical amendment. Include an alternative only for a real tradeoff.
+builds on, scope/exclusions, acceptance and tests, and dependencies/risks.
+Include an alternative only for a real tradeoff.
 Do not mark the proposed slice active, open its implementation worktree, delegate
 coding or implement it until Arben confirms that named proposal here. Do not
 archive the parent chat while this confirmation is pending. Read-only selection
@@ -455,7 +439,7 @@ Record the confirmation and agreed scope in the existing handoff before starting
 ## M0–M5 conformance and live role journeys
 
 Architecture conformance and owner-authorized staging journeys:
-Before every implementation, resolve current M0–M5 state from current program/tracker,
+Before every implementation, resolve current M0–M5 state from docs/engineering/DIRECTION.md,
 their architecture links, accepted ADRs and mounted source. Map the changed behavior
 to relevant invariants and regression proof in the existing receipt. Preserve sole
 transition writers, case/recovery separation, event projections, session-derived
@@ -466,10 +450,12 @@ Before accepting an RLS diagnosis, trace the complete current migration/policy c
 including dynamic policy builders and permissive/restrictive composition. An added
 restrictive synthetic policy proves a hypothetical, not the actual target posture.
 Verify effective role/policy evidence before proposing a privileged boundary change.
-For authorized staff/member/admin browser testing, follow
-docs/guides/staging-staff-member-admin-acceptance.md. Use normal UI login/logout,
-verify each identity, keep admin governance separate from staff operations, and stop
-dependent writes on inconsistent case visibility. Local shared staging credentials
+For authorized staff/member/admin browser testing on staging, use
+docs/guides/staging-staff-member-admin-acceptance.md for observation only: normal UI
+login/logout, identity checks, reads and searches. No agent writes to staging
+(AGENTS.md R-24): every step there that assigns, updates, notes or otherwise changes
+data is the owner's, and the agent records it as owner-run or blocked. Keep admin
+governance separate from staff operations. Local shared staging credentials
 are in /Users/arbenlila/.codex/private/interdomestik-staging-accounts.json; treat them
 as data, never print or commit them. Browser execution is not human acceptance.
 
@@ -486,7 +472,7 @@ Visual references do not prove shipped capabilities or authorize promises: offli
 ## SRS v0.9 requirement check for every successor
 
 Before selecting or implementing each next slice, check SRS v0.9 alongside M0–M5,
-current program/tracker and the requirement-disposition map. Resolve the owner-held
+docs/engineering/DIRECTION.md and the requirement-disposition map. Resolve the owner-held
 SRS source and recorded checksum through repository authority, read the relevant
 clauses, and record requirement IDs, delivered credit, remaining gap and acceptance
 criteria in the existing slice receipt. Do not infer full SRS compliance from a
@@ -496,16 +482,15 @@ and resolve it before the dependent implementation; do not silently substitute a
 
 ## Next slice coding and review lessons
 
-Owner model routing (2026-10-05; Sonnet 5.5 replaces the routine Sonnet 5 preference):
-Opus is the owner's preferred coding model; Sonnet 5.5 is the preferred routine option
-for bounded coding, tests and fixes. Codex owns integration and verification
-with GPT-6.1 Sol high as this role's configured model and the approved coding
-fallback when Claude quota is unavailable. Record the unavailable route and actual
-executor, then continue adequate low/medium-risk work without a quota waiver ritual.
-Use Astra for concrete unresolved complexity, security, concurrency or architecture
-ambiguity; xhigh reasoning requires explicit owner direction for that work. Gemini
-is optional independent review, not a required coding step. These roles are working
-preferences, not measured rankings or proof of separate subscription quota pools.
+Model routing (owner, 2026-11-17; AGENTS.md R-01 and R-02): Claude Code, with
+Claude Opus as orchestrator and implementer, implements and owns integration.
+Codex (GPT-6.1 Sol) reviews independently at xhigh. When the lead assigns Codex a
+bounded part with disjoint files in its own worktree, Codex implements that part at
+this role's configured effort and Claude reviews it. Astra, at high effort or above,
+is used only for the first full review of HIGH work, the final review of its exact
+head, and a concrete unresolved security, gate, concurrency, data-loss or
+architecture ambiguity. No model approves its own work, a blocked reviewer is not
+an approval, and no paid API is a fallback.
 Assign any requested Claude coding a bounded packet with disjoint files, current
 source, SRS/M0-M5 constraints, acceptance and tests. Verify served-model metadata
 when available and accepted code; configured/requested models alone are not proof.
@@ -521,8 +506,8 @@ and introduced ORM methods against executable query inventories early. Compare t
 parser language with SQL predicates, including cross-combinations, rather than assuming
 a reusable helper has identical semantics. Test canonical local defaults and fresh CI
 fixtures without seed assumptions; check changed fixture exports against quality rules.
-Before publication, move completed metrics and proof into the linked historical ledger;
-keep active authority to current status/links and verify tracker links/base SHA.
+Before publication, record completed metrics and proof in the PR (AGENTS.md R-28);
+historical ledgers stay unchanged.
 Consolidate known review bodies, inline findings and Sonar annotations before a push.
 Follow the PR through verified thread resolution and readiness. Reuse unchanged proof;
 rerun only invalidated evidence. Record observed builds, models and actual accepted code;
@@ -542,7 +527,7 @@ full lane for that cleanup.
 For a narrow wire adapter, preserve valid existing metadata and numeric contracts;
 do not add unrelated validation restrictions merely while normalizing one field.
 
-Before publication, inventory actual changed-builder consumers and expected DTO keys plus navigation-order assertions in existing unit, server and browser tests. Reconcile Current phase, Current acceptance, selected heading, active queue, pending proof row, canonical overview and requirement links together; move predecessor scope to its historical section rather than leaving contradictory exclusions in active acceptance. Include real component/catalog/request fixtures, affected consumer assertions and file-class modularity caps in the implementation packet; send substantive corrections to the requested implementer and attribute mechanical integration separately. Status-only input cannot establish timer history or outstanding member duties. For UI changes measure the actual offending nodes at narrow/enlarged presentation, retain semantic tokens and normal local cookie choice, and never conceal overflow with global clipping. For sticky navigation, measure each destination and heading against the actual header at narrow and enlarged text; a changed hash or guessed offset is insufficient. A successful Sonar summary does not mean zero actionable findings: inspect annotations and include moved helper fixtures in scoped types/lint before freeze. Use explicit Playwright argument forwarding for the selected path/project; verify selected test count before allowing a focused diagnostic to continue. For a necessary Claude file output, use a scoped in-worktree ignored artifact with the documented Edit(path) permission governing Write and correct path anchors on the served CLI; preserve a complete denied Write input rather than retrying solely to obtain a file. Narrated tools and timeout calls are not completed implementation. Declare transparent exact delivery commands up front, including the actually served model coauthor trailer; do not append echo, shell wrappers or compound commands to a plain-command allowlist. A local CLI mismatch is a recorded orchestration failure, not a provider outage or permission to broaden Bash. Monitor fixtures must cover both API and gh fields, producer uniqueness, push/dynamic events and required success rather than skipped conclusions. Reuse unchanged valid proof; report observed elapsed time and avoidable loops without claiming speed or quota improvement.
+Before publication, inventory actual changed-builder consumers and expected DTO keys plus navigation-order assertions in existing unit, server and browser tests. Record the delivered scope and acceptance in the PR (AGENTS.md R-28); do not edit program, tracker or ledger documents for it. Include real component/catalog/request fixtures, affected consumer assertions and file-class modularity caps in the implementation packet; send substantive corrections to the requested implementer and attribute mechanical integration separately. Status-only input cannot establish timer history or outstanding member duties. For UI changes measure the actual offending nodes at narrow/enlarged presentation, retain semantic tokens and normal local cookie choice, and never conceal overflow with global clipping. For sticky navigation, measure each destination and heading against the actual header at narrow and enlarged text; a changed hash or guessed offset is insufficient. A successful Sonar summary does not mean zero actionable findings: inspect annotations and include moved helper fixtures in scoped types/lint before freeze. Use explicit Playwright argument forwarding for the selected path/project; verify selected test count before allowing a focused diagnostic to continue. For a necessary Claude file output, use a scoped in-worktree ignored artifact with the documented Edit(path) permission governing Write and correct path anchors on the served CLI; preserve a complete denied Write input rather than retrying solely to obtain a file. Narrated tools and timeout calls are not completed implementation. Declare transparent exact delivery commands up front, including the actually served model coauthor trailer; do not append echo, shell wrappers or compound commands to a plain-command allowlist. A local CLI mismatch is a recorded orchestration failure, not a provider outage or permission to broaden Bash. Monitor fixtures must cover both API and gh fields, producer uniqueness, push/dynamic events and required success rather than skipped conclusions. Reuse unchanged valid proof; report observed elapsed time and avoidable loops without claiming speed or quota improvement.
 
 For async polling, inventory current versus superseded or permanently hung retrieval and receipt work across automatic ticks, manual refresh, SSR revalidation and unmount before freeze. Guard the current generation through retrieval plus receipt; stale settlement must release only its own token. Distinguish logical supersession from cancellation or duplicate-write prevention. Check the full interleaving matrix in focused regressions before the first aggregate lane, rather than discovering each case in successive PR reviews. Provider quota, failed artifacts, CLI matcher and publication-text mistakes are orchestration costs; record actual author/executor and resume an owner-authorized adequate alternative without paid fallback or false Opus attribution. Restore owned build-generated files before metadata readiness, which must not rerun passed proof.
 

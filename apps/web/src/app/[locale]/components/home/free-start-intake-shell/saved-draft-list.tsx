@@ -1,5 +1,7 @@
 'use client';
 
+import { formatPilotDate } from '@/lib/utils/date';
+
 import { useEffect, useRef } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -89,7 +91,7 @@ export function SavedDraftList(props: Props) {
                 <p className="mt-1 text-sm text-[#526274]">
                   {isReady(draft) ? copy.manage.ready : copy.manage.inProgress}
                   {' · '}
-                  {new Date(draft.updatedAt).toLocaleDateString(locale)}
+                  {formatPilotDate(draft.updatedAt, locale, '')}
                 </p>
                 {draft.summary || draft.counterparty ? (
                   <p className="mt-2 line-clamp-2 max-w-xl text-sm leading-6 text-[#33485c]">

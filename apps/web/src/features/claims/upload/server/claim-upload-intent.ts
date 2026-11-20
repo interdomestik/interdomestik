@@ -20,7 +20,7 @@ type ClaimUploadIntentPayload = {
 };
 
 export type ConfirmedUploadValidationResult =
-  { success: true } | { success: false; error: string; status: 409 | 500 };
+  { success: true; replayed?: true } | { success: false; error: string; status: 409 | 500 };
 
 type IntentFields = {
   actorId: string;

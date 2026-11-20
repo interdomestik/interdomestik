@@ -9,7 +9,8 @@ describe('formatVerifiedDate', () => {
   });
 
   it('formats sr month names without relying on browser locale data', () => {
-    expect(formatVerifiedDate('2026-01-01T00:00:00.000Z', 'sr')).toBe('јануар 2026');
+    expect(formatVerifiedDate('2026-01-01T00:00:00.000Z', 'sr')).toBe('januar 2026');
+    expect(formatVerifiedDate('2026-11-01T00:00:00.000Z', 'sr')).toBe('novembar 2026');
   });
 });
 

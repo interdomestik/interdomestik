@@ -1,9 +1,10 @@
 import { isAdmin } from '@/lib/roles.core';
+import { canManagePlatformSettings } from '@/features/admin/access/admin-capabilities';
 
 export type UserNavLinks = Readonly<{
   /** The signed-in user's own account page, which holds the profile form. */
   profileHref: string;
-  /** The settings entry; tenant administration wins when the user can administer the tenant. */
+  /** Platform settings require a super admin; other users keep their own account settings. */
   settingsHref: string;
 }>;
 
@@ -24,9 +25,9 @@ function ownSettingsHref(role: string | null | undefined): string {
 /** Resolves the user menu's profile and settings destinations for the signed-in role. */
 export function resolveUserNavLinks(
   role: string | null | undefined,
-  adminAccess: boolean
+  _adminAccess: boolean
 ): UserNavLinks {
   const profileHref = ownSettingsHref(role);
-  const settingsHref = isAdmin(role) || adminAccess ? '/admin/settings' : profileHref;
+  const settingsHref = canManagePlatformSettings(role) ? '/admin/settings' : profileHref;
   return { profileHref, settingsHref };
 }

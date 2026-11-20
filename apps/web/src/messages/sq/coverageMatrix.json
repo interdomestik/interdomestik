@@ -2,7 +2,7 @@
   "coverageMatrix": {
     "eyebrow": "Matrica e mbulimit",
     "title": "Cilat lloje rastesh mbeten në plan, përshkallëzohen ose referohen",
-    "subtitle": "Përdorni këtë matricë për të parë ku ndihmojnë tani Free Start dhe anëtarësia, kur mund të fillojë përshkallëzimi i drejtuar nga stafi dhe kur zbatohet referimi ose pëlqimi i veçantë ligjor.",
+    "subtitle": "Përdorni këtë matricë për të parë ku ndihmojnë tani Fillimi falas dhe anëtarësia, kur mund të fillojë përshkallëzimi i drejtuar nga stafi dhe kur zbatohet referimi ose pëlqimi i veçantë ligjor.",
     "rowHeaderTitle": "Lloji i rastit",
     "columns": {
       "included": "Përfshihet",
@@ -13,23 +13,23 @@
       "vehicle": {
         "title": "Dëmtim automjeti",
         "description": "Lloj rasti i nisjes me rrugë monetare rikuperimi.",
-        "included": "Pako Free Start + udhëzim në anëtarësi",
+        "included": "Pako Fillimi falas + udhëzim në anëtarësi",
         "escalation": "I disponueshëm pas pranimit të rastit",
-        "referral": "Opt-in te partneri ligjor nëse nevojitet"
+        "referral": "Pëlqim i veçantë për partnerin ligjor nëse nevojitet"
       },
       "property": {
         "title": "Dëmtim prone",
         "description": "Lloj rasti i nisjes me rrugë monetare rikuperimi.",
-        "included": "Pako Free Start + udhëzim në anëtarësi",
+        "included": "Pako Fillimi falas + udhëzim në anëtarësi",
         "escalation": "I disponueshëm pas pranimit të rastit",
-        "referral": "Opt-in te partneri ligjor nëse nevojitet"
+        "referral": "Pëlqim i veçantë për partnerin ligjor nëse nevojitet"
       },
       "injury": {
         "title": "Lëndim personal",
         "description": "Lloj rasti i nisjes kur ekziston një rrugë e drejtpërdrejtë monetare rikuperimi.",
-        "included": "Pako Free Start + udhëzim në anëtarësi",
+        "included": "Pako Fillimi falas + udhëzim në anëtarësi",
         "escalation": "I disponueshëm pas pranimit të rastit",
-        "referral": "Opt-in te partneri ligjor nëse nevojitet"
+        "referral": "Pëlqim i veçantë për partnerin ligjor nëse nevojitet"
       },
       "guidance": {
         "title": "Mosmarrëveshje vetëm për udhëzim",
@@ -48,7 +48,7 @@
     },
     "footer": {
       "title": "Shënim mbi kufirin",
-      "body": "Përshkallëzimi me success-fee fillon vetëm pasi stafi pranon një rast me rrugë reale monetare rikuperimi. Veprimi me partner ligjor të jashtëm kërkon gjithmonë pëlqim të veçantë me shkrim."
+      "body": "Përshkallëzimi me tarifë suksesi fillon vetëm pasi stafi pranon një rast me rrugë reale monetare rikuperimi. Veprimi me partner ligjor të jashtëm kërkon gjithmonë pëlqim të veçantë me shkrim."
     }
   }
 }

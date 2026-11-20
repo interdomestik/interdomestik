@@ -36,6 +36,11 @@ export type HelpNowCopy = {
   continueNote: string;
   scenarios: readonly string[];
   checklist: readonly string[];
+  injuryChecklist: readonly string[];
+  injuryPrompt: string;
+  propertyPrompt: string;
+  propertyChecklist: readonly string[];
+  countryChecklist: string;
   shots: readonly string[];
   tripChecklist: readonly string[];
 };

@@ -2,13 +2,13 @@
 
 import { OpsStatusBadge, toOpsBadgeVariant } from '@/components/ops';
 import { useLocale, useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { formatPilotDate } from '@/lib/utils/date';
 
 // Define minimal Claim type for Pro table
 export type AgentProClaim = {
   id: string;
   title: string;
-  claimNumber: string;
+  claimNumber: string | null;
   status: string;
   createdAt: Date;
   updatedAt: Date;
@@ -32,24 +32,6 @@ export function useAgentClaimRows(claims: AgentProClaim[], onSelect: (id: string
   const locale = useLocale();
   const t = useTranslations('agent');
   const tClaims = useTranslations('claims');
-  const formatDate = useMemo(
-    () =>
-      new Intl.DateTimeFormat(resolveDateLocale(locale), {
-        day: 'numeric',
-        month: 'numeric',
-        year: 'numeric',
-      }),
-    [locale]
-  );
-  const formatShortDate = useMemo(
-    () =>
-      new Intl.DateTimeFormat(resolveDateLocale(locale), {
-        day: 'numeric',
-        month: 'numeric',
-      }),
-    [locale]
-  );
-
   const columns = [
     { key: 'claim', header: t('claimsPro.columns.claim') },
     { key: 'status', header: t('claimsPro.columns.status') },
@@ -63,7 +45,7 @@ export function useAgentClaimRows(claims: AgentProClaim[], onSelect: (id: string
       // Claim
       <div key="claim">
         <div className="font-medium flex items-center gap-2">
-          {claim.claimNumber}
+          {claim.claimNumber?.trim() || claim.title}
           {Boolean(claim.unreadCount && claim.unreadCount > 0) && (
             <span
               className="flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-destructive rounded-full"
@@ -76,16 +58,14 @@ export function useAgentClaimRows(claims: AgentProClaim[], onSelect: (id: string
         <div className="text-sm text-foreground/90 truncate w-48 font-medium" title={claim.title}>
           {claim.title}
         </div>
-        <div className="text-xs text-muted-foreground w-48 truncate">
-          {claim.lastMessage ? (
+        {claim.lastMessage ? (
+          <div className="text-xs text-muted-foreground w-48 truncate">
             <span className="text-foreground/80 font-medium">
               &quot;{claim.lastMessage.slice(0, 30)}
               {claim.lastMessage.length > 30 ? '...' : ''}&quot;
             </span>
-          ) : (
-            `ID: ${claim.id.slice(0, 8)}`
-          )}
-        </div>
+          </div>
+        ) : null}
       </div>,
       // Status
       <OpsStatusBadge
@@ -100,9 +80,9 @@ export function useAgentClaimRows(claims: AgentProClaim[], onSelect: (id: string
       </div>,
       // Meta
       <div key="meta" className="text-xs text-muted-foreground">
-        <div>{formatDate.format(new Date(claim.createdAt))}</div>
+        <div>{formatPilotDate(claim.createdAt, locale, '-')}</div>
         <div className="opacity-70">
-          {t('claimsPro.updatedPrefix')} {formatShortDate.format(new Date(claim.updatedAt))}
+          {t('claimsPro.updatedPrefix')} {formatPilotDate(claim.updatedAt, locale, '-')}
         </div>
       </div>,
     ],
@@ -111,19 +91,6 @@ export function useAgentClaimRows(claims: AgentProClaim[], onSelect: (id: string
   }));
 
   return { columns, rows };
-}
-
-function resolveDateLocale(locale: string): string {
-  switch (locale) {
-    case 'mk':
-      return 'mk-MK';
-    case 'sq':
-      return 'sq-AL';
-    case 'sr':
-      return 'sr-RS';
-    default:
-      return locale;
-  }
 }
 
 export function translateClaimStatus(

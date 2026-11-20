@@ -12,6 +12,10 @@ type Document = {
   fileType: string;
 };
 
+// Icon-only on phones, so each action keeps a localized name and a 44px target below `sm`.
+const DOCUMENT_ACTION_CLASS =
+  'h-auto min-h-11 min-w-11 max-w-full whitespace-normal [overflow-wrap:anywhere] sm:min-h-9 sm:min-w-0';
+
 type Props = {
   documents: Document[];
 };
@@ -77,7 +81,9 @@ export function DocumentList({ documents }: Readonly<Props>) {
           <div className="flex min-w-0 max-w-full items-center gap-3">
             <FileText className="h-4 w-4 shrink-0 text-primary" />
             <div className="min-w-0 [overflow-wrap:anywhere]">
-              <p className="text-sm font-medium">{doc.name}</p>
+              <p id={`document-name-${doc.id}`} className="text-sm font-medium">
+                {doc.name}
+              </p>
               <p className="text-xs text-muted-foreground">
                 {formatSize(doc.fileSize)} · {doc.fileType}
               </p>
@@ -87,25 +93,29 @@ export function DocumentList({ documents }: Readonly<Props>) {
             <Button
               variant="outline"
               size="sm"
-              className="h-auto min-h-9 max-w-full whitespace-normal [overflow-wrap:anywhere]"
+              className={DOCUMENT_ACTION_CLASS}
+              aria-describedby={`document-name-${doc.id}`}
+              aria-label={t('actions.view')}
               onClick={() => handleView(doc.id)}
               disabled={loadingId === doc.id}
             >
               {loadingId === doc.id ? (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
               ) : (
-                <Eye className="h-4 w-4 shrink-0" />
+                <Eye className="h-4 w-4 shrink-0" aria-hidden="true" />
               )}
               <span className="ml-1 hidden sm:inline">{t('actions.view')}</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="h-auto min-h-9 max-w-full whitespace-normal [overflow-wrap:anywhere]"
+              className={DOCUMENT_ACTION_CLASS}
+              aria-describedby={`document-name-${doc.id}`}
+              aria-label={t('actions.download')}
               onClick={() => handleDownload(doc.id, doc.name)}
               disabled={loadingId === doc.id}
             >
-              <Download className="h-4 w-4 shrink-0" />
+              <Download className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span className="ml-1 hidden sm:inline">{t('actions.download')}</span>
             </Button>
           </div>

@@ -1,3 +1,5 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -36,7 +38,7 @@ const mocks = vi.hoisted(() => {
     },
     db: { select: vi.fn() },
     tx: { select: vi.fn() },
-    withTenantContext: vi.fn(),
+    withTenantAuthority: vi.fn(),
     user: {
       id: 'user.id',
       memberNumber: 'user.member_number',
@@ -59,19 +61,30 @@ vi.mock('@interdomestik/database', () => ({
   or: mocks.or,
   sql: mocks.sql,
   user: mocks.user,
-  withTenantContext: mocks.withTenantContext,
+  withTenantAuthority: mocks.withTenantAuthority,
 }));
 
 vi.mock('@interdomestik/domain-claims/claims/lifecycle-read-sql', () => ({
   claimLifecycleStatusIn: mocks.claimLifecycleStatusIn,
 }));
 
-import { getAgentMembersList } from './get-agent-members-list';
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: mocks.withTenantAuthority,
+}));
+import { getAgentMembersList as readMembers } from './get-agent-members-list';
+const getAgentMembersList = (params: Omit<Parameters<typeof readMembers>[0], 'authority'>) =>
+  readMembers({
+    ...params,
+    authority: mintTestTenantAuthority(params.tenantId, {
+      userId: params.agentId,
+      role: params.role,
+    }),
+  });
 
 describe('getAgentMembersList aggregate query', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.withTenantContext.mockImplementation(
+    mocks.withTenantAuthority.mockImplementation(
       async (_context: unknown, callback: (tx: unknown) => Promise<unknown>) => callback(mocks.tx)
     );
     mocks.tx.select.mockReturnValue(mocks.chain);
@@ -112,10 +125,10 @@ describe('getAgentMembersList aggregate query', () => {
   it('runs the aggregate through the tenant transaction with the home-tenant claim relation', async () => {
     await getAgentMembersList({ agentId: 'agent-1', tenantId: 'tenant-mk', role: 'agent' });
 
-    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toStrictEqual({
+    expect(mocks.withTenantAuthority).toHaveBeenCalledTimes(1);
+    expect(readTenantAuthority(mocks.withTenantAuthority.mock.calls[0]?.[0])).toMatchObject({
       tenantId: 'tenant-mk',
-      role: 'agent',
+      principal: { role: 'agent' },
     });
     expect(mocks.tx.select).toHaveBeenCalledTimes(1);
     expect(mocks.db.select).not.toHaveBeenCalled();

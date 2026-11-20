@@ -1,19 +1,23 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   validateStoredObject: vi.fn(),
 }));
 
-vi.mock('./shared-upload', () => ({
+vi.mock('./stored-object-validation', () => ({
   validateStoredObject: hoisted.validateStoredObject,
 }));
 
 import {
   createInitialClaimUploadIntentToken,
   expectedInitialClaimUploadPath,
-  validateInitialClaimEvidenceUpload,
   verifyInitialClaimUploadIntentToken,
 } from './initial-claim-upload';
+import { validateInitialClaimEvidenceUpload } from './initial-claim-evidence-validation';
+vi.mock('./validate-evidence-content', () => ({
+  validateEvidenceContent: vi.fn().mockResolvedValue({ success: true }),
+}));
 
 describe('initial claim upload intents', () => {
   beforeEach(() => {
@@ -116,6 +120,7 @@ describe('initial claim upload intents', () => {
     });
 
     await validateInitialClaimEvidenceUpload({
+      authority: mintTestTenantAuthority('tenant-1'),
       actorId: 'member-1',
       expectedBucket: 'claim-evidence',
       file: { ...file, uploadIntentToken: token },
@@ -160,6 +165,7 @@ describe('initial claim upload intents', () => {
 
     await expect(
       validateInitialClaimEvidenceUpload({
+        authority: mintTestTenantAuthority('tenant-1'),
         actorId: 'member-1',
         expectedBucket: 'claim-evidence',
         file: { ...file, uploadIntentToken: token },

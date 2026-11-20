@@ -45,7 +45,7 @@ async function checkForgejo() {
 }
 
 try {
-  createTaskDatabase(database);
+  await createTaskDatabase(database);
   created = true;
   await checkForgejo();
   const child = spawn(process.execPath, invocation.args, {
@@ -102,6 +102,6 @@ try {
   );
   if (exitCode !== 0 || forgejoFailures !== 0) process.exitCode = exitCode || 1;
 } finally {
-  if (created) dropTaskDatabase(database);
+  if (created) await dropTaskDatabase(database);
   reservation.release();
 }

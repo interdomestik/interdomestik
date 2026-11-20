@@ -126,6 +126,7 @@ async function expectHandoffBoundaries(
     const row = page.getByTestId('staff-support-handoffs-row').filter({ visible: true });
     await expect(row).toHaveCount(1);
     const toggle = row.getByTestId('staff-support-handoff-detail-toggle');
+    await expect(row.locator('[data-hydrated="true"]')).toBeVisible();
     await toggle.focus();
     await capture.settled();
     const beforeDetail = capture.checkedPayloadCount;

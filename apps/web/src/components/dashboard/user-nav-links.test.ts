@@ -11,28 +11,29 @@ describe('resolveUserNavLinks', () => {
     expect(resolveUserNavLinks(role, false)).toEqual({ profileHref: href, settingsHref: href });
   });
 
-  it('keeps the profile on the own settings page when tenant administration is granted', () => {
+  it('keeps tenant administration grants out of platform settings', () => {
     expect(resolveUserNavLinks('staff', true)).toEqual({
       profileHref: '/staff/settings',
-      settingsHref: '/admin/settings',
+      settingsHref: '/staff/settings',
     });
   });
 
-  it.each(['admin', 'tenant_admin', 'super_admin'])(
-    'gives %s the admin account page for its profile and admin settings',
-    role => {
-      expect(resolveUserNavLinks(role, false)).toEqual({
-        profileHref: '/admin/account',
-        settingsHref: '/admin/settings',
-      });
-    }
-  );
+  it.each([
+    ['admin', '/admin/account'],
+    ['tenant_admin', '/admin/account'],
+    ['super_admin', '/admin/settings'],
+  ])('gives %s the admin account profile and only admitted settings', (role, settingsHref) => {
+    expect(resolveUserNavLinks(role, false)).toEqual({
+      profileHref: '/admin/account',
+      settingsHref,
+    });
+  });
 
   it.each([
     ['auditor', false, '/member/settings'],
-    ['auditor', true, '/admin/settings'],
+    ['auditor', true, '/member/settings'],
     ['global_support', false, '/member/settings'],
-    ['global_support', true, '/admin/settings'],
+    ['global_support', true, '/member/settings'],
   ])(
     'keeps the profile of %s on member settings with admin access %s',
     (role, adminAccess, settingsHref) => {

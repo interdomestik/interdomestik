@@ -186,11 +186,13 @@ function assertRemoteSeedPassword(env: SeedEnvironment, effectivePassword: strin
   }
 }
 
-/** Process-bound preflight; refusals expose only a classification, never credentials. */
-export function assertSeedTargetAllowed(
-  env: SeedEnvironment,
-  effectivePassword: string = E2E_PASSWORD
-): SeedTargetClassification {
+type ClassifiedTarget = Readonly<{
+  expected: Readonly<{ admin: SeedDriverTarget; rls: SeedDriverTarget }>;
+  classification: SeedTargetClassification;
+}>;
+
+// Parses and classifies without binding: confirmed-non-local here still needs its password check.
+function classifySeedTarget(env: SeedEnvironment): ClassifiedTarget {
   const database = parse(env.DATABASE_URL);
   const rls = parse(env.DATABASE_URL_RLS);
   const advisory = [parse(env.SUPABASE_URL), parse(env.NEXT_PUBLIC_SUPABASE_URL)];
@@ -204,19 +206,51 @@ export function assertSeedTargetAllowed(
   if (rls) targets.push(databaseTarget(rls, env));
   unique(targets);
   const expected = { admin: driverTarget(database, env), rls: driverTarget(rls ?? database, env) };
-  if (LOOPBACK_HOSTS.has(target)) {
-    bindSeedTarget(env, expected, false);
-    return 'local';
-  }
+  if (LOOPBACK_HOSTS.has(target)) return { expected, classification: 'local' };
   if (env.SEED_TARGET_CONFIRM !== `plan070:${target}`) refuse('non-local-unconfirmed');
   // Only the exact, confirmed CI container keeps the local fixture-password and plaintext policy.
-  if (target === CI_CONTAINER_HOST) {
-    bindSeedTarget(env, expected, false);
-    return 'confirmed-ci';
+  if (target === CI_CONTAINER_HOST) return { expected, classification: 'confirmed-ci' };
+  return { expected, classification: 'confirmed-non-local' };
+}
+
+/** Process-bound preflight; refusals expose only a classification, never credentials. */
+export function assertSeedTargetAllowed(
+  env: SeedEnvironment,
+  effectivePassword: string = E2E_PASSWORD
+): SeedTargetClassification {
+  const { expected, classification } = classifySeedTarget(env);
+  const remote = classification === 'confirmed-non-local';
+  if (remote) assertRemoteSeedPassword(env, effectivePassword);
+  bindSeedTarget(env, expected, remote);
+  return classification;
+}
+
+export type DisposableTargetClassification = 'local' | 'confirmed-ci';
+
+/**
+ * R-13: the only targets a destructive script may reach are a loopback database and the exact,
+ * confirmed CI container. Every other target is refused, whatever its confirmation or password:
+ * a confirmed remote host, staging, a pooler, and any project this guard has never seen.
+ * Pure: it binds nothing, so a refusal leaves no process state behind.
+ */
+export function assertDisposableTarget(env: SeedEnvironment): DisposableTargetClassification {
+  const { classification } = classifySeedTarget(env);
+  // The driver decodes these fields and refuses what does not decode: refuse first, by name.
+  for (const raw of [env.DATABASE_URL, env.DATABASE_URL_RLS]) {
+    if (raw !== undefined && !driverDecodable(new URL(raw))) refuse('invalid');
   }
-  assertRemoteSeedPassword(env, effectivePassword);
-  bindSeedTarget(env, expected, true);
-  return 'confirmed-non-local';
+  if (classification !== 'local' && classification !== 'confirmed-ci') refuse('non-disposable');
+  return classification;
+}
+
+function driverDecodable(url: URL): boolean {
+  return [url.username, url.password, url.pathname.slice(1)].every(part => {
+    try {
+      return !decodeURIComponent(part).includes('\0');
+    } catch {
+      return false;
+    }
+  });
 }
 
 /** full/workload hash fixed public fixture passwords, so they never run on a non-local target. */

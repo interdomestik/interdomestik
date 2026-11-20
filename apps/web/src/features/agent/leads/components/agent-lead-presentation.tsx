@@ -3,7 +3,8 @@
 import { OpsStatusBadge } from '@/components/ops/OpsStatusBadge';
 import { OpsTimeline } from '@/components/ops/OpsTimeline';
 import { toOpsStatus, toOpsTimelineEvents } from '@/components/ops/adapters/leads';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatPilotDate } from '@/lib/utils/date';
 
 export type AgentLeadPro = {
   id: string;
@@ -29,6 +30,7 @@ export function useAgentLeadRows(
   localizeLeadStatus: (status: string | null | undefined) => string
 ) {
   const t = useTranslations('agent.leads_pro');
+  const locale = useLocale();
   const columns = [
     { key: 'lead', header: t('columns.lead') },
     { key: 'status', header: t('columns.status') },
@@ -55,11 +57,11 @@ export function useAgentLeadRows(
           </span>
         </div>,
         <div key="meta" className="flex flex-col text-sm text-muted-foreground">
-          <span>{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : '-'}</span>
+          <span>{lead.createdAt ? formatPilotDate(lead.createdAt, locale, '-') : '-'}</span>
           <span className="text-xs">
             {/* Abstracting "Last Touch" as updated at for now */}
             {lead.updatedAt
-              ? `${t('fields.updated')} ${new Date(lead.updatedAt).toLocaleDateString()}`
+              ? `${t('fields.updated')} ${formatPilotDate(lead.updatedAt, locale, '-')}`
               : ''}
           </span>
         </div>,

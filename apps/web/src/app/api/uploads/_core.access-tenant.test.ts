@@ -94,7 +94,33 @@ describe('createSignedUploadCore access tenant isolation', () => {
       expect.objectContaining({ columns: expect.objectContaining({ tenantId: true }) })
     );
     expect(hoisted.createTenantSignedUploadUrl).toHaveBeenCalledWith(
-      expect.objectContaining({ tenantId: 'tenant_home' })
+      expect.objectContaining({ tenantId: 'tenant_home', upsert: false })
     );
   });
+});
+
+it.each([
+  ['heic', 'image/heic', 100],
+  ['docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 100],
+  ['mp4', 'video/mp4', 50 * 1024 * 1024],
+])('signs initial .%s with canonical MIME and shared size limit', async (ext, mime, size) => {
+  vi.stubEnv('CLAIM_UPLOAD_INTENT_SECRET', 'test-upload-intent-secret-value-123456');
+  hoisted.createTenantSignedUploadUrl.mockResolvedValue({
+    data: { token: 'tok', signedUrl: 'https://signed.example/upload' },
+    error: null,
+  });
+  const result = await createSignedUploadCore({
+    authority: mintTestTenantAuthority('tenant_home'),
+    bucket: 'claim-evidence',
+    input: {
+      fileName: `proof.${ext}`,
+      fileType: 'application/octet-stream',
+      fileSize: size as number,
+    },
+    session: { user: { id: 'member-1', role: 'member' } },
+  });
+  expect(result.ok).toBe(true);
+  if (!result.ok) throw new Error(result.error);
+  expect(result.body.upload).toMatchObject({ mimeType: mime, storageContentType: mime });
+  expect(result.body.maxFileSize).toBe(ext === 'mp4' ? 50 * 1024 * 1024 : 10 * 1024 * 1024);
 });

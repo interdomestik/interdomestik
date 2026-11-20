@@ -53,6 +53,17 @@ beforeEach(() => {
 });
 
 describe('agent workspace URL and mobile presentation', () => {
+  it('shows the title without exposing internal identifiers when no claim number exists', () => {
+    state.query = 'selected=GOLDEN_K_INTERNAL';
+    render(page([{ ...claim, id: 'GOLDEN_K_INTERNAL', claimNumber: '', lastMessage: null }]));
+    expect(screen.getByTestId('workspace-selected-claim-id')).toHaveTextContent('Public case');
+    expect(screen.queryByText('GOLDEN_K_INTERNAL')).not.toBeInTheDocument();
+    const row = screen.getByTestId('claim-row');
+    expect(row).toHaveTextContent('Public case');
+    expect(row).not.toHaveTextContent('GOLDEN');
+    expect(row).not.toHaveTextContent('ID:');
+  });
+
   it.each(['Escape', 'close'])('returns focus to B after A -> B -> %s', async closeBy => {
     const user = userEvent.setup();
     const claims = [claim, { ...claim, id: 'claim-2', claimNumber: 'C-002' }];
@@ -63,7 +74,7 @@ describe('agent workspace URL and mobile presentation', () => {
     await waitFor(() => expect(screen.getByTestId('ops-drawer')).toHaveFocus());
     fireEvent.click(cardB);
     view.rerender(page(claims));
-    expect(screen.getByTestId('workspace-selected-claim-id')).toHaveTextContent('claim-2');
+    expect(screen.getByTestId('workspace-selected-claim-id')).toHaveTextContent('C-002');
     await waitFor(() => expect(screen.getByTestId('ops-drawer')).toHaveFocus());
     if (closeBy === 'Escape') {
       await user.keyboard('{Escape}');
@@ -128,10 +139,16 @@ describe('agent workspace URL and mobile presentation', () => {
     await waitFor(() => expect(more).toHaveFocus());
     expect(state.replace).not.toHaveBeenCalled();
     expect(state.query).toBe(`claimId=${claim.id}`);
-    expect(screen.getByTestId('workspace-selected-claim-id')).toHaveTextContent(claim.id);
+    expect(screen.getByTestId('workspace-selected-claim-id')).toHaveAttribute(
+      'data-claim-id',
+      claim.id
+    );
     view.unmount();
     render(workspace());
-    expect(screen.getByTestId('workspace-selected-claim-id')).toHaveTextContent(claim.id);
+    expect(screen.getByTestId('workspace-selected-claim-id')).toHaveAttribute(
+      'data-claim-id',
+      claim.id
+    );
     expect(state.query).toBe(`claimId=${claim.id}`);
     await user.click(screen.getByTestId('action-message'));
     expect(screen.getByTestId('shared-composer')).toBeInTheDocument();
@@ -142,7 +159,10 @@ describe('agent workspace URL and mobile presentation', () => {
       allowInternal: false,
     });
     await user.click(screen.getByTestId('close-messaging-view'));
-    expect(screen.getByTestId('workspace-selected-claim-id')).toHaveTextContent(claim.id);
+    expect(screen.getByTestId('workspace-selected-claim-id')).toHaveAttribute(
+      'data-claim-id',
+      claim.id
+    );
     expect(state.query).toBe(`claimId=${claim.id}`);
     await user.click(screen.getByRole('button', { name: 'claimsPro.closeLabel' }));
     expect(state.query).toBe('');

@@ -40,20 +40,20 @@ describe('Sentry sampling gates', () => {
 describe('privacy hooks', () => {
   it('collapses even short alphabetic IDs and encoded segments, stripping complete query and fragment', () => {
     expect(toRouteFamily('/en/member/claims/alice/documents/42')).toBe(
-      '/en/member/claims/:id/documents/:id'
+      '/en/member/claims/:id/:id/:id'
     );
     expect(
       scrubUrl('https://user:password@example.test/en/member/claims/%61lice?next=secret#otp')
-    ).toBe('https://example.test/en/member/claims/:id');
+    ).toBe('https://[redacted-host]/en/member/claims/:id');
     const safe = scrubUrl(privateUrl);
     for (const forbidden of ['capability-secret', 'otp-code', 'tenant-alice', 'file.pdf'])
       expect(safe).not.toContain(forbidden);
   });
   it('preserves strict hashed chunk URLs for source maps while removing query, fragment and private frame paths', () => {
-    const chunk = 'https://example.test/_next/static/chunks/9889-a9108038039.js';
+    const chunk = 'https://staging.interdomestik.com/_next/static/chunks/9889-a9108038039.js';
     expect(scrubStackFilename(`${chunk}?token=private#secret`)).toBe(chunk);
     expect(scrubStackFilename('https://example.test/en/member/claims/alice?token=private')).toBe(
-      'https://example.test/en/member/claims/:id'
+      'https://[redacted-host]/en/member/claims/:id'
     );
     expect(scrubStackFilename('/Users/alice/private/claim.ts')).not.toContain('alice');
     const event = scrubSentryEvent({
@@ -122,12 +122,18 @@ describe('privacy hooks', () => {
       'tenant-private',
     ])
       expect(serialized).not.toContain(forbidden);
-    expect(result?.tags).toEqual({ ui_action: 'login_submit', ui_outcome: 'unexpected' });
-    expect(result?.exception?.values?.[0].stacktrace?.frames?.[0]).toMatchObject({
-      filename: 'login-form.tsx',
-      lineno: 42,
-      context_line: 'await authClient.signIn.email(payload)',
+    expect(result?.tags).toEqual({
+      ui_action: 'login_submit',
+      ui_outcome: 'unexpected',
+      error_type: 'Error',
     });
+    expect(result?.exception?.values?.[0].stacktrace?.frames?.[0]).toMatchObject({
+      filename: '[redacted]',
+      lineno: 42,
+    });
+    expect(result?.exception?.values?.[0].stacktrace?.frames?.[0]).not.toHaveProperty(
+      'context_line'
+    );
   });
   it('removes raw SQL and breadcrumb facts but retains numeric status and safe route families', () => {
     const span = scrubSentrySpan({

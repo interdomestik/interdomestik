@@ -22,7 +22,7 @@
       },
       "acceptedMatters": {
         "title": "Prihvaćene eskalacije ostaju na snazi",
-        "body": "Ako je Interdomestik već prihvatio predmet naplate, dogovoreni success-fee i uslovi eskalacije ostaju na snazi za taj predmet čak i ako se članstvo kasnije otkaže."
+        "body": "Ako je Interdomestik već prihvatio predmet naplate, dogovorena naknada za uspeh i uslovi eskalacije ostaju na snazi za taj predmet čak i ako se članstvo kasnije otkaže."
       }
     },
     "footer": {

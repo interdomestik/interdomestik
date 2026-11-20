@@ -40,7 +40,8 @@
     },
     "notFound": {
       "title": "Stranica nije pronađena",
-      "description": "Žao nam je, nismo mogli da pronađemo stranicu koju ste tražili."
+      "description": "Žao nam je, nismo mogli da pronađemo stranicu koju ste tražili.",
+      "backHome": "Nazad na početnu"
     },
     "roles": {
       "admin": "Admin",
@@ -51,7 +52,9 @@
       "super_admin": "Glavni administrator",
       "tenant_admin": "Administrator subjekta",
       "branch_manager": "Menadžer filijale",
-      "promoter": "Promoter mreže"
+      "promoter": "Promoter mreže",
+      "auditor": "Revizor",
+      "global_support": "Globalna podrška"
     },
     "errors": {
       "title": "Greška",
@@ -87,6 +90,27 @@
         "tenant_mk": "Severna Makedonija — standardna usluga",
         "pilot-mk": "Severna Makedonija — pilot program"
       }
+    },
+    "toastRegion": "Obaveštenja",
+    "membershipStatus": {
+      "active": "Aktivno",
+      "past_due": "Dospelo",
+      "paused": "Pauzirano",
+      "canceled": "Otkazano",
+      "none": "Bez članstva",
+      "trialing": "Probni period",
+      "incomplete": "Nepotpuno",
+      "incomplete_expired": "Nepotpuno i isteklo",
+      "unpaid": "Neplaćeno",
+      "expired": "Isteklo",
+      "pending": "Na čekanju",
+      "unknown": "Nepoznato"
+    },
+    "portalError": {
+      "title": "Stranica nije mogla da se učita",
+      "description": "Došlo je do greške pri učitavanju. Pokušajte ponovo da osvežite ovu stranicu.",
+      "retry": "Pokušajte ponovo",
+      "home": "Povratak na početnu"
     }
   }
 }

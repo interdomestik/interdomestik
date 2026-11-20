@@ -35,6 +35,7 @@ export async function getMemberCaseSummaries(params: {
     const rows = await tx
       .select({
         id: claims.id,
+        title: claims.title,
         category: claims.category,
         reference: claims.claimNumber,
         caseLifecycleState: claims.caseLifecycleState,
@@ -51,6 +52,7 @@ export async function getMemberCaseSummaries(params: {
       .where(and(eq(claims.tenantId, tenantId), eq(claims.userId, memberId)))
       .groupBy(
         claims.id,
+        claims.title,
         claims.category,
         claims.claimNumber,
         claims.caseLifecycleState,
@@ -69,6 +71,7 @@ export async function getMemberCaseSummaries(params: {
       return {
         caseKind: row.category === 'vehicle' ? 'accident' : 'generic',
         id: row.id,
+        title: row.title,
         reference: row.reference,
         status,
         documentCount: Number(row.documentCount),

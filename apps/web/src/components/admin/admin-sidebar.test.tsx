@@ -1,133 +1,37 @@
-import type { ComponentProps } from 'react';
+import { getSidebarTestState } from './admin-sidebar-test-mocks';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { AdminSidebar } from './admin-sidebar';
 import { AdminRoleShell } from '@/components/shell/admin-role-shell';
-import type { RoleShell } from '@/components/shell/role-shell';
 
-const hoisted = vi.hoisted(() => ({
-  shellProps: [] as ComponentProps<typeof RoleShell>[],
-  searchParamsMock: vi.fn(() => new URLSearchParams()),
-}));
-
-vi.mock('@/components/shell/role-shell', () => ({
-  RoleShell: (props: ComponentProps<typeof RoleShell>) => {
-    hoisted.shellProps.push(props);
-    return (
-      <>
-        {props.context}
-        {props.account}
-        {props.children}
-      </>
-    );
-  },
-}));
-vi.mock('@/components/dashboard/portal-surface-indicator', () => ({
-  PortalSurfaceIndicator: () => null,
-}));
-
-// Mock next-intl hooks
-vi.mock('next-intl', () => ({
-  useTranslations: (namespace: string) => (key: string) => {
-    const translations: Record<string, Record<string, string>> = {
-      common: {
-        'roles.admin': 'Administrator',
-        'roles.branch_manager': 'Branch manager',
-        'roles.tenant_admin': 'Tenant administrator',
-      },
-      'admin.sidebar': {
-        title: 'Admin Panel',
-        subtitle: 'Control Center',
-        dashboard: 'Dashboard',
-        branches: 'Branches',
-        claims: 'Claims',
-        leads: 'Payment Verification',
-        members: 'Members',
-        agents: 'Agents',
-        staff: 'Staff',
-        crm: 'CRM Reporting',
-        analytics: 'Analytics',
-        settings: 'Settings',
-      },
-      nav: {
-        myAccount: 'My Account',
-        profile: 'Profile',
-        language: 'Language',
-        backToWebsite: 'Back to Website',
-        logout: 'Logout',
-      },
-    };
-    return translations[namespace]?.[key] || key;
-  },
-  useLocale: () => 'en',
-}));
-
-vi.mock('@/lib/roles-i18n', () => ({
-  getRoleLabel: (translator: (key: string) => string, role: string, fallback?: string) =>
-    translator(`roles.${role}`) ?? fallback ?? role,
-}));
-
-// Mock routing
-vi.mock('@/i18n/routing', () => ({
-  Link: ({ prefetch, ...props }: ComponentProps<'a'> & { prefetch?: boolean }) => (
-    <a {...props} data-prefetch={prefetch === undefined ? undefined : String(prefetch)} />
-  ),
-  usePathname: () => '/admin/users',
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-  }),
-}));
-
-vi.mock('next/navigation', () => ({
-  useSearchParams: hoisted.searchParamsMock,
-}));
-
-// Mock auth client
-vi.mock('@/lib/auth-client', () => ({
-  authClient: {
-    signOut: vi.fn(),
-  },
-}));
-
-// Mock UI components
-vi.mock('@interdomestik/ui', () => ({
-  Avatar: ({ children }: Readonly<{ children: React.ReactNode }>) => <span>{children}</span>,
-  AvatarFallback: ({ children }: Readonly<{ children: React.ReactNode }>) => (
-    <span>{children}</span>
-  ),
-  AvatarImage: () => null,
-  useSidebar: () => ({ isMobile: false, setOpenMobile: vi.fn() }),
-  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuPortal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuSeparator: () => <hr />,
-  DropdownMenuSub: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuSubContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuSubTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  Sidebar: ({ children }: { children: React.ReactNode }) => (
-    <aside data-testid="sidebar">{children}</aside>
-  ),
-  SidebarContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarGroupLabel: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  SidebarGroupContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarHeader: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
-  SidebarMenu: ({ children }: { children: React.ReactNode }) => <nav>{children}</nav>,
-  SidebarMenuButton: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
-  SidebarMenuItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarRail: () => <div data-testid="sidebar-rail" />,
-}));
+const hoisted = getSidebarTestState();
 
 describe('AdminSidebar', () => {
+  it.each(['staff', 'agent'])(
+    'renders every people link and Analytics for %s with effective admin capabilities',
+    role => {
+      render(
+        <AdminSidebar
+          user={{
+            role,
+            name: 'Granted User',
+            email: 'granted@example.com',
+            capabilities: { canAccessUsers: true, canReadAnalytics: true },
+          }}
+        />
+      );
+      for (const name of ['Members', 'Agents', 'Staff', 'Analytics']) {
+        expect(screen.getByRole('link', { name })).toBeInTheDocument();
+      }
+      expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument();
+    }
+  );
+
   it('renders user information', () => {
     render(
       <AdminSidebar
         user={{
+          capabilities: { canAccessUsers: true, canReadAnalytics: true },
           name: 'Admin User',
           email: 'admin@example.com',
           role: 'admin',
@@ -145,7 +49,16 @@ describe('AdminSidebar', () => {
     ['super_admin', '/admin/account'],
     ['branch_manager', '/staff/settings'],
   ])('links %s to its own profile page from the account menu', (role, href) => {
-    render(<AdminSidebar user={{ name: 'Account User', email: 'a@example.com', role }} />);
+    render(
+      <AdminSidebar
+        user={{
+          capabilities: { canAccessUsers: true, canReadAnalytics: true },
+          name: 'Account User',
+          email: 'a@example.com',
+          role,
+        }}
+      />
+    );
 
     expect(screen.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', href);
   });
@@ -154,6 +67,7 @@ describe('AdminSidebar', () => {
     render(
       <AdminSidebar
         user={{
+          capabilities: { canAccessUsers: true, canReadAnalytics: true },
           name: 'Tenant Admin',
           email: 'tenant-admin@example.com',
           role: 'tenant_admin',
@@ -169,6 +83,7 @@ describe('AdminSidebar', () => {
     render(
       <AdminSidebar
         user={{
+          capabilities: { canAccessUsers: true, canReadAnalytics: true },
           name: 'Admin',
           email: 'admin@test.com',
           role: 'admin',
@@ -188,6 +103,7 @@ describe('AdminSidebar', () => {
     const { rerender } = render(
       <AdminSidebar
         user={{
+          capabilities: { canAccessUsers: true, canReadAnalytics: true },
           branchId: 'branch-1',
           name: 'Branch Manager',
           email: 'manager@test.com',
@@ -204,6 +120,7 @@ describe('AdminSidebar', () => {
     rerender(
       <AdminSidebar
         user={{
+          capabilities: { canAccessUsers: true, canReadAnalytics: true },
           branchId: null,
           name: 'Branch Manager',
           email: 'manager@test.com',
@@ -223,6 +140,7 @@ describe('AdminSidebar', () => {
     render(
       <AdminSidebar
         user={{
+          capabilities: { canAccessUsers: true, canReadAnalytics: true },
           name: 'Admin',
           email: 'admin@test.com',
           role: 'admin',
@@ -262,6 +180,30 @@ describe('AdminSidebar', () => {
 });
 
 describe('AdminRoleShell adapter', () => {
+  it.each(['staff', 'agent'])(
+    'passes effective %s admin capabilities into drawer navigation',
+    role => {
+      hoisted.shellProps.length = 0;
+      render(
+        <AdminRoleShell
+          user={{
+            role,
+            name: 'Granted User',
+            email: 'granted@example.com',
+            capabilities: { canAccessUsers: true, canReadAnalytics: true },
+          }}
+          tenantSelector={null}
+        >
+          Page content
+        </AdminRoleShell>
+      );
+      const paths = hoisted.shellProps.at(-1)!.items.map(item => item.href.split('?')[0]);
+      expect(paths.filter(path => path === '/admin/users')).toHaveLength(3);
+      expect(paths).toContain('/admin/analytics');
+      expect(paths).not.toContain('/admin/settings');
+    }
+  );
+
   it.each(['admin', 'tenant_admin', 'super_admin', 'branch_manager'])(
     'keeps %s navigation decisions in a drawer with persistent title and account',
     role => {
@@ -271,7 +213,16 @@ describe('AdminRoleShell adapter', () => {
       hoisted.shellProps.length = 0;
       render(
         <AdminRoleShell
-          user={{ role, branchId: null, name: 'Operator', email: 'operator@example.com' }}
+          user={{
+            capabilities: {
+              canAccessUsers: role !== 'branch_manager',
+              canReadAnalytics: role !== 'branch_manager',
+            },
+            role,
+            branchId: null,
+            name: 'Operator',
+            email: 'operator@example.com',
+          }}
           tenantSelector={null}
         >
           <p>Existing claim</p>
@@ -284,7 +235,9 @@ describe('AdminRoleShell adapter', () => {
       expect(props.mobileNavigation).toBe('drawer');
       expect(props.sidebarAccount).toBeTruthy();
       expect(props.items.every(item => !item.href.includes('search='))).toBe(true);
-      expect(props.items.find(item => item.title === 'Agents')).toMatchObject({ selected: true });
+      expect(props.items.find(item => item.title === 'Agents')).toEqual(
+        role === 'branch_manager' ? undefined : expect.objectContaining({ selected: true })
+      );
       const paths = props.items.map(item => item.href.split('?')[0]);
       expect(paths.includes('/admin/branches')).toBe(role !== 'branch_manager');
       expect(paths.includes('/admin/crm')).toBe(role !== 'branch_manager');

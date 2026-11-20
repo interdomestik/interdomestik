@@ -2,13 +2,14 @@
 
 import type { MessageWithSender } from '@/actions/messages';
 import { isAgent as checkIsAgent, isStaffOrAdmin } from '@/lib/roles';
+import { formatPilotDate, formatPilotTime, pilotDateKey } from '@/lib/utils/date';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card } from '@interdomestik/ui/components/card';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { AlertCircle, Loader2, Lock, MessageSquare, RefreshCw } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 
 type OptimisticMessage = MessageWithSender & {
@@ -33,6 +34,7 @@ export function MessageThread({
   isAgent = false,
   onRetry,
 }: MessageThreadProps) {
+  const locale = useLocale();
   const t = useTranslations('messaging');
   const tRoles = useTranslations('common.roles');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -63,36 +65,8 @@ export function MessageThread({
     );
   }
 
-  const timeFormatter = new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'UTC',
-  });
-  const dateFormatter = new Intl.DateTimeFormat('en-GB', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    timeZone: 'UTC',
-  });
-
-  const formatTime = (date: Date) => {
-    const parsed = new Date(date);
-    if (isNaN(parsed.getTime())) return '';
-    return timeFormatter.format(parsed);
-  };
-
-  const formatDateKey = (dateKey: string) => {
-    const parsed = new Date(`${dateKey}T00:00:00.000Z`);
-    if (isNaN(parsed.getTime())) return '';
-    return `${dateFormatter.format(parsed)} UTC`;
-  };
-
-  const toUtcDateKey = (date: Date) => {
-    const parsed = new Date(date);
-    if (isNaN(parsed.getTime())) return '';
-    return parsed.toISOString().slice(0, 10);
-  };
+  const formatTime = (date: Date) => formatPilotTime(date, '');
+  const formatDateKey = (dateKey: string) => formatPilotDate(dateKey, locale, '');
 
   // Only the sender's actual role is labelled: agent keeps its badge, staff/admin show their own role.
   const getSenderBadge = (role: string | null | undefined): string | null => {
@@ -104,7 +78,7 @@ export function MessageThread({
   // Group messages by date
   const groupedMessages = messages.reduce(
     (groups, message) => {
-      const dateKey = toUtcDateKey(message.createdAt);
+      const dateKey = pilotDateKey(message.createdAt);
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }

@@ -1,6 +1,6 @@
 import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
-import { createTenantSignedDownloadUrl } from '@/lib/storage/service-role';
+import { signOpsDocuments } from './sign-ops-documents';
 import { isExactIdaFrontDoorHost } from '@/lib/tenant/tenant-front-door';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import { and, claimDocuments, claims, eq } from '@interdomestik/database';
@@ -169,25 +169,7 @@ export async function getOpsClaimDetail(
       claimId,
     });
 
-  const docs = await Promise.all(
-    rawDocs.map(async doc => {
-      const { data } = await createTenantSignedDownloadUrl({
-        bucket: doc.bucket,
-        context: 'ops claim document signed URL',
-        family: 'claims',
-        path: doc.filePath,
-        tenantId: doc.tenantId,
-      });
-      return {
-        id: doc.id,
-        name: doc.name,
-        fileSize: doc.fileSize,
-        fileType: doc.fileType,
-        createdAt: doc.createdAt,
-        url: data?.signedUrl ?? '',
-      };
-    })
-  );
+  const docs = await signOpsDocuments(rawDocs);
 
   const rawRow: RawClaimRow = {
     claim: {

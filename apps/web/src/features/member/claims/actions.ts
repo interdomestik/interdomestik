@@ -239,6 +239,7 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
     }
 
     const validatedUpload = await validateConfirmedClaimUpload({
+      authority,
       actorId: session.user.id,
       bucket: resolvedBucket,
       confirmation: params,
@@ -249,6 +250,8 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
     if (!validatedUpload.success) {
       return validatedUpload;
     }
+
+    if (validatedUpload.replayed) return { success: true };
 
     await persistClaimDocumentAndQueueWorkflows({
       category,

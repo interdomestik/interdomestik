@@ -1,5 +1,7 @@
 'use client';
 
+import { membershipStatusKey } from '@/lib/utils/membership-status';
+
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
 import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tree-content';
@@ -28,6 +30,7 @@ export function MembershipOpsPage({
   leaveEntryId?: string | null;
 }): React.JSX.Element {
   const locale = useLocale();
+  const tStatus = useTranslations('common.membershipStatus');
   const { selectedId, setSelectedId } = useOpsSelectionParam();
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const t = useTranslations('membership');
@@ -51,7 +54,11 @@ export function MembershipOpsPage({
           {s.createdAt ? formatPilotDate(s.createdAt, locale, '-') : '-'}
         </span>
       </div>,
-      <OpsStatusBadge key="status" {...toOpsStatus(s.status)} />,
+      <OpsStatusBadge
+        key="status"
+        {...toOpsStatus(s.status)}
+        label={tStatus(membershipStatusKey(s.status))}
+      />,
     ],
     onClick: () => setSelectedId(s.id),
     className: selectedId === s.id ? 'bg-primary/5' : undefined,

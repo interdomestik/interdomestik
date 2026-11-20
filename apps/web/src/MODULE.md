@@ -1,0 +1,53 @@
+# MODULE — web server layer (`apps/web/src`: server actions, route handlers, the action wrapper)
+
+Module contract, adopted from the review of 2026-11-13 (run A). Paths that begin with `A/` or `inputs/` cite the review record, which is kept outside this repository. Written by a helper on Opus 5.5 from the R1 reports and the code at `ef1bd0ef5`; reviewed by the main session on Fable 5.2, which re-read: the counts of the wrapper, the two paths that open a second tenant transaction, the anonymous lead action and the proxy matcher. The other lines rest on R1's security and server-context reports. Rules of `AGENTS.md` that bind this area: R-05, R-08, R-15, R-17, R-20, R-34. Line numbers into `docs/engineering/DIRECTION.md` are those of 2026-11-17, 01:00Z; the work-package numbers are the stable reference. **Corrected in R3 (2026-11-17)** after the independent review of R2b (comment R2b-C03): every statement of this file was checked against the pinned commit and the active finding records by a helper on Opus 5.5 (`A/raw/R3/modules/modcheck.md`), and the main session re-read the lines behind each correction it took. "Owned" means the package whose exported commands should write a table; `packages/database` declares every table and owns none (R-16).
+
+## Responsibility
+
+The HTTP and RSC surface of the product: route handlers under `app/api/`, exported `'use server'` actions, and the wrapper that is supposed to put authentication, tenancy and a uniform result in front of every action.
+
+## Public API
+
+`apps/web/src/lib/safe-action.ts:14-26` — `ActionResult<T>`, a **promise** of the union `ActionSuccess<T> | ActionError` (`{success:true,data?}` | `{success:false,error,code?,issues?}`): the alias wraps the promise at `:26`, so it types what an action returns, not the awaited value (corrected in the closing pass, review comment R3-C05); `:91-144` — `runAuthenticatedAction(handler)`, which resolves the session, throws on a missing tenant and maps `UnauthorizedError` / `MissingTenantError` to the codes `UNAUTHORIZED` / `MISSING_TENANT` (`:170-176`). Route handlers are reached by path, not by import. `apps/web/src/proxy.ts:8-10` does **not** run for `/api`.
+
+## Owned tables
+
+None of its own: this layer writes the tables of `packages/database` through the domain packages or directly. That is the problem to watch — **124 of 348 write sites are in the web app, and 24 of 81 written tables have more than one writer** (MAIN-07, `docs/engineering/DIRECTION.md:53`); no check enforces layers inside the app (MAIN-06).
+
+## Invariants
+
+- **Every exported server action passes the wrapper — NOT ENFORCED and largely false.** MEASURED (`A/raw/R2b/corrections/c10-baselines.json`, `chk04`, at this SHA): 92 `'use server'` files with **232** counted exports; **76 files reach the wrapper by neither route**, 14 reference `runAuthenticatedAction` directly and 2 through a re-export — **16 of 92**. (The same file records its limit: whether each individual export is _built_ by the wrapper needs a syntax-tree check and was not measured.)
+- Authorization inside an action — **opt-in across 12 guard helpers**, not a property of the wrapper (SEC-06, `apps/web/src/lib/safe-action.ts:91-144`, `A/modules/security.md:146`).
+- Every entry point validates its input — **NOT ENFORCED**: R1's surface inventory counts 282 entry points (50 route × method + 232 actions), 88 actions and 6 routes without validation, 182 actions and 16 routes without a limiter (`A/modules/security.md:31-40`). The action figures are **mechanical** (lead level), the route figures mostly read.
+- A body is parsed by a schema before it is written — **NOT ENFORCED**: an unvalidated body is spread into a notification-preference write, letting a signed-in user set `userId` and write another user's row (SEC-02, S0, `apps/web/src/app/api/settings/notifications/_core.ts:107-118`).
+- An action that creates a row requires a session — **NOT ENFORCED** on four rows: `sendThankYouLetter` and `previewThankYouLetter` have no checks at all and no production importer (SEC-01), and `createCommission` has no role check (SEC-04, `apps/web/src/actions/commissions.core.ts:31-56`). `submitLead` inserts a `leads` row for a caller without a session and has no rate limit (SEC-10, `apps/web/src/actions/leads.core.ts`, whose sole importer `components/claims/call-me-now-dialog.tsx:13` is mounted nowhere — MEASURED in `A/raw/R2b/entry/public-entry-inventory.md:141`).
+- A failure is observable — **NOT ENFORCED**: 263 of 573 server-side catch blocks discard the error, logging is 531 unstructured console calls and the structured logger has no importer (SCTX-06); three staff read models return zeros or an empty list on any failure (SCTX-11, `features/admin/claims/server/getOpsCenterData.ts:181-186`); the Sentry scrubber removes tenant, user, entity and message and there is no request correlation id (SCTX-05).
+- A tenant transaction is not nested — **NOT ENFORCED**, and one of the two known offenders is in this layer: `apps/web/src/features/admin/verification/server/mutations/verify-attempt.ts:92,166` calls `apps/web/src/lib/notifications/recipient-role.ts:18`, which opens a second transaction; the member membership page does the same through `apps/web/src/app/[locale]/(app)/member/membership/_core.ts:57,82` → `apps/web/src/lib/entity-disclosure.core.ts:76` (DATA-13). Neither can complete on the hosting platform, where each pool holds one connection (`packages/database/src/db.ts:40-41`).
+
+## Tenant boundary
+
+The tenant comes from the session's authority, resolved per request (`apps/web/src/lib/tenant-authority.server.ts:27-47`) and carried into `withTenantAuthority`. An exported action that _takes_ an authority argument is safe by construction: a client cannot produce a registered token (`A/modules/tenancy.md:170`). The proxy is not a tenant source and never sees `/api` (`apps/web/src/proxy.ts:8-10`), so route handlers get no proxy-set header and no proxy security header (SEC-07).
+
+## Where a new entry point goes (added after the drill of R3)
+
+A new server action is a file `apps/web/src/actions/<area>/<name>.ts` that begins with `'use server'` (place: `apps/web/src/actions/staff-claims/information-request.ts:1-29`). It is the body of `runAuthenticatedAction` and takes the session and the tenant authority from the context that the wrapper hands it (`apps/web/src/lib/safe-action.ts:30-42,91-144`); it holds no context helper and copies none of the 24 `context.core.ts` files. Until WP-02 gives the wrapper a declared basis and a schema, the action parses its input with a strict schema before anything else, and its basis is named in the review record (R-05). A new route handler is added only when a caller that is not this application needs one; `/api` gets nothing from the proxy and authorizes itself (R-34).
+
+## Live and not live
+
+A caller **without a session** reaches, per `A/raw/R2b/entry/public-entry-inventory.md`: the whole `/api/auth/*` surface including `POST /api/auth/sign-up/email`, which is enabled, guarded by a tenant-context check only and **has no mounted UI** (`:35`); the e-mailed-code paths; Free Start, of which three entries need **no** session — the intake `submitFreeStartIntake` (`apps/web/src/actions/free-start/submit.core.ts:46-64`, "anonymous public intake"), the claim-pack action and the e-mailed code of "secure save" (`:67-69`) — while its six draft actions need one (`:70`); the E2E helper route `/api/e2e/branches`, which is closed only while `E2E_API_SECRET` is unset and, with the secret configured, accepts a request that carries it under `NODE_ENV=production` too (`apps/web/src/app/api/e2e/branches/route.ts:18-43`; WP-10 makes production refuse the variable); pages without a session (section C); 13 route handlers without authentication, all of which R1 judged intended or inert (`A/modules/security.md:42`); and 10 action rows without authentication, 4 of them a real gap (`A/modules/security.md:44`). Section H lists what a closure **must not break**: the activation invite → password-reset chain, sign-in by password and by code, session reads, the sponsor opt-out link, claim tracking by token and share packs (`…/public-entry-inventory.md:199-212`). Not live: `RegisterForm` is referenced only by its own test and `/[locale]/register` redirects to `/pricing` (`:35`); the dead prototype and legacy entry points of SEC-09; four cron routes have no scheduler in the repository (MAIN-11; SCTX-08 is another name of the same record).
+
+## Tests to run
+
+The web app's unit suite (vitest) and the Playwright e2e suite under `apps/web/e2e/`. The unit suite runs in CI inside the coverage step: `.github/workflows/ci.yml:138` (`pnpm coverage:gate`, whose `test:coverage` runs the web suite, `shared-auth` and every `domain-*` package, `package.json:86-87`; the step is skipped when coverage is reused, `ci.yml:137`). The browser suites run at `ci.yml:184` (`e2e:guards`) and `ci.yml:202` (`e2e:gate`) and in `e2e-pr.yml` and `e2e-nightly.yml` (the unit's reading). The checks that would hold this module's invariants are proposals, not tests today: CHK-04 (the wrapper), CHK-08 (catch clauses), CHK-20 (the result type), CHK-26 (no public entry outside the registry, `docs/engineering/DIRECTION.md:269`).
+
+## Do not reach into
+
+A domain package's deep path from a route handler or an action, rather than its declared exports (MAIN-06/MAIN-07 are the measured consequence). `dbAdmin` or `packages/database/src/db.ts` from a feature. Opening a second tenant transaction from a helper that already received a `tx` (DATA-13).
+
+## Decided for this module (owner, 2026-11-17; a decision, not a verified property of today's code)
+
+- A service worker never caches an authenticated response, and sign-out clears the caches (answer 27 e).
+
+## Open findings
+
+SEC-01 to SEC-13 (`A/modules/security.md:141-149`; SEC-10 to SEC-13 added in R2b; SEC-12 is S3 since R3), SCTX-01 to SCTX-17 as far as each has a record of its own (`A/modules/server-context-and-diagnosability.md:207-218`; SCTX-04, SCTX-08 and SCTX-12 are recorded as CASE-07, MAIN-11 and BIL-13), MAIN-06, MAIN-07, DATA-13. Work packages: WP-01 (the unvalidated body, the unguarded exported actions, the two nested transactions), WP-02 (the wrapper with a declared basis and a schema), WP-10 (the closed pilot and the entry registry).

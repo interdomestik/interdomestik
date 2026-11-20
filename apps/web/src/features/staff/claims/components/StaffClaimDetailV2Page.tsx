@@ -24,6 +24,7 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 import { getStaffClaimDetailsCore } from '@/app/[locale]/(staff)/staff/claims/[id]/_core';
+import { formatPilotDateTime } from '@/lib/utils/date';
 
 export async function StaffClaimDetailV2Page({
   id,
@@ -150,15 +151,7 @@ export async function StaffClaimDetailV2Page({
                                   </div>
 
                                   <div className="text-xs text-muted-foreground">
-                                    {entry.createdAt
-                                      ? new Intl.DateTimeFormat(undefined, {
-                                          year: 'numeric',
-                                          month: 'short',
-                                          day: '2-digit',
-                                          hour: '2-digit',
-                                          minute: '2-digit',
-                                        }).format(entry.createdAt)
-                                      : null}
+                                    {formatPilotDateTime(entry.createdAt, locale, '')}
                                   </div>
                                 </div>
 

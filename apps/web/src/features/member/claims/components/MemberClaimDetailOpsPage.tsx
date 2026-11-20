@@ -11,6 +11,8 @@ import {
 import { useTrackingLabelTranslator } from '@/features/claims/tracking/components/useTrackingLabelTranslator';
 import { Link } from '@/i18n/routing';
 import { formatPilotDateTime } from '@/lib/utils/date';
+import { MemberClaimFactsCard } from './member-claim-facts-card';
+import { MemberClaimMatterAllowanceCard } from './member-claim-matter-allowance-card';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { LifeBuoy } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -217,68 +219,10 @@ export function MemberClaimDetailOpsPage({
           ) : null}
 
           {claim.matterAllowance ? (
-            <Card data-testid="member-claim-matter-allowance">
-              <CardHeader>
-                <CardTitle>{t('detail.matterAllowance.title')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 text-sm sm:grid-cols-3">
-                  <div>
-                    <span className="text-xs uppercase text-muted-foreground">
-                      {t('detail.matterAllowance.used')}
-                    </span>
-                    <p
-                      className="mt-1 text-lg font-semibold"
-                      data-testid="member-claim-matter-allowance-used"
-                    >
-                      {claim.matterAllowance.consumedCount}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-xs uppercase text-muted-foreground">
-                      {t('detail.matterAllowance.remaining')}
-                    </span>
-                    <p
-                      className="mt-1 text-lg font-semibold"
-                      data-testid="member-claim-matter-allowance-remaining"
-                    >
-                      {claim.matterAllowance.remainingCount}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-xs uppercase text-muted-foreground">
-                      {t('detail.matterAllowance.total')}
-                    </span>
-                    <p
-                      className="mt-1 text-lg font-semibold"
-                      data-testid="member-claim-matter-allowance-total"
-                    >
-                      {claim.matterAllowance.allowanceTotal}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <MemberClaimMatterAllowanceCard allowance={claim.matterAllowance} />
           ) : null}
 
-          <Card data-testid="member-claim-case-details">
-            <CardHeader>
-              <CardTitle>{t('detail.caseDetails')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm">{claim.description}</p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="min-w-0">
-                  <span className="text-xs text-muted-foreground uppercase">
-                    {t('table.amount')}
-                  </span>
-                  <p className="font-medium break-words">
-                    {claim.amount} {claim.currency}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <MemberClaimFactsCard claim={claim} />
 
           <section
             id={MEMBER_CLAIM_DETAIL_SECTION_IDS.evidence}

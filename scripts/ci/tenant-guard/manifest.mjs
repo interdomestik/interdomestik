@@ -82,6 +82,8 @@ export const SEED_TLS_CLOSURE = new Set([
   `${DB}/seed-workload/index.ts`,
   `${DB}/seed-packs/agent-pack.ts`,
   `${DB}/seed-packs/ks-workflow-pack.ts`,
+  // R-13: the guarded client for scripts that write to a disposable database (WP-04).
+  `${DB}/disposable-client.ts`,
 ]);
 
 export const DRIVER_MODULES = new Set([
@@ -93,11 +95,8 @@ export const DRIVER_MODULES = new Set([
   `${DB}/migration-ledger-contracts.ts`,
   `${DB}/migration-execution-contracts.ts`,
   `${DB}/seed-utils/cleanup.ts`,
-  // Operator scripts at the package root; never imported by runtime code (enforced below).
-  'packages/database/drop-claims.ts',
-  'packages/database/test-db.ts',
-  'packages/database/inspect-db.ts',
-  'packages/database/hotfix.ts',
+  // Seed-only closure member: opens a client only after assertDisposableTarget (R-13, WP-04).
+  `${DB}/disposable-client.ts`,
   // QA MCP read tool; a separate process with its own connection string.
   'packages/qa/src/tools/db.ts',
 ]);

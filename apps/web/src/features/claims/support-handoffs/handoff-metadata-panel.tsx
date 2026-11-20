@@ -1,7 +1,7 @@
 'use client';
 
 import { getSupportHandoffDetail } from '@/actions/support-handoffs/detail';
-import { useId, useState, useTransition } from 'react';
+import { useEffect, useId, useState, useTransition } from 'react';
 import type { RestrictedRead } from '../communication/get-claim-message-metadata';
 import type { HandoffMetadata } from './get-handoff-metadata';
 import { HandoffMetadataFields, type MetadataLabels } from './handoff-metadata-fields';
@@ -21,10 +21,15 @@ export function HandoffMetadataPanel({
   missing: { timestamp: string; assignee: string; branch: string };
   statuses: Record<string, string>;
 }>) {
+  const [isHydrated, setIsHydrated] = useState(false);
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState<RestrictedRead<HandoffMetadata[]> | null>(null);
   const [pending, startTransition] = useTransition();
   const panelId = useId();
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   function load() {
     startTransition(async () => {
       try {
@@ -43,7 +48,7 @@ export function HandoffMetadataPanel({
     return labels.unavailable;
   }
   return (
-    <div>
+    <div data-hydrated={isHydrated ? 'true' : 'false'}>
       <button
         type="button"
         aria-expanded={open}

@@ -8,11 +8,23 @@ export function formatClaimAmount(
   const value = Number(amount);
   if (!Number.isFinite(value)) return null;
   try {
-    return new Intl.NumberFormat(locale, {
+    return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'de-DE', {
       style: 'currency',
       currency: currency.trim().toUpperCase(),
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(value);
   } catch {
     return null;
   }
+}
+
+/** Euro amount in the app's number style: en "€1,200.00", every other locale "1.200,00 €". */
+export function formatEuro(value: number, locale: string, fractionDigits = 2): string {
+  return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'de-DE', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value);
 }

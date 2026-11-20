@@ -15,6 +15,13 @@ const customDataSchema = z
   })
   .passthrough(); // NOSONAR
 
+const billingCycleSchema = z.object({
+  interval: z.enum(['day', 'week', 'month', 'year']),
+  frequency: z.number().int().positive(),
+});
+
+// Paddle sends `null` (not an absent key) for unset nullable entity fields, so every
+// Paddle-nullable field below is `.nullable().optional()`.
 const priceSchema = z
   .object({
     id: z.string().optional(),
@@ -32,18 +39,9 @@ const priceSchema = z
         currency_code: z.string().optional(),
       })
       .optional(),
-    billingCycle: z
-      .object({
-        interval: z.enum(['day', 'week', 'month', 'year']),
-        frequency: z.number().int().positive(),
-      })
-      .optional(),
-    billing_cycle: z
-      .object({
-        interval: z.enum(['day', 'week', 'month', 'year']),
-        frequency: z.number().int().positive(),
-      })
-      .optional(),
+    // Paddle sends null for one-time prices.
+    billingCycle: billingCycleSchema.nullable().optional(),
+    billing_cycle: billingCycleSchema.nullable().optional(),
   })
   .passthrough(); // NOSONAR
 
@@ -62,6 +60,8 @@ const billingPeriodSchema = z
   })
   .passthrough(); // NOSONAR
 
+const scheduledChangeSchema = z.object({ action: z.string().optional() });
+
 // Subscription Event Data
 export const subscriptionEventDataSchema = z
   .object({
@@ -73,30 +73,20 @@ export const subscriptionEventDataSchema = z
     customer_id: z.string().optional(), // Paddle sometimes uses underscore
 
     // Custom Data variants
-    customData: customDataSchema.optional(),
-    custom_data: customDataSchema.optional(),
+    customData: customDataSchema.nullable().optional(),
+    custom_data: customDataSchema.nullable().optional(),
 
     items: z.array(itemSchema).optional(),
 
     // Billing Period variants
-    currentBillingPeriod: billingPeriodSchema.optional(),
-    current_billing_period: billingPeriodSchema.optional(), // Paddle snake_case fallback
-    billingCycle: z
-      .object({
-        interval: z.enum(['day', 'week', 'month', 'year']),
-        frequency: z.number().int().positive(),
-      })
-      .optional(),
-    billing_cycle: z
-      .object({
-        interval: z.enum(['day', 'week', 'month', 'year']),
-        frequency: z.number().int().positive(),
-      })
-      .optional(),
+    currentBillingPeriod: billingPeriodSchema.nullable().optional(),
+    current_billing_period: billingPeriodSchema.nullable().optional(), // Paddle snake_case fallback
+    billingCycle: billingCycleSchema.optional(),
+    billing_cycle: billingCycleSchema.optional(),
 
     // Scheduled Change
-    scheduledChange: z.object({ action: z.string().optional() }).optional(),
-    scheduled_change: z.object({ action: z.string().optional() }).optional(),
+    scheduledChange: scheduledChangeSchema.nullable().optional(),
+    scheduled_change: scheduledChangeSchema.nullable().optional(),
   })
   .passthrough(); // NOSONAR
 
@@ -113,8 +103,8 @@ export const transactionEventDataSchema = z
     subscriptionId: z.string().optional().nullable(),
     subscription_id: z.string().optional().nullable(),
 
-    customData: customDataSchema.optional(),
-    custom_data: customDataSchema.optional(),
+    customData: customDataSchema.nullable().optional(),
+    custom_data: customDataSchema.nullable().optional(),
 
     details: z
       .object({

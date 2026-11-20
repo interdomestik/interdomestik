@@ -71,7 +71,7 @@
     "scope": {
       "eyebrow": "Fusha e nisjes",
       "title": "Çfarë trajtojmë tani, çfarë mbetet udhëzim dhe çfarë e referojmë",
-      "subtitle": "Interdomestik nis me një kontratë të fokusuar te rastet. Këta kufij tregojnë ku ndihmojnë Free Start dhe anëtarësia, ku mund të fillojë rikuperimi i drejtuar nga stafi dhe ku japim vetëm hapin e radhës.",
+      "subtitle": "Interdomestik nis me një kontratë të fokusuar te rastet. Këta kufij tregojnë ku ndihmojnë Fillimi falas dhe anëtarësia, ku mund të fillojë rikuperimi i drejtuar nga stafi dhe ku japim vetëm hapin e radhës.",
       "launch": {
         "title": "Trajtohet tani",
         "description": "Këto lloje rastesh hyjnë në rrugën e rikuperimit në nisje kur ekziston një rezultat i besueshëm monetar.",
@@ -80,15 +80,15 @@
           "Raste dëmi në pronë",
           "Raste lëndimi personal me rrugë monetare rikuperimi"
         ],
-        "note": "Free Start mund të përgatisë pakon. Anëtarësia shton triage njerëzor dhe kontroll dokumentesh para çdo përshkallëzimi të pranuar."
+        "note": "Fillimi falas mund të përgatisë pakon. Anëtarësia shton triage njerëzor dhe kontroll dokumentesh para çdo përshkallëzimi të pranuar."
       },
       "guidance": {
         "title": "Vetëm udhëzim",
-        "description": "Këto kategori mund të marrin udhëzim ose kontroll dokumentesh, por nuk hyjnë në rikuperim me success-fee në nisje.",
+        "description": "Këto kategori mund të marrin udhëzim ose kontroll dokumentesh, por nuk hyjnë në rikuperim me tarifë suksesi në nisje.",
         "items": [
           "Mosmarrëveshje banesore pa rrugë direkte rikuperimi monetar",
-          "Mosmarrëveshje pune ose mbajtje page pa payout të qartë",
-          "Mosmarrëveshje për riparim ose ndërprerje kontrate pa payout direkt",
+          "Mosmarrëveshje pune ose mbajtje page pa pagesë të qartë",
+          "Mosmarrëveshje për riparim ose ndërprerje kontrate pa pagesë të drejtpërdrejtë",
           "Ankesa më të gjera konsumatore jashtë llojeve të rasteve të nisjes"
         ],
         "note": "Këto raste mbeten këshilluese dhe referohen më tej kur një partner është më i përshtatshëm."
@@ -116,8 +116,8 @@
     "disclaimers": {
       "eyebrow": "Sqarime komerciale",
       "freeStart": {
-        "title": "Free Start është vetëm informues",
-        "body": "Free Start ju jep udhëzim informues, modele dhe mjete për hapat e radhës. Nuk nis shqyrtim njerëzor, këshillë ligjore ose rikuperim të drejtuar nga stafi."
+        "title": "Fillimi falas është vetëm informues",
+        "body": "Fillimi falas ju jep udhëzim informues, modele dhe mjete për hapat e radhës. Nuk nis shqyrtim njerëzor, këshillë ligjore ose rikuperim të drejtuar nga stafi."
       },
       "hotline": {
         "title": "Kontakto mbështetjen",
@@ -125,9 +125,9 @@
       }
     },
     "successFeeCalculator": {
-      "eyebrow": "Matematika e success fee",
-      "title": "Shihni llogaritjen e success fee para përshkallëzimit",
-      "subtitle": "Përdorni kalkulatorin publik për të vlerësuar tarifën mbi shumën që Interdomestik e rikuperon realisht për ju. Pa rikuperim nuk ka success fee për Interdomestik; shpenzimet gjyqësore dhe kostot e treta mbeten të ndara dhe kërkojnë marrëveshje me shkrim para veprimit ligjor.",
+      "eyebrow": "Matematika e tarifës së suksesit",
+      "title": "Shihni llogaritjen e tarifës së suksesit para përshkallëzimit",
+      "subtitle": "Përdorni kalkulatorin publik për të vlerësuar tarifën mbi shumën që Interdomestik e rikuperon realisht për ju. Pa rikuperim nuk ka tarifë suksesi për Interdomestik; shpenzimet gjyqësore dhe kostot e treta mbeten të ndara dhe kërkojnë marrëveshje me shkrim para veprimit ligjor.",
       "calculator": {
         "title": "Kalkulator publik i tarifës",
         "description": "Tarifa bazë mbetet 15% për Asistenca dhe 12% për Asistenca+ Family, të dyja me minimum EUR 25. Puna me veprim ligjor kërkon pëlqim të veçantë me shkrim dhe një tavan më të lartë.",
@@ -135,14 +135,14 @@
         "amountLabel": "Shuma e rikuperuar (EUR)",
         "breakdown": {
           "recoveryAmount": "Shuma e rikuperuar",
-          "feeRate": "Norma e success fee",
+          "feeRate": "Norma e tarifës së suksesit",
           "minimumFee": "Tarifa minimale",
           "feeAmount": "Tarifa e vlerësuar nëse rikuperohen para",
           "legalActionCap": "Tavani për veprim ligjor pas pëlqimit me shkrim",
           "minimumApplied": "A zbatohet minimumi",
           "minimumAppliedTrue": "Po",
           "minimumAppliedFalse": "Jo",
-          "noRecovery": "Pa rikuperim, pa success fee për Interdomestik"
+          "noRecovery": "Pa rikuperim, pa tarifë suksesi për Interdomestik"
         }
       },
       "plans": {
@@ -164,11 +164,11 @@
       "examples": {
         "standard": {
           "title": "Shembull i planit standard",
-          "description": "Një rikuperim prej EUR 1,000 me Asistenca prodhon një success fee prej EUR 150."
+          "description": "Një rikuperim prej EUR 1,000 me Asistenca prodhon një tarifë suksesi prej EUR 150."
         },
         "family": {
           "title": "Shembull i planit familjar",
-          "description": "Një rikuperim prej EUR 1,000 me Asistenca+ Family prodhon një success fee prej EUR 120."
+          "description": "Një rikuperim prej EUR 1,000 me Asistenca+ Family prodhon një tarifë suksesi prej EUR 120."
         },
         "minimum": {
           "title": "Shembull i tarifës minimale",

@@ -1,3 +1,4 @@
+import { formatPilotDateTime } from '@/lib/utils/date';
 import { LatestStatusNoteContent } from './LatestStatusNoteContent';
 
 type PublicStatusEntry = Readonly<{
@@ -57,7 +58,7 @@ export function StaffStatusHistory({
                   className="text-xs text-muted-foreground"
                   dateTime={entry.createdAt.toISOString()}
                 >
-                  {entry.createdAt.toLocaleString(locale)}
+                  {formatPilotDateTime(entry.createdAt, locale, '')}
                 </time>
               ) : null}
             </li>

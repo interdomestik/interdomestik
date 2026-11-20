@@ -90,6 +90,59 @@
         "title": "Notification",
         "content": "An update is available. Message and note content is restricted for branch managers."
       }
+    },
+    "updateOn": "Update on: {claim}",
+    "yourClaim": "your claim",
+    "updateBody": "A new update is available. Open the notification for details.",
+    "events": {
+      "claimSubmitted": {
+        "title": "Claim submitted"
+      },
+      "claimAssigned": {
+        "title": "Claim assigned"
+      },
+      "statusChanged": {
+        "title": "Claim status updated"
+      },
+      "claimPackGenerated": {
+        "title": "Claim pack generated"
+      },
+      "claimPackUpgraded": {
+        "title": "Claim pack updated"
+      },
+      "documentRequested": {
+        "title": "Documents requested"
+      },
+      "triageComplete": {
+        "title": "Triage completed"
+      },
+      "escalationAccepted": {
+        "title": "Escalation accepted"
+      },
+      "escalationDeclined": {
+        "title": "Escalation declined"
+      },
+      "newMessage": {
+        "title": "New message"
+      },
+      "slaWarning": {
+        "title": "SLA warning"
+      },
+      "slaBreached": {
+        "title": "SLA overdue"
+      },
+      "membershipRenewal": {
+        "title": "Membership renewal"
+      },
+      "paymentVerificationUpdate": {
+        "title": "Verification updated"
+      },
+      "supportHandoffPublicResponse": {
+        "title": "Support request updated"
+      },
+      "unknown": {
+        "title": "Notification"
+      }
     }
   }
 }

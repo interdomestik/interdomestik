@@ -84,15 +84,17 @@ describe('subscription confirmation dispatch', () => {
     warn.mockRestore();
   });
 
-  it('ignores an invalid provider payload before any write or dispatch', async () => {
-    await handleSubscriptionChanged(
-      {
-        delivery: TEST_PADDLE_DELIVERY,
-        eventType: 'subscription.updated',
-        data: { id: 'sub_123', customData: { userId: 'user_123' } },
-      },
-      { logAuditEvent, sendThankYouLetter }
-    );
+  it('rejects an invalid provider payload as retryable before any write or dispatch', async () => {
+    await expect(
+      handleSubscriptionChanged(
+        {
+          delivery: TEST_PADDLE_DELIVERY,
+          eventType: 'subscription.updated',
+          data: { id: 'sub_123', customData: { userId: 'user_123' } },
+        },
+        { logAuditEvent, sendThankYouLetter }
+      )
+    ).rejects.toThrow('Invalid Paddle subscription data: status (invalid_type)');
 
     expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(logAuditEvent).not.toHaveBeenCalled();

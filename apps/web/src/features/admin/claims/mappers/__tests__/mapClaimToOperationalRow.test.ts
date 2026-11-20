@@ -32,6 +32,11 @@ function mockRawRow(overrides: Partial<RawClaimRow['claim']>): RawClaimRow {
 }
 
 describe('mapClaimToOperationalRow', () => {
+  it.each([null, '', '   '])('uses the claim title for a missing number (%s)', claimNumber => {
+    const row = mapClaimToOperationalRow(mockRawRow({ claimNumber, id: 'GOLDEN_K_INTERNAL' }));
+    expect(row.code).toBe('Test Claim');
+  });
+
   it('CRITICAL INVARIANT: isUnassigned matches (staffId==null && staffOwned && !terminal)', () => {
     // Case 1: Unassigned + Staff Owned (submitted) => isUnassigned=true
     const row1 = mapClaimToOperationalRow(mockRawRow({ status: 'submitted', staffId: null }));

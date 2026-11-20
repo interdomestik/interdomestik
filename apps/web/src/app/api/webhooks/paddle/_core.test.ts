@@ -25,12 +25,13 @@ describe('paddle webhook onboarding helpers', () => {
     );
   });
 
-  it('builds the canonical tenant reset URL on a production deployment', () => {
+  it('builds the reset URL on the one door of a production deployment', () => {
+    vi.stubEnv('VERCEL', '1');
     vi.stubEnv('VERCEL_ENV', 'production');
     vi.stubEnv('BETTER_AUTH_URL', 'https://www.interdomestik.com');
 
     expect(buildTenantPasswordResetRedirectUrl('tenant_ks')).toBe(
-      'https://ks.interdomestik.com/sq/reset-password'
+      'https://ida.interdomestik.com/sq/reset-password'
     );
   });
 

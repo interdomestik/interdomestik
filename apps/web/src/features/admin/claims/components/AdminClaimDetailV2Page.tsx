@@ -48,6 +48,9 @@ export async function AdminClaimDetailV2Page({
   // Ops mutations (status, SLA, reminder, assignment) are admitted only for the exercised admin
   // family on the server; every other viewer, including branch managers, gets a read-only card.
   const opsReadOnly = !isAdmin(session.user.role) || visibility.role === 'branch_manager';
+  // The admin family already reads internal notes and may write them on the server; without the
+  // toggle every admin reply on this page went to the member as a public message.
+  const allowInternalNotes = isAdmin(session.user.role);
   const staffResult = await getStaff();
   if (canAssign && !staffResult.success) {
     // A failed read is not "no eligible staff": surface it through the route error/retry boundary
@@ -113,6 +116,7 @@ export async function AdminClaimDetailV2Page({
                 role: session.user.role || 'admin',
               }}
               isAgent={true}
+              allowInternal={allowInternalNotes}
             />
           )}
 

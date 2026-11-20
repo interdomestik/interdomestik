@@ -24,6 +24,9 @@ import { copyText } from './clipboard';
 import { buildAdminUserProfileHref } from './claim-header-links';
 import { formatClaimCreatedDate } from './claim-header-date';
 
+// 44px copy targets on phones; the compact 24px icon buttons return from `sm` up.
+const COPY_TARGET = 'inline-flex size-11 items-center justify-center sm:inline-block sm:size-auto';
+
 interface ClaimHeaderProps {
   claim: ClaimOpsDetail;
   nextActions: NextActionsResult;
@@ -87,9 +90,10 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
   return (
     <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b pb-4 pt-2 -mx-4 px-4 sm:-mx-8 sm:px-8 mb-6 transition-all">
       <div className="flex flex-col gap-4">
-        {/* Breadcrumb Navigation */}
-        <nav className="flex items-center gap-1.5 text-sm" aria-label="Breadcrumb">
-          {/* Level 1: Claims List */}
+        <nav
+          className="flex flex-wrap items-center gap-1.5 text-sm"
+          aria-label={tHeader('breadcrumb')}
+        >
           <Link
             href={createBackUrl()}
             className="text-muted-foreground hover:text-foreground transition-colors"
@@ -99,7 +103,6 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
 
           <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />
 
-          {/* Level 2: Lifecycle Stage */}
           <Link
             href={`/admin/claims?lifecycle=${claim.lifecycleStage}`}
             className="text-muted-foreground hover:text-foreground transition-colors"
@@ -109,7 +112,6 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
 
           <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />
 
-          {/* Level 3: Current Claim (Active) */}
           <div className="flex items-center gap-1 group/claim">
             <Link
               href={claimResolverHref}
@@ -123,7 +125,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
               <button
                 type="button"
                 onClick={() => copyToClipboard(resolverUrl, tHeader('claim_number_link'))}
-                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
+                className={`${COPY_TARGET} p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600`}
                 title={tHeader('copy_traceable_link')}
                 aria-label={tHeader('copy_traceable_link')}
               >
@@ -132,7 +134,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
               <button
                 type="button"
                 onClick={() => copyToClipboard(canonicalUrl, tHeader('canonical_url'))}
-                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
+                className={`${COPY_TARGET} p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600`}
                 title={tHeader('copy_canonical_link')}
                 aria-label={tHeader('copy_canonical_link')}
               >
@@ -141,7 +143,6 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
             </div>
           </div>
 
-          {/* Global Member Number Badge */}
           {claim.memberNumber && (
             <div className="flex items-center gap-1 group/member ml-2 border-l pl-2 border-slate-200">
               <Link
@@ -155,8 +156,8 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => copyToClipboard(claim.memberNumber!, tPage('copy_member_number'))}
-                  className="p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700"
+                  onClick={() => copyToClipboard(claim.memberNumber!, tHeader('member_number'))}
+                  className={`${COPY_TARGET} p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700`}
                   title={tPage('copy_member_number')}
                   aria-label={tPage('copy_member_number')}
                 >
@@ -167,10 +168,10 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                   onClick={() =>
                     copyToClipboard(
                       `${domain}/${activeLocale}/admin/members/number/${claim.memberNumber}`,
-                      tPage('copy_member_link')
+                      tHeader('member_link')
                     )
                   }
-                  className="p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700"
+                  className={`${COPY_TARGET} p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700`}
                   title={tPage('copy_member_link')}
                   aria-label={tPage('copy_member_link')}
                 >
@@ -182,12 +183,10 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
         </nav>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          {/* Title Section */}
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap sm:gap-3">
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight mr-1">{claim.title}</h1>
 
-              {/* Category Pill */}
               <InfoPill
                 label={tCategory(claim.category || 'other')}
                 variant="premium"
@@ -195,7 +194,6 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                 separatorClassName="bg-blue-200"
               />
 
-              {/* Insurer Company Name */}
               {claim.companyName && (
                 <InfoPill
                   icon={Building2}
@@ -206,7 +204,6 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                 />
               )}
 
-              {/* Assignee Badge (Static) */}
               {claim.assigneeId && (
                 <InfoPill
                   icon={UserRound}
@@ -221,7 +218,6 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                 />
               )}
 
-              {/* Lifecycle Stage Badge (Static) */}
               <InfoPill
                 icon={Activity}
                 label={tBadge('status')}
@@ -231,7 +227,6 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                 separatorClassName="bg-slate-200"
               />
 
-              {/* Risk Indicators (SLA/Stuck) */}
               {claim.hasSlaBreach && (
                 <InfoPill
                   icon={AlertTriangle}
@@ -260,7 +255,6 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
               )}
             </div>
 
-            {/* Source Strip Row */}
             <div className="flex flex-col gap-2 mt-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <ClaimOriginBadges
@@ -273,7 +267,6 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
 
                 <span className="text-muted-foreground/30 hidden sm:inline">•</span>
 
-                {/* Member Premium Pill */}
                 <div className="inline-flex items-center rounded-md border shadow-sm select-none bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100 transition-colors h-[22px]">
                   <div className="flex items-center gap-1.5 px-2 py-0.5">
                     <UserRound className="w-3 h-3" strokeWidth={2.5} />

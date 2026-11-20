@@ -35,7 +35,7 @@ export function MemberClaimEvidenceSection({
           <ClaimEvidenceUploadDialog
             claimId={claimId}
             trigger={
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" className="h-11 sm:h-9">
                 <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t('claimsPro.actions.uploadEvidence')}
               </Button>

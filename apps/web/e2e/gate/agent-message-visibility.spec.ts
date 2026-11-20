@@ -144,7 +144,10 @@ test.describe('Agent message visibility', () => {
           const row = rowFor(claimIds[0]);
           await expect(row).toContainText('S1 public agent reply');
           await expect(row.getByTestId(`unread-badge-${claimIds[0]}`)).toHaveText('1');
-          await expect(drawer.getByTestId('workspace-selected-claim-id')).toHaveText(claimIds[0]);
+          await expect(drawer.getByTestId('workspace-selected-claim-id')).toHaveAttribute(
+            'data-claim-id',
+            claimIds[0]
+          );
           for (const index of [1, 2, 3]) {
             await expect(rowFor(claimIds[index])).toBeVisible();
             await expect(workspace.getByTestId(`unread-badge-${claimIds[index]}`)).toHaveCount(0);
@@ -184,7 +187,10 @@ test.describe('Agent message visibility', () => {
           { marker: 'agent-claims-pro-page' }
         );
         await expect(workspace).toBeVisible();
-        await expect(drawer.getByTestId('workspace-selected-claim-id')).toHaveText(claimIds[104]);
+        await expect(drawer.getByTestId('workspace-selected-claim-id')).toHaveAttribute(
+          'data-claim-id',
+          claimIds[104]
+        );
         await expect(workspace.getByTestId(`unread-badge-${claimIds[104]}`)).toHaveText('1');
         await expect(agentPage.locator('body')).toContainText('S1 selected public');
         await expect(agentPage.locator('body')).not.toContainText('secret');

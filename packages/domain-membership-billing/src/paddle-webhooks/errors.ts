@@ -5,6 +5,31 @@ export class RetryablePaddleWebhookError extends Error {
   }
 }
 
+type PaddleSchemaIssue = { readonly path: readonly PropertyKey[]; readonly code: string };
+
+const MAX_REPORTED_SCHEMA_ISSUES = 10;
+
+function describeSchemaIssues(issues: readonly PaddleSchemaIssue[]): string {
+  const described = issues
+    .slice(0, MAX_REPORTED_SCHEMA_ISSUES)
+    .map(issue => `${issue.path.map(String).join('.') || '(root)'} (${issue.code})`);
+  const omitted = issues.length - described.length;
+  return omitted > 0 ? `${described.join('; ')}; +${omitted} more` : described.join('; ');
+}
+
+/**
+ * A verified Paddle payload that the local event schema rejects. It must never be recorded as a
+ * processed `ok` receipt: it is retryable, so the receipt is stored as a visible `retryable_error`
+ * and Paddle's redelivery of the same signed payload is reclaimed once the schema is corrected.
+ * The message names only field paths and issue codes, never payload values.
+ */
+export class PaddleWebhookPayloadSchemaError extends RetryablePaddleWebhookError {
+  constructor(entity: string, issues: readonly PaddleSchemaIssue[]) {
+    super(`Invalid Paddle ${entity} data: ${describeSchemaIssues(issues)}`);
+    this.name = 'PaddleWebhookPayloadSchemaError';
+  }
+}
+
 /**
  * Permanent (non-retryable) provider ordering failure: the signed event cannot be
  * ordered against the subscription aggregate, so it must not mutate state and

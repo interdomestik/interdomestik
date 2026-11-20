@@ -41,6 +41,7 @@ export const CHECKED_TEXT_EXTENSIONS = new Set([
 ]);
 const PRODUCTION_EXTENSIONS = new Set('.cjs .css .js .jsx .mjs .sh .ts .tsx'.split(' '));
 const STRUCTURED_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.yml']);
+const RELEASE_EVIDENCE_OWNER = 'release-evidence-hash-manifest-contract';
 /** @type {ReadonlyArray<readonly [RegExp, string]>} */
 const STRUCTURED_OWNERS = [
   [/^\.github\/actions\/pr-feedback-setup\/action\.yml$/u, 'pr-feedback-refresh-contract'],
@@ -72,9 +73,21 @@ const STRUCTURED_OWNERS = [
     's7-helpnow-localized-copy-contract',
   ],
   [/^apps\/web\/public\/manifest\.json$/u, 'pwa-manifest-contract'],
+  [/^docs\/release\/production-evidence\.(?:yaml|schema\.json)$/u, RELEASE_EVIDENCE_OWNER],
+  [/^docs\/release\/t503-evidence-intake\/manifest-patch-example\.yaml$/u, RELEASE_EVIDENCE_OWNER],
 ];
 // A constant keeps owner/path pairs such as auth.json clear of secret-scanner key heuristics.
 const PARITY_OWNER = 'i18n-keys-parity-contract';
+const FREE_START_JOURNEY_CATALOGS = ['freeStartResult', 'injuryJourney', 'propertyJourney'];
+const FREE_START_PRICING_CATALOGS = ['commercialTerms', 'coverageMatrix', 'servicesPage'];
+
+/** `<locale>/<name>.json` registry entries for an owner; exact files only, never a whole locale. */
+function exactLocaleCatalogOwners(owner, namesByLocale) {
+  return Object.entries(namesByLocale).flatMap(([locale, names]) =>
+    names.map(name => [`${locale}/${name}.json`, owner])
+  );
+}
+
 const LOCALE_CATALOG_OWNERS = new Map([
   ['admin-users.json', 's7-admin-user-read-recovery-i18n-contract'],
   ['admin-claims.json', 's7-admin-claims-read-consistency-i18n-contract'],
@@ -82,6 +95,8 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['diaspora.json', 's5d-diaspora-claim-start-i18n-contract'],
   ['dashboard.json', 't117b-member-portal-i18n-contract'],
   ['claims.json', 'member-evidence-upload-locale-contract'],
+  // Owns the claim evidence upload allowlist copy (formats, limits, refusals); de follows en.
+  ['en/evidence.json', 'claim-evidence-file-upload-i18n-contract'],
   // Owns member messaging and D1c branch-manager communication metadata copy in all five locales.
   ['messaging.json', 'member-case-communication-i18n-contract'],
   ['agent-claims.json', 's4-missing-information-request-i18n-contract'],
@@ -91,6 +106,9 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['membership.json', 's6-member-payment-recovery-i18n-contract'],
   ['admin-leads.json', 'cash-approval-fulfillment-i18n-contract'],
   ['agent.json', 'acq-1-lead-notice-i18n-contract'],
+  ['agent-commissions.json', 'qa-localization-i18n-contract'],
+  ['agent-toolkit.json', 'qa-localization-i18n-contract'],
+  ['entityDisclosure.json', 'qa-localization-i18n-contract'],
   ['pricing.json', 'acq-1-lead-notice-i18n-contract'],
   ['admin-branches.json', 'locale-catalog-integrity-contract'],
   ['agent-members.json', 'acq-3b-sponsor-i18n-contract'],
@@ -108,7 +126,6 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['de/admin-settings.json', 'de-locale-catalog-contract'],
   ['de/admin.json', 'de-locale-catalog-contract'],
   ['de/agent-crm.json', 'locale-quality-pass-i18n-contract'],
-  ['de/agent-toolkit.json', 'de-locale-catalog-contract'],
   ['de/auth.json', PARITY_OWNER],
   ['de/claimCategories.json', 'locale-quality-pass-i18n-contract'],
   ['de/commercialTerms.json', 'de-locale-catalog-contract'],
@@ -116,8 +133,7 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['de/consumerRights.json', 'locale-quality-pass-i18n-contract'],
   ['de/coverageMatrix.json', 'de-locale-catalog-contract'],
   ['de/documents.json', 'de-locale-catalog-contract'],
-  ['de/entityDisclosure.json', 'de-locale-catalog-contract'],
-  ['de/evidence.json', 'de-locale-catalog-contract'],
+  ['de/evidence.json', 'claim-evidence-file-upload-i18n-contract'],
   ['de/faq.json', 'de-locale-catalog-contract'],
   ['de/features.json', 'de-locale-catalog-contract'],
   ['de/flightJourney.json', 'locale-quality-pass-i18n-contract'],
@@ -197,6 +213,17 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['sr/legal.json', 'locale-quality-pass-i18n-contract'],
   ['sr/settings.json', 'locale-quality-pass-i18n-contract'],
   ['sr/staff-crm.json', 'locale-quality-pass-i18n-contract'],
+  // Exact existing catalogs touched by the QA localization pass; no locale-wide exemption.
+  ['sq/commercialTerms.json', 'qa-localization-i18n-contract'],
+  ['sq/coverageMatrix.json', 'qa-localization-i18n-contract'],
+  ['sq/documents.json', 'qa-localization-i18n-contract'],
+  ['sq/servicesPage.json', 'qa-localization-i18n-contract'],
+  // Exact catalogs touched by the Free Start / success fee / opt-in terminology pass.
+  ...exactLocaleCatalogOwners('free-start-terminology-i18n-contract', {
+    mk: [...FREE_START_JOURNEY_CATALOGS, ...FREE_START_PRICING_CATALOGS],
+    sq: FREE_START_JOURNEY_CATALOGS,
+    sr: [...FREE_START_JOURNEY_CATALOGS, ...FREE_START_PRICING_CATALOGS],
+  }),
 ]);
 /** Registry keys: a bare filename applies to every locale; `<locale>/<file>` to that locale only. */
 export const LOCALE_CATALOG_OWNER_KEYS = Object.freeze([...LOCALE_CATALOG_OWNERS.keys()]);

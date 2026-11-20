@@ -71,7 +71,7 @@ export function AgentClaimsProPage({ claims, currentUser }: Readonly<AgentClaims
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const matches =
-        claim.claimNumber.toLowerCase().includes(q) ||
+        claim.claimNumber?.toLowerCase().includes(q) ||
         claim.title.toLowerCase().includes(q) ||
         claim.member?.name.toLowerCase().includes(q) ||
         claim.member?.email.toLowerCase().includes(q);
@@ -154,7 +154,9 @@ export function AgentClaimsProPage({ claims, currentUser }: Readonly<AgentClaims
         onOpenChange={open => !open && handleClose()}
         title={
           selectedClaim
-            ? t('claimsPro.drawerTitle', { claimNumber: selectedClaim.claimNumber })
+            ? t('claimsPro.drawerTitle', {
+                claimNumber: selectedClaim.claimNumber?.trim() || selectedClaim.title,
+              })
             : ''
         }
         testId="ops-drawer"
@@ -174,8 +176,9 @@ export function AgentClaimsProPage({ claims, currentUser }: Readonly<AgentClaims
             <p
               className="break-all text-xs text-muted-foreground"
               data-testid="workspace-selected-claim-id"
+              data-claim-id={selectedClaim.id}
             >
-              {selectedClaim.id}
+              {selectedClaim.claimNumber?.trim() || selectedClaim.title}
             </p>
             {viewMode === 'details' ? (
               <div className="space-y-6">

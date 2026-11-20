@@ -125,6 +125,15 @@
           "subscription": "Subscription",
           "none": "None"
         }
+      },
+      "list": {
+        "noResults": "No results found.",
+        "memberNumber": "Member number",
+        "attention": "Attention",
+        "view": "View member",
+        "upToDate": "Up to date",
+        "viewMember": "View member {name}",
+        "viewMemberNumber": "View member {name} (membership {number})"
       }
     }
   }

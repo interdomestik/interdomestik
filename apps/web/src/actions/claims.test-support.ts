@@ -176,7 +176,7 @@ export function auditModuleMock() {
   return { logAuditEvent: vi.fn().mockResolvedValue(undefined) };
 }
 
-export function initialClaimUploadModuleMock() {
+export function initialClaimEvidenceValidationModuleMock() {
   return { validateInitialClaimEvidenceUpload: mockValidateInitialClaimEvidenceUpload };
 }
 

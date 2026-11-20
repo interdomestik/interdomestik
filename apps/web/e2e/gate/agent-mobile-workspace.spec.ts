@@ -41,7 +41,10 @@ test('mobile agent case selection, focus, refresh and public-only conversation',
     await expect(page).toHaveURL(url => url.searchParams.get('selected') === claimId);
     await expect(stack).toHaveJSProperty('tagName', 'SECTION');
     await expect(stack).toBeFocused();
-    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveText(claimId);
+    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveAttribute(
+      'data-claim-id',
+      claimId
+    );
 
     // Workspace cards retain main's selected alias; either dismissal clears selection.
     await page.keyboard.press('Escape');
@@ -57,7 +60,10 @@ test('mobile agent case selection, focus, refresh and public-only conversation',
       has: page.getByText(nextClaimId, { exact: true }),
     });
     await nextOpener.click();
-    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveText(nextClaimId);
+    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveAttribute(
+      'data-claim-id',
+      nextClaimId
+    );
     await expect(stack).toBeFocused();
     await stack.getByTestId('ops-drawer-close').click();
     await expect(stack).toHaveCount(0);
@@ -74,7 +80,10 @@ test('mobile agent case selection, focus, refresh and public-only conversation',
       info,
       { marker: 'agent-claims-pro-page' }
     );
-    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveText(claimId);
+    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveAttribute(
+      'data-claim-id',
+      claimId
+    );
     const selectedUrl = page.url();
     const more = page.getByTestId('role-shell-bottom-nav').getByRole('button');
     await more.click();
@@ -83,10 +92,16 @@ test('mobile agent case selection, focus, refresh and public-only conversation',
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(more).toBeFocused();
     await expect(page).toHaveURL(selectedUrl);
-    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveText(claimId);
+    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveAttribute(
+      'data-claim-id',
+      claimId
+    );
     await page.reload();
     await expect(page).toHaveURL(selectedUrl);
-    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveText(claimId);
+    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveAttribute(
+      'data-claim-id',
+      claimId
+    );
 
     const assertNoPrivateContent = async () => {
       const html = await page.content();
@@ -138,7 +153,10 @@ test('mobile agent case selection, focus, refresh and public-only conversation',
     await claimsLink.click();
     await expect(moreSheet).toHaveCount(0);
     await expect(page).toHaveURL(selectedUrl);
-    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveText(claimId);
+    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveAttribute(
+      'data-claim-id',
+      claimId
+    );
 
     // A different section receives no case query; returning via More opens the unselected list.
     await more.click();
@@ -162,7 +180,10 @@ test('mobile agent case selection, focus, refresh and public-only conversation',
     await expect(page).toHaveURL(url => url.pathname.endsWith('/agent/workspace'));
     await page.goBack();
     await expect(page).toHaveURL(selectedUrl);
-    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveText(claimId);
+    await expect(stack.getByTestId('workspace-selected-claim-id')).toHaveAttribute(
+      'data-claim-id',
+      claimId
+    );
     await assertReflow();
     await stack.getByTestId('ops-drawer-close').click();
     await expect(stack).toHaveCount(0);

@@ -12,7 +12,8 @@ import { Link } from '@/i18n/routing';
 import { CreateLeadDialog } from './CreateLeadDialog';
 import { Button } from '@interdomestik/ui';
 import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatPilotDateTime } from '@/lib/utils/date';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { convertLeadToClient, updateLeadStatus } from '../actions';
@@ -30,6 +31,7 @@ const LOCALIZED_STATUSES = new Set([
 
 export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>) {
   const t = useTranslations('agent.leads_pro');
+  const locale = useLocale();
   const localizeLeadStatus = (status: string | null | undefined) =>
     status && LOCALIZED_STATUSES.has(status) ? t(`statuses.${status}`) : t('statuses.none');
   const localizeActionLabel = (actionId: string, fallbackLabel: string) => {
@@ -210,7 +212,7 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
                 <p className="text-sm font-medium text-muted-foreground">{t('fields.created')}</p>
                 <span className="text-sm" data-testid="lead-created-at">
                   {selectedLead.createdAt
-                    ? new Date(selectedLead.createdAt).toLocaleDateString()
+                    ? formatPilotDateTime(selectedLead.createdAt, locale, '-')
                     : '-'}
                 </span>
               </div>

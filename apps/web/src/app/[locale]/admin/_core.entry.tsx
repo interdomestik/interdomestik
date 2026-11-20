@@ -4,6 +4,7 @@ import { AdminTenantSelector } from '@/components/admin/admin-tenant-selector';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
 import { NavigationFeedback } from '@/components/shell/navigation-feedback';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
+import { resolveAdminNavigationCapabilities } from '@/features/admin/access/admin-navigation-capabilities.server';
 import { ADMIN_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { requireEffectivePortalAccessOrNotFound } from '@/server/auth/effective-portal-access';
@@ -23,9 +24,9 @@ export default async function AdminLayout({
   const session = await getSessionSafe('AdminLayout');
   const sessionNonNull = requireSessionOrRedirect(session, locale);
 
-  // Strict Isolation: Only allow admin, super_admin, tenant_admin, and branch_manager
   const ALLOWED_ROLES = ['admin', 'super_admin', 'tenant_admin', 'branch_manager'] as const;
   await requireEffectivePortalAccessOrNotFound(sessionNonNull, ALLOWED_ROLES);
+  const capabilities = await resolveAdminNavigationCapabilities(sessionNonNull);
 
   setRequestLocale(locale);
   const allMessages = await getMessages();
@@ -56,6 +57,7 @@ export default async function AdminLayout({
         <NavigationFeedback>
           <AdminRoleShell
             user={{
+              capabilities,
               branchId: sessionNonNull.user.branchId,
               name: sessionNonNull.user.name || 'Admin',
               email: sessionNonNull.user.email,

@@ -1,16 +1,11 @@
 'use client';
 
-import { getSupportHandoffDetail } from '@/actions/support-handoffs/detail';
-import { updateSupportHandoffPublicResponse } from '@/actions/support-handoffs/response';
-import {
-  MAX_PUBLIC_RESPONSE_LENGTH,
-  type SupportHandoffStaffDetail,
-} from '@interdomestik/domain-claims/support-handoffs/types';
+import { MAX_PUBLIC_RESPONSE_LENGTH } from '@interdomestik/domain-claims/support-handoffs/types';
+import { getPortalErrorCopy } from '@/components/portal-error-copy';
 import { Button } from '@interdomestik/ui';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
-import { SUPPORT_HANDOFF_ATTENTION_RESOLVED_EVENT } from './support-handoff-attention-row';
+import { useEffect, useState } from 'react';
+import { useHandoffDetail } from './use-handoff-detail';
 import type { DetailLabels } from './support-handoff-detail-labels';
 import {
   ContactPreferenceIcon,
@@ -41,12 +36,14 @@ export function SupportHandoffDetailPanel({
   locale,
   message,
 }: Props) {
+  const [isHydrated, setIsHydrated] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [detail, setDetail] = useState<SupportHandoffStaffDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [isResponsePending, startResponseTransition] = useTransition();
-  const router = useRouter();
+  const { detail, error, isPending, isResponsePending, retryDetail, submitPublicResponse } =
+    useHandoffDetail(handoffId, labels.unavailable);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   function toggleDetail() {
     if (isOpen) {
@@ -55,41 +52,11 @@ export function SupportHandoffDetailPanel({
     }
 
     setIsOpen(true);
-    setError(null);
-    if (detail) return;
-
-    startTransition(async () => {
-      const result = await getSupportHandoffDetail(handoffId);
-      if (!result || 'kind' in result) {
-        setError(labels.unavailable);
-        return;
-      }
-      setDetail(result);
-      router.refresh();
-    });
-  }
-
-  function submitPublicResponse(formData: FormData) {
-    setError(null);
-    startResponseTransition(async () => {
-      await updateSupportHandoffPublicResponse(formData);
-      const result = await getSupportHandoffDetail(handoffId);
-      if (!result || 'kind' in result) {
-        setError(labels.unavailable);
-        return;
-      }
-      setDetail(result);
-      router.refresh();
-      globalThis.dispatchEvent(
-        new CustomEvent(SUPPORT_HANDOFF_ATTENTION_RESOLVED_EVENT, {
-          detail: { handoffId },
-        })
-      );
-    });
+    if (!detail) retryDetail();
   }
 
   return (
-    <div className="md:col-span-6">
+    <div className="md:col-span-6" data-hydrated={isHydrated ? 'true' : 'false'}>
       <Button
         type="button"
         size="sm"
@@ -114,7 +81,20 @@ export function SupportHandoffDetailPanel({
           {isPending && !detail ? (
             <div className="text-sm text-muted-foreground">{labels.loading}</div>
           ) : null}
-          {error ? <div className="text-sm font-medium text-red-700">{error}</div> : null}
+          {error ? (
+            <div role="alert" className="space-y-2 text-sm font-medium text-red-700">
+              <p>{error}</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={retryDetail}
+                disabled={isPending || isResponsePending}
+              >
+                {getPortalErrorCopy(locale).retry}
+              </Button>
+            </div>
+          ) : null}
           {detail ? (
             <div className="space-y-5">
               <div className="flex flex-wrap items-center gap-3">
@@ -207,7 +187,8 @@ export function SupportHandoffDetailPanel({
                       )}
                     </div>
                   </div>
-                ) : detail.publicResponse.publicResponse ? (
+                ) : null}
+                {!getLatestMemberReply(detail) && detail.publicResponse.publicResponse ? (
                   <p
                     className="mt-3 text-xs text-muted-foreground"
                     data-testid="handoff-member-reply-empty"

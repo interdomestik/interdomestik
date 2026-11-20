@@ -3,10 +3,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminUpdateSettingsCore } from './update.core';
-
-vi.mock('@interdomestik/domain-users/admin/access', () => ({
-  requireTenantAdminSession: vi.fn(),
-}));
+import type { Session } from './context';
 
 vi.mock('@/lib/rate-limit', () => ({
   enforceRateLimitForAction: vi.fn(),
@@ -17,7 +14,7 @@ vi.mock('@/lib/audit', () => ({
 }));
 
 describe('adminUpdateSettingsCore', () => {
-  const authority = mintTestTenantAuthority('t1', { userId: 'admin1', role: 'admin' });
+  const authority = mintTestTenantAuthority('t1', { userId: 'admin1', role: 'super_admin' });
   const mockSession = {
     session: {
       id: 'sess1',
@@ -27,8 +24,8 @@ describe('adminUpdateSettingsCore', () => {
       expiresAt: new Date(Date.now() + 3600000),
       token: 'token1',
     },
-    user: { id: 'admin1', tenantId: 't1', role: 'admin' },
-  };
+    user: { id: 'admin1', tenantId: 't1', role: 'super_admin' },
+  } as NonNullable<Session>;
   const validData = {
     appName: 'TestApp',
     supportEmail: 'support@example.com',
@@ -42,8 +39,7 @@ describe('adminUpdateSettingsCore', () => {
 
   it('should fail validation with bad data', async () => {
     const result = await adminUpdateSettingsCore({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      session: mockSession as any,
+      session: mockSession,
       data: { appName: '' }, // missing fields, name too short
     });
     expect(result).toEqual({ success: false, error: 'Validation failed' });
@@ -57,8 +53,7 @@ describe('adminUpdateSettingsCore', () => {
     });
 
     const result = await adminUpdateSettingsCore({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      session: mockSession as any,
+      session: mockSession,
       data: validData,
     });
 
@@ -72,8 +67,7 @@ describe('adminUpdateSettingsCore', () => {
     vi.mocked(enforceRateLimitForAction).mockResolvedValue({ limited: false });
 
     const result = await adminUpdateSettingsCore({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      session: mockSession as any,
+      session: mockSession,
       authority,
       data: validData,
     });
@@ -90,8 +84,7 @@ describe('adminUpdateSettingsCore', () => {
     vi.mocked(enforceRateLimitForAction).mockResolvedValue({ limited: false });
 
     const result = await adminUpdateSettingsCore({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      session: mockSession as any,
+      session: mockSession,
       authority: null,
       data: validData,
     });

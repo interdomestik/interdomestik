@@ -1,7 +1,8 @@
 'use client';
 
-import { formatDistanceToNow } from 'date-fns';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+
+import { formatRelativeTime } from '@/lib/utils/relative-time';
 
 import type { TimelineEntry as TimelineEntryType } from '../types';
 
@@ -11,12 +12,13 @@ interface TimelineEntryProps {
 }
 
 export function TimelineEntry({ entry, showNote = false }: TimelineEntryProps) {
+  const locale = useLocale();
   const t = useTranslations('claims.timeline');
   const tStatus = useTranslations('claims.status');
 
   const fromLabel = entry.fromStatus ? tStatus(entry.fromStatus) : t('initial');
   const toLabel = tStatus(entry.toStatus);
-  const timeAgo = formatDistanceToNow(entry.timestamp, { addSuffix: true });
+  const timeAgo = formatRelativeTime(new Date(entry.timestamp), new Date(), locale);
 
   return (
     <div className="relative pl-6 pb-6 last:pb-0">

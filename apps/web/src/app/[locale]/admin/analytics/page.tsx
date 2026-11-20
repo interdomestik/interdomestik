@@ -1,7 +1,8 @@
+import { hasAdminAnalyticsReadAccess } from '@/features/admin/access/admin-analytics-access.server';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { MissingTenantError } from '@interdomestik/shared-auth';
 import { setRequestLocale } from 'next-intl/server';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { AnalyticsDashboard } from './_components/AnalyticsDashboard';
 import { getAdminAnalyticsDataCore } from './_core';
@@ -27,11 +28,9 @@ export default async function AdminAnalyticsPage({
   if (!authorized) {
     redirect('/login');
   }
-  const { session, authority } = authorized;
+  const { authority } = authorized;
 
-  // Strict RBAC: Members cannot access admin analytics
-  if (session.user.role === 'member') {
-    const { notFound } = await import('next/navigation');
+  if (!(await hasAdminAnalyticsReadAccess(authority))) {
     notFound();
   }
 
@@ -42,7 +41,6 @@ export default async function AdminAnalyticsPage({
     const name = err instanceof Error ? err.name : undefined;
     const message = err instanceof Error ? err.message : undefined;
     if (name === 'UnauthorizedError' || message === 'Unauthorized') {
-      const { notFound } = await import('next/navigation');
       notFound();
     }
     throw err;

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   getMessagesMock: vi.fn(() =>
@@ -10,6 +10,7 @@ const hoisted = vi.hoisted(() => ({
     })
   ),
   setRequestLocaleMock: vi.fn(),
+  hasPortalAccessMock: vi.fn(async () => true),
   session: {
     user: { role: 'admin', tenantId: 't1', email: 'admin@example.com', name: 'Admin' },
   } as { user: Record<string, unknown> },
@@ -40,6 +41,7 @@ vi.mock('@/components/shell/session', () => ({
 }));
 
 vi.mock('@/server/auth/effective-portal-access', () => ({
+  hasEffectivePortalAccess: hoisted.hasPortalAccessMock,
   requireEffectivePortalAccessOrNotFound: vi.fn(() => Promise.resolve(undefined)),
 }));
 
@@ -87,6 +89,15 @@ vi.mock('@interdomestik/database', () => ({
 
 import AdminLayout from './_core.entry';
 
+beforeEach(() => {
+  vi.clearAllMocks();
+  hoisted.hasPortalAccessMock.mockResolvedValue(true);
+  hoisted.session = {
+    user: { id: 'u1', role: 'admin', tenantId: 't1', email: 'admin@example.com', name: 'Admin' },
+  };
+  hoisted.shellProps.length = 0;
+});
+
 describe('AdminLayout i18n initialization', () => {
   it('sets request locale before loading messages', async () => {
     await AdminLayout({
@@ -124,6 +135,41 @@ describe('AdminLayout i18n initialization', () => {
 
     expect(renderToStaticMarkup(view)).toContain('data-testid="admin-page-ready"');
   });
+});
+
+describe('AdminLayout navigation capabilities', () => {
+  it.each(['staff', 'agent'])(
+    'passes effective admin access to navigation without changing the primary %s role',
+    async role => {
+      hoisted.session = {
+        user: {
+          id: 'u1',
+          role,
+          tenantId: 't1',
+          accessTenantId: 'tenant-access',
+          email: 'user@example.com',
+        },
+      };
+      hoisted.hasPortalAccessMock.mockResolvedValue(true);
+      hoisted.shellProps.length = 0;
+      renderToStaticMarkup(
+        await AdminLayout({ children: null, params: Promise.resolve({ locale: 'en' }) })
+      );
+      expect(hoisted.hasPortalAccessMock).toHaveBeenCalledWith(hoisted.session, [
+        'admin',
+        'tenant_admin',
+        'super_admin',
+      ]);
+      expect(hoisted.shellProps).toContainEqual(
+        expect.objectContaining({
+          user: expect.objectContaining({
+            role,
+            capabilities: { canAccessUsers: true, canReadAnalytics: true },
+          }),
+        })
+      );
+    }
+  );
 });
 
 describe('AdminLayout super-admin tenant selector', () => {

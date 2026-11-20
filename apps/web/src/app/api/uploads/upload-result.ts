@@ -9,6 +9,8 @@ type UploadOk = {
       signedUrl: string;
       bucket: string;
       expiresIn: number;
+      mimeType: string;
+      storageContentType: string;
       intentToken?: string;
     };
     classification: string;
@@ -21,6 +23,9 @@ export type UploadErr = {
   ok: false;
   status: 400 | 403 | 404 | 413 | 415 | 500;
   error:
+    | 'evidence_unsupported'
+    | 'evidence_empty'
+    | 'evidence_too_large'
     | 'Invalid file name'
     | 'Forbidden'
     | 'Claim not found'

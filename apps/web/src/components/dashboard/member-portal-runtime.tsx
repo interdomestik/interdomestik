@@ -44,15 +44,22 @@ type ActionProps = Readonly<{ canDraft: boolean; copy: MemberPortalCopy; locale:
 type UpdateProps = CaseProps & { locale: AppLocale };
 export async function PortalCasesRegion({ copy, promise }: CaseProps) {
   const summaries = await promise.catch(() => null);
-  if (!summaries) return <Boundary copy={copy.regions.case} state="error" />;
+  if (!summaries)
+    return (
+      <Boundary
+        action={{ href: '/member', label: copy.membershipStatus.retry }}
+        copy={copy.regions.case}
+        state="error"
+      />
+    );
   if (summaries.length === 0) return <Boundary copy={copy.regions.case} state="empty" />;
   return (
     <div className="grid min-w-0 gap-4 sm:gap-5">
       <h2 className="text-lg font-semibold tracking-tight">{copy.regions.case.label}</h2>
-      {summaries.map((summary, index) => {
+      {summaries.map(summary => {
         const labels = copy.caseLabels(summary);
         const referenceValue =
-          summary.reference?.trim() || `${labels.referenceFallback} ${index + 1}`;
+          summary.reference?.trim() || summary.title?.trim() || labels.referenceFallback;
         const entry = (
           <Link
             className="inline-flex min-h-11 w-full max-w-full items-center justify-between gap-4 rounded-xl bg-[hsl(var(--primary))] px-4 py-3 text-sm font-semibold text-[hsl(var(--primary-foreground))] [overflow-wrap:anywhere] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 forced-colors:border forced-colors:border-[CanvasText] sm:w-auto"
@@ -138,7 +145,14 @@ export async function PortalActionsRegion({ canDraft, copy, locale, promise }: A
 
 export async function PortalUpdatesRegion({ copy, locale, promise }: UpdateProps) {
   const summaries = await promise.catch(() => null);
-  if (!summaries) return <Boundary copy={copy.regions.updates} state="error" />;
+  if (!summaries)
+    return (
+      <Boundary
+        action={{ href: '/member', label: copy.membershipStatus.retry }}
+        copy={copy.regions.updates}
+        state="error"
+      />
+    );
   const items = summaries.flatMap(summary =>
     summary.occurredAt
       ? [
@@ -147,7 +161,7 @@ export async function PortalUpdatesRegion({ copy, locale, promise }: UpdateProps
             dateTime: summary.occurredAt,
             id: summary.id,
             stateLabel: copy.status(summary.status),
-            title: summary.reference ?? copy.referenceFallback,
+            title: summary.reference?.trim() || summary.title?.trim() || copy.referenceFallback,
           },
         ]
       : []

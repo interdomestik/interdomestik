@@ -130,3 +130,41 @@ describe('useSignedUploadRetry', () => {
     expect(deps.confirmUpload).not.toHaveBeenCalled();
   });
 });
+
+describe('create-only storage retry', () => {
+  it.each([
+    { statusCode: '409' },
+    { message: 'The resource already exists' },
+    { code: 'Duplicate' },
+  ])(
+    'confirms the same signed path after an uncertain transfer and duplicate %j',
+    async duplicate => {
+      deps.uploadToStorage
+        .mockRejectedValueOnce(new Error('Response lost'))
+        .mockRejectedValueOnce(duplicate);
+      const { result } = renderRetry();
+      await act(async () => {
+        await expect(result.current.uploadSigned(ORIGINAL)).rejects.toThrow('Response lost');
+      });
+      await act(async () => {
+        await expect(result.current.uploadSigned(CHANGED)).resolves.toBe('file-id');
+      });
+      expect(deps.generateUploadUrl).toHaveBeenCalledOnce();
+      expect(deps.uploadToStorage.mock.calls[1]).toEqual(deps.uploadToStorage.mock.calls[0]);
+      expect(deps.confirmUpload).toHaveBeenCalledOnce();
+      expect(deps.confirmUpload).toHaveBeenCalledWith(
+        expect.objectContaining({ storagePath: 'pii/tenants/t1/claims/claim-1/file-id.pdf' })
+      );
+    }
+  );
+  it('surfaces non-duplicate storage errors without confirming', async () => {
+    deps.uploadToStorage.mockRejectedValue({ statusCode: '403', message: 'Forbidden' });
+    const { result } = renderRetry();
+    await act(async () => {
+      await expect(result.current.uploadSigned(ORIGINAL)).rejects.toMatchObject({
+        statusCode: '403',
+      });
+    });
+    expect(deps.confirmUpload).not.toHaveBeenCalled();
+  });
+});

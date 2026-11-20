@@ -198,7 +198,7 @@ describe('POST /api/uploads', () => {
     expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
-  it('allows text files for claim evidence uploads', async () => {
+  it('rejects text files under the shared evidence policy', async () => {
     hoisted.getSession.mockResolvedValue({
       user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
     });
@@ -216,9 +216,9 @@ describe('POST /api/uploads', () => {
     const res = await POST(req);
     const data = await res.json();
 
-    expect(res.status).toBe(200);
-    expect(data.upload.path).toContain('.txt');
-    expect(hoisted.createSignedUploadUrl).toHaveBeenCalled();
+    expect(res.status).toBe(415);
+    expect(data).toEqual({ error: 'File type not allowed' });
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
   it('falls back to the default bucket when production env leaves it unset', async () => {

@@ -65,5 +65,6 @@
     "Dokumenti vozila",
     "Kontakt porodice",
     "Paket bez interneta"
-  ]
+  ],
+  "countryChecklist": "Za događaj u zemlji {country}, proverite postupak prijave kod lokalnih nadležnih službi ili svog osiguravača."
 }

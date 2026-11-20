@@ -282,4 +282,9 @@ describe('member case messages', () => {
     expect(await screen.findByText('member.read')).toBeInTheDocument();
     expect(screen.getAllByText('member.read')).toHaveLength(1);
   });
+
+  it('gives the send button a 44px phone target and keeps the desktop height', async () => {
+    renderPanel();
+    expect(await screen.findByTestId('send-message-button')).toHaveClass('h-11', 'sm:h-10');
+  });
 });

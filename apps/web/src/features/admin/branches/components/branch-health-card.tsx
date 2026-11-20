@@ -37,7 +37,7 @@ export function BranchHealthCard({ branch, onEdit, onDelete }: BranchHealthCardP
     <GlassCard
       data-testid={`branch-card-${branch.code}`}
       className={cn(
-        'group flex flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-lg',
+        'group flex min-w-0 flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-lg',
         // Apply dynamic border color based on severity
         'border-l-4',
         risk.severity === 'urgent' && 'border-l-red-500',
@@ -51,14 +51,20 @@ export function BranchHealthCard({ branch, onEdit, onDelete }: BranchHealthCardP
       <div className="p-5 pb-0">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex flex-col items-start gap-2 mb-1">
               <h3
-                className="font-semibold text-lg text-foreground truncate pr-2"
+                className="font-semibold text-lg text-foreground break-words [overflow-wrap:anywhere]"
                 title={branch.name}
               >
                 {branch.name}
               </h3>
-              <Badge variant="outline" className={cn('text-xs font-normal', risk.badgeClass)}>
+              <Badge
+                variant="outline"
+                className={cn(
+                  'whitespace-nowrap [overflow-wrap:normal] text-xs font-normal',
+                  risk.badgeClass
+                )}
+              >
                 {t(risk.labelKey)}
               </Badge>
             </div>
@@ -74,7 +80,7 @@ export function BranchHealthCard({ branch, onEdit, onDelete }: BranchHealthCardP
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1">
             {/* Health Score Mini-Indicator */}
             <div
               className={cn(

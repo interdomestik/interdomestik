@@ -1,7 +1,7 @@
 import type { IngressCapability } from '@interdomestik/database/ingress';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
-import { RetryablePaddleWebhookError } from '../errors';
+import { PaddleWebhookPayloadSchemaError, RetryablePaddleWebhookError } from '../errors';
 import { subscriptionEventDataSchema } from '../schemas';
 
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../types';
@@ -51,8 +51,7 @@ export async function handleSubscriptionChanged(
 ) {
   const parseResult = subscriptionEventDataSchema.safeParse(params.data);
   if (!parseResult.success) {
-    console.error('[Webhook] Invalid subscription data:', parseResult.error);
-    return;
+    throw new PaddleWebhookPayloadSchemaError('subscription', parseResult.error.issues);
   }
   const sub = parseResult.data;
   const order = resolveSubscriptionEventOrder({

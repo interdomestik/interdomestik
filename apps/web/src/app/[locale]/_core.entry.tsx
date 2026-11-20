@@ -18,7 +18,7 @@ import { connection } from 'next/server';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { Toaster } from 'sonner';
+import { LocalizedToaster } from '@/components/localized-toaster';
 
 const inter = Inter({
   subsets: ['latin', 'latin-ext', 'cyrillic'],
@@ -146,7 +146,7 @@ export default async function RootLayout({ children, params }: Props) {
           <NextIntlClientProvider messages={messages} locale={locale}>
             <QueryProvider>
               {children}
-              <Toaster position="top-right" richColors />
+              <LocalizedToaster />
               {enableAxe ? <AxeProvider /> : null}
               <ReferralTracker />
               <PwaRegistrar />

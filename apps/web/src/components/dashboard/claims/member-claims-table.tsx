@@ -1,17 +1,14 @@
 'use client';
 
-import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
+import { MemberClaimRow } from './member-claim-row';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { fetchClaims } from '@/lib/api/claims';
-import { formatClaimAmount } from '@/lib/utils/currency';
-import { formatPilotDate } from '@/lib/utils/date';
 import {
   Button,
   Card,
   CardContent,
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -30,7 +27,17 @@ function isPrimaryNavigationClick(event: MouseEvent<HTMLAnchorElement>) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 }
 
-export function MemberClaimsTable() {
+type MemberClaimsTableProps = Readonly<{
+  /** Server-resolved entry matching the intake admission; defaults to the plain intake. */
+  newCaseHref?: string;
+  /** Replaces the "first case" label when the entry leads to the membership instead. */
+  newCaseLabel?: string;
+}>;
+
+export function MemberClaimsTable({
+  newCaseHref = '/member/claims/new',
+  newCaseLabel,
+}: MemberClaimsTableProps = {}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -160,9 +167,9 @@ export function MemberClaimsTable() {
               asChild
               className="h-auto min-h-10 max-w-full whitespace-normal [overflow-wrap:anywhere]"
             >
-              <Link href="/member/claims/new">
+              <Link href={newCaseHref}>
                 <Plus className="mr-2 h-4 w-4 shrink-0" />
-                {t('empty.createFirst')}
+                {newCaseLabel ?? t('empty.createFirst')}
               </Link>
             </Button>
           )}
@@ -177,9 +184,9 @@ export function MemberClaimsTable() {
       data-testid="member-claims-table-region"
       aria-busy={isPageNavigationPending ? 'true' : 'false'}
     >
-      <div className="min-w-0 max-w-full rounded-md border">
-        <Table>
-          <TableHeader>
+      <div className="min-w-0 max-w-full md:rounded-md md:border">
+        <Table className="block md:table">
+          <TableHeader className="sr-only md:not-sr-only md:table-header-group">
             <TableRow>
               <TableHead>{t('table.title')}</TableHead>
               <TableHead>{t('table.company')}</TableHead>
@@ -189,43 +196,15 @@ export function MemberClaimsTable() {
               <TableHead className="text-right">{t('table.created')}</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {data.claims.map(claim => {
-              const formattedAmount = formatClaimAmount(claim.claimAmount, claim.currency, locale);
-
-              return (
-                <TableRow key={claim.id} className="hover:bg-muted/50 cursor-pointer">
-                  <TableCell className="font-medium">
-                    <Link
-                      href={`/member/claims/${claim.id}`}
-                      className="hover:underline underline-offset-4 block max-w-[240px] truncate"
-                      title={claim.title}
-                    >
-                      {claim.title}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate" title={claim.companyName || ''}>
-                    {claim.companyName}
-                  </TableCell>
-                  <TableCell className="capitalize text-sm text-muted-foreground">
-                    {formatCategory(claim.category)}
-                  </TableCell>
-                  <TableCell>
-                    <ClaimStatusBadge status={claim.status} />
-                  </TableCell>
-                  <TableCell>
-                    {formattedAmount ? (
-                      <span className="font-medium">{formattedAmount}</span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right text-sm" suppressHydrationWarning>
-                    {formatPilotDate(claim.createdAt, locale, '-')}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+          <TableBody className="block space-y-3 [&_tr:last-child]:border md:table-row-group md:space-y-0 md:[&_tr:last-child]:border-0">
+            {data.claims.map(claim => (
+              <MemberClaimRow
+                key={claim.id}
+                claim={claim}
+                locale={locale}
+                formatCategory={formatCategory}
+              />
+            ))}
           </TableBody>
         </Table>
       </div>

@@ -4,7 +4,8 @@
       "title": "Instant Campaign"
     },
     "guides": {
-      "title": "Compliance Guides"
+      "title": "Compliance Guides",
+      "other": "Other"
     },
     "coming_soon": "This feature is coming soon to your Diaspora Toolkit."
   }

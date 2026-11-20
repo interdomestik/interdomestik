@@ -1,4 +1,5 @@
 import { createCanonicalMembershipPlanState } from '../../annual-membership';
+import { PaddleWebhookPayloadSchemaError } from '../errors';
 import { subscriptionEventDataSchema } from '../schemas';
 import type { ExistingSubscriptionRecord, PastDueUserRecord } from './dunning-context';
 
@@ -22,11 +23,10 @@ export type PastDueValues = {
 
 export const DUNNING_GRACE_PERIOD_DAYS = 14;
 
-export function parsePastDueSubscription(data: unknown): SubscriptionEventData | null {
+export function parsePastDueSubscription(data: unknown): SubscriptionEventData {
   const parseResult = subscriptionEventDataSchema.safeParse(data);
   if (!parseResult.success) {
-    console.error('[Webhook] Invalid dunning data:', parseResult.error);
-    return null;
+    throw new PaddleWebhookPayloadSchemaError('past_due subscription', parseResult.error.issues);
   }
 
   return parseResult.data;

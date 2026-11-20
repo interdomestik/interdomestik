@@ -1,3 +1,5 @@
+import mkEvidence from '@/messages/mk/evidence.json';
+import { EVIDENCE_FORMAT_LABEL } from '@/features/claims/upload/evidence-file-policy';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -261,7 +263,7 @@ describe('POST /api/claims/evidence-upload', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Invalid form payload' });
+    expect(data).toEqual({ error: mkEvidence.evidence.fileUpload.empty });
     expect(hoisted.createClaimUploadIntentToken).not.toHaveBeenCalled();
     expect(hoisted.upload).not.toHaveBeenCalled();
   });
@@ -275,7 +277,9 @@ describe('POST /api/claims/evidence-upload', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Invalid form payload' });
+    expect(data).toEqual({
+      error: mkEvidence.evidence.fileUpload.unsupported.replace('{formats}', EVIDENCE_FORMAT_LABEL),
+    });
     expect(hoisted.upload).not.toHaveBeenCalled();
   });
 

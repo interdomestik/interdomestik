@@ -1,5 +1,9 @@
 'use client';
 
+import { formatClaimAmount } from '@/lib/utils/currency';
+
+import { useLocale } from 'next-intl';
+
 import { Badge } from '@interdomestik/ui';
 import { Shield } from 'lucide-react';
 import { CashVerificationRequestDTO } from '../../server/types';
@@ -43,12 +47,10 @@ export function LeadCell({ request }: VerificationRowCellsProps) {
 
 /** Amount cell */
 export function AmountCell({ request }: VerificationRowCellsProps) {
+  const locale = useLocale();
   return (
     <span className="font-bold text-base tabular-nums tracking-tight">
-      {(request.amount / 100).toLocaleString('de-DE', {
-        style: 'currency',
-        currency: request.currency,
-      })}
+      {formatClaimAmount(String(request.amount / 100), request.currency, locale) ?? '—'}
     </span>
   );
 }

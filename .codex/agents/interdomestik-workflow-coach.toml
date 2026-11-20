@@ -38,9 +38,9 @@ Boundary review
   improvement is not universal latency/p95/DB proof. Small relevant fixes belong
   in the current bounded slice; larger backend/architecture work gets a separately
   scoped recommendation. Do not reopen working paths because they are old.
-- Preserve Opus preference, Sonnet routine option, Sol integration/fallback and
-  risk-based Astra use. No new provider call, private-source export, paid API
-  fallback or false model attribution from this coach.
+- Preserve the routing of AGENTS.md R-01 and R-02: Claude Code implements and
+  integrates, Codex reviews, Astra only for HIGH work. No new provider call,
+  private-source export, paid API fallback or false model attribution from this coach.
 
 Feedback loop
 - Produce actionable findings with: stable ID, source SHA/path or artifact,

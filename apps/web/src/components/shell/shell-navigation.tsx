@@ -84,7 +84,7 @@ export function ShellNavigation({
                       asChild
                       isActive={active === item}
                       tooltip={item.title}
-                      className="min-h-11 rounded-xl px-3 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:bg-primary data-[active=true]:text-primary-foreground [&>svg]:text-current"
+                      className="h-auto min-h-11 rounded-xl px-3 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:bg-primary data-[active=true]:text-primary-foreground [&>svg]:text-current [&>span:last-child]:whitespace-normal [&>span:last-child]:overflow-visible"
                     >
                       <Link
                         href={item.href}
@@ -104,7 +104,7 @@ export function ShellNavigation({
                         }}
                       >
                         <item.icon aria-hidden="true" className="size-4 shrink-0" />
-                        <span className="truncate group-data-[state=collapsed]:sr-only">
+                        <span className="min-w-0 leading-5 group-data-[state=collapsed]:sr-only">
                           {item.title}
                         </span>
                       </Link>

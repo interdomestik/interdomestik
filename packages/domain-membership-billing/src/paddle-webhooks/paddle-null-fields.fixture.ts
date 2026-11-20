@@ -1,0 +1,80 @@
+/**
+ * Raw Paddle Billing `subscription.created` data as staging received it on 2026-11-13 (identifiers
+ * and personal data replaced). Paddle sends `null`, not an absent key, for every unset nullable
+ * field, so this shape must parse and drive the subscription upsert.
+ */
+export function buildRawTrialingSubscriptionCreatedData(): Record<string, unknown> {
+  return {
+    id: 'sub_01nullfieldsfixture00000001',
+    items: [
+      {
+        price: {
+          id: 'pri_01nullfieldsfixture0000001',
+          name: 'Yearly Subscription',
+          type: 'standard',
+          status: 'active',
+          quantity: { maximum: 999999, minimum: 1 },
+          tax_mode: 'internal',
+          created_at: '2025-12-21T10:43:16.748539Z',
+          product_id: 'pro_01nullfieldsfixture0000001',
+          unit_price: { amount: '2000', currency_code: 'EUR' },
+          updated_at: '2025-12-21T10:43:16.748539Z',
+          custom_data: null,
+          description: 'Asistenca_Baze',
+          import_meta: null,
+          trial_period: { interval: 'day', frequency: 30, requires_payment_method: true },
+          billing_cycle: { interval: 'year', frequency: 1 },
+          unit_price_overrides: [],
+        },
+        status: 'trialing',
+        product: {
+          id: 'pro_01nullfieldsfixture0000001',
+          name: 'Asistenca',
+          type: 'standard',
+          status: 'active',
+          image_url: null,
+          custom_data: null,
+          description: 'Asistenca ne deme',
+          tax_category: 'standard',
+        },
+        quantity: 1,
+        recurring: true,
+        created_at: '2026-11-13T14:38:16.408Z',
+        updated_at: '2026-11-13T14:38:16.408Z',
+        trial_dates: { ends_at: '2026-12-13T14:38:16.403Z', starts_at: '2026-11-13T14:38:16.403Z' },
+        next_billed_at: '2026-12-13T14:38:16.403Z',
+        previously_billed_at: null,
+      },
+    ],
+    status: 'trialing',
+    discount: null,
+    paused_at: null,
+    address_id: 'add_01nullfieldsfixture0000001',
+    created_at: '2026-11-13T14:38:16.408Z',
+    started_at: '2026-11-13T14:38:16.403Z',
+    updated_at: '2026-11-13T14:38:16.408Z',
+    business_id: null,
+    canceled_at: null,
+    custom_data: {
+      locale: 'sq',
+      userId: 'user_123',
+      tenantId: 'tenant_ks',
+      acquisitionSource: 'self_serve_web',
+    },
+    customer_id: 'ctm_01nullfieldsfixture0000001',
+    import_meta: null,
+    billing_cycle: { interval: 'year', frequency: 1 },
+    currency_code: 'EUR',
+    next_billed_at: '2026-12-13T14:38:16.403Z',
+    transaction_id: 'txn_01nullfieldsfixture0000001',
+    billing_details: null,
+    collection_mode: 'automatic',
+    first_billed_at: null,
+    scheduled_change: null,
+    consent_requirements: [],
+    current_billing_period: {
+      ends_at: '2026-12-13T14:38:16.403Z',
+      starts_at: '2026-11-13T14:38:16.403Z',
+    },
+  };
+}

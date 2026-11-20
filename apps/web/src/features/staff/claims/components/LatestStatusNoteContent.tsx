@@ -1,3 +1,4 @@
+import { formatPilotDateTime } from '@/lib/utils/date';
 export function LatestStatusNoteContent({
   latestStatusNote,
   emptyLabel,
@@ -12,9 +13,7 @@ export function LatestStatusNoteContent({
     <>
       <p className="whitespace-pre-wrap text-slate-900">{latestStatusNote.note}</p>
       <p className="text-xs text-muted-foreground">
-        {latestStatusNote.createdAt
-          ? new Date(latestStatusNote.createdAt).toLocaleString(locale)
-          : ''}
+        {formatPilotDateTime(latestStatusNote.createdAt, locale, '')}
       </p>
     </>
   );

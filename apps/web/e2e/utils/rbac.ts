@@ -36,7 +36,7 @@ export async function assertAccessDenied(page: Page, mode: DenyMode = 'flexible'
     // Fallback: Check for standard 404/403 UI indicators (Legacy)
     // Matches Albanian (sq), Macedonian (mk), and English (en)
     const heading = page.getByRole('heading', {
-      name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet|Страницата не е пронајдена/i,
+      name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet|Страницата не е пронајдена|Stranica nije pronađena|Seite nicht gefunden/i,
     });
 
     // If strict check didn't return, UI MUST be visible

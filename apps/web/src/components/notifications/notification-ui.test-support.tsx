@@ -8,6 +8,8 @@ interface NotificationUiMockOptions {
 
 export function createNotificationTranslationsMock() {
   return {
+    useLocale: () => 'en',
+    useNow: () => new Date('2026-11-12T12:00:00Z'),
     useTranslations: createUseTranslationsMock(() => ({ ...notifications, ...common })),
   };
 }

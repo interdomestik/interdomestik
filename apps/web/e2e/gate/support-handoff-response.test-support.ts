@@ -5,6 +5,7 @@ import { expect } from '../fixtures/auth.fixture';
 export async function openSupportHandoffDetail(row: Locator): Promise<void> {
   const toggle = row.getByTestId('staff-support-handoff-detail-toggle');
   const panel = row.getByTestId('staff-support-handoff-detail-panel');
+  await expectVisible(row.locator('[data-hydrated="true"]'));
   await expectVisible(toggle);
   await expect(async () => {
     if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();

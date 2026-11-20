@@ -22,6 +22,11 @@ describe('StaffSupportHandoffsPage', () => {
   it('loads and renders detail context on demand for staff', async () => {
     await renderPage();
 
+    expect(screen.getByTestId('staff-support-handoff-detail-toggle').parentElement).toHaveAttribute(
+      'data-hydrated',
+      'true'
+    );
+    expect(mocks.getSupportHandoffDetail).not.toHaveBeenCalled();
     fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
 
     await waitFor(() => {

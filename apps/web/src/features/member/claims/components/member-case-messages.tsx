@@ -117,6 +117,7 @@ function CaseMessages({ claimId, currentUser }: MemberCaseMessagesProps) {
           <Button
             data-testid="send-message-button"
             type="submit"
+            className="h-11 sm:h-10"
             disabled={state.sending || !state.draft.trim()}
           >
             {t('member.send')}

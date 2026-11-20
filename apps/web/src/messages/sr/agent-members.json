@@ -125,6 +125,15 @@
           "subscription": "Pretplata",
           "none": "Nema"
         }
+      },
+      "list": {
+        "noResults": "Nema rezultata.",
+        "memberNumber": "Broj člana",
+        "attention": "Pažnja",
+        "view": "Prikaži člana",
+        "upToDate": "Ažurno",
+        "viewMember": "Prikaži člana {name}",
+        "viewMemberNumber": "Prikaži člana {name} (članstvo {number})"
       }
     }
   }

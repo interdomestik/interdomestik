@@ -90,6 +90,59 @@
         "title": "Obaveštenje",
         "content": "Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala."
       }
+    },
+    "updateOn": "Ažuriranje za: {claim}",
+    "yourClaim": "vaš predmet",
+    "updateBody": "Dostupno je novo ažuriranje. Otvorite obaveštenje za detalje.",
+    "events": {
+      "claimSubmitted": {
+        "title": "Zahtev je podnet"
+      },
+      "claimAssigned": {
+        "title": "Zahtev je dodeljen"
+      },
+      "statusChanged": {
+        "title": "Status zahteva je ažuriran"
+      },
+      "claimPackGenerated": {
+        "title": "Paket zahteva je kreiran"
+      },
+      "claimPackUpgraded": {
+        "title": "Paket zahteva je ažuriran"
+      },
+      "documentRequested": {
+        "title": "Dokumenti su zatraženi"
+      },
+      "triageComplete": {
+        "title": "Trijaža je završena"
+      },
+      "escalationAccepted": {
+        "title": "Eskalacija je prihvaćena"
+      },
+      "escalationDeclined": {
+        "title": "Eskalacija je odbijena"
+      },
+      "newMessage": {
+        "title": "Nova poruka"
+      },
+      "slaWarning": {
+        "title": "SLA upozorenje"
+      },
+      "slaBreached": {
+        "title": "SLA rok je istekao"
+      },
+      "membershipRenewal": {
+        "title": "Obnova članstva"
+      },
+      "paymentVerificationUpdate": {
+        "title": "Verifikacija je ažurirana"
+      },
+      "supportHandoffPublicResponse": {
+        "title": "Zahtev za podršku je ažuriran"
+      },
+      "unknown": {
+        "title": "Obaveštenje"
+      }
     }
   }
 }

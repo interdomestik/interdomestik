@@ -90,6 +90,59 @@
         "title": "Benachrichtigung",
         "content": "Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt."
       }
+    },
+    "updateOn": "Aktualisierung zu: {claim}",
+    "yourClaim": "Ihren Schadensfall",
+    "updateBody": "Eine neue Aktualisierung ist verfügbar. Öffnen Sie die Benachrichtigung für weitere Angaben.",
+    "events": {
+      "claimSubmitted": {
+        "title": "Anspruch eingereicht"
+      },
+      "claimAssigned": {
+        "title": "Anspruch zugewiesen"
+      },
+      "statusChanged": {
+        "title": "Anspruchsstatus aktualisiert"
+      },
+      "claimPackGenerated": {
+        "title": "Anspruchsunterlagen erstellt"
+      },
+      "claimPackUpgraded": {
+        "title": "Anspruchsunterlagen aktualisiert"
+      },
+      "documentRequested": {
+        "title": "Dokumente angefordert"
+      },
+      "triageComplete": {
+        "title": "Erstprüfung abgeschlossen"
+      },
+      "escalationAccepted": {
+        "title": "Eskalation angenommen"
+      },
+      "escalationDeclined": {
+        "title": "Eskalation abgelehnt"
+      },
+      "newMessage": {
+        "title": "Neue Nachricht"
+      },
+      "slaWarning": {
+        "title": "SLA-Warnung"
+      },
+      "slaBreached": {
+        "title": "SLA-Frist überschritten"
+      },
+      "membershipRenewal": {
+        "title": "Mitgliedschaft verlängern"
+      },
+      "paymentVerificationUpdate": {
+        "title": "Verifizierung aktualisiert"
+      },
+      "supportHandoffPublicResponse": {
+        "title": "Supportanfrage aktualisiert"
+      },
+      "unknown": {
+        "title": "Benachrichtigung"
+      }
     }
   }
 }

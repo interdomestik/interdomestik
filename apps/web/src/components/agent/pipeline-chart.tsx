@@ -36,6 +36,7 @@ function CustomTooltip({
 
 export function PipelineChart({ data }: PipelineChartProps) {
   const t = useTranslations('agent.pipeline');
+  const tCommon = useTranslations('common');
 
   const chartData = [
     {
@@ -54,46 +55,56 @@ export function PipelineChart({ data }: PipelineChartProps) {
       fill: 'hsl(var(--success))',
     },
   ];
+  const hasData = chartData.some(item => item.value > 0);
 
   return (
-    <Card className="h-full">
+    <Card className="min-w-0">
       <CardHeader>
         <CardTitle>{t('title') || 'Pipeline Overview'}</CardTitle>
         <CardDescription>{t('subtitle') || 'Your sales funnel performance'}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px] w-full min-w-0">
-          <ResponsiveContainer width="100%" height={300} aspect={2}>
-            <BarChart
-              data={chartData}
-              layout="vertical"
-              margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
-            >
-              <XAxis type="number" hide />
-              <YAxis
-                dataKey="name"
-                type="category"
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                tickLine={false}
-                axisLine={false}
-                width={100}
-              />
-              <Tooltip
-                cursor={{ fill: 'hsl(var(--muted-100))', opacity: 0.2 }}
-                content={<CustomTooltip />}
-              />
-              <Bar
-                dataKey="value"
-                radius={4}
-                barSize={32}
-                background={{
-                  fill: 'hsl(var(--muted-100))',
-                  radius: 4,
-                }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {hasData ? (
+          <div className="h-[300px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height={300} minWidth={0}>
+              <BarChart
+                data={chartData}
+                layout="vertical"
+                margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+              >
+                <XAxis type="number" hide />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={100}
+                />
+                <Tooltip
+                  cursor={{ fill: 'hsl(var(--muted-100))', opacity: 0.2 }}
+                  content={<CustomTooltip />}
+                />
+                <Bar
+                  dataKey="value"
+                  radius={4}
+                  barSize={32}
+                  background={{
+                    fill: 'hsl(var(--muted-100))',
+                    radius: 4,
+                  }}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <p
+            className="py-10 text-center text-sm text-muted-foreground"
+            data-testid="agent-pipeline-empty"
+          >
+            {tCommon('no_results')}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

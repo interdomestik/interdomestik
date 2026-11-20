@@ -10,6 +10,7 @@ import {
 } from '@interdomestik/ui/components/select';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
+import { formatAdminTenantLabel } from './admin-tenant-label';
 
 export type AdminTenantOption = {
   id: string;
@@ -49,7 +50,7 @@ export function AdminTenantSelector({
       <SelectContent>
         {tenants.map(t => (
           <SelectItem key={t.id} value={t.id}>
-            {t.name} ({t.countryCode.toUpperCase()})
+            {formatAdminTenantLabel(t.name, t.countryCode)}
           </SelectItem>
         ))}
       </SelectContent>

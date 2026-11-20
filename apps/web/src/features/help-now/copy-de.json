@@ -65,5 +65,6 @@
     "Fahrzeugpapiere",
     "Familienkontakt",
     "Offline-Paket"
-  ]
+  ],
+  "countryChecklist": "Klären Sie bei einem Vorfall in {country} die örtlichen Meldeschritte mit den zuständigen Stellen oder Ihrem Versicherer."
 }

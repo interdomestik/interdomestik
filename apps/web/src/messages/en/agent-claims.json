@@ -313,6 +313,7 @@
         "assignment": {
           "title": "Assignment",
           "assign_claim": "Assign claim",
+          "choose_assignee": "Select an assignee",
           "save": "Save Assignment",
           "current_assignee": "Current assignee",
           "out_of_scope": "{name} (out of scope)",

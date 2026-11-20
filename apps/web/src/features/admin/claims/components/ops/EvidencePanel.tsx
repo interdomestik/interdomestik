@@ -52,6 +52,7 @@ export function EvidencePanel({
     <OpsDocumentsPanel
       title={t('title')}
       documents={mappedDocs}
+      unavailableLabel={t('file_unavailable')}
       emptyLabel={t('no_docs')}
       viewLabel={tCommon('view')}
       headerActions={

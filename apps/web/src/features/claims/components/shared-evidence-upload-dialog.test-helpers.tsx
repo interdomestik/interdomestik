@@ -130,7 +130,7 @@ export function runSharedEvidenceUploadDialogTests({
       expect(uploadMocks.uploadToSignedUrl).not.toHaveBeenCalled();
     });
 
-    it('falls back to the direct upload endpoint for storage-unsafe file types', async () => {
+    it('uses signed storage with canonical MIME for Office files', async () => {
       openDialog();
 
       const file = new File(['dummy'], 'evidence.docx', { type: '' });
@@ -141,12 +141,24 @@ export function runSharedEvidenceUploadDialogTests({
       fireEvent.click(screen.getByRole('button', { name: uploadTriggerLabel }));
 
       await waitFor(() => {
-        expect(uploadMocks.fetch).toHaveBeenCalledWith('/api/claims/evidence-upload', {
-          method: 'POST',
-          body: expect.any(FormData),
-        });
-        expect(uploadMocks.generateUploadUrl).not.toHaveBeenCalled();
-        expect(uploadMocks.confirmUpload).not.toHaveBeenCalled();
+        expect(uploadMocks.generateUploadUrl).toHaveBeenCalledWith(
+          'claim-1',
+          'evidence.docx',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          file.size
+        );
+        expect(uploadMocks.confirmUpload).toHaveBeenCalledTimes(1);
+        expect(uploadMocks.uploadToSignedUrl).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.objectContaining({
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          }),
+          expect.objectContaining({
+            contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          })
+        );
+        expect(uploadMocks.fetch).not.toHaveBeenCalled();
       });
 
       expect(uploadMocks.refresh).toHaveBeenCalledTimes(1);

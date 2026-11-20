@@ -4,7 +4,10 @@ import { Badge } from '@interdomestik/ui/components/badge';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { Shield } from 'lucide-react';
 import { useLocale } from 'next-intl';
-import { ReactNode } from 'react';
+import { formatPilotDate } from '@/lib/utils/date';
+import { ReactNode, useSyncExternalStore } from 'react';
+
+const subscribeToNothing = (): (() => void) => () => undefined;
 
 interface AdminPageHeaderProps {
   title: string;
@@ -15,15 +18,6 @@ interface AdminPageHeaderProps {
   headingId?: string;
 }
 
-// Map app locale codes to Intl.DateTimeFormat locale codes
-const LOCALE_MAP: Record<string, string> = {
-  en: 'en-US',
-  sq: 'sq-AL',
-  mk: 'mk-MK',
-  sr: 'sr-Latn-RS',
-  de: 'de-DE',
-};
-
 export function AdminPageHeader({
   title,
   subtitle,
@@ -33,14 +27,12 @@ export function AdminPageHeader({
   headingId,
 }: AdminPageHeaderProps) {
   const locale = useLocale();
-  const intlLocale = LOCALE_MAP[locale] ?? 'en-US';
-
-  const today = new Date();
-  const formattedDate = new Intl.DateTimeFormat(intlLocale, {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(today);
+  // Read the clock only on the client: server and client renders may straddle midnight.
+  const formattedDate = useSyncExternalStore(
+    subscribeToNothing,
+    () => formatPilotDate(new Date(), locale, ''),
+    () => ''
+  );
 
   return (
     <div
@@ -64,8 +56,9 @@ export function AdminPageHeader({
             </Badge>
           )}
         </div>
-        <p className="text-muted-foreground font-medium" suppressHydrationWarning>
-          {formattedDate} • {subtitle}
+        <p className="text-muted-foreground font-medium">
+          {formattedDate ? `${formattedDate} • ` : ''}
+          {subtitle}
         </p>
       </div>
 

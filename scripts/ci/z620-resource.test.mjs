@@ -5,7 +5,9 @@ import path from 'node:path';
 import test from 'node:test';
 import {
   assertTaskDatabase,
+  createTaskDatabase,
   databaseUrl,
+  dropTaskDatabase,
   reserveE2ePort,
   taskDatabaseName,
 } from './z620-resource-lib.mjs';
@@ -20,6 +22,13 @@ test('rejects unsafe task identifiers and non-task databases', () => {
   assert.throws(() => taskDatabaseName('../main', 'e2e', 'r1'), /Invalid sha/);
   assert.throws(() => assertTaskDatabase('postgres'), /non-task database/);
   assert.throws(() => assertTaskDatabase('interdomestik_ci_safe;drop'), /non-task database/);
+});
+
+test('creates and drops only task-owned databases, refused before any connection', async () => {
+  for (const operation of [createTaskDatabase, dropTaskDatabase]) {
+    await assert.rejects(operation('postgres'), /non-task database/);
+    await assert.rejects(operation('interdomestik_ci_x;drop'), /non-task database/);
+  }
 });
 
 test('builds a URL only for a task-owned database', () => {

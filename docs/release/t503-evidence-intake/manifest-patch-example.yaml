@@ -11,39 +11,39 @@ gates:
   - id: G04
     status: waived
     required_artifacts:
-      - path: docs/release/evidence/G04-bank-payment-proof-waiver.md
+      - file: G04-bank-payment-proof-waiver.md
         sha256: REPLACE_WITH_ACTUAL_SHA256
     signoff:
-      name: REPLACE_WITH_SIGNER_NAME
+      signer_ref: T503-G04-SIGNOFF
       role: Finance owner / Release owner
       signed_at: 2026-07-02
 
   - id: G05
     status: waived
     required_artifacts:
-      - path: docs/release/evidence/G05-600-mkd-reconciliation-waiver.md
+      - file: G05-600-mkd-reconciliation-waiver.md
         sha256: REPLACE_WITH_ACTUAL_SHA256
     signoff:
-      name: REPLACE_WITH_SIGNER_NAME
+      signer_ref: T503-G05-SIGNOFF
       role: Finance owner / Release owner
       signed_at: 2026-07-02
 
   - id: G09
     status: waived
     required_artifacts:
-      - path: docs/release/evidence/G09-poa-consent-terms-waiver.md
+      - file: G09-poa-consent-terms-waiver.md
         sha256: REPLACE_WITH_ACTUAL_SHA256
     signoff:
-      name: REPLACE_WITH_SIGNER_NAME
+      signer_ref: T503-G09-SIGNOFF
       role: Claims/legal owner / Release owner
       signed_at: 2026-07-02
 
   - id: G10
     status: waived
     required_artifacts:
-      - path: docs/release/evidence/G10-closure-evidence-waiver.md
+      - file: G10-closure-evidence-waiver.md
         sha256: REPLACE_WITH_ACTUAL_SHA256
     signoff:
-      name: REPLACE_WITH_SIGNER_NAME
+      signer_ref: T503-G10-SIGNOFF
       role: Claims/finance owner / Release owner
       signed_at: 2026-07-02

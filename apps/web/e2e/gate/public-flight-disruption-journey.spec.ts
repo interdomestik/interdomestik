@@ -104,7 +104,9 @@ test.describe('public flight disruption journey', () => {
         /europa\.eu/
       );
       await expect(journey).toContainText('nuk është aktiv në ofertën aktuale');
-      await expect(journey).not.toContainText(/Free Start|anëtarësim|WhatsApp|€\s?\d/i);
+      await expect(journey).not.toContainText(
+        /Free Start|Fillim\w* falas|anëtarësim|WhatsApp|€\s?\d/i
+      );
     });
   });
 

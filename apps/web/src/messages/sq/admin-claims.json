@@ -10,7 +10,12 @@
         "label": "Përgjegjësia e stafit",
         "placeholder": "Zgjidh përgjegjësin",
         "unassigned": "Pa përgjegjës",
-        "success_message": "Kërkesa u caktua me sukses"
+        "success_message": "Rasti u caktua me sukses",
+        "errors": {
+          "target_denied": "Ky anëtar i stafit nuk mund të caktohet për këtë rast.",
+          "conflict": "Rasti ndryshoi ndërkohë. Rifreskoni faqen dhe provoni përsëri.",
+          "draft": "Një rast në skicë nuk mund të caktohet para se anëtari ta dorëzojë."
+        }
       },
       "sections": {
         "active": "Në Proces",
@@ -26,7 +31,10 @@
         "claim_number_link": "Linku i numrit të kërkesës",
         "canonical_url": "URL kanonike",
         "copy_failed": "Kopjimi i linkut dështoi",
-        "copy_success": "{label} u kopjua në kujtesën e fragmenteve"
+        "copy_success": "{label} u kopjua në kujtesën e fragmenteve",
+        "member_number": "Numri i anëtarit",
+        "member_link": "Lidhja e anëtarit",
+        "breadcrumb": "Rruga e navigimit"
       },
       "message_alert": "Mesazh i ri ({count})",
       "table": {
@@ -186,7 +194,10 @@
             "label": "Prano shkeljen",
             "description": "Afati u shkel. Kërkohet shënim."
           },
-          "escalate": { "label": "Eskalo", "description": "Kërko vëmendjen e menaxherit." },
+          "escalate": {
+            "label": "Eskalo",
+            "description": "Kërko vëmendjen e menaxherit."
+          },
           "message_poke": {
             "label": "Regjistro kujtesë",
             "description": "Shto një kujtesë të brendshme në historikun e rastit."
@@ -195,7 +206,10 @@
             "label": "Shiko Bllokuesit",
             "description": "Kontrollo kronologjinë për probleme."
           },
-          "reopen": { "label": "Rihap Kërkesën", "description": "Kthe në vlerësim." },
+          "reopen": {
+            "label": "Rihap Kërkesën",
+            "description": "Kthe në vlerësim."
+          },
           "message_respond": {
             "label": "Shto shënim",
             "description": "Shto një shënim të brendshëm për përgjegjësin e caktuar."
@@ -242,7 +256,8 @@
           "image": "Imazh",
           "audio": "Regjistrim audio",
           "document": "Dokument"
-        }
+        },
+        "file_unavailable": "Skedari nuk është i disponueshëm"
       },
       "timeline": {
         "title": "Kronologjia",

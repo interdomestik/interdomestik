@@ -18,7 +18,14 @@ test('production code readiness gate stays Docker-free', () => {
 });
 
 test('production gate runs the human evidence check first', () => {
-  assert.equal(packageJson.scripts['release:evidence:check'], 'node scripts/release-evidence-check.mjs');
+  assert.equal(
+    packageJson.scripts['release:evidence:check'],
+    'node scripts/release-evidence-check.mjs --manifest-only'
+  );
+  assert.equal(
+    packageJson.scripts['release:evidence:verify'],
+    'node scripts/release-evidence-check.mjs --evidence-root'
+  );
   assert.match(packageJson.scripts['release:gate:prod'], /^pnpm release:evidence:check && /);
 });
 

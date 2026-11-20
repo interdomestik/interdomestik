@@ -3,13 +3,13 @@ import type { FeeMathSheetCopy } from './fee-math-sheet-copy';
 export const SQ_FEE_MATH_SHEET_COPY: FeeMathSheetCopy = {
   eyebrow: 'Shpenzimet në rrugë gjyqësore',
   title: 'Shpenzimet gjyqësore dakordohen me shkrim para rrugës gjyqësore',
-  body: 'Nëse nuk ka rikuperim, nuk ka success fee për Interdomestik. Shpenzimet e jashtme të rrugës gjyqësore nuk premtohen si gjithmonë zero; ato kontrollohen nga marrëveshja me shkrim para se kostoja të krijohet.',
+  body: 'Nëse nuk ka rikuperim, nuk ka tarifë suksesi për Interdomestik. Shpenzimet e jashtme të rrugës gjyqësore nuk premtohen si gjithmonë zero; ato kontrollohen nga marrëveshja me shkrim para se kostoja të krijohet.',
   treatmentLabel: 'Kërkohet marrëveshje me shkrim',
   rows: [
     {
       key: 'fees.lossPromise',
-      label: 'Pa success fee kur nuk ka rikuperim',
-      body: 'Nëse nuk ka rikuperim, nuk ka success fee për Interdomestik.',
+      label: 'Pa tarifë suksesi kur nuk ka rikuperim',
+      body: 'Nëse nuk ka rikuperim, nuk ka tarifë suksesi për Interdomestik.',
     },
     {
       key: 'fees.courtPathCosts',

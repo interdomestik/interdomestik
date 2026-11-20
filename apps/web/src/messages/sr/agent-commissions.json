@@ -1,0 +1,10 @@
+{
+  "agent": {
+    "commissions": {
+      "description": "Pratite zaradu od provizija za članstva i obnove.",
+      "referralLink": {
+        "copy": "Kopiraj link za preporuku"
+      }
+    }
+  }
+}

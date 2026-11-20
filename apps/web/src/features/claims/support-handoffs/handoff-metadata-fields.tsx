@@ -1,3 +1,4 @@
+import { formatPilotDateTime } from '@/lib/utils/date';
 import type { HandoffMetadata } from './get-handoff-metadata';
 
 export type MetadataLabels = Record<
@@ -43,7 +44,7 @@ export function HandoffMetadataFields({
   };
   function formatField(key: string, value: string | number | null | undefined) {
     if (key.endsWith('At') && typeof value === 'string')
-      return new Date(value).toLocaleString(locale, { timeZone: 'UTC' });
+      return formatPilotDateTime(value, locale, missing.timestamp);
     if (value != null) return value;
     if (key === 'assignee') return missing.assignee;
     if (key === 'branch') return missing.branch;

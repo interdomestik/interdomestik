@@ -81,7 +81,7 @@ export const propertyJourneyTestMessages = {
       diasporaBody:
         'Rregullat e vendit, policës dhe kontratës kërkojnë shqyrtim të veçantë; nuk supozojmë pse vendet ndryshojnë.',
       handoff:
-        'Tani vazhdoni me organizimin e të dhënave të dëmit në Free Start. Asnjë përgjigje nuk kalon automatikisht.',
+        'Tani vazhdoni me organizimin e të dhënave të dëmit në Fillimin falas. Asnjë përgjigje nuk kalon automatikisht.',
       continue: 'Organizo të dhënat e dëmit tim',
     },
   },

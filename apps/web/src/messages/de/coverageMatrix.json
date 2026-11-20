@@ -2,7 +2,7 @@
   "coverageMatrix": {
     "eyebrow": "Leistungsmatrix",
     "title": "Welche Schadensarten im Plan bleiben, eskaliert oder weitergeleitet werden",
-    "subtitle": "Diese Matrix zeigt, wo Free Start und die Mitgliedschaft jetzt helfen, wann eine vom Team geführte Eskalation beginnen kann und wann eine Weiterleitung oder eine separate rechtliche Zustimmung gilt.",
+    "subtitle": "Diese Matrix zeigt, wo der Kostenlose Start und die Mitgliedschaft jetzt helfen, wann eine vom Team geführte Eskalation beginnen kann und wann eine Weiterleitung oder eine separate rechtliche Zustimmung gilt.",
     "rowHeaderTitle": "Schadensart",
     "columns": {
       "included": "Enthalten",
@@ -13,21 +13,21 @@
       "vehicle": {
         "title": "Fahrzeugschaden",
         "description": "Schadensart zum Start mit einem Weg zur finanziellen Erstattung.",
-        "included": "Free-Start-Paket + Hinweise im Rahmen der Mitgliedschaft",
+        "included": "Paket des Kostenlosen Starts + Hinweise im Rahmen der Mitgliedschaft",
         "escalation": "Nach Annahme des Falls verfügbar",
         "referral": "Zustimmung zu einem Rechtspartner bei Bedarf"
       },
       "property": {
         "title": "Sachschaden",
         "description": "Schadensart zum Start mit einem Weg zur finanziellen Erstattung.",
-        "included": "Free-Start-Paket + Hinweise im Rahmen der Mitgliedschaft",
+        "included": "Paket des Kostenlosen Starts + Hinweise im Rahmen der Mitgliedschaft",
         "escalation": "Nach Annahme des Falls verfügbar",
         "referral": "Zustimmung zu einem Rechtspartner bei Bedarf"
       },
       "injury": {
         "title": "Personenschaden",
         "description": "Schadensart zum Start, wenn ein direkter Weg zur finanziellen Erstattung besteht.",
-        "included": "Free-Start-Paket + Hinweise im Rahmen der Mitgliedschaft",
+        "included": "Paket des Kostenlosen Starts + Hinweise im Rahmen der Mitgliedschaft",
         "escalation": "Nach Annahme des Falls verfügbar",
         "referral": "Zustimmung zu einem Rechtspartner bei Bedarf"
       },

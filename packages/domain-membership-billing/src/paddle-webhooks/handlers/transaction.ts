@@ -5,6 +5,7 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { readPaddleCanonicalUser } from './utils/canonical-user';
 import { findPaddleSubscriptionByReference } from '../../subscription';
+import { PaddleWebhookPayloadSchemaError } from '../errors';
 import { transactionEventDataSchema } from '../schemas';
 import type { PaddleWebhookAuditDeps } from '../types';
 
@@ -20,8 +21,7 @@ export async function handleTransactionCompleted(
 ) {
   const parseResult = transactionEventDataSchema.safeParse(params.data);
   if (!parseResult.success) {
-    console.error('[Webhook] Invalid transaction data:', parseResult.error);
-    return;
+    throw new PaddleWebhookPayloadSchemaError('transaction', parseResult.error.issues);
   }
   const tx = parseResult.data;
 

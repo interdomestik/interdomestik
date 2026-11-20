@@ -3,7 +3,7 @@ import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-li
 export interface AgentProClaimDTO {
   id: string;
   title: string;
-  claimNumber: string;
+  claimNumber: string | null;
   status: string;
   createdAt: Date;
   updatedAt: Date;
@@ -52,7 +52,7 @@ export function mapToAgentProClaim(c: ClaimRow): AgentProClaimDTO {
   return {
     id: c.id,
     title: c.title ?? 'Untitled',
-    claimNumber: c.claimNumber ?? 'N/A',
+    claimNumber: c.claimNumber?.trim() || null,
     status: claimStatusFromLifecycleFields(c),
     createdAt: normalizeClaimDate(c.createdAt),
     updatedAt: normalizeClaimDate(c.updatedAt),

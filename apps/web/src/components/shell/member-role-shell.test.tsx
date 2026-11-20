@@ -229,10 +229,7 @@ describe('AgentRoleShell', () => {
         'href',
         workspaceHref
       );
-      expect(within(dialog).getByRole('link', { name: 'rapidPos' })).toHaveAttribute(
-        'href',
-        '/agent/pos'
-      );
+      expect(within(dialog).queryByRole('link', { name: 'rapidPos' })).not.toBeInTheDocument();
       expect(within(dialog).getByRole('link', { name: 'workspace.title' })).toHaveAttribute(
         'href',
         '/agent/workspace'
@@ -280,7 +277,7 @@ describe('AgentRoleShell', () => {
       expect(paths).toEqual([...previous, '/agent/workspace', '/agent/workspace/claims']);
       expect(paths.includes('/agent/leads')).toBe(tier !== 'standard');
       expect(paths.includes('/agent/sponsors')).toBe(tier === 'office');
-      expect(paths).toContain('/agent/pos');
+      expect(paths).not.toContain('/agent/pos');
       expect(paths.every(path => !path?.includes('?'))).toBe(true);
       expect(within(navigation).getByRole('link', { name: 'claimsPro.title' })).toHaveAttribute(
         'aria-current',

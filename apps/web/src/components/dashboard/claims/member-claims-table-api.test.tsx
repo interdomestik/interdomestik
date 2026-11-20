@@ -92,11 +92,11 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     }
   );
 
-  it('threads the actual non-English locale through the mounted amount cell', async () => {
+  it('uses the continental amount format for the mounted Albanian locale', async () => {
     mockFetch(wireResponse([wireRow()]));
     renderTable('sq');
     await waitFor(() => expect(screen.getByText('Flight Delay')).toBeInTheDocument());
-    const text = new Intl.NumberFormat('sq', { style: 'currency', currency: 'EUR' }).format(1200);
+    const text = '1.200,00\u00a0€';
     expect(text).not.toBe(
       new Intl.NumberFormat('en', { style: 'currency', currency: 'EUR' }).format(1200)
     );

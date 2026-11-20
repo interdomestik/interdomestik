@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PaddleWebhookPayloadSchemaError } from '../errors';
+import { buildRawTrialingSubscriptionCreatedData } from '../paddle-null-fields.fixture';
+import { handleSubscriptionPastDue } from './dunning';
 import { handleSubscriptionChanged } from './subscriptions';
+import { handleTransactionCompleted } from './transaction';
 import {
   TEST_PADDLE_DELIVERY,
   mockSubscriptionOwner,
@@ -184,5 +188,70 @@ describe('subscription confirmation dispatch', () => {
     expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(logAuditEvent).not.toHaveBeenCalled();
     expect(sendThankYouLetter).not.toHaveBeenCalled();
+  });
+
+  it('writes the trialing subscription from the raw payload with provider nulls', async () => {
+    mockUserOwner(hoisted, 'tenant_ks');
+    hoisted.db.query.user.findFirst.mockResolvedValue({
+      id: 'user_123',
+      email: 'member@example.test',
+      name: 'Member One',
+      memberNumber: 'MEM-2026-001',
+      tenantId: 'tenant_ks',
+    });
+    const raw = buildRawTrialingSubscriptionCreatedData();
+    // An agent-attributed checkout keeps the referral-reward lookup out of this handler test.
+    const customData = { ...(raw.custom_data as Record<string, unknown>), agentId: 'agent_1' };
+
+    await handleSubscriptionChanged(
+      {
+        delivery: TEST_PADDLE_DELIVERY,
+        eventType: 'subscription.created',
+        data: { ...raw, custom_data: customData },
+      },
+      { logAuditEvent, sendThankYouLetter }
+    );
+
+    expect(hoisted.tx.insert).toHaveBeenCalled();
+    expect(hoisted.appendEvent).toHaveBeenCalledWith(
+      hoisted.tx,
+      expect.objectContaining({
+        eventName: 'membership.subscription_changed',
+        payload: { cancelAtPeriodEnd: false, fromStatus: 'none', toStatus: 'trialing' },
+      })
+    );
+    expect(logAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityId: 'sub_01nullfieldsfixture00000001',
+        metadata: expect.objectContaining({ status: 'trialing', userId: 'user_123' }),
+      })
+    );
+  });
+
+  it('rejects a schema-invalid subscription event as retryable instead of dropping it', async () => {
+    const data = { ...buildRawTrialingSubscriptionCreatedData(), scheduled_change: 'cancel' };
+
+    await expect(
+      handleSubscriptionChanged(
+        { delivery: TEST_PADDLE_DELIVERY, eventType: 'subscription.created', data },
+        { logAuditEvent, sendThankYouLetter }
+      )
+    ).rejects.toThrow('Invalid Paddle subscription data: scheduled_change (invalid_type)');
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
+    expect(sendThankYouLetter).not.toHaveBeenCalled();
+  });
+
+  it('rejects schema-invalid past_due and transaction events as retryable', async () => {
+    await expect(
+      handleSubscriptionPastDue({ delivery: TEST_PADDLE_DELIVERY, data: { id: 'sub_1' } })
+    ).rejects.toBeInstanceOf(PaddleWebhookPayloadSchemaError);
+    await expect(
+      handleTransactionCompleted(
+        { delivery: TEST_PADDLE_DELIVERY, data: { id: 'txn_1' } },
+        { logAuditEvent }
+      )
+    ).rejects.toThrow('Invalid Paddle transaction data: status (invalid_type)');
+    expect(hoisted.tx.update).not.toHaveBeenCalled();
+    expect(logAuditEvent).not.toHaveBeenCalled();
   });
 });

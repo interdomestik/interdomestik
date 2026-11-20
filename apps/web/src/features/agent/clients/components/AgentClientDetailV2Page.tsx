@@ -68,25 +68,28 @@ export async function AgentClientDetailV2Page({
   const translationProps = { t, tCommon, tClaims, locale };
 
   return (
-    <section data-testid="agent-member-detail-ready" className="space-y-8">
+    <section
+      data-testid="agent-member-detail-ready"
+      className="min-w-0 space-y-8 [overflow-wrap:anywhere]"
+    >
       <MemberHeader member={member} membership={membership} {...translationProps} />
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
         <MembershipCard membership={membership} {...translationProps} />
         <AgentCard member={member} {...translationProps} />
         <PreferencesCard preferences={preferences} {...translationProps} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
         <ClaimsOverviewCard counts={counts} {...translationProps} />
         <RecentClaimsCard recentClaims={recentClaims} {...translationProps} />
       </div>
 
       {/* Member Activities Section */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-3">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>{tAgent('activity.section_title')}</CardTitle>
+      <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
+        <Card className="min-w-0 lg:col-span-3">
+          <CardHeader className="flex flex-col items-start gap-3 space-y-0 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <CardTitle className="min-w-0">{tAgent('activity.section_title')}</CardTitle>
             <LogActivityDialog entityId={member.id} entityType="member" />
           </CardHeader>
           <CardContent>

@@ -13,6 +13,7 @@
     "./claims/create": "./src/claims/create.ts",
     "./claims/commercial-launch-scope": "./src/claims/commercial-launch-scope.ts",
     "./claims/submit": "./src/claims/submit.ts",
+    "./claims/evidence-file-policy": "./src/claims/evidence-file-policy.ts",
     "./claims/diaspora-origin": "./src/claims/diaspora-origin.ts",
     "./claims/status": "./src/claims/status.ts",
     "./claims/lifecycle-read-sql": "./src/claims/lifecycle-read-sql.ts",

@@ -38,11 +38,15 @@ export async function sendMessageDbCore(params: {
     return { success: false, error };
   }
 
+  // 10 messages per minute per sender: people behind one shared IP (office NAT, mobile carrier
+  // NAT) must not exhaust each other's budget. Without a session the key falls back to the IP.
   const rateLimit = await enforceRateLimit({
     name: 'action:message-send',
     limit: 10,
-    windowSeconds: 60, // 10 messages per minute
+    windowSeconds: 60,
     headers: params.requestHeaders,
+    keySuffix: params.session?.user?.id ?? null,
+    keyMode: 'suffix',
     productionSensitive: true,
   });
 

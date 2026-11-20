@@ -1,8 +1,13 @@
-import type { Breadcrumb, Event, init } from '@sentry/nextjs';
+import type { Breadcrumb, Event, EventHint, init } from '@sentry/nextjs';
 import { applyEnterpriseAlertMetadata } from './sentry-enterprise-metadata';
+import {
+  applyExceptionClassification,
+  scrubSentryDebugMeta,
+  scrubSentryException,
+} from './sentry-exception-privacy';
 type Options = NonNullable<Parameters<typeof init>[0]>;
 type SpanJSON = Parameters<NonNullable<Options['beforeSendSpan']>>[0];
-import { scrubStackFilename, scrubTransactionName, scrubUrl } from './sentry-url-privacy';
+import { scrubTransactionName, scrubUrl } from './sentry-url-privacy';
 import { redactSignedStorageBreadcrumb, redactSignedStorageSpan } from './signed-storage-redaction';
 
 const ACTIONS = new Set(['login_submit', 'saved_draft_submit']);
@@ -209,7 +214,7 @@ export function scrubSentrySpan(span: SpanJSON): SpanJSON {
   return technical;
 }
 
-export function scrubSentryEvent<T extends Event>(event: T): T | null {
+export function scrubSentryEvent<T extends Event>(event: T, hint?: EventHint): T | null {
   try {
     const allowedKeys = new Set([
       'event_id',
@@ -230,6 +235,7 @@ export function scrubSentryEvent<T extends Event>(event: T): T | null {
       'exception',
       'spans',
       'measurements',
+      'debug_meta',
     ]);
     const result = Object.fromEntries(
       Object.entries(event).filter(([key]) => allowedKeys.has(key))
@@ -241,7 +247,6 @@ export function scrubSentryEvent<T extends Event>(event: T): T | null {
     delete result.fingerprint;
     result.message = MESSAGES.has(event.message ?? '') ? event.message : undefined;
     result.tags = safeData(event.tags);
-    applyEnterpriseAlertMetadata(event, result);
     result.contexts = event.contexts?.trace
       ? {
           trace: {
@@ -261,31 +266,10 @@ export function scrubSentryEvent<T extends Event>(event: T): T | null {
     result.breadcrumbs = event.breadcrumbs
       ?.map(scrubSentryBreadcrumb)
       .filter((b): b is Breadcrumb => b !== null);
-    result.exception = event.exception
-      ? {
-          values: event.exception.values?.map(exception => ({
-            type: 'Error',
-            value: 'Application failure',
-            mechanism: exception.mechanism
-              ? { type: 'generic', handled: exception.mechanism.handled }
-              : undefined,
-            stacktrace: exception.stacktrace
-              ? {
-                  ...exception.stacktrace,
-                  frames: exception.stacktrace.frames?.map(frame => {
-                    const safeFrame = { ...frame };
-                    delete safeFrame.vars;
-                    if (safeFrame.filename)
-                      safeFrame.filename = scrubStackFilename(safeFrame.filename);
-                    if (safeFrame.abs_path)
-                      safeFrame.abs_path = scrubStackFilename(safeFrame.abs_path);
-                    return safeFrame;
-                  }),
-                }
-              : undefined,
-          })),
-        }
-      : undefined;
+    result.exception = scrubSentryException(event.exception);
+    result.debug_meta = scrubSentryDebugMeta(event.debug_meta, result.exception);
+    applyExceptionClassification(result, hint);
+    applyEnterpriseAlertMetadata(event, result);
     if (result.type === 'transaction') {
       result.spans = result.spans?.map(scrubSentrySpan);
       result.measurements = safeMeasurements(result.measurements);

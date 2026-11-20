@@ -90,6 +90,59 @@
         "title": "Известување",
         "content": "Достапно е ажурирање. Содржината на пораките и белешките е ограничена за раководителите на филијали."
       }
+    },
+    "updateOn": "Ажурирање за: {claim}",
+    "yourClaim": "вашиот предмет",
+    "updateBody": "Достапно е ново ажурирање. Отворете го известувањето за детали.",
+    "events": {
+      "claimSubmitted": {
+        "title": "Барањето е поднесено"
+      },
+      "claimAssigned": {
+        "title": "Барањето е доделено"
+      },
+      "statusChanged": {
+        "title": "Статусот на барањето е ажуриран"
+      },
+      "claimPackGenerated": {
+        "title": "Пакетот за барањето е создаден"
+      },
+      "claimPackUpgraded": {
+        "title": "Пакетот за барањето е ажуриран"
+      },
+      "documentRequested": {
+        "title": "Побарани се документи"
+      },
+      "triageComplete": {
+        "title": "Тријажата е завршена"
+      },
+      "escalationAccepted": {
+        "title": "Ескалацијата е прифатена"
+      },
+      "escalationDeclined": {
+        "title": "Ескалацијата е одбиена"
+      },
+      "newMessage": {
+        "title": "Нова порака"
+      },
+      "slaWarning": {
+        "title": "SLA предупредување"
+      },
+      "slaBreached": {
+        "title": "SLA рокот е поминат"
+      },
+      "membershipRenewal": {
+        "title": "Обновување на членството"
+      },
+      "paymentVerificationUpdate": {
+        "title": "Верификацијата е ажурирана"
+      },
+      "supportHandoffPublicResponse": {
+        "title": "Барањето за поддршка е ажурирано"
+      },
+      "unknown": {
+        "title": "Известување"
+      }
     }
   }
 }

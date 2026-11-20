@@ -1,6 +1,7 @@
 'use client';
 
 import type { ShellNavigationItem } from '@/components/shell/shell-navigation';
+import type { AdminNavigationCapabilities } from '@/features/admin/access/admin-capabilities';
 import { usePathname } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
@@ -8,6 +9,7 @@ import { adminSidebarItems } from './admin-sidebar-items';
 import { withAdminContext } from './admin-sidebar-context';
 
 export type AdminSidebarUser = Readonly<{
+  capabilities: AdminNavigationCapabilities;
   branchId?: string | null;
   name: string;
   email: string;
@@ -28,7 +30,7 @@ export function useAdminSidebarNavigation(user: AdminSidebarUser): ShellNavigati
     peopleRole = 'staff';
   }
 
-  return adminSidebarItems(user.role, user.branchId).map(item => ({
+  return adminSidebarItems(user.role, user.branchId, user.capabilities).map(item => ({
     href: withAdminContext(item.href, searchParams),
     title: item.title === 'sponsors' ? tNav('sponsors') : t(item.title),
     icon: item.icon,

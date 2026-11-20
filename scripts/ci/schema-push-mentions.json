@@ -1,0 +1,51 @@
+{
+  "about": "CHK-12 (R-12): the reviewed mentions of a push tool (supabase, drizzle-kit) in Node, TypeScript and workflow files. Each mention is pinned by the sha256 of the line that holds it, so a new mention or a changed mentioning line needs a review; a file not listed has none. scripts/ci/schema-push-search.test.mjs enforces it. This is a mistake-prevention check: it catches an accidental push invocation, not a deliberately disguised one.",
+  "pinnedFiles": {
+    "scripts/database-command.mjs": "6d218f7a00a8286749a8d21170a318dec10247efd8baabe269314a9d39894e6f"
+  },
+  "mentions": [
+    {
+      "path": "packages/database/drizzle.config.ts",
+      "reason": "Imports its config type from drizzle-kit; runs nothing.",
+      "lines": ["1e851a80b8370956ef6ab5667475ca5b0676aa776cf54e20705867e1c4ec595e"]
+    },
+    {
+      "path": "scripts/abuse_test_rls.js",
+      "reason": "A Supabase API client held in a variable named supabase; it runs no CLI.",
+      "lines": [
+        "b58414b856ca295e30167665cac861fa749206cfd458c04d51310e78553ef4a1",
+        "cde30d6a595cf13334e422a65c4d6c8b72387aa7bd261f8f02158f190bf3ef56"
+      ]
+    },
+    {
+      "path": "scripts/ci/pr-gate-policy-lib.mjs",
+      "reason": "The supabase/ directory as a path prefix in a path policy; runs nothing.",
+      "lines": ["5095c3bab7214a6fa04e214333487f6f9c530e92c70c818d939769ca80807077"]
+    },
+    {
+      "path": "scripts/ci/setup-private-node-cache.mjs",
+      "reason": "Reads the generate help text of drizzle-kit through database-command.mjs; runs no push.",
+      "lines": ["9b99c2530367b4ec24687da2daebfe7a5f8635a7bc3c471501002e3ea0c2d974"]
+    },
+    {
+      "path": "scripts/database-command.mjs",
+      "reason": "The one push-local invocation (supabase db push --local); the whole file is pinned too.",
+      "lines": ["83c78925065b78dcb1d71dd540721c7c101521edf5feafeaf2fd90eab6b38d45"]
+    },
+    {
+      "path": "scripts/lean-current-authority-policy.mjs",
+      "reason": "The supabase/ directory as a path prefix in a path policy; runs nothing.",
+      "lines": ["382e9a38444e40906310b26e1da83b1b13500e19ee3a017a4872a0451f3afc25"]
+    },
+    {
+      "path": "scripts/release-gate/config.ts",
+      "reason": "An error-text pattern that names supabase; runs nothing.",
+      "lines": ["1f10428fd1d77cb9b62c18858861058559de748a735a7fa99f0ae025b8ed3e36"]
+    },
+    {
+      "path": "scripts/release-gate/product-checks.ts",
+      "reason": "An error-text pattern that names supabase; runs nothing.",
+      "lines": ["8b181ff9008fa0440a9d40749e9e6ebf14c43b7d360d45838cc61f46b03ec50b"]
+    }
+  ]
+}

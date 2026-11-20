@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { vi } from 'vitest';
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'sq',
   useTranslations: () => (key: string) => {
     const translations: Record<string, string> = {
       empty: 'Nuk ka ende aktivitete të regjistruara.',

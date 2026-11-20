@@ -1,3 +1,4 @@
+import { existingDocumentMatches } from './claim-document-replay';
 import {
   and,
   auditLog,
@@ -97,46 +98,6 @@ function documentValues(params: PersistClaimDocumentParams) {
     category: params.category,
     uploadedBy: params.userId,
   };
-}
-
-function matchesExistingDocument(
-  row: typeof claimDocuments.$inferSelect,
-  params: PersistClaimDocumentParams
-): boolean {
-  return (
-    row.tenantId === params.tenantId &&
-    row.claimId === params.claimId &&
-    row.name === params.originalName &&
-    row.filePath === params.storagePath &&
-    row.fileType === params.mimeType &&
-    row.fileSize === params.fileSize &&
-    row.bucket === params.resolvedBucket &&
-    row.category === params.category &&
-    row.uploadedBy === params.userId
-  );
-}
-
-/**
- * Reads only the caller's own document for this exact tenant, claim, and uploader. A row with the
- * same id outside that scope reads as absent, so the replay fails closed without exposing it.
- */
-async function existingDocumentMatches(
-  tx: TenantTransaction,
-  params: PersistClaimDocumentParams
-): Promise<boolean> {
-  const [existingDocument] = await tx
-    .select()
-    .from(claimDocuments)
-    .where(
-      and(
-        eq(claimDocuments.id, params.fileId),
-        eq(claimDocuments.tenantId, params.tenantId),
-        eq(claimDocuments.claimId, params.claimId),
-        eq(claimDocuments.uploadedBy, params.userId)
-      )
-    )
-    .limit(1);
-  return Boolean(existingDocument && matchesExistingDocument(existingDocument, params));
 }
 
 async function insertOrdinaryDocument(
