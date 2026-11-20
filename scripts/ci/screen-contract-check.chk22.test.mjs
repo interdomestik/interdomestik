@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 
-import { ids, lint, tree } from './fixtures/screen-contract-check/harness.mjs';
+import { ids, lint, tempDir, tree, writeTree } from './fixtures/screen-contract-check/harness.mjs';
+import { originOf } from './screen-contract/origins.mjs';
 
 const W = 'apps/web/src';
 const REG = 'scripts/ci/screen-contract/consent-registry.json';
@@ -152,7 +155,7 @@ test('CHK-22: two controls in one form list both uses; omitting one is unmatched
   );
   assert.deepEqual(await chk22(tree(t, base({ [REG]: reg, [PAGE]: page('terms:signup') }))), [
     `CHK-22|${PAGE}|orphan-use|marketing:signup`,
-    `CHK-22|${PAGE}|unmatched-boundary|marketing`,
+    `CHK-22|${PAGE}|unmatched-boundary|marketing@P`,
   ]);
 });
 
@@ -190,7 +193,7 @@ test('CHK-22: a shared control: the definition needs no use; each form needs its
       [forms]: twoForms(' data-consent-use="terms:a"', ''),
     })
   );
-  assert.deepEqual(await chk22(unmarked), [`CHK-22|${forms}|unmatched-boundary|terms`]);
+  assert.deepEqual(await chk22(unmarked), [`CHK-22|${forms}|unmatched-boundary|terms@B`]);
   const both = tree(
     t,
     base({
@@ -216,7 +219,7 @@ test('CHK-22: wrappers: unregistered is unmatched in its file; registered as an 
   });
   assert.deepEqual(await chk22(tree(t, base(files([])))), [
     `CHK-22|${caller}|orphan-use|terms:c`,
-    `CHK-22|${wrapper}|unmatched-boundary|terms`,
+    `CHK-22|${wrapper}|unmatched-boundary|terms@TermsField`,
   ]);
   assert.deepEqual(
     await chk22(tree(t, base(files([{ file: wrapper, exportName: 'TermsField' }])))),
@@ -280,4 +283,250 @@ test('CHK-22: misbound ids and an empty registry fail closed', async t => {
     })
   );
   assert.deepEqual(await chk22(empty), [`CHK-22|${PAGE}|misbound|terms`]);
+});
+
+// A relative-only resolver, so the origin tests do not depend on the workspace resolver.
+const relativeResolver = root => ({
+  root,
+  resolveFile(fromRel, specifier) {
+    if (!specifier.startsWith('.')) return null;
+    const stem = path.posix.join(path.posix.dirname(fromRel), specifier);
+    return (
+      ['.ts', '.tsx'].map(ext => stem + ext).find(rel => fs.existsSync(path.join(root, rel))) ??
+      null
+    );
+  },
+});
+
+test('CHK-22 origins: export * searches every star; none is unresolved, two are ambiguous (B6)', t => {
+  const root = writeTree(tempDir(t), {
+    'm/none.ts': 'export const Other = 1;\n',
+    'm/has.ts': 'export const X = 1;\n',
+    'm/also.ts': 'export const X = 2;\n',
+    'm/via.ts': "export * from './has';\n",
+    'm/later.ts': "export * from './none';\nexport * from './has';\n",
+    'm/missing.ts': "export * from './none';\n",
+    'm/twice.ts': "export * from './has';\nexport * from './also';\n",
+    'm/diamond.ts': "export * from './has';\nexport * from './via';\n",
+  });
+  const resolver = relativeResolver(root);
+  assert.deepEqual(originOf(resolver, 'x.ts', './m/later', 'X'), { file: 'm/has.ts', name: 'X' });
+  assert.deepEqual(originOf(resolver, 'x.ts', './m/diamond', 'X'), { file: 'm/has.ts', name: 'X' });
+  const missing = originOf(resolver, 'x.ts', './m/missing', 'X');
+  assert.equal(missing.unresolved, true);
+  assert.equal(missing.ambiguous, undefined);
+  const twice = originOf(resolver, 'x.ts', './m/twice', 'X');
+  assert.equal(twice.unresolved, true);
+  assert.equal(twice.ambiguous, true);
+});
+
+const STAR_FILES = {
+  [SHARED]: SHARED_FILES[SHARED],
+  'packages/ui/src/index.ts':
+    "export * from './components/button';\nexport * from './components/consent-box';\n",
+};
+
+test('CHK-22: a render through an export * chain past a module without the name is found (B6)', async t => {
+  const forms = `${W}/app/forms.tsx`;
+  const root = tree(
+    t,
+    base({
+      ...STAR_FILES,
+      [REG]: registry([consent('terms', SHARED, 'terms', [], { exportName: 'ConsentBox' })]),
+      [forms]: `${head}import { ConsentBox } from '@interdomestik/ui';\nexport function A() { return <form action={saveTerms}><ConsentBox /></form>; }\n`,
+    })
+  );
+  assert.deepEqual(await chk22(root), [`CHK-22|${forms}|unmatched-boundary|terms@A`]);
+});
+
+test('CHK-22: the alias exemption covers only the alias component, not its whole file (B6)', async t => {
+  const wrapper = `${W}/components/terms-field.tsx`;
+  const caller = `${W}/app/c/page.tsx`;
+  const root = tree(
+    t,
+    base({
+      ...SHARED_FILES,
+      [wrapper]: `${head}import { ConsentBox } from '@interdomestik/ui';\nexport function TermsField() { return <div><ConsentBox /></div>; }\nexport function Second() { return <form action={saveTerms}><ConsentBox /></form>; }\n`,
+      [caller]: `${head}import { TermsField } from '@/components/terms-field';\nexport default function C() { return <form action={saveTerms} data-consent-use="terms:c"><TermsField /></form>; }\n`,
+      [REG]: registry([
+        consent('terms', SHARED, 'terms', [use('c', caller)], {
+          exportName: 'ConsentBox',
+          aliases: [{ file: wrapper, exportName: 'TermsField' }],
+        }),
+      ]),
+    })
+  );
+  assert.deepEqual(await chk22(root), [`CHK-22|${wrapper}|unmatched-boundary|terms@Second`]);
+});
+
+test('CHK-22: the definition exemption covers only the exported component that owns the control (B6)', async t => {
+  const reg = registry([consent('terms', SHARED, 'terms', [], { exportName: 'ConsentBox' })]);
+  const definition =
+    'export function ConsentBox() { return <input type="checkbox" id="terms" data-consent="terms" />; }\n';
+  const inline = tree(
+    t,
+    base({
+      [REG]: reg,
+      [SHARED]: `${definition}export function Inline() { return <form><input type="checkbox" id="terms" data-consent="terms" /></form>; }\n`,
+    })
+  );
+  assert.deepEqual(await chk22(inline), [`CHK-22|${SHARED}|unmatched-boundary|terms@Inline`]);
+  const local = tree(
+    t,
+    base({
+      [REG]: reg,
+      [SHARED]: `${definition}export function Local() { return <form><ConsentBox /></form>; }\n`,
+    })
+  );
+  assert.deepEqual(await chk22(local), [`CHK-22|${SHARED}|unmatched-boundary|terms@Local`]);
+});
+
+const signupReg = () => registry([consent('terms', PAGE, 'terms', [use('signup', PAGE)])]);
+const CONTROL = '<input type="checkbox" id="terms" data-consent="terms" />';
+
+test('CHK-22: a prop or local that shadows the imported action is not the action (B7)', async t => {
+  const prop = tree(
+    t,
+    base({
+      [REG]: signupReg(),
+      [PAGE]: `${head}export default function P({ saveTerms }) { return <form action={saveTerms} data-consent-use="terms:signup">${CONTROL}</form>; }\n`,
+    })
+  );
+  assert.deepEqual(await chk22(prop), [`CHK-22|${PAGE}|unresolved-submission|terms:signup`]);
+  const local = tree(
+    t,
+    base({
+      [REG]: signupReg(),
+      [PAGE]: `${head}import { startTransition } from 'react';\nexport default function P({ make }) {\n  function onSubmit(e) { e.preventDefault(); const saveTerms = make(); startTransition(() => saveTerms()); }\n  return <form onSubmit={onSubmit} data-consent-use="terms:signup">${CONTROL}</form>;\n}\n`,
+    })
+  );
+  assert.deepEqual(await chk22(local), [`CHK-22|${PAGE}|unresolved-submission|terms:signup`]);
+});
+
+test('CHK-22: a call inside a nested function the handler never invokes does not count (B7)', async t => {
+  const page = body =>
+    `${head}export default function P() {\n  function onSubmit(e) { e.preventDefault(); ${body} }\n  return <form onSubmit={onSubmit} data-consent-use="terms:signup">${CONTROL}</form>;\n}\n`;
+  const never = tree(
+    t,
+    base({ [REG]: signupReg(), [PAGE]: page('const later = async () => { await saveTerms(); };') })
+  );
+  assert.deepEqual(await chk22(never), [`CHK-22|${PAGE}|unresolved-submission|terms:signup`]);
+  const called = tree(
+    t,
+    base({
+      [REG]: signupReg(),
+      [PAGE]: page('const run = async () => { await saveTerms(); }; run();'),
+    })
+  );
+  assert.deepEqual(await chk22(called), []);
+});
+
+test('CHK-22: a form with action and onSubmit checks both submit paths (B7)', async t => {
+  const page = call =>
+    `${head}import { startTransition } from 'react';\nexport default function P() { return <form action={saveTerms} onSubmit={e => { e.preventDefault(); startTransition(() => ${call}()); }} data-consent-use="terms:signup">${CONTROL}</form>; }\n`;
+  assert.deepEqual(await chk22(tree(t, base({ [REG]: signupReg(), [PAGE]: page('saveDraft') }))), [
+    `CHK-22|${PAGE}|submission-mismatch|terms:signup`,
+  ]);
+  assert.deepEqual(
+    await chk22(tree(t, base({ [REG]: signupReg(), [PAGE]: page('saveTerms') }))),
+    []
+  );
+});
+
+test('CHK-22: formAction counts only on submit-capable buttons and inputs (B7)', async t => {
+  const page = control =>
+    `${head}import { Button, Input } from '@interdomestik/ui';\nexport default function P() { return <form action={saveTerms} data-consent-use="terms:signup">${CONTROL}${control}</form>; }\n`;
+  const judge = async control =>
+    chk22(tree(t, base({ [REG]: signupReg(), [PAGE]: page(control) })));
+  const mismatch = [`CHK-22|${PAGE}|submission-mismatch|terms:signup`];
+  assert.deepEqual(await judge('<button type="button" formAction={saveDraft}>x</button>'), []);
+  assert.deepEqual(await judge('<button type="reset" formAction={saveDraft}>x</button>'), []);
+  assert.deepEqual(await judge('<input type="text" formAction={saveDraft} />'), []);
+  assert.deepEqual(await judge('<Button type="button" formAction={saveDraft}>x</Button>'), []);
+  assert.deepEqual(await judge('<Input formAction={saveDraft} />'), []);
+  assert.deepEqual(
+    await judge('<button type="submit" formAction={saveDraft}>x</button>'),
+    mismatch
+  );
+  assert.deepEqual(await judge('<input type="image" formAction={saveDraft} />'), mismatch);
+  assert.deepEqual(await judge('<Button formAction={saveDraft}>x</Button>'), mismatch);
+  assert.deepEqual(await judge('<Input type="submit" formAction={saveDraft} />'), mismatch);
+});
+
+test('CHK-22 discovery: a dynamic data-consent and each aria-labelledby id count (H2)', async t => {
+  const file = `${W}/components/d.tsx`;
+  const root = tree(
+    t,
+    base({
+      [REG]: registry([]),
+      [file]: [
+        "import { useTranslations } from 'next-intl';",
+        "import { Checkbox } from '@interdomestik/ui';",
+        'export function D({ kind }) {',
+        "  const t = useTranslations('signup');",
+        '  return (<div>',
+        '    <Checkbox id="box1" data-consent={kind} />',
+        '    <Checkbox id="n4" aria-labelledby="h1 h2" />',
+        '    <span id="h1">{t("neutral")}</span><span id="h2">{t("sneaky")}</span>',
+        '  </div>);',
+        '}',
+      ].join('\n'),
+    })
+  );
+  assert.deepEqual(await chk22(root), [
+    `CHK-22|${file}|unregistered|Checkbox:box1`,
+    `CHK-22|${file}|unregistered|Checkbox:n4`,
+  ]);
+});
+
+test('CHK-22: two unmarked boundaries rendering one entry in a file have distinct keys (H2)', async t => {
+  const forms = `${W}/app/forms.tsx`;
+  const reg = registry([consent('terms', SHARED, 'terms', [], { exportName: 'ConsentBox' })]);
+  const imports = `${head}import { ConsentBox } from '@interdomestik/ui';\n`;
+  const twoComponents = tree(
+    t,
+    base({
+      ...SHARED_FILES,
+      [REG]: reg,
+      [forms]: `${imports}export function A() { return <form action={saveTerms}><ConsentBox /></form>; }\nexport function B() { return <form action={saveTerms}><ConsentBox /></form>; }\n`,
+    })
+  );
+  assert.deepEqual(await chk22(twoComponents), [
+    `CHK-22|${forms}|unmatched-boundary|terms@A`,
+    `CHK-22|${forms}|unmatched-boundary|terms@B`,
+  ]);
+  const oneComponent = tree(
+    t,
+    base({
+      ...SHARED_FILES,
+      [REG]: reg,
+      [forms]: `${imports}export function A() { return <div><form action={saveTerms}><ConsentBox /></form><form action={saveTerms}><ConsentBox /></form></div>; }\n`,
+    })
+  );
+  assert.deepEqual(await chk22(oneComponent), [
+    `CHK-22|${forms}|unmatched-boundary|terms@A`,
+    `CHK-22|${forms}|unmatched-boundary|terms@A#2`,
+  ]);
+});
+
+test('CHK-22: a marker-only boundary is judged although it renders nothing (H2)', async t => {
+  const unknown = tree(
+    t,
+    base({
+      [REG]: signupReg(),
+      [PAGE]: `${head}export default function P() { return <div><form action={saveTerms} data-consent-use="terms:signup">${CONTROL}</form><form action={saveDraft} data-consent-use="bogus:x" /></div>; }\n`,
+    })
+  );
+  assert.deepEqual(await chk22(unknown), [`CHK-22|${PAGE}|unmatched-boundary|bogus:x@P#2`]);
+  const listed = tree(
+    t,
+    base({
+      [REG]: signupReg(),
+      [PAGE]: `${head}export default function P() { return <form action={saveDraft} data-consent-use="terms:signup"><p>x</p></form>; }\n`,
+    })
+  );
+  assert.deepEqual(await chk22(listed), [
+    `CHK-22|${PAGE}|orphan-use|terms:signup`,
+    `CHK-22|${PAGE}|submission-mismatch|terms:signup`,
+  ]);
 });

@@ -89,7 +89,25 @@ function declarationOrigin(scope, statement) {
   return undefined;
 }
 
-// { file, name } of `name` exported by `rel`, or null when it cannot be found.
+// What `export * from` gives `scope.name`: every star is searched (B6). A module that lacks the
+// name is skipped; one origin is the answer; two different origins are ambiguous, which ES treats
+// as not exported. An external star counts only when no local star has the name.
+function starOrigin(scope, stars) {
+  const { resolver, rel, name, depth, seen } = scope;
+  const found = new Map();
+  let external = null;
+  for (const from of stars) {
+    const hit = originOf(resolver, rel, from, name, depth + 1, seen);
+    if (hit.ambiguous) return hit;
+    if (hit.external) external ??= hit;
+    else if (!hit.unresolved) found.set(`${hit.file}#${hit.name}`, hit);
+  }
+  if (found.size > 1) return { file: rel, name, unresolved: true, ambiguous: true };
+  return found.size === 1 ? [...found.values()][0] : external;
+}
+
+// { file, name } of `name` exported by `rel`, or null when it cannot be found. An ambiguous name
+// (two `export *` providers) is `{ file: rel, name, unresolved: true, ambiguous: true }`.
 export function originIn(resolver, rel, name, depth = 0, seen = new Set()) {
   const visit = `${rel}#${name}`;
   if (depth > MAX_DEPTH || seen.has(visit)) return null;
@@ -102,11 +120,7 @@ export function originIn(resolver, rel, name, depth = 0, seen = new Set()) {
       : declarationOrigin(scope, statement);
     if (hit !== undefined) return hit;
   }
-  for (const from of stars) {
-    const hit = originOf(resolver, rel, from, name, depth + 1, seen);
-    if (hit) return hit;
-  }
-  return null;
+  return starOrigin(scope, stars);
 }
 
 // The origin of `name` imported from `specifier` by `fromRel`; an external module is its own origin.
