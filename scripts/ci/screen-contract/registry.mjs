@@ -73,6 +73,10 @@ function validateUses(entry, where) {
   uses.forEach((use, i) => validateUse(use, `${where} use ${i}`, seen));
   if (entry.selfSubmitting && (uses.length !== 1 || uses[0].file !== entry.file))
     throw new ScanError(`${where} is selfSubmitting with other than one use in its own file`);
+  // An exported control is judged only at its renders' boundaries. With no use nothing would ever
+  // judge it (a route's component has no JSX caller), so it needs a use or selfSubmitting (r5 B2).
+  if (entry.exportName && entry.kind !== 'not-consent' && !entry.selfSubmitting && !uses.length)
+    throw new ScanError(`${where} has an exportName but no use and is not selfSubmitting`);
   return uses;
 }
 
@@ -395,8 +399,15 @@ function bindingFacts(rel, text, exportName) {
   };
 }
 
-// The import names of one clause that can carry the export as a value.
+// The import names of one clause that can carry the export as a value; a default import carries
+// `default` (r5 B5).
 function valueImports(clause, exportName) {
+  const out =
+    clause?.name && exportName === 'default' ? [{ kind: 'named', name: clause.name }] : [];
+  return [...out, ...boundImports(clause, exportName)];
+}
+
+function boundImports(clause, exportName) {
   const named = clause?.namedBindings;
   if (named && ts.isNamespaceImport(named)) return [{ kind: 'namespace', name: named.name }];
   if (!named || !ts.isNamedImports(named)) return [];
@@ -435,8 +446,8 @@ function valueSymbol(node, checker) {
     return checker.getShorthandAssignmentValueSymbol(parent) ?? null;
   if (ts.isImportSpecifier(parent) || ts.isImportClause(parent) || ts.isNamespaceImport(parent))
     return null;
-  // A re-export is no use in a test: a type-only one is erased, and none calls it (r4 B1).
-  if (ts.isExportSpecifier(parent)) return null;
+  // A re-export is no use in a test: a type-only one is erased, and none calls it (r4 B1, r5 B5).
+  if (ts.isExportSpecifier(parent) || ts.isExportAssignment(parent)) return null;
   if (ts.isPropertyAccessExpression(parent) && parent.name === node) return null;
   if ('name' in parent && parent.name === node) return null;
   if (ts.isBindingElement(parent) && parent.propertyName === node) return null;

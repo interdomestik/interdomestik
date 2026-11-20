@@ -126,10 +126,6 @@ function isSubmitCapable(opening) {
 }
 
 // The nearest enclosing form within the same component, or null.
-// A Next.js route module: rendered by the framework, never by a JSX caller in the tree.
-const ROUTE_MODULE_RE =
-  /^apps\/web\/src\/app\/(?:.+\/)?(?:page|layout|template|default)\.[jt]sx?$/u;
-
 function enclosingForm(element) {
   for (let current = element.parent; current; current = current.parent) {
     if (FUNCTIONS.has(current.type)) return null;
@@ -682,14 +678,10 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
       flag(element, 'misbound', consentId, `data-consent ${consentId} is not this file's control`);
       return [];
     }
-    // A control inside its own form, or in a route module Next renders with no JSX caller, has
-    // no render elsewhere to judge: it is a render here (r4 B4).
+    // An exported control is judged at its renders; the registry requires it to have a use or to
+    // be selfSubmitting (r5 B2), so a route's component cannot rest on this exemption.
     const isDefinition =
-      Boolean(entry.exportName) &&
-      !entry.selfSubmitting &&
-      !enclosingForm(element) &&
-      !ROUTE_MODULE_RE.test(rel) &&
-      ownedBy(element, entry.exportName);
+      Boolean(entry.exportName) && !entry.selfSubmitting && ownedBy(element, entry.exportName);
     return !isDefinition && entry.kind !== 'not-consent' ? [entry] : [];
   }
 

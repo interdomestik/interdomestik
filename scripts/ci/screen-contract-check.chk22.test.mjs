@@ -175,8 +175,11 @@ test('CHK-22: a shared control: the definition needs no use; each form needs its
     registry([consent('terms', SHARED, 'terms', uses, { exportName: 'ConsentBox' })]);
   const twoForms = (a, b) =>
     `${head}import { ConsentBox } from '@interdomestik/ui';\nexport function A() { return <form action={saveTerms}${a}><ConsentBox /></form>; }\nexport function B() { return <form action={saveTerms}${b}><ConsentBox /></form>; }\n`;
-  // Definition alone, no render: passes.
-  assert.deepEqual(await chk22(tree(t, base({ ...SHARED_FILES, [REG]: reg([]) }))), []);
+  // A definition with no use is a registry error (r5 B2): nothing would ever judge it.
+  await assert.rejects(
+    lint(tree(t, base({ ...SHARED_FILES, [REG]: reg([]) }))),
+    /has an exportName but no use and is not selfSubmitting/u
+  );
   // One use listed by both forms: shared-use. A second form unmarked: unmatched-boundary.
   const shared = tree(
     t,
@@ -335,6 +338,16 @@ test('CHK-22 origins: export * searches every star; none is unresolved, two are 
   assert.equal(twice.ambiguous, true);
 });
 
+// An exported control needs a use (r5 B2): a caller with its own marked form, so the tests below
+// judge only the renders they are about.
+const CALLER = `${W}/app/c/page.tsx`;
+const CALLER_FILES = {
+  'packages/ui/src/index.ts': SHARED_FILES['packages/ui/src/index.ts'],
+  [CALLER]: `${head}import { ConsentBox } from '@interdomestik/ui';\nexport default function C() { return <form action={saveTerms} data-consent-use="terms:c"><ConsentBox /></form>; }\n`,
+};
+const usedShared = () =>
+  registry([consent('terms', SHARED, 'terms', [use('c', CALLER)], { exportName: 'ConsentBox' })]);
+
 const STAR_FILES = {
   [SHARED]: SHARED_FILES[SHARED],
   'packages/ui/src/index.ts':
@@ -346,8 +359,9 @@ test('CHK-22: a render through an export * chain past a module without the name 
   const root = tree(
     t,
     base({
+      [CALLER]: CALLER_FILES[CALLER],
       ...STAR_FILES,
-      [REG]: registry([consent('terms', SHARED, 'terms', [], { exportName: 'ConsentBox' })]),
+      [REG]: usedShared(),
       [forms]: `${head}import { ConsentBox } from '@interdomestik/ui';\nexport function A() { return <form action={saveTerms}><ConsentBox /></form>; }\n`,
     })
   );
@@ -375,12 +389,13 @@ test('CHK-22: the alias exemption covers only the alias component, not its whole
 });
 
 test('CHK-22: the definition exemption covers only the exported component that owns the control (B6)', async t => {
-  const reg = registry([consent('terms', SHARED, 'terms', [], { exportName: 'ConsentBox' })]);
+  const reg = usedShared();
   const definition =
     'export function ConsentBox() { return <input type="checkbox" id="terms" data-consent="terms" />; }\n';
   const inline = tree(
     t,
     base({
+      ...CALLER_FILES,
       [REG]: reg,
       [SHARED]: `${definition}export function Inline() { return <form><input type="checkbox" id="terms" data-consent="terms" /></form>; }\n`,
     })
@@ -389,6 +404,7 @@ test('CHK-22: the definition exemption covers only the exported component that o
   const local = tree(
     t,
     base({
+      ...CALLER_FILES,
       [REG]: reg,
       [SHARED]: `${definition}export function Local() { return <form><ConsentBox /></form>; }\n`,
     })
@@ -496,12 +512,13 @@ test('CHK-22 discovery: a dynamic data-consent and each aria-labelledby id count
 
 test('CHK-22: two unmarked boundaries rendering one entry in a file have distinct keys (H2)', async t => {
   const forms = `${W}/app/forms.tsx`;
-  const reg = registry([consent('terms', SHARED, 'terms', [], { exportName: 'ConsentBox' })]);
+  const reg = usedShared();
   const imports = `${head}import { ConsentBox } from '@interdomestik/ui';\n`;
   const twoComponents = tree(
     t,
     base({
       ...SHARED_FILES,
+      ...CALLER_FILES,
       [REG]: reg,
       [forms]: `${imports}export function A() { return <form action={saveTerms}><ConsentBox /></form>; }\nexport function B() { return <form action={saveTerms}><ConsentBox /></form>; }\n`,
     })
@@ -514,6 +531,7 @@ test('CHK-22: two unmarked boundaries rendering one entry in a file have distinc
     t,
     base({
       ...SHARED_FILES,
+      ...CALLER_FILES,
       [REG]: reg,
       [forms]: `${imports}export function A() { return <div><form action={saveTerms}><ConsentBox /></form><form action={saveTerms}><ConsentBox /></form></div>; }\n`,
     })
@@ -811,33 +829,48 @@ test('CHK-22: a client-only module under actions/ is not a submission (r4 B3)', 
   assert.deepEqual(await chk22(root), UNRESOLVED);
 });
 
-// r4 blocker 4: a registered export that owns its form, or a route module Next renders without a
-// JSX caller, gets no definition exemption: its control is a render and needs a listed use.
-test('CHK-22: a page that owns its consent form with no uses is a finding (r4 B4)', async t => {
-  const judged = await Promise.all(
-    [
-      `${head}export default function P() { return <form action={saveTerms}>${CONTROL}</form>; }\n`,
-      `${head}export default function P() { return <div>${CONTROL}</div>; }\n`,
-    ].map(text =>
-      chk22(
-        tree(
-          t,
-          base({
-            [REG]: registry([consent('terms', PAGE, 'terms', [], { exportName: 'default' })]),
-            [PAGE]: text,
-          })
-        )
-      )
-    )
+// r4 blocker 4 / r5 blocker 2: an exported control that nothing renders in JSX (a route's
+// component, also through a `page.tsx` re-export) cannot rest on the definition exemption: an
+// entry with an exportName needs a use or selfSubmitting, and a use whose file lists no boundary
+// is an orphan.
+test('CHK-22: an exported control needs a use or selfSubmitting (r5 B2)', async t => {
+  const core = `${W}/app/signup/_core.entry.tsx`;
+  const files = (uses, extra = {}) =>
+    base({
+      [REG]: registry([consent('terms', core, 'terms', uses, { exportName: 'default', ...extra })]),
+      [core]: `${head}export default function P() { return <div>${CONTROL}</div>; }\n`,
+      [PAGE]: "export { default } from './_core.entry';\n",
+    });
+  await assert.rejects(
+    lint(tree(t, files([]))),
+    /has an exportName but no use and is not selfSubmitting/u
   );
-  judged.forEach(found => assert.deepEqual(found, [`CHK-22|${PAGE}|unmatched-boundary|terms@P`]));
-  const shared = `${W}/components/terms-form.tsx`;
-  const owned = tree(
+  assert.deepEqual(await chk22(tree(t, files([use('signup', core)]))), [
+    `CHK-22|${core}|orphan-use|terms:signup`,
+  ]);
+  // selfSubmitting: the toggle is a render, its own boundary unmarked, its use listed nowhere.
+  assert.deepEqual(await chk22(tree(t, files([use('signup', core)], { selfSubmitting: true }))), [
+    `CHK-22|${core}|orphan-use|terms:signup`,
+    `CHK-22|${core}|unmatched-boundary|terms@P`,
+  ]);
+});
+
+// r5 blocker 4: the UI package's `<Form>` is react-hook-form's FormProvider, a context, not the
+// submitting form; a shared field inside it stays a definition judged at its caller.
+test('CHK-22: a shared field inside the FormProvider <Form> is a definition (r5 B4)', async t => {
+  const field = `${W}/components/terms-field.tsx`;
+  const root = tree(
     t,
     base({
-      [REG]: registry([consent('terms', shared, 'terms', [], { exportName: 'TermsForm' })]),
-      [shared]: `${head}export function TermsForm() { return <form action={saveTerms}>${CONTROL}</form>; }\n`,
+      'packages/ui/src/index.ts': "export { Form } from './components/form';\n",
+      'packages/ui/src/components/form.tsx':
+        "import { FormProvider } from 'react-hook-form';\nexport const Form = FormProvider;\n",
+      [field]: `import { Form } from '@interdomestik/ui';\nexport function TermsField({ form }) { return <Form {...form}>${CONTROL}</Form>; }\n`,
+      [PAGE]: `${head}import { TermsField } from '@/components/terms-field';\nexport default function P({ form }) { return <form action={saveTerms} data-consent-use="terms:signup"><TermsField form={form} /></form>; }\n`,
+      [REG]: registry([
+        consent('terms', field, 'terms', [use('signup', PAGE)], { exportName: 'TermsField' }),
+      ]),
     })
   );
-  assert.deepEqual(await chk22(owned), [`CHK-22|${shared}|unmatched-boundary|terms@TermsForm`]);
+  assert.deepEqual(await chk22(root), []);
 });

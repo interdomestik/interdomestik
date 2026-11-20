@@ -14,7 +14,7 @@ const PLAYWRIGHT =
 const VITEST =
   "export default { test: { include: ['src/**/*.test.{ts,tsx}'], exclude: ['node_modules', 'src/legacy/**'] } };\n";
 
-const registryWith = testFile =>
+const registryWith = (testFile, exportName = 'saveTerms') =>
   parseRegistry(
     JSON.stringify({
       version: 1,
@@ -31,7 +31,7 @@ const registryWith = testFile =>
             {
               useId: 'signup',
               file: `${W}/app/signup/page.tsx`,
-              submission: `${ACTION}#saveTerms`,
+              submission: `${ACTION}#${exportName}`,
               test: testFile,
             },
           ],
@@ -48,7 +48,7 @@ const BODY = [
 ].join('\n');
 const IMPORTING = `import { saveTerms } from '@/actions/terms';\n${BODY}`;
 
-function evidence(t, testFile, text, lanes = {}) {
+function evidence(t, testFile, text, lanes = {}, exportName = 'saveTerms') {
   const root = tree(t, {
     'apps/web/vitest.config.ts': VITEST,
     'apps/web/playwright.config.ts': PLAYWRIGHT,
@@ -56,7 +56,7 @@ function evidence(t, testFile, text, lanes = {}) {
     [testFile]: text,
     ...lanes,
   });
-  return testEvidence(root, registryWith(testFile), readLanes(root));
+  return testEvidence(root, registryWith(testFile, exportName), readLanes(root));
 }
 
 test('B8: a passing use test imports the submission module and names its export', t => {
@@ -292,10 +292,11 @@ test('r3 B3: a property key, a type-only import or typeof is not a use of the su
     ],
     ['typeof only', usesOnly(IMPORT_SAVE, 'let f: typeof saveTerms;')],
     ...[
+      'export default saveTerms;', // r5 B5
       'export type { saveTerms as T };',
       'export { type saveTerms as U };',
       'export { saveTerms as V };',
-    ].map(line => [`a re-export (r4 B1): ${line}`, usesOnly(`${IMPORT_SAVE}\n${line}`, '')]),
+    ].map(line => [`a re-export (r4 B1, r5 B5): ${line}`, usesOnly(`${IMPORT_SAVE}\n${line}`, '')]),
     [
       'a shadowing parameter',
       usesOnly(IMPORT_SAVE, 'const run = (saveTerms: () => void) => saveTerms(); run(() => {});'),
@@ -358,4 +359,16 @@ test('r3 B1: the registry refuses a path that is not a plain repository path', (
       /is not a (canonical source|plain) path/u,
       label
     );
+});
+
+// r5 blocker 5: a registered `#default` submission is used through a default import.
+test('r5 B5: a default import of a #default submission, called, is a use', t => {
+  const text = `import save from '@/actions/terms';\n${BODY.replace('await saveTerms(', 'await save(')}`;
+  const lanes = { [ACTION]: "'use server';\nexport default async function saveTerms() {}\n" };
+  assert.deepEqual(evidence(t, `${W}/app/signup/page.test.tsx`, text, lanes, 'default'), []);
+  const unused = `import save from '@/actions/terms';\n${BODY}`;
+  assert.match(
+    evidence(t, `${W}/app/signup/page.test.tsx`, unused, lanes, 'default').join('\n'),
+    /does not use the submission export default/u
+  );
 });
