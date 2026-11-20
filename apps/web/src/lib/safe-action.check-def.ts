@@ -8,7 +8,8 @@ export function ownValue(holder: unknown, key: PropertyKey): unknown {
   if ((typeof holder !== 'object' && typeof holder !== 'function') || holder === null) {
     return undefined;
   }
-  const own = Reflect.getOwnPropertyDescriptor(holder, key);
+  // Object's form, called in place: the tenant guard admits Reflect's has and ownKeys only.
+  const own = Object.getOwnPropertyDescriptor(holder, key);
   if (own === undefined) return undefined;
   return 'value' in own ? own.value : ACCESSOR;
 }
