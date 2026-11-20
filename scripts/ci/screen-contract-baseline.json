@@ -1,14 +1,16 @@
 {
   "version": 1,
-  "takenAt": "2026-11-20 at base f19c81c59",
+  "takenAt": "2026-11-20 rescan after code review r1, tree of base a1e507f54 with WP-05",
   "checks": {
     "CHK-15c": {
       "mode": "report",
-      "unit": "import edges of screen files (static, type-only, export-from, literal import(), literal require())",
+      "unit": "import edges of screen files (static, type-only, export-from, import type, literal import(), literal require())",
       "predicate": "an edge to @interdomestik/database[/…], drizzle-orm[/…], postgres, pg, or a relative/@/ path into packages/database/",
       "coverageMin": {
-        "file": 1045,
-        "edge:import": 4080
+        "edge:dynamic": 28,
+        "edge:import": 4080,
+        "edge:type": 582,
+        "file": 1045
       },
       "items": [
         "CHK-15c|apps/web/src/app/[locale]/(agent)/agent/_core.ts|@interdomestik/database",
@@ -22,6 +24,7 @@
         "CHK-15c|apps/web/src/app/[locale]/(agent)/agent/claims/_core.ts|@interdomestik/database",
         "CHK-15c|apps/web/src/app/[locale]/(agent)/agent/claims/_core.ts|@interdomestik/database/schema",
         "CHK-15c|apps/web/src/app/[locale]/(agent)/agent/claims/_core.ts|drizzle-orm",
+        "CHK-15c|apps/web/src/app/[locale]/(agent)/agent/claims/page.tsx|@interdomestik/database/constants",
         "CHK-15c|apps/web/src/app/[locale]/(agent)/agent/claims/page.tsx|@interdomestik/database/tenant-authority",
         "CHK-15c|apps/web/src/app/[locale]/(agent)/agent/claims/page.tsx|@interdomestik/database/tenant-authority-context",
         "CHK-15c|apps/web/src/app/[locale]/(agent)/agent/clients/[id]/_claim-summary.ts|@interdomestik/database/schema",
@@ -220,6 +223,7 @@
         "CHK-15c|apps/web/src/features/admin/claims/server/getOpsClaimDetailHomeReads.ts|@interdomestik/database/tenant-authority-context",
         "CHK-15c|apps/web/src/features/admin/claims/server/loadOpsCenterPool.ts|@interdomestik/database",
         "CHK-15c|apps/web/src/features/admin/claims/server/ops-pool.test-fixtures.ts|@interdomestik/database",
+        "CHK-15c|apps/web/src/features/admin/claims/server/ops-pool.test-fixtures.ts|@interdomestik/database/schema",
         "CHK-15c|apps/web/src/features/admin/claims/server/readOpsCenterHomeRefs.ts|@interdomestik/database",
         "CHK-15c|apps/web/src/features/admin/claims/server/readOpsCenterHomeRefs.ts|@interdomestik/database/schema",
         "CHK-15c|apps/web/src/features/admin/claims/server/readOpsCenterHomeRefs.ts|drizzle-orm",
@@ -451,8 +455,10 @@
       "unit": "import edges of every non-test file of apps/web/src and packages/*/src",
       "predicate": "a workspace specifier not resolved to a non-null exports target in every applicable environment (node-import, node-require, bundler-browser, types), an unknown workspace package, or a relative/@/ path into another package",
       "coverageMin": {
-        "file": 2502,
-        "edge:import": 6257
+        "edge:dynamic": 97,
+        "edge:import": 6257,
+        "edge:type": 1470,
+        "file": 2502
       },
       "items": [
         "CHK-15b|apps/web/src/app/[locale]/(agent)/agent/clients/[id]/components/agent-card.tsx|@interdomestik/ui/components/avatar",
@@ -691,6 +697,9 @@
       "unit": "import edges of layer-2/3/4 files (one layer function for both ends; any use-server module is layer 2)",
       "predicate": "the importing layer is greater than the imported layer",
       "coverageMin": {
+        "edge:2": 1255,
+        "edge:3": 1965,
+        "edge:4": 611,
         "source:2": 395,
         "source:3": 544,
         "source:4": 201
@@ -768,8 +777,8 @@
       "unit": "call and new expressions of screen files",
       "predicate": "toLocale*String; toFixed/toPrecision in a rendering or translation position; Intl DateTimeFormat/NumberFormat/RelativeTimeFormat/DurationFormat; date-fns format*/intlFormat*/lightFormat* except formatISO*/formatRFC*; next-intl dateTime/dateTimeRange/relativeTime/number",
       "coverageMin": {
-        "file": 1045,
-        "call": 17163
+        "call": 17163,
+        "file": 1045
       },
       "items": [
         "CHK-09|apps/web/src/app/[locale]/(agent)/agent/claims/page.tsx|toLocaleDateString",
@@ -864,10 +873,10 @@
     "A11Y": {
       "mode": "report",
       "unit": "JSX of screen files",
-      "predicate": "eslint-plugin-jsx-a11y 6.10.2 recommended (without label-has-associated-control) with the UI component map, and screen-contract/labelled-control",
+      "predicate": "eslint-plugin-jsx-a11y 6.10.2 recommended as installed, minus the exclusion pinned in lint.mjs (label-has-associated-control), with the UI component map, and screen-contract/labelled-control",
       "coverageMin": {
-        "file": 1045,
-        "control": 141
+        "control": 141,
+        "file": 1045
       },
       "items": [
         "A11Y|apps/web/src/app/[locale]/(agent)/agent/crm/task-queue-controls.tsx|jsx-a11y/no-noninteractive-element-interactions|div",
