@@ -455,3 +455,28 @@ test('r8 B2: a renamed import from another module or a type-only import is still
       line
     );
 });
+
+// r9 blocker: a repository-local module (relative or `@/`) can re-export a runner's test function,
+// as the auth fixture does, so a renamed import from one is no evidence either; a bare package
+// other than a runner (date-fns) is still exempt (r8 B2).
+test('r9 B1: a renamed test function from a repository-local module is not evidence', t => {
+  for (const line of [
+    "import { test as t } from '../fixtures/auth.fixture';",
+    "import { test as t, expect } from './fixtures/one-door.fixture';",
+    "import { it as t } from '@/test/helpers';",
+  ])
+    for (const body of [IMPORTING, IMPORTING.replace('it(', 't.skip(')])
+      assert.match(
+        evidence(t, `${W}/app/signup/page.test.tsx`, `${line}\n${body}`).join('\n'),
+        /renames the test function/u,
+        line
+      );
+  assert.deepEqual(
+    evidence(
+      t,
+      `${W}/app/signup/page.test.tsx`,
+      `import { it as italian } from 'date-fns/locale';\n${IMPORTING}`
+    ),
+    []
+  );
+});

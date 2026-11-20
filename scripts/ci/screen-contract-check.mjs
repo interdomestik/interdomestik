@@ -20,10 +20,12 @@
 // - A CHK-22 entry with an `exportName` and a use is judged at its JSX renders only. A route
 //   module that renders the same component itself (Next renders it with no JSX caller) is not
 //   judged there. Errs toward a missed finding.
-// - CHK-22 test evidence sees a skip only through the modifiers of `SKIPPED_RE` (registry.mjs) on
-//   `it`, `test`, `describe` or `suite`, or through a renamed runner import. Vitest `skipIf`/`runIf`,
-//   an `.only` elsewhere in the file and an alias by assignment (`const s = suite`) are not seen.
-//   Errs toward a missed finding: a skipped test is credited.
+// - CHK-22 skip detection is heuristic: it sees the modifiers of `SKIPPED_RE` (registry.mjs) and
+//   a renamed test-function import from a runner or a repository-local module. A test written to
+//   hide that it is skipped may still be credited (for example Vitest `skipIf`/`runIf`, an `.only`
+//   elsewhere in the file, an alias by assignment). Errs toward a missed finding. Before any flip
+//   PR, skip detection is replaced by runner evidence (the runner's own report of what ran) or by
+//   a dedicated review.
 // - Module resolution differs from TypeScript in the cases listed in `specifiers.mjs` (sibling
 //   `.js`/`.ts`, `.cjs`/`.mjs`/`.jsx` substitution, `..` after `*` in `@/*`, declaration and
 //   `typesVersions` edges). Errs mostly toward a missed finding (an edge not followed); where it

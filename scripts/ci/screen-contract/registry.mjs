@@ -190,10 +190,16 @@ const SKIPPED_RE =
 const TEST_FUNCTIONS = new Set(['it', 'test', 'describe', 'suite']);
 const TEST_RUNNERS = new Set(['vitest', '@playwright/test']);
 
-// Whether a test imports a test function of a runner under another name as a value
-// (`import { suite as s } from 'vitest'`): a skip through that name is not seen, so such a test is
-// no evidence at all (fail closed, r7 B3). The same name from another module (`date-fns/locale`'s
-// `it`) or a type-only import is no test function (r8 B2).
+// Whether a module can export a test function: a runner, or a repository-local module (relative or
+// `@/`), which can re-export one as the Playwright fixtures do (r9 B1). Another bare package is
+// exempt (`date-fns/locale`'s `it`, r8 B2).
+const mayExportTestFunction = spec =>
+  TEST_RUNNERS.has(spec) || spec.startsWith('.') || spec.startsWith('@/');
+
+// Whether a test imports a test function under another name as a value
+// (`import { suite as s } from 'vitest'`, `import { test as t } from '../fixtures/auth.fixture'`): a
+// skip through that name is not seen, so such a test is no evidence at all (fail closed, r7 B3). A
+// type-only import is no test function (r8 B2).
 function renamesTestFunction(rel, text) {
   const kind = /\.[jt]sx$/u.test(rel) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
   const source = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, kind);
@@ -201,7 +207,7 @@ function renamesTestFunction(rel, text) {
     statement =>
       ts.isImportDeclaration(statement) &&
       ts.isStringLiteral(statement.moduleSpecifier) &&
-      TEST_RUNNERS.has(statement.moduleSpecifier.text) &&
+      mayExportTestFunction(statement.moduleSpecifier.text) &&
       !statement.importClause?.isTypeOnly &&
       statement.importClause?.namedBindings !== undefined &&
       ts.isNamedImports(statement.importClause.namedBindings) &&
