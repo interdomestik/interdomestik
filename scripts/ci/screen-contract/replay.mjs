@@ -41,7 +41,9 @@ export function candidateBaseline(root = SCANNER_ROOT) {
 // The commit the candidate scanner runs from, or null outside a git checkout.
 export function candidateRevision(root = SCANNER_ROOT) {
   try {
-    return execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+    return execFileSync('/usr/bin/git', ['-C', root, 'rev-parse', 'HEAD'], {
+      encoding: 'utf8',
+    }).trim();
   } catch {
     return null;
   }

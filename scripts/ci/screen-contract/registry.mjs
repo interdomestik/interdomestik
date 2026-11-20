@@ -319,9 +319,15 @@ function inLane(lanes, rel) {
 // that is not a declaration. Module specifiers are resolved by the caller.
 function bindingFacts(rel, text, exportName) {
   const source = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const imports = []; // every imported specifier
-  const named = []; // { spec, local }
-  const namespaces = []; // { spec, local }
+  return { ...importFacts(source, exportName), ...useFacts(source, exportName) };
+}
+
+// Every imported specifier, the named imports of `exportName` ({ spec, local }) and the namespace
+// imports ({ spec, local }) of a test file.
+function importFacts(source, exportName) {
+  const imports = [];
+  const named = [];
+  const namespaces = [];
   for (const statement of source.statements) {
     if (!ts.isImportDeclaration(statement) || !ts.isStringLiteralLike(statement.moduleSpecifier))
       continue;
@@ -331,34 +337,52 @@ function bindingFacts(rel, text, exportName) {
     if (bindings && ts.isNamespaceImport(bindings))
       namespaces.push({ spec, local: bindings.name.text });
     if (bindings && ts.isNamedImports(bindings))
-      for (const element of bindings.elements)
-        if ((element.propertyName ?? element.name).text === exportName)
-          named.push({ spec, local: element.name.text });
+      named.push(...namedLocals(bindings, spec, exportName));
   }
-  const declared = new Map(); // name -> declaration count outside imports
-  const used = new Set(); // identifiers in expression position
-  const memberUses = new Set(); // `ns.export` namespaces
+  return { imports, named, namespaces };
+}
+
+// The local names a named import binds `exportName` to, aliased or not.
+const namedLocals = (bindings, spec, exportName) =>
+  bindings.elements
+    .filter(element => (element.propertyName ?? element.name).text === exportName)
+    .map(element => ({ spec, local: element.name.text }));
+
+const DECLARATIONS = [
+  ts.isVariableDeclaration,
+  ts.isFunctionDeclaration,
+  ts.isParameter,
+  ts.isBindingElement,
+  ts.isClassDeclaration,
+];
+
+// The identifier a declaration outside the imports binds, or null.
+const declaredNameOf = node =>
+  DECLARATIONS.some(is => is(node)) && node.name && ts.isIdentifier(node.name)
+    ? node.name.text
+    : null;
+
+// `ns.<exportName>`: the namespace identifier, or null.
+const memberNamespaceOf = (node, exportName) =>
+  ts.isPropertyAccessExpression(node) &&
+  node.name.text === exportName &&
+  ts.isIdentifier(node.expression)
+    ? node.expression.text
+    : null;
+
+// Declaration counts by name, identifiers in expression position, and `ns.export` namespaces.
+function useFacts(source, exportName) {
+  const declared = new Map();
+  const used = new Set();
+  const memberUses = new Set();
   for (const node of nodesOf(source)) {
-    const declaredName =
-      (ts.isVariableDeclaration(node) ||
-        ts.isFunctionDeclaration(node) ||
-        ts.isParameter(node) ||
-        ts.isBindingElement(node) ||
-        ts.isClassDeclaration(node)) &&
-      node.name &&
-      ts.isIdentifier(node.name)
-        ? node.name.text
-        : null;
+    const declaredName = declaredNameOf(node);
     if (declaredName) declared.set(declaredName, (declared.get(declaredName) ?? 0) + 1);
-    if (
-      ts.isPropertyAccessExpression(node) &&
-      node.name.text === exportName &&
-      ts.isIdentifier(node.expression)
-    )
-      memberUses.add(node.expression.text);
+    const namespace = memberNamespaceOf(node, exportName);
+    if (namespace) memberUses.add(namespace);
     if (ts.isIdentifier(node) && isUse(node)) used.add(node.text);
   }
-  return { imports, named, namespaces, declared, used, memberUses };
+  return { declared, used, memberUses };
 }
 
 // An identifier in an expression position: not a declared name, an import specifier, a property

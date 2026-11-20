@@ -933,7 +933,8 @@ test(`types row: TypeScript's file for every target extension and file pair (nod
   specs.forEach((spec, index) => {
     const oracle = results[index];
     const verdict = moduleVerdict(fixture, spec, 'types');
-    const label = `${exportsMap[subpathOf(spec)]} beside ${files.filter(f => f.startsWith(`${subpathOf(spec).slice(2)}/`))}: oracle ${JSON.stringify(oracle)}, module ${JSON.stringify(verdict)}`;
+    const dir = subpathOf(spec).slice(2) + '/';
+    const label = `${exportsMap[subpathOf(spec)]} beside ${files.filter(f => f.startsWith(dir))}: oracle ${JSON.stringify(oracle)}, module ${JSON.stringify(verdict)}`;
     assert.equal(oracle.resolved, verdict.status === 'resolved', label);
     if (oracle.resolved)
       assert.ok(oracle.file.endsWith(path.join(fixture.pkgDir, verdict.target.slice(2))), label);
