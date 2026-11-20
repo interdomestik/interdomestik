@@ -9,6 +9,8 @@ import {
   checkGuarded,
   checkPinnedReadProbe,
   checkProbe,
+  FACTORY_IMPORT_MODULE,
+  FACTORY_IMPORT_ROLE,
   OWNER_OPERATIONS,
   ownerWorkflowProblems,
   root,
@@ -185,4 +187,41 @@ test('a guarded script opens clients only through the factory', () => {
     () => checkGuarded(kind, "await openGuardedClient(url, 'x');"),
     /imports the guarded factory/u
   );
+});
+
+test('the factory is imported only in its two reviewed forms; a near miss of either is refused', () => {
+  const role = "import { openGuardedClient } from '../e2e-runtime-role.mjs'";
+  const module = "'../../src/disposable-client'";
+  const nearMisses = [
+    [
+      FACTORY_IMPORT_MODULE,
+      ["'disposable-client'", "'../src/disposable-clients'", "'@x/disposable-client'", "'../x.js'"],
+    ],
+    [
+      FACTORY_IMPORT_ROLE,
+      [
+        "'e2e-runtime-role.mjs'",
+        "import { openGuardedClient as o } from '../e2e-runtime-role.mjs'",
+        "import { openGuardedClient } from 'e2e-runtime-role.mjs'",
+      ],
+    ],
+  ];
+  for (const s of [module, '"../src/disposable-client.ts"']) assert.match(s, FACTORY_IMPORT_MODULE);
+  assert.match(role, FACTORY_IMPORT_ROLE);
+  assert.doesNotMatch(role, FACTORY_IMPORT_MODULE);
+  assert.doesNotMatch(module, FACTORY_IMPORT_ROLE);
+  const call = "\nawait withDisposableClient(url, 'x', run);";
+  const kind = entry('guarded');
+  assert.doesNotThrow(() =>
+    checkGuarded(kind, `import { withDisposableClient } from ${module};${call}`)
+  );
+  for (const [pattern, sources] of nearMisses) {
+    for (const s of sources) {
+      assert.doesNotMatch(s, pattern);
+      assert.throws(
+        () => checkGuarded(kind, `${s};${call}`),
+        /scripts\/x\.mjs: imports the guarded factory/u
+      );
+    }
+  }
 });

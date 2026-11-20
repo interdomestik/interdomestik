@@ -218,13 +218,15 @@ function checkOwnerOperation(entry) {
 
 // The guarded client factory (R-13): the one module that opens a client for a destructive script,
 // imported directly (TypeScript) or through the role script's loader (JavaScript).
-const FACTORY_IMPORT =
-  /['"](?:\.\.?\/)+(?:src\/)?disposable-client(?:\.ts)?['"]|\bimport\s*\{\s*openGuardedClient\s*\}\s*from\s*['"](?:\.\.?\/)+e2e-runtime-role\.mjs['"]/u;
+export const FACTORY_IMPORT_MODULE = /['"](?:\.\.?\/)+(?:src\/)?disposable-client(?:\.ts)?['"]/u;
+export const FACTORY_IMPORT_ROLE =
+  /\bimport\s*\{\s*openGuardedClient\s*\}\s*from\s*['"](?:\.\.?\/)+e2e-runtime-role\.mjs['"]/u;
 const FACTORY_CALL = /\b(?:withDisposableClient|openDisposableClient|openGuardedClient)\s*[(<]/u;
 
 export function checkGuarded(entry, source) {
   // Takes every client from the factory; loads no driver and runs no client command itself.
-  assert.match(source, FACTORY_IMPORT, `${entry.path}: imports the guarded factory`);
+  const imports = FACTORY_IMPORT_MODULE.test(source) || FACTORY_IMPORT_ROLE.test(source);
+  assert.ok(imports, `${entry.path}: imports the guarded factory`);
   assert.match(source, FACTORY_CALL, `${entry.path}: opens clients through it`);
   assert.equal(loadsDriver(source), false, `${entry.path}: loads no driver`);
   assert.deepEqual(commands(source), [], entry.path);
