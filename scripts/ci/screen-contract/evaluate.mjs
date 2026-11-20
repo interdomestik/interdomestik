@@ -114,6 +114,7 @@ export function evaluateRetired(id, base, head, shas) {
     mode: { base: base.checks[id].mode, head: null },
     enforcing: isFail(base, id),
     units: {},
+    files: 0, // a retired check examines no file (r5 B9)
     total: 0,
     new: [],
     fixed: [],
@@ -130,7 +131,16 @@ export function evaluateCheck(check, scan, { base, head, pairedHead, shas, rebui
   const settings = head.checks[check.id];
   const enforcing = isFail(base, check.id) || isFail(head, check.id);
   const tamper = [...tamperFindings(check.id, base, pairedHead), ...(extra.tamper ?? [])];
-  const empty = { id: check.id, ...shas, digest: null, enforcing, units: {}, total: 0 };
+  // A removed check is still linted: its report keeps the files it examined (r5 B9).
+  const empty = {
+    id: check.id,
+    ...shas,
+    digest: null,
+    enforcing,
+    units: {},
+    files: scan.files,
+    total: 0,
+  };
   if (!settings) return { ...empty, new: [], fixed: [], tamper, findings: [] };
   const shortfall = coverageShortfall(scan.units, settings.coverageMin);
   if (shortfall.length)

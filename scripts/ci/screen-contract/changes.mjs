@@ -26,10 +26,11 @@ const fileOfKey = key => key.split('|')[1] ?? '';
 // file -> lines changed, for the change base..head. A replaced line is one deletion and one
 // addition, so it counts once: the larger of the two (code-r2 optional).
 function changedLines(repo, baseSha, headSha) {
-  const numstat = git(repo, ['diff', '--no-renames', '--numstat', baseSha, headSha]);
+  // NUL-delimited, so a path is a literal field, never quoted (r5 B7).
+  const numstat = git(repo, ['diff', '--no-renames', '--numstat', '-z', baseSha, headSha]);
   const changed = new Map();
-  for (const line of numstat.split('\n').filter(Boolean)) {
-    const [added, deleted, file] = line.split('\t');
+  for (const record of numstat.split('\0').filter(Boolean)) {
+    const [added, deleted, file] = record.split('\t');
     changed.set(file, Math.max(Number(added), Number(deleted)));
   }
   return changed;

@@ -43,8 +43,11 @@ export function candidateBaseline(root = SCANNER_ROOT) {
   return candidate;
 }
 
+const hasSettings = s =>
+  ['mode', 'unit', 'predicate'].every(k => typeof s?.[k] === 'string' && s[k]);
+
 function requireEveryCheck(candidate) {
-  const missing = CHECKS.map(c => c.id).filter(id => !candidate.checks?.[id]);
+  const missing = CHECKS.map(c => c.id).filter(id => !hasSettings(candidate.checks?.[id]));
   if (missing.length)
     throw new ScanError(`replay: the candidate baseline has no settings for ${missing.join(', ')}`);
 }

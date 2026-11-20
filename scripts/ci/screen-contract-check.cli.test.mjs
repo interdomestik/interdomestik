@@ -480,3 +480,19 @@ test('git: a failed changed-path discovery is a scanner error', async t => {
     /changed-path discovery failed/u
   );
 });
+
+// r5 blocker 7: a changed path is read as a NUL-delimited field, so a non-ASCII name is not quoted
+// and its baselined items are reported.
+test('r5 B7: a changed baselined screen with a non-ASCII path is reported', t => {
+  const page = `${W}/app/résumé/page.tsx`;
+  const item = `CHK-15c|${page}|@interdomestik/database`;
+  const { root, base } = adopted(
+    t,
+    { 'CHK-15c': [LEGACY, item] },
+    { [DB_PAGE]: DB_IMPORT, [page]: DB_IMPORT }
+  );
+  const head = commit(root, { [page]: `${DB_IMPORT}// edited\n` });
+  const { code, report } = scan(t, root, ['--base', base, '--head', head]);
+  assert.equal(code, 0, JSON.stringify(report?.errors));
+  assert.deepEqual(report.changes.baselined, { [page]: [item] });
+});

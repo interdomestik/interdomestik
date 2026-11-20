@@ -240,6 +240,12 @@ test('r3 B8: a synthesized baseline carries the candidate settings; a partial ca
     () => synthesizedBaseline('a'.repeat(40), lint, { checks: { 'CHK-15c': settings('fail') } }),
     /candidate baseline has no settings for CHK-/u
   );
+  // Empty settings are no settings (r5 B8).
+  const empty = { checks: Object.fromEntries(CHECKS.map(({ id }) => [id, {}])) };
+  assert.throws(
+    () => synthesizedBaseline('a'.repeat(40), lint, empty),
+    /candidate baseline has no settings for CHK-/u
+  );
 });
 
 test('r3 B8: a replay without its candidate baseline or revision is not complete', t => {

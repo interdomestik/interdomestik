@@ -94,6 +94,7 @@ test('B10: a check the trusted base enforces and the scanner retired is judged a
   const retired = result.report.checks['CHK-99'];
   assert.ok(retired, JSON.stringify(Object.keys(result.report.checks)));
   assert.equal(retired.retired, true);
+  assert.equal(retired.files, 0); // r5 B9: a retired check examines no file
   assert.ok(retired.tamper.length > 0);
   assert.equal(result.code, 1);
   const approved = commit(root, {
@@ -251,4 +252,20 @@ test('code-r2: the likely-rebuild notice counts a replaced line once', t => {
   const large = commit(root, { [page]: withEdits(60) });
   const largeRun = scan(t, root, ['--base', base, '--head', large]);
   assert.ok(largeRun.report.changes.signals.some(line => notice.test(line)));
+});
+
+// r5 blocker 9: a check whose removal the owner recorded is still linted; its report keeps the
+// files it examined.
+test('r5 B9: a removed check is published with its files', t => {
+  const { root, base } = adopted(t);
+  const data = baselineData(
+    { 'CHK-15c': [LEGACY] },
+    { exceptions: [owner('CHK-09', '#check', 'downgrade')] }
+  );
+  delete data.checks['CHK-09'];
+  const head = commit(root, { [BASELINE]: asText(data) });
+  const result = scan(t, root, ['--base', base, '--head', head]);
+  assert.deepEqual(result.report.errors, []);
+  const removed = result.report.checks['CHK-09'];
+  assert.ok(removed?.files > 0, JSON.stringify(removed));
 });
