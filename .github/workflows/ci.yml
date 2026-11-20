@@ -183,12 +183,18 @@ jobs:
         if: github.event_name != 'pull_request'
         run: pnpm --filter @interdomestik/web run e2e:guards
       - name: Prepare E2E Database
+        # The last command is CHK-12, journal schema parity, on scratch databases of this job's
+        # service: journal build vs declared schema + registry (DB-27, DB-28), migration 0100
+        # refusals, and the read-only pilot report (R-13).
+        env:
+          REQUIRE_JOURNAL_SCHEMA_PARITY: '1'
         run: |
           pnpm db:migrate
           if [[ "${{ github.event_name }}" != "pull_request" ]]; then
             pnpm seed:e2e
             pnpm seed:assert-e2e
           fi
+          pnpm db:journal:parity
       - name: RLS Integration Test
         env:
           REQUIRE_RLS_INTEGRATION: '1'

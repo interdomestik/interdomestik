@@ -1,131 +1,151 @@
 #!/usr/bin/env node
+// CHK-12 (R-12): a schema change travels one road, the Drizzle journal. Every SQL file under
+// packages/database/drizzle, at any depth and by any name, is a journaled `<tag>.sql` at its top
+// level; every journal entry has its file; and every timestamp exceeds all the timestamps before it.
+// There is no allow-list of loose files.
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-function resolveRepoRoot() {
-  const git = spawnSync('git', ['rev-parse', '--show-toplevel'], {
-    cwd: process.cwd(),
-    encoding: 'utf8',
-  });
-  if (git.status === 0 && git.stdout.trim()) {
-    return git.stdout.trim();
-  }
-  return process.cwd();
-}
-
-const REPO_ROOT = resolveRepoRoot();
-const DRIZZLE_DIR = path.resolve(REPO_ROOT, 'packages/database/drizzle');
-const JOURNAL_PATH = path.join(DRIZZLE_DIR, 'meta', '_journal.json');
-const MIGRATION_FILE_PATTERN = /^\d{4}_.+\.sql$/;
 const compareText = (left, right) => left.localeCompare(right);
 
-// Baseline exceptions currently present on main. Keep this list short and temporary.
-const LEGACY_ORPHAN_ALLOWLIST = new Set([
-  '0015_drop_tenant_defaults.sql',
-  '0016_harden_better_auth.sql',
-  '0017_performance_indexes.sql',
-  '0018_add_commission_idempotency_index.sql',
-]);
+// The one inversion on main when the order rule was adopted (WP-04): entry 13's timestamp was set by
+// hand later than entry 14's. The journal is generated output and is never edited (R-36), so the
+// exact pair is pinned here; any other inversion, or a change to this pair, fails. The migrator
+// compares a database's latest applied timestamp with each entry, so every later entry must exceed
+// the maximum before it, entry 13's included.
+export const BASELINE_TIMESTAMP_INVERSION = Object.freeze({
+  position: 14,
+  tag: '0014_webhook_events_tenant_nullable',
+  when: 1767469552201,
+  previousTag: '0013_add_agent_clients_unique',
+  previousWhen: 1767890798000,
+});
 
-function fail(message) {
-  console.error(`\n[db:migrations:check-journal] ${message}\n`);
-  process.exit(1);
-}
+const RECOMMENDED =
+  'Recommended: pnpm db:generate --name <migration_name> (or --custom for SQL-only)';
 
-if (!fs.existsSync(DRIZZLE_DIR)) {
-  fail(`Drizzle directory not found: ${DRIZZLE_DIR}`);
-}
+// The migrator reads `<tag>.sql` with the tag as written, so a tag is one plain file-name
+// component, compared untrimmed.
+const TAG = /^[A-Za-z0-9_-]+$/u;
 
-if (!fs.existsSync(JOURNAL_PATH)) {
-  fail(`Drizzle journal not found: ${JOURNAL_PATH}`);
-}
-
-let journalRaw = '';
-let journal = null;
-
-try {
-  journalRaw = fs.readFileSync(JOURNAL_PATH, 'utf8');
-} catch (error) {
-  fail(`Unable to read Drizzle journal at ${JOURNAL_PATH}: ${String(error.message || error)}`);
-}
-
-try {
-  journal = JSON.parse(journalRaw);
-} catch (error) {
-  fail(`Invalid JSON in ${JOURNAL_PATH}: ${String(error.message || error)}`);
-}
-
-if (!Array.isArray(journal?.entries)) {
-  fail(`Invalid journal shape in ${JOURNAL_PATH}: expected "entries" array`);
-}
-
-const invalidEntries = journal.entries
-  .map((entry, index) => ({ entry, index }))
-  .filter(item => {
-    const tag = typeof item.entry?.tag === 'string' ? item.entry.tag.trim() : '';
-    return tag.length === 0;
+function entryFailures(entries) {
+  const failures = [];
+  entries.forEach((entry, position) => {
+    const tag = typeof entry?.tag === 'string' ? entry.tag : '';
+    if (!tag) failures.push(`entries[${position}] has no tag`);
+    else if (!TAG.test(tag)) {
+      failures.push(`entries[${position}] tag ${JSON.stringify(tag)} is not one plain file name`);
+    }
+    if (entry?.idx !== position) failures.push(`entries[${position}] has idx ${entry?.idx}`);
+    if (!Number.isSafeInteger(entry?.when) || entry.when <= 0) {
+      failures.push(`entries[${position}] has no valid timestamp`);
+    }
+    if (tag && !tag.startsWith(`${String(position).padStart(4, '0')}_`)) {
+      failures.push(`entries[${position}] tag ${tag} does not carry its index`);
+    }
   });
+  return failures;
+}
 
-if (invalidEntries.length > 0) {
-  fail(
-    [
-      `Invalid journal entries in ${JOURNAL_PATH}: expected non-empty "tag"`,
-      ...invalidEntries.map(item => `  - entries[${item.index}]`),
-    ].join('\n')
+function isBaselineInversion(entries, position) {
+  const pin = BASELINE_TIMESTAMP_INVERSION;
+  const [previous, entry] = [entries[position - 1], entries[position]];
+  return (
+    position === pin.position &&
+    entry?.tag === pin.tag &&
+    entry.when === pin.when &&
+    previous?.tag === pin.previousTag &&
+    previous.when === pin.previousWhen
   );
 }
 
-const journalSql = new Set(journal.entries.map(entry => `${entry.tag.trim()}.sql`));
-
-const sqlFiles = fs
-  .readdirSync(DRIZZLE_DIR)
-  .filter(name => MIGRATION_FILE_PATTERN.test(name))
-  .sort(compareText);
-
-const missingFromDisk = [...journalSql].filter(file => !sqlFiles.includes(file)).sort(compareText);
-const orphanedAll = sqlFiles.filter(file => !journalSql.has(file)).sort(compareText);
-const orphanedUnexpected = orphanedAll.filter(file => !LEGACY_ORPHAN_ALLOWLIST.has(file));
-const allowlistStale = [...LEGACY_ORPHAN_ALLOWLIST]
-  .filter(file => !orphanedAll.includes(file))
-  .sort(compareText);
-
-if (missingFromDisk.length > 0) {
-  fail(
-    [
-      'Journal references SQL files that do not exist:',
-      ...missingFromDisk.map(file => `  - ${file}`),
-      '',
-      'Regenerate migrations or repair packages/database/drizzle/meta/_journal.json.',
-      'Recommended: pnpm --filter @interdomestik/database generate --name <migration_name>',
-    ].join('\n')
-  );
+function orderFailures(entries) {
+  const failures = [];
+  let latest = entries[0].when;
+  for (let position = 1; position < entries.length; position += 1) {
+    const { tag, when } = entries[position];
+    if (when <= latest && !isBaselineInversion(entries, position)) {
+      failures.push(`entries[${position}] (${tag}) is not later than every entry before it`);
+    }
+    latest = Math.max(latest, when);
+  }
+  const pin = BASELINE_TIMESTAMP_INVERSION;
+  if (!isBaselineInversion(entries, pin.position)) {
+    failures.push(`the pinned baseline inversion ${pin.previousTag} > ${pin.tag} changed`);
+  }
+  return failures;
 }
 
-if (orphanedUnexpected.length > 0) {
-  fail(
-    [
-      'Found unjournaled SQL migrations (not allowed):',
-      ...orphanedUnexpected.map(file => `  - ${file}`),
-      '',
-      'Use drizzle-kit generate so new migrations are tracked in _journal.json.',
-      'Recommended: pnpm --filter @interdomestik/database generate --name <migration_name>',
-      'Never drop raw migration SQL into packages/database/drizzle without journal entries.',
-      'If this is a sanctioned legacy exception, add it to LEGACY_ORPHAN_ALLOWLIST in scripts/check-drizzle-migration-journal.mjs.',
-    ].join('\n')
-  );
+function fileFailures(tags, sqlPaths) {
+  const failures = [];
+  const journaled = new Set(tags.map(tag => `${tag}.sql`));
+  const present = new Set(sqlPaths);
+  for (const file of [...journaled].filter(file => !present.has(file)).sort(compareText)) {
+    failures.push(`the journal names ${file}, which does not exist`);
+  }
+  for (const file of [...present].filter(file => !journaled.has(file)).sort(compareText)) {
+    failures.push(`${file} is not in the journal; the migrator never applies it`);
+  }
+  return failures;
 }
 
-if (allowlistStale.length > 0) {
-  console.warn(
-    [
-      '[db:migrations:check-journal] Stale allowlist entries detected (can be removed):',
-      ...allowlistStale.map(file => `  - ${file}`),
-    ].join('\n')
-  );
+/**
+ * Returns the failures for one journal and every `.sql` path under the migration directory,
+ * relative to it with `/` separators; empty means valid.
+ */
+export function journalFailures(journalRaw, sqlPaths) {
+  let journal;
+  try {
+    journal = JSON.parse(journalRaw);
+  } catch {
+    return ['the journal is not valid JSON'];
+  }
+  if (!Array.isArray(journal?.entries)) return ['the journal has no "entries" array'];
+  if (journal.entries.length === 0) return ['the journal has no entries'];
+  const failures = entryFailures(journal.entries);
+  if (failures.length > 0) return failures;
+  const tags = journal.entries.map(entry => entry.tag);
+  return [...orderFailures(journal.entries), ...fileFailures(tags, sqlPaths)];
 }
 
-console.log(
-  `[db:migrations:check-journal] OK (journaled=${journalSql.size}, sql=${sqlFiles.length}, legacy-allowlist=${LEGACY_ORPHAN_ALLOWLIST.size})`
-);
+/** Every `.sql` file under `dir`, at any depth, relative to it with `/` separators. */
+export function sqlPathsUnder(dir) {
+  return fs
+    .readdirSync(dir, { recursive: true, withFileTypes: true })
+    .filter(entry => entry.isFile() && entry.name.toLowerCase().endsWith('.sql'))
+    .map(entry =>
+      path.relative(dir, path.join(entry.parentPath, entry.name)).split(path.sep).join('/')
+    );
+}
+
+function main() {
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const drizzleDir = path.join(repoRoot, 'packages/database/drizzle');
+  const journalPath = path.join(drizzleDir, 'meta', '_journal.json');
+  let journalRaw;
+  let files;
+  try {
+    journalRaw = fs.readFileSync(journalPath, 'utf8');
+    files = sqlPathsUnder(drizzleDir);
+  } catch (error) {
+    console.error(`[db:migrations:check-journal] cannot read the journal: ${error.code ?? error}`);
+    process.exit(1);
+  }
+  const failures = journalFailures(journalRaw, files);
+  if (failures.length > 0) {
+    console.error(
+      [
+        '[db:migrations:check-journal] failed:',
+        ...failures.map(line => `  - ${line}`),
+        RECOMMENDED,
+      ].join('\n')
+    );
+    process.exit(1);
+  }
+  const entries = JSON.parse(journalRaw).entries.length;
+  console.log(`[db:migrations:check-journal] OK (journaled=${entries}, loose=0, order=strict)`);
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

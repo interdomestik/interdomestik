@@ -1,8 +1,7 @@
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
-import { Z620_EXECUTABLES } from './managed-executables.mjs';
+import { openGuardedClient } from '../e2e-runtime-role.mjs';
 import { prepareManagedSubdirectory } from './managed-paths.mjs';
 import { safeId } from './z620-runner-lib.mjs';
 
@@ -29,32 +28,42 @@ export function assertTaskDatabase(name) {
   return name;
 }
 
-export function createTaskDatabase(name, container = 'supabase_db_interdomestik') {
-  execFileSync(Z620_EXECUTABLES.docker, [
-    'exec',
-    container,
-    'createdb',
-    '-U',
-    'postgres',
-    assertTaskDatabase(name),
-  ]);
+const serverUrl = (database, password) =>
+  `postgresql://postgres:${encodeURIComponent(password)}@127.0.0.1:54322/${database}`;
+
+// The Z620 container's server as the host sees it: a fixed loopback address and port, so the
+// operation reaches that server and no other, whatever the Docker context or the libpq settings.
+const ADMIN_DATABASE = 'postgres';
+
+// R-13: the client comes from the guarded factory, which refuses any target but loopback and the
+// confirmed CI container before it constructs the driver.
+async function withTaskAdminClient(password, work) {
+  const sql = await openGuardedClient(
+    serverUrl(ADMIN_DATABASE, password),
+    'interdomestik_z620_task_database'
+  );
+  try {
+    return await work(sql);
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
 }
 
-export function dropTaskDatabase(name, container = 'supabase_db_interdomestik') {
-  execFileSync(Z620_EXECUTABLES.docker, [
-    'exec',
-    container,
-    'dropdb',
-    '--force',
-    '--if-exists',
-    '-U',
-    'postgres',
-    assertTaskDatabase(name),
-  ]);
+export async function createTaskDatabase(name, password = 'postgres') {
+  const database = assertTaskDatabase(name);
+  await withTaskAdminClient(password, sql => sql`create database ${sql(database)}`);
+}
+
+export async function dropTaskDatabase(name, password = 'postgres') {
+  const database = assertTaskDatabase(name);
+  await withTaskAdminClient(
+    password,
+    sql => sql`drop database if exists ${sql(database)} with (force)`
+  );
 }
 
 export function databaseUrl(name, password = 'postgres') {
-  return `postgresql://postgres:${encodeURIComponent(password)}@127.0.0.1:54322/${assertTaskDatabase(name)}`;
+  return serverUrl(assertTaskDatabase(name), password);
 }
 
 export function canListen(port, host = '127.0.0.1') {
