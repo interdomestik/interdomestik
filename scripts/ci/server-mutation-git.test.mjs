@@ -115,3 +115,25 @@ test('a file read at a revision is its raw blob, with no textconv applied', t =>
   assert.equal(showAt(repo, sha, 'x.json'), '{ "a": 1 }\n');
   assert.equal(showAt(repo, sha, 'missing.json'), null);
 });
+
+// r4 blocker 9: a tree path is bytes; one that is not valid UTF-8 is refused, never renamed.
+test('a path that is not valid UTF-8 is refused, not written under another name', t => {
+  const repo = initRepo(tempDir(t));
+  commit(repo, { 'ok.txt': 'ok\n' });
+  const object = blobOf(repo, 'x\n');
+  const entry = Buffer.concat([
+    Buffer.from(`100644 ${object}\tapps/web/src/bad`),
+    Buffer.from([0xff]),
+    Buffer.from('.ts\n'),
+  ]);
+  const staged = spawnSync('/usr/bin/git', ['-C', repo, 'update-index', '--index-info'], {
+    input: entry,
+  });
+  assert.equal(staged.status, 0, String(staged.stderr));
+  git(repo, 'commit', '--quiet', '-m', 'bad name');
+  const sha = git(repo, 'rev-parse', 'HEAD');
+  assert.throws(
+    () => extracted(t, sha, repo),
+    error => error instanceof ScanError && /is not valid UTF-8/u.test(error.message)
+  );
+});

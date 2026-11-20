@@ -1,4 +1,7 @@
 // Git access of the server-mutation scanner: the trusted base revision and the scanned head.
+// Named limit: one git call's output is capped at 256 MiB, so a batch of blobs above it (the tree
+// is 59 MB in total and its largest blob 0.7 MB, on 2026-11-20) is a scanner error, exit 2: the
+// revision is not judged, never passed.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -72,11 +75,29 @@ function treeEntry(line) {
   return { rel, object, mode: FILE_MODES[mode] };
 }
 
+// A tree entry is bytes; one that is not valid UTF-8 is refused rather than written under a
+// replacement name (r4 B9).
+const UTF8 = new TextDecoder('utf-8', { fatal: true });
+function decodedEntry(bytes, sha) {
+  try {
+    return UTF8.decode(bytes);
+  } catch {
+    throw new ScanError(`a path of ${sha} is not valid UTF-8`);
+  }
+}
+
 // Every file entry of a revision, from its tree objects (never from a checkout).
 function treeEntries(repo, sha) {
-  const listed = git(repo, ['ls-tree', '-r', '-z', '--full-tree', sha]);
+  const listed = git(repo, ['ls-tree', '-r', '-z', '--full-tree', sha], { encoding: 'buffer' });
   if (!listed.ok) throw new ScanError(`cannot read ${sha}`);
-  return listed.stdout.split('\0').filter(Boolean).map(treeEntry);
+  const out = [];
+  for (let at = 0; at < listed.stdout.length;) {
+    const end = listed.stdout.indexOf(0, at);
+    const stop = end === -1 ? listed.stdout.length : end;
+    if (stop > at) out.push(treeEntry(decodedEntry(listed.stdout.subarray(at, stop), sha)));
+    at = stop + 1;
+  }
+  return out;
 }
 
 // The raw contents of blobs (`cat-file --batch`: no filter, conversion or attribute applies).
