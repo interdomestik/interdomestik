@@ -7,7 +7,7 @@ import { catalogueFor, messageText } from '../../../../scripts/ci/screen-contrac
 import { originIn, originOf } from '../../../../scripts/ci/screen-contract/origins.mjs';
 import { readInside } from '../../../../scripts/ci/screen-contract/paths.mjs';
 import { registryFor } from '../../../../scripts/ci/screen-contract/registry.mjs';
-import { layerOf } from '../../../../scripts/ci/screen-contract/roles.mjs';
+import { directivesOfText, layerOf } from '../../../../scripts/ci/screen-contract/roles.mjs';
 import { kindOfSpecifier } from '../../../../scripts/ci/screen-contract/specifiers.mjs';
 import { fileOf, report, resolverOf, rule, unitCounter } from './common.mjs';
 
@@ -126,6 +126,10 @@ function isSubmitCapable(opening) {
 }
 
 // The nearest enclosing form within the same component, or null.
+// A Next.js route module: rendered by the framework, never by a JSX caller in the tree.
+const ROUTE_MODULE_RE =
+  /^apps\/web\/src\/app\/(?:.+\/)?(?:page|layout|template|default)\.[jt]sx?$/u;
+
 function enclosingForm(element) {
   for (let current = element.parent; current; current = current.parent) {
     if (FUNCTIONS.has(current.type)) return null;
@@ -428,9 +432,13 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
     return direct ? { specifier: binding.specifier, imported: node.property.name } : UNKNOWN;
   }
 
+  // A layer-2 module that does not declare itself client-only (r4 B3: `'use client'` under
+  // actions/ runs in the browser).
   function isServerOrigin(origin) {
     const text = readInside(root, origin.file);
-    return text !== null && layerOf(origin.file, text) === 2;
+    if (text === null) return false;
+    const directives = directivesOfText(origin.file, text);
+    return !directives.includes('use client') && layerOf(origin.file, directives) === 2;
   }
 
   // What a reference is as a submission: `file#export` of a layer-2 export, UNKNOWN when it is
@@ -674,8 +682,14 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
       flag(element, 'misbound', consentId, `data-consent ${consentId} is not this file's control`);
       return [];
     }
+    // A control inside its own form, or in a route module Next renders with no JSX caller, has
+    // no render elsewhere to judge: it is a render here (r4 B4).
     const isDefinition =
-      Boolean(entry.exportName) && !entry.selfSubmitting && ownedBy(element, entry.exportName);
+      Boolean(entry.exportName) &&
+      !entry.selfSubmitting &&
+      !enclosingForm(element) &&
+      !ROUTE_MODULE_RE.test(rel) &&
+      ownedBy(element, entry.exportName);
     return !isDefinition && entry.kind !== 'not-consent' ? [entry] : [];
   }
 

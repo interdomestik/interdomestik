@@ -771,7 +771,7 @@ test('CHK-22 discovery: the shared Input with a choice type is a control (r3 F6)
     base({
       [REG]: registry([]),
       [file]:
-        'import { Input } from \'@interdomestik/ui\';\nexport function D() { return <div><Input type="checkbox" name="terms" /><Input type="text" name="terms" /></div>; }\n',
+        'import { Input } from \'@interdomestik/ui\';\nexport function D() { return <div><Input type="checkbox" name="terms" /><Input type="text" name="termsText" /></div>; }\n',
     })
   );
   assert.deepEqual(await chk22(root), [`CHK-22|${file}|unregistered|Input:terms`]);
@@ -794,4 +794,50 @@ test('CHK-22: the named handler limits stay unresolved-submission (r3 hardening)
     ...cases.map(([imports, body]) => judgeHandler(t, imports, body)),
   ]);
   judged.forEach(found => assert.deepEqual(found, UNRESOLVED));
+});
+
+// r4 blocker 3: a client module is no server origin, even under actions/.
+test('CHK-22: a client-only module under actions/ is not a submission (r4 B3)', async t => {
+  const client = `${W}/actions/client-save.ts`;
+  const clientUse = { ...use('signup', PAGE), submission: `${client}#saveClient` };
+  const root = tree(
+    t,
+    base({
+      [client]: "'use client';\nexport async function saveClient() {}\n",
+      [REG]: registry([consent('terms', PAGE, 'terms', [clientUse])]),
+      [PAGE]: `import { saveClient } from '@/actions/client-save';\nexport default function P() { return <form action={saveClient} data-consent-use="terms:signup">${CONTROL}</form>; }\n`,
+    })
+  );
+  assert.deepEqual(await chk22(root), UNRESOLVED);
+});
+
+// r4 blocker 4: a registered export that owns its form, or a route module Next renders without a
+// JSX caller, gets no definition exemption: its control is a render and needs a listed use.
+test('CHK-22: a page that owns its consent form with no uses is a finding (r4 B4)', async t => {
+  const judged = await Promise.all(
+    [
+      `${head}export default function P() { return <form action={saveTerms}>${CONTROL}</form>; }\n`,
+      `${head}export default function P() { return <div>${CONTROL}</div>; }\n`,
+    ].map(text =>
+      chk22(
+        tree(
+          t,
+          base({
+            [REG]: registry([consent('terms', PAGE, 'terms', [], { exportName: 'default' })]),
+            [PAGE]: text,
+          })
+        )
+      )
+    )
+  );
+  judged.forEach(found => assert.deepEqual(found, [`CHK-22|${PAGE}|unmatched-boundary|terms@P`]));
+  const shared = `${W}/components/terms-form.tsx`;
+  const owned = tree(
+    t,
+    base({
+      [REG]: registry([consent('terms', shared, 'terms', [], { exportName: 'TermsForm' })]),
+      [shared]: `${head}export function TermsForm() { return <form action={saveTerms}>${CONTROL}</form>; }\n`,
+    })
+  );
+  assert.deepEqual(await chk22(owned), [`CHK-22|${shared}|unmatched-boundary|terms@TermsForm`]);
 });
