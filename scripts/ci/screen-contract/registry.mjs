@@ -177,15 +177,20 @@ const TIME_RE = /(?:At|_at|Time|time|timestamp)\b/u;
 
 const VITEST_CONFIG = 'apps/web/vitest.config.ts';
 const PLAYWRIGHT_CONFIG = 'apps/web/playwright.config.ts';
-// The selection both PR-gate projects share (`gate-ks-sq`, `gate-mk-contract`): the E2E lane a
-// use's spec must be in (r1 B8). Tags and `grep` inside a spec are not modelled (a named limit).
+// The selection both PR-gate projects share: the E2E lane a use's spec must be in (r1 B8). Both
+// projects that `pnpm e2e:gate:pr` runs must select it (r2 B4); a renamed project is an error.
+// Tags and `grep` inside a spec are not modelled (a named limit).
 const E2E_GATE_CONST = 'GATE_DEFAULT_MATCH';
+const PR_GATE_PROJECTS = Object.freeze(['gate-ks-sq', 'gate-mk-contract']);
 
+// A lane config, parsed and never run; a config that does not parse is an error (r2 B4).
 function parseConfig(root, rel) {
   const text = readInside(root, rel);
   if (text === null) throw new ScanError(`${rel} is missing`);
   if (!text.trim()) throw new ScanError(`${rel} is empty`);
-  return ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const source = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  if (source.parseDiagnostics?.length) throw new ScanError(`${rel} does not parse`);
+  return source;
 }
 
 const nameOf = node =>
@@ -211,53 +216,92 @@ function stringList(node) {
   return out.includes(null) ? null : out;
 }
 
-// The one property `name` inside the object property `parent` (e.g. test.include), parsed.
-function propertyIn(source, parent, name) {
-  const hits = nodesOf(source).filter(
-    node =>
-      ts.isPropertyAssignment(node) &&
-      nameOf(node) === parent &&
-      ts.isObjectLiteralExpression(node.initializer)
-  );
-  const found = hits.flatMap(hit =>
-    hit.initializer.properties.filter(p => ts.isPropertyAssignment(p) && nameOf(p) === name)
-  );
-  return found.length === 1 ? found[0].initializer : null;
+// The object a config exports by default: `export default {…}` or `export default fn({…})`.
+function defaultConfig(source, rel) {
+  const exported = source.statements.find(ts.isExportAssignment)?.expression;
+  const object = exported && ts.isCallExpression(exported) ? exported.arguments[0] : exported;
+  if (!object || !ts.isObjectLiteralExpression(object))
+    throw new ScanError(`${rel} exports no literal config object`);
+  return object;
 }
 
-// The lane selections, parsed from the lane configs without running them (r1 B8): the Vitest
-// `test.include` and `test.exclude` lists, and the Playwright `testDir` with the gate selection.
-export function readLanes(root) {
-  const vitest = parseConfig(root, VITEST_CONFIG);
-  const include = stringList(propertyIn(vitest, 'test', 'include'));
+// The initializer of one property of an object literal (its own properties only), or null.
+function ownProperty(object, name) {
+  const found = object?.properties.filter(p => ts.isPropertyAssignment(p) && nameOf(p) === name);
+  return found?.length === 1 ? found[0].initializer : null;
+}
+
+// The top-level `const` initializer of a name.
+function topLevelConst(source, name) {
+  for (const statement of source.statements)
+    if (ts.isVariableStatement(statement))
+      for (const declaration of statement.declarationList.declarations)
+        if (nameOf(declaration) === name) return declaration.initializer ?? null;
+  return null;
+}
+
+// Whether a project's testMatch is the gate list or a literal list that spreads it.
+function selectsGate(source, expression) {
+  if (!expression || !ts.isIdentifier(expression)) return false;
+  if (expression.text === E2E_GATE_CONST) return true;
+  const list = topLevelConst(source, expression.text);
+  return Boolean(
+    list &&
+    ts.isArrayLiteralExpression(list) &&
+    list.elements.some(
+      e =>
+        ts.isSpreadElement(e) &&
+        ts.isIdentifier(e.expression) &&
+        e.expression.text === E2E_GATE_CONST
+    )
+  );
+}
+
+function readVitestLane(root) {
+  const config = defaultConfig(parseConfig(root, VITEST_CONFIG), VITEST_CONFIG);
+  const test = ownProperty(config, 'test');
+  if (!test || !ts.isObjectLiteralExpression(test))
+    throw new ScanError(`${VITEST_CONFIG} has no literal test object`);
+  const include = stringList(ownProperty(test, 'include'));
   if (!include?.length) throw new ScanError(`${VITEST_CONFIG} names no literal test.include list`);
-  const excludeNode = propertyIn(vitest, 'test', 'exclude');
+  const excludeNode = ownProperty(test, 'exclude');
   const exclude = excludeNode ? stringList(excludeNode) : [];
   if (exclude === null) throw new ScanError(`${VITEST_CONFIG} test.exclude is not a literal list`);
-  const playwright = parseConfig(root, PLAYWRIGHT_CONFIG);
-  const dirs = nodesOf(playwright).filter(
-    node =>
-      ts.isPropertyAssignment(node) &&
-      nameOf(node) === 'testDir' &&
-      ts.isStringLiteralLike(node.initializer)
-  );
-  if (dirs.length !== 1)
-    throw new ScanError(`${PLAYWRIGHT_CONFIG} names no single literal testDir`);
-  const gate = nodesOf(playwright).filter(
-    node => ts.isVariableDeclaration(node) && nameOf(node) === E2E_GATE_CONST
-  );
-  const e2eMatch = gate.length === 1 ? stringList(gate[0].initializer) : null;
+  return { include, exclude };
+}
+
+function readE2eLane(root) {
+  const source = parseConfig(root, PLAYWRIGHT_CONFIG);
+  const config = defaultConfig(source, PLAYWRIGHT_CONFIG);
+  const testDir = ownProperty(config, 'testDir');
+  if (!testDir || !ts.isStringLiteralLike(testDir))
+    throw new ScanError(`${PLAYWRIGHT_CONFIG} names no literal testDir`);
+  const e2eMatch = stringList(topLevelConst(source, E2E_GATE_CONST));
   if (!e2eMatch?.length)
     throw new ScanError(`${PLAYWRIGHT_CONFIG} names no literal ${E2E_GATE_CONST} list`);
+  const projects = ownProperty(config, 'projects');
+  const elements = projects && ts.isArrayLiteralExpression(projects) ? projects.elements : [];
+  for (const name of PR_GATE_PROJECTS) {
+    const project = elements.find(
+      e => ts.isObjectLiteralExpression(e) && ownProperty(e, 'name')?.text === name
+    );
+    if (!selectsGate(source, ownProperty(project, 'testMatch')))
+      throw new ScanError(`${PLAYWRIGHT_CONFIG}: ${name} does not select ${E2E_GATE_CONST}`);
+  }
   return {
-    vitest: { include, exclude },
-    e2eDir: path.posix.normalize(path.posix.join('apps/web', dirs[0].initializer.text)),
+    e2eDir: path.posix.normalize(path.posix.join('apps/web', testDir.text)),
     e2eMatch,
   };
 }
 
-// A Vitest exclude entry without glob characters names a directory anywhere in the path.
-const excludeGlobs = entry => (/[*?{[]/u.test(entry) ? [entry] : [`${entry}/**`, `**/${entry}/**`]);
+// The lane selections, parsed from the lane configs without running them (r1 B8, r2 B4).
+export function readLanes(root) {
+  return { vitest: readVitestLane(root), ...readE2eLane(root) };
+}
+
+// A Vitest exclude entry without glob characters names that path or a directory anywhere in it.
+const excludeGlobs = entry =>
+  /[*?{[]/u.test(entry) ? [entry] : [entry, `${entry}/**`, `**/${entry}`, `**/${entry}/**`];
 
 function inLane(lanes, rel) {
   if (rel.startsWith(`${lanes.e2eDir}/`)) {
@@ -270,33 +314,65 @@ function inLane(lanes, rel) {
   return !lanes.vitest.exclude.flatMap(excludeGlobs).some(glob => path.matchesGlob(inner, glob));
 }
 
-const MOCK_CALLEE_RE =
-  /^(?:vi|jest)\.(?:mock|doMock|importActual|importMock)$|^(?:require|import)$/u;
-
-// The module specifiers a test file loads (imports, re-exports, import(), require(), mocks) and
-// the identifiers it uses.
-function testFacts(rel, text) {
+// How a test file binds the registered export (r2 B5): the local names of a named import of it
+// (aliased or not) from a module, the namespaces imported from a module, and every identifier use
+// that is not a declaration. Module specifiers are resolved by the caller.
+function bindingFacts(rel, text, exportName) {
   const source = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const specifiers = [];
-  const identifiers = new Set();
-  for (const node of nodesOf(source)) {
-    if (ts.isIdentifier(node)) identifiers.add(node.text);
-    if (
-      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
-      node.moduleSpecifier &&
-      ts.isStringLiteralLike(node.moduleSpecifier)
-    )
-      specifiers.push(node.moduleSpecifier.text);
-    if (
-      ts.isCallExpression(node) &&
-      node.arguments[0] &&
-      ts.isStringLiteralLike(node.arguments[0])
-    ) {
-      const callee = node.expression.getText(source);
-      if (MOCK_CALLEE_RE.test(callee)) specifiers.push(node.arguments[0].text);
-    }
+  const imports = []; // every imported specifier
+  const named = []; // { spec, local }
+  const namespaces = []; // { spec, local }
+  for (const statement of source.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteralLike(statement.moduleSpecifier))
+      continue;
+    const spec = statement.moduleSpecifier.text;
+    imports.push(spec);
+    const bindings = statement.importClause?.namedBindings;
+    if (bindings && ts.isNamespaceImport(bindings))
+      namespaces.push({ spec, local: bindings.name.text });
+    if (bindings && ts.isNamedImports(bindings))
+      for (const element of bindings.elements)
+        if ((element.propertyName ?? element.name).text === exportName)
+          named.push({ spec, local: element.name.text });
   }
-  return { specifiers, identifiers };
+  const declared = new Map(); // name -> declaration count outside imports
+  const used = new Set(); // identifiers in expression position
+  const memberUses = new Set(); // `ns.export` namespaces
+  for (const node of nodesOf(source)) {
+    const declaredName =
+      (ts.isVariableDeclaration(node) ||
+        ts.isFunctionDeclaration(node) ||
+        ts.isParameter(node) ||
+        ts.isBindingElement(node) ||
+        ts.isClassDeclaration(node)) &&
+      node.name &&
+      ts.isIdentifier(node.name)
+        ? node.name.text
+        : null;
+    if (declaredName) declared.set(declaredName, (declared.get(declaredName) ?? 0) + 1);
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      node.name.text === exportName &&
+      ts.isIdentifier(node.expression)
+    )
+      memberUses.add(node.expression.text);
+    if (ts.isIdentifier(node) && isUse(node)) used.add(node.text);
+  }
+  return { imports, named, namespaces, declared, used, memberUses };
+}
+
+// An identifier in an expression position: not a declared name, an import specifier, a property
+// name or a property access's member.
+function isUse(node) {
+  const parent = node.parent;
+  if (!parent) return false;
+  if (ts.isImportSpecifier(parent) || ts.isImportClause(parent) || ts.isNamespaceImport(parent))
+    return false;
+  if ('name' in parent && parent.name === node && !ts.isPropertyAccessExpression(parent))
+    return false;
+  if (ts.isPropertyAccessExpression(parent) && parent.name === node) return false;
+  if (ts.isPropertyAssignment(parent) && parent.name === node) return false;
+  return true;
 }
 
 // The names a use's test must hold that it lacks: entry, use, the fields of its kind, and for
@@ -309,15 +385,25 @@ function missingNames(entry, use, text) {
   return missing;
 }
 
-// The test must load the submission's module (resolved like the lint resolves it) and use its
-// export as an identifier.
+// The test must bind the registered export through an import of the submission's module (resolved
+// like the lint resolves it) and use that binding; a local stub, an unused import or an import of
+// another export of the module does not count (r1 B8, r2 B5).
 function submissionError(root, use, text) {
   const [module, exportName] = use.submission.split('#');
-  const { specifiers, identifiers } = testFacts(use.test, text);
+  const facts = bindingFacts(use.test, text, exportName);
   const resolver = resolverFor(root);
-  const loads = specifiers.some(spec => resolver.resolveFile(use.test, spec) === module);
-  if (!loads) return `does not import the submission module ${module}`;
-  return identifiers.has(exportName) ? null : `does not use the submission export ${exportName}`;
+  const fromModule = entry => resolver.resolveFile(use.test, entry.spec) === module;
+  const named = facts.named.filter(fromModule);
+  const namespaces = facts.namespaces.filter(fromModule);
+  if (!facts.imports.some(spec => fromModule({ spec })))
+    return `does not import the submission module ${module}`;
+  const usedNamed = named.some(({ local }) => facts.used.has(local) && !facts.declared.has(local));
+  const usedMember = namespaces.some(
+    ({ local }) => facts.memberUses.has(local) && !facts.declared.has(local)
+  );
+  return usedNamed || usedMember
+    ? null
+    : `does not use the submission export ${exportName} of ${module}`;
 }
 
 // The error of one use's test, or null when its evidence holds.

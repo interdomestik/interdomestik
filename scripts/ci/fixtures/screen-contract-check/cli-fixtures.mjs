@@ -20,7 +20,7 @@ export const LANES = Object.freeze({
   'apps/web/vitest.config.ts':
     "export default { test: { include: ['src/**/*.test.{ts,tsx}'] } };\n",
   'apps/web/playwright.config.ts':
-    "const GATE_DEFAULT_MATCH = ['gate/**/*.spec.ts'];\nexport default { testDir: './e2e' };\n",
+    "const GATE_DEFAULT_MATCH = ['gate/**/*.spec.ts'];\nconst GATE_KS = [...GATE_DEFAULT_MATCH, 'security/a.spec.ts'];\nexport default defineConfig({ testDir: './e2e', projects: [{ name: 'gate-ks-sq', testMatch: GATE_KS }, { name: 'gate-mk-contract', testMatch: GATE_DEFAULT_MATCH }, { name: 'visual', testMatch: ['visual/**/*.spec.ts'] }] });\n",
 });
 
 export const INPUTS = Object.freeze({
