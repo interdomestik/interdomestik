@@ -175,7 +175,8 @@ function stateFindings(id, baseCheck, headCheck, allowed) {
   return out;
 }
 
-// `value >= min`, negated by the callers as written: a missing or non-numeric value is never at least min.
+// `value >= min`, unchanged from the comparison the callers wrote inline (S1940): JavaScript's `>=`,
+// so undefined or NaN never meets min and any other value is coerced as `>=` coerces it.
 function atLeast(value, min) {
   return value >= min;
 }
