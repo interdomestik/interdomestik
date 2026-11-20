@@ -507,11 +507,38 @@ test('r6 B3: a changed path with a tab is not attributed to its prefix', t => {
   assert.deepEqual(report.changes.baselined, {});
 });
 
-// r6 blocker 1: a signal names a PR-controlled path; printed to the trusted run's log, it is one
-// line, so a name with a newline cannot start a workflow command.
-test('r6 B1: a printed rebuild signal is one line whatever the file name', async () => {
+// r6 blocker 1, r7 blocker 1: a signal names a PR-controlled path; printed to the trusted run's
+// log, it is one line with no workflow-command marker, so a file name can start no command, at the
+// start of a line or after other text.
+test('r7 B1: a printed rebuild signal holds no line break, control character or marker', async () => {
   const { signalLine } = await import('./screen-contract/changes.mjs');
-  const line = signalLine('likely rebuild: a\n::error::x\r\u0007.tsx adds a page-ready marker');
-  assert.doesNotMatch(line, /[\u0000-\u001f\u007f]/u);
-  assert.match(line, /a\\n::error::x\\r\\u0007\.tsx/u);
+  const names = [
+    'x ::error::y.tsx',
+    'a\n::error::x.tsx',
+    'a\r::warning::x.tsx',
+    'a\r\n::notice::x.tsx',
+    'del\u007f::error::x.tsx',
+    'bell\u0007.tsx',
+    '100%25::error::x.tsx',
+  ];
+  for (const name of names) {
+    const line = signalLine(`likely rebuild: ${name} adds a page-ready marker`);
+    assert.doesNotMatch(line, /[\u0000-\u001f\u007f]|:/u, JSON.stringify(name));
+  }
+  assert.equal(signalLine('a%b:c\r\n\u007f\u0007::d'), 'a%25b%3Ac%0D%0A%7F%07%3A%3Ad');
+});
+
+// r7 hardening: a baselined screen whose path holds a tab is reported under that whole path.
+test('r7 H2: a changed baselined screen with a tab in its path is attributed to that path', t => {
+  const page = `${W}/app/a\tb/page.tsx`;
+  const item = `CHK-15c|${page}|@interdomestik/database`;
+  const { root, base } = adopted(
+    t,
+    { 'CHK-15c': [LEGACY, item] },
+    { [DB_PAGE]: DB_IMPORT, [page]: DB_IMPORT }
+  );
+  const head = commit(root, { [page]: `${DB_IMPORT}// edited\n` });
+  const { code, report } = scan(t, root, ['--base', base, '--head', head]);
+  assert.equal(code, 0, JSON.stringify(report?.errors));
+  assert.deepEqual(report.changes.baselined, { [page]: [item] });
 });

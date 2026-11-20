@@ -187,6 +187,21 @@ function freshFor(base, head, id) {
 
 const SKIPPED_RE =
   /\b(?:it|test|describe|suite)\s*\.\s*(?:skip|todo|fixme)\b|\bx(?:it|describe)\s*\(/u;
+const TEST_FUNCTIONS = new Set(['it', 'test', 'describe', 'suite']);
+
+// Whether a test imports a test function under another name (`import { suite as s }`): a skip
+// through that name is not seen, so such a test is no evidence at all (fail closed, r7 B3).
+function renamesTestFunction(rel, text) {
+  const kind = /\.[jt]sx$/u.test(rel) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const source = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, kind);
+  return nodesOf(source).some(
+    node =>
+      ts.isImportSpecifier(node) &&
+      node.propertyName !== undefined &&
+      TEST_FUNCTIONS.has(node.propertyName.text) &&
+      node.propertyName.text !== node.name.text
+  );
+}
 // A time-field name ends in one of these (`createdAt`, `granted_at`, `timestamp`); the regex only
 // tests for one, so the leading word characters need no match of their own.
 const TIME_RE = /(?:At|_at|Time|time|timestamp)\b/u;
@@ -440,13 +455,14 @@ function inTypePosition(node) {
 }
 
 // Whether a reference only forwards its value through `export default`: the node, through
-// parentheses, type assertions or as the object of a member access, is the exported expression
-// (r6 B4: `export default (s)`, `export default ns.s`).
+// parentheses, type assertions (`as` and `<T>`) or as the object of a member access, is the exported
+// expression (r6 B4: `export default (s)`, `export default ns.s`; r7 B2: `export default <T>s`).
 function forwardedByDefaultExport(node) {
   let at = node;
   while (
     ts.isParenthesizedExpression(at.parent) ||
     ts.isAsExpression(at.parent) ||
+    ts.isTypeAssertionExpression(at.parent) ||
     ts.isSatisfiesExpression(at.parent) ||
     ts.isNonNullExpression(at.parent) ||
     (ts.isPropertyAccessExpression(at.parent) && at.parent.expression === at)
@@ -526,6 +542,8 @@ function useEvidenceError(root, lanes, entry, use) {
   if (!text.trim()) return `${where} is empty`;
   if (!inLane(lanes, use.test)) return `${where} is selected by no lane`;
   if (SKIPPED_RE.test(text)) return `${where} is skipped`;
+  if (renamesTestFunction(use.test, text))
+    return `${where} renames the test function it, test, describe or suite on import`;
   const submission = submissionError(root, use, text);
   if (submission) return `${where} ${submission}`;
   const missing = missingNames(entry, use, text);

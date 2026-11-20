@@ -399,3 +399,44 @@ test('r6 B5: a skipped test or suite is not evidence', t => {
       skipped
     );
 });
+
+// r7 blocker 2: an angle-bracket type assertion (only in a .ts file) forwarded by `export default`
+// is no use either.
+test('r7 B2: export default <T>submission in a .test.ts file is not a use', t => {
+  for (const line of [
+    'export default <never>saveTerms;',
+    'export default <never>(saveTerms);',
+    'export default (<never>saveTerms);',
+  ])
+    assert.match(
+      evidence(t, `${W}/app/signup/page.test.ts`, usesOnly(`${IMPORT_SAVE}\n${line}`, '')).join(
+        '\n'
+      ),
+      /does not use the submission export saveTerms/u,
+      line
+    );
+});
+
+// r7 blocker 3: a test function imported under another name could be skipped unseen, so the
+// renamed import is no evidence at all (fail closed); the plain names still are.
+test('r7 B3: a renamed import of it, test, describe or suite is not evidence', t => {
+  for (const name of ['it', 'test', 'describe', 'suite'])
+    for (const body of [IMPORTING, IMPORTING.replace('it(', 's.skip(')])
+      assert.match(
+        evidence(
+          t,
+          `${W}/app/signup/page.test.tsx`,
+          `import { ${name} as s } from 'vitest';\n${body}`
+        ).join('\n'),
+        /renames the test function/u,
+        name
+      );
+  assert.deepEqual(
+    evidence(
+      t,
+      `${W}/app/signup/page.test.tsx`,
+      `import { it, describe } from 'vitest';\n${IMPORTING}`
+    ),
+    []
+  );
+});

@@ -69,10 +69,15 @@ function rebuildSignals(repo, baseSha, headSha, root, file, changedCount) {
   return signals;
 }
 
-// A signal as one printable line: it names a PR-controlled path, so its control characters are
-// escaped as in JSON before it reaches the trusted run's log (r6 B1).
+// A signal as one printable line: it names a PR-controlled path, so before it reaches the trusted
+// run's log `%`, `:`, every control character and DEL are percent-encoded as GitHub encodes
+// workflow-command values. No line break and no `::` command marker is left, at the start of a
+// line or after other text (r6 B1, r7 B1).
 export const signalLine = signal =>
-  String(signal).replaceAll(/[\u0000-\u001f\u007f]/gu, ch => JSON.stringify(ch).slice(1, -1));
+  String(signal).replaceAll(
+    /[%:\u0000-\u001f\u007f]/gu,
+    ch => `%${ch.codePointAt(0).toString(16).toUpperCase().padStart(2, '0')}`
+  );
 
 // { baselined: { file: [items] }, signals: [text] } for the change base..head.
 export function changeReport(repo, baseSha, headSha, root, head, rebuilt) {
