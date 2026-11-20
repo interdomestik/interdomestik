@@ -1,0 +1,186 @@
+{
+  "about": "CHK-13 (R-13): the reviewed inventory of script files that name a database client: a driver specifier in any form, a client command (psql, pg_dump, pg_dumpall, pg_restore, pgcli, createdb, dropdb), or DATABASE_URL. Each has a kind that scripts/ci/own-database-client.test.mjs enforces: launcher and contract construct no client and run no client command; read-only runs its statement through runReadOnlyReport; probe runs only its pinned select 1 body, as the condition of its pinned if or until construct; container-local uses docker exec on a local container for status only and runs no client command; pinned-read-probe is a reviewed read probe pinned byte for byte by its hash in the rules module; owner-operation is the one pinned owner operation, and only its pinned modules stand under another entry; residual is a disposable-database writer that has not yet moved behind the guarded client. Every other destructive script takes its client from the guarded import behind assertDisposableTarget.",
+  "scripts": [
+    {
+      "path": "packages/database/drizzle.config.ts",
+      "kind": "launcher",
+      "reason": "The drizzle-kit configuration: hands DATABASE_URL to drizzle-kit, which package scripts run only for generate (no connection); no connecting drizzle-kit command is a package script (schema-push-search)."
+    },
+    {
+      "path": "packages/database/src/scripts/pilot-branch-target.ts",
+      "kind": "contract",
+      "reason": "Resolves the explicit, confirmed --target of the pilot branch audit against DATABASE_URL for scripts/pilot/branch-check.ts (read-only); it opens no client, runs no command and holds no write."
+    },
+    {
+      "path": "packages/database/test/pg16/scratch-database.ts",
+      "kind": "residual",
+      "reason": "The pg16 lane's one way to a database: creates a scratch database on the server that assertDisposableTarget accepts, hands its client to the journal-build, 0100 and read-only report proofs, and drops it. The tests themselves open no client.",
+      "followUp": "WP-04 O1: moves behind the guarded disposable client once the owner admits that driver module (tenant guard S2)."
+    },
+    {
+      "path": "scripts/check-env-ci.mjs",
+      "kind": "contract",
+      "reason": "Lists the environment variable names CI must provide; reads no value and opens no connection."
+    },
+    {
+      "path": "scripts/check-fast.mjs",
+      "kind": "launcher",
+      "reason": "Runs the fast unit lane with DATABASE_URL set to an unreachable loopback port, so no unit test can reach a database."
+    },
+    {
+      "path": "scripts/ci-local-parity.sh",
+      "kind": "launcher",
+      "reason": "Local CI parity: exports the CI container defaults (ci-postgres) for the lanes it runs; constructs no client and runs no client command."
+    },
+    {
+      "path": "scripts/ci/ci-audit-rls-workflow-contracts.mjs",
+      "kind": "contract",
+      "reason": "Contract check over workflow YAML text: compares the e2e-gate job's DATABASE_URL entries; reads no database."
+    },
+    {
+      "path": "scripts/ci/fetch-vercel-health.mjs",
+      "kind": "contract",
+      "reason": "Redacts DATABASE_URL values from fetched health output; never reads or uses the variable."
+    },
+    {
+      "path": "scripts/ci/fixtures/package-command-effects.cjs",
+      "kind": "contract",
+      "reason": "Test fixture naming the variables a package command may read; opens no connection."
+    },
+    {
+      "path": "scripts/ci/main-e2e-reuse.mjs",
+      "kind": "contract",
+      "reason": "Contract check over workflow text for E2E reuse: compares DATABASE_URL wiring; reads no database."
+    },
+    {
+      "path": "scripts/ci/pr-e2e-evidence-workflow-contracts.mjs",
+      "kind": "contract",
+      "reason": "Contract check over workflow text for PR E2E evidence: compares DATABASE_URL wiring; reads no database."
+    },
+    {
+      "path": "scripts/ci/run-with-vercel-env-file.mjs",
+      "kind": "launcher",
+      "reason": "Runs a command with a downloaded Vercel environment file after checking that DATABASE_URL and DATABASE_URL_RLS are present; constructs no client."
+    },
+    {
+      "path": "scripts/ci/runtime-attestation/enrol-staging.mjs",
+      "kind": "owner-operation",
+      "operation": "ida.u2e.staging-enrol.v1",
+      "workflow": ".github/workflows/staging-runtime-attestation-enrol.yml",
+      "modules": ["scripts/ci/runtime-attestation/enrol-core.mjs"],
+      "reason": "Owner-approved staging operation (2026-11-06): manual dispatch from main only, through the staging environment; refuses before connecting unless the reviewed staging authority and both identities hold. Its statements live in enrol-core.mjs, which opens no client."
+    },
+    {
+      "path": "scripts/ci/runtime-attestation/staging-authority.mjs",
+      "kind": "contract",
+      "reason": "The reviewed staging authority constants of the owner operation; 'postgres' is the database and role name, not a driver."
+    },
+    {
+      "path": "scripts/ci/verify-machine-docker.mjs",
+      "kind": "pinned-read-probe",
+      "reason": "The verification-machine probe reads the database list once, with psql inside the local fixture container, through the pinned local Unix-socket endpoint; its exact content is pinned by hash in the rules module."
+    },
+    {
+      "path": "scripts/ci/verify-machine-env.mjs",
+      "kind": "contract",
+      "reason": "Checks the names and shape of the database URL variables of the verification run; it opens no client and runs no command."
+    },
+    {
+      "path": "scripts/ci/verify-machine-fixtures.mjs",
+      "kind": "contract",
+      "reason": "Test fixtures for the verification-machine probe: a loopback URL and a container description as data; it opens no client."
+    },
+    {
+      "path": "scripts/ci/z620-resource-lib.mjs",
+      "kind": "residual",
+      "reason": "Z620 lane helper: creates and drops prefix-checked task databases on the Z620 container's server at its fixed loopback address, through a client of its own that refuses any non-loopback URL before it constructs the driver.",
+      "followUp": "WP-04 O1: moves behind the guarded disposable client once the owner admits that driver module (tenant guard S2)."
+    },
+    {
+      "path": "scripts/ci/z620-resource-run.mjs",
+      "kind": "launcher",
+      "reason": "Z620 lane runner: hands the loopback task database URL to the lane it starts; constructs no client."
+    },
+    {
+      "path": "scripts/ci/z620-runner.mjs",
+      "kind": "container-local",
+      "reason": "Z620 evidence manifest: records pg_isready of the local Supabase container through docker exec."
+    },
+    {
+      "path": "scripts/docker-env-bootstrap.sh",
+      "kind": "launcher",
+      "reason": "Copies DATABASE_URL from the root env file into the docker env file for local containers; constructs no client."
+    },
+    {
+      "path": "scripts/e2e-gate.sh",
+      "kind": "launcher",
+      "reason": "E2E gate entry: defaults DATABASE_URL to the local Supabase loopback database and runs the gate; constructs no client itself."
+    },
+    {
+      "path": "scripts/e2e-runtime-role.mjs",
+      "kind": "residual",
+      "reason": "Provisions the restricted E2E runtime role (role DDL and grants) for the E2E gate and the pilot gate; refuses, before connecting, any URL that is not a plain loopback database without connection options.",
+      "followUp": "WP-04 O1: moves behind the guarded disposable client once the owner admits that driver module (tenant guard S2)."
+    },
+    {
+      "path": "scripts/e2e-webserver.sh",
+      "kind": "launcher",
+      "reason": "E2E web server entry: wires DATABASE_URL and the restricted runtime URL for next start; constructs no client itself."
+    },
+    {
+      "path": "scripts/m4-gatekeeper.sh",
+      "kind": "probe",
+      "reason": "E2E gatekeeper: two readiness probes run select 1 on DATABASE_URL through embedded node; no other statement."
+    },
+    {
+      "path": "scripts/multi-agent/orchestrator.sh",
+      "kind": "launcher",
+      "reason": "Defaults DATABASE_URL to the local Supabase loopback database for the lanes it starts; constructs no client."
+    },
+    {
+      "path": "scripts/multi-agent/pr-hardening-pipeline.sh",
+      "kind": "launcher",
+      "reason": "Defaults DATABASE_URL to the local Supabase loopback database for the lanes it starts; constructs no client."
+    },
+    {
+      "path": "scripts/multi-agent/preflight-agent.sh",
+      "kind": "launcher",
+      "reason": "Defaults DATABASE_URL to the local Supabase loopback database for the checks it starts; constructs no client."
+    },
+    {
+      "path": "scripts/pilot-verify.sh",
+      "kind": "launcher",
+      "reason": "Pilot verification entry: requires DATABASE_URL and runs the pilot checks; constructs no client itself."
+    },
+    {
+      "path": "scripts/pilot/branch-check.ts",
+      "kind": "read-only",
+      "reason": "Pilot branch report against an explicit host:port/database argument (never a URL or an environment value); its one report statement runs through runReadOnlyReport, proved unable to write by test/pg16/pilot-report-read-only.test.ts."
+    },
+    {
+      "path": "scripts/run-staff-detail-rls.mjs",
+      "kind": "launcher",
+      "reason": "Reads DATABASE_URL to refuse anything but the loopback restricted-lane database, then hands it to the role set-up and to the staff-detail proof; opens no client itself."
+    },
+    {
+      "path": "scripts/run-with-default-db-url.mjs",
+      "kind": "launcher",
+      "reason": "Sets the loopback local-stack default for DATABASE_URL when it is unset and runs an allow-listed command; opens no client itself."
+    },
+    {
+      "path": "scripts/security-scan.sh",
+      "kind": "contract",
+      "reason": "Security scan: inspects the DATABASE_URL text in .env.local for default credentials and a non-loopback host; opens no connection."
+    },
+    {
+      "path": "scripts/security-setup.sh",
+      "kind": "launcher",
+      "reason": "Local security setup: writes a loopback local-stack DATABASE_URL template into an env file; opens no connection."
+    },
+    {
+      "path": "scripts/security-tests.sh",
+      "kind": "contract",
+      "reason": "Security tests: inspect the DATABASE_URL text in .env.local for default credentials; open no connection."
+    }
+  ]
+}

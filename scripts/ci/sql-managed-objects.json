@@ -1,0 +1,1355 @@
+{
+  "about": "CHK-12 (R-12): the objects SQL manages that the newest Drizzle snapshot does not declare, with the value a database built from the journal gives them and the journal entry after which that value stayed final (found by a fresh build of every journal prefix). An entry may only add a fact the snapshot does not declare; it can never override one. Declared facts that the journal builds differently are pinned by exact key and value in REVIEWED_DRIFT (packages/database/test/journal-schema-parity.support.ts), not here. Values are PostgreSQL renderings; functions and view bodies are md5 of pg_get_functiondef and pg_get_viewdef.",
+  "objects": [
+    {
+      "key": "check [\"public\",\"billing_invoices\",\"billing_invoices_billing_entity_chk\"]",
+      "value": "(billing_entity = ANY (ARRAY['ks'::text, 'mk'::text, 'al'::text]))",
+      "migration": "0034_invoice_append_only_ledger_invariants"
+    },
+    {
+      "key": "check [\"public\",\"billing_ledger_entries\",\"billing_ledger_billing_entity_chk\"]",
+      "value": "(billing_entity = ANY (ARRAY['ks'::text, 'mk'::text, 'al'::text]))",
+      "migration": "0034_invoice_append_only_ledger_invariants"
+    },
+    {
+      "key": "check [\"public\",\"claim_recovery_no_fee_evidence\",\"claim_recovery_no_fee_evidence_reason_code_check\"]",
+      "value": "(reason_code = ANY (ARRAY['no_recovery'::text, 'not_billable_under_recovery_scope'::text]))",
+      "migration": "0084_claim_recovery_no_fee_evidence"
+    },
+    {
+      "key": "check [\"public\",\"claim_transition_evidence\",\"claim_transition_evidence_status_check\"]",
+      "value": "(evidence_status = ANY (ARRAY['accepted'::text, 'signed'::text, 'reviewed'::text, 'revoked'::text]))",
+      "migration": "0090_t002b_claim_transition_evidence"
+    },
+    {
+      "key": "check [\"public\",\"claim_transition_evidence\",\"claim_transition_evidence_type_check\"]",
+      "value": "(evidence_type = ANY (ARRAY['assignment_signed'::text, 'poa_signed'::text, 'airline_submission_consent'::text, 'vehicle_valuation_delta'::text, 'service_consent'::text, 'medical_consent'::text, 'human_review'::text]))",
+      "migration": "0090_t002b_claim_transition_evidence"
+    },
+    {
+      "key": "exclusion [\"public\",\"sponsor_terms\",\"sponsor_terms_no_overlap\"]",
+      "value": "EXCLUDE USING gist (sponsor_id WITH =, tstzrange(term_start, term_end, '[)'::text) WITH &&)",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "extension [\"btree_gist\"]",
+      "value": "extension",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "fk [\"public\",\"crm_deals\",[\"membership_plan_id\"],\"public\",\"membership_plans\",[\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0001_long_shaman"
+    },
+    {
+      "key": "fk [\"public\",\"crm_leads\",[\"branch_id\"],\"public\",\"branches\",[\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0058_redundant_tinkerer"
+    },
+    {
+      "key": "function [\"public\",\"billing_invoices_scope_guard_fn()\"]",
+      "value": "ca2649f354dfe241723c834443648610",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "function [\"public\",\"billing_ledger_entries_append_only_fn()\"]",
+      "value": "878de30a0552711256d7412ba367eb81",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "function [\"public\",\"billing_ledger_entries_scope_guard_fn()\"]",
+      "value": "020832fc41274fea32c0c10ec8d61045",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "function [\"public\",\"member_leads_legacy_consent_guard_fn()\"]",
+      "value": "ddc6247a82bb53c3b504d039dfd4a0cb",
+      "migration": "0097_member_leads_consent"
+    },
+    {
+      "key": "function [\"public\",\"member_referral_reward_type_fixed()\"]",
+      "value": "21a8014ab83a469f4c831e5cfaaf79c2",
+      "migration": "0073_harden_member_referral_reward_type_functions"
+    },
+    {
+      "key": "function [\"public\",\"member_referral_reward_type_percent()\"]",
+      "value": "c716964d73abe7de1e61eeb60756b7b5",
+      "migration": "0073_harden_member_referral_reward_type_functions"
+    },
+    {
+      "key": "function [\"public\",\"sponsor_handover_cancel_attempts_guard_fn()\"]",
+      "value": "e71a8b6aacf09242220b7047a190ae42",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "function [\"public\",\"sponsor_handover_charges_guard_fn()\"]",
+      "value": "14789aa0457aa326b680c40fa82d7804",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "function [\"public\",\"sponsor_handover_intents_guard_fn()\"]",
+      "value": "e60faa1c7b917925fa177f8588318390",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "function [\"public\",\"sponsor_reject_update_fn()\"]",
+      "value": "fc904e8ba735257750a455f2b5ad21f9",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "function [\"public\",\"sponsor_roster_entries_guard_fn()\"]",
+      "value": "dd7bf8127f24e348b6714d76da3b7e18",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "function [\"public\",\"sponsor_terms_guard_fn()\"]",
+      "value": "0df49e20782ee8b487f420972ab1593c",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "index [\"public\",\"agent_settings\",\"idx_agent_settings_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"audit_log\",\"idx_audit_log_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"automation_logs\",\"idx_automation_logs_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"claim\",\"idx_claim_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"claim_documents\",\"idx_claim_documents_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"claim_messages\",\"idx_claim_messages_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"claim_stage_history\",\"idx_claim_stage_history_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"crm_activities\",\"idx_crm_activities_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"crm_deals\",\"idx_crm_deals_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"crm_leads\",\"idx_crm_leads_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"email_campaign_logs\",\"idx_email_campaign_logs_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"engagement_email_sends\",\"idx_engagement_email_sends_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"lead_downloads\",\"idx_lead_downloads_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"member_notes\",\"idx_member_notes_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"membership_plans\",\"idx_membership_plans_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"notifications\",\"idx_notifications_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"nps_survey_responses\",\"idx_nps_survey_responses_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"nps_survey_tokens\",\"idx_nps_survey_tokens_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"partner_discount_usage\",\"idx_partner_discount_usage_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"policies\",\"idx_policies_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"policies\",\"policies_user_id_idx\"]",
+      "value": "btree (user_id)",
+      "migration": "0005_add_policies"
+    },
+    {
+      "key": "index [\"public\",\"push_subscriptions\",\"push_subscriptions_user_id_idx\"]",
+      "value": "btree (user_id)",
+      "migration": "0050_reconcile_push_subscriptions"
+    },
+    {
+      "key": "index [\"public\",\"referrals\",\"idx_referrals_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"service_requests\",\"idx_service_requests_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"service_usage\",\"idx_service_usage_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"subscriptions\",\"idx_subscriptions_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"user\",\"idx_user_branch_id\"]",
+      "value": "btree (branch_id)",
+      "migration": "0010_add_branch_scoping"
+    },
+    {
+      "key": "index [\"public\",\"user\",\"idx_user_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"user\",\"user_email_lower_unique\"]",
+      "value": "unique btree (lower(btrim(email)))",
+      "migration": "0098_user_email_lower_unique"
+    },
+    {
+      "key": "index [\"public\",\"user_roles\",\"idx_user_roles_branch_id\"]",
+      "value": "btree (branch_id)",
+      "migration": "0009_add_branches_rbac"
+    },
+    {
+      "key": "index [\"public\",\"user_roles\",\"idx_user_roles_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0009_add_branches_rbac"
+    },
+    {
+      "key": "index [\"public\",\"user_roles\",\"idx_user_roles_user_id\"]",
+      "value": "btree (user_id)",
+      "migration": "0009_add_branches_rbac"
+    },
+    {
+      "key": "index [\"public\",\"webhook_events\",\"idx_webhook_events_tenant_id\"]",
+      "value": "btree (tenant_id)",
+      "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "not-valid [\"public\",\"claim\",\"claim_case_lifecycle_state_check\"]",
+      "value": "c",
+      "migration": "0071_claim_lifecycle_states"
+    },
+    {
+      "key": "not-valid [\"public\",\"claim\",\"claim_recovery_lifecycle_state_check\"]",
+      "value": "c",
+      "migration": "0071_claim_lifecycle_states"
+    },
+    {
+      "key": "not-valid [\"public\",\"crm_activities\",\"crm_activities_tenant_lead_fk\"]",
+      "value": "f",
+      "migration": "0061_crm_activity_discipline"
+    },
+    {
+      "key": "not-valid [\"public\",\"support_handoffs\",\"support_handoffs_member_reply_length_check\"]",
+      "value": "c",
+      "migration": "0057_pale_peter_quill"
+    },
+    {
+      "key": "policy [\"public\",\"account\",\"No public access\"]",
+      "value": "permissive for all to [\"public\"] using false check false",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "policy [\"public\",\"agent_clients\",\"tenant_isolation_agent_clients\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"agent_commissions\",\"tenant_isolation_agent_commissions\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"agent_settings\",\"tenant_isolation_agent_settings\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"ai_runs\",\"tenant_isolation_ai_runs\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"audit_log\",\"tenant_isolation_audit_log\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"automation_logs\",\"tenant_isolation_automation_logs\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"billing_invoices\",\"tenant_isolation_billing_invoices\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"billing_ledger_entries\",\"tenant_isolation_billing_ledger_entries\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"branches\",\"tenant_isolation_branches\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"case_scoped_access_grants\",\"tenant_delete_case_scoped_access_grants\"]",
+      "value": "permissive for delete to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
+      "migration": "0085_case_scoped_access_grants"
+    },
+    {
+      "key": "policy [\"public\",\"case_scoped_access_grants\",\"tenant_isolation_case_scoped_access_grants\"]",
+      "value": "permissive for select to [\"public\"] using ((tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) OR (access_tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))) check -",
+      "migration": "0085_case_scoped_access_grants"
+    },
+    {
+      "key": "policy [\"public\",\"case_scoped_access_grants\",\"tenant_update_case_scoped_access_grants\"]",
+      "value": "permissive for update to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0085_case_scoped_access_grants"
+    },
+    {
+      "key": "policy [\"public\",\"case_scoped_access_grants\",\"tenant_write_case_scoped_access_grants\"]",
+      "value": "permissive for insert to [\"public\"] using - check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0085_case_scoped_access_grants"
+    },
+    {
+      "key": "policy [\"public\",\"claim\",\"tenant_delete_claim\"]",
+      "value": "permissive for delete to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim\",\"tenant_isolation_claim\"]",
+      "value": "permissive for select to [\"public\"] using (COALESCE(access_tenant_id, tenant_id) = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim\",\"tenant_update_claim\"]",
+      "value": "permissive for update to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim\",\"tenant_write_claim\"]",
+      "value": "permissive for insert to [\"public\"] using - check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_counters\",\"tenant_isolation_claim_counters\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"claim_document_ai_extraction_consents\",\"tenant_isolation_claim_document_ai_extraction_consents\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_tenant_id'::text, true) AS current_setting))",
+      "migration": "0087_claim_document_ai_extraction_consents"
+    },
+    {
+      "key": "policy [\"public\",\"claim_documents\",\"tenant_delete_claim_documents\"]",
+      "value": "permissive for delete to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_documents\",\"tenant_isolation_claim_documents\"]",
+      "value": "permissive for select to [\"public\"] using (COALESCE(access_tenant_id, tenant_id) = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_documents\",\"tenant_update_claim_documents\"]",
+      "value": "permissive for update to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_documents\",\"tenant_write_claim_documents\"]",
+      "value": "permissive for insert to [\"public\"] using - check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_escalation_agreements\",\"tenant_delete_claim_escalation_agreements\"]",
+      "value": "permissive for delete to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_escalation_agreements\",\"tenant_isolation_claim_escalation_agreements\"]",
+      "value": "permissive for select to [\"public\"] using (COALESCE(access_tenant_id, tenant_id) = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_escalation_agreements\",\"tenant_update_claim_escalation_agreements\"]",
+      "value": "permissive for update to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_escalation_agreements\",\"tenant_write_claim_escalation_agreements\"]",
+      "value": "permissive for insert to [\"public\"] using - check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_messages\",\"tenant_isolation_claim_messages\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"claim_recovery_no_fee_evidence\",\"tenant_delete_claim_recovery_no_fee_evidence\"]",
+      "value": "permissive for delete to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_recovery_no_fee_evidence\",\"tenant_isolation_claim_recovery_no_fee_evidence\"]",
+      "value": "permissive for select to [\"public\"] using (COALESCE(access_tenant_id, tenant_id) = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_recovery_no_fee_evidence\",\"tenant_update_claim_recovery_no_fee_evidence\"]",
+      "value": "permissive for update to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_recovery_no_fee_evidence\",\"tenant_write_claim_recovery_no_fee_evidence\"]",
+      "value": "permissive for insert to [\"public\"] using - check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_stage_history\",\"tenant_isolation_claim_stage_history\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"claim_threads\",\"tenant_isolation_claim_threads\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"claim_tracking_tokens\",\"tenant_isolation_claim_tracking_tokens\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"claim_transition_evidence\",\"tenant_isolation_claim_transition_evidence\"]",
+      "value": "permissive for select to [\"public\"] using (COALESCE(access_tenant_id, tenant_id) = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
+      "migration": "0090_t002b_claim_transition_evidence"
+    },
+    {
+      "key": "policy [\"public\",\"claim_transition_evidence\",\"tenant_update_claim_transition_evidence\"]",
+      "value": "permissive for update to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0090_t002b_claim_transition_evidence"
+    },
+    {
+      "key": "policy [\"public\",\"claim_transition_evidence\",\"tenant_write_claim_transition_evidence\"]",
+      "value": "permissive for insert to [\"public\"] using - check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0090_t002b_claim_transition_evidence"
+    },
+    {
+      "key": "policy [\"public\",\"commercial_action_idempotency\",\"tenant_isolation_commercial_action_idempotency\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_activities\",\"tenant_isolation_crm_activities\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_deal_backfill_quarantine\",\"tenant_isolation_crm_deal_backfill_quarantine\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_deal_stage_history\",\"tenant_isolation_crm_deal_stage_history\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_deals\",\"tenant_isolation_crm_deals\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_lead_ownership_history\",\"tenant_isolation_crm_lead_ownership_history\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_lead_stage_history\",\"tenant_isolation_crm_lead_stage_history\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_leads\",\"tenant_isolation_crm_leads\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_loss_reasons\",\"tenant_isolation_crm_loss_reasons\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_pipeline_snapshots\",\"tenant_isolation_crm_pipeline_snapshots\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_pipeline_stages\",\"tenant_isolation_crm_pipeline_stages\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_pipelines\",\"tenant_isolation_crm_pipelines\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_routing_assignments_audit\",\"tenant_isolation_crm_routing_assignments_audit\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_routing_cursors\",\"tenant_isolation_crm_routing_cursors\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_routing_rules\",\"tenant_isolation_crm_routing_rules\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_task_history\",\"tenant_isolation_crm_task_history\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"crm_tasks\",\"tenant_isolation_crm_tasks\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"default_booking_links\",\"tenant_isolation_default_booking_links\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_tenant_id'::text, true) AS current_setting))",
+      "migration": "0088_tenant_entity_decomposition"
+    },
+    {
+      "key": "policy [\"public\",\"document_access_log\",\"tenant_isolation_document_access_log\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"document_extractions\",\"tenant_isolation_document_extractions\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"documents\",\"tenant_isolation_documents\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"domain_event_deliveries\",\"tenant_isolation_domain_event_deliveries\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"domain_event_keys\",\"tenant_isolation_domain_event_keys\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"domain_events\",\"tenant_delete_domain_events\"]",
+      "value": "permissive for delete to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"domain_events\",\"tenant_isolation_domain_events\"]",
+      "value": "permissive for select to [\"public\"] using (COALESCE(access_tenant_id, tenant_id) = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"domain_events\",\"tenant_update_domain_events\"]",
+      "value": "permissive for update to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"domain_events\",\"tenant_write_domain_events\"]",
+      "value": "permissive for insert to [\"public\"] using - check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"email_campaign_logs\",\"tenant_isolation_email_campaign_logs\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"engagement_email_sends\",\"tenant_isolation_engagement_email_sends\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"event_pii_keys\",\"tenant_isolation_event_pii_keys\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"event_pii_references\",\"tenant_isolation_event_pii_references\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"lead_downloads\",\"tenant_isolation_lead_downloads\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"lead_payment_attempts\",\"tenant_isolation_lead_payment_attempts\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"leads\",\"tenant_isolation_leads\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"legal_entities\",\"tenant_isolation_legal_entities\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_tenant_id'::text, true) AS current_setting))",
+      "migration": "0088_tenant_entity_decomposition"
+    },
+    {
+      "key": "policy [\"public\",\"marketing_hosts\",\"tenant_isolation_marketing_hosts\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_tenant_id'::text, true) AS current_setting))",
+      "migration": "0088_tenant_entity_decomposition"
+    },
+    {
+      "key": "policy [\"public\",\"member_activities\",\"tenant_isolation_member_activities\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"member_counters\",\"No public access\"]",
+      "value": "permissive for all to [\"public\"] using false check false",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "policy [\"public\",\"member_leads\",\"tenant_isolation_member_leads\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"member_notes\",\"tenant_isolation_member_notes\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"member_referral_rewards\",\"tenant_isolation_member_referral_rewards\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"member_referral_settings\",\"tenant_isolation_member_referral_settings\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"membership_cards\",\"tenant_isolation_membership_cards\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"membership_family_members\",\"tenant_isolation_membership_family_members\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"membership_plans\",\"tenant_isolation_membership_plans\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"notifications\",\"tenant_isolation_notifications\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"nps_survey_responses\",\"tenant_isolation_nps_survey_responses\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"nps_survey_tokens\",\"tenant_isolation_nps_survey_tokens\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"partner_discount_usage\",\"tenant_isolation_partner_discount_usage\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"policies\",\"tenant_isolation_policies\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"push_subscriptions\",\"tenant_isolation_push_subscriptions\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"referrals\",\"tenant_isolation_referrals\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"seed_meta\",\"No public access\"]",
+      "value": "permissive for all to [\"public\"] using false check false",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "policy [\"public\",\"service_requests\",\"tenant_isolation_service_requests\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"service_usage\",\"tenant_isolation_service_usage\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"session\",\"No public access\"]",
+      "value": "permissive for all to [\"public\"] using false check false",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "policy [\"public\",\"share_packs\",\"tenant_isolation_share_packs\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"subscriptions\",\"tenant_isolation_subscriptions\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"support_handoffs\",\"tenant_isolation_support_handoffs\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"tenant_settings\",\"tenant_isolation_tenant_settings\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"tenants\",\"No public access\"]",
+      "value": "permissive for all to [\"public\"] using false check false",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "policy [\"public\",\"user\",\"tenant_isolation_user\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"user_notification_preferences\",\"tenant_isolation_user_notification_preferences\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"user_roles\",\"tenant_isolation_user_roles\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "policy [\"public\",\"verification\",\"No public access\"]",
+      "value": "permissive for all to [\"public\"] using false check false",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "policy [\"public\",\"webhook_events\",\"tenant_isolation_webhook_events\"]",
+      "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
+      "migration": "0083_access_tenant_rls_policies"
+    },
+    {
+      "key": "relation-options [\"public\",\"tenant_entity_boundaries\"]",
+      "value": "[\"security_invoker=true\"]",
+      "migration": "0088_tenant_entity_decomposition"
+    },
+    {
+      "key": "rls [\"public\",\"account\"]",
+      "value": "enabled",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "rls [\"public\",\"agent_clients\"]",
+      "value": "enabled",
+      "migration": "0031_enable_claim_rls"
+    },
+    {
+      "key": "rls [\"public\",\"agent_commissions\"]",
+      "value": "enabled",
+      "migration": "0031_enable_claim_rls"
+    },
+    {
+      "key": "rls [\"public\",\"agent_settings\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"ai_runs\"]",
+      "value": "enabled",
+      "migration": "0037_add_ai_provenance"
+    },
+    {
+      "key": "rls [\"public\",\"audit_log\"]",
+      "value": "enabled",
+      "migration": "0031_enable_claim_rls"
+    },
+    {
+      "key": "rls [\"public\",\"automation_logs\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"billing_invoices\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"billing_ledger_entries\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"branches\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"case_scoped_access_grants\"]",
+      "value": "enabled",
+      "migration": "0085_case_scoped_access_grants"
+    },
+    {
+      "key": "rls [\"public\",\"claim\"]",
+      "value": "enabled",
+      "migration": "0031_enable_claim_rls"
+    },
+    {
+      "key": "rls [\"public\",\"claim_counters\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"claim_document_ai_extraction_consents\"]",
+      "value": "enabled",
+      "migration": "0087_claim_document_ai_extraction_consents"
+    },
+    {
+      "key": "rls [\"public\",\"claim_documents\"]",
+      "value": "enabled",
+      "migration": "0031_enable_claim_rls"
+    },
+    {
+      "key": "rls [\"public\",\"claim_escalation_agreements\"]",
+      "value": "enabled",
+      "migration": "0040_add_claim_escalation_agreements"
+    },
+    {
+      "key": "rls [\"public\",\"claim_messages\"]",
+      "value": "enabled",
+      "migration": "0031_enable_claim_rls"
+    },
+    {
+      "key": "rls [\"public\",\"claim_recovery_no_fee_evidence\"]",
+      "value": "enabled",
+      "migration": "0084_claim_recovery_no_fee_evidence"
+    },
+    {
+      "key": "rls [\"public\",\"claim_stage_history\"]",
+      "value": "enabled",
+      "migration": "0031_enable_claim_rls"
+    },
+    {
+      "key": "rls [\"public\",\"claim_threads\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"claim_tracking_tokens\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"claim_transition_evidence\"]",
+      "value": "enabled",
+      "migration": "0090_t002b_claim_transition_evidence"
+    },
+    {
+      "key": "rls [\"public\",\"commercial_action_idempotency\"]",
+      "value": "enabled",
+      "migration": "0043_enable_commercial_action_idempotency_rls"
+    },
+    {
+      "key": "rls [\"public\",\"crm_activities\"]",
+      "value": "enabled",
+      "migration": "0031_enable_claim_rls"
+    },
+    {
+      "key": "rls [\"public\",\"crm_deal_backfill_quarantine\"]",
+      "value": "enabled",
+      "migration": "0062_careful_gideon"
+    },
+    {
+      "key": "rls [\"public\",\"crm_deal_stage_history\"]",
+      "value": "enabled",
+      "migration": "0062_careful_gideon"
+    },
+    {
+      "key": "rls [\"public\",\"crm_deals\"]",
+      "value": "enabled",
+      "migration": "0031_enable_claim_rls"
+    },
+    {
+      "key": "rls [\"public\",\"crm_lead_ownership_history\"]",
+      "value": "enabled",
+      "migration": "0060_crm_lead_ownership_history"
+    },
+    {
+      "key": "rls [\"public\",\"crm_lead_stage_history\"]",
+      "value": "enabled",
+      "migration": "0059_wide_terrax"
+    },
+    {
+      "key": "rls [\"public\",\"crm_leads\"]",
+      "value": "enabled",
+      "migration": "0031_enable_claim_rls"
+    },
+    {
+      "key": "rls [\"public\",\"crm_loss_reasons\"]",
+      "value": "enabled",
+      "migration": "0062_careful_gideon"
+    },
+    {
+      "key": "rls [\"public\",\"crm_pipeline_snapshots\"]",
+      "value": "enabled",
+      "migration": "0063_clean_serpent_society"
+    },
+    {
+      "key": "rls [\"public\",\"crm_pipeline_stages\"]",
+      "value": "enabled",
+      "migration": "0062_careful_gideon"
+    },
+    {
+      "key": "rls [\"public\",\"crm_pipelines\"]",
+      "value": "enabled",
+      "migration": "0062_careful_gideon"
+    },
+    {
+      "key": "rls [\"public\",\"crm_routing_assignments_audit\"]",
+      "value": "enabled",
+      "migration": "0064_crm_routing_persistence"
+    },
+    {
+      "key": "rls [\"public\",\"crm_routing_cursors\"]",
+      "value": "enabled",
+      "migration": "0064_crm_routing_persistence"
+    },
+    {
+      "key": "rls [\"public\",\"crm_routing_rules\"]",
+      "value": "enabled",
+      "migration": "0064_crm_routing_persistence"
+    },
+    {
+      "key": "rls [\"public\",\"crm_task_history\"]",
+      "value": "enabled",
+      "migration": "0065_crm_task_persistence"
+    },
+    {
+      "key": "rls [\"public\",\"crm_tasks\"]",
+      "value": "enabled",
+      "migration": "0065_crm_task_persistence"
+    },
+    {
+      "key": "rls [\"public\",\"default_booking_links\"]",
+      "value": "enabled",
+      "migration": "0088_tenant_entity_decomposition"
+    },
+    {
+      "key": "rls [\"public\",\"document_access_log\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"document_extractions\"]",
+      "value": "enabled",
+      "migration": "0037_add_ai_provenance"
+    },
+    {
+      "key": "rls [\"public\",\"documents\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"domain_event_deliveries\"]",
+      "value": "enabled",
+      "migration": "0070_domain_event_deliveries"
+    },
+    {
+      "key": "rls [\"public\",\"domain_event_keys\"]",
+      "value": "enabled",
+      "migration": "0079_domain_event_keys"
+    },
+    {
+      "key": "rls [\"public\",\"domain_events\"]",
+      "value": "enabled",
+      "migration": "0069_enable_domain_events_rls"
+    },
+    {
+      "key": "rls [\"public\",\"email_campaign_logs\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"engagement_email_sends\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"event_pii_keys\"]",
+      "value": "enabled",
+      "migration": "0080_event_pii_references"
+    },
+    {
+      "key": "rls [\"public\",\"event_pii_references\"]",
+      "value": "enabled",
+      "migration": "0080_event_pii_references"
+    },
+    {
+      "key": "rls [\"public\",\"lead_downloads\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"lead_payment_attempts\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"leads\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"legal_entities\"]",
+      "value": "enabled",
+      "migration": "0088_tenant_entity_decomposition"
+    },
+    {
+      "key": "rls [\"public\",\"marketing_hosts\"]",
+      "value": "enabled",
+      "migration": "0088_tenant_entity_decomposition"
+    },
+    {
+      "key": "rls [\"public\",\"member_activities\"]",
+      "value": "enabled",
+      "migration": "0032_member_activities_backfill"
+    },
+    {
+      "key": "rls [\"public\",\"member_counters\"]",
+      "value": "enabled",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "rls [\"public\",\"member_leads\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"member_notes\"]",
+      "value": "enabled",
+      "migration": "0031_enable_claim_rls"
+    },
+    {
+      "key": "rls [\"public\",\"member_referral_rewards\"]",
+      "value": "enabled",
+      "migration": "0048_enable_member_referral_rls"
+    },
+    {
+      "key": "rls [\"public\",\"member_referral_settings\"]",
+      "value": "enabled",
+      "migration": "0048_enable_member_referral_rls"
+    },
+    {
+      "key": "rls [\"public\",\"membership_cards\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"membership_family_members\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"membership_plans\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"notifications\"]",
+      "value": "enabled",
+      "migration": "0031_enable_claim_rls"
+    },
+    {
+      "key": "rls [\"public\",\"nps_survey_responses\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"nps_survey_tokens\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"partner_discount_usage\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"policies\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"push_subscriptions\"]",
+      "value": "enabled",
+      "migration": "0051_enable_push_subscriptions_rls"
+    },
+    {
+      "key": "rls [\"public\",\"referrals\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"seed_meta\"]",
+      "value": "enabled",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "rls [\"public\",\"service_requests\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"service_usage\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"session\"]",
+      "value": "enabled",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "rls [\"public\",\"share_packs\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"subscriptions\"]",
+      "value": "enabled",
+      "migration": "0031_enable_claim_rls"
+    },
+    {
+      "key": "rls [\"public\",\"support_handoffs\"]",
+      "value": "enabled",
+      "migration": "0054_support_handoffs"
+    },
+    {
+      "key": "rls [\"public\",\"tenant_settings\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"tenants\"]",
+      "value": "enabled",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "rls [\"public\",\"user\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"user_notification_preferences\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"user_roles\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls [\"public\",\"verification\"]",
+      "value": "enabled",
+      "migration": "0036_supabase_advisor_security_hardening"
+    },
+    {
+      "key": "rls [\"public\",\"webhook_events\"]",
+      "value": "enabled",
+      "migration": "0035_enable_tenant_rls_coverage"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_handover_cancel_attempts\"]",
+      "value": "forced",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_handover_charges\"]",
+      "value": "forced",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_handover_intents\"]",
+      "value": "forced",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_mail_outbox\"]",
+      "value": "forced",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_revision_decisions\"]",
+      "value": "forced",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_roster_entries\"]",
+      "value": "forced",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_term_revisions\"]",
+      "value": "forced",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_terms\"]",
+      "value": "forced",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsors\"]",
+      "value": "forced",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "trigger [\"public\",\"billing_invoices\",\"billing_invoices_scope_guard_trg\"]",
+      "value": "CREATE TRIGGER billing_invoices_scope_guard_trg BEFORE INSERT OR UPDATE ON public.billing_invoices FOR EACH ROW EXECUTE FUNCTION billing_invoices_scope_guard_fn()",
+      "migration": "0034_invoice_append_only_ledger_invariants"
+    },
+    {
+      "key": "trigger [\"public\",\"billing_ledger_entries\",\"billing_ledger_entries_append_only_trg\"]",
+      "value": "CREATE TRIGGER billing_ledger_entries_append_only_trg BEFORE DELETE OR UPDATE ON public.billing_ledger_entries FOR EACH ROW EXECUTE FUNCTION billing_ledger_entries_append_only_fn()",
+      "migration": "0034_invoice_append_only_ledger_invariants"
+    },
+    {
+      "key": "trigger [\"public\",\"billing_ledger_entries\",\"billing_ledger_entries_scope_guard_trg\"]",
+      "value": "CREATE TRIGGER billing_ledger_entries_scope_guard_trg BEFORE INSERT ON public.billing_ledger_entries FOR EACH ROW EXECUTE FUNCTION billing_ledger_entries_scope_guard_fn()",
+      "migration": "0034_invoice_append_only_ledger_invariants"
+    },
+    {
+      "key": "trigger [\"public\",\"member_leads\",\"member_leads_legacy_consent_guard\"]",
+      "value": "CREATE TRIGGER member_leads_legacy_consent_guard BEFORE INSERT OR UPDATE OF consent_captured_at ON public.member_leads FOR EACH ROW EXECUTE FUNCTION member_leads_legacy_consent_guard_fn()",
+      "migration": "0097_member_leads_consent"
+    },
+    {
+      "key": "trigger [\"public\",\"sponsor_handover_cancel_attempts\",\"sponsor_handover_cancel_attempts_guard\"]",
+      "value": "CREATE TRIGGER sponsor_handover_cancel_attempts_guard BEFORE UPDATE ON public.sponsor_handover_cancel_attempts FOR EACH ROW EXECUTE FUNCTION sponsor_handover_cancel_attempts_guard_fn()",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "trigger [\"public\",\"sponsor_handover_charges\",\"sponsor_handover_charges_guard\"]",
+      "value": "CREATE TRIGGER sponsor_handover_charges_guard BEFORE UPDATE ON public.sponsor_handover_charges FOR EACH ROW EXECUTE FUNCTION sponsor_handover_charges_guard_fn()",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "trigger [\"public\",\"sponsor_handover_intents\",\"sponsor_handover_intents_guard\"]",
+      "value": "CREATE TRIGGER sponsor_handover_intents_guard BEFORE UPDATE ON public.sponsor_handover_intents FOR EACH ROW EXECUTE FUNCTION sponsor_handover_intents_guard_fn()",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "trigger [\"public\",\"sponsor_revision_decisions\",\"sponsor_revision_decisions_immutable\"]",
+      "value": "CREATE TRIGGER sponsor_revision_decisions_immutable BEFORE UPDATE ON public.sponsor_revision_decisions FOR EACH ROW EXECUTE FUNCTION sponsor_reject_update_fn()",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "trigger [\"public\",\"sponsor_roster_entries\",\"sponsor_roster_entries_guard\"]",
+      "value": "CREATE TRIGGER sponsor_roster_entries_guard BEFORE UPDATE ON public.sponsor_roster_entries FOR EACH ROW EXECUTE FUNCTION sponsor_roster_entries_guard_fn()",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "trigger [\"public\",\"sponsor_term_revisions\",\"sponsor_term_revisions_immutable\"]",
+      "value": "CREATE TRIGGER sponsor_term_revisions_immutable BEFORE UPDATE ON public.sponsor_term_revisions FOR EACH ROW EXECUTE FUNCTION sponsor_reject_update_fn()",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "trigger [\"public\",\"sponsor_terms\",\"sponsor_terms_guard\"]",
+      "value": "CREATE TRIGGER sponsor_terms_guard BEFORE UPDATE ON public.sponsor_terms FOR EACH ROW EXECUTE FUNCTION sponsor_terms_guard_fn()",
+      "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "view-definition [\"public\",\"tenant_entity_boundaries\"]",
+      "value": "9d5f6f64f9074406c909378d030baaf3",
+      "migration": "0088_tenant_entity_decomposition"
+    }
+  ]
+}

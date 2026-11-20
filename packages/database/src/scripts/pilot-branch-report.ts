@@ -75,3 +75,37 @@ export function formatPilotBranchReport(rows: readonly PilotBranchViolation[]): 
     ),
   ];
 }
+
+type ReadOnlyReportTransaction = {
+  unsafe(
+    query: string,
+    parameters: string[],
+    options: { prepare?: boolean; simple: false }
+  ): PromiseLike<unknown>;
+};
+/** The part of a postgres.js client a report uses; nothing here can open a connection. */
+export type ReadOnlyReportClient = {
+  begin(
+    options: string,
+    callback: (tx: ReadOnlyReportTransaction) => Promise<unknown>
+  ): Promise<unknown>;
+};
+
+/**
+ * R-13: a report reads only. Its one statement runs in a transaction opened READ ONLY, after an
+ * opening query that fixes the mode (PostgreSQL refuses SET TRANSACTION READ WRITE after any
+ * query), over the extended protocol, which carries exactly one statement: the statement can
+ * neither write nor end the transaction and write after it.
+ */
+export async function runReadOnlyReport<T>(
+  client: ReadOnlyReportClient,
+  query: string,
+  parameters: string[]
+): Promise<T[]> {
+  const rows = await client.begin('read only', async tx => {
+    await tx.unsafe('select 1', [], { simple: false });
+    return tx.unsafe(query, parameters, { simple: false });
+  });
+  if (!Array.isArray(rows)) throw new Error('A report statement returns rows');
+  return rows as T[];
+}
