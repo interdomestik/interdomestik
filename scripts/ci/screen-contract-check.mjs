@@ -13,11 +13,18 @@
 // - Lanes (CHK-22 test evidence) are read against a denylist of unmodelled settings; an allowlist
 //   of modelled ones comes with the flip. Errs toward a missed finding: a test the lane does not
 //   run (a wrapper call, `typecheck.only`, `respectGitIgnore`) can be credited.
-// - A CHK-22 submission origin under `apps/web/src/actions/` is recognised by its directory, and
-//   216 of the 287 non-test action files there have no `'use server'` (2026-11-20). Errs toward a
-//   missed finding: a helper that runs in the browser can be credited as the server submission.
+// - A CHK-22 submission origin under `apps/web/src/actions/` or `apps/web/src/app/api/` is
+//   recognised by its directory (the action or handler role), and 216 of the 287 non-test action
+//   files have no `'use server'` (2026-11-20). Errs toward a missed finding: a helper that runs in
+//   the browser can be credited as the server submission.
+// - A CHK-22 entry with an `exportName` and a use is judged at its JSX renders only. A route
+//   module that renders the same component itself (Next renders it with no JSX caller) is not
+//   judged there. Errs toward a missed finding.
+// - CHK-22 test evidence: `export default (x)` and `export default ns.x` still count as a use of
+//   the submission, and `suite.skip` is not recognised as skipped. Errs toward a missed finding (a
+//   forwarding or skipped test is credited).
 // - Module resolution differs from TypeScript in the cases listed in `specifiers.mjs` (sibling
-//   `.js`/`.ts`, `.cjs`/`.mjs` substitution, `..` after `*` in `@/*`, declaration and
+//   `.js`/`.ts`, `.cjs`/`.mjs`/`.jsx` substitution, `..` after `*` in `@/*`, declaration and
 //   `typesVersions` edges). Errs mostly toward a missed finding (an edge not followed); where it
 //   picks another file than TypeScript, also toward a false one.
 import fs from 'node:fs';
@@ -28,7 +35,7 @@ import { ScanError } from './server-mutation/ast.mjs';
 import { parseBaseline, removalRecorded, removedChecks } from './server-mutation/baseline.mjs';
 import { ensureCommit, extractRevision, headSha, showAt } from './server-mutation/git.mjs';
 import { annotate, writeReport } from './server-mutation/output.mjs';
-import { changeReport } from './screen-contract/changes.mjs';
+import { changeReport, signalLine } from './screen-contract/changes.mjs';
 import {
   BASELINE_PATH,
   CHECKS,
@@ -335,7 +342,8 @@ export async function run(argv, cwd = process.cwd()) {
   try {
     writeReport(path.resolve(cwd, args.report ?? DEFAULT_REPORT), report, results);
     annotate(report, results);
-    for (const signal of report.changes?.signals ?? []) process.stdout.write(`${signal}\n`);
+    for (const signal of report.changes?.signals ?? [])
+      process.stdout.write(`${signalLine(signal)}\n`);
   } catch (error) {
     process.stderr.write(`screen-contract: report not written: ${error?.message ?? error}\n`);
     return 2;

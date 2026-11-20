@@ -267,5 +267,8 @@ test('r5 B9: a removed check is published with its files', t => {
   const result = scan(t, root, ['--base', base, '--head', head]);
   assert.deepEqual(result.report.errors, []);
   const removed = result.report.checks['CHK-09'];
-  assert.ok(removed?.files > 0, JSON.stringify(removed));
+  // r6 hardening: the count is the one measured on the same tree with the check present.
+  const measured = scan(t, root, ['--base', base, '--head', base]).report.checks['CHK-09'].files;
+  assert.ok(measured > 1, String(measured));
+  assert.equal(removed?.files, measured, JSON.stringify(removed));
 });

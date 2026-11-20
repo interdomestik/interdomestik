@@ -30,8 +30,11 @@ function changedLines(repo, baseSha, headSha) {
   const numstat = git(repo, ['diff', '--no-renames', '--numstat', '-z', baseSha, headSha]);
   const changed = new Map();
   for (const record of numstat.split('\0').filter(Boolean)) {
-    const [added, deleted, file] = record.split('\t');
-    changed.set(file, Math.max(Number(added), Number(deleted)));
+    // `<added>\t<deleted>\t<path>`: the path is everything after the second tab (r6 B3).
+    const first = record.indexOf('\t');
+    const second = record.indexOf('\t', first + 1);
+    const [added, deleted] = [record.slice(0, first), record.slice(first + 1, second)];
+    changed.set(record.slice(second + 1), Math.max(Number(added), Number(deleted)));
   }
   return changed;
 }
@@ -65,6 +68,11 @@ function rebuildSignals(repo, baseSha, headSha, root, file, changedCount) {
     signals.push(`likely rebuild: ${file} adds a page-ready marker`);
   return signals;
 }
+
+// A signal as one printable line: it names a PR-controlled path, so its control characters are
+// escaped as in JSON before it reaches the trusted run's log (r6 B1).
+export const signalLine = signal =>
+  String(signal).replaceAll(/[\u0000-\u001f\u007f]/gu, ch => JSON.stringify(ch).slice(1, -1));
 
 // { baselined: { file: [items] }, signals: [text] } for the change base..head.
 export function changeReport(repo, baseSha, headSha, root, head, rebuilt) {

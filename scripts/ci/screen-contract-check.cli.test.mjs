@@ -496,3 +496,22 @@ test('r5 B7: a changed baselined screen with a non-ASCII path is reported', t =>
   assert.equal(code, 0, JSON.stringify(report?.errors));
   assert.deepEqual(report.changes.baselined, { [page]: [item] });
 });
+
+// r6 blocker 3: a path is everything after the second tab of a `--numstat -z` record, so a name
+// with a tab is not cut short and attributed to a sibling.
+test('r6 B3: a changed path with a tab is not attributed to its prefix', t => {
+  const { root, base } = adopted(t);
+  const head = commit(root, { [`${DB_PAGE}\tdraft.tsx`]: 'export default () => null;\n' });
+  const { code, report } = scan(t, root, ['--base', base, '--head', head]);
+  assert.equal(code, 0, JSON.stringify(report?.errors));
+  assert.deepEqual(report.changes.baselined, {});
+});
+
+// r6 blocker 1: a signal names a PR-controlled path; printed to the trusted run's log, it is one
+// line, so a name with a newline cannot start a workflow command.
+test('r6 B1: a printed rebuild signal is one line whatever the file name', async () => {
+  const { signalLine } = await import('./screen-contract/changes.mjs');
+  const line = signalLine('likely rebuild: a\n::error::x\r\u0007.tsx adds a page-ready marker');
+  assert.doesNotMatch(line, /[\u0000-\u001f\u007f]/u);
+  assert.match(line, /a\\n::error::x\\r\\u0007\.tsx/u);
+});
