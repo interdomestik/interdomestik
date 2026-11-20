@@ -6,7 +6,7 @@ import ts from 'typescript';
 
 import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
 import { multisetMinus } from '../server-mutation/baseline.mjs';
-import { readInside } from './paths.mjs';
+import { isCanonicalSource, isPlainPath, readInside } from './paths.mjs';
 import { resolverFor } from './specifiers.mjs';
 
 export const REGISTRY_PATH = 'scripts/ci/screen-contract/consent-registry.json';
@@ -20,12 +20,21 @@ const REQUIRED_BY_KIND = Object.freeze({
 const isPlainObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const isText = value => typeof value === 'string' && value.trim() !== '';
 
+// Every path the registry names is checked before any file is read (r3 B1): a source file is a
+// canonical linted source; a test is a plain repository path.
+function requireSource(rel, what) {
+  if (!isCanonicalSource(rel)) throw new ScanError(`${what} ${rel} is not a canonical source path`);
+}
+
 function validateUse(use, where, seen) {
   if (!isPlainObject(use)) throw new ScanError(`${where} is not an object`);
   for (const key of ['useId', 'file', 'submission', 'test'])
     if (!isText(use[key])) throw new ScanError(`${where} has no ${key}`);
   if (!SUBMISSION_RE.test(use.submission))
     throw new ScanError(`${where} submission is not <module path>#<export>`);
+  requireSource(use.file, `${where} file`);
+  requireSource(use.submission.split('#')[0], `${where} submission`);
+  if (!isPlainPath(use.test)) throw new ScanError(`${where} test ${use.test} is not a plain path`);
   if (seen.has(use.useId)) throw new ScanError(`${where} repeats useId ${use.useId}`);
   seen.add(use.useId);
 }
@@ -34,6 +43,7 @@ function validateFields(entry, where) {
   for (const key of ['id', 'file', 'control'])
     if (!isText(entry[key])) throw new ScanError(`${where} has no ${key}`);
   if (!/^[\w.-]+$/u.test(entry.id)) throw new ScanError(`${where} has an id with spaces or ':'`);
+  requireSource(entry.file, `${where} file`);
   if (!KINDS.has(entry.kind)) throw new ScanError(`${where} has an unknown kind`);
   for (const key of REQUIRED_BY_KIND[entry.kind])
     if (!isText(entry[key])) throw new ScanError(`${where} (${entry.kind}) has no ${key}`);
@@ -50,6 +60,7 @@ function validateAliases(entry, where) {
     !aliases.every(a => isPlainObject(a) && isText(a.file) && isText(a.exportName))
   )
     throw new ScanError(`${where} has malformed aliases`);
+  for (const alias of aliases) requireSource(alias.file, `${where} alias file`);
   return aliases;
 }
 
@@ -225,6 +236,25 @@ function defaultConfig(source, rel) {
   return object;
 }
 
+// The selection-relevant settings the scanner does not model: one present is an error (r3 B4).
+const VITEST_ROOT_UNMODELLED = ['root'];
+const VITEST_TEST_UNMODELLED = ['dir', 'root', 'projects', 'workspace', 'includeSource'];
+const PLAYWRIGHT_UNMODELLED = ['testIgnore', 'grep', 'grepInvert'];
+const GATE_PROJECT_UNMODELLED = [...PLAYWRIGHT_UNMODELLED, 'testDir'];
+
+// An object whose fields decide a selection: every member a plain `name: value` with a static
+// name, and none of the settings the scanner does not model. A spread, a shorthand, a method or a
+// computed name could change the selection, so it is refused, not assumed (r3 B4).
+function requireStatic(object, where, unmodelled) {
+  for (const property of object.properties) {
+    const name = nameOf(property);
+    if (!ts.isPropertyAssignment(property) || name === null)
+      throw new ScanError(`${where} cannot be read statically (${ts.SyntaxKind[property.kind]})`);
+    if (unmodelled.includes(name)) throw new ScanError(`${where}.${name} is not modelled`);
+  }
+  return object;
+}
+
 // The initializer of one property of an object literal (its own properties only), or null.
 function ownProperty(object, name) {
   const found = object?.properties.filter(p => ts.isPropertyAssignment(p) && nameOf(p) === name);
@@ -258,10 +288,15 @@ function selectsGate(source, expression) {
 }
 
 function readVitestLane(root) {
-  const config = defaultConfig(parseConfig(root, VITEST_CONFIG), VITEST_CONFIG);
+  const config = requireStatic(
+    defaultConfig(parseConfig(root, VITEST_CONFIG), VITEST_CONFIG),
+    VITEST_CONFIG,
+    VITEST_ROOT_UNMODELLED
+  );
   const test = ownProperty(config, 'test');
   if (!test || !ts.isObjectLiteralExpression(test))
     throw new ScanError(`${VITEST_CONFIG} has no literal test object`);
+  requireStatic(test, `${VITEST_CONFIG} test`, VITEST_TEST_UNMODELLED);
   const include = stringList(ownProperty(test, 'include'));
   if (!include?.length) throw new ScanError(`${VITEST_CONFIG} names no literal test.include list`);
   const excludeNode = ownProperty(test, 'exclude');
@@ -272,7 +307,11 @@ function readVitestLane(root) {
 
 function readE2eLane(root) {
   const source = parseConfig(root, PLAYWRIGHT_CONFIG);
-  const config = defaultConfig(source, PLAYWRIGHT_CONFIG);
+  const config = requireStatic(
+    defaultConfig(source, PLAYWRIGHT_CONFIG),
+    PLAYWRIGHT_CONFIG,
+    PLAYWRIGHT_UNMODELLED
+  );
   const testDir = ownProperty(config, 'testDir');
   if (!testDir || !ts.isStringLiteralLike(testDir))
     throw new ScanError(`${PLAYWRIGHT_CONFIG} names no literal testDir`);
@@ -285,6 +324,7 @@ function readE2eLane(root) {
     const project = elements.find(
       e => ts.isObjectLiteralExpression(e) && ownProperty(e, 'name')?.text === name
     );
+    if (project) requireStatic(project, `${PLAYWRIGHT_CONFIG} ${name}`, GATE_PROJECT_UNMODELLED);
     if (!selectsGate(source, ownProperty(project, 'testMatch')))
       throw new ScanError(`${PLAYWRIGHT_CONFIG}: ${name} does not select ${E2E_GATE_CONST}`);
   }
@@ -314,89 +354,101 @@ function inLane(lanes, rel) {
   return !lanes.vitest.exclude.flatMap(excludeGlobs).some(glob => path.matchesGlob(inner, glob));
 }
 
-// How a test file binds the registered export (r2 B5): the local names of a named import of it
-// (aliased or not) from a module, the namespaces imported from a module, and every identifier use
-// that is not a declaration. Module specifiers are resolved by the caller.
+// How a test file binds the registered export (r2 B5, r3 B3), by symbol, not by name: every
+// imported specifier, and the value imports of `exportName` (named or aliased) and the namespace
+// imports, each with whether the file holds a value reference to that very binding. A type-only
+// import, a `typeof` or other type position, a property key, and a shadowing local are no use; a
+// shorthand property `{ saveTerms }` is.
 function bindingFacts(rel, text, exportName) {
-  const source = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  return { ...importFacts(source, exportName), ...useFacts(source, exportName) };
-}
-
-// Every imported specifier, the named imports of `exportName` ({ spec, local }) and the namespace
-// imports ({ spec, local }) of a test file.
-function importFacts(source, exportName) {
+  const { source, checker } = checkedFile(rel, text);
   const imports = [];
-  const named = [];
-  const namespaces = [];
+  const bindings = []; // { spec, kind: 'named' | 'namespace', symbol }
   for (const statement of source.statements) {
     if (!ts.isImportDeclaration(statement) || !ts.isStringLiteralLike(statement.moduleSpecifier))
       continue;
     const spec = statement.moduleSpecifier.text;
     imports.push(spec);
-    const bindings = statement.importClause?.namedBindings;
-    if (bindings && ts.isNamespaceImport(bindings))
-      namespaces.push({ spec, local: bindings.name.text });
-    if (bindings && ts.isNamedImports(bindings))
-      named.push(...namedLocals(bindings, spec, exportName));
+    if (statement.importClause?.isTypeOnly) continue;
+    for (const { kind, name } of valueImports(statement.importClause, exportName))
+      bindings.push({ spec, kind, symbol: checker.getSymbolAtLocation(name) });
   }
-  return { imports, named, namespaces };
+  const used = referencedSymbols(source, checker, exportName);
+  return {
+    imports,
+    bindings: bindings.map(({ spec, kind, symbol }) => ({
+      spec,
+      kind,
+      used: Boolean(symbol) && used[kind].has(symbol),
+    })),
+  };
 }
 
-// The local names a named import binds `exportName` to, aliased or not.
-const namedLocals = (bindings, spec, exportName) =>
-  bindings.elements
-    .filter(element => (element.propertyName ?? element.name).text === exportName)
-    .map(element => ({ spec, local: element.name.text }));
-
-const DECLARATIONS = [
-  ts.isVariableDeclaration,
-  ts.isFunctionDeclaration,
-  ts.isParameter,
-  ts.isBindingElement,
-  ts.isClassDeclaration,
-];
-
-// The identifier a declaration outside the imports binds, or null.
-const declaredNameOf = node =>
-  DECLARATIONS.some(is => is(node)) && node.name && ts.isIdentifier(node.name)
-    ? node.name.text
-    : null;
-
-// `ns.<exportName>`: the namespace identifier, or null.
-const memberNamespaceOf = (node, exportName) =>
-  ts.isPropertyAccessExpression(node) &&
-  node.name.text === exportName &&
-  ts.isIdentifier(node.expression)
-    ? node.expression.text
-    : null;
-
-// Declaration counts by name, identifiers in expression position, and `ns.export` namespaces.
-function useFacts(source, exportName) {
-  const declared = new Map();
-  const used = new Set();
-  const memberUses = new Set();
-  for (const node of nodesOf(source)) {
-    const declaredName = declaredNameOf(node);
-    if (declaredName) declared.set(declaredName, (declared.get(declaredName) ?? 0) + 1);
-    const namespace = memberNamespaceOf(node, exportName);
-    if (namespace) memberUses.add(namespace);
-    if (ts.isIdentifier(node) && isUse(node)) used.add(node.text);
-  }
-  return { declared, used, memberUses };
+// The import names of one clause that can carry the export as a value.
+function valueImports(clause, exportName) {
+  const named = clause?.namedBindings;
+  if (named && ts.isNamespaceImport(named)) return [{ kind: 'namespace', name: named.name }];
+  if (!named || !ts.isNamedImports(named)) return [];
+  return named.elements
+    .filter(e => !e.isTypeOnly && (e.propertyName ?? e.name).text === exportName)
+    .map(e => ({ kind: 'named', name: e.name }));
 }
 
-// An identifier in an expression position: not a declared name, an import specifier, a property
-// name or a property access's member.
-function isUse(node) {
+// One source file bound by TypeScript's checker on its own (no other file, no lib), so a symbol
+// identifies a binding as scope analysis does.
+function checkedFile(rel, text) {
+  const fileName = `/${rel}`;
+  const kind = /\.[jt]sx$/u.test(rel) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const source = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, true, kind);
+  const options = { noResolve: true, noLib: true, allowJs: true, jsx: ts.JsxEmit.Preserve };
+  const host = ts.createCompilerHost(options);
+  host.getSourceFile = name => (name === fileName ? source : undefined);
+  host.fileExists = name => name === fileName;
+  host.readFile = name => (name === fileName ? text : undefined);
+  const program = ts.createProgram({ rootNames: [fileName], options, host });
+  return { source: program.getSourceFile(fileName), checker: program.getTypeChecker() };
+}
+
+// Whether a node sits in a type position (a type annotation, `typeof x`, a type alias).
+function inTypePosition(node) {
+  for (let at = node.parent; at && !ts.isSourceFile(at); at = at.parent)
+    if (ts.isTypeNode(at) && !ts.isExpressionWithTypeArguments(at)) return true;
+  return false;
+}
+
+// The symbol a value-position identifier refers to, or null (an import name, a property key or
+// member name, a declared name, or a type position).
+function valueSymbol(node, checker) {
   const parent = node.parent;
-  if (!parent) return false;
+  if (ts.isShorthandPropertyAssignment(parent) && parent.name === node)
+    return checker.getShorthandAssignmentValueSymbol(parent) ?? null;
   if (ts.isImportSpecifier(parent) || ts.isImportClause(parent) || ts.isNamespaceImport(parent))
-    return false;
-  if ('name' in parent && parent.name === node && !ts.isPropertyAccessExpression(parent))
-    return false;
-  if (ts.isPropertyAccessExpression(parent) && parent.name === node) return false;
-  if (ts.isPropertyAssignment(parent) && parent.name === node) return false;
-  return true;
+    return null;
+  if (ts.isPropertyAccessExpression(parent) && parent.name === node) return null;
+  if ('name' in parent && parent.name === node) return null;
+  if (ts.isBindingElement(parent) && parent.propertyName === node) return null;
+  if (inTypePosition(node)) return null;
+  return checker.getSymbolAtLocation(node) ?? null;
+}
+
+// The symbols referenced as values: `named` from any identifier, `namespace` only as the object
+// of `ns.<exportName>`.
+function referencedSymbols(source, checker, exportName) {
+  const named = new Set();
+  const namespace = new Set();
+  for (const node of nodesOf(source)) {
+    if (!ts.isIdentifier(node)) continue;
+    const symbol = valueSymbol(node, checker);
+    if (!symbol) continue;
+    named.add(symbol);
+    const parent = node.parent;
+    if (
+      ts.isPropertyAccessExpression(parent) &&
+      parent.expression === node &&
+      parent.name.text === exportName
+    )
+      namespace.add(symbol);
+  }
+  return { named, namespace };
 }
 
 // The names a use's test must hold that it lacks: entry, use, the fields of its kind, and for
@@ -417,15 +469,9 @@ function submissionError(root, use, text) {
   const facts = bindingFacts(use.test, text, exportName);
   const resolver = resolverFor(root);
   const fromModule = entry => resolver.resolveFile(use.test, entry.spec) === module;
-  const named = facts.named.filter(fromModule);
-  const namespaces = facts.namespaces.filter(fromModule);
   if (!facts.imports.some(spec => fromModule({ spec })))
     return `does not import the submission module ${module}`;
-  const usedNamed = named.some(({ local }) => facts.used.has(local) && !facts.declared.has(local));
-  const usedMember = namespaces.some(
-    ({ local }) => facts.memberUses.has(local) && !facts.declared.has(local)
-  );
-  return usedNamed || usedMember
+  return facts.bindings.some(binding => binding.used && fromModule(binding))
     ? null
     : `does not use the submission export ${exportName} of ${module}`;
 }

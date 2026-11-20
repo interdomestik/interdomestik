@@ -3,21 +3,25 @@
 // An origin is `{ file, name, local }`: `name` is the public export name of the declaring file,
 // the name a registry entry uses, and `local` the declaration it exports there, so two public names
 // of one declaration can be compared (code-r2 B7).
-import fs from 'node:fs';
-import path from 'node:path';
 import ts from 'typescript';
 
 import { hasExportModifier, hasDefaultModifier } from '../server-mutation/ast.mjs';
+import { readInside } from './paths.mjs';
 
 const MAX_DEPTH = 12;
 const parsed = new Map();
 
+// The parsed file, or null when it does not exist. Every read is confined to the tree (r3 F1): a
+// path with an empty, `.` or `..` segment, an absolute path or a symbolic link on the way throws.
 function parse(root, rel) {
   const key = `${root}\u0000${rel}`;
   if (!parsed.has(key)) {
-    const text = fs.readFileSync(path.join(root, rel), 'utf8');
+    const text = readInside(root, rel);
     const kind = rel.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-    parsed.set(key, ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, false, kind));
+    parsed.set(
+      key,
+      text === null ? null : ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, false, kind)
+    );
   }
   return parsed.get(key);
 }
@@ -116,12 +120,15 @@ function starOrigin(scope, stars) {
 }
 
 // { file, name } of `name` exported by `rel`, or null when it cannot be found. An ambiguous name
-// (two `export *` providers) is `{ file: rel, name, unresolved: true, ambiguous: true }`.
+// (two `export *` providers) is `{ file: rel, name, unresolved: true, ambiguous: true }`; a file
+// that does not exist is `{ file: rel, name, unresolved: true, missing: true }`, unlike an empty one.
 export function originIn(resolver, rel, name, depth = 0, seen = new Set()) {
   const visit = `${rel}#${name}`;
   if (depth > MAX_DEPTH || seen.has(visit)) return null;
   seen.add(visit);
-  const scope = { resolver, rel, name, depth, seen, sf: parse(resolver.root, rel) };
+  const sf = parse(resolver.root, rel);
+  if (!sf) return { file: rel, name, unresolved: true, missing: true };
+  const scope = { resolver, rel, name, depth, seen, sf };
   const stars = [];
   for (const statement of scope.sf.statements) {
     const hit = ts.isExportDeclaration(statement)

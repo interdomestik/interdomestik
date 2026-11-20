@@ -1,6 +1,7 @@
 // Transfers and rebuilt screens (WP-05 design §4.1, §4.2), over WP-02's baseline functions.
 import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
 import { multisetMinus } from '../server-mutation/baseline.mjs';
+import { isCanonicalSource } from './paths.mjs';
 
 const exceptionKey = e => `${e.check}\u0000${e.item}\u0000${e.kind}`;
 const isItemException = e => typeof e.item === 'string' && !e.item.startsWith('#');
@@ -56,13 +57,8 @@ export function pairTransfers(base, head) {
 
 export const REBUILT_PATH = 'scripts/ci/screen-contract/rebuilt-screens.json';
 
-// A canonical repository path of a source file under a linted root: no `.`/`..` or empty segment,
-// no backslash, no `|` (it separates the fields of an item key, r2 B9), and one of the linted
-// source extensions (r1 B9).
-const CANONICAL_RE =
-  /^(?:apps\/web\/src|packages\/[\w.-]+\/src)(?:\/[^/\\|]+)+\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/u;
-const isCanonical = file =>
-  CANONICAL_RE.test(file) && !file.split('/').some(part => part === '.' || part === '..');
+// A canonical repository path of a source file under a linted root (`paths.mjs`).
+const isCanonical = isCanonicalSource;
 
 // A rebuilt file the head adds to the list must be a screen the head lints; an entry the trusted
 // base already lists stays valid after its file is gone.

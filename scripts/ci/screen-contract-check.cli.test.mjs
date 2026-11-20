@@ -262,7 +262,7 @@ for (const [label, text, pattern] of [
       entries: [1, 2].map(() => ({
         id: 'x',
         kind: 'not-consent',
-        file: 'f',
+        file: `${W}/app/ok/page.tsx`,
         control: 'c',
         reason: 'r',
       })),
@@ -273,7 +273,7 @@ for (const [label, text, pattern] of [
     'incomplete entry',
     JSON.stringify({
       version: 1,
-      entries: [{ id: 'x', kind: 'consent', file: 'f', control: 'c', uses: [] }],
+      entries: [{ id: 'x', kind: 'consent', file: `${W}/app/ok/page.tsx`, control: 'c', uses: [] }],
     }),
     /has no payloadField/u,
   ],

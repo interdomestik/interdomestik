@@ -159,6 +159,71 @@ test('r2 B4: a PR-gate project that no longer selects GATE_DEFAULT_MATCH is an e
   );
 });
 
+// r3 blocker 4: a selection the scanner cannot establish statically is refused, not assumed.
+const GATES = (ks, mk = "{ name: 'gate-mk-contract', testMatch: GATE_DEFAULT_MATCH }") =>
+  `const GATE_DEFAULT_MATCH = ['gate/**/*.spec.ts'];\nexport default defineConfig({ testDir: './e2e', ${ks.top ?? ''}projects: [${ks.project}, ${mk}] });\n`;
+const KS = "{ name: 'gate-ks-sq', testMatch: GATE_DEFAULT_MATCH }";
+
+for (const [label, file, text] of [
+  [
+    'a shorthand Vitest exclude',
+    'apps/web/vitest.config.ts',
+    "const exclude = ['src/app/**'];\nexport default { test: { include: ['src/**/*.test.{ts,tsx}'], exclude } };\n",
+  ],
+  [
+    'a spread after the Vitest test object fields',
+    'apps/web/vitest.config.ts',
+    "const more = { exclude: ['src/app/**'] };\nexport default { test: { include: ['src/**/*.test.{ts,tsx}'], ...more } };\n",
+  ],
+  [
+    'a spread over the Vitest root config',
+    'apps/web/vitest.config.ts',
+    "const base = {};\nexport default { test: { include: ['src/**/*.test.{ts,tsx}'] }, ...base };\n",
+  ],
+  [
+    'a Vitest test.dir',
+    'apps/web/vitest.config.ts',
+    "export default { test: { dir: 'other', include: ['src/**/*.test.{ts,tsx}'] } };\n",
+  ],
+  [
+    'a top-level Playwright testIgnore',
+    'apps/web/playwright.config.ts',
+    GATES({ top: "testIgnore: ['gate/**'], ", project: KS }),
+  ],
+  [
+    'a gate project testIgnore',
+    'apps/web/playwright.config.ts',
+    GATES({ project: "{ name: 'gate-ks-sq', testMatch: GATE_DEFAULT_MATCH, testIgnore: /gate/ }" }),
+  ],
+  [
+    'a spread in a gate project',
+    'apps/web/playwright.config.ts',
+    `const extra = {};\n${GATES({ project: "{ name: 'gate-ks-sq', testMatch: GATE_DEFAULT_MATCH, ...extra }" })}`,
+  ],
+  [
+    'a gate project grepInvert',
+    'apps/web/playwright.config.ts',
+    GATES({
+      project: "{ name: 'gate-ks-sq', testMatch: GATE_DEFAULT_MATCH, grepInvert: /terms/ }",
+    }),
+  ],
+])
+  test(`r3 B4: ${label} is a lane error`, t => {
+    assert.throws(
+      () => evidence(t, `${W}/app/signup/page.test.tsx`, IMPORTING, { [file]: text }),
+      /cannot be read statically|is not modelled/u
+    );
+  });
+
+test('r3 B4: the plain gate configs still read', t => {
+  assert.deepEqual(
+    evidence(t, `${W}/app/signup/page.test.tsx`, IMPORTING, {
+      'apps/web/playwright.config.ts': GATES({ project: KS }),
+    }),
+    []
+  );
+});
+
 test('r2 B5: a different helper from the module plus a local stub of the export does not count', t => {
   const text = `import { otherHelper } from '@/actions/terms';\nconst saveTerms = async () => otherHelper();\n${BODY}`;
   const errors = evidence(t, `${W}/app/signup/page.test.tsx`, text, {
@@ -179,4 +244,98 @@ test('r2 B5: a namespace import used as ns.export, and an aliased import, count'
   assert.deepEqual(evidence(t, `${W}/app/signup/page.test.tsx`, ns), []);
   const aliased = `import { saveTerms as submit } from '@/actions/terms';\n${BODY.replace('await saveTerms(', 'await submit(')}`;
   assert.deepEqual(evidence(t, `${W}/app/signup/page.test.tsx`, aliased), []);
+});
+
+// r3 blocker 3: only a value reference to the import binding itself counts.
+const NAMES = "it('terms signup termsAccepted consents TERMS_VERSION acceptedAt', async () => {\n";
+const usesOnly = (head, call) => `${head}\n${NAMES}  ${call}\n});\n`;
+const IMPORT_SAVE = "import { saveTerms } from '@/actions/terms';";
+
+test('r3 B3: a property key, a type-only import or typeof is not a use of the submission', t => {
+  const cases = [
+    [
+      'property key of a mock',
+      usesOnly(
+        `${IMPORT_SAVE}\nimport * as mock from './mock';`,
+        'const { saveTerms: stub } = mock; await stub();'
+      ),
+    ],
+    [
+      'object property name',
+      usesOnly(IMPORT_SAVE, 'const api = { saveTerms: async () => {} }; await api.saveTerms();'),
+    ],
+    [
+      'type-only import',
+      usesOnly(
+        "import type { saveTerms } from '@/actions/terms';",
+        'const f: typeof saveTerms = null as never; await f();'
+      ),
+    ],
+    [
+      'inline type-only specifier',
+      usesOnly("import { type saveTerms } from '@/actions/terms';", 'let f: typeof saveTerms;'),
+    ],
+    ['typeof only', usesOnly(IMPORT_SAVE, 'let f: typeof saveTerms;')],
+    [
+      'a shadowing parameter',
+      usesOnly(IMPORT_SAVE, 'const run = (saveTerms: () => void) => saveTerms(); run(() => {});'),
+    ],
+  ];
+  for (const [label, text] of cases)
+    assert.match(
+      evidence(t, `${W}/app/signup/page.test.tsx`, text).join('\n'),
+      /does not (use the submission export saveTerms|import the submission module)/u,
+      label
+    );
+});
+
+test('r3 B3: a shorthand property and a call through a passed reference are uses', t => {
+  const shorthand = usesOnly(IMPORT_SAVE, 'await exercise({ saveTerms });');
+  assert.deepEqual(evidence(t, `${W}/app/signup/page.test.tsx`, shorthand), []);
+  const passed = usesOnly(IMPORT_SAVE, 'await render(saveTerms);');
+  assert.deepEqual(evidence(t, `${W}/app/signup/page.test.tsx`, passed), []);
+});
+
+// r3 blocker 1: every path the registry names is a plain repository path; a source path is a
+// canonical linted source. A parent segment, an absolute path, a backslash or `|` is refused at
+// the parser, before any file is read.
+const ENTRY = {
+  id: 'terms',
+  kind: 'consent',
+  file: `${W}/app/signup/page.tsx`,
+  control: 'terms',
+  payloadField: 'termsAccepted',
+  storedIn: 'consents',
+  versionSource: 'TERMS_VERSION',
+  aliases: [{ file: `${W}/components/terms.tsx`, exportName: 'Terms' }],
+  uses: [
+    {
+      useId: 'signup',
+      file: `${W}/app/signup/page.tsx`,
+      submission: `${ACTION}#saveTerms`,
+      test: `${W}/app/signup/page.test.tsx`,
+    },
+  ],
+};
+const withEntry = entry => JSON.stringify({ version: 1, entries: [entry] });
+
+test('r3 B1: the registry refuses a path that is not a plain repository path', () => {
+  assert.equal(parseRegistry(withEntry(ENTRY)).size, 1);
+  const escape = '../../../outside/secret.tsx';
+  const cases = [
+    ['entry file', { ...ENTRY, file: escape }],
+    ['alias file', { ...ENTRY, aliases: [{ file: escape, exportName: 'Terms' }] }],
+    ['use file', { ...ENTRY, uses: [{ ...ENTRY.uses[0], file: escape }] }],
+    ['submission', { ...ENTRY, uses: [{ ...ENTRY.uses[0], submission: `${escape}#saveTerms` }] }],
+    ['test', { ...ENTRY, uses: [{ ...ENTRY.uses[0], test: '../outside/x.test.ts' }] }],
+    ['absolute test', { ...ENTRY, uses: [{ ...ENTRY.uses[0], test: '/tmp/x.test.ts' }] }],
+    ['pipe file', { ...ENTRY, file: `${W}/app/a|b/page.tsx` }],
+    ['dot segment', { ...ENTRY, file: `${W}/app/./signup/page.tsx` }],
+  ];
+  for (const [label, entry] of cases)
+    assert.throws(
+      () => parseRegistry(withEntry(entry)),
+      /is not a (canonical source|plain) path/u,
+      label
+    );
 });

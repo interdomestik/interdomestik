@@ -6,6 +6,19 @@ import path from 'node:path';
 
 import { ScanError } from '../server-mutation/ast.mjs';
 
+// A plain repository path: relative, `/`-separated, no empty, `.` or `..` segment, no backslash
+// and no `|` (it separates the fields of an item key, r2 B9).
+const PLAIN_RE = /^[^/\\|]+(?:\/[^/\\|]+)*$/u;
+export const isPlainPath = rel =>
+  typeof rel === 'string' &&
+  PLAIN_RE.test(rel) &&
+  !rel.split('/').some(p => p === '.' || p === '..');
+
+// A plain path of a source file under a linted root, with a linted source extension (r1 B9).
+const SOURCE_RE =
+  /^(?:apps\/web\/src|packages\/[\w.-]+\/src)\/.+\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/u;
+export const isCanonicalSource = rel => isPlainPath(rel) && SOURCE_RE.test(rel);
+
 // Throws when `rel` leaves `root` or when an existing segment of it below `root` is a link.
 // Returns the absolute path, and whether the full path exists.
 export function confined(root, rel) {
