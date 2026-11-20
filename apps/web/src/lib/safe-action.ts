@@ -92,10 +92,38 @@ function assertDefinition(def: ActionDefinition<ActionBasis, z.ZodType, unknown>
 
 type Protected<S extends z.ZodType, T> = Parameters<typeof runProtected<S, T>>[0];
 
+// A frozen copy of a definition's plain data (objects and arrays, depth first); functions and zod
+// schemas are kept by reference. The action reads only this snapshot, so changing the caller's
+// definition object after definition changes nothing (Astra r6 B23).
+function snapshot<V>(value: V): V {
+  if (Array.isArray(value)) return Object.freeze(value.map(snapshot)) as V;
+  if (value === null || typeof value !== 'object') return value;
+  const proto = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null) return value;
+  const copy: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value)) copy[key] = snapshot(item);
+  return Object.freeze(copy) as V;
+}
+
+// The five fields of a definition, each read once, whatever object carries them.
+function snapshotDefinition<
+  D extends { name: unknown; basis: unknown; input: unknown; subject: unknown; handler: unknown },
+>(definition: D): D {
+  const { name, basis, input, subject, handler } = definition;
+  return Object.freeze({
+    name,
+    basis: snapshot(basis),
+    input,
+    subject: snapshot(subject),
+    handler,
+  }) as unknown as D;
+}
+
 /** A server action with a declared basis, a strict input schema and one result type (R-05). */
 export function defineAction<const B extends ActionBasis, S extends z.ZodType, T>(
-  def: ActionDefinition<B, S, T>
+  definition: ActionDefinition<B, S, T>
 ): (input: unknown) => ActionResult<T> {
+  const def = snapshotDefinition(definition);
   assertDefinition(def as ActionDefinition<ActionBasis, z.ZodType, unknown>, false);
   const protectedDef = def as unknown as Protected<S, T>;
   return async (input: unknown) => runProtected(protectedDef, input, null);
@@ -103,8 +131,9 @@ export function defineAction<const B extends ActionBasis, S extends z.ZodType, T
 
 /** The form variant: `(prevState, formData)`, for `useActionState` and `<form action>`. */
 export function defineFormAction<const B extends ActionBasis, S extends z.ZodType, T>(
-  def: ActionDefinition<B, S, T>
+  definition: ActionDefinition<B, S, T>
 ): (prevState: unknown, formData: FormData) => ActionResult<T> {
+  const def = snapshotDefinition(definition);
   assertDefinition(def as ActionDefinition<ActionBasis, z.ZodType, unknown>, true);
   const protectedDef = def as unknown as Protected<S, T>;
   const form = { arrayKeys: arrayFieldKeys(def.input) };

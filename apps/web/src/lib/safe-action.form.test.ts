@@ -23,6 +23,32 @@ describe('formDataToInput', () => {
     expect([...arrays]).toEqual(['tags']);
   });
 
+  it('treats a union of arrays as an array field, through wrappers (r6 B25)', () => {
+    const union = z.strictObject({
+      v: z.union([z.array(z.string()).min(3), z.array(z.string()).readonly()]).optional(),
+      w: z.string(),
+    });
+    const keys = arrayFieldKeys(union);
+    expect([...keys]).toEqual(['v']);
+    const one = formDataToInput(
+      form([
+        ['v', 'a'],
+        ['w', 'x'],
+      ]),
+      keys
+    );
+    expect(union.parse(one).v).toEqual(['a']);
+    const two = formDataToInput(
+      form([
+        ['v', 'a'],
+        ['v', 'b'],
+        ['w', 'x'],
+      ]),
+      keys
+    );
+    expect(union.parse(two).v).toEqual(['a', 'b']);
+  });
+
   it("drops Next's $ACTION_ fields and builds a null-prototype map", () => {
     const input = formDataToInput(
       form([

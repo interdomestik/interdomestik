@@ -77,24 +77,11 @@ describe('round-4 variants (r4 B03)', () => {
 });
 
 describe('the shape check accepts every value zod can legitimately produce (r3 B14)', () => {
-  it('an omitted optional key, also one named like an Object.prototype member', () => {
-    const schema = z.strictObject({
-      toString: z.string().optional(),
-      constructor: z.number().optional(),
-      note: z.string().optional(),
-    });
-    // zod reads the inherited member of a plain input, so it refuses a plain `{}`. A null-prototype
-    // input parses, and zod's output is a plain object whose `toString` is inherited (r5 B20): the
-    // copy the handler receives has neither a prototype nor the omitted keys.
-    expect(schema.safeParse({}).success).toBe(false);
-    const parsed = schema.parse(Object.create(null));
-    expect(typeof parsed.toString).toBe('function');
-    const copy = exact(schema, parsed) as Record<string, unknown>;
-    expect(Object.getPrototypeOf(copy)).toBeNull();
-    expect(Reflect.ownKeys(copy)).toEqual([]);
-    expect(copy.toString).toBeUndefined();
-    expect(copy.constructor).toBeUndefined();
-    expect(accepts(schema, { toString: 's', constructor: 1 })).not.toThrow();
+  it('an omitted optional key is absent from the copy', () => {
+    const schema = z.strictObject({ note: z.string().optional(), count: z.number().optional() });
+    const copy = exact(schema, schema.parse({ count: 1 })) as Record<string, unknown>;
+    expect(Object.keys(copy)).toEqual(['count']);
+    expect(accepts(schema, {})).not.toThrow();
   });
 
   it('a tuple without its optional trailing items', () => {
@@ -119,11 +106,22 @@ describe('the shape check accepts every value zod can legitimately produce (r3 B
   });
 });
 
-describe('the handler receives a fresh copy with only the declared keys (r5 B20)', () => {
-  it('at every depth, without a prototype, keeping only the keys present', () => {
+// React's Server Function transport serialises plain objects and arrays only (r6 B24).
+function expectPlainEverywhere(value: unknown): void {
+  if (Array.isArray(value)) {
+    expect(Object.getPrototypeOf(value)).toBe(Array.prototype);
+    value.forEach(expectPlainEverywhere);
+  } else if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
+    expect(Object.getPrototypeOf(value)).toBe(Object.prototype);
+    Object.values(value).forEach(expectPlainEverywhere);
+  }
+}
+
+describe('the handler receives a fresh, plain copy with only the declared keys (r5 B20, r6 B24)', () => {
+  it('plain objects and arrays at every depth, keeping only the keys present', () => {
     const schema = z.strictObject({
-      profile: z.strictObject({ toString: z.string().optional(), name: z.string() }).optional(),
-      tags: z.array(z.strictObject({ constructor: z.number().optional() })),
+      profile: z.strictObject({ nick: z.string().optional(), name: z.string() }).optional(),
+      tags: z.array(z.strictObject({ n: z.number().optional() })),
       fixed: z.strictObject({ a: z.string() }).readonly(),
     });
     const input = Object.assign(Object.create(null), {
@@ -139,12 +137,10 @@ describe('the handler receives a fresh copy with only the declared keys (r5 B20)
     };
     expect(copy).not.toBe(parsed);
     expect(copy.profile).not.toBe(parsed.profile);
-    expect(copy.profile.toString).toBeUndefined();
     expect(Object.keys(copy.profile)).toEqual(['name']);
-    expect(copy.tags[0]?.constructor).toBeUndefined();
-    expect(Object.getPrototypeOf(copy.fixed)).toBeNull();
+    expect(Object.keys(copy.tags[0] ?? { missing: true })).toEqual([]);
     expect(Object.isFrozen(copy.fixed)).toBe(true);
-    expect(exact(z.strictObject({ s: z.string() }), { s: 'v' })).toEqual({ s: 'v' });
+    expectPlainEverywhere(copy);
   });
 });
 

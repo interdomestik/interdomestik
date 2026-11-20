@@ -22,6 +22,9 @@ type ZodDef = {
 
 const SCALAR_TYPES = new Set(['string', 'number', 'boolean', 'bigint', 'date', 'enum', 'literal']);
 const WRAPPER_TYPES = new Set(['optional', 'nullable', 'readonly']);
+// Names zod would read from Object.prototype when a plain input omits them, so an inherited member
+// could pass for input (Astra r5 B20, r6 B20/B24). Derived from the runtime, never a hand list.
+const PROTOTYPE_KEYS: ReadonlySet<string> = new Set(Object.getOwnPropertyNames(Object.prototype));
 
 export class ActionDefinitionError extends Error {
   constructor(operation: string, detail: string) {
@@ -73,6 +76,8 @@ function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
   for (const [key, child] of Object.entries(def.shape ?? {})) {
     const childPath = path ? `${path}.${key}` : key;
     if (ctx.identityKeys.has(key)) refuse(ctx, childPath, 'identity keys come from server context');
+    if (PROTOTYPE_KEYS.has(key))
+      refuse(ctx, childPath, 'a key named like an Object.prototype member');
     walk(child, childPath, ctx);
   }
 }
@@ -137,6 +142,7 @@ export function assertAcceptedSchema(schema: z.ZodType, options: SchemaCheckOpti
   const root = defOf(schema);
   if (root.type !== 'object') refuse(ctx, '', 'the root must be a strict object');
   walk(schema, '', ctx);
+  if (options.form) assertFormFields(schema, ctx);
   if (options.subjectFrom !== null && !Object.hasOwn(root.shape ?? {}, options.subjectFrom)) {
     throw new ActionDefinitionError(
       options.operation,
@@ -145,14 +151,31 @@ export function assertAcceptedSchema(schema: z.ZodType, options: SchemaCheckOpti
   }
 }
 
-/** Top-level keys whose schema is an array: a form collects every value of such a key. */
+// Whether a form field holds an array, something else, or a union of both (r6 B25). Wrappers and
+// unions are unwrapped; a union is an array field only when every branch is one.
+type FieldKind = 'array' | 'other' | 'mixed';
+function fieldKind(schema: z.ZodType): FieldKind {
+  let def = defOf(schema);
+  while (WRAPPER_TYPES.has(def.type) && def.innerType) def = defOf(def.innerType);
+  if (def.type === 'array') return 'array';
+  if (def.type !== 'union') return 'other';
+  const kinds = new Set((def.options ?? []).map(fieldKind));
+  return kinds.size === 1 ? ([...kinds][0] ?? 'other') : 'mixed';
+}
+
+// A form collects every value of an array field and refuses a repeated other field, so a field
+// whose union mixes array and non-array branches has no single reading (r6 B25).
+function assertFormFields(schema: z.ZodType, ctx: WalkContext): void {
+  for (const [key, child] of Object.entries(defOf(schema).shape ?? {}))
+    if (fieldKind(child) === 'mixed')
+      refuse(ctx, key, 'a form field may not mix array and non-array union branches');
+}
+
+/** Top-level keys whose schema is an array, or a union of arrays: a form collects every value. */
 export function arrayFieldKeys(schema: z.ZodType): ReadonlySet<string> {
   const keys = new Set<string>();
-  for (const [key, child] of Object.entries(defOf(schema).shape ?? {})) {
-    let def = defOf(child);
-    while (WRAPPER_TYPES.has(def.type) && def.innerType) def = defOf(def.innerType);
-    if (def.type === 'array') keys.add(key);
-  }
+  for (const [key, child] of Object.entries(defOf(schema).shape ?? {}))
+    if (fieldKind(child) === 'array') keys.add(key);
   return keys;
 }
 

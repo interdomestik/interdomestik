@@ -6,8 +6,9 @@ import { ActionDefinitionError } from './safe-action.schema';
 // (Astra r2 B03, r3 B03 and B14, r5 B19 and B20). The definition walk accepts only checks that cannot
 // change a value, plus the named normalisers; this walk runs after every successful parse, before the
 // handler, as the second line. It reads own properties only, and the copy it returns holds only the
-// declared keys present in the parsed value, in objects without a prototype, so an omitted optional
-// key named like an Object.prototype member reads as undefined.
+// declared keys present in the parsed value, in plain objects and arrays that React's Server
+// Function transport can serialise (r6 B24). A declared key never names an Object.prototype member
+// (refused at definition, r6 B20), so an omitted key reads as undefined.
 type Def = {
   type: string;
   shape?: Record<string, z.ZodType>;
@@ -100,7 +101,7 @@ function copyObject(def: Def, value: unknown): Copy {
   const shape = def.shape ?? {};
   if (Reflect.ownKeys(value).some(key => typeof key !== 'string' || !Object.hasOwn(shape, key)))
     return NO;
-  const copy: Record<string, unknown> = Object.create(null);
+  const copy: Record<string, unknown> = {};
   for (const [key, child] of Object.entries(shape)) {
     const present = Object.hasOwn(value, key);
     const item = copyOf(child, present ? own(value, key) : undefined);

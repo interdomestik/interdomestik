@@ -27,6 +27,7 @@ vi.mock('next/navigation', async importOriginal => importOriginal());
 import { notFound, redirect } from 'next/navigation';
 import { ROLE_STAFF } from './roles.core';
 import { actionFailure, actionNormalizers, defineAction } from './safe-action';
+import { issuesOf } from './safe-action.schema';
 
 const STAFF_ONLY = [ROLE_STAFF] as const;
 const claimInput = z.strictObject({ claimId: z.string().min(1), note: z.string().max(10) });
@@ -144,18 +145,14 @@ describe('defineAction at run time', () => {
     expect(mocks.write).not.toHaveBeenCalled();
   });
 
-  it('names an invalid field even when its name is an Object.prototype member (r2 B13)', async () => {
-    const action = defineAction({
-      name: 'fields.inherited',
-      basis: { kind: 'role', roles: STAFF_ONLY },
-      input: z.strictObject({ constructor: z.string(), toString: z.string().min(2) }),
-      subject: { type: 'none' },
-      handler: () => Promise.resolve('x'),
-    });
-    const result = await action({ constructor: 1, toString: 'a' });
-    expect(result).toMatchObject({
-      code: 'VALIDATION_ERROR',
-      issues: { constructor: 'invalid_type', toString: 'too_small' },
+  it('names an invalid field even when its name is an Object.prototype member (r2 B13)', () => {
+    // Such names are refused at definition (r6 B20); the issue map stays own-key safe on its own.
+    const schema = z.strictObject({ constructor: z.string(), toString: z.string().min(2) });
+    const parsed = schema.safeParse({ constructor: 1, toString: 'a' });
+    expect(parsed.success).toBe(false);
+    expect(issuesOf(parsed.error as z.ZodError)).toEqual({
+      constructor: 'invalid_type',
+      toString: 'too_small',
     });
   });
 
@@ -187,22 +184,52 @@ describe('defineAction at run time', () => {
     expect(await action({ note: '  Hi ', tags: ['a'] })).toEqual({ success: true, data: 'hi' });
   });
 
-  it('hands the handler a copy without the omitted keys, even ones named like Object members (r5 B20)', async () => {
-    const seen: unknown[] = [];
+  it('returns input data the client transport can serialise: plain at every depth (r6 B24)', async () => {
     const action = defineAction({
-      name: 'profile.update',
+      name: 'profile.echo',
       basis: { kind: 'role', roles: STAFF_ONLY },
-      input: z.strictObject({ toString: z.string().optional(), name: z.string() }),
+      input: z.strictObject({
+        name: z.string(),
+        profile: z.strictObject({ nick: z.string().optional() }),
+        tags: z.array(z.strictObject({ n: z.number() })),
+      }),
       subject: { type: 'none' },
-      handler: input => {
-        seen.push(input);
-        return Promise.resolve(typeof input.toString);
-      },
+      handler: input => Promise.resolve(input),
     });
-    const input = Object.assign(Object.create(null), { name: 'n' });
-    expect(await action(input)).toEqual({ success: true, data: 'undefined' });
-    expect(Object.getPrototypeOf(seen[0])).toBeNull();
-    expect(Object.keys(seen[0] as object)).toEqual(['name']);
+    const input = Object.assign(Object.create(null), {
+      name: 'n',
+      profile: Object.create(null),
+      tags: [Object.assign(Object.create(null), { n: 1 })],
+    });
+    const result = await action(input);
+    expect(result).toMatchObject({ success: true });
+    const plain = (value: unknown): boolean =>
+      Array.isArray(value)
+        ? Object.getPrototypeOf(value) === Array.prototype && value.every(plain)
+        : value === null ||
+          typeof value !== 'object' ||
+          (Object.getPrototypeOf(value) === Object.prototype && Object.values(value).every(plain));
+    expect(plain((result as { data: unknown }).data)).toBe(true);
+  });
+
+  it('reads a snapshot of its definition: changing the definition later changes nothing (r6 B23)', async () => {
+    const seen: string[] = [];
+    const definition = {
+      name: 'note.snapshot',
+      basis: { kind: 'role', roles: [...STAFF_ONLY] as string[] },
+      input: z.strictObject({ note: z.string() }) as z.ZodType,
+      subject: { type: 'none' },
+      handler: (input: { note: string }) => {
+        seen.push(input.note);
+        return Promise.resolve('ok');
+      },
+    };
+    const action = defineAction(definition as never);
+    definition.input = z.strictObject({ note: z.string().trim() });
+    definition.basis.roles.push('member');
+    definition.handler = () => Promise.resolve('replaced');
+    expect(await action({ note: ' x ' })).toEqual({ success: true, data: 'ok' });
+    expect(seen).toEqual([' x ']);
   });
 
   it('records a returned refusal once and returns it', async () => {
