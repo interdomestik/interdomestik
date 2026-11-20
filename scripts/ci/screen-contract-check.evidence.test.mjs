@@ -293,6 +293,8 @@ test('r3 B3: a property key, a type-only import or typeof is not a use of the su
     ['typeof only', usesOnly(IMPORT_SAVE, 'let f: typeof saveTerms;')],
     ...[
       'export default saveTerms;', // r5 B5
+      'export default (saveTerms);', // r6 B4
+      'export default saveTerms as never;', // r6 B4
       'export type { saveTerms as T };',
       'export { type saveTerms as U };',
       'export { saveTerms as V };',
@@ -371,4 +373,29 @@ test('r5 B5: a default import of a #default submission, called, is a use', t => 
     evidence(t, `${W}/app/signup/page.test.tsx`, unused, lanes, 'default').join('\n'),
     /does not use the submission export default/u
   );
+});
+
+// r6 blocker 4: a namespace member forwarded by `export default` is no use either.
+test('r6 B4: export default ns.export is not a use of the submission', t => {
+  const text = usesOnly(
+    "import * as actions from '@/actions/terms';\nexport default actions.saveTerms;",
+    ''
+  );
+  assert.match(
+    evidence(t, `${W}/app/signup/page.test.tsx`, text).join('\n'),
+    /does not use the submission export saveTerms/u
+  );
+});
+
+// r6 blocker 5: a skipped test or suite supplies no evidence, `suite` (Vitest's alias of
+// `describe`) included.
+test('r6 B5: a skipped test or suite is not evidence', t => {
+  for (const skipped of ['it.skip', 'test.skip', 'describe.skip', 'suite.skip', 'xit'])
+    assert.match(
+      evidence(t, `${W}/app/signup/page.test.tsx`, IMPORTING.replace('it(', `${skipped}(`)).join(
+        '\n'
+      ),
+      /is skipped/u,
+      skipped
+    );
 });

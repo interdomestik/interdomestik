@@ -185,7 +185,8 @@ function freshFor(base, head, id) {
   );
 }
 
-const SKIPPED_RE = /\b(?:it|test|describe)\s*\.\s*(?:skip|todo|fixme)\b|\bx(?:it|describe)\s*\(/u;
+const SKIPPED_RE =
+  /\b(?:it|test|describe|suite)\s*\.\s*(?:skip|todo|fixme)\b|\bx(?:it|describe)\s*\(/u;
 // A time-field name ends in one of these (`createdAt`, `granted_at`, `timestamp`); the regex only
 // tests for one, so the leading word characters need no match of their own.
 const TIME_RE = /(?:At|_at|Time|time|timestamp)\b/u;
@@ -438,6 +439,22 @@ function inTypePosition(node) {
   return false;
 }
 
+// Whether a reference only forwards its value through `export default`: the node, through
+// parentheses, type assertions or as the object of a member access, is the exported expression
+// (r6 B4: `export default (s)`, `export default ns.s`).
+function forwardedByDefaultExport(node) {
+  let at = node;
+  while (
+    ts.isParenthesizedExpression(at.parent) ||
+    ts.isAsExpression(at.parent) ||
+    ts.isSatisfiesExpression(at.parent) ||
+    ts.isNonNullExpression(at.parent) ||
+    (ts.isPropertyAccessExpression(at.parent) && at.parent.expression === at)
+  )
+    at = at.parent;
+  return ts.isExportAssignment(at.parent);
+}
+
 // The symbol a value-position identifier refers to, or null (an import name, a property key or
 // member name, a declared name, or a type position).
 function valueSymbol(node, checker) {
@@ -447,7 +464,7 @@ function valueSymbol(node, checker) {
   if (ts.isImportSpecifier(parent) || ts.isImportClause(parent) || ts.isNamespaceImport(parent))
     return null;
   // A re-export is no use in a test: a type-only one is erased, and none calls it (r4 B1, r5 B5).
-  if (ts.isExportSpecifier(parent) || ts.isExportAssignment(parent)) return null;
+  if (ts.isExportSpecifier(parent) || forwardedByDefaultExport(node)) return null;
   if (ts.isPropertyAccessExpression(parent) && parent.name === node) return null;
   if ('name' in parent && parent.name === node) return null;
   if (ts.isBindingElement(parent) && parent.propertyName === node) return null;

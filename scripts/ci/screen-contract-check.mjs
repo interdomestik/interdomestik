@@ -20,9 +20,6 @@
 // - A CHK-22 entry with an `exportName` and a use is judged at its JSX renders only. A route
 //   module that renders the same component itself (Next renders it with no JSX caller) is not
 //   judged there. Errs toward a missed finding.
-// - CHK-22 test evidence: `export default (x)` and `export default ns.x` still count as a use of
-//   the submission, and `suite.skip` is not recognised as skipped. Errs toward a missed finding (a
-//   forwarding or skipped test is credited).
 // - Module resolution differs from TypeScript in the cases listed in `specifiers.mjs` (sibling
 //   `.js`/`.ts`, `.cjs`/`.mjs`/`.jsx` substitution, `..` after `*` in `@/*`, declaration and
 //   `typesVersions` edges). Errs mostly toward a missed finding (an edge not followed); where it
