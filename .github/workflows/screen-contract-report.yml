@@ -3,10 +3,11 @@
 # outcome. A head whose scanner status is error or whose upload did not succeed is marked "replay needed".
 # Each check moves into ci.yml `static` only by its own owner-approved flip PR.
 #
-# Trust (code review r1 B1): the scanner, the setup action and the dependencies come from the trusted base
-# checkout; the head is only data, fetched by sha and extracted by the scanner. A base without the scanner
-# (the bootstrap PR) reports "no trusted scanner" and runs nothing. Under pull_request the head can still edit
-# this file, so it is not tamper-proof: a flip to required pins the workflow in the org ruleset (design §6).
+# Trust (code review r1 B1, r2 B2): the scanner, the setup action and the dependencies come from the trusted
+# base checkout (a pull request's base, or the revision before a push to main). The head is only data, fetched
+# by sha and extracted by the scanner. A base without the scanner (the bootstrap PR) reports "no trusted
+# scanner" and runs nothing. Under pull_request the head can still edit this file, so it is not tamper-proof:
+# a flip to required pins the workflow in the org ruleset (design §6).
 name: Screen Contract Report
 
 on:
@@ -32,7 +33,7 @@ jobs:
       - name: Checkout the trusted base
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.event.before }}
           fetch-depth: 0
           persist-credentials: false
 

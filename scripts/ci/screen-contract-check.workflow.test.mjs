@@ -42,7 +42,12 @@ test('advisory workflow: trusted base checkout, head fetched as data, scanner on
   const byId = Object.fromEntries(steps.filter(step => step.id).map(step => [step.id, step]));
   const [checkout] = steps;
   assert.match(checkout.uses, /^actions\/checkout@[0-9a-f]{40}$/u);
-  assert.equal(checkout.with.ref, '${{ github.event.pull_request.base.sha || github.sha }}');
+  // r2 B2: a push runs the scanner of the revision before it, never the pushed one.
+  assert.equal(
+    checkout.with.ref,
+    '${{ github.event.pull_request.base.sha || github.event.before }}'
+  );
+  assert.doesNotMatch(read(WORKFLOW), /ref: [^\n]*github\.sha/u);
   assert.equal(checkout.with['persist-credentials'], false);
   assert.equal(checkout.with['fetch-depth'], 0);
   const source = read(WORKFLOW);
