@@ -1,5 +1,4 @@
 import { MissingTenantError, UnauthorizedError } from '@interdomestik/shared-auth/errors';
-import { runInNewContext } from 'node:vm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -44,6 +43,23 @@ function staffAction(handler: (input: z.output<typeof claimInput>) => Promise<un
 }
 
 const refusalRows = () => mocks.write.mock.calls.map(call => call[0]);
+
+// A plain role basis built from another realm's Object and Array (a jsdom frame), without evaluating code.
+function otherRealmBasis(): { kind: string; roles: string[] } {
+  const frame = document.createElement('iframe');
+  document.body.append(frame);
+  const realm = frame.contentWindow as unknown as {
+    Object: ObjectConstructor;
+    Array: ArrayConstructor;
+  };
+  const basis = new realm.Object() as { kind: string; roles: string[] };
+  basis.kind = 'role';
+  basis.roles = realm.Array.of<string>(ROLE_STAFF);
+  frame.remove();
+  expect(Object.getPrototypeOf(basis)).not.toBe(Object.prototype);
+  expect(Object.getPrototypeOf(basis.roles)).not.toBe(Array.prototype);
+  return basis;
+}
 
 describe('defineAction at run time', () => {
   beforeEach(() => {
@@ -221,10 +237,7 @@ describe('defineAction at run time', () => {
           roles = [ROLE_STAFF];
         })(),
     ],
-    [
-      'a plain object of another realm',
-      () => runInNewContext(`({ kind: 'role', roles: [${JSON.stringify(ROLE_STAFF)}] })`),
-    ],
+    ['a plain object of another realm', otherRealmBasis],
   ])('keeps its own copy of the roles when the basis is %s (r7 B23)', async (_label, make) => {
     const basis = make() as { kind: string; roles: string[] };
     const action = defineAction({
