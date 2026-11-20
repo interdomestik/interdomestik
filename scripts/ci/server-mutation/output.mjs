@@ -20,11 +20,12 @@ export function writeReport(file, report, results) {
   fs.writeFileSync(file, `${JSON.stringify(body, null, 2)}\n`);
 }
 
-// ` file=…,line=…` of a finding's notice, or empty when the finding has no file.
+// `file=…,line=…,` of a finding's notice, or empty when the finding has no file. Properties of a
+// workflow command are separated by commas, the title included (WP-05 code review r6, B8).
 function noticeLocation(finding) {
   if (!finding?.file) return '';
-  const line = finding.line ? `,line=${finding.line}` : '';
-  return ` file=${escapeProperty(finding.file)}${line}`;
+  const line = finding.line ? `line=${finding.line},` : '';
+  return `file=${escapeProperty(finding.file)},${line}`;
 }
 
 export function annotate(report, results, out = process.stdout) {
@@ -37,7 +38,7 @@ export function annotate(report, results, out = process.stdout) {
       const finding = byId.get(id);
       const title = escapeProperty(`${result.id} new`);
       const text = escapeData(`${id}: ${finding?.message ?? ''}`);
-      lines.push(`::notice${noticeLocation(finding)} title=${title}::${text}`);
+      lines.push(`::notice ${noticeLocation(finding)}title=${title}::${text}`);
     }
     const tamperTitle = escapeProperty(`${result.id} baseline`);
     for (const id of result.tamper) lines.push(`::notice title=${tamperTitle}::${escapeData(id)}`);
