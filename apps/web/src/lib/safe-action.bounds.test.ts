@@ -136,6 +136,27 @@ describe('definition: every failure is a definition error, charged first (r14 B4
     );
   });
 
+  // The thrown value is never read: not even `instanceof` runs on it, so no trap fires (r15 B42).
+  it('never reads the thrown value, even through a proxy trap (r15 B42)', () => {
+    const trapped: string[] = [];
+    const thrown = new Proxy(
+      {},
+      new Proxy(
+        {},
+        {
+          get: (_handler, trap) => () => {
+            trapped.push(String(trap));
+            throw new Error('the thrown value was read');
+          },
+        }
+      )
+    );
+    expect(define(z.strictObject({ bad: throwingField(thrown) }))).toThrow(
+      /a schema that cannot be judged/
+    );
+    expect(trapped).toEqual([]);
+  });
+
   it('charges a catchall before reading its type (B44)', () => {
     const fields: Record<string, z.ZodType> = Object.fromEntries(
       Array.from({ length: 4997 }, (_, i) => [`f${String(i).padStart(4, '0')}`, z.string()])

@@ -48,6 +48,8 @@ type WalkContext = {
   identityKeys: ReadonlySet<string>;
   onPath: Set<z.ZodType>;
   visits: number;
+  // The walk's own refusal, so the catch can tell it apart by identity alone (r15 B42).
+  refusal?: ActionDefinitionError;
 };
 
 function defOf(schema: z.ZodType): ZodDef {
@@ -114,10 +116,11 @@ function spend(ctx: WalkContext, path: string, units: number): void {
 }
 
 function refuse(ctx: WalkContext, path: string, reason: string): never {
-  throw new ActionDefinitionError(
+  ctx.refusal = new ActionDefinitionError(
     ctx.operation,
     `input schema refused at ${path || '<root>'}: ${reason}`
   );
+  throw ctx.refusal;
 }
 
 function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
@@ -209,8 +212,9 @@ export function assertAcceptedSchema(schema: z.ZodType, options: SchemaCheckOpti
     if (options.form) assertFormFields(schema, ctx);
   } catch (error) {
     // Anything else thrown while the schema is judged (a developer getter's error, a stack exhausted
-    // in any realm) is a refusal too; the error itself is not read (r13 B42, r14 B42).
-    if (error instanceof ActionDefinitionError) throw error;
+    // in any realm) is a refusal too. The thrown value is only compared by identity, never read: no
+    // `instanceof`, so no proxy trap runs (r13 B42, r14 B42, r15 B42).
+    if (ctx.refusal !== undefined && error === ctx.refusal) throw ctx.refusal;
     refuse(ctx, '', 'a schema that cannot be judged (reading it threw)');
   }
   const root = defOf(schema);
