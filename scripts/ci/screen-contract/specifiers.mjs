@@ -5,7 +5,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
-import { ENVIRONMENTS, resolveExports, validateExports } from './exports.mjs';
+import { environmentsFor, resolveEnvironment, validateExports } from './exports.mjs';
 import { roleOf } from './roles.mjs';
 
 const literalOf = node => {
@@ -20,10 +20,22 @@ const isTypeOnlyImport = node =>
   (node.specifiers.length > 0 &&
     node.specifiers.every(s => s.type === 'ImportSpecifier' && s.importKind === 'type'));
 
+// `export { type A, type B } from 'p'` is type-only like `export type { A, B } from 'p'` (H1).
+const isTypeOnlyExport = node =>
+  node.exportKind === 'type' ||
+  (node.specifiers?.length > 0 && node.specifiers.every(s => s.exportKind === 'type'));
+
 const exportEdge = node =>
   node.source
-    ? { specifier: node.source.value, kind: node.exportKind === 'type' ? 'type' : 'import', node }
+    ? { specifier: node.source.value, kind: isTypeOnlyExport(node) ? 'type' : 'import', node }
     : null;
+
+// `import('p').T` in a type position (TSImportType): `source` in typescript-eslint 8, `argument`
+// (a TSLiteralType) before it.
+function importTypeEdge(node) {
+  const value = literalOf(node.source ?? node.argument?.literal);
+  return value === null ? null : { specifier: value, kind: 'type', node };
+}
 
 function requireEdge(node) {
   const value = node.arguments.length === 1 ? literalOf(node.arguments[0]) : null;
@@ -54,10 +66,12 @@ const EDGE_OF = {
   },
   CallExpression: requireEdge,
   TSImportEqualsDeclaration: importEqualsEdge,
+  TSImportType: importTypeEdge,
 };
 
 // Every module edge of an ESTree program: static import, `export … from`, literal `import()`,
-// literal `require()` and `import x = require()`. Kind: import | type | dynamic | require.
+// literal `require()`, `import x = require()` and `import('p')` types. Kind: import | type |
+// dynamic | require.
 export function edgesOfProgram(program, visitorKeys) {
   const out = [];
   const visit = node => {
@@ -116,18 +130,29 @@ function parseTsconfig(text) {
   return config;
 }
 
-// The `@/` target directory of the web app (its tsconfig `paths['@/*']`), repo-relative.
-function aliasRoot(root) {
-  const config = readJson(
-    path.join(root, 'apps/web/tsconfig.json'),
-    'apps/web/tsconfig.json',
-    parseTsconfig
-  );
-  const mapping = config?.compilerOptions?.paths?.['@/*'];
+// The `@/` target directory of one tsconfig (its `paths['@/*']`, relative to `baseUrl` or, without
+// one, to the config's directory), repo-relative.
+function aliasRoot(root, configRel) {
+  const config = readJson(path.join(root, configRel), configRel, parseTsconfig);
+  const options = config?.compilerOptions;
+  const mapping = options?.paths?.['@/*'];
   if (!Array.isArray(mapping) || typeof mapping[0] !== 'string' || !mapping[0].endsWith('/*'))
-    throw new ScanError('apps/web/tsconfig.json has no @/* mapping');
-  return path.posix.normalize(path.posix.join('apps/web', mapping[0].slice(0, -2)));
+    throw new ScanError(`${configRel} has no @/* mapping`);
+  const baseUrl = typeof options.baseUrl === 'string' ? options.baseUrl : '.';
+  const base = path.posix.join(path.posix.dirname(configRel), baseUrl);
+  return path.posix.normalize(path.posix.join(base, mapping[0].slice(0, -2)));
 }
+
+// The tsconfig that compiles each caller (H7): the web app's for `apps/web/**`; the root one for
+// `packages/**`, which the root config includes and the packages that extend it inherit (today
+// both name `apps/web/src`).
+const ALIAS_CONFIGS = Object.freeze({ web: 'apps/web/tsconfig.json', root: 'tsconfig.json' });
+const aliasConfigOf = fromRel => (fromRel.startsWith('apps/web/') ? 'web' : 'root');
+
+// The environments whose file an edge loads (B5): a value edge its value conditions, a type edge
+// the types condition.
+const resolutionEnvironments = edgeKind =>
+  edgeKind === 'type' ? ['types'] : environmentsFor(edgeKind).filter(env => env !== 'types');
 
 // Workspace packages of the target tree: name -> { dir, pkg }.
 function workspacePackages(root) {
@@ -153,7 +178,9 @@ const resolvers = new Map();
 // One resolver per target tree, cached for the life of the process (one lint run).
 export function resolverFor(root) {
   if (resolvers.has(root)) return resolvers.get(root);
-  const alias = aliasRoot(root);
+  const alias = Object.fromEntries(
+    Object.entries(ALIAS_CONFIGS).map(([caller, configRel]) => [caller, aliasRoot(root, configRel)])
+  );
   const packages = workspacePackages(root);
   const existing = new Map();
   const isFile = rel => {
@@ -181,23 +208,47 @@ export function resolverFor(root) {
     if (!match) return null;
     return { name: match[1], subpath: `.${match[2] ?? ''}`, entry: packages.get(match[1]) ?? null };
   };
-  // The repo-relative file a specifier names, or null (external, or not found).
-  const resolveFile = (fromRel, specifier) => {
-    const kind = kindOfSpecifier(specifier);
-    if (kind === 'relative')
-      return firstExisting(path.posix.join(path.posix.dirname(fromRel), specifier));
-    if (kind === 'alias') return firstExisting(path.posix.join(alias, specifier.slice(2)));
-    if (kind !== 'workspace') return null;
+  // A file check for `exports` targets ('./src/x.ts') of the package in `dir`.
+  const existsIn = dir => target => isFile(path.posix.join(dir, target));
+  // The files a workspace edge loads, one per environment of its kind, without duplicates.
+  const workspaceFiles = (specifier, edgeKind) => {
     const target = workspace(specifier);
-    if (!target?.entry) return null;
-    for (const env of ['types', 'node-import']) {
-      const result = resolveExports(target.entry.pkg, target.subpath, ENVIRONMENTS[env]);
+    if (!target?.entry) return [];
+    const { dir, pkg } = target.entry;
+    const files = new Set();
+    for (const env of resolutionEnvironments(edgeKind)) {
+      const result = resolveEnvironment(pkg, target.subpath, env, existsIn(dir));
       if (result.status === 'resolved' && result.target)
-        return firstExisting(path.posix.join(target.entry.dir, result.target));
+        files.add(path.posix.join(dir, result.target));
     }
-    return null;
+    return [...files];
   };
-  const resolver = { root, alias, packages, workspace, resolveFile, packageDirOf, isFile };
+  // The repo-relative files a specifier names for an edge of `edgeKind` (empty: external, or not
+  // found). A relative or `@/` path names one file; `@/` follows the caller's tsconfig.
+  const resolveTargets = (fromRel, specifier, edgeKind = 'import') => {
+    const kind = kindOfSpecifier(specifier);
+    if (kind === 'workspace') return workspaceFiles(specifier, edgeKind);
+    let file = null;
+    if (kind === 'relative')
+      file = firstExisting(path.posix.join(path.posix.dirname(fromRel), specifier));
+    else if (kind === 'alias')
+      file = firstExisting(path.posix.join(alias[aliasConfigOf(fromRel)], specifier.slice(2)));
+    return file ? [file] : [];
+  };
+  // The first of those files, or null.
+  const resolveFile = (fromRel, specifier, edgeKind = 'import') =>
+    resolveTargets(fromRel, specifier, edgeKind)[0] ?? null;
+  const resolver = {
+    root,
+    alias,
+    packages,
+    workspace,
+    resolveTargets,
+    resolveFile,
+    existsIn,
+    packageDirOf,
+    isFile,
+  };
   resolvers.set(root, resolver);
   return resolver;
 }

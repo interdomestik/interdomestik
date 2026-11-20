@@ -21,11 +21,19 @@ function fileLayer(root, rel) {
   return textLayers.get(key);
 }
 
-function targetLayer(resolver, rel, specifier) {
-  const target = resolver.resolveFile(rel, specifier);
-  if (target) return { target, layer: fileLayer(resolver.root, target) };
-  if (kindOfSpecifier(specifier) !== 'workspace') return null;
-  const entry = resolver.workspace(specifier)?.entry;
+const lower = (a, b) => (b.layer !== null && (a.layer === null || b.layer < a.layer) ? b : a);
+
+// The lowest layer the edge reaches: each file it loads for its kind (a value edge under the
+// value conditions, a type edge under `types`; B5), or, for a workspace package none of whose
+// targets resolve, the package's own layer.
+function targetLayer(resolver, rel, edge) {
+  const targets = resolver.resolveTargets(rel, edge.specifier, edge.kind);
+  if (targets.length)
+    return targets
+      .map(target => ({ target, layer: fileLayer(resolver.root, target) }))
+      .reduce(lower);
+  if (kindOfSpecifier(edge.specifier) !== 'workspace') return null;
+  const entry = resolver.workspace(edge.specifier)?.entry;
   if (!entry) return null;
   return { target: entry.dir, layer: LAYER_OF_PACKAGE_ROLE[packageRole(entry.dir)] ?? null };
 }
@@ -45,7 +53,7 @@ export default rule(
         for (const edge of edgesOfProgram(program, context.sourceCode.visitorKeys)) {
           if (kindOfSpecifier(edge.specifier) === 'external') continue;
           units.add(`edge:${layer}`);
-          const hit = targetLayer(resolver, rel, edge.specifier);
+          const hit = targetLayer(resolver, rel, edge);
           if (hit?.layer && hit.layer < layer)
             report(
               context,

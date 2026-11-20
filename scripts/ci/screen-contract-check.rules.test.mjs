@@ -245,3 +245,107 @@ test('A11Y: the excluded label-has-associated-control still throws here (named l
     /minimatch/u
   );
 });
+
+const pkgJson = (name, exportsMap) => JSON.stringify({ name, private: true, exports: exportsMap });
+
+test('CHK-15a: a value edge resolves under the value conditions, a type edge under types (B5)', async t => {
+  const root = tree(t, {
+    // `types` names a declaration (no layer) and the value conditions name the source.
+    'packages/domain-decl/package.json': pkgJson('@interdomestik/domain-decl', {
+      '.': { types: './src/index.d.ts', import: './src/index.ts', default: './src/index.ts' },
+    }),
+    'packages/domain-decl/src/index.ts': 'export const decl = 1;\n',
+    'packages/domain-decl/src/index.d.ts': 'export declare const decl: number;\n',
+    'packages/database/src/up-decl.ts':
+      "import { decl } from '@interdomestik/domain-decl';\nexport const x = decl;\n",
+    // `types` names a layer-3 file and the value conditions a layer-2 ('use server') file.
+    'packages/domain-split/package.json': pkgJson('@interdomestik/domain-split', {
+      '.': { types: './src/api.ts', default: './src/impl.ts' },
+    }),
+    'packages/domain-split/src/api.ts': 'export type Api = { a: number };\n',
+    'packages/domain-split/src/impl.ts': "'use server';\nexport async function impl() {}\n",
+    'packages/domain-claims/src/value.ts':
+      "import { impl } from '@interdomestik/domain-split';\nexport const v = impl;\n",
+    'packages/domain-claims/src/typed.ts':
+      "import type { Api } from '@interdomestik/domain-split';\nexport type T = Api;\n",
+  });
+  const result = await lint(root);
+  has(result, 'CHK-15a', 'CHK-15a|packages/database/src/up-decl.ts|@interdomestik/domain-decl');
+  has(result, 'CHK-15a', 'CHK-15a|packages/domain-claims/src/value.ts|@interdomestik/domain-split');
+  lacks(result, 'CHK-15a', 'CHK-15a|packages/domain-claims/src/typed.ts');
+});
+
+test('CHK-15a: a package caller resolves @/ through the root tsconfig, a web caller through the web one (H7)', async t => {
+  const root = tree(t, {
+    'tsconfig.json':
+      '{\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["apps/web/src/*"] } }\n}\n',
+    'apps/web/tsconfig.json':
+      '{\n  // web\n  "compilerOptions": { "paths": { "@/*": ["./src/components/*"] } },\n}\n',
+    [`${W}/actions/a.ts`]: "'use server';\nexport async function a() {}\n",
+    [`${W}/components/view.tsx`]: 'export const View = () => null;\n',
+    // Root mapping: apps/web/src/actions/a (layer 2). The web mapping would name a missing file.
+    'packages/domain-claims/src/h7.ts': "import { a } from '@/actions/a';\nexport const h = a;\n",
+    // Web mapping: apps/web/src/components/view (layer 1). The root mapping would name a missing file.
+    [`${W}/actions/b.ts`]:
+      "'use server';\nimport { View } from '@/view';\nexport async function b() { return View; }\n",
+  });
+  const result = await lint(root);
+  has(result, 'CHK-15a', 'CHK-15a|packages/domain-claims/src/h7.ts|@/actions/a');
+  has(result, 'CHK-15a', `CHK-15a|${W}/actions/b.ts|@/view`);
+});
+
+test('CHK-15a: the root tsconfig and its @/* mapping are required inputs (§5)', async t => {
+  await assert.rejects(lint(tree(t, { 'tsconfig.json': null })), /tsconfig\.json is missing/u);
+  await assert.rejects(lint(tree(t, { 'tsconfig.json': '' })), /tsconfig\.json is empty/u);
+  await assert.rejects(
+    lint(tree(t, { 'tsconfig.json': '{ "compilerOptions": { "paths": {} } }' })),
+    /tsconfig\.json has no @\/\* mapping/u
+  );
+});
+
+test('CHK-15b: an exports array whose first target is absent refuses a value edge (B4)', async t => {
+  const file = `${W}/components/arr.tsx`;
+  const root = tree(t, {
+    'packages/shared-arr/package.json': pkgJson('@interdomestik/shared-arr', {
+      './x': ['./src/missing.ts', './src/x.ts'],
+    }),
+    'packages/shared-arr/src/x.ts': 'export const X = 1;\nexport type XT = number;\n',
+    [file]: ["import { X } from '@interdomestik/shared-arr/x';", 'export const C = X;'].join('\n'),
+    [`${W}/components/arr-type.tsx`]:
+      "import type { XT } from '@interdomestik/shared-arr/x';\nexport type C = XT;\n",
+  });
+  const result = await lint(root);
+  has(result, 'CHK-15b', `CHK-15b|${file}|@interdomestik/shared-arr/x`);
+  lacks(result, 'CHK-15b', `CHK-15b|${W}/components/arr-type.tsx`);
+});
+
+test('CHK-15b: an invalid string inside an exports array is an input error (B4, §5)', async t => {
+  const root = tree(t, {
+    'packages/shared-bad/package.json': pkgJson('@interdomestik/shared-bad', {
+      '.': ['src/index.ts', './src/index.ts'],
+    }),
+    'packages/shared-bad/src/index.ts': 'export const B = 1;\n',
+  });
+  await assert.rejects(lint(root), /shared-bad.*does not start with "\.\/"/u);
+});
+
+test('CHK-15b, CHK-15c: type-only export-from and import types are type edges (H1)', async t => {
+  const file = `${W}/components/types.tsx`;
+  const root = tree(t, {
+    'packages/shared-t/package.json': pkgJson('@interdomestik/shared-t', {
+      './t': { types: './src/t.ts' },
+    }),
+    'packages/shared-t/src/t.ts': 'export type T = number;\nexport const V = 1;\n',
+    [file]: [
+      "export { type T } from '@interdomestik/shared-t/t';",
+      "type Db = import('@interdomestik/database').Db;",
+      'export const C = (d: Db) => d;',
+    ].join('\n'),
+    [`${W}/components/mixed.tsx`]: "export { type T, V } from '@interdomestik/shared-t/t';\n",
+  });
+  const result = await lint(root);
+  lacks(result, 'CHK-15b', `CHK-15b|${file}|`);
+  has(result, 'CHK-15b', `CHK-15b|${W}/components/mixed.tsx|@interdomestik/shared-t/t`);
+  has(result, 'CHK-15c', `CHK-15c|${file}|@interdomestik/database`);
+  assert.ok(result['CHK-15c'].units['edge:type'] >= 2);
+});

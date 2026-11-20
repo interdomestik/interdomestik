@@ -9,6 +9,10 @@
 //   types            TypeScript resolveModuleName, moduleResolution Bundler
 // Child processes run with process.execPath, no --conditions, no --no-addons,
 // and without NODE_OPTIONS / NODE_TEST_CONTEXT from the test runner.
+// Each oracle's verdict is compared as the oracle gives it: a refusal for a
+// missing file is a refusal. Where the oracles disagree on one case, each row
+// still matches its own oracle, and an edge passes only if every row that
+// applies to it resolves (checkEdge, the strictest verdict).
 
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -23,6 +27,7 @@ import {
   ENVIRONMENTS,
   checkEdge,
   environmentsFor,
+  resolveEnvironment,
   resolveExports,
   unmodelledConditions,
   validateExports,
@@ -65,16 +70,30 @@ function runChild(args, cwd) {
   return JSON.parse(out.trim().split('\n').pop());
 }
 
-// Node ESM: import.meta.resolve applies PACKAGE_EXPORTS_RESOLVE and, for a
-// package target, does not check that the file exists.
+// Node ESM: import.meta.resolve names the file Node selects, but it masks the
+// two errors the import itself raises for that file (ERR_MODULE_NOT_FOUND and
+// ERR_UNSUPPORTED_DIR_IMPORT; Node's initializeImportMeta returns error.url for
+// them). The import is therefore run too, and either code is a refusal. Any
+// other import error (an unknown extension, type stripping under node_modules)
+// comes after resolution and is not a resolution verdict.
 function nodeImportOracle(fixture, specs) {
   const script = `
+    const NOT_FOUND = new Set(['ERR_MODULE_NOT_FOUND', 'ERR_UNSUPPORTED_DIR_IMPORT']);
     const out = [];
     for (const spec of ${JSON.stringify(specs)}) {
+      let file;
       try {
-        out.push({ resolved: true, file: new URL(import.meta.resolve(spec)).pathname });
+        file = new URL(import.meta.resolve(spec)).pathname;
       } catch (error) {
         out.push({ resolved: false, detail: String(error.code) });
+        continue;
+      }
+      try {
+        await import(spec);
+        out.push({ resolved: true, file });
+      } catch (error) {
+        if (NOT_FOUND.has(error.code)) out.push({ resolved: false, detail: error.code, file });
+        else out.push({ resolved: true, file, after: String(error.code) });
       }
     }
     console.log(JSON.stringify(out));
@@ -83,24 +102,16 @@ function nodeImportOracle(fixture, specs) {
 }
 
 // Node CJS: require.resolve applies the same exports algorithm, then checks the
-// file. A MODULE_NOT_FOUND naming a path inside the package means the exports
-// map selected that target and the file is absent; it is reported as resolved
-// with missing: true, because this module never looks at the disk.
+// file; its MODULE_NOT_FOUND for a selected target that is absent is a refusal.
 function nodeRequireOracle(fixture, specs) {
   const script = `
     const req = require('node:module').createRequire(${JSON.stringify(fixture.importer)});
-    const pkgDir = ${JSON.stringify(fixture.pkgDir + path.sep)};
     const out = [];
     for (const spec of ${JSON.stringify(specs)}) {
       try {
         out.push({ resolved: true, file: req.resolve(spec) });
       } catch (error) {
-        const named = /Cannot find module '([^']+)'/.exec(String(error.message));
-        if (error.code === 'MODULE_NOT_FOUND' && named && named[1].startsWith(pkgDir)) {
-          out.push({ resolved: true, file: named[1], missing: true });
-        } else {
-          out.push({ resolved: false, detail: String(error.code) });
-        }
+        out.push({ resolved: false, detail: String(error.code) });
       }
     }
     console.log(JSON.stringify(out));
@@ -321,30 +332,151 @@ const CASES = [
     },
   },
   {
-    // Observed oracle difference (Node 24, enhanced-resolve 5.25.1, TypeScript 5.9):
-    // Node takes the first valid target string without checking that the file
-    // exists (import.meta.resolve returns missing.js; require.resolve selects it
-    // and then fails MODULE_NOT_FOUND on that path). enhanced-resolve selects it
-    // too, finds no file and refuses ("no valid target file was found") without
-    // trying d.js. TypeScript checks each entry on disk and falls back to d.js.
-    // The module never looks at the disk and follows Node, so this case is out
-    // of the oracle comparison for bundler-browser and types.
-    name: '11 array target, first entry missing on disk (bundler-browser and types excluded from oracle comparison)',
-    exports: { '.': ['./missing-is-fine-to-node.js', './d.js'] },
+    // The oracles disagree (Node 24.15.0, enhanced-resolve 5.25.1, TypeScript
+    // 5.9): Node and enhanced-resolve select missing.js and refuse it, as its
+    // file is absent; TypeScript checks each entry on disk and takes d.js. Each
+    // row follows its own oracle; a value edge is refused (strictest verdict),
+    // a type-only edge passes.
+    name: '11 array target, first entry missing on disk',
+    exports: { '.': ['./missing.js', './d.js'] },
     files: ['d.js'],
-    oracleEnvs: ['node-import', 'node-require'],
     expect: {
       [PKG_NAME]: {
-        'node-import': './missing-is-fine-to-node.js',
-        'node-require': './missing-is-fine-to-node.js',
-        'bundler-browser': './missing-is-fine-to-node.js',
-        types: './missing-is-fine-to-node.js',
+        'node-import': 'missing',
+        'node-require': 'missing',
+        'bundler-browser': 'missing',
+        types: './d.js',
+      },
+    },
+    edges: { [PKG_NAME]: { import: false, dynamic: false, require: false, type: true } },
+  },
+  {
+    name: '11b a target whose file is absent is refused everywhere',
+    exports: { '.': './missing.js' },
+    files: [],
+    expect: {
+      [PKG_NAME]: {
+        'node-import': 'missing',
+        'node-require': 'missing',
+        'bundler-browser': 'missing',
+        types: 'missing',
+      },
+    },
+    edges: { [PKG_NAME]: { import: false, dynamic: false, require: false, type: false } },
+  },
+  {
+    // Node and enhanced-resolve take the first matching condition and refuse
+    // its absent file; TypeScript falls through to the next condition.
+    name: '11c condition target missing on disk, default present',
+    exports: { '.': { import: './missing.js', default: './d.js' } },
+    files: ['d.js'],
+    expect: {
+      [PKG_NAME]: {
+        'node-import': 'missing',
+        'node-require': './d.js',
+        'bundler-browser': 'missing',
+        types: './d.js',
+      },
+    },
+    edges: { [PKG_NAME]: { import: false, dynamic: false, require: true, type: true } },
+  },
+  {
+    // TypeScript maps a .js target to its .ts source; Node and enhanced-resolve
+    // need the named file.
+    name: '11d a .js target with only the .ts source present',
+    exports: { '.': './d.js' },
+    files: ['d.ts'],
+    expect: {
+      [PKG_NAME]: {
+        'node-import': 'missing',
+        'node-require': 'missing',
+        'bundler-browser': 'missing',
+        types: './d.ts',
+      },
+    },
+    edges: { [PKG_NAME]: { import: false, require: false, type: true } },
+  },
+  {
+    // enhanced-resolve appends its extensions to an extensionless target; Node
+    // and TypeScript do not.
+    name: '11e an extensionless target',
+    exports: { '.': './d' },
+    files: ['d.js'],
+    expect: {
+      [PKG_NAME]: {
+        'node-import': 'missing',
+        'node-require': 'missing',
+        'bundler-browser': './d.js',
+        types: 'missing',
+      },
+    },
+    edges: { [PKG_NAME]: { import: false, require: false, type: false } },
+  },
+  {
+    // TypeScript passes over a null condition value; Node blocks on it only
+    // when the condition is active, and no Node or browser row has `types`.
+    name: '11f a null types condition, default present',
+    exports: { '.': { types: null, default: './d.js' } },
+    files: ['d.js'],
+    expect: {
+      [PKG_NAME]: {
+        'node-import': './d.js',
+        'node-require': './d.js',
+        'bundler-browser': './d.js',
+        types: './d.js',
+      },
+    },
+    edges: { [PKG_NAME]: { import: true, require: true, type: true } },
+  },
+  {
+    name: '11g a null import condition: Node and the bundler block, TypeScript falls through',
+    exports: { '.': { import: null, default: './d.js' } },
+    files: ['d.js'],
+    expect: {
+      [PKG_NAME]: {
+        'node-import': 'blocked',
+        'node-require': './d.js',
+        'bundler-browser': 'blocked',
+        types: './d.js',
+      },
+    },
+    edges: { [PKG_NAME]: { import: false, dynamic: false, require: true, type: true } },
+  },
+  {
+    // TypeScript maps .jsx, .mjs and .cjs targets to their typed sources too.
+    name: '11h typed sources of .jsx, .mjs and .cjs targets',
+    exports: { './a': './a.jsx', './b': './b.mjs', './c': './c.cjs', './e': './e.ts' },
+    files: ['a.tsx', 'b.d.mts', 'c.cts', 'e.d.ts'],
+    expect: {
+      '@fx/pkg/a': {
+        'node-import': 'missing',
+        'node-require': 'missing',
+        'bundler-browser': 'missing',
+        types: './a.tsx',
+      },
+      '@fx/pkg/b': {
+        'node-import': 'missing',
+        'node-require': 'missing',
+        'bundler-browser': 'missing',
+        types: './b.d.mts',
+      },
+      '@fx/pkg/c': {
+        'node-import': 'missing',
+        'node-require': 'missing',
+        'bundler-browser': 'missing',
+        types: './c.cts',
+      },
+      '@fx/pkg/e': {
+        'node-import': 'missing',
+        'node-require': 'missing',
+        'bundler-browser': 'missing',
+        types: 'missing',
       },
     },
   },
   {
-    name: '12 array target skips an invalid entry and an unmatched condition object',
-    exports: { '.': ['not-relative.js', { node: './n.js' }, './d.js'] },
+    name: '12 array target skips an unmatched condition object',
+    exports: { '.': [{ node: './n.js' }, './d.js'] },
     files: ['n.js', 'd.js'],
     expect: {
       [PKG_NAME]: {
@@ -440,8 +572,13 @@ const CASES = [
   },
 ];
 
-function moduleVerdict(pkg, spec, env) {
-  return resolveExports(pkg, subpathOf(spec), ENVIRONMENTS[env]);
+const fileExistsIn = pkgDir => target => {
+  const abs = path.join(pkgDir, target);
+  return fs.existsSync(abs) && fs.statSync(abs).isFile();
+};
+
+function moduleVerdict(fixture, spec, env) {
+  return resolveEnvironment(fixture.pkg, subpathOf(spec), env, fileExistsIn(fixture.pkgDir));
 }
 
 for (const testCase of CASES) {
@@ -453,7 +590,7 @@ for (const testCase of CASES) {
     for (const env of ALL_ENVS) {
       for (const spec of specs) {
         const expected = testCase.expect[spec][env];
-        const verdict = moduleVerdict(fixture.pkg, spec, env);
+        const verdict = moduleVerdict(fixture, spec, env);
         if (expected.startsWith('./')) {
           assert.deepEqual(verdict, { status: 'resolved', target: expected }, `${spec} ${env}`);
         } else {
@@ -466,7 +603,7 @@ for (const testCase of CASES) {
       const results = ORACLES[env](fixture, specs);
       specs.forEach((spec, index) => {
         const oracle = results[index];
-        const verdict = moduleVerdict(fixture.pkg, spec, env);
+        const verdict = moduleVerdict(fixture, spec, env);
         const label = `${spec} under ${env}: oracle ${JSON.stringify(oracle)}, module ${JSON.stringify(verdict)}`;
         assert.equal(oracle.resolved, verdict.status === 'resolved', label);
         if (oracle.resolved) {
@@ -478,7 +615,12 @@ for (const testCase of CASES) {
 
     for (const [spec, edges] of Object.entries(testCase.edges ?? {})) {
       for (const [edgeKind, ok] of Object.entries(edges)) {
-        const result = checkEdge(fixture.pkg, subpathOf(spec), edgeKind);
+        const result = checkEdge(
+          fixture.pkg,
+          subpathOf(spec),
+          edgeKind,
+          fileExistsIn(fixture.pkgDir)
+        );
         assert.equal(result.ok, ok, `${spec} ${edgeKind}: ${JSON.stringify(result)}`);
         assert.deepEqual(
           Object.keys(result.environments).sort(byCodeUnit),
@@ -539,6 +681,13 @@ test('malformed exports are input errors', () => {
     ['number target', { '.': 1 }],
     ['boolean exports', true],
     ['numeric condition key', { '.': { 0: './d.js' } }],
+    ['array entry without ./', { '.': ['not-relative.js', './d.js'] }],
+    ['root array entry without ./', ['lib/d.js', './d.js']],
+    ['.. segment in an array entry', { '.': ['./lib/../../d.js', './d.js'] }],
+    ['node_modules segment in an array entry', { '.': ['./node_modules/x/d.js', './d.js'] }],
+    ['array entry inside a condition', { '.': { import: ['/abs/d.js', './d.js'] } }],
+    ['nested array entry', { '.': [['bad.js'], './d.js'] }],
+    ['number array entry', { '.': [1, './d.js'] }],
   ];
   for (const [label, exportsField] of bad) {
     const pkg = { name: PKG_NAME, exports: exportsField };
@@ -561,8 +710,9 @@ test('a package without exports: bare specifier passes, any subpath is no-export
         status: 'no-exports',
       });
     }
-    assert.equal(checkEdge(pkg, '.', 'import').ok, true);
-    assert.equal(checkEdge(pkg, './button', 'type').ok, false);
+    const exists = () => true;
+    assert.equal(checkEdge(pkg, '.', 'import', exists).ok, true);
+    assert.equal(checkEdge(pkg, './button', 'type', exists).ok, false);
   }
 });
 
@@ -623,13 +773,14 @@ test('pattern semantics beyond the oracle fixtures', () => {
   assert.deepEqual(resolveExports({ name: PKG_NAME, exports: { '.': [] } }, '.', env), {
     status: 'blocked',
   });
-  // An array of only nulls ends blocked; an array of only invalid strings is refused.
+  // An array of only nulls ends blocked; an invalid string in an array is an input error.
   assert.deepEqual(resolveExports({ name: PKG_NAME, exports: { '.': [null] } }, '.', env), {
     status: 'blocked',
   });
-  assert.deepEqual(resolveExports({ name: PKG_NAME, exports: { '.': ['bad.js'] } }, '.', env), {
-    status: 'not-exported',
-  });
+  assert.throws(
+    () => resolveExports({ name: PKG_NAME, exports: { '.': ['bad.js'] } }, '.', env),
+    ScanError
+  );
   // Conditions given as a Set work like an array.
   assert.deepEqual(
     resolveExports(
@@ -640,4 +791,17 @@ test('pattern semantics beyond the oracle fixtures', () => {
     { status: 'resolved', target: './i.js' }
   );
   assert.throws(() => resolveExports(pkg, 'x', env), ScanError);
+});
+
+test('checkEdge needs a file check, and an unknown environment is an input error', () => {
+  const pkg = { name: PKG_NAME, exports: { '.': './d.js' } };
+  assert.throws(() => checkEdge(pkg, '.', 'import'), ScanError);
+  assert.throws(() => resolveEnvironment(pkg, '.', 'nope', () => true), ScanError);
+  assert.deepEqual(
+    checkEdge(pkg, '.', 'type', () => false),
+    {
+      ok: false,
+      environments: { types: { status: 'missing' } },
+    }
+  );
 });

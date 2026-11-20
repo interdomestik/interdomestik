@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 import test from 'node:test';
 
-import { directivesOfText, layerOf, roleOf } from './screen-contract/roles.mjs';
+import {
+  directivesOfProgram,
+  directivesOfText,
+  layerOf,
+  roleOf,
+} from './screen-contract/roles.mjs';
+import { edgesOfProgram } from './screen-contract/specifiers.mjs';
 
 const W = 'apps/web/src';
 
@@ -72,4 +79,83 @@ test('layer: one function for both ends of an edge (B1, B15)', () => {
   assert.equal(layerOf('packages/database/src/a.ts', plain), 4);
   assert.equal(layerOf('packages/shared-auth/src/a.ts', plain), null);
   assert.equal(layerOf(`${W}/features/a/view.test.tsx`, server), null);
+});
+
+test('roles: a test marker counts only in the basename, __tests__ only as a segment (B3)', () => {
+  const cases = {
+    [`${W}/app/foo.test.bar/page.tsx`]: 'screen',
+    [`${W}/app/foo.spec.bar/page.tsx`]: 'screen',
+    [`${W}/components/a.stories.b/c.tsx`]: 'screen',
+    [`${W}/actions/x.test.dir/save.ts`]: 'action',
+    [`${W}/app/api/v.spec.d/route.ts`]: 'handler',
+    'packages/database/src/a.test.b/schema.ts': 'database',
+    [`${W}/components/not__tests__/y.tsx`]: 'screen',
+    [`${W}/components/__tests__x/y.tsx`]: 'screen',
+    [`${W}/components/x/y.test.tsx`]: 'test',
+    [`${W}/components/x.test.dir/y.spec.ts`]: 'test',
+    [`${W}/components/a/__tests__/b/c.tsx`]: 'test',
+    [`${W}/types/x.d.ts/globals.d.ts`]: 'test',
+  };
+  for (const [rel, role] of Object.entries(cases)) assert.equal(roleOf(rel), role, rel);
+});
+
+const tseslint = createRequire(new URL('../../apps/web/package.json', import.meta.url))(
+  'typescript-eslint'
+);
+const parseProgram = code =>
+  tseslint.parser.parseForESLint(code, { range: true, loc: true, jsx: true }).ast;
+
+test('directive prologue: both ends of an edge agree, a parenthesized string is no directive (H1)', () => {
+  const sources = {
+    "'use server';\nexport const a = 1;\n": ['use server'],
+    "'use strict';\n'use server';\nexport {};\n": ['use strict', 'use server'],
+    "('use server');\nexport const a = 1;\n": [],
+    "'use strict';\n('use server');\nexport {};\n": ['use strict'],
+    "('use strict');\n'use server';\nexport {};\n": [],
+    "'use\\x20server';\nexport {};\n": ['use server'],
+    '`use server`;\nexport {};\n': [],
+    "import x from 'y';\n'use server';\n": [],
+  };
+  for (const [code, expected] of Object.entries(sources)) {
+    assert.deepEqual(directivesOfText('a.ts', code), expected, `target side: ${code}`);
+    assert.deepEqual(directivesOfProgram(parseProgram(code)), expected, `source side: ${code}`);
+    const rel = `${W}/features/a/actions.ts`;
+    assert.equal(
+      layerOf(rel, directivesOfProgram(parseProgram(code))),
+      layerOf(rel, code),
+      `layer: ${code}`
+    );
+  }
+});
+
+test('edges: a type-only export-from and an import type are type edges (H1)', () => {
+  const code = [
+    "export { type T } from 'p-type-spec';",
+    "export { type A, type B as C } from 'p-type-specs';",
+    "export { type D, E } from 'p-mixed';",
+    "export type { F } from 'p-type-decl';",
+    "export {} from 'p-empty';",
+    "export * from 'p-star';",
+    "export type * from 'p-type-star';",
+    "type X = import('p-import-type').T;",
+    "let y: typeof import('p-typeof-import');",
+    "type Z = import('p-generic').G<import('p-nested').N>;",
+  ].join('\n');
+  const program = parseProgram(code);
+  const edges = edgesOfProgram(program, tseslint.parser.parseForESLint(code).visitorKeys).map(
+    edge => `${edge.specifier}:${edge.kind}`
+  );
+  assert.deepEqual(edges, [
+    'p-type-spec:type',
+    'p-type-specs:type',
+    'p-mixed:import',
+    'p-type-decl:type',
+    'p-empty:import',
+    'p-star:import',
+    'p-type-star:type',
+    'p-import-type:type',
+    'p-typeof-import:type',
+    'p-generic:type',
+    'p-nested:type',
+  ]);
 });

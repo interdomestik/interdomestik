@@ -1,6 +1,7 @@
 // CHK-15b (R-15, R-23c): an import reaches another package only through its `exports` (design §2,
-// §2.2): a workspace specifier must resolve to a non-null target in every environment that builds
-// the edge, and a relative or `@/` path never reaches into another package's directory.
+// §2.2): a workspace specifier must resolve to a non-null target whose file exists in every
+// environment that builds the edge, and a relative or `@/` path never reaches into another
+// package's directory.
 import {
   checkEdge,
   unmodelledConditions,
@@ -25,7 +26,12 @@ export default rule('An import reaches a package only through its exports (CHK-1
     }
     for (const condition of unmodelledConditions(target.entry.pkg))
       units.add(`unmodelled:${condition}`);
-    const verdict = checkEdge(target.entry.pkg, target.subpath, edge.kind);
+    const verdict = checkEdge(
+      target.entry.pkg,
+      target.subpath,
+      edge.kind,
+      resolver.existsIn(target.entry.dir)
+    );
     if (verdict.ok) return;
     const refused = Object.entries(verdict.environments)
       .filter(([, result]) => result.status !== 'resolved')

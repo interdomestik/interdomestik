@@ -4,11 +4,24 @@
 // reaches a declared, non-null target through the package's `exports` map, by
 // Node's PACKAGE_EXPORTS_RESOLVE, PATTERN_KEY_COMPARE and PACKAGE_TARGET_RESOLVE
 // (https://nodejs.org/api/esm.html#resolution-algorithm-specification), under
-// the named condition sets below. It never looks at files on disk: a target is
-// the string the map selects, as Node's ESM resolver selects it.
+// the named condition sets below.
+//
+// `resolveExports` is the selection alone: the target string the map selects,
+// as Node's ESM resolver selects it. `resolveEnvironment` is the verdict of one
+// environment, as its oracle gives it, file on disk included (B4):
+//   node-import, node-require  Node's selection; the selected file must exist.
+//   bundler-browser            Node's selection (enhanced-resolve's); the file,
+//                              or the file with one of its extensions, must exist.
+//   types                      TypeScript: every array entry and condition is
+//                              tried in order, a null or a target without a
+//                              typed source on disk is passed over, and a `.js`
+//                              target names its `.ts` source.
+// An edge passes only if every environment of its kind resolves (`checkEdge`):
+// where the oracles disagree, the strictest verdict holds.
 //
 // Where this module is stricter than Node, it fails closed with a ScanError
-// (an input error): a condition object that also holds a `.` key.
+// (an input error): a condition object that also holds a `.` key; an invalid
+// target inside an array, which Node skips.
 
 import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
 
@@ -19,6 +32,23 @@ export const ENVIRONMENTS = Object.freeze({
   'node-require': freezeList(['node', 'node-addons', 'require', 'module-sync', 'default']),
   'bundler-browser': freezeList(['browser', 'import', 'default']),
   types: freezeList(['types', 'import', 'default']),
+});
+
+// The extensions enhanced-resolve tries after a target (the bundler-browser oracle's).
+export const BUNDLER_EXTENSIONS = freezeList(['.js', '.ts', '.d.ts']);
+
+// TypeScript's files for a target, by the target's extension, in its order (moduleResolution
+// Bundler, allowJs); a target with another extension, or none, has none.
+const TYPES_SOURCES = Object.freeze({
+  '.js': freezeList(['.ts', '.tsx', '.d.ts', '.js']),
+  '.jsx': freezeList(['.tsx', '.d.ts', '.jsx']),
+  '.mjs': freezeList(['.mts', '.d.mts', '.mjs']),
+  '.cjs': freezeList(['.cts', '.d.cts', '.cjs']),
+  '.ts': freezeList(['.ts']),
+  '.tsx': freezeList(['.tsx']),
+  '.mts': freezeList(['.mts']),
+  '.cts': freezeList(['.cts']),
+  '.json': freezeList(['.json']),
 });
 
 const EDGE_ENVIRONMENTS = Object.freeze({
@@ -75,27 +105,28 @@ function validateConditionObject(value, where) {
     if (isSubpathKey(key))
       throw new ScanError(`${where}: subpath key "${key}" inside a condition object`);
     if (ARRAY_INDEX_KEY.test(key)) throw new ScanError(`${where}: numeric condition key "${key}"`);
-    validateTarget(value[key], `${where}.${key}`, false);
+    validateTarget(value[key], `${where}.${key}`);
   }
 }
 
-function validateTarget(value, where, inArray) {
+// Every target, an array's entries included, is valid or an input error (§5). Node would skip an
+// invalid array entry; here it is malformed input.
+function validateTarget(value, where) {
   if (value === null) return;
   if (typeof value === 'string') {
     const reason = invalidTargetReason(value);
-    // An invalid entry of an array is skipped at resolution, as in Node.
-    if (reason && !inArray) throw new ScanError(`${where}: target "${value}" ${reason}`);
+    if (reason) throw new ScanError(`${where}: target "${value}" ${reason}`);
     return;
   }
   if (Array.isArray(value)) {
-    value.forEach((entry, index) => validateTarget(entry, `${where}[${index}]`, true));
+    value.forEach((entry, index) => validateTarget(entry, `${where}[${index}]`));
     return;
   }
   if (isPlainObject(value)) {
     validateConditionObject(value, where);
     return;
   }
-  if (!inArray) throw new ScanError(`${where}: invalid target of type ${typeof value}`);
+  throw new ScanError(`${where}: invalid target of type ${typeof value}`);
 }
 
 function exportsShape(exportsField, where) {
@@ -118,26 +149,25 @@ export function validateExports(pkg, label) {
   if (!hasExports(pkg)) return;
   const shape = exportsShape(pkg.exports, where);
   if (shape === 'root') {
-    validateTarget(pkg.exports, where, false);
+    validateTarget(pkg.exports, where);
     return;
   }
   for (const [key, value] of Object.entries(pkg.exports)) {
-    validateTarget(value, `${where}["${key}"]`, false);
+    validateTarget(value, `${where}["${key}"]`);
   }
 }
 
-// PACKAGE_TARGET_RESOLVE. Returns a target string, null (blocked), undefined
-// (no condition matched) or INVALID (an invalid target, skipped in an array).
-const INVALID = Symbol('invalid-target');
-
+// PACKAGE_TARGET_RESOLVE over validated targets. Returns a target string, null
+// (blocked) or undefined (no condition matched). In an array, a null entry is
+// passed over, as Node's implementation does.
 function resolveArrayTarget(target, patternMatch, conditions) {
   if (target.length === 0) return null;
   let last;
   for (const entry of target) {
     const resolved = resolveTarget(entry, patternMatch, conditions);
     if (resolved === undefined) continue;
-    if (resolved === null || resolved === INVALID) {
-      last = resolved;
+    if (resolved === null) {
+      last = null;
       continue;
     }
     return resolved;
@@ -155,16 +185,47 @@ function resolveConditionTarget(target, patternMatch, conditions) {
   return undefined;
 }
 
+const substitute = (target, patternMatch) =>
+  patternMatch === null ? target : target.replaceAll('*', patternMatch);
+
 function resolveTarget(target, patternMatch, conditions) {
   if (target === null) return null;
-  if (typeof target === 'string') {
-    if (invalidTargetReason(target)) return INVALID;
-    return patternMatch === null ? target : target.replaceAll('*', patternMatch);
-  }
+  if (typeof target === 'string') return substitute(target, patternMatch);
   if (Array.isArray(target)) return resolveArrayTarget(target, patternMatch, conditions);
-  if (isPlainObject(target)) return resolveConditionTarget(target, patternMatch, conditions);
-  return INVALID;
+  return resolveConditionTarget(target, patternMatch, conditions);
 }
+
+// TypeScript's PACKAGE_TARGET_RESOLVE: returns the file `accept` finds, MISSING
+// (no typed source on disk), null (only nulls) or undefined (nothing matched).
+// Every array entry and active condition is tried until one yields a file.
+const MISSING = Symbol('missing');
+
+function typesEntries(target, conditions) {
+  if (Array.isArray(target)) return target;
+  return Object.keys(target)
+    .filter(key => key === 'default' || conditions.has(key))
+    .map(key => target[key]);
+}
+
+function resolveTypesTarget(target, patternMatch, conditions, accept) {
+  if (target === null) return null;
+  if (typeof target === 'string') return accept(substitute(target, patternMatch)) ?? MISSING;
+  let last;
+  for (const entry of typesEntries(target, conditions)) {
+    const resolved = resolveTypesTarget(entry, patternMatch, conditions, accept);
+    if (typeof resolved === 'string') return resolved;
+    if (resolved !== undefined) last = resolved;
+  }
+  return last;
+}
+
+function typesSources(target) {
+  const ext = /\.[^./]*$/u.exec(target)?.[0] ?? '';
+  const sources = Object.hasOwn(TYPES_SOURCES, ext) ? TYPES_SOURCES[ext] : [];
+  return sources.map(source => target.slice(0, target.length - ext.length) + source);
+}
+
+const bundlerFiles = target => [target, ...BUNDLER_EXTENSIONS.map(ext => target + ext)];
 
 // PATTERN_KEY_COMPARE for two keys that each hold one `*`.
 function patternKeyCompare(keyA, keyB) {
@@ -202,36 +263,65 @@ function matchSubpath(subpath, map) {
 
 function finish(resolved) {
   if (resolved === null) return { status: 'blocked' };
+  if (resolved === MISSING) return { status: 'missing' };
   if (typeof resolved === 'string') return { status: 'resolved', target: resolved };
   return { status: 'not-exported' };
 }
 
-export function resolveExports(pkg, subpath, conditions) {
+// The map entry a subpath selects, { target, patternMatch }, or a final verdict { status }.
+function selectSubpath(pkg, subpath) {
   validateExports(pkg);
   if (subpath !== '.' && (typeof subpath !== 'string' || !subpath.startsWith('./'))) {
     throw new ScanError(`invalid package subpath: ${String(subpath)}`);
   }
-  const active = conditions instanceof Set ? conditions : new Set(conditions);
   if (!hasExports(pkg)) {
     return subpath === '.' ? { status: 'resolved', target: null } : { status: 'no-exports' };
   }
   if (exportsShape(pkg.exports, 'exports') === 'root') {
-    if (subpath !== '.') return { status: 'not-exported' };
-    return finish(resolveTarget(pkg.exports, null, active));
+    return subpath === '.'
+      ? { target: pkg.exports, patternMatch: null }
+      : { status: 'not-exported' };
   }
   const match = matchSubpath(subpath, pkg.exports);
   if (match === null) return { status: 'not-exported' };
   if (match.patternMatch !== null && INVALID_SEGMENT.test(match.patternMatch)) {
     return { status: 'not-exported' };
   }
-  return finish(resolveTarget(match.target, match.patternMatch, active));
+  return match;
 }
 
-export function checkEdge(pkg, subpath, edgeKind) {
+export function resolveExports(pkg, subpath, conditions) {
+  const selected = selectSubpath(pkg, subpath);
+  if (selected.status) return selected;
+  const active = conditions instanceof Set ? conditions : new Set(conditions);
+  return finish(resolveTarget(selected.target, selected.patternMatch, active));
+}
+
+// One environment's verdict, with `fileExists(target)` answering for a package-relative target
+// ('./src/x.ts'): resolved (target: the file found), blocked, not-exported, no-exports or missing.
+export function resolveEnvironment(pkg, subpath, env, fileExists) {
+  if (typeof env !== 'string' || !Object.hasOwn(ENVIRONMENTS, env))
+    throw new ScanError(`unknown environment: ${String(env)}`);
+  if (typeof fileExists !== 'function') throw new ScanError('resolution needs a file check');
+  const selected = selectSubpath(pkg, subpath);
+  if (selected.status) return selected;
+  const conditions = new Set(ENVIRONMENTS[env]);
+  if (env === 'types') {
+    const accept = target => typesSources(target).find(fileExists);
+    return finish(resolveTypesTarget(selected.target, selected.patternMatch, conditions, accept));
+  }
+  const resolved = resolveTarget(selected.target, selected.patternMatch, conditions);
+  if (typeof resolved !== 'string') return finish(resolved);
+  const files = env === 'bundler-browser' ? bundlerFiles(resolved) : [resolved];
+  return finish(files.find(fileExists) ?? MISSING);
+}
+
+export function checkEdge(pkg, subpath, edgeKind, fileExists) {
+  if (typeof fileExists !== 'function') throw new ScanError('checkEdge needs a file check');
   const environments = {};
   let ok = true;
   for (const env of environmentsFor(edgeKind)) {
-    const result = resolveExports(pkg, subpath, ENVIRONMENTS[env]);
+    const result = resolveEnvironment(pkg, subpath, env, fileExists);
     environments[env] = result;
     if (result.status !== 'resolved') ok = false;
   }

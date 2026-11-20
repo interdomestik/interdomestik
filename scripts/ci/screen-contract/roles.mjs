@@ -6,7 +6,13 @@ import { directiveOf } from '../server-mutation/ast.mjs';
 
 const WEB = 'apps/web/src/';
 const SOURCE_RE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/u;
-const TEST_RE = /(\.test\.|\.spec\.|\.stories\.|(^|\/)__tests__\/|\.d\.ts$)/u;
+// A test marker counts only in the file name; `__tests__` only as a whole directory segment (B3).
+const TEST_NAME_RE = /\.(?:test|spec|stories)\./u;
+const TEST_DIR_RE = /(?:^|\/)__tests__\//u;
+const isTestPath = rel =>
+  TEST_NAME_RE.test(rel.slice(rel.lastIndexOf('/') + 1)) ||
+  TEST_DIR_RE.test(rel) ||
+  rel.endsWith('.d.ts');
 const SUPPORT_DIRS = new Set([
   'adapters',
   'config',
@@ -48,7 +54,7 @@ export function roleOf(rel) {
   if (!SOURCE_RE.test(rel) && !rel.endsWith('.d.ts')) return null;
   const inScope = rel.startsWith(WEB) || /^packages\/[^/]+\/src\//u.test(rel);
   if (!inScope) return null;
-  if (TEST_RE.test(rel)) return 'test';
+  if (isTestPath(rel)) return 'test';
   if (rel.startsWith(WEB)) return webRole(rel.slice(WEB.length));
   if (/^packages\/domain-[^/]+\/src\//u.test(rel)) return 'domain';
   if (rel.startsWith('packages/database/src/')) return 'database';
@@ -69,13 +75,15 @@ export function directivesOfText(rel, text) {
   return directiveOf(sf);
 }
 
-// The directive prologue of an ESTree Program (the ESLint side of the same rule).
+// The directive prologue of an ESTree Program (the ESLint side of the same rule). The parser marks
+// each statement of the prologue with `directive`; a parenthesized string is an ordinary expression
+// statement and ends the prologue, as in ECMAScript and in WP-02's `directiveOf` (H1). The value is
+// the cooked string, as TypeScript's `text`.
 export function directivesOfProgram(program) {
   const out = [];
   for (const statement of program.body) {
-    const expression = statement.type === 'ExpressionStatement' ? statement.expression : null;
-    if (expression?.type !== 'Literal' || typeof expression.value !== 'string') break;
-    out.push(expression.value);
+    if (statement.type !== 'ExpressionStatement' || typeof statement.directive !== 'string') break;
+    out.push(statement.expression.value);
   }
   return out;
 }
