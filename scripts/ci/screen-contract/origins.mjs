@@ -1,5 +1,8 @@
 // The origin of an imported name: the file and export it is declared in, followed through
 // `export { a as b } from`, `export * from` and re-exported imports (WP-05 design §2.1). Syntax only.
+// An origin is `{ file, name, local }`: `name` is the public export name of the declaring file,
+// the name a registry entry uses, and `local` the declaration it exports there, so two public names
+// of one declaration can be compared (code-r2 B7).
 import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
@@ -57,7 +60,7 @@ function namedExportOrigin(scope, clause, from) {
     const imported = importBinding(scope.sf, original);
     if (imported)
       return originOf(resolver, rel, imported.specifier, imported.name, depth + 1, seen);
-    return { file: rel, name: original };
+    return { file: rel, name, local: original };
   }
   return undefined;
 }
@@ -81,11 +84,17 @@ function exportDeclarationOrigin(scope, statement, stars) {
 function declarationOrigin(scope, statement) {
   const { rel, name } = scope;
   if (hasExportModifier(statement)) {
-    if (name === 'default' && hasDefaultModifier(statement)) return { file: rel, name: 'default' };
-    if (declaredNames(statement).includes(name)) return { file: rel, name };
+    if (hasDefaultModifier(statement))
+      return name === 'default'
+        ? { file: rel, name, local: statement.name?.text ?? name }
+        : undefined;
+    if (declaredNames(statement).includes(name)) return { file: rel, name, local: name };
     return undefined;
   }
-  if (ts.isExportAssignment(statement) && name === 'default') return { file: rel, name: 'default' };
+  if (ts.isExportAssignment(statement) && name === 'default') {
+    const local = ts.isIdentifier(statement.expression) ? statement.expression.text : name;
+    return { file: rel, name, local };
+  }
   return undefined;
 }
 
@@ -100,7 +109,7 @@ function starOrigin(scope, stars) {
     const hit = originOf(resolver, rel, from, name, depth + 1, seen);
     if (hit.ambiguous) return hit;
     if (hit.external) external ??= hit;
-    else if (!hit.unresolved) found.set(`${hit.file}#${hit.name}`, hit);
+    else if (!hit.unresolved) found.set(`${hit.file}#${hit.local}`, hit);
   }
   if (found.size > 1) return { file: rel, name, unresolved: true, ambiguous: true };
   return found.size === 1 ? [...found.values()][0] : external;

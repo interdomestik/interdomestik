@@ -7,7 +7,7 @@ import path from 'node:path';
 
 import { ScanError } from '../../../../scripts/ci/server-mutation/ast.mjs';
 import { catalogueFor, messageText } from '../../../../scripts/ci/screen-contract/catalogue.mjs';
-import { originOf } from '../../../../scripts/ci/screen-contract/origins.mjs';
+import { originIn, originOf } from '../../../../scripts/ci/screen-contract/origins.mjs';
 import { registryFor } from '../../../../scripts/ci/screen-contract/registry.mjs';
 import { layerOf } from '../../../../scripts/ci/screen-contract/roles.mjs';
 import { kindOfSpecifier } from '../../../../scripts/ci/screen-contract/specifiers.mjs';
@@ -33,6 +33,19 @@ const SUBMIT_ELEMENTS = new Map([
 ]);
 const SUBMIT_TYPES = { button: new Set(['submit']), input: new Set(['submit', 'image']) };
 const SKIP = Symbol('skip');
+// The calls that run the function they receive first, now (code-r2 B6): React's `startTransition`
+// (imported or as `React.startTransition`), the start function of `const [, start] =
+// useTransition()`, and the global `queueMicrotask`. A function passed to any other call is only
+// stored as far as the lint can tell, and its calls are not credited.
+const INVOKING_WRAPPERS = Object.freeze({
+  react: new Set(['startTransition']),
+  transitionHook: 'useTransition',
+  globals: new Set(['queueMicrotask']),
+});
+// The React hooks that return the function they receive (`useCallback`, `React.useCallback`): a
+// handler declared through one is that function. No other factory's argument is the handler.
+const IDENTITY_WRAPPERS = new Set(['useCallback']);
+const NEXT_INTL_RE = /^next-intl(?:\/server)?$/u;
 
 const elementName = opening => (opening?.name?.type === 'JSXIdentifier' ? opening.name.name : null);
 const attributeOf = (opening, name) =>
@@ -65,11 +78,11 @@ function walk(node, visit, keys) {
   }
 }
 
-// The local name a translator call goes through: `t('k')` or `t.rich('k')`.
-function calleeLocal(callee) {
-  if (callee.type === 'Identifier') return callee.name;
+// The identifier a translator call goes through: `t('k')` or `t.rich('k')`.
+function calleeIdentifier(callee) {
+  if (callee.type === 'Identifier') return callee;
   if (callee.type === 'MemberExpression' && callee.object.type === 'Identifier')
-    return callee.object.name;
+    return callee.object;
   return null;
 }
 
@@ -118,18 +131,6 @@ function enclosingLabel(element) {
     if (current.type === 'JSXElement' && LABELS.has(elementName(current.openingElement)))
       return current;
   }
-  return null;
-}
-
-// The function a declarator binds: `const f = () => …`, or the function a wrapper call
-// receives first (`const f = useCallback(fn, deps)`), one level; null otherwise.
-function functionOfDeclarator(declarator) {
-  if (declarator.id.type !== 'Identifier') return null;
-  const init =
-    declarator.init?.type === 'AwaitExpression' ? declarator.init.argument : declarator.init;
-  if (FUNCTIONS.has(init?.type)) return init;
-  if (init?.type === 'CallExpression' && FUNCTIONS.has(init.arguments[0]?.type))
-    return init.arguments[0];
   return null;
 }
 
@@ -205,8 +206,6 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
   if (!inInventory) return {};
   const keys = context.sourceCode.visitorKeys;
   const units = unitCounter(context, 'CHK-22');
-  const imports = new Map(); // local -> { specifier, imported }, for translator factories only
-  const translators = new Map(); // local -> namespace
   const elements = []; // every JSXElement
   let fileExports = new Map(); // export name -> top-level declaration, set at Program:exit
   const flag = (node, kind, key, text) =>
@@ -231,14 +230,99 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
     return { specifier: def.parent.source.value, imported: importedName(def.node) };
   }
 
+  // The value definition of a binding that is never reassigned after its declaration, or null.
+  function stableDefinition(node) {
+    const variable = variableOf(node);
+    if (variable?.references.some(r => r.isWrite() && !r.init)) return null;
+    return valueDefinition(variable);
+  }
+
+  // The React export a callee names: `useCallback` imported from 'react', or `React.useCallback`
+  // through a default or namespace import of 'react'; null otherwise.
+  const reactApi = callee =>
+    callee.type === 'Identifier' ? reactNamedApi(callee) : reactMemberApi(callee);
+
+  function reactNamedApi(identifier) {
+    const binding = importOf(identifier);
+    if (binding?.specifier !== 'react') return null;
+    return ['*', 'default'].includes(binding.imported) ? null : binding.imported;
+  }
+
+  function reactMemberApi(member) {
+    if (member.type !== 'MemberExpression' || member.computed) return null;
+    if (member.object.type !== 'Identifier' || member.property.type !== 'Identifier') return null;
+    const binding = importOf(member.object);
+    const whole = binding?.specifier === 'react' && ['*', 'default'].includes(binding.imported);
+    return whole ? member.property.name : null;
+  }
+
+  // `start` of `const [pending, start] = useTransition()`.
+  function isTransitionStart(callee) {
+    const def = callee.type === 'Identifier' ? stableDefinition(callee) : null;
+    const declarator = def?.type === 'Variable' ? def.node : null;
+    if (declarator?.id.type !== 'ArrayPattern' || declarator.id.elements[1] !== def.name)
+      return false;
+    const init = declarator.init;
+    return (
+      init?.type === 'CallExpression' && reactApi(init.callee) === INVOKING_WRAPPERS.transitionHook
+    );
+  }
+
+  function isInvokingWrapper(callee) {
+    if (INVOKING_WRAPPERS.react.has(reactApi(callee))) return true;
+    if (isTransitionStart(callee)) return true;
+    return (
+      callee.type === 'Identifier' &&
+      INVOKING_WRAPPERS.globals.has(callee.name) &&
+      valueDefinition(variableOf(callee)) === null
+    );
+  }
+
+  // A nested function runs with its parent call: an IIFE, or the first argument of an invoking
+  // wrapper.
+  function isInvokedInPlace(fn) {
+    const call = fn.parent;
+    if (call?.type !== 'CallExpression') return false;
+    return call.callee === fn || (call.arguments[0] === fn && isInvokingWrapper(call.callee));
+  }
+
+  // The function an identity wrapper call returns: its first argument, when it is a function.
+  function identityArgument(call) {
+    if (call?.type !== 'CallExpression' || !IDENTITY_WRAPPERS.has(reactApi(call.callee)))
+      return null;
+    return FUNCTIONS.has(call.arguments[0]?.type) ? call.arguments[0] : null;
+  }
+
   // The function an identifier names, declared in this file and never reassigned:
   // `function f`, `const f = () => …`, or `const f = useCallback(fn, deps)` (the wrapped function).
   function functionOf(node) {
-    const variable = variableOf(node);
-    const def = valueDefinition(variable);
-    if (variable?.references.some(r => r.isWrite() && !r.init)) return null;
+    const def = stableDefinition(node);
     if (def?.type === 'FunctionName') return def.node;
-    return def?.type === 'Variable' ? functionOfDeclarator(def.node) : null;
+    if (def?.type !== 'Variable' || def.node.id.type !== 'Identifier') return null;
+    const init = def.node.init;
+    return FUNCTIONS.has(init?.type) ? init : identityArgument(init);
+  }
+
+  // The namespace of a next-intl translator a callee is bound to in its scope, or null
+  // (code-r2: never by the translator's name across the file).
+  function translatorNamespaceOf(callee) {
+    const identifier = calleeIdentifier(callee);
+    const def = identifier ? stableDefinition(identifier) : null;
+    if (def?.type !== 'Variable' || def.node.id.type !== 'Identifier') return null;
+    const raw = def.node.init;
+    const init = raw?.type === 'AwaitExpression' ? raw.argument : raw;
+    return isTranslatorFactoryCall(init) ? translatorNamespace(init.arguments[0]) : null;
+  }
+
+  // `useTranslations(…)` / `getTranslations(…)` imported from next-intl.
+  function isTranslatorFactoryCall(init) {
+    if (init?.type !== 'CallExpression' || init.callee.type !== 'Identifier') return false;
+    const factory = importOf(init.callee);
+    return (
+      Boolean(factory) &&
+      NEXT_INTL_RE.test(factory.specifier) &&
+      TRANSLATOR_FACTORIES.has(factory.imported)
+    );
   }
 
   // The top-level declaration a JSX name refers to when it is declared in this file, or null.
@@ -256,11 +340,10 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
       node,
       n => {
         if (n.type !== 'CallExpression') return;
-        const local = calleeLocal(n.callee);
-        if (!local || !translators.has(local)) return;
+        const ns = translatorNamespaceOf(n.callee);
+        if (ns === null) return;
         const arg = n.arguments[0];
         if (arg?.type !== 'Literal' || typeof arg.value !== 'string') return;
-        const ns = translators.get(local);
         out.push(ns ? `${ns}.${arg.value}` : arg.value);
       },
       keys
@@ -328,12 +411,12 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
   const isServerOrigin = origin =>
     layerOf(origin.file, fs.readFileSync(path.join(root, origin.file), 'utf8')) === 2;
 
-  // Visits one node of a running function: a nested function counts only when it is called or
-  // passed to a call in place (`startTransition(async () => …)`, an IIFE); a call of a function
-  // declared inside the handler (`run()`) queues that function.
+  // Visits one node of a running function: a nested function counts only when it runs in place
+  // (an IIFE, `startTransition(async () => …)`; code-r2 B6); a call of a function declared inside
+  // the handler (`run()`) queues that function.
   function visitInvoked(n, current, handler, calls, queue) {
     if (n !== current && FUNCTIONS.has(n.type)) {
-      if (n.parent?.type === 'CallExpression') queue.push(n);
+      if (isInvokedInPlace(n)) queue.push(n);
       return SKIP;
     }
     if (n.type !== 'CallExpression') return undefined;
@@ -357,10 +440,12 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
     return calls;
   }
 
+  // The function a handler attribute runs: a named function of this file, an inline function, or
+  // the function an identity wrapper returns; any other call's result is not resolved.
   function handlerRoot(expression) {
     if (expression?.type === 'Identifier') return functionOf(expression);
-    if (FUNCTIONS.has(expression?.type) || expression?.type === 'CallExpression') return expression;
-    return null;
+    if (FUNCTIONS.has(expression?.type)) return expression;
+    return identityArgument(expression);
   }
 
   // The one submission a handler calls: an import of a layer-2 module, followed one level by name.
@@ -425,21 +510,31 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
   const invokedSubmissions = (boundary, isForm) =>
     isForm ? formSubmissions(boundary) : handlerSubmissions(boundary.openingElement);
 
-  // The origins a JSX element's name refers to: an import followed through re-exports, or a
-  // declaration of this file under each name it is exported by (`local`).
-  function originsOfElement(element) {
+  // The origin a JSX element's name refers to, `{ file, name, local }` as origins.mjs gives it:
+  // an import followed through re-exports, or an exported top-level declaration of this file
+  // (`sameFile`); null otherwise.
+  function originOfElement(element) {
     const nameNode = element.openingElement.name;
-    if (nameNode.type !== 'JSXIdentifier' || !/^[A-Z]/u.test(nameNode.name)) return [];
+    if (nameNode.type !== 'JSXIdentifier' || !/^[A-Z]/u.test(nameNode.name)) return null;
     const binding = importOf(nameNode);
     if (binding) {
-      if (kindOfSpecifier(binding.specifier) === 'external') return [];
-      return [originOf(resolverOf(context), rel, binding.specifier, binding.imported)];
+      if (kindOfSpecifier(binding.specifier) === 'external') return null;
+      return originOf(resolverOf(context), rel, binding.specifier, binding.imported);
     }
     const declaration = localDeclarationOf(nameNode);
-    if (!declaration) return [];
-    return [...fileExports]
-      .filter(([, node]) => node === declaration)
-      .map(([name]) => ({ file: rel, name, local: true }));
+    if (!declaration || ![...fileExports.values()].includes(declaration)) return null;
+    return { file: rel, name: nameNode.name, local: nameNode.name, sameFile: true };
+  }
+
+  // The declaration a registry target `{ file, exportName }` names, as an origin, or null.
+  const targetOrigins = new Map();
+  function targetOrigin(target) {
+    const key = `${target.file}#${target.exportName}`;
+    if (!targetOrigins.has(key)) {
+      const found = originIn(resolverOf(context), target.file, target.exportName);
+      targetOrigins.set(key, found && !found.unresolved && !found.external ? found : null);
+    }
+    return targetOrigins.get(key);
   }
 
   const ownedBy = (element, exportName) => {
@@ -447,27 +542,33 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
     return Boolean(declaration) && contains(declaration, element);
   };
 
+  // One representation at both ends (code-r2 B7): the registry's public export and the render's
+  // origin are compared as the declaring file and the declaration they export.
   function rendersEntry(entry, origin) {
     const targets = [{ file: entry.file, exportName: entry.exportName }, ...entry.aliases];
-    return targets.some(t => t.file === origin.file && t.exportName === origin.name);
+    return targets.some(t => {
+      const declared = targetOrigin(t);
+      return declared?.file === origin.file && declared.local === origin.local;
+    });
   }
 
   // A render needs no boundary inside the registered alias component that holds it (code-r1 B6),
   // or anywhere for a `selfSubmitting` entry outside its own control.
   function exemptRender(entry, origin, element) {
     if (entry.aliases.some(a => a.file === rel && ownedBy(element, a.exportName))) return true;
-    return Boolean(entry.selfSubmitting) && (origin.local || rel !== entry.file);
+    return Boolean(entry.selfSubmitting) && (origin.sameFile || rel !== entry.file);
   }
 
   // The entries an element renders through a component (§2.1 "Renders").
   function renderedEntries(element, registry) {
-    const out = new Set();
-    for (const origin of originsOfElement(element))
-      for (const entry of registry.values()) {
-        if (!entry.exportName || entry.kind === 'not-consent') continue;
-        if (rendersEntry(entry, origin) && !exemptRender(entry, origin, element)) out.add(entry);
-      }
-    return [...out];
+    const origin = originOfElement(element);
+    if (!origin || origin.unresolved || origin.external) return [];
+    const out = [];
+    for (const entry of registry.values()) {
+      if (!entry.exportName || entry.kind === 'not-consent') continue;
+      if (rendersEntry(entry, origin) && !exemptRender(entry, origin, element)) out.push(entry);
+    }
+    return out;
   }
 
   function indexById() {
@@ -651,35 +752,7 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
     flagListing(listedTimes, registry);
   }
 
-  // `const t = useTranslations(ns)` / `const t = await getTranslations(...)` from next-intl.
-  function recordTranslator(node, init) {
-    if (
-      init?.type !== 'CallExpression' ||
-      init.callee.type !== 'Identifier' ||
-      node.id.type !== 'Identifier'
-    )
-      return;
-    const binding = imports.get(init.callee.name);
-    if (
-      binding &&
-      /^next-intl(?:\/server)?$/u.test(binding.specifier) &&
-      TRANSLATOR_FACTORIES.has(binding.imported)
-    )
-      translators.set(node.id.name, translatorNamespace(init.arguments[0]));
-  }
-
   return {
-    ImportDeclaration(node) {
-      for (const spec of node.specifiers)
-        imports.set(spec.local.name, {
-          specifier: node.source.value,
-          imported: importedName(spec),
-        });
-    },
-    VariableDeclarator(node) {
-      const init = node.init?.type === 'AwaitExpression' ? node.init.argument : node.init;
-      recordTranslator(node, init);
-    },
     JSXElement(node) {
       elements.push(node);
     },

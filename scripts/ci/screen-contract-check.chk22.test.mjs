@@ -28,7 +28,9 @@ const consent = (id, file, control, uses, extra = {}) => ({
   uses,
   ...extra,
 });
+// Every lint needs a screen (code-r2: a check with no expected file is an input error).
 const base = files => ({
+  [`${W}/app/home/page.tsx`]: 'export default () => null;\n',
   [SAVE]: ACTIONS,
   [`${W}/messages/en/app.json`]: JSON.stringify({
     signup: { terms: 'I agree', neutral: 'Box one', sneaky: 'I accept the terms' },
@@ -308,10 +310,23 @@ test('CHK-22 origins: export * searches every star; none is unresolved, two are 
     'm/missing.ts': "export * from './none';\n",
     'm/twice.ts': "export * from './has';\nexport * from './also';\n",
     'm/diamond.ts': "export * from './has';\nexport * from './via';\n",
+    'm/renamed.ts': 'const Local = 1;\nexport { Local as Public };\n',
+    'm/barrel.ts': "export * from './none';\nexport { Public as Again } from './renamed';\n",
   });
   const resolver = relativeResolver(root);
-  assert.deepEqual(originOf(resolver, 'x.ts', './m/later', 'X'), { file: 'm/has.ts', name: 'X' });
-  assert.deepEqual(originOf(resolver, 'x.ts', './m/diamond', 'X'), { file: 'm/has.ts', name: 'X' });
+  assert.deepEqual(originOf(resolver, 'x.ts', './m/later', 'X'), {
+    file: 'm/has.ts',
+    name: 'X',
+    local: 'X',
+  });
+  assert.deepEqual(originOf(resolver, 'x.ts', './m/diamond', 'X'), {
+    file: 'm/has.ts',
+    name: 'X',
+    local: 'X',
+  });
+  const renamed = { file: 'm/renamed.ts', name: 'Public', local: 'Local' };
+  assert.deepEqual(originOf(resolver, 'x.ts', './m/renamed', 'Public'), renamed);
+  assert.deepEqual(originOf(resolver, 'x.ts', './m/barrel', 'Again'), renamed);
   const missing = originOf(resolver, 'x.ts', './m/missing', 'X');
   assert.equal(missing.unresolved, true);
   assert.equal(missing.ambiguous, undefined);
@@ -529,4 +544,112 @@ test('CHK-22: a marker-only boundary is judged although it renders nothing (H2)'
     `CHK-22|${PAGE}|orphan-use|terms:signup`,
     `CHK-22|${PAGE}|submission-mismatch|terms:signup`,
   ]);
+});
+
+const handlerPage = (imports, body) =>
+  `${head}${imports}export default function P({ register, makeHandler }) {\n${body}\n  return <form onSubmit={onSubmit} data-consent-use="terms:signup">${CONTROL}</form>;\n}\n`;
+const judgeHandler = async (t, imports, body) =>
+  chk22(tree(t, base({ [REG]: signupReg(), [PAGE]: handlerPage(imports, body) })));
+const UNRESOLVED = [`CHK-22|${PAGE}|unresolved-submission|terms:signup`];
+
+test('CHK-22: a callback passed to an unrecognised call is not invoked by the handler (code-r2 B6)', async t => {
+  assert.deepEqual(
+    await judgeHandler(
+      t,
+      '',
+      '  function onSubmit(e) { e.preventDefault(); register(() => saveTerms()); }'
+    ),
+    UNRESOLVED
+  );
+});
+
+test('CHK-22: only an identity wrapper makes its argument the named handler (code-r2 B6)', async t => {
+  assert.deepEqual(
+    await judgeHandler(
+      t,
+      '',
+      '  const onSubmit = makeHandler(async () => { await saveTerms(); });'
+    ),
+    UNRESOLVED
+  );
+  assert.deepEqual(
+    await judgeHandler(
+      t,
+      "import { useCallback } from 'react';\n",
+      '  const onSubmit = useCallback(async () => { await saveTerms(); }, []);'
+    ),
+    []
+  );
+  assert.deepEqual(
+    await judgeHandler(
+      t,
+      "import * as React from 'react';\n",
+      '  const onSubmit = React.useCallback(async () => { await saveTerms(); }, []);'
+    ),
+    []
+  );
+});
+
+test('CHK-22: the recognised invoking wrappers and a direct call credit the submission (code-r2 B6)', async t => {
+  const cases = [
+    [
+      "import { useTransition } from 'react';\n",
+      '  const [pending, start] = useTransition();\n  function onSubmit() { start(async () => { await saveTerms(); }); }',
+    ],
+    [
+      "import * as React from 'react';\n",
+      '  function onSubmit() { React.startTransition(async () => { await saveTerms(); }); }',
+    ],
+    ['', '  function onSubmit() { queueMicrotask(() => saveTerms()); }'],
+    ['', '  function onSubmit() { (async () => { await saveTerms(); })(); }'],
+  ];
+  for (const [imports, body] of cases)
+    assert.deepEqual(await judgeHandler(t, imports, body), [], body);
+  assert.deepEqual(
+    await judgeHandler(
+      t,
+      '',
+      '  const startTransition = register;\n  function onSubmit() { startTransition(() => saveTerms()); }'
+    ),
+    UNRESOLVED
+  );
+});
+
+test('CHK-22: a component exported under another name is found at its importers (code-r2 B7)', async t => {
+  const forms = `${W}/app/forms.tsx`;
+  const root = tree(
+    t,
+    base({
+      [SHARED]:
+        'const Local = () => <input type="checkbox" id="terms" data-consent="terms" />;\nexport { Local as ConsentBox };\n',
+      'packages/ui/src/index.ts':
+        "export * from './components/button';\nexport { ConsentBox } from './components/consent-box';\n",
+      [REG]: registry([
+        consent('terms', SHARED, 'terms', [use('a', forms)], { exportName: 'ConsentBox' }),
+      ]),
+      [forms]: `${head}import { ConsentBox } from '@interdomestik/ui';\nexport function A() { return <form action={saveTerms} data-consent-use="terms:a"><ConsentBox /></form>; }\nexport function B() { return <form action={saveTerms}><ConsentBox /></form>; }\n`,
+    })
+  );
+  assert.deepEqual(await chk22(root), [`CHK-22|${forms}|unmatched-boundary|terms@B`]);
+});
+
+test('CHK-22 discovery: a translator resolves in the label scope, not by its name (code-r2 H)', async t => {
+  const file = `${W}/components/d.tsx`;
+  const root = tree(
+    t,
+    base({
+      [REG]: registry([]),
+      [`${W}/messages/en/app.json`]: JSON.stringify({
+        signup: { sneaky: 'I accept the terms' },
+        other: { sneaky: 'Box two' },
+      }),
+      [file]: [
+        "import { useTranslations } from 'next-intl';",
+        "import { Checkbox } from '@interdomestik/ui';",
+        "export function A() { const t = useTranslations('signup'); return <label><Checkbox id=\"a1\" />{t('sneaky')}</label>; }",
+        "export function B() { const t = useTranslations('other'); return <label><Checkbox id=\"b1\" />{t('sneaky')}</label>; }",
+      ].join('\n'),
+    })
+  );
+  assert.deepEqual(await chk22(root), [`CHK-22|${file}|unregistered|Checkbox:a1`]);
 });
