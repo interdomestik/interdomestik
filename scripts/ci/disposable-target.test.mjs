@@ -13,6 +13,7 @@ const SUITES = Object.freeze({
   'test/disposable-target.test.ts': 11,
   'test/journal-schema-parity.test.ts': 10,
   'test/journal-schema-parity-registry.test.ts': 4,
+  'test/scratch-database-redaction.test.ts': 1,
 });
 
 // The nested runner must report to its own stdout, not to this runner, and must see no database.

@@ -3,10 +3,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
+  checkClientAdapter,
   checkContainerLocal,
   checkEntry,
+  checkGuarded,
   checkPinnedReadProbe,
   checkProbe,
+  FACTORY_IMPORT_MODULE,
+  FACTORY_IMPORT_ROLE,
   OWNER_OPERATIONS,
   ownerWorkflowProblems,
   root,
@@ -25,10 +29,7 @@ test('only the pinned owner operation may carry modules', () => {
     /only the owner operation has modules/u
   );
   assert.throws(() => checkEntry(entry('unknown'), source), /kind unknown/u);
-  assert.throws(
-    () => checkEntry(entry('residual'), "throw new Error('must target a loopback host')"),
-    /follow-up/u
-  );
+  assert.throws(() => checkEntry(entry('residual'), source), /kind residual/u);
 });
 
 const m4 = readFileSync(join(root, 'scripts/m4-gatekeeper.sh'), 'utf8');
@@ -160,5 +161,67 @@ test('the owner operation runs only in its own main-only, staging job', () => {
     assert.deepEqual(ownerWorkflowProblems(realWorkflow.replace(invocation, line), pinned), [
       `the operation is not invoked by job ${pinned.job} alone`,
     ]);
+  }
+});
+
+test('a client adapter is the reviewed text: a second Drizzle call on another value is refused', () => {
+  const path = 'packages/database/test/pg16/journal-migrator.ts';
+  const kind = entry('client-adapter', { path });
+  const real = readFileSync(join(root, path), 'utf8');
+  assert.doesNotThrow(() => checkClientAdapter(kind, real));
+  const overload = `${real}\nexport const open = (client: string) => drizzle(client);\n`;
+  assert.throws(() => checkClientAdapter(kind, overload), /changed since its review/u);
+  assert.throws(() => checkClientAdapter(entry('client-adapter'), real), /not a pinned adapter/u);
+});
+
+test('a guarded script opens clients only through the factory', () => {
+  const kind = entry('guarded');
+  const guarded =
+    "import { openGuardedClient } from '../e2e-runtime-role.mjs';\nawait openGuardedClient(url, 'x');";
+  assert.doesNotThrow(() => checkGuarded(kind, guarded));
+  assert.throws(
+    () => checkGuarded(kind, `${guarded}\nconst { default: postgres } = await import('postgres');`),
+    /loads no driver/u
+  );
+  assert.throws(
+    () => checkGuarded(kind, "await openGuardedClient(url, 'x');"),
+    /imports the guarded factory/u
+  );
+});
+
+test('the factory is imported only in its two reviewed forms; a near miss of either is refused', () => {
+  const role = "import { openGuardedClient } from '../e2e-runtime-role.mjs'";
+  const module = "'../../src/disposable-client'";
+  const nearMisses = [
+    [
+      FACTORY_IMPORT_MODULE,
+      ["'disposable-client'", "'../src/disposable-clients'", "'@x/disposable-client'", "'../x.js'"],
+    ],
+    [
+      FACTORY_IMPORT_ROLE,
+      [
+        "'e2e-runtime-role.mjs'",
+        "import { openGuardedClient as o } from '../e2e-runtime-role.mjs'",
+        "import { openGuardedClient } from 'e2e-runtime-role.mjs'",
+      ],
+    ],
+  ];
+  for (const s of [module, '"../src/disposable-client.ts"']) assert.match(s, FACTORY_IMPORT_MODULE);
+  assert.match(role, FACTORY_IMPORT_ROLE);
+  assert.doesNotMatch(role, FACTORY_IMPORT_MODULE);
+  assert.doesNotMatch(module, FACTORY_IMPORT_ROLE);
+  const call = "\nawait withDisposableClient(url, 'x', run);";
+  const kind = entry('guarded');
+  assert.doesNotThrow(() =>
+    checkGuarded(kind, `import { withDisposableClient } from ${module};${call}`)
+  );
+  for (const [pattern, sources] of nearMisses) {
+    for (const s of sources) {
+      assert.doesNotMatch(s, pattern);
+      assert.throws(
+        () => checkGuarded(kind, `${s};${call}`),
+        /scripts\/x\.mjs: imports the guarded factory/u
+      );
+    }
   }
 });

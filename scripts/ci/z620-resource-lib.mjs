@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
+import { openGuardedClient } from '../e2e-runtime-role.mjs';
 import { prepareManagedSubdirectory } from './managed-paths.mjs';
 import { safeId } from './z620-runner-lib.mjs';
 
@@ -33,23 +34,14 @@ const serverUrl = (database, password) =>
 // The Z620 container's server as the host sees it: a fixed loopback address and port, so the
 // operation reaches that server and no other, whatever the Docker context or the libpq settings.
 const ADMIN_DATABASE = 'postgres';
-const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost']);
 
-// WP-04 residual (R-13): a client of its own until the guarded factory is admitted; it refuses any
-// URL that does not target a loopback host before it constructs the driver.
+// R-13: the client comes from the guarded factory, which refuses any target but loopback and the
+// confirmed CI container before it constructs the driver.
 async function withTaskAdminClient(password, work) {
-  const url = new URL(serverUrl(ADMIN_DATABASE, password));
-  if (!LOOPBACK_HOSTS.has(url.hostname)) {
-    throw new Error('The task database admin client must target a loopback host');
-  }
-  const { default: postgres } = await import('postgres');
-  const sql = postgres(url.toString(), {
-    max: 1,
-    connect_timeout: 10,
-    debug: false,
-    onnotice: () => {},
-    connection: { application_name: 'interdomestik_z620_task_database' },
-  });
+  const sql = await openGuardedClient(
+    serverUrl(ADMIN_DATABASE, password),
+    'interdomestik_z620_task_database'
+  );
   try {
     return await work(sql);
   } finally {

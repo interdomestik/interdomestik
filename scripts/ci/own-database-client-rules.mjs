@@ -188,14 +188,19 @@ export const PINNED_READ_PROBES = Object.freeze({
     '1b1adf7337d711e8b16a6fa154163cee4eb99fca9ffedd0d0172c58c4aa7dbbe',
 });
 
-export function checkPinnedReadProbe(entry, source) {
-  assert.ok(Object.hasOwn(PINNED_READ_PROBES, entry.path), `${entry.path}: not a pinned probe`);
-  assert.equal(
-    sha256(source),
-    PINNED_READ_PROBES[entry.path],
-    `${entry.path}: changed since its review`
-  );
-}
+// Adapters pinned the same way: each wraps the guarded client it is given and opens none, and
+// Drizzle's string and config overloads would connect, so the reviewed text is the promise.
+export const PINNED_ADAPTERS = Object.freeze({
+  'packages/database/test/pg16/journal-migrator.ts':
+    '2fca263a0d67cf0b779f76ed6679c71f32ea5cace4e31c6611f4633b995d5ad4',
+});
+
+const pinnedCheck = (pins, what) => (entry, source) => {
+  assert.ok(Object.hasOwn(pins, entry.path), `${entry.path}: not a pinned ${what}`);
+  assert.equal(sha256(source), pins[entry.path], `${entry.path}: changed since its review`);
+};
+export const checkPinnedReadProbe = pinnedCheck(PINNED_READ_PROBES, 'probe');
+export const checkClientAdapter = pinnedCheck(PINNED_ADAPTERS, 'adapter');
 
 function checkOwnerOperation(entry) {
   const pinned = OWNER_OPERATIONS.find(operation => operation.path === entry.path);
@@ -211,15 +216,20 @@ function checkOwnerOperation(entry) {
   }
 }
 
-function checkResidual(entry, source) {
-  // A disposable-database writer that has not moved yet: it names its follow-up and refuses every
-  // non-disposable target before it connects.
-  assert.ok(entry.followUp?.length >= 40, `${entry.path}: follow-up`);
-  assert.match(
-    source,
-    /assertDisposableTarget\(process\.env\)|must target a loopback host/u,
-    `${entry.path}: refuses non-disposable targets`
-  );
+// The guarded client factory (R-13): the one module that opens a client for a destructive script,
+// imported directly (TypeScript) or through the role script's loader (JavaScript).
+export const FACTORY_IMPORT_MODULE = /['"](?:\.\.?\/)+(?:src\/)?disposable-client(?:\.ts)?['"]/u;
+export const FACTORY_IMPORT_ROLE =
+  /\bimport\s*\{\s*openGuardedClient\s*\}\s*from\s*['"](?:\.\.?\/)+e2e-runtime-role\.mjs['"]/u;
+const FACTORY_CALL = /\b(?:withDisposableClient|openDisposableClient|openGuardedClient)\s*[(<]/u;
+
+export function checkGuarded(entry, source) {
+  // Takes every client from the factory; loads no driver and runs no client command itself.
+  const imports = FACTORY_IMPORT_MODULE.test(source) || FACTORY_IMPORT_ROLE.test(source);
+  assert.ok(imports, `${entry.path}: imports the guarded factory`);
+  assert.match(source, FACTORY_CALL, `${entry.path}: opens clients through it`);
+  assert.equal(loadsDriver(source), false, `${entry.path}: loads no driver`);
+  assert.deepEqual(commands(source), [], entry.path);
 }
 
 // Each kind's promise, checked against the file itself; an unknown kind is refused.
@@ -238,8 +248,10 @@ function checkKind(entry, source) {
       return checkPinnedReadProbe(entry, source);
     case 'owner-operation':
       return checkOwnerOperation(entry);
-    case 'residual':
-      return checkResidual(entry, source);
+    case 'guarded':
+      return checkGuarded(entry, source);
+    case 'client-adapter':
+      return checkClientAdapter(entry, source);
     default:
       return assert.fail(`${entry.path}: kind ${entry.kind}`);
   }

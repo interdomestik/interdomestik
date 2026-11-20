@@ -1,5 +1,5 @@
 {
-  "about": "CHK-13 (R-13): the reviewed inventory of script files that name a database client: a driver specifier in any form, a client command (psql, pg_dump, pg_dumpall, pg_restore, pgcli, createdb, dropdb), or DATABASE_URL. Each has a kind that scripts/ci/own-database-client.test.mjs enforces: launcher and contract construct no client and run no client command; read-only runs its statement through runReadOnlyReport; probe runs only its pinned select 1 body, as the condition of its pinned if or until construct; container-local uses docker exec on a local container for status only and runs no client command; pinned-read-probe is a reviewed read probe pinned byte for byte by its hash in the rules module; owner-operation is the one pinned owner operation, and only its pinned modules stand under another entry; residual is a disposable-database writer that has not yet moved behind the guarded client. Every other destructive script takes its client from the guarded import behind assertDisposableTarget.",
+  "about": "CHK-13 (R-13): the reviewed inventory of script files that name a database client: a driver specifier in any form, a client command (psql, pg_dump, pg_dumpall, pg_restore, pgcli, createdb, dropdb), or DATABASE_URL. Each has a kind that scripts/ci/own-database-client.test.mjs enforces: launcher and contract construct no client and run no client command; read-only runs its statement through runReadOnlyReport; probe runs only its pinned select 1 body, as the condition of its pinned if or until construct; container-local uses docker exec on a local container for status only and runs no client command; pinned-read-probe is a reviewed read probe pinned byte for byte by its hash in the rules module; owner-operation is the one pinned owner operation, and only its pinned modules stand under another entry; guarded takes every client from the guarded factory (packages/database/src/disposable-client.ts, behind assertDisposableTarget); client-adapter wraps a guarded client it is given and opens none, and is pinned byte for byte by its hash in the rules module.",
   "scripts": [
     {
       "path": "packages/database/drizzle.config.ts",
@@ -12,10 +12,14 @@
       "reason": "Resolves the explicit, confirmed --target of the pilot branch audit against DATABASE_URL for scripts/pilot/branch-check.ts (read-only); it opens no client, runs no command and holds no write."
     },
     {
+      "path": "packages/database/test/pg16/journal-migrator.ts",
+      "kind": "client-adapter",
+      "reason": "Applies a journal folder with the application's migrator to a guarded client it is given; it imports Drizzle's adapter and migrator only, calls the adapter only on that client, and cannot open a connection."
+    },
+    {
       "path": "packages/database/test/pg16/scratch-database.ts",
-      "kind": "residual",
-      "reason": "The pg16 lane's one way to a database: creates a scratch database on the server that assertDisposableTarget accepts, hands its client to the journal-build, 0100 and read-only report proofs, and drops it. The tests themselves open no client.",
-      "followUp": "WP-04 O1: moves behind the guarded disposable client once the owner admits that driver module (tenant guard S2)."
+      "kind": "guarded",
+      "reason": "The pg16 lane's one way to a database: reads the admin URL and opens the admin and scratch clients through withDisposableClient, which refuses every server that is not loopback or the confirmed CI container."
     },
     {
       "path": "scripts/check-env-ci.mjs",
@@ -92,9 +96,8 @@
     },
     {
       "path": "scripts/ci/z620-resource-lib.mjs",
-      "kind": "residual",
-      "reason": "Z620 lane helper: creates and drops prefix-checked task databases on the Z620 container's server at its fixed loopback address, through a client of its own that refuses any non-loopback URL before it constructs the driver.",
-      "followUp": "WP-04 O1: moves behind the guarded disposable client once the owner admits that driver module (tenant guard S2)."
+      "kind": "guarded",
+      "reason": "Z620 lane helper: creates and drops prefix-checked task databases on the Z620 container's server at its fixed loopback address, through a client from the guarded factory (openGuardedClient)."
     },
     {
       "path": "scripts/ci/z620-resource-run.mjs",
@@ -115,12 +118,6 @@
       "path": "scripts/e2e-gate.sh",
       "kind": "launcher",
       "reason": "E2E gate entry: defaults DATABASE_URL to the local Supabase loopback database and runs the gate; constructs no client itself."
-    },
-    {
-      "path": "scripts/e2e-runtime-role.mjs",
-      "kind": "residual",
-      "reason": "Provisions the restricted E2E runtime role (role DDL and grants) for the E2E gate and the pilot gate; refuses, before connecting, any URL that is not a plain loopback database without connection options.",
-      "followUp": "WP-04 O1: moves behind the guarded disposable client once the owner admits that driver module (tenant guard S2)."
     },
     {
       "path": "scripts/e2e-webserver.sh",
