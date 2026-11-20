@@ -5,7 +5,13 @@ import path from 'node:path';
 import ts from 'typescript';
 
 import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
-import { environmentsFor, resolveEnvironment, validateExports } from './exports.mjs';
+import {
+  TYPES_EXTENSIONS,
+  TYPES_SOURCES,
+  environmentsFor,
+  resolveEnvironment,
+  validateExports,
+} from './exports.mjs';
 import { roleOf } from './roles.mjs';
 
 const literalOf = node => {
@@ -130,8 +136,10 @@ function parseTsconfig(text) {
   return config;
 }
 
-const hasOneStar = entry =>
-  typeof entry === 'string' && entry.includes('*') && entry.indexOf('*') === entry.lastIndexOf('*');
+// A `paths` entry TypeScript accepts: a string with at most one `*`. One without `*` is a fixed
+// file every specifier the key matches maps to (F7).
+const isPathsEntry = entry =>
+  typeof entry === 'string' && entry.indexOf('*') === entry.lastIndexOf('*');
 
 // The `@/` patterns of one tsconfig: every entry of its `paths['@/*']`, in order, relative to
 // `baseUrl` or, without one, to the config's directory, repo-relative (`apps/web/src/*`).
@@ -140,7 +148,7 @@ function aliasPatterns(root, configRel) {
   const options = config?.compilerOptions;
   const mapping = options?.paths?.['@/*'];
   if (mapping === undefined) throw new ScanError(`${configRel} has no @/* mapping`);
-  if (!Array.isArray(mapping) || mapping.length === 0 || !mapping.every(hasOneStar))
+  if (!Array.isArray(mapping) || mapping.length === 0 || !mapping.every(isPathsEntry))
     throw new ScanError(`${configRel} has no usable @/* mapping`);
   const baseUrl = typeof options.baseUrl === 'string' ? options.baseUrl : '.';
   const base = path.posix.join(path.posix.dirname(configRel), baseUrl);
@@ -175,6 +183,41 @@ function workspacePackages(root) {
   return out;
 }
 
+// TypeScript's files for one `paths` candidate (moduleResolution Bundler, allowJs; F7), in its
+// order: the candidate itself when the entry names an extension; the candidate with its extension
+// replaced; with extensions added; its directory's `index`. Replacing and adding use the row of
+// TYPES_SOURCES that TypeScript's tryAddingExtensions shares with the extension (`.ts`, `.d.ts` and
+// none try what `.js` tries; `.tsx` what `.jsx`; `.mts`, `.d.mts` what `.mjs`; `.cts`, `.d.cts`
+// what `.cjs`), both passes in one: Bundler resolves typed and JavaScript files in one pass, so the
+// first entry that names a file wins. An unknown extension's `.d<ext>.ts` is not modelled.
+const ROW_OF_EXTENSION = Object.freeze({
+  '': '.js',
+  '.ts': '.js',
+  '.d.ts': '.js',
+  '.tsx': '.jsx',
+  '.mts': '.mjs',
+  '.d.mts': '.mjs',
+  '.cts': '.cjs',
+  '.d.cts': '.cjs',
+});
+const extensionOf = file => TYPES_EXTENSIONS.find(ext => file.endsWith(ext)) ?? null;
+const sourcesOf = ext => TYPES_SOURCES[ROW_OF_EXTENSION[ext] ?? ext].flat();
+
+function aliasCandidates(entry, candidate) {
+  const out = extensionOf(entry) ? [candidate] : [];
+  const ext = extensionOf(candidate);
+  if (ext) {
+    const stem = candidate.slice(0, candidate.length - ext.length);
+    out.push(...sourcesOf(ext).map(source => stem + source));
+  }
+  const added = sourcesOf('');
+  out.push(
+    ...added.map(source => candidate + source),
+    ...added.map(source => `${candidate}/index${source}`)
+  );
+  return out;
+}
+
 const packageDirOf = rel => /^(packages\/[^/]+)\//u.exec(rel)?.[1] ?? null;
 
 const resolvers = new Map();
@@ -197,6 +240,13 @@ export function resolverFor(root) {
     }
     return existing.get(rel);
   };
+  const firstFile = candidates => {
+    for (const candidate of candidates) {
+      const rel = path.posix.normalize(candidate);
+      if (!rel.startsWith('..') && isFile(rel)) return rel;
+    }
+    return null;
+  };
   const firstExisting = base => {
     const candidates = [...EXTENSIONS.map(ext => base + ext)];
     // TypeScript's ESM style: `./x.js` names `./x.ts`.
@@ -204,21 +254,19 @@ export function resolverFor(root) {
       const stem = base.replace(/\.(m?js|jsx)$/u, '');
       candidates.push(`${stem}.ts`, `${stem}.tsx`, `${stem}.mts`);
     }
-    for (const candidate of candidates) {
-      const rel = path.posix.normalize(candidate);
-      if (!rel.startsWith('..') && isFile(rel)) return rel;
-    }
-    return null;
+    return firstFile(candidates);
   };
   const workspace = specifier => {
     const match = /^(@interdomestik\/[^/]+)(\/.*)?$/u.exec(specifier);
     if (!match) return null;
     return { name: match[1], subpath: `.${match[2] ?? ''}`, entry: packages.get(match[1]) ?? null };
   };
-  // TypeScript's `paths`: each pattern in order, and the first that names a file wins (B8).
+  // TypeScript's `paths`: each entry in order, its `*` (if any) replaced, and the first that names
+  // a file wins (B8), in TypeScript's file order (F7).
   const aliasFile = (patterns, rest) => {
     for (const pattern of patterns) {
-      const file = firstExisting(pattern.replace('*', () => rest));
+      const candidate = pattern.replace('*', () => rest);
+      const file = firstFile(aliasCandidates(pattern, candidate));
       if (file) return file;
     }
     return null;

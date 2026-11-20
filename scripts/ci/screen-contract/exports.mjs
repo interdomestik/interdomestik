@@ -43,7 +43,7 @@ export const BUNDLER_EXTENSIONS = freezeList(['.js', '.ts', '.d.ts']);
 // Bundler, allowJs; measured with TypeScript 5.9 against every target extension and every pair of
 // files): [typed pass, JavaScript pass]. A target with another extension, or none, has none.
 const TYPES_PASSES = 2;
-const TYPES_SOURCES = Object.freeze({
+export const TYPES_SOURCES = Object.freeze({
   '.js': freezeList([freezeList(['.ts', '.tsx', '.d.ts']), freezeList(['.js', '.jsx'])]),
   '.jsx': freezeList([freezeList(['.tsx', '.ts', '.d.ts']), freezeList(['.jsx', '.js'])]),
   '.mjs': freezeList([freezeList(['.mts', '.d.mts']), freezeList(['.mjs'])]),
@@ -58,7 +58,7 @@ const TYPES_SOURCES = Object.freeze({
   '.json': freezeList([freezeList([]), freezeList(['.json'])]),
 });
 // Longest first, so `.d.ts` wins over `.ts` and `a.d.js` is a `.js` target.
-const TYPES_EXTENSIONS = Object.keys(TYPES_SOURCES).sort((a, b) => b.length - a.length);
+export const TYPES_EXTENSIONS = Object.keys(TYPES_SOURCES).sort((a, b) => b.length - a.length);
 
 const EDGE_ENVIRONMENTS = Object.freeze({
   import: freezeList(['node-import', 'bundler-browser', 'types']),

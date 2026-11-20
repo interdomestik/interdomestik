@@ -51,7 +51,8 @@ function isIntlObject(node) {
 const PASS_THROUGH = {
   BinaryExpression: (parent, node) => parent.operator === '+',
   TemplateLiteral: () => true,
-  LogicalExpression: parent => parent.operator === '??' || parent.operator === '||',
+  // `a && b` renders `b`; its left operand is only a condition. Either operand of `??`/`||` renders.
+  LogicalExpression: (parent, node) => parent.operator !== '&&' || parent.right === node,
   ConditionalExpression: (parent, node) => parent.test !== node,
   ChainExpression: () => true,
   TSAsExpression: () => true,
@@ -84,8 +85,9 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
     return (method === 'rich' || method === 'markup') && translators.has(nameOf(callee.object));
   };
 
-  // The walk of design §2 (B19): up through `+`, templates, `??`/`||` and conditional branches;
-  // flagged when it ends in a JSX child, a human-read attribute or a `t(…)` interpolation value.
+  // The walk of design §2 (B19): up through `+`, templates, `??`/`||`, the right of `&&` and
+  // conditional branches; flagged when it ends in a JSX child, a human-read attribute or a `t(…)`
+  // interpolation value.
   function inDisplayPosition(call) {
     let node = call;
     let parent = node.parent;
