@@ -208,6 +208,7 @@ test('CHK-05: an unrecognised Zod factory on a spread path is open (Astra r9 B31
     'z.coerce.number()',
     "z.literal('a')",
     'z.array(z.uuid())',
+    "z.stringFormat('product-code', /^[A-Z]+$/)",
   ];
   for (const member of closed) assert.deepEqual(findingsOf(t, spread(member)), [], member);
 });
@@ -232,4 +233,17 @@ test('CHK-05: an upsert set under a quoted key, or a config that is not an inlin
   const twice =
     'export async function f(b: object) { await db.insert(things).values({ a: 1 }).onConflictDoUpdate({ target: things.id, set: { a: 1 }, set: { ...b } }); }';
   assert.match(messages(t, twice), /onConflictDoUpdate config is not an inline object literal/u);
+});
+
+test('CHK-05: a computed set key in an upsert config is an unresolved config, a literal one too (Astra r10 B32)', t => {
+  for (const key of ["['set']", '["set"]', '[KEY]']) {
+    const body = `const KEY = 'set';\nexport async function f() { await db.insert(things).values({ a: 1 }).onConflictDoUpdate({ target: things.id, ${key}: { a: 1 } }); }`;
+    const found = findingsOf(t, body);
+    assert.equal(found.length, 1, key);
+    assert.match(
+      found[0].message,
+      /onConflictDoUpdate config is not an inline object literal/u,
+      key
+    );
+  }
 });

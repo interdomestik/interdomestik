@@ -8,9 +8,11 @@ import { ownerColumnKeys, TENANT_IDENTITY_KEYS } from './safe-action.owner-keys'
 // pipe into another shape is refused. So is any check on an object, wrapper, array, tuple or union,
 // except an array's size and the checks of a wrapper around a scalar, and so is any check, anywhere,
 // with a `when` callback other than zod's own or whose definition holds a schema (SEC-02: nothing may
-// add an undeclared key; addenda 6 to 8). Checks on scalar and file nodes are otherwise not judged in part 1: a check that rewrites
-// a scalar, and a coercion, reach the handler as zod returns them, until the runtime input guard of
-// WP-02 part 1b.
+// add an undeclared key; addenda 6 to 9). A check's definition is read from its descriptors: one with
+// an accessor or another prototype is refused unread. The walk judges schemas built through zod's
+// public API; other internals of a hand-built schema or check object are not judged. Checks on scalar
+// and file nodes are otherwise not judged in part 1: a check that rewrites a scalar, and a coercion,
+// reach the handler as zod returns them, until the runtime input guard of WP-02 part 1b.
 type ZodDef = {
   type: string;
   check?: unknown;
@@ -28,24 +30,44 @@ const SCALAR_TYPES = new Set(['string', 'number', 'boolean', 'bigint', 'date', '
 const WRAPPER_TYPES = new Set(['optional', 'nullable', 'readonly']);
 const CONTAINER_TYPES = new Set([...WRAPPER_TYPES, 'array', 'tuple', 'union']);
 
-type CheckInternals = {
-  _zod?: { def?: { check?: unknown; when?: unknown }; traits?: { has(name: string): boolean } };
-};
-const internals = (check: unknown) => (check as CheckInternals | null)?._zod;
+// An own property, read from its descriptor: an accessor (no `value`, even with get and set both
+// undefined) is never called and reads as ACCESSOR (Astra r10 B28, addendum 9).
+const ACCESSOR = Symbol('accessor');
+function ownValue(holder: unknown, key: PropertyKey): unknown {
+  if ((typeof holder !== 'object' && typeof holder !== 'function') || holder === null) {
+    return undefined;
+  }
+  const own = Reflect.getOwnPropertyDescriptor(holder, key);
+  if (own === undefined) return undefined;
+  return 'value' in own ? own.value : ACCESSOR;
+}
+
+// `check._zod.def` through own data properties, or null when a step or any own key is an accessor or
+// its prototype is not Object.prototype (zod would read an inherited `when`); nothing is called.
+function checkDef(check: unknown): Readonly<Record<PropertyKey, unknown>> | null {
+  const def = ownValue(ownValue(check, '_zod'), 'def');
+  if (typeof def !== 'object' || def === null || Object.getPrototypeOf(def) !== Object.prototype) {
+    return null;
+  }
+  const keys = Reflect.ownKeys(def);
+  if (keys.some(key => ownValue(def, key) === ACCESSOR)) return null;
+  return def as Readonly<Record<PropertyKey, unknown>>;
+}
+
 const firstCheck = (schema: z.ZodType): unknown =>
   (schema._zod.def as { checks?: unknown[] }).checks?.[0];
 
 // A check's zod kind; an empty or non-string kind is unknown (Astra r8 B30).
 const checkKind = (check: unknown): string => {
-  const kind = internals(check)?.def?.check;
+  const kind = ownValue(checkDef(check), 'check');
   return typeof kind === 'string' && kind !== '' ? kind : 'unknown';
 };
 
 // zod gives its length and size checks a default `when` (run only on a value that has a length or
 // a size), captured once from zod itself as addendum 4 did. Any other `when` is a developer callback
 // that receives the writable parse payload and can change any value it reaches (Astra r8 B28).
-const LENGTH_WHEN = internals(firstCheck(z.array(z.string()).min(1)))?.def?.when;
-const SIZE_WHEN = internals(firstCheck(z.file().min(1)))?.def?.when;
+const LENGTH_WHEN = ownValue(checkDef(firstCheck(z.array(z.string()).min(1))), 'when');
+const SIZE_WHEN = ownValue(checkDef(firstCheck(z.file().min(1))), 'when');
 const DEFAULT_WHEN: ReadonlyMap<string, unknown> = new Map([
   ['min_length', LENGTH_WHEN],
   ['max_length', LENGTH_WHEN],
@@ -55,29 +77,20 @@ const DEFAULT_WHEN: ReadonlyMap<string, unknown> = new Map([
   ['size_equals', SIZE_WHEN],
 ]);
 const hasCustomWhen = (check: unknown): boolean => {
-  const when = internals(check)?.def?.when;
+  const when = ownValue(checkDef(check), 'when');
   return when !== undefined && when !== DEFAULT_WHEN.get(checkKind(check));
 };
 
-// A check whose definition holds a zod schema (`z.property`) parses that schema, with its own checks
-// and `when` callbacks, where the walk never reaches it; any own definition value that carries `_zod`
-// counts, and so does an accessor, whose value is not read (Astra r9 B28, addendum 8).
+// A check holding a zod schema (`z.property`) parses it, with its checks and `when` callbacks, out of
+// the walk's reach: any own definition value carrying `_zod` counts (Astra r9 B28, addendum 8).
 const carriesSchema = (value: unknown): boolean =>
   (typeof value === 'object' || typeof value === 'function') && value !== null && '_zod' in value;
 const holdsSchema = (check: unknown): boolean => {
-  const def = internals(check)?.def;
-  if (typeof def !== 'object' || def === null) return false;
-  return Reflect.ownKeys(def).some(key => {
-    const own = Reflect.getOwnPropertyDescriptor(def, key);
-    return (
-      own !== undefined &&
-      (own.get !== undefined || own.set !== undefined || carriesSchema(own.value))
-    );
-  });
+  const def = checkDef(check);
+  return def !== null && Reflect.ownKeys(def).some(key => carriesSchema(def[key]));
 };
 
-// The checks a container may carry: an array's size, recognised by its kind and zod's own class
-// trait, which cannot change a value (its `when` is judged first, for every check).
+// A container may carry an array's size check (kind and zod class trait); its `when` is judged first.
 const ARRAY_SIZE_TRAITS: ReadonlyMap<string, string> = new Map([
   ['min_length', '$ZodCheckMinLength'],
   ['max_length', '$ZodCheckMaxLength'],
@@ -85,7 +98,8 @@ const ARRAY_SIZE_TRAITS: ReadonlyMap<string, string> = new Map([
 ]);
 const isArraySizeCheck = (check: unknown): boolean => {
   const trait = ARRAY_SIZE_TRAITS.get(checkKind(check));
-  return trait !== undefined && internals(check)?.traits?.has(trait) === true;
+  const traits = ownValue(ownValue(check, '_zod'), 'traits');
+  return trait !== undefined && traits instanceof Set && Set.prototype.has.call(traits, trait);
 };
 
 export class ActionDefinitionError extends Error {
@@ -123,11 +137,22 @@ function containerCheck(def: ZodDef): string | undefined {
   return refused === undefined ? undefined : checkKind(refused);
 }
 
-// Refuses a check with a custom `when`, or one that holds a schema, on this node: its own checks, and
-// the node itself when it is also a check (`z.email()` as a field). Called for every node the walk
-// reaches (addenda 7 and 8).
+// Refuses a check with an accessor or another prototype, a custom `when` or a schema, among the node's
+// checks and the node itself when its own `check` key is set (`z.email()`); addenda 7 to 9.
 function assertNodeChecks(schema: z.ZodType, def: ZodDef, path: string, ctx: WalkContext): void {
-  const checks = def.check === undefined ? (def.checks ?? []) : [schema, ...(def.checks ?? [])];
+  const listed = ownValue(def, 'checks');
+  if (listed !== undefined && !Array.isArray(listed)) {
+    refuse(ctx, path, `a checks list that is an accessor or not an array on a ${def.type}`);
+  }
+  const own: unknown[] = listed ?? [];
+  const checks = ownValue(def, 'check') === undefined ? own : [schema, ...own];
+  if (checks.some(check => checkDef(check) === null)) {
+    refuse(
+      ctx,
+      path,
+      `a check whose definition has an accessor or a prototype other than Object (not read) on a ${def.type}`
+    );
+  }
   if (checks.some(hasCustomWhen)) {
     refuse(
       ctx,

@@ -39,7 +39,7 @@ const SCALAR_FACTORIES = new Set(
     'string number boolean bigint date symbol null undefined void never nan literal enum',
     'nativeEnum templateLiteral keyof file stringbool email guid uuid uuidv4 uuidv6 uuidv7',
     'url httpUrl emoji nanoid cuid cuid2 ulid xid ksuid ipv4 ipv6 mac cidrv4 cidrv6 base64',
-    'base64url e164 jwt hostname hex hash creditCard iban currencyCode int int32 uint32',
+    'base64url e164 jwt hostname hex hash creditCard iban currencyCode stringFormat int int32 uint32',
     'float32 float64 int64 uint64 iso.datetime iso.date iso.time iso.duration coerce.string',
     'coerce.number coerce.boolean coerce.bigint coerce.date',
   ]

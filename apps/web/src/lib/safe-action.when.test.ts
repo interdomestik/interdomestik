@@ -117,3 +117,65 @@ describe('definition: no check that holds a schema (addendum 8, r9 B28)', () => 
     expect(define(schema)).toThrow(`at ${path}: a property check that holds a schema`);
   });
 });
+
+// Lead decision on Astra r10 B28 (design addendum 9): a check's definition is judged from its
+// property descriptors before any read. An own property with no `value` (an accessor, even with
+// get and set both undefined) is refused without being called, and so is a definition that does
+// not inherit from Object.prototype, whose inherited properties zod would read.
+describe('definition: no accessor in a check definition (addendum 9, r10 B28)', () => {
+  const defOf = (schema: z.ZodType) => schema._zod.def as unknown as Record<string, unknown>;
+  const checkDefOf = (schema: z.ZodType) =>
+    (defOf(schema).checks as { _zod: { def: object } }[])[0]._zod.def;
+  const trap = () => {
+    throw new Error('accessor was read');
+  };
+
+  it('refuses a format field whose own check is a getter, without calling it', () => {
+    const email = z.email();
+    let reads = 0;
+    Object.defineProperty(defOf(email), 'check', {
+      get: () => {
+        reads += 1;
+        return undefined;
+      },
+    });
+    Object.assign(defOf(email), { when: () => true, schema: z.number() });
+    expect(define(z.strictObject({ email }))).toThrow(
+      /at email: a check whose definition has an accessor/
+    );
+    expect(reads).toBe(0);
+  });
+
+  it('refuses an attached check whose when is a getter, without calling it', () => {
+    const note = z.string().min(1);
+    Object.defineProperty(checkDefOf(note), 'when', { get: trap });
+    expect(define(z.strictObject({ note }))).toThrow(
+      /at note: a check whose definition has an accessor/
+    );
+  });
+
+  it('refuses an accessor whose get and set are both undefined', () => {
+    const note = z.string().min(1);
+    Object.defineProperty(checkDefOf(note), 'extra', { get: undefined, set: undefined });
+    expect(define(z.strictObject({ note }))).toThrow(
+      /at note: a check whose definition has an accessor/
+    );
+  });
+
+  it('refuses a schema-holding property behind a getter, without calling it', () => {
+    const rows = z.array(z.string()).min(1);
+    Object.defineProperty(checkDefOf(rows), 'schema', { get: trap });
+    expect(define(z.strictObject({ rows }))).toThrow(
+      /at rows: a check whose definition has an accessor/
+    );
+  });
+
+  it('refuses a check definition that inherits a when from its prototype', () => {
+    const note = z.string().min(1);
+    const check = (defOf(note).checks as { _zod: { def: object } }[])[0];
+    check._zod.def = Object.assign(Object.create({ when: () => true }), check._zod.def);
+    expect(define(z.strictObject({ note }))).toThrow(
+      /at note: a check whose definition has an accessor or a prototype other than Object/
+    );
+  });
+});

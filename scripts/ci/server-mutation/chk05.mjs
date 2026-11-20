@@ -78,8 +78,10 @@ const PLAIN_MEMBER = p => ts.isPropertyAssignment(p) || ts.isShorthandPropertyAs
 function upsertOf(call, table) {
   const config = unwrap(call.arguments[0]);
   const members = config && ts.isObjectLiteralExpression(config) ? config.properties : null;
-  const keys = members?.every(PLAIN_MEMBER) ? members.map(p => propertyKey(p.name)) : ['?'];
-  // A computed key may be `set`; a second `set` replaces the first at run time.
+  // Any computed key, `['set']` included, is unresolved (r10 B32); a quoted 'set' is the key set;
+  // a second `set` replaces the first at run time.
+  const keyOf = p => (ts.isComputedPropertyName(p.name) ? '?' : propertyKey(p.name));
+  const keys = members?.every(PLAIN_MEMBER) ? members.map(keyOf) : ['?'];
   if (keys.includes('?') || keys.filter(key => key === 'set').length > 1)
     return { op: 'upsert', table, arg: config ?? call, configProblem: true };
   const set = members.find(p => propertyKey(p.name) === 'set');
