@@ -86,13 +86,18 @@ export async function ruleSets(configFile = path.join(SCANNER_ROOT, CONFIG_PATH)
   return sets;
 }
 
-// The JSX element name at a message's position, for an A11Y item key.
+// The JSX element a message is reported on (its own opening tag, or the nearest one before it,
+// when the rule reports an attribute), for an A11Y item key.
 function elementAt(lines, message) {
-  const line = lines[message.line - 1] ?? '';
-  const rest = line.slice(Math.max(0, message.column - 1));
-  return (
-    /^<\s*([A-Za-z_$][\w.$-]*)/u.exec(rest)?.[1] ?? /^([A-Za-z_$][\w.$-]*)/u.exec(rest)?.[1] ?? '?'
-  );
+  const before = [
+    ...lines.slice(0, message.line - 1),
+    lines[message.line - 1]?.slice(0, message.column - 1) ?? '',
+  ].join('\n');
+  const rest = lines[message.line - 1]?.slice(Math.max(0, message.column - 1)) ?? '';
+  const own = /^<\s*([A-Za-z_$][\w.$-]*)/u.exec(rest)?.[1];
+  if (own) return own;
+  const opens = [...before.matchAll(/<([A-Za-z_$][\w.$-]*)/gu)];
+  return opens.length ? opens[opens.length - 1][1] : '?';
 }
 
 // Runs the lint over `files` of `root` and returns { items, units } per check id.
