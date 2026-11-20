@@ -475,6 +475,94 @@ const CASES = [
     },
   },
   {
+    // TypeScript resolves in two passes over the whole map: typed sources first,
+    // then JavaScript. A JS entry before a typed one loses to it (B8).
+    name: '11i array: a JS file first, a typed implementation second',
+    exports: { '.': ['./a.js', './b.ts'] },
+    files: ['a.js', 'b.ts'],
+    expect: {
+      [PKG_NAME]: {
+        'node-import': './a.js',
+        'node-require': './a.js',
+        'bundler-browser': './a.js',
+        types: './b.ts',
+      },
+    },
+    edges: { [PKG_NAME]: { import: true, require: true, type: true } },
+  },
+  {
+    name: '11j conditions: JS under import, a typed implementation under default',
+    exports: { '.': { import: './a.js', default: './b.ts' } },
+    files: ['a.js', 'b.ts'],
+    expect: {
+      [PKG_NAME]: {
+        'node-import': './a.js',
+        'node-require': './b.ts',
+        'bundler-browser': './a.js',
+        types: './b.ts',
+      },
+    },
+    edges: { [PKG_NAME]: { import: true, require: true, type: true } },
+  },
+  {
+    name: '11k array: only JS files, the first wins in the JavaScript pass',
+    exports: { '.': ['./a.js', './b.js'] },
+    files: ['a.js', 'b.js'],
+    expect: {
+      [PKG_NAME]: {
+        'node-import': './a.js',
+        'node-require': './a.js',
+        'bundler-browser': './a.js',
+        types: './a.js',
+      },
+    },
+  },
+  {
+    // TypeScript maps a .jsx target to .tsx, then .ts, then .d.ts (B8).
+    name: '11l a .jsx target with only the .ts source',
+    exports: { '.': './e.jsx' },
+    files: ['e.ts'],
+    expect: {
+      [PKG_NAME]: {
+        'node-import': 'missing',
+        'node-require': 'missing',
+        'bundler-browser': 'missing',
+        types: './e.ts',
+      },
+    },
+    edges: { [PKG_NAME]: { import: false, require: false, type: true } },
+  },
+  {
+    name: '11m a .js target with only its declaration, a .ts target with only its .js',
+    exports: { './d': './d.js', './t': './t.ts', './s': './s.d.js' },
+    files: ['d.d.ts', 't.js', 's.d.ts'],
+    expect: {
+      '@fx/pkg/d': {
+        'node-import': 'missing',
+        'node-require': 'missing',
+        'bundler-browser': 'missing',
+        types: './d.d.ts',
+      },
+      '@fx/pkg/t': {
+        'node-import': 'missing',
+        'node-require': 'missing',
+        'bundler-browser': 'missing',
+        types: './t.js',
+      },
+      // A stem ending in `.d` is no declaration: `s.d.js` names `s.d.ts`.
+      '@fx/pkg/s': {
+        'node-import': 'missing',
+        'node-require': 'missing',
+        'bundler-browser': 'missing',
+        types: './s.d.ts',
+      },
+    },
+    edges: {
+      '@fx/pkg/d': { import: false, type: true },
+      '@fx/pkg/t': { import: false, type: true },
+    },
+  },
+  {
     name: '12 array target skips an unmatched condition object',
     exports: { '.': [{ node: './n.js' }, './d.js'] },
     files: ['n.js', 'd.js'],
@@ -804,4 +892,50 @@ test('checkEdge needs a file check, and an unknown environment is an input error
       environments: { types: { status: 'missing' } },
     }
   );
+});
+
+const TARGET_EXTS = [
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.ts',
+  '.tsx',
+  '.mts',
+  '.cts',
+  '.d.ts',
+  '.d.mts',
+  '.d.cts',
+  '.json',
+  '',
+];
+const FILE_EXTS = TARGET_EXTS.filter(Boolean);
+const fileSets = () => [
+  ...FILE_EXTS.map(ext => [ext]),
+  ...FILE_EXTS.flatMap((a, i) => FILE_EXTS.slice(i + 1).map(b => [a, b])),
+];
+
+// Every target extension against every one or two typed or JS files beside it: the types row
+// takes the file TypeScript takes, or refuses where it refuses (B8).
+test(`types row: TypeScript's file for every target extension and file pair (node ${NODE_VERSION})`, t => {
+  const exportsMap = {};
+  const files = [];
+  TARGET_EXTS.forEach((targetExt, ti) => {
+    fileSets().forEach((set, si) => {
+      const dir = `m${ti}-${si}`;
+      exportsMap[`./${dir}`] = `./${dir}/e${targetExt}`;
+      for (const ext of set) files.push(`${dir}/e${ext}`);
+    });
+  });
+  const fixture = buildFixture(t, exportsMap, files);
+  const specs = Object.keys(exportsMap).map(key => `${PKG_NAME}${key.slice(1)}`);
+  const results = typesOracle(fixture, specs);
+  specs.forEach((spec, index) => {
+    const oracle = results[index];
+    const verdict = moduleVerdict(fixture, spec, 'types');
+    const label = `${exportsMap[subpathOf(spec)]} beside ${files.filter(f => f.startsWith(`${subpathOf(spec).slice(2)}/`))}: oracle ${JSON.stringify(oracle)}, module ${JSON.stringify(verdict)}`;
+    assert.equal(oracle.resolved, verdict.status === 'resolved', label);
+    if (oracle.resolved)
+      assert.ok(oracle.file.endsWith(path.join(fixture.pkgDir, verdict.target.slice(2))), label);
+  });
 });

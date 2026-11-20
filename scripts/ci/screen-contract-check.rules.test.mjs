@@ -250,6 +250,7 @@ const pkgJson = (name, exportsMap) => JSON.stringify({ name, private: true, expo
 
 test('CHK-15a: a value edge resolves under the value conditions, a type edge under types (B5)', async t => {
   const root = tree(t, {
+    'apps/web/src/app/home/page.tsx': 'export default () => null;\n',
     // `types` names a declaration (no layer) and the value conditions name the source.
     'packages/domain-decl/package.json': pkgJson('@interdomestik/domain-decl', {
       '.': { types: './src/index.d.ts', import: './src/index.ts', default: './src/index.ts' },
@@ -348,4 +349,42 @@ test('CHK-15b, CHK-15c: type-only export-from and import types are type edges (H
   has(result, 'CHK-15b', `CHK-15b|${W}/components/mixed.tsx|@interdomestik/shared-t/t`);
   has(result, 'CHK-15c', `CHK-15c|${file}|@interdomestik/database`);
   assert.ok(result['CHK-15c'].units['edge:type'] >= 2);
+});
+
+test('CHK-15a: every @/* mapping is tried in order, the first existing file wins (B8)', async t => {
+  const root = tree(t, {
+    // The first root mapping names a support directory, the second the web sources.
+    'tsconfig.json':
+      '{\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["apps/web/src/lib/*", "apps/web/src/*"] } }\n}\n',
+    'apps/web/tsconfig.json':
+      '{\n  "compilerOptions": { "paths": { "@/*": ["./src/lib/*", "./src/*"] } },\n}\n',
+    [`${W}/actions/only.ts`]: "'use server';\nexport async function only() {}\n",
+    [`${W}/actions/both.ts`]: "'use server';\nexport async function both() {}\n",
+    [`${W}/lib/actions/both.ts`]: 'export async function both() {}\n',
+    [`${W}/components/view.tsx`]: 'export const View = () => null;\n',
+    // Only the second mapping names a file: layer 2 under a domain source.
+    'packages/domain-claims/src/second.ts':
+      "import { only } from '@/actions/only';\nexport const s = only;\n",
+    // The first mapping's file (support, no layer) wins over the second's (layer 2).
+    'packages/domain-claims/src/first.ts':
+      "import { both } from '@/actions/both';\nexport const f = both;\n",
+    // A web caller follows the second web mapping to a layer-1 file.
+    [`${W}/actions/web.ts`]:
+      "'use server';\nimport { View } from '@/components/view';\nexport async function w() { return View; }\n",
+  });
+  const result = await lint(root);
+  has(result, 'CHK-15a', 'CHK-15a|packages/domain-claims/src/second.ts|@/actions/only');
+  lacks(result, 'CHK-15a', 'CHK-15a|packages/domain-claims/src/first.ts');
+  has(result, 'CHK-15a', `CHK-15a|${W}/actions/web.ts|@/components/view`);
+});
+
+test('CHK-15a: an @/* mapping entry that is not a string with one * is an input error (§5)', async t => {
+  for (const mapping of ['[]', '["apps/web/src/*", 3]', '["apps/web/src/*", "apps/web/src"]']) {
+    const config = `{ "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ${mapping} } } }`;
+    await assert.rejects(
+      lint(tree(t, { 'tsconfig.json': config })),
+      /tsconfig\.json has no usable @\/\* mapping/u,
+      mapping
+    );
+  }
 });

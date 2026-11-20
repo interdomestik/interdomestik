@@ -12,10 +12,12 @@
 //   node-import, node-require  Node's selection; the selected file must exist.
 //   bundler-browser            Node's selection (enhanced-resolve's); the file,
 //                              or the file with one of its extensions, must exist.
-//   types                      TypeScript: every array entry and condition is
-//                              tried in order, a null or a target without a
-//                              typed source on disk is passed over, and a `.js`
-//                              target names its `.ts` source.
+//   types                      TypeScript, in two passes over the whole map:
+//                              typed sources first, then JavaScript. In each,
+//                              every array entry and condition is tried in
+//                              order, a null or a target with no file of the
+//                              pass on disk is passed over, and a target names
+//                              its sources by TYPES_SOURCES.
 // An edge passes only if every environment of its kind resolves (`checkEdge`):
 // where the oracles disagree, the strictest verdict holds.
 //
@@ -38,18 +40,25 @@ export const ENVIRONMENTS = Object.freeze({
 export const BUNDLER_EXTENSIONS = freezeList(['.js', '.ts', '.d.ts']);
 
 // TypeScript's files for a target, by the target's extension, in its order (moduleResolution
-// Bundler, allowJs); a target with another extension, or none, has none.
+// Bundler, allowJs; measured with TypeScript 5.9 against every target extension and every pair of
+// files): [typed pass, JavaScript pass]. A target with another extension, or none, has none.
+const TYPES_PASSES = 2;
 const TYPES_SOURCES = Object.freeze({
-  '.js': freezeList(['.ts', '.tsx', '.d.ts', '.js']),
-  '.jsx': freezeList(['.tsx', '.d.ts', '.jsx']),
-  '.mjs': freezeList(['.mts', '.d.mts', '.mjs']),
-  '.cjs': freezeList(['.cts', '.d.cts', '.cjs']),
-  '.ts': freezeList(['.ts']),
-  '.tsx': freezeList(['.tsx']),
-  '.mts': freezeList(['.mts']),
-  '.cts': freezeList(['.cts']),
-  '.json': freezeList(['.json']),
+  '.js': freezeList([freezeList(['.ts', '.tsx', '.d.ts']), freezeList(['.js', '.jsx'])]),
+  '.jsx': freezeList([freezeList(['.tsx', '.ts', '.d.ts']), freezeList(['.jsx', '.js'])]),
+  '.mjs': freezeList([freezeList(['.mts', '.d.mts']), freezeList(['.mjs'])]),
+  '.cjs': freezeList([freezeList(['.cts', '.d.cts']), freezeList(['.cjs'])]),
+  '.ts': freezeList([freezeList(['.ts']), freezeList(['.js', '.jsx'])]),
+  '.tsx': freezeList([freezeList(['.tsx']), freezeList(['.jsx', '.js'])]),
+  '.mts': freezeList([freezeList(['.mts']), freezeList(['.mjs'])]),
+  '.cts': freezeList([freezeList(['.cts']), freezeList(['.cjs'])]),
+  '.d.ts': freezeList([freezeList(['.d.ts']), freezeList(['.js', '.jsx'])]),
+  '.d.mts': freezeList([freezeList(['.d.mts']), freezeList(['.mjs'])]),
+  '.d.cts': freezeList([freezeList(['.d.cts']), freezeList(['.cjs'])]),
+  '.json': freezeList([freezeList([]), freezeList(['.json'])]),
 });
+// Longest first, so `.d.ts` wins over `.ts` and `a.d.js` is a `.js` target.
+const TYPES_EXTENSIONS = Object.keys(TYPES_SOURCES).sort((a, b) => b.length - a.length);
 
 const EDGE_ENVIRONMENTS = Object.freeze({
   import: freezeList(['node-import', 'bundler-browser', 'types']),
@@ -219,10 +228,22 @@ function resolveTypesTarget(target, patternMatch, conditions, accept) {
   return last;
 }
 
-function typesSources(target) {
-  const ext = /\.[^./]*$/u.exec(target)?.[0] ?? '';
-  const sources = Object.hasOwn(TYPES_SOURCES, ext) ? TYPES_SOURCES[ext] : [];
+// The files of one pass that TypeScript tries for a target, in its order.
+function typesSources(target, pass) {
+  const ext = TYPES_EXTENSIONS.find(key => target.endsWith(key));
+  const sources = ext ? TYPES_SOURCES[ext][pass] : [];
   return sources.map(source => target.slice(0, target.length - ext.length) + source);
+}
+
+// The types row: the typed pass over the whole map, then the JavaScript pass (B8).
+function resolveTypes(selected, conditions, fileExists) {
+  let resolved;
+  for (let pass = 0; pass < TYPES_PASSES; pass += 1) {
+    const accept = target => typesSources(target, pass).find(fileExists);
+    resolved = resolveTypesTarget(selected.target, selected.patternMatch, conditions, accept);
+    if (typeof resolved === 'string') break;
+  }
+  return finish(resolved);
 }
 
 const bundlerFiles = target => [target, ...BUNDLER_EXTENSIONS.map(ext => target + ext)];
@@ -306,10 +327,7 @@ export function resolveEnvironment(pkg, subpath, env, fileExists) {
   const selected = selectSubpath(pkg, subpath);
   if (selected.status) return selected;
   const conditions = new Set(ENVIRONMENTS[env]);
-  if (env === 'types') {
-    const accept = target => typesSources(target).find(fileExists);
-    return finish(resolveTypesTarget(selected.target, selected.patternMatch, conditions, accept));
-  }
+  if (env === 'types') return resolveTypes(selected, conditions, fileExists);
   const resolved = resolveTarget(selected.target, selected.patternMatch, conditions);
   if (typeof resolved !== 'string') return finish(resolved);
   const files = env === 'bundler-browser' ? bundlerFiles(resolved) : [resolved];

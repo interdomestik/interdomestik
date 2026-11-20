@@ -130,17 +130,21 @@ function parseTsconfig(text) {
   return config;
 }
 
-// The `@/` target directory of one tsconfig (its `paths['@/*']`, relative to `baseUrl` or, without
-// one, to the config's directory), repo-relative.
-function aliasRoot(root, configRel) {
+const hasOneStar = entry =>
+  typeof entry === 'string' && entry.includes('*') && entry.indexOf('*') === entry.lastIndexOf('*');
+
+// The `@/` patterns of one tsconfig: every entry of its `paths['@/*']`, in order, relative to
+// `baseUrl` or, without one, to the config's directory, repo-relative (`apps/web/src/*`).
+function aliasPatterns(root, configRel) {
   const config = readJson(path.join(root, configRel), configRel, parseTsconfig);
   const options = config?.compilerOptions;
   const mapping = options?.paths?.['@/*'];
-  if (!Array.isArray(mapping) || typeof mapping[0] !== 'string' || !mapping[0].endsWith('/*'))
-    throw new ScanError(`${configRel} has no @/* mapping`);
+  if (mapping === undefined) throw new ScanError(`${configRel} has no @/* mapping`);
+  if (!Array.isArray(mapping) || mapping.length === 0 || !mapping.every(hasOneStar))
+    throw new ScanError(`${configRel} has no usable @/* mapping`);
   const baseUrl = typeof options.baseUrl === 'string' ? options.baseUrl : '.';
   const base = path.posix.join(path.posix.dirname(configRel), baseUrl);
-  return path.posix.normalize(path.posix.join(base, mapping[0].slice(0, -2)));
+  return Object.freeze(mapping.map(entry => path.posix.join(base, entry)));
 }
 
 // The tsconfig that compiles each caller (H7): the web app's for `apps/web/**`; the root one for
@@ -179,7 +183,10 @@ const resolvers = new Map();
 export function resolverFor(root) {
   if (resolvers.has(root)) return resolvers.get(root);
   const alias = Object.fromEntries(
-    Object.entries(ALIAS_CONFIGS).map(([caller, configRel]) => [caller, aliasRoot(root, configRel)])
+    Object.entries(ALIAS_CONFIGS).map(([caller, configRel]) => [
+      caller,
+      aliasPatterns(root, configRel),
+    ])
   );
   const packages = workspacePackages(root);
   const existing = new Map();
@@ -208,6 +215,14 @@ export function resolverFor(root) {
     if (!match) return null;
     return { name: match[1], subpath: `.${match[2] ?? ''}`, entry: packages.get(match[1]) ?? null };
   };
+  // TypeScript's `paths`: each pattern in order, and the first that names a file wins (B8).
+  const aliasFile = (patterns, rest) => {
+    for (const pattern of patterns) {
+      const file = firstExisting(pattern.replace('*', () => rest));
+      if (file) return file;
+    }
+    return null;
+  };
   // A file check for `exports` targets ('./src/x.ts') of the package in `dir`.
   const existsIn = dir => target => isFile(path.posix.join(dir, target));
   // The files a workspace edge loads, one per environment of its kind, without duplicates.
@@ -231,8 +246,7 @@ export function resolverFor(root) {
     let file = null;
     if (kind === 'relative')
       file = firstExisting(path.posix.join(path.posix.dirname(fromRel), specifier));
-    else if (kind === 'alias')
-      file = firstExisting(path.posix.join(alias[aliasConfigOf(fromRel)], specifier.slice(2)));
+    else if (kind === 'alias') file = aliasFile(alias[aliasConfigOf(fromRel)], specifier.slice(2));
     return file ? [file] : [];
   };
   // The first of those files, or null.
