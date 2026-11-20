@@ -507,25 +507,52 @@ test('r6 B3: a changed path with a tab is not attributed to its prefix', t => {
   assert.deepEqual(report.changes.baselined, {});
 });
 
-// r6 blocker 1, r7 blocker 1: a signal names a PR-controlled path; printed to the trusted run's
-// log, it is one line with no workflow-command marker, so a file name can start no command, at the
-// start of a line or after other text.
-test('r7 B1: a printed rebuild signal holds no line break, control character or marker', async () => {
+// r6 blocker 1, r7 blocker 1, r8 blocker 1: a signal names a PR-controlled path. Printed to the
+// trusted run's log, every character outside [A-Za-z0-9 ._/@+-] is percent-encoded (UTF-8 bytes),
+// so no line break, `::` or `##[` marker is left, and the line decodes back to the signal.
+test('r8 B1: a printed rebuild signal keeps only allowlisted characters and decodes back', async () => {
   const { signalLine } = await import('./screen-contract/changes.mjs');
   const names = [
+    'x ##[error]y.tsx',
     'x ::error::y.tsx',
     'a\n::error::x.tsx',
-    'a\r::warning::x.tsx',
+    'a\r##[warning]x.tsx',
     'a\r\n::notice::x.tsx',
     'del\u007f::error::x.tsx',
     'bell\u0007.tsx',
     '100%25::error::x.tsx',
+    'résumé/页面 ✓.tsx',
   ];
   for (const name of names) {
-    const line = signalLine(`likely rebuild: ${name} adds a page-ready marker`);
-    assert.doesNotMatch(line, /[\u0000-\u001f\u007f]|:/u, JSON.stringify(name));
+    const signal = `likely rebuild: ${name} adds a page-ready marker`;
+    const line = signalLine(signal);
+    assert.match(line, /^[A-Za-z0-9 ._/@+%-]*$/u, JSON.stringify(name));
+    assert.equal(decodeURIComponent(line), signal, JSON.stringify(name));
   }
-  assert.equal(signalLine('a%b:c\r\n\u007f\u0007::d'), 'a%25b%3Ac%0D%0A%7F%07%3A%3Ad');
+  assert.equal(signalLine('a#[b]:c\r\n\u007fé%'), 'a%23%5Bb%5D%3Ac%0D%0A%7F%C3%A9%25');
+});
+
+// r8 blocker 1, end to end: the report keeps the raw path; stdout prints the encoded signal only.
+test('r8 B1: the report holds the raw signal and stdout its encoded line', t => {
+  const page = `${W}/app/résumé ##[error]x/page.tsx`;
+  const item = `CHK-15c|${page}|@interdomestik/database`;
+  const { root, base } = adopted(
+    t,
+    { 'CHK-15c': [LEGACY, item] },
+    { [DB_PAGE]: DB_IMPORT, [page]: DB_IMPORT }
+  );
+  const extra = Array.from({ length: 10 }, (_, i) => `// added ${i}`).join('\n');
+  const head = commit(root, { [page]: `${DB_IMPORT}${extra}\n` });
+  const { code, report, stdout } = scan(t, root, ['--base', base, '--head', head]);
+  assert.equal(code, 0, JSON.stringify(report?.errors));
+  const raw = report.changes.signals.find(signal => signal.includes(page));
+  assert.ok(raw, JSON.stringify(report.changes.signals));
+  const printed = stdout.split('\n').filter(line => line.startsWith('likely rebuild'));
+  assert.deepEqual(
+    printed.map(line => decodeURIComponent(line)),
+    report.changes.signals
+  );
+  assert.ok(!stdout.includes('##['), stdout);
 });
 
 // r7 hardening: a baselined screen whose path holds a tab is reported under that whole path.

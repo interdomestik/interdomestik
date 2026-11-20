@@ -70,13 +70,16 @@ function rebuildSignals(repo, baseSha, headSha, root, file, changedCount) {
 }
 
 // A signal as one printable line: it names a PR-controlled path, so before it reaches the trusted
-// run's log `%`, `:`, every control character and DEL are percent-encoded as GitHub encodes
-// workflow-command values. No line break and no `::` command marker is left, at the start of a
-// line or after other text (r6 B1, r7 B1).
+// run's log every character outside [A-Za-z0-9 ._/@+-] is percent-encoded as its UTF-8 bytes. No
+// line break and no workflow-command marker (`::`, `##[`) is left, at the start of a line or after
+// other text, and `decodeURIComponent` gives the signal back; the report keeps it raw (r6 B1,
+// r7 B1, r8 B1).
+const SIGNAL_ENCODER = new TextEncoder();
 export const signalLine = signal =>
-  String(signal).replaceAll(
-    /[%:\u0000-\u001f\u007f]/gu,
-    ch => `%${ch.codePointAt(0).toString(16).toUpperCase().padStart(2, '0')}`
+  String(signal).replaceAll(/[^A-Za-z0-9 ._/@+-]/gu, ch =>
+    [...SIGNAL_ENCODER.encode(ch)]
+      .map(byte => `%${byte.toString(16).toUpperCase().padStart(2, '0')}`)
+      .join('')
   );
 
 // { baselined: { file: [items] }, signals: [text] } for the change base..head.

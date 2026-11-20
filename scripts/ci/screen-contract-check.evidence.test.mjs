@@ -420,16 +420,16 @@ test('r7 B2: export default <T>submission in a .test.ts file is not a use', t =>
 // r7 blocker 3: a test function imported under another name could be skipped unseen, so the
 // renamed import is no evidence at all (fail closed); the plain names still are.
 test('r7 B3: a renamed import of it, test, describe or suite is not evidence', t => {
-  for (const name of ['it', 'test', 'describe', 'suite'])
+  const renamed = [
+    ...['it', 'test', 'describe', 'suite'].map(name => `import { ${name} as s } from 'vitest';`),
+    "import { test as s } from '@playwright/test';",
+  ];
+  for (const line of renamed)
     for (const body of [IMPORTING, IMPORTING.replace('it(', 's.skip(')])
       assert.match(
-        evidence(
-          t,
-          `${W}/app/signup/page.test.tsx`,
-          `import { ${name} as s } from 'vitest';\n${body}`
-        ).join('\n'),
+        evidence(t, `${W}/app/signup/page.test.tsx`, `${line}\n${body}`).join('\n'),
         /renames the test function/u,
-        name
+        line
       );
   assert.deepEqual(
     evidence(
@@ -439,4 +439,19 @@ test('r7 B3: a renamed import of it, test, describe or suite is not evidence', t
     ),
     []
   );
+});
+
+// r8 blocker 2: the renamed-import rule reads value imports from the test runners only; the same
+// name renamed from another module, or a type-only import, is no test function.
+test('r8 B2: a renamed import from another module or a type-only import is still evidence', t => {
+  for (const line of [
+    "import { it as italian } from 'date-fns/locale';",
+    "import { type it as T } from 'vitest';",
+    "import type { suite as S } from 'vitest';",
+  ])
+    assert.deepEqual(
+      evidence(t, `${W}/app/signup/page.test.tsx`, `${line}\n${IMPORTING}`),
+      [],
+      line
+    );
 });

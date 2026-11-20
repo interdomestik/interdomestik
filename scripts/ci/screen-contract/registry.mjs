@@ -188,18 +188,30 @@ function freshFor(base, head, id) {
 const SKIPPED_RE =
   /\b(?:it|test|describe|suite)\s*\.\s*(?:skip|todo|fixme)\b|\bx(?:it|describe)\s*\(/u;
 const TEST_FUNCTIONS = new Set(['it', 'test', 'describe', 'suite']);
+const TEST_RUNNERS = new Set(['vitest', '@playwright/test']);
 
-// Whether a test imports a test function under another name (`import { suite as s }`): a skip
-// through that name is not seen, so such a test is no evidence at all (fail closed, r7 B3).
+// Whether a test imports a test function of a runner under another name as a value
+// (`import { suite as s } from 'vitest'`): a skip through that name is not seen, so such a test is
+// no evidence at all (fail closed, r7 B3). The same name from another module (`date-fns/locale`'s
+// `it`) or a type-only import is no test function (r8 B2).
 function renamesTestFunction(rel, text) {
   const kind = /\.[jt]sx$/u.test(rel) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
   const source = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, kind);
-  return nodesOf(source).some(
-    node =>
-      ts.isImportSpecifier(node) &&
-      node.propertyName !== undefined &&
-      TEST_FUNCTIONS.has(node.propertyName.text) &&
-      node.propertyName.text !== node.name.text
+  return source.statements.some(
+    statement =>
+      ts.isImportDeclaration(statement) &&
+      ts.isStringLiteral(statement.moduleSpecifier) &&
+      TEST_RUNNERS.has(statement.moduleSpecifier.text) &&
+      !statement.importClause?.isTypeOnly &&
+      statement.importClause?.namedBindings !== undefined &&
+      ts.isNamedImports(statement.importClause.namedBindings) &&
+      statement.importClause.namedBindings.elements.some(
+        element =>
+          !element.isTypeOnly &&
+          element.propertyName !== undefined &&
+          TEST_FUNCTIONS.has(element.propertyName.text) &&
+          element.propertyName.text !== element.name.text
+      )
   );
 }
 // A time-field name ends in one of these (`createdAt`, `granted_at`, `timestamp`); the regex only
