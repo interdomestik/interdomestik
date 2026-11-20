@@ -26,7 +26,7 @@ vi.mock('next/navigation', async importOriginal => importOriginal());
 
 import { notFound, redirect } from 'next/navigation';
 import { ROLE_STAFF } from './roles.core';
-import { actionFailure, defineAction } from './safe-action';
+import { actionFailure, actionNormalizers, defineAction } from './safe-action';
 
 const STAFF_ONLY = [ROLE_STAFF] as const;
 const claimInput = z.strictObject({ claimId: z.string().min(1), note: z.string().max(10) });
@@ -159,24 +159,17 @@ describe('defineAction at run time', () => {
     });
   });
 
-  it('never hands the handler a scalar an overwrite turned into an object (r2 B03)', async () => {
-    const handler = vi.fn(() => Promise.resolve('x'));
+  it('refuses at definition a scalar overwrite that could hand the handler an object (B03)', () => {
     const smuggle = (value: string) => ({ value, userId: 'other' }) as unknown as string;
-    const action = defineAction({
-      name: 'profile.self',
-      basis: { kind: 'self' },
-      input: z.strictObject({
-        name: z.string().trim().overwrite(smuggle),
-        city: z.string().trim(),
-      }),
-      subject: { type: 'self' },
-      handler,
-    });
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const result = await action({ name: ' Ana ', city: ' X ' });
-    expect(result).toMatchObject({ success: false, code: 'INTERNAL_SERVER_ERROR' });
-    expect(handler).not.toHaveBeenCalled();
-    expect(mocks.capture).toHaveBeenCalledTimes(1);
+    expect(() =>
+      defineAction({
+        name: 'profile.self',
+        basis: { kind: 'self' },
+        input: z.strictObject({ name: z.string().overwrite(smuggle) }),
+        subject: { type: 'self' },
+        handler: () => Promise.resolve('x'),
+      })
+    ).toThrow(/name: an overwrite/);
   });
 
   it('still hands trimmed scalars to the handler', async () => {
@@ -184,7 +177,10 @@ describe('defineAction at run time', () => {
     const action = defineAction({
       name: 'note.trim',
       basis: { kind: 'role', roles: STAFF_ONLY },
-      input: z.strictObject({ note: z.string().trim().toLowerCase(), tags: z.array(z.string()) }),
+      input: z.strictObject({
+        note: z.string().check(actionNormalizers.trim, actionNormalizers.toLowerCase),
+        tags: z.array(z.string()),
+      }),
       subject: { type: 'none' },
       handler,
     });

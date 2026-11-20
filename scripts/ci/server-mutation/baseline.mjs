@@ -46,11 +46,17 @@ function validateException(entry, index) {
     throw new ScanError(`${where} has no date`);
 }
 
+// A copy without a prototype, so a lookup by id or kind sees own keys only (Astra r4 B15).
+const ownMap = value => Object.assign(Object.create(null), value);
+
 // Parses and validates a baseline text; `checks` lists the check definitions this scanner knows.
-// `retired(id)` admits a check this scanner no longer has: always in the trusted base, so its removal
-// is judged as tamper against the base (Astra r2 B10); in a head only when its base names it too, so
-// a historical revision replays (Astra r3 B15).
-export function parseBaseline(text, label, checks, { retired = () => false } = {}) {
+// Design addendum 3 (replay contract, owner after Astra r4 B15/B18):
+// - `trustedBase` admits a check this scanner no longer has, so its removal is judged as tamper
+//   against the base (Astra r2 B10); a head never names one.
+// - `only` (a scoped replay, `--check <id>`) keeps and validates that check's entry alone and ignores
+//   every other entry, known or unknown.
+// Check and coverage maps come back without a prototype.
+export function parseBaseline(text, label, checks, { trustedBase = false, only = null } = {}) {
   if (typeof text !== 'string' || !text.trim())
     throw new ScanError(`${label} baseline is missing or empty`);
   let data;
@@ -66,16 +72,27 @@ export function parseBaseline(text, label, checks, { retired = () => false } = {
   if (!isPlainObject(data.checks)) throw new ScanError(`${label} baseline has no checks`);
   if (!Array.isArray(data.exceptions))
     throw new ScanError(`${label} baseline has no exceptions list`);
+  data.checks = keptChecks(data.checks, label, checks, { trustedBase, only });
+  data.exceptions.forEach(validateException);
+  return data;
+}
+
+// The validated check entries a baseline keeps, in a map without a prototype.
+function keptChecks(entries, label, checks, { trustedBase, only }) {
   const known = new Map(checks.map(check => [check.id, check]));
-  for (const [id, check] of Object.entries(data.checks)) {
-    if (!known.has(id) && !retired(id))
+  const kept = Object.create(null);
+  for (const [id, check] of Object.entries(entries)) {
+    if (only !== null && id !== only) continue;
+    if (!known.has(id) && !trustedBase)
       throw new ScanError(`${label} baseline names an unknown check ${id}`);
     // A retired check's item kind is no longer known: its items are compared as a multiset.
     const multiset = known.has(id) ? known.get(id).multiset === true : true;
     validateCheck(`${label}:${id}`, check, multiset);
+    kept[id] = isPlainObject(check.coverageMin)
+      ? { ...check, coverageMin: ownMap(check.coverageMin) }
+      : check;
   }
-  data.exceptions.forEach(validateException);
-  return data;
+  return kept;
 }
 
 const exceptionKey = e => `${e.check}\u0000${e.item}\u0000${e.kind}`;
@@ -111,7 +128,7 @@ export function multisetMinus(left, right) {
   return out;
 }
 
-const coverageValues = value => (isCount(value) ? { '*': value } : value);
+const coverageValues = value => ownMap(isCount(value) ? { '*': value } : value);
 
 // Tamper findings of one check: the head baseline judged against the trusted base.
 export function tamperFindings(id, base, head) {
@@ -160,7 +177,7 @@ export function ratchet(current, admitted) {
 
 export function coverageShortfall(units, coverageMin) {
   const required = coverageValues(coverageMin);
-  const counted = isCount(units) ? { '*': units } : units;
+  const counted = ownMap(isCount(units) ? { '*': units } : units);
   return Object.entries(required)
     .filter(([kind, min]) => !((counted[kind] ?? 0) >= min))
     .map(([kind, min]) => `${kind}: ${counted[kind] ?? 0} < ${min}`);

@@ -87,10 +87,13 @@ test('the removal record of a retired check must be kept as well (Astra r3 B10)'
   }
 });
 
-test('a historical head may name a check retired since, when its base names it too (Astra r3 B15)', t => {
+// Design addendum 3 (owner, after Astra r4 B15/B18): a scoped replay judges only its check and
+// ignores every other entry; a live run refuses a check this scanner does not have in the head.
+test('scoped replay of one check ignores every other entry, known or unknown (r3 B15)', t => {
   const { repo, baseSha, headSha } = scenario(t, tree(retiredBase()), tree(retiredBase()));
   const scoped = runCli(repo, ['--base', baseSha, '--head', headSha, '--check', 'CHK-05b']);
   assert.equal(scoped.code, 0, JSON.stringify(scoped.report.errors));
+  assert.deepEqual(Object.keys(scoped.report.checks), ['CHK-05b']);
   assert.equal(
     scoped.report.checks['CHK-05b'].digest,
     predicateDigest(
@@ -98,9 +101,31 @@ test('a historical head may name a check retired since, when its base names it t
       retiredBase().checks['CHK-05b']
     )
   );
-  // The round-3 rule still holds: a head cannot introduce a check this scanner does not know.
-  const unknown = scenario(t, tree(cleanBaseline()), tree(retiredBase()));
-  const refused = runCli(unknown.repo, ['--base', unknown.baseSha]);
-  assert.equal(refused.code, 2);
-  assert.match(refused.report.errors[0], /head baseline names an unknown check CHK-00/u);
+  const odd = cleanBaseline({ 'CHK-26': { mode: 'bogus' } });
+  odd.checks['CHK-77'] = { mode: 'fail' };
+  const other = scenario(t, tree(cleanBaseline()), tree(odd));
+  assert.equal(runCli(other.repo, ['--base', other.baseSha, '--check', 'CHK-05b']).code, 0);
+  assert.equal(runCli(other.repo, ['--base', other.baseSha]).code, 2);
+});
+
+test('a live head that keeps a deleted check, or names any unknown check, exits 2 (r4 B18, B15)', t => {
+  const kept = scenario(t, tree(retiredBase()), tree(retiredBase()));
+  for (const extra of [[], ['--enforcing']]) {
+    const refused = runCli(kept.repo, ['--base', kept.baseSha, ...extra]);
+    assert.equal(refused.code, 2, extra.join(' '));
+    assert.match(refused.report.errors[0], /head baseline names an unknown check CHK-00/u);
+  }
+  for (const id of ['constructor', '__proto__', 'toString', 'CHK-99']) {
+    const head = cleanBaseline();
+    Object.defineProperty(head.checks, id, {
+      value: { ...enforcing().checks['CHK-05b'] },
+      enumerable: true,
+    });
+    const intro = scenario(t, tree(cleanBaseline()), tree(head));
+    for (const extra of [[], ['--enforcing']]) {
+      const refused = runCli(intro.repo, ['--base', intro.baseSha, ...extra]);
+      assert.equal(refused.code, 2, `${id} ${extra.join(' ')}`);
+      assert.match(refused.report.errors[0], new RegExp(`unknown check ${id}`, 'u'));
+    }
+  }
 });

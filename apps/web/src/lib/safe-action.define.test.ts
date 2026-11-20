@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { ROLE_ADMIN } from './roles.core';
-import { ActionDefinitionError, defineAction, defineFormAction } from './safe-action';
+import {
+  ActionDefinitionError,
+  actionNormalizers,
+  defineAction,
+  defineFormAction,
+} from './safe-action';
 
 const ADMIN_ONLY = [ROLE_ADMIN] as const;
 const handler = () => Promise.resolve('ok');
@@ -75,10 +80,10 @@ describe('definition: accepted schema forms', () => {
   it('accepts the catalogue form: a strict object with scalar refinements and normalizers', () => {
     const catalogue = z
       .object({
-        claimId: z.string().trim().min(1),
+        claimId: z.string().check(actionNormalizers.trim).min(1),
         message: z
           .string()
-          .trim()
+          .check(actionNormalizers.trim, actionNormalizers.toLowerCase)
           .max(2000)
           .refine(value => value.length > 0),
         kind: z.enum(['a', 'b']),
@@ -139,20 +144,54 @@ describe('definition: accepted schema forms', () => {
       b: z
         .number()
         .nullable()
-        .check(() => undefined),
-      c: z
-        .string()
-        .trim()
-        .optional()
-        .readonly()
-        .overwrite(v => v),
+        .refine(v => v !== 0),
+      c: z.string().check(actionNormalizers.trim).optional().readonly(),
       d: z
         .enum(['x', 'y'])
         .optional()
         .nullable()
-        .superRefine(() => undefined),
+        .refine(() => true),
+      e: z.string().optional().check(actionNormalizers.normalizeNFC),
     });
     expect(define(scalarChecks)).not.toThrow();
+  });
+
+  // Addendum 3 (owner, after Astra r4 B03): zod's own normalisers are overwrite closures that carry
+  // no identifying metadata, and superRefine/check callbacks receive a writable payload. Only refine
+  // and the wrapper's named normalisers may sit on a scalar.
+  it.each([
+    ['zod trim', z.string().trim()],
+    ['zod toLowerCase', z.string().toLowerCase()],
+    ['zod normalize', z.string().normalize()],
+    ['an overwrite', z.string().overwrite(v => v)],
+    ['a superRefine', z.string().superRefine(() => undefined)],
+    ['a check callback', z.number().check(() => undefined)],
+    [
+      'an overwrite on an optional scalar',
+      z
+        .string()
+        .optional()
+        .overwrite(v => v),
+    ],
+    [
+      'a superRefine on a nullable enum',
+      z
+        .enum(['a'])
+        .nullable()
+        .superRefine(() => undefined),
+    ],
+    ['an overwrite on a date', z.date().overwrite(v => v)],
+  ])('refuses %s on a scalar field (addendum 3)', (_label, field) => {
+    expect(define(z.strictObject({ field }))).toThrow(/field: .*(overwrite|callback)/);
+  });
+
+  it('the named normalisers cannot be replaced', () => {
+    const trim = actionNormalizers.trim as unknown as { _zod: { def: { tx: unknown } } };
+    expect(Object.isFrozen(actionNormalizers)).toBe(true);
+    expect(Object.isFrozen(trim._zod)).toBe(true);
+    expect(() => {
+      trim._zod.def.tx = () => ({ userId: 'x' });
+    }).toThrow(TypeError);
   });
 
   it('still refuses a code check on an optional object or array', () => {

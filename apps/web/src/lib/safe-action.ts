@@ -25,6 +25,7 @@ import {
 export { actionFailure, isActionFailure } from './safe-action.failure';
 export type { ActionFailure, ActionFailureOptions } from './safe-action.failure';
 export { ActionDefinitionError } from './safe-action.schema';
+export { actionNormalizers } from './safe-action.normalizers';
 export { REFUSAL_CODES, SUBJECT_TYPES } from './safe-action.types';
 export type {
   ActionBasis,

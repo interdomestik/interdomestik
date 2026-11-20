@@ -14,7 +14,6 @@ type Def = {
   element?: z.ZodType;
   items?: z.ZodType[];
   options?: z.ZodType[];
-  entries?: Record<string, unknown>;
   values?: unknown[];
 };
 
@@ -38,11 +37,37 @@ const isBare = (value: unknown, ...protos: object[]) =>
   protos.includes(Object.getPrototypeOf(value)) &&
   Object.getOwnPropertyNames(value).length === 0;
 
-// A dense, plain array whose only own keys are its indices (and `length`).
+// A real, valid Date: exact prototype, no own string-named key, the Date tag, and `getTime` (which
+// throws on anything without a Date's internal time value, whatever its tag says) (r4 B03).
+function isRealDate(value: unknown): boolean {
+  if (!isBare(value, Date.prototype)) return false;
+  if (Object.prototype.toString.call(value) !== '[object Date]') return false;
+  try {
+    return !Number.isNaN(Date.prototype.getTime.call(value));
+  } catch {
+    return false;
+  }
+}
+
+const INDEX = /^(?:0|[1-9]\d*)$/u;
+
+// A plain array with every index present and no own key but its indices and `length`, each checked
+// on its own rather than by count (r4 B03).
 function isPlainArray(value: unknown): value is unknown[] {
   if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return false;
-  const keys = Reflect.ownKeys(value);
-  return keys.length === value.length + 1 && value.every((_, index) => Object.hasOwn(value, index));
+  for (let index = 0; index < value.length; index += 1)
+    if (!Object.hasOwn(value, index)) return false;
+  return Reflect.ownKeys(value).every(
+    key =>
+      key === 'length' || (typeof key === 'string' && INDEX.test(key) && Number(key) < value.length)
+  );
+}
+
+// zod's declared option values: for a numeric TypeScript enum, the numbers and not the reverse
+// labels that `entries` also holds (r4 B03).
+function enumOptions(schema: z.ZodType): readonly unknown[] {
+  const options = (schema as unknown as { options?: unknown }).options;
+  return Array.isArray(options) ? options : [];
 }
 
 function objectConforms(def: Def, value: unknown): boolean {
@@ -80,11 +105,11 @@ function conforms(schema: z.ZodType, value: unknown): boolean {
     case 'union':
       return (def.options ?? []).some(option => conforms(option, value));
     case 'date':
-      return isBare(value, Date.prototype);
+      return isRealDate(value);
     case 'file':
       return isBare(value, File.prototype, Blob.prototype);
     case 'enum':
-      return Object.values(def.entries ?? {}).includes(value);
+      return enumOptions(schema).includes(value);
     case 'literal':
       return (def.values ?? []).includes(value);
     default:

@@ -42,6 +42,39 @@ describe('the parsed value has exactly the declared shape (r3 B03)', () => {
   });
 });
 
+enum Status {
+  Open,
+  Closed,
+}
+
+describe('round-4 variants (r4 B03)', () => {
+  it("a numeric enum's reverse label is not one of its values", () => {
+    const schema = z.strictObject({ status: z.enum(Status) });
+    expect(accepts(schema, { status: Status.Open })).not.toThrow();
+    expect(refuses(schema, { status: 'Open' })).toThrow(/declared shape/);
+    expect(refuses(schema, { status: '0' })).toThrow(/declared shape/);
+  });
+
+  it('an object with the Date prototype that is not a real Date, or an invalid Date', () => {
+    const schema = z.strictObject({ when: z.date() });
+    expect(refuses(schema, { when: Object.create(Date.prototype) })).toThrow(/declared shape/);
+    expect(refuses(schema, { when: new Date(Number.NaN) })).toThrow(/declared shape/);
+    const tagged = Object.assign(Object.create(Date.prototype), {
+      [Symbol.toStringTag]: 'Date',
+    });
+    expect(refuses(schema, { when: tagged })).toThrow(/declared shape/);
+  });
+
+  it('a sparse array whose extra named key balances the key count', () => {
+    const sparse = Object.assign(['x', 'y'], { userId: 'other' });
+    delete sparse[1];
+    const schema = z.strictObject({ value: z.union([z.string(), z.array(z.string())]) });
+    expect(Reflect.ownKeys(sparse)).toHaveLength(sparse.length + 1);
+    expect(refuses(schema, { value: sparse })).toThrow(/declared shape/);
+    expect(refuses(schema, { value: Object.assign(['x'], { [Symbol('k')]: 1 }) })).toThrow();
+  });
+});
+
 describe('the shape check accepts every value zod can legitimately produce (r3 B14)', () => {
   it('an omitted optional key, also one named like an Object.prototype member', () => {
     const schema = z.strictObject({

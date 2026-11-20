@@ -71,26 +71,31 @@ function invocationOf(args) {
   return args.enforcing ? 'enforcing' : 'advisory';
 }
 
-function readBaselines(repo, root, baseSha) {
+// A scoped replay (`--check <id>`) reads, validates and judges that check's entries only (design
+// addendum 3); a live run reads every entry.
+function readBaselines(repo, root, baseSha, scope) {
+  const only = scope?.id ?? null;
   const baseText = showAt(repo, baseSha, BASELINE_PATH);
   let base = null;
   if (baseText === null) {
     // Bootstrap: accepted only while the base has neither the baseline nor this scanner.
     if (showAt(repo, baseSha, SCRIPT_PATH) !== null)
       throw new ScanError('base has the scanner but no baseline');
-  } else base = parseBaseline(baseText, 'base', CHECKS, { retired: () => true });
+  } else base = parseBaseline(baseText, 'base', CHECKS, { trustedBase: true, only });
   const headFile = path.join(root, BASELINE_PATH);
   const head = parseBaseline(
     fs.existsSync(headFile) ? fs.readFileSync(headFile, 'utf8') : '',
     'head',
     CHECKS,
-    { retired: id => Boolean(base?.checks[id]) }
+    { only }
   );
-  // Valid but empty is never a baseline, on either side.
-  if (base && !Object.keys(base.checks).length) throw new ScanError('base baseline names no check');
-  if (!Object.keys(head.checks).length) throw new ScanError('head baseline names no check');
-  for (const check of CHECKS) assertNamed(repo, baseSha, check, base, head);
-  assertRemovalsKept(base, head);
+  // Valid but empty is never a baseline, on either side (a scoped replay judges its one check below).
+  if (!scope && base && !Object.keys(base.checks).length)
+    throw new ScanError('base baseline names no check');
+  if (!scope && !Object.keys(head.checks).length)
+    throw new ScanError('head baseline names no check');
+  for (const check of scope ? [scope] : CHECKS) assertNamed(repo, baseSha, check, base, head);
+  assertRemovalsKept(base, head, only);
   return { base, head, bootstrap: base === null };
 }
 
@@ -109,9 +114,10 @@ function assertNamed(repo, baseSha, check, base, head) {
 
 // Every removal the base records stays recorded while the check is absent from both sides, whether
 // or not this scanner still has the check (Astra r2 B10, r3 B10).
-function assertRemovalsKept(base, head) {
+function assertRemovalsKept(base, head, only) {
   for (const id of removedChecks(base))
-    if (!base.checks[id] && !head.checks[id] && !removalRecorded(head, id))
+    if (only !== null && id !== only) continue;
+    else if (!base.checks[id] && !head.checks[id] && !removalRecorded(head, id))
       throw new ScanError(`head baseline drops the recorded removal of ${id}`);
 }
 
@@ -123,7 +129,8 @@ export function run(argv, cwd = process.cwd()) {
     bootstrap: false,
     base: null,
     head: null,
-    checks: {},
+    // Keyed by check id: own keys only (Astra r4 B15).
+    checks: Object.create(null),
     errors: [],
   };
   let args = { report: DEFAULT_REPORT };
@@ -137,7 +144,9 @@ export function run(argv, cwd = process.cwd()) {
     report.head = args.head ? ensureCommit(repo, args.head, 'head') : headSha(repo);
     if (args.head) extracted = extractRevision(repo, report.head);
     const root = extracted ?? repo;
-    const { base, head, bootstrap } = readBaselines(repo, root, report.base);
+    // The scope is validated before any baseline is read.
+    const scope = args.check ? selectChecks(args, null, null)[0] : null;
+    const { base, head, bootstrap } = readBaselines(repo, root, report.base, scope);
     report.bootstrap = bootstrap;
     const selected = selectChecks(args, base, head);
     const ctx = {
