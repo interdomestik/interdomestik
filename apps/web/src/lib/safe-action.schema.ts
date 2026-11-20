@@ -5,9 +5,10 @@ import { ownerColumnKeys, TENANT_IDENTITY_KEYS } from './safe-action.owner-keys'
 // The accepted forms of an action's input schema, walked over the zod 4 definition at definition
 // time (design §1.4): a strict object root, strict objects at every depth, no identity key, and only
 // scalar, wrapper, array, tuple, union and (in a form) file nodes. A node that can widen, default or
-// pipe into another shape is refused, and so is a check on an object. Checks on other nodes are not
-// judged in part 1: a check that rewrites a value, and a coercion, reach the handler as zod returns
-// them (design addendum 6; the runtime input guard is WP-02 part 1b).
+// pipe into another shape is refused, and so is any check on an object, wrapper, array, tuple or
+// union other than an array's size (SEC-02: nothing may add an undeclared key). Checks on scalar and
+// file nodes are not judged in part 1: a check that rewrites a scalar, and a coercion, reach the
+// handler as zod returns them (design addendum 6; the runtime input guard is WP-02 part 1b).
 type ZodDef = {
   type: string;
   shape?: Record<string, z.ZodType>;
@@ -22,6 +23,9 @@ type ZodDef = {
 
 const SCALAR_TYPES = new Set(['string', 'number', 'boolean', 'bigint', 'date', 'enum', 'literal']);
 const WRAPPER_TYPES = new Set(['optional', 'nullable', 'readonly']);
+const CONTAINER_TYPES = new Set([...WRAPPER_TYPES, 'array', 'tuple', 'union']);
+// The checks a container may carry: an array's size, which cannot change a value (zod check kinds).
+const ARRAY_SIZE_CHECKS = new Set(['min_length', 'max_length', 'length_equals']);
 
 export class ActionDefinitionError extends Error {
   constructor(operation: string, detail: string) {
@@ -38,6 +42,26 @@ type WalkContext = {
 
 function defOf(schema: z.ZodType): ZodDef {
   return (schema as unknown as { _zod: { def: ZodDef } })._zod.def;
+}
+
+// A wrapper around a scalar holds a scalar or null/undefined: its checks are scalar checks (r3 B16).
+function wrapsScalar(def: ZodDef): boolean {
+  let inner = def;
+  while (WRAPPER_TYPES.has(inner.type) && inner.innerType) inner = defOf(inner.innerType);
+  return inner !== def && SCALAR_TYPES.has(inner.type);
+}
+
+const checkKind = (check: unknown): string =>
+  (check as { _zod?: { def?: { check?: string } } })._zod?.def?.check ?? 'unknown';
+
+// The first check a container node may not carry (r1, kept in part 1 by the lead, addendum 6): any
+// check on a wrapper, array, tuple or union can replace what it holds, an object included, and so
+// add a key the strict object did not declare, an identity key included (SEC-02). Only an array's
+// size is accepted; a wrapper around a scalar is judged as a scalar.
+function containerCheck(def: ZodDef): string | undefined {
+  if (wrapsScalar(def)) return undefined;
+  const accepted = def.type === 'array' ? ARRAY_SIZE_CHECKS : new Set<string>();
+  return (def.checks ?? []).map(checkKind).find(kind => !accepted.has(kind));
 }
 
 function refuse(ctx: WalkContext, path: string, reason: string): never {
@@ -74,6 +98,8 @@ function walk(schema: z.ZodType, path: string, ctx: WalkContext): void {
     if (!ctx.form) refuse(ctx, path, 'z.file() is accepted in form actions only');
     return;
   }
+  const check = CONTAINER_TYPES.has(type) ? containerCheck(def) : undefined;
+  if (check) refuse(ctx, path, `a ${check} check on a ${type} belongs in the owning command`);
   walkContainer(def, path, ctx);
 }
 

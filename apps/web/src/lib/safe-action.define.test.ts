@@ -120,7 +120,85 @@ describe('definition: accepted schema forms', () => {
   ])('refuses %s', (_label, schema) => {
     expect(define(schema)).toThrow(ActionDefinitionError);
   });
+});
 
+const inner = z.strictObject({ name: z.string() });
+
+// Lead decision after Astra r7 (design addendum 6): part 1 keeps the round-1 refusal. A check on a
+// wrapper, array, tuple or union can replace what it holds, so it could add a key the strict object
+// did not declare, an identity key included (SEC-02); it belongs in the owning command.
+describe('definition: no value-replacing check on a container (addendum 6)', () => {
+  it.each([
+    [
+      'an overwrite on an optional object',
+      z.strictObject({ a: inner.optional().overwrite(v => v) }),
+    ],
+    ['a refine on a nullable object', z.strictObject({ a: inner.nullable().refine(() => true) })],
+    ['a check on a readonly object', z.strictObject({ a: inner.readonly().check(() => {}) })],
+    [
+      'an overwrite on an array of objects',
+      z.strictObject({ a: z.array(inner).overwrite(v => v) }),
+    ],
+    [
+      'a refine on an array of strings',
+      z.strictObject({ a: z.array(z.string()).refine(() => true) }),
+    ],
+    ['a superRefine on a tuple', z.strictObject({ a: z.tuple([inner]).superRefine(() => {}) })],
+    ['a check on a union', z.strictObject({ a: z.union([inner, z.string()]).check(() => {}) })],
+    [
+      'an overwrite on a discriminated union',
+      z.strictObject({
+        a: z.discriminatedUnion('k', [z.strictObject({ k: z.literal('x') })]).overwrite(v => v),
+      }),
+    ],
+    [
+      'a check on an array two wrappers deep',
+      z.strictObject({
+        a: z
+          .array(z.string())
+          .nullable()
+          .optional()
+          .check(() => {}),
+      }),
+    ],
+    [
+      'an overwrite on an array inside an array',
+      z.strictObject({ a: z.array(z.array(inner).overwrite(v => v)) }),
+    ],
+  ])('refuses %s', (_label, schema) => {
+    expect(define(schema)).toThrow(/at a(\[\])?: a (custom|overwrite) check on a /);
+  });
+
+  it('refuses an overwrite that adds an owner key after the inner object parsed (SEC-02)', () => {
+    const smuggled = z.strictObject({
+      profile: inner.optional().overwrite(value => ({ ...value, userId: 'other' }) as typeof value),
+    });
+    expect(define(smuggled, { basis: { kind: 'self' } })).toThrow(/profile: a overwrite check/);
+  });
+
+  it('accepts array size checks and checks on a wrapper around a scalar (r3 B16)', () => {
+    const accepted = z.strictObject({
+      tags: z.array(z.string()).min(1).max(5).length(3),
+      a: z
+        .string()
+        .optional()
+        .refine(v => v !== ''),
+      b: z
+        .number()
+        .nullable()
+        .refine(v => v !== 0),
+      c: z.string().trim().optional().readonly(),
+      d: z
+        .enum(['x', 'y'])
+        .optional()
+        .nullable()
+        .refine(() => true),
+    });
+    expect(define(accepted)).not.toThrow();
+  });
+});
+
+describe('definition: identity keys and form fields', () => {
   it('refuses a tenant identity key at depth 2 for every basis', () => {
     const nested = z.strictObject({ filter: z.strictObject({ tenantId: z.string() }) });
     expect(define(nested)).toThrow(/filter.tenantId: identity keys/);

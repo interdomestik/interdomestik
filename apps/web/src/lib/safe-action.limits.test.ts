@@ -13,12 +13,13 @@ vi.mock('next/navigation', async importOriginal => importOriginal());
 import { ROLE_STAFF } from './roles.core';
 import { defineAction } from './safe-action';
 
-const inner = z.strictObject({ name: z.string() });
 const asString = (value: string) => ({ value, userId: 'other' }) as unknown as string;
 
 // KNOWN LIMIT of WP-02 part 1 (design addendum 6, lead decision of 2026-11-20). The wrapper hands
-// the handler zod's parsed value as zod returns it: a check that rewrites a value and a coercion are
-// not judged at definition, and nothing re-reads the parsed value against the declared shape. The
+// the handler zod's parsed value as zod returns it: a check that rewrites a scalar and a coercion are
+// not judged at definition, and nothing re-reads the parsed value against the declared shape. (A check
+// on an object, wrapper, array, tuple or union is refused in part 1; see safe-action.define.test.ts.)
+// This is a named known-limit test under that lead decision, not a test that pins a defect: the
 // runtime input guard of WP-02 part 1b refuses each schema below at definition and flips this test.
 describe('KNOWN LIMIT until WP-02 part 1b: the handler receives the value as zod returns it', () => {
   beforeEach(() => {
@@ -33,14 +34,6 @@ describe('KNOWN LIMIT until WP-02 part 1b: the handler receives the value as zod
       z.strictObject({ name: z.string().overwrite(asString) }),
       { name: 'n' },
       { name: { value: 'n', userId: 'other' } },
-    ],
-    [
-      'an overwrite that adds a key to a strict object',
-      z.strictObject({
-        profile: inner.optional().overwrite(v => ({ ...v, userId: 'other' }) as typeof v),
-      }),
-      { profile: { name: 'n' } },
-      { profile: { name: 'n', userId: 'other' } },
     ],
     [
       'a coercion of an omitted key named like an Object.prototype member',
