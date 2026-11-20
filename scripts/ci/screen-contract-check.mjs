@@ -8,6 +8,18 @@
 //   node scripts/ci/screen-contract-check.mjs --replay --base <sha> --head <sha> [--report <path>]
 //
 // Exit 0 clean, 1 an enforcing check has new/fixed/tamper findings, 2 any scanner or input error.
+//
+// Must be resolved before any flip PR (named limits of the advisory checks; each says how it errs):
+// - Lanes (CHK-22 test evidence) are read against a denylist of unmodelled settings; an allowlist
+//   of modelled ones comes with the flip. Errs toward a missed finding: a test the lane does not
+//   run (a wrapper call, `typecheck.only`, `respectGitIgnore`) can be credited.
+// - A CHK-22 submission origin under `apps/web/src/actions/` is recognised by its directory, and
+//   216 of the 287 non-test action files there have no `'use server'` (2026-11-20). Errs toward a
+//   missed finding: a helper that runs in the browser can be credited as the server submission.
+// - Module resolution differs from TypeScript in the cases listed in `specifiers.mjs` (sibling
+//   `.js`/`.ts`, `.cjs`/`.mjs` substitution, `..` after `*` in `@/*`, declaration and
+//   `typesVersions` edges). Errs mostly toward a missed finding (an edge not followed); where it
+//   picks another file than TypeScript, also toward a false one.
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';

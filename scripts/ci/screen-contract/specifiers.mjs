@@ -5,6 +5,8 @@
 // TypeScript does):
 // - a relative `./x.js` where both `x.js` and `x.ts` exist: TypeScript takes `x.ts`, this resolver
 //   the literal `x.js`;
+// - `./x.cjs` is not mapped to `x.cts`, and `./x.mjs` can resolve to `x.ts` or `x.tsx` where
+//   TypeScript takes only `x.mts`;
 // - an `@/*` mapping whose pattern has a `..` segment after the `*` (`src/*/../shared`): it is
 //   normalized before the `*` is substituted;
 // - `.d.json.ts` and other `.d.<ext>.ts` declarations, `types@<version>` conditions,

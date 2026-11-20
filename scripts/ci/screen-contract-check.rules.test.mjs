@@ -459,7 +459,7 @@ function tsResolver(root, configRel) {
   };
 }
 
-test(`F7: the @/ alias resolves TypeScript's file for every specifier extension and file set`, t => {
+test(`F7: the @/ alias resolves TypeScript's file for four specifier spellings and every file set`, t => {
   const files = {
     [`${W}/index.ts`]: 'export const ix = 1;\n',
     [`${W}/fallback.ts`]: 'export const fb = 1;\n',
