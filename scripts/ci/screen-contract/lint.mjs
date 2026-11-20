@@ -215,8 +215,7 @@ function eligibleFiles(id, result) {
 // The checks with no file to examine (design §5, code-r2): a tree without screens must not give a
 // screen check a clean result over nothing. Production refuses them; a historical replay pair
 // records them for adjudication (§7, r3 B9).
-export const emptyChecks = lint =>
-  Object.keys(lint).filter(id => eligibleFiles(id, lint[id]) === 0);
+export const emptyChecks = lint => Object.keys(lint).filter(id => lint[id].files === 0);
 
 // Runs the lint over `files` of `root` and returns { items, units } per check id. The English
 // catalogue is a required input of every run, loaded and validated before the lint (code-r2), not
@@ -262,5 +261,8 @@ export async function lintTree(root, files, { configFile } = {}) {
   if (byFile.size !== files.length)
     throw new ScanError('the lint results name files that were not expected');
   for (const result of out.A11Y ? [out.A11Y] : []) result.units.file = result.files;
+  // Each check's `files` is the files its rule examines: the report, the empty-check guard and
+  // the replay's inventory comparison all read it (r4 B5).
+  for (const [id, result] of Object.entries(out)) result.files = eligibleFiles(id, result);
   return out;
 }

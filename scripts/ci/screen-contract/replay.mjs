@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { ScanError } from '../server-mutation/ast.mjs';
-import { coverageShortfall } from '../server-mutation/baseline.mjs';
+import { coverageShortfall, parseBaseline } from '../server-mutation/baseline.mjs';
 import { BASELINE_PATH, CHECKS } from './evaluate.mjs';
 import { SCANNER_ROOT, lintTree, linted } from './lint.mjs';
 import { writeInside, readInside } from './paths.mjs';
@@ -34,9 +34,19 @@ export function synthesizeInputs(root) {
 
 // The candidate's own baseline, from the scanner's checkout: its settings label a synthesized
 // baseline and its floors are what an adoption would require (r2 hardening).
+// It is parsed as production parses a baseline, and it must hold every check's settings (r4 B6).
 export function candidateBaseline(root = SCANNER_ROOT) {
   const file = path.join(root, BASELINE_PATH);
-  return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
+  if (!fs.existsSync(file)) return null;
+  const candidate = parseBaseline(fs.readFileSync(file, 'utf8'), 'candidate', CHECKS);
+  requireEveryCheck(candidate);
+  return candidate;
+}
+
+function requireEveryCheck(candidate) {
+  const missing = CHECKS.map(c => c.id).filter(id => !candidate.checks?.[id]);
+  if (missing.length)
+    throw new ScanError(`replay: the candidate baseline has no settings for ${missing.join(', ')}`);
 }
 
 // The commit the candidate scanner runs from, or null outside a git checkout.
@@ -52,6 +62,7 @@ export function candidateRevision(root = SCANNER_ROOT) {
 
 // The candidate's settings label the synthesized baseline; its floor is completeness only (§7).
 export function synthesizedBaseline(baseSha, baseLint, candidate = null) {
+  if (candidate) requireEveryCheck(candidate);
   const checks = {};
   for (const { id, multiset } of CHECKS) {
     const items = baseLint[id].items.map(item => item.id);

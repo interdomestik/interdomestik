@@ -212,7 +212,12 @@ test('r2 hardening: a pre-adoption replay records the candidate revision, settin
   const candidate = candidateBaseline();
   for (const { id } of CHECKS) {
     const { mode, unit, predicate, coverageMin } = candidate.checks[id];
-    assert.deepEqual(report.replay.candidate.settings[id], { mode, unit, predicate, coverageMin });
+    assert.deepEqual(report.replay.candidate.settings[id], {
+      mode,
+      unit,
+      predicate,
+      coverageMin: { ...coverageMin },
+    });
   }
   // Both sides are far below the adoption floor: each side's shortfall is recorded, not enforced.
   const shortfall = report.replay.adoptionShortfall['CHK-15c'];
@@ -220,12 +225,21 @@ test('r2 hardening: a pre-adoption replay records the candidate revision, settin
   assert.ok(shortfall.head.length > 0, JSON.stringify(shortfall));
 });
 
-test('r3 B8: a synthesized baseline carries the candidate mode', () => {
+test('r3 B8: a synthesized baseline carries the candidate settings; a partial candidate is refused (r4 B6)', () => {
   const lint = Object.fromEntries(CHECKS.map(({ id }) => [id, { items: [] }]));
-  const candidate = { checks: { 'CHK-15c': { mode: 'fail', unit: 'u', predicate: 'p' } } };
-  const baseline = synthesizedBaseline('a'.repeat(40), lint, candidate);
+  const settings = mode => ({ mode, unit: 'u', predicate: 'p' });
+  const full = {
+    checks: Object.fromEntries(
+      CHECKS.map(({ id }) => [id, settings(id === 'CHK-15c' ? 'fail' : 'report')])
+    ),
+  };
+  const baseline = synthesizedBaseline('a'.repeat(40), lint, full);
   assert.equal(baseline.checks['CHK-15c'].mode, 'fail');
   assert.equal(baseline.checks['CHK-09'].mode, 'report');
+  assert.throws(
+    () => synthesizedBaseline('a'.repeat(40), lint, { checks: { 'CHK-15c': settings('fail') } }),
+    /candidate baseline has no settings for CHK-/u
+  );
 });
 
 test('r3 B8: a replay without its candidate baseline or revision is not complete', t => {
@@ -233,6 +247,12 @@ test('r3 B8: a replay without its candidate baseline or revision is not complete
   const bare = tempDir(t, 'scc-candidate-');
   assert.throws(() => replaySummary(args, bare), /candidate scanner checkout has no baseline/u);
   fs.mkdirSync(path.join(bare, path.dirname(BASELINE)), { recursive: true });
+  // A candidate baseline without every check's settings is no provenance either (r4 B6).
+  fs.writeFileSync(
+    path.join(bare, BASELINE),
+    JSON.stringify({ version: 1, takenAt: 'x', checks: {}, exceptions: [] })
+  );
+  assert.throws(() => replaySummary(args, bare), /candidate baseline has no settings for CHK-/u);
   fs.writeFileSync(path.join(bare, BASELINE), baselineOf());
   assert.throws(() => replaySummary(args, bare), /candidate scanner revision cannot be read/u);
 });
@@ -252,4 +272,31 @@ test('r3 B9: a historical pair whose head deletes its last screen completes, adj
   assert.ok(
     lines.includes('CHK-15c: no file to examine on the head (historical pair; adjudicate)')
   );
+});
+
+// r4 blocker 5: the CHK-15a inventory is its eligible sources, so removing a screen is no
+// CHK-15a inventory decrease.
+test('r4 B5: removing a screen is no CHK-15a inventory decrease', t => {
+  const page = `${W}/app/only/page.tsx`;
+  const root = repo(t, {
+    ...LANES,
+    [page]: 'export default () => null;\n',
+    [`${W}/app/kept/page.tsx`]: 'export default () => null;\n',
+    [`${W}/actions/save.ts`]: "'use server';\nexport async function save() {}\n",
+  });
+  const base = git(root, 'rev-parse', 'HEAD');
+  const head = commit(root, { [page]: null });
+  const { code, report } = run(t, root, ['--replay', '--base', base, '--head', head]);
+  assert.equal(code, 0, JSON.stringify(report.errors));
+  const lines = report.replay.adjudicate;
+  assert.ok(lines.includes('CHK-15c: inventory decrease 2 -> 1'), JSON.stringify(lines));
+  assert.ok(!lines.some(line => line.startsWith('CHK-15a: inventory')), JSON.stringify(lines));
+  // The published inventory is the eligible sources: the sum of the `source:<layer>` units.
+  const { files, units } = report.checks['CHK-15a'];
+  const sources = Object.entries(units).filter(([kind]) => kind.startsWith('source:'));
+  assert.equal(
+    files,
+    sources.reduce((sum, [, n]) => sum + n, 0)
+  );
+  assert.ok(files > 0);
 });
