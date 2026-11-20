@@ -29,19 +29,64 @@ const declaredNames = statement => {
   return [];
 };
 
+function namedImport(bindings, local) {
+  if (!bindings || !ts.isNamedImports(bindings)) return null;
+  const element = bindings.elements.find(e => e.name.text === local);
+  return element ? (element.propertyName ?? element.name).text : null;
+}
+
 function importBinding(sf, local) {
   for (const statement of sf.statements) {
     const clause = ts.isImportDeclaration(statement) && statement.importClause;
     if (!clause) continue;
     const specifier = statement.moduleSpecifier.text;
     if (clause.name?.text === local) return { specifier, name: 'default' };
-    const bindings = clause.namedBindings;
-    if (bindings && ts.isNamedImports(bindings))
-      for (const element of bindings.elements)
-        if (element.name.text === local)
-          return { specifier, name: (element.propertyName ?? element.name).text };
+    const name = namedImport(clause.namedBindings, local);
+    if (name !== null) return { specifier, name };
   }
   return null;
+}
+
+// What `export { … }` gives `scope.name`: its origin, or undefined when the clause does not list it.
+function namedExportOrigin(scope, clause, from) {
+  const { resolver, rel, name, depth, seen } = scope;
+  for (const element of clause.elements) {
+    if (element.name.text !== name) continue;
+    const original = (element.propertyName ?? element.name).text;
+    if (from) return originOf(resolver, rel, from, original, depth + 1, seen);
+    const imported = importBinding(scope.sf, original);
+    if (imported)
+      return originOf(resolver, rel, imported.specifier, imported.name, depth + 1, seen);
+    return { file: rel, name: original };
+  }
+  return undefined;
+}
+
+// An `export … from` / `export { … }` statement; an `export * from` is kept in `stars` for later.
+function exportDeclarationOrigin(scope, statement, stars) {
+  const from =
+    statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier)
+      ? statement.moduleSpecifier.text
+      : null;
+  const clause = statement.exportClause;
+  if (!clause && from) {
+    stars.push(from);
+    return undefined;
+  }
+  if (clause && ts.isNamedExports(clause)) return namedExportOrigin(scope, clause, from);
+  return undefined;
+}
+
+// An exported declaration or `export default …` that declares `scope.name` here.
+function declarationOrigin(scope, statement) {
+  const { rel, name } = scope;
+  if (hasExportModifier(statement)) {
+    if (name === 'default' && hasDefaultModifier(statement)) return { file: rel, name: 'default' };
+    if (declaredNames(statement).includes(name)) return { file: rel, name };
+    return undefined;
+  }
+  if (ts.isExportAssignment(statement) && name === 'default') return { file: rel, name: 'default' };
+  return undefined;
 }
 
 // { file, name } of `name` exported by `rel`, or null when it cannot be found.
@@ -49,35 +94,13 @@ export function originIn(resolver, rel, name, depth = 0, seen = new Set()) {
   const visit = `${rel}#${name}`;
   if (depth > MAX_DEPTH || seen.has(visit)) return null;
   seen.add(visit);
-  const sf = parse(resolver.root, rel);
+  const scope = { resolver, rel, name, depth, seen, sf: parse(resolver.root, rel) };
   const stars = [];
-  for (const statement of sf.statements) {
-    if (ts.isExportDeclaration(statement)) {
-      const from =
-        statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier)
-          ? statement.moduleSpecifier.text
-          : null;
-      const clause = statement.exportClause;
-      if (!clause && from) {
-        stars.push(from);
-        continue;
-      }
-      if (clause && ts.isNamedExports(clause))
-        for (const element of clause.elements) {
-          if (element.name.text !== name) continue;
-          const original = (element.propertyName ?? element.name).text;
-          if (from) return originOf(resolver, rel, from, original, depth + 1, seen);
-          const imported = importBinding(sf, original);
-          if (imported)
-            return originOf(resolver, rel, imported.specifier, imported.name, depth + 1, seen);
-          return { file: rel, name: original };
-        }
-    } else if (hasExportModifier(statement)) {
-      if (name === 'default' && hasDefaultModifier(statement))
-        return { file: rel, name: 'default' };
-      if (declaredNames(statement).includes(name)) return { file: rel, name };
-    } else if (ts.isExportAssignment(statement) && name === 'default')
-      return { file: rel, name: 'default' };
+  for (const statement of scope.sf.statements) {
+    const hit = ts.isExportDeclaration(statement)
+      ? exportDeclarationOrigin(scope, statement, stars)
+      : declarationOrigin(scope, statement);
+    if (hit !== undefined) return hit;
   }
   for (const from of stars) {
     const hit = originOf(resolver, rel, from, name, depth + 1, seen);

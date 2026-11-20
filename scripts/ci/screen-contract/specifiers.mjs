@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 
-import { ScanError } from '../server-mutation/ast.mjs';
+import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
 import { ENVIRONMENTS, resolveExports, validateExports } from './exports.mjs';
 import { roleOf } from './roles.mjs';
 
@@ -20,54 +20,50 @@ const isTypeOnlyImport = node =>
   (node.specifiers.length > 0 &&
     node.specifiers.every(s => s.type === 'ImportSpecifier' && s.importKind === 'type'));
 
+const exportEdge = node =>
+  node.source
+    ? { specifier: node.source.value, kind: node.exportKind === 'type' ? 'type' : 'import', node }
+    : null;
+
+function requireEdge(node) {
+  const value = node.arguments.length === 1 ? literalOf(node.arguments[0]) : null;
+  if (node.callee.type === 'Identifier' && node.callee.name === 'require' && value !== null)
+    return { specifier: value, kind: 'require', node };
+  return null;
+}
+
+function importEqualsEdge(node) {
+  if (node.moduleReference?.type !== 'TSExternalModuleReference') return null;
+  const value = literalOf(node.moduleReference.expression);
+  if (value === null) return null;
+  return { specifier: value, kind: node.importKind === 'type' ? 'type' : 'require', node };
+}
+
+// node type -> the edge a node of that type makes, or null.
+const EDGE_OF = {
+  ImportDeclaration: node => ({
+    specifier: node.source.value,
+    kind: isTypeOnlyImport(node) ? 'type' : 'import',
+    node,
+  }),
+  ExportNamedDeclaration: exportEdge,
+  ExportAllDeclaration: exportEdge,
+  ImportExpression: node => {
+    const value = literalOf(node.source);
+    return value === null ? null : { specifier: value, kind: 'dynamic', node };
+  },
+  CallExpression: requireEdge,
+  TSImportEqualsDeclaration: importEqualsEdge,
+};
+
 // Every module edge of an ESTree program: static import, `export … from`, literal `import()`,
 // literal `require()` and `import x = require()`. Kind: import | type | dynamic | require.
 export function edgesOfProgram(program, visitorKeys) {
   const out = [];
   const visit = node => {
     if (!node || typeof node.type !== 'string') return;
-    switch (node.type) {
-      case 'ImportDeclaration':
-        out.push({
-          specifier: node.source.value,
-          kind: isTypeOnlyImport(node) ? 'type' : 'import',
-          node,
-        });
-        break;
-      case 'ExportNamedDeclaration':
-      case 'ExportAllDeclaration':
-        if (node.source)
-          out.push({
-            specifier: node.source.value,
-            kind: node.exportKind === 'type' ? 'type' : 'import',
-            node,
-          });
-        break;
-      case 'ImportExpression': {
-        const value = literalOf(node.source);
-        if (value !== null) out.push({ specifier: value, kind: 'dynamic', node });
-        break;
-      }
-      case 'CallExpression': {
-        const value = node.arguments.length === 1 ? literalOf(node.arguments[0]) : null;
-        if (node.callee.type === 'Identifier' && node.callee.name === 'require' && value !== null)
-          out.push({ specifier: value, kind: 'require', node });
-        break;
-      }
-      case 'TSImportEqualsDeclaration':
-        if (node.moduleReference?.type === 'TSExternalModuleReference') {
-          const value = literalOf(node.moduleReference.expression);
-          if (value !== null)
-            out.push({
-              specifier: value,
-              kind: node.importKind === 'type' ? 'type' : 'require',
-              node,
-            });
-        }
-        break;
-      default:
-        break;
-    }
+    const edge = Object.hasOwn(EDGE_OF, node.type) ? EDGE_OF[node.type](node) : null;
+    if (edge) out.push(edge);
     for (const key of visitorKeys[node.type] ?? []) {
       const child = node[key];
       if (Array.isArray(child)) child.forEach(visit);
@@ -138,7 +134,7 @@ function workspacePackages(root) {
   const out = new Map();
   const dir = path.join(root, 'packages');
   if (!fs.existsSync(dir)) return out;
-  for (const name of fs.readdirSync(dir).sort()) {
+  for (const name of fs.readdirSync(dir).sort(byCodeUnit)) {
     const file = path.join(dir, name, 'package.json');
     if (!fs.existsSync(file)) continue;
     const pkg = readJson(file, `packages/${name}/package.json`);

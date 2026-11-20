@@ -18,7 +18,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 
-import { ScanError } from './server-mutation/ast.mjs';
+import { ScanError, byCodeUnit } from './server-mutation/ast.mjs';
 import {
   ENVIRONMENTS,
   checkEdge,
@@ -481,8 +481,8 @@ for (const testCase of CASES) {
         const result = checkEdge(fixture.pkg, subpathOf(spec), edgeKind);
         assert.equal(result.ok, ok, `${spec} ${edgeKind}: ${JSON.stringify(result)}`);
         assert.deepEqual(
-          Object.keys(result.environments).sort(),
-          environmentsFor(edgeKind).slice().sort()
+          Object.keys(result.environments).sort(byCodeUnit),
+          environmentsFor(edgeKind).slice().sort(byCodeUnit)
         );
       }
     }
@@ -490,23 +490,27 @@ for (const testCase of CASES) {
 }
 
 test('ENVIRONMENTS are the four named, frozen condition sets', () => {
-  assert.deepEqual(Object.keys(ENVIRONMENTS).sort(), [...ALL_ENVS].sort());
-  assert.deepEqual([...ENVIRONMENTS['node-import']].sort(), [
+  assert.deepEqual(Object.keys(ENVIRONMENTS).sort(byCodeUnit), [...ALL_ENVS].sort(byCodeUnit));
+  assert.deepEqual([...ENVIRONMENTS['node-import']].sort(byCodeUnit), [
     'default',
     'import',
     'module-sync',
     'node',
     'node-addons',
   ]);
-  assert.deepEqual([...ENVIRONMENTS['node-require']].sort(), [
+  assert.deepEqual([...ENVIRONMENTS['node-require']].sort(byCodeUnit), [
     'default',
     'module-sync',
     'node',
     'node-addons',
     'require',
   ]);
-  assert.deepEqual([...ENVIRONMENTS['bundler-browser']].sort(), ['browser', 'default', 'import']);
-  assert.deepEqual([...ENVIRONMENTS.types].sort(), ['default', 'import', 'types']);
+  assert.deepEqual([...ENVIRONMENTS['bundler-browser']].sort(byCodeUnit), [
+    'browser',
+    'default',
+    'import',
+  ]);
+  assert.deepEqual([...ENVIRONMENTS.types].sort(byCodeUnit), ['default', 'import', 'types']);
   assert.ok(Object.isFrozen(ENVIRONMENTS));
   for (const env of ALL_ENVS) assert.ok(Object.isFrozen(ENVIRONMENTS[env]), env);
 });

@@ -126,6 +126,41 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
     return undefined;
   }
 
+  function bindDateFnsImport(spec, subpath) {
+    const local = spec.local.name;
+    if (spec.type === 'ImportNamespaceSpecifier') dateFnsNamespaces.add(local);
+    else if (spec.type === 'ImportDefaultSpecifier') bindDateFns(local, null, subpath);
+    else bindDateFns(local, spec.imported.name ?? spec.imported.value);
+  }
+
+  function bindNextIntlImport(spec) {
+    const local = spec.local.name;
+    const imported = spec.imported.name ?? spec.imported.value;
+    if (imported === 'useFormatter' || imported === 'getFormatter') formatterFactories.add(local);
+    if (imported === 'useTranslations' || imported === 'getTranslations')
+      translatorFactories.add(local);
+  }
+
+  // `const x = require('date-fns/…')`, `const { format } = require('date-fns')`.
+  function bindRequiredDateFns(id, subpath) {
+    if (id.type === 'Identifier') {
+      if (subpath) bindDateFns(id.name, null, subpath);
+      else dateFnsNamespaces.add(id.name);
+    } else if (id.type === 'ObjectPattern')
+      for (const p of id.properties)
+        if (p.type === 'Property' && nameOf(p.key) && nameOf(p.value))
+          bindDateFns(p.value.name, p.key.name);
+  }
+
+  // `const format = useFormatter()`, `const { dateTime } = await getFormatter()`.
+  function bindFormatter(id) {
+    if (id.type === 'Identifier') formatters.add(id.name);
+    else if (id.type === 'ObjectPattern')
+      for (const p of id.properties)
+        if (p.type === 'Property' && NEXT_INTL_FORMAT.has(nameOf(p.key)) && nameOf(p.value))
+          formatterMethods.set(p.value.name, p.key.name);
+  }
+
   return {
     Program() {
       units.add('file');
@@ -134,18 +169,9 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
       const source = node.source.value;
       const dateFns = DATE_FNS_RE.exec(source);
       for (const spec of node.specifiers) {
-        const local = spec.local.name;
-        if (dateFns) {
-          if (spec.type === 'ImportNamespaceSpecifier') dateFnsNamespaces.add(local);
-          else if (spec.type === 'ImportDefaultSpecifier') bindDateFns(local, null, dateFns[1]);
-          else bindDateFns(local, spec.imported.name ?? spec.imported.value);
-        } else if (NEXT_INTL_RE.test(source) && spec.type === 'ImportSpecifier') {
-          const imported = spec.imported.name ?? spec.imported.value;
-          if (imported === 'useFormatter' || imported === 'getFormatter')
-            formatterFactories.add(local);
-          if (imported === 'useTranslations' || imported === 'getTranslations')
-            translatorFactories.add(local);
-        }
+        if (dateFns) bindDateFnsImport(spec, dateFns[1]);
+        else if (NEXT_INTL_RE.test(source) && spec.type === 'ImportSpecifier')
+          bindNextIntlImport(spec);
       }
     },
     VariableDeclarator(node) {
@@ -153,23 +179,11 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
       const required = requiredModule(node.init);
       const dateFns = required === null ? null : DATE_FNS_RE.exec(required);
       if (dateFns) {
-        if (node.id.type === 'Identifier') {
-          if (dateFns[1]) bindDateFns(node.id.name, null, dateFns[1]);
-          else dateFnsNamespaces.add(node.id.name);
-        } else if (node.id.type === 'ObjectPattern')
-          for (const p of node.id.properties)
-            if (p.type === 'Property' && nameOf(p.key) && nameOf(p.value))
-              bindDateFns(p.value.name, p.key.name);
+        bindRequiredDateFns(node.id, dateFns[1]);
         return;
       }
       const factory = init?.type === 'CallExpression' ? nameOf(init.callee) : null;
-      if (factory && formatterFactories.has(factory)) {
-        if (node.id.type === 'Identifier') formatters.add(node.id.name);
-        else if (node.id.type === 'ObjectPattern')
-          for (const p of node.id.properties)
-            if (p.type === 'Property' && NEXT_INTL_FORMAT.has(nameOf(p.key)) && nameOf(p.value))
-              formatterMethods.set(p.value.name, p.key.name);
-      }
+      if (factory && formatterFactories.has(factory)) bindFormatter(node.id);
       if (factory && translatorFactories.has(factory) && node.id.type === 'Identifier')
         translators.add(node.id.name);
     },

@@ -23,40 +23,56 @@ function git(repo, args) {
 
 const fileOfKey = key => key.split('|')[1] ?? '';
 
-// { baselined: { file: [items] }, signals: [text] } for the change base..head.
-export function changeReport(repo, baseSha, headSha, root, head, rebuilt) {
+// file -> lines added plus deleted, for the change base..head.
+function changedLines(repo, baseSha, headSha) {
   const numstat = git(repo, ['diff', '--no-renames', '--numstat', baseSha, headSha]);
   const changed = new Map();
   for (const line of numstat.split('\n').filter(Boolean)) {
     const [added, deleted, file] = line.split('\t');
     changed.set(file, Number(added) + Number(deleted));
   }
+  return changed;
+}
+
+// file -> the head baseline's items of that file, for the changed files only.
+function baselinedByFile(head, changed) {
   const byFile = new Map();
   for (const check of Object.values(head?.checks ?? {}))
     for (const item of check.items ?? []) {
       const file = fileOfKey(item);
       if (changed.has(file)) byFile.set(file, [...(byFile.get(file) ?? []), item]);
     }
+  return byFile;
+}
+
+const addsPageReady = diff =>
+  diff
+    .split('\n')
+    .some(line => line.startsWith('+') && !line.startsWith('+++') && line.includes('page-ready'));
+
+// The undeclared-rebuild signals of one changed file.
+function rebuildSignals(repo, baseSha, headSha, root, file, changedCount) {
+  const signals = [];
+  const abs = path.join(root, file);
+  const lines = fs.existsSync(abs) ? fs.readFileSync(abs, 'utf8').split('\n').length : 0;
+  if (lines && changedCount > lines / 2)
+    signals.push(
+      `likely rebuild: ${file} changes more than half its lines; list it in rebuilt-screens.json or say why not`
+    );
+  if (addsPageReady(git(repo, ['diff', '-U0', baseSha, headSha, '--', file])))
+    signals.push(`likely rebuild: ${file} adds a page-ready marker`);
+  return signals;
+}
+
+// { baselined: { file: [items] }, signals: [text] } for the change base..head.
+export function changeReport(repo, baseSha, headSha, root, head, rebuilt) {
+  const changed = changedLines(repo, baseSha, headSha);
+  const byFile = baselinedByFile(head, changed);
   const listed = new Set(rebuilt);
   const signals = [];
-  for (const file of [...byFile.keys()].sort(byCodeUnit)) {
-    if (listed.has(file)) continue;
-    const abs = path.join(root, file);
-    const lines = fs.existsSync(abs) ? fs.readFileSync(abs, 'utf8').split('\n').length : 0;
-    if (lines && changed.get(file) > lines / 2)
-      signals.push(
-        `likely rebuild: ${file} changes more than half its lines; list it in rebuilt-screens.json or say why not`
-      );
-    const diff = git(repo, ['diff', '-U0', baseSha, headSha, '--', file]);
-    if (
-      diff
-        .split('\n')
-        .some(
-          line => line.startsWith('+') && !line.startsWith('+++') && line.includes('page-ready')
-        )
-    )
-      signals.push(`likely rebuild: ${file} adds a page-ready marker`);
-  }
+  for (const file of [...byFile.keys()].sort(byCodeUnit))
+    if (!listed.has(file))
+      signals.push(...rebuildSignals(repo, baseSha, headSha, root, file, changed.get(file)));
   const baselined = Object.fromEntries([...byFile].sort(([a], [b]) => byCodeUnit(a, b)));
   return { baselined, signals };
 }

@@ -71,22 +71,26 @@ const invocationOf = args => {
   return args.enforcing ? 'enforcing' : 'advisory';
 };
 
-// The baselines, as WP-02's CLI reads them, over WP-02's functions (design §3 "WP-05's own code").
-function readBaselines(repo, root, baseSha, scope) {
-  const only = scope?.id ?? null;
+function readBaseBaseline(repo, baseSha, only) {
   const baseText = showAt(repo, baseSha, BASELINE_PATH);
-  let base = null;
-  if (baseText === null) {
-    if (showAt(repo, baseSha, SCRIPT_PATH) !== null)
-      throw new ScanError('base has the scanner but no baseline');
-  } else base = parseBaseline(baseText, 'base', CHECKS, { trustedBase: true, only });
+  if (baseText !== null)
+    return parseBaseline(baseText, 'base', CHECKS, { trustedBase: true, only });
+  if (showAt(repo, baseSha, SCRIPT_PATH) !== null)
+    throw new ScanError('base has the scanner but no baseline');
+  return null;
+}
+
+function readHeadBaseline(root, only) {
   const headFile = path.join(root, BASELINE_PATH);
-  const head = parseBaseline(
+  return parseBaseline(
     fs.existsSync(headFile) ? fs.readFileSync(headFile, 'utf8') : '',
     'head',
     CHECKS,
     { only }
   );
+}
+
+function assertChecksPresent(repo, baseSha, { base, head }, scope) {
   if (!scope && base && !Object.keys(base.checks).length)
     throw new ScanError('base baseline names no check');
   if (!scope && !Object.keys(head.checks).length)
@@ -101,6 +105,9 @@ function readBaselines(repo, root, baseSha, scope) {
     if (!head.checks[check.id] && !removed && !removalRecorded(head, check.id))
       throw new ScanError(`head baseline has no ${check.id}`);
   }
+}
+
+function assertRemovalsKept({ base, head }, only) {
   for (const id of removedChecks(base))
     if (
       (only === null || id === only) &&
@@ -109,6 +116,15 @@ function readBaselines(repo, root, baseSha, scope) {
       !removalRecorded(head, id)
     )
       throw new ScanError(`head baseline drops the recorded removal of ${id}`);
+}
+
+// The baselines, as WP-02's CLI reads them, over WP-02's functions (design §3 "WP-05's own code").
+function readBaselines(repo, root, baseSha, scope) {
+  const only = scope?.id ?? null;
+  const base = readBaseBaseline(repo, baseSha, only);
+  const head = readHeadBaseline(root, only);
+  assertChecksPresent(repo, baseSha, { base, head }, scope);
+  assertRemovalsKept({ base, head }, only);
   return { base, head, bootstrap: base === null };
 }
 

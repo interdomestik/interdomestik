@@ -100,6 +100,66 @@ function elementAt(lines, message) {
   return opens.length ? opens[opens.length - 1][1] : '?';
 }
 
+// Each expected check of the file counts it, and needs its rules enabled at `error` there.
+function checkRulesEnabled(out, sets, role, rel, fileConfig) {
+  for (const [id, rules] of Object.entries(sets)) {
+    if (!EXPECTS[id](role, rel)) continue;
+    out[id].files += 1;
+    for (const name of rules)
+      if (!isError(fileConfig.rules?.[name]))
+        throw new ScanError(`${name} is not enabled at error for ${rel}`);
+  }
+}
+
+const sourceLines = (root, rel, result) =>
+  result.source === undefined
+    ? fs.readFileSync(path.join(root, rel), 'utf8').split('\n')
+    : result.source.split('\n');
+
+// A keyed message of a local rule: a coverage-unit count, or an item of the check it names.
+function collectKeyed(out, rel, message, keyed) {
+  const key = keyed[1];
+  if (key.startsWith('#unit|')) {
+    const [, check, kind, n] = key.split('|');
+    out[check].units[kind] = (out[check].units[kind] ?? 0) + Number(n);
+    return;
+  }
+  const check = key.split('|')[0];
+  if (!out[check]) throw new ScanError(`${rel}: a lint message names an unknown check ${check}`);
+  out[check].items.push({
+    id: key,
+    file: rel,
+    line: message.line,
+    message: message.message.slice(keyed[0].length),
+  });
+}
+
+function collectMessage(out, { rel, role, lines }, message) {
+  if (message.fatal || !message.ruleId)
+    throw new ScanError(
+      `${rel}: ${message.fatal ? 'fatal' : 'unattributed'} lint message: ${message.message}`
+    );
+  const keyed = KEY_RE.exec(message.message);
+  if (keyed) collectKeyed(out, rel, message, keyed);
+  else if (message.ruleId.startsWith('jsx-a11y/')) {
+    if (role !== 'screen') return;
+    const key = `A11Y|${rel}|${message.ruleId}|${elementAt(lines, message)}`;
+    out.A11Y.items.push({ id: key, file: rel, line: message.line, message: message.message });
+  } else throw new ScanError(`${rel}: an unexpected lint message from ${message.ruleId}`);
+}
+
+// The config of each file, computed together; a failure is rethrown at its file, in file order.
+const fileConfigs = (eslint, root, files) =>
+  Promise.all(
+    files.map(async rel => {
+      try {
+        return { config: await eslint.calculateConfigForFile(path.join(root, rel)) };
+      } catch (error) {
+        return { error };
+      }
+    })
+  );
+
 // Runs the lint over `files` of `root` and returns { items, units } per check id.
 export async function lintTree(root, files, { configFile } = {}) {
   if (!files.length) throw new ScanError('the expected file list is empty');
@@ -126,52 +186,18 @@ export async function lintTree(root, files, { configFile } = {}) {
   const out = Object.fromEntries(
     Object.keys(sets).map(id => [id, { items: [], units: {}, files: 0 }])
   );
-  for (const rel of files) {
+  const configs = await fileConfigs(eslint, root, files);
+  files.forEach((rel, index) => {
     const result = byFile.get(rel);
     if (!result) throw new ScanError(`${rel} is missing from the lint results`);
     const role = roleOf(rel);
-    const fileConfig = await eslint.calculateConfigForFile(path.join(root, rel));
+    const { config: fileConfig, error } = configs[index];
+    if (error) throw error;
     if (!fileConfig) throw new ScanError(`${rel} is ignored by the screen-contract config`);
-    for (const [id, rules] of Object.entries(sets)) {
-      if (!EXPECTS[id](role, rel)) continue;
-      out[id].files += 1;
-      for (const name of rules)
-        if (!isError(fileConfig.rules?.[name]))
-          throw new ScanError(`${name} is not enabled at error for ${rel}`);
-    }
-    const lines =
-      result.source === undefined
-        ? fs.readFileSync(path.join(root, rel), 'utf8').split('\n')
-        : result.source.split('\n');
-    for (const message of result.messages) {
-      if (message.fatal || !message.ruleId)
-        throw new ScanError(
-          `${rel}: ${message.fatal ? 'fatal' : 'unattributed'} lint message: ${message.message}`
-        );
-      const keyed = KEY_RE.exec(message.message);
-      if (keyed) {
-        const key = keyed[1];
-        if (key.startsWith('#unit|')) {
-          const [, check, kind, n] = key.split('|');
-          out[check].units[kind] = (out[check].units[kind] ?? 0) + Number(n);
-          continue;
-        }
-        const check = key.split('|')[0];
-        if (!out[check])
-          throw new ScanError(`${rel}: a lint message names an unknown check ${check}`);
-        out[check].items.push({
-          id: key,
-          file: rel,
-          line: message.line,
-          message: message.message.slice(keyed[0].length),
-        });
-      } else if (message.ruleId.startsWith('jsx-a11y/')) {
-        if (role !== 'screen') continue;
-        const key = `A11Y|${rel}|${message.ruleId}|${elementAt(lines, message)}`;
-        out.A11Y.items.push({ id: key, file: rel, line: message.line, message: message.message });
-      } else throw new ScanError(`${rel}: an unexpected lint message from ${message.ruleId}`);
-    }
-  }
+    checkRulesEnabled(out, sets, role, rel, fileConfig);
+    const file = { rel, role, lines: sourceLines(root, rel, result) };
+    for (const message of result.messages) collectMessage(out, file, message);
+  });
   if (byFile.size !== files.length)
     throw new ScanError('the lint results name files that were not expected');
   for (const result of out.A11Y ? [out.A11Y] : []) result.units.file = result.files;

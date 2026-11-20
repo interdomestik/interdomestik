@@ -10,7 +10,7 @@
 // Where this module is stricter than Node, it fails closed with a ScanError
 // (an input error): a condition object that also holds a `.` key.
 
-import { ScanError } from '../server-mutation/ast.mjs';
+import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
 
 const freezeList = list => Object.freeze([...list]);
 
@@ -70,6 +70,15 @@ function invalidTargetReason(target) {
   return null;
 }
 
+function validateConditionObject(value, where) {
+  for (const key of Object.keys(value)) {
+    if (isSubpathKey(key))
+      throw new ScanError(`${where}: subpath key "${key}" inside a condition object`);
+    if (ARRAY_INDEX_KEY.test(key)) throw new ScanError(`${where}: numeric condition key "${key}"`);
+    validateTarget(value[key], `${where}.${key}`, false);
+  }
+}
+
 function validateTarget(value, where, inArray) {
   if (value === null) return;
   if (typeof value === 'string') {
@@ -83,13 +92,7 @@ function validateTarget(value, where, inArray) {
     return;
   }
   if (isPlainObject(value)) {
-    for (const key of Object.keys(value)) {
-      if (isSubpathKey(key))
-        throw new ScanError(`${where}: subpath key "${key}" inside a condition object`);
-      if (ARRAY_INDEX_KEY.test(key))
-        throw new ScanError(`${where}: numeric condition key "${key}"`);
-      validateTarget(value[key], `${where}.${key}`, false);
-    }
+    validateConditionObject(value, where);
     return;
   }
   if (!inArray) throw new ScanError(`${where}: invalid target of type ${typeof value}`);
@@ -127,35 +130,39 @@ export function validateExports(pkg, label) {
 // (no condition matched) or INVALID (an invalid target, skipped in an array).
 const INVALID = Symbol('invalid-target');
 
+function resolveArrayTarget(target, patternMatch, conditions) {
+  if (target.length === 0) return null;
+  let last;
+  for (const entry of target) {
+    const resolved = resolveTarget(entry, patternMatch, conditions);
+    if (resolved === undefined) continue;
+    if (resolved === null || resolved === INVALID) {
+      last = resolved;
+      continue;
+    }
+    return resolved;
+  }
+  return last;
+}
+
+function resolveConditionTarget(target, patternMatch, conditions) {
+  for (const key of Object.keys(target)) {
+    if (key !== 'default' && !conditions.has(key)) continue;
+    const resolved = resolveTarget(target[key], patternMatch, conditions);
+    if (resolved === undefined) continue;
+    return resolved;
+  }
+  return undefined;
+}
+
 function resolveTarget(target, patternMatch, conditions) {
   if (target === null) return null;
   if (typeof target === 'string') {
     if (invalidTargetReason(target)) return INVALID;
     return patternMatch === null ? target : target.replaceAll('*', patternMatch);
   }
-  if (Array.isArray(target)) {
-    if (target.length === 0) return null;
-    let last;
-    for (const entry of target) {
-      const resolved = resolveTarget(entry, patternMatch, conditions);
-      if (resolved === undefined) continue;
-      if (resolved === null || resolved === INVALID) {
-        last = resolved;
-        continue;
-      }
-      return resolved;
-    }
-    return last;
-  }
-  if (isPlainObject(target)) {
-    for (const key of Object.keys(target)) {
-      if (key !== 'default' && !conditions.has(key)) continue;
-      const resolved = resolveTarget(target[key], patternMatch, conditions);
-      if (resolved === undefined) continue;
-      return resolved;
-    }
-    return undefined;
-  }
+  if (Array.isArray(target)) return resolveArrayTarget(target, patternMatch, conditions);
+  if (isPlainObject(target)) return resolveConditionTarget(target, patternMatch, conditions);
   return INVALID;
 }
 
@@ -248,5 +255,5 @@ export function unmodelledConditions(pkg) {
   if (!hasExports(pkg)) return [];
   const found = new Set();
   collectConditions(pkg.exports, found);
-  return [...found].sort();
+  return [...found].sort(byCodeUnit);
 }

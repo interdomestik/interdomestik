@@ -26,8 +26,9 @@ export function catalogueFor(root) {
   };
   walk(dir);
   if (!files.length) throw new ScanError(`${DIR} has no catalogue file`);
+  files.sort(byCodeUnit);
   const merged = {};
-  for (const file of files.sort(byCodeUnit)) {
+  for (const file of files) {
     const rel = path.relative(root, file);
     const text = fs.readFileSync(file, 'utf8');
     if (!text.trim()) throw new ScanError(`${rel} is empty`);

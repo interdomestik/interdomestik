@@ -47,6 +47,9 @@ export function synthesizedBaseline(baseSha, baseLint) {
   return { version: 1, takenAt: `replay:${baseSha}`, checks, exceptions: [] };
 }
 
+// A unit kind counts as present only with a positive count (absent or NaN is empty).
+const hasUnits = (units, kind) => units[kind] > 0;
+
 function productionFloor(id) {
   const file = path.join(SCANNER_ROOT, BASELINE_PATH);
   if (!fs.existsSync(file)) return null;
@@ -72,12 +75,11 @@ export async function replay(repo, baseSha, headSha) {
       if (scan.files < baseLint[id].files)
         adjudicate.push(`${id}: inventory decrease ${baseLint[id].files} -> ${scan.files}`);
       for (const [kind, n] of Object.entries(baseLint[id].units))
-        if (n > 0 && !(scan.units[kind] > 0)) {
+        if (n > 0 && !hasUnits(scan.units, kind)) {
           const floor = productionFloor(id);
           const shortfall = floor === null ? [] : coverageShortfall(scan.units, floor);
-          adjudicate.push(
-            `${id}: kind empty ${kind} (${n} -> 0)${shortfall.length ? `; production shortfall ${shortfall.join(', ')}` : ''}`
-          );
+          const note = shortfall.length ? `; production shortfall ${shortfall.join(', ')}` : '';
+          adjudicate.push(`${id}: kind empty ${kind} (${n} -> 0)${note}`);
         }
       return {
         id,

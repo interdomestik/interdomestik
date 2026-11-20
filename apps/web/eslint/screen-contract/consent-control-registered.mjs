@@ -51,6 +51,28 @@ function walk(node, visit, keys) {
   }
 }
 
+// The local name a translator call goes through: `t('k')` or `t.rich('k')`.
+function calleeLocal(callee) {
+  if (callee.type === 'Identifier') return callee.name;
+  if (callee.type === 'MemberExpression' && callee.object.type === 'Identifier')
+    return callee.object.name;
+  return null;
+}
+
+function importedName(spec) {
+  if (spec.type === 'ImportDefaultSpecifier') return 'default';
+  if (spec.type === 'ImportNamespaceSpecifier') return '*';
+  return spec.imported.name ?? spec.imported.value;
+}
+
+// The namespace argument of `useTranslations(ns)` / `getTranslations({ namespace })`.
+function translatorNamespace(arg) {
+  if (arg?.type === 'Literal' && typeof arg.value === 'string') return arg.value;
+  if (arg?.type === 'ObjectExpression')
+    return arg.properties.find(p => p.key?.name === 'namespace')?.value?.value ?? '';
+  return '';
+}
+
 function isControl(opening) {
   const name = elementName(opening);
   if (CONTROL_COMPONENTS.has(name)) return true;
@@ -97,13 +119,7 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
       node,
       n => {
         if (n.type !== 'CallExpression') return;
-        const callee = n.callee;
-        const local =
-          callee.type === 'Identifier'
-            ? callee.name
-            : callee.type === 'MemberExpression' && callee.object.type === 'Identifier'
-              ? callee.object.name
-              : null;
+        const local = calleeLocal(n.callee);
         if (!local || !translators.has(local)) return;
         const arg = n.arguments[0];
         if (arg?.type !== 'Literal' || typeof arg.value !== 'string') return;
@@ -186,39 +202,39 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
     return found.size === 1 ? [...found.keys()][0] : null;
   }
 
-  // Every submission the boundary invokes, or null when one of them cannot be resolved.
-  function invokedSubmissions(boundary, isForm) {
-    const opening = boundary.openingElement;
-    const out = [];
-    if (isForm) {
-      const action = expressionOf(attributeOf(opening, 'action'));
-      const onSubmit = expressionOf(attributeOf(opening, 'onSubmit'));
-      if (action) {
-        const origin = action.type === 'Identifier' ? submissionOfIdentifier(action.name) : null;
-        if (!origin) return null;
-        out.push(`${origin.file}#${origin.name}`);
-      } else if (onSubmit) {
-        const resolved = submissionOfHandler(onSubmit);
-        if (!resolved) return null;
-        out.push(resolved);
-      } else return null;
-      let unresolved = false;
-      walk(
-        boundary,
-        n => {
-          if (n.type !== 'JSXOpeningElement') return;
-          const formAction = attributeOf(n, 'formAction');
-          if (!formAction) return;
-          const expression = expressionOf(formAction);
-          const origin =
-            expression?.type === 'Identifier' ? submissionOfIdentifier(expression.name) : null;
-          if (origin) out.push(`${origin.file}#${origin.name}`);
-          else unresolved = true;
-        },
-        keys
-      );
-      return unresolved ? null : out;
+  // The submission named by the form's `action`, else by its `onSubmit` handler, or null.
+  function primaryFormSubmission(opening) {
+    const action = expressionOf(attributeOf(opening, 'action'));
+    if (action) {
+      const origin = action.type === 'Identifier' ? submissionOfIdentifier(action.name) : null;
+      return origin ? `${origin.file}#${origin.name}` : null;
     }
+    const onSubmit = expressionOf(attributeOf(opening, 'onSubmit'));
+    return onSubmit ? submissionOfHandler(onSubmit) : null;
+  }
+
+  // The submissions of every `formAction` inside the form, or null when one cannot be resolved.
+  function formActionSubmissions(boundary) {
+    const out = [];
+    let unresolved = false;
+    walk(
+      boundary,
+      n => {
+        if (n.type !== 'JSXOpeningElement') return;
+        const formAction = attributeOf(n, 'formAction');
+        if (!formAction) return;
+        const expression = expressionOf(formAction);
+        const origin =
+          expression?.type === 'Identifier' ? submissionOfIdentifier(expression.name) : null;
+        if (origin) out.push(`${origin.file}#${origin.name}`);
+        else unresolved = true;
+      },
+      keys
+    );
+    return unresolved ? null : out;
+  }
+
+  function handlerSubmissions(opening) {
     for (const name of ['onCheckedChange', 'onChange']) {
       const handler = expressionOf(attributeOf(opening, name));
       if (handler) {
@@ -227,6 +243,15 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
       }
     }
     return null;
+  }
+
+  // Every submission the boundary invokes, or null when one of them cannot be resolved.
+  function invokedSubmissions(boundary, isForm) {
+    if (!isForm) return handlerSubmissions(boundary.openingElement);
+    const primary = primaryFormSubmission(boundary.openingElement);
+    if (!primary) return null;
+    const formActions = formActionSubmissions(boundary);
+    return formActions ? [primary, ...formActions] : null;
   }
 
   // The entries an element renders through an imported component (§2.1 "Renders").
@@ -247,8 +272,7 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
     return out;
   }
 
-  function analyse(program) {
-    const registry = registryFor(root);
+  function indexById() {
     const byId = { labelsFor: new Map(), elements: new Map() };
     for (const element of elements) {
       const opening = element.openingElement;
@@ -257,50 +281,59 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
       const target = LABELS.has(elementName(opening)) ? literalAttribute(opening, 'htmlFor') : null;
       if (target) byId.labelsFor.set(target, [...(byId.labelsFor.get(target) ?? []), element]);
     }
+    return byId;
+  }
+
+  // Counts a control and flags it when it reads as consent without `data-consent`; true if flagged.
+  function flagUnregistered(element, consentId, byId) {
+    const opening = element.openingElement;
+    if (!isControl(opening)) return false;
+    units.add('control');
+    if (consentId || !vocabularyHit(element, byId)) return false;
+    const key =
+      literalAttribute(opening, 'id') ??
+      literalAttribute(opening, 'name') ??
+      literalAttribute(opening, 'data-testid') ??
+      '?';
+    flag(
+      element,
+      'unregistered',
+      `${elementName(opening)}:${key}`,
+      'consent control without data-consent'
+    );
+    return true;
+  }
+
+  // The registry entries the element renders: its own `data-consent` use, or the entries of
+  // the imported component it renders. A misbound `data-consent` is flagged and renders none.
+  function elementRenders(element, consentId, registry) {
+    if (!consentId) return renderedEntries(element, registry);
+    const opening = element.openingElement;
+    const entry = registry.get(consentId);
+    const control = literalAttribute(opening, 'id') ?? literalAttribute(opening, 'name');
+    if (!entry || entry.file !== rel || entry.control !== control) {
+      flag(element, 'misbound', consentId, `data-consent ${consentId} is not this file's control`);
+      return [];
+    }
+    const isDefinition = entry.exportName && !entry.selfSubmitting;
+    return !isDefinition && entry.kind !== 'not-consent' ? [entry] : [];
+  }
+
+  function analyse(program) {
+    const registry = registryFor(root);
+    const byId = indexById();
     const renders = []; // { element, entry }
     for (const element of elements) {
-      const opening = element.openingElement;
-      const consentId = literalAttribute(opening, 'data-consent');
-      if (isControl(opening)) {
-        units.add('control');
-        if (!consentId && vocabularyHit(element, byId)) {
-          const key =
-            literalAttribute(opening, 'id') ??
-            literalAttribute(opening, 'name') ??
-            literalAttribute(opening, 'data-testid') ??
-            '?';
-          flag(
-            element,
-            'unregistered',
-            `${elementName(opening)}:${key}`,
-            'consent control without data-consent'
-          );
-          continue;
-        }
-      }
-      if (consentId) {
-        const entry = registry.get(consentId);
-        const control = literalAttribute(opening, 'id') ?? literalAttribute(opening, 'name');
-        if (!entry || entry.file !== rel || entry.control !== control) {
-          flag(
-            element,
-            'misbound',
-            consentId,
-            `data-consent ${consentId} is not this file's control`
-          );
-          continue;
-        }
-        const isDefinition = entry.exportName && !entry.selfSubmitting;
-        if (!isDefinition && entry.kind !== 'not-consent') renders.push({ element, entry });
-        continue;
-      }
-      for (const entry of renderedEntries(element, registry)) renders.push({ element, entry });
+      const consentId = literalAttribute(element.openingElement, 'data-consent');
+      if (flagUnregistered(element, consentId, byId)) continue;
+      for (const entry of elementRenders(element, consentId, registry))
+        renders.push({ element, entry });
     }
     judgeBoundaries(renders, registry);
     units.flush(program);
   }
 
-  function judgeBoundaries(renders, registry) {
+  function boundariesOf(renders) {
     const boundaries = new Map(); // node -> { isForm, entries:Set }
     for (const { element, entry } of renders) {
       const form = enclosingForm(element);
@@ -309,58 +342,66 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
         boundaries.set(node, { isForm: Boolean(form), entries: new Set() });
       boundaries.get(node).entries.add(entry.id);
     }
-    const listedTimes = new Map();
-    for (const [node, { isForm, entries }] of boundaries) {
-      units.add('boundary');
-      const tokens = (literalAttribute(node.openingElement, 'data-consent-use') ?? '')
-        .split(/\s+/u)
-        .filter(Boolean);
-      const valid = [];
-      for (const token of tokens) {
-        const [entryId, useId, extra] = token.split(':');
-        const use = registry.get(entryId)?.uses.find(u => u.useId === useId);
-        if (extra !== undefined || !use || use.file !== rel) {
-          flag(
-            node,
-            'unmatched-boundary',
-            token,
-            `listed use ${token} is unknown or not this file's`
-          );
-          continue;
-        }
-        listedTimes.set(token, (listedTimes.get(token) ?? 0) + 1);
-        if (!entries.has(entryId))
-          flag(node, 'orphan-use', token, `${token} has no render in this boundary`);
-        valid.push({ token, use });
-      }
-      for (const entryId of entries)
-        if (!valid.some(v => v.token.startsWith(`${entryId}:`)))
-          flag(
-            node,
-            'unmatched-boundary',
-            entryId,
-            `the boundary does not list a use of ${entryId}`
-          );
-      if (!valid.length) continue;
-      const invoked = invokedSubmissions(node, isForm);
-      if (!invoked) {
+    return boundaries;
+  }
+
+  // The boundary's listed uses that are this file's, counting each in `listedTimes`.
+  function validUses(node, entries, registry, listedTimes) {
+    const tokens = (literalAttribute(node.openingElement, 'data-consent-use') ?? '')
+      .split(/\s+/u)
+      .filter(Boolean);
+    const valid = [];
+    for (const token of tokens) {
+      const [entryId, useId, extra] = token.split(':');
+      const use = registry.get(entryId)?.uses.find(u => u.useId === useId);
+      if (extra !== undefined || !use || use.file !== rel) {
         flag(
           node,
-          'unresolved-submission',
-          valid.map(v => v.token).join(' '),
-          'the submission cannot be resolved here'
+          'unmatched-boundary',
+          token,
+          `listed use ${token} is unknown or not this file's`
         );
         continue;
       }
-      for (const { token, use } of valid)
-        if (invoked.some(submission => submission !== use.submission))
-          flag(
-            node,
-            'submission-mismatch',
-            token,
-            `invokes ${invoked.join(', ')}, registered ${use.submission}`
-          );
+      listedTimes.set(token, (listedTimes.get(token) ?? 0) + 1);
+      if (!entries.has(entryId))
+        flag(node, 'orphan-use', token, `${token} has no render in this boundary`);
+      valid.push({ token, use });
     }
+    return valid;
+  }
+
+  function judgeSubmission(node, isForm, valid) {
+    const invoked = invokedSubmissions(node, isForm);
+    if (!invoked) {
+      flag(
+        node,
+        'unresolved-submission',
+        valid.map(v => v.token).join(' '),
+        'the submission cannot be resolved here'
+      );
+      return;
+    }
+    for (const { token, use } of valid)
+      if (invoked.some(submission => submission !== use.submission))
+        flag(
+          node,
+          'submission-mismatch',
+          token,
+          `invokes ${invoked.join(', ')}, registered ${use.submission}`
+        );
+  }
+
+  function judgeBoundary(node, { isForm, entries }, registry, listedTimes) {
+    units.add('boundary');
+    const valid = validUses(node, entries, registry, listedTimes);
+    for (const entryId of entries)
+      if (!valid.some(v => v.token.startsWith(`${entryId}:`)))
+        flag(node, 'unmatched-boundary', entryId, `the boundary does not list a use of ${entryId}`);
+    if (valid.length) judgeSubmission(node, isForm, valid);
+  }
+
+  function flagListing(listedTimes, registry) {
     for (const [token, times] of listedTimes)
       if (times > 1)
         flag(
@@ -382,41 +423,41 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
       }
   }
 
+  function judgeBoundaries(renders, registry) {
+    const listedTimes = new Map();
+    for (const [node, boundary] of boundariesOf(renders))
+      judgeBoundary(node, boundary, registry, listedTimes);
+    flagListing(listedTimes, registry);
+  }
+
+  // `const t = useTranslations(ns)` / `const t = await getTranslations(...)` from next-intl.
+  function recordTranslator(node, init) {
+    if (
+      init?.type !== 'CallExpression' ||
+      init.callee.type !== 'Identifier' ||
+      node.id.type !== 'Identifier'
+    )
+      return;
+    const binding = imports.get(init.callee.name);
+    if (
+      binding &&
+      /^next-intl(?:\/server)?$/u.test(binding.specifier) &&
+      TRANSLATOR_FACTORIES.has(binding.imported)
+    )
+      translators.set(node.id.name, translatorNamespace(init.arguments[0]));
+  }
+
   return {
     ImportDeclaration(node) {
-      for (const spec of node.specifiers) {
-        const imported =
-          spec.type === 'ImportDefaultSpecifier'
-            ? 'default'
-            : spec.type === 'ImportNamespaceSpecifier'
-              ? '*'
-              : (spec.imported.name ?? spec.imported.value);
-        imports.set(spec.local.name, { specifier: node.source.value, imported });
-      }
+      for (const spec of node.specifiers)
+        imports.set(spec.local.name, {
+          specifier: node.source.value,
+          imported: importedName(spec),
+        });
     },
     VariableDeclarator(node) {
       const init = node.init?.type === 'AwaitExpression' ? node.init.argument : node.init;
-      if (
-        init?.type === 'CallExpression' &&
-        init.callee.type === 'Identifier' &&
-        node.id.type === 'Identifier'
-      ) {
-        const binding = imports.get(init.callee.name);
-        if (
-          binding &&
-          /^next-intl(?:\/server)?$/u.test(binding.specifier) &&
-          TRANSLATOR_FACTORIES.has(binding.imported)
-        ) {
-          const arg = init.arguments[0];
-          const ns =
-            arg?.type === 'Literal' && typeof arg.value === 'string'
-              ? arg.value
-              : arg?.type === 'ObjectExpression'
-                ? (arg.properties.find(p => p.key?.name === 'namespace')?.value?.value ?? '')
-                : '';
-          translators.set(node.id.name, ns);
-        }
-      }
+      recordTranslator(node, init);
       if (node.id.type === 'Identifier' && FUNCTIONS.has(node.init?.type))
         functions.set(node.id.name, node.init);
       // `const onSubmit = useCallback(fn, deps)`: the wrapped function, one level.

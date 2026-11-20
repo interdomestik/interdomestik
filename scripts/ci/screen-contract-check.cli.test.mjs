@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
+import { byCodeUnit } from './server-mutation/ast.mjs';
 import { parseBaseline } from './server-mutation/baseline.mjs';
 import { CHECKS } from './screen-contract/evaluate.mjs';
 import { synthesizedBaseline } from './screen-contract/replay.mjs';
@@ -78,7 +79,7 @@ test('CLI: a clean adopted change exits 0 and reports every check', t => {
   const head = commit(root, { [`${W}/app/ok/page.tsx`]: 'export default () => 1;\n' });
   const { code, report } = scan(t, root, ['--base', base, '--head', head]);
   assert.equal(code, 0, JSON.stringify(report?.errors));
-  assert.deepEqual(Object.keys(report.checks).sort(), [...IDS].sort());
+  assert.deepEqual(Object.keys(report.checks).sort(byCodeUnit), [...IDS].sort(byCodeUnit));
   assert.deepEqual(report.checks['CHK-15c'].new, []);
   assert.deepEqual(report.changes.baselined, {});
 });
@@ -443,7 +444,7 @@ test('replay: a synthesized zero-item baseline passes the unchanged WP-02 parser
     'replay',
     CHECKS
   );
-  assert.deepEqual(Object.keys(parsed.checks).sort(), [...IDS].sort());
+  assert.deepEqual(Object.keys(parsed.checks).sort(byCodeUnit), [...IDS].sort(byCodeUnit));
   assert.equal(parsed.takenAt, 'replay:abc1234');
 });
 
@@ -465,7 +466,10 @@ test('replay: a pre-adoption pair completes; a deletion and an emptied kind are 
   const { code, report } = scan(t, root, ['--replay', '--base', base, '--head', head]);
   assert.equal(code, 0, JSON.stringify(report.errors));
   assert.equal(report.replay.complete, true);
-  assert.deepEqual(report.replay.synthesized.base.sort(), [REBUILT, REG].sort());
+  assert.deepEqual(
+    report.replay.synthesized.base.sort(byCodeUnit),
+    [REBUILT, REG].sort(byCodeUnit)
+  );
   assert.ok(report.replay.adjudicate.some(line => /CHK-15c: inventory decrease/u.test(line)));
   assert.ok(
     report.replay.adjudicate.some(line => /kind empty edge:require/u.test(line)),

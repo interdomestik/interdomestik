@@ -27,9 +27,7 @@ function validateUse(use, where, seen) {
   seen.add(use.useId);
 }
 
-function validateEntry(entry, index) {
-  const where = `consent registry entry ${index}`;
-  if (!isPlainObject(entry)) throw new ScanError(`${where} is not an object`);
+function validateFields(entry, where) {
   for (const key of ['id', 'file', 'control'])
     if (!isText(entry[key])) throw new ScanError(`${where} has no ${key}`);
   if (!/^[\w.-]+$/u.test(entry.id)) throw new ScanError(`${where} has an id with spaces or ':'`);
@@ -40,12 +38,19 @@ function validateEntry(entry, index) {
     throw new ScanError(`${where} has an empty exportName`);
   if (entry.selfSubmitting !== undefined && typeof entry.selfSubmitting !== 'boolean')
     throw new ScanError(`${where} has a non-boolean selfSubmitting`);
+}
+
+function validateAliases(entry, where) {
   const aliases = entry.aliases ?? [];
   if (
     !Array.isArray(aliases) ||
     !aliases.every(a => isPlainObject(a) && isText(a.file) && isText(a.exportName))
   )
     throw new ScanError(`${where} has malformed aliases`);
+  return aliases;
+}
+
+function validateUses(entry, where) {
   const uses = entry.uses ?? [];
   if (!Array.isArray(uses)) throw new ScanError(`${where} uses is not a list`);
   if (entry.kind === 'not-consent' && uses.length)
@@ -54,6 +59,15 @@ function validateEntry(entry, index) {
   uses.forEach((use, i) => validateUse(use, `${where} use ${i}`, seen));
   if (entry.selfSubmitting && (uses.length !== 1 || uses[0].file !== entry.file))
     throw new ScanError(`${where} is selfSubmitting with other than one use in its own file`);
+  return uses;
+}
+
+function validateEntry(entry, index) {
+  const where = `consent registry entry ${index}`;
+  if (!isPlainObject(entry)) throw new ScanError(`${where} is not an object`);
+  validateFields(entry, where);
+  const aliases = validateAliases(entry, where);
+  const uses = validateUses(entry, where);
   return { ...entry, aliases, uses };
 }
 
@@ -111,27 +125,29 @@ export function registryTamper(baseRegistry, headRegistry, base, head, isRendere
       .map(entry => `CHK-22#registry-not-consent:${entry.id}`);
   }
   const out = [];
-  for (const [id, before] of baseRegistry) {
-    const after = headRegistry.get(id);
-    if (!after) {
-      if (isRendered(before)) out.push(`CHK-22#registry-removed:${id}`);
-      continue;
-    }
-    for (const field of BOUND_FIELDS)
-      if (before[field] !== after[field]) out.push(`CHK-22#registry-changed-${field}:${id}`);
-    const useIds = new Set(after.uses.map(use => use.useId));
-    for (const use of before.uses)
-      if (!useIds.has(use.useId)) out.push(`CHK-22#registry-removed-use:${id}:${use.useId}`);
-    const aliasKeys = new Set(after.aliases.map(a => `${a.file}#${a.exportName}`));
-    for (const alias of before.aliases)
-      if (!aliasKeys.has(`${alias.file}#${alias.exportName}`))
-        out.push(`CHK-22#registry-removed-alias:${id}:${alias.file}#${alias.exportName}`);
-  }
+  for (const [id, before] of baseRegistry)
+    out.push(...entryTamper(id, before, headRegistry.get(id), isRendered));
   for (const [id, entry] of headRegistry)
     if (!baseRegistry.has(id) && entry.kind === 'not-consent')
       out.push(`CHK-22#registry-not-consent:${id}`);
   // One fresh exception per entry admits every change of that entry.
   return out.filter(finding => !freshFor(base, head, idOfFinding(finding)));
+}
+
+// The changes of one base entry in the head: removed, a bound field changed, a use or alias removed.
+function entryTamper(id, before, after, isRendered) {
+  if (!after) return isRendered(before) ? [`CHK-22#registry-removed:${id}`] : [];
+  const out = [];
+  for (const field of BOUND_FIELDS)
+    if (before[field] !== after[field]) out.push(`CHK-22#registry-changed-${field}:${id}`);
+  const useIds = new Set(after.uses.map(use => use.useId));
+  for (const use of before.uses)
+    if (!useIds.has(use.useId)) out.push(`CHK-22#registry-removed-use:${id}:${use.useId}`);
+  const aliasKeys = new Set(after.aliases.map(a => `${a.file}#${a.exportName}`));
+  for (const alias of before.aliases)
+    if (!aliasKeys.has(`${alias.file}#${alias.exportName}`))
+      out.push(`CHK-22#registry-removed-alias:${id}:${alias.file}#${alias.exportName}`);
+  return out;
 }
 
 const idOfFinding = finding => finding.split(':')[1];
@@ -147,7 +163,9 @@ function freshFor(base, head, id) {
 }
 
 const SKIPPED_RE = /\b(?:it|test|describe)\s*\.\s*(?:skip|todo|fixme)\b|\bx(?:it|describe)\s*\(/u;
-const TIME_RE = /\w*(?:At|_at|Time|time|timestamp)\b/u;
+// A time-field name ends in one of these (`createdAt`, `granted_at`, `timestamp`); the regex only
+// tests for one, so the leading word characters need no match of their own.
+const TIME_RE = /(?:At|_at|Time|time|timestamp)\b/u;
 
 // The include globs of the web Vitest config and the Playwright testDir, read at run time.
 export function readLanes(root) {
@@ -176,6 +194,29 @@ function inLane(lanes, rel) {
   return lanes.vitest.some(glob => path.matchesGlob(inner, glob));
 }
 
+// The names a use's test must hold that it lacks: entry, use, submission, the fields of its kind,
+// and for consent a time field.
+function missingNames(entry, use, text) {
+  const names = [entry.id, use.useId, use.submission.split('#')[1]];
+  names.push(...REQUIRED_BY_KIND[entry.kind].map(key => entry[key]));
+  const missing = names.filter(name => !text.includes(name));
+  if (entry.kind === 'consent' && !TIME_RE.test(text)) missing.push('a time field');
+  return missing;
+}
+
+// The error of one use's test, or null when its evidence holds.
+function useEvidenceError(root, lanes, entry, use) {
+  const where = `consent registry ${entry.id}:${use.useId} test ${use.test}`;
+  const file = path.join(root, use.test);
+  if (!fs.existsSync(file)) return `${where} is missing`;
+  const text = fs.readFileSync(file, 'utf8');
+  if (!text.trim()) return `${where} is empty`;
+  if (!inLane(lanes, use.test)) return `${where} is selected by no lane`;
+  if (SKIPPED_RE.test(text)) return `${where} is skipped`;
+  const missing = missingNames(entry, use, text);
+  return missing.length ? `${where} does not name ${missing.join(', ')}` : null;
+}
+
 // Errors for each use's test (§2.1 "The test, per kind"): it exists, is in a lane, is not skipped
 // and names the entry, the use, the submission and the fields of its kind.
 export function testEvidence(root, registry, lanes) {
@@ -183,23 +224,8 @@ export function testEvidence(root, registry, lanes) {
   for (const entry of [...registry.values()].sort((a, b) => byCodeUnit(a.id, b.id))) {
     if (entry.kind === 'not-consent') continue;
     for (const use of entry.uses) {
-      const where = `consent registry ${entry.id}:${use.useId} test ${use.test}`;
-      const file = path.join(root, use.test);
-      if (!fs.existsSync(file)) {
-        errors.push(`${where} is missing`);
-        continue;
-      }
-      const text = fs.readFileSync(file, 'utf8');
-      if (!text.trim()) errors.push(`${where} is empty`);
-      else if (!inLane(lanes, use.test)) errors.push(`${where} is selected by no lane`);
-      else if (SKIPPED_RE.test(text)) errors.push(`${where} is skipped`);
-      else {
-        const names = [entry.id, use.useId, use.submission.split('#')[1]];
-        names.push(...REQUIRED_BY_KIND[entry.kind].map(key => entry[key]));
-        const missing = names.filter(name => !text.includes(name));
-        if (entry.kind === 'consent' && !TIME_RE.test(text)) missing.push('a time field');
-        if (missing.length) errors.push(`${where} does not name ${missing.join(', ')}`);
-      }
+      const error = useEvidenceError(root, lanes, entry, use);
+      if (error !== null) errors.push(error);
     }
   }
   return errors;
