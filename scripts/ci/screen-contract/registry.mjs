@@ -230,6 +230,11 @@ function stringList(node) {
 // The object a config exports by default: `export default {…}` or `export default fn({…})`.
 function defaultConfig(source, rel) {
   const exported = source.statements.find(ts.isExportAssignment)?.expression;
+  // A later argument is merged over the first (r4 B2): only a single-argument call is read.
+  if (exported && ts.isCallExpression(exported) && exported.arguments.length !== 1)
+    throw new ScanError(
+      `${rel} cannot be read statically (a config call with other than one argument)`
+    );
   const object = exported && ts.isCallExpression(exported) ? exported.arguments[0] : exported;
   if (!object || !ts.isObjectLiteralExpression(object))
     throw new ScanError(`${rel} exports no literal config object`);
@@ -238,7 +243,14 @@ function defaultConfig(source, rel) {
 
 // The selection-relevant settings the scanner does not model: one present is an error (r3 B4).
 const VITEST_ROOT_UNMODELLED = ['root'];
-const VITEST_TEST_UNMODELLED = ['dir', 'root', 'projects', 'workspace', 'includeSource'];
+const VITEST_TEST_UNMODELLED = [
+  'dir',
+  'root',
+  'projects',
+  'workspace',
+  'includeSource',
+  'testNamePattern',
+];
 const PLAYWRIGHT_UNMODELLED = ['testIgnore', 'grep', 'grepInvert'];
 const GATE_PROJECT_UNMODELLED = [...PLAYWRIGHT_UNMODELLED, 'testDir'];
 
@@ -423,6 +435,8 @@ function valueSymbol(node, checker) {
     return checker.getShorthandAssignmentValueSymbol(parent) ?? null;
   if (ts.isImportSpecifier(parent) || ts.isImportClause(parent) || ts.isNamespaceImport(parent))
     return null;
+  // A re-export is no use in a test: a type-only one is erased, and none calls it (r4 B1).
+  if (ts.isExportSpecifier(parent)) return null;
   if (ts.isPropertyAccessExpression(parent) && parent.name === node) return null;
   if ('name' in parent && parent.name === node) return null;
   if (ts.isBindingElement(parent) && parent.propertyName === node) return null;

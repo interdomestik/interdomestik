@@ -201,6 +201,21 @@ for (const [label, file, text] of [
     `const extra = {};\n${GATES({ project: "{ name: 'gate-ks-sq', testMatch: GATE_DEFAULT_MATCH, ...extra }" })}`,
   ],
   [
+    'a second Playwright defineConfig argument (r4 B2)',
+    'apps/web/playwright.config.ts',
+    `const GATE_DEFAULT_MATCH = ['gate/**/*.spec.ts'];\nexport default defineConfig({ testDir: './e2e', projects: [${KS}, { name: 'gate-mk-contract', testMatch: GATE_DEFAULT_MATCH }] }, { projects: [{ name: 'gate-ks-sq', testIgnore: /gate/ }] });\n`,
+  ],
+  [
+    'a second Vitest defineConfig argument (r4 B2)',
+    'apps/web/vitest.config.ts',
+    "export default defineConfig({ test: { include: ['src/**/*.test.{ts,tsx}'] } }, { test: { exclude: ['src/app/**'] } });\n",
+  ],
+  [
+    'a Vitest testNamePattern (r4 B2)',
+    'apps/web/vitest.config.ts',
+    "export default { test: { include: ['src/**/*.test.{ts,tsx}'], testNamePattern: 'nothing' } };\n",
+  ],
+  [
     'a gate project grepInvert',
     'apps/web/playwright.config.ts',
     GATES({
@@ -276,6 +291,11 @@ test('r3 B3: a property key, a type-only import or typeof is not a use of the su
       usesOnly("import { type saveTerms } from '@/actions/terms';", 'let f: typeof saveTerms;'),
     ],
     ['typeof only', usesOnly(IMPORT_SAVE, 'let f: typeof saveTerms;')],
+    ...[
+      'export type { saveTerms as T };',
+      'export { type saveTerms as U };',
+      'export { saveTerms as V };',
+    ].map(line => [`a re-export (r4 B1): ${line}`, usesOnly(`${IMPORT_SAVE}\n${line}`, '')]),
     [
       'a shadowing parameter',
       usesOnly(IMPORT_SAVE, 'const run = (saveTerms: () => void) => saveTerms(); run(() => {});'),
