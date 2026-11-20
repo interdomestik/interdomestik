@@ -18,6 +18,7 @@ const CLOSURE = [
   'packages/database/src/seed-workload/index.ts',
   'packages/database/src/seed-packs/agent-pack.ts',
   'packages/database/src/seed-packs/ks-workflow-pack.ts',
+  'packages/database/src/disposable-client.ts',
 ];
 const tlsSource =
   "import postgres from 'postgres'; export const installSeedTlsClients = () => postgres;";
