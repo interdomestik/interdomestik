@@ -10,9 +10,11 @@ import {
 } from './safe-action.check-def';
 import { ownerColumnKeys, TENANT_IDENTITY_KEYS } from './safe-action.owner-keys';
 
-// An action's input schema, walked over its zod 4 definition (design §1.4, addenda 6 to 10): strict
+// An action's input schema, walked over its zod 4 definition (design §1.4, addenda 6 to 13): strict
 // objects only, no identity key, scalar, wrapper, array, tuple, union and (in a form) file nodes, no
-// node that widens, defaults or pipes; a bounded walk (no recursion, depth 32, 5000 units of work). Refused anywhere: a check on a container but
+// node that widens, defaults or pipes. The walk's own steps are bounded (no recursion, depth 32, 5000
+// units of work) and anything thrown while judging is a refusal; the cost of building or listing a
+// developer's schema is not (it runs once at module load). Refused anywhere: a check on a container but
 // an array's size or a scalar wrapper's checks; a check with a custom `when`, holding a schema, or
 // with an accessor or another prototype (read from descriptors, unread). Scope: schemas built through
 // zod's public API. Scalar-rewriting checks and coercions reach the handler until WP-02 part 1b.
@@ -119,6 +121,8 @@ function refuse(ctx: WalkContext, path: string, reason: string): never {
 }
 
 function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
+  // The catchall is charged before its type is read (r14 B44).
+  if (def.catchall) spend(ctx, `${path}{catchall}`, 1);
   if (!def.catchall || defOf(def.catchall).type !== 'never') {
     refuse(ctx, path, 'objects must be strict (z.strictObject or .strict())');
   }
@@ -129,10 +133,7 @@ function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
       'object-level refine/check/superRefine/overwrite belongs in the owning command'
     );
   }
-  if (def.catchall) {
-    spend(ctx, `${path}{catchall}`, 1);
-    assertNodeChecks(def.catchall, defOf(def.catchall), `${path}{catchall}`, ctx);
-  }
+  if (def.catchall) assertNodeChecks(def.catchall, defOf(def.catchall), `${path}{catchall}`, ctx);
   // One field at a time, under the budget: reading a field runs its getter (r13 B42).
   const shape = def.shape ?? {};
   for (const key of Object.keys(shape)) {
@@ -202,17 +203,17 @@ export function assertAcceptedSchema(schema: z.ZodType, options: SchemaCheckOpti
     onPath: new Set(),
     visits: 0,
   };
-  const root = defOf(schema);
-  if (root.type !== 'object') refuse(ctx, '', 'the root must be a strict object');
   try {
+    if (defOf(schema).type !== 'object') refuse(ctx, '', 'the root must be a strict object');
     walk(schema, '', ctx);
+    if (options.form) assertFormFields(schema, ctx);
   } catch (error) {
-    // A stack exhausted inside a field getter, before the bounds see it, is a refusal (r13 B42).
-    if (error instanceof RangeError)
-      refuse(ctx, '', `a schema that cannot be read (${error.message})`);
-    throw error;
+    // Anything else thrown while the schema is judged (a developer getter's error, a stack exhausted
+    // in any realm) is a refusal too; the error itself is not read (r13 B42, r14 B42).
+    if (error instanceof ActionDefinitionError) throw error;
+    refuse(ctx, '', 'a schema that cannot be judged (reading it threw)');
   }
-  if (options.form) assertFormFields(schema, ctx);
+  const root = defOf(schema);
   if (options.subjectFrom !== null && !Object.hasOwn(root.shape ?? {}, options.subjectFrom)) {
     throw new ActionDefinitionError(
       options.operation,
