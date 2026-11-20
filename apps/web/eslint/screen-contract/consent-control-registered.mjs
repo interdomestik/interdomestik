@@ -311,7 +311,7 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
     const opening = element.openingElement;
     const entry = registry.get(consentId);
     const control = literalAttribute(opening, 'id') ?? literalAttribute(opening, 'name');
-    if (!entry || entry.file !== rel || entry.control !== control) {
+    if (entry?.file !== rel || entry.control !== control) {
       flag(element, 'misbound', consentId, `data-consent ${consentId} is not this file's control`);
       return [];
     }
@@ -354,7 +354,7 @@ export default rule('A consent control is registered and tested (CHK-22)', conte
     for (const token of tokens) {
       const [entryId, useId, extra] = token.split(':');
       const use = registry.get(entryId)?.uses.find(u => u.useId === useId);
-      if (extra !== undefined || !use || use.file !== rel) {
+      if (extra !== undefined || use?.file !== rel) {
         flag(
           node,
           'unmatched-boundary',
