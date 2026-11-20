@@ -201,3 +201,42 @@ describe('definition: a recursive schema (r11 B38)', () => {
     expect(define(z.strictObject({ first: row, second: row, list: z.array(row) }))).not.toThrow();
   });
 });
+
+// Astra r12 B39-B41: the walk is bounded in depth and in nodes visited, so a schema that is too
+// deep, too large through reuse, or rebuilt on each read is refused with a definition error.
+describe('definition: a bounded walk (r12 B39, B40, B41)', () => {
+  const tooLarge = /a schema deeper than 32 levels or larger than 5000 nodes/;
+
+  it('refuses a schema reused at sibling keys on every level (B39), without walking it all', () => {
+    let node: z.ZodType = z.strictObject({ v: z.string() });
+    for (let level = 0; level < 14; level += 1) node = z.strictObject({ a: node, b: node });
+    const started = Date.now();
+    expect(define(z.strictObject({ x: node }))).toThrow(tooLarge);
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+
+  it('refuses a deep finite schema with a definition error, not a stack overflow (B40)', () => {
+    let deep: z.ZodType = z.string();
+    for (let level = 0; level < 2400; level += 1) deep = z.array(deep);
+    expect(define(z.strictObject({ deep }))).toThrow(ActionDefinitionError);
+    expect(define(z.strictObject({ deep }))).toThrow(tooLarge);
+  });
+
+  it('refuses a tree rebuilt by a factory on each read (B41)', () => {
+    const node = (): z.ZodType =>
+      z.strictObject({
+        name: z.string(),
+        get children() {
+          return z.array(node());
+        },
+      });
+    expect(define(z.strictObject({ tree: node() }))).toThrow(ActionDefinitionError);
+    expect(define(z.strictObject({ tree: node() }))).toThrow(tooLarge);
+  });
+
+  it('accepts a schema 20 levels deep', () => {
+    let nested: z.ZodType = z.strictObject({ v: z.string() });
+    for (let level = 0; level < 19; level += 1) nested = z.strictObject({ n: nested });
+    expect(define(z.strictObject({ nested }))).not.toThrow();
+  });
+});

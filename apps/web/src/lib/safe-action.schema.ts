@@ -1,10 +1,18 @@
 import { z } from 'zod';
 
+import {
+  checkDef,
+  checkKind,
+  hasCustomWhen,
+  holdsSchema,
+  isArraySizeCheck,
+  ownValue,
+} from './safe-action.check-def';
 import { ownerColumnKeys, TENANT_IDENTITY_KEYS } from './safe-action.owner-keys';
 
 // An action's input schema, walked over its zod 4 definition (design §1.4, addenda 6 to 10): strict
 // objects only, no identity key, scalar, wrapper, array, tuple, union and (in a form) file nodes, no
-// node that widens, defaults or pipes, and no recursion. Refused anywhere: a check on a container but
+// node that widens, defaults or pipes; a bounded walk (no recursion, depth 32, 5000 nodes). Refused anywhere: a check on a container but
 // an array's size or a scalar wrapper's checks; a check with a custom `when`, holding a schema, or
 // with an accessor or another prototype (read from descriptors, unread). Scope: schemas built through
 // zod's public API. Scalar-rewriting checks and coercions reach the handler until WP-02 part 1b.
@@ -25,76 +33,6 @@ const SCALAR_TYPES = new Set(['string', 'number', 'boolean', 'bigint', 'date', '
 const WRAPPER_TYPES = new Set(['optional', 'nullable', 'readonly']);
 const CONTAINER_TYPES = new Set([...WRAPPER_TYPES, 'array', 'tuple', 'union']);
 
-// An own property from its descriptor; an accessor (no `value`) is never called (r10 B28).
-const ACCESSOR = Symbol('accessor');
-function ownValue(holder: unknown, key: PropertyKey): unknown {
-  if ((typeof holder !== 'object' && typeof holder !== 'function') || holder === null) {
-    return undefined;
-  }
-  const own = Reflect.getOwnPropertyDescriptor(holder, key);
-  if (own === undefined) return undefined;
-  return 'value' in own ? own.value : ACCESSOR;
-}
-
-// `check._zod.def` through own data properties, or null when a step or any own key is an accessor or
-// its prototype is not Object.prototype (zod would read an inherited `when`); nothing is called.
-function checkDef(check: unknown): Readonly<Record<PropertyKey, unknown>> | null {
-  const def = ownValue(ownValue(check, '_zod'), 'def');
-  if (typeof def !== 'object' || def === null || Object.getPrototypeOf(def) !== Object.prototype) {
-    return null;
-  }
-  const keys = Reflect.ownKeys(def);
-  if (keys.some(key => ownValue(def, key) === ACCESSOR)) return null;
-  return def as Readonly<Record<PropertyKey, unknown>>;
-}
-
-const firstCheck = (schema: z.ZodType): unknown =>
-  (schema._zod.def as { checks?: unknown[] }).checks?.[0];
-
-// A check's zod kind; an empty or non-string kind is unknown (Astra r8 B30).
-const checkKind = (check: unknown): string => {
-  const kind = ownValue(checkDef(check), 'check');
-  return typeof kind === 'string' && kind !== '' ? kind : 'unknown';
-};
-
-// zod's default `when` of its length and size checks, captured once (addendum 4); any other `when`
-// receives the writable parse payload and can change any value it reaches (Astra r8 B28).
-const LENGTH_WHEN = ownValue(checkDef(firstCheck(z.array(z.string()).min(1))), 'when');
-const SIZE_WHEN = ownValue(checkDef(firstCheck(z.file().min(1))), 'when');
-const DEFAULT_WHEN: ReadonlyMap<string, unknown> = new Map([
-  ['min_length', LENGTH_WHEN],
-  ['max_length', LENGTH_WHEN],
-  ['length_equals', LENGTH_WHEN],
-  ['min_size', SIZE_WHEN],
-  ['max_size', SIZE_WHEN],
-  ['size_equals', SIZE_WHEN],
-]);
-const hasCustomWhen = (check: unknown): boolean => {
-  const when = ownValue(checkDef(check), 'when');
-  return when !== undefined && when !== DEFAULT_WHEN.get(checkKind(check));
-};
-
-// A check holding a zod schema (`z.property`) parses it, with its checks and `when` callbacks, out of
-// the walk's reach: any own definition value carrying `_zod` counts (Astra r9 B28, addendum 8).
-const carriesSchema = (value: unknown): boolean =>
-  (typeof value === 'object' || typeof value === 'function') && value !== null && '_zod' in value;
-const holdsSchema = (check: unknown): boolean => {
-  const def = checkDef(check);
-  return def !== null && Reflect.ownKeys(def).some(key => carriesSchema(def[key]));
-};
-
-// A container may carry an array's size check (kind and zod class trait); its `when` is judged first.
-const ARRAY_SIZE_TRAITS: ReadonlyMap<string, string> = new Map([
-  ['min_length', '$ZodCheckMinLength'],
-  ['max_length', '$ZodCheckMaxLength'],
-  ['length_equals', '$ZodCheckLengthEquals'],
-]);
-const isArraySizeCheck = (check: unknown): boolean => {
-  const trait = ARRAY_SIZE_TRAITS.get(checkKind(check));
-  const traits = ownValue(ownValue(check, '_zod'), 'traits');
-  return trait !== undefined && traits instanceof Set && Set.prototype.has.call(traits, trait);
-};
-
 export class ActionDefinitionError extends Error {
   constructor(operation: string, detail: string) {
     super(`defineAction(${operation}): ${detail}`);
@@ -107,6 +45,7 @@ type WalkContext = {
   form: boolean;
   identityKeys: ReadonlySet<string>;
   onPath: Set<z.ZodType>;
+  visits: number;
 };
 
 function defOf(schema: z.ZodType): ZodDef {
@@ -184,9 +123,17 @@ function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
   }
 }
 
-// A schema met again on its own path refers to itself (zod's getter form): refused (r11 B38).
+// A schema met again on its own path refers to itself (zod's getter form): refused (r11 B38). The
+// walk is bounded in depth and in nodes visited, far beyond any input form, so a schema reused at
+// every level, nested past the stack or rebuilt on each read is refused, not walked (r12 B39-B41).
+const MAX_DEPTH = 32;
+const MAX_NODES = 5000;
 function walk(schema: z.ZodType, path: string, ctx: WalkContext): void {
   if (ctx.onPath.has(schema)) refuse(ctx, path, 'a recursive schema (it refers to itself)');
+  ctx.visits += 1;
+  if (ctx.onPath.size >= MAX_DEPTH || ctx.visits > MAX_NODES) {
+    refuse(ctx, path, `a schema deeper than ${MAX_DEPTH} levels or larger than ${MAX_NODES} nodes`);
+  }
   ctx.onPath.add(schema);
   walkNode(schema, path, ctx);
   ctx.onPath.delete(schema);
@@ -240,6 +187,7 @@ export function assertAcceptedSchema(schema: z.ZodType, options: SchemaCheckOpti
     form: options.form,
     identityKeys: options.basisKind === 'self' ? ownerColumnKeys() : TENANT_IDENTITY_KEYS,
     onPath: new Set(),
+    visits: 0,
   };
   const root = defOf(schema);
   if (root.type !== 'object') refuse(ctx, '', 'the root must be a strict object');
