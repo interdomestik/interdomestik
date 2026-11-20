@@ -4,6 +4,7 @@ import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/sh
 import type { UserSession } from '../types';
 import { canManageAssignedRole } from './role-rules';
 import { resolveTenantAuthority } from './utils';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export async function resolveRoleMutationContext(
   params: {
@@ -17,7 +18,7 @@ export async function resolveRoleMutationContext(
   | { error: string }
 > {
   const session = params.session;
-  if (!session) throw new Error('Unauthorized');
+  if (!session) throw new UnauthorizedError('Unauthorized');
   requirePermission(session, PERMISSIONS['roles.manage'], hasPermission);
   const authority = await resolveTenantAuthority(session, params.authority);
   const { tenantId } = readTenantAuthority(authority);

@@ -4,6 +4,7 @@ import { updateScopedAgentLeadStatus } from '@/features/agent/leads/server/lead-
 import { ROLE_AGENT } from '@/lib/roles.core';
 import { runAuthenticatedAction } from '@/lib/safe-action';
 import { z } from 'zod';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 const updateLeadStatusSchema = z.object({
   leadId: z.string(),
@@ -28,7 +29,7 @@ export async function updateLeadStatusAction(input: unknown) {
     const { actorAgentId, branchId } = ctx.scope;
 
     if (userRole !== ROLE_AGENT || !actorAgentId || !branchId) {
-      throw new Error('Unauthorized');
+      throw new UnauthorizedError('Unauthorized');
     }
 
     await updateScopedAgentLeadStatus({

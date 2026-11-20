@@ -10,6 +10,7 @@ import * as Sentry from '@sentry/nextjs';
 import { and, count, eq } from 'drizzle-orm';
 import { getBranchCashPendingByBranch } from './branch-cash-metrics';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export interface BranchWithKpis {
   id: string;
@@ -37,7 +38,7 @@ export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
           ROLES.staff, // Staff needs visibility into branch health
         ];
         if (!allowedRoles.includes(session.user.role as never)) {
-          throw new Error('Unauthorized');
+          throw new UnauthorizedError('Unauthorized');
         }
 
         const { tenantId } = readTenantAuthority(authority);

@@ -4,6 +4,7 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { revalidatePath } from 'next/cache';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export function revalidateAdminUserPage(locale: string | undefined, userId: string) {
   if (locale) {
@@ -40,6 +41,6 @@ export async function resolveAdminActionAuthority(
   if (session.user?.role !== 'super_admin' || !requested) return authority;
   if (requested === readTenantAuthority(authority).tenantId) return authority;
   const delegated = await delegateSuperAdminTenant(authority, requested);
-  if (!delegated) throw new Error('Unauthorized');
+  if (!delegated) throw new UnauthorizedError('Unauthorized');
   return delegated;
 }

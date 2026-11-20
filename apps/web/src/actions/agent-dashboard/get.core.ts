@@ -14,6 +14,7 @@ import { and, count, desc, sql } from 'drizzle-orm';
 
 import type { Session } from './context';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export async function getAgentDashboardDataCore(params: {
   session: Session | null;
@@ -22,7 +23,7 @@ export async function getAgentDashboardDataCore(params: {
   const { session, authority } = params;
 
   if (!session?.user) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   if (session.user.role === 'agent') {
@@ -33,7 +34,7 @@ export async function getAgentDashboardDataCore(params: {
   }
 
   if (!isStaffOrAdmin(session.user.role)) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   try {
@@ -42,7 +43,7 @@ export async function getAgentDashboardDataCore(params: {
     throw new Error('Missing tenantId');
   }
   if (!authority) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
   const { tenantId } = readTenantAuthority(authority);
 

@@ -1,0 +1,522 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "free-start-intake",
+      "kind": "server-action",
+      "module": "apps/web/src/actions/free-start.core.ts",
+      "export": "submitFreeStartIntake",
+      "operation": null,
+      "rateLimit": null,
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b B1"
+    },
+    {
+      "id": "claim-pack",
+      "kind": "server-action",
+      "module": "apps/web/src/actions/claim-pack.core.ts",
+      "export": "generateClaimPackAction",
+      "operation": null,
+      "rateLimit": null,
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b B2"
+    },
+    {
+      "id": "business-membership-lead",
+      "kind": "server-action",
+      "module": "apps/web/src/lib/actions/business-membership-lead.ts",
+      "export": "submitBusinessMembershipLead",
+      "operation": null,
+      "rateLimit": null,
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b E1"
+    },
+    {
+      "id": "cron-dunning",
+      "kind": "route",
+      "module": "apps/web/src/app/api/cron/dunning/route.ts",
+      "method": "GET",
+      "authentication": "secret-header",
+      "effect": "runDunningCronCore",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/cron/dunning/route.test.ts",
+        "title": "returns 401 when unauthorized"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b D9"
+    },
+    {
+      "id": "cron-engagement",
+      "kind": "route",
+      "module": "apps/web/src/app/api/cron/engagement/route.ts",
+      "method": "GET",
+      "authentication": "secret-header",
+      "effect": "runEngagementCronCore",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/cron/engagement/route.test.ts",
+        "title": "returns 401 when unauthorized"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b D9"
+    },
+    {
+      "id": "cron-nps",
+      "kind": "route",
+      "module": "apps/web/src/app/api/cron/nps/route.ts",
+      "method": "GET",
+      "authentication": "secret-header",
+      "effect": "runNpsCronCore",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/cron/nps/route.test.ts",
+        "title": "returns 401 when unauthorized"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b D9"
+    },
+    {
+      "id": "cron-sponsors",
+      "kind": "route",
+      "module": "apps/web/src/app/api/cron/sponsors/route.ts",
+      "method": "GET",
+      "authentication": "secret-header",
+      "effect": "runSponsorCronCore",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/cron/sponsors/route.test.ts",
+        "title": "returns 401 when unauthorized"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b D9"
+    },
+    {
+      "id": "cron-crm-forecast-snapshots",
+      "kind": "route",
+      "module": "apps/web/src/app/api/cron/crm/forecast-snapshots/route.ts",
+      "method": "GET",
+      "authentication": "secret-header",
+      "effect": "runCrmForecastSnapshotSchedulerCore",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/cron/crm/forecast-snapshots/route.test.ts",
+        "title": "returns 401 and performs no scheduler work when unauthorized"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b D9"
+    },
+    {
+      "id": "cron-crm-forecast-backfill",
+      "kind": "route",
+      "module": "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.ts",
+      "method": "POST",
+      "authentication": "secret-header",
+      "effect": "runCrmForecastSnapshotBackfillCore",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.test.ts",
+        "title": "returns 401 and performs no backfill work when unauthorized"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b D9"
+    },
+    {
+      "id": "paddle-webhook",
+      "kind": "route",
+      "module": "apps/web/src/app/api/webhooks/paddle/route.ts",
+      "method": "POST",
+      "authentication": "signature",
+      "effect": "insertWebhookEvent",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/webhooks/paddle/route.test.ts",
+        "title": "returns 401 and stores no event when the signature is invalid"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b D8, F4"
+    },
+    {
+      "id": "paddle-webhook-entity",
+      "kind": "route",
+      "module": "apps/web/src/app/api/webhooks/paddle/[entity]/route.ts",
+      "method": "POST",
+      "authentication": "signature",
+      "effect": "insertWebhookEvent",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/webhooks/paddle/[entity]/route.test.ts",
+        "title": "returns 401 and stores no event when the signature is invalid"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b D8, F4"
+    },
+    {
+      "id": "public-nps-submit",
+      "kind": "route",
+      "module": "apps/web/src/app/api/public/nps/route.ts",
+      "method": "POST",
+      "authentication": "token",
+      "effect": "withTenantAuthority",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/public/nps/route.test.ts",
+        "title": "returns 404 without any tenant context, update or insert when the token resolves to no tenant"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b D1"
+    },
+    {
+      "id": "public-nps-status",
+      "kind": "route",
+      "module": "apps/web/src/app/api/public/nps/route.ts",
+      "method": "GET",
+      "authentication": "token",
+      "effect": "withTenantAuthority",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/public/nps/route.test.ts",
+        "title": "returns 404 without a tenant context when the token resolves to no tenant"
+      },
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b D1"
+    },
+    {
+      "id": "public-sponsor-opt-out",
+      "kind": "route",
+      "module": "apps/web/src/app/api/public/sponsor-opt-out/route.ts",
+      "method": "POST",
+      "authentication": "token",
+      "effect": "withTenantAuthority",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/public/sponsor-opt-out/route.test.ts",
+        "title": "gives unknown, expired and revoked tokens the same response as malformed tokens"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b D2"
+    },
+    {
+      "id": "share-pack-read",
+      "kind": "route",
+      "module": "apps/web/src/app/api/share-pack/route.ts",
+      "method": "GET",
+      "authentication": "token",
+      "effect": "getSharePack",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/share-pack/route.test.ts",
+        "title": "returns 404 and logs no access for an unknown share token"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b D3"
+    },
+    {
+      "id": "inngest-get",
+      "kind": "route",
+      "module": "apps/web/src/app/api/inngest/route.ts",
+      "method": "GET",
+      "authentication": "library",
+      "effect": "serve",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/inngest/route.test.ts",
+        "title": "refuses an unsigned request before running any function"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "not in R2b (library-authenticated machine route)"
+    },
+    {
+      "id": "inngest-post",
+      "kind": "route",
+      "module": "apps/web/src/app/api/inngest/route.ts",
+      "method": "POST",
+      "authentication": "library",
+      "effect": "serve",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/inngest/route.test.ts",
+        "title": "refuses an unsigned request before running any function"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "not in R2b (library-authenticated machine route)"
+    },
+    {
+      "id": "inngest-put",
+      "kind": "route",
+      "module": "apps/web/src/app/api/inngest/route.ts",
+      "method": "PUT",
+      "authentication": "library",
+      "effect": "serve",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/inngest/route.test.ts",
+        "title": "refuses an unsigned request before running any function"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "not in R2b (library-authenticated machine route)"
+    },
+    {
+      "id": "auth-handler-get",
+      "kind": "route",
+      "module": "apps/web/src/app/api/auth/[...all]/route.ts",
+      "method": "GET",
+      "authentication": "library",
+      "effect": "toNextJsHandler",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/auth/[...all]/route.test.ts",
+        "title": "returns 401 from the identity library without a valid credential"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b A1-A7 (transport)"
+    },
+    {
+      "id": "auth-handler-post",
+      "kind": "route",
+      "module": "apps/web/src/app/api/auth/[...all]/route.ts",
+      "method": "POST",
+      "authentication": "library",
+      "effect": "toNextJsHandler",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/auth/[...all]/route.test.ts",
+        "title": "returns 401 from the identity library without a valid credential"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b A1-A7 (transport)"
+    },
+    {
+      "id": "simple-register-retired",
+      "kind": "route",
+      "module": "apps/web/src/app/api/simple-register/route.ts",
+      "method": "POST",
+      "authentication": "closed-410",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/simple-register/route.test.ts",
+        "title": "returns gone because the endpoint is retired"
+      },
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b D7"
+    },
+    {
+      "id": "e2e-branches",
+      "kind": "route",
+      "module": "apps/web/src/app/api/e2e/branches/route.ts",
+      "method": "POST",
+      "authentication": "secret-header",
+      "effect": "handleE2EBranchOperation",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/e2e/branches/route.test.ts",
+        "title": "returns 404 and runs no branch operation without the e2e secret"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b D7"
+    },
+    {
+      "id": "page-dashboard-slug",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(app)/dashboard/[[...slug]]/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-forgot-password",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(auth)/forgot-password/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-login",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(auth)/login/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-register",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(auth)/register/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-reset-password",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(auth)/reset-password/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-about",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(site)/about/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-business-membership",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(site)/business-membership/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-help-now",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(site)/help-now/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-legal-cookies",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(site)/legal/cookies/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-legal-privacy",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(site)/legal/privacy/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-legal-refund",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(site)/legal/refund/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-legal-terms",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(site)/legal/terms/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-nps-token",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-pricing",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(site)/pricing/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-services",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(site)/services/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-sponsor-opt-out-token",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/(site)/sponsor/opt-out/[token]/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-home",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-partners",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/partners/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-stats",
+      "kind": "page",
+      "page": "apps/web/src/app/[locale]/stats/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "page-track-token",
+      "kind": "page",
+      "page": "apps/web/src/app/track/[token]/page.tsx",
+      "writes": false,
+      "closedBy": null,
+      "source": "R2b C1"
+    },
+    {
+      "id": "auth-email-password",
+      "kind": "auth-mechanism",
+      "module": "apps/web/src/lib/auth/providers.ts",
+      "export": "buildAuthProviders",
+      "configKey": "emailAndPassword",
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b A1, A4, A6"
+    },
+    {
+      "id": "auth-social-github",
+      "kind": "auth-mechanism",
+      "module": "apps/web/src/lib/auth/providers.ts",
+      "export": "buildAuthProviders",
+      "configKey": "socialProviders.github",
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b A5"
+    },
+    {
+      "id": "auth-email-otp",
+      "kind": "auth-mechanism",
+      "module": "apps/web/src/lib/auth/providers.ts",
+      "export": "buildAuthProviders",
+      "plugin": "better-auth/plugins/email-otp#emailOTP",
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b A2, A3, A7, B3, F2"
+    },
+    {
+      "id": "auth-reset-completion",
+      "kind": "auth-mechanism",
+      "module": "apps/web/src/lib/auth/providers.ts",
+      "export": "buildAuthProviders",
+      "plugin": "apps/web/src/lib/auth/reset-completion#resetCompletionPlugin",
+      "writes": true,
+      "closedBy": null,
+      "source": "R2b A6"
+    }
+  ]
+}

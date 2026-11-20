@@ -17,6 +17,7 @@ import { and, count, eq, inArray, or } from 'drizzle-orm';
 import { getAgentMetrics, getStaffLoad } from './branch-dashboard-v2-metrics';
 import type { BranchDashboardV2Data } from './branch-dashboard-v2-types';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export type { BranchDashboardV2Data } from './branch-dashboard-v2-types';
 
@@ -29,7 +30,7 @@ export async function getBranchDashboardV2Data(
     async () => {
       try {
         const authorized = await authorizeSessionTenant();
-        if (!authorized) throw new Error('Unauthorized');
+        if (!authorized) throw new UnauthorizedError('Unauthorized');
         const { session, authority: sessionAuthority } = authorized;
 
         // RBAC Checks

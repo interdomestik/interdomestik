@@ -33,7 +33,13 @@ export function extractRequestMetadata(requestHeaders?: Headers) {
   };
 }
 
-export async function logAuditEvent({
+export type AuditWriteOutcome = { ok: true } | { ok: false; error: unknown };
+
+/**
+ * Writes one audit row and reports the outcome instead of swallowing it, for callers that must act
+ * on a failed write (the refusal record of the action wrapper). Never adds request headers.
+ */
+export async function writeAuditEvent({
   authority,
   actorId,
   actorRole,
@@ -41,25 +47,8 @@ export async function logAuditEvent({
   entityType,
   entityId,
   metadata,
-  headers,
-}: AuditEvent) {
+}: Omit<AuditEvent, 'headers'>): Promise<AuditWriteOutcome> {
   try {
-    const requestMetadata = extractRequestMetadata(headers);
-    const combinedMetadata: Record<string, unknown> = {
-      ...metadata,
-      ...requestMetadata,
-    };
-
-    if (!authority) {
-      const errorMsg = `Audit log failed: Missing tenant authority for action: ${action}`;
-      console.error(errorMsg, { action, entityType, entityId });
-
-      if (process.env.INTERDOMESTIK_AUTOMATED === '1') {
-        throw new Error(errorMsg);
-      }
-      return;
-    }
-
     const { tenantId } = readTenantAuthority(authority);
 
     // The runtime role only accepts audit rows inside the tenant context that owns them.
@@ -72,10 +61,40 @@ export async function logAuditEvent({
         action,
         entityType,
         entityId: entityId || null,
-        metadata: combinedMetadata,
+        metadata: metadata ?? {},
         createdAt: new Date(),
       })
     );
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+
+export async function logAuditEvent({ headers, ...event }: AuditEvent) {
+  try {
+    const requestMetadata = extractRequestMetadata(headers);
+    const combinedMetadata: Record<string, unknown> = {
+      ...event.metadata,
+      ...requestMetadata,
+    };
+
+    if (!event.authority) {
+      const errorMsg = `Audit log failed: Missing tenant authority for action: ${event.action}`;
+      console.error(errorMsg, {
+        action: event.action,
+        entityType: event.entityType,
+        entityId: event.entityId,
+      });
+
+      if (process.env.INTERDOMESTIK_AUTOMATED === '1') {
+        throw new Error(errorMsg);
+      }
+      return;
+    }
+
+    const outcome = await writeAuditEvent({ ...event, metadata: combinedMetadata });
+    if (!outcome.ok) throw outcome.error;
   } catch (error) {
     console.error('Failed to write audit log:', error);
   }

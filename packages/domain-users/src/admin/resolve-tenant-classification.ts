@@ -8,6 +8,11 @@ import { requireTenantAdminSession } from './access';
 import { resolveTenantAuthority, resolveTenantId } from './utils';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
+const isUnauthorizedRefusal = (error: unknown): boolean =>
+  error instanceof Error &&
+  error.name === 'UnauthorizedError' &&
+  (error as { code?: unknown }).code === 'UNAUTHORIZED';
+
 export type TenantClassificationResolutionMode = 'confirm_current' | 'reassign';
 
 export type ResolveTenantClassificationResult = {
@@ -47,13 +52,13 @@ async function validateResolutionInput(params: {
     }
 
     if (adminSession.user.role !== 'super_admin' && normalizedCurrentTenantId !== sessionTenantId) {
-      return { error: 'Unauthorized' };
+      return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
     }
 
     const nextTenantId = resolveTenantId(adminSession, targetTenantId ?? null);
     // Moving a user between tenants is a platform action: only super_admin may reassign.
     if (nextTenantId !== normalizedCurrentTenantId && adminSession.user.role !== 'super_admin') {
-      return { error: 'Unauthorized' };
+      return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
     }
 
     // The session authority for the caller's own tenant; a super_admin naming another (active)
@@ -74,8 +79,9 @@ async function validateResolutionInput(params: {
       },
     };
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return { error: 'Unauthorized' };
+    // Only the typed refusal of the authority helpers; any other failure is unexpected and rethrown.
+    if (isUnauthorizedRefusal(error)) {
+      return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
     }
     throw error;
   }

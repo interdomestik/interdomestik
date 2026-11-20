@@ -10,6 +10,7 @@ import { and, isNull, ne, or } from 'drizzle-orm';
 import type { ActionResult, UserSession } from '../types';
 import { requireTenantAdminSession } from './access';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export async function updateUserAgentCore(params: {
   session: UserSession | null;
@@ -19,7 +20,7 @@ export async function updateUserAgentCore(params: {
 }): Promise<ActionResult> {
   const { session, authority, userId, agentId } = params;
   await requireTenantAdminSession(session);
-  if (!authority) throw new Error('Unauthorized');
+  if (!authority) throw new UnauthorizedError('Unauthorized');
 
   const { tenantId } = readTenantAuthority(authority);
 

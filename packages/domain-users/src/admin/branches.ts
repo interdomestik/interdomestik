@@ -10,6 +10,7 @@ import type { ActionResult, UserDomainDeps, UserSession } from '../types';
 import { branchSlugFromName } from './branch-slug';
 import { resolveTenantAuthority } from './utils';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export async function listBranchesCore(params: {
   session: UserSession | null;
@@ -17,7 +18,7 @@ export async function listBranchesCore(params: {
   includeInactive?: boolean;
 }) {
   const session = params.session;
-  if (!session) throw new Error('Unauthorized');
+  if (!session) throw new UnauthorizedError('Unauthorized');
   requirePermission(session, PERMISSIONS['branches.manage'], hasPermission);
   const authority = await resolveTenantAuthority(session, params.authority);
   const { tenantId } = readTenantAuthority(authority);
@@ -44,7 +45,7 @@ export async function createBranchCore(
   deps: UserDomainDeps = {}
 ) {
   const session = params.session;
-  if (!session) throw new Error('Unauthorized');
+  if (!session) throw new UnauthorizedError('Unauthorized');
   requirePermission(session, PERMISSIONS['branches.manage'], hasPermission);
   const authority = await resolveTenantAuthority(session, params.authority);
   const { tenantId } = readTenantAuthority(authority);
@@ -131,7 +132,7 @@ export async function updateBranchCore(
   deps: UserDomainDeps = {}
 ) {
   const session = params.session;
-  if (!session) throw new Error('Unauthorized');
+  if (!session) throw new UnauthorizedError('Unauthorized');
   requirePermission(session, PERMISSIONS['branches.manage'], hasPermission);
   const authority = await resolveTenantAuthority(session, params.authority);
   const { tenantId } = readTenantAuthority(authority);
@@ -206,7 +207,7 @@ export async function deleteBranchCore(
   deps: UserDomainDeps = {}
 ) {
   const session = params.session;
-  if (!session) throw new Error('Unauthorized');
+  if (!session) throw new UnauthorizedError('Unauthorized');
   requirePermission(session, PERMISSIONS['branches.manage'], hasPermission);
   const authority = await resolveTenantAuthority(session, params.authority);
   const { tenantId } = readTenantAuthority(authority);

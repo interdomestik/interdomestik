@@ -5,6 +5,7 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import type { UserSession } from '../types';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export function resolveTenantId(session: UserSession, requestedTenantId?: string | null): string {
   if (requestedTenantId) {
@@ -15,7 +16,7 @@ export function resolveTenantId(session: UserSession, requestedTenantId?: string
       return requestedTenantId;
     }
 
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
   return ensureAccessTenantId(session);
@@ -32,15 +33,15 @@ export async function resolveTenantAuthority(
   authority: TenantAuthority | null | undefined,
   requestedTenantId?: string | null
 ): Promise<TenantAuthority> {
-  if (!authority) throw new Error('Unauthorized');
+  if (!authority) throw new UnauthorizedError('Unauthorized');
   const descriptor = readTenantAuthority(authority);
-  if (descriptor.principal?.userId !== session.user.id) throw new Error('Unauthorized');
+  if (descriptor.principal?.userId !== session.user.id) throw new UnauthorizedError('Unauthorized');
 
   const requested = requestedTenantId?.trim();
   if (!requested || requested === descriptor.tenantId) return authority;
-  if (session.user.role !== 'super_admin') throw new Error('Unauthorized');
+  if (session.user.role !== 'super_admin') throw new UnauthorizedError('Unauthorized');
 
   const delegated = await delegateSuperAdminTenant(authority, requested);
-  if (!delegated) throw new Error('Unauthorized');
+  if (!delegated) throw new UnauthorizedError('Unauthorized');
   return delegated;
 }

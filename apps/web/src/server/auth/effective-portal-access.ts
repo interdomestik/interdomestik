@@ -1,6 +1,7 @@
 import { dbAdmin } from '@interdomestik/database/db';
 import { eq } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 type SessionLike = {
   user?: {
@@ -99,6 +100,6 @@ export async function requireEffectivePortalAccessOrUnauthorized(
 ): Promise<void> {
   const allowed = await hasEffectivePortalAccess(session, allowedRoles, options);
   if (!allowed) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 }

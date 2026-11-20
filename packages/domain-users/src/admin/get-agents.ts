@@ -9,13 +9,14 @@ import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth'
 import type { UserSession } from '../types';
 import { requireTenantAdminOrBranchManagerSession } from './access';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export async function getAgentsCore(params: {
   session: UserSession | null;
   authority: TenantAuthority | null;
 }) {
   const session = await requireTenantAdminOrBranchManagerSession(params.session);
-  if (!params.authority) throw new Error('Unauthorized');
+  if (!params.authority) throw new UnauthorizedError('Unauthorized');
   const authority = params.authority;
 
   const scope = scopeFilter(session as unknown as SessionWithTenant);

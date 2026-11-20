@@ -73,6 +73,7 @@ const STRUCTURED_OWNERS = [
     's7-helpnow-localized-copy-contract',
   ],
   [/^apps\/web\/public\/manifest\.json$/u, 'pwa-manifest-contract'],
+  [/^apps\/web\/src\/lib\/public-entry-points\.json$/u, 'public-entry-registry-contract'],
   [/^docs\/release\/production-evidence\.(?:yaml|schema\.json)$/u, RELEASE_EVIDENCE_OWNER],
   [/^docs\/release\/t503-evidence-intake\/manifest-patch-example\.yaml$/u, RELEASE_EVIDENCE_OWNER],
 ];
@@ -264,11 +265,9 @@ export function isExplicitModularityException(filePath) {
 export function structuredArtifactOwner(filePath) {
   const relPath = toPolicyPath(filePath);
   const match = /^apps\/web\/src\/messages\/((de|en|mk|sq|sr)\/([^/]+\.json))$/u.exec(relPath);
-  const localeOwner = match
-    ? (LOCALE_CATALOG_OWNERS.get(match[3]) ?? LOCALE_CATALOG_OWNERS.get(match[1]))
-    : undefined;
-  if (localeOwner) return localeOwner;
-  return STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1] ?? null;
+  const localeOwner =
+    match && (LOCALE_CATALOG_OWNERS.get(match[3]) ?? LOCALE_CATALOG_OWNERS.get(match[1]));
+  return localeOwner || (STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1] ?? null);
 }
 export function classifyModularityFile(filePath) {
   const relPath = toPolicyPath(filePath);

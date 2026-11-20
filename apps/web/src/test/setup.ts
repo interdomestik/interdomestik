@@ -21,7 +21,10 @@ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||= 'test-anon-key';
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Mock Next.js navigation
-vi.mock('next/navigation', () => ({
+vi.mock('next/navigation', async () => ({
+  // The action wrappers rethrow Next control flow through the real helper.
+  unstable_rethrow: (await vi.importActual<typeof import('next/navigation')>('next/navigation'))
+    .unstable_rethrow,
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),

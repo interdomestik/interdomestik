@@ -123,7 +123,24 @@ describe('resolveTenantClassificationCore', () => {
         targetTenantId: 'tenant_gone',
       });
 
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
+      expect(mocks.withTenantContext).not.toHaveBeenCalled();
+    });
+
+    it('rethrows a failed delegation lookup instead of reporting it as a refusal', async () => {
+      // Untyped, whatever its text: only the typed UnauthorizedError is a refusal (design §4).
+      const failure = new Error('Unauthorized');
+      mocks.delegateSuperAdminTenant.mockRejectedValueOnce(failure);
+
+      await expect(
+        resolveTenantClassificationCore({
+          session: superAdminSession,
+          authority: superAuthority,
+          userId: 'member-1',
+          currentTenantId: 'tenant_mk',
+          targetTenantId: 'tenant_mk',
+        })
+      ).rejects.toBe(failure);
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
 
@@ -135,7 +152,7 @@ describe('resolveTenantClassificationCore', () => {
         currentTenantId: 'tenant_ks',
       });
 
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
   });
@@ -175,7 +192,7 @@ describe('resolveTenantClassificationCore', () => {
         currentTenantId: 'tenant_ks',
       });
 
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
 
@@ -188,7 +205,7 @@ describe('resolveTenantClassificationCore', () => {
         targetTenantId: 'tenant_mk',
       });
 
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
   });
@@ -202,7 +219,7 @@ describe('resolveTenantClassificationCore', () => {
         currentTenantId: 'tenant_mk',
       });
 
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
 
