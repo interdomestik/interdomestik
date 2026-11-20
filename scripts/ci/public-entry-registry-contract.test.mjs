@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
+import { ScanError } from './server-mutation/ast.mjs';
 import { REGISTRY_PATH, loadRegistry, parseRegistry } from './server-mutation/registry.mjs';
 import {
   json,
@@ -60,4 +61,18 @@ test('schema-breaking fixtures are refused by the scanner schema', () => {
   const closed = { ...FIXTURE, entries: [{ ...first, closedBy: { setting: 'x' } }] };
   assert.throws(() => parseRegistry(JSON.stringify(closed)), /closedBy must be null/u);
   assert.throws(() => parseRegistry('{'), Error);
+});
+
+// A kind named like an Object.prototype member is an unknown kind, refused as a scan error, never
+// dispatched through the prototype (CodeQL js/unvalidated-dynamic-method-call on PR 2096).
+test('a kind named like an Object.prototype member is refused as an unknown kind', () => {
+  const [first] = FIXTURE.entries;
+  for (const kind of ['constructor', 'toString', 'hasOwnProperty', '__proto__']) {
+    const named = { ...FIXTURE, entries: [{ ...first, kind }] };
+    assert.throws(
+      () => parseRegistry(JSON.stringify(named)),
+      error => error instanceof ScanError && /has an unknown kind/u.test(error.message),
+      kind
+    );
+  }
 });

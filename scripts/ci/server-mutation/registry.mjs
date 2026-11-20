@@ -83,11 +83,20 @@ const KIND_RULES = {
   },
 };
 
+// An entry's kind with its shape and rule, from own keys only: a kind named like an Object.prototype
+// member is an unknown kind and is never dispatched through the prototype.
+function kindOf(entry) {
+  const kind = typeof entry.kind === 'string' ? entry.kind : '';
+  const shape = Object.hasOwn(SHAPES, kind) ? SHAPES[kind] : null;
+  const rule = Object.hasOwn(KIND_RULES, kind) ? KIND_RULES[kind] : null;
+  if (!Array.isArray(shape) || typeof rule !== 'function') fail(entry, 'has an unknown kind');
+  return { shape, rule };
+}
+
 function validateEntry(entry) {
   if (!isPlainObject(entry)) fail(entry, 'is not an object');
   if (!ID_RE.test(entry.id ?? '')) fail(entry, 'has an invalid id');
-  const shape = SHAPES[entry.kind];
-  if (!shape) fail(entry, 'has an unknown kind');
+  const { shape, rule } = kindOf(entry);
   for (const key of Object.keys(entry))
     if (!shape.includes(key)) fail(entry, `has an unknown key ${key}`);
   for (const key of shape) if (!OPTIONAL.has(key) && !(key in entry)) fail(entry, `has no ${key}`);
@@ -95,7 +104,7 @@ function validateEntry(entry) {
   // Part 1: no closure predicate exists yet (WP-10), so every entry is an open baseline item.
   if (entry.closedBy !== null) fail(entry, 'closedBy must be null in part 1');
   if (!isText(entry.source)) fail(entry, 'needs its inventory source');
-  KIND_RULES[entry.kind](entry);
+  rule(entry);
 }
 
 export function parseRegistry(text) {

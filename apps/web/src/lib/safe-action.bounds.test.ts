@@ -121,7 +121,6 @@ describe('definition: every failure is a definition error, charged first (r14 B4
     z.strictObject({
       get broken() {
         throw thrown;
-        return z.string();
       },
     });
 

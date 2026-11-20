@@ -29,7 +29,8 @@ export function findTest(sf, title) {
   return hit;
 }
 
-// Every enclosing suite must be a plain `describe(...)`: no .skip, .todo, .skipIf or .only chains.
+// Every enclosing suite must be a plain `describe(...)`: no skipped, pending, conditional or exclusive
+// chain (`.skip`, the pending-test modifier, `.skipIf`, `.only`).
 function suitesPlain(test) {
   for (let node = test.parent; node; node = node.parent) {
     if (!ts.isCallExpression(node)) continue;

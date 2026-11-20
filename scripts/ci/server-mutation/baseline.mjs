@@ -168,11 +168,16 @@ function stateFindings(id, baseCheck, headCheck, allowed) {
       out.push(`${id}#changed-${key}`);
   const before = coverageValues(baseCheck.coverageMin);
   const after = coverageValues(headCheck.coverageMin);
-  const lowered = Object.keys(before).some(kind => !(after[kind] >= before[kind]));
+  const lowered = Object.keys(before).some(kind => !atLeast(after[kind], before[kind]));
   if (lowered && !allowed('#coverageMin', 'count')) out.push(`${id}#lowered-coverageMin`);
   const reopened = baseCheck.exhausted === true && headCheck.exhausted !== true;
   if (reopened && !allowed('#exhausted', 'downgrade')) out.push(`${id}#reopened`);
   return out;
+}
+
+// `value >= min`, negated by the callers as written: a missing or non-numeric value is never at least min.
+function atLeast(value, min) {
+  return value >= min;
 }
 
 export function ratchet(current, admitted) {
@@ -183,6 +188,6 @@ export function coverageShortfall(units, coverageMin) {
   const required = coverageValues(coverageMin);
   const counted = ownMap(isCount(units) ? { '*': units } : units);
   return Object.entries(required)
-    .filter(([kind, min]) => !((counted[kind] ?? 0) >= min))
+    .filter(([kind, min]) => !atLeast(counted[kind] ?? 0, min))
     .map(([kind, min]) => `${kind}: ${counted[kind] ?? 0} < ${min}`);
 }

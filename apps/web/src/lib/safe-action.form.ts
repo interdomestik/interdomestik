@@ -1,7 +1,7 @@
 import { actionFailure, type ActionFailure } from './safe-action.failure';
 
 // Next adds its own `$ACTION_*` fields to a submitted form; they are transport, never input.
-const NEXT_ACTION_FIELD = /^\$ACTION_/;
+const NEXT_ACTION_PREFIX = '$ACTION_';
 
 /**
  * The field map of a submitted form (design §1.5): built on a null prototype, Next's own fields
@@ -16,7 +16,7 @@ export function formDataToInput(
   }
   const input: Record<string, unknown> = Object.create(null);
   for (const key of new Set(formData.keys())) {
-    if (NEXT_ACTION_FIELD.test(key)) continue;
+    if (key.startsWith(NEXT_ACTION_PREFIX)) continue;
     const values = formData.getAll(key);
     if (arrayKeys.has(key)) {
       input[key] = values;

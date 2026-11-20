@@ -47,9 +47,10 @@ export function parseArgs(argv) {
     const flag = argv[i];
     if (FLAGS.has(flag)) args.enforcing = flag === '--enforcing';
     // An option takes a non-empty value: an empty `--check ''` is no scope at all (Astra r5 B21).
-    else if (OPTIONS.has(flag) && typeof argv[i + 1] === 'string' && argv[i + 1] !== '')
-      args[flag.slice(2)] = argv[(i += 1)];
-    else throw new ScanError(`unknown or incomplete argument ${flag}`);
+    else if (OPTIONS.has(flag) && typeof argv[i + 1] === 'string' && argv[i + 1] !== '') {
+      i += 1;
+      args[flag.slice(2)] = argv[i];
+    } else throw new ScanError(`unknown or incomplete argument ${flag}`);
   }
   if (!args.base) throw new ScanError('--base <sha> is required');
   if (args.check && args.enforcing) throw new ScanError('--check and --enforcing are exclusive');
