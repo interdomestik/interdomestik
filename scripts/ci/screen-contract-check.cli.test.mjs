@@ -48,7 +48,8 @@ const INPUTS = {
   [REBUILT]: '[]\n',
   'apps/web/vitest.config.ts':
     "export default { test: { include: ['src/**/*.test.{ts,tsx}'] } };\n",
-  'apps/web/playwright.config.ts': "export default { testDir: './e2e' };\n",
+  'apps/web/playwright.config.ts':
+    "const GATE_DEFAULT_MATCH = ['gate/**/*.spec.ts'];\nexport default { testDir: './e2e' };\n",
   [`${W}/app/ok/page.tsx`]: 'export default function P() { return null; }\n',
 };
 const DB_PAGE = `${W}/app/legacy/page.tsx`;
@@ -340,8 +341,14 @@ test('CLI: the registry is judged against the trusted base, and each use needs i
     [action]: "'use server';\nexport async function saveTerms() {}\n",
     [page]:
       'import { saveTerms } from \'@/actions/consent\';\nexport default function P() { return <form action={saveTerms} data-consent-use="terms:signup"><input type="checkbox" id="terms" data-consent="terms" /></form>; }\n',
-    [testFile]:
-      "it('terms signup saveTerms acceptTerms consents TERMS_VERSION acceptedAt', () => {});\n",
+    // The use's test loads the registered submission module and calls its export (r1 B8).
+    [testFile]: [
+      "import { saveTerms } from '@/actions/consent';",
+      "it('terms signup stores acceptTerms in consents with TERMS_VERSION and acceptedAt', async () => {",
+      '  await saveTerms();',
+      '});',
+      '',
+    ].join('\n'),
     [REG]: JSON.stringify({ version: 1, entries: [entry('consent')] }),
   };
   const { root, base } = adopted(t, {}, files);
@@ -370,7 +377,7 @@ test('CLI: the registry is judged against the trusted base, and each use needs i
       /is skipped/u,
     ],
     [
-      "it('terms signup saveTerms', () => {});\n",
+      "import { saveTerms } from '@/actions/consent';\nit('terms signup', () => saveTerms());\n",
       testFile,
       /does not name acceptTerms, consents, TERMS_VERSION, a time field/u,
     ],

@@ -56,6 +56,24 @@ export function pairTransfers(base, head) {
 
 export const REBUILT_PATH = 'scripts/ci/screen-contract/rebuilt-screens.json';
 
+// A canonical repository path of a source file under a linted root: no `.`/`..` or empty segment,
+// no backslash, and one of the linted source extensions (r1 B9).
+const CANONICAL_RE =
+  /^(?:apps\/web\/src|packages\/[\w.-]+\/src)(?:\/[^/\\]+)+\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/u;
+const isCanonical = file =>
+  CANONICAL_RE.test(file) && !file.split('/').some(part => part === '.' || part === '..');
+
+// A rebuilt file the head adds to the list must be a screen the head lints; an entry the trusted
+// base already lists stays valid after its file is gone.
+export function rebuiltDeclarationErrors(baseList, headList, files, roleOf) {
+  const known = new Set(baseList ?? []);
+  const present = new Set(files);
+  return headList
+    .filter(file => !known.has(file))
+    .filter(file => !present.has(file) || roleOf(file) !== 'screen')
+    .map(file => `the rebuilt-screens list names ${file}, which is not a screen of the head`);
+}
+
 export function parseRebuilt(text, label) {
   if (typeof text !== 'string' || !text.trim())
     throw new ScanError(`${label} rebuilt-screens list is missing or empty`);
@@ -67,6 +85,9 @@ export function parseRebuilt(text, label) {
   }
   if (!Array.isArray(data) || !data.every(file => typeof file === 'string' && file))
     throw new ScanError(`${label} rebuilt-screens list is not a list of paths`);
+  const odd = data.find(file => !isCanonical(file));
+  if (odd !== undefined)
+    throw new ScanError(`${label} rebuilt-screens list names a non-canonical path ${odd}`);
   if (new Set(data).size !== data.length)
     throw new ScanError(`${label} rebuilt-screens list has duplicates`);
   return [...data].sort(byCodeUnit);

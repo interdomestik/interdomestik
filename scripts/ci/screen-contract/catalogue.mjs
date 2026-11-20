@@ -8,10 +8,25 @@ const DIR = 'apps/web/src/messages/en';
 const catalogues = new Map();
 const isPlainObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
+// Untrusted JSON becomes prototype-free maps that hold own keys only (`__proto__` and
+// `constructor` are ordinary keys here), so no merge step reaches shared object state.
+function detached(value) {
+  if (Array.isArray(value)) return value.map(detached);
+  if (!isPlainObject(value)) return value;
+  const out = Object.create(null);
+  for (const key of Object.keys(value)) out[key] = detached(value[key]);
+  return out;
+}
+
+const ownChild = (node, key) => (Object.hasOwn(node, key) ? node[key] : undefined);
+
 function merge(into, from) {
-  for (const [key, value] of Object.entries(from))
-    if (isPlainObject(value) && isPlainObject(into[key])) merge(into[key], value);
+  for (const key of Object.keys(from)) {
+    const value = from[key];
+    const current = ownChild(into, key);
+    if (isPlainObject(value) && isPlainObject(current)) merge(current, value);
     else into[key] = value;
+  }
 }
 
 export function catalogueFor(root) {
@@ -27,7 +42,7 @@ export function catalogueFor(root) {
   walk(dir);
   if (!files.length) throw new ScanError(`${DIR} has no catalogue file`);
   files.sort(byCodeUnit);
-  const merged = {};
+  const merged = Object.create(null);
   for (const file of files) {
     const rel = path.relative(root, file);
     const text = fs.readFileSync(file, 'utf8');
@@ -39,7 +54,7 @@ export function catalogueFor(root) {
       throw new ScanError(`${rel} is not valid JSON`);
     }
     if (!isPlainObject(data)) throw new ScanError(`${rel} is not an object`);
-    merge(merged, data);
+    merge(merged, detached(data));
   }
   catalogues.set(root, merged);
   return merged;
@@ -49,7 +64,7 @@ export function catalogueFor(root) {
 export function messageText(catalogue, key) {
   let node = catalogue;
   for (const part of key.split('.')) {
-    if (!isPlainObject(node) || !(part in node)) return null;
+    if (!isPlainObject(node) || !Object.hasOwn(node, part)) return null;
     node = node[part];
   }
   return typeof node === 'string' ? node : null;

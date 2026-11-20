@@ -49,6 +49,10 @@ export function toolVersions(root = SCANNER_ROOT) {
   const out = { node: process.version };
   for (const name of VERSIONED) out[name] = web(`${name}/package.json`).version;
   out['enhanced-resolve'] = top('enhanced-resolve/package.json').version;
+  // A transitive dependency can change a rule's behaviour without a recorded version changing
+  // (the minimatch override of this PR is one): the scanner checkout's lockfile enters too (r1 H6).
+  const lock = path.join(root, 'pnpm-lock.yaml');
+  out.lockfile = fs.existsSync(lock) ? sha256(fs.readFileSync(lock, 'utf8')) : null;
   return out;
 }
 
@@ -63,6 +67,7 @@ export function evaluatorDigest(settings, root = SCANNER_ROOT, versions = toolVe
     rel => `${rel}\n${fs.readFileSync(path.join(root, rel), 'utf8')}`
   );
   const config = JSON.stringify({
+    mode: settings?.mode ?? null,
     unit: settings?.unit ?? null,
     predicate: settings?.predicate ?? null,
     coverageMin: canonical(settings?.coverageMin ?? null),
@@ -81,6 +86,34 @@ export function selectChecks({ check, enforcing }, base, head) {
   }
   if (enforcing) return CHECKS.filter(c => isFail(base, c.id) || isFail(head, c.id));
   return [...CHECKS];
+}
+
+// Checks the trusted base names but this scanner no longer has: evaluated unless one check is
+// selected, and in the enforcing invocation only when the base enforces them (WP-02's rule, r1 B10).
+export function selectRetired({ check, enforcing }, base) {
+  if (check || !base) return [];
+  return Object.keys(base.checks)
+    .filter(id => !CHECKS.some(candidate => candidate.id === id))
+    .filter(id => !enforcing || isFail(base, id));
+}
+
+// A retired check can only be removed: the head cannot name it, so its removal is judged against
+// the base and needs the owner's fresh `#check` exception.
+export function evaluateRetired(id, base, head, shas) {
+  return {
+    id,
+    ...shas,
+    digest: null,
+    retired: true,
+    mode: { base: base.checks[id].mode, head: null },
+    enforcing: isFail(base, id),
+    units: {},
+    total: 0,
+    new: [],
+    fixed: [],
+    tamper: tamperFindings(id, base, head),
+    findings: [],
+  };
 }
 
 const unique = items => [...new Set(items)];

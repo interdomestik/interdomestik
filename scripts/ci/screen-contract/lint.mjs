@@ -13,7 +13,9 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const SCANNER_ROOT = path.resolve(HERE, '../../..');
 export const CONFIG_PATH = 'apps/web/eslint.screen-contract.config.mjs';
 const WEB_REQUIRE = createRequire(path.join(SCANNER_ROOT, 'apps/web/package.json'));
-const SKIP_DIRS = new Set(['node_modules', '.next', 'dist', '.turbo', 'coverage', '.git']);
+// The scanner lints an extracted revision, which holds tracked files only; a tracked directory is
+// source whatever its name (a route under `app/coverage/` is a screen). Only these two never are.
+const SKIP_DIRS = new Set(['node_modules', '.git']);
 const SOURCE_RE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/u;
 const KEY_RE = /^⟦([^⟧]+)⟧ /u;
 
@@ -70,8 +72,49 @@ async function loadEslint() {
 
 const severityOf = value => (Array.isArray(value) ? value[0] : value);
 const isError = value => severityOf(value) === 2 || severityOf(value) === 'error';
+const isOff = value => severityOf(value) === 0 || severityOf(value) === 'off';
 
-// The rules each check needs enabled at `error`, from the loaded config's exports.
+// The recommended jsx-a11y rules that do not run, pinned here and not read from the config under
+// check, so a config that drops a rule cannot also drop it from the reconciliation (r1 B3).
+export const A11Y_EXCLUDED_PINNED = Object.freeze(['jsx-a11y/label-has-associated-control']);
+
+// The A11Y rules a run must find enabled: the installed plugin's own `recommended` set (its
+// version enters the evaluator digest) minus the pinned exclusions.
+async function expectedA11y() {
+  let plugin;
+  try {
+    plugin = (await import(pathToFileURL(WEB_REQUIRE.resolve('eslint-plugin-jsx-a11y')).href))
+      .default;
+  } catch (error) {
+    throw new ScanError(`eslint-plugin-jsx-a11y is not loadable: ${error?.message ?? error}`);
+  }
+  const recommended = plugin?.flatConfigs?.recommended?.rules;
+  if (!recommended) throw new ScanError('eslint-plugin-jsx-a11y has no recommended set');
+  return Object.entries(recommended)
+    .filter(([name, value]) => !isOff(value) && !A11Y_EXCLUDED_PINNED.includes(name))
+    .map(([name]) => name)
+    .sort(byCodeUnit);
+}
+
+function reconcileA11y(config, expected) {
+  const excluded = Object.keys(config.A11Y_EXCLUDED ?? {}).sort(byCodeUnit);
+  const pinned = [...A11Y_EXCLUDED_PINNED].sort(byCodeUnit);
+  if (excluded.join('\n') !== pinned.join('\n'))
+    throw new ScanError(
+      `the config's A11Y exclusions (${excluded.join(', ')}) differ from the pinned ones (${pinned.join(', ')})`
+    );
+  const enabled = new Set(Object.keys(config.A11Y_RULES ?? {}));
+  const missing = expected.filter(name => !enabled.has(name));
+  if (missing.length)
+    throw new ScanError(
+      `the screen-contract config drops recommended rules: ${missing.join(', ')}`
+    );
+  const extra = [...enabled].filter(name => !expected.includes(name));
+  if (extra.length)
+    throw new ScanError(`the screen-contract config adds unexpected rules: ${extra.join(', ')}`);
+}
+
+// The rules each check needs enabled at `error`: the local rules, and the pinned A11Y set.
 export async function ruleSets(configFile = path.join(SCANNER_ROOT, CONFIG_PATH)) {
   let config;
   try {
@@ -79,10 +122,11 @@ export async function ruleSets(configFile = path.join(SCANNER_ROOT, CONFIG_PATH)
   } catch (error) {
     throw new ScanError(`the screen-contract config is not loadable: ${error?.message ?? error}`);
   }
-  const a11y = Object.keys(config.A11Y_RULES ?? {});
-  if (!a11y.length) throw new ScanError('the screen-contract config enables no jsx-a11y rule');
+  const expected = await expectedA11y();
+  if (!expected.length) throw new ScanError('the pinned jsx-a11y rule set is empty');
+  reconcileA11y(config, expected);
   const sets = Object.fromEntries(Object.entries(LOCAL_RULE_OF).map(([id, name]) => [id, [name]]));
-  sets.A11Y = [...a11y, LOCAL_RULE_OF.A11Y].sort(byCodeUnit);
+  sets.A11Y = [...expected, LOCAL_RULE_OF.A11Y].sort(byCodeUnit);
   return sets;
 }
 

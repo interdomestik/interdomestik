@@ -22,10 +22,13 @@ import {
   CHECKS,
   SCRIPT_PATH,
   evaluateCheck,
+  evaluateRetired,
   exitCode,
   selectChecks,
+  selectRetired,
+  toolVersions,
 } from './screen-contract/evaluate.mjs';
-import { lintTree, linted } from './screen-contract/lint.mjs';
+import { EXPECTS, lintTree, linted } from './screen-contract/lint.mjs';
 import {
   REGISTRY_PATH,
   parseRegistry,
@@ -34,11 +37,14 @@ import {
   registryTamper,
   testEvidence,
 } from './screen-contract/registry.mjs';
-import { replay } from './screen-contract/replay.mjs';
+import { readInside } from './screen-contract/paths.mjs';
+import { preAdoptionBase, replaySummary, synthesizeInputs } from './screen-contract/replay.mjs';
+import { roleOf } from './screen-contract/roles.mjs';
 import {
   REBUILT_PATH,
   pairTransfers,
   parseRebuilt,
+  rebuiltDeclarationErrors,
   rebuiltRemovals,
 } from './screen-contract/transfer.mjs';
 
@@ -71,7 +77,9 @@ const invocationOf = args => {
   return args.enforcing ? 'enforcing' : 'advisory';
 };
 
-function readBaseBaseline(repo, baseSha, only) {
+function readBaseBaseline(repo, baseSha, only, synthesized) {
+  if (synthesized)
+    return parseBaseline(JSON.stringify(synthesized), 'base', CHECKS, { trustedBase: true, only });
   const baseText = showAt(repo, baseSha, BASELINE_PATH);
   if (baseText !== null)
     return parseBaseline(baseText, 'base', CHECKS, { trustedBase: true, only });
@@ -80,14 +88,10 @@ function readBaseBaseline(repo, baseSha, only) {
   return null;
 }
 
-function readHeadBaseline(root, only) {
-  const headFile = path.join(root, BASELINE_PATH);
-  return parseBaseline(
-    fs.existsSync(headFile) ? fs.readFileSync(headFile, 'utf8') : '',
-    'head',
-    CHECKS,
-    { only }
-  );
+// A pre-adoption head (replay only) has no baseline; it is judged against its base's synthesized one.
+function readHeadBaseline(root, only, synthesized) {
+  const text = readInside(root, BASELINE_PATH) ?? (synthesized ? JSON.stringify(synthesized) : '');
+  return parseBaseline(text, 'head', CHECKS, { only });
 }
 
 function assertChecksPresent(repo, baseSha, { base, head }, scope) {
@@ -119,27 +123,46 @@ function assertRemovalsKept({ base, head }, only) {
 }
 
 // The baselines, as WP-02's CLI reads them, over WP-02's functions (design §3 "WP-05's own code").
-function readBaselines(repo, root, baseSha, scope) {
+function readBaselines(repo, root, baseSha, scope, synthesized = null) {
   const only = scope?.id ?? null;
-  const base = readBaseBaseline(repo, baseSha, only);
-  const head = readHeadBaseline(root, only);
+  const base = readBaseBaseline(repo, baseSha, only, synthesized);
+  const head = readHeadBaseline(root, only, synthesized);
   assertChecksPresent(repo, baseSha, { base, head }, scope);
   assertRemovalsKept({ base, head }, only);
-  return { base, head, bootstrap: base === null };
+  return {
+    base,
+    head,
+    bootstrap: base === null,
+    authority: rebuiltAuthority(repo, root, baseSha, scope, { base, head }),
+  };
 }
 
-function readTrustedInputs(repo, root, baseSha) {
-  const baseRegistryText = showAt(repo, baseSha, REGISTRY_PATH);
-  const baseRebuiltText = showAt(repo, baseSha, REBUILT_PATH);
-  const headRebuiltFile = path.join(root, REBUILT_PATH);
+// The owner's `rebuilt` exceptions. A scoped run parses each baseline with that check's exceptions
+// only, so the rebuilt ones are read on their own (r1 B9); WP-02's parser validates them.
+function rebuiltAuthority(repo, root, baseSha, scope, { base, head }) {
+  if (!scope) return { base, head };
+  const only = { only: 'rebuilt' };
+  const baseText = base ? showAt(repo, baseSha, BASELINE_PATH) : null;
+  return {
+    base:
+      baseText === null
+        ? base
+        : parseBaseline(baseText, 'base', CHECKS, { trustedBase: true, ...only }),
+    head: parseBaseline(readInside(root, BASELINE_PATH) ?? '', 'head', CHECKS, only),
+  };
+}
+
+// The base's registry and rebuilt list come from the trusted base commit, or, for a replay of a
+// pre-adoption pair, from its extracted and synthesized base tree.
+function readTrustedInputs(repo, root, baseSha, baseRoot = null) {
+  const atBase = rel => (baseRoot ? readInside(baseRoot, rel) : showAt(repo, baseSha, rel));
+  const baseRegistryText = atBase(REGISTRY_PATH);
+  const baseRebuiltText = atBase(REBUILT_PATH);
   return {
     baseRegistry:
       baseRegistryText === null ? null : parseRegistry(baseRegistryText, 'base consent registry'),
     baseRebuilt: baseRebuiltText === null ? null : parseRebuilt(baseRebuiltText, 'base'),
-    rebuilt: parseRebuilt(
-      fs.existsSync(headRebuiltFile) ? fs.readFileSync(headRebuiltFile, 'utf8') : '',
-      'head'
-    ),
+    rebuilt: parseRebuilt(readInside(root, REBUILT_PATH) ?? '', 'head'),
   };
 }
 
@@ -149,7 +172,9 @@ function chk22Extra(root, files, inputs, base, head) {
   const registry = registryFor(root);
   const errors = testEvidence(root, registry, readLanes(root));
   if (errors.length) throw new ScanError(errors.join('; '));
-  const present = new Set(files);
+  // The files CHK-22 visits, not every linted file: a use naming a support file the rule never
+  // reads is an orphan (r1 H3).
+  const present = new Set(files.filter(file => EXPECTS['CHK-22'](roleOf(file), file)));
   const findings = [];
   for (const entry of registry.values())
     for (const use of entry.uses)
@@ -165,45 +190,88 @@ function chk22Extra(root, files, inputs, base, head) {
   return { findings, tamper };
 }
 
+// A replay of a pair that predates adoption (neither side has the baseline) synthesizes the base
+// (design §7); any other pair is judged exactly as production judges it.
+async function replayBase(repo, report, root, cleanup) {
+  const replay = { synthesized: { base: [], head: synthesizeInputs(root) }, pre: null };
+  if (showAt(repo, report.base, BASELINE_PATH) !== null || readInside(root, BASELINE_PATH) !== null)
+    return replay;
+  const baseRoot = extractRevision(repo, report.base);
+  cleanup.push(baseRoot);
+  replay.pre = { ...(await preAdoptionBase(baseRoot, report.base)), root: baseRoot };
+  replay.synthesized.base = replay.pre.synthesized;
+  return replay;
+}
+
+function judge(args, repo, root, report, { base, head, authority, inputs, lint, files }) {
+  const declared = rebuiltDeclarationErrors(inputs.baseRebuilt, inputs.rebuilt, files, roleOf);
+  if (declared.length) throw new ScanError(declared.join('; '));
+  const { head: pairedHead, unpaired } = pairTransfers(base, head);
+  const shas = { base: report.base, head: report.head };
+  const removals = rebuiltRemovals(
+    inputs.baseRebuilt,
+    inputs.rebuilt,
+    authority.base,
+    authority.head
+  );
+  // A check the trusted base names and this scanner retired is judged as a removal (r1 B10).
+  const retired = selectRetired(args, base).map(id => evaluateRetired(id, base, head, shas));
+  const current = selectChecks(args, base, head).map(check => {
+    const extra = check.id === 'CHK-22' ? chk22Extra(root, files, inputs, base, head) : {};
+    extra.tamper = [
+      ...(extra.tamper ?? []),
+      ...unpaired.filter(item => item.startsWith(`${check.id}#`)),
+      ...removals,
+    ];
+    return evaluateCheck(check, lint[check.id], {
+      base,
+      head,
+      pairedHead,
+      shas,
+      rebuilt: inputs.rebuilt,
+      extra,
+    });
+  });
+  return [...current, ...retired];
+}
+
 async function scan(args, repo, report) {
   report.base = ensureCommit(repo, args.base, 'base');
   report.head = args.head ? ensureCommit(repo, args.head, 'head') : headSha(repo);
   // CI and local runs both lint an extracted head tree (H2).
   const root = extractRevision(repo, report.head);
+  const cleanup = [root];
   try {
+    const replay = args.replay ? await replayBase(repo, report, root, cleanup) : null;
+    const pre = replay?.pre ?? null;
     const scope = args.check ? selectChecks(args, null, null)[0] : null;
-    const { base, head, bootstrap } = readBaselines(repo, root, report.base, scope);
+    const { base, head, bootstrap, authority } = pre
+      ? readBaselines(repo, root, report.base, scope, pre.baseline)
+      : readBaselines(repo, root, report.base, scope);
     report.bootstrap = bootstrap;
-    const inputs = readTrustedInputs(repo, root, report.base);
-    const { head: pairedHead, unpaired } = pairTransfers(base, head);
-    const selected = selectChecks(args, base, head);
+    const inputs = readTrustedInputs(repo, root, report.base, pre?.root ?? null);
     const files = linted(root);
     const lint = await lintTree(root, files);
-    const shas = { base: report.base, head: report.head };
-    const removals = rebuiltRemovals(inputs.baseRebuilt, inputs.rebuilt, base, head);
-    const results = [];
-    for (const check of selected) {
-      const extra = check.id === 'CHK-22' ? chk22Extra(root, files, inputs, base, head) : {};
-      extra.tamper = [
-        ...(extra.tamper ?? []),
-        ...unpaired.filter(item => item.startsWith(`${check.id}#`)),
-        ...removals,
-      ];
-      results.push(
-        evaluateCheck(check, lint[check.id], {
-          base,
-          head,
-          pairedHead,
-          shas,
-          rebuilt: inputs.rebuilt,
-          extra,
-        })
-      );
-    }
+    const results = judge(args, repo, root, report, {
+      base,
+      head,
+      authority,
+      inputs,
+      lint,
+      files,
+    });
     report.changes = changeReport(repo, report.base, report.head, root, head, inputs.rebuilt);
+    if (replay)
+      report.replay = replaySummary({
+        takenAt: pre ? pre.baseline.takenAt : (base?.takenAt ?? null),
+        synthesized: replay.synthesized,
+        baseLint: pre?.lint ?? null,
+        results,
+        versions: toolVersions(),
+      });
     return results;
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    for (const dir of cleanup) fs.rmSync(dir, { recursive: true, force: true });
   }
 }
 
@@ -224,13 +292,7 @@ export async function run(argv, cwd = process.cwd()) {
     args = parseArgs(argv);
     report.invocation = invocationOf(args);
     const repo = path.resolve(cwd, args.repo ?? '.');
-    if (args.replay) {
-      report.base = ensureCommit(repo, args.base, 'base');
-      report.head = ensureCommit(repo, args.head, 'head');
-      const outcome = await replay(repo, report.base, report.head);
-      report.replay = outcome.summary;
-      results = outcome.results;
-    } else results = await scan(args, repo, report);
+    results = await scan(args, repo, report);
   } catch (error) {
     report.errors.push(
       error instanceof ScanError ? error.message : `scanner failure: ${error?.stack ?? error}`

@@ -1,15 +1,12 @@
-// The R-10 trial replay (WP-05 design §7): the full base and head trees of one merged PR, each
-// linted by this scanner, with the inputs a pre-adoption tree lacks synthesized and recorded. The
-// base scan becomes a synthesized baseline (takenAt "replay:<sha>") that WP-02's unchanged parser
-// must accept; the head is judged against it. The floor is completeness only: every expected file
-// reconciled. An inventory decrease and an emptied unit kind are recorded for adjudication.
-import fs from 'node:fs';
-import path from 'node:path';
-
-import { coverageShortfall, parseBaseline, ratchet } from '../server-mutation/baseline.mjs';
-import { extractRevision } from '../server-mutation/git.mjs';
-import { BASELINE_PATH, CHECKS, evaluatorDigest } from './evaluate.mjs';
-import { SCANNER_ROOT, lintTree, linted } from './lint.mjs';
+// The R-10 trial replay (WP-05 design §7; code review r1, B2). A replay judges one merged PR's
+// base and head by the production path of the CLI. Only a pair that predates adoption (neither
+// side has the baseline) gets synthesized inputs: the base scan becomes a baseline (takenAt
+// "replay:<sha>") that WP-02's unchanged parser must accept and that the head is judged against,
+// and a missing registry or rebuilt list is written as empty. Every synthesized input is recorded.
+// For such a pair the floor is completeness; every unit decrease is recorded for adjudication.
+import { CHECKS } from './evaluate.mjs';
+import { lintTree, linted } from './lint.mjs';
+import { writeInside, readInside } from './paths.mjs';
 import { REGISTRY_PATH } from './registry.mjs';
 import { REBUILT_PATH } from './transfer.mjs';
 
@@ -18,14 +15,12 @@ const SYNTHESIZED = Object.freeze({
   [REBUILT_PATH]: '[]\n',
 });
 
-// Writes each missing input into an extracted tree and returns what was synthesized.
-function synthesizeInputs(root) {
+// Writes each missing input into an extracted tree, confined to it, and returns what was written.
+export function synthesizeInputs(root) {
   const out = [];
   for (const [rel, text] of Object.entries(SYNTHESIZED)) {
-    const abs = path.join(root, rel);
-    if (fs.existsSync(abs)) continue;
-    fs.mkdirSync(path.dirname(abs), { recursive: true });
-    fs.writeFileSync(abs, text);
+    if (readInside(root, rel) !== null) continue;
+    writeInside(root, rel, text);
     out.push(rel);
   }
   return out;
@@ -47,65 +42,48 @@ export function synthesizedBaseline(baseSha, baseLint) {
   return { version: 1, takenAt: `replay:${baseSha}`, checks, exceptions: [] };
 }
 
-// A unit kind counts as present only with a positive count (absent or NaN is empty).
-const hasUnits = (units, kind) => units[kind] > 0;
-
-function productionFloor(id) {
-  const file = path.join(SCANNER_ROOT, BASELINE_PATH);
-  if (!fs.existsSync(file)) return null;
-  return JSON.parse(fs.readFileSync(file, 'utf8')).checks?.[id]?.coverageMin ?? null;
+// The pre-adoption base of a replay: its inputs synthesized, its scan and the baseline from it.
+export async function preAdoptionBase(baseRoot, baseSha) {
+  const synthesized = synthesizeInputs(baseRoot);
+  const lint = await lintTree(baseRoot, linted(baseRoot));
+  return { synthesized, lint, baseline: synthesizedBaseline(baseSha, lint) };
 }
 
-export async function replay(repo, baseSha, headSha) {
-  const baseRoot = extractRevision(repo, baseSha);
-  const headRoot = extractRevision(repo, headSha);
-  try {
-    const provenance = { base: synthesizeInputs(baseRoot), head: synthesizeInputs(headRoot) };
-    const baseLint = await lintTree(baseRoot, linted(baseRoot));
-    const headLint = await lintTree(headRoot, linted(headRoot));
-    const synthesized = synthesizedBaseline(baseSha, baseLint);
-    const baseline = parseBaseline(JSON.stringify(synthesized), 'replay', CHECKS);
-    const shas = { base: baseSha, head: headSha };
-    const adjudicate = [];
-    const results = CHECKS.map(({ id, multiset }) => {
-      const scan = headLint[id];
-      const current = scan.items.map(item => item.id);
-      const plain = multiset ? current : [...new Set(current)];
-      const { new: added, fixed } = ratchet(plain, baseline.checks[id].items);
-      if (scan.files < baseLint[id].files)
-        adjudicate.push(`${id}: inventory decrease ${baseLint[id].files} -> ${scan.files}`);
-      for (const [kind, n] of Object.entries(baseLint[id].units))
-        if (n > 0 && !hasUnits(scan.units, kind)) {
-          const floor = productionFloor(id);
-          const shortfall = floor === null ? [] : coverageShortfall(scan.units, floor);
-          const note = shortfall.length ? `; production shortfall ${shortfall.join(', ')}` : '';
-          adjudicate.push(`${id}: kind empty ${kind} (${n} -> 0)${note}`);
-        }
-      return {
-        id,
-        ...shas,
-        digest: evaluatorDigest(baseline.checks[id]),
-        enforcing: false,
-        units: scan.units,
-        files: scan.files,
-        total: plain.length,
-        new: added,
-        fixed,
-        tamper: [],
-        findings: scan.items,
-      };
-    });
-    return {
-      results,
-      summary: {
-        takenAt: synthesized.takenAt,
-        synthesized: provenance,
-        adjudicate,
-        complete: true,
-      },
-    };
-  } finally {
-    fs.rmSync(baseRoot, { recursive: true, force: true });
-    fs.rmSync(headRoot, { recursive: true, force: true });
+const unitsOf = lintOrResults =>
+  Object.fromEntries(Object.entries(lintOrResults).map(([id, r]) => [id, r.units ?? {}]));
+
+// The adjudication lines of a pre-adoption pair: inventory and every unit-kind decrease.
+export function adjudication(baseLint, results) {
+  const lines = [];
+  for (const result of results) {
+    const before = baseLint[result.id];
+    if (!before) continue;
+    if (result.files < before.files)
+      lines.push(`${result.id}: inventory decrease ${before.files} -> ${result.files}`);
+    for (const [kind, n] of Object.entries(before.units)) {
+      const now = result.units?.[kind] > 0 ? result.units[kind] : 0;
+      if (now >= n) continue;
+      lines.push(`${result.id}: unit decrease ${kind} ${n} -> ${now}`);
+      if (n > 0 && now === 0) lines.push(`${result.id}: kind empty ${kind} (${n} -> 0)`);
+    }
   }
+  return lines;
+}
+
+// The replay summary of a judged pair.
+export function replaySummary({ takenAt, synthesized, baseLint, results, versions }) {
+  return {
+    takenAt,
+    synthesized,
+    units: {
+      base: baseLint ? unitsOf(baseLint) : null,
+      head: Object.fromEntries(results.map(r => [r.id, r.units ?? {}])),
+    },
+    versions,
+    adjudicate: baseLint ? adjudication(baseLint, results) : [],
+    wouldRefuse: results
+      .filter(r => r.new.length || r.fixed.length || r.tamper.length)
+      .map(r => r.id),
+    complete: true,
+  };
 }

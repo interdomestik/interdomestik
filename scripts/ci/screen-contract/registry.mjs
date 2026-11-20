@@ -1,10 +1,13 @@
 // The consent registry of CHK-22 (WP-05 design §2.1): schema, the trusted-base comparison and the
 // per-kind test evidence. The lint rule reads the same parsed registry through `registryFor`.
-import fs from 'node:fs';
 import path from 'node:path';
+
+import ts from 'typescript';
 
 import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
 import { multisetMinus } from '../server-mutation/baseline.mjs';
+import { readInside } from './paths.mjs';
+import { resolverFor } from './specifiers.mjs';
 
 export const REGISTRY_PATH = 'scripts/ci/screen-contract/consent-registry.json';
 const KINDS = new Set(['consent', 'selection', 'not-consent']);
@@ -97,8 +100,7 @@ const registries = new Map();
 // The registry of a target tree, parsed once per process.
 export function registryFor(root) {
   if (!registries.has(root)) {
-    const file = path.join(root, REGISTRY_PATH);
-    const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+    const text = readInside(root, REGISTRY_PATH) ?? '';
     registries.set(root, parseRegistry(text, 'head consent registry'));
   }
   return registries.get(root);
@@ -113,6 +115,7 @@ const BOUND_FIELDS = [
   'payloadField',
   'selectedRecord',
 ];
+const USE_FIELDS = ['file', 'submission', 'test'];
 const exceptionKey = e => `${e.check}\u0000${e.item}\u0000${e.kind}`;
 
 // Tamper findings of the registry against the trusted base (§2.1 "Judged against the trusted
@@ -140,9 +143,14 @@ function entryTamper(id, before, after, isRendered) {
   const out = [];
   for (const field of BOUND_FIELDS)
     if (before[field] !== after[field]) out.push(`CHK-22#registry-changed-${field}:${id}`);
-  const useIds = new Set(after.uses.map(use => use.useId));
-  for (const use of before.uses)
-    if (!useIds.has(use.useId)) out.push(`CHK-22#registry-removed-use:${id}:${use.useId}`);
+  const uses = new Map(after.uses.map(use => [use.useId, use]));
+  for (const use of before.uses) {
+    const now = uses.get(use.useId);
+    if (!now) out.push(`CHK-22#registry-removed-use:${id}:${use.useId}`);
+    // A use is its file, submission and test; keeping only its useId is a change (r1 H3).
+    else if (USE_FIELDS.some(field => now[field] !== use[field]))
+      out.push(`CHK-22#registry-changed-use:${id}:${use.useId}`);
+  }
   const aliasKeys = new Set(after.aliases.map(a => `${a.file}#${a.exportName}`));
   for (const alias of before.aliases)
     if (!aliasKeys.has(`${alias.file}#${alias.exportName}`))
@@ -167,58 +175,167 @@ const SKIPPED_RE = /\b(?:it|test|describe)\s*\.\s*(?:skip|todo|fixme)\b|\bx(?:it
 // tests for one, so the leading word characters need no match of their own.
 const TIME_RE = /(?:At|_at|Time|time|timestamp)\b/u;
 
-// The include globs of the web Vitest config and the Playwright testDir, read at run time.
-export function readLanes(root) {
-  const vitest = readConfig(root, 'apps/web/vitest.config.ts');
-  const include = /\binclude\s*:\s*\[([^\]]*)\]/u.exec(vitest)?.[1];
-  const globs = [...(include ?? '').matchAll(/['"]([^'"]+)['"]/gu)].map(m => m[1]);
-  if (!globs.length) throw new ScanError('apps/web/vitest.config.ts names no include glob');
-  const playwright = readConfig(root, 'apps/web/playwright.config.ts');
-  const testDir = /\btestDir\s*:\s*['"]([^'"]+)['"]/u.exec(playwright)?.[1];
-  if (!testDir) throw new ScanError('apps/web/playwright.config.ts names no testDir');
-  return { vitest: globs, e2eDir: path.posix.normalize(path.posix.join('apps/web', testDir)) };
+const VITEST_CONFIG = 'apps/web/vitest.config.ts';
+const PLAYWRIGHT_CONFIG = 'apps/web/playwright.config.ts';
+// The selection both PR-gate projects share (`gate-ks-sq`, `gate-mk-contract`): the E2E lane a
+// use's spec must be in (r1 B8). Tags and `grep` inside a spec are not modelled (a named limit).
+const E2E_GATE_CONST = 'GATE_DEFAULT_MATCH';
+
+function parseConfig(root, rel) {
+  const text = readInside(root, rel);
+  if (text === null) throw new ScanError(`${rel} is missing`);
+  if (!text.trim()) throw new ScanError(`${rel} is empty`);
+  return ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 }
 
-function readConfig(root, rel) {
-  const file = path.join(root, rel);
-  if (!fs.existsSync(file)) throw new ScanError(`${rel} is missing`);
-  const text = fs.readFileSync(file, 'utf8');
-  if (!text.trim()) throw new ScanError(`${rel} is empty`);
-  return text;
+const nameOf = node =>
+  node.name && (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name))
+    ? node.name.text
+    : null;
+
+// Every node of a source file, depth first.
+function nodesOf(source) {
+  const out = [];
+  const visit = node => {
+    out.push(node);
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return out;
 }
+
+// A literal list of strings, or null when the node is anything else.
+function stringList(node) {
+  if (!node || !ts.isArrayLiteralExpression(node)) return null;
+  const out = node.elements.map(e => (ts.isStringLiteralLike(e) ? e.text : null));
+  return out.includes(null) ? null : out;
+}
+
+// The one property `name` inside the object property `parent` (e.g. test.include), parsed.
+function propertyIn(source, parent, name) {
+  const hits = nodesOf(source).filter(
+    node =>
+      ts.isPropertyAssignment(node) &&
+      nameOf(node) === parent &&
+      ts.isObjectLiteralExpression(node.initializer)
+  );
+  const found = hits.flatMap(hit =>
+    hit.initializer.properties.filter(p => ts.isPropertyAssignment(p) && nameOf(p) === name)
+  );
+  return found.length === 1 ? found[0].initializer : null;
+}
+
+// The lane selections, parsed from the lane configs without running them (r1 B8): the Vitest
+// `test.include` and `test.exclude` lists, and the Playwright `testDir` with the gate selection.
+export function readLanes(root) {
+  const vitest = parseConfig(root, VITEST_CONFIG);
+  const include = stringList(propertyIn(vitest, 'test', 'include'));
+  if (!include?.length) throw new ScanError(`${VITEST_CONFIG} names no literal test.include list`);
+  const excludeNode = propertyIn(vitest, 'test', 'exclude');
+  const exclude = excludeNode ? stringList(excludeNode) : [];
+  if (exclude === null) throw new ScanError(`${VITEST_CONFIG} test.exclude is not a literal list`);
+  const playwright = parseConfig(root, PLAYWRIGHT_CONFIG);
+  const dirs = nodesOf(playwright).filter(
+    node =>
+      ts.isPropertyAssignment(node) &&
+      nameOf(node) === 'testDir' &&
+      ts.isStringLiteralLike(node.initializer)
+  );
+  if (dirs.length !== 1)
+    throw new ScanError(`${PLAYWRIGHT_CONFIG} names no single literal testDir`);
+  const gate = nodesOf(playwright).filter(
+    node => ts.isVariableDeclaration(node) && nameOf(node) === E2E_GATE_CONST
+  );
+  const e2eMatch = gate.length === 1 ? stringList(gate[0].initializer) : null;
+  if (!e2eMatch?.length)
+    throw new ScanError(`${PLAYWRIGHT_CONFIG} names no literal ${E2E_GATE_CONST} list`);
+  return {
+    vitest: { include, exclude },
+    e2eDir: path.posix.normalize(path.posix.join('apps/web', dirs[0].initializer.text)),
+    e2eMatch,
+  };
+}
+
+// A Vitest exclude entry without glob characters names a directory anywhere in the path.
+const excludeGlobs = entry => (/[*?{[]/u.test(entry) ? [entry] : [`${entry}/**`, `**/${entry}/**`]);
 
 function inLane(lanes, rel) {
-  if (rel.startsWith(`${lanes.e2eDir}/`) && /\.spec\.[cm]?[jt]sx?$/u.test(rel)) return true;
+  if (rel.startsWith(`${lanes.e2eDir}/`)) {
+    const inner = rel.slice(lanes.e2eDir.length + 1);
+    return lanes.e2eMatch.some(glob => path.matchesGlob(inner, glob));
+  }
   if (!rel.startsWith('apps/web/')) return false;
   const inner = rel.slice('apps/web/'.length);
-  return lanes.vitest.some(glob => path.matchesGlob(inner, glob));
+  if (!lanes.vitest.include.some(glob => path.matchesGlob(inner, glob))) return false;
+  return !lanes.vitest.exclude.flatMap(excludeGlobs).some(glob => path.matchesGlob(inner, glob));
 }
 
-// The names a use's test must hold that it lacks: entry, use, submission, the fields of its kind,
-// and for consent a time field.
+const MOCK_CALLEE_RE =
+  /^(?:vi|jest)\.(?:mock|doMock|importActual|importMock)$|^(?:require|import)$/u;
+
+// The module specifiers a test file loads (imports, re-exports, import(), require(), mocks) and
+// the identifiers it uses.
+function testFacts(rel, text) {
+  const source = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const specifiers = [];
+  const identifiers = new Set();
+  for (const node of nodesOf(source)) {
+    if (ts.isIdentifier(node)) identifiers.add(node.text);
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteralLike(node.moduleSpecifier)
+    )
+      specifiers.push(node.moduleSpecifier.text);
+    if (
+      ts.isCallExpression(node) &&
+      node.arguments[0] &&
+      ts.isStringLiteralLike(node.arguments[0])
+    ) {
+      const callee = node.expression.getText(source);
+      if (MOCK_CALLEE_RE.test(callee)) specifiers.push(node.arguments[0].text);
+    }
+  }
+  return { specifiers, identifiers };
+}
+
+// The names a use's test must hold that it lacks: entry, use, the fields of its kind, and for
+// consent a time field. The submission is checked by identity, not by name (r1 B8).
 function missingNames(entry, use, text) {
-  const names = [entry.id, use.useId, use.submission.split('#')[1]];
+  const names = [entry.id, use.useId];
   names.push(...REQUIRED_BY_KIND[entry.kind].map(key => entry[key]));
   const missing = names.filter(name => !text.includes(name));
   if (entry.kind === 'consent' && !TIME_RE.test(text)) missing.push('a time field');
   return missing;
 }
 
+// The test must load the submission's module (resolved like the lint resolves it) and use its
+// export as an identifier.
+function submissionError(root, use, text) {
+  const [module, exportName] = use.submission.split('#');
+  const { specifiers, identifiers } = testFacts(use.test, text);
+  const resolver = resolverFor(root);
+  const loads = specifiers.some(spec => resolver.resolveFile(use.test, spec) === module);
+  if (!loads) return `does not import the submission module ${module}`;
+  return identifiers.has(exportName) ? null : `does not use the submission export ${exportName}`;
+}
+
 // The error of one use's test, or null when its evidence holds.
 function useEvidenceError(root, lanes, entry, use) {
   const where = `consent registry ${entry.id}:${use.useId} test ${use.test}`;
-  const file = path.join(root, use.test);
-  if (!fs.existsSync(file)) return `${where} is missing`;
-  const text = fs.readFileSync(file, 'utf8');
+  const text = readInside(root, use.test);
+  if (text === null) return `${where} is missing`;
   if (!text.trim()) return `${where} is empty`;
   if (!inLane(lanes, use.test)) return `${where} is selected by no lane`;
   if (SKIPPED_RE.test(text)) return `${where} is skipped`;
+  const submission = submissionError(root, use, text);
+  if (submission) return `${where} ${submission}`;
   const missing = missingNames(entry, use, text);
   return missing.length ? `${where} does not name ${missing.join(', ')}` : null;
 }
 
-// Errors for each use's test (§2.1 "The test, per kind"): it exists, is in a lane, is not skipped
-// and names the entry, the use, the submission and the fields of its kind.
+// Errors for each use's test (§2.1 "The test, per kind"): it exists, is in a lane, is not skipped,
+// loads the registered submission and names the entry, the use and the fields of its kind.
 export function testEvidence(root, registry, lanes) {
   const errors = [];
   for (const entry of [...registry.values()].sort((a, b) => byCodeUnit(a.id, b.id))) {
