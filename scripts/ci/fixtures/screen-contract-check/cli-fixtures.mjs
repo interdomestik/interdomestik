@@ -41,7 +41,7 @@ export function baselineData(items = {}, { mode = 'report', exceptions = [], ext
       coverageMin: 0,
       items: list,
       ...(list.length === 0 && { exhausted: true }),
-      ...(extra[id] ?? {}),
+      ...extra[id],
     };
   }
   return { version: 1, takenAt: 'fixture', checks, exceptions };

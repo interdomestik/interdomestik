@@ -18,7 +18,7 @@ export function baselineOf(items = {}, { mode = 'report', exceptions = [], extra
       coverageMin: 0,
       items: list,
       ...(list.length ? {} : { exhausted: true }),
-      ...(extra[id] ?? {}),
+      ...extra[id],
     };
   }
   return `${JSON.stringify({ version: 1, takenAt: 'fixture', checks, exceptions }, null, 2)}\n`;
@@ -38,12 +38,12 @@ export const DB_IMPORT =
   "import { db } from '@interdomestik/database';\nexport default () => db;\n";
 export const LEGACY = `CHK-15c|${DB_PAGE}|@interdomestik/database`;
 
+// The default base of `adopted`: one legacy database import in a baselined screen. Read only.
+const ADOPTED_ITEMS = { 'CHK-15c': [LEGACY] };
+const ADOPTED_FILES = { [DB_PAGE]: DB_IMPORT };
+
 // A repository whose base is adopted (scanner-free fixture baseline) and a head commit on top.
-export function adopted(
-  t,
-  baseItems = { 'CHK-15c': [LEGACY] },
-  baseFiles = { [DB_PAGE]: DB_IMPORT }
-) {
+export function adopted(t, baseItems = ADOPTED_ITEMS, baseFiles = ADOPTED_FILES) {
   const root = repo(t, { ...INPUTS, ...baseFiles, [BASELINE]: baselineOf(baseItems) });
   return { root, base: git(root, 'rev-parse', 'HEAD') };
 }
