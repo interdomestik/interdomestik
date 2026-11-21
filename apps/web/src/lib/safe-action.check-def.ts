@@ -204,3 +204,64 @@ export function asyncSchemaReason(def: object, type: string): string | undefined
   }
   return undefined;
 }
+
+export function isKey<K extends string>(table: Record<K, unknown>, key: unknown): key is K {
+  return typeof key === 'string' && Object.hasOwn(table, key);
+}
+
+type Comparison = 'greater_than' | 'less_than';
+type CheckedValue = number | bigint | Readonly<{ time: number }>;
+export type CapturedBound =
+  readonly [Comparison, CheckedValue, boolean] | readonly ['multiple_of', number | bigint];
+
+const comparisonTraits = { greater_than: '$ZodCheckGreaterThan', less_than: '$ZodCheckLessThan' };
+
+function bound(value: unknown, type: string): CheckedValue | undefined {
+  if (type === 'date') {
+    const time = dateTime(value);
+    return time === undefined ? undefined : Object.freeze({ time });
+  }
+  if (type === 'number' && typeof value === 'number' && !Number.isNaN(value)) return value;
+  if (type === 'bigint' && typeof value === 'bigint') return value;
+  return undefined;
+}
+
+export function captureBoundCheck(
+  check: unknown,
+  def: Readonly<Record<PropertyKey, unknown>>,
+  kind: string,
+  type: string
+): CapturedBound | undefined {
+  if (isKey(comparisonTraits, kind) && hasTrait(check, comparisonTraits[kind])) {
+    const value = bound(def.value, type);
+    if (value !== undefined && typeof def.inclusive === 'boolean')
+      return [kind, value, def.inclusive];
+  }
+  if (kind === 'multiple_of' && hasTrait(check, '$ZodCheckMultipleOf')) {
+    const value = bound(def.value, type);
+    if (typeof value === 'number' || typeof value === 'bigint') return ['multiple_of', value];
+  }
+  return undefined;
+}
+
+export type Refuse = (detail: string) => never;
+
+export function captureEnumEntries(raw: unknown, refuse: Refuse): Record<string, string | number> {
+  if (
+    !isOwnReadable(raw) ||
+    (Object.getPrototypeOf(raw) !== Object.prototype && Object.getPrototypeOf(raw) !== null)
+  ) {
+    return refuse('invalid enum entries');
+  }
+  const entries: Record<string, string | number> = Object.create(null);
+  for (const key of ownKeys(raw)) {
+    const entry = Object.getOwnPropertyDescriptor(raw, key);
+    const value: unknown =
+      entry?.enumerable && Object.hasOwn(entry, 'value') ? entry.value : undefined;
+    if (typeof key !== 'string' || (typeof value !== 'string' && typeof value !== 'number')) {
+      return refuse('invalid enum entry');
+    }
+    entries[key] = value;
+  }
+  return entries;
+}

@@ -1,18 +1,13 @@
 import { z } from 'zod';
 
-import { isOwnReadable, isSnapshotRecord, ownKeys } from './safe-action.check-def';
-import {
-  rebuildCheck,
-  type CapturedCheck,
-  type CheckDomain,
-  type Refuse,
-} from './safe-action.checks';
+import { captureEnumEntries, isSnapshotRecord, type Refuse } from './safe-action.check-def';
+import { rebuildCheck, type CapturedCheck, type CheckDomain } from './safe-action.checks';
 
 export type Literal = string | number | boolean | bigint | null | undefined;
 export type ScalarType = 'string' | 'number' | 'boolean' | 'bigint' | 'date' | 'file';
 export type WrapperType = 'optional' | 'nullable' | 'readonly';
 
-type ShapeBody =
+export type ShapeBody =
   | { type: ScalarType; coerce: boolean }
   | { type: WrapperType; inner: Shape }
   | { type: 'enum'; values: readonly (string | number)[] }
@@ -23,30 +18,14 @@ type ShapeBody =
   | { type: 'union'; branches: readonly Shape[]; discriminator: string | null };
 
 export type Shape = Readonly<ShapeBody & { checks: readonly CapturedCheck[] }>;
-export type ShapeNode = ShapeBody;
 export type ObjectShape = Extract<Shape, { type: 'object' }>;
 
 export function enumValues(raw: unknown, refuse: Refuse): readonly (string | number)[] {
-  if (
-    !isOwnReadable(raw) ||
-    (Object.getPrototypeOf(raw) !== Object.prototype && Object.getPrototypeOf(raw) !== null)
-  ) {
-    return refuse('invalid enum entries');
-  }
-  const entries: Record<string, string | number> = Object.create(null);
-  for (const key of ownKeys(raw)) {
-    const entry = Object.getOwnPropertyDescriptor(raw, key);
-    const value: unknown =
-      entry?.enumerable && Object.hasOwn(entry, 'value') ? entry.value : undefined;
-    if (typeof key !== 'string' || (typeof value !== 'string' && typeof value !== 'number')) {
-      return refuse('invalid enum entry');
-    }
-    entries[key] = value;
-  }
+  const entries = captureEnumEntries(raw, refuse);
   return Object.freeze(z.core.util.getEnumValues(entries));
 }
 
-export function checkDomain(node: ShapeNode): CheckDomain {
+export function checkDomain(node: ShapeBody): CheckDomain {
   let nullable = false;
   let optional = false;
   let leaf = node;
@@ -142,15 +121,7 @@ function assertDiscriminator(branches: readonly Shape[], key: string, refuse: Re
   }
 }
 
-export function assertUnion(node: Extract<ShapeNode, { type: 'union' }>, refuse: Refuse): void {
-  const { branches, discriminator } = node;
-  if (branches.some(branch => anywhere(branch, child => 'coerce' in child && child.coerce))) {
-    return refuse('coercion inside a union');
-  }
-  if (discriminator !== null) return assertDiscriminator(branches, discriminator, refuse);
-  if (branches.filter(branch => anywhere(branch, child => child.type === 'object')).length > 1) {
-    return refuse('a plain union may contain objects in only one branch');
-  }
+function assertDistinctBranchKinds(branches: readonly Shape[], refuse: Refuse): boolean {
   const seen = new Map<Kind, boolean>();
   let overlapsObject = false;
   for (const branch of branches) {
@@ -170,6 +141,19 @@ export function assertUnion(node: Extract<ShapeNode, { type: 'union' }>, refuse:
       seen.set(kind, uncheckedSet);
     }
   }
+  return overlapsObject;
+}
+
+export function assertUnion(node: Extract<ShapeBody, { type: 'union' }>, refuse: Refuse): void {
+  const { branches, discriminator } = node;
+  if (branches.some(branch => anywhere(branch, child => 'coerce' in child && child.coerce))) {
+    return refuse('coercion inside a union');
+  }
+  if (discriminator !== null) return assertDiscriminator(branches, discriminator, refuse);
+  if (branches.filter(branch => anywhere(branch, child => child.type === 'object')).length > 1) {
+    return refuse('a plain union may contain objects in only one branch');
+  }
+  const overlapsObject = assertDistinctBranchKinds(branches, refuse);
   // A plain union can try more than one branch. Keep refined branches disjoint.
   if (
     branches.some(branch =>
@@ -226,6 +210,19 @@ export function fieldAt(root: Shape, path: readonly string[], strict = false): S
   return shape;
 }
 
+function objectSchemaFor(shape: ObjectShape): z.ZodType {
+  const fields: Record<string, z.ZodType> = Object.create(null);
+  for (const [key, field] of Object.entries(shape.fields)) fields[key] = rebuildParser(field);
+  return z.strictObject(fields);
+}
+
+function unionSchemaFor(shape: Extract<Shape, { type: 'union' }>): z.ZodType {
+  const branches = shape.branches.map(rebuildParser) as [z.ZodType, ...z.ZodType[]];
+  return shape.discriminator === null
+    ? z.union(branches)
+    : z.discriminatedUnion(shape.discriminator, branches as [z.ZodObject, ...z.ZodObject[]]);
+}
+
 function schemaFor(shape: Shape): z.ZodType {
   switch (shape.type) {
     case 'string':
@@ -256,17 +253,10 @@ function schemaFor(shape: Shape): z.ZodType {
       const items = shape.items.map(rebuildParser);
       return items.length ? z.tuple(items as [z.ZodType, ...z.ZodType[]]) : z.tuple([]);
     }
-    case 'object': {
-      const fields: Record<string, z.ZodType> = Object.create(null);
-      for (const [key, field] of Object.entries(shape.fields)) fields[key] = rebuildParser(field);
-      return z.strictObject(fields);
-    }
-    case 'union': {
-      const branches = shape.branches.map(rebuildParser) as [z.ZodType, ...z.ZodType[]];
-      return shape.discriminator === null
-        ? z.union(branches)
-        : z.discriminatedUnion(shape.discriminator, branches as [z.ZodObject, ...z.ZodObject[]]);
-    }
+    case 'object':
+      return objectSchemaFor(shape);
+    case 'union':
+      return unionSchemaFor(shape);
   }
 }
 

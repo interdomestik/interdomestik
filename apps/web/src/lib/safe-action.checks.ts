@@ -2,15 +2,18 @@ import { types } from 'node:util';
 import { z } from 'zod';
 
 import {
+  captureBoundCheck,
   checkDef,
-  dateTime,
   denseArray,
   hasTrait,
   holdsSchema,
   isAsyncCallback,
+  isKey,
   isThenableLike,
   ownValue,
   regexDefinition,
+  type CapturedBound,
+  type Refuse,
 } from './safe-action.check-def';
 import { normalizerOf, privateNormalizer, type Normalizer } from './safe-action.normalizers';
 
@@ -21,17 +24,13 @@ export type CheckDomain = {
   builtInOnly?: boolean;
 };
 type Predicate = (value: unknown) => unknown;
-export type Refuse = (detail: string) => never;
 type LengthKind = keyof typeof lengths;
 type MeasuredType = 'string' | 'array' | 'file';
 type Format = keyof typeof numericFormats;
-type Comparison = 'greater_than' | 'less_than';
-type CheckedValue = number | bigint | Readonly<{ time: number }>;
 type Operands = keyof typeof operands;
 export type CapturedCheck =
   | readonly [LengthKind, number, MeasuredType]
-  | readonly [Comparison, CheckedValue, boolean]
-  | readonly ['multiple_of', number | bigint]
+  | CapturedBound
   | readonly ['format', Format]
   | readonly ['mime_type', readonly string[]]
   | readonly ['regex', string, string]
@@ -73,11 +72,6 @@ const refusedFormatTraits = [
   '$ZodCustomStringFormat',
 ];
 const valueTypes = new Set(['string', 'number', 'boolean', 'bigint']);
-const comparisonTraits = { greater_than: '$ZodCheckGreaterThan', less_than: '$ZodCheckLessThan' };
-
-function isKey<K extends string>(table: Record<K, unknown>, key: unknown): key is K {
-  return typeof key === 'string' && Object.hasOwn(table, key);
-}
 
 const THENABLE_REFINEMENT = Symbol('thenable refinement');
 
@@ -120,27 +114,12 @@ function stringCheck(check: unknown, def: Metadata, refuse: Refuse): CapturedChe
     : refuse('a string format without an admitted regular expression');
 }
 
-function bound(value: unknown, type: string): CheckedValue | undefined {
-  if (type === 'date') {
-    const time = dateTime(value);
-    return time === undefined ? undefined : Object.freeze({ time });
-  }
-  if (type === 'number' && typeof value === 'number' && !Number.isNaN(value)) return value;
-  if (type === 'bigint' && typeof value === 'bigint') return value;
-  return undefined;
-}
-
-function captureAllowed(
+function captureLength(
   check: unknown,
   def: Metadata,
   kind: string,
-  domain: CheckDomain,
-  refuse: Refuse
+  type: string
 ): CapturedCheck | undefined {
-  const { type, builtInOnly } = domain;
-  const normalizer = normalizerOf(check);
-  if (!builtInOnly && type === 'string' && normalizer !== undefined)
-    return ['normalizer', normalizer];
   if (isKey(lengths, kind) && (type === 'string' || type === 'array' || type === 'file')) {
     const [key, trait] = lengths[kind];
     const value = def[key];
@@ -148,21 +127,15 @@ function captureAllowed(
     if (isSize === (type === 'file') && typeof value === 'number' && hasTrait(check, trait))
       return [kind, value, type];
   }
-  if (isKey(comparisonTraits, kind) && hasTrait(check, comparisonTraits[kind])) {
-    const value = bound(def.value, type);
-    if (value !== undefined && typeof def.inclusive === 'boolean')
-      return [kind, value, def.inclusive];
-  }
-  if (kind === 'multiple_of' && hasTrait(check, '$ZodCheckMultipleOf')) {
-    const value = bound(def.value, type);
-    if (typeof value === 'number' || typeof value === 'bigint') return ['multiple_of', value];
-  }
-  if (kind === 'mime_type' && type === 'file' && hasTrait(check, '$ZodCheckMimeType')) {
-    const mime = denseArray(def.mime, 5000);
-    if (mime?.every((value): value is string => typeof value === 'string')) {
-      return ['mime_type', Object.freeze(mime)];
-    }
-  }
+  return undefined;
+}
+
+function captureNumericFormat(
+  check: unknown,
+  def: Metadata,
+  kind: string,
+  type: string
+): CapturedCheck | undefined {
   if (
     kind === 'number_format' &&
     type === 'number' &&
@@ -181,6 +154,32 @@ function captureAllowed(
   ) {
     return ['format', def.format];
   }
+  return undefined;
+}
+
+function captureAllowed(
+  check: unknown,
+  def: Metadata,
+  kind: string,
+  domain: CheckDomain,
+  refuse: Refuse
+): CapturedCheck | undefined {
+  const { type, builtInOnly } = domain;
+  const normalizer = normalizerOf(check);
+  if (!builtInOnly && type === 'string' && normalizer !== undefined)
+    return ['normalizer', normalizer];
+  const length = captureLength(check, def, kind, type);
+  if (length !== undefined) return length;
+  const bound = captureBoundCheck(check, def, kind, type);
+  if (bound !== undefined) return bound;
+  if (kind === 'mime_type' && type === 'file' && hasTrait(check, '$ZodCheckMimeType')) {
+    const mime = denseArray(def.mime, 5000);
+    if (mime?.every((value): value is string => typeof value === 'string')) {
+      return ['mime_type', Object.freeze(mime)];
+    }
+  }
+  const format = captureNumericFormat(check, def, kind, type);
+  if (format !== undefined) return format;
   if (kind === 'string_format' && type === 'string') return stringCheck(check, def, refuse);
   if (
     kind === 'custom' &&
@@ -195,6 +194,25 @@ function captureAllowed(
     return ['custom', Object.freeze(domain), def.fn as Predicate];
   }
   return undefined;
+}
+
+function refuseUnsupportedCheck(
+  check: unknown,
+  kind: string,
+  position: string,
+  refuse: Refuse
+): never {
+  // Zod wraps superRefine without exposing the supplied callback.
+  const limit =
+    kind === 'custom' && !hasTrait(check, 'ZodCustom')
+      ? ' (async refinements are not supported)'
+      : '';
+  if (position === 'object') {
+    return refuse(
+      `object-level refine/check/superRefine/overwrite belongs in the owning command${limit}`
+    );
+  }
+  return refuse(`a ${kind} check on a ${position} belongs in the owning command${limit}`);
 }
 
 export function captureCheck(
@@ -223,19 +241,7 @@ export function captureCheck(
   if (holdsSchema(def)) return refuse(`a ${kind} check that holds a schema on a ${position}`);
   if (def.abort !== undefined && def.abort !== false) return refuse(`a ${kind} check with abort`);
   const captured = captureAllowed(check, def, kind, domain, refuse);
-  if (captured === undefined) {
-    // Zod wraps superRefine without exposing the supplied callback.
-    const limit =
-      kind === 'custom' && !hasTrait(check, 'ZodCustom')
-        ? ' (async refinements are not supported)'
-        : '';
-    if (position === 'object') {
-      return refuse(
-        `object-level refine/check/superRefine/overwrite belongs in the owning command${limit}`
-      );
-    }
-    return refuse(`a ${kind} check on a ${position} belongs in the owning command${limit}`);
-  }
+  if (captured === undefined) return refuseUnsupportedCheck(check, kind, position, refuse);
   return Object.freeze(captured);
 }
 
@@ -256,8 +262,11 @@ function rebuild(check: CapturedCheck): z.core.$ZodCheck {
     case 'greater_than':
     case 'less_than': {
       const value = typeof check[1] === 'object' ? new Date(check[1].time) : check[1];
-      const compare =
-        check[0] === 'greater_than' ? (check[2] ? z.gte : z.gt) : check[2] ? z.lte : z.lt;
+      if (check[0] === 'greater_than') {
+        const compare = check[2] ? z.gte : z.gt;
+        return compare(value);
+      }
+      const compare = check[2] ? z.lte : z.lt;
       return compare(value);
     }
     case 'starts_with':
@@ -266,12 +275,11 @@ function rebuild(check: CapturedCheck): z.core.$ZodCheck {
       return operands[check[0]][2](check[1]);
     default: {
       const measure = lengths[check[0]][2](check[1]);
-      measure._zod.def.when = ({ value }) =>
-        check[2] === 'array'
-          ? Array.isArray(value)
-          : check[2] === 'file'
-            ? value instanceof File
-            : typeof value === 'string';
+      measure._zod.def.when = ({ value }) => {
+        if (check[2] === 'array') return Array.isArray(value);
+        if (check[2] === 'file') return value instanceof File;
+        return typeof value === 'string';
+      };
       return measure;
     }
   }

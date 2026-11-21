@@ -142,6 +142,10 @@ function copyRaw(
     return;
   }
   if (prototype !== Object.prototype && prototype !== null) throw BAD_SNAPSHOT;
+  put(target, key, copyRawRecord(raw, work, depth));
+}
+
+function copyRawRecord(raw: object, work: SnapshotWork, depth: number): Record<string, unknown> {
   const record: Record<string, unknown> = Object.create(null);
   const keys = ownKeys(raw);
   if (keys.length > work.remaining) throw BAD_SNAPSHOT;
@@ -149,7 +153,7 @@ function copyRaw(
     if (typeof field !== 'string') throw BAD_SNAPSHOT;
     copyRaw(ownValue(raw, field), record, field, work, depth + 1);
   }
-  put(target, key, record);
+  return record;
 }
 
 type Snapshot = { snapshot: unknown } | { refusal: Invalid };
@@ -222,33 +226,45 @@ async function runGuard(
   } catch (error) {
     if (isIntegrityError(error)) throw error;
     assertPristineObjectPrototype();
-    if (isThenableRefinementError(error)) {
-      return { kind: 'defect', reason: 'thenable_refinement', snapshot };
-    }
-    if (isOwnReadable(error) && Object.getPrototypeOf(error) === z.core.$ZodAsyncError.prototype) {
-      return { kind: 'defect', reason: 'async_parse', snapshot };
-    }
-    return { kind: 'thrown', error, snapshot };
+    return parseErrorOutcome(error, snapshot);
   }
   try {
-    if (!result.success) {
-      const outcome: Invalid = {
-        kind: 'invalid',
-        snapshot,
-        failure: actionFailure('VALIDATION_ERROR', undefined, { issues: issuesOf(result.error) }),
-      };
-      assertPristineObjectPrototype();
-      return outcome;
-    }
-    const copy = exactParsedInput(shape, snapshot, result.data);
-    assertPristineObjectPrototype();
-    if (copy.kind === 'invalid') return invalid(copy.path, 'invalid_type', snapshot);
-    return copy.kind === 'defect' ? { kind: 'defect', snapshot } : { ...copy, snapshot };
+    return parsedOutcome(result, shape, snapshot);
   } catch (error) {
     if (isIntegrityError(error)) throw error;
     assertPristineObjectPrototype();
     return result.success ? { kind: 'defect', snapshot } : { kind: 'thrown', error, snapshot };
   }
+}
+
+function parseErrorOutcome(error: unknown, snapshot: unknown): GuardOutcome {
+  if (isThenableRefinementError(error)) {
+    return { kind: 'defect', reason: 'thenable_refinement', snapshot };
+  }
+  if (isOwnReadable(error) && Object.getPrototypeOf(error) === z.core.$ZodAsyncError.prototype) {
+    return { kind: 'defect', reason: 'async_parse', snapshot };
+  }
+  return { kind: 'thrown', error, snapshot };
+}
+
+function parsedOutcome(
+  result: z.ZodSafeParseResult<unknown>,
+  shape: Shape,
+  snapshot: unknown
+): GuardOutcome {
+  if (!result.success) {
+    const outcome: Invalid = {
+      kind: 'invalid',
+      snapshot,
+      failure: actionFailure('VALIDATION_ERROR', undefined, { issues: issuesOf(result.error) }),
+    };
+    assertPristineObjectPrototype();
+    return outcome;
+  }
+  const copy = exactParsedInput(shape, snapshot, result.data);
+  assertPristineObjectPrototype();
+  if (copy.kind === 'invalid') return invalid(copy.path, 'invalid_type', snapshot);
+  return copy.kind === 'defect' ? { kind: 'defect', snapshot } : { ...copy, snapshot };
 }
 
 export function buildInputGuard(input: unknown, options: SchemaCheckOptions): InputGuard {

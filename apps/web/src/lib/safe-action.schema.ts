@@ -8,8 +8,9 @@ import {
   ownValue,
   rawObjectShape,
   schemaDef,
+  type Refuse,
 } from './safe-action.check-def';
-import { captureCheck, type CheckDomain, type Refuse } from './safe-action.checks';
+import { captureCheck, type CheckDomain } from './safe-action.checks';
 import { ownerColumnKeys, TENANT_IDENTITY_KEYS } from './safe-action.owner-keys';
 import { STANDARD_OBJECT_KEYS } from './safe-action.recheck';
 import {
@@ -22,8 +23,8 @@ import {
   type Literal,
   type ObjectShape,
   type ScalarType,
+  type ShapeBody,
   type Shape,
-  type ShapeNode,
   type WrapperType,
 } from './safe-action.shape';
 
@@ -86,6 +87,18 @@ function list(value: unknown, refuse: Refuse, max = MAX_NODES): unknown[] {
   return denseArray(value, max) ?? refuse('a list that is not a dense own-data array');
 }
 
+function captureObjectField(shape: object, key: string, path: string, ctx: Walk): Shape {
+  if (ctx.identity.has(key)) refuseAt(ctx, path)('identity keys come from server context');
+  if (ctx.reserved.has(key)) refuseAt(ctx, path)('a reserved Object.prototype key');
+  if (ctx.visits >= MAX_NODES) refuseAt(ctx, path)(TOO_LARGE);
+  const field = Object.getOwnPropertyDescriptor(shape, key);
+  if (!field || !Object.hasOwn(field, 'value')) {
+    return refuseAt(ctx, path)('a shape field that is not own data');
+  }
+  if (!field.enumerable) return refuseAt(ctx, path)('a shape field that is not enumerable');
+  return walk(field.value, path, ctx);
+}
+
 function shapeFields(def: Readonly<Record<PropertyKey, unknown>>, path: string, ctx: Walk) {
   const refuse = refuseAt(ctx, path);
   const refuseCatchall = refuseAt(ctx, `${path}{catchall}`);
@@ -107,15 +120,7 @@ function shapeFields(def: Readonly<Record<PropertyKey, unknown>>, path: string, 
   for (const key of ownKeys(shape)) {
     if (typeof key !== 'string') return refuse('a non-string object key');
     const childPath = path ? `${path}.${key}` : key;
-    if (ctx.identity.has(key)) refuseAt(ctx, childPath)('identity keys come from server context');
-    if (ctx.reserved.has(key)) refuseAt(ctx, childPath)('a reserved Object.prototype key');
-    if (ctx.visits >= MAX_NODES) refuseAt(ctx, childPath)(TOO_LARGE);
-    const field = Object.getOwnPropertyDescriptor(shape, key);
-    if (!field || !Object.hasOwn(field, 'value')) {
-      return refuseAt(ctx, childPath)('a shape field that is not own data');
-    }
-    if (!field.enumerable) return refuseAt(ctx, childPath)('a shape field that is not enumerable');
-    fields[key] = walk(field.value, childPath, ctx);
+    fields[key] = captureObjectField(shape, key, childPath, ctx);
   }
   return Object.freeze(fields);
 }
@@ -129,7 +134,7 @@ function unionNode(
   def: Readonly<Record<PropertyKey, unknown>>,
   path: string,
   ctx: Walk
-): ShapeNode {
+): ShapeBody {
   const refuse = refuseAt(ctx, path);
   const discriminator = ownValue(def, 'discriminator');
   const inclusive = ownValue(def, 'inclusive');
@@ -160,6 +165,21 @@ function unionNode(
   return node;
 }
 
+function scalarNode(
+  def: Readonly<Record<PropertyKey, unknown>>,
+  type: string,
+  ctx: Walk,
+  refuse: Refuse
+): ShapeBody {
+  const coerce = ownValue(def, 'coerce');
+  if (type === 'file' && !ctx.options.form)
+    return refuse('z.file() is accepted in form actions only');
+  if (coerce !== undefined && coerce !== false && !(coerce === true && coercible.has(type))) {
+    return refuse('a coercion other than a supported primitive coercion');
+  }
+  return { type: type as ScalarType, coerce: coerce === true };
+}
+
 function nodeFor(
   schema: unknown,
   def: Readonly<Record<PropertyKey, unknown>>,
@@ -167,16 +187,8 @@ function nodeFor(
   path: string,
   ctx: Walk,
   refuse: Refuse
-): ShapeNode {
-  if (scalars.has(type)) {
-    const coerce = ownValue(def, 'coerce');
-    if (type === 'file' && !ctx.options.form)
-      return refuse('z.file() is accepted in form actions only');
-    if (coerce !== undefined && coerce !== false && !(coerce === true && coercible.has(type))) {
-      return refuse('a coercion other than a supported primitive coercion');
-    }
-    return { type: type as ScalarType, coerce: coerce === true };
-  }
+): ShapeBody {
+  if (scalars.has(type)) return scalarNode(def, type, ctx, refuse);
   if (wrappers.has(type)) {
     if (type === 'optional' && hasTrait(schema, '$ZodExactOptional')) {
       return refuse('exactOptional is not supported');

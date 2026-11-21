@@ -104,23 +104,28 @@ export function assertPristineObjectPrototype(): void {
 
 const errorFields = ['digest', 'message', 'cause', 'name', 'code', 'reason'] as const;
 
+function hasInspectableErrorFields(part: object, error: object): boolean {
+  for (const key of errorFields) {
+    const value = ownValue(part, key);
+    if (value === ACCESSOR) return false;
+    if (
+      part !== error &&
+      Object.hasOwn(part, key) &&
+      (key === 'cause' || key === 'digest' || (key === 'message' && value === 'NEXT_REDIRECT'))
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function inspectable(error: unknown, seen: Set<object>): boolean {
   if ((typeof error !== 'object' && typeof error !== 'function') || error === null) return true;
   if (!isOwnReadable(error) || seen.has(error) || seen.size >= 32) return false;
   seen.add(error);
   for (let part: object | null = error; part !== null; part = Object.getPrototypeOf(part)) {
     if (!isOwnReadable(part)) return false;
-    for (const key of errorFields) {
-      const value = ownValue(part, key);
-      if (value === ACCESSOR) return false;
-      if (
-        part !== error &&
-        Object.hasOwn(part, key) &&
-        (key === 'cause' || key === 'digest' || (key === 'message' && value === 'NEXT_REDIRECT'))
-      ) {
-        return false;
-      }
-    }
+    if (!hasInspectableErrorFields(part, error)) return false;
   }
   return inspectable(ownValue(error, 'cause'), seen);
 }
