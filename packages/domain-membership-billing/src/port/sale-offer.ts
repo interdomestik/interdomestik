@@ -28,8 +28,8 @@ export async function readSaleOffer(
   planId: string
 ) {
   const { tenantId, userId } = principal;
-  const current = tx
-    .select()
+  const currentVersionId = tx
+    .select({ id: membershipPlanVersions.id })
     .from(membershipPlanVersions)
     .where(
       withTenant(
@@ -42,11 +42,10 @@ export async function readSaleOffer(
       )
     )
     .orderBy(desc(membershipPlanVersions.version))
-    .limit(1)
-    .as('current_offer');
+    .limit(1);
 
-  const rateInForce = tx
-    .select()
+  const rateInForceId = tx
+    .select({ id: exchangeRates.id })
     .from(exchangeRates)
     .where(
       withTenant(
@@ -57,30 +56,29 @@ export async function readSaleOffer(
       )
     )
     .orderBy(desc(exchangeRates.effectiveOn), desc(exchangeRates.revision))
-    .limit(1)
-    .as('rate_in_force');
+    .limit(1);
 
   const [snapshot] = await tx
     .select({
       planId: membershipPlans.id,
       active: membershipPlans.isActive,
       version: {
-        id: current.id,
-        planId: current.planId,
-        legalEntityId: current.legalEntityId,
-        tier: current.tier,
-        membersIncluded: current.membersIncluded,
-        listPriceMinor: current.listPriceMinor,
-        priceCurrency: current.priceCurrency,
+        id: membershipPlanVersions.id,
+        planId: membershipPlanVersions.planId,
+        legalEntityId: membershipPlanVersions.legalEntityId,
+        tier: membershipPlanVersions.tier,
+        membersIncluded: membershipPlanVersions.membersIncluded,
+        listPriceMinor: membershipPlanVersions.listPriceMinor,
+        priceCurrency: membershipPlanVersions.priceCurrency,
       },
       entity: legalEntities,
       rate: {
-        id: rateInForce.id,
-        bookId: rateInForce.bookId,
-        rate: rateInForce.rate,
-        base: rateInForce.base,
-        quote: rateInForce.quote,
-        effectiveOn: rateInForce.effectiveOn,
+        id: exchangeRates.id,
+        bookId: exchangeRates.bookId,
+        rate: exchangeRates.rate,
+        base: exchangeRates.base,
+        quote: exchangeRates.quote,
+        effectiveOn: exchangeRates.effectiveOn,
       },
     })
     .from(user)
@@ -88,12 +86,26 @@ export async function readSaleOffer(
       membershipPlans,
       withTenant(tenantId, membershipPlans.tenantId, eq(membershipPlans.id, planId))
     )
-    .leftJoinLateral(current, sql`true`)
+    .leftJoin(
+      membershipPlanVersions,
+      withTenant(
+        tenantId,
+        membershipPlanVersions.tenantId,
+        eq(membershipPlanVersions.id, currentVersionId)
+      )
+    )
     .leftJoin(
       legalEntities,
-      withTenant(tenantId, legalEntities.tenantId, eq(legalEntities.id, current.legalEntityId))
+      withTenant(
+        tenantId,
+        legalEntities.tenantId,
+        eq(legalEntities.id, membershipPlanVersions.legalEntityId)
+      )
     )
-    .leftJoinLateral(rateInForce, sql`true`)
+    .leftJoin(
+      exchangeRates,
+      withTenant(tenantId, exchangeRates.tenantId, eq(exchangeRates.id, rateInForceId))
+    )
     .where(withTenant(tenantId, user.tenantId, eq(user.id, userId)));
 
   if (!snapshot) return { ok: false, code: 'forbidden' } as const;

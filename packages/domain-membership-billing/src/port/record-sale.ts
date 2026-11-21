@@ -51,21 +51,18 @@ export async function recordSaleInTx(
 }
 
 async function saveSale(tx: TenantTransaction, principal: SalePrincipal, input: SaleInput) {
-  const [isolation] = await tx.execute<{ transaction_isolation: string }>(
-    sql`show transaction_isolation`
-  );
-  if (isolation.transaction_isolation !== 'read committed')
-    return { ok: false, code: 'invalid' } as const;
-
   const [scope] = await tx.execute<{
+    isolation: string;
     home: string | null;
     access: string | null;
     role: string | null;
   }>(sql`
-    select current_setting('app.current_tenant_id', true) as home,
+    select current_setting('transaction_isolation') as isolation,
+           current_setting('app.current_tenant_id', true) as home,
            current_setting('app.current_access_tenant_id', true) as access,
            current_setting('app.user_role', true) as role
   `);
+  if (scope.isolation !== 'read committed') return { ok: false, code: 'invalid' } as const;
   if (
     scope.home !== principal.tenantId ||
     scope.access !== principal.tenantId ||
@@ -74,22 +71,27 @@ async function saveSale(tx: TenantTransaction, principal: SalePrincipal, input: 
     return { ok: false, code: 'forbidden' } as const;
   }
 
-  // postgres-js isolates failed queries in its child transaction scope. Releasing this outer
-  // savepoint also releases the driver's nested savepoint.
-  await tx.execute(sql`savepoint wp07_sale`);
-  let result;
   try {
-    result = await tx.transaction(child => claimAndRecord(child, principal, input));
+    return await tx.transaction(async child => {
+      const result = await claimAndRecord(child, principal, input);
+      // Reject the savepoint callback so a typed refusal also rolls back the provisional claim.
+      if (!result.ok) throw new SaleRollback(result);
+      return result;
+    });
   } catch (error) {
-    await tx.execute(sql`rollback to savepoint wp07_sale`);
-    await tx.execute(sql`release savepoint wp07_sale`);
+    if (error instanceof SaleRollback) return error.result;
     const code = saleWriteFailure(error);
     if (code) return { ok: false, code } as const;
     throw error;
   }
-  if (!result.ok) await tx.execute(sql`rollback to savepoint wp07_sale`);
-  await tx.execute(sql`release savepoint wp07_sale`);
-  return result;
+}
+
+type SaleFailure = Extract<Awaited<ReturnType<typeof claimAndRecord>>, { ok: false }>;
+
+class SaleRollback extends Error {
+  constructor(readonly result: SaleFailure) {
+    super(result.code);
+  }
 }
 
 function saleWriteFailure(error: unknown) {
