@@ -9,13 +9,7 @@ import { APP_ALIASES } from './sources.mjs';
 const BARREL = `${SCHEMA_DIR}index.ts`;
 // The reviewed 0.45.2 artifact has these sole import/default and require targets. The
 // parser is deliberately limited to the pinned lockfile layout and the database importer.
-const REVIEWED_BUILDERS = new Map([
-  ['drizzle-orm', ['index.js', 'index.cjs', 'index.d.ts', 'index.d.cts']],
-  [
-    'drizzle-orm/pg-core',
-    ['pg-core/index.js', 'pg-core/index.cjs', 'pg-core/index.d.ts', 'pg-core/index.d.cts'],
-  ],
-]);
+const REVIEWED_BUILDERS = ['drizzle-orm', 'drizzle-orm/pg-core'];
 const ARTIFACTS = [
   [
     'drizzle-orm',
@@ -30,7 +24,7 @@ const ARTIFACTS = [
 ];
 
 export function provenanceProblem(anchor, before, after) {
-  for (const specifier of REVIEWED_BUILDERS.keys()) {
+  for (const specifier of REVIEWED_BUILDERS) {
     for (const tree of [before, after]) {
       if (
         tree.resolution.pathRules.some(
@@ -52,43 +46,92 @@ export function provenanceProblem(anchor, before, after) {
   return builderArtifactProblem(anchor, before, after);
 }
 
-function changedInput(anchor, before, after) {
-  for (const file of new Set([...before.inputs.keys(), ...after.inputs.keys()])) {
-    if (before.inputs.get(file) !== after.inputs.get(file)) return `resolver input changed ${file}`;
+const LOCK = 'pnpm-lock.yaml';
+const DB_MANIFEST = 'packages/database/package.json';
+const LOADER_FIELDS = [
+  'pnpm',
+  'overrides',
+  'resolutions',
+  'packageManager',
+  'browser',
+  '_moduleAliases',
+];
+const DEPENDENCY_FIELDS = [
+  'dependencies',
+  'devDependencies',
+  'optionalDependencies',
+  'peerDependencies',
+];
+const DRIZZLE_PACKAGE = /^drizzle-(?:orm|kit)$/u;
+const DRIZZLE_ENTRY = /^ {6}['"]?drizzle-(?:orm|kit)['"]?:/u;
+const DRIZZLE_ARTIFACT = /^ {2}['"]?drizzle-(?:orm|kit)@/u;
+
+function manifestLoaderFields(text) {
+  if (text === undefined) return undefined;
+  let manifest;
+  try {
+    manifest = JSON.parse(text);
+  } catch {
+    return text;
   }
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) return text;
+  const keys = LOADER_FIELDS.filter(key => Object.hasOwn(manifest, key));
+  if (DRIZZLE_PACKAGE.test(manifest.name)) keys.push('name', 'exports', 'main');
+  const inputs = keys.map(key => [key, manifest[key]]);
+  for (const section of DEPENDENCY_FIELDS) {
+    for (const [name, specifier] of Object.entries(manifest[section] ?? {})) {
+      if (DRIZZLE_PACKAGE.test(name)) inputs.push([section, name, specifier]);
+    }
+  }
+  return inputs.length ? JSON.stringify(inputs) : undefined;
+}
+
+function builderInput(tree, file) {
+  if (isResolverConfig(file)) return tree.resolution.configInputs.get(file);
+  const text = tree.inputs.get(file);
+  if (file.endsWith('/package.json') || file === 'package.json')
+    return file === DB_MANIFEST ? text : manifestLoaderFields(text);
+  return text;
+}
+
+function changedInput(anchor, after) {
   for (const file of new Set([...anchor.inputs.keys(), ...after.inputs.keys()])) {
-    if (
-      !isResolverConfig(file) &&
-      !file.endsWith('package.json') &&
-      file !== 'pnpm-lock.yaml' &&
-      anchor.inputs.get(file) !== after.inputs.get(file)
-    )
-      return `unreviewed loader input ${file}`;
+    if (file === LOCK || anchor.inputs.get(file) === after.inputs.get(file)) continue;
+    if (builderInput(anchor, file) !== builderInput(after, file))
+      return `resolver input changed ${file}`;
   }
   return null;
 }
 
-const DB_IMPORTER = '  packages/database:\n';
-const DRIZZLE_IMPORTS = /^ {6}drizzle-(?:orm|kit):\n {8}specifier: [^\n]+\n {8}version: [^\n]+$/gmu;
+function drizzleImporterEntries(importer) {
+  const [name, ...groups] = importer.split(/(?=^ {4}\S)/mu);
+  return groups.flatMap(group => {
+    const [header, ...entries] = group.split(/(?=^ {6}\S)/mu);
+    return entries
+      .filter(entry => DRIZZLE_ENTRY.test(entry))
+      .map(entry => [name, header, entry.trimEnd()]);
+  });
+}
 
 function reviewedLockBlocks(text) {
-  const settings = text
-    .split(/(?=^\S)/mu)
-    .filter(block => /^(?:settings|overrides|patchedDependencies):/u.test(block));
-  const artifacts = text
-    .split(/(?=^\S|^ {2}\S)/mu)
-    .filter(block => /^ {2}drizzle-(?:orm|kit)@/u.test(block) || block.startsWith(DB_IMPORTER));
-  return [
-    ...settings,
-    ...artifacts.map(block =>
-      block.startsWith(DB_IMPORTER) ? block.match(DRIZZLE_IMPORTS)?.join('\n') : block.trimEnd()
-    ),
-  ];
+  const settings = [];
+  const imports = [];
+  const artifacts = [];
+  for (const section of text.split(/(?=^\S)/mu)) {
+    const [header, ...entries] = section.split(/(?=^ {2}\S)/mu);
+    if (header.startsWith('importers:')) imports.push(...entries.flatMap(drizzleImporterEntries));
+    else if (/^(?:packages|snapshots):/u.test(header))
+      artifacts.push(
+        ...entries.filter(block => DRIZZLE_ARTIFACT.test(block)).map(block => block.trimEnd())
+      );
+    else settings.push(section.trimEnd());
+  }
+  return { settings, imports, artifacts };
 }
 
 function hasReviewedArtifact(blocks, manifest, name, version, integrity) {
   const signature = `integrity: sha512-${integrity},`;
-  const matches = blocks.filter(
+  const matches = blocks.artifacts.filter(
     block => block?.startsWith(`  ${name}@${version}:`) && block.includes(signature)
   );
   const range = manifest.dependencies?.[name] ?? manifest.devDependencies?.[name];
@@ -96,18 +139,21 @@ function hasReviewedArtifact(blocks, manifest, name, version, integrity) {
   return (
     matches.length === 1 &&
     range === `^${version}` &&
-    blocks.some(block => block?.includes(importer))
+    blocks.imports.some(
+      ([owner, , entry]) => owner === '  packages/database:\n' && entry.startsWith(importer)
+    )
   );
 }
 
 function builderArtifactProblem(anchor, before, after) {
-  const change = changedInput(anchor, before, after);
+  const change = changedInput(anchor, before) ?? changedInput(anchor, after);
   if (change) return change;
-  const current = reviewedLockBlocks(after.inputs.get('pnpm-lock.yaml') ?? '');
-  const previous = reviewedLockBlocks(anchor.inputs.get('pnpm-lock.yaml') ?? '');
-  if (!current.length || JSON.stringify(current) !== JSON.stringify(previous))
+  const current = reviewedLockBlocks(after.inputs.get(LOCK) ?? '');
+  const previous = JSON.stringify(reviewedLockBlocks(anchor.inputs.get(LOCK) ?? ''));
+  const prior = reviewedLockBlocks(before.inputs.get(LOCK) ?? '');
+  if (JSON.stringify(current) !== previous || JSON.stringify(prior) !== previous)
     return 'unreviewed Drizzle lock resolution';
-  const manifest = JSON.parse(after.inputs.get('packages/database/package.json') ?? '{}');
+  const manifest = JSON.parse(after.inputs.get(DB_MANIFEST) ?? '{}');
   for (const [name, version, integrity] of ARTIFACTS) {
     if (!hasReviewedArtifact(current, manifest, name, version, integrity))
       return `unproven artifact ${name}`;

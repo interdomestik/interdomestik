@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { commit, git, tmp, writeFile } from './db-access-required-git.mjs';
+import { KERNEL_ANCHOR } from './tenant-guard/manifest.mjs';
 import { TRUSTED } from './tenant-guard/trusted.mjs';
 import {
   adminRead,
@@ -125,6 +126,32 @@ test('a mismatched anchor tree fails before approved guard execution', { skip },
   assertFailed(result, /kernel anchor tree mismatch/u);
   assert.equal(result.report, null);
 });
+
+test(
+  'correct identities and zero violations cannot authorize a refused schema admission',
+  { skip },
+  () => {
+    const source = sourceVariant({
+      'scripts/ci/tenant-guard.mjs': [
+        ...reportIdentity,
+        'schemaAdmission.ok = false;',
+        'process.stdout.write(JSON.stringify({ identity, schemaAdmission, ' +
+          `trusted: ${JSON.stringify(TRUSTED)}, telemetry: { files: 1 }, violations: [] }));`,
+      ],
+    });
+    const pr = openPullRequest();
+    const result = route(pr, { source });
+    assert.deepEqual(result.report.identity, {
+      merge: { commit: pr.merge, tree: git(pr.ws, 'rev-parse', `${pr.merge}^{tree}`) },
+      base: { commit: pr.base, tree: git(pr.ws, 'rev-parse', `${pr.base}^{tree}`) },
+      anchor: KERNEL_ANCHOR,
+    });
+    assert.deepEqual(result.report.trusted, TRUSTED);
+    assert.deepEqual(result.report.violations, []);
+    assert.deepEqual(result.report.schemaAdmission, { version: 2, ok: false });
+    assertFailed(result, /protected report is not a passing scan/u);
+  }
+);
 
 test(
   'compiler bytes must match the approved lock; a substituted archive fails before any guard code',

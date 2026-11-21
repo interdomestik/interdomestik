@@ -27,7 +27,7 @@ export function retainedConsumerProblem(before, after, anchor, affected, names) 
     const source = parseSource(file, text);
     const retained = retainedUnits(previous, source);
     if (
-      !querySelectionsSafe(source, names, retained) ||
+      unprovenQuerySelections(source, names, retained).length ||
       !namespaceSelectionsSafe(after, anchor, file, source, affected, names, retained)
     )
       return `unproven dynamic schema consumer ${file}`;
@@ -43,26 +43,21 @@ function retainedUnits(previous, source) {
   return node => kept.has(unitOf(node));
 }
 
-function querySelectionsSafe(source, names, retained) {
-  let safe = true;
+export function unprovenQuerySelections(source, names, retained) {
+  const problems = [];
   const visit = node => {
-    if (!safe) return;
     if (
       (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) &&
-      selection(node, node.expression) === 'query'
+      selection(node, node.expression) === 'query' &&
+      retained(node)
     ) {
       const key = selection(node.parent, node);
-      if (
-        retained(node) &&
-        ((ts.isElementAccessExpression(node.parent) && node.parent.expression === node && !key) ||
-          names.has(key))
-      )
-        safe = false;
+      if (!key || names.has(key)) problems.push(node);
     }
     ts.forEachChild(node, visit);
   };
   visit(source);
-  return safe;
+  return problems;
 }
 
 function namespaceKeySafe(node, names) {

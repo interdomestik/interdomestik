@@ -173,12 +173,11 @@ function additionsProblem(
   beforeInventory,
   afterInventory
 ) {
-  const provenance = provenanceProblem(anchor, before, after);
-  if (provenance) return provenance;
   const legacy = legacyTableIdentities(before, before.reachable);
   if (legacy.reason) return legacy.reason;
   const tableNames = new Set();
   const types = new Map();
+  const tableBindings = new Set(legacy.tables.keys());
   const identities = new Set([...legacy.tables.values()].map(table => table.name));
   for (const file of added) {
     const proof = proveBuilderModule(after, anchor, file, legacy.tables);
@@ -187,6 +186,7 @@ function additionsProblem(
     for (const [key, table] of proof.tables) {
       if (identities.has(table.name)) return `duplicate database identity public.${table.name}`;
       identities.add(table.name);
+      tableBindings.add(key);
       tableNames.add(key.split('#')[1]);
       if (accumulated) legacy.tables.set(key, table);
     }
@@ -194,6 +194,7 @@ function additionsProblem(
   const exports = comparePublicExports(before, after, beforeInventory, afterInventory, {
     tableNames,
     types,
+    tableBindings,
   });
   return (
     exports.reason ?? retainedConsumerProblem(before, after, anchor, exports.affected, tableNames)
@@ -224,6 +225,12 @@ function compare(before, after, anchor, role, inventoryOf) {
   const oldInventory = inventoryOf(before, accumulated ? 'anchor' : 'base');
   const newInventory = inventoryOf(after, role);
   if (oldInventory.reason || newInventory.reason) return oldInventory.reason ?? newInventory.reason;
+  if (added.length > 0 || before.reachable.size > anchor.reachable.size) {
+    const provenance = provenanceProblem(anchor, before, after);
+    if (provenance) return reject(provenance);
+    if (newInventory.outsideForwards.length)
+      return reject(`schema forward outside scan roots ${newInventory.outsideForwards[0]}`);
+  }
   if (added.length === 0) return null;
   const additions = additionsProblem(
     before,

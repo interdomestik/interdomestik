@@ -4,6 +4,11 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import test from 'node:test';
 import { tmp } from './db-access-required-git.mjs';
+import {
+  markFixtureQueryProperties,
+  OUTSIDE_FORWARDS,
+  QUERY_ESCAPES,
+} from './tenant-guard-schema-review-fixtures.mjs';
 import { KERNEL_ANCHOR, LEGACY, LEGACY_PINS } from './tenant-guard/manifest.mjs';
 import { kernelAnchorPins } from './tenant-guard/rules-schema-admission.mjs';
 import { evaluate } from './tenant-guard/rules.mjs';
@@ -82,16 +87,46 @@ test('the pinned anchor reproduces the complete v2 tuple and the historical v1 t
   assert.deepEqual(v2.pinnedModules, evaluateTree(anchor, { legacyPins: null }).pinnedModules);
 });
 
-test('WP-07 appended at the tail binds all three v2 pins and seeds both tables', () => {
+function wpTailBlobs() {
   const blobs = new Map(predecessor.blobs);
   blobs.set(WP_MODULE, git(['show', `${WP_NEW.commit}:${WP_MODULE}`]));
   blobs.set(BARREL, `${predecessor.sources.get(BARREL)}export * from './exchange-rates';\n`);
+  return blobs;
+}
+
+function evaluateWpTail(blobs) {
   const candidate = schemaTreeFromBlobs(blobs);
-  const legacyPins = pins(PRE_CUTOVER_V2);
-  const result = evaluateTree(candidate, {
-    legacyPins,
+  return evaluateTree(candidate, {
+    legacyPins: pins(PRE_CUTOVER_V2),
     schemaAdmission: { anchor: predecessor, base: predecessor, candidate },
   });
+}
+
+test('the exact historical consumers refuse the WP-07 tail append', () => {
+  const blobs = wpTailBlobs();
+  const outside = evaluateWpTail(blobs);
+  assert.equal(outside.schemaAdmission.ok, false);
+  assert.equal(
+    outside.schemaAdmission.reason,
+    `candidate: schema forward outside scan roots ${OUTSIDE_FORWARDS[0]}`
+  );
+  for (const file of OUTSIDE_FORWARDS) blobs.delete(file);
+  const consumer = evaluateWpTail(blobs);
+  assert.equal(consumer.schemaAdmission.ok, false);
+  assert.equal(
+    consumer.schemaAdmission.reason,
+    `candidate: unproven dynamic schema consumer ${QUERY_ESCAPES.keys().next().value}`
+  );
+});
+
+test('WP-07 appended at the tail binds all three v2 pins and seeds both tables with eligible consumers', () => {
+  const blobs = wpTailBlobs();
+  for (const file of OUTSIDE_FORWARDS) blobs.delete(file);
+  for (const [file, lines] of QUERY_ESCAPES)
+    blobs.set(file, markFixtureQueryProperties(blobs.get(file), lines));
+  const candidate = schemaTreeFromBlobs(blobs);
+  const legacyPins = pins(PRE_CUTOVER_V2);
+  const result = evaluateWpTail(blobs);
   assert.equal(result.schemaAdmission.ok, true, result.schemaAdmission.reason);
   assert.deepEqual(result.legacyDigests, Object.fromEntries(legacyPins));
   assert.deepEqual(

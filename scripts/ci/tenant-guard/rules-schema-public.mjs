@@ -1,6 +1,9 @@
 import ts from 'typescript';
+import { TEST_SOURCE } from './manifest.mjs';
 import { hasExportModifier } from './package-exports.mjs';
 import { byCodeUnit } from './rules-digest.mjs';
+import { aliasInitializers, aliasTarget, publicTableBindings } from './rules-schema-bindings.mjs';
+import { outsideExportLoads } from './rules-schema-forwarders.mjs';
 import { inScanRoots } from './sources.mjs';
 import { parseSource } from './syntax.mjs';
 
@@ -35,31 +38,30 @@ function importSpecifiers(source, add) {
   return imported;
 }
 
-function recordExportDeclaration(node, imported, stars, add) {
+function recordExportDeclaration(node, importOf, stars, add) {
   const target = node.moduleSpecifier?.text;
   const clause = node.exportClause;
   if (!clause && target) stars.push(target);
   else if (clause && ts.isNamespaceExport(clause)) add(clause.name.text, target);
   else if (clause && ts.isNamedExports(clause))
     for (const { name, propertyName } of clause.elements)
-      add(name.text, target ?? imported.get((propertyName ?? name).text));
+      add(name.text, target ?? importOf((propertyName ?? name).text));
 }
 
-function recordPublicStatement(node, imported, stars, add) {
+function recordPublicStatement(node, importOf, stars, add) {
   if (ts.isExportDeclaration(node)) {
-    recordExportDeclaration(node, imported, stars, add);
+    recordExportDeclaration(node, importOf, stars, add);
     return;
   }
   if (ts.isExportAssignment(node) && ts.isIdentifier(node.expression)) {
-    add('default', imported.get(node.expression.text));
+    add('default', importOf(node.expression.text));
     return;
   }
   if (!hasExportModifier(node)) return;
   if (node.name && ts.isIdentifier(node.name)) add(node.name.text);
   if (ts.isVariableStatement(node)) {
-    for (const { name, initializer } of node.declarationList.declarations)
-      if (ts.isIdentifier(name) && initializer && ts.isIdentifier(initializer))
-        add(name.text, imported.get(initializer.text));
+    for (const { name } of node.declarationList.declarations)
+      if (ts.isIdentifier(name)) add(name.text, importOf(name.text));
   }
 }
 
@@ -72,8 +74,10 @@ function forwardTable(source) {
     if (specifier) edges.push(specifier);
   };
   const imported = importSpecifiers(source, add);
-  for (const node of source.statements) recordPublicStatement(node, imported, stars, add);
-  return { names, stars, edges };
+  const aliases = aliasInitializers(source);
+  const importOf = name => imported.get(aliasTarget(aliases, name)?.name);
+  for (const node of source.statements) recordPublicStatement(node, importOf, stars, add);
+  return { names, stars, edges, aliases };
 }
 
 const DB_INDEX = 'packages/database/src/index.ts';
@@ -87,8 +91,8 @@ function reverseReachable(start, indexes) {
   return reached;
 }
 
-function recordForwarders(tree, file, table, reverse) {
-  for (const specifier of [...table.stars, ...table.edges]) {
+function recordForwarders(tree, file, specifiers, reverse) {
+  for (const specifier of specifiers) {
     const { files } = tree.inventory.resolveSpecifier(file, specifier);
     const targets = DB_IMPORT.test(specifier) && !inScanRoots(file) ? [...files, DB_INDEX] : files;
     for (const target of targets) {
@@ -101,6 +105,7 @@ function recordForwarders(tree, file, table, reverse) {
 export function forwardInventory(tree, role) {
   const tables = new Map();
   const reverse = new Map();
+  const outsideReverse = new Map();
   for (const [file, text] of tree.allSources) {
     const source = parseSource(file, text);
     if (source.parseDiagnostics.length) {
@@ -109,7 +114,9 @@ export function forwardInventory(tree, role) {
     }
     const table = forwardTable(source);
     tables.set(file, table);
-    recordForwarders(tree, file, table, reverse);
+    recordForwarders(tree, file, [...table.stars, ...table.edges], reverse);
+    if (!inScanRoots(file) && !TEST_SOURCE.test(file))
+      recordForwarders(tree, file, outsideExportLoads(source), outsideReverse);
   }
   const schemaModules = [...tree.sources.keys()].filter(file =>
     file.startsWith('packages/database/src/schema/')
@@ -117,7 +124,10 @@ export function forwardInventory(tree, role) {
   const seeds = [DB_INDEX, 'packages/database/src/schema.ts', ...schemaModules];
   for (const file of reverseReachable(seeds, [reverse]))
     if (!inScanRoots(file)) return { reason: `${role}: schema forward outside scan roots ${file}` };
-  return { tables, reverse };
+  const outsideForwards = [...reverseReachable(seeds, [reverse, outsideReverse])].filter(
+    file => !inScanRoots(file)
+  );
+  return { tables, reverse, outsideForwards };
 }
 
 function addStarContributions(counts, types, from) {
@@ -198,12 +208,30 @@ function publicExportProblem(before, after, initial, final, file, names, types) 
   return retainedExportProblem(before, after, file, left, right);
 }
 
-export function comparePublicExports(before, after, initial, final, { tableNames, types }) {
-  const affected = reverseReachable([BARREL], [initial.reverse, final.reverse]);
+function aliasProblem(before, after, initial, final, file, tableBindings) {
+  for (const name of before.graph.exportNames(file)) {
+    const left = publicTableBindings(before.graph, initial, file, name, tableBindings);
+    const right = publicTableBindings(after.graph, final, file, name, tableBindings);
+    if (JSON.stringify(left) !== JSON.stringify(right))
+      return `public export table binding changed ${file}#${name}`;
+  }
+  return null;
+}
+
+export function comparePublicExports(
+  before,
+  after,
+  initial,
+  final,
+  { tableNames, types, tableBindings }
+) {
+  const affected = reverseReachable([BARREL, ...types.keys()], [initial.reverse, final.reverse]);
   const names = new Set(tableNames);
   for (const each of types.values()) for (const name of each) names.add(name);
   for (const file of affected) {
-    const reason = publicExportProblem(before, after, initial, final, file, names, types);
+    const reason =
+      publicExportProblem(before, after, initial, final, file, names, types) ??
+      aliasProblem(before, after, initial, final, file, tableBindings);
     if (reason) return { reason };
   }
   return { affected };

@@ -9,8 +9,8 @@ import { commit, git, rootDir, tmp, writeFile } from './db-access-required-git.m
 import { KERNEL_ANCHOR } from './tenant-guard/manifest.mjs';
 
 // Adversarial coverage of the S2 org-required workflow: its production step text runs verbatim
-// (bash) against a fixture origin whose protected main is the current tree on top of the trusted
-// commit, with only the pending source pin set to a fixture commit. Successor of the still
+// (bash) against a fixture origin whose protected main combines the historical application tree
+// with the guard under test, with the pending source pin set to a fixture commit. Successor of the still
 // applicable legacy workflow negatives: candidate substitution, CI deletion, compiler integrity,
 // environment isolation, exact merge/ref/object identity, closure completeness and resolver data.
 
@@ -35,7 +35,7 @@ export const ready = fs.existsSync(archive) && lockIntegrity && sri(archive) ===
 assert.ok(ready, `needs the verified TypeScript ${TS} archive at ${archive}`);
 export const skip = false;
 
-// Protected main: the current working tree as one commit on top of the kernel anchor.
+// Protected main: the guard under test on top of the kernel anchor.
 // The anchor's history includes the trusted comparator.
 // Mutable fixture state lives on one shared object; `fixture.main` is the protected main commit.
 export const fixture = { origin: null, main: null, variants: 0, pulls: 0 };
@@ -49,7 +49,16 @@ export function fixtureOrigin() {
     path.join(origin, '.git/objects/info/alternates'),
     `${path.join(common, 'objects')}\n`
   );
-  git(origin, `--work-tree=${rootDir}`, 'add', '-A');
+  git(origin, 'read-tree', KERNEL_ANCHOR.tree);
+  git(
+    origin,
+    `--work-tree=${rootDir}`,
+    'add',
+    '-A',
+    '--',
+    'scripts/ci/tenant-guard.mjs',
+    'scripts/ci/tenant-guard'
+  );
   const tree = git(origin, 'write-tree');
   fixture.main = git(
     origin,

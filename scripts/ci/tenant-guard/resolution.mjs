@@ -144,6 +144,7 @@ export function resolutionConfig(repoRoot, inputs = null) {
   const known = new Set(files);
   const violations = [];
   const effective = new Map();
+  const configInputs = new Map();
 
   // The effective baseUrl and paths of one config, following relative `extends` within the repository.
   function load(file, seen) {
@@ -152,6 +153,10 @@ export function resolutionConfig(repoRoot, inputs = null) {
     seen.add(file);
     const text = inputs ? inputs.get(file) : fs.readFileSync(path.join(repoRoot, file), 'utf8');
     const config = readConfig(file, text);
+    const { paths, baseUrl } = config.compilerOptions ?? {};
+    const { extends: parentsInput } = config;
+    if ([paths, baseUrl, parentsInput].some(value => value !== undefined))
+      configInputs.set(file, JSON.stringify([paths, baseUrl, parentsInput]));
     const dir = path.posix.dirname(file) === '.' ? '' : path.posix.dirname(file);
     let result = { baseUrl: null, paths: null, pathsBase: null };
     const parents = config.extends === undefined ? [] : [config.extends].flat();
@@ -221,7 +226,7 @@ export function resolutionConfig(repoRoot, inputs = null) {
       baseRoots.delete(root);
     }
   }
-  return { pathRules, baseRoots: [...baseRoots].sort(byCodeUnit), violations };
+  return { pathRules, baseRoots: [...baseRoots].sort(byCodeUnit), configInputs, violations };
 }
 
 /** The pnpm workspace globs must stay the two the guard enumerates. */

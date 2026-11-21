@@ -3,6 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { git, tmp, writeFile } from './db-access-required-git.mjs';
+import {
+  markFixtureQueryProperties,
+  OUTSIDE_FORWARDS,
+  QUERY_ESCAPES,
+} from './tenant-guard-schema-review-fixtures.mjs';
 import { KERNEL_ANCHOR, LEGACY_PINS } from './tenant-guard/manifest.mjs';
 import { TRUSTED } from './tenant-guard/trusted.mjs';
 import {
@@ -47,21 +52,40 @@ test(
   }
 );
 
+function appendFixtureTable(repo) {
+  const schema = 'packages/database/src/schema';
+  writeFile(repo, `${schema}/s2-admission-fixture.ts`, [
+    "import { pgTable, text } from 'drizzle-orm/pg-core';",
+    "export const s2AdmissionFixture = pgTable('s2_admission_fixture', " +
+      "{ id: text('id').primaryKey() }).enableRLS();",
+  ]);
+  fs.appendFileSync(
+    path.join(repo, `${schema}/index.ts`),
+    "export * from './s2-admission-fixture';\n"
+  );
+}
+
+test('the historical outside-root loader blocks a table-only append', { skip }, () => {
+  const result = route(openPullRequest(appendFixtureTable));
+  assertFailed(result, /protected report is not a passing scan/u);
+  assert.deepEqual(result.report.schemaAdmission, {
+    version: 2,
+    ok: false,
+    reason: `candidate: schema forward outside scan roots ${OUTSIDE_FORWARDS[0]}`,
+  });
+});
+
 test(
-  'an exact synthetic merge admits a new table on the protected-base anchor chain',
+  'an exact synthetic merge admits a new table on the protected-base anchor chain with eligible consumers',
   { skip },
   () => {
-    const schema = 'packages/database/src/schema';
     const pr = openPullRequest(repo => {
-      writeFile(repo, `${schema}/s2-admission-fixture.ts`, [
-        "import { pgTable, text } from 'drizzle-orm/pg-core';",
-        "export const s2AdmissionFixture = pgTable('s2_admission_fixture', " +
-          "{ id: text('id').primaryKey() }).enableRLS();",
-      ]);
-      fs.appendFileSync(
-        path.join(repo, `${schema}/index.ts`),
-        "export * from './s2-admission-fixture';\n"
-      );
+      appendFixtureTable(repo);
+      for (const file of OUTSIDE_FORWARDS) fs.rmSync(path.join(repo, file));
+      for (const [file, lines] of QUERY_ESCAPES) {
+        const text = fs.readFileSync(path.join(repo, file), 'utf8');
+        writeFile(repo, file, markFixtureQueryProperties(text, lines));
+      }
     });
     const result = route(pr);
     assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
