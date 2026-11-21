@@ -7,7 +7,7 @@ import { ids, lint, tempDir, tree, writeTree } from './fixtures/screen-contract-
 import { originIn, originOf } from './screen-contract/origins.mjs';
 
 const W = 'apps/web/src';
-const REG = 'scripts/ci/screen-contract/consent-registry.json';
+const REG = 'scripts/ci/screen-contract-consent-registry.json';
 const SAVE = `${W}/actions/consent.ts`;
 const ACTIONS = `'use server';\nexport async function saveTerms() {}\nexport async function saveDraft() {}\nexport async function saveMarketing() {}\nexport async function saveToggle() {}\n`;
 const registry = entries => JSON.stringify({ version: 1, entries });

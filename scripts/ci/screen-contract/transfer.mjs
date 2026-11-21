@@ -55,7 +55,7 @@ export function pairTransfers(base, head) {
   return { head: { ...head, exceptions: kept }, unpaired };
 }
 
-export const REBUILT_PATH = 'scripts/ci/screen-contract/rebuilt-screens.json';
+export const REBUILT_PATH = 'scripts/ci/screen-contract-rebuilt-screens.json';
 
 // A canonical repository path of a source file under a linted root (`paths.mjs`).
 const isCanonical = isCanonicalSource;

@@ -62,7 +62,7 @@ function rebuildSignals(repo, baseSha, headSha, root, file, changedCount) {
   const lines = fs.existsSync(abs) ? fs.readFileSync(abs, 'utf8').split('\n').length : 0;
   if (lines && changedCount > lines / 2)
     signals.push(
-      `likely rebuild: ${file} changes more than half its lines; list it in rebuilt-screens.json or say why not`
+      `likely rebuild: ${file} changes more than half its lines; list it in screen-contract-rebuilt-screens.json or say why not`
     );
   if (addsPageReady(git(repo, ['diff', '-U0', baseSha, headSha, '--', file])))
     signals.push(`likely rebuild: ${file} adds a page-ready marker`);

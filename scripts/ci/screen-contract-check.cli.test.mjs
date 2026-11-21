@@ -13,8 +13,8 @@ import { SCANNER, commit, git, repo, tempDir } from './fixtures/screen-contract-
 
 const W = 'apps/web/src';
 const BASELINE = 'scripts/ci/screen-contract-baseline.json';
-const REG = 'scripts/ci/screen-contract/consent-registry.json';
-const REBUILT = 'scripts/ci/screen-contract/rebuilt-screens.json';
+const REG = 'scripts/ci/screen-contract-consent-registry.json';
+const REBUILT = 'scripts/ci/screen-contract-rebuilt-screens.json';
 const IDS = CHECKS.map(c => c.id);
 
 export function baselineOf(items = {}, { mode = 'report', exceptions = [], extra = {} } = {}) {

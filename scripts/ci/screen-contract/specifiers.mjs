@@ -277,7 +277,9 @@ export function resolverFor(root) {
   // a file wins (B8), in TypeScript's file order (F7).
   const aliasFile = (patterns, rest) => {
     for (const pattern of patterns) {
-      const candidate = pattern.replace('*', () => rest);
+      const star = pattern.indexOf('*');
+      const candidate =
+        star === -1 ? pattern : `${pattern.slice(0, star)}${rest}${pattern.slice(star + 1)}`;
       const file = firstFile(aliasCandidates(pattern, candidate));
       if (file) return file;
     }

@@ -18,7 +18,7 @@ const pkg = (name, exportsMap) => JSON.stringify({ name, private: true, exports:
 // as in the repository, relative to its `baseUrl`) and a few packages.
 export const BASE_FILES = Object.freeze({
   'apps/web/src/messages/en/common.json': '{ "common": { "ok": "OK" } }\n',
-  'scripts/ci/screen-contract/consent-registry.json': '{ "version": 1, "entries": [] }\n',
+  'scripts/ci/screen-contract-consent-registry.json': '{ "version": 1, "entries": [] }\n',
   'tsconfig.json':
     '{\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["apps/web/src/*"] } }\n}\n',
   'apps/web/tsconfig.json':

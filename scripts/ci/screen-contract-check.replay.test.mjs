@@ -18,8 +18,8 @@ import { SCANNER, commit, git, repo, tempDir } from './fixtures/screen-contract-
 
 const W = 'apps/web/src';
 const BASELINE = 'scripts/ci/screen-contract-baseline.json';
-const REG = 'scripts/ci/screen-contract/consent-registry.json';
-const REBUILT = 'scripts/ci/screen-contract/rebuilt-screens.json';
+const REG = 'scripts/ci/screen-contract-consent-registry.json';
+const REBUILT = 'scripts/ci/screen-contract-rebuilt-screens.json';
 const LANES = {
   'apps/web/vitest.config.ts':
     "export default { test: { include: ['src/**/*.test.{ts,tsx}'] } };\n",

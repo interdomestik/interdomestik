@@ -49,7 +49,7 @@ function isIntlObject(node) {
 }
 
 const PASS_THROUGH = {
-  BinaryExpression: (parent, node) => parent.operator === '+',
+  BinaryExpression: parent => parent.operator === '+',
   TemplateLiteral: () => true,
   // `a && b` renders `b`; its left operand is only a condition. Either operand of `??`/`||` renders.
   LogicalExpression: (parent, node) => parent.operator !== '&&' || parent.right === node,

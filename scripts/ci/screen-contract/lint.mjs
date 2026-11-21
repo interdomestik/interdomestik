@@ -140,7 +140,7 @@ function elementAt(lines, message) {
   const own = /^<\s*([A-Za-z_$][\w.$-]*)/u.exec(rest)?.[1];
   if (own) return own;
   const opens = [...before.matchAll(/<([A-Za-z_$][\w.$-]*)/gu)];
-  return opens.length ? opens[opens.length - 1][1] : '?';
+  return opens.at(-1)?.[1] ?? '?';
 }
 
 // Each expected check of the file counts it, and needs its rules enabled at `error` there.

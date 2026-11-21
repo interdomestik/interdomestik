@@ -9,8 +9,8 @@ import { SCANNER, git, repo, tempDir } from './harness.mjs';
 
 export const W = 'apps/web/src';
 export const BASELINE = 'scripts/ci/screen-contract-baseline.json';
-export const REG = 'scripts/ci/screen-contract/consent-registry.json';
-export const REBUILT = 'scripts/ci/screen-contract/rebuilt-screens.json';
+export const REG = 'scripts/ci/screen-contract-consent-registry.json';
+export const REBUILT = 'scripts/ci/screen-contract-rebuilt-screens.json';
 export const DB_PAGE = `${W}/app/legacy/page.tsx`;
 export const DB_IMPORT =
   "import { db } from '@interdomestik/database';\nexport default () => db;\n";
@@ -40,7 +40,7 @@ export function baselineData(items = {}, { mode = 'report', exceptions = [], ext
       predicate: 'p',
       coverageMin: 0,
       items: list,
-      ...(list.length ? {} : { exhausted: true }),
+      ...(list.length === 0 && { exhausted: true }),
       ...(extra[id] ?? {}),
     };
   }

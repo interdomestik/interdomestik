@@ -182,7 +182,7 @@ test('H3: a registered use naming a support file CHK-22 never visits is an orpha
       '});',
       '',
     ].join('\n'),
-    'scripts/ci/screen-contract/consent-registry.json': `${JSON.stringify(registry)}\n`,
+    'scripts/ci/screen-contract-consent-registry.json': `${JSON.stringify(registry)}\n`,
   });
   const result = scan(t, root, ['--base', base, '--head', head]);
   assert.deepEqual(result.report.errors, []);

@@ -82,10 +82,9 @@ const MODELLED_CONDITIONS = new Set([
 // `node_modules`, case-insensitive and percent-encoded. INVALID_SEGMENT also
 // matches an empty segment, which Node refuses in a pattern match but only
 // deprecates in a target.
-const SEGMENT_BODY =
-  '(?:(?:\\.|%2e)(?:\\.|%2e)?|(?:n|%6e|%4e)(?:o|%6f|%4f)(?:d|%64|%44)(?:e|%65|%45)(?:_|%5f)(?:m|%6d|%4d)(?:o|%6f|%4f)(?:d|%64|%44)(?:u|%75|%55)(?:l|%6c|%4c)(?:e|%65|%45)(?:s|%73|%53))';
-const INVALID_TARGET_SEGMENT = new RegExp(`(?:^|\\\\|/)${SEGMENT_BODY}(?:\\\\|/|$)`, 'i');
-const INVALID_SEGMENT = new RegExp(`(?:^|\\\\|/)${SEGMENT_BODY}?(?:\\\\|/|$)`, 'i');
+const SEGMENT_BODY = String.raw`(?:(?:\.|%2e)(?:\.|%2e)?|(?:n|%6e|%4e)(?:o|%6f|%4f)(?:d|%64|%44)(?:e|%65|%45)(?:_|%5f)(?:m|%6d|%4d)(?:o|%6f|%4f)(?:d|%64|%44)(?:u|%75|%55)(?:l|%6c|%4c)(?:e|%65|%45)(?:s|%73|%53))`;
+const INVALID_TARGET_SEGMENT = new RegExp(String.raw`(?:^|\\|/)${SEGMENT_BODY}(?:\\|/|$)`, 'i');
+const INVALID_SEGMENT = new RegExp(String.raw`(?:^|\\|/)${SEGMENT_BODY}?(?:\\|/|$)`, 'i');
 const ARRAY_INDEX_KEY = /^(?:0|[1-9]\d*)$/;
 
 const isPlainObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -331,7 +330,7 @@ export function resolveEnvironment(pkg, subpath, env, fileExists) {
   const resolved = resolveTarget(selected.target, selected.patternMatch, conditions);
   if (typeof resolved !== 'string') return finish(resolved);
   const files = env === 'bundler-browser' ? bundlerFiles(resolved) : [resolved];
-  return finish(files.find(fileExists) ?? MISSING);
+  return finish(files.find(file => fileExists(file)) ?? MISSING);
 }
 
 export function checkEdge(pkg, subpath, edgeKind, fileExists) {

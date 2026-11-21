@@ -9,7 +9,7 @@ import { multisetMinus } from '../server-mutation/baseline.mjs';
 import { isCanonicalSource, isPlainPath, readInside } from './paths.mjs';
 import { resolverFor } from './specifiers.mjs';
 
-export const REGISTRY_PATH = 'scripts/ci/screen-contract/consent-registry.json';
+export const REGISTRY_PATH = 'scripts/ci/screen-contract-consent-registry.json';
 const KINDS = new Set(['consent', 'selection', 'not-consent']);
 const SUBMISSION_RE = /^[^#\s]+#[A-Za-z_$][\w$]*$/u;
 const REQUIRED_BY_KIND = Object.freeze({
