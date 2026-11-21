@@ -7,6 +7,7 @@ import {
   denseArray,
   isOwnReadable,
   isSnapshotRecord,
+  ownKeys,
   ownValue,
 } from './safe-action.check-def';
 import { assertPristineObjectPrototype, isIntegrityError } from './safe-action.recheck';
@@ -37,7 +38,7 @@ type ObjectLayout = { prototype: object | null; slots: Slot[] };
 function referenceLayout(object: object, nested = false): ObjectLayout {
   return {
     prototype: Object.getPrototypeOf(object),
-    slots: Reflect.ownKeys(object).map(key => {
+    slots: ownKeys(object).map(key => {
       const value = ownValue(object, key);
       return {
         key,
@@ -61,7 +62,7 @@ function matchesLayout(value: unknown, layout: ObjectLayout): boolean {
   if (
     !isOwnReadable(value) ||
     Object.getPrototypeOf(value) !== layout.prototype ||
-    Reflect.ownKeys(value).length !== layout.slots.length
+    ownKeys(value).length !== layout.slots.length
   )
     return false;
   return layout.slots.every(slot => {
@@ -167,7 +168,7 @@ function copyObject(shape: ObjectShape, raw: unknown, parsed: unknown, path: str
   const prototype = Object.getPrototypeOf(parsed);
   if (prototype !== null && prototype !== Object.prototype) return DEFECT;
   const copy: Record<string, unknown> = {};
-  for (const key of Reflect.ownKeys(parsed)) {
+  for (const key of ownKeys(parsed)) {
     if (typeof key !== 'string' || !Object.hasOwn(shape.fields, key)) return DEFECT;
     const field = shape.fields[key];
     const next = childPath(path, key);

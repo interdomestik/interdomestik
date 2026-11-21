@@ -186,21 +186,15 @@ describe('definition: no accessor in a check definition (addendum 9, r10 B28)', 
   });
 });
 
-// Astra r11 B38: a strict object that refers to itself (zod's public getter form) is refused at
-// definition with a definition error, not a stack overflow; a schema reused at sibling keys is not
-// recursive and stays accepted.
+// Astra r11 B38: a strict object with a cyclic shape is refused with a definition error.
+// A schema reused at sibling keys stays accepted.
 describe('definition: a recursive schema (r11 B38)', () => {
-  it('refuses a strict object that refers to itself through a getter', () => {
-    const Tree = z.strictObject({
-      name: z.string(),
-      get children() {
-        return z.array(Tree);
-      },
-    });
-    expect(define(z.strictObject({ tree: Tree }))).toThrow(ActionDefinitionError);
-    expect(define(z.strictObject({ tree: Tree }))).toThrow(
-      'at tree.children[]: a recursive schema'
-    );
+  it('refuses a strict object that refers to itself through an own data field', () => {
+    const shape: Record<string, z.ZodType> = { name: z.string() };
+    const tree = z.strictObject(shape);
+    shape.children = z.array(tree);
+    expect(define(z.strictObject({ tree }))).toThrow(ActionDefinitionError);
+    expect(define(z.strictObject({ tree }))).toThrow('at tree.children[]: a recursive schema');
   });
 
   it('accepts one schema reused at sibling keys', () => {

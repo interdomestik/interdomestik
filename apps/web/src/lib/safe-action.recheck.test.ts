@@ -15,6 +15,7 @@ vi.mock('@sentry/nextjs', () => ({
 }));
 vi.mock('./safe-action.output', { spy: true });
 vi.mock('./safe-action.recheck', { spy: true });
+vi.mock('./safe-action.schema', { spy: true });
 
 import {
   actionFailure,
@@ -28,6 +29,7 @@ import {
   isIntegrityError,
   ObjectPrototypeIntegrityError,
 } from './safe-action.recheck';
+import { captureSchema } from './safe-action.schema';
 
 const definition = {
   name: 'guard.gates',
@@ -138,17 +140,18 @@ describe('Object.prototype integrity', () => {
     expect(isRedirectError(error)).toBe(false);
   });
 
-  it('rejects replacement of a standard descriptor and rechecks after a developer shape getter', () => {
+  it('rejects replacement of a standard descriptor after schema capture', async () => {
     const baseline = Object.getOwnPropertyDescriptor(Object.prototype, 'valueOf')!;
-    const schema = z.strictObject({
-      get field() {
-        Object.defineProperty(Object.prototype, 'valueOf', { ...baseline, value: () => 1 });
-        return z.string();
-      },
+    const { captureSchema: original } =
+      await vi.importActual<typeof import('./safe-action.schema')>('./safe-action.schema');
+    vi.mocked(captureSchema).mockImplementationOnce((schema, options) => {
+      const captured = original(schema, options);
+      Object.defineProperty(Object.prototype, 'valueOf', { ...baseline, value: () => 1 });
+      return captured;
     });
     let error: unknown;
     try {
-      defineAction({ ...definition, input: schema, handler });
+      defineAction({ ...definition, input, handler });
     } catch (value) {
       error = value;
     } finally {

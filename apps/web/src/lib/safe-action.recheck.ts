@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/nextjs';
 import { unstable_rethrow } from 'next/navigation';
 
 import { actionFailure } from './safe-action.failure';
-import { ACCESSOR, isOwnReadable, ownValue } from './safe-action.check-def';
+import { ACCESSOR, isOwnReadable, ownKeys, ownValue } from './safe-action.check-def';
 
 export const STANDARD_OBJECT_KEYS = Object.freeze([
   'constructor',
@@ -75,7 +75,7 @@ export function assertPristineObjectPrototype(): void {
   let labels = '';
   let strings = 0;
   let symbols = 0;
-  for (const key of Reflect.ownKeys(prototype)) {
+  for (const key of ownKeys(prototype)) {
     if (standardKeys.has(key)) continue;
     if (controlKeys.has(key)) labels += ` control:${String(key)}`;
     else if (typeof key === 'string') strings += 1;

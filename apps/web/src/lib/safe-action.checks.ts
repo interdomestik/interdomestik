@@ -96,7 +96,7 @@ function refineFor(
     const run = refinementRun.getStore();
     if (run?.closed) return false;
     try {
-      const result: unknown = Reflect.apply(predicate, undefined, [value]);
+      const result = predicate(value);
       const adopted = adoptDataThenable(result);
       return adopted === undefined ? Boolean(result) : trackRefinement(run, adopted);
     } catch (error) {

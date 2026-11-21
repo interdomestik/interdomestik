@@ -6,6 +6,7 @@ import {
   denseArray,
   hasReadableFormDataPrototype,
   isOwnReadable,
+  ownKeys,
   ownValue,
 } from './safe-action.check-def';
 import { refinementRun } from './safe-action.checks';
@@ -147,7 +148,7 @@ function copyRaw(
   }
   if (prototype !== Object.prototype && prototype !== null) throw BAD_SNAPSHOT;
   const record: Record<string, unknown> = Object.create(null);
-  const keys = Reflect.ownKeys(raw);
+  const keys = ownKeys(raw);
   if (keys.length > work.remaining) throw BAD_SNAPSHOT;
   for (const field of keys) {
     if (typeof field !== 'string') throw BAD_SNAPSHOT;

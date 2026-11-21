@@ -10,6 +10,11 @@ export function isOwnReadable(value: unknown): value is object {
   );
 }
 
+/** Enumerate all own keys of a non-proxy, including non-enumerable and symbol keys. */
+export function ownKeys(value: object): (string | symbol)[] {
+  return [...Object.getOwnPropertyNames(value), ...Object.getOwnPropertySymbols(value)];
+}
+
 /** The snapshot copies own-data records with a null prototype. */
 export function isSnapshotRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && isOwnReadable(value) && Object.getPrototypeOf(value) === null;
@@ -33,7 +38,7 @@ export function dateTime(value: unknown): number | undefined {
   if (
     !types.isDate(value) ||
     Object.getPrototypeOf(value) !== Date.prototype ||
-    Reflect.ownKeys(value).length !== 0
+    ownKeys(value).length !== 0
   )
     return undefined;
   const time = Date.prototype.getTime.call(value);
@@ -68,7 +73,9 @@ export function adoptDataThenable(value: unknown): Promise<unknown> | undefined 
     }
     const thenable = {
       __proto__: null,
-      then: Function.prototype.bind.call(then, value) as PromiseLike<unknown>['then'],
+      then: (resolve: (value: unknown) => void, reject: (reason: unknown) => void) => {
+        then.call(value, resolve, reject);
+      },
     };
     return Promise.resolve(thenable);
   }
@@ -84,11 +91,7 @@ export function denseArray(value: unknown, maxLength: number): unknown[] | null 
   )
     return null;
   const length = ownValue(value, 'length');
-  if (
-    typeof length !== 'number' ||
-    length > maxLength ||
-    Reflect.ownKeys(value).length !== length + 1
-  )
+  if (typeof length !== 'number' || length > maxLength || ownKeys(value).length !== length + 1)
     return null;
   const copy: unknown[] = [];
   for (let index = 0; index < length; index += 1) {
@@ -107,14 +110,14 @@ export function schemaDef(schema: unknown): Readonly<Record<PropertyKey, unknown
     : null;
 }
 
-/** The captured definition of a check. The only deliberately read schema getter is object shape. */
+/** Capture the own data fields of a check definition. */
 export function checkDef(
   check: unknown,
   def = schemaDef(check)
 ): Readonly<Record<PropertyKey, unknown>> | null {
   if (def === null) return null;
   const capture: Record<PropertyKey, unknown> = Object.create(null);
-  for (const key of Reflect.ownKeys(def)) {
+  for (const key of ownKeys(def)) {
     const value = ownValue(def, key);
     if (value === ACCESSOR) return null;
     capture[key] = value;
@@ -163,7 +166,7 @@ export function regexDefinition(
     !hasTrait(check, '$ZodCheckStringFormat') ||
     !types.isRegExp(pattern) ||
     Object.getPrototypeOf(pattern) !== RegExp.prototype ||
-    Reflect.ownKeys(pattern).length !== 1 ||
+    ownKeys(pattern).length !== 1 ||
     !Object.hasOwn(pattern, 'lastIndex')
   )
     return undefined;
@@ -179,5 +182,5 @@ function carriesSchema(value: unknown): boolean {
 }
 
 export function holdsSchema(def: Readonly<Record<PropertyKey, unknown>>): boolean {
-  return Reflect.ownKeys(def).some(key => carriesSchema(def[key]));
+  return ownKeys(def).some(key => carriesSchema(def[key]));
 }

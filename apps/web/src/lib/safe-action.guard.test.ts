@@ -34,21 +34,51 @@ describe('the captured schema', () => {
     expect(() => guardFor(input)).toThrow(/exact.?optional/i);
   });
 
-  it('reads shape and field getters once for admission, subject, classification and parsing', async () => {
-    const field = vi.fn(() => z.array(z.string()).optional());
-    const input = z.strictObject({
-      get tag() {
-        return field();
-      },
-    });
+  it('uses the captured shape for admission, subject, classification and parsing', async () => {
+    const shape: Record<string, z.ZodType> = { tag: z.array(z.string()).optional() };
+    const input = z.strictObject(shape);
     const guard = buildInputGuard(input, { ...options, subjectFrom: ['tag'] });
+    shape.tag = z.number();
     expect(guard.fieldKind(['tag'])).toBe('array');
     expect(guard.fieldKind(['missing'])).toBeUndefined();
     expect(await guard.run({ tag: ['one'] }, false)).toMatchObject({
       kind: 'value',
       value: { tag: ['one'] },
     });
-    expect(field).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['lazy', 'data', 'non-enumerable'])(
+    'refuses a %s shape getter without calling it',
+    kind => {
+      const getter = vi.fn(() => z.string());
+      const shape = Object.defineProperty({}, 'tag', {
+        enumerable: kind !== 'non-enumerable',
+        get: getter,
+      });
+      const input = z.strictObject(shape);
+      if (kind === 'data') Object.defineProperty(input._zod.def, 'shape', { value: shape });
+
+      expect(() => guardFor(input)).toThrow(/at tag: a shape field that is not own data/);
+      expect(getter).not.toHaveBeenCalled();
+    }
+  );
+
+  it('refuses a proxy shape before running any trap', () => {
+    const trap = vi.fn(() => {
+      throw new Error('shape proxy trap');
+    });
+    const shape = new Proxy(
+      { tag: z.string() },
+      {
+        get: trap,
+        getOwnPropertyDescriptor: trap,
+        getPrototypeOf: trap,
+        ownKeys: trap,
+      }
+    );
+
+    expect(() => guardFor(z.strictObject(shape))).toThrow(/an invalid object shape/);
+    expect(trap).not.toHaveBeenCalled();
   });
 
   it('classifies an admitted optional array at query.tag and checks the object part and subject path', async () => {

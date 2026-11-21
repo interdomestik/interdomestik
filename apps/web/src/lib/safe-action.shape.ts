@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { isOwnReadable, isSnapshotRecord } from './safe-action.check-def';
+import { isOwnReadable, isSnapshotRecord, ownKeys } from './safe-action.check-def';
 import {
   rebuildCheck,
   type CapturedCheck,
@@ -34,7 +34,7 @@ export function enumValues(raw: unknown, refuse: Refuse): readonly (string | num
     return refuse('invalid enum entries');
   }
   const entries: Record<string, string | number> = Object.create(null);
-  for (const key of Reflect.ownKeys(raw)) {
+  for (const key of ownKeys(raw)) {
     const entry = Object.getOwnPropertyDescriptor(raw, key);
     const value: unknown =
       entry?.enumerable && Object.hasOwn(entry, 'value') ? entry.value : undefined;

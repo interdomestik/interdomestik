@@ -5,6 +5,7 @@ import {
   denseArray,
   hasTrait,
   isOwnReadable,
+  ownKeys,
   ownValue,
   schemaDef,
 } from './safe-action.check-def';
@@ -100,17 +101,25 @@ function shapeFields(def: Readonly<Record<PropertyKey, unknown>>, path: string, 
     return refuseCatchall('a never catchall with checks');
   }
 
-  // Zod can materialise def.shape lazily. This is its only read, including each declared field.
-  const shape = Object.hasOwn(def, 'shape') ? def.shape : undefined;
+  // Zod's lazy shape getter spreads its raw shape. Read the stored shape by descriptor
+  // before that spread can invoke a field getter or a proxy trap.
+  const descriptor = Object.getOwnPropertyDescriptor(def, 'shape');
+  const lazy = descriptor !== undefined && !Object.hasOwn(descriptor, 'value');
+  const shape: unknown = lazy ? ownValue(descriptor.get, 'raw') : descriptor?.value;
   if (!isOwnReadable(shape)) return refuse('an invalid object shape');
   const fields: Record<string, Shape> = Object.create(null);
-  for (const key of Reflect.ownKeys(shape)) {
+  for (const key of ownKeys(shape)) {
+    const field = ownValue(shape, key);
+    // The lazy spread includes only enumerable fields. Accessors are refused either way.
+    if (lazy && field !== ACCESSOR && !Object.prototype.propertyIsEnumerable.call(shape, key))
+      continue;
     if (typeof key !== 'string') return refuse('a non-string object key');
     const childPath = path ? `${path}.${key}` : key;
     if (ctx.identity.has(key)) refuseAt(ctx, childPath)('identity keys come from server context');
     if (ctx.reserved.has(key)) refuseAt(ctx, childPath)('a reserved Object.prototype key');
     if (ctx.visits >= MAX_NODES) refuseAt(ctx, childPath)(TOO_LARGE);
-    fields[key] = walk(Reflect.get(shape, key), childPath, ctx);
+    if (field === ACCESSOR) refuseAt(ctx, childPath)('a shape field that is not own data');
+    fields[key] = walk(field, childPath, ctx);
   }
   return Object.freeze(fields);
 }
@@ -255,7 +264,7 @@ function walk(schema: unknown, path: string, ctx: Walk): Shape {
 export function captureSchema(input: unknown, options: SchemaCheckOptions): ObjectShape {
   const ctx: Walk = {
     options,
-    reserved: new Set([...STANDARD_OBJECT_KEYS, ...Reflect.ownKeys(Object.prototype)]),
+    reserved: new Set([...STANDARD_OBJECT_KEYS, ...ownKeys(Object.prototype)]),
     identity: options.basisKind === 'self' ? ownerColumnKeys() : TENANT_IDENTITY_KEYS,
     onPath: new Set(),
     visits: 0,
