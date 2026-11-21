@@ -5,6 +5,17 @@ const REASON =
   'WP-02 1b-1 (wp02-1b-design.md R8.4/R12.2/D86): call captured intrinsics without ' +
   'dispatching through submitted values or polluted prototypes.';
 
+// The File layout sample holds a native prototype. Pin the code that produces and reads it so
+// this alias can be used for layout comparisons while the intrinsic captures remain protected.
+export const LIFETIME_REFLECT_FILE_LAYOUT = {
+  file: `${SAFE_ACTION}.output.ts`,
+  digests: {
+    referenceLayout: '47a8ccf753688eceab43eae26741278d89cfebabd38d229b2fe05e5b6a161a63',
+    fileLayout: '2cb2b0377ae6bb6183cb0c822c07aa1ce52cb2e9088de9ca196e7234072153d3',
+    matchesLayout: 'f26babbe906484bbbe289a69808750b6cadc622e00a14c2c7f438f24b6a809d4',
+  },
+};
+
 const capture = (binding, intrinsic, sha256, globals, input) => ({
   binding,
   intrinsic,

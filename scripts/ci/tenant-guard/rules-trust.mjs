@@ -40,7 +40,7 @@ export function installTrust(ctx) {
     if (fact) return fact;
     const sourceFile = graph.sourceFileOf(file);
     if (!sourceFile) return null;
-    const { references } = analyzeScopes(sourceFile);
+    const { references, hasBinding } = analyzeScopes(sourceFile);
     const printCache = new Map();
     const unchanged = unit => {
       let state = printCache.get(unit);
@@ -51,7 +51,7 @@ export function installTrust(ctx) {
       return state;
     };
     const { declarations, statements } = topLevelDeclarations(sourceFile);
-    fact = { file, sourceFile, references, unchanged, declarations, statements };
+    fact = { file, sourceFile, references, hasBinding, unchanged, declarations, statements };
     facts.set(file, fact);
     return fact;
   };
