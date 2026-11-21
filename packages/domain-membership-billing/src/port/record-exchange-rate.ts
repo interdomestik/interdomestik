@@ -136,9 +136,12 @@ export async function recordExchangeRateScheduled(
   ingress: IngressCapability<'inngest'>,
   input: unknown
 ): Promise<Publication> {
-  // The tenant comes from the signed event or the scheduler's server-side tenant list.
-  const tenantId =
-    typeof input === 'object' && input !== null && 'tenantId' in input ? input.tenantId : undefined;
+  const parsed = scheduledExchangeRateInputSchema.safeParse(input);
+  let tenantId: unknown = parsed.data?.tenantId;
+  // A malformed rate still needs authorization for the tenant named in the payload.
+  if (!parsed.success && typeof input === 'object' && input !== null && 'tenantId' in input) {
+    tenantId = input.tenantId;
+  }
   if (typeof tenantId !== 'string') return { ok: false, code: 'forbidden' };
 
   let authority;
@@ -152,7 +155,6 @@ export async function recordExchangeRateScheduled(
     throw error;
   }
 
-  const parsed = scheduledExchangeRateInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, code: 'invalid' };
   return publishRate(authority, parsed.data, { kind: 'inngest' });
 }

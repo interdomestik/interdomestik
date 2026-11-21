@@ -13,9 +13,10 @@ import {
   signal,
   tables,
   waitForLockWaiters,
+  withLockedBook,
   type ExchangeRateFixture,
 } from './exchange-rates.fixture';
-import { TEST_DB_ROLE } from './rls-test-connection';
+import { quoteIdentifier, quoteSqlLiteral, TEST_DB_ROLE } from './rls-test-connection';
 
 export async function proveExchangeRateDatabase(t: TestContext, fixture: ExchangeRateFixture) {
   const {
@@ -164,6 +165,70 @@ export async function proveExchangeRateDatabase(t: TestContext, fixture: Exchang
         ),
         { code: '23503', constraint_name: 'exchange_rates_book_fk' }
       );
+    }
+  );
+
+  await t.test(
+    'rejects a foreign rate insert even when its parent book can be locked',
+    async () => {
+      const foreign = firstRate(otherTenant, otherBook.id, '2026-02-18');
+      const role = quoteIdentifier(runtimeRole);
+      const bookId = quoteSqlLiteral(foreign.book_id);
+      // PostgreSQL applies both SELECT and UPDATE visibility policies to FOR UPDATE.
+      await admin.begin(async tx => {
+        await tx.unsafe(`create policy wp07_test_foreign_book_select on public.exchange_rate_books
+        for select to ${role} using (id = ${bookId})`);
+        await tx.unsafe(`create policy wp07_test_foreign_book_lock on public.exchange_rate_books
+        for update to ${role} using (id = ${bookId}) with check (false)`);
+      });
+      try {
+        await assert.rejects(
+          restricted(admin, tenantId, async tx => {
+            const parent = await tx`select id from public.exchange_rate_books
+            where tenant_id = ${foreign.tenant_id} and id = ${foreign.book_id}
+              and base = ${foreign.base} and quote = ${foreign.quote}
+            for update`;
+            assert.deepEqual([...parent], [{ id: foreign.book_id }]);
+
+            await tx`insert into public.exchange_rates ${tx(foreign)}`;
+          }),
+          {
+            code: '42501',
+            message: 'new row violates row-level security policy for table "exchange_rates"',
+          }
+        );
+      } finally {
+        await admin.begin(async tx => {
+          await tx`drop policy wp07_test_foreign_book_lock on public.exchange_rate_books`;
+          await tx`drop policy wp07_test_foreign_book_select on public.exchange_rate_books`;
+        });
+      }
+    }
+  );
+
+  await t.test(
+    'a direct rate insert stamps storage time after acquiring the book lock',
+    async () => {
+      const rate = firstRate(tenantId, book.id, '2100-03-03');
+      const { mark } = await withLockedBook(
+        peer,
+        admin,
+        tenantId,
+        book.id,
+        () =>
+          restricted(peer, tenantId, async tx => {
+            await tx`insert into public.exchange_rates ${tx(rate)}`;
+          }),
+        1
+      );
+      const [stored] = await restricted(
+        admin,
+        tenantId,
+        tx => tx<{ after_holder: boolean }[]>`
+        select stored_at >= ${mark}::timestamptz as after_holder
+        from public.exchange_rates where id = ${rate.id}`
+      );
+      assert.equal(stored?.after_holder, true, 'storage time follows the book release marker');
     }
   );
 
