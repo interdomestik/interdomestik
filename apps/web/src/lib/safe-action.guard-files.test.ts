@@ -18,6 +18,7 @@ Object.defineProperty(Blob.prototype, 'arrayBuffer', {
   },
 });
 const { defineFormAction } = await import('./safe-action');
+const { buildInputGuard } = await import('./safe-action.guard');
 Object.defineProperty(Blob.prototype, 'arrayBuffer', byteReadDescriptor);
 
 function upload(bytes = 'abc', type = 'image/png') {
@@ -54,6 +55,53 @@ describe('private File bytes and descriptors', () => {
     expect(file.size).toBe(3);
     expect(await actionFor()(undefined, form)).toMatchObject({ code: 'VALIDATION_ERROR' });
   });
+
+  it('rejects inconsistent File size even when the schema accepts all backing bytes', async () => {
+    const { file, form } = upload('abcd');
+    const action = actionFor(z.file().check(z.size(4)));
+    expect(await action(undefined, form)).toMatchObject({ success: true });
+    Object.defineProperty(file, slot(file, 'kLength'), { value: 3 });
+    expect(await action(undefined, form)).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('reads and copies one File once across repeated form references', async () => {
+    const { file, form } = upload();
+    form.append('repeated', file);
+    form.append('repeated', file);
+    const action = defineFormAction({
+      name: 'guard.repeated-upload',
+      basis: { kind: 'role', roles: ['staff'] },
+      subject: { type: 'none' },
+      input: z.strictObject({ file: z.file(), repeated: z.array(z.file()) }),
+      handler: async value => value,
+    });
+    const result = await action(undefined, form);
+    expect(mocks.arrayBuffer).toHaveBeenCalledExactlyOnceWith(file);
+    if (!result.success || !result.data) throw new Error('missing upload');
+    expect(result.data.file).not.toBe(file);
+    expect(result.data.repeated[0]).toBe(result.data.file);
+    expect(result.data.repeated[1]).toBe(result.data.file);
+  });
+
+  it.each([false, true])(
+    'rejects Files without reading bytes for a File-free definition (form=%s)',
+    async form => {
+      const uploadInput = upload();
+      const guard = buildInputGuard(z.strictObject({ field: z.string().optional() }), {
+        operation: 'guard.no-upload',
+        basisKind: 'role',
+        subjectFrom: null,
+        form,
+      });
+      expect(
+        await guard.run(form ? uploadInput.form : { file: uploadInput.file }, form)
+      ).toMatchObject({
+        kind: 'invalid',
+        snapshot: null,
+      });
+      expect(mocks.arrayBuffer).not.toHaveBeenCalled();
+    }
+  );
 
   it.each(['ab', 'abcd'])(
     'refuses real bytes %s outside the exact three-byte check',
@@ -160,7 +208,6 @@ describe('private File bytes and descriptors', () => {
       throw new Error('proxy trap');
     });
     const proxy = new Proxy(file, { get: trap, ownKeys: trap, getPrototypeOf: trap });
-    const { buildInputGuard } = await import('./safe-action.guard');
     const guard = buildInputGuard(z.strictObject({ file: z.file() }), {
       operation: 'guard.file',
       basisKind: 'role',
@@ -178,5 +225,14 @@ describe('private File bytes and descriptors', () => {
     Object.defineProperty(form, 'entries', { value: entries });
     expect(await actionFor()(undefined, form)).toMatchObject({ success: true });
     expect(entries).not.toHaveBeenCalled();
+  });
+
+  it('rejects form input with a proxy in its prototype chain without invoking a trap', async () => {
+    const trap = vi.fn(() => {
+      throw new Error('proxy trap');
+    });
+    const raw = Object.create(new Proxy({}, { getPrototypeOf: trap }));
+    expect(await actionFor()(undefined, raw)).toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(trap).not.toHaveBeenCalled();
   });
 });

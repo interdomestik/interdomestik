@@ -171,8 +171,12 @@ function nodeFor(
     }
     return { type: type as ScalarType, coerce: coerce === true };
   }
-  if (wrappers.has(type))
+  if (wrappers.has(type)) {
+    if (type === 'optional' && hasTrait(schema, '$ZodExactOptional')) {
+      return refuse('exactOptional is not supported');
+    }
     return { type: type as WrapperType, inner: walk(ownValue(def, 'innerType'), path, ctx) };
+  }
   switch (type) {
     case 'object':
       return { type, fields: shapeFields(def, path, ctx) };

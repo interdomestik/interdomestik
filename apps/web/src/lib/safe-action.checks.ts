@@ -1,7 +1,7 @@
 import { types } from 'node:util';
 import { z } from 'zod';
 
-import { checkDef, denseArray, hasTrait, holdsSchema } from './safe-action.check-def';
+import { checkDef, dateTime, denseArray, hasTrait, holdsSchema } from './safe-action.check-def';
 import { normalizerOf, privateNormalizer, type Normalizer } from './safe-action.normalizers';
 
 export type CheckDomain = {
@@ -13,12 +13,13 @@ export type CheckDomain = {
 type Predicate = (value: unknown) => unknown;
 export type Refuse = (detail: string) => never;
 type LengthKind = keyof typeof lengths;
+type MeasuredType = 'string' | 'array' | 'file';
 type Format = keyof typeof numericFormats;
 type Comparison = 'greater_than' | 'less_than';
 type CheckedValue = number | bigint | Readonly<{ time: number }>;
 type Operands = keyof typeof operands;
 export type CapturedCheck =
-  | readonly [LengthKind, number]
+  | readonly [LengthKind, number, MeasuredType]
   | readonly [Comparison, CheckedValue, boolean]
   | readonly ['multiple_of', number | bigint]
   | readonly ['format', Format]
@@ -92,17 +93,6 @@ function isKey<K extends string>(table: Record<K, unknown>, key: unknown): key i
   return typeof key === 'string' && Object.hasOwn(table, key);
 }
 
-export function dateTime(value: unknown): number | undefined {
-  if (
-    !types.isDate(value) ||
-    Object.getPrototypeOf(value) !== Date.prototype ||
-    Reflect.ownKeys(value).length !== 0
-  )
-    return undefined;
-  const time = Date.prototype.getTime.call(value);
-  return Number.isFinite(time) ? time : undefined;
-}
-
 function refineFor(domain: CheckDomain, predicate: Predicate): Predicate {
   return value => {
     if (
@@ -169,14 +159,12 @@ function captureAllowed(
   const normalizer = normalizerOf(check);
   if (!builtInOnly && type === 'string' && normalizer !== undefined)
     return ['normalizer', normalizer];
-  if (isKey(lengths, kind)) {
+  if (isKey(lengths, kind) && (type === 'string' || type === 'array' || type === 'file')) {
     const [key, trait] = lengths[kind];
     const value = def[key];
-    const validType =
-      kind.endsWith('_size') || kind === 'size_equals'
-        ? type === 'file'
-        : type === 'string' || type === 'array';
-    if (validType && typeof value === 'number' && hasTrait(check, trait)) return [kind, value];
+    const isSize = kind.endsWith('_size') || kind === 'size_equals';
+    if (isSize === (type === 'file') && typeof value === 'number' && hasTrait(check, trait))
+      return [kind, value, type];
   }
   if (isKey(comparisonTraits, kind) && hasTrait(check, comparisonTraits[kind])) {
     const value = bound(def.value, type);
@@ -283,8 +271,16 @@ function rebuild(check: CapturedCheck): z.core.$ZodCheck {
     case 'ends_with':
     case 'includes':
       return operands[check[0]][2](check[1]);
-    default:
-      return lengths[check[0]][2](check[1]);
+    default: {
+      const measure = lengths[check[0]][2](check[1]);
+      measure._zod.def.when = ({ value }) =>
+        check[2] === 'array'
+          ? Array.isArray(value)
+          : check[2] === 'file'
+            ? value instanceof File
+            : typeof value === 'string';
+      return measure;
+    }
   }
 }
 

@@ -1,7 +1,6 @@
 import { types } from 'node:util';
 
-import { ACCESSOR, denseArray, isOwnReadable, ownValue } from './safe-action.check-def';
-import { dateTime } from './safe-action.checks';
+import { ACCESSOR, dateTime, denseArray, isOwnReadable, ownValue } from './safe-action.check-def';
 import { assertPristineObjectPrototype, isIntegrityError } from './safe-action.recheck';
 import type { ObjectShape, Shape } from './safe-action.shape';
 

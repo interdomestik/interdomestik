@@ -52,6 +52,24 @@ describe('defineAction at run time', () => {
     mocks.authorize.mockResolvedValue(authorizedSession(STAFF_A));
   });
 
+  it('rejects an omitted required coercion before its predicate or audit writer runs', async () => {
+    const refine = vi.fn(() => {
+      throw Object.assign(new Error('denied'), { code: 'FORBIDDEN' });
+    });
+    const handler = vi.fn(async () => 'never');
+    const action = defineAction({
+      name: 'claims.required-coercion',
+      basis: { kind: 'role', roles: STAFF_ONLY },
+      subject: { type: 'none' },
+      input: z.strictObject({ enabled: z.coerce.boolean().readonly().nullable().refine(refine) }),
+      handler,
+    });
+    expect(await action({})).toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(refine).not.toHaveBeenCalled();
+    expect(mocks.write).not.toHaveBeenCalled();
+    expect(handler).not.toHaveBeenCalled();
+  });
+
   it('runs the handler with the parsed input and wraps its value', async () => {
     const handler = vi.fn((input: { claimId: string }) => Promise.resolve(`seen ${input.claimId}`));
     const result = await staffAction(handler)({ claimId: 'c-1', note: 'ok' });

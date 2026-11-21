@@ -105,6 +105,27 @@ function anywhere(shape: Shape, predicate: (shape: Shape) => boolean): boolean {
   return predicate(shape) || children(shape).some(child => anywhere(child, predicate));
 }
 
+export function hasFile(shape: Shape): boolean {
+  return anywhere(shape, child => child.type === 'file');
+}
+
+function admitsNullish(shape: Shape, value: null | undefined): boolean {
+  switch (shape.type) {
+    case 'optional':
+      return value === undefined || admitsNullish(shape.inner, value);
+    case 'nullable':
+      return value === null || admitsNullish(shape.inner, value);
+    case 'readonly':
+      return admitsNullish(shape.inner, value);
+    case 'literal':
+      return shape.values.includes(value);
+    case 'union':
+      return shape.branches.some(branch => admitsNullish(branch, value));
+    default:
+      return false;
+  }
+}
+
 function assertDiscriminator(branches: readonly Shape[], key: string, refuse: Refuse): void {
   const tags = new Set<Literal>();
   for (const branch of branches) {
@@ -129,18 +150,36 @@ export function assertUnion(node: Extract<ShapeNode, { type: 'union' }>, refuse:
     return refuse('a plain union may contain objects in only one branch');
   }
   const seen = new Map<Kind, boolean>();
+  let overlapsObject = false;
   for (const branch of branches) {
     const shape = unwrap(branch);
+    const branchKinds = kinds(shape);
+    overlapsObject ||=
+      (branchKinds.includes('object') && (seen.has('date') || seen.has('file'))) ||
+      (seen.has('object') && (branchKinds.includes('date') || branchKinds.includes('file')));
     const uncheckedSet =
       (shape.type === 'literal' || shape.type === 'enum') &&
       !anywhere(branch, child => child.checks.length > 0);
-    for (const kind of kinds(shape)) {
+    for (const kind of branchKinds) {
       const previous = seen.get(kind);
       if (previous !== undefined && !(previous && uncheckedSet)) {
         return refuse('a plain union must have distinct branch kinds');
       }
       seen.set(kind, uncheckedSet);
     }
+  }
+  // A synchronous success can leave earlier async checks running. Even a strict object
+  // branch can start checking fields on a Date or File before rejecting it.
+  if (
+    branches.some(branch =>
+      anywhere(branch, child => child.checks.some(check => check[0] === 'custom'))
+    ) &&
+    (overlapsObject ||
+      [null, undefined].some(
+        value => branches.filter(branch => admitsNullish(branch, value)).length > 1
+      ))
+  ) {
+    return refuse('a plain union with overlapping branches and a refinement');
   }
 }
 

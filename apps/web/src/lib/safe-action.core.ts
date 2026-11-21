@@ -30,7 +30,6 @@ type Authenticated =
   | { kind: 'refused'; failure: ActionFailure; actor: RefusalActor | null };
 
 const SCOPE_CODES = new Set(['FORBIDDEN_NO_BRANCH', 'FORBIDDEN_NO_AGENT']);
-const formGetAll = FormData.prototype.getAll;
 
 /** Authentication and the session invariants, shared by both wrappers (design §1.1). */
 export async function authenticate(): Promise<Authenticated> {
@@ -89,34 +88,6 @@ export type Operation = {
   subject: ActionSubject | null;
   form: boolean;
 };
-function subjectOf(
-  op: Operation,
-  raw: unknown,
-  actor: RefusalActor,
-  snapshotted: boolean
-): RecordedSubject {
-  const subject = op.subject;
-  if (subject === null) return { type: 'unknown' };
-  const input: Record<string, unknown> = Object.create(null);
-  if ('from' in subject && isOwnReadable(raw)) {
-    try {
-      if (op.form && !snapshotted) {
-        const values: FormDataEntryValue[] = Reflect.apply(formGetAll, raw, [subject.from]);
-        if (values.length === 1) input[subject.from] = values[0];
-      } else {
-        const value = ownValue(raw, subject.from);
-        input[subject.from] =
-          op.form && Array.isArray(value) && value.length === 1 ? value[0] : value;
-      }
-    } catch (error) {
-      checkControlFlow(error);
-      // A malformed or unbranded FormData receiver has no subject.
-      return { type: subject.type, id: 'unknown' };
-    }
-  }
-  return extractSubject(subject, input, { form: false, actorId: actor.actorId });
-}
-
 // Read the private brand from a canonical failure so accessors and inherited brands can be rejected.
 const failureBrand = Object.getOwnPropertySymbols(actionFailure('INTERNAL_SERVER_ERROR'))[0];
 
@@ -154,9 +125,10 @@ export async function finalize<T>(
   }
   const reason = ownValue(outcome, 'reason');
   if (isRefusalCode(code)) {
-    const subject = actor
-      ? subjectOf(op, raw, actor, snapshotted)
-      : ({ type: op.subject?.type ?? 'unknown' } as RecordedSubject);
+    const subject =
+      actor && op.subject
+        ? extractSubject(op.subject, raw, { form: op.form, actorId: actor.actorId, snapshotted })
+        : ({ type: op.subject?.type ?? 'unknown' } as RecordedSubject);
     assertPristineObjectPrototype();
     const refusal = {
       __proto__: null,

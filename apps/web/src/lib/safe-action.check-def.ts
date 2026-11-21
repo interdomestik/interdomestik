@@ -10,6 +10,31 @@ export function isOwnReadable(value: unknown): value is object {
   );
 }
 
+const formDataPrototype = FormData.prototype;
+
+/** Check the prototype chain before invoking a FormData intrinsic's brand check. */
+export function hasReadableFormDataPrototype(value: unknown): boolean {
+  for (
+    let candidate = value;
+    isOwnReadable(candidate);
+    candidate = Object.getPrototypeOf(candidate)
+  ) {
+    if (candidate === formDataPrototype) return true;
+  }
+  return false;
+}
+
+export function dateTime(value: unknown): number | undefined {
+  if (
+    !types.isDate(value) ||
+    Object.getPrototypeOf(value) !== Date.prototype ||
+    Reflect.ownKeys(value).length !== 0
+  )
+    return undefined;
+  const time = Date.prototype.getTime.call(value);
+  return Number.isFinite(time) ? time : undefined;
+}
+
 export function ownValue(holder: unknown, key: PropertyKey): unknown {
   if (!isOwnReadable(holder)) return undefined;
   const descriptor = Object.getOwnPropertyDescriptor(holder, key);

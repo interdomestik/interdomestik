@@ -113,6 +113,71 @@ describe('private admitted Zod checks', () => {
     expect(when).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['string', z.string().min(2), { length: {} }, false],
+    ['array', z.array(z.string()).max(2), { length: {} }, false],
+    ['File', z.file().check(z.size(2)), { size: {} }, true],
+  ])('reports invalid_type before measuring a malformed %s', async (_label, field, value, form) => {
+    const input = buildInputGuard(z.strictObject({ field }), {
+      operation: 'guard.checks',
+      basisKind: 'role',
+      subjectFrom: null,
+      form,
+    });
+    expect(await input.run({ field: value }, false)).toMatchObject({
+      kind: 'invalid',
+      failure: { issues: { field: 'invalid_type' } },
+    });
+  });
+
+  it.each([
+    z.union([
+      z
+        .string()
+        .optional()
+        .refine(async () => true),
+      z.literal(undefined),
+    ]),
+    z.union([
+      z.union([
+        z
+          .string()
+          .nullable()
+          .refine(async () => true),
+        z.boolean(),
+      ]),
+      z.literal(null),
+    ]),
+    z.union([
+      z.strictObject({
+        field: z
+          .string()
+          .optional()
+          .refine(async () => true),
+      }),
+      z.date(),
+    ]),
+  ])(
+    'refuses overlapping refined branches reached via literals, nested unions or Dates (%#)',
+    field => {
+      expect(() => guard(field)).toThrow(ActionDefinitionError);
+    }
+  );
+
+  it('admits disjoint refined branches and unchecked branches sharing null', async () => {
+    const refine = vi.fn(async () => true);
+    const disjoint = guard(z.union([z.string().nullable().refine(refine), z.number()]));
+    expect(await disjoint.run({ field: null }, false)).toMatchObject({ kind: 'value' });
+    expect(refine).toHaveBeenCalledExactlyOnceWith(null);
+    const unchecked = guard(z.union([z.string().nullable(), z.number().nullable()]));
+    expect(await unchecked.run({ field: null }, false)).toMatchObject({ kind: 'value' });
+    const nested = z.union([z.date(), z.strictObject({ field: z.string() })]);
+    const disjointNested = guard(z.union([nested, z.string().refine(refine)]));
+    expect(await disjointNested.run({ field: new Date(1) }, false)).toMatchObject({
+      kind: 'value',
+    });
+  });
+
   it('keeps check order and all five private normalisers', async () => {
     const input = guard(
       z

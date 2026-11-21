@@ -20,6 +20,17 @@ describe('owned input and the handler copy', () => {
     });
   });
 
+  it('allows an omitted coercing field behind an optional wrapper', async () => {
+    const input = guard(
+      z.strictObject({ coerced: z.coerce.boolean().optional().readonly().nullable() })
+    );
+    expect(await input.run({}, false)).toMatchObject({ kind: 'value', value: {} });
+    expect(await input.run({ coerced: undefined }, false)).toMatchObject({
+      kind: 'value',
+      value: { coerced: undefined },
+    });
+  });
+
   it('refuses an array at a coerced scalar before the numeric refine', async () => {
     const predicate = vi.fn(() => true);
     const input = guard(z.strictObject({ coerced: z.coerce.number().refine(predicate) }));
@@ -80,13 +91,21 @@ describe('owned input and the handler copy', () => {
     expect(await input.run({ stage: 'Pending' }, false)).toMatchObject({ kind: 'invalid' });
   });
 
-  it('enforces the snapshot depth and node budget before the parser', async () => {
+  it('enforces the snapshot node budget before the parser', async () => {
     const input = guard(z.strictObject({ tags: z.array(z.string()) }));
     expect(await input.run({ tags: Array<string>(10001).fill('x') }, false)).toMatchObject({
       kind: 'invalid',
+      snapshot: null,
     });
+  });
+
+  it('refuses an over-depth input before the parser can reject the unknown field', async () => {
+    const input = guard(z.strictObject({ tags: z.array(z.string()) }));
     let nested: unknown = 'x';
     for (let level = 0; level < 33; level += 1) nested = { nested };
-    expect(await input.run({ tags: [], extra: nested }, false)).toMatchObject({ kind: 'invalid' });
+    expect(await input.run({ tags: [], extra: nested }, false)).toMatchObject({
+      kind: 'invalid',
+      snapshot: null,
+    });
   });
 });

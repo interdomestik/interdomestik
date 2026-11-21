@@ -3,12 +3,13 @@ import { safeExceptionType } from '@/lib/observability/sentry-error-labels';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import * as Sentry from '@sentry/nextjs';
 
-import { ownValue } from './safe-action.check-def';
+import { hasReadableFormDataPrototype, isOwnReadable, ownValue } from './safe-action.check-def';
 import { assertPristineObjectPrototype, checkControlFlow } from './safe-action.recheck';
 import type { ActionSubject, RecordedSubject, RefusalCode } from './safe-action.types';
 
 // An opaque id: no separators, no control characters, nothing a log line could be split on.
 const OPAQUE_ID = /^[A-Za-z0-9_-]{1,128}$/;
+const formGetAll = FormData.prototype.getAll;
 
 export type RefusalActor = {
   authority: TenantAuthority;
@@ -24,16 +25,23 @@ export type Refusal = {
   reason?: 'cross_tenant';
 };
 
-function readRawValue(rawInput: unknown, from: string, form: boolean): unknown {
-  if (form) {
-    if (!(rawInput instanceof FormData)) return undefined;
-    const values = rawInput.getAll(from);
+function readRawValue(
+  rawInput: unknown,
+  from: string,
+  form: boolean,
+  snapshotted: boolean
+): unknown {
+  if (form && !snapshotted) {
+    if (!hasReadableFormDataPrototype(rawInput)) return undefined;
+    const values: FormDataEntryValue[] = Reflect.apply(formGetAll, rawInput, [from]);
     return values.length === 1 ? values[0] : undefined;
   }
-  if (typeof rawInput !== 'object' || rawInput === null) return undefined;
-  // An own data property only: reading an accessor would run caller-supplied code.
-  const descriptor = Object.getOwnPropertyDescriptor(rawInput, from);
-  return descriptor && 'value' in descriptor ? descriptor.value : undefined;
+  if (typeof rawInput !== 'object') return undefined;
+  const value = ownValue(rawInput, from);
+  if (form && isOwnReadable(value) && Array.isArray(value)) {
+    return ownValue(value, 'length') === 1 ? ownValue(value, 0) : undefined;
+  }
+  return value;
 }
 
 /**
@@ -43,15 +51,16 @@ function readRawValue(rawInput: unknown, from: string, form: boolean): unknown {
 export function extractSubject(
   subject: ActionSubject,
   rawInput: unknown,
-  options: { form: boolean; actorId: string | null }
+  options: { form: boolean; actorId: string | null; snapshotted?: boolean }
 ): RecordedSubject {
   if (subject.type === 'none') return { type: 'none' };
   if (subject.type === 'self') return { type: 'self', id: options.actorId };
   let value: unknown;
   try {
-    value = readRawValue(rawInput, subject.from, options.form);
-  } catch {
-    value = undefined; // a proxy or form object that throws on reading: the target is unknown
+    value = readRawValue(rawInput, subject.from, options.form, options.snapshotted ?? false);
+  } catch (error) {
+    checkControlFlow(error);
+    value = undefined; // A malformed FormData receiver has no subject.
   }
   return {
     type: subject.type,

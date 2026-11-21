@@ -1,8 +1,13 @@
 import { types } from 'node:util';
 import type { z } from 'zod';
 
-import { denseArray, isOwnReadable, ownValue } from './safe-action.check-def';
-import { dateTime } from './safe-action.checks';
+import {
+  dateTime,
+  denseArray,
+  hasReadableFormDataPrototype,
+  isOwnReadable,
+  ownValue,
+} from './safe-action.check-def';
 import { actionFailure, type ActionFailure } from './safe-action.failure';
 import { exactParsedInput, privateFile } from './safe-action.output';
 import { assertPristineObjectPrototype, isIntegrityError } from './safe-action.recheck';
@@ -13,7 +18,14 @@ import {
   MAX_INPUT_DEPTH,
   type SchemaCheckOptions,
 } from './safe-action.schema';
-import { fieldAt, formKind, rebuildParser, type FieldKind, type Shape } from './safe-action.shape';
+import {
+  fieldAt,
+  formKind,
+  hasFile,
+  rebuildParser,
+  type FieldKind,
+  type Shape,
+} from './safe-action.shape';
 
 export {
   assertPristineObjectPrototype,
@@ -37,7 +49,7 @@ export type InputGuard = {
 const MAX_NODES = 10000;
 const BAD_SNAPSHOT = Symbol('invalid snapshot');
 type FileSlot = { target: Record<string, unknown> | unknown[]; key: string | number; file: object };
-type SnapshotWork = { remaining: number; files: FileSlot[] };
+type SnapshotWork = { remaining: number; files: FileSlot[]; allowFiles: boolean };
 
 const formEntries = FormData.prototype.entries;
 const formNext: ReturnType<FormData['entries']>['next'] = Object.getPrototypeOf(
@@ -55,7 +67,7 @@ function collectForm(
   raw: unknown,
   kind: InputGuard['fieldKind']
 ): { kind: 'form'; fields: Record<string, unknown> } | Invalid {
-  if (!isOwnReadable(raw)) return invalid();
+  if (!hasReadableFormDataPrototype(raw)) return invalid();
   const input: Record<string, unknown> = Object.create(null);
   const iterator = Reflect.apply(formEntries, raw, []);
   let count = 0;
@@ -110,6 +122,7 @@ function copyRaw(
     return;
   }
   if (prototype === File.prototype) {
+    if (!work.allowFiles) throw BAD_SNAPSHOT;
     work.files.push({ target, key, file: raw });
     return;
   }
@@ -150,9 +163,8 @@ function coercionIssue(shape: Shape, raw: unknown, path = ''): string | undefine
       (shape.type === 'bigint' && type === 'bigint');
     return acceptable ? undefined : path || '_root';
   }
-  if (shape.type === 'object' && isOwnReadable(raw)) {
+  if (shape.type === 'object' && isOwnReadable(raw) && !Array.isArray(raw)) {
     for (const [key, field] of Object.entries(shape.fields)) {
-      if (!Object.hasOwn(raw, key)) continue;
       const issue = coercionIssue(field, ownValue(raw, key), path ? `${path}.${key}` : key);
       if (issue !== undefined) return issue;
     }
@@ -169,14 +181,15 @@ function coercionIssue(shape: Shape, raw: unknown, path = ''): string | undefine
 }
 
 type Snapshot = { snapshot: unknown } | { refusal: Invalid };
+type SnapshotOptions = { fieldKind: InputGuard['fieldKind']; allowFiles: boolean };
 
 async function snapshotOf(
   raw: unknown,
   form: boolean,
-  fieldKind: InputGuard['fieldKind']
+  { fieldKind, allowFiles }: SnapshotOptions
 ): Promise<Snapshot> {
   const output: Record<string, unknown> = Object.create(null);
-  const work: SnapshotWork = { remaining: MAX_NODES, files: [] };
+  const work: SnapshotWork = { remaining: MAX_NODES, files: [], allowFiles };
   try {
     if (form) {
       const fields = collectForm(raw, fieldKind);
@@ -184,8 +197,15 @@ async function snapshotOf(
       raw = fields.fields;
     }
     copyRaw(raw, output, 'root', work, 1);
+    const copies = new Map<object, Promise<File | null>>();
     const files = work.files.length
-      ? await Promise.all(work.files.map(slot => privateFile(slot.file)))
+      ? await Promise.all(
+          work.files.map(({ file }) => {
+            const copy = copies.get(file) ?? privateFile(file);
+            copies.set(file, copy);
+            return copy;
+          })
+        )
       : [];
     assertPristineObjectPrototype();
     for (const [index, file] of files.entries()) {
@@ -203,18 +223,19 @@ async function snapshotOf(
 async function runGuard(
   raw: unknown,
   form: boolean,
-  fieldKind: InputGuard['fieldKind'],
+  snapshotOptions: SnapshotOptions,
   shape: Shape,
   parser: z.ZodType
 ): Promise<GuardOutcome> {
   assertPristineObjectPrototype();
-  const owned = await snapshotOf(raw, form, fieldKind);
+  const owned = await snapshotOf(raw, form, snapshotOptions);
   assertPristineObjectPrototype();
   if ('refusal' in owned) return owned.refusal;
   const { snapshot } = owned;
   const issue = coercionIssue(shape, snapshot);
   if (issue !== undefined) return invalid(issue, 'invalid_type', snapshot);
   const context = Object.assign(Object.create(null), {
+    abortEarly: false,
     skipChecks: false,
     direction: 'forward',
     jitless: true,
@@ -232,12 +253,15 @@ async function runGuard(
   }
   assertPristineObjectPrototype();
   try {
-    if (!result.success)
-      return {
+    if (!result.success) {
+      const outcome: Invalid = {
         kind: 'invalid',
         snapshot,
         failure: actionFailure('VALIDATION_ERROR', undefined, { issues: issuesOf(result.error) }),
       };
+      assertPristineObjectPrototype();
+      return outcome;
+    }
     const copy = exactParsedInput(shape, snapshot, result.data);
     assertPristineObjectPrototype();
     if (copy.kind === 'invalid') return invalid(copy.path, 'invalid_type', snapshot);
@@ -265,12 +289,12 @@ export function buildInputGuard(input: unknown, options: SchemaCheckOptions): In
   assertPristineObjectPrototype();
   const fieldKind: InputGuard['fieldKind'] = path => {
     const node = fieldAt(shape, path);
-    if (node === undefined) return undefined;
-    const kind = formKind(node);
+    const kind = node && formKind(node);
     return kind === 'mixed' ? 'scalar' : kind;
   };
+  const snapshotOptions = { fieldKind, allowFiles: hasFile(shape) };
   return Object.freeze({
     fieldKind,
-    run: (raw: unknown, form: boolean) => runGuard(raw, form, fieldKind, shape, parser),
+    run: (raw: unknown, form: boolean) => runGuard(raw, form, snapshotOptions, shape, parser),
   });
 }

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { ActionDefinitionError } from './safe-action';
-import { buildInputGuard } from './safe-action.guard';
+import { buildInputGuard, isIntegrityError } from './safe-action.guard';
 
 const options = {
   operation: 'guard.test',
@@ -14,6 +14,15 @@ const options = {
 const guardFor = (input: z.ZodType) => buildInputGuard(input, options);
 
 describe('the captured schema', () => {
+  it.each([
+    [z.string().exactOptional(), undefined],
+    [z.array(z.string().exactOptional()), [undefined]],
+  ])('refuses exact-optional fields and array elements at definition (%#)', (schema, value) => {
+    const input = z.strictObject({ field: schema });
+    expect(input.safeParse({ field: value }).success).toBe(false);
+    expect(() => guardFor(input)).toThrow(/exact.?optional/i);
+  });
+
   it('reads shape and field getters once for admission, subject, classification and parsing', async () => {
     const field = vi.fn(() => z.array(z.string()).optional());
     const input = z.strictObject({
@@ -84,5 +93,54 @@ describe('the captured schema', () => {
     const outcome = await guard.run({ id: 'ID-A' }, false);
     expect(outcome).toMatchObject({ kind: 'thrown', snapshot: { id: 'ID-A' } });
     expect(outcome.kind === 'thrown' && outcome.error).toBe(error);
+  });
+
+  it('shadows an inherited abortEarly getter throughout private parsing', async () => {
+    const abortEarly = vi.fn(() => false);
+    const guard = guardFor(
+      z.strictObject({
+        start: z.string().refine(() => {
+          Object.defineProperty(Object.prototype, 'abortEarly', {
+            configurable: true,
+            get: abortEarly,
+          });
+          return true;
+        }),
+        nested: z.strictObject({ field: z.string() }),
+        end: z.string().refine(() => Reflect.deleteProperty(Object.prototype, 'abortEarly')),
+      })
+    );
+    try {
+      expect(
+        await guard.run({ start: 'x', nested: { field: 'x' }, end: 'x' }, false)
+      ).toMatchObject({ kind: 'value' });
+    } finally {
+      Reflect.deleteProperty(Object.prototype, 'abortEarly');
+    }
+    expect(abortEarly).not.toHaveBeenCalled();
+  });
+
+  it('gates the invalid outcome after Zod formats its lazy error', async () => {
+    const guard = guardFor(z.strictObject({ field: z.string() }));
+    const { customError } = z.config();
+    const format = vi.fn(() => {
+      Object.defineProperty(Object.prototype, 'duringIssueFormatting', {
+        configurable: true,
+        value: true,
+      });
+      return 'invalid field';
+    });
+    let caught: unknown;
+    z.config({ customError: format });
+    try {
+      await guard.run({ field: 1 }, false);
+    } catch (error) {
+      caught = error;
+    } finally {
+      Reflect.deleteProperty(Object.prototype, 'duringIssueFormatting');
+      z.config({ customError });
+    }
+    expect(format).toHaveBeenCalledOnce();
+    expect(isIntegrityError(caught)).toBe(true);
   });
 });

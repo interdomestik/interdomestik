@@ -17,7 +17,13 @@ vi.mock('next/navigation', async importOriginal => importOriginal());
 vi.mock('./safe-action.refusal', { spy: true });
 
 import { redirect } from 'next/navigation';
-import { actionFailure, actionNormalizers, defineAction, defineFormAction } from './safe-action';
+import {
+  actionFailure,
+  ActionDefinitionError,
+  actionNormalizers,
+  defineAction,
+  defineFormAction,
+} from './safe-action';
 import { assertPristineObjectPrototype, ObjectPrototypeIntegrityError } from './safe-action.guard';
 import { extractSubject } from './safe-action.refusal';
 
@@ -36,6 +42,42 @@ beforeEach(() => {
 });
 
 describe('the action guard sequence and refusal subject', () => {
+  it('refuses overlapping nullable branches before a refinement can reject unhandled', async () => {
+    const rejection = new Error('nullable branch rejected');
+    const refine = vi.fn(async () => {
+      await new Promise<void>(resolve => setImmediate(resolve));
+      throw rejection;
+    });
+    const handler = vi.fn(async () => 'never');
+    const unhandled = vi.fn();
+    const define = () =>
+      defineAction({
+        ...definition,
+        input: z.strictObject({
+          claimId: z.union([z.string().nullable().refine(refine), z.number().nullable()]),
+        }),
+        handler,
+      });
+    let definitionError: unknown;
+    process.on('unhandledRejection', unhandled);
+    try {
+      let action: ReturnType<typeof define> | undefined;
+      try {
+        action = define();
+      } catch (error) {
+        definitionError = error;
+      }
+      if (action) await action({ claimId: null });
+      await new Promise<void>(resolve => setImmediate(resolve));
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
+    expect(unhandled).not.toHaveBeenCalled();
+    expect(handler).not.toHaveBeenCalled();
+    expect(refine).not.toHaveBeenCalled();
+    expect(definitionError).toBeInstanceOf(ActionDefinitionError);
+  });
+
   it('records one FORBIDDEN row for an Error rejected by refine against the submitted snapshot ID', async () => {
     const raw = { claimId: 'ID-A' };
     const error = Object.assign(new Error('denied'), { code: 'FORBIDDEN' });
