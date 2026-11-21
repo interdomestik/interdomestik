@@ -6,14 +6,13 @@ import {
   failureOfThrown,
   finalize,
   runProtected,
-  writeRefusal,
   type Operation,
 } from './safe-action.core';
 import { denseArray, isOwnReadable, ownValue } from './safe-action.check-def';
 import { buildInputGuard } from './safe-action.guard';
 import { assertPristineObjectPrototype } from './safe-action.recheck';
 import { isActionFailure, type ActionFailure } from './safe-action.failure';
-import type { RefusalActor } from './safe-action.refusal';
+import { recordRefusal, type RefusalActor } from './safe-action.refusal';
 import { ActionDefinitionError } from './safe-action.schema';
 import {
   isRefusalCode,
@@ -175,7 +174,14 @@ export async function runAuthenticatedAction<T>(
         outcome = data;
       } else if (isPassThrough(data)) {
         if (data.success !== true && isRefusalCode(data.code)) {
-          await writeRefusal(LEGACY, data.code, { type: 'unknown' }, actor);
+          const refusal = {
+            __proto__: null,
+            operation: LEGACY.name,
+            basis: LEGACY.basis.kind,
+            code: data.code,
+            subject: { type: 'unknown' },
+          } as const;
+          await recordRefusal(refusal, actor);
           assertPristineObjectPrototype();
         }
         assertPristineObjectPrototype();

@@ -1,5 +1,3 @@
-import { writeAuditEvent } from '@/lib/audit.core';
-import { safeExceptionType } from '@/lib/observability/sentry-error-labels';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import * as Sentry from '@sentry/nextjs';
@@ -25,7 +23,6 @@ import {
   type ActionSuccess,
   type ProtectedActionContext,
   type RecordedSubject,
-  type RefusalCode,
 } from './safe-action.types';
 
 type Authenticated =
@@ -120,59 +117,6 @@ function subjectOf(
   return extractSubject(subject, input, { form: false, actorId: actor.actorId });
 }
 
-function recordWriteFailure(op: Operation, code: RefusalCode, error: unknown): void {
-  Sentry.captureException(error);
-  console.error('[SafeAction] refusal record failed', {
-    operation: op.name,
-    code,
-    errorName: safeExceptionType(ownValue(error, 'name')),
-  });
-}
-
-export async function writeRefusal(
-  op: Operation,
-  code: RefusalCode,
-  subject: RecordedSubject,
-  actor: RefusalActor | null,
-  reason?: unknown
-): Promise<void> {
-  if (!actor) {
-    await recordRefusal({ operation: op.name, basis: op.basis.kind, code, subject }, null);
-    assertPristineObjectPrototype();
-    return;
-  }
-  const metadata = Object.assign(Object.create(null), {
-    code,
-    basis: op.basis.kind,
-    subject: Object.assign(Object.create(null), subject),
-  });
-  if (reason === 'cross_tenant') metadata.reason = reason;
-  const argument = Object.assign(Object.create(null), {
-    authority: actor.authority,
-    actorId: actor.actorId,
-    actorRole: actor.actorRole,
-    action: 'action.refused',
-    entityType: 'server_action',
-    entityId: op.name,
-    metadata,
-  });
-  let outcome: Awaited<ReturnType<typeof writeAuditEvent>>;
-  try {
-    assertPristineObjectPrototype();
-    outcome = await writeAuditEvent(argument);
-    assertPristineObjectPrototype();
-  } catch (error) {
-    checkControlFlow(error);
-    recordWriteFailure(op, code, error);
-    return;
-  }
-  if (!outcome.ok) {
-    checkControlFlow(outcome.error);
-    recordWriteFailure(op, code, outcome.error);
-  }
-  assertPristineObjectPrototype();
-}
-
 // Read the private brand from a canonical failure so accessors and inherited brands can be rejected.
 const failureBrand = Object.getOwnPropertySymbols(actionFailure('INTERNAL_SERVER_ERROR'))[0];
 
@@ -214,7 +158,15 @@ export async function finalize<T>(
       ? subjectOf(op, raw, actor, snapshotted)
       : ({ type: op.subject?.type ?? 'unknown' } as RecordedSubject);
     assertPristineObjectPrototype();
-    await writeRefusal(op, code, subject, actor, reason);
+    const refusal = {
+      __proto__: null,
+      operation: op.name,
+      basis: op.basis.kind,
+      code,
+      subject,
+      ...(reason === 'cross_tenant' ? ({ reason } as const) : {}),
+    } as const;
+    await recordRefusal(refusal, actor);
     assertPristineObjectPrototype();
   }
   const options: ActionFailure = Object.assign(Object.create(null), {

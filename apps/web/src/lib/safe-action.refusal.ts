@@ -3,6 +3,8 @@ import { safeExceptionType } from '@/lib/observability/sentry-error-labels';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import * as Sentry from '@sentry/nextjs';
 
+import { ownValue } from './safe-action.check-def';
+import { assertPristineObjectPrototype, checkControlFlow } from './safe-action.recheck';
 import type { ActionSubject, RecordedSubject, RefusalCode } from './safe-action.types';
 
 // An opaque id: no separators, no control characters, nothing a log line could be split on.
@@ -57,6 +59,16 @@ export function extractSubject(
   };
 }
 
+function recordWriteFailure(refusal: Refusal, error: unknown): void {
+  checkControlFlow(error);
+  Sentry.captureException(error);
+  console.error('[SafeAction] refusal record failed', {
+    operation: refusal.operation,
+    code: refusal.code,
+    errorName: safeExceptionType(ownValue(error, 'name')),
+  });
+}
+
 /**
  * Records one refusal (trigger (a) of DIRECTION 6.4). With an authority: one audit row under the
  * caller's own tenant, without request headers. Without one: no database write, one log line that
@@ -64,6 +76,7 @@ export function extractSubject(
  * result stands either way.
  */
 export async function recordRefusal(refusal: Refusal, actor: RefusalActor | null): Promise<void> {
+  assertPristineObjectPrototype();
   if (!actor) {
     console.warn('[SafeAction] refused', {
       operation: refusal.operation,
@@ -71,27 +84,36 @@ export async function recordRefusal(refusal: Refusal, actor: RefusalActor | null
       basis: refusal.basis,
       subjectType: refusal.subject.type,
     });
+    assertPristineObjectPrototype();
     return;
   }
-  const outcome = await writeAuditEvent({
+  const reason = ownValue(refusal, 'reason');
+  const metadata = {
+    __proto__: null,
+    code: refusal.code,
+    basis: refusal.basis,
+    subject: { __proto__: null, ...refusal.subject },
+    ...(reason === 'cross_tenant' ? { reason } : {}),
+  };
+  const argument = {
+    __proto__: null,
     authority: actor.authority,
     actorId: actor.actorId,
     actorRole: actor.actorRole,
     action: 'action.refused',
     entityType: 'server_action',
     entityId: refusal.operation,
-    metadata: {
-      code: refusal.code,
-      basis: refusal.basis,
-      subject: refusal.subject,
-      ...(refusal.reason ? { reason: refusal.reason } : {}),
-    },
-  });
-  if (outcome.ok) return;
-  Sentry.captureException(outcome.error);
-  console.error('[SafeAction] refusal record failed', {
-    operation: refusal.operation,
-    code: refusal.code,
-    errorName: safeExceptionType((outcome.error as { name?: unknown } | null)?.name),
-  });
+    metadata,
+  };
+  let outcome: Awaited<ReturnType<typeof writeAuditEvent>>;
+  try {
+    assertPristineObjectPrototype();
+    outcome = await writeAuditEvent(argument);
+    assertPristineObjectPrototype();
+  } catch (error) {
+    recordWriteFailure(refusal, error);
+    return;
+  }
+  if (!outcome.ok) recordWriteFailure(refusal, outcome.error);
+  assertPristineObjectPrototype();
 }
