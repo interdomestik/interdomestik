@@ -9,6 +9,7 @@
     "./annual-membership": "./src/annual-membership.ts",
     "./billing-snapshot": "./src/billing-snapshot.ts",
     "./membership-hierarchy": "./src/membership-hierarchy.ts",
+    "./payment-port": "./src/payment-port.ts",
     "./paddle": "./src/paddle.ts",
     "./paddle-server": "./src/paddle-server.ts",
     "./subscription": "./src/subscription.ts",

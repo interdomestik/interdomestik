@@ -708,6 +708,13 @@
       "when": 1795106234549,
       "tag": "0100_wp04_journal_schema_parity",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1795260590663,
+      "tag": "0101_wp07_exchange_rates",
+      "breakpoints": true
     }
   ]
 }
