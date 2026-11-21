@@ -74,6 +74,7 @@
     "check:db-access": "node scripts/check-db-access-guard.mjs",
     "check:tenant-guard": "node scripts/ci/tenant-guard.mjs",
     "check:server-mutation": "node scripts/ci/server-mutation-check.mjs",
+    "check:screen-contract": "node scripts/ci/screen-contract-check.mjs",
     "check:portal-layout-topology": "node scripts/check-portal-layout-topology.mjs",
     "check:architecture-boundaries": "pnpm check:portal-layout-topology && node scripts/check-architecture-boundaries.mjs && node scripts/check-case-recovery-boundaries.mjs && node scripts/check-country-host-alias-guard.mjs",
     "check:evidence-storage-paths": "node scripts/check-evidence-storage-paths.mjs",
