@@ -10,7 +10,7 @@ import { LEGACY_PINS } from './tenant-guard/manifest.mjs';
 import { createModuleGraph } from './tenant-guard/modules.mjs';
 import { installAdmission } from './tenant-guard/rules-admission.mjs';
 import { installTrust } from './tenant-guard/rules-trust.mjs';
-import { APP_ALIASES, currentSources, workspacePackages } from './tenant-guard/sources.mjs';
+import { APP_ALIASES, currentSources, SOURCE, workspacePackages } from './tenant-guard/sources.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const current = new Map(
@@ -19,17 +19,14 @@ const current = new Map(
 const packages = workspacePackages(root);
 const DB = 'packages/database/src/db.ts';
 const MODE = 'packages/database/src/pooler-mode.ts';
+const PREDECESSOR = '7e114c2eeee83453331f5a1d5082f716d5cf1c9c';
 
 // Keep exact successor bytes in data-only fixtures so the guard PR has no runtime change.
 // The fixed predecessor commit remains available after either side of the transition merges.
 const sources = new Map(current);
 sources.set(
   DB,
-  execFileSync(
-    '/usr/bin/git',
-    ['show', '7e114c2eeee83453331f5a1d5082f716d5cf1c9c:packages/database/src/db.ts'],
-    { cwd: root, encoding: 'utf8' }
-  )
+  execFileSync('/usr/bin/git', ['show', `${PREDECESSOR}:${DB}`], { cwd: root, encoding: 'utf8' })
 );
 sources.delete(MODE);
 const successor = new Map(sources);
@@ -56,11 +53,29 @@ function trust(candidate, legacyPins = LEGACY_PINS) {
   return ctx;
 }
 
-test('the predecessor remains pinned while the pooler admission stays inactive', () => {
-  const ctx = trust(sources);
-  for (const [key, pins] of LEGACY_PINS) {
-    assert.equal(ctx.legacyPinned(key), true, key);
-    assert.equal(ctx.legacyDigest(key), pins[0]);
+const TENANT = 'packages/database/src/tenant.ts';
+const previousPins = new Map([
+  [
+    `${TENANT}#withTenantContext`,
+    '92e239c86942fe9c17d22826b9e0c64ed0e132f2e57d1408e26289988ccc16eb',
+  ],
+  [`${TENANT}#withTenantDb`, '40c646fcae0b203d0337dbb0e5ceb46091f2403cf9f89f6065878d4c504c76e7'],
+  [`${DB}#db`, '93c5c961056320a272ed82e9e5cc8822715a76ce4b79bc53e8d7ab7f14fb74df'],
+]);
+
+test('the pre-pooler predecessor is now refused', () => {
+  const git = args => execFileSync('/usr/bin/git', args, { cwd: root, encoding: 'utf8' });
+  const files = git(['ls-tree', '-r', '--name-only', '-z', PREDECESSOR, '--', 'packages/database/'])
+    .split('\0')
+    .filter(file => SOURCE.test(file));
+  const predecessor = new Map(files.map(file => [file, git(['show', `${PREDECESSOR}:${file}`])]));
+  const ctx = trust(predecessor);
+  for (const key of previousPins.keys()) {
+    const digest = ctx.legacyDigest(key);
+    const pins = LEGACY_PINS.get(key);
+    assert.equal(ctx.legacyPinned(key), false, key);
+    assert.ok(!pins.includes(digest), key);
+    assert.equal(digest, previousPins.get(key), key);
   }
   assert.equal(ctx.telemetry.c1Admissions, 0);
 });
@@ -72,19 +87,42 @@ test('the checked-out kernel is exactly one reviewed side of the transition', ()
 });
 
 test('predecessor-only pins refuse the exact pooler successor', () => {
-  const previousPins = new Map([...LEGACY_PINS].map(([key, pins]) => [key, pins[0]]));
   const ctx = trust(successor, previousPins);
   for (const key of LEGACY_PINS.keys()) assert.equal(ctx.legacyPinned(key), false, key);
 });
 
 test('the reviewed pooler kernel binds all three legacy entries and the helper import', () => {
-  const ctx = trust(successor);
-  for (const [key, pins] of LEGACY_PINS) {
-    assert.equal(ctx.legacyPinned(key), true, key);
-    assert.equal(ctx.legacyDigest(key), pins[1], 'matches the successor in the transition pair');
+  const ctx = trust(current);
+  const pooler = trust(successor);
+  const expectedPins = [
+    [
+      `${TENANT}#withTenantContext`,
+      'd5a48cd0122819d13b21c018aa2728d7f675de0d2306b379fbc21330ffe7b5d9',
+      '1d75e1be9ef39be8b7e1fd522f5f62d5e34479a67d2b61af5d6c0d9985ff5c60',
+    ],
+    [
+      `${TENANT}#withTenantDb`,
+      '7a219887513dba5ff0b88241b9926b13c010d51ceaee7a020e4ab1f8dfb2d988',
+      '692e1867c412c7d42112590cbea6a94d11a6e8d0a0832427204bf19cfcf29ba9',
+    ],
+    [
+      `${DB}#db`,
+      '3cbacb145c83aa637e232999b07dd4f10131ba23dec5dc62282c8f5e0a1ad671',
+      '66891cd8aa8f554c2bb6c95204833b02a6b47b756d137db25f4bca9abf2b66ed',
+    ],
+  ];
+  for (const [key, mainDigest, pr1aDigest] of expectedPins) {
+    const pins = LEGACY_PINS.get(key);
+    assert.ok(pins, key);
+    assert.equal(pooler.legacyPinned(key), true, key);
+    assert.ok(pins.includes(ctx.legacyDigest(key)), key);
+    assert.equal(pins.length, 2, `${key} pin count`);
+    assert.equal(pins[0], mainDigest, `${key} main digest`);
+    assert.equal(pins[1], pr1aDigest, `${key} PR-1a digest`);
+    assert.equal(pooler.legacyDigest(key), ctx.legacyDigest(key), 'matches the checked-out kernel');
   }
-  assert.equal(ctx.pinnedModules.has(DB), true);
-  assert.equal(ctx.pinnedModules.has(MODE), true);
+  assert.equal(pooler.pinnedModules.has(DB), true);
+  assert.equal(pooler.pinnedModules.has(MODE), true);
 });
 
 test('drift in either pooler file refuses every legacy kernel entry', () => {

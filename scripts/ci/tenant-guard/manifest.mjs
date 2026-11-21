@@ -35,30 +35,29 @@ export const LEGACY = new Map([
  * Reviewed kernel contracts of the legacy entries: the digest over every complete workspace module
  * in the runtime import closure of each entry's module (see rules.mjs legacyDigest). A kernel change to the context,
  * transaction lifecycle or ambient client fails the guard until it is reviewed and re-pinned.
- * Owner-approved 2026-11-11 transaction-pooler transition: [main 7e114c2ee, pooler successor].
- * The successor binds db.ts and its pure pooler-mode.ts import. The separate C1 admission
- * binds just createQueryClient and isTransactionPooler for unchanged callers' closures.
+ * Owner-approved 2026-11-21 WP-07 rates transition: [main c266f094b, PR-1a exchange-rate schema].
+ * The pooler transition (#2054, 2026-11-11) is complete on main and its successor is in slot 0.
  */
 export const LEGACY_PINS = new Map([
   [
     `${DB}/tenant.ts#withTenantContext`,
     Object.freeze([
-      '92e239c86942fe9c17d22826b9e0c64ed0e132f2e57d1408e26289988ccc16eb',
       'd5a48cd0122819d13b21c018aa2728d7f675de0d2306b379fbc21330ffe7b5d9',
+      '1d75e1be9ef39be8b7e1fd522f5f62d5e34479a67d2b61af5d6c0d9985ff5c60',
     ]),
   ],
   [
     `${DB}/tenant.ts#withTenantDb`,
     Object.freeze([
-      '40c646fcae0b203d0337dbb0e5ceb46091f2403cf9f89f6065878d4c504c76e7',
       '7a219887513dba5ff0b88241b9926b13c010d51ceaee7a020e4ab1f8dfb2d988',
+      '692e1867c412c7d42112590cbea6a94d11a6e8d0a0832427204bf19cfcf29ba9',
     ]),
   ],
   [
     `${DB}/db.ts#db`,
     Object.freeze([
-      '93c5c961056320a272ed82e9e5cc8822715a76ce4b79bc53e8d7ab7f14fb74df',
       '3cbacb145c83aa637e232999b07dd4f10131ba23dec5dc62282c8f5e0a1ad671',
+      '66891cd8aa8f554c2bb6c95204833b02a6b47b756d137db25f4bca9abf2b66ed',
     ]),
   ],
 ]);
