@@ -35,42 +35,22 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { ScanError } from './server-mutation/ast.mjs';
-import { parseBaseline, removalRecorded, removedChecks } from './server-mutation/baseline.mjs';
 import { ensureCommit, extractRevision, headSha, showAt } from './server-mutation/git.mjs';
 import { annotate, writeReport } from './server-mutation/output.mjs';
 import { changeReport, signalLine } from './screen-contract/changes.mjs';
+import { readBaselines, readTrustedInputs } from './screen-contract/cli-baselines.mjs';
+import { judge } from './screen-contract/cli-judge.mjs';
 import {
   BASELINE_PATH,
-  CHECKS,
   SCRIPT_PATH,
-  evaluateCheck,
-  evaluateRetired,
   exitCode,
   selectChecks,
-  selectRetired,
   toolVersions,
 } from './screen-contract/evaluate.mjs';
-import { EXPECTS, emptyChecks, lintTree, linted } from './screen-contract/lint.mjs';
-import {
-  REGISTRY_PATH,
-  parseRegistry,
-  readLanes,
-  registryFor,
-  registryTamper,
-  testEvidence,
-} from './screen-contract/registry.mjs';
+import { emptyChecks, lintTree, linted } from './screen-contract/lint.mjs';
 import { assertNoLinks, readInside } from './screen-contract/paths.mjs';
 import { preAdoptionBase, replaySummary, synthesizeInputs } from './screen-contract/replay.mjs';
-import { roleOf } from './screen-contract/roles.mjs';
-import {
-  REBUILT_PATH,
-  pairTransfers,
-  parseRebuilt,
-  rebuiltDeclarationErrors,
-  rebuiltRemovals,
-} from './screen-contract/transfer.mjs';
 
-const EVALUATE_PATH = 'scripts/ci/screen-contract/evaluate.mjs';
 const DEFAULT_REPORT = 'tmp/screen-contract-check/report.json';
 const FLAGS = new Set(['--enforcing', '--advisory', '--replay']);
 const OPTIONS = new Set(['--base', '--head', '--check', '--report', '--repo']);
@@ -99,119 +79,6 @@ const invocationOf = args => {
   return args.enforcing ? 'enforcing' : 'advisory';
 };
 
-function readBaseBaseline(repo, baseSha, only, synthesized) {
-  if (synthesized)
-    return parseBaseline(JSON.stringify(synthesized), 'base', CHECKS, { trustedBase: true, only });
-  const baseText = showAt(repo, baseSha, BASELINE_PATH);
-  if (baseText !== null)
-    return parseBaseline(baseText, 'base', CHECKS, { trustedBase: true, only });
-  if (showAt(repo, baseSha, SCRIPT_PATH) !== null)
-    throw new ScanError('base has the scanner but no baseline');
-  return null;
-}
-
-// A pre-adoption head (replay only) has no baseline; it is judged against its base's synthesized one.
-function readHeadBaseline(root, only, synthesized) {
-  const text = readInside(root, BASELINE_PATH) ?? (synthesized ? JSON.stringify(synthesized) : '');
-  return parseBaseline(text, 'head', CHECKS, { only });
-}
-
-function assertChecksPresent(repo, baseSha, { base, head }, scope) {
-  if (!scope && base && !Object.keys(base.checks).length)
-    throw new ScanError('base baseline names no check');
-  if (!scope && !Object.keys(head.checks).length)
-    throw new ScanError('head baseline names no check');
-  for (const check of scope ? [scope] : CHECKS) {
-    const removed = removalRecorded(base, check.id);
-    // A check new in this head is absent from a base whose scanner never ran it (WP-02's rule).
-    const baseRan = (showAt(repo, baseSha, EVALUATE_PATH) ?? '').includes(`id: '${check.id}'`);
-    if (base && !base.checks[check.id] && !removed && baseRan)
-      throw new ScanError(`base baseline has no ${check.id}`);
-    // An absent check is an error unless the owner's removal is recorded (design §5).
-    if (!head.checks[check.id] && !removed && !removalRecorded(head, check.id))
-      throw new ScanError(`head baseline has no ${check.id}`);
-  }
-}
-
-function assertRemovalsKept({ base, head }, only) {
-  for (const id of removedChecks(base))
-    if (
-      (only === null || id === only) &&
-      !base.checks[id] &&
-      !head.checks[id] &&
-      !removalRecorded(head, id)
-    )
-      throw new ScanError(`head baseline drops the recorded removal of ${id}`);
-}
-
-// The baselines, as WP-02's CLI reads them, over WP-02's functions (design §3 "WP-05's own code").
-function readBaselines(repo, root, baseSha, scope, synthesized = null) {
-  const only = scope?.id ?? null;
-  const base = readBaseBaseline(repo, baseSha, only, synthesized);
-  const head = readHeadBaseline(root, only, synthesized);
-  assertChecksPresent(repo, baseSha, { base, head }, scope);
-  assertRemovalsKept({ base, head }, only);
-  return {
-    base,
-    head,
-    bootstrap: base === null,
-    authority: rebuiltAuthority(repo, root, baseSha, scope, { base, head }),
-  };
-}
-
-// The owner's `rebuilt` exceptions. A scoped run parses each baseline with that check's exceptions
-// only, so the rebuilt ones are read on their own (r1 B9); WP-02's parser validates them.
-function rebuiltAuthority(repo, root, baseSha, scope, { base, head }) {
-  if (!scope) return { base, head };
-  const only = { only: 'rebuilt' };
-  const baseText = base ? showAt(repo, baseSha, BASELINE_PATH) : null;
-  return {
-    base:
-      baseText === null
-        ? base
-        : parseBaseline(baseText, 'base', CHECKS, { trustedBase: true, ...only }),
-    head: parseBaseline(readInside(root, BASELINE_PATH) ?? '', 'head', CHECKS, only),
-  };
-}
-
-// The base's registry and rebuilt list come from the trusted base commit, or, for a replay of a
-// pre-adoption pair, from its extracted and synthesized base tree.
-function readTrustedInputs(repo, root, baseSha, baseRoot = null) {
-  const atBase = rel => (baseRoot ? readInside(baseRoot, rel) : showAt(repo, baseSha, rel));
-  const baseRegistryText = atBase(REGISTRY_PATH);
-  const baseRebuiltText = atBase(REBUILT_PATH);
-  return {
-    baseRegistry:
-      baseRegistryText === null ? null : parseRegistry(baseRegistryText, 'base consent registry'),
-    baseRebuilt: baseRebuiltText === null ? null : parseRebuilt(baseRebuiltText, 'base'),
-    rebuilt: parseRebuilt(readInside(root, REBUILT_PATH) ?? '', 'head'),
-  };
-}
-
-// CHK-22's findings and tamper from outside the lint: uses in files that do not exist, the
-// registry against the trusted base; and its test evidence, whose failures are input errors.
-function chk22Extra(root, files, inputs, base, head) {
-  const registry = registryFor(root);
-  const errors = testEvidence(root, registry, readLanes(root));
-  if (errors.length) throw new ScanError(errors.join('; '));
-  // The files CHK-22 visits, not every linted file: a use naming a support file the rule never
-  // reads is an orphan (r1 H3).
-  const present = new Set(files.filter(file => EXPECTS['CHK-22'](roleOf(file), file)));
-  const findings = [];
-  for (const entry of registry.values())
-    for (const use of entry.uses)
-      if (!present.has(use.file))
-        findings.push({
-          id: `CHK-22|${use.file}|orphan-use|${entry.id}:${use.useId}`,
-          file: use.file,
-          line: 0,
-          message: 'the registered use names a file that is not a screen here',
-        });
-  const isRendered = entry => present.has(entry.file);
-  const tamper = registryTamper(inputs.baseRegistry, registry, base, head, isRendered);
-  return { findings, tamper };
-}
-
 // A replay of a pair that predates adoption (neither side has the baseline) synthesizes the base
 // (design §7); any other pair is judged exactly as production judges it.
 // Adoption is decided before anything is written (r2 B1): an adopted pair (either side has the
@@ -232,38 +99,6 @@ async function replayBase(repo, report, root, cleanup) {
   replay.pre = { ...(await preAdoptionBase(baseRoot, report.base)), root: baseRoot };
   replay.synthesized.base = replay.pre.synthesized;
   return replay;
-}
-
-function judge(args, repo, root, report, { base, head, authority, inputs, lint, files }) {
-  const declared = rebuiltDeclarationErrors(inputs.baseRebuilt, inputs.rebuilt, files, roleOf);
-  if (declared.length) throw new ScanError(declared.join('; '));
-  const { head: pairedHead, unpaired } = pairTransfers(base, head);
-  const shas = { base: report.base, head: report.head };
-  const removals = rebuiltRemovals(
-    inputs.baseRebuilt,
-    inputs.rebuilt,
-    authority.base,
-    authority.head
-  );
-  // A check the trusted base names and this scanner retired is judged as a removal (r1 B10).
-  const retired = selectRetired(args, base).map(id => evaluateRetired(id, base, head, shas));
-  const current = selectChecks(args, base, head).map(check => {
-    const extra = check.id === 'CHK-22' ? chk22Extra(root, files, inputs, base, head) : {};
-    extra.tamper = [
-      ...(extra.tamper ?? []),
-      ...unpaired.filter(item => item.startsWith(`${check.id}#`)),
-      ...removals,
-    ];
-    return evaluateCheck(check, lint[check.id], {
-      base,
-      head,
-      pairedHead,
-      shas,
-      rebuilt: inputs.rebuilt,
-      extra,
-    });
-  });
-  return [...current, ...retired];
 }
 
 async function scan(args, repo, report) {

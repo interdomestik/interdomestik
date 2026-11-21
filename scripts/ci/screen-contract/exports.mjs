@@ -26,6 +26,17 @@
 // target inside an array, which Node skips.
 
 import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
+import { matchSubpath } from './exports-match.mjs';
+import {
+  INVALID_SEGMENT,
+  exportsShape,
+  hasExports,
+  isPlainObject,
+  isSubpathKey,
+  validateExports,
+} from './exports-validate.mjs';
+
+export { validateExports };
 
 const freezeList = list => Object.freeze([...list]);
 
@@ -78,91 +89,11 @@ const MODELLED_CONDITIONS = new Set([
   'default',
 ]);
 
-// A path segment Node refuses in a target or a pattern match: `.`, `..` or
-// `node_modules`, case-insensitive and percent-encoded. INVALID_SEGMENT also
-// matches an empty segment, which Node refuses in a pattern match but only
-// deprecates in a target.
-const SEGMENT_BODY = String.raw`(?:(?:\.|%2e)(?:\.|%2e)?|(?:n|%6e|%4e)(?:o|%6f|%4f)(?:d|%64|%44)(?:e|%65|%45)(?:_|%5f)(?:m|%6d|%4d)(?:o|%6f|%4f)(?:d|%64|%44)(?:u|%75|%55)(?:l|%6c|%4c)(?:e|%65|%45)(?:s|%73|%53))`;
-const INVALID_TARGET_SEGMENT = new RegExp(String.raw`(?:^|\\|/)${SEGMENT_BODY}(?:\\|/|$)`, 'i');
-const INVALID_SEGMENT = new RegExp(String.raw`(?:^|\\|/)${SEGMENT_BODY}?(?:\\|/|$)`, 'i');
-const ARRAY_INDEX_KEY = /^(?:0|[1-9]\d*)$/;
-
-const isPlainObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
-const isSubpathKey = key => key.startsWith('.');
-
 export function environmentsFor(edgeKind) {
   if (typeof edgeKind !== 'string' || !Object.hasOwn(EDGE_ENVIRONMENTS, edgeKind)) {
     throw new ScanError(`unknown edge kind: ${String(edgeKind)}`);
   }
   return [...EDGE_ENVIRONMENTS[edgeKind]];
-}
-
-function hasExports(pkg) {
-  return pkg.exports !== undefined && pkg.exports !== null;
-}
-
-function invalidTargetReason(target) {
-  if (!target.startsWith('./')) return 'does not start with "./"';
-  if (INVALID_TARGET_SEGMENT.test(target.slice(2)))
-    return 'has a ".", ".." or "node_modules" segment';
-  return null;
-}
-
-function validateConditionObject(value, where) {
-  for (const key of Object.keys(value)) {
-    if (isSubpathKey(key))
-      throw new ScanError(`${where}: subpath key "${key}" inside a condition object`);
-    if (ARRAY_INDEX_KEY.test(key)) throw new ScanError(`${where}: numeric condition key "${key}"`);
-    validateTarget(value[key], `${where}.${key}`);
-  }
-}
-
-// Every target, an array's entries included, is valid or an input error (§5). Node would skip an
-// invalid array entry; here it is malformed input.
-function validateTarget(value, where) {
-  if (value === null) return;
-  if (typeof value === 'string') {
-    const reason = invalidTargetReason(value);
-    if (reason) throw new ScanError(`${where}: target "${value}" ${reason}`);
-    return;
-  }
-  if (Array.isArray(value)) {
-    value.forEach((entry, index) => validateTarget(entry, `${where}[${index}]`));
-    return;
-  }
-  if (isPlainObject(value)) {
-    validateConditionObject(value, where);
-    return;
-  }
-  throw new ScanError(`${where}: invalid target of type ${typeof value}`);
-}
-
-function exportsShape(exportsField, where) {
-  if (typeof exportsField === 'string' || Array.isArray(exportsField)) return 'root';
-  if (!isPlainObject(exportsField)) {
-    throw new ScanError(`${where}: "exports" must be a string, an array or an object`);
-  }
-  const keys = Object.keys(exportsField);
-  const subpathKeys = keys.filter(isSubpathKey);
-  if (subpathKeys.length === 0) return 'root';
-  if (subpathKeys.length !== keys.length) {
-    throw new ScanError(`${where}: "exports" mixes subpath keys and condition keys`);
-  }
-  return 'subpaths';
-}
-
-export function validateExports(pkg, label) {
-  const where = `${label ?? pkg?.name ?? 'package'} exports`;
-  if (!isPlainObject(pkg)) throw new ScanError(`${where}: package.json is not an object`);
-  if (!hasExports(pkg)) return;
-  const shape = exportsShape(pkg.exports, where);
-  if (shape === 'root') {
-    validateTarget(pkg.exports, where);
-    return;
-  }
-  for (const [key, value] of Object.entries(pkg.exports)) {
-    validateTarget(value, `${where}["${key}"]`);
-  }
 }
 
 // PACKAGE_TARGET_RESOLVE over validated targets. Returns a target string, null
@@ -246,40 +177,6 @@ function resolveTypes(selected, conditions, fileExists) {
 }
 
 const bundlerFiles = target => [target, ...BUNDLER_EXTENSIONS.map(ext => target + ext)];
-
-// PATTERN_KEY_COMPARE for two keys that each hold one `*`.
-function patternKeyCompare(keyA, keyB) {
-  const baseA = keyA.indexOf('*') + 1;
-  const baseB = keyB.indexOf('*') + 1;
-  if (baseA !== baseB) return baseA > baseB ? -1 : 1;
-  if (keyA.length !== keyB.length) return keyA.length > keyB.length ? -1 : 1;
-  return 0;
-}
-
-// PACKAGE_IMPORTS_EXPORTS_RESOLVE: returns { target, patternMatch } or null.
-function matchSubpath(subpath, map) {
-  if (Object.hasOwn(map, subpath) && !subpath.includes('*')) {
-    return { target: map[subpath], patternMatch: null };
-  }
-  const patternKeys = Object.keys(map)
-    .filter(key => {
-      const star = key.indexOf('*');
-      return star !== -1 && star === key.lastIndexOf('*');
-    })
-    .sort(patternKeyCompare);
-  for (const key of patternKeys) {
-    const star = key.indexOf('*');
-    const base = key.slice(0, star);
-    const trailer = key.slice(star + 1);
-    if (subpath.startsWith(base) && subpath.length >= key.length && subpath.endsWith(trailer)) {
-      return {
-        target: map[key],
-        patternMatch: subpath.slice(star, subpath.length - trailer.length),
-      };
-    }
-  }
-  return null;
-}
 
 function finish(resolved) {
   if (resolved === null) return { status: 'blocked' };
