@@ -1,16 +1,22 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { isActionFailure } from './safe-action.failure';
-import { formDataToInput } from './safe-action.form';
-import { arrayFieldKeys } from './safe-action.schema';
+import { buildInputGuard } from './safe-action.guard';
+import { ActionDefinitionError } from './safe-action.schema';
 
 const schema = z.strictObject({
   title: z.string(),
   tags: z.array(z.string()).optional(),
   file: z.file().optional(),
 });
-const arrays = arrayFieldKeys(schema);
+const options = {
+  operation: 'guard.form',
+  basisKind: 'role',
+  form: true,
+  subjectFrom: null,
+} as const;
+const guard = buildInputGuard(schema, options);
 
 function form(entries: Array<[string, string | File]>) {
   const data = new FormData();
@@ -18,91 +24,83 @@ function form(entries: Array<[string, string | File]>) {
   return data;
 }
 
-describe('formDataToInput', () => {
+describe('the form guard adapter', () => {
   it('finds the top-level array keys through optional wrappers', () => {
-    expect([...arrays]).toEqual(['tags']);
+    expect(guard.fieldKind(['tags'])).toBe('array');
+    expect(guard.fieldKind(['title'])).toBe('scalar');
+    expect(guard.fieldKind(['file'])).toBe('scalar');
   });
 
-  it('treats a union of arrays as an array field, through wrappers (r6 B25)', () => {
+  it('refuses a union with two array branches even through wrappers', () => {
     const union = z.strictObject({
       v: z.union([z.array(z.string()).min(3), z.array(z.string()).readonly()]).optional(),
       w: z.string(),
     });
-    const keys = arrayFieldKeys(union);
-    expect([...keys]).toEqual(['v']);
-    const one = formDataToInput(
-      form([
-        ['v', 'a'],
-        ['w', 'x'],
-      ]),
-      keys
-    );
-    expect(union.parse(one).v).toEqual(['a']);
-    const two = formDataToInput(
-      form([
-        ['v', 'a'],
-        ['v', 'b'],
-        ['w', 'x'],
-      ]),
-      keys
-    );
-    expect(union.parse(two).v).toEqual(['a', 'b']);
+    expect(() => buildInputGuard(union, options)).toThrow(ActionDefinitionError);
   });
 
-  it("drops Next's $ACTION_ fields and builds a null-prototype map", () => {
-    const input = formDataToInput(
+  it("drops Next's $ACTION_ fields and builds a null-prototype map", async () => {
+    const result = await guard.run(
       form([
         ['$ACTION_ID_abc', ''],
         ['$ACTION_REF_1', ''],
         ['title', 'Hello'],
       ]),
-      arrays
+      true
     );
-    expect(isActionFailure(input)).toBe(false);
-    expect(Object.getPrototypeOf(input)).toBeNull();
-    expect({ ...(input as object) }).toEqual({ title: 'Hello' });
-    expect(schema.safeParse(input).success).toBe(true);
+    expect(result).toMatchObject({ kind: 'value', value: { title: 'Hello' } });
+    expect(Object.getPrototypeOf(result.snapshot)).toBeNull();
+    expect({ ...(result.snapshot as object) }).toEqual({ title: 'Hello' });
   });
 
-  it('collects every value of an array key', () => {
-    const input = formDataToInput(
-      form([
-        ['title', 't'],
-        ['tags', 'a'],
-        ['tags', 'b'],
-      ]),
-      arrays
-    );
-    expect({ ...(input as object) }).toEqual({ title: 't', tags: ['a', 'b'] });
+  it.each([['a'], ['a', 'b']])('collects every value of an array key (%j)', async (...tags) => {
+    const data = form([['title', 't']]);
+    for (const tag of tags) data.append('tags', tag);
+    expect(await guard.run(data, true)).toMatchObject({
+      kind: 'value',
+      value: { title: 't', tags },
+    });
   });
 
-  it('refuses a repeated scalar key', () => {
-    const input = formDataToInput(
+  it('refuses an omitted form key that Zod supplies through coercion', async () => {
+    const flag = buildInputGuard(z.strictObject({ flag: z.coerce.boolean() }), options);
+    expect(await flag.run(new FormData(), true)).toMatchObject({
+      kind: 'invalid',
+      failure: { code: 'VALIDATION_ERROR', issues: { flag: 'invalid_type' } },
+    });
+  });
+
+  it('refuses a repeated scalar key', async () => {
+    const result = await guard.run(
       form([
         ['title', 'a'],
         ['title', 'b'],
       ]),
-      arrays
+      true
     );
-    expect(isActionFailure(input) && input.code).toBe('VALIDATION_ERROR');
-    expect(isActionFailure(input) && input.issues).toEqual({ title: 'duplicate_field' });
+    expect(result).toMatchObject({
+      kind: 'invalid',
+      failure: { code: 'VALIDATION_ERROR', issues: { title: 'duplicate_field' } },
+    });
   });
 
-  it('keeps a File for a z.file() field', () => {
+  it('copies a File for a z.file() field', async () => {
     const file = new File(['x'], 'evidence.pdf', { type: 'application/pdf' });
-    const input = formDataToInput(
+    const result = await guard.run(
       form([
         ['title', 't'],
         ['file', file],
       ]),
-      arrays
+      true
     );
-    expect((input as Record<string, unknown>).file).toBeInstanceOf(File);
-    expect(schema.safeParse(input).success).toBe(true);
+    expect(result).toMatchObject({ kind: 'value', value: { title: 't', file: expect.any(File) } });
+    expect(schema.safeParse(result.snapshot).success).toBe(true);
   });
 
-  it('refuses a second argument that is not FormData', () => {
-    const input = formDataToInput({ title: 't' }, arrays);
-    expect(isActionFailure(input) && input.code).toBe('VALIDATION_ERROR');
+  it('refuses a second argument that is not FormData', async () => {
+    expect(await guard.run({ title: 't' }, true)).toMatchObject({
+      kind: 'invalid',
+      failure: { code: 'VALIDATION_ERROR' },
+    });
   });
 });

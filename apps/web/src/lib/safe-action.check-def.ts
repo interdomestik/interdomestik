@@ -1,74 +1,82 @@
-import { z } from 'zod';
+import { types } from 'node:util';
 
-// Reading a zod check's definition for the input-schema walk (`safe-action.schema.ts`): from property
-// descriptors only, so nothing of a hand-built definition is called (addenda 7 to 9).
-// An own property from its descriptor; an accessor (no `value`) is never called (r10 B28).
-const ACCESSOR = Symbol('accessor');
+export const ACCESSOR = Symbol('accessor');
+
+export function isOwnReadable(value: unknown): value is object {
+  return (
+    value !== null &&
+    (typeof value === 'object' || typeof value === 'function') &&
+    !types.isProxy(value)
+  );
+}
+
 export function ownValue(holder: unknown, key: PropertyKey): unknown {
-  if ((typeof holder !== 'object' && typeof holder !== 'function') || holder === null) {
-    return undefined;
-  }
-  // Object's form, called in place: the tenant guard admits Reflect's has and ownKeys only.
-  const own = Object.getOwnPropertyDescriptor(holder, key);
-  if (own === undefined) return undefined;
-  return 'value' in own ? own.value : ACCESSOR;
+  if (!isOwnReadable(holder)) return undefined;
+  const descriptor = Object.getOwnPropertyDescriptor(holder, key);
+  if (descriptor === undefined) return undefined;
+  return Object.hasOwn(descriptor, 'value') ? descriptor.value : ACCESSOR;
 }
 
-// `check._zod.def` through own data properties, or null when a step or any own key is an accessor or
-// its prototype is not Object.prototype (zod would read an inherited `when`); nothing is called.
-export function checkDef(check: unknown): Readonly<Record<PropertyKey, unknown>> | null {
-  const def = ownValue(ownValue(check, '_zod'), 'def');
-  if (typeof def !== 'object' || def === null || Object.getPrototypeOf(def) !== Object.prototype) {
+/** Reads a dense, ordinary array without consulting its iterator or its inherited properties. */
+export function denseArray(value: unknown, maxLength: number): unknown[] | null {
+  if (
+    !isOwnReadable(value) ||
+    !Array.isArray(value) ||
+    Object.getPrototypeOf(value) !== Array.prototype
+  )
     return null;
+  const length = ownValue(value, 'length');
+  if (
+    typeof length !== 'number' ||
+    length > maxLength ||
+    Reflect.ownKeys(value).length !== length + 1
+  )
+    return null;
+  const copy: unknown[] = [];
+  for (let index = 0; index < length; index += 1) {
+    if (!Object.hasOwn(value, index)) return null;
+    const item = ownValue(value, index);
+    if (item === ACCESSOR) return null;
+    copy.push(item);
   }
-  const keys = Reflect.ownKeys(def);
-  if (keys.some(key => ownValue(def, key) === ACCESSOR)) return null;
-  return def as Readonly<Record<PropertyKey, unknown>>;
+  return copy;
 }
 
-const firstCheck = (schema: z.ZodType): unknown =>
-  (schema._zod.def as { checks?: unknown[] }).checks?.[0];
+export function schemaDef(schema: unknown): Readonly<Record<PropertyKey, unknown>> | null {
+  const def = ownValue(ownValue(schema, '_zod'), 'def');
+  return isOwnReadable(def) && Object.getPrototypeOf(def) === Object.prototype
+    ? (def as Readonly<Record<PropertyKey, unknown>>)
+    : null;
+}
 
-// A check's zod kind; an empty or non-string kind is unknown (Astra r8 B30).
-export const checkKind = (check: unknown): string => {
-  const kind = ownValue(checkDef(check), 'check');
-  return typeof kind === 'string' && kind !== '' ? kind : 'unknown';
-};
+/** The captured definition of a check. The only deliberately read schema getter is object shape. */
+export function checkDef(
+  check: unknown,
+  def = schemaDef(check)
+): Readonly<Record<PropertyKey, unknown>> | null {
+  if (def === null) return null;
+  const capture: Record<PropertyKey, unknown> = Object.create(null);
+  for (const key of Reflect.ownKeys(def)) {
+    const value = ownValue(def, key);
+    if (value === ACCESSOR) return null;
+    capture[key] = value;
+  }
+  return capture;
+}
 
-// zod's default `when` of its length and size checks, captured once (addendum 4); any other `when`
-// receives the writable parse payload and can change any value it reaches (Astra r8 B28).
-const LENGTH_WHEN = ownValue(checkDef(firstCheck(z.array(z.string()).min(1))), 'when');
-const SIZE_WHEN = ownValue(checkDef(firstCheck(z.file().min(1))), 'when');
-const DEFAULT_WHEN: ReadonlyMap<string, unknown> = new Map([
-  ['min_length', LENGTH_WHEN],
-  ['max_length', LENGTH_WHEN],
-  ['length_equals', LENGTH_WHEN],
-  ['min_size', SIZE_WHEN],
-  ['max_size', SIZE_WHEN],
-  ['size_equals', SIZE_WHEN],
-]);
-export const hasCustomWhen = (check: unknown): boolean => {
-  const when = ownValue(checkDef(check), 'when');
-  return when !== undefined && when !== DEFAULT_WHEN.get(checkKind(check));
-};
+export function hasTrait(schema: unknown, trait: string): boolean {
+  const traits = ownValue(ownValue(schema, '_zod'), 'traits');
+  return types.isSet(traits) && Set.prototype.has.call(traits, trait);
+}
 
-// A check holding a zod schema (`z.property`) parses it, with its checks and `when` callbacks, out of
-// the walk's reach: any own definition value carrying `_zod` counts (Astra r9 B28, addendum 8).
-const carriesSchema = (value: unknown): boolean =>
-  (typeof value === 'object' || typeof value === 'function') && value !== null && '_zod' in value;
-export const holdsSchema = (check: unknown): boolean => {
-  const def = checkDef(check);
-  return def !== null && Reflect.ownKeys(def).some(key => carriesSchema(def[key]));
-};
+function carriesSchema(value: unknown): boolean {
+  while (value !== null && (typeof value === 'object' || typeof value === 'function')) {
+    if (types.isProxy(value) || Object.hasOwn(value, '_zod')) return true;
+    value = Object.getPrototypeOf(value);
+  }
+  return false;
+}
 
-// A container may carry an array's size check (kind and zod class trait); its `when` is judged first.
-const ARRAY_SIZE_TRAITS: ReadonlyMap<string, string> = new Map([
-  ['min_length', '$ZodCheckMinLength'],
-  ['max_length', '$ZodCheckMaxLength'],
-  ['length_equals', '$ZodCheckLengthEquals'],
-]);
-export const isArraySizeCheck = (check: unknown): boolean => {
-  const trait = ARRAY_SIZE_TRAITS.get(checkKind(check));
-  const traits = ownValue(ownValue(check, '_zod'), 'traits');
-  return trait !== undefined && traits instanceof Set && Set.prototype.has.call(traits, trait);
-};
+export function holdsSchema(def: Readonly<Record<PropertyKey, unknown>>): boolean {
+  return Reflect.ownKeys(def).some(key => carriesSchema(def[key]));
+}

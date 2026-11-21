@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { ROLE_ADMIN } from './roles.core';
-import { ActionDefinitionError, defineAction, defineFormAction } from './safe-action';
+import {
+  actionNormalizers,
+  ActionDefinitionError,
+  defineAction,
+  defineFormAction,
+} from './safe-action';
 
 const ADMIN_ONLY = [ROLE_ADMIN] as const;
 const handler = () => Promise.resolve('ok');
@@ -39,6 +44,23 @@ describe('definition: the public basis is closed in part 1', () => {
   );
 });
 
+// A plain role basis built from another realm's Object and Array (a jsdom frame), without evaluating code.
+function otherRealmBasis(): { kind: string; roles: string[] } {
+  const frame = document.createElement('iframe');
+  document.body.append(frame);
+  const realm = frame.contentWindow as unknown as {
+    Object: ObjectConstructor;
+    Array: ArrayConstructor;
+  };
+  const basis = new realm.Object() as { kind: string; roles: string[] };
+  basis.kind = 'role';
+  basis.roles = realm.Array.of<string>(ROLE_ADMIN);
+  frame.remove();
+  expect(Object.getPrototypeOf(basis)).not.toBe(Object.prototype);
+  expect(Object.getPrototypeOf(basis.roles)).not.toBe(Array.prototype);
+  return basis;
+}
+
 describe('definition: name, basis, subject', () => {
   it.each([
     ['empty name', { name: '' }],
@@ -62,6 +84,24 @@ describe('definition: name, basis, subject', () => {
     }
   );
 
+  it('refuses a roles array from another realm before admission', () => {
+    expect(define(z.strictObject({ id: z.string() }), { basis: otherRealmBasis() })).toThrow(
+      ActionDefinitionError
+    );
+  });
+
+  it('refuses sparse and iterator-overridden roles without consulting the values', () => {
+    const roles = new Array(1);
+    Object.setPrototypeOf(roles, Object.assign(Object.create(Array.prototype), { 0: 'staff' }));
+    const iterator = vi.fn();
+    const overridden = Object.defineProperty(['staff'], Symbol.iterator, { value: iterator });
+    for (const list of [roles, overridden]) {
+      expect(
+        define(z.strictObject({ id: z.string() }), { basis: { kind: 'role', roles: list } })
+      ).toThrow(ActionDefinitionError);
+    }
+    expect(iterator).not.toHaveBeenCalled();
+  });
   it('accepts the self basis and the self subject', () => {
     const action = defineAction({
       name: 'self.op',
@@ -83,11 +123,10 @@ describe('definition: accepted schema forms', () => {
   it('accepts the catalogue form: a strict object with scalar refinements and normalizers', () => {
     const catalogue = z
       .object({
-        claimId: z.string().trim().min(1),
+        claimId: z.string().check(actionNormalizers.trim).min(1),
         message: z
           .string()
-          .trim()
-          .toLowerCase()
+          .check(actionNormalizers.trim, actionNormalizers.toLowerCase)
           .max(2000)
           .refine(value => value.length > 0),
         kind: z.enum(['a', 'b']),
@@ -197,14 +236,17 @@ describe('definition: no value-replacing check on a container (addendum 6)', () 
         .number()
         .nullable()
         .refine(v => v !== 0),
-      c: z.string().trim().optional().readonly(),
-      d: z
-        .enum(['x', 'y'])
-        .optional()
-        .nullable()
-        .refine(() => true),
+      c: z.string().check(actionNormalizers.trim).optional().readonly(),
     });
     expect(define(accepted)).not.toThrow();
+  });
+  it('refuses an outer refine around a wrapped enum', () => {
+    const enumRefine = z
+      .enum(['x', 'y'])
+      .optional()
+      .nullable()
+      .refine(() => true);
+    expect(define(z.strictObject({ d: enumRefine }))).toThrow(ActionDefinitionError);
   });
 });
 
