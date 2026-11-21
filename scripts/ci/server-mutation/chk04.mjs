@@ -1,9 +1,17 @@
 // CHK-04 (design §6.1): every server action is a literal wrapper definition; every route method is
-// a registered machine entry; inline 'use server' functions are never compliant; nothing outside
+// a registered machine entry or a literal session writing route; inline 'use server' functions
+// are never compliant; nothing outside
 // its test imports the public intake path.
 import ts from 'typescript';
 
-import { importsOf, isUseServerModule, lineOf, resolveModule, unwrap } from './ast.mjs';
+import {
+  hasExportModifier,
+  importsOf,
+  isUseServerModule,
+  lineOf,
+  resolveModule,
+  unwrap,
+} from './ast.mjs';
 import { findTest } from './chk26-tests.mjs';
 import { collectUnits } from './units.mjs';
 
@@ -11,6 +19,7 @@ const WRAPPER_MODULE = 'apps/web/src/lib/safe-action.ts';
 const FACTORIES = new Set(['defineAction', 'defineFormAction']);
 const PUBLIC_MODULE = 'apps/web/src/lib/safe-action.public.ts';
 const PUBLIC_TEST = 'apps/web/src/lib/safe-action.public.test.ts';
+const WRITING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const isStringLiteral = node =>
   node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node));
 
@@ -42,24 +51,57 @@ function definitionCall(root, target) {
   return isUseServerModule(sf) ? call : null;
 }
 
-// Why a definition is not compliant, or null; `name` is returned for the uniqueness pass.
-function definitionProblem(call) {
-  const { props, error } = literalProperties(unwrap(call.arguments[0]));
-  if (error) return { problem: `definition: ${error}` };
-  for (const key of ['name', 'basis', 'input', 'subject', 'handler'])
-    if (!props.has(key)) return { problem: `definition has no own ${key}` };
+function definitionFields(props) {
   if (!isStringLiteral(props.get('name'))) return { problem: 'name is not a string literal' };
   const basis = literalProperties(props.get('basis'));
   if (basis.error) return { problem: `basis: ${basis.error}` };
   const kind = basis.props.get('kind');
   if (!isStringLiteral(kind)) return { problem: 'basis.kind is not a string literal' };
-  if (kind.text === 'public' && !isStringLiteral(basis.props.get('entry')))
-    return { problem: 'basis.entry is not a string literal' };
   const subject = literalProperties(props.get('subject'));
   if (subject.error) return { problem: `subject: ${subject.error}` };
   if (!isStringLiteral(subject.props.get('type')))
     return { problem: 'subject.type is not a string literal' };
-  return { name: props.get('name').text, kind: kind.text, entry: basis.props.get('entry')?.text };
+  return { name: props.get('name').text, kind: kind.text, entry: basis.props.get('entry') };
+}
+
+function definitionProblem(call, method) {
+  const { props, error } = literalProperties(unwrap(call.arguments[0]));
+  if (error) return { problem: `definition: ${error}` };
+  for (const key of ['name', 'basis', method ? 'method' : 'input', 'subject', 'handler'])
+    if (!props.has(key)) return { problem: `definition has no own ${key}` };
+  const fields = definitionFields(props);
+  if (fields.problem) return fields;
+  if (method) return routeFieldsProblem(props.get('method'), fields.kind, method);
+  if (fields.kind === 'public' && !isStringLiteral(fields.entry))
+    return { problem: 'basis.entry is not a string literal' };
+  return { ...fields, entry: fields.entry?.text };
+}
+
+function routeFieldsProblem(method, kind, exportedMethod) {
+  if (!WRITING_METHODS.has(exportedMethod))
+    return { problem: 'defineRoute requires a writing method' };
+  if (!isStringLiteral(method) || method.text !== exportedMethod)
+    return { problem: 'method is not a literal matching the route export' };
+  if (kind !== 'role' && kind !== 'self')
+    return { problem: 'defineRoute basis must be role or self' };
+  return {};
+}
+
+// Compliant (d) is a direct export of a const definition in the route module.
+function routeDefinitionCall(unit) {
+  const { target } = unit;
+  if (target?.file !== unit.file) return null;
+  const { decl } = target;
+  if (!ts.isVariableDeclaration(decl) || !ts.isVarConst(decl)) return null;
+  if (!ts.isIdentifier(decl.name) || decl.name.text !== unit.method) return null;
+  if (!ts.isVariableStatement(decl.parent.parent) || !hasExportModifier(decl.parent.parent))
+    return null;
+  const call = unwrap(decl.initializer);
+  if (!call || !ts.isCallExpression(call) || !ts.isIdentifier(call.expression)) return null;
+  const binding = importsOf(decl.getSourceFile()).get(call.expression.text);
+  return binding?.imported === 'defineRoute' && binding.specifier === '@/lib/safe-route'
+    ? call
+    : null;
 }
 
 // Splits the server-action units into literal definitions and non-compliant units.
@@ -93,6 +135,13 @@ function routeRegistered(registry, unit, parse) {
     const sf = parse(row.deniedTest.path);
     return Boolean(sf) && Boolean(findTest(sf, row.deniedTest.title));
   });
+}
+
+function routeProblem(registry, unit, parse) {
+  const call = routeDefinitionCall(unit);
+  if (call) return definitionProblem(call, unit.method).problem;
+  if (!routeRegistered(registry, unit, parse))
+    return 'route method is neither a registered machine entry nor a literal defineRoute export';
 }
 
 // A static import or re-export naming runPublicIntake (or `*`), or any dynamic import or require of
@@ -161,13 +210,10 @@ export const CHK04 = {
     }
     for (const unit of inline)
       findings.push({ id: unit.id, file: unit.file, message: "inline 'use server' function" });
-    for (const unit of routes)
-      if (!routeRegistered(registry, unit, parse))
-        findings.push({
-          id: unit.id,
-          file: unit.file,
-          message: 'route method is not a registered machine entry',
-        });
+    for (const unit of routes) {
+      const message = routeProblem(registry, unit, parse);
+      if (message) findings.push({ id: unit.id, file: unit.file, message });
+    }
     findings.push(...publicIntakeImporters(root, files, parse));
     return { units: { export: actions.length, route: routes.length }, findings };
   },
