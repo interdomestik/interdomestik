@@ -56,6 +56,7 @@ const LOADER_FIELDS = [
   'browser',
   '_moduleAliases',
 ];
+const DB_RESOLUTION_FIELDS = ['name', 'exports', 'main', 'module', 'types', 'imports', 'type'];
 const DEPENDENCY_FIELDS = [
   'dependencies',
   'devDependencies',
@@ -66,7 +67,7 @@ const DRIZZLE_PACKAGE = /^drizzle-(?:orm|kit)$/u;
 const DRIZZLE_ENTRY = /^ {6}['"]?drizzle-(?:orm|kit)['"]?:/u;
 const DRIZZLE_ARTIFACT = /^ {2}['"]?drizzle-(?:orm|kit)@/u;
 
-function manifestLoaderFields(text) {
+function manifestLoaderFields(file, text) {
   if (text === undefined) return undefined;
   let manifest;
   try {
@@ -76,7 +77,11 @@ function manifestLoaderFields(text) {
   }
   if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) return text;
   const keys = LOADER_FIELDS.filter(key => Object.hasOwn(manifest, key));
-  if (DRIZZLE_PACKAGE.test(manifest.name)) keys.push('name', 'exports', 'main');
+  if (file === DB_MANIFEST) {
+    keys.push(...DB_RESOLUTION_FIELDS.filter(key => Object.hasOwn(manifest, key)));
+  } else if (DRIZZLE_PACKAGE.test(manifest.name)) {
+    keys.push('name', 'exports', 'main');
+  }
   const inputs = keys.map(key => [key, manifest[key]]);
   for (const section of DEPENDENCY_FIELDS) {
     for (const [name, specifier] of Object.entries(manifest[section] ?? {})) {
@@ -90,7 +95,7 @@ function builderInput(tree, file) {
   if (isResolverConfig(file)) return tree.resolution.configInputs.get(file);
   const text = tree.inputs.get(file);
   if (file.endsWith('/package.json') || file === 'package.json')
-    return file === DB_MANIFEST ? text : manifestLoaderFields(text);
+    return manifestLoaderFields(file, text);
   return text;
 }
 

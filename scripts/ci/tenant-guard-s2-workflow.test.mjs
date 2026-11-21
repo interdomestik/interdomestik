@@ -3,11 +3,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { git, tmp, writeFile } from './db-access-required-git.mjs';
-import {
-  markFixtureQueryProperties,
-  OUTSIDE_FORWARDS,
-  QUERY_ESCAPES,
-} from './tenant-guard-schema-review-fixtures.mjs';
 import { KERNEL_ANCHOR, LEGACY_PINS } from './tenant-guard/manifest.mjs';
 import { TRUSTED } from './tenant-guard/trusted.mjs';
 import {
@@ -65,28 +60,25 @@ function appendFixtureTable(repo) {
   );
 }
 
-test('the historical outside-root loader blocks a table-only append', { skip }, () => {
-  const result = route(openPullRequest(appendFixtureTable));
+test('a changed outside-root loader blocks a table append', { skip }, () => {
+  const file = 'scripts/pilot/import-pilot-database.ts';
+  const result = route(openPullRequest(repo => {
+    appendFixtureTable(repo);
+    fs.appendFileSync(path.join(repo, file), ' ');
+  }));
   assertFailed(result, /protected report is not a passing scan/u);
   assert.deepEqual(result.report.schemaAdmission, {
     version: 2,
     ok: false,
-    reason: `candidate: schema forward outside scan roots ${OUTSIDE_FORWARDS[0]}`,
+    reason: `candidate: schema forward outside scan roots ${file}`,
   });
 });
 
 test(
-  'an exact synthetic merge admits a new table on the protected-base anchor chain with eligible consumers',
+  'an exact synthetic merge admits a new table with the historical consumers',
   { skip },
   () => {
-    const pr = openPullRequest(repo => {
-      appendFixtureTable(repo);
-      for (const file of OUTSIDE_FORWARDS) fs.rmSync(path.join(repo, file));
-      for (const [file, lines] of QUERY_ESCAPES) {
-        const text = fs.readFileSync(path.join(repo, file), 'utf8');
-        writeFile(repo, file, markFixtureQueryProperties(text, lines));
-      }
-    });
+    const pr = openPullRequest(appendFixtureTable);
     const result = route(pr);
     assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
     assert.deepEqual(result.report.identity.anchor, KERNEL_ANCHOR);

@@ -1,5 +1,23 @@
 import ts from 'typescript';
 import { hasExportModifier } from './package-exports.mjs';
+import { sha256 } from './rules-digest.mjs';
+
+// Reviewed pilot forwarders are admitted only at these paths and with their exact current bytes.
+const REVIEWED_FORWARDERS = new Map([
+  ['scripts/pilot/import-pilot-database.ts', '78fad889b6bd87c5e3291556abdd2e075cb4a6d2d52e5b1ec96a4ae7b19700cd'],
+  ['scripts/pilot/scenario_helpers.ts', 'e14e27eb2de5bababead915d97946824e016d66997a5ac7aafd8eb288dbb4445'],
+]);
+
+export function reviewedOutsideForward(file, text) {
+  const digest = REVIEWED_FORWARDERS.get(file);
+  return digest !== undefined && sha256(text) === digest;
+}
+
+export function changedOutsideForwarders(sources) {
+  return [...REVIEWED_FORWARDERS.keys()].filter(file =>
+    sources.has(file) && !reviewedOutsideForward(file, sources.get(file))
+  );
+}
 
 function literalSpecifier(node) {
   return node && ts.isStringLiteralLike(node) ? node.text : null;

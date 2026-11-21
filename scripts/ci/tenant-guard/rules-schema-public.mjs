@@ -3,7 +3,11 @@ import { TEST_SOURCE } from './manifest.mjs';
 import { hasExportModifier } from './package-exports.mjs';
 import { byCodeUnit } from './rules-digest.mjs';
 import { aliasInitializers, aliasTarget, publicTableBindings } from './rules-schema-bindings.mjs';
-import { outsideExportLoads } from './rules-schema-forwarders.mjs';
+import {
+  changedOutsideForwarders,
+  outsideExportLoads,
+  reviewedOutsideForward,
+} from './rules-schema-forwarders.mjs';
 import { inScanRoots } from './sources.mjs';
 import { parseSource } from './syntax.mjs';
 
@@ -124,10 +128,16 @@ export function forwardInventory(tree, role) {
   const seeds = [DB_INDEX, 'packages/database/src/schema.ts', ...schemaModules];
   for (const file of reverseReachable(seeds, [reverse]))
     if (!inScanRoots(file)) return { reason: `${role}: schema forward outside scan roots ${file}` };
-  const outsideForwards = [...reverseReachable(seeds, [reverse, outsideReverse])].filter(
-    file => !inScanRoots(file)
-  );
+  const outsideForwards = outsideCandidates(tree, seeds, reverse, outsideReverse);
   return { tables, reverse, outsideForwards };
+}
+
+function outsideCandidates(tree, seeds, reverse, outsideReverse) {
+  const outsideForwards = new Set(changedOutsideForwarders(tree.allSources));
+  for (const file of reverseReachable(seeds, [reverse, outsideReverse]))
+    if (!inScanRoots(file) && !reviewedOutsideForward(file, tree.allSources.get(file)))
+      outsideForwards.add(file);
+  return [...outsideForwards];
 }
 
 function addStarContributions(counts, types, from) {

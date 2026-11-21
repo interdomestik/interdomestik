@@ -2,12 +2,12 @@
 
 import ts from 'typescript';
 import { TEST_SOURCE } from './manifest.mjs';
+import { CLIENT, DATA, DB, DB_EXPORTS } from './schema-query-origins.mjs';
+import { queryReceiverOrigins } from './schema-query-values.mjs';
 import { analyzeScopes, collectUnits, fingerprint, parseSource, unitOf } from './syntax.mjs';
 
 const OWNER_KEYS = 'apps/web/src/lib/safe-action.owner-keys.ts';
-const DB = 'packages/database/src/db.ts';
 const ANCHORED_CONSUMERS = new Set([DB, OWNER_KEYS]);
-const DB_EXPORTS = new Set(['db', 'dbAdmin', 'dbRls']);
 
 function selection(node, receiver) {
   if (ts.isPropertyAccessExpression(node) && node.expression === receiver) return node.name.text;
@@ -21,13 +21,14 @@ function selection(node, receiver) {
 }
 
 export function retainedConsumerProblem(before, after, anchor, affected, names) {
+  const receiverOrigin = queryReceiverOrigins(after);
   for (const [file, text] of after.allSources) {
     const previous = before.allSources.get(file);
     if (previous === undefined || TEST_SOURCE.test(file)) continue;
-    const source = parseSource(file, text);
+    const source = after.inventory.sourceFileOf(file);
     const retained = retainedUnits(previous, source);
     if (
-      unprovenQuerySelections(source, names, retained).length ||
+      unprovenQuerySelections(source, names, retained, receiverOrigin).length ||
       !namespaceSelectionsSafe(after, anchor, file, source, affected, names, retained)
     )
       return `unproven dynamic schema consumer ${file}`;
@@ -43,7 +44,7 @@ function retainedUnits(previous, source) {
   return node => kept.has(unitOf(node));
 }
 
-export function unprovenQuerySelections(source, names, retained) {
+export function unprovenQuerySelections(source, names, retained, receiverOrigin) {
   const problems = [];
   const visit = node => {
     if (
@@ -51,8 +52,9 @@ export function unprovenQuerySelections(source, names, retained) {
       selection(node, node.expression) === 'query' &&
       retained(node)
     ) {
+      const origin = receiverOrigin(node.expression);
       const key = selection(node.parent, node);
-      if (!key || names.has(key)) problems.push(node);
+      if (origin !== DATA && (origin !== CLIENT || !key || names.has(key))) problems.push(node);
     }
     ts.forEachChild(node, visit);
   };

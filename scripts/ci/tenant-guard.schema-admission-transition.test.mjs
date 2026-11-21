@@ -4,11 +4,6 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import test from 'node:test';
 import { tmp } from './db-access-required-git.mjs';
-import {
-  markFixtureQueryProperties,
-  OUTSIDE_FORWARDS,
-  QUERY_ESCAPES,
-} from './tenant-guard-schema-review-fixtures.mjs';
 import { KERNEL_ANCHOR, LEGACY, LEGACY_PINS } from './tenant-guard/manifest.mjs';
 import { kernelAnchorPins } from './tenant-guard/rules-schema-admission.mjs';
 import { evaluate } from './tenant-guard/rules.mjs';
@@ -102,28 +97,36 @@ function evaluateWpTail(blobs) {
   });
 }
 
-test('the exact historical consumers refuse the WP-07 tail append', () => {
+for (const [file, change] of [
+  ['scripts/pilot/import-pilot-database.ts', text => text + ' '],
+  ['scripts/pilot/scenario_helpers.ts', text => text.replace(
+    "'./import-pilot-database'", "'./import-pilot-databasf'"
+  )],
+]) {
+  test(`a one-byte change to ${file} refuses the tail append`, () => {
+    const blobs = wpTailBlobs();
+    const original = Buffer.from(blobs.get(file));
+    const changed = Buffer.from(change(original.toString()));
+    const differences = original.filter((byte, index) => byte !== changed[index]).length;
+    assert.equal(differences + changed.length - original.length, 1);
+    blobs.set(file, changed.toString());
+    const result = evaluateWpTail(blobs);
+    assert.equal(result.schemaAdmission.ok, false);
+    assert.equal(result.schemaAdmission.reason, `candidate: schema forward outside scan roots ${file}`);
+  });
+}
+
+test('a third outside forwarder in scripts/pilot refuses the tail append', () => {
+  const file = 'scripts/pilot/copied-forwarder.ts';
   const blobs = wpTailBlobs();
-  const outside = evaluateWpTail(blobs);
-  assert.equal(outside.schemaAdmission.ok, false);
-  assert.equal(
-    outside.schemaAdmission.reason,
-    `candidate: schema forward outside scan roots ${OUTSIDE_FORWARDS[0]}`
-  );
-  for (const file of OUTSIDE_FORWARDS) blobs.delete(file);
-  const consumer = evaluateWpTail(blobs);
-  assert.equal(consumer.schemaAdmission.ok, false);
-  assert.equal(
-    consumer.schemaAdmission.reason,
-    `candidate: unproven dynamic schema consumer ${QUERY_ESCAPES.keys().next().value}`
-  );
+  blobs.set(file, blobs.get('scripts/pilot/import-pilot-database.ts'));
+  const result = evaluateWpTail(blobs);
+  assert.equal(result.schemaAdmission.ok, false);
+  assert.equal(result.schemaAdmission.reason, `candidate: schema forward outside scan roots ${file}`);
 });
 
-test('WP-07 appended at the tail binds all three v2 pins and seeds both tables with eligible consumers', () => {
+test('WP-07 appended at the tail binds all three v2 pins with exact historical consumers', () => {
   const blobs = wpTailBlobs();
-  for (const file of OUTSIDE_FORWARDS) blobs.delete(file);
-  for (const [file, lines] of QUERY_ESCAPES)
-    blobs.set(file, markFixtureQueryProperties(blobs.get(file), lines));
   const candidate = schemaTreeFromBlobs(blobs);
   const legacyPins = pins(PRE_CUTOVER_V2);
   const result = evaluateWpTail(blobs);

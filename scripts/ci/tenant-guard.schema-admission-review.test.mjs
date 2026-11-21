@@ -15,6 +15,7 @@ import {
 const LOCK = 'pnpm-lock.yaml';
 const CONFIG = 'tsconfig.json';
 const MANIFEST = 'packages/ui/package.json';
+const DB_MANIFEST = 'packages/database/package.json';
 const BILLING = 'apps/web/src/billing-rows.ts';
 const DRIVER = 'outside/drizzle/pg-core.ts';
 
@@ -64,6 +65,44 @@ for (const inBase of [false, true]) {
     assert.deepEqual(result.violations, []);
   });
 }
+
+const databaseManifestText = initial.inputs.get(DB_MANIFEST);
+const databaseManifest = JSON.parse(databaseManifestText);
+
+test('a database test:rls script change coexists with an admitted table', () => {
+  const script = databaseManifest.scripts['test:rls'];
+  const changed = databaseManifestText.replace(
+    JSON.stringify(script),
+    JSON.stringify(`${script} test/schema-admission.test.ts`)
+  );
+  assert.notEqual(changed, databaseManifestText);
+  const candidate = append({ [DB_MANIFEST]: changed });
+  for (const base of [initial, candidate]) {
+    const result = scan(candidate, { base });
+    assert.equal(result.schemaAdmission.ok, true, result.schemaAdmission.reason);
+    assert.deepEqual(result.violations, []);
+  }
+});
+
+for (const [field, value] of [
+  ['exports', { ...databaseManifest.exports, './fixture': './src/constants.ts' }],
+  ['main', './src/other.ts'],
+  ['dependencies', { ...databaseManifest.dependencies, 'drizzle-orm': '^0.45.3' }],
+]) {
+  test(`a database manifest change to ${field} refuses schema admission`, () => {
+    const candidate = append({
+      [DB_MANIFEST]: JSON.stringify({ ...databaseManifest, [field]: value }),
+    });
+    refuses(scan(candidate), `candidate: resolver input changed ${DB_MANIFEST}`);
+  });
+}
+
+test('an unparseable database manifest refuses schema admission', () => {
+  assert.throws(
+    () => append({ [DB_MANIFEST]: '{ "name":' }),
+    { message: `unparseable package manifest ${DB_MANIFEST}` }
+  );
+});
 
 test('an admitted table keeps its exact Drizzle lock entries on a resolver-only PR', () => {
   const lock = initial.inputs.get(LOCK);
@@ -140,7 +179,9 @@ for (const body of [
 
 test('literal selection from a retained transaction query map remains admitted', () => {
   const changes = {
-    'packages/database/src/report.ts': 'export const report = tx => tx["query"]["users"];\n',
+    'packages/database/src/report.ts':
+      "import { db } from './db';\n" +
+      'export const report = () => db.transaction(tx => tx["query"]["users"]);\n',
   };
   const result = scan(append(changes), { base: snapshot(changes) });
   assert.equal(result.schemaAdmission.ok, true, result.schemaAdmission.reason);
