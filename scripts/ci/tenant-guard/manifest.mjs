@@ -33,13 +33,13 @@ export const LEGACY = new Map([
 
 /** Exact reviewed Git identity and per-entry v2 digests of its full kernel closure. */
 export const KERNEL_ANCHOR = Object.freeze({
-  commit: '44033ca8c00f82152649a34cb9596e9dbc3f97a5',
-  tree: '5947794aa085242fa7350bacc08d2374efb08645',
+  commit: 'dd0522b818a6923fd63cf7292e0c4ea9ae24910b',
+  tree: '4a51411c20282aa3149d8776e826917c190170da',
 });
 export const LEGACY_PINS = new Map([
-  [`${DB}/tenant.ts#withTenantContext`, 'v2:cd510b832702e29d8fa20a134032be27c071ce90544137cf18df2f42378f4602'],
-  [`${DB}/tenant.ts#withTenantDb`, 'v2:e3667d8a8207b7689dd1ab9cd1d54185aa54eade9186abe908888631d4cc8739'],
-  [`${DB}/db.ts#db`, 'v2:96900df444bd7d695798af14354847399dc609f0470c1f24edae0a5f77ec782e'],
+  [`${DB}/tenant.ts#withTenantContext`, 'v2:28386bc3ebe2bad1cb2d8d516ca100a3a5727da907e5c3cf4a75ba698415ab1b'],
+  [`${DB}/tenant.ts#withTenantDb`, 'v2:eaee086a7379cff84171a17d3cf33004bba15a840cb021659a3cd8bb10263c26'],
+  [`${DB}/db.ts#db`, 'v2:9b35f9dc83e37b59bb1e21b63e0f92e7ed4771be2c6a8e0510b622a0ad046cb2'],
 ]);
 
 /** Drivers and client construction (R-d). */

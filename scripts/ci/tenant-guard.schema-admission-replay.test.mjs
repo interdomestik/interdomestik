@@ -48,7 +48,7 @@ for (const [merge, parent, expected] of cases) {
   });
 }
 
-test('the anchor db walk visits the reviewed set of 51 kernel modules', () => {
+test('the anchor db walk visits the reviewed set of 53 kernel modules', () => {
   const anchor = readSchemaTree(ROOT, KERNEL_ANCHOR, 'anchor');
   const prefix = 'packages/database/src/';
   const root = [
@@ -85,6 +85,7 @@ test('the anchor db walk visits the reviewed set of 51 kernel modules', () => {
     'domain-events',
     'enums',
     'event-pii-references',
+    'exchange-rates',
     'free-start-drafts',
     'index',
     'leads',
