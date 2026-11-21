@@ -9,6 +9,7 @@ import {
   insertRate,
   rateInput,
   restricted,
+  runtimeRole,
   signal,
   tables,
   waitForLockWaiters,
@@ -57,7 +58,7 @@ export async function proveExchangeRateDatabase(t: TestContext, fixture: Exchang
       from pg_roles where rolname = current_user`)
     );
     assert.deepEqual(posture, {
-      role: TEST_DB_ROLE,
+      role: runtimeRole,
       rolsuper: false,
       rolbypassrls: false,
       books: true,
@@ -172,9 +173,14 @@ export async function proveExchangeRateDatabase(t: TestContext, fixture: Exchang
         table === 'exchange_rate_books' ? `truncate ${table}, exchange_rates` : `truncate ${table}`;
       for (const statement of [`update ${table} set id = id`, `delete from ${table}`, truncate]) {
         await assert.rejects(
-          restricted(admin, tenantId, async tx => {
-            await tx.unsafe(statement);
-          }),
+          restricted(
+            admin,
+            tenantId,
+            async tx => {
+              await tx.unsafe(statement);
+            },
+            TEST_DB_ROLE
+          ),
           { code: '23514', message: `${table} is append-only` }
         );
       }

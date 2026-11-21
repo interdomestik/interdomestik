@@ -10,8 +10,14 @@ import { and, desc, lte } from 'drizzle-orm';
 import { skopjeDate } from './calendar';
 
 export async function getExchangeRateInForce(authority: TenantAuthority, instant: Date) {
-  const { accessTenantId } = readTenantAuthority(authority);
-  const effectiveDate = skopjeDate(instant);
+  const { tenantId, accessTenantId, purpose } = readTenantAuthority(authority);
+  if (purpose === 'session' && tenantId !== accessTenantId) {
+    return { ok: false as const, code: 'forbidden' as const };
+  }
+
+  const asOf = new Date(instant.getTime());
+  const storedAtCutoff = asOf.toISOString();
+  const effectiveDate = skopjeDate(asOf);
   return withTenantAuthority(authority, async tx => {
     const [rate] = await tx
       .select()
@@ -21,7 +27,7 @@ export async function getExchangeRateInForce(authority: TenantAuthority, instant
           accessTenantId,
           exchangeRates.tenantId,
           and(
-            lte(exchangeRates.storedAt, instant.toISOString()),
+            lte(exchangeRates.storedAt, storedAtCutoff),
             lte(exchangeRates.effectiveOn, effectiveDate)
           )
         )

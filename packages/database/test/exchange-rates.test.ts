@@ -107,6 +107,45 @@ async function provePublications(t: TestContext, fixture: ExchangeRateFixture) {
   );
 
   await t.test(
+    'a session cannot read an eligible rate from its foreign access tenant',
+    async () => {
+      const foreign = await scheduled({
+        data: { ...rateInput('2026-02-11'), tenantId: otherTenant },
+      });
+      assert.ok(foreign.ok);
+      const instant = new Date('2100-01-01T00:00:00.000Z');
+      const scheduledAuthority = mintTenantAuthority({
+        tenantId: otherTenant,
+        purpose: 'scheduled-work',
+      });
+      assert.deepEqual(await port.getExchangeRateInForce(scheduledAuthority, instant), foreign);
+      const delegated = session('tenant_admin', tenantId, otherTenant);
+      assert.deepEqual(await port.getExchangeRateInForce(delegated, instant), {
+        ok: false,
+        code: 'forbidden',
+      });
+    }
+  );
+
+  await t.test(
+    'staff can publish and correct a rate with the migration runtime grants',
+    async () => {
+      const input = rateInput('2099-11-11');
+      const publication = await publish(input);
+      assert.ok(publication.ok);
+      const correction = await publish({
+        ...input,
+        rate: '61.75',
+        correctsRateId: publication.rate.id,
+        correctionReason: 'Corrected bulletin',
+      });
+      assert.ok(correction.ok);
+      assert.equal(correction.rate.revision, 2);
+      assert.equal(correction.rate.correctsRateId, publication.rate.id);
+    }
+  );
+
+  await t.test(
     'staff and scheduled publications commit with their intended actor and effective day',
     async () => {
       const staff = await publish(rateInput('2099-12-23'));
@@ -234,7 +273,10 @@ async function provePublications(t: TestContext, fixture: ExchangeRateFixture) {
       );
 
       await admin`select pg_sleep(0.005)`;
-      const [{ instant }] = await admin<{ instant: Date }[]>`select clock_timestamp() as instant`;
+      const [{ instant: instantText }] = await admin<
+        { instant: string }[]
+      >`select clock_timestamp()::text as instant`;
+      const instant = new Date(instantText);
       const { result } = await withLockedBook(
         peer,
         admin,
@@ -266,6 +308,10 @@ async function provePublications(t: TestContext, fixture: ExchangeRateFixture) {
         corrects_rate_id: original.rate.id,
       });
       assert.deepEqual(await publish(input), { ok: false, code: 'conflict' });
+      await assert.rejects(
+        restricted(admin, tenantId, tx => insertRate(tx, { ...direct, revision: 3 })),
+        { code: '23514', message: 'Exchange rate correction must revise the current rate' }
+      );
       assert.deepEqual(await port.getExchangeRateInForce(authority, instant), original);
       const after = new Date(
         Math.max(instant.getTime(), new Date(committed.rate.storedAt).getTime()) + 1

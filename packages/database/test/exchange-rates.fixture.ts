@@ -10,12 +10,17 @@ import { withDisposableClient } from '../src/disposable-client';
 import { mintIngressCapability } from '../src/ingress-capability';
 import { mintTenantAuthority } from '../src/tenant-authority';
 import { migrateJournal, withScratchDatabase } from './pg16/scratch-database';
-import { applyRlsTestConnectionEnv, quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
+import {
+  applyRlsTestConnectionEnv,
+  quoteIdentifier,
+  quoteSqlLiteral,
+  TEST_DB_ROLE,
+} from './rls-test-connection';
 import { grantRlsTestRole } from './rls-test-grants';
 import { provisionRestrictedRole } from './s8-claim-restricted-rls.fixture';
 
 export const tables = ['exchange_rate_books', 'exchange_rates'] as const;
-const role = quoteIdentifier(TEST_DB_ROLE);
+export const runtimeRole = 'interdomestik_runtime_rls';
 const migrations = fileURLToPath(new URL('../drizzle', import.meta.url));
 export const rateInput = (effectiveOn: string) => ({
   base: 'EUR',
@@ -61,10 +66,11 @@ export function insertRate(tx: postgres.TransactionSql, rate: ReturnType<typeof 
 export function restricted<T>(
   client: postgres.Sql,
   accessTenant: string | undefined,
-  run: (tx: postgres.TransactionSql) => Promise<T>
+  run: (tx: postgres.TransactionSql) => Promise<T>,
+  roleName = runtimeRole
 ) {
   return client.begin(async tx => {
-    await tx.unsafe(`set local role ${role}`);
+    await tx.unsafe(`set local role ${quoteIdentifier(roleName)}`);
     await tx`set local row_security = on`;
     if (accessTenant !== undefined) {
       await tx`select set_config('app.current_access_tenant_id', ${accessTenant}, true)`;
@@ -141,72 +147,104 @@ export type ExchangeRateFixture = Awaited<ReturnType<typeof createFixture>> & {
   peer: postgres.Sql;
 };
 
+async function withRuntimeLogin(
+  admin: postgres.Sql,
+  run: (username: string, password: string) => Promise<void>
+) {
+  const role = quoteIdentifier(runtimeRole);
+  const [existing] = await admin`select 1 from pg_roles where rolname = ${runtimeRole}`;
+  if (!existing) await admin.unsafe(`create role ${role} nologin nosuperuser nobypassrls`);
+
+  try {
+    const username = `wp07_rates_${randomUUID().replaceAll('-', '')}`;
+    const login = quoteIdentifier(username);
+    const password = randomUUID();
+    await admin.begin(async tx => {
+      await tx.unsafe(`create role ${login} login noinherit password ${quoteSqlLiteral(password)}`);
+      await tx.unsafe(`grant ${role} to ${login}`);
+    });
+    try {
+      await run(username, password);
+    } finally {
+      await admin.unsafe(`drop role ${login}`);
+    }
+  } finally {
+    if (!existing) {
+      await admin.unsafe(`drop owned by ${role}`);
+      await admin.unsafe(`drop role ${role}`);
+    }
+  }
+}
+
 export async function withExchangeRateFixture(
   run: (fixture: ExchangeRateFixture) => Promise<void>
 ) {
   // The scratch database owns all append-only rows and disappears after the proof.
-  await withScratchDatabase('wp07_rates', async admin => {
-    await migrateJournal(admin, migrations);
-    const [{ name }] = await admin<{ name: string }[]>`select current_database() as name`;
-    const url = new URL(process.env.DATABASE_URL!);
-    url.pathname = `/${name}`;
+  await withScratchDatabase('wp07_rates', admin =>
+    withRuntimeLogin(admin, async (username, password) => {
+      // Migration 0101 grants privileges to the runtime role when it exists.
+      await migrateJournal(admin, migrations);
+      const [{ name }] = await admin<{ name: string }[]>`select current_database() as name`;
+      const url = new URL(process.env.DATABASE_URL!);
+      url.pathname = `/${name}`;
 
-    const adminDb = drizzle(admin);
-    await provisionRestrictedRole(adminDb);
-    await grantRlsTestRole(adminDb, tables);
-    // Grant all four mutations to the test role so the append-only tests exercise the triggers.
-    // The migration's narrower runtime grants are checked separately when that role exists.
-    await admin.unsafe(
-      `grant insert, update, delete, truncate on exchange_rate_books, exchange_rates to ${role}`
-    );
-    const runtime = 'interdomestik_runtime_rls';
-    const [runtimeRole] = await admin`select 1 from pg_roles where rolname = ${runtime}`;
-    if (runtimeRole) {
+      const adminDb = drizzle(admin);
+      await provisionRestrictedRole(adminDb);
+      await grantRlsTestRole(adminDb, tables);
+      // The append-only tests need permission to reach the mutation triggers.
+      await admin.unsafe(
+        `grant update, delete, truncate on exchange_rate_books, exchange_rates to ${quoteIdentifier(TEST_DB_ROLE)}`
+      );
       const [acl] = await admin`select
-        has_table_privilege(${runtime}, 'exchange_rate_books', 'INSERT') as can_insert_book,
-        has_table_privilege(${runtime}, 'exchange_rates', 'INSERT') as can_insert_rate,
-        has_column_privilege(${runtime}, 'exchange_rate_books', 'id', 'UPDATE') as can_lock_book,
-        has_table_privilege(${runtime}, 'exchange_rate_books', 'UPDATE,DELETE,TRUNCATE')
-          or has_table_privilege(${runtime}, 'exchange_rates', 'UPDATE,DELETE,TRUNCATE') as can_mutate`;
+        has_table_privilege(${runtimeRole}, 'exchange_rate_books', 'INSERT') as can_insert_book,
+        has_table_privilege(${runtimeRole}, 'exchange_rates', 'INSERT') as can_insert_rate,
+        has_column_privilege(${runtimeRole}, 'exchange_rate_books', 'id', 'UPDATE') as can_lock_book,
+        has_table_privilege(${runtimeRole}, 'exchange_rate_books', 'UPDATE,DELETE,TRUNCATE')
+          or has_table_privilege(${runtimeRole}, 'exchange_rates', 'UPDATE,DELETE,TRUNCATE') as can_mutate`;
       assert.deepEqual(acl, {
         can_insert_book: true,
         can_insert_rate: true,
         can_lock_book: true,
         can_mutate: false,
       });
-    }
 
-    const env = applyRlsTestConnectionEnv(url.toString());
-    const previousEnv = {
-      DATABASE_URL: process.env.DATABASE_URL,
-      DB_MAX_CONNECTIONS: process.env.DB_MAX_CONNECTIONS,
-    };
-    Object.assign(process.env, { DATABASE_URL: url.toString(), DB_MAX_CONNECTIONS: '4' });
-    const pools = globalThis as typeof globalThis & {
-      queryClientAdmin?: postgres.Sql;
-      queryClientRls?: postgres.Sql;
-    };
-    try {
-      const fixture = await createFixture(admin);
-      await withDisposableClient(
-        url.toString(),
-        { applicationName: 'wp07_rates_peer', max: 2 },
-        peer => run({ ...fixture, peer })
-      );
-    } finally {
-      env.restore();
-      for (const [key, value] of Object.entries(previousEnv)) {
-        if (value === undefined) delete process.env[key];
-        else process.env[key] = value;
+      const env = applyRlsTestConnectionEnv(url.toString());
+      const rlsUrl = new URL(url);
+      rlsUrl.username = username;
+      rlsUrl.password = password;
+      process.env.DATABASE_URL_RLS = rlsUrl.toString();
+      process.env.DB_RLS_ROLE = runtimeRole;
+      const previousEnv = {
+        DATABASE_URL: process.env.DATABASE_URL,
+        DB_MAX_CONNECTIONS: process.env.DB_MAX_CONNECTIONS,
+      };
+      Object.assign(process.env, { DATABASE_URL: url.toString(), DB_MAX_CONNECTIONS: '4' });
+      const pools = globalThis as typeof globalThis & {
+        queryClientAdmin?: postgres.Sql;
+        queryClientRls?: postgres.Sql;
+      };
+      try {
+        const fixture = await createFixture(admin);
+        await withDisposableClient(
+          url.toString(),
+          { applicationName: 'wp07_rates_peer', max: 2 },
+          peer => run({ ...fixture, peer })
+        );
+      } finally {
+        env.restore();
+        for (const [key, value] of Object.entries(previousEnv)) {
+          if (value === undefined) delete process.env[key];
+          else process.env[key] = value;
+        }
+        // This isolated test file points the app's pools at the scratch database.
+        await Promise.all(
+          [...new Set([pools.queryClientAdmin, pools.queryClientRls])].map(pool =>
+            pool?.end({ timeout: 1 })
+          )
+        );
       }
-      // This isolated test file points the app's pools at the scratch database.
-      await Promise.all(
-        [...new Set([pools.queryClientAdmin, pools.queryClientRls])].map(pool =>
-          pool?.end({ timeout: 1 })
-        )
-      );
-    }
-  });
+    })
+  );
 }
 
 async function createFixture(admin: postgres.Sql) {
