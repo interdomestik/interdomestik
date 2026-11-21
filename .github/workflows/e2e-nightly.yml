@@ -65,20 +65,24 @@ jobs:
       - name: Generate ephemeral E2E credentials
         run: bash scripts/ci/export-e2e-credentials.sh
 
+      - name: DB migrations
+        run: pnpm db:migrate
+
       # ---- Strict-rule guards (fail fast before burning minutes) ----
       - name: Strict Rule Guards (golden/gate)
         run: pnpm --filter @interdomestik/web run e2e:guards
 
-      # ---- Database and app artifact (always) ----
-      # Build before any Playwright step: otherwise the web server builds lazily inside Playwright's
-      # 300 s start timeout, which a cold CI build overruns. Same build as pilot-gate and e2e:gate.
-      - name: Prepare E2E database and app artifact
+      # ---- Seed, then the app artifact (always, every shard) ----
+      # Built here, before any Playwright step: otherwise the web server (scripts/e2e-webserver.sh)
+      # builds it lazily inside Playwright's 300 s start timeout, which a cold runner overruns.
+      # Same environment as that lazy build: the script's local Supabase placeholders and the
+      # Playwright config's public Paddle and Sentry values (pinned by e2e-nightly-build-order.test.mjs).
+      - name: Seed E2E DB and build the app artifact
         shell: bash
         run: |
           set -euo pipefail
-          pnpm db:migrate
           pnpm seed:e2e
-          pnpm --filter @interdomestik/web run build:ci
+          env -u PLAYWRIGHT -u INTERDOMESTIK_AUTOMATED NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_anon_test_key_local_e2e NEXT_PUBLIC_PADDLE_ENV=sandbox NEXT_PUBLIC_SENTRY_DSN= pnpm --filter @interdomestik/web run build:ci
 
       # ---- Run suites ----
       - name: Generate Playwright Gate Auth State (KS+MK)
