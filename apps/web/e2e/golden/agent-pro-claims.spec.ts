@@ -12,11 +12,17 @@ import { gotoApp } from '../utils/navigation';
 // queue is a seed failure, not an accepted state.
 test.describe('Agent Pro Claims (Golden)', () => {
   test('Agent can access Pro Claims queue (Read-Only)', async ({ agentPage: page }, testInfo) => {
-    const t = messagesFor({ en, mk, sq, sr }, testInfo).agent.claimsPro;
+    const messages = messagesFor({ en, mk, sq, sr }, testInfo).agent;
+    const t = messages.claimsPro;
     await gotoApp(page, routes.agentWorkspace(testInfo), testInfo, { marker: 'agent-pro-shell' });
 
+    // The role shell's sidebar links to the same queue, so open it from the workspace card.
+    const openQueue = page
+      .getByTestId('workspace-card-claims')
+      .getByRole('link', { name: messages.workspace.cards.claims.action_text, exact: true })
+      .filter({ visible: true });
     await expect(async () => {
-      await page.locator('a[href*="/agent/workspace/claims"]').filter({ visible: true }).click();
+      await openQueue.click();
       await expect(page).toHaveURL(new RegExp(`.*${routes.agentWorkspaceClaims(testInfo)}`));
     }).toPass({ timeout: 10000 });
 

@@ -112,7 +112,8 @@ async function expectOpenCashState({
 }
 
 async function expectDashboardAndAgentCash(page: Page, expectedCount: number) {
-  await expect(page.getByTestId('branch-dashboard-title')).toBeVisible();
+  // The router keeps a hidden copy of the dashboard; only the visible title is the answer.
+  await expect(page.getByTestId('branch-dashboard-title').filter({ visible: true })).toBeVisible();
   await expect(page.locator('main')).toContainText(
     new RegExp(`Pagesa me para në dorë në pritje[\\s\\S]*${expectedCount}`, 'i')
   );
