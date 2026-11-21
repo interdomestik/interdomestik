@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -18,6 +19,8 @@ import {
 } from './db-access-guard-test-utils.mjs';
 
 const predecessor = '18cd1a73b12f589c69934cba862092d857434013';
+// Main before the WP-05 devDependencies: same workspace, lockfile accepted by the previous snapshot.
+const formerMain = 'c266f094b5249903f75e5c4e1b29e52959d30370';
 const pair = Object.keys(RESOLVER_SNAPSHOT.files);
 const current = new Map(pair.map(file => [file, fs.readFileSync(path.join(rootDir, file))]));
 const previous = new Map(
@@ -92,6 +95,26 @@ test('the former accepted pair and both mixed successor states are rejected', t 
       /resolver snapshot .*mismatch/u
     );
   }
+});
+
+test('the immediately former lockfile with the unchanged workspace is rejected', t => {
+  const formerLock = runGit(['-C', rootDir, 'show', `${formerMain}:pnpm-lock.yaml`]);
+  assert.equal(formerLock.length, 713603);
+  assert.equal(
+    createHash('sha256').update(formerLock).digest('hex'),
+    '881de32f136d92f26594ece017bd8d2f8e1d965874310906332e4627ad66929b'
+  );
+  assert.notDeepEqual(formerLock, current.get('pnpm-lock.yaml'));
+  const root = fixture(
+    t,
+    new Map([
+      ['pnpm-workspace.yaml', current.get('pnpm-workspace.yaml')],
+      ['pnpm-lock.yaml', formerLock],
+    ])
+  );
+  assert.throws(() => verifyCurrentResolverSnapshot(root, ADOPTION), {
+    message: 'incomplete: resolver snapshot size mismatch pnpm-lock.yaml',
+  });
 });
 
 test('missing, symlinked, non-file and case-ambiguous metadata fail closed', t => {
