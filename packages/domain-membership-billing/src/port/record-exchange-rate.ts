@@ -136,13 +136,14 @@ export async function recordExchangeRateScheduled(
   ingress: IngressCapability<'inngest'>,
   input: unknown
 ): Promise<Publication> {
-  const parsed = scheduledExchangeRateInputSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, code: 'invalid' };
-
   // The tenant comes from the signed event or the scheduler's server-side tenant list.
+  const tenantId =
+    typeof input === 'object' && input !== null && 'tenantId' in input ? input.tenantId : undefined;
+  if (typeof tenantId !== 'string') return { ok: false, code: 'forbidden' };
+
   let authority;
   try {
-    authority = await authorizeInngestEventTenant(ingress, parsed.data.tenantId);
+    authority = await authorizeInngestEventTenant(ingress, tenantId);
   } catch (error) {
     // The existing authority helper uses plain Errors for refusals. Connection failures retry.
     if (error instanceof Error && INNGEST_REFUSALS.has(error.message)) {
@@ -150,5 +151,8 @@ export async function recordExchangeRateScheduled(
     }
     throw error;
   }
+
+  const parsed = scheduledExchangeRateInputSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, code: 'invalid' };
   return publishRate(authority, parsed.data, { kind: 'inngest' });
 }
