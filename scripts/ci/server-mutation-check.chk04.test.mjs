@@ -187,6 +187,36 @@ const routePath = name => `apps/web/src/app/api/${name}/route.ts`;
 const routeDef = (method = "'POST'", basis = "{ kind: 'self' }", extra = '') =>
   `defineRoute({ name: 'fixture.write', method: ${method}, basis: ${basis}, subject: { type: 'none' }, handler: async () => 1${extra} })`;
 
+const invalidLimit = 'rateLimit.limit is not a positive integer literal';
+const invalidWindow = 'rateLimit.windowSeconds is not a positive integer literal';
+for (const [name, limits, problem] of [
+  ['literal limits', 'rateLimit: { limit: 2, windowSeconds: 60 }, maxBodyBytes: 1_024'],
+  ['variable body limit', 'maxBodyBytes: cap', 'maxBodyBytes is not a numeric literal'],
+  ['variable limiter', 'rateLimit: limiter', 'rateLimit: not an object literal'],
+  ['variable limiter window', 'rateLimit: { limit: 2, windowSeconds: seconds }', invalidWindow],
+  ['shorthand limiter value', 'rateLimit: { limit, windowSeconds: 60 }', invalidLimit],
+  ['computed limiter window value', 'rateLimit: { limit: 2, windowSeconds: 30 + 30 }', invalidWindow],
+  ['awaited limiter window', 'rateLimit: { limit: 2, windowSeconds: await 60 }', invalidWindow],
+  ['zero limiter value', 'rateLimit: { limit: 0, windowSeconds: 60 }', invalidLimit],
+  ['fractional limiter window', 'rateLimit: { limit: 2, windowSeconds: 1.5 }', invalidWindow],
+  ['non-finite limiter value', 'rateLimit: { limit: 1e999, windowSeconds: 60 }', invalidLimit],
+  ['spread in limiter', 'rateLimit: { limit: 2, windowSeconds: 60, ...other }', 'rateLimit: spread element'],
+  ['computed limiter key', "rateLimit: { ['limit']: 2, windowSeconds: 60 }", 'rateLimit: computed key'],
+  ['duplicate limiter key', 'rateLimit: { limit: 2, limit: 3, windowSeconds: 60 }', 'rateLimit: duplicate key limit'],
+]) {
+  test(`CHK-04 form (d): ${name}`, t => {
+    const file = routePath('limits');
+    const root = tree(t, {
+      [file]: `${ROUTE_IMPORT}const limit = 2, seconds = 60, cap = 1024, other = {};
+const limiter = { limit, windowSeconds: seconds };
+export const POST = ${routeDef(undefined, undefined, `, ${limits}`)};`,
+    });
+    const result = runCheck('CHK-04', root);
+    assert.deepEqual(result.units, { export: 0, route: 1 });
+    assert.deepEqual(result.findings, problem ? [{ id: `${file}#POST`, file, message: problem }] : []);
+  });
+}
+
 test('CHK-04: eligible direct writing route definitions pass and an unwrapped writer fails', t => {
   const writer = routePath('direct-write');
   const root = tree(t, {

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { getRedirectError } from 'next/dist/client/components/redirect';
 import { expect, it } from 'vitest';
 
 import { expectResponse, jsonRequest, mocks } from './__fixtures__/safe-route/test-support';
@@ -9,6 +10,7 @@ import {
   FAILURE_CODES,
   type FailureCode,
 } from './safe-action.failure';
+import { ObjectPrototypeIntegrityError } from './safe-action.guard';
 import { isRefusalCode, REFUSAL_CODES } from './safe-action.types';
 import { routeReply } from './safe-route';
 
@@ -70,12 +72,50 @@ it('treats an inherited failure brand as a handler defect', async () => {
   expect(mocks.values).toHaveBeenCalledTimes(0);
 });
 
+it.each([
+  ['handler result', { n: 1n }],
+  ['routeReply body', routeReply(200, { n: 1n as unknown as number })],
+])('maps a bigint in the %s to a generic 500 and a scrubbed capture', async (_source, value) => {
+  mocks.body.mockResolvedValueOnce(value);
+  const response = await POST(jsonRequest(), {});
+
+  await expectResponse(response, 500);
+  expect(await response.json()).toEqual({
+    success: false,
+    code: 'INTERNAL_SERVER_ERROR',
+    error: 'Internal Server Error',
+  });
+  expect(mocks.body).toHaveBeenCalledTimes(1);
+  expect(mocks.capture).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ message: 'Safe action contract violation' }),
+    { extra: { operation: 'fixtures.body', reason: 'unserializable_result' } }
+  );
+  expect(mocks.values).toHaveBeenCalledTimes(0);
+});
+
+it.each([
+  ['integrity error', new ObjectPrototypeIntegrityError()],
+  ['redirect', getRedirectError('/fixture-target', 'replace')],
+])('preserves a %s thrown by toJSON by identity', async (_source, error) => {
+  mocks.body.mockResolvedValueOnce({
+    toJSON() {
+      throw error;
+    },
+  });
+
+  await expect(POST(jsonRequest(), {})).rejects.toBe(error);
+  expect(mocks.body).toHaveBeenCalledTimes(1);
+  expect(mocks.capture).toHaveBeenCalledTimes(0);
+  expect(mocks.values).toHaveBeenCalledTimes(0);
+});
+
 it('supports explicit JSON and empty replies', async () => {
   mocks.body.mockResolvedValueOnce(routeReply(201, { id: 'created' }));
   mocks.body.mockResolvedValueOnce(routeReply(204));
 
   const created = await POST(jsonRequest(), {});
   await expectResponse(created, 201);
+  expect(created.headers.get('Content-Type')).toBe('application/json');
   expect(await created.json()).toEqual({ id: 'created' });
   expect(mocks.body).toHaveBeenCalledTimes(1);
 

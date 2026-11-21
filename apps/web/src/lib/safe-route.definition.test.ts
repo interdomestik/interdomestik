@@ -46,7 +46,7 @@ it.each(['GET', 'HEAD', 'OPTIONS', 'post', 1, undefined, { method: 'POST' }])(
 
 it.each(PARTS)('refuses tenant identity schema keys in %s for role and self', part => {
   for (const basis of [ROLE, SELF]) {
-    for (const key of TENANT_IDENTITY_KEYS) {
+    for (const key of ['tenantId', 'accessTenantId']) {
       expectRefused({ basis, [part]: z.strictObject({ [key]: z.string() }) }, new RegExp(key, 'u'));
     }
   }

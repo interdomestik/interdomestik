@@ -33,7 +33,7 @@ export function literalProperties(node) {
       return { error: 'computed key' };
     const key = property.name.text ?? property.name.getText();
     if (props.has(key)) return { error: `duplicate key ${key}` };
-    props.set(key, ts.isPropertyAssignment(property) ? unwrap(property.initializer) : property);
+    props.set(key, ts.isPropertyAssignment(property) ? property.initializer : property);
   }
   return { props };
 }
@@ -52,16 +52,17 @@ function definitionCall(root, target) {
 }
 
 function definitionFields(props) {
-  if (!isStringLiteral(props.get('name'))) return { problem: 'name is not a string literal' };
-  const basis = literalProperties(props.get('basis'));
+  const name = unwrap(props.get('name'));
+  if (!isStringLiteral(name)) return { problem: 'name is not a string literal' };
+  const basis = literalProperties(unwrap(props.get('basis')));
   if (basis.error) return { problem: `basis: ${basis.error}` };
-  const kind = basis.props.get('kind');
+  const kind = unwrap(basis.props.get('kind'));
   if (!isStringLiteral(kind)) return { problem: 'basis.kind is not a string literal' };
-  const subject = literalProperties(props.get('subject'));
+  const subject = literalProperties(unwrap(props.get('subject')));
   if (subject.error) return { problem: `subject: ${subject.error}` };
-  if (!isStringLiteral(subject.props.get('type')))
+  if (!isStringLiteral(unwrap(subject.props.get('type'))))
     return { problem: 'subject.type is not a string literal' };
-  return { name: props.get('name').text, kind: kind.text, entry: basis.props.get('entry') };
+  return { name: name.text, kind: kind.text, entry: unwrap(basis.props.get('entry')) };
 }
 
 function definitionProblem(call, method) {
@@ -71,19 +72,42 @@ function definitionProblem(call, method) {
     if (!props.has(key)) return { problem: `definition has no own ${key}` };
   const fields = definitionFields(props);
   if (fields.problem) return fields;
-  if (method) return routeFieldsProblem(props.get('method'), fields.kind, method);
+  if (method) return routeFieldsProblem(props, fields.kind, method);
   if (fields.kind === 'public' && !isStringLiteral(fields.entry))
     return { problem: 'basis.entry is not a string literal' };
   return { ...fields, entry: fields.entry?.text };
 }
 
-function routeFieldsProblem(method, kind, exportedMethod) {
+function routeFieldsProblem(props, kind, exportedMethod) {
   if (!WRITING_METHODS.has(exportedMethod))
     return { problem: 'defineRoute requires a writing method' };
+  const method = unwrap(props.get('method'));
   if (!isStringLiteral(method) || method.text !== exportedMethod)
     return { problem: 'method is not a literal matching the route export' };
   if (kind !== 'role' && kind !== 'self')
     return { problem: 'defineRoute basis must be role or self' };
+  return routeLimitsProblem(props);
+}
+
+function isPositiveIntegerLiteral(node) {
+  if (!node || !ts.isNumericLiteral(node)) return false;
+  const value = Number(node.text);
+  return Number.isSafeInteger(value) && value > 0;
+}
+
+function routeLimitsProblem(props) {
+  const maxBodyBytes = props.get('maxBodyBytes');
+  if (maxBodyBytes && !ts.isNumericLiteral(maxBodyBytes))
+    return { problem: 'maxBodyBytes is not a numeric literal' };
+
+  const rateLimit = props.get('rateLimit');
+  if (!rateLimit) return {};
+  const limits = literalProperties(rateLimit);
+  if (limits.error) return { problem: `rateLimit: ${limits.error}` };
+  for (const key of ['limit', 'windowSeconds']) {
+    if (!isPositiveIntegerLiteral(limits.props.get(key)))
+      return { problem: `rateLimit.${key} is not a positive integer literal` };
+  }
   return {};
 }
 

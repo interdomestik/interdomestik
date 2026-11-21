@@ -270,11 +270,16 @@ it.each([{}, { 'Content-Length': '1' }])(
   }
 );
 
+const validJson = '{"note":"x"}';
+const validJsonBytes = new TextEncoder().encode(validJson);
+const invalidUtf8 = validJsonBytes.slice();
+invalidUtf8[validJson.indexOf('x')] = 0xff;
+
 it.each([
-  ['invalid UTF-8', new Uint8Array([0xff]), 'application/json'],
+  ['invalid UTF-8', invalidUtf8, 'application/json'],
   ['malformed JSON', '{', 'application/json'],
-  ['wrong media type', '{"note":"x"}', 'text/plain'],
-  ['missing media type', new Uint8Array([0x7b, 0x7d]), ''],
+  ['wrong media type', validJsonBytes, 'text/plain'],
+  ['missing media type', validJsonBytes, ''],
   ['empty body', null, 'application/json'],
 ] as const)(
   'maps %s to validation with no classifier capture',

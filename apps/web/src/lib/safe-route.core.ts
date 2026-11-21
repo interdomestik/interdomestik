@@ -188,7 +188,7 @@ export async function runRoute<Input>(
     assertPristineObjectPrototype();
     const result = await finalize(operation, raw?.part, failure, actor);
     assertPristineObjectPrototype();
-    return routeResponse(result);
+    return routeResponse(route.name, result);
   }
 
   const { outcome, snapshot, inputFailure } = await runAuthorized(
@@ -204,5 +204,5 @@ export async function runRoute<Input>(
       : undefined;
   const result = await finalize(operation, part, outcome, actor, snapshot !== null);
   assertPristineObjectPrototype();
-  return routeResponse(result, inputFailure);
+  return routeResponse(route.name, result, inputFailure);
 }
