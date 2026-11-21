@@ -137,6 +137,10 @@ export function createReflectCheck(ctx) {
       if (!statement || digest(fact, statement) !== sha256) return false;
       layout.set(name, statement);
     }
+    return verifyLayoutReferencesAndPinSupport(fact, layout, pinned);
+  }
+
+  function verifyLayoutReferencesAndPinSupport(fact, layout, pinned) {
     const support = new Set(layout.values());
     for (const { node, binding } of fact.references) {
       const unit = unitOf(node);
@@ -216,6 +220,10 @@ export function createReflectCheck(ctx) {
       const owner = unwrap(receiver);
       const reflectSet = name === 'set' && owner.text === 'Reflect';
       if (!argumentMutator && !reflectSet) return !freshReceiver(receiver);
+      return unsafeArgumentMutation(call, owner, reflectSet);
+    }
+
+    function unsafeArgumentMutation(call, owner, reflectSet) {
       if (owner.text !== 'Object' && owner.text !== 'Reflect') return true;
       if (referenceAt(fact, owner)?.binding) return true;
       if (call.arguments.some(ts.isSpreadElement)) return true;
