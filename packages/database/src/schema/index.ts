@@ -27,6 +27,8 @@ export * from './domain-event-keys';
 export * from './domain-events';
 export * from './event-pii-references';
 export * from './exchange-rates';
+export * from './membership-plan-versions';
+export * from './membership-sales';
 export * from './free-start-drafts';
 export * from './leads';
 export * from './member-counters';

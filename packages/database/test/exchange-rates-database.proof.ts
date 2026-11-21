@@ -7,7 +7,6 @@ import { sql } from 'drizzle-orm';
 import {
   firstRate,
   insertRate,
-  rateInput,
   restricted,
   runtimeRole,
   signal,
@@ -22,19 +21,17 @@ export async function proveExchangeRateDatabase(t: TestContext, fixture: Exchang
   const {
     admin,
     peer,
-    port,
-    withTenantAuthority,
     tenantId,
     otherTenant,
     noEntity,
     concurrentTenant,
     withoutBook,
-    session,
     authority,
-    publish,
     bookRows,
     createEntity,
   } = fixture;
+
+  const { withTenantAuthority } = await import('../src/tenant-authority-context');
 
   await t.test('forces RLS and backfills books for pre-existing entities', async () => {
     const rls = await admin`select relname, relrowsecurity, relforcerowsecurity from pg_class
@@ -67,29 +64,15 @@ export async function proveExchangeRateDatabase(t: TestContext, fixture: Exchang
     });
   });
 
-  await t.test(
-    'refuses publication before the first entity and provisions one book afterwards',
-    async () => {
-      assert.equal((await bookRows(tenantId)).length, 0);
-      const input = rateInput('2026-01-07');
-      assert.deepEqual(await publish(input), { ok: false, code: 'not_found' });
-      assert.deepEqual(
-        await port.recordExchangeRate(
-          session('tenant_admin', noEntity, noEntity, withoutBook.id),
-          input,
-          withoutBook
-        ),
-        { ok: false, code: 'not_found' }
-      );
-      assert.equal((await bookRows(noEntity)).length, 0);
-      await createEntity(admin, tenantId);
-      await createEntity(admin, otherTenant);
-      assert.deepEqual(
-        (await bookRows(tenantId)).map(({ base, quote }) => ({ base, quote })),
-        [{ base: 'EUR', quote: 'MKD' }]
-      );
-    }
-  );
+  await t.test('provisions a book for tenants added after the migration', async () => {
+    assert.equal((await bookRows(tenantId)).length, 0);
+    await createEntity(admin, tenantId);
+    await createEntity(admin, otherTenant);
+    assert.deepEqual(
+      (await bookRows(tenantId)).map(({ base, quote }) => ({ base, quote })),
+      [{ base: 'EUR', quote: 'MKD' }]
+    );
+  });
 
   await t.test('concurrent legal-entity inserts create one book', async () => {
     const first = signal();

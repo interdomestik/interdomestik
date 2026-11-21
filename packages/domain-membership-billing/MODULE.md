@@ -67,7 +67,7 @@ PR-1a tests require refusal of an otherwise valid direct insert with a wrong `we
 
 ### PR-1b — Individual sales
 
-All five entries use the session actor.
+All five entries use the authenticated session. The app passes the session's home tenant to the writing commands alongside the opaque authority. The composed caller supplies the same session binding and an existing transaction initialized for that authority. The quote returns currency amounts as bigint minor units, which the sale input accepts directly.
 
 - **`publishPlanVersion`** — WP-02 role basis `tenant_admin`, strict `{ planId, legalEntityId }`. Locks the plan `FOR UPDATE` and builds the version from the catalogue. Codes `forbidden` for a denied basis and `invalid` for an ineligible version, inactive plan or entity, or missing or blank legal fields.
 - **`withdrawPlanVersion`** — role basis `tenant_admin`, strict `{ planVersionId }`. Locks the plan `FOR UPDATE`, then the named version. A retry returns the same withdrawn version. Codes `forbidden` for a denied basis and `not_found` for a missing or out-of-tenant version.
@@ -87,6 +87,8 @@ PR-1b actions map `{ok:false}` to WP-02's branded `actionFailure`. `not_found` a
 - **Claim and replay** — both sale entries require `READ COMMITTED`, else `invalid`, and propagate serialization failures to the transaction owner. After checking the basis, the command opens a savepoint and checks the requested buyer's scope before making the claim its first data write. The claim uses `INSERT … ON CONFLICT (tenant_id, operation_key) DO NOTHING RETURNING` and waits on a concurrent claim. On replay, a fresh statement reads the original sale and locks its buyer `FOR SHARE`. Missing sale or buyer outside current scope gives `not_found` before any hash comparison. A different hash gives `conflict`, and the same hash returns the original before offer or rate revalidation. A new claim takes the sale guard's locks and rechecks buyer scope before sale validation and insert.
 - **Savepoint and commit** — on any failure the command rolls back to and releases the savepoint before returning or throwing. Success releases it. A `DEFERRABLE INITIALLY DEFERRED` constraint trigger requires a sale per claim at commit. The composed command checks that the caller left the claim constraint `DEFERRED` or sets it `DEFERRED` inside the savepoint (R9-4).
 - **`membership_ledger_entries`** — append-only, `charge` only. An `AFTER INSERT` trigger on the sale posts its matching charge in the same transaction. FK `(tenant_id, sale_id, amount_mkd_minor)` ties the charge to the sale and amount. Unique `(tenant_id, sale_id)` where `kind = 'charge'` and a `DEFERRABLE INITIALLY DEFERRED` constraint trigger require exactly one matching charge per sale at commit.
+
+Migration `0102` enables and forces RLS on all six tables. The four tenant-owned tables scope rows to the current access tenant. Restricted-role proofs for the port run in the billing `test:rls` lane, including the rate command proofs moved from the database lane.
 
 PR-1b tests require the strict schemas to refuse injected `sold_by` in either sale entry and `published_by` or `publishedBy` in `publishPlanVersion`. Direct writes to the kind and channel lookups and direct sale UPDATEs are refused under the restricted role (R-06).
 
