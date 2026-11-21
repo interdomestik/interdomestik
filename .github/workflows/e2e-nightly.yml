@@ -65,19 +65,20 @@ jobs:
       - name: Generate ephemeral E2E credentials
         run: bash scripts/ci/export-e2e-credentials.sh
 
-      - name: DB migrations
-        run: pnpm db:migrate
-
       # ---- Strict-rule guards (fail fast before burning minutes) ----
       - name: Strict Rule Guards (golden/gate)
         run: pnpm --filter @interdomestik/web run e2e:guards
 
-      # ---- Seed (always) ----
-      - name: Seed E2E DB
+      # ---- Database and app artifact (always) ----
+      # Build before any Playwright step: otherwise the web server builds lazily inside Playwright's
+      # 300 s start timeout, which a cold CI build overruns. Same build as pilot-gate and e2e:gate.
+      - name: Prepare E2E database and app artifact
         shell: bash
         run: |
           set -euo pipefail
+          pnpm db:migrate
           pnpm seed:e2e
+          pnpm --filter @interdomestik/web run build:ci
 
       # ---- Run suites ----
       - name: Generate Playwright Gate Auth State (KS+MK)

@@ -185,7 +185,7 @@ test('seeded CI workflows generate masked per-run E2E credentials before seeded 
   const orderContracts = [
     ['.github/workflows/ci.yml', 'e2e-gate', 'Prepare E2E Database'],
     ['.github/workflows/e2e-pr.yml', 'e2e-runner', 'Run PR E2E Gate'],
-    ['.github/workflows/e2e-nightly.yml', 'e2e', 'Seed E2E DB'],
+    ['.github/workflows/e2e-nightly.yml', 'e2e', 'Prepare E2E database and app artifact'],
     ['.github/workflows/release-candidate.yml', 'rc-gate', 'Prepare CI database'],
     ['.github/workflows/pilot-gate.yml', 'pilot-gate-runner', 'Prepare CI database'],
     [
