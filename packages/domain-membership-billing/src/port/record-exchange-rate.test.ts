@@ -44,7 +44,7 @@ describe('scheduled exchange-rate publication', () => {
   it.each([
     ['cron', mintIngressCapability('cron')],
     ['unknown', {}],
-  ])('refuses a %s capability before validating malformed rate data', async (_, capability) => {
+  ])('refuses a %s capability even when the rate data is malformed', async (_, capability) => {
     const input = { ...event.data, rate: 'malformed' };
     expect(
       await recordExchangeRateScheduled(capability as IngressCapability<'inngest'>, input)
@@ -62,6 +62,43 @@ describe('scheduled exchange-rate publication', () => {
     });
     expect(mocks.findTenant).toHaveBeenCalledExactlyOnceWith(1);
     expect(mocks.withTenantAuthority).not.toHaveBeenCalled();
+  });
+
+  it('publishes the original tenant, rate and date when the payload changes during authorization', async () => {
+    const input = { ...event.data };
+    let resolveTenant!: (rows: { id: string }[]) => void;
+    mocks.findTenant.mockReturnValue(
+      new Promise<{ id: string }[]>(resolve => {
+        resolveTenant = resolve;
+      })
+    );
+    const published = { id: 'published-rate' };
+    const values = vi.fn().mockReturnValue({
+      onConflictDoNothing: () => ({ returning: async () => [published] }),
+    });
+    mocks.withTenantAuthority.mockImplementation((_authority, run) =>
+      run({
+        select: () => ({ from: () => ({ where: () => ({ for: async () => [{ id: 'book' }] }) }) }),
+        insert: () => ({ values }),
+      })
+    );
+
+    const publication = recordExchangeRateScheduled(mintIngressCapability('inngest'), input);
+    expect(mocks.findTenant).toHaveBeenCalledExactlyOnceWith(1);
+    expect(values).not.toHaveBeenCalled();
+    input.tenantId = 'other-tenant';
+    input.rate = '62.75';
+    input.effectiveOn = '2026-01-09';
+    resolveTenant([{ id: event.data.tenantId }]);
+
+    expect(await publication).toEqual({ ok: true, rate: published });
+    expect(values).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        tenantId: event.data.tenantId,
+        rate: event.data.rate,
+        effectiveOn: event.data.effectiveOn,
+      })
+    );
   });
 
   it.each(['', '  '])('refuses event tenant %j before any query', async tenantId => {
