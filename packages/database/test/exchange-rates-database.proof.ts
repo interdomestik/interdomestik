@@ -132,7 +132,7 @@ export async function proveExchangeRateDatabase(t: TestContext, fixture: Exchang
     async () => {
       const foreign = firstRate(otherTenant, otherBook.id);
       await restricted(admin, otherTenant, tx => insertRate(tx, foreign));
-      const own = { ...valid, effective_on: '2026-01-14' };
+      const own = firstRate(tenantId, book.id, '2026-01-14');
       await restricted(admin, tenantId, tx => insertRate(tx, own));
       for (const [access, books, rates] of [
         [undefined, [], []],

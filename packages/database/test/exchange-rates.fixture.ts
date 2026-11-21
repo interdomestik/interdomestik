@@ -248,6 +248,7 @@ export async function withExchangeRateFixture(
 }
 
 async function createFixture(admin: postgres.Sql) {
+  // Named limit (test-only upward import): PR-1b moves this proof to a billing test:rls lane.
   const port = await import('../../domain-membership-billing/src/payment-port');
   const { withTenantAuthority } = await import('../src/tenant-authority-context');
   const tenants = Array.from({ length: 4 }, () => `wp07_${randomUUID()}`);
