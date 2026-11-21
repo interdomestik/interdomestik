@@ -5,6 +5,8 @@ import { lint, tree } from './fixtures/screen-contract-check/harness.mjs';
 import {
   CALLER,
   CALLER_FILES,
+  CONTROL,
+  PAGE,
   REG,
   SHARED,
   SHARED_FILES,
@@ -14,6 +16,7 @@ import {
   consent,
   head,
   registry,
+  signupReg,
   use,
   usedShared,
 } from './fixtures/screen-contract-check/chk22-fixtures.mjs';
@@ -112,4 +115,34 @@ test('CHK-22: a render through a namespace import is found; an unresolvable one 
     lint(tree(t, files(component('<UI.ConsentBox.Inner />')))),
     /<UI\.ConsentBox\.Inner> cannot be resolved to a component/u
   );
+});
+
+const judgeSignupHandler = (t, imports, handler) =>
+  chk22(
+    tree(
+      t,
+      base({
+        [REG]: signupReg(),
+        [PAGE]: `${imports}export default function P() { return <form onSubmit={${handler}} data-consent-use="terms:signup">${CONTROL}</form>; }\n`,
+      })
+    )
+  );
+
+test('CHK-22: a local call alongside the registered submission is ignored', async t => {
+  const handler = '() => { const saveDraft = () => {}; saveDraft(); saveTerms(); }';
+  assert.deepEqual(await judgeSignupHandler(t, head, handler), []);
+});
+
+const NAMESPACE_ACTIONS = "import * as actions from '@/actions/consent';\n";
+
+test('CHK-22: a computed tree import call leaves the handler submission unresolved', async t => {
+  const handler = "() => { actions.saveTerms(); actions['saveDraft'](); }";
+  assert.deepEqual(await judgeSignupHandler(t, NAMESPACE_ACTIONS, handler), [
+    `CHK-22|${PAGE}|unresolved-submission|terms:signup`,
+  ]);
+});
+
+test('CHK-22: a direct namespace member resolves to the registered submission', async t => {
+  const handler = '() => actions.saveTerms()';
+  assert.deepEqual(await judgeSignupHandler(t, NAMESPACE_ACTIONS, handler), []);
 });

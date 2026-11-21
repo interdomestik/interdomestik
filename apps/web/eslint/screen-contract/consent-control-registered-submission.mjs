@@ -21,26 +21,28 @@ import {
   isInvokedInPlace,
 } from './consent-control-registered-scope.mjs';
 
-// A call or reference bound to a module of this tree that cannot be followed to its export: it
-// could be a submission, so the submission is unresolved (r3 F5).
-const UNKNOWN = Symbol('unknown');
-
-// The import of this tree a reference names, as { specifier, imported }: an identifier bound to
-// a named or default import, or `ns.name` of a namespace import (r3 F5). UNKNOWN for any other
-// reference rooted in such an import (a computed or deeper member, a member of a named import);
-// null when it is not rooted in one (a local, a prop, an external module).
+// `target` identifies a named or default import from this tree, or a direct `ns.name`.
+// `unknown` marks other references rooted in a tree import that cannot be followed (r3 F5).
+// Locals, props and external imports have a null target and unknown set to false.
 function treeImportOf(context, node) {
   let rootNode = node;
   while (rootNode.type === 'MemberExpression') rootNode = rootNode.object;
   const binding = rootNode.type === 'Identifier' ? importOf(context, rootNode) : null;
-  if (!binding || kindOfSpecifier(binding.specifier) === 'external') return null;
-  if (node === rootNode) return binding.imported === '*' ? UNKNOWN : binding;
+  if (!binding || kindOfSpecifier(binding.specifier) === 'external')
+    return { unknown: false, target: null };
+  if (node === rootNode) {
+    const unknown = binding.imported === '*';
+    return { unknown, target: unknown ? null : binding };
+  }
   const direct =
     node.object === rootNode &&
     !node.computed &&
     node.property.type === 'Identifier' &&
     binding.imported === '*';
-  return direct ? { specifier: binding.specifier, imported: node.property.name } : UNKNOWN;
+  return {
+    unknown: !direct,
+    target: direct ? { specifier: binding.specifier, imported: node.property.name } : null,
+  };
 }
 
 // A layer-2 module that does not declare itself client-only (r4 B3: `'use client'` under
@@ -57,9 +59,8 @@ function isServerOrigin(root, origin) {
 // is `file#export` of a layer-2 export, or null when it is no submission (an external or client
 // export, a local, a prop).
 function submissionOf(context, root, rel, node) {
-  const target = treeImportOf(context, node);
-  if (target === null) return { unknown: false, submission: null };
-  if (target === UNKNOWN) return { unknown: true, submission: null };
+  const { unknown, target } = treeImportOf(context, node);
+  if (target === null) return { unknown, submission: null };
   const origin = originOf(resolverOf(context), rel, target.specifier, target.imported);
   if (origin.external || origin.unresolved) return { unknown: true, submission: null };
   return {
