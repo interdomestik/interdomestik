@@ -3,6 +3,7 @@ import { types } from 'node:util';
 import { z } from 'zod';
 
 import {
+  adoptDataThenable,
   checkDef,
   dateTime,
   denseArray,
@@ -11,6 +12,7 @@ import {
   regexDefinition,
 } from './safe-action.check-def';
 import { normalizerOf, privateNormalizer, type Normalizer } from './safe-action.normalizers';
+import { recordRefinementError, trackRefinement, type RefinementRun } from './safe-action.recheck';
 
 export type CheckDomain = {
   type: string;
@@ -73,11 +75,6 @@ const refusedFormatTraits = [
 const valueTypes = new Set(['string', 'number', 'boolean', 'bigint']);
 const comparisonTraits = { greater_than: '$ZodCheckGreaterThan', less_than: '$ZodCheckLessThan' };
 
-export type RefinementRun = {
-  thrown: { error: unknown } | null;
-  defect: boolean;
-};
-
 // Zod's refine callback does not receive the parse context.
 export const refinementRun = new AsyncLocalStorage<RefinementRun>();
 
@@ -88,8 +85,8 @@ function isKey<K extends string>(table: Record<K, unknown>, key: unknown): key i
 function refineFor(
   domain: CheckDomain,
   predicate: Predicate
-): (value: unknown) => Promise<boolean> {
-  return async value => {
+): (value: unknown) => boolean | Promise<boolean> {
+  return value => {
     if (
       typeof value !== domain.type &&
       !(value === null && domain.nullable) &&
@@ -97,14 +94,14 @@ function refineFor(
     )
       return false;
     const run = refinementRun.getStore();
+    if (run?.closed) return false;
     try {
-      const result: unknown = await Reflect.apply(predicate, undefined, [value]);
-      if (typeof result === 'boolean') return result;
-      if (run) run.defect = true;
+      const result: unknown = Reflect.apply(predicate, undefined, [value]);
+      const adopted = adoptDataThenable(result);
+      return adopted === undefined ? Boolean(result) : trackRefinement(run, adopted);
     } catch (error) {
-      if (run) run.thrown ??= { error };
+      return recordRefinementError(run, error);
     }
-    return false;
   };
 }
 

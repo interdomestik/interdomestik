@@ -8,10 +8,20 @@ import {
   isOwnReadable,
   ownValue,
 } from './safe-action.check-def';
-import { refinementRun, type RefinementRun } from './safe-action.checks';
+import { refinementRun } from './safe-action.checks';
 import { actionFailure, type ActionFailure } from './safe-action.failure';
-import { exactParsedInput, privateFile, snapshotIssue } from './safe-action.output';
-import { assertPristineObjectPrototype, isIntegrityError } from './safe-action.recheck';
+import {
+  exactParsedInput,
+  formatSnapshotIssue,
+  privateFile,
+  snapshotIssue,
+} from './safe-action.output';
+import {
+  assertPristineObjectPrototype,
+  gateParse,
+  isIntegrityError,
+  type RefinementRun,
+} from './safe-action.recheck';
 import {
   ActionDefinitionError,
   captureSchema,
@@ -206,25 +216,39 @@ async function runGuard(
     direction: 'forward',
     jitless: true,
     reportInput: false,
-    error: undefined,
+    error: formatSnapshotIssue,
   });
-  const refinements: RefinementRun = { thrown: null, defect: false };
-  let result: Awaited<ReturnType<typeof parser.safeParseAsync>>;
+  const refinements: RefinementRun = {
+    assertIntegrity: assertPristineObjectPrototype,
+    closed: false,
+    thrown: null,
+    integrity: null,
+    pending: new Set(),
+  };
+  let parsed: { result: Awaited<ReturnType<typeof parser.safeParseAsync>> } | { error: unknown };
   assertPristineObjectPrototype();
   try {
-    result = await refinementRun.run(refinements, () => parser.safeParseAsync(snapshot, context));
+    const result = await refinementRun.run(refinements, () =>
+      parser.safeParseAsync(snapshot, context)
+    );
+    gateParse(refinements);
+    parsed = { result };
   } catch (error) {
-    if (isIntegrityError(error)) throw error;
-    assertPristineObjectPrototype();
-    return { kind: 'thrown', error, snapshot };
+    gateParse(refinements, error);
+    parsed = refinements.thrown ?? { error };
   }
-  assertPristineObjectPrototype();
+  // Zod can abandon a branch whose outer checks would otherwise start later.
+  refinements.closed = true;
+  for (const pending of refinements.pending) {
+    await pending;
+    gateParse(refinements);
+  }
+  if (refinements.integrity) throw refinements.integrity;
+  if ('error' in parsed) return { kind: 'thrown', error: parsed.error, snapshot };
   if (refinements.thrown) {
-    const { error } = refinements.thrown;
-    if (isIntegrityError(error)) throw error;
-    return { kind: 'thrown', error, snapshot };
+    return { kind: 'thrown', error: refinements.thrown.error, snapshot };
   }
-  if (refinements.defect) return { kind: 'defect', snapshot };
+  const { result } = parsed;
   try {
     if (!result.success) {
       const outcome: Invalid = {
@@ -242,7 +266,7 @@ async function runGuard(
   } catch (error) {
     if (isIntegrityError(error)) throw error;
     assertPristineObjectPrototype();
-    return { kind: 'defect', snapshot };
+    return result.success ? { kind: 'defect', snapshot } : { kind: 'thrown', error, snapshot };
   }
 }
 

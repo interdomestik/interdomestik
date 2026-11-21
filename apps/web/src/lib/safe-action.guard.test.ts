@@ -196,7 +196,7 @@ describe('the captured schema', () => {
 
   it.each([
     ['false', false, 'invalid'],
-    ['a non-boolean', 'yes', 'defect'],
+    ['truthy non-boolean', 'yes', 'value'],
   ])('awaits a refinement thenable resolving to %s', async (_label, answer, kind) => {
     const then = vi.fn((resolve: (value: unknown) => void) => resolve(answer));
     const guard = guardFor(z.strictObject({ field: z.string().refine(() => ({ then })) }));

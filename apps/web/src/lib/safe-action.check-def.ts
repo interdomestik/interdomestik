@@ -47,6 +47,34 @@ export function ownValue(holder: unknown, key: PropertyKey): unknown {
   return Object.hasOwn(descriptor, 'value') ? descriptor.value : ACCESSOR;
 }
 
+export function adoptDataThenable(value: unknown): Promise<unknown> | undefined {
+  for (
+    let part = value;
+    isOwnReadable(part) && part !== Object.prototype;
+    part = Object.getPrototypeOf(part)
+  ) {
+    const descriptor = Object.getOwnPropertyDescriptor(part, 'then');
+    if (!descriptor) continue;
+    const then: unknown = Object.hasOwn(descriptor, 'value') ? descriptor.value : undefined;
+    if (typeof then !== 'function') return undefined;
+    // Await a local native promise directly so the gate runs in its settlement reaction.
+    if (
+      then === Promise.prototype.then &&
+      types.isPromise(value) &&
+      Object.getPrototypeOf(value) === Promise.prototype &&
+      !Object.hasOwn(value, 'constructor')
+    ) {
+      return value;
+    }
+    const thenable = {
+      __proto__: null,
+      then: Function.prototype.bind.call(then, value) as PromiseLike<unknown>['then'],
+    };
+    return Promise.resolve(thenable);
+  }
+  return undefined;
+}
+
 /** Reads a dense, ordinary array without consulting its iterator or its inherited properties. */
 export function denseArray(value: unknown, maxLength: number): unknown[] | null {
   if (

@@ -87,20 +87,18 @@ function list(value: unknown, refuse: Refuse, max = MAX_NODES): unknown[] {
 
 function shapeFields(def: Readonly<Record<PropertyKey, unknown>>, path: string, ctx: Walk) {
   const refuse = refuseAt(ctx, path);
+  const refuseCatchall = refuseAt(ctx, `${path}{catchall}`);
   const catchall = ownValue(def, 'catchall');
-  if (catchall !== undefined) spend(ctx, 1, refuseAt(ctx, `${path}{catchall}`));
+  if (catchall !== undefined) spend(ctx, 1, refuseCatchall);
   const never = schemaDef(catchall);
   if (!never || ownValue(never, 'type') !== 'never') {
     return refuse('objects must be strict (z.strictObject or .strict())');
   }
-  checksFor(
-    catchall,
-    never,
-    { type: 'never', nullable: false, optional: false },
-    'never',
-    ctx,
-    refuseAt(ctx, `${path}{catchall}`)
-  );
+  const domain = { type: 'never', nullable: false, optional: false };
+  checksFor(catchall, never, domain, 'never', ctx, refuseCatchall);
+  if (Object.hasOwn(never, 'checks') || Object.hasOwn(never, 'check')) {
+    return refuseCatchall('a never catchall with checks');
+  }
 
   // Zod can materialise def.shape lazily. This is its only read, including each declared field.
   const shape = Object.hasOwn(def, 'shape') ? def.shape : undefined;

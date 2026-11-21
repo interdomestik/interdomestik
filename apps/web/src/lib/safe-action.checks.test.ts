@@ -25,7 +25,6 @@ describe('private admitted Zod checks', () => {
     ['email format', z.email(), 'user@example.test', 'example'],
     ['UUID format', z.uuid(), '123e4567-e89b-12d3-a456-426614174000', 'uuid'],
     ['explicit lowercase pattern', z.string().check(z.lowercase({ pattern: /^a+$/ })), 'aa', 'bb'],
-    ['string operands', z.string().includes('b').startsWith('a').endsWith('c'), 'abc', 'ac'],
     ['uppercase and regex', z.string().check(z.uppercase(), z.regex(/^A/)), 'AB', 'Ab'],
     ['array length', z.array(z.string()).min(1).max(2).length(1), ['a'], []],
     ['Date comparisons', z.date().min(new Date(1)).max(new Date(4)), new Date(1), new Date(0)],
@@ -33,6 +32,19 @@ describe('private admitted Zod checks', () => {
     const input = guard(schema);
     expect(await input.run({ field: accepted }, false)).toMatchObject({ kind: 'value' });
     expect(await input.run({ field: refused }, false)).toMatchObject({ kind: 'invalid' });
+  });
+
+  it.each([
+    ['includes', 'ac'],
+    ['startsWith', 'xbc'],
+    ['endsWith', 'abx'],
+  ])('independently enforces %s in a chain of string operands', async (_kind, refused) => {
+    const input = guard(z.string().includes('b').startsWith('a').endsWith('c'));
+    expect(await input.run({ field: 'abc' }, false)).toMatchObject({ kind: 'value' });
+    expect(await input.run({ field: refused }, false)).toMatchObject({
+      kind: 'invalid',
+      failure: { issues: { field: 'invalid_format' } },
+    });
   });
 
   it.each([
@@ -119,20 +131,11 @@ describe('private admitted Zod checks', () => {
     expect(() => guard(field)).toThrow(/invalid enum entry/);
   });
 
-  it('returns a defect for a non-boolean refinement without affecting another run', async () => {
-    const input = guard(
-      z.string().refine(async value => {
-        if (value === 'bad') return 1;
-        await new Promise<void>(resolve => setImmediate(resolve));
-        return true;
-      })
-    );
-    const valid = input.run({ field: 'ok' }, false);
-    expect(await input.run({ field: 'bad' }, false)).toMatchObject({
-      kind: 'defect',
-      snapshot: { field: 'bad' },
-    });
-    expect(await valid).toMatchObject({ kind: 'value', value: { field: 'ok' } });
+  it('refuses a never catchall with an own empty checks entry (B26)', () => {
+    const catchall = z.never().check();
+    expect(Object.hasOwn(catchall._zod.def, 'checks')).toBe(true);
+    expect(catchall._zod.def.checks).toEqual([]);
+    expect(() => guard(z.strictObject({}).catchall(catchall))).toThrow(ActionDefinitionError);
   });
 
   it('rebuilds from metadata even when the developer parser still runs a removed trim', async () => {

@@ -1,4 +1,5 @@
 import { types } from 'node:util';
+import { z } from 'zod';
 
 import {
   ACCESSOR,
@@ -10,6 +11,25 @@ import {
 } from './safe-action.check-def';
 import { assertPristineObjectPrototype, isIntegrityError } from './safe-action.recheck';
 import type { ObjectShape, Shape } from './safe-action.shape';
+
+export const formatSnapshotIssue: z.core.$ZodErrorMap = issue => {
+  if (
+    issue.code !== 'invalid_type' ||
+    !isSnapshotRecord(issue.input) ||
+    !Object.hasOwn(issue.input, 'constructor')
+  ) {
+    return undefined;
+  }
+  // Zod's locale maps infer the type from constructor.name on non-plain objects.
+  // A plain copy for localization retains the fields without using the submitted constructor.
+  const config = z.config();
+  const { unwrapMessage } = z.core.util;
+  return (
+    unwrapMessage(config.customError?.(issue)) ??
+    unwrapMessage(config.localeError?.({ ...issue, input: { ...issue.input } })) ??
+    'Invalid input'
+  );
+};
 
 type Slot = { key: PropertyKey; type: string; object?: ObjectLayout };
 type ObjectLayout = { prototype: object | null; slots: Slot[] };

@@ -196,6 +196,17 @@ describe('private File bytes and descriptors', () => {
     expect(await actionFor()(undefined, form)).toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
+  it('enforces the PNG MIME check on an otherwise valid three-byte PDF', async () => {
+    const { form } = upload('abc', 'application/pdf');
+    expect(await actionFor(z.file().check(z.size(3)))(undefined, form)).toMatchObject({
+      success: true,
+    });
+    expect(await actionFor()(undefined, form)).toMatchObject({
+      code: 'VALIDATION_ERROR',
+      issues: { file: 'invalid_value' },
+    });
+  });
+
   it.each(['string', 'symbol'])('refuses an extra %s key on a File', async kind => {
     const { file, form } = upload();
     Object.defineProperty(file, kind === 'symbol' ? Symbol('extra') : 'extra', { value: true });
