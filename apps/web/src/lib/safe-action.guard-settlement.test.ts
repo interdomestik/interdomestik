@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { runInNewContext } from 'node:vm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -12,12 +13,14 @@ vi.mock('@sentry/nextjs', () => ({
   setUser: vi.fn(),
   setTag: vi.fn(),
 }));
+vi.mock('next/navigation', async importOriginal => importOriginal());
 
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
+import { redirect } from 'next/navigation';
 import { defineAction } from './safe-action';
 import {
   assertPristineObjectPrototype,
   buildInputGuard,
-  isIntegrityError,
   ObjectPrototypeIntegrityError,
 } from './safe-action.guard';
 
@@ -41,17 +44,7 @@ beforeEach(() => {
   mocks.write.mockResolvedValue({ ok: true });
 });
 
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason: unknown) => void;
-  const promise = new Promise<T>((fulfil, fail) => {
-    resolve = fulfil;
-    reject = fail;
-  });
-  return { promise, resolve, reject };
-}
-
-describe('private parser settlement', () => {
+describe('synchronous private parsing', () => {
   it('rejects a fractional input before the access refinement or refusal audit', async () => {
     const checkAccess = vi.fn(() => {
       throw Object.assign(new Error('denied'), { code: 'FORBIDDEN' });
@@ -78,20 +71,131 @@ describe('private parser settlement', () => {
     expect(mocks.write).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['native Promise', () => Promise.resolve(true)],
+    ['foreign-realm Promise', () => runInNewContext('Promise.resolve(false)') as unknown],
+    ['Promise with no then property', () => Object.setPrototypeOf(Promise.resolve(true), null)],
+    ['plain thenable', (then: () => void) => ({ then })],
+    ['inherited thenable', (then: () => void) => Object.create({ then }) as unknown],
+    ['noncallable then', () => ({ then: undefined })],
+    [
+      'inherited then getter',
+      (get: () => void) => Object.create(Object.defineProperty({}, 'then', { get })) as unknown,
+    ],
+    [
+      'Promise subclass with a then getter',
+      (read: () => void) => {
+        class GetterPromise extends Promise<boolean> {}
+        Object.defineProperty(GetterPromise.prototype, 'then', {
+          get() {
+            read();
+            return Promise.prototype.then;
+          },
+        });
+        return new GetterPromise(resolve => resolve(false));
+      },
+    ],
+    [
+      'proxy with no then property',
+      (trap: () => never) =>
+        new Proxy({}, { get: trap, getOwnPropertyDescriptor: trap, getPrototypeOf: trap }),
+    ],
+  ] as const)(
+    'fails closed for a sync refinement result of type %s without reading then',
+    async (_kind, create) => {
+      const inspect = vi.fn((): never => {
+        throw new Error('unexpected inspection');
+      });
+      const answer = create(inspect);
+      const input = z.strictObject({ claimId: z.string().refine(() => answer) });
+      const raw = { claimId: 'ID-A' };
+      expect(await guardFor(input).run(raw, false)).toEqual({ kind: 'defect', snapshot: raw });
+      const handler = vi.fn(async () => 'never');
+      const action = defineAction({ ...definition, input, handler });
+      expect(await action(raw)).toMatchObject({ success: false, code: 'INTERNAL_SERVER_ERROR' });
+      expect(mocks.capture).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ message: 'Safe action contract violation' }),
+        { extra: { operation: definition.name } }
+      );
+      expect(inspect).not.toHaveBeenCalled();
+      expect(handler).not.toHaveBeenCalled();
+      expect(mocks.write).not.toHaveBeenCalled();
+    }
+  );
+
+  it('maps the Zod async-in-sync-parse error to a defect with the snapshot', async () => {
+    const asyncSchema = z.string().refine(async () => true);
+    expect(() => asyncSchema.safeParse('x')).toThrow(z.core.$ZodAsyncError);
+    const input = z.strictObject({
+      field: z.string().refine(value => asyncSchema.safeParse(value).success),
+    });
+    const raw = { field: 'x' };
+    expect(await guardFor(input).run(raw, false)).toEqual({ kind: 'defect', snapshot: raw });
+  });
+
+  it.each(['redirect', 'union formatter'])(
+    'preserves the %s exception over an earlier rejected Promise without auditing FORBIDDEN',
+    async kind => {
+      const denial = Promise.reject(Object.assign(new Error('denied'), { code: 'FORBIDDEN' }));
+      // The predicate owns the rejection and the guard must never adopt the Promise.
+      void denial.catch(() => {});
+      const { customError } = z.config();
+      let thrown: unknown = new Error('union issue formatter failed');
+      const handler = vi.fn(async () => 'never');
+      const input = z.strictObject({
+        claimId: z.string(),
+        checks: z.array(z.string().refine(() => denial)),
+        sibling:
+          kind === 'redirect'
+            ? z.string().refine(() => {
+                try {
+                  redirect('/claims');
+                } catch (error) {
+                  thrown = error;
+                  throw error;
+                }
+              })
+            : z.union([z.string(), z.number()]),
+      });
+      const raw = { claimId: 'ID-A', checks: ['x'], sibling: kind === 'redirect' ? 'x' : {} };
+      if (kind === 'union formatter')
+        z.config({
+          customError: () => {
+            throw thrown;
+          },
+        });
+      try {
+        const guarded = await guardFor(input).run(raw, false);
+        expect(guarded).toMatchObject({ kind: 'thrown', snapshot: raw });
+        expect(guarded.kind === 'thrown' && guarded.error).toBe(thrown);
+        const action = defineAction({ ...definition, input, handler });
+        if (kind === 'redirect') {
+          const error = await action(raw).catch(value => value);
+          expect(isRedirectError(error)).toBe(true);
+          expect(error).toBe(thrown);
+          expect(mocks.capture).not.toHaveBeenCalled();
+        } else {
+          expect(await action(raw)).toMatchObject({ code: 'INTERNAL_SERVER_ERROR' });
+          expect(mocks.capture.mock.calls[0]?.[0]).toBe(thrown);
+        }
+        expect(handler).not.toHaveBeenCalled();
+        expect(mocks.write).not.toHaveBeenCalled();
+      } finally {
+        z.config({ customError });
+      }
+    }
+  );
+
   it.each([true, false])(
-    'keeps a sibling integrity error ahead of an ordinary denial (restored=%s)',
+    'keeps a thrown integrity error by identity (restored=%s)',
     async restored => {
-      const marker = 'duringSiblingRefinement';
+      const marker = 'duringRefinement';
       let inner: unknown;
       const handler = vi.fn(async () => 'never');
       const action = defineAction({
         ...definition,
         input: z.strictObject({
           claimId: z.string().refine(() => {
-            throw Object.assign(new Error('denied'), { code: 'FORBIDDEN' });
-          }),
-          note: z.string().refine(async () => {
-            await Promise.resolve();
             Object.defineProperty(Object.prototype, marker, { configurable: true, value: true });
             try {
               assertPristineObjectPrototype();
@@ -99,17 +203,18 @@ describe('private parser settlement', () => {
               inner = error;
               throw error;
             } finally {
-              if (restored) Reflect.deleteProperty(Object.prototype, marker);
+              if (restored) delete (Object.prototype as Record<string, unknown>)[marker];
             }
+            return true;
           }),
         }),
         handler,
       });
       let outcome: unknown;
       try {
-        outcome = await action({ claimId: 'ID-A', note: 'note' }).catch(error => error);
+        outcome = await action({ claimId: 'ID-A' }).catch(error => error);
       } finally {
-        Reflect.deleteProperty(Object.prototype, marker);
+        delete (Object.prototype as Record<string, unknown>)[marker];
       }
       expect(inner).toBeInstanceOf(ObjectPrototypeIntegrityError);
       expect(outcome).toBe(inner);
@@ -120,110 +225,11 @@ describe('private parser settlement', () => {
     }
   );
 
-  it('drains a started refinement when Zod throws while building a sibling union issue', async () => {
-    const slow = deferred<boolean>();
-    const started = deferred<void>();
-    const settled = vi.fn();
-    const error = new Error('union issue formatter failed');
-    const guard = guardFor(
-      z.strictObject({
-        slow: z.string().refine(() => {
-          started.resolve();
-          return slow.promise;
-        }),
-        union: z.union([z.string(), z.number()]),
-      })
-    );
-    const { customError } = z.config();
-    const formatter = vi.fn(() => {
-      throw error;
-    });
-    z.config({ customError: formatter });
-    const raw = { slow: 'x', union: {} };
-    const run = guard.run(raw, false);
-    void run.then(settled, settled);
-    try {
-      await started.promise;
-      await new Promise<void>(resolve => setImmediate(resolve));
-      expect(formatter).toHaveBeenCalledOnce();
-      expect(settled).not.toHaveBeenCalled();
-    } finally {
-      slow.reject(new Error('later refinement failed'));
-      z.config({ customError });
-    }
-    const result = await run;
-    expect(result).toMatchObject({ kind: 'thrown', snapshot: raw });
-    expect(result.kind === 'thrown' && result.error).toBe(error);
-  });
-
-  it('does not start a follow-on refinement after its parse has already failed', async () => {
-    const slow = deferred<boolean>();
-    const followOn = vi.fn(() => true);
-    const guard = guardFor(
-      z.strictObject({
-        slow: z
-          .string()
-          .refine(() => slow.promise)
-          .optional()
-          .refine(followOn),
-        union: z.union([z.string(), z.number()]),
-      })
-    );
-    const { customError } = z.config();
-    const error = new Error('parser failed');
-    const failed = deferred<void>();
-    z.config({
-      customError: () => {
-        failed.resolve();
-        throw error;
-      },
-    });
-    try {
-      const run = guard.run({ slow: 'x', union: {} }, false);
-      await failed.promise;
-      slow.resolve(true);
-      expect(await run).toMatchObject({ kind: 'thrown', error });
-      await new Promise<void>(resolve => setImmediate(resolve));
-      expect(followOn).not.toHaveBeenCalled();
-    } finally {
-      z.config({ customError });
-    }
-  });
-
-  it.each([false, true])(
-    'gates a refinement settlement before the outer parse can see restoration (rejected=%s)',
-    async rejected => {
-      const pending = deferred<boolean>();
-      const started = deferred<void>();
-      const marker = 'duringRefinementSettlement';
-      const guard = guardFor(
-        z.strictObject({
-          field: z.string().refine(() => {
-            started.resolve();
-            return pending.promise;
-          }),
-        })
-      );
-      const run = guard.run({ field: 'x' }, false).catch(error => error);
-      await started.promise;
-      Object.defineProperty(Object.prototype, marker, { configurable: true, value: true });
-      if (rejected) pending.reject(new Error('refinement rejected'));
-      else pending.resolve(true);
-      queueMicrotask(() => Reflect.deleteProperty(Object.prototype, marker));
-      const result: unknown = await run;
-      expect(Object.hasOwn(Object.prototype, marker)).toBe(false);
-      expect(isIntegrityError(result)).toBe(true);
-    }
-  );
-
-  it.each([
-    ['synchronous', (value: string) => value.length],
-    ['asynchronous', async (value: string) => value.length],
-  ])('preserves Zod truthiness for a %s refinement across concurrent runs', async (_kind, fn) => {
-    const schema = z.string().refine(fn);
+  it('preserves Zod truthiness for a synchronous refinement across concurrent runs', async () => {
+    const schema = z.string().refine(value => value.length);
     const input = guardFor(z.strictObject({ field: schema }));
-    expect((await schema.safeParseAsync('abc')).success).toBe(true);
-    expect((await schema.safeParseAsync('')).success).toBe(false);
+    expect(schema.safeParse('abc').success).toBe(true);
+    expect(schema.safeParse('').success).toBe(false);
     const [accepted, refused] = await Promise.all([
       input.run({ field: 'abc' }, false),
       input.run({ field: '' }, false),
@@ -232,22 +238,18 @@ describe('private parser settlement', () => {
     expect(refused).toMatchObject({ kind: 'invalid', failure: { issues: { field: 'custom' } } });
   });
 
-  it('adopts an inherited data then with the original receiver and skips an accessor then', async () => {
-    const then = vi.fn((resolve: (value: unknown) => void) => resolve(false));
-    const value = Object.create({ then });
-    const pending = guardFor(z.strictObject({ field: z.string().refine(() => value) }));
-    expect(await pending.run({ field: 'x' }, false)).toMatchObject({
-      kind: 'invalid',
-      failure: { issues: { field: 'custom' } },
-    });
-    expect(then).toHaveBeenCalledOnce();
-    expect(then.mock.contexts[0]).toBe(value);
-
-    const getter = vi.fn(() => then);
-    Object.defineProperty(value, 'then', { get: getter });
-    expect(await pending.run({ field: 'x' }, false)).toMatchObject({ kind: 'value' });
-    expect(getter).not.toHaveBeenCalled();
-    expect(then).toHaveBeenCalledOnce();
+  it('keeps a refinement defect local to its run', async () => {
+    const input = guardFor(
+      z.strictObject({
+        field: z.string().refine(value => (value === 'bad' ? Promise.resolve(true) : true)),
+      })
+    );
+    const [defective, accepted] = await Promise.all([
+      input.run({ field: 'bad' }, false),
+      input.run({ field: 'ok' }, false),
+    ]);
+    expect(defective).toMatchObject({ kind: 'defect' });
+    expect(accepted).toMatchObject({ kind: 'value' });
   });
 
   it.each([

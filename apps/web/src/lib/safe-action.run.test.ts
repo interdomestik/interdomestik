@@ -28,7 +28,7 @@ vi.mock('next/navigation', async importOriginal => importOriginal());
 import { notFound, redirect } from 'next/navigation';
 import { ROLE_STAFF } from './roles.core';
 import { actionFailure, defineAction } from './safe-action';
-import { issuesOf } from './safe-action.schema';
+import { issuesOf } from './safe-action.output';
 
 const STAFF_ONLY = [ROLE_STAFF] as const;
 const claimInput = z.strictObject({ claimId: z.string().min(1), note: z.string().max(10) });

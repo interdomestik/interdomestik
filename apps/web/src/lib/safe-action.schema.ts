@@ -1,12 +1,12 @@
-import type { z } from 'zod';
-
 import {
   ACCESSOR,
+  asyncSchemaReason,
   denseArray,
   hasTrait,
   isOwnReadable,
   ownKeys,
   ownValue,
+  rawObjectShape,
   schemaDef,
 } from './safe-action.check-def';
 import { captureCheck, type CheckDomain, type Refuse } from './safe-action.checks';
@@ -101,25 +101,21 @@ function shapeFields(def: Readonly<Record<PropertyKey, unknown>>, path: string, 
     return refuseCatchall('a never catchall with checks');
   }
 
-  // Zod's lazy shape getter spreads its raw shape. Read the stored shape by descriptor
-  // before that spread can invoke a field getter or a proxy trap.
-  const descriptor = Object.getOwnPropertyDescriptor(def, 'shape');
-  const lazy = descriptor !== undefined && !Object.hasOwn(descriptor, 'value');
-  const shape: unknown = lazy ? ownValue(descriptor.get, 'raw') : descriptor?.value;
+  const shape = rawObjectShape(def);
   if (!isOwnReadable(shape)) return refuse('an invalid object shape');
   const fields: Record<string, Shape> = Object.create(null);
   for (const key of ownKeys(shape)) {
-    const field = ownValue(shape, key);
-    // The lazy spread includes only enumerable fields. Accessors are refused either way.
-    if (lazy && field !== ACCESSOR && !Object.prototype.propertyIsEnumerable.call(shape, key))
-      continue;
     if (typeof key !== 'string') return refuse('a non-string object key');
     const childPath = path ? `${path}.${key}` : key;
     if (ctx.identity.has(key)) refuseAt(ctx, childPath)('identity keys come from server context');
     if (ctx.reserved.has(key)) refuseAt(ctx, childPath)('a reserved Object.prototype key');
     if (ctx.visits >= MAX_NODES) refuseAt(ctx, childPath)(TOO_LARGE);
-    if (field === ACCESSOR) refuseAt(ctx, childPath)('a shape field that is not own data');
-    fields[key] = walk(field, childPath, ctx);
+    const field = Object.getOwnPropertyDescriptor(shape, key);
+    if (!field || !Object.hasOwn(field, 'value')) {
+      return refuseAt(ctx, childPath)('a shape field that is not own data');
+    }
+    if (!field.enumerable) return refuseAt(ctx, childPath)('a shape field that is not enumerable');
+    fields[key] = walk(field.value, childPath, ctx);
   }
   return Object.freeze(fields);
 }
@@ -248,6 +244,8 @@ function walk(schema: unknown, path: string, ctx: Walk): Shape {
   if (!def || type === ACCESSOR || typeof type !== 'string') {
     return refuse('a schema whose definition or type is not own data');
   }
+  const asyncReason = asyncSchemaReason(def, type);
+  if (asyncReason !== undefined) return refuse(asyncReason);
   if (!path && ctx.onPath.size === 0 && type !== 'object')
     return refuse('the root must be a strict object');
   ctx.onPath.add(schema);
@@ -287,21 +285,4 @@ export function captureSchema(input: unknown, options: SchemaCheckOptions): Obje
     if (error === ctx.refusal && ctx.refusal !== undefined) throw ctx.refusal;
     return refuseAt(ctx, '')('a schema that cannot be judged (reading it threw)');
   }
-}
-/** `{ "a.b": "too_small" }`: the path and zod issue code, never the input value. */
-export function issuesOf(error: z.ZodError): Record<string, string> {
-  const issues: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = issue.path.map(String).join('.') || '_root';
-    // Own keys only: a field named like an Object.prototype member is still recorded (r2 B13).
-    if (!Object.hasOwn(issues, key)) {
-      Object.defineProperty(issues, key, {
-        value: issue.code,
-        enumerable: true,
-        writable: true,
-        configurable: true,
-      });
-    }
-  }
-  return issues;
 }

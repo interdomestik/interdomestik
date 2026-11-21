@@ -1,5 +1,5 @@
 import { types } from 'node:util';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import {
   dateTime,
@@ -9,24 +9,18 @@ import {
   ownKeys,
   ownValue,
 } from './safe-action.check-def';
-import { refinementRun } from './safe-action.checks';
 import { actionFailure, type ActionFailure } from './safe-action.failure';
 import {
   exactParsedInput,
   formatSnapshotIssue,
+  issuesOf,
   privateFile,
   snapshotIssue,
 } from './safe-action.output';
-import {
-  assertPristineObjectPrototype,
-  gateParse,
-  isIntegrityError,
-  type RefinementRun,
-} from './safe-action.recheck';
+import { assertPristineObjectPrototype, isIntegrityError } from './safe-action.recheck';
 import {
   ActionDefinitionError,
   captureSchema,
-  issuesOf,
   MAX_INPUT_DEPTH,
   type SchemaCheckOptions,
 } from './safe-action.schema';
@@ -202,7 +196,8 @@ async function runGuard(
   form: boolean,
   snapshotOptions: SnapshotOptions,
   shape: Shape,
-  parser: z.ZodType
+  parser: z.ZodType,
+  refinement: { thenable: boolean }
 ): Promise<GuardOutcome> {
   assertPristineObjectPrototype();
   const owned = await snapshotOf(raw, form, snapshotOptions);
@@ -219,37 +214,25 @@ async function runGuard(
     reportInput: false,
     error: formatSnapshotIssue,
   });
-  const refinements: RefinementRun = {
-    assertIntegrity: assertPristineObjectPrototype,
-    closed: false,
-    thrown: null,
-    integrity: null,
-    pending: new Set(),
-  };
-  let parsed: { result: Awaited<ReturnType<typeof parser.safeParseAsync>> } | { error: unknown };
   assertPristineObjectPrototype();
+  let result: ReturnType<typeof parser.safeParse>;
+  // Rebuilt predicates share this flag only during the synchronous parse.
+  const previousThenable = refinement.thenable;
+  refinement.thenable = false;
   try {
-    const result = await refinementRun.run(refinements, () =>
-      parser.safeParseAsync(snapshot, context)
-    );
-    gateParse(refinements);
-    parsed = { result };
+    result = parser.safeParse(snapshot, context);
+    assertPristineObjectPrototype();
+    if (refinement.thenable) return { kind: 'defect', snapshot };
   } catch (error) {
-    gateParse(refinements, error);
-    parsed = refinements.thrown ?? { error };
+    if (isIntegrityError(error)) throw error;
+    assertPristineObjectPrototype();
+    if (isOwnReadable(error) && Object.getPrototypeOf(error) === z.core.$ZodAsyncError.prototype) {
+      return { kind: 'defect', snapshot };
+    }
+    return { kind: 'thrown', error, snapshot };
+  } finally {
+    refinement.thenable = previousThenable;
   }
-  // Zod can abandon a branch whose outer checks would otherwise start later.
-  refinements.closed = true;
-  for (const pending of refinements.pending) {
-    await pending;
-    gateParse(refinements);
-  }
-  if (refinements.integrity) throw refinements.integrity;
-  if ('error' in parsed) return { kind: 'thrown', error: parsed.error, snapshot };
-  if (refinements.thrown) {
-    return { kind: 'thrown', error: refinements.thrown.error, snapshot };
-  }
-  const { result } = parsed;
   try {
     if (!result.success) {
       const outcome: Invalid = {
@@ -275,9 +258,12 @@ export function buildInputGuard(input: unknown, options: SchemaCheckOptions): In
   assertPristineObjectPrototype();
   const shape = captureSchema(input, options);
   assertPristineObjectPrototype();
+  const refinement = { thenable: false };
   let parser: z.ZodType;
   try {
-    parser = rebuildParser(shape);
+    parser = rebuildParser(shape, () => {
+      refinement.thenable = true;
+    });
   } catch {
     throw new ActionDefinitionError(
       options.operation,
@@ -293,6 +279,7 @@ export function buildInputGuard(input: unknown, options: SchemaCheckOptions): In
   const snapshotOptions = { fieldKind, allowFiles: hasFile(shape) };
   return Object.freeze({
     fieldKind,
-    run: (raw: unknown, form: boolean) => runGuard(raw, form, snapshotOptions, shape, parser),
+    run: (raw: unknown, form: boolean) =>
+      runGuard(raw, form, snapshotOptions, shape, parser, refinement),
   });
 }

@@ -52,34 +52,18 @@ export function ownValue(holder: unknown, key: PropertyKey): unknown {
   return Object.hasOwn(descriptor, 'value') ? descriptor.value : ACCESSOR;
 }
 
-export function adoptDataThenable(value: unknown): Promise<unknown> | undefined {
+export function isThenableLike(value: unknown): boolean {
+  if (types.isPromise(value)) return true;
   for (
     let part = value;
-    isOwnReadable(part) && part !== Object.prototype;
+    part !== Object.prototype &&
+    part !== null &&
+    (typeof part === 'object' || typeof part === 'function');
     part = Object.getPrototypeOf(part)
   ) {
-    const descriptor = Object.getOwnPropertyDescriptor(part, 'then');
-    if (!descriptor) continue;
-    const then: unknown = Object.hasOwn(descriptor, 'value') ? descriptor.value : undefined;
-    if (typeof then !== 'function') return undefined;
-    // Await a local native promise directly so the gate runs in its settlement reaction.
-    if (
-      then === Promise.prototype.then &&
-      types.isPromise(value) &&
-      Object.getPrototypeOf(value) === Promise.prototype &&
-      !Object.hasOwn(value, 'constructor')
-    ) {
-      return value;
-    }
-    const thenable = {
-      __proto__: null,
-      then: (resolve: (value: unknown) => void, reject: (reason: unknown) => void) => {
-        then.call(value, resolve, reject);
-      },
-    };
-    return Promise.resolve(thenable);
+    if (types.isProxy(part) || Object.hasOwn(part, 'then')) return true;
   }
-  return undefined;
+  return false;
 }
 
 /** Reads a dense, ordinary array without consulting its iterator or its inherited properties. */
@@ -183,4 +167,29 @@ function carriesSchema(value: unknown): boolean {
 
 export function holdsSchema(def: Readonly<Record<PropertyKey, unknown>>): boolean {
   return ownKeys(def).some(key => carriesSchema(def[key]));
+}
+
+/** Read the raw shape before Zod's lazy getter can spread it. */
+export function rawObjectShape(def: object): unknown {
+  const descriptor = Object.getOwnPropertyDescriptor(def, 'shape');
+  return descriptor && !Object.hasOwn(descriptor, 'value')
+    ? ownValue(descriptor.get, 'raw')
+    : descriptor?.value;
+}
+
+function hasAsyncTransform(def: unknown): boolean {
+  return types.isAsyncFunction(ownValue(def, 'transform'));
+}
+
+export function asyncSchemaReason(def: object, type: string): string | undefined {
+  if (type === 'promise') return 'Promise schemas require async parsing';
+  if (
+    (type === 'transform' && hasAsyncTransform(def)) ||
+    (type === 'pipe' &&
+      (hasAsyncTransform(def) ||
+        ['in', 'out'].some(side => hasAsyncTransform(schemaDef(ownValue(def, side))))))
+  ) {
+    return 'async transforms are not supported';
+  }
+  return undefined;
 }

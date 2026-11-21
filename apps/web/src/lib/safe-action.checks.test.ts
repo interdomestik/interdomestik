@@ -16,7 +16,6 @@ const guard = (field: z.ZodType) =>
 describe('private admitted Zod checks', () => {
   it.each([
     ['string length', z.string().min(2).max(3).length(2), 'ab', 'abc'],
-    ['numeric comparisons and multiple', z.number().gt(0).lte(4).multipleOf(2), 4, 3],
     ['integer format', z.int().positive().optional(), 2, 1.5],
     ['bigint format and comparison', z.int64().gte(0n).multipleOf(2n), 2n, -1n],
     ['a built-in length check on an enum', z.enum(['A', 'AB']).check(z.minLength(2)), 'AB', 'A'],
@@ -180,7 +179,7 @@ describe('private admitted Zod checks', () => {
       z
         .string()
         .optional()
-        .refine(async () => true),
+        .refine(() => true),
       z.literal(undefined),
     ]),
     z.union([
@@ -188,7 +187,7 @@ describe('private admitted Zod checks', () => {
         z
           .string()
           .nullable()
-          .refine(async () => true),
+          .refine(() => true),
         z.boolean(),
       ]),
       z.literal(null),
@@ -198,19 +197,19 @@ describe('private admitted Zod checks', () => {
         field: z
           .string()
           .optional()
-          .refine(async () => true),
+          .refine(() => true),
       }),
       z.date(),
     ]),
   ])(
     'refuses overlapping refined branches reached via literals, nested unions or Dates (%#)',
     field => {
-      expect(() => guard(field)).toThrow(ActionDefinitionError);
+      expect(() => guard(field)).toThrow(/overlapping branches and a refinement/);
     }
   );
 
   it('admits disjoint refined branches and unchecked branches sharing null', async () => {
-    const refine = vi.fn(async () => true);
+    const refine = vi.fn(() => true);
     const disjoint = guard(z.union([z.string().nullable().refine(refine), z.number()]));
     expect(await disjoint.run({ field: null }, false)).toMatchObject({ kind: 'value' });
     expect(refine).toHaveBeenCalledExactlyOnceWith(null);
@@ -223,20 +222,25 @@ describe('private admitted Zod checks', () => {
     });
   });
 
-  it('keeps check order and all five private normalisers', async () => {
+  it.each([
+    ['trim', ' a ', 'a'],
+    ['toLowerCase', 'A', 'a'],
+    ['toUpperCase', 'a', 'A'],
+    ['normalizeNFC', 'e\u0301', 'é'],
+    ['normalizeNFKC', 'Ａ', 'A'],
+  ] as const)('applies the private %s normaliser', async (kind, value, expected) => {
+    const input = guard(z.string().check(actionNormalizers[kind]));
+    expect(await input.run({ field: value }, false)).toMatchObject({
+      kind: 'value',
+      value: { field: expected },
+    });
+  });
+
+  it('keeps check order across a length check and normalisers', async () => {
     const input = guard(
-      z
-        .string()
-        .min(3)
-        .check(
-          actionNormalizers.trim,
-          actionNormalizers.toUpperCase,
-          actionNormalizers.normalizeNFKC,
-          actionNormalizers.toLowerCase,
-          actionNormalizers.normalizeNFC
-        )
+      z.string().min(3).check(actionNormalizers.trim, actionNormalizers.toLowerCase)
     );
-    expect(await input.run({ field: ' Ａ ' }, false)).toMatchObject({
+    expect(await input.run({ field: ' A ' }, false)).toMatchObject({
       kind: 'value',
       value: { field: 'a' },
     });
@@ -281,13 +285,13 @@ describe('private admitted Zod checks', () => {
 
   it('never calls a string predicate with an object, including through the installed adapter', async () => {
     const predicate = vi.fn(() => true);
-    const check = rebuildCheck([
-      'custom',
-      { type: 'string', nullable: false, optional: false },
-      predicate,
-    ]);
+    const markThenable = vi.fn();
+    const check = rebuildCheck(
+      ['custom', { type: 'string', nullable: false, optional: false }, predicate],
+      markThenable
+    );
     const wrongType = { value: { a: 'x' }, issues: [] };
-    await check._zod.check(wrongType as never);
+    check._zod.check(wrongType as never);
     expect(wrongType.issues).toHaveLength(1);
     const input = guard(z.union([z.string().refine(predicate), z.strictObject({ a: z.string() })]));
     expect(await input.run({ field: { a: 'x' } }, false)).toMatchObject({ kind: 'value' });

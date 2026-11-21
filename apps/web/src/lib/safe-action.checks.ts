@@ -1,18 +1,17 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import { types } from 'node:util';
 import { z } from 'zod';
 
 import {
-  adoptDataThenable,
   checkDef,
   dateTime,
   denseArray,
   hasTrait,
   holdsSchema,
+  isThenableLike,
+  ownValue,
   regexDefinition,
 } from './safe-action.check-def';
 import { normalizerOf, privateNormalizer, type Normalizer } from './safe-action.normalizers';
-import { recordRefinementError, trackRefinement, type RefinementRun } from './safe-action.recheck';
 
 export type CheckDomain = {
   type: string;
@@ -75,17 +74,15 @@ const refusedFormatTraits = [
 const valueTypes = new Set(['string', 'number', 'boolean', 'bigint']);
 const comparisonTraits = { greater_than: '$ZodCheckGreaterThan', less_than: '$ZodCheckLessThan' };
 
-// Zod's refine callback does not receive the parse context.
-export const refinementRun = new AsyncLocalStorage<RefinementRun>();
-
 function isKey<K extends string>(table: Record<K, unknown>, key: unknown): key is K {
   return typeof key === 'string' && Object.hasOwn(table, key);
 }
 
 function refineFor(
   domain: CheckDomain,
-  predicate: Predicate
-): (value: unknown) => boolean | Promise<boolean> {
+  predicate: Predicate,
+  markThenable: () => void
+): (value: unknown) => boolean {
   return value => {
     if (
       typeof value !== domain.type &&
@@ -93,15 +90,12 @@ function refineFor(
       !(value === undefined && domain.optional)
     )
       return false;
-    const run = refinementRun.getStore();
-    if (run?.closed) return false;
-    try {
-      const result = predicate(value);
-      const adopted = adoptDataThenable(result);
-      return adopted === undefined ? Boolean(result) : trackRefinement(run, adopted);
-    } catch (error) {
-      return recordRefinementError(run, error);
+    const result = predicate(value);
+    if (isThenableLike(result)) {
+      markThenable();
+      return false;
     }
+    return Boolean(result);
   };
 }
 
@@ -216,6 +210,15 @@ export function captureCheck(
       `a check whose definition has an accessor or a prototype other than Object (not read) on a ${position}`
     );
   const kind = typeof def.check === 'string' && def.check !== '' ? def.check : 'unknown';
+  if (
+    kind === 'custom' &&
+    types.isAsyncFunction(def.fn ?? ownValue(ownValue(check, '_zod'), 'check'))
+  ) {
+    return refuse('async refinements are not supported');
+  }
+  if (kind === 'overwrite' && types.isAsyncFunction(def.tx)) {
+    return refuse('async checks are not supported');
+  }
   if (Object.hasOwn(def, 'when') && !isKey(lengths, kind))
     return refuse(
       `a check with a custom when callback (it receives the writable payload) on a ${position}`
@@ -224,17 +227,22 @@ export function captureCheck(
   if (def.abort !== undefined && def.abort !== false) return refuse(`a ${kind} check with abort`);
   const captured = captureAllowed(check, def, kind, domain, refuse);
   if (captured === undefined) {
+    // Zod wraps superRefine without exposing the supplied callback.
+    const limit =
+      kind === 'custom' && !hasTrait(check, 'ZodCustom')
+        ? ' (async refinements are not supported)'
+        : '';
     if (position === 'object') {
       return refuse(
-        'object-level refine/check/superRefine/overwrite belongs in the owning command'
+        `object-level refine/check/superRefine/overwrite belongs in the owning command${limit}`
       );
     }
-    return refuse(`a ${kind} check on a ${position} belongs in the owning command`);
+    return refuse(`a ${kind} check on a ${position} belongs in the owning command${limit}`);
   }
   return Object.freeze(captured);
 }
 
-function rebuild(check: CapturedCheck): z.core.$ZodCheck {
+function rebuild(check: CapturedCheck, markThenable: () => void): z.core.$ZodCheck {
   switch (check[0]) {
     case 'normalizer':
       return privateNormalizer(check[1]);
@@ -245,7 +253,7 @@ function rebuild(check: CapturedCheck): z.core.$ZodCheck {
     case 'regex':
       return z.regex(new RegExp(check[1], check[2]));
     case 'custom':
-      return z.refine(refineFor(check[1], check[2]));
+      return z.refine(refineFor(check[1], check[2], markThenable));
     case 'multiple_of':
       return z.multipleOf(check[1]);
     case 'greater_than':
@@ -272,8 +280,8 @@ function rebuild(check: CapturedCheck): z.core.$ZodCheck {
   }
 }
 
-export function rebuildCheck(captured: CapturedCheck): z.core.$ZodCheck {
-  const check = rebuild(captured);
+export function rebuildCheck(captured: CapturedCheck, markThenable: () => void): z.core.$ZodCheck {
+  const check = rebuild(captured, markThenable);
   const def = check._zod.def;
   Object.defineProperties(def, {
     abort: { value: false },

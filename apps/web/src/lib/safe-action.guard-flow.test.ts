@@ -17,13 +17,7 @@ vi.mock('next/navigation', async importOriginal => importOriginal());
 vi.mock('./safe-action.refusal', { spy: true });
 
 import { redirect } from 'next/navigation';
-import {
-  actionFailure,
-  ActionDefinitionError,
-  actionNormalizers,
-  defineAction,
-  defineFormAction,
-} from './safe-action';
+import { actionFailure, actionNormalizers, defineAction, defineFormAction } from './safe-action';
 import { assertPristineObjectPrototype, ObjectPrototypeIntegrityError } from './safe-action.guard';
 import { extractSubject } from './safe-action.refusal';
 
@@ -42,49 +36,29 @@ beforeEach(() => {
 });
 
 describe('the action guard sequence and refusal subject', () => {
-  it('refuses overlapping nullable branches before a refinement can reject unhandled', async () => {
-    const rejection = new Error('nullable branch rejected');
-    const refine = vi.fn(async () => {
-      await new Promise<void>(resolve => setImmediate(resolve));
-      throw rejection;
-    });
+  it('refuses overlapping nullable branches before a refinement can run', () => {
+    const refine = vi.fn(() => false);
     const handler = vi.fn(async () => 'never');
-    const unhandled = vi.fn();
-    const define = () =>
+    expect(() =>
       defineAction({
         ...definition,
         input: z.strictObject({
           claimId: z.union([z.string().nullable().refine(refine), z.number().nullable()]),
         }),
         handler,
-      });
-    let definitionError: unknown;
-    process.on('unhandledRejection', unhandled);
-    try {
-      let action: ReturnType<typeof define> | undefined;
-      try {
-        action = define();
-      } catch (error) {
-        definitionError = error;
-      }
-      if (action) await action({ claimId: null });
-      await new Promise<void>(resolve => setImmediate(resolve));
-    } finally {
-      process.off('unhandledRejection', unhandled);
-    }
-    expect(unhandled).not.toHaveBeenCalled();
+      })
+    ).toThrow(/overlapping branches and a refinement/);
     expect(handler).not.toHaveBeenCalled();
     expect(refine).not.toHaveBeenCalled();
-    expect(definitionError).toBeInstanceOf(ActionDefinitionError);
   });
 
-  it('records one FORBIDDEN row for an Error rejected by refine against the submitted snapshot ID', async () => {
+  it('records one FORBIDDEN row for an Error thrown by refine against the submitted snapshot ID', async () => {
     const raw = { claimId: 'ID-A' };
     const error = Object.assign(new Error('denied'), { code: 'FORBIDDEN' });
     const action = defineAction({
       ...definition,
       input: z.strictObject({
-        claimId: z.string().refine(async () => {
+        claimId: z.string().refine(() => {
           raw.claimId = 'ID-B';
           throw error;
         }),
@@ -99,11 +73,13 @@ describe('the action guard sequence and refusal subject', () => {
     });
   });
 
-  it('returns an internal failure and zero rows for a code-only refinement rejection', async () => {
+  it('returns an internal failure and zero rows for a code-only refinement throw', async () => {
     const action = defineAction({
       ...definition,
       input: z.strictObject({
-        claimId: z.string().refine(async () => Promise.reject({ code: 'FORBIDDEN' })),
+        claimId: z.string().refine(() => {
+          throw { code: 'FORBIDDEN' };
+        }),
       }),
       handler: async () => 'never',
     });
@@ -115,10 +91,14 @@ describe('the action guard sequence and refusal subject', () => {
     const message = vi.fn(() => {
       throw new Error('metadata getter');
     });
-    const rejection = Object.defineProperty({}, 'message', { get: message });
+    const thrown = Object.defineProperty({}, 'message', { get: message });
     const action = defineAction({
       ...definition,
-      input: z.strictObject({ claimId: z.string().refine(async () => Promise.reject(rejection)) }),
+      input: z.strictObject({
+        claimId: z.string().refine(() => {
+          throw thrown;
+        }),
+      }),
       handler: async () => 'never',
     });
     expect(await action({ claimId: 'ID-A' })).toMatchObject({ code: 'INTERNAL_SERVER_ERROR' });
@@ -148,7 +128,7 @@ describe('the action guard sequence and refusal subject', () => {
     expect(mocks.write).not.toHaveBeenCalled();
   });
 
-  it('keeps the original submitted record and Date through async refine and records the pre-normalised ID', async () => {
+  it('keeps the original submitted record and Date through synchronous refine and records the pre-normalised ID', async () => {
     const date = new Date(1000);
     const raw = { claimId: 'ID-A', note: 'original', date };
     const handler = vi.fn(deny);
@@ -158,8 +138,7 @@ describe('the action guard sequence and refusal subject', () => {
         claimId: z
           .string()
           .check(actionNormalizers.toLowerCase)
-          .refine(async () => {
-            await Promise.resolve();
+          .refine(() => {
             raw.claimId = 'ID-B';
             raw.note = 'changed';
             date.setTime(0);

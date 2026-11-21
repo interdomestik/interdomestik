@@ -1,5 +1,4 @@
 // @vitest-environment node
-import { runInNewContext } from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -14,17 +13,33 @@ const options = {
 } as const;
 const guardFor = (input: z.ZodType) => buildInputGuard(input, options);
 
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason: unknown) => void;
-  const promise = new Promise<T>((fulfil, fail) => {
-    resolve = fulfil;
-    reject = fail;
-  });
-  return { promise, resolve, reject };
-}
-
 describe('the captured schema', () => {
+  it.each([
+    ['refine', z.string().refine(async () => true), /async refinements are not supported/],
+    ['superRefine', z.string().superRefine(async () => {}), /async refinements are not supported/],
+    ['check', z.string().check(async () => {}), /async refinements are not supported/],
+    ['transform', z.string().transform(async value => value), /async transforms are not supported/],
+    [
+      'standalone transform',
+      z.transform(async value => value),
+      /async transforms are not supported/,
+    ],
+    [
+      'preprocess',
+      z.preprocess(async value => value, z.string()),
+      /async transforms are not supported/,
+    ],
+    ['Promise schema', z.promise(z.string()), /Promise schemas require async parsing/],
+    [
+      'overwrite',
+      z.string().overwrite((async (value: string) => value) as never),
+      /async checks are not supported/,
+    ],
+  ])('refuses async parsing at definition for %s', (_kind, field, reason) => {
+    expect(() => guardFor(z.strictObject({ field }))).toThrow(ActionDefinitionError);
+    expect(() => guardFor(z.strictObject({ field }))).toThrow(reason);
+  });
+
   it.each([
     [z.string().exactOptional(), undefined],
     [z.array(z.string().exactOptional()), [undefined]],
@@ -47,21 +62,30 @@ describe('the captured schema', () => {
     });
   });
 
-  it.each(['lazy', 'data', 'non-enumerable'])(
+  it.each(['lazy', 'materialized', 'non-enumerable'])(
     'refuses a %s shape getter without calling it',
     kind => {
       const getter = vi.fn(() => z.string());
-      const shape = Object.defineProperty({}, 'tag', {
+      const rawShape = {};
+      const input = z.strictObject(rawShape);
+      const shape = kind === 'materialized' ? input.shape : rawShape;
+      Object.defineProperty(shape, 'tag', {
         enumerable: kind !== 'non-enumerable',
         get: getter,
       });
-      const input = z.strictObject(shape);
-      if (kind === 'data') Object.defineProperty(input._zod.def, 'shape', { value: shape });
 
       expect(() => guardFor(input)).toThrow(/at tag: a shape field that is not own data/);
       expect(getter).not.toHaveBeenCalled();
     }
   );
+
+  it.each(['lazy', 'materialized'])('refuses a non-enumerable data field in a %s shape', kind => {
+    const rawShape = { visible: z.string() };
+    const input = z.strictObject(rawShape);
+    const shape = kind === 'lazy' ? rawShape : input.shape;
+    Object.defineProperty(shape, 'hidden', { value: z.string() });
+    expect(() => guardFor(input)).toThrow(/at hidden: a shape field that is not enumerable/);
+  });
 
   it('refuses a proxy shape before running any trap', () => {
     const trap = vi.fn(() => {
@@ -142,11 +166,24 @@ describe('the captured schema', () => {
     }
   );
 
-  it('preserves a parser rejection by identity and returns the completed snapshot', async () => {
+  it.each([
+    ['exclusive lower bound', 0, 'too_small'],
+    ['inclusive upper bound', 6, 'too_big'],
+    ['multipleOf', 3, 'not_multiple_of'],
+  ])('independently enforces the %s in a chain of numeric checks', async (_kind, value, code) => {
+    const input = guardFor(z.strictObject({ field: z.number().gt(0).lte(4).multipleOf(2) }));
+    expect(await input.run({ field: 4 }, false)).toMatchObject({ kind: 'value' });
+    expect(await input.run({ field: value }, false)).toMatchObject({
+      kind: 'invalid',
+      failure: { issues: { field: code } },
+    });
+  });
+
+  it('preserves a synchronous parser throw by identity and returns the completed snapshot', async () => {
     const error = Object.assign(new Error('denied'), { code: 'FORBIDDEN' });
     const guard = guardFor(
       z.strictObject({
-        id: z.string().refine(async () => {
+        id: z.string().refine(() => {
           throw error;
         }),
       })
@@ -156,85 +193,21 @@ describe('the captured schema', () => {
     expect(outcome.kind === 'thrown' && outcome.error).toBe(error);
   });
 
-  it('waits for a slow sibling refinement before returning a thrown outcome', async () => {
-    const slow = deferred<boolean>();
-    const failure = deferred<boolean>();
-    const settled = vi.fn();
-    const error = new Error('refinement rejected');
-    const started = deferred<void>();
-    const guard = guardFor(
-      z.strictObject({
-        a: z.string().refine(() => slow.promise),
-        b: z.string().refine(() => {
-          started.resolve();
-          return failure.promise;
-        }),
+  it('does not start later predicates after a synchronous throw', async () => {
+    const error = new Error('first refinement failed');
+    const later = vi.fn(() => true);
+    const field = z
+      .string()
+      .refine(() => {
+        throw error;
       })
-    );
-    const run = guard.run({ a: 'x', b: 'y' }, false);
-    void run.then(settled, settled);
-    await started.promise;
-    try {
-      failure.reject(error);
-      await new Promise<void>(resolve => setImmediate(resolve));
-      expect(settled).not.toHaveBeenCalled();
-    } finally {
-      slow.resolve(true);
-    }
-    const result = await run;
-    expect(result).toMatchObject({ kind: 'thrown', snapshot: { a: 'x', b: 'y' } });
+      .refine(later);
+    expect(() => field.safeParse('x')).toThrow(error);
+    expect(later).not.toHaveBeenCalled();
+    const result = await guardFor(z.strictObject({ field })).run({ field: 'x' }, false);
+    expect(result).toMatchObject({ kind: 'thrown', snapshot: { field: 'x' } });
     expect(result.kind === 'thrown' && result.error).toBe(error);
-  });
-
-  it('handles a later async rejection after a synchronous sibling throw', async () => {
-    const late = deferred<boolean>();
-    const error = new Error('synchronous refinement failure');
-    const started = deferred<void>();
-    const unhandled = vi.fn();
-    const guard = guardFor(
-      z.strictObject({
-        a: z.string().refine(() => late.promise),
-        b: z.string().refine(() => {
-          started.resolve();
-          throw error;
-        }),
-      })
-    );
-    process.on('unhandledRejection', unhandled);
-    try {
-      const run = guard.run({ a: 'x', b: 'y' }, false);
-      await started.promise;
-      late.reject(new Error('later refinement failure'));
-      const result = await run;
-      await new Promise<void>(resolve => setImmediate(resolve));
-      expect(unhandled).not.toHaveBeenCalled();
-      expect(result.kind === 'thrown' && result.error).toBe(error);
-    } finally {
-      process.off('unhandledRejection', unhandled);
-    }
-  });
-
-  it('awaits false from a foreign-realm refinement promise', async () => {
-    const promise: unknown = runInNewContext('Promise.resolve(false)');
-    expect(promise).not.toBeInstanceOf(Promise);
-    const guard = guardFor(z.strictObject({ field: z.string().refine(() => promise) }));
-    expect(await guard.run({ field: 'x' }, false)).toMatchObject({
-      kind: 'invalid',
-      failure: { issues: { field: 'custom' } },
-    });
-  });
-
-  it.each([
-    ['false', false, 'invalid'],
-    ['truthy non-boolean', 'yes', 'value'],
-  ])('awaits a refinement thenable resolving to %s', async (_label, answer, kind) => {
-    const then = vi.fn((resolve: (value: unknown) => void) => resolve(answer));
-    const guard = guardFor(z.strictObject({ field: z.string().refine(() => ({ then })) }));
-    expect(await guard.run({ field: 'x' }, false)).toMatchObject({
-      kind,
-      snapshot: { field: 'x' },
-    });
-    expect(then).toHaveBeenCalledOnce();
+    expect(later).not.toHaveBeenCalled();
   });
 
   it('rejects a Date at an object position without refining its inherited toISOString', async () => {

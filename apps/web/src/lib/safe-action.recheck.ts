@@ -102,53 +102,6 @@ export function assertPristineObjectPrototype(): void {
   }
 }
 
-export type RefinementRun = {
-  assertIntegrity: () => void;
-  closed: boolean;
-  thrown: { error: unknown } | null;
-  integrity: ObjectPrototypeIntegrityError | null;
-  pending: Set<Promise<boolean>>;
-};
-
-export function gateParse(run: RefinementRun, error?: unknown): void {
-  if (isIntegrityError(error)) run.integrity ??= error;
-  if (run.integrity) return;
-  try {
-    run.assertIntegrity();
-  } catch (integrity) {
-    if (!isIntegrityError(integrity)) throw integrity;
-    run.integrity = integrity;
-  }
-}
-
-export function recordRefinementError(run: RefinementRun | undefined, error: unknown): false {
-  if (run) {
-    gateParse(run, error);
-    run.thrown ??= { error };
-  }
-  return false;
-}
-
-async function settleRefinement(run: RefinementRun | undefined, adopted: Promise<unknown>) {
-  let value: unknown;
-  try {
-    value = await adopted;
-  } catch (error) {
-    return recordRefinementError(run, error);
-  }
-  if (run) gateParse(run);
-  return Boolean(value);
-}
-
-export function trackRefinement(run: RefinementRun | undefined, adopted: Promise<unknown>) {
-  const pending = settleRefinement(run, adopted);
-  if (run) {
-    run.pending.add(pending);
-    void pending.then(() => run.pending.delete(pending));
-  }
-  return pending;
-}
-
 const errorFields = ['digest', 'message', 'cause', 'name', 'code', 'reason'] as const;
 
 function inspectable(error: unknown, seen: Set<object>): boolean {

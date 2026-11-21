@@ -264,3 +264,21 @@ export function exactParsedInput(shape: Shape, raw: unknown, parsed: unknown, pa
       return typeof parsed === shape.type ? copied(parsed) : DEFECT;
   }
 }
+
+/** `{ "a.b": "too_small" }`: the path and zod issue code, never the input value. */
+export function issuesOf(error: z.ZodError): Record<string, string> {
+  const issues: Record<string, string> = {};
+  for (const issue of error.issues) {
+    const key = issue.path.map(String).join('.') || '_root';
+    // Own keys only: a field named like an Object.prototype member is still recorded (r2 B13).
+    if (!Object.hasOwn(issues, key)) {
+      Object.defineProperty(issues, key, {
+        value: issue.code,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    }
+  }
+  return issues;
+}

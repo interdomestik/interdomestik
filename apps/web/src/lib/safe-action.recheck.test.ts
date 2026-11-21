@@ -163,13 +163,12 @@ describe('Object.prototype integrity', () => {
   });
 
   it.each([false, true])(
-    'gates a parse that settles under pollution (rejected=%s)',
-    async rejected => {
+    'gates a synchronous parse that ends under pollution (throws=%s)',
+    async throws => {
       const schema = z.strictObject({
-        field: z.string().refine(async () => {
-          await Promise.resolve();
+        field: z.string().refine(() => {
           install('skipChecks', true);
-          if (rejected) throw Object.assign(new Error('denied'), { code: 'FORBIDDEN' });
+          if (throws) throw Object.assign(new Error('denied'), { code: 'FORBIDDEN' });
           return false;
         }),
       });
