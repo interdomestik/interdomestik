@@ -23,7 +23,7 @@ import type { SaleInput } from './sale-input';
 
 type RunHolding<T> = (hold: (pid: number) => Promise<void>) => Promise<T>;
 
-async function race<T, U>(
+export async function race<T, U>(
   f: SaleFixture,
   first: RunHolding<T>,
   second: (blocker: number) => PromiseLike<U>,
@@ -60,7 +60,7 @@ async function race<T, U>(
   }
 }
 
-function holdingChange(
+export function holdingChange(
   f: SaleFixture,
   change: (tx: PaymentPortTestTransaction) => Promise<unknown>
 ): RunHolding<unknown> {
@@ -82,7 +82,7 @@ async function saleScope(
   return withTenantAuthority(who.authority, work);
 }
 
-function holdingSale(f: SaleFixture, input: SaleInput, who = f.owner): RunHolding<unknown> {
+export function holdingSale(f: SaleFixture, input: SaleInput, who = f.owner): RunHolding<unknown> {
   return async hold => {
     const { recordSaleInTx } = await import('../payment-port-compose');
     return saleScope(f, who, async tx => {

@@ -4,6 +4,11 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { ROLES } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
+import { readSponsorOutlook, resolveEffectiveMembership } from '../sponsor-coverage';
+import {
+  getMembershipLifecycleBucket,
+  membershipLifecycleGrantsAccess,
+} from '../subscription/lifecycle-reporting';
 import type { SalePrincipal } from './sale-authority';
 import type { SaleInput } from './sale-input';
 
@@ -18,7 +23,11 @@ export function requestedBuyer(buyer: SaleInput['buyer']): SaleBuyer {
 async function findBuyer(tx: TenantTransaction, tenantId: string, buyer: SaleBuyer, lock: boolean) {
   if (buyer.kind === 'lead') {
     const query = tx
-      .select({ agentId: memberLeads.agentId, branchId: memberLeads.branchId })
+      .select({
+        agentId: memberLeads.agentId,
+        branchId: memberLeads.branchId,
+        coverageUserId: memberLeads.convertedUserId,
+      })
       .from(memberLeads)
       .where(
         withTenant(
@@ -37,7 +46,7 @@ async function findBuyer(tx: TenantTransaction, tenantId: string, buyer: SaleBuy
       withTenant(tenantId, user.tenantId, and(eq(user.id, buyer.id), eq(user.role, ROLES.member)))
     );
   const [member] = await (lock ? query.for('share') : query);
-  if (member) return { agentId: null, branchId: member.branchId };
+  if (member) return { agentId: null, branchId: member.branchId, coverageUserId: buyer.id };
 }
 
 export async function findScopedBuyer(
@@ -52,4 +61,27 @@ export async function findScopedBuyer(
   if (!principal.branchId || principal.branchId !== row.branchId) return null;
   if (principal.role === ROLES.staff) return row;
   return buyer.kind === 'lead' && row.agentId === principal.userId ? row : null;
+}
+
+export async function buyerCoverageFailure(
+  tx: TenantTransaction,
+  tenantId: string,
+  userId: string
+): Promise<'not_found' | 'already_covered' | null> {
+  const now = new Date();
+  const membership = (await resolveEffectiveMembership(tx, tenantId, [userId], now)).get(userId);
+  if (!membership) return 'not_found';
+  if (membership.source === 'sponsor') return 'already_covered';
+  if (
+    membership.source === 'subscription' &&
+    membershipLifecycleGrantsAccess(
+      getMembershipLifecycleBucket({ subscription: membership.subscription, now })
+    )
+  ) {
+    return 'already_covered';
+  }
+
+  // The sponsor checkout outlook also blocks purchase if an accepted seat starts later.
+  const outlook = (await readSponsorOutlook(tx, tenantId, [userId], now)).get(userId);
+  return outlook?.covering || outlook?.nextStart ? 'already_covered' : null;
 }

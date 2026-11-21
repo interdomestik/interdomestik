@@ -4,6 +4,7 @@ import {
   membershipPlanVersions,
   membershipSales,
 } from '@interdomestik/database/schema';
+import { lockSponsorPerson } from '@interdomestik/database/sponsor-locks';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
@@ -19,7 +20,12 @@ import {
   type SaleActor,
   type SalePrincipal,
 } from './sale-authority';
-import { findScopedBuyer, requestedBuyer, type SaleBuyer } from './sale-buyers';
+import {
+  buyerCoverageFailure,
+  findScopedBuyer,
+  requestedBuyer,
+  type SaleBuyer,
+} from './sale-buyers';
 import { claimSale, replaySale, saleHash, saleResult } from './sale-claim';
 import { recordSaleInputSchema, type SaleInput } from './sale-input';
 import { readSaleOffer } from './sale-offer';
@@ -114,13 +120,14 @@ function saleWriteFailure(error: unknown) {
 async function claimAndRecord(tx: TenantTransaction, principal: SalePrincipal, input: SaleInput) {
   await tx.execute(sql`set constraints public.membership_claims_require_sale deferred`);
   const buyer = requestedBuyer(input.buyer);
-  if (!(await findScopedBuyer(tx, principal, buyer, false)))
-    return { ok: false, code: 'not_found' } as const;
+  const preflight = await findScopedBuyer(tx, principal, buyer, false);
+  if (!preflight) return { ok: false, code: 'not_found' } as const;
 
   const hash = saleHash(input, buyer);
   const claim = await claimSale(tx, principal.tenantId, input.operationKey, hash);
+  // An identical replay returns the original sale even if the buyer is now covered.
   if (!claim) return replaySale(tx, principal, input.operationKey, hash);
-  return insertSale(tx, principal, input, buyer, claim.requestHash);
+  return insertSale(tx, principal, input, buyer, claim.requestHash, preflight.coverageUserId);
 }
 
 async function lockSaleRows(tx: TenantTransaction, tenantId: string, planVersionId: string) {
@@ -160,12 +167,22 @@ async function insertSale(
   principal: SalePrincipal,
   input: SaleInput,
   buyer: SaleBuyer,
-  requestHash: Buffer
+  requestHash: Buffer,
+  coverageUserId: string | null
 ) {
   const { tenantId, userId } = principal;
+  // Sale: person → book → plan → entity → buyer. Admission: person → terms → entries.
+  // Both take the person lock before row locks, and the sale reads sponsor rows without locking them.
+  if (coverageUserId !== null) await lockSponsorPerson(tx, coverageUserId);
   const { book, requested } = await lockSaleRows(tx, tenantId, input.planVersionId);
   const attribution = await findScopedBuyer(tx, principal, buyer, true);
   if (!attribution) return { ok: false, code: 'not_found' } as const;
+  if (attribution.coverageUserId !== coverageUserId)
+    return { ok: false, code: 'conflict' } as const;
+  if (coverageUserId !== null) {
+    const failure = await buyerCoverageFailure(tx, tenantId, coverageUserId);
+    if (failure) return { ok: false, code: failure } as const;
+  }
   if (!requested) return { ok: false, code: 'stale_offer' } as const;
 
   const offer = await readSaleOffer(tx, principal, requested.planId);

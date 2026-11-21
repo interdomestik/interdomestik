@@ -72,7 +72,14 @@ describe.each([
     invoke: mocks.sell,
     input: saleInput,
     payload: 'sale',
-    failures: ['invalid', 'stale_offer', 'stale_rate', 'rate_unavailable', 'conflict'],
+    failures: [
+      'invalid',
+      'already_covered',
+      'stale_offer',
+      'stale_rate',
+      'rate_unavailable',
+      'conflict',
+    ],
   },
 ])('WP-02 billing action $name', ({ name, action, invoke, input, payload, failures }) => {
   beforeEach(() => {

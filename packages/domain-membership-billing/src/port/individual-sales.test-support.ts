@@ -21,6 +21,11 @@ export async function grantSaleFixturePrerequisites({ admin }: PaymentPortDataba
   await admin.unsafe(`grant usage on schema public to "${runtimeRole}"`);
   await admin.unsafe(`grant select, update on membership_plans, legal_entities, member_leads, "user"
     to "${runtimeRole}", "${paymentPortTestGuardRole}"`);
+  await admin.unsafe(`grant select on subscriptions, sponsor_terms, sponsor_term_revisions,
+    sponsor_revision_decisions, sponsor_roster_entries, sponsor_handover_intents to "${runtimeRole}"`);
+  await admin.unsafe(`grant update (id) on sponsor_terms to "${runtimeRole}"`);
+  await admin.unsafe(`grant update (conflict_decision, conflict_decided_at) on sponsor_roster_entries
+    to "${runtimeRole}"`);
   await admin.unsafe(`grant select, update, delete on membership_plan_versions, membership_sale_claims,
     membership_sales, membership_ledger_entries to "${paymentPortTestGuardRole}"`);
 }

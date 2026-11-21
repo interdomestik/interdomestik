@@ -5,6 +5,7 @@ import {
 } from '@interdomestik/database/testing/payment-port-rls';
 import { afterAll, beforeAll, describe } from 'vitest';
 
+import { registerCoverageCases } from './individual-sale-coverage.test-support';
 import { registerInvariantCases } from './individual-sale-invariants.test-support';
 import { registerOfferCases } from './individual-sale-offers.test-support';
 import { registerRaceCases } from './individual-sale-races.test-support';
@@ -39,5 +40,6 @@ describe.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
     registerInvariantCases(fixture);
     registerScopeCases(fixture);
     registerRaceCases(fixture);
+    registerCoverageCases(fixture);
   }
 );
