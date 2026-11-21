@@ -10,6 +10,11 @@ export function isOwnReadable(value: unknown): value is object {
   );
 }
 
+/** The snapshot copies own-data records with a null prototype. */
+export function isSnapshotRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && isOwnReadable(value) && Object.getPrototypeOf(value) === null;
+}
+
 const formDataPrototype = FormData.prototype;
 
 /** Check the prototype chain before invoking a FormData intrinsic's brand check. */
@@ -92,6 +97,49 @@ export function checkDef(
 export function hasTrait(schema: unknown, trait: string): boolean {
   const traits = ownValue(ownValue(schema, '_zod'), 'traits');
   return types.isSet(traits) && Set.prototype.has.call(traits, trait);
+}
+
+const patternedFormats = new Set([
+  'regex',
+  'lowercase',
+  'uppercase',
+  'email',
+  'uuid',
+  'guid',
+  'cuid',
+  'cuid2',
+  'ulid',
+  'nanoid',
+  'xid',
+  'ksuid',
+  'ipv4',
+  'cidrv4',
+  'e164',
+  'date',
+  'time',
+  'datetime',
+  'duration',
+  'emoji',
+]);
+const regExpSource = Object.getOwnPropertyDescriptor(RegExp.prototype, 'source')!.get!;
+const regExpFlags = Object.getOwnPropertyDescriptor(RegExp.prototype, 'flags')!.get!;
+
+export function regexDefinition(
+  check: unknown,
+  format: unknown,
+  pattern: unknown
+): readonly [source: string, flags: string] | undefined {
+  if (
+    typeof format !== 'string' ||
+    !patternedFormats.has(format) ||
+    !hasTrait(check, '$ZodCheckStringFormat') ||
+    !types.isRegExp(pattern) ||
+    Object.getPrototypeOf(pattern) !== RegExp.prototype ||
+    Reflect.ownKeys(pattern).length !== 1 ||
+    !Object.hasOwn(pattern, 'lastIndex')
+  )
+    return undefined;
+  return [Reflect.apply(regExpSource, pattern, []), Reflect.apply(regExpFlags, pattern, [])];
 }
 
 function carriesSchema(value: unknown): boolean {

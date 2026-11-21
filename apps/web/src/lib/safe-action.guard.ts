@@ -8,8 +8,9 @@ import {
   isOwnReadable,
   ownValue,
 } from './safe-action.check-def';
+import { refinementRun, type RefinementRun } from './safe-action.checks';
 import { actionFailure, type ActionFailure } from './safe-action.failure';
-import { exactParsedInput, privateFile } from './safe-action.output';
+import { exactParsedInput, privateFile, snapshotIssue } from './safe-action.output';
 import { assertPristineObjectPrototype, isIntegrityError } from './safe-action.recheck';
 import {
   ActionDefinitionError,
@@ -145,41 +146,6 @@ function copyRaw(
   put(target, key, record);
 }
 
-function coercionIssue(shape: Shape, raw: unknown, path = ''): string | undefined {
-  if ('inner' in shape) {
-    if (
-      (shape.type === 'nullable' && raw === null) ||
-      (shape.type === 'optional' && raw === undefined)
-    )
-      return undefined;
-    return coercionIssue(shape.inner, raw, path);
-  }
-  if ('coerce' in shape && shape.coerce) {
-    const type = typeof raw;
-    const acceptable =
-      type === 'string' ||
-      type === 'number' ||
-      type === 'boolean' ||
-      (shape.type === 'bigint' && type === 'bigint');
-    return acceptable ? undefined : path || '_root';
-  }
-  if (shape.type === 'object' && isOwnReadable(raw) && !Array.isArray(raw)) {
-    for (const [key, field] of Object.entries(shape.fields)) {
-      const issue = coercionIssue(field, ownValue(raw, key), path ? `${path}.${key}` : key);
-      if (issue !== undefined) return issue;
-    }
-  }
-  if ((shape.type === 'array' || shape.type === 'tuple') && Array.isArray(raw)) {
-    for (let i = 0; i < raw.length; i += 1) {
-      const field = shape.type === 'array' ? shape.element : shape.items[i];
-      if (!field) continue;
-      const issue = coercionIssue(field, ownValue(raw, i), path ? `${path}.${i}` : String(i));
-      if (issue !== undefined) return issue;
-    }
-  }
-  return undefined;
-}
-
 type Snapshot = { snapshot: unknown } | { refusal: Invalid };
 type SnapshotOptions = { fieldKind: InputGuard['fieldKind']; allowFiles: boolean };
 
@@ -232,7 +198,7 @@ async function runGuard(
   assertPristineObjectPrototype();
   if ('refusal' in owned) return owned.refusal;
   const { snapshot } = owned;
-  const issue = coercionIssue(shape, snapshot);
+  const issue = snapshotIssue(shape, snapshot);
   if (issue !== undefined) return invalid(issue, 'invalid_type', snapshot);
   const context = Object.assign(Object.create(null), {
     abortEarly: false,
@@ -242,16 +208,23 @@ async function runGuard(
     reportInput: false,
     error: undefined,
   });
+  const refinements: RefinementRun = { thrown: null, defect: false };
   let result: Awaited<ReturnType<typeof parser.safeParseAsync>>;
   assertPristineObjectPrototype();
   try {
-    result = await parser.safeParseAsync(snapshot, context);
+    result = await refinementRun.run(refinements, () => parser.safeParseAsync(snapshot, context));
   } catch (error) {
     if (isIntegrityError(error)) throw error;
     assertPristineObjectPrototype();
     return { kind: 'thrown', error, snapshot };
   }
   assertPristineObjectPrototype();
+  if (refinements.thrown) {
+    const { error } = refinements.thrown;
+    if (isIntegrityError(error)) throw error;
+    return { kind: 'thrown', error, snapshot };
+  }
+  if (refinements.defect) return { kind: 'defect', snapshot };
   try {
     if (!result.success) {
       const outcome: Invalid = {

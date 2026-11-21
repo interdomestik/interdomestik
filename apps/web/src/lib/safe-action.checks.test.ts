@@ -93,6 +93,48 @@ describe('private admitted Zod checks', () => {
     });
   });
 
+  it('refuses a discriminated union with unionFallback at definition', () => {
+    const a = z.strictObject({ tag: z.literal('A') });
+    const b = z.strictObject({ tag: z.literal('B') });
+    expect(() => guard(z.discriminatedUnion('tag', [a, b], { unionFallback: true }))).toThrow(
+      /unionFallback/
+    );
+  });
+
+  it.each(['field', 'discriminator'])('refuses a hidden enum entry on a %s', position => {
+    const entries = Object.defineProperty({ public: 'public' }, 'internal', {
+      value: 'internal',
+    });
+    const tag = z.enum(entries);
+    const field =
+      position === 'field'
+        ? tag
+        : z.discriminatedUnion('tag', [
+            z.strictObject({ tag }),
+            z.strictObject({ tag: z.literal('other') }),
+          ]);
+    expect(field.safeParse(position === 'field' ? 'internal' : { tag: 'internal' }).success).toBe(
+      false
+    );
+    expect(() => guard(field)).toThrow(/invalid enum entry/);
+  });
+
+  it('returns a defect for a non-boolean refinement without affecting another run', async () => {
+    const input = guard(
+      z.string().refine(async value => {
+        if (value === 'bad') return 1;
+        await new Promise<void>(resolve => setImmediate(resolve));
+        return true;
+      })
+    );
+    const valid = input.run({ field: 'ok' }, false);
+    expect(await input.run({ field: 'bad' }, false)).toMatchObject({
+      kind: 'defect',
+      snapshot: { field: 'bad' },
+    });
+    expect(await valid).toMatchObject({ kind: 'value', value: { field: 'ok' } });
+  });
+
   it('rebuilds from metadata even when the developer parser still runs a removed trim', async () => {
     const field = z.string().trim();
     field._zod.def.checks?.splice(0);
@@ -242,7 +284,7 @@ describe('private admitted Zod checks', () => {
       predicate,
     ]);
     const wrongType = { value: { a: 'x' }, issues: [] };
-    check._zod.check(wrongType as never);
+    await check._zod.check(wrongType as never);
     expect(wrongType.issues).toHaveLength(1);
     const input = guard(z.union([z.string().refine(predicate), z.strictObject({ a: z.string() })]));
     expect(await input.run({ field: { a: 'x' } }, false)).toMatchObject({ kind: 'value' });

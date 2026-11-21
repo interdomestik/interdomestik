@@ -1,6 +1,13 @@
 import { types } from 'node:util';
 
-import { ACCESSOR, dateTime, denseArray, isOwnReadable, ownValue } from './safe-action.check-def';
+import {
+  ACCESSOR,
+  dateTime,
+  denseArray,
+  isOwnReadable,
+  isSnapshotRecord,
+  ownValue,
+} from './safe-action.check-def';
 import { assertPristineObjectPrototype, isIntegrityError } from './safe-action.recheck';
 import type { ObjectShape, Shape } from './safe-action.shape';
 
@@ -77,6 +84,60 @@ const DEFECT = Object.freeze({ kind: 'defect' } as const);
 const copied = (value: unknown): Copy => ({ kind: 'value', value });
 const childPath = (path: string, key: string | number) => (path ? `${path}.${key}` : String(key));
 
+type UnionShape = Extract<Shape, { type: 'union' }>;
+
+function discriminatedBranch(shape: UnionShape, raw: unknown, discriminator: string) {
+  const tag = ownValue(raw, discriminator);
+  return shape.branches.find(candidate => {
+    const field = candidate.type === 'object' ? candidate.fields[discriminator] : undefined;
+    return (
+      (field?.type === 'enum' || field?.type === 'literal') &&
+      field.values.some(value => Object.is(value, tag) || value === tag)
+    );
+  });
+}
+
+export function snapshotIssue(shape: Shape, raw: unknown, path = ''): string | undefined {
+  if ('inner' in shape) {
+    if (
+      (shape.type === 'nullable' && raw === null) ||
+      (shape.type === 'optional' && raw === undefined)
+    )
+      return undefined;
+    return snapshotIssue(shape.inner, raw, path);
+  }
+  if ('coerce' in shape && shape.coerce) {
+    const type = typeof raw;
+    const acceptable =
+      type === 'string' ||
+      type === 'number' ||
+      type === 'boolean' ||
+      (shape.type === 'bigint' && type === 'bigint');
+    return acceptable ? undefined : path || '_root';
+  }
+  if (shape.type === 'object') {
+    if (!isSnapshotRecord(raw)) return path || '_root';
+    for (const [key, field] of Object.entries(shape.fields)) {
+      const issue = snapshotIssue(field, ownValue(raw, key), childPath(path, key));
+      if (issue !== undefined) return issue;
+    }
+  }
+  if (shape.type === 'union' && shape.discriminator !== null) {
+    if (!isSnapshotRecord(raw)) return path || '_root';
+    const branch = discriminatedBranch(shape, raw, shape.discriminator);
+    if (branch) return snapshotIssue(branch, raw, path);
+  }
+  if ((shape.type === 'array' || shape.type === 'tuple') && Array.isArray(raw)) {
+    for (let i = 0; i < raw.length; i += 1) {
+      const field = shape.type === 'array' ? shape.element : shape.items[i];
+      if (!field) continue;
+      const issue = snapshotIssue(field, ownValue(raw, i), childPath(path, i));
+      if (issue !== undefined) return issue;
+    }
+  }
+  return undefined;
+}
+
 function withFrozenState<T extends object>(source: object, copy: T): Copy {
   return copied(Object.isFrozen(source) ? Object.freeze(copy) : copy);
 }
@@ -138,22 +199,9 @@ function copyArray(
   return withFrozenState(parsed, copy);
 }
 
-function copyUnion(
-  shape: Extract<Shape, { type: 'union' }>,
-  raw: unknown,
-  parsed: unknown,
-  path: string
-): Copy {
+function copyUnion(shape: UnionShape, raw: unknown, parsed: unknown, path: string): Copy {
   if (shape.discriminator !== null) {
-    const tag = ownValue(raw, shape.discriminator);
-    const branch = shape.branches.find(candidate => {
-      if (candidate.type !== 'object') return false;
-      const field = candidate.fields[shape.discriminator!];
-      return (
-        (field?.type === 'enum' || field?.type === 'literal') &&
-        field.values.some(value => Object.is(value, tag) || value === tag)
-      );
-    });
+    const branch = discriminatedBranch(shape, raw, shape.discriminator);
     return branch ? exactParsedInput(branch, raw, parsed, path) : DEFECT;
   }
   for (const branch of shape.branches) {

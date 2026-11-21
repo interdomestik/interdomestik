@@ -1,7 +1,15 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { types } from 'node:util';
 import { z } from 'zod';
 
-import { checkDef, dateTime, denseArray, hasTrait, holdsSchema } from './safe-action.check-def';
+import {
+  checkDef,
+  dateTime,
+  denseArray,
+  hasTrait,
+  holdsSchema,
+  regexDefinition,
+} from './safe-action.check-def';
 import { normalizerOf, privateNormalizer, type Normalizer } from './safe-action.normalizers';
 
 export type CheckDomain = {
@@ -53,28 +61,6 @@ const operands = {
   ends_with: ['suffix', '$ZodCheckEndsWith', z.endsWith],
 } as const;
 
-const patternedFormats = new Set([
-  'regex',
-  'lowercase',
-  'uppercase',
-  'email',
-  'uuid',
-  'guid',
-  'cuid',
-  'cuid2',
-  'ulid',
-  'nanoid',
-  'xid',
-  'ksuid',
-  'ipv4',
-  'cidrv4',
-  'e164',
-  'date',
-  'time',
-  'datetime',
-  'duration',
-  'emoji',
-]);
 const refusedFormatTraits = [
   '$ZodURL',
   '$ZodIPv6',
@@ -86,22 +72,39 @@ const refusedFormatTraits = [
 ];
 const valueTypes = new Set(['string', 'number', 'boolean', 'bigint']);
 const comparisonTraits = { greater_than: '$ZodCheckGreaterThan', less_than: '$ZodCheckLessThan' };
-const regExpSource = Object.getOwnPropertyDescriptor(RegExp.prototype, 'source')!.get!;
-const regExpFlags = Object.getOwnPropertyDescriptor(RegExp.prototype, 'flags')!.get!;
+
+export type RefinementRun = {
+  thrown: { error: unknown } | null;
+  defect: boolean;
+};
+
+// Zod's refine callback does not receive the parse context.
+export const refinementRun = new AsyncLocalStorage<RefinementRun>();
 
 function isKey<K extends string>(table: Record<K, unknown>, key: unknown): key is K {
   return typeof key === 'string' && Object.hasOwn(table, key);
 }
 
-function refineFor(domain: CheckDomain, predicate: Predicate): Predicate {
-  return value => {
+function refineFor(
+  domain: CheckDomain,
+  predicate: Predicate
+): (value: unknown) => Promise<boolean> {
+  return async value => {
     if (
       typeof value !== domain.type &&
       !(value === null && domain.nullable) &&
       !(value === undefined && domain.optional)
     )
       return false;
-    return Reflect.apply(predicate, undefined, [value]);
+    const run = refinementRun.getStore();
+    try {
+      const result: unknown = await Reflect.apply(predicate, undefined, [value]);
+      if (typeof result === 'boolean') return result;
+      if (run) run.defect = true;
+    } catch (error) {
+      if (run) run.thrown ??= { error };
+    }
+    return false;
   };
 }
 
@@ -120,22 +123,10 @@ function stringCheck(check: unknown, def: Metadata, refuse: Refuse): CapturedChe
     }
     return [format, value];
   }
-  const { pattern } = def;
-  if (
-    typeof format !== 'string' ||
-    !patternedFormats.has(format) ||
-    !hasTrait(check, '$ZodCheckStringFormat') ||
-    !types.isRegExp(pattern) ||
-    Object.getPrototypeOf(pattern) !== RegExp.prototype ||
-    Reflect.ownKeys(pattern).length !== 1 ||
-    !Object.hasOwn(pattern, 'lastIndex')
-  )
-    return refuse('a string format without an admitted regular expression');
-  return [
-    'regex',
-    Reflect.apply(regExpSource, pattern, []),
-    Reflect.apply(regExpFlags, pattern, []),
-  ];
+  const regex = regexDefinition(check, format, def.pattern);
+  return regex
+    ? ['regex', ...regex]
+    : refuse('a string format without an admitted regular expression');
 }
 
 function bound(value: unknown, type: string): CheckedValue | undefined {

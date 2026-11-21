@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { isOwnReadable, ownValue } from './safe-action.check-def';
+import { isOwnReadable, isSnapshotRecord } from './safe-action.check-def';
 import {
   rebuildCheck,
   type CapturedCheck,
@@ -35,7 +35,9 @@ export function enumValues(raw: unknown, refuse: Refuse): readonly (string | num
   }
   const entries: Record<string, string | number> = Object.create(null);
   for (const key of Reflect.ownKeys(raw)) {
-    const value = ownValue(raw, key);
+    const entry = Object.getOwnPropertyDescriptor(raw, key);
+    const value: unknown =
+      entry?.enumerable && Object.hasOwn(entry, 'value') ? entry.value : undefined;
     if (typeof key !== 'string' || (typeof value !== 'string' && typeof value !== 'number')) {
       return refuse('invalid enum entry');
     }
@@ -187,7 +189,7 @@ export type FieldKind = 'array' | 'scalar' | 'object';
 
 export function formKind(node: Shape): FieldKind | 'mixed' {
   const shape = unwrap(node);
-  if (shape.type === 'array') return 'array';
+  if (shape.type === 'array' || shape.type === 'tuple') return 'array';
   if (shape.type === 'object') return 'object';
   if (shape.type !== 'union') return 'scalar';
   const branches = shape.branches.map(formKind);
@@ -278,5 +280,19 @@ export function rebuildParser(shape: Shape): z.ZodType {
     coerce: { value: 'coerce' in shape && shape.coerce },
     abort: { value: false },
   });
+  if (shape.type === 'object' || (shape.type === 'union' && shape.discriminator !== null)) {
+    // Plain unions can try an object branch on a Date or File before selecting another branch.
+    const run = parser._zod.run;
+    parser._zod.run = (payload, context) => {
+      if (isSnapshotRecord(payload.value)) return run(payload, context);
+      payload.issues.push({
+        code: 'invalid_type',
+        expected: 'object',
+        input: undefined,
+        inst: parser,
+      });
+      return payload;
+    };
+  }
   return parser;
 }

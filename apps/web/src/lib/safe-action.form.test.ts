@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { buildInputGuard } from './safe-action.guard';
@@ -62,6 +62,29 @@ describe('the form guard adapter', () => {
     });
   });
 
+  it('collects repeated FormData entries for a tuple field', async () => {
+    const tuple = buildInputGuard(
+      z.strictObject({ pair: z.tuple([z.string(), z.string()]) }),
+      options
+    );
+    expect(
+      await tuple.run(
+        form([
+          ['pair', 'a'],
+          ['pair', 'b'],
+        ]),
+        true
+      )
+    ).toMatchObject({ kind: 'value', value: { pair: ['a', 'b'] } });
+  });
+
+  it('refuses a tuple-or-scalar form field at definition', () => {
+    const pair = z.union([z.tuple([z.string()]), z.string()]);
+    expect(() => buildInputGuard(z.strictObject({ pair }), options)).toThrow(
+      /pair: a form field may not mix array and non-array/
+    );
+  });
+
   it('refuses an omitted form key that Zod supplies through coercion', async () => {
     const flag = buildInputGuard(z.strictObject({ flag: z.coerce.boolean() }), options);
     expect(await flag.run(new FormData(), true)).toMatchObject({
@@ -95,6 +118,25 @@ describe('the form guard adapter', () => {
     );
     expect(result).toMatchObject({ kind: 'value', value: { title: 't', file: expect.any(File) } });
     expect(schema.safeParse(result.snapshot).success).toBe(true);
+  });
+
+  it('rejects a File at an object position without refining its inherited name', async () => {
+    const predicate = vi.fn(() => {
+      throw new Error('unexpected refinement');
+    });
+    const input = buildInputGuard(
+      z.strictObject({
+        file: z.file().optional(),
+        field: z.strictObject({ name: z.coerce.string().optional().refine(predicate) }),
+      }),
+      options
+    );
+    const file = new File(['ok'], 'supplied.txt');
+    expect(await input.run(form([['field', file]]), true)).toMatchObject({
+      kind: 'invalid',
+      failure: { issues: { field: 'invalid_type' } },
+    });
+    expect(predicate).not.toHaveBeenCalled();
   });
 
   it('refuses a second argument that is not FormData', async () => {

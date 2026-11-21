@@ -131,6 +131,9 @@ function unionNode(
   const discriminator = ownValue(def, 'discriminator');
   const inclusive = ownValue(def, 'inclusive');
   const discriminated = hasTrait(schema, '$ZodDiscriminatedUnion');
+  if (discriminated && Object.hasOwn(def, 'unionFallback')) {
+    return refuse('a discriminated union with unionFallback');
+  }
   if (
     discriminated
       ? typeof discriminator !== 'string'
