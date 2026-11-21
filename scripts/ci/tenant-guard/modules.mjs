@@ -1,6 +1,7 @@
 import path from 'node:path/posix';
 import ts from 'typescript';
 import { hasDefaultModifier, hasExportModifier, packageCandidates } from './package-exports.mjs';
+import { pathRuleMatch } from './resolution.mjs';
 import { parseSource } from './syntax.mjs';
 
 // Static module resolution over the workspace. A specifier can reach a different file under the
@@ -202,20 +203,11 @@ function isRelative(specifier) {
   );
 }
 
-/** What a tsconfig `paths` pattern captures from `specifier` ('' for an exact key), or null. */
-function pathRuleMatch(pattern, specifier) {
-  const star = pattern.indexOf('*');
-  if (star < 0) return specifier === pattern ? '' : null;
-  const prefix = pattern.slice(0, star);
-  const suffix = pattern.slice(star + 1);
-  if (
-    specifier.startsWith(prefix) &&
-    specifier.endsWith(suffix) &&
-    specifier.length >= prefix.length + suffix.length
-  ) {
-    return specifier.slice(prefix.length, specifier.length - suffix.length);
-  }
-  return null;
+/** Check parallel file and index candidates without the runtime walk's target filtering. */
+export function hasParallelTarget(files, stem, expected) {
+  const variants = EXTENSIONS.flatMap(ext => [stem + ext, `${stem}/index${ext}`]);
+  const candidates = [stem, `${stem}/package.json`, ...variants, `${stem}.d.ts`, `${stem}/index.d.ts`];
+  return candidates.some(file => file !== expected && files.has(file));
 }
 
 // ---- per-file export tables ----------------------------------------------------------------

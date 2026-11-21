@@ -1,5 +1,7 @@
 #!/usr/bin/env node
+// Tenant guard entry point. The protected workflow supplies all object identities explicitly.
 import { performance } from 'node:perf_hooks';
+import { KERNEL_ANCHOR } from './tenant-guard/manifest.mjs';
 import { createModuleGraph } from './tenant-guard/modules.mjs';
 import {
   bundlerConfigViolations,
@@ -9,7 +11,11 @@ import {
 import { evaluate } from './tenant-guard/rules.mjs';
 import {
   APP_ALIASES,
+  checkoutDiscrepancy,
   currentSources,
+  gitAncestor,
+  gitIdentity,
+  readSchemaTree,
   trustedSources,
   workspacePackages,
 } from './tenant-guard/sources.mjs';
@@ -21,7 +27,7 @@ import { TRUSTED } from './tenant-guard/trusted.mjs';
 const args = process.argv.slice(2);
 const option = name => {
   const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : null;
+  return index >= 0 ? (args[index + 1] ?? '') : null;
 };
 const repoRoot = option('--root') ?? process.cwd();
 // `--trusted <commit>` is a local measurement override; without it the owner pin is mandatory and
@@ -38,12 +44,12 @@ if (
   process.exit(2);
 }
 const started = performance.now();
-const sources = currentSources(repoRoot);
+const { identity, schemaAdmission } = admissionInputs();
+const { sources, resolution, packages } = checkoutInputs(schemaAdmission);
 const trusted = trustedSources(repoRoot, trustedRef);
-const resolution = resolutionConfig(repoRoot);
 const graph = createModuleGraph({
   sources,
-  packages: workspacePackages(repoRoot),
+  packages,
   appAliases: APP_ALIASES,
   resolution,
 });
@@ -54,7 +60,7 @@ const seedTls = createSeedTlsContext({
   resolution,
   appAliases: APP_ALIASES,
 });
-const result = evaluate({ sources, trusted, graph, seedTls });
+const result = evaluate({ sources, trusted, graph, seedTls, schemaAdmission });
 result.violations.unshift(
   ...resolution.violations,
   ...workspaceGlobViolations(repoRoot),
@@ -63,6 +69,10 @@ result.violations.unshift(
 const elapsedMs = Math.round(performance.now() - started);
 const report = {
   trusted: trustedRef,
+  identity,
+  schemaAdmission: result.schemaAdmission,
+  legacyDigests: result.legacyDigests,
+  legacyExactDigests: result.legacyExactDigests,
   elapsedMs,
   telemetry: result.telemetry,
   violations: result.violations,
@@ -79,3 +89,86 @@ else {
   );
 }
 process.exitCode = result.violations.length > 0 ? 1 : 0;
+
+function admissionInputs() {
+  const roles = ['merge', 'base', 'anchor'];
+  const identity = Object.fromEntries(
+    roles.map(role => [
+      role,
+      {
+        commit: option(`--${role}-commit`),
+        tree: option(`--${role}-tree`),
+      },
+    ])
+  );
+  const explicit = Object.values(identity).some(ref => ref.commit !== null || ref.tree !== null);
+  let labels = 'local';
+  try {
+    if (!explicit) {
+      // Local audits and verification compare tracked HEAD with origin/main by default.
+      // Use --base <revision> for a known earlier base. The scan still checks checkout bytes.
+      labels = 'merge';
+      identity.merge = gitIdentity(repoRoot, 'HEAD');
+      labels = 'base';
+      identity.base = gitIdentity(repoRoot, option('--base') ?? 'refs/remotes/origin/main');
+      identity.anchor = KERNEL_ANCHOR;
+    }
+    if (
+      identity.anchor.commit !== KERNEL_ANCHOR.commit ||
+      identity.anchor.tree !== KERNEL_ANCHOR.tree
+    )
+      return {
+        identity,
+        schemaAdmission: { reason: 'anchor arguments differ from the owner pin' },
+      };
+    labels = 'anchor';
+    const anchor = readSchemaTree(repoRoot, identity.anchor, labels);
+    labels = 'base';
+    const base =
+      identity.base.commit === identity.anchor.commit && identity.base.tree === identity.anchor.tree
+        ? anchor
+        : readSchemaTree(repoRoot, identity.base, labels);
+    labels = 'candidate';
+    const candidate =
+      identity.merge.commit === identity.base.commit && identity.merge.tree === identity.base.tree
+        ? base
+        : readSchemaTree(repoRoot, identity.merge, labels);
+    let reason = null;
+    if (!gitAncestor(repoRoot, identity.anchor.commit, identity.base.commit))
+      reason = 'anchor is not an ancestor of base';
+    else if (!gitAncestor(repoRoot, identity.base.commit, identity.merge.commit))
+      reason = 'base is not an ancestor of candidate';
+    else if (
+      explicit &&
+      gitIdentity(repoRoot, `${identity.merge.commit}^1`).commit !== identity.base.commit
+    )
+      reason = 'base is not the merge first parent';
+    return { identity, schemaAdmission: { anchor, base, candidate, reason } };
+  } catch (error) {
+    const reason =
+      error.code || !(error instanceof Error) ? `${labels}: Git data unavailable` : error.message;
+    return { identity, schemaAdmission: { reason } };
+  }
+}
+
+function checkoutInputs(admission) {
+  try {
+    const sources = currentSources(repoRoot);
+    const resolution = resolutionConfig(repoRoot);
+    const packages = workspacePackages(repoRoot);
+    if (!admission.reason && admission.candidate)
+      admission.reason = checkoutDiscrepancy(repoRoot, sources, admission.candidate);
+    return { sources, resolution, packages };
+  } catch (error) {
+    admission.reason ??= error.code
+      ? 'checkout: source or resolver data unavailable'
+      : error.message;
+    return (
+      admission.candidate ?? {
+        sources: new Map(),
+        packages: new Map(),
+        resolution: { pathRules: [], baseRoots: [], violations: [] },
+      }
+    );
+  }
+}

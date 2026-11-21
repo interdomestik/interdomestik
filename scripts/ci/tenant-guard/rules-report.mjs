@@ -1,4 +1,4 @@
-// Tenant guard report: receiver sinks, unresolved legacy sinks, pins and contract use.
+// Tenant guard findings and telemetry.
 
 import { LEGACY } from './manifest.mjs';
 import { byCodeUnit } from './rules-digest.mjs';
@@ -18,13 +18,17 @@ export function report(ctx) {
   telemetry.contractsUsed = contractUse.size;
   for (const key of LEGACY.keys())
     if (sources.has(key.slice(0, key.lastIndexOf('#')))) legacyDigest(key);
+  const exact = Object.fromEntries(legacyDigests);
   return {
     violations,
     accepted,
     telemetry,
     sinks: [...legacySinks.keys()],
     tenantState: [...tenantState.keys()].sort(byCodeUnit),
-    legacyDigests: Object.fromEntries(legacyDigests),
+    legacyDigests: ctx.schemaAdmission?.ok ? Object.fromEntries(ctx.legacyPins) : exact,
+    legacyExactDigests: exact,
+    schemaAdmission: ctx.schemaAdmission,
+    pinnedModules: [...ctx.pinnedModules],
   };
 }
 
@@ -59,19 +63,31 @@ function reportPins(ctx) {
   const { legacyClosureProblems, legacyDigest, legacyPinned, legacyPins, sources } = ctx;
   for (const key of LEGACY.keys()) {
     const file = key.slice(0, key.lastIndexOf('#'));
-    if (!sources.has(file) || legacyPinned(key)) continue;
-    const problems = legacyClosureProblems.get(key);
+    if (!sources.has(file)) {
+      if (!ctx.schemaAdmission) continue;
+      legacyDigest(key, { diagnostic: true });
+    } else if (legacyPinned(key)) continue;
     ctx.violations.push({
       rule: 'pin',
       file,
       line: 0,
       unit: key.slice(key.lastIndexOf('#') + 1),
-      detail:
-        problems.length > 0
-          ? `legacy kernel closure cannot be bound: ${problems.join('; ')}`
-          : `legacy kernel entry differs from its reviewed contract (digest ${legacyDigest(key)}, pinned ${legacyPins.get(key) ?? 'none'})`,
+      detail: pinDetail(
+        key,
+        ctx.schemaAdmission?.reason,
+        legacyClosureProblems.get(key),
+        legacyDigest,
+        legacyPins
+      ),
     });
   }
+}
+
+function pinDetail(key, proof, problems, legacyDigest, pins) {
+  const drift = 'legacy kernel entry differs from its reviewed contract';
+  if (proof) return `${drift} (${proof}; exact digest ${legacyDigest(key)})`;
+  if (problems.length > 0) return `legacy kernel closure cannot be bound: ${problems.join('; ')}`;
+  return `${drift} (digest ${legacyDigest(key)}, pinned ${pins.get(key) ?? 'none'})`;
 }
 
 // Unused or over-broad contracts are reported so the manifest cannot silently widen. During an

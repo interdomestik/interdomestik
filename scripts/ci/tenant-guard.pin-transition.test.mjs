@@ -95,9 +95,9 @@ test('a completed transition admits only the successor kernel', () => {
   }
 });
 
-// One reviewed digest, or one open transition: every entry a frozen [previous, successor] pair of
-// distinct digests, so an entry can never admit a third kernel or be extended after review.
-test('the manifest pins every legacy entry to one digest or one frozen transition pair', () => {
+// The historical transition tests above retain the exact reviewed pair semantics. The live
+// manifest binds each legacy entry once at the atomic v2 cutover.
+test('the manifest pins every legacy entry to one versioned anchor digest', () => {
   assert.deepEqual([...LEGACY_PINS.keys()].sort(), [...LEGACY.keys()].sort());
   const shapes = new Set();
   for (const [key, pinned] of LEGACY_PINS) {
@@ -108,7 +108,8 @@ test('the manifest pins every legacy entry to one digest or one frozen transitio
       assert.equal(digests.length, 2, `${key}: [previous, successor] only`);
       assert.notEqual(digests[0], digests[1], `${key}: the successor differs`);
     }
-    for (const digest of digests) assert.match(digest, /^[0-9a-f]{64}$/u, key);
+    for (const digest of digests) assert.match(digest, /^v2:[0-9a-f]{64}$/u, key);
   }
   assert.equal(shapes.size, 1, 'every entry is in the same transition state');
+  assert.ok(shapes.has(1), 'the live cutover uses exactly one slot');
 });

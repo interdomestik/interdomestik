@@ -31,35 +31,15 @@ export const LEGACY = new Map([
   [`${DB}/db.ts#db`, 'ambient database client'],
 ]);
 
-/**
- * Reviewed kernel contracts of the legacy entries: the digest over every complete workspace module
- * in the runtime import closure of each entry's module (see rules.mjs legacyDigest). A kernel change to the context,
- * transaction lifecycle or ambient client fails the guard until it is reviewed and re-pinned.
- * Owner-approved 2026-11-21 WP-07 rates transition: [main c266f094b, PR-1a exchange-rate schema].
- * The pooler transition (#2054, 2026-11-11) is complete on main and its successor is in slot 0.
- */
+/** Exact reviewed Git identity and per-entry v2 digests of its full kernel closure. */
+export const KERNEL_ANCHOR = Object.freeze({
+  commit: '44033ca8c00f82152649a34cb9596e9dbc3f97a5',
+  tree: '5947794aa085242fa7350bacc08d2374efb08645',
+});
 export const LEGACY_PINS = new Map([
-  [
-    `${DB}/tenant.ts#withTenantContext`,
-    Object.freeze([
-      'd5a48cd0122819d13b21c018aa2728d7f675de0d2306b379fbc21330ffe7b5d9',
-      '1d75e1be9ef39be8b7e1fd522f5f62d5e34479a67d2b61af5d6c0d9985ff5c60',
-    ]),
-  ],
-  [
-    `${DB}/tenant.ts#withTenantDb`,
-    Object.freeze([
-      '7a219887513dba5ff0b88241b9926b13c010d51ceaee7a020e4ab1f8dfb2d988',
-      '692e1867c412c7d42112590cbea6a94d11a6e8d0a0832427204bf19cfcf29ba9',
-    ]),
-  ],
-  [
-    `${DB}/db.ts#db`,
-    Object.freeze([
-      '3cbacb145c83aa637e232999b07dd4f10131ba23dec5dc62282c8f5e0a1ad671',
-      '66891cd8aa8f554c2bb6c95204833b02a6b47b756d137db25f4bca9abf2b66ed',
-    ]),
-  ],
+  [`${DB}/tenant.ts#withTenantContext`, 'v2:cd510b832702e29d8fa20a134032be27c071ce90544137cf18df2f42378f4602'],
+  [`${DB}/tenant.ts#withTenantDb`, 'v2:e3667d8a8207b7689dd1ab9cd1d54185aa54eade9186abe908888631d4cc8739'],
+  [`${DB}/db.ts#db`, 'v2:96900df444bd7d695798af14354847399dc609f0470c1f24edae0a5f77ec782e'],
 ]);
 
 /** Drivers and client construction (R-d). */

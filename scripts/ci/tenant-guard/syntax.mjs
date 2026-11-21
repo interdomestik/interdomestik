@@ -164,3 +164,42 @@ export function memberUse(node) {
   if (!access || !ts.isPropertyAccessExpression(access)) return null;
   return { name: access.name.text, node: access, form: referenceForm(access) };
 }
+
+/** Index the declaring unit and whole top-level statement for each comparable binding. */
+export function topLevelDeclarations(sourceFile) {
+  const declarations = new Map();
+  const statements = new Map();
+  for (const statement of sourceFile.statements) {
+    if (
+      (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) &&
+      statement.name
+    ) {
+      declarations.set(statement.name.text, statement);
+      statements.set(statement.name.text, statement);
+    } else if (ts.isVariableStatement(statement)) {
+      for (const declaration of statement.declarationList.declarations) {
+        if (!ts.isIdentifier(declaration.name)) continue;
+        statements.set(declaration.name.text, statement);
+        declarations.set(declaration.name.text, declaredUnit(statement, declaration));
+      }
+    }
+  }
+  return { declarations, statements };
+}
+
+function declaredUnit(statement, declaration) {
+  let initializer = declaration.initializer;
+  // Keep a one-argument function wrapper's callers resolvable.
+  if (
+    initializer &&
+    ts.isCallExpression(initializer) &&
+    initializer.arguments.length === 1 &&
+    (ts.isArrowFunction(initializer.arguments[0]) ||
+      ts.isFunctionExpression(initializer.arguments[0]))
+  ) {
+    initializer = initializer.arguments[0];
+  }
+  return initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
+    ? initializer
+    : statement;
+}

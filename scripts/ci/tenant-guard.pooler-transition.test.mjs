@@ -6,7 +6,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { DB_TRANSACTION_POOLER } from './tenant-guard/c1-admissions-pooler.mjs';
-import { LEGACY_PINS } from './tenant-guard/manifest.mjs';
+import { LEGACY } from './tenant-guard/manifest.mjs';
 import { createModuleGraph } from './tenant-guard/modules.mjs';
 import { installAdmission } from './tenant-guard/rules-admission.mjs';
 import { installTrust } from './tenant-guard/rules-trust.mjs';
@@ -20,6 +20,25 @@ const packages = workspacePackages(root);
 const DB = 'packages/database/src/db.ts';
 const MODE = 'packages/database/src/pooler-mode.ts';
 const PREDECESSOR = '7e114c2eeee83453331f5a1d5082f716d5cf1c9c';
+
+// Owner-reviewed v1 predecessor and successor preserve the historical pooler contract.
+const POOLER_TUPLE = [
+  [
+    '92e239c86942fe9c17d22826b9e0c64ed0e132f2e57d1408e26289988ccc16eb',
+    'd5a48cd0122819d13b21c018aa2728d7f675de0d2306b379fbc21330ffe7b5d9',
+  ],
+  [
+    '40c646fcae0b203d0337dbb0e5ceb46091f2403cf9f89f6065878d4c504c76e7',
+    '7a219887513dba5ff0b88241b9926b13c010d51ceaee7a020e4ab1f8dfb2d988',
+  ],
+  [
+    '93c5c961056320a272ed82e9e5cc8822715a76ce4b79bc53e8d7ab7f14fb74df',
+    '3cbacb145c83aa637e232999b07dd4f10131ba23dec5dc62282c8f5e0a1ad671',
+  ],
+];
+const LEGACY_PINS = new Map(
+  [...LEGACY.keys()].map((key, index) => [key, Object.freeze(POOLER_TUPLE[index])])
+);
 
 // Keep exact successor bytes in data-only fixtures so the guard PR has no runtime change.
 // The fixed predecessor commit remains available after either side of the transition merges.

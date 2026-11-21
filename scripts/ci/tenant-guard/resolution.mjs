@@ -1,3 +1,4 @@
+// Model workspace resolver inputs and bind admitted builders to reviewed artifacts.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,9 +16,52 @@ const GIT = '/usr/bin/git';
 const CONFIG = /^[jt]sconfig(?:\..+)?\.json$/u;
 const BUNDLER_CONFIG = /^next\.config\.[cm]?[jt]s$/u;
 const GENERATED = /(^|\/)(node_modules|dist|build|coverage|test-results|\.next|\.turbo)(\/|$)/u;
-const UNMODELED_OPTIONS = ['rootDirs', 'moduleSuffixes'];
+const UNMODELED_OPTIONS = [
+  'rootDirs',
+  'moduleSuffixes',
+  'customConditions',
+  'resolvePackageJsonExports',
+  'resolvePackageJsonImports',
+];
 const WORKSPACE_GLOBS = ['apps/*', 'packages/*'];
 const toPosix = value => value.split(path.sep).join('/');
+const TOOL_CONFIG =
+  /^(?:next|vitest|vite|webpack|rollup|rspack|babel|drizzle|playwright|jest|esbuild|tsup)\.config\..+$/u;
+const LOADER_CONFIG = /^(?:\.babelrc(?:\..+)?|\.npmrc|\.?pnpmfile\.[cm]?js|\.pnp\.[cm]?js)$/u;
+const PACKAGE_INPUTS = new Set([
+  'pnpm-workspace.yaml',
+  'pnpm-lock.yaml',
+  'package.json',
+  'package-lock.json',
+  'yarn.lock',
+]);
+
+export const isResolverConfig = file => CONFIG.test(path.posix.basename(file));
+
+export function resolverInput(file) {
+  const name = path.posix.basename(file);
+  return (
+    TOOL_CONFIG.test(name) ||
+    LOADER_CONFIG.test(name) ||
+    PACKAGE_INPUTS.has(name) ||
+    isResolverConfig(file) ||
+    file.startsWith('patches/')
+  );
+}
+
+export function pathRuleMatch(pattern, specifier) {
+  const star = pattern.indexOf('*');
+  if (star < 0) return specifier === pattern ? '' : null;
+  const prefix = pattern.slice(0, star);
+  const suffix = pattern.slice(star + 1);
+  if (
+    !specifier.startsWith(prefix) ||
+    !specifier.endsWith(suffix) ||
+    specifier.length < prefix.length + suffix.length
+  )
+    return null;
+  return specifier.slice(prefix.length, specifier.length - suffix.length);
+}
 
 function violation(file, detail) {
   return { rule: 'resolution-config', file, line: 1, unit: '<config>', detail };
@@ -56,39 +100,58 @@ function configFiles(repoRoot) {
   return files.sort(byCodeUnit);
 }
 
-function readConfig(repoRoot, file) {
-  const parsed = ts.parseConfigFileTextToJson(
-    file,
-    fs.readFileSync(path.join(repoRoot, file), 'utf8')
-  );
-  if (parsed.error || !parsed.config || typeof parsed.config !== 'object') {
+function readConfig(file, text) {
+  const parsed = ts.parseConfigFileTextToJson(file, text);
+  if (
+    parsed.error ||
+    !parsed.config ||
+    typeof parsed.config !== 'object' ||
+    Array.isArray(parsed.config)
+  ) {
     throw new Error(`incomplete: resolution config ${file} is not valid JSON`);
   }
   return parsed.config;
+}
+
+function repoPath(fromDir, value) {
+  const joined = path.posix.normalize(path.posix.join(fromDir, toPosix(value)));
+  return joined === '.' ? '' : joined;
+}
+
+function recordPathRules(file, paths, base, rules, violations) {
+  for (const [pattern, targets] of Object.entries(paths)) {
+    if (
+      (pattern.match(/\*/gu) ?? []).length > 1 ||
+      !Array.isArray(targets) ||
+      targets.some(target => typeof target !== 'string' || (target.match(/\*/gu) ?? []).length > 1)
+    ) {
+      violations.push(violation(file, `unsupported paths entry ${JSON.stringify(pattern)}`));
+      continue;
+    }
+    rules.push({ pattern, targets: targets.map(target => repoPath(base, target)) });
+  }
 }
 
 /**
  * The resolution alternatives every workspace config declares: `paths` rules ({ pattern, targets })
  * with repository-relative targets and `baseUrl` roots, plus violations for unsupported configs.
  */
-export function resolutionConfig(repoRoot) {
-  const realRoot = fs.realpathSync(repoRoot);
-  const files = configFiles(repoRoot);
+export function resolutionConfig(repoRoot, inputs = null) {
+  const realRoot = inputs ? null : fs.realpathSync(repoRoot);
+  const files = inputs
+    ? [...inputs.keys()].filter(isResolverConfig).sort(byCodeUnit)
+    : configFiles(repoRoot);
   const known = new Set(files);
   const violations = [];
   const effective = new Map();
-
-  const repoPath = (fromDir, value) => {
-    const joined = path.posix.normalize(path.posix.join(fromDir, toPosix(value)));
-    return joined === '.' ? '' : joined;
-  };
 
   // The effective baseUrl and paths of one config, following relative `extends` within the repository.
   function load(file, seen) {
     if (effective.has(file)) return effective.get(file);
     if (seen.has(file)) throw new Error(`incomplete: resolution config cycle at ${file}`);
     seen.add(file);
-    const config = readConfig(repoRoot, file);
+    const text = inputs ? inputs.get(file) : fs.readFileSync(path.join(repoRoot, file), 'utf8');
+    const config = readConfig(file, text);
     const dir = path.posix.dirname(file) === '.' ? '' : path.posix.dirname(file);
     let result = { baseUrl: null, paths: null, pathsBase: null };
     const parents = config.extends === undefined ? [] : [config.extends].flat();
@@ -102,14 +165,14 @@ export function resolutionConfig(repoRoot) {
   function inherit(file, dir, parent, result, seen) {
     const target = typeof parent === 'string' ? repoPath(dir, parent) : null;
     const real =
-      target && fs.existsSync(path.join(repoRoot, target))
+      realRoot && target && fs.existsSync(path.join(repoRoot, target))
         ? fs.realpathSync(path.join(repoRoot, target))
         : null;
     if (
       typeof parent !== 'string' ||
       !/^\.\.?\//u.test(parent) ||
       !known.has(target) ||
-      !real?.startsWith(realRoot + path.sep)
+      (realRoot && !real?.startsWith(realRoot + path.sep))
     ) {
       violations.push(violation(file, `unsupported extends ${JSON.stringify(parent)}`));
       return result;
@@ -131,6 +194,8 @@ export function resolutionConfig(repoRoot) {
     if (options.baseUrl !== undefined) {
       if (typeof options.baseUrl !== 'string') {
         violations.push(violation(file, 'baseUrl is not a string'));
+      } else if (path.posix.isAbsolute(options.baseUrl) || path.win32.isAbsolute(options.baseUrl)) {
+        violations.push(violation(file, 'absolute baseUrl is unsupported'));
       } else result.baseUrl = repoPath(dir, options.baseUrl);
     }
     if (options.paths !== undefined) {
@@ -148,21 +213,7 @@ export function resolutionConfig(repoRoot) {
   for (const file of files) {
     const { baseUrl, paths, pathsBase } = load(file, new Set());
     if (baseUrl !== null) baseRoots.add(baseUrl);
-    if (!paths) continue;
-    const base = baseUrl ?? pathsBase;
-    for (const [pattern, targets] of Object.entries(paths)) {
-      if (
-        (pattern.match(/\*/gu) ?? []).length > 1 ||
-        !Array.isArray(targets) ||
-        targets.some(
-          target => typeof target !== 'string' || (target.match(/\*/gu) ?? []).length > 1
-        )
-      ) {
-        violations.push(violation(file, `unsupported paths entry ${JSON.stringify(pattern)}`));
-        continue;
-      }
-      pathRules.push({ pattern, targets: targets.map(target => repoPath(base, target)) });
-    }
+    if (paths) recordPathRules(file, paths, baseUrl ?? pathsBase, pathRules, violations);
   }
   for (const root of baseRoots) {
     if (root.startsWith('../') || root === '..') {
