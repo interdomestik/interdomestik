@@ -1,4 +1,8 @@
-import { withPaymentPortTestTransaction } from '@interdomestik/database/testing/payment-port-rls';
+import {
+  restricted,
+  withPaymentPortTestTransaction,
+  type PaymentPortTestTransaction,
+} from '@interdomestik/database/testing/payment-port-rls';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
@@ -64,8 +68,21 @@ async function seatAdmission(
 }
 
 async function seedIndividualSubscription(f: SaleFixture, status: 'active' | 'canceled') {
+  const id = randomUUID();
   await f.admin`insert into subscriptions (id, tenant_id, user_id, status, plan_id)
-    values (${randomUUID()}, ${f.tenantId}, ${f.member.id}, ${status}, 'basic')`;
+    values (${id}, ${f.tenantId}, ${f.member.id}, ${status}, 'basic')`;
+  return id;
+}
+
+async function activateIndividualSubscription(
+  f: SaleFixture,
+  tx: PaymentPortTestTransaction,
+  id: string
+) {
+  const rows = await tx`update subscriptions set status = 'active'
+    where tenant_id = ${f.tenantId} and id = ${id} and status = 'canceled'
+    returning id, status`;
+  expect(rows).toEqual([{ id, status: 'active' }]);
 }
 
 async function composedSale(f: SaleFixture, input: SaleInput, who: typeof f.owner) {
@@ -175,6 +192,38 @@ export function registerCoverageCases(fixture: () => Promise<SaleFixture>) {
     const input = accepted(offer, buyer);
     const entryId = await seedCompanySeat(f);
     await race(f, holdingSale(f, input), () => seatAdmission(f, entryId));
+
+    expect(await f.counts(input.operationKey)).toEqual(completed);
+    const newInput = accepted(offer, buyer);
+    expect(await f.sale(newInput)).toEqual(refused('already_covered'));
+    expect(await f.counts(newInput.operationKey)).toEqual(absent);
+  });
+
+  it('refuses a sale after waiting for an existing subscription activation to commit', async () => {
+    const f = await fixture();
+    const input = accepted(await f.sellable(), { memberUserId: f.member.id });
+    const id = await seedIndividualSubscription(f, 'canceled');
+
+    const { second } = await race(
+      f,
+      holdingChange(f, tx => activateIndividualSubscription(f, tx, id)),
+      () => f.sale(input)
+    );
+
+    expect(second).toEqual(refused('already_covered'));
+    expect(await f.counts(input.operationKey)).toEqual(absent);
+  });
+
+  it('commits a sale before an activation waiting on its subscription lock', async () => {
+    const f = await fixture();
+    const offer = await f.sellable();
+    const buyer = { memberUserId: f.member.id };
+    const input = accepted(offer, buyer);
+    const id = await seedIndividualSubscription(f, 'canceled');
+
+    await race(f, holdingSale(f, input), () =>
+      restricted(f.peer, f.tenantId, tx => activateIndividualSubscription(f, tx, id))
+    );
 
     expect(await f.counts(input.operationKey)).toEqual(completed);
     const newInput = accepted(offer, buyer);

@@ -23,6 +23,8 @@ export async function grantSaleFixturePrerequisites({ admin }: PaymentPortDataba
     to "${runtimeRole}", "${paymentPortTestGuardRole}"`);
   await admin.unsafe(`grant select on subscriptions, sponsor_terms, sponsor_term_revisions,
     sponsor_revision_decisions, sponsor_roster_entries, sponsor_handover_intents to "${runtimeRole}"`);
+  // PostgreSQL requires UPDATE on at least one column for FOR SHARE. The race also writes status.
+  await admin.unsafe(`grant update (status) on subscriptions to "${runtimeRole}"`);
   await admin.unsafe(`grant update (id) on sponsor_terms to "${runtimeRole}"`);
   await admin.unsafe(`grant update (conflict_decision, conflict_decided_at) on sponsor_roster_entries
     to "${runtimeRole}"`);

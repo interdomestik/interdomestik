@@ -23,6 +23,7 @@ import {
 import {
   buyerCoverageFailure,
   findScopedBuyer,
+  lockBuyerSubscriptions,
   requestedBuyer,
   type SaleBuyer,
 } from './sale-buyers';
@@ -151,9 +152,13 @@ async function insertSale(
   coverageUserId: string | null
 ) {
   const { tenantId, userId } = principal;
-  // Sale: person → book → plan → entity → buyer. Admission: person → terms → entries.
-  // Both take the person lock before row locks, and the sale reads sponsor rows without locking them.
-  if (coverageUserId !== null) await lockSponsorPerson(tx, coverageUserId);
+  // Sale locks person, subscriptions, book, plan, entity, then buyer.
+  // Admission takes person before terms and entries. Paddle updates the subscription
+  // before writing its domain event and never takes the person lock in that transaction.
+  if (coverageUserId !== null) {
+    await lockSponsorPerson(tx, coverageUserId);
+    await lockBuyerSubscriptions(tx, tenantId, coverageUserId);
+  }
   const { book, requested } = await lockSaleRows(tx, tenantId, input.planVersionId);
   const attribution = await findScopedBuyer(tx, principal, buyer, true);
   if (!attribution) return { ok: false, code: 'not_found' } as const;

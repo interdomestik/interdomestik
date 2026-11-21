@@ -1,5 +1,5 @@
 import type { TenantTransaction } from '@interdomestik/database';
-import { memberLeads, user } from '@interdomestik/database/schema';
+import { memberLeads, subscriptions, user } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ROLES } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
@@ -61,6 +61,18 @@ export async function findScopedBuyer(
   if (!principal.branchId || principal.branchId !== row.branchId) return null;
   if (principal.role === ROLES.staff) return row;
   return buyer.kind === 'lead' && row.agentId === principal.userId ? row : null;
+}
+
+export async function lockBuyerSubscriptions(
+  tx: TenantTransaction,
+  tenantId: string,
+  userId: string
+) {
+  await tx
+    .select({ id: subscriptions.id })
+    .from(subscriptions)
+    .where(withTenant(tenantId, subscriptions.tenantId, eq(subscriptions.userId, userId)))
+    .for('share');
 }
 
 export async function buyerCoverageFailure(
