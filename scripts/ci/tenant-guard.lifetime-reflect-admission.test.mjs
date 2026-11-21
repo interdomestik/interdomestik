@@ -1,60 +1,30 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {
+  BLOB_BYTES,
+  BLOB_SIZE,
+  BLOB_TYPE,
+  CHECK_DEF,
+  COLLECT_FORM,
+  ENTRIES,
+  FILE_NAME,
+  FILE_TIME,
+  FORM_NEXT,
+  GET_ALL,
+  GUARD,
+  GUARD_SOURCE,
+  LAYOUT_IMPORT_SOURCE,
+  OUTPUT,
+  OUTPUT_SOURCE,
+  READ_RAW_VALUE,
+  REFUSAL,
+  REFUSAL_SOURCE,
+  assertRefusedCalls,
+  reflectRefusals,
+} from './tenant-guard-lifetime-reflect-test-support.mjs';
 import { run } from './tenant-guard-test-support.mjs';
 import { LIFETIME_REFLECT_ADMISSIONS } from './tenant-guard/lifetime-reflect-admissions.mjs';
 
-const CHECK_DEF = 'apps/web/src/lib/safe-action.check-def.ts';
-const OUTPUT = 'apps/web/src/lib/safe-action.output.ts';
-const REFUSAL = 'apps/web/src/lib/safe-action.refusal.ts';
-const GUARD = 'apps/web/src/lib/safe-action.guard.ts';
-const ENTRIES = 'const formEntries = FormData.prototype.entries;';
-const GET_ALL = 'const formGetAll = FormData.prototype.getAll;';
-const FORM_NEXT = `const formNext: ReturnType<FormData['entries']>['next'] = Object.getPrototypeOf(
-  Reflect.apply(formEntries, new FormData(), [])
-).next;`;
-const COLLECT_FORM = `function collectForm(
-  raw: unknown,
-  kind: InputGuard['fieldKind']
-): { kind: 'form'; fields: Record<string, unknown> } | Invalid {
-  if (!hasReadableFormDataPrototype(raw)) return invalid();
-  const input: Record<string, unknown> = Object.create(null);
-  const iterator = Reflect.apply(formEntries, raw, []);
-  let count = 0;
-  for (;;) {
-    const entry = Reflect.apply(formNext, iterator, []);
-    if (entry.done) return { kind: 'form', fields: input };
-    count += 1;
-    if (count > MAX_NODES) return invalid();
-    const [key, value] = entry.value;
-    if (key.startsWith('$ACTION_')) continue;
-    if (kind([key]) === 'array') {
-      input[key] ??= [] as FormDataEntryValue[];
-      (input[key] as FormDataEntryValue[]).push(value);
-    } else {
-      if (Object.hasOwn(input, key)) return invalid(key, 'duplicate_field');
-      input[key] = value;
-    }
-  }
-}`;
-const READ_RAW_VALUE = `function readRawValue(
-  rawInput: unknown,
-  from: string,
-  form: boolean,
-  snapshotted: boolean
-): unknown {
-  if (form && !snapshotted) {
-    if (!hasReadableFormDataPrototype(rawInput)) return undefined;
-    const values: FormDataEntryValue[] = Reflect.apply(formGetAll, rawInput, [from]);
-    return values.length === 1 ? values[0] : undefined;
-  }
-  if (typeof rawInput !== 'object') return undefined;
-  const value = ownValue(rawInput, from);
-  if (form && isOwnReadable(value) && Array.isArray(value)) {
-    return ownValue(value, 'length') === 1 ? ownValue(value, 0) : undefined;
-  }
-  return value;
-}`;
-const REFUSAL_SOURCE = [GET_ALL, READ_RAW_VALUE].join('\n');
 const REGEXP_SOURCE =
   "const regExpSource = Object.getOwnPropertyDescriptor(RegExp.prototype, 'source')!.get!;";
 const REGEXP_FLAGS =
@@ -79,122 +49,7 @@ const REGEX_DEFINITION = `export function regexDefinition(
     Reflect.apply(regExpFlags, pattern, [])
   ];
 }`;
-const BLOB_SIZE = "const blobSize = Object.getOwnPropertyDescriptor(Blob.prototype, 'size')!.get!;";
-const FILE_NAME = "const fileName = Object.getOwnPropertyDescriptor(File.prototype, 'name')!.get!;";
-const BLOB_TYPE = "const blobType = Object.getOwnPropertyDescriptor(Blob.prototype, 'type')!.get!;";
-const FILE_TIME =
-  "const fileTime = Object.getOwnPropertyDescriptor(File.prototype, 'lastModified')!.get!;";
-const BLOB_BYTES = 'const blobBytes = Blob.prototype.arrayBuffer;';
-const REFERENCE_LAYOUT = `function referenceLayout(object: object, nested = false): ObjectLayout {
-  return {
-    prototype: Object.getPrototypeOf(object),
-    slots: ownKeys(object).map(key => {
-      const value = ownValue(object, key);
-      return {
-        key,
-        type: typeof value,
-        ...(!nested && value !== null && typeof value === 'object'
-          ? { object: referenceLayout(value, true) }
-          : {}),
-      };
-    }),
-  };
-}`;
-const FILE_LAYOUT = "const fileLayout = referenceLayout(new File([], ''));";
-const MATCHES_LAYOUT = `function matchesLayout(value: unknown, layout: ObjectLayout): boolean {
-  if (
-    !isOwnReadable(value) ||
-    Object.getPrototypeOf(value) !== layout.prototype ||
-    ownKeys(value).length !== layout.slots.length
-  )
-    return false;
-  return layout.slots.every(slot => {
-    const field = ownValue(value, slot.key);
-    return (
-      Object.hasOwn(value, slot.key) &&
-      field !== ACCESSOR &&
-      typeof field === slot.type &&
-      (slot.object === undefined || matchesLayout(field, slot.object))
-    );
-  });
-}`;
-const PRIVATE_FILE = `export async function privateFile(value: unknown): Promise<File | null> {
-  try {
-    if (!matchesLayout(value, fileLayout)) return null;
-    const size = Reflect.apply(blobSize, value, []);
-    const name = Reflect.apply(fileName, value, []);
-    const options = {
-      __proto__: null,
-      type: Reflect.apply(blobType, value, []),
-      lastModified: Reflect.apply(fileTime, value, []),
-    };
-    const bytes: unknown = await Reflect.apply(blobBytes, value, []);
-    assertPristineObjectPrototype();
-    if (!types.isArrayBuffer(bytes) || size !== bytes.byteLength) return null;
-    return new File([bytes], name, options);
-  } catch (error) {
-    if (isIntegrityError(error)) throw error;
-    assertPristineObjectPrototype();
-    return null;
-  }
-}`;
 const CHECK_DEF_SOURCE = [REGEXP_SOURCE, REGEXP_FLAGS, REGEX_DEFINITION].join('\n');
-const GUARD_SOURCE = [ENTRIES, FORM_NEXT, COLLECT_FORM].join('\n');
-const OUTPUT_SOURCE = [
-  "import { ACCESSOR, isOwnReadable, ownKeys, ownValue } from './safe-action.check-def';",
-  REFERENCE_LAYOUT,
-  FILE_LAYOUT,
-  BLOB_SIZE,
-  FILE_NAME,
-  BLOB_TYPE,
-  FILE_TIME,
-  BLOB_BYTES,
-  MATCHES_LAYOUT,
-  PRIVATE_FILE,
-  'function exactCopy(value: unknown) { return matchesLayout(value, fileLayout); }',
-].join('\n');
-const LAYOUT_IMPORT_SOURCE = `
-export const ACCESSOR = Symbol();
-export function isOwnReadable() { return true; }
-export function ownKeys() { return []; }
-export function ownValue() { return undefined; }
-`;
-
-function reflectViolations(file, source, siblings) {
-  return run({ ...siblings, [file]: source }).violations.filter(
-    v =>
-      v.file === file &&
-      v.rule === 'L1' &&
-      v.detail.endsWith('a Reflect operation other than has or ownKeys')
-  );
-}
-
-function reflectRefusals(file, source) {
-  return reflectViolations(file, source).map(v => v.unit);
-}
-
-function assertRefusedCalls(file, source, calls, siblings) {
-  const lines = source.split('\n');
-  const expected = calls.map(([unit, argumentsStart]) => {
-    const line = lines.findIndex(text => text.includes(`Reflect.apply(${argumentsStart},`));
-    assert.ok(line >= 0, `fixture must contain the unchanged call starting with ${argumentsStart}`);
-    return { unit, line: line + 1 };
-  });
-  // A mutation can be refused in its own right. Require the refusal at each calling unit as well.
-  const units = new Set(expected.map(site => site.unit));
-  const refused = reflectViolations(file, source, siblings)
-    .filter(v => units.has(v.unit))
-    .map(({ unit, line }) => ({ unit, line }));
-  assert.deepEqual(refused, expected);
-}
-
-const PRIVATE_FILE_CALLS = [
-  ['privateFile', 'blobSize'],
-  ['privateFile', 'fileName'],
-  ['privateFile', 'blobType'],
-  ['privateFile', 'fileTime'],
-  ['privateFile', 'blobBytes'],
-];
 
 test('L1 WP-02 admissions name exactly the reviewed units, operations and intrinsics', () => {
   assert.deepEqual(
@@ -355,137 +210,4 @@ test('L1 refuses getter captures when their native descriptor reader can be repl
     ['regexDefinition', 'regExpSource'],
     ['regexDefinition', 'regExpFlags'],
   ]);
-});
-
-for (const [name, mutation] of [
-  [
-    'an imported File alias mutation',
-    "import { File as NativeFile } from 'node:buffer'; Object.defineProperty(NativeFile.prototype, 'name', { get: fake });",
-  ],
-  [
-    'an imported Blob alias delete',
-    "import { Blob as NativeBlob } from 'buffer'; delete NativeBlob.prototype.arrayBuffer;",
-  ],
-  [
-    'an imported module namespace alias',
-    "import * as native from 'node:buffer'; const p = native.Blob.prototype; p.arrayBuffer = fake;",
-  ],
-  ['a buffer import', "import 'node:buffer';"],
-]) {
-  test(`L1 refuses all unchanged File calls for ${name}`, () => {
-    assertRefusedCalls(OUTPUT, `${mutation}\n${OUTPUT_SOURCE}`, PRIVATE_FILE_CALLS);
-  });
-}
-
-for (const mutation of [
-  'target.prototype.getAll = fake;',
-  'delete target.prototype.getAll;',
-  '({ getAll: target.prototype.getAll } = replacement);',
-  "Object.defineProperty(target.prototype, 'getAll', { value: fake });",
-  'Object.defineProperties(target.prototype, { getAll: { value: fake } });',
-  "Object['assign'](target.prototype, { getAll: fake });",
-  'Object.setPrototypeOf(target.prototype, replacement);',
-  'Object.freeze(target.prototype);',
-  "Reflect.set(target.prototype, 'getAll', fake);",
-  "Reflect.defineProperty(target.prototype, 'getAll', { value: fake });",
-  'const define = Object.defineProperty; define(target.prototype, "getAll", { value: fake });',
-  'Object["define" + "Property"](target.prototype, "getAll", { value: fake });',
-  "target.prototype.__defineGetter__('getAll', fake);",
-]) {
-  test(`L1 refuses the unchanged call for a mutation through a bound alias: ${mutation}`, () => {
-    const writer = `function replace(target: typeof FormData) { ${mutation} }`;
-    assertRefusedCalls(REFUSAL, `${REFUSAL_SOURCE}\n${writer}`, [['readRawValue', 'formGetAll']]);
-  });
-}
-
-test('L1 refuses a write through a local alias of a prototype obtained from an import', () => {
-  const alias = [
-    "import { native as constructor } from './native';",
-    'const wrapper = { prototype: constructor.prototype };',
-    'const alias = wrapper.prototype;',
-    'alias.getAll = fake;',
-  ].join('\n');
-  assertRefusedCalls(REFUSAL, `${alias}\n${REFUSAL_SOURCE}`, [['readRawValue', 'formGetAll']], {
-    'apps/web/src/lib/native.ts': 'export const native = FormData;',
-  });
-});
-
-test('L1 refuses a call to the reviewed write helper from outside its pinned callers', () => {
-  const put = `function put(target: FileSlot['target'], key: FileSlot['key'], value: unknown): void {
-    Object.defineProperty(target, key, {
-      value,
-      enumerable: true,
-      configurable: true,
-      writable: true,
-    });
-  }`;
-  const replace = "function replace(alias) { put(alias.prototype, 'entries', fake); }";
-  const source = [GUARD_SOURCE, put, replace].join('\n');
-  assertRefusedCalls(GUARD, source, [
-    ['formNext', 'formEntries, new FormData()'],
-    ['collectForm', 'formEntries, raw'],
-    ['collectForm', 'formNext'],
-  ]);
-});
-
-test('L1 requires the File layout support declarations in the admitted module', () => {
-  const support = [REFERENCE_LAYOUT, FILE_LAYOUT, MATCHES_LAYOUT];
-  const output = [
-    "import { fileLayout, matchesLayout } from './file-layout';",
-    support.reduce((source, unit) => source.replace(`${unit}\n`, ''), OUTPUT_SOURCE),
-  ].join('\n');
-  const helpers = [
-    "import { ACCESSOR, isOwnReadable, ownKeys, ownValue } from './safe-action.check-def';",
-    'type Slot = { key: PropertyKey; type: string; object?: ObjectLayout };',
-    'type ObjectLayout = { prototype: object | null; slots: Slot[] };',
-    ...support,
-    'export { fileLayout, matchesLayout };',
-  ].join('\n');
-  assertRefusedCalls(OUTPUT, output, PRIVATE_FILE_CALLS, {
-    [CHECK_DEF]: LAYOUT_IMPORT_SOURCE,
-    'apps/web/src/lib/file-layout.ts': helpers,
-  });
-});
-
-test('L1 admits the unchanged call alongside property definitions on a local object', () => {
-  const local = `const local = {};
-Object.defineProperty(local, 'FormData', { value: class {} });`;
-  assert.deepEqual(run({ [REFUSAL]: `${local}\n${REFUSAL_SOURCE}` }).violations, []);
-});
-
-test('L1 refuses a mutation of the File prototype held in the layout sample', () => {
-  const mutation = "Object.defineProperty(fileLayout.prototype, 'name', { get: fake });";
-  const changed = OUTPUT_SOURCE.replace(FILE_LAYOUT, `${FILE_LAYOUT}\n${mutation}`);
-  assertRefusedCalls(OUTPUT, changed, [
-    ['privateFile', 'blobSize'],
-    ['privateFile', 'fileName'],
-    ['privateFile', 'blobType'],
-    ['privateFile', 'fileTime'],
-    ['privateFile', 'blobBytes'],
-  ]);
-});
-
-for (const declaration of [
-  'const Reflect = { apply: () => [] };',
-  "import { replacement as Reflect } from './replacement';",
-  'function another() { const Reflect = { apply: () => [] }; return Reflect; }',
-  'namespace Reflect { export function apply() { return []; } }',
-]) {
-  test(`L1 refuses the unchanged call when Reflect is bound: ${declaration}`, () => {
-    assertRefusedCalls(REFUSAL, [REFUSAL_SOURCE, declaration].join('\n'), [
-      ['readRawValue', 'formGetAll'],
-    ]);
-  });
-}
-
-test('L1 keeps the admission within the reviewed file and unit', () => {
-  const added = 'function another(raw: unknown) { return Reflect.apply(formGetAll, raw, []); }';
-  assert.deepEqual(reflectRefusals(REFUSAL, `${REFUSAL_SOURCE}\n${added}`), ['another']);
-  for (const file of [
-    'apps/web/src/lib/safe-action.checks.ts',
-    'apps/web/src/lib/safe-action.schema.ts',
-    'apps/web/src/lib/safe-action.refusal-copy.ts',
-  ]) {
-    assert.deepEqual(reflectRefusals(file, REFUSAL_SOURCE), ['readRawValue'], file);
-  }
 });

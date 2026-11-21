@@ -5,65 +5,20 @@ import {
   LIFETIME_REFLECT_WRITERS,
 } from './lifetime-reflect-admissions.mjs';
 import { sha256, within } from './rules-digest.mjs';
+import {
+  ARGUMENT_MUTATORS,
+  BUFFER_MODULES,
+  GLOBAL_OBJECTS,
+  LAYOUT_IMPORTS,
+  RECEIVER_MUTATORS,
+  STATIC_METHODS,
+  WRITER_GLOBALS,
+  layoutComparison,
+  memberAccess,
+  memberName,
+} from './rules-lifetime-reflect-forms.mjs';
 import { constInitializer, tested, writes } from './rules-lifetime-forms.mjs';
 import { fingerprint, unitName, unitOf } from './syntax.mjs';
-
-const GLOBAL_OBJECTS = new Set(['globalThis', 'self', 'window', 'global']);
-const LAYOUT_IMPORTS = new Set(['ACCESSOR', 'isOwnReadable', 'ownKeys', 'ownValue']);
-const BUFFER_MODULES = new Set(['buffer', 'node:buffer']);
-const WRITER_GLOBALS = new Set(['Array', 'Date', 'Map', 'Object', 'Promise']);
-const ARGUMENT_MUTATORS = new Set([
-  'assign',
-  'defineProperties',
-  'defineProperty',
-  'deleteProperty',
-  'freeze',
-  'preventExtensions',
-  'seal',
-  'setPrototypeOf',
-]);
-const RECEIVER_MUTATORS = new Set([
-  '__defineGetter__',
-  '__defineSetter__',
-  'add',
-  'append',
-  'clear',
-  'copyWithin',
-  'delete',
-  'fill',
-  'pop',
-  'push',
-  'reverse',
-  'set',
-  'shift',
-  'sort',
-  'splice',
-  'unshift',
-]);
-// In-place calls to these native static methods cannot mutate their `this`. Check their arguments
-// separately, including the destinations of assign, defineProperty and other mutators.
-const STATIC_METHODS = new Map([
-  [
-    'Object',
-    new Set([
-      'assign',
-      'create',
-      'defineProperties',
-      'defineProperty',
-      'entries',
-      'freeze',
-      'getOwnPropertyDescriptor',
-      'getOwnPropertyNames',
-      'getOwnPropertySymbols',
-      'getPrototypeOf',
-      'hasOwn',
-      'is',
-      'isFrozen',
-      'setPrototypeOf',
-    ]),
-  ],
-  ['Reflect', new Set(['apply', 'defineProperty', 'has', 'ownKeys', 'set'])],
-]);
 
 /** L1 admits direct Reflect.apply calls on pinned intrinsic captures. Native globals and
  * Reflect.apply are assumed intact from module initialization through each admitted call.
@@ -235,7 +190,8 @@ export function createReflectCheck(ctx) {
   function safeModuleMutations(fact, pinned, writers) {
     function unsafe(node) {
       if (pinned.has(node) || writers.has(node)) return false;
-      if (ts.isImportDeclaration(node) && BUFFER_MODULES.has(node.moduleSpecifier.text)) return true;
+      if (ts.isImportDeclaration(node) && BUFFER_MODULES.has(node.moduleSpecifier.text))
+        return true;
       if (
         ts.isImportEqualsDeclaration(node) &&
         ts.isExternalModuleReference(node.moduleReference) &&
@@ -329,28 +285,4 @@ export function createReflectCheck(ctx) {
       value.parent.expression === value
     );
   }
-}
-
-// The reviewed helper can compare an arbitrary value against the sample and returns a boolean.
-function layoutComparison(node) {
-  const call = node.parent;
-  if (!ts.isCallExpression(call) || call.arguments.length !== 2) return false;
-  const callee = call.expression;
-  const [value, layout] = call.arguments;
-  return (
-    ts.isIdentifier(callee) &&
-    callee.text === 'matchesLayout' &&
-    ts.isIdentifier(layout) &&
-    layout.text === 'fileLayout' &&
-    !ts.isSpreadElement(value) &&
-    (node === callee || node === layout)
-  );
-}
-
-const memberAccess = node =>
-  ts.isAccessExpression(node.parent) && node.parent.expression === node ? node.parent : null;
-
-function memberName(access) {
-  if (ts.isPropertyAccessExpression(access)) return access.name.text;
-  return ts.isStringLiteralLike(access.argumentExpression) ? access.argumentExpression.text : null;
 }
