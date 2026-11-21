@@ -1,0 +1,191 @@
+// Contract tests of the R-10 replay (WP-05 design §7; code review r1: B2, B11). A replay judges
+// an adopted pair by the production path. It synthesizes only the inputs that predate adoption, and
+// it never writes outside the extracted tree.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import test from 'node:test';
+
+import { CHECKS } from './screen-contract/evaluate.mjs';
+import { SCANNER_ROOT } from './screen-contract/lint.mjs';
+import { candidateBaseline } from './screen-contract/replay.mjs';
+import { commit, git, repo, tempDir } from './fixtures/screen-contract-check/harness.mjs';
+import {
+  BASELINE,
+  LANES,
+  W,
+  baselineOf,
+  run,
+} from './fixtures/screen-contract-check/replay-fixtures.mjs';
+
+const REG = 'scripts/ci/screen-contract-consent-registry.json';
+const REBUILT = 'scripts/ci/screen-contract-rebuilt-screens.json';
+const DB_PAGE = `${W}/app/legacy/page.tsx`;
+const DB_IMPORT = "import { db } from '@interdomestik/database';\nexport default () => db;\n";
+const LEGACY = `CHK-15c|${DB_PAGE}|@interdomestik/database`;
+
+function adoptedPair(t, baselineText, headFiles) {
+  const root = repo(t, {
+    ...LANES,
+    [REG]: '{ "version": 1, "entries": [] }\n',
+    [REBUILT]: '[]\n',
+    [DB_PAGE]: DB_IMPORT,
+    [`${W}/app/ok/page.tsx`]: 'export default () => null;\n',
+    [BASELINE]: baselineText,
+  });
+  const base = git(root, 'rev-parse', 'HEAD');
+  const head = commit(root, headFiles);
+  return { root, base, head };
+}
+
+const replayOf = (t, { root, base, head }) =>
+  run(t, root, ['--replay', '--base', base, '--head', head]);
+
+test('B2: an adopted pair whose head falls below its real coverage floor is not complete', t => {
+  const pair = adoptedPair(t, baselineOf({ 'CHK-15c': [LEGACY] }, { 'CHK-15c': { file: 2 } }), {
+    [`${W}/app/ok/page.tsx`]: null,
+  });
+  const production = run(t, pair.root, ['--base', pair.base, '--head', pair.head]);
+  assert.equal(production.code, 2);
+  const { code, report } = replayOf(t, pair);
+  assert.equal(code, 2);
+  assert.match(report.errors.join('\n'), /CHK-15c coverage below minimum/u);
+  assert.equal(report.replay?.complete ?? false, false);
+});
+
+test('B2: an adopted pair judges baseline tamper as production does', t => {
+  const added = `CHK-15c|${W}/app/new/page.tsx|@interdomestik/database`;
+  const pair = adoptedPair(t, baselineOf({ 'CHK-15c': [LEGACY] }), {
+    [`${W}/app/new/page.tsx`]: DB_IMPORT,
+    [BASELINE]: baselineOf({ 'CHK-15c': [LEGACY, added] }),
+  });
+  const { code, report } = replayOf(t, pair);
+  assert.equal(code, 0, JSON.stringify(report.errors));
+  assert.ok(report.checks['CHK-15c'].tamper.length > 0, JSON.stringify(report.checks['CHK-15c']));
+  assert.ok(report.replay.wouldRefuse.includes('CHK-15c'));
+  assert.equal(report.replay.synthesized.base.length, 0);
+  assert.equal(report.replay.synthesized.head.length, 0);
+});
+
+test('B2: an adopted pair whose head registry use names a missing test is an error', t => {
+  const registry = {
+    version: 1,
+    entries: [
+      {
+        id: 'terms',
+        kind: 'consent',
+        file: `${W}/app/ok/page.tsx`,
+        control: 'terms',
+        payloadField: 'terms',
+        storedIn: 'consents',
+        versionSource: 'TERMS_VERSION',
+        uses: [
+          {
+            useId: 'u1',
+            file: `${W}/app/ok/page.tsx`,
+            submission: `${W}/actions/terms.ts#saveTerms`,
+            test: `${W}/app/ok/page.test.tsx`,
+          },
+        ],
+      },
+    ],
+  };
+  const pair = adoptedPair(t, baselineOf({ 'CHK-15c': [LEGACY] }), {
+    [REG]: `${JSON.stringify(registry)}\n`,
+  });
+  const { code, report } = replayOf(t, pair);
+  assert.equal(code, 2);
+  assert.match(
+    report.errors.join('\n'),
+    /terms:u1 test apps\/web\/src\/app\/ok\/page\.test\.tsx is missing/u
+  );
+  assert.equal(report.replay?.complete ?? false, false);
+});
+
+test('B2: a pre-adoption pair records base and head units, versions and every unit decrease', t => {
+  const page = `${W}/app/legacy/page.tsx`;
+  const root = repo(t, {
+    [REG]: null,
+    ...LANES,
+    [page]: "import a from './a';\nimport b from './b';\nexport default () => a + b;\n",
+    [`${W}/app/legacy/a.ts`]: 'export default 1;\n',
+    [`${W}/app/legacy/b.ts`]: 'export default 2;\n',
+  });
+  const base = git(root, 'rev-parse', 'HEAD');
+  const head = commit(root, { [page]: "import a from './a';\nexport default () => a;\n" });
+  const { code, report } = run(t, root, ['--replay', '--base', base, '--head', head]);
+  assert.equal(code, 0, JSON.stringify(report.errors));
+  assert.equal(report.replay.complete, true);
+  assert.ok(report.replay.units.base['CHK-15b']);
+  assert.ok(report.replay.units.head['CHK-15b']);
+  assert.equal(typeof report.replay.versions.eslint, 'string');
+  assert.ok(
+    report.replay.adjudicate.some(line => /CHK-15b: unit decrease edge:import/u.test(line)),
+    JSON.stringify(report.replay.adjudicate)
+  );
+});
+
+test('B11: replay refuses an input directory that is a committed symlink and writes nothing outside', t => {
+  const outside = tempDir(t, 'scc-outside-');
+  const root = repo(t, { ...LANES, [`${W}/app/ok/page.tsx`]: 'export default () => null;\n' });
+  fs.rmSync(path.join(root, 'scripts/ci/screen-contract'), { recursive: true, force: true });
+  fs.symlinkSync(outside, path.join(root, 'scripts/ci/screen-contract'));
+  git(root, 'add', '-A');
+  git(root, 'commit', '--quiet', '-m', 'link');
+  const base = git(root, 'rev-parse', 'HEAD');
+  const head = commit(root, { [`${W}/app/ok2/page.tsx`]: 'export default () => null;\n' });
+  const { code, report } = run(t, root, ['--replay', '--base', base, '--head', head]);
+  assert.deepEqual(fs.readdirSync(outside), []);
+  assert.equal(code, 2);
+  assert.match(report.errors.join('\n'), /symbolic link/u);
+});
+
+test('r2 B1: an adopted head that deletes its rebuilt list fails in replay as in production', t => {
+  const pair = adoptedPair(t, baselineOf({ 'CHK-15c': [LEGACY] }), { [REBUILT]: null });
+  const production = run(t, pair.root, ['--base', pair.base, '--head', pair.head]);
+  assert.equal(production.code, 2);
+  const { code, report } = replayOf(t, pair);
+  assert.equal(code, 2);
+  assert.match(report.errors.join('\n'), /rebuilt-screens list is missing or empty/u);
+  assert.equal(report.replay?.complete ?? false, false);
+});
+
+test('r2 B1: a base with the scanner and no baseline fails in replay as in production', t => {
+  const root = repo(t, {
+    ...LANES,
+    'scripts/ci/screen-contract-check.mjs': '// scanner present\n',
+    [`${W}/app/ok/page.tsx`]: 'export default () => null;\n',
+  });
+  const base = git(root, 'rev-parse', 'HEAD');
+  const head = commit(root, { [`${W}/app/ok2/page.tsx`]: 'export default () => null;\n' });
+  const { code, report } = run(t, root, ['--replay', '--base', base, '--head', head]);
+  assert.equal(code, 2);
+  assert.match(report.errors.join('\n'), /base has the scanner but no baseline/u);
+  // Production fails the same pair: a base with the scanner and no baseline is no bootstrap.
+  const production = run(t, root, ['--base', base, '--head', head]);
+  assert.equal(production.code, 2, JSON.stringify(production.report?.errors));
+});
+
+test('r2 hardening: a pre-adoption replay records the candidate revision, settings and floor shortfalls', t => {
+  const root = repo(t, { ...LANES, [`${W}/app/ok/page.tsx`]: 'export default () => null;\n' });
+  const base = git(root, 'rev-parse', 'HEAD');
+  const head = commit(root, { [`${W}/app/ok2/page.tsx`]: 'export default () => null;\n' });
+  const { code, report } = run(t, root, ['--replay', '--base', base, '--head', head]);
+  assert.equal(code, 0, JSON.stringify(report.errors));
+  // The candidate is the scanner's own checkout: its exact revision and every check's settings.
+  assert.equal(report.replay.candidate.revision, git(SCANNER_ROOT, 'rev-parse', 'HEAD'));
+  const candidate = candidateBaseline();
+  for (const { id } of CHECKS) {
+    const { mode, unit, predicate, coverageMin } = candidate.checks[id];
+    assert.deepEqual(report.replay.candidate.settings[id], {
+      mode,
+      unit,
+      predicate,
+      coverageMin: { ...coverageMin },
+    });
+  }
+  // Both sides are far below the adoption floor: each side's shortfall is recorded, not enforced.
+  const shortfall = report.replay.adoptionShortfall['CHK-15c'];
+  assert.ok(shortfall.base.length > 0, JSON.stringify(shortfall));
+  assert.ok(shortfall.head.length > 0, JSON.stringify(shortfall));
+});
