@@ -3,6 +3,7 @@ import { TEST_SOURCE } from './manifest.mjs';
 import { hasExportModifier } from './package-exports.mjs';
 import { byCodeUnit } from './rules-digest.mjs';
 import { aliasInitializers, aliasTarget, publicTableBindings } from './rules-schema-bindings.mjs';
+import { destructuringInitializers } from './rules-schema-destructuring.mjs';
 import {
   changedOutsideForwarders,
   outsideExportLoads,
@@ -110,6 +111,7 @@ export function forwardInventory(tree, role) {
   const tables = new Map();
   const reverse = new Map();
   const outsideReverse = new Map();
+  const destructuring = [];
   for (const [file, text] of tree.allSources) {
     const source = parseSource(file, text);
     if (source.parseDiagnostics.length) {
@@ -118,6 +120,7 @@ export function forwardInventory(tree, role) {
     }
     const table = forwardTable(source);
     tables.set(file, table);
+    destructuring.push(...destructuringInitializers(source));
     recordForwarders(tree, file, [...table.stars, ...table.edges], reverse);
     if (!inScanRoots(file))
       recordForwarders(
@@ -134,7 +137,7 @@ export function forwardInventory(tree, role) {
   for (const file of reverseReachable(seeds, [reverse]))
     if (!inScanRoots(file)) return { reason: `${role}: schema forward outside scan roots ${file}` };
   const outsideForwards = outsideCandidates(tree, seeds, reverse, outsideReverse);
-  return { tables, reverse, outsideForwards };
+  return { tables, reverse, outsideForwards, destructuring };
 }
 
 function outsideCandidates(tree, seeds, reverse, outsideReverse) {

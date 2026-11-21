@@ -4,6 +4,7 @@ import ts from 'typescript';
 import { LEGACY } from './manifest.mjs';
 import { hasParallelTarget } from './modules.mjs';
 import { retainedConsumerProblem } from './rules-schema-consumers.mjs';
+import { schemaDestructuringExports } from './rules-schema-destructuring.mjs';
 import { comparePublicExports, forwardInventory } from './rules-schema-public.mjs';
 import { kernelWalk } from './rules-trust.mjs';
 import { proveBuilderModule } from './schema-builder-forms.mjs';
@@ -228,6 +229,9 @@ function compare(before, after, anchor, role, inventoryOf) {
   if (added.length === 0 && before.reachable.size === anchor.reachable.size) return null;
   const provenance = provenanceProblem(anchor, before, after);
   if (provenance) return reject(provenance);
+  const destructuring = schemaDestructuringExports(after, newInventory).next().value;
+  if (destructuring)
+    return reject(`schema destructuring export ${destructuring.getSourceFile().fileName}`);
   if (newInventory.outsideForwards.length)
     return reject(`schema forward outside scan roots ${newInventory.outsideForwards[0]}`);
   const additions = tableAdmissionProblem(

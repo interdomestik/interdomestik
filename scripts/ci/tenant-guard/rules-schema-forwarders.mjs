@@ -23,11 +23,7 @@ function literalSpecifier(node) {
   return node && ts.isStringLiteralLike(node) ? node.text : null;
 }
 
-function loadedSpecifier(node) {
-  if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node))
-    return literalSpecifier(node.moduleSpecifier);
-  if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference))
-    return literalSpecifier(node.moduleReference.expression);
+export function loaderArgument(node) {
   if (!ts.isCallExpression(node)) return null;
   const callee = ts.skipOuterExpressions(node.expression);
   const [argument] = node.arguments;
@@ -36,8 +32,16 @@ function loadedSpecifier(node) {
     callee.kind === ts.SyntaxKind.ImportKeyword ||
     (ts.isIdentifier(callee) && callee.text === 'require')
   )
-    return literalSpecifier(ts.skipOuterExpressions(argument));
+    return ts.skipOuterExpressions(argument);
   return null;
+}
+
+function loadedSpecifier(node) {
+  if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node))
+    return literalSpecifier(node.moduleSpecifier);
+  if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference))
+    return literalSpecifier(node.moduleReference.expression);
+  return literalSpecifier(loaderArgument(node));
 }
 
 function hasCommonJsExport(node) {
