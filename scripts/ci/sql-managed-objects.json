@@ -62,6 +62,16 @@
       "migration": "0036_supabase_advisor_security_hardening"
     },
     {
+      "key": "function [\"public\",\"exchange_rate_insert_guard_fn()\"]",
+      "value": "9ebe8c6c8dcd2402816cd44bb24f9aa5",
+      "migration": "0101_wp07_exchange_rates"
+    },
+    {
+      "key": "function [\"public\",\"exchange_rate_reject_mutation_fn()\"]",
+      "value": "65b15cebb1b4c09c93901c0ba573b79e",
+      "migration": "0101_wp07_exchange_rates"
+    },
+    {
       "key": "function [\"public\",\"member_leads_legacy_consent_guard_fn()\"]",
       "value": "ddc6247a82bb53c3b504d039dfd4a0cb",
       "migration": "0097_member_leads_consent"
@@ -75,6 +85,11 @@
       "key": "function [\"public\",\"member_referral_reward_type_percent()\"]",
       "value": "c716964d73abe7de1e61eeb60756b7b5",
       "migration": "0073_harden_member_referral_reward_type_functions"
+    },
+    {
+      "key": "function [\"public\",\"provision_exchange_rate_book_fn()\"]",
+      "value": "9825802eb7a6c6077fe83f894dc9f95c",
+      "migration": "0101_wp07_exchange_rates"
     },
     {
       "key": "function [\"public\",\"sponsor_handover_cancel_attempts_guard_fn()\"]",
@@ -1247,6 +1262,16 @@
       "migration": "0035_enable_tenant_rls_coverage"
     },
     {
+      "key": "rls-force [\"public\",\"exchange_rate_books\"]",
+      "value": "forced",
+      "migration": "0101_wp07_exchange_rates"
+    },
+    {
+      "key": "rls-force [\"public\",\"exchange_rates\"]",
+      "value": "forced",
+      "migration": "0101_wp07_exchange_rates"
+    },
+    {
       "key": "rls-force [\"public\",\"sponsor_handover_cancel_attempts\"]",
       "value": "forced",
       "migration": "0099_acq3b_sponsor_seats"
@@ -1305,6 +1330,26 @@
       "key": "trigger [\"public\",\"billing_ledger_entries\",\"billing_ledger_entries_scope_guard_trg\"]",
       "value": "CREATE TRIGGER billing_ledger_entries_scope_guard_trg BEFORE INSERT ON public.billing_ledger_entries FOR EACH ROW EXECUTE FUNCTION billing_ledger_entries_scope_guard_fn()",
       "migration": "0034_invoice_append_only_ledger_invariants"
+    },
+    {
+      "key": "trigger [\"public\",\"exchange_rate_books\",\"exchange_rate_books_append_only\"]",
+      "value": "CREATE TRIGGER exchange_rate_books_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.exchange_rate_books FOR EACH STATEMENT EXECUTE FUNCTION exchange_rate_reject_mutation_fn()",
+      "migration": "0101_wp07_exchange_rates"
+    },
+    {
+      "key": "trigger [\"public\",\"exchange_rates\",\"exchange_rates_append_only\"]",
+      "value": "CREATE TRIGGER exchange_rates_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.exchange_rates FOR EACH STATEMENT EXECUTE FUNCTION exchange_rate_reject_mutation_fn()",
+      "migration": "0101_wp07_exchange_rates"
+    },
+    {
+      "key": "trigger [\"public\",\"exchange_rates\",\"exchange_rates_insert_guard\"]",
+      "value": "CREATE TRIGGER exchange_rates_insert_guard BEFORE INSERT ON public.exchange_rates FOR EACH ROW EXECUTE FUNCTION exchange_rate_insert_guard_fn()",
+      "migration": "0101_wp07_exchange_rates"
+    },
+    {
+      "key": "trigger [\"public\",\"legal_entities\",\"legal_entities_provision_exchange_rate_book\"]",
+      "value": "CREATE TRIGGER legal_entities_provision_exchange_rate_book AFTER INSERT ON public.legal_entities FOR EACH ROW EXECUTE FUNCTION provision_exchange_rate_book_fn()",
+      "migration": "0101_wp07_exchange_rates"
     },
     {
       "key": "trigger [\"public\",\"member_leads\",\"member_leads_legacy_consent_guard\"]",
