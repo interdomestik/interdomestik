@@ -16,6 +16,28 @@ export const LIFETIME_REFLECT_FILE_LAYOUT = {
   },
 };
 
+// These private helpers mutate snapshot storage passed in by the listed pinned callers.
+export const LIFETIME_REFLECT_WRITERS = {
+  [`${SAFE_ACTION}.guard.ts`]: {
+    privateHelpers: ['put', 'copyRaw', 'copyRawRecord'],
+    digests: {
+      put: '30001ca8c9644d91febedddc95b903c172dc0aeb6f272f38c61c94e5a30806b1',
+      copyRaw: '14ec95af38473f21a6a641e5a0e4ef4dd17b21414cad603ffdc577c4af04f20d',
+      copyRawRecord: 'aa2f860f17794af29a19906a6cc2962e5b73de7bc1b28b0e4f67a5d5f075aff8',
+      snapshotOf: '00581aa9bf2f5ee0b0f57f3f1f7946b5dc92efcf01deb507efd0614c4ef16323',
+    },
+  },
+  [`${SAFE_ACTION}.output.ts`]: {
+    privateHelpers: ['withFrozenState'],
+    digests: {
+      withFrozenState: 'ab690e5f48f3cc06ccc88880e69a9c14a5a69b6e7790559a6a538efe487ed226',
+      copyObject: '26b36210933c9e25bad04bba1829cde49ab8d87c93c58e266956df563c82c144',
+      copyArray: '99a1e0ff6f1ca4144085a4c2d566ba1d6ea6853e1ffd1db5b6c4cfa063646d1c',
+      exactParsedInput: '52d2947c803c85e2070a1d9bbe4f7c31e2f88a02d0749dcd757473ae452f2ce2',
+    },
+  },
+};
+
 const capture = (binding, intrinsic, sha256, globals, input) => ({
   binding,
   intrinsic,

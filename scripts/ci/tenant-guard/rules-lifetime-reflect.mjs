@@ -2,13 +2,44 @@ import ts from 'typescript';
 import {
   LIFETIME_REFLECT_ADMISSIONS,
   LIFETIME_REFLECT_FILE_LAYOUT,
+  LIFETIME_REFLECT_WRITERS,
 } from './lifetime-reflect-admissions.mjs';
 import { sha256, within } from './rules-digest.mjs';
-import { tested, writes } from './rules-lifetime-forms.mjs';
+import { constInitializer, tested, writes } from './rules-lifetime-forms.mjs';
 import { fingerprint, unitName, unitOf } from './syntax.mjs';
 
 const GLOBAL_OBJECTS = new Set(['globalThis', 'self', 'window', 'global']);
 const LAYOUT_IMPORTS = new Set(['ACCESSOR', 'isOwnReadable', 'ownKeys', 'ownValue']);
+const BUFFER_MODULES = new Set(['buffer', 'node:buffer']);
+const WRITER_GLOBALS = new Set(['Array', 'Date', 'Map', 'Object', 'Promise']);
+const ARGUMENT_MUTATORS = new Set([
+  'assign',
+  'defineProperties',
+  'defineProperty',
+  'deleteProperty',
+  'freeze',
+  'preventExtensions',
+  'seal',
+  'setPrototypeOf',
+]);
+const RECEIVER_MUTATORS = new Set([
+  '__defineGetter__',
+  '__defineSetter__',
+  'add',
+  'append',
+  'clear',
+  'copyWithin',
+  'delete',
+  'fill',
+  'pop',
+  'push',
+  'reverse',
+  'set',
+  'shift',
+  'sort',
+  'splice',
+  'unshift',
+]);
 // In-place calls to these native static methods cannot mutate their `this`. Check their arguments
 // separately, including the destinations of assign, defineProperty and other mutators.
 const STATIC_METHODS = new Map([
@@ -34,8 +65,9 @@ const STATIC_METHODS = new Map([
   ['Reflect', new Set(['apply', 'defineProperty', 'has', 'ownKeys', 'set'])],
 ]);
 
-/** L1 admits direct Reflect.apply calls on pinned intrinsic captures. This assumes native globals
- * are intact at module initialization. Changes made by earlier modules are outside this check. */
+/** L1 admits direct Reflect.apply calls on pinned intrinsic captures. Native globals and
+ * Reflect.apply are assumed intact from module initialization through each admitted call.
+ * Mutation by earlier or other modules is outside this check. */
 export function createReflectCheck(ctx) {
   const { outermost, referenceAt, unwrap } = ctx;
   const files = new Map();
@@ -77,6 +109,8 @@ export function createReflectCheck(ctx) {
       capture &&
       digest(fact, unit) === entry.sha256 &&
       checks.layoutIntact &&
+      checks.mutationsSafe &&
+      checks.intact('Object') &&
       checks.intact('Reflect') &&
       (fact.file !== LIFETIME_REFLECT_FILE_LAYOUT.file || checks.intact('File')) &&
       matchesCapture(fact, referenceAt(fact, target), capture, checks)
@@ -115,6 +149,8 @@ export function createReflectCheck(ctx) {
       }
     }
     const layoutIntact = verifyFileLayout(fact, pinned);
+    const writers = verifiedWriters(fact);
+    const mutationsSafe = Boolean(writers && safeModuleMutations(fact, pinned, writers));
     // Runtime TypeScript namespaces also declare values in the emitted module.
     const namespaces = new Set(
       fact.sourceFile.statements
@@ -132,14 +168,14 @@ export function createReflectCheck(ctx) {
       }
       return globals.get(name);
     };
-    checks = { shadowedReflect: fact.hasBinding('Reflect'), layoutIntact, intact };
+    checks = { shadowedReflect: fact.hasBinding('Reflect'), layoutIntact, mutationsSafe, intact };
     moduleChecks.set(fact, checks);
     return checks;
   }
 
   function verifyFileLayout(fact, pinned) {
     const { file, digests } = LIFETIME_REFLECT_FILE_LAYOUT;
-    if (fact.file !== file || !fact.statements.has('fileLayout')) return true;
+    if (fact.file !== file) return true;
     const layout = new Map();
     for (const [name, sha256] of Object.entries(digests)) {
       const statement = fact.statements.get(name);
@@ -170,6 +206,100 @@ export function createReflectCheck(ctx) {
     }
     for (const statement of support) pinned.add(statement);
     return true;
+  }
+
+  function verifiedWriters(fact) {
+    const reviewed = LIFETIME_REFLECT_WRITERS[fact.file];
+    const pinned = new Set();
+    if (!reviewed) return pinned;
+    for (const [name, sha256] of Object.entries(reviewed.digests)) {
+      const statement = fact.statements.get(name);
+      if (statement && digest(fact, statement) === sha256) pinned.add(statement);
+    }
+    for (const { node, binding } of fact.references) {
+      const unit = unitOf(node);
+      if (binding && pinned.has(unit) && WRITER_GLOBALS.has(node.text)) return null;
+      if (!reviewed.privateHelpers.includes(node.text)) continue;
+      const callee = outermost(node);
+      if (
+        !pinned.has(binding?.decl) ||
+        !pinned.has(unit) ||
+        !ts.isCallExpression(callee.parent) ||
+        callee.parent.expression !== callee
+      )
+        return null;
+    }
+    return pinned;
+  }
+
+  function safeModuleMutations(fact, pinned, writers) {
+    function unsafe(node) {
+      if (pinned.has(node) || writers.has(node)) return false;
+      if (ts.isImportDeclaration(node) && BUFFER_MODULES.has(node.moduleSpecifier.text)) return true;
+      if (
+        ts.isImportEqualsDeclaration(node) &&
+        ts.isExternalModuleReference(node.moduleReference) &&
+        BUFFER_MODULES.has(node.moduleReference.expression?.text)
+      )
+        return true;
+      if (ts.isAccessExpression(node) && unsafeAccess(node)) return true;
+      return ts.forEachChild(node, unsafe);
+    }
+
+    function unsafeAccess(access) {
+      const receiver = access.expression;
+      if (writes(access, ctx) && !freshReceiver(receiver)) return true;
+      const name = memberName(access);
+      const value = outermost(access);
+      const call = value.parent;
+      const called = ts.isCallExpression(call) && call.expression === value;
+      const argumentMutator = ARGUMENT_MUTATORS.has(name);
+      if (!argumentMutator && !RECEIVER_MUTATORS.has(name))
+        return name === null && called && !freshReceiver(receiver);
+      if (!called) return true;
+      const owner = unwrap(receiver);
+      const reflectSet = name === 'set' && owner.text === 'Reflect';
+      if (!argumentMutator && !reflectSet) return !freshReceiver(receiver);
+      if (owner.text !== 'Object' && owner.text !== 'Reflect') return true;
+      if (referenceAt(fact, owner)?.binding) return true;
+      if (call.arguments.some(ts.isSpreadElement)) return true;
+      const [target, , , explicitReceiver] = call.arguments;
+      return Boolean(
+        (target && !freshReceiver(target)) ||
+        (reflectSet && explicitReceiver && !freshReceiver(explicitReceiver))
+      );
+    }
+
+    // Mutating a fresh object itself is safe. An object read through one of its members can alias
+    // an intrinsic, so member expressions never qualify.
+    function freshReceiver(expression) {
+      let value = unwrap(expression);
+      if (ts.isIdentifier(value)) {
+        const declaration = referenceAt(fact, value)?.binding?.decl;
+        if (
+          !declaration ||
+          !ts.isVariableDeclaration(declaration) ||
+          !ts.isIdentifier(declaration.name) ||
+          !declaration.initializer ||
+          !constInitializer(declaration, declaration.initializer)
+        )
+          return false;
+        value = unwrap(declaration.initializer);
+      }
+      if (ts.isObjectLiteralExpression(value) || ts.isArrayLiteralExpression(value)) return true;
+      if (!ts.isCallExpression(value) || value.arguments.length !== 1) return false;
+      const callee = unwrap(value.expression);
+      return (
+        ts.isPropertyAccessExpression(callee) &&
+        callee.name.text === 'create' &&
+        ts.isIdentifier(callee.expression) &&
+        callee.expression.text === 'Object' &&
+        !referenceAt(fact, callee.expression)?.binding &&
+        value.arguments[0].kind === ts.SyntaxKind.NullKeyword
+      );
+    }
+
+    return !unsafe(fact.sourceFile);
   }
 
   /** Allow pinned uses and reads that do not expose the global to mutation. A global handed to

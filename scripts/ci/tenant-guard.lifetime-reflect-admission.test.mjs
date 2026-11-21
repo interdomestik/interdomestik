@@ -160,8 +160,8 @@ export function ownKeys() { return []; }
 export function ownValue() { return undefined; }
 `;
 
-function reflectViolations(file, source) {
-  return run({ [file]: source }).violations.filter(
+function reflectViolations(file, source, siblings) {
+  return run({ ...siblings, [file]: source }).violations.filter(
     v =>
       v.file === file &&
       v.rule === 'L1' &&
@@ -173,7 +173,7 @@ function reflectRefusals(file, source) {
   return reflectViolations(file, source).map(v => v.unit);
 }
 
-function assertRefusedCalls(file, source, calls) {
+function assertRefusedCalls(file, source, calls, siblings) {
   const lines = source.split('\n');
   const expected = calls.map(([unit, argumentsStart]) => {
     const line = lines.findIndex(text => text.includes(`Reflect.apply(${argumentsStart},`));
@@ -182,11 +182,19 @@ function assertRefusedCalls(file, source, calls) {
   });
   // A mutation can be refused in its own right. Require the refusal at each calling unit as well.
   const units = new Set(expected.map(site => site.unit));
-  const refused = reflectViolations(file, source)
+  const refused = reflectViolations(file, source, siblings)
     .filter(v => units.has(v.unit))
     .map(({ unit, line }) => ({ unit, line }));
   assert.deepEqual(refused, expected);
 }
+
+const PRIVATE_FILE_CALLS = [
+  ['privateFile', 'blobSize'],
+  ['privateFile', 'fileName'],
+  ['privateFile', 'blobType'],
+  ['privateFile', 'fileTime'],
+  ['privateFile', 'blobBytes'],
+];
 
 test('L1 WP-02 admissions name exactly the reviewed units, operations and intrinsics', () => {
   assert.deepEqual(
@@ -347,6 +355,96 @@ test('L1 refuses getter captures when their native descriptor reader can be repl
     ['regexDefinition', 'regExpSource'],
     ['regexDefinition', 'regExpFlags'],
   ]);
+});
+
+for (const [name, mutation] of [
+  [
+    'an imported File alias mutation',
+    "import { File as NativeFile } from 'node:buffer'; Object.defineProperty(NativeFile.prototype, 'name', { get: fake });",
+  ],
+  [
+    'an imported Blob alias delete',
+    "import { Blob as NativeBlob } from 'buffer'; delete NativeBlob.prototype.arrayBuffer;",
+  ],
+  [
+    'an imported module namespace alias',
+    "import * as native from 'node:buffer'; const p = native.Blob.prototype; p.arrayBuffer = fake;",
+  ],
+  ['a buffer import', "import 'node:buffer';"],
+]) {
+  test(`L1 refuses all unchanged File calls for ${name}`, () => {
+    assertRefusedCalls(OUTPUT, `${mutation}\n${OUTPUT_SOURCE}`, PRIVATE_FILE_CALLS);
+  });
+}
+
+for (const mutation of [
+  'target.prototype.getAll = fake;',
+  'delete target.prototype.getAll;',
+  '({ getAll: target.prototype.getAll } = replacement);',
+  "Object.defineProperty(target.prototype, 'getAll', { value: fake });",
+  'Object.defineProperties(target.prototype, { getAll: { value: fake } });',
+  "Object['assign'](target.prototype, { getAll: fake });",
+  'Object.setPrototypeOf(target.prototype, replacement);',
+  'Object.freeze(target.prototype);',
+  "Reflect.set(target.prototype, 'getAll', fake);",
+  "Reflect.defineProperty(target.prototype, 'getAll', { value: fake });",
+  'const define = Object.defineProperty; define(target.prototype, "getAll", { value: fake });',
+  'Object["define" + "Property"](target.prototype, "getAll", { value: fake });',
+  "target.prototype.__defineGetter__('getAll', fake);",
+]) {
+  test(`L1 refuses the unchanged call for a mutation through a bound alias: ${mutation}`, () => {
+    const writer = `function replace(target: typeof FormData) { ${mutation} }`;
+    assertRefusedCalls(REFUSAL, `${REFUSAL_SOURCE}\n${writer}`, [['readRawValue', 'formGetAll']]);
+  });
+}
+
+test('L1 refuses a write through a local alias of a prototype obtained from an import', () => {
+  const alias = [
+    "import { native as constructor } from './native';",
+    'const wrapper = { prototype: constructor.prototype };',
+    'const alias = wrapper.prototype;',
+    'alias.getAll = fake;',
+  ].join('\n');
+  assertRefusedCalls(REFUSAL, `${alias}\n${REFUSAL_SOURCE}`, [['readRawValue', 'formGetAll']], {
+    'apps/web/src/lib/native.ts': 'export const native = FormData;',
+  });
+});
+
+test('L1 refuses a call to the reviewed write helper from outside its pinned callers', () => {
+  const put = `function put(target: FileSlot['target'], key: FileSlot['key'], value: unknown): void {
+    Object.defineProperty(target, key, {
+      value,
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
+  }`;
+  const replace = "function replace(alias) { put(alias.prototype, 'entries', fake); }";
+  const source = [GUARD_SOURCE, put, replace].join('\n');
+  assertRefusedCalls(GUARD, source, [
+    ['formNext', 'formEntries, new FormData()'],
+    ['collectForm', 'formEntries, raw'],
+    ['collectForm', 'formNext'],
+  ]);
+});
+
+test('L1 requires the File layout support declarations in the admitted module', () => {
+  const support = [REFERENCE_LAYOUT, FILE_LAYOUT, MATCHES_LAYOUT];
+  const output = [
+    "import { fileLayout, matchesLayout } from './file-layout';",
+    support.reduce((source, unit) => source.replace(`${unit}\n`, ''), OUTPUT_SOURCE),
+  ].join('\n');
+  const helpers = [
+    "import { ACCESSOR, isOwnReadable, ownKeys, ownValue } from './safe-action.check-def';",
+    'type Slot = { key: PropertyKey; type: string; object?: ObjectLayout };',
+    'type ObjectLayout = { prototype: object | null; slots: Slot[] };',
+    ...support,
+    'export { fileLayout, matchesLayout };',
+  ].join('\n');
+  assertRefusedCalls(OUTPUT, output, PRIVATE_FILE_CALLS, {
+    [CHECK_DEF]: LAYOUT_IMPORT_SOURCE,
+    'apps/web/src/lib/file-layout.ts': helpers,
+  });
 });
 
 test('L1 admits the unchanged call alongside property definitions on a local object', () => {
