@@ -41,6 +41,7 @@ function loadedSpecifier(node) {
 }
 
 function hasCommonJsExport(node) {
+  if (ts.isExportAssignment(node)) return node.isExportEquals;
   if (ts.isBinaryExpression(node)) {
     if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) return false;
     return exportsObject(node.left) || exportsObject(node.left.expression);
@@ -68,17 +69,16 @@ function exportsObject(node) {
 }
 
 /** An outside module with exports and a load edge can forward any binding on that edge. */
-export function outsideExportLoads(source) {
+export function outsideExportLoads(source, commonJsOnly) {
   const imports = new Set();
   let exports = false;
   const visit = node => {
     const specifier = loadedSpecifier(node);
     if (specifier) imports.add(specifier);
     if (
-      ts.isExportDeclaration(node) ||
-      ts.isExportAssignment(node) ||
-      hasExportModifier(node) ||
-      hasCommonJsExport(node)
+      hasCommonJsExport(node) ||
+      (!commonJsOnly &&
+        (ts.isExportDeclaration(node) || ts.isExportAssignment(node) || hasExportModifier(node)))
     )
       exports = true;
     ts.forEachChild(node, visit);

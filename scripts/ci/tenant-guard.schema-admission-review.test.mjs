@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   BARREL,
+  INDEX,
   NEW,
   NEW_EXPORT,
   append,
@@ -128,8 +129,39 @@ test('a direct re-export of a new table cannot replace a prior star binding', ()
   refuses(scan(candidate, { base }), `candidate: public export origin changed ${BILLING}#users`);
 });
 
+for (const binding of ['{ rates }', '*']) {
+  test(`an admitted table cannot be shadowed at the database index by export ${binding} without an append`, () => {
+    const changes = { 'packages/database/src/other-rates.ts': 'export const rates = 1;\n' };
+    const base = append(changes);
+    const candidate = append({
+      ...changes,
+      [INDEX]: `${base.sources.get(INDEX)}\nexport ${binding} from './other-rates';\n`,
+    });
+    refuses(scan(candidate, { base }), `candidate: public export collision ${INDEX}#rates`);
+  });
+}
+
 const billingAlias = name =>
   `import { ${name} } from '@interdomestik/database/schema';\nexport const billingRows = ${name};\n`;
+
+test('an unchanged candidate keeps its admitted table and public alias', () => {
+  const base = append({ [BILLING]: billingAlias('rates') });
+  const result = scan(base, { base });
+  assert.equal(result.schemaAdmission.ok, true, result.schemaAdmission.reason);
+  assert.deepEqual(result.violations, []);
+});
+
+test('a direct alias of an admitted table cannot change targets without an append', () => {
+  const directAlias = name =>
+    `import { ${name} } from '../../../packages/database/src/schema/${name}';\n` +
+    `export const billingRows = ${name};\n`;
+  const base = append({ [BILLING]: directAlias('rates') });
+  assert.equal(scan(base).schemaAdmission.ok, true);
+  refuses(
+    scan(append({ [BILLING]: directAlias('users') }), { base }),
+    `candidate: public export table binding changed ${BILLING}#billingRows`
+  );
+});
 
 for (const [before, after] of [
   ['users', 'accounts'],
@@ -189,6 +221,7 @@ test('literal selection from a retained transaction query map remains admitted',
 
 for (const [name, contents] of [
   ['database.cjs', "module.exports = require('@interdomestik/database');"],
+  ['database.test.cjs', "module.exports = require('@interdomestik/database');"],
   ['schema.cjs', "exports.rows = require('../../packages/database/src/schema').users;"],
   [
     'alias.ts',

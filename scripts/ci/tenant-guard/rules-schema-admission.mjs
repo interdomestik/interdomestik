@@ -164,7 +164,7 @@ function closureProblem(before, after, added) {
   return null;
 }
 
-function additionsProblem(
+function tableAdmissionProblem(
   before,
   after,
   anchor,
@@ -192,13 +192,13 @@ function additionsProblem(
     }
   }
   const exports = comparePublicExports(before, after, beforeInventory, afterInventory, {
-    tableNames,
     types,
     tableBindings,
+    anchorModules: anchor.reachable,
   });
-  return (
-    exports.reason ?? retainedConsumerProblem(before, after, anchor, exports.affected, tableNames)
-  );
+  if (exports.reason) return exports.reason;
+  if (added.length === 0) return null;
+  return retainedConsumerProblem(before, after, anchor, exports.affected, tableNames);
 }
 
 function retainedKernelProblem(before, after) {
@@ -225,14 +225,12 @@ function compare(before, after, anchor, role, inventoryOf) {
   const oldInventory = inventoryOf(before, accumulated ? 'anchor' : 'base');
   const newInventory = inventoryOf(after, role);
   if (oldInventory.reason || newInventory.reason) return oldInventory.reason ?? newInventory.reason;
-  if (added.length > 0 || before.reachable.size > anchor.reachable.size) {
-    const provenance = provenanceProblem(anchor, before, after);
-    if (provenance) return reject(provenance);
-    if (newInventory.outsideForwards.length)
-      return reject(`schema forward outside scan roots ${newInventory.outsideForwards[0]}`);
-  }
-  if (added.length === 0) return null;
-  const additions = additionsProblem(
+  if (added.length === 0 && before.reachable.size === anchor.reachable.size) return null;
+  const provenance = provenanceProblem(anchor, before, after);
+  if (provenance) return reject(provenance);
+  if (newInventory.outsideForwards.length)
+    return reject(`schema forward outside scan roots ${newInventory.outsideForwards[0]}`);
+  const additions = tableAdmissionProblem(
     before,
     after,
     anchor,

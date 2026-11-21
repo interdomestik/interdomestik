@@ -119,8 +119,13 @@ export function forwardInventory(tree, role) {
     const table = forwardTable(source);
     tables.set(file, table);
     recordForwarders(tree, file, [...table.stars, ...table.edges], reverse);
-    if (!inScanRoots(file) && !TEST_SOURCE.test(file))
-      recordForwarders(tree, file, outsideExportLoads(source), outsideReverse);
+    if (!inScanRoots(file))
+      recordForwarders(
+        tree,
+        file,
+        outsideExportLoads(source, TEST_SOURCE.test(file)),
+        outsideReverse
+      );
   }
   const schemaModules = [...tree.sources.keys()].filter(file =>
     file.startsWith('packages/database/src/schema/')
@@ -233,12 +238,20 @@ export function comparePublicExports(
   after,
   initial,
   final,
-  { tableNames, types, tableBindings }
+  { types, tableBindings, anchorModules }
 ) {
-  const affected = reverseReachable([BARREL, ...types.keys()], [initial.reverse, final.reverse]);
-  const names = new Set(tableNames);
+  const indexes = [initial.reverse, final.reverse];
+  const affected = reverseReachable([BARREL, ...types.keys()], indexes);
+  const tableModules = new Set();
+  const names = new Set();
+  for (const key of tableBindings) {
+    const [file, name] = key.split('#');
+    if (anchorModules.has(file)) continue;
+    tableModules.add(file);
+    names.add(name);
+  }
   for (const each of types.values()) for (const name of each) names.add(name);
-  for (const file of affected) {
+  for (const file of new Set([...affected, ...reverseReachable(tableModules, indexes)])) {
     const reason =
       publicExportProblem(before, after, initial, final, file, names, types) ??
       aliasProblem(before, after, initial, final, file, tableBindings);
