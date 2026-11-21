@@ -9,8 +9,6 @@ import {
 import { checkControlFlow } from './safe-action.recheck';
 import type { RouteContext } from './safe-route';
 
-const getQueryValues = URLSearchParams.prototype.getAll;
-
 function paramsPromise(value: unknown): value is Promise<unknown> {
   // Next's development wrapper is a proxy over a native promise with an untrapped prototype.
   return (
@@ -34,7 +32,7 @@ function searchParams(request: Request): URLSearchParams {
 }
 
 export function readQuerySubject(request: Request, key: string): object | undefined {
-  const values = Reflect.apply(getQueryValues, searchParams(request), [key]);
+  const values = searchParams(request).getAll(key);
   if (values.length === 1) return { __proto__: null, [key]: values[0] };
   return undefined;
 }

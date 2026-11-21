@@ -3,7 +3,7 @@ import { getRedirectError } from 'next/dist/client/components/redirect';
 import { expect, it } from 'vitest';
 
 import { expectResponse, jsonRequest, mocks } from './__fixtures__/safe-route/test-support';
-import { POST } from './__fixtures__/safe-route/body';
+import { POST } from './__fixtures__/safe-route/body.fixture';
 import {
   actionFailure,
   defaultFailureMessage,

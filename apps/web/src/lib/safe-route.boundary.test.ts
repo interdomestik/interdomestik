@@ -20,10 +20,10 @@ import {
   request,
   STAFF_SESSION,
 } from './__fixtures__/safe-route/test-support';
-import { POST } from './__fixtures__/safe-route/role';
-import { POST as bodyPost } from './__fixtures__/safe-route/body';
-import { POST as queryPost } from './__fixtures__/safe-route/query';
-import { POST as selfPost } from './__fixtures__/safe-route/self';
+import { POST } from './__fixtures__/safe-route/role.fixture';
+import { POST as bodyPost } from './__fixtures__/safe-route/body.fixture';
+import { POST as queryPost } from './__fixtures__/safe-route/query.fixture';
+import { POST as selfPost } from './__fixtures__/safe-route/self.fixture';
 import { actionFailure } from './safe-action.failure';
 
 it.each([

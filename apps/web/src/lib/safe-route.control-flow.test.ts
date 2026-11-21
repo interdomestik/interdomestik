@@ -14,7 +14,7 @@ import {
   mocks,
   STAFF_SESSION,
 } from './__fixtures__/safe-route/test-support';
-import { POST } from './__fixtures__/safe-route/role';
+import { POST } from './__fixtures__/safe-route/role.fixture';
 import { defineAction } from './safe-action';
 import { ObjectPrototypeIntegrityError } from './safe-action.guard';
 

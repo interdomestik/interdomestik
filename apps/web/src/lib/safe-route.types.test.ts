@@ -3,7 +3,7 @@ import type { Params as SegmentParams } from 'next/dist/server/request/params';
 import type { NextRequest } from 'next/server';
 import { expectTypeOf, it } from 'vitest';
 
-import type * as fixture from './__fixtures__/safe-route/role';
+import type * as fixture from './__fixtures__/safe-route/role.fixture';
 import type { RouteContext } from './safe-route';
 
 // Next 16.4.1 next-types-plugin/index.js:85-95, 145-160. The plugin's SegmentParams
