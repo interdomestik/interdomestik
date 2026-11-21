@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { setTimeout as poll } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -28,6 +27,10 @@ export const rateInput = (effectiveOn: string) => ({
   rate: '61.5',
   effectiveOn,
 });
+
+export function runSequentially<T>(items: readonly T[], run: (item: T) => Promise<void>) {
+  return items.reduce((previous, item) => previous.then(() => run(item)), Promise.resolve());
+}
 
 export type RateRow = {
   id: string;
@@ -77,70 +80,6 @@ export function restricted<T>(
     }
     return run(tx);
   });
-}
-
-// Keep a transaction open until the contender has actually reached a PostgreSQL lock wait.
-export async function waitForLockWaiters(client: postgres.Sql, blocker: number, count: number) {
-  const deadline = Date.now() + 5000;
-  do {
-    const [row] = await client<{ waiting: number }[]>`
-      with recursive waiters(pid) as (
-        select ${blocker}::int
-        union
-        select activity.pid from pg_stat_activity activity
-        join waiters on waiters.pid = any(pg_blocking_pids(activity.pid))
-        where activity.datname = current_database()
-      ) select count(*)::int - 1 as waiting from waiters`;
-    if (row.waiting >= count) return;
-    await poll(20);
-  } while (Date.now() < deadline);
-  assert.fail(`Expected ${count} PostgreSQL lock waiters for backend ${blocker}`);
-}
-
-export function signal() {
-  let resolve!: () => void;
-  const promise = new Promise<void>(done => {
-    resolve = done;
-  });
-  return { promise, resolve };
-}
-
-export async function withLockedBook<T>(
-  holder: postgres.Sql,
-  observer: postgres.Sql,
-  tenantId: string,
-  bookId: string,
-  publishers: () => Promise<T>,
-  count: number
-) {
-  const locked = signal();
-  const release = signal();
-  let blocker = 0;
-  const held = restricted(holder, tenantId, async tx => {
-    const [{ pid }] = await tx<{ pid: number }[]>`select pg_backend_pid() as pid`;
-    blocker = pid;
-    const rows = await tx`select id from exchange_rate_books where id = ${bookId} for update`;
-    assert.equal(rows.length, 1);
-    locked.resolve();
-    await release.promise;
-    const [{ mark }] = await tx<{ mark: string }[]>`select clock_timestamp()::text as mark`;
-    return mark;
-  });
-
-  let pending: Promise<T> | undefined;
-  try {
-    await Promise.race([locked.promise, held]);
-    pending = publishers();
-    await Promise.race([
-      waitForLockWaiters(observer, blocker, count),
-      pending.then(() => assert.fail('Publications finished while the book was locked')),
-    ]);
-    release.resolve();
-    return { mark: await held, result: await pending };
-  } finally {
-    release.resolve();
-    await Promise.allSettled([held, pending]);
-  }
 }
 
 export type ExchangeRateFixture = Awaited<ReturnType<typeof createFixture>> & {
@@ -257,10 +196,11 @@ async function createFixture(admin: postgres.Sql) {
     select id, id, id, 'MK' from unnest(${tenants}::text[]) as id`;
   const actor = { id: randomUUID(), tenantId };
   const withoutBook = { id: randomUUID(), tenantId: noEntity };
-  for (const user of [actor, withoutBook]) {
+  await runSequentially([actor, withoutBook], async user => {
+    const email = `${user.id}@example.test`;
     await admin`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
-      values (${user.id}, ${user.tenantId}, 'Test administrator', ${`${user.id}@example.test`}, true, 'tenant_admin', now(), now())`;
-  }
+      values (${user.id}, ${user.tenantId}, 'Test administrator', ${email}, true, 'tenant_admin', now(), now())`;
+  });
 
   const session = (roleName = 'tenant_admin', home = tenantId, access = home, userId = actor.id) =>
     mintTenantAuthority({
