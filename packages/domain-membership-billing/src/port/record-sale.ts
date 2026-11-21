@@ -30,6 +30,8 @@ import { claimSale, replaySale, saleHash, saleResult } from './sale-claim';
 import { recordSaleInputSchema, type SaleInput } from './sale-input';
 import { readSaleOffer } from './sale-offer';
 
+const activeSaleTransactions = new WeakSet<TenantTransaction>();
+
 function prepareSale(authority: TenantAuthority, input: unknown, actor: SaleActor) {
   const principal = sessionPrincipal(authority, saleRoles);
   if (!principal || !matchesSaleActor(principal, actor))
@@ -51,9 +53,15 @@ export async function recordSaleInTx(
   input: unknown,
   actor: SaleActor
 ) {
+  if (activeSaleTransactions.has(tx)) return { ok: false, code: 'invalid' } as const;
   const sale = prepareSale(authority, input, actor);
   if (!sale.ok) return sale;
-  return saveSale(tx, sale.principal, sale.input);
+  activeSaleTransactions.add(tx);
+  try {
+    return await saveSale(tx, sale.principal, sale.input);
+  } finally {
+    activeSaleTransactions.delete(tx);
+  }
 }
 
 async function saveSale(tx: TenantTransaction, principal: SalePrincipal, input: SaleInput) {
@@ -77,43 +85,15 @@ async function saveSale(tx: TenantTransaction, principal: SalePrincipal, input: 
     return { ok: false, code: 'forbidden' } as const;
   }
 
+  await tx.execute(sql`savepoint wp07_sale`);
+  let succeeded = false;
   try {
-    return await tx.transaction(async child => {
-      const result = await claimAndRecord(child, principal, input);
-      // Reject the savepoint callback so a typed refusal also rolls back the provisional claim.
-      if (!result.ok) throw new SaleRollback(result);
-      return result;
-    });
-  } catch (error) {
-    if (error instanceof SaleRollback) return error.result;
-    const code = saleWriteFailure(error);
-    if (code) return { ok: false, code } as const;
-    throw error;
-  }
-}
-
-type SaleFailure = Extract<Awaited<ReturnType<typeof claimAndRecord>>, { ok: false }>;
-
-class SaleRollback extends Error {
-  constructor(readonly result: SaleFailure) {
-    super(result.code);
-  }
-}
-
-function saleWriteFailure(error: unknown) {
-  const { cause } = (error ?? {}) as { cause?: unknown };
-  const failure = (cause ?? error ?? {}) as { code?: string; constraint_name?: string };
-  if (failure.code === '23505' && failure.constraint_name === 'membership_sales_live_lead_uq') {
-    return 'conflict';
-  }
-  if (failure.code !== '23514') return null;
-  switch (failure.constraint_name) {
-    case 'membership_sales_stale_offer':
-      return 'stale_offer';
-    case 'membership_sales_stale_rate':
-      return 'stale_rate';
-    default:
-      return null;
+    const result = await claimAndRecord(tx, principal, input);
+    succeeded = result.ok;
+    return result;
+  } finally {
+    if (!succeeded) await tx.execute(sql`rollback to savepoint wp07_sale`);
+    await tx.execute(sql`release savepoint wp07_sale`);
   }
 }
 
@@ -202,42 +182,48 @@ async function insertSale(
   if (amountMkdMinor <= 0n) return { ok: false, code: 'rate_unavailable' } as const;
   if (amountMkdMinor !== input.amountMkdMinor) return { ok: false, code: 'invalid' } as const;
 
+  const id = randomUUID();
+  const candidate = JSON.stringify({
+    id,
+    kind: 'individual',
+    plan_version_id: version.id,
+    plan_id: version.planId,
+    legal_entity_id: version.legalEntityId,
+    price_currency: version.priceCurrency,
+    price_minor: version.listPriceMinor.toString(),
+    list_price_minor: version.listPriceMinor.toString(),
+    plan_tier: version.tier,
+    plan_members_included: version.membersIncluded,
+    governing_law: governingLaw,
+    terms_version: termsVersion,
+    rate_id: rate.id,
+    rate_book_id: rate.bookId,
+    rate: rate.rate,
+    rate_base: rate.base,
+    rate_quote: rate.quote,
+    rate_effective_on: rate.effectiveOn,
+    amount_mkd_minor: amountMkdMinor.toString(),
+    channel: input.channel,
+    operation_key: input.operationKey,
+    request_hash: `\\x${requestHash.toString('hex')}`,
+    buyer_kind: buyer.kind,
+    lead_id: buyer.kind === 'lead' ? buyer.id : null,
+    member_user_id: buyer.kind === 'member' ? buyer.id : null,
+    branch_id: attribution.branchId,
+    agent_id: attribution.agentId,
+    tenant_id: tenantId,
+    sold_by: userId,
+  });
+  // postgres.js marks the outer transaction failed on a query error even after ROLLBACK TO.
+  const [{ code }] = await tx.execute<{ code: 'conflict' | 'stale_offer' | 'stale_rate' | null }>(
+    sql`select public.membership_try_insert_individual_sale(${candidate}::text::jsonb) as code`
+  );
+  if (code) return { ok: false, code } as const;
+
   const [sale] = await tx
-    .insert(membershipSales)
-    .values({
-      id: randomUUID(),
-      kind: 'individual',
-      planVersionId: version.id,
-      planId: version.planId,
-      legalEntityId: version.legalEntityId,
-      priceCurrency: version.priceCurrency,
-      priceMinor: version.listPriceMinor,
-      listPriceMinor: version.listPriceMinor,
-      planTier: version.tier,
-      planMembersIncluded: version.membersIncluded,
-      governingLaw,
-      termsVersion,
-      rateId: rate.id,
-      rateBookId: rate.bookId,
-      rate: rate.rate,
-      rateBase: rate.base,
-      rateQuote: rate.quote,
-      rateEffectiveOn: rate.effectiveOn,
-      amountMkdMinor,
-      channel: input.channel,
-      soldAt: sql`null`,
-      soldOn: sql`null`,
-      dueOn: sql`null`,
-      operationKey: input.operationKey,
-      requestHash,
-      buyerKind: buyer.kind,
-      leadId: buyer.kind === 'lead' ? buyer.id : null,
-      memberUserId: buyer.kind === 'member' ? buyer.id : null,
-      branchId: attribution.branchId,
-      agentId: attribution.agentId,
-      tenantId,
-      soldBy: userId,
-    })
-    .returning();
+    .select()
+    .from(membershipSales)
+    .where(withTenant(tenantId, membershipSales.tenantId, eq(membershipSales.id, id)));
+  if (!sale) throw new Error('Recorded sale is missing');
   return saleResult(sale);
 }

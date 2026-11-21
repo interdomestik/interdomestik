@@ -8,6 +8,7 @@ import { expect, it } from 'vitest';
 import {
   accepted,
   absent,
+  canonicalHash,
   directSaleRow,
   insertDirectSale,
   refused,
@@ -213,8 +214,15 @@ export function registerOfferCases(fixture: () => Promise<SaleFixture>) {
       });
       expect(await f.quote()).toEqual(refused('stale_offer'));
       expect(await f.sale(input)).toEqual(refused('stale_offer'));
+      const directInput = terms === null ? input : { ...input, termsVersion: terms };
       await expect(
-        restricted(f.admin, f.tenantId, tx => insertDirectSale(tx, row))
+        restricted(f.admin, f.tenantId, tx =>
+          insertDirectSale(tx, {
+            ...row,
+            terms_version: directInput.termsVersion,
+            request_hash: canonicalHash(directInput),
+          })
+        )
       ).rejects.toMatchObject({ code: '23514', constraint_name: 'membership_sales_stale_offer' });
     }
     expect(await f.counts(input.operationKey)).toEqual(absent);

@@ -1,9 +1,13 @@
 import {
+  paymentPortTestSession,
+  runtimeRole,
   signal,
   withPaymentPortDatabase,
   type PaymentPortDatabase,
 } from '@interdomestik/database/testing/payment-port-rls';
-import { afterAll, beforeAll, describe } from 'vitest';
+import { sql } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
+import { afterAll, beforeAll, describe, expect } from 'vitest';
 
 import { registerCoverageCases } from './individual-sale-coverage.test-support';
 import { registerInvariantCases } from './individual-sale-invariants.test-support';
@@ -28,6 +32,19 @@ describe.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
         await release.promise;
       });
       await Promise.race([ready.promise, running]);
+
+      const [{ name }] = await database.admin<
+        { name: string }[]
+      >`select current_database() as name`;
+      const { withTenantAuthority } =
+        await import('@interdomestik/database/tenant-authority-context');
+      const authority = paymentPortTestSession(randomUUID(), randomUUID(), 'tenant_admin');
+      await withTenantAuthority(authority, async tx => {
+        const [connection] = await tx.execute<{ name: string; role: string }>(
+          sql`select current_database() as name, current_user as role`
+        );
+        expect(connection).toEqual({ name, role: runtimeRole });
+      });
     }, 60_000);
 
     afterAll(async () => {

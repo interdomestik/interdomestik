@@ -722,6 +722,13 @@
       "when": 1795274630008,
       "tag": "0102_wp07_membership_sales",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1795278270702,
+      "tag": "0103_wp07_sale_insert_outcome",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,6 @@ import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
-import { admitPersonEntries } from '../sponsor-coverage/admission';
 import { holdingChange, holdingSale, race } from './individual-sale-races.test-support';
 import {
   absent,
@@ -44,7 +43,12 @@ async function seedCompanySeat(f: SaleFixture, startsInDays = -1) {
   return entryId;
 }
 
-function seatAdmission(f: SaleFixture, entryId: string, hold?: (pid: number) => Promise<void>) {
+async function seatAdmission(
+  f: SaleFixture,
+  entryId: string,
+  hold?: (pid: number) => Promise<void>
+) {
+  const { admitPersonEntries } = await import('../sponsor-coverage/admission');
   return withPaymentPortTestTransaction(
     f.peer,
     f.tenantId,

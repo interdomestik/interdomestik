@@ -127,6 +127,11 @@
       "migration": "0102_wp07_membership_sales"
     },
     {
+      "key": "function [\"public\",\"membership_try_insert_individual_sale(candidate jsonb)\"]",
+      "value": "05e363a0fd2713bf1200d8c0a1dc8d17",
+      "migration": "0103_wp07_sale_insert_outcome"
+    },
+    {
       "key": "function [\"public\",\"provision_exchange_rate_book_fn()\"]",
       "value": "9825802eb7a6c6077fe83f894dc9f95c",
       "migration": "0101_wp07_exchange_rates"

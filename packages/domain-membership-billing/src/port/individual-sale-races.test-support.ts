@@ -12,6 +12,7 @@ import { expect, it, vi } from 'vitest';
 import {
   accepted,
   absent,
+  canonicalHash,
   completed,
   directSaleRow,
   insertDirectSale,
@@ -27,7 +28,7 @@ export async function race<T, U>(
   f: SaleFixture,
   first: RunHolding<T>,
   second: (blocker: number) => PromiseLike<U>,
-  waiters = 1
+  { waiters = 1, beforeRelease }: { waiters?: number; beforeRelease?: () => void } = {}
 ) {
   const ready = signal();
   const release = signal();
@@ -52,6 +53,7 @@ export async function race<T, U>(
         throw new Error('Contender finished without taking the lock');
       }),
     ]);
+    beforeRelease?.();
     release.resolve();
     return { first: await holder, second: await contender };
   } finally {
@@ -73,10 +75,10 @@ export function holdingChange(
     });
 }
 
-async function saleScope(
+async function saleScope<T>(
   f: SaleFixture,
   who: typeof f.owner,
-  work: (tx: TenantTransaction) => Promise<void>
+  work: (tx: TenantTransaction) => Promise<T>
 ) {
   const { withTenantAuthority } = await import('@interdomestik/database/tenant-authority-context');
   return withTenantAuthority(who.authority, work);
@@ -189,7 +191,7 @@ export function registerRaceCases(fixture: () => Promise<SaleFixture>) {
             await Promise.allSettled([writer]);
           }
         },
-        2
+        { waiters: 2 }
       );
       expect(result.second).toEqual(refused('stale_offer'));
       expect(await f.counts(input.operationKey)).toEqual(absent);
@@ -212,6 +214,14 @@ export function registerRaceCases(fixture: () => Promise<SaleFixture>) {
       const leadId = await f.lead();
       const input = accepted(await f.sellable(), { leadId });
       const { recordSaleInTx } = await import('../payment-port-compose');
+      const claims = await import('./sale-claim');
+      const claimSale = claims.claimSale;
+      let provisionalHash: Buffer | undefined;
+      const spy = vi.spyOn(claims, 'claimSale').mockImplementation(async (...args) => {
+        const claim = await claimSale(...args);
+        if (args[2] === input.operationKey) provisionalHash = claim?.requestHash;
+        return claim;
+      });
       const contender = (): Promise<unknown> =>
         composed
           ? saleScope(f, f.agent, async tx => {
@@ -222,28 +232,102 @@ export function registerRaceCases(fixture: () => Promise<SaleFixture>) {
               where tenant_id = ${f.tenantId} and id = ${f.planId}`);
             })
           : f.sale(input, f.agent);
-      const result = await race(
-        f,
-        holdingChange(
+      try {
+        const reassign = holdingChange(
           f,
-          tx => tx`
-        update member_leads set agent_id = ${f.otherAgent.id} where id = ${leadId}
-      `
-        ),
-        contender
-      );
-      if (composed) {
-        const [{ description }] =
-          await f.admin`select description from membership_plans where id = ${f.planId}`;
-        expect(description).toBe('unrelated caller work');
-      } else {
-        expect(result.second).toEqual(refused('not_found'));
+          tx => tx`update member_leads set agent_id = ${f.otherAgent.id} where id = ${leadId}`
+        );
+        const result = await race(f, reassign, contender, {
+          beforeRelease: () => expect(provisionalHash).toEqual(canonicalHash(input)),
+        });
+        if (composed) {
+          const [{ description }] =
+            await f.admin`select description from membership_plans where id = ${f.planId}`;
+          expect(description).toBe('unrelated caller work');
+        } else {
+          expect(result.second).toEqual(refused('not_found'));
+        }
+      } finally {
+        spy.mockRestore();
       }
       expect(await f.counts(input.operationKey)).toEqual(absent);
       success(await f.sale(input, f.otherAgent));
       expect(await f.counts(input.operationKey)).toEqual(completed);
     });
   }
+
+  it('refuses an overlapping composed sale and preserves the successful sale at commit', async () => {
+    const f = await fixture();
+    const offer = await f.sellable();
+    const first = accepted(offer, { leadId: await f.lead() });
+    const second = accepted(offer, { leadId: await f.lead() });
+    const { recordSaleInTx } = await import('../payment-port-compose');
+    const claims = await import('./sale-claim');
+    const claimSale = claims.claimSale;
+    const claimed = signal();
+    const release = signal();
+    const spy = vi.spyOn(claims, 'claimSale').mockImplementation(async (...args) => {
+      const claim = await claimSale(...args);
+      if (args[2] === first.operationKey) {
+        expect(claim?.requestHash).toEqual(canonicalHash(first));
+        claimed.resolve();
+        await release.promise;
+      }
+      return claim;
+    });
+    try {
+      const saleId = await saleScope(f, f.owner, async tx => {
+        const pending = recordSaleInTx(tx, f.owner.authority, first, f.owner);
+        try {
+          await Promise.race([
+            claimed.promise,
+            pending.then(() => {
+              throw new Error('First sale finished before pausing at its claim');
+            }),
+          ]);
+          expect(await recordSaleInTx(tx, f.owner.authority, second, f.owner)).toEqual(
+            refused('invalid')
+          );
+        } finally {
+          release.resolve();
+          await Promise.allSettled([pending]);
+        }
+        return success(await pending).sale.id;
+      });
+      expect(await f.counts(first.operationKey)).toEqual(completed);
+      expect(await f.counts(second.operationKey)).toEqual(absent);
+      const [sale] = await f.admin`select id from membership_sales
+        where tenant_id = ${f.tenantId} and operation_key = ${first.operationKey}`;
+      expect(sale?.id).toBe(saleId);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('releases the savepoint after sequential composed successes and refusals', async () => {
+    const f = await fixture();
+    const offer = await f.sellable();
+    const first = accepted(offer, { leadId: await f.lead() });
+    const second = accepted(offer, { leadId: await f.lead() });
+    const { recordSaleInTx } = await import('../payment-port-compose');
+    await expect(
+      saleScope(f, f.owner, async tx => {
+        const nested = vi.spyOn(tx, 'transaction');
+        try {
+          success(await recordSaleInTx(tx, f.owner.authority, first, f.owner));
+          const invalid = { ...second, amountMkdMinor: second.amountMkdMinor + 100n };
+          expect(await recordSaleInTx(tx, f.owner.authority, invalid, f.owner)).toEqual(
+            refused('invalid')
+          );
+          success(await recordSaleInTx(tx, f.owner.authority, second, f.owner));
+          expect(nested).not.toHaveBeenCalled();
+        } finally {
+          nested.mockRestore();
+        }
+        await tx.execute(sql`rollback to savepoint wp07_sale`);
+      })
+    ).rejects.toMatchObject({ cause: { code: '3B001' } });
+  });
 
   it('commits the sale with its locked attribution before reassignment', async () => {
     const f = await fixture();
