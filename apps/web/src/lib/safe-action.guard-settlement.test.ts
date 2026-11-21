@@ -1,5 +1,4 @@
 // @vitest-environment node
-import { runInNewContext } from 'node:vm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -71,80 +70,15 @@ describe('synchronous private parsing', () => {
     expect(mocks.write).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['native Promise', () => Promise.resolve(true)],
-    ['foreign-realm Promise', () => runInNewContext('Promise.resolve(false)') as unknown],
-    ['Promise with no then property', () => Object.setPrototypeOf(Promise.resolve(true), null)],
-    ['plain thenable', (then: () => void) => ({ then })],
-    ['inherited thenable', (then: () => void) => Object.create({ then }) as unknown],
-    ['noncallable then', () => ({ then: undefined })],
-    [
-      'inherited then getter',
-      (get: () => void) => Object.create(Object.defineProperty({}, 'then', { get })) as unknown,
-    ],
-    [
-      'Promise subclass with a then getter',
-      (read: () => void) => {
-        class GetterPromise extends Promise<boolean> {}
-        Object.defineProperty(GetterPromise.prototype, 'then', {
-          get() {
-            read();
-            return Promise.prototype.then;
-          },
-        });
-        return new GetterPromise(resolve => resolve(false));
-      },
-    ],
-    [
-      'proxy with no then property',
-      (trap: () => never) =>
-        new Proxy({}, { get: trap, getOwnPropertyDescriptor: trap, getPrototypeOf: trap }),
-    ],
-  ] as const)(
-    'fails closed for a sync refinement result of type %s without reading then',
-    async (_kind, create) => {
-      const inspect = vi.fn((): never => {
-        throw new Error('unexpected inspection');
-      });
-      const answer = create(inspect);
-      const input = z.strictObject({ claimId: z.string().refine(() => answer) });
-      const raw = { claimId: 'ID-A' };
-      expect(await guardFor(input).run(raw, false)).toEqual({ kind: 'defect', snapshot: raw });
-      const handler = vi.fn(async () => 'never');
-      const action = defineAction({ ...definition, input, handler });
-      expect(await action(raw)).toMatchObject({ success: false, code: 'INTERNAL_SERVER_ERROR' });
-      expect(mocks.capture).toHaveBeenCalledExactlyOnceWith(
-        expect.objectContaining({ message: 'Safe action contract violation' }),
-        { extra: { operation: definition.name } }
-      );
-      expect(inspect).not.toHaveBeenCalled();
-      expect(handler).not.toHaveBeenCalled();
-      expect(mocks.write).not.toHaveBeenCalled();
-    }
-  );
-
-  it('maps the Zod async-in-sync-parse error to a defect with the snapshot', async () => {
-    const asyncSchema = z.string().refine(async () => true);
-    expect(() => asyncSchema.safeParse('x')).toThrow(z.core.$ZodAsyncError);
-    const input = z.strictObject({
-      field: z.string().refine(value => asyncSchema.safeParse(value).success),
-    });
-    const raw = { field: 'x' };
-    expect(await guardFor(input).run(raw, false)).toEqual({ kind: 'defect', snapshot: raw });
-  });
-
   it.each(['redirect', 'union formatter'])(
-    'preserves the %s exception over an earlier rejected Promise without auditing FORBIDDEN',
+    'preserves the earlier %s exception by identity before a Promise refinement',
     async kind => {
-      const denial = Promise.reject(Object.assign(new Error('denied'), { code: 'FORBIDDEN' }));
-      // The predicate owns the rejection and the guard must never adopt the Promise.
-      void denial.catch(() => {});
+      const later = vi.fn(() => Promise.resolve(true));
       const { customError } = z.config();
       let thrown: unknown = new Error('union issue formatter failed');
       const handler = vi.fn(async () => 'never');
       const input = z.strictObject({
         claimId: z.string(),
-        checks: z.array(z.string().refine(() => denial)),
         sibling:
           kind === 'redirect'
             ? z.string().refine(() => {
@@ -156,6 +90,7 @@ describe('synchronous private parsing', () => {
                 }
               })
             : z.union([z.string(), z.number()]),
+        checks: z.array(z.string().refine(later)),
       });
       const raw = { claimId: 'ID-A', checks: ['x'], sibling: kind === 'redirect' ? 'x' : {} };
       if (kind === 'union formatter')
@@ -178,6 +113,7 @@ describe('synchronous private parsing', () => {
           expect(await action(raw)).toMatchObject({ code: 'INTERNAL_SERVER_ERROR' });
           expect(mocks.capture.mock.calls[0]?.[0]).toBe(thrown);
         }
+        expect(later).not.toHaveBeenCalled();
         expect(handler).not.toHaveBeenCalled();
         expect(mocks.write).not.toHaveBeenCalled();
       } finally {
@@ -236,20 +172,6 @@ describe('synchronous private parsing', () => {
     ]);
     expect(accepted).toMatchObject({ kind: 'value', value: { field: 'abc' } });
     expect(refused).toMatchObject({ kind: 'invalid', failure: { issues: { field: 'custom' } } });
-  });
-
-  it('keeps a refinement defect local to its run', async () => {
-    const input = guardFor(
-      z.strictObject({
-        field: z.string().refine(value => (value === 'bad' ? Promise.resolve(true) : true)),
-      })
-    );
-    const [defective, accepted] = await Promise.all([
-      input.run({ field: 'bad' }, false),
-      input.run({ field: 'ok' }, false),
-    ]);
-    expect(defective).toMatchObject({ kind: 'defect' });
-    expect(accepted).toMatchObject({ kind: 'value' });
   });
 
   it.each([

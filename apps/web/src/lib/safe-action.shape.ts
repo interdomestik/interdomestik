@@ -226,8 +226,7 @@ export function fieldAt(root: Shape, path: readonly string[], strict = false): S
   return shape;
 }
 
-function schemaFor(shape: Shape, markThenable: () => void): z.ZodType {
-  const childParser = (child: Shape) => rebuildParser(child, markThenable);
+function schemaFor(shape: Shape): z.ZodType {
   switch (shape.type) {
     case 'string':
       return shape.coerce ? z.coerce.string() : z.string();
@@ -246,24 +245,24 @@ function schemaFor(shape: Shape, markThenable: () => void): z.ZodType {
     case 'enum':
       return z.enum(Object.fromEntries(shape.values.map((value, index) => [`v${index}`, value])));
     case 'optional':
-      return childParser(shape.inner).optional();
+      return rebuildParser(shape.inner).optional();
     case 'nullable':
-      return childParser(shape.inner).nullable();
+      return rebuildParser(shape.inner).nullable();
     case 'readonly':
-      return childParser(shape.inner).readonly();
+      return rebuildParser(shape.inner).readonly();
     case 'array':
-      return z.array(childParser(shape.element));
+      return z.array(rebuildParser(shape.element));
     case 'tuple': {
-      const items = shape.items.map(childParser);
+      const items = shape.items.map(rebuildParser);
       return items.length ? z.tuple(items as [z.ZodType, ...z.ZodType[]]) : z.tuple([]);
     }
     case 'object': {
       const fields: Record<string, z.ZodType> = Object.create(null);
-      for (const [key, field] of Object.entries(shape.fields)) fields[key] = childParser(field);
+      for (const [key, field] of Object.entries(shape.fields)) fields[key] = rebuildParser(field);
       return z.strictObject(fields);
     }
     case 'union': {
-      const branches = shape.branches.map(childParser) as [z.ZodType, ...z.ZodType[]];
+      const branches = shape.branches.map(rebuildParser) as [z.ZodType, ...z.ZodType[]];
       return shape.discriminator === null
         ? z.union(branches)
         : z.discriminatedUnion(shape.discriminator, branches as [z.ZodObject, ...z.ZodObject[]]);
@@ -271,12 +270,10 @@ function schemaFor(shape: Shape, markThenable: () => void): z.ZodType {
   }
 }
 
-export function rebuildParser(shape: Shape, markThenable: () => void): z.ZodType {
-  const base = schemaFor(shape, markThenable);
+export function rebuildParser(shape: Shape): z.ZodType {
+  const base = schemaFor(shape);
   const parser = shape.checks.length
-    ? base.check(
-        ...shape.checks.map(check => rebuildCheck(check, markThenable) as z.core.$ZodCheck<unknown>)
-      )
+    ? base.check(...shape.checks.map(check => rebuildCheck(check) as z.core.$ZodCheck<unknown>))
     : base;
   Object.defineProperties(parser._zod.def, {
     coerce: { value: 'coerce' in shape && shape.coerce },

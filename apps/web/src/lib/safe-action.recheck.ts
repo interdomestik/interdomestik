@@ -141,7 +141,9 @@ export function checkControlFlow(error: unknown): boolean {
   return true;
 }
 
-export function internalDefect(operation: string) {
-  Sentry.captureException(new Error('Safe action contract violation'), { extra: { operation } });
+export function internalDefect(operation: string, reason: string) {
+  Sentry.captureException(new Error('Safe action contract violation'), {
+    extra: { operation, reason },
+  });
   return actionFailure('INTERNAL_SERVER_ERROR');
 }

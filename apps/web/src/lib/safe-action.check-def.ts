@@ -21,6 +21,7 @@ export function isSnapshotRecord(value: unknown): value is Record<string, unknow
 }
 
 const formDataPrototype = FormData.prototype;
+const asyncFunctionPrototype = Object.getPrototypeOf(async () => {});
 
 /** Check the prototype chain before invoking a FormData intrinsic's brand check. */
 export function hasReadableFormDataPrototype(value: unknown): boolean {
@@ -62,6 +63,16 @@ export function isThenableLike(value: unknown): boolean {
     part = Object.getPrototypeOf(part)
   ) {
     if (types.isProxy(part) || Object.hasOwn(part, 'then')) return true;
+  }
+  return false;
+}
+
+export function isAsyncCallback(value: unknown): boolean {
+  if (types.isAsyncFunction(value)) return true;
+  if (typeof value !== 'function') return false;
+  // Bound async callbacks retain this prototype but lose the native async brand.
+  for (let part: unknown = value; isOwnReadable(part); part = Object.getPrototypeOf(part)) {
+    if (part === asyncFunctionPrototype) return true;
   }
   return false;
 }
@@ -178,7 +189,7 @@ export function rawObjectShape(def: object): unknown {
 }
 
 function hasAsyncTransform(def: unknown): boolean {
-  return types.isAsyncFunction(ownValue(def, 'transform'));
+  return isAsyncCallback(ownValue(def, 'transform'));
 }
 
 export function asyncSchemaReason(def: object, type: string): string | undefined {

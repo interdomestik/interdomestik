@@ -119,7 +119,7 @@ export async function finalize<T>(
   const code = ownValue(outcome, 'code');
   const error = ownValue(outcome, 'error');
   if (state === 'defect' || typeof code !== 'string' || typeof error !== 'string') {
-    const result = toActionError(internalDefect(op.name));
+    const result = toActionError(internalDefect(op.name, 'invalid_failure'));
     assertPristineObjectPrototype();
     return result;
   }
@@ -156,7 +156,7 @@ export async function finalize<T>(
 }
 
 export function failureOfThrown(error: unknown, operation: string): ActionFailure {
-  if (!checkControlFlow(error)) return internalDefect(operation);
+  if (!checkControlFlow(error)) return internalDefect(operation, 'uninspectable_error');
   const classified = classifyThrown(error, operation);
   if (classified.kind === 'internal') return actionFailure('INTERNAL_SERVER_ERROR');
   return actionFailure(classified.code, classified.error, {
@@ -206,7 +206,7 @@ export async function runProtected<S extends z.ZodType, T>(
         case 'thrown':
           throw guarded.error;
         case 'defect':
-          outcome = internalDefect(def.name);
+          outcome = internalDefect(def.name, guarded.reason ?? 'parsed_shape');
           break;
         case 'value':
           assertPristineObjectPrototype();

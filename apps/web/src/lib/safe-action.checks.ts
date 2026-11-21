@@ -7,6 +7,7 @@ import {
   denseArray,
   hasTrait,
   holdsSchema,
+  isAsyncCallback,
   isThenableLike,
   ownValue,
   regexDefinition,
@@ -78,11 +79,13 @@ function isKey<K extends string>(table: Record<K, unknown>, key: unknown): key i
   return typeof key === 'string' && Object.hasOwn(table, key);
 }
 
-function refineFor(
-  domain: CheckDomain,
-  predicate: Predicate,
-  markThenable: () => void
-): (value: unknown) => boolean {
+const THENABLE_REFINEMENT = Symbol('thenable refinement');
+
+export function isThenableRefinementError(error: unknown): boolean {
+  return error === THENABLE_REFINEMENT;
+}
+
+function refineFor(domain: CheckDomain, predicate: Predicate): (value: unknown) => boolean {
   return value => {
     if (
       typeof value !== domain.type &&
@@ -91,10 +94,7 @@ function refineFor(
     )
       return false;
     const result = predicate(value);
-    if (isThenableLike(result)) {
-      markThenable();
-      return false;
-    }
+    if (isThenableLike(result)) throw THENABLE_REFINEMENT;
     return Boolean(result);
   };
 }
@@ -210,13 +210,10 @@ export function captureCheck(
       `a check whose definition has an accessor or a prototype other than Object (not read) on a ${position}`
     );
   const kind = typeof def.check === 'string' && def.check !== '' ? def.check : 'unknown';
-  if (
-    kind === 'custom' &&
-    types.isAsyncFunction(def.fn ?? ownValue(ownValue(check, '_zod'), 'check'))
-  ) {
+  if (kind === 'custom' && isAsyncCallback(def.fn ?? ownValue(ownValue(check, '_zod'), 'check'))) {
     return refuse('async refinements are not supported');
   }
-  if (kind === 'overwrite' && types.isAsyncFunction(def.tx)) {
+  if (kind === 'overwrite' && isAsyncCallback(def.tx)) {
     return refuse('async checks are not supported');
   }
   if (Object.hasOwn(def, 'when') && !isKey(lengths, kind))
@@ -242,7 +239,7 @@ export function captureCheck(
   return Object.freeze(captured);
 }
 
-function rebuild(check: CapturedCheck, markThenable: () => void): z.core.$ZodCheck {
+function rebuild(check: CapturedCheck): z.core.$ZodCheck {
   switch (check[0]) {
     case 'normalizer':
       return privateNormalizer(check[1]);
@@ -253,7 +250,7 @@ function rebuild(check: CapturedCheck, markThenable: () => void): z.core.$ZodChe
     case 'regex':
       return z.regex(new RegExp(check[1], check[2]));
     case 'custom':
-      return z.refine(refineFor(check[1], check[2], markThenable));
+      return z.refine(refineFor(check[1], check[2]));
     case 'multiple_of':
       return z.multipleOf(check[1]);
     case 'greater_than':
@@ -280,8 +277,8 @@ function rebuild(check: CapturedCheck, markThenable: () => void): z.core.$ZodChe
   }
 }
 
-export function rebuildCheck(captured: CapturedCheck, markThenable: () => void): z.core.$ZodCheck {
-  const check = rebuild(captured, markThenable);
+export function rebuildCheck(captured: CapturedCheck): z.core.$ZodCheck {
+  const check = rebuild(captured);
   const def = check._zod.def;
   Object.defineProperties(def, {
     abort: { value: false },

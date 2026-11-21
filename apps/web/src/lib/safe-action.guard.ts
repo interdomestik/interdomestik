@@ -9,6 +9,7 @@ import {
   ownKeys,
   ownValue,
 } from './safe-action.check-def';
+import { isThenableRefinementError } from './safe-action.checks';
 import { actionFailure, type ActionFailure } from './safe-action.failure';
 import {
   exactParsedInput,
@@ -43,7 +44,7 @@ export type GuardOutcome =
   | { kind: 'value'; value: unknown; snapshot: unknown }
   | { kind: 'invalid'; failure: ActionFailure; snapshot: unknown }
   | { kind: 'thrown'; error: unknown; snapshot: unknown }
-  | { kind: 'defect'; snapshot: unknown };
+  | { kind: 'defect'; snapshot: unknown; reason?: 'thenable_refinement' | 'async_parse' };
 
 type Invalid = Extract<GuardOutcome, { kind: 'invalid' }>;
 
@@ -196,8 +197,7 @@ async function runGuard(
   form: boolean,
   snapshotOptions: SnapshotOptions,
   shape: Shape,
-  parser: z.ZodType,
-  refinement: { thenable: boolean }
+  parser: z.ZodType
 ): Promise<GuardOutcome> {
   assertPristineObjectPrototype();
   const owned = await snapshotOf(raw, form, snapshotOptions);
@@ -216,22 +216,19 @@ async function runGuard(
   });
   assertPristineObjectPrototype();
   let result: ReturnType<typeof parser.safeParse>;
-  // Rebuilt predicates share this flag only during the synchronous parse.
-  const previousThenable = refinement.thenable;
-  refinement.thenable = false;
   try {
     result = parser.safeParse(snapshot, context);
     assertPristineObjectPrototype();
-    if (refinement.thenable) return { kind: 'defect', snapshot };
   } catch (error) {
     if (isIntegrityError(error)) throw error;
     assertPristineObjectPrototype();
+    if (isThenableRefinementError(error)) {
+      return { kind: 'defect', reason: 'thenable_refinement', snapshot };
+    }
     if (isOwnReadable(error) && Object.getPrototypeOf(error) === z.core.$ZodAsyncError.prototype) {
-      return { kind: 'defect', snapshot };
+      return { kind: 'defect', reason: 'async_parse', snapshot };
     }
     return { kind: 'thrown', error, snapshot };
-  } finally {
-    refinement.thenable = previousThenable;
   }
   try {
     if (!result.success) {
@@ -258,12 +255,9 @@ export function buildInputGuard(input: unknown, options: SchemaCheckOptions): In
   assertPristineObjectPrototype();
   const shape = captureSchema(input, options);
   assertPristineObjectPrototype();
-  const refinement = { thenable: false };
   let parser: z.ZodType;
   try {
-    parser = rebuildParser(shape, () => {
-      refinement.thenable = true;
-    });
+    parser = rebuildParser(shape);
   } catch {
     throw new ActionDefinitionError(
       options.operation,
@@ -279,7 +273,6 @@ export function buildInputGuard(input: unknown, options: SchemaCheckOptions): In
   const snapshotOptions = { fieldKind, allowFiles: hasFile(shape) };
   return Object.freeze({
     fieldKind,
-    run: (raw: unknown, form: boolean) =>
-      runGuard(raw, form, snapshotOptions, shape, parser, refinement),
+    run: (raw: unknown, form: boolean) => runGuard(raw, form, snapshotOptions, shape, parser),
   });
 }

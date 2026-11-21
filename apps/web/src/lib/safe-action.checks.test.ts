@@ -285,11 +285,11 @@ describe('private admitted Zod checks', () => {
 
   it('never calls a string predicate with an object, including through the installed adapter', async () => {
     const predicate = vi.fn(() => true);
-    const markThenable = vi.fn();
-    const check = rebuildCheck(
-      ['custom', { type: 'string', nullable: false, optional: false }, predicate],
-      markThenable
-    );
+    const check = rebuildCheck([
+      'custom',
+      { type: 'string', nullable: false, optional: false },
+      predicate,
+    ]);
     const wrongType = { value: { a: 'x' }, issues: [] };
     check._zod.check(wrongType as never);
     expect(wrongType.issues).toHaveLength(1);
