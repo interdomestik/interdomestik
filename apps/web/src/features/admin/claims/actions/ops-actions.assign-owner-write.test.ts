@@ -235,7 +235,7 @@ describe('assignOwner tenant transaction', () => {
       });
       expect(guardMatchesRow(updateWhere.mock.calls[0][0], closedRow)).toBe(false);
       expect(updateSet).toHaveBeenCalledTimes(1);
-      expect(outcomes).toEqual(['returned']);
+      expect(outcomes).toEqual(['threw']);
       expect(tx.insert).not.toHaveBeenCalled();
       expect(mocks.revalidatePath).not.toHaveBeenCalled();
     }

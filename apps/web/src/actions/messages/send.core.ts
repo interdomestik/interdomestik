@@ -8,6 +8,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { enforceRateLimit } from '@/lib/rate-limit';
 
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { claimMessageEffects } from './claim-effects';
 import type { Session } from './context';
 
 export type { SendMessageDbCoreResult };
@@ -56,6 +57,7 @@ export async function sendMessageDbCore(params: {
 
   return sendMessageDbCoreDomain({
     ...params,
+    claimEffects: claimMessageEffects,
     deps: {
       logAuditEvent,
     },

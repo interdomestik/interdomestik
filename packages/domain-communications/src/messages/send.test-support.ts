@@ -2,29 +2,36 @@
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi, type Mock } from 'vitest';
+import type { ClaimMessageEffects } from './send';
 
 export const mocks: {
   agentAccess: Mock;
+  lockClaim: Mock;
+  lockRecipient: Mock;
+  resolveStaff: Mock;
+  enqueueOwner: Mock;
+  enqueueStaff: Mock;
   tx: {
     insert: Mock;
-    query: { claims: { findFirst: Mock }; user: { findFirst: Mock } };
     select: Mock;
   };
   withTenantContext: Mock;
 } = {
   agentAccess: vi.fn(),
+  lockClaim: vi.fn(),
+  lockRecipient: vi.fn(),
+  resolveStaff: vi.fn(),
+  enqueueOwner: vi.fn(),
+  enqueueStaff: vi.fn(),
   tx: {
     insert: vi.fn(),
-    query: {
-      claims: { findFirst: vi.fn() },
-      user: { findFirst: vi.fn() },
-    },
     select: vi.fn(),
   },
   withTenantContext: vi.fn(),
 };
 
 vi.mock('@interdomestik/database', () => ({
+  claims: { id: 'claim.id', tenantId: 'claim.tenant_id' },
   claimMessages: {
     claimId: 'cm.claim_id',
     content: 'cm.content',
@@ -49,9 +56,27 @@ vi.mock('./access', async importOriginal => ({
   hasAgentClaimAccess: mocks.agentAccess,
 }));
 vi.mock('nanoid', () => ({ nanoid: () => 'message-1' }));
+vi.mock('../notification-deliveries/claim-owner', () => ({
+  lockClaimNotificationRecipient: mocks.lockRecipient,
+  enqueueClaimMessageNotification: mocks.enqueueOwner,
+}));
+vi.mock('../notification-deliveries/staff', () => ({
+  resolveStaffClaimNotificationRecipients: mocks.resolveStaff,
+  enqueueStaffClaimNotification: mocks.enqueueStaff,
+}));
+
+export const claimEffects: Record<keyof ClaimMessageEffects, Mock> = {
+  buildStaffClaimScope: vi.fn(),
+  createClaimResponseRequest: vi.fn(),
+  answerClaimResponseRequests: vi.fn(),
+};
 
 export const authority: TenantAuthority = mintTestTenantAuthority('tenant-1');
-export const projectionFrom = () => ({
+export const projectionFrom = (replayLookup?: Mock) => ({
+  where: () => ({
+    for: mocks.lockClaim,
+    limit: () => ({ for: replayLookup }),
+  }),
   leftJoin: () => ({
     where: () => ({
       limit: () =>
@@ -78,12 +103,11 @@ export function resetSendMocks(): void {
   mocks.withTenantContext.mockImplementation(
     (_authority: unknown, action: (tx: unknown) => unknown) => Promise.resolve(action(mocks.tx))
   );
-  mocks.tx.query.claims.findFirst.mockResolvedValue({
-    id: 'claim-1',
-    title: 'Claim',
-    userId: 'member-1',
-  });
-  mocks.tx.query.user.findFirst.mockResolvedValue({ email: 'member@example.com' });
+  mocks.lockClaim.mockResolvedValue([{ title: 'Claim', userId: 'member-1' }]);
+  mocks.lockRecipient.mockResolvedValue({ id: 'member-1', role: 'member', emailVerified: true });
+  mocks.resolveStaff.mockResolvedValue([{ id: 'staff-1', role: 'staff', emailVerified: true }]);
+  mocks.enqueueOwner.mockResolvedValue(['email-1']);
+  mocks.enqueueStaff.mockResolvedValue(['email-2']);
   mocks.tx.insert.mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) });
-  mocks.tx.select.mockReturnValue({ from: projectionFrom });
+  mocks.tx.select.mockReturnValue({ from: () => projectionFrom() });
 }

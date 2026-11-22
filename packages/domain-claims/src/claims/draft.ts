@@ -13,8 +13,6 @@ import { resolveClaimIncidentCountryUpdate } from './incident-country';
 import type { ClaimsDeps, ClaimsSession } from './types';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export { cancelClaimCore } from './draft-cancellation';
-
 export async function updateDraftClaimCore(
   params: {
     authority: TenantAuthority | null;

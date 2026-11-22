@@ -1,10 +1,17 @@
 import { inArray } from 'drizzle-orm';
 import { expect, vi } from 'vitest';
-import { fixture, homeTenantId, otherTenantId } from './tenant-context.integration-fixture';
+import { fixture, homeTenantId, ids, otherTenantId } from './tenant-context.integration-fixture';
 
 /** Full rows include read_at: counts alone cannot detect a denied receipt update. */
 export function messageEffects() {
-  const { dbAdmin, claimMessages, auditLog, notifications } = fixture.database;
+  const {
+    dbAdmin,
+    claimMessages,
+    auditLog,
+    notifications,
+    notificationDeliveries,
+    claimResponseRequests,
+  } = fixture.database;
   const tenants = [homeTenantId, otherTenantId];
   return Promise.all([
     dbAdmin
@@ -18,6 +25,16 @@ export function messageEffects() {
       .from(notifications)
       .where(inArray(notifications.tenantId, tenants))
       .orderBy(notifications.id),
+    dbAdmin
+      .select()
+      .from(notificationDeliveries)
+      .where(inArray(notificationDeliveries.tenantId, tenants))
+      .orderBy(notificationDeliveries.id),
+    dbAdmin
+      .select()
+      .from(claimResponseRequests)
+      .where(inArray(claimResponseRequests.tenantId, tenants))
+      .orderBy(claimResponseRequests.id),
   ]);
 }
 
@@ -41,7 +58,24 @@ export async function expectRoleSend(
       isInternal: params.isInternal ?? false,
     });
     expect(after[0].filter(message => message.id !== result.message.id)).toEqual(before[0]);
-    expect(after.slice(1)).toEqual(before.slice(1));
+    const role = params.session?.user?.role;
+    if (!params.isInternal && (role === 'member' || role === 'user')) {
+      expect(after[3].filter(row => row.subjectMessageId === result.message.id)).toMatchObject([
+        { kind: 'staff_member_message', recipientUserId: ids.staff },
+      ]);
+      expect(after[4].filter(row => row.sourceMessageId === result.message.id)).toMatchObject([
+        { kind: 'member_message' },
+      ]);
+    } else if (
+      !params.isInternal &&
+      ['staff', 'admin', 'tenant_admin', 'super_admin'].some(value => value === role)
+    ) {
+      expect(after[3].filter(row => row.subjectMessageId === result.message.id)).toMatchObject([
+        { kind: 'claim_message_to_member', recipientUserId: ids.member },
+      ]);
+    } else {
+      expect(after.slice(1)).toEqual(before.slice(1));
+    }
   } else {
     expect(result).toEqual({ success: false, error: denial });
     expect(after).toEqual(before);
@@ -58,7 +92,7 @@ export function expectOnlyReceiptChanges(
     ...message,
     readAt: eligibleIds.includes(message.id) ? expect.any(Date) : message.readAt,
   }));
-  expect(after).toEqual([messages, before[1], before[2]]);
+  expect(after).toEqual([messages, ...before.slice(1)]);
 }
 
 /** Inspect both pooled sessions, including whichever connection performed the operation. */

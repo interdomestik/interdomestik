@@ -1,7 +1,16 @@
-import { claimMessages, claims, db, user } from '@interdomestik/database';
+import {
+  claimMessages,
+  claimResponseRequests,
+  claims,
+  db,
+  dbAdmin,
+  notificationDeliveries,
+  notifications,
+  user,
+} from '@interdomestik/database';
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
 import type { TestInfo } from '@playwright/test';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
 
@@ -62,8 +71,27 @@ export async function withMemberMessageFixture<T>(
     );
     return await run({ ...seed, claimId: claimIds[0], deniedIds: claimIds.slice(1), messageIds });
   } finally {
-    await db.delete(claimMessages).where(inArray(claimMessages.claimId, claimIds));
-    await db.delete(claims).where(inArray(claims.id, claimIds));
-    await db.delete(user).where(eq(user.id, otherMemberId));
+    await dbAdmin.transaction(async tx => {
+      const fixtureTenants = [seed.tenantId, foreignTenant];
+      for (const table of [notificationDeliveries, claimResponseRequests] as const) {
+        await tx
+          .delete(table)
+          .where(and(inArray(table.tenantId, fixtureTenants), inArray(table.claimId, claimIds)));
+      }
+      await tx.delete(notifications).where(
+        and(
+          inArray(notifications.tenantId, fixtureTenants),
+          inArray(
+            notifications.actionUrl,
+            claimIds.flatMap(id => [`/member/claims/${id}`, `/staff/claims/${id}`])
+          )
+        )
+      );
+      await tx.delete(claimMessages).where(inArray(claimMessages.claimId, claimIds));
+      await tx.delete(claims).where(inArray(claims.id, claimIds));
+      await tx
+        .delete(user)
+        .where(and(eq(user.tenantId, seed.tenantId), eq(user.id, otherMemberId)));
+    });
   }
 }

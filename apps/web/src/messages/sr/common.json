@@ -1,5 +1,18 @@
 {
   "common": {
+    "claimStatusErrors": {
+      "forbidden": "Nemate dozvolu da izmenite ovaj zahtev.",
+      "notFound": "Zahtev nije pronađen ili je pristup odbijen.",
+      "declineReason": "Izaberite razlog pre nego što odbijete zahtev.",
+      "draft": "Pošaljite novi zahtev da biste nastavili od nacrta.",
+      "conflict": "Zahtev je izmenjen. Osvežite stranicu i pokušajte ponovo.",
+      "transition": "Zahtev ne može da pređe u izabrani status.",
+      "recovery": "Ispunite preduslove za naplatu pre promene statusa.",
+      "evidence": "Proverite dokaze i ovlašćenja potrebna za ovaj status.",
+      "failed": "Status zahteva nije mogao da se sačuva.",
+      "assignmentTarget": "Zaposleni nije pronađen ili je izvan vašeg opsega.",
+      "assignmentFailed": "Dodela nije mogla da se sačuva."
+    },
     "pwa": {
       "offlineHeading": "Pomoć odmah — van mreže",
       "offlinePrivacy": "Samo javna lista za mesto događaja. Nema podataka naloga, sačuvanih beležaka o fotografijama ni promena na čekanju.",

@@ -4,7 +4,9 @@ import { runNotificationDeliverySchedule } from './notification-delivery-schedul
 
 const mocks = vi.hoisted(() => ({ tenants: vi.fn(), run: vi.fn() }));
 vi.mock('@interdomestik/database', () => ({ listScheduledTenantWork: mocks.tenants }));
-vi.mock('@interdomestik/domain-claims/staff-claims/scope', () => ({ canStaffReadClaim: vi.fn() }));
+vi.mock('@interdomestik/domain-claims/staff-claims/scope', () => ({
+  buildStaffClaimReadScope: vi.fn(),
+}));
 vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
   runNotificationDeliveries: mocks.run,
 }));
@@ -56,5 +58,24 @@ describe('notification delivery schedule', () => {
       tenantId: 'a',
       error: expect.any(Error),
     });
+  });
+
+  it('does not start another tenant after the shared budget is spent even if the wall clock moves backward', async () => {
+    const wallClock = vi.spyOn(Date, 'now').mockReturnValue(300_000);
+    const elapsed = vi.spyOn(performance, 'now').mockReturnValue(0);
+    mocks.tenants.mockResolvedValue(work);
+    mocks.run.mockImplementation(async () => {
+      wallClock.mockReturnValue(0);
+      elapsed.mockReturnValue(150_001);
+      return summary;
+    });
+
+    const result = await runNotificationDeliverySchedule(mintIngressCapability('inngest'));
+
+    expect(mocks.run).toHaveBeenCalledExactlyOnceWith(work[1].authority, expect.anything(), {
+      budgetMs: 240_000,
+      providerTimeoutMs: 60_000,
+    });
+    expect(result.tenants).toBe(1);
   });
 });

@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   logAuditEvent: vi.fn(),
 
-  claimsFindFirst: vi.fn(),
-  userFindFirst: vi.fn(),
+  claimsLock: vi.fn(),
+  lockRecipient: vi.fn(),
+  enqueueNotification: vi.fn(),
 
   insertValues: vi.fn(),
 
@@ -19,13 +20,23 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/audit', () => ({
   logAuditEvent: mocks.logAuditEvent,
 }));
+vi.mock('./claim-effects', () => ({
+  claimMessageEffects: { answerClaimResponseRequests: vi.fn() },
+}));
+vi.mock(
+  '../../../../../packages/domain-communications/src/notification-deliveries/claim-owner',
+  () => ({
+    lockClaimNotificationRecipient: mocks.lockRecipient,
+    enqueueClaimMessageNotification: mocks.enqueueNotification,
+  })
+);
+vi.mock('../../../../../packages/domain-communications/src/notification-deliveries/staff', () => ({
+  resolveStaffClaimNotificationRecipients: vi.fn(),
+  enqueueStaffClaimNotification: vi.fn(),
+}));
 
 vi.mock('@interdomestik/database', () => {
   const database = {
-    query: {
-      claims: { findFirst: mocks.claimsFindFirst },
-      user: { findFirst: mocks.userFindFirst },
-    },
     insert: () => ({ values: mocks.insertValues }),
     select: mocks.select,
   };
@@ -92,8 +103,14 @@ describe('sendMessageDbCore', () => {
 
     mocks.selectWhere.mockReturnValue({ limit: mocks.selectLimit });
     mocks.selectLeftJoin.mockReturnValue({ where: mocks.selectWhere });
-    mocks.selectFrom.mockReturnValue({ leftJoin: mocks.selectLeftJoin });
+    mocks.selectFrom.mockImplementation(table =>
+      table.id === 'claims.id'
+        ? { where: () => ({ for: mocks.claimsLock }) }
+        : { leftJoin: mocks.selectLeftJoin }
+    );
     mocks.select.mockReturnValue({ from: mocks.selectFrom });
+    mocks.lockRecipient.mockResolvedValue({ id: 'member_1', role: 'member', emailVerified: true });
+    mocks.enqueueNotification.mockResolvedValue(['delivery-1']);
   });
 
   it('returns Unauthorized when session missing', async () => {
@@ -106,7 +123,7 @@ describe('sendMessageDbCore', () => {
     });
 
     expect(result).toEqual({ success: false, error: 'Unauthorized' });
-    expect(mocks.claimsFindFirst).not.toHaveBeenCalled();
+    expect(mocks.claimsLock).not.toHaveBeenCalled();
     expect(mocks.insertValues).not.toHaveBeenCalled();
   });
 
@@ -122,20 +139,21 @@ describe('sendMessageDbCore', () => {
     });
 
     expect(result).toEqual({ success: false, error: 'Message cannot be empty' });
-    expect(mocks.claimsFindFirst).not.toHaveBeenCalled();
+    expect(mocks.claimsLock).not.toHaveBeenCalled();
     expect(mocks.insertValues).not.toHaveBeenCalled();
   });
 
   it('inserts message + returns normalized message (staff external message)', async () => {
-    mocks.claimsFindFirst.mockResolvedValue({
-      id: 'claim_1',
-      userId: 'member_1',
-      title: 'My Claim',
-      caseLifecycleState: 'submitted',
-    });
+    mocks.claimsLock.mockResolvedValue([
+      {
+        id: 'claim_1',
+        userId: 'member_1',
+        title: 'My Claim',
+        caseLifecycleState: 'submitted',
+      },
+    ]);
     mocks.insertValues.mockResolvedValue(undefined);
     mocks.logAuditEvent.mockResolvedValue(undefined);
-    mocks.userFindFirst.mockResolvedValue({ email: 'member@example.com' });
 
     const result = await sendMessageDbCore({
       authority,
@@ -168,25 +186,26 @@ describe('sendMessageDbCore', () => {
         tenantId: 'tenant_mk',
         userId: 'member_1',
       });
-      expect(result.claimOwnerEmail).toBe('member@example.com');
+      expect(result.deliveryIds).toEqual(['delivery-1']);
     }
 
-    expect(mocks.claimsFindFirst).toHaveBeenCalledTimes(1);
+    expect(mocks.claimsLock).toHaveBeenCalledExactlyOnceWith('no key update');
     expect(mocks.insertValues).toHaveBeenCalledTimes(1);
     expect(mocks.logAuditEvent).toHaveBeenCalledTimes(1);
-    expect(mocks.select).toHaveBeenCalledTimes(1);
-    expect(mocks.userFindFirst).toHaveBeenCalledTimes(1);
+    expect(mocks.select).toHaveBeenCalledTimes(2);
+    expect(mocks.lockRecipient).toHaveBeenCalledTimes(1);
   });
 
   it('returns the committed message when the post-commit audit logger rejects', async () => {
-    mocks.claimsFindFirst.mockResolvedValue({
-      id: 'claim_1',
-      userId: 'member_1',
-      title: 'My Claim',
-      caseLifecycleState: 'submitted',
-    });
+    mocks.claimsLock.mockResolvedValue([
+      {
+        id: 'claim_1',
+        userId: 'member_1',
+        title: 'My Claim',
+        caseLifecycleState: 'submitted',
+      },
+    ]);
     mocks.insertValues.mockResolvedValue(undefined);
-    mocks.userFindFirst.mockResolvedValue({ email: 'member@example.com' });
     mocks.logAuditEvent.mockRejectedValueOnce(new Error('private SQL details'));
     const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     try {
@@ -202,7 +221,7 @@ describe('sendMessageDbCore', () => {
       expect(result).toMatchObject({ success: true, message: { id: 'msg_1' } });
       expect(mocks.insertValues).toHaveBeenCalledOnce();
       expect(mocks.logAuditEvent).toHaveBeenCalledOnce();
-      expect(errorLog).toHaveBeenCalledWith('Message audit failed after commit');
+      expect(errorLog).toHaveBeenCalledWith('Message audit failed after commit', expect.any(Error));
     } finally {
       errorLog.mockRestore();
     }
@@ -220,13 +239,15 @@ describe('sendMessageDbCore', () => {
       user: { id: 'manager-1', role: 'branch_manager', name: 'Branch manager' },
     },
   ])('$name', async ({ claimBranchId, user }) => {
-    mocks.claimsFindFirst.mockResolvedValue({
-      id: 'claim_1',
-      userId: 'member_1',
-      title: 'My Claim',
-      branchId: claimBranchId,
-      staffId: 'staff-2',
-    });
+    mocks.claimsLock.mockResolvedValue([
+      {
+        id: 'claim_1',
+        userId: 'member_1',
+        title: 'My Claim',
+        branchId: claimBranchId,
+        staffId: 'staff-2',
+      },
+    ]);
 
     const result = await sendMessageDbCore({
       authority,

@@ -24,6 +24,8 @@ const tenantTwoAuthority = mintTestTenantAuthority('tenant-2');
 describe('support handoff public response', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.transaction.mockImplementation(async (_authority, run) => run(mocks.db));
+    mocks.enqueue.mockResolvedValue(undefined);
     mocks.db.update.mockReturnValue({ set: mocks.updateSet });
     mocks.updateSet.mockReturnValue({ where: mocks.updateWhere });
     mocks.updateWhere.mockReturnValue({ returning: mocks.updateReturning });
@@ -35,11 +37,12 @@ describe('support handoff public response', () => {
         tenantId: 'tenant-1',
       },
     ]);
+    mocks.selectLock.mockResolvedValue([{ id: 'handoff-1' }]);
     mocks.db.select.mockReturnValue({ from: mocks.selectFrom });
     mocks.selectFrom.mockReturnValue({ where: mocks.selectWhere });
-    mocks.selectWhere.mockReturnValue({ orderBy: mocks.selectOrderBy });
+    mocks.selectWhere.mockReturnValue({ for: mocks.selectLock, limit: mocks.selectLimit });
     mocks.selectOrderBy.mockReturnValue({ limit: mocks.selectLimit });
-    mocks.selectLimit.mockResolvedValue([]);
+    mocks.selectLimit.mockResolvedValue([{ epochMs: Date.UTC(2026, 10, 22, 10) }]);
   });
 
   it('rejects unauthorized and branch-manager response writes', async () => {
@@ -103,6 +106,11 @@ describe('support handoff public response', () => {
         publicResponseById: 'staff-1',
       })
     );
+    expect(mocks.updateSet.mock.calls[0][0]).not.toHaveProperty('firstPublicResponseAt');
+    expect(mocks.enqueue).toHaveBeenCalledWith(mocks.db, 'tenant-1', 'member-1', {
+      id: 'handoff-1',
+      responseVersion: 2,
+    });
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.status', 'accepted');
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.staff_id', 'staff-1');
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.public_response_version', 4);
@@ -136,6 +144,49 @@ describe('support handoff public response', () => {
     );
   });
 
+  it('rolls back the first response when its in-app insert fails', async () => {
+    let committed = false;
+    mocks.transaction.mockImplementationOnce(async (_authority, run) => {
+      const row = await run(mocks.db);
+      committed = true;
+      return row;
+    });
+    const error = new Error('notification insert failed');
+    mocks.enqueue.mockRejectedValueOnce(error);
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    try {
+      await expect(
+        updateSupportHandoffPublicResponseCore(
+          {
+            authority,
+            handoffId: 'handoff-1',
+            response: 'First answer',
+            session: staffSession(),
+          },
+          { logAuditEvent: mocks.logAuditEvent }
+        )
+      ).resolves.toEqual({
+        success: false,
+        error: 'Public response could not be saved',
+      });
+      const patch = mocks.updateSet.mock.calls[0][0];
+      expect(patch.firstPublicResponseAt).toEqual(new Date('2026-11-22T10:00:00Z'));
+      expect(patch.firstPublicResponseAt).toBe(patch.publicResponseAt);
+      expect(mocks.selectLock).toHaveBeenCalledWith('no key update');
+      expect(mocks.selectLock.mock.invocationCallOrder[0]).toBeLessThan(
+        mocks.selectLimit.mock.invocationCallOrder[0]
+      );
+      expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.public_response_version', 0);
+      expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+      expect(committed).toBe(false);
+      expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+      expect(log).toHaveBeenCalledWith('Support handoff public response transaction failed', error);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
   it('reports response concurrency misses without audit logging', async () => {
     mocks.updateReturning.mockResolvedValueOnce([]);
 
@@ -158,7 +209,7 @@ describe('support handoff public response', () => {
   });
 
   it('does not audit tenant, branch, or assignee scoped write misses', async () => {
-    mocks.updateReturning.mockResolvedValue([]);
+    mocks.selectLock.mockResolvedValue([]);
     mocks.ensureTenantId.mockReturnValueOnce('tenant-2');
 
     for (const [scopedSession, scopedAuthority] of [

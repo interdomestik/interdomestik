@@ -12,6 +12,8 @@ export const UNASSIGNED_CLAIM: Row = {
   id: 'claim-1',
   tenantId: 'tenant-1',
   staffId: null,
+  assignedAt: null,
+  assignedById: null,
   claimNumber: 'CLM-XK-KS01-2026-000001',
   caseLifecycleState: 'evaluation',
   recoveryLifecycleState: 'not_started',
@@ -114,18 +116,16 @@ export function createFakeTx(options: FakeTxOptions = {}) {
     if (options.targetLockError) return Promise.reject(options.targetLockError);
     return Promise.resolve(target ? [target] : []);
   });
+  const claimLock = vi.fn((_read: TargetLockRead): Promise<Row[]> => {
+    if (options.claimReadError) return Promise.reject(options.claimReadError);
+    return Promise.resolve(claim ? [claim] : []);
+  });
   const tx = {
-    query: {
-      claims: {
-        findFirst: vi.fn((_args: { where: unknown }) =>
-          options.claimReadError ? Promise.reject(options.claimReadError) : Promise.resolve(claim)
-        ),
-      },
-    },
-    select: vi.fn((fields: Record<string, unknown>) => ({
+    select: vi.fn((fields: Record<string, unknown> = {}) => ({
       from: (table: unknown) => ({
         where: (where: unknown) => ({
-          for: (strength: string) => targetLock({ fields, table, where, strength }),
+          for: (strength: string) =>
+            (table === claims ? claimLock : targetLock)({ fields, table, where, strength }),
         }),
       }),
     })),
@@ -157,7 +157,7 @@ export function createFakeTx(options: FakeTxOptions = {}) {
     })),
     insert: vi.fn((_table: unknown) => ({ values: auditValues })),
   };
-  return { tx, updateSet, updateWhere, auditValues, targetLock };
+  return { tx, updateSet, updateWhere, auditValues, claimLock, targetLock };
 }
 
 /** Routes withTenantContext to the fake tx and records whether the callback returned or threw. */

@@ -4,7 +4,7 @@ import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 import { logAuditEvent } from '@/lib/audit';
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
-import { notifyRecoveryDecision } from '@/lib/notifications';
+import { kickClaimNotificationDeliveries } from '@/lib/claim-notification-delivery-kick';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
@@ -30,6 +30,7 @@ export async function saveRecoveryDecisionCore(
     return { success: false, error: 'Unauthorized' };
   }
 
+  const { authority } = params;
   const requestFingerprint =
     params.decisionType === 'declined'
       ? {
@@ -49,19 +50,28 @@ export async function saveRecoveryDecisionCore(
     scope: {
       kind: 'tenant',
       actorUserId: params.session?.user?.id ?? null,
-      authority: params.authority,
+      authority,
     },
     idempotencyKey: params.idempotencyKey,
     requestFingerprint,
-    execute: () =>
-      saveRecoveryDecisionCoreDomain(params, { logAuditEvent, notifyRecoveryDecision }),
+    execute: async () => {
+      const { deliveryIds, ...outcome } = await saveRecoveryDecisionCoreDomain(params, {
+        logAuditEvent,
+      });
+      if (outcome.success) await kickClaimNotificationDeliveries(authority, deliveryIds ?? []);
+      return outcome;
+    },
   });
 
   if (result.success) {
-    revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
-    revalidatePathForAllLocales('/staff/claims');
-    revalidatePathForAllLocales(`/member/claims/${params.claimId}`);
-    revalidatePathForAllLocales('/member/claims');
+    try {
+      revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
+      revalidatePathForAllLocales('/staff/claims');
+      revalidatePathForAllLocales(`/member/claims/${params.claimId}`);
+      revalidatePathForAllLocales('/member/claims');
+    } catch (error) {
+      console.error('Recovery decision refresh failed after commit', error);
+    }
   }
 
   return result;

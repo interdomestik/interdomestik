@@ -1,7 +1,7 @@
 'use client';
 
-import { AgentStatusSelect } from '@/components/agent/agent-status-select';
 import type { ClaimSlaPhase } from '@/features/claims/policy';
+import { isClaimStatus } from '@interdomestik/domain-claims/claims/transition-guard';
 import {
   Avatar,
   AvatarFallback,
@@ -32,12 +32,12 @@ interface ClaimInfoPaneProps {
       image: string | null;
     } | null;
   };
-  readOnly?: boolean;
   slaPhase?: ClaimSlaPhase;
 }
 
-export function ClaimInfoPane({ claim, readOnly, slaPhase }: Readonly<ClaimInfoPaneProps>) {
+export function ClaimInfoPane({ claim, slaPhase }: Readonly<ClaimInfoPaneProps>) {
   const t = useTranslations('agent-claims.claims');
+  const tStatus = useTranslations('claims.status');
 
   return (
     <Card>
@@ -95,11 +95,9 @@ export function ClaimInfoPane({ claim, readOnly, slaPhase }: Readonly<ClaimInfoP
         {/* Status */}
         <div>
           <p className="text-sm font-medium mb-2">{t('details.status_label')}</p>
-          <AgentStatusSelect
-            claimId={claim.id}
-            currentStatus={claim.status || 'submitted'}
-            disabled={readOnly}
-          />
+          <p className="text-sm text-muted-foreground">
+            {tStatus(isClaimStatus(claim.status) ? claim.status : 'submitted')}
+          </p>
         </div>
 
         {slaPhase && slaPhase !== 'not_applicable' ? (

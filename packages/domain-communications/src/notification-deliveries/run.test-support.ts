@@ -179,7 +179,7 @@ export function harness(
   );
   const deps = {
     appOrigin: () => 'https://example.test',
-    canStaffReadClaim: async () => true,
+    buildStaffClaimScope: () => undefined,
     now: () => clock,
     sendEmail,
     sendPush,

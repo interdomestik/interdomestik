@@ -23,6 +23,11 @@ export const logAuditEventMock: Mock = vi.fn();
 export const nanoidMock: Mock = vi.fn();
 export const queueClaimDocumentAiWorkflowsMock: Mock = vi.fn();
 export const readTenantLocaleMetadataMock: Mock = vi.fn();
+export const enqueueClaimSubmittedNotificationMock: Mock = vi
+  .fn()
+  .mockResolvedValue(['member-email']);
+export const enqueueStaffClaimNotificationMock: Mock = vi.fn().mockResolvedValue(['staff-email']);
+export const createClaimResponseRequestMock: Mock = vi.fn();
 
 export const txInsertValues: Mock = vi.fn();
 export const txInsert: Mock = vi.fn(() => ({ values: txInsertValues }));

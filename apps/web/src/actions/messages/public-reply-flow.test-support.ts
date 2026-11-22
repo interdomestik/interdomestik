@@ -14,52 +14,40 @@ vi.mock('drizzle-orm', async original => ({
 }));
 vi.mock('@interdomestik/database', async () => {
   const f = await load();
-  return { ...f.tables, db: f.db, withTenantContext: f.withTenantContext };
-});
-vi.mock('@interdomestik/database/schema', async () => (await load()).tables);
-vi.mock('@/lib/push', async () => ({ sendPushToUser: (await load()).delivery('push') }));
-vi.mock('../../../../../packages/domain-communications/src/push', async () => ({
-  sendPushToUser: (await load()).delivery('domain-push'),
-}));
-vi.mock(
-  '../../../../../packages/domain-communications/src/email',
-  async () => (await load()).email
-);
-
-vi.mock('next/server', async () => {
-  const f = await load();
   return {
-    after: (work: () => Promise<void>) => {
-      f.state.scheduled.push({
-        commits: f.state.commits,
-        notifications: f.state.rows.notifications.length,
-      });
-      f.state.jobs.push(work);
-    },
+    ...f.tables,
+    db: f.db,
+    and: f.operators.and,
+    eq: f.operators.eq,
+    sql: vi.fn(),
+    withTenantContext: f.withTenantContext,
   };
 });
-vi.mock(
-  '../../../../../packages/domain-communications/src/messages/public-reply-delivery',
-  async original => ({
-    ...(await original<object>()),
-    deliverPublicReplyNotification: async (
-      plan: unknown,
-      deps: {
-        removeExpiredSubscriptions: (endpoints: string[]) => Promise<void>;
-        logAuditEvent: unknown;
-      }
-    ) => {
-      const f = await load();
-      f.state.external.push({ kind: 'delivery', args: [plan] });
-      f.state.auditLoggerPassed = deps.logAuditEvent;
-      if (f.state.reportExpired) await deps.removeExpiredSubscriptions(f.state.reportExpired);
+vi.mock('@interdomestik/database/schema', async () => (await load()).tables);
+vi.mock('@/lib/claim-notification-delivery-kick', () => ({
+  kickClaimNotificationDeliveries: async (_authority: unknown, deliveryIds: string[]) => {
+    const { state } = await load();
+    state.scheduled.push({
+      commits: state.commits,
+      notifications: state.rows.notifications.length,
+    });
+    state.external.push({ kind: 'delivery', args: deliveryIds });
+  },
+}));
+vi.mock('@interdomestik/domain-claims/staff-claims/scope', () => ({
+  buildStaffClaimReadScope:
+    (recipient: { userId: string; branchId?: string }) =>
+    (claim: { caseLifecycleState?: string; branchId?: string; staffId?: string }) => {
+      if (claim.caseLifecycleState !== 'submitted') return false;
+      return recipient.branchId
+        ? recipient.branchId === claim.branchId
+        : claim.staffId == null || claim.staffId === recipient.userId;
     },
-  })
-);
+}));
 
 import { revalidatePath } from 'next/cache';
 import { sendMessage } from '@/actions/messages';
-import { ids, settle, state } from './public-reply-notification-flow.fixture';
+import { ids, state } from './public-reply-notification-flow.fixture';
 
 export const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 beforeEach(() => {
@@ -77,12 +65,7 @@ afterEach(() => {
 });
 afterAll(() => errors.mockRestore());
 export async function reply(claimId = ids.claim, internal = false, clientMessageId?: string) {
-  const delivered = state.external.length;
-  const result = await sendMessage(claimId, 'Synthetic public reply', internal, clientMessageId);
-  // Delivery runs only after the response, when the scheduled jobs settle.
-  expect(state.external).toHaveLength(delivered);
-  await settle();
-  return result;
+  return sendMessage(claimId, 'Synthetic public reply', internal, clientMessageId);
 }
 export function noNotification() {
   expect(state.rows.notifications).toEqual([]);

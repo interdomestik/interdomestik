@@ -10,66 +10,7 @@ import {
   tenant,
   useTenantTx,
 } from './ops-actions-test-setup.spec';
-import { markSlaAcknowledged, sendMemberReminder, updateStatus } from './ops-actions';
-
-describe('updateStatus inside the tenant transaction', () => {
-  it('runs read, transition and audit on the supplied transaction', async () => {
-    signIn({ role: 'super_admin', id: 'admin-7' });
-
-    await expect(updateStatus('claim-1', 'verification', 'en')).resolves.toEqual({
-      success: true,
-    });
-
-    expect(mocks.transitionInTx).toHaveBeenCalledTimes(1);
-    expect(mocks.transitionInTx).toHaveBeenCalledWith(
-      tenant.tx,
-      expect.objectContaining({
-        actor: { id: 'admin-7', role: 'super_admin' },
-        claimId: 'claim-1',
-        expectedCaseLifecycleState: 'evaluation',
-        expectedRecoveryLifecycleState: 'not_started',
-        expectedStatus: 'evaluation',
-        tenantId: 'tenant-mk',
-        toStatus: 'verification',
-      })
-    );
-    expect(insertedInto(auditLog)).toEqual([
-      expect.objectContaining({
-        values: expect.objectContaining({
-          action: 'update_status',
-          actorId: 'admin-7',
-          entityId: 'claim-1',
-          metadata: { previousStatus: 'evaluation', newStatus: 'verification' },
-          tenantId: 'tenant-mk',
-        }),
-      }),
-    ]);
-  });
-
-  it('rejects an illegal graph transition before the canonical command runs', async () => {
-    signIn({ role: 'admin' });
-
-    await expect(updateStatus('claim-1', 'draft', 'en')).resolves.toEqual({
-      success: false,
-      error: 'Illegal transition from evaluation to draft',
-    });
-    expect(mocks.transitionInTx).not.toHaveBeenCalled();
-    expect(insertedInto(auditLog)).toEqual([]);
-    expect(mocks.revalidatePath).not.toHaveBeenCalled();
-  });
-
-  it('reports a canonical transition rejection without audit or revalidation', async () => {
-    signIn({ role: 'admin' });
-    mocks.transitionInTx.mockResolvedValueOnce({ success: false, error: 'transition_rejected' });
-
-    await expect(updateStatus('claim-1', 'negotiation', 'en')).resolves.toEqual({
-      success: false,
-      error: 'Illegal transition from evaluation to negotiation',
-    });
-    expect(insertedInto(auditLog)).toEqual([]);
-    expect(mocks.revalidatePath).not.toHaveBeenCalled();
-  });
-});
+import { markSlaAcknowledged, sendMemberReminder } from './ops-actions';
 
 describe('markSlaAcknowledged inside the tenant transaction', () => {
   it('writes the internal note and audit on the same transaction', async () => {

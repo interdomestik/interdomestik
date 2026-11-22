@@ -5,10 +5,14 @@ import {
   appendEventMock,
   buildEvidenceFile,
   buildSubmitArgs,
+  createClaimResponseRequestMock,
+  enqueueClaimSubmittedNotificationMock,
+  enqueueStaffClaimNotificationMock,
   getActiveSubscriptionMock,
   logAuditEventMock,
   nanoidMock,
   queueClaimDocumentAiWorkflowsMock,
+  submitTx,
   txInsert,
   txInsertValues,
   txQuery,
@@ -34,6 +38,7 @@ describe('submitClaimCore', () => {
       success: true,
       claimId: 'claim-1',
       claimNumber: 'CLM-T1-2026-000001',
+      deliveryIds: ['member-email', 'staff-email'],
     });
     expect(txInsert).toHaveBeenNthCalledWith(1, { __name: 'claim' });
     expect(txInsert).toHaveBeenNthCalledWith(2, { __name: 'claim_stage_history' });
@@ -64,6 +69,24 @@ describe('submitClaimCore', () => {
         uploadIntentToken: 'server-issued-upload-intent',
       }),
     });
+    expect(enqueueClaimSubmittedNotificationMock).toHaveBeenCalledWith(
+      submitTx,
+      expect.objectContaining({
+        claimId: 'claim-1',
+        tenantId: 'tenant-1',
+        recipient: { id: 'member-1' },
+      })
+    );
+    expect(enqueueStaffClaimNotificationMock).toHaveBeenCalledWith(
+      submitTx,
+      expect.objectContaining({ claimId: 'claim-1', claimNumber: 'CLM-T1-2026-000001' }),
+      { kind: 'staff_claim_submitted' },
+      [{ id: 'staff-1' }]
+    );
+    expect(createClaimResponseRequestMock).toHaveBeenCalledWith(
+      submitTx,
+      expect.objectContaining({ claimId: 'claim-1', tenantId: 'tenant-1', kind: 'claim_submitted' })
+    );
   });
 
   it('omits diaspora note without handoff context', async () => {

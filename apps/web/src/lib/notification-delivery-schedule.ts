@@ -1,27 +1,15 @@
-import { coerceTenantId, resolveTenantAppOrigin } from '@/lib/tenant/tenant-hosts';
 import { listScheduledTenantWork } from '@interdomestik/database';
 import type { IngressCapability } from '@interdomestik/database/ingress';
-import { canStaffReadClaim } from '@interdomestik/domain-claims/staff-claims/scope';
-import {
-  runNotificationDeliveries,
-  type DeliveryDependencies,
-} from '@interdomestik/domain-communications/notification-deliveries';
-
-const deps: DeliveryDependencies = {
-  canStaffReadClaim,
-  appOrigin(tenantId) {
-    const tenant = coerceTenantId(tenantId);
-    if (!tenant) throw new Error('Notification tenant origin is unavailable');
-    return resolveTenantAppOrigin(tenant);
-  },
-};
+import { runNotificationDeliveries } from '@interdomestik/domain-communications/notification-deliveries';
+import { claimNotificationDeliveryDeps } from './claim-notification-delivery-deps';
 
 export async function runNotificationDeliverySchedule(
   ingress: IngressCapability<'inngest' | 'cron'>
 ) {
-  const startedAt = Date.now();
+  const startedAt = performance.now();
+  const rotation = Math.floor(Date.now() / 300_000);
   const tenants = await listScheduledTenantWork(ingress);
-  const offset = tenants.length ? Math.floor(startedAt / 300_000) % tenants.length : 0;
+  const offset = tenants.length ? rotation % tenants.length : 0;
   const ordered = [...tenants.slice(offset), ...tenants.slice(0, offset)];
   const summary = {
     tenants: 0,
@@ -35,10 +23,10 @@ export async function runNotificationDeliverySchedule(
     budgetShort: 0,
   };
   for (const { tenantId, authority } of ordered) {
-    const budgetMs = 240_000 - (Date.now() - startedAt);
+    const budgetMs = 240_000 - (performance.now() - startedAt);
     if (budgetMs < 90_000) break;
     try {
-      const result = await runNotificationDeliveries(authority, deps, {
+      const result = await runNotificationDeliveries(authority, claimNotificationDeliveryDeps, {
         budgetMs,
         providerTimeoutMs: 60_000,
       });

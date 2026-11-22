@@ -1,8 +1,22 @@
+import { EventEmitter } from 'node:events';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { configuredEmailTransports, sendEmailOutcome } from './email';
 
-const { sendMail, fetchEmail } = vi.hoisted(() => ({ sendMail: vi.fn(), fetchEmail: vi.fn() }));
-vi.mock('nodemailer', () => ({ createTransport: () => ({ sendMail }) }));
+const { sendMail, fetchEmail, createTransport, createConnection } = vi.hoisted(() => {
+  const sendMail = vi.fn();
+  return {
+    sendMail,
+    fetchEmail: vi.fn(),
+    createTransport: vi.fn((_options: SMTPTransport.Options) => ({ sendMail })),
+    createConnection: vi.fn(),
+  };
+});
+vi.mock('nodemailer', () => ({ createTransport }));
+vi.mock('node:net', async importOriginal => ({
+  ...(await importOriginal<typeof import('node:net')>()),
+  createConnection,
+}));
 
 const recipient = 'member@example.com';
 const rendered = { subject: 'Claim\r\n update', html: '<p>Update</p>', text: 'Update' };
@@ -12,11 +26,15 @@ describe('sendEmailOutcome', () => {
   beforeEach(() => {
     sendMail.mockReset();
     fetchEmail.mockReset();
+    createTransport.mockClear();
+    createConnection.mockReset();
     vi.stubGlobal('fetch', fetchEmail);
     vi.stubEnv('INTERDOMESTIK_AUTOMATED', '0');
     vi.stubEnv('PLAYWRIGHT', '0');
     vi.stubEnv('SMTP_HOST', 'localhost');
     vi.stubEnv('SMTP_PORT', '1025');
+    vi.stubEnv('E2E_SMTP_HOST', '');
+    vi.stubEnv('E2E_SMTP_PORT', '');
     vi.stubEnv('RESEND_API_KEY', 'mock-key');
     vi.stubEnv('RESEND_BASE_URL', '');
     vi.stubEnv('RESEND_FROM_EMAIL', 'sender@example.com');
@@ -34,6 +52,54 @@ describe('sendEmailOutcome', () => {
     expect(configuredEmailTransports()).toEqual(['resend']);
     vi.stubEnv('INTERDOMESTIK_AUTOMATED', '1');
     expect(configuredEmailTransports()).toEqual([]);
+  });
+
+  it('uses the validated automated SMTP target even when production transports are configured', async () => {
+    vi.stubEnv('PLAYWRIGHT', '1');
+    vi.stubEnv('SMTP_HOST', 'smtp.example.com');
+    vi.stubEnv('E2E_SMTP_HOST', ' 127.0.0.1 ');
+    vi.stubEnv('E2E_SMTP_PORT', ' 2525 ');
+    sendMail.mockResolvedValue({ accepted: [recipient] });
+
+    expect(configuredEmailTransports()).toEqual(['smtp']);
+    await expect(sendEmailOutcome('smtp', recipient, rendered, options)).resolves.toEqual({
+      ok: true,
+      transport: 'smtp',
+    });
+    await expect(sendEmailOutcome('resend', recipient, rendered, options)).resolves.toMatchObject({
+      ok: false,
+      code: 'email_unconfigured',
+    });
+    expect(createTransport).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        host: '127.0.0.1',
+        port: 2525,
+        secure: false,
+        ignoreTLS: true,
+        connectionTimeout: 5000,
+        socketTimeout: 10000,
+      })
+    );
+    expect(sendMail).toHaveBeenCalledOnce();
+    expect(fetchEmail).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['smtp.example.com', '2525'],
+    ['127.0.0.1', '65536'],
+  ])('refuses invalid automated SMTP target %s:%s', async (host, port) => {
+    vi.stubEnv('INTERDOMESTIK_AUTOMATED', '1');
+    vi.stubEnv('E2E_SMTP_HOST', host);
+    vi.stubEnv('E2E_SMTP_PORT', port);
+
+    expect(configuredEmailTransports()).toEqual([]);
+    await expect(sendEmailOutcome('smtp', recipient, rendered, options)).resolves.toMatchObject({
+      ok: false,
+      code: 'email_unconfigured',
+    });
+    expect(createTransport).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
+    expect(fetchEmail).not.toHaveBeenCalled();
   });
 
   it('uses only SMTP and strips subject line breaks', async () => {
@@ -140,6 +206,34 @@ describe('sendEmailOutcome', () => {
     });
     expect(fetchEmail.mock.calls[0][1].signal.aborted).toBe(true);
     expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it('aborts the SMTP socket at the absolute deadline and keeps the outcome ambiguous', async () => {
+    vi.useFakeTimers();
+    vi.stubEnv('SMTP_PORT', '2527');
+    const socket = Object.assign(new EventEmitter(), { setTimeout: vi.fn() });
+    createConnection.mockReturnValue(socket);
+    createTransport.mockImplementationOnce(transportOptions => ({
+      sendMail: sendMail.mockImplementation(
+        () => new Promise(() => transportOptions.getSocket?.(transportOptions, () => {}))
+      ),
+    }));
+
+    const result = sendEmailOutcome('smtp', recipient, rendered, options);
+    await vi.advanceTimersByTimeAsync(options.timeoutMs);
+
+    await expect(result).resolves.toMatchObject({
+      ok: false,
+      ambiguous: true,
+      preAcceptance: false,
+      code: 'timeout',
+    });
+    expect(createConnection).toHaveBeenCalledExactlyOnceWith({
+      host: 'localhost',
+      port: 2527,
+      signal: expect.objectContaining({ aborted: true }),
+    });
+    expect(fetchEmail).not.toHaveBeenCalled();
   });
 
   it('suppresses invalid addresses and refuses an unconfigured named provider', async () => {

@@ -1,4 +1,5 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { Agent } from 'node:https';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -92,6 +93,7 @@ describe('sendPushOutcome', () => {
       },
       JSON.stringify(payload),
       {
+        agent: expect.any(Agent),
         vapidDetails: {
           subject: 'mailto:sender@example.com',
           publicKey: 'public',
@@ -118,15 +120,21 @@ describe('sendPushOutcome', () => {
 
   it('returns an ambiguous and retryable outcome at the timeout', async () => {
     vi.useFakeTimers();
+    const destroyAgent = vi.spyOn(Agent.prototype, 'destroy');
     mocks.sendNotification.mockReturnValue(new Promise(() => {}));
-    const result = sendPushOutcome(subscription, payload, options);
-    await vi.advanceTimersByTimeAsync(options.timeoutMs);
-    await expect(result).resolves.toMatchObject({
-      ok: false,
-      retryable: true,
-      ambiguous: true,
-      code: 'timeout',
-    });
+    try {
+      const result = sendPushOutcome(subscription, payload, options);
+      await vi.advanceTimersByTimeAsync(options.timeoutMs);
+      await expect(result).resolves.toMatchObject({
+        ok: false,
+        retryable: true,
+        ambiguous: true,
+        code: 'timeout',
+      });
+      expect(destroyAgent).toHaveBeenCalledOnce();
+    } finally {
+      destroyAgent.mockRestore();
+    }
   });
 });
 

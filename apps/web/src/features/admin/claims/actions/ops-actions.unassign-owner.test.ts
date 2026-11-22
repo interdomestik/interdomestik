@@ -87,7 +87,7 @@ describe('unassignOwner single transaction', () => {
     const result = await unassignOwner('claim-1', 'en');
 
     expect(result).toEqual({ success: false, error: ASSIGNMENT_CONFLICT_ERROR });
-    expect(outcomes).toEqual(['returned']);
+    expect(outcomes).toEqual(['threw']);
     expect(auditValues).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
@@ -117,7 +117,7 @@ describe('unassignOwner single transaction', () => {
     expect(updateSet).toHaveBeenCalledTimes(1);
     expect(outcomes).toEqual(['threw']);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
-    expect(consoleError).toHaveBeenCalledWith('Action Failed: unassignOwner', 'Error');
+    expect(consoleError).toHaveBeenCalledWith('Claim assignment transaction failed', 'Error');
     expect(JSON.stringify([result, consoleError.mock.calls])).not.toContain(SENTINEL);
   });
 

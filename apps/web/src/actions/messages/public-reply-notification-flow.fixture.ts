@@ -25,12 +25,8 @@ export const state = {
   contexts: [] as { tenantId: string; role?: string }[],
   commits: 0,
   rollbacks: 0,
-  reportExpired: null as string[] | null,
-  auditLoggerPassed: null as unknown,
   projectionFault: false,
   notificationFault: false,
-  pushFault: false,
-  jobs: [] as Array<() => Promise<void>>,
   scheduled: [] as { commits: number; notifications: number }[],
 };
 export function reset(mode: typeof state.mode): void {
@@ -42,12 +38,8 @@ export function reset(mode: typeof state.mode): void {
     contexts: [],
     commits: 0,
     rollbacks: 0,
-    reportExpired: null,
-    auditLoggerPassed: null,
     projectionFault: false,
     notificationFault: false,
-    pushFault: false,
-    jobs: [],
     scheduled: [],
   });
   state.rows = seedRows();
@@ -94,8 +86,6 @@ function client(
       state.ambientReads.push(name);
       if (state.mode === 'restricted') return [];
     }
-    if (state.pushFault && ['pushSubscriptions', 'userNotificationPreferences'].includes(name))
-      throw new Error('Synthetic optional push failure');
     return (staged ?? state.rows)[name].filter(
       row => !context || row.tenantId === context.tenantId
     );
@@ -201,8 +191,12 @@ function client(
                 .filter(where)
                 .map(row => row[Object.values(fields)[0].field]);
             },
-            orderBy: () => readOnce(),
-            limit: readOnce,
+            orderBy: () => Object.assign(readOnce(), { for: () => readOnce() }),
+            for: () => readOnce(),
+            limit: (count: number) => {
+              const limited = readOnce(count);
+              return Object.assign(limited, { for: () => limited });
+            },
           });
         },
         limit: read,
@@ -237,35 +231,4 @@ export async function withTenantContext<T>(
   } finally {
     lifetime.open = false;
   }
-}
-export const delivery =
-  (kind: string) =>
-  (...args: unknown[]) => {
-    state.external.push({ kind, args });
-    return Promise.resolve({ success: true });
-  };
-export const email = Object.fromEntries(
-  [
-    'sendEmail',
-    'sendClaimAssignedEmail',
-    'sendClaimSubmittedEmail',
-    'sendNewMessageEmail',
-    'sendPaymentVerificationEmail',
-    'sendStatusChangedEmail',
-  ].map(name => [name, delivery(name)])
-);
-async function drainJobs(): Promise<void> {
-  const job = state.jobs.shift();
-  if (!job) return;
-  await job();
-  return drainJobs();
-}
-async function yieldTurns(turns: number): Promise<void> {
-  if (turns <= 0) return;
-  await Promise.resolve();
-  return yieldTurns(turns - 1);
-}
-export async function settle(): Promise<void> {
-  await drainJobs();
-  await yieldTurns(30);
 }

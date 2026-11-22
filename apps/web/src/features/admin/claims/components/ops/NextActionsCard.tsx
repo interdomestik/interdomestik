@@ -76,6 +76,7 @@ export function NextActionsCard({
   const { primary, secondary } = nextActions;
   const [isPending, startTransition] = useTransition();
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [preselectDecline, setPreselectDecline] = useState(false);
   // Set only from the structured committed-write marker. Once set, the saved operation must not be
   // offered again until the user manually refreshes the page.
   const [refreshPending, setRefreshPending] = useState(false);
@@ -154,6 +155,7 @@ export function NextActionsCard({
     onAction?.(type);
 
     if (type === 'update_status') {
+      setPreselectDecline(false);
       setIsStatusModalOpen(true);
       return;
     }
@@ -191,6 +193,11 @@ export function NextActionsCard({
 
   const handleStatusDirectUpdate = (status: string) => {
     if (mutationsSuppressed) return;
+    if (status === 'rejected') {
+      setPreselectDecline(true);
+      setIsStatusModalOpen(true);
+      return;
+    }
     startTransition(async () => {
       onAction?.('update_status_direct');
       const result = await updateStatus(claim.id, status as never, locale);
@@ -206,8 +213,10 @@ export function NextActionsCard({
     <>
       {!readOnly && !refreshPending && (
         <OpsStatusUpdateModal
+          key={isStatusModalOpen ? (preselectDecline ? 'decline' : 'open') : 'closed'}
           claimId={claim.id}
           isOpen={isStatusModalOpen}
+          initialStatus={preselectDecline ? 'rejected' : undefined}
           onOpenChange={setIsStatusModalOpen}
           allowedTransitions={nextActions.allowedTransitions}
           locale={locale}

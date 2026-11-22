@@ -1,64 +1,49 @@
-import { updateClaimStatusCore as updateClaimStatusCoreDomain } from '@interdomestik/domain-claims/staff-claims/update-status';
-
-import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-
-import { logAuditEvent } from '@/lib/audit';
-import { notifyStatusChanged } from '@/lib/notifications';
-import { revalidatePath } from 'next/cache';
-
-import type { Session } from './context';
-import type { ActionResult, ClaimStatus, RecoveryDeclineReasonCode } from './types';
-
+import {
+  claimStatusActionFailure,
+  completeClaimStatusEffects,
+} from '@/lib/claim-status-action-effects';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
+import { actionFailure, defineAction } from '@/lib/safe-action';
 import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
-// ...
+import { LOCALES } from '@/i18n/locales';
+import {
+  changeClaimStatus,
+  changeClaimStatusInputSchema,
+} from '@interdomestik/domain-claims/claims/change-status';
+import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 
-const LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
-
-function revalidatePathForAllLocales(path: string) {
-  for (const locale of LOCALES) {
-    revalidatePath(`/${locale}${path}`);
-  }
-}
-
-export async function updateClaimStatusCore(params: {
-  allowanceOverrideReason?: string;
-  authority: TenantAuthority | null;
-  claimId: string;
-  declineReasonCode?: RecoveryDeclineReasonCode;
-  decisionExplanation?: string;
-  newStatus: ClaimStatus;
-  note?: string;
-  isPublicChange?: boolean;
-  session: NonNullable<Session> | null;
-  requestHeaders?: Headers;
-}): Promise<ActionResult> {
-  const { session, requestHeaders } = params;
-
-  if (session?.user?.id) {
+export const updateClaimStatusCore = defineAction({
+  name: 'staffClaims.updateStatus',
+  basis: { kind: 'role', roles: ['staff'] },
+  input: changeClaimStatusInputSchema.extend({ isPublicNote: z.boolean().optional() }).strict(),
+  subject: { type: 'claim', from: 'claimId' },
+  async handler(input, { authority, requestHeaders, session }) {
     const limit = await enforceRateLimitForAction({
       name: `action:staff-update-status:${session.user.id}`,
       limit: 20,
       windowSeconds: 60,
-      headers: requestHeaders || new Headers(), // Use passed headers or fallback
+      headers: requestHeaders,
       productionSensitive: true,
     });
-    if (limit.limited) {
-      return { success: false, error: 'Too many requests. Please wait a moment.' };
+    if (limit.limited) return actionFailure('RATE_LIMITED');
+
+    const outcome = await changeClaimStatus(authority, input, {
+      hostId: resolveEntryHostIdFromHeaders(requestHeaders),
+      requestHeaders,
+    });
+    if (!outcome.ok) return claimStatusActionFailure(outcome.code);
+
+    await completeClaimStatusEffects(authority, outcome);
+    try {
+      for (const locale of LOCALES) {
+        revalidatePath(`/${locale}/staff/claims/${input.claimId}`);
+        revalidatePath(`/${locale}/staff/claims`);
+        revalidatePath(`/${locale}/member/claims/${input.claimId}`);
+        revalidatePath(`/${locale}/member/claims`);
+      }
+    } catch (error) {
+      console.error('Staff claim refresh failed after commit', error);
     }
-  }
-
-  const result = await updateClaimStatusCoreDomain(
-    { ...params, hostId: resolveEntryHostIdFromHeaders(requestHeaders) },
-    { logAuditEvent, notifyStatusChanged }
-  );
-
-  if (result.success) {
-    revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
-    revalidatePathForAllLocales('/staff/claims');
-    revalidatePathForAllLocales(`/member/claims/${params.claimId}`);
-    revalidatePathForAllLocales('/member/claims');
-  }
-
-  return result;
-}
+  },
+});

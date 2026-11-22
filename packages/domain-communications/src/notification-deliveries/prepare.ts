@@ -13,6 +13,7 @@ import type { sendEmailOutcome } from '../email';
 import type { sendPushOutcome } from '../push';
 import { resolveRecipientLocale } from '../recipient-locale';
 import { renderDelivery, renderDeliveryPush } from './render';
+import { canReceiveStaffClaimNotification } from './staff';
 import { underLease } from './store';
 import type { ClaimedDelivery, DeliveryDependencies, SkipReason } from './types';
 
@@ -66,15 +67,12 @@ export async function prepareNotificationDelivery(
   if (!claim) return { skip: 'claim_gone' };
 
   if (row.kind === 'staff_claim_submitted' || row.kind === 'staff_member_message') {
-    const admitted =
-      recipient.role === ROLES.tenant_admin ||
-      (recipient.role === ROLES.staff &&
-        (await deps.canStaffReadClaim(tx, {
-          tenantId,
-          claimId,
-          userId: recipient.id,
-          branchId: recipient.branchId,
-        })));
+    const admitted = await canReceiveStaffClaimNotification(
+      tx,
+      { tenantId, claimId },
+      recipient,
+      deps.buildStaffClaimScope
+    );
     if (!admitted) return { skip: 'recipient_out_of_scope' };
   } else if (claim.ownerId !== recipient.id) {
     return { skip: 'recipient_out_of_scope' };

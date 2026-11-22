@@ -47,7 +47,7 @@ describe('assignOwner failure normalization', () => {
     expect(updateSet).toHaveBeenCalledTimes(1);
     expect(outcomes).toEqual(['threw']);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
-    expect(consoleError).toHaveBeenCalledWith('Action Failed: assignOwner', 'Error');
+    expect(consoleError).toHaveBeenCalledWith('Claim assignment transaction failed', 'Error');
     expectNoLeak(consoleError.mock.calls);
   });
 
@@ -69,12 +69,12 @@ describe('assignOwner failure normalization', () => {
 
     expect(result).toEqual({ success: false, error: GENERIC_ERROR });
     expectNoLeak(result);
-    expect(consoleError).toHaveBeenCalledWith('Action Failed: assignOwner', 'string');
+    expect(consoleError).toHaveBeenCalledWith('Claim assignment transaction failed', 'string');
     expectNoLeak(consoleError.mock.calls);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 
-  it('still returns the exact expected denial strings when thrown by the context', async () => {
+  it('treats plain exceptions with expected-denial text as unexpected failures', async () => {
     for (const message of [
       'Claim not found or access denied',
       'Cannot perform assign on a terminal claim.',
@@ -82,10 +82,10 @@ describe('assignOwner failure normalization', () => {
       mocks.withTenantContext.mockRejectedValueOnce(new Error(message));
       await expect(assignOwner('claim-1', 'staff-1', 'en')).resolves.toEqual({
         success: false,
-        error: message,
+        error: GENERIC_ERROR,
       });
     }
-    expect(consoleError).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledTimes(2);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 });

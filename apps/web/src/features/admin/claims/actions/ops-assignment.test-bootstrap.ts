@@ -13,6 +13,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
 vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
+vi.mock('@/lib/audit.core', () => ({
+  writeAuditEvent: vi.fn().mockResolvedValue({ success: true }),
+}));
 vi.mock('@interdomestik/domain-claims/claims/transition-guard', () => ({
   isClaimStatusTransitionInGraph: () => true,
 }));
@@ -24,7 +27,7 @@ vi.mock('@interdomestik/database', async () => {
 
 const { assignOwner, unassignOwner } = await import('./ops-actions');
 const { ASSIGNMENT_CONFLICT_ERROR, ASSIGNMENT_DRAFT_ERROR, ASSIGNMENT_TARGET_DENIED_ERROR } =
-  await import('./ops-assignment');
+  await import('./ops-assignment-errors');
 
 export {
   ASSIGNMENT_CONFLICT_ERROR,

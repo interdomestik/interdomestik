@@ -213,7 +213,7 @@ describe('explicit messaging role admission', () => {
       success: false,
       error: 'Only staff can send internal messages',
     });
-    noNotification();
+    expect(state.rows.notifications).toMatchObject([{ type: 'staff_member_message' }]);
   });
 
   it.each([

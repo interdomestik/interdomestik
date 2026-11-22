@@ -131,7 +131,7 @@ async function run(
   ids?: readonly string[]
 ) {
   const { tenantId } = readTenantAuthority(authority);
-  const now = deps.now ?? Date.now;
+  const now = deps.now ?? (() => performance.now());
   const end = now() + timing.budgetMs;
   const summary: RunSummary = {
     sent: 0,

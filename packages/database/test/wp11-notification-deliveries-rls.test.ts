@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { once } from 'node:events';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
@@ -8,6 +9,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import type postgres from 'postgres';
 import { quoteIdentifier, quoteSqlLiteral } from './rls-test-connection';
 import { scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
+import { gate } from './wp11-claim-status-rls.fixture';
 
 const runtimeRole = 'interdomestik_runtime_rls';
 const role = quoteIdentifier(runtimeRole);
@@ -26,7 +28,7 @@ const lockTables = [
 const schema = () => ({ migrationsFolder: fileURLToPath(new URL('../drizzle', import.meta.url)) });
 
 async function install(client: postgres.Sql) {
-  const drizzleDb = drizzle(client);
+  const drizzleDb = drizzle(client, { schema: {} });
   const config = schema();
   const migrations = readMigrationFiles(config);
   const target = migrations.pop();
@@ -186,6 +188,7 @@ async function proveConsumer(client: postgres.Sql, a: Rows) {
   rlsUrl.username = login;
   rlsUrl.password = password;
   await client.unsafe(`grant select on public."user", public.claim to ${role}`);
+  await client.unsafe(`grant insert on public.audit_log to ${role}`);
   await client.unsafe(
     `create role ${quotedLogin} login noinherit password ${quoteSqlLiteral(password)}`
   );
@@ -201,7 +204,7 @@ async function proveConsumer(client: postgres.Sql, a: Rows) {
     Object.assign(process.env, vars);
     const { mintTenantAuthority } = await import('../src/tenant-authority');
     const { withTenantAuthority } = await import('../src/tenant-authority-context');
-    const { runNotificationDeliveries, enqueueNotificationDelivery } =
+    const { runNotificationDeliveries, enqueueNotificationDelivery, redriveNotificationDelivery } =
       await import('../../domain-communications/src/notification-deliveries');
     const { claimNotificationDelivery, refundNotificationAttempt } =
       await import('../../domain-communications/src/notification-deliveries/store');
@@ -227,23 +230,44 @@ async function proveConsumer(client: postgres.Sql, a: Rows) {
       null
     );
 
-    await withTenantAuthority(authority, async tx => {
-      const first = await claimNotificationDelivery(tx, a.tenant, [a.delivery, anotherId]);
-      assert.ok(first?.status === 'claimed');
-      assert.equal(first.row.id, a.delivery);
-      const parallel = await withTenantAuthority(authority, peer =>
-        claimNotificationDelivery(peer, a.tenant, [a.delivery, anotherId])
+    const locked = gate();
+    const release = gate();
+    const first = withTenantAuthority(authority, async tx => {
+      const claimed = await claimNotificationDelivery(tx, a.tenant, [a.delivery, anotherId]);
+      assert.ok(claimed?.status === 'claimed');
+      assert.equal(claimed.row.id, a.delivery);
+      locked.open();
+      await release.promise;
+    });
+    let peer: ReturnType<typeof claimNotificationDelivery> | undefined;
+    const stopWaiting = new AbortController();
+    try {
+      await Promise.race([locked.promise, first]);
+      peer = withTenantAuthority(authority, tx =>
+        claimNotificationDelivery(tx, a.tenant, [a.delivery, anotherId])
       );
+      const parallel = await Promise.race([
+        peer,
+        once(AbortSignal.timeout(4000), 'abort', { signal: stopWaiting.signal }).then(() =>
+          assert.fail('Second worker waited for an already locked delivery')
+        ),
+      ]);
       assert.ok(parallel?.status === 'claimed');
       assert.equal(parallel.row.id, anotherId);
-    });
+      release.open();
+      await first;
+    } finally {
+      stopWaiting.abort();
+      release.open();
+      await Promise.allSettled(peer ? [first, peer] : [first]);
+    }
 
     await client`update notification_deliveries set state='claimed', attempts=7,
       lease_until=clock_timestamp()-interval '1 minute' where id=${a.delivery}`;
     const sendEmail = async (transport: 'smtp' | 'resend') => ({ ok: true as const, transport });
     const run = await runNotificationDeliveries(authority, {
       appOrigin: () => 'https://example.test',
-      canStaffReadClaim: async () => false,
+      buildStaffClaimScope: () => undefined,
       emailTransports: () => ['smtp'],
       sendEmail,
     });
@@ -276,6 +300,31 @@ async function proveConsumer(client: postgres.Sql, a: Rows) {
       lease_until: null,
       transport: 'smtp',
     });
+
+    await client`update notification_deliveries set state='failed', attempts=8,
+      terminal_at=clock_timestamp(), last_error_code='smtp_rejected' where id=${anotherId}`;
+    const admin = mintTenantAuthority({
+      tenantId: a.tenant,
+      purpose: 'session',
+      principal: { userId: a.user, role: 'tenant_admin', branchId: null, agentId: null },
+    });
+    const redrive = () =>
+      withTenantAuthority(admin, tx =>
+        redriveNotificationDelivery(tx, anotherId, { actorId: a.user, actorRole: 'tenant_admin' })
+      );
+    const outcomes = await Promise.all([redrive(), redrive()]);
+    assert.equal(outcomes.filter(Boolean).length, 1);
+    const [redriven] = await client`select state, attempts, transport, terminal_at
+      from notification_deliveries where id=${anotherId}`;
+    assert.deepEqual(redriven, {
+      state: 'queued',
+      attempts: 0,
+      transport: 'smtp',
+      terminal_at: null,
+    });
+    const audits = await client`select actor_id from audit_log
+      where entity_id=${anotherId} and action='notification.delivery_redriven'`;
+    assert.deepEqual([...audits], [{ actor_id: a.user }]);
   } finally {
     const pools = globalThis as typeof globalThis & {
       queryClientAdmin?: postgres.Sql;

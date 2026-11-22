@@ -29,13 +29,39 @@ describe('notification rendering', () => {
         locale,
         true
       );
-      expect(message.title).toBe(copy.messages.claim_message_to_member.restricted.heading);
+      expect(message).toEqual({
+        title: copy.messages.claim_message_to_member.restricted.heading,
+        body: copy.messages.claim_message_to_member.restricted.body,
+        url: `/${locale}/member/claims/claim`,
+      });
       if (locale === 'mk') {
         expect(status.title).toMatch(/[А-Яа-яЀ-ӿ]/);
         expect(message.title).toMatch(/[А-Яа-яЀ-ӿ]/);
       }
     }
   );
+
+  it('renders Macedonian push copy for a member permitted to see the message preview', async () => {
+    const row = {
+      ...delivery({ kind: 'claim_message_to_member', subjectMessageId: 'message' }),
+      leaseUntil: 'lease',
+    };
+    const tx = {
+      select: () => ({
+        from: () => ({
+          leftJoin: () => ({
+            where: async () => [{ senderName: 'Staff member', excerpt: 'Fixture preview' }],
+          }),
+        }),
+      }),
+    } as unknown as TenantTransaction;
+
+    expect(await renderDeliveryPush(tx, row, 'mk', false)).toEqual({
+      title: 'Нова порака за вашето барање',
+      body: 'Staff member: Fixture preview',
+      url: '/mk/member/claims/claim',
+    });
+  });
 
   it('renders a staff claim without a number from the catalogue', async () => {
     const row = { ...delivery({ kind: 'staff_member_message' }), leaseUntil: 'lease' };

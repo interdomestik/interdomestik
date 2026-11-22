@@ -64,21 +64,24 @@ export function getResendClient(telemetry = createEmailTelemetry()) {
     return null;
   }
 }
+function configuredSmtpTarget(automatedCatcher: boolean) {
+  if (isAutomated()) return automatedCatcher ? automatedSmtpTarget() : null;
+  const host = process.env.SMTP_HOST;
+  return host ? { host, port: Number.parseInt(process.env.SMTP_PORT || '1025') } : null;
+}
+
 function getEmailClient(telemetry: EmailTelemetry, options: EmailSendOptions) {
-  // Priority 0: Automated Testing (mock, or the loopback catcher for messages that opt in)
-  if (isAutomated()) {
-    const target = options.automatedCatcher ? automatedSmtpTarget() : null;
-    if (target === null || target === 'rejected') return target;
-    return { type: 'smtp' as const, client: smtpTransport(target), testOnly: true };
+  const target = configuredSmtpTarget(options.automatedCatcher ?? false);
+  if (target === 'rejected') return target;
+  if (target) {
+    return {
+      type: 'smtp' as const,
+      client: smtpTransport(target),
+      ...(isAutomated() && { testOnly: true }),
+    };
   }
+  if (isAutomated()) return null;
 
-  // Priority 1: SMTP (Docker / Local Dev)
-  if (process.env.SMTP_HOST) {
-    const port = Number.parseInt(process.env.SMTP_PORT || '1025');
-    return { type: 'smtp' as const, client: smtpTransport({ host: process.env.SMTP_HOST, port }) };
-  }
-
-  // Priority 2: Resend (Production / Preview)
   if (!process.env.RESEND_API_KEY) {
     telemetry.unavailable('none', () =>
       console.warn('Resend API key not configured. Emails will be skipped.')
@@ -103,10 +106,10 @@ export function getSenderAddress() {
 export type EmailTransport = 'smtp' | 'resend';
 
 export function configuredEmailTransports(): EmailTransport[] {
-  if (isAutomated()) return [];
   const transports: EmailTransport[] = [];
-  if (process.env.SMTP_HOST) transports.push('smtp');
-  if (process.env.RESEND_API_KEY) transports.push('resend');
+  const target = configuredSmtpTarget(true);
+  if (target && target !== 'rejected') transports.push('smtp');
+  if (!isAutomated() && process.env.RESEND_API_KEY) transports.push('resend');
   return transports;
 }
 
@@ -152,15 +155,15 @@ export async function sendEmailOutcome(
         const apiKey = process.env.RESEND_API_KEY;
         return apiKey ? sendResendOutcome(apiKey, mail, idempotencyKey, signal) : unavailable;
       }
-      const host = process.env.SMTP_HOST;
-      if (!host) return unavailable;
-      const port = Number.parseInt(process.env.SMTP_PORT || '1025');
-      const client = smtpTransport({ host, port });
+      const target = configuredSmtpTarget(true);
+      if (!target || target === 'rejected') return unavailable;
+      const client = smtpTransport(target, signal);
       try {
         const receipt = await client.sendMail(mail);
         if (!receipt?.accepted?.length) return smtpDeliveryFailure(undefined);
         return { ok: true, transport: 'smtp' };
       } catch (error) {
+        signal.throwIfAborted();
         return smtpDeliveryFailure(error);
       }
     });

@@ -19,6 +19,8 @@ const mocks = vi.hoisted(() => {
   );
 
   return {
+    enqueue: vi.fn().mockResolvedValue(['decision-delivery']),
+    recipient: vi.fn().mockResolvedValue({ id: 'member-1' }),
     appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
     and: vi.fn((...conditions) => ({ op: 'and', conditions })),
     claimEscalationAgreements: {
@@ -49,6 +51,11 @@ vi.mock('@interdomestik/database', () => ({
   withTenantContext: mocks.withTenantContext,
 }));
 
+vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
+  enqueueRecoveryDecisionNotification: mocks.enqueue,
+  lockClaimNotificationRecipient: mocks.recipient,
+}));
+
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
@@ -58,13 +65,10 @@ function session(role = 'staff'): ClaimsSession {
 }
 
 function primeScopeAndDecision(existingDecision: unknown[] = []) {
-  mocks.txSelect
-    .mockReturnValueOnce(mocks.claimSelect)
-    .mockReturnValueOnce(mocks.claimSelect)
-    .mockReturnValueOnce(mocks.decisionSelect);
+  mocks.txSelect.mockReturnValueOnce(mocks.claimSelect).mockReturnValueOnce(mocks.decisionSelect);
   mocks.claimSelect.from.mockReturnValue(mocks.claimSelect);
   mocks.claimSelect.where.mockReturnValue(mocks.claimSelect);
-  mocks.claimSelect.limit.mockResolvedValue([{ id: 'claim-1' }]);
+  mocks.claimSelect.limit.mockReturnValue(mocks.claimSelect);
   mocks.claimSelect.for.mockResolvedValue([{ id: 'claim-1' }]);
   mocks.decisionSelect.from.mockReturnValue(mocks.decisionSelect);
   mocks.decisionSelect.where.mockReturnValue(mocks.decisionSelect);
@@ -146,7 +150,8 @@ describe('saveRecoveryDecisionCore recovery decision events', () => {
     mocks.txSelect.mockReturnValueOnce(mocks.claimSelect);
     mocks.claimSelect.from.mockReturnValue(mocks.claimSelect);
     mocks.claimSelect.where.mockReturnValue(mocks.claimSelect);
-    mocks.claimSelect.limit.mockResolvedValue([]);
+    mocks.claimSelect.limit.mockReturnValue(mocks.claimSelect);
+    mocks.claimSelect.for.mockResolvedValueOnce([]);
 
     expect(
       await saveRecoveryDecisionCore({

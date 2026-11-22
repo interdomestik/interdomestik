@@ -1,213 +1,221 @@
-import { mocks, createSession, authority } from './assign.test-support';
+import { auditLog, claims, user, type TenantTransaction } from '@interdomestik/database';
+import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { changeClaimAssignment } from './assign';
 
-import { withTenantContext } from '@interdomestik/database';
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: vi.fn(),
+}));
 
-import { assignClaimCore } from './assign';
+const runTransaction = vi.mocked(withTenantAuthority);
+const pg = new PgDialect();
+const currentClaim = {
+  ...claimLifecycleFieldsForStatus('submitted'),
+  id: 'claim',
+  staffId: null as string | null,
+  assignedAt: null,
+  assignedById: null,
+  claimNumber: 'C-1',
+};
 
-describe('staff assignClaimCore', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.insert.mockReturnValue({ values: mocks.auditValues });
+function authority(role: string) {
+  return mintTestTenantAuthority('tenant-1', { role, userId: 'actor' });
+}
 
-    mocks.select.mockReturnValue(mocks.selectChain);
-    mocks.selectChain.from.mockReturnValue(mocks.selectChain);
-    mocks.selectChain.where.mockReturnValue(mocks.selectChain);
-    mocks.update.mockReturnValue(mocks.updateChain);
-    mocks.updateChain.set.mockReturnValue(mocks.updateSetChain);
-    mocks.updateSetChain.where.mockReturnValue(mocks.updateWhereChain);
-    mocks.userFindFirst.mockResolvedValue({
-      email: 'staff-two@example.com',
-      id: 'staff-2',
-      name: 'Staff Two',
-    });
+function useTransaction(
+  options: {
+    claim?: typeof currentClaim | null;
+    target?: string | null;
+    conflict?: boolean;
+    failsAudit?: boolean;
+  } = {}
+) {
+  const effects: string[] = [];
+  const select = vi.fn(() => ({
+    from: (table: unknown) => ({
+      where: (where: Parameters<typeof pg.sqlToQuery>[0]) => ({
+        for: async (strength: string) => {
+          effects.push(strength);
+          expect(pg.sqlToQuery(where).params).toContain('tenant-1');
+          if (table === claims) {
+            const result = options.claim === undefined ? currentClaim : options.claim;
+            return result ? [result] : [];
+          }
+          expect(table).toBe(user);
+          expect(pg.sqlToQuery(where).params).toContain('staff');
+          return options.target === null ? [] : [{ id: options.target ?? 'assignee' }];
+        },
+      }),
+    }),
+  }));
+  const writes = vi.fn((fields: Record<string, unknown>) => fields);
+  const guard = vi.fn();
+  const audits = vi.fn(async () => {
+    effects.push('audit');
+    if (options.failsAudit) throw new Error('Audit insert failed');
   });
-
-  it('denies cross-tenant assignment with a generic error and no mutation', async () => {
-    mocks.selectChain.limit.mockResolvedValue([]);
-
-    const result = await assignClaimCore({
-      authority,
-      claimId: 'claim-1',
-      session: createSession({ userId: 'staff-1', tenantId: 'tenant-1', branchId: 'branch-1' }),
-    });
-
-    expect(result).toEqual({ success: false, error: 'Claim not found or access denied' });
-    expect(mocks.update).not.toHaveBeenCalled();
+  const tx = {
+    select,
+    update: vi.fn(() => ({
+      set: (fields: Record<string, unknown>) => ({
+        where: (where: Parameters<typeof pg.sqlToQuery>[0]) => ({
+          returning: async () => {
+            guard(pg.sqlToQuery(where));
+            effects.push('write');
+            return options.conflict ? [] : [{ id: 'claim', ...writes(fields) }];
+          },
+        }),
+      }),
+    })),
+    insert: vi.fn((table: unknown) => {
+      expect(table).toBe(auditLog);
+      return { values: audits };
+    }),
+  };
+  let commits = 0;
+  runTransaction.mockImplementation(async (_authority, execute) => {
+    const result = await execute(tx as unknown as TenantTransaction);
+    commits++;
+    return result;
   });
+  return { effects, select, writes, audits, guard, commits: () => commits };
+}
 
-  it('denies branch mismatch when staff branch is present', async () => {
-    mocks.selectChain.limit.mockResolvedValue([]);
+beforeEach(() => vi.resetAllMocks());
 
-    const result = await assignClaimCore({
-      authority,
-      claimId: 'claim-1',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
-
-    expect(result).toEqual({ success: false, error: 'Claim not found or access denied' });
-    expect(mocks.eq).toHaveBeenCalledWith('claims.branch_id', 'branch-1');
-    expect(mocks.update).not.toHaveBeenCalled();
-  });
-
-  it('rejects invalid assignee input fail-closed with no mutation', async () => {
-    const result = await assignClaimCore({
-      authority,
-      claimId: 'claim-1',
-      staffId: { bad: true } as never,
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
-
-    expect(result).toEqual({
-      success: false,
-      error: 'Invalid staff assignment',
-      data: undefined,
-    });
-    expect(mocks.select).not.toHaveBeenCalled();
-    expect(mocks.userFindFirst).not.toHaveBeenCalled();
-    expect(mocks.update).not.toHaveBeenCalled();
-  });
-
-  it('allows manual reassignment within branch scope when the target staff is eligible', async () => {
-    mocks.selectChain.limit.mockResolvedValue([
-      { id: 'claim-1', staffId: 'staff-2', branchId: 'branch-1' },
-    ]);
-    mocks.userFindFirst.mockResolvedValueOnce({
-      email: 'staff-three@example.com',
-      id: 'staff-3',
-      name: 'Staff Three',
-    });
-    mocks.updateWhereChain.returning.mockResolvedValue([{ id: 'claim-1' }]);
-
-    const result = await assignClaimCore({
-      authority,
-      claimId: 'claim-1',
-      requestHeaders: new Headers(),
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-      staffId: 'staff-3',
-    });
-
-    expect(result).toEqual({ success: true });
-    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
-    expect(mocks.userFindFirst).toHaveBeenCalledTimes(1);
-    expect(mocks.update).toHaveBeenCalledTimes(1);
-    expect(mocks.updateChain.set).toHaveBeenCalledWith(
-      expect.objectContaining({
-        assignedById: 'staff-1',
-        staffId: 'staff-3',
-      })
-    );
-    expect(mocks.auditValues).toHaveBeenCalledTimes(1);
-  });
-
-  it('allows first self-assign in scope for branch staff', async () => {
-    mocks.selectChain.limit.mockResolvedValue([
-      { id: 'claim-1', staffId: null, branchId: 'branch-1' },
-    ]);
-    mocks.updateWhereChain.returning.mockResolvedValue([{ id: 'claim-1' }]);
-
-    const result = await assignClaimCore({
-      authority,
-      claimId: 'claim-1',
-      requestHeaders: new Headers(),
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
-
-    expect(result).toEqual({ success: true });
-    expect(mocks.userFindFirst).not.toHaveBeenCalled();
-    expect(mocks.update).toHaveBeenCalledTimes(1);
-    expect(mocks.auditValues).toHaveBeenCalledTimes(1);
-  });
-
-  it('denies manual assignment when the selected staff member is out of scope', async () => {
-    mocks.selectChain.limit.mockResolvedValue([
-      { id: 'claim-1', staffId: null, branchId: 'branch-1' },
-    ]);
-    mocks.userFindFirst.mockResolvedValueOnce(null);
-
-    const result = await assignClaimCore({
-      authority,
-      claimId: 'claim-1',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-      staffId: 'staff-9',
-    });
-
-    expect(result).toEqual({
-      success: false,
-      error: 'Staff member not found or out of scope',
-    });
-    expect(mocks.update).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    [{ 'x-forwarded-for': ' 203.0.113.7, 10.0.0.1', 'x-real-ip': '198.51.100.2' }, '203.0.113.7'],
-    [{ 'x-forwarded-for': ' ', 'x-real-ip': '198.51.100.2' }, '198.51.100.2'],
-    [{}, undefined],
-  ])('preserves request metadata and writes exactly one audit', async (headers, ip) => {
-    mocks.selectChain.limit.mockResolvedValue([{ id: 'claim-1', staffId: null, branchId: null }]);
-    mocks.updateWhereChain.returning.mockResolvedValue([{ id: 'claim-1' }]);
-    const result = await assignClaimCore({
-      authority,
-      claimId: 'claim-1',
-      session: createSession({ userId: 'staff-1' }),
-      requestHeaders: new Headers({ ...headers, 'user-agent': 'Plan070 test' }),
-    });
-    expect(result).toEqual({ success: true });
-    expect(mocks.insert).toHaveBeenCalledExactlyOnceWith('audit_log');
-    expect(mocks.auditValues).toHaveBeenCalledExactlyOnceWith({
-      id: expect.any(String),
-      tenantId: 'tenant-1',
-      actorId: 'staff-1',
-      actorRole: 'staff',
-      action: 'claim.assigned',
-      entityType: 'claim',
-      entityId: 'claim-1',
-      metadata: { previousStaffId: null, newStaffId: 'staff-1', ip, userAgent: 'Plan070 test' },
-      createdAt: expect.any(Date),
-    });
-  });
-
-  it.each(['staff-1', null])(
-    'rolls back assignment to %s when the audit insert fails',
-    async staffId => {
-      const initial = { staffId: 'staff-2', assignedAt: new Date(0), assignedById: 'staff-2' };
-      let committed = initial;
-      let pending = initial;
-      mocks.selectChain.limit.mockResolvedValue([
-        { id: 'claim-1', ...initial, branchId: 'branch-1' },
-      ]);
-      mocks.updateWhereChain.returning.mockResolvedValue([{ id: 'claim-1' }]);
-      mocks.updateChain.set.mockImplementation(patch => {
-        pending = patch;
-        return mocks.updateSetChain;
-      });
-      const originalTransaction = vi.mocked(withTenantContext).getMockImplementation()!;
-      vi.mocked(withTenantContext).mockImplementation(async (_authority, action) => {
-        const result = await action({
-          select: mocks.select,
-          update: mocks.update,
-          insert: mocks.insert,
-        } as never);
-        committed = pending;
-        return result;
-      });
-      mocks.auditValues.mockRejectedValueOnce(new Error('audit insert failed'));
-      const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-      try {
-        const result = await assignClaimCore({
-          authority,
-          claimId: 'claim-1',
-          staffId,
-          session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-        });
-        expect(result).toEqual({ success: false, error: 'Failed to assign claim' });
-        expect(mocks.update).toHaveBeenCalledTimes(1);
-        expect(mocks.auditValues).toHaveBeenCalledTimes(1);
-        expect(committed).toBe(initial);
-      } finally {
-        log.mockRestore();
-        vi.mocked(withTenantContext).mockImplementation(originalTransaction);
-      }
+describe('changeClaimAssignment', () => {
+  it.each(['user', 'member', 'agent', 'branch_manager', 'auditor', 'global_support', ''])(
+    'refuses %s before reading a claim',
+    async role => {
+      await expect(
+        changeClaimAssignment(authority(role), { claimId: 'claim', staffId: null })
+      ).resolves.toEqual({ ok: false, code: 'forbidden_role' });
+      expect(runTransaction).not.toHaveBeenCalled();
     }
   );
+
+  it.each(['admin', 'tenant_admin', 'super_admin'])(
+    'applies the admin matrix to %s',
+    async role => {
+      const denySelf = await changeClaimAssignment(authority(role), {
+        claimId: 'claim',
+        staffId: 'actor',
+      });
+      expect(denySelf).toEqual({ ok: false, code: 'target_denied' });
+      expect(runTransaction).not.toHaveBeenCalled();
+
+      const draft = {
+        ...currentClaim,
+        ...claimLifecycleFieldsForStatus('draft'),
+        staffId: 'assignee',
+      };
+      const tx = useTransaction({ claim: draft });
+      await expect(
+        changeClaimAssignment(authority(role), { claimId: 'claim', staffId: 'assignee' })
+      ).resolves.toEqual({ ok: false, code: 'draft' });
+      expect(tx.effects).toEqual(['no key update']);
+
+      await expect(
+        changeClaimAssignment(authority(role), { claimId: 'claim', staffId: null })
+      ).resolves.toMatchObject({ ok: true, changed: true, assignment: { staffId: null } });
+      expect(tx.audits).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'unassign_owner',
+          actorRole: role,
+          metadata: { previousStaffId: 'assignee', claimNumber: 'C-1' },
+        })
+      );
+
+      useTransaction({ claim: { ...currentClaim, ...claimLifecycleFieldsForStatus('rejected') } });
+      await expect(
+        changeClaimAssignment(authority(role), { claimId: 'claim', staffId: null })
+      ).resolves.toEqual({ ok: false, code: 'terminal' });
+    }
+  );
+
+  it('lets staff default to self on a terminal claim and locks claim then target', async () => {
+    const tx = useTransaction({
+      claim: { ...currentClaim, ...claimLifecycleFieldsForStatus('resolved') },
+      target: 'actor',
+    });
+    const headers = new Headers({
+      'x-forwarded-for': '192.0.2.2, 192.0.2.1',
+      'user-agent': 'test',
+    });
+    await expect(
+      changeClaimAssignment(authority('staff'), { claimId: 'claim' }, { requestHeaders: headers })
+    ).resolves.toMatchObject({ ok: true, changed: true, assignment: { staffId: 'actor' } });
+    expect(tx.effects).toEqual(['no key update', 'share', 'write', 'audit']);
+    expect(tx.guard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sql: expect.stringMatching(
+          /"staffId" is null.*"case_lifecycle_state".*"recovery_lifecycle_state"/
+        ),
+      })
+    );
+    expect(tx.audits).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'claim.assigned',
+        actorId: 'actor',
+        metadata: {
+          previousStaffId: null,
+          newStaffId: 'actor',
+          ip: '192.0.2.2',
+          userAgent: 'test',
+        },
+      })
+    );
+  });
+
+  it('returns the same denial for a missing or out-of-scope claim', async () => {
+    const tx = useTransaction({ claim: null });
+    await expect(changeClaimAssignment(authority('staff'), { claimId: 'claim' })).resolves.toEqual({
+      ok: false,
+      code: 'not_found',
+    });
+    expect(tx.effects).toEqual(['no key update']);
+  });
+
+  it('declines a target that the locked user check cannot see', async () => {
+    const tx = useTransaction({ target: null });
+    await expect(
+      changeClaimAssignment(authority('staff'), { claimId: 'claim', staffId: 'out-of-scope' })
+    ).resolves.toEqual({ ok: false, code: 'target_denied' });
+    expect(tx.effects).toEqual(['no key update', 'share']);
+  });
+
+  it.each(['staff', 'admin'])('keeps an unchanged assignment audit-free for %s', async role => {
+    const tx = useTransaction({ claim: { ...currentClaim, staffId: 'assignee' } });
+    await expect(
+      changeClaimAssignment(authority(role), { claimId: 'claim', staffId: 'assignee' })
+    ).resolves.toMatchObject({ ok: true, changed: false });
+    expect(tx.effects).toEqual(['no key update']);
+  });
+
+  it('rolls back and leaves the audit untouched on a lifecycle or owner CAS miss', async () => {
+    const tx = useTransaction({ conflict: true });
+    await expect(
+      changeClaimAssignment(authority('admin'), { claimId: 'claim', staffId: 'assignee' })
+    ).resolves.toEqual({ ok: false, code: 'conflict' });
+    expect(tx.effects).toEqual(['no key update', 'share', 'write']);
+    expect(tx.commits()).toBe(0);
+  });
+
+  it('rolls back an assignment whose audit insert failed', async () => {
+    const tx = useTransaction({ failsAudit: true });
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      await expect(
+        changeClaimAssignment(authority('admin'), { claimId: 'claim', staffId: 'assignee' })
+      ).resolves.toEqual({ ok: false, code: 'transaction_failed' });
+      expect(tx.effects).toEqual(['no key update', 'share', 'write', 'audit']);
+      expect(tx.commits()).toBe(0);
+      expect(log).toHaveBeenCalledWith('Claim assignment transaction failed', 'Error');
+    } finally {
+      log.mockRestore();
+    }
+  });
 });

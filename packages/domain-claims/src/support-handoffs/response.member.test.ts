@@ -10,6 +10,7 @@ const authority = mintTestTenantAuthority('tenant-1');
 describe('support handoff public response', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.transaction.mockImplementation(async (_authority, run) => run(mocks.db));
     mocks.db.update.mockReturnValue({ set: mocks.updateSet });
     mocks.updateSet.mockReturnValue({ where: mocks.updateWhere });
     mocks.updateWhere.mockReturnValue({ returning: mocks.updateReturning });

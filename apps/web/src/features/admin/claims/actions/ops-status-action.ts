@@ -1,90 +1,60 @@
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
-import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { LOCALES } from '@/i18n/locales';
+import {
+  claimStatusActionFailure,
+  completeClaimStatusEffects,
+} from '@/lib/claim-status-action-effects';
+import { defineAction } from '@/lib/safe-action';
+import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
 import type { ClaimStatus } from '@interdomestik/database/constants';
-import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
-import { transitionAdminClaimStatusInTransaction } from '@interdomestik/domain-claims/admin-claims/status-transition';
-import { isClaimStatus } from '@interdomestik/domain-claims/claims/transition-guard';
-
 import {
-  assertCanMutateClaim,
-  assertTransitionAllowed,
-  getClaimForMutation,
-  getOpsMutationContext,
-  logAudit,
-  type OpsActionResponse,
-  revalidateClaim,
-} from './action-helpers';
-import {
-  completeCommittedOpsAction,
-  OPS_ACTION_UNAUTHORIZED_ERROR,
-  toSafeOpsActionError,
-} from './ops-action-outcome';
+  changeClaimStatus,
+  changeClaimStatusInputSchema,
+} from '@interdomestik/domain-claims/claims/change-status';
+import type { RecoveryDeclineReasonCode } from '@interdomestik/domain-claims/staff-claims/types';
+import { z } from 'zod';
+import { type OpsActionResponse, revalidateClaim } from './action-helpers';
+import { completeCommittedOpsAction, toSafeOpsActionError } from './ops-action-outcome';
 
-const INVALID_STATUS_ERROR = 'Invalid status';
+export type OpsStatusOptions = {
+  note?: string;
+  declineReasonCode?: RecoveryDeclineReasonCode;
+  decisionExplanation?: string;
+};
 
-type StatusTransactionOutcome = { committed: true } | { committed: false; error: string };
+const updateStatusCommand = defineAction({
+  name: 'adminClaims.updateStatus',
+  basis: { kind: 'role', roles: ['admin', 'tenant_admin', 'super_admin'] },
+  input: changeClaimStatusInputSchema
+    .omit({ isPublicNote: true, allowanceOverrideReason: true })
+    .extend({ locale: z.enum(LOCALES) })
+    .strict(),
+  subject: { type: 'claim', from: 'claimId' },
+  async handler({ locale, ...input }, { authority, requestHeaders }) {
+    const outcome = await changeClaimStatus(authority, input, {
+      hostId: resolveEntryHostIdFromHeaders(requestHeaders),
+      requestHeaders,
+    });
+    if (!outcome.ok) return claimStatusActionFailure(outcome.code);
 
-function transitionErrorMessage(currentStatus: ClaimStatus, newStatus: ClaimStatus): string {
-  return `Illegal transition from ${currentStatus} to ${newStatus}`;
-}
+    await completeClaimStatusEffects(authority, outcome);
+    return completeCommittedOpsAction('updateStatus', () => revalidateClaim(locale, input.claimId));
+  },
+});
 
 export async function updateStatusAction(
   claimId: string,
-  newStatus: ClaimStatus,
-  locale: string
+  toStatus: ClaimStatus,
+  locale: string,
+  options: OpsStatusOptions = {}
 ): Promise<OpsActionResponse> {
   try {
-    // Exercised admin-family role is checked before any claim read or tenant transaction.
-    const ctx = await getOpsMutationContext();
-    if (!ctx) return { success: false, error: OPS_ACTION_UNAUTHORIZED_ERROR };
-    // Runtime input from the client is untrusted even though the parameter is typed.
-    if (!isClaimStatus(newStatus)) return { success: false, error: INVALID_STATUS_ERROR };
-    const authorized = await authorizeSessionTenant();
-    if (!authorized) return { success: false, error: OPS_ACTION_UNAUTHORIZED_ERROR };
-
-    // One tenant transaction: initial read, lifecycle/payment/evidence checks, CAS transition,
-    // stage history, domain events and the operational audit commit or roll back together.
-    const outcome = await withTenantAuthority<StatusTransactionOutcome>(
-      authorized.authority,
-      async tx => {
-        const claim = await getClaimForMutation(claimId, ctx.tenantId, tx);
-        const currentLifecycle = resolveClaimLifecycleReadProjection(claim);
-        const currentStatus = currentLifecycle.status;
-        assertCanMutateClaim(claim, ctx.actorRole, 'status_change');
-        assertTransitionAllowed(currentStatus, newStatus);
-
-        // Every admitted actor is admin family, so assigned-elsewhere claims are consistent for
-        // admin, tenant_admin and super_admin; non-admin actors never reach this point.
-        const transitionResult = await transitionAdminClaimStatusInTransaction(tx, {
-          actor: { id: ctx.actorId, role: ctx.actorRole },
-          expectedCaseLifecycleState: currentLifecycle.caseLifecycleState,
-          expectedLifecycleAuthority: currentLifecycle.authority,
-          expectedRecoveryLifecycleState: currentLifecycle.recoveryLifecycleState,
-          expectedStatus: currentStatus,
-          claimId,
-          tenantId: ctx.tenantId,
-          toStatus: newStatus,
-        });
-
-        if (!transitionResult.success) {
-          return { committed: false, error: transitionErrorMessage(currentStatus, newStatus) };
-        }
-
-        await logAudit(
-          ctx.tenantId,
-          ctx.actorId,
-          'update_status',
-          claimId,
-          { previousStatus: transitionResult.fromStatus, newStatus: transitionResult.status },
-          tx
-        );
-        return { committed: true };
-      }
-    );
-
-    if (!outcome.committed) return { success: false, error: outcome.error };
-    return completeCommittedOpsAction('updateStatus', () => revalidateClaim(locale, claimId));
-  } catch (error: unknown) {
+    const result = await updateStatusCommand({ ...options, claimId, toStatus, locale });
+    if (result.success) return result.data ?? result;
+    if (result.code === 'INTERNAL_SERVER_ERROR') {
+      return toSafeOpsActionError('updateStatus', new Error(result.code));
+    }
+    return result;
+  } catch (error) {
     return toSafeOpsActionError('updateStatus', error);
   }
 }

@@ -618,6 +618,9 @@ importers:
       '@interdomestik/domain-case':
         specifier: workspace:*
         version: link:../domain-case
+      '@interdomestik/domain-communications':
+        specifier: workspace:*
+        version: link:../domain-communications
       '@interdomestik/domain-crm':
         specifier: workspace:*
         version: link:../domain-crm

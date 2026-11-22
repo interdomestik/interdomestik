@@ -17,6 +17,10 @@ export const mockSelectChain = {
   where: vi.fn().mockReturnThis(),
   orderBy: vi.fn().mockReturnValue([]),
   limit: vi.fn().mockReturnValue([]),
+  for: vi.fn(async () => {
+    const claim = await mocks.dbQuery();
+    return claim ? [claim] : [];
+  }),
 };
 
 vi.mock('@/lib/auth', () => ({
@@ -86,8 +90,26 @@ vi.mock('@/lib/notifications', () => ({
   notifyNewMessage: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-vi.mock('@/lib/notifications/recipient-role', () => ({
-  getNotificationRecipientRole: vi.fn().mockResolvedValue('member'),
+vi.mock('@/lib/claim-notification-delivery-kick', () => ({
+  kickClaimNotificationDeliveries: vi.fn(),
+}));
+vi.mock('./messages/claim-effects', () => ({
+  claimMessageEffects: {
+    buildStaffClaimScope: vi.fn(),
+    createClaimResponseRequest: vi.fn(),
+    answerClaimResponseRequests: vi.fn(),
+  },
+}));
+vi.mock(
+  '../../../../packages/domain-communications/src/notification-deliveries/claim-owner',
+  () => ({
+    lockClaimNotificationRecipient: vi.fn(),
+    enqueueClaimMessageNotification: vi.fn().mockResolvedValue([]),
+  })
+);
+vi.mock('../../../../packages/domain-communications/src/notification-deliveries/staff', () => ({
+  resolveStaffClaimNotificationRecipients: vi.fn().mockResolvedValue([]),
+  enqueueStaffClaimNotification: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@/lib/audit', () => ({

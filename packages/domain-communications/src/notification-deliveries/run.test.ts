@@ -1,5 +1,7 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { redriveNotificationDelivery } from './failed';
+import { dispatchNotificationDeliveries } from './run';
 import { delivery, harness, start, timestamp } from './run.test-support';
 import {
   claimNotificationDelivery,
@@ -181,6 +183,37 @@ describe('delivery state and leases', () => {
     expect(h.sendEmail.mock.calls[1][3]).toMatchObject({ timeoutMs: 8_000 });
   });
 
+  it('refunds the attempt when elapsed time runs out during a backward wall-clock adjustment', async () => {
+    const row = delivery();
+    const h = setup(row);
+    const elapsed = vi.spyOn(performance, 'now').mockReturnValue(0);
+    const wallClock = vi.spyOn(Date, 'now').mockReturnValue(start);
+    mocks.prepare.mockImplementationOnce(() => {
+      elapsed.mockReturnValue(10_001);
+      wallClock.mockReturnValue(start - 30_000);
+      return { channel: 'email', locale: 'en' };
+    });
+
+    try {
+      const result = await dispatchNotificationDeliveries(
+        mintTestTenantAuthority(row.tenantId),
+        {
+          appOrigin: () => 'https://example.test',
+          buildStaffClaimScope: () => undefined,
+          emailTransports: h.emailTransports,
+          sendEmail: h.sendEmail,
+        },
+        { ids: [row.id] }
+      );
+      expect(result).toMatchObject({ budget_short: 1, sent: 0 });
+      expect(row).toMatchObject({ attempts: 0, state: 'queued', transport: null });
+      expect(h.sendEmail).not.toHaveBeenCalled();
+    } finally {
+      elapsed.mockRestore();
+      wallClock.mockRestore();
+    }
+  });
+
   it('does not call through a lost lease or mark an empty provider answer as sent', async () => {
     const row = delivery();
     const h = setup(row);
@@ -210,7 +243,7 @@ describe('delivery state and leases', () => {
     expect(await h.kick()).toMatchObject({ queued: 1, failures: [{ code: 'facts_unavailable' }] });
   });
 
-  it('redrives only a failed row, retaining its pin and auditing once', async () => {
+  it('lets only one concurrent re-drive update the failed row and retains its pin', async () => {
     const row = delivery({
       state: 'failed',
       attempts: 8,
@@ -220,8 +253,11 @@ describe('delivery state and leases', () => {
       lastErrorCode: 'timeout',
     });
     const h = setup(row);
-    expect(await redriveNotificationDelivery(h.tx, row.id)).toBe(true);
-    expect(await redriveNotificationDelivery(h.tx, row.id)).toBe(false);
+    const outcomes = await Promise.all([
+      redriveNotificationDelivery(h.tx, row.id),
+      redriveNotificationDelivery(h.tx, row.id),
+    ]);
+    expect(outcomes.sort()).toEqual([false, true]);
     expect(row).toMatchObject({
       state: 'queued',
       attempts: 0,

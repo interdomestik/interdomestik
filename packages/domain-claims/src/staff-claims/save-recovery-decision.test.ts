@@ -38,6 +38,8 @@ const mocks = vi.hoisted(() => {
   return {
     db: { query },
     withTenantContext,
+    enqueue: vi.fn().mockResolvedValue(['decision-delivery']),
+    recipient: vi.fn().mockResolvedValue({ id: 'member-1' }),
     appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
     claims: {
       id: 'claims.id',
@@ -76,6 +78,11 @@ vi.mock('@interdomestik/database', () => ({
   claims: mocks.claims,
   eq: mocks.eq,
   withTenantContext: mocks.withTenantContext,
+}));
+
+vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
+  enqueueRecoveryDecisionNotification: mocks.enqueue,
+  lockClaimNotificationRecipient: mocks.recipient,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
@@ -121,7 +128,10 @@ describe('saveRecoveryDecisionCore', () => {
     mocks.txSelect.mockReset();
     mocks.claimSelectChain.from.mockReturnValue(mocks.claimSelectChain);
     mocks.claimSelectChain.where.mockReturnValue(mocks.claimSelectChain);
-    mocks.claimSelectChain.for.mockResolvedValue([{ id: 'claim-1' }]);
+    mocks.claimSelectChain.limit.mockReturnValue(mocks.claimSelectChain);
+    mocks.claimSelectChain.for.mockResolvedValue([
+      { id: 'claim-1', userId: 'member-1', title: 'Vehicle claim' },
+    ]);
     mocks.agreementSelectChain.from.mockReturnValue(mocks.agreementSelectChain);
     mocks.agreementSelectChain.where.mockReturnValue(mocks.agreementSelectChain);
   });
@@ -143,9 +153,8 @@ describe('saveRecoveryDecisionCore', () => {
   it('creates an accepted recovery-decision snapshot for an in-scope claim', async () => {
     mocks.txSelect
       .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1' }]);
+    mocks.claimSelectChain.limit.mockReturnValue(mocks.claimSelectChain);
     mocks.agreementSelectChain.limit.mockResolvedValue([]);
 
     const result = await saveRecoveryDecisionCore({
@@ -174,70 +183,67 @@ describe('saveRecoveryDecisionCore', () => {
     });
   });
 
-  it('sends recovery-decision notifications with tenant context after a successful save', async () => {
-    const notifyRecoveryDecision = vi.fn().mockResolvedValue({ success: true });
+  it('enqueues the recovery decision in the write transaction with its event id', async () => {
     mocks.txSelect
       .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1' }]);
     mocks.agreementSelectChain.limit.mockResolvedValue([]);
 
-    const result = await saveRecoveryDecisionCore(
-      {
-        authority,
-        claimId: 'claim-1',
-        decisionType: 'accepted',
-        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-      },
-      { notifyRecoveryDecision }
-    );
+    const result = await saveRecoveryDecisionCore({
+      authority,
+      claimId: 'claim-1',
+      decisionType: 'accepted',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
 
-    expect(result.success).toBe(true);
-    await vi.waitFor(() =>
-      expect(notifyRecoveryDecision).toHaveBeenCalledWith(
-        'member-1',
-        'member@example.com',
-        { id: 'claim-1', title: 'Vehicle claim', userId: 'member-1' },
-        'accepted',
-        { authority }
-      )
+    expect(result).toMatchObject({ success: true, deliveryIds: ['decision-delivery'] });
+    expect(mocks.claimSelectChain.for).toHaveBeenCalledWith('no key update');
+    expect(mocks.withTenantContext).toHaveBeenCalledOnce();
+    expect(mocks.enqueue).toHaveBeenCalledWith(
+      mocks.appendEvent.mock.calls[0][0],
+      expect.objectContaining({
+        tenantId: 'tenant-1',
+        claimId: 'claim-1',
+        recipient: { id: 'member-1' },
+        decisionDomainEventId: mocks.appendEvent.mock.calls[0][1].id,
+      })
     );
-    expect(mocks.withTenantContext).toHaveBeenCalledTimes(3);
-    for (const call of mocks.withTenantContext.mock.calls) {
-      expect(call[0]).toBe(authority);
-    }
   });
 
-  it('does not report failure when post-commit notification lookup fails', async () => {
-    const notifyRecoveryDecision = vi.fn();
-    mocks.db.query.claims.findFirst.mockRejectedValueOnce(new Error('temporary lookup failure'));
+  it('lets enqueue failure escape the transaction so the decision rolls back', async () => {
     mocks.txSelect
       .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1' }]);
     mocks.agreementSelectChain.limit.mockResolvedValue([]);
-
-    const result = await saveRecoveryDecisionCore(
-      {
-        authority,
-        claimId: 'claim-1',
-        decisionType: 'accepted',
-        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-      },
-      { notifyRecoveryDecision }
-    );
-
-    expect(result.success).toBe(true);
-    await vi.waitFor(() => expect(notifyRecoveryDecision).not.toHaveBeenCalled());
+    const error = new Error('enqueue failed');
+    mocks.enqueue.mockRejectedValueOnce(error);
+    const audit = vi.fn();
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const result = await saveRecoveryDecisionCore(
+        {
+          authority,
+          claimId: 'claim-1',
+          decisionType: 'accepted',
+          session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+        },
+        { logAuditEvent: audit }
+      );
+      expect(result).toEqual({ success: false, error: 'Failed to save recovery decision' });
+      expect(mocks.txInsert).toHaveBeenCalled();
+      expect(mocks.enqueue).toHaveBeenCalled();
+      await expect(mocks.withTenantContext.mock.results[0].value).rejects.toBe(error);
+      expect(audit).not.toHaveBeenCalled();
+    } finally {
+      log.mockRestore();
+    }
   });
 
   it('denies saving recovery decisions for claims outside the acting staff scope', async () => {
     mocks.txSelect
       .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([]);
+    mocks.claimSelectChain.for.mockResolvedValueOnce([]);
 
     const result = await saveRecoveryDecisionCore({
       authority,

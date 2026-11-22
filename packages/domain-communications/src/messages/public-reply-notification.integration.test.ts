@@ -1,23 +1,19 @@
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { randomUUID } from 'node:crypto';
 import { eq, inArray } from 'drizzle-orm';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { asActor } from './message-rls-actors.test-support';
 import {
   fixture,
   homeTenantId,
-  otherTenantId,
   ids,
+  otherTenantId,
   registerMessageRlsFixture,
 } from './tenant-context.integration-fixture';
-import { asActor } from './message-rls-actors.test-support';
-import type * as Replies from './public-reply-notification';
 
 const suite = process.env.MESSAGE_RLS_INTEGRATION === '1' ? describe : describe.skip;
 
-suite('S8 public reply under an actual restricted LOGIN', () => {
+suite('public reply notification under a restricted PostgreSQL login', () => {
   registerMessageRlsFixture();
-  let reply: typeof Replies;
-  beforeAll(async () => {
-    reply = await import('./public-reply-notification');
-  });
   afterEach(async () => {
     const [row] = await fixture.rlsClient`
       select nullif(current_setting('app.current_tenant_id', true), '') as tenant,
@@ -26,25 +22,22 @@ suite('S8 public reply under an actual restricted LOGIN', () => {
     `;
     expect(row).toEqual({ tenant: null, access: null, role: null });
   });
-  async function sendStaffReply(label: string) {
-    const result = await fixture.send({
+
+  const sendStaffReply = (label: string, options = {}) =>
+    fixture.send({
       ...asActor(ids.staff, 'staff'),
       requestHeaders: new Headers(),
       claimId: ids.claim,
-      content: `Synthetic S8 ${label}`,
+      content: `Synthetic reply ${label}`,
+      ...options,
     });
-    expect(result.success).toBe(true);
-    if (!result.success) throw new Error('Actual staff reply did not persist');
-    return {
-      ...asActor(ids.staff, 'staff'),
-      claimId: ids.claim,
-      messageId: result.message.id,
-      expectedRecipientId: ids.member,
-    };
-  }
   const notificationRows = (messageId: string) =>
     fixture.database.dbAdmin.query.notifications.findMany({
       where: eq(fixture.database.notifications.id, `ntf_new_message_${messageId}`),
+    });
+  const deliveries = (messageId: string) =>
+    fixture.database.dbAdmin.query.notificationDeliveries.findMany({
+      where: eq(fixture.database.notificationDeliveries.subjectMessageId, messageId),
     });
 
   it('keeps session and effective identities restricted, nonowning and without memberships', async () => {
@@ -69,21 +62,13 @@ suite('S8 public reply under an actual restricted LOGIN', () => {
     });
   });
 
-  it('persists one recipient notification and an immutable data-only delivery plan', async () => {
-    const params = await sendStaffReply('notification');
-    const result = await reply.preparePublicReplyNotification(params);
-    expect(result.status).toBe('created');
-    if (result.status !== 'created') throw new Error('Missing actual notification');
-    expect(result.plan).toMatchObject({
-      tenantId: homeTenantId,
-      recipientId: ids.member,
-      notificationId: `ntf_new_message_${params.messageId}`,
-    });
-    expect(Object.isFrozen(result.plan)).toBe(true);
-    expect(Object.isFrozen(result.plan.actor)).toBe(true);
-    expect(Object.isFrozen(result.plan.claim)).toBe(true);
-    expect(Object.isFrozen(result.plan.pushSubscriptions)).toBe(true);
-    expect(await notificationRows(params.messageId)).toEqual([
+  it('persists exactly one inbox and delivery row when a staff reply is replayed', async () => {
+    const clientMessageId = randomUUID();
+    const result = await sendStaffReply('notification', { clientMessageId });
+    if (!result.success) throw new Error(result.error);
+    expect(result.replayed).toBe(false);
+    const messageId = result.message.id;
+    expect(await notificationRows(messageId)).toEqual([
       expect.objectContaining({
         tenantId: homeTenantId,
         userId: ids.member,
@@ -91,163 +76,110 @@ suite('S8 public reply under an actual restricted LOGIN', () => {
         actionUrl: `/member/claims/${ids.claim}`,
       }),
     ]);
-    expect(await reply.preparePublicReplyNotification(params)).toEqual({
-      status: 'skipped',
-      reason: 'duplicate',
+    expect(await sendStaffReply('notification', { clientMessageId })).toMatchObject({
+      success: true,
+      replayed: true,
+      deliveryIds: [],
+      message: { id: messageId },
     });
-    expect(await notificationRows(params.messageId)).toHaveLength(1);
+    expect(await notificationRows(messageId)).toHaveLength(1);
+    expect(await deliveries(messageId)).toMatchObject([
+      {
+        id: result.deliveryIds[0],
+        channel: 'email',
+        kind: 'claim_message_to_member',
+        recipientUserId: ids.member,
+        facts: { previewRestricted: false },
+      },
+    ]);
   });
 
-  it('deduplicates simultaneous actual preparation calls on two restricted database sessions', async () => {
-    const params = await sendStaffReply('concurrent notification');
-    const { session, claimId, messageId, expectedRecipientId } = params;
-    const results = await fixture.concurrentReplies({
-      session,
-      claimId,
-      messageId,
-      expectedRecipientId,
-      tenantId: homeTenantId,
-    });
-    expect(results.map(value => value.status).sort()).toEqual(['created', 'skipped']);
-    expect(results.find(value => value.status === 'skipped')?.reason).toBe('duplicate');
-    expect(new Set(results.map(value => value.pid)).size).toBe(2);
-    for (const result of results)
-      expect(result).toMatchObject({
-        sessionUser: fixture.roleName,
-        currentUser: fixture.roleName,
-        sessionSuper: false,
-        sessionBypass: false,
-        currentSuper: false,
-        currentBypass: false,
-      });
-    expect(await notificationRows(params.messageId)).toHaveLength(1);
-  }, 60_000);
-
-  it('rejects mismatched recipient, message visibility, sender and tenant without notification writes', async () => {
-    const params = await sendStaffReply('denial controls');
-    expect(
-      await reply.preparePublicReplyNotification({
-        ...params,
-        expectedRecipientId: ids.otherMember,
-      })
-    ).toEqual({ status: 'skipped', reason: 'recipient_mismatch' });
-    expect(
-      await reply.preparePublicReplyNotification({ ...params, messageId: ids.internal })
-    ).toEqual({ status: 'skipped', reason: 'message_mismatch' });
-    const member = await fixture.send({
-      ...asActor(ids.member, 'member'),
-      requestHeaders: new Headers(),
-      claimId: ids.claim,
-      content: 'Synthetic member cannot impersonate staff reply',
-    });
-    if (!member.success) throw new Error('Missing member control message');
-    expect(
-      await reply.preparePublicReplyNotification({ ...params, messageId: member.message.id })
-    ).toEqual({ status: 'skipped', reason: 'message_mismatch' });
-    expect(
-      await reply.preparePublicReplyNotification({
-        ...params,
-        ...asActor(ids.staff, 'staff', otherTenantId),
-      })
-    ).toEqual({ status: 'skipped', reason: 'claim_not_found' });
-    for (const role of ['member', 'agent', 'branch_manager']) {
-      expect(
-        await reply.preparePublicReplyNotification({ ...params, ...asActor(ids.staff, role) })
-      ).toEqual({ status: 'skipped', reason: 'not_staff' });
-    }
-    expect(await notificationRows(params.messageId)).toEqual([]);
+  it('never queues a member-facing notification for internal, member or foreign-tenant sends', async () => {
+    const internal = await sendStaffReply('internal', { isInternal: true });
+    if (!internal.success) throw new Error(internal.error);
+    expect(await notificationRows(internal.message.id)).toEqual([]);
+    expect(await deliveries(internal.message.id)).toEqual([]);
+    const member = await sendStaffReply('member', asActor(ids.member, 'member'));
+    if (!member.success) throw new Error(member.error);
     expect(await notificationRows(member.message.id)).toEqual([]);
+    expect(await deliveries(member.message.id)).toMatchObject([
+      {
+        kind: 'staff_member_message',
+        recipientUserId: ids.staff,
+      },
+    ]);
+    expect(await sendStaffReply('foreign', asActor(ids.staff, 'staff', otherTenantId))).toEqual({
+      success: false,
+      error: 'Claim not found',
+    });
   });
 
-  it('rolls back a denied notification insert while preserving its already committed message', async () => {
-    const params = await sendStaffReply('notification failure');
+  it('rolls the message back when database permission prevents its inbox insert', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await fixture.setNotificationInsertAllowed(false);
     try {
-      const [acl] = await fixture.rlsClient`
-        select has_table_privilege(current_user,'public.notifications','SELECT') as read,
-          has_table_privilege(current_user,'public.notifications','INSERT') as write
-      `;
-      expect(acl).toEqual({ read: true, write: false });
-      const denied = await reply.preparePublicReplyNotification(params).then(
-        () => null,
-        (error: unknown) => error as { code?: string; cause?: { code?: string } }
+      expect(await sendStaffReply('notification failure')).toEqual({
+        success: false,
+        error: 'Failed to send message',
+      });
+      expect(errors).toHaveBeenCalledWith(
+        'Error sending message:',
+        expect.objectContaining({
+          cause: expect.objectContaining({ code: '42501' }),
+        })
       );
-      expect(denied?.cause?.code ?? denied?.code).toBe('42501');
-      expect(await notificationRows(params.messageId)).toEqual([]);
       expect(
         await fixture.database.dbAdmin.query.claimMessages.findFirst({
-          where: eq(fixture.database.claimMessages.id, params.messageId),
+          where: eq(fixture.database.claimMessages.content, 'Synthetic reply notification failure'),
         })
-      ).toMatchObject({ id: params.messageId, content: 'Synthetic S8 notification failure' });
+      ).toBeUndefined();
     } finally {
       await fixture.setNotificationInsertAllowed(true);
+      errors.mockRestore();
     }
   });
 
-  it('isolates subscription reads and expired endpoint cleanup by recipient, tenant and admitted endpoints', async () => {
-    const params = await sendStaffReply('push isolation');
-    const prepared = await reply.preparePublicReplyNotification(params);
-    if (prepared.status !== 'created') throw new Error('Missing push preparation plan');
-    const endpoint = (name: string) => `https://push.example.test/${ids.claim}/${name}`;
+  it('queues only the current recipient’s scoped subscriptions and honors a disabled preference', async () => {
+    const { dbAdmin, pushSubscriptions, userNotificationPreferences } = fixture.database;
     const rows = [
-      {
-        id: `${ids.claim}_push_a`,
-        tenantId: homeTenantId,
-        userId: ids.member,
-        endpoint: endpoint('a'),
-      },
-      {
-        id: `${ids.claim}_push_b`,
-        tenantId: homeTenantId,
-        userId: ids.member,
-        endpoint: endpoint('b'),
-      },
-      {
-        id: `${ids.claim}_push_foreign`,
-        tenantId: otherTenantId,
-        userId: ids.member,
-        endpoint: endpoint('foreign'),
-      },
-      {
-        id: `${ids.claim}_push_other`,
-        tenantId: homeTenantId,
-        userId: ids.otherMember,
-        endpoint: endpoint('other'),
-      },
+      { id: 'own-a', tenantId: homeTenantId, userId: ids.member },
+      { id: 'own-b', tenantId: homeTenantId, userId: ids.member },
+      { id: 'other-tenant', tenantId: otherTenantId, userId: ids.member },
+      { id: 'other-user', tenantId: homeTenantId, userId: ids.otherMember },
     ].map(row => ({
       ...row,
+      id: `${ids.claim}_${row.id}`,
+      endpoint: `https://push.example.test/${ids.claim}/${row.id}`,
       p256dh: 'synthetic-key',
       auth: 'synthetic-auth',
       updatedAt: new Date(),
     }));
-    await fixture.database.dbAdmin.insert(fixture.database.pushSubscriptions).values(rows);
-    const subscriptions = await reply.loadPublicReplyPushSubscriptions(prepared.plan);
-    expect(subscriptions.map(value => value.endpoint).sort()).toEqual([
-      endpoint('a'),
-      endpoint('b'),
-    ]);
-    const plan = Object.freeze({ ...prepared.plan, pushSubscriptions: subscriptions });
-    await reply.removeExpiredPublicReplySubscriptions(plan, [
-      endpoint('a'),
-      endpoint('foreign'),
-      endpoint('other'),
-    ]);
-    const persisted = await fixture.database.dbAdmin.query.pushSubscriptions.findMany({
-      where: inArray(
-        fixture.database.pushSubscriptions.endpoint,
-        rows.map(row => row.endpoint)
-      ),
-    });
-    expect(persisted.map(value => value.endpoint).sort()).toEqual(
-      [endpoint('b'), endpoint('foreign'), endpoint('other')].sort()
+    await dbAdmin.insert(pushSubscriptions).values(rows);
+    const result = await sendStaffReply('subscriptions');
+    if (!result.success) throw new Error(result.error);
+    expect(
+      (await deliveries(result.message.id)).flatMap(row => row.pushSubscriptionId ?? []).sort()
+    ).toEqual(
+      rows
+        .slice(0, 2)
+        .map(row => row.id)
+        .sort()
     );
-    await fixture.database.dbAdmin.insert(fixture.database.userNotificationPreferences).values({
+    await dbAdmin.insert(userNotificationPreferences).values({
       id: `${ids.claim}_prefs`,
       tenantId: homeTenantId,
       userId: ids.member,
       pushMessages: false,
       updatedAt: new Date(),
     });
-    expect(await reply.loadPublicReplyPushSubscriptions(prepared.plan)).toEqual([]);
+    const disabled = await sendStaffReply('subscriptions disabled');
+    if (!disabled.success) throw new Error(disabled.error);
+    expect(await deliveries(disabled.message.id)).toMatchObject([{ channel: 'email' }]);
+    await dbAdmin.delete(pushSubscriptions).where(
+      inArray(
+        pushSubscriptions.id,
+        rows.map(row => row.id)
+      )
+    );
   });
 });

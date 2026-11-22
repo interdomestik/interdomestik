@@ -18,8 +18,6 @@ export * from './claims/jurisdiction-handoff';
 export type { ClaimStatus } from './staff-claims/types';
 export * from './validators/claims';
 
-export { updateClaimStatusCore as updateAdminClaimStatusCore } from './admin-claims/update-status';
-export { updateClaimStatusCore as updateAgentClaimStatusCore } from './agent-claims/update-status';
 export * from './claims/list';
 export * from './claims/lifecycle-state';
 export * from './claims/lifecycle-read-model';
@@ -27,8 +25,6 @@ export * from './claims/lifecycle-read-sql';
 export * from './claims/case-companion-next-step';
 export * from './claims/vault-consent-display';
 export * from './claims/transition-guard';
-export { updateClaimStatusCore } from './claims/status';
-export { assignClaimCore as assignStaffClaimCore } from './staff-claims/assign';
 export { buildScopedStaffClaimWhere, buildStaffClaimReadScope } from './staff-claims/scope';
 export { getStaffClaimsList } from './staff-claims/get-staff-claims-list';
 export { getAssignedStaffClaimAttention } from './staff-claims/assigned-claim-attention';
@@ -54,5 +50,4 @@ export {
 export { saveRecoveryDecisionCore as saveStaffRecoveryDecisionCore } from './staff-claims/save-recovery-decision';
 export { saveClaimEscalationAgreementCore as saveStaffClaimEscalationAgreementCore } from './staff-claims/save-escalation-agreement';
 export { saveNoFeeEvidenceCore as saveStaffNoFeeEvidenceCore } from './staff-claims/save-no-fee-evidence';
-export { updateClaimStatusCore as updateStaffClaimStatusCore } from './staff-claims/update-status';
 export * from './support-handoffs';

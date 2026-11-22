@@ -25,6 +25,20 @@ vi.mock('./ai-workflows', async () => ({
   queueClaimDocumentAiWorkflows: (await import('./submit-test-support'))
     .queueClaimDocumentAiWorkflowsMock,
 }));
+vi.mock('@interdomestik/domain-communications/notification-deliveries', async () => {
+  const support = await import('./submit-test-support');
+  return {
+    enqueueClaimSubmittedNotification: support.enqueueClaimSubmittedNotificationMock,
+    enqueueStaffClaimNotification: support.enqueueStaffClaimNotificationMock,
+    lockClaimNotificationRecipient: vi.fn().mockResolvedValue({ id: 'member-1' }),
+    resolveStaffClaimNotificationRecipients: vi.fn().mockResolvedValue([{ id: 'staff-1' }]),
+  };
+});
+vi.mock('../staff-claims/scope', () => ({ buildStaffClaimReadScope: vi.fn() }));
+vi.mock('./response-requests', async () => ({
+  createClaimResponseRequest: (await import('./submit-test-support'))
+    .createClaimResponseRequestMock,
+}));
 
 beforeEach(() => {
   resetSubmitClaimMocks();

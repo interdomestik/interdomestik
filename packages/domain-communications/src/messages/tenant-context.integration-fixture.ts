@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, expect } from 'vitest';
 import postgres from 'postgres';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import type { Session } from '../types';
 import { messageCatalogueCopy } from './message-catalogue.test-support';
-import { runReplyPreparationWorkers } from './public-reply-concurrency.runtime-fixture';
+import type { ClaimMessageEffects } from './send';
 
 const suffix = randomUUID();
 const catalogue = messageCatalogueCopy(suffix, process.env.VITEST_POOL_ID ?? 'main');
@@ -23,6 +23,45 @@ let markRead: (typeof import('./mark-read'))['markMessagesAsReadCore'];
 let send: (typeof import('./send'))['sendMessageDbCore'];
 let rlsClient: ReturnType<typeof postgres>;
 let adminClient: ReturnType<typeof postgres>;
+const claimEffects: ClaimMessageEffects = {
+  buildStaffClaimScope({ userId, branchId }) {
+    const { claims } = database;
+    return and(
+      ne(claims.caseLifecycleState, 'draft'),
+      branchId == null
+        ? or(eq(claims.staffId, userId), isNull(claims.staffId))
+        : eq(claims.branchId, branchId)
+    );
+  },
+  async createClaimResponseRequest(tx, { tenantId, claimId, kind, messageId }) {
+    await tx.insert(database.claimResponseRequests).values({
+      id: randomUUID(),
+      tenantId,
+      claimId,
+      kind,
+      sourceMessageId: messageId,
+      requestedAt: sql`clock_timestamp()`,
+    });
+  },
+  async answerClaimResponseRequests(tx, { tenantId, claimId, kind, messageId, actorId }) {
+    const requests = database.claimResponseRequests;
+    await tx
+      .update(requests)
+      .set({
+        answerKind: kind,
+        answerMessageId: messageId,
+        answeredBy: actorId,
+        answeredAt: sql`(select clock_timestamp())`,
+      })
+      .where(
+        and(
+          eq(requests.tenantId, tenantId),
+          eq(requests.claimId, claimId),
+          isNull(requests.answeredAt)
+        )
+      );
+  },
+};
 export const fixture = {
   get database() {
     return database;
@@ -33,8 +72,8 @@ export const fixture = {
   get markRead() {
     return markRead;
   },
-  get send() {
-    return send;
+  send(params: Omit<Parameters<typeof send>[0], 'claimEffects'>) {
+    return send({ ...params, claimEffects });
   },
   get rlsClient() {
     return rlsClient;
@@ -46,13 +85,6 @@ export const fixture = {
     await adminClient.unsafe(
       `${allowed ? 'grant insert on' : 'revoke insert on'} notifications ${allowed ? 'to' : 'from'} "${fixtureRole}"`
     );
-  },
-  async concurrentReplies(params: Parameters<typeof runReplyPreparationWorkers>[2]) {
-    const target = new URL(process.env.DATABASE_URL!);
-    target.username = fixtureRole;
-    target.password = fixturePassword;
-    target.search = '';
-    return runReplyPreparationWorkers(target.toString(), fixtureRole, params);
   },
 };
 export const session = (
@@ -87,9 +119,10 @@ export function registerMessageRlsFixture(): void {
       select c.relname, c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace
       where n.nspname='public' and c.relname in
         ('claim','claim_messages','agent_clients','user','notifications',
-         'user_notification_preferences','push_subscriptions','audit_log')
+         'user_notification_preferences','push_subscriptions','audit_log',
+         'notification_deliveries','claim_response_requests')
     `;
-    expect(tables).toHaveLength(8);
+    expect(tables).toHaveLength(10);
     expect(tables.every(table => table.relrowsecurity === true)).toBe(true);
     // This owned LOGIN authenticates directly; SET ROLE on an admin session is not restricted.
     await adminClient.unsafe(
@@ -98,12 +131,17 @@ export function registerMessageRlsFixture(): void {
     fixtureRoleCreated = true;
     await adminClient.unsafe(`grant usage on schema public to "${fixtureRole}"`);
     await adminClient.unsafe(
-      `grant select on table "user", claim, claim_messages, agent_clients, notifications, user_notification_preferences, push_subscriptions, audit_log to "${fixtureRole}"`
+      `grant select on table "user", claim, claim_messages, agent_clients, notifications, user_notification_preferences, push_subscriptions, audit_log, notification_deliveries, claim_response_requests to "${fixtureRole}"`
     );
     await adminClient.unsafe(`grant insert, update on table claim_messages to "${fixtureRole}"`);
     // A least-privilege subset of scripts/ci/export-e2e-rls.sh, never a production grant claim.
-    await adminClient.unsafe(`grant insert on table notifications, audit_log to "${fixtureRole}"`);
-    await adminClient.unsafe(`grant delete on table push_subscriptions to "${fixtureRole}"`);
+    await adminClient.unsafe(
+      `grant insert on table notifications, audit_log, notification_deliveries, claim_response_requests to "${fixtureRole}"`
+    );
+    await adminClient.unsafe(`grant update (id) on table "user", claim to "${fixtureRole}"`);
+    await adminClient.unsafe(
+      `grant update (answered_at, answered_by, answer_kind, answer_message_id) on table claim_response_requests to "${fixtureRole}"`
+    );
     process.env.DB_RLS_ROLE = fixtureRole;
     const restrictedUrl = new URL(process.env.DATABASE_URL);
     restrictedUrl.username = fixtureRole;
@@ -170,6 +208,12 @@ export function registerMessageRlsFixture(): void {
   afterAll(async () => {
     try {
       if (database) {
+        await database.dbAdmin
+          .delete(database.notificationDeliveries)
+          .where(eq(database.notificationDeliveries.claimId, ids.claim));
+        await database.dbAdmin
+          .delete(database.claimResponseRequests)
+          .where(eq(database.claimResponseRequests.claimId, ids.claim));
         await database.dbAdmin
           .delete(database.auditLog)
           .where(eq(database.auditLog.entityId, ids.claim));

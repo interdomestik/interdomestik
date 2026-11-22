@@ -9,6 +9,7 @@ import {
 } from '@interdomestik/database';
 import { getMessagesForClaimCore } from '@interdomestik/domain-communications/messages/get';
 import { sendMessageDbCore } from '@interdomestik/domain-communications/messages/send';
+import { claimMessageEffects } from '../../src/actions/messages/claim-effects';
 import type { Page } from '@playwright/test';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { expect, test } from '../fixtures/auth.fixture';
@@ -238,6 +239,7 @@ test('C2-02: cross-tenant IDs denied for claim/doc/upload/message', async ({ bro
     expect(messageReadResult.error).toBe('Claim not found');
 
     const messageSendResult = await sendMessageDbCore({
+      claimEffects: claimMessageEffects,
       session: mkSession as { user: SessionUser },
       authority: mintTestTenantAuthority(mkSession.user.tenantId),
       requestHeaders: new Headers({ 'x-forwarded-host': ACTOR_HOST }),

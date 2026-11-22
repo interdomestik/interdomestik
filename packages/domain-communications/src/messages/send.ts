@@ -1,4 +1,4 @@
-import { claimMessages, user, type TenantTransaction } from '@interdomestik/database';
+import { claimMessages, claims, user, type TenantTransaction } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -7,30 +7,30 @@ import { withTenantAuthority } from '@interdomestik/database/tenant-authority-co
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasPermission, PERMISSIONS } from '@interdomestik/shared-auth';
 import { eq } from 'drizzle-orm';
+import {
+  enqueueClaimMessageNotification,
+  lockClaimNotificationRecipient,
+} from '../notification-deliveries/claim-owner';
+import {
+  enqueueStaffClaimNotification,
+  resolveStaffClaimNotificationRecipients,
+} from '../notification-deliveries/staff';
+import type { DeliveryDependencies } from '../notification-deliveries/types';
 import type { AuditLogger, Session } from '../types';
 import {
   hasAgentClaimAccess,
   hasScopedStaffClaimAccess,
   isFullTenantClaimsRole,
+  isMemberMessageRole,
   isMessageParticipant,
 } from './access';
 import { normalizeSelectedMessages } from './normalize';
 import { CLIENT_MESSAGE_ID_PATTERN } from './schemas';
+import { describePublicReplyFailure } from './send-error';
 import { storeClaimMessage } from './store-message';
 import type { MessageWithSender, SelectedMessageRow } from './types';
 
-export {
-  preparePublicReplyNotification,
-  loadPublicReplyPushSubscriptions,
-  removeExpiredPublicReplySubscriptions,
-  type PreparePublicReplyNotificationResult,
-  type PublicReplyNotificationPlan,
-} from './public-reply-notification';
-export {
-  deliverPublicReplyNotification,
-  describePublicReplyFailure,
-  type PublicReplyDeliveryDeps,
-} from './public-reply-delivery';
+export { describePublicReplyFailure } from './send-error';
 
 export type SendMessageDbCoreResult =
   | {
@@ -39,11 +39,29 @@ export type SendMessageDbCoreResult =
       claim: { id: string; title: string; userId: string; tenantId: string };
       isInternal: boolean;
       isStaff: boolean;
-      claimOwnerEmail: string | null;
+      deliveryIds: string[];
       /** True when a resent client message key returned the already stored message. */
       replayed: boolean;
     }
   | { success: false; error: string };
+
+export type ClaimMessageEffects = {
+  buildStaffClaimScope: DeliveryDependencies['buildStaffClaimScope'];
+  createClaimResponseRequest: (
+    tx: TenantTransaction,
+    request: { tenantId: string; claimId: string; kind: 'member_message'; messageId: string }
+  ) => Promise<void>;
+  answerClaimResponseRequests: (
+    tx: TenantTransaction,
+    answer: {
+      tenantId: string;
+      claimId: string;
+      kind: 'public_message';
+      messageId: string;
+      actorId: string;
+    }
+  ) => Promise<void>;
+};
 
 /**
  * Decides whether the actor may post this message on an in-tenant claim, returning the denial
@@ -93,8 +111,7 @@ async function findMessageSendDenial(args: {
 }
 
 /**
- * Core message send logic (DB + audit).
- * Intentionally excludes Next.js cache revalidation and notifications.
+ * Stores the message, inbox rows, deliveries and response-time records in one transaction.
  */
 export async function sendMessageDbCore(params: {
   session: NonNullable<Session> | null;
@@ -104,11 +121,12 @@ export async function sendMessageDbCore(params: {
   content: string;
   isInternal?: boolean;
   clientMessageId?: string;
+  claimEffects: ClaimMessageEffects;
   deps?: {
     logAuditEvent?: AuditLogger;
   };
 }): Promise<SendMessageDbCoreResult> {
-  const { session, authority, requestHeaders, claimId, content } = params;
+  const { session, authority, requestHeaders, claimId, content, claimEffects } = params;
   const isInternal = params.isInternal ?? false;
   const clientMessageId = params.clientMessageId ?? null;
 
@@ -137,10 +155,19 @@ export async function sendMessageDbCore(params: {
     }
 
     const result = await withTenantAuthority<SendMessageDbCoreResult>(authority, async tx => {
-      const claim = await tx.query.claims.findFirst({
-        where: (claimsTable, { eq }) =>
-          withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-      });
+      const [claim] = await tx
+        .select({
+          branchId: claims.branchId,
+          caseLifecycleState: claims.caseLifecycleState,
+          category: claims.category,
+          claimNumber: claims.claimNumber,
+          staffId: claims.staffId,
+          title: claims.title,
+          userId: claims.userId,
+        })
+        .from(claims)
+        .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)))
+        .for('no key update');
 
       if (!claim) {
         return { success: false, error: 'Claim not found' };
@@ -159,6 +186,21 @@ export async function sendMessageDbCore(params: {
         return { success: false, error: denied };
       }
 
+      const isPublicStaffReply = !isInternal && isStaff;
+      const isPublicMemberMessage =
+        !isInternal && claim.userId === userId && isMemberMessageRole(userRole);
+      const subject = { tenantId, claimId };
+      const staff = isPublicMemberMessage
+        ? await resolveStaffClaimNotificationRecipients(
+            tx,
+            { ...subject, staffId: claim.staffId },
+            claimEffects.buildStaffClaimScope
+          )
+        : [];
+      const recipient = isPublicStaffReply
+        ? await lockClaimNotificationRecipient(tx, tenantId, claim.userId)
+        : undefined;
+
       const stored = await storeClaimMessage(
         tx,
         { tenantId, claimId, senderId: userId, content: trimmed, isInternal },
@@ -168,6 +210,34 @@ export async function sendMessageDbCore(params: {
         return stored;
       }
       const { messageId, replayed } = stored;
+      let deliveryIds: string[] = [];
+      if (!replayed && isPublicStaffReply) {
+        deliveryIds = await enqueueClaimMessageNotification(tx, {
+          ...subject,
+          title: claim.title,
+          recipient,
+          messageId,
+        });
+        await claimEffects.answerClaimResponseRequests(tx, {
+          ...subject,
+          kind: 'public_message',
+          messageId,
+          actorId: userId,
+        });
+      }
+      if (!replayed && isPublicMemberMessage) {
+        deliveryIds = await enqueueStaffClaimNotification(
+          tx,
+          { ...subject, claimNumber: claim.claimNumber, category: claim.category },
+          { kind: 'staff_member_message', messageId },
+          staff
+        );
+        await claimEffects.createClaimResponseRequest(tx, {
+          ...subject,
+          kind: 'member_message',
+          messageId,
+        });
+      }
 
       const selected = (await tx
         .select({
@@ -195,22 +265,13 @@ export async function sendMessageDbCore(params: {
         throw new Error('Created message projection unavailable');
       }
 
-      let claimOwnerEmail: string | null = null;
-      if (!isInternal && isStaff) {
-        const claimOwner = await tx.query.user.findFirst({
-          where: (users, { eq }) =>
-            withTenant(tenantId, users.tenantId, eq(users.id, claim.userId)),
-        });
-        claimOwnerEmail = claimOwner?.email ?? null;
-      }
-
       return {
         success: true,
         message: createdMessage,
         claim: { id: claimId, title: claim.title, userId: claim.userId, tenantId },
         isInternal,
         isStaff,
-        claimOwnerEmail,
+        deliveryIds,
         replayed,
       };
     });
@@ -226,13 +287,18 @@ export async function sendMessageDbCore(params: {
           metadata: { internal: isInternal, length: trimmed.length },
           headers: requestHeaders,
         });
-      } catch {
-        console.error('Message audit failed after commit');
+      } catch (error) {
+        console.error('Message audit failed after commit', error);
       }
     }
     return result;
   } catch (error) {
-    console.error('Error sending message:', error);
+    console.error(
+      'Error sending message:',
+      new Error('Message transaction failed', {
+        cause: describePublicReplyFailure(error),
+      })
+    );
     return { success: false, error: 'Failed to send message' };
   }
 }

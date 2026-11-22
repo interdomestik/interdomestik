@@ -10,7 +10,10 @@ const mocks: {
   inArray: Mock;
   isNotNull: Mock;
   logAuditEvent: Mock;
+  enqueue: Mock;
+  transaction: Mock;
   selectFrom: Mock;
+  selectLock: Mock;
   selectLimit: Mock;
   selectOrderBy: Mock;
   selectWhere: Mock;
@@ -60,7 +63,10 @@ const mocks: {
     inArray: vi.fn((left, right) => ({ left, op: 'inArray', right })),
     isNotNull: vi.fn(column => ({ column, op: 'isNotNull' })),
     logAuditEvent: vi.fn(),
+    enqueue: vi.fn(),
+    transaction: vi.fn(),
     selectFrom,
+    selectLock: vi.fn(),
     selectLimit,
     selectOrderBy,
     selectWhere,
@@ -98,7 +104,7 @@ const mocks: {
 vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
   db: mocks.db,
-  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => await cb(mocks.db)),
+  withTenantContext: mocks.transaction,
   desc: mocks.desc,
   eq: mocks.eq,
   sql: mocks.sql,
@@ -113,6 +119,10 @@ vi.mock('@interdomestik/shared-auth', () => ({
 vi.mock('drizzle-orm', () => ({
   inArray: mocks.inArray,
   isNotNull: mocks.isNotNull,
+}));
+
+vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
+  enqueueSupportHandoffResponseNotification: mocks.enqueue,
 }));
 
 export { mocks };

@@ -2,6 +2,7 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { submitClaimCore } from './submit.core';
 import { submitClaimCore as submitClaimCoreDomain } from '@interdomestik/domain-claims/claims/submit';
+import { kickClaimNotificationDeliveries } from '@/lib/claim-notification-delivery-kick';
 
 const mockRunCommercialActionWithIdempotency = vi.fn();
 const mockMarkClaimAiRunDispatchFailed = vi.fn();
@@ -32,9 +33,8 @@ vi.mock('@/lib/commercial-action-idempotency', () => ({
     mockRunCommercialActionWithIdempotency(...args),
 }));
 
-// Mock notifications (though imported by core, we mock import)
-vi.mock('@/lib/notifications', () => ({
-  notifyClaimSubmitted: vi.fn(),
+vi.mock('@/lib/claim-notification-delivery-kick', () => ({
+  kickClaimNotificationDeliveries: vi.fn(),
 }));
 
 // Mock audit
@@ -102,6 +102,7 @@ describe('actions/claims/submit', () => {
       success: true,
       claimId: 'claim-1',
       claimNumber: 'CLM-T1-2026-000001',
+      deliveryIds: ['email-for-claim'],
     });
     const result = await submitClaimCore({
       idempotencyKey: 'claim-submit-1',
@@ -139,6 +140,9 @@ describe('actions/claims/submit', () => {
       })
     );
     expect(mockRateLimit).toHaveBeenCalled();
+    expect(kickClaimNotificationDeliveries).toHaveBeenCalledExactlyOnceWith(authority, [
+      'email-for-claim',
+    ]);
     expect(mockRunCommercialActionWithIdempotency.mock.calls[0]?.[0].scope.authority).toBe(
       authority
     );
@@ -156,6 +160,7 @@ describe('actions/claims/submit', () => {
       success: true,
       claimId: 'claim-1',
       claimNumber: 'CLM-T1-2026-000001',
+      deliveryIds: [],
     });
 
     const result = await submitClaimCore({
@@ -192,6 +197,7 @@ describe('actions/claims/submit', () => {
       success: true,
       claimId: 'claim-1',
       claimNumber: 'CLM-T1-2026-000001',
+      deliveryIds: [],
     });
 
     await submitClaimCore({
@@ -261,6 +267,7 @@ describe('actions/claims/submit', () => {
       success: true,
       claimId: 'claim-1',
       claimNumber: 'CLM-T1-2026-000001',
+      deliveryIds: [],
     });
 
     await submitClaimCore({

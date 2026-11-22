@@ -1,4 +1,4 @@
-import { authority, mocks, resetSendMocks, staffSession } from './send.test-support';
+import { authority, claimEffects, mocks, resetSendMocks, staffSession } from './send.test-support';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { sendMessageDbCore } from './send';
@@ -12,18 +12,23 @@ describe('sendMessageDbCore send access', () => {
   const AGENT_DENIED = 'Access denied: You can only message your assigned clients';
 
   beforeEach(() => {
-    mocks.tx.query.claims.findFirst.mockResolvedValue({
-      id: 'claim-1',
-      title: 'Claim',
-      userId: 'member-1',
-      branchId: 'branch-1',
-      caseLifecycleState: 'submitted',
-      staffId: 'staff-9',
-    });
+    mocks.lockClaim.mockResolvedValue([
+      {
+        id: 'claim-1',
+        title: 'Claim',
+        userId: 'member-1',
+        branchId: 'branch-1',
+        caseLifecycleState: 'submitted',
+        staffId: 'staff-9',
+        claimNumber: null,
+        category: 'retail',
+      },
+    ]);
   });
 
   const send = (user: Record<string, string>, isInternal = false) =>
     sendMessageDbCore({
+      claimEffects,
       session: { user: { tenantId: 'tenant-1', ...user } } as typeof staffSession,
       authority,
       requestHeaders: new Headers(),
@@ -87,17 +92,70 @@ describe('sendMessageDbCore send access', () => {
   });
 
   it('denies staff of the claim branch a member draft without writing', async () => {
-    mocks.tx.query.claims.findFirst.mockResolvedValue({
-      id: 'claim-1',
-      title: 'Claim',
-      userId: 'member-1',
-      branchId: 'branch-1',
-      caseLifecycleState: 'draft',
-      staffId: null,
-    });
+    mocks.lockClaim.mockResolvedValue([
+      {
+        id: 'claim-1',
+        title: 'Claim',
+        userId: 'member-1',
+        branchId: 'branch-1',
+        caseLifecycleState: 'draft',
+        staffId: null,
+      },
+    ]);
     const result = await send({ id: 'staff-2', role: 'staff', branchId: 'branch-1' }, true);
 
     expect(result).toEqual({ success: false, error: 'Access denied' });
     expect(mocks.tx.insert).not.toHaveBeenCalled();
+  });
+
+  it('routes an unnumbered member message and opens its response request in the message transaction', async () => {
+    const result = await send({ id: 'member-1', role: 'user' });
+    expect(mocks.resolveStaff).toHaveBeenCalledWith(
+      mocks.tx,
+      { tenantId: 'tenant-1', claimId: 'claim-1', staffId: 'staff-9' },
+      claimEffects.buildStaffClaimScope
+    );
+    expect(mocks.enqueueStaff).toHaveBeenCalledWith(
+      mocks.tx,
+      { tenantId: 'tenant-1', claimId: 'claim-1', claimNumber: null, category: 'retail' },
+      { kind: 'staff_member_message', messageId: 'message-1' },
+      [{ id: 'staff-1', role: 'staff', emailVerified: true }]
+    );
+    expect(claimEffects.createClaimResponseRequest).toHaveBeenCalledWith(mocks.tx, {
+      tenantId: 'tenant-1',
+      claimId: 'claim-1',
+      kind: 'member_message',
+      messageId: 'message-1',
+    });
+    expect(result).toMatchObject({ success: true, deliveryIds: ['email-2'] });
+  });
+
+  it('waits for a concurrent reassignment before resolving the staff recipient', async () => {
+    let completeClaimLock!: (claims: object[]) => void;
+    const claimLock = new Promise<object[]>(resolve => {
+      completeClaimLock = resolve;
+    });
+    mocks.lockClaim.mockReturnValueOnce(claimLock);
+    const result = send({ id: 'member-1', role: 'member' });
+    expect(mocks.lockClaim).toHaveBeenCalledExactlyOnceWith('no key update');
+    expect(mocks.resolveStaff).not.toHaveBeenCalled();
+    expect(mocks.tx.insert).not.toHaveBeenCalled();
+    completeClaimLock([
+      {
+        title: 'Claim',
+        userId: 'member-1',
+        branchId: 'branch-1',
+        caseLifecycleState: 'submitted',
+        staffId: 'reassigned-staff',
+        claimNumber: null,
+        category: 'retail',
+      },
+    ]);
+    await expect(result).resolves.toMatchObject({ success: true, deliveryIds: ['email-2'] });
+    expect(mocks.resolveStaff).toHaveBeenCalledWith(
+      mocks.tx,
+      { tenantId: 'tenant-1', claimId: 'claim-1', staffId: 'reassigned-staff' },
+      claimEffects.buildStaffClaimScope
+    );
   });
 });

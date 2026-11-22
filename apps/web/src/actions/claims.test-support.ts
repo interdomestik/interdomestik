@@ -158,13 +158,6 @@ export function nextHeadersModuleMock() {
   return { headers: vi.fn() };
 }
 
-export function notificationsModuleMock() {
-  return {
-    notifyClaimSubmitted: vi.fn().mockResolvedValue({ success: true }),
-    notifyStatusChanged: vi.fn().mockResolvedValue({ success: true }),
-  };
-}
-
 export function aiClaimWorkflowsModuleMock() {
   return {
     emitClaimAiRunRequestedService: vi.fn().mockResolvedValue(undefined),

@@ -1,5 +1,6 @@
 import {
   authority,
+  claimEffects,
   mocks,
   projectionFrom,
   resetSendMocks,
@@ -15,6 +16,7 @@ describe('sendMessageDbCore authority', () => {
 
   it('rejects a send that holds no authority without opening a tenant transaction', async () => {
     const result = await sendMessageDbCore({
+      claimEffects,
       session: staffSession,
       authority: null,
       requestHeaders: new Headers(),
@@ -30,6 +32,7 @@ describe('sendMessageDbCore authority', () => {
     const logAuditEvent = vi.fn();
 
     const result = await sendMessageDbCore({
+      claimEffects,
       session: staffSession,
       authority,
       requestHeaders: new Headers(),
@@ -44,6 +47,21 @@ describe('sendMessageDbCore authority', () => {
     });
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
     expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authority);
+    expect(mocks.lockClaim).toHaveBeenCalledWith('no key update');
+    expect(mocks.enqueueOwner).toHaveBeenCalledWith(mocks.tx, {
+      tenantId: 'tenant-1',
+      claimId: 'claim-1',
+      title: 'Claim',
+      messageId: 'message-1',
+      recipient: { id: 'member-1', role: 'member', emailVerified: true },
+    });
+    expect(claimEffects.answerClaimResponseRequests).toHaveBeenCalledWith(mocks.tx, {
+      tenantId: 'tenant-1',
+      claimId: 'claim-1',
+      actorId: 'staff-1',
+      kind: 'public_message',
+      messageId: 'message-1',
+    });
     expect(logAuditEvent).toHaveBeenCalledTimes(1);
     expect(logAuditEvent.mock.calls[0]?.[0]).toMatchObject({ action: 'claim.message_sent' });
     expect(logAuditEvent.mock.calls[0]?.[0].authority).toBe(authority);
@@ -61,12 +79,13 @@ describe('sendMessageDbCore authority', () => {
       mocks.tx.insert.mockReturnValue({ values: insertValues });
       // The replay lookup filters claim_messages directly; the projection joins the sender.
       mocks.tx.select.mockReturnValue({
-        from: () => ({ ...projectionFrom(), where: () => ({ limit: lookup }) }),
+        from: () => projectionFrom(lookup),
       });
     });
 
     const keyedSend = (content: string, logAuditEvent = vi.fn()) =>
       sendMessageDbCore({
+        claimEffects,
         session: staffSession,
         authority,
         requestHeaders: new Headers(),
@@ -116,6 +135,9 @@ describe('sendMessageDbCore authority', () => {
 
       expect(result).toMatchObject({ success: true, replayed: true, message: { id: 'message-1' } });
       expect(logAuditEvent).not.toHaveBeenCalled();
+      expect(mocks.enqueueOwner).not.toHaveBeenCalled();
+      expect(claimEffects.answerClaimResponseRequests).not.toHaveBeenCalled();
+      expect(lookup).toHaveBeenCalledExactlyOnceWith('share');
     });
 
     it.each([
@@ -135,6 +157,7 @@ describe('sendMessageDbCore authority', () => {
 
     it('rejects a malformed key before opening a tenant transaction', async () => {
       const result = await sendMessageDbCore({
+        claimEffects,
         session: staffSession,
         authority,
         requestHeaders: new Headers(),

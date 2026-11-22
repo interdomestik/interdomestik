@@ -12,7 +12,7 @@ import {
 } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { updateClaimStatusCore } from '@interdomestik/domain-claims/staff-claims/update-status';
+import { changeClaimStatus } from '@interdomestik/domain-claims/claims/change-status';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
@@ -112,15 +112,21 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       if (!actor) throw new Error(`Seeded ${seeded.dbRole} actor missing`);
       const probeNote = `S3 unauthorized ${seeded.dbRole} ${randomUUID()}`;
       unauthorizedNotes.push(probeNote);
-      const result = await updateClaimStatusCore({
-        authority: mintTestTenantAuthority(actor.tenantId),
-        claimId: submitted.claimId,
-        newStatus: 'verification',
-        note: probeNote,
-        isPublicChange: false,
-        session: { user: actor },
+      const authority = mintTestTenantAuthority(actor.tenantId, {
+        userId: actor.id,
+        role: actor.role,
       });
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      const result = await changeClaimStatus(
+        authority,
+        {
+          claimId: submitted.claimId,
+          toStatus: 'verification',
+          note: probeNote,
+          isPublicNote: false,
+        },
+        { hostId: actor.tenantId }
+      );
+      expect(result).toEqual({ ok: false, code: 'forbidden_role' });
     }
 
     const stillSubmitted = await db.query.claims.findFirst({
@@ -171,15 +177,21 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       await saveInterveningPublicNote(staffPage, newerNote);
       return newerNote;
     });
-    const privateResult = await updateClaimStatusCore({
-      authority: mintTestTenantAuthority(staffActor.tenantId),
-      claimId: submitted.claimId,
-      newStatus: 'verification',
-      note: privateNote,
-      isPublicChange: false,
-      session: { user: staffActor },
+    const staffAuthority = mintTestTenantAuthority(staffActor.tenantId, {
+      userId: staffActor.id,
+      role: staffActor.role,
     });
-    expect(privateResult.success).toBe(true);
+    const privateResult = await changeClaimStatus(
+      staffAuthority,
+      {
+        claimId: submitted.claimId,
+        toStatus: 'verification',
+        note: privateNote,
+        isPublicNote: false,
+      },
+      { hostId: staffActor.tenantId }
+    );
+    expect(privateResult).toMatchObject({ ok: true, changed: false });
     await expect
       .poll(async () => {
         const rows = await db.query.notifications.findMany({

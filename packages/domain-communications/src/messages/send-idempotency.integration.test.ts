@@ -57,9 +57,8 @@ async function waitForBlockedSend(
     where locktype = 'transactionid' and not granted and transactionid = pg_current_xact_id()::xid
   `
       : sql`
-    select count(*)::int as waiting from pg_locks l join pg_stat_activity a on a.pid=l.pid
-    where l.relation='claim_messages'::regclass and l.mode='RowExclusiveLock'
-      and not l.granted and a.usename=${fixture.roleName}
+    select count(*)::int as waiting from pg_stat_activity a
+    where a.usename=${fixture.roleName} and cardinality(pg_blocking_pids(a.pid)) > 0
   `;
   const [row] = await tx.execute(locks);
   if (Number(row?.waiting) >= (kind === 'table' ? 2 : 1)) return;
@@ -95,19 +94,28 @@ async function sendAgainstOpenInsert(outcome: 'commit' | 'rollback', clientMessa
   return blockedSend;
 }
 
+async function staffDeliveryRecipient(messageId: string) {
+  const { dbAdmin, notificationDeliveries } = fixture.database;
+  const [delivery] = await dbAdmin
+    .select({ recipient: notificationDeliveries.recipientUserId })
+    .from(notificationDeliveries)
+    .where(eq(notificationDeliveries.subjectMessageId, messageId));
+  return delivery?.recipient;
+}
+
 suite('keyed message send on a real NOBYPASSRLS connection', () => {
   registerMessageRlsFixture();
   beforeAll(async () => {
     storeMessage = await import('./store-message');
   });
 
-  it('admits two actual sends to the insert together, stores once and audits only the winner', async () => {
+  it('serializes two actual sends on the claim, stores once and audits only the winner', async () => {
     const clientMessageId = randomUUID();
     const audit = vi.fn();
     let sends: Promise<Awaited<ReturnType<typeof memberSend>>[]> | undefined;
     const held = fixture.database.dbAdmin.transaction(async tx => {
       await tx.execute(fixture.database.sql`lock table claim_messages in share mode`);
-      // Both restricted sessions must reach their INSERT before the test releases the table.
+      // The first restricted session waits to insert while the second waits on its claim lock.
       sends = Promise.all([
         memberSend(OVERLAPPED, clientMessageId, audit),
         memberSend(OVERLAPPED, clientMessageId, audit),
@@ -210,6 +218,142 @@ suite('keyed message send on a real NOBYPASSRLS connection', () => {
     expect(result).toMatchObject({ success: true, replayed: true, message: { id } });
     expect(await storedWithKey(clientMessageId)).toEqual([{ id, content: OVERLAPPED }]);
   });
+
+  it('admits the previous writer’s FK key-share while the new writer holds the claim lock', async () => {
+    const clientMessageId = randomUUID();
+    const { claims, withTenantContext } = fixture.database;
+    const store = storeMessage.storeClaimMessage;
+    let enteredStore!: () => void;
+    let releaseStore!: () => void;
+    const beforeInsert = new Promise<void>(resolve => {
+      enteredStore = resolve;
+    });
+    const release = new Promise<void>(resolve => {
+      releaseStore = resolve;
+    });
+    const newStore = vi
+      .spyOn(storeMessage, 'storeClaimMessage')
+      .mockImplementationOnce(async (...args) => {
+        enteredStore();
+        await release;
+        return store(...args);
+      });
+    const audit = vi.fn();
+    const newer = memberSend(OVERLAPPED, clientMessageId, audit);
+    try {
+      await Promise.race([
+        beforeInsert,
+        newer.then(() => {
+          throw new Error('New send never entered storage');
+        }),
+      ]);
+      const older = await withTenantContext(
+        { tenantId: homeTenantId, role: 'member' },
+        async tx => {
+          await tx.execute(fixture.database.sql`set local lock_timeout = '2s'`);
+          const claim = await tx.query.claims.findFirst({ where: eq(claims.id, ids.claim) });
+          expect(claim?.userId).toBe(ids.member);
+          return store(
+            tx,
+            {
+              tenantId: homeTenantId,
+              claimId: ids.claim,
+              senderId: ids.member,
+              content: OVERLAPPED,
+              isInternal: false,
+            },
+            clientMessageId
+          );
+        }
+      );
+      expect(older).toMatchObject({ success: true, replayed: false });
+    } finally {
+      releaseStore();
+      await newer;
+      newStore.mockRestore();
+    }
+    expect(await newer).toMatchObject({ success: true, replayed: true, deliveryIds: [] });
+    expect(await storedWithKey(clientMessageId)).toHaveLength(1);
+    expect(audit).not.toHaveBeenCalled();
+  }, 10_000);
+
+  it('routes the message to the assignee that commits before the message acquires the claim lock', async () => {
+    const { claims, dbAdmin, user } = fixture.database;
+    await dbAdmin.update(user).set({ role: 'staff' }).where(eq(user.id, ids.otherMember));
+    let message: ReturnType<typeof memberSend> | undefined;
+    try {
+      await dbAdmin.transaction(async tx => {
+        await tx.update(claims).set({ staffId: ids.otherMember }).where(eq(claims.id, ids.claim));
+        message = memberSend(OVERLAPPED, randomUUID());
+        await waitForBlockedSend(tx as unknown as TenantTransaction);
+      });
+      const result = await message;
+      expect(result).toMatchObject({ success: true, replayed: false });
+      if (!result?.success) throw new Error('Member request failed');
+      expect(await staffDeliveryRecipient(result.message.id)).toBe(ids.otherMember);
+    } finally {
+      await message;
+      await dbAdmin.update(claims).set({ staffId: ids.staff }).where(eq(claims.id, ids.claim));
+      await dbAdmin.update(user).set({ role: 'member' }).where(eq(user.id, ids.otherMember));
+    }
+  }, 10_000);
+
+  it('holds reassignment behind a member message until its original recipient is committed', async () => {
+    const { claims, dbAdmin, sql, user } = fixture.database;
+    await dbAdmin.update(user).set({ role: 'staff' }).where(eq(user.id, ids.otherMember));
+    const store = storeMessage.storeClaimMessage;
+    let saveXid!: (id: string) => void;
+    let commitMessage!: () => void;
+    const holding = new Promise<string>(resolve => {
+      saveXid = resolve;
+    });
+    const release = new Promise<void>(resolve => {
+      commitMessage = resolve;
+    });
+    const pause = vi
+      .spyOn(storeMessage, 'storeClaimMessage')
+      .mockImplementationOnce(async (tx, values, key) => {
+        const [row] = await tx.execute<{ xid: string }>(
+          sql`select pg_current_xact_id()::text as xid`
+        );
+        saveXid(row.xid);
+        await release;
+        return store(tx, values, key);
+      });
+    const message = memberSend(OVERLAPPED, randomUUID());
+    let assign: Promise<void> | undefined;
+    try {
+      const xid = await Promise.race([
+        holding,
+        message.then(() => {
+          throw new Error('Message never acquired the lock');
+        }),
+      ]);
+      assign = dbAdmin.transaction(async tx => {
+        await tx.update(claims).set({ staffId: ids.otherMember }).where(eq(claims.id, ids.claim));
+      });
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const [row] = await fixture.rlsClient`
+          select count(*)::int as waiting from pg_locks
+          where locktype='transactionid' and not granted and transactionid=${xid}::xid
+        `;
+        if (row.waiting === 1) break;
+        if (attempt === 99) throw new Error('Reassignment never waited for the locked message');
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+      commitMessage();
+      const result = await message;
+      if (!result.success) throw new Error(result.error);
+      expect(await staffDeliveryRecipient(result.message.id)).toBe(ids.staff);
+      await assign;
+    } finally {
+      commitMessage();
+      await Promise.allSettled([message, assign]);
+      pause.mockRestore();
+      await dbAdmin.update(claims).set({ staffId: ids.staff }).where(eq(claims.id, ids.claim));
+      await dbAdmin.update(user).set({ role: 'member' }).where(eq(user.id, ids.otherMember));
+    }
+  }, 10_000);
 
   it('stores the waiting send itself when the competing insert rolls back', async () => {
     const clientMessageId = randomUUID();

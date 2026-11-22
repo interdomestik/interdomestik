@@ -2,10 +2,14 @@ import {
   and,
   auditLog,
   claimMessages,
+  claimResponseRequests,
   claims,
   claimStageHistory,
   db,
+  dbAdmin,
   eq,
+  notificationDeliveries,
+  notifications,
   user,
 } from '@interdomestik/database';
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
@@ -95,17 +99,29 @@ export async function withAdminAssignmentFixture<T>(
       },
     });
   } finally {
-    await db
-      .delete(auditLog)
-      .where(and(eq(auditLog.tenantId, seed.tenantId), eq(auditLog.entityId, claimId)));
-    await db
-      .delete(claimMessages)
-      .where(and(eq(claimMessages.tenantId, seed.tenantId), eq(claimMessages.claimId, claimId)));
-    await db
-      .delete(claimStageHistory)
-      .where(
-        and(eq(claimStageHistory.tenantId, seed.tenantId), eq(claimStageHistory.claimId, claimId))
-      );
-    await db.delete(claims).where(scope);
+    await dbAdmin.transaction(async tx => {
+      await tx
+        .delete(auditLog)
+        .where(and(eq(auditLog.tenantId, seed.tenantId), eq(auditLog.entityId, claimId)));
+      await tx
+        .delete(notifications)
+        .where(
+          and(
+            eq(notifications.tenantId, seed.tenantId),
+            eq(notifications.actionUrl, `/member/claims/${claimId}`)
+          )
+        );
+      for (const table of [
+        notificationDeliveries,
+        claimResponseRequests,
+        claimMessages,
+        claimStageHistory,
+      ] as const) {
+        await tx
+          .delete(table)
+          .where(and(eq(table.tenantId, seed.tenantId), eq(table.claimId, claimId)));
+      }
+      await tx.delete(claims).where(scope);
+    });
   }
 }

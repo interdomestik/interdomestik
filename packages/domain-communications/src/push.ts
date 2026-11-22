@@ -1,3 +1,4 @@
+import { Agent } from 'node:https';
 import webPush, { type PushSubscription } from 'web-push';
 
 import {
@@ -73,12 +74,13 @@ export async function sendPushOutcome(
       detail: 'missing_vapid',
     };
   }
+  const agent = new Agent();
   try {
     const response = await withDeliveryTimeout(timeoutMs, () =>
       webPush.sendNotification(
         toWebPushSubscription(subscription),
         JSON.stringify({ title, body, url, icon, badge }),
-        { vapidDetails, timeout: timeoutMs }
+        { agent, vapidDetails, timeout: timeoutMs }
       )
     );
     if (!(response?.statusCode >= 200 && response.statusCode < 300)) {
@@ -113,6 +115,8 @@ export async function sendPushOutcome(
       code: gone ? 'subscription_gone' : 'push_failed',
       detail: status === undefined ? 'web-push' : `web-push ${status}`,
     };
+  } finally {
+    agent.destroy();
   }
 }
 

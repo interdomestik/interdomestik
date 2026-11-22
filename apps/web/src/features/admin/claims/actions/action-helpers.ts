@@ -5,7 +5,6 @@ import { isAdmin } from '@/lib/roles';
 import { and, auditLog, claims, eq, type TenantTransaction } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { ClaimStatus } from '@interdomestik/database/constants';
-import { isClaimStatusTransitionInGraph } from '@interdomestik/domain-claims/claims/transition-guard';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { revalidatePath } from 'next/cache';
@@ -44,13 +43,6 @@ export interface ActionContext {
 // ─────────────────────────────────────────────────────────────────────────────
 // Session + Tenant
 // ─────────────────────────────────────────────────────────────────────────────
-
-export async function getActionSession() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return null;
-  const tenantId = ensureTenantId(session);
-  return { session, tenantId };
-}
 
 // Admin ops claim mutations (status change, SLA acknowledgement, internal reminder) admit only
 // the exercised session admin family. This runs before any claim/resource read or tenant
@@ -112,18 +104,6 @@ export function assertCanMutateClaim(
   const isTerminal = TERMINAL_STATUSES.includes(claim.status as ClaimStatus);
   if (isTerminal && intent !== 'status_change') {
     throw new OpsDomainDenialError(`Cannot perform ${intent} on a terminal claim.`);
-  }
-}
-
-// Admin ops assignment is limited to the exercised session role; persisted grants and the
-// broader staff-domain claims.assign capability do not widen this admin action.
-export function canAssignClaimOwner(actorRole: string | null | undefined): boolean {
-  return isAdmin(actorRole);
-}
-
-export function assertTransitionAllowed(currentStatus: ClaimStatus, newStatus: ClaimStatus) {
-  if (!isClaimStatusTransitionInGraph(currentStatus, newStatus)) {
-    throw new OpsDomainDenialError(`Illegal transition from ${currentStatus} to ${newStatus}`);
   }
 }
 

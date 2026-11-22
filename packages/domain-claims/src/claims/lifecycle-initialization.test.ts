@@ -64,6 +64,13 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   getActiveSubscription: hoisted.getActiveSubscription,
 }));
+vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
+  enqueueClaimSubmittedNotification: vi.fn().mockResolvedValue([]),
+  enqueueStaffClaimNotification: vi.fn().mockResolvedValue([]),
+  lockClaimNotificationRecipient: vi.fn(),
+  resolveStaffClaimNotificationRecipients: vi.fn().mockResolvedValue([]),
+}));
+vi.mock('./response-requests', () => ({ createClaimResponseRequest: vi.fn() }));
 vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: hoisted.ensureTenantId }));
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ args })),

@@ -4,7 +4,7 @@ import * as nextCache from 'next/cache';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { logAuditEvent } from '@/lib/audit';
-import { notifyRecoveryDecision } from '@/lib/notifications';
+import { kickClaimNotificationDeliveries } from '@/lib/claim-notification-delivery-kick';
 import { saveRecoveryDecisionCore } from './save-recovery-decision.core';
 
 const mockRunCommercialActionWithIdempotency = vi.fn();
@@ -17,8 +17,8 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
 }));
 
-vi.mock('@/lib/notifications', () => ({
-  notifyRecoveryDecision: vi.fn(),
+vi.mock('@/lib/claim-notification-delivery-kick', () => ({
+  kickClaimNotificationDeliveries: vi.fn(),
 }));
 
 vi.mock('@/lib/commercial-action-idempotency', () => ({
@@ -54,6 +54,7 @@ describe('saveRecoveryDecisionCore', () => {
 
     vi.spyOn(domainSave, 'saveStaffRecoveryDecisionCore').mockResolvedValueOnce({
       success: true,
+      deliveryIds: ['delivery-1'],
       data: {
         decidedAt: '2026-03-12T00:00:00.000Z',
         declineReasonCode: 'insufficient_evidence',
@@ -107,7 +108,8 @@ describe('saveRecoveryDecisionCore', () => {
       explanation: 'Not enough evidence for staff-led recovery.',
       requestHeaders,
     });
-    expect(domainDeps).toEqual({ logAuditEvent, notifyRecoveryDecision });
+    expect(domainDeps).toEqual({ logAuditEvent });
+    expect(kickClaimNotificationDeliveries).toHaveBeenCalledWith(authority, ['delivery-1']);
     expect(revalidatePathSpy.mock.calls.map(([path]) => path)).toEqual(REVALIDATED_LOCALE_PATHS);
     expect(revalidatePathSpy).toHaveBeenCalledTimes(REVALIDATED_LOCALE_PATHS.length);
   });

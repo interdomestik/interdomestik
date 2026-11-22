@@ -160,6 +160,12 @@ suite('message send negative matrix on a real NOBYPASSRLS connection', () => {
 
     afterAll(async () => {
       await fixture.database.dbAdmin
+        .delete(fixture.database.notificationDeliveries)
+        .where(eq(fixture.database.notificationDeliveries.claimId, branchClaim));
+      await fixture.database.dbAdmin
+        .delete(fixture.database.claimResponseRequests)
+        .where(eq(fixture.database.claimResponseRequests.claimId, branchClaim));
+      await fixture.database.dbAdmin
         .delete(fixture.database.claimMessages)
         .where(eq(fixture.database.claimMessages.claimId, branchClaim));
       await fixture.database.dbAdmin
