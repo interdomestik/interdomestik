@@ -112,9 +112,22 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
 
     await waitFor(() => expect(screen.getByText(common.common.errors.generic)).toBeInTheDocument());
     expect(screen.getByText(common.common.tryAgain)).toBeInTheDocument();
-    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(wireResponse([wireRow()]))));
-    fireEvent.click(screen.getByText(common.common.tryAgain));
+    let finishRetry!: (response: Response) => void;
+    const retry = new Promise<Response>(resolve => {
+      finishRetry = resolve;
+    });
+    vi.mocked(fetch).mockReturnValueOnce(retry);
+    fireEvent.click(screen.getByRole('button', { name: common.common.tryAgain }));
+    await waitFor(() => {
+      const button = screen.getByRole('button', { name: common.common.processing });
+      expect(button).toBeDisabled();
+      expect(button).toHaveAttribute('aria-busy', 'true');
+      expect(screen.getByRole('alert')).toBeVisible();
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+    finishRetry(new Response(JSON.stringify(wireResponse([wireRow()]))));
     await waitFor(() => expect(screen.getByText('Flight Delay')).toBeInTheDocument());
+    expect(screen.getByText('Cases shown (1)')).toHaveAttribute('aria-live', 'polite');
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 });

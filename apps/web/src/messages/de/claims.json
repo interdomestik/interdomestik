@@ -15,7 +15,12 @@
       "filtered": "Passen Sie Ihre Filter oder Ihre Suche an.",
       "createFirst": "Ersten Fall anlegen"
     },
+    "memberList": {
+      "searchPlaceholder": "Suchen...",
+      "resultCount": "Angezeigte Fälle ({count})"
+    },
     "table": {
+      "unavailable": "Nicht verfügbar",
       "title": "Titel",
       "company": "Unternehmen",
       "category": "Kategorie",

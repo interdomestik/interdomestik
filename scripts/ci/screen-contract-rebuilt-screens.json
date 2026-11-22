@@ -1,1 +1,9 @@
-[]
+[
+  "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx",
+  "apps/web/src/components/dashboard/case-summary/generic-case-summary.tsx",
+  "apps/web/src/components/dashboard/claims/claims-filters.tsx",
+  "apps/web/src/components/dashboard/claims/member-claim-row.tsx",
+  "apps/web/src/components/dashboard/claims/member-claims-table.tsx",
+  "apps/web/src/components/dashboard/member-portal-region-boundary.tsx",
+  "apps/web/src/components/dashboard/member-portal-runtime.tsx"
+]

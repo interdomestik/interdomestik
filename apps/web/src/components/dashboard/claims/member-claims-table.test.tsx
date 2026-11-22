@@ -32,6 +32,7 @@ vi.mock('next-intl', () => ({
       'table.status': 'Status',
       'table.amount': 'Amount',
       'table.created': 'Created',
+      'table.unavailable': 'Unavailable',
       'empty.title': 'No claims yet',
       'empty.description': 'Start by creating your first claim',
       'empty.filtered': 'No claims match your filters',
@@ -124,19 +125,26 @@ describe('MemberClaimsTable', () => {
 
     render(<MemberClaimsTable />);
     expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
   });
 
   it('renders error state', () => {
+    const refetch = vi.fn();
     mockUseQuery.mockReturnValue({
       data: null,
       isLoading: false,
       isError: true,
-      refetch: vi.fn(),
+      refetch,
     } as unknown as ReturnType<typeof useQuery>);
 
     render(<MemberClaimsTable />);
     expect(screen.getByText('An error occurred')).toBeInTheDocument();
     expect(screen.getByText('Try Again')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('An error occurred');
+    const retry = screen.getByRole('button', { name: 'Try Again' });
+    expect(retry).toHaveAttribute('type', 'button');
+    fireEvent.click(retry);
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('renders empty state', () => {
@@ -190,6 +198,7 @@ describe('MemberClaimsTable', () => {
     const row = screen.getByRole('link', { name: 'Car Accident' }).closest('tr');
     expect(row).toHaveClass('grid', 'p-4', 'md:table-row', 'md:p-0');
     expect(row?.querySelectorAll('[data-label]')).toHaveLength(5);
+    expect(screen.getByText('memberList.resultCount')).toHaveAttribute('aria-live', 'polite');
   });
 
   it('renders table headers', async () => {

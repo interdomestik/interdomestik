@@ -15,7 +15,12 @@
       "filtered": "Pokušajte da prilagodite filtere ili pretragu.",
       "createFirst": "Kreiraj Prvi Zahtev"
     },
+    "memberList": {
+      "searchPlaceholder": "Pretraga...",
+      "resultCount": "Prikazani slučajevi ({count})"
+    },
     "table": {
+      "unavailable": "Nije dostupno",
       "title": "Naslov",
       "company": "Kompanija",
       "category": "Kategorija",

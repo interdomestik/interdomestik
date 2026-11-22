@@ -3,18 +3,9 @@
 import { MemberClaimRow } from './member-claim-row';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { fetchClaims } from '@/lib/api/claims';
-import {
-  Button,
-  Card,
-  CardContent,
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@interdomestik/ui';
+import { formatNumber } from '@/lib/utils/number';
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@interdomestik/ui';
 import { useQuery } from '@tanstack/react-query';
-import { FileText, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import type { MouseEvent } from 'react';
@@ -22,6 +13,13 @@ import { useEffect, useState, useTransition } from 'react';
 
 const PER_PAGE = 10;
 const PENDING_FEEDBACK_TIMEOUT_MS = 10_000;
+
+const CARD =
+  'min-w-0 rounded-2xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))] [overflow-wrap:anywhere] forced-colors:border-[CanvasText]';
+const CONTROL =
+  'inline-flex min-h-11 min-w-11 max-w-full items-center justify-center rounded-xl px-4 py-2 text-center text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 forced-colors:border forced-colors:border-[CanvasText] forced-colors:focus-visible:outline';
+const PRIMARY_CONTROL = `${CONTROL} bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]`;
+const PAGE_LINK = `${CONTROL} border border-foreground/60 aria-disabled:border-[hsl(var(--border-strong))] aria-disabled:cursor-default aria-disabled:text-foreground/70 hover:bg-[hsl(var(--surface-strong))]`;
 
 function isPrimaryNavigationClick(event: MouseEvent<HTMLAnchorElement>) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
@@ -67,7 +65,7 @@ export function MemberClaimsTable({
     return () => globalThis.clearTimeout(timeout);
   }, [pendingPage]);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, isFetched, isFetching, refetch } = useQuery({
     queryKey: ['claims', 'member', { statusFilter, searchQuery, page }],
     queryFn: ({ signal }) =>
       fetchClaims({
@@ -121,7 +119,7 @@ export function MemberClaimsTable({
   };
 
   const formatCategory = (category: string | null | undefined) => {
-    if (!category) return '-';
+    if (!category) return '';
 
     try {
       return tCategory(category as never);
@@ -130,9 +128,11 @@ export function MemberClaimsTable({
     }
   };
 
-  if (isLoading) {
+  // Refetching an initial failure can put a data-less query back into the loading state.
+  // Keep the retry control in place until that query settles.
+  if (isLoading && !isFetched) {
     return (
-      <div className="rounded-md border bg-background p-6 text-sm text-muted-foreground">
+      <div aria-busy="true" className={`${CARD} p-6 text-sm text-foreground/70`} role="status">
         {tCommon('loading')}
       </div>
     );
@@ -140,41 +140,38 @@ export function MemberClaimsTable({
 
   if (isError || !data) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-          <div className="text-sm text-muted-foreground">{tCommon('errors.generic')}</div>
-          <Button variant="outline" onClick={() => refetch()}>
-            {tCommon('tryAgain')}
-          </Button>
-        </CardContent>
-      </Card>
+      <div className={`${CARD} flex flex-col items-start gap-4 p-5 sm:p-6`}>
+        <p className="text-sm text-foreground/70" role="alert">
+          {tCommon('errors.generic')}
+        </p>
+        <button
+          aria-busy={isFetching || undefined}
+          className={`${PRIMARY_CONTROL} enabled:hover:brightness-110 disabled:cursor-wait`}
+          disabled={isFetching}
+          onClick={() => refetch()}
+          type="button"
+        >
+          {isFetching ? tCommon('processing') : tCommon('tryAgain')}
+        </button>
+      </div>
     );
   }
 
   if (data.claims.length === 0) {
     return (
-      <Card data-testid="member-claims-empty">
-        <CardContent className="flex flex-col items-center justify-center py-16">
-          <div className="rounded-full bg-muted p-6 mb-4">
-            <FileText className="h-12 w-12 text-muted-foreground" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">{t('empty.title')}</h3>
-          <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+      <div className={`${CARD} space-y-4 p-5 sm:p-6`} data-testid="member-claims-empty">
+        <div className="space-y-2" role="status">
+          <h3 className="text-lg font-semibold">{t('empty.title')}</h3>
+          <p className="max-w-prose text-sm leading-6 text-foreground/70">
             {searchQuery || statusFilter ? t('empty.filtered') : t('empty.description')}
           </p>
-          {!searchQuery && !statusFilter && (
-            <Button
-              asChild
-              className="h-auto min-h-10 max-w-full whitespace-normal [overflow-wrap:anywhere]"
-            >
-              <Link href={newCaseHref}>
-                <Plus className="mr-2 h-4 w-4 shrink-0" />
-                {newCaseLabel ?? t('empty.createFirst')}
-              </Link>
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+        {!searchQuery && !statusFilter && (
+          <Link className={`${PRIMARY_CONTROL} hover:brightness-110`} href={newCaseHref}>
+            {newCaseLabel ?? t('empty.createFirst')}
+          </Link>
+        )}
+      </div>
     );
   }
 
@@ -184,19 +181,29 @@ export function MemberClaimsTable({
       data-testid="member-claims-table-region"
       aria-busy={isPageNavigationPending ? 'true' : 'false'}
     >
-      <div className="min-w-0 max-w-full md:rounded-md md:border">
-        <Table className="block md:table">
-          <TableHeader className="sr-only md:not-sr-only md:table-header-group">
-            <TableRow>
-              <TableHead>{t('table.title')}</TableHead>
-              <TableHead>{t('table.company')}</TableHead>
-              <TableHead>{t('table.category')}</TableHead>
-              <TableHead>{t('table.status')}</TableHead>
-              <TableHead>{t('table.amount')}</TableHead>
-              <TableHead className="text-right">{t('table.created')}</TableHead>
+      <div className={`${CARD} p-3 md:p-0`}>
+        <Table aria-label={t('title')} className="block md:table md:table-fixed" role="table">
+          <TableHeader className="sr-only md:not-sr-only md:table-header-group" role="rowgroup">
+            <TableRow
+              className="border-[hsl(var(--border-strong))] hover:bg-transparent [&_th]:py-3 [&_th]:font-semibold [&_th]:text-foreground"
+              role="row"
+            >
+              <TableHead className="md:w-1/4" role="columnheader">
+                {t('table.title')}
+              </TableHead>
+              <TableHead role="columnheader">{t('table.company')}</TableHead>
+              <TableHead role="columnheader">{t('table.category')}</TableHead>
+              <TableHead role="columnheader">{t('table.status')}</TableHead>
+              <TableHead role="columnheader">{t('table.amount')}</TableHead>
+              <TableHead className="text-right" role="columnheader">
+                {t('table.created')}
+              </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="block space-y-3 [&_tr:last-child]:border md:table-row-group md:space-y-0 md:[&_tr:last-child]:border-0">
+          <TableBody
+            className="block space-y-3 [&_tr:last-child]:border md:table-row-group md:space-y-0 md:[&_tr:last-child]:border-0"
+            role="rowgroup"
+          >
             {data.claims.map(claim => (
               <MemberClaimRow
                 key={claim.id}
@@ -209,52 +216,42 @@ export function MemberClaimsTable({
         </Table>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">
-          {t('showing')} {data.claims.length}{' '}
-          {data.claims.length === 1 ? t('claim') : t('claimsPlural')}
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 [overflow-wrap:anywhere]">
+        <p aria-live="polite" className="text-sm text-foreground/70">
+          {t('memberList.resultCount', { count: formatNumber(data.claims.length, locale) ?? '' })}
         </p>
         {data.totalPages > 1 && (
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              disabled={isPageNavigationPending || page <= 1}
+            <Link
+              className={PAGE_LINK}
+              href={buildPageLink(page - 1)}
+              aria-disabled={isPageNavigationPending || page <= 1 ? 'true' : undefined}
+              data-testid="member-claims-page-previous"
+              onClick={event => startPageNavigation(event, page - 1)}
+              prefetch={false}
+              tabIndex={isPageNavigationPending || page <= 1 ? -1 : undefined}
             >
-              <Link
-                href={buildPageLink(page - 1)}
-                aria-disabled={isPageNavigationPending || page <= 1 ? 'true' : undefined}
-                data-testid="member-claims-page-previous"
-                onClick={event => startPageNavigation(event, page - 1)}
-                prefetch={false}
-                tabIndex={isPageNavigationPending || page <= 1 ? -1 : undefined}
-              >
-                {tCommon('previous')}
-              </Link>
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {tCommon('pagination.pageOf', { page, total: data.totalPages })}
+              {tCommon('previous')}
+            </Link>
+            <span className="min-w-0 text-sm text-foreground/70">
+              {tCommon('pagination.pageOf', {
+                page: formatNumber(page, locale) ?? '',
+                total: formatNumber(data.totalPages, locale) ?? '',
+              })}
             </span>
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              disabled={isPageNavigationPending || page >= data.totalPages}
+            <Link
+              className={PAGE_LINK}
+              href={buildPageLink(page + 1)}
+              aria-disabled={
+                isPageNavigationPending || page >= data.totalPages ? 'true' : undefined
+              }
+              data-testid="member-claims-page-next"
+              onClick={event => startPageNavigation(event, page + 1)}
+              prefetch={false}
+              tabIndex={isPageNavigationPending || page >= data.totalPages ? -1 : undefined}
             >
-              <Link
-                href={buildPageLink(page + 1)}
-                aria-disabled={
-                  isPageNavigationPending || page >= data.totalPages ? 'true' : undefined
-                }
-                data-testid="member-claims-page-next"
-                onClick={event => startPageNavigation(event, page + 1)}
-                prefetch={false}
-                tabIndex={isPageNavigationPending || page >= data.totalPages ? -1 : undefined}
-              >
-                {tCommon('next')}
-              </Link>
-            </Button>
+              {tCommon('next')}
+            </Link>
           </div>
         )}
       </div>
@@ -263,7 +260,7 @@ export function MemberClaimsTable({
           data-testid="member-claims-pagination-pending"
           role="status"
           aria-live="polite"
-          className="text-xs font-medium text-muted-foreground"
+          className="text-sm text-foreground/70"
         >
           {tCommon('processing')}
         </div>

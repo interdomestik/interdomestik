@@ -1,8 +1,9 @@
 import { Suspense } from 'react';
 import type { CaseSummary, MembershipLifecycleBucket } from '@interdomestik/domain-member';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { formatPilotDate } from '@/lib/utils/date';
 import enMessages from '@/messages/en/dashboard.json';
 import mkMessages from '@/messages/mk/dashboard.json';
 import sqMessages from '@/messages/sq/dashboard.json';
@@ -70,7 +71,7 @@ const copy: MemberPortalCopy = {
   status: value => (value === 'submitted' ? 'Submitted' : 'Draft'),
 };
 // prettier-ignore
-const action = (bucket: MembershipLifecycleBucket, canDraft: boolean) => PortalActionsRegion({ canDraft, copy, locale: 'sq', promise: Promise.resolve({ bucket, currentPeriodEnd: new Date('2026-12-31T00:00:00.000Z'), grantsNewCaseAccess: ['active', 'trialing', 'active_in_grace', 'scheduled_cancel'].includes(bucket) }) });
+const action = (bucket: MembershipLifecycleBucket, canDraft: boolean, currentPeriodEnd: Date | null = new Date('2026-12-30T23:30:00.000Z')) => PortalActionsRegion({ canDraft, copy, locale: 'sq', promise: Promise.resolve({ bucket, currentPeriodEnd, grantsNewCaseAccess: ['active', 'trialing', 'active_in_grace', 'scheduled_cancel'].includes(bucket) }) });
 
 function leafPaths(value: unknown, prefix = ''): string[] {
   return Object.entries(value as Record<string, unknown>).flatMap(([key, child]) => {
@@ -137,8 +138,10 @@ describe('Member portal', () => {
       const inactive = bucket === 'none' || bucket === 'canceled' || bucket === 'grace_expired';
       // prettier-ignore
       expect(screen.getByRole('link', { name: new RegExp(`Action ${bucket}`, 'u') })).toHaveAttribute('href', `/sq/member/claims/new${inactive ? '?mode=drafts' : ''}`);
+      expect(screen.getAllByRole('link')).toHaveLength(1);
       expect(screen.getAllByText('Actions')).toHaveLength(1);
       expect(screen.getByText(`Status ${bucket}`)).toBeVisible();
+      expect(screen.getByText(`Status ${bucket}`)).toHaveAttribute('data-lifecycle-status', bucket);
       expect(screen.getByTestId('member-membership-access')).toHaveTextContent(
         inactive ? 'Not available' : 'Available'
       );
@@ -146,7 +149,7 @@ describe('Member portal', () => {
         screen.getByTestId('member-membership-access').querySelector('[data-access]')
       ).toHaveAttribute('data-access', inactive ? 'denied' : 'allowed');
       expect(screen.getByTestId('member-membership-access')).toHaveTextContent(
-        new Date('2026-12-31T00:00:00.000Z').toLocaleDateString('sq', { timeZone: 'UTC' })
+        formatPilotDate('2026-12-30T23:30:00.000Z', 'sq', copy.membershipStatus.unavailable)
       );
       if (bucket.includes('grace') || bucket === 'scheduled_cancel') {
         expect(screen.getByText(`Warning ${bucket}`)).toBeVisible();
@@ -169,6 +172,22 @@ describe('Member portal', () => {
     expect(screen.getByText('Not available')).toBeVisible();
   });
 
+  it.each(['canceled', 'grace_expired', 'none'] as const)(
+    'renders one membership link and keeps the lifecycle copy for %s without draft access',
+    async bucket => {
+      const { container } = render(await action(bucket, false, null));
+      expect(screen.getAllByRole('link')).toHaveLength(1);
+      expect(screen.getByRole('link', { name: 'Membership' })).toHaveAttribute(
+        'href',
+        '/sq/member/membership'
+      );
+      expect(screen.getByText(copy.actions[bucket].label)).toBeVisible();
+      expect(container.querySelector('dl > div:last-child dd')).toHaveTextContent(
+        copy.membershipStatus.unavailable
+      );
+    }
+  );
+
   it('renders update boundary states', async () => {
     // prettier-ignore
     const view = render(await PortalUpdatesRegion({ copy, locale: 'en', promise: Promise.resolve(summaries) }));
@@ -184,7 +203,12 @@ describe('Member portal', () => {
     expect(screen.getByRole('alert', { name: 'Recent case updates' })).toHaveTextContent('Updates unavailable');
     expect(screen.getByRole('link', { name: 'Try again' })).toHaveAttribute('href', '/member');
     view.rerender(<MemberPortalRegionBoundary copy={copy.regions.case} state="loading" />);
-    expect(screen.getByText('Loading case')).not.toHaveAttribute('role', 'status');
+    const loading = screen.getByRole('status', { name: 'Case' });
+    expect(loading).toHaveTextContent('Loading case');
+    expect(loading).toHaveAttribute('aria-busy', 'true');
+    expect(
+      view.container.querySelector('[data-region-state="loading"] [aria-hidden="true"]')
+    ).toBeVisible();
   });
 
   it('renders disclaimer and ready regions while Case is pending', async () => {
@@ -192,7 +216,7 @@ describe('Member portal', () => {
     function SlowCase(): never {
       throw pending;
     }
-    render(
+    const { container } = render(
       <MemberPortalFrame
         copy={copy}
         actionsRegion={await action('active', false)}
@@ -212,6 +236,22 @@ describe('Member portal', () => {
     );
     const disclaimer = screen.getByTestId('member-portal-disclaimer');
     const loading = screen.getByText('Loading case');
+    const sections = Array.from(container.querySelectorAll('section[aria-label]'));
+    expect(sections.map(section => section.getAttribute('aria-label'))).toEqual([
+      copy.regions.case.label,
+      copy.regions.actions.label,
+      copy.regions.updates.label,
+    ]);
+    expect(
+      disclaimer.compareDocumentPosition(sections[0]!) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 1, name: copy.title })).toBeVisible();
+    expect(
+      within(screen.getByRole('navigation'))
+        .getAllByRole('link')
+        .map(link => link.getAttribute('href'))
+    ).toEqual(['/member/claims', '/member/documents', '/member/membership', '/help-now']);
     expect(disclaimer).toBeVisible();
     expect(
       disclaimer.compareDocumentPosition(loading) & Node.DOCUMENT_POSITION_FOLLOWING
@@ -246,8 +286,23 @@ describe('Member portal', () => {
   it('keeps incident dates and input order without inventing updates for undated cases', async () => {
     render(await PortalUpdatesRegion({ copy, locale: 'en', promise: Promise.resolve(summaries) }));
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
-    expect(document.querySelector('time')).toHaveAttribute('datetime', summaries[0]!.occurredAt);
+    const time = screen.getByRole('listitem').querySelector('time');
+    expect(time).toHaveAttribute('datetime', summaries[0]!.occurredAt);
+    expect(time).toHaveTextContent('08/29/2026');
+    expect(screen.getByRole('listitem')).toHaveTextContent('Submitted');
     expect(screen.queryByText('Reference unavailable')).not.toBeInTheDocument();
+  });
+
+  it('announces an empty update timeline when no cases have an incident date', async () => {
+    render(
+      await PortalUpdatesRegion({
+        copy,
+        locale: 'en',
+        promise: Promise.resolve([summaries[1]!]),
+      })
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(copy.regions.updates.empty);
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
   });
 
   it('keeps four catalog contracts aligned', () => {

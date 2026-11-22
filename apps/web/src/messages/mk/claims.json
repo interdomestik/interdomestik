@@ -15,7 +15,12 @@
       "filtered": "Обидете се да ги прилагодите филтрите или пребарувањето.",
       "createFirst": "Креирај Прво Барање"
     },
+    "memberList": {
+      "searchPlaceholder": "Барај...",
+      "resultCount": "Прикажани случаи ({count})"
+    },
     "table": {
+      "unavailable": "Недостапно",
       "title": "Наслов",
       "company": "Компанија",
       "category": "Категорија",

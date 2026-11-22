@@ -15,7 +15,12 @@
       "filtered": "Provoni filtra të tjerë ose ndryshoni kërkimin.",
       "createFirst": "Hap Kërkesën e Parë"
     },
+    "memberList": {
+      "searchPlaceholder": "Kërko...",
+      "resultCount": "Rastet e shfaqura ({count})"
+    },
     "table": {
+      "unavailable": "Nuk disponohet",
       "title": "Rasti",
       "company": "Kompania",
       "category": "Kategoria",

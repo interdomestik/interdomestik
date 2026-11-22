@@ -60,5 +60,8 @@ describe('member claim cards', () => {
     expect(screen.getByText(messages.claims.status.submitted)).toBeInTheDocument();
     expect(cells[4]).toHaveTextContent('-');
     expect(cells[5]).toHaveTextContent('-');
+    for (const cell of [cells[4], cells[5]]) {
+      expect(cell).toHaveAccessibleName(messages.claims.table.unavailable);
+    }
   });
 });

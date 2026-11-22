@@ -2,6 +2,9 @@ import type { ReactNode } from 'react';
 
 import type { CaseSummary } from '@interdomestik/domain-member';
 
+import { DEFAULT_LOCALE } from '@/i18n/locales';
+import { formatNumber } from '@/lib/utils/number';
+
 export type CaseSummaryLabels = {
   reference: string;
   referenceFallback: string;
@@ -25,45 +28,33 @@ export function CaseSummaryCard({ entry, labels, referenceValue, summary }: Case
   return (
     <article
       aria-labelledby={headingId}
-      className="min-w-0 overflow-hidden rounded-2xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))] shadow-sm forced-colors:border-[CanvasText]"
+      className="min-w-0 space-y-5 rounded-2xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))] p-5 [overflow-wrap:anywhere] sm:p-6 forced-colors:border-[CanvasText]"
     >
-      <div className="flex min-w-0 flex-wrap items-start justify-between gap-4 p-5 sm:p-6">
-        <div className="min-w-0 space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/65">
-            {labels.reference}
-          </p>
-          <h3 id={headingId} className="text-lg font-semibold [overflow-wrap:anywhere]">
+      <div className="space-y-1">
+        <p className="text-sm text-foreground/70">{labels.reference}</p>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+          <h3 id={headingId} className="min-w-0 text-lg font-semibold">
             {referenceValue}
           </h3>
-        </div>
-        <dl className="min-w-0 max-w-full shrink-0">
-          <div>
+          <dl className="min-w-0 max-w-full">
             <dt className="sr-only">{labels.status}</dt>
-            <dd className="max-w-full rounded-full border border-[hsl(var(--border-strong))] px-3 py-1.5 text-xs font-semibold [overflow-wrap:anywhere] forced-colors:border-[CanvasText]">
+            <dd className="rounded-full border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface-strong))] px-2.5 py-1 text-xs font-semibold forced-colors:border-[CanvasText]">
               {labels.statusValue}
             </dd>
-          </div>
-        </dl>
+          </dl>
+        </div>
       </div>
-      <dl className="min-w-0 border-y border-[hsl(var(--border))] bg-[hsl(var(--primary-soft))]/50 px-5 py-4 sm:px-6 sm:py-5">
-        <div className="min-w-0">
-          <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/65">
-            {labels.nextStep}
-          </dt>
-          <dd className="mt-1 text-lg font-semibold text-[hsl(var(--primary))] dark:text-foreground [overflow-wrap:anywhere] sm:text-xl">
-            {labels.nextStepValue}
-          </dd>
+      <dl className="grid min-w-0 gap-4 border-t border-[hsl(var(--border-strong))] pt-5 text-sm sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] forced-colors:border-[CanvasText]">
+        <div className="min-w-0 space-y-1">
+          <dt className="text-foreground/70">{labels.nextStep}</dt>
+          <dd className="font-medium">{labels.nextStepValue}</dd>
+        </div>
+        <div className="min-w-0 space-y-1">
+          <dt className="text-foreground/70">{labels.documentCount}</dt>
+          <dd className="font-medium">{formatNumber(summary.documentCount, DEFAULT_LOCALE)}</dd>
         </div>
       </dl>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-4 p-5 sm:p-6">
-        <dl className="min-w-0">
-          <div>
-            <dt className="text-xs text-foreground/65">{labels.documentCount}</dt>
-            <dd className="text-lg font-semibold">{summary.documentCount}</dd>
-          </div>
-        </dl>
-        {entry}
-      </div>
+      {entry}
     </article>
   );
 }

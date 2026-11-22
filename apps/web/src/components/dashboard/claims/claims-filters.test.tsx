@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimsFilters } from './claims-filters';
 
@@ -27,8 +27,11 @@ vi.mock('next-intl', () => ({
       all: 'All',
       processing: 'Processing...',
       search: 'Search',
+      'memberList.searchPlaceholder': 'Search...',
+      'table.status': 'Status',
       draft: 'Draft',
       submitted: 'Submitted',
+      submitted_to_airline: 'Submitted to airline',
       verification: 'Verification',
       evaluation: 'Evaluation',
       negotiation: 'Negotiation',
@@ -42,7 +45,6 @@ vi.mock('next-intl', () => ({
 
 // Mock UI components
 vi.mock('@interdomestik/ui', () => ({
-  badgeVariants: () => 'badge',
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
@@ -70,6 +72,10 @@ describe('ClaimsFilters', () => {
   it('renders search input', () => {
     render(<ClaimsFilters />);
     expect(screen.getByPlaceholderText('Search...')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Search' })).toBe(
+      screen.getByTestId('member-claims-search-input')
+    );
+    expect(screen.getByText('Search', { selector: 'label' })).toBeVisible();
   });
 
   it('renders all status filter badges', () => {
@@ -86,14 +92,26 @@ describe('ClaimsFilters', () => {
     expect(screen.getByText('Rejected')).toBeInTheDocument();
   });
 
-  it('renders 9 status options', () => {
+  it('renders all ten status options as a named group of pressed-state buttons', () => {
     render(<ClaimsFilters />);
 
-    // All + 8 statuses = 9 badges
-    const badges = screen.getAllByText(
-      /All|Draft|Submitted|Verification|Evaluation|Negotiation|Court|Resolved|Rejected/
-    );
-    expect(badges.length).toBe(9);
+    const group = within(screen.getByRole('group', { name: 'Status' }));
+    expect(group.getAllByRole('button', { pressed: true })).toEqual([
+      group.getByRole('button', { name: 'All' }),
+    ]);
+    expect(
+      group.getAllByRole('button', { pressed: false }).map(button => button.textContent)
+    ).toEqual([
+      'Draft',
+      'Submitted',
+      'Submitted to airline',
+      'Verification',
+      'Evaluation',
+      'Negotiation',
+      'Court',
+      'Resolved',
+      'Rejected',
+    ]);
   });
 
   it('shows pending feedback and updates the url when search changes', () => {

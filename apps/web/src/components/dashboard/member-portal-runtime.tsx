@@ -1,15 +1,18 @@
 import type { ReactNode } from 'react';
 
 import type * as Member from '@interdomestik/domain-member';
-import * as PortalUi from '@interdomestik/ui';
 
 import type { CaseSummaryLabels } from '@/components/dashboard/case-summary/accident-case-summary';
 import { renderCaseSummary } from '@/components/dashboard/case-summary/case-kind-registry';
 import type { AppLocale } from '@/i18n/locales';
 import { Link } from '@/i18n/routing';
+import { formatPilotDate } from '@/lib/utils/date';
 
 import { MemberPortalRegionBoundary as Boundary } from './member-portal-region-boundary';
 import type { MemberPortalRegionCopy } from './member-portal-region-boundary';
+
+const PRIMARY_LINK =
+  'inline-flex min-h-11 min-w-11 max-w-full items-center justify-between gap-3 self-start rounded-xl bg-[hsl(var(--primary))] px-4 py-2.5 text-sm font-semibold text-[hsl(var(--primary-foreground))] [overflow-wrap:anywhere] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 forced-colors:border forced-colors:border-[CanvasText] forced-colors:focus-visible:outline';
 
 type ActionCopy = Readonly<{ description: string; label: string; warning: string | null }>;
 export type MemberPortalCopy = Readonly<{
@@ -62,7 +65,7 @@ export async function PortalCasesRegion({ copy, promise }: CaseProps) {
           summary.reference?.trim() || summary.title?.trim() || labels.referenceFallback;
         const entry = (
           <Link
-            className="inline-flex min-h-11 w-full max-w-full items-center justify-between gap-4 rounded-xl bg-[hsl(var(--primary))] px-4 py-3 text-sm font-semibold text-[hsl(var(--primary-foreground))] [overflow-wrap:anywhere] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 forced-colors:border forced-colors:border-[CanvasText] sm:w-auto"
+            className={`${PRIMARY_LINK} w-full sm:w-fit`}
             href={`/member/claims/${encodeURIComponent(summary.id)}`}
           >
             <span className="min-w-0 [overflow-wrap:anywhere]">
@@ -96,21 +99,22 @@ export async function PortalActionsRegion({ canDraft, copy, locale, promise }: A
   if (!grantsAccess) path += '?mode=drafts';
   if (!grantsAccess && !canDraft) path = 'membership';
   const href = `/${locale}/member/${path}`;
+  const showMembership = path === 'membership';
   return (
-    <div className="grid min-w-0 gap-4">
+    <div className="grid min-w-0 gap-5 rounded-2xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))] p-5 [overflow-wrap:anywhere] sm:p-6 forced-colors:border-[CanvasText]">
       <h2 className="text-lg font-semibold tracking-tight">{copy.regions.actions.label}</h2>
       <dl
-        className="grid gap-3 rounded-xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))]/80 p-4 text-sm xl:grid-cols-3 forced-colors:border-[CanvasText]"
+        className="grid gap-3 border-b border-[hsl(var(--border-strong))] pb-5 text-sm forced-colors:border-[CanvasText]"
         data-testid="member-membership-access"
       >
         <div className="min-w-0 space-y-1">
-          <dt className="text-foreground/65">{copy.membershipStatus.statusLabel}</dt>
+          <dt className="text-foreground/70">{copy.membershipStatus.statusLabel}</dt>
           <dd className="font-semibold" data-lifecycle-status={membership.bucket}>
             {copy.membershipStatus.statuses[membership.bucket]}
           </dd>
         </div>
         <div className="min-w-0 space-y-1">
-          <dt className="text-foreground/65">{copy.membershipStatus.accessLabel}</dt>
+          <dt className="text-foreground/70">{copy.membershipStatus.accessLabel}</dt>
           <dd className="font-semibold" data-access={grantsAccess ? 'allowed' : 'denied'}>
             {grantsAccess
               ? copy.membershipStatus.accessAllowed
@@ -118,27 +122,31 @@ export async function PortalActionsRegion({ canDraft, copy, locale, promise }: A
           </dd>
         </div>
         <div className="min-w-0 space-y-1">
-          <dt className="text-foreground/65">{copy.membershipStatus.currentPeriodEndLabel}</dt>
+          <dt className="text-foreground/70">{copy.membershipStatus.currentPeriodEndLabel}</dt>
           <dd className="font-semibold">
-            {membership.currentPeriodEnd
-              ? new Date(membership.currentPeriodEnd).toLocaleDateString(locale, {
-                  timeZone: 'UTC',
-                })
-              : copy.membershipStatus.unavailable}
+            {formatPilotDate(
+              membership.currentPeriodEnd,
+              locale,
+              copy.membershipStatus.unavailable
+            )}
           </dd>
         </div>
       </dl>
-      <PortalUi.MatteAnchorCard
-        className="border-[hsl(var(--primary)/0.2)] bg-[hsl(var(--primary-soft))] shadow-none hover:border-[hsl(var(--primary)/0.4)]"
-        description={action.description}
-        href={href}
-        label={path === 'membership' ? copy.navigation.membership : action.label}
-      />
-      {action.warning ? (
-        <p className="rounded-xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))] p-4 text-sm text-foreground/75 forced-colors:border-[CanvasText]">
-          {action.warning}
-        </p>
+      {showMembership ? <p className="text-sm font-semibold">{action.label}</p> : null}
+      {action.description !== copy.description ? (
+        <p className="text-sm leading-6 text-foreground/70">{action.description}</p>
       ) : null}
+      {action.warning ? (
+        <p className="text-sm font-medium leading-6 text-foreground/70">{action.warning}</p>
+      ) : null}
+      <a className={PRIMARY_LINK} href={href}>
+        <span className="min-w-0">
+          {showMembership ? copy.navigation.membership : action.label}
+        </span>
+        <span aria-hidden="true" className="shrink-0 text-lg leading-none">
+          →
+        </span>
+      </a>
     </div>
   );
 }
@@ -157,7 +165,11 @@ export async function PortalUpdatesRegion({ copy, locale, promise }: UpdateProps
     summary.occurredAt
       ? [
           {
-            dateLabel: new Date(summary.occurredAt).toLocaleDateString(locale, { timeZone: 'UTC' }),
+            dateLabel: formatPilotDate(
+              summary.occurredAt,
+              locale,
+              copy.membershipStatus.unavailable
+            ),
             dateTime: summary.occurredAt,
             id: summary.id,
             stateLabel: copy.status(summary.status),
@@ -167,14 +179,33 @@ export async function PortalUpdatesRegion({ copy, locale, promise }: UpdateProps
       : []
   );
   return (
-    <PortalUi.RefractiveGlassPanel className="space-y-5 bg-[hsl(var(--surface))]/80 shadow-none">
+    <div className="min-w-0 space-y-5 rounded-2xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))] p-5 [overflow-wrap:anywhere] sm:p-6 forced-colors:border-[CanvasText]">
       <h2 className="text-lg font-semibold tracking-tight">{copy.regions.updates.label}</h2>
-      <PortalUi.Timeline
-        ariaLabel={copy.regions.updates.label}
-        emptyLabel={copy.regions.updates.empty}
-        items={items}
-      />
-    </PortalUi.RefractiveGlassPanel>
+      {items.length > 0 ? (
+        <ol
+          aria-label={copy.regions.updates.label}
+          className="list-disc space-y-4 ps-4 marker:text-foreground/70"
+        >
+          {items.map(item => (
+            <li key={item.id} className="min-w-0 space-y-1.5 ps-2">
+              <time className="block text-sm text-foreground/70" dateTime={item.dateTime}>
+                {item.dateLabel}
+              </time>
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+                <span className="min-w-0 font-medium">{item.title}</span>
+                <span className="min-w-0 max-w-full rounded-full border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface-strong))] px-2.5 py-1 text-xs font-semibold forced-colors:border-[CanvasText]">
+                  {item.stateLabel}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-sm leading-6 text-foreground/70" role="status">
+          {copy.regions.updates.empty}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -189,7 +220,7 @@ export function MemberPortalFrame({ actionsRegion, caseRegion, copy, updatesRegi
   return (
     <section
       aria-labelledby="member-portal-title"
-      className="min-w-0 space-y-7 p-4 sm:space-y-8 sm:p-6 md:p-0"
+      className="min-w-0 space-y-6 p-4 [overflow-wrap:anywhere] sm:space-y-8 sm:p-6 md:p-0"
     >
       <header className="max-w-3xl space-y-3 py-1 sm:py-2">
         <h1
@@ -204,20 +235,14 @@ export function MemberPortalFrame({ actionsRegion, caseRegion, copy, updatesRegi
       </header>
       <nav
         aria-label={copy.navigation.label}
-        className="flex flex-wrap gap-2 text-sm [&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center [&_a]:rounded-xl [&_a]:px-4 [&_a]:font-medium [&_a]:focus-visible:outline-none [&_a]:focus-visible:ring-2 [&_a]:focus-visible:ring-ring [&_a]:focus-visible:ring-offset-2"
+        className="grid grid-cols-2 gap-2 text-sm sm:flex sm:flex-wrap [&_a]:inline-flex [&_a]:min-h-11 [&_a]:min-w-11 [&_a]:max-w-full [&_a]:items-center [&_a]:rounded-xl [&_a]:border [&_a]:border-[hsl(var(--border-strong))] [&_a]:px-3 [&_a]:py-2 [&_a]:font-medium [&_a:hover]:underline [&_a]:focus-visible:outline-none [&_a]:focus-visible:ring-2 [&_a]:focus-visible:ring-ring [&_a]:focus-visible:ring-offset-2 forced-colors:[&_a]:border-[CanvasText] forced-colors:[&_a]:focus-visible:outline"
       >
-        <Link
-          className="bg-[hsl(var(--primary-soft))] text-[hsl(var(--primary))] dark:text-foreground"
-          href="/member/claims"
-        >
+        <Link className="bg-[hsl(var(--primary-soft))] text-foreground" href="/member/claims">
           {copy.navigation.cases}
         </Link>
         <Link href="/member/documents">{copy.navigation.documents}</Link>
         <Link href="/member/membership">{copy.navigation.membership}</Link>
-        <Link
-          className="border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))]/70 sm:ml-auto"
-          href="/help-now"
-        >
+        <Link className="sm:ms-auto" href="/help-now">
           <span aria-hidden="true" className="me-2">
             ↗
           </span>
@@ -230,17 +255,17 @@ export function MemberPortalFrame({ actionsRegion, caseRegion, copy, updatesRegi
       >
         {copy.disclaimer}
       </aside>
-      <PortalUi.UnifiedPortalShell
-        actionsLabel={copy.regions.actions.label}
-        actionsRegion={actionsRegion}
-        caseLabel={copy.regions.case.label}
-        caseRegion={
-          <div className="min-h-[calc(100svh-16rem)] min-w-0 md:min-h-0">{caseRegion}</div>
-        }
-        className="md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start"
-        timelineLabel={copy.regions.updates.label}
-        timelineRegion={updatesRegion}
-      />
+      <div className="grid min-w-0 items-start gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <section aria-label={copy.regions.case.label} className="min-w-0">
+          {caseRegion}
+        </section>
+        <section aria-label={copy.regions.actions.label} className="min-w-0">
+          {actionsRegion}
+        </section>
+        <section aria-label={copy.regions.updates.label} className="min-w-0 md:col-span-2">
+          {updatesRegion}
+        </section>
+      </div>
     </section>
   );
 }
