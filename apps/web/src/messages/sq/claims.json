@@ -17,7 +17,8 @@
     },
     "memberList": {
       "searchPlaceholder": "Kërko...",
-      "resultCount": "Rastet e shfaqura ({count})"
+      "resultStatus": "Faqja {page} nga {pages}: {count, plural, one {# rast} other {# raste}}",
+      "updating": "Rastet e mëparshme shfaqen derisa të përditësohen rezultatet…"
     },
     "table": {
       "unavailable": "Nuk disponohet",

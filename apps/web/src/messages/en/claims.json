@@ -17,7 +17,8 @@
     },
     "memberList": {
       "searchPlaceholder": "Search...",
-      "resultCount": "Cases shown ({count})"
+      "resultStatus": "Page {page} of {pages}: {count, plural, one {# case} other {# cases}}",
+      "updating": "Showing the previous results while updating…"
     },
     "table": {
       "unavailable": "Unavailable",

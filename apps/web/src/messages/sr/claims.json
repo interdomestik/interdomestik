@@ -17,7 +17,8 @@
     },
     "memberList": {
       "searchPlaceholder": "Pretraga...",
-      "resultCount": "Prikazani slučajevi ({count})"
+      "resultStatus": "Strana {page} od {pages}: {count, plural, one {# slučaj} few {# slučaja} other {# slučajeva}}",
+      "updating": "Prethodni rezultati se prikazuju dok traje ažuriranje…"
     },
     "table": {
       "unavailable": "Nije dostupno",

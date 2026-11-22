@@ -17,7 +17,8 @@
     },
     "memberList": {
       "searchPlaceholder": "Suchen...",
-      "resultCount": "Angezeigte Fälle ({count})"
+      "resultStatus": "Seite {page} von {pages}: {count, plural, one {# Fall} other {# Fälle}}",
+      "updating": "Bis zur Aktualisierung werden die bisherigen Ergebnisse angezeigt…"
     },
     "table": {
       "unavailable": "Nicht verfügbar",

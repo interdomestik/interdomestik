@@ -1,23 +1,26 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ClaimsFilters } from './claims-filters';
 import { MemberClaimsTable } from './member-claims-table';
 import { wireResponse, wireRow } from '@/test/fixtures/claims-list-wire';
 import { NextIntlClientProvider } from 'next-intl';
 import claims from '@/messages/en/claims.json';
 import common from '@/messages/en/common.json';
 
+const navigation = vi.hoisted(() => ({ query: '', push: vi.fn() }));
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(navigation.query),
 }));
 
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  Link: ({ prefetch: _prefetch, ...props }: ComponentProps<'a'> & { prefetch?: boolean }) => (
+    <a {...props} />
   ),
   usePathname: () => '/member/claims',
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: navigation.push }),
 }));
 
 vi.unmock('next-intl');
@@ -26,17 +29,26 @@ vi.mock('@/components/dashboard/claims/claim-status-badge', () => ({
   ClaimStatusBadge: ({ status }: { status: string }) => <span>{status}</span>,
 }));
 
-function renderTable(locale = 'en') {
+function renderTable(locale = 'en', withFilters = false) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  const tree = () => (
     <QueryClientProvider client={queryClient}>
       <NextIntlClientProvider locale={locale} messages={{ ...claims, ...common }}>
+        {withFilters ? <ClaimsFilters /> : null}
         <MemberClaimsTable />
       </NextIntlClientProvider>
     </QueryClientProvider>
   );
+  const view = render(tree());
+  return {
+    queryClient,
+    commit(query: string) {
+      navigation.query = query;
+      view.rerender(tree());
+    },
+  };
 }
 
 function rowFor(text: string) {
@@ -52,9 +64,20 @@ function mockFetch(body: unknown, init: { ok?: boolean } = {}) {
   );
 }
 
+function deferFetch() {
+  let finish!: (response: Response) => void;
+  vi.mocked(fetch).mockReturnValueOnce(
+    new Promise<Response>(resolve => {
+      finish = resolve;
+    })
+  );
+  return finish;
+}
+
 describe('MemberClaimsTable (wire-to-mounted regression)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    navigation.query = '';
   });
 
   afterEach(() => {
@@ -117,17 +140,203 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
       finishRetry = resolve;
     });
     vi.mocked(fetch).mockReturnValueOnce(retry);
-    fireEvent.click(screen.getByRole('button', { name: common.common.tryAgain }));
+    const button = screen.getByRole('button', { name: common.common.tryAgain });
+    button.focus();
+    fireEvent.click(button);
     await waitFor(() => {
-      const button = screen.getByRole('button', { name: common.common.processing });
-      expect(button).toBeDisabled();
+      expect(screen.getByRole('button', { name: common.common.processing })).toBe(button);
+      expect(button).not.toBeDisabled();
+      expect(button).toHaveAttribute('aria-disabled', 'true');
       expect(button).toHaveAttribute('aria-busy', 'true');
+      expect(button).toHaveFocus();
       expect(screen.getByRole('alert')).toBeVisible();
       expect(fetch).toHaveBeenCalledTimes(2);
     });
+    fireEvent.click(button);
+    expect(fetch).toHaveBeenCalledTimes(2);
     finishRetry(new Response(JSON.stringify(wireResponse([wireRow()]))));
     await waitFor(() => expect(screen.getByText('Flight Delay')).toBeInTheDocument());
-    expect(screen.getByText('Cases shown (1)')).toHaveAttribute('aria-live', 'polite');
+    expect(screen.getByText('Page 1 of 1: 1 case')).toHaveAttribute('aria-live', 'polite');
+    expect(screen.getByRole('region', { name: claims.claims.title })).toHaveFocus();
     expect(fetch).toHaveBeenCalledTimes(2);
+  });
+  it('keeps retry focused after a failed refetch and re-enables the same button', async () => {
+    mockFetch({}, { ok: false });
+    renderTable();
+
+    const retry = await screen.findByRole('button', { name: common.common.tryAgain });
+    retry.focus();
+    const finish = deferFetch();
+    fireEvent.click(retry);
+    expect(retry).toHaveAttribute('aria-disabled', 'true');
+    finish(new Response('{}', { status: 503 }));
+    await waitFor(() => expect(retry).not.toHaveAttribute('aria-disabled', 'true'));
+    expect(screen.getByRole('button', { name: common.common.tryAgain })).toBe(retry);
+    expect(retry).toHaveFocus();
+    expect(screen.getByRole('alert')).toBeVisible();
+  });
+
+  it('keeps settled rows and the live line until the requested page returns', async () => {
+    mockFetch({ ...wireResponse([wireRow()]), totalPages: 2 });
+    const { commit } = renderTable();
+    const firstRow = await screen.findByRole('link', { name: 'Flight Delay' });
+    const live = screen.getByText('Page 1 of 2: 1 case');
+    const next = screen.getByTestId('member-claims-page-next');
+    next.focus();
+    fireEvent.click(next);
+
+    expect(screen.getByTestId('member-claims-page-previous').tagName).toBe('SPAN');
+    expect(next).toHaveAttribute('aria-disabled', 'true');
+    expect(next).toHaveFocus();
+    expect(next).toHaveAttribute('href', '/member/claims?page=2');
+    const pending = screen.getByTestId('member-claims-pagination-pending');
+    expect(pending).toHaveAttribute('role', 'status');
+    expect(pending).not.toHaveAttribute('aria-live');
+
+    const finish = deferFetch();
+    commit('page=2');
+    expect(screen.getByText('Showing the previous results while updating…')).toBeVisible();
+    expect(firstRow).toBeVisible();
+    const region = screen.getByTestId('member-claims-table-region');
+    expect(region).toHaveAttribute('aria-busy', 'true');
+    expect(region).not.toContainElement(live);
+    expect(screen.getByTestId('member-claims-page-next')).toBe(next);
+    expect(fireEvent.click(next)).toBe(false);
+    await userEvent.keyboard('{Enter}');
+    expect(next).toHaveFocus();
+    expect(navigation.push).toHaveBeenCalledOnce();
+
+    finish(
+      new Response(
+        JSON.stringify({
+          ...wireResponse([wireRow({ id: 'page-two', title: 'Case on page two' })]),
+          page: 2,
+          totalPages: 2,
+        })
+      )
+    );
+    expect(await screen.findByRole('link', { name: 'Case on page two' })).toBeVisible();
+    expect(screen.getByText('Page 2 of 2: 1 case')).toBe(live);
+    expect(screen.getByTestId('member-claims-page-next').tagName).toBe('SPAN');
+    expect(region).toHaveAttribute('aria-busy', 'false');
+    expect(region).toHaveFocus();
+    expect(screen.queryByTestId('member-claims-pagination-pending')).not.toBeInTheDocument();
+  });
+
+  it('keeps a filter navigation pending before URL commit and only shows current-key empty', async () => {
+    mockFetch({ ...wireResponse([wireRow()]), totalPages: 2 });
+    const { commit } = renderTable('en', true);
+    await screen.findByRole('link', { name: 'Flight Delay' });
+    const draft = screen.getByTestId('member-claims-status-filter-draft');
+    draft.focus();
+    fireEvent.click(draft);
+    const region = screen.getByTestId('member-claims-table-region');
+    expect(region).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByTestId('member-claims-page-next')).toHaveAttribute('aria-disabled', 'true');
+
+    const finish = deferFetch();
+    commit('status=draft');
+    expect(screen.getByText('Showing the previous results while updating…')).toBeVisible();
+    expect(screen.queryByTestId('member-claims-empty')).not.toBeInTheDocument();
+    finish(new Response(JSON.stringify({ ...wireResponse([]), totalPages: 0 })));
+
+    const empty = await screen.findByTestId('member-claims-empty');
+    expect(empty).toHaveTextContent(claims.claims.empty.filtered);
+    expect(within(empty).queryByRole('link')).not.toBeInTheDocument();
+    expect(draft).toHaveFocus();
+  });
+
+  it('links an empty later page to page one, preserving the filters', async () => {
+    navigation.query = 'page=3&search=late';
+    mockFetch({ ...wireResponse([]), page: 3 });
+    renderTable();
+    const empty = await screen.findByTestId('member-claims-empty');
+    expect(within(empty).getByRole('link', { name: common.common.previous })).toHaveAttribute(
+      'href',
+      '/member/claims?search=late'
+    );
+  });
+
+  it('shows catalogued text for absent companies and unrecognized categories', async () => {
+    mockFetch(wireResponse([wireRow({ companyName: ' ', category: 'unknown-category' })]));
+    renderTable();
+    await screen.findByRole('link', { name: 'Flight Delay' });
+    const row = rowFor('Flight Delay');
+    const cells = within(row).getAllByRole('cell');
+    expect(cells[2]).toHaveTextContent(claims.claims.table.unavailable);
+    expect(cells[3]).toHaveTextContent(claims.claims.table.unavailable);
+    expect(row).not.toHaveTextContent('unknown-category');
+  });
+
+  it('does not mark a settled key busy while a background refetch runs', async () => {
+    mockFetch(wireResponse([wireRow()]));
+    const { queryClient } = renderTable();
+    await screen.findByRole('link', { name: 'Flight Delay' });
+    const finish = deferFetch();
+    act(() => {
+      void queryClient.invalidateQueries({ queryKey: ['claims', 'member'] });
+    });
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(screen.getByTestId('member-claims-table-region')).toHaveAttribute('aria-busy', 'false');
+    expect(
+      screen.queryByText('Showing the previous results while updating…')
+    ).not.toBeInTheDocument();
+    finish(new Response(JSON.stringify(wireResponse([wireRow()]))));
+  });
+  it('ends the retained state on request failure and uses loading for a new key without data', async () => {
+    mockFetch({ ...wireResponse([wireRow()]), totalPages: 2 });
+    const { commit } = renderTable();
+    await screen.findByRole('link', { name: 'Flight Delay' });
+    const next = screen.getByTestId('member-claims-page-next');
+    const finish = deferFetch();
+    next.focus();
+    fireEvent.click(next);
+    commit('page=2');
+    expect(screen.getByText('Showing the previous results while updating…')).toBeVisible();
+    finish(new Response('{}', { status: 503 }));
+    await screen.findByRole('alert');
+    expect(screen.queryByText('Flight Delay')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('member-claims-pagination-pending')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: claims.claims.title })).toHaveFocus();
+
+    const finishNextKey = deferFetch();
+    commit('search=another');
+    expect(screen.getByRole('status')).toHaveTextContent(common.common.loading);
+    expect(
+      screen.queryByText('Showing the previous results while updating…')
+    ).not.toBeInTheDocument();
+    finishNextKey(new Response(JSON.stringify(wireResponse([wireRow()]))));
+    await screen.findByRole('link', { name: 'Flight Delay' });
+  });
+  it('settles immediately from the cache for the requested key while that key revalidates', async () => {
+    mockFetch({ ...wireResponse([wireRow()]), totalPages: 2 });
+    const { commit, queryClient } = renderTable();
+    await screen.findByRole('link', { name: 'Flight Delay' });
+
+    queryClient.setQueryData(['claims', 'member', { page: 2 }], {
+      ...wireResponse([wireRow({ id: 'cached', title: 'Cached case' })]),
+      page: 2,
+      totalPages: 2,
+    });
+    const finish = deferFetch();
+    commit('page=2');
+
+    expect(screen.getByRole('link', { name: 'Cached case' })).toBeVisible();
+    expect(screen.getByText('Page 2 of 2: 1 case')).toBeVisible();
+    expect(screen.getByTestId('member-claims-table-region')).toHaveAttribute('aria-busy', 'false');
+    expect(
+      screen.queryByText('Showing the previous results while updating…')
+    ).not.toBeInTheDocument();
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    finish(
+      new Response(
+        JSON.stringify({
+          ...wireResponse([wireRow({ id: 'fresh', title: 'Fresh case' })]),
+          page: 2,
+          totalPages: 2,
+        })
+      )
+    );
+    await screen.findByRole('link', { name: 'Fresh case' });
   });
 });

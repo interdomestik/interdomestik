@@ -1,9 +1,11 @@
-import { Suspense } from 'react';
+import { Suspense, type ComponentProps } from 'react';
 import type { CaseSummary, MembershipLifecycleBucket } from '@interdomestik/domain-member';
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { formatNumber } from '@/lib/utils/number';
 import { formatPilotDate } from '@/lib/utils/date';
+import deMessages from '@/messages/de/dashboard.json';
 import enMessages from '@/messages/en/dashboard.json';
 import mkMessages from '@/messages/mk/dashboard.json';
 import sqMessages from '@/messages/sq/dashboard.json';
@@ -18,7 +20,10 @@ import {
   type MemberPortalCopy,
 } from './member-portal-runtime';
 
-vi.mock('@/i18n/routing', () => ({ Link: 'a' }));
+vi.mock('@/i18n/routing', () => ({
+  Link: (props: ComponentProps<'a'>) => <a data-soft-navigation="true" {...props} />,
+}));
+vi.mock('next-intl/server', () => ({ getLocale: async () => 'en' }));
 
 const summaries = JSON.parse(
   '[{"caseKind":"accident","id":"claim-1","reference":"CLM-001","status":"submitted","documentCount":2,"nextStep":"team_review","occurredAt":"2026-08-29T10:00:00.000Z"},{"caseKind":"generic","id":"claim-2","title":"Property damage case","reference":null,"status":"draft","documentCount":0,"nextStep":"member_action","occurredAt":null}]'
@@ -69,6 +74,7 @@ const copy: MemberPortalCopy = {
     unavailable: 'Not available',
   },
   status: value => (value === 'submitted' ? 'Submitted' : 'Draft'),
+  updates_item: { occurred: 'Incident date', current_status: 'Current status' },
 };
 // prettier-ignore
 const action = (bucket: MembershipLifecycleBucket, canDraft: boolean, currentPeriodEnd: Date | null = new Date('2026-12-30T23:30:00.000Z')) => PortalActionsRegion({ canDraft, copy, locale: 'sq', promise: Promise.resolve({ bucket, currentPeriodEnd, grantsNewCaseAccess: ['active', 'trialing', 'active_in_grace', 'scheduled_cancel'].includes(bucket) }) });
@@ -80,7 +86,7 @@ function leafPaths(value: unknown, prefix = ''): string[] {
   });
 }
 const PATHS =
-  'actions.active|actions.active_in_grace|actions.canceled|actions.grace_expired|actions.none|actions.scheduled_cancel|actions.trialing|description|disclaimer|membership_status.access_allowed|membership_status.access_denied|membership_status.access_label|membership_status.current_period_end_label|membership_status.retry|membership_status.status_label|membership_status.statuses.active|membership_status.statuses.active_in_grace|membership_status.statuses.canceled|membership_status.statuses.grace_expired|membership_status.statuses.none|membership_status.statuses.scheduled_cancel|membership_status.statuses.trialing|membership_status.unavailable|navigation.cases|navigation.documents|navigation.help_now|navigation.label|navigation.membership|next_steps.court_schedule|next_steps.external_response|next_steps.member_action|next_steps.review_case|next_steps.team_review|regions.actions.empty|regions.actions.error|regions.actions.label|regions.actions.loading|regions.case.empty|regions.case.error|regions.case.label|regions.case.loading|regions.updates.empty|regions.updates.error|regions.updates.label|regions.updates.loading|title|warnings.active_in_grace|warnings.grace_expired|warnings.scheduled_cancel';
+  'actions.active|actions.active_in_grace|actions.canceled|actions.grace_expired|actions.none|actions.scheduled_cancel|actions.trialing|description|disclaimer|membership_status.access_allowed|membership_status.access_denied|membership_status.access_label|membership_status.current_period_end_label|membership_status.retry|membership_status.status_label|membership_status.statuses.active|membership_status.statuses.active_in_grace|membership_status.statuses.canceled|membership_status.statuses.grace_expired|membership_status.statuses.none|membership_status.statuses.scheduled_cancel|membership_status.statuses.trialing|membership_status.unavailable|navigation.cases|navigation.documents|navigation.help_now|navigation.label|navigation.membership|next_steps.court_schedule|next_steps.external_response|next_steps.member_action|next_steps.review_case|next_steps.team_review|regions.actions.empty|regions.actions.error|regions.actions.label|regions.actions.loading|regions.case.empty|regions.case.error|regions.case.label|regions.case.loading|regions.updates.empty|regions.updates.error|regions.updates.label|regions.updates.loading|title|updates_item.current_status|updates_item.occurred|warnings.active_in_grace|warnings.grace_expired|warnings.scheduled_cancel';
 type NextStepCatalog = Record<Exclude<CaseSummary['nextStep'], 'complete'>, string>;
 const NEXT_STEP_CATALOGS: ReadonlyArray<readonly [string, NextStepCatalog]> = [
   ['en', enMessages.dashboard.portal.next_steps],
@@ -97,6 +103,19 @@ describe('Member portal', () => {
     expect(screen.getByRole('article', { name: 'Property damage case' })).toHaveTextContent('0');
     expect(screen.queryByText('claim-1')).not.toBeInTheDocument();
     expect(screen.queryByText('member_action')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View case CLM-001' })).toHaveClass(
+      'border-foreground/60',
+      'min-h-11'
+    );
+    expect(screen.getByRole('link', { name: 'View case Property damage case' })).toHaveClass(
+      'bg-[hsl(var(--primary))]',
+      'min-h-11'
+    );
+    const nextStep = screen.getByText('Member action').closest('div');
+    expect(nextStep).toHaveClass('bg-[hsl(var(--primary-soft))]');
+    expect(screen.getByText('Team review').closest('div')).not.toHaveClass(
+      'bg-[hsl(var(--primary-soft))]'
+    );
   });
 
   it('maps one unambiguous detail link to each represented case', async () => {
@@ -132,6 +151,22 @@ describe('Member portal', () => {
     }
   });
 
+  it('adds a localized date or list position to the fallback heading and link', async () => {
+    const dated = { ...summaries[0]!, reference: ' ', title: ' ' };
+    const undated = { ...summaries[1]!, title: '' };
+    render(await PortalCasesRegion({ copy, promise: Promise.resolve([dated, undated]) }));
+
+    const references = [
+      `Reference unavailable · ${formatPilotDate(dated.occurredAt, 'en', copy.membershipStatus.unavailable)}`,
+      `Reference unavailable · ${formatNumber(2, 'en')}`,
+    ];
+    for (const reference of references) {
+      const article = screen.getByRole('article', { name: reference });
+      expect(within(article).getByRole('heading', { level: 3, name: reference })).toBeVisible();
+      expect(within(article).getByRole('link', { name: `View case ${reference}` })).toBeVisible();
+    }
+  });
+
   it('maps lifecycle actions', async () => {
     for (const bucket of buckets) {
       const view = render(await action(bucket, true));
@@ -140,6 +175,7 @@ describe('Member portal', () => {
       expect(screen.getByRole('link', { name: new RegExp(`Action ${bucket}`, 'u') })).toHaveAttribute('href', `/sq/member/claims/new${inactive ? '?mode=drafts' : ''}`);
       expect(screen.getAllByRole('link')).toHaveLength(1);
       expect(screen.getAllByText('Actions')).toHaveLength(1);
+      expect(screen.queryByText(copy.actions[bucket].description)).not.toBeInTheDocument();
       expect(screen.getByText(`Status ${bucket}`)).toBeVisible();
       expect(screen.getByText(`Status ${bucket}`)).toHaveAttribute('data-lifecycle-status', bucket);
       expect(screen.getByTestId('member-membership-access')).toHaveTextContent(
@@ -196,19 +232,37 @@ describe('Member portal', () => {
     expect(screen.queryByText('claim-1')).not.toBeInTheDocument();
     view.rerender(await PortalCasesRegion({ copy, promise: Promise.resolve([]) }));
     expect(screen.getByRole('heading', { name: 'Case' })).toBeVisible();
-    expect(screen.getByRole('status', { name: 'Case' })).toHaveTextContent('No cases yet');
+    expect(screen.getByText('No cases yet')).toHaveAttribute('role', 'status');
+    expect(screen.getByText('No cases yet')).not.toHaveAttribute('aria-label');
     // prettier-ignore
     view.rerender(await PortalUpdatesRegion({ copy, locale: 'en', promise: Promise.reject(new Error('no')) }));
-    // prettier-ignore
-    expect(screen.getByRole('alert', { name: 'Recent case updates' })).toHaveTextContent('Updates unavailable');
-    expect(screen.getByRole('link', { name: 'Try again' })).toHaveAttribute('href', '/member');
+    expect(screen.getByText('Updates unavailable')).toHaveAttribute('role', 'alert');
+    expect(screen.getByText('Updates unavailable')).not.toHaveAttribute('aria-label');
+    expect(screen.getByRole('link', { name: 'Try again' })).toHaveAttribute('href', '/en/member');
     view.rerender(<MemberPortalRegionBoundary copy={copy.regions.case} state="loading" />);
-    const loading = screen.getByRole('status', { name: 'Case' });
-    expect(loading).toHaveTextContent('Loading case');
-    expect(loading).toHaveAttribute('aria-busy', 'true');
-    expect(
-      view.container.querySelector('[data-region-state="loading"] [aria-hidden="true"]')
-    ).toBeVisible();
+    const loading = screen.getByText('Loading case');
+    expect(loading).toBeVisible();
+    expect(loading).not.toHaveAttribute('role');
+    expect(loading).not.toHaveAttribute('aria-label');
+    const card = loading.closest('[data-region-state="loading"]');
+    expect(card).not.toHaveAttribute('role');
+    expect(card).toHaveAttribute('aria-busy', 'true');
+    const skeletons = Array.from(card!.querySelectorAll('[aria-hidden="true"] > div'));
+    expect(skeletons).toHaveLength(2);
+    for (const skeleton of skeletons) expect(skeleton).toBeVisible();
+  });
+
+  it('uses the request locale when the retry caller omits locale', async () => {
+    render(
+      await MemberPortalRegionBoundary({
+        action: { href: '/member', label: 'Try again' },
+        copy: copy.regions.case,
+        state: 'error',
+      })
+    );
+    const retry = screen.getByRole('link', { name: 'Try again' });
+    expect(retry).toHaveAttribute('href', '/en/member');
+    expect(retry).not.toHaveAttribute('data-soft-navigation');
   });
 
   it('renders disclaimer and ready regions while Case is pending', async () => {
@@ -252,12 +306,15 @@ describe('Member portal', () => {
         .getAllByRole('link')
         .map(link => link.getAttribute('href'))
     ).toEqual(['/member/claims', '/member/documents', '/member/membership', '/help-now']);
+    expect(sections[0]).toHaveClass('md:col-span-2');
+    expect(sections[0]?.parentElement).toHaveClass('md:grid-cols-2');
     expect(disclaimer).toBeVisible();
     expect(
       disclaimer.compareDocumentPosition(loading) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(screen.getByRole('link', { name: /Action active/u })).toBeVisible();
-    expect(screen.getByRole('alert', { name: 'Recent case updates' })).toBeVisible();
+    expect(screen.getByText('Updates unavailable')).toBeVisible();
+    expect(screen.getByText('Updates unavailable')).toHaveAttribute('role', 'alert');
     expect(screen.getByRole('link', { name: 'Cases' })).toHaveAttribute('href', '/member/claims');
     expect(screen.queryByTestId('member-dashboard-ready')).not.toBeInTheDocument();
   });
@@ -266,7 +323,8 @@ describe('Member portal', () => {
     const promise = () =>
       mode === 'null' ? Promise.resolve(null) : Promise.reject(new Error('private failure'));
     const view = render(await PortalCasesRegion({ copy, promise: promise() }));
-    expect(screen.getByRole('alert', { name: 'Case' })).toHaveTextContent('Unavailable');
+    expect(screen.getByText('Unavailable')).toHaveAttribute('role', 'alert');
+    expect(screen.getByRole('link', { name: 'Try again' })).toHaveAttribute('href', '/en/member');
     expect(screen.queryByText('No cases yet')).not.toBeInTheDocument();
     view.rerender(
       await PortalActionsRegion({
@@ -276,10 +334,12 @@ describe('Member portal', () => {
         promise: promise(),
       })
     );
-    expect(screen.getByRole('alert', { name: 'Actions' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Try again' })).toHaveAttribute('href', '/member');
+    expect(screen.getByText('Unavailable')).toBeVisible();
+    expect(screen.getByText('Unavailable')).toHaveAttribute('role', 'alert');
+    expect(screen.getByRole('link', { name: 'Try again' })).toHaveAttribute('href', '/en/member');
     view.rerender(await PortalUpdatesRegion({ copy, locale: 'en', promise: promise() }));
-    expect(screen.getByRole('alert', { name: 'Recent case updates' })).toBeVisible();
+    expect(screen.getByText('Updates unavailable')).toBeVisible();
+    expect(screen.getByText('Updates unavailable')).toHaveAttribute('role', 'alert');
     expect(screen.queryByText('private failure')).not.toBeInTheDocument();
   });
 
@@ -289,6 +349,14 @@ describe('Member portal', () => {
     const time = screen.getByRole('listitem').querySelector('time');
     expect(time).toHaveAttribute('datetime', summaries[0]!.occurredAt);
     expect(time).toHaveTextContent('08/29/2026');
+    const facts = screen.getByRole('listitem').querySelector('dl');
+    expect(facts).toContainElement(time);
+    expect(
+      within(facts!)
+        .getAllByRole('term')
+        .map(term => term.textContent)
+    ).toEqual(['Incident date', 'Current status']);
+    expect(within(facts!).getAllByRole('definition')[1]).toHaveTextContent('Submitted');
     expect(screen.getByRole('listitem')).toHaveTextContent('Submitted');
     expect(screen.queryByText('Reference unavailable')).not.toBeInTheDocument();
   });
@@ -308,7 +376,9 @@ describe('Member portal', () => {
   it('keeps four catalog contracts aligned', () => {
     const catalogs = [enMessages, mkMessages, sqMessages, srMessages];
     const portals = catalogs.map(({ dashboard }) => dashboard.portal);
-    for (const portal of portals) expect(leafPaths(portal).sort().join('|')).toBe(PATHS);
+    for (const portal of [...portals, deMessages.dashboard.portal]) {
+      expect(leafPaths(portal).sort().join('|')).toBe(PATHS);
+    }
     expect(catalogs.map(({ dashboard }) => dashboard.member_assistance.cases.open)).toEqual([
       'View case',
       'Види случај',

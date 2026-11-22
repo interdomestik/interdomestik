@@ -17,7 +17,8 @@
     },
     "memberList": {
       "searchPlaceholder": "Барај...",
-      "resultCount": "Прикажани случаи ({count})"
+      "resultStatus": "Страница {page} од {pages}: {count, plural, one {# случај} other {# случаи}}",
+      "updating": "Претходните резултати се прикажуваат додека трае ажурирањето…"
     },
     "table": {
       "unavailable": "Недостапно",

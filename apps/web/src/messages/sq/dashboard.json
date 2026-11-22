@@ -32,6 +32,10 @@
         "external_response": "Po pritet një përgjigje e jashtme",
         "court_schedule": "Kontrolloni orarin e gjykatës"
       },
+      "updates_item": {
+        "occurred": "Data e ngjarjes",
+        "current_status": "Statusi aktual"
+      },
       "regions": {
         "case": {
           "label": "Rastet tuaja",

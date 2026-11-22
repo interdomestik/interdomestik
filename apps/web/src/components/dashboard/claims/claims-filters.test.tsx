@@ -169,11 +169,21 @@ describe('ClaimsFilters', () => {
     render(<ClaimsFilters />);
 
     const activeStatus = screen.getByTestId('member-claims-status-filter-submitted');
-    expect(activeStatus).toBeDisabled();
+    expect(activeStatus).toHaveAttribute('aria-disabled', 'true');
+    expect(activeStatus).not.toBeDisabled();
+    expect(activeStatus.querySelector('[aria-hidden="true"]')).toBeVisible();
+    expect(activeStatus).toHaveClass('bg-[hsl(var(--primary))]', 'border');
     fireEvent.click(activeStatus);
     expect(hoisted.push).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByTestId('member-claims-status-filter-draft'));
+    const draft = screen.getByTestId('member-claims-status-filter-draft');
+    draft.focus();
+    fireEvent.click(draft);
+    expect(draft).toHaveFocus();
+    expect(screen.getByRole('textbox')).toHaveAttribute('readonly');
+    expect(screen.getByRole('textbox')).not.toBeDisabled();
+    expect(screen.getByTestId('member-claims-pending')).toHaveAttribute('role', 'status');
+    expect(screen.getByTestId('member-claims-pending')).not.toHaveAttribute('aria-live');
 
     expect(hoisted.push).toHaveBeenCalledWith('/member/claims?status=draft&search=claim', {
       scroll: false,
