@@ -2,17 +2,17 @@ import { randomUUID } from 'node:crypto';
 import {
   paymentPortTestSession,
   restricted,
+  runSequentially,
   withPaymentPortTestTransaction,
 } from '@interdomestik/database/testing/payment-port-rls';
 import { sql } from 'drizzle-orm';
 import { expect, it } from 'vitest';
 
+import { directSaleRow, insertDirectSale } from './individual-sale-direct.test-support';
 import {
   accepted,
   absent,
   completed,
-  directSaleRow,
-  insertDirectSale,
   refused,
   success,
   type SaleFixture,
@@ -26,32 +26,35 @@ export function registerScopeCases(fixture: () => Promise<SaleFixture>) {
     const withdraw = { planVersionId: offer.planVersionId };
     const input = accepted(offer, { memberUserId: f.member.id });
     const quote = { planId: f.planId };
-    const { recordSaleInTx } = await import('../payment-port-compose');
+    const { recordSaleInTx } = await import('../../payment-port-compose');
     const { withTenantAuthority } =
       await import('@interdomestik/database/tenant-authority-context');
-    for (const [authority, actor] of [
-      [f.member.authority, f.member],
-      [f.owner.authority, { ...f.owner, id: randomUUID() }],
-      [f.owner.authority, { ...f.owner, tenantId: f.otherTenantId }],
+    await runSequentially(
       [
-        paymentPortTestSession(f.tenantId, f.owner.id, 'tenant_admin', null, f.otherTenantId),
-        f.owner,
-      ],
-    ] as const) {
-      expect(await f.port.getSaleOffer(authority, quote, actor)).toEqual(refused('forbidden'));
-      expect(await f.port.publishPlanVersion(authority, publish, actor)).toEqual(
-        refused('forbidden')
-      );
-      expect(await f.port.withdrawPlanVersion(authority, withdraw, actor)).toEqual(
-        refused('forbidden')
-      );
-      expect(await f.port.recordSale(authority, input, actor)).toEqual(refused('forbidden'));
-      expect(
-        await withTenantAuthority(f.owner.authority, tx =>
-          recordSaleInTx(tx, authority, input, actor)
-        )
-      ).toEqual(refused('forbidden'));
-    }
+        [f.member.authority, f.member],
+        [f.owner.authority, { ...f.owner, id: randomUUID() }],
+        [f.owner.authority, { ...f.owner, tenantId: f.otherTenantId }],
+        [
+          paymentPortTestSession(f.tenantId, f.owner.id, 'tenant_admin', null, f.otherTenantId),
+          f.owner,
+        ],
+      ] as const,
+      async ([authority, actor]) => {
+        expect(await f.port.getSaleOffer(authority, quote, actor)).toEqual(refused('forbidden'));
+        expect(await f.port.publishPlanVersion(authority, publish, actor)).toEqual(
+          refused('forbidden')
+        );
+        expect(await f.port.withdrawPlanVersion(authority, withdraw, actor)).toEqual(
+          refused('forbidden')
+        );
+        expect(await f.port.recordSale(authority, input, actor)).toEqual(refused('forbidden'));
+        expect(
+          await withTenantAuthority(f.owner.authority, tx =>
+            recordSaleInTx(tx, authority, input, actor)
+          )
+        ).toEqual(refused('forbidden'));
+      }
+    );
     expect(
       await withTenantAuthority(f.foreignOwner.authority, tx =>
         recordSaleInTx(tx, f.owner.authority, input, f.owner)
@@ -65,14 +68,14 @@ export function registerScopeCases(fixture: () => Promise<SaleFixture>) {
     expect(await f.port.getSaleOffer(f.staff.authority, quote, f.staff)).toMatchObject({
       ok: true,
     });
-    for (const actor of [f.agent, f.staff]) {
+    await runSequentially([f.agent, f.staff], async actor => {
       expect(await f.port.publishPlanVersion(actor.authority, publish, actor)).toEqual(
         refused('forbidden')
       );
       expect(await f.port.withdrawPlanVersion(actor.authority, withdraw, actor)).toEqual(
         refused('forbidden')
       );
-    }
+    });
     expect(
       await f.port.publishPlanVersion(f.foreignOwner.authority, publish, f.foreignOwner)
     ).toEqual(refused('invalid'));
@@ -90,25 +93,21 @@ export function registerScopeCases(fixture: () => Promise<SaleFixture>) {
     const f = await fixture();
     const offer = await f.sellable();
     const input = accepted(offer, { memberUserId: f.member.id });
-    const { recordSaleInTx } = await import('../payment-port-compose');
+    const { recordSaleInTx } = await import('../../payment-port-compose');
     const { withTenantAuthority } =
       await import('@interdomestik/database/tenant-authority-context');
     await withTenantAuthority(f.owner.authority, async tx => {
-      for (const field of [
-        'sold_by',
-        'soldBy',
-        'tenantId',
-        'agentId',
-        'branchId',
-        'governingLaw',
-      ]) {
-        expect(await f.sale({ ...input, [field]: f.owner.id })).toEqual(refused('invalid'));
-        expect(
-          await recordSaleInTx(tx, f.owner.authority, { ...input, [field]: f.owner.id }, f.owner)
-        ).toEqual(refused('invalid'));
-      }
+      await runSequentially(
+        ['sold_by', 'soldBy', 'tenantId', 'agentId', 'branchId', 'governingLaw'],
+        async field => {
+          expect(await f.sale({ ...input, [field]: f.owner.id })).toEqual(refused('invalid'));
+          expect(
+            await recordSaleInTx(tx, f.owner.authority, { ...input, [field]: f.owner.id }, f.owner)
+          ).toEqual(refused('invalid'));
+        }
+      );
     });
-    for (const field of ['published_by', 'publishedBy', 'tenantId']) {
+    await runSequentially(['published_by', 'publishedBy', 'tenantId'], async field => {
       expect(
         await f.publish({
           planId: f.planId,
@@ -116,7 +115,7 @@ export function registerScopeCases(fixture: () => Promise<SaleFixture>) {
           [field]: f.owner.id,
         })
       ).toEqual(refused('invalid'));
-    }
+    });
     expect(await f.counts(input.operationKey)).toEqual(absent);
   });
 
@@ -127,42 +126,40 @@ export function registerScopeCases(fixture: () => Promise<SaleFixture>) {
     const wrongAgentLead = await f.lead(f.otherAgent.id);
     const wrongBranchLead = await f.lead(f.agent.id, f.otherBranch);
     const company = await f.lead(f.agent.id, f.homeBranch, 'company');
-    for (const buyer of [
-      { leadId: company },
-      { memberUserId: f.staff.id },
-      { memberUserId: f.foreignMember.id },
-    ]) {
-      const input = accepted(offer, buyer);
-      expect(await f.sale(input)).toEqual(refused('not_found'));
-      const row = await directSaleRow(f, input);
-      await expect(
-        restricted(f.admin, f.tenantId, tx => insertDirectSale(tx, row))
-      ).rejects.toMatchObject({
-        code: '23514',
-        constraint_name: 'membership_sales_individual_buyer_guard',
-      });
-      expect(await f.counts(input.operationKey)).toEqual(absent);
-    }
+    await runSequentially(
+      [{ leadId: company }, { memberUserId: f.staff.id }, { memberUserId: f.foreignMember.id }],
+      async buyer => {
+        const input = accepted(offer, buyer);
+        expect(await f.sale(input)).toEqual(refused('not_found'));
+        const row = await directSaleRow(f, input);
+        await expect(
+          restricted(f.admin, f.tenantId, tx => insertDirectSale(tx, row))
+        ).rejects.toMatchObject({
+          code: '23514',
+          constraint_name: 'membership_sales_individual_buyer_guard',
+        });
+        expect(await f.counts(input.operationKey)).toEqual(absent);
+      }
+    );
 
-    const { recordSaleInTx } = await import('../payment-port-compose');
+    const { recordSaleInTx } = await import('../../payment-port-compose');
     const { withTenantAuthority } =
       await import('@interdomestik/database/tenant-authority-context');
-    for (const buyer of [
-      { leadId: wrongAgentLead },
-      { leadId: wrongBranchLead },
-      { memberUserId: f.member.id },
-    ]) {
-      const input = accepted(offer, buyer);
-      expect(await f.sale(input, f.agent)).toEqual(refused('not_found'));
-      expect(
-        await withTenantAuthority(f.agent.authority, tx =>
-          recordSaleInTx(tx, f.agent.authority, input, f.agent)
-        )
-      ).toEqual(refused('not_found'));
-      expect(await f.counts(input.operationKey)).toEqual(absent);
-      success(await f.sale(input));
-      expect(await f.counts(input.operationKey)).toEqual(completed);
-    }
+    await runSequentially(
+      [{ leadId: wrongAgentLead }, { leadId: wrongBranchLead }, { memberUserId: f.member.id }],
+      async buyer => {
+        const input = accepted(offer, buyer);
+        expect(await f.sale(input, f.agent)).toEqual(refused('not_found'));
+        expect(
+          await withTenantAuthority(f.agent.authority, tx =>
+            recordSaleInTx(tx, f.agent.authority, input, f.agent)
+          )
+        ).toEqual(refused('not_found'));
+        expect(await f.counts(input.operationKey)).toEqual(absent);
+        success(await f.sale(input));
+        expect(await f.counts(input.operationKey)).toEqual(completed);
+      }
+    );
 
     const staffCrossBranch = accepted(offer, { leadId: await f.lead(f.agent.id, f.otherBranch) });
     expect(await f.sale(staffCrossBranch, f.staff)).toEqual(refused('not_found'));
@@ -211,7 +208,7 @@ export function registerScopeCases(fixture: () => Promise<SaleFixture>) {
   it('rejects stronger isolation and accepts a composed caller with an immediate claim constraint', async () => {
     const f = await fixture();
     const input = accepted(await f.sellable(), { memberUserId: f.member.id });
-    const { recordSaleInTx } = await import('../payment-port-compose');
+    const { recordSaleInTx } = await import('../../payment-port-compose');
     const { withTenantAuthority } =
       await import('@interdomestik/database/tenant-authority-context');
     expect(
@@ -240,7 +237,7 @@ export function registerScopeCases(fixture: () => Promise<SaleFixture>) {
     const input = accepted(await f.sellable(), { leadId: await f.lead() });
     success(await f.sale(input));
     const duplicate = { ...input, operationKey: randomUUID() };
-    const { recordSaleInTx } = await import('../payment-port-compose');
+    const { recordSaleInTx } = await import('../../payment-port-compose');
     const { withTenantAuthority } =
       await import('@interdomestik/database/tenant-authority-context');
     await withTenantAuthority(f.owner.authority, async tx => {

@@ -2,15 +2,18 @@ import { randomUUID } from 'node:crypto';
 import {
   paymentPortTestGuardRole,
   restricted,
+  runSequentially,
 } from '@interdomestik/database/testing/payment-port-rls';
 import { expect, it } from 'vitest';
 
 import {
-  accepted,
-  absent,
   canonicalHash,
   directSaleRow,
   insertDirectSale,
+} from './individual-sale-direct.test-support';
+import {
+  accepted,
+  absent,
   refused,
   success,
   type SaleFixture,
@@ -19,27 +22,30 @@ import {
 export function registerOfferCases(fixture: () => Promise<SaleFixture>) {
   it('publishes only eligible catalogue values and keeps the exact stored price per plan', async () => {
     const f = await fixture();
-    for (const fields of [
-      { tier: 'family' },
-      { interval: 'month' },
-      { currency: 'MKD' },
-      { price: '0.00' },
-      { price: '-0.01' },
-      { active: false },
-    ]) {
-      const planId = await f.plan(fields);
-      expect(await f.publish({ planId, legalEntityId: f.legalEntityId })).toEqual(
-        refused('invalid')
-      );
-    }
+    await runSequentially(
+      [
+        { tier: 'family' },
+        { interval: 'month' },
+        { currency: 'MKD' },
+        { price: '0.00' },
+        { price: '-0.01' },
+        { active: false },
+      ],
+      async fields => {
+        const planId = await f.plan(fields);
+        expect(await f.publish({ planId, legalEntityId: f.legalEntityId })).toEqual(
+          refused('invalid')
+        );
+      }
+    );
     const prices = ['1.07', '999999.99'] as const;
-    for (const [index, price] of prices.entries()) {
+    await runSequentially([...prices.entries()], async ([index, price]) => {
       const planId = await f.plan({ price });
       const { version } = success(await f.publish({ planId, legalEntityId: f.legalEntityId }));
       expect(version.listPriceMinor).toBe([107n, 99999999n][index]);
       expect(version.publishedBy).toBe(f.owner.id);
       expect(version.version).toBe(1);
-    }
+    });
 
     const business = await f.plan({ tier: 'business', price: '90.00' });
     const { version } = success(
@@ -59,27 +65,30 @@ export function registerOfferCases(fixture: () => Promise<SaleFixture>) {
 
   it('rejects direct copies with a different positive price, tier or member count', async () => {
     const f = await fixture();
-    for (const [price, tier, count] of [
-      [1001, 'basic', 1],
-      [1000, 'standard', 1],
-      [1000, 'basic', 2],
-    ]) {
-      await expect(
-        restricted(
-          f.admin,
-          f.tenantId,
-          tx => tx`
+    await runSequentially(
+      [
+        [1001, 'basic', 1],
+        [1000, 'standard', 1],
+        [1000, 'basic', 2],
+      ],
+      async ([price, tier, count]) => {
+        await expect(
+          restricted(
+            f.admin,
+            f.tenantId,
+            tx => tx`
         insert into membership_plan_versions (id, tenant_id, plan_id, version, legal_entity_id,
           tier, interval, members_included, list_price_minor, price_currency, published_by)
         values (${randomUUID()}, ${f.tenantId}, ${f.planId}, 1, ${f.legalEntityId},
           ${tier}, 'year', ${count}, ${price}, 'EUR', ${f.owner.id})
       `
-        )
-      ).rejects.toMatchObject({
-        code: '23514',
-        constraint_name: 'membership_plan_versions_copy_guard',
-      });
-    }
+          )
+        ).rejects.toMatchObject({
+          code: '23514',
+          constraint_name: 'membership_plan_versions_copy_guard',
+        });
+      }
+    );
     const first = success(await f.publish()).version;
     expect(first.version).toBe(1);
     await expect(
@@ -188,43 +197,46 @@ export function registerOfferCases(fixture: () => Promise<SaleFixture>) {
     const offer = await f.sellable();
     const input = accepted(offer, { memberUserId: f.member.id });
     const row = await directSaleRow(f, input);
-    for (const [governingLaw, terms] of [
-      [null, 'v1'],
-      ['MK', null],
-      ['MK', ''],
-      ['MK', ' \t\r\n'],
-    ]) {
-      await f.admin`update legal_entities set governing_law = ${governingLaw}, terms_version = ${terms}
+    await runSequentially(
+      [
+        [null, 'v1'],
+        ['MK', null],
+        ['MK', ''],
+        ['MK', ' \t\r\n'],
+      ],
+      async ([governingLaw, terms]) => {
+        await f.admin`update legal_entities set governing_law = ${governingLaw}, terms_version = ${terms}
         where id = ${f.legalEntityId}`;
-      expect(await f.publish()).toEqual(refused('invalid'));
-      await expect(
-        restricted(
-          f.admin,
-          f.tenantId,
-          tx => tx`
+        expect(await f.publish()).toEqual(refused('invalid'));
+        await expect(
+          restricted(
+            f.admin,
+            f.tenantId,
+            tx => tx`
         insert into membership_plan_versions (id, tenant_id, plan_id, version, legal_entity_id,
           tier, interval, members_included, list_price_minor, price_currency, published_by)
         values (${randomUUID()}, ${f.tenantId}, ${f.planId}, 2, ${f.legalEntityId},
           'basic', 'year', 1, 1000, 'EUR', ${f.owner.id})
       `
-        )
-      ).rejects.toMatchObject({
-        code: '23514',
-        constraint_name: 'membership_plan_versions_copy_guard',
-      });
-      expect(await f.quote()).toEqual(refused('stale_offer'));
-      expect(await f.sale(input)).toEqual(refused('stale_offer'));
-      const directInput = terms === null ? input : { ...input, termsVersion: terms };
-      await expect(
-        restricted(f.admin, f.tenantId, tx =>
-          insertDirectSale(tx, {
-            ...row,
-            terms_version: directInput.termsVersion,
-            request_hash: canonicalHash(directInput),
-          })
-        )
-      ).rejects.toMatchObject({ code: '23514', constraint_name: 'membership_sales_stale_offer' });
-    }
+          )
+        ).rejects.toMatchObject({
+          code: '23514',
+          constraint_name: 'membership_plan_versions_copy_guard',
+        });
+        expect(await f.quote()).toEqual(refused('stale_offer'));
+        expect(await f.sale(input)).toEqual(refused('stale_offer'));
+        const directInput = terms === null ? input : { ...input, termsVersion: terms };
+        await expect(
+          restricted(f.admin, f.tenantId, tx =>
+            insertDirectSale(tx, {
+              ...row,
+              terms_version: directInput.termsVersion,
+              request_hash: canonicalHash(directInput),
+            })
+          )
+        ).rejects.toMatchObject({ code: '23514', constraint_name: 'membership_sales_stale_offer' });
+      }
+    );
     expect(await f.counts(input.operationKey)).toEqual(absent);
   });
 

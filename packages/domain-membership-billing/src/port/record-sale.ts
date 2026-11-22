@@ -143,6 +143,29 @@ async function lockSaleRows(tx: TenantTransaction, tenantId: string, planVersion
   return { book, requested };
 }
 
+function validateSaleOffer(
+  offer: Awaited<ReturnType<typeof readSaleOffer>>,
+  input: SaleInput,
+  book: { id: string } | undefined
+) {
+  if (!offer.ok && offer.code === 'forbidden') return offer;
+  if (
+    !offer.ok ||
+    offer.version.id !== input.planVersionId ||
+    offer.termsVersion !== input.termsVersion
+  ) {
+    return { ok: false, code: 'stale_offer' } as const;
+  }
+  if (!book) throw new Error('Missing EUR/MKD exchange rate book');
+  const { version, rate, termsVersion, governingLaw } = offer;
+  if (!rate) return { ok: false, code: 'rate_unavailable' } as const;
+  if (rate.id !== input.rateId) return { ok: false, code: 'stale_rate' } as const;
+  const amountMkdMinor = toMkdMinor(version.listPriceMinor, rate.rate);
+  if (amountMkdMinor <= 0n) return { ok: false, code: 'rate_unavailable' } as const;
+  if (amountMkdMinor !== input.amountMkdMinor) return { ok: false, code: 'invalid' } as const;
+  return { ok: true, version, rate, termsVersion, governingLaw, amountMkdMinor } as const;
+}
+
 async function insertSale(
   tx: TenantTransaction,
   principal: SalePrincipal,
@@ -171,21 +194,9 @@ async function insertSale(
   if (!requested) return { ok: false, code: 'stale_offer' } as const;
 
   const offer = await readSaleOffer(tx, principal, requested.planId);
-  if (!offer.ok && offer.code === 'forbidden') return offer;
-  if (
-    !offer.ok ||
-    offer.version.id !== input.planVersionId ||
-    offer.termsVersion !== input.termsVersion
-  ) {
-    return { ok: false, code: 'stale_offer' } as const;
-  }
-  if (!book) throw new Error('Missing EUR/MKD exchange rate book');
-  const { version, rate, termsVersion, governingLaw } = offer;
-  if (!rate) return { ok: false, code: 'rate_unavailable' } as const;
-  if (rate.id !== input.rateId) return { ok: false, code: 'stale_rate' } as const;
-  const amountMkdMinor = toMkdMinor(version.listPriceMinor, rate.rate);
-  if (amountMkdMinor <= 0n) return { ok: false, code: 'rate_unavailable' } as const;
-  if (amountMkdMinor !== input.amountMkdMinor) return { ok: false, code: 'invalid' } as const;
+  const validated = validateSaleOffer(offer, input, book);
+  if (!validated.ok) return validated;
+  const { version, rate, termsVersion, governingLaw, amountMkdMinor } = validated;
 
   const id = randomUUID();
   const candidate = JSON.stringify({

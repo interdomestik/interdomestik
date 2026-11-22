@@ -2,17 +2,16 @@ import { randomUUID } from 'node:crypto';
 import {
   paymentPortTestGuardRole,
   restricted,
-  runtimeRole,
+  runSequentially,
 } from '@interdomestik/database/testing/payment-port-rls';
 import { expect, it } from 'vitest';
 
+import { directSaleRow, insertDirectSale } from './individual-sale-direct.test-support';
+import { registerSaleIntegrityCases } from './individual-sale-integrity.test-support';
 import {
   accepted,
   absent,
-  canonicalHash,
   completed,
-  directSaleRow,
-  insertDirectSale,
   refused,
   success,
   type SaleFixture,
@@ -58,31 +57,32 @@ export function registerInvariantCases(fixture: () => Promise<SaleFixture>) {
       'update membership_sale_kinds set kind = kind',
       'delete from membership_sale_channels',
     ];
-    for (const statement of writeLookup) {
+    await runSequentially(writeLookup, async statement => {
       await expect(
         restricted(f.admin, f.tenantId, tx => tx.unsafe(statement))
       ).rejects.toMatchObject({ code: '42501' });
-    }
+    });
 
     const request = accepted(await f.sellable(), { memberUserId: f.member.id });
     const { sale } = success(await f.sale(request));
     expect(sale.soldBy).toBe(f.owner.id);
     expect(await f.counts(request.operationKey)).toEqual(completed);
-    for (const table of names.filter(
-      name => !name.endsWith('kinds') && !name.endsWith('channels')
-    )) {
-      const counts = (tenant: string) =>
-        restricted(
-          f.admin,
-          tenant,
-          tx => tx`
+    await runSequentially(
+      names.filter(name => !name.endsWith('kinds') && !name.endsWith('channels')),
+      async table => {
+        const counts = (tenant: string) =>
+          restricted(
+            f.admin,
+            tenant,
+            tx => tx`
         select count(*)::int as count from ${tx(table)}
       `
-        );
-      const [[own], [foreign]] = await Promise.all([counts(f.tenantId), counts(f.otherTenantId)]);
-      expect(own.count).toBe(1);
-      expect(foreign.count).toBe(0);
-    }
+          );
+        const [[own], [foreign]] = await Promise.all([counts(f.tenantId), counts(f.otherTenantId)]);
+        expect(own.count).toBe(1);
+        expect(foreign.count).toBe(0);
+      }
+    );
     await expect(
       restricted(
         f.admin,
@@ -96,19 +96,22 @@ export function registerInvariantCases(fixture: () => Promise<SaleFixture>) {
       code: '42501',
       message: expect.stringContaining('row-level security'),
     });
-    for (const statement of [
-      'update membership_sales set voided_at = now()',
-      'delete from membership_sales',
-      'update membership_ledger_entries set amount_mkd_minor = 100',
-      'delete from membership_ledger_entries',
-      'update membership_sale_claims set claimed_at = now()',
-      'delete from membership_sale_claims',
-      'truncate membership_sale_claims, membership_sales, membership_ledger_entries',
-    ]) {
-      await expect(
-        restricted(f.admin, f.tenantId, tx => tx.unsafe(statement))
-      ).rejects.toMatchObject({ code: '42501' });
-    }
+    await runSequentially(
+      [
+        'update membership_sales set voided_at = now()',
+        'delete from membership_sales',
+        'update membership_ledger_entries set amount_mkd_minor = 100',
+        'delete from membership_ledger_entries',
+        'update membership_sale_claims set claimed_at = now()',
+        'delete from membership_sale_claims',
+        'truncate membership_sale_claims, membership_sales, membership_ledger_entries',
+      ],
+      async statement => {
+        await expect(
+          restricted(f.admin, f.tenantId, tx => tx.unsafe(statement))
+        ).rejects.toMatchObject({ code: '42501' });
+      }
+    );
   });
 
   it('posts one immutable matching charge, including on an identical sale retry', async () => {
@@ -219,133 +222,5 @@ export function registerInvariantCases(fixture: () => Promise<SaleFixture>) {
     ).rejects.toMatchObject({ code: '23514', constraint_name: 'membership_sales_positive_check' });
   });
 
-  it('checks each direct snapshot, lookup, reserved void and hash invariant independently', async () => {
-    const f = await fixture();
-    const input = accepted(await f.sellable(), { leadId: await f.lead() });
-    const good = await directSaleRow(f, input);
-    for (const [patch, code, name] of [
-      [{ governing_law: 'DE' }, '23514', 'membership_sales_stale_offer'],
-      [{ agent_id: f.otherAgent.id }, '23514', 'membership_sales_attribution_guard'],
-      [{ branch_id: f.otherBranch }, '23514', 'membership_sales_attribution_guard'],
-      [
-        { voided_at: good.sold_at, voided_by: f.owner.id, void_reason: 'control' },
-        '23514',
-        'membership_sales_void_state_guard',
-      ],
-      [
-        { channel: 'card', request_hash: canonicalHash(input, 'card') },
-        '23503',
-        'membership_sales_channel_fk',
-      ],
-      [{ channel: 'bank_transfer' }, '23514', 'membership_sales_request_hash_guard'],
-      [{ kind: 'unregistered' }, '23503', undefined],
-    ] as const) {
-      const row = { ...good, ...patch };
-      await expect(
-        restricted(f.admin, f.tenantId, tx => insertDirectSale(tx, row))
-      ).rejects.toMatchObject({ code, ...(name ? { constraint_name: name } : {}) });
-      expect(await f.counts(input.operationKey)).toEqual(absent);
-    }
-    await expect(
-      restricted(f.admin, f.tenantId, tx => insertDirectSale(tx, { ...good, kind: null }))
-    ).rejects.toMatchObject({ code: '23502', column_name: 'kind' });
-    expect(await f.counts(input.operationKey)).toEqual(absent);
-
-    await restricted(f.admin, f.tenantId, tx => insertDirectSale(tx, good));
-    expect(await f.counts(input.operationKey)).toEqual(completed);
-    const hash = canonicalHash({ ...input, channel: 'bank_transfer' });
-    await expect(
-      restricted(
-        f.admin,
-        f.tenantId,
-        tx => tx`
-      insert into membership_sale_claims (tenant_id, operation_key, request_hash, claimed_at)
-      values (${f.tenantId}, ${input.operationKey}, ${hash}, now())
-    `
-      )
-    ).rejects.toMatchObject({ code: '23505', constraint_name: 'membership_sale_claims_pk' });
-    await expect(
-      restricted(
-        f.admin,
-        f.tenantId,
-        tx => tx`
-        update membership_sales set terms_version = 'changed' where id = ${good.id}
-      `,
-        paymentPortTestGuardRole
-      )
-    ).rejects.toMatchObject({
-      code: '23514',
-      constraint_name: 'membership_sales_void_state_guard',
-    });
-    await expect(
-      restricted(
-        f.admin,
-        f.tenantId,
-        tx => tx`
-        delete from membership_sales where id = ${good.id}
-      `,
-        paymentPortTestGuardRole
-      )
-    ).rejects.toMatchObject({ code: '23514' });
-  });
-
-  it('allows one complete reserved void-state write when testing the state guard directly', async () => {
-    const f = await fixture();
-    const input = accepted(await f.sellable(), { memberUserId: f.member.id });
-    const { sale } = success(await f.sale(input));
-    const transition = () =>
-      restricted(
-        f.admin,
-        f.tenantId,
-        tx => tx`
-      update membership_sales set voided_at = clock_timestamp(), voided_by = ${f.owner.id},
-        void_reason = 'synthetic state-guard control' where id = ${sale.id}
-      returning id
-    `,
-        paymentPortTestGuardRole
-      );
-    expect([...(await transition())]).toEqual([{ id: sale.id }]);
-    await expect(transition()).rejects.toMatchObject({
-      code: '23514',
-      constraint_name: 'membership_sales_void_state_guard',
-    });
-  });
-
-  it('uses the exact UTF-8 lengths and text for the canonical request digest', async () => {
-    const f = await fixture();
-    const terms = ' v9 — révisé 📄 ';
-    await f.admin`update legal_entities set terms_version = ${terms} where id = ${f.legalEntityId}`;
-    const offer = await f.sellable();
-    expect(offer.termsVersion).toBe(terms);
-    const input = accepted(offer, { memberUserId: f.member.id });
-    const direct = await directSaleRow(f, input);
-    await restricted(f.admin, f.tenantId, tx => insertDirectSale(tx, direct));
-    expect(success(await f.sale(input)).sale.id).toBe(direct.id);
-    expect(await f.sale({ ...input, termsVersion: terms.trim() })).toEqual(refused('conflict'));
-    const [claim] = await restricted(
-      f.admin,
-      f.tenantId,
-      tx => tx`
-      select request_hash from membership_sale_claims where operation_key = ${input.operationKey}
-    `
-    );
-    expect(claim.request_hash).toEqual(canonicalHash(input));
-  });
-
-  it('refuses a provisional claim without a sale at commit', async () => {
-    const f = await fixture();
-    const key = randomUUID();
-    await expect(
-      restricted(
-        f.admin,
-        f.tenantId,
-        tx => tx`
-      insert into membership_sale_claims (tenant_id, operation_key, request_hash, claimed_at)
-      values (${f.tenantId}, ${key}, ${Buffer.alloc(32)}, clock_timestamp())
-    `,
-        runtimeRole
-      )
-    ).rejects.toMatchObject({ code: '23514', constraint_name: 'membership_claims_require_sale' });
-    expect(await f.counts(key)).toEqual(absent);
-  });
+  registerSaleIntegrityCases(fixture);
 }

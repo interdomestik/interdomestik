@@ -7,7 +7,8 @@ import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
-import { holdingChange, holdingSale, race } from './individual-sale-races.test-support';
+import type { SaleInput } from '../../port/sale-input';
+import { holdingChange, holdingSale, race } from './individual-sale-offer-races.test-support';
 import {
   absent,
   accepted,
@@ -16,7 +17,6 @@ import {
   success,
   type SaleFixture,
 } from './individual-sales.test-support';
-import type { SaleInput } from './sale-input';
 
 async function seedCompanySeat(f: SaleFixture, startsInDays = -1) {
   const { tenantId, homeBranch, owner, member, legalEntityId, planId } = f;
@@ -52,7 +52,7 @@ async function seatAdmission(
   entryId: string,
   hold?: (pid: number) => Promise<void>
 ) {
-  const { admitPersonEntries } = await import('../sponsor-coverage/admission');
+  const { admitPersonEntries } = await import('../../sponsor-coverage/admission');
   return withPaymentPortTestTransaction(
     f.peer,
     f.tenantId,
@@ -86,7 +86,7 @@ async function activateIndividualSubscription(
 }
 
 async function composedSale(f: SaleFixture, input: SaleInput, who: typeof f.owner) {
-  const { recordSaleInTx } = await import('../payment-port-compose');
+  const { recordSaleInTx } = await import('../../payment-port-compose');
   return withPaymentPortTestTransaction(
     f.peer,
     f.tenantId,

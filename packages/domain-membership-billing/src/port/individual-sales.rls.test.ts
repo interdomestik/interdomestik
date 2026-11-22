@@ -9,12 +9,15 @@ import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 
-import { registerCoverageCases } from './individual-sale-coverage.test-support';
-import { registerInvariantCases } from './individual-sale-invariants.test-support';
-import { registerOfferCases } from './individual-sale-offers.test-support';
-import { registerRaceCases } from './individual-sale-races.test-support';
-import { registerScopeCases } from './individual-sale-scope.test-support';
-import { grantSaleFixturePrerequisites, saleFixture } from './individual-sales.test-support';
+import { registerCoverageCases } from '../test/individual-sales/individual-sale-coverage.test-support';
+import { registerInvariantCases } from '../test/individual-sales/individual-sale-invariants.test-support';
+import { registerOfferCases } from '../test/individual-sales/individual-sale-offers.test-support';
+import { registerRaceCases } from '../test/individual-sales/individual-sale-races.test-support';
+import { registerScopeCases } from '../test/individual-sales/individual-sale-scope.test-support';
+import {
+  grantSaleFixturePrerequisites,
+  saleFixture,
+} from '../test/individual-sales/individual-sales.test-support';
 
 describe.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
   'individual sales with the restricted database role',

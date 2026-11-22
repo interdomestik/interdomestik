@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import {
   firstRate,
@@ -6,14 +6,13 @@ import {
   paymentPortTestGuardRole,
   paymentPortTestSession,
   restricted,
+  runSequentially,
   runtimeRole,
   type PaymentPortDatabase,
-  type PaymentPortTestTransaction,
 } from '@interdomestik/database/testing/payment-port-rls';
 import { expect } from 'vitest';
 
-import { skopjeDate } from './calendar';
-import type { SaleInput } from './sale-input';
+import type { SaleInput } from '../../port/sale-input';
 
 export async function grantSaleFixturePrerequisites({ admin }: PaymentPortDatabase) {
   // The runtime already reads these catalogue and identity tables. A scratch journal has
@@ -32,7 +31,7 @@ export async function grantSaleFixturePrerequisites({ admin }: PaymentPortDataba
     membership_sales, membership_ledger_entries to "${paymentPortTestGuardRole}"`);
 }
 
-export type PaymentPort = typeof import('../payment-port');
+export type PaymentPort = typeof import('../../payment-port');
 export type SaleOffer = Extract<
   Awaited<ReturnType<PaymentPort['getSaleOffer']>>,
   { ok: true }
@@ -55,13 +54,13 @@ export function success<T extends { ok: boolean }>(result: T): Extract<T, { ok: 
 
 export async function saleFixture(db: PaymentPortDatabase) {
   const { admin } = db;
-  const port: PaymentPort = await import('../payment-port');
+  const port: PaymentPort = await import('../../payment-port');
   const tenantId = randomUUID();
   const otherTenantId = randomUUID();
-  for (const id of [tenantId, otherTenantId]) {
+  await runSequentially([tenantId, otherTenantId], async id => {
     await admin`insert into tenants (id, name, legal_name, country_code)
       values (${id}, 'Synthetic tenant', 'Synthetic tenant', 'MK')`;
-  }
+  });
   const branch = async (tenant = tenantId) => {
     const id = randomUUID();
     await admin`insert into branches (id, tenant_id, name, slug)
@@ -216,86 +215,3 @@ export function accepted(offer: SaleOffer, buyer: SaleInput['buyer']): SaleInput
 export const absent = { claims: 0, sales: 0, charges: 0 };
 export const completed = { claims: 1, sales: 1, charges: 1 };
 export const refused = (code: string) => ({ ok: false, code });
-
-export function canonicalHash(input: SaleInput, channel: string = input.channel) {
-  const [kind, id] =
-    'leadId' in input.buyer ? ['lead', input.buyer.leadId] : ['member', input.buyer.memberUserId];
-  const fields = [
-    'individual:v1',
-    kind,
-    id,
-    input.planVersionId,
-    input.termsVersion,
-    input.rateId,
-    input.amountMkdMinor.toString(),
-    channel,
-  ];
-  const hash = createHash('sha256');
-  for (const value of fields) {
-    const bytes = Buffer.from(value, 'utf8');
-    const length = Buffer.alloc(4);
-    length.writeUInt32BE(bytes.length);
-    hash.update(length).update(bytes);
-  }
-  return hash.digest();
-}
-
-export async function directSaleRow(f: SaleFixture, input: SaleInput) {
-  const [version] =
-    await f.admin`select * from membership_plan_versions where id = ${input.planVersionId}`;
-  const [entity] =
-    await f.admin`select * from legal_entities where id = ${version.legal_entity_id}`;
-  const [rate] = await f.admin`select * from exchange_rates where id = ${input.rateId}`;
-  const [lead] =
-    'leadId' in input.buyer
-      ? await f.admin`select * from member_leads where id = ${input.buyer.leadId}`
-      : [];
-  const [member] =
-    'memberUserId' in input.buyer
-      ? await f.admin`select * from "user" where id = ${input.buyer.memberUserId}`
-      : [];
-  const now = new Date();
-  return {
-    id: randomUUID(),
-    kind: 'individual' as string | null,
-    tenant_id: f.tenantId,
-    plan_version_id: version.id,
-    plan_id: version.plan_id,
-    legal_entity_id: version.legal_entity_id,
-    governing_law: entity.governing_law,
-    terms_version: input.termsVersion,
-    price_currency: version.price_currency,
-    price_minor: version.list_price_minor,
-    list_price_minor: version.list_price_minor,
-    plan_tier: version.tier,
-    plan_members_included: version.members_included,
-    rate_id: rate.id,
-    rate_book_id: rate.book_id,
-    rate_base: rate.base,
-    rate_quote: rate.quote,
-    rate: rate.rate,
-    rate_effective_on: rate.effective_on,
-    amount_mkd_minor: input.amountMkdMinor.toString(),
-    operation_key: input.operationKey,
-    request_hash: canonicalHash(input),
-    sold_by: f.owner.id,
-    sold_at: now.toISOString(),
-    sold_on: skopjeDate(now),
-    due_on: skopjeDate(now),
-    channel: input.channel as string,
-    buyer_kind: lead ? 'lead' : 'member',
-    lead_id: lead?.id ?? null,
-    member_user_id: member?.id ?? null,
-    agent_id: lead?.agent_id ?? null,
-    branch_id: lead?.branch_id ?? member?.branch_id ?? null,
-  };
-}
-
-export async function insertDirectSale(
-  tx: PaymentPortTestTransaction,
-  row: Awaited<ReturnType<typeof directSaleRow>>
-) {
-  await tx`insert into membership_sale_claims (tenant_id, operation_key, request_hash, claimed_at)
-    values (${row.tenant_id}, ${row.operation_key}, ${row.request_hash}, clock_timestamp())`;
-  return tx`insert into membership_sales ${tx(row)} returning id`;
-}
