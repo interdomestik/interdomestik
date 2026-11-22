@@ -12,7 +12,13 @@ import mk from '../../src/messages/mk/agent.json';
 import sq from '../../src/messages/sq/agent.json';
 import { gotoApp } from '../utils/navigation';
 import { removeOwnedMemberLead } from '../utils/owned-member-lead';
-import { expect, test, type BrowserContext, type Page, type Request } from '@playwright/test';
+import {
+  expect,
+  test,
+  type BrowserContext,
+  type Page,
+  type Request as PlaywrightRequest,
+} from '@playwright/test';
 
 type TenantRegistrationTarget = {
   actorEmail: string;
@@ -199,10 +205,10 @@ async function approveCash(
       { timeout: 20_000, message: `cash-approve for ${email} was never hydrated` }
     )
     .toBe(true);
-  // One click only. Requests are recorded from before it, and the click settles before any
-  // failure, so no late approval can reach cleanup. A lost click fails here, not as a null poll.
+  // One click only. Requests are recorded from before it, and the click and the dispatch check
+  // both settle before any failure. A lost click fails here, not as a null conversion poll.
   let approvalSent = false;
-  const recordApproval = (request: Request) => {
+  const recordApproval = (request: PlaywrightRequest) => {
     if (
       request.method() === 'POST' &&
       request.headers()['next-action'] !== undefined &&
@@ -211,20 +217,26 @@ async function approveCash(
       approvalSent = true;
     }
   };
+  const settledError = (error: unknown) => error;
   admin.on('request', recordApproval);
+  let clickError: unknown;
+  let dispatchError: unknown;
   try {
-    await approve.click({ timeout: 10_000 });
-    await expect
+    clickError = await approve.click({ timeout: 10_000 }).then(() => null, settledError);
+    // A click can fail after its input reached the page, so the dispatch check runs either way.
+    dispatchError = await expect
       .poll(() => approvalSent, {
         timeout: 10_000,
         message: `cash-approve for ${email} sent no approval server action`,
       })
-      .toBe(true);
+      .toBe(true)
+      .then(() => null, settledError);
   } finally {
     admin.off('request', recordApproval);
   }
-  // The click does not await the server action: the flow ends once its conversion committed, so
-  // cleanup waits for it. Only a conversion slower than this poll can still finish after cleanup.
+  if (!approvalSent) throw clickError ?? dispatchError;
+  // A sent approval is always followed to its conversion, even after a click error, so cleanup
+  // never races it. Only a conversion slower than this poll can still finish after cleanup.
   await expect
     .poll(
       async () => {
@@ -237,6 +249,7 @@ async function approveCash(
       { timeout: 30_000, message: `cash approval for ${email} converted no member` }
     )
     .not.toBeNull();
+  if (clickError) throw clickError;
 }
 
 test.describe('Registration tenant attribution', () => {
