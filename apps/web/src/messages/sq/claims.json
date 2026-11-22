@@ -18,7 +18,8 @@
     "memberList": {
       "searchPlaceholder": "Kërko...",
       "resultStatus": "Faqja {page} nga {pages}: {count, plural, one {# rast} other {# raste}}",
-      "updating": "Rastet e mëparshme shfaqen derisa të përditësohen rezultatet…"
+      "updating": "Rastet e mëparshme shfaqen derisa të përditësohen rezultatet…",
+      "pageEmpty": "Nuk ka raste në këtë faqe."
     },
     "table": {
       "unavailable": "Nuk disponohet",

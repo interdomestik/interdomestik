@@ -176,6 +176,28 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     expect(screen.getByRole('alert')).toBeVisible();
   });
 
+  it('keeps retry mounted and focused when an equivalent URL commits', async () => {
+    navigation.query = 'page=1';
+    mockFetch({}, { ok: false });
+    const { commit } = renderTable();
+
+    const retry = await screen.findByRole('button', { name: common.common.tryAgain });
+    const finish = deferFetch();
+    retry.focus();
+    fireEvent.click(retry);
+    commit('');
+
+    expect(screen.getByRole('button', { name: common.common.processing })).toBe(retry);
+    expect(retry).toHaveAttribute('aria-disabled', 'true');
+    expect(retry).toHaveFocus();
+
+    finish(new Response(JSON.stringify(wireResponse([wireRow()]))));
+    expect(await screen.findByRole('link', { name: 'Flight Delay' })).toBeVisible();
+    expect(screen.getByTestId('member-claims-table-region')).toHaveFocus();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
   it('keeps settled rows and the live line until the requested page returns', async () => {
     mockFetch({ ...wireResponse([wireRow()]), totalPages: 2 });
     const { commit } = renderTable();
@@ -198,8 +220,9 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     commit('page=2');
     expect(screen.getByText('Showing the previous results while updating…')).toBeVisible();
     expect(firstRow).toBeVisible();
-    const region = screen.getByTestId('member-claims-table-region');
+    const region = screen.getByRole('region', { name: claims.claims.title });
     expect(region).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByTestId('member-claims-table-region')).toBeNull();
     expect(region).not.toContainElement(live);
     expect(screen.getByTestId('member-claims-page-next')).toBe(next);
     expect(fireEvent.click(next)).toBe(false);
@@ -217,6 +240,7 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
       )
     );
     expect(await screen.findByRole('link', { name: 'Case on page two' })).toBeVisible();
+    expect(screen.getByTestId('member-claims-table-region')).toBe(region);
     expect(screen.getByText('Page 2 of 2: 1 case')).toBe(live);
     expect(screen.getByTestId('member-claims-page-next').tagName).toBe('SPAN');
     expect(region).toHaveAttribute('aria-busy', 'false');
@@ -252,10 +276,42 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     mockFetch({ ...wireResponse([]), page: 3 });
     renderTable();
     const empty = await screen.findByTestId('member-claims-empty');
+    expect(empty).toHaveTextContent(claims.claims.memberList.pageEmpty);
+    expect(empty).not.toHaveTextContent(claims.claims.empty.filtered);
     expect(within(empty).getByRole('link', { name: common.common.previous })).toHaveAttribute(
       'href',
       '/member/claims?search=late'
     );
+  });
+
+  it('reports an empty later page and links back to page one', async () => {
+    navigation.query = 'page=3';
+    mockFetch({ ...wireResponse([]), page: 3, totalPages: 1 });
+    renderTable();
+
+    const empty = await screen.findByTestId('member-claims-empty');
+    const pageEmpty = claims.claims.memberList.pageEmpty;
+    expect(empty).toHaveTextContent(pageEmpty);
+    expect(empty).not.toHaveTextContent(claims.claims.empty.description);
+    expect(within(empty).getByRole('link', { name: common.common.previous })).toHaveAttribute(
+      'href',
+      '/member/claims'
+    );
+    const region = screen.getByRole('region', { name: claims.claims.title });
+    expect(region.parentElement?.querySelector('[aria-live="polite"]')?.textContent).toBe(
+      pageEmpty
+    );
+  });
+
+  it('uses the page returned by the server for both page labels', async () => {
+    navigation.query = 'page=3';
+    mockFetch({ ...wireResponse([wireRow()]), page: 2, totalPages: 2 });
+    renderTable();
+
+    expect(await screen.findByText('Page 2 of 2: 1 case')).toHaveAttribute('aria-live', 'polite');
+    expect(
+      within(screen.getByTestId('member-claims-table-region')).getByText('Page 2 of 2')
+    ).toBeVisible();
   });
 
   it('shows catalogued text for absent companies and unrecognized categories', async () => {

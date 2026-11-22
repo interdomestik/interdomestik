@@ -102,15 +102,15 @@ function useMemberClaimsPageNavigation(currentParams: string, isPlaceholderData:
   return { getPageHref, isPagePending, isPending, startPageNavigation };
 }
 
-function useMemberClaimsRetry(currentParams: string, refetch: () => Promise<unknown>) {
+function useMemberClaimsRetry(requestKey: string, refetch: () => Promise<unknown>) {
   const [retryKey, setRetryKey] = useState<string | null>(null);
   const retryInFlight = useRef(false);
-  const isRetrying = retryKey === currentParams;
+  const isRetrying = retryKey === requestKey;
 
   async function retry() {
     if (retryInFlight.current) return;
     retryInFlight.current = true;
-    setRetryKey(currentParams);
+    setRetryKey(requestKey);
     try {
       await refetch();
     } finally {
@@ -129,9 +129,10 @@ function useMemberClaimsListState(locale: string, t: ReturnType<typeof useTransl
   const requestedPage = Number(searchParams.get('page'));
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const currentParams = searchParams.toString();
+  const request = { statusFilter, searchQuery, page };
 
   const { data, isError, isPlaceholderData, refetch } = useQuery({
-    queryKey: ['claims', 'member', { statusFilter, searchQuery, page }],
+    queryKey: ['claims', 'member', request],
     queryFn: ({ signal }) =>
       fetchClaims({
         scope: 'member',
@@ -144,23 +145,28 @@ function useMemberClaimsListState(locale: string, t: ReturnType<typeof useTransl
     placeholderData: keepPreviousData,
   });
   const navigation = useMemberClaimsPageNavigation(currentParams, isPlaceholderData);
-  const { isRetrying, retry } = useMemberClaimsRetry(currentParams, refetch);
+  const { isRetrying, retry } = useMemberClaimsRetry(JSON.stringify(request), refetch);
 
   const [resultStatus, setResultStatus] = useState('');
-  const displayedPage = isPlaceholderData ? (data?.page ?? page) : page;
+  const displayedPage = data?.page ?? page;
   const totalPages = Math.max(1, data?.totalPages ?? 1);
   const pageLabel = formatNumber(displayedPage, locale) ?? '';
   const totalPagesLabel = formatNumber(totalPages, locale) ?? '';
+  let pageEmptyMessage: string | undefined;
+  if (page > 1 && data?.claims.length === 0) {
+    pageEmptyMessage = t('memberList.pageEmpty');
+  }
 
   // Keep the last completion message through navigation and retries.
   if (!navigation.isPending && !isRetrying) {
     const message =
       !isError && data
-        ? t('memberList.resultStatus', {
+        ? (pageEmptyMessage ??
+          t('memberList.resultStatus', {
             page: pageLabel,
             pages: totalPagesLabel,
             count: data.claims.length,
-          })
+          }))
         : '';
     if (message !== resultStatus) setResultStatus(message);
   }
@@ -173,6 +179,7 @@ function useMemberClaimsListState(locale: string, t: ReturnType<typeof useTransl
     isPlaceholderData,
     isRetrying,
     page,
+    pageEmptyMessage,
     pageLabel,
     resultStatus,
     retry,
@@ -201,6 +208,7 @@ export function MemberClaimsTable({
     isPlaceholderData,
     isRetrying,
     page,
+    pageEmptyMessage,
     pageLabel,
     resultStatus,
     retry,
@@ -269,7 +277,7 @@ export function MemberClaimsTable({
         aria-busy={Boolean(isPending || showsLoading)}
         aria-label={t('title')}
         className="min-w-0 space-y-4 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 forced-colors:focus-visible:outline"
-        data-testid={hasRows ? 'member-claims-table-region' : undefined}
+        data-testid={hasRows && !isPlaceholderData ? 'member-claims-table-region' : undefined}
         ref={regionRef}
         tabIndex={-1}
       >
@@ -307,7 +315,7 @@ export function MemberClaimsTable({
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">{t('empty.title')}</h3>
               <output className="block max-w-prose text-sm leading-6 text-foreground/70">
-                {hasFilters ? t('empty.filtered') : t('empty.description')}
+                {pageEmptyMessage ?? t(hasFilters ? 'empty.filtered' : 'empty.description')}
               </output>
             </div>
             {page > 1 && (

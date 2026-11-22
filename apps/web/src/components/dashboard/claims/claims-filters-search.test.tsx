@@ -237,6 +237,9 @@ describe('ClaimsFilters search coalescing', () => {
     expect(pending()).not.toBeInTheDocument();
     expect(statusChip('draft')).toHaveAttribute('aria-disabled', 'false');
     expect(pushedUrls()).toEqual(['/member/claims?search=claim']);
+
+    fireEvent.click(statusChip('draft'));
+    expect(pushedUrls()).toEqual(['/member/claims?search=claim', '/member/claims?status=draft']);
   });
 
   it('cancels a scheduled commit on unmount and stays single-commit in StrictMode', () => {

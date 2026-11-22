@@ -133,7 +133,6 @@ export async function PortalActionsRegion({ canDraft, copy, locale, promise }: A
           →
         </span>
       </a>
-      {showMembership ? <p className="text-sm font-semibold">{action.label}</p> : null}
       {action.warning && (
         <p className="flex items-start gap-2 rounded-xl border border-foreground/60 p-3 text-sm font-medium leading-6 text-foreground/70 forced-colors:border-[CanvasText]">
           <TriangleAlert aria-hidden="true" className="mt-1 size-4 shrink-0" />

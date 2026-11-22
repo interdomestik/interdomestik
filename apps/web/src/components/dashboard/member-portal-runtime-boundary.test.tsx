@@ -48,7 +48,7 @@ const actions = Object.fromEntries(
 
 const copy: MemberPortalCopy = {
   ...JSON.parse(
-    '{"description":"Safe portal description","disclaimer":"No outcome is promised.","navigation":{"cases":"Cases","documents":"Docs","helpNow":"Help","label":"Shortcuts","membership":"Membership"},"referenceFallback":"Reference unavailable","regions":{"actions":{"empty":"None","error":"Unavailable","label":"Actions","loading":"Loading actions"},"case":{"empty":"No cases yet","error":"Unavailable","label":"Case","loading":"Loading case"},"updates":{"empty":"No updates yet","error":"Updates unavailable","label":"Recent case updates","loading":"Loading updates"}},"title":"My cases"}'
+    '{"description":"Safe portal description","disclaimer":"No outcome is promised.","navigation":{"cases":"Cases","documents":"Docs","helpNow":"Help","label":"Shortcuts","membership":"Membership"},"referenceFallback":"Reference unavailable","regions":{"actions":{"empty":"None","error":"Actions unavailable","label":"Actions","loading":"Loading actions"},"case":{"empty":"No cases yet","error":"Case unavailable","label":"Case","loading":"Loading case"},"updates":{"empty":"No updates yet","error":"Updates unavailable","label":"Recent case updates","loading":"Loading updates"}},"title":"My cases"}'
   ),
   actions,
   caseEntryLabel: 'View case',
@@ -225,15 +225,20 @@ describe('Member portal', () => {
     'renders one membership link and keeps the lifecycle copy for %s without draft access',
     async bucket => {
       const { container } = render(await action(bucket, false, null));
+      const { label, warning } = copy.actions[bucket];
       expect(screen.getAllByRole('link')).toHaveLength(1);
       expect(screen.getByRole('link', { name: 'Membership' })).toHaveAttribute(
         'href',
         '/sq/member/membership'
       );
-      expect(screen.getByText(copy.actions[bucket].label)).toBeVisible();
-      expect(container.querySelector('dl > div:last-child dd')).toHaveTextContent(
+      expect(container).not.toHaveTextContent(label);
+      const facts = screen.getByTestId('member-membership-access');
+      expect(facts).toHaveTextContent(copy.membershipStatus.statuses[bucket]);
+      expect(facts.querySelector('[data-access]')).toHaveAttribute('data-access', 'denied');
+      expect(facts.querySelector(':scope > div:last-child dd')).toHaveTextContent(
         copy.membershipStatus.unavailable
       );
+      if (warning) expect(screen.getByText(warning)).toBeVisible();
     }
   );
 
@@ -337,7 +342,7 @@ describe('Member portal', () => {
     const promise = () =>
       mode === 'null' ? Promise.resolve(null) : Promise.reject(new Error('private failure'));
     const view = render(await PortalCasesRegion({ copy, promise: promise() }));
-    expect(screen.getByText('Unavailable')).toHaveAttribute('role', 'alert');
+    expect(screen.getByText('Case unavailable')).toHaveAttribute('role', 'alert');
     expect(screen.getByRole('link', { name: 'Try again' })).toHaveAttribute('href', '/en/member');
     expect(screen.queryByText('No cases yet')).not.toBeInTheDocument();
     view.rerender(
@@ -348,8 +353,8 @@ describe('Member portal', () => {
         promise: promise(),
       })
     );
-    expect(screen.getByText('Unavailable')).toBeVisible();
-    expect(screen.getByText('Unavailable')).toHaveAttribute('role', 'alert');
+    expect(screen.getByText('Actions unavailable')).toBeVisible();
+    expect(screen.getByText('Actions unavailable')).toHaveAttribute('role', 'alert');
     expect(screen.getByRole('link', { name: 'Try again' })).toHaveAttribute('href', '/en/member');
     view.rerender(await PortalUpdatesRegion({ copy, locale: 'en', promise: promise() }));
     expect(screen.getByText('Updates unavailable')).toBeVisible();

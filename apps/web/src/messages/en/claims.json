@@ -18,7 +18,8 @@
     "memberList": {
       "searchPlaceholder": "Search...",
       "resultStatus": "Page {page} of {pages}: {count, plural, one {# case} other {# cases}}",
-      "updating": "Showing the previous results while updating…"
+      "updating": "Showing the previous results while updating…",
+      "pageEmpty": "There are no cases on this page."
     },
     "table": {
       "unavailable": "Unavailable",

@@ -18,7 +18,8 @@
     "memberList": {
       "searchPlaceholder": "Suchen...",
       "resultStatus": "Seite {page} von {pages}: {count, plural, one {# Fall} other {# Fälle}}",
-      "updating": "Bis zur Aktualisierung werden die bisherigen Ergebnisse angezeigt…"
+      "updating": "Bis zur Aktualisierung werden die bisherigen Ergebnisse angezeigt…",
+      "pageEmpty": "Auf dieser Seite gibt es keine Fälle."
     },
     "table": {
       "unavailable": "Nicht verfügbar",
