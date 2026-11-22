@@ -53,7 +53,9 @@ test('refused outright: missing, empty, unparseable and valid-but-empty lockfile
     'empty importers': Buffer.from(`${header}\nimporters:\n\npackages: {}\n`),
     'invalid utf-8': Buffer.concat([Buffer.from(lock), Buffer.from([0xff, 0x0a])]),
     bom: Buffer.from(`\uFEFF${lock}`),
-    crlf: Buffer.from(lock.replace('\n', '\r\n')),
+    // One CRLF on the first line is refused, and so is a lockfile with CRLF throughout.
+    crlf: Buffer.from(replaceOnce(lock, "lockfileVersion: '9.0'\n", "lockfileVersion: '9.0'\r\n")),
+    'crlf throughout': Buffer.from(lock.replaceAll('\n', '\r\n')),
     tab: Buffer.from(lock.replace('\nimporters:\n', '\nimporters:\n\t\n')),
     nul: Buffer.from(lock.replace('\nimporters:\n', '\nimporters:\n\0\n')),
     'no final newline': Buffer.from(lock.slice(0, -1)),
