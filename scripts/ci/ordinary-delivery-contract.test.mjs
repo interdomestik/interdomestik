@@ -49,11 +49,21 @@ test('ordinary delivery does not require ritual companion PRs or collapse delive
   );
   assert.match(program, /prepared, tested, merged, deployed and user-validated states separately/u);
   assert.match(agents, /prepared, tested, merged, deployed, validated by a user/u);
-  assert.match(agents, /The owner merges and releases/u);
+  assert.match(agents, /the lead \(definition, routing, merging: `RULES\.md`, R-01\)/u);
+  assert.match(agents, /The owner releases\./u);
   assert.match(
     agents,
-    /No agent tool reaches production, writes to staging, merges or force-pushes/u
+    /No agent tool reaches production, writes to staging or force-pushes \(merging: R-01\)/u
   );
+  assert.doesNotMatch(agents, /\b(?:agents?|tools?) (?:may|can) merge/iu);
+  // The conditions under which the lead merges (RULES.md, R-01, named by AGENTS.md R-01) are pinned as written.
+  const rules = read('docs/engineering/RULES.md').replace(/\s+/gu, ' ');
+  assert.ok(
+    rules.includes(
+      'The lead session may merge a PR only when all of these hold on its exact head: every required check is green; `delivery-gate` is green; the verdict of R-01 has no open finding; the tier\'s local verification is recorded (`GATE-EVIDENCE` where the tier needs it); the PR is up to date with `main`. The lead never force-pushes, never bypasses a ruleset and never merges its own unreviewed change.'
+    )
+  );
+  assert.match(rules, /No other agent merges\. Releases, deploys, ruleset repins and the authorizations of R-37 stay with the owner\./u);
   assert.match(tracker, /No deployment, product readiness or user-acceptance claim/u);
 });
 

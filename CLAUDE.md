@@ -15,7 +15,7 @@ The rules are in `AGENTS.md`. This file adds only what is specific to Claude Cod
 - One bounded unit of work per session (R-22). When it is implemented, verified and recorded, stop. Do not begin the next work package on your own.
 - A subagent gets one responsibility, the paths it may touch, and the rules of `AGENTS.md` that apply, copied into its brief. Never brief it with "see AGENTS.md" alone.
 - Check a subagent's result against the code before you use it: re-read the lines it cites, recount a number that enters a decision, and trace a claim that something "does not exist" or "has no caller" before you rely on it.
-- Run one heavy job at a time (`pnpm pr:verify`, the E2E gate, a build), and none while another session runs one.
+- Run one heavy job at a time (`pnpm pr:verify`, the E2E gate, a build), and none while another session runs one. The dispatcher, the checks before a push and when the gate runs: `RULES.md`, R-04, Mac use.
 
 ## Memory, skills, other tools
 

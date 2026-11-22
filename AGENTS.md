@@ -7,9 +7,9 @@ E = enforced by the named check (`*`: not live yet; follow it); E~ = in part. A 
 ## 1. Work, roles, review
 
 - R-29 Work comes only from the ordered packages of `DIRECTION.md` or the owner's explicit request; ledgers are history. No standing approval unless stated here. No refactor of routing, auth, tenancy, domain boundaries, schema or billing that neither asked for. A.
-- R-01 Claude Code implements and owns integration. Codex reviews independently (`gpt-6.1-sol`, `xhigh`); the lead (definition, routing: `RULES.md`, R-01) may give it a bounded part with disjoint files in its own worktree, which Claude then reviews. No model approves its own work. A change merges only with the other model's verdict on the exact head and no open finding; the record names head, model served and tier. The owner merges and releases. E: CHK-01*.
+- R-01 Claude Code implements and owns integration. Codex reviews independently (`gpt-6.2-sol`, `xhigh`); the lead (definition, routing, merging: `RULES.md`, R-01) may give it a bounded part with disjoint files in its own worktree, which Claude then reviews. No model approves its own work. A change merges only with the other model's verdict on the exact head (skips: R-02) and no open finding; the record names head, model served and tier. The owner releases. E: CHK-01*.
 - A review is read-only: findings first, by severity, with file and line: `blocker`, `hardening` (fix, or defer with a reason, before merge), `optional`, `rejected` (with evidence). A doubt or a blocked reviewer is no approval: for T1–T3 the lead names another; HIGH work waits or goes to the owner. No paid API as fallback.
-- R-02 Astra (high effort or above) only for: the first full review of HIGH work (T4–T6); the final review of its exact head; a concrete unresolved security, gate, concurrency, data-loss or architecture ambiguity. E~: CHK-01*.
+- R-02 Astra (high effort or above) only for: the first full review of HIGH work (T4–T6); the final review of its exact head; a concrete unresolved security, gate, concurrency, data-loss or architecture ambiguity. Bar, skips: `RULES.md`, R-02. E~: CHK-01*.
 - R-03 Rules live only here and in the passages they name. No active instruction file may require or auto-trigger a retired program, runner or command, state another routing than R-01, or repeat a fact the repository holds. E: CHK-02*, HOOK-05*.
 
 ## 2. Before you start
@@ -34,7 +34,7 @@ Name the tier from the whole diff (deletions, renames). Several tiers: the highe
 
 Done = required checks green + Sonar: no new issue + the R-01 review on the final head, confirming the tier + local verification + the tier's line. Say which state a change is in (prepared, tested, merged, deployed, validated by a user) and never report as passed what failed or did not run. E~: CHK-03*.
 
-Local verification: T4–T6 run, on the dedicated macOS machine (marker, pre-check rule: `RULES.md`, R-04), configuration recorded, `pnpm pr:verify` and `pnpm security:guard` once, last, on the final head, after green hosted checks and the review's yes. T1–T3 skip it only if all required checks and the unit, static, audit, RLS, PR E2E and Pilot Gate jobs ran green on that head and current base, identities recorded, nothing flaky, retried or skipped unapproved; else T4. Instruction-only changes (no workflow, script, config or code) skip it; HIGH review if they change delivery policy.
+Local verification: T4–T6 run, on the dedicated macOS machine (marker, pre-check rule, Mac use, instruction-only: `RULES.md`, R-04), configuration recorded, `pnpm pr:verify` and `pnpm security:guard` once, last, on the final head, after green hosted checks and the review's yes. T1–T4 skip it only if all required checks and the unit, static, audit, RLS, PR E2E and Pilot Gate jobs ran green on that head and current base, identities recorded, nothing flaky, retried or skipped unapproved, no coverage gap; else T4.
 
 ## 4. Server code and data
 
@@ -58,14 +58,14 @@ Local verification: T4–T6 run, on the dedicated macOS machine (marker, pre-che
 - R-18 Payments only through the provider-neutral port; a provider's SDK, events and payloads stay in its adapter. Membership payments are never mixed with compensation, commission or a lawyer's share. E: CHK-18*.
 - R-30 Identity and sessions: Better Auth only, through `@interdomestik/shared-auth`; provider clients and types stay in adapters; Supabase PostgreSQL is persistence only. Never bypass authentication, even in development. Each environment trusts only its own exact host names. E~: CHK-15*.
 - R-35 Never weaken a tenant, row-level-security (RLS), document, privacy or data-integrity protection: all are mandatory. Documents: upload against a signed intent to a private bucket, server-built tenant path, no overwrite; read only through the access-checked route; shared only by share pack; access logged; removed only by the retention rule. Consent is stored with version and time. Invariants are database constraints; audit and ledger rows are corrected by new rows. E~: `pnpm-audit`.
-- R-23 A new screen follows R-05, R-09, R-15, R-17 and R-34, and: ties loading, empty, error, retry and pending states to the real completion signal (A); transmits each consent it shows (CHK-22*); meets WCAG 2.2 AA with keyboard, focus and responsive behaviour (lint; else A).
+- R-23 A new screen follows R-05, R-09, R-15, R-17 and R-34, and: ties loading, empty, error, retry and pending states to the real completion signal (A); transmits each consent it shows (CHK-22*); meets WCAG 2.2 AA with keyboard, focus and responsive behaviour (A11Y*; else A).
 
 ## 6. Gates, environment, secrets
 
 - R-10 A gate becomes required only with a negative-input test (missing, empty, unparseable, valid-but-empty), a trial on the last 20 merged PRs without a false refusal, and the defect class it catches. Routine schema, locale and dependency changes pass without an admission PR. `repo:size:check` growth is advisory except the coarse largest-file and class-aware modularity limits: no exact allocation, shared-budget edit or byte-specific approval for routine source, test or catalogue work. Today's required checks stay until the owner approves a change. E: CHK-10*.
-- R-24 No `supabase`, `vercel` or deploy command in a development session; no checkout linked to a shared project. No agent tool reaches production, writes to staging, merges or force-pushes. E~: HOOK-01*, HOOK-02*.
+- R-24 No `supabase`, `vercel` or deploy command in a development session; no checkout linked to a shared project. No agent tool reaches production, writes to staging or force-pushes (merging: R-01). E~: HOOK-01*, HOOK-02*.
 - R-25 Never print, log, commit or serialize a secret, nor copy a credential into a file or variable. Never work around a sandbox, hook or approval refusal; report it. `.env*` files stay development-only and untracked; local services bind to loopback. E~: `gitleaks`.
 - R-26 No real personal data, scans or office files in the repository, logs or any AI tool; member spreadsheets enter only by the upload screen. E~: CHK-23*.
 - R-27 Holds: `better-auth` ~1.6 with `accountId` equal to the e-mail; never `postcss-selector-parser` 6.1.3; `turbo` 2.10.7. E: pins; `pnpm-audit`.
-- R-33 Search with `rg` and `fd`; never `rg -r`. E: HOOK-03*.
+- R-33 Search with `rg` and `fd`; never `rg -r`; ANE: `RULES.md`, R-33. E: HOOK-03*.
 - R-36 `pnpm` only; never hand-edit generated output. E~: pin, ignore rules.
