@@ -20,6 +20,33 @@ import {
 import { constInitializer, tested, writes } from './rules-lifetime-forms.mjs';
 import { fingerprint, unitName, unitOf } from './syntax.mjs';
 
+function verifyLayoutReferencesAndPinSupport(fact, layout, pinned) {
+  const support = new Set(layout.values());
+  for (const { node, binding } of fact.references) {
+    const unit = unitOf(node);
+    const declaration = layout.get(node.text);
+    if (
+      declaration &&
+      (binding?.scope !== fact.sourceFile ||
+        !within(binding.decl, declaration) ||
+        !(support.has(unit) || pinned.has(unit) || layoutComparison(node)))
+    )
+      return false;
+    if (!support.has(unit)) continue;
+    if (node.text === 'File' || node.text === 'Object') {
+      if (binding) return false;
+    } else if (
+      LAYOUT_IMPORTS.has(node.text) &&
+      (binding?.kind !== 'import' ||
+        binding.specifier !== './safe-action.check-def' ||
+        binding.imported !== node.text)
+    )
+      return false;
+  }
+  for (const statement of support) pinned.add(statement);
+  return true;
+}
+
 /** L1 admits direct Reflect.apply calls on pinned intrinsic captures. Native globals and
  * Reflect.apply are assumed intact from module initialization through each admitted call.
  * Mutation by earlier or other modules is outside this check. */
@@ -138,33 +165,6 @@ export function createReflectCheck(ctx) {
       layout.set(name, statement);
     }
     return verifyLayoutReferencesAndPinSupport(fact, layout, pinned);
-  }
-
-  function verifyLayoutReferencesAndPinSupport(fact, layout, pinned) {
-    const support = new Set(layout.values());
-    for (const { node, binding } of fact.references) {
-      const unit = unitOf(node);
-      const declaration = layout.get(node.text);
-      if (
-        declaration &&
-        (binding?.scope !== fact.sourceFile ||
-          !within(binding.decl, declaration) ||
-          !(support.has(unit) || pinned.has(unit) || layoutComparison(node)))
-      )
-        return false;
-      if (!support.has(unit)) continue;
-      if (node.text === 'File' || node.text === 'Object') {
-        if (binding) return false;
-      } else if (
-        LAYOUT_IMPORTS.has(node.text) &&
-        (binding?.kind !== 'import' ||
-          binding.specifier !== './safe-action.check-def' ||
-          binding.imported !== node.text)
-      )
-        return false;
-    }
-    for (const statement of support) pinned.add(statement);
-    return true;
   }
 
   function verifiedWriters(fact) {
