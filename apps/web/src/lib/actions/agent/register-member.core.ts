@@ -83,11 +83,13 @@ export async function registerMemberCore(
     const created = await withRetry(
       () =>
         withTenantAuthority(authority, async tx => {
-          await assertNewSalesOpen(tx, tenantId).catch(error => {
+          try {
+            await assertNewSalesOpen(tx, tenantId);
+          } catch (error) {
             if (error instanceof SalesClosedError) throw error;
             console.error('Sponsored registration could not read the sales switch:', error);
             throw new SalesClosedError();
-          });
+          }
           const now = joinedAt;
 
           // 1. Create User (Role must be 'member' for the unique index to eventually apply)
