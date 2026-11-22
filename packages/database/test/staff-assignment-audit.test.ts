@@ -82,20 +82,20 @@ test(
       ]);
       const attempts = Promise.all([request(), request()]);
       try {
-        // Confirm the two requests joined the blocked row-lock chain before releasing it.
+        // Confirm the two requests joined the blocked row-lock chain before releasing it. The chain
+        // is followed by lock waits from the blocker, not by query text: pg_stat_activity truncates
+        // the claim select (every column) before its trailing locking clause.
         let blocked = 0;
         for (let poll = 0; poll < 100 && blocked < 2; poll++) {
           const [activity] = await adminDb.execute<{ count: number }>(sql`
             with recursive waiting(pid) as (
               select pid from pg_stat_activity
               where datname = current_database() and wait_event_type = 'Lock'
-                and query like '%for no key update%'
                 and ${blockerPid} = any(pg_blocking_pids(pid))
               union
               select activity.pid from pg_stat_activity activity join waiting
                 on waiting.pid = any(pg_blocking_pids(activity.pid))
               where activity.datname = current_database() and activity.wait_event_type = 'Lock'
-                and activity.query like '%for no key update%'
             )
             select count(*)::int as count from waiting
           `);
