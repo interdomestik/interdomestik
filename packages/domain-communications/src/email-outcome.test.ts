@@ -20,7 +20,7 @@ vi.mock('node:net', async importOriginal => ({
 
 const recipient = 'member@example.com';
 const rendered = { subject: 'Claim\r\n update', html: '<p>Update</p>', text: 'Update' };
-const options = { idempotencyKey: 'claim-delivery-42', timeoutMs: 50 };
+const options = { idempotencyKey: 'dlv-42', timeoutMs: 50 };
 
 describe('sendEmailOutcome', () => {
   beforeEach(() => {
