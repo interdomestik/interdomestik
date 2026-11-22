@@ -11,7 +11,7 @@ allowBuilds:
   supabase: true
 
 overrides:
-  next: 16.4.1
+  next: 16.4.5
   axios: ^1.13.5
   body-parser: 2.4.0
   fast-xml-parser: 5.7.0
@@ -82,4 +82,4 @@ overrides:
   chromium-bidi>zod: 3.25.76
 
 patchedDependencies:
-  next@16.4.1: patches/next@16.4.1.patch
+  next@16.4.5: patches/next@16.4.5.patch
