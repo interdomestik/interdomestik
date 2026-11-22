@@ -79,11 +79,35 @@ export async function directSaleRow(f: SaleFixture, input: SaleInput) {
   };
 }
 
-export async function insertDirectSale(
+async function insertDirectSaleClaim(
   tx: PaymentPortTestTransaction,
   row: Awaited<ReturnType<typeof directSaleRow>>
 ) {
   await tx`insert into membership_sale_claims (tenant_id, operation_key, request_hash, claimed_at)
     values (${row.tenant_id}, ${row.operation_key}, ${row.request_hash}, clock_timestamp())`;
+}
+
+export async function insertDirectSale(
+  tx: PaymentPortTestTransaction,
+  row: Awaited<ReturnType<typeof directSaleRow>>
+) {
+  await insertDirectSaleClaim(tx, row);
   return tx`insert into membership_sales ${tx(row)} returning id`;
+}
+
+export async function tryInsertDirectSale(
+  tx: PaymentPortTestTransaction,
+  row: Awaited<ReturnType<typeof directSaleRow>>
+) {
+  await insertDirectSaleClaim(tx, row);
+  const candidate = JSON.stringify({
+    ...row,
+    request_hash: `\\x${row.request_hash.toString('hex')}`,
+    sold_at: undefined,
+    sold_on: undefined,
+    due_on: undefined,
+  });
+  const [{ code }] = await tx<{ code: string | null }[]>`
+    select public.membership_try_insert_individual_sale(${candidate}::text::jsonb) as code`;
+  return code;
 }

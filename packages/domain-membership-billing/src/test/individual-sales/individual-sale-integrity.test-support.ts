@@ -7,10 +7,12 @@ import {
 } from '@interdomestik/database/testing/payment-port-rls';
 import { expect, it } from 'vitest';
 
+import type { SaleInput } from '../../port/sale-input';
 import {
   canonicalHash,
   directSaleRow,
   insertDirectSale,
+  tryInsertDirectSale,
 } from './individual-sale-direct.test-support';
 import {
   accepted,
@@ -22,6 +24,43 @@ import {
 } from './individual-sales.test-support';
 
 export function registerSaleIntegrityCases(fixture: () => Promise<SaleFixture>) {
+  it.each([
+    {
+      code: 'stale_offer',
+      makeStale: async (f: SaleFixture, input: SaleInput) => {
+        success(await f.withdraw(input.planVersionId));
+      },
+    },
+    {
+      code: 'stale_rate',
+      makeStale: async (f: SaleFixture) => {
+        const [replacement] = await f.addRate('62.00', '2000-01-10');
+        expect((await f.offer()).rateId).toBe(replacement.id);
+      },
+    },
+  ])(
+    'maps $code from a direct SQL insert and leaves the transaction usable',
+    async ({ code, makeStale }) => {
+      const f = await fixture();
+      const input = accepted(await f.sellable(), { memberUserId: f.member.id });
+      const row = await directSaleRow(f, input);
+      await makeStale(f, input);
+
+      await restricted(f.admin, f.tenantId, async tx => {
+        await tx`savepoint sale_candidate`;
+        expect(await tryInsertDirectSale(tx, row)).toBe(code);
+        const [persisted] = await tx`select current_user as role,
+        exists(select 1 from membership_sales where id = ${row.id}) as sale,
+        exists(select 1 from membership_ledger_entries
+          where sale_id = ${row.id} and kind = 'charge') as charge`;
+        expect(persisted).toEqual({ role: runtimeRole, sale: false, charge: false });
+        // The deferred claim constraint requires a sale at commit.
+        await tx`rollback to savepoint sale_candidate`;
+        await tx`release savepoint sale_candidate`;
+      });
+    }
+  );
+
   it('checks each direct snapshot, lookup, reserved void and hash invariant independently', async () => {
     const f = await fixture();
     const input = accepted(await f.sellable(), { leadId: await f.lead() });
