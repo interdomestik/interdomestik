@@ -228,8 +228,10 @@ pnpm plan:audit
 # Allocate this port for the task; 3100 is an example, not a universal default.
 TASK_PORT=3100
 # Every heavy Mac job starts through mac-job (AGENTS.md R-04, Mac use); if it is unavailable, start none and tell the lead.
-mac-job run gate "$SESSION" "$PWD" "$(git rev-parse HEAD)" -- env PW_PORT="$TASK_PORT" node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm pr:verify
-mac-job run gate "$SESSION" "$PWD" "$(git rev-parse HEAD)" -- env PW_PORT="$TASK_PORT" node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm security:guard
+HEAD_SHA="$(git rev-parse HEAD)"
+# A rehearsal or pre-check is class pre-check; only the final gate on a merge-ready head is class gate.
+# One ticket holds the lock for both commands, on one captured head.
+mac-job run pre-check "$SESSION" "$PWD" "$HEAD_SHA" -- env PW_PORT="$TASK_PORT" sh -c 'node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm pr:verify && node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm security:guard'
 git diff --check
 ```
 
@@ -255,10 +257,10 @@ non-secret evidence. A TCP pass is not SQL authentication, migration or RLS proo
 verify the owned service identity and the repo's DB readiness checks separately.
 It does not reserve the port. Confirm disk/competing jobs and compare the real
 gatekeeper port when starting proof; stop on mismatch. Do not log environment values
-or URLs containing credentials. A separate build uses the same early-env prefix:
+or URLs containing credentials. A separate build uses the same early-env prefix, through mac-job as a pre-check:
 
 ```bash
-node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web build
+mac-job run pre-check "$SESSION" "$PWD" "$(git rev-parse HEAD)" -- node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web build
 ```
 
 ## Negative cases

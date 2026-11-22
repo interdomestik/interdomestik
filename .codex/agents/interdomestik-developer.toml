@@ -168,9 +168,12 @@ Use one supported launch path with the task's local environment loaded BEFORE
 orchestration. Allocate TASK_PORT for this task (3100 is an example, not a default),
 then use the same explicit port and loaded environment for preflight and proof:
 PW_PORT="$TASK_PORT" node --env-file=.env.local docs/guides/interdomestik-agent-preflight.mjs --expected-port "$TASK_PORT"
-mac-job run gate "$SESSION" "$PWD" "$(git rev-parse HEAD)" -- env PW_PORT="$TASK_PORT" node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm pr:verify
+HEAD_SHA="$(git rev-parse HEAD)"
+# A rehearsal or pre-check is class pre-check; only the final gate on a merge-ready head is class gate.
+# One ticket holds the lock for both commands, on one captured head.
+mac-job run pre-check "$SESSION" "$PWD" "$HEAD_SHA" -- env PW_PORT="$TASK_PORT" sh -c 'node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm pr:verify && node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm security:guard'
 Every heavy Mac job starts through mac-job (AGENTS.md R-04, Mac use); if it is unavailable, start none and tell the lead.
-Use the same prefix for security:guard and a targeted build; never rely on late
+A targeted build uses the same prefix, through mac-job as a pre-check; never rely on late
 Playwright env loading. Do not hide a conflicting PORT or change the resolver's
 loopback base URL to obtain a pass. A personal installed preflight copy
 may be used only after verifying parity with this versioned source. It uses the repo's

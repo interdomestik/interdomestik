@@ -225,8 +225,8 @@ test('every agent authority sentence in the role, guide and staging procedure is
 // as a whole: any edit fails here until it has been reviewed for agent authority (AGENTS.md R-01, R-24) and
 // the new hash is recorded in a reviewed edit of this test.
 const PINNED_AUTHORITY_SHA256 = {
-  role: '7f922148bcfe3a1b63683f3a4a4e0f55ece59dce81bd11fb6da24b031f28e422',
-  guide: '29fb8f45bd1821d777fb2d456fe0bf4ee9811eee2ca382b74836ab7f7c4f9a51',
+  role: 'f7e8332f36d1d8886ffc466057c97e022af12595c32b76629a12b3693c30196b',
+  guide: '333658189809ee018dc4db03c1750a15cbc59ccec04f92b8a1dcb83e7577ee4a',
   procedure: 'e1f3502eb83ee054935cda9d1df34a8680c8bba8e16e3abb46eec4c09ea053ed',
 };
 
