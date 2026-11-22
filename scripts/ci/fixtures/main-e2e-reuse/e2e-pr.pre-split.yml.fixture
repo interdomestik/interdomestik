@@ -1,0 +1,150 @@
+name: PR E2E (Full Gate)
+on:
+  pull_request:
+    branches: ['**']
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    # Protected checks must always materialize on PRs; the validation-surface
+    # policy below skips heavy work for docs-only and other non-product changes.
+
+concurrency:
+  group: e2e-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-preflight:
+    name: PR E2E Preflight
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    outputs:
+      run_broad: ${{ steps.certification.outputs.run_broad }}
+      certification_required: ${{ steps.certification.outputs.certification_required }}
+      certification_reason: ${{ steps.certification.outputs.certification_reason }}
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 1
+      - name: Evaluate PR gate policy
+        id: gate_policy
+        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717
+        with:
+          event-name: ${{ github.event_name }}
+          event-path: ${{ github.event_path }}
+      - name: Resolve exact-head certification admission
+        id: certification
+        uses: interdomestik/interdomestik/.github/actions/exact-head-certification@fa46372b729016d992e6c198a3c7511fd7816815
+        with:
+          policy-json: ${{ toJSON(steps.gate_policy.outputs) }}
+          consume-full-gate: 'true'
+
+  e2e-runner:
+    name: PR E2E Runner
+    permissions:
+      contents: read
+    needs: [e2e-preflight]
+    if: needs.e2e-preflight.outputs.run_broad == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    services:
+      postgres:
+        image: docker.io/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: interdomestik_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d interdomestik_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+      mailpit:
+        image: axllent/mailpit:v1.30.2@sha256:37a38e48e9338cd7e89dfeb487f37b02ebfcd9cb23111bed2d345e79d37d6dd6
+        ports:
+          - 1025:1025
+          - 8025:8025
+        options: >-
+          --health-cmd="/mailpit readyz"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      CI: '1'
+      PLAYWRIGHT: '1'
+      NEXT_PUBLIC_BILLING_TEST_MODE: '1'
+      PORT: 3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-secret-for-ci-only-do-not-use-in-production' }}
+      NODE_OPTIONS: --max-old-space-size=4096
+      INTERDOMESTIK_TURBO_REMOTE_CACHE_READ_ONLY: '1'
+      EVIDENCE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - uses: ./.github/actions/setup
+        with:
+          install-playwright: true
+      - name: Generate ephemeral E2E credentials
+        run: bash scripts/ci/export-e2e-credentials.sh
+      - name: Strict Rule Guards (golden/gate)
+        run: pnpm --filter @interdomestik/web run e2e:guards
+      - name: Run PR E2E Gate
+        env:
+          E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
+          E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
+          E2E_MAILPIT_API: http://127.0.0.1:8025
+          E2E_OTP_PROOF_REQUIRED: '1'
+          E2E_SMTP_HOST: 127.0.0.1
+          E2E_SMTP_PORT: '1025'
+          OTP_RATE_LIMIT_HMAC_SECRET: ${{ secrets.OTP_RATE_LIMIT_HMAC_SECRET || 'test-otp-rate-secret-for-ci-only-not-production' }}
+          PW_EVIDENCE_LANE: pr-gate
+        run: pnpm e2e:gate:pr
+      - name: Summarize PR Gate E2E Evidence
+        if: always()
+        run: node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-gate/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-gate --out=tmp/verification-evidence/pr-gate.json
+      - name: Run PR Smoke E2E
+        env:
+          E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
+          E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
+          PW_EVIDENCE_LANE: pr-smoke
+        run: pnpm --filter @interdomestik/web run e2e:smoke
+
+      - name: Summarize PR Smoke E2E Evidence
+        if: always()
+        run: node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-smoke/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-smoke --out=tmp/verification-evidence/pr-smoke.json
+      - name: Upload PR E2E Verification Evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verification-evidence-e2e-pr
+          path: |
+            tmp/verification-evidence/pr-gate.json
+            tmp/verification-evidence/pr-smoke.json
+            apps/web/test-results/pr-gate/report.json
+            apps/web/test-results/pr-smoke/report.json
+          if-no-files-found: error
+          retention-days: 7
+
+  e2e:
+    name: e2e
+    if: always()
+    needs:
+      - e2e-preflight
+      - e2e-runner
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Enforce PR E2E preflight/result contract
+        uses: interdomestik/interdomestik/.github/actions/exact-head-certification-result@fa46372b729016d992e6c198a3c7511fd7816815
+        with:
+          preflight-result: ${{ needs.e2e-preflight.result }}
+          run-broad: ${{ needs.e2e-preflight.outputs.run_broad }}
+          certification-required: ${{ needs.e2e-preflight.outputs.certification_required }}
+          certification-reason: ${{ needs.e2e-preflight.outputs.certification_reason }}
+          runner-result: ${{ needs.e2e-runner.result }}

@@ -10,6 +10,7 @@ const SEEDED_AUTH_COMMANDS = [
   'pnpm e2e:gate',
   'pnpm e2e:gate:pr',
   'pnpm --filter @interdomestik/web run e2e:gate',
+  'node scripts/run-e2e-lane.mjs ',
 ];
 
 function readWorkflowFiles() {

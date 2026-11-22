@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -33,6 +33,18 @@ test('PR E2E substrate regexes use explicit indentation quantifiers', () => {
   const source = derivePrE2eSubstrateDigest.toString();
   assert.doesNotMatch(source, /\/\^ {2,}/u);
   assert.doesNotMatch(source, /\/\\n {2,}/u);
+});
+
+test('PR E2E substrate digest includes the live matrix and excludes the result wrapper', () => {
+  const splitWorkflow = readFileSync(new URL('../.github/workflows/e2e-pr.yml', import.meta.url));
+  const digest = derivePrE2eSubstrateDigest(splitWorkflow, setupAction);
+  const source = splitWorkflow.toString('utf8');
+  const changedMatrix = source.replace('script_lane: pr-ks', 'script_lane: pr');
+  const changedWrapper = source.replace('runner-result:', 'changed-result:');
+  assert.notEqual(changedMatrix, source);
+  assert.notEqual(changedWrapper, source);
+  assert.notEqual(derivePrE2eSubstrateDigest(Buffer.from(changedMatrix), setupAction), digest);
+  assert.equal(derivePrE2eSubstrateDigest(Buffer.from(changedWrapper), setupAction), digest);
 });
 
 test('initializer and verifier share one exact-Git-blob PR E2E identity builder', () => {
