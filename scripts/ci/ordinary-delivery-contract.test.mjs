@@ -56,8 +56,12 @@ test('ordinary delivery does not require ritual companion PRs or collapse delive
   // The conditions under which the lead merges bind as written in R-01's passage "Merging by the lead" (RULES.md,
   // named by AGENTS.md R-01): the whole passage is pinned inside R-01, so moving or trimming it fails.
   const rules = read('docs/engineering/RULES.md');
-  const r01 = rules.slice(rules.indexOf('### R-01 '), rules.indexOf('### R-02 '));
-  assert.ok(r01.length > 0, 'RULES.md must hold R-01 before R-02');
+  const r01Start = rules.indexOf('### R-01 ');
+  assert.notEqual(r01Start, -1, 'RULES.md must hold R-01');
+  // R-01 ends at the next heading of the same or a higher level.
+  const r01Rest = rules.slice(r01Start + 1);
+  const r01End = r01Rest.search(/\n#{1,3} /u);
+  const r01 = r01End === -1 ? r01Rest : r01Rest.slice(0, r01End);
   assert.ok(
     r01.includes(
       '- **Merging by the lead** (owner, 2026-11-21: "Bej ti merging"; it amends answer 30). The lead session may merge a PR only when all of these hold on its exact head: every required check is green; `delivery-gate` is green; the verdict of R-01 has no open finding; the tier\'s local verification is recorded (`GATE-EVIDENCE` where the tier needs it); the PR is up to date with `main`. The lead never force-pushes, never bypasses a ruleset and never merges its own unreviewed change. It records the merge in the PR: who merged, the head and the evidence. No other agent merges. Releases, deploys, ruleset repins and the authorizations of R-37 stay with the owner.\n'

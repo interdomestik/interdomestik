@@ -195,7 +195,7 @@ After providers finish and threads are resolved, refresh only the failed deliver
 gate when its source identity is unchanged, then run pr:review-ready. A source push
 requires current-head hosted evidence under the existing admission policy. Stop
 at a reviewable handoff only when readiness is established or a concrete blocker
-requires owner input; merging and releasing stay with the owner.
+requires owner input; merging follows AGENTS.md R-01 and releasing stays with the owner.
 Ensure real integration regressions are selected by a required repository lane,
 not only by a manually supplied environment flag; prove selection and execution.
 Never merge, deploy or force-push: the lead merges under AGENTS.md R-01 and the

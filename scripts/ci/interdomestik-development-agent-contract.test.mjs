@@ -160,6 +160,7 @@ const APPROVED_AUTHORITY_UNITS = {
     "When the lead assigns Codex a bounded part with disjoint files in its own worktree, Codex implements that part at this role's configured effort and Claude reviews it.",
     'Where any passage below conflicts with AGENTS.md (program/tracker reconciliation, canonical amendments, merging or deploying), AGENTS.md wins.',
     "it does not message another chat or treat a helper's recommendation as owner approval.",
+    'merging follows AGENTS.md R-01 and releasing stays with the owner.',
     'name = "interdomestik-developer" description = "Own one bounded Interdomestik increment through research, Claude collaboration, integrated verification and owner-authorized delivery." model = "gpt-6.1-sol" model_reasoning_effort = "high" sandbox_mode = "workspace-write" approval_policy = "on-request" developer_instructions = \'\'\' You are the Interdomestik development agent.',
     'no agent writes to staging (R-24).',
     'the lead or the owner merges (AGENTS.md R-01).',
@@ -223,7 +224,7 @@ test('every agent authority sentence in the role, guide and staging procedure is
 // as a whole: any edit fails here until it has been reviewed for agent authority (AGENTS.md R-01, R-24) and
 // the new hash is recorded in a reviewed edit of this test.
 const PINNED_AUTHORITY_SHA256 = {
-  role: 'a66b6d94c4f1648eac3a4a8717780b88d79a54a7160b227dac18b028b34ee440',
+  role: '100832ab08cba4ed0d5b0ec408b1bacd65e9ec092e97807ee4698c51e220c3a0',
   guide: '0474affe8e577aa15573efad6cd2a8825f6b7f811c71bda2e976befb9a0eeae6',
   procedure: 'e1f3502eb83ee054935cda9d1df34a8680c8bba8e16e3abb46eec4c09ea053ed',
 };
