@@ -148,7 +148,7 @@ describe('case fields and guard failures', () => {
     });
     expect(db.statements).toHaveLength(1);
     expect(await updateGreenCardCaseFields(session, authority, caseFieldsInput)).toEqual(conflict);
-    expect(queryWhere(2).params).toEqual([tenantId, claimId]);
+    expect(queryWhere(2).params).toEqual([tenantId, claimId, 'not_checked']);
   });
 
   it.each([

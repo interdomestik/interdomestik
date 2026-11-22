@@ -170,4 +170,11 @@ export const caseFieldsInput = {
   coverageVerificationStatus: 'requested',
   outsideHandlingParty: 'Example bureau',
   caseFollowUpAt: null,
+  expected: {
+    otherVehicleCountryCode: null,
+    insuranceProofReference: null,
+    coverageVerificationStatus: 'not_checked',
+    outsideHandlingParty: null,
+    caseFollowUpAt: null,
+  },
 };

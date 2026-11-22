@@ -19,7 +19,7 @@ describe('Claim Validators', () => {
 
   describe('claimCategorySchema', () => {
     it('should accept valid category', () => {
-      const result = claimCategorySchema.safeParse({ category: 'retail' });
+      const result = claimCategorySchema.safeParse({ category: 'property' });
       expect(result.success).toBe(true);
     });
 
@@ -195,7 +195,7 @@ describe('Claim Validators', () => {
 
   describe('createClaimSchema', () => {
     const validClaim = {
-      category: 'retail',
+      category: 'property',
       title: 'Defective product refund',
       companyName: 'Test Company',
       description: 'I purchased a product that was defective and want a refund.',
@@ -224,6 +224,7 @@ describe('Claim Validators', () => {
       void removedCategory;
       const result = createClaimSchema.safeParse(claimWithoutCategory);
       expect(result.success).toBe(false);
+      expect(result.error?.issues.map(issue => issue.path[0])).toEqual(['category']);
     });
 
     it('should reject claim missing required title', () => {
@@ -231,6 +232,7 @@ describe('Claim Validators', () => {
       void removedTitle;
       const result = createClaimSchema.safeParse(claimWithoutTitle);
       expect(result.success).toBe(false);
+      expect(result.error?.issues.map(issue => issue.path[0])).toEqual(['title']);
     });
 
     it('should reject claim missing required companyName', () => {
@@ -238,6 +240,7 @@ describe('Claim Validators', () => {
       void removedCompanyName;
       const result = createClaimSchema.safeParse(claimWithoutCompany);
       expect(result.success).toBe(false);
+      expect(result.error?.issues.map(issue => issue.path[0])).toEqual(['companyName']);
     });
 
     it('should reject claim missing required description', () => {
@@ -245,11 +248,12 @@ describe('Claim Validators', () => {
       void removedDescription;
       const result = createClaimSchema.safeParse(claimWithoutDescription);
       expect(result.success).toBe(false);
+      expect(result.error?.issues.map(issue => issue.path[0])).toEqual(['description']);
     });
 
     it('should accept claim without optional fields', () => {
       const minimalClaim = {
-        category: 'retail',
+        category: 'property',
         title: 'Valid title here',
         companyName: 'Company',
         description: 'This description is long enough to pass validation',

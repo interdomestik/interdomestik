@@ -39,6 +39,7 @@ export function ClaimCaseFieldsPanel({
         outsideHandlingParty: formText(data, 'outsideHandlingParty') || null,
         coverageVerificationStatus: formText(data, 'coverageVerificationStatus'),
         caseFollowUpAt: formTimestamp(data, 'caseFollowUpAt'),
+        expected: fields,
       })
     );
   }

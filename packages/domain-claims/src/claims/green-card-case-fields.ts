@@ -1,4 +1,4 @@
-import { claims, eq, type TenantTransaction } from '@interdomestik/database';
+import { and, claims, eq, isNull, type TenantTransaction } from '@interdomestik/database';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
@@ -16,7 +16,7 @@ import {
 } from './case-register-access';
 import type { ClaimsSession } from './types';
 
-export const updateGreenCardCaseFieldsInputSchema = registerClaimInput.extend({
+const caseFieldsShape = {
   otherVehicleCountryCode: z
     .string()
     .regex(/^[A-Z]{2}$/)
@@ -30,10 +30,18 @@ export const updateGreenCardCaseFieldsInputSchema = registerClaimInput.extend({
     'refused_by_party',
   ]),
   caseFollowUpAt: registerTimestamp.nullable(),
+};
+
+const caseFieldsSchema = z.object(caseFieldsShape).strict();
+
+/** `expected` holds the saved values the edit started from; a changed row is a conflict. */
+export const updateGreenCardCaseFieldsInputSchema = registerClaimInput.extend({
+  ...caseFieldsShape,
+  expected: caseFieldsSchema,
 });
 
 type CaseFieldsInput = z.infer<typeof updateGreenCardCaseFieldsInputSchema>;
-export type GreenCardCaseFields = Omit<CaseFieldsInput, 'claimId'>;
+export type GreenCardCaseFields = z.infer<typeof caseFieldsSchema>;
 
 const caseFieldsSelection = {
   otherVehicleCountryCode: claims.otherVehicleCountryCode,
@@ -49,6 +57,25 @@ function serializeCaseFields(
   return { ...row, caseFollowUpAt: row.caseFollowUpAt?.toISOString() ?? null };
 }
 
+function toDate(value: string | null) {
+  return value ? new Date(value) : null;
+}
+
+function nullableEquals<T>(column: Parameters<typeof eq>[0], value: T | null) {
+  return value === null ? isNull(column) : eq(column, value);
+}
+
+/** The saved state the editor saw, repeated as the update condition (R-17). */
+function unchangedSince(expected: GreenCardCaseFields) {
+  return and(
+    nullableEquals(claims.otherVehicleCountryCode, expected.otherVehicleCountryCode),
+    nullableEquals(claims.insuranceProofReference, expected.insuranceProofReference),
+    nullableEquals(claims.outsideHandlingParty, expected.outsideHandlingParty),
+    eq(claims.coverageVerificationStatus, expected.coverageVerificationStatus),
+    nullableEquals(claims.caseFollowUpAt, toDate(expected.caseFollowUpAt))
+  );
+}
+
 async function updateCaseFields({ tx, tenantId }: LockedRegister, input: CaseFieldsInput) {
   const [row] = await tx
     .update(claims)
@@ -57,9 +84,15 @@ async function updateCaseFields({ tx, tenantId }: LockedRegister, input: CaseFie
       insuranceProofReference: input.insuranceProofReference,
       outsideHandlingParty: input.outsideHandlingParty,
       coverageVerificationStatus: input.coverageVerificationStatus,
-      caseFollowUpAt: input.caseFollowUpAt ? new Date(input.caseFollowUpAt) : null,
+      caseFollowUpAt: toDate(input.caseFollowUpAt),
     })
-    .where(withTenant(tenantId, claims.tenantId, eq(claims.id, input.claimId)))
+    .where(
+      withTenant(
+        tenantId,
+        claims.tenantId,
+        and(eq(claims.id, input.claimId), unchangedSince(input.expected))
+      )
+    )
     .returning(caseFieldsSelection);
   if (!row) return { ok: false, code: 'conflict' } as const;
   return { ok: true, fields: serializeCaseFields(row) } as const;
