@@ -1,4 +1,7 @@
+import { db, eq, user } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
+import { getTenantFromTestInfo } from '../fixtures/auth.project';
+import { getUserForTenant } from '../fixtures/auth-users';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
@@ -27,6 +30,26 @@ async function expectNoHorizontalOverflow(page: Parameters<typeof gotoApp>[0]) {
 }
 
 test.describe('Diaspora Feature', () => {
+  // The sidebar language switch saves the member's preferred locale. Restore the seeded value
+  // after each test, so later specs that read the shared member's stored locale (server-sent
+  // notification links) do not inherit this spec's last switch.
+  let storedLocale: { email: string; preferredLocale: typeof user.$inferSelect.preferredLocale };
+  test.beforeEach(async ({}, testInfo) => {
+    const { email } = getUserForTenant('member', getTenantFromTestInfo(testInfo));
+    const [member] = await db
+      .select({ preferredLocale: user.preferredLocale })
+      .from(user)
+      .where(eq(user.email, email));
+    if (!member) throw new Error('Diaspora gate requires the seeded member.');
+    storedLocale = { email, preferredLocale: member.preferredLocale };
+  });
+  test.afterEach(async () => {
+    await db
+      .update(user)
+      .set({ preferredLocale: storedLocale.preferredLocale })
+      .where(eq(user.email, storedLocale.email));
+  });
+
   test('retained member handoffs settle', async ({ authenticatedPage: page }, testInfo) => {
     // prettier-ignore
     for (const [path, marker] of [['claim-report', 'report-page-ready'], ['green-card', 'green-card-page-ready'], ['benefits', 'benefits-page-ready']] as const) await gotoApp(page, `${routes.member(testInfo)}/${path}`, testInfo, { marker });
