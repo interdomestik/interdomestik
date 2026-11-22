@@ -103,6 +103,8 @@ export function resetDraftAttachmentFixture(): void {
   session = { user: { id: MEMBER, role: 'member', tenantId: TENANT } } as never;
   db.documents = [];
   db.locks = [];
+  db.writeTxId = 0;
+  db.txSequence = 0;
   db.nextReads = [];
   db.inserted = [];
   db.updatedClaims = 0;

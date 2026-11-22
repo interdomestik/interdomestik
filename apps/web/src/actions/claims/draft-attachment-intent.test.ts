@@ -70,28 +70,39 @@ describe('updateDraftClaim attachments — refused without a verified upload int
     expectNothingWritten();
   });
 
-  it('refuses a claim-bound token minted for another claim', async () => {
-    const path = buildEvidenceStoragePath({
-      bucket: BUCKET,
-      claimId: OTHER_CLAIM,
-      fileId: 'file-1',
-      fileName: 'proof.pdf',
-      shape: 'assigned',
-      tenantId: TENANT,
-    });
+  it('refuses a claim-bound token at the initial-intent verifier, on a prefix-valid path', async () => {
+    const file = initialFile();
+    // Same actor, tenant, bucket, file and path: only the token kind (claim-bound) differs.
     const uploadIntentToken = createClaimUploadIntentToken({
       actorId: MEMBER,
       bucket: BUCKET,
       claimId: OTHER_CLAIM,
-      fileId: 'file-1',
-      fileSize: 100,
-      mimeType: 'application/pdf',
-      storagePath: path,
+      fileId: file.id,
+      fileSize: file.size,
+      mimeType: file.type,
+      storagePath: file.path,
       tenantId: TENANT,
     });
-    const file = { ...initialFile(), path, uploadIntentToken };
 
-    await expect(update([file])).resolves.toMatchObject({ success: false, code: 'INVALID_PATH' });
+    await expect(update([{ ...file, uploadIntentToken }])).resolves.toEqual({
+      success: false,
+      error: 'Upload confirmation expired. Please retry upload.',
+      code: 'INVALID_PATH',
+    });
+    expect(db.storage.list).not.toHaveBeenCalled();
+    expectNothingWritten();
+  });
+
+  it('answers an unverified file the same whether or not another case holds its path', async () => {
+    const file = initialFile({ tokenSize: 101 });
+    const unattached = await update([file]);
+    db.documents = [{ bucket: BUCKET, claimId: OTHER_CLAIM, filePath: file.path }];
+
+    await expect(update([file])).resolves.toEqual(unattached);
+    expect(unattached).toMatchObject({
+      success: false,
+      error: 'Upload confirmation expired. Please retry upload.',
+    });
     expectNothingWritten();
   });
 
@@ -198,6 +209,17 @@ describe('updateDraftClaim attachments — refused without a verified upload int
     const file = withoutToken(initialFile());
     db.documents = [{ bucket: BUCKET, claimId: CLAIM, filePath: file.path }];
     db.nextReads = [[...db.documents], []];
+
+    await expect(update([file])).resolves.toMatchObject({ success: false, code: 'CONFLICT' });
+    expectNothingWritten();
+  });
+
+  it('rolls back with a conflict when a no-op row moved to another claim before the write', async () => {
+    const file = withoutToken(initialFile());
+    db.nextReads = [
+      [{ bucket: BUCKET, claimId: CLAIM, filePath: file.path }],
+      [{ bucket: BUCKET, claimId: OTHER_CLAIM, filePath: file.path }],
+    ];
 
     await expect(update([file])).resolves.toMatchObject({ success: false, code: 'CONFLICT' });
     expectNothingWritten();

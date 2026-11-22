@@ -11,6 +11,7 @@ import { createClaimSchema, type CreateClaimValues } from '../validators/claims'
 import { ClaimValidationError } from './claim-validation-error';
 import { buildClaimDocumentRows } from './documents';
 import {
+  allAttachedToClaim,
   assertDistinctEvidenceObjects,
   lockEvidenceObjects,
   planDraftAttachments,
@@ -52,6 +53,8 @@ function refusal(error: ClaimValidationError): UpdateDraftClaimResult {
 /**
  * Verifies every file before anything is written. Objects already attached to this claim are
  * no-ops; every other file must pass the same signed-intent verification as claim submission.
+ * Only this claim's rows are read here: whether another case holds a path is decided after the
+ * caller proved an intent for it, inside the write transaction, so a refusal never depends on it.
  */
 async function verifyDraftFiles(params: {
   authority: TenantAuthority;
@@ -64,9 +67,10 @@ async function verifyDraftFiles(params: {
   const { authority, claimId, deps, files, session, tenantId } = params;
   assertDistinctEvidenceObjects(files);
   const attached = await withTenantAuthority(authority, tx =>
-    readAttachedObjects(tx, { tenantId, files })
+    readAttachedObjects(tx, { claimId, tenantId, files })
   );
-  const plan = planDraftAttachments({ attached, claimId, files });
+  const ownRows = attached.filter(row => row.claimId === claimId);
+  const plan = planDraftAttachments({ attached: ownRows, claimId, files });
   await validateClaimFiles(plan.newFiles, session, tenantId, deps);
   return plan;
 }
@@ -163,14 +167,16 @@ export async function updateDraftClaimCore(
       // every writer of these objects; re-read under both before deciding what to insert.
       await lockEvidenceObjects(tx, { tenantId, files: plan.newFiles });
       const attachedNow = await readAttachedObjects(tx, { tenantId, files });
-      const current = planDraftAttachments({ attached: attachedNow, claimId, files });
-      const stillAttached = new Set(current.alreadyAttached);
-      // A no-op skipped verification; if its row vanished meanwhile it must not be inserted.
-      if (plan.alreadyAttached.some(file => !stillAttached.has(file))) {
-        throw new DraftClaimConflict();
-      }
-      // Only verified files are inserted; one attached to this draft meanwhile is skipped.
-      const newFiles = plan.newFiles.filter(file => !stillAttached.has(file));
+      // A no-op skipped verification; if its row is no longer this draft's it must not be inserted.
+      const noOps = { attached: attachedNow, claimId, files: plan.alreadyAttached };
+      if (!allAttachedToClaim(noOps)) throw new DraftClaimConflict();
+      // Verified files only: one attached to another case is refused, one attached to this draft
+      // meanwhile is skipped.
+      const { newFiles } = planDraftAttachments({
+        attached: attachedNow,
+        claimId,
+        files: plan.newFiles,
+      });
 
       if (newFiles.length > 0) {
         const documentRows = buildClaimDocumentRows({

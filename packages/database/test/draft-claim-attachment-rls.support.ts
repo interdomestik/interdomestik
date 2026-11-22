@@ -133,35 +133,56 @@ export function draftAttachmentHarness(
   const insertDocument = (claimId: string, path: string, uploadedBy: string) =>
     admin`insert into claim_documents (id, tenant_id, access_tenant_id, claim_id, name, file_path, file_type, file_size, bucket, uploaded_by)
       values (${rowId()}, ${KS}, ${KS}, ${claimId}, 'proof.pdf', ${path}, 'application/pdf', 100, ${BUCKET}, ${uploadedBy})`;
-  /** Polls every 50 ms, at most 100 times, until a restricted-role session waits on a lock. */
-  const waitForBlockedLock = async (attemptsLeft = 100): Promise<void> => {
+  /** Polls every 50 ms, at most 100 times, until a restricted-role session waits on the holder. */
+  const waitForBlockedBy = async (holderPid: number, attemptsLeft = 100): Promise<void> => {
     const waiting = await admin`select 1 from pg_locks l join pg_stat_activity a on a.pid = l.pid
-      where l.locktype = 'advisory' and not l.granted and a.usename = ${TEST_DB_ROLE}`;
+      where l.locktype = 'advisory' and not l.granted and a.usename = ${TEST_DB_ROLE}
+        and ${holderPid}::int = any(pg_blocking_pids(l.pid))`;
     if (waiting.length > 0) return;
     if (attemptsLeft <= 1) assert.fail('the contender never waited on the evidence-object lock');
     await new Promise(resolve => setTimeout(resolve, 50));
-    await waitForBlockedLock(attemptsLeft - 1);
+    await waitForBlockedBy(holderPid, attemptsLeft - 1);
   };
-  /** Holds the object lock in a restricted-role transaction until `release` is called. */
-  const holdObjectLock = (key: string) => {
+  /**
+   * Holds the object lock in a restricted-role transaction, starts `contender`, waits until it
+   * blocks on that holder, runs `meanwhile`, then releases the lock (also on failure) and returns
+   * the contender's outcome.
+   */
+  const contend = async <T>(
+    key: string,
+    contender: () => Promise<T>,
+    meanwhile: () => Promise<unknown>
+  ): Promise<T> => {
     let release!: () => void;
     const released = new Promise<void>(resolve => (release = resolve));
-    let locked!: () => void;
-    const lockTaken = new Promise<void>(resolve => (locked = resolve));
+    let locked!: (pid: number) => void;
+    const lockTaken = new Promise<number>(resolve => (locked = resolve));
     const done = holder.begin(async htx => {
-      await htx`select pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
-      locked();
+      const [{ pid }] = await htx`select pg_backend_pid() as pid,
+        pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+      locked(Number(pid));
       await released;
     });
-    return { lockTaken, release, done };
+    let outcome: Promise<T> | undefined;
+    try {
+      const holderPid = await lockTaken;
+      outcome = contender();
+      outcome.catch(() => undefined);
+      await waitForBlockedBy(holderPid);
+      await meanwhile();
+    } finally {
+      release();
+      await done;
+    }
+    if (!outcome) throw new Error('the contender never started');
+    return outcome;
   };
   return {
     authorityOf,
-    holdObjectLock,
+    contend,
     insertDocument,
     rowsOf,
     titleOf,
     update,
-    waitForBlockedLock,
   };
 }

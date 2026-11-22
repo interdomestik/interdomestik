@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { sql, type SQL } from 'drizzle-orm';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import postgres from 'postgres';
 
 // The real member-upload role rule the web validator applies (a pure module, no runtime deps).
 import { isMemberUploadRole } from '../../../apps/web/src/features/claims/upload/server/member-upload-role';
+import { lockClaimEvidenceObjects } from '../src/claim-evidence-object-lock';
+import { assertDisposableUrl, openDisposableClient } from '../src/disposable-client';
 import {
   BUCKET,
   draftAttachmentHarness,
@@ -32,7 +36,10 @@ test('R-37 draft attachments: refusal, rollback and object locks under the restr
     assert.notEqual(process.env.REQUIRE_RLS_INTEGRATION, '1', 'R-37 proof requires a database');
     return t.skip('DATABASE_URL required');
   }
-  const admin = postgres(process.env.DATABASE_URL, { max: 1 });
+  // R-13: role DDL, grants and fixtures only on a loopback or the confirmed CI database.
+  const admin = openDisposableClient(process.env.DATABASE_URL, {
+    applicationName: 'r37-draft-attachment-rls',
+  });
   const ids = Array.from({ length: 4 }, rowId);
   const [member, otherMember, mkMember, auditor] = ids;
   const claimIds = Array.from({ length: 6 }, rowId);
@@ -63,6 +70,7 @@ test('R-37 draft attachments: refusal, rollback and object locks under the restr
     const rlsUrl = new URL(process.env.DATABASE_URL);
     rlsUrl.username = TEST_DB_ROLE;
     rlsUrl.password = TEST_DB_PASSWORD;
+    assertDisposableUrl(rlsUrl.toString());
     holder = postgres(rlsUrl.toString(), { max: 1 });
 
     const draft = await import('../../domain-claims/src/claims/draft');
@@ -109,29 +117,59 @@ test('R-37 draft attachments: refusal, rollback and object locks under the restr
 
     // Lock contention, draft: B waits on the object lock, then sees the row committed meanwhile.
     const fileY = evidence(initialPath(KS, member, 'y'), 'y');
-    const heldY = h.holdObjectLock(objectLockKey(KS, fileY.path));
-    await heldY.lockTaken;
-    const contender = h.update(session(member), draftB, [fileY]);
-    await h.waitForBlockedLock();
-    await h.insertDocument(draftC, fileY.path, member);
-    heldY.release();
-    await heldY.done;
-    assert.deepEqual(await contender, INVALID_PATH_REFUSAL);
+    const contended = await h.contend(
+      objectLockKey(KS, fileY.path),
+      () => h.update(session(member), draftB, [fileY]),
+      () => h.insertDocument(draftC, fileY.path, member)
+    );
+    assert.deepEqual(contended, INVALID_PATH_REFUSAL);
     assert.equal(await h.titleOf(draftB), TITLE, 'the losing update rolls back its claim fields');
     assert.equal((await h.rowsOf(draftB)).length, 0);
 
     // Lock contention, submit: the helper submit runs before its insert waits, then refuses.
     const fileZ = evidence(initialPath(KS, member, 'z'), 'z');
-    const heldZ = h.holdObjectLock(objectLockKey(KS, fileZ.path));
-    await heldZ.lockTaken;
-    const submitCheck = withTenantAuthority(h.authorityOf(session(member)), tx =>
-      attachments.assertEvidenceObjectsUnattached(tx, { tenantId: KS, files: [fileZ] })
+    const submitCheck = h.contend(
+      objectLockKey(KS, fileZ.path),
+      () =>
+        withTenantAuthority(h.authorityOf(session(member)), tx =>
+          attachments.assertEvidenceObjectsUnattached(tx, { tenantId: KS, files: [fileZ] })
+        ),
+      () => h.insertDocument(draftC, fileZ.path, member)
     );
-    await h.waitForBlockedLock();
-    await h.insertDocument(draftC, fileZ.path, member);
-    heldZ.release();
-    await heldZ.done;
     await assert.rejects(submitCheck, { name: 'ClaimValidationError', code: 'INVALID_PATH' });
+
+    // The lock refuses an isolation level whose snapshot would miss the previous holder's commit,
+    // before it takes any lock.
+    const dialect = new PgDialect();
+    await admin.begin('isolation level repeatable read', async rr => {
+      // The lock only executes statements: this runs them in the REPEATABLE READ transaction.
+      const repeatableRead = {
+        execute: (statement: SQL) => {
+          const query = dialect.sqlToQuery(statement);
+          return rr.unsafe(query.sql, query.params as never[]);
+        },
+      };
+      const heldLocks = () => rr`select count(*)::int as n from pg_locks
+        where locktype = 'advisory' and pid = pg_backend_pid() and granted`;
+      const [before] = await heldLocks();
+      await assert.rejects(
+        lockClaimEvidenceObjects(repeatableRead as never, KS, [fileZ]),
+        /claim evidence writes require read committed, not repeatable read/
+      );
+      const [after] = await heldLocks();
+      assert.equal(after?.n, before?.n, 'no object lock is taken');
+    });
+
+    // Overlapping batches named in opposite orders lock in one global order: no deadlock.
+    const pair = [fileY, fileZ];
+    await Promise.all(
+      [pair, [...pair].reverse()].map(objects =>
+        withTenantAuthority(h.authorityOf(session(member)), async tx => {
+          await lockClaimEvidenceObjects(tx, KS, objects);
+          await tx.execute(sql`select pg_sleep(0.2)`);
+        })
+      )
+    );
 
     // Two drafts racing for one object: exactly one row.
     const fileW = evidence(initialPath(KS, member, 'w'), 'w');
@@ -145,15 +183,18 @@ test('R-37 draft attachments: refusal, rollback and object locks under the restr
       1
     );
 
-    // Lifecycle changed during validation: conflict, nothing written.
+    // Lifecycle changed during validation: conflict; the competing edit and the rows survive.
     const fileV = evidence(initialPath(KS, member, 'v'), 'v');
     const before = await h.rowsOf(draftA);
+    const competingTitle = 'R37 competing submit title';
     assert.deepEqual(
       await h.update(session(member), draftA, [fileV], async () => {
-        await admin`update "claim" set case_lifecycle_state = 'submitted' where id = ${draftA}`;
+        await admin`update "claim" set case_lifecycle_state = 'submitted', title = ${competingTitle}
+          where id = ${draftA}`;
       }),
       { success: false, error: 'Claim changed. Refresh and retry.', code: 'CONFLICT' }
     );
+    assert.equal(await h.titleOf(draftA), competingTitle);
     assert.deepEqual(await h.rowsOf(draftA), before);
     await admin`update "claim" set case_lifecycle_state = 'draft', title = ${TITLE} where id = ${draftA}`;
 

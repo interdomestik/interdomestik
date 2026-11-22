@@ -9,7 +9,8 @@ import {
   logAuditEventMock,
   nanoidMock,
   queueClaimDocumentAiWorkflowsMock,
-  txExecute,
+  lockClaimEvidenceObjectsMock,
+  txCalls,
   txInsert,
   txInsertValues,
   txQuery,
@@ -71,29 +72,29 @@ describe('submitClaimCore', () => {
     });
   });
 
-  it('locks each evidence object and reads its rows inside the transaction before the insert', async () => {
+  it('locks and re-reads each evidence object in the transaction that writes the claim and its documents', async () => {
     await submitClaimCore(buildSubmitArgs(), {
       validateSubmittedClaimFile: vi.fn().mockResolvedValue(undefined),
     });
 
-    expect(txExecute).toHaveBeenCalledTimes(1);
-    const lock = txExecute.mock.calls[0]?.[0] as { text: string; values: unknown[] };
-    expect(lock.text).toContain('pg_advisory_xact_lock');
-    expect(lock.values).toEqual([
-      JSON.stringify([
-        'claim-evidence-object',
-        'tenant-1',
-        'claim-evidence',
-        'pii/tenants/tenant-1/claims/member-1/unassigned/upload-1-evidence.pdf',
-      ]),
+    expect(lockClaimEvidenceObjectsMock).toHaveBeenCalledWith(expect.anything(), 'tenant-1', [
+      expect.objectContaining({
+        bucket: 'claim-evidence',
+        path: 'pii/tenants/tenant-1/claims/member-1/unassigned/upload-1-evidence.pdf',
+      }),
     ]);
-    expect(txSelectRows).toHaveBeenCalledTimes(1);
-    expect(txExecute.mock.invocationCallOrder[0]).toBeLessThan(
-      txSelectRows.mock.invocationCallOrder[0] ?? 0
-    );
-    expect(txSelectRows.mock.invocationCallOrder[0]).toBeLessThan(
-      txInsert.mock.invocationCallOrder[2] ?? 0
-    );
+    const writes = [
+      'insert:claim',
+      'insert:claim_stage_history',
+      'lock',
+      'select',
+      'insert:claim_documents',
+    ];
+    const calls = txCalls.filter(call => writes.includes(call.op));
+    expect(calls.map(call => call.op)).toEqual(writes);
+    // One open tenant transaction for all of them: an earlier, already committed one would not do.
+    expect(new Set(calls.map(call => call.context))).toEqual(new Set([calls[0]?.context]));
+    expect(calls[0]?.context).toBeGreaterThan(0);
   });
 
   it('refuses, typed, an evidence object that is already the document of a claim', async () => {

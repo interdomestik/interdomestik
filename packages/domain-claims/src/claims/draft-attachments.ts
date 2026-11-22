@@ -49,16 +49,21 @@ export async function lockEvidenceObjects(
 }
 
 /**
- * Reads the tenant's document rows that point at any of the requested paths, on whichever claim
- * they belong to. The caller decides per (bucket, path) whether the object is this claim's own,
- * another claim's, or not attached.
+ * Reads the tenant's document rows that point at any of the requested paths: of one claim when
+ * `claimId` is given, else on whichever claim they belong to. The caller decides per
+ * (bucket, path) whether the object is this claim's own, another claim's, or not attached.
  */
 export async function readAttachedObjects(
   tx: TenantTransaction,
-  params: { tenantId: string; files: readonly EvidenceObject[] }
+  params: { claimId?: string; tenantId: string; files: readonly EvidenceObject[] }
 ): Promise<AttachedObject[]> {
   if (params.files.length === 0) return [];
   const paths = [...new Set(params.files.map(file => file.path))];
+  const scope = and(
+    eq(claimDocuments.tenantId, params.tenantId),
+    inArray(claimDocuments.filePath, paths),
+    params.claimId === undefined ? undefined : eq(claimDocuments.claimId, params.claimId)
+  );
   return tx
     .select({
       bucket: claimDocuments.bucket,
@@ -66,9 +71,21 @@ export async function readAttachedObjects(
       filePath: claimDocuments.filePath,
     })
     .from(claimDocuments)
-    .where(
-      and(eq(claimDocuments.tenantId, params.tenantId), inArray(claimDocuments.filePath, paths))
-    );
+    .where(scope);
+}
+
+/** True when every one of `files` is still a document of `claimId` in `attached`. */
+export function allAttachedToClaim(params: {
+  attached: readonly AttachedObject[];
+  claimId: string;
+  files: readonly EvidenceObject[];
+}): boolean {
+  const own = new Set(
+    params.attached
+      .filter(row => row.claimId === params.claimId)
+      .map(row => objectKey(row.bucket, row.filePath))
+  );
+  return params.files.every(file => own.has(objectKey(file.bucket, file.path)));
 }
 
 /**

@@ -24,20 +24,37 @@ export const nanoidMock: Mock = vi.fn();
 export const queueClaimDocumentAiWorkflowsMock: Mock = vi.fn();
 export const readTenantLocaleMetadataMock: Mock = vi.fn();
 
+/** Each tenant transaction the submission opens gets the next number; 0 = none open. */
+let currentContext = 0;
+let contextSequence = 0;
+/** What ran inside which tenant transaction: proves writes that must commit together share one. */
+export const txCalls: { context: number; op: string }[] = [];
+const recordTxCall = (op: string): void => {
+  txCalls.push({ context: currentContext, op });
+};
+
 export const txInsertValues: Mock = vi.fn();
-export const txInsert: Mock = vi.fn(() => ({ values: txInsertValues }));
+export const txInsert: Mock = vi.fn((table?: { __name?: string }) => {
+  recordTxCall(`insert:${table?.__name ?? '?'}`);
+  return { values: txInsertValues };
+});
 export const txQuery: Record<'agentClients' | 'tenantSettings' | 'user', { findFirst: Mock }> = {
   agentClients: { findFirst: vi.fn() },
   tenantSettings: { findFirst: vi.fn() },
   user: { findFirst: vi.fn() },
 };
-/** Advisory-lock statements the submission takes inside its transaction. */
 export const txExecute: Mock = vi.fn(() => Promise.resolve([]));
 /** Rows the in-transaction evidence-object read returns (default: none attached). */
 export const txSelectRows: Mock = vi.fn(() => Promise.resolve([]));
-export const txSelect: Mock = vi.fn(() => ({
-  from: () => ({ where: txSelectRows }),
-}));
+export const txSelect: Mock = vi.fn(() => {
+  recordTxCall('select');
+  return { from: () => ({ where: txSelectRows }) };
+});
+/** The database package's object lock; its SQL is proven on a real database. */
+export const lockClaimEvidenceObjectsMock: Mock = vi.fn(() => {
+  recordTxCall('lock');
+  return Promise.resolve();
+});
 export const submitTx: {
   execute: Mock;
   insert: Mock;
@@ -69,12 +86,15 @@ export const withTenantContextMock = vi.fn(
       throw new Error('nested tenant context transaction is forbidden');
     }
     openContexts += 1;
+    contextSequence += 1;
+    currentContext = contextSequence;
     tenantContexts.push(context);
     tenantContextOrder.push('context:open');
     try {
       return await action(submitTx);
     } finally {
       openContexts -= 1;
+      currentContext = 0;
       tenantContextOrder.push('context:close');
     }
   }
@@ -139,6 +159,9 @@ export const drizzleModuleMock = () => ({
 export function resetSubmitClaimMocks(): void {
   vi.clearAllMocks();
   openContexts = 0;
+  currentContext = 0;
+  contextSequence = 0;
+  txCalls.length = 0;
   tenantContextOrder.length = 0;
   tenantContexts.length = 0;
   appendEventMock.mockResolvedValue({ id: 'event-1' });

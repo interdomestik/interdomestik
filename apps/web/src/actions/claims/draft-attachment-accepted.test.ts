@@ -43,13 +43,14 @@ describe('updateDraftClaim attachments — accepted', () => {
     const file = initialFile();
 
     await expect(update([file])).resolves.toEqual({ success: true });
-    expect(db.locks).toHaveLength(1);
-    expect(JSON.stringify(db.locks[0])).toContain(
-      JSON.stringify(JSON.stringify(['claim-evidence-object', TENANT, BUCKET, file.path])).slice(
-        1,
-        -1
-      )
-    );
+    expect(db.locks).toEqual([
+      {
+        objects: [expect.objectContaining({ bucket: BUCKET, path: file.path })],
+        tenantId: TENANT,
+        txId: db.writeTxId,
+      },
+    ]);
+    expect(db.writeTxId).toBeGreaterThan(0);
   });
 
   it('ignores identity fields injected into a file entry', async () => {

@@ -14,10 +14,14 @@ export const db = {
   claim: null as null | Record<string, unknown>,
   documents: [] as DocumentRow[],
   inserted: [] as Record<string, unknown>[],
-  locks: [] as unknown[],
+  /** Object-lock calls: the transaction they ran in, the tenant and the objects. */
+  locks: [] as { objects: unknown[]; tenantId: string; txId: number }[],
   /** When set, consumed by the next document read instead of the stored rows. */
   nextReads: [] as DocumentRow[][],
   updatedClaims: 0,
+  /** The transaction that updated the claim, once one did. */
+  writeTxId: 0,
+  txSequence: 0,
   updateMatches: true,
   storage: { list: vi.fn(), prefix: vi.fn(), remove: vi.fn(), tail: vi.fn() },
 };
@@ -34,12 +38,12 @@ export async function withTenantAuthorityDouble(
     inserted: [],
     updated: 0,
   };
+  db.txSequence += 1;
   const tx = {
+    id: db.txSequence,
     query: { claims: { findFirst: () => Promise.resolve(db.claim) } },
-    execute: (statement: unknown) => {
-      db.locks.push(statement);
-      return Promise.resolve([]);
-    },
+    // The draft command runs no raw statement itself; its object lock is the mocked module.
+    execute: () => Promise.reject(new Error('unexpected raw statement')),
     select: () => ({
       from: () => ({
         where: () =>
@@ -52,6 +56,7 @@ export async function withTenantAuthorityDouble(
           returning: () => {
             if (!db.updateMatches) return Promise.resolve([]);
             staged.updated += 1;
+            db.writeTxId = tx.id;
             return Promise.resolve([{ id: CLAIM }]);
           },
         }),
