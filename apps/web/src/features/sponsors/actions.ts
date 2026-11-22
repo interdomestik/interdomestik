@@ -1,5 +1,6 @@
 'use server';
 
+import { SalesClosedError } from '@interdomestik/database/pilot-switch';
 import { revalidatePath } from 'next/cache';
 import { sponsorContext } from './context.core';
 import { runSponsorAction, type SponsorActionResult } from './actions.core';
@@ -18,7 +19,8 @@ export async function sponsorAction(
       revalidatePath('/[locale]/(staff)/staff/sponsors', 'layout');
     }
     return result;
-  } catch {
+  } catch (error) {
+    if (error instanceof SalesClosedError) return { ok: false, error: 'CLOSED' };
     return { ok: false, error: 'unavailable' };
   }
 }

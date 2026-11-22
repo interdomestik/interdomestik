@@ -63,7 +63,7 @@ export async function reconcilePaddleLeadConversion(params: {
 
   let converted: Awaited<ReturnType<typeof convertLeadToMember>>;
   try {
-    converted = await convertLeadToMember(authority, { leadId });
+    converted = await convertLeadToMember(authority, { leadId, admission: { kind: 'check' } });
   } catch (error) {
     // The conversion is one transaction and replay-safe, so any other failure left nothing behind
     // and redelivery may retry it.

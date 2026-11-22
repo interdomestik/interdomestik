@@ -1,12 +1,16 @@
 import * as Sentry from '@sentry/nextjs';
 
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { PADDLE_CLOSED } from '@interdomestik/domain-membership-billing/paddle-closed';
 import { getPaddle } from '@interdomestik/domain-membership-billing/paddle-server';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { handlePaddleWebhookCore } from './_core';
+import { closedPaddleWebhookResponse } from './closed-response';
 
 export async function POST(req: NextRequest) {
+  if (PADDLE_CLOSED) return closedPaddleWebhookResponse();
+
   const limited = await enforceRateLimit({
     name: 'api/webhooks/paddle',
     limit: 60,

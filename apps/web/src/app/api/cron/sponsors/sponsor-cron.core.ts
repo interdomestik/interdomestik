@@ -23,7 +23,12 @@ export type SponsorCronStep =
 
 export type SponsorCronTenantResult = {
   tenantId: string;
-  provisioning: { processed: number; failed: number; disabled: boolean } | null;
+  provisioning: {
+    processed: number;
+    failed: number;
+    disabled: boolean;
+    salesClosed?: number;
+  } | null;
   handovers: { processed: number; failed: number } | null;
   mail: { claimed: number } | null;
   /** Steps that threw; the next pass retries them. */
@@ -65,6 +70,9 @@ async function runTenant(
       processed: provisioning.processed,
       failed: provisioning.failed,
       disabled: provisioning.disabled === true,
+      ...(provisioning.outcomes.sales_closed
+        ? { salesClosed: provisioning.outcomes.sales_closed }
+        : {}),
     };
   });
   await step('handovers', async () => {

@@ -1,4 +1,5 @@
 import { Environment, Paddle } from '@paddle/paddle-node-sdk';
+import { assertPaddleOpen } from './paddle-closed';
 import { getPublicBillingEntityDisclosure } from './paddle-entity-disclosure';
 export type BillingTenantId = 'tenant_ks' | 'tenant_mk' | 'tenant_al';
 export type BillingEntity = 'ks' | 'mk' | 'al';
@@ -399,6 +400,7 @@ export function getPaddleAndConfigForEntity(
   entity: BillingEntity,
   options: ResolveBillingEntityConfigOptions = {}
 ): PaddleEntityContext {
+  assertPaddleOpen();
   const config = resolveBillingEntityConfig(entity, options);
   const environment = resolvePaddleEnvironment();
   const cacheKey = buildPaddleClientCacheKey(config, environment);
@@ -431,6 +433,7 @@ export function getPaddleForEntity(
 }
 
 export function getPaddle(options: GetPaddleOptions = {}): Paddle {
+  assertPaddleOpen();
   const allowLegacyFallback = shouldAllowLegacyFallback(options);
 
   if (!allowLegacyFallback) {

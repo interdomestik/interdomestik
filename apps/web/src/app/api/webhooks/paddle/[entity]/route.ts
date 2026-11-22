@@ -2,18 +2,22 @@ import * as Sentry from '@sentry/nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { PADDLE_CLOSED } from '@interdomestik/domain-membership-billing/paddle-closed';
 import {
   getPaddleAndConfigForEntity,
   resolveBillingEntityFromPathSegment,
 } from '@interdomestik/domain-membership-billing/paddle-server';
 
 import { handlePaddleWebhookEntityCore } from './_core';
+import { closedPaddleWebhookResponse } from '../closed-response';
 
 type WebhookRouteContext = {
   params: Promise<{ entity: string }>;
 };
 
-export async function POST(req: NextRequest, { params }: WebhookRouteContext) {
+export async function POST(req: NextRequest, context: WebhookRouteContext) {
+  if (PADDLE_CLOSED) return closedPaddleWebhookResponse();
+
   const limited = await enforceRateLimit({
     name: 'api/webhooks/paddle',
     limit: 60,
@@ -23,7 +27,7 @@ export async function POST(req: NextRequest, { params }: WebhookRouteContext) {
   });
   if (limited) return limited;
 
-  const { entity: entityPathSegment } = await params;
+  const { entity: entityPathSegment } = await context.params;
   const entity = resolveBillingEntityFromPathSegment(entityPathSegment);
 
   if (!entity) {

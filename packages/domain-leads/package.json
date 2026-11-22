@@ -6,6 +6,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./agent-status": "./src/agent-status.ts",
     "./create": "./src/create.ts",
     "./payment": "./src/payment.ts",
     "./convert": "./src/convert.ts",

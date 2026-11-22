@@ -17,6 +17,7 @@ import { insertGroupSponsorRow, mark, review, setStart, settle } from './provisi
 import { readProvisioningFacts, type ProvisioningEntryFacts } from './provisioning-facts';
 import { bindEntryIdentity } from './provisioning-identity';
 import { linkHandoverIntent } from './provisioning-intent';
+import { assertSponsorSalesOpen } from './sales-admission';
 
 export type ProvisionOutcome =
   | 'skipped'
@@ -167,6 +168,9 @@ async function applyCase(tx: TenantTransaction, input: CaseInput): Promise<Provi
     return 'not_eligible';
   }
   // new_user, immediate, or a handover that fell back to the immediate path.
+  if (kase === 'immediate' && row?.provider !== 'paddle') {
+    await assertSponsorSalesOpen(tx, tenantId);
+  }
   if (!row) await insertGroupSponsorRow(tx, facts, userId);
   await setStart(tx, tenantId, entryId, now);
   return startOutcome(

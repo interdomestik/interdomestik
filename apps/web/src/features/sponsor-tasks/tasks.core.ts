@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { PaddleClosedError } from '@interdomestik/domain-membership-billing/paddle-closed';
 import {
   recordHandoverEvidence,
   closeHandoverByStaff,
@@ -15,7 +16,7 @@ import { z } from 'zod';
 import { authorizeSponsorTasks } from './access.core';
 
 export type TaskError = 'forbidden' | 'invalid' | 'not_found' | 'conflict' | 'error';
-export type TaskActionResult = { ok: true } | { ok: false; error: TaskError };
+export type TaskActionResult = { ok: true } | { ok: false; error: TaskError | 'CLOSED' };
 export type TaskListResult =
   { ok: true; tasks: SponsorStaffTask[] } | { ok: false; error: TaskError };
 
@@ -101,7 +102,8 @@ export async function runSponsorTaskAction(input: unknown): Promise<TaskActionRe
       now,
     });
     return result.ok ? { ok: true } : result;
-  } catch {
+  } catch (error) {
+    if (error instanceof PaddleClosedError) return { ok: false, error: 'CLOSED' };
     return { ok: false, error: 'error' };
   }
 }

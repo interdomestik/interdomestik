@@ -6,6 +6,7 @@ import {
   revokeAgentClientReadScope,
 } from '@interdomestik/domain-membership-billing';
 import {
+  leadPaymentAttempts,
   memberLeads,
   membershipCards,
   subscriptions,
@@ -18,6 +19,7 @@ import {
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { nanoid } from 'nanoid';
 import { MemberEmailConflictError } from './member-email-conflict';
+import { assertLeadSalesOpen } from './sales-admission';
 
 export * from './member-email-conflict';
 
@@ -28,6 +30,8 @@ export interface ConvertLeadResult {
   memberNumber: string | null;
   subscriptionId: string;
 }
+
+type LeadConversionAdmission = { kind: 'verified_cash'; attemptId: string } | { kind: 'check' };
 
 // Only the email uniqueness indexes on "user" are a member email conflict; every other unique
 // violation (card number, member number, ids) stays a plain failure.
@@ -76,9 +80,9 @@ export async function hasTenantLeadForConversion(
 
 export async function convertLeadToMember(
   authority: TenantAuthority,
-  args: { leadId: string; planId?: string }
+  args: { leadId: string; planId?: string; admission: LeadConversionAdmission }
 ): Promise<ConvertLeadResult | null> {
-  const { leadId } = args;
+  const { admission, leadId } = args;
   const { tenantId } = readTenantAuthority(authority);
   const planId = resolveLeadConversionPlanId(args.planId);
 
@@ -117,6 +121,35 @@ export async function convertLeadToMember(
       .where(and(eq(memberLeads.id, leadId), eq(memberLeads.tenantId, tenantId)))
       .for('update');
     if (!locked || isLeadAlreadyConverted(locked)) return null;
+
+    switch (admission?.kind) {
+      case 'check':
+        await assertLeadSalesOpen(tx, tenantId);
+        break;
+      case 'verified_cash': {
+        if (locked.status !== 'paid') throw new Error('Lead payment is not verified');
+        // db-access-guard: tenant-scoped -- reason: evidence must belong to the locked lead and the authority tenant
+        const attempt = await tx.query.leadPaymentAttempts.findFirst({
+          columns: { leadId: true, method: true, status: true, verifiedBy: true },
+          where: and(
+            eq(leadPaymentAttempts.tenantId, tenantId),
+            eq(leadPaymentAttempts.id, admission.attemptId)
+          ),
+        });
+        if (
+          !attempt ||
+          attempt.leadId !== leadId ||
+          attempt.method !== 'cash' ||
+          attempt.status !== 'succeeded' ||
+          !attempt.verifiedBy
+        ) {
+          throw new Error('Lead payment is not verified');
+        }
+        break;
+      }
+      default:
+        throw new Error('Lead conversion admission is required');
+    }
 
     // A. Insert User with role='member'
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause

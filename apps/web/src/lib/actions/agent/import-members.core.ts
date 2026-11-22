@@ -2,7 +2,6 @@ import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { ImportMemberRowInput } from './schemas';
 import { importMemberRowSchema } from './schemas';
 import { registerMemberCore } from './register-member.core';
-import { forEachInOrder } from '@/lib/in-order';
 
 type ImportMembersCoreParams = {
   agent: { id: string; name?: string | null };
@@ -17,6 +16,7 @@ type ImportMemberResult = {
   fullName: string;
   ok: boolean;
   error?: string;
+  code?: 'CLOSED';
 };
 
 export async function importMembersCore({
@@ -38,8 +38,9 @@ export async function importMembersCore({
   }
 
   const results: ImportMemberResult[] = [];
+  let closed = false;
 
-  await forEachInOrder(rows.entries(), async ([index, row]) => {
+  for (const [index, row] of rows.entries()) {
     const validated = importMemberRowSchema.safeParse(row);
 
     if (!validated.success) {
@@ -50,7 +51,7 @@ export async function importMembersCore({
         ok: false,
         error: 'Validation failed',
       });
-      return;
+      continue;
     }
 
     const formData = new FormData();
@@ -70,7 +71,19 @@ export async function importMembersCore({
         fullName: validated.data.fullName,
         ok: true,
       });
-      return;
+      continue;
+    }
+
+    if ('code' in result && result.code === 'CLOSED') {
+      results.push({
+        index,
+        email: validated.data.email,
+        fullName: validated.data.fullName,
+        ok: false,
+        code: result.code,
+      });
+      closed = true;
+      break;
     }
 
     results.push({
@@ -80,7 +93,7 @@ export async function importMembersCore({
       ok: false,
       error: result.error,
     });
-  });
+  }
 
   return {
     summary: {
@@ -89,5 +102,6 @@ export async function importMembersCore({
       failed: results.filter(result => !result.ok).length,
     },
     results,
+    ...(closed ? { code: 'CLOSED' as const } : {}),
   };
 }

@@ -24,6 +24,7 @@ const hoisted = vi.hoisted(() => {
     resolveBillingEntityFromPathSegmentMock: vi.fn((entity?: string) => entity ?? null),
     resolveBillingTenantIdForEntityMock: vi.fn((entity: string) => `tenant_${entity}`),
     pricingPageRuntimeMock: vi.fn((_: unknown) => null),
+    keepParkedPath: false,
   };
 });
 
@@ -57,6 +58,17 @@ vi.mock('next-intl/server', () => ({
   ),
 }));
 
+vi.mock('@interdomestik/domain-membership-billing/paddle-closed', async importOriginal => {
+  const actual =
+    await importOriginal<typeof import('@interdomestik/domain-membership-billing/paddle-closed')>();
+  return {
+    ...actual,
+    get PADDLE_CLOSED() {
+      return hoisted.keepParkedPath ? false : actual.PADDLE_CLOSED;
+    },
+  };
+});
+
 vi.mock('@interdomestik/domain-membership-billing/paddle-server', () => ({
   getPublicBillingCheckoutConfig: hoisted.getPublicBillingCheckoutConfigMock,
   resolveBillingEntityForTenantId: (tenantId?: string) => tenantId?.split('_')[1] ?? null,
@@ -82,6 +94,7 @@ import PricingPage from './_core.entry';
 
 describe('PricingPage server shell', () => {
   beforeEach(() => {
+    hoisted.keepParkedPath = false;
     process.env = { ...ORIGINAL_ENV };
     process.env.IDA_HOST = 'https://ida.example.test';
     process.env.DATABASE_URL = 'postgresql://fixture@localhost:5432/test';
@@ -100,6 +113,7 @@ describe('PricingPage server shell', () => {
   });
 
   it('C29 passes only the trusted pricing entry and validated plan under the header tenant without a server session', async () => {
+    hoisted.keepParkedPath = true;
     const tree = await PricingPage({
       params: Promise.resolve({ locale: 'sq' }),
       searchParams: Promise.resolve({ plan: 'family' }),
@@ -166,8 +180,9 @@ describe('PricingPage server shell', () => {
   });
 
   it.each(['ks', 'mk'])(
-    'preserves the disposable CI billing fixture on %s with both keys open',
+    'the parked checkout uses the disposable CI tenant fixture on %s with both keys open',
     async country => {
+      hoisted.keepParkedPath = true;
       delete process.env.PADDLE_DEFAULT_BILLING_ENTITY;
       process.env.NEXT_PUBLIC_BILLING_TEST_MODE = '1';
       process.env.BILLING_TEST_MODE = '1';
@@ -189,8 +204,9 @@ describe('PricingPage server shell', () => {
   );
 
   it.each(['public_intake', 'new_sales', 'tenant', 'checkout_entity'])(
-    'renders display-only plans and skips Paddle config when blocked by %s',
+    'the parked checkout renders display-only plans and skips Paddle config when blocked by %s',
     async blockedBy => {
+      hoisted.keepParkedPath = true;
       if (blockedBy === 'public_intake') hoisted.authorize.mockResolvedValueOnce(null);
       if (blockedBy === 'new_sales') hoisted.newSales.mockResolvedValueOnce(false);
       if (blockedBy === 'tenant') process.env.PADDLE_DEFAULT_BILLING_ENTITY = 'mk';
@@ -211,7 +227,39 @@ describe('PricingPage server shell', () => {
     }
   );
 
+  it.each(['without Paddle configuration', 'with Paddle configuration', 'in CI billing test mode'])(
+    'renders the closed notice and display-only plans %s',
+    async runtime => {
+      if (runtime === 'without Paddle configuration') {
+        delete process.env.PADDLE_DEFAULT_BILLING_ENTITY;
+        delete process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_KS;
+      } else {
+        process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_KS = 'paddle-client-token-fixture';
+      }
+      if (runtime === 'in CI billing test mode') {
+        process.env.NEXT_PUBLIC_BILLING_TEST_MODE = '1';
+        process.env.BILLING_TEST_MODE = '1';
+        process.env.INTERDOMESTIK_LOCAL_E2E = '1';
+        process.env.PLAYWRIGHT = '1';
+      }
+
+      render(
+        await PricingPage({
+          params: Promise.resolve({ locale: 'sq' }),
+          searchParams: Promise.resolve({ plan: 'family' }),
+        })
+      );
+
+      expect(screen.getByTestId('pricing-checkout-closed')).toHaveTextContent('pricing.CLOSED');
+      expect(screen.getByTestId('plan-card-family')).toBeVisible();
+      expect(screen.queryByTestId('plan-cta-family')).not.toBeInTheDocument();
+      expect(hoisted.pricingPageRuntimeMock).not.toHaveBeenCalled();
+      expect(hoisted.getPublicBillingCheckoutConfigMock).not.toHaveBeenCalled();
+    }
+  );
+
   it('keeps rendering the pricing shell during local sandbox builds when checkout config is unavailable', async () => {
+    hoisted.keepParkedPath = true;
     process.env.NEXT_PUBLIC_PADDLE_ENV = 'sandbox';
     delete process.env.VERCEL_ENV;
 
@@ -239,6 +287,7 @@ describe('PricingPage server shell', () => {
   });
 
   it('fails closed in production Paddle mode when public checkout config is unavailable', async () => {
+    hoisted.keepParkedPath = true;
     vi.stubEnv('NEXT_PUBLIC_PADDLE_ENV', 'production');
     delete process.env.VERCEL_ENV;
 

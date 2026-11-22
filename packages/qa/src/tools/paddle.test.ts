@@ -23,70 +23,31 @@ function createWorktree(envFile: string) {
   };
 }
 
-test('getPaddleResource rejects unsafe Paddle API base URLs before fetch', async () => {
-  const selected = createWorktree(
-    'PADDLE_API_KEY=test-key\nPADDLE_API_BASE=http://127.0.0.1:3000\n'
-  );
+test('getPaddleResource returns closed before any environment or provider access', async () => {
+  const previous = process.env.PADDLE_API_KEY;
+  process.env.PADDLE_API_KEY = 'paddle-api-key-fixture';
+  let fetchCalls = 0;
   globalThis.fetch = async () => {
+    fetchCalls++;
     throw new Error('fetch should not be called');
   };
+
   try {
     const result = await getPaddleResource({
-      repoRoot: selected.repoRoot,
-      resource: 'customers',
-      id: 'ctm_123',
-    });
-    assert.match(result.content[0].text, /Paddle API base URL is not allowed/i);
-  } finally {
-    globalThis.fetch = ORIGINAL_FETCH;
-    selected.remove();
-  }
-});
-
-test('getPaddleResource keeps resource-controlled paths on the Paddle origin', async () => {
-  const selected = createWorktree('PADDLE_API_KEY=test-key\n');
-  let requestedUrl = '';
-  globalThis.fetch = async input => {
-    requestedUrl =
-      typeof input === 'string'
-        ? input
-        : input instanceof URL
-          ? input.href
-          : input instanceof Request
-            ? input.url
-            : '';
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
-  };
-  try {
-    await getPaddleResource({
-      repoRoot: selected.repoRoot,
-      resource: '//attacker.example' as Parameters<typeof getPaddleResource>[0]['resource'],
-      id: 'ctm_123',
-    });
-    assert.equal(new URL(requestedUrl).origin, 'https://api.paddle.com');
-    assert.equal(new URL(requestedUrl).pathname, '/%2F%2Fattacker.example/ctm_123');
-  } finally {
-    globalThis.fetch = ORIGINAL_FETCH;
-    selected.remove();
-  }
-});
-
-test('selected worktree cannot inherit an ambient Paddle credential', async () => {
-  const selected = createWorktree('');
-  const previous = process.env.PADDLE_API_KEY;
-  process.env.PADDLE_API_KEY = 'server-root-only';
-  try {
-    const result = await getPaddleResource({
-      repoRoot: selected.repoRoot,
+      get repoRoot(): string {
+        throw new Error('Paddle closure should not resolve a worktree or load its environment');
+      },
       resource: 'customers',
       id: 'ctm_123',
     });
     assert.equal(result.isError, true);
-    assert.match(result.content[0].text, /Paddle API key missing/);
+    assert.equal(result.structuredContent.code, 'PADDLE_CLOSED');
+    assert.match(result.content[0].text, /Paddle is closed/);
+    assert.equal(fetchCalls, 0);
   } finally {
     if (previous === undefined) delete process.env.PADDLE_API_KEY;
     else process.env.PADDLE_API_KEY = previous;
-    selected.remove();
+    globalThis.fetch = ORIGINAL_FETCH;
   }
 });
 

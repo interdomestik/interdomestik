@@ -11,6 +11,7 @@
     "./membership-hierarchy": "./src/membership-hierarchy.ts",
     "./payment-port": "./src/payment-port.ts",
     "./paddle": "./src/paddle.ts",
+    "./paddle-closed": "./src/paddle-closed.ts",
     "./paddle-server": "./src/paddle-server.ts",
     "./subscription": "./src/subscription.ts",
     "./sponsor-coverage": "./src/sponsor-coverage/index.ts",

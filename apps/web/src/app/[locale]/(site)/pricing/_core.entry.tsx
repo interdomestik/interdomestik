@@ -16,6 +16,7 @@ import {
   authorizeOpenPublicIntake,
   isPublicCheckoutOpen,
 } from '@/lib/tenant/public-intake-admission';
+import { PADDLE_CLOSED } from '@interdomestik/domain-membership-billing/paddle-closed';
 import {
   getPublicBillingCheckoutConfig,
   type PublicBillingCheckoutConfig,
@@ -57,46 +58,49 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
   ]);
   const billingTestMode = process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
   const admissionTenantId = resolvePublicAdmissionTenant(await headers());
-  const configuredEntity = resolveBillingEntityFromPathSegment(
-    process.env.PADDLE_DEFAULT_BILLING_ENTITY
-  );
-  // The disposable CI billing fixture has no configured provider entity.
-  const billingEntity =
-    configuredEntity ??
-    (releaseClass() === 'local-e2e' && isBillingTestActivationEnabled()
-      ? resolveBillingEntityForTenantId(admissionTenantId)
-      : null);
-  const billingTenantId = billingEntity ? resolveBillingTenantIdForEntity(billingEntity) : null;
   const authority = await authorizeOpenPublicIntake(admissionTenantId);
-  const checkoutEntity = billingTestMode
-    ? billingEntity
-    : (resolveBillingEntityFromPathSegment(process.env.NEXT_PUBLIC_PADDLE_BILLING_ENTITY) ??
-      billingEntity);
-  let checkoutOpen = Boolean(
-    authority &&
-    admissionTenantId === billingTenantId &&
-    checkoutEntity &&
-    resolveBillingTenantIdForEntity(checkoutEntity) === admissionTenantId &&
-    (await isPublicCheckoutOpen(authority))
-  );
+  let checkoutOpen = false;
   let checkoutConfig: PublicBillingCheckoutConfig | null = null;
-  if (checkoutOpen && !billingTestMode) {
-    try {
-      checkoutConfig = getPublicBillingCheckoutConfig();
-    } catch (error) {
-      if (
-        process.env.VERCEL_ENV !== 'production' &&
-        process.env.NEXT_PUBLIC_PADDLE_ENV !== 'production'
-      ) {
-        console.warn('Public Paddle checkout config unavailable for pricing page:', error);
-      } else {
-        throw error;
+  if (!PADDLE_CLOSED) {
+    const configuredEntity = resolveBillingEntityFromPathSegment(
+      process.env.PADDLE_DEFAULT_BILLING_ENTITY
+    );
+    // The disposable CI billing fixture has no configured provider entity.
+    const billingEntity =
+      configuredEntity ??
+      (releaseClass() === 'local-e2e' && isBillingTestActivationEnabled()
+        ? resolveBillingEntityForTenantId(admissionTenantId)
+        : null);
+    const billingTenantId = billingEntity ? resolveBillingTenantIdForEntity(billingEntity) : null;
+    const checkoutEntity = billingTestMode
+      ? billingEntity
+      : (resolveBillingEntityFromPathSegment(process.env.NEXT_PUBLIC_PADDLE_BILLING_ENTITY) ??
+        billingEntity);
+    checkoutOpen = Boolean(
+      authority &&
+      admissionTenantId === billingTenantId &&
+      checkoutEntity &&
+      resolveBillingTenantIdForEntity(checkoutEntity) === admissionTenantId &&
+      (await isPublicCheckoutOpen(authority))
+    );
+    if (checkoutOpen && !billingTestMode) {
+      try {
+        checkoutConfig = getPublicBillingCheckoutConfig();
+      } catch (error) {
+        if (
+          process.env.VERCEL_ENV !== 'production' &&
+          process.env.NEXT_PUBLIC_PADDLE_ENV !== 'production'
+        ) {
+          console.warn('Public Paddle checkout config unavailable for pricing page:', error);
+        } else {
+          throw error;
+        }
       }
     }
-  }
-  if (checkoutConfig && checkoutConfig.tenantId !== admissionTenantId) {
-    checkoutOpen = false;
-    checkoutConfig = null;
+    if (checkoutConfig && checkoutConfig.tenantId !== admissionTenantId) {
+      checkoutOpen = false;
+      checkoutConfig = null;
+    }
   }
   return (
     <div
@@ -147,7 +151,12 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
         />
       ) : (
         <>
-          <p className="mb-6 text-center text-muted-foreground">{t('CLOSED')}</p>
+          <p
+            className="mb-6 text-center text-muted-foreground"
+            data-testid="pricing-checkout-closed"
+          >
+            {t('CLOSED')}
+          </p>
           <PricingPlanPreview />
         </>
       )}

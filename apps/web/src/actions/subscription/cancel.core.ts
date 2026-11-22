@@ -1,4 +1,5 @@
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { PADDLE_CLOSED } from '@interdomestik/domain-membership-billing/paddle-closed';
 import { cancelSubscriptionCore as cancelSubscriptionCoreDomain } from '@interdomestik/domain-membership-billing/subscription/cancel';
 import type {
   CancelSubscriptionResult,
@@ -7,6 +8,7 @@ import type {
 } from '@interdomestik/domain-membership-billing/subscription/types';
 
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
+import { subscriptionClosedFailure } from './paddle-closed';
 
 export async function cancelSubscriptionCore(
   params: {
@@ -17,7 +19,9 @@ export async function cancelSubscriptionCore(
     now?: Date;
   },
   deps: SubscriptionDeps = {}
-): Promise<CancelSubscriptionResult> {
+) {
+  if (PADDLE_CLOSED) return subscriptionClosedFailure();
+
   if (!params.session?.user || !params.authority) {
     return { error: 'Unauthorized', success: undefined };
   }

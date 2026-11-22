@@ -17,7 +17,10 @@ describe('handlePaddleWebhookCore lead conversion', () => {
 
     expect(result).toEqual({ status: 200, body: { success: true } });
     expectLeadCall(hoisted.hasTenantLeadForConversion, 'tenant_1', { leadId: 'lead_1' });
-    expectLeadCall(hoisted.convertLeadToMember, 'tenant_1', { leadId: 'lead_1' });
+    expectLeadCall(hoisted.convertLeadToMember, 'tenant_1', {
+      leadId: 'lead_1',
+      admission: { kind: 'check' },
+    });
     expect(hoisted.handlePaddleEvent).toHaveBeenCalledTimes(1);
     expect(hoisted.markWebhookProcessed).toHaveBeenCalledTimes(1);
     expect(hoisted.markWebhookFailed).not.toHaveBeenCalled();
@@ -136,6 +139,9 @@ describe('handlePaddleWebhookCore lead conversion', () => {
       TEST_PADDLE_DELIVERY
     );
     expect(hoisted.resolvePaddleUserOwner).not.toHaveBeenCalled();
-    expectLeadCall(hoisted.convertLeadToMember, 'tenant_from_subscription', { leadId: 'lead_1' });
+    expectLeadCall(hoisted.convertLeadToMember, 'tenant_from_subscription', {
+      leadId: 'lead_1',
+      admission: { kind: 'check' },
+    });
   });
 });

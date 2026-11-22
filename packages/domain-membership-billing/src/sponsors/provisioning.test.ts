@@ -1,3 +1,4 @@
+import { assertNewSalesOpen, SalesClosedError } from '@interdomestik/database/pilot-switch';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,12 +8,20 @@ import { produceEntryStart } from '../sponsor-coverage/entry-start';
 import { readPersonCoverage } from '../sponsor-coverage/resolve';
 import { auditTransaction } from './audit-test-support';
 import { provisionEntry } from './provisioning';
-import { mark, review, setStart } from './provisioning-effects';
+import { insertGroupSponsorRow, mark, review, setStart } from './provisioning-effects';
 import { readProvisioningFacts, type ProvisioningEntryFacts } from './provisioning-facts';
 import { linkHandoverIntent } from './provisioning-intent';
 
 vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   withTenantAuthority: vi.fn(),
+}));
+vi.mock('@interdomestik/database/pilot-switch', async original => ({
+  ...(await original<typeof import('@interdomestik/database/pilot-switch')>()),
+  assertNewSalesOpen: vi.fn(),
+}));
+vi.mock('@interdomestik/database/sponsor-locks', () => ({
+  lockSponsorEntryIdentity: vi.fn(),
+  lockSponsorPerson: vi.fn(),
 }));
 vi.mock('../sponsor-coverage/admission', () => ({ admitPersonEntries: vi.fn() }));
 vi.mock('../sponsor-coverage/entry-start', () => ({ produceEntryStart: vi.fn() }));
@@ -62,6 +71,7 @@ function use(status: string, termStart = facts.termStart): void {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(assertNewSalesOpen).mockResolvedValue(undefined);
   vi.mocked(admitPersonEntries).mockResolvedValue([{ entryId: 'entry', decision: 'accepted' }]);
   vi.mocked(readPersonCoverage).mockResolvedValue(null);
   vi.mocked(produceEntryStart).mockResolvedValue({
@@ -72,6 +82,42 @@ beforeEach(() => {
 });
 
 describe('provisionEntry case effects', () => {
+  it('refuses creation of a new account before any write while sales are closed', async () => {
+    const db = auditTransaction();
+    vi.mocked(withTenantAuthority).mockImplementation(async (_authority, fn) => fn(db.tx));
+    vi.mocked(readProvisioningFacts).mockResolvedValue({
+      ...facts,
+      userId: null,
+      emailHmac: 'entry-hmac',
+      emailNormalized: 'member@example.test',
+    });
+    vi.mocked(assertNewSalesOpen).mockRejectedValueOnce(new SalesClosedError());
+
+    await expect(
+      provisionEntry(authority, { entryId: 'entry', now, hasCredential: vi.fn() })
+    ).rejects.toBeInstanceOf(SalesClosedError);
+    expect(assertNewSalesOpen).toHaveBeenCalledExactlyOnceWith(db.tx, 'tenant');
+    expect(db.tx.insert).not.toHaveBeenCalled();
+    expect(db.tx.update).not.toHaveBeenCalled();
+    expect(admitPersonEntries).not.toHaveBeenCalled();
+    expect(produceEntryStart).not.toHaveBeenCalled();
+  });
+
+  it('checks before creating group coverage for a bound account with no subscription', async () => {
+    const db = auditTransaction({ selects: [[{ role: 'member' }], []] });
+    vi.mocked(withTenantAuthority).mockImplementation(async (_authority, fn) => fn(db.tx));
+    vi.mocked(readProvisioningFacts).mockResolvedValue(facts);
+    vi.mocked(assertNewSalesOpen).mockRejectedValueOnce(new SalesClosedError());
+
+    await expect(
+      provisionEntry(authority, { entryId: 'entry', now, hasCredential: vi.fn() })
+    ).rejects.toBeInstanceOf(SalesClosedError);
+    expect(assertNewSalesOpen).toHaveBeenCalledExactlyOnceWith(db.tx, 'tenant');
+    expect(insertGroupSponsorRow).not.toHaveBeenCalled();
+    expect(setStart).not.toHaveBeenCalled();
+    expect(produceEntryStart).not.toHaveBeenCalled();
+  });
+
   it('links active Paddle coverage before a future term starts without starting the entry', async () => {
     use('active', new Date('2027-03-01'));
     vi.mocked(linkHandoverIntent).mockResolvedValue({
@@ -105,8 +151,9 @@ describe('provisionEntry case effects', () => {
     expect(review).not.toHaveBeenCalled();
   });
 
-  it('publishes a linked paid-end interval with the credential snapshot', async () => {
+  it('publishes a linked paid-end interval with the credential snapshot during a sales stop', async () => {
     use('active');
+    vi.mocked(assertNewSalesOpen).mockRejectedValue(new SalesClosedError());
     const paidUntil = new Date('2027-04-01');
     vi.mocked(linkHandoverIntent).mockResolvedValue({
       kind: 'linked',
@@ -126,6 +173,7 @@ describe('provisionEntry case effects', () => {
       interval: { start: paidUntil, end: facts.effectiveEnd },
     });
     expect(hasCredential).toHaveBeenCalledWith('member');
+    expect(assertNewSalesOpen).not.toHaveBeenCalled();
     expect(setStart).not.toHaveBeenCalled();
   });
 
