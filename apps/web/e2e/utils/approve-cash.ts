@@ -2,25 +2,9 @@ import { db, eq, memberLeads } from '@interdomestik/database';
 import { expect, test, type Page, type Request as PlaywrightRequest } from '@playwright/test';
 import { gotoApp } from './navigation';
 
-export type TenantRegistrationTarget = {
-  actorEmail: string;
-  adminEmail: string;
-  expectedTenantId: string;
-  host: string;
-  locale: string;
-  label: 'ks' | 'mk';
-};
-
-export const tenantBaseUrl = (target: TenantRegistrationTarget): string =>
-  `http://${target.host}/${target.locale}/`;
-
-export async function approveCash(
-  admin: Page,
-  target: TenantRegistrationTarget,
-  email: string
-): Promise<void> {
+export async function approveCash(admin: Page, baseURL: string, email: string): Promise<void> {
   await gotoApp(admin, `admin/leads?${new URLSearchParams({ query: email })}`, test.info(), {
-    baseURL: tenantBaseUrl(target),
+    baseURL,
     marker: 'verification-ops-page',
   });
   const row = admin

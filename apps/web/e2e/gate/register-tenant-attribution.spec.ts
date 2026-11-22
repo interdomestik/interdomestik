@@ -10,10 +10,19 @@ import {
 import en from '../../src/messages/en/agent.json';
 import mk from '../../src/messages/mk/agent.json';
 import sq from '../../src/messages/sq/agent.json';
-import { approveCash, tenantBaseUrl, type TenantRegistrationTarget } from '../utils/approve-cash';
+import { approveCash } from '../utils/approve-cash';
 import { gotoApp } from '../utils/navigation';
 import { removeOwnedMemberLead } from '../utils/owned-member-lead';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+
+type TenantRegistrationTarget = {
+  actorEmail: string;
+  adminEmail: string;
+  expectedTenantId: string;
+  host: string;
+  locale: string;
+  label: 'ks' | 'mk';
+};
 
 type RegisteredExpectation = {
   email: string;
@@ -118,6 +127,9 @@ async function leadIdFor(email: string): Promise<string | null> {
   return row?.id ?? null;
 }
 
+const tenantBaseUrl = (target: TenantRegistrationTarget): string =>
+  `http://${target.host}/${target.locale}/`;
+
 // The replacement enrollment journey (ACQ-2, owner D1 a): consented lead, then Pay Cash.
 async function recordLeadAndTakeCash(
   page: Page,
@@ -213,7 +225,7 @@ test.describe('Registration tenant attribution', () => {
               target,
               target.adminEmail
             );
-            await approveCash(admin, target, email);
+            await approveCash(admin, tenantBaseUrl(target), email);
           })
         )
       );
