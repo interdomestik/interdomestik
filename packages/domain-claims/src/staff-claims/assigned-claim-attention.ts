@@ -23,6 +23,8 @@ import type { ClaimsSession } from '../claims/types';
 export type AssignedClaimAttention = {
   nextActor: 'staff' | 'member' | 'untracked';
   overdueFollowUpDueAt: string | null;
+  /** Set when the earliest overdue date is a case or correspondence follow-up of the register. */
+  overdueFollowUpSource?: 'case_register';
 };
 
 type RequestProgressRow = {
@@ -48,11 +50,17 @@ function groupRequestProgress(rows: readonly RequestProgressRow[]): Map<string, 
   return requests;
 }
 
-function recordOverdueFollowUp(item: AssignedClaimAttention, dueAt: Date, now: Date): void {
+function recordOverdueFollowUp(
+  item: AssignedClaimAttention,
+  dueAt: Date,
+  now: Date,
+  source?: 'case_register'
+): void {
   if (dueAt.getTime() >= now.getTime()) return;
   const savedDate = dueAt.toISOString();
   if (!item.overdueFollowUpDueAt || savedDate < item.overdueFollowUpDueAt) {
     item.overdueFollowUpDueAt = savedDate;
+    item.overdueFollowUpSource = source;
   }
 }
 
@@ -166,8 +174,9 @@ export async function getAssignedStaffClaimAttention(
     const followUps = await readCaseFollowUps(tx, tenantId, staffId, claimIds);
     const attention = deriveAssignedClaimAttention(claimIds, rows, now);
     for (const row of followUps) {
-      if (row.caseDueAt) recordOverdueFollowUp(attention[row.claimId], row.caseDueAt, now);
-      if (row.outboundDueAt) recordOverdueFollowUp(attention[row.claimId], row.outboundDueAt, now);
+      const item = attention[row.claimId];
+      if (row.caseDueAt) recordOverdueFollowUp(item, row.caseDueAt, now, 'case_register');
+      if (row.outboundDueAt) recordOverdueFollowUp(item, row.outboundDueAt, now, 'case_register');
     }
     return attention;
   });

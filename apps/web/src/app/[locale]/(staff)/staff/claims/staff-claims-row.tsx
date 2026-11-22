@@ -39,6 +39,10 @@ export function StaffClaimsRow({
   tStatus,
 }: Readonly<Props>) {
   const overdueDate = attention?.overdueFollowUpDueAt;
+  const overdueCopy =
+    attention?.overdueFollowUpSource === 'case_register'
+      ? 'staff_queue.attention.overdue_register_follow_up'
+      : 'staff_queue.attention.overdue_follow_up';
   const dueFormatter = new Intl.DateTimeFormat(locale, {
     timeZone: 'UTC',
     dateStyle: 'medium',
@@ -107,7 +111,7 @@ export function StaffClaimsRow({
             className="mt-2 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-950"
             data-testid="staff-claim-overdue-follow-up"
           >
-            {tClaims('staff_queue.attention.overdue_follow_up', {
+            {tClaims(overdueCopy, {
               date: dueFormatter.format(new Date(overdueDate)),
             })}
           </p>

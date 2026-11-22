@@ -191,6 +191,31 @@ describe('getAssignedStaffClaimAttention', () => {
     ).rejects.toThrow('database unavailable');
   });
 
+  it('keeps the member request as the source when its overdue date is earlier', async () => {
+    mocks.query.where
+      .mockResolvedValueOnce([
+        {
+          claimId: 'claim-1',
+          requestId: 'request-1',
+          dueAt: new Date('2026-09-26T12:00:00.000Z'),
+          submittedAt: null,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          claimId: 'claim-1',
+          caseDueAt: new Date('2026-09-28T12:00:00.000Z'),
+          outboundDueAt: null,
+        },
+      ]);
+    const result = await getAssignedStaffClaimAttention(staffSession, authority, ['claim-1'], now);
+    expect(result['claim-1']).toEqual({
+      nextActor: 'member',
+      overdueFollowUpDueAt: '2026-09-26T12:00:00.000Z',
+    });
+    expect(result['claim-1'].overdueFollowUpSource).toBeUndefined();
+  });
+
   it('includes the earliest past case or unanswered outbound follow-up for the assigned claim', async () => {
     mocks.query.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
       {
@@ -202,7 +227,11 @@ describe('getAssignedStaffClaimAttention', () => {
     await expect(
       getAssignedStaffClaimAttention(staffSession, authority, ['claim-1'], now)
     ).resolves.toEqual({
-      'claim-1': { nextActor: 'untracked', overdueFollowUpDueAt: '2026-09-27T12:00:00.000Z' },
+      'claim-1': {
+        nextActor: 'untracked',
+        overdueFollowUpDueAt: '2026-09-27T12:00:00.000Z',
+        overdueFollowUpSource: 'case_register',
+      },
     });
     expect(mocks.query.where).toHaveBeenCalledWith(
       expect.objectContaining({

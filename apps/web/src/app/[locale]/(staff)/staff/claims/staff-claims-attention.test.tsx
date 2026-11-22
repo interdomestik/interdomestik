@@ -184,7 +184,11 @@ describe('staff claim attention', () => {
       mocks.getAttention.mockResolvedValueOnce({
         'claim-member': { nextActor: 'member', overdueFollowUpDueAt: '2026-09-28T09:00:00.000Z' },
         'claim-staff': { nextActor: 'staff', overdueFollowUpDueAt: null },
-        'claim-no-request': { nextActor: 'untracked', overdueFollowUpDueAt: null },
+        'claim-no-request': {
+          nextActor: 'untracked',
+          overdueFollowUpDueAt: '2026-09-27T09:00:00.000Z',
+          overdueFollowUpSource: 'case_register',
+        },
       });
       render(
         await StaffClaimsPage({
@@ -211,9 +215,14 @@ describe('staff claim attention', () => {
           .getAllByTestId('staff-claims-row')
           .map(row => row.querySelector('[data-testid="staff-claim-title"]')?.textContent)
       ).toEqual(['Staff review', 'Member wait', 'No request']);
-      expect(screen.getByTestId('staff-claim-overdue-follow-up')).toHaveTextContent(
-        copy.overdue_follow_up.split('{date}')[0]
+      const [requestFollowUp, registerFollowUp] = screen.getAllByTestId(
+        'staff-claim-overdue-follow-up'
       );
+      expect(requestFollowUp).toHaveTextContent(copy.overdue_follow_up.split('{date}')[0]);
+      expect(registerFollowUp).toHaveTextContent(
+        copy.overdue_register_follow_up.split('{date}')[0]
+      );
+      expect(registerFollowUp).not.toHaveTextContent(copy.overdue_follow_up.split('{date}')[0]);
       expect(mocks.getAttention).toHaveBeenCalledWith(
         expect.objectContaining({ user: expect.objectContaining({ id: 'staff-1' }) }),
         authority,
