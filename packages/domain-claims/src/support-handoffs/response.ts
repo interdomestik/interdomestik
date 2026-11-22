@@ -6,6 +6,7 @@ import {
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { enqueueSupportHandoffResponseNotification } from '@interdomestik/domain-communications/notification-deliveries';
+import { reportServerError } from '@interdomestik/domain-communications/server-error';
 import { inArray, isNotNull, type SQL } from 'drizzle-orm';
 
 import type {
@@ -135,7 +136,7 @@ export async function updateSupportHandoffPublicResponseCore(
       return updated;
     });
   } catch (error) {
-    console.error('Support handoff public response transaction failed', error);
+    reportServerError('Support handoff public response transaction failed', error);
     return { success: false, error: 'Public response could not be saved' };
   }
 
@@ -159,7 +160,7 @@ export async function updateSupportHandoffPublicResponseCore(
         headers: params.requestHeaders,
       });
     } catch (error) {
-      console.error('Support handoff public response audit failed after commit', error);
+      reportServerError('Support handoff public response audit failed after commit', error);
     }
   }
 

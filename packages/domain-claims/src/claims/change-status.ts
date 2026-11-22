@@ -1,6 +1,5 @@
 import { reportServerError } from '@interdomestik/domain-communications/server-error';
 import { claims, eq, type TenantTransaction } from '@interdomestik/database';
-import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
@@ -9,18 +8,20 @@ import {
   lockClaimNotificationRecipient,
 } from '@interdomestik/domain-communications/notification-deliveries';
 import type { SQL } from 'drizzle-orm';
-import { z } from 'zod';
 
 import { buildScopedStaffClaimWhere } from '../staff-claims/scope';
-import { RECOVERY_DECLINE_REASON_CODES } from '../staff-claims/types';
-import { claimStatusSchema } from '../validators/claims';
 import { lockClaimStatusAgreement } from './change-status-agreement';
+import {
+  changeClaimStatusCommandSchema,
+  type ChangeClaimStatusCode,
+  type ChangeClaimStatusResult,
+  type StatusInput,
+} from './change-status-contract';
 import {
   checkClaimStatusRecovery,
   isRecoveryStatus,
   lockRecoveryAllowanceBeforeClaim,
   matchesRecoveryAllowanceLock,
-  type RecoveryPrerequisite,
   type RecoveryUsage,
 } from './change-status-recovery';
 import { persistClaimStatusChange } from './change-status-write';
@@ -36,58 +37,15 @@ import {
   isValidTransitionCurrentState,
   resolveTransitionCurrentState,
 } from './transition-current-state';
-import type { ClaimTransitionRejectionReason } from './transition-guard';
 
 export { activateClaimStatusAuditProjection } from './audit-projection';
+export {
+  changeClaimStatusInputSchema,
+  type ChangeClaimStatusCode,
+  type ChangeClaimStatusResult,
+} from './change-status-contract';
 export { resolveClaimStatusActor } from './status-actor';
 
-const statusInputFields = {
-  claimId: z.string().min(1),
-  toStatus: claimStatusSchema.shape.status,
-  note: z.string().max(2000).optional(),
-  isPublicNote: z.boolean().default(true),
-  declineReasonCode: z.enum(RECOVERY_DECLINE_REASON_CODES).optional(),
-  decisionExplanation: z.string().optional(),
-  allowanceOverrideReason: z.string().optional(),
-};
-
-/** Entry-point input: shape and bounds only; the command below normalises its own text. */
-export const changeClaimStatusInputSchema = z.object(statusInputFields).strict();
-
-const changeClaimStatusCommandSchema = z
-  .object({
-    ...statusInputFields,
-    claimId: z.string().trim().min(1),
-    note: z.string().trim().max(2000).optional(),
-    decisionExplanation: z.string().trim().optional(),
-    allowanceOverrideReason: z.string().trim().optional(),
-  })
-  .strict();
-
-export type ChangeClaimStatusCode =
-  | 'not_found'
-  | 'forbidden_role'
-  | 'invalid_input'
-  | 'invalid_current_status'
-  | 'draft_not_changeable'
-  | 'illegal_transition'
-  | 'decline_reason_required'
-  | `recovery_prerequisite:${RecoveryPrerequisite}`
-  | `transition_rejected:${Exclude<ClaimTransitionRejectionReason, 'invalid_status' | 'illegal_transition'>}`
-  | 'conflict'
-  | 'transaction_failed';
-
-export type ChangeClaimStatusResult =
-  | {
-      ok: true;
-      fromStatus: ClaimStatus;
-      toStatus: ClaimStatus;
-      changed: boolean;
-      deliveryIds: string[];
-    }
-  | { ok: false; code: ChangeClaimStatusCode };
-
-type StatusInput = z.output<typeof changeClaimStatusCommandSchema>;
 type StatusMeta = { hostId: string | null; requestHeaders?: Headers };
 
 class ClaimStatusFailure extends Error {
@@ -206,7 +164,14 @@ async function changeClaimStatusInTransaction(
   }
   const fromStatus = current.status;
   const changed = fromStatus !== toStatus;
-  const unchanged = { ok: true as const, changed: false, fromStatus, toStatus, deliveryIds: [] };
+  const unchanged = {
+    ok: true as const,
+    claimId,
+    changed: false,
+    fromStatus,
+    toStatus,
+    deliveryIds: [],
+  };
   const note = input.note || null;
   if (!changed && !note) return unchanged;
 
@@ -261,7 +226,7 @@ async function changeClaimStatusInTransaction(
     kind: 'status_change',
   });
 
-  return { ok: true, fromStatus, toStatus, changed, deliveryIds };
+  return { ok: true, claimId, fromStatus, toStatus, changed, deliveryIds };
 }
 
 export async function changeClaimStatus(

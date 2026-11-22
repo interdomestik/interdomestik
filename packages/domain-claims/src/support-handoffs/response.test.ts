@@ -151,7 +151,7 @@ describe('support handoff public response', () => {
       committed = true;
       return row;
     });
-    const error = new Error('notification insert failed');
+    const error = Object.assign(new Error('query parameters: First answer'), { code: '23514' });
     mocks.enqueue.mockRejectedValueOnce(error);
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
@@ -181,7 +181,13 @@ describe('support handoff public response', () => {
       expect(mocks.enqueue).toHaveBeenCalledTimes(1);
       expect(committed).toBe(false);
       expect(mocks.logAuditEvent).not.toHaveBeenCalled();
-      expect(log).toHaveBeenCalledWith('Support handoff public response transaction failed', error);
+      expect(log).toHaveBeenCalledExactlyOnceWith(
+        'Support handoff public response transaction failed',
+        expect.objectContaining({
+          message: 'Support handoff public response transaction failed',
+          cause: { name: 'Error', code: '23514' },
+        })
+      );
     } finally {
       log.mockRestore();
     }

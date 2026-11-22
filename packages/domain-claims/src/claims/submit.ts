@@ -14,6 +14,7 @@ import {
   enqueueStaffClaimNotification,
   lockClaimNotificationRecipient,
 } from '@interdomestik/domain-communications/notification-deliveries';
+import { reportServerError } from '@interdomestik/domain-communications/server-error';
 import { nanoid } from 'nanoid';
 import { resolveStaffClaimNotificationRecipients } from '../staff-claims/notification-recipients';
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
@@ -182,7 +183,7 @@ export async function submitClaimCore(
     claimNumber = persistedClaim.claimNumber;
     deliveryIds = persistedClaim.deliveryIds;
   } catch (error) {
-    console.error('Failed to create claim:', error);
+    reportServerError('Failed to create claim:', error);
     throw new Error('Failed to create claim. Please try again.');
   }
   try {
@@ -196,7 +197,7 @@ export async function submitClaimCore(
       assignment,
     });
   } catch (error) {
-    console.error('Claim submission audit failed after commit', error);
+    reportServerError('Claim submission audit failed after commit', error);
   }
 
   await dispatchQueuedClaimAiRuns(queuedRuns, deps);
@@ -204,7 +205,7 @@ export async function submitClaimCore(
   try {
     await deps.revalidatePath?.('/member/claims');
   } catch (error) {
-    console.error('Claim submission cache refresh failed after commit', error);
+    reportServerError('Claim submission cache refresh failed after commit', error);
   }
 
   return { success: true, claimId, claimNumber, deliveryIds };

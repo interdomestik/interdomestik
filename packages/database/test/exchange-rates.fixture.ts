@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
+import { readMigrationFiles } from 'drizzle-orm/migrator';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type postgres from 'postgres';
 
@@ -9,7 +11,7 @@ import { withDisposableClient } from '../src/disposable-client';
 import { mintIngressCapability } from '../src/ingress-capability';
 import { mintTenantAuthority } from '../src/tenant-authority';
 import { runSequentially } from './in-order';
-import { migrateJournal, withScratchDatabase } from './pg16/scratch-database';
+import { withScratchDatabase } from './pg16/scratch-database';
 import {
   applyRlsTestConnectionEnv,
   quoteIdentifier,
@@ -120,13 +122,20 @@ export async function withExchangeRateFixture(
   // The scratch database owns all append-only rows and disappears after the proof.
   await withScratchDatabase('wp07_rates', admin =>
     withRuntimeLogin(admin, async (username, password) => {
-      // Migration 0101 grants privileges to the runtime role when it exists.
-      await migrateJournal(admin, migrations);
+      // Apply through the migration whose grants this fixture exercises. WP-11's fixture
+      // separately tests its runtime role prerequisites against the journal through 0102.
+      const config = { migrationsFolder: migrations };
+      const journal = readMigrationFiles(config);
+      const target = journal.findIndex(migration =>
+        migration.sql.some(statement => statement.includes('CREATE TABLE "exchange_rate_books"'))
+      );
+      assert.ok(target >= 0, 'the exchange rates migration is journaled');
+      const adminDb = drizzle(admin, { schema: {} });
+      await new PgDialect().migrate(journal.slice(0, target + 1), adminDb._.session, config);
       const [{ name }] = await admin<{ name: string }[]>`select current_database() as name`;
       const url = new URL(process.env.DATABASE_URL!);
       url.pathname = `/${name}`;
 
-      const adminDb = drizzle(admin);
       await provisionRestrictedRole(adminDb);
       await grantRlsTestRole(adminDb, tables);
       // The append-only tests need permission to reach the mutation triggers.

@@ -38,9 +38,9 @@ export const updateClaimStatusCore = defineAction({
     await completeClaimStatusEffects(authority, outcome);
     try {
       for (const locale of LOCALES) {
-        revalidatePath(`/${locale}/staff/claims/${input.claimId}`);
+        revalidatePath(`/${locale}/staff/claims/${outcome.claimId}`);
         revalidatePath(`/${locale}/staff/claims`);
-        revalidatePath(`/${locale}/member/claims/${input.claimId}`);
+        revalidatePath(`/${locale}/member/claims/${outcome.claimId}`);
         revalidatePath(`/${locale}/member/claims`);
       }
     } catch (error) {

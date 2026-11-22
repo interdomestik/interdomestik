@@ -1,6 +1,6 @@
 'use client';
 
-import { updatePreferredLocale } from '@/actions/preferred-locale';
+import { useSavePreferredLocale } from '@/hooks/use-save-preferred-locale';
 import { Link, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
@@ -29,6 +29,7 @@ export function Header() {
   const locale = useLocale();
   const router = useRouter();
   const t = useTranslations('nav');
+  const saveLocale = useSavePreferredLocale();
   const { data: session, isPending } = authClient.useSession();
   const hasHydrated = useHasHydrated();
   const [localeOpen, setLocaleOpen] = useState(false);
@@ -96,8 +97,8 @@ export function Header() {
                   href="/"
                   locale={option}
                   data-testid="public-locale-option"
-                  onClick={async event => {
-                    setLocaleOpen(false);
+                  onClick={() => setLocaleOpen(false)}
+                  onClickCapture={async event => {
                     if (
                       !hasHydrated ||
                       isPending ||
@@ -110,8 +111,14 @@ export function Header() {
                       event.altKey
                     )
                       return;
+                    // The localized link updates its locale cookie in the bubbling click handler.
                     event.preventDefault();
-                    await updatePreferredLocale({ locale: option });
+                    event.stopPropagation();
+                    setLocaleOpen(false);
+                    if (!(await saveLocale(option))) {
+                      localeTrigger.current?.focus();
+                      return;
+                    }
                     router.push('/', { locale: option });
                   }}
                   onKeyDown={event => {

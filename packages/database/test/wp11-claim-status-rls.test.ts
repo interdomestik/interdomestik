@@ -12,6 +12,7 @@ import {
   claimStageHistory,
   domainEvents,
   notificationDeliveries,
+  user,
 } from '../src/schema';
 import { KS_TENANT_ID } from './s8-claim-restricted-rls.fixture';
 import { whileClaimWriterHoldsLock, withStatusFixture } from './wp11-claim-status-rls.fixture';
@@ -155,6 +156,91 @@ test(
             () => advance(claimId, 'negotiation')
           );
           assert.deepEqual(result, { ok: false, code: 'recovery_prerequisite:agreement' });
+        }
+      );
+
+      await t.test(
+        'repeating an admin assignment refreshes and audits a valid target',
+        async () => {
+          const { changeClaimAssignment } =
+            await import('../../domain-claims/src/staff-claims/assign');
+          const claimId = await newClaim('submitted', staffId);
+          const claimWhere = eq(claims.id, claimId);
+          const assignedAt = new Date('2020-01-01T00:00:00Z');
+          await adminDb.update(claims).set({ assignedAt, assignedById: staffId }).where(claimWhere);
+
+          const assignAgain = () => changeClaimAssignment(admin, { claimId, staffId });
+          const result = await assignAgain();
+          assert.ok(result.ok && result.changed);
+          const [assignment] = await adminDb.select().from(claims).where(claimWhere);
+          assert.equal(assignment.assignedById, adminId);
+          assert.ok(assignment.assignedAt && assignment.assignedAt > assignedAt);
+
+          await adminDb.update(user).set({ role: 'member' }).where(eq(user.id, staffId));
+          assert.deepEqual(await assignAgain(), { ok: false, code: 'target_denied' });
+          await adminDb.update(user).set({ role: 'staff' }).where(eq(user.id, staffId));
+          const audits = await adminDb
+            .select()
+            .from(auditLog)
+            .where(eq(auditLog.entityId, claimId));
+          assert.deepEqual(
+            audits.map(audit => [audit.actorId, audit.action]),
+            [[adminId, 'assign_owner']]
+          );
+        }
+      );
+
+      await t.test(
+        'dispatch skips queued recipients excluded by current staff routing',
+        async () => {
+          const [
+            { dispatchNotificationDeliveries },
+            { enqueueNotificationDelivery },
+            { withTenantAuthority },
+          ] = await Promise.all([
+            import('../../domain-claims/src/claims/notification-delivery-runner'),
+            import('../../domain-communications/src/notification-deliveries'),
+            import('../src/tenant-authority-context'),
+          ]);
+          await adminDb.update(user).set({ role: 'tenant_admin' }).where(eq(user.id, ownerId));
+          await adminDb.update(user).set({ emailVerified: true }).where(eq(user.id, peerStaffId));
+          const claimId = await newClaim('submitted');
+          const enqueue = (recipientUserId: string) =>
+            withTenantAuthority(admin, tx =>
+              enqueueNotificationDelivery(tx, {
+                id: newId('wp11_staff_delivery'),
+                tenantId: KS_TENANT_ID,
+                claimId,
+                kind: 'staff_claim_submitted',
+                channel: 'email',
+                recipientUserId,
+              })
+            );
+          const previousStaff = await enqueue(peerStaffId);
+          const fallbackAdmin = await enqueue(ownerId);
+          assert.ok(previousStaff && fallbackAdmin);
+          await adminDb.update(claims).set({ staffId }).where(eq(claims.id, claimId));
+          const summary = await dispatchNotificationDeliveries(
+            admin,
+            {
+              appOrigin: () => 'https://example.test',
+              emailTransports: () => ['smtp'],
+              sendEmail: () => Promise.reject(new Error('Excluded recipient reached the provider')),
+            },
+            { ids: [previousStaff, fallbackAdmin] }
+          );
+          assert.equal(summary.skipped, 2);
+          const rows = await adminDb
+            .select()
+            .from(notificationDeliveries)
+            .where(eq(notificationDeliveries.claimId, claimId));
+          assert.deepEqual(
+            rows.map(row => [row.state, row.skipReason]),
+            [
+              ['skipped', 'recipient_out_of_scope'],
+              ['skipped', 'recipient_out_of_scope'],
+            ]
+          );
         }
       );
     });

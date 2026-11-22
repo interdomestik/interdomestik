@@ -1,7 +1,6 @@
 'use client';
 
-import { updatePreferredLocale } from '@/actions/preferred-locale';
-import { authClient } from '@/lib/auth-client';
+import { useSavePreferredLocale } from '@/hooks/use-save-preferred-locale';
 import { usePathname, useRouter } from '@/i18n/routing';
 import {
   Card,
@@ -31,7 +30,7 @@ const SUPPORTED_LOCALES = [
 ] as const;
 
 export function LanguageSettings() {
-  const { data: session } = authClient.useSession();
+  const saveLocale = useSavePreferredLocale();
   const t = useTranslations('settings');
   const locale = useLocale();
   const router = useRouter();
@@ -40,7 +39,7 @@ export function LanguageSettings() {
 
   const handleLocaleChange = (newLocale: string) => {
     startTransition(async () => {
-      if (session?.user?.id) await updatePreferredLocale({ locale: newLocale });
+      if (!(await saveLocale(newLocale))) return;
       // usePathname from @/i18n/routing returns the path WITHOUT the locale prefix
       // useRouter from @/i18n/routing handles adding the new locale prefix automatically
       router.replace(pathname, { locale: newLocale });

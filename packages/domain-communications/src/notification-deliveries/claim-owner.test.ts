@@ -136,6 +136,7 @@ describe('claim owner notification producers', () => {
     });
     expect(h.values.mock.calls[0][0]).toMatchObject({
       id: 'ntf_new_message_reply',
+      previewRestricted: true,
       title: CLAIM_MAIL_COPY.mk.messages.claim_message_to_member.restricted.heading,
       content: CLAIM_MAIL_COPY.mk.messages.claim_message_to_member.restricted.body,
     });

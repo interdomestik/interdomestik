@@ -1,4 +1,5 @@
-import { authority, claimEffects, mocks, resetSendMocks, staffSession } from './send.test-support';
+import { claimEffects, mocks, resetSendMocks, staffSession } from './send.test-support';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { sendMessageDbCore } from './send-message';
@@ -29,7 +30,11 @@ describe('sendMessageDbCore send access', () => {
   const send = (user: Record<string, string>, isInternal = false) =>
     sendMessageDbCore({
       session: { user: { tenantId: 'tenant-1', ...user } } as typeof staffSession,
-      authority,
+      authority: mintTestTenantAuthority('tenant-1', {
+        userId: user.id,
+        role: user.role,
+        branchId: user.branchId,
+      }),
       requestHeaders: new Headers(),
       claimId: 'claim-1',
       content: 'Hello',
@@ -87,6 +92,18 @@ describe('sendMessageDbCore send access', () => {
     const result = await send(user, isInternal);
 
     expect(result).toMatchObject({ success: true, isInternal });
+    expect(mocks.tx.insert).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows a cross-home admin to post publicly and refuses their internal note', async () => {
+    const actor = { id: 'admin-1', role: 'admin' };
+    mocks.lockLocalActor.mockResolvedValue([]);
+
+    await expect(send(actor, true)).resolves.toEqual({ success: false, error: DENIED });
+    expect(mocks.lockLocalActor).toHaveBeenCalledExactlyOnceWith('share');
+    expect(mocks.tx.insert).not.toHaveBeenCalled();
+
+    await expect(send(actor)).resolves.toMatchObject({ success: true, isInternal: false });
     expect(mocks.tx.insert).toHaveBeenCalledTimes(1);
   });
 

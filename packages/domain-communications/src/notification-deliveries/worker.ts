@@ -12,6 +12,7 @@ export type {
   ClaimedDelivery,
   Delivery,
   DeliveryDependencies,
+  PushDeliverySubscription,
   RunSummary,
   SkipReason,
 } from './types';

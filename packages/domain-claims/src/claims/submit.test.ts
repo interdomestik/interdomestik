@@ -20,6 +20,29 @@ import {
 import { submitClaimCore } from './submit';
 
 describe('submitClaimCore', () => {
+  it('redacts bound claim data when persistence fails', async () => {
+    const args = buildSubmitArgs({ files: [] });
+    args.trustedClaimId = 'claim-with-persistence-error';
+    txInsertValues.mockRejectedValueOnce(
+      Object.assign(new Error(`query parameters: ${args.data.description}`), { code: '23514' })
+    );
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      await expect(submitClaimCore(args)).rejects.toThrow(
+        'Failed to create claim. Please try again.'
+      );
+      expect(log).toHaveBeenCalledExactlyOnceWith(
+        'Failed to create claim:',
+        expect.objectContaining({
+          message: 'Failed to create claim:',
+          cause: { name: 'Error', code: '23514' },
+        })
+      );
+    } finally {
+      log.mockRestore();
+    }
+  });
+
   it('persists initial documents without queueing AI when no explicit extraction consent exists', async () => {
     const dispatchClaimAiRun = vi.fn().mockResolvedValue(undefined);
     const validateSubmittedClaimFile = vi.fn().mockResolvedValue(undefined);

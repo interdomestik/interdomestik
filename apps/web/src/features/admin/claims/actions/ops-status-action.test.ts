@@ -110,6 +110,28 @@ describe('the staff and admin status entry points', () => {
     }
   );
 
+  it.each(['staff', 'admin'])('writes and refreshes canonical values for %s', async role => {
+    signIn(role);
+    const tx = configureTransaction();
+    const note = 'a'.repeat(2000);
+    const paddedClaimId = `  ${claimId} `;
+    const paddedNote = `  ${note} `;
+    const result =
+      role === 'staff'
+        ? await updateStaffStatus(paddedClaimId, 'submitted', paddedNote)
+        : await updateStatus(paddedClaimId, 'submitted', 'en', { note: paddedNote });
+
+    expect(result).toEqual({ success: true });
+    expect(tx.inserts).toContainEqual({
+      table: claimStageHistory,
+      row: expect.objectContaining({ claimId, note }),
+    });
+    const paths = mocks.refresh.mock.calls.map(([path]) => path);
+    const scope = role === 'staff' ? 'staff' : 'admin';
+    expect(paths).toContain(`/en/${scope}/claims/${claimId}`);
+    expect(paths.every(path => !path.includes(paddedClaimId))).toBe(true);
+  });
+
   it('refreshes the committed staff update after independent audit and kick failures', async () => {
     signIn('staff');
     const tx = configureTransaction();

@@ -105,6 +105,7 @@
       }
     },
     "toastRegion": "Obaveštenja",
+    "localeSaveError": "Izabrani jezik nije mogao da se sačuva. Pokušajte ponovo.",
     "membershipStatus": {
       "active": "Aktivno",
       "past_due": "Dospelo",

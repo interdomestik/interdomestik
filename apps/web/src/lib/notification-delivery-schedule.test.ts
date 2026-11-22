@@ -60,6 +60,27 @@ describe('notification delivery schedule', () => {
     });
   });
 
+  it(
+    'handles consecutive synchronous tenant failures without growing the stack',
+    { timeout: 20_000 },
+    async () => {
+      const tenants = Array.from({ length: 12_000 }, (_, id) => ({
+        tenantId: `tenant-${id}`,
+        authority: {},
+      }));
+      const failure = new Error('tenant failed');
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      vi.spyOn(performance, 'now').mockReturnValue(0);
+      mocks.tenants.mockResolvedValue(tenants);
+      mocks.run.mockImplementation(() => {
+        throw failure;
+      });
+
+      const result = await runNotificationDeliverySchedule(mintIngressCapability('inngest'));
+      expect(result.tenantFailures).toBe(tenants.length);
+    }
+  );
+
   it('does not start another tenant after the shared budget is spent even if the wall clock moves backward', async () => {
     const wallClock = vi.spyOn(Date, 'now').mockReturnValue(300_000);
     const elapsed = vi.spyOn(performance, 'now').mockReturnValue(0);

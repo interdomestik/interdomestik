@@ -95,6 +95,7 @@ describe('changeClaimStatus', () => {
     );
     expect(outcome).toEqual({
       ok: true,
+      claimId: 'claim-1',
       fromStatus: 'submitted',
       toStatus: 'verification',
       changed: true,
@@ -153,6 +154,7 @@ describe('changeClaimStatus', () => {
     });
     expect(await run(staff, { toStatus: 'rejected', note: 'Private integrity details' })).toEqual({
       ok: true,
+      claimId: 'claim-1',
       changed: false,
       fromStatus: 'rejected',
       toStatus: 'rejected',

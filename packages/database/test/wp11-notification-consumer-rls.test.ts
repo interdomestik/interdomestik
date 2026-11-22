@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import test from 'node:test';
 import type postgres from 'postgres';
+import type { dispatchNotificationDeliveries } from '../../domain-claims/src/claims/notification-delivery-runner';
+import type { TenantAuthority } from '../src/tenant-authority';
 import { quoteIdentifier, quoteSqlLiteral } from './rls-test-connection';
 import { gate } from './wp11-claim-status-rls.fixture';
 import {
@@ -12,6 +14,112 @@ import {
   withNotificationDeliveriesFixture,
   type Rows,
 } from './wp11-notification-deliveries-rls.fixture';
+
+async function proveTargetedKick(
+  client: postgres.Sql,
+  a: Rows,
+  unrelatedId: string,
+  authority: TenantAuthority,
+  dispatch: typeof dispatchNotificationDeliveries
+) {
+  const id = randomUUID();
+  await client`update notification_deliveries
+    set next_attempt_at=clock_timestamp()-interval '2 minutes' where id=${unrelatedId}`;
+  await client`insert into notification_deliveries
+    (id, tenant_id, idempotency_key, kind, channel, recipient_user_id, claim_id, facts)
+    values (${id}, ${a.tenant}, ${id}, 'claim_submitted', 'email', ${a.user}, ${a.claim}, '{}')`;
+  const sends: string[] = [];
+  const kicked = await dispatch(
+    authority,
+    {
+      appOrigin: () => 'https://example.test',
+      emailTransports: () => ['smtp'],
+      sendEmail: (transport, _to, _payload, options) => {
+        sends.push(options.idempotencyKey);
+        return Promise.resolve({ ok: true, transport });
+      },
+    },
+    { ids: [id] }
+  );
+
+  assert.equal(kicked.sent, 1);
+  assert.deepEqual(sends, [id]);
+  const rows = await restricted(
+    client,
+    a.tenant,
+    async tx =>
+      tx`select id, state, attempts from notification_deliveries where id in (${id}, ${unrelatedId})`
+  );
+  assert.deepEqual(
+    rows.find(row => row.id === id),
+    { id, state: 'sent', attempts: 1 }
+  );
+  assert.deepEqual(
+    rows.find(row => row.id === unrelatedId),
+    {
+      id: unrelatedId,
+      state: 'queued',
+      attempts: 0,
+    }
+  );
+}
+
+async function provePushRetirement(
+  client: postgres.Sql,
+  a: Rows,
+  authority: TenantAuthority,
+  dispatch: typeof dispatchNotificationDeliveries
+) {
+  const retired = randomUUID();
+  const replaced = randomUUID();
+  const retiredEndpoint = 'https://push.example.test/retired';
+  const replacedEndpoint = 'https://push.example.test/replaced';
+  await client`insert into push_subscriptions (id, tenant_id, user_id, endpoint, auth, p256dh, updated_at)
+    values (${retired}, ${a.tenant}, ${a.user}, ${retiredEndpoint}, 'auth', 'key', clock_timestamp()),
+           (${replaced}, ${a.tenant}, ${a.user}, ${replacedEndpoint}, 'auth', 'key', clock_timestamp())`;
+  const ids = [randomUUID(), randomUUID()] as const;
+  await client`insert into notification_deliveries
+    (id, tenant_id, idempotency_key, kind, channel, recipient_user_id, claim_id,
+      push_subscription_id, subject_message_id, facts)
+    values (${ids[0]}, ${a.tenant}, ${ids[0]}, 'claim_message_to_member', 'push', ${a.user}, ${a.claim},
+      ${retired}, ${a.message}, '{"previewRestricted":true}'),
+      (${ids[1]}, ${a.tenant}, ${ids[1]}, 'claim_message_to_member', 'push', ${a.user}, ${a.claim},
+      ${replaced}, ${a.message}, '{"previewRestricted":true}')`;
+  const outcome = await dispatch(
+    authority,
+    {
+      appOrigin: () => 'https://example.test',
+      pushConfigured: () => true,
+      sendPush: async subscription => {
+        const refreshed = subscription.endpoint === replacedEndpoint;
+        if (refreshed) {
+          await client`update push_subscriptions set updated_at=updated_at
+            where id=${replaced}`;
+        }
+        return {
+          ok: false,
+          retryable: false,
+          ambiguous: false,
+          preAcceptance: false,
+          code: 'subscription_gone',
+          detail: refreshed ? 'web-push 410' : 'web-push 404',
+        };
+      },
+    },
+    { ids }
+  );
+  assert.equal(outcome.failed, 2);
+  assert.deepEqual(
+    outcome.failures.map(failure => failure.code),
+    ['subscription_gone', 'subscription_gone']
+  );
+  const rows = await restricted(
+    client,
+    a.tenant,
+    async tx => tx`select id from push_subscriptions where id in (${retired}, ${replaced})`
+  );
+  assert.deepEqual([...rows], [{ id: replaced }]);
+}
 
 async function proveConsumer(client: postgres.Sql, a: Rows) {
   const login = `wp11_${randomUUID().replaceAll('-', '')}`;
@@ -25,6 +133,8 @@ async function proveConsumer(client: postgres.Sql, a: Rows) {
   rlsUrl.password = password;
   await client.unsafe(`grant select on public."user", public.claim to ${role}`);
   await client.unsafe(`grant insert on public.audit_log to ${role}`);
+  await client.unsafe(`grant select on public.user_notification_preferences to ${role}`);
+  await client.unsafe(`grant select, delete on public.push_subscriptions to ${role}`);
   await client.unsafe(
     `create role ${quotedLogin} login noinherit password ${quoteSqlLiteral(password)}`
   );
@@ -42,7 +152,7 @@ async function proveConsumer(client: postgres.Sql, a: Rows) {
     const { withTenantAuthority } = await import('../src/tenant-authority-context');
     const { enqueueNotificationDelivery, redriveNotificationDelivery } =
       await import('../../domain-communications/src/notification-deliveries');
-    const { runNotificationDeliveries } =
+    const { dispatchNotificationDeliveries, runNotificationDeliveries } =
       await import('../../domain-claims/src/claims/notification-delivery-runner');
     const { claimNotificationDelivery, refundNotificationAttempt } =
       await import('../../domain-communications/src/notification-deliveries/store');
@@ -163,6 +273,9 @@ async function proveConsumer(client: postgres.Sql, a: Rows) {
     const audits = await client`select actor_id from audit_log
       where entity_id=${anotherId} and action='notification.delivery_redriven'`;
     assert.deepEqual([...audits], [{ actor_id: a.user }]);
+
+    await proveTargetedKick(client, a, anotherId, admin, dispatchNotificationDeliveries);
+    await provePushRetirement(client, a, authority, dispatchNotificationDeliveries);
   } finally {
     const pools = globalThis as typeof globalThis & {
       queryClientAdmin?: postgres.Sql;
@@ -181,6 +294,6 @@ async function proveConsumer(client: postgres.Sql, a: Rows) {
   }
 }
 
-test('WP-11 delivery consumer claims, refunds and re-drives under the restricted role', async t => {
+test('WP-11 delivery consumer schedules, kicks, retires push, refunds and re-drives under the restricted role', async t => {
   await withNotificationDeliveriesFixture(t, proveConsumer);
 });

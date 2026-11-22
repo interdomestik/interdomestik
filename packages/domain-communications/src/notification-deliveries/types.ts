@@ -7,6 +7,9 @@ export type Delivery = typeof notificationDeliveries.$inferSelect;
 export type ClaimedDelivery = Delivery & { leaseUntil: string };
 export type DeliveryTransport = NonNullable<Delivery['transport']>;
 export type SkipReason = NonNullable<Delivery['skipReason']>;
+export type PushDeliverySubscription = Parameters<typeof sendPushOutcome>[0] & {
+  version: string;
+};
 
 export type DeliveryDependencies = {
   appOrigin: (tenantId: string) => string;

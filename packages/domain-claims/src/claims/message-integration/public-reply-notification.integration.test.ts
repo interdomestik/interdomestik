@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { eq, inArray } from 'drizzle-orm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { asActor } from './message-rls-actors.test-support';
+import { expectRoleSend } from './message-rls-effects.test-support';
 import {
   fixture,
   homeTenantId,
@@ -112,6 +114,33 @@ suite('public reply notification under a restricted PostgreSQL login', () => {
       success: false,
       error: 'Claim not found',
     });
+  });
+
+  it('admits a cross-home admin public reply and refuses their private note with zero effects', async () => {
+    const { dbAdmin, user } = fixture.database;
+    const id = ids.otherMember;
+    await dbAdmin
+      .update(user)
+      .set({ tenantId: otherTenantId, role: 'admin' })
+      .where(eq(user.id, id));
+    try {
+      const input = {
+        session: {
+          user: { id, role: 'admin', tenantId: otherTenantId, accessTenantId: homeTenantId },
+        },
+        authority: mintTestTenantAuthority(homeTenantId, { userId: id, role: 'admin' }),
+        claimId: ids.claim,
+        requestHeaders: new Headers(),
+        content: 'Synthetic cross-home reply',
+      };
+      await expectRoleSend({ ...input, isInternal: true }, false);
+      await expectRoleSend(input, true);
+    } finally {
+      await dbAdmin
+        .update(user)
+        .set({ tenantId: homeTenantId, role: 'member' })
+        .where(eq(user.id, id));
+    }
   });
 
   it('rolls the message back when database permission prevents its inbox insert', async () => {

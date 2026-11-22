@@ -38,7 +38,9 @@ const updateStatusCommand = defineAction({
     if (!outcome.ok) return claimStatusActionFailure(outcome.code);
 
     await completeClaimStatusEffects(authority, outcome);
-    return completeCommittedOpsAction('updateStatus', () => revalidateClaim(locale, input.claimId));
+    return completeCommittedOpsAction('updateStatus', () =>
+      revalidateClaim(locale, outcome.claimId)
+    );
   },
 });
 

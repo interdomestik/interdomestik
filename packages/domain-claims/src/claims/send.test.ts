@@ -7,6 +7,7 @@ import {
   staffSession,
 } from './send.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 
 import { sendMessageDbCore } from './send-message';
 import {
@@ -27,6 +28,47 @@ describe('sendMessageDbCore authority', () => {
     });
 
     expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['no principal', mintTestTenantAuthority('tenant-1')],
+    ['a different user', mintTestTenantAuthority('tenant-1', { userId: 'other', role: 'admin' })],
+    [
+      'a different tenant',
+      mintTestTenantAuthority('tenant-2', { userId: 'staff-1', role: 'admin' }),
+    ],
+    [
+      'a different role',
+      mintTestTenantAuthority('tenant-1', { userId: 'staff-1', role: 'member' }),
+    ],
+    [
+      'a different branch',
+      mintTestTenantAuthority('tenant-1', { userId: 'staff-1', role: 'admin', branchId: 'other' }),
+    ],
+  ])('denies %s before opening a transaction', async (_label, mismatchedAuthority) => {
+    const result = await sendMessageDbCore({
+      session: staffSession,
+      authority: mismatchedAuthority,
+      requestHeaders: new Headers(),
+      claimId: 'claim-1',
+      content: 'Hello',
+    });
+
+    expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
+  });
+
+  it('denies injected sender identity before opening a transaction', async () => {
+    const input = { claimId: 'claim-1', content: 'Hello', senderId: 'someone-else' };
+    const result = await sendMessageDbCore({
+      ...input,
+      session: staffSession,
+      authority,
+      requestHeaders: new Headers(),
+    });
+
+    expect(result).toEqual({ success: false, error: 'Invalid input' });
     expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 

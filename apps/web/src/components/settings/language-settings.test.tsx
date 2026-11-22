@@ -1,9 +1,14 @@
-import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { updatePreferredLocale } from '@/actions/preferred-locale';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { toast } from 'sonner';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LanguageSettings } from './language-settings';
 
-vi.mock('@/lib/auth-client', () => ({
-  authClient: { useSession: () => ({ data: null }) },
+const replace = vi.fn();
+
+vi.mock('sonner', () => ({
+  toast: { error: vi.fn() },
 }));
 
 // Mock routing
@@ -14,7 +19,7 @@ vi.mock('@/actions/preferred-locale', () => ({
 vi.mock('@/i18n/routing', () => ({
   usePathname: () => '/member/settings',
   useRouter: () => ({
-    replace: vi.fn(),
+    replace,
   }),
 }));
 
@@ -51,21 +56,17 @@ vi.mock('@interdomestik/ui/components/label', () => ({
   ),
 }));
 
-vi.mock('@interdomestik/ui/components/select', () => ({
-  Select: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="select">{children}</div>
-  ),
-  SelectTrigger: ({ children }: { children: React.ReactNode }) => (
-    <button type="button">{children}</button>
-  ),
-  SelectValue: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  SelectContent: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="select-content">{children}</div>
-  ),
-  SelectItem: ({ children, value }: { children: React.ReactNode; value: string }) => (
-    <div data-value={value}>{children}</div>
-  ),
-}));
+beforeAll(() => {
+  Object.assign(Element.prototype, {
+    hasPointerCapture: () => false,
+    releasePointerCapture: () => undefined,
+    scrollIntoView: () => undefined,
+  });
+});
+
+function languageSelect() {
+  return screen.getByRole('combobox', { name: 'Select Language' });
+}
 
 describe('LanguageSettings', () => {
   beforeEach(() => {
@@ -94,14 +95,36 @@ describe('LanguageSettings', () => {
 
   it('renders select component', () => {
     render(<LanguageSettings />);
-    expect(screen.getByTestId('select')).toBeInTheDocument();
+    expect(languageSelect()).toBeInTheDocument();
   });
 
-  it('renders supported locales in dropdown', () => {
+  it('renders supported locales in dropdown', async () => {
+    const user = userEvent.setup();
     render(<LanguageSettings />);
-    // Check that locale labels are rendered
-    expect(screen.getByText('Shqip')).toBeInTheDocument();
-    expect(screen.getByText('Srpski')).toBeInTheDocument();
-    expect(screen.getByText('Македонски')).toBeInTheDocument();
+    await user.click(languageSelect());
+    expect(screen.getByRole('option', { name: /Shqip/ })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Srpski/ })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Македонски/ })).toBeInTheDocument();
+  });
+
+  it('keeps the current locale on a failed save and lets the user retry', async () => {
+    vi.mocked(updatePreferredLocale).mockResolvedValueOnce({ success: false, error: 'conflict' });
+    const user = userEvent.setup();
+    render(<LanguageSettings />);
+    const chooseShqip = async () => {
+      await user.click(languageSelect());
+      await user.click(screen.getByRole('option', { name: /Shqip/ }));
+    };
+
+    await chooseShqip();
+    expect(updatePreferredLocale).toHaveBeenCalledExactlyOnceWith({ locale: 'sq' });
+    expect(toast.error).toHaveBeenCalledWith('localeSaveError');
+    expect(replace).not.toHaveBeenCalled();
+    expect(languageSelect()).toHaveTextContent('English');
+
+    await chooseShqip();
+    await waitFor(() =>
+      expect(replace).toHaveBeenCalledExactlyOnceWith('/member/settings', { locale: 'sq' })
+    );
   });
 });

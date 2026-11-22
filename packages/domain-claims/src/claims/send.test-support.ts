@@ -6,6 +6,7 @@ import { vi, type Mock } from 'vitest';
 export const mocks: {
   agentAccess: Mock;
   lockClaim: Mock;
+  lockLocalActor: Mock;
   lockRecipient: Mock;
   resolveStaff: Mock;
   enqueueOwner: Mock;
@@ -18,6 +19,7 @@ export const mocks: {
 } = {
   agentAccess: vi.fn(),
   lockClaim: vi.fn(),
+  lockLocalActor: vi.fn(),
   lockRecipient: vi.fn(),
   resolveStaff: vi.fn(),
   enqueueOwner: vi.fn(),
@@ -41,7 +43,7 @@ vi.mock('@interdomestik/database', () => ({
     senderId: 'cm.sender_id',
     tenantId: 'cm.tenant_id',
   },
-  user: { id: 'u.id', image: 'u.image', name: 'u.name', role: 'u.role' },
+  user: { id: 'u.id', image: 'u.image', name: 'u.name', role: 'u.role', tenantId: 'u.tenant_id' },
   withTenantContext: mocks.withTenantContext,
 }));
 
@@ -71,7 +73,10 @@ export const claimEffects: { createClaimResponseRequest: Mock; answerClaimRespon
     answerClaimResponseRequests: vi.fn(),
   };
 
-export const authority: TenantAuthority = mintTestTenantAuthority('tenant-1');
+export const authority: TenantAuthority = mintTestTenantAuthority('tenant-1', {
+  userId: 'staff-1',
+  role: 'admin',
+});
 export const projectionFrom = (replayLookup?: Mock) => ({
   where: () => ({
     for: mocks.lockClaim,
@@ -104,10 +109,14 @@ export function resetSendMocks(): void {
     (_authority: unknown, action: (tx: unknown) => unknown) => Promise.resolve(action(mocks.tx))
   );
   mocks.lockClaim.mockResolvedValue([{ title: 'Claim', userId: 'member-1' }]);
+  mocks.lockLocalActor.mockResolvedValue([{ id: 'admin-1' }]);
   mocks.lockRecipient.mockResolvedValue({ id: 'member-1', role: 'member', emailVerified: true });
   mocks.resolveStaff.mockResolvedValue([{ id: 'staff-1', role: 'staff', emailVerified: true }]);
   mocks.enqueueOwner.mockResolvedValue(['email-1']);
   mocks.enqueueStaff.mockResolvedValue(['email-2']);
   mocks.tx.insert.mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) });
-  mocks.tx.select.mockReturnValue({ from: () => projectionFrom() });
+  mocks.tx.select.mockReturnValue({
+    from: (table: { id: string }) =>
+      table.id === 'u.id' ? { where: () => ({ for: mocks.lockLocalActor }) } : projectionFrom(),
+  });
 }

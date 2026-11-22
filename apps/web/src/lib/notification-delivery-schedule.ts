@@ -2,6 +2,7 @@ import { listScheduledTenantWork } from '@interdomestik/database';
 import type { IngressCapability } from '@interdomestik/database/ingress';
 import { runNotificationDeliveries } from '@interdomestik/domain-claims/claims/notification-delivery-runner';
 import { claimNotificationDeliveryDeps } from './claim-notification-delivery-deps';
+import { forEachInOrder } from './in-order';
 
 export async function runNotificationDeliverySchedule(
   ingress: IngressCapability<'inngest' | 'cron'>
@@ -22,11 +23,7 @@ export async function runNotificationDeliverySchedule(
     leaseShort: 0,
     budgetShort: 0,
   };
-  const work = ordered.values();
-  async function runNextTenant(): Promise<void> {
-    const next = work.next();
-    if (next.done) return;
-    const { tenantId, authority } = next.value;
+  await forEachInOrder(ordered, async ({ tenantId, authority }) => {
     const budgetMs = 240_000 - (performance.now() - startedAt);
     if (budgetMs < 90_000) return;
     try {
@@ -50,8 +47,6 @@ export async function runNotificationDeliverySchedule(
       });
       summary.tenantFailures++;
     }
-    return runNextTenant();
-  }
-  await runNextTenant();
+  });
   return summary;
 }

@@ -146,7 +146,10 @@ test('C2-03: cross-tenant write attempts are denied without mutation', async ({}
   const messageProbe = `C2-03 cross-tenant message probe ${Date.now()}`;
   const messageResult = await sendMessageDbCore({
     session: actorSession,
-    authority: mintTestTenantAuthority(actorSession.user.tenantId),
+    authority: mintTestTenantAuthority(actorSession.user.tenantId, {
+      userId: actorSession.user.id,
+      role: actorSession.user.role,
+    }),
     requestHeaders: new Headers({ 'x-forwarded-host': actorHost }),
     claimId: target.claimId,
     content: messageProbe,

@@ -7,7 +7,6 @@ import {
   ids,
   homeTenantId,
   otherTenantId,
-  session,
   registerMessageRlsFixture,
 } from './tenant-context.integration-fixture';
 import { asActor } from './message-rls-actors.test-support';
@@ -53,11 +52,7 @@ const sendAs = (
   audit = vi.fn()
 ) =>
   fixture.send({
-    session: session(actor.id, actor.role, actor.tenantId, actor.branchId ?? null),
-    authority: mintTestTenantAuthority(actor.tenantId ?? homeTenantId, {
-      userId: actor.id,
-      role: actor.role,
-    }),
+    ...asActor(actor.id, actor.role, actor.tenantId, actor.branchId),
     requestHeaders: new Headers(),
     claimId,
     content,
@@ -75,10 +70,7 @@ suite('message send negative matrix on a real NOBYPASSRLS connection', () => {
   });
 
   it.each(roles)('$role: history, send and mark-read with zero denied effects', async row => {
-    const actor = {
-      ...asActor(row.id, row.role),
-      session: session(row.id, row.role, homeTenantId, ids.agentBranch),
-    };
+    const actor = asActor(row.id, row.role, homeTenantId, ids.agentBranch);
     const { dbAdmin, claimMessages } = fixture.database;
     await dbAdmin
       .update(claimMessages)
@@ -117,6 +109,27 @@ suite('message send negative matrix on a real NOBYPASSRLS connection', () => {
     const eligible = row.internal ? [ids.public, ids.internal] : [ids.public];
     expectOnlyReceiptChanges(beforeReceipt, afterReceipt, row.write ? eligible : []);
     await expectMessageContextCleared();
+  });
+
+  it('refuses unbound and mismatched principals with zero effects', async () => {
+    const actor = asActor(ids.staff, 'staff');
+    const input = {
+      ...actor,
+      claimId: ids.claim,
+      requestHeaders: new Headers(),
+      content: 'Denied',
+    };
+
+    for (const authority of [
+      mintTestTenantAuthority(homeTenantId),
+      asActor(ids.otherMember, 'staff').authority,
+      asActor(ids.staff, 'staff', otherTenantId).authority,
+      asActor(ids.staff, 'member').authority,
+    ]) {
+      await expectRoleSend({ ...input, authority }, false, 'Unauthorized');
+    }
+    const injectedIdentity = { ...input, senderId: ids.otherMember };
+    await expectRoleSend(injectedIdentity, false, 'Invalid input');
   });
 
   // Nested, so this cleanup always runs before the shared fixture removes users and branches.

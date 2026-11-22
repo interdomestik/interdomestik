@@ -1,8 +1,5 @@
-import { claimMessages, claims, type TenantTransaction } from '@interdomestik/database';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import { claimMessages, claims, user, type TenantTransaction } from '@interdomestik/database';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasPermission, PERMISSIONS } from '@interdomestik/shared-auth';
@@ -13,7 +10,7 @@ import {
   lockClaimNotificationRecipient,
 } from '@interdomestik/domain-communications/notification-deliveries';
 import { normalizeSelectedMessages } from '@interdomestik/domain-communications/messages/normalize';
-import { CLIENT_MESSAGE_ID_PATTERN } from '@interdomestik/domain-communications/messages/schemas';
+import { sendMessageSchema } from '@interdomestik/domain-communications/messages/schemas';
 import {
   hasAgentClaimAccess,
   hasScopedStaffClaimAccess,
@@ -26,8 +23,20 @@ import { reportServerError } from '@interdomestik/domain-communications/server-e
 import { selectMessagesWithSender } from '@interdomestik/domain-communications/messages/select';
 import type { MessageWithSender } from '@interdomestik/domain-communications/messages/types';
 import type { AuditLogger, Session } from '@interdomestik/domain-communications/types';
+import { z } from 'zod';
 import { resolveStaffClaimNotificationRecipients } from '../staff-claims/notification-recipients';
 import { answerClaimResponseRequests, createClaimResponseRequest } from './response-requests';
+import { resolveBoundClaimPrincipal } from './status-actor';
+
+const sendMessageCommandSchema = sendMessageSchema
+  .extend({
+    content: z
+      .string()
+      .trim()
+      .min(1, { message: 'Message cannot be empty' })
+      .max(5000, { message: 'Message too long (max 5000 characters)' }),
+  })
+  .strict();
 
 export type SendMessageDbCoreResult =
   | {
@@ -66,7 +75,6 @@ async function findMessageSendDenial(args: {
   const isAgent = role === 'agent';
 
   if (!isMessageParticipant(role)) return 'Access denied';
-  // Full-tenant roles can message any in-tenant claim: no check below denies them.
   if (isScopedStaff && !hasScopedStaffClaimAccess({ branchId, claim, userId })) {
     return 'Access denied';
   }
@@ -84,8 +92,19 @@ async function findMessageSendDenial(args: {
     if (!canAccess) return 'Access denied: You can only message your assigned clients';
   }
 
-  if (args.isInternal && !hasPermission(role, PERMISSIONS['claims.update']))
-    return 'Only staff can send internal messages';
+  if (args.isInternal) {
+    if (!hasPermission(role, PERMISSIONS['claims.update'])) {
+      return 'Only staff can send internal messages';
+    }
+    if (isFullTenantClaimsRole(role)) {
+      const [localActor] = await args.tx
+        .select({ id: user.id })
+        .from(user)
+        .where(withTenant(args.tenantId, user.tenantId, eq(user.id, userId)))
+        .for('share');
+      if (!localActor) return 'Access denied';
+    }
+  }
   return null;
 }
 
@@ -104,34 +123,25 @@ export async function sendMessageDbCore(params: {
     logAuditEvent?: AuditLogger;
   };
 }): Promise<SendMessageDbCoreResult> {
-  const { session, authority, requestHeaders, claimId, content } = params;
-  const isInternal = params.isInternal ?? false;
-  const clientMessageId = params.clientMessageId ?? null;
+  const { session, authority, requestHeaders, deps, ...input } = params;
+  const actor = resolveBoundClaimPrincipal(authority, session);
+  if (!authority || !actor) return { success: false, error: 'Unauthorized' };
+  const { principal, tenantId } = actor;
+  const { userId, branchId } = principal;
+  const userRole = principal.role || 'user';
+  const parsed = sendMessageCommandSchema.safeParse(input);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return {
+      success: false,
+      error:
+        issue?.code === 'unrecognized_keys' ? 'Invalid input' : (issue?.message ?? 'Invalid input'),
+    };
+  }
+  const { claimId, content: trimmed, isInternal = false, clientMessageId = null } = parsed.data;
+  const isStaff = userRole === 'staff' || isFullTenantClaimsRole(userRole);
 
   try {
-    if (!session?.user || !authority) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    const actor = session.user;
-    const userId = actor.id;
-    const userRole = actor.role || 'user';
-    const { tenantId } = readTenantAuthority(authority);
-    const trimmed = content.trim();
-    const isStaff = userRole === 'staff' || isFullTenantClaimsRole(userRole);
-
-    if (!trimmed) {
-      return { success: false, error: 'Message cannot be empty' };
-    }
-
-    if (trimmed.length > 5000) {
-      return { success: false, error: 'Message too long (max 5000 characters)' };
-    }
-
-    if (clientMessageId !== null && !CLIENT_MESSAGE_ID_PATTERN.test(clientMessageId)) {
-      return { success: false, error: 'Invalid message key' };
-    }
-
     const result = await withTenantAuthority<SendMessageDbCoreResult>(authority, async tx => {
       const [claim] = await tx
         .select({
@@ -154,7 +164,7 @@ export async function sendMessageDbCore(params: {
       const denied = await findMessageSendDenial({
         role: userRole,
         userId,
-        branchId: actor.branchId ?? null,
+        branchId,
         tenantId,
         claim,
         isInternal,
@@ -234,12 +244,12 @@ export async function sendMessageDbCore(params: {
         replayed,
       };
     });
-    if (result.success && !result.replayed && params.deps?.logAuditEvent) {
+    if (result.success && !result.replayed && deps?.logAuditEvent) {
       try {
-        await params.deps.logAuditEvent({
+        await deps.logAuditEvent({
           authority,
           actorId: userId,
-          actorRole: actor.role,
+          actorRole: principal.role,
           action: 'claim.message_sent',
           entityType: 'claim',
           entityId: claimId,

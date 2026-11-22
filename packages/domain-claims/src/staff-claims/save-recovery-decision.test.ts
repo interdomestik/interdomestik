@@ -23,11 +23,10 @@ const agreementColumns = {
   createdAt: 'claim_escalation_agreements.created_at',
 };
 const mocks = mockRecoveryDecisionTransaction(agreementColumns, query);
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: vi.fn(() => 'tenant-1'),
-}));
 const { saveRecoveryDecisionCore } = await import('./save-recovery-decision');
-const authority = mintTestTenantAuthority('tenant-1');
+const principal = { userId: 'staff-1', role: 'staff', branchId: 'branch-1' };
+const authority = mintTestTenantAuthority('tenant-1', principal);
+const staffSession = createStaffSessionFixture(principal);
 
 describe('saveRecoveryDecisionCore', () => {
   beforeEach(() => {
@@ -49,18 +48,45 @@ describe('saveRecoveryDecisionCore', () => {
     mocks.agreementSelectChain.where.mockReturnValue(mocks.agreementSelectChain);
   });
 
-  it('rejects unauthorized callers', async () => {
-    const result = await saveRecoveryDecisionCore({
+  it.each([
+    ['no principal', mintTestTenantAuthority('tenant-1'), staffSession],
+    [
+      'wrong user',
+      mintTestTenantAuthority('tenant-1', { ...principal, userId: 'other' }),
+      staffSession,
+    ],
+    ['wrong tenant', mintTestTenantAuthority('tenant-2', principal), staffSession],
+    [
+      'wrong role',
+      mintTestTenantAuthority('tenant-1', { ...principal, role: 'member' }),
+      staffSession,
+    ],
+    [
+      'an injected branch',
       authority,
+      createStaffSessionFixture({ ...principal, branchId: 'other' }),
+    ],
+  ])('rejects %s before opening a transaction', async (_label, capability, session) => {
+    const result = await saveRecoveryDecisionCore({
+      authority: capability,
       claimId: 'claim-1',
       decisionType: 'accepted',
-      session: createStaffSessionFixture({ userId: 'member-1', role: 'member' }),
+      session,
     });
 
     expect(result).toEqual({
       success: false,
       error: 'Unauthorized',
     });
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
+  });
+
+  it('rejects injected actor identity in the decision input', async () => {
+    const input = { claimId: 'claim-1', decisionType: 'accepted', acceptedById: 'other' } as const;
+    const result = await saveRecoveryDecisionCore({ ...input, authority, session: staffSession });
+
+    expect(result).toMatchObject({ success: false });
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('creates an accepted recovery-decision snapshot for an in-scope claim', async () => {
@@ -75,7 +101,7 @@ describe('saveRecoveryDecisionCore', () => {
       claimId: 'claim-1',
       decisionType: 'accepted',
       explanation: 'Clear insurer path and viable monetary recovery.',
-      session: createStaffSessionFixture({ userId: 'staff-1', branchId: 'branch-1' }),
+      session: staffSession,
     });
 
     expect(result.success).toBe(true);
@@ -106,7 +132,7 @@ describe('saveRecoveryDecisionCore', () => {
       authority,
       claimId: 'claim-1',
       decisionType: 'accepted',
-      session: createStaffSessionFixture({ userId: 'staff-1', branchId: 'branch-1' }),
+      session: staffSession,
     });
 
     expect(result).toMatchObject({ success: true, deliveryIds: ['decision-delivery'] });
@@ -128,7 +154,7 @@ describe('saveRecoveryDecisionCore', () => {
       .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.agreementSelectChain);
     mocks.agreementSelectChain.limit.mockResolvedValue([]);
-    const error = new Error('enqueue failed');
+    const error = new Error('query parameters: synthetic private recovery explanation');
     mocks.enqueue.mockRejectedValueOnce(error);
     const audit = vi.fn();
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -138,7 +164,7 @@ describe('saveRecoveryDecisionCore', () => {
           authority,
           claimId: 'claim-1',
           decisionType: 'accepted',
-          session: createStaffSessionFixture({ userId: 'staff-1', branchId: 'branch-1' }),
+          session: staffSession,
         },
         { logAuditEvent: audit }
       );
@@ -147,6 +173,14 @@ describe('saveRecoveryDecisionCore', () => {
       expect(mocks.enqueue).toHaveBeenCalled();
       await expect(mocks.withTenantContext.mock.results[0].value).rejects.toBe(error);
       expect(audit).not.toHaveBeenCalled();
+      expect(log).toHaveBeenCalledExactlyOnceWith(
+        'Failed to save recovery decision',
+        expect.objectContaining({
+          message: 'Failed to save recovery decision',
+          cause: { name: 'Error' },
+        })
+      );
+      expect(log.mock.calls[0][1]).not.toBe(error);
     } finally {
       log.mockRestore();
     }
@@ -162,7 +196,7 @@ describe('saveRecoveryDecisionCore', () => {
       authority,
       claimId: 'claim-1',
       decisionType: 'accepted',
-      session: createStaffSessionFixture({ userId: 'staff-1', branchId: 'branch-1' }),
+      session: staffSession,
     });
 
     expect(result).toEqual({

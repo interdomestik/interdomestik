@@ -75,19 +75,32 @@ describe('in-app BM notification reader boundary', () => {
     });
     expect(mocks.claim).toHaveBeenCalledTimes(role === 'member' ? 1 : 0);
   });
-  it.each(['missing', 'denied', 'failed'])(
-    'uses neutral copy for %s raw-ID claim lookups',
-    async outcome => {
-      if (outcome === 'failed') mocks.claim.mockRejectedValue(new Error('lookup failed'));
-      else mocks.claim.mockResolvedValue(null);
-      const result = await getNotificationsCore({ authority, session: session('member') });
-      expect(result[0]).toMatchObject({
-        ...row,
-        title: 'trusted:events.newMessage.title',
-        content: 'trusted:updateOn',
-      });
-    }
-  );
+  it.each(['missing', 'denied'])('uses neutral copy for %s raw-ID claim lookups', async () => {
+    mocks.claim.mockResolvedValue(null);
+    const result = await getNotificationsCore({ authority, session: session('member') });
+    expect(result[0]).toMatchObject({
+      ...row,
+      title: 'trusted:events.newMessage.title',
+      content: 'trusted:updateOn',
+    });
+  });
+  it('surfaces a failed claim lookup as a typed inbox failure', async () => {
+    mocks.claim.mockRejectedValueOnce(new Error('claim lookup failed'));
+    await expect(
+      getNotificationsCore({ authority, session: session('member') })
+    ).rejects.toMatchObject({
+      code: 'CLAIM_LOOKUP_FAILED',
+    });
+  });
+  it('uses restricted copy after a recipient role changes without looking up the claim', async () => {
+    mocks.read.mockResolvedValue([{ ...row, previewRestricted: true }]);
+    const result = await getNotificationsCore({ authority, session: session('member') });
+    expect(result[0]).toMatchObject({
+      title: 'trusted:newMessage.title',
+      content: 'trusted:newMessage.content',
+    });
+    expect(mocks.claim).not.toHaveBeenCalled();
+  });
   it('resolves each legacy thread once and avoids lookups for stored human titles or BM', async () => {
     mocks.read.mockResolvedValue([row, { ...row, id: 'second' }]);
     await getNotificationsCore({ authority, session: session('member') });

@@ -16,16 +16,13 @@ type StaffSource =
 
 type StaffClaim = ClaimScope & { claimNumber: string | null; category: string };
 
-async function queueStaffRecipients(
+async function queueStaffRecipient(
   tx: TenantTransaction,
   claim: StaffClaim,
   source: StaffSource,
-  recipients: Iterator<StaffRecipient, undefined>,
+  recipient: StaffRecipient,
   ids: string[]
 ): Promise<void> {
-  const next = recipients.next();
-  if (next.done) return;
-  const recipient = next.value;
   const { tenantId, claimId, claimNumber, category } = claim;
   const routed = { ...source, claimId, tenantId, recipientUserId: recipient.id };
   await enqueueClaimInboxNotification(tx, {
@@ -45,7 +42,6 @@ async function queueStaffRecipients(
     });
     if (id) ids.push(id);
   }
-  return queueStaffRecipients(tx, claim, source, recipients, ids);
 }
 
 export async function enqueueStaffClaimNotification(
@@ -68,6 +64,8 @@ export async function enqueueStaffClaimNotification(
   }
 
   const ids: string[] = [];
-  await queueStaffRecipients(tx, claim, source, recipients.values(), ids);
+  for await (const recipient of recipients) {
+    await queueStaffRecipient(tx, claim, source, recipient, ids);
+  }
   return ids;
 }

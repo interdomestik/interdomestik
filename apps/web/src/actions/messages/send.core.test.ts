@@ -75,7 +75,7 @@ vi.mock('drizzle-orm', () => ({
 import type { Session } from './context';
 import { sendMessageDbCore } from './send.core';
 
-const authority = mintTestTenantAuthority('tenant_mk');
+const staffAuthority = mintTestTenantAuthority('tenant_mk', { userId: 'user_1', role: 'staff' });
 
 describe('sendMessageDbCore', () => {
   beforeEach(() => {
@@ -127,7 +127,7 @@ describe('sendMessageDbCore', () => {
 
   it('returns Message cannot be empty for whitespace-only content', async () => {
     const result = await sendMessageDbCore({
-      authority,
+      authority: mintTestTenantAuthority('tenant_mk', { userId: 'user_1', role: 'user' }),
       session: {
         user: { id: 'user_1', role: 'user', name: 'U', tenantId: 'tenant_mk' },
       } as NonNullable<Session>,
@@ -154,7 +154,7 @@ describe('sendMessageDbCore', () => {
     mocks.logAuditEvent.mockResolvedValue(undefined);
 
     const result = await sendMessageDbCore({
-      authority,
+      authority: staffAuthority,
       session: {
         user: { id: 'user_1', role: 'staff', name: 'Agent', tenantId: 'tenant_mk' },
       } as NonNullable<Session>,
@@ -208,7 +208,7 @@ describe('sendMessageDbCore', () => {
     const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     try {
       const result = await sendMessageDbCore({
-        authority,
+        authority: staffAuthority,
         session: {
           user: { id: 'user_1', role: 'staff', tenantId: 'tenant_mk' },
         } as NonNullable<Session>,
@@ -248,7 +248,11 @@ describe('sendMessageDbCore', () => {
     ]);
 
     const result = await sendMessageDbCore({
-      authority,
+      authority: mintTestTenantAuthority('tenant_mk', {
+        userId: user.id,
+        role: user.role,
+        branchId: 'branch-a',
+      }),
       session: {
         user: {
           ...user,

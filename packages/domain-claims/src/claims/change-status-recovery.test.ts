@@ -75,8 +75,8 @@ describe('claim recovery status prerequisites', () => {
         'read:membership_plans:share',
         'read:clock',
         'read:coverage',
-        'read:service_usage:count',
         'read:service_usage',
+        'read:service_usage:count',
         'lock:no-fee',
         'read:user:share',
         'update:claim',
@@ -154,6 +154,32 @@ describe('claim recovery status prerequisites', () => {
     const trace = statusTransaction(rows);
     mocks.resolveMembership.mockResolvedValueOnce(new Map());
     expect(await negotiate()).toEqual({ ok: false, code: 'recovery_prerequisite:membership' });
+    expect(trace.writes).toEqual({});
+  });
+
+  it('refuses new usage at the exclusive end of the ordinary period even with an override', async () => {
+    const trace = statusTransaction(rows);
+    mocks.resolveMembership.mockResolvedValueOnce(
+      new Map([
+        [
+          owner.id,
+          {
+            source: 'subscription',
+            subscription: {
+              ...subscription,
+              currentPeriodStart: '2025-11-22T10:00:00Z',
+              currentPeriodEnd: trace.fixedTime,
+            },
+          },
+        ],
+      ])
+    );
+
+    expect(await negotiate('staff', { allowanceOverrideReason: 'Capacity override' })).toEqual({
+      ok: false,
+      code: 'recovery_prerequisite:allowance',
+    });
+    expect(trace.operations).not.toContain('read:service_usage:count');
     expect(trace.writes).toEqual({});
   });
 

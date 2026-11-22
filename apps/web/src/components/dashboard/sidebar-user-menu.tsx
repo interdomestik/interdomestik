@@ -1,6 +1,6 @@
 'use client';
 
-import { updatePreferredLocale } from '@/actions/preferred-locale';
+import { useSavePreferredLocale } from '@/hooks/use-save-preferred-locale';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
@@ -58,10 +58,11 @@ function SidebarUserMenuInner({
   const locale = useLocale();
   const t = useTranslations('nav');
   const tCommon = useTranslations('common');
+  const saveLocale = useSavePreferredLocale();
 
   const switchLocale = async (nextLocale: 'en' | 'sq' | 'mk' | 'sr' | 'de') => {
     const href = localeSwitchHref(pathname, window.location.search, retainedLocaleQueryKeys);
-    await updatePreferredLocale({ locale: nextLocale });
+    if (!(await saveLocale(nextLocale))) return;
     router.replace(href, { locale: nextLocale });
   };
 

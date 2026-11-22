@@ -15,6 +15,7 @@ import {
 import {
   claimNotificationDelivery,
   finishNotificationDelivery,
+  readDeliveryUnderLease,
   refundNotificationAttempt,
   writeNotificationTransport,
   chooseTransport,
@@ -22,6 +23,7 @@ import {
   type AttemptResult,
   type ClaimedDelivery,
   type DeliveryDependencies,
+  type PushDeliverySubscription,
   type RunSummary,
 } from '@interdomestik/domain-communications/notification-deliveries/worker';
 import { reportServerError } from '@interdomestik/domain-communications/server-error';
@@ -83,11 +85,12 @@ async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
   const finish = async (
     result: AttemptResult,
     locale: ClaimedDelivery['locale'] = null,
-    transport: ClaimedDelivery['transport'] = null
+    transport: ClaimedDelivery['transport'] = null,
+    subscription?: PushDeliverySubscription
   ) => {
     if ('ok' in result && !result.ok) summary.failures.push({ id: row.id, code: result.code });
     const state = await withTenantAuthority(authority, tx =>
-      finishNotificationDelivery(tx, row, result, locale, transport, configured)
+      finishNotificationDelivery(tx, row, result, locale, transport, configured, subscription)
     );
     summary[state]++;
   };
@@ -131,10 +134,16 @@ async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
   }
 
   const refundBudget = async (restoreTransport = false) => {
-    const refunded = await withTenantAuthority(authority, tx =>
-      refundNotificationAttempt(tx, row, restoreTransport)
-    );
-    summary[refunded ? 'budget_short' : 'lease_lost']++;
+    const state = await withTenantAuthority(authority, async tx => {
+      if (!restoreTransport && (await readDeliveryUnderLease(tx, row))?.stale) return 'stale';
+      const refunded = await refundNotificationAttempt(tx, row, restoreTransport);
+      return refunded ? 'budget_short' : 'lease_lost';
+    });
+    if (state === 'stale') {
+      await finish({ skip: 'stale' }, prepared.locale);
+      return true;
+    }
+    summary[state]++;
     return false;
   };
   const beforeWrite = now();
@@ -143,15 +152,25 @@ async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
   const write = await withTenantAuthority(authority, tx =>
     writeNotificationTransport(tx, row, transport, callDeadline, now)
   );
-  if (write !== 'written') {
+  if (write === 'stale') {
+    await finish({ skip: 'stale' }, prepared.locale);
+    return true;
+  }
+  if (typeof write === 'string') {
     summary[write]++;
     return write === 'lease_lost';
   }
 
-  const timeoutMs = callDeadline - now();
+  const beforeSend = now();
+  if (beforeSend >= write.expiresAt) {
+    await finish({ skip: 'stale' }, prepared.locale);
+    return true;
+  }
+  const timeoutMs = callDeadline - beforeSend;
   if (timeoutMs < 1000) return refundBudget(true);
   const outcome = await sendPreparedDelivery(deps, prepared, transport, row.id, timeoutMs);
-  await finish(outcome, prepared.locale, transport);
+  const subscription = prepared.channel === 'push' ? prepared.subscription : undefined;
+  await finish(outcome, prepared.locale, transport, subscription);
   return true;
 }
 

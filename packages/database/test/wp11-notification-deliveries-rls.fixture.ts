@@ -56,7 +56,20 @@ async function install(client: postgres.Sql) {
     await client`select to_regclass('public.notification_deliveries') as delivery_table`;
   assert.equal(rolledBack.delivery_table, null);
   await client.unsafe(`grant update (id) on public.claim_messages to ${role}`);
+  await assert.rejects(
+    migration(),
+    /WP-11 requires UPDATE privilege on public\.user\.preferred_locale/u
+  );
+  await client.unsafe(`grant update on public."user" to ${role}`);
   await migration();
+
+  const grantAssertion = target.sql.find(statement =>
+    statement.includes('has_any_column_privilege')
+  );
+  assert.ok(grantAssertion);
+  await client.unsafe(`revoke update on public."user" from ${role}`);
+  await client.unsafe(`grant update (id, preferred_locale) on public."user" to ${role}`);
+  await client.unsafe(grantAssertion);
 }
 
 async function seed(client: postgres.Sql, group: string) {

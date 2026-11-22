@@ -18,8 +18,8 @@ const candidates = [
   admin,
 ];
 
-function txWithCandidates(admitted: boolean[] = []) {
-  const lock = vi.fn().mockResolvedValue(candidates);
+function txWithCandidates(admitted: boolean[] = [], users = candidates) {
+  const lock = vi.fn().mockResolvedValue(users);
   const where = vi.fn().mockImplementation(() => {
     const rows = Promise.resolve(admitted.shift() ? [{ id: claim.claimId }] : []);
     return Object.assign(rows, { orderBy: () => ({ for: lock }) });
@@ -53,5 +53,14 @@ describe('staff claim notification routing', () => {
   it('falls back to tenant administrators only when no staff member is admitted', async () => {
     const h = txWithCandidates();
     await expect(resolveStaffClaimNotificationRecipients(h.tx, claim)).resolves.toEqual([admin]);
+  });
+
+  it('keeps fallback order even when there are more admins than can fit on the call stack', async () => {
+    const admins = Array.from({ length: 20_000 }, (_, index) => ({ ...admin, id: String(index) }));
+    const h = txWithCandidates([], admins);
+    const recipients = await resolveStaffClaimNotificationRecipients(h.tx, claim);
+    expect(recipients.length).toBe(admins.length);
+    expect(recipients.every((recipient, index) => recipient === admins[index])).toBe(true);
+    expect(h.where).toHaveBeenCalledOnce();
   });
 });

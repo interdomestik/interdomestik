@@ -9,7 +9,8 @@ import { saveRecoveryDecisionCore } from './save-recovery-decision.core';
 
 const mockRunCommercialActionWithIdempotency = vi.fn();
 
-vi.mock('@interdomestik/domain-claims', () => ({
+vi.mock('@interdomestik/domain-claims', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/domain-claims')>()),
   saveStaffRecoveryDecisionCore: vi.fn(),
 }));
 
@@ -30,7 +31,7 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
 
-const authority = mintTestTenantAuthority('tenant-1');
+const authority = mintTestTenantAuthority('tenant-1', { userId: 'staff-1', role: 'staff' });
 
 describe('saveRecoveryDecisionCore', () => {
   const LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
@@ -123,6 +124,19 @@ describe('saveRecoveryDecisionCore', () => {
       idempotencyKey: 'decision-unauthorized',
       requestHeaders: new Headers(),
       session: null,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    expect(mockRunCommercialActionWithIdempotency).not.toHaveBeenCalled();
+  });
+
+  it('refuses a mismatched authority before reading an idempotent result', async () => {
+    const result = await saveRecoveryDecisionCore({
+      authority,
+      claimId: 'claim-1',
+      decisionType: 'accepted',
+      idempotencyKey: 'decision-mismatch',
+      session: { user: { id: 'staff-2', role: 'staff', tenantId: 'tenant-1' } } as never,
     });
 
     expect(result).toEqual({ success: false, error: 'Unauthorized' });

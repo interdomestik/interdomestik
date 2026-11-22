@@ -1,5 +1,5 @@
 {
-  "id": "26ec9ead-e460-457d-8826-c9704c05c68c",
+  "id": "c53cd7fb-a2ba-4cd0-b079-9148b2949597",
   "prevId": "9232b7a7-ac50-4b3a-8703-72c843e2a870",
   "version": "7",
   "dialect": "postgresql",
@@ -14733,6 +14733,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "preview_restricted": {
+          "name": "preview_restricted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "is_read": {
           "name": "is_read",

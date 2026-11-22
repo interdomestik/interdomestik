@@ -7,8 +7,9 @@ import { homeTenantId, session } from './tenant-context.integration-fixture';
 export const asActor = (
   id: string,
   role: string,
-  tenantId = homeTenantId
+  tenantId = homeTenantId,
+  branchId: string | null = null
 ): { session: NonNullable<Session>; authority: TenantAuthority } => ({
-  session: session(id, role, tenantId),
-  authority: mintTestTenantAuthority(tenantId, { userId: id, role }),
+  session: session(id, role, tenantId, branchId),
+  authority: mintTestTenantAuthority(tenantId, { userId: id, role, branchId }),
 });

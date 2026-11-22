@@ -105,6 +105,7 @@
       }
     },
     "toastRegion": "Известувања",
+    "localeSaveError": "Избраниот јазик не можеше да се зачува. Обидете се повторно.",
     "membershipStatus": {
       "active": "Активно",
       "past_due": "Доспеано",

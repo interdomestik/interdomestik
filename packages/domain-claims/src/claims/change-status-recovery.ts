@@ -27,6 +27,7 @@ import {
   hasRecoveryMatterUsageForClaim,
   lockRecoveryMatterAllowance,
 } from '../staff-claims/matter-allowance';
+import { hasCurrentMatterAllowanceWindow } from '../staff-claims/matter-allowance-window';
 import type { LockedClaimStatusAgreement } from './change-status-agreement';
 
 export type RecoveryPrerequisite =
@@ -200,14 +201,17 @@ export async function checkClaimStatusRecovery(
   );
   if (!subscription) return { ok: false, code: 'recovery_prerequisite:membership' };
   if (subscription.subscriptionId !== subscriptionId) return { ok: false, code: 'conflict' };
+  if (await hasRecoveryMatterUsageForClaim({ tx, tenantId, claimId, subscriptionId })) {
+    return { ok: true, usage: null };
+  }
+  if (!hasCurrentMatterAllowanceWindow(subscription, effectiveAt)) {
+    return { ok: false, code: 'recovery_prerequisite:allowance' };
+  }
 
   const allowance = await getMatterAllowanceContextForSubscription(
     { tx, tenantId, subscription },
     { lockUsage: false, now: effectiveAt }
   );
-  if (await hasRecoveryMatterUsageForClaim({ tx, tenantId, claimId, subscriptionId })) {
-    return { ok: true, usage: null };
-  }
   if (allowance.consumedCount >= allowance.allowanceTotal && !params.overrideReason) {
     return { ok: false, code: 'recovery_prerequisite:allowance' };
   }

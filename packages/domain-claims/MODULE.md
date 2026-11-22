@@ -8,7 +8,7 @@ Owns the claim case: its lifecycle state and the guarded transition between stat
 
 ## Public API
 
-The staff and admin actions call `changeClaimStatus` from `./claims/change-status` and `changeClaimAssignment` from `./staff-claims/assign`. Both commands take the actor from the tenant authority principal. `./claims/transition-guard` exposes the status graph and guard. Submission, creation and draft updates use `./claims/submit`, `./claims/create` and `./claims/draft`.
+The staff and admin actions call `changeClaimStatus` from `./claims/change-status` and `changeClaimAssignment` from `./staff-claims/assign`. Both commands take the actor from the tenant authority principal. A successful status change returns the canonical claim ID for cache refresh. `./claims/transition-guard` exposes the status graph and guard. Submission, creation and draft updates use `./claims/submit`, `./claims/create` and `./claims/draft`.
 
 `./claims/service-level` calculates deadlines in Europe/Skopje. `./claims/service-level-report` counts claim requests and support handoffs. Set the server environment variable `SERVICE_LEVEL_REPORTING_START` to an ISO date in UTC or an ISO instant with an offset. The report returns `reporting_start_unset` when that setting is missing or unparseable.
 
@@ -35,7 +35,7 @@ The staff and admin actions call `changeClaimStatus` from `./claims/change-statu
 
 ## Tenant boundary
 
-`./claims/send-message` composes the message write, response requests and notifications in one tenant transaction. Staff routing and the send-time staff eligibility check use the same staff claim read scope. `./claims/notification-delivery-runner` drives the queue through the communications worker operations.
+`./claims/send-message` composes the message write, response requests and notifications in one tenant transaction. Message and recovery decision commands take the actor from the tenant authority principal and require the session to match. The recovery decision action uses `resolveRecoveryDecisionActor` to apply the same check before reserving an idempotency key. An admin can post an internal message only in their home tenant. Staff routing and the send-time staff eligibility check use the same staff claim read scope. `./claims/notification-delivery-runner` drives the queue through the communications worker operations.
 
 Reads and writes run inside `withTenantAuthority`; the staff read scope adds branch and ownership predicates on top (`src/staff-claims/scope.ts:24-36`). Document access on this journey is tenant-bound and role-bound (`A/modules/case-handoff.md:204`: full-tenant roles, owner, uploader, staff only when `staffId` = self, agent scope, case grant, never staff on a draft). R1 found **no cross-tenant or cross-member reachability** in the files it read, with the cross-tenant grant fallback and the agent document scope **not opened** (`A/modules/case-handoff.md:206`).
 

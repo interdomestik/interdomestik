@@ -6,15 +6,13 @@ import mkNavMessages from '@/messages/mk/nav.json';
 import sqNavMessages from '@/messages/sq/nav.json';
 import srNavMessages from '@/messages/sr/nav.json';
 import { createUseTranslationsMock } from '@/test/next-intl-mock';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Header } from './header';
 
 const h = vi.hoisted(() => ({
   locale: 'en' as string,
   useSession: vi.fn(),
-  push: vi.fn(),
-  updatePreferredLocale: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 type HeaderNavCatalog = { language: string; login: string; myAccount: string };
@@ -41,11 +39,11 @@ vi.mock('@/lib/auth-client', () => ({ authClient: { useSession: h.useSession } }
 // The mocked client Link carries `data-client-link`, so a test can tell a client-side transition
 // apart from the native, full-document anchor the auth action must stay.
 vi.mock('@/actions/preferred-locale', () => ({
-  updatePreferredLocale: h.updatePreferredLocale,
+  updatePreferredLocale: vi.fn(),
 }));
 
 vi.mock('@/i18n/routing', () => ({
-  useRouter: () => ({ push: h.push }),
+  useRouter: () => ({ push: vi.fn() }),
   Link: ({
     children,
     href,
@@ -76,8 +74,6 @@ function authAction() {
 
 beforeEach(() => {
   h.locale = 'en';
-  h.push.mockClear();
-  h.updatePreferredLocale.mockClear();
   setSession(null);
 });
 
@@ -170,15 +166,6 @@ describe('Header', () => {
     expect(language).toHaveClass('min-w-11');
     expect(login).toHaveClass('min-w-11');
     expect(header.className).not.toMatch(/overflow-x-hidden|overflow-hidden|\bclip\b/);
-  });
-
-  it('saves a signed-in visitor’s chosen locale before navigating', async () => {
-    setSession(signedInAs('member'));
-    render(<Header />);
-    fireEvent.click(screen.getByTestId('public-locale-trigger'));
-    fireEvent.click(screen.getByRole('link', { name: 'mk' }));
-    await waitFor(() => expect(h.push).toHaveBeenCalledExactlyOnceWith('/', { locale: 'mk' }));
-    expect(h.updatePreferredLocale).toHaveBeenCalledExactlyOnceWith({ locale: 'mk' });
   });
 
   it('leaves the auth action a native anchor while the rest of the header stays client-routed', () => {

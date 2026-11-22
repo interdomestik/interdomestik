@@ -6,7 +6,7 @@ import {
   userNotificationPreferences as preferences,
 } from '@interdomestik/database/schema';
 import { ROLES } from '@interdomestik/shared-auth';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { isEmailSuppressed } from '@interdomestik/domain-communications/email';
 import type { sendEmailOutcome } from '@interdomestik/domain-communications/email';
 import type { sendPushOutcome } from '@interdomestik/domain-communications/push';
@@ -17,15 +17,16 @@ import {
   renderDeliveryPush,
   type ClaimedDelivery,
   type DeliveryDependencies,
+  type PushDeliverySubscription,
   type SkipReason,
 } from '@interdomestik/domain-communications/notification-deliveries/worker';
-import { canReceiveStaffClaimNotification } from '../staff-claims/notification-recipients';
+import { resolveStaffClaimNotificationRecipients } from '../staff-claims/notification-recipients';
 
 export type PreparedNotificationDelivery = { locale: NonNullable<ClaimedDelivery['locale']> } & (
   | { channel: 'email'; to: string; rendered: Parameters<typeof sendEmailOutcome>[2] }
   | {
       channel: 'push';
-      subscription: Parameters<typeof sendPushOutcome>[0];
+      subscription: PushDeliverySubscription;
       rendered: Parameters<typeof sendPushOutcome>[1];
     }
 );
@@ -54,6 +55,7 @@ async function preparePushDelivery(
       endpoint: pushSubscriptions.endpoint,
       p256dh: pushSubscriptions.p256dh,
       auth: pushSubscriptions.auth,
+      version: sql<string>`${pushSubscriptions}."xmin"::text`,
     })
     .from(pushSubscriptions)
     .where(
@@ -82,12 +84,23 @@ export async function prepareNotificationDelivery(
   if (!row?.leaseUntil) return { leaseLost: true };
   if (row.stale) return { skip: 'stale' };
   const { tenantId, claimId, recipientUserId } = row;
+  const [claim] = await tx
+    .select({
+      ownerId: claims.userId,
+      staffId: claims.staffId,
+      category: claims.category,
+      claimNumber: claims.claimNumber,
+    })
+    .from(claims)
+    .where(and(eq(claims.tenantId, tenantId), eq(claims.id, claimId)))
+    .for('share');
+  if (!claim) return { skip: 'claim_gone' };
+
   const [recipient] = await tx
     .select({
       id: user.id,
       email: user.email,
       emailVerified: user.emailVerified,
-      branchId: user.branchId,
       role: user.role,
     })
     .from(user)
@@ -95,19 +108,15 @@ export async function prepareNotificationDelivery(
     .for('share');
   if (!recipient) return { skip: 'recipient_missing' };
 
-  const [claim] = await tx
-    .select({
-      ownerId: claims.userId,
-      category: claims.category,
-      claimNumber: claims.claimNumber,
-    })
-    .from(claims)
-    .where(and(eq(claims.tenantId, tenantId), eq(claims.id, claimId)));
-  if (!claim) return { skip: 'claim_gone' };
-
   if (row.kind === 'staff_claim_submitted' || row.kind === 'staff_member_message') {
-    const admitted = await canReceiveStaffClaimNotification(tx, { tenantId, claimId }, recipient);
-    if (!admitted) return { skip: 'recipient_out_of_scope' };
+    const selected = await resolveStaffClaimNotificationRecipients(tx, {
+      tenantId,
+      claimId,
+      staffId: claim.staffId,
+    });
+    if (!selected.some(candidate => candidate.id === recipient.id)) {
+      return { skip: 'recipient_out_of_scope' };
+    }
   } else if (claim.ownerId !== recipient.id) {
     return { skip: 'recipient_out_of_scope' };
   }

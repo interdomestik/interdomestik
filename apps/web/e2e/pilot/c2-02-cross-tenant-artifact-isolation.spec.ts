@@ -239,7 +239,10 @@ test('C2-02: cross-tenant IDs denied for claim/doc/upload/message', async ({ bro
 
     const messageSendResult = await sendMessageDbCore({
       session: mkSession as { user: SessionUser },
-      authority: mintTestTenantAuthority(mkSession.user.tenantId),
+      authority: mintTestTenantAuthority(mkSession.user.tenantId, {
+        userId: mkSession.user.id,
+        role: mkSession.user.role,
+      }),
       requestHeaders: new Headers({ 'x-forwarded-host': ACTOR_HOST }),
       claimId: ksClaim.id,
       content: `C2-02 denial probe ${Date.now()}`,

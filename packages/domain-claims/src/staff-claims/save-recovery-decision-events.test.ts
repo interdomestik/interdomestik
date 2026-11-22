@@ -28,7 +28,11 @@ function primeScopeAndDecision(existingDecision: unknown[] = []) {
   mocks.agreementSelectChain.limit.mockResolvedValue(existingDecision);
 }
 
-const authority = mintTestTenantAuthority('tenant-1');
+const authority = mintTestTenantAuthority('tenant-1', {
+  userId: 'staff-1',
+  role: 'staff',
+  branchId: 'branch-1',
+});
 
 describe('saveRecoveryDecisionCore recovery decision events', () => {
   beforeEach(() => vi.clearAllMocks());

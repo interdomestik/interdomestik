@@ -74,7 +74,7 @@ export function statusTransaction(rows: Store) {
         innerJoin: () => chain,
         orderBy: () => chain,
         where: (where: SQL) => {
-          track(`${prefix}:${name}`, where);
+          track(`${prefix}:${name}${locking}`, where);
           return chain;
         },
         for: (lock: string) => {

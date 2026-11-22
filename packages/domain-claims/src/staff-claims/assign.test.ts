@@ -190,13 +190,51 @@ describe('changeClaimAssignment', () => {
     expect(tx.effects).toEqual(['no key update', 'share']);
   });
 
-  it.each(['staff', 'admin'])('keeps an unchanged assignment audit-free for %s', async role => {
+  it('keeps an unchanged staff assignment audit-free', async () => {
     const tx = useTransaction({ claim: { ...currentClaim, staffId: 'assignee' } });
     await expect(
-      changeClaimAssignment(authority(role), { claimId: 'claim', staffId: 'assignee' })
+      changeClaimAssignment(authority('staff'), { claimId: 'claim', staffId: 'assignee' })
     ).resolves.toMatchObject({ ok: true, changed: false });
     expect(tx.effects).toEqual(['no key update']);
   });
+
+  it('refreshes a repeated admin assignment after locking the staff target and audits the write', async () => {
+    const tx = useTransaction({ claim: { ...currentClaim, staffId: 'assignee' } });
+    await expect(
+      changeClaimAssignment(authority('admin'), { claimId: 'claim', staffId: 'assignee' })
+    ).resolves.toMatchObject({
+      ok: true,
+      changed: true,
+      assignment: { staffId: 'assignee', assignedById: 'actor', assignedAt: expect.any(Date) },
+    });
+    expect(tx.effects).toEqual(['no key update', 'share', 'write', 'audit']);
+    expect(tx.audits).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'assign_owner',
+        actorId: 'actor',
+        metadata: { previousStaffId: 'assignee', newStaffId: 'assignee', claimNumber: 'C-1' },
+      })
+    );
+  });
+
+  it('rejects a repeated admin assignment when the assignee no longer qualifies', async () => {
+    const tx = useTransaction({ claim: { ...currentClaim, staffId: 'assignee' }, target: null });
+    await expect(
+      changeClaimAssignment(authority('admin'), { claimId: 'claim', staffId: 'assignee' })
+    ).resolves.toEqual({ ok: false, code: 'target_denied' });
+    expect(tx.effects).toEqual(['no key update', 'share']);
+  });
+
+  it.each(['staff', 'admin'])(
+    'keeps an already-clear unassignment audit-free for %s',
+    async role => {
+      const tx = useTransaction();
+      await expect(
+        changeClaimAssignment(authority(role), { claimId: 'claim', staffId: null })
+      ).resolves.toMatchObject({ ok: true, changed: false });
+      expect(tx.effects).toEqual(['no key update']);
+    }
+  );
 
   it('rolls back and leaves the audit untouched on a lifecycle or owner CAS miss', async () => {
     const tx = useTransaction({ conflict: true });

@@ -1,23 +1,31 @@
 import { claims } from '@interdomestik/database';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import {
   enqueueRecoveryDecisionNotification,
   lockClaimNotificationRecipient,
 } from '@interdomestik/domain-communications/notification-deliveries';
+import { reportServerError } from '@interdomestik/domain-communications/server-error';
 
+import { resolveBoundClaimPrincipal } from '../claims/status-actor';
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import { saveRecoveryDecisionSchema } from './recovery-decision-schema';
-import {
-  buildScopedStaffClaimWhere,
-  resolveScopedStaffClaimAccess,
-  STAFF_SCOPE_ACCESS_DENIED_ERROR,
-} from './scope';
+import { buildScopedStaffClaimWhere, STAFF_SCOPE_ACCESS_DENIED_ERROR } from './scope';
 import type { ActionResult, RecoveryDecisionSnapshot, SaveRecoveryDecisionInput } from './types';
 import { upsertRecoveryDecisionRecord } from './recovery-decision-record';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+
+export function resolveRecoveryDecisionActor(
+  authority: TenantAuthority | null,
+  session: ClaimsSession | null
+) {
+  const actor = resolveBoundClaimPrincipal(authority, session);
+  if (actor?.principal.role !== 'staff') return null;
+  return {
+    id: actor.principal.userId,
+    branchId: actor.principal.branchId,
+    tenantId: actor.tenantId,
+  };
+}
 
 export async function saveRecoveryDecisionCore(
   params: SaveRecoveryDecisionInput & {
@@ -27,13 +35,14 @@ export async function saveRecoveryDecisionCore(
   },
   deps: ClaimsDeps = {}
 ): Promise<ActionResult<RecoveryDecisionSnapshot> & { deliveryIds?: string[] }> {
-  const { authority, session } = params;
+  const { authority, session, requestHeaders, ...input } = params;
+  const actor = resolveRecoveryDecisionActor(authority, session);
 
-  if (!authority || session?.user?.role !== 'staff') {
+  if (!authority || !actor) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  const parsed = saveRecoveryDecisionSchema.safeParse(params);
+  const parsed = saveRecoveryDecisionSchema.safeParse(input);
   if (!parsed.success) {
     return {
       success: false,
@@ -41,12 +50,11 @@ export async function saveRecoveryDecisionCore(
     };
   }
 
-  const { tenantId } = readTenantAuthority(authority);
+  const { id: userId, branchId, tenantId } = actor;
   const scopeArgs = {
-    ...resolveScopedStaffClaimAccess({
-      claimId: parsed.data.claimId,
-      session,
-    }),
+    claimId: parsed.data.claimId,
+    userId,
+    branchId,
     tenantId,
   };
 
@@ -79,7 +87,7 @@ export async function saveRecoveryDecisionCore(
         declineReasonCode:
           parsed.data.decisionType === 'declined' ? parsed.data.declineReasonCode : undefined,
         explanation: parsed.data.explanation,
-        actor: { id: session.user.id, role: 'staff' },
+        actor: { id: userId, role: 'staff' },
         tenantId,
         tx,
       });
@@ -100,8 +108,8 @@ export async function saveRecoveryDecisionCore(
     if (result.success && result.data && deps.logAuditEvent) {
       try {
         await deps.logAuditEvent({
-          actorId: session.user.id,
-          actorRole: session.user.role,
+          actorId: userId,
+          actorRole: 'staff',
           authority,
           action: 'claim.recovery_decision_saved',
           entityType: 'claim',
@@ -112,16 +120,16 @@ export async function saveRecoveryDecisionCore(
             decisionReason: result.data.explanation ?? undefined,
             memberDecisionLabel: result.data.memberLabel ?? undefined,
           },
-          headers: params.requestHeaders,
+          headers: requestHeaders,
         });
       } catch (error) {
-        console.error('Recovery decision audit projection failed', error);
+        reportServerError('Recovery decision audit projection failed', error);
       }
     }
 
     return result;
   } catch (error) {
-    console.error('Failed to save recovery decision:', error);
+    reportServerError('Failed to save recovery decision', error);
     return { success: false, error: 'Failed to save recovery decision' };
   }
 }

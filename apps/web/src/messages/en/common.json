@@ -105,6 +105,7 @@
       }
     },
     "toastRegion": "Notifications",
+    "localeSaveError": "Couldn’t save your language preference. Try again.",
     "membershipStatus": {
       "active": "Active",
       "past_due": "Past due",

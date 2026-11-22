@@ -105,6 +105,7 @@
       }
     },
     "toastRegion": "Njoftimet",
+    "localeSaveError": "Nuk u ruajt gjuha që zgjodhët. Provoni përsëri.",
     "membershipStatus": {
       "active": "Aktive",
       "past_due": "Pagesë e vonuar",

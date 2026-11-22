@@ -17,9 +17,9 @@ export const mockSelectChain = {
   where: vi.fn().mockReturnThis(),
   orderBy: vi.fn().mockReturnValue([]),
   limit: vi.fn().mockReturnValue([]),
-  for: vi.fn(async () => {
-    const claim = await mocks.dbQuery();
-    return claim ? [claim] : [];
+  for: vi.fn(async strength => {
+    const row = await (strength === 'share' ? mocks.dbUserQuery() : mocks.dbQuery());
+    return row ? [row] : [];
   }),
 };
 

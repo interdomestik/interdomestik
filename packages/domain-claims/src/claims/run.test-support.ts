@@ -52,11 +52,13 @@ type Harness = {
   tx: TenantTransaction;
   queries: string[];
   audit: unknown[];
+  deletedSubscriptions: ReturnType<PgDialect['sqlToQuery']>[];
   sendEmail: Mock;
   sendPush: Mock;
   emailTransports: Mock<() => ('smtp' | 'resend')[]>;
   setClock(at: number): void;
   setWriteDelay(ms: number): void;
+  setWriteCommitDelay(ms: number): void;
   loseLeaseAtWrite(): void;
   kick(ids?: string[]): Promise<RunSummary>;
   schedule(budgetMs?: number): Promise<RunSummary>;
@@ -69,6 +71,8 @@ export function harness(
 ): Harness {
   let clock = start;
   let transportWriteDelay = 0;
+  let transportCommitDelay = 0;
+  let transportWritten = false;
   let loseLeaseAtWrite = false;
   const sendEmail = vi
     .fn()
@@ -77,6 +81,8 @@ export function harness(
   const emailTransports = vi.fn<() => ('smtp' | 'resend')[]>().mockReturnValue(['smtp', 'resend']);
   const queries: string[] = [];
   const audit: unknown[] = [];
+  const deletedSubscriptions: Harness['deletedSubscriptions'] = [];
+  const remainingLifetime = (row: Delivery) => Date.parse(row.createdAt) + 259_200_000 - clock;
 
   const matches = (where: SQL, row: Delivery) => {
     const query = dialect.sqlToQuery(where);
@@ -112,7 +118,13 @@ export function harness(
             }),
           }),
           for: () =>
-            Promise.resolve(selection ? deliveries.filter(row => matches(where, row)) : []),
+            Promise.resolve(
+              selection
+                ? deliveries
+                    .filter(row => matches(where, row))
+                    .map(row => ({ ...row, stale: remainingLifetime(row) <= 0 }))
+                : []
+            ),
         }),
       }),
     })),
@@ -127,7 +139,8 @@ export function harness(
           if (
             !row ||
             !matches(where, row) ||
-            (isTransportWrite && Date.parse(row.leaseUntil!) - clock < 300_000)
+            (isTransportWrite && Date.parse(row.leaseUntil!) - clock < 300_000) ||
+            (query.sql.includes("interval '72 hours'") && remainingLifetime(row) <= 0)
           ) {
             return { returning: () => Promise.resolve([]) };
           }
@@ -139,8 +152,14 @@ export function harness(
               row[key as TimestampKey] = timestamp(clock + delay);
             } else Object.assign(row, { [key]: value });
           }
-          if (isTransportWrite) clock += transportWriteDelay;
-          return { returning: () => Promise.resolve([{ ...row }]) };
+          const returned = isTransportWrite
+            ? { ...row, remainingLifetimeMs: remainingLifetime(row) }
+            : { ...row };
+          if (isTransportWrite) {
+            clock += transportWriteDelay;
+            transportWritten = true;
+          }
+          return { returning: () => Promise.resolve([returned]) };
         },
       }),
     })),
@@ -168,11 +187,25 @@ export function harness(
         };
       },
     })),
+    delete: vi.fn(() => ({
+      where: (where: SQL) => {
+        deletedSubscriptions.push(dialect.sqlToQuery(where));
+        return Promise.resolve();
+      },
+    })),
   } as unknown as TenantTransaction;
 
   let pending: Promise<unknown> = Promise.resolve();
   withAuthority.mockImplementation((_authority, work) => {
-    const next = pending.then(() => work(tx));
+    const next = pending
+      .then(() => work(tx))
+      .then(result => {
+        if (transportWritten) {
+          clock += transportCommitDelay;
+          transportWritten = false;
+        }
+        return result;
+      });
     pending = next.catch(() => undefined);
     return next;
   });
@@ -182,7 +215,12 @@ export function harness(
         ? {
             channel: 'push',
             locale: 'mk',
-            subscription: { endpoint: row.pushSubscriptionId },
+            subscription: {
+              endpoint: row.pushSubscriptionId,
+              p256dh: 'key',
+              auth: 'auth',
+              version: '4711',
+            },
             rendered: {},
           }
         : { channel: 'email', locale: 'mk', to: 'member@example.test', rendered: {} }
@@ -200,6 +238,7 @@ export function harness(
     tx,
     queries,
     audit,
+    deletedSubscriptions,
     sendEmail,
     sendPush,
     emailTransports,
@@ -208,6 +247,9 @@ export function harness(
     },
     setWriteDelay: (ms: number) => {
       transportWriteDelay = ms;
+    },
+    setWriteCommitDelay: (ms: number) => {
+      transportCommitDelay = ms;
     },
     loseLeaseAtWrite: () => {
       loseLeaseAtWrite = true;

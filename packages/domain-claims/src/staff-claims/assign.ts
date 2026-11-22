@@ -134,7 +134,7 @@ async function assignInTransaction(
     if (staffId !== null && status === 'draft') return { ok: false, code: 'draft' };
   }
 
-  if (claim.staffId === staffId) {
+  if (claim.staffId === staffId && (actor.kind === 'staff' || staffId === null)) {
     return {
       ok: true,
       changed: false,
