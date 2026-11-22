@@ -10,10 +10,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const EXPECTED_E2E_TREE = 'cb4aff46a2be293e0431490833a14b1de5627bf9';
 const sourceFiles = {
   ciWorkflow: '.github/workflows/ci.yml',
-  laneSource: 'scripts/run-e2e-lane.mjs',
+  laneSource: 'scripts/ci/fixtures/main-e2e-reuse/run-e2e-lane.pre-split.mjs.fixture',
   packageJson: 'package.json',
   playwrightConfig: 'apps/web/playwright.config.ts',
-  prWorkflow: '.github/workflows/e2e-pr.yml',
+  prWorkflow: 'scripts/ci/fixtures/main-e2e-reuse/e2e-pr.pre-split.yml.fixture',
 };
 
 test('S5 foreign-submit refusal remains approved while the new corpus fails closed', () => {

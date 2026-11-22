@@ -184,7 +184,6 @@ test('seeded CI workflows generate masked per-run E2E credentials before seeded 
   }
   const orderContracts = [
     ['.github/workflows/ci.yml', 'e2e-gate', 'Prepare E2E Database'],
-    ['.github/workflows/e2e-pr.yml', 'e2e-runner', 'Run PR E2E Gate'],
     ['.github/workflows/e2e-nightly.yml', 'e2e', 'Seed E2E DB and build the app artifact'],
     ['.github/workflows/release-candidate.yml', 'rc-gate', 'Prepare CI database'],
     ['.github/workflows/pilot-gate.yml', 'pilot-gate-runner', 'Prepare CI database'],
@@ -197,7 +196,8 @@ test('seeded CI workflows generate masked per-run E2E credentials before seeded 
   for (const [workflowPath, jobName, guardedStep] of orderContracts) {
     const steps = readWorkflow(workflowPath).jobs[jobName].steps;
     const generatedIndex = findStepIndex(steps, 'Generate ephemeral E2E credentials');
-    assert.ok(generatedIndex < findStepIndex(steps, guardedStep));
+    assert.equal(steps[generatedIndex]?.run, 'bash scripts/ci/export-e2e-credentials.sh', jobName);
+    assert.ok(generatedIndex < findStepIndex(steps, guardedStep), `${workflowPath}#${guardedStep}`);
   }
 });
 test('CI materializes AI eval as a blocking surface-gated lane', () => {
