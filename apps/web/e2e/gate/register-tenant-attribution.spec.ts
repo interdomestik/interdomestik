@@ -12,7 +12,7 @@ import mk from '../../src/messages/mk/agent.json';
 import sq from '../../src/messages/sq/agent.json';
 import { gotoApp } from '../utils/navigation';
 import { removeOwnedMemberLead } from '../utils/owned-member-lead';
-import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { expect, test, type BrowserContext, type Page, type Request } from '@playwright/test';
 
 type TenantRegistrationTarget = {
   actorEmail: string;
@@ -191,22 +191,38 @@ async function approveCash(
   const approve = row.getByTestId('cash-approve');
   await expect(approve).toBeVisible({ timeout: 30_000 });
   // The server-rendered marker can precede hydration, and a click before it is silently lost.
-  // React sets its props key on a node when it hydrates it, so wait for that before one click.
+  // React sets its props key on a node as it hydrates it; server HTML alone never carries it.
   await expect
     .poll(
       () =>
         approve.evaluate(node => Object.keys(node).some(key => key.startsWith('__reactProps$'))),
-      { timeout: 20_000, message: 'cash-approve was never hydrated' }
+      { timeout: 20_000, message: `cash-approve for ${email} was never hydrated` }
     )
     .toBe(true);
-  // One click only: it must send the server action, so a lost click fails here, not as a null poll.
-  await Promise.all([
-    admin.waitForRequest(
-      request => request.method() === 'POST' && request.headers()['next-action'] !== undefined,
-      { timeout: 10_000 }
-    ),
-    approve.click(),
-  ]);
+  // One click only. Requests are recorded from before it, and the click settles before any
+  // failure, so no late approval can reach cleanup. A lost click fails here, not as a null poll.
+  let approvalSent = false;
+  const recordApproval = (request: Request) => {
+    if (
+      request.method() === 'POST' &&
+      request.headers()['next-action'] !== undefined &&
+      (request.postData() ?? '').includes('"decision":"approve"')
+    ) {
+      approvalSent = true;
+    }
+  };
+  admin.on('request', recordApproval);
+  try {
+    await approve.click({ timeout: 10_000 });
+    await expect
+      .poll(() => approvalSent, {
+        timeout: 10_000,
+        message: `cash-approve for ${email} sent no approval server action`,
+      })
+      .toBe(true);
+  } finally {
+    admin.off('request', recordApproval);
+  }
   // The click does not await the server action: the flow ends once its conversion committed, so
   // cleanup waits for it. Only a conversion slower than this poll can still finish after cleanup.
   await expect
@@ -218,7 +234,7 @@ async function approveCash(
           .where(eq(memberLeads.email, email));
         return lead?.memberId ?? null;
       },
-      { timeout: 30_000 }
+      { timeout: 30_000, message: `cash approval for ${email} converted no member` }
     )
     .not.toBeNull();
 }
