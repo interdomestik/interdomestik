@@ -31,9 +31,9 @@ const MAX_BODY_BYTES = 1_048_576;
 export type WritingMethod = (typeof METHODS)[number];
 export type RouteBasis = Exclude<ActionBasis, { kind: 'public' }>;
 export type RouteParams = Record<string, string | string[]>;
-// D135 preserves explicit undefined for consumers with exactOptionalPropertyTypes.
 export type RouteParamsInput = RouteParams | Promise<RouteParams> | undefined;
-export type RouteContext = { params?: RouteParamsInput };
+// D135 allows omitted params and explicit undefined under exactOptionalPropertyTypes.
+export type RouteContext = { params?: RouteParams | Promise<RouteParams> } | { params: undefined };
 
 export type RouteMethod = {
   (request: NextRequest, context: RouteContext): Promise<Response>;
