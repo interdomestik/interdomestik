@@ -18,6 +18,7 @@ import { DE_LOCALE_ADDITION } from './c1-admissions-i18n.mjs';
 import { TX_LIFETIME_TRANSITION } from './c1-admissions-document-lifetime.mjs';
 import { DB_TRANSACTION_POOLER } from './c1-admissions-pooler.mjs';
 import { SEC11_TRUSTED_HOSTS } from './c1-admissions-hosts.mjs';
+import { SESSION_READ_FAILURE } from './c1-admissions-session-read.mjs';
 
 const deepFreeze = value => {
   if (value && typeof value === 'object') {
@@ -220,4 +221,5 @@ export const C1_ADMISSIONS = deepFreeze([
   DE_LOCALE_ADDITION,
   DB_TRANSACTION_POOLER,
   SEC11_TRUSTED_HOSTS,
+  SESSION_READ_FAILURE,
 ]);
