@@ -1,86 +1,22 @@
 'use server';
 
-import { runAuthenticatedAction } from '@/lib/safe-action';
+import { actionFailure, runAuthenticatedAction } from '@/lib/safe-action';
+import { listVisibleMemberLeads, memberLeadListRefusal } from '@interdomestik/domain-leads/list';
 
-import { memberLeads } from '@interdomestik/database/schema';
-import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
-import { and, desc, eq, ilike, or } from 'drizzle-orm';
-import { z } from 'zod';
-import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-
-const listLeadsSchema = z.object({
-  status: z
-    .enum([
-      'new',
-      'contacted',
-      'payment_pending',
-      'paid',
-      'converted',
-      'lost',
-      'disqualified',
-      'expired',
-    ])
-    .optional(),
-  branchId: z.string().optional(),
-  search: z.string().optional(),
-});
-
+/**
+ * The member leads the signed-in user may see. Who sees what is decided by `domain-leads` from the
+ * session's tenant authority, bound to the session's user (R-16); a role outside its allow-list,
+ * or an authority minted for another user, is refused before any read and the refusal is recorded
+ * by the wrapper.
+ */
 export async function listLeadsAction(input: unknown) {
   return runAuthenticatedAction(async ctx => {
-    const data = listLeadsSchema.parse(input);
-    const { session, userRole, scope, authority } = ctx;
-    const { tenantId } = readTenantAuthority(authority);
-    const { user } = session;
-    const { status, search } = data;
+    const actor = ctx.session.user;
+    const refusal = memberLeadListRefusal(actor, ctx.authority);
+    if (refusal) return actionFailure(refusal);
 
-    const conditions = [eq(memberLeads.tenantId, tenantId)];
-
-    if (status) {
-      conditions.push(eq(memberLeads.status, status));
-    }
-
-    if (search) {
-      // Basic search on name/email
-      const searchLower = `%${search.toLowerCase()}%`;
-      const searchCondition = or(
-        ilike(memberLeads.firstName, searchLower),
-        ilike(memberLeads.lastName, searchLower),
-        ilike(memberLeads.email, searchLower)
-      );
-      if (searchCondition) {
-        conditions.push(searchCondition);
-      }
-    }
-
-    // Role-based visibility
-    if (userRole === 'agent') {
-      conditions.push(eq(memberLeads.agentId, user.id));
-    } else if (userRole === 'branch_manager') {
-      const { branchId } = scope;
-      if (branchId) {
-        conditions.push(eq(memberLeads.branchId, branchId));
-      }
-    } else if (['admin', 'tenant_admin', 'super_admin'].includes(userRole)) {
-      if (data.branchId) {
-        conditions.push(eq(memberLeads.branchId, data.branchId));
-      }
-    }
-
-    // Fetch leads
-    // db-access-guard: tenant-scoped -- reason: tenant predicate built in local conditions array before this DB call
-    const leads = await withTenantAuthority(
-      authority,
-      async tx =>
-        await tx.query.memberLeads.findMany({
-          where: and(...conditions),
-          orderBy: [desc(memberLeads.createdAt)],
-          with: {
-            leadPaymentAttempts: true,
-          },
-          limit: 100, // Safety limit
-        })
-    );
-
-    return leads;
+    const result = await listVisibleMemberLeads(actor, ctx.authority, input);
+    if (!result.ok) return actionFailure(result.code);
+    return result.leads;
   });
 }
