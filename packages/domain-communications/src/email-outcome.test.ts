@@ -36,7 +36,6 @@ describe('sendEmailOutcome', () => {
     vi.stubEnv('E2E_SMTP_HOST', '');
     vi.stubEnv('E2E_SMTP_PORT', '');
     vi.stubEnv('RESEND_API_KEY', 'mock-key');
-    vi.stubEnv('RESEND_BASE_URL', '');
     vi.stubEnv('RESEND_FROM_EMAIL', 'sender@example.com');
   });
 

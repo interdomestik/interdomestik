@@ -76,6 +76,7 @@ const RESEND_PRE_REQUEST_CODES = new Set([
   'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
 ]);
 const resendReceipt = z.object({ id: z.string().min(1) });
+const RESEND_EMAILS_URL = 'https://api.resend.com/emails';
 
 export async function sendResendOutcome(
   apiKey: string,
@@ -85,8 +86,8 @@ export async function sendResendOutcome(
 ): Promise<DeliveryOutcome<'resend'>> {
   try {
     // The SDK replaces connection failures with application_error, losing the cause.
-    const baseUrl = process.env.RESEND_BASE_URL || 'https://api.resend.com';
-    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/emails`, {
+    // The endpoint is fixed: the API key is never sent to a host taken from configuration.
+    const response = await fetch(RESEND_EMAILS_URL, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,

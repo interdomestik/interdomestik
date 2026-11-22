@@ -66,8 +66,8 @@ describe('notification rendering', () => {
         url: `/${locale}/member/claims/claim`,
       });
       if (locale === 'mk') {
-        expect(status.title).toMatch(/[А-Яа-яЀ-ӿ]/);
-        expect(message.title).toMatch(/[А-Яа-яЀ-ӿ]/);
+        expect(status.title).toMatch(/[\u0400-\u04FF]/);
+        expect(message.title).toMatch(/[\u0400-\u04FF]/);
       }
     }
   );
