@@ -23,13 +23,13 @@ Written by this package: `crm_activities` and `member_activities`. It reads `crm
 - **Member activities.**
   - Reading:
     - `member` and the legacy `user` role read only their own activities.
-    - An agent reads only members assigned to it, through `user.agentId` or an active `agent_clients` row.
+    - An agent reads only members with an active `agent_clients` row for that agent. The member's referring agent (`user.agentId`) is no admission: it loses access when the assignment moves to another agent.
     - `staff`, `tenant_admin`, `admin` and `super_admin` read the tenant.
     - Every other role is refused, `branch_manager` included: under the owner's decision of 2026-11-17, branch managers see no member content.
   - Logging follows the same rule, except that members never log.
 - **Check and effect share one tenant transaction.** The checked rows (the lead, the member, the assignment) are read `FOR SHARE` in the transaction that reads the feed or inserts the activity (R-17).
 - **The stored tenant and author come from the actor, never from the input.**
-- **Proof on a real database.** The restricted-role tests `packages/database/test/lead-activities-restricted-rls.test.ts`, `lead-activity-writes-restricted-rls.test.ts` (with a reassignment race) and `member-activities-restricted-rls.test.ts` prove these rules (`test:rls`).
+- **Proof on a real database.** The restricted-role tests `packages/database/test/lead-activities-restricted-rls.test.ts`, `lead-activity-writes-restricted-rls.test.ts` (with a reassignment race) and `member-activities-restricted-rls.test.ts` (with a revocation race) and `member-activities-reassignment-restricted-rls.test.ts` (the referring agent refused, and a reassignment from one agent to another) prove these rules (`test:rls`).
 
 ## Known gaps
 

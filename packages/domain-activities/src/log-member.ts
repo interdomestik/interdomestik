@@ -63,17 +63,19 @@ export async function logActivityCore(params: {
       return { success: false, error: 'Activity log unavailable' };
     }
 
-    // The member row and the agent assignment are read FOR SHARE in the transaction that inserts
-    // the activity, so the access the check saw holds until the insert commits (R-17).
+    // An agent is admitted only by its active agent_clients row; the member's referring agent
+    // (user.agentId) is no admission. The member row and the assignment are read FOR SHARE in the
+    // transaction that inserts the activity, so the access the check saw holds until the insert
+    // commits (R-17).
     return await withTenantAuthority(authority, async tx => {
       const [member] = await tx
-        .select({ agentId: user.agentId })
+        .select({ id: user.id })
         .from(user)
         .where(and(eq(user.id, memberId), eq(user.tenantId, actor.tenantId)))
         .for('share');
       if (!member) return MEMBER_ACCESS_DENIED;
 
-      if (scope === 'assigned' && member.agentId !== actor.userId) {
+      if (scope === 'assigned') {
         const [assignment] = await tx
           .select({ id: agentClients.id })
           .from(agentClients)

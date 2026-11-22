@@ -42,8 +42,9 @@ function permissionDenied(): never {
 
 /**
  * Whether the actor may read this member's activities, decided in the transaction that reads them.
- * The member row and the agent assignment are read FOR SHARE, so the assignment the check saw
- * cannot change before the feed read completes (R-17).
+ * An agent is admitted only by its active agent_clients row; the member's referring agent
+ * (user.agentId) is no admission. The member row and the assignment are read FOR SHARE, so the
+ * assignment the check saw cannot change before the feed read completes (R-17).
  */
 async function assertReadAccess(
   tx: TenantTransaction,
@@ -57,12 +58,12 @@ async function assertReadAccess(
   }
 
   const [member] = await tx
-    .select({ agentId: user.agentId })
+    .select({ id: user.id })
     .from(user)
     .where(and(eq(user.id, memberId), eq(user.tenantId, actor.tenantId)))
     .for('share');
   if (!member) permissionDenied();
-  if (scope === 'tenant' || member.agentId === actor.userId) return;
+  if (scope === 'tenant') return;
 
   const [assignment] = await tx
     .select({ id: agentClients.id })
