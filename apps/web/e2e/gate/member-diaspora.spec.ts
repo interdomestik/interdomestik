@@ -1,23 +1,7 @@
-import { db, eq, user } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
-import { getTenantFromTestInfo } from '../fixtures/auth.project';
-import { getUserForTenant } from '../fixtures/auth-users';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-
-async function switchLocale(
-  page: Parameters<typeof gotoApp>[0],
-  languageLabel: string,
-  optionLabel: string,
-  expectedPath: string
-) {
-  const userMenuButton = page.locator('[data-testid="sidebar-user-menu-button"]:visible');
-  await expect(userMenuButton).toHaveCount(1);
-  await userMenuButton.click();
-  await page.getByText(languageLabel, { exact: true }).hover();
-  await page.getByRole('menuitem').filter({ hasText: optionLabel }).click();
-  await expect.poll(() => new URL(page.url()).pathname).toBe(expectedPath);
-}
+import { signInThrowawayMember, switchLocale } from './member-locale.fixture';
 
 async function expectNoHorizontalOverflow(page: Parameters<typeof gotoApp>[0]) {
   await expect
@@ -30,24 +14,11 @@ async function expectNoHorizontalOverflow(page: Parameters<typeof gotoApp>[0]) {
 }
 
 test.describe('Diaspora Feature', () => {
-  // The sidebar language switch saves the member's preferred locale. Restore the seeded value
-  // after each test, so later specs that read the shared member's stored locale (server-sent
-  // notification links) do not inherit this spec's last switch.
-  let storedLocale: { email: string; preferredLocale: typeof user.$inferSelect.preferredLocale };
-  test.beforeEach(async ({}, testInfo) => {
-    const { email } = getUserForTenant('member', getTenantFromTestInfo(testInfo));
-    const [member] = await db
-      .select({ preferredLocale: user.preferredLocale })
-      .from(user)
-      .where(eq(user.email, email));
-    if (!member) throw new Error('Diaspora gate requires the seeded member.');
-    storedLocale = { email, preferredLocale: member.preferredLocale };
-  });
+  // The language switch saves the preferred locale (WP-11): it runs on a member of its own.
+  let throwaway: Awaited<ReturnType<typeof signInThrowawayMember>> | null = null;
   test.afterEach(async () => {
-    await db
-      .update(user)
-      .set({ preferredLocale: storedLocale.preferredLocale })
-      .where(eq(user.email, storedLocale.email));
+    await throwaway?.remove();
+    throwaway = null;
   });
 
   test('retained member handoffs settle', async ({ authenticatedPage: page }, testInfo) => {
@@ -56,8 +27,9 @@ test.describe('Diaspora Feature', () => {
   });
 
   test('captures an exact corridor and preserves it through guidance and locale changes', async ({
-    authenticatedPage: page,
+    page,
   }, testInfo) => {
+    throwaway = await signInThrowawayMember(page, testInfo);
     const originalViewport = page.viewportSize();
     if (!originalViewport) throw new Error('Diaspora gate requires a configured viewport.');
 
