@@ -46,6 +46,7 @@ describe('staff claim notifications', () => {
       title: '—',
       content: 'other',
       actionUrl: '/staff/claims/claim',
+      previewRestricted: false,
     });
     expect(h.values.mock.calls[1][0]).toMatchObject({
       id: ids[0],

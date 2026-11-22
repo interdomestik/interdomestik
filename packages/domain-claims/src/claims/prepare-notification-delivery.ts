@@ -20,7 +20,7 @@ import {
   type PushDeliverySubscription,
   type SkipReason,
 } from '@interdomestik/domain-communications/notification-deliveries/worker';
-import { resolveStaffClaimNotificationRecipients } from '../staff-claims/notification-recipients';
+import { isStaffClaimNotificationRecipient } from '../staff-claims/notification-recipients';
 
 export type PreparedNotificationDelivery = { locale: NonNullable<ClaimedDelivery['locale']> } & (
   | { channel: 'email'; to: string; rendered: Parameters<typeof sendEmailOutcome>[2] }
@@ -109,12 +109,12 @@ export async function prepareNotificationDelivery(
   if (!recipient) return { skip: 'recipient_missing' };
 
   if (row.kind === 'staff_claim_submitted' || row.kind === 'staff_member_message') {
-    const selected = await resolveStaffClaimNotificationRecipients(tx, {
-      tenantId,
-      claimId,
-      staffId: claim.staffId,
-    });
-    if (!selected.some(candidate => candidate.id === recipient.id)) {
+    const eligible = await isStaffClaimNotificationRecipient(
+      tx,
+      { tenantId, claimId, staffId: claim.staffId },
+      recipient
+    );
+    if (!eligible) {
       return { skip: 'recipient_out_of_scope' };
     }
   } else if (claim.ownerId !== recipient.id) {

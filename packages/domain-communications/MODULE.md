@@ -18,4 +18,4 @@ Claim producers write deterministic inbox rows and queue eligible email and push
 
 `./messages/select` shares the message and sender projection for reads and command results. It scopes the query to the supplied tenant and applies the caller's operation-specific predicate within the existing transaction.
 
-`./recipient-locale` resolves the stored locale, applies the tenant default, and writes the caller's preference under session authority. `./tenant-locale` exports the tenant default rule.
+`./recipient-locale` resolves the stored locale and applies the tenant default. Its preference writer binds the authenticated user to the session authority principal and writes within the authority when it covers the same profile tenant. A session outside that tenant receives a distinct scope-unavailable outcome. `./tenant-locale` exports the tenant default rule.

@@ -60,6 +60,7 @@ describe('claim owner notification producers', () => {
         type: 'claim_submitted',
         actionUrl: '/member/claims/claim',
         content: 'Update on: Owner claim title',
+        previewRestricted: false,
       })
     );
   });
@@ -146,6 +147,24 @@ describe('claim owner notification producers', () => {
     });
   });
 
+  it('marks an eligible member claim-message preview as unrestricted', async () => {
+    const h = setup([[{ messages: false }]]);
+    await enqueueClaimMessageNotification(h.tx, {
+      ...claim,
+      recipient: { ...recipient, role: 'member' },
+      messageId: 'reply',
+    });
+    expect(h.values.mock.calls[0][0]).toMatchObject({
+      id: 'ntf_new_message_reply',
+      previewRestricted: false,
+      content: 'Update on: Owner claim title',
+    });
+    expect(h.values.mock.calls[1][0]).toMatchObject({
+      facts: { previewRestricted: false },
+      idempotencyKey: 'claim-message:reply:email',
+    });
+  });
+
   it('writes only an inbox row for a handoff response and a link in the member’s locale', async () => {
     const h = setup([[{ locale: 'mk' }]]);
     await enqueueSupportHandoffResponseNotification(h.tx, 'tenant', 'owner', {
@@ -161,6 +180,7 @@ describe('claim owner notification producers', () => {
       actionUrl: '/mk/member/help?handoffId=handoff',
       title: 'Staff update available',
       content: 'A staff update is available on your support request.',
+      previewRestricted: false,
     });
   });
 });

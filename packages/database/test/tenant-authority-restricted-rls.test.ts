@@ -3,10 +3,10 @@ import test from 'node:test';
 
 import { eq, inArray, sql } from 'drizzle-orm';
 
-import { claimMessages, claims } from '../src/schema';
+import { claimMessages, claims, user } from '../src/schema';
 import type { TenantTransaction } from '../src/tenant';
 import type { TenantAuthority } from '../src/tenant-authority';
-import { TEST_DB_ROLE } from './rls-test-connection';
+import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
 import {
   KS_TENANT_ID,
   MK_TENANT_ID,
@@ -73,6 +73,54 @@ test('withTenantAuthority confines the restricted role under concurrency, expiry
       );
       assert.deepEqual(row, { currentUser: TEST_DB_ROLE, bypass: false });
     });
+
+    await t.test(
+      'saves locale only when the session authority covers its own profile',
+      async () => {
+        const { savePreferredLocale } =
+          await import('../../domain-communications/src/recipient-locale');
+        await adminDb.execute(
+          sql.raw(
+            `grant select (id, tenant_id), update (preferred_locale) on public."user" to ${quoteIdentifier(TEST_DB_ROLE)}`
+          )
+        );
+        await adminDb.update(user).set({ role: 'admin' }).where(eq(user.id, mk.userId));
+
+        const readProfiles = () =>
+          adminDb
+            .select({ id: user.id, preferredLocale: user.preferredLocale })
+            .from(user)
+            .where(inArray(user.id, [ks.userId, mk.userId]))
+            .orderBy(user.id);
+        const before = await readProfiles();
+        assert.equal(before.length, 2);
+
+        const admin = { id: mk.userId, role: 'admin', tenantId: MK_TENANT_ID };
+        const authority = (tenantId: string, userId = admin.id) =>
+          mintTenantAuthority({
+            tenantId,
+            purpose: 'session',
+            principal: { userId, role: admin.role, branchId: null, agentId: null },
+          });
+        const crossHome = { user: { ...admin, accessTenantId: KS_TENANT_ID } };
+        assert.equal(
+          await savePreferredLocale(authority(KS_TENANT_ID), crossHome, 'mk'),
+          'profile_scope_unavailable'
+        );
+        assert.equal(
+          await savePreferredLocale(authority(KS_TENANT_ID, ks.userId), crossHome, 'mk'),
+          'UNAUTHORIZED'
+        );
+        assert.deepEqual(await readProfiles(), before);
+
+        const home = { user: { ...admin, accessTenantId: MK_TENANT_ID } };
+        assert.equal(await savePreferredLocale(authority(MK_TENANT_ID), home, 'mk'), 'saved');
+        assert.deepEqual(
+          await readProfiles(),
+          before.map(row => (row.id === admin.id ? { ...row, preferredLocale: 'mk' } : row))
+        );
+      }
+    );
 
     await t.test('owner and access tenants diverge exactly as the descriptor says', async () => {
       const delegated = mintTenantAuthority({

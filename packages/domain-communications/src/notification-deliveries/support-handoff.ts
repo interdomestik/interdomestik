@@ -17,5 +17,6 @@ export async function enqueueSupportHandoffResponseNotification(
     actionUrl: `/${locale}/member/help?handoffId=${encodeURIComponent(handoff.id)}`,
     userId: memberId,
     tenantId,
+    previewRestricted: false,
   });
 }

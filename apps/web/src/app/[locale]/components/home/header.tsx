@@ -115,7 +115,7 @@ export function Header() {
                     event.preventDefault();
                     event.stopPropagation();
                     setLocaleOpen(false);
-                    if (!(await saveLocale(option))) {
+                    if ((await saveLocale(option)) === 'failed') {
                       localeTrigger.current?.focus();
                       return;
                     }

@@ -106,6 +106,7 @@
     },
     "toastRegion": "Njoftimet",
     "localeSaveError": "Nuk u ruajt gjuha që zgjodhët. Provoni përsëri.",
+    "localeSwitchUnsaved": "Gjuha që zgjodhët nuk mund të ruhej në këtë sesion.",
     "membershipStatus": {
       "active": "Aktive",
       "past_due": "Pagesë e vonuar",

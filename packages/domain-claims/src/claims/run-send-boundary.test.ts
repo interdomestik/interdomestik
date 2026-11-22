@@ -80,6 +80,23 @@ describe('delivery send boundary', () => {
     }
   );
 
+  it('refunds a provisional stale decision while the database still considers the row live', async () => {
+    const row = delivery({ attempts: 7, createdAt: timestamp(start - 259_200_000 + 3_000) });
+    const h = setup(row);
+    h.setWriteQueryDelay(2_000);
+
+    expect(await h.kick()).toMatchObject({ queued: 1, skipped: 0, sent: 0 });
+    expect(row).toMatchObject({
+      state: 'queued',
+      attempts: 7,
+      leaseUntil: null,
+      skipReason: null,
+      terminalAt: null,
+      transport: null,
+    });
+    expect(h.sendEmail).not.toHaveBeenCalled();
+  });
+
   it('refunds the attempt when elapsed time runs out during a backward wall-clock adjustment', async () => {
     const row = delivery();
     const h = setup(row);
@@ -141,7 +158,7 @@ describe('delivery send boundary', () => {
 
   it('skips stale or ineligible rows and retries an eligibility query failure', async () => {
     for (const reason of ['recipient_out_of_scope', 'stale']) {
-      const row = delivery();
+      const row = delivery(reason === 'stale' ? { createdAt: timestamp(start - 259_200_000) } : {});
       const h = setup(row);
       mocks.prepare.mockResolvedValueOnce({ skip: reason });
       expect((await h.kick()).skipped).toBe(1);

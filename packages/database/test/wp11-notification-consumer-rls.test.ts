@@ -8,61 +8,17 @@ import type { TenantAuthority } from '../src/tenant-authority';
 import { quoteIdentifier, quoteSqlLiteral } from './rls-test-connection';
 import { gate } from './wp11-claim-status-rls.fixture';
 import {
+  proveStaffRouting,
+  proveStaleBoundary,
+  proveTargetedKick,
+} from './wp11-notification-consumer-rls.proofs';
+import {
   restricted,
   role,
   runtimeRole,
   withNotificationDeliveriesFixture,
   type Rows,
 } from './wp11-notification-deliveries-rls.fixture';
-
-async function proveTargetedKick(
-  client: postgres.Sql,
-  a: Rows,
-  unrelatedId: string,
-  authority: TenantAuthority,
-  dispatch: typeof dispatchNotificationDeliveries
-) {
-  const id = randomUUID();
-  await client`update notification_deliveries
-    set next_attempt_at=clock_timestamp()-interval '2 minutes' where id=${unrelatedId}`;
-  await client`insert into notification_deliveries
-    (id, tenant_id, idempotency_key, kind, channel, recipient_user_id, claim_id, facts)
-    values (${id}, ${a.tenant}, ${id}, 'claim_submitted', 'email', ${a.user}, ${a.claim}, '{}')`;
-  const sends: string[] = [];
-  const kicked = await dispatch(
-    authority,
-    {
-      appOrigin: () => 'https://example.test',
-      emailTransports: () => ['smtp'],
-      sendEmail: (transport, _to, _payload, options) => {
-        sends.push(options.idempotencyKey);
-        return Promise.resolve({ ok: true, transport });
-      },
-    },
-    { ids: [id] }
-  );
-
-  assert.equal(kicked.sent, 1);
-  assert.deepEqual(sends, [id]);
-  const rows = await restricted(
-    client,
-    a.tenant,
-    async tx =>
-      tx`select id, state, attempts from notification_deliveries where id in (${id}, ${unrelatedId})`
-  );
-  assert.deepEqual(
-    rows.find(row => row.id === id),
-    { id, state: 'sent', attempts: 1 }
-  );
-  assert.deepEqual(
-    rows.find(row => row.id === unrelatedId),
-    {
-      id: unrelatedId,
-      state: 'queued',
-      attempts: 0,
-    }
-  );
-}
 
 async function provePushRetirement(
   client: postgres.Sql,
@@ -121,7 +77,7 @@ async function provePushRetirement(
   assert.deepEqual([...rows], [{ id: replaced }]);
 }
 
-async function proveConsumer(client: postgres.Sql, a: Rows) {
+async function proveConsumer(client: postgres.Sql, a: Rows, b: Rows) {
   const login = `wp11_${randomUUID().replaceAll('-', '')}`;
   const password = randomUUID();
   const quotedLogin = quoteIdentifier(login);
@@ -276,6 +232,8 @@ async function proveConsumer(client: postgres.Sql, a: Rows) {
 
     await proveTargetedKick(client, a, anotherId, admin, dispatchNotificationDeliveries);
     await provePushRetirement(client, a, authority, dispatchNotificationDeliveries);
+    await proveStaleBoundary(client, a, authority);
+    await proveStaffRouting(client, a, b, authority, dispatchNotificationDeliveries);
   } finally {
     const pools = globalThis as typeof globalThis & {
       queryClientAdmin?: postgres.Sql;
@@ -294,6 +252,6 @@ async function proveConsumer(client: postgres.Sql, a: Rows) {
   }
 }
 
-test('WP-11 delivery consumer schedules, kicks, retires push, refunds and re-drives under the restricted role', async t => {
+test('WP-11 delivery consumer schedules, kicks, checks expiry and routing, retires push, refunds and re-drives under the restricted role', async t => {
   await withNotificationDeliveriesFixture(t, proveConsumer);
 });

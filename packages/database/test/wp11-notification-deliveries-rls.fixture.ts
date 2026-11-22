@@ -25,6 +25,18 @@ const lockTables = [
 ];
 const schema = () => ({ migrationsFolder: fileURLToPath(new URL('../drizzle', import.meta.url)) });
 
+async function writeLegacyPreview(
+  client: postgres.Sql,
+  owner: { tenant: string; user: string; claim: string },
+  id: string
+) {
+  await restricted(client, owner.tenant, async tx => {
+    await tx`insert into notifications (id, tenant_id, user_id, type, title, content, action_url)
+      values (${id}, ${owner.tenant}, ${owner.user}, 'new_message', 'New Message',
+        'Update on: Test claim', ${`/member/claims/${owner.claim}`})`;
+  });
+}
+
 async function install(client: postgres.Sql) {
   const drizzleDb = drizzle(client, { schema: {} });
   const config = schema();
@@ -39,6 +51,14 @@ async function install(client: postgres.Sql) {
   await new PgDialect().migrate(migrations, drizzleDb._.session, config);
 
   await client.unsafe(`grant usage on schema public to ${role}`);
+  await client.unsafe(`grant select (id) on public."user" to ${role}`);
+  await client.unsafe(`grant insert (id, tenant_id, user_id, type, title, content, action_url)
+    on public.notifications to ${role}`);
+  const legacyOwner = await seedOwner(client, 'legacy', 'branch_manager');
+  const existing = 'wp11-notification-existing';
+  const rollout = 'wp11-notification-rollout';
+  await writeLegacyPreview(client, legacyOwner, existing);
+
   await runSequentially(lockTables.slice(0, -1), async table => {
     await client.unsafe(`grant update (id) on public.${quoteIdentifier(table)} to ${role}`);
   });
@@ -56,35 +76,31 @@ async function install(client: postgres.Sql) {
     await client`select to_regclass('public.notification_deliveries') as delivery_table`;
   assert.equal(rolledBack.delivery_table, null);
   await client.unsafe(`grant update (id) on public.claim_messages to ${role}`);
-  await assert.rejects(
-    migration(),
-    /WP-11 requires UPDATE privilege on public\.user\.preferred_locale/u
-  );
-  await client.unsafe(`grant update on public."user" to ${role}`);
   await migration();
 
-  const grantAssertion = target.sql.find(statement =>
-    statement.includes('has_any_column_privilege')
-  );
-  assert.ok(grantAssertion);
-  await client.unsafe(`revoke update on public."user" from ${role}`);
-  await client.unsafe(`grant update (id, preferred_locale) on public."user" to ${role}`);
-  await client.unsafe(grantAssertion);
+  await writeLegacyPreview(client, legacyOwner, rollout);
+  await client.unsafe(`grant select (id, preview_restricted) on public.notifications to ${role}`);
+  return { tenant: legacyOwner.tenant, existing, rollout };
 }
 
-async function seed(client: postgres.Sql, group: string) {
+async function seedOwner(client: postgres.Sql, group: string, userRole: string) {
   const tenant = `wp11-${group}`;
   const user = `${tenant}-user`;
   const claim = `${tenant}-claim`;
-  const message = `${tenant}-message`;
-  const delivery = `${tenant}-delivery`;
-  const request = `${tenant}-request`;
   await client`insert into tenants (id, name, legal_name, country_code) values (${tenant}, ${tenant}, ${tenant}, 'MK')`;
   const email = `${user}@example.test`;
   await client`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
-    values (${user}, ${tenant}, 'Test user', ${email}, true, 'tenant_admin', now(), now())`;
+    values (${user}, ${tenant}, 'Test user', ${email}, true, ${userRole}, now(), now())`;
   await client`insert into claim (id, tenant_id, "userId", title, category, "companyName", case_lifecycle_state)
     values (${claim}, ${tenant}, ${user}, 'Test claim', 'vehicle', 'Test company', 'submitted')`;
+  return { tenant, user, claim };
+}
+
+async function seed(client: postgres.Sql, group: string) {
+  const { tenant, user, claim } = await seedOwner(client, group, 'tenant_admin');
+  const message = `${tenant}-message`;
+  const delivery = `${tenant}-delivery`;
+  const request = `${tenant}-request`;
   await client`insert into claim_messages (id, tenant_id, claim_id, sender_id, content)
     values (${message}, ${tenant}, ${claim}, ${user}, 'Test message')`;
   await client`insert into notification_deliveries
@@ -103,16 +119,18 @@ export function restricted<T>(
   return client.begin(async tx => {
     await tx.unsafe(`set local role ${role}`);
     await tx`set local row_security = on`;
-    await tx`select set_config('app.current_access_tenant_id', ${tenantId}, true)`;
+    await tx`select set_config('app.current_access_tenant_id', ${tenantId}, true),
+      set_config('app.current_tenant_id', ${tenantId}, true)`;
     return work(tx);
   });
 }
 
 export type Rows = Awaited<ReturnType<typeof seed>>;
+type LegacyPreviews = Awaited<ReturnType<typeof install>>;
 
 export async function withNotificationDeliveriesFixture(
   t: TestContext,
-  run: (client: postgres.Sql, a: Rows, b: Rows) => Promise<void>
+  run: (client: postgres.Sql, a: Rows, b: Rows, legacy: LegacyPreviews) => Promise<void>
 ) {
   const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
   if (missing) return t.skip(missing);
@@ -121,10 +139,10 @@ export async function withNotificationDeliveriesFixture(
     const [existing] = await client`select 1 from pg_roles where rolname=${runtimeRole}`;
     if (!existing) await client.unsafe(`create role ${role} nologin nosuperuser nobypassrls`);
     try {
-      await install(client);
+      const legacy = await install(client);
       const a = await seed(client, 'a');
       const b = await seed(client, 'b');
-      await run(client, a, b);
+      await run(client, a, b, legacy);
     } finally {
       if (!existing) {
         await client.unsafe(`drop owned by ${role}`);

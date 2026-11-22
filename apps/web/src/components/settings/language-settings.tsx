@@ -39,7 +39,7 @@ export function LanguageSettings() {
 
   const handleLocaleChange = (newLocale: string) => {
     startTransition(async () => {
-      if (!(await saveLocale(newLocale))) return;
+      if ((await saveLocale(newLocale)) === 'failed') return;
       // usePathname from @/i18n/routing returns the path WITHOUT the locale prefix
       // useRouter from @/i18n/routing handles adding the new locale prefix automatically
       router.replace(pathname, { locale: newLocale });

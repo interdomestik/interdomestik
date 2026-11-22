@@ -16,7 +16,7 @@ export const notifications = pgTable('notifications', {
   title: text('title').notNull(),
   content: text('content').notNull(),
   actionUrl: text('action_url'),
-  previewRestricted: boolean('preview_restricted').default(false).notNull(),
+  previewRestricted: boolean('preview_restricted'),
   isRead: boolean('is_read').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

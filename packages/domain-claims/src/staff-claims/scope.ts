@@ -1,7 +1,7 @@
 import { and, claims, eq, type TenantTransaction } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { isNull, or, sql } from 'drizzle-orm';
+import { isNull, or, sql, type SQLWrapper } from 'drizzle-orm';
 
 import { claimLifecycleStatusNotIn } from '../claims/lifecycle-read-sql';
 import type { ClaimsSession } from '../claims/types';
@@ -14,6 +14,11 @@ type StaffClaimScopeArgs = {
   userId: string;
 };
 
+type StaffClaimReadScopeArgs = Pick<StaffClaimScopeArgs, 'role' | 'claimId'> & {
+  branchId?: string | SQLWrapper | null;
+  userId: string | SQLWrapper;
+};
+
 export const STAFF_SCOPE_ACCESS_DENIED_ERROR = 'Claim not found or access denied';
 
 /**
@@ -21,18 +26,21 @@ export const STAFF_SCOPE_ACCESS_DENIED_ERROR = 'Claim not found or access denied
  * this scope, so a draft is denied like an unknown claim. A malformed lifecycle pair reads as NULL
  * and is denied too.
  */
-export function buildStaffClaimReadScope(args: Omit<StaffClaimScopeArgs, 'tenantId'>) {
-  const submitted = claimLifecycleStatusNotIn(['draft']);
-  if (args.role === 'branch_manager' && !args.branchId?.trim()) return sql`false`;
-  if (args.branchId == null) {
-    return and(
-      eq(claims.id, args.claimId),
-      submitted,
-      or(eq(claims.staffId, args.userId), isNull(claims.staffId))
-    );
+export function buildStaffClaimReadScope(args: StaffClaimReadScopeArgs) {
+  if (
+    args.role === 'branch_manager' &&
+    (typeof args.branchId !== 'string' || !args.branchId.trim())
+  ) {
+    return sql`false`;
   }
-
-  return and(eq(claims.id, args.claimId), submitted, eq(claims.branchId, args.branchId));
+  const submitted = and(eq(claims.id, args.claimId), claimLifecycleStatusNotIn(['draft']));
+  const assignedOrUnassigned = or(eq(claims.staffId, args.userId), isNull(claims.staffId));
+  if (args.branchId == null) {
+    return and(submitted, assignedOrUnassigned);
+  }
+  const sameBranch = eq(claims.branchId, args.branchId);
+  if (typeof args.branchId === 'string') return and(submitted, sameBranch);
+  return and(submitted, or(sameBranch, and(isNull(args.branchId), assignedOrUnassigned)));
 }
 
 export function buildScopedStaffClaimWhere(args: StaffClaimScopeArgs) {

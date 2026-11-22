@@ -12,7 +12,7 @@ The staff and admin actions call `changeClaimStatus` from `./claims/change-statu
 
 `./claims/service-level` calculates deadlines in Europe/Skopje. `./claims/service-level-report` counts claim requests and support handoffs. Set the server environment variable `SERVICE_LEVEL_REPORTING_START` to an ISO date in UTC or an ISO instant with an offset. The report returns `reporting_start_unset` when that setting is missing or unparseable.
 
-`./staff-claims/scope` exposes `buildStaffClaimReadScope` for staff-recipient eligibility and `canStaffReadClaim` for applying it in a caller-owned transaction.
+`./staff-claims/scope` exposes `buildStaffClaimReadScope` for staff-recipient eligibility and `canStaffReadClaim` for applying it in a caller-owned transaction. The scope accepts staff identity and branch as values or as columns in a joined query.
 
 ## Owned tables
 

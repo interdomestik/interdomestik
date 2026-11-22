@@ -3,8 +3,8 @@ import { notifications } from '@interdomestik/database/schema';
 
 type InboxNotification = Pick<
   typeof notifications.$inferInsert,
-  'id' | 'tenantId' | 'userId' | 'type' | 'title' | 'content' | 'actionUrl' | 'previewRestricted'
->;
+  'id' | 'tenantId' | 'userId' | 'type' | 'title' | 'content' | 'actionUrl'
+> & { previewRestricted: boolean };
 
 export async function enqueueClaimInboxNotification(
   tx: TenantTransaction,

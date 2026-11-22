@@ -106,6 +106,7 @@
     },
     "toastRegion": "Benachrichtigungen",
     "localeSaveError": "Ihre Spracheinstellung konnte nicht gespeichert werden. Versuchen Sie es erneut.",
+    "localeSwitchUnsaved": "In dieser Sitzung konnte Ihre Spracheinstellung nicht gespeichert werden.",
     "membershipStatus": {
       "active": "Aktiv",
       "past_due": "Überfällig",

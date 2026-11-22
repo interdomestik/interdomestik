@@ -155,6 +155,25 @@ describe('SidebarUserMenu', () => {
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
+  it('switches a cross-home admin to the selected language and reports the unsaved preference', async () => {
+    pathnameMock = '/admin/users';
+    vi.mocked(updatePreferredLocale).mockResolvedValueOnce({
+      success: false,
+      error: 'Request failed',
+      code: 'profile_scope_unavailable',
+    });
+    render(
+      <SidebarUserMenu
+        user={{ name: 'Test Admin', email: 'admin@example.test', role: 'admin', image: null }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /English/i }));
+
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/admin/users', { locale: 'en' }));
+    expect(toast.error).toHaveBeenCalledWith('localeSwitchUnsaved');
+  });
+
   it('does not forward query state from other role routes', async () => {
     pathnameMock = '/admin/users';
     render(<SidebarUserMenu />);

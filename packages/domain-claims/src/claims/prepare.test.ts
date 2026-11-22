@@ -1,6 +1,7 @@
 import type { TenantTransaction } from '@interdomestik/database';
 import { type SQL } from 'drizzle-orm';
-import { PgDialect } from 'drizzle-orm/pg-core';
+import { PgDialect, type SelectedFields } from 'drizzle-orm/pg-core';
+import { drizzle } from 'drizzle-orm/pg-proxy';
 import { describe, expect, it, vi } from 'vitest';
 import { CLAIM_MAIL_COPY } from '@interdomestik/domain-communications/notification-deliveries/worker';
 import { prepareNotificationDelivery } from './prepare-notification-delivery';
@@ -16,12 +17,19 @@ function setup(responses: object[][]) {
     const rows = Promise.resolve(responses.shift() ?? []);
     return Object.assign(rows, { for: () => rows, orderBy: () => ({ for: () => rows }) });
   });
-  const select = vi.fn((_fields: object) => ({ from: () => ({ where }) }));
+  const routingQuery = vi.fn().mockResolvedValue({ rows: [] });
+  const routingDb = drizzle(routingQuery);
+  const select = vi.fn((fields?: SelectedFields) => {
+    const candidateFields = fields && 'branchId' in fields && !('emailVerified' in fields);
+    const selectionFields = fields && 'id' in fields && Object.keys(fields).length === 1;
+    if (fields && (candidateFields || selectionFields)) return routingDb.select(fields);
+    return { from: () => ({ where }) };
+  });
   const tx = { select } as unknown as TenantTransaction;
   const deps = {
     appOrigin: () => 'https://example.test',
   };
-  return { tx, deps, select, where };
+  return { tx, deps, select, where, routingQuery };
 }
 
 describe('prepareNotificationDelivery', () => {
@@ -56,16 +64,26 @@ describe('prepareNotificationDelivery', () => {
           emailVerified: true,
         },
       ],
-      [{ id: original.recipientUserId, role: 'staff', branchId: 'previous-branch' }],
-      [],
     ]);
     await expect(prepareNotificationDelivery(h.tx, original, h.deps)).resolves.toEqual({
       skip: 'recipient_out_of_scope',
     });
-    const query = new PgDialect().sqlToQuery(h.where.mock.calls[4][0]);
-    expect(query.sql).toContain('"claim"."branch_id"');
-    expect(query.params).toEqual([original.tenantId, original.claimId, 'draft', 'previous-branch']);
-    expect(h.select).toHaveBeenCalledTimes(5);
+    const [query, params] = h.routingQuery.mock.calls[0];
+    expect(query).toContain('"user"."tenant_id" =');
+    expect(query).toContain('"claim"."tenant_id" =');
+    expect(query).toContain('"claim"."branch_id" = "notification_candidates"."branch_id"');
+    expect(query).toContain('"notification_candidates"."branch_id" is null');
+    expect(query).toContain('for share');
+    expect(params).toEqual(
+      expect.arrayContaining([
+        original.tenantId,
+        original.claimId,
+        'draft',
+        original.recipientUserId,
+      ])
+    );
+    expect(h.where).toHaveBeenCalledTimes(3);
+    expect(h.routingQuery).toHaveBeenCalledOnce();
   });
 
   it.each(['staff', 'tenant_admin'])(
@@ -83,15 +101,36 @@ describe('prepareNotificationDelivery', () => {
         [original],
         [{ ownerId: 'member', staffId: assignee.id, category: 'vehicle', claimNumber: 'CLM-1' }],
         [recipient],
-        [assignee, recipient],
-        [{ id: original.claimId }],
-        [{ id: original.claimId }],
       ]);
+      h.routingQuery.mockResolvedValue({ rows: [[assignee.id]] });
       await expect(prepareNotificationDelivery(h.tx, original, h.deps)).resolves.toEqual({
         skip: 'recipient_out_of_scope',
       });
+      const [query, params] = h.routingQuery.mock.calls[0];
+      expect(query).toContain('order by "notification_candidates"."role" =');
+      expect(query).toContain('"notification_candidates"."id" is not distinct from');
+      expect(params).toContain(assignee.id);
     }
   );
+
+  it.each([1, 100])('checks staff eligibility in one query with %i staff', async count => {
+    const staff = Array.from({ length: count }, (_, index) => ({
+      id: `staff-${index}`,
+      role: 'staff',
+      emailVerified: true,
+    }));
+    const h = setup([
+      [original],
+      [{ ownerId: 'member', staffId: null, category: 'vehicle', claimNumber: 'CLM-1' }],
+      [{ id: original.recipientUserId, role: 'tenant_admin', emailVerified: true }],
+      staff,
+    ]);
+    h.routingQuery.mockResolvedValueOnce({ rows: [[staff[count - 1].id]] });
+    await expect(prepareNotificationDelivery(h.tx, original, h.deps)).resolves.toEqual({
+      skip: 'recipient_out_of_scope',
+    });
+    expect(h.where.mock.calls.length + h.routingQuery.mock.calls.length).toBe(4);
+  });
 
   it.each([
     { role: 'member', previewRestricted: true },

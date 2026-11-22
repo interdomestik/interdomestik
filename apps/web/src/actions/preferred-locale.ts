@@ -10,8 +10,8 @@ export const updatePreferredLocale = defineAction({
   basis: { kind: 'self' },
   input: z.strictObject({ locale: z.enum(LOCALES) }),
   subject: { type: 'self' },
-  async handler({ locale }, { authority }) {
-    const saved = await savePreferredLocale(authority, locale);
-    return saved ? { locale } : actionFailure('conflict');
+  async handler({ locale }, { authority, session }) {
+    const result = await savePreferredLocale(authority, session, locale);
+    return result === 'saved' ? { locale } : actionFailure(result);
   },
 });

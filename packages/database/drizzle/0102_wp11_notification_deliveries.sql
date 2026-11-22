@@ -57,7 +57,7 @@ CREATE TABLE "notification_deliveries" (
 );
 --> statement-breakpoint
 ALTER TABLE "notification_deliveries" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
-ALTER TABLE "notifications" ADD COLUMN "preview_restricted" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "notifications" ADD COLUMN "preview_restricted" boolean;--> statement-breakpoint
 ALTER TABLE "user" ADD COLUMN "preferred_locale" text;--> statement-breakpoint
 ALTER TABLE "support_handoffs" ADD COLUMN "first_public_response_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "claim_response_requests" ADD CONSTRAINT "claim_response_requests_answered_by_user_id_fk" FOREIGN KEY ("answered_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -112,6 +112,7 @@ BEGIN
       END IF;
     END LOOP;
 
+    GRANT UPDATE (preferred_locale) ON public."user" TO interdomestik_runtime_rls;
     IF NOT has_column_privilege(runtime_role, 'public."user"', 'preferred_locale', 'UPDATE') THEN
       RAISE EXCEPTION 'WP-11 requires UPDATE privilege on public.user.preferred_locale';
     END IF;

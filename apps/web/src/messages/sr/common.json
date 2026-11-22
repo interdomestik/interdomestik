@@ -106,6 +106,7 @@
     },
     "toastRegion": "Obaveštenja",
     "localeSaveError": "Izabrani jezik nije mogao da se sačuva. Pokušajte ponovo.",
+    "localeSwitchUnsaved": "Izabrani jezik nije mogao da se sačuva u ovoj sesiji.",
     "membershipStatus": {
       "active": "Aktivno",
       "past_due": "Dospelo",

@@ -37,7 +37,11 @@ export async function getNotificationsCore(params: {
   const labels = new Map<string, Promise<string | null>>();
   return Promise.all(
     rows.map(async row => {
-      if (!t || row.previewRestricted) {
+      if (
+        !t ||
+        row.previewRestricted ||
+        (row.type === 'new_message' && row.previewRestricted !== false)
+      ) {
         return { ...row, ...(await getBranchManagerNotificationCopy(row.type, locale)) };
       }
       const claimId = notificationClaimId(row);

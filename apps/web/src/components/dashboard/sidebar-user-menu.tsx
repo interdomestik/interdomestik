@@ -62,7 +62,7 @@ function SidebarUserMenuInner({
 
   const switchLocale = async (nextLocale: 'en' | 'sq' | 'mk' | 'sr' | 'de') => {
     const href = localeSwitchHref(pathname, window.location.search, retainedLocaleQueryKeys);
-    if (!(await saveLocale(nextLocale))) return;
+    if ((await saveLocale(nextLocale)) === 'failed') return;
     router.replace(href, { locale: nextLocale });
   };
 

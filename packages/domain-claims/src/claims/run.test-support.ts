@@ -58,6 +58,7 @@ type Harness = {
   emailTransports: Mock<() => ('smtp' | 'resend')[]>;
   setClock(at: number): void;
   setWriteDelay(ms: number): void;
+  setWriteQueryDelay(ms: number): void;
   setWriteCommitDelay(ms: number): void;
   loseLeaseAtWrite(): void;
   kick(ids?: string[]): Promise<RunSummary>;
@@ -71,6 +72,7 @@ export function harness(
 ): Harness {
   let clock = start;
   let transportWriteDelay = 0;
+  let transportWriteQueryDelay = 0;
   let transportCommitDelay = 0;
   let transportWritten = false;
   let loseLeaseAtWrite = false;
@@ -140,7 +142,8 @@ export function harness(
             !row ||
             !matches(where, row) ||
             (isTransportWrite && Date.parse(row.leaseUntil!) - clock < 300_000) ||
-            (query.sql.includes("interval '72 hours'") && remainingLifetime(row) <= 0)
+            (query.sql.includes("interval '72 hours'") &&
+              (isTransportWrite ? remainingLifetime(row) <= 0 : remainingLifetime(row) > 0))
           ) {
             return { returning: () => Promise.resolve([]) };
           }
@@ -152,6 +155,7 @@ export function harness(
               row[key as TimestampKey] = timestamp(clock + delay);
             } else Object.assign(row, { [key]: value });
           }
+          if (isTransportWrite) clock += transportWriteQueryDelay;
           const returned = isTransportWrite
             ? { ...row, remainingLifetimeMs: remainingLifetime(row) }
             : { ...row };
@@ -247,6 +251,9 @@ export function harness(
     },
     setWriteDelay: (ms: number) => {
       transportWriteDelay = ms;
+    },
+    setWriteQueryDelay: (ms: number) => {
+      transportWriteQueryDelay = ms;
     },
     setWriteCommitDelay: (ms: number) => {
       transportCommitDelay = ms;

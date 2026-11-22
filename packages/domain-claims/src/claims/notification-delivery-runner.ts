@@ -112,6 +112,8 @@ async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
       finishNotificationDelivery(tx, row, result, locale, transport, configured, subscription)
     );
     summary[state]++;
+    // A refunded stale decision leaves the row immediately due for the next run.
+    return !('skip' in result && result.skip === 'stale' && state === 'queued');
   };
 
   const prepared = await withTenantAuthority(authority, tx =>
@@ -129,8 +131,7 @@ async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
     return true;
   }
   if ('skip' in prepared) {
-    await finish(prepared);
-    return true;
+    return finish(prepared);
   }
 
   const transport = resolveDeliveryTransport(row, deps, configured);
@@ -146,8 +147,7 @@ async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
       return refunded ? 'budget_short' : 'lease_lost';
     });
     if (state === 'stale') {
-      await finish({ skip: 'stale' }, prepared.locale);
-      return true;
+      return finish({ skip: 'stale' }, prepared.locale);
     }
     summary[state]++;
     return false;
@@ -159,8 +159,7 @@ async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
     writeNotificationTransport(tx, row, transport, callDeadline, now)
   );
   if (write === 'stale') {
-    await finish({ skip: 'stale' }, prepared.locale);
-    return true;
+    return finish({ skip: 'stale' }, prepared.locale);
   }
   if (typeof write === 'string') {
     summary[write]++;
@@ -169,8 +168,7 @@ async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
 
   const beforeSend = now();
   if (beforeSend >= write.expiresAt) {
-    await finish({ skip: 'stale' }, prepared.locale);
-    return true;
+    return finish({ skip: 'stale' }, prepared.locale);
   }
   const timeoutMs = callDeadline - beforeSend;
   if (timeoutMs < 1000) return refundBudget(true);

@@ -33,6 +33,7 @@ async function queueStaffRecipient(
     title: claimNumber ?? '—',
     content: Object.hasOwn(CLAIM_MAIL_COPY.en.categories, category) ? category : 'other',
     actionUrl: `/staff/claims/${claimId}`,
+    previewRestricted: false,
   });
   if (recipient.emailVerified) {
     const id = await enqueueNotificationDelivery(tx, {

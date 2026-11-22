@@ -107,6 +107,7 @@ export async function enqueueClaimSubmittedNotification(
     userId: recipient.id,
     type: source.kind,
     title: 'Claim Submitted',
+    previewRestricted: false,
   });
   return queueOwnerDeliveryChannels(
     tx,
@@ -144,6 +145,7 @@ export async function enqueueClaimStatusNotification(
     userId: recipient.id,
     type: source.kind,
     title: 'Claim Status Updated',
+    previewRestricted: false,
   });
   return queueOwnerDeliveryChannels(
     tx,
@@ -176,6 +178,7 @@ export async function enqueueRecoveryDecisionNotification(
     userId: recipient.id,
     type: decision === 'accepted' ? 'escalation_accepted' : 'escalation_declined',
     title: decision === 'accepted' ? 'Recovery accepted' : 'Recovery declined',
+    previewRestricted: false,
   });
   return queueOwnerDeliveryChannels(
     tx,

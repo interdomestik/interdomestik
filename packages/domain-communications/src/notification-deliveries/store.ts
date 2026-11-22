@@ -194,6 +194,22 @@ export async function writeNotificationTransport(
   return (await refundNotificationAttempt(tx, row, true)) ? 'budget_short' : 'lease_lost';
 }
 
+async function finishDeliveryUnderLease(
+  tx: TenantTransaction,
+  row: ClaimedDelivery,
+  fields: PgUpdateSetSource<typeof deliveries> & { state: Exclude<Delivery['state'], 'claimed'> },
+  stale: boolean
+) {
+  const [finished] = await tx
+    .update(deliveries)
+    .set(fields)
+    .where(and(underLease(row), stale ? isStale() : undefined))
+    .returning({ id: deliveries.id });
+  if (finished) return fields.state;
+  if (stale && (await refundNotificationAttempt(tx, row, true))) return 'queued';
+  return 'lease_lost';
+}
+
 export async function finishNotificationDelivery(
   tx: TenantTransaction,
   row: ClaimedDelivery,
@@ -206,11 +222,12 @@ export async function finishNotificationDelivery(
   let state: Delivery['state'];
   let failureCode: string | undefined;
   let fields: PgUpdateSetSource<typeof deliveries> = {};
+  const stale = 'skip' in result && result.skip === 'stale';
   if ('skip' in result) {
     state = 'skipped';
     fields = {
       skipReason: result.skip,
-      ...(result.skip === 'stale' && { transport: row.transport }),
+      ...(stale && { transport: row.transport }),
     };
   } else if (result.ok) {
     state = 'sent';
@@ -230,9 +247,10 @@ export async function finishNotificationDelivery(
     }
   }
 
-  const [finished] = await tx
-    .update(deliveries)
-    .set({
+  const finishedState = await finishDeliveryUnderLease(
+    tx,
+    row,
+    {
       lastErrorCode: null,
       lastErrorDetail: null,
       ...fields,
@@ -240,11 +258,10 @@ export async function finishNotificationDelivery(
       leaseUntil: null,
       terminalAt: state === 'queued' ? null : sql`clock_timestamp()`,
       ...(locale && { locale }),
-    })
-    .where(underLease(row))
-    .returning({ id: deliveries.id });
-  if (!finished) return 'lease_lost';
-  if (state === 'failed') {
+    },
+    stale
+  );
+  if (finishedState === 'failed') {
     if (
       failureCode === 'subscription_gone' &&
       row.channel === 'push' &&
@@ -264,5 +281,5 @@ export async function finishNotificationDelivery(
     }
     await recordDeliveryAudit(tx, row, 'notification.delivery_failed', { code: failureCode });
   }
-  return state;
+  return finishedState;
 }
