@@ -67,6 +67,12 @@ const laneDefinitions = {
   state: { playwrightArgs: [...setupArgs, ...strictWorkers] },
   gate: gateLane([ksSq, mkMk], true),
   pr: gateLane([ksSq, mkContract], true),
+  'pr-ks': gateLane([ksSq], true),
+  'pr-mk-contract': gateLane([mkContract], true),
+  'pr-smoke': {
+    gatekeeper: true,
+    playwrightArgs: ['--grep', '@smoke', '--project=ks-sq', '--project=mk-mk', '--workers=1'],
+  },
   'gate-fast': gateLane([ksSq, mkMk]),
   'pr-fast': gateLane([ksSq, mkContract]),
   merge: {
@@ -104,7 +110,8 @@ function usage() {
   );
 }
 
-const laneName = process.argv[2] || 'gate';
+// An explicit empty lane is unknown and refused; only an absent argument selects the default.
+const laneName = process.argv.length > 2 ? process.argv[2] : 'gate';
 const extraPlaywrightArgs = process.argv.slice(3);
 if (laneName === '-h' || laneName === '--help' || laneName === 'help') {
   usage();
