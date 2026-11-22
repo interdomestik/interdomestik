@@ -14,7 +14,7 @@ import { updateStatus } from './ops-actions';
 
 describe('the staff and admin status entry points', () => {
   it.each(['staff', 'admin', 'tenant_admin', 'super_admin'])(
-    'commits the same history, event, audit, delivery and response answer for %s',
+    'commits the same history, event, one audit row, delivery and response answer for %s',
     async role => {
       const authority = signIn(role);
       const tx = configureTransaction();
@@ -79,7 +79,8 @@ describe('the staff and admin status entry points', () => {
           answerKind: 'member_visible_status_change',
         }),
       });
-      expect(mocks.projection).toHaveBeenCalledTimes(1);
+      // The in-transaction row is the change's only audit: the projection would add a second.
+      expect(mocks.projection).not.toHaveBeenCalled();
       expect(mocks.kick).toHaveBeenCalledWith(authority, expect.any(Object), {
         ids: deliveries.map(row => row.id),
       });
@@ -132,21 +133,15 @@ describe('the staff and admin status entry points', () => {
     expect(paths.every(path => !path.includes(paddedClaimId))).toBe(true);
   });
 
-  it('refreshes the committed staff update after independent audit and kick failures', async () => {
+  it('refreshes the committed staff update after a kick failure', async () => {
     signIn('staff');
     const tx = configureTransaction();
-    const projectionError = new Error('projection failed');
     const kickError = new Error('kick failed');
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     try {
-      mocks.projection.mockRejectedValueOnce(projectionError);
       mocks.kick.mockRejectedValueOnce(kickError);
       await expect(updateStaffStatus(claimId, 'verification')).resolves.toEqual({ success: true });
       expect(tx.committed()).toBe(true);
-      expect(log).toHaveBeenCalledWith(
-        'Failed to project claim status audit event:',
-        projectionError
-      );
       expect(log).toHaveBeenCalledWith('Notification delivery kick failed after commit', kickError);
       expect(mocks.refresh).toHaveBeenCalledTimes(20);
     } finally {

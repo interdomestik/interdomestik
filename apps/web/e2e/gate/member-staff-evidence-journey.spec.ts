@@ -1,6 +1,7 @@
 import {
   E2E_USERS,
   and,
+  auditLog,
   claimStageHistory,
   claims,
   db,
@@ -233,6 +234,17 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     expect(events.map(event => event.eventName)).toEqual(
       expect.arrayContaining(['case.created', 'claim.status_changed'])
     );
+    // The staff UI (S1) made one real change; the two notes after it are same-status notes.
+    // Exactly one event and one audit row record it: the after-commit projection adds none.
+    expect(events.filter(event => event.eventName === 'claim.status_changed')).toHaveLength(1);
+    const audits = await db.query.auditLog.findMany({
+      where: and(
+        eq(auditLog.entityId, submitted.claimId),
+        eq(auditLog.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+      ),
+      columns: { action: true },
+    });
+    expect(audits.filter(audit => audit.action === 'claim.status_changed')).toHaveLength(1);
 
     residue.memberSession = await openMemberContext(browser, memberBaseURL);
     await establishDraftTenantContext(residue.memberSession.page, memberBaseURL, locale);

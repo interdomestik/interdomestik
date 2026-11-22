@@ -38,7 +38,6 @@ import {
   resolveTransitionCurrentState,
 } from './transition-current-state';
 
-export { activateClaimStatusAuditProjection } from './audit-projection';
 export {
   changeClaimStatusInputSchema,
   type ChangeClaimStatusCode,

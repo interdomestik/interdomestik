@@ -1,11 +1,7 @@
-import { logAuditEvent } from '@/lib/audit';
 import { kickClaimNotificationDeliveries } from '@/lib/claim-notification-delivery-kick';
 import { actionFailure } from '@/lib/safe-action';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-import {
-  activateClaimStatusAuditProjection,
-  type ChangeClaimStatusResult,
-} from '@interdomestik/domain-claims/claims/change-status';
+import type { ChangeClaimStatusResult } from '@interdomestik/domain-claims/claims/change-status';
 import { getTranslations } from 'next-intl/server';
 
 type StatusFailure = Extract<ChangeClaimStatusResult, { ok: false }>['code'];
@@ -36,14 +32,14 @@ export async function claimStatusActionFailure(code: StatusFailure) {
   }
 }
 
+/**
+ * After-commit effects of a status change. The command already wrote the change's one
+ * `claim.status_changed` audit row in its transaction, so the domain-event audit projection is
+ * not activated here: it would write a second row with the same action for the same change.
+ */
 export async function completeClaimStatusEffects(
   authority: TenantAuthority,
   outcome: Extract<ChangeClaimStatusResult, { ok: true }>
 ) {
-  try {
-    await activateClaimStatusAuditProjection({ authority, deps: { logAuditEvent } });
-  } catch (error) {
-    console.error('Claim status audit projection failed after commit', error);
-  }
   await kickClaimNotificationDeliveries(authority, outcome.deliveryIds);
 }
