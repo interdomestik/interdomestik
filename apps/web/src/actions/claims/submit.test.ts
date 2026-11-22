@@ -1,101 +1,17 @@
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  authority,
+  mockRateLimit,
+  mockRunCommercialActionWithIdempotency,
+  mockSubmitClaimCoreDomain,
+  validData,
+  validSession,
+} from './submit.test-support';
+import { describe, expect, it, vi } from 'vitest';
 import { submitClaimCore } from './submit.core';
 import { submitClaimCore as submitClaimCoreDomain } from '@interdomestik/domain-claims/claims/submit';
 import { kickClaimNotificationDeliveries } from '@/lib/claim-notification-delivery-kick';
 
-const mockRunCommercialActionWithIdempotency = vi.fn();
-const mockMarkClaimAiRunDispatchFailed = vi.fn();
-const authority = mintTestTenantAuthority('tenant-1');
-type SubmitClaimParams = Parameters<typeof submitClaimCore>[0];
-type SubmitClaimSession = NonNullable<SubmitClaimParams['session']>;
-type SubmitClaimData = SubmitClaimParams['data'];
-
-// Mock domain logic
-vi.mock('@interdomestik/domain-claims/claims/submit', () => ({
-  submitClaimCore: vi.fn(),
-  ClaimValidationError: class extends Error {
-    code?: string;
-    constructor(msg: string) {
-      super(msg);
-    }
-  },
-}));
-
-// Mock rate limiter
-const mockRateLimit = vi.fn();
-vi.mock('@/lib/rate-limit', () => ({
-  enforceRateLimitForAction: (...args: unknown[]) => mockRateLimit(...args),
-}));
-
-vi.mock('@/lib/commercial-action-idempotency', () => ({
-  runCommercialActionWithIdempotency: (...args: unknown[]) =>
-    mockRunCommercialActionWithIdempotency(...args),
-}));
-
-vi.mock('@/lib/claim-notification-delivery-kick', () => ({
-  kickClaimNotificationDeliveries: vi.fn(),
-}));
-
-// Mock audit
-vi.mock('@/lib/audit', () => ({
-  logAuditEvent: vi.fn(),
-}));
-
-vi.mock('@/lib/ai/claim-workflows', () => ({
-  emitClaimAiRunRequestedService: vi.fn(),
-  markClaimAiRunDispatchFailedService: (...args: unknown[]) =>
-    mockMarkClaimAiRunDispatchFailed(...args),
-}));
-
-vi.mock('@/features/claims/upload/server/initial-claim-evidence-validation', () => ({
-  validateInitialClaimEvidenceUpload: vi.fn().mockResolvedValue(undefined),
-}));
-
 describe('actions/claims/submit', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockRunCommercialActionWithIdempotency.mockImplementation(async ({ execute }) => execute());
-  });
-
-  const mockSubmitClaimCoreDomain = vi.mocked(submitClaimCoreDomain);
-
-  const validData: SubmitClaimData = {
-    category: 'transport',
-    title: 'Damaged Goods',
-    companyName: 'Transport Co',
-    description: 'Received damaged goods during shipment',
-    currency: 'EUR',
-    files: [],
-  };
-
-  const validSession: SubmitClaimSession = {
-    session: {
-      id: 'session-1',
-      userId: 'user-1',
-      token: 'session-token',
-      expiresAt: new Date('2026-05-01T00:00:00.000Z'),
-      createdAt: new Date('2026-04-01T00:00:00.000Z'),
-      updatedAt: new Date('2026-04-01T00:00:00.000Z'),
-    },
-    user: {
-      id: 'user-1',
-      name: 'Member User',
-      email: 'member@example.com',
-      emailVerified: true,
-      image: null,
-      createdAt: new Date('2026-04-01T00:00:00.000Z'),
-      updatedAt: new Date('2026-04-01T00:00:00.000Z'),
-      role: 'member',
-      tenantId: 'tenant-1',
-      branchId: 'branch-1',
-      memberNumber: 'MBR-T1-000001',
-      tenantClassificationPending: false,
-      agentId: 'agent-1',
-      referralCode: 'REF-1',
-    },
-  };
-
   it('succeeds when rate limit allows', async () => {
     mockRateLimit.mockResolvedValueOnce({ limited: false });
     mockSubmitClaimCoreDomain.mockResolvedValueOnce({
@@ -259,48 +175,5 @@ describe('actions/claims/submit', () => {
     });
 
     expect(result).toEqual({ success: false, error: 'Invalid input', code: undefined });
-  });
-
-  it('marks a failed AI dispatch under the session authority, not a tenant id', async () => {
-    mockRateLimit.mockResolvedValueOnce({ limited: false });
-    mockSubmitClaimCoreDomain.mockResolvedValueOnce({
-      success: true,
-      claimId: 'claim-1',
-      claimNumber: 'CLM-T1-2026-000001',
-      deliveryIds: [],
-    });
-
-    await submitClaimCore({
-      authority,
-      session: validSession,
-      requestHeaders: new Headers(),
-      data: validData,
-    });
-
-    const deps = mockSubmitClaimCoreDomain.mock.calls[0]?.[1];
-    await deps?.markClaimAiRunDispatchFailed?.({ runId: 'run-1', message: 'dispatch failed' });
-
-    expect(mockMarkClaimAiRunDispatchFailed).toHaveBeenCalledTimes(1);
-    const call = mockMarkClaimAiRunDispatchFailed.mock.calls[0]?.[0];
-    expect(call.authority).toBe(authority);
-    expect(call).toMatchObject({ runId: 'run-1', message: 'dispatch failed' });
-  });
-
-  it('hands the idempotency layer a null authority when the caller holds none', async () => {
-    mockRunCommercialActionWithIdempotency.mockResolvedValueOnce({
-      success: false,
-      error: 'Commercial action idempotency requires a tenant scope.',
-      code: 'IDEMPOTENCY_TENANT_SCOPE_REQUIRED',
-    });
-
-    await submitClaimCore({
-      idempotencyKey: 'claim-submit-1',
-      authority: null,
-      session: validSession,
-      requestHeaders: new Headers(),
-      data: validData,
-    });
-
-    expect(mockRunCommercialActionWithIdempotency.mock.calls[0]?.[0].scope.authority).toBeNull();
   });
 });

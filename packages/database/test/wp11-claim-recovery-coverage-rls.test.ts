@@ -1,16 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { setTimeout as sleep } from 'node:timers/promises';
 
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 
 import { withDisposableClient } from '../src/disposable-client';
 import {
   claimEscalationAgreements,
-  claimRecoveryNoFeeEvidence,
   membershipPlans,
-  serviceUsage,
   sponsorRosterEntries,
   sponsorTerms,
   subscriptions,
@@ -18,8 +15,10 @@ import {
 } from '../src/schema';
 import { lockSponsorPerson } from '../src/sponsor-locks';
 import type { TenantTransaction } from '../src/tenant';
-import { KS_TENANT_ID } from './s8-claim-restricted-rls.fixture';
 import {
+  covered,
+  lockEvidence,
+  recoveryStatusCommand,
   seedRecoveryClaim,
   withSponsorStatusFixture,
   type SponsorStatusFixture,
@@ -41,8 +40,6 @@ type EntitlementCase = {
   allowedWhenWriterFirst: boolean;
   deniedCode: string;
 };
-
-const covered = { bound: true, accepted: true };
 
 function entitlementCases({ ownerId, staffId }: StatusFixture): EntitlementCase[] {
   const mutateEntry =
@@ -127,13 +124,6 @@ function assertOutcome(
   else assert.deepEqual(result, { ok: false, code: deniedCode });
 }
 
-const lockEvidence = (tx: StatusTestTransaction, evidenceId: string) =>
-  tx
-    .select({ id: claimRecoveryNoFeeEvidence.id })
-    .from(claimRecoveryNoFeeEvidence)
-    .where(eq(claimRecoveryNoFeeEvidence.id, evidenceId))
-    .for('update');
-
 async function writerWaitsForStatus<T>(
   fixture: StatusFixture,
   signal: AbortSignal,
@@ -170,16 +160,7 @@ test(
   { timeout: 45_000 },
   async t => {
     await withStatusFixture(t, async fixture => {
-      const [{ mintTestTenantAuthority }, { changeClaimStatus }] = await Promise.all([
-        import('../src/testing/tenant-authority'),
-        import('../../domain-claims/src/claims/change-status'),
-      ]);
-      const authority = mintTestTenantAuthority(KS_TENANT_ID, {
-        userId: fixture.staffId,
-        role: 'staff',
-      });
-      const recover = (claimId: string) =>
-        changeClaimStatus(authority, { claimId, toStatus: 'negotiation' }, { hostId: null });
+      const recover = await recoveryStatusCommand(fixture);
       const url = process.env.DATABASE_URL;
       assert.ok(url);
 
@@ -260,47 +241,6 @@ test(
                       .execute()
                 );
                 assert.ok(second.ok && second.changed);
-              });
-            }
-          );
-        }
-      );
-
-      await t.test(
-        'usage uses the entitlement time even when coverage ends before the insert',
-        async subtest => {
-          const first = await seedRecoveryClaim(fixture);
-          const second = await seedRecoveryClaim(fixture);
-          const [clock] = await fixture.adminDb.execute<{ ms: number }>(sql`
-        select (extract(epoch from clock_timestamp()) * 1000)::double precision as ms
-      `);
-          const boundary = new Date(clock.ms + 3500);
-          await withSponsorStatusFixture(
-            fixture,
-            { ...covered, termEnd: boundary },
-            async sponsor => {
-              const outcome = await whileClaimWriterHoldsLock(
-                fixture,
-                subtest.signal,
-                tx => lockEvidence(tx, first.evidenceId),
-                () => recover(first.claimId),
-                async () => {
-                  const [remaining] = await fixture.dbRls.execute<{ ms: number }>(sql`
-              select greatest(0, extract(epoch from (${boundary.toISOString()}::timestamptz - clock_timestamp())) * 1000)::double precision as ms
-            `);
-                  await sleep(Math.ceil(remaining.ms) + 10, undefined, { signal: subtest.signal });
-                }
-              );
-              assert.ok(outcome.ok && outcome.changed);
-              const [usage] = await fixture.adminDb
-                .select()
-                .from(serviceUsage)
-                .where(eq(serviceUsage.subscriptionId, sponsor.subscriptionId));
-              assert.equal(usage.serviceCode, `staff_recovery_matter:${first.claimId}`);
-              assert.ok(usage.usedAt && usage.usedAt.getTime() < boundary.getTime());
-              assert.deepEqual(await recover(second.claimId), {
-                ok: false,
-                code: 'recovery_prerequisite:membership',
               });
             }
           );

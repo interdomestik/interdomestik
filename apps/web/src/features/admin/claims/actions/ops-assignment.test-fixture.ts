@@ -1,7 +1,29 @@
 import { claims } from '@interdomestik/database/schema';
 import { getTableColumns, type SQL, type Table } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
-import { vi, type Mock } from 'vitest';
+import { inspect } from 'node:util';
+import { expect, vi, type Mock } from 'vitest';
+
+export function expectRedactedAssignmentLog(
+  calls: unknown[][],
+  cause: { name: string; code?: string },
+  forbidden: readonly string[]
+) {
+  const message = 'Claim assignment transaction failed';
+  expect(calls).toEqual([[message, expect.any(Error)]]);
+  expect(calls[0][1]).toHaveProperty('message', message);
+  expect(calls[0][1]).toHaveProperty('cause', cause);
+
+  // Error message, stack and cause are non-enumerable, so plain JSON would omit them.
+  const serialized = inspect(calls, {
+    depth: null,
+    showHidden: true,
+    customInspect: false,
+    maxArrayLength: null,
+    maxStringLength: null,
+  });
+  for (const fragment of forbidden) expect(serialized).not.toContain(fragment);
+}
 
 type Row = Record<string, unknown>;
 type TenantAction = (tx: unknown) => Promise<unknown>;

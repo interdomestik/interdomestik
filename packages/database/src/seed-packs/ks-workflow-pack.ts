@@ -6,7 +6,7 @@ import { goldenId, packId } from '../seed-utils/seed-ids';
 import { createSeededRandom } from '../seed-utils/seeded-random';
 import { withTransientDbWriteRetry } from '../seed-utils/transient-write-retry';
 import { E2E_PACK_USERS, E2E_PASSWORD, e2eEmail } from '../e2e-users';
-import { inArray, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type { SeedConfig } from '../seed-types';
 
 const KS_PACK_RANDOM_SEED = 0x6b_73_20_26;
@@ -14,7 +14,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
   assertSeedTargetAllowed(process.env);
   console.log('🇽🇰 Seeding Kosovo Workflow Pack (Overlay)...');
   const { db } = await importSeedDatabase();
-  const { cleanupSeedPrefixes, cleanupSeedUserNotifications } =
+  const { cleanupSeedPrefixes, cleanupSeedUsersByEmail } =
     await import('../seed-utils/run-cleanup');
   const schema = await import('../schema');
   const { at } = config;
@@ -147,75 +147,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
     })),
   ];
 
-  // Upsert users
-  // 3.0 Clean up potential ID conflicts (by Email)
-  // Upsert users
-  // 3.0 Clean up potential ID conflicts (by Email)
-  const allEmails = packUsers.map(u => u.email);
-  if (allEmails.length > 0) {
-    // Find existing users by email to get their IDs (for FK cleanup)
-    const usersToDelete = await db
-      .select({ id: schema.user.id })
-      .from(schema.user)
-      .where(inArray(schema.user.email, allEmails));
-
-    if (usersToDelete.length > 0) {
-      const idsToDelete = usersToDelete.map(u => u.id);
-
-      await cleanupSeedUserNotifications(idsToDelete);
-
-      // Delete sessions first
-      await db.delete(schema.session).where(inArray(schema.session.userId, idsToDelete));
-      // Delete accounts
-      await db.delete(schema.account).where(inArray(schema.account.userId, idsToDelete));
-      // Delete subscriptions
-      if (schema.subscriptions) {
-        await db
-          .delete(schema.subscriptions)
-          .where(inArray(schema.subscriptions.userId, idsToDelete));
-      }
-      // Delete access logs & audit logs
-      if (schema.documentAccessLog) {
-        await db
-          .delete(schema.documentAccessLog)
-          .where(inArray(schema.documentAccessLog.accessedBy, idsToDelete));
-      }
-      if (schema.auditLog) {
-        await db.delete(schema.auditLog).where(inArray(schema.auditLog.actorId, idsToDelete));
-      }
-      if (schema.memberNotes) {
-        await db
-          .delete(schema.memberNotes)
-          .where(inArray(schema.memberNotes.authorId, idsToDelete));
-      }
-      if (schema.sharePacks) {
-        await db
-          .delete(schema.sharePacks)
-          .where(inArray(schema.sharePacks.createdByUserId, idsToDelete));
-        await db
-          .delete(schema.sharePacks)
-          .where(inArray(schema.sharePacks.revokedByUserId, idsToDelete));
-      }
-      if (schema.documents) {
-        const userDocIds = await db
-          .select({ id: schema.documents.id })
-          .from(schema.documents)
-          .where(inArray(schema.documents.uploadedBy, idsToDelete));
-
-        const docIds = userDocIds.map(d => d.id);
-        if (docIds.length > 0) {
-          if (schema.documentAccessLog) {
-            await db
-              .delete(schema.documentAccessLog)
-              .where(inArray(schema.documentAccessLog.documentId, docIds));
-          }
-          await db.delete(schema.documents).where(inArray(schema.documents.id, docIds));
-        }
-      }
-      // Delete users
-      await db.delete(schema.user).where(inArray(schema.user.id, idsToDelete));
-    }
-  }
+  await cleanupSeedUsersByEmail(packUsers.map(u => u.email));
 
   for (const u of packUsers) {
     await db

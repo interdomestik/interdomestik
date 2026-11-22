@@ -45,6 +45,6 @@ test('CI RLS integration requires both integration and coverage guards', () => {
   // Each message suite grants its own role on shared catalog rows, so files run one at a time.
   assert.equal(
     claimsScripts['test:rls'],
-    'MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/claims/message-integration/tenant-context.integration.test.ts src/claims/message-integration/send-negative-matrix.integration.test.ts src/claims/message-integration/send-idempotency.integration.test.ts src/claims/message-integration/public-reply-notification.integration.test.ts'
+    'MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/claims/message-integration/tenant-context.integration.test.ts src/claims/message-integration/send-negative-matrix.integration.test.ts src/claims/message-integration/send-idempotency.integration.test.ts src/claims/message-integration/send-reassignment.integration.test.ts src/claims/message-integration/public-reply-notification.integration.test.ts'
   );
 });

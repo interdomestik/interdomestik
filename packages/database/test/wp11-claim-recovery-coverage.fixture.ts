@@ -16,7 +16,7 @@ import {
   subscriptions,
 } from '../src/schema';
 import { KS_TENANT_ID } from './s8-claim-restricted-rls.fixture';
-import type { StatusFixture } from './wp11-claim-status-rls.fixture';
+import type { StatusFixture, StatusTestTransaction } from './wp11-claim-status-rls.fixture';
 
 export async function seedRecoveryClaim(fixture: StatusFixture) {
   const { adminDb, staffId, newId } = fixture;
@@ -226,4 +226,26 @@ export async function withSponsorStatusFixture(
   } finally {
     await sponsor.cleanup();
   }
+}
+
+export const covered = { bound: true, accepted: true };
+
+export const lockEvidence = (tx: StatusTestTransaction, evidenceId: string) =>
+  tx
+    .select({ id: claimRecoveryNoFeeEvidence.id })
+    .from(claimRecoveryNoFeeEvidence)
+    .where(eq(claimRecoveryNoFeeEvidence.id, evidenceId))
+    .for('update');
+
+export async function recoveryStatusCommand(fixture: StatusFixture) {
+  const [{ mintTestTenantAuthority }, { changeClaimStatus }] = await Promise.all([
+    import('../src/testing/tenant-authority'),
+    import('../../domain-claims/src/claims/change-status'),
+  ]);
+  const authority = mintTestTenantAuthority(KS_TENANT_ID, {
+    userId: fixture.staffId,
+    role: 'staff',
+  });
+  return (claimId: string) =>
+    changeClaimStatus(authority, { claimId, toStatus: 'negotiation' }, { hostId: null });
 }

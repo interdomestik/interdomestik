@@ -17,6 +17,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import { verifyOtherRolesCannotChangeStatus } from './member-staff-evidence-journey-access.fixture';
 import {
   saveInterveningPublicNote,
   verifyStatusTransportRecovery,
@@ -69,7 +70,6 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     const publicNote = `S3 public verification ${randomUUID()}`;
     const newerNote = `S7 intervening public update ${randomUUID()}`;
     const privateNote = `S3 private staff note ${randomUUID()}`;
-    const unauthorizedNotes: string[] = [];
     await establishDraftTenantContext(residue.memberSession.page, memberBaseURL, locale);
     const submitted = await submitExactDraft(
       residue.memberSession.page,
@@ -99,46 +99,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       })
       .toBe('submitted');
 
-    for (const seeded of [E2E_USERS.KS_MEMBER, E2E_USERS.KS_AGENT, E2E_USERS.KS_BRANCH_MANAGER]) {
-      const actor = await db.query.user.findFirst({
-        where: and(eq(user.email, seeded.email), eq(user.tenantId, E2E_USERS.KS_MEMBER.tenantId)),
-        columns: { branchId: true, id: true, role: true, tenantId: true },
-      });
-      expect(actor).toMatchObject({
-        branchId: seeded.branchId,
-        role: seeded.dbRole,
-        tenantId: seeded.tenantId,
-      });
-      if (!actor) throw new Error(`Seeded ${seeded.dbRole} actor missing`);
-      const probeNote = `S3 unauthorized ${seeded.dbRole} ${randomUUID()}`;
-      unauthorizedNotes.push(probeNote);
-      const authority = mintTestTenantAuthority(actor.tenantId, {
-        userId: actor.id,
-        role: actor.role,
-      });
-      const result = await changeClaimStatus(
-        authority,
-        {
-          claimId: submitted.claimId,
-          toStatus: 'verification',
-          note: probeNote,
-          isPublicNote: false,
-        },
-        { hostId: actor.tenantId }
-      );
-      expect(result).toEqual({ ok: false, code: 'forbidden_role' });
-    }
-
-    const stillSubmitted = await db.query.claims.findFirst({
-      where: and(
-        eq(claims.id, submitted.claimId),
-        eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-      ),
-      columns: { caseLifecycleState: true, recoveryLifecycleState: true },
-    });
-    expect(stillSubmitted ? claimStatusFromLifecycleFields(stillSubmitted) : null).toBe(
-      'submitted'
-    );
+    const unauthorizedNotes = await verifyOtherRolesCannotChangeStatus(submitted.claimId);
 
     await gotoApp(staffPage, routes.staffClaimDetail(submitted.claimId, testInfo), testInfo, {
       marker: 'staff-claim-detail-ready',

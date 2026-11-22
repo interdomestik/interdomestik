@@ -1,37 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import type { TenantTransaction } from '@interdomestik/database';
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { fixture, homeTenantId, ids, otherTenantId } from './tenant-context.integration-fixture';
 import {
-  fixture,
-  homeTenantId,
-  ids,
-  otherTenantId,
-  registerMessageRlsFixture,
-  session,
-} from './tenant-context.integration-fixture';
+  describeKeyedMessageRls,
+  memberSend,
+  OVERLAPPED,
+  storeMessage,
+  waitForBlockedSend,
+} from './send-idempotency.test-support';
 import { asActor } from './message-rls-actors.test-support';
 import { expectMessageContextCleared, messageEffects } from './message-rls-effects.test-support';
 
-const suite = process.env.MESSAGE_RLS_INTEGRATION === '1' ? describe : describe.skip;
-const OVERLAPPED = 'Synthetic overlapped reply';
-// Loaded after the fixture installs the restricted client: a top-level import would bind the
-// database module to the administrative URL first, and its RLS role assertion refuses that.
-let storeMessage: typeof import('@interdomestik/domain-communications/messages/store');
 const keyedMessageId = (...args: Parameters<(typeof storeMessage)['keyedMessageId']>) =>
   storeMessage.keyedMessageId(...args);
-
-const memberSend = (content: string, clientMessageId: string, logAuditEvent = vi.fn()) =>
-  fixture.send({
-    session: session(ids.member, 'member'),
-    authority: mintTestTenantAuthority(homeTenantId, { userId: ids.member, role: 'member' }),
-    requestHeaders: new Headers(),
-    claimId: ids.claim,
-    content,
-    clientMessageId,
-    deps: { logAuditEvent },
-  });
 
 async function storedWithKey(clientMessageId: string) {
   const { claimMessages, dbAdmin } = fixture.database;
@@ -39,32 +22,6 @@ async function storedWithKey(clientMessageId: string) {
     .select({ id: claimMessages.id, content: claimMessages.content })
     .from(claimMessages)
     .where(eq(claimMessages.id, keyedMessageId(homeTenantId, ids.member, clientMessageId)));
-}
-
-/** Observe actual lock waiters; reaching the deadline is a failure, never a timing-based pass. */
-async function waitForBlockedSend(
-  tx: TenantTransaction,
-  kind: 'key' | 'table' = 'key',
-  attemptsLeft = 200
-): Promise<void> {
-  // Refresh pg_stat_activity so sessions connected after the first poll remain observable.
-  const { sql } = fixture.database;
-  await tx.execute(sql`select pg_stat_clear_snapshot()`);
-  const locks =
-    kind === 'key'
-      ? sql`
-    select count(*)::int as waiting from pg_locks
-    where locktype = 'transactionid' and not granted and transactionid = pg_current_xact_id()::xid
-  `
-      : sql`
-    select count(*)::int as waiting from pg_stat_activity a
-    where a.usename=${fixture.roleName} and cardinality(pg_blocking_pids(a.pid)) > 0
-  `;
-  const [row] = await tx.execute(locks);
-  if (Number(row?.waiting) >= (kind === 'table' ? 2 : 1)) return;
-  if (attemptsLeft === 0) throw new Error('The keyed send never waited on the open insert');
-  await new Promise(resolve => setTimeout(resolve, 25));
-  return waitForBlockedSend(tx, kind, attemptsLeft - 1);
 }
 
 /**
@@ -94,21 +51,7 @@ async function sendAgainstOpenInsert(outcome: 'commit' | 'rollback', clientMessa
   return blockedSend;
 }
 
-async function staffDeliveryRecipient(messageId: string) {
-  const { dbAdmin, notificationDeliveries } = fixture.database;
-  const [delivery] = await dbAdmin
-    .select({ recipient: notificationDeliveries.recipientUserId })
-    .from(notificationDeliveries)
-    .where(eq(notificationDeliveries.subjectMessageId, messageId));
-  return delivery?.recipient;
-}
-
-suite('keyed message send on a real NOBYPASSRLS connection', () => {
-  registerMessageRlsFixture();
-  beforeAll(async () => {
-    storeMessage = await import('@interdomestik/domain-communications/messages/store');
-  });
-
+describeKeyedMessageRls('keyed message send on a real NOBYPASSRLS connection', () => {
   it('serializes two actual sends on the claim, stores once and audits only the winner', async () => {
     const clientMessageId = randomUUID();
     const audit = vi.fn();
@@ -275,84 +218,6 @@ suite('keyed message send on a real NOBYPASSRLS connection', () => {
     expect(await newer).toMatchObject({ success: true, replayed: true, deliveryIds: [] });
     expect(await storedWithKey(clientMessageId)).toHaveLength(1);
     expect(audit).not.toHaveBeenCalled();
-  }, 10_000);
-
-  it('routes the message to the assignee that commits before the message acquires the claim lock', async () => {
-    const { claims, dbAdmin, user } = fixture.database;
-    await dbAdmin.update(user).set({ role: 'staff' }).where(eq(user.id, ids.otherMember));
-    let message: ReturnType<typeof memberSend> | undefined;
-    try {
-      await dbAdmin.transaction(async tx => {
-        await tx.update(claims).set({ staffId: ids.otherMember }).where(eq(claims.id, ids.claim));
-        message = memberSend(OVERLAPPED, randomUUID());
-        await waitForBlockedSend(tx as unknown as TenantTransaction);
-      });
-      const result = await message;
-      expect(result).toMatchObject({ success: true, replayed: false });
-      if (!result?.success) throw new Error('Member request failed');
-      expect(await staffDeliveryRecipient(result.message.id)).toBe(ids.otherMember);
-    } finally {
-      await message;
-      await dbAdmin.update(claims).set({ staffId: ids.staff }).where(eq(claims.id, ids.claim));
-      await dbAdmin.update(user).set({ role: 'member' }).where(eq(user.id, ids.otherMember));
-    }
-  }, 10_000);
-
-  it('holds reassignment behind a member message until its original recipient is committed', async () => {
-    const { claims, dbAdmin, sql, user } = fixture.database;
-    await dbAdmin.update(user).set({ role: 'staff' }).where(eq(user.id, ids.otherMember));
-    const store = storeMessage.storeClaimMessage;
-    let saveXid!: (id: string) => void;
-    let commitMessage!: () => void;
-    const holding = new Promise<string>(resolve => {
-      saveXid = resolve;
-    });
-    const release = new Promise<void>(resolve => {
-      commitMessage = resolve;
-    });
-    const pause = vi
-      .spyOn(storeMessage, 'storeClaimMessage')
-      .mockImplementationOnce(async (tx, values, key) => {
-        const [row] = await tx.execute<{ xid: string }>(
-          sql`select pg_current_xact_id()::text as xid`
-        );
-        saveXid(row.xid);
-        await release;
-        return store(tx, values, key);
-      });
-    const message = memberSend(OVERLAPPED, randomUUID());
-    let assign: Promise<void> | undefined;
-    try {
-      const xid = await Promise.race([
-        holding,
-        message.then(() => {
-          throw new Error('Message never acquired the lock');
-        }),
-      ]);
-      assign = dbAdmin.transaction(async tx => {
-        await tx.update(claims).set({ staffId: ids.otherMember }).where(eq(claims.id, ids.claim));
-      });
-      for (let attempt = 0; attempt < 100; attempt++) {
-        const [row] = await fixture.rlsClient`
-          select count(*)::int as waiting from pg_locks
-          where locktype='transactionid' and not granted and transactionid=${xid}::xid
-        `;
-        if (row.waiting === 1) break;
-        if (attempt === 99) throw new Error('Reassignment never waited for the locked message');
-        await new Promise(resolve => setTimeout(resolve, 25));
-      }
-      commitMessage();
-      const result = await message;
-      if (!result.success) throw new Error(result.error);
-      expect(await staffDeliveryRecipient(result.message.id)).toBe(ids.staff);
-      await assign;
-    } finally {
-      commitMessage();
-      await Promise.allSettled([message, assign]);
-      pause.mockRestore();
-      await dbAdmin.update(claims).set({ staffId: ids.staff }).where(eq(claims.id, ids.claim));
-      await dbAdmin.update(user).set({ role: 'member' }).where(eq(user.id, ids.otherMember));
-    }
   }, 10_000);
 
   it('stores the waiting send itself when the competing insert rolls back', async () => {

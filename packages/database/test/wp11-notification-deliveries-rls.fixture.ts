@@ -1,0 +1,118 @@
+import assert from 'node:assert/strict';
+import type { TestContext } from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { readMigrationFiles } from 'drizzle-orm/migrator';
+import { PgDialect } from 'drizzle-orm/pg-core';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import type postgres from 'postgres';
+import { quoteIdentifier } from './rls-test-connection';
+import { scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
+
+export const runtimeRole = 'interdomestik_runtime_rls';
+export const role = quoteIdentifier(runtimeRole);
+const lockTables = [
+  'claim',
+  'user',
+  'claim_escalation_agreements',
+  'subscriptions',
+  'membership_plans',
+  'sponsor_terms',
+  'sponsor_roster_entries',
+  'claim_recovery_no_fee_evidence',
+  'claim_transition_evidence',
+  'claim_messages',
+];
+const schema = () => ({ migrationsFolder: fileURLToPath(new URL('../drizzle', import.meta.url)) });
+
+async function install(client: postgres.Sql) {
+  const drizzleDb = drizzle(client, { schema: {} });
+  const config = schema();
+  const migrations = readMigrationFiles(config);
+  const target = migrations.pop();
+  assert.ok(target);
+  assert.ok(
+    target.sql.some(statement =>
+      statement.includes('notification_deliveries FORCE ROW LEVEL SECURITY')
+    )
+  );
+  await new PgDialect().migrate(migrations, drizzleDb._.session, config);
+
+  await client.unsafe(`grant usage on schema public to ${role}`);
+  for (const table of lockTables.slice(0, -1)) {
+    await client.unsafe(`grant update (id) on public.${quoteIdentifier(table)} to ${role}`);
+  }
+  const migration = () =>
+    client.begin(async tx => {
+      for (const statement of target.sql) await tx.unsafe(statement);
+    });
+  await assert.rejects(
+    migration(),
+    /WP-11 requires UPDATE privilege for row locking on public.claim_messages/
+  );
+  const [rolledBack] =
+    await client`select to_regclass('public.notification_deliveries') as delivery_table`;
+  assert.equal(rolledBack.delivery_table, null);
+  await client.unsafe(`grant update (id) on public.claim_messages to ${role}`);
+  await migration();
+}
+
+async function seed(client: postgres.Sql, group: string) {
+  const tenant = `wp11-${group}`;
+  const user = `${tenant}-user`;
+  const claim = `${tenant}-claim`;
+  const message = `${tenant}-message`;
+  const delivery = `${tenant}-delivery`;
+  const request = `${tenant}-request`;
+  await client`insert into tenants (id, name, legal_name, country_code) values (${tenant}, ${tenant}, ${tenant}, 'MK')`;
+  await client`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
+    values (${user}, ${tenant}, 'Test user', ${`${user}@example.test`}, true, 'tenant_admin', now(), now())`;
+  await client`insert into claim (id, tenant_id, "userId", title, category, "companyName", case_lifecycle_state)
+    values (${claim}, ${tenant}, ${user}, 'Test claim', 'vehicle', 'Test company', 'submitted')`;
+  await client`insert into claim_messages (id, tenant_id, claim_id, sender_id, content)
+    values (${message}, ${tenant}, ${claim}, ${user}, 'Test message')`;
+  await client`insert into notification_deliveries
+    (id, tenant_id, idempotency_key, kind, channel, recipient_user_id, claim_id, subject_message_id, facts)
+    values (${delivery}, ${tenant}, ${delivery}, 'claim_message_to_member', 'email', ${user}, ${claim}, ${message}, '{"previewRestricted":true}')`;
+  await client`insert into claim_response_requests (id, tenant_id, claim_id, kind, requested_at)
+    values (${request}, ${tenant}, ${claim}, 'claim_submitted', clock_timestamp())`;
+  return { tenant, user, claim, message, delivery, request };
+}
+
+export function restricted<T>(
+  client: postgres.Sql,
+  tenantId: string,
+  work: (tx: postgres.TransactionSql) => Promise<T>
+) {
+  return client.begin(async tx => {
+    await tx.unsafe(`set local role ${role}`);
+    await tx`set local row_security = on`;
+    await tx`select set_config('app.current_access_tenant_id', ${tenantId}, true)`;
+    return work(tx);
+  });
+}
+
+export type Rows = Awaited<ReturnType<typeof seed>>;
+
+export async function withNotificationDeliveriesFixture(
+  t: TestContext,
+  run: (client: postgres.Sql, a: Rows, b: Rows) => Promise<void>
+) {
+  const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
+  if (missing) return t.skip(missing);
+
+  await withScratchDatabase('wp11_notifications', async client => {
+    const [existing] = await client`select 1 from pg_roles where rolname=${runtimeRole}`;
+    if (!existing) await client.unsafe(`create role ${role} nologin nosuperuser nobypassrls`);
+    try {
+      await install(client);
+      const a = await seed(client, 'a');
+      const b = await seed(client, 'b');
+      await run(client, a, b);
+    } finally {
+      if (!existing) {
+        await client.unsafe(`drop owned by ${role}`);
+        await client.unsafe(`drop role ${role}`);
+      }
+    }
+  });
+}

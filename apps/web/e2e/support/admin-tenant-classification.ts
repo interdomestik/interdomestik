@@ -1,11 +1,13 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/seed-utils/claim-notification-cleanup';
-import { db, dbAdmin, E2E_PASSWORD, E2E_USERS, eq, user } from '@interdomestik/database';
+import { db, E2E_PASSWORD, E2E_USERS, eq, user } from '@interdomestik/database';
 import type { Page, TestInfo } from '@playwright/test';
-import { randomUUID } from 'node:crypto';
 
 import { expect } from '../fixtures/auth.fixture';
 import { gotoApp } from '../utils/navigation';
 import { routes } from '../routes';
+import {
+  preparePendingTenantClassificationMember,
+  resetPendingTenantClassificationMember,
+} from './admin-tenant-classification-member.fixture';
 
 const COOKIE_CONSENT_STORAGE_KEY = 'interdomestik_cookie_consent_v1';
 const COOKIE_CONSENT_COOKIE_NAME = 'cookie_consent';
@@ -19,43 +21,7 @@ function baseOrigin(testInfo: TestInfo): string {
   return new URL(baseURL.toString()).origin;
 }
 
-export async function preparePendingTenantClassificationMember(params: {
-  memberPrefix: string;
-  namePrefix: string;
-  emailPrefix: string;
-  role: 'member' | 'user';
-  tenantId: string;
-  testInfo: TestInfo;
-}) {
-  const { memberPrefix, namePrefix, emailPrefix, role, tenantId, testInfo } = params;
-  const suffix = `${testInfo.project.name}-${Date.now()}-${randomUUID().slice(0, 8)}`;
-  const memberId = `${memberPrefix}-${suffix}`;
-
-  await db.insert(user).values({
-    id: memberId,
-    tenantId,
-    tenantClassificationPending: true,
-    name: `${namePrefix} ${testInfo.project.name}`,
-    email: `${emailPrefix}.${suffix}@interdomestik.test`,
-    emailVerified: true,
-    role,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    agentId: null,
-    branchId: null,
-    createdBy: 'self',
-    assistedByAgentId: null,
-    memberNumber: null,
-    memberNumberIssuedAt: null,
-  });
-
-  return memberId;
-}
-
-export async function resetPendingTenantClassificationMember(memberId: string) {
-  await cleanupClaimNotificationRows(dbAdmin, { userIds: [memberId] });
-  await db.delete(user).where(eq(user.id, memberId));
-}
+export { preparePendingTenantClassificationMember, resetPendingTenantClassificationMember };
 
 export async function loginAsSuperAdmin(page: Page, testInfo: TestInfo): Promise<void> {
   const origin = baseOrigin(testInfo);

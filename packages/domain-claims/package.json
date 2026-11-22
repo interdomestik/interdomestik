@@ -46,7 +46,7 @@
   },
   "scripts": {
     "type-check": "tsc --noEmit",
-    "test:rls": "MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/claims/message-integration/tenant-context.integration.test.ts src/claims/message-integration/send-negative-matrix.integration.test.ts src/claims/message-integration/send-idempotency.integration.test.ts src/claims/message-integration/public-reply-notification.integration.test.ts",
+    "test:rls": "MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/claims/message-integration/tenant-context.integration.test.ts src/claims/message-integration/send-negative-matrix.integration.test.ts src/claims/message-integration/send-idempotency.integration.test.ts src/claims/message-integration/send-reassignment.integration.test.ts src/claims/message-integration/public-reply-notification.integration.test.ts",
     "test:unit": "vitest run",
     "test": "vitest run"
   },
