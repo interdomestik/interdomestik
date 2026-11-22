@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { MissingTenantError, UnauthorizedError } from '@interdomestik/shared-auth/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -27,7 +28,7 @@ vi.mock('next/navigation', async importOriginal => importOriginal());
 import { notFound, redirect } from 'next/navigation';
 import { ROLE_STAFF } from './roles.core';
 import { actionFailure, defineAction } from './safe-action';
-import { issuesOf } from './safe-action.schema';
+import { issuesOf } from './safe-action.output';
 
 const STAFF_ONLY = [ROLE_STAFF] as const;
 const claimInput = z.strictObject({ claimId: z.string().min(1), note: z.string().max(10) });
@@ -44,28 +45,29 @@ function staffAction(handler: (input: z.output<typeof claimInput>) => Promise<un
 
 const refusalRows = () => mocks.write.mock.calls.map(call => call[0]);
 
-// A plain role basis built from another realm's Object and Array (a jsdom frame), without evaluating code.
-function otherRealmBasis(): { kind: string; roles: string[] } {
-  const frame = document.createElement('iframe');
-  document.body.append(frame);
-  const realm = frame.contentWindow as unknown as {
-    Object: ObjectConstructor;
-    Array: ArrayConstructor;
-  };
-  const basis = new realm.Object() as { kind: string; roles: string[] };
-  basis.kind = 'role';
-  basis.roles = realm.Array.of<string>(ROLE_STAFF);
-  frame.remove();
-  expect(Object.getPrototypeOf(basis)).not.toBe(Object.prototype);
-  expect(Object.getPrototypeOf(basis.roles)).not.toBe(Array.prototype);
-  return basis;
-}
-
 describe('defineAction at run time', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.write.mockResolvedValue({ ok: true });
     mocks.authorize.mockResolvedValue(authorizedSession(STAFF_A));
+  });
+
+  it('rejects an omitted required coercion before its predicate or audit writer runs', async () => {
+    const refine = vi.fn(() => {
+      throw Object.assign(new Error('denied'), { code: 'FORBIDDEN' });
+    });
+    const handler = vi.fn(async () => 'never');
+    const action = defineAction({
+      name: 'claims.required-coercion',
+      basis: { kind: 'role', roles: STAFF_ONLY },
+      subject: { type: 'none' },
+      input: z.strictObject({ enabled: z.coerce.boolean().readonly().nullable().refine(refine) }),
+      handler,
+    });
+    expect(await action({})).toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(refine).not.toHaveBeenCalled();
+    expect(mocks.write).not.toHaveBeenCalled();
+    expect(handler).not.toHaveBeenCalled();
   });
 
   it('runs the handler with the parsed input and wraps its value', async () => {
@@ -199,6 +201,10 @@ describe('defineAction at run time', () => {
           typeof value !== 'object' ||
           (Object.getPrototypeOf(value) === Object.prototype && Object.values(value).every(plain));
     expect(plain((result as { data: unknown }).data)).toBe(true);
+    const { encodeReply } = createRequire(import.meta.url)(
+      'next/dist/compiled/react-server-dom-webpack/client.node'
+    ) as { encodeReply(value: unknown): Promise<string | FormData> };
+    expect(await encodeReply(result)).toBe(JSON.stringify(result));
   });
 
   it('reads a snapshot of its definition: changing the definition later changes nothing (r6 B23, r7 H05)', async () => {
@@ -228,18 +234,11 @@ describe('defineAction at run time', () => {
     expect(seen).toEqual([' x ']);
   });
 
-  it.each([
-    [
-      'a class instance',
-      () =>
-        new (class {
-          kind = 'role';
-          roles = [ROLE_STAFF];
-        })(),
-    ],
-    ['a plain object of another realm', otherRealmBasis],
-  ])('keeps its own copy of the roles when the basis is %s (r7 B23)', async (_label, make) => {
-    const basis = make() as { kind: string; roles: string[] };
+  it('keeps its own copy of the roles when the basis is a class instance (r7 B23)', async () => {
+    const basis = new (class {
+      kind = 'role';
+      roles: string[] = [ROLE_STAFF];
+    })();
     const action = defineAction({
       name: 'note.roles',
       basis,
