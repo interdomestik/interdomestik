@@ -41,13 +41,24 @@ import type { ClaimTransitionRejectionReason } from './transition-guard';
 export { activateClaimStatusAuditProjection } from './audit-projection';
 export { resolveClaimStatusActor } from './status-actor';
 
-export const changeClaimStatusInputSchema = z
+const statusInputFields = {
+  claimId: z.string().min(1),
+  toStatus: claimStatusSchema.shape.status,
+  note: z.string().max(2000).optional(),
+  isPublicNote: z.boolean().default(true),
+  declineReasonCode: z.enum(RECOVERY_DECLINE_REASON_CODES).optional(),
+  decisionExplanation: z.string().optional(),
+  allowanceOverrideReason: z.string().optional(),
+};
+
+/** Entry-point input: shape and bounds only; the command below normalises its own text. */
+export const changeClaimStatusInputSchema = z.object(statusInputFields).strict();
+
+const changeClaimStatusCommandSchema = z
   .object({
+    ...statusInputFields,
     claimId: z.string().trim().min(1),
-    toStatus: claimStatusSchema.shape.status,
     note: z.string().trim().max(2000).optional(),
-    isPublicNote: z.boolean().default(true),
-    declineReasonCode: z.enum(RECOVERY_DECLINE_REASON_CODES).optional(),
     decisionExplanation: z.string().trim().optional(),
     allowanceOverrideReason: z.string().trim().optional(),
   })
@@ -76,7 +87,7 @@ export type ChangeClaimStatusResult =
     }
   | { ok: false; code: ChangeClaimStatusCode };
 
-type StatusInput = z.output<typeof changeClaimStatusInputSchema>;
+type StatusInput = z.output<typeof changeClaimStatusCommandSchema>;
 type StatusMeta = { hostId: string | null; requestHeaders?: Headers };
 
 class ClaimStatusFailure extends Error {
@@ -242,7 +253,7 @@ export async function changeClaimStatus(
   }
   if (!actor) return { ok: false, code: 'forbidden_role' };
 
-  const parsed = changeClaimStatusInputSchema.safeParse(input);
+  const parsed = changeClaimStatusCommandSchema.safeParse(input);
   if (!parsed.success) return { ok: false, code: 'invalid_input' };
   if (
     actor.kind === 'admin' &&

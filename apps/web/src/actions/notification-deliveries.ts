@@ -13,7 +13,7 @@ const basis = {
   kind: 'role',
   roles: [ROLES.admin, ROLES.tenant_admin, ROLES.super_admin],
 } as const;
-const id = z.string().trim().min(1).max(128);
+const id = z.string().min(1).max(128);
 
 export const listFailedNotificationDeliveries = defineAction({
   name: 'notifications.listFailedDeliveries',
