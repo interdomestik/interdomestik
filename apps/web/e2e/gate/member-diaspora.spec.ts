@@ -1,7 +1,7 @@
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-import { signInThrowawayMember, switchLocale } from './member-locale.fixture';
+import { startThrowawayMember, switchLocale } from './member-locale.fixture';
 
 async function expectNoHorizontalOverflow(page: Parameters<typeof gotoApp>[0]) {
   await expect
@@ -15,7 +15,7 @@ async function expectNoHorizontalOverflow(page: Parameters<typeof gotoApp>[0]) {
 
 test.describe('Diaspora Feature', () => {
   // The language switch saves the preferred locale (WP-11): it runs on a member of its own.
-  let throwaway: Awaited<ReturnType<typeof signInThrowawayMember>> | null = null;
+  let throwaway: ReturnType<typeof startThrowawayMember> | null = null;
   test.afterEach(async () => {
     await throwaway?.remove();
     throwaway = null;
@@ -29,7 +29,8 @@ test.describe('Diaspora Feature', () => {
   test('captures an exact corridor and preserves it through guidance and locale changes', async ({
     page,
   }, testInfo) => {
-    throwaway = await signInThrowawayMember(page, testInfo);
+    throwaway = startThrowawayMember(page, testInfo);
+    await throwaway.ready;
     const originalViewport = page.viewportSize();
     if (!originalViewport) throw new Error('Diaspora gate requires a configured viewport.');
 

@@ -11,34 +11,25 @@ const signupResponse = z.object({
   user: z.object({ branchId: z.string().nullable(), id: z.string(), tenantId: z.string() }),
 });
 
-export type ThrowawayMember = Readonly<{ remove: () => Promise<void> }>;
+export type ThrowawayMember = Readonly<{
+  /** Settles when the member is signed in on `page` with an active subscription. */
+  ready: Promise<void>;
+  /** Waits for setup to settle, whatever its outcome, then removes everything it created. */
+  remove: () => Promise<void>;
+}>;
 
 /**
  * The sidebar language switch saves the member's preferred locale (WP-11), and server-built links,
  * such as notification links, follow it. A test that switches language therefore signs in a member
  * of its own on `page`, so no shared seeded member's stored locale changes while other specs read
- * it. The member, with its subscription, sessions and accounts, is removed by `remove`.
+ * it. The handle is returned before any I/O starts, so a teardown hook holds it even when the test
+ * times out during setup.
  */
-export async function signInThrowawayMember(
-  page: Page,
-  testInfo: TestInfo
-): Promise<ThrowawayMember> {
+export function startThrowawayMember(page: Page, testInfo: TestInfo): ThrowawayMember {
   const { tenantId } = getUserForTenant('member', getTenantFromTestInfo(testInfo));
   const key = `wp11-locale-${testInfo.project.name}-${testInfo.workerIndex}-${testInfo.retry}-${randomUUID()}`;
   const email = `${key}@example.com`;
-  const remove = async () => {
-    await db.delete(subscriptions).where(eq(subscriptions.id, key));
-    const member = await db.query.user.findFirst({
-      columns: { id: true },
-      where: eq(user.email, email),
-    });
-    if (!member) return;
-    await db.delete(authSession).where(eq(authSession.userId, member.id));
-    await db.delete(account).where(eq(account.userId, member.id));
-    await cleanupClaimNotificationRows(dbAdmin, { userIds: [member.id] });
-    await db.delete(user).where(eq(user.id, member.id));
-  };
-  try {
+  const ready = (async () => {
     const origin = new URL(String(testInfo.project.use.baseURL)).origin;
     const signup = await page.request.post(`${origin}/api/auth/sign-up/email`, {
       data: {
@@ -60,11 +51,21 @@ export async function signInThrowawayMember(
       tenantId: member.tenantId,
       userId: member.id,
     });
-  } catch (error) {
-    await remove();
-    throw error;
-  }
-  return { remove };
+  })();
+  const remove = async () => {
+    await ready.catch(() => undefined);
+    await db.delete(subscriptions).where(eq(subscriptions.id, key));
+    const member = await db.query.user.findFirst({
+      columns: { id: true },
+      where: eq(user.email, email),
+    });
+    if (!member) return;
+    await db.delete(authSession).where(eq(authSession.userId, member.id));
+    await db.delete(account).where(eq(account.userId, member.id));
+    await cleanupClaimNotificationRows(dbAdmin, { userIds: [member.id] });
+    await db.delete(user).where(eq(user.id, member.id));
+  };
+  return { ready, remove };
 }
 
 export async function switchLocale(
