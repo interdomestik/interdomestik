@@ -63,12 +63,12 @@ for (const [name, list] of [
   ['duplicate path', [{ path: SHAPE, sha256: HASH }, { path: SHAPE, sha256: HASH }]],
 ]) {
   test(`a ${name} pin list is refused`, () => {
-    assert.equal(nonClientQueryPins(list), INVALID);
+    assert.equal(nonClientQueryPins(list), null);
     const tree = { allSources: new Map() };
     assert.equal(retainedConsumerProblem(tree, tree, tree, new Set(), new Set(), list), INVALID);
   });
 }
 
 test('an absent pin list is refused', () => {
-  assert.equal(nonClientQueryPins(undefined), INVALID);
+  assert.equal(nonClientQueryPins(undefined), null);
 });

@@ -25,12 +25,12 @@ function validPin(entry) {
   );
 }
 
-// The reviewed non-client `.query` consumers as path → sha256, or the refusal for a malformed list.
+// The reviewed non-client `.query` consumers as path → sha256, or null for a malformed list.
 export function nonClientQueryPins(list) {
-  if (!Array.isArray(list) || list.length === 0) return INVALID_PINS;
+  if (!Array.isArray(list) || list.length === 0) return null;
   const pins = new Map();
   for (const entry of list) {
-    if (!validPin(entry) || pins.has(entry.path)) return INVALID_PINS;
+    if (!validPin(entry) || pins.has(entry.path)) return null;
     pins.set(entry.path, entry.sha256);
   }
   return pins;
@@ -56,7 +56,7 @@ export function retainedConsumerProblem(
   pinList = NON_CLIENT_QUERY_CONSUMERS
 ) {
   const pins = nonClientQueryPins(pinList);
-  if (typeof pins === 'string') return pins;
+  if (pins === null) return INVALID_PINS;
   const receiverOrigin = queryReceiverOrigins(after);
   for (const [file, text] of after.allSources) {
     const previous = before.allSources.get(file);
