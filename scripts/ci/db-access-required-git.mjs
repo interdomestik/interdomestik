@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 export const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const ADOPTION_COMMIT = '278e33ab0dd448547fa81d4b0ff122b4d69c901e';
 export const ADOPTION_TREE = '4f9330417466b4f7bee68349e7183db22a5260ff';
-export const SOURCE_COMMIT = 'df9bec012bbdae97883fe302c7d463ae4d1b0ffe';
-export const SOURCE_TREE = '2de990599e60283ce7515abb906d9c99137f7316';
+export const SOURCE_COMMIT = '7e42bc53c1a08baba41fdf8c17a8b61201515ab2';
+export const SOURCE_TREE = 'bbd85566150c82946e84f5809cda75bd32b0a2bd';
 export const TS = '5.9.3';
 
 const temporary = new Set();
