@@ -5,19 +5,19 @@ import path from 'node:path';
 // Protected executable-source data, separate from historical DB-debt ADOPTION.
 // No candidate, environment or CLI input can select a dependency snapshot.
 export const RESOLVER_SNAPSHOT = Object.freeze({
-  id: 'dependency-wp05-devdeps-20261121-exact-pair-v1',
+  id: 'dependency-next-16-4-5-20261122-exact-pair-v1',
   adoptionCommit: '278e33ab0dd448547fa81d4b0ff122b4d69c901e',
   adoptionTree: '4f9330417466b4f7bee68349e7183db22a5260ff',
   baselineSha256: '438b856b913d2946088b9c0f925dd07818b81ea82bad8d3468c2470a2f1131e9',
   files: Object.freeze({
     'pnpm-workspace.yaml': Object.freeze({
       previousSha256: '920dd84d8a781289481b1d24d0eb0713b1f950318ad85a0cad5663db67fd701e',
-      sha256: 'cdf45a0f415af8a44caab57f1ec9c0e9cd3d2526c1387dab334b9f243c4b58b8',
+      sha256: 'b52884df2602693cdf9f55a3966da41025cf145c490b9339fd3b5d47af7ff1f6',
       bytes: 2105,
     }),
     'pnpm-lock.yaml': Object.freeze({
       previousSha256: 'b63300c1333f2b89d2483e16967e006ff9ddaf585728e79a003250e699dbf91f',
-      sha256: '1179aca6d60550aa7b1ab89440f25deb942f6b197afb933c106fcfa4a017dc2d',
+      sha256: '5afa99cf2e8b0a56f6d2bcc725cc8fae711407053e1b8af830d98248f5c3fc1c',
       bytes: 713785,
     }),
   }),
