@@ -99,8 +99,8 @@ source/environment freeze → required full local proof and hosted checks green 
 merge by the lead or the owner (R-01) →
 read-only Actions/staging proof on the merge SHA → completion recorded on the PR → safe worktree retirement → chat archival → next slice.
 
-This sequence is operating policy. It gives no permission to merge or deploy,
-which the owner does, and none to archive chats or start new work. A complete lifecycle authorization persists for
+This sequence is operating policy. It gives no permission to merge or deploy
+(the lead merges under R-01; the owner deploys), and none to archive chats or start new work. A complete lifecycle authorization persists for
 its named scope; the agent must not ask repeatedly for actions already covered.
 
 Record scope and acceptance in the PR before implementation, and mark delivered
@@ -210,8 +210,8 @@ hosted checks through; consolidate findings, verify corrections, and resolve the
 GitHub threads. An unresolved-finding delivery failure is a valid block. Once providers
 finish and threads are resolved, refresh only the failed delivery gate for unchanged
 source identity, then run `pnpm pr:review-ready -- <PR>`. Source pushes require current-head
-hosted evidence under the existing admission policy. Merge/deploy still require owner
-authority. Real integration regressions must run in a required repository lane, not
+hosted evidence under the existing admission policy. Merging follows AGENTS.md R-01;
+deploying requires owner authority. Real integration regressions must run in a required repository lane, not
 only through a manually supplied environment flag; record selection and execution.
 
 For remote delivery, wait for requested current-head review and required analysis
@@ -484,7 +484,7 @@ and resolve it before the dependent implementation; do not silently substitute a
 
 Model routing (owner, 2026-11-17; AGENTS.md R-01 and R-02): Claude Code, with
 Claude Opus as orchestrator and implementer, implements and owns integration.
-Codex (GPT-6.1 Sol) reviews independently at xhigh. When the lead assigns Codex a
+Codex reviews independently, with the model and effort that R-01 and R-02 name. When the lead assigns Codex a
 bounded part with disjoint files in its own worktree, Codex implements that part at
 this role's configured effort and Claude reviews it. Astra, at high effort or above,
 is used only for the first full review of HIGH work, the final review of its exact

@@ -203,7 +203,7 @@ owner releases (AGENTS.md R-01, R-24). Do not mutate production, send external m
 cleanup without appropriate explicit authority. Continue
 authorized reversible work without repeatedly requesting the same permission.
 
-At a green, reviewed head, hand off to the owner with head, base, required checks,
+At a green, reviewed head, hand off to the lead with head, base, required checks,
 the R-01 review record and the tier; the lead or the owner merges (AGENTS.md R-01). After the merge, verify the
 exact merge SHA read-only through staging health, canonical-host/build provenance
 and the required release-gate results, and report them. A healthy host on an older
@@ -320,7 +320,7 @@ Do not substitute mockup copying or unexamined fashion for that research.
 
 Model routing (owner, 2026-11-17; AGENTS.md R-01 and R-02): Claude Code, with
 Claude Opus as orchestrator and implementer, implements and owns integration.
-Codex (GPT-6.1 Sol) reviews independently at xhigh. When the lead assigns Codex a
+Codex reviews independently, with the model and effort that R-01 and R-02 name. When the lead assigns Codex a
 bounded part with disjoint files in its own worktree, Codex implements that part at
 this role's configured effort and Claude reviews it. Astra, at high effort or above,
 is used only for the first full review of HIGH work, the final review of its exact

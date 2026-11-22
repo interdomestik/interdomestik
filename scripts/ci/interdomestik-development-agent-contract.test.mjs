@@ -185,6 +185,7 @@ const APPROVED_AUTHORITY_UNITS = {
     'If tooling changes or a helper stops for integrity, preserve that stop and continue through a separately authorized, fixed read-only route without repeating valid proof.',
     'Its editable definition is `.codex/agents/interdomestik-developer.toml` (revision `2026-10-03-bounded-search-packets`).',
     'Merging follows AGENTS.md R-01;',
+    'Merging follows AGENTS.md R-01;',
     "No agent writes to staging (AGENTS.md R-24): every step there that assigns, updates, notes or otherwise changes data is the owner's, and the agent records it as owner-run or blocked.",
     'No model approves its own work, a blocked reviewer is not an approval, and no paid API is a fallback.',
     'Record scope and acceptance in the PR before implementation, and mark delivered completion on the merged PR only after the required post-merge proof (AGENTS.md R-28: no program, tracker or ledger edits, no bookkeeping-only PR).',
@@ -224,8 +225,8 @@ test('every agent authority sentence in the role, guide and staging procedure is
 // as a whole: any edit fails here until it has been reviewed for agent authority (AGENTS.md R-01, R-24) and
 // the new hash is recorded in a reviewed edit of this test.
 const PINNED_AUTHORITY_SHA256 = {
-  role: '100832ab08cba4ed0d5b0ec408b1bacd65e9ec092e97807ee4698c51e220c3a0',
-  guide: '0474affe8e577aa15573efad6cd2a8825f6b7f811c71bda2e976befb9a0eeae6',
+  role: '9667c920f64d2583ca7af8ff573fa87a94128ff19626b7f9f1bf00a321441637',
+  guide: 'e4769a98774e1d68ea480668a8128cdf607c7889fc896bd8e17e4f47cecb57dd',
   procedure: 'e1f3502eb83ee054935cda9d1df34a8680c8bba8e16e3abb46eec4c09ea053ed',
 };
 

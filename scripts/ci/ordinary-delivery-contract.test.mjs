@@ -58,10 +58,15 @@ test('ordinary delivery does not require ritual companion PRs or collapse delive
   const rules = read('docs/engineering/RULES.md');
   const r01Start = rules.indexOf('### R-01 ');
   assert.notEqual(r01Start, -1, 'RULES.md must hold R-01');
-  // R-01 ends at the next heading of the same or a higher level.
-  const r01Rest = rules.slice(r01Start + 1);
-  const r01End = r01Rest.search(/\n#{1,3} /u);
-  const r01 = r01End === -1 ? r01Rest : r01Rest.slice(0, r01End);
+  // R-01 ends at the next Markdown heading of the same or a higher level: an ATX heading of one to three
+  // hashes with up to three leading spaces, or any setext underline (which also ends it early, failing closed).
+  const r01Lines = rules.slice(r01Start).split('\n');
+  const isBoundary = index =>
+    /^ {0,3}#{1,3}(?:[ \t]|$)/u.test(r01Lines[index]) ||
+    /^ {0,3}(?:=+|-+)[ \t]*$/u.test(r01Lines[index]);
+  let r01EndLine = 1;
+  while (r01EndLine < r01Lines.length && !isBoundary(r01EndLine)) r01EndLine += 1;
+  const r01 = r01Lines.slice(0, r01EndLine).join('\n');
   assert.ok(
     r01.includes(
       '- **Merging by the lead** (owner, 2026-11-21: "Bej ti merging"; it amends answer 30). The lead session may merge a PR only when all of these hold on its exact head: every required check is green; `delivery-gate` is green; the verdict of R-01 has no open finding; the tier\'s local verification is recorded (`GATE-EVIDENCE` where the tier needs it); the PR is up to date with `main`. The lead never force-pushes, never bypasses a ruleset and never merges its own unreviewed change. It records the merge in the PR: who merged, the head and the evidence. No other agent merges. Releases, deploys, ruleset repins and the authorizations of R-37 stay with the owner.\n'
