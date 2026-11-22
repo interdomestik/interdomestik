@@ -12,42 +12,54 @@ import { append, scan, snapshot } from './tenant-guard-schema-test-support.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 const SHAPE = 'apps/web/src/lib/safe-action.shape.ts';
-const COPY = 'apps/web/src/lib/safe-action.shape-copy.ts';
+const ROUTE = 'apps/web/src/lib/safe-route.core.ts';
+// Each reviewed file at the commit whose bytes were reviewed: the anchor for the action shape,
+// the WP-02 1b-2 merge for the route core.
+const REVIEWED = [
+  { path: SHAPE, commit: KERNEL_ANCHOR.commit, copy: 'apps/web/src/lib/safe-action.shape-copy.ts' },
+  {
+    path: ROUTE,
+    commit: 'bab797bebfa8ce461c7d0c5ea1b7ede282bf59e3',
+    copy: 'apps/web/src/lib/safe-route.core-copy.ts',
+  },
+];
 const INVALID = 'invalid non-client query consumer list';
-const reviewed = execFileSync('/usr/bin/git', ['show', `${KERNEL_ANCHOR.commit}:${SHAPE}`], {
-  cwd: ROOT,
-  encoding: 'utf8',
-});
+const reviewedBytes = ({ path, commit }) =>
+  execFileSync('/usr/bin/git', ['show', `${commit}:${path}`], { cwd: ROOT, encoding: 'utf8' });
 const HASH = NON_CLIENT_QUERY_CONSUMERS[0]?.sha256;
 const retainedAt = (file, text) =>
   scan(append({ [file]: text }), { base: snapshot({ [file]: text }) }).schemaAdmission;
 
-test('the pinned list names exactly the reviewed shape module at its anchor bytes', () => {
+test('the pinned list names exactly the reviewed shape and route modules', () => {
   assert.deepEqual(
     NON_CLIENT_QUERY_CONSUMERS.map(({ path }) => path),
-    [SHAPE]
+    [SHAPE, ROUTE]
   );
   assert.ok(Object.isFrozen(NON_CLIENT_QUERY_CONSUMERS));
   assert.ok(NON_CLIENT_QUERY_CONSUMERS.every(entry => Object.isFrozen(entry)));
   assert.ok(nonClientQueryPins(NON_CLIENT_QUERY_CONSUMERS) instanceof Map);
 });
 
-test('the listed file at its pinned hash is admitted with a tail table', () => {
-  const result = retainedAt(SHAPE, reviewed);
-  assert.equal(result.ok, true, result.reason);
-});
+for (const entry of REVIEWED) {
+  const reviewed = reviewedBytes(entry);
 
-test('the listed file with one byte changed refuses the tail table', () => {
-  const result = retainedAt(SHAPE, `${reviewed} `);
-  assert.equal(result.ok, false);
-  assert.equal(result.reason, `candidate: unproven dynamic schema consumer ${SHAPE}`);
-});
+  test(`${entry.path} at its pinned hash is admitted with a tail table`, () => {
+    const result = retainedAt(entry.path, reviewed);
+    assert.equal(result.ok, true, result.reason);
+  });
 
-test('an unlisted file with the same query shape refuses the tail table', () => {
-  const result = retainedAt(COPY, reviewed);
-  assert.equal(result.ok, false);
-  assert.equal(result.reason, `candidate: unproven dynamic schema consumer ${COPY}`);
-});
+  test(`${entry.path} with one byte changed refuses the tail table`, () => {
+    const result = retainedAt(entry.path, `${reviewed} `);
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, `candidate: unproven dynamic schema consumer ${entry.path}`);
+  });
+
+  test(`an unlisted copy of ${entry.path} refuses the tail table`, () => {
+    const result = retainedAt(entry.copy, reviewed);
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, `candidate: unproven dynamic schema consumer ${entry.copy}`);
+  });
+}
 
 for (const [name, list] of [
   ['missing', null],

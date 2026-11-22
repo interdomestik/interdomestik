@@ -53,6 +53,10 @@ export const NON_CLIENT_QUERY_CONSUMERS = Object.freeze([
     path: 'apps/web/src/lib/safe-action.shape.ts',
     sha256: '472961aebe630bd1ed171ba58d488edf47dd288dc81422d60f8bacdcb9eb4cf4',
   }),
+  Object.freeze({
+    path: 'apps/web/src/lib/safe-route.core.ts',
+    sha256: '78846d5bf2a64686cf76ad685cd0e53b563b8a5b9af579d7d0e51483a33133c8',
+  }),
 ]);
 
 /** Drivers and client construction (R-d). */
