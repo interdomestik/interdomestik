@@ -52,7 +52,7 @@ async function install(client: postgres.Sql) {
   await new PgDialect().migrate(migrations, drizzleDb._.session, config);
 
   await client.unsafe(`grant usage on schema public to ${role}`);
-  await client.unsafe(`grant select (id) on public."user" to ${role}`);
+  await client.unsafe(`grant select (id, tenant_id) on public."user" to ${role}`);
   await client.unsafe(`grant insert (id, tenant_id, user_id, type, title, content, action_url)
     on public.notifications to ${role}`);
   const legacyOwner = await seedOwner(client, 'legacy', 'branch_manager');

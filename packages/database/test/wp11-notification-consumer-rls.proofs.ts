@@ -65,10 +65,10 @@ export async function proveStaleBoundary(
   const liveId = randomUUID();
   const expiredId = randomUUID();
   await client`insert into notification_deliveries
-    (id, tenant_id, idempotency_key, kind, channel, recipient_user_id, claim_id, created_at, attempts)
-    values (${liveId}, ${a.tenant}, ${liveId}, 'claim_submitted', 'email', ${a.user}, ${a.claim},
+    (id, tenant_id, idempotency_key, kind, channel, recipient_user_id, claim_id, facts, created_at, attempts)
+    values (${liveId}, ${a.tenant}, ${liveId}, 'claim_submitted', 'email', ${a.user}, ${a.claim}, '{}'::jsonb,
       clock_timestamp() - interval '72 hours' + interval '1 minute', 7),
-      (${expiredId}, ${a.tenant}, ${expiredId}, 'claim_submitted', 'email', ${a.user}, ${a.claim},
+      (${expiredId}, ${a.tenant}, ${expiredId}, 'claim_submitted', 'email', ${a.user}, ${a.claim}, '{}'::jsonb,
       clock_timestamp() - interval '72 hours' - interval '1 minute', 7)`;
 
   await withTenantAuthority(authority, async tx => {

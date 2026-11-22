@@ -112,7 +112,11 @@ BEGIN
       END IF;
     END LOOP;
 
+    GRANT SELECT (preferred_locale) ON public."user" TO interdomestik_runtime_rls;
     GRANT UPDATE (preferred_locale) ON public."user" TO interdomestik_runtime_rls;
+    IF NOT has_column_privilege(runtime_role, 'public."user"', 'preferred_locale', 'SELECT') THEN
+      RAISE EXCEPTION 'WP-11 requires SELECT privilege on public.user.preferred_locale';
+    END IF;
     IF NOT has_column_privilege(runtime_role, 'public."user"', 'preferred_locale', 'UPDATE') THEN
       RAISE EXCEPTION 'WP-11 requires UPDATE privilege on public.user.preferred_locale';
     END IF;

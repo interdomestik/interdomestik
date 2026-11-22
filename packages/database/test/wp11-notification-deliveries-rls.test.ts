@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
+import { sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
 import type postgres from 'postgres';
+import * as schema from '../src/schema';
 import {
   restricted,
+  role,
   runtimeRole,
   withNotificationDeliveriesFixture,
   type Rows,
@@ -12,15 +16,30 @@ import {
 async function proveLocaleColumnGrant(client: postgres.Sql, a: Rows) {
   await restricted(client, a.tenant, async tx => {
     const [grants] = await tx`select
+      has_table_privilege(current_user, 'public."user"', 'SELECT') as table_select,
       has_table_privilege(current_user, 'public."user"', 'UPDATE') as table_update,
+      has_column_privilege(current_user, 'public."user"', 'preferred_locale', 'SELECT') as locale_select,
       has_column_privilege(current_user, 'public."user"', 'preferred_locale', 'UPDATE') as locale_update`;
-    assert.deepEqual(grants, { table_update: false, locale_update: true });
+    assert.deepEqual(grants, {
+      table_select: false,
+      table_update: false,
+      locale_select: true,
+      locale_update: true,
+    });
     const updated =
       await tx`update "user" set preferred_locale = 'mk' where id = ${a.user} returning id`;
     assert.deepEqual([...updated], [{ id: a.user }]);
   });
-  const [profile] = await client`select preferred_locale from "user" where id = ${a.user}`;
-  assert.equal(profile.preferred_locale, 'mk');
+  const { resolveRecipientLocale } =
+    await import('../../domain-communications/src/recipient-locale');
+  const locale = await drizzle(client, { schema }).transaction(async tx => {
+    await tx.execute(sql.raw(`set local role ${role}`));
+    await tx.execute(sql`set local row_security = on`);
+    await tx.execute(sql`select set_config('app.current_access_tenant_id', ${a.tenant}, true),
+      set_config('app.current_tenant_id', ${a.tenant}, true)`);
+    return resolveRecipientLocale(tx, a.tenant, a.user);
+  });
+  assert.equal(locale, 'mk');
   await assert.rejects(
     restricted(client, a.tenant, async tx => {
       await tx`update "user" set name = 'Unexpected change' where id = ${a.user}`;
@@ -124,7 +143,7 @@ test('WP-11 delivery and request tables enforce the migration privileges and ten
         ]
       );
     });
-    await t.test('grants locale updates to the runtime role through 0102', async () => {
+    await t.test('grants locale reads and updates to the runtime role through 0102', async () => {
       await proveLocaleColumnGrant(client, a);
     });
     await t.test('enforces delivery and request isolation', async () => {
