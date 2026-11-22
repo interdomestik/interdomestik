@@ -2,15 +2,13 @@ import type { ReactNode } from 'react';
 
 import type { CaseSummary } from '@interdomestik/domain-member';
 
-import { useLocale } from 'next-intl';
-import { formatNumber } from '@/lib/utils/number';
-
 export type CaseSummaryLabels = {
   reference: string;
   referenceFallback: string;
   status: string;
   statusValue: string;
   documentCount: string;
+  documentCountValue?: string;
   nextStep: string;
   nextStepValue: string;
 };
@@ -39,7 +37,6 @@ export function caseSummaryStatusPillClass(status: CaseSummary['status']) {
 }
 
 export function CaseSummaryCard({ entry, labels, referenceValue, summary }: CaseSummaryCardProps) {
-  const locale = useLocale();
   const headingId = `case-summary-${summary.id}`;
 
   return (
@@ -73,7 +70,7 @@ export function CaseSummaryCard({ entry, labels, referenceValue, summary }: Case
         <div className="min-w-0 space-y-1">
           <dt className="text-foreground/70">{labels.documentCount}</dt>
           <dd className="font-medium">
-            {formatNumber(summary.documentCount, locale) ?? String(summary.documentCount)}
+            {labels.documentCountValue ?? String(summary.documentCount)}
           </dd>
         </div>
       </dl>

@@ -1,5 +1,3 @@
-import { getLocale } from 'next-intl/server';
-
 export type MemberPortalRegionCopy = Readonly<{
   empty: string;
   error: string;
@@ -8,21 +6,17 @@ export type MemberPortalRegionCopy = Readonly<{
 }>;
 
 type BoundaryProps = Readonly<{
-  action?: Readonly<{ href: string; label: string }>;
   copy: MemberPortalRegionCopy;
-  locale?: string;
   state: 'empty' | 'error' | 'loading';
-}>;
+}> &
+  Readonly<
+    | { action: Readonly<{ href: string; label: string }>; locale: string }
+    | { action?: undefined; locale?: string }
+  >;
 
-export function MemberPortalRegionBoundary(props: BoundaryProps) {
-  if (props.action && !props.locale) {
-    return getLocale().then(locale => <RegionCard {...props} locale={locale} />);
-  }
-  return <RegionCard {...props} />;
-}
-
-function RegionCard({ action, copy, locale, state }: BoundaryProps) {
+export function MemberPortalRegionBoundary({ action, copy, locale, state }: BoundaryProps) {
   const isLoading = state === 'loading';
+  const settledRole = state === 'error' ? 'alert' : 'status';
 
   return (
     <div
@@ -33,7 +27,7 @@ function RegionCard({ action, copy, locale, state }: BoundaryProps) {
       <h2 className="text-lg font-semibold tracking-tight">{copy.label}</h2>
       <p
         className="max-w-prose text-sm leading-6 text-foreground/70"
-        role={isLoading ? undefined : state === 'error' ? 'alert' : 'status'}
+        role={isLoading ? undefined : settledRole}
       >
         {copy[state]}
       </p>

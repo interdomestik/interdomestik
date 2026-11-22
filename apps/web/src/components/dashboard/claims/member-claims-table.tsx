@@ -42,41 +42,12 @@ type MemberClaimsTableProps = Readonly<{
 
 type PageNavigation = { from: string; to: string };
 
-export function MemberClaimsTable({
-  newCaseHref = '/member/claims/new',
-  newCaseLabel,
-}: MemberClaimsTableProps = {}) {
-  const searchParams = useSearchParams();
+function useMemberClaimsPageNavigation(currentParams: string, isPlaceholderData: boolean) {
   const router = useRouter();
   const pathname = usePathname();
-  const locale = useLocale();
-  const t = useTranslations('claims');
-  const tCategory = useTranslations('claims.category');
-  const tCommon = useTranslations('common');
-  const headerId = useId();
-
-  const statusFilter = searchParams.get('status') || undefined;
-  const searchQuery = searchParams.get('search') || undefined;
-  const requestedPage = Number(searchParams.get('page'));
-  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const currentParams = searchParams.toString();
   const [pendingPage, setPendingPage] = useState<PageNavigation | null>(null);
   const [isTransitionPending, startTransition] = useTransition();
   const isFilterNavigationPending = useMemberClaimsFilterPending();
-
-  const { data, isError, isPlaceholderData, refetch } = useQuery({
-    queryKey: ['claims', 'member', { statusFilter, searchQuery, page }],
-    queryFn: ({ signal }) =>
-      fetchClaims({
-        scope: 'member',
-        status: statusFilter,
-        search: searchQuery,
-        page,
-        perPage: PER_PAGE,
-        signal,
-      }),
-    placeholderData: keepPreviousData,
-  });
 
   const awaitingPageCommit = pendingPage?.from === currentParams;
   const isPagePending =
@@ -99,6 +70,39 @@ export function MemberClaimsTable({
     return undefined;
   }, [awaitingPageCommit, currentParams, isPlaceholderData, pendingPage]);
 
+  function pageParams(targetPage: number) {
+    const query = new URLSearchParams(currentParams);
+    if (targetPage > 1) query.set('page', String(targetPage));
+    else query.delete('page');
+    return query.toString();
+  }
+
+  function pageHref(params: string) {
+    return params ? `${pathname}?${params}` : pathname;
+  }
+
+  function getPageHref(targetPage: number) {
+    return pageHref(pageParams(targetPage));
+  }
+
+  function startPageNavigation(event: MouseEvent<HTMLAnchorElement>, targetPage: number) {
+    if (isPending) {
+      event.preventDefault();
+      return;
+    }
+    if (event.defaultPrevented || !isPrimaryNavigationClick(event)) return;
+
+    const params = pageParams(targetPage);
+    event.preventDefault();
+    if (params === currentParams) return;
+    setPendingPage({ from: currentParams, to: params });
+    startTransition(() => router.push(pageHref(params), { scroll: false }));
+  }
+
+  return { getPageHref, isPagePending, isPending, startPageNavigation };
+}
+
+function useMemberClaimsRetry(currentParams: string, refetch: () => Promise<unknown>) {
   const [retryKey, setRetryKey] = useState<string | null>(null);
   const retryInFlight = useRef(false);
   const isRetrying = retryKey === currentParams;
@@ -115,7 +119,98 @@ export function MemberClaimsTable({
     }
   }
 
-  const regionRef = useRef<HTMLDivElement>(null);
+  return { isRetrying, retry };
+}
+
+function useMemberClaimsListState(locale: string, t: ReturnType<typeof useTranslations<'claims'>>) {
+  const searchParams = useSearchParams();
+  const statusFilter = searchParams.get('status') || undefined;
+  const searchQuery = searchParams.get('search') || undefined;
+  const requestedPage = Number(searchParams.get('page'));
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const currentParams = searchParams.toString();
+
+  const { data, isError, isPlaceholderData, refetch } = useQuery({
+    queryKey: ['claims', 'member', { statusFilter, searchQuery, page }],
+    queryFn: ({ signal }) =>
+      fetchClaims({
+        scope: 'member',
+        status: statusFilter,
+        search: searchQuery,
+        page,
+        perPage: PER_PAGE,
+        signal,
+      }),
+    placeholderData: keepPreviousData,
+  });
+  const navigation = useMemberClaimsPageNavigation(currentParams, isPlaceholderData);
+  const { isRetrying, retry } = useMemberClaimsRetry(currentParams, refetch);
+
+  const [resultStatus, setResultStatus] = useState('');
+  const displayedPage = isPlaceholderData ? (data?.page ?? page) : page;
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
+  const pageLabel = formatNumber(displayedPage, locale) ?? '';
+  const totalPagesLabel = formatNumber(totalPages, locale) ?? '';
+
+  // Keep the last completion message through navigation and retries.
+  if (!navigation.isPending && !isRetrying) {
+    const message =
+      !isError && data
+        ? t('memberList.resultStatus', {
+            page: pageLabel,
+            pages: totalPagesLabel,
+            count: data.claims.length,
+          })
+        : '';
+    if (message !== resultStatus) setResultStatus(message);
+  }
+
+  return {
+    ...navigation,
+    data,
+    displayedPage,
+    hasFilters: Boolean(searchQuery || statusFilter),
+    isPlaceholderData,
+    isRetrying,
+    page,
+    pageLabel,
+    resultStatus,
+    retry,
+    showsError: isError || isRetrying,
+    totalPages,
+    totalPagesLabel,
+  };
+}
+
+export function MemberClaimsTable({
+  newCaseHref = '/member/claims/new',
+  newCaseLabel,
+}: MemberClaimsTableProps = {}) {
+  const locale = useLocale();
+  const t = useTranslations('claims');
+  const tCategory = useTranslations('claims.category');
+  const tCommon = useTranslations('common');
+  const headerId = useId();
+  const {
+    data,
+    displayedPage,
+    getPageHref,
+    hasFilters,
+    isPagePending,
+    isPending,
+    isPlaceholderData,
+    isRetrying,
+    page,
+    pageLabel,
+    resultStatus,
+    retry,
+    showsError,
+    startPageNavigation,
+    totalPages,
+    totalPagesLabel,
+  } = useMemberClaimsListState(locale, t);
+
+  const regionRef = useRef<HTMLElement>(null);
   const removedFocusedControl = useRef<HTMLElement>(null);
   const watchControl = useCallback((control: HTMLElement | null) => {
     if (!control) return;
@@ -133,54 +228,10 @@ export function MemberClaimsTable({
 
   // A placeholder can outlive a failed key in the query observer. Only a
   // successful last completion can supply rows for the next request.
-  const [resultStatus, setResultStatus] = useState('');
-  const showsError = isError || isRetrying;
   const showsUpdating = isPlaceholderData && resultStatus !== '' && Boolean(data?.claims.length);
   const showsLoading = !showsError && (!data || (isPlaceholderData && !showsUpdating));
   const showsEmpty = !showsError && !isPlaceholderData && data?.claims.length === 0;
   const hasRows = !showsError && !showsLoading && Boolean(data?.claims.length);
-  const displayedPage = isPlaceholderData ? (data?.page ?? page) : page;
-  const totalPages = Math.max(1, data?.totalPages ?? 1);
-  const pageLabel = formatNumber(displayedPage, locale) ?? '';
-  const totalPagesLabel = formatNumber(totalPages, locale) ?? '';
-
-  // Keep the last completion message through navigation and retries.
-  if (!isPending && !isRetrying) {
-    const message =
-      !showsError && data
-        ? t('memberList.resultStatus', {
-            page: pageLabel,
-            pages: totalPagesLabel,
-            count: data.claims.length,
-          })
-        : '';
-    if (message !== resultStatus) setResultStatus(message);
-  }
-
-  function pageParams(targetPage: number) {
-    const query = new URLSearchParams(currentParams);
-    if (targetPage > 1) query.set('page', String(targetPage));
-    else query.delete('page');
-    return query.toString();
-  }
-
-  function pageHref(params: string) {
-    return params ? `${pathname}?${params}` : pathname;
-  }
-
-  function startPageNavigation(event: MouseEvent<HTMLAnchorElement>, targetPage: number) {
-    if (isPending) {
-      event.preventDefault();
-      return;
-    }
-    if (event.defaultPrevented || !isPrimaryNavigationClick(event)) return;
-
-    const params = pageParams(targetPage);
-    event.preventDefault();
-    if (params === currentParams) return;
-    setPendingPage({ from: currentParams, to: params });
-    startTransition(() => router.push(pageHref(params), { scroll: false }));
-  }
 
   function pageControl(direction: 'previous' | 'next', target: number, isEnd: boolean) {
     const testId = `member-claims-page-${direction}`;
@@ -196,7 +247,7 @@ export function MemberClaimsTable({
         aria-disabled={isPending || undefined}
         className={PAGE_LINK}
         data-testid={testId}
-        href={pageHref(pageParams(target))}
+        href={getPageHref(target)}
         onAuxClick={event => {
           if (isPending) event.preventDefault();
         }}
@@ -214,20 +265,17 @@ export function MemberClaimsTable({
 
   return (
     <div className="min-w-0 max-w-full space-y-4">
-      <div
+      <section
         aria-busy={Boolean(isPending || showsLoading)}
         aria-label={t('title')}
         className="min-w-0 space-y-4 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 forced-colors:focus-visible:outline"
         data-testid={hasRows ? 'member-claims-table-region' : undefined}
         ref={regionRef}
-        role="region"
         tabIndex={-1}
       >
         {showsLoading && (
           <div className={`${CARD} space-y-3 p-6 text-sm text-foreground/70`}>
-            <p aria-busy="true" role="status">
-              {tCommon('loading')}
-            </p>
+            <output className="block">{tCommon('loading')}</output>
             <div aria-hidden="true" className="space-y-2 motion-safe:animate-pulse">
               <div className="h-6 rounded-lg bg-[hsl(var(--surface-strong))]" />
               <div className="h-6 rounded-lg bg-[hsl(var(--surface-strong))]" />
@@ -256,34 +304,33 @@ export function MemberClaimsTable({
 
         {showsEmpty && (
           <div className={`${CARD} space-y-4 p-5 sm:p-6`} data-testid="member-claims-empty">
-            <div className="space-y-2" role="status">
+            <div className="space-y-2">
               <h3 className="text-lg font-semibold">{t('empty.title')}</h3>
-              <p className="max-w-prose text-sm leading-6 text-foreground/70">
-                {searchQuery || statusFilter ? t('empty.filtered') : t('empty.description')}
-              </p>
+              <output className="block max-w-prose text-sm leading-6 text-foreground/70">
+                {hasFilters ? t('empty.filtered') : t('empty.description')}
+              </output>
             </div>
-            {page > 1 ? (
+            {page > 1 && (
               <Link
                 aria-disabled={isPending || undefined}
                 className={PAGE_LINK}
-                href={pageHref(pageParams(1))}
+                href={getPageHref(1)}
                 onClick={event => startPageNavigation(event, 1)}
                 ref={watchControl}
               >
                 {tCommon('previous')}
               </Link>
-            ) : !searchQuery && !statusFilter ? (
+            )}
+            {page === 1 && !hasFilters && (
               <Link className={`${PRIMARY_CONTROL} hover:underline`} href={newCaseHref}>
                 {newCaseLabel ?? t('empty.createFirst')}
               </Link>
-            ) : null}
+            )}
           </div>
         )}
 
         {showsUpdating && (
-          <p className="text-sm text-foreground/70" role="status">
-            {t('memberList.updating')}
-          </p>
+          <output className="block text-sm text-foreground/70">{t('memberList.updating')}</output>
         )}
 
         {hasRows && data && (
@@ -342,15 +389,14 @@ export function MemberClaimsTable({
         )}
 
         {isPagePending && (
-          <div
+          <output
             data-testid="member-claims-pagination-pending"
-            role="status"
-            className="text-sm text-foreground/70"
+            className="block text-sm text-foreground/70"
           >
             {tCommon('processing')}
-          </div>
+          </output>
         )}
-      </div>
+      </section>
       <p aria-live="polite" className="text-sm text-foreground/70">
         {resultStatus}
       </p>

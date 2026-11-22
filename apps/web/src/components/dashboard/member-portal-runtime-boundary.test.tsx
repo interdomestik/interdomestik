@@ -1,6 +1,7 @@
 import { Suspense, type ComponentProps } from 'react';
 import type { CaseSummary, MembershipLifecycleBucket } from '@interdomestik/domain-member';
 import { render, screen, within } from '@testing-library/react';
+import { getLocale } from 'next-intl/server';
 import { describe, expect, it, vi } from 'vitest';
 
 import { formatNumber } from '@/lib/utils/number';
@@ -23,7 +24,7 @@ import {
 vi.mock('@/i18n/routing', () => ({
   Link: (props: ComponentProps<'a'>) => <a data-soft-navigation="true" {...props} />,
 }));
-vi.mock('next-intl/server', () => ({ getLocale: async () => 'en' }));
+vi.mock('next-intl/server', () => ({ getLocale: vi.fn(() => Promise.resolve('en')) }));
 
 const summaries = JSON.parse(
   '[{"caseKind":"accident","id":"claim-1","reference":"CLM-001","status":"submitted","documentCount":2,"nextStep":"team_review","occurredAt":"2026-08-29T10:00:00.000Z"},{"caseKind":"generic","id":"claim-2","title":"Property damage case","reference":null,"status":"draft","documentCount":0,"nextStep":"member_action","occurredAt":null}]'
@@ -151,6 +152,18 @@ describe('Member portal', () => {
     }
   });
 
+  it('formats the document count using the current request locale', async () => {
+    vi.mocked(getLocale).mockResolvedValueOnce('de');
+    render(
+      await PortalCasesRegion({
+        copy,
+        promise: Promise.resolve([{ ...summaries[0]!, documentCount: 1234 }]),
+      })
+    );
+    const card = screen.getByRole('article', { name: 'CLM-001' });
+    expect(within(card).getByText('1.234')).toBeVisible();
+  });
+
   it('adds a localized date or list position to the fallback heading and link', async () => {
     const dated = { ...summaries[0]!, reference: ' ', title: ' ' };
     const undated = { ...summaries[1]!, title: '' };
@@ -252,16 +265,17 @@ describe('Member portal', () => {
     for (const skeleton of skeletons) expect(skeleton).toBeVisible();
   });
 
-  it('uses the request locale when the retry caller omits locale', async () => {
+  it('renders a native retry link synchronously with the supplied locale', () => {
     render(
-      await MemberPortalRegionBoundary({
+      MemberPortalRegionBoundary({
         action: { href: '/member', label: 'Try again' },
         copy: copy.regions.case,
+        locale: 'sq',
         state: 'error',
       })
     );
     const retry = screen.getByRole('link', { name: 'Try again' });
-    expect(retry).toHaveAttribute('href', '/en/member');
+    expect(retry).toHaveAttribute('href', '/sq/member');
     expect(retry).not.toHaveAttribute('data-soft-navigation');
   });
 
@@ -377,7 +391,11 @@ describe('Member portal', () => {
     const catalogs = [enMessages, mkMessages, sqMessages, srMessages];
     const portals = catalogs.map(({ dashboard }) => dashboard.portal);
     for (const portal of [...portals, deMessages.dashboard.portal]) {
-      expect(leafPaths(portal).sort().join('|')).toBe(PATHS);
+      expect(
+        leafPaths(portal)
+          .sort((a, b) => a.localeCompare(b))
+          .join('|')
+      ).toBe(PATHS);
     }
     expect(catalogs.map(({ dashboard }) => dashboard.member_assistance.cases.open)).toEqual([
       'View case',

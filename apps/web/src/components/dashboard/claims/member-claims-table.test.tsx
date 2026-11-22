@@ -129,8 +129,13 @@ describe('MemberClaimsTable', () => {
     } as unknown as ReturnType<typeof useQuery>);
 
     render(<MemberClaimsTable />);
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
+    const status = screen.getByRole('status');
+    const region = screen.getByRole('region');
+    expect(status).toHaveTextContent('Loading...');
+    expect(status).toBeInstanceOf(HTMLOutputElement);
+    expect(status).not.toHaveAttribute('aria-busy');
+    expect(region).toHaveAttribute('aria-busy', 'true');
+    expect(region).toContainElement(status);
   });
 
   it('renders error state', async () => {

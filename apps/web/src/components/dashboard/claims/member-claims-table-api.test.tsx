@@ -190,7 +190,8 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     expect(next).toHaveFocus();
     expect(next).toHaveAttribute('href', '/member/claims?page=2');
     const pending = screen.getByTestId('member-claims-pagination-pending');
-    expect(pending).toHaveAttribute('role', 'status');
+    expect(screen.getByRole('status')).toBe(pending);
+    expect(pending).toBeInstanceOf(HTMLOutputElement);
     expect(pending).not.toHaveAttribute('aria-live');
 
     const finish = deferFetch();

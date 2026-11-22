@@ -1,12 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { CaseSummaryCard } from './accident-case-summary';
 import { caseKindRegistry } from './case-kind-registry';
 import { GenericCaseSummary } from './generic-case-summary';
-
-vi.mock('next-intl', () => ({ useLocale: () => 'en' }));
 
 const summary = {
   caseKind: 'accident' as const,
@@ -57,18 +55,6 @@ describe('caseKindRegistry', () => {
     expect(article).not.toHaveTextContent('claim-1');
   });
 
-  it('formats the document count using the current locale', () => {
-    render(
-      <CaseSummaryCard
-        entry={null}
-        labels={labels}
-        referenceValue="CLM-001"
-        summary={{ ...summary, documentCount: 1234 }}
-      />
-    );
-    expect(screen.getByText('1,234')).toBeVisible();
-  });
-
   it('keeps the unmounted leaf server-safe and boundary-clean', () => {
     const source = [
       'accident-case-summary.tsx',
@@ -77,7 +63,7 @@ describe('caseKindRegistry', () => {
     ]
       .map(file => readFileSync(new URL(file, import.meta.url), 'utf8'))
       .join('\n');
-    expect(source.replace("import { useLocale } from 'next-intl';", '')).not.toMatch(
+    expect(source).not.toMatch(
       /['"]use client['"]|useState|useEffect|fetch\(|onClick|<button|backdrop|filter|glass|motion|w-\[|next-intl|@interdomestik\/(?:database|shared-auth|domain-(?!member))|next\//u
     );
     expect(source).toMatch(/import type .*@interdomestik\/domain-member/u);

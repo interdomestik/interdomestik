@@ -114,7 +114,8 @@ export function ClaimsFilters() {
         </div>
       ) : null}
 
-      <div aria-label={t('table.status')} className="flex flex-wrap gap-2" role="group">
+      <fieldset className="flex min-w-0 flex-wrap gap-2">
+        <legend className="sr-only">{t('table.status')}</legend>
         {statusOptions.map(option => {
           const isActive = currentStatus === option.value;
           const isInert = isNavigationPending || isActive;
@@ -140,7 +141,7 @@ export function ClaimsFilters() {
             </button>
           );
         })}
-      </div>
+      </fieldset>
     </div>
   );
 }

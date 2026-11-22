@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import type * as Member from '@interdomestik/domain-member';
 import { TriangleAlert } from 'lucide-react';
-import { getLocale, getTranslations } from 'next-intl/server';
+import { getLocale } from 'next-intl/server';
 
 import {
   caseSummaryStatusPillClass,
@@ -44,7 +44,7 @@ export type MemberPortalCopy = Readonly<{
   regions: Readonly<Record<'actions' | 'case' | 'updates', MemberPortalRegionCopy>>;
   status: (status: Member.CaseLifecycleStatus) => string;
   title: string;
-  updates_item?: Readonly<{ occurred: string; current_status: string }>;
+  updates_item: Readonly<{ occurred: string; current_status: string }>;
 }>;
 
 type CaseProps = Readonly<{
@@ -71,7 +71,10 @@ export async function PortalCasesRegion({ copy, promise }: CaseProps) {
     <div className="grid min-w-0 gap-4 sm:gap-5">
       <h2 className="text-lg font-semibold tracking-tight">{copy.regions.case.label}</h2>
       {summaries.map((summary, index) => {
-        const labels = copy.caseLabels(summary);
+        const labels = {
+          ...copy.caseLabels(summary),
+          documentCountValue: formatNumber(summary.documentCount, locale) ?? undefined,
+        };
         const reference = summary.reference?.trim() || summary.title?.trim();
         const referenceValue =
           reference ||
@@ -199,11 +202,7 @@ export async function PortalUpdatesRegion({ copy, locale, promise }: UpdateProps
       : []
   );
   if (items.length === 0) return <Boundary copy={copy.regions.updates} state="empty" />;
-  const t = copy.updates_item
-    ? null
-    : await getTranslations({ locale, namespace: 'dashboard.portal.updates_item' });
-  const occurred = copy.updates_item?.occurred ?? t?.('occurred');
-  const currentStatus = copy.updates_item?.current_status ?? t?.('current_status');
+  const { occurred, current_status: currentStatus } = copy.updates_item;
 
   return (
     <div className="min-w-0 space-y-5 rounded-2xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))] p-5 [overflow-wrap:anywhere] sm:p-6 forced-colors:border-[CanvasText]">
