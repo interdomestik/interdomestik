@@ -34,7 +34,7 @@ Name the tier from the whole diff (deletions, renames). Several tiers: the highe
 
 Done = required checks green + Sonar: no new issue + the R-01 review on the final head, confirming the tier + local verification + the tier's line. Say which state a change is in (prepared, tested, merged, deployed, validated by a user) and never report as passed what failed or did not run. E~: CHK-03*.
 
-Local verification: T4–T6 run, on the macOS machine (marker, pre-check rule, narrowing, Mac use, instruction-only: `RULES.md`, R-04), configuration recorded, `pnpm pr:verify` and `pnpm security:guard` once, last, on the final head, after green hosted checks and the review's yes. T1–T4 skip it only if all required checks and the unit, static, audit, RLS, PR E2E and Pilot Gate jobs ran green on that head and current base, identities recorded, nothing flaky, retried or skipped unapproved, no coverage gap; else T4: it runs.
+Local verification: T4–T6 run, on the macOS machine (marker, pre-check rule, narrowing, Mac use, instruction-only, flake, carry-over: `RULES.md`, R-04), configuration recorded, `pnpm pr:verify` and `pnpm security:guard` once, last, on the final head, after green hosted checks and the review's yes. T1–T4 skip it only if all required checks and the unit, static, audit, RLS, PR E2E and Pilot Gate jobs ran green on that head and current base, identities recorded, nothing flaky, retried or skipped unapproved, no coverage gap; else T4: it runs.
 
 ## 4. Server code and data
 
@@ -67,5 +67,5 @@ Local verification: T4–T6 run, on the macOS machine (marker, pre-check rule, n
 - R-25 Never print, log, commit or serialize a secret, nor copy a credential into a file or variable. Never work around a sandbox, hook or approval refusal; report it. `.env*` files stay development-only and untracked; local services bind to loopback. E~: `gitleaks`.
 - R-26 No real personal data, scans or office files in the repository, logs or any AI tool; member spreadsheets enter only by the upload screen. E~: CHK-23*.
 - R-27 Holds: `better-auth` ~1.6 with `accountId` equal to the e-mail; never `postcss-selector-parser` 6.1.3; `turbo` 2.10.7. E: pins; `pnpm-audit`.
-- R-33 Search with `rg` and `fd`; never `rg -r`; ANE: `RULES.md`, R-33. E: HOOK-03*.
+- R-33 Search with `rg` and `fd`; never `rg -r`. E: HOOK-03*.
 - R-36 `pnpm` only; never hand-edit generated output. E~: pin, ignore rules.
