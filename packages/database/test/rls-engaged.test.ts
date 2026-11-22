@@ -155,7 +155,7 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
       userId: ksUserId,
       title: 'RLS isolation proof',
       description: 'cross-tenant row must not leak',
-      category: 'retail',
+      category: 'property',
       companyName: 'RLS Test Co',
       ...claimLifecycleFieldsForStatus('draft'),
       origin: 'portal',

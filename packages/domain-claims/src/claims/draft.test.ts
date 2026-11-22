@@ -2,8 +2,10 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  dbInsert: vi.fn(),
   dbUpdate: vi.fn(),
   findFirst: vi.fn(),
+  returning: vi.fn(),
   transitionClaimStatus: vi.fn(),
   withTenant: vi.fn(() => ({ scoped: true })),
   withTenantContext: vi.fn(),
@@ -11,15 +13,18 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => {
   const db = {
-    insert: vi.fn(),
+    insert: mocks.dbInsert,
     query: { claims: { findFirst: mocks.findFirst } },
     update: mocks.dbUpdate,
   };
   return {
+    and: vi.fn((...conditions: unknown[]) => conditions),
     claimDocuments: {},
     claims: {
+      caseLifecycleState: 'claims.case_lifecycle_state',
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
+      userId: 'claims.user_id',
     },
     db,
     eq: vi.fn((left, right) => ({ left, right })),
@@ -41,7 +46,7 @@ vi.mock('./transition', () => ({
   transitionClaimStatus: mocks.transitionClaimStatus,
 }));
 
-import { cancelClaimCore } from './draft';
+import { cancelClaimCore, updateDraftClaimCore } from './draft';
 
 const authority = mintTestTenantAuthority('tenant-1');
 const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
@@ -57,14 +62,46 @@ function lifecycleStatesForStatus(status: string) {
   return { caseLifecycleState: 'draft', recoveryLifecycleState: 'not_started' };
 }
 
-function mockClaim(status = 'draft') {
+function mockClaim(status = 'draft', category = 'vehicle') {
   mocks.findFirst.mockResolvedValueOnce({
     ...lifecycleStatesForStatus(status),
+    category,
     id: 'claim-1',
     tenantId: 'tenant-1',
     title: 'Claim',
     userId: 'member-1',
   });
+}
+
+function runUpdate(category: string, deps = sideEffectDeps()) {
+  return updateDraftClaimCore(
+    {
+      authority,
+      claimId: 'claim-1',
+      data: {
+        category,
+        companyName: 'Auto Insurer',
+        currency: 'EUR',
+        description: 'The vehicle was damaged in the parking lot.',
+        files: [
+          {
+            bucket: 'claim-evidence',
+            category: 'evidence',
+            classification: 'pii',
+            id: 'upload-1',
+            name: 'incident.pdf',
+            path: 'claims/member-1/unassigned/incident.pdf',
+            size: 128,
+            type: 'application/pdf',
+          },
+        ],
+        title: 'Vehicle repair claim',
+      },
+      requestHeaders,
+      session: memberSession,
+    },
+    deps
+  );
 }
 
 function runCancel(deps = {}) {
@@ -151,5 +188,60 @@ describe('cancelClaimCore', () => {
     expect(result).toEqual({ success: false, error: 'Claim cannot be cancelled' });
     expect(mocks.transitionClaimStatus).not.toHaveBeenCalled();
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe('updateDraftClaimCore', () => {
+  const where = vi.fn(() => ({ returning: mocks.returning }));
+  const set = vi.fn(() => ({ where }));
+  const values = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.dbUpdate.mockReturnValue({ set });
+    mocks.dbInsert.mockReturnValue({ values });
+    mockClaim('draft', 'Personal Injury');
+  });
+
+  it.each(['injury', 'invalidity', 'Personal Injury'])(
+    'refuses to edit a draft to category %s',
+    async category => {
+      await expect(runUpdate(category)).resolves.toEqual({
+        success: false,
+        error: 'Validation failed',
+      });
+      expect(mocks.dbUpdate).not.toHaveBeenCalled();
+      expect(mocks.dbInsert).not.toHaveBeenCalled();
+    }
+  );
+
+  it('corrects a legacy category while the claim belongs to the member and is still a draft', async () => {
+    mocks.returning.mockResolvedValueOnce([{ id: 'claim-1' }]);
+
+    await expect(runUpdate(' VEHICLE ')).resolves.toEqual({ success: true });
+
+    expect(set).toHaveBeenCalledWith(expect.objectContaining({ category: 'vehicle' }));
+    expect(mocks.withTenant).toHaveBeenCalledWith('tenant-1', 'claims.tenant_id', [
+      { left: 'claims.id', right: 'claim-1' },
+      { left: 'claims.user_id', right: 'member-1' },
+      { left: 'claims.case_lifecycle_state', right: 'draft' },
+    ]);
+    expect(values).toHaveBeenCalledWith([
+      expect.objectContaining({ claimId: 'claim-1', name: 'incident.pdf', tenantId: 'tenant-1' }),
+    ]);
+  });
+
+  it('refuses a stale draft edit before attaching documents or recording success', async () => {
+    mocks.returning.mockResolvedValueOnce([]);
+    const deps = sideEffectDeps();
+
+    await expect(runUpdate('vehicle', deps)).resolves.toEqual({
+      success: false,
+      error: 'Only draft claims can be edited',
+    });
+
+    expect(mocks.dbInsert).not.toHaveBeenCalled();
+    expect(deps.logAuditEvent).not.toHaveBeenCalled();
+    expect(deps.revalidatePath).not.toHaveBeenCalled();
   });
 });

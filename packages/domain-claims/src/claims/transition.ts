@@ -3,6 +3,7 @@ import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
+import { isClaimCategoryOpenForIntake } from './intake-category';
 import { canTransition } from './transition-guard';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import { loadTransitionReadContext } from './transition-read-context';
@@ -35,6 +36,10 @@ export async function writeAuthorizedTransitionStatus(
     throw new ClaimTransitionAuthorizationError(claimId);
   }
   const toStatus = authorization.to;
+  const intakeCategoryCondition =
+    current.status === 'draft' && toStatus === 'submitted'
+      ? sql`public.claim_category_open_for_intake(${claims.category})`
+      : undefined;
 
   const now = new Date();
   const updateData =
@@ -54,7 +59,8 @@ export async function writeAuthorizedTransitionStatus(
       and(
         readWhere,
         transitionCurrentStateCas(current),
-        eq(claims.lifecycleVersion, current.lifecycleVersion)
+        eq(claims.lifecycleVersion, current.lifecycleVersion),
+        intakeCategoryCondition
       )
     )
     .returning({ id: claims.id, lifecycleVersion: claims.lifecycleVersion });
@@ -124,6 +130,13 @@ export async function authorizeClaimTransitionInTransaction(
   if (!current) return { success: false, error: 'claim_not_found' };
   if (!isValidTransitionCurrentState(current)) {
     return { success: false, error: 'invalid_current_status' };
+  }
+  if (
+    current.status === 'draft' &&
+    toStatus === 'submitted' &&
+    !isClaimCategoryOpenForIntake(current.category)
+  ) {
+    return { success: false, error: 'transition_rejected' };
   }
 
   const decision = canTransition({

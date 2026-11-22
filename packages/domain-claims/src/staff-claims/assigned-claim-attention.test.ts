@@ -33,10 +33,22 @@ vi.mock('@interdomestik/database', () => ({
     requestId: 'evidence.request_id',
     submittedAt: 'evidence.submitted_at',
   },
-  claims: { id: 'claim.id', tenantId: 'claim.tenant_id', staffId: 'claim.staff_id' },
+  claimCorrespondence: {
+    tenantId: 'correspondence.tenant_id',
+    claimId: 'correspondence.claim_id',
+    direction: 'correspondence.direction',
+    followUpAt: 'correspondence.follow_up_at',
+  },
+  claims: {
+    id: 'claim.id',
+    tenantId: 'claim.tenant_id',
+    staffId: 'claim.staff_id',
+    caseFollowUpAt: 'claim.case_follow_up_at',
+  },
   and: mocks.and,
   eq: mocks.eq,
   inArray: mocks.inArray,
+  sql: () => ({ mapWith: () => 'outbound.due_at' }),
   withTenantContext: (
     context: unknown,
     action: (tx: { select: typeof mocks.select }) => unknown
@@ -45,6 +57,16 @@ vi.mock('@interdomestik/database', () => ({
     return action({ select: mocks.select });
   },
 }));
+
+vi.mock('@interdomestik/database/tenant-security', () => ({
+  withTenant: (tenantId: string, column: string, condition: unknown) =>
+    mocks.and(mocks.eq(column, tenantId), condition),
+}));
+
+vi.mock('../claims/correspondence-read', async () => {
+  const { sql } = await import('drizzle-orm');
+  return { hasCorrespondenceReply: () => sql`answered` };
+});
 
 import {
   deriveAssignedClaimAttention,
@@ -167,5 +189,28 @@ describe('getAssignedStaffClaimAttention', () => {
     await expect(
       getAssignedStaffClaimAttention(staffSession, authority, ['claim-1'])
     ).rejects.toThrow('database unavailable');
+  });
+
+  it('includes the earliest past case or unanswered outbound follow-up for the assigned claim', async () => {
+    mocks.query.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      {
+        claimId: 'claim-1',
+        caseDueAt: new Date('2026-09-28T12:00:00.000Z'),
+        outboundDueAt: new Date('2026-09-27T12:00:00.000Z'),
+      },
+    ]);
+    await expect(
+      getAssignedStaffClaimAttention(staffSession, authority, ['claim-1'], now)
+    ).resolves.toEqual({
+      'claim-1': { nextActor: 'untracked', overdueFollowUpDueAt: '2026-09-27T12:00:00.000Z' },
+    });
+    expect(mocks.query.where).toHaveBeenCalledWith(
+      expect.objectContaining({
+        op: 'and',
+        conditions: expect.arrayContaining([
+          { op: 'eq', left: 'claim.tenant_id', right: 'tenant-1' },
+        ]),
+      })
+    );
   });
 });

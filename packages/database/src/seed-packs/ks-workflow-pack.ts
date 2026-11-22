@@ -313,7 +313,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
     packId('ks', 'member', (idx % ALBANIAN_NAMES.length) + 1);
 
   // 4. Seeding Logic Helpers
-  const CATEGORIES = ['vehicle', 'property', 'medical', 'travel', 'liability'] as const;
+  const CATEGORIES = ['vehicle', 'property', 'travel', 'travel', 'travel'] as const;
   const STATUSES = [
     'submitted',
     'submitted',

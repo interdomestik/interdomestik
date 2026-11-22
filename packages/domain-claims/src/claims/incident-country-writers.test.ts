@@ -9,7 +9,7 @@ const h = vi.hoisted(() => {
     userId: 'member-1',
   };
   const values = vi.fn();
-  const where = vi.fn();
+  const where = vi.fn(() => ({ returning: vi.fn().mockResolvedValue([{ id: 'claim-1' }]) }));
   const set = vi.fn(() => ({ where }));
   const insert = vi.fn(() => ({ values }));
   return {
@@ -32,6 +32,7 @@ const h = vi.hoisted(() => {
   };
 });
 vi.mock('@interdomestik/database', () => ({
+  and: vi.fn((...args: unknown[]) => ({ args })),
   appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   agentClients: { agentId: 'agent_id', memberId: 'member_id', status: 'status', tenantId: 't' },
   claimDocuments: { __name: 'claim_documents' },
@@ -90,9 +91,9 @@ function claimData(overrides: Partial<CreateClaimValues> = {}): CreateClaimValue
 
 function claimForm(countryCode?: string) {
   const data = new FormData();
-  data.set('title', 'Retail refund claim');
-  data.set('category', 'retail');
-  data.set('companyName', 'Retail Co');
+  data.set('title', 'Vehicle repair claim');
+  data.set('category', 'vehicle');
+  data.set('companyName', 'Auto Insurer');
   if (countryCode) data.set('incidentCountryCode', countryCode);
   return data;
 }

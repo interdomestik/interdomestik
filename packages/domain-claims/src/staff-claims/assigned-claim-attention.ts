@@ -1,16 +1,23 @@
 import {
   and,
+  claimCorrespondence,
   claimInformationRequestEvidence,
   claimInformationRequests,
   claims,
   eq,
   inArray,
+  sql,
+  type TenantTransaction,
 } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { withTenant } from '@interdomestik/database/tenant-security';
+import { not } from 'drizzle-orm';
+import { hasCorrespondenceReply } from '../claims/correspondence-read';
+import { claimLifecycleStatusNotIn } from '../claims/lifecycle-read-sql';
 import type { ClaimsSession } from '../claims/types';
 
 export type AssignedClaimAttention = {
@@ -80,6 +87,37 @@ export function deriveAssignedClaimAttention(
   return byClaim;
 }
 
+function readCaseFollowUps(
+  tx: TenantTransaction,
+  tenantId: string,
+  staffId: string,
+  claimIds: readonly string[]
+) {
+  const unanswered = sql<Date | null>`(
+    select min(${claimCorrespondence.followUpAt}) from ${claimCorrespondence}
+    where ${and(
+      eq(claimCorrespondence.tenantId, claims.tenantId),
+      eq(claimCorrespondence.claimId, claims.id),
+      eq(claimCorrespondence.direction, 'outbound'),
+      not(hasCorrespondenceReply())
+    )}
+  )`.mapWith(claimCorrespondence.followUpAt);
+  return tx
+    .select({ claimId: claims.id, caseDueAt: claims.caseFollowUpAt, outboundDueAt: unanswered })
+    .from(claims)
+    .where(
+      withTenant(
+        tenantId,
+        claims.tenantId,
+        and(
+          inArray(claims.id, claimIds),
+          eq(claims.staffId, staffId),
+          claimLifecycleStatusNotIn(['draft'])
+        )
+      )
+    );
+}
+
 /** Only the assigned staff owner receives request progress for these claim IDs. */
 export async function getAssignedStaffClaimAttention(
   session: ClaimsSession | null,
@@ -93,41 +131,44 @@ export async function getAssignedStaffClaimAttention(
   const { tenantId } = readTenantAuthority(authority);
   const staffId = actor.id;
 
-  const rows = await withTenantAuthority(
-    authority,
-    async tx =>
-      await tx
-        .select({
-          claimId: claimInformationRequests.claimId,
-          requestId: claimInformationRequests.id,
-          dueAt: claimInformationRequests.dueAt,
-          submittedAt: claimInformationRequestEvidence.submittedAt,
-        })
-        .from(claimInformationRequests)
-        .innerJoin(
-          claims,
-          and(
-            eq(claims.id, claimInformationRequests.claimId),
-            eq(claims.tenantId, claimInformationRequests.tenantId)
-          )
+  return withTenantAuthority(authority, async tx => {
+    const rows = await tx
+      .select({
+        claimId: claimInformationRequests.claimId,
+        requestId: claimInformationRequests.id,
+        dueAt: claimInformationRequests.dueAt,
+        submittedAt: claimInformationRequestEvidence.submittedAt,
+      })
+      .from(claimInformationRequests)
+      .innerJoin(
+        claims,
+        and(
+          eq(claims.id, claimInformationRequests.claimId),
+          eq(claims.tenantId, claimInformationRequests.tenantId)
         )
-        .leftJoin(
-          claimInformationRequestEvidence,
-          and(
-            eq(claimInformationRequestEvidence.tenantId, claimInformationRequests.tenantId),
-            eq(claimInformationRequestEvidence.claimId, claimInformationRequests.claimId),
-            eq(claimInformationRequestEvidence.requestId, claimInformationRequests.id)
-          )
+      )
+      .leftJoin(
+        claimInformationRequestEvidence,
+        and(
+          eq(claimInformationRequestEvidence.tenantId, claimInformationRequests.tenantId),
+          eq(claimInformationRequestEvidence.claimId, claimInformationRequests.claimId),
+          eq(claimInformationRequestEvidence.requestId, claimInformationRequests.id)
         )
-        .where(
-          and(
-            eq(claimInformationRequests.tenantId, tenantId),
-            inArray(claimInformationRequests.claimId, [...claimIds]),
-            eq(claimInformationRequests.status, 'open'),
-            eq(claims.staffId, staffId)
-          )
+      )
+      .where(
+        and(
+          eq(claimInformationRequests.tenantId, tenantId),
+          inArray(claimInformationRequests.claimId, [...claimIds]),
+          eq(claimInformationRequests.status, 'open'),
+          eq(claims.staffId, staffId)
         )
-  );
-
-  return deriveAssignedClaimAttention(claimIds, rows, now);
+      );
+    const followUps = await readCaseFollowUps(tx, tenantId, staffId, claimIds);
+    const attention = deriveAssignedClaimAttention(claimIds, rows, now);
+    for (const row of followUps) {
+      if (row.caseDueAt) recordOverdueFollowUp(attention[row.claimId], row.caseDueAt, now);
+      if (row.outboundDueAt) recordOverdueFollowUp(attention[row.claimId], row.outboundDueAt, now);
+    }
+    return attention;
+  });
 }

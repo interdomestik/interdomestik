@@ -147,7 +147,7 @@ async function settleFreshCategoryStage(
   }
   await expect(intake.getByTestId('claim-created-success')).toHaveCount(0);
   await expect(intake.getByTestId(`claim-draft-category-${facts.category}`)).toBeEnabled();
-  await expect(intake.getByTestId('claim-draft-category-injury')).toBeDisabled();
+  await expect(intake.getByTestId('claim-draft-category-injury')).toHaveCount(0);
   await expect(intake.getByTestId('claim-draft-category-continue')).toBeVisible();
 }
 

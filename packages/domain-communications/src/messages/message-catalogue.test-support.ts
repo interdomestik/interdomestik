@@ -60,7 +60,7 @@ export function messageCatalogueCopy(runId: string, workerId: string) {
       tenantId: homeTenantId,
       staffId: ids.staff,
       branchId: ids.agentBranch,
-      category: 'retail',
+      category: 'property',
       companyName: 'Synthetic Co',
       caseLifecycleState: 'submitted' as const,
       description: 'Isolated catalogue message regression',

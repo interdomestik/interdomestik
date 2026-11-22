@@ -11,6 +11,7 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 
+import { claimCategorySchema } from '../validators/claims';
 import { formatZodFieldErrors, extractBranchIdFromSetting } from './create-helpers';
 import { resolveClaimIncidentCountry } from './incident-country';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
@@ -21,7 +22,7 @@ import { withTenantAuthority } from '@interdomestik/database/tenant-authority-co
 const claimSchema = z.object({
   title: z.string().min(3).max(100),
   description: z.string().optional(),
-  category: z.string().min(1, 'Please select a category'),
+  category: claimCategorySchema.shape.category,
   companyName: z.string().min(1, 'Company name is required'),
   claimAmount: z
     .string()

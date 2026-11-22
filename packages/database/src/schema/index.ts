@@ -49,3 +49,4 @@ export * from './seed-meta';
 export * from './sponsors';
 export * from './sponsor-handover';
 export * from './sponsor-roster';
+export * from './claim-correspondence';

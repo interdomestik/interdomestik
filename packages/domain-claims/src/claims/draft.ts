@@ -1,4 +1,4 @@
-import { claimDocuments, claims, eq } from '@interdomestik/database';
+import { and, claimDocuments, claims, eq } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import {
   readTenantAuthority,
@@ -61,8 +61,8 @@ export async function updateDraftClaimCore(
   const incidentCountry = resolveClaimIncidentCountryUpdate(result.data);
 
   try {
-    await withTenantAuthority(authority, tx =>
-      tx
+    const updated = await withTenantAuthority(authority, async tx => {
+      const [updatedClaim] = await tx
         .update(claims)
         .set({
           title,
@@ -74,19 +74,38 @@ export async function updateDraftClaimCore(
           ...incidentCountry,
           updatedAt: new Date(),
         })
-        .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)))
-    );
+        .where(
+          withTenant(
+            tenantId,
+            claims.tenantId,
+            and(
+              eq(claims.id, claimId),
+              eq(claims.userId, session.user.id),
+              eq(claims.caseLifecycleState, 'draft')
+            )
+          )
+        )
+        .returning({ id: claims.id });
 
-    if (files?.length) {
-      const documentRows = buildClaimDocumentRows({
-        claimId,
-        uploadedBy: session.user.id,
-        files,
-        tenantId,
-      });
+      if (!updatedClaim) return false;
 
-      // db-access-guard: tenant-scoped -- reason: tenantId from validated session before draft document insert
-      await withTenantAuthority(authority, tx => tx.insert(claimDocuments).values(documentRows));
+      if (files?.length) {
+        const documentRows = buildClaimDocumentRows({
+          claimId,
+          uploadedBy: session.user.id,
+          files,
+          tenantId,
+        });
+
+        // db-access-guard: tenant-scoped -- reason: tenantId from validated authority after the draft update
+        await tx.insert(claimDocuments).values(documentRows);
+      }
+
+      return true;
+    });
+
+    if (!updated) {
+      return { success: false, error: 'Only draft claims can be edited' };
     }
 
     if (deps.logAuditEvent) {

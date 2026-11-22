@@ -16,6 +16,22 @@ import {
 import { submitClaimCore } from './submit';
 
 describe('submitClaimCore', () => {
+  it.each(['injury', 'invalidity', 'Personal Injury'])(
+    'refuses to submit a new claim with category %s',
+    async category => {
+      const args = buildSubmitArgs({ files: [] });
+
+      await expect(
+        submitClaimCore({ ...args, data: { ...args.data, category } })
+      ).rejects.toMatchObject({
+        code: 'INVALID_PAYLOAD',
+      });
+
+      expect(txInsert).not.toHaveBeenCalled();
+      expect(appendEventMock).not.toHaveBeenCalled();
+    }
+  );
+
   it('persists initial documents without queueing AI when no explicit extraction consent exists', async () => {
     const dispatchClaimAiRun = vi.fn().mockResolvedValue(undefined);
     const validateSubmittedClaimFile = vi.fn().mockResolvedValue(undefined);

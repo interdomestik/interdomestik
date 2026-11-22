@@ -4,6 +4,7 @@ import { BranchManagerStatusHistory } from '@/features/claims/communication/bran
 import { getInformationRequests, getStaffClaimDetail } from '@interdomestik/domain-claims';
 import { ClaimInformationRequestForm } from '@/features/staff/claims/components/ClaimInformationRequestForm';
 import { ClaimInformationRequests } from '@/features/member/claims/components/ClaimInformationRequests';
+import { caseRegister } from '@/features/staff/claims/components/StaffClaimCaseRegister';
 import { StaffClaimContext } from '@/features/staff/claims/components/StaffClaimContext';
 import { StaffClaimWorkspaceHeader } from '@/features/staff/claims/components/StaffClaimWorkspaceHeader';
 import {
@@ -159,6 +160,7 @@ export default async function StaffClaimDetailsPage({
     updatedAt: detail.claim.updatedAt,
   });
 
+  const register = await caseRegister(session, authority, detail.claim, assignedDocuments, locale);
   return (
     <div
       className="min-w-0 space-y-6 [&_section]:scroll-mt-80 md:[&_section]:scroll-mt-20"
@@ -271,6 +273,7 @@ export default async function StaffClaimDetailsPage({
         </section>
       ) : null}
 
+      {register}
       <StaffClaimContext
         groups={contextGroups}
         sectionId={SECTION_CONTEXT}

@@ -715,6 +715,13 @@
       "when": 1795260590663,
       "tag": "0101_wp07_exchange_rates",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1795347074554,
+      "tag": "0102_wp12_claim_correspondence",
+      "breakpoints": true
     }
   ]
 }

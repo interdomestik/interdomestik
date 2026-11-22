@@ -1,0 +1,131 @@
+{
+  "staff-correspondence": {
+    "choose": "Izaberite opciju",
+    "notRecorded": "Nije evidentirano",
+    "feedback": {
+      "loading": "Učitavanje evidencije predmeta…",
+      "saving": "Čuvanje…",
+      "saved": "Sačuvano.",
+      "retry": "Pokušajte ponovo",
+      "readFailed": "Učitavanje evidencije predmeta nije uspelo.",
+      "failed": "Čuvanje nije potvrđeno. Pokušajte ponovo.",
+      "signIn": "Prijavite se ponovo da biste nastavili.",
+      "forbidden": "Nemate pristup evidenciji ovog predmeta.",
+      "invalid": "Proverite unete podatke i pokušajte ponovo.",
+      "invalidState": "Ova promena nije dostupna u trenutnom stanju predmeta.",
+      "authorityInvalid": "Proverite da li potrebna ovlašćenja važe i obuhvataju ovaj kontakt.",
+      "documentInvalid": "Koristite dokument otpremljen direktno u ovaj predmet.",
+      "conflict": "Unos je u sukobu sa sačuvanim podacima. Proverite trenutnu evidenciju pre ponovnog pokušaja."
+    },
+    "caseFields": {
+      "title": "Podaci o predmetu za zeleni karton",
+      "country": "Oznaka države drugog vozila",
+      "insurance": "Referenca dokaza o osiguranju",
+      "outsideParty": "Spoljna strana koja obrađuje predmet",
+      "coverage": "Status provere pokrića",
+      "caseFollowUp": "Naknadna provera predmeta",
+      "caseFollowUpUtc": "Naknadna provera predmeta (UTC)",
+      "save": "Sačuvaj podatke o predmetu",
+      "status": {
+        "not_checked": "Nije provereno",
+        "requested": "Provera je zatražena",
+        "confirmed_by_party": "Spoljna strana je potvrdila",
+        "refused_by_party": "Spoljna strana je odbila"
+      }
+    },
+    "authorities": {
+      "title": "Ovlašćenja za predmet",
+      "empty": "Nema evidentiranih ovlašćenja.",
+      "kind": "Vrsta ovlašćenja",
+      "kinds": {
+        "recovery_agreement": "Sporazum o naplati naknade",
+        "power_of_attorney": "Punomoćje",
+        "signed_assignment": "Potpisano ustupanje potraživanja",
+        "consent_or_lawful_basis": "Pristanak ili pravni osnov"
+      },
+      "instrument": "Potpisani dokument",
+      "version": "Verzija na dokumentu",
+      "grantedUtc": "Dato (UTC)",
+      "expiresUtc": "Ističe (UTC)",
+      "jurisdiction": "Oznaka države nadležnosti",
+      "attestJurisdiction": "Potvrđujem da je ova nadležnost odgovarajuća za punomoćje.",
+      "purpose": "Svrha deljenja dokumenata",
+      "record": "Evidentiraj ovlašćenje",
+      "versionValue": "Verzija {version}",
+      "instrumentValue": "Potpisani dokument • {name}",
+      "granted": "Dato {date}",
+      "expires": "Ističe {date}",
+      "jurisdictionValue": "Nadležnost • {country}",
+      "purposeValue": "Svrha • {purpose}",
+      "revoked": "Opozvano {date}",
+      "revoke": "Opozovi ovlašćenje",
+      "confirmRevoke": "Potvrdi opoziv",
+      "revokeLimit": "U pilotu se opozvani osnov ovlašćenja ne može ponovo odobriti za isti predmet."
+    },
+    "documents": {
+      "empty": "Otpremite potpisani dokument da biste evidentirali ovlašćenje.",
+      "upload": "Otpremi dokument za predmet",
+      "description": "Dodajte potpisani dokument ili dokument poslat u prepisci za ovaj predmet.",
+      "type": "Vrsta dokumenta",
+      "chooseType": "Izaberite vrstu dokumenta",
+      "file": "Datoteka",
+      "uploading": "Otpremanje…",
+      "uploaded": "Dokument za predmet je otpremljen.",
+      "failed": "Otpremanje dokumenta nije uspelo. Pokušajte ponovo.",
+      "evidence": "Dokaz",
+      "legal": "Pravni dokument"
+    },
+    "direction": {
+      "inbound": "Dolazna",
+      "outbound": "Odlazna"
+    },
+    "party": {
+      "insurer": "Osiguravač",
+      "bureau": "Biro",
+      "other": "Druga strana"
+    },
+    "channel": {
+      "email": "E-pošta",
+      "post": "Pošta",
+      "phone": "Telefon",
+      "portal": "Portal",
+      "other": "Drugi kanal"
+    },
+    "entry": {
+      "title": "Evidentiraj prepisku",
+      "directionLabel": "Smer",
+      "occurredUtc": "Datum i vreme kontakta (UTC)",
+      "partyKind": "Vrsta strane",
+      "organisation": "Organizacija",
+      "reference": "Oznaka njihovog zahteva ili spisa",
+      "contact": "Ime osobe za kontakt",
+      "channel": "Kanal",
+      "body": "Sažetak kontakta",
+      "replyTo": "Odgovor na odlazni kontakt",
+      "noReply": "Bez povezanog odlaznog kontakta",
+      "replyOption": "{organisation} • {date} • {summary}",
+      "documents": "Dokumenti poslati uz ovaj kontakt",
+      "basesRequired": "Za odlazni kontakt potrebni su sporazum o naplati naknade i punomoćje.",
+      "consentRequired": "Slanje dokumenata zahteva pristanak ili pravni osnov za deljenje.",
+      "attestSharing": "Potvrđujem da evidentirana svrha obuhvata ovo otkrivanje podataka.",
+      "record": "Sačuvaj prepisku"
+    },
+    "list": {
+      "title": "Evidencija prepiske",
+      "empty": "Nema evidentirane prepiske.",
+      "reference": "Njihova oznaka • {reference}",
+      "contact": "Kontakt • {contact}",
+      "inReplyTo": "Odgovor na kontakt sa {organisation} od {date}",
+      "documentsSent": "Poslati dokumenti • {total}",
+      "followUp": "Rok za praćenje {date}",
+      "followUpUtc": "Praćenje prepiske (UTC)",
+      "saveFollowUp": "Sačuvaj rok za praćenje",
+      "answered": "Odgovor je evidentiran",
+      "overdue": "Rok za praćenje je istekao"
+    },
+    "summary": {
+      "title": "Pregled prepiske",
+      "total": "Unosi prepiske • {total}"
+    }
+  }
+}

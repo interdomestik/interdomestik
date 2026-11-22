@@ -107,7 +107,7 @@ export async function seedS8ClaimFixture(adminDb: AdminDb, fixture: S8ClaimFixtu
     userId,
     title: 'S8 restricted RLS proof',
     description: 'restricted-login isolation fixture',
-    category: 'retail',
+    category: 'property',
     companyName: 'S8 RLS Co',
     ...claimLifecycleFieldsForStatus('draft'),
     origin: 'portal' as const,
