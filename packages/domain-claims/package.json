@@ -16,6 +16,7 @@
     "./claims/evidence-file-policy": "./src/claims/evidence-file-policy.ts",
     "./claims/diaspora-origin": "./src/claims/diaspora-origin.ts",
     "./claims/status": "./src/claims/status.ts",
+    "./claims/service-level": "./src/claims/service-level.ts",
     "./claims/lifecycle-read-sql": "./src/claims/lifecycle-read-sql.ts",
     "./claims/transition": "./src/claims/transition.ts",
     "./claims/transition-guard": "./src/claims/transition-guard.ts",

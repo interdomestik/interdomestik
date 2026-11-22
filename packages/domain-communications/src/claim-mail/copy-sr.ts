@@ -1,0 +1,104 @@
+import type { ClaimMailCopy } from './types';
+
+const viewClaim = 'Pogledajte zahtev';
+const footer = 'Tim Interdomestik';
+
+export const SR_COPY: ClaimMailCopy = {
+  statuses: {
+    draft: 'Nacrt',
+    submitted: 'Podneto',
+    submitted_to_airline: 'Podneto avio-kompaniji',
+    verification: 'Verifikacija',
+    evaluation: 'Procena',
+    negotiation: 'Pregovori',
+    court: 'Sud',
+    resolved: 'Rešeno',
+    rejected: 'Odbijeno',
+  },
+  categories: {
+    consumer: 'Potrošač',
+    consumer_rights: 'Prava potrošača',
+    housing: 'Stanovanje',
+    insurance: 'Osiguranje',
+    employment: 'Zaposlenje',
+    contracts: 'Ugovori',
+    utilities: 'Komunalije',
+    auto: 'Vozilo',
+    vehicle: 'Vozilo',
+    travel: 'Putovanje',
+    retail: 'Maloprodaja',
+    real_estate: 'Nekretnine',
+    property: 'Imovina',
+    flight_delay: 'Kašnjenje leta',
+    damaged_goods: 'Oštećena roba',
+    service_issue: 'Problem sa uslugom',
+    liability: 'Odgovornost',
+    medical: 'Medicinski',
+    test: 'Testiranje',
+    other: 'Ostalo',
+    injury: 'Lične povrede',
+  },
+  genericCategory: 'Ostalo',
+  messages: {
+    claim_submitted: {
+      subject: 'Primili smo vaš zahtev',
+      heading: 'Primili smo vaš zahtev',
+      body: 'Vaš zahtev „{title}“ je uspešno podnet.\nKategorija: {category}\nID zahteva: {claimId}',
+      cta: viewClaim,
+      footer,
+    },
+    claim_status_changed: {
+      subject: 'Novi status zahteva je {toStatus}',
+      heading: 'Novi status zahteva je {toStatus}',
+      body: 'Status zahteva „{title}“ promenjen je sa {fromStatus} na {toStatus}.\nID zahteva: {claimId}',
+      cta: viewClaim,
+      footer,
+    },
+    claim_recovery_decision: {
+      accepted: {
+        subject: 'Postupak naplate je prihvaćen',
+        heading: 'Postupak naplate je prihvaćen',
+        body: 'Naš tim je prihvatio zahtev „{title}“ za postupak naplate.',
+        cta: viewClaim,
+        footer,
+      },
+      declined: {
+        subject: 'Postupak naplate je odbijen',
+        heading: 'Postupak naplate je odbijen',
+        body: 'Naš tim je odbio da pokrene postupak naplate za zahtev „{title}“.',
+        cta: viewClaim,
+        footer,
+      },
+    },
+    claim_message_to_member: {
+      full: {
+        subject: 'Nova poruka o vašem zahtevu',
+        heading: 'Nova poruka o vašem zahtevu',
+        body: '{sender} vam je poslao poruku o zahtevu „{title}“.\n{excerpt}\nID zahteva: {claimId}',
+        cta: 'Odgovorite sada',
+        footer,
+      },
+      restricted: {
+        subject: 'Nova poruka',
+        heading: 'Nova poruka',
+        body: 'Dostupno je ažuriranje. Sadržaj poruka i beležaka je ograničen za rukovodioce filijala.',
+        cta: 'Otvorite Interdomestik',
+        footer,
+      },
+    },
+    staff_claim_submitted: {
+      subject: 'Podnet je novi zahtev',
+      heading: 'Podnet je novi zahtev',
+      body: 'Broj zahteva: {claimNumber}\nKategorija: {category}',
+      cta: viewClaim,
+      footer,
+    },
+    staff_member_message: {
+      subject: 'Nova poruka od člana',
+      heading: 'Nova poruka od člana',
+      body: 'Broj zahteva: {claimNumber}\nKategorija: {category}',
+      cta: viewClaim,
+      footer,
+    },
+  },
+};

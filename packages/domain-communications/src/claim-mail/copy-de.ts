@@ -1,0 +1,104 @@
+import type { ClaimMailCopy } from './types';
+
+const viewClaim = 'Fall ansehen';
+const footer = 'Das Interdomestik-Team';
+
+export const DE_COPY: ClaimMailCopy = {
+  statuses: {
+    draft: 'Entwurf',
+    submitted: 'Eingereicht',
+    submitted_to_airline: 'Bei der Fluggesellschaft eingereicht',
+    verification: 'Verifizierung',
+    evaluation: 'Bewertung',
+    negotiation: 'Verhandlung',
+    court: 'Gericht',
+    resolved: 'Gelöst',
+    rejected: 'Abgelehnt',
+  },
+  categories: {
+    consumer: 'Verbraucher',
+    consumer_rights: 'Verbraucherrechte',
+    housing: 'Wohnen',
+    insurance: 'Versicherung',
+    employment: 'Arbeit',
+    contracts: 'Verträge',
+    utilities: 'Versorgungsleistungen',
+    auto: 'Fahrzeug',
+    vehicle: 'Fahrzeug',
+    travel: 'Reisen',
+    retail: 'Einzelhandel',
+    real_estate: 'Immobilien',
+    property: 'Eigentum',
+    flight_delay: 'Flugverspätung',
+    damaged_goods: 'Beschädigte Waren',
+    service_issue: 'Problem mit einer Dienstleistung',
+    liability: 'Haftung',
+    medical: 'Medizinisch',
+    test: 'Test',
+    other: 'Sonstiges',
+    injury: 'Personenschaden',
+  },
+  genericCategory: 'Sonstiges',
+  messages: {
+    claim_submitted: {
+      subject: 'Wir haben Ihren Fall erhalten',
+      heading: 'Wir haben Ihren Fall erhalten',
+      body: 'Ihr Fall „{title}“ wurde erfolgreich eingereicht.\nKategorie: {category}\nFall-ID: {claimId}',
+      cta: viewClaim,
+      footer,
+    },
+    claim_status_changed: {
+      subject: 'Neuer Fallstatus: {toStatus}',
+      heading: 'Neuer Fallstatus: {toStatus}',
+      body: 'Der Status Ihres Falls „{title}“ wurde von {fromStatus} auf {toStatus} geändert.\nFall-ID: {claimId}',
+      cta: viewClaim,
+      footer,
+    },
+    claim_recovery_decision: {
+      accepted: {
+        subject: 'Rückforderung angenommen',
+        heading: 'Rückforderung angenommen',
+        body: 'Unser Team hat den Fall „{title}“ zur Rückforderung angenommen.',
+        cta: viewClaim,
+        footer,
+      },
+      declined: {
+        subject: 'Rückforderung abgelehnt',
+        heading: 'Rückforderung abgelehnt',
+        body: 'Unser Team hat die Rückforderung für den Fall „{title}“ abgelehnt.',
+        cta: viewClaim,
+        footer,
+      },
+    },
+    claim_message_to_member: {
+      full: {
+        subject: 'Neue Nachricht zu Ihrem Fall',
+        heading: 'Neue Nachricht zu Ihrem Fall',
+        body: '{sender} hat eine Nachricht zu Ihrem Fall „{title}“ gesendet.\n{excerpt}\nFall-ID: {claimId}',
+        cta: 'Jetzt antworten',
+        footer,
+      },
+      restricted: {
+        subject: 'Neue Nachricht',
+        heading: 'Neue Nachricht',
+        body: 'Eine Aktualisierung ist verfügbar. Nachrichten- und Notizinhalte sind für Filialleiter eingeschränkt.',
+        cta: 'Interdomestik öffnen',
+        footer,
+      },
+    },
+    staff_claim_submitted: {
+      subject: 'Neuer Fall eingereicht',
+      heading: 'Neuer Fall eingereicht',
+      body: 'Fallnummer: {claimNumber}\nKategorie: {category}',
+      cta: viewClaim,
+      footer,
+    },
+    staff_member_message: {
+      subject: 'Neue Nachricht eines Mitglieds',
+      heading: 'Neue Nachricht eines Mitglieds',
+      body: 'Fallnummer: {claimNumber}\nKategorie: {category}',
+      cta: viewClaim,
+      footer,
+    },
+  },
+};

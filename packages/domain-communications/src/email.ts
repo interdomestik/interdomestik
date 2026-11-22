@@ -6,6 +6,13 @@ import {
 } from './non-sending-email';
 import * as nodemailer from 'nodemailer';
 import { Resend } from 'resend';
+import { DeliveryTimeout, withDeliveryTimeout, type DeliveryOutcome } from './delivery-outcome';
+import {
+  emailTimeoutFailure,
+  sendResendOutcome,
+  smtpDeliveryFailure,
+} from './email-delivery-outcome';
+import type { EmailTemplate } from './email/templates/types';
 import {
   renderCheckinEmail,
   renderClaimAssignedEmail,
@@ -80,7 +87,7 @@ function getEmailClient(telemetry: EmailTelemetry, options: EmailSendOptions) {
   }
 
   const resend = getResendClient(telemetry);
-  if (resend) return { type: 'resend', client: resend };
+  if (resend) return { type: 'resend' as const, client: resend };
 
   return null;
 }
@@ -92,6 +99,70 @@ export function getSenderAddress() {
     'Interdomestik <no-reply@interdomestik.com>'
   );
 }
+
+export async function sendEmailOutcome(
+  recipient: string,
+  rendered: EmailTemplate,
+  { idempotencyKey, timeoutMs }: { idempotencyKey: string; timeoutMs: number }
+): Promise<DeliveryOutcome<'smtp' | 'resend'>> {
+  const to = selectEmailRecipients(recipient);
+  if (!to) {
+    return {
+      ok: false,
+      retryable: false,
+      ambiguous: false,
+      code: 'email_suppressed',
+      detail: 'email_suppressed',
+    };
+  }
+
+  const telemetry = createEmailTelemetry('content-free');
+  let transport: 'smtp' | 'resend' | undefined;
+  try {
+    return await withDeliveryTimeout(timeoutMs, async signal => {
+      const provider = getEmailClient(telemetry, {});
+      if (!provider || provider === 'rejected') {
+        return {
+          ok: false,
+          retryable: false,
+          ambiguous: false,
+          code: 'email_unconfigured',
+          detail: 'email_unconfigured',
+        };
+      }
+
+      const { subject, html, text } = rendered;
+      const mail = { from: getSenderAddress(), to, subject, html, text };
+      transport = provider.type;
+      if (provider.type === 'resend') {
+        return sendResendOutcome(provider.client, mail, idempotencyKey);
+      }
+
+      try {
+        await provider.client.sendMail(mail);
+        return { ok: true, transport: 'smtp' };
+      } catch (error) {
+        const failure = smtpDeliveryFailure(error);
+        if (failure.ambiguous) return failure;
+        signal.throwIfAborted();
+        const resend = fallbackResend(provider, () => getResendClient(telemetry));
+        if (!resend) return failure;
+        transport = 'resend';
+        return sendResendOutcome(resend, mail, idempotencyKey);
+      }
+    });
+  } catch (error) {
+    if (error instanceof DeliveryTimeout) return emailTimeoutFailure(transport);
+    return {
+      ok: false,
+      retryable: true,
+      ambiguous: Boolean(transport),
+      code: 'email_failed',
+      detail: transport ?? 'email',
+    };
+  }
+}
+
 export async function sendEmail(
   recipients: EmailRecipients,
   template: { subject: string; html: string; text: string },

@@ -1,5 +1,5 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
   const limit = vi.fn();
@@ -53,10 +53,81 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
 
 vi.mock('drizzle-orm', () => ({ and: vi.fn(), eq: vi.fn() }));
 
-import { sendPushToUser } from './push';
+import { sendPushOutcome, sendPushToUser } from './push';
 
 const authority = mintTestTenantAuthority('tenant-1');
 const payload = { title: 'Title', body: 'Body', url: '/member/claims/claim-1' };
+
+describe('sendPushOutcome', () => {
+  const subscription = {
+    endpoint: 'https://push.example/subscription',
+    p256dh: 'key',
+    auth: 'auth',
+  };
+  const options = { timeoutMs: 50 };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.sendNotification.mockReset();
+    vi.stubEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY', 'public');
+    vi.stubEnv('VAPID_PRIVATE_KEY', 'private');
+    vi.stubEnv('VAPID_SUBJECT', 'mailto:sender@example.com');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+  });
+
+  it('sends one subscription with per-request VAPID details', async () => {
+    mocks.sendNotification.mockResolvedValue({});
+    await expect(sendPushOutcome(subscription, payload, options)).resolves.toEqual({
+      ok: true,
+      transport: 'web-push',
+    });
+    expect(mocks.sendNotification).toHaveBeenCalledExactlyOnceWith(
+      {
+        endpoint: subscription.endpoint,
+        keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+      },
+      JSON.stringify(payload),
+      {
+        vapidDetails: {
+          subject: 'mailto:sender@example.com',
+          publicKey: 'public',
+          privateKey: 'private',
+        },
+        timeout: options.timeoutMs,
+      }
+    );
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
+  });
+
+  it.each([404, 410])('maps HTTP %s to a terminal subscription failure', async statusCode => {
+    mocks.sendNotification.mockRejectedValue({ statusCode, body: subscription.endpoint });
+    await expect(sendPushOutcome(subscription, payload, options)).resolves.toEqual({
+      ok: false,
+      retryable: false,
+      ambiguous: false,
+      code: 'subscription_gone',
+      detail: `web-push ${statusCode}`,
+    });
+    expect(mocks.tx.delete).not.toHaveBeenCalled();
+  });
+
+  it('returns an ambiguous and retryable outcome at the timeout', async () => {
+    vi.useFakeTimers();
+    mocks.sendNotification.mockReturnValue(new Promise(() => {}));
+    const result = sendPushOutcome(subscription, payload, options);
+    await vi.advanceTimersByTimeAsync(options.timeoutMs);
+    await expect(result).resolves.toMatchObject({
+      ok: false,
+      retryable: true,
+      ambiguous: true,
+      code: 'timeout',
+    });
+  });
+});
 
 describe('sendPushToUser', () => {
   beforeEach(() => {

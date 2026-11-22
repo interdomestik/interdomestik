@@ -1,0 +1,104 @@
+import type { ClaimMailCopy } from './types';
+
+const viewClaim = 'Shiko kërkesën';
+const footer = 'Ekipi i Interdomestik';
+
+export const SQ_COPY: ClaimMailCopy = {
+  statuses: {
+    draft: 'Skicë',
+    submitted: 'Dorëzuar',
+    submitted_to_airline: 'Dorëzuar te linja ajrore',
+    verification: 'Në verifikim',
+    evaluation: 'Në vlerësim',
+    negotiation: 'Në negociata',
+    court: 'Në gjyq',
+    resolved: 'Zgjidhur',
+    rejected: 'Refuzuar',
+  },
+  categories: {
+    consumer: 'Konsumator',
+    consumer_rights: 'Të Drejtat e Konsumatorit',
+    housing: 'Strehim',
+    insurance: 'Sigurim',
+    employment: 'Punësim',
+    contracts: 'Kontrata',
+    utilities: 'Shërbime Komunale',
+    auto: 'Automjet',
+    vehicle: 'Automjet',
+    travel: 'Udhëtim',
+    retail: 'Shitje me pakicë',
+    real_estate: 'Pasuri e Paluajtshme',
+    property: 'Pronë',
+    flight_delay: 'Vonesë Fluturimi',
+    damaged_goods: 'Mallra të Dëmtuara',
+    service_issue: 'Problem Shërbimi',
+    liability: 'Përgjegjësi Ligjore',
+    medical: 'Mjekësor',
+    test: 'Provë',
+    other: 'Tjetër',
+    injury: 'Lëndime Personale',
+  },
+  genericCategory: 'Tjetër',
+  messages: {
+    claim_submitted: {
+      subject: 'E kemi marrë kërkesën tuaj',
+      heading: 'E kemi marrë kërkesën tuaj',
+      body: 'Kërkesa juaj „{title}“ është dorëzuar me sukses.\nKategoria: {category}\nID-ja e kërkesës: {claimId}',
+      cta: viewClaim,
+      footer,
+    },
+    claim_status_changed: {
+      subject: 'Statusi i kërkesës u përditësua në {toStatus}',
+      heading: 'Statusi i kërkesës u përditësua në {toStatus}',
+      body: 'Statusi i kërkesës suaj „{title}“ ndryshoi nga {fromStatus} në {toStatus}.\nID-ja e kërkesës: {claimId}',
+      cta: viewClaim,
+      footer,
+    },
+    claim_recovery_decision: {
+      accepted: {
+        subject: 'Procedura e kompensimit u pranua',
+        heading: 'Procedura e kompensimit u pranua',
+        body: 'Ekipi pranoi ta trajtojë kërkesën „{title}“ për kompensim.',
+        cta: viewClaim,
+        footer,
+      },
+      declined: {
+        subject: 'Procedura e kompensimit u refuzua',
+        heading: 'Procedura e kompensimit u refuzua',
+        body: 'Ekipi refuzoi ta trajtojë kërkesën „{title}“ për kompensim.',
+        cta: viewClaim,
+        footer,
+      },
+    },
+    claim_message_to_member: {
+      full: {
+        subject: 'Mesazh i ri për kërkesën tuaj',
+        heading: 'Mesazh i ri për kërkesën tuaj',
+        body: '{sender} dërgoi një mesazh për „{title}“.\n{excerpt}\nID-ja e kërkesës: {claimId}',
+        cta: 'Përgjigju tani',
+        footer,
+      },
+      restricted: {
+        subject: 'Mesazh i ri',
+        heading: 'Mesazh i ri',
+        body: 'Ka një përditësim. Përmbajtja e mesazheve dhe shënimeve është e kufizuar për menaxherët e degëve.',
+        cta: 'Hap Interdomestik',
+        footer,
+      },
+    },
+    staff_claim_submitted: {
+      subject: 'U dorëzua një kërkesë e re',
+      heading: 'U dorëzua një kërkesë e re',
+      body: 'Numri i kërkesës: {claimNumber}\nKategoria: {category}',
+      cta: viewClaim,
+      footer,
+    },
+    staff_member_message: {
+      subject: 'Mesazh i ri nga një anëtar',
+      heading: 'Mesazh i ri nga një anëtar',
+      body: 'Numri i kërkesës: {claimNumber}\nKategoria: {category}',
+      cta: viewClaim,
+      footer,
+    },
+  },
+};

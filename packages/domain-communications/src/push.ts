@@ -8,6 +8,13 @@ import { withTenantAuthority } from '@interdomestik/database/tenant-authority-co
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { pushSubscriptions, userNotificationPreferences } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
+import {
+  DeliveryTimeout,
+  providerField,
+  providerStatus,
+  withDeliveryTimeout,
+  type DeliveryOutcome,
+} from './delivery-outcome';
 import type { AuditLogger } from './types';
 
 export type PushPayload = {
@@ -44,6 +51,52 @@ function toWebPushSubscription(row: {
       auth: row.auth,
     },
   };
+}
+
+export async function sendPushOutcome(
+  subscription: { endpoint: string; p256dh: string; auth: string },
+  { title, body, url, icon, badge }: PushPayload,
+  { timeoutMs }: { timeoutMs: number }
+): Promise<DeliveryOutcome<'web-push'>> {
+  const vapidDetails = getVapidDetails();
+  if (!vapidDetails) {
+    return {
+      ok: false,
+      retryable: false,
+      ambiguous: false,
+      code: 'missing_vapid',
+      detail: 'missing_vapid',
+    };
+  }
+  try {
+    await withDeliveryTimeout(timeoutMs, () =>
+      webPush.sendNotification(
+        toWebPushSubscription(subscription),
+        JSON.stringify({ title, body, url, icon, badge }),
+        { vapidDetails, timeout: timeoutMs }
+      )
+    );
+    return { ok: true, transport: 'web-push' };
+  } catch (error) {
+    if (error instanceof DeliveryTimeout || providerField(error, 'code') === 'ETIMEDOUT') {
+      return {
+        ok: false,
+        retryable: true,
+        ambiguous: true,
+        code: 'timeout',
+        detail: 'web-push timeout',
+      };
+    }
+    const status = providerStatus(providerField(error, 'statusCode'));
+    const gone = status === 404 || status === 410;
+    return {
+      ok: false,
+      retryable: status === undefined || status === 408 || status === 429 || status >= 500,
+      ambiguous: status === undefined || status === 408,
+      code: gone ? 'subscription_gone' : 'push_failed',
+      detail: status === undefined ? 'web-push' : `web-push ${status}`,
+    };
+  }
 }
 
 export async function sendPushToUser(

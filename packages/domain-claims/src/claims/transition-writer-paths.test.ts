@@ -17,11 +17,6 @@ describe('T-002b central transition writer paths', () => {
       'transitionClaimStatus',
     ],
     [
-      'legacy package status command',
-      'packages/domain-claims/src/update-claim-status.ts',
-      'transitionClaimStatusInTransaction',
-    ],
-    [
       'admin adapter',
       'packages/domain-claims/src/admin-claims/update-status.ts',
       'transitionClaimStatus',
