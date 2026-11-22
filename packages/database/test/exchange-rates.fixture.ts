@@ -24,9 +24,9 @@ import { provisionRestrictedRole } from './s8-claim-restricted-rls.fixture';
 
 export { signal, waitForLockWaiters, withLockedBook } from './exchange-rates-lock.fixture';
 export { restricted, runtimeRole } from './exchange-rates-restricted.fixture';
+export { TEST_DB_ROLE as paymentPortTestGuardRole } from './rls-test-connection';
 
 export const tables = ['exchange_rate_books', 'exchange_rates'] as const;
-export const paymentPortTestGuardRole = TEST_DB_ROLE;
 const migrations = fileURLToPath(new URL('../drizzle', import.meta.url));
 export const rateInput = (effectiveOn: string) => ({
   base: 'EUR',

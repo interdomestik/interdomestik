@@ -106,9 +106,12 @@ export async function saleFixture(db: PaymentPortDatabase) {
         now(), ${agentId})`;
     return id;
   };
-  const entity = async (
-    legal = { governingLaw: 'MK' as string | null, terms: 'v1' as string | null, active: true }
-  ) => {
+  const defaultEntity = {
+    governingLaw: 'MK' as string | null,
+    terms: 'v1' as string | null,
+    active: true,
+  };
+  const entity = async (legal = defaultEntity) => {
     const id = randomUUID();
     await admin`insert into legal_entities (id, tenant_id, legal_name, country_code, governing_law,
       terms_version, is_active) values (${id}, ${tenantId}, 'Synthetic Entity', 'MK',

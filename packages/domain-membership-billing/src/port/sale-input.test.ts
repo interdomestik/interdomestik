@@ -25,12 +25,16 @@ describe('individual payment port input', () => {
     expect(recordSaleInputSchema.safeParse({ ...sale, buyer }).success).toBe(false);
   });
 
-  it.each(['before\u0000after', '\uD800', '\uDFFF'])(
-    'refuses text PostgreSQL cannot preserve',
+  it.each(['', 'before\u0000after', '\uD800', '\uDFFF'])(
+    'refuses empty or unpreservable text %j',
     termsVersion => {
       expect(recordSaleInputSchema.safeParse({ ...sale, termsVersion }).success).toBe(false);
     }
   );
+
+  it.each(['ordinary text', '📄'])('preserves non-empty Unicode text %s', termsVersion => {
+    expect(recordSaleInputSchema.parse({ ...sale, termsVersion }).termsVersion).toBe(termsVersion);
+  });
 
   it.each([0n, -100n, 9_223_372_036_854_775_808n, 100, '100'])(
     'refuses invalid bigint amount %s',

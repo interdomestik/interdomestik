@@ -221,7 +221,7 @@ async function insertSale(
     amount_mkd_minor: amountMkdMinor.toString(),
     channel: input.channel,
     operation_key: input.operationKey,
-    request_hash: `\\x${requestHash.toString('hex')}`,
+    request_hash: String.raw`\x${requestHash.toString('hex')}`,
     buyer_kind: buyer.kind,
     lead_id: buyer.kind === 'lead' ? buyer.id : null,
     member_user_id: buyer.kind === 'member' ? buyer.id : null,

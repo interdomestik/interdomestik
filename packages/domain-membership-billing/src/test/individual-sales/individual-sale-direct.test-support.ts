@@ -102,7 +102,7 @@ export async function tryInsertDirectSale(
   await insertDirectSaleClaim(tx, row);
   const candidate = JSON.stringify({
     ...row,
-    request_hash: `\\x${row.request_hash.toString('hex')}`,
+    request_hash: String.raw`\x${row.request_hash.toString('hex')}`,
     sold_at: undefined,
     sold_on: undefined,
     due_on: undefined,
