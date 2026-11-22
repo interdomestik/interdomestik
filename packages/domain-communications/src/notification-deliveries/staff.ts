@@ -2,6 +2,7 @@ import type { TenantTransaction } from '@interdomestik/database';
 import { auditLog } from '@interdomestik/database/schema';
 import { randomUUID } from 'node:crypto';
 import { CLAIM_MAIL_COPY } from '../claim-mail';
+import { forEachInOrder } from '../in-order';
 import { enqueueClaimInboxNotification } from './in-app';
 import { notificationDeliveryKey } from './keys';
 import { enqueueNotificationDelivery } from './store';
@@ -65,8 +66,8 @@ export async function enqueueStaffClaimNotification(
   }
 
   const ids: string[] = [];
-  for (const recipient of recipients) {
-    await queueStaffRecipient(tx, claim, source, recipient, ids);
-  }
+  await forEachInOrder(recipients, recipient =>
+    queueStaffRecipient(tx, claim, source, recipient, ids)
+  );
   return ids;
 }
