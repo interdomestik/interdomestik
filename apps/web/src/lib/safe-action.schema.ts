@@ -1,273 +1,300 @@
-import { z } from 'zod';
-
 import {
-  checkDef,
-  checkKind,
-  hasCustomWhen,
-  holdsSchema,
-  isArraySizeCheck,
+  ACCESSOR,
+  asyncSchemaReason,
+  denseArray,
+  hasTrait,
+  isOwnReadable,
+  ownKeys,
   ownValue,
+  rawObjectShape,
+  schemaDef,
+  type Refuse,
 } from './safe-action.check-def';
+import { captureCheck, type CheckDomain } from './safe-action.checks';
 import { ownerColumnKeys, TENANT_IDENTITY_KEYS } from './safe-action.owner-keys';
-
-// An action's input schema, walked over its zod 4 definition (design §1.4, addenda 6 to 13): strict
-// objects only, no identity key, scalar, wrapper, array, tuple, union and (in a form) file nodes, no
-// node that widens, defaults or pipes. The walk's own steps are bounded (no recursion, depth 32, 5000
-// units of work) and anything thrown while judging is a refusal; the cost of building or listing a
-// developer's schema is not (it runs once at module load). Refused anywhere: a check on a container but
-// an array's size or a scalar wrapper's checks; a check with a custom `when`, holding a schema, or
-// with an accessor or another prototype (read from descriptors, unread). Scope: schemas built through
-// zod's public API. Scalar-rewriting checks and coercions reach the handler until WP-02 part 1b.
-type ZodDef = {
-  type: string;
-  check?: unknown;
-  shape?: Record<string, z.ZodType>;
-  catchall?: z.ZodType;
-  checks?: unknown[];
-  innerType?: z.ZodType;
-  element?: z.ZodType;
-  items?: z.ZodType[];
-  rest?: z.ZodType | null;
-  options?: z.ZodType[];
-};
-
-const SCALAR_TYPES = new Set(['string', 'number', 'boolean', 'bigint', 'date', 'enum', 'literal']);
-const WRAPPER_TYPES = new Set(['optional', 'nullable', 'readonly']);
-const CONTAINER_TYPES = new Set([...WRAPPER_TYPES, 'array', 'tuple', 'union']);
+import { STANDARD_OBJECT_KEYS } from './safe-action.recheck';
+import {
+  assertObjectParts,
+  assertUnion,
+  checkDomain,
+  enumValues,
+  fieldAt,
+  formKind,
+  type Literal,
+  type ObjectShape,
+  type ScalarType,
+  type ShapeBody,
+  type Shape,
+  type WrapperType,
+} from './safe-action.shape';
 
 export class ActionDefinitionError extends Error {
   constructor(operation: string, detail: string) {
     super(`defineAction(${operation}): ${detail}`);
-    this.name = 'ActionDefinitionError';
+    const name = { __proto__: null, value: 'ActionDefinitionError' };
+    Object.defineProperty(this, 'name', name);
   }
-}
-
-type WalkContext = {
-  operation: string;
-  form: boolean;
-  identityKeys: ReadonlySet<string>;
-  onPath: Set<z.ZodType>;
-  visits: number;
-  // The walk's own refusal, so the catch can tell it apart by identity alone (r15 B42).
-  refusal?: ActionDefinitionError;
-};
-
-function defOf(schema: z.ZodType): ZodDef {
-  return (schema as unknown as { _zod: { def: ZodDef } })._zod.def;
-}
-
-// A wrapper around a scalar holds a scalar or null/undefined: its checks are scalar checks (r3 B16).
-// It follows the chain no further than the walk's depth bound (r13 B45).
-function wrapsScalar(def: ZodDef): boolean {
-  let inner = def;
-  for (let hop = 0; hop < MAX_DEPTH && WRAPPER_TYPES.has(inner.type) && inner.innerType; hop += 1) {
-    inner = defOf(inner.innerType);
-  }
-  return inner !== def && SCALAR_TYPES.has(inner.type);
-}
-
-// The first check a container may not carry (addendum 6): it could replace what it holds and add an
-// undeclared key (SEC-02). An array's size is accepted; a scalar wrapper is judged as a scalar.
-function containerCheck(def: ZodDef): string | undefined {
-  if (wrapsScalar(def)) return undefined;
-  const accepted = (check: unknown) => def.type === 'array' && isArraySizeCheck(check);
-  const refused = (def.checks ?? []).find(check => !accepted(check));
-  return refused === undefined ? undefined : checkKind(refused);
-}
-
-// Refuses a check with an accessor or another prototype, a custom `when` or a schema, among the node's
-// checks and the node itself when its own `check` key is set (`z.email()`); addenda 7 to 9.
-function assertNodeChecks(schema: z.ZodType, def: ZodDef, path: string, ctx: WalkContext): void {
-  const listed = ownValue(def, 'checks');
-  if (listed !== undefined && !Array.isArray(listed)) {
-    refuse(ctx, path, `a checks list that is an accessor or not an array on a ${def.type}`);
-  }
-  const own: unknown[] = listed ?? [];
-  const checks = ownValue(def, 'check') === undefined ? own : [schema, ...own];
-  spend(ctx, path, checks.length);
-  if (checks.some(check => checkDef(check) === null)) {
-    refuse(
-      ctx,
-      path,
-      `a check whose definition has an accessor or a prototype other than Object (not read) on a ${def.type}`
-    );
-  }
-  if (checks.some(hasCustomWhen)) {
-    refuse(
-      ctx,
-      path,
-      `a check with a custom when callback (it receives the writable payload) on a ${def.type}`
-    );
-  }
-  const holding = checks.find(holdsSchema);
-  if (holding !== undefined) {
-    refuse(ctx, path, `a ${checkKind(holding)} check that holds a schema on a ${def.type}`);
-  }
-}
-
-// The walk is bounded in depth and in work: every node visited, catchall inspected and check
-// scanned counts against one budget, far beyond any input form (r12 B39-B41, r13 B43-B44).
-const MAX_DEPTH = 32;
-const MAX_NODES = 5000;
-const TOO_LARGE = `a schema deeper than ${MAX_DEPTH} levels or past ${MAX_NODES} units of walk work`;
-function spend(ctx: WalkContext, path: string, units: number): void {
-  ctx.visits += units;
-  if (ctx.visits > MAX_NODES) refuse(ctx, path, TOO_LARGE);
-}
-
-function refuse(ctx: WalkContext, path: string, reason: string): never {
-  ctx.refusal = new ActionDefinitionError(
-    ctx.operation,
-    `input schema refused at ${path || '<root>'}: ${reason}`
-  );
-  throw ctx.refusal;
-}
-
-function walkObject(def: ZodDef, path: string, ctx: WalkContext): void {
-  // The catchall is charged before its type is read (r14 B44).
-  if (def.catchall) spend(ctx, `${path}{catchall}`, 1);
-  if (!def.catchall || defOf(def.catchall).type !== 'never') {
-    refuse(ctx, path, 'objects must be strict (z.strictObject or .strict())');
-  }
-  if (def.checks && def.checks.length > 0) {
-    refuse(
-      ctx,
-      path,
-      'object-level refine/check/superRefine/overwrite belongs in the owning command'
-    );
-  }
-  if (def.catchall) assertNodeChecks(def.catchall, defOf(def.catchall), `${path}{catchall}`, ctx);
-  // One field at a time, under the budget: reading a field runs its getter (r13 B42).
-  const shape = def.shape ?? {};
-  for (const key of Object.keys(shape)) {
-    const childPath = path ? `${path}.${key}` : key;
-    if (ctx.identityKeys.has(key)) refuse(ctx, childPath, 'identity keys come from server context');
-    walk(shape[key], childPath, ctx);
-  }
-}
-
-// A schema met again on its own path refers to itself (zod's getter form): refused (r11 B38).
-function walk(schema: z.ZodType, path: string, ctx: WalkContext): void {
-  if (ctx.onPath.has(schema)) refuse(ctx, path, 'a recursive schema (it refers to itself)');
-  if (ctx.onPath.size >= MAX_DEPTH) refuse(ctx, path, TOO_LARGE);
-  spend(ctx, path, 1);
-  ctx.onPath.add(schema);
-  walkNode(schema, path, ctx);
-  ctx.onPath.delete(schema);
-}
-
-function walkNode(schema: z.ZodType, path: string, ctx: WalkContext): void {
-  const def = defOf(schema);
-  const { type } = def;
-  assertNodeChecks(schema, def, path, ctx);
-  if (type === 'object') return walkObject(def, path, ctx);
-  if (SCALAR_TYPES.has(type)) return;
-  if (type === 'file') {
-    if (!ctx.form) refuse(ctx, path, 'z.file() is accepted in form actions only');
-    return;
-  }
-  const check = CONTAINER_TYPES.has(type) ? containerCheck(def) : undefined;
-  if (check !== undefined) {
-    refuse(ctx, path, `a ${check} check on a ${type} belongs in the owning command`);
-  }
-  walkContainer(def, path, ctx);
-}
-
-// Wrappers, arrays, tuples and unions: walked into; any other type is refused.
-function walkContainer(def: ZodDef, path: string, ctx: WalkContext): void {
-  const { type } = def;
-  if (WRAPPER_TYPES.has(type) && def.innerType) return walk(def.innerType, path, ctx);
-  if (type === 'array' && def.element) return walk(def.element, `${path}[]`, ctx);
-  if (type === 'tuple') {
-    if (def.rest) refuse(ctx, path, 'tuples may not have a rest element');
-    (def.items ?? []).forEach((item, index) => walk(item, `${path}[${index}]`, ctx));
-    return;
-  }
-  if (type === 'union') {
-    (def.options ?? []).forEach(option => walk(option, path, ctx));
-    return;
-  }
-  refuse(ctx, path, `schema type "${type}" is not an accepted form`);
 }
 
 export type SchemaCheckOptions = {
   operation: string;
-  basisKind: 'role' | 'self' | 'public';
+  basisKind: 'role' | 'self';
   form: boolean;
-  subjectFrom: string | null;
+  subjectFrom: readonly string[] | null;
+  objectParts?: readonly string[];
 };
 
-/** Throws ActionDefinitionError unless the schema is an accepted form for this definition. */
-export function assertAcceptedSchema(schema: z.ZodType, options: SchemaCheckOptions): void {
-  const ctx: WalkContext = {
-    operation: options.operation,
-    form: options.form,
-    identityKeys: options.basisKind === 'self' ? ownerColumnKeys() : TENANT_IDENTITY_KEYS,
+type Walk = {
+  options: SchemaCheckOptions;
+  reserved: ReadonlySet<PropertyKey>;
+  identity: ReadonlySet<string>;
+  onPath: Set<unknown>;
+  visits: number;
+  refusal?: ActionDefinitionError;
+};
+
+export const MAX_INPUT_DEPTH = 32;
+const MAX_NODES = 5000;
+const TOO_LARGE = `a schema deeper than ${MAX_INPUT_DEPTH} levels or past ${MAX_NODES} units of walk work`;
+const wrappers: ReadonlySet<unknown> = new Set(['optional', 'nullable', 'readonly']);
+const scalars: ReadonlySet<unknown> = new Set([
+  'string',
+  'number',
+  'boolean',
+  'bigint',
+  'date',
+  'file',
+]);
+const coercible: ReadonlySet<unknown> = new Set(['string', 'number', 'boolean', 'bigint', 'date']);
+
+function refuseAt(ctx: Walk, path: string): Refuse {
+  return detail => {
+    ctx.refusal = new ActionDefinitionError(
+      ctx.options.operation,
+      `input schema refused at ${path || '<root>'}: ${detail}`
+    );
+    throw ctx.refusal;
+  };
+}
+
+function spend(ctx: Walk, units: number, refuse: Refuse): void {
+  ctx.visits += units;
+  if (ctx.visits > MAX_NODES) refuse(TOO_LARGE);
+}
+
+function list(value: unknown, refuse: Refuse, max = MAX_NODES): unknown[] {
+  if (Array.isArray(value) && (ownValue(value, 'length') as number) > max) return refuse(TOO_LARGE);
+  return denseArray(value, max) ?? refuse('a list that is not a dense own-data array');
+}
+
+function captureObjectField(shape: object, key: string, path: string, ctx: Walk): Shape {
+  if (ctx.identity.has(key)) refuseAt(ctx, path)('identity keys come from server context');
+  if (ctx.reserved.has(key)) refuseAt(ctx, path)('a reserved Object.prototype key');
+  if (ctx.visits >= MAX_NODES) refuseAt(ctx, path)(TOO_LARGE);
+  const field = Object.getOwnPropertyDescriptor(shape, key);
+  if (!field || !Object.hasOwn(field, 'value')) {
+    return refuseAt(ctx, path)('a shape field that is not own data');
+  }
+  if (!field.enumerable) return refuseAt(ctx, path)('a shape field that is not enumerable');
+  return walk(field.value, path, ctx);
+}
+
+function shapeFields(def: Readonly<Record<PropertyKey, unknown>>, path: string, ctx: Walk) {
+  const refuse = refuseAt(ctx, path);
+  const refuseCatchall = refuseAt(ctx, `${path}{catchall}`);
+  const catchall = ownValue(def, 'catchall');
+  if (catchall !== undefined) spend(ctx, 1, refuseCatchall);
+  const never = schemaDef(catchall);
+  if (!never || ownValue(never, 'type') !== 'never') {
+    return refuse('objects must be strict (z.strictObject or .strict())');
+  }
+  const domain = { type: 'never', nullable: false, optional: false };
+  checksFor(catchall, never, domain, 'never', ctx, refuseCatchall);
+  if (Object.hasOwn(never, 'checks') || Object.hasOwn(never, 'check')) {
+    return refuseCatchall('a never catchall with checks');
+  }
+
+  const shape = rawObjectShape(def);
+  if (!isOwnReadable(shape)) return refuse('an invalid object shape');
+  const fields: Record<string, Shape> = Object.create(null);
+  for (const key of ownKeys(shape)) {
+    if (typeof key !== 'string') return refuse('a non-string object key');
+    const childPath = path ? `${path}.${key}` : key;
+    fields[key] = captureObjectField(shape, key, childPath, ctx);
+  }
+  return Object.freeze(fields);
+}
+
+function isLiteral(value: unknown): value is Literal {
+  return value == null || ['string', 'number', 'boolean', 'bigint'].includes(typeof value);
+}
+
+function unionNode(
+  schema: unknown,
+  def: Readonly<Record<PropertyKey, unknown>>,
+  path: string,
+  ctx: Walk
+): ShapeBody {
+  const refuse = refuseAt(ctx, path);
+  const discriminator = ownValue(def, 'discriminator');
+  const inclusive = ownValue(def, 'inclusive');
+  const discriminated = hasTrait(schema, '$ZodDiscriminatedUnion');
+  if (discriminated && Object.hasOwn(def, 'unionFallback')) {
+    return refuse('a discriminated union with unionFallback');
+  }
+  if (
+    discriminated
+      ? typeof discriminator !== 'string'
+      : discriminator !== undefined ||
+        !hasTrait(schema, '$ZodUnion') ||
+        hasTrait(schema, '$ZodXor') ||
+        (inclusive !== undefined && inclusive !== true)
+  ) {
+    return refuse('a union variant other than inclusive or discriminated');
+  }
+  const branches = Object.freeze(
+    list(ownValue(def, 'options'), refuse).map(option => walk(option, path, ctx))
+  );
+  if (!branches.length) return refuse('a union without branches');
+  const node = {
+    type: 'union',
+    branches,
+    discriminator: discriminated ? (discriminator as string) : null,
+  } as const;
+  assertUnion(node, refuse);
+  return node;
+}
+
+function scalarNode(
+  def: Readonly<Record<PropertyKey, unknown>>,
+  type: string,
+  ctx: Walk,
+  refuse: Refuse
+): ShapeBody {
+  const coerce = ownValue(def, 'coerce');
+  if (type === 'file' && !ctx.options.form)
+    return refuse('z.file() is accepted in form actions only');
+  if (coerce !== undefined && coerce !== false && !(coerce === true && coercible.has(type))) {
+    return refuse('a coercion other than a supported primitive coercion');
+  }
+  return { type: type as ScalarType, coerce: coerce === true };
+}
+
+function nodeFor(
+  schema: unknown,
+  def: Readonly<Record<PropertyKey, unknown>>,
+  type: string,
+  path: string,
+  ctx: Walk,
+  refuse: Refuse
+): ShapeBody {
+  if (scalars.has(type)) return scalarNode(def, type, ctx, refuse);
+  if (wrappers.has(type)) {
+    if (type === 'optional' && hasTrait(schema, '$ZodExactOptional')) {
+      return refuse('exactOptional is not supported');
+    }
+    return { type: type as WrapperType, inner: walk(ownValue(def, 'innerType'), path, ctx) };
+  }
+  switch (type) {
+    case 'object':
+      return { type, fields: shapeFields(def, path, ctx) };
+    case 'array':
+      return { type, element: walk(ownValue(def, 'element'), `${path}[]`, ctx) };
+    case 'tuple': {
+      if (ownValue(def, 'rest') != null) return refuse('tuples may not have a rest element');
+      return {
+        type,
+        items: Object.freeze(
+          list(ownValue(def, 'items'), refuse).map((item, index) =>
+            walk(item, `${path}[${index}]`, ctx)
+          )
+        ),
+      };
+    }
+    case 'union':
+      return unionNode(schema, def, path, ctx);
+    case 'enum':
+      return { type, values: enumValues(ownValue(def, 'entries'), refuse) };
+    case 'literal': {
+      const values = list(ownValue(def, 'values'), refuse);
+      if (!values.every(isLiteral)) return refuse('a non-primitive literal');
+      return { type, values: Object.freeze(values) };
+    }
+    default:
+      return refuse(`schema type "${type}" is not an accepted form`);
+  }
+}
+
+function checksFor(
+  schema: unknown,
+  def: Readonly<Record<PropertyKey, unknown>>,
+  domain: CheckDomain,
+  type: string,
+  ctx: Walk,
+  refuse: Refuse
+) {
+  const raw = ownValue(def, 'checks');
+  if (raw !== undefined && !Array.isArray(raw)) {
+    return refuse(`a checks list that is an accessor or not an array on a ${type}`);
+  }
+  const ownCheck = Object.hasOwn(def, 'check');
+  const remaining = MAX_NODES - ctx.visits - Number(ownCheck);
+  const checks = raw === undefined ? [] : list(raw, refuse, remaining);
+  spend(ctx, checks.length + Number(ownCheck), refuse);
+  const captured = checks.map(check => captureCheck(check, undefined, domain, type, refuse));
+  if (ownCheck) captured.unshift(captureCheck(schema, def, domain, type, refuse));
+  return Object.freeze(captured);
+}
+
+function walk(schema: unknown, path: string, ctx: Walk): Shape {
+  const refuse = refuseAt(ctx, path);
+  if (ctx.onPath.has(schema)) return refuse('a recursive schema (it refers to itself)');
+  if (ctx.onPath.size >= MAX_INPUT_DEPTH) return refuse(TOO_LARGE);
+  spend(ctx, 1, refuse);
+  const def = schemaDef(schema);
+  const type = ownValue(def, 'type');
+  if (!def || type === ACCESSOR || typeof type !== 'string') {
+    return refuse('a schema whose definition or type is not own data');
+  }
+  const asyncReason = asyncSchemaReason(def, type);
+  if (asyncReason !== undefined) return refuse(asyncReason);
+  if (!path && ctx.onPath.size === 0 && type !== 'object')
+    return refuse('the root must be a strict object');
+  ctx.onPath.add(schema);
+  const node = nodeFor(schema, def, type, path, ctx, refuse);
+  const checks = checksFor(schema, def, checkDomain(node), type, ctx, refuse);
+  ctx.onPath.delete(schema);
+  const captured = Object.freeze({ ...node, checks });
+  if (ctx.options.form && node.type === 'union' && formKind(captured) === 'mixed') {
+    return refuse('a form field may not mix array and non-array union branches');
+  }
+  return captured;
+}
+
+export function captureSchema(input: unknown, options: SchemaCheckOptions): ObjectShape {
+  const ctx: Walk = {
+    options,
+    reserved: new Set([...STANDARD_OBJECT_KEYS, ...ownKeys(Object.prototype)]),
+    identity: options.basisKind === 'self' ? ownerColumnKeys() : TENANT_IDENTITY_KEYS,
     onPath: new Set(),
     visits: 0,
   };
   try {
-    if (defOf(schema).type !== 'object') refuse(ctx, '', 'the root must be a strict object');
-    walk(schema, '', ctx);
-    if (options.form) assertFormFields(schema, ctx);
-  } catch (error) {
-    // Anything else thrown while the schema is judged (a developer getter's error, a stack exhausted
-    // in any realm) is a refusal too. The thrown value is only compared by identity, never read: no
-    // `instanceof`, so no proxy trap runs (r13 B42, r14 B42, r15 B42).
-    if (ctx.refusal !== undefined && error === ctx.refusal) throw ctx.refusal;
-    refuse(ctx, '', 'a schema that cannot be judged (reading it threw)');
-  }
-  const root = defOf(schema);
-  if (options.subjectFrom !== null && !Object.hasOwn(root.shape ?? {}, options.subjectFrom)) {
-    throw new ActionDefinitionError(
-      options.operation,
-      `subject.from "${options.subjectFrom}" is not a declared top-level input key`
-    );
-  }
-}
-
-// Whether a form field holds an array, something else, or a union of both (r6 B25). Wrappers and
-// unions are unwrapped; a union is an array field only when every branch is one.
-type FieldKind = 'array' | 'other' | 'mixed';
-function fieldKind(schema: z.ZodType): FieldKind {
-  let def = defOf(schema);
-  while (WRAPPER_TYPES.has(def.type) && def.innerType) def = defOf(def.innerType);
-  if (def.type === 'array') return 'array';
-  if (def.type !== 'union') return 'other';
-  const kinds = new Set((def.options ?? []).map(fieldKind));
-  return kinds.size === 1 ? ([...kinds][0] ?? 'other') : 'mixed';
-}
-
-// A form collects every value of an array field and refuses a repeated other field, so a field
-// whose union mixes array and non-array branches has no single reading (r6 B25).
-function assertFormFields(schema: z.ZodType, ctx: WalkContext): void {
-  for (const [key, child] of Object.entries(defOf(schema).shape ?? {}))
-    if (fieldKind(child) === 'mixed')
-      refuse(ctx, key, 'a form field may not mix array and non-array union branches');
-}
-
-/** Top-level keys whose schema is an array, or a union of arrays: a form collects every value. */
-export function arrayFieldKeys(schema: z.ZodType): ReadonlySet<string> {
-  const keys = new Set<string>();
-  for (const [key, child] of Object.entries(defOf(schema).shape ?? {}))
-    if (fieldKind(child) === 'array') keys.add(key);
-  return keys;
-}
-
-/** `{ "a.b": "too_small" }`: the path and zod issue code, never the input value. */
-export function issuesOf(error: z.ZodError): Record<string, string> {
-  const issues: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = issue.path.map(String).join('.') || '_root';
-    // Own keys only: a field named like an Object.prototype member is still recorded (r2 B13).
-    if (!Object.hasOwn(issues, key)) {
-      Object.defineProperty(issues, key, {
-        value: issue.code,
-        enumerable: true,
-        writable: true,
-        configurable: true,
-      });
+    const root = walk(input, '', ctx);
+    if (root.type !== 'object') return refuseAt(ctx, '')('the root must be a strict object');
+    assertObjectParts(root, options.objectParts ?? [], path => refuseAt(ctx, path));
+    if (
+      options.subjectFrom !== null &&
+      (!options.subjectFrom.length || fieldAt(root, options.subjectFrom, true) === undefined)
+    ) {
+      return refuseAt(
+        ctx,
+        ''
+      )(`subject.from "${options.subjectFrom.join('.')}" is not a declared input path`);
     }
+    return root;
+  } catch (error) {
+    if (error === ctx.refusal && ctx.refusal !== undefined) throw ctx.refusal;
+    return refuseAt(ctx, '')('a schema that cannot be judged (reading it threw)');
   }
-  return issues;
 }
