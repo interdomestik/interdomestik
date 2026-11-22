@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
@@ -71,6 +72,44 @@ test('canonical PR lanes consolidate MK while pilot invocations retain the legac
     /const keepPilotMk =\s*\(laneName === 'pr' \|\| laneName === 'pr-fast'\) &&\s*extraPlaywrightArgs\.some\(arg => arg\.includes\('\/pilot\/'\)\);/u
   );
   assert.match(runner, /if \(keepPilotMk\) lane\.playwrightArgs\.push\(mkMk\)/u);
+});
+
+test('split PR gates retain strict fast setup and smoke retains its package arguments', () => {
+  assert.match(runner, /const ksSq = '--project=gate-ks-sq';/u);
+  assert.match(runner, /const mkContract = '--project=gate-mk-contract';/u);
+  assert.match(runner, /'pr-ks': gateLane\(\[ksSq\], true\)/u);
+  assert.match(runner, /'pr-mk-contract': gateLane\(\[mkContract\], true\)/u);
+  assert.match(runner, /const fastEnv = \{ PW_FAST_GATES: '1' \};/u);
+  assert.match(runner, /const strictWorkers = \['--workers=1', \.\.\.strictArgs\];/u);
+  assert.match(runner, /const strictArgs = \['--max-failures=1', \.\.\.reportArgs\];/u);
+  assert.match(
+    runner,
+    /const setupArgs = \['e2e\/setup\.state\.spec\.ts', '--project=setup-ks', '--project=setup-mk'\];/u
+  );
+  assert.match(
+    runner,
+    /'pr-smoke': \{\s*gatekeeper: true,\s*playwrightArgs: \['--grep', '@smoke', '--project=ks-sq', '--project=mk-mk', '--workers=1'\],\s*\}/u
+  );
+});
+
+test('an empty or unknown lane is refused before any preparation runs', () => {
+  const script = new URL('../run-e2e-lane.mjs', import.meta.url).pathname;
+  for (const lane of ['', 'pr-unknown']) {
+    const result = spawnSync(process.execPath, [script, lane], {
+      encoding: 'utf8',
+      // If lane selection ever regressed, preparation would stop at the gatekeeper's loopback
+      // target check (exit 1) before any migrate or reseed, and no secret file is written.
+      env: {
+        PATH: process.env.PATH,
+        SKIP_DOCKER_DOCTOR: '1',
+        BETTER_AUTH_SECRET: 'lane-refusal-test-secret-not-used-0123456789',
+        E2E_DATABASE_URL: 'postgresql://lane-refusal@db.invalid:5432/refused',
+      },
+    });
+    assert.equal(result.status, 2, JSON.stringify(lane));
+    assert.match(result.stderr, /Usage: node scripts\/run-e2e-lane\.mjs <lane>/u);
+    assert.match(result.stderr, /pr-ks, pr-mk-contract, pr-smoke/u);
+  }
 });
 
 test('MK contract and non-pilot MK gate preserve the same effective matches', () => {

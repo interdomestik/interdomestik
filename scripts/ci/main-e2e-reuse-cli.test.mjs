@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import {
   chmodSync,
   copyFileSync,
@@ -29,9 +30,17 @@ const fail = () => assert.fail('private diagnostic must not escape');
 const keyPairs =
   'ciWorkflow=.github/workflows/ci.yml|prWorkflow=.github/workflows/e2e-pr.yml|laneSource=scripts/run-e2e-lane.mjs|playwrightConfig=apps/web/playwright.config.ts|packageJson=package.json';
 const sourceKeys = Object.fromEntries(keyPairs.split('|').map(pair => pair.split('=').reverse()));
+const historicalFiles = {
+  '.github/workflows/e2e-pr.yml': 'scripts/ci/fixtures/main-e2e-reuse/e2e-pr.pre-split.yml.fixture',
+  'scripts/run-e2e-lane.mjs':
+    'scripts/ci/fixtures/main-e2e-reuse/run-e2e-lane.pre-split.mjs.fixture',
+};
 const read = file => readFileSync(path.join(root, file), 'utf8');
+const readHistorical = file => read(historicalFiles[file] ?? file);
 const sources = () => ({
-  ...Object.fromEntries(Object.entries(sourceKeys).map(([file, key]) => [key, read(file)])),
+  ...Object.fromEntries(
+    Object.entries(sourceKeys).map(([file, key]) => [key, readHistorical(file)])
+  ),
   e2eTreeSha: E2E_TREE,
 });
 function environment(overrides = {}) {
@@ -52,12 +61,28 @@ function dependencies(overrides = {}) {
       ({ HEAD: MAIN_SHA, 'HEAD^{tree}': fixture.local.treeSha, 'HEAD:apps/web/e2e': E2E_TREE })[
         value
       ],
-    readFile: read,
+    readFile: readHistorical,
     collectEvidence: async () => ({ pullRequests, headCommit, candidates }),
     nowMs: NOW_MS,
     ...overrides,
   };
 }
+const { git: defaultGit } = dependencies();
+const approvedCorpusGit = value =>
+  value === 'HEAD:apps/web/e2e' ? MEMBER_PORTAL_E2E_TREE : defaultGit(value);
+
+test('pre-split fixtures match the resolver source pins byte for byte', () => {
+  const resolver = read('scripts/ci/main-e2e-reuse.mjs');
+  for (const [file, pin] of [
+    ['.github/workflows/e2e-pr.yml', 'PR_WORKFLOW_SHA256'],
+    ['scripts/run-e2e-lane.mjs', 'LANE_SHA256'],
+  ]) {
+    const expected = resolver.match(new RegExp(`^const ${pin} = '([0-9a-f]{64})';$`, 'mu'))?.[1];
+    assert.ok(expected, pin);
+    const bytes = readFileSync(path.join(root, historicalFiles[file]));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), expected);
+  }
+});
 test('repository parity recognizes an approved E2E corpus and rejects the new S7 corpus', () => {
   const current = sources();
   assert.deepEqual(inspectRepositoryParity({ ...current, e2eTreeSha: MEMBER_PORTAL_E2E_TREE }), {
@@ -169,20 +194,29 @@ test('parity drift always resolves to a fail-closed reuse decision', async () =>
     assert.notEqual(mutation[key], current[key], `${predicate} mutation did not apply`);
     assert.equal(inspectRepositoryParity(mutation)[predicate], false, predicate);
     const readFile = value => mutation[sourceKeys[value]];
-    assert.deepEqual(await resolveMainE2eReuse(environment(), dependencies({ readFile })), SAFE);
+    assert.deepEqual(
+      await resolveMainE2eReuse(environment(), dependencies({ git: approvedCorpusGit, readFile })),
+      SAFE
+    );
   }
 });
 test('CLI resolver emits true only for normalized exact evidence with an approved corpus', async () => {
-  const originalGit = dependencies().git;
   const decision = await resolveMainE2eReuse(
     environment(),
-    dependencies({
-      git: value => (value === 'HEAD:apps/web/e2e' ? MEMBER_PORTAL_E2E_TREE : originalGit(value)),
-    })
+    dependencies({ git: approvedCorpusGit })
   );
   assert.deepEqual(decision, { reuse: true, reason: 'exact_pr_evidence' });
   assert.equal(formatReuseDecision(decision), 'reuse=true\nreason=exact_pr_evidence\n');
   assert.deepEqual(await resolveMainE2eReuse(environment(), dependencies()), SAFE);
+});
+test('live split PR lanes reject reuse before provider lookup even with an approved corpus', async () => {
+  const collectEvidence = test.mock.fn(dependencies().collectEvidence);
+  const decision = await resolveMainE2eReuse(
+    environment(),
+    dependencies({ git: approvedCorpusGit, readFile: read, collectEvidence })
+  );
+  assert.deepEqual(decision, SAFE);
+  assert.equal(collectEvidence.mock.callCount(), 0);
 });
 test('CLI resolver fails closed before GitHub access for an ineligible context', async () => {
   const decision = await resolveMainE2eReuse(
@@ -262,7 +296,9 @@ test('PR gate skip and failure-tolerating workflow semantics reject reuse before
     const decision = await resolveMainE2eReuse(
       environment(),
       dependencies({
-        readFile: file => (file === '.github/workflows/e2e-pr.yml' ? changed : read(file)),
+        git: approvedCorpusGit,
+        readFile: file =>
+          file === '.github/workflows/e2e-pr.yml' ? changed : readHistorical(file),
         collectEvidence: async () => {
           requested = true;
           return {};
