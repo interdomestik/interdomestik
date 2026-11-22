@@ -3,6 +3,7 @@
 // and mid-barrel insertions require an exact reviewed transition.
 
 import ts from 'typescript';
+import { hasFlag } from './rules-digest.mjs';
 import {
   allowedName,
   COLUMNS,
@@ -227,7 +228,7 @@ const onlyExportModifier = node =>
 function registerTables(statement, context) {
   if (
     !ts.isVariableStatement(statement) ||
-    !(statement.declarationList.flags & ts.NodeFlags.Const) ||
+    !hasFlag(statement.declarationList, ts.NodeFlags.Const) ||
     !onlyExportModifier(statement)
   )
     return 'unsupported module statement';

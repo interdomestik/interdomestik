@@ -29,7 +29,7 @@ const BLOCKED = new Set([
   ...INFERRED_TYPES,
 ]);
 const RELATION_NAME = /^[a-z_][a-z0-9_]{0,62}$/u;
-const JS_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,62}$/u;
+const JS_NAME = /^[A-Za-z_]\w{0,62}$/u;
 const TABLE_BUILDERS = new Set(['pgTable', 'pgView', 'pgMaterializedView']);
 const LEGACY_BUILDERS =
   /^(?:pgTable|pgView|pgMaterializedView|pgSchema|PgTable|PgView|PgMaterializedView)/u;

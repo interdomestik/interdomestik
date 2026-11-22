@@ -22,7 +22,7 @@ function selection(node, receiver) {
 
 export function retainedConsumerProblem(before, after, anchor, affected, names) {
   const receiverOrigin = queryReceiverOrigins(after);
-  for (const [file, text] of after.allSources) {
+  for (const file of after.allSources.keys()) {
     const previous = before.allSources.get(file);
     if (previous === undefined || TEST_SOURCE.test(file)) continue;
     const source = after.inventory.sourceFileOf(file);
