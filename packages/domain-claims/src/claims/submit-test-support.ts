@@ -31,11 +31,33 @@ export const txQuery: Record<'agentClients' | 'tenantSettings' | 'user', { findF
   tenantSettings: { findFirst: vi.fn() },
   user: { findFirst: vi.fn() },
 };
-export const submitTx: { insert: Mock; query: typeof txQuery; transaction: Mock } = {
+/** Advisory-lock statements the submission takes inside its transaction. */
+export const txExecute: Mock = vi.fn(() => Promise.resolve([]));
+/** Rows the in-transaction evidence-object read returns (default: none attached). */
+export const txSelectRows: Mock = vi.fn(() => Promise.resolve([]));
+export const txSelect: Mock = vi.fn(() => ({
+  from: () => ({ where: txSelectRows }),
+}));
+export const submitTx: {
+  execute: Mock;
+  insert: Mock;
+  query: typeof txQuery;
+  select: Mock;
+  transaction: Mock;
+} = {
+  execute: txExecute,
   insert: txInsert,
   query: txQuery,
+  select: txSelect,
   transaction: vi.fn(),
 };
+
+/** A `sql` tag double that keeps the statement text and its bound values. */
+export const sqlMock: Mock = vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+  __op: 'sql',
+  text: strings.join('?'),
+  values,
+}));
 
 export const tenantContextOrder: string[] = [];
 export const tenantContexts: unknown[] = [];
@@ -77,7 +99,17 @@ export const databaseModuleMock = (): Record<string, unknown> => ({
     agentId: 'agent_clients.agent_id',
     status: 'agent_clients.status',
   },
-  claimDocuments: { __name: 'claim_documents' },
+  and: vi.fn((...args: unknown[]) => ({ __op: 'and', args })),
+  claimDocuments: {
+    __name: 'claim_documents',
+    bucket: 'claim_documents.bucket',
+    claimId: 'claim_documents.claim_id',
+    filePath: 'claim_documents.file_path',
+    tenantId: 'claim_documents.tenant_id',
+  },
+  eq: vi.fn((left: unknown, right: unknown) => ({ __op: 'eq', left, right })),
+  inArray: vi.fn((left: unknown, right: unknown) => ({ __op: 'inArray', left, right })),
+  sql: sqlMock,
   claimStageHistory: { __name: 'claim_stage_history' },
   claims: { __name: 'claim' },
   db: unscopedDbSentinel,
@@ -99,6 +131,7 @@ export const tenantSecurityModuleMock = () => ({
 });
 
 export const drizzleModuleMock = () => ({
+  sql: sqlMock,
   and: vi.fn((...args: unknown[]) => ({ __op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ __op: 'eq', left, right })),
 });

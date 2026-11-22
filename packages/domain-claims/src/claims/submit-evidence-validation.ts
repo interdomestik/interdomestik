@@ -36,7 +36,9 @@ function getClaimFileValidationContext(
 ): ClaimFileValidationContext {
   return {
     actorId: session.user.id,
-    expectedBucket: process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence',
+    // Trimmed exactly like the app's `resolveEvidenceBucketName`, which the intent and the stored
+    // object are verified against: comparison, verification and the stored row use one value.
+    expectedBucket: process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET?.trim() || 'claim-evidence',
     expectedPrefix: `pii/tenants/${tenantId}/claims/${session.user.id}/`,
     tenantId,
   };

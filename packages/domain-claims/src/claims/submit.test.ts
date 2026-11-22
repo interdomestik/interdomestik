@@ -9,11 +9,13 @@ import {
   logAuditEventMock,
   nanoidMock,
   queueClaimDocumentAiWorkflowsMock,
+  txExecute,
   txInsert,
   txInsertValues,
   txQuery,
+  txSelectRows,
 } from './submit-test-support';
-import { submitClaimCore } from './submit';
+import { ClaimValidationError, submitClaimCore } from './submit';
 
 describe('submitClaimCore', () => {
   it('persists initial documents without queueing AI when no explicit extraction consent exists', async () => {
@@ -37,7 +39,10 @@ describe('submitClaimCore', () => {
     });
     expect(txInsert).toHaveBeenNthCalledWith(1, { __name: 'claim' });
     expect(txInsert).toHaveBeenNthCalledWith(2, { __name: 'claim_stage_history' });
-    expect(txInsert).toHaveBeenNthCalledWith(3, { __name: 'claim_documents' });
+    expect(txInsert).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({ __name: 'claim_documents' })
+    );
     const stageHistoryRow = txInsertValues.mock.calls[1]?.[0] as { createdAt?: Date };
     const caseCreatedEvent = appendEventMock.mock.calls[0]?.[1];
     expect(stageHistoryRow.createdAt).toBe(caseCreatedEvent?.createdAt);
@@ -64,6 +69,62 @@ describe('submitClaimCore', () => {
         uploadIntentToken: 'server-issued-upload-intent',
       }),
     });
+  });
+
+  it('locks each evidence object and reads its rows inside the transaction before the insert', async () => {
+    await submitClaimCore(buildSubmitArgs(), {
+      validateSubmittedClaimFile: vi.fn().mockResolvedValue(undefined),
+    });
+
+    expect(txExecute).toHaveBeenCalledTimes(1);
+    const lock = txExecute.mock.calls[0]?.[0] as { text: string; values: unknown[] };
+    expect(lock.text).toContain('pg_advisory_xact_lock');
+    expect(lock.values).toEqual([
+      JSON.stringify([
+        'claim-evidence-object',
+        'tenant-1',
+        'claim-evidence',
+        'pii/tenants/tenant-1/claims/member-1/unassigned/upload-1-evidence.pdf',
+      ]),
+    ]);
+    expect(txSelectRows).toHaveBeenCalledTimes(1);
+    expect(txExecute.mock.invocationCallOrder[0]).toBeLessThan(
+      txSelectRows.mock.invocationCallOrder[0] ?? 0
+    );
+    expect(txSelectRows.mock.invocationCallOrder[0]).toBeLessThan(
+      txInsert.mock.invocationCallOrder[2] ?? 0
+    );
+  });
+
+  it('refuses, typed, an evidence object that is already the document of a claim', async () => {
+    txSelectRows.mockResolvedValueOnce([
+      {
+        bucket: 'claim-evidence',
+        claimId: 'claim-other',
+        filePath: 'pii/tenants/tenant-1/claims/member-1/unassigned/upload-1-evidence.pdf',
+      },
+    ]);
+
+    const submission = submitClaimCore(buildSubmitArgs(), {
+      validateSubmittedClaimFile: vi.fn().mockResolvedValue(undefined),
+    });
+
+    await expect(submission).rejects.toBeInstanceOf(ClaimValidationError);
+    await expect(submission).rejects.toMatchObject({ code: 'INVALID_PATH' });
+    expect(txInsert).not.toHaveBeenCalledWith(
+      expect.objectContaining({ __name: 'claim_documents' })
+    );
+  });
+
+  it('refuses the same evidence object twice in one submission before anything is written', async () => {
+    const file = buildEvidenceFile();
+
+    const submission = submitClaimCore(buildSubmitArgs({ files: [file, { ...file }] }), {
+      validateSubmittedClaimFile: vi.fn().mockResolvedValue(undefined),
+    });
+
+    await expect(submission).rejects.toMatchObject({ code: 'INVALID_PAYLOAD' });
+    expect(txInsert).not.toHaveBeenCalled();
   });
 
   it('omits diaspora note without handoff context', async () => {
