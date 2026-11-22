@@ -30,7 +30,7 @@ The rules are in `AGENTS.md`. This file adds only what is specific to Claude Cod
 ## This machine
 
 - No checkout is linked to a shared project (the main checkout was linked to the old production until the owner unlinked it). Work in a worktree on the external volume, and never run `supabase` or `vercel` anywhere (R-24).
-- Gate evidence (`pnpm pr:verify`, `pnpm security:guard`) counts only from the dedicated macOS verification machine, with its configuration recorded in the result. On any other machine you pre-check, and you say so (R-04). That machine is recognised by a marker file outside the repository, which the verify script checks; until the marker and the check exist, every run is a pre-check.
+- Gate evidence (`pnpm pr:verify`, `pnpm security:guard`) counts only from the dedicated macOS verification machine, with its configuration recorded in the result. On any other machine you pre-check, and you say so (R-04). That machine is recognised by a marker file outside the repository, which the verify script checks (since #2091). A run that does not match the marker, on that machine too, is a PRE-CHECK; only a run stamped GATE-EVIDENCE counts (owner, 2026-11-19).
 - The internal disk is short of space: keep worktrees, caches and build output on the external volume.
 
 ## Reporting

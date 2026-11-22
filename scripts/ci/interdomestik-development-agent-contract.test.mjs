@@ -27,8 +27,8 @@ test('the versioned role points to a runnable preflight available in a fresh che
   assert.ok(guide.includes(`node --env-file=.env.local ${preflight}`));
   assert.ok(fs.existsSync(new URL(`../../${preflight}`, import.meta.url)));
   assert.match(role, /^name = "interdomestik-developer"$/m);
-  assert.match(role, /^model = "gpt-6.1-sol"$/m);
-  assert.match(role, /^model_reasoning_effort = "high"$/m);
+  assert.match(role, /^model = "gpt-6.2-sol"$/m);
+  assert.match(role, /^model_reasoning_effort = "xhigh"$/m);
 });
 
 test('the role and its guide defer to AGENTS.md and leave merging to R-01', () => {
@@ -64,7 +64,7 @@ test('the role and its guide defer to AGENTS.md and leave merging to R-01', () =
   );
   assert.ok(
     guideFlat.includes(
-      'Only the lead merges, under R-01; no agent deploys or force-pushes; the owner releases (R-01, R-24).'
+      'The lead merges under R-01; the owner may merge; no other agent merges, and no agent deploys or force-pushes; the owner releases (R-01, R-24).'
     )
   );
   // Contradicting grants or precedence must fail wherever an agent reads them.
@@ -160,16 +160,16 @@ const APPROVED_AUTHORITY_UNITS = {
     "When the lead assigns Codex a bounded part with disjoint files in its own worktree, Codex implements that part at this role's configured effort and Claude reviews it.",
     'Where any passage below conflicts with AGENTS.md (program/tracker reconciliation, canonical amendments, merging or deploying), AGENTS.md wins.',
     "it does not message another chat or treat a helper's recommendation as owner approval.",
-    'merging follows AGENTS.md R-01 and releasing stays with the owner.',
-    'name = "interdomestik-developer" description = "Own one bounded Interdomestik increment through research, Claude collaboration, integrated verification and owner-authorized delivery." model = "gpt-6.1-sol" model_reasoning_effort = "high" sandbox_mode = "workspace-write" approval_policy = "on-request" developer_instructions = \'\'\' You are the Interdomestik development agent.',
+    'name = "interdomestik-developer" description = "Own one bounded Interdomestik increment through research, Claude collaboration, integrated verification and owner-authorized delivery." model = "gpt-6.2-sol" model_reasoning_effort = "xhigh" sandbox_mode = "workspace-write" approval_policy = "on-request" developer_instructions = \'\'\' You are the Interdomestik development agent.',
     'no agent writes to staging (R-24).',
-    'the lead or the owner merges (AGENTS.md R-01).',
+    'the lead merges under AGENTS.md R-01, or the owner merges.',
+    'the lead merges under AGENTS.md R-01, the owner may merge, and releasing stays with the owner.',
   ],
   guide: [
     "# Interdomestik development agent This Codex agent reviews Claude Code's work and, when the lead assigns one, takes a bounded part of an Interdomestik development task (`AGENTS.md`, R-01).",
     '## Lessons verified by the second pilot PR #1854 reached exact-merge staging P0 in 3h 24m 58s elapsed, including waits.',
     '## Mandatory canonical reconciliation Delivery record (AGENTS.md R-28): the PR is the record of a change.',
-    "## Owner's delivery lifecycle A DIRECTION.md package or the owner's explicit request (R-29) → bounded selection → fresh worktree from updated main → implementation and focused green checks → authorized PR candidate (full local proof pending) → current-head review and analysis complete → consolidated corrections and focused regressions → final source/environment freeze → required full local proof and hosted checks green → merge by the lead or the owner (R-01) → read-only Actions/staging proof on the merge SHA → completion recorded on the PR → safe worktree retirement → chat archival → next slice.",
+    "## Owner's delivery lifecycle A DIRECTION.md package or the owner's explicit request (R-29) → bounded selection → fresh worktree from updated main → implementation and focused green checks → authorized PR candidate (full local proof pending) → current-head review and analysis complete → consolidated corrections and focused regressions → final source/environment freeze → required full local proof and hosted checks green → merge (the lead under R-01, or the owner) → read-only Actions/staging proof on the merge SHA → completion recorded on the PR → safe worktree retirement → chat archival → next slice.",
     'After the merge, add the exact merge SHA, the exact-SHA staging run and any remaining human acceptance to that PR.',
     'After verifying the merged work, identify one recommended next bounded slice from the ordered packages of docs/engineering/DIRECTION.md (AGENTS.md R-29), requirement gaps and mounted behavior.',
     'Assign any requested Claude coding a bounded packet with disjoint files, current source, SRS/M0-M5 constraints, acceptance and tests.',
@@ -184,14 +184,14 @@ const APPROVED_AUTHORITY_UNITS = {
     'If the approved Claude CLI repeatedly denies the deterministic local verification command before execution, preserve that limitation and use Codex as the explicitly attributed repo-command executor within Claude-owned delivery;',
     'If tooling changes or a helper stops for integrity, preserve that stop and continue through a separately authorized, fixed read-only route without repeating valid proof.',
     'Its editable definition is `.codex/agents/interdomestik-developer.toml` (revision `2026-10-03-bounded-search-packets`).',
-    'Merging follows AGENTS.md R-01;',
-    'Merging follows AGENTS.md R-01;',
     "No agent writes to staging (AGENTS.md R-24): every step there that assigns, updates, notes or otherwise changes data is the owner's, and the agent records it as owner-run or blocked.",
     'No model approves its own work, a blocked reviewer is not an approval, and no paid API is a fallback.',
     'Record scope and acceptance in the PR before implementation, and mark delivered completion on the merged PR only after the required post-merge proof (AGENTS.md R-28: no program, tracker or ledger edits, no bookkeeping-only PR).',
     'Simulation answers validate instruction interpretation, not execution of the actual development, Claude, CI, deployment or cleanup workflow.',
     'The agent must discover the corresponding existing test and browser route.',
-    'The lead or the owner merges (AGENTS.md R-01);',
+    'The lead merges under AGENTS.md R-01, or the owner merges;',
+    'The lead merges under AGENTS.md R-01, or the owner merges;',
+    'The lead merges under AGENTS.md R-01, or the owner merges;',
     'This is a simulation: do not edit files, invoke Claude, start services, call GitHub, merge, deploy or clean up.',
     'This uses the instructions but does not prove custom-agent discovery or apply its model settings;',
     "When the lead assigns Codex a bounded part with disjoint files in its own worktree, Codex implements that part at this role's configured effort and Claude reviews it.",
@@ -200,7 +200,7 @@ const APPROVED_AUTHORITY_UNITS = {
     'after the merge the agent verifies exact-SHA staging proof read-only and performs authorized cleanup.',
     "it does not message another chat or treat a helper's recommendation as owner approval.",
     'it requires no separate Agents API application.',
-    'no agent deploys or force-pushes;',
+    'no other agent merges, and no agent deploys or force-pushes;',
     'the agent must not ask repeatedly for actions already covered.',
   ],
   procedure: [
@@ -225,8 +225,8 @@ test('every agent authority sentence in the role, guide and staging procedure is
 // as a whole: any edit fails here until it has been reviewed for agent authority (AGENTS.md R-01, R-24) and
 // the new hash is recorded in a reviewed edit of this test.
 const PINNED_AUTHORITY_SHA256 = {
-  role: '9667c920f64d2583ca7af8ff573fa87a94128ff19626b7f9f1bf00a321441637',
-  guide: 'e4769a98774e1d68ea480668a8128cdf607c7889fc896bd8e17e4f47cecb57dd',
+  role: '7f922148bcfe3a1b63683f3a4a4e0f55ece59dce81bd11fb6da24b031f28e422',
+  guide: '29fb8f45bd1821d777fb2d456fe0bf4ee9811eee2ca382b74836ab7f7c4f9a51',
   procedure: 'e1f3502eb83ee054935cda9d1df34a8680c8bba8e16e3abb46eec4c09ea053ed',
 };
 

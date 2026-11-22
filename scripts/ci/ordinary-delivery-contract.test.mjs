@@ -69,7 +69,7 @@ test('ordinary delivery does not require ritual companion PRs or collapse delive
   const r01 = r01Lines.slice(0, r01EndLine).join('\n');
   assert.ok(
     r01.includes(
-      '- **Merging by the lead** (owner, 2026-11-21: "Bej ti merging"; it amends answer 30). The lead session may merge a PR only when all of these hold on its exact head: every required check is green; `delivery-gate` is green; the verdict of R-01 has no open finding; the tier\'s local verification is recorded (`GATE-EVIDENCE` where the tier needs it); the PR is up to date with `main`. The lead never force-pushes, never bypasses a ruleset and never merges its own unreviewed change. It records the merge in the PR: who merged, the head and the evidence. No other agent merges. Releases, deploys, ruleset repins and the authorizations of R-37 stay with the owner.\n'
+      '- **Merging by the lead** (owner, 2026-11-21: "Bej ti merging" ["You do the merging"]; it amends answer 30). The lead session may merge a PR only when all of these hold on its exact head: every required check is green; `delivery-gate` is green; the verdict of R-01 is YES with no open finding; the tier\'s local verification is recorded (`GATE-EVIDENCE` where the tier needs it); the PR is up to date with `main`. The lead never force-pushes, never bypasses a ruleset and never merges its own unreviewed change. It records the merge in the PR: who merged, the head and the evidence. No other agent merges. Releases, deploys, ruleset repins and the authorizations of R-37 stay with the owner.\n'
     )
   );
   assert.match(tracker, /No deployment, product readiness or user-acceptance claim/u);
