@@ -1262,6 +1262,11 @@
       "migration": "0035_enable_tenant_rls_coverage"
     },
     {
+      "key": "rls-force [\"public\",\"claim_response_requests\"]",
+      "value": "forced",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
       "key": "rls-force [\"public\",\"exchange_rate_books\"]",
       "value": "forced",
       "migration": "0101_wp07_exchange_rates"
@@ -1270,6 +1275,11 @@
       "key": "rls-force [\"public\",\"exchange_rates\"]",
       "value": "forced",
       "migration": "0101_wp07_exchange_rates"
+    },
+    {
+      "key": "rls-force [\"public\",\"notification_deliveries\"]",
+      "value": "forced",
+      "migration": "0102_wp11_notification_deliveries"
     },
     {
       "key": "rls-force [\"public\",\"sponsor_handover_cancel_attempts\"]",
