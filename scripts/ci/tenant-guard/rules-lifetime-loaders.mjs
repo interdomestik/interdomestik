@@ -6,9 +6,10 @@
 // loader members (`require`, `mainModule`, `getBuiltinModule`) under any receiver or binding key,
 // computed member access on the global loader receivers, import-equals declarations, eval-like
 // or bundler loader globals, the code evaluator package, `constructor` members, property
-// descriptor reads and `Reflect` operations other than key queries.
+// descriptor reads and `Reflect` operations other than key queries and pinned intrinsic calls.
 
 import ts from 'typescript';
+import { createReflectCheck } from './rules-lifetime-reflect.mjs';
 
 const LOADER_MODULES = new Set(['module', 'node:module']);
 // Modules that compile and run source text in the current realm.
@@ -45,6 +46,7 @@ const GLOBAL_LOADERS = new Set([
 /** Builds `{ loaderProblem(fact, node), loadsEntryModule(fact, call) }` over `ctx`. */
 export function createLoaderChecks(ctx, entryModule) {
   const { graph, referenceAt, unwrap } = ctx;
+  const refusedReflect = createReflectCheck(ctx);
   const unbound = (fact, node) =>
     ts.isIdentifier(node) && referenceAt(fact, node) && !referenceAt(fact, node).binding;
   const isRequire = (fact, node) => node.text === 'require' && unbound(fact, node);
@@ -66,7 +68,7 @@ export function createLoaderChecks(ctx, entryModule) {
     if (isRequire(fact, node) && !calledInPlace(node)) return 'an indirect require';
     if (GLOBAL_LOADERS.has(node.text) && referenceAt(fact, node))
       return `an eval-like global or bundler loader (${node.text})`;
-    if (node.text === 'Reflect' && unbound(fact, node) && !reflectQuery(node))
+    if (node.text === 'Reflect' && !reflectQuery(node) && refusedReflect(fact, node))
       return 'a Reflect operation other than has or ownKeys';
     return null;
   }

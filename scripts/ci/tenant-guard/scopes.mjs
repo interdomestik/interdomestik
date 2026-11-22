@@ -129,7 +129,7 @@ export function isNonReference(node) {
 
 /**
  * Resolves identifier references to lexical bindings. Returns
- *   { bindings: Map<declName node, Binding>, references: Array<{ node, binding|null }> }
+ *   { references: Array<{ node, binding|null }>, lookup, hasBinding }
  * where Binding = { kind: 'import'|'param'|'var'|'function'|'class'|'catch'|'enum', scope, name, decl }.
  */
 export function analyzeScopes(sourceFile) {
@@ -192,7 +192,8 @@ export function analyzeScopes(sourceFile) {
     ts.forEachChild(node, visit);
   };
   visit(sourceFile);
-  return { references, lookup };
+  const hasBinding = name => [...scopes.values()].some(scope => scope.has(name));
+  return { references, lookup, hasBinding };
 }
 
 // Named function, class and enum declarations: [test, kind, declared in the enclosing block].
