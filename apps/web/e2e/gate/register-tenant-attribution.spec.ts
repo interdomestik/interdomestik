@@ -10,6 +10,7 @@ import {
 import en from '../../src/messages/en/agent.json';
 import mk from '../../src/messages/mk/agent.json';
 import sq from '../../src/messages/sq/agent.json';
+import { approveCash } from '../utils/approve-cash';
 import { gotoApp } from '../utils/navigation';
 import { removeOwnedMemberLead } from '../utils/owned-member-lead';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
@@ -175,36 +176,6 @@ async function recordLeadAndTakeCash(
   return leadId;
 }
 
-async function approveCash(
-  admin: Page,
-  target: TenantRegistrationTarget,
-  email: string
-): Promise<void> {
-  await gotoApp(admin, `admin/leads?${new URLSearchParams({ query: email })}`, test.info(), {
-    baseURL: tenantBaseUrl(target),
-    marker: 'verification-ops-page',
-  });
-  const row = admin
-    .getByTestId('cash-verification-row')
-    .filter({ visible: true })
-    .filter({ has: admin.getByText(email, { exact: true }) });
-  await row.getByTestId('cash-approve').click({ timeout: 30_000 });
-  // The click does not await the server action: the flow ends once its conversion committed, so
-  // cleanup waits for it. Only a conversion slower than this poll can still finish after cleanup.
-  await expect
-    .poll(
-      async () => {
-        const [lead] = await db
-          .select({ memberId: memberLeads.convertedUserId })
-          .from(memberLeads)
-          .where(eq(memberLeads.email, email));
-        return lead?.memberId ?? null;
-      },
-      { timeout: 30_000 }
-    )
-    .not.toBeNull();
-}
-
 test.describe('Registration tenant attribution', () => {
   test('concurrent tenant-host lead entry keeps tenant attribution; direct registration writes nothing', async ({
     browser,
@@ -254,7 +225,7 @@ test.describe('Registration tenant attribution', () => {
               target,
               target.adminEmail
             );
-            await approveCash(admin, target, email);
+            await approveCash(admin, tenantBaseUrl(target), email);
           })
         )
       );
