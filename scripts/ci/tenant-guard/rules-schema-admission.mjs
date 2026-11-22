@@ -59,7 +59,10 @@ function appendedExports(before, after) {
   if (!suffix) return { lines: [], nodes: [] };
   if (!previous.endsWith('\n') || !suffix.endsWith('\n'))
     return { reason: 'unsupported appended barrel export' };
-  const lines = suffix.match(/[^\n]*\n/gu);
+  const lines = suffix
+    .slice(0, -1)
+    .split('\n')
+    .map(line => `${line}\n`);
   const source = after.graph.sourceFileOf(BARREL);
   const nodes = source.statements.filter(node => node.getStart(source) >= previous.length);
   if (nodes.length !== lines.length) return { reason: 'unsupported appended barrel export' };

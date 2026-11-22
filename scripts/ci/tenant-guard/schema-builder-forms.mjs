@@ -129,7 +129,7 @@ function sqlTemplate(node, context, own) {
 
 function foreignKeyArgument(node, context, own) {
   const fields = propertyMap(node);
-  if (!fields || fields.size !== 3 || !literal(fields.get('name'))) return false;
+  if (fields?.size !== 3 || !literal(fields.get('name'))) return false;
   const columns = fields.get('columns');
   const foreign = fields.get('foreignColumns');
   if (
