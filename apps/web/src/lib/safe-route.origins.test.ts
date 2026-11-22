@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
-import { sessionRouteOrigins } from './utils';
+import { sessionRouteOrigins } from './safe-route.origins';
 
 beforeEach(() => {
   vi.stubEnv('NODE_ENV', 'test');

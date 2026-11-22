@@ -1,7 +1,6 @@
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 
-import { sessionRouteOrigins } from './auth/utils';
 import { enforceRateLimit } from './rate-limit';
 import { assertSessionContext, checkBasis } from './safe-action.basis';
 import { failureOfThrown, finalize } from './safe-action.core';
@@ -16,6 +15,7 @@ import {
 } from './safe-action.types';
 import { methodNotAllowed, routeResponse } from './safe-route.http';
 import { readBody, readParams, readQuery, readQuerySubject } from './safe-route.input';
+import { sessionRouteOrigins } from './safe-route.origins';
 import type { RouteBasis, RouteContext, WritingMethod } from './safe-route';
 
 type CapturedRoute<Input> = Readonly<{
