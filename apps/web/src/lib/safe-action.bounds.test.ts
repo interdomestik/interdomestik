@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { ROLE_ADMIN } from './roles.core';
@@ -38,16 +38,19 @@ describe('definition: a bounded walk (r12 B39, B40, B41)', () => {
     expect(define(z.strictObject({ deep }))).toThrow(tooLarge);
   });
 
-  it('refuses a tree rebuilt by a factory on each read (B41)', () => {
+  it('refuses a tree whose field getter would rebuild it on each read (B41)', () => {
+    const getter = vi.fn();
     const node = (): z.ZodType =>
       z.strictObject({
         name: z.string(),
         get children() {
+          getter();
           return z.array(node());
         },
       });
     expect(define(z.strictObject({ tree: node() }))).toThrow(ActionDefinitionError);
-    expect(define(z.strictObject({ tree: node() }))).toThrow(tooLarge);
+    expect(define(z.strictObject({ tree: node() }))).toThrow(/tree\.children: a shape field/);
+    expect(getter).not.toHaveBeenCalled();
   });
 
   it('accepts a schema 20 levels deep', () => {
@@ -57,24 +60,26 @@ describe('definition: a bounded walk (r12 B39, B40, B41)', () => {
   });
 });
 
-// Astra r13 B42-B45: the bounds cover the walk's own work. Shape fields are read one at a time
-// under the budget and a stack exhausted while reading them is a definition error (B42); every
-// check scanned and every catchall inspected counts against the node budget (B43, B44); and the
-// scalar-wrapper test follows at most the depth bound (B45).
+// Astra r13 B42-B45: the walk refuses shape accessors before they can exhaust the stack (B42).
+// Every check scanned and catchall inspected counts against the node budget (B43, B44), and
+// the scalar-wrapper test follows at most the depth bound (B45).
 describe('definition: the bounds cover all of the walk (r13 B42-B45)', () => {
   const tooLarge = /a schema deeper than 32 levels or past 5000 units of walk work/;
 
-  it('refuses a shape whose field getters exhaust the stack, as a definition error (B42)', () => {
+  it('refuses a shape whose field getters would exhaust the stack (B42)', () => {
+    const getter = vi.fn();
     let previous = z.strictObject({ value: z.string() });
     for (let level = 0; level < 20000; level += 1) {
       const inner = previous;
       previous = z.strictObject({
         get value() {
+          getter();
           return inner.shape.value;
         },
       });
     }
     expect(define(z.strictObject({ chain: previous }))).toThrow(ActionDefinitionError);
+    expect(getter).not.toHaveBeenCalled();
   });
 
   it('counts the checks it scans: one field schema with many checks, shared by siblings (B43)', () => {
@@ -117,22 +122,28 @@ describe('definition: the bounds cover all of the walk (r13 B42-B45)', () => {
 // thrown while the schema is judged is a definition error, whatever its type or realm (B42); and a
 // catchall is charged before its type is read, so past the budget the budget is the reason (B44).
 describe('definition: every failure is a definition error, charged first (r14 B42, B44)', () => {
-  const throwingField = (thrown: unknown) =>
-    z.strictObject({
-      get broken() {
-        throw thrown;
-      },
-    });
+  function expectFailedDescriptorRead(thrown: unknown) {
+    const shape = { broken: z.string() };
+    const defineBroken = define(z.strictObject({ bad: z.strictObject(shape) }));
+    const getDescriptor = Object.getOwnPropertyDescriptor;
+    Object.getOwnPropertyDescriptor = (value, key) => {
+      if (value === shape && key === 'broken') throw thrown;
+      return getDescriptor(value, key);
+    };
+    try {
+      expect(defineBroken).toThrow(ActionDefinitionError);
+      expect(defineBroken).toThrow(/a schema that cannot be judged/);
+    } finally {
+      Object.getOwnPropertyDescriptor = getDescriptor;
+    }
+  }
 
   it.each([
     ['a TypeError', new TypeError('not initialised')],
     ['a thrown string', 'plain'],
     ['a thrown object', { reason: 'odd' }],
-  ])('turns %s from a field getter into a definition error', (_label, thrown) => {
-    expect(define(z.strictObject({ bad: throwingField(thrown) }))).toThrow(ActionDefinitionError);
-    expect(define(z.strictObject({ bad: throwingField(thrown) }))).toThrow(
-      /a schema that cannot be judged/
-    );
+  ])('turns %s from a failed descriptor read into a definition error', (_label, thrown) => {
+    expectFailedDescriptorRead(thrown);
   });
 
   // The thrown value is never read: not even `instanceof` runs on it, so no trap fires (r15 B42).
@@ -150,9 +161,7 @@ describe('definition: every failure is a definition error, charged first (r14 B4
         }
       )
     );
-    expect(define(z.strictObject({ bad: throwingField(thrown) }))).toThrow(
-      /a schema that cannot be judged/
-    );
+    expectFailedDescriptorRead(thrown);
     expect(trapped).toEqual([]);
   });
 
