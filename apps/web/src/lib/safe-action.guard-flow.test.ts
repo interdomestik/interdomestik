@@ -234,6 +234,27 @@ describe('the action guard sequence and refusal subject', () => {
     });
   });
 
+  it('rejects with the integrity error when Sentry reporting throws', async () => {
+    const action = defineAction({ ...definition, input, handler: deny });
+    const reportingError = new Error('reporting failed');
+    mocks.capture.mockImplementationOnce(() => {
+      throw reportingError;
+    });
+    const key = 'unrelated';
+    Object.defineProperty(Object.prototype, key, { configurable: true, value: true });
+    let error: unknown;
+    try {
+      await action({ claimId: 'ID-A' });
+    } catch (value) {
+      error = value;
+    } finally {
+      Reflect.deleteProperty(Object.prototype, key);
+    }
+    expect(error).toBeInstanceOf(ObjectPrototypeIntegrityError);
+    expect(mocks.capture).toHaveBeenCalledOnce();
+    expect(error).not.toBe(reportingError);
+  });
+
   it('keeps the error from an inner gate by identity after the prototype is restored', async () => {
     let inner: unknown;
     mocks.authorize.mockImplementationOnce(async () => {

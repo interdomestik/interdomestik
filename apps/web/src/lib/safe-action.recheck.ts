@@ -97,9 +97,10 @@ export function assertPristineObjectPrototype(): void {
       __proto__: null,
       extra: { __proto__: null, labels: labels.trim() },
     } as Parameters<typeof Sentry.captureException>[1]);
-  } finally {
-    throw error;
+  } catch {
+    // Reporting must never replace the integrity error; it is thrown below either way.
   }
+  throw error;
 }
 
 const errorFields = ['digest', 'message', 'cause', 'name', 'code', 'reason'] as const;
@@ -138,8 +139,8 @@ export function checkControlFlow(error: unknown): boolean {
   if (!inspectable(error, chain)) return false;
   try {
     unstable_rethrow(error);
-  } catch (control) {
-    if (control === error || chain.has(control as object)) throw control;
+  } catch (rethrownError) {
+    if (rethrownError === error || chain.has(rethrownError as object)) throw rethrownError;
     return false;
   }
   if (ownValue(error, 'message') === 'NEXT_REDIRECT') throw error;
