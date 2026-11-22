@@ -25,6 +25,8 @@
     "./tenant-authority": "./src/tenant-authority-public.ts",
     "./tenant-authority-registrar": "./src/tenant-authority-registrar.ts",
     "./testing/tenant-authority": "./src/testing/tenant-authority.ts",
+    "./testing/message-fixtures": "./src/testing/message-fixtures.ts",
+    "./seed-utils/claim-notification-cleanup": "./src/seed-utils/claim-notification-cleanup.ts",
     "./tenant-directory": "./src/tenant-directory.ts",
     "./tenant-authority-context": "./src/tenant-authority-context.ts"
   },

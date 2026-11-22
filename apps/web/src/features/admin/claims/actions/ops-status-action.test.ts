@@ -37,10 +37,7 @@ vi.mock('@/lib/rate-limit', () => ({ enforceRateLimitForAction: mocks.rateLimit 
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
 vi.mock('next/cache', () => ({ revalidatePath: mocks.refresh }));
 vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
-vi.mock('@interdomestik/domain-communications/notification-deliveries', async original => ({
-  ...(await original<
-    typeof import('@interdomestik/domain-communications/notification-deliveries')
-  >()),
+vi.mock('@interdomestik/domain-claims/claims/notification-delivery-runner', () => ({
   dispatchNotificationDeliveries: mocks.kick,
 }));
 vi.mock('@interdomestik/database', async importOriginal => ({

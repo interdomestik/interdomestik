@@ -31,10 +31,12 @@ vi.mock('@interdomestik/domain-communications/notification-deliveries', async ()
     enqueueClaimSubmittedNotification: support.enqueueClaimSubmittedNotificationMock,
     enqueueStaffClaimNotification: support.enqueueStaffClaimNotificationMock,
     lockClaimNotificationRecipient: vi.fn().mockResolvedValue({ id: 'member-1' }),
-    resolveStaffClaimNotificationRecipients: vi.fn().mockResolvedValue([{ id: 'staff-1' }]),
   };
 });
 vi.mock('../staff-claims/scope', () => ({ buildStaffClaimReadScope: vi.fn() }));
+vi.mock('../staff-claims/notification-recipients', () => ({
+  resolveStaffClaimNotificationRecipients: vi.fn().mockResolvedValue([{ id: 'staff-1' }]),
+}));
 vi.mock('./response-requests', async () => ({
   createClaimResponseRequest: (await import('./submit-test-support'))
     .createClaimResponseRequestMock,

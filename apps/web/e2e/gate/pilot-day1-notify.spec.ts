@@ -1,9 +1,11 @@
+import { cleanupClaimNotificationRows } from '@interdomestik/database/seed-utils/claim-notification-cleanup';
 import {
   E2E_PACK_USERS,
   E2E_USERS,
   claimMessages,
   claims,
   db,
+  dbAdmin,
   eq,
   user,
   desc,
@@ -96,6 +98,7 @@ test('Simulate Multi-User Claim Messages (DB Direct)', async () => {
 
   console.log('🎉 DB Messaging Simulation Finished Successfully!');
 
+  await cleanupClaimNotificationRows(dbAdmin, { messageIds: insertedMessageIds });
   for (const messageId of insertedMessageIds) {
     await db.delete(claimMessages).where(eq(claimMessages.id, messageId));
   }

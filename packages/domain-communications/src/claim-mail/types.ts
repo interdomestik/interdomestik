@@ -11,6 +11,7 @@ export type ClaimMailMessage = {
 };
 
 export type ClaimMailCopy = {
+  genericSender: string;
   claimWithoutNumber: string;
   pushStatusHeading: string;
   statuses: Record<ClaimStatus, string>;

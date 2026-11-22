@@ -93,22 +93,16 @@ vi.mock('@/lib/notifications', () => ({
 vi.mock('@/lib/claim-notification-delivery-kick', () => ({
   kickClaimNotificationDeliveries: vi.fn(),
 }));
-vi.mock('./messages/claim-effects', () => ({
-  claimMessageEffects: {
-    buildStaffClaimScope: vi.fn(),
-    createClaimResponseRequest: vi.fn(),
-    answerClaimResponseRequests: vi.fn(),
-  },
+vi.mock('@interdomestik/domain-claims/claims/response-requests', () => ({
+  answerClaimResponseRequests: vi.fn(),
+  createClaimResponseRequest: vi.fn(),
 }));
-vi.mock(
-  '../../../../packages/domain-communications/src/notification-deliveries/claim-owner',
-  () => ({
-    lockClaimNotificationRecipient: vi.fn(),
-    enqueueClaimMessageNotification: vi.fn().mockResolvedValue([]),
-  })
-);
-vi.mock('../../../../packages/domain-communications/src/notification-deliveries/staff', () => ({
+vi.mock('../../../../packages/domain-claims/src/staff-claims/notification-recipients', () => ({
   resolveStaffClaimNotificationRecipients: vi.fn().mockResolvedValue([]),
+}));
+vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
+  lockClaimNotificationRecipient: vi.fn(),
+  enqueueClaimMessageNotification: vi.fn().mockResolvedValue([]),
   enqueueStaffClaimNotification: vi.fn().mockResolvedValue([]),
 }));
 

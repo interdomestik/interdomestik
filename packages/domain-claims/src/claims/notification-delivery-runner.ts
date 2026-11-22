@@ -3,17 +3,25 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import { configuredEmailTransports, sendEmailOutcome } from '../email';
-import { isPushConfigured, sendPushOutcome } from '../push';
-import { prepareNotificationDelivery } from './prepare';
+import {
+  configuredEmailTransports,
+  sendEmailOutcome,
+} from '@interdomestik/domain-communications/email';
+import { isPushConfigured, sendPushOutcome } from '@interdomestik/domain-communications/push';
+import { prepareNotificationDelivery } from './prepare-notification-delivery';
 import {
   claimNotificationDelivery,
   finishNotificationDelivery,
   refundNotificationAttempt,
   writeNotificationTransport,
-} from './store';
-import { chooseTransport, deliveryFailure } from './transport';
-import type { AttemptResult, ClaimedDelivery, DeliveryDependencies, RunSummary } from './types';
+  chooseTransport,
+  deliveryFailure,
+  type AttemptResult,
+  type ClaimedDelivery,
+  type DeliveryDependencies,
+  type RunSummary,
+} from '@interdomestik/domain-communications/notification-deliveries/worker';
+import { reportServerError } from '@interdomestik/domain-communications/server-error';
 
 const scheduled = {
   budgetMs: 240_000,
@@ -35,8 +43,6 @@ type WorkContext = {
 
 async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
   const { authority, deps, summary, timing, end, now } = ctx;
-  const inTenant = <T>(action: Parameters<typeof withTenantAuthority<T>>[1]) =>
-    withTenantAuthority(authority, action);
   const configured = (deps.emailTransports ?? configuredEmailTransports)();
   const finish = async (
     result: AttemptResult,
@@ -44,15 +50,18 @@ async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
     transport: ClaimedDelivery['transport'] = null
   ) => {
     if ('ok' in result && !result.ok) summary.failures.push({ id: row.id, code: result.code });
-    const state = await inTenant(tx =>
+    const state = await withTenantAuthority(authority, tx =>
       finishNotificationDelivery(tx, row, result, locale, transport, configured)
     );
     summary[state]++;
   };
 
-  const prepared = await inTenant(tx => prepareNotificationDelivery(tx, row, deps)).catch(() =>
-    deliveryFailure('facts_unavailable', true)
-  );
+  const prepared = await withTenantAuthority(authority, tx =>
+    prepareNotificationDelivery(tx, row, deps)
+  ).catch(error => {
+    reportServerError('Notification delivery preparation failed', error);
+    return deliveryFailure('facts_unavailable', true);
+  });
   if ('ok' in prepared) {
     await finish(prepared);
     return true;
@@ -86,14 +95,16 @@ async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
   }
 
   const refundBudget = async (restoreTransport = false) => {
-    const refunded = await inTenant(tx => refundNotificationAttempt(tx, row, restoreTransport));
+    const refunded = await withTenantAuthority(authority, tx =>
+      refundNotificationAttempt(tx, row, restoreTransport)
+    );
     summary[refunded ? 'budget_short' : 'lease_lost']++;
     return false;
   };
   const beforeWrite = now();
   if (end - beforeWrite < timing.providerTimeoutMs + timing.reserveMs) return refundBudget();
   const callDeadline = beforeWrite + timing.providerTimeoutMs;
-  const write = await inTenant(tx =>
+  const write = await withTenantAuthority(authority, tx =>
     writeNotificationTransport(tx, row, transport, callDeadline, now)
   );
   if (write !== 'written') {
@@ -117,7 +128,8 @@ async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
               timeoutMs,
             });
     outcome = result ?? deliveryFailure('provider_failed', true);
-  } catch {
+  } catch (error) {
+    reportServerError('Notification delivery provider call failed', error);
     outcome = { ...deliveryFailure('provider_failed', true), ambiguous: true };
   }
   await finish(outcome, prepared.locale, transport);

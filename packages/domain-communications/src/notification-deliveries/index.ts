@@ -1,13 +1,13 @@
 export { enqueueNotificationDelivery } from './store';
 export { notificationDeliveryKey, type EnqueueDelivery } from './keys';
-export { dispatchNotificationDeliveries, runNotificationDeliveries } from './run';
 export { listFailedNotificationDeliveries, redriveNotificationDelivery } from './failed';
 export type { DeliveryDependencies, RunSummary } from './types';
 export {
+  enqueueClaimMessageNotification,
   enqueueClaimStatusNotification,
   enqueueClaimSubmittedNotification,
   enqueueRecoveryDecisionNotification,
   lockClaimNotificationRecipient,
 } from './claim-owner';
-export { enqueueStaffClaimNotification, resolveStaffClaimNotificationRecipients } from './staff';
+export { enqueueStaffClaimNotification } from './staff';
 export { enqueueSupportHandoffResponseNotification } from './support-handoff';

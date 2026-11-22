@@ -1,21 +1,25 @@
 import type { TenantTransaction } from '@interdomestik/database';
 import {
   claims,
-  notificationDeliveries,
   pushSubscriptions,
   user,
   userNotificationPreferences as preferences,
 } from '@interdomestik/database/schema';
 import { ROLES } from '@interdomestik/shared-auth';
-import { and, eq, getTableColumns, sql } from 'drizzle-orm';
-import { isEmailSuppressed } from '../email';
-import type { sendEmailOutcome } from '../email';
-import type { sendPushOutcome } from '../push';
-import { resolveRecipientLocale } from '../recipient-locale';
-import { renderDelivery, renderDeliveryPush } from './render';
-import { canReceiveStaffClaimNotification } from './staff';
-import { underLease } from './store';
-import type { ClaimedDelivery, DeliveryDependencies, SkipReason } from './types';
+import { and, eq } from 'drizzle-orm';
+import { isEmailSuppressed } from '@interdomestik/domain-communications/email';
+import type { sendEmailOutcome } from '@interdomestik/domain-communications/email';
+import type { sendPushOutcome } from '@interdomestik/domain-communications/push';
+import { resolveRecipientLocale } from '@interdomestik/domain-communications/recipient-locale';
+import {
+  readDeliveryUnderLease,
+  renderDelivery,
+  renderDeliveryPush,
+  type ClaimedDelivery,
+  type DeliveryDependencies,
+  type SkipReason,
+} from '@interdomestik/domain-communications/notification-deliveries/worker';
+import { canReceiveStaffClaimNotification } from '../staff-claims/notification-recipients';
 
 type Prepared = { locale: NonNullable<ClaimedDelivery['locale']> } & (
   | { channel: 'email'; to: string; rendered: Parameters<typeof sendEmailOutcome>[2] }
@@ -32,14 +36,7 @@ export async function prepareNotificationDelivery(
   lease: ClaimedDelivery,
   deps: DeliveryDependencies
 ): Promise<Preparation> {
-  const [row] = await tx
-    .select({
-      ...getTableColumns(notificationDeliveries),
-      stale: sql<boolean>`${notificationDeliveries.createdAt} < clock_timestamp() - interval '72 hours'`,
-    })
-    .from(notificationDeliveries)
-    .where(underLease(lease))
-    .for('update');
+  const row = await readDeliveryUnderLease(tx, lease);
   if (!row?.leaseUntil) return { leaseLost: true };
   if (row.stale) return { skip: 'stale' };
   const { tenantId, claimId, recipientUserId } = row;
@@ -67,12 +64,7 @@ export async function prepareNotificationDelivery(
   if (!claim) return { skip: 'claim_gone' };
 
   if (row.kind === 'staff_claim_submitted' || row.kind === 'staff_member_message') {
-    const admitted = await canReceiveStaffClaimNotification(
-      tx,
-      { tenantId, claimId },
-      recipient,
-      deps.buildStaffClaimScope
-    );
+    const admitted = await canReceiveStaffClaimNotification(tx, { tenantId, claimId }, recipient);
     if (!admitted) return { skip: 'recipient_out_of_scope' };
   } else if (claim.ownerId !== recipient.id) {
     return { skip: 'recipient_out_of_scope' };

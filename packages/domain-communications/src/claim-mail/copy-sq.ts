@@ -4,6 +4,7 @@ const viewClaim = 'Shiko kërkesën';
 const footer = 'Ekipi i Interdomestik';
 
 export const SQ_COPY: ClaimMailCopy = {
+  genericSender: 'Ekipi i kërkesave',
   claimWithoutNumber: 'Kërkesë pa numër',
   pushStatusHeading: 'Kërkesa juaj u përditësua',
   statuses: {

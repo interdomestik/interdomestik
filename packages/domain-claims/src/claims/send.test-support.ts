@@ -2,7 +2,6 @@
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi, type Mock } from 'vitest';
-import type { ClaimMessageEffects } from './send';
 
 export const mocks: {
   agentAccess: Mock;
@@ -51,25 +50,26 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
 }));
 
 vi.mock('drizzle-orm', () => ({ eq: vi.fn() }));
-vi.mock('./access', async importOriginal => ({
-  ...(await importOriginal<typeof import('./access')>()),
+vi.mock('@interdomestik/domain-communications/messages/store', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/domain-communications/messages/store')>()),
   hasAgentClaimAccess: mocks.agentAccess,
 }));
 vi.mock('nanoid', () => ({ nanoid: () => 'message-1' }));
-vi.mock('../notification-deliveries/claim-owner', () => ({
+vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
   lockClaimNotificationRecipient: mocks.lockRecipient,
   enqueueClaimMessageNotification: mocks.enqueueOwner,
-}));
-vi.mock('../notification-deliveries/staff', () => ({
-  resolveStaffClaimNotificationRecipients: mocks.resolveStaff,
   enqueueStaffClaimNotification: mocks.enqueueStaff,
 }));
+vi.mock('../staff-claims/notification-recipients', () => ({
+  resolveStaffClaimNotificationRecipients: mocks.resolveStaff,
+}));
+vi.mock('./response-requests', () => claimEffects);
 
-export const claimEffects: Record<keyof ClaimMessageEffects, Mock> = {
-  buildStaffClaimScope: vi.fn(),
-  createClaimResponseRequest: vi.fn(),
-  answerClaimResponseRequests: vi.fn(),
-};
+export const claimEffects: { createClaimResponseRequest: Mock; answerClaimResponseRequests: Mock } =
+  {
+    createClaimResponseRequest: vi.fn(),
+    answerClaimResponseRequests: vi.fn(),
+  };
 
 export const authority: TenantAuthority = mintTestTenantAuthority('tenant-1');
 export const projectionFrom = (replayLookup?: Mock) => ({

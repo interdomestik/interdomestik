@@ -1,3 +1,4 @@
+import { cleanupClaimNotificationRows } from '@interdomestik/database/seed-utils/claim-notification-cleanup';
 import {
   account,
   agentClients,
@@ -37,6 +38,7 @@ export async function cleanupAgentMessageFixture(args: {
             inArray(auditLog.entityId, allClaimIds)
           )
         ),
+    () => cleanupClaimNotificationRows(dbAdmin, { claimIds: allClaimIds }),
     () => dbAdmin.delete(claimMessages).where(inArray(claimMessages.claimId, allClaimIds)),
     () => dbAdmin.delete(claims).where(inArray(claims.id, allClaimIds)),
     () =>
@@ -51,6 +53,7 @@ export async function cleanupAgentMessageFixture(args: {
     // Notes reference their authors without cascade, so remove them before users.
     () => dbAdmin.delete(memberNotes).where(inArray(memberNotes.id, noteIds)),
     () => dbAdmin.delete(agentClients).where(inArray(agentClients.id, assignmentIds)),
+    () => cleanupClaimNotificationRows(dbAdmin, { userIds: [...memberIds, agent.id] }),
     () => dbAdmin.delete(user).where(inArray(user.id, memberIds)),
     () => dbAdmin.delete(session).where(eq(session.userId, agent.id)),
     () => dbAdmin.delete(account).where(eq(account.userId, agent.id)),

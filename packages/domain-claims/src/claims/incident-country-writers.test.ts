@@ -62,6 +62,8 @@ vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
   enqueueClaimSubmittedNotification: vi.fn().mockResolvedValue([]),
   enqueueStaffClaimNotification: vi.fn().mockResolvedValue([]),
   lockClaimNotificationRecipient: vi.fn(),
+}));
+vi.mock('../staff-claims/notification-recipients', () => ({
   resolveStaffClaimNotificationRecipients: vi.fn().mockResolvedValue([]),
 }));
 vi.mock('./response-requests', () => ({ createClaimResponseRequest: vi.fn() }));

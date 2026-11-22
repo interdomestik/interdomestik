@@ -1,5 +1,4 @@
 import { assertSeedTargetAllowed, importSeedDatabase } from '../seed-target-guard';
-import { cleanupByPrefixes } from '../seed-utils/cleanup';
 import { agentCapturedLead } from '../seed-utils/lead-consent';
 import { hashPassword } from '../seed-utils/hash-password';
 import { withClaimLifecycleFields } from '../seed-utils/claim-lifecycle';
@@ -15,6 +14,8 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
   assertSeedTargetAllowed(process.env);
   console.log('🇽🇰 Seeding Kosovo Workflow Pack (Overlay)...');
   const { db } = await importSeedDatabase();
+  const { cleanupSeedPrefixes, cleanupSeedUserNotifications } =
+    await import('../seed-utils/run-cleanup');
   const schema = await import('../schema');
   const { at } = config;
   const random = createSeededRandom(KS_PACK_RANDOM_SEED);
@@ -54,7 +55,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
       set: { name: sql`excluded.name` },
     });
 
-  await cleanupByPrefixes(db, schema, ['pack_ks_'], false);
+  await cleanupSeedPrefixes(['pack_ks_'], false);
 
   const BRANCHES = [
     {
@@ -160,6 +161,8 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
 
     if (usersToDelete.length > 0) {
       const idsToDelete = usersToDelete.map(u => u.id);
+
+      await cleanupSeedUserNotifications(idsToDelete);
 
       // Delete sessions first
       await db.delete(schema.session).where(inArray(schema.session.userId, idsToDelete));

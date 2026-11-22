@@ -1,3 +1,4 @@
+import { reportServerError } from './server-error';
 import { z } from 'zod';
 import type { EmailTemplate } from './email/templates/types';
 import type { DeliveryFailure, DeliveryOutcome } from './delivery-outcome';
@@ -113,6 +114,7 @@ export async function sendResendOutcome(
     }
   } catch (error) {
     signal.throwIfAborted();
+    reportServerError('Resend delivery failed', error);
     const code =
       providerField(providerField(error, 'cause'), 'code') ?? providerField(error, 'code');
     if (typeof code === 'string' && RESEND_PRE_REQUEST_CODES.has(code)) {

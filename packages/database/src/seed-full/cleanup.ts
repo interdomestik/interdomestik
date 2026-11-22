@@ -1,6 +1,8 @@
 import { inArray, like, or } from 'drizzle-orm';
 import { db } from '../db';
 import * as schema from '../schema';
+import { cleanupClaimNotificationRows } from '../seed-utils/claim-notification-cleanup';
+import { cleanupSeedClaims } from '../seed-utils/cleanup';
 
 export async function clearData() {
   console.log('🧹 Cleaning up old Full Seed data...');
@@ -30,17 +32,12 @@ export async function clearData() {
       where: inArray(schema.claims.userId, ids),
       columns: { id: true },
     });
-    const claimIds = claims.map(c => c.id);
-    if (claimIds.length > 0) {
-      await db.delete(schema.claimMessages).where(inArray(schema.claimMessages.claimId, claimIds));
-      await db
-        .delete(schema.claimDocuments)
-        .where(inArray(schema.claimDocuments.claimId, claimIds));
-      await db
-        .delete(schema.claimStageHistory)
-        .where(inArray(schema.claimStageHistory.claimId, claimIds));
-      await db.delete(schema.claims).where(inArray(schema.claims.id, claimIds));
-    }
+    await cleanupClaimNotificationRows(db, { userIds: ids });
+    await cleanupSeedClaims(
+      db,
+      schema,
+      claims.map(claim => claim.id)
+    );
 
     // 2. Subscriptions & Billing & Commissions
     // Delete commissions first as they depend on subscriptions
@@ -107,19 +104,12 @@ export async function clearData() {
         where: inArray(schema.claims.userId, usersToDelete),
         columns: { id: true },
       });
-      const claimIds = claims.map(c => c.id);
-      if (claimIds.length > 0) {
-        await db
-          .delete(schema.claimMessages)
-          .where(inArray(schema.claimMessages.claimId, claimIds));
-        await db
-          .delete(schema.claimDocuments)
-          .where(inArray(schema.claimDocuments.claimId, claimIds));
-        await db
-          .delete(schema.claimStageHistory)
-          .where(inArray(schema.claimStageHistory.claimId, claimIds));
-        await db.delete(schema.claims).where(inArray(schema.claims.id, claimIds));
-      }
+      await cleanupClaimNotificationRows(db, { userIds: usersToDelete });
+      await cleanupSeedClaims(
+        db,
+        schema,
+        claims.map(claim => claim.id)
+      );
       // 2. Subscriptions & Billing
       await db
         .delete(schema.agentCommissions)

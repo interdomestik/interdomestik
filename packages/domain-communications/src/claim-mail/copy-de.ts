@@ -4,6 +4,7 @@ const viewClaim = 'Fall ansehen';
 const footer = 'Das Interdomestik-Team';
 
 export const DE_COPY: ClaimMailCopy = {
+  genericSender: 'Schadenteam',
   claimWithoutNumber: 'Fall ohne Nummer',
   pushStatusHeading: 'Ihr Fall wurde aktualisiert',
   statuses: {

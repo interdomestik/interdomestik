@@ -1,4 +1,5 @@
-import { account, db, eq, session as authSession, user } from '@interdomestik/database';
+import { cleanupClaimNotificationRows } from '@interdomestik/database/seed-utils/claim-notification-cleanup';
+import { account, db, dbAdmin, eq, session as authSession, user } from '@interdomestik/database';
 import { expect, test } from '@playwright/test';
 
 test.describe('SEC-AUTH01 Better Auth authority gate', () => {
@@ -79,6 +80,7 @@ test.describe('SEC-AUTH01 Better Auth authority gate', () => {
       if (created) {
         await db.delete(account).where(eq(account.userId, created.id));
         await db.delete(authSession).where(eq(authSession.userId, created.id));
+        await cleanupClaimNotificationRows(dbAdmin, { userIds: [created.id] });
         await db.delete(user).where(eq(user.id, created.id));
       }
       await context.close();

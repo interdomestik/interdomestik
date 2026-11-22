@@ -20,19 +20,17 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/audit', () => ({
   logAuditEvent: mocks.logAuditEvent,
 }));
-vi.mock('./claim-effects', () => ({
-  claimMessageEffects: { answerClaimResponseRequests: vi.fn() },
+vi.mock('@interdomestik/domain-claims/claims/response-requests', () => ({
+  answerClaimResponseRequests: vi.fn(),
+  createClaimResponseRequest: vi.fn(),
 }));
-vi.mock(
-  '../../../../../packages/domain-communications/src/notification-deliveries/claim-owner',
-  () => ({
-    lockClaimNotificationRecipient: mocks.lockRecipient,
-    enqueueClaimMessageNotification: mocks.enqueueNotification,
-  })
-);
-vi.mock('../../../../../packages/domain-communications/src/notification-deliveries/staff', () => ({
-  resolveStaffClaimNotificationRecipients: vi.fn(),
-  enqueueStaffClaimNotification: vi.fn(),
+vi.mock('../../../../../packages/domain-claims/src/staff-claims/notification-recipients', () => ({
+  resolveStaffClaimNotificationRecipients: vi.fn().mockResolvedValue([]),
+}));
+vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
+  lockClaimNotificationRecipient: mocks.lockRecipient,
+  enqueueClaimMessageNotification: mocks.enqueueNotification,
+  enqueueStaffClaimNotification: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@interdomestik/database', () => {

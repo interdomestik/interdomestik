@@ -1,7 +1,45 @@
 import { inArray, like, or } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../schema';
+import { cleanupClaimNotificationRows } from './claim-notification-cleanup';
 import { seedIdentityCleanupPredicate } from './identity-cleanup';
+
+export async function cleanupSeedClaims(
+  db: PostgresJsDatabase<typeof schema>,
+  dbSchema: typeof schema,
+  claimIds: string[]
+) {
+  if (claimIds.length === 0) return;
+  await cleanupClaimNotificationRows(db, { claimIds });
+  if (dbSchema.supportHandoffs) {
+    await db
+      .delete(dbSchema.supportHandoffs)
+      .where(inArray(dbSchema.supportHandoffs.claimId, claimIds));
+  }
+  if (dbSchema.claimEscalationAgreements) {
+    await db
+      .delete(dbSchema.claimEscalationAgreements)
+      .where(inArray(dbSchema.claimEscalationAgreements.claimId, claimIds));
+  }
+  if (dbSchema.claimTrackingTokens) {
+    await db
+      .delete(dbSchema.claimTrackingTokens)
+      .where(inArray(dbSchema.claimTrackingTokens.claimId, claimIds));
+  }
+  // Manual cascade: claim_threads has FK -> claim with ON DELETE NO ACTION.
+  // If threads exist for a claim, deleting the claim without deleting threads will fail.
+  if (dbSchema.claimThreads) {
+    await db.delete(dbSchema.claimThreads).where(inArray(dbSchema.claimThreads.claimId, claimIds));
+  }
+  await db
+    .delete(dbSchema.claimDocuments)
+    .where(inArray(dbSchema.claimDocuments.claimId, claimIds));
+  await db.delete(dbSchema.claimMessages).where(inArray(dbSchema.claimMessages.claimId, claimIds));
+  await db
+    .delete(dbSchema.claimStageHistory)
+    .where(inArray(dbSchema.claimStageHistory.claimId, claimIds));
+  await db.delete(dbSchema.claims).where(inArray(dbSchema.claims.id, claimIds));
+}
 
 export async function cleanupByPrefixes(
   db: PostgresJsDatabase<typeof schema>,
@@ -23,43 +61,7 @@ export async function cleanupByPrefixes(
 
   const allClaimIds = claimIdsToDelete.map(c => c.id);
 
-  if (allClaimIds.length > 0) {
-    if (dbSchema.supportHandoffs) {
-      await db
-        .delete(dbSchema.supportHandoffs)
-        .where(inArray(dbSchema.supportHandoffs.claimId, allClaimIds));
-    }
-    if (dbSchema.claimEscalationAgreements) {
-      await db
-        .delete(dbSchema.claimEscalationAgreements)
-        .where(inArray(dbSchema.claimEscalationAgreements.claimId, allClaimIds));
-    }
-    if (dbSchema.claimTrackingTokens) {
-      await db
-        .delete(dbSchema.claimTrackingTokens)
-        .where(inArray(dbSchema.claimTrackingTokens.claimId, allClaimIds));
-    }
-    // Manual cascade: claim_threads has FK -> claim with ON DELETE NO ACTION.
-    // If threads exist for a claim, deleting the claim without deleting threads will fail.
-    if (dbSchema.claimThreads) {
-      await db
-        .delete(dbSchema.claimThreads)
-        .where(inArray(dbSchema.claimThreads.claimId, allClaimIds));
-    }
-    await db
-      .delete(dbSchema.claimDocuments)
-      .where(inArray(dbSchema.claimDocuments.claimId, allClaimIds));
-    await db
-      .delete(dbSchema.claimMessages)
-      .where(inArray(dbSchema.claimMessages.claimId, allClaimIds));
-    await db
-      .delete(dbSchema.claimStageHistory)
-      .where(inArray(dbSchema.claimStageHistory.claimId, allClaimIds));
-  }
-
-  await db
-    .delete(dbSchema.claims)
-    .where(or(...claimIdPrefixes.map(p => like(dbSchema.claims.id, p))));
+  await cleanupSeedClaims(db, dbSchema, allClaimIds);
 
   const isGoldenReset = prefixes.some(p => p.includes('golden') || p.includes('pack'));
   if (isGoldenReset && dbSchema.claimCounters) {
@@ -328,45 +330,8 @@ export async function cleanupByPrefixes(
     });
 
     const cIds = userClaimIds.map(c => c.id);
-    if (cIds.length > 0) {
-      if (dbSchema.supportHandoffs) {
-        await db
-          .delete(dbSchema.supportHandoffs)
-          .where(inArray(dbSchema.supportHandoffs.claimId, cIds));
-      }
-      if (dbSchema.claimEscalationAgreements) {
-        await db
-          .delete(dbSchema.claimEscalationAgreements)
-          .where(inArray(dbSchema.claimEscalationAgreements.claimId, cIds));
-      }
-      if (dbSchema.claimTrackingTokens) {
-        await db
-          .delete(dbSchema.claimTrackingTokens)
-          .where(inArray(dbSchema.claimTrackingTokens.claimId, cIds));
-      }
-      // Manual cascade: claim_threads has FK -> claim with ON DELETE NO ACTION.
-      if (dbSchema.claimThreads) {
-        await db.delete(dbSchema.claimThreads).where(inArray(dbSchema.claimThreads.claimId, cIds));
-      }
-      await db
-        .delete(dbSchema.claimDocuments)
-        .where(inArray(dbSchema.claimDocuments.claimId, cIds));
-      await db.delete(dbSchema.claimMessages).where(inArray(dbSchema.claimMessages.claimId, cIds));
-      await db
-        .delete(dbSchema.claimStageHistory)
-        .where(inArray(dbSchema.claimStageHistory.claimId, cIds));
-    }
-
-    await db
-      .delete(dbSchema.claims)
-      .where(
-        or(
-          inArray(dbSchema.claims.userId, allUserIds),
-          inArray(dbSchema.claims.staffId, allUserIds),
-          inArray(dbSchema.claims.assignedById, allUserIds),
-          inArray(dbSchema.claims.agentId, allUserIds)
-        )
-      );
+    await cleanupClaimNotificationRows(db, { userIds: allUserIds });
+    await cleanupSeedClaims(db, dbSchema, cIds);
 
     // 2. Delete Accounts & Sessions
     await db.delete(dbSchema.account).where(inArray(dbSchema.account.userId, allUserIds));

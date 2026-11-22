@@ -12,7 +12,7 @@ import {
 } from './tenant-context.integration-fixture';
 import { asActor } from './message-rls-actors.test-support';
 import { registerRecipientBatchCases } from './message-recipient.test-support';
-import { E2E_USERS } from '../../../database/src/e2e-users';
+import { E2E_USERS } from '@interdomestik/database/testing/message-fixtures';
 const memberAuthority = () =>
   mintTestTenantAuthority(homeTenantId, { userId: ids.member, role: 'member' });
 const suite = process.env.MESSAGE_RLS_INTEGRATION === '1' ? describe : describe.skip;
@@ -185,7 +185,7 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
     ).toMatchObject({ success: false });
   });
   it('rolls back the insert when the created-message projection is unavailable', async () => {
-    const normalize = await import('./normalize');
+    const normalize = await import('@interdomestik/domain-communications/messages/normalize');
     const projection = vi.spyOn(normalize, 'normalizeSelectedMessages').mockReturnValueOnce([]);
     try {
       expect(

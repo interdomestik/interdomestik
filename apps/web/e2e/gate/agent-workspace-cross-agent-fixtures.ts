@@ -1,4 +1,5 @@
-import { agentClients, claimMessages, claims, db, user } from '@interdomestik/database';
+import { cleanupClaimNotificationRows } from '@interdomestik/database/seed-utils/claim-notification-cleanup';
+import { agentClients, claimMessages, claims, db, dbAdmin, user } from '@interdomestik/database';
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
 import { and, desc, eq, ne } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -149,6 +150,7 @@ export async function resolveCrossAgentClaimId(agentEmail: string): Promise<Cros
 export async function cleanupCrossAgentClaim(result: CrossAgentClaimResult): Promise<void> {
   try {
     if (result.createdClaim) {
+      await cleanupClaimNotificationRows(dbAdmin, { claimIds: [result.claimId] });
       await db.delete(claimMessages).where(eq(claimMessages.claimId, result.claimId));
       await db.delete(claims).where(eq(claims.id, result.claimId));
     }
@@ -158,10 +160,12 @@ export async function cleanupCrossAgentClaim(result: CrossAgentClaimResult): Pro
     }
 
     if (result.createdMember && result.memberId) {
+      await cleanupClaimNotificationRows(dbAdmin, { userIds: [result.memberId] });
       await db.delete(user).where(eq(user.id, result.memberId));
     }
 
     if (result.createdOtherAgent && result.otherAgentId) {
+      await cleanupClaimNotificationRows(dbAdmin, { userIds: [result.otherAgentId] });
       await db.delete(user).where(eq(user.id, result.otherAgentId));
     }
   } catch (error) {

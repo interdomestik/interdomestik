@@ -3,10 +3,20 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@interdomestik/database': path.resolve(__dirname, '../database/src'),
-      '@interdomestik/domain-ai': path.resolve(__dirname, '../domain-ai/src'),
-    },
+    alias: [
+      {
+        find: /^@interdomestik\/database$/,
+        replacement: path.resolve(__dirname, '../database/src/index.ts'),
+      },
+      {
+        find: '@interdomestik/domain-ai',
+        replacement: path.resolve(__dirname, '../domain-ai/src'),
+      },
+      {
+        find: /^nodemailer$/,
+        replacement: path.resolve(__dirname, '../domain-communications/node_modules/nodemailer'),
+      },
+    ],
   },
   test: {
     environment: 'node',

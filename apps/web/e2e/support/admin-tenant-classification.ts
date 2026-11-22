@@ -1,4 +1,5 @@
-import { db, E2E_PASSWORD, E2E_USERS, eq, user } from '@interdomestik/database';
+import { cleanupClaimNotificationRows } from '@interdomestik/database/seed-utils/claim-notification-cleanup';
+import { db, dbAdmin, E2E_PASSWORD, E2E_USERS, eq, user } from '@interdomestik/database';
 import type { Page, TestInfo } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 
@@ -52,6 +53,7 @@ export async function preparePendingTenantClassificationMember(params: {
 }
 
 export async function resetPendingTenantClassificationMember(memberId: string) {
+  await cleanupClaimNotificationRows(dbAdmin, { userIds: [memberId] });
   await db.delete(user).where(eq(user.id, memberId));
 }
 

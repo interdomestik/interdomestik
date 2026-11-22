@@ -1,3 +1,4 @@
+import { reportServerError } from './server-error';
 import { Agent } from 'node:https';
 import webPush, { type PushSubscription } from 'web-push';
 
@@ -95,6 +96,7 @@ export async function sendPushOutcome(
     }
     return { ok: true, transport: 'webpush' };
   } catch (error) {
+    reportServerError('Web push delivery failed', error);
     if (error instanceof DeliveryTimeout || providerField(error, 'code') === 'ETIMEDOUT') {
       return {
         ok: false,

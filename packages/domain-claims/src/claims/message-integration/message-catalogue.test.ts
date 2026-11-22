@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { E2E_DISCOVERY_THREADS } from '../../../database/src/e2e-communication-fixtures';
-import { E2E_CASE_FIXTURES } from '../../../database/src/e2e-role-fixtures';
-import { E2E_USERS } from '../../../database/src/e2e-users';
+import {
+  E2E_CASE_FIXTURES,
+  E2E_DISCOVERY_THREADS,
+  E2E_USERS,
+} from '@interdomestik/database/testing/message-fixtures';
 import { messageCatalogueCopy } from './message-catalogue.test-support';
 
 describe('message mutation catalogue copy', () => {

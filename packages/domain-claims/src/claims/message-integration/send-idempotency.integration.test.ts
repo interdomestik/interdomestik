@@ -18,7 +18,7 @@ const suite = process.env.MESSAGE_RLS_INTEGRATION === '1' ? describe : describe.
 const OVERLAPPED = 'Synthetic overlapped reply';
 // Loaded after the fixture installs the restricted client: a top-level import would bind the
 // database module to the administrative URL first, and its RLS role assertion refuses that.
-let storeMessage: typeof import('./store-message');
+let storeMessage: typeof import('@interdomestik/domain-communications/messages/store');
 const keyedMessageId = (...args: Parameters<(typeof storeMessage)['keyedMessageId']>) =>
   storeMessage.keyedMessageId(...args);
 
@@ -106,7 +106,7 @@ async function staffDeliveryRecipient(messageId: string) {
 suite('keyed message send on a real NOBYPASSRLS connection', () => {
   registerMessageRlsFixture();
   beforeAll(async () => {
-    storeMessage = await import('./store-message');
+    storeMessage = await import('@interdomestik/domain-communications/messages/store');
   });
 
   it('serializes two actual sends on the claim, stores once and audits only the winner', async () => {

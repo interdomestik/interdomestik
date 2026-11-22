@@ -3,7 +3,36 @@ import { describe, expect, it } from 'vitest';
 import { CLAIM_MAIL_COPY } from '../claim-mail';
 import type { ClaimMailLocale } from '../claim-mail/types';
 import { renderDelivery, renderDeliveryPush } from './render';
-import { delivery } from './run.test-support';
+import type { Delivery } from './types';
+
+function delivery(changes: Partial<Delivery> = {}): Delivery {
+  return {
+    id: 'delivery',
+    tenantId: 'tenant-a',
+    claimId: 'claim',
+    kind: 'claim_status_changed',
+    channel: 'email',
+    recipientUserId: 'member',
+    subjectMessageId: null,
+    pushSubscriptionId: null,
+    idempotencyKey: 'key',
+    facts: {},
+    state: 'queued',
+    attempts: 0,
+    nextAttemptAt: new Date(0).toISOString(),
+    createdAt: new Date(0).toISOString(),
+    leaseUntil: null,
+    terminalAt: null,
+    sentAt: null,
+    skipReason: null,
+    locale: null,
+    transport: null,
+    avoidTransport: null,
+    lastErrorCode: null,
+    lastErrorDetail: null,
+    ...changes,
+  };
+}
 
 describe('notification rendering', () => {
   it.each(Object.keys(CLAIM_MAIL_COPY) as ClaimMailLocale[])(
@@ -62,6 +91,42 @@ describe('notification rendering', () => {
       url: '/mk/member/claims/claim',
     });
   });
+
+  it.each(Object.keys(CLAIM_MAIL_COPY) as ClaimMailLocale[])(
+    'uses the localized sender in %s for email and push when the sender row is outside the tenant',
+    async locale => {
+      const row = {
+        ...delivery({ kind: 'claim_message_to_member', subjectMessageId: 'message' }),
+        leaseUntil: 'lease',
+      };
+      const firstHundred = 'X'.repeat(100);
+      const nextSixty = 'Y'.repeat(60);
+      const excerpt = firstHundred + nextSixty + 'omitted text';
+      const tx = {
+        select: () => ({
+          from: () => ({
+            where: async () => [{ title: 'Member claim' }],
+            leftJoin: () => ({ where: async () => [{ senderName: null, excerpt }] }),
+          }),
+        }),
+      } as unknown as TenantTransaction;
+
+      const mail = await renderDelivery(
+        tx,
+        row,
+        locale,
+        'https://example.test',
+        'vehicle',
+        null,
+        false
+      );
+      expect(mail.text).toContain(CLAIM_MAIL_COPY[locale].genericSender);
+      expect(mail.text).toContain(firstHundred + nextSixty);
+      expect(mail.text).not.toContain('omitted text');
+      const push = await renderDeliveryPush(tx, row, locale, false);
+      expect(push.body).toBe(`${CLAIM_MAIL_COPY[locale].genericSender}: ${firstHundred}`);
+    }
+  );
 
   it('renders a staff claim without a number from the catalogue', async () => {
     const row = { ...delivery({ kind: 'staff_member_message' }), leaseUntil: 'lease' };

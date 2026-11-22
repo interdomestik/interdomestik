@@ -4,6 +4,7 @@ const viewClaim = 'View claim';
 const footer = 'Interdomestik Team';
 
 export const EN_COPY: ClaimMailCopy = {
+  genericSender: 'Claims team',
   claimWithoutNumber: 'Claim without a number',
   pushStatusHeading: 'Your claim was updated',
   statuses: {

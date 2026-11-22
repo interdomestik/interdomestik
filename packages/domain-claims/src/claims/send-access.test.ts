@@ -1,7 +1,7 @@
 import { authority, claimEffects, mocks, resetSendMocks, staffSession } from './send.test-support';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { sendMessageDbCore } from './send';
+import { sendMessageDbCore } from './send-message';
 
 // Who may send on a claim: split from send.test.ts to keep each focused test file small.
 describe('sendMessageDbCore send access', () => {
@@ -28,7 +28,6 @@ describe('sendMessageDbCore send access', () => {
 
   const send = (user: Record<string, string>, isInternal = false) =>
     sendMessageDbCore({
-      claimEffects,
       session: { user: { tenantId: 'tenant-1', ...user } } as typeof staffSession,
       authority,
       requestHeaders: new Headers(),
@@ -110,11 +109,11 @@ describe('sendMessageDbCore send access', () => {
 
   it('routes an unnumbered member message and opens its response request in the message transaction', async () => {
     const result = await send({ id: 'member-1', role: 'user' });
-    expect(mocks.resolveStaff).toHaveBeenCalledWith(
-      mocks.tx,
-      { tenantId: 'tenant-1', claimId: 'claim-1', staffId: 'staff-9' },
-      claimEffects.buildStaffClaimScope
-    );
+    expect(mocks.resolveStaff).toHaveBeenCalledWith(mocks.tx, {
+      tenantId: 'tenant-1',
+      claimId: 'claim-1',
+      staffId: 'staff-9',
+    });
     expect(mocks.enqueueStaff).toHaveBeenCalledWith(
       mocks.tx,
       { tenantId: 'tenant-1', claimId: 'claim-1', claimNumber: null, category: 'retail' },
@@ -152,10 +151,10 @@ describe('sendMessageDbCore send access', () => {
       },
     ]);
     await expect(result).resolves.toMatchObject({ success: true, deliveryIds: ['email-2'] });
-    expect(mocks.resolveStaff).toHaveBeenCalledWith(
-      mocks.tx,
-      { tenantId: 'tenant-1', claimId: 'claim-1', staffId: 'reassigned-staff' },
-      claimEffects.buildStaffClaimScope
-    );
+    expect(mocks.resolveStaff).toHaveBeenCalledWith(mocks.tx, {
+      tenantId: 'tenant-1',
+      claimId: 'claim-1',
+      staffId: 'reassigned-staff',
+    });
   });
 });

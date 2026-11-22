@@ -7,7 +7,7 @@ vi.mock('@interdomestik/database', () => ({ listScheduledTenantWork: mocks.tenan
 vi.mock('@interdomestik/domain-claims/staff-claims/scope', () => ({
   buildStaffClaimReadScope: vi.fn(),
 }));
-vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
+vi.mock('@interdomestik/domain-claims/claims/notification-delivery-runner', () => ({
   runNotificationDeliveries: mocks.run,
 }));
 const summary = {

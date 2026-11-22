@@ -1,5 +1,5 @@
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-import { dispatchNotificationDeliveries } from '@interdomestik/domain-communications/notification-deliveries';
+import { dispatchNotificationDeliveries } from '@interdomestik/domain-claims/claims/notification-delivery-runner';
 import { claimNotificationDeliveryDeps } from './claim-notification-delivery-deps';
 
 export async function kickClaimNotificationDeliveries(

@@ -2,9 +2,8 @@ import { claimMessages, db } from '@interdomestik/database';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { getMessagesForClaimCore } from '@interdomestik/domain-communications/messages/get';
 import { markMessagesAsReadCore } from '@interdomestik/domain-communications/messages/mark-read';
-import { sendMessageDbCore } from '@interdomestik/domain-communications/messages/send';
+import { sendMessageDbCore } from '@interdomestik/domain-claims/claims/send-message';
 import { eq, inArray } from 'drizzle-orm';
-import { claimMessageEffects } from '../../src/actions/messages/claim-effects';
 import en from '../../src/messages/en/messaging.json';
 import mk from '../../src/messages/mk/messaging.json';
 import sq from '../../src/messages/sq/messaging.json';
@@ -36,7 +35,6 @@ test.describe('Member case communication', () => {
         expect(
           (
             await sendMessageDbCore({
-              claimEffects: claimMessageEffects,
               session,
               authority,
               claimId,
@@ -49,7 +47,6 @@ test.describe('Member case communication', () => {
       expect(
         (
           await sendMessageDbCore({
-            claimEffects: claimMessageEffects,
             session,
             authority,
             claimId: fixture.claimId,

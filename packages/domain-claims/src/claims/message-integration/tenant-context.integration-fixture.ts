@@ -1,10 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, expect } from 'vitest';
 import postgres from 'postgres';
-import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
-import type { Session } from '../types';
+import { eq, inArray } from 'drizzle-orm';
+import type { Session } from '@interdomestik/domain-communications/types';
 import { messageCatalogueCopy } from './message-catalogue.test-support';
-import type { ClaimMessageEffects } from './send';
 
 const suffix = randomUUID();
 const catalogue = messageCatalogueCopy(suffix, process.env.VITEST_POOL_ID ?? 'main');
@@ -18,50 +17,11 @@ const previousClients = {
   queryClientAdmin: (globalThis as { queryClientAdmin?: unknown }).queryClientAdmin,
 };
 let database: typeof import('@interdomestik/database');
-let get: (typeof import('./get'))['getMessagesForClaimCore'];
-let markRead: (typeof import('./mark-read'))['markMessagesAsReadCore'];
-let send: (typeof import('./send'))['sendMessageDbCore'];
+let get: (typeof import('@interdomestik/domain-communications/messages/get'))['getMessagesForClaimCore'];
+let markRead: (typeof import('@interdomestik/domain-communications/messages/mark-read'))['markMessagesAsReadCore'];
+let send: (typeof import('../send-message'))['sendMessageDbCore'];
 let rlsClient: ReturnType<typeof postgres>;
 let adminClient: ReturnType<typeof postgres>;
-const claimEffects: ClaimMessageEffects = {
-  buildStaffClaimScope({ userId, branchId }) {
-    const { claims } = database;
-    return and(
-      ne(claims.caseLifecycleState, 'draft'),
-      branchId == null
-        ? or(eq(claims.staffId, userId), isNull(claims.staffId))
-        : eq(claims.branchId, branchId)
-    );
-  },
-  async createClaimResponseRequest(tx, { tenantId, claimId, kind, messageId }) {
-    await tx.insert(database.claimResponseRequests).values({
-      id: randomUUID(),
-      tenantId,
-      claimId,
-      kind,
-      sourceMessageId: messageId,
-      requestedAt: sql`clock_timestamp()`,
-    });
-  },
-  async answerClaimResponseRequests(tx, { tenantId, claimId, kind, messageId, actorId }) {
-    const requests = database.claimResponseRequests;
-    await tx
-      .update(requests)
-      .set({
-        answerKind: kind,
-        answerMessageId: messageId,
-        answeredBy: actorId,
-        answeredAt: sql`(select clock_timestamp())`,
-      })
-      .where(
-        and(
-          eq(requests.tenantId, tenantId),
-          eq(requests.claimId, claimId),
-          isNull(requests.answeredAt)
-        )
-      );
-  },
-};
 export const fixture = {
   get database() {
     return database;
@@ -72,8 +32,8 @@ export const fixture = {
   get markRead() {
     return markRead;
   },
-  send(params: Omit<Parameters<typeof send>[0], 'claimEffects'>) {
-    return send({ ...params, claimEffects });
+  get send() {
+    return send;
   },
   get rlsClient() {
     return rlsClient;
@@ -151,9 +111,11 @@ export function registerMessageRlsFixture(): void {
     rlsClient = postgres(restrictedUrl.toString(), { max: 2 });
     Object.assign(globalThis, { queryClientRls: rlsClient, queryClientAdmin: adminClient });
     database = await import('@interdomestik/database');
-    ({ getMessagesForClaimCore: get } = await import('./get'));
-    ({ markMessagesAsReadCore: markRead } = await import('./mark-read'));
-    ({ sendMessageDbCore: send } = await import('./send'));
+    ({ getMessagesForClaimCore: get } =
+      await import('@interdomestik/domain-communications/messages/get'));
+    ({ markMessagesAsReadCore: markRead } =
+      await import('@interdomestik/domain-communications/messages/mark-read'));
+    ({ sendMessageDbCore: send } = await import('../send-message'));
     const { assertRlsConnectionRoleReady } = await import('@interdomestik/database/db');
     await assertRlsConnectionRoleReady();
     const [posture] = await rlsClient`

@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { sendEmailOutcome } from '../email';
+import { sendEmailOutcome } from '@interdomestik/domain-communications/email';
 import { delivery, harness } from './run.test-support';
 
 const mocks = vi.hoisted(() => ({
@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   withTenantAuthority: mocks.withAuthority,
 }));
-vi.mock('./prepare', () => ({ prepareNotificationDelivery: mocks.prepare }));
+vi.mock('./prepare-notification-delivery', () => ({ prepareNotificationDelivery: mocks.prepare }));
 vi.mock('nodemailer', () => ({ createTransport: () => ({ sendMail: mocks.sendMail }) }));
 
 afterEach(() => {

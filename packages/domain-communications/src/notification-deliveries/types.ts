@@ -1,5 +1,4 @@
 import type { notificationDeliveries } from '@interdomestik/database/schema';
-import type { SQL } from 'drizzle-orm';
 import type { DeliveryOutcome } from '../delivery-outcome';
 import type { EmailTransport, sendEmailOutcome } from '../email';
 import type { sendPushOutcome } from '../push';
@@ -11,12 +10,6 @@ export type SkipReason = NonNullable<Delivery['skipReason']>;
 
 export type DeliveryDependencies = {
   appOrigin: (tenantId: string) => string;
-  buildStaffClaimScope: (recipient: {
-    role: 'staff';
-    userId: string;
-    branchId: string | null;
-    claimId: string;
-  }) => SQL | undefined;
   now?: () => number;
   emailTransports?: () => readonly EmailTransport[];
   sendEmail?: typeof sendEmailOutcome;

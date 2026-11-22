@@ -1,3 +1,4 @@
+import { reportServerError } from '@interdomestik/domain-communications/server-error';
 import { claims, eq, type TenantTransaction } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
@@ -257,6 +258,7 @@ export async function changeClaimStatus(
   } catch (error) {
     if (error instanceof ClaimStatusFailure) return { ok: false, code: error.code };
     if (error instanceof ClaimTransitionConflictError) return { ok: false, code: 'conflict' };
+    reportServerError('Claim status transaction failed', error);
     return { ok: false, code: 'transaction_failed' };
   }
 }

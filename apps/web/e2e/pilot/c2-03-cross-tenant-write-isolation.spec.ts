@@ -12,8 +12,7 @@ import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-li
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { changeClaimStatus } from '@interdomestik/domain-claims/claims/change-status';
 import type { ClaimStatus } from '@interdomestik/database/constants';
-import { sendMessageDbCore } from '@interdomestik/domain-communications/messages/send';
-import { claimMessageEffects } from '../../src/actions/messages/claim-effects';
+import { sendMessageDbCore } from '@interdomestik/domain-claims/claims/send-message';
 import { expect, test } from '../fixtures/auth.fixture';
 import { isAlActorHost, resolveActorHost } from './_host';
 
@@ -146,7 +145,6 @@ test('C2-03: cross-tenant write attempts are denied without mutation', async ({}
 
   const messageProbe = `C2-03 cross-tenant message probe ${Date.now()}`;
   const messageResult = await sendMessageDbCore({
-    claimEffects: claimMessageEffects,
     session: actorSession,
     authority: mintTestTenantAuthority(actorSession.user.tenantId),
     requestHeaders: new Headers({ 'x-forwarded-host': actorHost }),

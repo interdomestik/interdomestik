@@ -1,3 +1,4 @@
+import { reportServerError } from './server-error';
 import {
   isAutomatedEmail as isAutomated,
   selectEmailRecipients,
@@ -164,10 +165,12 @@ export async function sendEmailOutcome(
         return { ok: true, transport: 'smtp' };
       } catch (error) {
         signal.throwIfAborted();
+        reportServerError('SMTP delivery failed', error);
         return smtpDeliveryFailure(error);
       }
     });
   } catch (error) {
+    reportServerError('Email delivery failed', error);
     if (error instanceof DeliveryTimeout) return emailTimeoutFailure(transport);
     return {
       ok: false,

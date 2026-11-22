@@ -1,9 +1,9 @@
 import type { TenantTransaction } from '@interdomestik/database';
-import { sql, type SQL } from 'drizzle-orm';
+import { type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it, vi } from 'vitest';
-import { CLAIM_MAIL_COPY } from '../claim-mail';
-import { prepareNotificationDelivery } from './prepare';
+import { CLAIM_MAIL_COPY } from '@interdomestik/domain-communications/notification-deliveries/worker';
+import { prepareNotificationDelivery } from './prepare-notification-delivery';
 import { delivery } from './run.test-support';
 
 const original = {
@@ -20,7 +20,6 @@ function setup(responses: object[][]) {
   const tx = { select } as unknown as TenantTransaction;
   const deps = {
     appOrigin: () => 'https://example.test',
-    buildStaffClaimScope: vi.fn(() => sql`false`),
   };
   return { tx, deps, select, where };
 }
@@ -62,12 +61,9 @@ describe('prepareNotificationDelivery', () => {
     await expect(prepareNotificationDelivery(h.tx, original, h.deps)).resolves.toEqual({
       skip: 'recipient_out_of_scope',
     });
-    expect(h.deps.buildStaffClaimScope).toHaveBeenCalledExactlyOnceWith({
-      role: 'staff',
-      claimId: original.claimId,
-      userId: original.recipientUserId,
-      branchId: 'previous-branch',
-    });
+    const query = new PgDialect().sqlToQuery(h.where.mock.calls[3][0]);
+    expect(query.sql).toContain('"claim"."branch_id"');
+    expect(query.params).toEqual([original.tenantId, original.claimId, 'draft', 'previous-branch']);
     expect(h.select).toHaveBeenCalledTimes(4);
   });
 

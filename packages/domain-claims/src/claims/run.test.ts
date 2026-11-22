@@ -1,20 +1,20 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { redriveNotificationDelivery } from './failed';
-import { dispatchNotificationDeliveries } from './run';
+import { redriveNotificationDelivery } from '@interdomestik/domain-communications/notification-deliveries';
+import { dispatchNotificationDeliveries } from './notification-delivery-runner';
 import { delivery, harness, start, timestamp } from './run.test-support';
 import {
   claimNotificationDelivery,
-  enqueueNotificationDelivery,
   finishNotificationDelivery,
-} from './store';
-import { deliveryFailure } from './transport';
+  deliveryFailure,
+} from '@interdomestik/domain-communications/notification-deliveries/worker';
+import { enqueueNotificationDelivery } from '@interdomestik/domain-communications/notification-deliveries';
 
 const mocks = vi.hoisted(() => ({ withAuthority: vi.fn(), prepare: vi.fn() }));
 vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   withTenantAuthority: mocks.withAuthority,
 }));
-vi.mock('./prepare', () => ({ prepareNotificationDelivery: mocks.prepare }));
+vi.mock('./prepare-notification-delivery', () => ({ prepareNotificationDelivery: mocks.prepare }));
 
 const setup = (...rows: ReturnType<typeof delivery>[]) =>
   harness(mocks.withAuthority, mocks.prepare, rows);
@@ -199,7 +199,6 @@ describe('delivery state and leases', () => {
         mintTestTenantAuthority(row.tenantId),
         {
           appOrigin: () => 'https://example.test',
-          buildStaffClaimScope: () => undefined,
           emailTransports: h.emailTransports,
           sendEmail: h.sendEmail,
         },
@@ -239,8 +238,24 @@ describe('delivery state and leases', () => {
       expect(h.sendEmail).not.toHaveBeenCalled();
     }
     const h = setup(delivery());
-    mocks.prepare.mockRejectedValueOnce(new Error('private detail'));
-    expect(await h.kick()).toMatchObject({ queued: 1, failures: [{ code: 'facts_unavailable' }] });
+    const report = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      mocks.prepare.mockRejectedValueOnce(
+        new Error('private detail', { cause: { code: 'XX000' } })
+      );
+      expect(await h.kick()).toMatchObject({
+        queued: 1,
+        failures: [{ code: 'facts_unavailable' }],
+      });
+      expect(report).toHaveBeenCalledExactlyOnceWith(
+        'Notification delivery preparation failed',
+        expect.objectContaining({ cause: { name: 'Error', code: 'XX000' } })
+      );
+      expect(report.mock.calls[0][1]).toBeInstanceOf(Error);
+      expect(String(report.mock.calls[0][1])).not.toContain('private detail');
+    } finally {
+      report.mockRestore();
+    }
   });
 
   it('lets only one concurrent re-drive update the failed row and retains its pin', async () => {

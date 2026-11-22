@@ -1,9 +1,11 @@
+import { cleanupClaimNotificationRows } from '@interdomestik/database/seed-utils/claim-notification-cleanup';
 import {
   account,
   agentSettings,
   and,
   auditLog,
   claims,
+  dbAdmin,
   eq,
   inArray,
   memberLeads,
@@ -23,6 +25,26 @@ import { withTenantAuthority } from '@interdomestik/database/tenant-authority-co
 import type { SponsorFixture } from './acq3b-context.fixture';
 
 export async function cleanupSponsorFixture(f: SponsorFixture): Promise<void> {
+  const generated = await dbAdmin
+    .select({ id: user.id })
+    .from(user)
+    .where(and(eq(user.tenantId, f.tenantId), eq(user.email, f.newEmail)));
+  const people = [
+    f.agent.id,
+    f.staff.id,
+    f.member.id,
+    f.paying.id,
+    f.other.id,
+    ...generated.map(p => p.id),
+  ];
+  await dbAdmin.transaction(async tx => {
+    await cleanupClaimNotificationRows(tx, {
+      tenantId: f.tenantId,
+      claimIds: [`${f.prefix}-private-claim`],
+    });
+    await cleanupClaimNotificationRows(tx, { tenantId: f.tenantId, userIds: people });
+    await cleanupClaimNotificationRows(tx, { userIds: [f.foreign.id] });
+  });
   await withTenantAuthority(f.authority, async tx => {
     const companies = await tx
       .select({ id: sponsors.id })
@@ -50,15 +72,6 @@ export async function cleanupSponsorFixture(f: SponsorFixture): Promise<void> {
           .where(inArray(sponsorTermRevisions.termId, termIds))
       : [];
     const revisionIds = revisions.map(row => row.id);
-    const generated = await tx.select({ id: user.id }).from(user).where(eq(user.email, f.newEmail));
-    const people = [
-      f.agent.id,
-      f.staff.id,
-      f.member.id,
-      f.paying.id,
-      f.other.id,
-      ...generated.map(p => p.id),
-    ];
     const intents = await tx
       .select({ id: sponsorHandoverIntents.id })
       .from(sponsorHandoverIntents)

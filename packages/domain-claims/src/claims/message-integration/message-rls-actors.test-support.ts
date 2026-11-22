@@ -1,6 +1,6 @@
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import type { Session } from '../types';
+import type { Session } from '@interdomestik/domain-communications/types';
 import { homeTenantId, session } from './tenant-context.integration-fixture';
 
 /** The session and the tenant authority the request session would grant this actor. */

@@ -4,7 +4,6 @@ import { and, desc, eq, lt, or, sql } from 'drizzle-orm';
 import { recordDeliveryAudit } from './store';
 
 const currentAccessTenant = sql<string>`(select current_setting('app.current_access_tenant_id', true))::text`;
-const tenantScope = eq(deliveries.tenantId, currentAccessTenant);
 
 type FailedCursor = { createdAt: string; id: string };
 
@@ -29,7 +28,7 @@ export async function listFailedNotificationDeliveries(
     .from(deliveries)
     .where(
       and(
-        tenantScope,
+        eq(deliveries.tenantId, currentAccessTenant),
         eq(deliveries.state, 'failed'),
         cursor &&
           or(
@@ -65,7 +64,13 @@ export async function redriveNotificationDelivery(
       avoidTransport: null,
       nextAttemptAt: sql`clock_timestamp()`,
     })
-    .where(and(tenantScope, eq(deliveries.id, id), eq(deliveries.state, 'failed')))
+    .where(
+      and(
+        eq(deliveries.tenantId, currentAccessTenant),
+        eq(deliveries.id, id),
+        eq(deliveries.state, 'failed')
+      )
+    )
     .returning({
       id: deliveries.id,
       kind: deliveries.kind,

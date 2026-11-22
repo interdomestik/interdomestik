@@ -1,12 +1,13 @@
-import { E2E_DISCOVERY_THREADS } from '../../../database/src/e2e-communication-fixtures';
-import { E2E_DISCOVERY_SEED_BASE_TIME } from '../../../database/src/e2e-document-fixtures';
 import {
+  createMutationCopy,
   E2E_AGENT_LINK_FIXTURES,
   E2E_CASE_FIXTURES,
+  E2E_DISCOVERY_SEED_BASE_TIME,
+  E2E_DISCOVERY_THREADS,
   E2E_USER_IDS,
-} from '../../../database/src/e2e-role-fixtures';
-import { E2E_USERS, type E2EUserKey } from '../../../database/src/e2e-users';
-import { createMutationCopy } from '../../../database/src/testing/mutation-copy';
+  E2E_USERS,
+  type E2EUserKey,
+} from '@interdomestik/database/testing/message-fixtures';
 
 export function messageCatalogueCopy(runId: string, workerId: string) {
   const copy = createMutationCopy({ runId, workerId, scenario: 'message-replay' });

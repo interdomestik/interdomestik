@@ -204,8 +204,10 @@ async function proveConsumer(client: postgres.Sql, a: Rows) {
     Object.assign(process.env, vars);
     const { mintTenantAuthority } = await import('../src/tenant-authority');
     const { withTenantAuthority } = await import('../src/tenant-authority-context');
-    const { runNotificationDeliveries, enqueueNotificationDelivery, redriveNotificationDelivery } =
+    const { enqueueNotificationDelivery, redriveNotificationDelivery } =
       await import('../../domain-communications/src/notification-deliveries');
+    const { runNotificationDeliveries } =
+      await import('../../domain-claims/src/claims/notification-delivery-runner');
     const { claimNotificationDelivery, refundNotificationAttempt } =
       await import('../../domain-communications/src/notification-deliveries/store');
     const authority = mintTenantAuthority({ tenantId: a.tenant, purpose: 'scheduled-work' });
@@ -267,7 +269,6 @@ async function proveConsumer(client: postgres.Sql, a: Rows) {
     const sendEmail = async (transport: 'smtp' | 'resend') => ({ ok: true as const, transport });
     const run = await runNotificationDeliveries(authority, {
       appOrigin: () => 'https://example.test',
-      buildStaffClaimScope: () => undefined,
       emailTransports: () => ['smtp'],
       sendEmail,
     });

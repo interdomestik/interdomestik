@@ -12,6 +12,8 @@
     "./claims/ai-workflows": "./src/claims/ai-workflows.ts",
     "./claims/create": "./src/claims/create.ts",
     "./claims/commercial-launch-scope": "./src/claims/commercial-launch-scope.ts",
+    "./claims/send-message": "./src/claims/send-message.ts",
+    "./claims/notification-delivery-runner": "./src/claims/notification-delivery-runner.ts",
     "./claims/submit": "./src/claims/submit.ts",
     "./claims/evidence-file-policy": "./src/claims/evidence-file-policy.ts",
     "./claims/diaspora-origin": "./src/claims/diaspora-origin.ts",
@@ -44,6 +46,7 @@
   },
   "scripts": {
     "type-check": "tsc --noEmit",
+    "test:rls": "MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/claims/message-integration/tenant-context.integration.test.ts src/claims/message-integration/send-negative-matrix.integration.test.ts src/claims/message-integration/send-idempotency.integration.test.ts src/claims/message-integration/public-reply-notification.integration.test.ts",
     "test:unit": "vitest run",
     "test": "vitest run"
   },

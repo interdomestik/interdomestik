@@ -1,3 +1,4 @@
+import { reportServerError } from '@interdomestik/domain-communications/server-error';
 import { and, auditLog, claims, eq, user, type TenantTransaction } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
@@ -197,10 +198,7 @@ export async function changeClaimAssignment(
     );
   } catch (error) {
     if (error instanceof AssignmentConflict) return { ok: false, code: 'conflict' };
-    console.error(
-      'Claim assignment transaction failed',
-      error instanceof Error ? error.name : typeof error
-    );
+    reportServerError('Claim assignment transaction failed', error);
     return { ok: false, code: 'transaction_failed' };
   }
 }

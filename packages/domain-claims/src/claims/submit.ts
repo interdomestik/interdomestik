@@ -13,10 +13,9 @@ import {
   enqueueClaimSubmittedNotification,
   enqueueStaffClaimNotification,
   lockClaimNotificationRecipient,
-  resolveStaffClaimNotificationRecipients,
 } from '@interdomestik/domain-communications/notification-deliveries';
 import { nanoid } from 'nanoid';
-import { buildStaffClaimReadScope } from '../staff-claims/scope';
+import { resolveStaffClaimNotificationRecipients } from '../staff-claims/notification-recipients';
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
 import type { QueuedClaimAiRun } from './ai-workflow-types';
 import { buildClaimDocumentRows } from './documents';
@@ -82,11 +81,11 @@ async function persistSubmittedClaim(args: {
 
     const claim = { tenantId, claimId: args.claimId, claimNumber, category };
     const recipient = await lockClaimNotificationRecipient(tx, tenantId, args.userId);
-    const staff = await resolveStaffClaimNotificationRecipients(
-      tx,
-      { tenantId, claimId: args.claimId, staffId: null },
-      buildStaffClaimReadScope
-    );
+    const staff = await resolveStaffClaimNotificationRecipients(tx, {
+      tenantId,
+      claimId: args.claimId,
+      staffId: null,
+    });
 
     await recordSubmittedClaimLifecycle(tx, {
       changedByRole: args.changedByRole,

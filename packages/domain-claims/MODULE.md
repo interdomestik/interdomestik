@@ -35,6 +35,8 @@ The staff and admin actions call `changeClaimStatus` from `./claims/change-statu
 
 ## Tenant boundary
 
+`./claims/send-message` composes the message write, response requests and notifications in one tenant transaction. Staff routing and the send-time staff eligibility check use the same staff claim read scope. `./claims/notification-delivery-runner` drives the queue through the communications worker operations.
+
 Reads and writes run inside `withTenantAuthority`; the staff read scope adds branch and ownership predicates on top (`src/staff-claims/scope.ts:24-36`). Document access on this journey is tenant-bound and role-bound (`A/modules/case-handoff.md:204`: full-tenant roles, owner, uploader, staff only when `staffId` = self, agent scope, case grant, never staff on a draft). R1 found **no cross-tenant or cross-member reachability** in the files it read, with the cross-tenant grant fallback and the agent document scope **not opened** (`A/modules/case-handoff.md:206`).
 
 ## Live and not live

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { randomInt, randomUUID } from 'node:crypto';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
   claimMessages,
@@ -8,22 +9,21 @@ import {
   notifications,
   user,
 } from '../src/schema';
-import type { TenantTransaction } from '../src/tenant';
+import { quoteIdentifier, quoteSqlLiteral } from './rls-test-connection';
 import { mintTestTenantAuthority } from '../src/testing/tenant-authority';
 import { KS_TENANT_ID } from './s8-claim-restricted-rls.fixture';
-import { gate, waitForClaimLock, withStatusFixture } from './wp11-claim-status-rls.fixture';
+import {
+  waitForClaimLock,
+  whileClaimWriterHoldsLock,
+  withStatusFixture,
+} from './wp11-claim-status-rls.fixture';
 
 test(
   'public staff answers and member requests follow the claim lock order under RLS',
   { timeout: 30_000 },
   async t => {
     await withStatusFixture(t, async fixture => {
-      const [{ sendMessageDbCore }, responseRequests, { buildStaffClaimReadScope }] =
-        await Promise.all([
-          import('../../domain-communications/src/messages/send'),
-          import('../../domain-claims/src/claims/response-requests'),
-          import('../../domain-claims/src/staff-claims/scope'),
-        ]);
+      const { sendMessageDbCore } = await import('../../domain-claims/src/claims/send-message');
       const { adminDb, ownerId, staffId } = fixture;
       await adminDb.update(user).set({ role: 'member' }).where(eq(user.id, ownerId));
       const claimIds: string[] = [];
@@ -33,17 +33,6 @@ test(
           await t.test(`${firstRole} takes the claim lock first`, async subtest => {
             const claimId = await fixture.newClaim('submitted', staffId);
             claimIds.push(claimId);
-            const firstWrote = gate();
-            const release = gate();
-            let holderPid = 0;
-            async function holdAfterWrite(tx: TenantTransaction) {
-              const [backend] = await tx.execute<{ pid: number }>(
-                sql`select pg_backend_pid() as pid`
-              );
-              holderPid = backend.pid;
-              firstWrote.open();
-              await release.promise;
-            }
             const send = (role: 'staff' | 'member') => {
               const id = role === 'staff' ? staffId : ownerId;
               return sendMessageDbCore({
@@ -52,45 +41,56 @@ test(
                 session: { user: { id, role, tenantId: KS_TENANT_ID } },
                 requestHeaders: new Headers(),
                 content: role === 'staff' ? 'Public staff answer' : 'Additional member question',
-                claimEffects: {
-                  buildStaffClaimScope: buildStaffClaimReadScope,
-                  async createClaimResponseRequest(tx, input) {
-                    await responseRequests.createClaimResponseRequest(tx, input);
-                    if (firstRole === 'member') await holdAfterWrite(tx);
-                  },
-                  async answerClaimResponseRequests(tx, input) {
-                    await responseRequests.answerClaimResponseRequests(tx, input);
-                    if (firstRole === 'staff') await holdAfterWrite(tx);
-                  },
-                },
               });
             };
-            const first = send(firstRole);
-            let second: ReturnType<typeof send> | undefined;
-            let firstResult: Awaited<typeof first>;
-            let secondResult: Awaited<typeof first>;
+            // Block the first command after its real response-request write. The second
+            // command must wait on that transaction's claim lock before touching its effects.
+            const name = quoteIdentifier(`wp11_response_gate_${randomUUID().replaceAll('-', '')}`);
+            const lockKey = randomInt(1, 2 ** 31);
+            const sends: { second?: ReturnType<typeof send> } = {};
+            await adminDb.execute(
+              sql.raw(`
+              create function public.${name}() returns trigger language plpgsql as $$
+              begin
+                perform pg_advisory_xact_lock(${lockKey}::bigint);
+                return new;
+              end;
+              $$`)
+            );
+            let firstResult: Awaited<ReturnType<typeof send>>;
             try {
-              await Promise.race([
-                firstWrote.promise,
-                first.then(result =>
-                  assert.fail(
-                    `First send finished before holding the lock: ${JSON.stringify(result)}`
-                  )
-                ),
-              ]);
-              second = send(firstRole === 'member' ? 'staff' : 'member');
-              await Promise.race([
-                waitForClaimLock(fixture, holderPid, subtest.signal),
-                second.then(() =>
-                  assert.fail('Second send finished while the first held the lock')
-                ),
-              ]);
-              release.open();
-              [firstResult, secondResult] = await Promise.all([first, second]);
+              await adminDb.execute(
+                sql.raw(`
+                create trigger ${name} after insert or update on public.claim_response_requests
+                for each row when (new.claim_id = ${quoteSqlLiteral(claimId)})
+                execute function public.${name}()`)
+              );
+              firstResult = await whileClaimWriterHoldsLock(
+                fixture,
+                subtest.signal,
+                async tx => {
+                  await tx.execute(sql`select pg_advisory_xact_lock(${lockKey}::bigint)`);
+                },
+                () => send(firstRole),
+                async firstPid => {
+                  sends.second = send(firstRole === 'member' ? 'staff' : 'member');
+                  await Promise.race([
+                    waitForClaimLock(fixture, firstPid, subtest.signal),
+                    sends.second.then(() =>
+                      assert.fail('Second send finished while the first held the claim lock')
+                    ),
+                  ]);
+                }
+              );
             } finally {
-              release.open();
-              await Promise.allSettled(second ? [first, second] : [first]);
+              if (sends.second) await Promise.allSettled([sends.second]);
+              await adminDb.execute(
+                sql.raw(`drop trigger if exists ${name} on public.claim_response_requests`)
+              );
+              await adminDb.execute(sql.raw(`drop function public.${name}()`));
             }
+            assert.ok(sends.second);
+            const secondResult = await sends.second;
             assert.ok(firstResult.success);
             assert.ok(secondResult.success);
             const [member, staff] =

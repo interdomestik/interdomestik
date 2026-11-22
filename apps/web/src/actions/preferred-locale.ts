@@ -1,16 +1,14 @@
 'use server';
 
 import { actionFailure, defineAction } from '@/lib/safe-action';
-import {
-  recipientLocales,
-  savePreferredLocale,
-} from '@interdomestik/domain-communications/recipient-locale';
+import { LOCALES } from '@/i18n/locales';
+import { savePreferredLocale } from '@interdomestik/domain-communications/recipient-locale';
 import { z } from 'zod';
 
 export const updatePreferredLocale = defineAction({
   name: 'user.updatePreferredLocale',
   basis: { kind: 'self' },
-  input: z.strictObject({ locale: z.enum(recipientLocales) }),
+  input: z.strictObject({ locale: z.enum(LOCALES) }),
   subject: { type: 'self' },
   async handler({ locale }, { authority }) {
     const saved = await savePreferredLocale(authority, locale);

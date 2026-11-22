@@ -8,15 +8,17 @@ import {
 } from './send.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { sendMessageDbCore } from './send';
-import { keyedMessageId, MESSAGE_KEY_CONFLICT_ERROR } from './store-message';
+import { sendMessageDbCore } from './send-message';
+import {
+  keyedMessageId,
+  MESSAGE_KEY_CONFLICT_ERROR,
+} from '@interdomestik/domain-communications/messages/store';
 
 describe('sendMessageDbCore authority', () => {
   beforeEach(resetSendMocks);
 
   it('rejects a send that holds no authority without opening a tenant transaction', async () => {
     const result = await sendMessageDbCore({
-      claimEffects,
       session: staffSession,
       authority: null,
       requestHeaders: new Headers(),
@@ -32,7 +34,6 @@ describe('sendMessageDbCore authority', () => {
     const logAuditEvent = vi.fn();
 
     const result = await sendMessageDbCore({
-      claimEffects,
       session: staffSession,
       authority,
       requestHeaders: new Headers(),
@@ -85,7 +86,6 @@ describe('sendMessageDbCore authority', () => {
 
     const keyedSend = (content: string, logAuditEvent = vi.fn()) =>
       sendMessageDbCore({
-        claimEffects,
         session: staffSession,
         authority,
         requestHeaders: new Headers(),
@@ -157,7 +157,6 @@ describe('sendMessageDbCore authority', () => {
 
     it('rejects a malformed key before opening a tenant transaction', async () => {
       const result = await sendMessageDbCore({
-        claimEffects,
         session: staffSession,
         authority,
         requestHeaders: new Headers(),

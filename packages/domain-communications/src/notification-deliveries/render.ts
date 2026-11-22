@@ -46,7 +46,7 @@ export async function renderDelivery(
     case 'claim_recovery_decision':
       return renderClaimMail(kind, locale, { ...facts, ...decisionFacts.parse(row.facts) });
     case 'claim_message_to_member': {
-      const message = await getMessagePreview(tx, row);
+      const message = await getMessagePreview(tx, row, CLAIM_MAIL_COPY[locale].genericSender);
       return renderClaimMail(kind, locale, {
         ...facts,
         ...message,
@@ -67,7 +67,8 @@ async function getClaimTitle(tx: TenantTransaction, { tenantId, claimId }: Claim
 
 async function getMessagePreview(
   tx: TenantTransaction,
-  { tenantId, claimId, subjectMessageId }: ClaimedDelivery
+  { tenantId, claimId, subjectMessageId }: ClaimedDelivery,
+  genericSender: string
 ) {
   if (!subjectMessageId) throw new Error('Delivery source message is unavailable');
   const [message] = await tx
@@ -82,8 +83,8 @@ async function getMessagePreview(
         eq(claimMessages.isInternal, false)
       )
     );
-  if (!message?.senderName) throw new Error('Delivery source preview is unavailable');
-  return { senderName: message.senderName, excerpt: message.excerpt };
+  if (!message) throw new Error('Delivery source preview is unavailable');
+  return { senderName: message.senderName || genericSender, excerpt: message.excerpt };
 }
 
 export async function renderDeliveryPush(
@@ -99,7 +100,7 @@ export async function renderDeliveryPush(
     if (previewRestricted) {
       return { title: messages.restricted.heading, body: messages.restricted.body, url };
     }
-    const { senderName, excerpt } = await getMessagePreview(tx, row);
+    const { senderName, excerpt } = await getMessagePreview(tx, row, copy.genericSender);
     return { title: messages.full.heading, body: `${senderName}: ${excerpt.slice(0, 100)}`, url };
   }
 

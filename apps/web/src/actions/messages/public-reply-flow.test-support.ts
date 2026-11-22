@@ -35,14 +35,17 @@ vi.mock('@/lib/claim-notification-delivery-kick', () => ({
   },
 }));
 vi.mock('@interdomestik/domain-claims/staff-claims/scope', () => ({
-  buildStaffClaimReadScope:
-    (recipient: { userId: string; branchId?: string }) =>
-    (claim: { caseLifecycleState?: string; branchId?: string; staffId?: string }) => {
-      if (claim.caseLifecycleState !== 'submitted') return false;
-      return recipient.branchId
-        ? recipient.branchId === claim.branchId
-        : claim.staffId == null || claim.staffId === recipient.userId;
-    },
+  canStaffReadClaim: async (
+    _tx: unknown,
+    recipient: { userId: string; branchId?: string; claimId: string }
+  ) => {
+    const { state } = await load();
+    const claim = state.rows.claims.find(c => c.id === recipient.claimId);
+    if (claim?.caseLifecycleState !== 'submitted') return false;
+    return recipient.branchId
+      ? recipient.branchId === claim.branchId
+      : claim.staffId == null || claim.staffId === recipient.userId;
+  },
 }));
 
 import { revalidatePath } from 'next/cache';

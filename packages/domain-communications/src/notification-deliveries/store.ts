@@ -1,6 +1,6 @@
 import type { TenantTransaction } from '@interdomestik/database';
 import { auditLog, notificationDeliveries as deliveries } from '@interdomestik/database/schema';
-import { and, eq, inArray, or, sql } from 'drizzle-orm';
+import { and, eq, getTableColumns, inArray, or, sql } from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { randomUUID } from 'node:crypto';
 import type { EmailTransport } from '../email';
@@ -35,6 +35,18 @@ export function underLease(row: ClaimedDelivery) {
     eq(deliveries.state, 'claimed'),
     eq(deliveries.leaseUntil, row.leaseUntil)
   );
+}
+
+export async function readDeliveryUnderLease(tx: TenantTransaction, lease: ClaimedDelivery) {
+  const [row] = await tx
+    .select({
+      ...getTableColumns(deliveries),
+      stale: sql<boolean>`${deliveries.createdAt} < clock_timestamp() - interval '72 hours'`,
+    })
+    .from(deliveries)
+    .where(underLease(lease))
+    .for('update');
+  return row;
 }
 
 export async function recordDeliveryAudit(

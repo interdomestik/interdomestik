@@ -1,3 +1,4 @@
+import { cleanupClaimNotificationRows } from '@interdomestik/database/seed-utils/claim-notification-cleanup';
 import {
   claimMessages,
   claims,
@@ -76,6 +77,12 @@ export async function withClaimNoteSentinels<T>(
     }));
     return await run({ own: probes[0], foreign: probes[1] });
   } finally {
+    for (const { scope, claimId } of fixtures) {
+      await cleanupClaimNotificationRows(dbAdmin, {
+        tenantId: scope.tenantId,
+        claimIds: [claimId],
+      });
+    }
     // Delete all owned children before their parents; retain each tenant/claim predicate pair.
     await dbAdmin
       .delete(claimMessages)

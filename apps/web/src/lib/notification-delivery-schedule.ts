@@ -1,6 +1,6 @@
 import { listScheduledTenantWork } from '@interdomestik/database';
 import type { IngressCapability } from '@interdomestik/database/ingress';
-import { runNotificationDeliveries } from '@interdomestik/domain-communications/notification-deliveries';
+import { runNotificationDeliveries } from '@interdomestik/domain-claims/claims/notification-delivery-runner';
 import { claimNotificationDeliveryDeps } from './claim-notification-delivery-deps';
 
 export async function runNotificationDeliverySchedule(

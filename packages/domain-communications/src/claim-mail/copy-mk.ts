@@ -4,6 +4,7 @@ const viewClaim = 'Погледнете го барањето';
 const footer = 'Тимот на Интердоместик';
 
 export const MK_COPY: ClaimMailCopy = {
+  genericSender: 'Тим за барања',
   claimWithoutNumber: 'Барање без број',
   pushStatusHeading: 'Вашето барање е ажурирано',
   statuses: {

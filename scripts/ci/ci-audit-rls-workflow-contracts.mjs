@@ -27,7 +27,7 @@ test('CI RLS integration requires both integration and coverage guards', () => {
     'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test'
   );
   const rootScripts = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).scripts;
-  const domainScripts = JSON.parse(
+  const communicationsScripts = JSON.parse(
     fs.readFileSync(path.join(root, 'packages/domain-communications/package.json'), 'utf8')
   ).scripts;
   assert.equal(
@@ -35,9 +35,16 @@ test('CI RLS integration requires both integration and coverage guards', () => {
     'pnpm --filter @interdomestik/database test:rls && pnpm --filter @interdomestik/domain-communications test:rls && pnpm db:rls:test:staff-detail'
   );
   assert.equal(rootScripts['db:rls:test:staff-detail'], 'node scripts/run-staff-detail-rls.mjs');
+  assert.equal(
+    communicationsScripts['test:rls'],
+    'pnpm --filter @interdomestik/domain-claims test:rls'
+  );
+  const claimsScripts = JSON.parse(
+    fs.readFileSync(path.join(root, 'packages/domain-claims/package.json'), 'utf8')
+  ).scripts;
   // Each message suite grants its own role on shared catalog rows, so files run one at a time.
   assert.equal(
-    domainScripts['test:rls'],
-    'MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/messages/tenant-context.integration.test.ts src/messages/send-negative-matrix.integration.test.ts src/messages/send-idempotency.integration.test.ts src/messages/public-reply-notification.integration.test.ts'
+    claimsScripts['test:rls'],
+    'MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/claims/message-integration/tenant-context.integration.test.ts src/claims/message-integration/send-negative-matrix.integration.test.ts src/claims/message-integration/send-idempotency.integration.test.ts src/claims/message-integration/public-reply-notification.integration.test.ts'
   );
 });

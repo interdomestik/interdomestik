@@ -1,8 +1,10 @@
+import { cleanupClaimNotificationRows } from '@interdomestik/database/seed-utils/claim-notification-cleanup';
 import {
   account,
   branches,
   claims,
   db,
+  dbAdmin,
   E2E_PASSWORD,
   E2E_USERS,
   session,
@@ -253,9 +255,11 @@ export async function withBranchOverviewScopeFixture<T>(
       tenantAdmin,
     });
   } finally {
+    await cleanupClaimNotificationRows(dbAdmin, { claimIds });
     await db.delete(claims).where(inArray(claims.id, claimIds));
     await db.delete(session).where(inArray(session.userId, authenticatedUserIds));
     await db.delete(account).where(inArray(account.userId, authenticatedUserIds));
+    await cleanupClaimNotificationRows(dbAdmin, { userIds: allUserIds });
     await db.delete(user).where(inArray(user.id, allUserIds));
     await db.delete(branches).where(inArray(branches.id, allBranchIds));
     await db.delete(tenants).where(eq(tenants.id, foreignTenantId));

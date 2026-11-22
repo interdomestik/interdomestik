@@ -213,7 +213,7 @@ describe('changeClaimAssignment', () => {
       ).resolves.toEqual({ ok: false, code: 'transaction_failed' });
       expect(tx.effects).toEqual(['no key update', 'share', 'write', 'audit']);
       expect(tx.commits()).toBe(0);
-      expect(log).toHaveBeenCalledWith('Claim assignment transaction failed', 'Error');
+      expect(log).toHaveBeenCalledWith('Claim assignment transaction failed', expect.any(Error));
     } finally {
       log.mockRestore();
     }

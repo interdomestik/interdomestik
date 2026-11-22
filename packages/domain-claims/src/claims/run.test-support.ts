@@ -5,8 +5,14 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { vi, type Mock } from 'vitest';
-import { dispatchNotificationDeliveries, runNotificationDeliveries } from './run';
-import type { Delivery, RunSummary } from './types';
+import {
+  dispatchNotificationDeliveries,
+  runNotificationDeliveries,
+} from './notification-delivery-runner';
+import type {
+  Delivery,
+  RunSummary,
+} from '@interdomestik/domain-communications/notification-deliveries/worker';
 
 const authority: TenantAuthority = mintTestTenantAuthority('tenant-a');
 export const dialect = new PgDialect();
@@ -179,7 +185,6 @@ export function harness(
   );
   const deps = {
     appOrigin: () => 'https://example.test',
-    buildStaffClaimScope: () => undefined,
     now: () => clock,
     sendEmail,
     sendPush,
