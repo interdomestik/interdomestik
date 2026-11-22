@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import yaml from 'js-yaml';
@@ -150,4 +152,33 @@ test('PR E2E always uploads each lane’s exact-head report and evidence summary
     'tmp/verification-evidence/${{ matrix.evidence_name }}.json',
     'apps/web/test-results/${{ matrix.report_lane }}/report.json',
   ]);
+});
+
+test('seed credential guard recognizes both split PR browser commands', t => {
+  const directory = fs.mkdtempSync(path.join(tmpdir(), 'pr-e2e-seed-guard-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const workflowDir = path.join(directory, '.github', 'workflows');
+  fs.mkdirSync(workflowDir, { recursive: true });
+  for (const name of ['Run PR E2E Gate', 'Run PR Smoke E2E']) {
+    const { run } = findStep(name);
+    fs.writeFileSync(
+      path.join(workflowDir, 'e2e-pr.yml'),
+      yaml.dump({ jobs: { 'e2e-runner': { steps: [{ run }] } } })
+    );
+    const result = spawnSync(
+      process.execPath,
+      [path.join(root, 'scripts/check-workflow-seed-credentials.mjs')],
+      { cwd: directory, encoding: 'utf8' }
+    );
+    assert.equal(result.status, 1, name);
+    assert.match(result.stderr, /seeded E2E jobs must export masked per-run credentials/u);
+  }
+});
+
+test('PR E2E generates its own credentials before both browser steps', () => {
+  const exporter = findStep('Generate ephemeral E2E credentials');
+  assert.equal(exporter?.run, 'bash scripts/ci/export-e2e-credentials.sh');
+  for (const name of [gateName, smokeName]) {
+    assert.ok(runner.steps.indexOf(exporter) < runner.steps.indexOf(findStep(name)), name);
+  }
 });

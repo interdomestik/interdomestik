@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -186,8 +184,6 @@ test('seeded CI workflows generate masked per-run E2E credentials before seeded 
   }
   const orderContracts = [
     ['.github/workflows/ci.yml', 'e2e-gate', 'Prepare E2E Database'],
-    ['.github/workflows/e2e-pr.yml', 'e2e-runner', 'Run PR E2E Gate'],
-    ['.github/workflows/e2e-pr.yml', 'e2e-runner', 'Run PR Smoke E2E'],
     ['.github/workflows/e2e-nightly.yml', 'e2e', 'Seed E2E DB and build the app artifact'],
     ['.github/workflows/release-candidate.yml', 'rc-gate', 'Prepare CI database'],
     ['.github/workflows/pilot-gate.yml', 'pilot-gate-runner', 'Prepare CI database'],
@@ -200,30 +196,8 @@ test('seeded CI workflows generate masked per-run E2E credentials before seeded 
   for (const [workflowPath, jobName, guardedStep] of orderContracts) {
     const steps = readWorkflow(workflowPath).jobs[jobName].steps;
     const generatedIndex = findStepIndex(steps, 'Generate ephemeral E2E credentials');
-    assert.ok(generatedIndex >= 0, `${workflowPath}#${jobName} must generate credentials itself`);
-    assert.equal(steps[generatedIndex].run, 'bash scripts/ci/export-e2e-credentials.sh');
+    assert.equal(steps[generatedIndex]?.run, 'bash scripts/ci/export-e2e-credentials.sh', jobName);
     assert.ok(generatedIndex < findStepIndex(steps, guardedStep), `${workflowPath}#${guardedStep}`);
-  }
-});
-test('seed credential guard recognizes both split PR browser commands', t => {
-  const directory = fs.mkdtempSync(path.join(tmpdir(), 'pr-e2e-seed-guard-'));
-  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
-  const workflowDir = path.join(directory, '.github', 'workflows');
-  fs.mkdirSync(workflowDir, { recursive: true });
-  const runner = readWorkflow('.github/workflows/e2e-pr.yml').jobs['e2e-runner'];
-  for (const name of ['Run PR E2E Gate', 'Run PR Smoke E2E']) {
-    const { run } = findStep(runner.steps, name);
-    fs.writeFileSync(
-      path.join(workflowDir, 'e2e-pr.yml'),
-      yaml.dump({ jobs: { 'e2e-runner': { steps: [{ run }] } } })
-    );
-    const result = spawnSync(
-      process.execPath,
-      [path.join(root, 'scripts/check-workflow-seed-credentials.mjs')],
-      { cwd: directory, encoding: 'utf8' }
-    );
-    assert.equal(result.status, 1, name);
-    assert.match(result.stderr, /seeded E2E jobs must export masked per-run credentials/u);
   }
 });
 test('CI materializes AI eval as a blocking surface-gated lane', () => {
