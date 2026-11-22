@@ -209,11 +209,12 @@ export function NextActionsCard({
     });
   };
 
+  const openStatusModalKey = preselectDecline ? 'decline' : 'open';
   return (
     <>
       {!readOnly && !refreshPending && (
         <OpsStatusUpdateModal
-          key={isStatusModalOpen ? (preselectDecline ? 'decline' : 'open') : 'closed'}
+          key={isStatusModalOpen ? openStatusModalKey : 'closed'}
           claimId={claim.id}
           isOpen={isStatusModalOpen}
           initialStatus={preselectDecline ? 'rejected' : undefined}

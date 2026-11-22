@@ -44,6 +44,28 @@ type OwnerSource = Extract<
       | 'claim_message_to_member';
   }
 >;
+type OwnerPushSource = Extract<
+  OwnerSource,
+  { kind: 'claim_status_changed' | 'claim_message_to_member' }
+>;
+
+async function queueOwnerPushDeliveries(
+  tx: TenantTransaction,
+  source: OwnerPushSource,
+  subscriptions: Iterator<{ id: string }, undefined>,
+  deliveryIds: string[]
+): Promise<void> {
+  const next = subscriptions.next();
+  if (next.done) return;
+  const id = await enqueueNotificationDelivery(tx, {
+    ...source,
+    id: randomUUID(),
+    channel: 'push',
+    pushSubscriptionId: next.value.id,
+  });
+  if (id) deliveryIds.push(id);
+  return queueOwnerPushDeliveries(tx, source, subscriptions, deliveryIds);
+}
 
 async function queueOwnerDeliveryChannels(
   tx: TenantTransaction,
@@ -77,15 +99,7 @@ async function queueOwnerDeliveryChannels(
     .where(
       and(eq(pushSubscriptions.tenantId, tenantId), eq(pushSubscriptions.userId, recipientUserId))
     );
-  for (const subscription of subscriptions) {
-    const id = await enqueueNotificationDelivery(tx, {
-      ...source,
-      id: randomUUID(),
-      channel: 'push',
-      pushSubscriptionId: subscription.id,
-    });
-    if (id) deliveryIds.push(id);
-  }
+  await queueOwnerPushDeliveries(tx, source, subscriptions.values(), deliveryIds);
   return deliveryIds;
 }
 

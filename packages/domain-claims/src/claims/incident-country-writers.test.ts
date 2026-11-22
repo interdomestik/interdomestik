@@ -1,5 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockClaimWriterEffects } from './submit-test-support';
 const h = vi.hoisted(() => {
   const draftClaim = {
     caseLifecycleState: 'draft',
@@ -58,27 +59,19 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   getActiveSubscription: h.getActiveSubscription,
 }));
-vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
-  enqueueClaimSubmittedNotification: vi.fn().mockResolvedValue([]),
-  enqueueStaffClaimNotification: vi.fn().mockResolvedValue([]),
-  lockClaimNotificationRecipient: vi.fn(),
-}));
-vi.mock('../staff-claims/notification-recipients', () => ({
-  resolveStaffClaimNotificationRecipients: vi.fn().mockResolvedValue([]),
-}));
-vi.mock('./response-requests', () => ({ createClaimResponseRequest: vi.fn() }));
 vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: vi.fn(() => 'tenant-1') }));
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ left, right })),
 }));
 vi.mock('nanoid', () => ({ nanoid: vi.fn(() => 'claim-1') }));
-vi.mock('./ai-workflows', () => ({ queueClaimDocumentAiWorkflows: vi.fn().mockResolvedValue([]) }));
-import { createClaimCore } from './create';
-import { updateDraftClaimCore } from './draft';
 import { buildClaimStartPublicNote, resolveClaimIncidentCountryUpdate } from './incident-country';
-import { submitClaimCore } from './submit';
 import type { CreateClaimValues } from '../validators/claims';
+
+mockClaimWriterEffects();
+const { createClaimCore } = await import('./create');
+const { updateDraftClaimCore } = await import('./draft');
+const { submitClaimCore } = await import('./submit');
 
 const authority = mintTestTenantAuthority('tenant-1');
 const session = {

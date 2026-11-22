@@ -1,130 +1,43 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ClaimsSession } from '../claims/types';
-import { saveRecoveryDecisionCore } from './save-recovery-decision';
+import {
+  createStaffSessionFixture,
+  mockRecoveryDecisionTransaction,
+} from '../claims/recovery-evidence-test-support';
 
-function createSelectChain() {
-  return {
-    from: vi.fn(),
-    where: vi.fn(),
-    limit: vi.fn(),
-    for: vi.fn(),
-  };
-}
-
-const mocks = vi.hoisted(() => {
-  const claimSelectChain = createSelectChain();
-  const agreementSelectChain = createSelectChain();
-  const txInsertValues = vi.fn();
-  const txInsert = vi.fn(() => ({ values: txInsertValues }));
-  const txSelect = vi.fn();
-  const txUpdateWhere = vi.fn();
-  const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
-  const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
-  const query = {
-    claims: { findFirst: vi.fn() },
-    user: { findFirst: vi.fn() },
-  };
-  const withTenantContext = vi.fn(async (_context: unknown, cb: (tx: unknown) => unknown) =>
-    cb({
-      insert: txInsert,
-      query,
-      select: txSelect,
-      update: txUpdate,
-    })
-  );
-
-  return {
-    db: { query },
-    withTenantContext,
-    enqueue: vi.fn().mockResolvedValue(['decision-delivery']),
-    recipient: vi.fn().mockResolvedValue({ id: 'member-1' }),
-    appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
-    claims: {
-      id: 'claims.id',
-      tenantId: 'claims.tenant_id',
-    },
-    claimEscalationAgreements: {
-      id: 'claim_escalation_agreements.id',
-      tenantId: 'claim_escalation_agreements.tenant_id',
-      claimId: 'claim_escalation_agreements.claim_id',
-      decisionType: 'claim_escalation_agreements.decision_type',
-      declineReasonCode: 'claim_escalation_agreements.decline_reason_code',
-      decisionReason: 'claim_escalation_agreements.decision_reason',
-      acceptedById: 'claim_escalation_agreements.accepted_by_id',
-      acceptedAt: 'claim_escalation_agreements.accepted_at',
-      updatedAt: 'claim_escalation_agreements.updated_at',
-      createdAt: 'claim_escalation_agreements.created_at',
-    },
-    eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
-    and: vi.fn((...conditions) => ({ op: 'and', conditions })),
-    withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
-    ensureTenantId: vi.fn(() => 'tenant-1'),
-    claimSelectChain,
-    agreementSelectChain,
-    txInsert,
-    txInsertValues,
-    txSelect,
-    txUpdate,
-    txUpdateSet,
-  };
-});
-
-vi.mock('@interdomestik/database', () => ({
-  and: mocks.and,
-  appendEvent: mocks.appendEvent,
-  claimEscalationAgreements: mocks.claimEscalationAgreements,
-  claims: mocks.claims,
-  eq: mocks.eq,
-  withTenantContext: mocks.withTenantContext,
-}));
-
-vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
-  enqueueRecoveryDecisionNotification: mocks.enqueue,
-  lockClaimNotificationRecipient: mocks.recipient,
-}));
-
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
-}));
-
+const query = {
+  claims: { findFirst: vi.fn() },
+  user: { findFirst: vi.fn() },
+};
+const agreementColumns = {
+  id: 'claim_escalation_agreements.id',
+  tenantId: 'claim_escalation_agreements.tenant_id',
+  claimId: 'claim_escalation_agreements.claim_id',
+  decisionType: 'claim_escalation_agreements.decision_type',
+  declineReasonCode: 'claim_escalation_agreements.decline_reason_code',
+  decisionReason: 'claim_escalation_agreements.decision_reason',
+  acceptedById: 'claim_escalation_agreements.accepted_by_id',
+  acceptedAt: 'claim_escalation_agreements.accepted_at',
+  updatedAt: 'claim_escalation_agreements.updated_at',
+  createdAt: 'claim_escalation_agreements.created_at',
+};
+const mocks = mockRecoveryDecisionTransaction(agreementColumns, query);
 vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: mocks.ensureTenantId,
+  ensureTenantId: vi.fn(() => 'tenant-1'),
 }));
-
-function createSession(options: {
-  userId: string;
-  branchId?: string | null;
-  role?: string;
-  tenantId?: string;
-}): ClaimsSession {
-  const user = {
-    id: options.userId,
-    role: options.role ?? 'staff',
-    tenantId: options.tenantId ?? 'tenant-1',
-  };
-
-  if (options.branchId === undefined) {
-    return { user } as unknown as ClaimsSession;
-  }
-
-  return {
-    user: { ...user, branchId: options.branchId },
-  } as unknown as ClaimsSession;
-}
-
+const { saveRecoveryDecisionCore } = await import('./save-recovery-decision');
 const authority = mintTestTenantAuthority('tenant-1');
 
 describe('saveRecoveryDecisionCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.db.query.claims.findFirst.mockResolvedValue({
+    query.claims.findFirst.mockResolvedValue({
       id: 'claim-1',
       title: 'Vehicle claim',
       userId: 'member-1',
     });
-    mocks.db.query.user.findFirst.mockResolvedValue({ email: 'member@example.com' });
+    query.user.findFirst.mockResolvedValue({ email: 'member@example.com' });
     mocks.txSelect.mockReset();
     mocks.claimSelectChain.from.mockReturnValue(mocks.claimSelectChain);
     mocks.claimSelectChain.where.mockReturnValue(mocks.claimSelectChain);
@@ -141,7 +54,7 @@ describe('saveRecoveryDecisionCore', () => {
       authority,
       claimId: 'claim-1',
       decisionType: 'accepted',
-      session: createSession({ userId: 'member-1', role: 'member' }),
+      session: createStaffSessionFixture({ userId: 'member-1', role: 'member' }),
     });
 
     expect(result).toEqual({
@@ -162,7 +75,7 @@ describe('saveRecoveryDecisionCore', () => {
       claimId: 'claim-1',
       decisionType: 'accepted',
       explanation: 'Clear insurer path and viable monetary recovery.',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      session: createStaffSessionFixture({ userId: 'staff-1', branchId: 'branch-1' }),
     });
 
     expect(result.success).toBe(true);
@@ -193,7 +106,7 @@ describe('saveRecoveryDecisionCore', () => {
       authority,
       claimId: 'claim-1',
       decisionType: 'accepted',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      session: createStaffSessionFixture({ userId: 'staff-1', branchId: 'branch-1' }),
     });
 
     expect(result).toMatchObject({ success: true, deliveryIds: ['decision-delivery'] });
@@ -225,7 +138,7 @@ describe('saveRecoveryDecisionCore', () => {
           authority,
           claimId: 'claim-1',
           decisionType: 'accepted',
-          session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+          session: createStaffSessionFixture({ userId: 'staff-1', branchId: 'branch-1' }),
         },
         { logAuditEvent: audit }
       );
@@ -249,7 +162,7 @@ describe('saveRecoveryDecisionCore', () => {
       authority,
       claimId: 'claim-1',
       decisionType: 'accepted',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      session: createStaffSessionFixture({ userId: 'staff-1', branchId: 'branch-1' }),
     });
 
     expect(result).toEqual({

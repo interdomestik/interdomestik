@@ -18,7 +18,7 @@ describe('the staff and admin status entry points', () => {
     async role => {
       const authority = signIn(role);
       const tx = configureTransaction();
-      mocks.kick.mockImplementation(async () => void expect(tx.committed()).toBe(true));
+      mocks.kick.mockImplementation(() => Promise.resolve(void expect(tx.committed()).toBe(true)));
 
       const result =
         role === 'staff'

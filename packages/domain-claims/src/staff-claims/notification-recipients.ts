@@ -5,6 +5,7 @@ import { and, eq, or } from 'drizzle-orm';
 import { canStaffReadClaim } from './scope';
 
 type ClaimScope = { tenantId: string; claimId: string };
+type StaffCandidate = Pick<typeof user.$inferSelect, 'id' | 'role' | 'branchId' | 'emailVerified'>;
 
 export async function canReceiveStaffClaimNotification(
   tx: TenantTransaction,
@@ -18,6 +19,24 @@ export async function canReceiveStaffClaimNotification(
     userId: recipient.id,
     branchId: recipient.branchId,
   });
+}
+
+async function collectScopedStaff(
+  tx: TenantTransaction,
+  claim: ClaimScope,
+  candidates: Iterator<StaffCandidate, undefined>,
+  scopedStaff: StaffCandidate[]
+): Promise<void> {
+  const next = candidates.next();
+  if (next.done) return;
+  const recipient = next.value;
+  if (
+    recipient.role === ROLES.staff &&
+    (await canReceiveStaffClaimNotification(tx, claim, recipient))
+  ) {
+    scopedStaff.push(recipient);
+  }
+  return collectScopedStaff(tx, claim, candidates, scopedStaff);
 }
 
 export async function resolveStaffClaimNotificationRecipients(
@@ -47,14 +66,7 @@ export async function resolveStaffClaimNotificationRecipients(
 
   const scopedStaff: typeof users = [];
   const staffScope = { tenantId: claim.tenantId, claimId: claim.claimId };
-  for (const recipient of users) {
-    if (
-      recipient.role === ROLES.staff &&
-      (await canReceiveStaffClaimNotification(tx, staffScope, recipient))
-    ) {
-      scopedStaff.push(recipient);
-    }
-  }
+  await collectScopedStaff(tx, staffScope, users.values(), scopedStaff);
   const assignee = scopedStaff.find(recipient => recipient.id === claim.staffId);
   if (assignee) return [assignee];
   if (scopedStaff.length > 0) return scopedStaff;

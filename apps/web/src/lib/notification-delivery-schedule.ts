@@ -22,9 +22,13 @@ export async function runNotificationDeliverySchedule(
     leaseShort: 0,
     budgetShort: 0,
   };
-  for (const { tenantId, authority } of ordered) {
+  const work = ordered.values();
+  async function runNextTenant(): Promise<void> {
+    const next = work.next();
+    if (next.done) return;
+    const { tenantId, authority } = next.value;
     const budgetMs = 240_000 - (performance.now() - startedAt);
-    if (budgetMs < 90_000) break;
+    if (budgetMs < 90_000) return;
     try {
       const result = await runNotificationDeliveries(authority, claimNotificationDeliveryDeps, {
         budgetMs,
@@ -46,6 +50,8 @@ export async function runNotificationDeliverySchedule(
       });
       summary.tenantFailures++;
     }
+    return runNextTenant();
   }
+  await runNextTenant();
   return summary;
 }

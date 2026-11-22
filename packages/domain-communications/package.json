@@ -10,6 +10,7 @@
     "./messages/types": "./src/messages/types.ts",
     "./messages/normalize": "./src/messages/normalize.ts",
     "./messages/get": "./src/messages/get.ts",
+    "./messages/select": "./src/messages/select.ts",
     "./messages/mark-read": "./src/messages/mark-read.ts",
     "./messages/store": "./src/messages/store.ts",
     "./messages/send": "./src/messages/send.ts",

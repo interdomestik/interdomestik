@@ -4,10 +4,12 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import { changeClaimStatus } from '@interdomestik/domain-claims/claims/change-status';
 import { randomUUID } from 'node:crypto';
 import { expect } from '../fixtures/auth.fixture';
+import { inSequence } from './in-sequence';
 
 export async function verifyOtherRolesCannotChangeStatus(claimId: string) {
   const unauthorizedNotes: string[] = [];
-  for (const seeded of [E2E_USERS.KS_MEMBER, E2E_USERS.KS_AGENT, E2E_USERS.KS_BRANCH_MANAGER]) {
+  const deniedActors = [E2E_USERS.KS_MEMBER, E2E_USERS.KS_AGENT, E2E_USERS.KS_BRANCH_MANAGER];
+  await inSequence(deniedActors, async seeded => {
     const actor = await db.query.user.findFirst({
       where: and(eq(user.email, seeded.email), eq(user.tenantId, E2E_USERS.KS_MEMBER.tenantId)),
       columns: { branchId: true, id: true, role: true, tenantId: true },
@@ -35,7 +37,7 @@ export async function verifyOtherRolesCannotChangeStatus(claimId: string) {
       { hostId: actor.tenantId }
     );
     expect(result).toEqual({ ok: false, code: 'forbidden_role' });
-  }
+  });
 
   const stillSubmitted = await db.query.claims.findFirst({
     where: and(eq(claims.id, claimId), eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)),

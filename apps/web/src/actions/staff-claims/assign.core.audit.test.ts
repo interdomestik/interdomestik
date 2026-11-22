@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: mocks.authorized }));
 vi.mock('@/lib/audit.core', () => ({ writeAuditEvent: mocks.refusal }));
 vi.mock('next/headers', () => ({
-  headers: async () => new Headers({ 'user-agent': 'wp11-test' }),
+  headers: () => Promise.resolve(new Headers({ 'user-agent': 'wp11-test' })),
 }));
 vi.mock('next/cache', () => ({ revalidatePath: mocks.refresh }));
 vi.mock('@interdomestik/domain-claims/staff-claims/assign', async original => ({

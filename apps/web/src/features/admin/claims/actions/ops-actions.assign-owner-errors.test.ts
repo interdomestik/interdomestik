@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { assignmentActionMocks as mocks, assignOwner } from './ops-assignment.test-bootstrap';
 import {
   createFakeTx,
   expectRedactedAssignmentLog,
   routeTenantContext,
-  sessionFor,
+  useAdminAssignmentTest,
 } from './ops-assignment.test-fixture';
 
 const GENERIC_ERROR = 'Assignment failed. Please try again.';
@@ -40,18 +40,7 @@ function expectNoLeak(value: unknown) {
   for (const fragment of [...LEAK_FRAGMENTS, '42501']) expect(serialized).not.toContain(fragment);
 }
 
-let consoleError: ReturnType<typeof vi.spyOn>;
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-  mocks.directDbAccess.length = 0;
-  mocks.getSession.mockResolvedValue(sessionFor('admin'));
-});
-
-afterEach(() => {
-  consoleError.mockRestore();
-});
+const assignmentErrorLog = useAdminAssignmentTest(mocks);
 
 describe('assignOwner failure normalization', () => {
   it('returns one generic error for a Drizzle-like audit denial and leaks nothing', async () => {
@@ -66,7 +55,7 @@ describe('assignOwner failure normalization', () => {
     expect(outcomes).toEqual(['threw']);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
     expectRedactedAssignmentLog(
-      consoleError.mock.calls,
+      assignmentErrorLog().mock.calls,
       { name: 'Error', code: '42501' },
       LEAK_FRAGMENTS
     );
@@ -80,7 +69,7 @@ describe('assignOwner failure normalization', () => {
     expect(result).toEqual({ success: false, error: GENERIC_ERROR });
     expectNoLeak(result);
     expectRedactedAssignmentLog(
-      consoleError.mock.calls,
+      assignmentErrorLog().mock.calls,
       { name: 'Error', code: '42501' },
       LEAK_FRAGMENTS
     );
@@ -94,7 +83,11 @@ describe('assignOwner failure normalization', () => {
 
     expect(result).toEqual({ success: false, error: GENERIC_ERROR });
     expectNoLeak(result);
-    expectRedactedAssignmentLog(consoleError.mock.calls, { name: 'UnknownError' }, LEAK_FRAGMENTS);
+    expectRedactedAssignmentLog(
+      assignmentErrorLog().mock.calls,
+      { name: 'UnknownError' },
+      LEAK_FRAGMENTS
+    );
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 
@@ -109,7 +102,7 @@ describe('assignOwner failure normalization', () => {
         error: GENERIC_ERROR,
       });
     }
-    expect(consoleError).toHaveBeenCalledTimes(2);
+    expect(assignmentErrorLog()).toHaveBeenCalledTimes(2);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 });

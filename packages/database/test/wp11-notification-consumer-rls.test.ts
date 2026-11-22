@@ -102,7 +102,8 @@ async function proveConsumer(client: postgres.Sql, a: Rows) {
 
     await client`update notification_deliveries set state='claimed', attempts=7,
       lease_until=clock_timestamp()-interval '1 minute' where id=${a.delivery}`;
-    const sendEmail = async (transport: 'smtp' | 'resend') => ({ ok: true as const, transport });
+    const sendEmail = (transport: 'smtp' | 'resend') =>
+      Promise.resolve({ ok: true as const, transport });
     const run = await runNotificationDeliveries(authority, {
       appOrigin: () => 'https://example.test',
       emailTransports: () => ['smtp'],

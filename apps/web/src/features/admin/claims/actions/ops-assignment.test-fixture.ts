@@ -2,7 +2,37 @@ import { claims } from '@interdomestik/database/schema';
 import { getTableColumns, type SQL, type Table } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { inspect } from 'node:util';
-import { expect, vi, type Mock } from 'vitest';
+import { afterEach, beforeEach, expect, vi, type Mock } from 'vitest';
+
+const opsActionBoundaryMocks = vi.hoisted(() => ({
+  getSession: vi.fn(),
+  revalidatePath: vi.fn(),
+  withTenantContext: vi.fn(),
+}));
+export { opsActionBoundaryMocks };
+
+vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: opsActionBoundaryMocks.getSession } } }));
+vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
+vi.mock('next/cache', () => ({ revalidatePath: opsActionBoundaryMocks.revalidatePath }));
+
+export function useAdminAssignmentTest(
+  mocks: typeof opsActionBoundaryMocks & { directDbAccess: string[] }
+) {
+  let consoleError: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mocks.directDbAccess.length = 0;
+    mocks.getSession.mockResolvedValue(sessionFor('admin'));
+  });
+
+  afterEach(() => {
+    consoleError.mockRestore();
+  });
+
+  return () => consoleError;
+}
 
 export function expectRedactedAssignmentLog(
   calls: unknown[][],

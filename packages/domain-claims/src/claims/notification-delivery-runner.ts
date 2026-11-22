@@ -8,7 +8,10 @@ import {
   sendEmailOutcome,
 } from '@interdomestik/domain-communications/email';
 import { isPushConfigured, sendPushOutcome } from '@interdomestik/domain-communications/push';
-import { prepareNotificationDelivery } from './prepare-notification-delivery';
+import {
+  prepareNotificationDelivery,
+  type PreparedNotificationDelivery,
+} from './prepare-notification-delivery';
 import {
   claimNotificationDelivery,
   finishNotificationDelivery,
@@ -40,6 +43,39 @@ type WorkContext = {
   now: () => number;
   summary: RunSummary;
 };
+
+async function sendPreparedDelivery(
+  deps: DeliveryDependencies,
+  prepared: PreparedNotificationDelivery,
+  transport: NonNullable<ClaimedDelivery['transport']>,
+  deliveryId: string,
+  timeoutMs: number
+): Promise<AttemptResult> {
+  try {
+    let result;
+    if (prepared.channel === 'push') {
+      result = await (deps.sendPush ?? sendPushOutcome)(prepared.subscription, prepared.rendered, {
+        timeoutMs,
+      });
+    } else if (transport === 'webpush') {
+      return deliveryFailure('transport_unavailable', false);
+    } else {
+      result = await (deps.sendEmail ?? sendEmailOutcome)(
+        transport,
+        prepared.to,
+        prepared.rendered,
+        {
+          idempotencyKey: deliveryId,
+          timeoutMs,
+        }
+      );
+    }
+    return result ?? deliveryFailure('provider_failed', true);
+  } catch (error) {
+    reportServerError('Notification delivery provider call failed', error);
+    return { ...deliveryFailure('provider_failed', true), ambiguous: true };
+  }
+}
 
 async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
   const { authority, deps, summary, timing, end, now } = ctx;
@@ -114,24 +150,7 @@ async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
 
   const timeoutMs = callDeadline - now();
   if (timeoutMs < 1000) return refundBudget(true);
-  let outcome: AttemptResult;
-  try {
-    const result =
-      prepared.channel === 'push'
-        ? await (deps.sendPush ?? sendPushOutcome)(prepared.subscription, prepared.rendered, {
-            timeoutMs,
-          })
-        : transport === 'webpush'
-          ? deliveryFailure('transport_unavailable', false)
-          : await (deps.sendEmail ?? sendEmailOutcome)(transport, prepared.to, prepared.rendered, {
-              idempotencyKey: row.id,
-              timeoutMs,
-            });
-    outcome = result ?? deliveryFailure('provider_failed', true);
-  } catch (error) {
-    reportServerError('Notification delivery provider call failed', error);
-    outcome = { ...deliveryFailure('provider_failed', true), ambiguous: true };
-  }
+  const outcome = await sendPreparedDelivery(deps, prepared, transport, row.id, timeoutMs);
   await finish(outcome, prepared.locale, transport);
   return true;
 }

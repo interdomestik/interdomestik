@@ -1,4 +1,4 @@
-import { getTableName, sql, SQL, type Table } from 'drizzle-orm';
+import { getTableName, QueryPromise, sql, SQL, type Table } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { vi, type Mock } from 'vitest';
 
@@ -19,6 +19,16 @@ vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
 
 type Data = Record<string, unknown>;
 type Store = Record<string, Data[]>;
+
+class MockSelect extends QueryPromise<Data[]> {
+  constructor(private readonly read: () => Data[]) {
+    super();
+  }
+
+  execute() {
+    return Promise.resolve(this.read());
+  }
+}
 
 export function statusTransaction(rows: Store) {
   const operations: string[] = [];
@@ -50,7 +60,12 @@ export function statusTransaction(rows: Store) {
       const name = getTableName(table);
       let prefix = 'read';
       let locking = 'count' in selection ? ':count' : '';
-      const chain = {
+      const query = new MockSelect(() => {
+        const key = `${prefix}:${name}${locking}`;
+        operations.push(key);
+        return rows[key] ?? [];
+      });
+      const chain = Object.assign(query, {
         limit: () => chain,
         leftJoin: () => {
           prefix = 'join';
@@ -67,12 +82,7 @@ export function statusTransaction(rows: Store) {
           return chain;
         },
         getSQL: () => sql`(select 1)`,
-        then: (resolve: (value: Data[]) => void) => {
-          const key = `${prefix}:${name}${locking}`;
-          operations.push(key);
-          resolve(rows[key] ?? []);
-        },
-      };
+      });
       return chain;
     },
   });
@@ -83,7 +93,7 @@ export function statusTransaction(rows: Store) {
       if (name === failingInsert) throw new Error(`failed insert into ${name}`);
       (pending[name] ??= []).push(value);
       const chain = {
-        returning: async () => [{ id: value.id }],
+        returning: () => Promise.resolve([{ id: value.id }]),
         onConflictDoNothing: () => chain,
       };
       return chain;
@@ -98,16 +108,17 @@ export function statusTransaction(rows: Store) {
         track(op, where);
         (pending[name] ??= []).push(values);
         return {
-          returning: async () => (casConflict ? [] : [{ id: 'claim-1', lifecycleVersion: 7 }]),
+          returning: () =>
+            Promise.resolve(casConflict ? [] : [{ id: 'claim-1', lifecycleVersion: 7 }]),
         };
       },
     }),
   });
   const tx = {
-    execute: async (query: SQL) => {
+    execute: (query: SQL) => {
       const { sql } = dialect.sqlToQuery(query);
       if (sql.includes('claim_recovery_no_fee_evidence')) operations.push('lock:no-fee');
-      return [];
+      return Promise.resolve([]);
     },
     select,
     insert,
@@ -124,25 +135,28 @@ export function statusTransaction(rows: Store) {
       throw error;
     }
   });
-  mocks.lockSponsor.mockImplementation(async () => {
+  mocks.lockSponsor.mockImplementation(() => {
     operations.push('lock:sponsor');
+    return Promise.resolve();
   });
-  mocks.resolveMembership.mockImplementation(async () => {
+  mocks.resolveMembership.mockImplementation(() => {
     operations.push('read:coverage');
-    return new Map([
-      [
-        'member-1',
-        {
-          source: 'subscription',
-          subscription: {
-            id: 'sub-1',
-            planId: 'standard',
-            currentPeriodStart: new Date('2025-11-22T10:00:00Z'),
-            currentPeriodEnd: new Date('2026-11-22T10:00:00Z'),
+    return Promise.resolve(
+      new Map([
+        [
+          'member-1',
+          {
+            source: 'subscription',
+            subscription: {
+              id: 'sub-1',
+              planId: 'standard',
+              currentPeriodStart: new Date('2025-11-22T10:00:00Z'),
+              currentPeriodEnd: new Date('2026-11-22T10:00:00Z'),
+            },
           },
-        },
-      ],
-    ]);
+        ],
+      ])
+    );
   });
 
   return {

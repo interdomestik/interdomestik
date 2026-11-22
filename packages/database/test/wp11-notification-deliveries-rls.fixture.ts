@@ -5,6 +5,7 @@ import { readMigrationFiles } from 'drizzle-orm/migrator';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type postgres from 'postgres';
+import { runSequentially } from './in-order';
 import { quoteIdentifier } from './rls-test-connection';
 import { scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
 
@@ -38,13 +39,15 @@ async function install(client: postgres.Sql) {
   await new PgDialect().migrate(migrations, drizzleDb._.session, config);
 
   await client.unsafe(`grant usage on schema public to ${role}`);
-  for (const table of lockTables.slice(0, -1)) {
+  await runSequentially(lockTables.slice(0, -1), async table => {
     await client.unsafe(`grant update (id) on public.${quoteIdentifier(table)} to ${role}`);
-  }
+  });
   const migration = () =>
-    client.begin(async tx => {
-      for (const statement of target.sql) await tx.unsafe(statement);
-    });
+    client.begin(tx =>
+      runSequentially(target.sql, async statement => {
+        await tx.unsafe(statement);
+      })
+    );
   await assert.rejects(
     migration(),
     /WP-11 requires UPDATE privilege for row locking on public.claim_messages/
@@ -64,8 +67,9 @@ async function seed(client: postgres.Sql, group: string) {
   const delivery = `${tenant}-delivery`;
   const request = `${tenant}-request`;
   await client`insert into tenants (id, name, legal_name, country_code) values (${tenant}, ${tenant}, ${tenant}, 'MK')`;
+  const email = `${user}@example.test`;
   await client`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
-    values (${user}, ${tenant}, 'Test user', ${`${user}@example.test`}, true, 'tenant_admin', now(), now())`;
+    values (${user}, ${tenant}, 'Test user', ${email}, true, 'tenant_admin', now(), now())`;
   await client`insert into claim (id, tenant_id, "userId", title, category, "companyName", case_lifecycle_state)
     values (${claim}, ${tenant}, ${user}, 'Test claim', 'vehicle', 'Test company', 'submitted')`;
   await client`insert into claim_messages (id, tenant_id, claim_id, sender_id, content)

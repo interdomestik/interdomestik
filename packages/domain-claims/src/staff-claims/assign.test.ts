@@ -37,35 +37,38 @@ function useTransaction(
   const select = vi.fn(() => ({
     from: (table: unknown) => ({
       where: (where: Parameters<typeof pg.sqlToQuery>[0]) => ({
-        for: async (strength: string) => {
+        for: (strength: string) => {
           effects.push(strength);
           expect(pg.sqlToQuery(where).params).toContain('tenant-1');
           if (table === claims) {
             const result = options.claim === undefined ? currentClaim : options.claim;
-            return result ? [result] : [];
+            return Promise.resolve(result ? [result] : []);
           }
           expect(table).toBe(user);
           expect(pg.sqlToQuery(where).params).toContain('staff');
-          return options.target === null ? [] : [{ id: options.target ?? 'assignee' }];
+          return Promise.resolve(
+            options.target === null ? [] : [{ id: options.target ?? 'assignee' }]
+          );
         },
       }),
     }),
   }));
   const writes = vi.fn((fields: Record<string, unknown>) => fields);
   const guard = vi.fn();
-  const audits = vi.fn(async () => {
+  const audits = vi.fn(() => {
     effects.push('audit');
-    if (options.failsAudit) throw new Error('Audit insert failed');
+    if (options.failsAudit) return Promise.reject(new Error('Audit insert failed'));
+    return Promise.resolve();
   });
   const tx = {
     select,
     update: vi.fn(() => ({
       set: (fields: Record<string, unknown>) => ({
         where: (where: Parameters<typeof pg.sqlToQuery>[0]) => ({
-          returning: async () => {
+          returning: () => {
             guard(pg.sqlToQuery(where));
             effects.push('write');
-            return options.conflict ? [] : [{ id: 'claim', ...writes(fields) }];
+            return Promise.resolve(options.conflict ? [] : [{ id: 'claim', ...writes(fields) }]);
           },
         }),
       }),

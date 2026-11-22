@@ -20,7 +20,7 @@ const candidates = [staff('assignee'), staff('same-branch', 'a')];
 
 function enqueueHarness() {
   const values = vi.fn().mockImplementation(row => ({
-    onConflictDoNothing: () => ({ returning: async () => [{ id: row.id }] }),
+    onConflictDoNothing: () => ({ returning: () => Promise.resolve([{ id: row.id }]) }),
   }));
   const insert = vi.fn(() => ({ values }));
   return { tx: { insert } as unknown as TenantTransaction, insert, values };

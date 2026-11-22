@@ -43,7 +43,9 @@ describe('notification rendering', () => {
         leaseUntil: 'lease',
       };
       const tx = {
-        select: () => ({ from: () => ({ where: async () => [{ title: 'Member claim' }] }) }),
+        select: () => ({
+          from: () => ({ where: () => Promise.resolve([{ title: 'Member claim' }]) }),
+        }),
       } as unknown as TenantTransaction;
       const copy = CLAIM_MAIL_COPY[locale];
       const status = await renderDeliveryPush(tx, row, locale, false);
@@ -79,7 +81,8 @@ describe('notification rendering', () => {
       select: () => ({
         from: () => ({
           leftJoin: () => ({
-            where: async () => [{ senderName: 'Staff member', excerpt: 'Fixture preview' }],
+            where: () =>
+              Promise.resolve([{ senderName: 'Staff member', excerpt: 'Fixture preview' }]),
           }),
         }),
       }),
@@ -105,8 +108,8 @@ describe('notification rendering', () => {
       const tx = {
         select: () => ({
           from: () => ({
-            where: async () => [{ title: 'Member claim' }],
-            leftJoin: () => ({ where: async () => [{ senderName: null, excerpt }] }),
+            where: () => Promise.resolve([{ title: 'Member claim' }]),
+            leftJoin: () => ({ where: () => Promise.resolve([{ senderName: null, excerpt }]) }),
           }),
         }),
       } as unknown as TenantTransaction;

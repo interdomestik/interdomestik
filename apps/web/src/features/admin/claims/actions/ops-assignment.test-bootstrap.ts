@@ -1,18 +1,11 @@
 import { vi } from 'vitest';
 
+import { opsActionBoundaryMocks } from './ops-assignment.test-fixture';
+
 // Shared module mocks for the assignOwner action suites. Actions load through explicit awaited
 // imports below after mock registration. Suites import actions and assignment constants from
 // here, so a static re-export cannot capture an uninitialized action binding.
-const mocks = vi.hoisted(() => ({
-  directDbAccess: [] as string[],
-  getSession: vi.fn(),
-  revalidatePath: vi.fn(),
-  withTenantContext: vi.fn(),
-}));
-
-vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
-vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
-vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
+const mocks = { ...opsActionBoundaryMocks, directDbAccess: [] as string[] };
 vi.mock('@/lib/audit.core', () => ({
   writeAuditEvent: vi.fn().mockResolvedValue({ success: true }),
 }));

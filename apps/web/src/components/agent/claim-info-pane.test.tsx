@@ -76,30 +76,15 @@ describe('ClaimInfoPane', () => {
     expect(screen.getByText('john@example.com')).toBeInTheDocument();
   });
 
-  it('displays company name', () => {
+  it.each([
+    ['company name', 'Company', 'State Farm'],
+    ['claim amount', 'Amount', '5000 EUR'],
+    ['status section', 'Status', 'Verification'],
+    ['description', 'Description', 'I was rear-ended at a traffic light on Main Street.'],
+  ])('displays %s', (_field, label, value) => {
     render(<ClaimInfoPane claim={mockClaim} />);
-    expect(screen.getByText('Company')).toBeInTheDocument();
-    expect(screen.getByText('State Farm')).toBeInTheDocument();
-  });
-
-  it('displays claim amount', () => {
-    render(<ClaimInfoPane claim={mockClaim} />);
-    expect(screen.getByText('Amount')).toBeInTheDocument();
-    expect(screen.getByText('5000 EUR')).toBeInTheDocument();
-  });
-
-  it('displays status section', () => {
-    render(<ClaimInfoPane claim={mockClaim} />);
-    expect(screen.getByText('Status')).toBeInTheDocument();
-    expect(screen.getByText('Verification')).toBeInTheDocument();
-  });
-
-  it('displays description', () => {
-    render(<ClaimInfoPane claim={mockClaim} />);
-    expect(screen.getByText('Description')).toBeInTheDocument();
-    expect(
-      screen.getByText('I was rear-ended at a traffic light on Main Street.')
-    ).toBeInTheDocument();
+    expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.getByText(value)).toBeInTheDocument();
   });
 
   it('renders the localized status as read-only text', () => {

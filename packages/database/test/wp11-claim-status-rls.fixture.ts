@@ -20,6 +20,7 @@ import {
   serviceUsage,
   user,
 } from '../src/schema';
+import { runSequentially } from './in-order';
 import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
 import { KS_TENANT_ID, openS8RestrictedSession } from './s8-claim-restricted-rls.fixture';
 
@@ -64,9 +65,9 @@ export async function withStatusFixture(
       'grant select, insert on claim_response_requests',
       'grant update (answered_at, answered_by, answer_kind, answer_message_id) on claim_response_requests',
     ];
-    for (const grant of [...existing, ...added]) {
+    await runSequentially([...existing, ...added], async grant => {
       await adminDb.execute(sql.raw(`${grant} to ${role}`));
-    }
+    });
     await adminDb.update(user).set({ role: 'branch_manager' }).where(eq(user.id, fixture.ownerId));
     await adminDb.update(user).set({ role: 'tenant_admin' }).where(eq(user.id, fixture.adminId));
     await adminDb.insert(user).values(
@@ -172,7 +173,9 @@ export async function waitForClaimLock(
   signal: AbortSignal
 ) {
   const deadline = Date.now() + 4000;
-  while (Date.now() < deadline) {
+  async function waitForBlocker(): Promise<number> {
+    if (Date.now() >= deadline)
+      assert.fail('Expected a second connection to wait on the status lock');
     signal.throwIfAborted();
     const [waiter] = await fixture.dbRls.execute<{ pid: number }>(sql`
       select pid from pg_stat_activity
@@ -181,8 +184,9 @@ export async function waitForClaimLock(
     `);
     if (waiter) return waiter.pid;
     await sleep(20, undefined, { signal });
+    return waitForBlocker();
   }
-  assert.fail('Expected a second connection to wait on the status lock');
+  return waitForBlocker();
 }
 
 export async function whileClaimWriterHoldsLock<T>(

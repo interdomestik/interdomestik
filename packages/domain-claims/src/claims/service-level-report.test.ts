@@ -48,7 +48,7 @@ describe('getServiceLevelReport', () => {
         { requestedAt: new Date('2026-11-19T11:00:00Z'), answeredAt: null },
         { requestedAt: new Date('2026-11-20T11:00:00Z'), answeredAt: null },
       ]);
-    withTenantAuthority.mockImplementation(async (_, run) =>
+    withTenantAuthority.mockImplementation((_, run) =>
       run({ select: () => ({ from: () => ({ where }) }) })
     );
 

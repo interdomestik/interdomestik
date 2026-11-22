@@ -1,23 +1,17 @@
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, expect, vi } from 'vitest';
 
+import { opsActionBoundaryMocks } from './ops-assignment.test-fixture';
+
 // Exercises the real ops action guards (action-helpers + ops-action-outcome) with only the
 // session/headers/cache boundary, the tenant transaction factory and the canonical transition
 // command replaced. This is source-level evidence, not restricted-role/RLS/rollback proof.
-const mocks = vi.hoisted(() => ({
-  directDb: vi.fn(),
-  getSession: vi.fn(),
-  revalidatePath: vi.fn(),
-  withTenantContext: vi.fn(),
-}));
-
-vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
-vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
-vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
+const directDb = vi.hoisted(() => vi.fn());
+const mocks = { ...opsActionBoundaryMocks, directDb };
 vi.mock('@interdomestik/database', async importOriginal => {
   const actual = await importOriginal<typeof import('@interdomestik/database')>();
   const forbidden = (path: string) => () => {
-    mocks.directDb(path);
+    directDb(path);
     throw new Error(`ambient db.${path} must not be used`);
   };
   return {
@@ -33,7 +27,7 @@ vi.mock('@interdomestik/database', async importOriginal => {
       transaction: forbidden('transaction'),
       update: forbidden('update'),
     },
-    withTenantContext: mocks.withTenantContext,
+    withTenantContext: opsActionBoundaryMocks.withTenantContext,
   };
 });
 vi.mock('./ops-status-action', () => ({ updateStatusAction: vi.fn() }));

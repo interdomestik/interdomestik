@@ -1,7 +1,10 @@
 import { ambiguous, mocks, refused, setup } from './run-dispatch.test-support';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
-import { redriveNotificationDelivery } from '@interdomestik/domain-communications/notification-deliveries';
+import {
+  enqueueNotificationDelivery,
+  redriveNotificationDelivery,
+} from '@interdomestik/domain-communications/notification-deliveries';
 import { dispatchNotificationDeliveries } from './notification-delivery-runner';
 import { delivery, start, timestamp } from './run.test-support';
 import {
@@ -9,7 +12,6 @@ import {
   finishNotificationDelivery,
   deliveryFailure,
 } from '@interdomestik/domain-communications/notification-deliveries/worker';
-import { enqueueNotificationDelivery } from '@interdomestik/domain-communications/notification-deliveries';
 
 describe('delivery state and leases', () => {
   it('leaves early work alone and only claims with enough scheduled time', async () => {

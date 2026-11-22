@@ -66,6 +66,47 @@ async function lockAssignableTarget(
   return target;
 }
 
+function recordAssignmentAudit(
+  tx: TenantTransaction,
+  actor: ClaimStatusActor,
+  claim: Pick<typeof claims.$inferSelect, 'id' | 'staffId' | 'claimNumber'>,
+  staffId: string | null,
+  now: Date,
+  requestHeaders?: Headers
+) {
+  const staffAction = staffId === null ? 'claim.unassigned' : 'claim.assigned';
+  const adminAction = staffId === null ? 'unassign_owner' : 'assign_owner';
+  const metadata =
+    actor.kind === 'staff'
+      ? {
+          previousStaffId: claim.staffId,
+          newStaffId: staffId,
+          ip:
+            requestHeaders?.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+            requestHeaders?.get('x-real-ip') ||
+            undefined,
+          userAgent: requestHeaders?.get('user-agent') || undefined,
+        }
+      : {
+          previousStaffId: claim.staffId,
+          claimNumber: claim.claimNumber,
+          ...(staffId === null ? {} : { newStaffId: staffId }),
+        };
+
+  // db-access-guard: tenant-scoped -- reason: the assignment audit commits with the scoped update.
+  return tx.insert(auditLog).values({
+    id: nanoid(),
+    tenantId: actor.tenantId,
+    actorId: actor.id,
+    actorRole: actor.kind === 'staff' ? 'staff' : actor.role,
+    action: actor.kind === 'staff' ? staffAction : adminAction,
+    entityType: 'claim',
+    entityId: claim.id,
+    metadata,
+    createdAt: now,
+  });
+}
+
 async function assignInTransaction(
   tx: TenantTransaction,
   actor: ClaimStatusActor,
@@ -135,37 +176,7 @@ async function assignInTransaction(
     });
   if (!assignment) throw new AssignmentConflict();
 
-  const staffAction = staffId === null ? 'claim.unassigned' : 'claim.assigned';
-  const adminAction = staffId === null ? 'unassign_owner' : 'assign_owner';
-  const metadata =
-    actor.kind === 'staff'
-      ? {
-          previousStaffId: claim.staffId,
-          newStaffId: staffId,
-          ip:
-            requestHeaders?.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-            requestHeaders?.get('x-real-ip') ||
-            undefined,
-          userAgent: requestHeaders?.get('user-agent') || undefined,
-        }
-      : {
-          previousStaffId: claim.staffId,
-          claimNumber: claim.claimNumber,
-          ...(staffId === null ? {} : { newStaffId: staffId }),
-        };
-
-  // db-access-guard: tenant-scoped -- reason: the assignment audit commits with the scoped update.
-  await tx.insert(auditLog).values({
-    id: nanoid(),
-    tenantId,
-    actorId: actor.id,
-    actorRole: actor.kind === 'staff' ? 'staff' : actor.role,
-    action: actor.kind === 'staff' ? staffAction : adminAction,
-    entityType: 'claim',
-    entityId: claim.id,
-    metadata,
-    createdAt: now,
-  });
+  await recordAssignmentAudit(tx, actor, claim, staffId, now, requestHeaders);
   return { ok: true, changed: true, assignment };
 }
 

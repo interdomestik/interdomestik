@@ -17,6 +17,7 @@ import type { TestInfo } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { formatStaffOptionLabel } from '../../src/features/admin/claims/components/ops/staff-option-label';
 import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
+import { inSequence } from './in-sequence';
 
 export async function withAdminAssignmentFixture<T>(
   info: TestInfo,
@@ -111,16 +112,15 @@ export async function withAdminAssignmentFixture<T>(
             eq(notifications.actionUrl, `/member/claims/${claimId}`)
           )
         );
-      for (const table of [
+      const children = [
         notificationDeliveries,
         claimResponseRequests,
         claimMessages,
         claimStageHistory,
-      ] as const) {
-        await tx
-          .delete(table)
-          .where(and(eq(table.tenantId, seed.tenantId), eq(table.claimId, claimId)));
-      }
+      ] as const;
+      await inSequence(children, table =>
+        tx.delete(table).where(and(eq(table.tenantId, seed.tenantId), eq(table.claimId, claimId)))
+      );
       await tx.delete(claims).where(scope);
     });
   }

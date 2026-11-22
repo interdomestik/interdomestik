@@ -87,25 +87,25 @@ export function createFakeDb(
   const fakeDb = {
     query: {
       claims: {
-        findMany: async () => (claimIds.shift() ?? []).map(id => ({ id })),
+        findMany: () => Promise.resolve((claimIds.shift() ?? []).map(id => ({ id }))),
       },
       memberLeads: {
-        findMany: async () => [],
+        findMany: () => Promise.resolve([]),
       },
       subscriptions: {
-        findMany: async () => [],
+        findMany: () => Promise.resolve([]),
       },
       crmDeals: {
-        findMany: async () => [{ id: 'golden_crm_deal_1' }],
+        findMany: () => Promise.resolve([{ id: 'golden_crm_deal_1' }]),
       },
       crmLeads: {
-        findMany: async () => [{ id: 'golden_crm_lead_1' }],
+        findMany: () => Promise.resolve([{ id: 'golden_crm_lead_1' }]),
       },
       crmRoutingRules: {
-        findMany: async () => [{ id: 'golden_crm_routing_rule_1' }],
+        findMany: () => Promise.resolve([{ id: 'golden_crm_routing_rule_1' }]),
       },
       crmTasks: {
-        findMany: async () => [{ id: 'golden_crm_task_1' }],
+        findMany: () => Promise.resolve([{ id: 'golden_crm_task_1' }]),
       },
       user: {
         findMany: ({ where }: { where: SQL }) => findUsers(where),
@@ -138,8 +138,9 @@ export function createFakeDb(
     update(table: unknown) {
       return {
         set: () => ({
-          where: async () => {
+          where: () => {
             operations.push({ kind: 'update', table: tableName(table) });
+            return Promise.resolve();
           },
         }),
       };

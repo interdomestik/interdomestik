@@ -132,6 +132,49 @@ async function lockClaim(tx: TenantTransaction, scope: SQL) {
   return { row, current };
 }
 
+async function loadStatusChangeEvidence(
+  tx: TenantTransaction,
+  tenantId: string,
+  input: StatusInput,
+  row: Awaited<ReturnType<typeof lockClaim>>['row'],
+  {
+    changed,
+    note,
+    allowanceSnapshot,
+  }: {
+    changed: boolean;
+    note: string | null;
+    allowanceSnapshot: Awaited<ReturnType<typeof lockRecoveryAllowanceBeforeClaim>>;
+  }
+) {
+  const { claimId, toStatus, isPublicNote, declineReasonCode } = input;
+  let decline = null;
+  if (changed && toStatus === 'rejected') {
+    if (!declineReasonCode) throw new ClaimStatusFailure('decline_reason_required');
+    decline = { code: declineReasonCode, explanation: input.decisionExplanation };
+  }
+
+  const agreement =
+    (changed && needsRecoveryInvariantEvidence(toStatus)) || (isPublicNote && note && !decline)
+      ? await lockClaimStatusAgreement(tx, tenantId, claimId)
+      : undefined;
+  let usage: RecoveryUsage | null = null;
+  if (changed && isRecoveryStatus(toStatus)) {
+    const recovery = await checkClaimStatusRecovery(tx, {
+      agreement,
+      allowanceSnapshot,
+      category: row.category,
+      claimId,
+      overrideReason: input.allowanceOverrideReason,
+      tenantId,
+      userId: row.userId,
+    });
+    if (!recovery.ok) throw new ClaimStatusFailure(recovery.code);
+    usage = recovery.usage;
+  }
+  return { agreement, decline, usage };
+}
+
 async function changeClaimStatusInTransaction(
   tx: TenantTransaction,
   actor: ClaimStatusActor,
@@ -139,7 +182,7 @@ async function changeClaimStatusInTransaction(
   meta: StatusMeta
 ): Promise<ChangeClaimStatusResult> {
   const { tenantId } = actor;
-  const { claimId, toStatus, isPublicNote, declineReasonCode } = input;
+  const { claimId, toStatus, isPublicNote } = input;
   const scope =
     actor.kind === 'staff'
       ? buildScopedStaffClaimWhere({
@@ -167,30 +210,11 @@ async function changeClaimStatusInTransaction(
   const note = input.note || null;
   if (!changed && !note) return unchanged;
 
-  let decline = null;
-  if (changed && toStatus === 'rejected') {
-    if (!declineReasonCode) throw new ClaimStatusFailure('decline_reason_required');
-    decline = { code: declineReasonCode, explanation: input.decisionExplanation };
-  }
-
-  const agreement =
-    (changed && needsRecoveryInvariantEvidence(toStatus)) || (isPublicNote && note && !decline)
-      ? await lockClaimStatusAgreement(tx, tenantId, claimId)
-      : undefined;
-  let usage: RecoveryUsage | null = null;
-  if (changed && recoveryTarget) {
-    const recovery = await checkClaimStatusRecovery(tx, {
-      agreement,
-      allowanceSnapshot,
-      category: row.category,
-      claimId,
-      overrideReason: input.allowanceOverrideReason,
-      tenantId,
-      userId: row.userId,
-    });
-    if (!recovery.ok) throw new ClaimStatusFailure(recovery.code);
-    usage = recovery.usage;
-  }
+  const { agreement, decline, usage } = await loadStatusChangeEvidence(tx, tenantId, input, row, {
+    changed,
+    note,
+    allowanceSnapshot,
+  });
 
   const authorized = await authorizeClaimTransitionInTransaction(
     tx,

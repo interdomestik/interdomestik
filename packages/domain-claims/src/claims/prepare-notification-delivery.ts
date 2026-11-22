@@ -21,7 +21,7 @@ import {
 } from '@interdomestik/domain-communications/notification-deliveries/worker';
 import { canReceiveStaffClaimNotification } from '../staff-claims/notification-recipients';
 
-type Prepared = { locale: NonNullable<ClaimedDelivery['locale']> } & (
+export type PreparedNotificationDelivery = { locale: NonNullable<ClaimedDelivery['locale']> } & (
   | { channel: 'email'; to: string; rendered: Parameters<typeof sendEmailOutcome>[2] }
   | {
       channel: 'push';
@@ -29,7 +29,49 @@ type Prepared = { locale: NonNullable<ClaimedDelivery['locale']> } & (
       rendered: Parameters<typeof sendPushOutcome>[1];
     }
 );
-type Preparation = Prepared | { skip: SkipReason } | { leaseLost: true };
+type Preparation = PreparedNotificationDelivery | { skip: SkipReason } | { leaseLost: true };
+
+async function preparePushDelivery(
+  tx: TenantTransaction,
+  row: ClaimedDelivery,
+  recipientId: string,
+  previewRestricted: boolean
+): Promise<Preparation> {
+  const { tenantId } = row;
+  if (row.kind !== 'claim_message_to_member' && row.kind !== 'claim_status_changed') {
+    throw new Error('Delivery kind does not support push');
+  }
+  const [prefs] = await tx
+    .select()
+    .from(preferences)
+    .where(and(eq(preferences.tenantId, tenantId), eq(preferences.userId, recipientId)));
+  const allowed =
+    row.kind === 'claim_message_to_member' ? prefs?.pushMessages : prefs?.pushClaimUpdates;
+  if (allowed === false) return { skip: 'push_disabled' };
+  if (!row.pushSubscriptionId) return { skip: 'subscription_gone' };
+  const [subscription] = await tx
+    .select({
+      endpoint: pushSubscriptions.endpoint,
+      p256dh: pushSubscriptions.p256dh,
+      auth: pushSubscriptions.auth,
+    })
+    .from(pushSubscriptions)
+    .where(
+      and(
+        eq(pushSubscriptions.tenantId, tenantId),
+        eq(pushSubscriptions.userId, recipientId),
+        eq(pushSubscriptions.id, row.pushSubscriptionId)
+      )
+    );
+  if (!subscription) return { skip: 'subscription_gone' };
+  const locale = await resolveRecipientLocale(tx, tenantId, recipientId);
+  return {
+    channel: 'push',
+    locale,
+    subscription,
+    rendered: await renderDeliveryPush(tx, row, locale, previewRestricted),
+  };
+}
 
 export async function prepareNotificationDelivery(
   tx: TenantTransaction,
@@ -74,44 +116,12 @@ export async function prepareNotificationDelivery(
     row.facts.previewRestricted !== false || recipient.role === ROLES.branch_manager;
 
   if (row.channel === 'push') {
-    if (row.kind !== 'claim_message_to_member' && row.kind !== 'claim_status_changed') {
-      throw new Error('Delivery kind does not support push');
-    }
-    const [prefs] = await tx
-      .select()
-      .from(preferences)
-      .where(and(eq(preferences.tenantId, tenantId), eq(preferences.userId, recipient.id)));
-    const allowed =
-      row.kind === 'claim_message_to_member' ? prefs?.pushMessages : prefs?.pushClaimUpdates;
-    if (allowed === false) return { skip: 'push_disabled' };
-    if (!row.pushSubscriptionId) return { skip: 'subscription_gone' };
-    const [subscription] = await tx
-      .select({
-        endpoint: pushSubscriptions.endpoint,
-        p256dh: pushSubscriptions.p256dh,
-        auth: pushSubscriptions.auth,
-      })
-      .from(pushSubscriptions)
-      .where(
-        and(
-          eq(pushSubscriptions.tenantId, tenantId),
-          eq(pushSubscriptions.userId, recipient.id),
-          eq(pushSubscriptions.id, row.pushSubscriptionId)
-        )
-      );
-    if (!subscription) return { skip: 'subscription_gone' };
-    const locale = await resolveRecipientLocale(tx, tenantId, recipient.id);
-    return {
-      channel: 'push',
-      locale,
-      subscription,
-      rendered: await renderDeliveryPush(
-        tx,
-        { ...row, leaseUntil: row.leaseUntil },
-        locale,
-        previewRestricted
-      ),
-    };
+    return preparePushDelivery(
+      tx,
+      { ...row, leaseUntil: row.leaseUntil },
+      recipient.id,
+      previewRestricted
+    );
   }
 
   if (!recipient.emailVerified) return { skip: 'email_unverified' };

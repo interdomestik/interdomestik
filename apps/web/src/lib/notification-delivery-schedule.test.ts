@@ -64,10 +64,10 @@ describe('notification delivery schedule', () => {
     const wallClock = vi.spyOn(Date, 'now').mockReturnValue(300_000);
     const elapsed = vi.spyOn(performance, 'now').mockReturnValue(0);
     mocks.tenants.mockResolvedValue(work);
-    mocks.run.mockImplementation(async () => {
+    mocks.run.mockImplementation(() => {
       wallClock.mockReturnValue(0);
       elapsed.mockReturnValue(150_001);
-      return summary;
+      return Promise.resolve(summary);
     });
 
     const result = await runNotificationDeliverySchedule(mintIngressCapability('inngest'));

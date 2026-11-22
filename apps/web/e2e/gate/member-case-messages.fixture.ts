@@ -13,6 +13,7 @@ import type { TestInfo } from '@playwright/test';
 import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
+import { inSequence } from './in-sequence';
 
 export async function withMemberMessageFixture<T>(
   info: TestInfo,
@@ -73,11 +74,11 @@ export async function withMemberMessageFixture<T>(
   } finally {
     await dbAdmin.transaction(async tx => {
       const fixtureTenants = [seed.tenantId, foreignTenant];
-      for (const table of [notificationDeliveries, claimResponseRequests] as const) {
-        await tx
+      await inSequence([notificationDeliveries, claimResponseRequests] as const, table =>
+        tx
           .delete(table)
-          .where(and(inArray(table.tenantId, fixtureTenants), inArray(table.claimId, claimIds)));
-      }
+          .where(and(inArray(table.tenantId, fixtureTenants), inArray(table.claimId, claimIds)))
+      );
       await tx.delete(notifications).where(
         and(
           inArray(notifications.tenantId, fixtureTenants),

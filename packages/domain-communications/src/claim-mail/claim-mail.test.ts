@@ -1,7 +1,5 @@
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import { describe, expect, it } from 'vitest';
-import { EN_COPY } from './copy-en';
-import { MK_COPY } from './copy-mk';
 import { CLAIM_MAIL_COPY } from './index';
 import { renderClaimMail } from './render';
 import type { ClaimMailLocale, ClaimMailRenderArgs } from './types';
@@ -24,14 +22,22 @@ function leafEntries(tree: object, prefix = ''): [string, string][] {
 
 describe('claim mail', () => {
   it('has every copy key and all nine status labels in every locale', () => {
-    expect(Object.keys(CLAIM_MAIL_COPY).sort()).toEqual(['de', 'en', 'mk', 'sq', 'sr']);
-    const keys = leafEntries(EN_COPY)
+    expect(Object.keys(CLAIM_MAIL_COPY).sort((a, b) => a.localeCompare(b))).toEqual([
+      'de',
+      'en',
+      'mk',
+      'sq',
+      'sr',
+    ]);
+    const keys = leafEntries(CLAIM_MAIL_COPY.en)
       .map(([key]) => key)
-      .sort();
+      .sort((a, b) => a.localeCompare(b));
     for (const copy of Object.values(CLAIM_MAIL_COPY)) {
       const entries = leafEntries(copy);
-      expect(entries.map(([key]) => key).sort()).toEqual(keys);
-      expect(Object.keys(copy.statuses).sort()).toEqual([...CLAIM_STATUSES].sort());
+      expect(entries.map(([key]) => key).sort((a, b) => a.localeCompare(b))).toEqual(keys);
+      expect(Object.keys(copy.statuses).sort((a, b) => a.localeCompare(b))).toEqual(
+        [...CLAIM_STATUSES].sort((a, b) => a.localeCompare(b))
+      );
       for (const [key, value] of entries) expect(value.trim(), key).not.toBe('');
     }
   });
@@ -39,23 +45,23 @@ describe('claim mail', () => {
   const mkExamples = [
     [
       ['claim_submitted', 'mk', { ...memberFacts, category: 'vehicle' }],
-      MK_COPY.messages.claim_submitted,
-      EN_COPY.messages.claim_submitted,
+      CLAIM_MAIL_COPY.mk.messages.claim_submitted,
+      CLAIM_MAIL_COPY.en.messages.claim_submitted,
     ],
     [
       ['claim_status_changed', 'mk', statusFacts],
-      MK_COPY.messages.claim_status_changed,
-      EN_COPY.messages.claim_status_changed,
+      CLAIM_MAIL_COPY.mk.messages.claim_status_changed,
+      CLAIM_MAIL_COPY.en.messages.claim_status_changed,
     ],
     [
       ['claim_recovery_decision', 'mk', { ...memberFacts, decision: 'accepted' }],
-      MK_COPY.messages.claim_recovery_decision.accepted,
-      EN_COPY.messages.claim_recovery_decision.accepted,
+      CLAIM_MAIL_COPY.mk.messages.claim_recovery_decision.accepted,
+      CLAIM_MAIL_COPY.en.messages.claim_recovery_decision.accepted,
     ],
     [
       ['claim_recovery_decision', 'mk', { ...memberFacts, decision: 'declined' }],
-      MK_COPY.messages.claim_recovery_decision.declined,
-      EN_COPY.messages.claim_recovery_decision.declined,
+      CLAIM_MAIL_COPY.mk.messages.claim_recovery_decision.declined,
+      CLAIM_MAIL_COPY.en.messages.claim_recovery_decision.declined,
     ],
     [
       [
@@ -63,30 +69,30 @@ describe('claim mail', () => {
         'mk',
         { ...memberFacts, previewRestricted: false, senderName, excerpt },
       ],
-      MK_COPY.messages.claim_message_to_member.full,
-      EN_COPY.messages.claim_message_to_member.full,
+      CLAIM_MAIL_COPY.mk.messages.claim_message_to_member.full,
+      CLAIM_MAIL_COPY.en.messages.claim_message_to_member.full,
     ],
     [
       ['claim_message_to_member', 'mk', { ...link, previewRestricted: true }],
-      MK_COPY.messages.claim_message_to_member.restricted,
-      EN_COPY.messages.claim_message_to_member.restricted,
+      CLAIM_MAIL_COPY.mk.messages.claim_message_to_member.restricted,
+      CLAIM_MAIL_COPY.en.messages.claim_message_to_member.restricted,
     ],
     [
       ['staff_claim_submitted', 'mk', staffFacts],
-      MK_COPY.messages.staff_claim_submitted,
-      EN_COPY.messages.staff_claim_submitted,
+      CLAIM_MAIL_COPY.mk.messages.staff_claim_submitted,
+      CLAIM_MAIL_COPY.en.messages.staff_claim_submitted,
     ],
     [
       ['staff_member_message', 'mk', staffFacts],
-      MK_COPY.messages.staff_member_message,
-      EN_COPY.messages.staff_member_message,
+      CLAIM_MAIL_COPY.mk.messages.staff_member_message,
+      CLAIM_MAIL_COPY.en.messages.staff_member_message,
     ],
   ] satisfies [ClaimMailRenderArgs, { heading: string }, { heading: string }][];
 
   it.each(mkExamples)('localizes %j in Macedonian', (args, mk, en) => {
     const { html, subject, text } = renderClaimMail(...args);
-    const mkHeading = mk.heading.replace('{toStatus}', MK_COPY.statuses.evaluation);
-    const enHeading = en.heading.replace('{toStatus}', EN_COPY.statuses.evaluation);
+    const mkHeading = mk.heading.replace('{toStatus}', CLAIM_MAIL_COPY.mk.statuses.evaluation);
+    const enHeading = en.heading.replace('{toStatus}', CLAIM_MAIL_COPY.en.statuses.evaluation);
     expect(subject).toBe(mkHeading);
     expect(html).toContain('<html lang="mk">');
     expect(html).toContain(mkHeading);
@@ -109,8 +115,8 @@ describe('claim mail', () => {
 
   it('renders the localized status pair and a locale-specific member link', () => {
     const { text } = renderClaimMail('claim_status_changed', 'mk', statusFacts);
-    expect(text).toContain(MK_COPY.statuses.submitted);
-    expect(text).toContain(MK_COPY.statuses.evaluation);
+    expect(text).toContain(CLAIM_MAIL_COPY.mk.statuses.submitted);
+    expect(text).toContain(CLAIM_MAIL_COPY.mk.statuses.evaluation);
     expect(text).toContain('https://example.com/mk/member/claims/case-1');
   });
 
@@ -149,7 +155,7 @@ describe('claim mail', () => {
       }
       for (const output of [rendered.html, rendered.text]) {
         expect(output).toContain(claimNumber);
-        expect(output).toContain(MK_COPY.categories.vehicle);
+        expect(output).toContain(CLAIM_MAIL_COPY.mk.categories.vehicle);
         expect(output).toContain('https://example.com/mk/staff/claims/case-1');
       }
     }
@@ -157,7 +163,7 @@ describe('claim mail', () => {
 
   it.each(['free-form category', 'constructor'])('uses a generic label for %s', category => {
     const { text } = renderClaimMail('staff_claim_submitted', 'mk', { ...staffFacts, category });
-    expect(text).toContain(MK_COPY.genericCategory);
+    expect(text).toContain(CLAIM_MAIL_COPY.mk.genericCategory);
     expect(text).not.toContain(category);
   });
 

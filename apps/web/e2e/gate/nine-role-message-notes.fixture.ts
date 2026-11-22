@@ -10,6 +10,7 @@ import {
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
 import { and, eq, or } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
+import { inSequence } from './in-sequence';
 import type { MessageCaseKey } from './nine-role-message-access.cases';
 
 export type MessageSentinelClaim = Readonly<{
@@ -77,12 +78,12 @@ export async function withClaimNoteSentinels<T>(
     }));
     return await run({ own: probes[0], foreign: probes[1] });
   } finally {
-    for (const { scope, claimId } of fixtures) {
-      await cleanupClaimNotificationRows(dbAdmin, {
+    await inSequence(fixtures, ({ scope, claimId }) =>
+      cleanupClaimNotificationRows(dbAdmin, {
         tenantId: scope.tenantId,
         claimIds: [claimId],
-      });
-    }
+      })
+    );
     // Delete all owned children before their parents; retain each tenant/claim predicate pair.
     await dbAdmin
       .delete(claimMessages)

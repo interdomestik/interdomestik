@@ -40,6 +40,12 @@ export function messageEffects() {
 }
 
 type MessageEffects = Awaited<ReturnType<typeof messageEffects>>;
+const publicReplyRoles: readonly (string | null | undefined)[] = [
+  ROLES.staff,
+  ROLES.admin,
+  ROLES.tenant_admin,
+  ROLES.super_admin,
+];
 
 export async function expectRoleSend(
   params: Parameters<typeof fixture.send>[0],
@@ -67,12 +73,7 @@ export async function expectRoleSend(
       expect(after[4].filter(row => row.sourceMessageId === result.message.id)).toMatchObject([
         { kind: 'member_message' },
       ]);
-    } else if (
-      !params.isInternal &&
-      [ROLES.staff, ROLES.admin, ROLES.tenant_admin, ROLES.super_admin].some(
-        value => value === role
-      )
-    ) {
+    } else if (!params.isInternal && publicReplyRoles.includes(role)) {
       expect(after[3].filter(row => row.subjectMessageId === result.message.id)).toMatchObject([
         { kind: 'claim_message_to_member', recipientUserId: ids.member },
       ]);

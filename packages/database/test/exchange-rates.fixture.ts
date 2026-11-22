@@ -8,6 +8,7 @@ import type postgres from 'postgres';
 import { withDisposableClient } from '../src/disposable-client';
 import { mintIngressCapability } from '../src/ingress-capability';
 import { mintTenantAuthority } from '../src/tenant-authority';
+import { runSequentially } from './in-order';
 import { migrateJournal, withScratchDatabase } from './pg16/scratch-database';
 import {
   applyRlsTestConnectionEnv,
@@ -28,9 +29,7 @@ export const rateInput = (effectiveOn: string) => ({
   effectiveOn,
 });
 
-export function runSequentially<T>(items: readonly T[], run: (item: T) => Promise<void>) {
-  return items.reduce((previous, item) => previous.then(() => run(item)), Promise.resolve());
-}
+export { runSequentially } from './in-order';
 
 export type RateRow = {
   id: string;

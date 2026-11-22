@@ -1,7 +1,7 @@
 import type { TenantTransaction } from '@interdomestik/database';
 import { auditLog } from '@interdomestik/database/schema';
 import { randomUUID } from 'node:crypto';
-import { EN_COPY } from '../claim-mail/copy-en';
+import { CLAIM_MAIL_COPY } from '../claim-mail';
 import { enqueueClaimInboxNotification } from './in-app';
 import { notificationDeliveryKey } from './keys';
 import { enqueueNotificationDelivery } from './store';
@@ -14,13 +14,47 @@ type StaffRecipient = {
 type StaffSource =
   { kind: 'staff_claim_submitted' } | { kind: 'staff_member_message'; messageId: string };
 
+type StaffClaim = ClaimScope & { claimNumber: string | null; category: string };
+
+async function queueStaffRecipients(
+  tx: TenantTransaction,
+  claim: StaffClaim,
+  source: StaffSource,
+  recipients: Iterator<StaffRecipient, undefined>,
+  ids: string[]
+): Promise<void> {
+  const next = recipients.next();
+  if (next.done) return;
+  const recipient = next.value;
+  const { tenantId, claimId, claimNumber, category } = claim;
+  const routed = { ...source, claimId, tenantId, recipientUserId: recipient.id };
+  await enqueueClaimInboxNotification(tx, {
+    id: `ntf_${notificationDeliveryKey({ ...routed, channel: 'in_app' })}`,
+    tenantId,
+    userId: recipient.id,
+    type: source.kind,
+    title: claimNumber ?? '—',
+    content: Object.hasOwn(CLAIM_MAIL_COPY.en.categories, category) ? category : 'other',
+    actionUrl: `/staff/claims/${claimId}`,
+  });
+  if (recipient.emailVerified) {
+    const id = await enqueueNotificationDelivery(tx, {
+      ...routed,
+      id: randomUUID(),
+      channel: 'email',
+    });
+    if (id) ids.push(id);
+  }
+  return queueStaffRecipients(tx, claim, source, recipients, ids);
+}
+
 export async function enqueueStaffClaimNotification(
   tx: TenantTransaction,
-  claim: ClaimScope & { claimNumber: string | null; category: string },
+  claim: StaffClaim,
   source: StaffSource,
   recipients: readonly StaffRecipient[]
 ) {
-  const { tenantId, claimId, claimNumber, category } = claim;
+  const { tenantId, claimId } = claim;
   if (recipients.length === 0) {
     await tx.insert(auditLog).values({
       id: randomUUID(),
@@ -34,25 +68,6 @@ export async function enqueueStaffClaimNotification(
   }
 
   const ids: string[] = [];
-  for (const recipient of recipients) {
-    const routed = { ...source, claimId, tenantId, recipientUserId: recipient.id };
-    await enqueueClaimInboxNotification(tx, {
-      id: `ntf_${notificationDeliveryKey({ ...routed, channel: 'in_app' })}`,
-      tenantId,
-      userId: recipient.id,
-      type: source.kind,
-      title: claimNumber ?? '—',
-      content: Object.hasOwn(EN_COPY.categories, category) ? category : 'other',
-      actionUrl: `/staff/claims/${claimId}`,
-    });
-    if (recipient.emailVerified) {
-      const id = await enqueueNotificationDelivery(tx, {
-        ...routed,
-        id: randomUUID(),
-        channel: 'email',
-      });
-      if (id) ids.push(id);
-    }
-  }
+  await queueStaffRecipients(tx, claim, source, recipients.values(), ids);
   return ids;
 }

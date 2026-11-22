@@ -18,8 +18,7 @@ it('keeps the app, stored locale enums and database CHECK values in sync', () =>
   ] as const) {
     const check = getTableConfig(table).checks.find(check => check.name === checkName);
     expect(check).toBeDefined();
-    expect(check && dialect.sqlToQuery(check.value).sql).toBe(
-      `${column} in (${LOCALES.map(locale => `'${locale}'`).join(', ')})`
-    );
+    const allowed = LOCALES.map(locale => `'${locale}'`).join(', ');
+    expect(check && dialect.sqlToQuery(check.value).sql).toBe(`${column} in (${allowed})`);
   }
 });

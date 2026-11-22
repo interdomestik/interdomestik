@@ -56,7 +56,7 @@ vi.mock('@/features/claims/upload/server/initial-claim-evidence-validation', () 
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockRunCommercialActionWithIdempotency.mockImplementation(async ({ execute }) => execute());
+  mockRunCommercialActionWithIdempotency.mockImplementation(({ execute }) => execute());
 });
 
 const mockSubmitClaimCoreDomain = vi.mocked(submitClaimCoreDomain);

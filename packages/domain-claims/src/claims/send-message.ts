@@ -1,4 +1,4 @@
-import { claimMessages, claims, user, type TenantTransaction } from '@interdomestik/database';
+import { claimMessages, claims, type TenantTransaction } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -23,10 +23,8 @@ import {
   storeClaimMessage,
 } from '@interdomestik/domain-communications/messages/store';
 import { reportServerError } from '@interdomestik/domain-communications/server-error';
-import type {
-  MessageWithSender,
-  SelectedMessageRow,
-} from '@interdomestik/domain-communications/messages/types';
+import { selectMessagesWithSender } from '@interdomestik/domain-communications/messages/select';
+import type { MessageWithSender } from '@interdomestik/domain-communications/messages/types';
 import type { AuditLogger, Session } from '@interdomestik/domain-communications/types';
 import { resolveStaffClaimNotificationRecipients } from '../staff-claims/notification-recipients';
 import { answerClaimResponseRequests, createClaimResponseRequest } from './response-requests';
@@ -215,26 +213,11 @@ export async function sendMessageDbCore(params: {
         });
       }
 
-      const selected = (await tx
-        .select({
-          id: claimMessages.id,
-          claimId: claimMessages.claimId,
-          senderId: claimMessages.senderId,
-          content: claimMessages.content,
-          isInternal: claimMessages.isInternal,
-          readAt: claimMessages.readAt,
-          createdAt: claimMessages.createdAt,
-          sender: {
-            id: user.id,
-            name: user.name,
-            image: user.image,
-            role: user.role,
-          },
-        })
-        .from(claimMessages)
-        .leftJoin(user, eq(claimMessages.senderId, user.id))
-        .where(withTenant(tenantId, claimMessages.tenantId, eq(claimMessages.id, messageId)))
-        .limit(1)) as unknown as SelectedMessageRow[];
+      const selected = await selectMessagesWithSender(
+        tx,
+        tenantId,
+        eq(claimMessages.id, messageId)
+      ).limit(1);
 
       const createdMessage = normalizeSelectedMessages(selected)[0];
       if (!createdMessage) {

@@ -158,12 +158,14 @@ suite('public reply notification under a restricted PostgreSQL login', () => {
     const result = await sendStaffReply('subscriptions');
     if (!result.success) throw new Error(result.error);
     expect(
-      (await deliveries(result.message.id)).flatMap(row => row.pushSubscriptionId ?? []).sort()
+      (await deliveries(result.message.id))
+        .flatMap(row => row.pushSubscriptionId ?? [])
+        .sort((a, b) => a.localeCompare(b))
     ).toEqual(
       rows
         .slice(0, 2)
         .map(row => row.id)
-        .sort()
+        .sort((a, b) => a.localeCompare(b))
     );
     await dbAdmin.insert(userNotificationPreferences).values({
       id: `${ids.claim}_prefs`,

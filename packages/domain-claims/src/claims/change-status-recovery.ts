@@ -76,7 +76,7 @@ function checkRecoveryAgreement(params: {
   if (!buildCommercialHandlingScopeSnapshot({ claimCategory: category }).isEligible) {
     return 'commercial_scope';
   }
-  if (!agreement || agreement.decisionType !== 'accepted') return 'decision';
+  if (agreement?.decisionType !== 'accepted') return 'decision';
   if (!buildCommercialAgreementSnapshot({ claimId, ...agreement })) return 'agreement';
 
   const collection = buildSuccessFeeCollectionSnapshot({
@@ -116,7 +116,7 @@ export async function matchesRecoveryAllowanceLock(
   userId: string,
   snapshot: AllowanceSnapshot | undefined
 ): Promise<boolean> {
-  if (!snapshot || snapshot.userId !== userId) return false;
+  if (snapshot?.userId !== userId) return false;
   const current = await readAllowanceSubscription(tx, tenantId, userId, false);
   return snapshot.subscriptionId === (current?.id ?? null);
 }

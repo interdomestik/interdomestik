@@ -1,78 +1,31 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { mockRecoveryDecisionTransaction } from '../claims/recovery-evidence-test-support';
 import type { ClaimsSession } from '../claims/types';
-import { saveRecoveryDecisionCore } from './save-recovery-decision';
 
-const mocks = vi.hoisted(() => {
-  const chain = () => ({ from: vi.fn(), where: vi.fn(), limit: vi.fn(), for: vi.fn() });
-  const claimSelect = chain();
-  const decisionSelect = chain();
-  const txInsertValues = vi.fn();
-  const txInsert = vi.fn(() => ({ values: txInsertValues }));
-  const txSelect = vi.fn();
-  const txUpdateWhere = vi.fn();
-  const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
-  const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
-  const withTenantContext = vi.fn(async (_context: unknown, cb: (tx: unknown) => unknown) =>
-    cb({ insert: txInsert, select: txSelect, update: txUpdate })
-  );
-
-  return {
-    enqueue: vi.fn().mockResolvedValue(['decision-delivery']),
-    recipient: vi.fn().mockResolvedValue({ id: 'member-1' }),
-    appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
-    and: vi.fn((...conditions) => ({ op: 'and', conditions })),
-    claimEscalationAgreements: {
-      id: 'claim_escalation_agreements.id',
-      tenantId: 'claim_escalation_agreements.tenant_id',
-      claimId: 'claim_escalation_agreements.claim_id',
-    },
-    claims: { id: 'claims.id', tenantId: 'claims.tenant_id' },
-    withTenantContext,
-    eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
-    withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
-    claimSelect,
-    decisionSelect,
-    txInsert,
-    txInsertValues,
-    txSelect,
-    txUpdate,
-    txUpdateSet,
-  };
-});
-
-vi.mock('@interdomestik/database', () => ({
-  and: mocks.and,
-  appendEvent: mocks.appendEvent,
-  claimEscalationAgreements: mocks.claimEscalationAgreements,
-  claims: mocks.claims,
-  eq: mocks.eq,
-  withTenantContext: mocks.withTenantContext,
-}));
-
-vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
-  enqueueRecoveryDecisionNotification: mocks.enqueue,
-  lockClaimNotificationRecipient: mocks.recipient,
-}));
-
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
-}));
-
+const agreementColumns = {
+  id: 'claim_escalation_agreements.id',
+  tenantId: 'claim_escalation_agreements.tenant_id',
+  claimId: 'claim_escalation_agreements.claim_id',
+};
+const mocks = mockRecoveryDecisionTransaction(agreementColumns);
+const { saveRecoveryDecisionCore } = await import('./save-recovery-decision');
 function session(role = 'staff'): ClaimsSession {
   return { user: { id: 'staff-1', role, tenantId: 'tenant-1', branchId: 'branch-1' } };
 }
 
 function primeScopeAndDecision(existingDecision: unknown[] = []) {
-  mocks.txSelect.mockReturnValueOnce(mocks.claimSelect).mockReturnValueOnce(mocks.decisionSelect);
-  mocks.claimSelect.from.mockReturnValue(mocks.claimSelect);
-  mocks.claimSelect.where.mockReturnValue(mocks.claimSelect);
-  mocks.claimSelect.limit.mockReturnValue(mocks.claimSelect);
-  mocks.claimSelect.for.mockResolvedValue([{ id: 'claim-1' }]);
-  mocks.decisionSelect.from.mockReturnValue(mocks.decisionSelect);
-  mocks.decisionSelect.where.mockReturnValue(mocks.decisionSelect);
-  mocks.decisionSelect.limit.mockResolvedValue(existingDecision);
+  mocks.txSelect
+    .mockReturnValueOnce(mocks.claimSelectChain)
+    .mockReturnValueOnce(mocks.agreementSelectChain);
+  mocks.claimSelectChain.from.mockReturnValue(mocks.claimSelectChain);
+  mocks.claimSelectChain.where.mockReturnValue(mocks.claimSelectChain);
+  mocks.claimSelectChain.limit.mockReturnValue(mocks.claimSelectChain);
+  mocks.claimSelectChain.for.mockResolvedValue([{ id: 'claim-1' }]);
+  mocks.agreementSelectChain.from.mockReturnValue(mocks.agreementSelectChain);
+  mocks.agreementSelectChain.where.mockReturnValue(mocks.agreementSelectChain);
+  mocks.agreementSelectChain.limit.mockResolvedValue(existingDecision);
 }
 
 const authority = mintTestTenantAuthority('tenant-1');
@@ -147,11 +100,11 @@ describe('saveRecoveryDecisionCore recovery decision events', () => {
       })
     ).toEqual({ success: false, error: 'Unauthorized' });
 
-    mocks.txSelect.mockReturnValueOnce(mocks.claimSelect);
-    mocks.claimSelect.from.mockReturnValue(mocks.claimSelect);
-    mocks.claimSelect.where.mockReturnValue(mocks.claimSelect);
-    mocks.claimSelect.limit.mockReturnValue(mocks.claimSelect);
-    mocks.claimSelect.for.mockResolvedValueOnce([]);
+    mocks.txSelect.mockReturnValueOnce(mocks.claimSelectChain);
+    mocks.claimSelectChain.from.mockReturnValue(mocks.claimSelectChain);
+    mocks.claimSelectChain.where.mockReturnValue(mocks.claimSelectChain);
+    mocks.claimSelectChain.limit.mockReturnValue(mocks.claimSelectChain);
+    mocks.claimSelectChain.for.mockResolvedValueOnce([]);
 
     expect(
       await saveRecoveryDecisionCore({

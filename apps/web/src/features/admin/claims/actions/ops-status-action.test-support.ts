@@ -26,9 +26,11 @@ vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: vi.fn() } } }));
 vi.mock('@/lib/audit.core', () => ({ writeAuditEvent: mocks.refusal }));
 vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn() }));
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimitForAction: mocks.rateLimit }));
-vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
+vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
 vi.mock('next/cache', () => ({ revalidatePath: mocks.refresh }));
-vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
+vi.mock('next-intl/server', () => ({
+  getTranslations: () => Promise.resolve((key: string) => key),
+}));
 vi.mock('@interdomestik/domain-claims/claims/notification-delivery-runner', () => ({
   dispatchNotificationDeliveries: mocks.kick,
 }));
@@ -88,9 +90,9 @@ function configureTransaction(options: FakeTransactionOptions = {}) {
       from: (table: unknown) => ({
         where: () => {
           const chain = {
-            for: async (strength: string) => {
+            for: (strength: string) => {
               firstLock(table, strength);
-              return rows(table);
+              return Promise.resolve(rows(table));
             },
           };
           return Object.assign(Promise.resolve(rows(table)), chain, {
@@ -104,15 +106,17 @@ function configureTransaction(options: FakeTransactionOptions = {}) {
         where: () => {
           writes.push({ table, row });
           return {
-            returning: async () =>
-              options.conflict
-                ? []
-                : [
-                    {
-                      id: claimId,
-                      lifecycleVersion: 'lifecycleVersion' in row ? 5 : 4,
-                    },
-                  ],
+            returning: () =>
+              Promise.resolve(
+                options.conflict
+                  ? []
+                  : [
+                      {
+                        id: claimId,
+                        lifecycleVersion: 'lifecycleVersion' in row ? 5 : 4,
+                      },
+                    ]
+              ),
           };
         },
       }),
@@ -121,9 +125,9 @@ function configureTransaction(options: FakeTransactionOptions = {}) {
       values: (row: Row) => {
         inserts.push({ table, row });
         return {
-          returning: async () => [{ id: row.id }],
+          returning: () => Promise.resolve([{ id: row.id }]),
           onConflictDoNothing: () => ({
-            returning: async () => [{ id: row.id }],
+            returning: () => Promise.resolve([{ id: row.id }]),
           }),
         };
       },
@@ -141,7 +145,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mocks.rateLimit.mockResolvedValue({ limited: false });
   mocks.refusal.mockResolvedValue({ success: true });
-  mocks.transaction.mockImplementation(async (_authority, run) => run({ projection: true }));
+  mocks.transaction.mockImplementation((_authority, run) => run({ projection: true }));
 });
 
 export { claimId, configureTransaction, mocks, signIn };

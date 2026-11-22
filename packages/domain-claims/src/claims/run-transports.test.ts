@@ -91,9 +91,9 @@ describe('transport selection', () => {
     const b = delivery({ id: 'b', channel: 'push', pushSubscriptionId: 'b' });
     const h = setup(a, b);
     h.sendPush
-      .mockImplementationOnce(async () => {
+      .mockImplementationOnce(() => {
         expect(a.transport).toBe('webpush');
-        return { ok: true, transport: 'webpush' };
+        return Promise.resolve({ ok: true, transport: 'webpush' });
       })
       .mockResolvedValueOnce(deliveryFailure('push_failed', true));
     await h.kick();

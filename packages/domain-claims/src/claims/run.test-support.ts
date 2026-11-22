@@ -70,7 +70,9 @@ export function harness(
   let clock = start;
   let transportWriteDelay = 0;
   let loseLeaseAtWrite = false;
-  const sendEmail = vi.fn().mockImplementation(async transport => ({ ok: true, transport }));
+  const sendEmail = vi
+    .fn()
+    .mockImplementation(transport => Promise.resolve({ ok: true, transport }));
   const sendPush = vi.fn().mockResolvedValue({ ok: true, transport: 'webpush' });
   const emailTransports = vi.fn<() => ('smtp' | 'resend')[]>().mockReturnValue(['smtp', 'resend']);
   const queries: string[] = [];
@@ -90,7 +92,7 @@ export function harness(
         where: (where: SQL) => ({
           orderBy: () => ({
             limit: () => ({
-              for: async () => {
+              for: () => {
                 const query = dialect.sqlToQuery(where);
                 queries.push(query.sql);
                 const ids = query.sql.includes(' in (') ? query.params.slice(3) : null;
@@ -105,11 +107,12 @@ export function harness(
                     (a, b) =>
                       a.nextAttemptAt.localeCompare(b.nextAttemptAt) || a.id.localeCompare(b.id)
                   )[0];
-                return candidate ? [{ ...candidate }] : [];
+                return Promise.resolve(candidate ? [{ ...candidate }] : []);
               },
             }),
           }),
-          for: async () => (selection ? deliveries.filter(row => matches(where, row)) : []),
+          for: () =>
+            Promise.resolve(selection ? deliveries.filter(row => matches(where, row)) : []),
         }),
       }),
     })),
@@ -126,7 +129,7 @@ export function harness(
             !matches(where, row) ||
             (isTransportWrite && Date.parse(row.leaseUntil!) - clock < 300_000)
           ) {
-            return { returning: async () => [] };
+            return { returning: () => Promise.resolve([]) };
           }
           for (const [key, value] of Object.entries(fields)) {
             if (value instanceof SQL) {
@@ -137,7 +140,7 @@ export function harness(
             } else Object.assign(row, { [key]: value });
           }
           if (isTransportWrite) clock += transportWriteDelay;
-          return { returning: async () => [{ ...row }] };
+          return { returning: () => Promise.resolve([{ ...row }]) };
         },
       }),
     })),
@@ -150,16 +153,16 @@ export function harness(
         if (table !== notificationDeliveries) throw new Error('Unexpected insert');
         return {
           onConflictDoNothing: () => ({
-            returning: async () => {
+            returning: () => {
               if (
                 deliveries.some(
                   row =>
                     row.tenantId === fields.tenantId && row.idempotencyKey === fields.idempotencyKey
                 )
               )
-                return [];
+                return Promise.resolve([]);
               deliveries.push(delivery(fields));
-              return [{ id: fields.id }];
+              return Promise.resolve([{ id: fields.id }]);
             },
           }),
         };
@@ -173,15 +176,17 @@ export function harness(
     pending = next.catch(() => undefined);
     return next;
   });
-  prepare.mockImplementation(async (_tx, row: Delivery) =>
-    row.channel === 'push'
-      ? {
-          channel: 'push',
-          locale: 'mk',
-          subscription: { endpoint: row.pushSubscriptionId },
-          rendered: {},
-        }
-      : { channel: 'email', locale: 'mk', to: 'member@example.test', rendered: {} }
+  prepare.mockImplementation((_tx, row: Delivery) =>
+    Promise.resolve(
+      row.channel === 'push'
+        ? {
+            channel: 'push',
+            locale: 'mk',
+            subscription: { endpoint: row.pushSubscriptionId },
+            rendered: {},
+          }
+        : { channel: 'email', locale: 'mk', to: 'member@example.test', rendered: {} }
+    )
   );
   const deps = {
     appOrigin: () => 'https://example.test',
