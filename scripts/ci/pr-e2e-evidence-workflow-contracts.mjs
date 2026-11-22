@@ -117,9 +117,18 @@ test('PR E2E always uploads each lane’s exact-head report and evidence summary
     step?.run?.startsWith('node scripts/ci/playwright-lane-evidence.mjs')
   );
   assert.deepEqual(evidenceSteps, [summary]);
-  assert.ok(runner.steps.indexOf(summary) > runner.steps.indexOf(findStep(gateName)));
-  assert.ok(runner.steps.indexOf(summary) > runner.steps.indexOf(findStep(smokeName)));
-  assert.ok(runner.steps.indexOf(upload) > runner.steps.indexOf(summary));
+  // On every matrix leg, the evidence summary must be the very next step after that leg's
+  // browser run, and the upload the step after it: nothing may touch report.json in between.
+  for (const { kind } of runner.strategy.matrix.include) {
+    const otherKind = kind === 'gate' ? 'smoke' : 'gate';
+    const legSteps = runner.steps.filter(step => step.if !== `matrix.kind == '${otherKind}'`);
+    const browser = findStep(kind === 'gate' ? gateName : smokeName);
+    const browserIndex = legSteps.indexOf(browser);
+    assert.ok(browserIndex >= 0, kind);
+    assert.equal(legSteps[browserIndex + 1], summary, kind);
+    assert.equal(legSteps[browserIndex + 2], upload, kind);
+    assert.equal(legSteps.length, browserIndex + 3, kind);
+  }
   assert.equal(summary.if, 'always()');
   assert.deepEqual(summary.env, {
     EVIDENCE_NAME: '${{ matrix.evidence_name }}',

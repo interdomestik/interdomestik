@@ -200,7 +200,9 @@ test('seeded CI workflows generate masked per-run E2E credentials before seeded 
   for (const [workflowPath, jobName, guardedStep] of orderContracts) {
     const steps = readWorkflow(workflowPath).jobs[jobName].steps;
     const generatedIndex = findStepIndex(steps, 'Generate ephemeral E2E credentials');
-    assert.ok(generatedIndex < findStepIndex(steps, guardedStep));
+    assert.ok(generatedIndex >= 0, `${workflowPath}#${jobName} must generate credentials itself`);
+    assert.equal(steps[generatedIndex].run, 'bash scripts/ci/export-e2e-credentials.sh');
+    assert.ok(generatedIndex < findStepIndex(steps, guardedStep), `${workflowPath}#${guardedStep}`);
   }
 });
 test('seed credential guard recognizes both split PR browser commands', t => {

@@ -165,7 +165,8 @@ test('member membership access disclosure preserves corpus parity', () => {
   );
 });
 test('parity drift always resolves to a fail-closed reuse decision', async () => {
-  const current = sources();
+  const current = { ...sources(), e2eTreeSha: MEMBER_PORTAL_E2E_TREE };
+  assert.ok(Object.values(inspectRepositoryParity(current)).every(value => value === true));
   const checkout = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';
   const reorderedCheckout = 'ref: ${{ github.sha || github.event.pull_request.head.sha }}';
   const prLane = 'pr: gateLane([ksSq, mkContract], true)';

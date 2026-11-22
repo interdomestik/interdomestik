@@ -97,12 +97,12 @@ test('an empty or unknown lane is refused before any preparation runs', () => {
   for (const lane of ['', 'pr-unknown']) {
     const result = spawnSync(process.execPath, [script, lane], {
       encoding: 'utf8',
-      // If lane selection ever regressed, preparation would stop at the gatekeeper's loopback
-      // target check (exit 1) before any migrate or reseed, and no secret file is written.
+      // If lane selection ever regressed, the too-short secret would stop the runner at secret
+      // validation (exit 1), before host preparation, the doctor or the gatekeeper could run.
       env: {
         PATH: process.env.PATH,
         SKIP_DOCKER_DOCTOR: '1',
-        BETTER_AUTH_SECRET: 'lane-refusal-test-secret-not-used-0123456789',
+        BETTER_AUTH_SECRET: 'too-short',
         E2E_DATABASE_URL: 'postgresql://lane-refusal@db.invalid:5432/refused',
       },
     });
