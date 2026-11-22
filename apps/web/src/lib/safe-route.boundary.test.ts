@@ -26,6 +26,9 @@ import { POST as queryPost } from './__fixtures__/safe-route/query.fixture';
 import { POST as selfPost } from './__fixtures__/safe-route/self.fixture';
 import { actionFailure } from './safe-action.failure';
 
+const from = (host: string) =>
+  request({ body: '{"note":"x"}', headers: { Origin: `https://${host}` } });
+
 it.each([
   ['anonymous', 401, 'UNAUTHORIZED'],
   ['missing tenant', 403, 'MISSING_TENANT'],
@@ -212,8 +215,6 @@ it.each([
   vi.stubEnv('VERCEL', '1');
   vi.stubEnv('VERCEL_ENV', environment);
   vi.stubEnv('VERCEL_TARGET_ENV', environment);
-  const from = (host: string) =>
-    request({ body: '{"note":"x"}', headers: { Origin: `https://${host}` } });
 
   await expectResponse(await bodyPost(from(denied), {}), 403, 'FORBIDDEN');
   expect(mocks.authorize).toHaveBeenCalledTimes(0);

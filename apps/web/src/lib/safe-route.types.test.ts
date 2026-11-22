@@ -46,6 +46,7 @@ it('satisfies Next’s generated second argument check for the fixture export', 
 type WithoutNextOverload = (request: Request, ctx: RouteContext) => Promise<Response>;
 
 it('requires the final promise overload', () => {
+  expectTypeOf<SecondArg<WithoutNextOverload>>().not.toExtend<RouteContextForNext>();
   checkFields<
     Diff<
       ParamCheck<RouteContextForNext>,

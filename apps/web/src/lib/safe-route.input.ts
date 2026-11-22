@@ -45,14 +45,14 @@ export function readQuery(
   for (const [key, value] of searchParams(request)) {
     const previous = query[key];
     if (Array.isArray(previous)) previous.push(value);
-    else if (previous !== undefined) {
+    else if (previous === undefined) {
+      query[key] = fieldKind(['query', key]) === 'array' ? [value] : value;
+    } else {
       return {
         failure: actionFailure('VALIDATION_ERROR', undefined, {
           issues: { [`query.${key}`]: 'duplicate_field' },
         }),
       };
-    } else {
-      query[key] = fieldKind(['query', key]) === 'array' ? [value] : value;
     }
   }
   return { query };
@@ -106,9 +106,15 @@ export async function readBody(
   }
   let bytes: Buffer | null;
   try {
-    bytes = request.body
-      ? await readBytes(request.body, hasSchema ? maxBodyBytes : 0)
-      : Buffer.alloc(0);
+    if (request.body) {
+      let cap = 0;
+      if (hasSchema) {
+        cap = maxBodyBytes;
+      }
+      bytes = await readBytes(request.body, cap);
+    } else {
+      bytes = Buffer.alloc(0);
+    }
     assertPristineObjectPrototype();
   } catch (error) {
     checkControlFlow(error);

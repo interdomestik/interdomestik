@@ -206,10 +206,11 @@ for (const [name, limits, problem] of [
 ]) {
   test(`CHK-04 form (d): ${name}`, t => {
     const file = routePath('limits');
+    const extra = `, ${limits}`;
     const root = tree(t, {
       [file]: `${ROUTE_IMPORT}const limit = 2, seconds = 60, cap = 1024, other = {};
 const limiter = { limit, windowSeconds: seconds };
-export const POST = ${routeDef(undefined, undefined, `, ${limits}`)};`,
+export const POST = ${routeDef(undefined, undefined, extra)};`,
     });
     const result = runCheck('CHK-04', root);
     assert.deepEqual(result.units, { export: 0, route: 1 });
@@ -224,7 +225,10 @@ test('CHK-04: eligible direct writing route definitions pass and an unwrapped wr
     [routePath('write')]:
       ROUTE_IMPORT +
       ['POST', 'PUT', 'PATCH', 'DELETE']
-        .map(method => `export const ${method} = ${routeDef(`'${method}'`)};`)
+        .map(method => {
+          const methodLiteral = `'${method}'`;
+          return `export const ${method} = ${routeDef(methodLiteral)};`;
+        })
         .join('\n'),
   });
 

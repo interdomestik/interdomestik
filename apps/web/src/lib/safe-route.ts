@@ -31,7 +31,9 @@ const MAX_BODY_BYTES = 1_048_576;
 export type WritingMethod = (typeof METHODS)[number];
 export type RouteBasis = Exclude<ActionBasis, { kind: 'public' }>;
 export type RouteParams = Record<string, string | string[]>;
-export type RouteContext = { params?: RouteParams | Promise<RouteParams> | undefined };
+// D135 preserves explicit undefined for consumers with exactOptionalPropertyTypes.
+export type RouteParamsInput = RouteParams | Promise<RouteParams> | undefined;
+export type RouteContext = { params?: RouteParamsInput };
 
 export type RouteMethod = {
   (request: NextRequest, context: RouteContext): Promise<Response>;
@@ -104,7 +106,7 @@ function readPart(
 ): z.ZodType | undefined {
   const field = Object.getOwnPropertyDescriptor(definition, key);
   if (!field) return undefined;
-  if (!Object.hasOwn(field, 'value') || field.value == null) {
+  if (!Object.hasOwn(field, 'value') || field.value === null || field.value === undefined) {
     return refuse(`${key} must be an own data schema`);
   }
   // The input guard validates the schema in the composed root and reads its shape once.
