@@ -10,9 +10,13 @@ export function restricted<T>(
   run: (tx: postgres.TransactionSql) => Promise<T>,
   roleName = runtimeRole,
   isolation: 'read committed' | 'repeatable read' = 'read committed',
-  options: { homeTenant?: string } = {}
+  options: {
+    homeTenant?: string;
+    beforeRole?: (tx: postgres.TransactionSql) => Promise<void>;
+  } = {}
 ) {
   return client.begin(`isolation level ${isolation}`, async tx => {
+    await options.beforeRole?.(tx);
     await tx.unsafe(`set local role ${quoteIdentifier(roleName)}`);
     await tx`set local row_security = on`;
     if (accessTenant !== undefined) {

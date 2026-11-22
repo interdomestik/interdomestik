@@ -168,9 +168,12 @@ export async function withPaymentPortDatabase(
       const adminDb = drizzle(admin);
       await provisionRestrictedRole(adminDb);
       await grantRlsTestRole(adminDb, tables);
-      // The append-only tests need permission to reach the mutation triggers.
+      // The append-only tests need permission on the rate tables and their CASCADE dependents.
       await admin.unsafe(
         `grant update, delete, truncate on exchange_rate_books, exchange_rates to ${quoteIdentifier(TEST_DB_ROLE)}`
+      );
+      await admin.unsafe(
+        `grant truncate on public.membership_sales, public.membership_ledger_entries to ${quoteIdentifier(TEST_DB_ROLE)}`
       );
       const [acl] = await admin`select
         has_table_privilege(${runtimeRole}, 'exchange_rate_books', 'INSERT') as can_insert_book,
