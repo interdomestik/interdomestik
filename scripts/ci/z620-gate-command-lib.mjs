@@ -32,6 +32,7 @@ const COMMANDS = new Map([
   ['security-guard', command(Z620_EXECUTABLES.pnpm, ['security:guard'])],
   ['z620-security-audit', command(Z620_EXECUTABLES.node, ['scripts/ci/z620-security-audit.mjs'])],
   ['e2e-gate-pr', command(Z620_EXECUTABLES.pnpm, ['e2e:gate:pr'])],
+  ['e2e-smoke-pr', command(Z620_EXECUTABLES.node, ['scripts/run-e2e-lane.mjs', 'pr-smoke'])],
   ['e2e-gate', command(Z620_EXECUTABLES.pnpm, ['e2e:gate'])],
   ['pilot-run', command(Z620_EXECUTABLES.node, ['scripts/ci/z620-pilot-run.mjs'])],
 ]);

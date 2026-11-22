@@ -1,4 +1,4 @@
-import { isRefusalCode, type ActionError } from './safe-action.types';
+import { isRefusalCode, type ActionError, type RefusalCode } from './safe-action.types';
 
 // A failure is recognised by this module-private brand, never by its shape: a plain object with
 // `success: false` returned by a handler is data (DUP-02), not a failure.
@@ -23,16 +23,23 @@ export type ActionFailure = Readonly<{
   retryAfter?: number;
 }>;
 
-const DEFAULT_MESSAGES: Readonly<Record<string, string>> = Object.freeze({
-  UNAUTHORIZED: 'Unauthorized',
-  MISSING_TENANT: 'Missing tenant context',
-  FORBIDDEN: 'Forbidden',
-  NOT_FOUND: 'Not found',
-  VALIDATION_ERROR: 'Invalid input',
-  RATE_LIMITED: 'Too many requests',
-  SERVICE_UNAVAILABLE: 'Service unavailable',
-  INTERNAL_SERVER_ERROR: 'Internal Server Error',
-});
+const MESSAGE_ENTRIES = [
+  ['UNAUTHORIZED', 'Unauthorized'],
+  ['MISSING_TENANT', 'Missing tenant context'],
+  ['FORBIDDEN', 'Forbidden'],
+  ['NOT_FOUND', 'Not found'],
+  ['VALIDATION_ERROR', 'Invalid input'],
+  ['RATE_LIMITED', 'Too many requests'],
+  ['SERVICE_UNAVAILABLE', 'Service unavailable'],
+  ['INTERNAL_SERVER_ERROR', 'Internal Server Error'],
+] as const;
+
+export const FAILURE_CODES = Object.freeze(MESSAGE_ENTRIES.map(([code]) => code));
+export type FailureCode = (typeof FAILURE_CODES)[number] | RefusalCode;
+
+const DEFAULT_MESSAGES: Readonly<Record<string, string>> = Object.freeze(
+  Object.fromEntries(MESSAGE_ENTRIES)
+);
 
 export function defaultFailureMessage(code: string): string {
   // Own keys only: a code named like an Object.prototype member gets the fallback (r3 B17).
