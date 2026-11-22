@@ -60,8 +60,11 @@ describe('getMemberActivitiesCore', () => {
     expect(mocks.withTenantAuthority).not.toHaveBeenCalled();
   });
 
-  it('reads tenant-scoped activities for the directly linked agent, member row locked', async () => {
-    const fake = useTx({ locked: { user: [{ agentId: 'agent-1' }] }, feed: FEED });
+  it('reads tenant-scoped activities for an agent with an active assignment, both rows locked', async () => {
+    const fake = useTx({
+      locked: { user: [{ agentId: 'legacy-agent' }], agentClients: [{ id: 'assignment-1' }] },
+      feed: FEED,
+    });
     const { getMemberActivitiesCore, actorAs } = await loadCore();
     const actor = actorAs('agent', 'agent-1');
 
@@ -70,10 +73,19 @@ describe('getMemberActivitiesCore', () => {
     expect(result).toEqual([{ id: 'a1' }]);
     expect(mocks.withTenantAuthority).toHaveBeenCalledTimes(1);
     expect(mocks.withTenantAuthority.mock.calls[0][0]).toBe(actor.authority);
-    expect(fake.lockedReads.map(read => [read.table, read.lock])).toEqual([['user', 'share']]);
+    expect(fake.lockedReads.map(read => [read.table, read.lock])).toEqual([
+      ['user', 'share'],
+      ['agentClients', 'share'],
+    ]);
     expect(equalities(fake.lockedReads[0].where)).toEqual({
       'user.id': 'member-1',
       'user.tenantId': 'tenant-1',
+    });
+    expect(equalities(fake.lockedReads[1].where)).toEqual({
+      'agentClients.tenantId': 'tenant-1',
+      'agentClients.agentId': 'agent-1',
+      'agentClients.memberId': 'member-1',
+      'agentClients.status': 'active',
     });
     expect(equalities(fake.feedReads[0].args.where)).toEqual({
       'memberActivities.memberId': 'member-1',
@@ -81,29 +93,24 @@ describe('getMemberActivitiesCore', () => {
     });
   });
 
-  it('allows an active agent-client assignment, locked, when user.agentId is not mirrored', async () => {
-    const fake = useTx({
-      locked: { user: [{ agentId: 'legacy-agent' }], agentClients: [{ id: 'assignment-1' }] },
-      feed: FEED,
-    });
+  // The referring agent (user.agentId) is not an admission: only the active assignment is.
+  // After the assignment moves to another agent, the referrer has no active row and is refused.
+  it('refuses the referring agent without an active assignment, without reading activities', async () => {
+    const fake = useTx({ locked: { user: [{ agentId: 'agent-1' }] }, feed: FEED });
     const { getMemberActivitiesCore, actorAs } = await loadCore();
 
-    const result = await getMemberActivitiesCore({
-      ...actorAs('agent', 'agent-1'),
-      memberId: 'member-1',
-    });
-
-    expect(result).toEqual([{ id: 'a1' }]);
+    await expect(
+      getMemberActivitiesCore({ ...actorAs('agent', 'agent-1'), memberId: 'member-1' })
+    ).rejects.toThrow('Permission denied');
     expect(fake.lockedReads.map(read => [read.table, read.lock])).toEqual([
       ['user', 'share'],
       ['agentClients', 'share'],
     ]);
-    expect(equalities(fake.lockedReads[1].where)).toEqual({
-      'agentClients.tenantId': 'tenant-1',
+    expect(equalities(fake.lockedReads[1].where)).toMatchObject({
       'agentClients.agentId': 'agent-1',
-      'agentClients.memberId': 'member-1',
       'agentClients.status': 'active',
     });
+    expect(fake.feedReads).toEqual([]);
   });
 
   it('denies an unassigned agent without reading activities', async () => {

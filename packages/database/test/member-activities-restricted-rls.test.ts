@@ -17,10 +17,11 @@ import {
 import { KS_TENANT_ID, MK_TENANT_ID } from './s8-claim-restricted-rls.fixture';
 
 // R-06: the member-activity rules proven by the domain commands on a real database, connected as
-// the restricted role. Reads: a member its own, an agent its assigned members (the member's
-// agent or an active agent_clients row), staff and the tenant admins the tenant; branch managers
-// and every other role nothing. Writes: the same minus the member's own, and an assignment revoked
-// while a write waits refuses it (R-17).
+// the restricted role. Reads: a member its own, an agent the members of its active agent_clients
+// rows only, staff and the tenant admins the tenant; branch managers and every other role nothing.
+// The referring agent (user.agentId) is no admission: see
+// member-activities-reassignment-restricted-rls.test.ts. Writes: the same minus the member's own,
+// and an assignment revoked while a write waits refuses it (R-17).
 test('the restricted role reads and logs member activities only within the actor scope', async t => {
   // Four app connections: the race below holds one command and probes it from another.
   const session = await openActivitySession(t, { DB_MAX_CONNECTIONS: '4' });
@@ -35,6 +36,7 @@ test('the restricted role reads and logs member activities only within the actor
     member2: fixture.newId('member_rls_member_2'),
     member3: fixture.newId('member_rls_member_3'),
     memberMk: fixture.newId('member_rls_member_mk'),
+    client1: fixture.newId('member_rls_client_1'),
     client2: fixture.newId('member_rls_client_2'),
   };
   const members = [ids.member1, ids.member2, ids.member3, ids.memberMk];
@@ -79,8 +81,9 @@ test('the restricted role reads and logs member activities only within the actor
         person(ids.agentC, KS_TENANT_ID, 'agent'),
         person(ids.agentMk, MK_TENANT_ID, 'agent'),
         person(ids.staff, KS_TENANT_ID, 'staff'),
-        // member1 names agent A as its agent; member2 and member3 reach agent C only through
-        // agent_clients, active for member2 and inactive for member3.
+        // member1 names agent A as its referring agent and has an active agent_clients row for
+        // agent A; member2 and member3 reach agent C only through agent_clients, active for
+        // member2 and inactive for member3. The MK member has an active row for the MK agent.
         person(ids.member1, KS_TENANT_ID, 'member', ids.agentA),
         person(ids.member2, KS_TENANT_ID, 'user'),
         person(ids.member3, KS_TENANT_ID, 'member'),
@@ -88,10 +91,24 @@ test('the restricted role reads and logs member activities only within the actor
       ]);
       await adminDb.insert(agentClients).values([
         {
+          id: ids.client1,
+          tenantId: KS_TENANT_ID,
+          agentId: ids.agentA,
+          memberId: ids.member1,
+          status: 'active',
+        },
+        {
           id: ids.client2,
           tenantId: KS_TENANT_ID,
           agentId: ids.agentC,
           memberId: ids.member2,
+          status: 'active',
+        },
+        {
+          id: fixture.newId('member_rls_client_mk'),
+          tenantId: MK_TENANT_ID,
+          agentId: ids.agentMk,
+          memberId: ids.memberMk,
           status: 'active',
         },
         {

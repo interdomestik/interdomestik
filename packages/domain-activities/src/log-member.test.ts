@@ -21,7 +21,9 @@ vi.mock('nanoid', async () => (await import('./test/activity-tx')).nanoidMock);
 import { logActivityCore } from './log-member';
 
 const validData = { memberId: 'member-1', type: 'call' as const, subject: 'Called member' };
-const LINKED_MEMBER: FakeRows = { locked: { user: [{ agentId: 'agent-1' }] } };
+const ASSIGNED_MEMBER: FakeRows = {
+  locked: { user: [{ agentId: 'legacy-agent' }], agentClients: [{ id: 'assignment-1' }] },
+};
 
 function actorAs(role: string, id = 'agent-1') {
   return {
@@ -58,6 +60,25 @@ describe('logActivityCore', () => {
     expect(fake.inserts).toEqual([]);
   });
 
+  // The referring agent (user.agentId) is not an admission: only the active assignment is.
+  // After the assignment moves to another agent, the referrer has no active row and is refused.
+  it('denies the referring agent without an active assignment, without writing', async () => {
+    const fake = useFakeTx({ locked: { user: [{ agentId: 'agent-1' }] } });
+
+    const result = await logActivityCore({ ...actorAs('agent'), data: validData });
+
+    expect(result).toEqual({ success: false, error: 'Member access denied' });
+    expect(fake.lockedReads.map(read => [read.table, read.lock])).toEqual([
+      ['user', 'share'],
+      ['agentClients', 'share'],
+    ]);
+    expect(equalities(fake.lockedReads[1].where)).toMatchObject({
+      'agentClients.agentId': 'agent-1',
+      'agentClients.status': 'active',
+    });
+    expect(fake.inserts).toEqual([]);
+  });
+
   it('allows an agent with an active client assignment, both rows locked in the writing transaction', async () => {
     const fake = useFakeTx({
       locked: { user: [{ agentId: 'legacy-agent' }], agentClients: [{ id: 'assignment-1' }] },
@@ -83,7 +104,7 @@ describe('logActivityCore', () => {
   it.each([{ tenantId: 'tenant-2' }, { agentId: 'forged-agent' }, { id: 'forged-id' }])(
     'refuses an input naming an identity (%o) before any read or write',
     async injected => {
-      const fake = useFakeTx(LINKED_MEMBER);
+      const fake = useFakeTx(ASSIGNED_MEMBER);
 
       const result = await logActivityCore({
         ...actorAs('agent'),
@@ -96,8 +117,8 @@ describe('logActivityCore', () => {
     }
   );
 
-  it('writes the activity for the linked agent, identity and tenant from the authority', async () => {
-    const fake = useFakeTx(LINKED_MEMBER);
+  it('writes the activity for the assigned agent, identity and tenant from the authority', async () => {
+    const fake = useFakeTx(ASSIGNED_MEMBER);
     const actor = actorAs('agent');
 
     const result = await logActivityCore({ ...actor, data: validData });
@@ -127,7 +148,7 @@ describe('logActivityCore', () => {
     'global_support',
     'unknown_role',
   ])('refuses role %j before any read or write', async role => {
-    useFakeTx(LINKED_MEMBER);
+    useFakeTx(ASSIGNED_MEMBER);
     const result = await logActivityCore({ ...actorAs(role, 'actor-1'), data: validData });
 
     expect(result).toEqual({ success: false, error: 'Permission denied' });
@@ -136,7 +157,7 @@ describe('logActivityCore', () => {
   });
 
   it('refuses a session that names another user than the authority principal', async () => {
-    useFakeTx(LINKED_MEMBER);
+    useFakeTx(ASSIGNED_MEMBER);
     const { authority } = actorAs('agent', 'agent-2');
 
     const result = await logActivityCore({
@@ -164,7 +185,7 @@ describe('logActivityCore', () => {
 
   // The probe is unchanged (pinned by the tenant guard): a failed probe reads as an absent table.
   it('answers a typed failure and writes nothing when the table probe fails', async () => {
-    useFakeTx(LINKED_MEMBER);
+    useFakeTx(ASSIGNED_MEMBER);
     execute.mockRejectedValue(new Error('probe failed'));
 
     const result = await logActivityCore({ ...actorAs('agent'), data: validData });
