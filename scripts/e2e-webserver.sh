@@ -413,7 +413,7 @@ rebuild_standalone_once() {
 	echo "   stamp cspNonceMode: ${STAMP_CSP_NONCE_MODE:-<missing>}" >&2
 	echo "   requested cspNonceMode: ${CURRENT_CSP_NONCE_MODE:-<missing>}" >&2
 	rm -rf "${WEB_DIR}/.next"
-	pnpm --filter @interdomestik/web run build:ci
+	env -u PLAYWRIGHT -u INTERDOMESTIK_AUTOMATED pnpm --filter @interdomestik/web run build:ci
 	link_standalone_static_assets
 	return 0
 }

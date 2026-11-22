@@ -243,8 +243,7 @@ echo "🌱 [Gatekeeper] Seeding Deterministic State (Reset Mode)..."
 pnpm seed:e2e -- --reset
 
 echo "🏗️  [Gatekeeper] Building production-like standalone web artifact..."
-INTERDOMESTIK_LOCAL_E2E=1 PLAYWRIGHT=1 IDENTITY_PUBLIC_SIGN_UP=open \
-  DEFAULT_PUBLIC_TENANT_ID="${DEFAULT_PUBLIC_TENANT_ID:-tenant_ks}" pnpm --filter @interdomestik/web build
+pnpm --filter @interdomestik/web build
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

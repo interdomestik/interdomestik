@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  hasPositiveProductionSignal,
   isAutomatedRuntime,
   isBillingTestActivationEnabled,
   isE2EDiagnosticsEnabled,
@@ -20,6 +21,24 @@ const localE2eEnv = {
   INTERDOMESTIK_LOCAL_E2E: '1',
 };
 const stagingEnv = { VERCEL: '1', VERCEL_ENV: 'preview' };
+
+describe('hasPositiveProductionSignal', () => {
+  it.each([
+    [{}, false],
+    [{ NODE_ENV: 'production' }, false],
+    [localE2eEnv, false],
+    [stagingEnv, false],
+    [{ VERCEL_ENV: ' Production ' }, true],
+    [{ VERCEL_TARGET_ENV: ' PRODUCTION ' }, true],
+    [{ INTERDOMESTIK_PRODUCTION: '1' }, true],
+    [{ INTERDOMESTIK_PRODUCTION: ' 1 ' }, false],
+    [{ INTERDOMESTIK_PRODUCTION: 'true' }, false],
+    [{ INTERDOMESTIK_DEPLOY_ENV: ' pRoDuCtIoN ' }, true],
+    [{ INTERDOMESTIK_DEPLOY_ENV: 'staging', VERCEL_TARGET_ENV: 'preview' }, false],
+  ])('classifies %j as %s', (env, expected) => {
+    expect(hasPositiveProductionSignal(env)).toBe(expected);
+  });
+});
 
 describe('releaseClass', () => {
   it.each([

@@ -5,7 +5,7 @@ import { assertRenderingBuildMode } from './lib/rendering-build-mode';
 
 export function register() {
   try {
-    assertPilotDeploymentEnv(process.env);
+    assertPilotDeploymentEnv(process.env, process.env.INTERDOMESTIK_BUILT_PILOT_ENV);
     assertRenderingBuildMode(
       process.env.INTERDOMESTIK_BUILT_CSP_NONCE_MODE,
       process.env.CSP_NONCE_MODE

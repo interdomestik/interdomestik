@@ -31,6 +31,7 @@ const nextConfig = {
   env: {
     INTERDOMESTIK_BUILT_CSP_NONCE_MODE: buildCspNonceMode,
     INTERDOMESTIK_BUILD_COPYRIGHT_YEAR: String(new Date().getUTCFullYear()),
+    INTERDOMESTIK_BUILT_PILOT_ENV: process.env.INTERDOMESTIK_BUILT_PILOT_ENV ?? '',
   },
   transpilePackages: [
     '@interdomestik/ui',

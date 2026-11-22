@@ -16,6 +16,7 @@ vi.mock('../sentry.edge.config', () => ({}));
 beforeEach(() => {
   vi.resetModules();
   vi.stubEnv('SENTRY_VALIDATE_SOURCEMAPS', 'false');
+  vi.stubEnv('INTERDOMESTIK_BUILT_PILOT_ENV', '[]');
 });
 
 afterEach(() => {
@@ -68,12 +69,14 @@ describe('Next rendering configuration', () => {
     vi.setSystemTime(new Date('2026-09-08T00:00:00Z'));
     vi.stubEnv('CSP_NONCE_MODE', raw);
     vi.stubEnv('INTERDOMESTIK_BUILT_CSP_NONCE_MODE', 'forged');
+    vi.stubEnv('INTERDOMESTIK_BUILT_PILOT_ENV', '["NEXT_PUBLIC_BILLING_TEST_MODE"]');
     const { default: config } = await import('../../next.config.mjs');
 
     expect(config.cacheComponents).toBe(enabled);
     expect(config.env).toEqual({
       INTERDOMESTIK_BUILT_CSP_NONCE_MODE: mode,
       INTERDOMESTIK_BUILD_COPYRIGHT_YEAR: '2026',
+      INTERDOMESTIK_BUILT_PILOT_ENV: '["NEXT_PUBLIC_BILLING_TEST_MODE"]',
     });
     expect(config.env).not.toHaveProperty('CSP_NONCE_MODE');
     expect(process.env.CSP_NONCE_MODE).toBe(raw);

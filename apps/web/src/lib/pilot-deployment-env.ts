@@ -16,17 +16,49 @@ const PRODUCTION_REFUSALS = [
   'NEXT_PUBLIC_BILLING_TEST_MODE',
 ];
 
-export function assertPilotDeploymentEnv(env: Readonly<NodeJS.Dict<string>>): void {
+function refusesNonEmptyValue(name: string): boolean {
+  return (
+    PRODUCTION_REFUSALS.includes(name) ||
+    name.startsWith('PADDLE_') ||
+    name.startsWith('NEXT_PUBLIC_PADDLE_')
+  );
+}
+
+export function refusedPilotEnvNames(env: Readonly<NodeJS.Dict<string>>): string[] {
+  const refused = Object.keys(env).filter(name => env[name] && refusesNonEmptyValue(name));
+  if (env.IDENTITY_PUBLIC_SIGN_UP === 'open') refused.push('IDENTITY_PUBLIC_SIGN_UP');
+  return refused.sort();
+}
+
+function readBuildManifest(manifest: string | undefined): string[] {
+  const invalidManifest =
+    'Production release requires a valid INTERDOMESTIK_BUILT_PILOT_ENV manifest.';
+  let names: unknown;
+  try {
+    names = JSON.parse(manifest ?? '');
+  } catch {
+    throw new Error(invalidManifest);
+  }
+  if (
+    !Array.isArray(names) ||
+    !names.every(
+      name =>
+        typeof name === 'string' && name.startsWith('NEXT_PUBLIC_') && refusesNonEmptyValue(name)
+    )
+  ) {
+    throw new Error(invalidManifest);
+  }
+  return names;
+}
+
+export function assertPilotDeploymentEnv(
+  env: Readonly<NodeJS.Dict<string>>,
+  buildManifest: string | undefined
+): void {
   if (releaseClass(env) !== 'production') return;
 
-  const refused = PRODUCTION_REFUSALS.filter(name => env[name]);
-  if (env.IDENTITY_PUBLIC_SIGN_UP === 'open') refused.push('IDENTITY_PUBLIC_SIGN_UP');
-  for (const name of Object.keys(env)) {
-    if (env[name] && (name.startsWith('PADDLE_') || name.startsWith('NEXT_PUBLIC_PADDLE_'))) {
-      refused.push(name);
-    }
-  }
-  if (refused.length > 0) {
-    throw new Error(`Production release refuses ${refused.sort().join(', ')}`);
+  const refused = new Set([...readBuildManifest(buildManifest), ...refusedPilotEnvNames(env)]);
+  if (refused.size > 0) {
+    throw new Error(`Production release refuses ${[...refused].sort().join(', ')}`);
   }
 }

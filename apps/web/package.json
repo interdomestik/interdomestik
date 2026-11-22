@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "NEXT_PUBLIC_FORCE_NIPIO_REDIRECT=1 DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-test-secret-for-local-dev-only-32chars-minimum} next dev --turbo --hostname 127.0.0.1 --port 3000",
     "stamp:standalone": "node scripts/stamp-standalone.mjs",
-    "build": "node scripts/check-pilot-build-env.mjs && next build --webpack && pnpm run stamp:standalone && pnpm check:size",
-    "build:ci": "node scripts/check-pilot-build-env.mjs && next build --webpack && pnpm run stamp:standalone",
+    "build": "INTERDOMESTIK_BUILT_PILOT_ENV=\"$(node scripts/check-pilot-build-env.mjs)\" && export INTERDOMESTIK_BUILT_PILOT_ENV && next build --webpack && pnpm run stamp:standalone && pnpm check:size",
+    "build:ci": "INTERDOMESTIK_BUILT_PILOT_ENV=\"$(node scripts/check-pilot-build-env.mjs)\" && export INTERDOMESTIK_BUILT_PILOT_ENV && next build --webpack && pnpm run stamp:standalone",
     "check:size": "node scripts/check-size.mjs",
     "start": "next start",
     "start:ci": "next start",

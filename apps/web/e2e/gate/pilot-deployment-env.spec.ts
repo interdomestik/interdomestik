@@ -93,3 +93,21 @@ test('the built CI server starts on disposable targets and exits before readines
     )
   ).toEqual({ ready: false, exitCode: 1, refused: true });
 });
+
+test('the built CI server refuses a baked public test value in production', async ({}, testInfo) => {
+  test.skip(testInfo.project.name !== 'gate-ks-sq', 'Startup is independent of tenant and locale.');
+  test.skip(!testInfo.config.webServer, 'The startup contract uses the CI standalone artifact.');
+
+  expect(
+    await startBuiltServer(
+      {
+        PATH: process.env.PATH,
+        NODE_ENV: 'production',
+        INTERDOMESTIK_DEPLOY_ENV: 'production',
+        NEXT_PUBLIC_BILLING_TEST_MODE: '',
+        INTERDOMESTIK_BUILT_PILOT_ENV: '[]',
+      },
+      'NEXT_PUBLIC_BILLING_TEST_MODE'
+    )
+  ).toEqual({ ready: false, exitCode: 1, refused: true });
+});

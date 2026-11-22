@@ -41,19 +41,23 @@ export function isBillingTestActivationEnabled(env: NodeJS.ProcessEnv = process.
   );
 }
 
-export function releaseClass(
+export function hasPositiveProductionSignal(
   env: Readonly<NodeJS.Dict<string>> = process.env
-): 'local-e2e' | 'development' | 'staging' | 'production' {
-  const target = env.INTERDOMESTIK_DEPLOY_ENV;
-  if (
+): boolean {
+  return (
     env.VERCEL_ENV?.trim().toLowerCase() === 'production' ||
     env.VERCEL_TARGET_ENV?.trim().toLowerCase() === 'production' ||
     env.INTERDOMESTIK_PRODUCTION === '1' ||
-    target?.trim().toLowerCase() === 'production'
-  ) {
-    return 'production';
-  }
+    env.INTERDOMESTIK_DEPLOY_ENV?.trim().toLowerCase() === 'production'
+  );
+}
 
+export function releaseClass(
+  env: Readonly<NodeJS.Dict<string>> = process.env
+): 'local-e2e' | 'development' | 'staging' | 'production' {
+  if (hasPositiveProductionSignal(env)) return 'production';
+
+  const target = env.INTERDOMESTIK_DEPLOY_ENV;
   if (isHostedDeployment(env)) {
     return hostedAuthEnvironmentOf(env) === 'staging' &&
       (target === undefined || target === 'staging' || target === 'preview')
