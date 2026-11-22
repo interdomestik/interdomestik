@@ -25,10 +25,17 @@ describe('individual payment port input', () => {
     expect(recordSaleInputSchema.safeParse({ ...sale, buyer }).success).toBe(false);
   });
 
-  it.each(['', 'before\u0000after', '\uD800', '\uDFFF'])(
-    'refuses empty or unpreservable text %j',
+  it('refuses empty text', () => {
+    expect(recordSaleInputSchema.safeParse({ ...sale, termsVersion: '' }).success).toBe(false);
+  });
+
+  it.each(['before\u0000after', '\uD800', '\uDFFF'])(
+    'refuses unpreservable text %j',
     termsVersion => {
-      expect(recordSaleInputSchema.safeParse({ ...sale, termsVersion }).success).toBe(false);
+      expect(recordSaleInputSchema.safeParse({ ...sale, termsVersion })).toMatchObject({
+        success: false,
+        error: { issues: [{ code: 'invalid_format', path: ['termsVersion'] }] },
+      });
     }
   );
 

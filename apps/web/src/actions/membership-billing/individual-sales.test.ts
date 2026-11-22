@@ -184,3 +184,16 @@ it.each(['soldBy', 'sold_by', 'agentId', 'branchId', 'governingLaw'])(
     expect(mocks.sell).not.toHaveBeenCalled();
   }
 );
+
+it.each(['before\u0000after', '\uD800'])(
+  'rejects unpreservable sale terms %j',
+  async termsVersion => {
+    vi.resetAllMocks();
+    mocks.authorize.mockResolvedValue(authorizedSession(admin));
+    expect(await recordSale({ ...saleInput, termsVersion })).toMatchObject({
+      success: false,
+      code: 'VALIDATION_ERROR',
+      issues: { termsVersion: 'invalid_format' },
+    });
+  }
+);

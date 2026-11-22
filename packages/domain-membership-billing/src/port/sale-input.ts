@@ -4,7 +4,17 @@ import { z } from 'zod';
 const text = z
   .string()
   .min(1)
-  .refine(value => !value.includes('\0') && !/[\uD800-\uDFFF]/u.test(value));
+  .superRefine((value, ctx) => {
+    if (value === '' || value.includes('\0') || /[\uD800-\uDFFF]/u.test(value)) {
+      ctx.addIssue({
+        origin: 'string',
+        code: 'invalid_format',
+        format: 'regex',
+        // Preserve the pattern in Zod's issue and default message.
+        pattern: String.raw`/^[^\u0000\uD800-\uDFFF]+$/u`,
+      });
+    }
+  });
 
 export const publishPlanVersionInputSchema = z.strictObject({
   planId: text,
