@@ -4,6 +4,21 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { sendMessageDbCore } from './send-message';
 
+function send(user: Record<string, string>, isInternal = false) {
+  return sendMessageDbCore({
+    session: { user: { tenantId: 'tenant-1', ...user } } as typeof staffSession,
+    authority: mintTestTenantAuthority('tenant-1', {
+      userId: user.id,
+      role: user.role,
+      branchId: user.branchId,
+    }),
+    requestHeaders: new Headers(),
+    claimId: 'claim-1',
+    content: 'Hello',
+    isInternal,
+  });
+}
+
 // Who may send on a claim: split from send.test.ts to keep each focused test file small.
 describe('sendMessageDbCore send access', () => {
   beforeEach(resetSendMocks);
@@ -26,20 +41,6 @@ describe('sendMessageDbCore send access', () => {
       },
     ]);
   });
-
-  const send = (user: Record<string, string>, isInternal = false) =>
-    sendMessageDbCore({
-      session: { user: { tenantId: 'tenant-1', ...user } } as typeof staffSession,
-      authority: mintTestTenantAuthority('tenant-1', {
-        userId: user.id,
-        role: user.role,
-        branchId: user.branchId,
-      }),
-      requestHeaders: new Headers(),
-      claimId: 'claim-1',
-      content: 'Hello',
-      isInternal,
-    });
 
   // The branch manager owns the claim, so only the branch-manager rule can deny it.
   it.each([

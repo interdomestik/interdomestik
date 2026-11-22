@@ -39,8 +39,8 @@ export async function runNotificationDeliverySchedule(
       summary.leaseLost += result.lease_lost;
       summary.leaseShort += result.lease_short;
       summary.budgetShort += result.budget_short;
-    } catch (cause) {
-      const code = cause instanceof Error ? cause.name : 'UnknownError';
+    } catch (error) {
+      const code = error instanceof Error ? error.name : 'UnknownError';
       console.error('[Notification deliveries] Tenant run failed', {
         tenantId,
         error: new Error('Notification tenant run failed', { cause: code }),

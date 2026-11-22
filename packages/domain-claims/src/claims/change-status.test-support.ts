@@ -91,7 +91,8 @@ export function statusTransaction(rows: Store) {
       const name = getTableName(table);
       operations.push(`insert:${name}`);
       if (name === failingInsert) throw new Error(`failed insert into ${name}`);
-      (pending[name] ??= []).push(value);
+      pending[name] ??= [];
+      pending[name].push(value);
       const chain = {
         returning: () => Promise.resolve([{ id: value.id }]),
         onConflictDoNothing: () => chain,
@@ -106,7 +107,8 @@ export function statusTransaction(rows: Store) {
         const op = `update:${name}`;
         operations.push(op);
         track(op, where);
-        (pending[name] ??= []).push(values);
+        pending[name] ??= [];
+        pending[name].push(values);
         return {
           returning: () =>
             Promise.resolve(casConflict ? [] : [{ id: 'claim-1', lifecycleVersion: 7 }]),

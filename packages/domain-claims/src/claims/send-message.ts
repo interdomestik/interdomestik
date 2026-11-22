@@ -51,6 +51,14 @@ export type SendMessageDbCoreResult =
     }
   | { success: false; error: string };
 
+function lockLocalMessageActor(tx: TenantTransaction, tenantId: string, userId: string) {
+  return tx
+    .select({ id: user.id })
+    .from(user)
+    .where(withTenant(tenantId, user.tenantId, eq(user.id, userId)))
+    .for('share');
+}
+
 /**
  * Decides whether the actor may post this message on an in-tenant claim, returning the denial
  * reason or null. Checks run in a fixed order so each role keeps its established error.
@@ -92,18 +100,13 @@ async function findMessageSendDenial(args: {
     if (!canAccess) return 'Access denied: You can only message your assigned clients';
   }
 
-  if (args.isInternal) {
-    if (!hasPermission(role, PERMISSIONS['claims.update'])) {
-      return 'Only staff can send internal messages';
-    }
-    if (isFullTenantClaimsRole(role)) {
-      const [localActor] = await args.tx
-        .select({ id: user.id })
-        .from(user)
-        .where(withTenant(args.tenantId, user.tenantId, eq(user.id, userId)))
-        .for('share');
-      if (!localActor) return 'Access denied';
-    }
+  if (!args.isInternal) return null;
+  if (!hasPermission(role, PERMISSIONS['claims.update'])) {
+    return 'Only staff can send internal messages';
+  }
+  if (isFullTenantClaimsRole(role)) {
+    const [localActor] = await lockLocalMessageActor(args.tx, args.tenantId, userId);
+    if (!localActor) return 'Access denied';
   }
   return null;
 }

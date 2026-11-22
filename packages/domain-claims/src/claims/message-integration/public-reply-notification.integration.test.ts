@@ -14,6 +14,28 @@ import {
 
 const suite = process.env.MESSAGE_RLS_INTEGRATION === '1' ? describe : describe.skip;
 
+function sendStaffReply(label: string, options = {}) {
+  return fixture.send({
+    ...asActor(ids.staff, 'staff'),
+    requestHeaders: new Headers(),
+    claimId: ids.claim,
+    content: `Synthetic reply ${label}`,
+    ...options,
+  });
+}
+
+function notificationRows(messageId: string) {
+  return fixture.database.dbAdmin.query.notifications.findMany({
+    where: eq(fixture.database.notifications.id, `ntf_new_message_${messageId}`),
+  });
+}
+
+function deliveries(messageId: string) {
+  return fixture.database.dbAdmin.query.notificationDeliveries.findMany({
+    where: eq(fixture.database.notificationDeliveries.subjectMessageId, messageId),
+  });
+}
+
 suite('public reply notification under a restricted PostgreSQL login', () => {
   registerMessageRlsFixture();
   afterEach(async () => {
@@ -24,23 +46,6 @@ suite('public reply notification under a restricted PostgreSQL login', () => {
     `;
     expect(row).toEqual({ tenant: null, access: null, role: null });
   });
-
-  const sendStaffReply = (label: string, options = {}) =>
-    fixture.send({
-      ...asActor(ids.staff, 'staff'),
-      requestHeaders: new Headers(),
-      claimId: ids.claim,
-      content: `Synthetic reply ${label}`,
-      ...options,
-    });
-  const notificationRows = (messageId: string) =>
-    fixture.database.dbAdmin.query.notifications.findMany({
-      where: eq(fixture.database.notifications.id, `ntf_new_message_${messageId}`),
-    });
-  const deliveries = (messageId: string) =>
-    fixture.database.dbAdmin.query.notificationDeliveries.findMany({
-      where: eq(fixture.database.notificationDeliveries.subjectMessageId, messageId),
-    });
 
   it('keeps session and effective identities restricted, nonowning and without memberships', async () => {
     const [row] = await fixture.rlsClient`

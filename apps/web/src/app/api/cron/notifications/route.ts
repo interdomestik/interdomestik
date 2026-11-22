@@ -20,8 +20,8 @@ export async function GET(req: NextRequest) {
     const summary = await runNotificationDeliverySchedule(ingress);
     const success = summary.tenantFailures === 0;
     return NextResponse.json({ success, ...summary }, { status: success ? 200 : 500 });
-  } catch (cause) {
-    const code = cause instanceof Error ? cause.name : 'UnknownError';
+  } catch (error) {
+    const code = error instanceof Error ? error.name : 'UnknownError';
     console.error(
       '[Notification cron] Run failed',
       new Error('Notification cron failed', { cause: code })

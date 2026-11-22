@@ -107,6 +107,16 @@ function recordAssignmentAudit(
   });
 }
 
+function findAdminAssignmentDenial(
+  claim: Parameters<typeof claimStatusFromLifecycleFields>[0],
+  staffId: string | null
+): 'terminal' | 'draft' | null {
+  const status = claimStatusFromLifecycleFields(claim);
+  if (status === 'resolved' || status === 'rejected') return 'terminal';
+  if (staffId !== null && status === 'draft') return 'draft';
+  return null;
+}
+
 async function assignInTransaction(
   tx: TenantTransaction,
   actor: ClaimStatusActor,
@@ -129,9 +139,8 @@ async function assignInTransaction(
   if (!claim) return { ok: false, code: 'not_found' };
 
   if (actor.kind === 'admin') {
-    const status = claimStatusFromLifecycleFields(claim);
-    if (status === 'resolved' || status === 'rejected') return { ok: false, code: 'terminal' };
-    if (staffId !== null && status === 'draft') return { ok: false, code: 'draft' };
+    const denial = findAdminAssignmentDenial(claim, staffId);
+    if (denial) return { ok: false, code: denial };
   }
 
   if (claim.staffId === staffId && (actor.kind === 'staff' || staffId === null)) {

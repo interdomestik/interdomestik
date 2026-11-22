@@ -159,8 +159,10 @@ function createStatusFixture({ adminDb, dbRls, fixture }: Session) {
 
 export type StatusFixture = ReturnType<typeof createStatusFixture>;
 
+const noop = () => {};
+
 export function gate() {
-  let open = () => {};
+  let open = noop;
   const promise = new Promise<void>(resolve => {
     open = resolve;
   });

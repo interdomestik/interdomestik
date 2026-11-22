@@ -63,7 +63,7 @@ export function renderClaimMail(...args: ClaimMailRenderArgs): EmailTemplate {
   const { message, values = {} } = messageContent(...args);
   const interpolate = (template: string) =>
     template.replace(/\{(\w+)\}/g, (placeholder, name: string) => values[name] ?? placeholder);
-  const [intro, ...details] = message.body.split('\n').map(interpolate);
+  const [intro, ...details] = message.body.split('\n').map(line => interpolate(line));
 
   const baseUrl = new URL(facts.baseUrl);
   if (!['http:', 'https:'].includes(baseUrl.protocol) || baseUrl.username || baseUrl.password) {

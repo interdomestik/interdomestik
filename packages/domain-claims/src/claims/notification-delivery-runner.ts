@@ -6,6 +6,7 @@ import { withTenantAuthority } from '@interdomestik/database/tenant-authority-co
 import {
   configuredEmailTransports,
   sendEmailOutcome,
+  type EmailTransport,
 } from '@interdomestik/domain-communications/email';
 import { isPushConfigured, sendPushOutcome } from '@interdomestik/domain-communications/push';
 import {
@@ -79,6 +80,24 @@ async function sendPreparedDelivery(
   }
 }
 
+function resolveDeliveryTransport(
+  row: ClaimedDelivery,
+  deps: DeliveryDependencies,
+  configured: readonly EmailTransport[]
+) {
+  if (row.channel === 'push' && !(deps.pushConfigured ?? isPushConfigured)()) {
+    return deliveryFailure(row.transport ? 'transport_unavailable' : 'missing_vapid', false);
+  }
+  const transport = chooseTransport(row, configured);
+  if (!transport) {
+    return deliveryFailure(
+      row.transport ? 'transport_unavailable' : 'email_unconfigured',
+      !row.transport
+    );
+  }
+  return transport;
+}
+
 async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
   const { authority, deps, summary, timing, end, now } = ctx;
   const configured = (deps.emailTransports ?? configuredEmailTransports)();
@@ -114,22 +133,9 @@ async function workClaim(ctx: WorkContext, row: ClaimedDelivery) {
     return true;
   }
 
-  if (row.channel === 'push' && !(deps.pushConfigured ?? isPushConfigured)()) {
-    await finish(
-      deliveryFailure(row.transport ? 'transport_unavailable' : 'missing_vapid', false),
-      prepared.locale
-    );
-    return true;
-  }
-  const transport = chooseTransport(row, configured);
-  if (!transport) {
-    await finish(
-      deliveryFailure(
-        row.transport ? 'transport_unavailable' : 'email_unconfigured',
-        !row.transport
-      ),
-      prepared.locale
-    );
+  const transport = resolveDeliveryTransport(row, deps, configured);
+  if (typeof transport !== 'string') {
+    await finish(transport, prepared.locale);
     return true;
   }
 
