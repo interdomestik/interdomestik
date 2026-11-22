@@ -30,10 +30,11 @@ async function writeLegacyPreview(
   owner: { tenant: string; user: string; claim: string },
   id: string
 ) {
+  const actionUrl = `/member/claims/${owner.claim}`;
   await restricted(client, owner.tenant, async tx => {
     await tx`insert into notifications (id, tenant_id, user_id, type, title, content, action_url)
       values (${id}, ${owner.tenant}, ${owner.user}, 'new_message', 'New Message',
-        'Update on: Test claim', ${`/member/claims/${owner.claim}`})`;
+        'Update on: Test claim', ${actionUrl})`;
   });
 }
 

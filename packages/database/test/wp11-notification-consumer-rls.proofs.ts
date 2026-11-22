@@ -133,12 +133,14 @@ export async function proveStaffRouting(
   const otherBranch = randomUUID();
   const scoped = randomUUID();
   const assignee = randomUUID();
+  const scopedEmail = `${scoped}@example.test`;
+  const assigneeEmail = `${assignee}@example.test`;
   await client`insert into branches (id, tenant_id, name, slug)
     values (${homeBranch}, ${a.tenant}, 'Home branch', ${homeBranch}),
            (${otherBranch}, ${a.tenant}, 'Other branch', ${otherBranch})`;
   await client`insert into "user" (id, tenant_id, name, email, "emailVerified", role, branch_id, "createdAt", "updatedAt")
-    values (${scoped}, ${a.tenant}, 'Scoped staff', ${`${scoped}@example.test`}, false, 'staff', ${homeBranch}, now(), now()),
-           (${assignee}, ${a.tenant}, 'Out of scope assignee', ${`${assignee}@example.test`}, true, 'staff', ${otherBranch}, now(), now())`;
+    values (${scoped}, ${a.tenant}, 'Scoped staff', ${scopedEmail}, false, 'staff', ${homeBranch}, now(), now()),
+           (${assignee}, ${a.tenant}, 'Out of scope assignee', ${assigneeEmail}, true, 'staff', ${otherBranch}, now(), now())`;
   await client`update "user" set role='staff' where id=${b.user}`;
   await client`update claim set branch_id=${homeBranch}, "staffId"=${assignee} where id=${a.claim}`;
 

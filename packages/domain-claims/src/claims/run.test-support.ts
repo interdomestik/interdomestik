@@ -48,6 +48,19 @@ export function delivery(changes: Partial<Delivery> = {}): Delivery {
   };
 }
 
+function applyDeliveryFields(row: Delivery, fields: Record<string, unknown>, clock: number) {
+  for (const [key, value] of Object.entries(fields)) {
+    if (value instanceof SQL) {
+      const statement = dialect.sqlToQuery(value);
+      type TimestampKey = 'leaseUntil' | 'nextAttemptAt' | 'terminalAt' | 'sentAt';
+      const delay = key === 'leaseUntil' ? 600_000 : Number(statement.params[0] ?? 0);
+      row[key as TimestampKey] = timestamp(clock + delay);
+    } else {
+      Object.assign(row, { [key]: value });
+    }
+  }
+}
+
 type Harness = {
   tx: TenantTransaction;
   queries: string[];
@@ -147,14 +160,7 @@ export function harness(
           ) {
             return { returning: () => Promise.resolve([]) };
           }
-          for (const [key, value] of Object.entries(fields)) {
-            if (value instanceof SQL) {
-              const statement = dialect.sqlToQuery(value);
-              type TimestampKey = 'leaseUntil' | 'nextAttemptAt' | 'terminalAt' | 'sentAt';
-              const delay = key === 'leaseUntil' ? 600_000 : Number(statement.params[0] ?? 0);
-              row[key as TimestampKey] = timestamp(clock + delay);
-            } else Object.assign(row, { [key]: value });
-          }
+          applyDeliveryFields(row, fields, clock);
           if (isTransportWrite) clock += transportWriteQueryDelay;
           const returned = isTransportWrite
             ? { ...row, remainingLifetimeMs: remainingLifetime(row) }
