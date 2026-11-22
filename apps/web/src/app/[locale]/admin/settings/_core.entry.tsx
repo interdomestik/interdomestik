@@ -15,8 +15,9 @@ import { Separator } from '@interdomestik/ui/components/separator';
 import { Save, Settings2, ShieldCheck, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { PilotSwitchControl, type PilotSwitchControlProps } from './pilot-switch-control';
 
-export default function AdminSettingsPage() {
+export default function AdminSettingsPage({ pilotSwitches }: PilotSwitchControlProps) {
   const t = useTranslations('admin.settings_page');
 
   const handleSave = () => {
@@ -37,6 +38,8 @@ export default function AdminSettingsPage() {
       </div>
 
       <div className="grid gap-6">
+        <PilotSwitchControl pilotSwitches={pilotSwitches} />
+
         {/* General Settings */}
         <Card>
           <CardHeader>

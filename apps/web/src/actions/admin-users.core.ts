@@ -1,7 +1,8 @@
 'use server';
 
-import { runAuthenticatedAction, type ActionResult } from '@/lib/safe-action';
+import { actionFailure, runAuthenticatedAction, type ActionResult } from '@/lib/safe-action';
 import { requireEffectivePortalAccessOrUnauthorized } from '@/server/auth/effective-portal-access';
+import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
 
 import { getUsersCore } from './admin-users/get-users';
@@ -42,7 +43,7 @@ export async function resolveTenantClassification(params: {
   currentTenantId: string;
   nextTenantId?: string | null;
 }): ActionResult<void> {
-  return runAuthenticatedAction<void>(async ({ session, authority }) => {
+  const outcome = await runAuthenticatedAction(async ({ session, authority }) => {
     await requireEffectivePortalAccessOrUnauthorized(
       session,
       ['admin', 'tenant_admin', 'super_admin'],
@@ -60,9 +61,14 @@ export async function resolveTenantClassification(params: {
     if ('error' in result) {
       // A refusal carries its code end to end; the wrapper classifies by code, never by text.
       if (result.code === 'UNAUTHORIZED') throw new UnauthorizedError(String(result.error));
+      if (result.code === 'EMAIL_NOT_PROVEN') {
+        const t = await getTranslations('admin.member_profile.tenant_resolution');
+        return actionFailure(result.code, t('EMAIL_NOT_PROVEN'));
+      }
       throw new Error(String(result.error));
     }
   });
+  return outcome.success ? { success: true } : outcome;
 }
 
 export async function getUsers(

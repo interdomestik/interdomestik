@@ -4,14 +4,20 @@ const mocks = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
   enforceOtpRateLimits: vi.fn(),
   handlerPost: vi.fn(),
-  lookupTenant: vi.fn(),
+  lookupAccount: vi.fn(),
+  isPublicIntakeOpen: vi.fn(),
 }));
 
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: mocks.enforceRateLimit }));
 vi.mock('@/lib/rate-limit-otp', () => ({
   enforceOtpRateLimits: mocks.enforceOtpRateLimits,
 }));
-vi.mock('@/lib/auth/tenant-lookup', () => ({ lookupUserTenantByEmail: mocks.lookupTenant }));
+vi.mock('@/lib/auth/tenant-lookup', () => ({
+  lookupNeutralOtpAccountByEmail: mocks.lookupAccount,
+}));
+vi.mock('@/lib/tenant/public-intake-admission', () => ({
+  isPublicIntakeOpenForTenant: mocks.isPublicIntakeOpen,
+}));
 vi.mock('@interdomestik/database', () => ({ appendAnonymousTenantAuditEvent: vi.fn() }));
 vi.mock('@/lib/audit.core', () => ({
   extractRequestMetadata: (headers: Headers) => ({
@@ -42,11 +48,17 @@ function sendRequest(email: string, extra: Record<string, unknown> = {}) {
 describe('IDA-UI03a0b2 neutral OTP send route', () => {
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('INTERDOMESTIK_PRODUCTION', '1');
+    vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', 'tenant_ks');
     vi.stubEnv('OTP_RATE_LIMIT_HMAC_SECRET', 's'.repeat(32));
     mocks.enforceRateLimit.mockReset().mockResolvedValue(null);
     mocks.enforceOtpRateLimits.mockReset().mockResolvedValue(null);
     mocks.handlerPost.mockReset().mockImplementation(async () => Response.json({ success: true }));
-    mocks.lookupTenant.mockReset().mockResolvedValue('tenant_mk');
+    mocks.lookupAccount.mockReset().mockResolvedValue({
+      tenantId: 'tenant_ks',
+      tenantClassificationPending: true,
+    });
+    mocks.isPublicIntakeOpen.mockReset().mockResolvedValue(false);
   });
   afterEach(() => vi.unstubAllEnvs());
 
@@ -59,7 +71,8 @@ describe('IDA-UI03a0b2 neutral OTP send route', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(mocks.lookupTenant).not.toHaveBeenCalled();
+    expect(mocks.lookupAccount).toHaveBeenCalledWith('member@example.com');
+    expect(mocks.isPublicIntakeOpen).not.toHaveBeenCalled();
     expect(mocks.enforceRateLimit).not.toHaveBeenCalled();
     expect(mocks.enforceOtpRateLimits).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -82,7 +95,13 @@ describe('IDA-UI03a0b2 neutral OTP send route', () => {
     expect(mocks.handlerPost).toHaveBeenCalledTimes(1);
   });
 
-  it('C06 keeps registered and unregistered requests on one generic pre-response trace', async () => {
+  it('C06 gives eligible and unknown addresses the same send response when intake is closed', async () => {
+    mocks.lookupAccount
+      .mockResolvedValueOnce({
+        tenantId: 'tenant_ks',
+        tenantClassificationPending: true,
+      })
+      .mockResolvedValueOnce(null);
     const registered = await POST(sendRequest('registered@example.com'));
     const registeredTrace = mocks.enforceOtpRateLimits.mock.calls.map(([arg]) => arg.kind);
     mocks.enforceOtpRateLimits.mockClear();
@@ -91,8 +110,51 @@ describe('IDA-UI03a0b2 neutral OTP send route', () => {
 
     expect(await registered.json()).toEqual({ success: true });
     expect(await unregistered.json()).toEqual({ success: true });
+    expect(unregistered.status).toBe(registered.status);
     expect(registeredTrace).toEqual(['send', 'send']);
     expect(unregisteredTrace).toEqual(registeredTrace);
-    expect(mocks.lookupTenant).not.toHaveBeenCalled();
+    expect(mocks.handlerPost).toHaveBeenCalledTimes(1);
+    expect(mocks.isPublicIntakeOpen).toHaveBeenCalledExactlyOnceWith('tenant_ks');
+  });
+
+  it.each([
+    { tenantId: 'tenant_mk', tenantClassificationPending: true },
+    { tenantId: 'tenant_ks', tenantClassificationPending: false },
+    { tenantId: null, tenantClassificationPending: true },
+  ])(
+    'does not send or consult the switch for a known ineligible account ($tenantId)',
+    async account => {
+      mocks.lookupAccount.mockResolvedValueOnce(account);
+      const response = await POST(sendRequest('member@example.com'));
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ success: true });
+      expect(mocks.handlerPost).not.toHaveBeenCalled();
+      expect(mocks.isPublicIntakeOpen).not.toHaveBeenCalled();
+    }
+  );
+
+  it('returns identical identity limits before looking up known or unknown addresses', async () => {
+    mocks.enforceOtpRateLimits.mockImplementation(async ({ dimensions }) =>
+      dimensions.includes('identity')
+        ? Response.json({ code: 'RATE_LIMITED' }, { status: 429 })
+        : null
+    );
+    const known = await POST(sendRequest('registered@example.com'));
+    const unknown = await POST(sendRequest('new@example.com'));
+    expect(known.status).toBe(429);
+    expect(unknown.status).toBe(429);
+    expect(await unknown.text()).toBe(await known.text());
+    expect(mocks.lookupAccount).not.toHaveBeenCalled();
+    expect(mocks.isPublicIntakeOpen).not.toHaveBeenCalled();
+    expect(mocks.handlerPost).not.toHaveBeenCalled();
+  });
+
+  it('does not use the fallback door tenant when the explicit default is missing', async () => {
+    vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', undefined);
+    const response = await POST(sendRequest('registered@example.com'));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: true });
+    expect(mocks.lookupAccount).not.toHaveBeenCalled();
+    expect(mocks.handlerPost).not.toHaveBeenCalled();
   });
 });

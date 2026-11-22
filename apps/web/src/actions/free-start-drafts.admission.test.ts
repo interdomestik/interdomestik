@@ -3,6 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   createFreeStartDraftCore,
+  deleteFreeStartDraftCore,
+  listFreeStartDraftsCore,
+  resumeFreeStartDraftCore,
   updateFreeStartDraftCore,
   type FreeStartDraftLifecycleDependencies,
 } from './free-start-drafts/lifecycle.core';
@@ -10,6 +13,8 @@ import {
   resolveFreeStartDraftSession,
   type FreeStartDraftSessionContext,
 } from './free-start-drafts/session.core';
+
+vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 
 const headers = new Headers({ host: 'ida.interdomestik.com' });
 const context = {
@@ -35,6 +40,7 @@ function dependencies(
     createDraft: vi.fn().mockResolvedValue({ ok: false, code: 'limitReached' }),
     deleteDraft: vi.fn(),
     listDrafts: vi.fn(),
+    readIntakeOpen: vi.fn().mockResolvedValue(true),
     resolveSession: vi.fn().mockResolvedValue({ ok: true, context: current, emailVerified }),
     resumeDraft: vi.fn(),
     updateDraft: vi.fn().mockResolvedValue({ ok: false, code: 'notFound' }),
@@ -108,6 +114,35 @@ const staleAuthority: { current: FreeStartDraftSessionContext; label: string }[]
 ];
 
 describe('account draft admission before repository mutation', () => {
+  it('closes create and update before parsing, while read and delete still work', async () => {
+    const deps = dependencies(true);
+    vi.mocked(deps.readIntakeOpen).mockResolvedValue(false);
+    vi.mocked(deps.listDrafts).mockResolvedValue({ items: [], nextCursor: null });
+    vi.mocked(deps.resumeDraft).mockResolvedValue({ ok: false, code: 'notFound' });
+    vi.mocked(deps.deleteDraft).mockResolvedValue({ ok: true, id: randomUUID(), version: 2 });
+    const input = {
+      get id() {
+        throw new Error('input parsed');
+      },
+    };
+    const closed = { ok: false, code: 'CLOSED', error: 'draft.CLOSED' };
+    await expect(createFreeStartDraftCore(headers, input, deps)).resolves.toEqual(closed);
+    await expect(updateFreeStartDraftCore(headers, input, deps)).resolves.toEqual(closed);
+    expect(deps.readIntakeOpen).toHaveBeenCalledTimes(2);
+    expect(deps.readIntakeOpen).toHaveBeenCalledWith(context);
+    expect(deps.createDraft).not.toHaveBeenCalled();
+    expect(deps.updateDraft).not.toHaveBeenCalled();
+    await expect(listFreeStartDraftsCore(headers, {}, deps)).resolves.toMatchObject({ ok: true });
+    await expect(resumeFreeStartDraftCore(headers, { id: randomUUID() }, deps)).resolves.toEqual({
+      ok: false,
+      code: 'notFound',
+    });
+    await expect(
+      deleteFreeStartDraftCore(headers, { id: randomUUID(), expectedVersion: 1 }, deps)
+    ).resolves.toMatchObject({ ok: true });
+    expect(deps.readIntakeOpen).toHaveBeenCalledTimes(2);
+  });
+
   it('admits a verified unpaid owner using fresh authority, not client authority', async () => {
     const deps = dependencies(true);
     const input = { ...facts, clientRequestId: randomUUID(), expectedContext };

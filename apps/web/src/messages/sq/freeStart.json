@@ -1,5 +1,10 @@
 {
   "freeStart": {
+    "CLOSED": "Free Start është përkohësisht i mbyllur.",
+    "claimPack": { "CLOSED": "Përgatitja e paketës së kërkesës është përkohësisht e mbyllur." },
+    "draft": {
+      "CLOSED": "Ruajtja e ndryshimeve në draftet e Free Start është përkohësisht e mbyllur."
+    },
     "eyebrow": "ORGANIZONI RASTIN",
     "title": "Mblidhni faktet kryesore në një vend.",
     "subtitle": "Nuk duhet ta mbani gjithë situatën në mendje. Plotësoni vetëm atë që dini tani.",

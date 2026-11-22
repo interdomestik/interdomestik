@@ -448,6 +448,8 @@ export default defineConfig({
           BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:${PORT},http://localhost:${PORT},http://${KS_HOST},http://${MK_HOST},http://${AL_HOST},http://${PILOT_HOST},http://${IDA_HOST},http://${SECURE_IDA_HOST},${BASE_URL}`,
           INTERDOMESTIK_AUTOMATED: '1',
           INTERDOMESTIK_LOCAL_E2E: '1',
+          IDENTITY_PUBLIC_SIGN_UP: 'open',
+          DEFAULT_PUBLIC_TENANT_ID: process.env.DEFAULT_PUBLIC_TENANT_ID || 'tenant_ks',
           INTERDOMESTIK_E2E_DIAGNOSTICS: '1',
           INTERDOMESTIK_E2E_FAKE_STORAGE_SIGNING: '1',
           PLAYWRIGHT: '1',

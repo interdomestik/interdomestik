@@ -26,6 +26,26 @@
           "verbose_logging_desc": "Omogući detaljne logove za potrebe otklanjanja grešaka."
         }
       },
+      "pilot": {
+        "title": "Kontrole pilot-programa",
+        "description": "Upravljajte javnim prijemom i novim prodajama za svoju organizaciju.",
+        "switch": "Kontrola",
+        "public_intake": "Javni prijem",
+        "new_sales": "Nove prodaje",
+        "open": "Otvoreno",
+        "closed": "Zatvoreno",
+        "reason": "Razlog izmene (najmanje 10 znakova)",
+        "approval": "Referenca potpisanog odobrenja za ponovno otvaranje",
+        "approval_required": "Unesite referencu potpisanog odobrenja za ponovno otvaranje.",
+        "open_switch": "Otvori",
+        "close_switch": "Zatvori",
+        "unavailable": "Kontrole pilot-programa nisu mogle da se učitaju.",
+        "pending": "Izmena se čuva…",
+        "saved": "Kontrola pilot-programa je ažurirana.",
+        "failed": "Izmena nije sačuvana. Pokušajte ponovo.",
+        "conflict": "Kontrola je izmenjena. Ponovo učitajte stranicu i proverite trenutno stanje.",
+        "reload": "Ponovo učitaj kontrole"
+      },
       "save_changes": "Sačuvaj izmene",
       "success_message": "Podešavanja su uspešno ažurirana"
     }

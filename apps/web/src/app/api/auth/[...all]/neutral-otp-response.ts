@@ -1,3 +1,5 @@
+import type { NeutralOtpKind } from './neutral-otp-boundary';
+
 const BETTER_AUTH_SESSION_COOKIE_NAMES = new Set([
   'better-auth.session_token',
   'better-auth.session_data',
@@ -51,4 +53,10 @@ export function accountStop(headers: Headers): Response {
     { code: 'ACCOUNT_STOP', message: 'Unable to continue' },
     { status: 409, headers: safeHeaders }
   );
+}
+
+export function refuseNeutralOtpAccount(kind: NeutralOtpKind): Response {
+  return kind === 'send'
+    ? Response.json({ success: true })
+    : Response.json({ code: 'INVALID_OTP', message: 'Invalid OTP' }, { status: 400 });
 }

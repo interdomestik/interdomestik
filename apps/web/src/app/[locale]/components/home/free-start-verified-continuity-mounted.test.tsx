@@ -11,7 +11,7 @@ import { HomePageRuntime } from './home-page-runtime';
 const h = continuityBoundary();
 
 // prettier-ignore
-const renderPublicHome = () => render(<HomePageRuntime defaultPublicTenantId="tenant_ks" locale="en" neutralOtpHost={location.host} uiV2Enabled />);
+const renderPublicHome = () => render(<HomePageRuntime defaultPublicTenantId="tenant_ks" locale="en" neutralOtpHost={location.host} publicIntakeOpen uiV2Enabled />);
 
 describe('mounted verified-save continuity across session publication', () => {
   beforeEach(resetContinuityBoundary);

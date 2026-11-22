@@ -178,6 +178,7 @@
         "confirm_current_tenant": "Aktuellen Mandanten bestätigen",
         "confirmed": "Mandantenzuordnung bereits bestätigt.",
         "confirmed_success": "Mandantenzuordnung bestätigt",
+        "EMAIL_NOT_PROVEN": "Die kontoinhabende Person muss ihre E-Mail-Adresse verifizieren, bevor Sie die Mandantenzuordnung bestätigen können.",
         "reassign_label": "Dieses Konto zu einem anderen Mandanten verschieben",
         "reassign_tenant": "Mandant neu zuweisen",
         "reassigned_success": "Mandant neu zugewiesen",

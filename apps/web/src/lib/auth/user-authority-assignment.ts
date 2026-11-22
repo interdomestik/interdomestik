@@ -1,4 +1,6 @@
 import { getOAuthState } from 'better-auth/api';
+import { resolvePublicAdmissionTenant } from '@/lib/tenant/public-admission-tenant';
+import { isPublicIntakeOpenForTenant } from '@/lib/tenant/public-intake-admission';
 
 import {
   assertNoAuthorityFields,
@@ -30,8 +32,8 @@ async function requestIntent(context: unknown): Promise<unknown> {
   return recordValue(body?.additionalData)?.[AUTHORITY_INTENT_KEY];
 }
 
-async function canonicalIntent(context: unknown): Promise<OnboardingIntent> {
-  const intent = revalidateOnboardingIntent(await requestIntent(context), contextHeaders(context));
+async function canonicalIntent(context: unknown, headers: Headers): Promise<OnboardingIntent> {
+  const intent = revalidateOnboardingIntent(await requestIntent(context), headers);
   if (!intent) throw invalidOnboardingError();
   return intent;
 }
@@ -40,12 +42,18 @@ export async function assignUserAuthorityBeforeCreate(
   user: Record<string, unknown>,
   context: unknown
 ): Promise<{ data: Record<string, unknown> }> {
-  const intent = await canonicalIntent(context);
+  const headers = contextHeaders(context);
+  const tenantId = resolvePublicAdmissionTenant(headers);
+  if (!tenantId) throw invalidOnboardingError();
+  const intent = await canonicalIntent(context, headers);
+  if (intent.tenant !== tenantId || !(await isPublicIntakeOpenForTenant(tenantId))) {
+    throw invalidOnboardingError();
+  }
   return {
     data: {
       ...user,
       role: 'member',
-      tenantId: intent.tenant,
+      tenantId,
       branchId: null,
       memberNumber: null,
       tenantClassificationPending: intent.mode === 'deferred',

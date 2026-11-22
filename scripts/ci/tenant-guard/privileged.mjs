@@ -163,8 +163,7 @@ export const PRIVILEGED = new Map([
       form: 'call',
       callers: [
         'apps/web/src/actions/leads.core.ts',
-        'apps/web/src/lib/actions/business-membership-lead.ts',
-        'apps/web/src/actions/free-start/submit.core.ts',
+        'apps/web/src/lib/tenant/public-intake-admission.ts',
       ],
       reexports: [`${DB}/index.ts`],
     },

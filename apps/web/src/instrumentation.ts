@@ -1,15 +1,17 @@
 import * as Sentry from '@sentry/nextjs';
 
+import { assertPilotDeploymentEnv } from './lib/pilot-deployment-env';
 import { assertRenderingBuildMode } from './lib/rendering-build-mode';
 
 export function register() {
   try {
+    assertPilotDeploymentEnv(process.env);
     assertRenderingBuildMode(
       process.env.INTERDOMESTIK_BUILT_CSP_NONCE_MODE,
       process.env.CSP_NONCE_MODE
     );
   } catch (error) {
-    console.error(error instanceof Error ? error.message : 'Invalid rendering build mode.');
+    console.error(error instanceof Error ? error.message : 'Invalid startup configuration.');
     if (process.env.NEXT_RUNTIME === 'nodejs') {
       process.exit(1);
     }

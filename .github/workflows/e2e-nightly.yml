@@ -42,6 +42,9 @@ jobs:
     env:
       CI: '1'
       PLAYWRIGHT: '1'
+      INTERDOMESTIK_LOCAL_E2E: '1'
+      IDENTITY_PUBLIC_SIGN_UP: open
+      DEFAULT_PUBLIC_TENANT_ID: tenant_ks
       NEXT_PUBLIC_BILLING_TEST_MODE: '1'
       PW_REUSE_SERVER: '1'
       PORT: 3000
@@ -82,7 +85,7 @@ jobs:
         run: |
           set -euo pipefail
           pnpm seed:e2e
-          env -u PLAYWRIGHT -u INTERDOMESTIK_AUTOMATED NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_anon_test_key_local_e2e NEXT_PUBLIC_PADDLE_ENV=sandbox NEXT_PUBLIC_SENTRY_DSN= pnpm --filter @interdomestik/web run build:ci
+          NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_anon_test_key_local_e2e NEXT_PUBLIC_PADDLE_ENV=sandbox NEXT_PUBLIC_SENTRY_DSN= pnpm --filter @interdomestik/web run build:ci
 
       # ---- Run suites ----
       - name: Generate Playwright Gate Auth State (KS+MK)

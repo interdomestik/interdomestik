@@ -1,4 +1,4 @@
-import { eq, user } from '@interdomestik/database';
+import { and, eq, user } from '@interdomestik/database';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -97,7 +97,7 @@ async function confirmCurrentTenant(
   userId: string,
   currentTenantId: string,
   currentAuthority: TenantAuthority
-): Promise<{ previousPending: boolean } | null> {
+): Promise<{ previousPending: boolean } | 'EMAIL_NOT_PROVEN' | null> {
   return withTenantAuthority(currentAuthority, async tx => {
     const currentUser = await tx.query.user.findFirst({
       where: withTenant(currentTenantId, user.tenantId, eq(user.id, userId)),
@@ -105,12 +105,20 @@ async function confirmCurrentTenant(
     });
     if (!currentUser) return null;
 
+    // Mailbox proof can revoke credentials created before verification. Keep the account pending
+    // until this update observes a proven mailbox.
     const updated = await tx
       .update(user)
       .set({ tenantClassificationPending: false })
-      .where(withTenant(currentTenantId, user.tenantId, eq(user.id, userId)))
+      .where(
+        withTenant(
+          currentTenantId,
+          user.tenantId,
+          and(eq(user.id, userId), eq(user.emailVerified, true))
+        )
+      )
       .returning({ id: user.id });
-    if (updated.length !== 1) return null;
+    if (updated.length !== 1) return 'EMAIL_NOT_PROVEN';
 
     return { previousPending: currentUser.tenantClassificationPending === true };
   });
@@ -141,6 +149,9 @@ export async function resolveTenantClassificationCore(params: {
     const confirmed = await confirmCurrentTenant(params.userId, currentTenantId, currentAuthority);
     if (!confirmed) {
       return { error: 'User not found' };
+    }
+    if (confirmed === 'EMAIL_NOT_PROVEN') {
+      return { error: confirmed, code: confirmed };
     }
 
     return {

@@ -203,6 +203,8 @@ jobs:
       - name: E2E Gate Suite
         if: github.event_name != 'pull_request' && needs.validation-surface.outputs.main_e2e_reuse != '1'
         env:
+          IDENTITY_PUBLIC_SIGN_UP: open
+          DEFAULT_PUBLIC_TENANT_ID: tenant_ks
           E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
           E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
         run: pnpm e2e:gate

@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   headers: vi.fn(),
+  connection: vi.fn(),
+  admit: vi.fn(),
   session: vi.fn(),
   messages: vi.fn(async () => ({})),
   retired: vi.fn(),
@@ -35,6 +37,13 @@ vi.mock('next/dynamic', () => {
 });
 
 vi.mock('next/headers', () => ({ headers: hoisted.headers }));
+vi.mock('next/server', () => ({ connection: hoisted.connection }));
+vi.mock('@/lib/tenant/public-admission-tenant', () => ({
+  resolvePublicAdmissionTenant: () => 'tenant_ks',
+}));
+vi.mock('@/lib/tenant/public-intake-admission', () => ({
+  authorizeOpenPublicIntake: hoisted.admit,
+}));
 
 vi.mock('@/lib/auth.core', () => ({
   auth: {
@@ -110,6 +119,7 @@ const props = (locale: string, neutralOtpHost: string | null = 'front-door.local
   defaultPublicTenantId: 'tenant_ks',
   locale,
   neutralOtpHost,
+  publicIntakeOpen: true,
   uiV2Enabled: true,
 });
 
@@ -118,6 +128,7 @@ describe('HomePage server shell', () => {
     vi.clearAllMocks();
     process.env.IDA_HOST = 'https://front-door.localhost:3000';
     hoisted.flag = true;
+    hoisted.admit.mockResolvedValue({});
     hoisted.tenant.mockReturnValue('tenant_ks');
   });
 
@@ -138,10 +149,20 @@ describe('HomePage server shell', () => {
     );
   });
 
-  it('avoids request/session reads', async () => {
-    expect(await HomePage({ params: Promise.resolve({ locale: 'sq' }) })).toBeTruthy();
+  it('reads the current switch per request without resolving the session on the server', async () => {
+    await home();
+    hoisted.admit.mockResolvedValueOnce(null);
+    await home();
+    expect(hoisted.connection).toHaveBeenCalledTimes(2);
+    expect(hoisted.headers).toHaveBeenCalledTimes(2);
+    expect(hoisted.connection.mock.invocationCallOrder[0]).toBeLessThan(
+      hoisted.admit.mock.invocationCallOrder[0]
+    );
+    expect(hoisted.admit).toHaveBeenCalledWith('tenant_ks');
+    expect(hoisted.runtime).toHaveBeenLastCalledWith(
+      expect.objectContaining({ publicIntakeOpen: false })
+    );
     expect(hoisted.setLocale).toHaveBeenCalledWith('sq');
-    expect(hoisted.headers).not.toHaveBeenCalled();
     expect(hoisted.session).not.toHaveBeenCalled();
   });
 

@@ -21,7 +21,7 @@ type Plan = {
   icon: React.ElementType;
 };
 
-export function PricingSection() {
+export function PricingSection({ publicIntakeOpen }: { publicIntakeOpen: boolean }) {
   const t = useTranslations('pricing');
   const commercialTerms = useTranslations('commercialTerms');
   const locale = useLocale();
@@ -169,29 +169,31 @@ export function PricingSection() {
                 </ul>
               </div>
 
-              <div className="relative z-10 w-full">
-                <Link
-                  data-testid={`pricing-plan-link-${plan.id}`}
-                  href={getPublicMembershipEntryHref(plan.id)}
-                >
-                  <Button
-                    size="xl"
-                    className={`w-full h-16 text-lg font-black rounded-2xl transition-all duration-300 ${
-                      plan.popular
-                        ? 'brand-gradient text-white shadow-xl shadow-primary/20 hover:scale-[1.02] border-0'
-                        : 'bg-white text-slate-900 border-2 border-slate-100 hover:border-primary/20 hover:bg-slate-50'
-                    }`}
+              {publicIntakeOpen && (
+                <div className="relative z-10 w-full">
+                  <Link
+                    data-testid={`pricing-plan-link-${plan.id}`}
+                    href={getPublicMembershipEntryHref(plan.id)}
                   >
-                    {t('cta')}
-                  </Button>
-                </Link>
-                <div className="mt-6 flex items-center justify-center gap-2 grayscale group-hover:opacity-60 transition-all text-slate-800 font-bold">
-                  <ShieldCheck className="h-4 w-4" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">
-                    {t('joinSecurely')}
-                  </span>
+                    <Button
+                      size="xl"
+                      className={`w-full h-16 text-lg font-black rounded-2xl transition-all duration-300 ${
+                        plan.popular
+                          ? 'brand-gradient text-white shadow-xl shadow-primary/20 hover:scale-[1.02] border-0'
+                          : 'bg-white text-slate-900 border-2 border-slate-100 hover:border-primary/20 hover:bg-slate-50'
+                      }`}
+                    >
+                      {t('cta')}
+                    </Button>
+                  </Link>
+                  <div className="mt-6 flex items-center justify-center gap-2 grayscale group-hover:opacity-60 transition-all text-slate-800 font-bold">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                      {t('joinSecurely')}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>

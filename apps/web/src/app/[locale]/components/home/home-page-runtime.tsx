@@ -44,6 +44,7 @@ type HomePageRuntimeProps = Readonly<{
   defaultPublicTenantId: string;
   locale: string;
   neutralOtpHost: string | null;
+  publicIntakeOpen: boolean;
   uiV2Enabled: boolean;
 }>;
 
@@ -51,6 +52,7 @@ export function HomePageRuntime({
   defaultPublicTenantId,
   locale,
   neutralOtpHost,
+  publicIntakeOpen,
   uiV2Enabled,
 }: HomePageRuntimeProps) {
   const router = useRouter();
@@ -169,7 +171,25 @@ export function HomePageRuntime({
   });
   const publicHelpNowHref = '/help-now';
   const primaryHref = landingSession === null ? publicHelpNowHref : '/member';
-  const secondaryHref = landingSession === null ? PUBLIC_FREE_START_ANCHOR_HREF : continueHref;
+  const secondaryHref =
+    landingSession === null
+      ? publicIntakeOpen
+        ? PUBLIC_FREE_START_ANCHOR_HREF
+        : undefined
+      : continueHref;
+  const intake = publicIntakeOpen ? (
+    <FreeStartIntakeShell
+      key={`intake-${intakeInstance}`}
+      continueHref={continueHref}
+      draftAccount={draftAccount}
+      locale={locale}
+      neutralOtpHost={neutralOtpHost}
+      neutralOtpTenantId={defaultPublicTenantId}
+      onVerifiedOwner={onVerifiedOwner}
+      publicEntryEnabled={landingSession === null}
+      tenantId={tenantId}
+    />
+  ) : null;
 
   if (isPending) {
     return (
@@ -181,17 +201,7 @@ export function HomePageRuntime({
           secondaryHref={secondaryHref}
           tenantId={tenantId}
         />
-        <FreeStartIntakeShell
-          key={`intake-${intakeInstance}`}
-          continueHref={continueHref}
-          draftAccount={draftAccount}
-          locale={locale}
-          neutralOtpHost={neutralOtpHost}
-          neutralOtpTenantId={defaultPublicTenantId}
-          onVerifiedOwner={onVerifiedOwner}
-          publicEntryEnabled={landingSession === null}
-          tenantId={tenantId}
-        />
+        {intake}
       </>
     );
   }
@@ -207,17 +217,7 @@ export function HomePageRuntime({
         secondaryHref={secondaryHref}
         tenantId={tenantId}
       />
-      <FreeStartIntakeShell
-        key={`intake-${intakeInstance}`}
-        continueHref={continueHref}
-        draftAccount={draftAccount}
-        locale={locale}
-        neutralOtpHost={neutralOtpHost}
-        neutralOtpTenantId={defaultPublicTenantId}
-        onVerifiedOwner={onVerifiedOwner}
-        publicEntryEnabled={landingSession === null}
-        tenantId={tenantId}
-      />
+      {intake}
     </>
   );
 }

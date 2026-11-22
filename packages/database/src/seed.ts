@@ -3,7 +3,10 @@ import { config as loadEnv } from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { E2E_TENANT_STATE_FIXTURES } from './e2e-tenant-state-fixtures';
+import { PILOT_SWITCH_CATEGORY, PILOT_SWITCH_KEYS } from './pilot-switch';
 import {
+  assertDisposableTarget,
   assertSeedModeAllowed,
   assertSeedTargetAllowed,
   importSeedDatabase,
@@ -11,6 +14,7 @@ import {
 } from './seed-target-guard';
 import { seedFull } from './seed-full';
 import { seedGolden } from './seed-golden';
+import { TENANTS } from './seed-golden/constants';
 import { seedAgentPack } from './seed-packs/agent-pack';
 import { seedKsWorkflowPack } from './seed-packs/ks-workflow-pack';
 import { createSeedConfig, type SeedMode } from './seed-types';
@@ -219,6 +223,34 @@ function resolveSeedBaseTime(mode: SeedMode): Date {
   return new Date();
 }
 
+async function seedOpenPilotSwitches(
+  db: Awaited<ReturnType<typeof importSeedDatabase>>['db'],
+  { tenantSettings }: typeof import('./schema')
+) {
+  const tenantIds = [
+    ...Object.values(TENANTS),
+    ...Object.values(E2E_TENANT_STATE_FIXTURES).map(tenant => tenant.id),
+  ];
+  const value = { enabled: true, revision: 1 };
+  await db
+    .insert(tenantSettings)
+    .values(
+      tenantIds.flatMap(tenantId =>
+        PILOT_SWITCH_KEYS.map(key => ({
+          id: `e2e_pilot_${tenantId}_${key}`,
+          tenantId,
+          category: PILOT_SWITCH_CATEGORY,
+          key,
+          value,
+        }))
+      )
+    )
+    .onConflictDoUpdate({
+      target: [tenantSettings.tenantId, tenantSettings.category, tenantSettings.key],
+      set: { value },
+    });
+}
+
 async function main() {
   const targetClassification = assertSeedTargetAllowed(process.env);
   const args = process.argv.slice(2);
@@ -230,6 +262,7 @@ async function main() {
     await exitSeed(1);
   }
   assertSeedModeAllowed(mode, targetClassification);
+  if (mode === 'e2e') assertDisposableTarget(process.env);
 
   const seedBaseTime = resolveSeedBaseTime(mode);
   const receipt = buildReceipt(mode, seedBaseTime);
@@ -264,6 +297,7 @@ async function main() {
         await seedGolden(config);
         await seedKsWorkflowPack(config);
         await seedAgentPack(config);
+        await seedOpenPilotSwitches(db, schema);
         break;
 
       case 'golden':

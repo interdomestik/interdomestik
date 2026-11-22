@@ -5,14 +5,20 @@ const mocks = vi.hoisted(() => ({
   enforceOtpRateLimits: vi.fn(),
   getSession: vi.fn(),
   handlerPost: vi.fn(),
-  lookupTenant: vi.fn(),
+  lookupAccount: vi.fn(),
+  isPublicIntakeOpen: vi.fn(),
 }));
 
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: mocks.enforceRateLimit }));
 vi.mock('@/lib/rate-limit-otp', () => ({
   enforceOtpRateLimits: mocks.enforceOtpRateLimits,
 }));
-vi.mock('@/lib/auth/tenant-lookup', () => ({ lookupUserTenantByEmail: mocks.lookupTenant }));
+vi.mock('@/lib/auth/tenant-lookup', () => ({
+  lookupNeutralOtpAccountByEmail: mocks.lookupAccount,
+}));
+vi.mock('@/lib/tenant/public-intake-admission', () => ({
+  isPublicIntakeOpenForTenant: mocks.isPublicIntakeOpen,
+}));
 vi.mock('@interdomestik/database', () => ({ appendAnonymousTenantAuditEvent: vi.fn() }));
 vi.mock('@/lib/audit.core', () => ({
   extractRequestMetadata: (headers: Headers) => ({
@@ -47,6 +53,8 @@ function verifyRequest(body: Record<string, unknown>, origin = 'https://ida.inte
 describe('IDA-UI03a0b2 neutral OTP verify route', () => {
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('INTERDOMESTIK_PRODUCTION', '1');
+    vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', 'tenant_ks');
     vi.stubEnv('OTP_RATE_LIMIT_HMAC_SECRET', 's'.repeat(32));
     mocks.enforceRateLimit.mockReset().mockResolvedValue(null);
     mocks.enforceOtpRateLimits.mockReset().mockResolvedValue(null);
@@ -62,11 +70,15 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
           { headers: { 'set-cookie': 'better-auth.session_token=signed; Path=/; HttpOnly' } }
         )
       );
-    mocks.lookupTenant.mockReset().mockResolvedValue('tenant_ks');
+    mocks.lookupAccount.mockReset().mockResolvedValue({
+      tenantId: 'tenant_ks',
+      tenantClassificationPending: true,
+    });
+    mocks.isPublicIntakeOpen.mockReset().mockResolvedValue(false);
   });
   afterEach(() => vi.unstubAllEnvs());
 
-  it('C07 accepts only matching creation hints without a pre-verification tenant lookup', async () => {
+  it('C07 checks a known eligible account after both limits and forwards only matching hints', async () => {
     const response = await POST(
       verifyRequest({
         onboarding: { tenant: 'tenant_ks', mode: 'deferred' },
@@ -77,7 +89,12 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(mocks.lookupTenant).not.toHaveBeenCalled();
+    expect(mocks.lookupAccount).toHaveBeenCalledWith('member@example.com');
+    expect(mocks.isPublicIntakeOpen).not.toHaveBeenCalled();
+    expect(mocks.enforceOtpRateLimits.mock.invocationCallOrder[1]).toBeLessThan(
+      mocks.lookupAccount.mock.invocationCallOrder[0]
+    );
+    expect(mocks.lookupAccount).toHaveBeenCalledBefore(mocks.handlerPost);
     expect(mocks.enforceRateLimit).not.toHaveBeenCalled();
     expect(mocks.enforceOtpRateLimits).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -125,7 +142,7 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
         message: 'Unable to verify',
       });
     }
-    expect(mocks.lookupTenant).not.toHaveBeenCalled();
+    expect(mocks.lookupAccount).not.toHaveBeenCalled();
     expect(mocks.handlerPost).not.toHaveBeenCalled();
     expect(mocks.enforceOtpRateLimits).toHaveBeenCalledTimes(3);
     for (const [input] of mocks.enforceOtpRateLimits.mock.calls) {
@@ -150,5 +167,40 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
     expect(mocks.enforceOtpRateLimits).not.toHaveBeenCalled();
     expect(mocks.handlerPost).not.toHaveBeenCalled();
     expect(mocks.getSession).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    null,
+    { tenantId: 'tenant_mk', tenantClassificationPending: true },
+    { tenantId: 'tenant_ks', tenantClassificationPending: false },
+    { tenantId: null, tenantClassificationPending: true },
+  ])(
+    'returns INVALID_OTP without Better Auth for a closed or ineligible account (%j)',
+    async account => {
+      mocks.lookupAccount.mockResolvedValueOnce(account);
+      const response = await POST(
+        verifyRequest({ onboarding: { tenant: 'tenant_ks', mode: 'deferred' } })
+      );
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ code: 'INVALID_OTP', message: 'Invalid OTP' });
+      expect(mocks.handlerPost).not.toHaveBeenCalled();
+      expect(mocks.getSession).not.toHaveBeenCalled();
+      if (!account) expect(mocks.isPublicIntakeOpen).toHaveBeenCalledExactlyOnceWith('tenant_ks');
+      else expect(mocks.isPublicIntakeOpen).not.toHaveBeenCalled();
+    }
+  );
+
+  it('throttles verify before looking up the account or calling Better Auth', async () => {
+    mocks.enforceOtpRateLimits.mockImplementation(async ({ dimensions }) =>
+      dimensions.includes('identity')
+        ? Response.json({ code: 'RATE_LIMITED' }, { status: 429 })
+        : null
+    );
+    const response = await POST(
+      verifyRequest({ onboarding: { tenant: 'tenant_ks', mode: 'deferred' } })
+    );
+    expect(response.status).toBe(429);
+    expect(mocks.lookupAccount).not.toHaveBeenCalled();
+    expect(mocks.handlerPost).not.toHaveBeenCalled();
   });
 });

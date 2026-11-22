@@ -104,6 +104,26 @@ describe('Next rendering configuration', () => {
 });
 
 describe('instrumentation mode guard', () => {
+  it('refuses the pilot environment before testing the rendering mode or registering handlers', async () => {
+    vi.stubEnv('NEXT_RUNTIME', 'nodejs');
+    vi.stubEnv('INTERDOMESTIK_PRODUCTION', '1');
+    vi.stubEnv('IDENTITY_PUBLIC_SIGN_UP', 'open');
+    vi.stubEnv('INTERDOMESTIK_BUILT_CSP_NONCE_MODE', 'off');
+    vi.stubEnv('CSP_NONCE_MODE', 'report');
+    const handlers = vi.spyOn(process, 'on');
+    const exits = vi.spyOn(process, 'exit').mockImplementation(code => {
+      throw new Error(`process exited ${String(code)}`);
+    });
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { register } = await import('../instrumentation');
+
+    expect(() => register()).toThrow('process exited 1');
+    expect(exits).toHaveBeenCalledWith(1);
+    expect(errors).toHaveBeenCalledWith(expect.stringContaining('IDENTITY_PUBLIC_SIGN_UP'));
+    expect(errors).not.toHaveBeenCalledWith(expect.stringContaining('CSP_NONCE_MODE'));
+    expect(handlers).not.toHaveBeenCalled();
+  });
+
   it.each(['nodejs', 'edge'])('preserves matching %s initialization', async runtime => {
     vi.stubEnv('NEXT_RUNTIME', runtime);
     vi.stubEnv('INTERDOMESTIK_BUILT_CSP_NONCE_MODE', 'report');

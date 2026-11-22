@@ -15,16 +15,20 @@ const STAGING_AUTH_HOSTS: readonly string[] = [
 
 export type HostedAuthEnvironment = 'production' | 'staging';
 
-export function isHostedDeployment(): boolean {
-  return process.env.VERCEL === '1' || Boolean(process.env.VERCEL_URL?.trim());
+export function isHostedDeployment(env: Readonly<NodeJS.Dict<string>> = process.env): boolean {
+  return env.VERCEL === '1' || Boolean(env.VERCEL_URL?.trim());
 }
 
-export function hostedAuthEnvironment(): HostedAuthEnvironment {
-  const vercelEnv = process.env.VERCEL_ENV?.trim();
-  const targetEnv = process.env.VERCEL_TARGET_ENV?.trim();
+export function hostedAuthEnvironmentOf(env: Readonly<NodeJS.Dict<string>>): HostedAuthEnvironment {
+  const vercelEnv = env.VERCEL_ENV?.trim();
+  const targetEnv = env.VERCEL_TARGET_ENV?.trim();
   return vercelEnv === 'preview' && (!targetEnv || targetEnv === 'preview')
     ? 'staging'
     : 'production';
+}
+
+export function hostedAuthEnvironment(): HostedAuthEnvironment {
+  return hostedAuthEnvironmentOf(process.env);
 }
 
 export function hostedAuthHosts(environment = hostedAuthEnvironment()): readonly string[] {

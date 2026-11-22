@@ -2,6 +2,10 @@ import { BASE_NAMESPACES, HOME_NAMESPACES, pickMessages } from '@/i18n/messages'
 import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
+import { connection } from 'next/server';
+import { resolvePublicAdmissionTenant } from '@/lib/tenant/public-admission-tenant';
+import { authorizeOpenPublicIntake } from '@/lib/tenant/public-intake-admission';
 import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
 
 // Vercel Best Practice: Direct Imports (bundle-barrel-imports)
@@ -11,6 +15,8 @@ import { Header } from './components/home/header';
 import { HomePageRuntime } from './components/home/home-page-runtime';
 import { PricingSection } from './components/home/pricing-section';
 export { generateLocaleStaticParams as generateStaticParams } from '@/app/_locale-static-params';
+
+export const instant = false;
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -31,8 +37,11 @@ function resolveNeutralOtpHost(): string | null {
 }
 
 export default async function HomePage({ params }: Props) {
+  await connection();
   const { locale } = await params;
   setRequestLocale(locale);
+  const admissionTenantId = resolvePublicAdmissionTenant(await headers());
+  const publicIntakeOpen = (await authorizeOpenPublicIntake(admissionTenantId)) !== null;
   const defaultPublicTenantId = resolveDefaultPublicTenantId();
   const neutralOtpHost = resolveNeutralOtpHost();
 
@@ -56,9 +65,10 @@ export default async function HomePage({ params }: Props) {
           defaultPublicTenantId={defaultPublicTenantId}
           locale={locale}
           neutralOtpHost={neutralOtpHost}
+          publicIntakeOpen={publicIntakeOpen}
           uiV2Enabled={true}
         />
-        <PricingSection />
+        <PricingSection publicIntakeOpen={publicIntakeOpen} />
         <Footer />
       </main>
     </NextIntlClientProvider>

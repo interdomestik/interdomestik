@@ -9,7 +9,9 @@ const hoisted = vi.hoisted(() => {
 
   return {
     entityDisclosure,
-    headersMock: vi.fn(async () => new Headers([['host', 'ks.localhost:3000']])),
+    headersMock: vi.fn(async () => new Headers([['host', 'ks.127.0.0.1.nip.io:3000']])),
+    authorize: vi.fn(),
+    newSales: vi.fn(),
     getSessionMock: vi.fn(async () => ({ user: { id: 'user-1', email: 'member@example.com' } })),
     getPublicBillingCheckoutConfigMock: vi.fn(() => ({
       entity: 'ks',
@@ -19,8 +21,8 @@ const hoisted = vi.hoisted(() => {
       clientToken: 'test_client_token_ks',
       priceIds: { standardYear: 'standard', familyYear: 'family', businessYear: 'business' },
     })),
-    resolveBillingEntityFromPathSegmentMock: vi.fn(() => 'ks'),
-    resolveBillingTenantIdForEntityMock: vi.fn(() => 'tenant_ks'),
+    resolveBillingEntityFromPathSegmentMock: vi.fn((entity?: string) => entity ?? null),
+    resolveBillingTenantIdForEntityMock: vi.fn((entity: string) => `tenant_${entity}`),
     pricingPageRuntimeMock: vi.fn((_: unknown) => null),
   };
 });
@@ -29,6 +31,16 @@ const ORIGINAL_ENV = { ...process.env };
 
 vi.mock('next/headers', () => ({
   headers: hoisted.headersMock,
+}));
+
+vi.mock('@/lib/auth-client', () => ({ authClient: { useSession: () => ({ data: null }) } }));
+vi.mock('@/components/pricing/pricing-table/use-sponsor-checkout-notice', () => ({
+  useSponsorCheckoutNotice: () => ({ notice: null }),
+}));
+
+vi.mock('@/lib/tenant/public-intake-admission', () => ({
+  authorizeOpenPublicIntake: hoisted.authorize,
+  isPublicCheckoutOpen: hoisted.newSales,
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -47,6 +59,7 @@ vi.mock('next-intl/server', () => ({
 
 vi.mock('@interdomestik/domain-membership-billing/paddle-server', () => ({
   getPublicBillingCheckoutConfig: hoisted.getPublicBillingCheckoutConfigMock,
+  resolveBillingEntityForTenantId: (tenantId?: string) => tenantId?.split('_')[1] ?? null,
   resolveBillingEntityFromPathSegment: hoisted.resolveBillingEntityFromPathSegmentMock,
   resolveBillingTenantIdForEntity: hoisted.resolveBillingTenantIdForEntityMock,
 }));
@@ -71,15 +84,22 @@ describe('PricingPage server shell', () => {
   beforeEach(() => {
     process.env = { ...ORIGINAL_ENV };
     process.env.IDA_HOST = 'https://ida.example.test';
+    process.env.DATABASE_URL = 'postgresql://fixture@localhost:5432/test';
+    process.env.DATABASE_URL_RLS = 'postgresql://fixture@localhost:5432/test';
+    process.env.PADDLE_DEFAULT_BILLING_ENTITY = 'ks';
+    delete process.env.NEXT_PUBLIC_PADDLE_BILLING_ENTITY;
     delete process.env.BILLING_TEST_MODE;
     delete process.env.NEXT_PUBLIC_BILLING_TEST_MODE;
     vi.clearAllMocks();
+    hoisted.authorize.mockResolvedValue({});
+    hoisted.newSales.mockResolvedValue(true);
+    hoisted.headersMock.mockResolvedValue(new Headers({ host: 'ks.127.0.0.1.nip.io:3000' }));
   });
   afterEach(() => {
     process.env = { ...ORIGINAL_ENV };
   });
 
-  it('C29 passes only the trusted pricing entry and validated plan without headers or session', async () => {
+  it('C29 passes only the trusted pricing entry and validated plan under the header tenant without a server session', async () => {
     const tree = await PricingPage({
       params: Promise.resolve({ locale: 'sq' }),
       searchParams: Promise.resolve({ plan: 'family' }),
@@ -120,7 +140,8 @@ describe('PricingPage server shell', () => {
       neutralEntryPlan: 'family',
       neutralPricingEntryUrl: 'https://ida.example.test/sq/pricing',
     });
-    expect(hoisted.headersMock).not.toHaveBeenCalled();
+    expect(hoisted.headersMock).toHaveBeenCalledOnce();
+    expect(hoisted.authorize).toHaveBeenCalledExactlyOnceWith('tenant_ks');
     expect(hoisted.getSessionMock).not.toHaveBeenCalled();
   });
 
@@ -144,8 +165,53 @@ describe('PricingPage server shell', () => {
     expect(screen.getByTestId('register-coverage-matrix')).toBeVisible();
   });
 
+  it.each(['ks', 'mk'])(
+    'preserves the disposable CI billing fixture on %s with both keys open',
+    async country => {
+      delete process.env.PADDLE_DEFAULT_BILLING_ENTITY;
+      process.env.NEXT_PUBLIC_BILLING_TEST_MODE = '1';
+      process.env.BILLING_TEST_MODE = '1';
+      process.env.INTERDOMESTIK_LOCAL_E2E = '1';
+      process.env.PLAYWRIGHT = '1';
+      hoisted.headersMock.mockResolvedValueOnce(
+        new Headers({ host: `${country}.127.0.0.1.nip.io:3000` })
+      );
+      render(await PricingPage({ params: Promise.resolve({ locale: 'sq' }) }));
+      expect(hoisted.pricingPageRuntimeMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          billingTestMode: true,
+          billingTenantId: `tenant_${country}`,
+          checkoutConfig: null,
+        })
+      );
+      expect(hoisted.getPublicBillingCheckoutConfigMock).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['public_intake', 'new_sales', 'tenant', 'checkout_entity'])(
+    'renders display-only plans and skips Paddle config when blocked by %s',
+    async blockedBy => {
+      if (blockedBy === 'public_intake') hoisted.authorize.mockResolvedValueOnce(null);
+      if (blockedBy === 'new_sales') hoisted.newSales.mockResolvedValueOnce(false);
+      if (blockedBy === 'tenant') process.env.PADDLE_DEFAULT_BILLING_ENTITY = 'mk';
+      if (blockedBy === 'checkout_entity') process.env.NEXT_PUBLIC_PADDLE_BILLING_ENTITY = 'mk';
+
+      render(
+        await PricingPage({
+          params: Promise.resolve({ locale: 'sq' }),
+          searchParams: Promise.resolve({ plan: 'family' }),
+        })
+      );
+
+      expect(screen.getByText('pricing.CLOSED')).toBeVisible();
+      expect(screen.getByTestId('plan-card-family')).toBeVisible();
+      expect(screen.queryByTestId('plan-cta-family')).not.toBeInTheDocument();
+      expect(hoisted.pricingPageRuntimeMock).not.toHaveBeenCalled();
+      expect(hoisted.getPublicBillingCheckoutConfigMock).not.toHaveBeenCalled();
+    }
+  );
+
   it('keeps rendering the pricing shell during local sandbox builds when checkout config is unavailable', async () => {
-    vi.stubEnv('NODE_ENV', 'production');
     process.env.NEXT_PUBLIC_PADDLE_ENV = 'sandbox';
     delete process.env.VERCEL_ENV;
 
@@ -173,7 +239,6 @@ describe('PricingPage server shell', () => {
   });
 
   it('fails closed in production Paddle mode when public checkout config is unavailable', async () => {
-    vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('NEXT_PUBLIC_PADDLE_ENV', 'production');
     delete process.env.VERCEL_ENV;
 

@@ -2,16 +2,19 @@ import {
   createFreeStartDraft,
   deleteFreeStartDraft,
   listFreeStartDrafts,
+  readFreeStartDraftIntakeOpen,
   resumeFreeStartDraft,
   updateFreeStartDraft,
   type FreeStartDraftContext,
   type FreeStartDraftFacts,
 } from '@interdomestik/database/free-start-drafts';
+import * as Sentry from '@sentry/nextjs';
+import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
 
 import { freeStartDraftPayloadSchema } from '@/lib/validators/free-start-draft';
 
-import { resolveFreeStartDraftSession } from './session.core';
+import { resolveFreeStartDraftSession, type FreeStartDraftSessionResult } from './session.core';
 
 /**
  * The account/tenant the client believes it captured. It is compared against fresh server
@@ -46,6 +49,7 @@ export type FreeStartDraftLifecycleDependencies = {
   createDraft: typeof createFreeStartDraft;
   deleteDraft: typeof deleteFreeStartDraft;
   listDrafts: typeof listFreeStartDrafts;
+  readIntakeOpen: typeof readFreeStartDraftIntakeOpen;
   resolveSession: typeof resolveFreeStartDraftSession;
   resumeDraft: typeof resumeFreeStartDraft;
   updateDraft: typeof updateFreeStartDraft;
@@ -55,6 +59,7 @@ const defaultDependencies: FreeStartDraftLifecycleDependencies = {
   createDraft: createFreeStartDraft,
   deleteDraft: deleteFreeStartDraft,
   listDrafts: listFreeStartDrafts,
+  readIntakeOpen: readFreeStartDraftIntakeOpen,
   resolveSession: resolveFreeStartDraftSession,
   resumeDraft: resumeFreeStartDraft,
   updateDraft: updateFreeStartDraft,
@@ -100,6 +105,15 @@ async function withFreshContext<T>(
 ): Promise<T | BoundaryFailure> {
   const session = await dependencies.resolveSession(requestHeaders);
   if (!session.ok) return session;
+  return runWithContext(session, operation, expectedContext, admission);
+}
+
+async function runWithContext<T>(
+  session: Extract<FreeStartDraftSessionResult, { ok: true }>,
+  operation: (context: FreeStartDraftContext) => Promise<T>,
+  expectedContext?: FreeStartDraftExpectedContext,
+  admission: 'write' | 'read' = 'write'
+): Promise<T | BoundaryFailure> {
   if (expectedContext) {
     if (admission === 'write' && session.emailVerified !== true) {
       return { ok: false, code: 'authRequired' };
@@ -112,6 +126,27 @@ async function withFreshContext<T>(
   } catch {
     return { ok: false, code: 'unavailable' };
   }
+}
+
+async function withOpenDraftIntake<T>(
+  requestHeaders: Headers,
+  dependencies: FreeStartDraftLifecycleDependencies,
+  operation: (session: Extract<FreeStartDraftSessionResult, { ok: true }>) => Promise<T>
+) {
+  const session = await dependencies.resolveSession(requestHeaders);
+  if (!session.ok) return session;
+
+  let open = false;
+  try {
+    open = await dependencies.readIntakeOpen(session.context);
+  } catch (error) {
+    Sentry.captureException(error, { tags: { operation: 'pilot.freeStartDraftIntake' } });
+  }
+  if (!open) {
+    const t = await getTranslations('freeStart');
+    return { ok: false, code: 'CLOSED', error: t('draft.CLOSED') } as const;
+  }
+  return operation(session);
 }
 
 /**
@@ -139,15 +174,16 @@ export async function createFreeStartDraftCore(
   input: unknown,
   dependencies = defaultDependencies
 ) {
-  const parsed = createSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, code: 'invalid' } as const;
-  const { clientRequestId } = parsed.data;
-  return withFreshContext(
-    requestHeaders,
-    dependencies,
-    context => dependencies.createDraft(context, { ...facts(parsed.data), clientRequestId }),
-    parsed.data.expectedContext
-  );
+  return withOpenDraftIntake(requestHeaders, dependencies, async session => {
+    const parsed = createSchema.safeParse(input);
+    if (!parsed.success) return { ok: false, code: 'invalid' } as const;
+    const { clientRequestId } = parsed.data;
+    return runWithContext(
+      session,
+      context => dependencies.createDraft(context, { ...facts(parsed.data), clientRequestId }),
+      parsed.data.expectedContext
+    );
+  });
 }
 
 export async function listFreeStartDraftsCore(
@@ -200,15 +236,16 @@ export async function updateFreeStartDraftCore(
   input: unknown,
   dependencies = defaultDependencies
 ) {
-  const parsed = updateSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, code: 'invalid' } as const;
-  const { expectedVersion, id } = parsed.data;
-  return withFreshContext(
-    requestHeaders,
-    dependencies,
-    context => dependencies.updateDraft(context, { ...facts(parsed.data), expectedVersion, id }),
-    parsed.data.expectedContext
-  );
+  return withOpenDraftIntake(requestHeaders, dependencies, async session => {
+    const parsed = updateSchema.safeParse(input);
+    if (!parsed.success) return { ok: false, code: 'invalid' } as const;
+    const { expectedVersion, id } = parsed.data;
+    return runWithContext(
+      session,
+      context => dependencies.updateDraft(context, { ...facts(parsed.data), expectedVersion, id }),
+      parsed.data.expectedContext
+    );
+  });
 }
 
 export async function deleteFreeStartDraftCore(

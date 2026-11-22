@@ -67,6 +67,7 @@ export type DraftSaveState =
   | 'invalid'
   | 'unsupported'
   | 'accountContext'
+  | 'closed'
   | 'error'
   | 'deleted';
 
@@ -161,6 +162,7 @@ export function createUuidV4(): string {
 }
 
 export function draftFailureState(code: string): DraftSaveState {
+  if (code === 'CLOSED') return 'closed';
   if (code === 'invalid') return 'invalid';
   if (code === 'unavailableAccountContext') return 'accountContext';
   if (code === 'limitReached') return 'limit';

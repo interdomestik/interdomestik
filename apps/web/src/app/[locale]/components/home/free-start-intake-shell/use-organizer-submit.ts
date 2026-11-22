@@ -84,7 +84,11 @@ export function useOrganizerSubmit(options: SubmitOptions) {
 
     if (!result.success) {
       const message =
-        result.code === 'INVALID_PAYLOAD' ? options.validationMessage : options.retryMessage;
+        result.code === 'CLOSED'
+          ? result.error
+          : result.code === 'INVALID_PAYLOAD'
+            ? options.validationMessage
+            : options.retryMessage;
       settle();
       // A failure the customer has already moved on from must not replace a newer request's error
       // state, nor clear the busy state of the finish that is running now.

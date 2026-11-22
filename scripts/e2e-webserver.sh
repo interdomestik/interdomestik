@@ -19,6 +19,9 @@ export BETTER_AUTH_TRUSTED_ORIGINS="${BETTER_AUTH_TRUSTED_ORIGINS:-http://127.0.
 export NODE_OPTIONS="${NODE_OPTIONS:---dns-result-order=ipv4first}"
 export INTERDOMESTIK_AUTOMATED="${INTERDOMESTIK_AUTOMATED:-1}"
 export PLAYWRIGHT="${PLAYWRIGHT:-1}"
+export INTERDOMESTIK_LOCAL_E2E="${INTERDOMESTIK_LOCAL_E2E:-1}"
+export IDENTITY_PUBLIC_SIGN_UP="${IDENTITY_PUBLIC_SIGN_UP:-open}"
+export DEFAULT_PUBLIC_TENANT_ID="${DEFAULT_PUBLIC_TENANT_ID:-tenant_ks}"
 
 # Preserve explicit shell-provided values before sourcing env files.
 INHERITED_DATABASE_URL="${DATABASE_URL:-}"
@@ -410,7 +413,7 @@ rebuild_standalone_once() {
 	echo "   stamp cspNonceMode: ${STAMP_CSP_NONCE_MODE:-<missing>}" >&2
 	echo "   requested cspNonceMode: ${CURRENT_CSP_NONCE_MODE:-<missing>}" >&2
 	rm -rf "${WEB_DIR}/.next"
-	env -u PLAYWRIGHT -u INTERDOMESTIK_AUTOMATED pnpm --filter @interdomestik/web run build:ci
+	pnpm --filter @interdomestik/web run build:ci
 	link_standalone_static_assets
 	return 0
 }

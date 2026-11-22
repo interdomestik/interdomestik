@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,6 +12,10 @@ const mockRateLimit = vi.fn();
 vi.mock('@interdomestik/database', async () =>
   (await import('@/lib/commercial-action-idempotency-test-support')).databaseModuleMock()
 );
+
+vi.mock('@/lib/tenant/public-intake-admission', () => ({
+  authorizeOpenPublicIntake: async (tenantId: string) => mintTestTenantAuthority(tenantId),
+}));
 
 vi.mock('@/lib/rate-limit', () => ({
   enforceRateLimitForAction: (...args: unknown[]) => mockRateLimit(...args),
@@ -58,7 +63,7 @@ const successDto = {
 function submit(overrides: Partial<Parameters<typeof submitFreeStartIntakeCore>[0]> = {}) {
   return submitFreeStartIntakeCore({
     idempotencyKey: KEY,
-    requestHeaders: new Headers({ host: 'ks.interdomestik.com' }),
+    requestHeaders: new Headers({ host: 'ks.127.0.0.1.nip.io' }),
     data: validInput,
     ...overrides,
   });
@@ -129,6 +134,8 @@ function expectOwnTenantStorageOnly(statements: number): void {
 describe('submitFreeStartIntakeCore keyed reservation adapter', () => {
   beforeEach(() => {
     resetStorage();
+    vi.stubEnv('DATABASE_URL', 'postgresql://fixture@localhost:5432/test');
+    vi.stubEnv('DATABASE_URL_RLS', 'postgresql://fixture@localhost:5432/test');
   });
 
   afterEach(() => {
@@ -136,7 +143,7 @@ describe('submitFreeStartIntakeCore keyed reservation adapter', () => {
   });
 
   it.each(REQUEST_CASES)(
-    'reserves a fresh key in the technical partition with a null actor via $name',
+    'reserves a fresh key in the admitted tenant with a null actor via $name',
     async request => {
       await expect(submitVia(request)).resolves.toEqual(successDto);
 
@@ -160,7 +167,7 @@ describe('submitFreeStartIntakeCore keyed reservation adapter', () => {
   );
 
   it.each(REQUEST_CASES)(
-    'replays a completed same-fingerprint shared-partition reservation via $name',
+    'replays a completed same-fingerprint same-tenant reservation via $name',
     async request => {
       const hash = await captureFingerprintHash();
       const cached = { ...successDto, data: { ...successDto.data, intakeIssue: 'cached_issue' } };

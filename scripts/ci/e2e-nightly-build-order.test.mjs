@@ -53,7 +53,6 @@ function expectedBuildLine() {
     'Playwright must assign the normalized Paddle environment'
   );
   return [
-    'env -u PLAYWRIGHT -u INTERDOMESTIK_AUTOMATED',
     `NEXT_PUBLIC_SUPABASE_URL=${scriptDefault('LOCAL_SUPABASE_URL')}`,
     `NEXT_PUBLIC_SUPABASE_ANON_KEY=${scriptDefault('LOCAL_SUPABASE_ANON_KEY')}`,
     'NEXT_PUBLIC_PADDLE_ENV=sandbox',
@@ -102,6 +101,10 @@ const violation = (steps, predecessors = ALLOWED_BEFORE_BUILD) =>
 test('Nightly E2E builds the app, as the lazy web-server build would, before every Playwright step', () => {
   const workflow = yaml.load(readText('.github/workflows/e2e-nightly.yml'));
   const { env, steps } = workflow.jobs.e2e;
+  assert.equal(env.PLAYWRIGHT, '1');
+  assert.equal(env.INTERDOMESTIK_LOCAL_E2E, '1');
+  assert.equal(env.IDENTITY_PUBLIC_SIGN_UP, 'open');
+  assert.equal(env.DEFAULT_PUBLIC_TENANT_ID, 'tenant_ks');
   assert.ok(
     !Object.hasOwn(env ?? {}, 'NEXT_PUBLIC_PADDLE_ENV'),
     'Nightly E2E must use the default Paddle environment'
