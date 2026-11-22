@@ -116,6 +116,9 @@ importers:
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
+      enhanced-resolve:
+        specifier: 5.25.1
+        version: 5.25.1
       glob:
         specifier: ^13.0.6
         version: 13.0.6
@@ -405,6 +408,9 @@ importers:
       eslint-plugin-boundaries:
         specifier: ^5.3.1
         version: 5.3.1(@typescript-eslint/parser@8.70.0(eslint@9.39.2(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.2(jiti@1.21.7))
+      eslint-plugin-jsx-a11y:
+        specifier: 6.10.2
+        version: 6.10.2(eslint@9.39.2(jiti@1.21.7))
       eslint-plugin-react-hooks:
         specifier: ^7.1.1
         version: 7.1.1(eslint@9.39.2(jiti@1.21.7))

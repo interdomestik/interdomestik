@@ -74,11 +74,13 @@ describe('scheduled exchange-rate publication', () => {
     );
     const published = { id: 'published-rate' };
     const values = vi.fn().mockReturnValue({
-      onConflictDoNothing: () => ({ returning: async () => [published] }),
+      onConflictDoNothing: () => ({ returning: () => Promise.resolve([published]) }),
     });
     mocks.withTenantAuthority.mockImplementation((_authority, run) =>
       run({
-        select: () => ({ from: () => ({ where: () => ({ for: async () => [{ id: 'book' }] }) }) }),
+        select: () => ({
+          from: () => ({ where: () => ({ for: () => Promise.resolve([{ id: 'book' }]) }) }),
+        }),
         insert: () => ({ values }),
       })
     );

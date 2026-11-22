@@ -15,7 +15,7 @@ export async function getExchangeRateInForce(authority: TenantAuthority, instant
     return { ok: false as const, code: 'forbidden' as const };
   }
 
-  const asOf = new Date(instant.getTime());
+  const asOf = new Date(instant);
   const storedAtCutoff = asOf.toISOString();
   const effectiveDate = skopjeDate(asOf);
   return withTenantAuthority(authority, async tx => {
