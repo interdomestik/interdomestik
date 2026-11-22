@@ -5,7 +5,8 @@
 // any receiver, nested savepoints included, each with its own borrow boundary. An opener read
 // without being called in place is followed by rules-lifetime-openers.mjs. The callback's
 // first parameter is borrowed; rules-lifetime-flow.mjs decides whether any use lets it escape.
-// Unchanged, legacy and contracted code is checked as well: no admission bypasses L.
+// Unchanged, legacy and contracted code is checked as well. The loader check admits only pinned
+// Reflect calls on reviewed intrinsics alongside its existing key queries.
 
 import ts from 'typescript';
 import { KERNEL } from './manifest.mjs';
