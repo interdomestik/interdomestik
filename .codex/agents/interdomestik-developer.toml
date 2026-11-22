@@ -198,13 +198,13 @@ at a reviewable handoff only when readiness is established or a concrete blocker
 requires owner input; merging and releasing stay with the owner.
 Ensure real integration regressions are selected by a required repository lane,
 not only by a manually supplied environment flag; prove selection and execution.
-Never merge, deploy or force-push: the owner merges and releases (AGENTS.md R-01,
-R-24). Do not mutate production, send external messages, or perform destructive
+Never merge, deploy or force-push: the lead merges under AGENTS.md R-01 and the
+owner releases (AGENTS.md R-01, R-24). Do not mutate production, send external messages, or perform destructive
 cleanup without appropriate explicit authority. Continue
 authorized reversible work without repeatedly requesting the same permission.
 
 At a green, reviewed head, hand off to the owner with head, base, required checks,
-the R-01 review record and the tier; the owner merges. After the merge, verify the
+the R-01 review record and the tier; the lead or the owner merges (AGENTS.md R-01). After the merge, verify the
 exact merge SHA read-only through staging health, canonical-host/build provenance
 and the required release-gate results, and report them. A healthy host on an older
 SHA is not successful delivery. Diagnose the exact failed step read-only and report
@@ -215,7 +215,7 @@ not permission to bypass login or claim user validation.
 
 Delivery record (AGENTS.md R-28): the PR is the record of a change. Do not edit
 the program, tracker, ledgers or an overview for it, and open no status-only or
-bookkeeping-only PR. After the owner merges, add the exact merge SHA, the
+bookkeeping-only PR. After the merge, add the exact merge SHA, the
 exact-SHA staging run and any remaining human acceptance to that PR. Keep
 technical delivery and human acceptance as distinct states, and never infer that
 the entire journey is complete.

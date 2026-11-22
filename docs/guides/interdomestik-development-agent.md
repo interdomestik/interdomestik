@@ -17,8 +17,8 @@ verified current repository authority.
 definition that conflicts with it, including passages on program/tracker
 reconciliation, merging and deploying. Work comes only from the ordered packages of
 `docs/engineering/DIRECTION.md` or the owner's explicit request (R-29); the program,
-tracker and ledgers are history. No agent merges, deploys or force-pushes; the owner
-merges and releases (R-01, R-24).
+tracker and ledgers are history. Only the lead merges, under R-01; no agent deploys or
+force-pushes; the owner releases (R-01, R-24).
 
 ## Load and invoke
 
@@ -96,7 +96,7 @@ worktree from updated main → implementation and focused green checks →
 authorized PR candidate (full local proof pending) → current-head review and
 analysis complete → consolidated corrections and focused regressions → final
 source/environment freeze → required full local proof and hosted checks green →
-owner merge →
+merge by the lead or the owner (R-01) →
 read-only Actions/staging proof on the merge SHA → completion recorded on the PR → safe worktree retirement → chat archival → next slice.
 
 This sequence is operating policy. It gives no permission to merge or deploy,
@@ -155,8 +155,8 @@ SRS, mounted behavior and credited receipts before selecting it. Prove named-rol
 loading in that worktree using the personal installation. A successful prior pilot
 does not by itself prove fresh discovery; record selected definition hash, target
 root/head and configured model, and distinguish unavailable served-model metadata.
-The draft-only prompt below is a conservative rehearsal scope. The owner merges
-(AGENTS.md R-01); after the merge the agent verifies exact-SHA staging proof
+The draft-only prompt below is a conservative rehearsal scope. The lead or the owner
+merges (AGENTS.md R-01); after the merge the agent verifies exact-SHA staging proof
 read-only and performs authorized cleanup.
 
 Claude Code implements and owns integration; Codex reviews independently and takes a
@@ -234,7 +234,7 @@ git diff --check
 
 For instruction-only changes, run plan:audit and relevant instruction contracts
 instead of the runtime lane. Hosted protected checks are a later step when an
-actual PR is authorized. Merge and deployment are the owner's (AGENTS.md R-01).
+actual PR is authorized. Merging follows AGENTS.md R-01; deployment is the owner's.
 
 ## Executable launch preflight
 
@@ -414,7 +414,7 @@ product amendment. It is not published to main by updating the personal copy.
 
 Delivery record (AGENTS.md R-28): the PR is the record of a change. Do not edit
 the program, tracker, ledgers or an overview for it, and open no status-only or
-bookkeeping-only PR. After the owner merges, add the exact merge SHA, the
+bookkeeping-only PR. After the merge, add the exact merge SHA, the
 exact-SHA staging run and any remaining human acceptance to that PR. Keep
 technical delivery and human acceptance as distinct states, and never infer that
 the entire journey is complete.

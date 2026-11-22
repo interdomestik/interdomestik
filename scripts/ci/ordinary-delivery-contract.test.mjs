@@ -51,19 +51,18 @@ test('ordinary delivery does not require ritual companion PRs or collapse delive
   assert.match(agents, /prepared, tested, merged, deployed, validated by a user/u);
   assert.match(agents, /the lead \(definition, routing, merging: `RULES\.md`, R-01\)/u);
   assert.match(agents, /The owner releases\./u);
-  assert.match(
-    agents,
-    /No agent tool reaches production, writes to staging or force-pushes \(merging: R-01\)/u
-  );
+  assert.match(agents, /No agent tool reaches production, writes to staging or force-pushes\./u);
   assert.doesNotMatch(agents, /\b(?:agents?|tools?) (?:may|can) merge/iu);
-  // The conditions under which the lead merges (RULES.md, R-01, named by AGENTS.md R-01) are pinned as written.
-  const rules = read('docs/engineering/RULES.md').replace(/\s+/gu, ' ');
+  // The conditions under which the lead merges bind as written in R-01's passage "Merging by the lead" (RULES.md,
+  // named by AGENTS.md R-01): the whole passage is pinned inside R-01, so moving or trimming it fails.
+  const rules = read('docs/engineering/RULES.md');
+  const r01 = rules.slice(rules.indexOf('### R-01 '), rules.indexOf('### R-02 '));
+  assert.ok(r01.length > 0, 'RULES.md must hold R-01 before R-02');
   assert.ok(
-    rules.includes(
-      'The lead session may merge a PR only when all of these hold on its exact head: every required check is green; `delivery-gate` is green; the verdict of R-01 has no open finding; the tier\'s local verification is recorded (`GATE-EVIDENCE` where the tier needs it); the PR is up to date with `main`. The lead never force-pushes, never bypasses a ruleset and never merges its own unreviewed change.'
+    r01.includes(
+      '- **Merging by the lead** (owner, 2026-11-21: "Bej ti merging"; it amends answer 30). The lead session may merge a PR only when all of these hold on its exact head: every required check is green; `delivery-gate` is green; the verdict of R-01 has no open finding; the tier\'s local verification is recorded (`GATE-EVIDENCE` where the tier needs it); the PR is up to date with `main`. The lead never force-pushes, never bypasses a ruleset and never merges its own unreviewed change. It records the merge in the PR: who merged, the head and the evidence. No other agent merges. Releases, deploys, ruleset repins and the authorizations of R-37 stay with the owner.\n'
     )
   );
-  assert.match(rules, /No other agent merges\. Releases, deploys, ruleset repins and the authorizations of R-37 stay with the owner\./u);
   assert.match(tracker, /No deployment, product readiness or user-acceptance claim/u);
 });
 

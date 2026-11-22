@@ -31,7 +31,7 @@ test('the versioned role points to a runnable preflight available in a fresh che
   assert.match(role, /^model_reasoning_effort = "high"$/m);
 });
 
-test('the role and its guide defer to AGENTS.md and leave merging to the owner', () => {
+test('the role and its guide defer to AGENTS.md and leave merging to R-01', () => {
   const role = fs.readFileSync(
     new URL('../../.codex/agents/interdomestik-developer.toml', import.meta.url),
     'utf8'
@@ -54,7 +54,7 @@ test('the role and its guide defer to AGENTS.md and leave merging to the owner',
   );
   assert.ok(
     roleFlat.includes(
-      'Never merge, deploy or force-push: the owner merges and releases (AGENTS.md R-01, R-24).'
+      'Never merge, deploy or force-push: the lead merges under AGENTS.md R-01 and the owner releases (AGENTS.md R-01, R-24).'
     )
   );
   assert.ok(
@@ -64,7 +64,7 @@ test('the role and its guide defer to AGENTS.md and leave merging to the owner',
   );
   assert.ok(
     guideFlat.includes(
-      'No agent merges, deploys or force-pushes; the owner merges and releases (R-01, R-24).'
+      'Only the lead merges, under R-01; no agent deploys or force-pushes; the owner releases (R-01, R-24).'
     )
   );
   // Contradicting grants or precedence must fail wherever an agent reads them.
@@ -118,8 +118,8 @@ test('the role and its guide defer to AGENTS.md and leave merging to the owner',
 // Closed list. Every sentence (or table cell) in the role, the guide and the staging procedure that names an
 // agent, Codex, Claude, a helper, a reviewer or staging together with a permission or an action verb must be one
 // of the reviewed sentences below. A new or changed sentence of that kind fails until a reviewed edit of this test
-// approves it, whatever its wording: merging, deploying, releasing and writing to staging stay with the owner
-// (AGENTS.md R-01, R-24). Benign additions such as local test work are approved the same way.
+// approves it, whatever its wording: merging follows R-01 (the lead, under its conditions, or the owner); deploying,
+// releasing and writing to staging stay with the owner (AGENTS.md R-01, R-24). Benign additions such as local test work are approved the same way.
 const AUTHORITY_SOURCES = {
   role: '.codex/agents/interdomestik-developer.toml',
   guide: 'docs/guides/interdomestik-development-agent.md',
@@ -138,8 +138,8 @@ const authorityUnits = text =>
     .filter(unit => AUTHORITY_SUBJECT.test(unit) && AUTHORITY_ACTION.test(unit));
 const APPROVED_AUTHORITY_UNITS = {
   role: [
+    'After the merge, add the exact merge SHA, the exact-SHA staging run and any remaining human acceptance to that PR.',
     'After the merge, verify the exact merge SHA read-only through staging health, canonical-host/build provenance and the required release-gate results, and report them.',
-    'After the owner merges, add the exact merge SHA, the exact-SHA staging run and any remaining human acceptance to that PR.',
     'After verifying the merged work, identify one recommended next bounded slice from the ordered packages of docs/engineering/DIRECTION.md (AGENTS.md R-29), requirement gaps and mounted behavior.',
     'Assign any requested Claude coding a bounded packet with disjoint files, current source, SRS/M0-M5 constraints, acceptance and tests.',
     'Codex reviews independently, and implements only a bounded part with disjoint files that the lead assigns, which Claude then reviews (AGENTS.md, R-01).',
@@ -153,7 +153,7 @@ const APPROVED_AUTHORITY_UNITS = {
     'Give helpers source identity, acceptance, exact interfaces, allowed output and forbidden scope.',
     'If the approved Claude CLI repeatedly denies the deterministic local verification command before execution, preserve that limitation and use Codex as the explicitly attributed repo-command executor within Claude-owned delivery;',
     'If tooling changes or a helper stops for integrity, preserve that stop and continue through a separately authorized, fixed read-only route without repeating valid proof.',
-    'Never merge, deploy or force-push: the owner merges and releases (AGENTS.md R-01, R-24).',
+    'Never merge, deploy or force-push: the lead merges under AGENTS.md R-01 and the owner releases (AGENTS.md R-01, R-24).',
     "No agent writes to staging (AGENTS.md R-24): every step there that assigns, updates, notes or otherwise changes data is the owner's, and the agent records it as owner-run or blocked.",
     'No model approves its own work, a blocked reviewer is not an approval, and no paid API is a fallback.',
     'When Claude coding is requested, assign a concrete implementation packet before coding: disjoint files, failing acceptance example, interfaces and constraints.',
@@ -162,13 +162,14 @@ const APPROVED_AUTHORITY_UNITS = {
     "it does not message another chat or treat a helper's recommendation as owner approval.",
     'name = "interdomestik-developer" description = "Own one bounded Interdomestik increment through research, Claude collaboration, integrated verification and owner-authorized delivery." model = "gpt-6.1-sol" model_reasoning_effort = "high" sandbox_mode = "workspace-write" approval_policy = "on-request" developer_instructions = \'\'\' You are the Interdomestik development agent.',
     'no agent writes to staging (R-24).',
+    'the lead or the owner merges (AGENTS.md R-01).',
   ],
   guide: [
     "# Interdomestik development agent This Codex agent reviews Claude Code's work and, when the lead assigns one, takes a bounded part of an Interdomestik development task (`AGENTS.md`, R-01).",
     '## Lessons verified by the second pilot PR #1854 reached exact-merge staging P0 in 3h 24m 58s elapsed, including waits.',
     '## Mandatory canonical reconciliation Delivery record (AGENTS.md R-28): the PR is the record of a change.',
-    "## Owner's delivery lifecycle A DIRECTION.md package or the owner's explicit request (R-29) → bounded selection → fresh worktree from updated main → implementation and focused green checks → authorized PR candidate (full local proof pending) → current-head review and analysis complete → consolidated corrections and focused regressions → final source/environment freeze → required full local proof and hosted checks green → owner merge → read-only Actions/staging proof on the merge SHA → completion recorded on the PR → safe worktree retirement → chat archival → next slice.",
-    'After the owner merges, add the exact merge SHA, the exact-SHA staging run and any remaining human acceptance to that PR.',
+    "## Owner's delivery lifecycle A DIRECTION.md package or the owner's explicit request (R-29) → bounded selection → fresh worktree from updated main → implementation and focused green checks → authorized PR candidate (full local proof pending) → current-head review and analysis complete → consolidated corrections and focused regressions → final source/environment freeze → required full local proof and hosted checks green → merge by the lead or the owner (R-01) → read-only Actions/staging proof on the merge SHA → completion recorded on the PR → safe worktree retirement → chat archival → next slice.",
+    'After the merge, add the exact merge SHA, the exact-SHA staging run and any remaining human acceptance to that PR.',
     'After verifying the merged work, identify one recommended next bounded slice from the ordered packages of docs/engineering/DIRECTION.md (AGENTS.md R-29), requirement gaps and mounted behavior.',
     'Assign any requested Claude coding a bounded packet with disjoint files, current source, SRS/M0-M5 constraints, acceptance and tests.',
     'Before designing or changing UI/UX, follow the installed Interdomestik skill: research current design practices and current end-to-end journeys for members, agents, staff and admins using relevant primary sources and comparable products.',
@@ -182,14 +183,13 @@ const APPROVED_AUTHORITY_UNITS = {
     'If the approved Claude CLI repeatedly denies the deterministic local verification command before execution, preserve that limitation and use Codex as the explicitly attributed repo-command executor within Claude-owned delivery;',
     'If tooling changes or a helper stops for integrity, preserve that stop and continue through a separately authorized, fixed read-only route without repeating valid proof.',
     'Its editable definition is `.codex/agents/interdomestik-developer.toml` (revision `2026-10-03-bounded-search-packets`).',
-    "Merge and deployment are the owner's (AGENTS.md R-01).",
-    'No agent merges, deploys or force-pushes;',
+    'Merging follows AGENTS.md R-01;',
     "No agent writes to staging (AGENTS.md R-24): every step there that assigns, updates, notes or otherwise changes data is the owner's, and the agent records it as owner-run or blocked.",
     'No model approves its own work, a blocked reviewer is not an approval, and no paid API is a fallback.',
     'Record scope and acceptance in the PR before implementation, and mark delivered completion on the merged PR only after the required post-merge proof (AGENTS.md R-28: no program, tracker or ledger edits, no bookkeeping-only PR).',
     'Simulation answers validate instruction interpretation, not execution of the actual development, Claude, CI, deployment or cleanup workflow.',
     'The agent must discover the corresponding existing test and browser route.',
-    'The owner merges (AGENTS.md R-01);',
+    'The lead or the owner merges (AGENTS.md R-01);',
     'This is a simulation: do not edit files, invoke Claude, start services, call GitHub, merge, deploy or clean up.',
     'This uses the instructions but does not prove custom-agent discovery or apply its model settings;',
     "When the lead assigns Codex a bounded part with disjoint files in its own worktree, Codex implements that part at this role's configured effort and Claude reviews it.",
@@ -198,6 +198,7 @@ const APPROVED_AUTHORITY_UNITS = {
     'after the merge the agent verifies exact-SHA staging proof read-only and performs authorized cleanup.',
     "it does not message another chat or treat a helper's recommendation as owner approval.",
     'it requires no separate Agents API application.',
+    'no agent deploys or force-pushes;',
     'the agent must not ask repeatedly for actions already covered.',
   ],
   procedure: [
@@ -222,8 +223,8 @@ test('every agent authority sentence in the role, guide and staging procedure is
 // as a whole: any edit fails here until it has been reviewed for agent authority (AGENTS.md R-01, R-24) and
 // the new hash is recorded in a reviewed edit of this test.
 const PINNED_AUTHORITY_SHA256 = {
-  role: 'cc05574eac86e48eac256976d6903a14dd5de98c56607de33137cfc37e2b2c28',
-  guide: '1755ff767aca96c634358da763badf7bf33b4ae5c9d6a4919b03b2dc8bb473bf',
+  role: 'a66b6d94c4f1648eac3a4a8717780b88d79a54a7160b227dac18b028b34ee440',
+  guide: '0474affe8e577aa15573efad6cd2a8825f6b7f811c71bda2e976befb9a0eeae6',
   procedure: 'e1f3502eb83ee054935cda9d1df34a8680c8bba8e16e3abb46eec4c09ea053ed',
 };
 
