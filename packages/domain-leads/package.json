@@ -10,7 +10,8 @@
     "./create": "./src/create.ts",
     "./payment": "./src/payment.ts",
     "./convert": "./src/convert.ts",
-    "./member-email-conflict": "./src/member-email-conflict.ts"
+    "./member-email-conflict": "./src/member-email-conflict.ts",
+    "./sales-admission": "./src/sales-admission.ts"
   },
   "scripts": {
     "test:unit": "vitest run",

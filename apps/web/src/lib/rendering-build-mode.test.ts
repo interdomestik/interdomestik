@@ -1,3 +1,12 @@
+import {
+  PHASE_ANALYZE,
+  PHASE_DEVELOPMENT_SERVER,
+  PHASE_EXPORT,
+  PHASE_INFO,
+  PHASE_PRODUCTION_BUILD,
+  PHASE_PRODUCTION_SERVER,
+  PHASE_TEST,
+} from 'next/constants.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { assertRenderingBuildMode } from './rendering-build-mode';
@@ -60,6 +69,36 @@ describe('rendering build mode assertion', () => {
 });
 
 describe('Next rendering configuration', () => {
+  it('refuses a production build that skipped the pilot manifest preflight', async () => {
+    vi.stubEnv('INTERDOMESTIK_BUILT_PILOT_ENV', undefined);
+    const { default: configureNext } = await import('../../next.config.mjs');
+
+    expect(() => configureNext(PHASE_PRODUCTION_BUILD)).toThrow(
+      'Missing INTERDOMESTIK_BUILT_PILOT_ENV. Run pnpm --filter @interdomestik/web build'
+    );
+  });
+
+  it('accepts and binds a valid pilot manifest during a production build', async () => {
+    const { default: configureNext } = await import('../../next.config.mjs');
+
+    const config = configureNext(PHASE_PRODUCTION_BUILD);
+    expect(config.env?.INTERDOMESTIK_BUILT_PILOT_ENV).toBe('[]');
+  });
+
+  it.each([
+    PHASE_ANALYZE,
+    PHASE_DEVELOPMENT_SERVER,
+    PHASE_EXPORT,
+    PHASE_INFO,
+    PHASE_PRODUCTION_SERVER,
+    PHASE_TEST,
+  ])('allows %s without a pilot manifest', async phase => {
+    vi.stubEnv('INTERDOMESTIK_BUILT_PILOT_ENV', undefined);
+    const { default: configureNext } = await import('../../next.config.mjs');
+
+    expect(() => configureNext(phase)).not.toThrow();
+  });
+
   it.each([
     { raw: undefined, mode: 'off', enabled: true },
     { raw: 'off', mode: 'off', enabled: true },
@@ -70,7 +109,8 @@ describe('Next rendering configuration', () => {
     vi.stubEnv('CSP_NONCE_MODE', raw);
     vi.stubEnv('INTERDOMESTIK_BUILT_CSP_NONCE_MODE', 'forged');
     vi.stubEnv('INTERDOMESTIK_BUILT_PILOT_ENV', '["NEXT_PUBLIC_BILLING_TEST_MODE"]');
-    const { default: config } = await import('../../next.config.mjs');
+    const { default: configureNext } = await import('../../next.config.mjs');
+    const config = configureNext(PHASE_PRODUCTION_BUILD);
 
     expect(config.cacheComponents).toBe(enabled);
     expect(config.env).toEqual({
@@ -92,7 +132,8 @@ describe('Next rendering configuration', () => {
     vi.stubEnv('CSP_NONCE_MODE', 'off');
     vi.stubEnv('INTERDOMESTIK_BUILD_COPYRIGHT_YEAR', 'forged');
 
-    const { default: config } = await import('../../next.config.mjs');
+    const { default: configureNext } = await import('../../next.config.mjs');
+    const config = configureNext(PHASE_PRODUCTION_BUILD);
 
     expect(config.env?.INTERDOMESTIK_BUILD_COPYRIGHT_YEAR).toBe(year);
   });

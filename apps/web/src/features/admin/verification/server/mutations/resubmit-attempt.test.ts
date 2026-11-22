@@ -6,19 +6,26 @@ import {
 import { E2E_USER_IDS } from '../../../../../../../../packages/database/src/e2e-role-fixtures';
 import { buildCashStatesToSeed } from '../../../../../../../../packages/database/src/seed-golden/cash-states';
 import { createMutationCopy } from '../../../../../../../../packages/database/src/testing/mutation-copy';
+import { SalesClosedError } from '@interdomestik/database/pilot-switch';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   selectRows: vi.fn(),
+  selectWhere: vi.fn(),
   updateWhere: vi.fn(),
   updateReturning: vi.fn(),
   insertValues: vi.fn(),
   withTenantContext: vi.fn(),
+  assertNewSalesOpen: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({ withTenantContext: hoisted.withTenantContext }));
+vi.mock('@interdomestik/database/pilot-switch', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database/pilot-switch')>()),
+  assertNewSalesOpen: hoisted.assertNewSalesOpen,
+}));
 
 import type { ProtectedActionContext } from '@/lib/safe-action';
 import { resubmitCashAttemptCore } from './resubmit-attempt';
@@ -27,7 +34,7 @@ function createTx() {
   const selectChain = {
     from: () => selectChain,
     innerJoin: () => selectChain,
-    where: () => selectChain,
+    where: hoisted.selectWhere.mockImplementation(() => selectChain),
     limit: () => hoisted.selectRows(),
   };
   return {
@@ -63,11 +70,47 @@ function start(key: E2ECashStateKey) {
 describe('cash resubmission from isolated catalogue rows (mocked DB)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.assertNewSalesOpen.mockResolvedValue(undefined);
     hoisted.updateWhere.mockReturnValue({ returning: hoisted.updateReturning });
     hoisted.withTenantContext.mockImplementation(
       (_context: unknown, callback: (tx: ReturnType<typeof createTx>) => Promise<unknown>) =>
         callback(createTx())
     );
+  });
+
+  it('refuses a rejected card attempt as missing before any write', async () => {
+    const { attempt, lead, ctx } = start('REJECTED');
+    const card = { ...attempt, method: 'card' };
+    hoisted.selectRows.mockImplementationOnce(() => {
+      const predicate = new PgDialect().sqlToQuery(hoisted.selectWhere.mock.calls[0][0]);
+      expect(predicate.sql).toBe(
+        '("lead_payment_attempts"."id" = $1 and "lead_payment_attempts"."tenant_id" = $2 and "lead_payment_attempts"."method" = $3)'
+      );
+      expect(predicate.params).toEqual([attempt.id, lead.tenantId, 'cash']);
+      return [{ attempt: card, lead }].filter(row => row.attempt.method === predicate.params[2]);
+    });
+
+    await expect(resubmitCashAttemptCore(ctx, { attemptId: attempt.id })).rejects.toThrow(
+      'Payment attempt not found.'
+    );
+    expect(hoisted.assertNewSalesOpen).not.toHaveBeenCalled();
+    expect(hoisted.updateWhere).not.toHaveBeenCalled();
+    expect(hoisted.insertValues).not.toHaveBeenCalled();
+  });
+
+  it('returns CLOSED without changing the rejected cash attempt or writing an audit', async () => {
+    const { attempt, lead, ctx } = start('REJECTED');
+    hoisted.assertNewSalesOpen.mockRejectedValue(new SalesClosedError());
+
+    await expect(resubmitCashAttemptCore(ctx, { attemptId: attempt.id })).rejects.toMatchObject({
+      code: 'CLOSED',
+    });
+    expect(hoisted.assertNewSalesOpen).toHaveBeenCalledExactlyOnceWith(
+      expect.anything(),
+      lead.tenantId
+    );
+    expect(hoisted.updateWhere).not.toHaveBeenCalled();
+    expect(hoisted.insertValues).not.toHaveBeenCalled();
   });
 
   it('keeps the assigned-agent check under the session tenant authority', async () => {
@@ -89,6 +132,7 @@ describe('cash resubmission from isolated catalogue rows (mocked DB)', () => {
       const { attempt, lead, ctx } = start(key);
       const input = { attemptId: attempt.id, note: 'retry' };
       await expect(resubmitCashAttemptCore(ctx, input)).resolves.toEqual({ success: true });
+      expect(hoisted.assertNewSalesOpen).toHaveBeenCalledBefore(hoisted.updateWhere);
       expect(hoisted.withTenantContext).toHaveBeenCalledWith(ctx.authority, expect.any(Function));
       const predicate = new PgDialect().sqlToQuery(hoisted.updateWhere.mock.calls[0][0]);
       expect(predicate.sql).toBe(

@@ -4,7 +4,16 @@ import { setTimeout as poll } from 'node:timers/promises';
 
 import { eq, sql } from 'drizzle-orm';
 
-import { auditLog, branches, leadPaymentAttempts, memberLeads, user } from '../src/schema';
+import { PILOT_SWITCH_CATEGORY } from '../src/pilot-switch';
+import {
+  auditLog,
+  branches,
+  leadPaymentAttempts,
+  memberLeads,
+  tenants,
+  tenantSettings,
+  user,
+} from '../src/schema';
 import { buildCashStatesToSeed } from '../src/seed-golden/cash-states';
 import { mintTestTenantAuthority } from '../src/testing/tenant-authority';
 import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
@@ -27,12 +36,15 @@ test('cash resubmission commits exactly once and rolls back after an audit failu
   const { withTenantAuthority } = await import('../src/tenant-authority-context');
   const source = buildCashStatesToSeed().find(row => row.attempt.status === 'needs_info');
   assert.ok(source, 'NEEDS_INFO catalogue row is required');
+  const tenantId = fixture.newId('cash_resubmit_tenant');
+  const switchId = fixture.newId('cash_resubmit_switch');
   const branchId = fixture.newId('cash_resubmit_branch');
   const agentId = fixture.newId('cash_resubmit_agent');
   const verifierId = fixture.newId('cash_resubmit_verifier');
   const lead = {
     ...source.lead,
     id: fixture.newId('cash_resubmit_lead'),
+    tenantId,
     branchId,
     agentId,
     consentCapturedBy: agentId,
@@ -41,6 +53,7 @@ test('cash resubmission commits exactly once and rolls back after an audit failu
   const attempt = {
     ...source.attempt,
     id: fixture.newId('cash_resubmit_attempt'),
+    tenantId,
     leadId: lead.id,
     verifiedBy: verifierId,
   };
@@ -54,6 +67,9 @@ test('cash resubmission commits exactly once and rolls back after an audit failu
     await adminDb.execute(sql.raw(`grant select on member_leads to ${role}`));
     await adminDb.execute(sql.raw(`grant select, update on lead_payment_attempts to ${role}`));
     await adminDb.execute(sql.raw(`grant insert on audit_log to ${role}`));
+    // PostgreSQL checks UPDATE privilege for the switch's locking read.
+    await adminDb.execute(sql.raw(`grant select on tenant_settings to ${role}`));
+    await adminDb.execute(sql.raw(`grant update (value) on tenant_settings to ${role}`));
     const [posture] = await withTenantAuthority(authority, tx =>
       tx.execute<{
         sessionRole: string;
@@ -64,12 +80,14 @@ test('cash resubmission commits exactly once and rolls back after an audit failu
         leadsRls: boolean;
         attemptsRls: boolean;
         auditRls: boolean;
+        switchRls: boolean;
       }>(sql`select session_user as "sessionRole", current_user as "currentRole",
         rolsuper as superuser, rolbypassrls as bypass,
         current_setting('row_security') as "rowSecurity",
         row_security_active('public.member_leads'::regclass) as "leadsRls",
         row_security_active('public.lead_payment_attempts'::regclass) as "attemptsRls",
-        row_security_active('public.audit_log'::regclass) as "auditRls"
+        row_security_active('public.audit_log'::regclass) as "auditRls",
+        row_security_active('public.tenant_settings'::regclass) as "switchRls"
         from pg_roles where rolname = session_user`)
     );
     assert.deepEqual(posture, {
@@ -81,6 +99,20 @@ test('cash resubmission commits exactly once and rolls back after an audit failu
       leadsRls: true,
       attemptsRls: true,
       auditRls: true,
+      switchRls: true,
+    });
+    await adminDb.insert(tenants).values({
+      id: tenantId,
+      name: tenantId,
+      legalName: tenantId,
+      countryCode: 'XK',
+    });
+    await adminDb.insert(tenantSettings).values({
+      id: switchId,
+      tenantId,
+      category: PILOT_SWITCH_CATEGORY,
+      key: 'new_sales',
+      value: { enabled: true, revision: 1 },
     });
     await adminDb.insert(branches).values({
       id: branchId,
@@ -215,5 +247,7 @@ test('cash resubmission commits exactly once and rolls back after an audit failu
     await adminDb.delete(memberLeads).where(eq(memberLeads.id, lead.id));
     await adminDb.delete(user).where(sql`${user.id} in (${agentId}, ${verifierId})`);
     await adminDb.delete(branches).where(eq(branches.id, branchId));
+    await adminDb.delete(tenantSettings).where(eq(tenantSettings.id, switchId));
+    await adminDb.delete(tenants).where(eq(tenants.id, tenantId));
   }
 });

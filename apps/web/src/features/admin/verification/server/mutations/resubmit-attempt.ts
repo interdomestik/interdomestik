@@ -1,6 +1,7 @@
 import type { ProtectedActionContext } from '@/lib/safe-action';
 
 import { auditLog, leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
+import { assertLeadSalesOpen } from '@interdomestik/domain-leads/sales-admission';
 import { and, eq, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
@@ -24,7 +25,13 @@ export async function resubmitCashAttemptCore(
       })
       .from(leadPaymentAttempts)
       .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
-      .where(and(eq(leadPaymentAttempts.id, attemptId), eq(leadPaymentAttempts.tenantId, tenantId)))
+      .where(
+        and(
+          eq(leadPaymentAttempts.id, attemptId),
+          eq(leadPaymentAttempts.tenantId, tenantId),
+          eq(leadPaymentAttempts.method, 'cash')
+        )
+      )
       .limit(1);
 
     if (!result) throw new Error('Payment attempt not found.');
@@ -39,6 +46,7 @@ export async function resubmitCashAttemptCore(
     if (attempt.status !== 'needs_info' && attempt.status !== 'rejected') {
       throw new Error(`Cannot resubmit verification with status: ${attempt.status}`);
     }
+    await assertLeadSalesOpen(tx, tenantId);
 
     // D. Compare-and-set: only the winner may write the resubmission audit.
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause

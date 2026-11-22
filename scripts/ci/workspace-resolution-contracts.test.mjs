@@ -21,7 +21,7 @@ function readTsconfig(relativePath) {
 
 test('web Next.js config transpiles the domain-ai workspace package', async () => {
   const module = await import(pathToFileURL(path.join(rootDir, 'apps/web/next.config.mjs')).href);
-  const nextConfig = module.default;
+  const nextConfig = module.default('phase-test');
 
   assert.ok(Array.isArray(nextConfig.transpilePackages));
   assert.ok(nextConfig.transpilePackages.includes('@interdomestik/domain-ai'));

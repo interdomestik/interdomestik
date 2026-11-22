@@ -2,6 +2,7 @@ import withBundleAnalyzer from '@next/bundle-analyzer';
 import { withSentryConfig } from '@sentry/nextjs';
 import { withAxiom } from 'next-axiom';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { PHASE_PRODUCTION_BUILD } from 'next/constants.js';
 import { validateSupabaseDeploymentSeparation } from './src/lib/supabase-deployment.mjs';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
@@ -23,6 +24,7 @@ const nextBuildWorkerLimit =
 const webpackMemoryOptimizations =
   process.env.NEXT_WEBPACK_MEMORY_OPTIMIZATIONS === '1' ? { webpackMemoryOptimizations: true } : {};
 const validateSentrySourceMaps = process.env.SENTRY_VALIDATE_SOURCEMAPS === 'true';
+const builtPilotEnv = process.env.INTERDOMESTIK_BUILT_PILOT_ENV;
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -31,7 +33,7 @@ const nextConfig = {
   env: {
     INTERDOMESTIK_BUILT_CSP_NONCE_MODE: buildCspNonceMode,
     INTERDOMESTIK_BUILD_COPYRIGHT_YEAR: String(new Date().getUTCFullYear()),
-    INTERDOMESTIK_BUILT_PILOT_ENV: process.env.INTERDOMESTIK_BUILT_PILOT_ENV ?? '',
+    INTERDOMESTIK_BUILT_PILOT_ENV: builtPilotEnv ?? '',
   },
   transpilePackages: [
     '@interdomestik/ui',
@@ -99,7 +101,7 @@ if (validateSentrySourceMaps && !/^[0-9a-f]{40}$/u.test(sentryRelease ?? '')) {
   throw new Error('SENTRY_RELEASE must equal the exact 40-character candidate SHA.');
 }
 
-export default withSentryConfig(withAxiom(finalConfig), {
+const wrappedConfig = withSentryConfig(withAxiom(finalConfig), {
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options
 
@@ -139,3 +141,14 @@ export default withSentryConfig(withAxiom(finalConfig), {
     automaticVercelMonitors: true,
   },
 });
+
+/** @param {string} phase */
+export default function configureNext(phase) {
+  if (phase === PHASE_PRODUCTION_BUILD && builtPilotEnv === undefined) {
+    throw new Error(
+      'Missing INTERDOMESTIK_BUILT_PILOT_ENV. Run pnpm --filter @interdomestik/web build to generate the pilot manifest.'
+    );
+  }
+
+  return wrappedConfig;
+}
