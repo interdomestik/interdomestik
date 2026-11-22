@@ -65,7 +65,7 @@ export async function enqueueStaffClaimNotification(
   }
 
   const ids: string[] = [];
-  for await (const recipient of recipients) {
+  for (const recipient of recipients) {
     await queueStaffRecipient(tx, claim, source, recipient, ids);
   }
   return ids;

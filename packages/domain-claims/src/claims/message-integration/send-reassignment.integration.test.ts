@@ -5,9 +5,9 @@ import type { TenantTransaction } from '@interdomestik/database';
 import { fixture, ids } from './tenant-context.integration-fixture';
 import {
   describeKeyedMessageRls,
+  getMessageStore,
   memberSend,
   OVERLAPPED,
-  storeMessage,
   waitForBlockedSend,
 } from './send-idempotency.test-support';
 
@@ -45,6 +45,7 @@ describeKeyedMessageRls('claim reassignment during a real restricted message sen
   it('holds reassignment behind a member message until its original recipient is committed', async () => {
     const { claims, dbAdmin, sql, user } = fixture.database;
     await dbAdmin.update(user).set({ role: 'staff' }).where(eq(user.id, ids.otherMember));
+    const storeMessage = getMessageStore();
     const store = storeMessage.storeClaimMessage;
     let saveXid!: (id: string) => void;
     let commitMessage!: () => void;

@@ -19,9 +19,6 @@ vi.mock('@interdomestik/domain-claims/claims/submit', () => ({
   submitClaimCore: vi.fn(),
   ClaimValidationError: class extends Error {
     code?: string;
-    constructor(msg: string) {
-      super(msg);
-    }
   },
 }));
 

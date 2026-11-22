@@ -67,7 +67,7 @@ export const dailyEmailSequences = inngest.createFunction(
 export const notificationDeliveries = inngest.createFunction(
   { id: 'notification-deliveries' },
   { cron: '*/5 * * * *' },
-  async ({ step }) =>
+  ({ step }) =>
     step.run('drain-notification-deliveries', async () =>
       runNotificationDeliverySchedule(mintIngressCapability('inngest'))
     )

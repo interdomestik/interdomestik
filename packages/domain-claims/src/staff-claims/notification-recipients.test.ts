@@ -59,7 +59,7 @@ describe('staff claim notification routing', () => {
     const admins = Array.from({ length: 20_000 }, (_, index) => ({ ...admin, id: String(index) }));
     const h = txWithCandidates([], admins);
     const recipients = await resolveStaffClaimNotificationRecipients(h.tx, claim);
-    expect(recipients.length).toBe(admins.length);
+    expect(recipients).toHaveLength(admins.length);
     expect(recipients.every((recipient, index) => recipient === admins[index])).toBe(true);
     expect(h.where).toHaveBeenCalledOnce();
   });

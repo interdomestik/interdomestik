@@ -89,6 +89,7 @@ REVOKE ALL ON public.notification_deliveries, public.claim_response_requests FRO
 DO $$
 DECLARE
   runtime_role constant text := 'interdomestik_runtime_rls';
+  update_privilege constant text := 'UPDATE';
   lock_table text;
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = runtime_role) THEN
@@ -105,8 +106,8 @@ BEGIN
       'claim_transition_evidence', 'claim_messages'
     ] LOOP
       IF NOT (
-        has_table_privilege(runtime_role, format('public.%I', lock_table), 'UPDATE')
-        OR has_any_column_privilege(runtime_role, format('public.%I', lock_table), 'UPDATE')
+        has_table_privilege(runtime_role, format('public.%I', lock_table), update_privilege)
+        OR has_any_column_privilege(runtime_role, format('public.%I', lock_table), update_privilege)
       ) THEN
         RAISE EXCEPTION 'WP-11 requires UPDATE privilege for row locking on public.%', lock_table;
       END IF;
@@ -117,7 +118,7 @@ BEGIN
     IF NOT has_column_privilege(runtime_role, 'public."user"', 'preferred_locale', 'SELECT') THEN
       RAISE EXCEPTION 'WP-11 requires SELECT privilege on public.user.preferred_locale';
     END IF;
-    IF NOT has_column_privilege(runtime_role, 'public."user"', 'preferred_locale', 'UPDATE') THEN
+    IF NOT has_column_privilege(runtime_role, 'public."user"', 'preferred_locale', update_privilege) THEN
       RAISE EXCEPTION 'WP-11 requires UPDATE privilege on public.user.preferred_locale';
     END IF;
   END IF;

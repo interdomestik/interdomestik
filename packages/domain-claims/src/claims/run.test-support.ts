@@ -107,40 +107,56 @@ export function harness(
     return row.state === 'claimed' && query.params.includes(row.leaseUntil);
   };
 
+  function lockDueDelivery(where: SQL) {
+    const query = dialect.sqlToQuery(where);
+    queries.push(query.sql);
+    const ids = query.sql.includes(' in (') ? query.params.slice(3) : null;
+    const candidate = deliveries
+      .filter(row => !ids || ids.includes(row.id))
+      .filter(
+        row =>
+          (row.state === 'queued' && Date.parse(row.nextAttemptAt) <= clock) ||
+          (row.state === 'claimed' && Date.parse(row.leaseUntil!) < clock)
+      )
+      .sort(
+        (a, b) => a.nextAttemptAt.localeCompare(b.nextAttemptAt) || a.id.localeCompare(b.id)
+      )[0];
+    return Promise.resolve(candidate ? [{ ...candidate }] : []);
+  }
+
+  function selectDeliveries(where: SQL, selection?: object) {
+    return {
+      orderBy: () => ({
+        limit: () => ({
+          for: () => lockDueDelivery(where),
+        }),
+      }),
+      for: () =>
+        Promise.resolve(
+          selection
+            ? deliveries
+                .filter(row => matches(where, row))
+                .map(row => ({ ...row, stale: remainingLifetime(row) <= 0 }))
+            : []
+        ),
+    };
+  }
+
+  function insertUniqueDelivery(fields: Delivery) {
+    if (
+      deliveries.some(
+        row => row.tenantId === fields.tenantId && row.idempotencyKey === fields.idempotencyKey
+      )
+    )
+      return Promise.resolve([]);
+    deliveries.push(delivery(fields));
+    return Promise.resolve([{ id: fields.id }]);
+  }
+
   const tx = {
     select: vi.fn((selection?: object) => ({
       from: () => ({
-        where: (where: SQL) => ({
-          orderBy: () => ({
-            limit: () => ({
-              for: () => {
-                const query = dialect.sqlToQuery(where);
-                queries.push(query.sql);
-                const ids = query.sql.includes(' in (') ? query.params.slice(3) : null;
-                const candidate = deliveries
-                  .filter(row => !ids || ids.includes(row.id))
-                  .filter(
-                    row =>
-                      (row.state === 'queued' && Date.parse(row.nextAttemptAt) <= clock) ||
-                      (row.state === 'claimed' && Date.parse(row.leaseUntil!) < clock)
-                  )
-                  .sort(
-                    (a, b) =>
-                      a.nextAttemptAt.localeCompare(b.nextAttemptAt) || a.id.localeCompare(b.id)
-                  )[0];
-                return Promise.resolve(candidate ? [{ ...candidate }] : []);
-              },
-            }),
-          }),
-          for: () =>
-            Promise.resolve(
-              selection
-                ? deliveries
-                    .filter(row => matches(where, row))
-                    .map(row => ({ ...row, stale: remainingLifetime(row) <= 0 }))
-                : []
-            ),
-        }),
+        where: (where: SQL) => selectDeliveries(where, selection),
       }),
     })),
     update: vi.fn(() => ({
@@ -182,17 +198,7 @@ export function harness(
         if (table !== notificationDeliveries) throw new Error('Unexpected insert');
         return {
           onConflictDoNothing: () => ({
-            returning: () => {
-              if (
-                deliveries.some(
-                  row =>
-                    row.tenantId === fields.tenantId && row.idempotencyKey === fields.idempotencyKey
-                )
-              )
-                return Promise.resolve([]);
-              deliveries.push(delivery(fields));
-              return Promise.resolve([{ id: fields.id }]);
-            },
+            returning: () => insertUniqueDelivery(fields),
           }),
         };
       },

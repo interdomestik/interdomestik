@@ -37,7 +37,7 @@ export async function proveTargetedKick(
   const rows = await restricted(
     client,
     a.tenant,
-    async tx =>
+    tx =>
       tx`select id, state, attempts from notification_deliveries where id in (${id}, ${unrelatedId})`
   );
   assert.deepEqual(
@@ -92,7 +92,7 @@ export async function proveStaleBoundary(
   const rows = await restricted(
     client,
     a.tenant,
-    async tx => tx`select id, state, lease_until, transport, attempts, skip_reason,
+    tx => tx`select id, state, lease_until, transport, attempts, skip_reason,
       terminal_at is not null as terminal from notification_deliveries
       where id in (${liveId}, ${expiredId})`
   );
@@ -169,7 +169,7 @@ export async function proveStaffRouting(
   const skipped = await restricted(
     client,
     a.tenant,
-    async tx => tx`select (id = ${scopedId}) as scoped, skip_reason from notification_deliveries
+    tx => tx`select (id = ${scopedId}) as scoped, skip_reason from notification_deliveries
       where id in (${adminId}, ${scopedId}, ${assigneeId}) order by scoped`
   );
   assert.deepEqual(

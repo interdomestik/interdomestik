@@ -12,7 +12,11 @@ import {
 export const OVERLAPPED = 'Synthetic overlapped reply';
 // Loaded after the fixture installs the restricted client: a top-level import would bind the
 // database module to the administrative URL first, and its RLS role assertion refuses that.
-export let storeMessage: typeof import('@interdomestik/domain-communications/messages/store');
+let storeMessage: typeof import('@interdomestik/domain-communications/messages/store');
+
+export function getMessageStore() {
+  return storeMessage;
+}
 
 export const memberSend = (
   content: string,

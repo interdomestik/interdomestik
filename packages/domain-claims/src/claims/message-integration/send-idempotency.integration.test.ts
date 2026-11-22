@@ -5,16 +5,17 @@ import type { TenantTransaction } from '@interdomestik/database';
 import { fixture, homeTenantId, ids, otherTenantId } from './tenant-context.integration-fixture';
 import {
   describeKeyedMessageRls,
+  getMessageStore,
   memberSend,
   OVERLAPPED,
-  storeMessage,
   waitForBlockedSend,
 } from './send-idempotency.test-support';
 import { asActor } from './message-rls-actors.test-support';
 import { expectMessageContextCleared, messageEffects } from './message-rls-effects.test-support';
 
-const keyedMessageId = (...args: Parameters<(typeof storeMessage)['keyedMessageId']>) =>
-  storeMessage.keyedMessageId(...args);
+const keyedMessageId = (
+  ...args: Parameters<ReturnType<typeof getMessageStore>['keyedMessageId']>
+) => getMessageStore().keyedMessageId(...args);
 
 async function storedWithKey(clientMessageId: string) {
   const { claimMessages, dbAdmin } = fixture.database;
@@ -88,6 +89,7 @@ describeKeyedMessageRls('keyed message send on a real NOBYPASSRLS connection', (
     let insertObserved = false;
     let failureCode: string | undefined;
     const before = await messageEffects();
+    const storeMessage = getMessageStore();
     const store = storeMessage.storeClaimMessage;
     const failedStore = vi
       .spyOn(storeMessage, 'storeClaimMessage')
@@ -165,6 +167,7 @@ describeKeyedMessageRls('keyed message send on a real NOBYPASSRLS connection', (
   it('admits the previous writer’s FK key-share while the new writer holds the claim lock', async () => {
     const clientMessageId = randomUUID();
     const { claims, withTenantContext } = fixture.database;
+    const storeMessage = getMessageStore();
     const store = storeMessage.storeClaimMessage;
     let enteredStore!: () => void;
     let releaseStore!: () => void;
@@ -239,7 +242,7 @@ describeKeyedMessageRls('keyed message send on a real NOBYPASSRLS connection', (
 
     expect(await memberSend('Synthetic edited draft', clientMessageId)).toEqual({
       success: false,
-      error: storeMessage.MESSAGE_KEY_CONFLICT_ERROR,
+      error: getMessageStore().MESSAGE_KEY_CONFLICT_ERROR,
     });
     expect(await storedWithKey(clientMessageId)).toEqual([
       {
