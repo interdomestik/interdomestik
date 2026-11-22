@@ -113,7 +113,10 @@ describe('case details', () => {
       coverageVerificationStatus: 'requested',
       caseFollowUpAt: occurredAt,
     });
-    await act(async () => resolveSave({ success: false, code: 'invalid_state' }));
+    await act(() => {
+      resolveSave({ success: false, code: 'invalid_state' });
+      return Promise.resolve();
+    });
     expect(screen.getByRole('alert')).toHaveTextContent(copy.feedback.invalidState);
     expect(screen.getByLabelText(copy.caseFields.country)).toHaveValue('de');
     expect(action.refresh).not.toHaveBeenCalled();

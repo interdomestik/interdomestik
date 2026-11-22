@@ -18,7 +18,7 @@ import {
 test('assigned staff record legal bases, document disclosure, and an overdue unanswered contact', async ({
   door,
 }, info) => {
-  test.skip(info.project.name !== 'gate-ks-sq', 'The fixture uses the Kosovo staff and member');
+  info.skip(info.project.name !== 'gate-ks-sq', 'The fixture uses the Kosovo staff and member');
   test.setTimeout(120_000);
   const { page, origin, locale } = door;
   const claimId = await createCorrespondenceCase();

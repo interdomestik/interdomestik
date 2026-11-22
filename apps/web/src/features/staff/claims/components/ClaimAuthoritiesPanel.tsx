@@ -165,12 +165,12 @@ function AuthorityRow({
   claimId,
   canWrite,
   documentName,
-}: {
+}: Readonly<{
   entry: CaseAuthorityEntry;
   claimId: string;
   canWrite: boolean;
   documentName?: string;
-}) {
+}>) {
   const t = useTranslations('staff-correspondence.authorities');
   const locale = useLocale();
   const mutation = useRegisterMutation();

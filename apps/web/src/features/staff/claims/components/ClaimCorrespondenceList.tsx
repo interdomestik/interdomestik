@@ -16,7 +16,10 @@ import {
   type RegisterDocument,
 } from './case-register-controls';
 
-function FollowUpForm({ claimId, entry }: { claimId: string; entry: ClaimCorrespondenceEntry }) {
+function FollowUpForm({
+  claimId,
+  entry,
+}: Readonly<{ claimId: string; entry: ClaimCorrespondenceEntry }>) {
   const t = useTranslations('staff-correspondence.list');
   const mutation = useRegisterMutation();
 
@@ -56,13 +59,13 @@ function CorrespondenceRow({
   entry,
   documentNames,
   reply,
-}: {
+}: Readonly<{
   canWrite: boolean;
   claimId: string;
   entry: ClaimCorrespondenceEntry;
   documentNames: ReadonlyMap<string, string>;
   reply?: ClaimCorrespondenceEntry;
-}) {
+}>) {
   const t = useTranslations('staff-correspondence');
   const locale = useLocale();
   const date = formatPilotDateTime(entry.occurredAt, locale, '');

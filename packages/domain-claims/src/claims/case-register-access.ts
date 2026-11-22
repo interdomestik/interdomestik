@@ -67,7 +67,7 @@ function resolveRegisterActor(
   const { tenantId, accessTenantId, purpose, principal } = readTenantAuthority(authority);
   if (purpose !== 'session' && purpose !== 'test') return null;
   if (tenantId !== accessTenantId || tenantId !== session.user.tenantId?.trim()) return null;
-  if (!principal || principal.userId !== session.user.id || principal.role !== session.user.role) {
+  if (principal?.userId !== session.user.id || principal.role !== session.user.role) {
     return null;
   }
   if (principal.branchId !== (session.user.branchId?.trim() || null)) return null;

@@ -93,8 +93,9 @@ async function proveConstraints(t: TestContext, connections: Connection) {
       from pg_roles where rolname = current_user`;
       assert.deepEqual(posture, { role: connections.role, rolsuper: false, rolbypassrls: false });
       for (const table of registerTables) {
+        const relation = `public.${table}`;
         const [rls] = await admin`select relrowsecurity, relforcerowsecurity
-        from pg_class where oid = ${`public.${table}`}::regclass`;
+        from pg_class where oid = ${relation}::regclass`;
         assert.deepEqual(rls, { relrowsecurity: true, relforcerowsecurity: true });
         await restricted(runtime, async tx => {
           const visible = await tx`select distinct tenant_id from ${tx(table)}`;
@@ -178,8 +179,10 @@ async function proveConstraints(t: TestContext, connections: Connection) {
       const outbound = { ...outboundInput(own.claim, own.bases, 1), decided_at: past };
 
       for (const table of registerTables) {
+        const constraint = `${table}_claim_fk`;
+        const relation = `public.${table}`;
         const [fk] = await admin`select pg_get_constraintdef(oid) as definition from pg_constraint
-        where conname = ${`${table}_claim_fk`} and conrelid = ${`public.${table}`}::regclass`;
+        where conname = ${constraint} and conrelid = ${relation}::regclass`;
         assert.equal(
           fk?.definition,
           'FOREIGN KEY (tenant_id, claim_id) REFERENCES claim(tenant_id, id)'

@@ -81,8 +81,7 @@ function replayAuthority(
   actorId: string
 ) {
   if (
-    row &&
-    row.recordedByStaffId === actorId &&
+    row?.recordedByStaffId === actorId &&
     row.kind === fields.kind &&
     row.version === fields.version &&
     row.evidenceDocumentId === fields.evidenceDocumentId &&

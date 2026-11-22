@@ -8,7 +8,7 @@ import { SharedEvidenceUploadDialog } from '@/features/claims/components/SharedE
 import { Button } from '@interdomestik/ui';
 import { useLocale, useTranslations } from 'next-intl';
 
-export function ClaimRegisterDocumentUpload({ claimId }: { claimId: string }) {
+export function ClaimRegisterDocumentUpload({ claimId }: Readonly<{ claimId: string }>) {
   const t = useTranslations('staff-correspondence.documents');
   const common = useTranslations('common');
   const locale = useLocale();

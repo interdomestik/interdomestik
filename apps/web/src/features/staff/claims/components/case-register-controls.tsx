@@ -58,13 +58,14 @@ export function useRegisterMutation() {
 export function RegisterFeedback({
   pending,
   feedback,
-}: Pick<ReturnType<typeof useRegisterMutation>, 'feedback' | 'pending'>) {
+}: Readonly<Pick<ReturnType<typeof useRegisterMutation>, 'feedback' | 'pending'>>) {
   const t = useTranslations('staff-correspondence.feedback');
+  let status: string | null = null;
+  if (pending) status = t('saving');
+  else if (feedback && !feedback.failed) status = t(feedback.key);
   return (
     <>
-      <span role="status" className="text-sm">
-        {pending ? t('saving') : feedback && !feedback.failed ? t(feedback.key) : null}
-      </span>
+      <output className="text-sm">{status}</output>
       {feedback?.failed && (
         <p role="alert" className="text-sm text-red-800">
           {t(feedback.key)}
@@ -74,7 +75,7 @@ export function RegisterFeedback({
   );
 }
 
-export function RegisterReadError({ code }: { code?: string }) {
+export function RegisterReadError({ code }: Readonly<{ code?: string }>) {
   const t = useTranslations('staff-correspondence.feedback');
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -92,14 +93,15 @@ export function RegisterReadError({ code }: { code?: string }) {
       >
         {t('retry')}
       </Button>
-      <span role="status" className="ms-2 text-sm">
-        {pending && t('loading')}
-      </span>
+      <output className="ms-2 text-sm">{pending && t('loading')}</output>
     </div>
   );
 }
 
-export function RegisterSubmit({ children, pending }: { children: ReactNode; pending: boolean }) {
+export function RegisterSubmit({
+  children,
+  pending,
+}: Readonly<{ children: ReactNode; pending: boolean }>) {
   return (
     <Button type="submit" aria-disabled={pending} className="w-fit">
       {children}

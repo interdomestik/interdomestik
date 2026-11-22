@@ -33,9 +33,23 @@ vi.mock('@interdomestik/database/tenant-authority', async importOriginal => ({
   readTenantAuthority: db.descriptor,
 }));
 
+type Builder = Promise<unknown[]> & {
+  from(table: unknown): Builder;
+  where(where: SQL): Builder;
+  for(lock: string): Builder;
+  set(values: unknown): Builder;
+  values(values: unknown): Builder;
+  orderBy(): Builder;
+  onConflictDoNothing(): Builder;
+  returning(): Builder;
+};
+
+// A real promise carries the builder methods: each statement takes the next queued result in the
+// order the command creates it, which is the order the sequential command code awaits it.
 function statement(operation: Statement) {
   db.statements.push(operation);
-  const query = {
+  const rows = Promise.resolve().then(() => db.results.shift() ?? []);
+  const query: Builder = Object.assign(rows, {
     from(table: unknown) {
       operation.table = table;
       return query;
@@ -65,10 +79,7 @@ function statement(operation: Statement) {
     returning() {
       return query;
     },
-    then(resolve: (rows: unknown[]) => unknown, reject: (error: unknown) => unknown) {
-      return Promise.resolve(db.results.shift() ?? []).then(resolve, reject);
-    },
-  };
+  });
   return query;
 }
 

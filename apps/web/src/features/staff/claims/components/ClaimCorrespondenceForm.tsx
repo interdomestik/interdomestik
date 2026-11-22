@@ -30,12 +30,12 @@ function OutboundFields({
   documents,
   sharing,
   setSharing,
-}: {
+}: Readonly<{
   authorities: readonly CaseAuthorityEntry[];
   documents: readonly RegisterDocument[];
   sharing: boolean;
   setSharing: (value: boolean) => void;
-}) {
+}>) {
   const t = useTranslations('staff-correspondence');
   const active = authorities.filter(entry => !entry.revokedAt);
   const recovery = active.find(entry => entry.kind === 'recovery_agreement');

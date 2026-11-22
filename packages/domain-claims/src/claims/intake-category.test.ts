@@ -32,6 +32,7 @@ describe('claim intake categories', () => {
     );
     expect(sqlOpenSet).not.toBeNull();
     const sqlOpenIds = [...(sqlOpenSet?.[1] ?? '').matchAll(/'([^']+)'/g)].map(match => match[1]);
-    expect(sqlOpenIds.sort()).toEqual([...OPEN_CLAIM_CATEGORY_IDS].sort());
+    expect(sqlOpenIds).toHaveLength(OPEN_CLAIM_CATEGORY_IDS.size);
+    expect(new Set(sqlOpenIds)).toEqual(new Set(OPEN_CLAIM_CATEGORY_IDS));
   });
 });

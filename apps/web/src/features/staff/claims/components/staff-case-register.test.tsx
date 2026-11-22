@@ -18,13 +18,8 @@ vi.mock('@/actions/staff-claims/case-register-read', () => ({
 vi.mock('next-intl/server', async () => {
   const { createTranslator } = await vi.importActual<typeof import('next-intl')>('next-intl');
   return {
-    getTranslations: async ({
-      locale,
-      namespace,
-    }: {
-      locale: string;
-      namespace: RegisterNamespace;
-    }) => createTranslator({ locale, namespace, messages: catalog }),
+    getTranslations: ({ locale, namespace }: { locale: string; namespace: RegisterNamespace }) =>
+      Promise.resolve(createTranslator({ locale, namespace, messages: catalog })),
   };
 });
 

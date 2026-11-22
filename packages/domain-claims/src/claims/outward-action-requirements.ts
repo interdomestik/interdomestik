@@ -97,8 +97,7 @@ function eligibleAt(
   now: Date
 ) {
   return Boolean(
-    row &&
-    row.kind === rule.kind &&
+    row?.kind === rule.kind &&
     row.scope === rule.scope &&
     !row.revokedAt &&
     row.grantedAt <= now &&
