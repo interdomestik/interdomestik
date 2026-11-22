@@ -53,36 +53,52 @@ function toWebPushSubscription(row: {
   };
 }
 
+export function isPushConfigured() {
+  return getVapidDetails() !== null;
+}
+
 export async function sendPushOutcome(
   subscription: { endpoint: string; p256dh: string; auth: string },
   { title, body, url, icon, badge }: PushPayload,
   { timeoutMs }: { timeoutMs: number }
-): Promise<DeliveryOutcome<'web-push'>> {
+): Promise<DeliveryOutcome<'webpush'>> {
   const vapidDetails = getVapidDetails();
   if (!vapidDetails) {
     return {
       ok: false,
       retryable: false,
       ambiguous: false,
+      preAcceptance: false,
       code: 'missing_vapid',
       detail: 'missing_vapid',
     };
   }
   try {
-    await withDeliveryTimeout(timeoutMs, () =>
+    const response = await withDeliveryTimeout(timeoutMs, () =>
       webPush.sendNotification(
         toWebPushSubscription(subscription),
         JSON.stringify({ title, body, url, icon, badge }),
         { vapidDetails, timeout: timeoutMs }
       )
     );
-    return { ok: true, transport: 'web-push' };
+    if (!(response?.statusCode >= 200 && response.statusCode < 300)) {
+      return {
+        ok: false,
+        retryable: true,
+        ambiguous: true,
+        preAcceptance: false,
+        code: 'push_unknown',
+        detail: 'web-push',
+      };
+    }
+    return { ok: true, transport: 'webpush' };
   } catch (error) {
     if (error instanceof DeliveryTimeout || providerField(error, 'code') === 'ETIMEDOUT') {
       return {
         ok: false,
         retryable: true,
         ambiguous: true,
+        preAcceptance: false,
         code: 'timeout',
         detail: 'web-push timeout',
       };
@@ -93,6 +109,7 @@ export async function sendPushOutcome(
       ok: false,
       retryable: status === undefined || status === 408 || status === 429 || status >= 500,
       ambiguous: status === undefined || status === 408,
+      preAcceptance: false,
       code: gone ? 'subscription_gone' : 'push_failed',
       detail: status === undefined ? 'web-push' : `web-push ${status}`,
     };

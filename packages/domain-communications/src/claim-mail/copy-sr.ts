@@ -4,6 +4,8 @@ const viewClaim = 'Pogledajte zahtev';
 const footer = 'Tim Interdomestik';
 
 export const SR_COPY: ClaimMailCopy = {
+  claimWithoutNumber: 'Zahtev bez broja',
+  pushStatusHeading: 'Vaš zahtev je ažuriran',
   statuses: {
     draft: 'Nacrt',
     submitted: 'Podneto',

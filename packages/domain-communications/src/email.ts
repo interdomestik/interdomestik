@@ -100,55 +100,68 @@ export function getSenderAddress() {
   );
 }
 
+export type EmailTransport = 'smtp' | 'resend';
+
+export function configuredEmailTransports(): EmailTransport[] {
+  if (isAutomated()) return [];
+  const transports: EmailTransport[] = [];
+  if (process.env.SMTP_HOST) transports.push('smtp');
+  if (process.env.RESEND_API_KEY) transports.push('resend');
+  return transports;
+}
+
 export async function sendEmailOutcome(
+  transport: EmailTransport,
   recipient: string,
   rendered: EmailTemplate,
   { idempotencyKey, timeoutMs }: { idempotencyKey: string; timeoutMs: number }
-): Promise<DeliveryOutcome<'smtp' | 'resend'>> {
+): Promise<DeliveryOutcome<EmailTransport>> {
   const to = selectEmailRecipients(recipient);
-  if (!to) {
+  if (!to || typeof to !== 'string') {
     return {
       ok: false,
       retryable: false,
       ambiguous: false,
+      preAcceptance: false,
       code: 'email_suppressed',
       detail: 'email_suppressed',
     };
   }
 
-  const telemetry = createEmailTelemetry('content-free');
-  let transport: 'smtp' | 'resend' | undefined;
+  const { subject, html, text } = rendered;
+  const mail = {
+    from: getSenderAddress(),
+    to,
+    subject: subject.replace(/[\r\n]/g, ''),
+    html,
+    text,
+  };
+  const unavailable = {
+    ok: false,
+    retryable: true,
+    ambiguous: false,
+    preAcceptance: false,
+    code: 'email_unconfigured',
+    detail: 'email_unconfigured',
+  } as const;
+  if (!configuredEmailTransports().includes(transport)) return unavailable;
+
   try {
     return await withDeliveryTimeout(timeoutMs, async signal => {
-      const provider = getEmailClient(telemetry, {});
-      if (!provider || provider === 'rejected') {
-        return {
-          ok: false,
-          retryable: false,
-          ambiguous: false,
-          code: 'email_unconfigured',
-          detail: 'email_unconfigured',
-        };
+      if (transport === 'resend') {
+        const apiKey = process.env.RESEND_API_KEY;
+        return apiKey ? sendResendOutcome(apiKey, mail, idempotencyKey, signal) : unavailable;
       }
-
-      const { subject, html, text } = rendered;
-      const mail = { from: getSenderAddress(), to, subject, html, text };
-      transport = provider.type;
-      if (provider.type === 'resend') {
-        return sendResendOutcome(provider.client, mail, idempotencyKey);
-      }
-
+      const host = process.env.SMTP_HOST;
+      if (!host) return unavailable;
+      const port = Number.parseInt(process.env.SMTP_PORT || '1025');
+      const client = smtpTransport({ host, port });
       try {
-        await provider.client.sendMail(mail);
+        const receipt = await client.sendMail(mail);
+        if (!receipt?.accepted?.length) return smtpDeliveryFailure(undefined);
         return { ok: true, transport: 'smtp' };
       } catch (error) {
-        const failure = smtpDeliveryFailure(error);
-        if (failure.ambiguous) return failure;
-        signal.throwIfAborted();
-        const resend = fallbackResend(provider, () => getResendClient(telemetry));
-        if (!resend) return failure;
-        transport = 'resend';
-        return sendResendOutcome(resend, mail, idempotencyKey);
+        return smtpDeliveryFailure(error);
       }
     });
   } catch (error) {
@@ -156,9 +169,10 @@ export async function sendEmailOutcome(
     return {
       ok: false,
       retryable: true,
-      ambiguous: Boolean(transport),
+      ambiguous: true,
+      preAcceptance: false,
       code: 'email_failed',
-      detail: transport ?? 'email',
+      detail: transport,
     };
   }
 }

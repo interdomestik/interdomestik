@@ -1,6 +1,7 @@
 'use client';
 
-import { Link } from '@/i18n/routing';
+import { updatePreferredLocale } from '@/actions/preferred-locale';
+import { Link, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
 import { ChevronDown, ShieldCheck } from 'lucide-react';
@@ -26,6 +27,7 @@ function useHasHydrated(): boolean {
 
 export function Header() {
   const locale = useLocale();
+  const router = useRouter();
   const t = useTranslations('nav');
   const { data: session, isPending } = authClient.useSession();
   const hasHydrated = useHasHydrated();
@@ -94,7 +96,24 @@ export function Header() {
                   href="/"
                   locale={option}
                   data-testid="public-locale-option"
-                  onClick={() => setLocaleOpen(false)}
+                  onClick={async event => {
+                    setLocaleOpen(false);
+                    if (
+                      !hasHydrated ||
+                      isPending ||
+                      !session?.user?.id ||
+                      event.defaultPrevented ||
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey ||
+                      event.altKey
+                    )
+                      return;
+                    event.preventDefault();
+                    await updatePreferredLocale({ locale: option });
+                    router.push('/', { locale: option });
+                  }}
                   onKeyDown={event => {
                     if (event.key !== 'Escape') return;
                     event.preventDefault();

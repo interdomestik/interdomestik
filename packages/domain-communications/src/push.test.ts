@@ -80,10 +80,10 @@ describe('sendPushOutcome', () => {
   });
 
   it('sends one subscription with per-request VAPID details', async () => {
-    mocks.sendNotification.mockResolvedValue({});
+    mocks.sendNotification.mockResolvedValue({ statusCode: 201 });
     await expect(sendPushOutcome(subscription, payload, options)).resolves.toEqual({
       ok: true,
-      transport: 'web-push',
+      transport: 'webpush',
     });
     expect(mocks.sendNotification).toHaveBeenCalledExactlyOnceWith(
       {
@@ -109,6 +109,7 @@ describe('sendPushOutcome', () => {
       ok: false,
       retryable: false,
       ambiguous: false,
+      preAcceptance: false,
       code: 'subscription_gone',
       detail: `web-push ${statusCode}`,
     });

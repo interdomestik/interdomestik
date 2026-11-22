@@ -778,6 +778,7 @@ export const supportHandoffs = pgTable(
     lifecycleVersion: integer('lifecycle_version').notNull().default(0),
     publicResponse: text('public_response'),
     publicResponseAt: timestamp('public_response_at'),
+    firstPublicResponseAt: timestamp('first_public_response_at', { withTimezone: true }),
     publicResponseById: text('public_response_by_id').references(() => user.id),
     publicResponseVersion: integer('public_response_version').notNull().default(0),
     publicResponseAcknowledgedAt: timestamp('public_response_acknowledged_at'),

@@ -1,4 +1,4 @@
-import { and, claims, eq } from '@interdomestik/database';
+import { and, claims, eq, type TenantTransaction } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { isNull, or, sql } from 'drizzle-orm';
@@ -50,4 +50,15 @@ export function resolveScopedStaffClaimAccess(params: {
     tenantId: ensureTenantId(params.session),
     userId: params.session.user.id,
   };
+}
+
+export async function canStaffReadClaim(
+  tx: TenantTransaction,
+  recipient: Omit<StaffClaimScopeArgs, 'role'>
+): Promise<boolean> {
+  const [claim] = await tx
+    .select({ id: claims.id })
+    .from(claims)
+    .where(buildScopedStaffClaimWhere({ ...recipient, role: 'staff' }));
+  return Boolean(claim);
 }

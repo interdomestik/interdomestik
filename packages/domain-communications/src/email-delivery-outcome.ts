@@ -1,4 +1,4 @@
-import type { ErrorResponse, Resend } from 'resend';
+import { z } from 'zod';
 import type { EmailTemplate } from './email/templates/types';
 import type { DeliveryFailure, DeliveryOutcome } from './delivery-outcome';
 import { providerField, providerStatus } from './delivery-outcome';
@@ -45,6 +45,7 @@ export function smtpDeliveryFailure(error: unknown): DeliveryFailure {
     ok: false,
     retryable: !beforeAcceptance || status === undefined || status < 500,
     ambiguous: !beforeAcceptance,
+    preAcceptance: beforeAcceptance,
     code: beforeAcceptance ? 'smtp_pre_acceptance' : 'smtp_ambiguous',
     detail: ['smtp', reportedCode, status].filter(value => value !== undefined).join(' '),
   };
@@ -55,62 +56,82 @@ export function emailTimeoutFailure(transport?: 'smtp' | 'resend'): DeliveryFail
     ok: false,
     retryable: true,
     ambiguous: true,
+    preAcceptance: false,
     code: 'timeout',
     detail: transport ? `${transport} timeout` : 'email timeout',
   };
 }
 
-const RESEND_ERRORS = {
-  missing_required_field: 422,
-  invalid_idempotency_key: 400,
-  invalid_idempotent_request: 409,
-  concurrent_idempotent_requests: 409,
-  invalid_access: 422,
-  invalid_parameter: 422,
-  invalid_region: 422,
-  rate_limit_exceeded: 429,
-  missing_api_key: 401,
-  invalid_api_Key: 403,
-  invalid_from_address: 403,
-  validation_error: 403,
-  not_found: 404,
-  method_not_allowed: 405,
-  application_error: 500,
-  internal_server_error: 500,
-} satisfies Record<ErrorResponse['name'], number>;
-
-function resendDeliveryFailure(name?: ErrorResponse['name']): DeliveryFailure {
-  if (name === undefined || !Object.hasOwn(RESEND_ERRORS, name)) {
-    return {
-      ok: false,
-      retryable: true,
-      ambiguous: true,
-      code: 'resend_unknown',
-      detail: 'resend',
-    };
-  }
-
-  const status = RESEND_ERRORS[name];
-  return {
-    ok: false,
-    retryable: status >= 500 || status === 429 || name === 'concurrent_idempotent_requests',
-    ambiguous: status >= 500,
-    code: 'resend_failed',
-    detail: `resend ${name} ${status}`,
-  };
-}
+const RESEND_PRE_ACCEPTANCE_STATUSES = new Set([400, 401, 403, 422, 429]);
+const RESEND_PRE_REQUEST_CODES = new Set([
+  'ECONNREFUSED',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'ERR_TLS_CERT_ALTNAME_INVALID',
+  'CERT_HAS_EXPIRED',
+  'DEPTH_ZERO_SELF_SIGNED_CERT',
+  'SELF_SIGNED_CERT_IN_CHAIN',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+  'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+]);
+const resendReceipt = z.object({ id: z.string().min(1) });
 
 export async function sendResendOutcome(
-  client: Resend,
+  apiKey: string,
   mail: Mail,
-  idempotencyKey: string
+  idempotencyKey: string,
+  signal: AbortSignal
 ): Promise<DeliveryOutcome<'resend'>> {
   try {
-    const { data, error } = await client.emails.send(mail, { idempotencyKey });
-    if (error) return resendDeliveryFailure(error.name);
-    if (data?.id) return { ok: true, transport: 'resend' };
-    return resendDeliveryFailure();
-  } catch {
-    return resendDeliveryFailure();
+    // The SDK replaces connection failures with application_error, losing the cause.
+    const baseUrl = process.env.RESEND_BASE_URL || 'https://api.resend.com';
+    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/emails`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify({ ...mail, to: Array.isArray(mail.to) ? mail.to : [mail.to] }),
+      signal,
+      redirect: 'error',
+    });
+    if (!response.ok) {
+      const { status } = response;
+      const preAcceptance = RESEND_PRE_ACCEPTANCE_STATUSES.has(status);
+      return {
+        ok: false,
+        retryable: status >= 500 || [408, 409, 429].includes(status),
+        ambiguous: !preAcceptance,
+        preAcceptance,
+        code: 'resend_failed',
+        detail: `resend ${status}`,
+      };
+    }
+    if (resendReceipt.safeParse(await response.json()).success) {
+      return { ok: true, transport: 'resend' };
+    }
+  } catch (error) {
+    signal.throwIfAborted();
+    const code =
+      providerField(providerField(error, 'cause'), 'code') ?? providerField(error, 'code');
+    if (typeof code === 'string' && RESEND_PRE_REQUEST_CODES.has(code)) {
+      return {
+        ok: false,
+        retryable: true,
+        ambiguous: false,
+        preAcceptance: true,
+        code: 'resend_pre_acceptance',
+        detail: `resend ${code}`,
+      };
+    }
   }
+  return {
+    ok: false,
+    retryable: true,
+    ambiguous: true,
+    preAcceptance: false,
+    code: 'resend_unknown',
+    detail: 'resend',
+  };
 }

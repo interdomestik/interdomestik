@@ -4,7 +4,7 @@ import { EN_COPY } from './copy-en';
 import { MK_COPY } from './copy-mk';
 import { CLAIM_MAIL_COPY } from './index';
 import { renderClaimMail } from './render';
-import type { ClaimMailRenderArgs } from './types';
+import type { ClaimMailLocale, ClaimMailRenderArgs } from './types';
 
 const link = { baseUrl: 'https://example.com/', claimId: 'case-1' };
 const claimTitle = 'Private case title';
@@ -93,6 +93,19 @@ describe('claim mail', () => {
     expect(text).toContain(mkHeading);
     expect(`${html}\n${text}`).not.toContain(enHeading);
   });
+
+  it.each(Object.keys(CLAIM_MAIL_COPY) as ClaimMailLocale[])(
+    'renders every claim email in %s',
+    locale => {
+      for (const [[kind, , facts]] of mkExamples) {
+        const args = [kind, locale, facts] as ClaimMailRenderArgs;
+        const rendered = renderClaimMail(...args);
+        expect(rendered.html).toContain(`<html lang="${locale}">`);
+        expect(rendered.html).toContain(`/${locale}/`);
+        expect(rendered.subject).not.toMatch(/\{\w+\}/);
+      }
+    }
+  );
 
   it('renders the localized status pair and a locale-specific member link', () => {
     const { text } = renderClaimMail('claim_status_changed', 'mk', statusFacts);

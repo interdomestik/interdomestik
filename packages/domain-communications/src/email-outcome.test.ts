@@ -1,156 +1,158 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { sendEmailOutcome } from './email';
+import { configuredEmailTransports, sendEmailOutcome } from './email';
 
-const { sendMail, sendResend } = vi.hoisted(() => ({ sendMail: vi.fn(), sendResend: vi.fn() }));
-
+const { sendMail, fetchEmail } = vi.hoisted(() => ({ sendMail: vi.fn(), fetchEmail: vi.fn() }));
 vi.mock('nodemailer', () => ({ createTransport: () => ({ sendMail }) }));
-vi.mock('resend', () => ({
-  Resend: class {
-    emails = { send: sendResend };
-  },
-}));
 
 const recipient = 'member@example.com';
-const rendered = { subject: 'Claim update', html: '<p>Update</p>', text: 'Update' };
+const rendered = { subject: 'Claim\r\n update', html: '<p>Update</p>', text: 'Update' };
 const options = { idempotencyKey: 'claim-delivery-42', timeoutMs: 50 };
 
 describe('sendEmailOutcome', () => {
   beforeEach(() => {
     sendMail.mockReset();
-    sendResend.mockReset();
+    fetchEmail.mockReset();
+    vi.stubGlobal('fetch', fetchEmail);
     vi.stubEnv('INTERDOMESTIK_AUTOMATED', '0');
     vi.stubEnv('PLAYWRIGHT', '0');
     vi.stubEnv('SMTP_HOST', 'localhost');
     vi.stubEnv('SMTP_PORT', '1025');
     vi.stubEnv('RESEND_API_KEY', 'mock-key');
+    vi.stubEnv('RESEND_BASE_URL', '');
     vi.stubEnv('RESEND_FROM_EMAIL', 'sender@example.com');
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
-  it('uses SMTP first and reports acceptance', async () => {
-    sendMail.mockResolvedValue({ messageId: 'smtp-message' });
-    await expect(sendEmailOutcome(recipient, rendered, options)).resolves.toEqual({
+  it('reports configuration in preferred order and respects automation', () => {
+    expect(configuredEmailTransports()).toEqual(['smtp', 'resend']);
+    vi.stubEnv('SMTP_HOST', '');
+    expect(configuredEmailTransports()).toEqual(['resend']);
+    vi.stubEnv('INTERDOMESTIK_AUTOMATED', '1');
+    expect(configuredEmailTransports()).toEqual([]);
+  });
+
+  it('uses only SMTP and strips subject line breaks', async () => {
+    sendMail.mockResolvedValue({ accepted: [recipient] });
+    await expect(sendEmailOutcome('smtp', recipient, rendered, options)).resolves.toEqual({
       ok: true,
       transport: 'smtp',
     });
-    expect(sendMail).toHaveBeenCalledWith({
+    expect(sendMail).toHaveBeenCalledExactlyOnceWith({
       ...rendered,
       from: 'sender@example.com',
       to: recipient,
+      subject: 'Claim update',
     });
-    expect(sendResend).not.toHaveBeenCalled();
+    expect(fetchEmail).not.toHaveBeenCalled();
   });
 
-  it.each([
-    { code: 'ECONNREFUSED' },
-    { code: 'ESOCKET', command: 'CONN', syscall: 'connect' },
-    { code: 'ETLS', command: 'STARTTLS' },
-    { code: 'EAUTH', command: 'AUTH PLAIN', responseCode: 535 },
-    { code: 'EENVELOPE', command: 'RCPT TO', responseCode: 550 },
-  ])('falls back with the idempotency key after a pre-acceptance failure (%j)', async fields => {
-    sendMail.mockRejectedValue(Object.assign(new Error('SMTP failure'), fields));
-    sendResend.mockResolvedValue({ data: { id: 'resend-message' }, error: null });
-    await expect(sendEmailOutcome(recipient, rendered, options)).resolves.toEqual({
+  it('uses only Resend and sends the stable idempotency key', async () => {
+    fetchEmail.mockResolvedValue(Response.json({ id: 'receipt' }));
+    await expect(sendEmailOutcome('resend', recipient, rendered, options)).resolves.toEqual({
       ok: true,
       transport: 'resend',
     });
-    expect(sendResend).toHaveBeenCalledExactlyOnceWith(
-      { ...rendered, from: 'sender@example.com', to: recipient },
-      { idempotencyKey: options.idempotencyKey }
+    expect(fetchEmail).toHaveBeenCalledExactlyOnceWith(
+      'https://api.resend.com/emails',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ 'Idempotency-Key': options.idempotencyKey }),
+      })
     );
+    expect(JSON.parse(fetchEmail.mock.calls[0][1].body)).toMatchObject({
+      subject: 'Claim update',
+      to: [recipient],
+    });
+    expect(sendMail).not.toHaveBeenCalled();
   });
 
   it.each([
-    { code: 'EENVELOPE', command: 'DATA', responseCode: 554 },
-    { code: 'ECONNECTION', command: 'CONN' },
-    { code: 'ETIMEDOUT', command: 'CONN' },
-  ])('does not fall back when acceptance is uncertain (%j)', async fields => {
-    sendMail.mockRejectedValue(Object.assign(new Error('SMTP failure'), fields));
-    await expect(sendEmailOutcome(recipient, rendered, options)).resolves.toMatchObject({
+    [{ code: 'ECONNREFUSED', command: 'CONN' }, true],
+    [{ code: 'EDNS' }, true],
+    [{ code: 'ETLS' }, true],
+    [{ code: 'EAUTH' }, true],
+    [{ code: 'EENVELOPE', command: 'RCPT TO', responseCode: 550 }, true],
+    [{ code: 'EENVELOPE', command: 'DATA', responseCode: 550 }, false],
+    [{ code: 'ETIMEDOUT', command: 'RCPT TO' }, false],
+    [{ code: 'ECONNRESET', command: 'CONN' }, false],
+  ])('classifies SMTP %o without calling Resend', async (error, preAcceptance) => {
+    sendMail.mockRejectedValue(error);
+    await expect(sendEmailOutcome('smtp', recipient, rendered, options)).resolves.toMatchObject({
       ok: false,
-      ambiguous: true,
-      retryable: true,
+      preAcceptance,
+      ambiguous: !preAcceptance,
     });
-    expect(sendResend).not.toHaveBeenCalled();
+    expect(fetchEmail).not.toHaveBeenCalled();
   });
 
-  it('returns at the timeout and prevents fallback after a late pre-acceptance error', async () => {
-    vi.useFakeTimers();
-    let rejectSmtp: (error: Error) => void = () => {};
-    sendMail.mockReturnValue(
-      new Promise((_resolve, reject) => {
-        rejectSmtp = reject;
-      })
-    );
-
-    const result = sendEmailOutcome(recipient, rendered, options);
-    await vi.advanceTimersByTimeAsync(options.timeoutMs);
-    await expect(result).resolves.toEqual({
+  it.each([400, 401, 403, 422, 429, 409, 500])('classifies Resend HTTP %i', async status => {
+    fetchEmail.mockResolvedValue(new Response('private response text', { status }));
+    await expect(sendEmailOutcome('resend', recipient, rendered, options)).resolves.toMatchObject({
       ok: false,
-      ambiguous: true,
-      retryable: true,
-      code: 'timeout',
-      detail: 'smtp timeout',
+      preAcceptance: [400, 401, 403, 422, 429].includes(status),
+      detail: `resend ${status}`,
     });
-    rejectSmtp(Object.assign(new Error('late connection error'), { code: 'ECONNREFUSED' }));
-    await vi.advanceTimersByTimeAsync(0);
-    expect(sendResend).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
   });
 
-  it('uses a single timeout budget across SMTP and Resend', async () => {
-    vi.useFakeTimers();
-    sendMail.mockImplementation(
-      () =>
-        new Promise((_resolve, reject) => {
-          setTimeout(
-            () => reject(Object.assign(new Error('refused'), { code: 'ECONNREFUSED' })),
-            40
-          );
-        })
-    );
-    sendResend.mockReturnValue(new Promise(() => {}));
+  it.each(['ECONNREFUSED', 'ENOTFOUND', 'ERR_TLS_CERT_ALTNAME_INVALID', 'ECONNRESET'])(
+    'classifies Resend network cause %s',
+    async code => {
+      fetchEmail.mockRejectedValue(new Error('private address', { cause: { code } }));
+      await expect(sendEmailOutcome('resend', recipient, rendered, options)).resolves.toMatchObject(
+        {
+          ok: false,
+          preAcceptance: code !== 'ECONNRESET',
+        }
+      );
+    }
+  );
 
-    const result = sendEmailOutcome(recipient, rendered, options);
+  it('treats a missing provider receipt as ambiguous', async () => {
+    fetchEmail.mockResolvedValue(Response.json({}));
+    sendMail.mockResolvedValue(undefined);
+    for (const transport of ['smtp', 'resend'] as const) {
+      await expect(
+        sendEmailOutcome(transport, recipient, rendered, options)
+      ).resolves.toMatchObject({
+        ok: false,
+        ambiguous: true,
+        preAcceptance: false,
+      });
+    }
+  });
+
+  it('times out one Resend call without switching transport', async () => {
+    vi.useFakeTimers();
+    fetchEmail.mockReturnValue(new Promise(() => {}));
+    const result = sendEmailOutcome('resend', recipient, rendered, options);
     await vi.advanceTimersByTimeAsync(options.timeoutMs);
     await expect(result).resolves.toMatchObject({
       ok: false,
+      ambiguous: true,
+      preAcceptance: false,
       code: 'timeout',
-      detail: 'resend timeout',
     });
-    expect(sendResend).toHaveBeenCalledOnce();
+    expect(fetchEmail.mock.calls[0][1].signal.aborted).toBe(true);
+    expect(sendMail).not.toHaveBeenCalled();
   });
 
-  it('limits SMTP failure details to known codes and numeric statuses', async () => {
-    sendMail.mockRejectedValue({
-      code: recipient,
-      command: 'DATA',
-      responseCode: 554,
-      message: `${recipient} private-token private-body`,
-      response: `554 ${recipient}`,
-    });
-    await expect(sendEmailOutcome(recipient, rendered, options)).resolves.toMatchObject({
-      ok: false,
-      code: 'smtp_ambiguous',
-      detail: 'smtp 554',
-    });
-  });
-
-  it('limits Resend failure details to known codes and statuses', async () => {
+  it('suppresses invalid addresses and refuses an unconfigured named provider', async () => {
+    await expect(
+      sendEmailOutcome('smtp', 'member@example.invalid', rendered, options)
+    ).resolves.toMatchObject({ ok: false, code: 'email_suppressed' });
     vi.stubEnv('SMTP_HOST', '');
-    sendResend.mockResolvedValue({
-      data: null,
-      error: { name: 'rate_limit_exceeded', message: `Provider error for ${recipient}` },
-    });
-    await expect(sendEmailOutcome(recipient, rendered, options)).resolves.toEqual({
+    await expect(sendEmailOutcome('smtp', recipient, rendered, options)).resolves.toMatchObject({
       ok: false,
+      code: 'email_unconfigured',
       retryable: true,
-      ambiguous: false,
-      code: 'resend_failed',
-      detail: 'resend rate_limit_exceeded 429',
     });
+    expect(fetchEmail).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
   });
 });

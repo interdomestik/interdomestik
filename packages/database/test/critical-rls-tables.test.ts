@@ -13,11 +13,13 @@ type CriticalRlsRow = {
 const CRITICAL_TABLES = [
   'claim',
   'claim_transition_evidence',
+  'claim_response_requests',
   'claim_messages',
   'crm_task_history',
   'crm_tasks',
   'documents',
   'free_start_drafts',
+  'notification_deliveries',
   'user',
 ] as const;
 

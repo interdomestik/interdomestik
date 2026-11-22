@@ -4,6 +4,8 @@ import { boolean, check, pgTable, text, timestamp, uniqueIndex } from 'drizzle-o
 import { branches } from './rbac';
 import { tenants } from './tenants';
 
+export const recipientLocales = ['sq', 'en', 'sr', 'mk', 'de'] as const;
+
 export const user = pgTable(
   'user',
   {
@@ -11,6 +13,7 @@ export const user = pgTable(
     tenantId: text('tenant_id')
       .notNull()
       .references(() => tenants.id),
+    preferredLocale: text('preferred_locale', { enum: recipientLocales }),
     residenceCountry: text('residence_country'),
     name: text('name').notNull(),
     email: text('email').notNull().unique(),
@@ -36,6 +39,10 @@ export const user = pgTable(
       memberNumberIndex: uniqueIndex('user_member_number_idx')
         .on(table.memberNumber)
         .where(sql`role = 'member'`),
+      preferredLocaleCheck: check(
+        'user_preferred_locale_check',
+        sql`${table.preferredLocale} in ('sq', 'en', 'sr', 'mk', 'de')`
+      ),
       residenceCountryCheck: check(
         'user_residence_country_check',
         sql`${table.residenceCountry} IS NULL OR ${table.residenceCountry} ~ '^[A-Z]{2}$'`

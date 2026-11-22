@@ -4,6 +4,8 @@ const viewClaim = 'Fall ansehen';
 const footer = 'Das Interdomestik-Team';
 
 export const DE_COPY: ClaimMailCopy = {
+  claimWithoutNumber: 'Fall ohne Nummer',
+  pushStatusHeading: 'Ihr Fall wurde aktualisiert',
   statuses: {
     draft: 'Entwurf',
     submitted: 'Eingereicht',

@@ -2,7 +2,15 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LanguageSettings } from './language-settings';
 
+vi.mock('@/lib/auth-client', () => ({
+  authClient: { useSession: () => ({ data: null }) },
+}));
+
 // Mock routing
+vi.mock('@/actions/preferred-locale', () => ({
+  updatePreferredLocale: vi.fn().mockResolvedValue({ success: true }),
+}));
+
 vi.mock('@/i18n/routing', () => ({
   usePathname: () => '/member/settings',
   useRouter: () => ({

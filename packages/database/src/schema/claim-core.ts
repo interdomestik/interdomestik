@@ -80,6 +80,7 @@ export const claims = pgTable(
       table.createdAt
     ),
     index('idx_claims_access_tenant').on(table.accessTenantId),
+    uniqueIndex('claim_tenant_id_id_uq').on(table.tenantId, table.id),
     uniqueIndex('idx_claims_tenant_number').on(table.tenantId, table.claimNumber),
     check(
       'claim_case_lifecycle_state_check',

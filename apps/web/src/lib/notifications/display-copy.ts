@@ -16,7 +16,35 @@ export const NOTIFICATION_EVENT_KEYS: Readonly<Record<string, string>> = {
   support_handoff_public_response: 'supportHandoffPublicResponse',
 };
 
-type StoredNotification = Readonly<{ type: string; content: string; actionUrl: string | null }>;
+type StoredNotification = Readonly<{
+  type: string;
+  title?: string;
+  content: string;
+  actionUrl: string | null;
+}>;
+const staffCategories = new Set([
+  'auto',
+  'consumer',
+  'consumer_rights',
+  'contracts',
+  'damaged_goods',
+  'employment',
+  'flight_delay',
+  'housing',
+  'injury',
+  'insurance',
+  'liability',
+  'medical',
+  'other',
+  'property',
+  'real_estate',
+  'retail',
+  'service_issue',
+  'test',
+  'travel',
+  'utilities',
+  'vehicle',
+]);
 type Translate = (key: string, values?: Record<string, string>) => string;
 
 /** Read only a claim route identifier, never an external URL or a query parameter. */
@@ -44,6 +72,22 @@ export function notificationDisplayCopy(
   t: Translate,
   resolvedClaimLabel?: string | null
 ): { title: string; content: string } {
+  if (
+    notification.type === 'staff_claim_submitted' ||
+    notification.type === 'staff_member_message'
+  ) {
+    const category = staffCategories.has(notification.content) ? notification.content : 'other';
+    return {
+      title:
+        !notification.title || notification.title === '—'
+          ? t('staff.claimWithoutNumber')
+          : notification.title,
+      content: t('staff.content', {
+        event: t(`events.${notification.type}.title`),
+        category: t(`staff.categories.${category}`),
+      }),
+    };
+  }
   const event = Object.hasOwn(NOTIFICATION_EVENT_KEYS, notification.type)
     ? NOTIFICATION_EVENT_KEYS[notification.type]
     : 'unknown';

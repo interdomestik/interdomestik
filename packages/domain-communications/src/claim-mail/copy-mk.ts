@@ -4,6 +4,8 @@ const viewClaim = 'Погледнете го барањето';
 const footer = 'Тимот на Интердоместик';
 
 export const MK_COPY: ClaimMailCopy = {
+  claimWithoutNumber: 'Барање без број',
+  pushStatusHeading: 'Вашето барање е ажурирано',
   statuses: {
     draft: 'Нацрт',
     submitted: 'Поднесено',

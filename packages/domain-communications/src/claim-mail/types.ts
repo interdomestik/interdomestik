@@ -11,6 +11,8 @@ export type ClaimMailMessage = {
 };
 
 export type ClaimMailCopy = {
+  claimWithoutNumber: string;
+  pushStatusHeading: string;
   statuses: Record<ClaimStatus, string>;
   categories: Partial<Record<string, string>>;
   genericCategory: string;

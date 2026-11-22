@@ -2,11 +2,12 @@ export type DeliveryFailure = {
   ok: false;
   retryable: boolean;
   ambiguous: boolean;
+  preAcceptance: boolean;
   code: string;
   detail: string;
 };
 
-export type DeliveryOutcome<Transport extends 'smtp' | 'resend' | 'web-push'> =
+export type DeliveryOutcome<Transport extends 'smtp' | 'resend' | 'webpush'> =
   { ok: true; transport: Transport } | DeliveryFailure;
 
 export class DeliveryTimeout extends Error {}

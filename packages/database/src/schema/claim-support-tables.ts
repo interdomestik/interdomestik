@@ -41,22 +41,28 @@ export const claimDocuments = pgTable(
   ]
 );
 
-export const claimMessages = pgTable('claim_messages', {
-  id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  claimId: text('claim_id')
-    .notNull()
-    .references(() => claims.id),
-  senderId: text('sender_id')
-    .notNull()
-    .references(() => user.id),
-  content: text('content').notNull(),
-  isInternal: boolean('is_internal').default(false),
-  readAt: timestamp('read_at'),
-  createdAt: timestamp('created_at').defaultNow(),
-});
+export const claimMessages = pgTable(
+  'claim_messages',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    claimId: text('claim_id')
+      .notNull()
+      .references(() => claims.id),
+    senderId: text('sender_id')
+      .notNull()
+      .references(() => user.id),
+    content: text('content').notNull(),
+    isInternal: boolean('is_internal').default(false),
+    readAt: timestamp('read_at'),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  table => [
+    uniqueIndex('claim_messages_tenant_claim_id_uq').on(table.tenantId, table.claimId, table.id),
+  ]
+);
 
 export const claimStageHistory = pgTable('claim_stage_history', {
   id: text('id').primaryKey(),
