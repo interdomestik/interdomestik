@@ -1,13 +1,40 @@
 // Check retained callers for selections the new table bindings would change.
 
 import ts from 'typescript';
-import { TEST_SOURCE } from './manifest.mjs';
+import { NON_CLIENT_QUERY_CONSUMERS, TEST_SOURCE } from './manifest.mjs';
+import { sha256 } from './rules-digest.mjs';
 import { CLIENT, DATA, DB, DB_EXPORTS } from './schema-query-origins.mjs';
 import { queryReceiverOrigins } from './schema-query-values.mjs';
 import { analyzeScopes, collectUnits, fingerprint, parseSource, unitOf } from './syntax.mjs';
 
 const OWNER_KEYS = 'apps/web/src/lib/safe-action.owner-keys.ts';
 const ANCHORED_CONSUMERS = new Set([DB, OWNER_KEYS]);
+const INVALID_PINS = 'invalid non-client query consumer list';
+const PIN_PATH = /^(?:apps|packages)\/[\w.-]+(?:\/[\w.-]+)*\.[cm]?[jt]sx?$/u;
+const PIN_HASH = /^[0-9a-f]{64}$/u;
+
+function validPin(entry) {
+  if (!entry || typeof entry !== 'object' || Object.keys(entry).length !== 2) return false;
+  const { path, sha256: digest } = entry;
+  return (
+    typeof path === 'string' &&
+    PIN_PATH.test(path) &&
+    !path.split('/').includes('..') &&
+    typeof digest === 'string' &&
+    PIN_HASH.test(digest)
+  );
+}
+
+// The reviewed non-client `.query` consumers as path → sha256, or the refusal for a malformed list.
+export function nonClientQueryPins(list) {
+  if (!Array.isArray(list) || list.length === 0) return INVALID_PINS;
+  const pins = new Map();
+  for (const entry of list) {
+    if (!validPin(entry) || pins.has(entry.path)) return INVALID_PINS;
+    pins.set(entry.path, entry.sha256);
+  }
+  return pins;
+}
 
 function selection(node, receiver) {
   if (ts.isPropertyAccessExpression(node) && node.expression === receiver) return node.name.text;
@@ -20,15 +47,25 @@ function selection(node, receiver) {
   return null;
 }
 
-export function retainedConsumerProblem(before, after, anchor, affected, names) {
+export function retainedConsumerProblem(
+  before,
+  after,
+  anchor,
+  affected,
+  names,
+  pinList = NON_CLIENT_QUERY_CONSUMERS
+) {
+  const pins = nonClientQueryPins(pinList);
+  if (typeof pins === 'string') return pins;
   const receiverOrigin = queryReceiverOrigins(after);
-  for (const file of after.allSources.keys()) {
+  for (const [file, text] of after.allSources) {
     const previous = before.allSources.get(file);
     if (previous === undefined || TEST_SOURCE.test(file)) continue;
     const source = after.inventory.sourceFileOf(file);
     const retained = retainedUnits(previous, source);
+    const pinned = pins.get(file) === sha256(text);
     if (
-      unprovenQuerySelections(source, names, retained, receiverOrigin).length ||
+      (!pinned && unprovenQuerySelections(source, names, retained, receiverOrigin).length) ||
       !namespaceSelectionsSafe(after, anchor, file, source, affected, names, retained)
     )
       return `unproven dynamic schema consumer ${file}`;

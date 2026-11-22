@@ -33,13 +33,26 @@ export const LEGACY = new Map([
 
 /** Exact reviewed Git identity and per-entry v2 digests of its full kernel closure. */
 export const KERNEL_ANCHOR = Object.freeze({
-  commit: 'dd0522b818a6923fd63cf7292e0c4ea9ae24910b',
-  tree: '4a51411c20282aa3149d8776e826917c190170da',
+  commit: '97c989ad62e99794a4426a2ed854697b83bb6c7b',
+  tree: 'cd975c118a17883a36419c0fb67e5e66a6f0a36d',
 });
 export const LEGACY_PINS = new Map([
   [`${DB}/tenant.ts#withTenantContext`, 'v2:28386bc3ebe2bad1cb2d8d516ca100a3a5727da907e5c3cf4a75ba698415ab1b'],
   [`${DB}/tenant.ts#withTenantDb`, 'v2:eaee086a7379cff84171a17d3cf33004bba15a840cb021659a3cd8bb10263c26'],
   [`${DB}/db.ts#db`, 'v2:9b35f9dc83e37b59bb1e21b63e0f92e7ed4771be2c6a8e0510b622a0ad046cb2'],
+]);
+
+/**
+ * Reviewed retained files whose `.query` receivers are plain data the syntactic origin check cannot
+ * prove. Each is exempt from that check only at this path with these exact bytes; a changed byte,
+ * an unlisted file or a malformed list refuses schema admission. Extending it needs a reviewed
+ * guard source and a ruleset repin.
+ */
+export const NON_CLIENT_QUERY_CONSUMERS = Object.freeze([
+  Object.freeze({
+    path: 'apps/web/src/lib/safe-action.shape.ts',
+    sha256: '472961aebe630bd1ed171ba58d488edf47dd288dc81422d60f8bacdcb9eb4cf4',
+  }),
 ]);
 
 /** Drivers and client construction (R-d). */
