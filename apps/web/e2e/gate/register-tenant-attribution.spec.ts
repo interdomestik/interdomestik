@@ -188,7 +188,25 @@ async function approveCash(
     .getByTestId('cash-verification-row')
     .filter({ visible: true })
     .filter({ has: admin.getByText(email, { exact: true }) });
-  await row.getByTestId('cash-approve').click({ timeout: 30_000 });
+  const approve = row.getByTestId('cash-approve');
+  await expect(approve).toBeVisible({ timeout: 30_000 });
+  // The server-rendered marker can precede hydration, and a click before it is silently lost.
+  // React sets its props key on a node when it hydrates it, so wait for that before one click.
+  await expect
+    .poll(
+      () =>
+        approve.evaluate(node => Object.keys(node).some(key => key.startsWith('__reactProps$'))),
+      { timeout: 20_000, message: 'cash-approve was never hydrated' }
+    )
+    .toBe(true);
+  // One click only: it must send the server action, so a lost click fails here, not as a null poll.
+  await Promise.all([
+    admin.waitForRequest(
+      request => request.method() === 'POST' && request.headers()['next-action'] !== undefined,
+      { timeout: 10_000 }
+    ),
+    approve.click(),
+  ]);
   // The click does not await the server action: the flow ends once its conversion committed, so
   // cleanup waits for it. Only a conversion slower than this poll can still finish after cleanup.
   await expect
