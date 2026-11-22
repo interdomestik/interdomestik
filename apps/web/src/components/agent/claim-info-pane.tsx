@@ -1,7 +1,7 @@
 'use client';
 
 import type { ClaimSlaPhase } from '@/features/claims/policy';
-import { isClaimStatus } from '@interdomestik/domain-claims/claims/transition-guard';
+import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import {
   Avatar,
   AvatarFallback,
@@ -96,7 +96,7 @@ export function ClaimInfoPane({ claim, slaPhase }: Readonly<ClaimInfoPaneProps>)
         <div>
           <p className="text-sm font-medium mb-2">{t('details.status_label')}</p>
           <p className="text-sm text-muted-foreground">
-            {tStatus(isClaimStatus(claim.status) ? claim.status : 'submitted')}
+            {tStatus(CLAIM_STATUSES.find(status => status === claim.status) ?? 'submitted')}
           </p>
         </div>
 

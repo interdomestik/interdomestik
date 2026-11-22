@@ -1,10 +1,7 @@
 'use client';
 
 import { type ClaimStatus } from '@interdomestik/database/constants';
-import {
-  RECOVERY_DECLINE_REASON_CODES,
-  type RecoveryDeclineReasonCode,
-} from '@interdomestik/domain-claims/staff-claims/types';
+import type { RecoveryDeclineReasonCode } from '@interdomestik/domain-claims/staff-claims/types';
 import { Textarea } from '@interdomestik/ui/components/textarea';
 import { Button } from '@interdomestik/ui/components/button';
 import {
@@ -25,6 +22,7 @@ import {
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
+import { getRecoveryDeclineReasonOptions } from '@/components/staff/claim-action-panel/recovery-decision-helpers';
 import { toast } from 'sonner';
 import { isCommittedRefreshPending } from '../../actions/ops-action-outcome';
 import { updateStatus } from '../../actions/ops-actions';
@@ -57,6 +55,9 @@ export function OpsStatusUpdateModal({
   const tStatusForm = useTranslations('admin.claims_page.status_form');
   const tCommon = useTranslations('common');
   const tRecovery = useTranslations('agent-claims.claims.staff_actions.recovery_decision');
+  // Client-safe list: the domain constant's module re-exports server code (database client).
+  const tClaims = useTranslations('agent-claims.claims');
+  const declineOptions = getRecoveryDeclineReasonOptions(tClaims);
 
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>(initialStatus);
   const [declineCode, setDeclineCode] = useState<RecoveryDeclineReasonCode>();
@@ -128,9 +129,9 @@ export function OpsStatusUpdateModal({
                   <SelectValue placeholder={tRecovery('decline_category_placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {RECOVERY_DECLINE_REASON_CODES.map(code => (
-                    <SelectItem key={code} value={code}>
-                      {tRecovery(`decline_reasons.${code}`)}
+                  {declineOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
