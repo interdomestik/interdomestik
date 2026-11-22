@@ -21,6 +21,8 @@ import {
 const predecessor = '18cd1a73b12f589c69934cba862092d857434013';
 // Main before the WP-05 devDependencies: same workspace, lockfile accepted by the previous snapshot.
 const formerMain = 'c266f094b5249903f75e5c4e1b29e52959d30370';
+// Main before the next 16.4.5 upgrade: same-size pair accepted by the previous snapshot.
+const beforeNextUpgrade = 'c775e2db6c3fc083cdd605c7d2047ab25dcc9562';
 const pair = Object.keys(RESOLVER_SNAPSHOT.files);
 const current = new Map(pair.map(file => [file, fs.readFileSync(path.join(rootDir, file))]));
 const previous = new Map(
@@ -115,6 +117,47 @@ test('the immediately former lockfile with the unchanged workspace is rejected',
   assert.throws(() => verifyCurrentResolverSnapshot(root, ADOPTION), {
     message: 'incomplete: resolver snapshot size mismatch pnpm-lock.yaml',
   });
+});
+
+test('the pair before the next 16.4.5 upgrade and both mixed states are rejected by digest', t => {
+  const before = new Map(
+    pair.map(file => [file, runGit(['-C', rootDir, 'show', `${beforeNextUpgrade}:${file}`])])
+  );
+  const expected = {
+    'pnpm-workspace.yaml': [
+      'cdf45a0f415af8a44caab57f1ec9c0e9cd3d2526c1387dab334b9f243c4b58b8',
+      2105,
+    ],
+    'pnpm-lock.yaml': ['1179aca6d60550aa7b1ab89440f25deb942f6b197afb933c106fcfa4a017dc2d', 713785],
+  };
+  for (const file of pair) {
+    const bytes = before.get(file);
+    assert.equal(bytes.length, expected[file][1], `${file} keeps its size`);
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), expected[file][0]);
+    assert.notDeepEqual(bytes, current.get(file));
+  }
+  for (const [contents, rejected] of [
+    [before, 'pnpm-workspace.yaml'],
+    [
+      new Map([
+        ['pnpm-workspace.yaml', current.get('pnpm-workspace.yaml')],
+        ['pnpm-lock.yaml', before.get('pnpm-lock.yaml')],
+      ]),
+      'pnpm-lock.yaml',
+    ],
+    [
+      new Map([
+        ['pnpm-workspace.yaml', before.get('pnpm-workspace.yaml')],
+        ['pnpm-lock.yaml', current.get('pnpm-lock.yaml')],
+      ]),
+      'pnpm-workspace.yaml',
+    ],
+  ]) {
+    const root = fixture(t, contents);
+    assert.throws(() => verifyCurrentResolverSnapshot(root, ADOPTION), {
+      message: `incomplete: resolver snapshot digest mismatch ${rejected}`,
+    });
+  }
 });
 
 test('missing, symlinked, non-file and case-ambiguous metadata fail closed', t => {
