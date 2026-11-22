@@ -68,6 +68,13 @@ describe('ClaimsFilters browser navigation cancellation', () => {
       'aria-disabled',
       'false'
     );
+    fireEvent.click(screen.getByTestId('member-claims-status-filter-draft'));
+    expect(pushedUrls()).toEqual([
+      '/member/claims?search=a',
+      '/member/claims?search=b',
+      '/member/claims?search=a',
+      '/member/claims?search=a&status=draft',
+    ]);
   });
 
   it('keeps chips blocked until the latest search settles after prolonged typing', () => {

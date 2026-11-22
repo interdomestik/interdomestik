@@ -9,6 +9,13 @@ import { wireResponse, wireRow } from '@/test/fixtures/claims-list-wire';
 import { NextIntlClientProvider } from 'next-intl';
 import claims from '@/messages/en/claims.json';
 import common from '@/messages/en/common.json';
+import claimsSq from '@/messages/sq/claims.json';
+import commonSq from '@/messages/sq/common.json';
+
+const catalogues = {
+  en: { ...claims, ...common },
+  sq: { ...claimsSq, ...commonSq },
+};
 
 const navigation = vi.hoisted(() => ({ query: '', push: vi.fn() }));
 vi.mock('next/navigation', () => ({
@@ -29,13 +36,13 @@ vi.mock('@/components/dashboard/claims/claim-status-badge', () => ({
   ClaimStatusBadge: ({ status }: { status: string }) => <span>{status}</span>,
 }));
 
-function renderTable(locale = 'en', withFilters = false) {
+function renderTable(locale: keyof typeof catalogues = 'en', withFilters = false) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   const tree = () => (
     <QueryClientProvider client={queryClient}>
-      <NextIntlClientProvider locale={locale} messages={{ ...claims, ...common }}>
+      <NextIntlClientProvider locale={locale} messages={catalogues[locale]}>
         {withFilters ? <ClaimsFilters /> : null}
         <MemberClaimsTable />
       </NextIntlClientProvider>
@@ -223,6 +230,9 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     const region = screen.getByRole('region', { name: claims.claims.title });
     expect(region).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByTestId('member-claims-table-region')).toBeNull();
+    // The indicator describes the retained page-1 rows, not the requested page.
+    expect(within(region).getByText('Page 1 of 2')).toBeVisible();
+    expect(within(region).queryByText('Page 2 of 2')).toBeNull();
     expect(region).not.toContainElement(live);
     expect(screen.getByTestId('member-claims-page-next')).toBe(next);
     expect(fireEvent.click(next)).toBe(false);
@@ -271,6 +281,31 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     expect(draft).toHaveFocus();
   });
 
+  it('releases pagination immediately on Back after a page commits with placeholder rows', async () => {
+    const firstPage = { ...wireResponse([wireRow()]), totalPages: 2 };
+    mockFetch(firstPage);
+    const { commit } = renderTable();
+    await screen.findByRole('link', { name: 'Flight Delay' });
+
+    const finishPageTwo = deferFetch();
+    fireEvent.click(screen.getByTestId('member-claims-page-next'));
+    commit('page=2');
+    expect(screen.getByText(claims.claims.memberList.updating)).toBeVisible();
+    expect(screen.getByTestId('member-claims-pagination-pending')).toBeVisible();
+
+    commit('');
+    expect(screen.getByRole('link', { name: 'Flight Delay' })).toBeVisible();
+    expect(screen.queryByTestId('member-claims-pagination-pending')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: claims.claims.title })).not.toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+    expect(screen.getByRole('link', { name: common.common.next })).not.toHaveAttribute(
+      'aria-disabled'
+    );
+    finishPageTwo(new Response(JSON.stringify({ ...firstPage, page: 2 })));
+  });
+
   it('links an empty later page to page one, preserving the filters', async () => {
     navigation.query = 'page=3&search=late';
     mockFetch({ ...wireResponse([]), page: 3 });
@@ -284,23 +319,80 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     );
   });
 
-  it('reports an empty later page and links back to page one', async () => {
+  it.each(['en', 'sq'] as const)(
+    'reports an empty later page in %s and links back to page one',
+    async locale => {
+      navigation.query = 'page=3';
+      mockFetch({ ...wireResponse([]), page: 3, totalPages: 1 });
+      renderTable(locale);
+
+      const messages = catalogues[locale];
+      const empty = await screen.findByTestId('member-claims-empty');
+      const pageEmpty = messages.claims.memberList.pageEmpty;
+      expect(empty).toHaveTextContent(pageEmpty);
+      expect(within(empty).getByRole('heading', { level: 3, name: pageEmpty })).toBeVisible();
+      expect(empty).not.toHaveTextContent(messages.claims.empty.title);
+      expect(empty).not.toHaveTextContent(messages.claims.empty.description);
+      expect(within(empty).queryByRole('status')).not.toBeInTheDocument();
+      expect(within(empty).getByRole('link', { name: messages.common.previous })).toHaveAttribute(
+        'href',
+        '/member/claims'
+      );
+      const region = screen.getByRole('region', { name: messages.claims.title });
+      expect(region.parentElement?.querySelector('[aria-live="polite"]')?.textContent).toBe(
+        pageEmpty
+      );
+    }
+  );
+
+  it.each(['en', 'sq'] as const)(
+    'shows the normal empty state in %s when the server returns page one',
+    async locale => {
+      navigation.query = 'page=3';
+      mockFetch({ ...wireResponse([]), page: 1, totalPages: 1 });
+      renderTable(locale);
+
+      const messages = catalogues[locale];
+      const empty = await screen.findByTestId('member-claims-empty');
+      expect(
+        within(empty).getByRole('heading', { level: 3, name: messages.claims.empty.title })
+      ).toBeVisible();
+      expect(empty).toHaveTextContent(messages.claims.empty.description);
+      expect(
+        within(empty).getByRole('link', { name: messages.claims.empty.createFirst })
+      ).toHaveAttribute('href', '/member/claims/new');
+      expect(
+        within(empty).queryByRole('link', { name: messages.common.previous })
+      ).not.toBeInTheDocument();
+    }
+  );
+
+  it('keeps the focused page-one link mounted and inert until the request settles', async () => {
     navigation.query = 'page=3';
     mockFetch({ ...wireResponse([]), page: 3, totalPages: 1 });
-    renderTable();
-
-    const empty = await screen.findByTestId('member-claims-empty');
-    const pageEmpty = claims.claims.memberList.pageEmpty;
-    expect(empty).toHaveTextContent(pageEmpty);
-    expect(empty).not.toHaveTextContent(claims.claims.empty.description);
-    expect(within(empty).getByRole('link', { name: common.common.previous })).toHaveAttribute(
-      'href',
-      '/member/claims'
-    );
+    const { commit } = renderTable();
+    const previous = await screen.findByRole('link', { name: common.common.previous });
     const region = screen.getByRole('region', { name: claims.claims.title });
-    expect(region.parentElement?.querySelector('[aria-live="polite"]')?.textContent).toBe(
-      pageEmpty
-    );
+    const finish = deferFetch();
+    previous.focus();
+    fireEvent.click(previous);
+    expect(navigation.push).toHaveBeenCalledWith('/member/claims', { scroll: false });
+
+    commit('');
+    expect(screen.getByRole('link', { name: common.common.previous })).toBe(previous);
+    expect(previous).toHaveFocus();
+    expect(previous).toHaveAttribute('aria-disabled', 'true');
+    expect(region).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByTestId('member-claims-empty')).not.toBeInTheDocument();
+    expect(fireEvent.click(previous, { ctrlKey: true })).toBe(false);
+    const middleClick = new MouseEvent('auxclick', { button: 1, bubbles: true, cancelable: true });
+    expect(fireEvent(previous, middleClick)).toBe(false);
+    expect(navigation.push).toHaveBeenCalledOnce();
+
+    finish(new Response(JSON.stringify(wireResponse([wireRow()]))));
+    expect(await screen.findByRole('link', { name: 'Flight Delay' })).toBeVisible();
+    expect(region).toHaveFocus();
+    expect(previous).not.toBeInTheDocument();
   });
 
   it('uses the page returned by the server for both page labels', async () => {

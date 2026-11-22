@@ -40,20 +40,23 @@ type MemberClaimsTableProps = Readonly<{
   newCaseLabel?: string;
 }>;
 
-type PageNavigation = { from: string; to: string };
+type PageNavigation = { from: string; to: string; committed: boolean; fromEmptyPage: boolean };
 
-function useMemberClaimsPageNavigation(currentParams: string, isPlaceholderData: boolean) {
+function useMemberClaimsPageNavigation(
+  currentParams: string,
+  isPlaceholderData: boolean,
+  isEmptyLaterPage: boolean
+) {
   const router = useRouter();
   const pathname = usePathname();
   const [pendingPage, setPendingPage] = useState<PageNavigation | null>(null);
   const [isTransitionPending, startTransition] = useTransition();
   const isFilterNavigationPending = useMemberClaimsFilterPending();
 
-  const awaitingPageCommit = pendingPage?.from === currentParams;
-  const isPagePending =
-    awaitingPageCommit ||
-    isTransitionPending ||
-    (pendingPage?.to === currentParams && isPlaceholderData);
+  const awaitingPageCommit = pendingPage?.committed === false && pendingPage.from === currentParams;
+  const awaitingPageData = pendingPage?.to === currentParams && isPlaceholderData;
+  const keepsEmptyPage = awaitingPageData && pendingPage.fromEmptyPage;
+  const isPagePending = awaitingPageCommit || isTransitionPending || awaitingPageData;
   const isPending = isPagePending || isFilterNavigationPending || isPlaceholderData;
 
   useEffect(() => {
@@ -64,11 +67,16 @@ function useMemberClaimsPageNavigation(currentParams: string, isPlaceholderData:
       );
       return () => globalThis.clearTimeout(timeout);
     }
-    if (pendingPage && (pendingPage.to !== currentParams || !isPlaceholderData)) {
+    if (!pendingPage) {
+      return undefined;
+    }
+    if (!awaitingPageData) {
       setPendingPage(null);
+    } else if (!pendingPage.committed) {
+      setPendingPage({ ...pendingPage, committed: true });
     }
     return undefined;
-  }, [awaitingPageCommit, currentParams, isPlaceholderData, pendingPage]);
+  }, [awaitingPageCommit, awaitingPageData, pendingPage]);
 
   function pageParams(targetPage: number) {
     const query = new URLSearchParams(currentParams);
@@ -81,10 +89,6 @@ function useMemberClaimsPageNavigation(currentParams: string, isPlaceholderData:
     return params ? `${pathname}?${params}` : pathname;
   }
 
-  function getPageHref(targetPage: number) {
-    return pageHref(pageParams(targetPage));
-  }
-
   function startPageNavigation(event: MouseEvent<HTMLAnchorElement>, targetPage: number) {
     if (isPending) {
       event.preventDefault();
@@ -95,11 +99,32 @@ function useMemberClaimsPageNavigation(currentParams: string, isPlaceholderData:
     const params = pageParams(targetPage);
     event.preventDefault();
     if (params === currentParams) return;
-    setPendingPage({ from: currentParams, to: params });
+    setPendingPage({
+      from: currentParams,
+      to: params,
+      committed: false,
+      fromEmptyPage: isEmptyLaterPage,
+    });
     startTransition(() => router.push(pageHref(params), { scroll: false }));
   }
 
-  return { getPageHref, isPagePending, isPending, startPageNavigation };
+  function getPageLinkProps(targetPage: number) {
+    return {
+      'aria-disabled': isPending || undefined,
+      href: pageHref(pageParams(targetPage)),
+      onAuxClick(event: MouseEvent<HTMLAnchorElement>) {
+        if (isPending) {
+          event.preventDefault();
+        }
+      },
+      onClick(event: MouseEvent<HTMLAnchorElement>) {
+        startPageNavigation(event, targetPage);
+      },
+      prefetch: false,
+    };
+  }
+
+  return { getPageLinkProps, isPagePending, isPending, keepsEmptyPage };
 }
 
 function useMemberClaimsRetry(requestKey: string, refetch: () => Promise<unknown>) {
@@ -144,16 +169,24 @@ function useMemberClaimsListState(locale: string, t: ReturnType<typeof useTransl
       }),
     placeholderData: keepPreviousData,
   });
-  const navigation = useMemberClaimsPageNavigation(currentParams, isPlaceholderData);
+  let effectivePage = page;
+  if (!isPlaceholderData) {
+    effectivePage = data?.page ?? page;
+  }
+  const isEmptyLaterPage = !isPlaceholderData && effectivePage > 1 && data?.claims.length === 0;
+  const navigation = useMemberClaimsPageNavigation(
+    currentParams,
+    isPlaceholderData,
+    isEmptyLaterPage
+  );
   const { isRetrying, retry } = useMemberClaimsRetry(JSON.stringify(request), refetch);
 
   const [resultStatus, setResultStatus] = useState('');
-  const displayedPage = data?.page ?? page;
   const totalPages = Math.max(1, data?.totalPages ?? 1);
-  const pageLabel = formatNumber(displayedPage, locale) ?? '';
+  const pageLabel = formatNumber(effectivePage, locale) ?? '';
   const totalPagesLabel = formatNumber(totalPages, locale) ?? '';
   let pageEmptyMessage: string | undefined;
-  if (page > 1 && data?.claims.length === 0) {
+  if (isEmptyLaterPage || navigation.keepsEmptyPage) {
     pageEmptyMessage = t('memberList.pageEmpty');
   }
 
@@ -174,11 +207,10 @@ function useMemberClaimsListState(locale: string, t: ReturnType<typeof useTransl
   return {
     ...navigation,
     data,
-    displayedPage,
+    effectivePage,
     hasFilters: Boolean(searchQuery || statusFilter),
     isPlaceholderData,
     isRetrying,
-    page,
     pageEmptyMessage,
     pageLabel,
     resultStatus,
@@ -200,20 +232,19 @@ export function MemberClaimsTable({
   const headerId = useId();
   const {
     data,
-    displayedPage,
-    getPageHref,
+    effectivePage,
+    getPageLinkProps,
     hasFilters,
     isPagePending,
     isPending,
     isPlaceholderData,
     isRetrying,
-    page,
+    keepsEmptyPage,
     pageEmptyMessage,
     pageLabel,
     resultStatus,
     retry,
     showsError,
-    startPageNavigation,
     totalPages,
     totalPagesLabel,
   } = useMemberClaimsListState(locale, t);
@@ -237,9 +268,20 @@ export function MemberClaimsTable({
   // A placeholder can outlive a failed key in the query observer. Only a
   // successful last completion can supply rows for the next request.
   const showsUpdating = isPlaceholderData && resultStatus !== '' && Boolean(data?.claims.length);
-  const showsLoading = !showsError && (!data || (isPlaceholderData && !showsUpdating));
-  const showsEmpty = !showsError && !isPlaceholderData && data?.claims.length === 0;
+  const showsLoading =
+    !showsError && !keepsEmptyPage && (!data || (isPlaceholderData && !showsUpdating));
+  const showsSettledEmpty = !showsError && !isPlaceholderData && data?.claims.length === 0;
   const hasRows = !showsError && !showsLoading && Boolean(data?.claims.length);
+  // Keep the retained rows' links mounted at their original pagination endpoints.
+  const controlPage = data?.page ?? effectivePage;
+  // The indicator describes the rows on screen, which stay the previous page while updating.
+  const controlPageLabel = isPlaceholderData
+    ? (formatNumber(controlPage, locale) ?? '')
+    : pageLabel;
+  let emptyTestId: string | undefined;
+  if (showsSettledEmpty) {
+    emptyTestId = 'member-claims-empty';
+  }
 
   function pageControl(direction: 'previous' | 'next', target: number, isEnd: boolean) {
     const testId = `member-claims-page-${direction}`;
@@ -252,15 +294,9 @@ export function MemberClaimsTable({
     }
     return (
       <Link
-        aria-disabled={isPending || undefined}
+        {...getPageLinkProps(target)}
         className={PAGE_LINK}
         data-testid={testId}
-        href={getPageHref(target)}
-        onAuxClick={event => {
-          if (isPending) event.preventDefault();
-        }}
-        onClick={event => startPageNavigation(event, target)}
-        prefetch={false}
         ref={watchControl}
       >
         {tCommon(direction)}
@@ -310,26 +346,22 @@ export function MemberClaimsTable({
           </div>
         )}
 
-        {showsEmpty && (
-          <div className={`${CARD} space-y-4 p-5 sm:p-6`} data-testid="member-claims-empty">
+        {(showsSettledEmpty || keepsEmptyPage) && (
+          <div className={`${CARD} space-y-4 p-5 sm:p-6`} data-testid={emptyTestId}>
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold">{t('empty.title')}</h3>
-              <output className="block max-w-prose text-sm leading-6 text-foreground/70">
-                {pageEmptyMessage ?? t(hasFilters ? 'empty.filtered' : 'empty.description')}
-              </output>
+              <h3 className="text-lg font-semibold">{pageEmptyMessage ?? t('empty.title')}</h3>
+              {!pageEmptyMessage && (
+                <output className="block max-w-prose text-sm leading-6 text-foreground/70">
+                  {t(hasFilters ? 'empty.filtered' : 'empty.description')}
+                </output>
+              )}
             </div>
-            {page > 1 && (
-              <Link
-                aria-disabled={isPending || undefined}
-                className={PAGE_LINK}
-                href={getPageHref(1)}
-                onClick={event => startPageNavigation(event, 1)}
-                ref={watchControl}
-              >
+            {pageEmptyMessage && (
+              <Link {...getPageLinkProps(1)} className={PAGE_LINK} ref={watchControl}>
                 {tCommon('previous')}
               </Link>
             )}
-            {page === 1 && !hasFilters && (
+            {showsSettledEmpty && effectivePage === 1 && !hasFilters && (
               <Link className={`${PRIMARY_CONTROL} hover:underline`} href={newCaseHref}>
                 {newCaseLabel ?? t('empty.createFirst')}
               </Link>
@@ -388,11 +420,11 @@ export function MemberClaimsTable({
 
         {hasRows && totalPages > 1 && (
           <div className="flex min-w-0 flex-wrap items-center gap-2 [overflow-wrap:anywhere]">
-            {pageControl('previous', displayedPage - 1, displayedPage <= 1)}
+            {pageControl('previous', controlPage - 1, controlPage <= 1)}
             <span className="min-w-0 text-sm text-foreground/70">
-              {tCommon('pagination.pageOf', { page: pageLabel, total: totalPagesLabel })}
+              {tCommon('pagination.pageOf', { page: controlPageLabel, total: totalPagesLabel })}
             </span>
-            {pageControl('next', displayedPage + 1, displayedPage >= totalPages)}
+            {pageControl('next', controlPage + 1, controlPage >= totalPages)}
           </div>
         )}
 

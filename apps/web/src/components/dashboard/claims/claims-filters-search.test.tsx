@@ -188,6 +188,8 @@ describe('ClaimsFilters search coalescing', () => {
     typeSearch('claim 2');
     settleSearch();
     expect(statusChip('draft')).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(statusChip('draft'));
+    expect(pushedUrls()).toEqual(['/member/claims?search=claim+2']);
 
     setMemberClaimsUrl('search=claim+2');
     rerender(<ClaimsFilters />);
@@ -231,6 +233,8 @@ describe('ClaimsFilters search coalescing', () => {
 
     expect(pending()).toBeInTheDocument();
     expect(statusChip('draft')).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(statusChip('draft'));
+    expect(pushedUrls()).toEqual(['/member/claims?search=claim']);
 
     advance(10_000);
 
