@@ -1,3 +1,4 @@
+import { ROLES } from '@interdomestik/shared-auth';
 import {
   claimStatusActionFailure,
   completeClaimStatusEffects,
@@ -15,7 +16,7 @@ import { z } from 'zod';
 
 export const updateClaimStatusCore = defineAction({
   name: 'staffClaims.updateStatus',
-  basis: { kind: 'role', roles: ['staff'] },
+  basis: { kind: 'role', roles: [ROLES.staff] },
   input: changeClaimStatusInputSchema.extend({ isPublicNote: z.boolean().optional() }).strict(),
   subject: { type: 'claim', from: 'claimId' },
   async handler(input, { authority, requestHeaders, session }) {

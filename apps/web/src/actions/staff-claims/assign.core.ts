@@ -1,3 +1,4 @@
+import { ROLES } from '@interdomestik/shared-auth';
 import { LOCALES } from '@/i18n/locales';
 import { actionFailure, defineAction } from '@/lib/safe-action';
 import {
@@ -9,7 +10,7 @@ import { getTranslations } from 'next-intl/server';
 
 export const assignClaimCore = defineAction({
   name: 'staffClaims.assign',
-  basis: { kind: 'role', roles: ['staff'] },
+  basis: { kind: 'role', roles: [ROLES.staff] },
   input: changeClaimAssignmentInputSchema,
   subject: { type: 'claim', from: 'claimId' },
   async handler(input, { authority, requestHeaders }) {

@@ -1,3 +1,4 @@
+import { ROLES } from '@interdomestik/shared-auth';
 import { LOCALES } from '@/i18n/locales';
 import {
   claimStatusActionFailure,
@@ -23,7 +24,7 @@ export type OpsStatusOptions = {
 
 const updateStatusCommand = defineAction({
   name: 'adminClaims.updateStatus',
-  basis: { kind: 'role', roles: ['admin', 'tenant_admin', 'super_admin'] },
+  basis: { kind: 'role', roles: [ROLES.admin, ROLES.tenant_admin, ROLES.super_admin] },
   input: changeClaimStatusInputSchema
     .omit({ isPublicNote: true, allowanceOverrideReason: true })
     .extend({ locale: z.enum(LOCALES) })

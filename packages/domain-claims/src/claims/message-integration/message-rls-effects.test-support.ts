@@ -1,3 +1,4 @@
+import { ROLES } from '@interdomestik/shared-auth';
 import { inArray } from 'drizzle-orm';
 import { expect, vi } from 'vitest';
 import { fixture, homeTenantId, ids, otherTenantId } from './tenant-context.integration-fixture';
@@ -68,7 +69,9 @@ export async function expectRoleSend(
       ]);
     } else if (
       !params.isInternal &&
-      ['staff', 'admin', 'tenant_admin', 'super_admin'].some(value => value === role)
+      [ROLES.staff, ROLES.admin, ROLES.tenant_admin, ROLES.super_admin].some(
+        value => value === role
+      )
     ) {
       expect(after[3].filter(row => row.subjectMessageId === result.message.id)).toMatchObject([
         { kind: 'claim_message_to_member', recipientUserId: ids.member },

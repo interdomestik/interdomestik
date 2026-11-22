@@ -1,3 +1,4 @@
+import { ROLES } from '@interdomestik/shared-auth';
 import { LOCALES } from '@/i18n/locales';
 import { actionFailure, defineAction, type ProtectedActionContext } from '@/lib/safe-action';
 import {
@@ -24,7 +25,10 @@ const assignmentErrors = {
   transaction_failed: 'Assignment failed. Please try again.',
 } satisfies Record<Extract<ChangeClaimAssignmentResult, { ok: false }>['code'], string>;
 
-const basis = { kind: 'role', roles: ['admin', 'tenant_admin', 'super_admin'] } as const;
+const basis = {
+  kind: 'role',
+  roles: [ROLES.admin, ROLES.tenant_admin, ROLES.super_admin],
+} as const;
 const subject = { type: 'claim', from: 'claimId' } as const;
 const actionSchema = changeClaimAssignmentInputSchema
   .omit({ staffId: true })
