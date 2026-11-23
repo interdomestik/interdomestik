@@ -3,7 +3,7 @@ import { setTimeout as poll } from 'node:timers/promises';
 
 import type postgres from 'postgres';
 
-import { restricted } from './exchange-rates.fixture';
+import { restricted } from './exchange-rates-restricted.fixture';
 
 // Keep a transaction open until the contender has actually reached a PostgreSQL lock wait.
 export function waitForLockWaiters(client: postgres.Sql, blocker: number, count: number) {
