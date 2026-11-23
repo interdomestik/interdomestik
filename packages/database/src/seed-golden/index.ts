@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { withDisposableClient } from '../disposable-client';
+import { e2eEmail } from '../e2e-users';
 import legalVersionRows from '../legal-document-versions.json';
 import { seedCleanupIdentities } from '../seed-utils/identity-cleanup';
 import { buildWorkloadUsers } from '../seed-workload/user-fixtures';
@@ -115,7 +116,7 @@ function legalAcceptanceSeedIdentities() {
     return Array.from({ length: 9 }, (_, offset) => {
       const number = offset + 1;
       const prefix = number <= goldenMemberCount ? 'golden' : 'full';
-      const email = `member.${country}.${number}@interdomestik.com`;
+      const email = e2eEmail(`member.${country}.${number}`, 'full');
       return { id: `${prefix}_${country}_member_${number}`, tenantId: `tenant_${country}`, email };
     });
   });

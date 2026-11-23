@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { structuredArtifactOwner } from './modularity-guard-policy.mjs';
+import { LOCALE_CATALOG_OWNER_KEYS, structuredArtifactOwner } from './modularity-guard-policy.mjs';
 
 test('the WP-13 member-acceptance entry registry has its structured owner', () => {
   assert.equal(
@@ -31,6 +31,12 @@ test('WP-13 legal catalogues and the document version registry have structured o
     structuredArtifactOwner('packages/database/src/legal-document-versions.json'),
     'wp13-legal-document-versions-contract'
   );
+});
+
+test('both WP-13 legal catalogues are registered by filename', () => {
+  for (const name of ['legal-acceptance.json', 'legal-documents.json']) {
+    assert.ok(LOCALE_CATALOG_OWNER_KEYS.includes(name), `${name} has no registry entry`);
+  }
 });
 
 test('WP-13 legal ownership is limited to the five locales and exact JSON paths', () => {
