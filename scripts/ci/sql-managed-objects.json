@@ -47,6 +47,11 @@
       "migration": "0058_redundant_tinkerer"
     },
     {
+      "key": "fk [\"public\",\"legal_acceptances\",[\"document_kind\",\"document_version\",\"locale\",\"text_sha256\"],\"public\",\"legal_document_versions\",[\"kind\",\"version\",\"locale\",\"text_sha256\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0104_wp13a_legal_acceptance"
+    },
+    {
       "key": "fk [\"public\",\"membership_sales\",[\"tenant_id\",\"plan_version_id\",\"plan_id\",\"legal_entity_id\",\"list_price_minor\",\"price_currency\",\"plan_tier\",\"plan_members_included\"],\"public\",\"membership_plan_versions\",[\"tenant_id\",\"id\",\"plan_id\",\"legal_entity_id\",\"list_price_minor\",\"price_currency\",\"tier\",\"members_included\"]]",
       "value": "delete=no action update=no action match=s",
       "migration": "0102_wp07_membership_sales"
