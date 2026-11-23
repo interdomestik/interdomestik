@@ -165,6 +165,9 @@ checks:
       - packages/domain-claims/src/staff-claims/assign-transaction.ts
       - apps/web/src/features/admin/claims/actions/ops-assignment.ts
       - apps/web/src/features/admin/claims/components/ops/OpsAssignmentControl.tsx
+    optional_targets:
+      # The admin assignment actions were removed by #1961; this keeps them covered if they return.
+      - apps/web/src/actions/admin-claims/**/assign.ts
     must_not_match:
       - 'updateStatus'
       - 'status:'
@@ -622,6 +625,11 @@ checks:
     must_not_match:
       # The one read allowed: the whole environment handed to the seed target guard.
       - '(?<!(?<![\w$.])assertSeedTargetAllowed\()process\.env|assertSeedTargetAllowed\(process\.env(?!\))'
+      # The allowed call is the guard's own import, never a member, a local definition or an alias.
+      - '\.\s*(?:/\*(?:(?!\*/)[\s\S])*\*/\s*|//[^\n]*\n\s*)*assertSeedTargetAllowed\b'
+      - '(?:function\s*\*?\s*|\bas\s+)assertSeedTargetAllowed\b|\bassertSeedTargetAllowed\s*[=:(]\s*(?:async\b|function\b|\([^)]*\)\s*=>|\w+\s*=>)'
+      - '\{[^{}]*\bassertSeedTargetAllowed\b[^{}]*\}\s*='
+      - '\bimport\s*\{[^}]*\bassertSeedTargetAllowed\b[^}]*\}\s*from\s*[''"](?!\.\./seed-target-guard[''"])'
 
   - id: seeding.no_seed_imports_outside_database
     description: No apps/packages may import database seed modules or packs (alias or relative path).

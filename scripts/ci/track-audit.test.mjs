@@ -260,3 +260,31 @@ test('track audit: a file check with patterns, or a blank target, fails', () => 
     );
   }
 });
+
+test('track audit: optional targets may match nothing but are still checked when they match', () => {
+  assert.deepEqual(
+    audit(SRC, [noSeed({ targets: ['src/b.ts'], optional_targets: ['gone/**/*.ts'] })]),
+    []
+  );
+  const back = audit({ ...SRC, 'gone/x/assign.ts': 'seed\n' }, [
+    noSeed({ targets: ['src/b.ts'], optional_targets: ['gone/**/*.ts'] }),
+  ]);
+  assert.deepEqual(back, ["Check no_seed failed: gone/x/assign.ts must NOT match regex 'seed'"]);
+  const required = audit(SRC, [noSeed({ targets: ['gone/*.ts'], optional_targets: ['src/*.ts'] })]);
+  assert.ok(
+    required.some(f => /no file matches gone\/\*\.ts/u.test(f)),
+    required.join('\n')
+  );
+  for (const optional of [[], [''], 'gone/*.ts', [7]]) {
+    const failures = audit(SRC, [noSeed({ targets: ['src/b.ts'], optional_targets: optional })]);
+    assert.ok(
+      failures.some(f => /optional_targets that are not/u.test(f)),
+      String(optional)
+    );
+  }
+  const onFile = { id: 'e', type: 'file_exists', targets: ['src/a.ts'], optional_targets: ['x'] };
+  assert.match(
+    audit(SRC, [onFile])[0],
+    /regex-only keys on a file_exists check: optional_targets/u
+  );
+});

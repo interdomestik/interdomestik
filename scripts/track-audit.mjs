@@ -69,6 +69,7 @@ const CHECK_KEYS = new Set([
   'type',
   'scope',
   'targets',
+  'optional_targets',
   'must_match',
   'must_not_match',
   'exclude',
@@ -86,8 +87,21 @@ function shapeProblem(check) {
   if (!check.targets.every(target => typeof target === 'string' && target.trim() !== '')) {
     return 'has a target that is not a non-empty path';
   }
+  const optional = check.optional_targets;
+  if (
+    optional !== undefined &&
+    !(
+      Array.isArray(optional) &&
+      optional.length > 0 &&
+      optional.every(target => typeof target === 'string' && target.trim() !== '')
+    )
+  ) {
+    return 'has optional_targets that are not a non-empty list of non-empty paths';
+  }
   if (check.type !== 'regex') {
-    const regexOnly = ['must_match', 'must_not_match'].filter(key => check[key] !== undefined);
+    const regexOnly = ['must_match', 'must_not_match', 'optional_targets'].filter(
+      key => check[key] !== undefined
+    );
     return regexOnly.length > 0
       ? `has regex-only keys on a ${check.type} check: ${regexOnly.join(', ')}`
       : '';
@@ -105,16 +119,22 @@ const listFiles = (pattern, root) =>
   glob.sync(pattern, { cwd: root }).filter(file => fs.statSync(path.join(root, file)).isFile());
 
 function auditRegexCheck(check, root, failures) {
-  const perTarget = check.targets.map(target => [target, listFiles(target, root)]);
+  // `optional_targets` guard paths that may match no file today (a removed tree that must stay
+  // covered if it returns); `targets` must each match at least one file.
+  const perTarget = [
+    ...check.targets.map(target => [target, listFiles(target, root), true]),
+    ...(check.optional_targets ?? []).map(target => [target, listFiles(target, root), false]),
+  ];
   const excluded = exclusions(
     check,
     perTarget.flatMap(([, matched]) => matched),
     root,
     failures
   );
-  for (const [target, matched] of perTarget) {
+  for (const [target, matched, required] of perTarget) {
     // A target that matches no file would pass without checking anything.
-    if (matched.length === 0) failures.push(`Check ${check.id} failed: no file matches ${target}`);
+    if (required && matched.length === 0)
+      failures.push(`Check ${check.id} failed: no file matches ${target}`);
     for (const file of matched.filter(name => !excluded.has(name))) {
       const content = fs.readFileSync(path.join(root, file), 'utf8');
       for (const violation of regexViolations(check, content)) {
