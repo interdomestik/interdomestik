@@ -59,7 +59,7 @@ describe('submitClaimCore tenant RLS context', () => {
 
     expect(readTenantLocaleMetadataMock).toHaveBeenCalledWith('tenant-1');
     expect(generateClaimNumberMock).toHaveBeenCalledWith(
-      submitTx,
+      expect.objectContaining({ handle: expect.any(Number), query: submitTx.query }),
       expect.objectContaining({ tenantId: 'tenant-1', claimId: args.trustedClaimId }),
       { tenantId: 'tenant-1', code: 'T1' }
     );
