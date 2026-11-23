@@ -15,6 +15,7 @@ import {
   type Predicate,
   type Find,
 } from './public-reply-notification-flow.data';
+import { insertUnique } from './public-reply-notification-flow.keys';
 export { tables, operators, ids, session } from './public-reply-notification-flow.data';
 export const state = {
   session: session() as Session | null,
@@ -58,71 +59,6 @@ function nameOf(table: unknown): string {
   const name = Object.keys(tables).find(key => tables[key] === table);
   if (!name) throw new Error('Unknown fixture table');
   return name;
-}
-// Unique keys the model enforces, as PostgreSQL does: the primary key and the unique indexes the
-// reply path writes against. `columns` is null for an expression index (never a column target).
-type UniqueKey = { columns: readonly string[] | null; of: (row: Row) => unknown[] };
-const columnKey = (...fields: string[]): UniqueKey => ({
-  columns: fields,
-  of: row => fields.map(field => row[field]),
-});
-const UNIQUE_KEYS: Record<string, UniqueKey[]> = {
-  notificationDeliveries: [columnKey('id'), columnKey('tenantId', 'idempotencyKey')],
-  // claim_response_requests_source_uq (0102, SQL-managed): (tenant_id, kind, coalesce(source, claim)).
-  claimResponseRequests: [
-    columnKey('id'),
-    { columns: null, of: row => [row.tenantId, row.kind, row.sourceMessageId ?? row.claimId] },
-  ],
-};
-/** The unique key an ON CONFLICT target names, compared as a set of columns, as PostgreSQL does. */
-function arbiterOf(keys: readonly UniqueKey[], target: readonly string[]): UniqueKey {
-  const wanted = new Set(target);
-  const arbiter = keys.find(
-    key =>
-      key.columns !== null &&
-      key.columns.length === wanted.size &&
-      key.columns.every(field => wanted.has(field))
-  );
-  if (!arbiter) throw new Error('No unique key matches the ON CONFLICT target');
-  return arbiter;
-}
-/**
- * Appends the rows of one statement. A row that repeats a unique key of an existing row or of an
- * earlier row in the statement is skipped under ON CONFLICT DO NOTHING when that key is the
- * arbiter (or no target is named); otherwise the whole statement fails before any write. A key
- * with a null part never conflicts, as in a PostgreSQL unique index.
- */
-function insertUnique(
-  name: string,
-  target: Row[],
-  inputs: readonly Row[],
-  onConflict: { target: string[] | null } | null
-): Row[] {
-  const keys = UNIQUE_KEYS[name] ?? [columnKey('id')];
-  const arbiter = onConflict?.target ? arbiterOf(keys, onConflict.target) : null;
-  const keyOf = (row: Row, key: UniqueKey) => {
-    const parts = key.of(row);
-    return parts.some(part => part == null) ? null : JSON.stringify(parts);
-  };
-  const seen = keys.map(key => new Set(target.map(row => keyOf(row, key))));
-  const fresh: Row[] = [];
-  for (const row of inputs) {
-    const hits = keys.filter((key, index) => {
-      const value = keyOf(row, key);
-      return value !== null && seen[index].has(value);
-    });
-    if (hits.length > 0) {
-      const skipped = onConflict !== null && (arbiter === null || hits.includes(arbiter));
-      if (!skipped) throw new Error('Duplicate fixture key');
-      continue;
-    }
-    keys.forEach((key, index) => seen[index].add(keyOf(row, key)));
-    fresh.push(row);
-  }
-  target.push(
-    ...fresh.map(row => ({ createdAt: new Date('2026-10-15T00:00:00Z'), readAt: null, ...row }))
-  );
-  return fresh;
 }
 // Ambient clients never close; transaction clients get their own lifetime.
 const OPEN_LIFETIME = Object.freeze({ open: true });
@@ -188,8 +124,11 @@ function client(
         // The insert is awaitable like a Drizzle builder because it is the write promise itself.
         const returning = () => promise.then(inserted => inserted.map(row => ({ id: row.id })));
         const onConflictDoNothing = (config?: { target?: Column | Column[] }) => {
-          const target = config?.target;
-          onConflict = { target: target ? [target].flat().map(column => column.field) : null };
+          const target = config && 'target' in config ? [config.target].flat() : null;
+          // A target column the catalogue lacks is a fixture gap, never "no target".
+          if (target?.some(column => typeof column?.field !== 'string'))
+            throw new Error('Unknown fixture column in the ON CONFLICT target');
+          onConflict = { target: target ? target.map(column => (column as Column).field) : null };
           return Object.assign(promise, { returning });
         };
         return Object.assign(promise, { returning, onConflictDoNothing });

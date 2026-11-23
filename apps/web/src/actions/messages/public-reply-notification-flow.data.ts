@@ -74,6 +74,10 @@ const columns = [
   'claimNumber',
   'answeredAt',
   'idempotencyKey',
+  'kind',
+  'sourceMessageId',
+  'referralCode',
+  'memberNumber',
 ];
 export const tables = Object.fromEntries(
   [

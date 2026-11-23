@@ -113,4 +113,51 @@ describe('reply-flow fixture insert model', () => {
     );
     expect(state.rows.claimResponseRequests.map(row => row.id)).toEqual(['r1', 'r3', 'r4']);
   });
+
+  it('refuses a target on an expression-indexed column, writing nothing', async () => {
+    const requests = tables.claimResponseRequests;
+    await expect(
+      withTenantContext(scope, tx =>
+        tx
+          .insert(requests)
+          .values({
+            id: 'r1',
+            tenantId: ids.tenant,
+            claimId: ids.claim,
+            kind: 'member_message',
+            sourceMessageId: 'm1',
+          })
+          .onConflictDoNothing({ target: requests.sourceMessageId })
+      )
+    ).rejects.toThrow('No unique key matches the ON CONFLICT target');
+    expect(state.rows.claimResponseRequests).toEqual([]);
+  });
+
+  it('refuses a target column the fixture catalogue lacks instead of treating it as no target', async () => {
+    const unknown = { field: undefined } as unknown as (typeof tables.notifications)[string];
+    await expect(
+      withTenantContext(scope, tx =>
+        tx.insert(tables.notifications).values(inbox('n1')).onConflictDoNothing({ target: unknown })
+      )
+    ).rejects.toThrow('Unknown fixture column in the ON CONFLICT target');
+    expect(state.rows.notifications).toEqual([]);
+  });
+
+  it.each([
+    ['notificationDeliveries', ['tenantId', 'id'], { idempotencyKey: 'key-1' }],
+    ['claimMessages', ['tenantId', 'claimId', 'id'], { claimId: ids.claim }],
+  ] as const)('accepts the composite unique key of %s as a target', async (name, fields, extra) => {
+    const table = tables[name];
+    const insert = () =>
+      withTenantContext(scope, tx =>
+        tx
+          .insert(table)
+          .values({ id: 'x1', tenantId: ids.tenant, ...extra })
+          .onConflictDoNothing({ target: fields.map(field => table[field]) })
+          .returning()
+      );
+    expect(await insert()).toEqual([{ id: 'x1' }]);
+    expect(await insert()).toEqual([]);
+    expect(state.rows[name].filter(row => row.id === 'x1')).toHaveLength(1);
+  });
 });
