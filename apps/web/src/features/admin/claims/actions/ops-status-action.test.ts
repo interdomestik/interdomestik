@@ -6,6 +6,7 @@ import {
   claims,
   claimStageHistory,
   domainEvents,
+  notificationPreviewRestrictions,
   notifications,
   notificationDeliveries,
 } from '@interdomestik/database';
@@ -58,6 +59,13 @@ describe('the staff and admin status entry points', () => {
           userId: 'owner',
           actionUrl: '/member/claims/claim-1',
         }),
+      ]);
+      expect(rows(notificationPreviewRestrictions)).toEqual([
+        {
+          tenantId: rows(notifications)[0].tenantId,
+          notificationId: rows(notifications)[0].id,
+          restricted: false,
+        },
       ]);
       const deliveries = rows(notificationDeliveries);
       expect(deliveries).toEqual([

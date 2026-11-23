@@ -122,13 +122,13 @@ function configureTransaction(options: FakeTransactionOptions = {}) {
       }),
     }),
     insert: (table: unknown) => ({
-      values: (row: Row) => {
-        inserts.push({ table, row });
+      values: (value: Row | Row[]) => {
+        const written = Array.isArray(value) ? value : [value];
+        for (const row of written) inserts.push({ table, row });
+        const ids = () => Promise.resolve(written.map(row => ({ id: row.id })));
         return {
-          returning: () => Promise.resolve([{ id: row.id }]),
-          onConflictDoNothing: () => ({
-            returning: () => Promise.resolve([{ id: row.id }]),
-          }),
+          returning: ids,
+          onConflictDoNothing: () => Object.assign(Promise.resolve(), { returning: ids }),
         };
       },
     }),

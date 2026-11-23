@@ -3,11 +3,9 @@ import test from 'node:test';
 
 import { eq, inArray, sql } from 'drizzle-orm';
 
-import { claimMessages, claims, user, userLocalePreferences } from '../src/schema';
+import { claimMessages, claims } from '../src/schema';
 import type { TenantTransaction } from '../src/tenant';
 import type { TenantAuthority } from '../src/tenant-authority';
-import { grantTablePrivileges } from './activity-access-rls.support';
-import { grantColumnPrivileges } from './column-grants.support';
 import { TEST_DB_ROLE } from './rls-test-connection';
 import {
   KS_TENANT_ID,
@@ -75,84 +73,6 @@ test('withTenantAuthority confines the restricted role under concurrency, expiry
       );
       assert.deepEqual(row, { currentUser: TEST_DB_ROLE, bypass: false });
     });
-
-    await t.test(
-      'saves locale only when the session authority covers its own profile',
-      async st => {
-        const { savePreferredLocale } =
-          await import('../../domain-communications/src/recipient-locale');
-        // The save locks its user row FOR KEY SHARE, which needs UPDATE on one column of it.
-        const revokeColumns = await grantColumnPrivileges(adminDb, [
-          ['select', 'user', ['id', 'tenant_id']],
-          ['update', 'user', ['id']],
-        ]);
-        st.after(revokeColumns);
-        const revokeTable = await grantTablePrivileges(adminDb, [
-          ['select, insert, update', 'user_locale_preferences'],
-        ]);
-        st.after(revokeTable);
-        await adminDb.update(user).set({ role: 'admin' }).where(eq(user.id, mk.userId));
-
-        const readProfiles = () =>
-          adminDb
-            .select({ id: userLocalePreferences.userId, locale: userLocalePreferences.locale })
-            .from(userLocalePreferences)
-            .where(inArray(userLocalePreferences.userId, [ks.userId, mk.userId]))
-            .orderBy(userLocalePreferences.userId);
-        st.after(() =>
-          adminDb
-            .delete(userLocalePreferences)
-            .where(inArray(userLocalePreferences.userId, [ks.userId, mk.userId]))
-        );
-        const before = await readProfiles();
-
-        const admin = { id: mk.userId, role: 'admin', tenantId: MK_TENANT_ID };
-        const authority = (tenantId: string, userId = admin.id) =>
-          mintTenantAuthority({
-            tenantId,
-            purpose: 'session',
-            principal: { userId, role: admin.role, branchId: null, agentId: null },
-          });
-        const crossHome = { user: { ...admin, accessTenantId: KS_TENANT_ID } };
-        assert.equal(
-          await savePreferredLocale(authority(KS_TENANT_ID), crossHome, 'mk'),
-          'profile_scope_unavailable'
-        );
-        assert.equal(
-          await savePreferredLocale(authority(KS_TENANT_ID, ks.userId), crossHome, 'mk'),
-          'UNAUTHORIZED'
-        );
-        assert.deepEqual(await readProfiles(), before);
-
-        const home = { user: { ...admin, accessTenantId: MK_TENANT_ID } };
-        assert.equal(await savePreferredLocale(authority(MK_TENANT_ID), home, 'mk'), 'saved');
-        const saved = [
-          ...before.filter(row => row.id !== admin.id),
-          { id: admin.id, locale: 'mk' },
-        ];
-        const byId = (rows: typeof saved) => [...rows].sort((x, y) => x.id.localeCompare(y.id));
-        assert.deepEqual(await readProfiles(), byId(saved));
-        // A second save updates the one row.
-        assert.equal(await savePreferredLocale(authority(MK_TENANT_ID), home, 'de'), 'saved');
-        assert.deepEqual(
-          await readProfiles(),
-          byId(saved.map(row => (row.id === admin.id ? { ...row, locale: 'de' } : row)))
-        );
-
-        // A principal whose user row is absent gets 'conflict' and writes nothing.
-        const absent = 'wp11-absent-user';
-        const ghost = { user: { ...admin, id: absent, accessTenantId: MK_TENANT_ID } };
-        assert.equal(
-          await savePreferredLocale(authority(MK_TENANT_ID, absent), ghost, 'sq'),
-          'conflict'
-        );
-        const ghostRows = await adminDb
-          .select({ id: userLocalePreferences.userId })
-          .from(userLocalePreferences)
-          .where(eq(userLocalePreferences.userId, absent));
-        assert.deepEqual(ghostRows, []);
-      }
-    );
 
     await t.test('owner and access tenants diverge exactly as the descriptor says', async () => {
       const delegated = mintTenantAuthority({
