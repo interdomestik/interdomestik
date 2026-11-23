@@ -10,8 +10,7 @@ const CONTRACT_DIR = 'scripts/ci';
 const EXTRA_CONTRACT_FILES = Object.freeze(['scripts/check-modularity-guard.test.mjs']);
 const NODE_TEST_ARGS = Object.freeze(['--test', '--test-concurrency=1']);
 
-// Long-running guard-trust suites, excluded from core by exact name only. Every other contract
-// test, including any file added later, lands in core by default.
+// Long-running guard-trust suites leave core by exact name only; any other test stays in core.
 export const GUARD_TRUST_SHARDS = Object.freeze({
   authority: Object.freeze(['scripts/ci/db-access-required-authority.test.mjs']),
   candidate: Object.freeze(['scripts/ci/db-access-required-candidate.test.mjs']),
@@ -23,6 +22,11 @@ export const GUARD_TRUST_SHARDS = Object.freeze({
   's2-workflow': Object.freeze([
     'scripts/ci/tenant-guard-s2-workflow.isolation.test.mjs',
     'scripts/ci/tenant-guard-s2-workflow.test.mjs',
+  ]),
+  'resolver-state': Object.freeze([
+    'scripts/ci/tenant-guard.bundler-closure.test.mjs',
+    'scripts/ci/tenant-guard.resolver-transitions.test.mjs',
+    'scripts/ci/tenant-guard.resolver-trial.test.mjs',
   ]),
 });
 
@@ -225,16 +229,20 @@ async function waitForShards(running, onResult = outcome => outcome) {
 }
 
 // Runs every shard concurrently without fail-fast. Each shard is still serialized internally and
-// the run fails unless every shard exits 0.
+// the run fails unless every shard exits 0. `select` (the pre-push selector) keeps a subset of
+// each shard's files; with it, a shard left empty is not started, so `node --test` never
+// auto-discovers. Without it (the hosted command) every shard runs exactly as planned.
 export async function runParallel({
   root = REPO_ROOT,
   write = text => process.stdout.write(text),
+  select,
 } = {}) {
   const { shards, skipArgs } = contractTestPlan(root);
   const grouped = process.env.GITHUB_ACTIONS === 'true';
-  const running = Object.entries(shards).map(([name, files]) =>
-    runShard(root, name, files, { capture: true, skipArgs })
-  );
+  const running = Object.entries(shards)
+    .map(([name, files]) => [name, select ? select(files) : files])
+    .filter(([, files]) => !select || files.length > 0)
+    .map(([name, files]) => runShard(root, name, files, { capture: true, skipArgs }));
   const { outcomes, interrupted } = await waitForShards(running, outcome => {
     write(grouped ? `::group::contract shard ${outcome.name}\n` : `--- shard ${outcome.name}\n`);
     write(outcome.output.toString('utf8'));
