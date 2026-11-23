@@ -320,7 +320,8 @@ test('the E2E runtime role keeps the narrowed grants of the case register tables
           order by attname`;
         assert.deepEqual(
           columns.map(row => row.column_name),
-          [...editable].sort(),
+          // PostgreSQL orders `name` by bytes; compare the same way.
+          [...editable].sort((left, right) => Number(left > right) - Number(left < right)),
           table
         );
       }
