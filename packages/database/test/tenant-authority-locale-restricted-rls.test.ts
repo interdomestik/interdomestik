@@ -104,21 +104,17 @@ test('saves the locale only when the session authority covers its own profile', 
       });
     const sessionOf = (id: string) => ({ user: { ...admin, id, accessTenantId: MK_TENANT_ID } });
 
-    // A transaction id's waiters: sessions blocked on a row or key that transaction holds.
-    const xidOf = async (tx: Pick<typeof adminDb, 'execute'>) =>
-      String(
-        (
-          await tx.execute<{ xid: string }>(sql`select (txid_current() % 4294967296)::text as xid`)
-        )[0]?.xid
-      );
-    const waitForWaiters = async (xid: string, count: number) => {
+    // Waits until `count` sessions are blocked on a row or key the holding transaction `tx` holds.
+    // It queries through `tx` itself: the admin pool has one connection, which `tx` occupies.
+    const waitForWaiters = async (tx: Pick<typeof adminDb, 'execute'>, count: number) => {
       const deadline = Date.now() + 10_000;
       for (;;) {
-        const [row] = await adminDb.execute<{ waiting: number }>(sql`
+        const [row] = await tx.execute<{ waiting: number }>(sql`
           select count(*)::int as waiting from pg_locks
-          where locktype = 'transactionid' and not granted and transactionid::text = ${xid}`);
+          where locktype = 'transactionid' and not granted
+            and transactionid::text = (txid_current() % 4294967296)::text`);
         if ((row?.waiting ?? 0) >= count) return;
-        assert.ok(Date.now() < deadline, `expected ${count} sessions waiting on ${xid}`);
+        assert.ok(Date.now() < deadline, `expected ${count} sessions waiting on the holder`);
         await new Promise(resolve => setTimeout(resolve, 25));
       }
     };
@@ -132,12 +128,11 @@ test('saves the locale only when the session authority covers its own profile', 
         await tx
           .insert(userLocalePreferences)
           .values({ tenantId: MK_TENANT_ID, userId: raceUser, locale: 'sq' });
-        const xid = await xidOf(tx);
         raced = Promise.all([
           savePreferredLocale(authority(MK_TENANT_ID, raceUser), sessionOf(raceUser), 'mk'),
           savePreferredLocale(authority(MK_TENANT_ID, raceUser), sessionOf(raceUser), 'de'),
         ]);
-        await waitForWaiters(xid, 2);
+        await waitForWaiters(tx, 2);
         throw new Error('release the held key');
       }),
       /release the held key/
@@ -157,9 +152,8 @@ test('saves the locale only when the session authority covers its own profile', 
     let pending: Promise<string> | undefined;
     await adminDb.transaction(async tx => {
       await tx.select({ id: user.id }).from(user).where(eq(user.id, lockUser)).for('update');
-      const xid = await xidOf(tx);
       pending = savePreferredLocale(authority(MK_TENANT_ID, lockUser), sessionOf(lockUser), 'mk');
-      await waitForWaiters(xid, 1);
+      await waitForWaiters(tx, 1);
       await tx.delete(user).where(eq(user.id, lockUser));
     });
     assert.equal(await pending, 'conflict');
