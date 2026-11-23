@@ -14,6 +14,7 @@ import { mintIngressCapability, type IngressCapability } from '../src/ingress-ca
 import * as schema from '../src/schema';
 import { mintTenantAuthority, type TenantAuthority } from '../src/tenant-authority';
 import { restricted, runtimeRole } from './exchange-rates-restricted.fixture';
+import { runSequentially } from './in-order';
 import { withScratchDatabase } from './pg16/scratch-database';
 import {
   applyRlsTestConnectionEnv,
@@ -48,9 +49,7 @@ export const rateInput = (effectiveOn: string) => ({
   effectiveOn,
 });
 
-export function runSequentially<T>(items: readonly T[], run: (item: T) => Promise<void>) {
-  return items.reduce((previous, item) => previous.then(() => run(item)), Promise.resolve());
-}
+export { runSequentially } from './in-order';
 
 export type RateRow = {
   id: string;
