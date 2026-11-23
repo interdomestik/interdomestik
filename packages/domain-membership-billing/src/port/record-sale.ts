@@ -39,7 +39,18 @@ function prepareSale(authority: TenantAuthority, input: unknown, actor: SaleActo
     return { ok: false, code: 'forbidden' } as const;
   const parsed = recordSaleInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, code: 'invalid' } as const;
-  return { ok: true, principal, input: parsed.data } as const;
+
+  const { buyer } = parsed.data;
+  let validatedBuyer: SaleInput['buyer'];
+  // A second key is invalid even when its value is explicitly undefined.
+  if (buyer.leadId !== undefined && !Object.hasOwn(buyer, 'memberUserId')) {
+    validatedBuyer = { leadId: buyer.leadId };
+  } else if (buyer.memberUserId !== undefined && !Object.hasOwn(buyer, 'leadId')) {
+    validatedBuyer = { memberUserId: buyer.memberUserId };
+  } else {
+    return { ok: false, code: 'invalid' } as const;
+  }
+  return { ok: true, principal, input: { ...parsed.data, buyer: validatedBuyer } } as const;
 }
 
 export async function recordSale(authority: TenantAuthority, input: unknown, actor: SaleActor) {

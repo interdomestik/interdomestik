@@ -1,6 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import type { TenantTransaction } from '@interdomestik/database';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { recordSale, recordSaleInTx } from './record-sale';
 import { publishPlanVersionInputSchema, recordSaleInputSchema } from './sale-input';
+
+vi.mock('@interdomestik/database/tenant-authority', () => ({ readTenantAuthority: vi.fn() }));
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: vi.fn(),
+}));
 
 const sale = {
   buyer: { leadId: 'lead-1' },
@@ -13,20 +23,34 @@ const sale = {
 };
 
 describe('individual payment port input', () => {
-  it('preserves the accepted bigint amount and exact Unicode terms', () => {
-    expect(recordSaleInputSchema.parse(sale)).toEqual(sale);
-  });
+  const invalidTextIssue = {
+    code: 'invalid_format',
+    format: 'regex',
+    pattern: String.raw`/^[^\u0000\uD800-\uDFFF]+$/u`,
+    path: ['termsVersion'],
+  };
 
-  it.each([
-    {},
-    { leadId: 'lead-1', memberUserId: 'member-1' },
-    { memberUserId: 'member-1', branchId: 'injected' },
-  ])('requires exactly one buyer without additional fields', buyer => {
-    expect(recordSaleInputSchema.safeParse({ ...sale, buyer }).success).toBe(false);
+  it.each([{ leadId: 'lead-1' }, { memberUserId: 'member-1' }])(
+    'preserves buyer %j, the accepted bigint amount and exact Unicode terms',
+    buyer => {
+      const input = { ...sale, buyer };
+      expect(recordSaleInputSchema.parse(input)).toStrictEqual(input);
+    }
+  );
+
+  it('refuses an unknown key in buyer', () => {
+    const buyer = { memberUserId: 'member-1', branchId: 'injected' };
+    expect(recordSaleInputSchema.safeParse({ ...sale, buyer })).toMatchObject({
+      success: false,
+      error: { issues: [{ code: 'unrecognized_keys', keys: ['branchId'], path: ['buyer'] }] },
+    });
   });
 
   it('refuses empty text', () => {
-    expect(recordSaleInputSchema.safeParse({ ...sale, termsVersion: '' }).success).toBe(false);
+    expect(recordSaleInputSchema.safeParse({ ...sale, termsVersion: '' })).toMatchObject({
+      success: false,
+      error: { issues: [{ code: 'too_small', path: ['termsVersion'] }, invalidTextIssue] },
+    });
   });
 
   it.each(['before\u0000after', '\uD800', '\uDFFF'])(
@@ -34,7 +58,7 @@ describe('individual payment port input', () => {
     termsVersion => {
       expect(recordSaleInputSchema.safeParse({ ...sale, termsVersion })).toMatchObject({
         success: false,
-        error: { issues: [{ code: 'invalid_format', path: ['termsVersion'] }] },
+        error: { issues: [invalidTextIssue] },
       });
     }
   );
@@ -65,5 +89,45 @@ describe('individual payment port input', () => {
         [key]: 'injected',
       }).success
     ).toBe(false);
+  });
+});
+
+describe('sale command buyer validation', () => {
+  const actor = { id: 'seller-1', tenantId: 'tenant-1' };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(readTenantAuthority).mockReturnValue({
+      purpose: 'session',
+      tenantId: actor.tenantId,
+      accessTenantId: actor.tenantId,
+      principal: { userId: actor.id, role: 'tenant_admin', branchId: null, agentId: null },
+      expiresAtMs: Number.MAX_SAFE_INTEGER,
+    });
+  });
+
+  it.each([
+    { name: 'both IDs', buyer: { leadId: 'lead-1', memberUserId: 'member-1' } },
+    { name: 'neither ID', buyer: {} },
+    { name: 'an unknown key', buyer: { memberUserId: 'member-1', branchId: 'injected' } },
+    {
+      name: 'an explicit undefined member ID',
+      buyer: { leadId: 'lead-1', memberUserId: undefined },
+    },
+    {
+      name: 'an explicit undefined lead ID',
+      buyer: { leadId: undefined, memberUserId: 'member-1' },
+    },
+  ])('refuses $name before any SQL in both entry points', async ({ buyer }) => {
+    const authority = mintTestTenantAuthority(actor.tenantId);
+    const execute = vi.fn();
+    const tx = { execute } as unknown as TenantTransaction;
+    const input = { ...sale, buyer };
+    const invalid = { ok: false, code: 'invalid' };
+
+    await expect(recordSale(authority, input, actor)).resolves.toEqual(invalid);
+    expect(withTenantAuthority).not.toHaveBeenCalled();
+    await expect(recordSaleInTx(tx, authority, input, actor)).resolves.toEqual(invalid);
+    expect(execute).not.toHaveBeenCalled();
   });
 });

@@ -4,17 +4,7 @@ import { z } from 'zod';
 const text = z
   .string()
   .min(1)
-  .superRefine((value, ctx) => {
-    if (value === '' || value.includes('\0') || /[\uD800-\uDFFF]/u.test(value)) {
-      ctx.addIssue({
-        origin: 'string',
-        code: 'invalid_format',
-        format: 'regex',
-        // Preserve the pattern in Zod's issue and default message.
-        pattern: String.raw`/^[^\u0000\uD800-\uDFFF]+$/u`,
-      });
-    }
-  });
+  .regex(/^[^\u0000\uD800-\uDFFF]+$/u);
 
 export const publishPlanVersionInputSchema = z.strictObject({
   planId: text,
@@ -25,7 +15,7 @@ export const withdrawPlanVersionInputSchema = z.strictObject({ planVersionId: te
 export const getSaleOfferInputSchema = z.strictObject({ planId: text });
 
 export const recordSaleInputSchema = z.strictObject({
-  buyer: z.union([z.strictObject({ leadId: text }), z.strictObject({ memberUserId: text })]),
+  buyer: z.strictObject({ leadId: text.optional(), memberUserId: text.optional() }),
   planVersionId: text,
   termsVersion: text,
   rateId: text,
@@ -34,4 +24,6 @@ export const recordSaleInputSchema = z.strictObject({
   operationKey: text,
 });
 
-export type SaleInput = z.output<typeof recordSaleInputSchema>;
+export type SaleInput = Omit<z.output<typeof recordSaleInputSchema>, 'buyer'> & {
+  buyer: { leadId: string } | { memberUserId: string };
+};
