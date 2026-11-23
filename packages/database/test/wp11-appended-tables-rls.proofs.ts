@@ -5,6 +5,7 @@ import type postgres from 'postgres';
 import { withDisposableClient } from '../src/disposable-client';
 import * as schema from '../src/schema';
 import type { TenantTransaction } from '../src/tenant';
+import { runSequentially } from './in-order';
 import {
   restricted,
   role,
@@ -12,6 +13,13 @@ import {
   type LegacyPreviews,
   type Rows,
 } from './wp11-notification-deliveries-rls.fixture';
+
+/** Seeds a user as the owner, for parents the runtime role may not create. */
+async function insertUser(client: postgres.Sql, id: string, tenantId: string, userRole: string) {
+  const email = `${id}@example.test`;
+  await client`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
+    values (${id}, ${tenantId}, 'Test user', ${email}, true, ${userRole}, now(), now())`;
+}
 
 export const appendedTables = [
   'notification_preview_restrictions',
@@ -122,8 +130,7 @@ export async function proveAppendedTableIsolation(client: postgres.Sql, a: Rows,
     notification: `${b.tenant}-bare-notification`,
     handoff: `${b.tenant}-bare-handoff`,
   };
-  await client`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
-    values (${bare.user}, ${b.tenant}, 'Bare', ${`${bare.user}@example.test`}, true, 'member', now(), now())`;
+  await insertUser(client, bare.user, b.tenant, 'member');
   await client`insert into notifications (id, tenant_id, user_id, type, title, content, action_url)
     values (${bare.notification}, ${b.tenant}, ${bare.user}, 'new_message', 'New Message', 'Update', '/member')`;
   await client`insert into support_handoffs (id, tenant_id, member_id, subject, message, urgency, trust_risk)
@@ -154,9 +161,9 @@ export async function proveAppendedTableIsolation(client: postgres.Sql, a: Rows,
       tx`update support_handoff_first_responses set first_public_response_at = now() where handoff_id = ${a.handoff}`,
     '42501'
   );
-  for (const table of appendedTables) {
+  await runSequentially(appendedTables, async table => {
     await denied(tx => tx`delete from ${tx(table)}`, '42501');
-  }
+  });
 }
 
 /** The locale save: lock the parent, upsert one row per user, read it back as the runtime role. */
@@ -219,8 +226,7 @@ export async function proveCascades(client: postgres.Sql, a: Rows, b: Rows) {
 
   // A staff answer survives its actor's deletion, without the actor.
   const staff = `${b.tenant}-staff`;
-  await client`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
-    values (${staff}, ${b.tenant}, 'Staff', ${`${staff}@example.test`}, true, 'staff', now(), now())`;
+  await insertUser(client, staff, b.tenant, 'staff');
   await client`update claim_response_requests set answered_at = now(), answered_by = ${staff},
     answer_kind = 'member_visible_status_change' where id = ${a.request}`;
   await client`delete from "user" where id = ${staff}`;
@@ -229,8 +235,9 @@ export async function proveCascades(client: postgres.Sql, a: Rows, b: Rows) {
   assert.deepEqual(answer, { answered_by: null, answered: true });
 
   // A source message takes its response request and its deliveries with it.
+  const sourceRequest = `${b.tenant}-source-request`;
   await client`insert into claim_response_requests (id, tenant_id, claim_id, kind, source_message_id, requested_at)
-    values (${`${b.tenant}-source-request`}, ${b.tenant}, ${b.claim}, 'member_message', ${b.message}, now())`;
+    values (${sourceRequest}, ${b.tenant}, ${b.claim}, 'member_message', ${b.message}, now())`;
   await client`delete from claim_messages where id = ${b.message}`;
   assert.equal(await count('claim_response_requests', 'source_message_id', b.message), 0);
   assert.equal(await count('notification_deliveries', 'subject_message_id', b.message), 0);
@@ -240,8 +247,7 @@ export async function proveCascades(client: postgres.Sql, a: Rows, b: Rows) {
   assert.equal(await count('claim_response_requests', 'claim_id', b.claim), 0);
   assert.equal(await count('notification_deliveries', 'claim_id', b.claim), 0);
   const member = `${a.tenant}-member-two`;
-  await client`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
-    values (${member}, ${a.tenant}, 'Member', ${`${member}@example.test`}, true, 'member', now(), now())`;
+  await insertUser(client, member, a.tenant, 'member');
   await client`insert into user_locale_preferences (user_id, tenant_id, locale)
     values (${member}, ${a.tenant}, 'de')`;
   await client`delete from "user" where id = ${member}`;

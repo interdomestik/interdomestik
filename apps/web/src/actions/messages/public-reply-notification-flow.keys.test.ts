@@ -36,6 +36,21 @@ function registryIndexParts(value: string): string[] {
   return parts;
 }
 
+/**
+ * The SQL-managed unique indexes of a table: `unique btree (a, b)` is a column key (its column
+ * names); any other part makes it an expression key (`columns: null`).
+ */
+function registryUniqueKeys(tableName: string) {
+  return registry.objects.flatMap(entry => {
+    if (!entry.key.startsWith('index ') || !entry.value.startsWith('unique')) return [];
+    const [, table, name] = JSON.parse(entry.key.slice('index '.length)) as string[];
+    if (table !== tableName) return [];
+    const parts = registryIndexParts(entry.value);
+    const plain = parts.every(part => /^[a-z_][a-z0-9_]*$/u.test(part));
+    return [{ name, columns: plain ? parts : null }];
+  });
+}
+
 /** The column keys (sorted property names) and partial and expression unique indexes of a table. */
 function schemaKeys(table: PgTable) {
   const property = new Map(
@@ -57,15 +72,9 @@ function schemaKeys(table: PgTable) {
     else if (parts.every(part => 'name' in part)) columns.add(names(parts as { name: string }[]));
     else expressions.push(index.config.name ?? '?');
   }
-  for (const entry of registry.objects) {
-    if (!entry.key.startsWith('index ') || !entry.value.startsWith('unique')) continue;
-    const [, tableName, indexName] = JSON.parse(entry.key.slice('index '.length)) as string[];
-    if (tableName !== config.name) continue;
-    // `unique btree (a, b)` is a column key; any other part makes it an expression key.
-    const parts = registryIndexParts(entry.value);
-    if (parts.every(part => /^[a-z_][a-z0-9_]*$/u.test(part)))
-      columns.add(names(parts.map(name => ({ name }))));
-    else expressions.push(indexName);
+  for (const key of registryUniqueKeys(config.name)) {
+    if (key.columns) columns.add(names(key.columns.map(name => ({ name }))));
+    else expressions.push(key.name);
   }
   return { columns, partial: sorted(partial), expressions: sorted(expressions) };
 }
