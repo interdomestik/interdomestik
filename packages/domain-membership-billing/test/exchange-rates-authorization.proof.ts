@@ -8,7 +8,7 @@ import {
   rateInput,
   restricted,
   runSequentially,
-} from '@interdomestik/database/testing/payment-port-rls';
+} from '../../database/test/exchange-rates.fixture';
 
 import type { ExchangeRatePortFixture } from './exchange-rates-port.fixture';
 

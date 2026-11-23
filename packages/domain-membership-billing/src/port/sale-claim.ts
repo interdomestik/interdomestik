@@ -8,7 +8,7 @@ import { findScopedBuyer, type SaleBuyer } from './sale-buyers';
 import type { SaleInput } from './sale-input';
 
 export function saleHash(input: SaleInput, buyer: SaleBuyer) {
-  return sql`public.membership_individual_sale_hash(
+  return sql<string>`public.membership_individual_sale_hash(
     ${buyer.kind}, ${buyer.id}, ${input.planVersionId}, ${input.termsVersion},
     ${input.rateId}, ${input.amountMkdMinor.toString()}::bigint, ${input.channel}
   )`;

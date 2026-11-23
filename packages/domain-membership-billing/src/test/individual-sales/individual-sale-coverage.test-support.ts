@@ -2,7 +2,7 @@ import {
   restricted,
   withPaymentPortTestTransaction,
   type PaymentPortTestTransaction,
-} from '@interdomestik/database/testing/payment-port-rls';
+} from '../../../../database/test/exchange-rates.fixture';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';

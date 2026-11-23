@@ -3,7 +3,7 @@ import {
   paymentPortTestGuardRole,
   restricted,
   runSequentially,
-} from '@interdomestik/database/testing/payment-port-rls';
+} from '../../../../database/test/exchange-rates.fixture';
 import { expect, it } from 'vitest';
 
 import { directSaleRow, insertDirectSale } from './individual-sale-direct.test-support';
@@ -89,7 +89,7 @@ export function registerInvariantCases(fixture: () => Promise<SaleFixture>) {
         f.otherTenantId,
         tx => tx`
       insert into membership_sale_claims (tenant_id, operation_key, request_hash, claimed_at)
-      values (${f.tenantId}, ${randomUUID()}, ${Buffer.alloc(32)}, now())
+      values (${f.tenantId}, ${randomUUID()}, ${'0'.repeat(64)}, now())
     `
       )
     ).rejects.toMatchObject({

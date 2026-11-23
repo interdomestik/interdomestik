@@ -47,6 +47,11 @@
       "migration": "0058_redundant_tinkerer"
     },
     {
+      "key": "fk [\"public\",\"membership_sales\",[\"tenant_id\",\"plan_version_id\",\"plan_id\",\"legal_entity_id\",\"list_price_minor\",\"price_currency\",\"plan_tier\",\"plan_members_included\"],\"public\",\"membership_plan_versions\",[\"tenant_id\",\"id\",\"plan_id\",\"legal_entity_id\",\"list_price_minor\",\"price_currency\",\"tier\",\"members_included\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
       "key": "function [\"public\",\"billing_invoices_scope_guard_fn()\"]",
       "value": "ca2649f354dfe241723c834443648610",
       "migration": "0036_supabase_advisor_security_hardening"
@@ -93,17 +98,17 @@
     },
     {
       "key": "function [\"public\",\"membership_individual_sale_guard_fn()\"]",
-      "value": "bc06104fddaaed6e40c8bae84762ef62",
+      "value": "5f4f551a12be11642dfc88431dac2162",
       "migration": "0102_wp07_membership_sales"
     },
     {
       "key": "function [\"public\",\"membership_individual_sale_hash(buyer_kind text, buyer_id text, plan_version_id text, terms_version text, rate_id text, amount_mkd_minor bigint, channel text)\"]",
-      "value": "d8c5619c67918f192ffd878cf9779276",
+      "value": "de1836c101d579a003dd3a604a947b44",
       "migration": "0102_wp07_membership_sales"
     },
     {
       "key": "function [\"public\",\"membership_plan_version_guard_fn()\"]",
-      "value": "326aac48eae06c2f08feb4ee6bad8a61",
+      "value": "56ec0a3266b1e7500b593b6c88509434",
       "migration": "0102_wp07_membership_sales"
     },
     {
@@ -232,14 +237,29 @@
       "migration": "0008_add_multitenant"
     },
     {
+      "key": "index [\"public\",\"member_leads\",\"member_leads_tenant_id_id_uq\"]",
+      "value": "unique btree (tenant_id, id)",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
       "key": "index [\"public\",\"member_notes\",\"idx_member_notes_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
     },
     {
+      "key": "index [\"public\",\"membership_ledger_entries\",\"membership_ledger_entries_charge_uq\"]",
+      "value": "unique btree (tenant_id, sale_id) WHERE (kind = 'charge'::text)",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
       "key": "index [\"public\",\"membership_plans\",\"idx_membership_plans_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"membership_sales\",\"membership_sales_live_lead_uq\"]",
+      "value": "unique btree (tenant_id, lead_id) WHERE ((lead_id IS NOT NULL) AND (voided_at IS NULL))",
+      "migration": "0102_wp07_membership_sales"
     },
     {
       "key": "index [\"public\",\"notifications\",\"idx_notifications_tenant_id\"]",

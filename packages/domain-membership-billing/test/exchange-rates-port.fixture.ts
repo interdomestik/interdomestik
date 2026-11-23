@@ -2,7 +2,7 @@ import {
   mintPaymentPortTestIngress,
   type ExchangeRateFixture,
   type rateInput,
-} from '@interdomestik/database/testing/payment-port-rls';
+} from '../../database/test/exchange-rates.fixture';
 
 type PaymentPort = typeof import('../src/payment-port');
 type ScheduledEvent = { data: ReturnType<typeof rateInput> & { tenantId: string } };

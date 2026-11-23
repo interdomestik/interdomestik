@@ -5,7 +5,7 @@ CREATE TABLE "membership_plan_versions" (
 	"plan_id" text NOT NULL,
 	"version" integer NOT NULL,
 	"legal_entity_id" text NOT NULL,
-	"tier" "membership_tier" NOT NULL,
+	"tier" text NOT NULL,
 	"interval" text NOT NULL,
 	"members_included" integer NOT NULL,
 	"list_price_minor" bigint NOT NULL,
@@ -16,6 +16,7 @@ CREATE TABLE "membership_plan_versions" (
 	"withdrawn_by" text,
 	CONSTRAINT "membership_plan_versions_number_uq" UNIQUE("tenant_id","plan_id","version"),
 	CONSTRAINT "membership_plan_versions_sale_snapshot_uq" UNIQUE("tenant_id","id","plan_id","legal_entity_id","list_price_minor","price_currency","tier","members_included"),
+	CONSTRAINT "membership_plan_versions_tier_check" CHECK (tier IN ('basic', 'standard', 'family', 'business')),
 	CONSTRAINT "membership_plan_versions_terms_check" CHECK (
       "membership_plan_versions"."tier" <> 'family' and "membership_plan_versions"."interval" = 'year'
       and "membership_plan_versions"."price_currency" = 'EUR' and "membership_plan_versions"."list_price_minor" > 0)
@@ -33,20 +34,22 @@ CREATE TABLE "membership_ledger_entries" (
 --> statement-breakpoint
 ALTER TABLE "membership_ledger_entries" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "membership_sale_channels" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"kind" text NOT NULL,
 	"channel" text NOT NULL,
-	CONSTRAINT "membership_sale_channels_pk" PRIMARY KEY("kind","channel")
+	CONSTRAINT "membership_sale_channels_kind_channel_uq" UNIQUE("kind","channel")
 );
 --> statement-breakpoint
 ALTER TABLE "membership_sale_channels" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "membership_sale_claims" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" text NOT NULL,
 	"operation_key" text NOT NULL,
-	"request_hash" "bytea" NOT NULL,
+	"request_hash" text NOT NULL,
 	"claimed_at" timestamp with time zone NOT NULL,
-	CONSTRAINT "membership_sale_claims_pk" PRIMARY KEY("tenant_id","operation_key"),
+	CONSTRAINT "membership_sale_claims_operation_uq" UNIQUE("tenant_id","operation_key"),
 	CONSTRAINT "membership_sale_claims_hash_uq" UNIQUE("tenant_id","operation_key","request_hash"),
-	CONSTRAINT "membership_sale_claims_hash_check" CHECK (octet_length("membership_sale_claims"."request_hash") = 32)
+	CONSTRAINT "membership_sale_claims_hash_check" CHECK (request_hash ~ '^[0-9a-f]{64}$')
 );
 --> statement-breakpoint
 ALTER TABLE "membership_sale_claims" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -79,7 +82,7 @@ CREATE TABLE "membership_sales" (
 	"sold_on" date NOT NULL,
 	"due_on" date NOT NULL,
 	"operation_key" text NOT NULL,
-	"request_hash" "bytea" NOT NULL,
+	"request_hash" text NOT NULL,
 	"voided_at" timestamp with time zone,
 	"voided_by" text,
 	"void_reason" text,
@@ -87,7 +90,7 @@ CREATE TABLE "membership_sales" (
 	"lead_id" text,
 	"member_user_id" text,
 	"list_price_minor" bigint,
-	"plan_tier" "membership_tier",
+	"plan_tier" text,
 	"plan_members_included" integer,
 	"agent_id" text,
 	"branch_id" text,
@@ -96,6 +99,8 @@ CREATE TABLE "membership_sales" (
 	CONSTRAINT "membership_sales_conversion_check" CHECK (
       "membership_sales"."amount_mkd_minor" = round("membership_sales"."price_minor"::numeric * "membership_sales"."rate" * 0.01) * 100),
 	CONSTRAINT "membership_sales_positive_check" CHECK ("membership_sales"."price_minor" > 0 and "membership_sales"."amount_mkd_minor" > 0),
+	CONSTRAINT "membership_sales_request_hash_check" CHECK (request_hash ~ '^[0-9a-f]{64}$'),
+	CONSTRAINT "membership_sales_plan_tier_check" CHECK (plan_tier IS NULL OR plan_tier IN ('basic', 'standard', 'family', 'business')),
 	CONSTRAINT "membership_sales_individual_buyer_check" CHECK (
       "membership_sales"."kind" <> 'individual' or ("membership_sales"."buyer_kind" is not null and (
         ("membership_sales"."buyer_kind" = 'lead' and "membership_sales"."lead_id" is not null and "membership_sales"."member_user_id" is null)
@@ -195,7 +200,7 @@ BEGIN
   IF plan.is_active IS NOT TRUE OR entity.is_active IS NOT TRUE
      OR nullif(btrim(entity.governing_law, E' \t\r\n'), '') IS NULL
      OR nullif(btrim(entity.terms_version, E' \t\r\n'), '') IS NULL
-     OR NEW.tier IS DISTINCT FROM plan.tier OR NEW.interval IS DISTINCT FROM plan.interval
+     OR NEW.tier IS DISTINCT FROM plan.tier::text OR NEW.interval IS DISTINCT FROM plan.interval
      OR NEW.members_included IS DISTINCT FROM plan.members_included
      OR NEW.price_currency IS DISTINCT FROM plan.currency
      OR NEW.list_price_minor IS DISTINCT FROM plan.price * 100
@@ -267,13 +272,13 @@ CREATE FUNCTION public.membership_individual_sale_hash(
   buyer_kind text, buyer_id text, plan_version_id text, terms_version text,
   rate_id text, amount_mkd_minor bigint, channel text
 )
-RETURNS bytea
+RETURNS text
 LANGUAGE sql
 IMMUTABLE STRICT
 SECURITY INVOKER
 SET search_path = pg_catalog, public
 AS $$
-  SELECT sha256(string_agg(int4send(octet_length(field)) || field, ''::bytea ORDER BY position))
+  SELECT encode(sha256(string_agg(int4send(octet_length(field)) || field, ''::bytea ORDER BY position)), 'hex')
   FROM (
     SELECT convert_to(value, 'UTF8') AS field, position
     FROM unnest(ARRAY[
@@ -297,7 +302,7 @@ DECLARE
   actual_agent_id text;
   actual_branch_id text;
   buyer_id text;
-  digest bytea;
+  digest text;
 BEGIN
   IF current_setting('transaction_isolation') <> 'read committed' THEN
     RAISE check_violation USING CONSTRAINT = 'membership_sales_read_committed_guard';

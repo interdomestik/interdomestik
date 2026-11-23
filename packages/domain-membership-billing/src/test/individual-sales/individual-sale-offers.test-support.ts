@@ -3,7 +3,7 @@ import {
   paymentPortTestGuardRole,
   restricted,
   runSequentially,
-} from '@interdomestik/database/testing/payment-port-rls';
+} from '../../../../database/test/exchange-rates.fixture';
 import { expect, it } from 'vitest';
 
 import {

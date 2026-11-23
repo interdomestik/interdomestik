@@ -9,7 +9,7 @@ import {
   runSequentially,
   runtimeRole,
   type PaymentPortDatabase,
-} from '@interdomestik/database/testing/payment-port-rls';
+} from '../../../../database/test/exchange-rates.fixture';
 import { expect } from 'vitest';
 
 import type { SaleInput } from '../../port/sale-input';

@@ -42,7 +42,7 @@ Declare it in a schema file with its tenant column, its policy and `.enableRLS()
 
 `exchange_rate_books` and `exchange_rates` are owned by the membership billing payment port. Legal entities are created through the admin path by seeds and migrations. The book provisioning trigger runs with the inserting role's privileges. Migration `0101` backfills existing entities before forcing RLS on both tables and sets the runtime privileges when the role exists. The book lock requires column-level `UPDATE` on `id`. A trigger rejects updates, deletes and truncation on both tables.
 
-Migration `0102` declares the membership billing port's plan versions, sale kinds and channels, sale claims, sales and ledger entries. The billing module owns the commands and invariants. `./testing/payment-port-rls` shares the journal-built scratch database fixture with the billing restricted-role lane.
+Migration `0102` declares the membership billing port's plan versions, sale kinds and channels, sale claims, sales and ledger entries. The billing module owns the commands and invariants. `test/exchange-rates.fixture.ts` shares the journal-built scratch database fixture with the billing restricted-role lane.
 
 ## Tests to run
 

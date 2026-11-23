@@ -1,4 +1,4 @@
-import type { PaymentPortTestTransaction } from '@interdomestik/database/testing/payment-port-rls';
+import type { PaymentPortTestTransaction } from '../../../../database/test/exchange-rates.fixture';
 import { createHash, randomUUID } from 'node:crypto';
 
 import { skopjeDate } from '../../port/calendar';
@@ -25,7 +25,7 @@ export function canonicalHash(input: SaleInput, channel: string = input.channel)
     length.writeUInt32BE(bytes.length);
     hash.update(length).update(bytes);
   }
-  return hash.digest();
+  return hash.digest('hex');
 }
 
 export async function directSaleRow(f: SaleFixture, input: SaleInput) {
@@ -102,7 +102,6 @@ export async function tryInsertDirectSale(
   await insertDirectSaleClaim(tx, row);
   const candidate = JSON.stringify({
     ...row,
-    request_hash: String.raw`\x${row.request_hash.toString('hex')}`,
     sold_at: undefined,
     sold_on: undefined,
     due_on: undefined,

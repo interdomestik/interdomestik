@@ -4,7 +4,7 @@ import {
   signal,
   waitForLockWaiters,
   type PaymentPortTestTransaction,
-} from '@interdomestik/database/testing/payment-port-rls';
+} from '../../../../database/test/exchange-rates.fixture';
 import { sql } from 'drizzle-orm';
 import { expect, it } from 'vitest';
 

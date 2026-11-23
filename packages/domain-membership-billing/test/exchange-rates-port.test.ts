@@ -11,7 +11,7 @@ import {
   withExchangeRateFixture,
   withLockedBook,
   type RateRow,
-} from '@interdomestik/database/testing/payment-port-rls';
+} from '../../database/test/exchange-rates.fixture';
 
 import { proveExchangeRateAuthorization } from './exchange-rates-authorization.proof';
 import {

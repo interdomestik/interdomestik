@@ -43,7 +43,7 @@ export function seedRateLinkedSale(
       order by effective_on desc, revision desc limit 1`;
     assert.ok(rate, 'the book must have an effective rate before recording a sale');
 
-    const [{ request_hash }] = await tx<{ request_hash: Buffer }[]>`
+    const [{ request_hash }] = await tx<{ request_hash: string }[]>`
       insert into public.membership_sale_claims (tenant_id, operation_key, request_hash, claimed_at)
       values (${tenantId}, ${operationKey}, public.membership_individual_sale_hash(
         'member', ${buyerId}, ${planVersionId}, ${termsVersion}, ${rate.id},
@@ -56,7 +56,7 @@ export function seedRateLinkedSale(
           rate_id, rate_book_id, rate, rate_base, rate_quote, rate_effective_on, amount_mkd_minor,
           channel, sold_by, operation_key, request_hash, buyer_kind, member_user_id)
       select ${saleId}, r.tenant_id, 'individual', ${planVersionId}, ${planId}, ${entityId}, 'MK',
-        ${termsVersion}, 'EUR', ${priceMinor}::bigint, ${priceMinor}::bigint, 'basic'::public.membership_tier, 1,
+        ${termsVersion}, 'EUR', ${priceMinor}::bigint, ${priceMinor}::bigint, 'basic', 1,
         r.id, r.book_id, r.rate, r.base, r.quote, r.effective_on, ${rate.amount_mkd_minor}::bigint,
         'cash', ${actor.id}, ${operationKey}, ${request_hash}, 'member', ${buyerId}
       from public.exchange_rates r where r.tenant_id = ${tenantId} and r.id = ${rate.id}

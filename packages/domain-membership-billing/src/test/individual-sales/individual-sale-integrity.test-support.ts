@@ -4,7 +4,7 @@ import {
   restricted,
   runSequentially,
   runtimeRole,
-} from '@interdomestik/database/testing/payment-port-rls';
+} from '../../../../database/test/exchange-rates.fixture';
 import { expect, it } from 'vitest';
 
 import type { SaleInput } from '../../port/sale-input';
@@ -108,7 +108,10 @@ export function registerSaleIntegrityCases(fixture: () => Promise<SaleFixture>) 
       values (${f.tenantId}, ${input.operationKey}, ${hash}, now())
     `
       )
-    ).rejects.toMatchObject({ code: '23505', constraint_name: 'membership_sale_claims_pk' });
+    ).rejects.toMatchObject({
+      code: '23505',
+      constraint_name: 'membership_sale_claims_operation_uq',
+    });
     await expect(
       restricted(
         f.admin,
@@ -177,6 +180,51 @@ export function registerSaleIntegrityCases(fixture: () => Promise<SaleFixture>) 
     expect(claim.request_hash).toEqual(canonicalHash(input));
   });
 
+  it.each(['A'.repeat(64), 'g'.repeat(64)])('refuses a malformed claim hash %s', async hash => {
+    const f = await fixture();
+    const key = randomUUID();
+    await expect(
+      restricted(
+        f.admin,
+        f.tenantId,
+        tx => tx`
+        insert into membership_sale_claims (tenant_id, operation_key, request_hash, claimed_at)
+        values (${f.tenantId}, ${key}, ${hash}, clock_timestamp())
+      `
+      )
+    ).rejects.toMatchObject({
+      code: '23514',
+      constraint_name: 'membership_sale_claims_hash_check',
+    });
+    expect(await f.counts(key)).toEqual(absent);
+  });
+
+  it('enforces the sale hash and plan tier domains for other sale kinds', async () => {
+    const f = await fixture();
+    const input = accepted(await f.sellable(), { memberUserId: f.member.id });
+    const row = await directSaleRow(f, input);
+    // Non-individual kinds exercise the row checks without the individual insert trigger.
+    const kind = 'unregistered';
+    await runSequentially(
+      [
+        [{ request_hash: 'A'.repeat(64) }, 'membership_sales_request_hash_check'],
+        [{ plan_tier: 'premium' }, 'membership_sales_plan_tier_check'],
+      ] as const,
+      async ([patch, constraint_name]) => {
+        await expect(
+          restricted(f.admin, f.tenantId, async tx => {
+            await tx`insert into membership_sale_claims
+              (tenant_id, operation_key, request_hash, claimed_at)
+              values (${row.tenant_id}, ${row.operation_key}, ${row.request_hash}, clock_timestamp())`;
+            const candidate = { ...row, kind, ...patch };
+            return tx`insert into membership_sales ${tx(candidate)}`;
+          })
+        ).rejects.toMatchObject({ code: '23514', constraint_name });
+        expect(await f.counts(input.operationKey)).toEqual(absent);
+      }
+    );
+  });
+
   it('refuses a provisional claim without a sale at commit', async () => {
     const f = await fixture();
     const key = randomUUID();
@@ -186,7 +234,7 @@ export function registerSaleIntegrityCases(fixture: () => Promise<SaleFixture>) 
         f.tenantId,
         tx => tx`
       insert into membership_sale_claims (tenant_id, operation_key, request_hash, claimed_at)
-      values (${f.tenantId}, ${key}, ${Buffer.alloc(32)}, clock_timestamp())
+      values (${f.tenantId}, ${key}, ${'0'.repeat(64)}, clock_timestamp())
     `,
         runtimeRole
       )

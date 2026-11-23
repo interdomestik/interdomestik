@@ -171,7 +171,7 @@ async function insertSale(
   principal: SalePrincipal,
   input: SaleInput,
   buyer: SaleBuyer,
-  requestHash: Buffer,
+  requestHash: string,
   coverageUserId: string | null
 ) {
   const { tenantId, userId } = principal;
@@ -221,7 +221,7 @@ async function insertSale(
     amount_mkd_minor: amountMkdMinor.toString(),
     channel: input.channel,
     operation_key: input.operationKey,
-    request_hash: String.raw`\x${requestHash.toString('hex')}`,
+    request_hash: requestHash,
     buyer_kind: buyer.kind,
     lead_id: buyer.kind === 'lead' ? buyer.id : null,
     member_user_id: buyer.kind === 'member' ? buyer.id : null,

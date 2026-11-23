@@ -2,80 +2,75 @@ import { sql } from 'drizzle-orm';
 import {
   bigint,
   check,
-  customType,
   date,
   foreignKey,
   integer,
+  numeric,
   pgPolicy,
   pgTable,
-  primaryKey,
-  numeric,
   text,
   timestamp,
   unique,
-  uniqueIndex,
+  uuid,
 } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
-import { membershipTierEnum } from './enums';
 import { exchangeRates } from './exchange-rates';
 import { memberLeads } from './leads';
-import { membershipPlanVersions } from './membership-plan-versions';
 import { branches } from './rbac';
 import { sponsorTenantPolicy } from './sponsors';
 import { tenants } from './tenants';
 
-const bytea = customType<{ data: Buffer }>({ dataType: () => 'bytea' });
-
-function saleLookupPolicy(name: string) {
-  return pgPolicy(name, {
-    for: 'select',
-    to: 'public',
-    using: sql`nullif(btrim(current_setting('app.current_access_tenant_id', true)), '') is not null`,
-  });
-}
-
 export const membershipSaleKinds = pgTable(
   'membership_sale_kinds',
   { kind: text('kind').primaryKey() },
-  () => [saleLookupPolicy('membership_sale_kinds_read_policy')]
+  _table => [
+    pgPolicy('membership_sale_kinds_read_policy', {
+      for: 'select',
+      to: 'public',
+      using: sql`nullif(btrim(current_setting('app.current_access_tenant_id', true)), '') is not null`,
+    }),
+  ]
 ).enableRLS();
 
 export const membershipSaleChannels = pgTable(
   'membership_sale_channels',
   {
+    id: uuid('id').defaultRandom().primaryKey(),
     kind: text('kind')
       .notNull()
       .references(() => membershipSaleKinds.kind),
     channel: text('channel').notNull(),
   },
   table => [
-    primaryKey({ name: 'membership_sale_channels_pk', columns: [table.kind, table.channel] }),
-    saleLookupPolicy('membership_sale_channels_read_policy'),
+    unique('membership_sale_channels_kind_channel_uq').on(table.kind, table.channel),
+    pgPolicy('membership_sale_channels_read_policy', {
+      for: 'select',
+      to: 'public',
+      using: sql`nullif(btrim(current_setting('app.current_access_tenant_id', true)), '') is not null`,
+    }),
   ]
 ).enableRLS();
 
 export const membershipSaleClaims = pgTable(
   'membership_sale_claims',
   {
+    id: uuid('id').defaultRandom().primaryKey(),
     tenantId: text('tenant_id')
       .notNull()
       .references(() => tenants.id),
     operationKey: text('operation_key').notNull(),
-    requestHash: bytea('request_hash').notNull(),
+    requestHash: text('request_hash').notNull(),
     claimedAt: timestamp('claimed_at', { withTimezone: true, mode: 'string' }).notNull(),
   },
   table => [
-    primaryKey({
-      name: 'membership_sale_claims_pk',
-      columns: [table.tenantId, table.operationKey],
-    }),
+    unique('membership_sale_claims_operation_uq').on(table.tenantId, table.operationKey),
     unique('membership_sale_claims_hash_uq').on(
       table.tenantId,
       table.operationKey,
       table.requestHash
     ),
-    check('membership_sale_claims_hash_check', sql`octet_length(${table.requestHash}) = 32`),
+    check('membership_sale_claims_hash_check', sql`${table.requestHash} ~ '^[0-9a-f]{64}$'`),
     sponsorTenantPolicy('membership_sale_claims_tenant_policy', table.tenantId),
   ]
 ).enableRLS();
@@ -108,7 +103,7 @@ export const membershipSales = pgTable(
     soldOn: date('sold_on').notNull(),
     dueOn: date('due_on').notNull(),
     operationKey: text('operation_key').notNull(),
-    requestHash: bytea('request_hash').notNull(),
+    requestHash: text('request_hash').notNull(),
     voidedAt: timestamp('voided_at', { withTimezone: true, mode: 'string' }),
     voidedBy: text('voided_by'),
     voidReason: text('void_reason'),
@@ -116,7 +111,7 @@ export const membershipSales = pgTable(
     leadId: text('lead_id'),
     memberUserId: text('member_user_id'),
     listPriceMinor: bigint('list_price_minor', { mode: 'bigint' }),
-    planTier: membershipTierEnum('plan_tier'),
+    planTier: text('plan_tier', { enum: ['basic', 'standard', 'family', 'business'] }),
     planMembersIncluded: integer('plan_members_included'),
     agentId: text('agent_id'),
     branchId: text('branch_id'),
@@ -124,9 +119,6 @@ export const membershipSales = pgTable(
   table => [
     unique('membership_sales_charge_uq').on(table.tenantId, table.id, table.amountMkdMinor),
     unique('membership_sales_operation_uq').on(table.tenantId, table.operationKey),
-    uniqueIndex('membership_sales_live_lead_uq')
-      .on(table.tenantId, table.leadId)
-      .where(sql`lead_id is not null and voided_at is null`),
     foreignKey({
       name: 'membership_sales_channel_fk',
       columns: [table.kind, table.channel],
@@ -160,29 +152,6 @@ export const membershipSales = pgTable(
         exchangeRates.quote,
         exchangeRates.rate,
         exchangeRates.effectiveOn,
-      ],
-    }),
-    foreignKey({
-      name: 'membership_sales_offer_fk',
-      columns: [
-        table.tenantId,
-        table.planVersionId,
-        table.planId,
-        table.legalEntityId,
-        table.listPriceMinor,
-        table.priceCurrency,
-        table.planTier,
-        table.planMembersIncluded,
-      ],
-      foreignColumns: [
-        membershipPlanVersions.tenantId,
-        membershipPlanVersions.id,
-        membershipPlanVersions.planId,
-        membershipPlanVersions.legalEntityId,
-        membershipPlanVersions.listPriceMinor,
-        membershipPlanVersions.priceCurrency,
-        membershipPlanVersions.tier,
-        membershipPlanVersions.membersIncluded,
       ],
     }),
     foreignKey({
@@ -224,6 +193,11 @@ export const membershipSales = pgTable(
     check(
       'membership_sales_positive_check',
       sql`${table.priceMinor} > 0 and ${table.amountMkdMinor} > 0`
+    ),
+    check('membership_sales_request_hash_check', sql`${table.requestHash} ~ '^[0-9a-f]{64}$'`),
+    check(
+      'membership_sales_plan_tier_check',
+      sql`${table.planTier} is null or ${table.planTier} in ('basic', 'standard', 'family', 'business')`
     ),
     check(
       'membership_sales_individual_buyer_check',
@@ -267,9 +241,6 @@ export const membershipLedgerEntries = pgTable(
       ],
     }),
     check('membership_ledger_entries_kind_check', sql`${table.kind} = 'charge'`),
-    uniqueIndex('membership_ledger_entries_charge_uq')
-      .on(table.tenantId, table.saleId)
-      .where(sql`kind = 'charge'`),
     sponsorTenantPolicy('membership_ledger_entries_tenant_policy', table.tenantId),
   ]
 ).enableRLS();

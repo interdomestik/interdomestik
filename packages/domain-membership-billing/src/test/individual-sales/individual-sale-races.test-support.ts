@@ -1,4 +1,4 @@
-import { restricted, runtimeRole, signal } from '@interdomestik/database/testing/payment-port-rls';
+import { restricted, runtimeRole, signal } from '../../../../database/test/exchange-rates.fixture';
 import { sql } from 'drizzle-orm';
 import { expect, it, vi } from 'vitest';
 
@@ -34,7 +34,7 @@ export function registerRaceCases(fixture: () => Promise<SaleFixture>) {
       const { recordSaleInTx } = await import('../../payment-port-compose');
       const claims = await import('../../port/sale-claim');
       const claimSale = claims.claimSale;
-      let provisionalHash: Buffer | undefined;
+      let provisionalHash: string | undefined;
       const spy = vi.spyOn(claims, 'claimSale').mockImplementation(async (...args) => {
         const claim = await claimSale(...args);
         if (args[2] === input.operationKey) provisionalHash = claim?.requestHash;

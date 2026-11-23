@@ -24,7 +24,6 @@
     "./ingress-registrar": "./src/ingress-registrar.ts",
     "./tenant-authority": "./src/tenant-authority-public.ts",
     "./tenant-authority-registrar": "./src/tenant-authority-registrar.ts",
-    "./testing/payment-port-rls": "./test/exchange-rates.fixture.ts",
     "./testing/tenant-authority": "./src/testing/tenant-authority.ts",
     "./tenant-directory": "./src/tenant-directory.ts",
     "./tenant-authority-context": "./src/tenant-authority-context.ts"

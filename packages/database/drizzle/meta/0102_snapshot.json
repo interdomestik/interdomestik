@@ -12150,8 +12150,7 @@
         },
         "tier": {
           "name": "tier",
-          "type": "membership_tier",
-          "typeSchema": "public",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -12306,6 +12305,10 @@
         }
       },
       "checkConstraints": {
+        "membership_plan_versions_tier_check": {
+          "name": "membership_plan_versions_tier_check",
+          "value": "\"membership_plan_versions\".\"tier\" in ('basic', 'standard', 'family', 'business')"
+        },
         "membership_plan_versions_terms_check": {
           "name": "membership_plan_versions_terms_check",
           "value": "\n      \"membership_plan_versions\".\"tier\" <> 'family' and \"membership_plan_versions\".\"interval\" = 'year'\n      and \"membership_plan_versions\".\"price_currency\" = 'EUR' and \"membership_plan_versions\".\"list_price_minor\" > 0"
@@ -12348,30 +12351,7 @@
           "notNull": true
         }
       },
-      "indexes": {
-        "membership_ledger_entries_charge_uq": {
-          "name": "membership_ledger_entries_charge_uq",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sale_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "kind = 'charge'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "membership_ledger_entries_amount_fk": {
           "name": "membership_ledger_entries_amount_fk",
@@ -12417,6 +12397,13 @@
       "name": "membership_sale_channels",
       "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
         "kind": {
           "name": "kind",
           "type": "text",
@@ -12446,16 +12433,17 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "membership_sale_channels_pk": {
-          "name": "membership_sale_channels_pk",
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "membership_sale_channels_kind_channel_uq": {
+          "name": "membership_sale_channels_kind_channel_uq",
+          "nullsNotDistinct": false,
           "columns": [
             "kind",
             "channel"
           ]
         }
       },
-      "uniqueConstraints": {},
       "policies": {
         "membership_sale_channels_read_policy": {
           "name": "membership_sale_channels_read_policy",
@@ -12474,6 +12462,13 @@
       "name": "membership_sale_claims",
       "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
         "tenant_id": {
           "name": "tenant_id",
           "type": "text",
@@ -12488,7 +12483,7 @@
         },
         "request_hash": {
           "name": "request_hash",
-          "type": "bytea",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -12515,16 +12510,16 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "membership_sale_claims_pk": {
-          "name": "membership_sale_claims_pk",
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "membership_sale_claims_operation_uq": {
+          "name": "membership_sale_claims_operation_uq",
+          "nullsNotDistinct": false,
           "columns": [
             "tenant_id",
             "operation_key"
           ]
-        }
-      },
-      "uniqueConstraints": {
+        },
         "membership_sale_claims_hash_uq": {
           "name": "membership_sale_claims_hash_uq",
           "nullsNotDistinct": false,
@@ -12550,7 +12545,7 @@
       "checkConstraints": {
         "membership_sale_claims_hash_check": {
           "name": "membership_sale_claims_hash_check",
-          "value": "octet_length(\"membership_sale_claims\".\"request_hash\") = 32"
+          "value": "\"membership_sale_claims\".\"request_hash\" ~ '^[0-9a-f]{64}$'"
         }
       },
       "isRLSEnabled": true
@@ -12728,7 +12723,7 @@
         },
         "request_hash": {
           "name": "request_hash",
-          "type": "bytea",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -12776,8 +12771,7 @@
         },
         "plan_tier": {
           "name": "plan_tier",
-          "type": "membership_tier",
-          "typeSchema": "public",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -12800,30 +12794,7 @@
           "notNull": false
         }
       },
-      "indexes": {
-        "membership_sales_live_lead_uq": {
-          "name": "membership_sales_live_lead_uq",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "lead_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "lead_id is not null and voided_at is null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "membership_sales_kind_membership_sale_kinds_kind_fk": {
           "name": "membership_sales_kind_membership_sale_kinds_kind_fk",
@@ -12891,33 +12862,6 @@
             "quote",
             "rate",
             "effective_on"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "membership_sales_offer_fk": {
-          "name": "membership_sales_offer_fk",
-          "tableFrom": "membership_sales",
-          "tableTo": "membership_plan_versions",
-          "columnsFrom": [
-            "tenant_id",
-            "plan_version_id",
-            "plan_id",
-            "legal_entity_id",
-            "list_price_minor",
-            "price_currency",
-            "plan_tier",
-            "plan_members_included"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id",
-            "plan_id",
-            "legal_entity_id",
-            "list_price_minor",
-            "price_currency",
-            "tier",
-            "members_included"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -13053,6 +12997,14 @@
         "membership_sales_positive_check": {
           "name": "membership_sales_positive_check",
           "value": "\"membership_sales\".\"price_minor\" > 0 and \"membership_sales\".\"amount_mkd_minor\" > 0"
+        },
+        "membership_sales_request_hash_check": {
+          "name": "membership_sales_request_hash_check",
+          "value": "\"membership_sales\".\"request_hash\" ~ '^[0-9a-f]{64}$'"
+        },
+        "membership_sales_plan_tier_check": {
+          "name": "membership_sales_plan_tier_check",
+          "value": "\"membership_sales\".\"plan_tier\" is null or \"membership_sales\".\"plan_tier\" in ('basic', 'standard', 'family', 'business')"
         },
         "membership_sales_individual_buyer_check": {
           "name": "membership_sales_individual_buyer_check",
@@ -13776,27 +13728,6 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "member_leads_tenant_id_id_uq": {
-          "name": "member_leads_tenant_id_id_uq",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}

@@ -6,7 +6,7 @@ import {
   signal,
   withPaymentPortDatabase,
   type PaymentPortDatabase,
-} from '@interdomestik/database/testing/payment-port-rls';
+} from '../../../database/test/exchange-rates.fixture';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

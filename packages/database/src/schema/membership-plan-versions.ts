@@ -11,7 +11,6 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
-import { membershipTierEnum } from './enums';
 import { membershipPlans } from './membership-plans';
 import { sponsorTenantPolicy } from './sponsors';
 import { legalEntities } from './tenant-entity-decomposition';
@@ -24,7 +23,7 @@ export const membershipPlanVersions = pgTable(
     planId: text('plan_id').notNull(),
     version: integer('version').notNull(),
     legalEntityId: text('legal_entity_id').notNull(),
-    tier: membershipTierEnum('tier').notNull(),
+    tier: text('tier', { enum: ['basic', 'standard', 'family', 'business'] }).notNull(),
     interval: text('interval').notNull(),
     membersIncluded: integer('members_included').notNull(),
     listPriceMinor: bigint('list_price_minor', { mode: 'bigint' }).notNull(),
@@ -66,6 +65,10 @@ export const membershipPlanVersions = pgTable(
       columns: [table.tenantId, table.withdrawnBy],
       foreignColumns: [user.tenantId, user.id],
     }),
+    check(
+      'membership_plan_versions_tier_check',
+      sql`${table.tier} in ('basic', 'standard', 'family', 'business')`
+    ),
     check(
       'membership_plan_versions_terms_check',
       sql`
