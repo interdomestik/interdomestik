@@ -692,3 +692,126 @@ test('D-1: module.require and JSDoc type imports are edges (CHK-15b, CHK-15c)', 
       body
     );
 });
+
+// r7: the wrapper records are read with a YAML parser; a comment cannot stand in for a value.
+test('D-1: a comment in the lockfile cannot mask a wrapper version or integrity change', t => {
+  const lock = REAL_NEXT['pnpm-lock.yaml'];
+  const intl = /( {6}next-intl:\n {8}specifier: [^\n]+\n {8}version: )4\.14\.5([^\n]*\n)/u;
+  assert.match(lock, intl);
+  const version = lock.replace(intl, '$14.15.0$2        # version: 4.14.5\n');
+  rejects(
+    t,
+    { ...REAL_NEXT, 'pnpm-lock.yaml': version },
+    both(/next-intl 4\.15\.0, not the reviewed 4\.14\.5/u, SCANNER_PR)
+  );
+  const old =
+    'sha512-9sPJh5ITJbP28HZ5obuFAMC4RwW/mhEvHiGVHXPWL0uRbF2RrjHWz8PcUmLaH2oca79ak2ayQz+uRSALZN9xSw==';
+  const record = `  next-intl@4.14.5:\n    resolution:\n      {\n        integrity: ${old},\n      }`;
+  assert.equal(lock.split(record).length, 2);
+  const masked = lock.replace(
+    record,
+    `  next-intl@4.14.5:\n    # integrity: ${old}\n    resolution:\n      {\n        integrity: sha512-${'B'.repeat(86)}==,\n      }`
+  );
+  rejects(
+    t,
+    { ...REAL_NEXT, 'pnpm-lock.yaml': masked },
+    both(/next-intl 4\.14\.5 with another lockfile integrity/u, SCANNER_PR)
+  );
+  rejects(t, { ...REAL_NEXT, 'pnpm-lock.yaml': 'a: [\n' }, both(/not parseable/u, SCANNER_PR));
+});
+
+// r7: a backslash in a relative or `@/` request is refused (it can reach node_modules unseen).
+test('D-1: a relative or @/ request with a backslash is refused', t => {
+  const resolver = resolverFor(fs.realpathSync(tree(t, {})));
+  for (const spec of [
+    '../node_modules\\@interdomestik/database',
+    '@/..\\..\\node_modules/x',
+    '.\\x',
+  ])
+    assert.throws(
+      () => resolver.resolveTargets(FROM, spec),
+      both(/a request with a backslash/u, SCANNER_PR),
+      spec
+    );
+});
+
+// r7: every refusal of the fixed configuration ends with the scanner-PR sentence, also when a rule
+// raises it inside ESLint (which appends the file and rule after it).
+test('D-1: refusals end with the scanner-PR sentence, in the resolver and through the lint', async t => {
+  const END = /; a change to it needs a scanner PR first \(WP-05 flip, D-1 fixed configuration\)$/u;
+  const ending = error => END.test(error.message);
+  rejects(t, { 'packages/ui/package.json': '{ nope' }, ending);
+  rejects(t, { 'packages/ui/package.json': '{ "version": "1.0.0" }\n' }, ending);
+  rejects(t, { 'apps/web/tsconfig.json': null }, ending);
+  rejects(t, { 'tsconfig.json': '   \n' }, ending);
+  rejects(t, { 'apps/web/tsconfig.json': '{ nope' }, ending);
+  await assert.rejects(
+    lint(
+      tree(t, {
+        [`${W}/app/x/page.tsx`]: "import a from '../x\\\\y';\nexport default () => a;\n",
+      })
+    ),
+    error => ending(error) && !/Occurred while linting/u.test(error.message)
+  );
+});
+
+// r7: `module['require']` is the same request as `module.require`; a computed member of `module`
+// and a bare `module` read as a value are refused; a local named `module` used by member is not.
+test('D-1: module[require] is an edge; module[k] and a bare module value are refused', async t => {
+  const page = `${W}/app/x/page.jsx`;
+  has(
+    await lint(
+      tree(t, {
+        [page]:
+          "const { db } = module['require']('@interdomestik/database');\nexport default () => db;\n",
+      })
+    ),
+    'CHK-15c',
+    `CHK-15c|${page}|@interdomestik/database`
+  );
+  const refused = /loads a module by .*, a request D-1 does not model; .*scanner PR first/u;
+  for (const body of [
+    "const k = 'require'; export const r = module[k]('./x');",
+    "export const r = module['require'];",
+    'const m = module; export const r = m;',
+    'const { require: req } = module; export const r = req;',
+    'export const f = () => module;',
+  ])
+    await assert.rejects(
+      lint(tree(t, { [`${W}/components/f.jsx`]: `${body}\nexport const F = () => null;\n` })),
+      refused,
+      body
+    );
+  for (const body of [
+    "export const load = () => import('./x').then(module => module.x);",
+    "export async function load() { const module = await import('./x'); return module.x; }",
+    'export const e = typeof module;',
+  ])
+    assert.ok(
+      await lint(
+        tree(t, {
+          [`${W}/components/f.ts`]: `${body}\nexport const F = () => null;\n`,
+          [`${W}/components/x.ts`]: X,
+        })
+      ),
+      body
+    );
+});
+
+// r7: JSDoc imports come from TypeScript's own parse: a space before the parenthesis and a quoted
+// export name are read as TypeScript reads them.
+test('D-1: JSDoc imports follow TypeScript’s parse (spacing, quoted names)', async t => {
+  const comp = `${W}/components/c.js`;
+  const cross = '../../../../packages/ui/src/components/avatar';
+  const result = await lint(
+    tree(t, {
+      [comp]: [
+        `/** @import { "quoted name" as Q } from '${cross}' */`,
+        `/** @type {import ('${cross}').W} */`,
+        'export const C = 1;',
+      ].join('\n'),
+    })
+  );
+  assert.equal(ids(result, 'CHK-15b').filter(id => id === `CHK-15b|${comp}|${cross}`).length, 2);
+  lacks(result, 'CHK-15b', `CHK-15b|${comp}|quoted name`);
+});

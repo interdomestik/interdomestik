@@ -3,6 +3,7 @@
 // does not check is a scanner error (exit 2) naming the files and that a scanner PR comes first.
 // In the advisory run the same change is recorded in `configChanges` and refuses nothing.
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 
 import { judgeHead } from './fixtures/screen-contract-check/cli-cases-fixtures.mjs';
@@ -35,6 +36,10 @@ const ADDED = [
   'jsconfig.node.json',
   'apps/web/.swcrc',
   '.swcrc',
+  // r7: the `.*` kinds with an empty suffix.
+  'apps/web/next.config.',
+  'apps/web/.babelrc.',
+  'babel.config.',
 ];
 
 test('config: each build-configuration kind added at any level is refused under enforcement', t => {
@@ -87,4 +92,36 @@ test('config: the advisory run records the change and refuses nothing; other fil
   const plain = enforced(t, { 'apps/web/src/lib/tsconfig.ts': 'export const t = 1;\n' });
   assert.equal(plain.code, 0, JSON.stringify(plain.report.errors));
   assert.deepEqual(plain.report.configChanges, []);
+});
+
+// r7: a change of a reviewed wrapper's lockfile record is refused from the diff itself, whatever
+// the Next config's state (the fixture trees have none); other lockfile changes pass.
+test('config: a wrapper lockfile record change is refused; another lockfile change is not', t => {
+  const lock = fs.readFileSync('pnpm-lock.yaml', 'utf8');
+  const intl = /( {6}next-intl:\n {8}specifier: [^\n]+\n {8}version: )4\.14\.5/u;
+  assert.match(lock, intl);
+  const bumped = enforced(
+    t,
+    { 'pnpm-lock.yaml': `${lock.replace(intl, '$14.15.0')}` },
+    { 'pnpm-lock.yaml': lock }
+  );
+  assert.equal(bumped.code, 2);
+  assert.match(bumped.report.errors.join('\n'), REFUSED);
+  assert.match(
+    bumped.report.errors.join('\n'),
+    /pnpm-lock\.yaml next-intl \(4\.14\.5 sha512-.* -> 4\.15\.0 /u
+  );
+  const added = enforced(t, { 'pnpm-lock.yaml': lock });
+  assert.equal(added.code, 2);
+  assert.match(
+    added.report.errors.join('\n'),
+    /pnpm-lock\.yaml @sentry\/nextjs \(absent -> 10\.75\.2 /u
+  );
+  const other = enforced(
+    t,
+    { 'pnpm-lock.yaml': `${lock}\n# an unrelated change\n` },
+    { 'pnpm-lock.yaml': lock }
+  );
+  assert.equal(other.code, 0, JSON.stringify(other.report.errors));
+  assert.deepEqual(other.report.configChanges, []);
 });

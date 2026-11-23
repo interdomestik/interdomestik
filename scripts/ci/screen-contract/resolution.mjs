@@ -24,6 +24,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 import { ScanError } from '../server-mutation/ast.mjs';
+import { parseLockfile, wrapperRecords } from './lockfile.mjs';
 import { readInside } from './paths.mjs';
 
 // Next 16 (`webpack-config.js` l. 576-584 of 16.4.1): `resolve.extensions` of the build.
@@ -107,7 +108,7 @@ const UNMODELLED_OPTIONS = Object.freeze([
 // one reviewed configuration and refuses every other. Each refusal names its reason and that a
 // change needs a scanner PR first, which reviews the new configuration and updates the pin here.
 const SCANNER_PR = 'a change to it needs a scanner PR first (WP-05 flip, D-1 fixed configuration)';
-const refuse = what => {
+export const refuse = what => {
   throw new ScanError(`${what}; ${SCANNER_PR}`);
 };
 const sha256 = text => createHash('sha256').update(text).digest('hex');
@@ -176,7 +177,7 @@ const OTHER_NEXT_CONFIGS = Object.freeze(
 // `@next/bundle-analyzer` changes nothing; `@sentry/nextjs` aliases `perf_hooks`; `next-axiom`
 // changes nothing; `next-intl` aliases `next-intl/config` and `use-intl/format-message`. All are
 // bare package keys, which match no relative or `@/` request (read 2026-11-22).
-const REVIEWED_WRAPPERS = Object.freeze({
+export const REVIEWED_WRAPPERS = Object.freeze({
   '@next/bundle-analyzer': {
     version: '16.3.5',
     integrity:
@@ -199,81 +200,30 @@ const REVIEWED_WRAPPERS = Object.freeze({
   },
 });
 
-// The integrity of each package record of the lockfile (pnpm's `packages:`), by `<name>@<version>`.
-export function packageIntegrities(text) {
-  const out = {};
-  let inside = false;
-  let current = null;
-  for (const line of text.split('\n')) {
-    if (/^\S/u.test(line)) {
-      inside = line.trim() === 'packages:';
-      current = null;
-      continue;
-    }
-    if (!inside) continue;
-    const key = /^ {2}'?([^'\s][^']*?)'?:\s*$/u.exec(line);
-    if (key) current = key[1];
-    const integrity = /integrity: ([^,\s}]+)/u.exec(line);
-    if (integrity && current && out[current] === undefined) out[current] = integrity[1];
-  }
-  return out;
-}
-
-// The lockfile entry each direct dependency of `apps/web` resolves to (pnpm's `importers`): its
-// version and its own `patch_hash`, if pnpm patched it (the group right after the version; later
-// groups are peers, which may carry their own).
-export function webDependencyVersions(text) {
-  const out = {};
-  let section = null;
-  let current = null;
-  for (const line of text.split('\n')) {
-    if (/^\S/u.test(line)) section = line.trim() === 'importers:' ? 'importers' : null;
-    if (section === null) continue;
-    const importer = /^ {2}(\S[^:]*):\s*$/u.exec(line);
-    if (importer) {
-      section = importer[1] === 'apps/web' ? 'web' : 'importers';
-      current = null;
-      continue;
-    }
-    if (section !== 'web') continue;
-    const dep = /^ {6}'?([^':\s]+)'?:\s*$/u.exec(line);
-    if (dep) current = dep[1];
-    const version = /^ {8}version: ([^(\s]+)(\(patch_hash=([^)]*)\))?/u.exec(line);
-    if (version && current) out[current] = { version: version[1], patch: version[3] ?? null };
-  }
-  return out;
-}
-
-// A wrapper the lockfile's `patchedDependencies` names is patched, whatever its version line says.
-const patchedPackages = text => {
-  const out = new Set();
-  let inside = false;
-  for (const line of text.split('\n')) {
-    if (/^\S/u.test(line)) inside = line.trim() === 'patchedDependencies:';
-    const entry = inside && /^ {2}'?((?:@[^/@\s]+\/)?[^@'\s]+)@/u.exec(line);
-    if (entry) out.add(entry[1]);
-  }
-  return out;
-};
-
+// The reviewed wrappers' lockfile records (lockfile.mjs, a YAML parse): version, own patch and
+// integrity, each exactly the reviewed one; `patchedDependencies` must not name the wrapper.
 function assertWrappers(root) {
   const lock = readInside(root, 'pnpm-lock.yaml');
   if (lock === null) refuse('pnpm-lock.yaml is missing, so the Next wrappers cannot be checked');
-  const versions = webDependencyVersions(lock);
-  const patched = patchedPackages(lock);
-  const integrities = packageIntegrities(lock);
+  let records;
+  try {
+    records = wrapperRecords(parseLockfile(lock), Object.keys(REVIEWED_WRAPPERS));
+  } catch (error) {
+    if (error instanceof ScanError) refuse(error.message);
+    throw error;
+  }
   for (const [pkg, reviewed] of Object.entries(REVIEWED_WRAPPERS)) {
-    const found = versions[pkg];
+    const found = records[pkg];
     if (found?.version !== reviewed.version)
       refuse(
         `${NEXT_CONFIG} loads ${pkg} ${found?.version ?? '(absent)'}, not the reviewed ${reviewed.version}`
       );
-    if (found.patch !== null || patched.has(pkg))
+    if (found.patch !== null || found.patched)
       refuse(
         `${NEXT_CONFIG} loads ${pkg} ${reviewed.version} with a pnpm patch, which was not reviewed`
       );
     // r6: the package record itself, not only its version (another tarball at the same version).
-    if (integrities[`${pkg}@${reviewed.version}`] !== reviewed.integrity)
+    if (found.integrity !== reviewed.integrity)
       refuse(`${NEXT_CONFIG} loads ${pkg} ${reviewed.version} with another lockfile integrity`);
   }
 }
@@ -351,7 +301,7 @@ export function assertDescriptionFiles(root) {
         try {
           data = JSON.parse(fs.readFileSync(path.join(root, child), 'utf8'));
         } catch {
-          throw new ScanError(`${child} is not parseable`);
+          refuse(`${child} is not parseable, so its browser field cannot be checked`);
         }
         if (data && typeof data === 'object' && Object.hasOwn(data, 'browser'))
           refuse(`${child} has a browser field, which the client build applies to its requests`);
@@ -371,8 +321,11 @@ const REVIEWED_QUERY_EDGES = Object.freeze({
 });
 // The request webpack resolves: the specifier, or the path part of a reviewed query edge. A relative
 // or `@/` request through a `node_modules` directory (a pnpm workspace link, r6) is refused: the
-// scanned tree has no links, and the build would follow one into tracked source.
+// scanned tree has no links, and the build would follow one into tracked source. A backslash is
+// refused too (r7): TypeScript and webpack may read it as a separator, which D-1 does not model.
 export function requestPath(fromRel, specifier) {
+  if (specifier.includes('\\'))
+    refuse(`${fromRel} imports ${specifier}, a request with a backslash`);
   if (specifier.split(/[/?#]/u).includes('node_modules'))
     refuse(`${fromRel} imports ${specifier}, a request through node_modules`);
   const cut = specifier.search(/[?#]/u);

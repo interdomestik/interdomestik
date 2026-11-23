@@ -8,13 +8,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 
-import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
+import { byCodeUnit } from '../server-mutation/ast.mjs';
 import { environmentsFor, resolveEnvironment, validateExports } from './exports.mjs';
 import {
   ALIAS_PATTERN,
   assertDescriptionFiles,
   assertNextResolution,
   confinedHost,
+  refuse,
   requestPath,
   typescriptOptions,
   validateResolutionConfig,
@@ -30,13 +31,13 @@ function readJson(file, label, parse = JSON.parse) {
   try {
     text = fs.readFileSync(file, 'utf8');
   } catch {
-    throw new ScanError(`${label} is missing`);
+    refuse(`${label} is missing`);
   }
-  if (!text.trim()) throw new ScanError(`${label} is empty`);
+  if (!text.trim()) refuse(`${label} is empty`);
   try {
     return parse(text);
   } catch {
-    throw new ScanError(`${label} is not parseable`);
+    refuse(`${label} is not parseable`);
   }
 }
 
@@ -74,8 +75,7 @@ function workspacePackages(root) {
     const file = path.join(dir, name, 'package.json');
     if (!fs.existsSync(file)) continue;
     const pkg = readJson(file, `packages/${name}/package.json`);
-    if (typeof pkg?.name !== 'string')
-      throw new ScanError(`packages/${name}/package.json has no name`);
+    if (typeof pkg?.name !== 'string') refuse(`packages/${name}/package.json has no name`);
     validateExports(pkg, `packages/${name}/package.json`);
     out.set(pkg.name, { dir: `packages/${name}`, pkg });
   }

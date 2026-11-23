@@ -238,6 +238,10 @@ export async function lintTree(root, files, { configFile } = {}) {
   try {
     results = await eslint.lintFiles(files.map(rel => path.join(root, rel)));
   } catch (error) {
+    // A scanner error a rule raised keeps its own text (r7): ESLint appends the file and the rule
+    // after it, so the reported refusal would no longer end with its scanner-PR sentence.
+    if (error instanceof ScanError)
+      throw new ScanError(String(error.message).split('\nOccurred while linting ')[0]);
     throw new ScanError(`ESLint failed: ${error?.message ?? error}`);
   }
   const byFile = new Map(

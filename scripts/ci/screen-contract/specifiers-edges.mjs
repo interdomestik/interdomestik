@@ -1,3 +1,6 @@
+import ts from 'typescript';
+
+import { ScanError } from '../server-mutation/ast.mjs';
 import { assertModelledRequest, assertReviewedDynamicRequest } from './resolution.mjs';
 
 const literalOf = node => {
@@ -29,14 +32,21 @@ function importTypeEdge(node) {
   return value === null ? null : { specifier: value, kind: 'type', node };
 }
 
-// `module.require('…')`, which webpack also records as a CommonJS dependency (r6).
-const isModuleRequire = callee =>
-  callee?.type === 'MemberExpression' &&
-  !callee.computed &&
-  callee.object.type === 'Identifier' &&
-  callee.object.name === 'module' &&
-  callee.property.type === 'Identifier' &&
-  callee.property.name === 'require';
+// A member of `module`: `'require'` for `module.require` or `module['require']` (r6, r7), which
+// webpack also records as a CommonJS dependency when called with a literal; `'unknown'` for a
+// computed member whose name is not a literal (`module[k]`); else null.
+function moduleMember(node) {
+  if (node?.type !== 'MemberExpression' || node.object?.type !== 'Identifier') return null;
+  if (node.object.name !== 'module') return null;
+  const name = node.computed
+    ? literalOf(node.property)
+    : node.property.type === 'Identifier'
+      ? node.property.name
+      : null;
+  if (name === null) return node.computed ? 'unknown' : null;
+  return name === 'require' ? 'require' : null;
+}
+const isModuleRequire = callee => moduleMember(callee) === 'require';
 
 function requireEdge(node) {
   const value = node.arguments.length === 1 ? literalOf(node.arguments[0]) : null;
@@ -73,17 +83,35 @@ const EDGE_OF = {
 };
 
 // In a JavaScript file TypeScript also resolves JSDoc imports: `@import … from '…'` and
-// `import('…')` types (r6). Each is a type edge, reported at its comment.
+// `import('…')` types (r6). They are read from TypeScript's own parse of the file (r7), so every
+// spelling TypeScript accepts is an edge: each a type edge, reported at its comment.
 const JS_FILE_RE = /\.(?:js|jsx|mjs|cjs)$/u;
-const JSDOC_IMPORT_RE =
-  /@import\b[^'"]*?(?:from\s*)?(['"])([^'"]+)\1|\bimport\(\s*(['"])([^'"]+)\3\s*\)/gu;
 function jsdocEdges(origin) {
   if (!origin?.sourceCode || !JS_FILE_RE.test(origin.rel ?? '')) return [];
+  const { text } = origin.sourceCode;
+  const kind = origin.rel.endsWith('.jsx') ? ts.ScriptKind.JSX : ts.ScriptKind.JS;
+  const file = ts.createSourceFile(origin.rel, text, ts.ScriptTarget.Latest, true, kind);
+  const comments = origin.sourceCode.getAllComments();
   const out = [];
-  for (const comment of origin.sourceCode.getAllComments())
-    if (comment.type === 'Block' && comment.value.startsWith('*'))
-      for (const match of comment.value.matchAll(JSDOC_IMPORT_RE))
-        out.push({ specifier: match[2] ?? match[4], kind: 'type', node: comment });
+  const add = literal => {
+    const at = literal.getStart(file);
+    const comment = comments.find(c => c.range[0] <= at && at < c.range[1]);
+    if (!comment) throw new ScanError(`${origin.rel}: a JSDoc import outside a comment`);
+    out.push({ specifier: literal.text, kind: 'type', node: comment });
+  };
+  const visit = node => {
+    for (const doc of node.jsDoc ?? []) visit(doc);
+    if (node.kind === ts.SyntaxKind.JSDocImportTag && ts.isStringLiteral(node.moduleSpecifier))
+      add(node.moduleSpecifier);
+    if (
+      ts.isImportTypeNode(node) &&
+      ts.isLiteralTypeNode(node.argument) &&
+      ts.isStringLiteral(node.argument.literal)
+    )
+      add(node.argument.literal);
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
   return out;
 }
 
@@ -112,6 +140,7 @@ const BARE_REQUIRE_OK = (node, parent) => {
     case 'FunctionDeclaration':
     case 'TSDeclareFunction':
     case 'FunctionExpression':
+    case 'ArrowFunctionExpression':
       return parent.id === node || parent.params.includes(node);
     case 'TSTypeQuery':
     case 'TSQualifiedName':
@@ -136,7 +165,9 @@ function dynamicRequest(node, parent) {
   }
   if (node.type === 'MemberExpression') {
     if (isIdentifier(node.object, 'require')) return node;
-    // `module.require` other than called with one literal (`const r = module.require`).
+    // `module[k]` with a computed name, and `module.require` other than called with one literal
+    // (`const r = module.require`, r7: also `module['require']`).
+    if (moduleMember(node) === 'unknown') return node;
     if (isModuleRequire(node)) {
       const called = parent?.type === 'CallExpression' && parent.callee === node;
       return called && parent.arguments.length === 1 && literalOf(parent.arguments[0]) !== null
@@ -150,6 +181,12 @@ function dynamicRequest(node, parent) {
   // A bare `require` that is neither called, nor a member's object or name, nor a declared name or
   // type query (`const r = require` is refused; `declare function require` is not a request).
   if (isIdentifier(node, 'require')) return BARE_REQUIRE_OK(node, parent) ? null : node;
+  // r7: a bare `module` read as a value can carry its `require` elsewhere (`const m = module`,
+  // `const { require: r } = module`); a member's object, a declared name or a type query is not.
+  if (isIdentifier(node, 'module')) {
+    const typeofRead = parent?.type === 'UnaryExpression' && parent.operator === 'typeof';
+    return typeofRead || BARE_REQUIRE_OK(node, parent) ? null : node;
+  }
   return null;
 }
 
