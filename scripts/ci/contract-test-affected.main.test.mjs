@@ -206,6 +206,7 @@ test('a runner that cannot load still runs both hosted commands and the guard', 
     ['modularity-guard', 'parseNameStatus'],
     ['contract-test-inputs', 'touches'],
     ['contract-test-wiring', 'workspacePackages'],
+    ['contract-test-parse', 'readDiff'],
   ]) {
     const renamed = () =>
       loadDependencies(specifier =>

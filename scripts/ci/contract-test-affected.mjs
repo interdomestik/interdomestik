@@ -29,6 +29,7 @@ export const FULL_FALLBACK = Object.freeze([
   'scripts/ci/contract-test-inputs.mjs',
   'scripts/ci/contract-test-affected.mjs',
   'scripts/ci/contract-test-wiring.mjs',
+  'scripts/ci/contract-test-parse.mjs',
   'scripts/lib/modularity-guard.mjs',
 ]);
 
@@ -53,62 +54,26 @@ export const AREA_TABLE = Object.freeze([
 ]);
 
 // The first added, deleted, renamed or copied contract test (either side of a rename counts).
-export function testSetChange(entries) {
+// `extra`: planned contract files outside scripts/ci (the runner's extra files).
+export function testSetChange(entries, extra = []) {
   const hit = entries.find(
     entry =>
       entry.status !== 'M' &&
-      [entry.file, entry.oldPath].some(file => file && CONTRACT_TEST.test(file))
+      [entry.file, entry.oldPath].some(
+        file => file && (CONTRACT_TEST.test(file) || extra.includes(file))
+      )
   );
   return hit?.file;
 }
 
-export const fullFallback = changed => changed.find(file => FULL_FALLBACK.includes(file));
-
-// A diff entry outside the statuses a commit-to-commit diff produces, or without a path, is not
-// classifiable: the full commands run.
-const KNOWN_STATUS = new Set(['A', 'C', 'D', 'M', 'R', 'T']);
-export function unrecognizedEntry(entries) {
-  const odd = entries.find(
-    entry =>
-      !KNOWN_STATUS.has(entry.status) ||
-      !entry.file ||
-      (['R', 'C'].includes(entry.status) && !entry.oldPath)
+// The test-set rule over the planned tests: their files outside scripts/ci count too.
+export const structuralChange = (entries, tests) =>
+  testSetChange(
+    entries,
+    tests.filter(test => !CONTRACT_TEST.test(test))
   );
-  return odd ? `unrecognized diff entry ${odd.status ?? '?'} ${odd.file ?? ''}`.trim() : null;
-}
 
-// A raw `git diff --name-status -z` stream that does not parse as status/path records (an unknown
-// status, an empty or missing path), before any parser can absorb it into a different shape.
-const RAW_STATUS = /^(?:[ADMT]|[RC]\d{0,3})$/u;
-export function rawDiffProblem(output) {
-  // Every record ends with a NUL, so the last token is always empty: dropping it unconditionally
-  // turns an unterminated stream into a record with a missing path.
-  const tokens = output.split('\0');
-  tokens.pop();
-  for (let index = 0; index < tokens.length;) {
-    const status = tokens[index++];
-    if (!RAW_STATUS.test(status)) return `unrecognized diff entry ${status || '(empty)'}`;
-    const count = /^[RC]/u.test(status) ? 2 : 1;
-    const files = tokens.slice(index, index + count);
-    index += count;
-    if (files.length < count || files.some(file => !file)) {
-      return `unrecognized diff entry ${status} with a missing path`;
-    }
-  }
-  return null;
-}
-
-// The parsed entries, every changed path (both sides of a rename), and why the diff is not
-// classifiable, if it is not.
-export function readDiff(raw, parseNameStatus) {
-  const problem = rawDiffProblem(raw);
-  if (problem) return { entries: [], changed: null, odd: problem };
-  const entries = parseNameStatus(raw);
-  const changed = [
-    ...new Set(entries.flatMap(entry => [entry.file, entry.oldPath].filter(Boolean))),
-  ];
-  return { entries, changed, odd: unrecognizedEntry(entries) };
-}
+export const fullFallback = changed => changed.find(file => FULL_FALLBACK.includes(file));
 
 // Why the E2E command runs: an unresolved import in its closure, a touched input, or the E2E area.
 function e2eSelection(e2eClosure, changed, touches) {
@@ -158,11 +123,12 @@ const tracked = (root, ref) =>
 // at import.
 export async function loadDependencies(load = specifier => import(specifier)) {
   try {
-    const [guard, shards, inputs, wiring] = await Promise.all([
+    const [guard, shards, inputs, wiring, parse] = await Promise.all([
       load('../lib/modularity-guard.mjs'),
       load('./contract-test-shards.mjs'),
       load('./contract-test-inputs.mjs'),
       load('./contract-test-wiring.mjs'),
+      load('./contract-test-parse.mjs'),
     ]);
     const found = {
       parseNameStatus: guard.parseNameStatus,
@@ -173,6 +139,7 @@ export async function loadDependencies(load = specifier => import(specifier)) {
       touches: inputs.touches,
       e2eWiring: wiring.e2eWiring,
       workspacePackages: wiring.workspacePackages,
+      readDiff: parse.readDiff,
     };
     const missing = Object.keys(found).filter(name => typeof found[name] !== 'function');
     if (missing.length) return { error: new Error(`missing export(s) ${missing.join(', ')}`) };
@@ -204,7 +171,7 @@ export async function planWork(root, baseRef, load = loadDependencies) {
     };
   }
   const raw = git(root, ['diff', '--name-status', '-z', '--find-renames', mergeBase, 'HEAD']);
-  const { entries, changed, odd } = readDiff(raw, deps.parseNameStatus);
+  const { entries, changed, odd } = deps.readDiff(raw, deps.parseNameStatus);
   if (odd) return { mergeBase, changed, tests: [], full: odd };
   const known = fullFallback(changed);
   if (known) return { mergeBase, changed, tests: [], full: `${known} changed` };
@@ -227,7 +194,7 @@ export async function planWork(root, baseRef, load = loadDependencies) {
     tests,
     closureOf: test => deps.inputClosure(test, read, paths),
     changed,
-    structural: testSetChange(entries),
+    structural: structuralChange(entries, tests),
     e2eClosure: wiring.closure,
     touches: deps.touches,
   });

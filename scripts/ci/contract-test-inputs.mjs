@@ -1,6 +1,8 @@
 import path from 'node:path';
 import ts from 'typescript';
 
+import { parseText, stripLeadingSlashes } from './contract-test-parse.mjs';
+
 // Static input closure of a contract test, for the advisory pre-push selector
 // (contract-test-affected.mjs). It reads only sources: every string literal that names a path
 // tracked at HEAD or the merge-base is an input, and every tracked script under scripts/ it names
@@ -27,20 +29,25 @@ const LS_FILES_COMMAND = /^git\s+ls-files(?:\s|$)/u;
 // Calls that run a command: a `git ls-files …` string counts only as their argument.
 const SPAWN_CALLEE =
   /^(?:exec|execSync|execFile|execFileSync|spawn|spawnSync|execa|execaSync|git)$/u;
-// The same in the code of a shell or Python helper (strings and comments removed).
-const TEXT_SCANNER =
-  /\bgit\s+ls-files\b|\bos\.(?:walk|listdir|scandir)\b|\b(?:i?glob|rglob|iterdir)\(/u;
-// Listing words anywhere (strings and comments included): a file that is not a certain scanner but
-// matches is uncertain, and its own directory literals become pinned inputs (fail safe).
-const LISTING_TEXT = /ls-files|\bos\.(?:walk|listdir|scandir)\b|\b(?:i?glob|rglob|iterdir)\b/u;
 // A workspace package import: its package directory becomes a pinned input.
 const WORKSPACE_IMPORT = /^(@interdomestik\/[^/]+)/u;
 const JS_SOURCE = /\.(?:[cm]?[jt]s|[jt]sx)$/u;
 const SHELL_SOURCE = /\.(?:sh|bash|zsh|py)$/u;
-// Separators between candidate paths in a non-JavaScript script.
-const TEXT_SEPARATORS = /[\s"'`=,;:()[\]{}<>|&$]+/u;
 const RELATIVE = /^\.\.?\//u;
-const SUFFIXES = ['', '.mjs', '.js', '.cjs', '.ts', '.mts', '.cts', '/index.mjs', '/index.js'];
+// Node's resolution of a literal module name (`require('./fixture')` may load `fixture.json`).
+const SUFFIXES = [
+  '',
+  '.mjs',
+  '.js',
+  '.cjs',
+  '.ts',
+  '.mts',
+  '.cts',
+  '.json',
+  '/index.mjs',
+  '/index.js',
+  '/index.cjs',
+];
 
 // Files and directories tracked at any of the given trees (merge-base and HEAD), so a deleted input
 // still resolves for the unchanged test that reads it.
@@ -62,83 +69,26 @@ function calleeName(expression) {
   return null;
 }
 
-function stripLeadingSlashes(text) {
-  let start = 0;
-  while (text[start] === '/') start += 1;
-  return text.slice(start);
-}
-
 const spawnArgument = node =>
   ts.isCallExpression(node.parent) &&
   node.parent.arguments.includes(node) &&
   SPAWN_CALLEE.test(calleeName(node.parent.expression) ?? '');
-// `ls-files` as a Git argument (an array element or a spawn argument), or a `git ls-files …`
-// command string passed to a spawn: test names, messages and other prose never count.
+// An array that is a Git argument list: passed to a spawn, or starting its command with 'git'.
+const gitArgumentArray = (array, element) => {
+  const previous = array.elements[array.elements.indexOf(element) - 1];
+  return (
+    spawnArgument(array) ||
+    (previous && ts.isStringLiteralLike(previous) && previous.text === 'git')
+  );
+};
+// `ls-files` as a Git argument (in a Git argument list, or a spawn argument), or a
+// `git ls-files …` command string passed to a spawn: test names, messages, assertions and other
+// prose never count.
 const listsFiles = node =>
-  (node.text === 'ls-files' && (ts.isArrayLiteralExpression(node.parent) || spawnArgument(node))) ||
+  (node.text === 'ls-files' &&
+    ((ts.isArrayLiteralExpression(node.parent) && gitArgumentArray(node.parent, node)) ||
+      spawnArgument(node))) ||
   (LS_FILES_COMMAND.test(node.text) && spawnArgument(node));
-
-// Where a quoted string ends: the closing quote (three of them for a Python triple-quoted
-// string), skipping backslash escapes except inside shell single quotes.
-function closingQuote(source, start, quote, python) {
-  const triple = python && source.startsWith(quote.repeat(3), start);
-  const close = triple ? quote.repeat(3) : quote;
-  const escapes = python || quote === '"';
-  let index = start + close.length;
-  while (index < source.length && !source.startsWith(close, index)) {
-    index += escapes && source[index] === '\\' ? 2 : 1;
-  }
-  return { body: source.slice(start + close.length, index), end: index + close.length };
-}
-
-// A shell or Python source split into its quoted strings and its code (strings replaced by a
-// space, comments removed). Quotes are tracked across lines (multiline strings, docstrings), a
-// backslash escapes the next character, and `#` starts a comment only outside strings, at the
-// start of a line or after whitespace.
-function splitSource(source, python) {
-  const quoted = [];
-  let code = '';
-  for (let index = 0; index < source.length;) {
-    const char = source[index];
-    if (char === '\\') {
-      code += source.slice(index, index + 2);
-      index += 2;
-    } else if (char === '"' || char === "'") {
-      const { body, end } = closingQuote(source, index, char, python);
-      quoted.push(body);
-      code += ' ';
-      index = end;
-    } else if (char === '#' && (index === 0 || /\s/u.test(source[index - 1]))) {
-      const newline = source.indexOf('\n', index);
-      index = newline === -1 ? source.length : newline;
-    } else {
-      code += char;
-      index += 1;
-    }
-  }
-  return { code, quoted };
-}
-
-// Shell and Python helpers: each quoted string whole (a path may hold spaces) and split, and the
-// words of the code. A listing counts only in code, or as a quoted `ls-files` argument.
-function parseText(file, source) {
-  const { code, quoted } = splitSource(source, file.endsWith('.py'));
-  const words = [
-    ...quoted.flatMap(text => text.split(TEXT_SEPARATORS)),
-    ...code.split(TEXT_SEPARATORS),
-  ];
-  // A quoted `ls-files` counts only right after a quoted `git` (`["git", "ls-files"]`); elsewhere
-  // (an assignment, a message) it is uncertain listing text.
-  const scanner =
-    TEXT_SCANNER.test(code) ||
-    quoted.some((text, index) => text === 'ls-files' && quoted[index - 1] === 'git');
-  return {
-    texts: [...quoted, ...words].map(stripLeadingSlashes),
-    scanner,
-    uncertain: !scanner && LISTING_TEXT.test(source),
-    packages: [],
-  };
-}
 
 const isModuleCall = node =>
   ts.isCallExpression(node) &&

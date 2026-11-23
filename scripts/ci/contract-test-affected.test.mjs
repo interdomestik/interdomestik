@@ -8,11 +8,9 @@ import {
   AREA_TABLE,
   parseArgs,
   selectContractWork,
-  rawDiffProblem,
-  readDiff,
   testSetChange,
-  unrecognizedEntry,
 } from './contract-test-affected.mjs';
+import { rawDiffProblem, readDiff, unrecognizedEntry } from './contract-test-parse.mjs';
 import { commandScripts, dependencyNames, e2eWiring } from './contract-test-wiring.mjs';
 import { parseNameStatus } from '../lib/modularity-guard.mjs';
 import { inputClosure, inventory, touches } from './contract-test-inputs.mjs';

@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
-import { inputClosure } from './contract-test-inputs.mjs';
+import { inputClosure, resolveLiteral } from './contract-test-inputs.mjs';
 
 // Package-script and workspace wiring for the advisory pre-push selector
 // (contract-test-affected.mjs): the hosted E2E command's entry points, and the workspace packages a
@@ -171,7 +171,7 @@ export function commandScripts(scripts, name, seen = new Set(), stack = new Set(
 }
 
 // Every package script a command reaches through `pnpm|npm|yarn [run] <script>` in any form.
-const SCRIPT_LINK = /\b(?:pnpm|npm|yarn)\s+(?:run\s+)?([\w:.@/-]+)/gu;
+const SCRIPT_LINK = /\b(?:pnpm|npm|yarn)\s+(?:run\s+)?["']?([\w:.@/-]+)/gu;
 function linkedScripts(scripts, name, seen) {
   const pending = [name];
   while (pending.length) {
@@ -209,7 +209,9 @@ export function e2eWiring(root, mergeBase, read, paths, sides = null) {
       closure.dirs.add(script === '.' ? '' : `${script}/`);
       continue;
     }
-    const found = inputClosure(script, read, paths);
+    // `node scripts/check` runs `scripts/check.js` when only that is tracked: resolve as Node does.
+    const hit = resolveLiteral('repository-root', `./${script}`, paths);
+    const found = inputClosure(hit?.kind === 'file' ? hit.path : script, read, paths);
     for (const key of ['files', 'dirs', 'pinned']) {
       found[key].forEach(value => closure[key].add(value));
     }
