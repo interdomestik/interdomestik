@@ -16,7 +16,7 @@ import {
 // database. Owner authorization of 2026-11-23 (R-37): agents act only on an actively assigned
 // member; staff and admin keep tenant scope.
 // This file: a write committed while a command waits on its lock is seen by that command
-// (R-17), in the lock order member, assignment, note.
+// (R-17), in the lock order member, assignment, note. Each lock has a test that fails without it.
 
 test('member notes: races under the restricted role', async t => {
   await withNotesProof(t, async proof => {
@@ -44,6 +44,26 @@ test('member notes: races under the restricted role', async t => {
         await held.rollback().catch(() => undefined);
         await running.catch(() => undefined);
         await setAssignment(u.agentA, u.m1, 'active');
+      }
+    });
+
+    await t.test('a member-role change committed while the command waits is seen', async () => {
+      // Only the member row changes and the assignment stays active, so only the lock on the
+      // member row can make the waiting command see the change.
+      const held = await holdAdminWrite(
+        databaseUrl,
+        tx => tx`update "user" set role = 'staff' where id = ${u.m1}`
+      );
+      const listing = commands.listMemberNotes({ ...A(), input: { memberId: u.m1 } });
+      try {
+        await waitUntilBlockedBy(adminDb, held.pid);
+        await assertPending(listing, 'the list');
+        await held.commit();
+        assert.deepEqual(await listing, { ok: false, code: 'FORBIDDEN' });
+      } finally {
+        await held.rollback().catch(() => undefined);
+        await listing.catch(() => undefined);
+        await adminDb.update(user).set({ role: 'member' }).where(eq(user.id, u.m1));
       }
     });
 
