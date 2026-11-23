@@ -11,14 +11,10 @@ import {
 import { roleOf } from './roles.mjs';
 import { pairTransfers, rebuiltDeclarationErrors, rebuiltRemovals } from './transfer.mjs';
 
-// CHK-22's findings and tamper from outside the lint: uses in files that do not exist, the
-// registry against the trusted base; and its test evidence, whose failures are input errors.
-function chk22Extra(root, files, inputs, base, head) {
-  const registry = registryFor(root);
-  const errors = testEvidence(root, registry, readLanes(root));
-  if (errors.length) throw new ScanError(errors.join('; '));
-  // The files CHK-22 visits, not every linted file: a use naming a support file the rule never
-  // reads is an orphan (r1 H3).
+// The registered uses that name a file CHK-22 does not visit in this tree (orphans). The files CHK-22
+// visits, not every linted file: a use naming a support file the rule never reads is an orphan
+// (r1 H3).
+export function orphanUses(files, registry) {
   const present = new Set(files.filter(file => EXPECTS['CHK-22'](roleOf(file), file)));
   const findings = [];
   for (const entry of registry.values())
@@ -30,6 +26,16 @@ function chk22Extra(root, files, inputs, base, head) {
           line: 0,
           message: 'the registered use names a file that is not a screen here',
         });
+  return { present, findings };
+}
+
+// CHK-22's findings and tamper from outside the lint: uses in files that do not exist, the
+// registry against the trusted base; and its test evidence, whose failures are input errors.
+function chk22Extra(root, files, inputs, base, head) {
+  const registry = registryFor(root);
+  const errors = testEvidence(root, registry, readLanes(root));
+  if (errors.length) throw new ScanError(errors.join('; '));
+  const { present, findings } = orphanUses(files, registry);
   const isRendered = entry => present.has(entry.file);
   const tamper = registryTamper(inputs.baseRegistry, registry, base, head, isRendered);
   const enforced = baseline => baseline?.checks?.['CHK-22']?.mode === 'fail';

@@ -39,7 +39,7 @@ import { ensureCommit, extractRevision, headSha, showAt } from './server-mutatio
 import { annotate, writeReport } from './server-mutation/output.mjs';
 import { changeReport, signalLine } from './screen-contract/changes.mjs';
 import { readBaselines, readTrustedInputs } from './screen-contract/cli-baselines.mjs';
-import { judge } from './screen-contract/cli-judge.mjs';
+import { judge, orphanUses } from './screen-contract/cli-judge.mjs';
 import {
   BASELINE_PATH,
   SCRIPT_PATH,
@@ -50,7 +50,14 @@ import {
 } from './screen-contract/evaluate.mjs';
 import { emptyChecks, lintTree, linted } from './screen-contract/lint.mjs';
 import { assertNoLinks, readInside } from './screen-contract/paths.mjs';
-import { preAdoptionBase, replaySummary, synthesizeInputs } from './screen-contract/replay.mjs';
+import { registryFor } from './screen-contract/registry.mjs';
+import { candidateJudgment } from './screen-contract/replay-candidate.mjs';
+import {
+  candidateBaseline,
+  preAdoptionBase,
+  replaySummary,
+  synthesizeInputs,
+} from './screen-contract/replay.mjs';
 
 const DEFAULT_REPORT = 'tmp/screen-contract-check/report.json';
 const FLAGS = new Set(['--enforcing', '--advisory', '--replay', '--require-all-enforcing']);
@@ -110,6 +117,34 @@ async function replayBase(repo, report, root, cleanup) {
   return replay;
 }
 
+// The candidate judgment of a replay pair (§4 of the flip plan): the parent tree is scanned with the
+// candidate scanner too (a pre-adoption base already was), and the pair is judged as PR-B's
+// required workflow would judge it.
+async function replayCandidate(repo, report, root, cleanup, { pre, real, inputs, lint, files, results }) {
+  let baseRoot = pre?.root ?? null;
+  if (!baseRoot) {
+    baseRoot = extractRevision(repo, report.base);
+    cleanup.push(baseRoot);
+    assertNoLinks(baseRoot);
+  }
+  const baseFiles = linted(baseRoot);
+  const baseLint = pre?.lint ?? (await lintTree(baseRoot, baseFiles));
+  const headRegistry = registryFor(root);
+  return candidateJudgment({
+    candidate: candidateBaseline(),
+    baseLint,
+    headLint: lint,
+    baseReal: real.base,
+    headReal: real.head,
+    baseExtra: { 'CHK-22': orphanUses(baseFiles, registryFor(baseRoot)).findings },
+    headExtra: { 'CHK-22': orphanUses(files, headRegistry).findings },
+    headRegistry,
+    rebuilt: inputs.rebuilt,
+    tamper: Object.fromEntries(results.map(r => [r.id, r.tamper])),
+    shas: { base: report.base, head: report.head },
+  });
+}
+
 async function scan(args, repo, report) {
   report.base = ensureCommit(repo, args.base, 'base');
   report.head = args.head ? ensureCommit(repo, args.head, 'head') : headSha(repo);
@@ -141,7 +176,7 @@ async function scan(args, repo, report) {
       files,
     });
     report.changes = changeReport(repo, report.base, report.head, root, head, inputs.rebuilt);
-    if (replay)
+    if (replay) {
       report.replay = replaySummary({
         takenAt: pre ? pre.baseline.takenAt : (base?.takenAt ?? null),
         synthesized: replay.synthesized,
@@ -150,6 +185,16 @@ async function scan(args, repo, report) {
         empty,
         versions: toolVersions(),
       });
+      const real = { base: pre ? null : base, head: pre ? null : head };
+      report.replay.candidateJudgment = await replayCandidate(repo, report, root, cleanup, {
+        pre,
+        real,
+        inputs,
+        lint,
+        files,
+        results,
+      });
+    }
     return results;
   } finally {
     for (const dir of cleanup) fs.rmSync(dir, { recursive: true, force: true });
