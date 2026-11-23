@@ -96,7 +96,7 @@ const actions = [
     name: 'updateGreenCardCaseFields',
     action: updateGreenCardCaseFields,
     command: mocks.updateFields,
-    input: { claimId, ...fields },
+    input: { claimId, ...fields, expected: fields },
     outcome: { fields },
     data: fields,
   },

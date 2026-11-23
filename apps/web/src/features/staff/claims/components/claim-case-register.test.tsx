@@ -112,6 +112,7 @@ describe('case details', () => {
       otherVehicleCountryCode: 'DE',
       coverageVerificationStatus: 'requested',
       caseFollowUpAt: occurredAt,
+      expected: fields,
     });
     await act(() => {
       resolveSave({ success: false, code: 'invalid_state' });
