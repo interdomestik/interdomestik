@@ -5,6 +5,9 @@ import { ClaimAuthoritiesPanel } from './ClaimAuthoritiesPanel';
 import { ClaimCaseFieldsPanel } from './ClaimCaseFieldsPanel';
 import { claimId, occurredAt, documents, recovery } from './claim-case-register.test-fixture';
 
+// Typed form flows run near the 5 s default under CI load; each wait stays well inside this.
+vi.setConfig({ testTimeout: 10_000 });
+
 describe('case details', () => {
   const fields = {
     otherVehicleCountryCode: null,
@@ -49,7 +52,7 @@ describe('case details', () => {
     expect(screen.getByLabelText(copy.caseFields.country)).toHaveValue('de');
     expect(action.refresh).not.toHaveBeenCalled();
     submit(copy.caseFields.save);
-    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 5_000 })).toBeVisible();
+    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 2_000 })).toBeVisible();
     expect(action.refresh).toHaveBeenCalledOnce();
   });
 
@@ -64,7 +67,7 @@ describe('case details', () => {
     const view = show(<ClaimCaseFieldsPanel claimId={claimId} canWrite fields={fields} />);
     set(copy.caseFields.insurance, 'Local insurance reference');
     submit(copy.caseFields.save);
-    expect(await screen.findByRole('alert', {}, { timeout: 5_000 })).toHaveTextContent(
+    expect(await screen.findByRole('alert', {}, { timeout: 2_000 })).toHaveTextContent(
       copy.feedback.conflict
     );
     expect(action.refresh).toHaveBeenCalledOnce();
@@ -94,7 +97,7 @@ describe('case details', () => {
     expect(screen.getByLabelText(copy.caseFields.caseFollowUpUtc)).toHaveValue('2026-01-02T12:30');
     set(copy.caseFields.insurance, 'Retried reference');
     submit(copy.caseFields.save);
-    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 5_000 })).toBeVisible();
+    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 2_000 })).toBeVisible();
     expect(action.fields).toHaveBeenNthCalledWith(2, {
       claimId,
       ...winning,
@@ -124,7 +127,7 @@ describe('authorizations', () => {
     expect(action.record).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('checkbox', { name: copy.authorities.attestJurisdiction }));
     submit(copy.authorities.record);
-    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 5_000 })).toBeVisible();
+    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 2_000 })).toBeVisible();
     expect(action.record).toHaveBeenCalledExactlyOnceWith({
       claimId,
       kind: 'power_of_attorney',
@@ -154,7 +157,7 @@ describe('authorizations', () => {
     set(copy.authorities.grantedUtc, '2026-01-02T12:30');
     set(copy.authorities.purpose, 'Sharing purpose');
     submit(copy.authorities.record);
-    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 5_000 })).toBeVisible();
+    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 2_000 })).toBeVisible();
     expect(action.record).toHaveBeenCalledWith(
       expect.objectContaining({ purpose: 'Sharing purpose' })
     );
@@ -167,7 +170,7 @@ describe('authorizations', () => {
     submit(copy.authorities.confirmRevoke);
     expect(action.revoke).toHaveBeenCalledExactlyOnceWith({ claimId, authorityId: recovery.id });
     expect(
-      await within(revoke.closest('li')!).findByText(copy.feedback.saved, {}, { timeout: 5_000 })
+      await within(revoke.closest('li')!).findByText(copy.feedback.saved, {}, { timeout: 2_000 })
     ).toBeVisible();
   });
 });

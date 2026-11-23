@@ -6,6 +6,9 @@ import { ClaimCorrespondenceList } from './ClaimCorrespondenceList';
 import { RegisterReadError } from './case-register-controls';
 import { claimId, documents, recovery, outbound } from './claim-case-register.test-fixture';
 
+// Typed form flows run near the 5 s default under CI load; each wait stays well inside this.
+vi.setConfig({ testTimeout: 10_000 });
+
 describe('correspondence list', () => {
   it('uses the generic label for citations whose names are unavailable', () => {
     show(
@@ -44,7 +47,7 @@ describe('correspondence list', () => {
     expect(screen.getByTestId('staff-correspondence-answered')).toBeVisible();
     fireEvent.change(row.getByLabelText(copy.list.followUpUtc), { target: { value: '' } });
     fireEvent.click(row.getByRole('button', { name: copy.list.saveFollowUp }));
-    expect(await row.findByRole('alert', {}, { timeout: 5_000 })).toHaveTextContent(
+    expect(await row.findByRole('alert', {}, { timeout: 2_000 })).toHaveTextContent(
       copy.feedback.conflict
     );
     expect(action.followUp).toHaveBeenCalledExactlyOnceWith({

@@ -12,6 +12,9 @@ import {
   outbound,
 } from './claim-case-register.test-fixture';
 
+// Typed form flows run near the 5 s default under CI load; each wait stays well inside this.
+vi.setConfig({ testTimeout: 10_000 });
+
 describe('correspondence form', () => {
   it('records an inbound reply and reuses its correlation id after transport failure', async () => {
     action.inbound.mockRejectedValueOnce(new Error('connection interrupted'));
@@ -27,7 +30,7 @@ describe('correspondence form', () => {
     enterContact();
     set(copy.entry.replyTo, outbound.id);
     submit(copy.entry.record);
-    expect(await screen.findByRole('alert', {}, { timeout: 5_000 })).toHaveTextContent(
+    expect(await screen.findByRole('alert', {}, { timeout: 2_000 })).toHaveTextContent(
       copy.feedback.failed
     );
     // The retry must not race the first attempt's pending state.
@@ -38,7 +41,7 @@ describe('correspondence form', () => {
       )
     );
     submit(copy.entry.record);
-    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 5_000 })).toBeVisible();
+    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 2_000 })).toBeVisible();
     const request = action.inbound.mock.calls[0]?.[0];
     expect(request).toEqual({
       claimId,
@@ -76,7 +79,7 @@ describe('correspondence form', () => {
     expect(action.outbound).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('checkbox', { name: copy.entry.attestSharing }));
     submit(copy.entry.record);
-    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 5_000 })).toBeVisible();
+    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 2_000 })).toBeVisible();
     expect(action.outbound).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
         claimId,
@@ -162,7 +165,7 @@ describe('correspondence form', () => {
       }
       expect(save).toBeEnabled();
       submit(copy.entry.record);
-      expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 5_000 })).toBeVisible();
+      expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 2_000 })).toBeVisible();
       expect(action.outbound).toHaveBeenCalledExactlyOnceWith(
         expect.objectContaining({ sharedDocumentIds: choice === 'keep' ? [last.id] : [] })
       );
