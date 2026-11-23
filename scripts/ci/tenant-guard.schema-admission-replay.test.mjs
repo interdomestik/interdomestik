@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { resolverPair } from './tenant-guard/rules-resolver-state.mjs';
 import { kernelAnchorPins, proveSchemaAdmission } from './tenant-guard/rules-schema-admission.mjs';
 import { KERNEL_ANCHOR } from './tenant-guard/manifest.mjs';
 import { kernelWalk } from './tenant-guard/rules-trust.mjs';
@@ -42,7 +43,9 @@ for (const [merge, parent, expected] of cases) {
       { anchor: base, base, candidate },
       kernelAnchorPins(base),
       candidate.graph,
-      candidate.sources
+      candidate.sources,
+      // Each historical parent is its own reviewed resolver baseline (R1); R2 is replayed as is.
+      { baseline: resolverPair(base), successor: null }
     );
     assert.equal(result.ok, expected, result.reason);
   });
