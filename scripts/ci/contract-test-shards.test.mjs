@@ -204,6 +204,21 @@ test('parallel run passes only when every shard passes, without fail-fast', asyn
   }
 });
 
+test('a selected parallel run starts only shards with selected files', async t => {
+  const output = [];
+  const write = text => output.push(text);
+  const broken = fixtureRoot(t, minimalSuite({ [GUARD_TRUST_FILES[1]]: failing }));
+  const coreOnly = files => files.filter(file => file === 'scripts/ci/core-a.test.mjs');
+  assert.equal(await runParallel({ root: broken, write, select: coreOnly }), 0);
+  assert.match(output.join(''), /contract shard core: pass; 1 file\(s\)/u);
+  assert.doesNotMatch(output.join(''), /contract shard (authority|candidate|merge-guard-git)/u);
+  output.length = 0;
+  const guardOnly = files => files.filter(file => file === GUARD_TRUST_FILES[1]);
+  assert.equal(await runParallel({ root: broken, write, select: guardOnly }), 1);
+  assert.match(output.join(''), /contract shard candidate: FAIL/u);
+  assert.doesNotMatch(output.join(''), /contract shard core/u);
+});
+
 test('required audit context runs every contract shard inside Run Audits', () => {
   const workflow = yaml.load(fs.readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8'));
   const step = workflow.jobs.audit.steps.find(item => item?.name === 'Run Audits');
