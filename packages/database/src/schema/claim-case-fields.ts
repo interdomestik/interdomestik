@@ -1,76 +1,12 @@
 import { sql } from 'drizzle-orm';
-import {
-  check,
-  foreignKey,
-  index,
-  pgPolicy,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-  varchar,
-} from 'drizzle-orm/pg-core';
+import { check, foreignKey, index, pgPolicy, pgTable } from 'drizzle-orm/pg-core';
+import { text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core';
 import { user } from './auth';
-import { claimCorrespondence } from './claim-correspondence';
 import { claims } from './claim-core';
 import { tenants } from './tenants';
 
 // Closed tail grammar (tenant guard): fresh tables only, no helpers, no `$type`.
 // Value sets are database checks; the domain parses them at its read sites.
-
-export const claimCorrespondenceDocuments = pgTable(
-  'claim_correspondence_documents',
-  {
-    tenantId: text('tenant_id')
-      .notNull()
-      .references(() => tenants.id),
-    claimId: text('claim_id').notNull(),
-    correspondenceId: uuid('correspondence_id').notNull(),
-    claimDocumentId: text('claim_document_id').notNull(),
-    documentBucket: text('document_bucket').notNull(),
-    documentFilePath: text('document_file_path').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
-  },
-  table => [
-    index('claim_correspondence_documents_entry_idx').on(
-      table.tenantId,
-      table.claimId,
-      table.correspondenceId
-    ),
-    index('claim_correspondence_documents_document_idx').on(
-      table.tenantId,
-      table.claimId,
-      table.claimDocumentId
-    ),
-    uniqueIndex('claim_correspondence_documents_entry_uq').on(
-      table.correspondenceId,
-      table.claimDocumentId
-    ),
-    foreignKey({
-      name: 'claim_correspondence_documents_claim_fk',
-      columns: [table.tenantId, table.claimId],
-      foreignColumns: [claims.tenantId, claims.id],
-    }),
-    foreignKey({
-      name: 'claim_correspondence_documents_correspondence_fk',
-      columns: [table.tenantId, table.claimId, table.correspondenceId],
-      foreignColumns: [
-        claimCorrespondence.tenantId,
-        claimCorrespondence.claimId,
-        claimCorrespondence.id,
-      ],
-    }),
-    pgPolicy('claim_correspondence_documents_tenant_policy', {
-      for: 'all',
-      using: sql`${table.tenantId} = (select current_setting('app.current_tenant_id', true))::text
-        and ${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text`,
-      withCheck: sql`${table.tenantId} = (select current_setting('app.current_tenant_id', true))::text
-        and ${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text
-        and exists (select 1 from "claim" c where c.id = ${table.claimId} and c.tenant_id = ${table.tenantId})`,
-    }),
-  ]
-).enableRLS();
 
 export const claimCaseFields = pgTable(
   'claim_case_fields',

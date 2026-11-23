@@ -52,4 +52,4 @@ export * from './sponsor-roster';
 export * from './membership-plan-versions';
 export * from './membership-sales';
 export * from './claim-correspondence';
-export * from './claim-correspondence-documents';
+export * from './claim-case-fields';
