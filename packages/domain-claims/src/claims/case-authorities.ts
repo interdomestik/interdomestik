@@ -63,7 +63,7 @@ const grantDecisionSchema = recordCaseAuthorityInputSchema.refine(input => {
 export const revokeCaseAuthorityInputSchema = registerClaimInput.extend({
   authorityId: registerUuid,
 });
-export const listCaseAuthoritiesInputSchema = registerClaimInput;
+export { registerClaimInput as listCaseAuthoritiesInputSchema } from './case-register-access';
 
 type RecordAuthority = z.infer<typeof recordCaseAuthorityInputSchema>;
 type RevokeAuthority = z.infer<typeof revokeCaseAuthorityInputSchema>;

@@ -32,8 +32,10 @@ import type { ClaimsSession } from './types';
 
 export { SUMMARY_DATE_LIMIT } from './correspondence-summary';
 
-export const listClaimCorrespondenceInputSchema = registerPageInput;
-export const getClaimCorrespondenceSummaryInputSchema = registerClaimInput;
+export {
+  registerPageInput as listClaimCorrespondenceInputSchema,
+  registerClaimInput as getClaimCorrespondenceSummaryInputSchema,
+} from './case-register-access';
 const correspondenceDirection = z.enum(['outbound', 'inbound']);
 const correspondenceContact = recordInboundCorrespondenceInputSchema.shape;
 const citationNamesInput = registerClaimInput.extend({

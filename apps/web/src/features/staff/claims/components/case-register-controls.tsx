@@ -140,6 +140,12 @@ export function RegisterSelect({
   );
 }
 
+/** A form value exactly as submitted (opaque ids are never trimmed). */
+export function formValue(data: FormData, field: string): string {
+  const value = data.get(field);
+  return typeof value === 'string' ? value : '';
+}
+
 export function formText(data: FormData, field: string): string {
   const value = data.get(field);
   return typeof value === 'string' ? value.trim() : '';

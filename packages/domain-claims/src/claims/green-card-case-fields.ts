@@ -82,7 +82,7 @@ function serializeCaseFields(row: StoredCaseFields | undefined): GreenCardCaseFi
  * stored row only while it still holds the defaults. Otherwise: update only while every field
  * still equals the value the editor saw. Zero rows returned is a conflict.
  */
-async function writeCaseFields({ tx, tenantId, actorId }: LockedRegister, input: CaseFieldsInput) {
+function writeCaseFields({ tx, tenantId, actorId }: LockedRegister, input: CaseFieldsInput) {
   const values = {
     otherVehicleCountryCode: input.otherVehicleCountryCode,
     insuranceProofReference: input.insuranceProofReference,
@@ -159,7 +159,7 @@ export async function updateGreenCardCaseFields(
   }
 }
 
-export const getGreenCardCaseFieldsInputSchema = registerClaimInput;
+export { registerClaimInput as getGreenCardCaseFieldsInputSchema } from './case-register-access';
 
 async function readCaseFields(tx: TenantTransaction, tenantId: string, claimId: string) {
   const [row] = await tx

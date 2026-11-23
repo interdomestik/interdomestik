@@ -6,15 +6,16 @@ import type { CaseAuthorityEntry } from '@interdomestik/domain-claims/claims/cas
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useState, type FormEvent } from 'react';
 import {
+  formText,
+  formTimestamp,
+  formValue,
   RegisterFeedback,
   RegisterInput,
   RegisterSelect,
   RegisterSubmit,
-  formText,
-  formTimestamp,
+  type RegisterDocument,
   useRegisterCorrelation,
   useRegisterMutation,
-  type RegisterDocument,
 } from './case-register-controls';
 
 const kinds = [
@@ -49,7 +50,8 @@ function RecordAuthorityForm({
         const input = {
           claimId,
           kind,
-          evidenceDocumentId: String(data.get('evidenceDocumentId') ?? ''),
+          // The selected document id exactly as listed: never trimmed (opaque id).
+          evidenceDocumentId: formValue(data, 'evidenceDocumentId'),
           version: formText(data, 'version'),
           grantedAt: formTimestamp(data, 'grantedAt'),
           expiresAt: formTimestamp(data, 'expiresAt'),

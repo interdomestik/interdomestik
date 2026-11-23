@@ -11,7 +11,6 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { user } from './auth';
-import { claims } from './claim-core';
 import { tenants } from './tenants';
 
 // Closed tail grammar (tenant guard): fresh tables only, no helpers, no `$type`.

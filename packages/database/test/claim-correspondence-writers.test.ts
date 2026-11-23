@@ -169,7 +169,8 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
         return createBases(tx, claim, document);
       });
       const authorityId = bases.recovery.id;
-      let peerOutcome: 'committed' | 'deadlock' = 'committed';
+      // Assigned inside the peer's callback, so the declared union must not narrow here.
+      let peerOutcome = 'committed' as 'committed' | 'deadlock';
       // The peer holds the authority row; the command locks the claim, then waits on the peer;
       // the peer's direct revocation then asks for the claim lock: a deadlock.
       const result = await whilePeerHolds(
