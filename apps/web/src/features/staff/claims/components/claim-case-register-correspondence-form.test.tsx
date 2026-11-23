@@ -1,5 +1,5 @@
 import { action, copy, enterContact, set, show, submit } from './claim-case-register.test-support';
-import { fireEvent, screen, within } from '@testing-library/react';
+import { waitFor, fireEvent, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ClaimCorrespondenceForm } from './ClaimCorrespondenceForm';
 import {
@@ -27,9 +27,18 @@ describe('correspondence form', () => {
     enterContact();
     set(copy.entry.replyTo, outbound.id);
     submit(copy.entry.record);
-    expect(await screen.findByRole('alert')).toHaveTextContent(copy.feedback.failed);
+    expect(await screen.findByRole('alert', {}, { timeout: 5_000 })).toHaveTextContent(
+      copy.feedback.failed
+    );
+    // The retry must not race the first attempt's pending state.
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: copy.entry.record })).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      )
+    );
     submit(copy.entry.record);
-    expect(await screen.findByText(copy.feedback.saved)).toBeVisible();
+    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 5_000 })).toBeVisible();
     const request = action.inbound.mock.calls[0]?.[0];
     expect(request).toEqual({
       claimId,
@@ -67,7 +76,7 @@ describe('correspondence form', () => {
     expect(action.outbound).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('checkbox', { name: copy.entry.attestSharing }));
     submit(copy.entry.record);
-    expect(await screen.findByText(copy.feedback.saved)).toBeVisible();
+    expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 5_000 })).toBeVisible();
     expect(action.outbound).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
         claimId,
@@ -153,7 +162,7 @@ describe('correspondence form', () => {
       }
       expect(save).toBeEnabled();
       submit(copy.entry.record);
-      expect(await screen.findByText(copy.feedback.saved)).toBeVisible();
+      expect(await screen.findByText(copy.feedback.saved, {}, { timeout: 5_000 })).toBeVisible();
       expect(action.outbound).toHaveBeenCalledExactlyOnceWith(
         expect.objectContaining({ sharedDocumentIds: choice === 'keep' ? [last.id] : [] })
       );

@@ -104,7 +104,7 @@
       "body": "Summary of the contact",
       "replyTo": "Reply to outbound contact",
       "noReply": "No linked outbound contact",
-      "replyOption": "{organisation} • {date} • {summary}",
+      "replyOption": "{organisation} on {date}: {summary}",
       "documents": "Documents sent with this contact",
       "documentLimit": "Select up to {limit} documents.",
       "unlistedDocument": "{name} is no longer listed.",

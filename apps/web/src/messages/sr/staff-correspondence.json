@@ -89,7 +89,7 @@
       "email": "E-pošta",
       "post": "Pošta",
       "phone": "Telefon",
-      "portal": "Portal",
+      "portal": "Veb-portal",
       "other": "Drugi kanal"
     },
     "entry": {
@@ -104,7 +104,7 @@
       "body": "Sažetak kontakta",
       "replyTo": "Odgovor na odlazni kontakt",
       "noReply": "Bez povezanog odlaznog kontakta",
-      "replyOption": "{organisation} • {date} • {summary}",
+      "replyOption": "{organisation}, dana {date}: {summary}",
       "documents": "Dokumenti poslati uz ovaj kontakt",
       "documentLimit": "Izaberite najviše {limit} dokumenata.",
       "unlistedDocument": "{name} više nije na listi.",

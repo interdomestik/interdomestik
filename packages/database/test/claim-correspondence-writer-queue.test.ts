@@ -75,7 +75,8 @@ async function proveQueue(t: TestContext, connections: Connection, domain: Domai
         claimIds
       );
       assert.deepEqual(
-        Object.entries(progress).map(([id, item]) => [id, item.nextActor]),
+        // Read by claim id: an all-digit id is an integer-like key that objects order first.
+        claimIds.map(id => [id, progress[id]?.nextActor]),
         [
           [assigned.id, 'member'],
           [unassigned.id, 'untracked'],

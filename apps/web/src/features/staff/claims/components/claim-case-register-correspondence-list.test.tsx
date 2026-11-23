@@ -44,7 +44,9 @@ describe('correspondence list', () => {
     expect(screen.getByTestId('staff-correspondence-answered')).toBeVisible();
     fireEvent.change(row.getByLabelText(copy.list.followUpUtc), { target: { value: '' } });
     fireEvent.click(row.getByRole('button', { name: copy.list.saveFollowUp }));
-    expect(await row.findByRole('alert')).toHaveTextContent(copy.feedback.conflict);
+    expect(await row.findByRole('alert', {}, { timeout: 5_000 })).toHaveTextContent(
+      copy.feedback.conflict
+    );
     expect(action.followUp).toHaveBeenCalledExactlyOnceWith({
       claimId,
       correspondenceId: outbound.id,

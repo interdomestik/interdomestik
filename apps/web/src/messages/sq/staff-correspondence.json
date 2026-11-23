@@ -86,10 +86,10 @@
       "other": "Palë tjetër"
     },
     "channel": {
-      "email": "Email",
+      "email": "Postë elektronike",
       "post": "Postë",
       "phone": "Telefon",
-      "portal": "Portal",
+      "portal": "Portali",
       "other": "Kanal tjetër"
     },
     "entry": {
@@ -104,7 +104,7 @@
       "body": "Përmbledhja e kontaktit",
       "replyTo": "Përgjigje ndaj kontaktit dalës",
       "noReply": "Pa kontakt dalës të lidhur",
-      "replyOption": "{organisation} • {date} • {summary}",
+      "replyOption": "{organisation}, më {date}: {summary}",
       "documents": "Dokumentet e dërguara me këtë kontakt",
       "documentLimit": "Zgjidhni deri në {limit} dokumente.",
       "unlistedDocument": "{name} nuk shfaqet më në listë.",

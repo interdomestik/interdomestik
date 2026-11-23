@@ -104,7 +104,7 @@
       "body": "Резиме на контактот",
       "replyTo": "Одговор на излезен контакт",
       "noReply": "Без поврзан излезен контакт",
-      "replyOption": "{organisation} • {date} • {summary}",
+      "replyOption": "{organisation}, на {date}: {summary}",
       "documents": "Документи испратени со овој контакт",
       "documentLimit": "Изберете најмногу {limit} документи.",
       "unlistedDocument": "{name} веќе не е на списокот.",
