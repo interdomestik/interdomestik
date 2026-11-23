@@ -12543,6 +12543,10 @@
         }
       },
       "checkConstraints": {
+        "membership_sale_claims_operation_key_check": {
+          "name": "membership_sale_claims_operation_key_check",
+          "value": "char_length(\"membership_sale_claims\".\"operation_key\") <= 255"
+        },
         "membership_sale_claims_hash_check": {
           "name": "membership_sale_claims_hash_check",
           "value": "\"membership_sale_claims\".\"request_hash\" ~ '^[0-9a-f]{64}$'"
@@ -12997,6 +13001,10 @@
         "membership_sales_positive_check": {
           "name": "membership_sales_positive_check",
           "value": "\"membership_sales\".\"price_minor\" > 0 and \"membership_sales\".\"amount_mkd_minor\" > 0"
+        },
+        "membership_sales_operation_key_check": {
+          "name": "membership_sales_operation_key_check",
+          "value": "char_length(\"membership_sales\".\"operation_key\") <= 255"
         },
         "membership_sales_request_hash_check": {
           "name": "membership_sales_request_hash_check",

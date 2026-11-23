@@ -70,6 +70,10 @@ export const membershipSaleClaims = pgTable(
       table.operationKey,
       table.requestHash
     ),
+    check(
+      'membership_sale_claims_operation_key_check',
+      sql`char_length(${table.operationKey}) <= 255`
+    ),
     check('membership_sale_claims_hash_check', sql`${table.requestHash} ~ '^[0-9a-f]{64}$'`),
     sponsorTenantPolicy('membership_sale_claims_tenant_policy', table.tenantId),
   ]
@@ -194,6 +198,7 @@ export const membershipSales = pgTable(
       'membership_sales_positive_check',
       sql`${table.priceMinor} > 0 and ${table.amountMkdMinor} > 0`
     ),
+    check('membership_sales_operation_key_check', sql`char_length(${table.operationKey}) <= 255`),
     check('membership_sales_request_hash_check', sql`${table.requestHash} ~ '^[0-9a-f]{64}$'`),
     check(
       'membership_sales_plan_tier_check',

@@ -117,6 +117,11 @@
       "migration": "0102_wp07_membership_sales"
     },
     {
+      "key": "function [\"public\",\"membership_sale_claim_assign_id_fn()\"]",
+      "value": "a2fa15bbcd3116fba42a6a22850fe672",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
       "key": "function [\"public\",\"membership_sale_post_charge_fn()\"]",
       "value": "46997334c330b97977ff8c29c5e3ab84",
       "migration": "0102_wp07_membership_sales"
@@ -1474,6 +1479,11 @@
     {
       "key": "trigger [\"public\",\"membership_sale_claims\",\"membership_sale_claims_append_only\"]",
       "value": "CREATE TRIGGER membership_sale_claims_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.membership_sale_claims FOR EACH STATEMENT EXECUTE FUNCTION membership_port_reject_mutation_fn()",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_sale_claims\",\"membership_sale_claims_assign_id\"]",
+      "value": "CREATE TRIGGER membership_sale_claims_assign_id BEFORE INSERT ON public.membership_sale_claims FOR EACH ROW EXECUTE FUNCTION membership_sale_claim_assign_id_fn()",
       "migration": "0102_wp07_membership_sales"
     },
     {

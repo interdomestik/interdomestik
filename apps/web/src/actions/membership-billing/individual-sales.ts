@@ -8,6 +8,7 @@ import {
   publishPlanVersionInputSchema,
   recordSale as sell,
   recordSaleInputSchema,
+  validateSaleBuyer,
   withdrawPlanVersion as withdraw,
   withdrawPlanVersionInputSchema,
 } from '@interdomestik/domain-membership-billing/payment-port';
@@ -61,6 +62,8 @@ export const recordSale = defineAction({
   input: recordSaleInputSchema,
   subject: { type: 'none' },
   async handler(input, { authority, session }) {
+    const buyer = validateSaleBuyer(input.buyer);
+    if (!buyer.ok) return actionFailure('VALIDATION_ERROR', undefined, { issues: buyer.issues });
     const result = await sell(authority, input, session.user);
     return result.ok ? result.sale : saleFailure(result.code);
   },

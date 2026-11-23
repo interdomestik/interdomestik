@@ -3,6 +3,7 @@ import {
   paymentPortTestGuardRole,
   restricted,
   runSequentially,
+  runtimeRole,
 } from '../../../../database/test/exchange-rates.fixture';
 import { expect, it } from 'vitest';
 
@@ -50,6 +51,22 @@ export function registerInvariantCases(fixture: () => Promise<SaleFixture>) {
     };
     expect(await read(f.tenantId)).toEqual(registered);
     expect(await read(f.otherTenantId)).toEqual(registered);
+
+    const privileges = await restricted(
+      f.admin,
+      f.tenantId,
+      tx => tx`
+      select current_user as role,
+        has_table_privilege(current_user, 'membership_sale_channels', 'SELECT') as can_select,
+        has_table_privilege(current_user, 'membership_sale_channels',
+          'INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER') as can_write_table,
+        has_any_column_privilege(current_user, 'membership_sale_channels',
+          'INSERT, UPDATE, REFERENCES') as can_write_columns
+    `
+    );
+    expect([...privileges]).toStrictEqual([
+      { role: runtimeRole, can_select: true, can_write_table: false, can_write_columns: false },
+    ]);
 
     const writeLookup = [
       "insert into membership_sale_kinds (kind) values ('new')",
@@ -112,6 +129,47 @@ export function registerInvariantCases(fixture: () => Promise<SaleFixture>) {
         ).rejects.toMatchObject({ code: '42501' });
       }
     );
+  });
+
+  it('assigns a new claim ID when the runtime supplies an ID held by another tenant', async () => {
+    const foreign = await fixture();
+    const foreignInput = accepted(await foreign.sellable(), { memberUserId: foreign.member.id });
+    success(await foreign.sale(foreignInput));
+    const [foreignClaim] = await restricted(
+      foreign.admin,
+      foreign.tenantId,
+      tx => tx<{ id: string }[]>`
+      select id from membership_sale_claims where operation_key = ${foreignInput.operationKey}
+    `
+    );
+    expect(foreignClaim).toStrictEqual({ id: expect.any(String) });
+
+    const f = await fixture();
+    const input = accepted(await f.sellable(), { memberUserId: f.member.id });
+    const row = await directSaleRow(f, input);
+    const claim = await restricted(f.admin, f.tenantId, async tx => {
+      const visible = await tx`select id from membership_sale_claims where id = ${foreignClaim.id}`;
+      expect([...visible]).toStrictEqual([]);
+      const [inserted] = await tx<{ id: string; role: string }[]>`
+        insert into membership_sale_claims (id, tenant_id, operation_key, request_hash, claimed_at)
+        values (${foreignClaim.id}, ${row.tenant_id}, ${row.operation_key}, ${row.request_hash}, clock_timestamp())
+        returning id, current_user as role
+      `;
+      await tx`insert into membership_sales ${tx(row)}`;
+      return inserted;
+    });
+
+    expect(claim).toStrictEqual({ id: expect.any(String), role: runtimeRole });
+    expect(claim.id).not.toBe(foreignClaim.id);
+    const stored = await restricted(
+      f.admin,
+      f.tenantId,
+      tx => tx`
+      select id from membership_sale_claims where operation_key = ${input.operationKey}
+    `
+    );
+    expect([...stored]).toStrictEqual([{ id: claim.id }]);
+    expect(await f.counts(input.operationKey)).toStrictEqual(completed);
   });
 
   it('posts one immutable matching charge, including on an identical sale retry', async () => {

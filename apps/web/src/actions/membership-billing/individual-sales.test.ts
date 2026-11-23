@@ -197,3 +197,52 @@ it.each(['before\u0000after', '\uD800'])(
     });
   }
 );
+
+describe('recordSale input validation', () => {
+  const authorized = authorizedSession(admin);
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mocks.authorize.mockResolvedValue(authorized);
+  });
+
+  it.each([
+    { buyer: { leadId: 'lead-1', memberUserId: 'member-1' }, issue: 'invalid_union' },
+    { buyer: {}, issue: 'invalid_union' },
+    { buyer: { leadId: 'lead-1', memberUserId: undefined }, issue: 'unrecognized_keys' },
+    { buyer: { leadId: undefined, memberUserId: 'member-1' }, issue: 'unrecognized_keys' },
+  ])('preserves the basis response for buyer $buyer', async ({ buyer, issue }) => {
+    expect(await recordSale({ ...saleInput, buyer })).toStrictEqual({
+      success: false,
+      code: 'VALIDATION_ERROR',
+      error: 'Invalid input',
+      issues: { buyer: issue },
+    });
+    expect(mocks.sell).not.toHaveBeenCalled();
+    expect(mocks.write).not.toHaveBeenCalled();
+  });
+
+  it('passes a 255-character operation key to the port', async () => {
+    const input = { ...saleInput, operationKey: '📄'.repeat(255) };
+    const sale = { id: 'synthetic-sale' };
+    mocks.sell.mockResolvedValue({ ok: true, sale });
+
+    expect(await recordSale(input)).toStrictEqual({ success: true, data: sale });
+    expect(mocks.sell).toHaveBeenCalledExactlyOnceWith(
+      authorized.authority,
+      input,
+      authorized.session.user
+    );
+  });
+
+  it('refuses a 256-character operation key at the action entry', async () => {
+    expect(await recordSale({ ...saleInput, operationKey: '📄'.repeat(256) })).toStrictEqual({
+      success: false,
+      code: 'VALIDATION_ERROR',
+      error: 'Invalid input',
+      issues: { operationKey: 'too_big' },
+    });
+    expect(mocks.sell).not.toHaveBeenCalled();
+    expect(mocks.write).not.toHaveBeenCalled();
+  });
+});

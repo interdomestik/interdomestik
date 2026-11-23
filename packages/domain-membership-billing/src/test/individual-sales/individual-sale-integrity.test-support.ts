@@ -180,23 +180,60 @@ export function registerSaleIntegrityCases(fixture: () => Promise<SaleFixture>) 
     expect(claim.request_hash).toEqual(canonicalHash(input));
   });
 
-  it.each(['A'.repeat(64), 'g'.repeat(64)])('refuses a malformed claim hash %s', async hash => {
+  it.each(['A'.repeat(64), 'g'.repeat(64), 'a'.repeat(63), 'a'.repeat(65)])(
+    'refuses a malformed claim hash %s',
+    async hash => {
+      const f = await fixture();
+      const key = randomUUID();
+      await expect(
+        restricted(
+          f.admin,
+          f.tenantId,
+          tx => tx`
+        insert into membership_sale_claims (tenant_id, operation_key, request_hash, claimed_at)
+        values (${f.tenantId}, ${key}, ${hash}, clock_timestamp())
+      `
+        )
+      ).rejects.toMatchObject({
+        code: '23514',
+        constraint_name: 'membership_sale_claims_hash_check',
+      });
+      expect(await f.counts(key)).toEqual(absent);
+    }
+  );
+
+  it('enforces the operation-key limit in the restricted command and in both tables', async () => {
     const f = await fixture();
-    const key = randomUUID();
+    const input = {
+      ...accepted(await f.sellable(), { memberUserId: f.member.id }),
+      operationKey: '📄'.repeat(255),
+    };
+    const operationKey = `${input.operationKey}📄`;
+    const row = await directSaleRow(f, { ...input, operationKey });
+    success(await f.sale(input));
+    expect(await f.counts(input.operationKey)).toStrictEqual(completed);
+    expect(await f.sale({ ...input, operationKey })).toStrictEqual(refused('invalid'));
+
     await expect(
       restricted(
         f.admin,
         f.tenantId,
         tx => tx`
         insert into membership_sale_claims (tenant_id, operation_key, request_hash, claimed_at)
-        values (${f.tenantId}, ${key}, ${hash}, clock_timestamp())
+        values (${row.tenant_id}, ${row.operation_key}, ${row.request_hash}, clock_timestamp())
       `
       )
     ).rejects.toMatchObject({
       code: '23514',
-      constraint_name: 'membership_sale_claims_hash_check',
+      constraint_name: 'membership_sale_claims_operation_key_check',
     });
-    expect(await f.counts(key)).toEqual(absent);
+    await expect(
+      restricted(f.admin, f.tenantId, tx => tx`insert into membership_sales ${tx(row)}`)
+    ).rejects.toMatchObject({
+      code: '23514',
+      constraint_name: 'membership_sales_operation_key_check',
+    });
+    expect(await f.counts(operationKey)).toStrictEqual(absent);
   });
 
   it('enforces the sale hash and plan tier domains for other sale kinds', async () => {

@@ -67,6 +67,17 @@ describe('individual payment port input', () => {
     expect(recordSaleInputSchema.parse({ ...sale, termsVersion }).termsVersion).toBe(termsVersion);
   });
 
+  it('accepts a 255-character operation key at the four-byte UTF-8 boundary', () => {
+    const operationKey = '📄'.repeat(255);
+    expect(recordSaleInputSchema.parse({ ...sale, operationKey }).operationKey).toBe(operationKey);
+    expect(
+      recordSaleInputSchema.safeParse({ ...sale, operationKey: `${operationKey}📄` })
+    ).toMatchObject({
+      success: false,
+      error: { issues: [{ code: 'too_big', maximum: 255, path: ['operationKey'] }] },
+    });
+  });
+
   it.each([0n, -100n, 9_223_372_036_854_775_808n, 100, '100'])(
     'refuses invalid bigint amount %s',
     amountMkdMinor => {
@@ -92,7 +103,7 @@ describe('individual payment port input', () => {
   });
 });
 
-describe('sale command buyer validation', () => {
+describe('sale command input validation', () => {
   const actor = { id: 'seller-1', tenantId: 'tenant-1' };
 
   beforeEach(() => {
@@ -128,6 +139,30 @@ describe('sale command buyer validation', () => {
     await expect(recordSale(authority, input, actor)).resolves.toEqual(invalid);
     expect(withTenantAuthority).not.toHaveBeenCalled();
     await expect(recordSaleInTx(tx, authority, input, actor)).resolves.toEqual(invalid);
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('opens a tenant transaction for a 255-character operation key', async () => {
+    const authority = mintTestTenantAuthority(actor.tenantId);
+    const failure = new Error('synthetic transaction failure');
+    vi.mocked(withTenantAuthority).mockRejectedValueOnce(failure);
+
+    await expect(
+      recordSale(authority, { ...sale, operationKey: '📄'.repeat(255) }, actor)
+    ).rejects.toBe(failure);
+    expect(withTenantAuthority).toHaveBeenCalledExactlyOnceWith(authority, expect.any(Function));
+  });
+
+  it('refuses a 256-character operation key before any SQL in both entry points', async () => {
+    const authority = mintTestTenantAuthority(actor.tenantId);
+    const execute = vi.fn();
+    const tx = { execute } as unknown as TenantTransaction;
+    const input = { ...sale, operationKey: '📄'.repeat(256) };
+    const invalid = { ok: false, code: 'invalid' };
+
+    await expect(recordSale(authority, input, actor)).resolves.toStrictEqual(invalid);
+    expect(withTenantAuthority).not.toHaveBeenCalled();
+    await expect(recordSaleInTx(tx, authority, input, actor)).resolves.toStrictEqual(invalid);
     expect(execute).not.toHaveBeenCalled();
   });
 });

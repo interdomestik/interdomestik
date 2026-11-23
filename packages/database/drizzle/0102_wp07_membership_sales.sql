@@ -49,6 +49,7 @@ CREATE TABLE "membership_sale_claims" (
 	"claimed_at" timestamp with time zone NOT NULL,
 	CONSTRAINT "membership_sale_claims_operation_uq" UNIQUE("tenant_id","operation_key"),
 	CONSTRAINT "membership_sale_claims_hash_uq" UNIQUE("tenant_id","operation_key","request_hash"),
+	CONSTRAINT "membership_sale_claims_operation_key_check" CHECK (char_length(operation_key) <= 255),
 	CONSTRAINT "membership_sale_claims_hash_check" CHECK (request_hash ~ '^[0-9a-f]{64}$')
 );
 --> statement-breakpoint
@@ -96,6 +97,7 @@ CREATE TABLE "membership_sales" (
 	"branch_id" text,
 	CONSTRAINT "membership_sales_charge_uq" UNIQUE("tenant_id","id","amount_mkd_minor"),
 	CONSTRAINT "membership_sales_operation_uq" UNIQUE("tenant_id","operation_key"),
+	CONSTRAINT "membership_sales_operation_key_check" CHECK (char_length(operation_key) <= 255),
 	CONSTRAINT "membership_sales_conversion_check" CHECK (
       "membership_sales"."amount_mkd_minor" = round("membership_sales"."price_minor"::numeric * "membership_sales"."rate" * 0.01) * 100),
 	CONSTRAINT "membership_sales_positive_check" CHECK ("membership_sales"."price_minor" > 0 and "membership_sales"."amount_mkd_minor" > 0),
@@ -234,6 +236,22 @@ FOR EACH STATEMENT EXECUTE FUNCTION public.membership_port_reject_mutation_fn();
 CREATE TRIGGER membership_sale_claims_append_only
 BEFORE UPDATE OR DELETE OR TRUNCATE ON public.membership_sale_claims
 FOR EACH STATEMENT EXECUTE FUNCTION public.membership_port_reject_mutation_fn();
+--> statement-breakpoint
+CREATE FUNCTION public.membership_sale_claim_assign_id_fn()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  NEW.id := gen_random_uuid();
+  RETURN NEW;
+END;
+$$;
+--> statement-breakpoint
+CREATE TRIGGER membership_sale_claims_assign_id
+BEFORE INSERT ON public.membership_sale_claims
+FOR EACH ROW EXECUTE FUNCTION public.membership_sale_claim_assign_id_fn();
 --> statement-breakpoint
 CREATE TRIGGER membership_ledger_entries_append_only
 BEFORE UPDATE OR DELETE OR TRUNCATE ON public.membership_ledger_entries

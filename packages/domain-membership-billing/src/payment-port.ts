@@ -9,5 +9,6 @@ export {
   getSaleOfferInputSchema,
   publishPlanVersionInputSchema,
   recordSaleInputSchema,
+  validateSaleBuyer,
   withdrawPlanVersionInputSchema,
 } from './port/sale-input';
