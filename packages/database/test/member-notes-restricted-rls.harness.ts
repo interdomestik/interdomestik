@@ -66,7 +66,7 @@ async function buildProof(session: S8RestrictedSession, seed: ReturnType<typeof 
     };
   };
   const u = seed.users;
-  const allNoteIds = [...Object.values(seed.notes)];
+  const allNoteIds = Object.values(seed.notes);
   return {
     ...modules,
     adminDb,

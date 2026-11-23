@@ -147,7 +147,7 @@ export function seed() {
   );
 }
 
-export const notesSnapshot = () => JSON.parse(JSON.stringify(store.rows.memberNotes));
+export const notesSnapshot = () => structuredClone(store.rows.memberNotes);
 export const DENIED_ROLES = [
   'member',
   'user',
