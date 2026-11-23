@@ -12,6 +12,8 @@ import {
   outboundInput,
   past,
   restricted,
+  insertGrant,
+  grantInput,
   revoke,
   withRegisterDb,
   type Connection,
@@ -79,7 +81,8 @@ async function proveAppendOnly(t: TestContext, { admin, runtime }: Connection) {
           'claim_authorities',
           'id',
           bases.recovery.id,
-          { version: 'changed' },
+          // An otherwise valid first revocation, so only the immutable-column check can refuse it.
+          { version: 'changed', revoked_by_user_id: bases.recovery.recorded_by_staff_id },
           conflict,
           invalidEntry,
         ],
@@ -106,6 +109,26 @@ async function proveAppendOnly(t: TestContext, { admin, runtime }: Connection) {
         );
       }
 
+      const [untouched] = await restricted(
+        runtime,
+        tx => tx`select version, revoked_at, revoked_by_user_id
+      from claim_authorities where id = ${bases.recovery.id}`
+      );
+      assert.deepEqual(untouched, { version: 'v1', revoked_at: null, revoked_by_user_id: null });
+      // An insert never carries its own revocation: the revoke guard stamps it with the server clock.
+      for (const patch of [
+        { revoked_at: past, revoked_by_user_id: claim.user },
+        { revoked_at: null, revoked_by_user_id: claim.user },
+        { revoked_at: past, revoked_by_user_id: null },
+      ]) {
+        await assert.rejects(
+          restricted(runtime, tx =>
+            insertGrant(tx, { ...grantInput(claim, evidence, 'signed_assignment'), ...patch })
+          ),
+          invalidEntry
+        );
+      }
+      // Positive control: the clean revocation passes.
       await restricted(runtime, tx => revoke(tx, bases.recovery));
       const lateReply = await restricted(runtime, tx =>
         insertEntry(tx, {

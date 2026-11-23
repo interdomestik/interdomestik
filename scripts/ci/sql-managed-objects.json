@@ -63,7 +63,7 @@
     },
     {
       "key": "function [\"public\",\"claim_authorities_insert_guard_fn()\"]",
-      "value": "f35f62b70c3ba9abde47956e3b388d0b",
+      "value": "c995ceea45e607f92cd45929126e1b44",
       "migration": "0102_wp12_claim_correspondence"
     },
     {

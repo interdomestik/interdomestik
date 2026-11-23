@@ -305,6 +305,10 @@ BEGIN
   IF NEW.granted_at > clock_timestamp() THEN
     RAISE EXCEPTION USING ERRCODE = 'P1202', MESSAGE = 'An authority grant cannot be future-dated';
   END IF;
+  -- Revocation is recorded only by the revoke guard with the server clock, never on insert.
+  IF NEW.revoked_at IS NOT NULL OR NEW.revoked_by_user_id IS NOT NULL THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1204', MESSAGE = 'A new claim authority cannot carry a revocation';
+  END IF;
   RETURN NEW;
 END;
 $$;
