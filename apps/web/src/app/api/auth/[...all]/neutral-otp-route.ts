@@ -109,12 +109,14 @@ export async function handleNeutralOtpPost(args: {
   if (kind === 'send' || !response.ok) return response;
   const guarded = await protectNeutralOtpSession({
     auth,
-    admittedAccountId: account ? account.id : null,
+    admittedAccountId: account?.id ?? null,
     verifyData: await parseVerifyData(response),
     responseHeaders: response.headers,
     resolveDefaultTenantId: () => tenantId,
     log: contentFreeSessionLog,
   });
-  if (guarded.decision === 'invalidOtp') return refuseNeutralOtpAccount(kind);
+  if (guarded.decision === 'invalidOtp') {
+    return refuseNeutralOtpAccount(kind);
+  }
   return guarded.decision === 'continue' ? response : accountStop(guarded.headers);
 }

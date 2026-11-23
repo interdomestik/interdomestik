@@ -41,6 +41,14 @@ async function revokeNewSession(args: {
   }
 }
 
+// A session for another account than the one the door admitted is an invalid code, not an account stop.
+function stopDecision(accountMismatch: boolean): 'invalidOtp' | 'accountStop' {
+  if (accountMismatch) {
+    return 'invalidOtp';
+  }
+  return 'accountStop';
+}
+
 export async function protectNeutralOtpSession(args: {
   auth: NeutralOtpAuth;
   admittedAccountId: string | null;
@@ -63,7 +71,7 @@ export async function protectNeutralOtpSession(args: {
   if (responseAccountMismatch || verifyData?.user?.tenantId !== resolveDefaultTenantId()) {
     await revokeNewSession({ auth, token, headers, log });
     return {
-      decision: responseAccountMismatch ? 'invalidOtp' : 'accountStop',
+      decision: stopDecision(responseAccountMismatch),
       headers: accountStop(responseHeaders).headers,
     };
   }
@@ -95,7 +103,7 @@ export async function protectNeutralOtpSession(args: {
     sessionUserId !== admittedAccountId;
   await revokeNewSession({ auth, token, headers, log });
   return {
-    decision: sessionAccountMismatch ? 'invalidOtp' : 'accountStop',
+    decision: stopDecision(sessionAccountMismatch),
     headers: accountStop(responseHeaders).headers,
   };
 }

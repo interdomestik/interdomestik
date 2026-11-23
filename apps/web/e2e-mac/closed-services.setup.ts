@@ -27,10 +27,14 @@ export async function assertClosedServices() {
   });
 }
 
+function byName(left: string, right: string): number {
+  return left.localeCompare(right);
+}
+
 export default async function closeServicesForMacRun() {
   const previous = await withTenantAuthority(authority, async tx => {
     const rows = await tx.select().from(tenantSettings).where(switchScope).for('update');
-    expect(rows.map(row => row.key).sort()).toEqual([...PILOT_SWITCH_KEYS].sort());
+    expect(rows.map(row => row.key).sort(byName)).toEqual([...PILOT_SWITCH_KEYS].sort(byName));
     for (const key of PILOT_SWITCH_KEYS) {
       const current = await readPilotSwitch(tx, tenantId, key);
       expect(current, `seeded ${key}`).toMatchObject({ state: 'open', wellFormed: true });
