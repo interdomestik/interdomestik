@@ -138,7 +138,9 @@ export function registerRaceCases(fixture: () => Promise<SaleFixture>) {
             refused('invalid')
           );
           success(await recordSaleInTx(tx, f.owner.authority, second, f.owner));
-          expect(nested).not.toHaveBeenCalled();
+          // The sale savepoint is explicit. The only nested transaction is the claim insert's
+          // own savepoint inside it, one per claim attempt (B2 typed refusal).
+          expect(nested).toHaveBeenCalledTimes(3);
         } finally {
           nested.mockRestore();
         }
