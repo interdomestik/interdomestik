@@ -1,3 +1,4 @@
+import { PgDialect } from 'drizzle-orm/pg-core';
 import {
   actorId,
   admitted,
@@ -22,7 +23,6 @@ const document = {
   id: 'document-1',
   bucket: 'claim-evidence',
   filePath: 'pii/tenants/tenant-1/claims/claim-1/document-1.pdf',
-  citationRef: 'digest-from-row',
 };
 const invalid = { ok: false, code: 'invalid' };
 const conflict = { ok: false, code: 'conflict' };
@@ -65,7 +65,6 @@ describe('case authority commands', () => {
       recordedByStaffId: actorId,
       jurisdictionAttestedByUserId: actorId,
       jurisdictionAttestedAt: new Date(now[0].now),
-      evidenceCitationRef: document.citationRef,
       evidenceFilePath: document.filePath,
       evidenceBucket: document.bucket,
       scope: 'representation',
@@ -147,8 +146,54 @@ describe('case fields and guard failures', () => {
       code: 'forbidden',
     });
     expect(db.statements).toHaveLength(1);
+    // Started from the defaults: an upsert that may only replace a row still at the defaults.
     expect(await updateGreenCardCaseFields(session, authority, caseFieldsInput)).toEqual(conflict);
-    expect(queryWhere(2).params).toEqual([tenantId, claimId, 'not_checked']);
+    expect(db.statements[2]?.kind).toBe('insert');
+    const defaultsOnly = new PgDialect().sqlToQuery(db.statements[2]!.conflictWhere!).sql;
+    expect(defaultsOnly).toContain(
+      '"claim_case_fields"."coverage_verification_status" = \'not_checked\''
+    );
+    expect(defaultsOnly).toContain('"claim_case_fields"."case_follow_up_at" is null');
+  });
+
+  it('updates case fields only while every field still equals the edited values', async () => {
+    const session = caller();
+    const expected = {
+      ...caseFieldsInput.expected,
+      insuranceProofReference: 'proof-00',
+      caseFollowUpAt: '2026-11-21T09:00:00.000Z',
+    };
+    const { expected: _edited, ...savedFields } = caseFieldsInput;
+    const saved = {
+      ...savedFields,
+      tenantId,
+      caseFollowUpAt: null,
+      updatedByStaffId: actorId,
+      updatedAt: new Date(),
+    };
+    db.results = [admitted, [], admitted, [saved]];
+    const input = { ...caseFieldsInput, expected };
+    expect(await updateGreenCardCaseFields(session, authority, input)).toEqual(conflict);
+    expect(db.statements[1]?.kind).toBe('update');
+    expect(queryWhere(1).params).toEqual([
+      tenantId,
+      claimId,
+      null,
+      'proof-00',
+      null,
+      'not_checked',
+      '2026-11-21T09:00:00.000Z',
+    ]);
+    expect(await updateGreenCardCaseFields(session, authority, input)).toEqual({
+      ok: true,
+      fields: {
+        otherVehicleCountryCode: 'DE',
+        insuranceProofReference: 'proof-01',
+        outsideHandlingParty: 'Example bureau',
+        coverageVerificationStatus: 'requested',
+        caseFollowUpAt: null,
+      },
+    });
   });
 
   it.each([

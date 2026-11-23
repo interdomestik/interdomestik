@@ -132,7 +132,6 @@ async function insertAuthority({ tx, tenantId, actorId }: LockedRegister, input:
       correlationId: input.correlationId,
       evidenceBucket: evidence.bucket,
       evidenceFilePath: evidence.filePath,
-      evidenceCitationRef: evidence.citationRef,
       jurisdictionAttestedByUserId: attests ? actorId : null,
       jurisdictionAttestedAt: attests ? decisionAt : null,
       recordedByStaffId: actorId,

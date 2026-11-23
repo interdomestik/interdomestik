@@ -43,7 +43,12 @@ vi.mock('@interdomestik/database', () => ({
     id: 'claim.id',
     tenantId: 'claim.tenant_id',
     staffId: 'claim.staff_id',
-    caseFollowUpAt: 'claim.case_follow_up_at',
+    branchId: 'claim.branch_id',
+  },
+  claimCaseFields: {
+    tenantId: 'case_fields.tenant_id',
+    claimId: 'case_fields.claim_id',
+    caseFollowUpAt: 'case_fields.case_follow_up_at',
   },
   and: mocks.and,
   eq: mocks.eq,
@@ -58,11 +63,17 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
+vi.mock('@interdomestik/database/tenant-authority', async importOriginal => {
+  const actual = await importOriginal<typeof import('@interdomestik/database/tenant-authority')>();
+  return { ...actual, readTenantAuthority: vi.fn(actual.readTenantAuthority) };
+});
+
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: (tenantId: string, column: string, condition: unknown) =>
     mocks.and(mocks.eq(column, tenantId), condition),
 }));
 
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import {
   deriveAssignedClaimAttention,
   getAssignedStaffClaimAttention,
@@ -73,6 +84,9 @@ const authority = mintTestTenantAuthority('tenant-1');
 const staffSession = {
   user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' },
 } as ClaimsSession;
+// The register admission needs the session's own principal on the authority.
+const registerAuthority = mintTestTenantAuthority('tenant-1', { userId: 'staff-1', role: 'staff' });
+const descriptorOf = vi.mocked(readTenantAuthority).getMockImplementation()!;
 
 describe('deriveAssignedClaimAttention', () => {
   it('separates member wait from staff review and flags only a passed saved request date', () => {
@@ -220,7 +234,7 @@ describe('getAssignedStaffClaimAttention', () => {
       },
     ]);
     await expect(
-      getAssignedStaffClaimAttention(staffSession, authority, ['claim-1'], now)
+      getAssignedStaffClaimAttention(staffSession, registerAuthority, ['claim-1'], now)
     ).resolves.toEqual({
       'claim-1': {
         nextActor: 'untracked',
@@ -228,6 +242,10 @@ describe('getAssignedStaffClaimAttention', () => {
         overdueFollowUpSource: 'case_register',
       },
     });
+    expect(mocks.query.leftJoin).toHaveBeenCalledWith(
+      expect.objectContaining({ caseFollowUpAt: 'case_fields.case_follow_up_at' }),
+      expect.anything()
+    );
     expect(mocks.query.where).toHaveBeenCalledWith(
       expect.objectContaining({
         op: 'and',
@@ -236,5 +254,43 @@ describe('getAssignedStaffClaimAttention', () => {
         ]),
       })
     );
+  });
+
+  it('reads no register deadline without the register admission', async () => {
+    mocks.query.where.mockResolvedValueOnce([]);
+    // The authority carries no principal of this session: only member requests are read.
+    await expect(
+      getAssignedStaffClaimAttention(staffSession, authority, ['claim-1'], now)
+    ).resolves.toEqual({ 'claim-1': { nextActor: 'untracked', overdueFollowUpDueAt: null } });
+    expect(mocks.query.where).toHaveBeenCalledTimes(1);
+  });
+
+  it('limits register deadlines to the branch of a branch-bound staff member', async () => {
+    // The test minting helper has no branch; read the same authority with a branch-bound principal.
+    const read = vi.mocked(readTenantAuthority);
+    const descriptor = read.getMockImplementation()!(registerAuthority);
+    read.mockImplementation(() => ({
+      ...descriptor,
+      principal: { userId: 'staff-1', role: 'staff', branchId: 'branch-1', agentId: null },
+    }));
+    const branchAuthority = registerAuthority;
+    const branchSession = {
+      user: { ...staffSession.user, branchId: 'branch-1' },
+    } as ClaimsSession;
+    mocks.query.where.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    await getAssignedStaffClaimAttention(branchSession, branchAuthority, ['claim-1'], now);
+    expect(mocks.query.where).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        conditions: expect.arrayContaining([
+          expect.objectContaining({
+            conditions: expect.arrayContaining([
+              { op: 'eq', left: 'claim.staff_id', right: 'staff-1' },
+              { op: 'eq', left: 'claim.branch_id', right: 'branch-1' },
+            ]),
+          }),
+        ]),
+      })
+    );
+    read.mockImplementation(descriptorOf);
   });
 });

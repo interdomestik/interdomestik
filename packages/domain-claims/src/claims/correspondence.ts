@@ -204,7 +204,6 @@ async function recordOutbound(context: LockedRegister, input: Outbound) {
         claimDocumentId: document.id,
         documentBucket: document.bucket,
         documentFilePath: document.filePath,
-        documentCitationRef: document.citationRef,
         tenantId,
       }))
     );

@@ -22,6 +22,7 @@ vi.mock('@interdomestik/database', () => {
     claimDocuments: {},
     claims: {
       caseLifecycleState: 'claims.case_lifecycle_state',
+      recoveryLifecycleState: 'claims.recovery_lifecycle_state',
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
       userId: 'claims.user_id',
@@ -83,18 +84,8 @@ function runUpdate(category: string, deps = sideEffectDeps()) {
         companyName: 'Auto Insurer',
         currency: 'EUR',
         description: 'The vehicle was damaged in the parking lot.',
-        files: [
-          {
-            bucket: 'claim-evidence',
-            category: 'evidence',
-            classification: 'pii',
-            id: 'upload-1',
-            name: 'incident.pdf',
-            path: 'claims/member-1/unassigned/incident.pdf',
-            size: 128,
-            type: 'application/pdf',
-          },
-        ],
+        // Attachment verification and object locks are covered by the draft-attachment tests.
+        files: [],
         title: 'Vehicle repair claim',
       },
       requestHeaders,
@@ -225,9 +216,7 @@ describe('updateDraftClaimCore', () => {
       { left: 'claims.id', right: 'claim-1' },
       { left: 'claims.user_id', right: 'member-1' },
       { left: 'claims.case_lifecycle_state', right: 'draft' },
-    ]);
-    expect(values).toHaveBeenCalledWith([
-      expect.objectContaining({ claimId: 'claim-1', name: 'incident.pdf', tenantId: 'tenant-1' }),
+      { left: 'claims.recovery_lifecycle_state', right: 'not_started' },
     ]);
   });
 
@@ -237,7 +226,8 @@ describe('updateDraftClaimCore', () => {
 
     await expect(runUpdate('vehicle', deps)).resolves.toEqual({
       success: false,
-      error: 'Only draft claims can be edited',
+      error: 'Claim changed. Refresh and retry.',
+      code: 'CONFLICT',
     });
 
     expect(mocks.dbInsert).not.toHaveBeenCalled();

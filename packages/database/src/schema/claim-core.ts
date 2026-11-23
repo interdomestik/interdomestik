@@ -8,7 +8,6 @@ import {
   text,
   timestamp,
   uniqueIndex,
-  varchar,
 } from 'drizzle-orm/pg-core';
 import type { ClaimCaseLifecycleState, ClaimRecoveryLifecycleState } from '../constants';
 import { user } from './auth';
@@ -43,14 +42,6 @@ export const claims = pgTable(
       .notNull()
       .default('not_started'),
     incidentCountryCode: text('incident_country_code'),
-    otherVehicleCountryCode: text('other_vehicle_country_code'),
-    insuranceProofReference: varchar('insurance_proof_reference', { length: 200 }),
-    outsideHandlingParty: varchar('outside_handling_party', { length: 200 }),
-    coverageVerificationStatus: text('coverage_verification_status')
-      .$type<'not_checked' | 'requested' | 'confirmed_by_party' | 'refused_by_party'>()
-      .notNull()
-      .default('not_checked'),
-    caseFollowUpAt: timestamp('case_follow_up_at', { withTimezone: true, precision: 3 }),
     incidentJurisdiction: text('incident_jurisdiction'),
     recoveryLaw: text('recovery_law'),
     recoveryLegalTenantId: text('recovery_legal_tenant_id').references(() => tenants.id),
@@ -90,7 +81,6 @@ export const claims = pgTable(
     ),
     index('idx_claims_access_tenant').on(table.accessTenantId),
     uniqueIndex('idx_claims_tenant_number').on(table.tenantId, table.claimNumber),
-    uniqueIndex('claim_tenant_id_id_uq').on(table.tenantId, table.id),
     check(
       'claim_case_lifecycle_state_check',
       sql`${table.caseLifecycleState} is null or ${table.caseLifecycleState} in ('draft', 'submitted', 'verification', 'evaluation', 'recovery', 'resolved', 'rejected')`
@@ -112,18 +102,6 @@ export const claims = pgTable(
     check(
       'claim_incident_country_code_check',
       sql`${table.incidentCountryCode} is null or ${table.incidentCountryCode} ~ '^[A-Z]{2}$'`
-    ),
-    check(
-      'claim_other_vehicle_country_code_check',
-      sql`${table.otherVehicleCountryCode} is null or ${table.otherVehicleCountryCode} ~ '^[A-Z]{2}$'`
-    ),
-    check(
-      'claim_insurance_proof_reference_check',
-      sql`${table.insuranceProofReference} is null or ${table.insuranceProofReference} ~ '\\S'`
-    ),
-    check(
-      'claim_coverage_verification_status_check',
-      sql`${table.coverageVerificationStatus} in ('not_checked', 'requested', 'confirmed_by_party', 'refused_by_party')`
     ),
     check(
       'claim_incident_jurisdiction_check',

@@ -54,7 +54,6 @@ const document = {
   id: 'document-1',
   bucket: 'claim-evidence',
   filePath: 'pii/tenants/tenant-1/claims/claim-1/document-1.pdf',
-  citationRef: 'digest-from-row',
 };
 const outboundWithDocument = {
   ...outboundInput,
@@ -171,7 +170,6 @@ describe('correspondence decisions', () => {
             correspondenceId: ids.outbound,
             claimDocumentId: document.id,
             documentFilePath: document.filePath,
-            documentCitationRef: document.citationRef,
           }),
         ],
       }),

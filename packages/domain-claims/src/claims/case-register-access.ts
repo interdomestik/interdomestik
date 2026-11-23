@@ -28,7 +28,7 @@ export type CaseRegisterResult<T extends object> =
   ({ ok: true } & T) | { ok: false; code: CaseRegisterError };
 
 type RegisterMode = 'write' | 'full' | 'summary';
-type RegisterActor = Pick<TenantAuthorityPrincipal, 'userId' | 'role' | 'branchId'>;
+export type RegisterActor = Pick<TenantAuthorityPrincipal, 'userId' | 'role' | 'branchId'>;
 export type LockedRegister = { tx: TenantTransaction; tenantId: string; actorId: string };
 
 export function registerText(maxLength: number) {
@@ -73,6 +73,18 @@ function resolveRegisterActor(
   }
   if (principal.branchId !== (session.user.branchId?.trim() || null)) return null;
   return canEnterRegister(mode, principal) ? { tenantId, actor: principal } : null;
+}
+
+/**
+ * The register admission for the staff queue's register deadlines: the same session-home,
+ * principal and branch checks as a register read, for an assigned staff member only.
+ */
+export function resolveRegisterQueueActor(
+  session: ClaimsSession | null,
+  authority: TenantAuthority | null
+) {
+  const access = resolveRegisterActor(session, authority, 'full');
+  return access?.actor.role === ROLES.staff ? access : null;
 }
 
 function registerCaseWhere(
@@ -199,7 +211,6 @@ export async function lockRegisterDocuments(
       id: claimDocuments.id,
       bucket: claimDocuments.bucket,
       filePath: claimDocuments.filePath,
-      citationRef: claimDocuments.citationRef,
     })
     .from(claimDocuments)
     .where(

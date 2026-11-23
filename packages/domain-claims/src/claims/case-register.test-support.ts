@@ -7,7 +7,14 @@ import type {
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, vi, type Mock } from 'vitest';
 
-type Statement = { kind: string; table?: unknown; where?: SQL; lock?: string; values?: unknown };
+type Statement = {
+  kind: string;
+  table?: unknown;
+  where?: SQL;
+  conflictWhere?: SQL;
+  lock?: string;
+  values?: unknown;
+};
 
 const db: {
   transaction: Mock;
@@ -41,6 +48,7 @@ type Builder = Promise<unknown[]> & {
   values(values: unknown): Builder;
   orderBy(): Builder;
   onConflictDoNothing(): Builder;
+  onConflictDoUpdate(config: { setWhere?: SQL }): Builder;
   returning(): Builder;
 };
 
@@ -74,6 +82,10 @@ function statement(operation: Statement) {
       return query;
     },
     onConflictDoNothing() {
+      return query;
+    },
+    onConflictDoUpdate(config: { setWhere?: SQL }) {
+      operation.conflictWhere = config.setWhere;
       return query;
     },
     returning() {

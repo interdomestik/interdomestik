@@ -2,6 +2,7 @@ import {
   and,
   claimInformationRequestEvidence,
   claimInformationRequests,
+  claimCaseFields,
   claims,
   eq,
   inArray,
@@ -14,6 +15,7 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { resolveRegisterQueueActor, type RegisterActor } from '../claims/case-register-access';
 import { claimLifecycleStatusNotIn } from '../claims/lifecycle-read-sql';
 import type { ClaimsSession } from '../claims/types';
 
@@ -92,23 +94,29 @@ export function deriveAssignedClaimAttention(
   return byClaim;
 }
 
+/**
+ * Register deadlines under the register admission (Astra code r1 B1): the assigned staff member,
+ * the claim's branch when the actor has one, never a draft. The tenant setting of the transaction
+ * and the claim's own RLS bind the rest.
+ */
 function readCaseFollowUps(
   tx: TenantTransaction,
   tenantId: string,
-  staffId: string,
+  actor: RegisterActor,
   claimIds: readonly string[]
 ) {
   return tx
     .select({
       claimId: claims.id,
-      caseDueAt: claims.caseFollowUpAt,
+      caseDueAt: claimCaseFields.caseFollowUpAt,
       // The earliest follow-up of an outbound entry that no inbound reply answers. Outer columns
-      // are written qualified (Drizzle renders interpolated columns unqualified here).
+      // are written qualified (Drizzle renders interpolated columns unqualified in a subquery).
       outboundDueAt: sql<Date | null>`(
         select min(outbound.follow_up_at) from "claim_correspondence" as outbound
         where outbound.tenant_id = "claim"."tenant_id"
           and outbound.claim_id = "claim"."id"
           and outbound.direction = 'outbound'
+          and outbound.follow_up_at is not null
           and not exists (
             select 1 from "claim_correspondence" as correspondence_reply
             where correspondence_reply.tenant_id = outbound.tenant_id
@@ -119,13 +127,18 @@ function readCaseFollowUps(
       )`.mapWith((value: string | Date) => new Date(value)),
     })
     .from(claims)
+    .leftJoin(
+      claimCaseFields,
+      and(eq(claimCaseFields.tenantId, claims.tenantId), eq(claimCaseFields.claimId, claims.id))
+    )
     .where(
       withTenant(
         tenantId,
         claims.tenantId,
         and(
-          inArray(claims.id, claimIds),
-          eq(claims.staffId, staffId),
+          inArray(claims.id, [...claimIds]),
+          eq(claims.staffId, actor.userId),
+          actor.branchId ? eq(claims.branchId, actor.branchId) : undefined,
           claimLifecycleStatusNotIn(['draft'])
         )
       )
@@ -177,8 +190,11 @@ export async function getAssignedStaffClaimAttention(
           eq(claims.staffId, staffId)
         )
       );
-    const followUps = await readCaseFollowUps(tx, tenantId, staffId, claimIds);
     const attention = deriveAssignedClaimAttention(claimIds, rows, now);
+    // Register deadlines only under the register admission; otherwise the queue shows none.
+    const register = resolveRegisterQueueActor(session, authority);
+    if (register?.tenantId !== tenantId) return attention;
+    const followUps = await readCaseFollowUps(tx, tenantId, register.actor, claimIds);
     for (const row of followUps) {
       const item = attention[row.claimId];
       if (row.caseDueAt) recordOverdueFollowUp(item, row.caseDueAt, now, 'case_register');

@@ -28,10 +28,6 @@ export const claimDocuments = pgTable(
     fileType: text('file_type').notNull(),
     fileSize: integer('file_size').notNull(),
     bucket: text('bucket').notNull().default('claim-evidence'),
-    // The database trigger replaces the placeholder on every write.
-    citationRef: text('citation_ref')
-      .notNull()
-      .$defaultFn(() => ''),
     classification: text('classification').notNull().default('pii'),
     category: documentCategoryEnum('category').default('evidence').notNull(),
     uploadedBy: text('uploaded_by')
@@ -42,7 +38,6 @@ export const claimDocuments = pgTable(
   table => [
     index('claim_documents_access_tenant_idx').on(table.accessTenantId),
     uniqueIndex('claim_documents_tenant_claim_id_uq').on(table.tenantId, table.claimId, table.id),
-    uniqueIndex('claim_documents_citation_ref_uq').on(table.citationRef),
   ]
 );
 
