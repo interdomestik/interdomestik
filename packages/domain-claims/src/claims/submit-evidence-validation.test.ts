@@ -88,7 +88,12 @@ it('validates all batch metadata before starting any object validation', async (
   const validateSubmittedClaimFile = vi.fn().mockRejectedValue(new Error('Storage unavailable'));
   const files = [
     buildEvidenceFile(),
-    buildEvidenceFile({ name: 'invalid.txt', type: 'text/plain' }),
+    buildEvidenceFile({
+      id: 'upload-2',
+      name: 'invalid.txt',
+      path: 'pii/tenants/tenant-1/claims/member-1/unassigned/upload-2-invalid.txt',
+      type: 'text/plain',
+    }),
   ];
   await expect(
     submitClaimCore(buildSubmitArgs({ files }), { validateSubmittedClaimFile })

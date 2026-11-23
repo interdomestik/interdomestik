@@ -17,6 +17,7 @@ import { installTargets } from './rules-targets.mjs';
 import { installTrust } from './rules-trust.mjs';
 import { propagate } from './rules-propagate.mjs';
 import { report } from './rules-report.mjs';
+import { proveSchemaAdmission } from './rules-schema-admission.mjs';
 import { scanSeedTlsEntries } from './rules-seed-tls.mjs';
 import { scanFiles } from './rules-scan.mjs';
 import { unitName, unitOf } from './syntax.mjs';
@@ -34,6 +35,7 @@ export function evaluate({
   seedTls = null,
   contracts = CONTRACTS,
   legacyPins = LEGACY_PINS,
+  schemaAdmission = null,
   stateContracts = STATE_CONTRACTS,
   admissions = C1_ADMISSIONS,
   lifetimeRunners = LIFETIME_RUNNERS,
@@ -41,6 +43,8 @@ export function evaluate({
   const violations = [];
   const accepted = [];
   const telemetry = { legacyAccepted: 0, legacySinks: 0, files: 0, contractsUsed: 0 };
+  const versioned = schemaAdmission || legacyPins === LEGACY_PINS ||
+    [...(legacyPins?.values() ?? [])].some(pin => typeof pin === 'string' && pin.startsWith('v2:'));
   const violate = (file, node, sourceFile, rule, detail) => {
     const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
     violations.push({
@@ -57,6 +61,7 @@ export function evaluate({
     graph,
     seedTls,
     legacyPins,
+    schemaAdmission: versioned ? proveSchemaAdmission(schemaAdmission, legacyPins, graph, sources) : null,
     lifetimeRunners,
     sources,
     stateContracts,

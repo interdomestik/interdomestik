@@ -49,4 +49,6 @@ export * from './seed-meta';
 export * from './sponsors';
 export * from './sponsor-handover';
 export * from './sponsor-roster';
+export * from './membership-plan-versions';
+export * from './membership-sales';
 export * from './claim-correspondence';

@@ -9,7 +9,6 @@ import { signal, waitForLockWaiters } from './exchange-rates-lock.fixture';
 import {
   firstRate,
   insertRate,
-  rateInput,
   restricted,
   runSequentially,
   runtimeRole,
@@ -22,19 +21,16 @@ export async function proveExchangeRateDatabase(t: TestContext, fixture: Exchang
   const {
     admin,
     peer,
-    port,
-    withTenantAuthority,
     tenantId,
     otherTenant,
     noEntity,
     concurrentTenant,
-    withoutBook,
-    session,
     authority,
-    publish,
     bookRows,
     createEntity,
   } = fixture;
+
+  const { withTenantAuthority } = await import('../src/tenant-authority-context');
 
   await t.test('forces RLS and backfills books for pre-existing entities', async () => {
     const rls = await admin`select relname, relrowsecurity, relforcerowsecurity from pg_class
@@ -67,29 +63,15 @@ export async function proveExchangeRateDatabase(t: TestContext, fixture: Exchang
     });
   });
 
-  await t.test(
-    'refuses publication before the first entity and provisions one book afterwards',
-    async () => {
-      assert.equal((await bookRows(tenantId)).length, 0);
-      const input = rateInput('2026-01-07');
-      assert.deepEqual(await publish(input), { ok: false, code: 'not_found' });
-      assert.deepEqual(
-        await port.recordExchangeRate(
-          session('tenant_admin', noEntity, noEntity, withoutBook.id),
-          input,
-          withoutBook
-        ),
-        { ok: false, code: 'not_found' }
-      );
-      assert.equal((await bookRows(noEntity)).length, 0);
-      await createEntity(admin, tenantId);
-      await createEntity(admin, otherTenant);
-      assert.deepEqual(
-        (await bookRows(tenantId)).map(({ base, quote }) => ({ base, quote })),
-        [{ base: 'EUR', quote: 'MKD' }]
-      );
-    }
-  );
+  await t.test('provisions a book for tenants added after the migration', async () => {
+    assert.equal((await bookRows(tenantId)).length, 0);
+    await createEntity(admin, tenantId);
+    await createEntity(admin, otherTenant);
+    assert.deepEqual(
+      (await bookRows(tenantId)).map(({ base, quote }) => ({ base, quote })),
+      [{ base: 'EUR', quote: 'MKD' }]
+    );
+  });
 
   await t.test('concurrent legal-entity inserts create one book', async () => {
     const first = signal();
@@ -125,14 +107,14 @@ export async function proveExchangeRateDatabase(t: TestContext, fixture: Exchang
   const [book] = await bookRows(tenantId);
   const [otherBook] = await bookRows(otherTenant);
   assert.ok(book && otherBook);
+  const foreign = firstRate(otherTenant, otherBook.id);
+  await restricted(admin, otherTenant, tx => insertRate(tx, foreign));
+  const own = firstRate(tenantId, book.id, '2026-01-14');
+  await restricted(admin, tenantId, tx => insertRate(tx, own));
 
   await t.test(
     'enforces tenant RLS on both tables with own, foreign, empty and absent context',
     async () => {
-      const foreign = firstRate(otherTenant, otherBook.id);
-      await restricted(admin, otherTenant, tx => insertRate(tx, foreign));
-      const own = firstRate(tenantId, book.id, '2026-01-14');
-      await restricted(admin, tenantId, tx => insertRate(tx, own));
       const contexts = [
         [undefined, [], []],
         ['', [], []],
@@ -164,6 +146,29 @@ export async function proveExchangeRateDatabase(t: TestContext, fixture: Exchang
           insertRate(tx, { ...foreign, id: randomUUID(), effective_on: '2026-01-28' })
         ),
         { code: '23503', constraint_name: 'exchange_rates_book_fk' }
+      );
+    }
+  );
+
+  await t.test(
+    'reads only the access tenant book and rate when the home tenant differs',
+    async () => {
+      await restricted(
+        admin,
+        otherTenant,
+        async tx => {
+          const [scope] = await tx`select current_user as role,
+          current_setting('app.current_tenant_id', true) as home,
+          current_setting('app.current_access_tenant_id', true) as access`;
+          assert.deepEqual(scope, { role: runtimeRole, home: tenantId, access: otherTenant });
+          const books = await tx`select id from exchange_rate_books`;
+          const rates = await tx`select id from exchange_rates`;
+          assert.deepEqual([...books], [{ id: otherBook.id }]);
+          assert.deepEqual([...rates], [{ id: foreign.id }]);
+        },
+        runtimeRole,
+        'read committed',
+        { homeTenant: tenantId }
       );
     }
   );

@@ -31,35 +31,32 @@ export const LEGACY = new Map([
   [`${DB}/db.ts#db`, 'ambient database client'],
 ]);
 
-/**
- * Reviewed kernel contracts of the legacy entries: the digest over every complete workspace module
- * in the runtime import closure of each entry's module (see rules.mjs legacyDigest). A kernel change to the context,
- * transaction lifecycle or ambient client fails the guard until it is reviewed and re-pinned.
- * Owner-approved 2026-11-21 WP-07 rates transition: [main c266f094b, PR-1a exchange-rate schema].
- * The pooler transition (#2054, 2026-11-11) is complete on main and its successor is in slot 0.
- */
+/** Exact reviewed Git identity and per-entry v2 digests of its full kernel closure. */
+export const KERNEL_ANCHOR = Object.freeze({
+  commit: '127ebe483bc075a91aa202c915f04bd25aadf2aa',
+  tree: '09035328e2fcdd0713493cee89f3ccbf8512e107',
+});
 export const LEGACY_PINS = new Map([
-  [
-    `${DB}/tenant.ts#withTenantContext`,
-    Object.freeze([
-      'd5a48cd0122819d13b21c018aa2728d7f675de0d2306b379fbc21330ffe7b5d9',
-      '1d75e1be9ef39be8b7e1fd522f5f62d5e34479a67d2b61af5d6c0d9985ff5c60',
-    ]),
-  ],
-  [
-    `${DB}/tenant.ts#withTenantDb`,
-    Object.freeze([
-      '7a219887513dba5ff0b88241b9926b13c010d51ceaee7a020e4ab1f8dfb2d988',
-      '692e1867c412c7d42112590cbea6a94d11a6e8d0a0832427204bf19cfcf29ba9',
-    ]),
-  ],
-  [
-    `${DB}/db.ts#db`,
-    Object.freeze([
-      '3cbacb145c83aa637e232999b07dd4f10131ba23dec5dc62282c8f5e0a1ad671',
-      '66891cd8aa8f554c2bb6c95204833b02a6b47b756d137db25f4bca9abf2b66ed',
-    ]),
-  ],
+  [`${DB}/tenant.ts#withTenantContext`, 'v2:28386bc3ebe2bad1cb2d8d516ca100a3a5727da907e5c3cf4a75ba698415ab1b'],
+  [`${DB}/tenant.ts#withTenantDb`, 'v2:eaee086a7379cff84171a17d3cf33004bba15a840cb021659a3cd8bb10263c26'],
+  [`${DB}/db.ts#db`, 'v2:9b35f9dc83e37b59bb1e21b63e0f92e7ed4771be2c6a8e0510b622a0ad046cb2'],
+]);
+
+/**
+ * Reviewed retained files whose `.query` receivers are plain data the syntactic origin check cannot
+ * prove. Each is exempt from that check only at this path with these exact bytes; a changed byte,
+ * an unlisted file or a malformed list refuses schema admission. Extending it needs a reviewed
+ * guard source and a ruleset repin.
+ */
+export const NON_CLIENT_QUERY_CONSUMERS = Object.freeze([
+  Object.freeze({
+    path: 'apps/web/src/lib/safe-action.shape.ts',
+    sha256: '472961aebe630bd1ed171ba58d488edf47dd288dc81422d60f8bacdcb9eb4cf4',
+  }),
+  Object.freeze({
+    path: 'apps/web/src/lib/safe-route.core.ts',
+    sha256: '78846d5bf2a64686cf76ad685cd0e53b563b8a5b9af579d7d0e51483a33133c8',
+  }),
 ]);
 
 /** Drivers and client construction (R-d). */

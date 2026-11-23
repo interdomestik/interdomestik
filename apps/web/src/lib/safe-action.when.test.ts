@@ -22,9 +22,28 @@ function define(input: z.ZodType, form = false) {
   return () => (form ? defineFormAction(definition) : defineAction(definition));
 }
 
-// Lead decision after Astra r8 (design addendum 7): a check passes only with zod's own default
-// `when`, on any node, at any depth; a custom `when` could change any value the payload reaches.
+// Length and size checks receive private defaults. Other own when callbacks are refused.
 describe('definition: no check with a custom when callback (addendum 7, r8 B28)', () => {
+  it.each([
+    [
+      'a refine on a scalar wrapper',
+      z.strictObject({
+        note: z
+          .string()
+          .optional()
+          .refine(() => true, withWhen),
+      }),
+    ],
+    ['a scalar refine', z.strictObject({ note: z.string().refine(() => true, withWhen) })],
+    [
+      "a check on a strict object's catchall",
+      z.strictObject({ a: z.string() }).catchall(z.never().refine(() => true, withWhen)),
+    ],
+    ['a format field', z.strictObject({ email: z.email(withWhen) })],
+  ])('refuses %s with a custom when', (_label, schema) => {
+    expect(define(schema)).toThrow(/a check with a custom when callback/);
+  });
+
   it.each([
     ['an array min', z.strictObject({ rows: z.array(row).min(1, withWhen) })],
     ['an array max', z.strictObject({ rows: z.array(row).max(5, withWhen) })],
@@ -41,36 +60,23 @@ describe('definition: no check with a custom when callback (addendum 7, r8 B28)'
       'an array min inside an optional wrapper',
       z.strictObject({ rows: z.array(row).min(1, withWhen).optional() }),
     ],
-    [
-      'a refine on a scalar wrapper',
-      z.strictObject({
-        note: z
-          .string()
-          .optional()
-          .refine(() => true, withWhen),
-      }),
-    ],
     ['a scalar min', z.strictObject({ note: z.string().min(1, withWhen) })],
-    ['a scalar refine', z.strictObject({ note: z.string().refine(() => true, withWhen) })],
-    [
-      "a check on a strict object's catchall",
-      z.strictObject({ a: z.string() }).catchall(z.never().refine(() => true, withWhen)),
-    ],
-    ['a format field', z.strictObject({ email: z.email(withWhen) })],
-  ])('refuses %s with a custom when', (_label, schema) => {
-    expect(define(schema)).toThrow(/a check with a custom when callback/);
+  ])('rebuilds %s with a private default when', (_label, schema) => {
+    expect(define(schema)).not.toThrow();
   });
 
-  it('refuses a file size check with a custom when in a form action', () => {
+  it('rebuilds a file size check with a custom when in a form action', () => {
     const upload = z.strictObject({ file: z.file().max(9, withWhen) });
-    expect(define(upload, true)).toThrow(/at file: a check with a custom when callback/);
+    expect(define(upload, true)).not.toThrow();
   });
 
   it("accepts zod's own default when of size and length checks", () => {
     const sized = z.strictObject({
       rows: z.array(row).min(1).max(5),
+      moreRows: z.array(row).min(1),
       note: z.string().min(1).max(9),
       file: z.file().min(1).max(9),
+      anotherFile: z.file().min(1),
     });
     expect(define(sized, true)).not.toThrow();
   });
@@ -180,21 +186,15 @@ describe('definition: no accessor in a check definition (addendum 9, r10 B28)', 
   });
 });
 
-// Astra r11 B38: a strict object that refers to itself (zod's public getter form) is refused at
-// definition with a definition error, not a stack overflow; a schema reused at sibling keys is not
-// recursive and stays accepted.
+// Astra r11 B38: a strict object with a cyclic shape is refused with a definition error.
+// A schema reused at sibling keys stays accepted.
 describe('definition: a recursive schema (r11 B38)', () => {
-  it('refuses a strict object that refers to itself through a getter', () => {
-    const Tree = z.strictObject({
-      name: z.string(),
-      get children() {
-        return z.array(Tree);
-      },
-    });
-    expect(define(z.strictObject({ tree: Tree }))).toThrow(ActionDefinitionError);
-    expect(define(z.strictObject({ tree: Tree }))).toThrow(
-      'at tree.children[]: a recursive schema'
-    );
+  it('refuses a strict object that refers to itself through an own data field', () => {
+    const shape: Record<string, z.ZodType> = { name: z.string() };
+    const tree = z.strictObject(shape);
+    shape.children = z.array(tree);
+    expect(define(z.strictObject({ tree }))).toThrow(ActionDefinitionError);
+    expect(define(z.strictObject({ tree }))).toThrow('at tree.children[]: a recursive schema');
   });
 
   it('accepts one schema reused at sibling keys', () => {

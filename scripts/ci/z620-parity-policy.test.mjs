@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { resolveGateCommand } from './z620-gate-command-lib.mjs';
 import { validateGateCoverage, validateWorkflowDigests } from './z620-parity-lib.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -18,6 +19,19 @@ test('every non-provider blocking job has known local lane coverage', () => {
   assert.deepEqual(validateGateCoverage(parity, gates), []);
   assert.equal(gates.lanes.database.resourceOwned, true);
   assert.equal(gates.lanes.build.resourceOwned, true);
+});
+
+test('Z620 covers the split PR gate projects and smoke under the same workflow job ID', () => {
+  assert.deepEqual(gates.jobCoverage['.github/workflows/e2e-pr.yml#e2e-runner'], [
+    'database',
+    'e2e-pr',
+  ]);
+  assert.deepEqual(gates.jobCoverage['.github/workflows/e2e-pr.yml#e2e'], ['e2e-pr']);
+  assert.deepEqual(gates.lanes['e2e-pr'].commands, ['e2e-gate-pr', 'e2e-smoke-pr']);
+  assert.deepEqual(resolveGateCommand('e2e-smoke-pr').args, [
+    'scripts/run-e2e-lane.mjs',
+    'pr-smoke',
+  ]);
 });
 
 test('workflow changes fail closed until parity is reviewed', () => {

@@ -12,7 +12,8 @@
     "./log-member": "./src/log-member.ts",
     "./get-lead": "./src/get-lead.ts",
     "./get-member": "./src/get-member.ts",
-    "./map-lead": "./src/map-lead.ts"
+    "./map-lead": "./src/map-lead.ts",
+    "./member-notes": "./src/member-notes/index.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit",
@@ -21,6 +22,7 @@
   },
   "dependencies": {
     "@interdomestik/database": "workspace:*",
+    "@interdomestik/shared-auth": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "nanoid": "^5.1.16",
     "zod": "^4.2.1"

@@ -27,6 +27,8 @@ export const mockEmptyConsentLimit = vi.fn().mockResolvedValue([]);
 export const mockHasActiveMembership = vi.fn();
 export const mockGetActiveSubscription = vi.fn();
 export const mockValidateInitialClaimEvidenceUpload = vi.fn();
+export const mockLockClaimEvidenceObjects = vi.fn();
+export const mockAttachedEvidenceRows = vi.fn();
 
 export function databaseModuleMock() {
   const moduleMock = {
@@ -39,6 +41,7 @@ export function databaseModuleMock() {
         fn({
           insert: () => ({ values: mockDbInsert }),
           select: createClaimActionTxSelect({
+            attachedEvidenceRows: mockAttachedEvidenceRows,
             emptyConsentLimit: mockEmptyConsentLimit,
             paymentLimit: mockTxSelectLimit,
           }),
@@ -127,6 +130,7 @@ export function databaseModuleMock() {
     },
     and: vi.fn(),
     eq: vi.fn(),
+    inArray: vi.fn(),
     sql: (_strings: TemplateStringsArray, ..._values: unknown[]) => 'sql-mock',
   };
   return moduleMock;
@@ -136,6 +140,10 @@ export function tenantDirectoryModuleMock() {
   return {
     readTenantLocaleMetadata: vi.fn().mockResolvedValue({ code: 'MK', countryCode: 'MK' }),
   };
+}
+
+export function claimEvidenceObjectLockModuleMock() {
+  return { lockClaimEvidenceObjects: mockLockClaimEvidenceObjects };
 }
 
 export function claimNumberModuleMock() {
@@ -177,12 +185,20 @@ export function auditModuleMock() {
 }
 
 export function initialClaimEvidenceValidationModuleMock() {
-  return { validateInitialClaimEvidenceUpload: mockValidateInitialClaimEvidenceUpload };
+  return {
+    validateInitialClaimEvidenceUpload: mockValidateInitialClaimEvidenceUpload,
+    // submit.core builds its validator from the session authority; it delegates to the mock above.
+    initialClaimEvidenceValidatorFor:
+      (authority: unknown) => (args: { actorId: string; file: unknown; tenantId: string }) =>
+        mockValidateInitialClaimEvidenceUpload({ authority, ...args }),
+  };
 }
 
 export function resetClaimActionMocks() {
   vi.clearAllMocks();
   mockValidateInitialClaimEvidenceUpload.mockResolvedValue(undefined);
+  mockLockClaimEvidenceObjects.mockResolvedValue(undefined);
+  mockAttachedEvidenceRows.mockResolvedValue([]);
   mockTxSelectLimit.mockResolvedValue([submittedLifecycleCurrentClaim]);
   mockTxUpdateReturning.mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
   mockHasActiveMembership.mockResolvedValue(true);

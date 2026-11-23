@@ -49,10 +49,28 @@ test('ordinary delivery does not require ritual companion PRs or collapse delive
   );
   assert.match(program, /prepared, tested, merged, deployed and user-validated states separately/u);
   assert.match(agents, /prepared, tested, merged, deployed, validated by a user/u);
-  assert.match(agents, /The owner merges and releases/u);
-  assert.match(
-    agents,
-    /No agent tool reaches production, writes to staging, merges or force-pushes/u
+  assert.match(agents, /the lead \(definition, routing, merging: `RULES\.md`, R-01\)/u);
+  assert.match(agents, /The owner releases\./u);
+  assert.match(agents, /No agent tool reaches production, writes to staging or force-pushes\./u);
+  assert.doesNotMatch(agents, /\b(?:agents?|tools?) (?:may|can) merge/iu);
+  // The conditions under which the lead merges bind as written in R-01's passage "Merging by the lead" (RULES.md,
+  // named by AGENTS.md R-01): the whole passage is pinned inside R-01, so moving or trimming it fails.
+  const rules = read('docs/engineering/RULES.md');
+  const r01Start = rules.indexOf('### R-01 ');
+  assert.notEqual(r01Start, -1, 'RULES.md must hold R-01');
+  // R-01 ends at the next Markdown heading of the same or a higher level: an ATX heading of one to three
+  // hashes with up to three leading spaces, or any setext underline (which also ends it early, failing closed).
+  const r01Lines = rules.slice(r01Start).split('\n');
+  const isBoundary = index =>
+    /^ {0,3}#{1,3}(?:[ \t]|$)/u.test(r01Lines[index]) ||
+    /^ {0,3}(?:=+|-+)[ \t]*$/u.test(r01Lines[index]);
+  let r01EndLine = 1;
+  while (r01EndLine < r01Lines.length && !isBoundary(r01EndLine)) r01EndLine += 1;
+  const r01 = r01Lines.slice(0, r01EndLine).join('\n');
+  assert.ok(
+    r01.includes(
+      '- **Merging by the lead** (owner, 2026-11-21: "Bej ti merging" ["You do the merging"]; it amends answer 30). The lead session may merge a PR only when all of these hold on its exact head: every required check is green; `delivery-gate` is green; the verdict of R-01 is YES with no open finding; the tier\'s local verification is recorded (`GATE-EVIDENCE` where the tier needs it); the PR is up to date with `main`. The lead never force-pushes, never bypasses a ruleset and never merges its own unreviewed change. It records the merge in the PR: who merged, the head and the evidence. No other agent merges. Releases, deploys, ruleset repins and the authorizations of R-37 stay with the owner.\n'
+    )
   );
   assert.match(tracker, /No deployment, product readiness or user-acceptance claim/u);
 });

@@ -1,10 +1,8 @@
-import { crmActivities, desc, eq } from '@interdomestik/database';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import { crmActivities, crmLeads, desc, eq } from '@interdomestik/database';
+import { type TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { and } from 'drizzle-orm';
 
+import { activityActorOf, canAccessLead, isLeadActivityRole } from './access';
 import { mapLeadActivitiesToFeedRows } from './map-lead';
 import type { ActivitySession } from './types';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
@@ -27,42 +25,54 @@ export async function getLeadActivitiesCore(params: {
   if (!authority) {
     throw new Error('Unauthorized');
   }
-  const { tenantId } = readTenantAuthority(authority);
-  if (!tenantId) {
-    throw new Error('Missing tenantId');
+
+  // SECURITY: the actor is the authority's principal; deny by default before any read (R-16).
+  const actor = activityActorOf(session, authority);
+  if (!actor) {
+    throw new Error('Unauthorized');
+  }
+  if (!isLeadActivityRole(actor.role)) {
+    throw new Error('Permission denied');
   }
 
   // SECURITY: Cap results
   const effectiveLimit = Math.min(limit ?? MAX_ACTIVITIES, MAX_ACTIVITIES);
 
-  try {
-    const activities = await withTenantAuthority(authority, tx =>
-      tx.query.crmActivities.findMany({
-        where: and(eq(crmActivities.leadId, leadId), eq(crmActivities.tenantId, tenantId)),
-        columns: {
-          agentId: true,
-          completedAt: true,
-          createdAt: true,
-          id: true,
-          leadId: true,
-          scheduledAt: true,
-          summary: true,
-          tenantId: true,
-          type: true,
-        },
-        orderBy: [desc(crmActivities.createdAt)],
-        limit: effectiveLimit,
-        with: {
-          agent: {
-            columns: { id: true, name: true, email: true },
-          },
-        },
-      })
-    );
+  // The lead is read FOR SHARE in the transaction that reads its activities, so the assignment
+  // the check saw cannot change before the read completes (R-17).
+  const activities = await withTenantAuthority(authority, async tx => {
+    const [lead] = await tx
+      .select({ agentId: crmLeads.agentId })
+      .from(crmLeads)
+      .where(and(eq(crmLeads.id, leadId), eq(crmLeads.tenantId, actor.tenantId)))
+      .for('share');
+    // An unknown lead and another agent's lead are refused alike (no existence oracle).
+    if (!lead || !canAccessLead({ id: actor.userId, role: actor.role }, lead.agentId)) {
+      throw new Error('Permission denied');
+    }
 
-    return mapLeadActivitiesToFeedRows(activities);
-  } catch (error) {
-    console.error('Failed to fetch lead activities:', error);
-    return [];
-  }
+    return tx.query.crmActivities.findMany({
+      where: and(eq(crmActivities.leadId, leadId), eq(crmActivities.tenantId, actor.tenantId)),
+      columns: {
+        agentId: true,
+        completedAt: true,
+        createdAt: true,
+        id: true,
+        leadId: true,
+        scheduledAt: true,
+        summary: true,
+        tenantId: true,
+        type: true,
+      },
+      orderBy: [desc(crmActivities.createdAt)],
+      limit: effectiveLimit,
+      with: {
+        agent: {
+          columns: { id: true, name: true, email: true },
+        },
+      },
+    });
+  });
+
+  return mapLeadActivitiesToFeedRows(activities);
 }

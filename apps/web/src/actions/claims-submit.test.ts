@@ -3,8 +3,10 @@ import type { CreateClaimValues } from '@/lib/validators/claims';
 import { describe, expect, it, vi } from 'vitest';
 import { submitClaim } from './claims.core';
 import {
+  mockAttachedEvidenceRows,
   mockDbInsert,
   mockGetActiveSubscription,
+  mockLockClaimEvidenceObjects,
   mockGetSession,
   mockHasActiveMembership,
 } from './claims.test-support';
@@ -105,6 +107,24 @@ describe('Claim Actions', () => {
             uploadedBy: 'user-123',
           }),
         ])
+      );
+      expect(mockLockClaimEvidenceObjects).toHaveBeenCalledWith(expect.anything(), 'tenant_mk', [
+        expect.objectContaining({ bucket: 'claim-evidence', path: validPayload.files[0].path }),
+      ]);
+    });
+
+    it('refuses an evidence object already attached to another claim and inserts no document', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockAttachedEvidenceRows.mockResolvedValue([
+        { bucket: 'claim-evidence', claimId: 'other-claim', filePath: validPayload.files[0].path },
+      ]);
+
+      await expect(submitClaim(validPayload)).resolves.toMatchObject({
+        success: false,
+        code: 'INVALID_PATH',
+      });
+      expect(mockDbInsert).not.toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ filePath: validPayload.files[0].path })])
       );
     });
 

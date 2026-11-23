@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { ADOPTION } from './db-access-adoption.mjs';
+import { LOCK_PROJECTION_ID } from './db-access-lock-projection.mjs';
 import {
   RESOLVER_SNAPSHOT,
   verifyCurrentResolverSnapshot,
@@ -21,6 +22,8 @@ import {
 const predecessor = '18cd1a73b12f589c69934cba862092d857434013';
 // Main before the WP-05 devDependencies: same workspace, lockfile accepted by the previous snapshot.
 const formerMain = 'c266f094b5249903f75e5c4e1b29e52959d30370';
+// Main before the next 16.4.5 upgrade: same-size pair accepted by the previous snapshot.
+const beforeNextUpgrade = 'c775e2db6c3fc083cdd605c7d2047ab25dcc9562';
 const pair = Object.keys(RESOLVER_SNAPSHOT.files);
 const current = new Map(pair.map(file => [file, fs.readFileSync(path.join(rootDir, file))]));
 const previous = new Map(
@@ -49,6 +52,17 @@ test('production snapshot admits exactly the new pair without replacing historic
   assert.equal(ADOPTION.critical.length, 4);
   assert.ok(Object.isFrozen(RESOLVER_SNAPSHOT.files[pair[0]]));
   assert.equal(resolverFile('pnpm-lock.yaml'), false, 'fixture resolver semantics stay unchanged');
+  assert.equal(RESOLVER_SNAPSHOT.files['pnpm-lock.yaml'].projection, LOCK_PROJECTION_ID);
+  assert.equal(RESOLVER_SNAPSHOT.files['pnpm-workspace.yaml'].projection, undefined);
+});
+
+test('the lockfile keeps a size bound before it is read', t => {
+  const bound = RESOLVER_SNAPSHOT.files['pnpm-lock.yaml'].maxBytes;
+  assert.equal(bound, 8 * 1024 * 1024);
+  const root = fixture(t, new Map([...current, ['pnpm-lock.yaml', Buffer.alloc(bound + 1, 0x20)]]));
+  assert.throws(() => verifyCurrentResolverSnapshot(root, ADOPTION), {
+    message: 'incomplete: resolver snapshot size bound exceeded pnpm-lock.yaml',
+  });
 });
 
 test('old pair, mixed pair and same-size metadata tampering are rejected', t => {
@@ -112,9 +126,51 @@ test('the immediately former lockfile with the unchanged workspace is rejected',
       ['pnpm-lock.yaml', formerLock],
     ])
   );
+  // The projection pin compares the canonical projection, not the raw size.
   assert.throws(() => verifyCurrentResolverSnapshot(root, ADOPTION), {
-    message: 'incomplete: resolver snapshot size mismatch pnpm-lock.yaml',
+    message: 'incomplete: resolver snapshot digest mismatch pnpm-lock.yaml',
   });
+});
+
+test('the pair before the next 16.4.5 upgrade and both mixed states are rejected by digest', t => {
+  const before = new Map(
+    pair.map(file => [file, runGit(['-C', rootDir, 'show', `${beforeNextUpgrade}:${file}`])])
+  );
+  const expected = {
+    'pnpm-workspace.yaml': [
+      'cdf45a0f415af8a44caab57f1ec9c0e9cd3d2526c1387dab334b9f243c4b58b8',
+      2105,
+    ],
+    'pnpm-lock.yaml': ['1179aca6d60550aa7b1ab89440f25deb942f6b197afb933c106fcfa4a017dc2d', 713785],
+  };
+  for (const file of pair) {
+    const bytes = before.get(file);
+    assert.equal(bytes.length, expected[file][1], `${file} keeps its size`);
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), expected[file][0]);
+    assert.notDeepEqual(bytes, current.get(file));
+  }
+  for (const [contents, rejected] of [
+    [before, 'pnpm-workspace.yaml'],
+    [
+      new Map([
+        ['pnpm-workspace.yaml', current.get('pnpm-workspace.yaml')],
+        ['pnpm-lock.yaml', before.get('pnpm-lock.yaml')],
+      ]),
+      'pnpm-lock.yaml',
+    ],
+    [
+      new Map([
+        ['pnpm-workspace.yaml', before.get('pnpm-workspace.yaml')],
+        ['pnpm-lock.yaml', current.get('pnpm-lock.yaml')],
+      ]),
+      'pnpm-workspace.yaml',
+    ],
+  ]) {
+    const root = fixture(t, contents);
+    assert.throws(() => verifyCurrentResolverSnapshot(root, ADOPTION), {
+      message: `incomplete: resolver snapshot digest mismatch ${rejected}`,
+    });
+  }
 });
 
 test('missing, symlinked, non-file and case-ambiguous metadata fail closed', t => {
